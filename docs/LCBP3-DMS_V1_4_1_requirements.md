@@ -21,7 +21,7 @@
   - Server: QNAP (Model: TS-473A, RAM: 32GB, CPU: AMD Ryzen V1500B)
   - Containerization: Container Station (Docker & Docker Compose) ใช้ UI ของ Container Station เป็นหลัก ในการ configuration และการรัน docker command
   - Development Environment: VS Code on Windows 11
-  - Domain: np-dms.work, www.np-dms.work
+  - Domain: np-dms.work, <www.np-dms.work>
   - ip: 159.192.126.103
   - Docker Network: ทุก Service จะเชื่อมต่อผ่านเครือข่ายกลางชื่อ lcbp3 เพื่อให้สามารถสื่อสารกันได้
   - Data Storage: /share/dms-data บน QNAP
@@ -584,6 +584,44 @@
   - ต้องปฏิบัติตาม organizational security policies
   - ต้องมี security incident response plan
   - ต้องมี regular security assessments
+
+---
+
+## **10. ข้อกำหนดด้าน Testing Strategy**
+
+### **10.1 Testing Gates แต่ละ Phase**
+
+ทุก Phase ต้องผ่านการทดสอบต่อไปนี้ก่อนดำเนินการ Phase ถัดไป:
+
+#### **10.1.1 Unit Testing Requirements**
+
+- Code coverage อย่างน้อย 80% สำหรับ components ที่พัฒนาใน Phase
+- ทดสอบ business logic ทั้งหมด
+- ทดสอบ error scenarios และ edge cases
+
+#### **10.1.2 Integration Testing Requirements**
+
+- ทดสอบการทำงานร่วมกันของ modules ใน Phase
+- ทดสอบ database operations
+- ทดสอบ external service integrations
+
+#### **10.1.3 Security Testing Requirements**
+
+- ทดสอบ security vulnerabilities
+- ทดสอบ permission และ access control
+- ทดสอบ input validation
+
+#### **10.1.4 Performance Testing Requirements**
+
+- ทดสอบ response time ตามเป้าหมาย
+- ทดสอบภายใต้ load ที่คาดหมาย
+- ทดสอบ memory usage และ resource utilization
+
+### **10.2 Testing Automation**
+
+- ต้องมี automated test pipelines
+- ต้องมี test reports และ metrics
+- ต้องมี regression testing
 
 ---
 

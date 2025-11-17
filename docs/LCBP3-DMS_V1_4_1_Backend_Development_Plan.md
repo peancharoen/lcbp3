@@ -233,14 +233,14 @@ src/
 ### **Phase 0: Tasks**
 
 - **[✅] T0.1 Setup QNAP Container Station**
-  - สร้าง Docker Network: `lcbp3`
-  - Setup docker-compose.yml สำหรับ:
-    - MariaDB (db.np-dms.work)
-    - PHPMyAdmin (pma.np-dms.work)
-    - Redis (cache.np-dms.work)
-    - Elasticsearch (search.np-dms.work)
-    - Backend (backend.np-dms.work)
-    - Nginx Proxy Manager (npm.np-dms.work)
+  - [✅]สร้าง Docker Network: `lcbp3`
+  - [✅]Setup docker-compose.yml สำหรับ:
+    - [✅]MariaDB (db.np-dms.work)
+    - [✅]PHPMyAdmin (pma.np-dms.work)
+    - [ ]Redis (cache.np-dms.work)
+    - [ ]Elasticsearch (search.np-dms.work)
+    - [✅]Backend (backend.np-dms.work)
+    - [✅]Nginx Proxy Manager (npm.np-dms.work)
   - กำหนด Environment Variables ใน docker-compose.yml (ไม่ใช้ .env)
   - **Security:** Setup network segmentation และ firewall rules
   - [ ] **Deliverable:** Services ทั้งหมดรันได้และเชื่อมต่อกันผ่าน Network
@@ -300,6 +300,49 @@ src/
   - Commit Initial Project
   - [ ] **Deliverable:** Code อยู่ใน Version Control
   - **Dependencies:** T0.2 (ต้องมี Project และโครงสร้างพื้นฐานก่อนจะ Commit)
+
+### **Phase 0: Testing - Infrastructure Validation**
+
+#### **T0.T1 Database Connectivity Tests**
+
+- [ ] **Unit Tests:**
+  - [ ] Test database connection configuration
+  - [ ] Test connection pooling settings
+  - [ ] Test connection error handling
+- [ ] **Integration Tests:**
+  - [ ] Test actual database connection
+  - [ ] Test database migrations
+  - [ ] Test seed data loading
+  - [ ] Test backup/restore procedures
+- [ ] **Performance Tests:**
+  - [ ] Test connection acquisition time < 100ms
+  - [ ] Test concurrent connections handling
+- **Exit Criteria:** Database tests 100% passed
+
+#### **T0.T2 Service Connectivity Tests**
+
+- [ ] **Integration Tests:**
+  - [ ] Test Docker network connectivity
+  - [ ] Test inter-service communication
+  - [ ] Test Nginx proxy configuration
+  - [ ] Test SSL certificate setup
+- [ ] **Security Tests:**
+  - [ ] Test firewall rules
+  - [ ] Test port exposure
+  - [ ] Test environment variables security
+- **Exit Criteria:** All services can communicate securely
+
+#### **T0.T3 Project Setup Tests**
+
+- [ ] **Unit Tests:**
+  - [ ] Test NestJS project structure
+  - [ ] Test dependency configurations
+  - [ ] Test build process
+- [ ] **Integration Tests:**
+  - [ ] Test Swagger documentation generation
+  - [ ] Test health check endpoints
+  - [ ] Test error handling setup
+- **Exit Criteria:** Project setup verified and documented
 
 ---
 
@@ -386,6 +429,63 @@ src/
   - [ ] **Security:** Implement data isolation ระหว่าง organizations
   - [ ] **Deliverable:** จัดการโครงสร้างโปรเจกต์ได้
   - [ ] **Dependencies:** T1.1 (Base Entity, Security), T1.2 (สำหรับการป้องกันการเข้าถึง), T0.3 (ต้องเชื่อมต่อกับ project/organization tables)
+
+### **Phase 1: Testing - Core Foundation**
+
+#### **T1.T1 Authentication Test Suite**
+
+- [ ] **Unit Tests (25+ test cases):**
+  - [ ] AuthService.authenticate() - success and failure cases
+  - [ ] AuthService.validateUser() - various user states
+  - [ ] JWT token generation and validation
+  - [ ] Password hashing and verification
+  - [ ] Token refresh mechanism
+- [ ] **Integration Tests (15+ test cases):**
+  - [ ] Complete login/logout flow
+  - [ ] Token expiration handling
+  - [ ] Concurrent session management
+  - [ ] Rate limiting on auth endpoints
+- [ ] **Security Tests (10+ test cases):**
+  - [ ] SQL injection attempts on login
+  - [ ] Brute force attack simulation
+  - [ ] Token tampering attempts
+  - [ ] Session fixation tests
+- [ ] **Performance Tests:**
+  - [ ] Login response time < 500ms under load
+  - [ ] Token validation < 50ms
+- **Exit Criteria:** Authentication system secure and performant
+
+#### **T1.T2 RBAC Test Suite**
+
+- [ ] **Unit Tests (30+ test cases):**
+  - [ ] RbacGuard - all 4 permission levels
+  - [ ] Permission hierarchy logic
+  - [ ] Role-permission mappings
+  - [ ] Scope-based access control
+- [ ] **Integration Tests (20+ test cases):**
+  - [ ] End-to-end permission checks
+  - [ ] Multi-organization access control
+  - [ ] Project/contract scope isolation
+  - [ ] Permission escalation attempts
+- [ ] **Security Tests (15+ test cases):**
+  - [ ] Unauthorized access attempts
+  - [ ] Privilege escalation attempts
+  - [ ] Role manipulation attempts
+- **Exit Criteria:** RBAC system working correctly for all scenarios
+
+#### **T1.T3 User Management Test Suite**
+
+- [ ] **Unit Tests (20+ test cases):**
+  - [ ] User CRUD operations
+  - [ ] Role assignment logic
+  - [ ] Soft delete functionality
+  - [ ] User search and filtering
+- [ ] **Integration Tests (15+ test cases):**
+  - [ ] User creation with role assignment
+  - [ ] User deactivation workflow
+  - [ ] Bulk user operations
+  - [ ] User permission inheritance
+- **Exit Criteria:** User management complete and secure
 
 ---
 
@@ -510,6 +610,64 @@ src/
     - [ ] Compress large audit data
   - [ ] **Deliverable:** JSON details integrated กับทุก modules
 
+### **Phase 2: Testing - Security & File Management**
+
+#### **T2.T1 File Upload Security Test Suite**
+
+- [ ] **Unit Tests (15+ test cases):**
+  - [ ] File type validation (white-list)
+  - [ ] File size validation
+  - [ ] Virus scanning integration
+  - [ ] Checksum generation
+- [ ] **Integration Tests (10+ test cases):**
+  - [ ] Complete file upload flow
+  - [ ] File download with access control
+  - [ ] Concurrent file operations
+  - [ ] File cleanup procedures
+- [ ] **Security Tests (20+ test cases):**
+  - [ ] Malicious file upload attempts
+  - [ ] Path traversal attacks
+  - [ ] File type spoofing
+  - [ ] Access control bypass attempts
+- [ ] **Performance Tests:**
+  - [ ] File upload < 30s for 50MB files
+  - [ ] Concurrent upload handling
+- **Exit Criteria:** File system secure and performant
+
+#### **T2.T2 JSON Schema Test Suite**
+
+- [ ] **Unit Tests (25+ test cases):**
+  - [ ] JSON schema validation
+  - [ ] Schema versioning
+  - [ ] Data transformation
+  - [ ] Default value population
+- [ ] **Integration Tests (15+ test cases):**
+  - [ ] End-to-end JSON processing
+  - [ ] Schema migration scenarios
+  - [ ] Error handling and recovery
+  - [ ] Backward compatibility
+- [ ] **Security Tests (10+ test cases):**
+  - [ ] JSON injection attempts
+  - [ ] Schema manipulation
+  - [ ] Large payload attacks
+- **Exit Criteria:** JSON system robust and secure
+
+#### **T2.T3 Document Numbering Test Suite**
+
+- [ ] **Unit Tests (10+ test cases):**
+  - [ ] Redis locking mechanism
+  - [ ] Number generation logic
+  - [ ] Retry mechanism
+  - [ ] Error scenarios
+- [ ] **Integration Tests (8+ test cases):**
+  - [ ] Concurrent number generation
+  - [ ] Database transaction handling
+  - [ ] Failure recovery
+- [ ] **Performance Tests:**
+  - [ ] Number generation < 100ms under load
+  - [ ] Concurrent request handling
+- **Exit Criteria:** Document numbering system race-condition free
+
 ---
 
 ## **Phase 3: Correspondence & RFA Core (สัปดาห์ที่ 5-6)**
@@ -631,6 +789,59 @@ src/
   - [ ] POST /routing/bulk-action → Process multiple routing steps
   - [ ] **Security:** Implement permission checks สำหรับ routing operations
   - [ ] **Deliverable:** ระบบส่งต่อเอกสารทำงานได้สมบูรณ์
+
+### **Phase 3: Testing - Correspondence & Routing**
+
+#### **T3.T1 Correspondence Test Suite**
+
+- [ ] **Unit Tests (30+ test cases):**
+  - [ ] Correspondence creation with auto-numbering
+  - [ ] Revision management
+  - [ ] Status transitions
+  - [ ] Recipient management
+- [ ] **Integration Tests (25+ test cases):**
+  - [ ] Complete correspondence lifecycle
+  - [ ] File attachment handling
+  - [ ] Reference management
+  - [ ] Search and filtering
+- [ ] **Business Logic Tests (20+ test cases):**
+  - [ ] Workflow state validation
+  - [ ] Permission-based access
+  - [ ] Data validation rules
+  - [ ] Business rule enforcement
+- **Exit Criteria:** Correspondence system handles all business scenarios
+
+#### **T3.T2 Routing Test Suite**
+
+- [ ] **Unit Tests (25+ test cases):**
+  - [ ] Template management
+  - [ ] Step sequencing
+  - [ ] Due date calculation
+  - [ ] Status transitions
+- [ ] **Integration Tests (20+ test cases):**
+  - [ ] Complete routing workflow
+  - [ ] Multi-organization routing
+  - [ ] Deadline management
+  - [ ] Notification triggers
+- [ ] **Edge Case Tests (15+ test cases):**
+  - [ ] Parallel processing scenarios
+  - [ ] Step skipping conditions
+  - [ ] Escalation procedures
+  - [ ] Error recovery
+- **Exit Criteria:** Routing system handles complex workflows
+
+#### **T3.T3 JSON Details Integration Test Suite**
+
+- [ ] **Integration Tests (15+ test cases):**
+  - [ ] RFI details validation and processing
+  - [ ] RFA details for different types
+  - [ ] Transmittal details management
+  - [ ] Routing details in workflows
+- [ ] **Data Migration Tests (10+ test cases):**
+  - [ ] Schema version upgrades
+  - [ ] Data transformation scenarios
+  - [ ] Backward compatibility
+民主- **Exit Criteria:** JSON details integrated across all modules
 
 ---
 
@@ -831,7 +1042,37 @@ src/
 
 **Milestone:** ทดสอบและปรับปรุงประสิทธิภาพพร้อม Security Audit
 
-### **Phase 7: Tasks**
+### **Phase 7: Tasks- Testing Automation & CI/CD**
+
+- [ ] **Setup Test Environment:**
+  - [ ] Dockerized test database
+  - [ ] Test Redis instance
+  - [ ] Mock external services
+  - [ ] Test data management
+- [ ] **CI/CD Pipeline:**
+  - [ ] GitHub Actions workflow
+  - [ ] Automated test execution
+  - [ ] Test reporting and metrics
+  - [ ] Quality gates
+
+- **Test Quality Gates**
+
+```yaml
+# GitHub Actions Quality Gates
+quality_gates:
+  unit_tests:
+    coverage: 80%
+    required: true
+  integration_tests:
+    scenarios: all_core
+    required: true  
+  security_tests:
+    vulnerabilities: 0
+    required: true
+  performance_tests:
+    response_time: 200ms
+    required: true
+```
 
 - **[ ] T7.1 Unit Testing**
   - [ ] เขียน Unit Tests สำหรับ Services สำคัญ:
@@ -908,6 +1149,36 @@ src/
     - [ ] Implement Pagination ทุก List Endpoint
   - [ ] **Deliverable:** Response Time < 200ms (90th percentile)
   - [ ] **Dependencies:** T7.4 (ผลจาก Performance Testing จะบอกว่าจุดไหนต้อง Optimization)
+
+### 📊 **Testing Metrics & Exit Criteria**
+
+ **แต่ละ Phase ต้องผ่าน Metrics เหล่านี้:**
+
+#### **Phase Completion Metrics**
+
+- [ ] **Code Quality Metrics**
+  - [ ] Unit test coverage: ≥ 80%
+  - [ ] Integration test coverage: 100% core scenarios
+  - [ ] Static analysis: 0 critical issues
+  - [ ] Code duplication: < 5%
+
+- [ ] **Performance Metrics**
+  - [ ] API response time: < 200ms (90th percentile)
+  - [ ] Database query performance: < 100ms
+  - [ ] Memory usage: Within limits
+  - [ ] Concurrent users: Meets targets
+
+- [ ] **Security Metrics**
+  - [ ] Security vulnerabilities: 0
+  - [ ] Authentication tests: 100% passed
+  - [ ] Authorization tests: 100% passed
+  - [ ] Data validation tests: 100% passed
+
+- [ ] **Business Metrics**
+  - [ ] Core workflows: 100% tested
+  - [ ] Edge cases: Covered
+  - [ ] Error scenarios: Handled appropriately
+  - [ ] User acceptance: Meets requirements
 
 ---
 

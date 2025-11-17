@@ -72,6 +72,58 @@
 * จำลอง (Mock) การพึ่งพาภายนอก (external dependencies)
 * เพิ่ม **acceptance tests** ต่อโมดูลโดยใช้รูปแบบ Given–When-Then
 
+### **Testing Strategy โดยละเอียด**
+
+* **Test Pyramid Structure**
+
+      /\
+     /  \        E2E Tests (10%)
+    /____\       Integration Tests (20%)
+   /      \      Unit Tests (70%)
+  /________\
+
+* **Testing Tools Stack**
+
+  ```typescript
+  // Backend Testing Stack
+  const backendTesting = {
+    unit: ['Jest', 'ts-jest', '@nestjs/testing'],
+    integration: ['Supertest', 'Testcontainers', 'Jest'],
+    e2e: ['Supertest', 'Jest', 'Database Seeds'],
+    security: ['Jest', 'Custom Security Test Helpers'],
+    performance: ['Jest', 'autocannon', 'artillery']
+  };
+
+  // Frontend Testing Stack  
+  const frontendTesting = {
+    unit: ['Vitest', 'React Testing Library'],
+    integration: ['React Testing Library', 'MSW'],
+    e2e: ['Playwright', 'Jest'],
+    visual: ['Playwright', 'Loki']
+  };
+
+  ```
+
+* **Test Data Managemen**
+
+  ```typescript
+  // Test Data Factories
+  interface TestDataFactory {
+    createUser(overrides?: Partial<User>): User;
+    createCorrespondence(overrides?: Partial<Correspondence>): Correspondence;
+    createRoutingTemplate(overrides?: Partial<RoutingTemplate>): RoutingTemplate;
+  }
+
+  // Test Scenarios
+  const testScenarios = {
+    happyPath: 'Normal workflow execution',
+    edgeCases: 'Boundary conditions and limits',
+    errorConditions: 'Error handling and recovery',
+    security: 'Authentication and authorization',
+    performance: 'Load and stress conditions'
+  };
+  ```
+
 ## 🏗️**3. แบ็กเอนด์ (NestJS) (Backend (NestJS))**
 
 ### **3.1 หลักการ**
@@ -1002,6 +1054,458 @@ export class JsonSchemaController {
   }
 }
 ```
+
+* **Correspondence Revision Details**
+  * Generic Correspondence Details
+
+  ```typescript
+  {
+    "metadata": {
+      "version": "1.0",
+      "type": "CORRESPONDENCE",
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    },
+    "content": {
+      "subject": "เรื่องขออนุญาตดำเนินงาน",
+      "description": "รายละเอียดเพิ่มเติมเกี่ยวกับเอกสาร",
+      "priority": "HIGH",
+      "confidentiality": "INTERNAL",
+      "references": [
+        {
+          "type": "RELATED",
+          "correspondence_id": 123,
+          "description": "เอกสารเกี่ยวข้อง"
+        }
+      ]
+    },
+    "attachments_metadata": {
+      "main_documents": [
+        {
+          "attachment_id": 456,
+          "filename": "main_document.pdf",
+         "description": "เอกสารหลัก"
+       }
+     ],
+     "supporting_documents": [
+       {
+         "attachment_id": 457,
+          "filename": "supporting_data.xlsx",
+          "description": "ข้อมูลประกอบ"
+       }
+     ]
+    }
+  }
+  ```
+
+  * RFI (Request for Information) Details
+
+  ```typescript
+  {
+   "metadata": {
+     "version": "1.0",
+     "type": "RFI",
+     "rfi_category": "TECHNICAL",
+     "urgency": "NORMAL"
+   },
+   "questions": [
+     {
+       "question_id": 1,
+       "question_text": "ต้องการทราบรายละเอียด specification ของ material",
+       "reference_drawing": "DRG-2024-001",
+       "response_required": true,
+       "deadline": "2024-01-25T17:00:00Z"
+     },
+     {
+       "question_id": 2,
+       "question_text": "ขอทราบวิธีการติดตั้ง",
+       "response_required": false,
+       "clarification_needed": true
+     }
+   ],
+   "technical_details": {
+     "discipline": "CIVIL",
+     "related_drawings": ["DRG-2024-001", "DRG-2024-002"],
+     "specification_references": ["SPEC-CIV-001", "SPEC-CIV-005"]
+   }
+  }
+  ```
+
+  * Transmittal Details
+
+  ```typescript
+  {
+   "metadata": {
+     "version": "1.0",
+     "type": "TRANSMITTAL",
+     "purpose": "FOR_APPROVAL",
+     "transmittal_category": "SHOP_DRAWING"
+   },
+   "items": [
+     {
+       "item_number": 1,
+       "correspondence_id": 123,
+       "description": "Shop Drawing - Structural Plan",
+       "revision": "A",
+       "quantity": 3,
+       "remarks": "สำหรับตรวจสอบและอนุมัติ"
+     },
+     {
+       "item_number": 2,
+       "correspondence_id": 124,
+       "description": "Calculation Sheet",
+       "revision": "0",
+       "quantity": 2,
+       "remarks": "ประกอบการพิจารณา"
+     }
+   ],
+   "delivery_info": {
+     "method": "ELECTRONIC",
+     "carrier": null,
+     "tracking_number": null,
+     "expected_delivery": "2024-01-16T09:00:00Z"
+   }
+  }
+  ```
+
+* **Routing Details**
+  * Routing Template Details
+
+  ```typescript
+  {
+  "metadata": {
+    "version": "1.0",
+    "type": "ROUTING_TEMPLATE",
+    "scope": "PROJECT_SPECIFIC",
+    "applicable_projects": ["LCBP3", "LCBP3-SUB1"],
+    "created_by": 101,
+    "last_modified": "2024-01-10T14:20:00Z"
+  },
+  "workflow_rules": {
+    "allow_parallel_processing": false,
+    "allow_step_skipping": true,
+    "require_approval_before_next": true,
+    "escalation_rules": {
+      "overdue_action": "NOTIFY_SUPERVISOR",
+      "overdue_days": 3,
+      "escalation_recipients": [201, 202]
+    }
+  },
+  "step_configurations": [
+    {
+      "sequence": 1,
+      "conditional_logic": {
+        "condition": "DOCUMENT_TYPE == 'RFA'",
+        "action": "AUTO_ASSIGN_TO_PROJECT_MANAGER"
+      },
+      "auto_actions": {
+        "on_receive": "CALCULATE_DUE_DATE",
+        "on_approve": "NOTIFY_NEXT_STEP",
+        "on_reject": "RETURN_TO_ORIGINATOR"
+      }
+    }
+  ]
+  }
+
+  ```
+
+* Routing Instance Details
+
+  ```typescript
+  {
+  "metadata": {
+    "version": "1.0",
+    "type": "ROUTING_INSTANCE",
+    "template_id": 15,
+    "initiated_by": 101,
+    "started_at": "2024-01-15T10:30:00Z"
+  },
+  "current_status": {
+    "current_step": 2,
+    "overall_progress": 50,
+    "estimated_completion": "2024-01-22T17:00:00Z",
+    "blocked_reason": null
+  },
+  "step_history": [
+    {
+      "step_sequence": 1,
+      "organization_id": 301,
+      "assigned_to": 201,
+      "assigned_at": "2024-01-15T10:30:00Z",
+      "status": "COMPLETED",
+      "completed_at": "2024-01-16T09:15:00Z",
+      "action_taken": "APPROVED",
+      "comments": "ตรวจสอบแล้วเห็นควรดำเนินการต่อ",
+      "processing_time_hours": 22.75,
+      "attachments_added": [501, 502]
+    },
+    {
+      "step_sequence": 2,
+      "organization_id": 302,
+      "assigned_to": null,
+      "assigned_at": "2024-01-16T09:15:00Z",
+      "status": "IN_PROGRESS",
+      "due_date": "2024-01-19T17:00:00Z",
+      "time_remaining_hours": 72,
+      "reminders_sent": 0
+    }
+  ],
+  "performance_metrics": {
+    "total_processing_time": 22.75,
+    "average_step_time": 22.75,
+    "steps_completed": 1,
+    "steps_pending": 2,
+    "on_track": true
+  }
+  }
+  ```
+
+* Routing Step Action Details
+
+  ```typescript
+  {
+  "metadata": {
+    "version": "1.0",
+    "type": "ROUTING_ACTION",
+    "action_type": "APPROVE_WITH_COMMENTS",
+    "performed_by": 201,
+    "performed_at": "2024-01-16T09:15:00Z"
+  },
+  "action_details": {
+    "decision": "APPROVED",
+    "approval_code": "1A",
+    "conditions": [
+      {
+        "condition_id": 1,
+        "description": "ต้องส่งแบบแก้ไขก่อนเริ่มงาน",
+        "deadline": "2024-01-20T17:00:00Z"
+      }
+    ],
+    "remarks": "แบบแปลนถูกต้องตามข้อกำหนด แต่ต้องแก้ไขรายละเอียดการติดตั้ง"
+  },
+  "technical_review": {
+    "compliance_status": "COMPLIANT",
+    "exceptions": [
+      {
+        "item": "Material Specification",
+        "issue": "ไม่ได้ระบุ brand ที่ต้องการ",
+        "severity": "LOW",
+        "recommendation": "เพิ่มรายละเอียด brand ที่อนุญาต"
+      }
+    ],
+    "reviewer_comments": "โดยรวมเป็นไปตามข้อกำหนดของโครงการ"
+  },
+  "attachments": {
+    "review_documents": [503],
+    "reference_standards": ["ASTM-A36", "JIS-G3101"]
+  },
+  "next_steps": {
+    "auto_assign_to": 202,
+    "required_actions": ["UPDATE_DRAWING", "RESUBMIT"],
+    "deadline_extension_days": 5
+  }
+  }
+
+  ```
+
+* **Audit & Security Details**
+
+  * Audit Log Details
+
+  ```typescript
+  {
+  "metadata": {
+    "version": "1.0",
+    "type": "AUDIT_LOG",
+    "security_level": "SENSITIVE"
+  },
+  "action_context": {
+    "ip_address": "192.168.1.100",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "session_id": "sess_abc123def456",
+    "request_id": "req_789ghi012jkl"
+  },
+  "changes_made": {
+    "before": {
+      "status": "DRAFT",
+      "title": "ร่างเอกสารขออนุมัติ"
+    },
+    "after": {
+      "status": "SUBMITTED", 
+      "title": "เอกสารขออนุมัติแบบก่อสร้าง"
+    },
+    "fields_modified": ["status", "title"]
+  },
+  "security_metadata": {
+    "authentication_method": "JWT",
+    "permissions_checked": ["correspondence.update", "workflow.submit"],
+    "risk_level": "LOW",
+    "compliance_checked": true
+  }
+  }
+
+  ```
+
+  * File Upload Security Details
+
+  ```typescript
+  {
+  "metadata": {
+    "version": "1.0",
+    "type": "FILE_SECURITY_SCAN",
+    "scan_timestamp": "2024-01-15T10:35:22Z"
+  },
+  "scan_results": {
+    "virus_scan": {
+      "engine": "ClamAV",
+      "version": "1.0.1",
+      "status": "CLEAN",
+      "signatures": "20240115001",
+      "scan_duration_ms": 245
+    },
+    "file_validation": {
+      "expected_type": "application/pdf",
+      "detected_type": "application/pdf",
+      "file_size_bytes": 2547896,
+      "checksum_sha256": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234",
+      "validation_passed": true
+    },
+    "security_assessment": {
+      "risk_level": "LOW",
+      "threats_detected": [],
+      "recommendations": ["None"]
+    }
+  },
+  "access_control": {
+    "uploaded_by": 101,
+    "organization_id": 301,
+    "allowed_roles": ["VIEWER", "EDITOR", "DOCUMENT_CONTROL"],
+    "download_count": 0,
+    "last_accessed": null
+  }
+  }
+
+  ```
+
+* **Reporting & Analytics Details**
+
+  * Correspondence Statistics
+
+  ```typescript
+  {
+  "metadata": {
+    "version": "1.0",
+    "type": "CORRESPONDENCE_STATS",
+    "period": "MONTHLY",
+    "generated_at": "2024-01-31T23:59:59Z"
+  },
+  "summary": {
+    "total_correspondences": 156,
+    "new_this_period": 45,
+    "closed_this_period": 38,
+    "outstanding": 67
+  },
+  "by_type": {
+    "RFA": {
+      "count": 89,
+      "approval_rate": 72.5,
+      "average_processing_days": 12.3
+    },
+    "RFI": {
+      "count": 45,
+      "response_rate": 95.6,
+      "average_response_hours": 48.2
+    },
+    "LETTER": {
+      "count": 22,
+      "action_required": 15,
+      "pending_actions": 8
+    }
+  },
+  "performance_metrics": {
+    "on_time_completion_rate": 78.4,
+    "average_cycle_time_days": 8.7,
+    "escalation_count": 12,
+    "sla_violations": 5
+  }
+  }
+
+  ```
+
+* **Usage Guidelines**
+  * Schema Validation Rules
+
+  ```typescript
+  {
+  "validation_rules": {
+    "required_fields": ["metadata.version", "metadata.type"],
+    "version_control": {
+      "current_version": "1.0",
+      "backward_compatible": true
+    },
+    "size_limits": {
+      "max_json_size_kb": 50,
+      "max_array_elements": 1000
+    },
+    "data_types": {
+      "timestamps": "ISO8601",
+      "numbers": "integer_or_float",
+      "enums": "predefined_values"
+    }
+  }
+  }
+  ```
+
+  * Example TypeScript Interfaces
+
+  ```typescript
+  interface CorrespondenceDetails {
+  metadata: {
+    version: string;
+    type: string;
+    created_at: string;
+    updated_at: string;
+  };
+  content: {
+    subject: string;
+    description?: string;
+    priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+    confidentiality: 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL';
+    references?: Array<{
+      type: string;
+      correspondence_id: number;
+      description: string;
+    }>;
+  };
+  }
+
+  interface RoutingInstanceDetails {
+  metadata: {
+    version: string;
+    type: string;
+    template_id: number;
+    initiated_by: number;
+    started_at: string;
+  };
+  current_status: {
+    current_step: number;
+    overall_progress: number;
+    estimated_completion: string;
+    blocked_reason: string | null;
+  };
+  step_history: Array<{
+    step_sequence: number;
+    organization_id: number;
+    assigned_to: number | null;
+    assigned_at: string;
+    status: string;
+    completed_at?: string;
+    action_taken?: string;
+    comments?: string;
+    processing_time_hours?: number;
+  }>;
+  }
+  ```
 
 ## 🧩**12. การปรับปรุงที่แนะนำ (สำหรับอนาคต) (Recommended Enhancements (Future))**
 
