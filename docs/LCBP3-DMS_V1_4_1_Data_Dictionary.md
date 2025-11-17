@@ -1,4 +1,4 @@
-# **ตารางฐานข้อมูล (Data Dictionary) - LCBP3-DMS (V1.4.0)**
+# **ตารางฐานข้อมูล (Data Dictionary) - LCBP3-DMS (V1.4.1)**
 
 เอกสารนี้สรุปโครงสร้างตาราง, Foreign Keys (FK), และ Constraints ที่สำคัญทั้งหมดในฐานข้อมูล LCBP3-DMS (v1.4.0) เพื่อใช้เป็นเอกสารอ้างอิงสำหรับทีมพัฒนา Backend (NestJS) และ Frontend (Next.js) โดยอิงจาก Requirements และ SQL Script ล่าสุด [GLM-4.6]
 
@@ -623,8 +623,9 @@
 | template_name | VARCHAR(255) | NOT NULL                    | ชื่อของแม่แบบ เช่น "เสนอโครงการ", "ขออนุมัติจัดซื้อ" |
 | description   | TEXT         | NULL                        | คำอธิบายรายละเอียดเกี่ยวกับแม่แบบนี้ |
 | project_id    | INT          | NULL                        | ID ของโครงการที่แม่แบบนี้สังกัดอยู่ (ถ้ามี) **ค่า NULL หมายถึง** เป็น "แม่แบบทั่วไป" ที่สามารถใช้กับทุกโครงการได้ |
-| created_a     | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP | วันที่และเวลาที่สร้างแม่แบบนี้ |
+| created_at     | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP | วันที่และเวลาที่สร้างแม่แบบนี้ |
 | updated_at    | TIMESTAMP    | NOT NULL,`DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | วันที่และเวลาที่แก้ไขข้อมูลในแม่แบบนี้ล่าสุด |
+| is_active    | BOOLEAN      | DEFAULT TRUE| สถานะใช้งาน |
 
 **Indexes**:
 
@@ -634,29 +635,6 @@
 
 - fk_crt_project: อ้างอิงไปยัง projects(id)
 - ON DELETE CASCAD`: ถ้าโครงการ (projects) ถูกลบ แม่แบบที่เกี่ยวข้องกับโครงการนั้นๆ จะถูกลบไปด้วยทั้งหมด
-
----
-
-### 3.10. ตาราง correspondence_status_transitions
-
-**Purpose**: ตารางนี้ใช้กำหนดกฎ (State Machine) ว่าสถานะใดสามารถเปลี่ยนไปเป็นสถานะใดได้บ้าง โดยขึ้นอยู่กับประเภทของหนังสือ เพื่อควบคุมการไหลของสถานะให้ถูกต้องตามข้อบังคับ
-
-| Column Name    | Data Type | Constraints | Description                                       |
-| -------------- | --------- | ----------- | ------------------------------------------------- |
-| type_id        | INT       | PRIMARY KEY | ID ของประเภทหนังสือ (เช่น หนังสือภายใน, หนังสือภายนอก)  |
-| from_status_id | INT       | PRIMARY KEY | ID ของสถานะต้นทาง (เช่น ร่าง)                        |
-| to_status_id   | INT       | PRIMARY KEY | ID ของสถานะปลายทาง (เช่น รออนุมัติ)                   |
-
-**คีย์หลัก (Primary Key):**
-
-- (type_id, from_status_id, to_status_id)`: คีย์หลักแบบประกอบ ทำให้แน่ใจว่าแต่ละประเภทหนังสือ การเปลี่ยนจากสถานะหนึ่งไปอีกสถานะหนึ่งจะซ้ำกันไม่ได้
-
-**ความสัมพันธ์ Foreign Key:**
-
-- fk_cst_type : อ้างอิงไปยัง correspondence_types(id)
-- fk_cst_from : อ้างอิงไปยัง correspondence_status(id)
-- fk_cst_to : อ้างอิงไปยัง correspondence_status(id)
-- ไม่มีการกำหนด ON DELETE จึงเป็นค่าเริ่มต้น RESTRICT หมายความว่า จะลบประเภทหนังสือหรือสถานะไม่ได้ ถ้ายังมีการใช้งานอยู่ในตารางนี้
 
 ---
 
@@ -671,6 +649,7 @@
 | sequence | INT | NOT NULL | ลำดับของขั้นตอน (1, 2, 3, ...) |
 | to_organization_id | INT | NOT NULL | ID ขององค์กรที่เป็นผู้รับในขั้นตอนนี้ |
 | step_purpose | ENUM | NOT NULL,DEFAULT FOR_REVIEW | วัตถุประสงค์ของการส่งต่อในขั้นตอนนี้ **ค่าที่เป็นไปได้:** [FOR_APPROVAL: เพื่ออนุมัติ, FOR_REVIEW: เพื่อตรวจสอบ/พิจารณา, FOR_INFORMATION: เพื่อทราบ] |
+| expected_days  | INT       | NULL        | วันที่คาดหวัง |
 
 **Indexes**:
 
@@ -721,6 +700,29 @@
 - ON DELETE CASCADE: ถ้าองค์กรผู้รับถูกลบ รายการส่งต่อนี้จะถูกลบ
 - fk_crs_processed_by_user: อ้างอิงไปยัง users(user_id)
 - ON DELETE SET NULL: ถ้าผู้ใช้ถูกลบ ค่า processed_by_user_id จะถูกเปลี่ยนเป็น NULL เพื่อรักษาประวัติการดำเนินการไว้
+
+---
+
+### 3.12 ตาราง correspondence_status_transitions
+
+**Purpose**: ตารางนี้ใช้กำหนดกฎ (State Machine) ว่าสถานะใดสามารถเปลี่ยนไปเป็นสถานะใดได้บ้าง โดยขึ้นอยู่กับประเภทของหนังสือ เพื่อควบคุมการไหลของสถานะให้ถูกต้องตามข้อบังคับ
+
+| Column Name    | Data Type | Constraints | Description                                       |
+| -------------- | --------- | ----------- | ------------------------------------------------- |
+| type_id        | INT       | PRIMARY KEY | ID ของประเภทหนังสือ (เช่น หนังสือภายใน, หนังสือภายนอก)  |
+| from_status_id | INT       | PRIMARY KEY | ID ของสถานะต้นทาง (เช่น ร่าง)                        |
+| to_status_id   | INT       | PRIMARY KEY | ID ของสถานะปลายทาง (เช่น รออนุมัติ)                   |
+
+**คีย์หลัก (Primary Key):**
+
+- (type_id, from_status_id, to_status_id)`: คีย์หลักแบบประกอบ ทำให้แน่ใจว่าแต่ละประเภทหนังสือ การเปลี่ยนจากสถานะหนึ่งไปอีกสถานะหนึ่งจะซ้ำกันไม่ได้
+
+**ความสัมพันธ์ Foreign Key:**
+
+- fk_cst_type : อ้างอิงไปยัง correspondence_types(id)
+- fk_cst_from : อ้างอิงไปยัง correspondence_status(id)
+- fk_cst_to : อ้างอิงไปยัง correspondence_status(id)
+- ไม่มีการกำหนด ON DELETE จึงเป็นค่าเริ่มต้น RESTRICT หมายความว่า จะลบประเภทหนังสือหรือสถานะไม่ได้ ถ้ายังมีการใช้งานอยู่ในตารางนี้
 
 ---
 
@@ -2067,11 +2069,11 @@
 **Columns**:
 
 - correspondence_id, correspondence_number, correspondence_type_id/code/name
-- project_id/code/name
-- originator_id/code/name
+- project_id, project_code, project_iname
+- organization_id, organization_code, organization_name
 - revision_id, revision_number, revision_label
 - title, document_date, issued_date, received_date, due_date
-- correspondence_status_id/code/name
+- correspondence_status_id, correspondence_status_code, correspondence_status_name
 - created_by, created_by_username, revision_created_at
 
 **Filters**:
@@ -2095,14 +2097,14 @@
 
 **Columns**:
 
-- rfa_id, rfa_type_id/code/name
+- rfa_id, rfa_type_id, rfa_type_code, rfa_type_name
 - correspondence_id, correspondence_number
-- project_id/code/name
-- originator_id/name
+- project_id, project_code, project_iname
+- organization_id, organization_name
 - revision_id, revision_number, revision_label
 - title, document_date, issued_date, received_date, approved_date
-- rfa_status_code_id/code/name
-- rfa_approve_code_id/code/name
+- rfa_status_code_id, rfa_status_code, rfa_status_name
+- rfa_approve_code_id, rfa_approve_code, rfa_approve_code_name
 - created_by, created_by_username, revision_created_at
 
 **Filters**:
@@ -2125,9 +2127,9 @@
 
 **Columns**:
 
-- contract_id/code/name
-- project_id/code/name
-- organization_id/code/name
+- contract_id, contract_code, contract_name
+- project_id, project_code, project_iname
+- organization_id, organization_code, organization_name
 - role_in_contract
 
 **Business Rules**:
@@ -2147,9 +2149,9 @@
 
 - routing_id, circulation_id, circulation_no, circulation_subject
 - correspondence_id, correspondence_number
-- project_id/code/name
+- project_id, project_code, project_name
 - user_id, username, first_name, last_name
-- organization_id/name
+- organization_id, organization_name
 - step_number, task_status, comments
 - completed_at, assigned_at, circulation_created_at
 
@@ -2226,7 +2228,7 @@ WHERE user_id = ?
 
 - document_type (CORRESPONDENCE, CIRCULATION, SHOP_DRAWING, CONTRACT_DRAWING)
 - document_id, document_number
-- project_id/code/name
+- project_id, project_code, project_name
 - attachment_count, latest_attachment_date
 
 **Business Rules**:
@@ -2244,9 +2246,9 @@ WHERE user_id = ?
 
 **Columns**:
 
-- project_id/code/name
-- correspondence_type_id/code/name
-- status_id/code/name
+- project_id, project_code, project_name
+- correspondence_type_id, correspondence_type_code, correspondence_type_name
+- status_id, status_code, status_name
 - document_count, revision_count
 
 **Business Rules**:
@@ -2537,7 +2539,7 @@ All seed users have password: `password123`
 ### Query Optimization
 
 1. **Use Indexed Columns**: WHERE, JOIN, ORDER BY clauses
-2. **Avoid SELECT \***: Specify needed columns
+2. **Avoid SELECT**: Specify needed columns
 3. **Use Views**: For complex, frequently-used queries
 4. **Limit Result Sets**: Use LIMIT and pagination
 5. **Analyze Slow Queries**: Enable slow query log
