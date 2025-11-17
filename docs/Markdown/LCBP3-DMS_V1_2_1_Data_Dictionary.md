@@ -1,0 +1,777 @@
+---
+
+# **สรุปตารางฐานข้อมูล (Data Dictionary) - LCBP3-DMS (V1.2.1)**
+
+เอกสารนี้สรุปโครงสร้างตาราง, Foreign Keys (FK), และ Constraints ที่สำคัญทั้งหมดในฐานข้อมูล LCBP3-DMS (v1.2.0) เพื่อใช้เป็นเอกสารอ้างอิงสำหรับทีมพัฒนา Backend (NestJS) และ Frontend (Next.js)
+
+## **1\. 🏢 Core & Master Data (องค์กร, โครงการ, สัญญา)**
+
+#### **1.1. organization\_roles**
+
+ตาราง Master เก็บประเภทบทบาทขององค์กร (เช่น OWNER, CONTRACTOR)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| role\_name | VARCHAR(20) | UK | ชื่อบทบาท (OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD PARTY) |
+
+* **Unique Keys (UK):** ux\_roles\_name (role\_name)
+
+#### **1.2. organizations**
+
+ตาราง Master เก็บข้อมูลองค์กรทั้งหมดที่เกี่ยวข้องในระบบ
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| organization\_code | VARCHAR(20) | UK | รหัสองค์กร |
+| organization\_name | VARCHAR(255) | | ชื่อองค์กร |
+| role\_id | INT | FK | บทบาทขององค์กร (FK \-> organization\_roles(id)) |
+| is\_active | BOOLEAN | | สถานะการใช้งาน |
+
+* **Foreign Keys (FK):**
+    * role\_id \-> organization\_roles(id) (ON DELETE SET NULL)
+* **Unique Keys (UK):** ux\_organizations\_code (organization\_code)
+
+#### **1.3. projects**
+
+ตาราง Master เก็บข้อมูลโครงการ (เช่น LCBP3C1, LCBP3C2)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| project\_code | VARCHAR(50) | UK | รหัสโครงการ |
+| project\_name | VARCHAR(255) | | ชื่อโครงการ |
+| parent\_project\_id | INT | FK | รหัสโครงการหลัก (ถ้ามี) (FK \-> projects(id)) |
+| contractor\_organization\_id | INT | FK | รหัสองค์กรผู้รับเหมา (ถ้ามี) (FK \-> organizations(id)) |
+| is\_active | TINYINT(1) | | สถานะการใช้งาน |
+
+* **Foreign Keys (FK):**
+    * parent\_project\_id \-> projects(id) (ON DELETE SET NULL)
+    * contractor\_organization\_id \-> organizations(id) (ON DELETE SET NULL)
+* **Unique Keys (UK):** uq\_pro\_code (project\_code)
+
+#### **1.4. contracts**
+
+ตาราง Master เก็บข้อมูลสัญญา
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| contract\_code | VARCHAR(50) | UK | รหัสสัญญา |
+| contract\_name | VARCHAR(255) | | ชื่อสัญญา |
+| description | TEXT | | คำอธิบายสัญญา |
+
+* **Unique Keys (UK):** ux\_contracts\_code (contract\_code)
+
+#### **1.5. project\_parties (ตารางเชื่อม)**
+
+ตารางเชื่อมความสัมพันธ์ระหว่าง โครงการ, องค์กร, และบทบาท (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| project\_id | INT | **PK**, FK | ID ของโครงการ (FK \-> projects(id)) |
+| organization\_id | INT | **PK**, FK | ID ขององค์กร (FK \-> organizations(id)) |
+| role | ENUM(...) | **PK** | บทบาทในโครงการ (OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD\_PARTY) |
+| is\_contractor | TINYINT(1) | UK | (Generated) \= 1 ถ้า role \= 'CONTRACTOR' |
+| deleted\_at | DATETIME | | สำหรับ Soft Delete |
+
+* **Foreign Keys (FK):**
+    * project\_id \-> projects(id) (ON DELETE CASCADE)
+    * organization\_id \-> organizations(id) (ON DELETE RESTRICT)
+* **Unique Keys (UK):**
+    * uq\_project\_parties\_contractor (project\_id, is\_contractor) \- **(Constraint สำคัญ)** บังคับว่า 1 โครงการมี CONTRACTOR ได้เพียง 1 องค์กร
+
+#### **1.6. contract\_parties (ตารางเชื่อม)**
+
+ตารางเชื่อมความสัมพันธ์ระหว่าง สัญญา, โครงการ, และองค์กร (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| contract\_id | INT | **PK**, FK | ID ของสัญญา (FK \-> contracts(id)) |
+| project\_id | INT | **PK**, FK | ID ของโครงการ (FK \-> projects(id)) |
+| organization\_id | INT | **PK**, FK | ID ขององค์กร (FK \-> organizations(id)) |
+
+* **Foreign Keys (FK):**
+    * contract\_id \-> contracts(id) (ON DELETE CASCADE)
+    * project\_id \-> projects(id) (ON DELETE CASCADE)
+    * organization\_id \-> organizations(id) (ON DELETE CASCADE)
+
+---
+
+## **2\. 👥 Users & RBAC (ผู้ใช้, สิทธิ์, บทบาท)**
+
+#### **2.1. users**
+
+ตาราง Master เก็บข้อมูลผู้ใช้งาน (User)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| user\_id | INT | **PK** | ID ของตาราง |
+| username | VARCHAR(50) | UK | ชื่อผู้ใช้งาน |
+| password\_hash | VARCHAR(255) | | รหัสผ่าน (Hashed) |
+| first\_name | VARCHAR(50) | | ชื่อจริง |
+| last\_name | VARCHAR(50) | | นามสกุล |
+| email | VARCHAR(100) | UK | อีเมล |
+| organization\_id | INT | FK | สังกัดองค์กร (FK \-> organizations(id)) |
+| is\_active | TINYINT(1) | | สถานะการใช้งาน |
+
+* **Foreign Keys (FK):**
+    * organization\_id \-> organizations(id) (ON DELETE SET NULL)
+* **Unique Keys (UK):** ux\_users\_username (username), ux\_users\_email (email)
+
+#### **2.2. roles**
+
+ตาราง Master เก็บ "บทบาท" ของผู้ใช้ในระบบ (เช่น SUPER\_ADMIN, ADMIN, EDITOR)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| role\_id | INT | **PK** | ID ของตาราง |
+| role\_code | VARCHAR(50) | UK | รหัสบทบาท (เช่น SUPER\_ADMIN, ADMIN, EDITOR, VIEWER) |
+| role\_name | VARCHAR(100) | | ชื่อบทบาท |
+| is\_system | BOOLEAN | | (1 \= บทบาทของระบบ ลบไม่ได้) |
+
+* **Unique Keys (UK):** role\_code
+
+#### **2.3. permissions**
+
+ตาราง Master เก็บ "สิทธิ์" (Permission) หรือ "การกระทำ" ทั้งหมดในระบบ
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| permission\_id | INT | **PK** | ID ของตาราง |
+| permission\_code | VARCHAR(100) | UK | รหัสสิทธิ์ (เช่น rfas.create, rfas.view) |
+| module | VARCHAR(50) | | โมดูลที่เกี่ยวข้อง |
+| scope\_level | ENUM(...) | | ระดับของสิทธิ์ (GLOBAL, ORG, PROJECT) |
+
+* **Unique Keys (UK):** ux\_permissions\_code (permission\_code)
+
+#### **2.4. role\_permissions (ตารางเชื่อม)**
+
+ตารางเชื่อมระหว่าง roles และ permissions (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| role\_id | INT | **PK**, FK | ID ของบทบาท (FK \-> roles(role\_id)) |
+| permission\_id | INT | **PK**, FK | ID ของสิทธิ์ (FK \-> permissions(permission\_id)) |
+
+* **Foreign Keys (FK):**
+    * role\_id \-> roles(role\_id) (ON DELETE CASCADE)
+    * permission\_id \-> permissions(permission\_id) (ON DELETE CASCADE)
+
+#### **2.5. user\_roles (ตารางเชื่อม)**
+
+ตารางเชื่อมผู้ใช้ (users) กับบทบาท (roles) ในระดับ **Global** (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| user\_id | INT | **PK**, FK | ID ของผู้ใช้ (FK \-> users(user\_id)) |
+| role\_id | INT | **PK**, FK | ID ของบทบาท (FK \-> roles(role\_id)) |
+
+* **Foreign Keys (FK):**
+    * user\_id \-> users(user\_id) (ON DELETE CASCADE)
+    * role\_id \-> roles(role\_id) (ON DELETE CASCADE)
+
+#### **2.6. user\_project\_roles (ตารางเชื่อม)**
+
+ตารางเชื่อมผู้ใช้ (users) กับบทบาท (roles) ในระดับ **Project-Specific** (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| user\_id | INT | **PK**, FK | ID ของผู้ใช้ (FK \-> users(user\_id)) |
+| project\_id | INT | **PK**, FK | ID ของโครงการ (FK \-> projects(id)) |
+| role\_id | INT | **PK**, FK | ID ของบทบาท (FK \-> roles(role\_id)) |
+
+* **Foreign Keys (FK):**
+    * user\_id \-> users(user\_id) (ON DELETE CASCADE)
+    * project\_id \-> projects(id) (ON DELETE CASCADE)
+    * role\_id \-> roles(role\_id) (ON DELETE CASCADE)
+
+---
+
+## **3\. ✉️ Correspondences (เอกสารหลัก, Revisions)**
+
+#### **3.1. correspondence\_types**
+
+ตาราง Master เก็บประเภทเอกสารโต้ตอบ (เช่น RFA, RFI, LETTER, MOM)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| type\_code | VARCHAR(50) | UK | รหัสประเภท (เช่น RFA, RFI) |
+| type\_name | VARCHAR(255) | | ชื่อประเภท |
+
+* **Unique Keys (UK):** type\_code
+
+#### **3.2. correspondence\_status**
+
+ตาราง Master เก็บสถานะของเอกสาร (เช่น DRAFT, SUBMITTED, CLOSED)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| status\_code | VARCHAR(50) | UK | รหัสสถานะ (เช่น DRAFT, SUBOWN) |
+| status\_name | VARCHAR(255) | | ชื่อสถานะ |
+
+* **Unique Keys (UK):** status\_code
+
+#### **3.3. correspondences (Master)**
+
+ตาราง "แม่" ของเอกสารโต้ตอบ เก็บข้อมูลที่ไม่เปลี่ยนแปลงตาม Revision (เช่น เลขที่เอกสาร)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง (นี่คือ "Master ID" ที่ใช้เชื่อมโยง) |
+| correspondence\_number | VARCHAR(100) | UK | เลขที่เอกสาร (สร้างจาก DocumentNumberingModule) |
+| correspondence\_type\_id | INT | FK | ประเภทเอกสาร (FK \-> correspondence\_types(id)) |
+| is\_internal\_communication | TINYINT(1) | | (1 \= ภายใน, 0 \= ภายนอก) |
+| project\_id | INT | FK | อยู่ในโครงการ (FK \-> projects(id)) |
+| originator\_id | INT | FK | องค์กรผู้ส่ง (FK \-> organizations(id)) |
+| recipient\_id | INT | FK | องค์กรผู้รับ (FK \-> organizations(id)) |
+| created\_by | INT | FK | ผู้สร้าง (FK \-> users(user\_id)) |
+| deleted\_at | DATETIME | | สำหรับ Soft Delete |
+
+* **Foreign Keys (FK):**
+    * correspondence\_type\_id \-> correspondence\_types(id) (ON DELETE RESTRICT)
+    * project\_id \-> projects(id) (ON DELETE CASCADE)
+    * originator\_id \-> organizations(id) (ON DELETE SET NULL)
+    * recipient\_id \-> organizations(id) (ON DELETE SET NULL)
+    * created\_by \-> users(user\_id) (ON DELETE SET NULL)
+* **Unique Keys (UK):** uq\_corr\_no\_per\_project (project\_id, correspondence\_number)
+
+#### **3.4. correspondence\_revisions (Revisions)**
+
+ตาราง "ลูก" เก็บประวัติการแก้ไข (Revisions) ของ correspondences (1:N) **(ปรับปรุง V1.2.0)**
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | **ID ของ Revision** |
+| correspondence\_id | INT | FK, UK | Master ID (FK \-> correspondences(id)) |
+| revision\_number | INT | UK | หมายเลข Revision (0, 1, 2...) |
+| **revision\_label** | **VARCHAR(10)** | | **(ใหม่)** Revision ที่แสดง (เช่น A, B, 1.1) |
+| is\_current | BOOLEAN | UK | (1 \= Revision ปัจจุบัน) |
+| correspondence\_status\_id | INT | FK | สถานะของ Revision นี้ (FK \-> correspondence\_status(id)) |
+| title | VARCHAR(255) | | เรื่อง |
+| document\_date | DATE | | วันที่ในเอกสาร |
+| issued\_date | DATETIME | | วันที่ออกเอกสาร |
+| received\_date | DATETIME | | วันที่ลงรับ |
+| **description** | **TEXT** | | **(ใหม่)** คำอธิบายการแก้ไขใน Revision นี้ |
+| details | JSON | | ข้อมูลเฉพาะ (เช่น RFI details) |
+| **created\_at** | **DATETIME** | | **(ใหม่)** วันที่สร้างเอกสาร |
+| created\_by | INT | FK | ผู้สร้าง (FK \-> users(user\_id)) |
+| **updated\_by** | **INT** | **FK** | **(ใหม่)** ผู้แก้ไขล่าสุด (FK \-> users(user\_id)) |
+
+* **Foreign Keys (FK):**
+    * correspondence\_id \-> correspondences(id) (ON DELETE CASCADE)
+    * correspondence\_status\_id \-> correspondence\_status(id) (ON DELETE RESTRICT)
+    * created\_by \-> users(user\_id) (ON DELETE SET NULL)
+    * **updated\_by \-> users(user\_id) (ON DELETE SET NULL)**
+* **Unique Keys (UK):**
+    * uq\_master\_revision\_number (correspondence\_id, revision\_number) (ป้องกัน Rev ซ้ำใน Master เดียว)
+    * uq\_master\_current (correspondence\_id, is\_current) (ป้องกันการมี is\_current \= TRUE ซ้ำใน Master เดียว)
+* **Check Constraints (CHK):** chk\_rev\_format (ตรวจสอบรูปแบบ revision\_label)
+
+#### **3.5. correspondence\_recipients (ตารางเชื่อม)**
+
+ตารางเชื่อมผู้รับ (TO/CC) สำหรับเอกสารแต่ละฉบับ (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| correspondence\_id | INT | **PK**, FK | ID ของเอกสาร (FK \-> correspondence\_revisions(correspondence\_id)) |
+| recipient\_organization\_id | INT | **PK**, FK | ID องค์กรผู้รับ (FK \-> organizations(id)) |
+| recipient\_type | ENUM('TO', 'CC') | **PK** | ประเภทผู้รับ (TO หรือ CC) |
+
+* **Foreign Keys (FK):**
+    * correspondence\_id \-> correspondence\_revisions(correspondence\_id) (ON DELETE CASCADE)
+    * recipient\_organization\_id \-> organizations(id) (ON DELETE RESTRICT)
+
+#### **3.6. correspondence\_references (ตารางเชื่อม)**
+
+ตารางเชื่อมการอ้างอิงระหว่างเอกสาร (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| src\_correspondence\_id | INT | **PK**, FK | ID เอกสารต้นทาง (FK \-> correspondences(id)) |
+| tgt\_correspondence\_id | INT | **PK**, FK | ID เอกสารเป้าหมาย (FK \-> correspondences(id)) |
+
+* **Foreign Keys (FK):**
+    * src\_correspondence\_id \-> correspondences(id) (ON DELETE CASCADE)
+    * tgt\_correspondence\_id \-> correspondences(id) (ON DELETE CASCADE)
+
+#### **3.7. correspondence\_routing\_templates / ...\_steps / ...\_routings**
+
+ตารางที่เกี่ยวข้องกับ Workflow การส่งต่อเอกสาร (Req 3.5.4)
+
+* **correspondence\_routing\_templates:** ตาราง Master เก็บแม่แบบสายงาน (เช่น "ส่งให้ CSC ตรวจสอบ")
+* **correspondence\_routing\_template\_steps:** ตารางลูก เก็บขั้นตอนในแม่แบบ (เช่น Step 1: ส่งไป Org A, Step 2: ส่งไป Org B)
+* **correspondence\_routings:** ตารางประวัติ (Log) การส่งต่อของเอกสารจริงตาม Workflow
+
+---
+
+## **4\.  approval: RFA (เอกสารขออนุมัติ, Workflows)**
+
+#### **4.1. rfa\_types / ...\_status\_codes / ...\_approve\_codes**
+
+ตาราง Master สำหรับ RFA
+
+* **rfa\_types:** ประเภท RFA (เช่น DWG, DOC, MAT)
+* **rfa\_status\_codes:** สถานะ RFA (เช่น DFT \- Draft, FAP \- For Approve)
+* **rfa\_approve\_codes:** รหัสผลการอนุมัติ (เช่น 1A \- Approved, 3R \- Revise and Resubmit)
+
+#### **4.2. rfas (Master)**
+
+ตาราง "แม่" ของ RFA (มีความสัมพันธ์ 1:N กับ rfa\_revisions)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง (RFA Master ID) |
+| rfa\_type\_id | INT | FK | ประเภท RFA (FK \-> rfa\_types(id)) |
+| revision\_number | INT | | หมายเลข Revision ล่าสุด (ข้อมูลนี้ถูกย้ายไป rfa\_revisions) |
+| created\_by | INT | FK | ผู้สร้าง (FK \-> users(user\_id)) |
+| deleted\_at | DATETIME | | สำหรับ Soft Delete |
+
+* **Foreign Keys (FK):**
+    * rfa\_type\_id \-> rfa\_types(id)
+    * created\_by \-> users(user\_id) (ON DELETE SET NULL)
+
+#### **4.3. rfa\_revisions (Revisions)**
+
+ตาราง "ลูก" เก็บประวัติ (Revisions) ของ rfas (1:N) **(ปรับปรุง V1.2.0)**
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | **ID ของ Revision** |
+| correspondence\_id | INT | FK | Master ID ของ Correspondence (FK \-> correspondences(id)) |
+| rfa\_id | INT | FK, UK | Master ID ของ RFA (FK \-> rfas(id)) |
+| revision\_number | INT | UK | หมายเลข Revision (0, 1, 2...) |
+| **revision\_label** | **VARCHAR(10)** | | **(ใหม่)** Revision ที่แสดง (เช่น A, B, 1.1) |
+| is\_current | BOOLEAN | UK | (1 \= Revision ปัจจุบัน) |
+| rfa\_status\_code\_id | INT | FK | สถานะ RFA (FK \-> rfa\_status\_codes(id)) |
+| rfa\_approve\_code\_id | INT | FK | ผลการอนุมัติ (FK \-> rfa\_approve\_codes(id)) |
+| title | VARCHAR(255) | | เรื่อง |
+| **document\_date** | **DATE** | | **(ใหม่)** วันที่ในเอกสาร |
+| **issued\_date** | **DATE** | | **(ใหม่)** วันที่ส่งขออนุมัติ |
+| **received\_date** | **DATETIME** | | **(ใหม่)** วันที่ลงรับเอกสาร |
+| **approved\_date** | **DATE** | | **(ใหม่)** วันที่อนุมัติ |
+| **description** | **TEXT** | | **(ใหม่)** คำอธิบายการแก้ไขใน Revision นี้ |
+| **created\_at** | **DATETIME** | | **(ใหม่)** วันที่สร้างเอกสาร |
+| created\_by | INT | FK | ผู้สร้าง (FK \-> users(user\_id)) |
+| **updated\_by** | **INT** | **FK** | **(ใหม่)** ผู้แก้ไขล่าสุด (FK \-> users(user\_id)) |
+
+* **Foreign Keys (FK):**
+    * correspondence\_id \-> correspondences(id) (ON DELETE CASCADE)
+    * rfa\_id \-> rfas(id) (ON DELETE CASCADE)
+    * rfa\_status\_code\_id \-> rfa\_status\_codes(id)
+    * rfa\_approve\_code\_id \-> rfa\_approve\_codes(id) (ON DELETE SET NULL)
+    * created\_by \-> users(user\_id) (ON DELETE SET NULL)
+    * **updated\_by \-> users(user\_id) (ON DELETE SET NULL)**
+* **Unique Keys (UK):**
+    * uq\_rr\_rev\_number (rfa\_id, revision\_number) (ป้องกัน Rev ซ้ำใน Master เดียว)
+    * uq\_rr\_current (rfa\_id, is\_current) (ป้องกัน is\_current=TRUE ซ้ำใน Master เดียว)
+
+#### **4.4. rfa\_items (ตารางเชื่อม)**
+
+ตารางเชื่อมระหว่าง rfa\_revisions (ที่เป็นประเภท DWG) กับ shop\_drawing\_revisions (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| rfarev\_correspondence\_id | INT | **PK**, FK | ID ของ RFA Revision (FK \-> rfa\_revisions(correspondence\_id)) |
+| shop\_drawing\_revision\_id | INT | **PK**, UK, FK | ID ของ Shop Drawing Revision (FK \-> shop\_drawing\_revisions(id)) |
+
+* **Foreign Keys (FK):**
+    * rfarev\_correspondence\_id \-> rfa\_revisions(correspondence\_id) (ON DELETE CASCADE)
+    * shop\_drawing\_revision\_id \-> shop\_drawing\_revisions(id) (ON DELETE CASCADE)
+
+#### **4.5. rfa\_workflow\_templates / ...\_steps / ...\_workflows**
+
+ตารางที่เกี่ยวข้องกับ Workflow การอนุมัติ RFA
+
+* **rfa\_workflow\_templates:** ตาราง Master เก็บแม่แบบสายอนุมัติ (เช่น "สายอนุมัติ 3 ขั้นตอน")
+* **rfa\_workflow\_template\_steps:** ตารางลูก เก็บขั้นตอนในแม่แบบ (เช่น Step 1: Org A (Review), Step 2: Org B (Approve))
+* **rfa\_workflows:** ตารางประวัติ (Log) การอนุมัติของ RFA จริงตามสายงาน
+
+---
+
+## **5\. 📐 Drawings (แบบ, หมวดหมู่)**
+
+#### **5.1. contract\_drawing\_volumes / ...\_cats / ...\_sub\_cats**
+
+ตาราง Master สำหรับ "แบบคู่สัญญา" (Contract Drawings)
+
+* **contract\_drawing\_volumes:** เก็บ "เล่ม" ของแบบ
+* **contract\_drawing\_cats:** เก็บ "หมวดหมู่หลัก" ของแบบ
+* **contract\_drawing\_sub\_cats:** เก็บ "หมวดหมู่ย่อย" ของแบบ
+
+#### **5.2. contract\_drawing\_subcat\_cat\_maps (ตารางเชื่อม - ใหม่)**
+
+**(ใหม่)** ตารางเชื่อมระหว่าง หมวดหมู่หลัก-ย่อย (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| project\_id | INT | **PK**, FK | ID ของโครงการ |
+| sub\_cat\_id | INT | **PK**, FK | ID ของหมวดหมู่ย่อย |
+| cat\_id | INT | **PK**, FK | ID ของหมวดหมู่หลัก |
+
+* **Foreign Keys (FK) (ตามเจตนา):**
+    * (project\_id, sub\_cat\_id) \-> contract\_drawing\_sub\_cats(project\_id, id)
+    * (project\_id, cat\_id) \-> contract\_drawing\_cats(project\_id, id)
+* **Unique Keys (UK):**
+    * ux\_map\_unique (project\_id, sub\_cat\_id, cat\_id)
+* ***ข้อสังเกตจาก DBA:*** *สคริปต์ SQL (1.3.6) มีการอ้างอิง FK ไปยังตารางและคอลัมน์ (`contract_dwg_sub_cat(project_id, sub_cat_id)`) ที่ไม่มีอยู่จริง ตารางนี้แสดงตามเจตนาที่ถูกต้อง*
+
+#### **5.3. contract\_drawings (Master)**
+
+ตาราง Master เก็บข้อมูล "แบบคู่สัญญา"
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| project\_id | INT | FK, UK | โครงการ (FK \-> projects(id)) |
+| condwg\_no | VARCHAR(255) | UK | เลขที่แบบสัญญา |
+| title | VARCHAR(255) | | ชื่อแบบ |
+| sub\_cat\_id | INT | FK | หมวดหมู่ย่อย (FK \-> contract\_drawing\_sub\_cats(id)) |
+| volume\_id | INT | FK | เล่ม (FK \-> contract\_drawing\_volumes(id)) |
+
+* **Foreign Keys (FK):**
+    * fk\_condwg\_project (project\_id) \-> projects(id) (ON DELETE CASCADE)
+    * fk\_condwg\_subcat\_same\_project (project\_id, sub\_cat\_id) \-> contract\_drawing\_sub\_cats(project\_id, id)
+    * fk\_condwg\_volume\_same\_project (project\_id, volume\_id) \-> contract\_drawing\_volumes(project\_id, id)
+* **Unique Keys (UK):** ux\_condwg\_no\_project (project\_id, condwg\_no)
+
+#### **5.4. shop\_drawing\_main\_categories / ...\_sub\_categories**
+
+ตาราง Master สำหรับ "แบบก่อสร้าง" (Shop Drawings)
+
+* **shop\_drawing\_main\_categories:** เก็บ "หมวดหมู่หลัก" (เช่น ARCH, STR)
+* **shop\_drawing\_sub\_categories:** เก็บ "หมวดหมู่ย่อย" (เช่น STR-COLUMN)
+
+#### **5.5. shop\_drawings (Master)**
+
+ตาราง Master เก็บข้อมูล "แบบก่อสร้าง"
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| project\_id | INT | FK | โครงการ (FK \-> projects(id)) |
+| drawing\_number | VARCHAR(100) | UK | เลขที่ Shop Drawing |
+| title | VARCHAR(500) | | ชื่อแบบ |
+| main\_category\_id | INT | FK | หมวดหมู่หลัก (FK \-> shop\_drawing\_main\_categories(id)) |
+| sub\_category\_id | INT | FK | หมวดหมู่ย่อย (FK \-> shop\_drawing\_sub\_categories(id)) |
+
+* **Foreign Keys (FK):** project\_id, main\_category\_id, sub\_category\_id
+* **Unique Keys (UK):** ux\_sd\_drawing\_number (drawing\_number)
+
+#### **5.6. shop\_drawing\_revisions (Revisions)**
+
+ตาราง "ลูก" เก็บประวัติ (Revisions) ของ shop\_drawings (1:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของ Revision |
+| shop\_drawing\_id | INT | FK, UK | Master ID (FK \-> shop\_drawings(id)) |
+| revision\_number | VARCHAR(10) | UK | หมายเลข Revision (เช่น A, B, 0, 1) |
+| revision\_date | DATE | | วันที่ของ Revision |
+| description | TEXT | | คำอธิบายการแก้ไข |
+
+* **Foreign Keys (FK):**
+    * shop\_drawing\_id \-> shop\_drawings(id) (ON DELETE CASCADE)
+* **Unique Keys (UK):** ux\_sd\_rev\_drawing\_revision (shop\_drawing\_id, revision\_number)
+
+#### **5.7. shop\_drawing\_revision\_contract\_refs (ตารางเชื่อม)**
+
+ตารางเชื่อมระหว่าง shop\_drawing\_revisions กับ contract\_drawings (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| shop\_drawing\_revision\_id | INT | FK | ID ของ Shop Drawing Revision (FK \-> shop\_drawing\_revisions(id)) |
+| contract\_drawing\_id | INT | FK | ID ของ Contract Drawing (FK \-> contract\_drawings(id)) |
+
+* **Foreign Keys (FK):** shop\_drawing\_revision\_id, contract\_drawing\_id
+
+---
+
+## **6\. 🔄 Circulations (ใบเวียนภายใน)**
+
+#### **6.1. circulation\_status\_codes**
+
+ตาราง Master เก็บสถานะใบเวียน (เช่น OPEN, IN\_REVIEW, COMPLETED)
+
+#### **6.2. circulations (Master)**
+
+ตาราง "แม่" ของใบเวียนเอกสารภายใน
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| correspondence\_id | INT | UK, FK | เอกสารที่ใช้อ้างอิง (FK \-> correspondences(id)) |
+| organization\_id | INT | FK, UK | องค์กรเจ้าของใบเวียน (FK \-> organizations(id)) |
+| circulation\_no | VARCHAR(100) | UK | เลขที่ใบเวียน |
+| circulation\_subject | VARCHAR(500) | | เรื่อง |
+| circulation\_status\_code | VARCHAR(20) | FK | สถานะใบเวียน (FK \-> circulation\_status\_codes(code)) |
+| created\_by\_user\_id | INT | FK | ผู้สร้าง (FK \-> users(user\_id)) |
+
+* **Foreign Keys (FK):** correspondence\_id, organization\_id, circulation\_status\_code, created\_by\_user\_id
+* **Unique Keys (UK):**
+    * correspondence\_id (1 ใบเวียน ต่อ 1 เอกสาร)
+    * uq\_cir\_org\_no (organization\_id, circulation\_no) (เลขที่ใบเวียนห้ามซ้ำในองค์กร)
+
+#### **6.3. circulation\_recipients / ...\_assignees / ...\_actions**
+
+ตาราง "ลูก" ของ circulations
+
+* **circulation\_recipients:** รายชื่อผู้รับ (TO/CC) ภายในองค์กร
+* **circulation\_assignees:** รายชื่อผู้รับผิดชอบ (MAIN, ACTION, INFO) และเก็บ deadline
+* **circulation\_actions:** ประวัติการดำเนินการ (เช่น Comment, Forward, Close)
+* **circulation\_action\_documents:** ตารางเชื่อม circulation\_actions กับ attachments (ไฟล์แนบระหว่างดำเนินการ)
+
+#### **6.4. circulation\_templates / ...\_assignees**
+
+ตารางสำหรับแม่แบบใบเวียน (Templates)
+
+* **circulation\_templates:** ตาราง Master เก็บแม่แบบใบเวียน
+* **circulation\_template\_assignees:** ตารางลูก เก็บผู้รับผิดชอบที่กำหนดไว้ล่วงหน้าในแม่แบบ
+
+---
+
+## **7\. 📤 Transmittals (เอกสารนำส่ง)**
+
+#### **7.1. transmittals**
+
+ตารางข้อมูลเฉพาะของเอกสารนำส่ง (เป็นตารางลูก 1:1 ของ correspondences)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| correspondence\_id | INT | **PK**, FK | ID ของเอกสาร (FK \-> correspondences(id)) |
+| purpose | ENUM(...) | | วัตถุประสงค์ (FOR\_APPROVAL, FOR\_INFORMATION, ...) |
+| remarks | TEXT | | หมายเหตุ |
+
+* **Foreign Keys (FK):** correspondence\_id \-> correspondences(id) (ON DELETE CASCADE)
+
+#### **7.2. transmittal\_items (ตารางเชื่อม)**
+
+ตารางเชื่อมระหว่าง transmittals และเอกสารที่นำส่ง (M:N) **(ปรับปรุง V1.2.0)**
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| **id** | **INT** | **PK** | **(ใหม่)** ID ของรายการ |
+| transmittal\_id | INT | **FK**, UK | ID ของ Transmittal (FK \-> transmittals(correspondence\_id)) |
+| **item\_correspondence\_id** | **INT** | **FK**, UK | **(เปลี่ยน)** ID ของเอกสารที่แนบไป (FK \-> correspondences(id)) |
+| **quantity** | **INT** | | **(ใหม่)** จำนวน |
+| **remarks** | **VARCHAR(255)** | | **(ใหม่)** หมายเหตุสำหรับรายการนี้ |
+
+* **Foreign Keys (FK):**
+    * transmittal\_id \-> transmittals(correspondence\_id) (ON DELETE CASCADE)
+    * **item\_correspondence\_id \-> correspondences(id) (ON DELETE CASCADE)**
+* **Unique Keys (UK):** ux\_transmittal\_item (transmittal\_id, item\_correspondence\_id)
+
+---
+
+## **8\. 📎 File Management (ไฟล์แนบ)**
+
+#### **8.1. attachments (Master)**
+
+ตาราง "กลาง" เก็บไฟล์แนบทั้งหมดของระบบ
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของไฟล์แนบ |
+| original\_filename | VARCHAR(255) | | ชื่อไฟล์ดั้งเดิม |
+| stored\_filename | VARCHAR(255) | | ชื่อไฟล์ที่เก็บจริง (ป้องกันซ้ำ) |
+| file\_path | VARCHAR(500) | | Path ที่เก็บไฟล์ (บน QNAP /share/dms-data/) |
+| mime\_type | VARCHAR(100) | | ประเภทไฟล์ (เช่น application/pdf) |
+| file\_size | INT | | ขนาดไฟล์ (bytes) |
+| uploaded\_by\_user\_id | INT | FK | ผู้อัปโหลด (FK \-> users(user\_id)) |
+
+* **Foreign Keys (FK):** uploaded\_by\_user\_id \-> users(user\_id) (ON DELETE CASCADE)
+
+#### **8.2. correspondence\_attachments (ตารางเชื่อม - ใหม่)**
+
+ตารางเชื่อม correspondences กับ attachments (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| correspondence\_id | INT | **PK**, FK | ID ของเอกสาร (FK \-> correspondences(id)) |
+| attachment\_id | INT | **PK**, FK | ID ของไฟล์แนบ (FK \-> attachments(id)) |
+| is\_main\_document | BOOLEAN | | (1 \= ไฟล์หลัก) |
+
+* **Foreign Keys (FK):** correspondence\_id, attachment\_id
+
+#### **8.3. circulation\_attachments (ตารางเชื่อม - ใหม่)**
+
+ตารางเชื่อม circulations กับ attachments (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| circulation\_id | INT | **PK**, FK | ID ของใบเวียน (FK \-> circulations(id)) |
+| attachment\_id | INT | **PK**, FK | ID ของไฟล์แนบ (FK \-> attachments(id)) |
+| is\_main\_document | BOOLEAN | | (1 \= ไฟล์หลัก) |
+
+* **Foreign Keys (FK):** circulation\_id, attachment\_id
+
+#### **8.4. shop\_drawing\_revision\_attachments (ตารางเชื่อม - ใหม่)**
+
+ตารางเชื่อม shop\_drawing\_revisions กับ attachments (M:N) **(ปรับปรุง V1.2.0)**
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| shop\_drawing\_revision\_id | INT | **PK**, FK | ID ของ Drawing Revision (FK \-> shop\_drawing\_revisions(id)) |
+| attachment\_id | INT | **PK**, FK | ID ของไฟล์แนบ (FK \-> attachments(id)) |
+| file\_type | ENUM(...) | | ประเภทไฟล์ (PDF, DWG, SOURCE, OTHER) |
+| **is\_main\_document** | **BOOLEAN** | | **(ใหม่)** (1 \= ไฟล์หลัก) |
+
+* **Foreign Keys (FK):** shop\_drawing\_revision\_id, attachment\_id
+
+#### **8.5. contract\_drawing\_attachments (ตารางเชื่อม - ใหม่)**
+
+**(ใหม่)** ตารางเชื่อม contract\_drawings กับ attachments (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| contract\_drawing\_id | INT | **PK**, FK | ID ของ Contract Drawing (FK \-> contract\_drawings(id)) |
+| attachment\_id | INT | **PK**, FK | ID ของไฟล์แนบ (FK \-> attachments(id)) |
+| file\_type | ENUM(...) | | ประเภทไฟล์ (PDF, DWG, SOURCE, OTHER) |
+| is\_main\_document | BOOLEAN | | (1 \= ไฟล์หลัก) |
+
+* **Foreign Keys (FK):**
+    * contract\_drawing\_id \-> contract\_drawings(id) (ON DELETE CASCADE)
+    * attachment\_id \-> attachments(id) (ON DELETE CASCADE)
+
+---
+
+## **9\. 🔢 Document Numbering (การสร้างเลขที่เอกสาร)**
+
+#### **9.1. document\_number\_formats (ตารางตั้งค่า - ใหม่)**
+
+ตาราง Master เก็บ "รูปแบบ" Template ของเลขที่เอกสาร
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| project\_id | INT | FK, UK | โครงการ (FK \-> projects(id)) |
+| correspondence\_type\_id | INT | FK, UK | ประเภทเอกสาร (FK \-> correspondence\_types(id)) |
+| format\_template | VARCHAR(255) | | รูปแบบ Template (เช่น {ORG\_CODE}-{TYPE\_CODE}-{SEQ:4}) |
+
+* **Foreign Keys (FK):** project\_id, correspondence\_type\_id
+* **Unique Keys (UK):** uk\_project\_type (project\_id, correspondence\_type\_id)
+
+#### **9.2. document\_number\_counters (ตารางตัวนับ - ใหม่)**
+
+ตารางเก็บ "ตัวนับ" (Running Number) ล่าสุด
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| project\_id | INT | **PK**, FK | โครงการ (FK \-> projects(id)) |
+| originator\_organization\_id | INT | **PK**, FK | องค์กรผู้ส่ง (FK \-> organizations(id)) |
+| correspondence\_type\_id | INT | **PK**, FK | ประเภทเอกสาร (FK \-> correspondence\_types(id)) |
+| current\_year | INT | **PK** | ปี ค.ศ. ของตัวนับ |
+| last\_number | INT | | เลขที่ล่าสุดที่ใช้ไป |
+
+* **Foreign Keys (FK):** project\_id, originator\_organization\_id, correspondence\_type\_id
+
+---
+
+## **10\. ⚙️ System & Logs (ระบบและ Log)**
+
+#### **10.1. tags**
+
+ตาราง Master เก็บ Tags ทั้งหมดที่ใช้ในระบบ
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | **PK** | ID ของตาราง |
+| tag\_name | VARCHAR(100) | UK | ชื่อ Tag |
+
+* **Unique Keys (UK):** ux\_tag\_name (tag\_name)
+
+#### **10.2. correspondence\_tags (ตารางเชื่อม)**
+
+ตารางเชื่อมระหว่าง correspondences และ tags (M:N)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| correspondence\_id | INT | **PK**, FK | ID ของเอกสาร (FK \-> correspondences(id)) |
+| tag\_id | INT | **PK**, FK | ID ของ Tag (FK \-> tags(id)) |
+
+* **Foreign Keys (FK):** correspondence\_id, tag\_id
+
+#### **10.3. audit\_logs**
+
+ตารางเก็บบันทึกการกระทำของผู้ใช้
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| audit\_id | BIGINT | **PK** | ID ของ Log |
+| user\_id | INT | FK | ผู้กระทำ (FK \-> users(user\_id)) |
+| action | VARCHAR(100) | | การกระทำ (เช่น rfa.create) |
+| entity\_type | VARCHAR(50) | | ตาราง/โมดูล (เช่น rfas) |
+| entity\_id | VARCHAR(50) | | ID ของสิ่งที่ถูกกระทำ |
+| details\_json | JSON | | ข้อมูลเพิ่มเติม |
+| ip\_address | VARCHAR(45) | | IP Address |
+| created\_at | TIMESTAMP | | เวลาที่กระทำ |
+
+* **Foreign Keys (FK):** user\_id \-> users(user\_id) (ON DELETE SET NULL)
+
+#### **10.4. global\_default\_roles (ใหม่)**
+
+ตารางเก็บค่าเริ่มต้นของบทบาทองค์กร (เช่น OWNER, DESIGNER)
+
+| Column | Type | Key | Description |
+| :--- | :--- | :--- | :--- |
+| id | TINYINT | **PK** | ID คงที่ ( \= 1) |
+| role | ENUM(...) | **PK** | บทบาท (OWNER, DESIGNER, CONSULTANT) |
+| position | TINYINT | **PK** | ลำดับที่ในบทบาท (1..n) |
+| organization\_id | INT | FK, UK | ID องค์กร (FK \-> organizations(id)) |
+
+* **Foreign Keys (FK):** organization\_id \-> organizations(id) (ON DELETE RESTRICT)
+* **Unique Keys (UK):** ux\_gdr\_unique\_org\_per\_role (id, role, organization\_id)
+
+#### **10.5. Workflow Transition Rules (ใหม่)**
+
+ตารางกำหนด Business Rules สำหรับการเปลี่ยนสถานะ
+
+* **correspondence\_status\_transitions:** (ใหม่) กฎการเปลี่ยนสถานะของ Correspondences (ทั่วไป)
+* **rfa\_status\_transitions:** (ใหม่) กฎการเปลี่ยนสถานะของ RFA
+* **circulation\_status\_transitions:** (ใหม่) กฎการเปลี่ยนสถานะของ Circulations (ใบเวียน)
+
+---
+
+## **11\. 📋 Views & Procedures (วิว และ โปรซีเดอร์)**
+
+#### **11.1. sp\_get\_next\_document\_number (Procedure)**
+
+**(ใหม่)** Stored Procedure เดียวที่ใช้ในระบบ
+
+* **หน้าที่:** ดึงเลขที่เอกสารถัดไป (Next Running Number) จากตาราง document\_number\_counters
+* **ตรรกะ:** ใช้ `SELECT ... FOR UPDATE` เพื่อ "ล็อก" แถว ป้องกัน Race Condition (การที่ผู้ใช้ 2 คนได้เลขที่ซ้ำกัน)
+
+#### **11.2. v\_current\_correspondences (View)**
+
+* **หน้าที่:** แสดง Revision "ปัจจุบัน" (is\_current \= TRUE) ของ correspondences ทั้งหมด (ที่ไม่ใช่ RFA)
+
+#### **11.3. v\_current\_rfas (View)**
+
+* **หน้าที่:** แสดง Revision "ปัจจุบัน" (is\_current \= TRUE) ของ rfa\_revisions ทั้งหมด
+
+#### **11.4. v\_contract\_parties\_all (View)**
+
+* **หน้าที่:** แสดงความสัมพันธ์ทั้งหมดระหว่าง Contract, Project, และ Organization
+
+#### **11.5. v\_user\_tasks (View)**
+
+**(ใหม่)**
+
+* **หน้าที่:** แสดงรายการ "งานของฉัน" (My Tasks) ที่ยังไม่เสร็จ
+* **ตรรกะ:** JOIN ตาราง circulations กับ circulation\_assignees (ที่ is\_completed \= FALSE)
+
+#### **11.6. v\_audit\_log\_details (View)**
+
+**(ใหม่)**
+
+* **หน้าที่:** แสดง audit\_logs พร้อมข้อมูล username และ email ของผู้กระทำ
+
+#### **11.7. v\_user\_all\_permissions (View)**
+
+**(ใหม่)**
+
+* **หน้าที่:** รวมสิทธิ์ทั้งหมด (Global \+ Project) ของผู้ใช้ทุกคน เพื่อให้ Backend ตรวจสอบสิทธิ์ได้ง่าย
+* **ตรรกะ:** UNION ข้อมูลจาก user\_roles และ user\_project\_roles

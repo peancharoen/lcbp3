@@ -1,0 +1,6 @@
+---
+description: Documents Management Sytem Version 1.1.0
+globs:
+ - docs/LCBP3-DMS_V1_1_0_*.md
+alwaysApply: true
+---

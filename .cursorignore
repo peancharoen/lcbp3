@@ -1,0 +1,10 @@
+venv/
+node_modules/
+*.log
+.env
+
+.syncing_db/
+@Recently-Snapshot/
+logs/
+design_specs/
+legacy_code/

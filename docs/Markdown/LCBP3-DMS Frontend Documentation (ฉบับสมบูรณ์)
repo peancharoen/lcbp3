@@ -1,0 +1,584 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: https://docs.google.com/document/u/0/d/1XWr9JrV4BaVyKzFuXzz2geNiib_SJd5iTNaVsfb599A/mobilebasic?hl=th-TH&pli=1
+Subject: =?utf-8?Q?LCBP3-DMS=20Frontend=20Documentation=20(=E0=B8=89=E0=B8=9A=E0?=
+ =?utf-8?Q?=B8=B1=E0=B8=9A=E0=B8=AA=E0=B8=A1=E0=B8=9A=E0=B8=B9=E0=B8=A3=E0?=
+ =?utf-8?Q?=B8=93=E0=B9=8C)?=
+Date: Thu, 16 Oct 2025 23:11:12 +0700
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--csF0EXC0RJ3vOG6iJZx4sbJHPtjAmchlkrKXyomDzE----"
+
+
+------MultipartBoundary--csF0EXC0RJ3vOG6iJZx4sbJHPtjAmchlkrKXyomDzE----
+Content-Type: text/html
+Content-ID: <frame-1C41C5125892804C8FB745ED459184D9@mhtml.blink>
+Content-Transfer-Encoding: binary
+Content-Location: https://docs.google.com/document/u/0/d/1XWr9JrV4BaVyKzFuXzz2geNiib_SJd5iTNaVsfb599A/mobilebasic?hl=th-TH&pli=1
+
+<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><link rel="stylesheet" type="text/css" href="cid:css-bd8b2cc7-75cc-46b8-a328-efe9163c4ba6@mhtml.blink" /><link rel="stylesheet" type="text/css" href="cid:css-9de096d4-9a52-4c93-8eaf-1d5aa6aa425a@mhtml.blink" /><link rel="stylesheet" type="text/css" href="cid:css-8579d4bc-81a4-446d-b2aa-5e3d220689ab@mhtml.blink" /><title>LCBP3-DMS Frontend Documentation (à¸‰à¸šà¸±à¸šà¸ªà¸¡à¸šà¸¹à¸£à¸“à¹Œ)</title><link rel="shortcut icon" href="https://ssl.gstatic.com/docs/documents/images/kix-favicon-2023q4.ico"><meta property="og:title" content="LCBP3-DMS Frontend Documentation (à¸‰à¸šà¸±à¸šà¸ªà¸¡à¸šà¸¹à¸£à¸“à¹Œ)"><meta property="og:type" content="article"><meta property="og:site_name" content="Google Docs"><meta property="og:url" content="https://docs.google.com/document/u/0/d/1XWr9JrV4BaVyKzFuXzz2geNiib_SJd5iTNaVsfb599A/mobilebasic?hl=th-TH&amp;pli=1&amp;usp=embed_facebook"><meta property="og:description" content="LCBP3-DMS: Frontend Documentation (à¸‰à¸šà¸±à¸šà¸ªà¸¡à¸šà¸¹à¸£à¸“à¹Œ) à¹€à¸­à¸à¸ªà¸²à¸£à¸™à¸µà¹‰à¸£à¸§à¸šà¸£à¸§à¸¡à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”à¸‚à¸­à¸‡à¸ªà¹ˆà¸§à¸™ Frontend à¸ªà¸³à¸«à¸£à¸±à¸šà¸£à¸°à¸šà¸š LCBP3 Document Management System à¸‹à¸¶à¹ˆà¸‡à¸à¸±à¸’à¸™à¸²à¸”à¹‰à¸§à¸¢ Next.js (App Router), TypeScript, Tailwind CSS, à¹à¸¥à¸° shadcn/ui 1. à¸‚à¹‰à¸­à¸à¸³à¸«à¸™à¸”à¹€à¸šà¸·à¹‰à¸­à¸‡à¸•à¹‰à¸™ (Prerequisites) à¸à¹ˆà¸­à¸™à¹€à¸£à¸´à¹ˆà¸¡à¸à¸²à¸£à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¹à¸¥à¸°à¸à¸±à¸’à¸™à¸² à¸„à¸¸à¸“à¸ˆà¸°à¸•à¹‰à¸­à¸‡à¸¡à¸µà¹€à¸„à¸£à¸·..."><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=0"><meta name="referrer" content="strict-origin-when-cross-origin"></head><body><div><div class="docs-ml-promotion docs-ml-promotion-off-screen" role="alertdialog" aria-labelledby="docs-ml-promotion-aria-label" aria-hidden="true"><div id="docs-ml-promotion-aria-label" style="display:none;">Alert message displayed.</div><div class="docs-ml-promotion-content"><div class="docs-ml-promotion-header"><span class="docs-ml-promotion-app-icon-container" aria-hidden="true"><div class="docs-ml-icon docs-ml-promotion-app-icon"><svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 36 36"><path fill="none" d="M0 0h36v36H0z"></path><path fill="#fff" d="M10.9 18.4h14.2V21H10.9zM10.9 22.9h10.5v2.6H10.9z"></path><path fill="#1967d2" d="M21.8 9.8l4.5.8 3.7-.8-8.2-8.3-1.2 3.9z"></path><path fill="#fff" d="M10.9 13.9h14.2v2.6H10.9z"></path><path d="M21.8 9.8V1.5H8.2C7 1.5 6 2.5 6 3.8v28.5c0 1.2 1 2.2 2.2 2.2h19.5c1.2 0 2.2-1 2.2-2.2V9.8h-8.1zM21 25.1h-9.8v-1.9H21v1.9zm3.8-4.5H11.2v-1.9h13.5v1.9zm0-4.5H11.2v-1.9h13.5v1.9z" fill="#4285f4"></path></svg></div></span><span class="docs-ml-promotion-text"><div class="docs-ml-promotion-text-heading">Edit with the Docs app</div><div class="docs-ml-promotion-text-body">Make tweaks, leave comments, and share with others to edit at the same time.</div></span></div><div class="docs-ml-promotion-action-row"><span class="docs-ml-promotion-action-container"><span class="docs-ml-promotion-action-button-wrapper docs-ml-promotion-no-button-wrapper" role="button" tabindex="0"><span class="docs-ml-promotion-action-button docs-ml-promotion-no-button">NO THANKS</span></span></span><span class="docs-ml-promotion-action-container"><span class="docs-ml-promotion-action-button-wrapper docs-ml-promotion-yes-button-wrapper" role="button" tabindex="0"><span class="docs-ml-promotion-action-button docs-ml-promotion-yes-button">USE THE APP</span></span></span></div></div></div></div><div id="docs-ml-header-id" class="docs-ml-header"><span class="docs-ml-header-item docs-ml-header-drive-link"><div id="docs-ml-header-drive-link-aria-label" style="display:none;">Go to Drive</div><a href="https://drive.google.com/u/0?usp=docs_web" aria-labelledby="docs-ml-header-drive-link-aria-label" role="button"><div class="docs-ml-header-icon-container"><div class="docs-ml-icon docs-ml-header-icon docs-ml-arrow-back-dir"><div class="docs-ml-img-container docs-ml-img docs-ml-arrow-back-icon"></div></div></div></a></span><span class="docs-ml-header-item docs-ml-header-document-title"><div class="docs-ml-header-document-title-text">LCBP3-DMS Frontend Documentation (à¸‰à¸šà¸±à¸šà¸ªà¸¡à¸šà¸¹à¸£à¸“à¹Œ)</div></span><div id="docs-ml-header-edit-button-aria-label" style="display:none;">Edit</div><span class="docs-ml-header-item docs-ml-header-edit-button" aria-labelledby="docs-ml-header-edit-button-aria-label" role="button" tabindex="0"><div class="docs-ml-header-icon-container"><div class="docs-ml-icon docs-ml-header-icon"><div class="docs-ml-img-container docs-ml-img docs-ml-edit-icon"></div></div></div></span></div><div class="app-container"><div class="doc-container"><div class="doc"><div class="doc-content" style="background-color:#ffffff;max-width:468pt;padding:72pt 72pt 72pt 72pt"><h1 style="padding-top:12pt;margin:0;color:#000000;font-weight:700;padding-left:0;font-size:24pt;padding-bottom:12pt;font-family:&quot;Arial&quot;;line-height:1.0;text-align:left;padding-right:0"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:24pt;font-family:&quot;Arial&quot;;font-style:normal">LCBP3-DMS: Frontend Documentation (à¸‰à¸šà¸±à¸šà¸ªà¸¡à¸šà¸¹à¸£à¸“à¹Œ)</span></h1><p style="padding-top:0pt;margin:0;color:#000000;padding-left:0;font-size:11pt;padding-bottom:11.2pt;font-family:&quot;Arial&quot;;line-height:1.0;text-align:left;padding-right:0"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¹€à¸­à¸à¸ªà¸²à¸£à¸™à¸µà¹‰à¸£à¸§à¸šà¸£à¸§à¸¡à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”à¸‚à¸­à¸‡à¸ªà¹ˆà¸§à¸™ Frontend à¸ªà¸³à¸«à¸£à¸±à¸šà¸£à¸°à¸šà¸š LCBP3 Document Management System à¸‹à¸¶à¹ˆà¸‡à¸à¸±à¸’à¸™à¸²à¸”à¹‰à¸§à¸¢ Next.js (App Router), TypeScript, Tailwind CSS, à¹à¸¥à¸° shadcn/ui</span></p><h2 style="padding-top:0pt;margin:0;color:#000000;font-weight:700;padding-left:0;font-size:18pt;padding-bottom:11.2pt;font-family:&quot;Arial&quot;;line-height:1.0;text-align:left;padding-right:0"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:18pt;font-family:&quot;Arial&quot;;font-style:normal">1. à¸‚à¹‰à¸­à¸à¸³à¸«à¸™à¸”à¹€à¸šà¸·à¹‰à¸­à¸‡à¸•à¹‰à¸™ (Prerequisites)</span></h2><p style="padding:0;margin:0;color:#000000;font-size:11pt;font-family:&quot;Arial&quot;;line-height:1.0;text-align:left"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¸à¹ˆà¸­à¸™à¹€à¸£à¸´à¹ˆà¸¡à¸à¸²à¸£à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¹à¸¥à¸°à¸à¸±à¸’à¸™à¸² à¸„à¸¸à¸“à¸ˆà¸°à¸•à¹‰à¸­à¸‡à¸¡à¸µà¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸¡à¸·à¸­à¸•à¹ˆà¸­à¹„à¸›à¸™à¸µà¹‰à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¸šà¸™à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸„à¸­à¸¡à¸à¸´à¸§à¹€à¸•à¸­à¸£à¹Œà¸‚à¸­à¸‡à¸„à¸¸à¸“:</span></p><ul class="lst-kix_list_1-0 start" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="font-weight:700">Node.js:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;à¹€à¸§à¸­à¸£à¹Œà¸Šà¸±à¸™ 18.x à¸«à¸£à¸·à¸­à¸ªà¸¹à¸‡à¸à¸§à¹ˆà¸²</span></li><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="font-weight:700">NPM</span><span>&nbsp;à¸«à¸£à¸·à¸­ </span><span style="font-weight:700">Yarn:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;à¸•à¸±à¸§à¸ˆà¸±à¸”à¸à¸²à¸£ Package (à¸¡à¸²à¸à¸£à¹‰à¸­à¸¡à¸à¸±à¸š Node.js)</span></li><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="font-weight:700">Git:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;à¸ªà¸³à¸«à¸£à¸±à¸šà¸à¸²à¸£ Clone à¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œà¸ˆà¸²à¸ Gitea</span></li></ul><h2 style="padding-top:11.2pt;margin:0;color:#000000;font-weight:700;padding-left:0;font-size:18pt;padding-bottom:11.2pt;font-family:&quot;Arial&quot;;line-height:1.0;text-align:left;padding-right:0"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:18pt;font-family:&quot;Arial&quot;;font-style:normal">2. à¸‚à¸±à¹‰à¸™à¸•à¸­à¸™à¸à¸²à¸£à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡à¹à¸¥à¸°à¹€à¸£à¸´à¹ˆà¸¡à¹ƒà¸Šà¹‰à¸‡à¸²à¸™ (Installation &amp; Setup)</span></h2><ol class="lst-kix_list_2-0 start" start="1" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">Clone à¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œ:</span></li></ol><ul class="lst-kix_list_3-1 start" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:60pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¸„à¸±à¸”à¸¥à¸­à¸à¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œà¸ˆà¸²à¸ Gitea repository à¸‚à¸­à¸‡à¸„à¸¸à¸“à¸¡à¸²à¹„à¸§à¹‰à¸—à¸µà¹ˆà¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡</span></li></ul><p style="margin-left:30pt;padding:0;color:#000000;font-size:11pt;font-family:&quot;Arial&quot;;line-height:1.0;margin-top:0;margin-bottom:0;text-align:left;margin-right:0"><span>&lt;!-- end list --&gt;</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Courier&quot;;font-style:normal">git clone [http://git.np-dms.work/your-repo/frontend-np-dms.git](http://git.np-dms.work/your-repo/frontend-np-dms.git)<br>cd frontend-np-dms<br></span></p><ol class="lst-kix_list_2-0" start="2" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡ Dependencies:</span></li></ol><ul class="lst-kix_list_4-1 start" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:60pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¹ƒà¸Šà¹‰ npm à¹€à¸à¸·à¹ˆà¸­à¸•à¸´à¸”à¸•à¸±à¹‰à¸‡ Library à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”à¸—à¸µà¹ˆà¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œà¸•à¹‰à¸­à¸‡à¸à¸²à¸£</span></li></ul><p style="margin-left:30pt;padding:0;color:#000000;font-size:11pt;font-family:&quot;Arial&quot;;line-height:1.0;margin-top:0;margin-bottom:0;text-align:left;margin-right:0"><span>&lt;!-- end list --&gt;</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Courier&quot;;font-style:normal">npm install<br></span></p><ol class="lst-kix_list_2-0" start="3" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¸•à¸±à¹‰à¸‡à¸„à¹ˆà¸² Environment File:</span></li></ol><ul class="lst-kix_list_5-1 start" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:60pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¸ªà¸£à¹‰à¸²à¸‡à¹„à¸Ÿà¸¥à¹Œà¹ƒà¸«à¸¡à¹ˆà¸Šà¸·à¹ˆà¸­ .env.local à¸—à¸µà¹ˆà¸£à¸²à¸à¸‚à¸­à¸‡à¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œ</span></li><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:60pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¸à¸³à¸«à¸™à¸” URL à¸‚à¸­à¸‡ Backend API à¸—à¸µà¹ˆà¸ˆà¸°à¹ƒà¸«à¹‰ Frontend à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­</span></li></ul><p style="margin-left:30pt;padding:0;color:#000000;font-size:11pt;font-family:&quot;Arial&quot;;line-height:1.0;margin-top:0;margin-bottom:0;text-align:left;margin-right:0"><span style="font-weight:700">à¹„à¸Ÿà¸¥à¹Œ .env.local:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Courier&quot;;font-style:normal"># URL à¸‚à¸­à¸‡ NestJS Backend (à¸—à¸µà¹ˆà¸£à¸±à¸™à¸œà¹ˆà¸²à¸™ Docker)<br>NEXT_PUBLIC_API_BASE_URL=http://localhost:3001<br></span></p><ol class="lst-kix_list_2-0" start="4" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¸£à¸±à¸™à¹à¸­à¸›à¸à¸¥à¸´à¹€à¸„à¸Šà¸±à¸™ (Development Mode):</span></li></ol><ul class="lst-kix_list_6-1 start" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:60pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¹ƒà¸Šà¹‰à¸„à¸³à¸ªà¸±à¹ˆà¸‡à¸™à¸µà¹‰à¹€à¸à¸·à¹ˆà¸­à¹€à¸£à¸´à¹ˆà¸¡ Frontend server à¹ƒà¸™à¹‚à¸«à¸¡à¸”à¸à¸±à¸’à¸™à¸²</span></li></ul><p style="margin-left:30pt;padding:0;color:#000000;font-size:11pt;font-family:&quot;Arial&quot;;line-height:1.0;margin-top:0;margin-bottom:0;text-align:left;margin-right:0"><span>&lt;!-- end list --&gt;</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Courier&quot;;font-style:normal">npm run dev<br></span></p><ol class="lst-kix_list_2-0" start="5" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸à¸²à¸£à¸—à¸³à¸‡à¸²à¸™:</span></li></ol><ul class="lst-kix_list_7-1 start" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:60pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¹€à¸›à¸´à¸”à¹€à¸§à¹‡à¸šà¹€à¸šà¸£à¸²à¸§à¹Œà¹€à¸‹à¸­à¸£à¹Œà¹à¸¥à¹‰à¸§à¹„à¸›à¸—à¸µà¹ˆ http://localhost:3000</span></li><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:60pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¸„à¸¸à¸“à¸„à¸§à¸£à¸ˆà¸°à¹€à¸«à¹‡à¸™à¸«à¸™à¹‰à¸² Landing Page à¸‚à¸­à¸‡à¸£à¸°à¸šà¸š</span></li></ul><h2 style="padding-top:11.2pt;margin:0;color:#000000;font-weight:700;padding-left:0;font-size:18pt;padding-bottom:11.2pt;font-family:&quot;Arial&quot;;line-height:1.0;text-align:left;padding-right:0"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:18pt;font-family:&quot;Arial&quot;;font-style:normal">3. à¸ªà¸–à¸²à¸›à¸±à¸•à¸¢à¸à¸£à¸£à¸¡à¹à¸¥à¸°à¹‚à¸„à¸£à¸‡à¸ªà¸£à¹‰à¸²à¸‡à¹‚à¸›à¸£à¹€à¸ˆà¸à¸•à¹Œ</span></h2><p style="padding:0;margin:0;color:#000000;font-size:11pt;font-family:&quot;Arial&quot;;line-height:1.0;text-align:left"><span>Frontend à¸™à¸µà¹‰à¹ƒà¸Šà¹‰ </span><span style="font-weight:700">App Router</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;à¸‚à¸­à¸‡ Next.js à¸‹à¸¶à¹ˆà¸‡à¹€à¸›à¹‡à¸™à¸ªà¸–à¸²à¸›à¸±à¸•à¸¢à¸à¸£à¸£à¸¡à¸ªà¸¡à¸±à¸¢à¹ƒà¸«à¸¡à¹ˆà¸—à¸µà¹ˆà¹€à¸™à¹‰à¸™à¸à¸²à¸£à¸—à¸³ Server-Side Rendering (SSR) à¹à¸¥à¸° Server Components à¹€à¸à¸·à¹ˆà¸­à¸›à¸£à¸°à¸ªà¸´à¸—à¸˜à¸´à¸ à¸²à¸à¸ªà¸¹à¸‡à¸ªà¸¸à¸”</span></p><ul class="lst-kix_list_8-0 start" style="padding:0;margin:0"><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="font-weight:700">Framework:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;Next.js 14+ (App Router)</span></li><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="font-weight:700">à¸ à¸²à¸©à¸²:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;TypeScript</span></li><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="font-weight:700">Styling:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;Tailwind CSS</span></li><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="font-weight:700">Component Library:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;shadcn/ui (à¹„à¸¡à¹ˆà¹ƒà¸Šà¹ˆ Library à¹à¸•à¹ˆà¹€à¸›à¹‡à¸™à¸Šà¸¸à¸”à¸‚à¸­à¸‡ Reusable Components à¸—à¸µà¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸›à¸£à¸±à¸šà¹à¸•à¹ˆà¸‡à¹„à¸”à¹‰)</span></li><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="font-weight:700">State Management:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;React Context API (à¸ªà¸³à¸«à¸£à¸±à¸š Global Authentication State)</span></li><li style="padding:0;color:#000000;font-size:11pt;line-height:1.0;margin-right:0;margin-left:30pt;font-family:&quot;Arial&quot;;margin-top:0;margin-bottom:0;text-align:left"><span style="font-weight:700">Data Fetching:</span><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">&nbsp;à¹ƒà¸Šà¹‰ API Routes à¸‚à¸­à¸‡ Next.js à¹€à¸›à¹‡à¸™ Proxy à¹€à¸à¸·à¹ˆà¸­à¸ªà¸·à¹ˆà¸­à¸ªà¸²à¸£à¸à¸±à¸š Backend à¸­à¸¢à¹ˆà¸²à¸‡à¸›à¸¥à¸­à¸”à¸ à¸±à¸¢</span></li></ul><p style="padding:0;margin:0;color:#000000;font-size:11pt;font-family:&quot;Arial&quot;;line-height:1.0;text-align:left"><span style="color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Arial&quot;;font-style:normal">à¹‚à¸„à¸£à¸‡à¸ªà¸£à¹‰à¸²à¸‡à¹‚à¸Ÿà¸¥à¹€à¸”à¸­à¸£à¹Œà¸«à¸¥à¸±à¸:</span></p><p style="padding:0;margin:0;color:#000000;font-size:11pt;font-family:&quot;Arial&quot;;line-height:1.0;text-align:left"><span style="color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:&quot;Courier&quot;;font-style:normal">frontend-np-dms/<br>â”œâ”€â”€ app/<br>â”‚ &nbsp; â”œâ”€â”€ (auth)/ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # Group à¸ªà¸³à¸«à¸£à¸±à¸šà¸«à¸™à¹‰à¸²à¸«à¸¥à¸±à¸‡ Login (à¸¡à¸µ Layout à¸à¸£à¹‰à¸­à¸¡ Navbar/Sidebar)<br>â”‚ &nbsp; â”‚ &nbsp; â”œâ”€â”€ admin/<br>â”‚ &nbsp; â”‚ &nbsp; â”œâ”€â”€ correspondences/<br>â”‚ &nbsp; â”‚ &nbsp; â”œâ”€â”€ dashboard/<br>â”‚ &nbsp; â”‚ &nbsp; â””â”€â”€ layout.tsx<br>â”‚ &nbsp; â”œâ”€â”€ (public)/ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # Group à¸ªà¸³à¸«à¸£à¸±à¸šà¸«à¸™à¹‰à¸²à¸ªà¸²à¸˜à¸²à¸£à¸“à¸° (à¸¡à¸µ Layout à¹à¸šà¸šà¸§à¹ˆà¸²à¸‡)<br>â”‚ &nbsp; â”‚ &nbsp; â”œâ”€â”€ login/<br>â”‚ &nbsp; â”‚ &nbsp; â””â”€â”€ layout.tsx<br>â”‚ &nbsp; â”œâ”€â”€ api/ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# API Routes à¸—à¸µà¹ˆà¸—à¸³à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆà¹€à¸›à¹‡à¸™ Proxy à¹„à¸›à¸¢à¸±à¸‡ Backend<br>â”‚ &nbsp; â”œâ”€â”€ globals.css<br>â”‚ &nbsp; â””â”€â”€ layout.tsx &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# Root Layout (à¸—à¸µà¹ˆà¸«à¹ˆà¸­à¸«à¸¸à¹‰à¸¡à¸”à¹‰à¸§à¸¢ AuthProvider)<br>â”œâ”€â”€ components/ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # à¸—à¸µà¹ˆà¹€à¸à¹‡à¸š UI Components à¸—à¸µà¹ˆà¸ªà¸£à¹‰à¸²à¸‡à¸”à¹‰à¸§à¸¢ shadcn à¹à¸¥à¸° Components à¸—à¸µà¹ˆà¸ªà¸£à¹‰à¸²à¸‡à¸‚à¸¶à¹‰à¸™à¹€à¸­à¸‡<br>â”‚ &nbsp; â”œâ”€â”€ dashboard/<br>â”‚ &nbsp; â”œâ”€â”€ layout/<br>â”‚ &nbsp; â”œâ”€â”€ rfa/<br>â”‚ &nbsp; â””â”€â”€ ui/<br>â”œâ”€â”€ contexts/ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # à¸—à¸µà¹ˆà¹€à¸à¹‡à¸š React Context à¸ªà¸³à¸«à¸£à¸±à¸š Global State<br>â”‚ &nbsp; â””â”€â”€ AuthContext.tsx<br>â”œâ”€â”€ lib/ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# à¸—à¸µà¹ˆà¹€à¸à¹‡à¸šà¸Ÿà¸±à¸‡à¸à¹Œà¸Šà¸±à¸™à¹€à¸ªà¸£à¸´à¸¡ (à¹€à¸Šà¹ˆà¸™ utils.ts à¸ˆà¸²à¸ shadcn)<br>â”œâ”€â”€ public/ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # à¸—à¸µà¹ˆà¹€à¸à¹‡à¸šà¹„à¸Ÿà¸¥à¹Œà¸ªà¸²à¸˜à¸²à¸£à¸“à¸° à¹€à¸Šà¹ˆà¸™ à¸£à¸¹à¸›à¸ à¸²à¸, favicon<br>â”œâ”€â”€ types/ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;# (à¹à¸™à¸°à¸™à¸³) à¸—à¸µà¹ˆà¹€à¸à¹‡à¸š TypeScript type definitions à¸—à¸µà¹ˆà¹ƒà¸Šà¹‰à¸£à¹ˆà¸§à¸¡à¸à¸±à¸™<br>â”œâ”€â”€ middleware.ts &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; # à¹„à¸Ÿà¸¥à¹Œà¸ªà¸³à¸„à¸±à¸à¸ªà¸³à¸«à¸£à¸±à¸šà¸›à¹‰à¸­à¸‡à¸à¸±à¸™ Route (Route Protection)<br>â””â”€â”€ package.json<br></span></p></div></div></div></div></body></html>
+------MultipartBoundary--csF0EXC0RJ3vOG6iJZx4sbJHPtjAmchlkrKXyomDzE----
+Content-Type: text/css
+Content-Transfer-Encoding: binary
+Content-Location: https://themes.googleusercontent.com/fonts/css?kit=kbffV7V9BIH3Ot2AQ2LQRA
+
+@charset "utf-8";
+
+@font-face { font-family: Courier; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/l/font?kit=i7dKIFtyYSaNG9A_JrmedWxeSFI&skey=415f62b718dd1a36&v=v12") format("woff2"); unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+------MultipartBoundary--csF0EXC0RJ3vOG6iJZx4sbJHPtjAmchlkrKXyomDzE----
+Content-Type: text/css
+Content-Transfer-Encoding: binary
+Content-Location: cid:css-8579d4bc-81a4-446d-b2aa-5e3d220689ab@mhtml.blink
+
+@charset "utf-8";
+
+@import url("https://themes.googleusercontent.com/fonts/css?kit=kbffV7V9BIH3Ot2AQ2LQRA");
+
+ol.lst-kix_list_7-0 { list-style-type: none; }
+
+ul.lst-kix_list_1-0 { list-style-type: none; }
+
+ol.lst-kix_list_3-0 { list-style-type: none; }
+
+.lst-kix_list_3-0 > li::before { content: "" counter(lst-ctn-kix_list_3-0) ". "; }
+
+ul.lst-kix_list_5-7 { list-style-type: none; }
+
+ul.lst-kix_list_5-8 { list-style-type: none; }
+
+.lst-kix_list_3-1 > li::before { content: "â—‹  "; }
+
+.lst-kix_list_3-2 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_5-5 { list-style-type: none; }
+
+ul.lst-kix_list_5-6 { list-style-type: none; }
+
+.lst-kix_list_8-1 > li::before { content: "â—‹  "; }
+
+.lst-kix_list_4-0 > li { counter-increment: lst-ctn-kix_list_4-0 1; }
+
+.lst-kix_list_8-2 > li::before { content: "â–   "; }
+
+.lst-kix_list_5-0 > li { counter-increment: lst-ctn-kix_list_5-0 1; }
+
+.lst-kix_list_6-0 > li { counter-increment: lst-ctn-kix_list_6-0 1; }
+
+.lst-kix_list_7-0 > li { counter-increment: lst-ctn-kix_list_7-0 1; }
+
+ul.lst-kix_list_1-3 { list-style-type: none; }
+
+.lst-kix_list_3-5 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_1-4 { list-style-type: none; }
+
+ul.lst-kix_list_1-1 { list-style-type: none; }
+
+.lst-kix_list_3-4 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_1-2 { list-style-type: none; }
+
+ul.lst-kix_list_5-3 { list-style-type: none; }
+
+ul.lst-kix_list_1-7 { list-style-type: none; }
+
+.lst-kix_list_3-3 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_5-4 { list-style-type: none; }
+
+ul.lst-kix_list_1-8 { list-style-type: none; }
+
+ul.lst-kix_list_5-1 { list-style-type: none; }
+
+.lst-kix_list_8-0 > li::before { content: "â—  "; }
+
+ul.lst-kix_list_1-5 { list-style-type: none; }
+
+ul.lst-kix_list_5-2 { list-style-type: none; }
+
+ul.lst-kix_list_1-6 { list-style-type: none; }
+
+.lst-kix_list_8-7 > li::before { content: "â–   "; }
+
+.lst-kix_list_3-8 > li::before { content: "â–   "; }
+
+.lst-kix_list_8-5 > li::before { content: "â–   "; }
+
+.lst-kix_list_8-6 > li::before { content: "â–   "; }
+
+.lst-kix_list_2-0 > li { counter-increment: lst-ctn-kix_list_2-0 1; }
+
+.lst-kix_list_8-3 > li::before { content: "â–   "; }
+
+.lst-kix_list_3-6 > li::before { content: "â–   "; }
+
+.lst-kix_list_3-7 > li::before { content: "â–   "; }
+
+.lst-kix_list_8-4 > li::before { content: "â–   "; }
+
+ol.lst-kix_list_5-0.start { counter-reset: lst-ctn-kix_list_5-0 0; }
+
+.lst-kix_list_8-8 > li::before { content: "â–   "; }
+
+.lst-kix_list_5-0 > li::before { content: "" counter(lst-ctn-kix_list_5-0) ". "; }
+
+ol.lst-kix_list_6-0 { list-style-type: none; }
+
+ol.lst-kix_list_2-0 { list-style-type: none; }
+
+.lst-kix_list_4-8 > li::before { content: "â–   "; }
+
+.lst-kix_list_5-3 > li::before { content: "â–   "; }
+
+.lst-kix_list_4-7 > li::before { content: "â–   "; }
+
+.lst-kix_list_5-2 > li::before { content: "â–   "; }
+
+.lst-kix_list_5-1 > li::before { content: "â—‹  "; }
+
+ul.lst-kix_list_4-8 { list-style-type: none; }
+
+.lst-kix_list_5-7 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_8-4 { list-style-type: none; }
+
+ul.lst-kix_list_8-5 { list-style-type: none; }
+
+ul.lst-kix_list_4-6 { list-style-type: none; }
+
+.lst-kix_list_5-6 > li::before { content: "â–   "; }
+
+.lst-kix_list_5-8 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_8-2 { list-style-type: none; }
+
+ul.lst-kix_list_4-7 { list-style-type: none; }
+
+ul.lst-kix_list_8-3 { list-style-type: none; }
+
+ul.lst-kix_list_8-8 { list-style-type: none; }
+
+ul.lst-kix_list_8-6 { list-style-type: none; }
+
+ul.lst-kix_list_8-7 { list-style-type: none; }
+
+ul.lst-kix_list_4-1 { list-style-type: none; }
+
+.lst-kix_list_5-4 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_4-4 { list-style-type: none; }
+
+.lst-kix_list_5-5 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_8-0 { list-style-type: none; }
+
+ul.lst-kix_list_4-5 { list-style-type: none; }
+
+ul.lst-kix_list_8-1 { list-style-type: none; }
+
+ul.lst-kix_list_4-2 { list-style-type: none; }
+
+ul.lst-kix_list_4-3 { list-style-type: none; }
+
+.lst-kix_list_6-1 > li::before { content: "â—‹  "; }
+
+.lst-kix_list_6-3 > li::before { content: "â–   "; }
+
+.lst-kix_list_6-0 > li::before { content: "" counter(lst-ctn-kix_list_6-0) ". "; }
+
+.lst-kix_list_6-4 > li::before { content: "â–   "; }
+
+.lst-kix_list_3-0 > li { counter-increment: lst-ctn-kix_list_3-0 1; }
+
+ol.lst-kix_list_4-0.start { counter-reset: lst-ctn-kix_list_4-0 0; }
+
+.lst-kix_list_6-2 > li::before { content: "â–   "; }
+
+.lst-kix_list_6-8 > li::before { content: "â–   "; }
+
+.lst-kix_list_6-5 > li::before { content: "â–   "; }
+
+.lst-kix_list_6-7 > li::before { content: "â–   "; }
+
+.lst-kix_list_7-0 > li::before { content: "" counter(lst-ctn-kix_list_7-0) ". "; }
+
+.lst-kix_list_6-6 > li::before { content: "â–   "; }
+
+ol.lst-kix_list_5-0 { list-style-type: none; }
+
+.lst-kix_list_2-6 > li::before { content: "â–   "; }
+
+.lst-kix_list_2-7 > li::before { content: "â–   "; }
+
+.lst-kix_list_7-4 > li::before { content: "â–   "; }
+
+.lst-kix_list_7-6 > li::before { content: "â–   "; }
+
+.lst-kix_list_2-4 > li::before { content: "â–   "; }
+
+.lst-kix_list_2-5 > li::before { content: "â–   "; }
+
+.lst-kix_list_2-8 > li::before { content: "â–   "; }
+
+.lst-kix_list_7-1 > li::before { content: "â—‹  "; }
+
+.lst-kix_list_7-5 > li::before { content: "â–   "; }
+
+.lst-kix_list_7-2 > li::before { content: "â–   "; }
+
+.lst-kix_list_7-3 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_7-5 { list-style-type: none; }
+
+ul.lst-kix_list_7-6 { list-style-type: none; }
+
+ul.lst-kix_list_7-3 { list-style-type: none; }
+
+ul.lst-kix_list_3-7 { list-style-type: none; }
+
+ul.lst-kix_list_7-4 { list-style-type: none; }
+
+ul.lst-kix_list_3-8 { list-style-type: none; }
+
+ul.lst-kix_list_7-7 { list-style-type: none; }
+
+ul.lst-kix_list_7-8 { list-style-type: none; }
+
+ol.lst-kix_list_3-0.start { counter-reset: lst-ctn-kix_list_3-0 0; }
+
+ul.lst-kix_list_3-1 { list-style-type: none; }
+
+ul.lst-kix_list_3-2 { list-style-type: none; }
+
+.lst-kix_list_7-8 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_7-1 { list-style-type: none; }
+
+ul.lst-kix_list_3-5 { list-style-type: none; }
+
+ul.lst-kix_list_7-2 { list-style-type: none; }
+
+ul.lst-kix_list_3-6 { list-style-type: none; }
+
+ul.lst-kix_list_3-3 { list-style-type: none; }
+
+.lst-kix_list_7-7 > li::before { content: "â–   "; }
+
+ul.lst-kix_list_3-4 { list-style-type: none; }
+
+.lst-kix_list_4-0 > li::before { content: "" counter(lst-ctn-kix_list_4-0) ". "; }
+
+.lst-kix_list_4-1 > li::before { content: "â—‹  "; }
+
+.lst-kix_list_4-4 > li::before { content: "â–   "; }
+
+.lst-kix_list_4-3 > li::before { content: "â–   "; }
+
+.lst-kix_list_4-5 > li::before { content: "â–   "; }
+
+.lst-kix_list_4-2 > li::before { content: "â–   "; }
+
+.lst-kix_list_4-6 > li::before { content: "â–   "; }
+
+ol.lst-kix_list_7-0.start { counter-reset: lst-ctn-kix_list_7-0 0; }
+
+ol.lst-kix_list_4-0 { list-style-type: none; }
+
+ul.lst-kix_list_6-6 { list-style-type: none; }
+
+ul.lst-kix_list_6-7 { list-style-type: none; }
+
+ul.lst-kix_list_6-4 { list-style-type: none; }
+
+ul.lst-kix_list_2-8 { list-style-type: none; }
+
+ul.lst-kix_list_6-5 { list-style-type: none; }
+
+ul.lst-kix_list_6-8 { list-style-type: none; }
+
+ul.lst-kix_list_2-2 { list-style-type: none; }
+
+.lst-kix_list_1-0 > li::before { content: "â—  "; }
+
+ul.lst-kix_list_2-3 { list-style-type: none; }
+
+ul.lst-kix_list_2-1 { list-style-type: none; }
+
+ul.lst-kix_list_6-2 { list-style-type: none; }
+
+ul.lst-kix_list_2-6 { list-style-type: none; }
+
+ul.lst-kix_list_6-3 { list-style-type: none; }
+
+.lst-kix_list_1-1 > li::before { content: "â—‹  "; }
+
+.lst-kix_list_1-2 > li::before { content: "â–   "; }
+
+ol.lst-kix_list_2-0.start { counter-reset: lst-ctn-kix_list_2-0 0; }
+
+ul.lst-kix_list_2-7 { list-style-type: none; }
+
+ul.lst-kix_list_2-4 { list-style-type: none; }
+
+ul.lst-kix_list_6-1 { list-style-type: none; }
+
+ul.lst-kix_list_2-5 { list-style-type: none; }
+
+.lst-kix_list_1-3 > li::before { content: "â–   "; }
+
+.lst-kix_list_1-4 > li::before { content: "â–   "; }
+
+.lst-kix_list_1-7 > li::before { content: "â–   "; }
+
+.lst-kix_list_1-5 > li::before { content: "â–   "; }
+
+.lst-kix_list_1-6 > li::before { content: "â–   "; }
+
+.lst-kix_list_2-0 > li::before { content: "" counter(lst-ctn-kix_list_2-0) ". "; }
+
+.lst-kix_list_2-1 > li::before { content: "â—‹  "; }
+
+ol.lst-kix_list_6-0.start { counter-reset: lst-ctn-kix_list_6-0 0; }
+
+.lst-kix_list_1-8 > li::before { content: "â–   "; }
+
+.lst-kix_list_2-2 > li::before { content: "â–   "; }
+
+.lst-kix_list_2-3 > li::before { content: "â–   "; }
+------MultipartBoundary--csF0EXC0RJ3vOG6iJZx4sbJHPtjAmchlkrKXyomDzE----
+Content-Type: image/png
+Content-Transfer-Encoding: binary
+Content-Location: https://ssl.gstatic.com/docs/common/mobileweb_sprite1.png
+
+‰PNG
+
+   IHDR   $   œ   ™	€  	UIDAThŞí[[lWşÎ™Ù›Çn¸8Ik'm\š*VÒEBj¸51/T¢5ÚP¥ Zå&Ñ‡Já	„*c‚h¤ Ü€€B›òÂå)I+”“æ! †„XNHÓbrñ:ï®wæü<ìmvvÎÌ9Ç“x#ö6=sûæÿşÿ?ç|{h2ca;‡~ÿ½şi7×GBTDTÙvIÔ¶§zŞÆölÊÅ
+hóï¾½ãb~f „Ò½‰*[¥¶
+>*>»zË…Û¦»z,èâ²ó3?0uú²¶%K/İš=±sl,  ï˜XGfÑªäÚê‚’"ªñÒÔ·Uè
+²L*İŸ¹·ı°(9 Ï?/˜(‡‘Ï¥Édb}Û½í‡TAq(ÜÀ&Êc~³ö@òÌ¸
+(®$L‡DƒÇÒ©ô:»?slxt4eHYı'L];ÿ˜š©tzMçÆÎÉíc;¥²#)óù Š>bÀÁsÇ{SSèL.#‚¨T<Æ@ å—Sùc îÒ$ØT¾±Ë	Ç)ğì9°œ0*e,¥šOk´=D’DAiï?–3ˆÌbà'_	 OŒP&÷^`ĞWÚXé?Ñnf0Ç[×˜> 2 P_"cåàTüdˆ"©$`i6' Wj”EÅ’F­	V*4®   à“+7Iû¾ Ïî;ófıõ,˜RlßxL«×ßwæMÏÃ•=f13Êdtıbâ öz½úı…MÛ ß©ê¡í}bûê-`"@›2 ˜)æq.w©JQÁ- Ş™½X=îr1/cÔaOòÌÚ­xfíÖ†öï
+x ½­ÓUìç§bïÄÁêş‘ûŸøúøXõ¼'WoÁ}†få¼ëPåb3Å\=~Ê*ÇÈkULi_±áşmîßÖpìIe²ëŒ=$·½§à¥S5Ê~¸é €¯ÿ¬zÌç²ÌS0McHö¤^Êà¡ìÜìÅZ&:9­	Áü([»Ãk·5´Ÿ|øÇ¡±8¯´—=Ë®şIø$;©=¨e?:ş‡HoFyÅ,ËF²XQcC¡7 a—–Nƒ„#²Q3Z¿GH:§£úé9Ñ%m@	ØÃŠÄ¦ª8ôU#Áªû'õÚ–ÕK‚˜Nà{Å«ºvFÂ±01ó•ßœFË®‡Æøü¯óıÓ³N,Pc¼T^–>z_Ûş¡Í<^ñK»¯îÈ˜Gcô¤5y›êÛ‰İg_¸ÓIöòø4Æé9f¦1áÖÅ|éYûÚ‰±±Éø4FFóÓ—,N­¢•İGuA)jŒUX¡›Édı¼÷öÃ: ”«º›’º8A$lk½µê¶Cª ¢5Æ 0Ô'… µSö [Ù=®Š+	„Ã­‰tb³bÙ±ÑÑ“fcPg%ãûş¯wæ“¡-“\c­í™Üâ)mÁ*
+ÀñÖé"Îıç<ÚÓ%iªº1 lù•BÊDcª1–µ(âŞË/Â™ó3sù’bæÎ™‰Æ4 ã C²£ÅkW!œBUôde¥6VœâğÑÃ $·£˜· œ9¥i¾ú˜šÂëMX\Ù©\ÆAN1Baó©>•şÙO¦ \'´;2£LV‡(\•åv"Ê]LeƒÙ6 \Ä–e¿|ÊÕêõ‡vóÆ$`–©`Õh¯½ÅÕÊ‚)ÌÉôg®¼z„EN©2ÕèÿŒ³ìW_V£¬nh·§ÆØhûpÉ~`áµ*,#¼rDvìNÂjU,bÃËO-aâÑ-­§¶SÔT?›¢¨ëÌ+¨%öÊß˜qw2¯’ùòÓÑYöÈ‹–<Ö#j‘e\ı(Üƒ±PöÛÊT¼bC¤1ÿBD¬P1¤<ƒ&Í ¸xÈÜeU§GcH¶àÀ@cdÅÂpÃÍ	c# ÔgÅ93ñ#;³½°^K@Kct$ã ¬¹ÔÄëß¿¥¥1¶¬©í ®i0yO†ïZh@Ï”¤‘…òÌãåíç}€..M.€'| f|ìF‚ôÅŒÔsÆêñM“Ì‚Ğ´íf“ki0[o&0¿ÑéİT`Ğl` óĞB'š
+LËZfb¡SäüáÁ~§8İÇXí'7"Ïêlï¶[SÖÚÒŞÏ7Ä»öãêõ;˜3µ§A6 ÿ¯ùõí‚€Äû¿xáßgWôÜ5øl|k?Xá¿Fk?H <³téíw¼{â@È.Ú€`Qg¤ºbédçªMì¨.(]#á£%@ğ‘èm©Tÿ†¬Ã“  ùÁD®pôy*±¾ëƒ‰CªâÑAA`¢ÖËøèKğûÙ¸Š§¸0A+>…Óp^[:¹nÙÆâ±?§b ,
+Lí/c@áÒ±À+&3‹ÖlŞ’<0¶]ê)áœ‚¿Khd Ïÿ¦ÎVWmI7+íc\,¿»û²şÚ)¬•<d[.Òô6f³N®´¥²â“	çXcà!ùM£Úâ O$º€¹Ë€[`ua/+{ƒB¼V¾)+õKéBñA™JB†ı<EÿµÛnPJ>ãçİ®P*?Z/0ÇpÅ¹u|Ô¾¬²UB)]ù+ıKÆ” 8sãòÄİ?¬ŒZ—+r`‡ï¬»eÃM²Ô¶2êC©ÿy¸|MfS&9Ñ½æÌ„Ÿi/¬%Ú³fP—'½»ììÇÕ½Âµò[=ßŒÈÂX²Ì?Vò/$ 5êc¥,ˆb1¯‡êŞHˆêBÂöSÌï—È¿öE½»¡Ø+5@ï{
+èş4(ä²:½¦]©<ÇÛAÉv“”ãRcÄXşˆ¼ú,Tä"ú»*5?ş9Pûµ¾LFØÌ!­É€e,ûXöğx#òÌÑõf(¶i’u¾Ñué:d™ú@No¦.6²¡óµÀyv-u5ˆäBí‡SàÃ7¤± ºEÃ÷Ë²¯¦zô‚Å³öƒ„+l`â–ÏàtK+lYË$öò§iÀ€"€{š	Ì§š	Ì#-006§™À˜~æe7‰y)jjú uİ:W[  o·Fb-kVûğ`ac%`    IEND®B`‚
+------MultipartBoundary--csF0EXC0RJ3vOG6iJZx4sbJHPtjAmchlkrKXyomDzE----
+Content-Type: text/css
+Content-Transfer-Encoding: binary
+Content-Location: https://fonts.googleapis.com/css?family=Google+Sans
+
+@charset "utf-8";
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJl1pynAESo4b4o.woff2") format("woff2"); unicode-range: U+308, U+530-58F, U+2010, U+2024, U+25CC, U+FB13-FB17; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJl3pynAESo4b4o.woff2") format("woff2"); unicode-range: U+951-952, U+964-965, U+980-9FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA, U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlKpynAESo4b4o.woff2") format("woff2"); unicode-range: U+2C7, U+2D8-2D9, U+2DB, U+307, U+1400-167F, U+18B0-18F5, U+25CC, U+11AB0-11ABF; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: local("Google Sans Regular"), local("GoogleSans-Regular"), url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlopynAESo4b4o.woff2") format("woff2"); unicode-range: U+460-52F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: local("Google Sans Regular"), local("GoogleSans-Regular"), url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlhpynAESo4b4o.woff2") format("woff2"); unicode-range: U+301, U+400-45F, U+490-491, U+4B0-4B1, U+2116; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlkpynAESo4b4o.woff2") format("woff2"); unicode-range: U+900-97F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJl0pynAESo4b4o.woff2") format("woff2"); unicode-range: U+30E, U+1200-1399, U+2D80-2DDE, U+AB01-AB2E, U+1E7E0-1E7E6, U+1E7E8-1E7EB, U+1E7ED-1E7EE, U+1E7F0-1E7FE; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJl6pynAESo4b4o.woff2") format("woff2"); unicode-range: U+589, U+10A0-10FF, U+1C90-1CBA, U+1CBD-1CBF, U+205A, U+2D00-2D2F, U+2E31; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: local("Google Sans Regular"), local("GoogleSans-Regular"), url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlppynAESo4b4o.woff2") format("woff2"); unicode-range: U+1F00-1FFF; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: local("Google Sans Regular"), local("GoogleSans-Regular"), url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlmpynAESo4b4o.woff2") format("woff2"); unicode-range: U+370-377, U+37A-37F, U+384-38A, U+38C, U+38E-3A1, U+3A3-3FF; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJl-pynAESo4b4o.woff2") format("woff2"); unicode-range: U+951-952, U+964-965, U+A80-AFF, U+200C-200D, U+20B9, U+25CC, U+A830-A839; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlGpynAESo4b4o.woff2") format("woff2"); unicode-range: U+951-952, U+964-965, U+A01-A76, U+200C-200D, U+20B9, U+25CC, U+262C, U+A830-A839; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: local("Google Sans Regular"), local("GoogleSans-Regular"), url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlnpynAESo4b4o.woff2") format("woff2"); unicode-range: U+307-308, U+590-5FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlupynAESo4b4o.woff2") format("woff2"); unicode-range: U+1780-17FF, U+19E0-19FF, U+200C-200D, U+25CC; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlspynAESo4b4o.woff2") format("woff2"); unicode-range: U+E81-EDF, U+200C-200D, U+25CC; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJl9pynAESo4b4o.woff2") format("woff2"); unicode-range: U+307, U+323, U+951-952, U+964-965, U+D00-D7F, U+1CDA, U+1CF2, U+200C-200D, U+20B9, U+25CC, U+A830-A832; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJl8pynAESo4b4o.woff2") format("woff2"); unicode-range: U+951-952, U+964-965, U+B01-B77, U+1CDA, U+1CF2, U+200C-200D, U+20B9, U+25CC; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJl4pynAESo4b4o.woff2") format("woff2"); unicode-range: U+964-965, U+D81-DF4, U+1CF2, U+200C-200D, U+25CC, U+111E1-111F4; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJkLpynAESo4b4o.woff2") format("woff2"); unicode-range: U+1-C, U+E-1F, U+7F-9F, U+20DD-20E0, U+20E2-20E4, U+2150-218F, U+2190, U+2192, U+2194-2199, U+21AF, U+21E6-21F0, U+21F3, U+2218-2219, U+2299, U+22C4-22C6, U+2300-243F, U+2440-244A, U+2460-24FF, U+25A0-27BF, U+2800-28FF, U+2921-2922, U+2981, U+29BF, U+29EB, U+2B00-2BFF, U+4DC0-4DFF, U+FFF9-FFFB, U+10140-1018E, U+10190-1019C, U+101A0, U+101D0-101FD, U+102E0-102FB, U+10E60-10E7E, U+1D2C0-1D2D3, U+1D2E0-1D37F, U+1F000-1F0FF, U+1F100-1F1AD, U+1F1E6-1F1FF, U+1F30D-1F30F, U+1F315, U+1F31C, U+1F31E, U+1F320-1F32C, U+1F336, U+1F378, U+1F37D, U+1F382, U+1F393-1F39F, U+1F3A7-1F3A8, U+1F3AC-1F3AF, U+1F3C2, U+1F3C4-1F3C6, U+1F3CA-1F3CE, U+1F3D4-1F3E0, U+1F3ED, U+1F3F1-1F3F3, U+1F3F5-1F3F7, U+1F408, U+1F415, U+1F41F, U+1F426, U+1F43F, U+1F441-1F442, U+1F444, U+1F446-1F449, U+1F44C-1F44E, U+1F453, U+1F46A, U+1F47D, U+1F4A3, U+1F4B0, U+1F4B3, U+1F4B9, U+1F4BB, U+1F4BF, U+1F4C8-1F4CB, U+1F4D6, U+1F4DA, U+1F4DF, U+1F4E3-1F4E6, U+1F4EA-1F4ED, U+1F4F7, U+1F4F9-1F4FB, U+1F4FD-1F4FE, U+1F503, U+1F507-1F50B, U+1F50D, U+1F512-1F513, U+1F53E-1F54A, U+1F54F-1F5FA, U+1F610, U+1F650-1F67F, U+1F687, U+1F68D, U+1F691, U+1F694, U+1F698, U+1F6AD, U+1F6B2, U+1F6B9-1F6BA, U+1F6BC, U+1F6C6-1F6CF, U+1F6D3-1F6D7, U+1F6E0-1F6EA, U+1F6F0-1F6F3, U+1F6F7-1F6FC, U+1F700-1F7FF, U+1F800-1F80B, U+1F810-1F847, U+1F850-1F859, U+1F860-1F887, U+1F890-1F8AD, U+1F8B0-1F8BB, U+1F8C0-1F8C1, U+1F900-1F90B, U+1F93B, U+1F946, U+1F984, U+1F996, U+1F9E9, U+1FA00-1FA6F, U+1FA70-1FA7C, U+1FA80-1FA89, U+1FA8F-1FAC6, U+1FACE-1FADC, U+1FADF-1FAE9, U+1FAF0-1FAF8, U+1FB00-1FBFF; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlzpynAESo4b4o.woff2") format("woff2"); unicode-range: U+964-965, U+B82-BFA, U+200C-200D, U+20B9, U+25CC; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJl5pynAESo4b4o.woff2") format("woff2"); unicode-range: U+951-952, U+964-965, U+C00-C7F, U+1CDA, U+1CF2, U+200C-200D, U+25CC; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlxpynAESo4b4o.woff2") format("woff2"); unicode-range: U+2D7, U+303, U+331, U+E01-E5B, U+200C-200D, U+25CC; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: local("Google Sans Regular"), local("GoogleSans-Regular"), url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlqpynAESo4b4o.woff2") format("woff2"); unicode-range: U+102-103, U+110-111, U+128-129, U+168-169, U+1A0-1A1, U+1AF-1B0, U+300-301, U+303-304, U+308-309, U+323, U+329, U+1EA0-1EF9, U+20AB; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: local("Google Sans Regular"), local("GoogleSans-Regular"), url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJlrpynAESo4b4o.woff2") format("woff2"); unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+@font-face { font-family: "Google Sans"; font-style: normal; font-weight: 400; src: local("Google Sans Regular"), local("GoogleSans-Regular"), url("https://fonts.gstatic.com/s/googlesans/v65/4Ua_rENHsxJlGDuGo1OIlJfC6l_24rlCK1Yo_Iqcsih3SAyH6cAwhX9RFD48TE63OOYKtrwEIJllpynAESo4.woff2") format("woff2"); unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+------MultipartBoundary--csF0EXC0RJ3vOG6iJZx4sbJHPtjAmchlkrKXyomDzE----
+Content-Type: text/css
+Content-Transfer-Encoding: binary
+Content-Location: cid:css-9de096d4-9a52-4c93-8eaf-1d5aa6aa425a@mhtml.blink
+
+@charset "utf-8";
+
+@import url("https://fonts.googleapis.com/css?family=Google+Sans");
+
+.docs-ml-promotion { z-index: 1002; }
+
+.docs-ml-header { z-index: 1; }
+
+.docs-ml-icon { direction: ltr; display: inline-block; text-align: left; overflow: hidden; position: relative; vertical-align: middle; }
+
+.docs-ml-img::before { content: url("https://ssl.gstatic.com/docs/common/mobileweb_sprite1.png"); }
+
+.docs-ml-img-container { height: 156px; position: absolute; width: 36px; }
+
+.docs-ml-docs-logo-icon { left: 0px; top: -36px; }
+
+.docs-ml-sheets-logo-icon { left: 0px; top: 0px; }
+
+.docs-ml-slides-logo-icon { left: 0px; top: -96px; }
+
+.docs-ml-arrow-back-icon { left: 0px; top: -132px; }
+
+.docs-ml-edit-icon { left: 0px; top: -72px; }
+
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+  .docs-ml-img { content: url("https://ssl.gstatic.com/docs/common/mobileweb_sprite1.png"); }
+  .docs-ml-img-container { height: 156px; position: absolute; width: 36px; }
+  .docs-ml-docs-logo-icon { left: 0px; top: -36px; }
+  .docs-ml-sheets-logo-icon { left: 0px; top: 0px; }
+  .docs-ml-slides-logo-icon { left: 0px; top: -96px; }
+  .docs-ml-arrow-back-icon { left: 0px; top: -132px; }
+  .docs-ml-edit-icon { left: 0px; top: -72px; }
+}
+
+.docs-ml-header { background: rgb(250, 250, 250); border-bottom: 1px solid rgb(203, 203, 203); box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 1px; box-sizing: border-box; font-family: "Google Sans", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif; padding: 4px 0px; position: fixed; left: 0px; top: 0px; width: 100%; }
+
+.docs-ml-header-icon { height: 24px; opacity: 0.6; width: 24px; }
+
+.docs-ml-header-icon-container { padding: 12px; }
+
+.docs-ml-header-item { display: inline-block; vertical-align: middle; }
+
+.docs-ml-header-drive-link { padding-left: 4px; }
+
+body[dir="rtl"] .docs-ml-arrow-back-dir { transform: scaleX(-1); }
+
+.docs-ml-header-document-title { box-sizing: border-box; line-height: 24px; padding: 0px 12px; width: calc(100% - 104px); }
+
+.docs-ml-header-document-title-text { font-size: 20px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.docs-ml-header-edit-button { float: right; padding-right: 4px; }
+
+.docs-ml-promotion { background: rgb(255, 255, 255); bottom: 0px; box-shadow: rgba(0, 0, 0, 0.4) 0px 4px 12px; font-family: Arial, Helvetica, sans-serif; left: 0px; position: fixed; width: 100%; }
+
+.docs-ml-promotion-off-screen { transform: translateY(100%); }
+
+.docs-ml-promotion-shown { transform: translateY(0px); transition: transform 333ms cubic-bezier(0.4, 0, 0.2, 1); }
+
+.docs-ml-promotion-dismissed { transform: translateY(100%); box-shadow: none; }
+
+.docs-ml-promotion-no-horizontal-scroll { overflow-x: hidden; }
+
+.docs-ml-promotion-header { display: table; padding: 24px 24px 0px; }
+
+.docs-ml-promotion-app-icon-container { display: table-cell; }
+
+.docs-ml-promotion-app-icon { height: 36px; width: 36px; }
+
+@media (min-width: 600px) {
+  .docs-ml-promotion-app-icon { transform: scale(1.33); }
+}
+
+.docs-ml-promotion-text { display: table-cell; padding-left: 20px; vertical-align: top; }
+
+.docs-ml-promotion-text-heading { color: rgba(0, 0, 0, 0.87); font-size: 16px; font-weight: 700; padding-bottom: 7px; }
+
+.docs-ml-promotion-text-body { color: rgba(0, 0, 0, 0.87); font-size: 14px; }
+
+.docs-ml-promotion-action-row { float: right; margin-top: 6px; padding: 8px 24px; }
+
+.docs-ml-promotion-action-row-desktop { margin-top: 6px; }
+
+.docs-ml-promotion-action-container { display: inline-block; height: 48px; margin: 6px 4px; vertical-align: middle; }
+
+.docs-ml-promotion-action-button { display: inline-block; font-size: 14px; font-weight: 500; padding: 9px 12px; vertical-align: middle; }
+
+.docs-ml-promotion-action-button-wrapper:focus { outline-color: rgb(214, 214, 214); }
+
+.docs-ml-promotion-action-button.docs-ml-promotion-yes-button { background-color: rgb(66, 133, 244); border-radius: 4px; color: rgb(250, 250, 250); border: 1px solid transparent; }
+
+.docs-ml-promotion-action-button.docs-ml-promotion-yes-button:active { background-color: rgb(25, 103, 210); }
+
+.docs-ml-promotion-action-button.docs-ml-promotion-no-button { background-color: rgb(250, 250, 250); color: rgb(95, 99, 104); border-radius: 4px; border: 1px solid rgb(218, 220, 224); }
+
+.docs-ml-promotion-action-button.docs-ml-promotion-no-button:active { background-color: rgb(245, 245, 245); }
+
+.docs-ml-promotion.desktop { text-align: center; }
+
+@media (orientation: portrait) {
+  .docs-ml-promotion.desktop { padding-top: 56px; padding-bottom: 80px; }
+}
+
+@media (orientation: landscape) {
+  .docs-ml-promotion.desktop { padding-top: 36px; padding-bottom: 56px; }
+}
+
+.docs-ml-promotion-heading-desktop { font-family: "Google Sans"; font-size: 18px; font-weight: 700; color: rgb(32, 33, 36); padding-top: 18px; padding-bottom: 10px; line-height: 1.5; max-width: 360px; margin: 0px auto; }
+
+@media (orientation: landscape) {
+  .docs-ml-promotion-heading-desktop { padding-top: 0px; max-width: none; }
+}
+
+.docs-ml-promotion-text-body-desktop { font-size: 14px; line-height: 1.5; color: rgb(95, 99, 104); padding-bottom: 10px; }
+
+.docs-icon.docs-ml-promotion-desktop-icon { height: 40px; width: 40px; transform: scale(2.5); transform-origin: center top; }
+
+.docs-icon-ml-promotion-icon-container-desktop { height: 100px; width: 100px; margin-left: auto; margin-right: auto; }
+
+@media (orientation: landscape) {
+  .docs-icon-ml-promotion-icon-container-desktop { display: inline-block; vertical-align: top; }
+  .docs-ml-promotion-description-desktop { display: inline-block; vertical-align: top; text-align: left; padding-left: 39px; max-width: 645px; }
+}
+
+@media (orientation: landscape) {
+  .docs-ml-promotion-action-row-desktop { margin-left: -8px; }
+}
+
+.docs-ml-promotion-action-row-desktop .docs-ml-promotion-action-container { margin: 6px 8px; font-family: "Google Sans"; }
+
+.docs-ml-promotion-action-row-desktop .docs-ml-promotion-action-button-wrapper:focus { outline: none; }
+
+.docs-ml-promotion-action-button.docs-ml-promotion-yes-button.docs-ml-promotion-app-themed { border-radius: 4px; box-shadow: none; box-sizing: border-box; font-family: "Google Sans", Roboto, RobotoDraft, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 14px; height: 36px; letter-spacing: 0.25px; line-height: 16px; padding: 9px 24px 11px; background: rgb(26, 115, 232); color: rgb(255, 255, 255); border: 1px solid transparent !important; }
+
+.docs-ml-promotion-action-button.docs-ml-promotion-no-button.docs-ml-promotion-app-themed { border-radius: 4px; box-shadow: none; box-sizing: border-box; font-family: "Google Sans", Roboto, RobotoDraft, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 14px; height: 36px; letter-spacing: 0.25px; line-height: 16px; padding: 9px 24px 11px; background: rgb(255, 255, 255); color: rgb(26, 115, 232); border: 1px solid rgb(218, 220, 224) !important; }
+
+.docs-ml-promotion-action-button-wrapper:focus .docs-ml-promotion-action-button.docs-ml-promotion-yes-button.docs-ml-promotion-app-themed { color: rgb(255, 255, 255); background: rgb(80, 148, 237); box-shadow: rgba(66, 133, 244, 0.15) 0px 1px 3px 1px; }
+
+.docs-ml-promotion-action-button-wrapper:focus .docs-ml-promotion-action-button.docs-ml-promotion-no-button.docs-ml-promotion-app-themed { border-radius: 4px; box-shadow: none; box-sizing: border-box; font-family: "Google Sans", Roboto, RobotoDraft, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 14px; height: 36px; letter-spacing: 0.25px; line-height: 16px; padding: 9px 24px 11px; background: rgb(233, 241, 254); border: 1px solid rgb(193, 216, 251) !important; }
+
+.docsshared-no-download .docsshared-no-select-when-no-download, .docsshared-no-select { -webkit-user-drag: none; user-select: none; }
+
+.docsshared-disable-image-copy canvas, .docsshared-disable-image-copy image, .docsshared-disable-image-copy img { pointer-events: none; }
+------MultipartBoundary--csF0EXC0RJ3vOG6iJZx4sbJHPtjAmchlkrKXyomDzE----
+Content-Type: text/css
+Content-Transfer-Encoding: binary
+Content-Location: cid:css-bd8b2cc7-75cc-46b8-a328-efe9163c4ba6@mhtml.blink
+
+@charset "utf-8";
+
+html { overflow: auto; }
+
+body { margin: 0px; overflow: hidden; overflow-wrap: break-word; }
+
+.app-container { height: 100%; margin-top: 57px; overflow: auto; }
+
+.doc { padding: 20px 12px 0px; position: relative; }
+
+.doc .doc-content { margin: auto; padding: 24px 0px !important; max-width: 770px !important; }
+------MultipartBoundary--csF0EXC0RJ3vOG6iJZx4sbJHPtjAmchlkrKXyomDzE------

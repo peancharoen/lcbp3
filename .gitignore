@@ -1,0 +1,353 @@
+# ============================================
+# Dependencies
+# ============================================
+/node_modules/
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+jspm_packages/
+bower_components/
+web_modules/
+
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+.pnp.js
+
+# ============================================
+# Build Outputs & Cache
+# ============================================
+# Next.js
+.next/
+out/
+
+# Production builds
+build/
+dist/
+*.tsbuildinfo
+
+# Build artifacts
+build/Release
+
+# Cache directories
+.cache/
+.parcel-cache
+.nuxt
+.docusaurus
+.temp
+**/.vitepress/dist
+**/.vitepress/cache
+.vuepress/dist
+.fusebox/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# ============================================
+# Logs & Debug
+# ============================================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# ============================================
+# Environment & Config
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# ============================================
+# Testing & Coverage
+# ============================================
+coverage/
+*.lcov
+.nyc_output
+.vscode-test
+
+# ============================================
+# Runtime & Temp Files
+# ============================================
+pids
+*.pid
+*.seed
+*.pid.lock
+lib-cov
+.grunt
+.lock-wscript
+.node_repl_history
+*.tgz
+.serverless/
+.dynamodb/
+.tern-port
+
+# ============================================
+# IDE & Editor
+# ============================================
+# VSCode
+# .vscode/*
+# !.vscode/settings.json
+# !.vscode/tasks.json
+# !.vscode/launch.json
+# !.vscode/extensions.json
+# *.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================
+# OS Files
+# ============================================
+# macOS
+.@upload_cache/
+.qsync/
+.syncing_db/
+@Recently-Snapshot/
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# ============================================
+# Optional Tools & Caches
+# ============================================
+# npm
+.npm
+.eslintcache
+.stylelintcache
+package-lock.json
+npm-shrinkwrap.json
+
+# TypeScript
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Turborepo
+.turbo
+
+# Sentry
+.sentryclirc
+
+# Storybook
+storybook-static/
+
+# Playwright
+playwright-report/
+playwright/.cache/
+test-results/
+
+# Jest
+jest-results/
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# ============================================
+# NestJS Specific
+# ============================================
+# NestJS build output
+dist/
+*.js.map
+
+# NestJS documentation
+documentation/
+compodoc/
+
+# NestJS testing
+.jest/
+coverage/
+
+# ============================================
+# Database
+# ============================================
+# MariaDB / MySQL
+npm/letsencrypt/
+*.sql.gz
+*.sql.zip
+mysql-data/
+mariadb/data/
+db-data/
+
+# Database dumps
+dump.rdb
+*.dump
+*.backup
+
+# Database configuration (if contains credentials)
+ormconfig.json
+database.json
+
+# ============================================
+# n8n Workflow Automation
+# ============================================
+# n8n data directory
+.n8n/
+n8n/cache/
+n8n/postgres/
+n8n/pgadmin/sessions
+
+# n8n encryption key
+encryptionKey.txt
+
+# n8n database
+database.sqlite
+
+# n8n configuration
+n8n.config.json
+
+# n8n credentials (IMPORTANT - never commit!)
+credentials.json
+credentials/
+
+# n8n workflows (uncomment if you want to version control workflows)
+# workflows/
+
+# ============================================
+# Node Version Management
+# ============================================
+# n (Node version manager)
+.n-node-versions/
+n/versions/
+
+# nvm
+.nvmrc.local
+
+# Python (if using Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+ENV/
+
+# Ruby (if using Ruby tools)
+*.gem
+*.rbc
+/.config
+/InstalledFiles
+/pkg/
+/spec/reports/
+/spec/examples.txt
+/test/tmp/
+/test/version_tmp/
+/tmp/
+.bundle/
+vendor/bundle
+
+#
+.qsync/
+@Recently-Snapshot/
+.@__thumb
+# ============================================
+# Project Specific (Uncomment as needed)
+# ============================================
+# Design files
+# *.sketch
+# *.fig
+# *.xd
+# *.psd
+
+# Documentation builds
+# docs/_build/
+# site/
+
+# Database
+# *.db
+# *.sqlite
+# *.sqlite3
+
+# Compiled source
+# *.com
+# *.class
+# *.dll
+# *.exe
+# *.o
+# *.so
+
+# Archives
+# *.7z
+# *.dmg
+# *.gz
+# *.iso
+# *.jar
+# *.rar
+# *.tar
+# *.zip
