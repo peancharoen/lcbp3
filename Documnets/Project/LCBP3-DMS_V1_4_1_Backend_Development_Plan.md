@@ -239,9 +239,11 @@ src/
     - [✅]PHPMyAdmin (pma.np-dms.work) -> MariaDB_setting.md
     - [✅]Gitea (git.np-dms.work) -> Gitea_setting.md
     - [✅]Nginx Proxy Manager (npm.np-dms.work) -> NPM_setting.md
+    - [✅]n8n (n8n.np-dms.work) -> n8n_setting.md
     - [✅]Backend (backend.np-dms.work)
     - [✅]Redis
     - [✅]Elasticsearch
+    - [✅]ClamAV
   - กำหนด Environment Variables ใน docker-compose.yml (ไม่ใช้ .env)
   - **Security:** Setup network segmentation และ firewall rules
   - [✅] **Deliverable:** Services ทั้งหมดรันได้และเชื่อมต่อกันผ่าน Network
@@ -250,6 +252,7 @@ src/
 - **[✅] T0.2 Initialize NestJS Project**
   - [ ] สร้างโปรเจกต์ใหม่ด้วย Nest CLI
   - [ ] ติดตั้ง Dependencies:
+  - [ ] ตั้งค่า ESLint และ Prettier สำหรับรักษามาตรฐานโค้ด
 
   ```bash
   # Core

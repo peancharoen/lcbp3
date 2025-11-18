@@ -1,0 +1,160 @@
+# LCBP3-DMS_V1_4_2_FullStackJS (Patched)
+
+> เอกสารนี้เป็นเวอร์ชันปรับปรุงจาก LCBP3-DMS_V1_4_1_FullStackJS.md
+> มีการระบุจุดแก้ไขด้วย (เพิ่ม v1.4.2) / (ปรับแก้ v1.4.2) / (ลบ v1.4.2) / (ย้าย v1.4.2)
+ by ChatGPT
+
+---
+
+# 1. Overview (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) รองรับ Error Model กลางจาก Backend
+* (เพิ่ม v1.4.2) รองรับ request_id ในทุก API response เพื่อใช้ debug / trace
+* (เพิ่ม v1.4.2) เพิ่มส่วน Performance Considerations ให้สอดคล้อง backend
+
+---
+
+# 2. Frontend Architecture (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) แยก service layer สำหรับ Schema Registry
+* (เพิ่ม v1.4.2) เพิ่ม observability hooks: latency, error rate per component
+
+### 2.3 State Management
+
+* (เพิ่ม v1.4.2) เพิ่ม standardized error state จาก Error Model ใหม่
+
+### 2.4 API Client
+
+* (เพิ่ม v1.4.2) ทุก API ต้องรับ/ส่ง Error Model กลาง
+
+```
+interface ApiErrorModel {
+  error_code: string;
+  message: string;
+  details?: any;
+  request_id: string;
+  timestamp: string;
+}
+```
+
+---
+
+# 3. UI Components (ปรับแก้ v1.4.2)
+
+### 3.2 Form Components
+
+* (เพิ่ม v1.4.2) รองรับ JSON Schema-based forms (โยงกับ Phase 2B/2C)
+* (เพิ่ม v1.4.2) รองรับ sanitization ก่อนส่งข้อมูล
+
+### 3.4 Table Components
+
+* (เพิ่ม v1.4.2) รองรับ observation: render time, event latency
+
+### 3.6 Notification Components
+
+* (เพิ่ม v1.4.2) รองรับ throttling rules
+* (เพิ่ม v1.4.2) เพิ่ม Escalation UI indicator (เช่น Critical/Warning)
+
+---
+
+# 4. Pages (ปรับแก้ v1.4.2)
+
+## 4.1 Login Page
+
+* (เพิ่ม v1.4.2) ต้องรองรับ error_code เฉพาะทาง เช่น `AUTH.INVALID_CREDENTIALS`
+
+## 4.3 Dashboard
+
+* (เพิ่ม v1.4.2) เพิ่ม widget สำหรับ Monitoring: latency, error rate
+
+## 4.6 Correspondence
+
+* (เพิ่ม v1.4.2) Document numbering UI ต้องคำสั่ง retry/fallback
+* (เพิ่ม v1.4.2) UI แจ้งเตือนเมื่อมี lock failure
+
+## 4.7 RFA Workflow
+
+* (เพิ่ม v1.4.2) แสดง deadline escalation (Critical/Warning)
+* (เพิ่ม v1.4.2) รองรับ notification throttling จาก Backend
+
+---
+
+# 5. API Integration Rules (ปรับแก้ v1.4.2)
+
+## 5.1 Error Handling
+
+* (เพิ่ม v1.4.2) Frontend ต้อง map error_code → UI message
+* (เพิ่ม v1.4.2) ทุก API call ต้องมี logging request_id
+
+## 5.2 Permissions
+
+* (เพิ่ม v1.4.2) RBAC ใน UI ต้องรวมสิทธิ์แบบ Most Permissive
+
+## 5.3 Data Fetching Policies
+
+* (เพิ่ม v1.4.2) แยก cache rules ต่อ endpoint
+* (เพิ่ม v1.4.2) รองรับ background refresh สำหรับ heavy endpoints เช่น search
+
+---
+
+# 6. Performance Requirements (เพิ่ม v1.4.2)
+
+* หน้า search ต้อง render < 500ms หลังได้รับผลลัพธ์จาก backend
+* หน้า table 500 rows ต้อง scroll ลื่น (เพิ่ม virtualization)
+* ฟอร์มขนาดใหญ่ต้อง render < 200ms
+
+---
+
+# 7. Testing Requirements (ปรับแก้ v1.4.2)
+
+## 7.1 Unit Tests
+
+* (เพิ่ม v1.4.2) Test Error Model mapping
+* (เพิ่ม v1.4.2) Test JSON form generation จาก Schema Registry
+
+## 7.2 Integration Tests
+
+* (เพิ่ม v1.4.2) ทดสอบ throttling
+* (เพิ่ม v1.4.2) ทดสอบ deadline escalation UI
+
+## 7.3 E2E Tests
+
+* (เพิ่ม v1.4.2) Flow test: Correspondence + Numbering fallback
+* (เพิ่ม v1.4.2) Flow test: RFA Workflow + escalation
+
+---
+
+# 8. Migration Requirements (ใหม่ v1.4.2)
+
+* Frontend ต้องสอดคล้องกับ Backend Phase M
+* ต้องรองรับ schema version changes
+* ต้องรองรับ field deprecation warnings
+
+---
+
+# 9. Summary of Changes (v1.4.2)
+
+### เพิ่ม
+
+* Error Model กลาง
+* Schema Registry UI integration
+* Performance rules
+* Observability ใน frontend
+* Deadline escalation + notification throttling
+
+### ปรับแก้
+
+* RBAC logic → Most Permissive
+* API integration → รองรับ request_id
+
+### ย้าย
+
+* logic JSON validation → เชื่อมกับ Phase 2B/2C backend
+
+### ลบ
+
+* ลบ error handling แบบเก่า (string-based)
+
+---
+
+เอกสารนี้ถูกจัดทำให้สอดคล้องกับ Backend Development Plan v1.4.2 และ Requirements v1.4.2

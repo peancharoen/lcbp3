@@ -1,0 +1,204 @@
+# LCBP3-DMS_V1_4_2_Backend_Development_Plan (Patched)
+
+> **เอกสารนี้เป็นเวอร์ชันปรับปรุงจาก LCBP3-DMS_V1_4_1_Backend_Development_Plan.md**
+> **ทุกการแก้ไขระบุไว้ด้วย (เพิ่ม v1.4.2) / (ปรับแก้ v1.4.2)**
+> ดำเนินการตามข้อเสนอแนะทั้งหมดที่ผู้ใช้ร้องขอ by ChatGPT
+
+---
+
+# 1. Overview (ปรับแก้ v1.4.2)
+
+* (ปรับแก้ v1.4.2) เพิ่มการแยก Phase 2 ออกเป็น 3 Phase เพื่อไม่ให้ workload หนักเกินไป
+* (เพิ่ม v1.4.2) เพิ่ม API Error Model กลางให้ใช้ทุก Module
+* (เพิ่ม v1.4.2) เพิ่ม Database Migration Plan (Phase M)
+* (เพิ่ม v1.4.2) เพิ่ม Performance Gates (p95 < 200ms / search < 500ms)
+* (เพิ่ม v1.4.2) เพิ่ม Monitoring Deliverables แบบ Production-grade
+* (เพิ่ม v1.4.2) เพิ่ม Shift-left Testing – มีการเขียน test ตั้งแต่ Phase 1
+
+---
+
+# 2. Architecture (ปรับแก้ v1.4.2)
+
+### (เพิ่ม v1.4.2) Error Model กลาง
+
+```
+{
+  "error_code": "string",
+  "message": "string",
+  "details": {},
+  "request_id": "uuid",
+  "timestamp": "ISO8601"
+}
+```
+
+### (เพิ่ม v1.4.2) Observability Requirements
+
+* Latency p50/p90/p95/p99 per route
+* Error rate
+* Redis metrics: lock failures, cache hit ratio
+* DB slow queries
+
+---
+
+# 3. Revised Phases (ปรับโครงสร้างสำคัญ v1.4.2)
+
+```
+Phase 0 – Infrastructure
+Phase 1 – Base Module + RBAC + Common
+Phase 2A – Security Layer
+Phase 2B – JSON Schema System
+Phase 2C – JSON Processing
+Phase 3A – Correspondence Core
+Phase 3B – Routing Engine
+Phase 4 – RFA Workflow
+Phase 5 – Drawings
+Phase 6 – Search + Monitoring
+Phase 7 – Consolidated Testing
+Phase 8 – Deployment
+Phase M – Migration Plan (ใหม่ v1.4.2)
+```
+
+---
+
+# 4. Phase Adjustments
+
+## Phase 1 – Base Module (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) Unit test เริ่มต้น: AuthService, RBAC guard
+* (เพิ่ม v1.4.2) Error model integration
+
+---
+
+## Phase 2A – Security Layer (ใหม่ v1.4.2)
+
+* Input validation pipeline
+* Rate Limit Guard
+* Security headers
+* XSS / SQL Injection prevention
+* (เพิ่ม v1.4.2) Security test suite
+
+---
+
+## Phase 2B – JSON Schema (ใหม่ v1.4.2)
+
+* Schema registry
+* Schema versioning rules
+* (เพิ่ม v1.4.2) Schema migration tests
+* (เพิ่ม v1.4.2) Compatibility constraints
+
+---
+
+## Phase 2C – JSON Processing (ใหม่ v1.4.2)
+
+* JSON sanitization
+* JSON size checks
+* JSON compression
+* (เพิ่ม v1.4.2) Sensitive field encryption
+
+---
+
+## Phase 3A – Correspondence (ปรับแก้ v1.4.2)
+
+* เพิ่ม test cases สำหรับ race condition ของ DocumentNumbering
+
+---
+
+## Phase 3B – Routing (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) Notification throttling
+* (เพิ่ม v1.4.2) Deadline escalation test
+
+---
+
+## Phase 6 – Search + Monitoring (ปรับแก้ v1.4.2)
+
+### (เพิ่ม v1.4.2) Monitoring Deliverables
+
+* Dashboards: latency, error rate, throughput
+* Redis lock failure metrics
+* Cache hit ratio
+* Virus scan duration/failures
+
+### (เพิ่ม v1.4.2) Alert Rules
+
+* p95 > 500ms
+* Redis lock failures > 10/min
+* Error rate > 5%
+
+---
+
+# 5. Phase 7 – Consolidated Testing (ปรับแก้ v1.4.2)
+
+## (ปรับแก้ v1.4.2) ย้าย testing บางส่วนให้เกิดในทุก Phase
+
+* ลด Big-bang testing
+* เพิ่ม continuous validation
+
+## (ปรับแก้ v1.4.2) Performance Gates
+
+```
+p95 (API) < 200ms
+Search < 500ms
+File upload 50MB < 30s
+```
+
+---
+
+# 6. Phase M – Migration Plan (เพิ่ม v1.4.2)
+
+### Tasks:
+
+* Schema diff (v1.3 → v1.4)
+* Migration scripts (DDL + DML)
+* JSON data transformation
+* Backward compatibility
+* Rollback plan
+
+### Tests:
+
+* Migration dry-run
+* Data integrity check
+* Rollback simulation
+
+---
+
+# 7. Updated Deliverables Summary (ปรับแก้ v1.4.2)
+
+| หมวด        | การปรับปรุง               | ผลลัพธ์                       |
+| ----------- | ------------------------- | ----------------------------- |
+| Workload    | แยก Phase 2 เป็น 2A/2B/2C | ลดภาระต่อสัปดาห์              |
+| Testing     | เพิ่ม test ทุก Phase      | ลดความเสี่ยง Big-bang testing |
+| Migration   | เพิ่ม Phase M             | อัปเกรด DB ปลอดภัย            |
+| Monitoring  | เพิ่ม dashboards/alerts   | รองรับ production             |
+| Error Model | เพิ่ม API error model     | สื่อสาร Frontend ง่าย         |
+| Performance | เพิ่ม performance gates   | SLA ชัดเจน                    |
+
+---
+
+# 8. Changes Log (สรุปจุดที่แก้เพื่ออ้างอิง)
+
+### (เพิ่ม v1.4.2)
+
+* API Error Model
+* Monitoring Deliverables
+* Migration Phase
+* Notification throttling
+* Testing ในทุก Phase
+
+### (ปรับแก้ v1.4.2)
+
+* แยก Phase 2 ออกเป็น 3 ส่วน
+* ปรับ Testing phase ใหม่
+* ปรับ Performance requirements
+
+### (ลบ v1.4.2)
+
+* ลบข้อกำหนดเดิมของ Phase 2 ที่รวมทุกอย่างไว้ในสัปดาห์เดียว
+
+### (ย้าย v1.4.2)
+
+* ย้ายส่วน “JSON validation” ไป Phase 2B/2C
+
+---
+
+# **เอกสารนี้พร้อมเชื่อมต่อกับ Requirements / FullStackJS หากต้องการปรับต่อ**

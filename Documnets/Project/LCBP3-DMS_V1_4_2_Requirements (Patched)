@@ -1,0 +1,124 @@
+# LCBP3-DMS_V1_4_2_Requirements (Patched)
+
+> เอกสารนี้เป็นเวอร์ชันปรับปรุงจาก LCBP3-DMS_V1_4_1_Requirements.md
+> มีการระบุจุดแก้ไขด้วย (เพิ่ม v1.4.2) / (ปรับแก้ v1.4.2) / (ลบ v1.4.2) / (ย้าย v1.4.2)
+ by ChatGPT
+
+---
+
+# 1. สถาปัตยกรรมและระบบโดยรวม (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) เพิ่มข้อกำหนด Observability: Health checks, metrics, request tracing
+* (เพิ่ม v1.4.2) เพิ่ม Performance Gate: API p95 < 200ms, Search < 500ms
+* (เพิ่ม v1.4.2) เพิ่ม Error Model กลางสำหรับ API
+
+---
+
+# 2. ข้อกำหนดด้านระบบ (System Requirements)
+
+## 2.1 Infrastructure (ปรับแก้ v1.4.2)
+
+* รองรับ Monitoring Dashboard (ใหม่ใน v1.4.2)
+* ต้องรองรับ Redis metrics: lock failures, cache hit ratio (เพิ่ม v1.4.2)
+
+## 2.2 Configuration (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) ต้องมี configuration validation ตอน startup
+* (เพิ่ม v1.4.2) แยก config ตาม environment: dev/staging/prod
+
+---
+
+# 3. ข้อกำหนดข้อมูล (Data Requirements)
+
+## 3.11 JSON Details (ปรับแก้ v1.4.2)
+
+* (ย้าย v1.4.2) JSON Schema logic ถูกแยกเป็น Phase 2B และ 2C
+* (เพิ่ม v1.4.2) ต้องมี Schema Registry รองรับ versioning
+* (เพิ่ม v1.4.2) ต้องมี Sanitization + Compression
+* (เพิ่ม v1.4.2) ต้อง Encrypt sensitive fields
+
+## 3.12 Document Numbering (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) ต้องใช้ Redis distributed lock + race condition tests
+* (เพิ่ม v1.4.2) ต้องมี fallback mechanism เมื่อ numbering ล้มเหลว
+
+---
+
+# 4. ข้อกำหนดด้านสิทธิ์และการเข้าถึง (RBAC Requirements)
+
+## 4.2 Permission Hierarchy (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) ต้องรองรับ RBAC test cases ใน Phase 1
+* (เพิ่ม v1.4.2) ต้องรวมสิทธิ์จากทุกระดับแบบ Most Permissive
+
+---
+
+# 5. ข้อกำหนดด้านผู้ใช้ (User Requirements)
+
+## 5.6 Workflow Visualization (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) ต้องรองรับ deadline escalation และ escalation notifications
+* (เพิ่ม v1.4.2) ต้องรองรับ notification throttling
+
+---
+
+# 6. Non-Functional Requirements (NFR)
+
+## 6.1 Audit Log (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) ต้องรองรับ request_id ในทุก event
+* (เพิ่ม v1.4.2) ต้องรองรับ structured JSON logs
+
+## 6.4 Performance (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) Performance Gates: API p95 < 200ms, Search < 500ms
+* (เพิ่ม v1.4.2) เพิ่ม measurement ของ file upload: 50MB < 30s
+
+## 6.5 Security (ปรับแก้ v1.4.2)
+
+* (เพิ่ม v1.4.2) Input sanitization บังคับใช้ใน Phase 2A
+* (เพิ่ม v1.4.2) Rate-limiting แบ่งระดับ: anonymous/authenticated
+
+## 6.8 Monitoring (เพิ่ม v1.4.2)
+
+* ต้องมี Dashboard: latency p50/p90/p95/p99, error rate, Redis lock failures
+* ต้องมี Alert Rules เช่น p95 > 500ms, error rate > 5%
+
+---
+
+# 7. Migration Requirements (Phase M) (เพิ่ม v1.4.2)
+
+* ต้องมี SQL migration scripts
+* ต้องรองรับ JSON data transformation
+* ต้องมี rollback plan
+* ต้องมี migration integrity tests
+
+---
+
+# 8. สรุปการแก้ไขใน v1.4.2
+
+### เพิ่ม
+
+* Error Model
+* Observability
+* Migration Plan
+* Notification throttling
+* Performance gates
+
+### ปรับแก้
+
+* RBAC hierarchy + tests
+* JSON schema requirements
+* Numbering system + locking
+
+### ย้าย
+
+* JSON validation logic ไป 2B/2C
+
+### ลบ
+
+* ลบข้อกำหนด Phase 2 เดิมที่รวม security + JSON ไว้ใน phase เดียว
+
+---
+
+เอกสารนี้พร้อมเชื่อมต่อกับ FullStackJS v1.4.2 (จะจัดทำในไฟล์แยก)
