@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LCBP3-DMS V1.4.1 Project Infographic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f6;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 350px;
+            }
+        }
+        .stat-card {
+            background-color: #004AAD;
+            color: white;
+            border-left: 5px solid #FFC107;
+        }
+        .kpi-value {
+            font-size: 2.5rem;
+            line-height: 1.2;
+        }
+        .section-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .section-header {
+            background-color: #002F6C;
+            color: white;
+            padding: 1.5rem;
+        }
+        .section-content {
+            padding: 1.5rem;
+        }
+        .flow-box {
+            border: 2px solid #007BFF;
+            background-color: #B3D7FF;
+            color: #002F6C;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0, 75, 173, 0.1);
+        }
+        .flow-arrow {
+            font-size: 2rem;
+            color: #004AAD;
+            align-self: center;
+            margin: 0 0.5rem;
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 2.5rem;
+            padding-bottom: 2rem;
+            border-left: 4px solid #007BFF;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: -11px;
+            top: 0;
+            height: 20px;
+            width: 20px;
+            background-color: #FFC107;
+            border: 3px solid #004AAD;
+            border-radius: 50%;
+        }
+        .rbac-level {
+            border: 2px dashed;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center">
+                    <span class="text-2xl font-bold text-[#002F6C]">LCBP3-DMS</span>
+                    <span class="ml-2 text-xl font-semibold text-[#007BFF]">V1.4.1 Project Overview</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#kpi" class="text-gray-600 hover:text-[#007BFF] px-3 py-2 rounded-md text-sm font-medium">KPIs</a>
+                        <a href="#architecture" class="text-gray-600 hover:text-[#007BFF] px-3 py-2 rounded-md text-sm font-medium">Architecture</a>
+                        <a href="#roadmap" class="text-gray-600 hover:text-[#007BFF] px-3 py-2 rounded-md text-sm font-medium">Roadmap</a>
+                        <a href="#security" class="text-gray-600 hover:text-[#007BFF] px-3 py-2 rounded-md text-sm font-medium">Security</a>
+                        <a href="#stats" class="text-gray-600 hover:text-[#007BFF] px-3 py-2 rounded-md text-sm font-medium">Stats</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8 mt-8">
+
+        <section id="intro" class="section-card">
+            <div class="section-header">
+                <h1 class="text-3xl font-bold">Project Overview: LCBP3 Document Management System (V1.4.1)</h1>
+            </div>
+            <div class="section-content">
+                <p class="text-lg text-gray-700">
+                    นี่คือภาพรวมของระบบบริหารจัดการเอกสารโครงการ (DMS) V1.4.1
+                    ที่กำลังพัฒนาสำหรับโครงการแหลมฉบังเฟส 3 (LCBP3)
+                    เป้าหมายหลักคือการสร้างเว็บแอปพลิเคชั่นที่ทันสมัย ปลอดภัย
+                    และมีประสิทธิภาพสูงเพื่อจัดการและควบคุมการสื่อสารด้วยเอกสารที่ซับซ้อน
+                    ลดการใช้กระดาษ และเพิ่มความสะดวกในการทำงานร่วมกันระหว่างองค์กร
+                </p>
+            </div>
+        </section>
+
+        <section id="kpi" class="mb-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Key Performance Indicators (KPIs)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="stat-card p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-semibold uppercase tracking-wider">API Response Time</h3>
+                    <p class="kpi-value font-bold mt-2">&lt; 200<span class="text-xl">ms</span></p>
+                    <p class="text-sm opacity-90">(90th Percentile)</p>
+                </div>
+                <div class="stat-card p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-semibold uppercase tracking-wider">Search Performance</h3>
+                    <p class="kpi-value font-bold mt-2">&lt; 500<span class="text-xl">ms</span></p>
+                    <p class="text-sm opacity-90">(Elasticsearch)</p>
+                </div>
+                <div class="stat-card p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-semibold uppercase tracking-wider">File Upload (50MB)</h3>
+                    <p class="kpi-value font-bold mt-2">&lt; 30<span class="text-xl">s</span></p>
+                    <p class="text-sm opacity-90">(Inc. Virus Scan)</p>
+                </div>
+                <div class="stat-card p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg font-semibold uppercase tracking-wider">Cache Hit Ratio</h3>
+                    <p class="kpi-value font-bold mt-2">&gt; 80<span class="text-xl">%</span></p>
+                    <p class="text-sm opacity-90">(Redis)</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="architecture" class="section-card">
+            <div class="section-header">
+                <h2 class="text-3xl font-bold">System Architecture & Technology Stack</h2>
+            </div>
+            <div class="section-content">
+                <p class="text-lg text-gray-700 mb-6">
+                    สถาปัตยกรรมระบบเป็นแบบ API-First ที่ทำงานบน QNAP Container Station (Docker)
+                    โดยมีการแบ่งส่วนบริการ (Services) อย่างชัดเจน
+                    เพื่อความสะดวกในการจัดการและบำรุงรักษา
+                </p>
+                
+                <div class="border-2 border-gray-200 rounded-lg p-4">
+                    <div class="flex flex-col md:flex-row md:items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="flow-box bg-[#FFC107] border-[#004AAD]">Internet User</div>
+                        <div class="flow-arrow hidden md:block">→</div>
+                        <div class="flow-arrow md:hidden text-center">↓</div>
+                        <div class="flow-box">QNAP (WAN)</div>
+                        <div class="flow-arrow hidden md:block">→</div>
+                        <div class="flow-arrow md:hidden text-center">↓</div>
+                        <div class="flow-box bg-green-100 border-green-500 text-green-800">Nginx Proxy Manager</div>
+                    </div>
+                    
+                    <div class="border-t-2 border-dashed border-gray-400 my-6"></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-xl font-semibold text-center text-[#002F6C] mb-4">Public Facing Services (ผ่าน NPM)</h3>
+                            <div class="space-y-3">
+                                <div class="flow-box">Frontend (Next.js)</div>
+                                <div class="flow-box">Backend (NestJS)</div>
+                                <div class="flow-box">Gitea (Git)</div>
+                                <div class="flow-box">n8n (Automation)</div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-xl font-semibold text-center text-[#002F6C] mb-4">Internal Services (Backend เรียกใช้)</h3>
+                            <div class="space-y-3">
+                                <div class="flow-box bg-gray-200 border-gray-400 text-gray-800">MariaDB (Database)</div>
+                                <div class="flow-box bg-gray-200 border-gray-400 text-gray-800">Redis (Cache)</div>
+                                <div class="flow-box bg-gray-200 border-gray-400 text-gray-800">Elasticsearch (Search)</div>
+                                <div class="flow-box bg-gray-200 border-gray-400 text-gray-800">ClamAV (Virus Scan)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <section id="roadmap" class="section-card">
+                <div class="section-header">
+                    <h2 class="text-3xl font-bold">Development Roadmap</h2>
+                </div>
+                <div class="section-content">
+                    <p class="text-lg text-gray-700 mb-6">
+                        แผนการพัฒนาถูกแบ่งออกเป็น Phase (Backend) และ Sprints (Frontend)
+                        เพื่อให้สามารถส่งมอบงานได้อย่างต่อเนื่องและเป็นระบบ
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-xl font-semibold text-[#002F6C] mb-4">Backend (NestJS)</h3>
+                            <div class="relative">
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <h4 class="font-bold">Phase 0-1: Setup & Core</h4>
+                                    <p class="text-sm text-gray-600">Infrastructure, DB Schema, ORM</p>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <h4 class="font-bold">Phase 2-3: Auth & RBAC</h4>
+                                    <p class="text-sm text-gray-600">JWT, Passport, CASL 4-Level</p>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <h4 class="font-bold">Phase 4-5: Core Features</h4>
+                                    <p class="text-sm text-gray-600">Document Upload, RFA Workflow</p>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <h4 class="font-bold">Phase 6-8: Integration & Deploy</h4>
+                                    <p class="text-sm text-gray-600">Search, Cache, Notification, Deploy</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-[#002F6C] mb-4">Frontend (Next.js)</h3>
+                             <div class="relative">
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <h4 class="font-bold">Sprint 1-2: Setup & Auth</h4>
+                                    <p class="text-sm text-gray-600">shadcn/ui, NextAuth, Layout</p>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <h4 class="font-bold">Sprint 3: Dashboard</h4>
+                                    <p class="text-sm text-gray-600">Charts (Recharts), KPIs</p>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <h4 class="font-bold">Sprint 4-5: Document Module</h4>
+                                    <p class="text-sm text-gray-600">TanStack Table, Upload, Search</p>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <h4 class="font-bold">Sprint 6-7: Workflow & Deploy</h4>
+                                    <p class="text-sm text-gray-600">RFA Forms, Testing, Deploy</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="security" class="section-card">
+                <div class="section-header">
+                    <h2 class="text-3xl font-bold">Feature Focus: 4-Level RBAC</h2>
+                </div>
+                <div class="section-content">
+                    <p class="text-lg text-gray-700 mb-6">
+                        ระบบควบคุมสิทธิ์ (RBAC) เป็นหัวใจสำคัญของความปลอดภัย
+                        โดยใช้สถาปัตยกรรม 4 ระดับ (4-Level) เพื่อการควบคุมที่ละเอียดสูงสุด
+                    </p>
+                    <div class="rbac-level border-[#002F6C]">
+                        <span class="font-bold text-lg text-[#002F6C]">🌍 Level 1: Global</span>
+                        <p class="text-sm text-gray-600">(Super Admin, System Settings)</p>
+                        
+                        <div class="rbac-level border-[#004AAD]">
+                            <span class="font-bold text-lg text-[#004AAD]">🏢 Level 2: Organization</span>
+                            <p class="text-sm text-gray-600">(Org Admin, Manage Users & Projects)</p>
+                            
+                            <div class="rbac-level border-[#007BFF]">
+                                <span class="font-bold text-lg text-[#007BFF]">🏗️ Level 3: Project</span>
+                                <p class="text-sm text-gray-600">(Project Manager, View All Project Docs)</p>
+                                
+                                <div class="rbac-level border-[#B3D7FF]">
+                                    <span class="font-bold text-lg text-[#002F6C]">📄 Level 4: Contract</span>
+                                    <p class="text-sm text-gray-600">(Contractor, Access Own Contract Docs Only)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section id="stats" class="section-card">
+            <div class="section-header">
+                <h2 class="text-3xl font-bold">Document Statistics (Mockup Data)</h2>
+            </div>
+            <div class="section-content">
+                <p class="text-lg text-gray-700 mb-6">
+                    Dashboard จะแสดงสถิติเอกสารแบบ Real-time
+                    (อ้างอิงจาก View: `v_document_statistics` ในฐานข้อมูล)
+                    เพื่อช่วยในการติดตามและบริหารจัดการโครงการ
+                </p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-semibold text-center text-[#002F6C] mb-4">เอกสารตามประเภท (By Type)</h3>
+                        <p class="text-sm text-center text-gray-600 mb-4">
+                            แสดงจำนวนเอกสารทั้งหมดโดยแบ่งตามประเภทหลัก
+                            ช่วยให้เห็นภาพรวมของเอกสารในระบบ
+                        </p>
+                        <div class="chart-container">
+                            <canvas id="docTypeChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-center text-[#002F6C] mb-4">สถานะเอกสาร (By Status)</h3>
+                        <p class="text-sm text-center text-gray-600 mb-4">
+                            แสดงสัดส่วนของสถานะเอกสารในปัจจุบัน
+                            (เช่น ร่าง, รออนุมัติ, อนุมัติแล้ว) เพื่อติดตาม Workflow
+                        </p>
+                        <div class="chart-container">
+                            <canvas id="docStatusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center p-6 text-gray-600 text-sm">
+        LCBP3-DMS V1.4.1 Infographic | Generated on: <span id="generation-date"></span>
+    </footer>
+
+    <script>
+        document.getElementById('generation-date').textContent = new Date().toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric' 
+        });
+
+        const wrapLabel = (label) => {
+            const maxChars = 16;
+            if (typeof label === 'string' && label.length > maxChars) {
+                const words = label.split(' ');
+                const lines = [];
+                let currentLine = '';
+                for (const word of words) {
+                    if ((currentLine + word).length > maxChars) {
+                        lines.push(currentLine.trim());
+                        currentLine = '';
+                    }
+                    currentLine += word + ' ';
+                }
+                lines.push(currentLine.trim());
+                return lines;
+            }
+            return label;
+        };
+
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            } else {
+                return label;
+            }
+        };
+        
+        const sharedChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: tooltipTitleCallback
+                    }
+                },
+                legend: {
+                    labels: {
+                        font: {
+                            family: "'Inter', sans-serif"
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        font: {
+                            family: "'Inter', sans-serif"
+                        }
+                    }
+                },
+                y: {
+                    ticks: {
+                        font: {
+                            family: "'Inter', sans-serif"
+                        }
+                    }
+                }
+            }
+        };
+
+        const docTypeCtx = document.getElementById('docTypeChart').getContext('2d');
+        const docTypeChart = new Chart(docTypeCtx, {
+            type: 'bar',
+            data: {
+                labels: [
+                    'Correspondence (RFA)', 
+                    'Shop Drawing', 
+                    'Contract Drawing', 
+                    wrapLabel('Technical Specification'), 
+                    'Method Statement'
+                ],
+                datasets: [{
+                    label: 'จำนวนเอกสาร',
+                    data: [120, 190, 75, 45, 88],
+                    backgroundColor: [
+                        '#004AAD',
+                        '#007BFF',
+                        '#B3D7FF',
+                        '#002F6C',
+                        '#FFC107'
+                    ],
+                    borderColor: '#ffffff',
+                    borderWidth: 1
+                }]
+            },
+            options: { ...sharedChartOptions }
+        });
+
+        const docStatusCtx = document.getElementById('docStatusChart').getContext('2d');
+        const docStatusChart = new Chart(docStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Draft', 'Pending Approval', 'Approved', 'Rejected'],
+                datasets: [{
+                    label: 'สถานะเอกสาร',
+                    data: [30, 45, 150, 15],
+                    backgroundColor: [
+                        '#B3D7FF',
+                        '#FFC107',
+                        '#007BFF',
+                        '#D9363E'
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                family: "'Inter', sans-serif"
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

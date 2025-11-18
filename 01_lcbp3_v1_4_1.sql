@@ -1856,7 +1856,6 @@ CREATE INDEX idx_notifications_created_at ON notifications(created_at);
 -- Indexes for search_indices
 CREATE INDEX idx_search_indices_entity ON search_indices(entity_type, entity_id);
 CREATE INDEX idx_search_indices_indexed_at ON search_indices(indexed_at);
-CREATE FULLTEXT INDEX idx_search_indices_content ON search_indices(content);
 -- Indexes for backup_logs
 CREATE INDEX idx_backup_logs_type ON backup_logs(backup_type);
 CREATE INDEX idx_backup_logs_status ON backup_logs(status);
