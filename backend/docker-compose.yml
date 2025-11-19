@@ -1,62 +1,38 @@
-# File: docker-compose.yml
-# บันทึกการแก้ไข: (สร้างไฟล์)
-# (สำคัญ: ไฟล์นี้จะถูก import หรือคัดลอกไปใส่ใน UI ของ QNAP Container Station)
-
 version: '3.8'
 
 services:
-  # ---------------------------------
-  # Service 1: Backend (NestJS)
-  # (Req 2.3)
-  # ---------------------------------
-  backend:
-    build:
-      context: ./backend # (สมมติว่า Dockerfile อยู่ในโฟลเดอร์ backend)
-      dockerfile: Dockerfile
-    image: lcbp3-backend:1.3.0 # (ตั้งชื่อ Image)
-    container_name: lcbp3-backend
-    restart: unless-stopped
-    
-    # (สำคัญ) กำหนด Environment Variables ที่นี่ (ห้ามใช้ .env)
-    # (Req 6.5, 2.1)
+  mariadb:
+    image: mariadb:11.8
+    container_name: lcbp3-db-local
+    restart: always
     environment:
-      # --- App Config ---
-      - PORT=3000
-      - NODE_ENV=production
-      
-      # --- Database (Req 2.4) ---
-      # (ชี้ไปที่ Service 'mariadb' ใน Network 'lcbp3')
-      - DATABASE_HOST=mariadb
-      - DATABASE_PORT=3306
-      - DATABASE_USER=your_db_user      # (ต้องเปลี่ยน)
-      - DATABASE_PASSWORD=your_db_pass    # (ต้องเปลี่ยน)
-      - DATABASE_NAME=lcbp3_dms
-      
-      # --- Security (JWT) (Req 6.5) ---
-      - JWT_SECRET=YOUR_VERY_STRONG_JWT_SECRET_KEY # (ต้องเปลี่ยน)
-      - JWT_EXPIRATION_TIME=3600s # (เช่น 1 ชั่วโมง)
-      
-      # --- Phase 4 Services ---
-      - ELASTICSEARCH_URL=http://elasticsearch:9200 # (ชี้ไปที่ Service ES ถ้ามี)
-      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/your-webhook-id # (ชี้ไปที่ N8N)
-
-    # (สำคัญ) เชื่อมต่อ Network กลาง (Req 2.1)
+      MYSQL_ROOT_PASSWORD: Center#2025
+      MYSQL_DATABASE: lcbp3_dev
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: Center2025
+    ports:
+      - '3306:3306'
+    volumes:
+      - db_data:/var/lib/mysql
     networks:
-      - lcbp3
+      - lcbp3-net
 
-    # (Deploy) ตั้งค่า Health Check
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s # (รอให้ App เริ่มก่อน)
+  # Optional: phpMyAdmin สำหรับจัดการ DB ง่ายๆ
+  pma:
+    image: phpmyadmin/phpmyadmin
+    container_name: lcbp3-pma-local
+    environment:
+      PMA_HOST: mariadb
+    ports:
+      - '8080:80'
+    depends_on:
+      - mariadb
+    networks:
+      - lcbp3-net
 
-# ---------------------------------
-# Network กลาง (Req 2.1)
-# (ต้องสร้าง Network นี้ไว้ก่อนใน QNAP หรือสร้างพร้อมกัน)
-# ---------------------------------
+volumes:
+  db_data:
+
 networks:
-  lcbp3:
-    external: true # (ถ้าสร้างไว้แล้ว)
-    # name: lcbp3 # (ถ้าต้องการให้ Compose สร้าง)
+  lcbp3-net:
+    driver: bridge

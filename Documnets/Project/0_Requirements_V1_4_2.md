@@ -2,7 +2,7 @@
 
 **สถานะ:** FINAL
 **วันที่:** 2025-11-19
-**อ้างอิงพื้นฐาน:** v1.4.1 และผลการ Review สถาปัตยกรรม
+**อ้างอิงพื้นฐาน:** v1.4.2
 **Classification:** Internal Technical Documentation
 
 ## 📌 **1. วัตถุประสงค์**
@@ -750,13 +750,13 @@
 
 ## **Document Control:**
 
-- **Document:** Application Requirements Specification DMS v1.4.2
-- **Version:** 1.4.2
+- **Document:** Application Requirements Specification v1.4.2
+- **Version:** 1.4
 - **Date:** 2025-11-19
-- **Author:** System Architecture Team
+- **Author:** NAP LCBP3-DMS & Gemini
 - **Status:** FINAL
 - **Classification:** Internal Technical Documentation
-- **Approved By:** System Architect Team
+- **Approved By:** Nattanin
 
 ---
 

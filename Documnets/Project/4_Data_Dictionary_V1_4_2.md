@@ -1,6 +1,11 @@
 # **ตารางฐานข้อมูล (Data Dictionary) - LCBP3-DMS (V1.4.2)**
 
-เอกสารนี้สรุปโครงสร้างตาราง, Foreign Keys (FK), และ Constraints ที่สำคัญทั้งหมดในฐานข้อมูล LCBP3-DMS (v1.4.0) เพื่อใช้เป็นเอกสารอ้างอิงสำหรับทีมพัฒนา Backend (NestJS) และ Frontend (Next.js) โดยอิงจาก Requirements และ SQL Script ล่าสุด [GLM-4.6]
+เอกสารนี้สรุปโครงสร้างตาราง, Foreign Keys (FK), และ Constraints ที่สำคัญทั้งหมดในฐานข้อมูล LCBP3-DMS (v1.4.0) เพื่อใช้เป็นเอกสารอ้างอิงสำหรับทีมพัฒนา Backend (NestJS) และ Frontend (Next.js) โดยอิงจาก Requirements และ SQL Script ล่าสุด [GEMINI]
+
+**สถานะ:** FINAL GUIDELINE
+**วันที่:** 2025-11-19
+**อ้างอิง:** Requirements v1.4.2 & FullStackJS Guidelines v1.4.2
+**Classification:** Internal Technical Documentation
 
 ---
 
@@ -1868,7 +1873,6 @@
 | version                    | INT       | DEFAULT 0       | ใช้สำหรับ Optimistic Locking (ตรวจสอบค่าก่อน Update) |
 | last_number                | INT       | DEFAULT 0       | Last assigned sequence number                   |
 
-
 **Indexes**:
 
 - PRIMARY KEY (project_id, originator_organization_id, correspondence_type_id, current_year)
@@ -1888,7 +1892,7 @@
 
 - Composite primary key ensures unique counters per project/organization/type/year
 - Counter resets each year
-- Thread-safe increments handled by stored procedure sp_get_next_document_number
+- Thread-safe increments handled by DocumentNumberingService in NestJS using Redis Lock and Optimistic Locking on version column
 - last_number tracks highest assigned number
 - Used with document_number_formats to generate complete document numbers
 
@@ -2306,51 +2310,6 @@ WHERE user_id = ?
 
 ---
 
-### 11.9 sp_get_next_document_number
-
-**Purpose**: Stored procedure to safely generate next sequential document number
-
-**Parameters**:
-
-- IN p_project_id INT
-- IN p_originator_organization_id INT
-- IN p_correspondence_type_id INT
-- IN p_current_year INT
-- OUT p_next_number INT
-
-**Logic**:
-
-1. Start transaction
-2. SELECT last_number FOR UPDATE (locks row)
-3. If record doesn't exist, INSERT with last_number = 1
-4. Else UPDATE last_number = last_number + 1
-5. Return new number via OUT parameter
-6. COMMIT transaction
-
-**Business Rules**:
-
-- Thread-safe counter increment
-- FOR UPDATE lock prevents race conditions
-- Handles first-time counter initialization
-- Rolls back on any error
-- Must be called within document creation transaction
-- Used in conjunction with document_number_formats template
-
-**Usage Example**:
-
-```sql
-CALL sp_get_next_document_number(
-  1,    -- project_id
-  10,   -- organization_id
-  1,    -- type_id (RFA)
-  2568, -- Buddhist year
-  @next_number
-);
--- @next_number now contains next sequence
-```
-
----
-
 ## Database Indexes Summary
 
 ### Performance Optimization Indexes
@@ -2753,7 +2712,7 @@ ANALYZE TABLE correspondences;
 
 1. **Document Numbering**:
 
-   - Call sp_get_next_document_number
+   - Call DocumentNumberingService.generateNextNumber() (NestJS) which handles Redis locking and retry logic
    - Format with template from document_number_formats
    - Store in correspondences.correspondence_number
 
@@ -2865,14 +2824,15 @@ SELECT * FROM information_schema.INNODB_LOCK_WAITS;
 
 ---
 
-**Document Control**:
+## **Document Control:**
 
-- Document: Data Dictionary - DMS v1.4.0
-- Version: 1.0
-- Date: 2025-01-XX
-- Author: System Architecture Team
-- Status: FINAL
-- Classification: Internal Technical Documentation
+- **Document:** Data Dictionary v1.4.2
+- **Version:** 1.4
+- **Date:** 2025-11-19
+- **Author:** NAP LCBP3-DMS & Gemini
+- **Status:** FINAL
+- **Classification:** Internal Technical Documentation
+- **Approved By:** Nattanin
 
 ---
 
