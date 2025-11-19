@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  # Override ค่า Config ของ Service Backend (เมื่อเราสร้าง Container Backend ในอนาคต)
+  backend:
+    environment:
+      # ใส่ Secrets จริงในไฟล์ override นี้ (และห้าม commit ไฟล์นี้)
+      - DB_PASSWORD=Center2025
+      - JWT_SECRET=eebc122aa65adde8c76c6a0847d9649b2b67a06db1504693e6c912e51499b76e
+      - NODE_ENV=development
+
+  # Override สำหรับ Database (Local Dev)
+  mariadb:
+    environment:
+      - MYSQL_ROOT_PASSWORD=Center#2025
+      - MYSQL_PASSWORD=Center2025

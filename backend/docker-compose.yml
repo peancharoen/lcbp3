@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   mariadb:
     image: mariadb:11.8
-    container_name: lcbp3-db-local
+    container_name: mariadb-local
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: Center#2025
@@ -19,8 +17,8 @@ services:
 
   # Optional: phpMyAdmin สำหรับจัดการ DB ง่ายๆ
   pma:
-    image: phpmyadmin/phpmyadmin
-    container_name: lcbp3-pma-local
+    image: phpmyadmin
+    container_name: pma-local
     environment:
       PMA_HOST: mariadb
     ports:
@@ -30,8 +28,22 @@ services:
     networks:
       - lcbp3-net
 
+  redis:
+    image: redis:7-alpine
+    container_name: lcbp3-redis-local
+    restart: always
+    # ใช้ Command นี้เพื่อตั้ง Password
+    command: redis-server --requirepass "redis_password_secure"
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - lcbp3-net
+
 volumes:
   db_data:
+  redis_data: # เพิ่ม Volume
 
 networks:
   lcbp3-net:
