@@ -1815,8 +1815,8 @@ CREATE TABLE document_number_counters (
     originator_organization_id INT COMMENT 'องค์กรผู้ส่ง',
     correspondence_type_id INT COMMENT 'ประเภทเอกสาร',
     current_year INT COMMENT 'ปี ค.ศ. ของตัวนับ',
-    last_number INT DEFAULT 0 COMMENT 'เลขที่ล่าสุดที่ใช้ไปแล้ว',
     version INT DEFAULT 0 NOT NULL COMMENT 'Optimistic Lock Version',
+    last_number INT DEFAULT 0 COMMENT 'เลขที่ล่าสุดที่ใช้ไปแล้ว',
     PRIMARY KEY (
         project_id,
         originator_organization_id,
