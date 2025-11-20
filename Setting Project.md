@@ -117,7 +117,7 @@ PORT=3000
 NODE_ENV=development
 
 # Security
-JWT_SECRET=your_super_secret_key_change_it
+JWT_SECRET=eebc122aa65adde8c76c6a0847d9649b2b67a06db1504693e6c912e51499b76e
 ```
 
 ### ขั้นตอนต่อไป (Next Steps)
@@ -374,3 +374,144 @@ JWT_EXPIRATION=8h
 2. **Environment:** ควรแยก Secret ระหว่างเครื่อง `Development` และ `Production` ไม่ควรใช้ Key เดียวกัน
 
 คุณต้องการให้ผมช่วยตั้งค่า `ConfigModule` ใน NestJS เพื่ออ่านค่า `JWT_SECRET` นี้อย่างปลอดภัยพร้อม Validate ว่าห้ามเป็นค่าว่างไหมครับ?
+
+## ได้เลยครับ เรามาลุยงาน **T0.1 Secure Configuration Setup** ตามแผน Backend Plan กันต่อครับ
+
+เป้าหมายของ Task นี้คือการทำให้ระบบอ่านค่า Environment Variables ได้อย่างถูกต้อง และ **"ต้องไม่ Start"** ถ้าค่า Config สำคัญๆ (เช่น Database Password, JWT Secret) หายไป หรือไม่ถูกต้อง เพื่อความปลอดภัยครับ
+
+### 1. ติดตั้ง Library ที่จำเป็น
+
+เราจะใช้ `@nestjs/config` สำหรับจัดการ Config และ `joi` สำหรับตรวจสอบความถูกต้อง (Validation) ครับ
+
+รันคำสั่งนี้ใน Terminal:
+
+```bash
+pnpm add @nestjs/config joi
+```
+
+### 2. สร้าง Validation Schema
+
+เราจะแยก Logic การตรวจสอบออกมาเป็นไฟล์เฉพาะ เพื่อให้โค้ดเป็นระเบียบครับ
+
+สร้างไฟล์ใหม่: `src/common/config/env.validation.ts`
+
+```typescript
+// File: src/common/config/env.validation.ts
+import Joi from 'joi';
+
+// สร้าง Schema สำหรับตรวจสอบค่า Environment Variables
+export const envValidationSchema = Joi.object({
+  // 1. Application Environment
+  NODE_ENV: Joi.string()
+    .valid('development', 'production', 'test', 'provision')
+    .default('development'),
+  PORT: Joi.number().default(3000),
+
+  // 2. Database Configuration (MariaDB)
+  // ห้ามเป็นค่าว่าง (required)
+  DB_HOST: Joi.string().required(),
+  DB_PORT: Joi.number().default(3306),
+  DB_USERNAME: Joi.string().required(),
+  DB_PASSWORD: Joi.string().required(),
+  DB_DATABASE: Joi.string().required(),
+
+  // 3. Security (JWT)
+  // ต้องมีค่า และควรยาวพอ (ตรวจสอบความยาวได้ถ้าระบุ min)
+  JWT_SECRET: Joi.string().required().min(32).message('JWT_SECRET must be at least 32 characters long for security.'),
+  JWT_EXPIRATION: Joi.string().default('8h'),
+});
+```
+
+### 3. อัปเดต `AppModule` ให้ใช้ Validation
+
+กลับไปแก้ไขไฟล์ `src/app.module.ts` เพื่อนำ Schema ที่เราสร้างมาใช้งานครับ
+
+```typescript
+// File: src/app.module.ts
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { envValidationSchema } from './common/config/env.validation.js'; // สังเกต .js สำหรับ ESM
+
+@Module({
+  imports: [
+    // 1. Setup Config Module พร้อม Validation
+    ConfigModule.forRoot({
+      isGlobal: true, // เรียกใช้ได้ทั่วทั้ง App ไม่ต้อง import ซ้ำ
+      envFilePath: '.env', // อ่านไฟล์ .env (สำหรับ Dev)
+      validationSchema: envValidationSchema, // ใช้ Schema ที่เราสร้างเพื่อตรวจสอบ
+      validationOptions: {
+        // ถ้ามีค่าไหนไม่ผ่าน Validation ให้ Error และหยุดทำงานทันที
+        abortEarly: true, 
+      },
+    }),
+
+    // 2. Setup TypeORM (MariaDB)
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        type: 'mariadb',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        autoLoadEntities: true,
+        // synchronize: true เฉพาะตอน Dev เท่านั้น ห้ามใช้บน Prod
+        synchronize: configService.get<string>('NODE_ENV') === 'development',
+      }),
+    }),
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+```
+
+### 4\. สร้างไฟล์ Template สำหรับ Docker Override (ตามแผน T0.1)
+
+ตามแผนงาน เราต้องเตรียมไฟล์ `docker-compose.override.yml.example` เพื่อให้นักพัฒนาคนอื่นรู้ว่าต้อง Inject Secrets อย่างไร โดยไม่เปิดเผยความลับใน `docker-compose.yml` หลัก
+
+สร้างไฟล์: `docker-compose.override.yml.example` ที่ root project:
+
+```yaml
+version: '3.8'
+
+services:
+  # Override ค่า Config ของ Service Backend (เมื่อเราสร้าง Container Backend ในอนาคต)
+  backend:
+    environment:
+      # ใส่ Secrets จริงในไฟล์ override นี้ (และห้าม commit ไฟล์นี้)
+      - DB_PASSWORD=secret_password_here
+      - JWT_SECRET=very_long_and_secure_secret_here
+      - NODE_ENV=development
+
+  # Override สำหรับ Database (Local Dev)
+  mariadb:
+    environment:
+      - MYSQL_ROOT_PASSWORD=secret_password_here
+      - MYSQL_PASSWORD=secret_password_here
+```
+
+### 5\. ทดสอบความปลอดภัย (Validation Check)
+
+ลองทดสอบว่าระบบ Validation ทำงานถูกต้องหรือไม่ โดยการ **ลบ** หรือ **เปลี่ยนชื่อ** ตัวแปรสำคัญในไฟล์ `.env` (เช่น ลบ `JWT_SECRET`) แล้วลองรัน:
+
+```bash
+pnpm start:dev
+```
+
+**ผลลัพธ์ที่ควรได้:**
+App **ต้อง Crash** และแสดง Error Message ชัดเจน เช่น:
+`Config validation error: "JWT_SECRET" is required`
+
+ถ้าขึ้นแบบนี้แสดงว่าระบบ **Secure Configuration** ของเราทำงานถูกต้องตามแผน T0.1 แล้วครับ\! 🎉
+
+-----
+
+**ขั้นตอนถัดไป:**
+เราจะไปต่อที่ **T0.2 Redis & Queue Infrastructure** เพื่อเตรียมระบบ Caching และ Background Job ไหมครับ?
+

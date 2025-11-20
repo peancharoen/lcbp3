@@ -146,6 +146,7 @@
 | last_login_at           | TIMESTAMP    | NULL                                | Last successful login timestamp  |
 | created_at              | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp        |
 | updated_at              | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp            |
+| deleted_at              | DATETIME     | NULL                                | Deleted at                       |
 
 **Indexes**:
 
