@@ -33,7 +33,7 @@ services:
     container_name: lcbp3-redis-local
     restart: always
     # ใช้ Command นี้เพื่อตั้ง Password
-    command: redis-server --requirepass "redis_password_secure"
+    command: redis-server --requirepass "Center2025"
     ports:
       - '6379:6379'
     volumes:

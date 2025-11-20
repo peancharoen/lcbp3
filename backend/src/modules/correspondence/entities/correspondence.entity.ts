@@ -1,0 +1,73 @@
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+  DeleteDateColumn,
+  CreateDateColumn,
+} from 'typeorm';
+import { Project } from '../../project/entities/project.entity.js';
+import { Organization } from '../../project/entities/organization.entity.js';
+import { CorrespondenceType } from './correspondence-type.entity.js';
+import { User } from '../../user/entities/user.entity.js';
+import { CorrespondenceRevision } from './correspondence-revision.entity.js'; // เดี๋ยวสร้าง
+
+@Entity('correspondences')
+export class Correspondence {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ name: 'correspondence_number', length: 100 })
+  correspondenceNumber!: string;
+
+  @Column({ name: 'correspondence_type_id' })
+  correspondenceTypeId!: number;
+
+  @Column({ name: 'project_id' })
+  projectId!: number;
+
+  @Column({ name: 'originator_id', nullable: true })
+  originatorId?: number;
+
+  @Column({
+    name: 'is_internal_communication',
+    default: false,
+    type: 'tinyint',
+  })
+  isInternal!: boolean;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
+
+  @Column({ name: 'created_by', nullable: true })
+  createdBy?: number;
+
+  @DeleteDateColumn({ name: 'deleted_at', select: false })
+  deletedAt?: Date;
+
+  // Relations
+  @ManyToOne(() => CorrespondenceType)
+  @JoinColumn({ name: 'correspondence_type_id' })
+  type?: CorrespondenceType;
+
+  @ManyToOne(() => Project)
+  @JoinColumn({ name: 'project_id' })
+  project?: Project;
+
+  @ManyToOne(() => Organization)
+  @JoinColumn({ name: 'originator_id' })
+  originator?: Organization;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'created_by' })
+  creator?: User;
+
+  // One Correspondence has Many Revisions
+  @OneToMany(
+    () => CorrespondenceRevision,
+    (revision) => revision.correspondence,
+  )
+  revisions?: CorrespondenceRevision[];
+}
