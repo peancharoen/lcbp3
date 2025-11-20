@@ -375,7 +375,7 @@ JWT_EXPIRATION=8h
 
 คุณต้องการให้ผมช่วยตั้งค่า `ConfigModule` ใน NestJS เพื่ออ่านค่า `JWT_SECRET` นี้อย่างปลอดภัยพร้อม Validate ว่าห้ามเป็นค่าว่างไหมครับ?
 
-## ได้เลยครับ เรามาลุยงาน **T0.1 Secure Configuration Setup** ตามแผน Backend Plan กันต่อครับ
+## **T0.1 Secure Configuration Setup** ตามแผน Backend Plan กันต่อครับ
 
 เป้าหมายของ Task นี้คือการทำให้ระบบอ่านค่า Environment Variables ได้อย่างถูกต้อง และ **"ต้องไม่ Start"** ถ้าค่า Config สำคัญๆ (เช่น Database Password, JWT Secret) หายไป หรือไม่ถูกต้อง เพื่อความปลอดภัยครับ
 
@@ -444,7 +444,7 @@ import { envValidationSchema } from './common/config/env.validation.js'; // ส�
       validationSchema: envValidationSchema, // ใช้ Schema ที่เราสร้างเพื่อตรวจสอบ
       validationOptions: {
         // ถ้ามีค่าไหนไม่ผ่าน Validation ให้ Error และหยุดทำงานทันที
-        abortEarly: true, 
+        abortEarly: true,
       },
     }),
 
@@ -471,7 +471,7 @@ import { envValidationSchema } from './common/config/env.validation.js'; // ส�
 export class AppModule {}
 ```
 
-### 4\. สร้างไฟล์ Template สำหรับ Docker Override (ตามแผน T0.1)
+### 4. สร้างไฟล์ Template สำหรับ Docker Override (ตามแผน T0.1)
 
 ตามแผนงาน เราต้องเตรียมไฟล์ `docker-compose.override.yml.example` เพื่อให้นักพัฒนาคนอื่นรู้ว่าต้อง Inject Secrets อย่างไร โดยไม่เปิดเผยความลับใน `docker-compose.yml` หลัก
 
@@ -496,7 +496,7 @@ services:
       - MYSQL_PASSWORD=secret_password_here
 ```
 
-### 5\. ทดสอบความปลอดภัย (Validation Check)
+### 5. ทดสอบความปลอดภัย (Validation Check)
 
 ลองทดสอบว่าระบบ Validation ทำงานถูกต้องหรือไม่ โดยการ **ลบ** หรือ **เปลี่ยนชื่อ** ตัวแปรสำคัญในไฟล์ `.env` (เช่น ลบ `JWT_SECRET`) แล้วลองรัน:
 
@@ -508,10 +508,230 @@ pnpm start:dev
 App **ต้อง Crash** และแสดง Error Message ชัดเจน เช่น:
 `Config validation error: "JWT_SECRET" is required`
 
-ถ้าขึ้นแบบนี้แสดงว่าระบบ **Secure Configuration** ของเราทำงานถูกต้องตามแผน T0.1 แล้วครับ\! 🎉
+ถ้าขึ้นแบบนี้แสดงว่าระบบ **Secure Configuration** ของเราทำงานถูกต้องตามแผน T0.1 แล้วครับ! 🎉
 
 -----
 
-**ขั้นตอนถัดไป:**
-เราจะไปต่อที่ **T0.2 Redis & Queue Infrastructure** เพื่อเตรียมระบบ Caching และ Background Job ไหมครับ?
+## **T0.2 Redis & Queue Infrastructure**
 
+เป้าหมายของ Task นี้คือเตรียม **Redis** สำหรับทำ 2 เรื่องสำคัญ:
+
+1.  **Distributed Locking (Redlock):** ป้องกัน Race Condition เวลาออกเลขที่เอกสาร
+2.  **Message Queue (BullMQ):** สำหรับจัดการงานเบื้องหลัง (Background Jobs) เช่น การรวมอีเมลแจ้งเตือน (Digest Notification)
+
+มาเริ่มกันเลยครับ
+
+-----
+
+### 1. เพิ่ม Redis ใน Docker Compose
+
+แก้ไขไฟล์ `docker-compose.yml` เพื่อเพิ่ม Service Redis ครับ โดยเราจะตั้ง Password เพื่อความปลอดภัย
+
+**ไฟล์: `docker-compose.yml`**
+
+```yaml
+version: '3.8'
+
+services:
+  # ... (mariadb & pma เดิม) ...
+
+  # เพิ่ม Redis Service
+  redis:
+    image: redis:7-alpine
+    container_name: lcbp3-redis-local
+    restart: always
+    # ใช้ Command นี้เพื่อตั้ง Password
+    command: redis-server --requirepass "redis_password_secure"
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - lcbp3-net
+
+volumes:
+  db_data:
+  redis_data: # เพิ่ม Volume
+
+networks:
+  lcbp3-net:
+    driver: bridge
+```
+
+จากนั้นรันคำสั่งเพื่อ Start Redis:
+
+```bash
+docker-compose up -d
+```
+
+### 2. อัปเดต Environment Config
+
+เพิ่มค่า Config ของ Redis ลงในไฟล์ `.env` และไฟล์ Validation ครับ
+
+**ไฟล์: `.env`**
+
+```env
+# ... (ค่าเดิม) ...
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=redis_password_secure
+```
+
+**ไฟล์: `src/common/config/env.validation.ts`**
+
+```typescript
+// ... (import Joi) ...
+
+export const envValidationSchema = Joi.object({
+  // ... (App & Database Config เดิม) ...
+
+  // 4. Redis Configuration (เพิ่มส่วนนี้)
+  REDIS_HOST: Joi.string().required(),
+  REDIS_PORT: Joi.number().default(6379),
+  REDIS_PASSWORD: Joi.string().required(),
+});
+```
+
+### 3. ติดตั้ง Library สำหรับ BullMQ
+
+เราจะใช้ `@nestjs/bullmq` ซึ่งเป็น Wrapper ของ `bullmq` (Redis Queue ที่ทันสมัยกว่า Bull ธรรมดา)
+
+รันคำสั่ง:
+
+```bash
+pnpm add @nestjs/bullmq bullmq
+```
+
+### 4. ตั้งค่า BullModule ใน AppModule
+
+แก้ไข `src/app.module.ts` เพื่อเชื่อมต่อ Redis เข้ากับระบบ Queue ครับ
+
+**ไฟล์: `src/app.module.ts`**
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq'; // Import BullModule
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { envValidationSchema } from './common/config/env.validation.js';
+
+@Module({
+  imports: [
+    // 1. Config (เดิม)
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+      validationSchema: envValidationSchema,
+      validationOptions: { abortEarly: true },
+    }),
+
+    // 2. TypeORM (เดิม)
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        type: 'mariadb',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        autoLoadEntities: true,
+        synchronize: configService.get<string>('NODE_ENV') === 'development',
+      }),
+    }),
+
+    // 3. BullMQ (Redis) Setup [NEW]
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST'),
+          port: configService.get<number>('REDIS_PORT'),
+          password: configService.get<string>('REDIS_PASSWORD'),
+        },
+      }),
+    }),
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+```
+
+### 5. ทดสอบการเชื่อมต่อ Redis
+
+ลอง Start App ดูอีกครั้งครับ:
+
+```bash
+pnpm start:dev
+```
+
+ถ้าไม่มี Error ขึ้น และ App Start ได้ปกติ แสดงว่า **T0.2 เสร็จสมบูรณ์** ครับ\! ตอนนี้เรามีทั้ง Database และ Redis พร้อมสำหรับการพัฒนา Business Logic แล้ว
+
+-----
+### 6. **แก้ไข Error**
+ปัญหานี้เกิดจากยังไม่ได้ **Import** `BullModule` เข้ามาในไฟล์ `src/app.module.ts` ครับ (TypeScript เลยไม่รู้จักว่า `BullModule` คืออะไร)
+
+ให้เพิ่มบรรทัดนี้ที่ส่วนบนสุดของไฟล์ `src/app.module.ts` ครับ:
+
+```typescript
+import { BullModule } from '@nestjs/bullmq';
+```
+
+หรือลองตรวจสอบไฟล์ `src/app.module.ts` ให้ครบถ้วนตามนี้ครับ:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq'; // <--- ต้องมีบรรทัดนี้ครับ
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { envValidationSchema } from './common/config/env.validation.js';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+      validationSchema: envValidationSchema,
+      validationOptions: { abortEarly: true },
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        type: 'mariadb',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        autoLoadEntities: true,
+        synchronize: configService.get<string>('NODE_ENV') === 'development',
+      }),
+    }),
+    // Queue Configuration
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST'),
+          port: configService.get<number>('REDIS_PORT'),
+          password: configService.get<string>('REDIS_PASSWORD'),
+        },
+      }),
+    }),
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+```
