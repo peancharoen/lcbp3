@@ -1,11 +1,10 @@
-﻿{ "recommendations": [
+{ "recommendations": [
     "aaron-bond.better-comments",
     "anbuselvanrocky.bootstrap5-vscode",
     "bmewburn.vscode-intelephense-client",
     "bradlc.vscode-tailwindcss",
     "christian-kohler.path-intellisense",
     "codezombiech.gitignore",
-    "davidanson.vscode-markdownlint",
     "dbaeumer.vscode-eslint",
     "dsznajder.es7-react-js-snippets",
     "dunstontc.vscode-docker-syntax",
@@ -18,7 +17,6 @@
     "formulahendry.auto-rename-tag",
     "github.copilot",
     "github.copilot-chat",
-    "google.geminicodeassist",
     "hansuxdev.bootstrap5-snippets",
     "heybourn.headwind",
     "humao.rest-client",
@@ -34,7 +32,6 @@
     "mikestead.dotenv",
     "ms-azuretools.vscode-containers",
     "ms-azuretools.vscode-docker",
-    "ms-edgedevtools.vscode-edge-devtools",
     "ms-python.debugpy",
     "ms-python.python",
     "ms-vscode-remote.remote-containers",

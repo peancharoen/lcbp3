@@ -1505,6 +1505,177 @@ export class UserService {
 
 ถ้าทุกอย่างเรียบร้อย เราจะปิดจ็อบ Phase 1 แล้วไปขึ้น **Phase 2: High-Integrity Data (File Upload)** กันต่อไหมครับ?
 
+### **"มอบหมายบทบาท (Assign Role)"**
+**ถูกต้องที่สุดครับ!** คุณเข้าใจคอนเซปต์ของระบบ RBAC ในระบบนี้ได้อย่างทะลุปรุโปร่งครับ 👍
+
+ถ้าเราสร้าง User ลงในตาราง `users` เพียงอย่างเดียว User คนนั้นจะ:
+
+1.  ✅ **Login ได้** (เพราะมี Username/Password)
+2.  ❌ **ทำอะไรไม่ได้เลย** (เพราะไม่มี Row ใน `user_assignments` ระบบสิทธิ์ `v_user_all_permissions` จึงว่างเปล่า)
+
+ดังนั้น การ **"มอบหมายบทบาท (Assign Role)"** จึงเป็นขั้นตอนที่ขาดไม่ได้ครับ
+
+-----
+
+#### 🛠️ สิ่งที่เราต้องทำเพิ่ม (เพื่อให้ Admin มอบสิทธิ์ได้)
+
+ใน Task T1.3 เราทำแค่ `Create User` (ลงตาราง users) ไปแล้ว ตอนนี้เราต้องทำ API สำหรับ **Assign Role** (ลงตาราง user\_assignments) ครับ
+
+มาสร้างฟังก์ชันนี้กันครับ:
+
+##### 1. สร้าง DTO สำหรับการมอบสิทธิ์
+
+สร้างไฟล์: `src/modules/user/dto/assign-role.dto.ts`
+
+```typescript
+import { IsInt, IsNotEmpty, IsOptional, ValidateIf } from 'class-validator';
+
+export class AssignRoleDto {
+  @IsInt()
+  @IsNotEmpty()
+  userId!: number;
+
+  @IsInt()
+  @IsNotEmpty()
+  roleId!: number;
+
+  // Scope (ต้องส่งมาอย่างน้อย 1 อัน หรือไม่ส่งเลยถ้าเป็น Global)
+  @IsInt()
+  @IsOptional()
+  organizationId?: number;
+
+  @IsInt()
+  @IsOptional()
+  projectId?: number;
+
+  @IsInt()
+  @IsOptional()
+  contractId?: number;
+}
+```
+
+##### 2. สร้าง `UserAssignmentService` (Logic การบันทึก)
+
+เราควรแยก Service นี้ออกมาเพื่อความเป็นระเบียบครับ (หรือจะใส่ใน UserService ก็ได้ แต่แยกดีกว่า)
+
+สร้างไฟล์: `src/modules/user/user-assignment.service.ts`
+
+```typescript
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserAssignment } from './entities/user-assignment.entity.js'; // ต้องไปสร้าง Entity นี้ก่อน (ดูข้อ 3)
+import { AssignRoleDto } from './dto/assign-role.dto.js';
+import { User } from './entities/user.entity.js';
+
+@Injectable()
+export class UserAssignmentService {
+  constructor(
+    @InjectRepository(UserAssignment)
+    private assignmentRepo: Repository<UserAssignment>,
+  ) {}
+
+  async assignRole(dto: AssignRoleDto, assigner: User) {
+    // Validation: ตรวจสอบกฎเหล็ก (เลือกได้แค่ Scope เดียว)
+    const scopes = [dto.organizationId, dto.projectId, dto.contractId].filter(v => v != null);
+    if (scopes.length > 1) {
+      throw new BadRequestException('Cannot assign multiple scopes at once. Choose one of Org, Project, or Contract.');
+    }
+
+    // สร้าง Assignment
+    const assignment = this.assignmentRepo.create({
+      userId: dto.userId,
+      roleId: dto.roleId,
+      organizationId: dto.organizationId,
+      projectId: dto.projectId,
+      contractId: dto.contractId,
+      assignedByUserId: assigner.user_id, // เก็บ Log ว่าใครเป็นคนให้สิทธิ์
+    });
+
+    return this.assignmentRepo.save(assignment);
+  }
+}
+```
+
+##### 3. สร้าง Entity `UserAssignment` (ถ้ายังไม่ได้สร้าง)
+
+สร้างไฟล์: `src/modules/user/entities/user-assignment.entity.ts`
+
+```typescript
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { User } from './user.entity.js';
+// Import Role, Org, Project, Contract entities...
+
+@Entity('user_assignments')
+export class UserAssignment {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ name: 'user_id' })
+  userId!: number;
+
+  @Column({ name: 'role_id' })
+  roleId!: number;
+
+  @Column({ name: 'organization_id', nullable: true })
+  organizationId?: number;
+
+  @Column({ name: 'project_id', nullable: true })
+  projectId?: number;
+
+  @Column({ name: 'contract_id', nullable: true })
+  contractId?: number;
+
+  @Column({ name: 'assigned_by_user_id', nullable: true })
+  assignedByUserId?: number;
+
+  @CreateDateColumn({ name: 'assigned_at' })
+  assignedAt!: Date;
+
+  // Relation กลับไปหา User (เจ้าของสิทธิ์)
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user?: User;
+}
+```
+
+##### 4. เพิ่ม Endpoint ใน `UserController`
+
+```typescript
+// src/modules/user/user.controller.ts
+// ... imports ...
+import { AssignRoleDto } from './dto/assign-role.dto.js';
+import { UserAssignmentService } from './user-assignment.service.js'; // อย่าลืม Inject เข้ามาใน Constructor
+
+@Controller('users')
+@UseGuards(JwtAuthGuard, RbacGuard)
+export class UserController {
+  constructor(
+    private readonly userService: UserService,
+    private readonly assignmentService: UserAssignmentService, // <--- Inject เพิ่ม
+  ) {}
+
+  // ... Endpoints เดิม ...
+
+  @Post('assign-role')
+  @RequirePermission('permission.assign') // เฉพาะคนมีสิทธิ์ Assign (เช่น Admin)
+  assignRole(@Body() dto: AssignRoleDto, @Request() req: any) {
+    return this.assignmentService.assignRole(dto, req.user);
+  }
+}
+```
+
+-----
+
+#### 📝 สรุปภาพรวม
+
+1.  **สร้าง User:** `POST /users` -\> ได้ User เปล่าๆ (Login ได้ แต่ทำไรไม่ได้)
+2.  **กำหนดสิทธิ์:** `POST /users/assign-role` -\> ยิง API นี้เพื่อบอกว่า "User นี้ เป็น Project Manager ของ Project A นะ"
+      * Body: `{ "userId": 5, "roleId": 6, "projectId": 1 }`
+3.  **ใช้งาน:** เมื่อ User ID 5 ล็อกอิน ระบบจะไปเช็คใน `user_assignments` เห็นว่ามีสิทธิ์ Project Manager ของ Project 1 จึงอนุญาตให้ทำงานได้ครับ
+
+ระบบ RBAC ของเรายืดหยุ่นและรองรับ Real-world scenario มากๆ ครับ (เช่น คนหนึ่งคนเป็น Admin ใน Project A แต่เป็นแค่ Viewer ใน Project B ก็ทำได้ เพราะเรามีตาราง `user_assignments` ตัวนี้แหละครับ)
+
 ## Task T1.3 Error
 
 ### ERROR [HttpExceptionFilter] Http Status: 404 Error Message: "Cannot GET /api/users"
@@ -1563,6 +1734,43 @@ export class AppModule {}
 3. ยิง Postman `GET /api/users` อีกครั้ง (อย่าลืมแนบ Bearer Token นะครับ)
 
 คราวนี้น่าจะเจอข้อมูลแล้วครับ\! 🎉
+
+#### ปัญหานี้เกิดจากเราได้สร้าง `UserAssignmentService` และเรียกใช้ใน Controller แล้ว แต่เรา **ลืมลงทะเบียน (Register)** Service นี้และ Entity ของมันใน `UserModule` ครับ NestJS เลยไม่รู้ว่าจะเอา Service นี้มาจากไหน
+
+##### 🛠️ วิธีแก้ไข
+
+ให้แก้ไขไฟล์ `src/modules/user/user.module.ts` โดยเพิ่ม `UserAssignment` (Entity) และ `UserAssignmentService` (Provider) เข้าไปครับ
+
+**ไฟล์: `src/modules/user/user.module.ts`**
+
+```typescript
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserService } from './user.service.js';
+import { UserAssignmentService } from './user-assignment.service.js'; // <--- 1. Import Service
+import { UserController } from './user.controller.js';
+import { User } from './entities/user.entity.js';
+import { UserAssignment } from './entities/user-assignment.entity.js'; // <--- 2. Import Entity
+
+@Module({
+  imports: [
+    // 3. ลงทะเบียน Entity ทั้ง User และ UserAssignment
+    TypeOrmModule.forFeature([User, UserAssignment]), 
+  ],
+  controllers: [UserController],
+  providers: [
+    UserService, 
+    UserAssignmentService // <--- 4. ลงทะเบียน Service เป็น Provider
+  ],
+  exports: [
+    UserService, 
+    UserAssignmentService // <--- 5. Export เผื่อที่อื่นใช้
+  ],
+})
+export class UserModule {}
+```
+
+ลอง Save แล้วรัน `pnpm start:dev` อีกครั้งครับ Error นี้จะหายไป และคุณจะสามารถใช้ฟังก์ชัน Assign Role ได้แล้วครับ\!
 
 ## T1.4 RBAC Guard (4-Level Authorization)
 

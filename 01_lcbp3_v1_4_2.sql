@@ -339,32 +339,55 @@ CREATE TABLE users (
   SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลผู้ใช้งาน (User)';
 -- Initial SUPER_ADMIN user
-INSERT INTO users (username, password_hash, email, is_active)
+INSERT INTO `users` (
+    `user_id`,
+    `username`,
+    `password_hash`,
+    `first_name`,
+    `last_name`,
+    `email`,
+    `line_id`,
+    `primary_organization_id`
+  )
 VALUES (
+    1,
     'superadmin',
-    '$2y$10$0kjBMxWq7E4G7P.dc8r5i.cjiPBiup553AsFpDfxUt31gKg9h',
+    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
+    'Super',
+    'Admin',
     'superadmin @example.com',
+    NULL,
+    NULL
+  ),
+  (
+    2,
+    'admin',
+    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
+    'Admin',
+    'คคง.',
+    'admin@example.com',
+    NULL,
     1
-  ) ON DUPLICATE KEY
-UPDATE email =
-VALUES(email),
-  is_active =
-VALUES(is_active);
--- Create editor01 user
-INSERT IGNORE INTO users (username, password_hash, email, is_active)
-VALUES (
+  ),
+  (
+    3,
     'editor01',
-    '$2y$10$0kjBMxWq7E4G7P.dc8r5i.cjiPBiup553AsFpDfxUt31gKg9h',
+    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
+    'DC',
+    'C1',
     'editor01 @example.com',
-    1
-  );
--- Create viewer01 user (password hash placeholder, must change later)
-INSERT IGNORE INTO users (username, password_hash, email, is_active)
-VALUES (
+    NULL,
+    41
+  ),
+  (
+    4,
     'viewer01',
-    '$2y$10$0kjBMxWq7E4G7P.dc8r5i.cjiPBiup553AsFpDfxUt31gKg9h',
+    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
+    'Viewer',
+    'สคฉ.03',
     'viewer01 @example.com',
-    1
+    NULL,
+    10
   );
 -- ตาราง Master เก็บ "บทบาท" ของผู้ใช้ในระบบ
 CREATE TABLE roles (
@@ -903,6 +926,33 @@ CREATE TABLE user_assignments (
     ) -- สำหรับ Global scope
   )
 );
+INSERT INTO `user_assignments` (
+    `id`,
+    `user_id`,
+    `role_id`,
+    `organization_id`,
+    `project_id`,
+    `contract_id`,
+    `assigned_by_user_id`
+  )
+VALUES (
+    1,
+    1,
+    1,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+  ),
+  (
+    2,
+    2,
+    2,
+    1,
+    NULL,
+    NULL,
+    NULL
+  );
 CREATE TABLE project_organizations (
   project_id INT NOT NULL,
   organization_id INT NOT NULL,
@@ -1127,12 +1177,7 @@ VALUES ('RFA', 'Request for Approval', 1, 1),
   ('MEMO', 'Memorandum', 7, 1),
   ('MOM', 'Minutes of Meeting', 8, 1),
   ('NOTICE', 'Notice', 9, 1),
-  (
-    'OTHER',
-    'Other',
-    10,
-    1
-  );
+  ('OTHER', 'Other', 10, 1);
 -- ตาราง Master เก็บสถานะของเอกสาร
 CREATE TABLE correspondence_status (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',

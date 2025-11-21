@@ -86,9 +86,9 @@ mkdir -p src/database/seeds
     "incremental": true,
     "skipLibCheck": true,
     /* Strict Type-Checking Options */
-    "strict": true,               // บังคับใช้ Strict Mode
-    "noImplicitAny": true,        // ห้ามใช้ Any โดยไม่จำเป็น
-    "strictNullChecks": true,     // ตรวจสอบค่า Null อย่างเคร่งครัด
+    "strict": true, // บังคับใช้ Strict Mode
+    "noImplicitAny": true, // ห้ามใช้ Any โดยไม่จำเป็น
+    "strictNullChecks": true, // ตรวจสอบค่า Null อย่างเคร่งครัด
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true
@@ -151,7 +151,7 @@ pnpm --version
 
 (ควรจะขึ้นเป็นตัวเลขเวอร์ชัน เช่น `9.x.x`)
 
------
+---
 
 ### ทางเลือก: ติดตั้งผ่าน Corepack (สำหรับ Node.js เวอร์ชันใหม่)
 
@@ -162,16 +162,16 @@ corepack enable
 corepack prepare pnpm@latest --activate
 ```
 
------
+---
 
 ### เมื่อติดตั้งเสร็จแล้ว
 
 คุณสามารถใช้ `pnpm` แทน `npm` ได้เลยครับ เช่น:
 
-* **ติดตั้ง Nest CLI (ถ้ายังไม่ได้ลง):** `pnpm add -g @nestjs/cli`
-* **สร้างโปรเจกต์ NestJS:** `nest new lcbp3-backend` (แล้วเลือก pnpm ตอนระบบถาม)
-* **รันโปรเจกต์:** `pnpm start:dev`
-* **ติดตั้ง Library เพิ่ม:** `pnpm add [package-name]` (เช่น `pnpm add typeorm`)
+- **ติดตั้ง Nest CLI (ถ้ายังไม่ได้ลง):** `pnpm add -g @nestjs/cli`
+- **สร้างโปรเจกต์ NestJS:** `nest new lcbp3-backend` (แล้วเลือก pnpm ตอนระบบถาม)
+- **รันโปรเจกต์:** `pnpm start:dev`
+- **ติดตั้ง Library เพิ่ม:** `pnpm add [package-name]` (เช่น `pnpm add typeorm`)
 
 ติดตั้งเสร็จแล้ว แจ้งผมได้เลยนะครับ จะได้ไปต่อที่ขั้นตอน **Config Database** กันครับ
 
@@ -196,7 +196,7 @@ pnpm add @nestjs/typeorm typeorm mysql2 @nestjs/config
 สร้างไฟล์ `docker-compose.yml` ที่ root ของโปรเจกต์ (ถ้ายังไม่มี):
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   mariadb:
@@ -209,7 +209,7 @@ services:
       MYSQL_USER: admin
       MYSQL_PASSWORD: password123
     ports:
-      - '3306:3306'
+      - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
     networks:
@@ -222,7 +222,7 @@ services:
     environment:
       PMA_HOST: mariadb
     ports:
-      - '8080:80'
+      - "8080:80"
     depends_on:
       - mariadb
     networks:
@@ -248,36 +248,36 @@ docker-compose up -d
 
 ```typescript
 // src/app.module.ts
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
 
 @Module({
   imports: [
     // 1. Load Config Module
     ConfigModule.forRoot({
       isGlobal: true, // ให้เรียกใช้ได้ทุกที่โดยไม่ต้อง import ใหม่
-      envFilePath: '.env', // อ่านค่าจากไฟล์ .env
+      envFilePath: ".env", // อ่านค่าจากไฟล์ .env
     }),
 
     // 2. Setup TypeORM Connection (Async เพื่อรออ่าน Config ก่อน)
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        type: 'mariadb', // หรือ 'mysql' ก็ได้เพราะใช้ driver เดียวกัน
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
+        type: "mariadb", // หรือ 'mysql' ก็ได้เพราะใช้ driver เดียวกัน
+        host: configService.get<string>("DB_HOST"),
+        port: configService.get<number>("DB_PORT"),
+        username: configService.get<string>("DB_USERNAME"),
+        password: configService.get<string>("DB_PASSWORD"),
+        database: configService.get<string>("DB_DATABASE"),
         // Auto Load Entities: โหลด Entity ทั้งหมดที่อยู่ในโปรเจกต์อัตโนมัติ
         autoLoadEntities: true,
         // Synchronize: true เฉพาะ Dev environment (ห้ามใช้ใน Prod)
-        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        synchronize: configService.get<string>("NODE_ENV") === "development",
         // Logging: เปิดดู Query SQL ตอน Dev
-        logging: configService.get<string>('NODE_ENV') === 'development',
+        logging: configService.get<string>("NODE_ENV") === "development",
       }),
       inject: [ConfigService],
     }),
@@ -317,7 +317,7 @@ pnpm start:dev
 
 ถ้า Terminal ขึ้นข้อความสีเขียวๆ ว่า `[NestApplication] Nest application successfully started` และไม่มี Error เกี่ยวกับ TypeORM แสดงว่าเชื่อมต่อ MariaDB บน Localhost สำเร็จแล้วครับ\! 🎉
 
------
+---
 
 **ขั้นตอนถัดไป:**
 เราควรสร้าง **Base Entity** (T1.1) และ **Users Entity** (T1.3) เพื่อเริ่มทำระบบ Login ไหมครับ?
@@ -334,7 +334,7 @@ pnpm start:dev
 openssl rand -base64 64
 ```
 
-*ผลลัพธ์จะได้ String ยาวๆ ที่อ่านไม่รู้เรื่อง เช่น:*
+_ผลลัพธ์จะได้ String ยาวๆ ที่อ่านไม่รู้เรื่อง เช่น:_
 `h78/sT5...xYz==`
 
 ### วิธีที่ 2: ใช้ Node.js Crypto (ง่ายสำหรับ Developer)
@@ -347,13 +347,13 @@ openssl rand -base64 64
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-*ผลลัพธ์จะได้ Hex String ยาว 64 ตัวอักษร*
+_ผลลัพธ์จะได้ Hex String ยาว 64 ตัวอักษร_
 
 ### วิธีที่ 3: ใช้ Password Manager Generator
 
 หากใช้ 1Password, LastPass หรือ Bitwarden สามารถใช้ฟีเจอร์ "Generate Password" โดยตั้งค่าความยาว 64 ตัวอักษร (รวมตัวเลขและสัญลักษณ์) ก็ใช้ได้เช่นกันครับ
 
------
+---
 
 ### ⚙️ การนำไปใช้งานในโปรเจกต์
 
@@ -397,14 +397,14 @@ pnpm add @nestjs/config joi
 
 ```typescript
 // File: src/common/config/env.validation.ts
-import Joi from 'joi';
+import Joi from "joi";
 
 // สร้าง Schema สำหรับตรวจสอบค่า Environment Variables
 export const envValidationSchema = Joi.object({
   // 1. Application Environment
   NODE_ENV: Joi.string()
-    .valid('development', 'production', 'test', 'provision')
-    .default('development'),
+    .valid("development", "production", "test", "provision")
+    .default("development"),
   PORT: Joi.number().default(3000),
 
   // 2. Database Configuration (MariaDB)
@@ -417,8 +417,11 @@ export const envValidationSchema = Joi.object({
 
   // 3. Security (JWT)
   // ต้องมีค่า และควรยาวพอ (ตรวจสอบความยาวได้ถ้าระบุ min)
-  JWT_SECRET: Joi.string().required().min(32).message('JWT_SECRET must be at least 32 characters long for security.'),
-  JWT_EXPIRATION: Joi.string().default('8h'),
+  JWT_SECRET: Joi.string()
+    .required()
+    .min(32)
+    .message("JWT_SECRET must be at least 32 characters long for security."),
+  JWT_EXPIRATION: Joi.string().default("8h"),
 });
 ```
 
@@ -428,19 +431,19 @@ export const envValidationSchema = Joi.object({
 
 ```typescript
 // File: src/app.module.ts
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { envValidationSchema } from './common/config/env.validation.js'; // สังเกต .js สำหรับ ESM
+import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
+import { envValidationSchema } from "./common/config/env.validation.js"; // สังเกต .js สำหรับ ESM
 
 @Module({
   imports: [
     // 1. Setup Config Module พร้อม Validation
     ConfigModule.forRoot({
       isGlobal: true, // เรียกใช้ได้ทั่วทั้ง App ไม่ต้อง import ซ้ำ
-      envFilePath: '.env', // อ่านไฟล์ .env (สำหรับ Dev)
+      envFilePath: ".env", // อ่านไฟล์ .env (สำหรับ Dev)
       validationSchema: envValidationSchema, // ใช้ Schema ที่เราสร้างเพื่อตรวจสอบ
       validationOptions: {
         // ถ้ามีค่าไหนไม่ผ่าน Validation ให้ Error และหยุดทำงานทันที
@@ -453,15 +456,15 @@ import { envValidationSchema } from './common/config/env.validation.js'; // ส�
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        type: 'mariadb',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
+        type: "mariadb",
+        host: configService.get<string>("DB_HOST"),
+        port: configService.get<number>("DB_PORT"),
+        username: configService.get<string>("DB_USERNAME"),
+        password: configService.get<string>("DB_PASSWORD"),
+        database: configService.get<string>("DB_DATABASE"),
         autoLoadEntities: true,
         // synchronize: true เฉพาะตอน Dev เท่านั้น ห้ามใช้บน Prod
-        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        synchronize: configService.get<string>("NODE_ENV") === "development",
       }),
     }),
   ],
@@ -478,7 +481,7 @@ export class AppModule {}
 สร้างไฟล์: `docker-compose.override.yml.example` ที่ root project:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   # Override ค่า Config ของ Service Backend (เมื่อเราสร้าง Container Backend ในอนาคต)
@@ -510,18 +513,18 @@ App **ต้อง Crash** และแสดง Error Message ชัดเจ�
 
 ถ้าขึ้นแบบนี้แสดงว่าระบบ **Secure Configuration** ของเราทำงานถูกต้องตามแผน T0.1 แล้วครับ! 🎉
 
------
+---
 
 ## **T0.2 Redis & Queue Infrastructure**
 
 เป้าหมายของ Task นี้คือเตรียม **Redis** สำหรับทำ 2 เรื่องสำคัญ:
 
-1.  **Distributed Locking (Redlock):** ป้องกัน Race Condition เวลาออกเลขที่เอกสาร
-2.  **Message Queue (BullMQ):** สำหรับจัดการงานเบื้องหลัง (Background Jobs) เช่น การรวมอีเมลแจ้งเตือน (Digest Notification)
+1. **Distributed Locking (Redlock):** ป้องกัน Race Condition เวลาออกเลขที่เอกสาร
+2. **Message Queue (BullMQ):** สำหรับจัดการงานเบื้องหลัง (Background Jobs) เช่น การรวมอีเมลแจ้งเตือน (Digest Notification)
 
 มาเริ่มกันเลยครับ
 
------
+---
 
 ### 1. เพิ่ม Redis ใน Docker Compose
 
@@ -530,7 +533,7 @@ App **ต้อง Crash** และแสดง Error Message ชัดเจ�
 **ไฟล์: `docker-compose.yml`**
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   # ... (mariadb & pma เดิม) ...
@@ -543,7 +546,7 @@ services:
     # ใช้ Command นี้เพื่อตั้ง Password
     command: redis-server --requirepass "redis_password_secure"
     ports:
-      - '6379:6379'
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -611,20 +614,20 @@ pnpm add @nestjs/bullmq bullmq
 **ไฟล์: `src/app.module.ts`**
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { BullModule } from '@nestjs/bullmq'; // Import BullModule
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { envValidationSchema } from './common/config/env.validation.js';
+import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { BullModule } from "@nestjs/bullmq"; // Import BullModule
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
+import { envValidationSchema } from "./common/config/env.validation.js";
 
 @Module({
   imports: [
     // 1. Config (เดิม)
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ".env",
       validationSchema: envValidationSchema,
       validationOptions: { abortEarly: true },
     }),
@@ -634,14 +637,14 @@ import { envValidationSchema } from './common/config/env.validation.js';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        type: 'mariadb',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
+        type: "mariadb",
+        host: configService.get<string>("DB_HOST"),
+        port: configService.get<number>("DB_PORT"),
+        username: configService.get<string>("DB_USERNAME"),
+        password: configService.get<string>("DB_PASSWORD"),
+        database: configService.get<string>("DB_DATABASE"),
         autoLoadEntities: true,
-        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        synchronize: configService.get<string>("NODE_ENV") === "development",
       }),
     }),
 
@@ -651,9 +654,9 @@ import { envValidationSchema } from './common/config/env.validation.js';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
         connection: {
-          host: configService.get<string>('REDIS_HOST'),
-          port: configService.get<number>('REDIS_PORT'),
-          password: configService.get<string>('REDIS_PASSWORD'),
+          host: configService.get<string>("REDIS_HOST"),
+          port: configService.get<number>("REDIS_PORT"),
+          password: configService.get<string>("REDIS_PASSWORD"),
         },
       }),
     }),
@@ -674,32 +677,34 @@ pnpm start:dev
 
 ถ้าไม่มี Error ขึ้น และ App Start ได้ปกติ แสดงว่า **T0.2 เสร็จสมบูรณ์** ครับ\! ตอนนี้เรามีทั้ง Database และ Redis พร้อมสำหรับการพัฒนา Business Logic แล้ว
 
------
+---
+
 ### 6. **แก้ไข Error**
+
 ปัญหานี้เกิดจากยังไม่ได้ **Import** `BullModule` เข้ามาในไฟล์ `src/app.module.ts` ครับ (TypeScript เลยไม่รู้จักว่า `BullModule` คืออะไร)
 
 ให้เพิ่มบรรทัดนี้ที่ส่วนบนสุดของไฟล์ `src/app.module.ts` ครับ:
 
 ```typescript
-import { BullModule } from '@nestjs/bullmq';
+import { BullModule } from "@nestjs/bullmq";
 ```
 
 หรือลองตรวจสอบไฟล์ `src/app.module.ts` ให้ครบถ้วนตามนี้ครับ:
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { BullModule } from '@nestjs/bullmq'; // <--- ต้องมีบรรทัดนี้ครับ
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { envValidationSchema } from './common/config/env.validation.js';
+import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { BullModule } from "@nestjs/bullmq"; // <--- ต้องมีบรรทัดนี้ครับ
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
+import { envValidationSchema } from "./common/config/env.validation.js";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ".env",
       validationSchema: envValidationSchema,
       validationOptions: { abortEarly: true },
     }),
@@ -707,14 +712,14 @@ import { envValidationSchema } from './common/config/env.validation.js';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        type: 'mariadb',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
+        type: "mariadb",
+        host: configService.get<string>("DB_HOST"),
+        port: configService.get<number>("DB_PORT"),
+        username: configService.get<string>("DB_USERNAME"),
+        password: configService.get<string>("DB_PASSWORD"),
+        database: configService.get<string>("DB_DATABASE"),
         autoLoadEntities: true,
-        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        synchronize: configService.get<string>("NODE_ENV") === "development",
       }),
     }),
     // Queue Configuration
@@ -723,9 +728,9 @@ import { envValidationSchema } from './common/config/env.validation.js';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
         connection: {
-          host: configService.get<string>('REDIS_HOST'),
-          port: configService.get<number>('REDIS_PORT'),
-          password: configService.get<string>('REDIS_PASSWORD'),
+          host: configService.get<string>("REDIS_HOST"),
+          port: configService.get<number>("REDIS_PORT"),
+          password: configService.get<string>("REDIS_PASSWORD"),
         },
       }),
     }),

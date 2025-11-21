@@ -9,6 +9,7 @@ import {
 import { CorrespondenceRevision } from './correspondence-revision.entity.js';
 import { Organization } from '../../project/entities/organization.entity.js';
 import { User } from '../../user/entities/user.entity.js';
+import { RoutingTemplate } from './routing-template.entity.js'; // <--- ✅ เพิ่ม Import นี้ครับ
 
 @Entity('correspondence_routings')
 export class CorrespondenceRouting {
@@ -16,7 +17,10 @@ export class CorrespondenceRouting {
   id!: number;
 
   @Column({ name: 'correspondence_id' })
-  correspondenceId!: number; // FK -> CorrespondenceRevision
+  correspondenceId!: number;
+
+  @Column({ name: 'template_id', nullable: true })
+  templateId?: number;
 
   @Column()
   sequence!: number;
@@ -31,7 +35,7 @@ export class CorrespondenceRouting {
   stepPurpose!: string;
 
   @Column({ default: 'SENT' })
-  status!: string; // SENT, RECEIVED, ACTIONED, FORWARDED, REPLIED
+  status!: string;
 
   @Column({ type: 'text', nullable: true })
   comments?: string;
@@ -52,6 +56,10 @@ export class CorrespondenceRouting {
   @ManyToOne(() => CorrespondenceRevision, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'correspondence_id' })
   correspondenceRevision?: CorrespondenceRevision;
+
+  @ManyToOne(() => RoutingTemplate) // ตอนนี้ TypeScript จะรู้จัก RoutingTemplate แล้ว
+  @JoinColumn({ name: 'template_id' })
+  template?: RoutingTemplate;
 
   @ManyToOne(() => Organization)
   @JoinColumn({ name: 'from_organization_id' })

@@ -16,10 +16,21 @@ import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard.js';
 import { RbacGuard } from '../../common/auth/rbac.guard.js';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
 
+import { WorkflowActionDto } from './dto/workflow-action.dto.js';
 @Controller('correspondences')
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class CorrespondenceController {
   constructor(private readonly correspondenceService: CorrespondenceService) {}
+
+  @Post(':id/workflow/action')
+  @RequirePermission('workflow.action_review') // สิทธิ์ในการกดอนุมัติ/ตรวจสอบ
+  processAction(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() actionDto: WorkflowActionDto,
+    @Request() req: any,
+  ) {
+    return this.correspondenceService.processAction(id, actionDto, req.user);
+  }
 
   @Post()
   @RequirePermission('correspondence.create') // 🔒 ต้องมีสิทธิ์สร้าง
