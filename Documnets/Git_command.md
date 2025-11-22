@@ -98,6 +98,19 @@ git push
 git pull
 ```
 
+🟦 Pull (ดึงงานล่าสุด) แบบ rebase
+
+```bash
+git pull --rebase
+```
+
+🟦 ดู log
+
+```bash
+git log
+```
+
+
 ---
 ## 🧩 SECTION 3 – ทำงานกับ Branch
 
