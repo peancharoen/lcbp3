@@ -24,5 +24,6 @@
       "database": "lcbp3_dev",
       "username": "root"
     }
-  ]
+  ],
+  "editor.fontSize": 16
 }

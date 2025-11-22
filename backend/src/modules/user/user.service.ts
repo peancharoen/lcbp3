@@ -6,15 +6,15 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User } from './entities/user.entity.js';
-import { CreateUserDto } from './dto/create-user.dto.js';
-import { UpdateUserDto } from './dto/update-user.dto.js';
+import { User } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private usersRepository: Repository<User>, // ✅ ชื่อตัวแปรจริงคือ usersRepository
   ) {}
 
   // 1. สร้างผู้ใช้ (Hash Password ก่อนบันทึก)
@@ -61,7 +61,7 @@ export class UserService {
   // 3. ดึงข้อมูลรายคน
   async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({
-      where: { user_id: id }, // ใช้ user_id ตามที่คุณตั้งชื่อไว้
+      where: { user_id: id }, // ใช้ user_id ตาม Entity
     });
 
     if (!user) {
@@ -102,12 +102,23 @@ export class UserService {
     }
   }
 
-  // 👇👇 เพิ่มฟังก์ชันใหม่นี้ 👇👇
-  async getUserPermissions(userId: number): Promise<string[]> {
-    // Query ข้อมูลจาก View: v_user_all_permissions (ที่เราสร้างไว้ใน SQL Script)
-    // เนื่องจาก TypeORM ไม่รองรับ View โดยตรงในบางท่า เราใช้ query builder หรือ query raw ได้
-    // แต่เพื่อความง่ายและประสิทธิภาพ เราจะใช้ query raw ครับ
+  /**
+   * หา User ID ของคนที่เป็น Document Control (หรือตัวแทน) ในองค์กร
+   * เพื่อส่ง Notification
+   */
+  async findDocControlIdByOrg(organizationId: number): Promise<number | null> {
+    // ✅ FIX: ใช้ usersRepository ให้ตรงกับ Constructor
+    const user = await this.usersRepository.findOne({
+      where: { primaryOrganizationId: organizationId },
+      // order: { roleId: 'ASC' } // (Optional) Logic การเลือกคน
+    });
 
+    return user ? user.user_id : null;
+  }
+
+  // ฟังก์ชันดึงสิทธิ์ (Permission)
+  async getUserPermissions(userId: number): Promise<string[]> {
+    // Query ข้อมูลจาก View: v_user_all_permissions
     const permissions = await this.usersRepository.query(
       `SELECT permission_name FROM v_user_all_permissions WHERE user_id = ?`,
       [userId],

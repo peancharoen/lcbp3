@@ -14,8 +14,8 @@ import { CreateRfaDto } from './dto/create-rfa.dto';
 import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto'; // Reuse DTO
 import { User } from '../user/entities/user.entity';
 
-import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
-import { RbacGuard } from '../../common/auth/guards/rbac.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -26,7 +26,12 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 export class RfaController {
   constructor(private readonly rfaService: RfaService) {}
 
-  // ... (Create, FindOne endpoints) ...
+  @Post()
+  @ApiOperation({ summary: 'Create new RFA (Draft)' })
+  @RequirePermission('rfa.create') // สิทธิ์ ID 37
+  create(@Body() createDto: CreateRfaDto, @CurrentUser() user: User) {
+    return this.rfaService.create(createDto, user);
+  }
 
   @Post(':id/submit')
   @ApiOperation({ summary: 'Submit RFA to Workflow' })
@@ -48,5 +53,12 @@ export class RfaController {
     @CurrentUser() user: User,
   ) {
     return this.rfaService.processAction(id, actionDto, user);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get RFA details with revisions and items' })
+  @RequirePermission('document.view')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.rfaService.findOne(id);
   }
 }
