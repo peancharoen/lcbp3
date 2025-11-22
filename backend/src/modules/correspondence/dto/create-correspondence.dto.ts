@@ -20,6 +20,10 @@ export class CreateCorrespondenceDto {
   @IsNotEmpty()
   title!: string;
 
+  @IsString()
+  @IsOptional()
+  description?: string;
+
   @IsObject()
   @IsOptional()
   details?: Record<string, any>; // ข้อมูล JSON (เช่น RFI question)
@@ -27,6 +31,11 @@ export class CreateCorrespondenceDto {
   @IsBoolean()
   @IsOptional()
   isInternal?: boolean;
+
+  // ✅ เพิ่ม Field สำหรับ Impersonation (เลือกองค์กรผู้ส่ง)
+  @IsInt()
+  @IsOptional()
+  originatorId?: number;
 
   // (Optional) ถ้าจะมีการแนบไฟล์มาด้วยเลย
   // @IsArray()

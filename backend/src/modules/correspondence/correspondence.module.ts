@@ -15,6 +15,8 @@ import { DocumentNumberingModule } from '../document-numbering/document-numberin
 import { JsonSchemaModule } from '../json-schema/json-schema.module.js'; // ต้องใช้ Validate Details
 import { UserModule } from '../user/user.module.js'; // <--- 1. Import UserModule
 import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module.js'; // <--- ✅ เพิ่มบรรทัดนี้ครับ
+import { CorrespondenceReference } from './entities/correspondence-reference.entity.js';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -25,6 +27,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module.
       RoutingTemplate, // <--- ลงทะเบียน
       RoutingTemplateStep, // <--- ลงทะเบียน
       CorrespondenceRouting, // <--- ลงทะเบียน
+      CorrespondenceReference, // <--- ลงทะเบียน
     ]),
     DocumentNumberingModule, // Import เพื่อขอเลขที่เอกสาร
     JsonSchemaModule, // Import เพื่อ Validate JSON

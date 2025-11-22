@@ -11,7 +11,7 @@ import { envValidationSchema } from './common/config/env.validation.js'; // ส�
 // import { CommonModule } from './common/common.module';
 import { UserModule } from './modules/user/user.module';
 import { ProjectModule } from './modules/project/project.module';
-import { FileStorageModule } from './modules/file-storage/file-storage.module';
+import { FileStorageModule } from './common/file-storage/file-storage.module.js';
 import { DocumentNumberingModule } from './modules/document-numbering/document-numbering.module';
 import { AuthModule } from './common/auth/auth.module.js'; // <--- เพิ่ม Import นี้ T2.4
 import { JsonSchemaModule } from './modules/json-schema/json-schema.module.js';

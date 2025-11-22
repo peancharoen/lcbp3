@@ -16,8 +16,8 @@ import { UpdateUserDto } from './dto/update-user.dto.js';
 import { AssignRoleDto } from './dto/assign-role.dto.js'; // <--- Import DTO
 import { UserAssignmentService } from './user-assignment.service.js'; // <--- Import Service ใหม่
 
-import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard.js';
-import { RbacGuard } from '../../common/auth/rbac.guard.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { RbacGuard } from '../../common/guards/rbac.guard.js';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
 
 @Controller('users')
@@ -69,5 +69,10 @@ export class UserController {
   @RequirePermission('permission.assign')
   assignRole(@Body() dto: AssignRoleDto, @Request() req: any) {
     return this.assignmentService.assignRole(dto, req.user);
+  }
+  @Get('me/permissions')
+  @UseGuards(JwtAuthGuard) // No RbacGuard here to avoid circular dependency check issues
+  getMyPermissions(@Request() req: any) {
+    return this.userService.getUserPermissions(req.user.user_id);
   }
 }

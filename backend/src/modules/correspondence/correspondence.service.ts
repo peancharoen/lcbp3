@@ -1,11 +1,15 @@
+// File: src/modules/correspondence/correspondence.service.ts
+
 import {
   Injectable,
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Like, In } from 'typeorm';
 
 // Entities
 import { Correspondence } from './entities/correspondence.entity.js';
@@ -14,22 +18,28 @@ import { CorrespondenceType } from './entities/correspondence-type.entity.js';
 import { CorrespondenceStatus } from './entities/correspondence-status.entity.js';
 import { RoutingTemplate } from './entities/routing-template.entity.js';
 import { CorrespondenceRouting } from './entities/correspondence-routing.entity.js';
+import { CorrespondenceReference } from './entities/correspondence-reference.entity.js'; // Entity สำหรับตารางเชื่อมโยง
 import { User } from '../user/entities/user.entity.js';
 
 // DTOs
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto.js';
 import { WorkflowActionDto } from './dto/workflow-action.dto.js';
+import { AddReferenceDto } from './dto/add-reference.dto.js';
+import { SearchCorrespondenceDto } from './dto/search-correspondence.dto.js';
 
-// Interfaces
+// Interfaces & Enums
 import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface.js';
 
 // Services
 import { DocumentNumberingService } from '../document-numbering/document-numbering.service.js';
 import { JsonSchemaService } from '../json-schema/json-schema.service.js';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service.js';
+import { UserService } from '../user/user.service.js';
 
 @Injectable()
 export class CorrespondenceService {
+  private readonly logger = new Logger(CorrespondenceService.name);
+
   constructor(
     @InjectRepository(Correspondence)
     private correspondenceRepo: Repository<Correspondence>,
@@ -43,16 +53,26 @@ export class CorrespondenceService {
     private templateRepo: Repository<RoutingTemplate>,
     @InjectRepository(CorrespondenceRouting)
     private routingRepo: Repository<CorrespondenceRouting>,
+    @InjectRepository(CorrespondenceReference)
+    private referenceRepo: Repository<CorrespondenceReference>,
 
     private numberingService: DocumentNumberingService,
     private jsonSchemaService: JsonSchemaService,
     private workflowEngine: WorkflowEngineService,
+    private userService: UserService,
     private dataSource: DataSource,
   ) {}
 
-  // --- 1. CREATE DOCUMENT ---
+  /**
+   * สร้างเอกสารใหม่ (Create Document)
+   * รองรับ Impersonation Logic: Superadmin สามารถสร้างในนามองค์กรอื่นได้
+   *
+   * @param createDto ข้อมูลสำหรับการสร้างเอกสาร
+   * @param user ผู้ใช้งานที่ทำการสร้าง
+   * @returns ข้อมูลเอกสารที่สร้างเสร็จแล้ว
+   */
   async create(createDto: CreateCorrespondenceDto, user: User) {
-    // 1.1 Validate Basic Info
+    // 1. ตรวจสอบข้อมูลพื้นฐาน (Basic Validation)
     const type = await this.typeRepo.findOne({
       where: { id: createDto.typeId },
     });
@@ -62,59 +82,101 @@ export class CorrespondenceService {
       where: { statusCode: 'DRAFT' },
     });
     if (!statusDraft) {
-      throw new InternalServerErrorException('Status DRAFT not found');
+      throw new InternalServerErrorException(
+        'Status DRAFT not found in Master Data',
+      );
     }
 
-    const userOrgId = user.primaryOrganizationId;
+    // 2. Impersonation Logic & Organization Context
+    // กำหนด Org เริ่มต้นเป็นของผู้ใช้งานปัจจุบัน
+    let userOrgId = user.primaryOrganizationId;
+
+    // Fallback: หากใน Token ไม่มี Org ID ให้ดึงจาก DB อีกครั้งเพื่อความชัวร์
     if (!userOrgId) {
-      throw new BadRequestException('User must belong to an organization');
+      const fullUser = await this.userService.findOne(user.user_id);
+      if (fullUser) {
+        userOrgId = fullUser.primaryOrganizationId;
+      }
     }
 
-    // 1.2 Validate JSON Details
+    // ตรวจสอบกรณีต้องการสร้างในนามองค์กรอื่น (Impersonation)
+    if (createDto.originatorId && createDto.originatorId !== userOrgId) {
+      // ดึง Permissions ของผู้ใช้มาตรวจสอบ
+      const permissions = await this.userService.getUserPermissions(
+        user.user_id,
+      );
+
+      // ผู้ใช้ต้องมีสิทธิ์ 'system.manage_all' เท่านั้นจึงจะสวมสิทธิ์ได้
+      if (!permissions.includes('system.manage_all')) {
+        throw new ForbiddenException(
+          'You do not have permission to create documents on behalf of other organizations.',
+        );
+      }
+
+      // อนุญาตให้ใช้ Org ID ที่ส่งมา
+      userOrgId = createDto.originatorId;
+    }
+
+    // Final Validation: ต้องมี Org ID เสมอ
+    if (!userOrgId) {
+      throw new BadRequestException(
+        'User must belong to an organization to create documents',
+      );
+    }
+
+    // 3. Validate JSON Details (ถ้ามี)
     if (createDto.details) {
       try {
         await this.jsonSchemaService.validate(type.typeCode, createDto.details);
       } catch (error: any) {
-        console.warn(`Schema validation warning: ${error.message}`);
+        // Log warning แต่ไม่ Block การสร้าง (ตามความยืดหยุ่นที่ต้องการ) หรือจะ Throw ก็ได้ตาม Req
+        this.logger.warn(
+          `Schema validation warning for ${type.typeCode}: ${error.message}`,
+        );
       }
     }
 
+    // 4. เริ่ม Transaction (เพื่อความสมบูรณ์ของข้อมูล: เลขที่เอกสาร + ตัวเอกสาร + Revision)
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1.3 Generate Document Number (Double-Lock)
+      // 4.1 ขอเลขที่เอกสาร (Double-Lock Mechanism ผ่าน NumberingService)
+      // TODO: Fetch ORG_CODE จาก DB จริงๆ โดยใช้ userOrgId
+      const orgCode = 'ORG'; // Mock ไว้ก่อน ควร query จาก Organization Entity
+
       const docNumber = await this.numberingService.generateNextNumber(
         createDto.projectId,
-        userOrgId,
+        userOrgId, // ใช้ ID ของเจ้าของเอกสารจริง (Originator)
         createDto.typeId,
         new Date().getFullYear(),
         {
           TYPE_CODE: type.typeCode,
-          ORG_CODE: 'ORG', // In real app, fetch user's org code
+          ORG_CODE: orgCode,
         },
       );
 
-      // 1.4 Save Head
+      // 4.2 สร้าง Correspondence (หัวจดหมาย)
       const correspondence = queryRunner.manager.create(Correspondence, {
         correspondenceNumber: docNumber,
         correspondenceTypeId: createDto.typeId,
         projectId: createDto.projectId,
-        originatorId: userOrgId,
+        originatorId: userOrgId, // บันทึก Org ที่ถูกต้อง
         isInternal: createDto.isInternal || false,
         createdBy: user.user_id,
       });
       const savedCorr = await queryRunner.manager.save(correspondence);
 
-      // 1.5 Save First Revision
+      // 4.3 สร้าง Revision แรก (Rev 0)
       const revision = queryRunner.manager.create(CorrespondenceRevision, {
         correspondenceId: savedCorr.id,
         revisionNumber: 0,
-        revisionLabel: 'A',
+        revisionLabel: 'A', // หรือเริ่มที่ 0 แล้วแต่ Business Logic
         isCurrent: true,
         statusId: statusDraft.id,
         title: createDto.title,
+        description: createDto.description, // ถ้ามีใน DTO
         details: createDto.details,
         createdBy: user.user_id,
       });
@@ -128,24 +190,70 @@ export class CorrespondenceService {
       };
     } catch (err) {
       await queryRunner.rollbackTransaction();
+      this.logger.error(
+        `Failed to create correspondence: ${(err as Error).message}`,
+      );
       throw err;
     } finally {
       await queryRunner.release();
     }
   }
 
-  // --- READ ---
-  async findAll() {
-    return this.correspondenceRepo.find({
-      relations: ['revisions', 'type', 'project'],
-      order: { createdAt: 'DESC' },
-    });
+  /**
+   * ค้นหาเอกสาร (Find All)
+   * รองรับการกรองและค้นหา
+   */
+  async findAll(searchDto: SearchCorrespondenceDto = {}) {
+    const { search, typeId, projectId, statusId } = searchDto;
+
+    const query = this.correspondenceRepo
+      .createQueryBuilder('corr')
+      .leftJoinAndSelect('corr.revisions', 'rev')
+      .leftJoinAndSelect('corr.type', 'type')
+      .leftJoinAndSelect('corr.project', 'project')
+      .leftJoinAndSelect('corr.originator', 'org')
+      .where('rev.isCurrent = :isCurrent', { isCurrent: true }); // ดูเฉพาะ Rev ปัจจุบัน
+
+    if (projectId) {
+      query.andWhere('corr.projectId = :projectId', { projectId });
+    }
+
+    if (typeId) {
+      query.andWhere('corr.correspondenceTypeId = :typeId', { typeId });
+    }
+
+    if (statusId) {
+      query.andWhere('rev.statusId = :statusId', { statusId });
+    }
+
+    if (search) {
+      query.andWhere(
+        '(corr.correspondenceNumber LIKE :search OR rev.title LIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    query.orderBy('corr.createdAt', 'DESC');
+
+    return query.getMany();
   }
 
+  /**
+   * ดึงข้อมูลเอกสารรายตัว (Find One)
+   * พร้อม Relations ที่จำเป็น
+   */
   async findOne(id: number) {
     const correspondence = await this.correspondenceRepo.findOne({
       where: { id },
-      relations: ['revisions', 'type', 'project'],
+      relations: [
+        'revisions',
+        'revisions.status', // สถานะของ Revision
+        'type',
+        'project',
+        'originator',
+        // 'tags', // ถ้ามี Relation
+        // 'attachments' // ถ้ามี Relation ผ่าน Junction
+      ],
     });
 
     if (!correspondence) {
@@ -154,9 +262,11 @@ export class CorrespondenceService {
     return correspondence;
   }
 
-  // --- 2. SUBMIT WORKFLOW ---
+  /**
+   * ส่งเอกสารเข้า Workflow (Submit)
+   * สร้าง Routing เริ่มต้นตาม Template
+   */
   async submit(correspondenceId: number, templateId: number, user: User) {
-    // 2.1 Get Document & Current Revision
     const correspondence = await this.correspondenceRepo.findOne({
       where: { id: correspondenceId },
       relations: ['revisions'],
@@ -171,7 +281,9 @@ export class CorrespondenceService {
       throw new NotFoundException('Current revision not found');
     }
 
-    // 2.2 Get Template Config
+    // ตรวจสอบสถานะปัจจุบัน (ต้องเป็น DRAFT หรือสถานะที่แก้ได้)
+    // TODO: เพิ่ม Logic ตรวจสอบ Status ID ว่าเป็น DRAFT หรือไม่
+
     const template = await this.templateRepo.findOne({
       where: { id: templateId },
       relations: ['steps'],
@@ -179,7 +291,9 @@ export class CorrespondenceService {
     });
 
     if (!template || !template.steps?.length) {
-      throw new BadRequestException('Invalid routing template');
+      throw new BadRequestException(
+        'Invalid routing template or no steps defined',
+      );
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -189,22 +303,24 @@ export class CorrespondenceService {
     try {
       const firstStep = template.steps[0];
 
-      // 2.3 Create First Routing Record
+      // สร้าง Routing Record แรก
       const routing = queryRunner.manager.create(CorrespondenceRouting, {
-        correspondenceId: currentRevision.id,
-        templateId: template.id, // ✅ Save templateId for reference
+        correspondenceId: currentRevision.id, // ผูกกับ Revision
+        templateId: template.id, // บันทึก templateId ไว้ใช้อ้างอิง
         sequence: 1,
-        fromOrganizationId: user.primaryOrganizationId,
-        toOrganizationId: firstStep.toOrganizationId,
+        fromOrganizationId: user.primaryOrganizationId, // ส่งจากเรา
+        toOrganizationId: firstStep.toOrganizationId, // ไปยังผู้รับคนแรก
         stepPurpose: firstStep.stepPurpose,
         status: 'SENT',
         dueDate: new Date(
           Date.now() + (firstStep.expectedDays || 7) * 24 * 60 * 60 * 1000,
         ),
-        processedByUserId: user.user_id,
+        processedByUserId: user.user_id, // บันทึกว่าใครกดส่ง
         processedAt: new Date(),
       });
       await queryRunner.manager.save(routing);
+
+      // TODO: อัปเดตสถานะเอกสารเป็น SUBMITTED (เปลี่ยน statusId ใน Revision)
 
       await queryRunner.commitTransaction();
       return routing;
@@ -216,14 +332,15 @@ export class CorrespondenceService {
     }
   }
 
-  // --- 3. PROCESS ACTION (Approve/Reject/Return) ---
+  /**
+   * ประมวลผล Action ใน Workflow (Approve/Reject/Etc.)
+   */
   async processAction(
     correspondenceId: number,
     dto: WorkflowActionDto,
     user: User,
   ) {
-    // 3.1 Find Active Routing Step
-    // Find correspondence first to ensure it exists
+    // 1. Find Document & Current Revision
     const correspondence = await this.correspondenceRepo.findOne({
       where: { id: correspondenceId },
       relations: ['revisions'],
@@ -236,35 +353,33 @@ export class CorrespondenceService {
     if (!currentRevision)
       throw new NotFoundException('Current revision not found');
 
-    // Find the latest routing step
+    // 2. Find Active Routing Step (Status = SENT)
+    // หาสเต็ปล่าสุดที่ส่งมาถึง Org ของเรา และสถานะเป็น SENT
     const currentRouting = await this.routingRepo.findOne({
       where: {
         correspondenceId: currentRevision.id,
-        // In real scenario, we might check status 'SENT' or 'RECEIVED'
+        status: 'SENT',
       },
       order: { sequence: 'DESC' },
       relations: ['toOrganization'],
     });
 
-    if (
-      !currentRouting ||
-      currentRouting.status === 'ACTIONED' ||
-      currentRouting.status === 'REJECTED'
-    ) {
+    if (!currentRouting) {
       throw new BadRequestException(
-        'No active workflow step found or step already processed',
+        'No active workflow step found for this document',
       );
     }
 
-    // 3.2 Check Permissions
-    // User must belong to the target organization of the current step
+    // 3. Check Permissions (Must be in target Org)
+    // Logic: ผู้กด Action ต้องสังกัด Org ที่เป็นปลายทางของ Routing นี้
+    // TODO: เพิ่ม Logic ให้ Superadmin หรือ Document Control กดแทนได้
     if (currentRouting.toOrganizationId !== user.primaryOrganizationId) {
       throw new BadRequestException(
         'You are not authorized to process this step',
       );
     }
 
-    // 3.3 Load Template to find Next Step Config
+    // 4. Load Template to find Next Step Config
     if (!currentRouting.templateId) {
       throw new InternalServerErrorException(
         'Routing record missing templateId',
@@ -283,7 +398,7 @@ export class CorrespondenceService {
     const totalSteps = template.steps.length;
     const currentSeq = currentRouting.sequence;
 
-    // 3.4 Calculate Next State using Workflow Engine
+    // 5. Calculate Next State using Workflow Engine Service
     const result = this.workflowEngine.processAction(
       currentSeq,
       totalSteps,
@@ -291,12 +406,13 @@ export class CorrespondenceService {
       dto.returnToSequence,
     );
 
+    // 6. Execute Database Updates
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 3.5 Update Current Step
+      // 6.1 Update Current Step
       currentRouting.status =
         dto.action === WorkflowAction.REJECT ? 'REJECTED' : 'ACTIONED';
       currentRouting.processedByUserId = user.user_id;
@@ -305,39 +421,43 @@ export class CorrespondenceService {
 
       await queryRunner.manager.save(currentRouting);
 
-      // 3.6 Create Next Step (If exists and not rejected)
+      // 6.2 Create Next Step (If exists and not rejected/completed)
       if (result.nextStepSequence && dto.action !== WorkflowAction.REJECT) {
-        // ✅ Find config for next step from Template
+        // ค้นหา Config ของ Step ถัดไปจาก Template
         const nextStepConfig = template.steps.find(
           (s) => s.sequence === result.nextStepSequence,
         );
 
         if (!nextStepConfig) {
-          throw new InternalServerErrorException(
-            `Configuration for step ${result.nextStepSequence} not found`,
+          // อาจจะเป็นกรณี End of Workflow หรือ Logic Error
+          this.logger.warn(
+            `Next step ${result.nextStepSequence} not found in template`,
           );
+        } else {
+          const nextRouting = queryRunner.manager.create(
+            CorrespondenceRouting,
+            {
+              correspondenceId: currentRevision.id,
+              templateId: template.id,
+              sequence: result.nextStepSequence,
+              fromOrganizationId: user.primaryOrganizationId, // ส่งจากคนปัจจุบัน
+              toOrganizationId: nextStepConfig.toOrganizationId, // ไปยังคนถัดไปตาม Template
+              stepPurpose: nextStepConfig.stepPurpose,
+              status: 'SENT',
+              dueDate: new Date(
+                Date.now() +
+                  (nextStepConfig.expectedDays || 7) * 24 * 60 * 60 * 1000,
+              ),
+            },
+          );
+          await queryRunner.manager.save(nextRouting);
         }
-
-        const nextRouting = queryRunner.manager.create(CorrespondenceRouting, {
-          correspondenceId: currentRevision.id,
-          templateId: template.id,
-          sequence: result.nextStepSequence,
-          fromOrganizationId: user.primaryOrganizationId, // Forwarded by current user
-          toOrganizationId: nextStepConfig.toOrganizationId, // ✅ Real Target from Template
-          stepPurpose: nextStepConfig.stepPurpose, // ✅ Real Purpose from Template
-          status: 'SENT',
-          dueDate: new Date(
-            Date.now() +
-              (nextStepConfig.expectedDays || 7) * 24 * 60 * 60 * 1000,
-          ),
-        });
-        await queryRunner.manager.save(nextRouting);
       }
 
-      // 3.7 Update Document Status (Optional - if Engine suggests)
+      // 6.3 Update Document Status (Optional / Based on result)
       if (result.shouldUpdateStatus) {
-        // Example: Update revision status to APPROVED or REJECTED
-        // await this.updateDocumentStatus(currentRevision, result.documentStatus);
+        // Logic เปลี่ยนสถานะ revision เช่นจาก SUBMITTED -> APPROVED
+        // await this.updateDocumentStatus(currentRevision, result.documentStatus, queryRunner);
       }
 
       await queryRunner.commitTransaction();
@@ -348,5 +468,82 @@ export class CorrespondenceService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  // --- REFERENCE MANAGEMENT ---
+
+  /**
+   * เพิ่มเอกสารอ้างอิง (Add Reference)
+   * ตรวจสอบ Circular Reference และ Duplicate
+   */
+  async addReference(id: number, dto: AddReferenceDto) {
+    // 1. เช็คว่าเอกสารทั้งคู่มีอยู่จริง
+    const source = await this.correspondenceRepo.findOne({ where: { id } });
+    const target = await this.correspondenceRepo.findOne({
+      where: { id: dto.targetId },
+    });
+
+    if (!source || !target) {
+      throw new NotFoundException('Source or Target correspondence not found');
+    }
+
+    // 2. ป้องกันการอ้างอิงตัวเอง (Self-Reference)
+    if (source.id === target.id) {
+      throw new BadRequestException('Cannot reference self');
+    }
+
+    // 3. ตรวจสอบว่ามีอยู่แล้วหรือไม่ (Duplicate Check)
+    const exists = await this.referenceRepo.findOne({
+      where: {
+        sourceId: id,
+        targetId: dto.targetId,
+      },
+    });
+
+    if (exists) {
+      return exists; // ถ้ามีแล้วก็คืนตัวเดิมไป (Idempotency)
+    }
+
+    // 4. สร้าง Reference
+    const ref = this.referenceRepo.create({
+      sourceId: id,
+      targetId: dto.targetId,
+    });
+
+    return this.referenceRepo.save(ref);
+  }
+
+  /**
+   * ลบเอกสารอ้างอิง (Remove Reference)
+   */
+  async removeReference(id: number, targetId: number) {
+    const result = await this.referenceRepo.delete({
+      sourceId: id,
+      targetId: targetId,
+    });
+
+    if (result.affected === 0) {
+      throw new NotFoundException('Reference not found');
+    }
+  }
+
+  /**
+   * ดึงรายการเอกสารอ้างอิง (Get References)
+   * ทั้งที่อ้างถึง (Outgoing) และถูกอ้างถึง (Incoming)
+   */
+  async getReferences(id: number) {
+    // ดึงรายการที่เอกสารนี้ไปอ้างถึง (Outgoing: This -> Others)
+    const outgoing = await this.referenceRepo.find({
+      where: { sourceId: id },
+      relations: ['target', 'target.type'], // Join เพื่อเอาข้อมูลเอกสารปลายทาง
+    });
+
+    // ดึงรายการที่มาอ้างถึงเอกสารนี้ (Incoming: Others -> This)
+    const incoming = await this.referenceRepo.find({
+      where: { targetId: id },
+      relations: ['source', 'source.type'], // Join เพื่อเอาข้อมูลเอกสารต้นทาง
+    });
+
+    return { outgoing, incoming };
   }
 }

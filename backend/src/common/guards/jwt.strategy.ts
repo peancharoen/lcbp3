@@ -9,18 +9,26 @@ interface JwtPayload {
   username: string;
 }
 
+import { UserService } from '../../modules/user/user.service.js';
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private userService: UserService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      // ใส่ ! เพื่อยืนยันว่ามีค่าแน่นอน (ConfigValidation เช็คให้แล้ว)
       secretOrKey: configService.get<string>('JWT_SECRET')!,
     });
   }
 
   async validate(payload: JwtPayload) {
-    return { userId: payload.sub, username: payload.username };
+    const user = await this.userService.findOne(payload.sub);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return user;
   }
 }

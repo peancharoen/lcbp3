@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileStorageService } from './file-storage.service.js';
-import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard.js';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 
 // ✅ 1. สร้าง Interface เพื่อระบุ Type ของ Request
 interface RequestWithUser {

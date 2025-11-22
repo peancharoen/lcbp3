@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { JsonSchemaService } from './json-schema.service.js';
-import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard.js';
-import { RbacGuard } from '../../common/auth/rbac.guard.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { RbacGuard } from '../../common/guards/rbac.guard.js';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
 
 @Controller('json-schemas')
