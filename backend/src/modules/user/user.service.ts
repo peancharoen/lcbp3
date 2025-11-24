@@ -64,6 +64,7 @@ export class UserService {
   async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { user_id: id },
+      relations: ['preferences', 'roles'], // [IMPORTANT] ต้องโหลด preferences มาด้วย
     });
 
     if (!user) {

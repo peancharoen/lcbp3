@@ -49,15 +49,15 @@ export class MasterService {
 
   async findAllCorrespondenceTypes() {
     return this.corrTypeRepo.find({
-      where: { is_active: true },
-      order: { sort_order: 'ASC' },
+      where: { isActive: true }, // ✅ แก้เป็น camelCase
+      order: { sortOrder: 'ASC' }, // ✅ แก้เป็น camelCase
     });
   }
 
   async findAllCorrespondenceStatuses() {
     return this.corrStatusRepo.find({
-      where: { is_active: true },
-      order: { sort_order: 'ASC' },
+      where: { isActive: true }, // ✅ แก้เป็น camelCase
+      order: { sortOrder: 'ASC' }, // ✅ แก้เป็น camelCase
     });
   }
 
@@ -67,22 +67,22 @@ export class MasterService {
 
   async findAllRfaTypes() {
     return this.rfaTypeRepo.find({
-      where: { is_active: true },
-      order: { sort_order: 'ASC' },
+      where: { isActive: true }, // ✅ แก้เป็น camelCase
+      order: { sortOrder: 'ASC' }, // ✅ แก้เป็น camelCase
     });
   }
 
   async findAllRfaStatuses() {
     return this.rfaStatusRepo.find({
-      where: { is_active: true },
-      order: { sort_order: 'ASC' },
+      where: { isActive: true }, // ✅ แก้เป็น camelCase
+      order: { sortOrder: 'ASC' }, // ✅ แก้เป็น camelCase
     });
   }
 
   async findAllRfaApproveCodes() {
     return this.rfaApproveRepo.find({
-      where: { is_active: true },
-      order: { sort_order: 'ASC' },
+      where: { isActive: true }, // ✅ แก้เป็น camelCase
+      order: { sortOrder: 'ASC' }, // ✅ แก้เป็น camelCase
     });
   }
 
@@ -92,8 +92,8 @@ export class MasterService {
 
   async findAllCirculationStatuses() {
     return this.circulationStatusRepo.find({
-      where: { is_active: true },
-      order: { sort_order: 'ASC' },
+      where: { isActive: true }, // ✅ แก้เป็น camelCase
+      order: { sortOrder: 'ASC' }, // ✅ แก้เป็น camelCase
     });
   }
 
@@ -101,9 +101,6 @@ export class MasterService {
   // 🏷️ Tag Management (CRUD)
   // =================================================================
 
-  /**
-   * ค้นหา Tag ทั้งหมด พร้อมรองรับการ Search และ Pagination
-   */
   async findAllTags(query?: SearchTagDto) {
     const qb = this.tagRepo.createQueryBuilder('tag');
 
@@ -115,14 +112,12 @@ export class MasterService {
 
     qb.orderBy('tag.tag_name', 'ASC');
 
-    // Pagination Logic
     if (query?.page && query?.limit) {
       const page = query.page;
       const limit = query.limit;
       qb.skip((page - 1) * limit).take(limit);
     }
 
-    // ถ้ามีการแบ่งหน้า ให้ส่งคืนทั้งข้อมูลและจำนวนทั้งหมด (count)
     if (query?.page && query?.limit) {
       const [items, total] = await qb.getManyAndCount();
       return {
@@ -153,7 +148,7 @@ export class MasterService {
   }
 
   async updateTag(id: number, dto: UpdateTagDto) {
-    const tag = await this.findOneTag(id); // Reuse findOne for check
+    const tag = await this.findOneTag(id);
     Object.assign(tag, dto);
     return this.tagRepo.save(tag);
   }

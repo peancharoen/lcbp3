@@ -1,23 +1,34 @@
 // File: src/modules/monitoring/monitoring.module.ts
+
 import { Global, Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 import { HttpModule } from '@nestjs/axios';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+
+// Existing Components
 import { HealthController } from './controllers/health.controller';
 import { MetricsService } from './services/metrics.service';
 import { PerformanceInterceptor } from '../../common/interceptors/performance.interceptor';
 
-@Global() // ทำให้ Module นี้ใช้งานได้ทั่วทั้ง App โดยไม่ต้อง Import ซ้ำ
+// [NEW] Maintenance Mode Components
+import { MonitoringController } from './monitoring.controller';
+import { MonitoringService } from './monitoring.service';
+
+@Global() // Module นี้เป็น Global (ดีแล้วครับ)
 @Module({
   imports: [TerminusModule, HttpModule],
-  controllers: [HealthController],
+  controllers: [
+    HealthController, // ✅ ของเดิม: /health
+    MonitoringController, // ✅ ของใหม่: /monitoring/maintenance
+  ],
   providers: [
-    MetricsService,
+    MetricsService, // ✅ ของเดิม
+    MonitoringService, // ✅ ของใหม่ (Logic เปิด/ปิด Maintenance)
     {
-      provide: APP_INTERCEPTOR, // Register Global Interceptor
-      useClass: PerformanceInterceptor,
+      provide: APP_INTERCEPTOR,
+      useClass: PerformanceInterceptor, // ✅ ของเดิม (จับเวลา Response Time)
     },
   ],
-  exports: [MetricsService],
+  exports: [MetricsService, MonitoringService],
 })
 export class MonitoringModule {}

@@ -1,5 +1,3 @@
-// File: src/modules/master/dto/create-tag.dto.ts
-
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -7,12 +5,9 @@ export class CreateTagDto {
   @ApiProperty({ example: 'URGENT', description: 'ชื่อ Tag' })
   @IsString()
   @IsNotEmpty()
-  tag_name: string;
+  tag_name!: string; // เพิ่ม !
 
-  @ApiProperty({
-    example: 'เอกสารด่วนต้องดำเนินการทันที',
-    description: 'คำอธิบาย',
-  })
+  @ApiProperty({ example: 'คำอธิบาย', description: 'คำอธิบาย' })
   @IsString()
   @IsOptional()
   description?: string;

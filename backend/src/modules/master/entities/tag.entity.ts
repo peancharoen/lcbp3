@@ -1,5 +1,3 @@
-// File: src/modules/master/entities/tag.entity.ts
-
 import {
   Entity,
   Column,
@@ -11,17 +9,17 @@ import {
 @Entity('tags')
 export class Tag {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number; // เพิ่ม !
 
-  @Column({ length: 100, unique: true, comment: 'ชื่อ Tag' })
-  tag_name: string;
+  @Column({ length: 100, unique: true })
+  tag_name!: string; // เพิ่ม !
 
-  @Column({ type: 'text', nullable: true, comment: 'คำอธิบายแท็ก' })
-  description: string;
+  @Column({ type: 'text', nullable: true })
+  description!: string; // เพิ่ม !
 
   @CreateDateColumn()
-  created_at: Date;
+  created_at!: Date; // เพิ่ม !
 
   @UpdateDateColumn()
-  updated_at: Date;
+  updated_at!: Date; // เพิ่ม !
 }

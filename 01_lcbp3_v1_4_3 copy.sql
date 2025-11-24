@@ -1,5 +1,5 @@
 -- ==========================================================
--- DMS v1.4.3 Document Management System Database
+-- DMS v1.4.2 Document Management System Database
 -- Deploy Script Schema
 -- Server: Container Station on QNAPQNAP TS-473A
 -- Database service: MariaDB 10.11
@@ -9,8 +9,8 @@
 -- frontend sevice: next.js
 -- reverse proxy: jc21/nginx-proxy-manager:latest
 -- cron service: n8n
--- DMS v1.4.3 Improvements
--- Update: revise fron v1.4.2 add PARTITION to audit_logs & notification
+-- DMS v1.4.2 Improvements
+-- Update: revise fron v1.4.1 Gemini)
 -- ==========================================================
 SET NAMES utf8mb4;
 SET time_zone = '+07:00';
@@ -1918,7 +1918,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
 -- รองรับ: Req 6.1
 -- เหตุผล: รองรับ Distributed Tracing และระบุความรุนแรง
 CREATE TABLE audit_logs (
-  audit_id BIGINT NOT NULL AUTO_INCREMENT COMMENT 'ID ของ Log',
+  audit_id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Log',
   request_id VARCHAR(100) NULL COMMENT 'Trace ID linking to app logs',
   user_id INT COMMENT 'ผู้กระทำ',
   action VARCHAR(100) NOT NULL COMMENT 'การกระทำ (
@@ -1932,38 +1932,13 @@ CREATE TABLE audit_logs (
   details_json JSON COMMENT 'ข้อมูลบริบท',
   ip_address VARCHAR(45) COMMENT 'IP Address',
   user_agent VARCHAR(255) COMMENT 'User Agent',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'เวลาที่กระทำ',
-  -- [แก้ไข] รวม created_at เข้ามาใน Primary Key เพื่อรองรับ Partition
-  PRIMARY KEY (audit_id, created_at),
-  -- [แก้ไข] ใช้ Index ธรรมดาแทน Foreign Key เพื่อไม่ให้ติดข้อจำกัดของ Partition Table
-  INDEX idx_audit_user (user_id),
-  INDEX idx_audit_action (action),
-  INDEX idx_audit_entity (entity_type, entity_id),
-  INDEX idx_audit_created (created_at)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บบันทึกการกระทำของผู้ใช้' -- [เพิ่ม] คำสั่ง Partition
-PARTITION BY RANGE (YEAR(created_at)) (
-  PARTITION p_old
-  VALUES LESS THAN (2024),
-    PARTITION p2024
-  VALUES LESS THAN (2025),
-    PARTITION p2025
-  VALUES LESS THAN (2026),
-    PARTITION p2026
-  VALUES LESS THAN (2027),
-    PARTITION p2027
-  VALUES LESS THAN (2028),
-    PARTITION p2028
-  VALUES LESS THAN (2029),
-    PARTITION p2029
-  VALUES LESS THAN (2030),
-    PARTITION p2030
-  VALUES LESS THAN (2031),
-    PARTITION p_future
-  VALUES LESS THAN MAXVALUE
-);
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'เวลาที่กระทำ',
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE
+  SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บบันทึกการกระทำของผู้ใช้';
 -- ตารางสำหรับจัดการการแจ้งเตือน (Email/Line/System)
 CREATE TABLE notifications (
-  id INT NOT NULL AUTO_INCREMENT COMMENT 'ID ของการแจ้งเตือน',
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของการแจ้งเตือน',
   user_id INT NOT NULL COMMENT 'ID ผู้ใช้',
   title VARCHAR(255) NOT NULL COMMENT 'หัวข้อการแจ้งเตือน',
   message TEXT NOT NULL COMMENT 'รายละเอียดการแจ้งเตือน',
@@ -1972,35 +1947,9 @@ CREATE TABLE notifications (
   entity_type VARCHAR(50) COMMENT 'เช่น ''rfa '',
     ''circulation ''',
   entity_id INT COMMENT 'ID ของเอนทิตีที่เกี่ยวข้อง',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
-  -- [แก้ไข] รวม created_at เข้ามาใน Primary Key
-  PRIMARY KEY (id, created_at),
-  -- [แก้ไข] ใช้ Index ธรรมดาแทน Foreign Key
-  INDEX idx_notif_user (user_id),
-  INDEX idx_notif_type (notification_type),
-  INDEX idx_notif_read (is_read),
-  INDEX idx_notif_created (created_at)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางสำหรับจัดการการแจ้งเตือน (Email / Line / System)' -- [เพิ่ม] คำสั่ง Partition
-PARTITION BY RANGE (YEAR(created_at)) (
-  PARTITION p_old
-  VALUES LESS THAN (2024),
-    PARTITION p2024
-  VALUES LESS THAN (2025),
-    PARTITION p2025
-  VALUES LESS THAN (2026),
-    PARTITION p2026
-  VALUES LESS THAN (2027),
-    PARTITION p2027
-  VALUES LESS THAN (2028),
-    PARTITION p2028
-  VALUES LESS THAN (2029),
-    PARTITION p2029
-  VALUES LESS THAN (2030),
-    PARTITION p2030
-  VALUES LESS THAN (2031),
-    PARTITION p_future
-  VALUES LESS THAN MAXVALUE
-);
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางสำหรับจัดการการแจ้งเตือน (Email / Line / System)';
 -- ตารางสำหรับจัดการดัชนีการค้นหาขั้นสูง (Full-text Search)
 CREATE TABLE search_indices (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของดัชนี',

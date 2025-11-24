@@ -42,6 +42,7 @@ import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { ResilienceModule } from './common/resilience/resilience.module'; // ✅ Import
 // ... imports
 import { SearchModule } from './modules/search/search.module'; // ✅ Import
+import { RedisModule } from '@nestjs-modules/ioredis'; // [NEW]
 @Module({
   imports: [
     // 1. Setup Config Module พร้อม Validation
@@ -113,7 +114,18 @@ import { SearchModule } from './modules/search/search.module'; // ✅ Import
         },
       }),
     }),
-
+    // [NEW] Setup Redis Module (สำหรับ InjectRedis)
+    RedisModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'single',
+        url: `redis://${configService.get('REDIS_HOST')}:${configService.get('REDIS_PORT')}`,
+        options: {
+          password: configService.get('REDIS_PASSWORD'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
     // 📊 Register Monitoring Module (Health & Metrics) [Req 6.10]
     MonitoringModule,
 

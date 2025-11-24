@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  PrimaryColumn, // ✅ [Fix] เพิ่ม Import นี้
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 
@@ -44,7 +45,9 @@ export class Notification {
   @Column({ name: 'entity_id', nullable: true })
   entityId?: number;
 
+  // ✅ [Fix] รวม Decorator ไว้ที่นี่ที่เดียว (เป็นทั้ง CreateDate และ PrimaryColumn สำหรับ Partition)
   @CreateDateColumn({ name: 'created_at' })
+  @PrimaryColumn()
   createdAt!: Date;
 
   // --- Relations ---

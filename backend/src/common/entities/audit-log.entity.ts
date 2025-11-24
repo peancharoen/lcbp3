@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  PrimaryColumn, // ✅ [Fix] เพิ่ม Import นี้
 } from 'typeorm';
 import { User } from '../../modules/user/entities/user.entity';
 
@@ -46,7 +47,9 @@ export class AuditLog {
   @Column({ name: 'user_agent', length: 255, nullable: true })
   userAgent?: string;
 
+  // ✅ [Fix] รวม Decorator ไว้ที่นี่ที่เดียว
   @CreateDateColumn({ name: 'created_at' })
+  @PrimaryColumn() // เพื่อบอกว่าเป็น Composite PK คู่กับ auditId
   createdAt!: Date;
 
   // Relations

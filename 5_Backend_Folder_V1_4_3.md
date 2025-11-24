@@ -6,276 +6,279 @@
 
 ## 📂 **backend/** (Backend Application)
 
-* [x] `.env` (สำหรับ Local Dev เท่านั้น ห้าม commit)
-* [x] `.gitignore`
-* [x] `.prettierrc`
-* [x] `docker-compose.override.yml`
-* [x] `docker-compose.yml`
-* [x] `nest-cli.json`
-* [x] `tsconfig.build.json`
-* [x] `tsconfig.json`
-* [x] `package.json`
-* [x] `pnpm-lock.yaml`
-* [x] `README.md`
+* [x] .env (สำหรับ Local Dev เท่านั้น ห้าม commit)
+* [x] .gitignore
+* [x] .prettierrc
+* [x] docker-compose.override.yml
+* [x] docker-compose.yml
+* [x] nest-cli.json
+* [x] tsconfig.build.json
+* [x] tsconfig.json
+* [x] package.json
+* [x] pnpm-lock.yaml
+* [x] README.md
 
 ---
 
 ## 📂 **backend/src/** (Source Code)
 
-### **📄 Entry Points**
+### **📄 Entry Points
 
-* [x] `main.ts` (Application Bootstrap, Swagger, Global Pipes)
-* [x] `app.module.ts` (Root Module ที่รวมทุก Modules เข้าด้วยกัน)
-* [x] `app.service.ts` (Root Application Service)
-* [x] `app.controller.ts` (Root Application Controller)
-* [x] `app.controller.spec.ts` (Root Application Controller Unit Tests)
-* [x] `redlock.d.ts` (Redlock Configuration)
+* [x] main.ts
+* [x] app.module.ts
+* [x] app.service.ts
+* [x] app.controller.ts
+* [x] app.controller.spec.ts
+* [x] redlock.d.ts
 
 ### **📁 src/common/** (Shared Resources)
 
-* [x] **common.module.ts**
+* [x] common.module.ts
 * **auth/**
   * **dto/**
-    * [x] **login.dto.ts**
-    * [x] **register.dto.ts**
+    * [x] login.dto.ts
+    * [x] register.dto.ts
   * **strategies/**
-    * [x] **local.strategy.ts**
-    * [x] **jwt.strategy.ts**
-  * [x] **auth.controller.spec.ts**
-  * [x] **auth.controller.ts**
-  * [x] **auth.module.ts**
-  * [x] **auth.service.spec.ts**
-  * [x] **auth.service.ts**
-* **config/** (Configuration Service)
-  * [x] **env.validation.ts**
-  * [x] **redis.config.ts**
+    * [x] local.strategy.ts
+    * [x] jwt.strategy.ts
+  * [x] auth.controller.spec.ts
+  * [x] auth.controller.ts
+  * [x] auth.module.ts
+  * [x] auth.service.spec.ts
+  * [x] auth.service.ts
+* **config/**
+  * [x] env.validation.ts
+  * [x] redis.config.ts
 * **decorators/**
-  * [x] **audit.decorator.ts**
-  * [x] **bypass-maintenance.decorator.ts**
-  * [x] `current-user.decorator.ts`
-  * [x] **idempotency.decorator.ts**
-  * [x] `require-permission.decorator.ts`
-  * [x] **retry.decorator.ts**
-  * [x] **circuit-breaker.decorator.ts**
+  * [x] audit.decorator.ts
+  * [x] bypass-maintenance.decorator.ts
+  * [x] current-user.decorator.ts
+  * [x] idempotency.decorator.ts
+  * [x] require-permission.decorator.ts
+  * [x] retry.decorator.ts
+  * [x] circuit-breaker.decorator.ts
 * **entities/**
-  * [x] **audit-log.entity.ts**
-  * [x] **base.entity.ts**
+  * [x] audit-log.entity.ts
+  * [x] base.entity.ts
 * **exceptions/**
-  * [x] `http-exception.filter.ts` (Global Filter)
-* **file-storage/** (Two-Phase Storage System)
+  * [x] http-exception.filter.ts
+* **file-storage/**
   * **entities/**
-    * [x] **attachment.entity.ts**
-  * [x] **file-storage.controller.spec.ts**
-  * [x] **file-storage.controller.ts**
-  * [x] **file-storage.module.ts**
-  * [x] **file-storage.service.spec.ts**
-  * [x] `file-storage.service.ts` (Upload, Scan Virus, Commit)
-  * [x] **file-cleanup.service.ts** (Cleanup Temporary Files)
-* [x] `guards/`
-  * [x] `jwt-auth.guard.ts`
-  * [x] **jwt-refresh.guard.ts**
-  * [x] **maintenance-mode.guard.ts**
-  * [x] `rbac.guard.ts` (ตรวจสอบสิทธิ์ 4 ระดับ)
+    * [x] attachment.entity.ts
+  * [x] file-storage.controller.spec.ts
+  * [x] file-storage.controller.ts
+  * [x] file-storage.module.ts
+  * [x] file-storage.service.spec.ts
+  * [x] file-storage.service.ts
+  * [x] file-cleanup.service.ts
+* [x] guards/`
+  * [x] jwt-auth.guard.ts
+  * [x] jwt-refresh.guard.ts
+  * [x] maintenance-mode.guard.ts
+  * [x] rbac.guard.ts
 * **interceptors/**
-  * [x] `audit-log.interceptor.ts` (เก็บ Log ลง DB)
-  * [x] **idempotency.interceptor.ts** (Idempotency Interceptor)
-  * [x] `transform.interceptor.ts` (Standard Response Format)
-* **resilience/** (Circuit Breaker & Retry)
-  * [x] **resilience.module.ts** (Resilience Module)
-* **security/** (Security Service)
-  * [x] **crypto.service.ts** (Crypto Service)
-  * [x] **request-context.service.ts
+  * [x] audit-log.interceptor.ts
+  * [x] idempotency.interceptor.ts
+  * [x] performance.interceptor.ts
+  * [x] transform.interceptor.ts
+* **resilience/**
+  * [x] resilience.module.ts
+* **services/**
+  * [x] crypto.service.ts
+  * [x] request-context.service.ts
 
 ### **📁 src/modules/** (Feature Modules)
 
 1. **user/** (User Management & RBAC)
-    * [x] `dto/`
-      * [x] **assign-user-role.dto.ts**
-      * [x] `create-user.dto.ts`
-      * [ ] **search-user.dto.ts**
-      * [x] `update-user.dto.ts`
-      * [x] `update-user-preference.dto.ts`
-    * [x] `entities/`
-      * [x] `user.entity.ts`
-      * [x] `role.entity.ts`
-      * [x] `permission.entity.ts`
-      * [x] **user-assignment.entity.ts**
-      * [x] `user-preference.entity.ts`
-    * [x] **user-assignment.service.ts**
-    * [x] **user-preference.service.ts**
-    * [x] `user.controller.ts`
-    * [x] `user.module.ts`
-    * [x] `user.service.ts`
-    * [x] **user.service.spec.ts**
+    * [x] **dto/**
+      * [x] assign-user-role.dto.ts
+      * [x] create-user.dto.ts
+      * [x] update-user.dto.ts
+      * [x] update-user-preference.dto.ts
+    * [x] **entities/**
+      * [x] user.entity.ts
+      * [x] role.entity.ts
+      * [x] permission.entity.ts
+      * [x] user-assignment.entity.ts
+      * [x] user-preference.entity.ts
+    * [x] user-assignment.service.ts
+    * [x] user-preference.service.ts
+    * [x] user.controller.ts
+    * [x] user.module.ts
+    * [x] user.service.ts
+    * [x] user.service.spec.ts
 
 2. **project/** (Project Structure)
-    * [x] `dto/`
-      * [x] **create-project.dto.ts**
-      * [x] `search-project.dto.ts`
-      * [x] `update-project.dto.ts`
-    * [x] `entities/`
-      * [x] `contract-organization.entity.ts`
-      * [x] `contract.entity.ts`
-      * [x] `organization.entity.ts`
-      * [x] `project-organization.entity.ts` (Junction)
-      * [x] **project.entity.ts**
-    * [x] **project.controller.spec.ts**
-    * [x] `project.controller.ts`
-    * [x] `project.module.ts`
-    * [x] **project.service.spec.ts**
-    * [x] `project.service.ts`
+    * [x] **dto/**
+      * [x] create-project.dto.ts
+      * [x] search-project.dto.ts
+      * [x] update-project.dto.ts
+    * [x] **entities/**
+      * [x] contract-organization.entity.ts
+      * [x] contract.entity.ts
+      * [x] organization.entity.ts
+      * [x] project-organization.entity.ts
+      * [x] project.entity.ts
+    * [x] project.controller.spec.ts
+    * [x] project.controller.ts
+    * [x] project.module.ts
+    * [x] project.service.spec.ts
+    * [x] project.service.ts
 
 3. **correspondence/** (Core Document System)
-    * [x] `dto/`
-      * [x] `add-reference.dto.ts`
-      * [x] `create-correspondence.dto.ts`
-      * [x] `search-correspondence.dto.ts`
-      * [x] **submit-correspondence.dto.ts**
-      * [x] `workflow-action.dto.ts`
-    * [x] `entities/`
-      * [x] `correspondence-reference.entity.ts`
-      * [x] `correspondence-revision.entity.ts`
-      * [x] `correspondence-routing.entity.ts` (Unified Workflow)
-      * [x] `correspondence-status.entity.ts`
-      * [x] `correspondence-type.entity.ts`
-      * [x] `correspondence.entity.ts`
-      * [x] **routing-template-step.entity.ts**
-      * [x] `routing-template.entity.ts`
-    * [x] **correspondence.controller.spec.ts**
-    * [x] `correspondence.controller.ts`
-    * [x] `correspondence.module.ts`
-    * [x] **correspondence.service.spec.ts**
-    * [x] `correspondence.service.ts` (Impersonation & Workflow Logic)
+    * [x] **dto/**
+      * [x] add-reference.dto.ts
+      * [x] create-correspondence.dto.ts
+      * [x] search-correspondence.dto.ts
+      * [x] submit-correspondence.dto.ts
+      * [x] workflow-action.dto.ts
+    * [x] **entities/**
+      * [x] correspondence-reference.entity.ts
+      * [x] correspondence-revision.entity.ts
+      * [x] correspondence-routing.entity.ts
+      * [x] correspondence-status.entity.ts
+      * [x] correspondence-type.entity.ts
+      * [x] correspondence.entity.ts
+      * [x] routing-template-step.entity.ts
+      * [x] routing-template.entity.ts
+    * [x] correspondence.controller.spec.ts
+    * [x] correspondence.controller.ts
+    * [x] correspondence.module.ts
+    * [x] correspondence.service.spec.ts
+    * [x] correspondence.service.ts
 
 4. **drawing/** (Contract & Shop Drawings)
-    * [x] `dto/`
-      * [x] `create-contract-drawing.dto.ts`
-      * [x] `create-shop-drawing-revision.dto.ts`
-      * [x] `create-shop-drawing.dto.ts`
-      * [x] `search-contract-drawing.dto.ts`
-      * [x] `search-shop-drawing.dto.ts`
-      * [x] `update-contract-drawing.dto.ts`
-    * [x] `entities/`
-      * [x] `contract-drawing-sub-category.entity.ts`
-      * [x] `contract-drawing-volume.entity.ts`
-      * [x] `contract-drawing.entity.ts`
-      * [x] `shop-drawing-main-category.entity.ts`
-      * [x] `shop-drawing-revision.entity.ts`
-      * [x] `shop-drawing-sub-category.entity.ts`
-      * [x] `shop-drawing.entity.ts`
-    * [x] `contract-drawing.controller.ts`
-    * [x] `contract-drawing.service.ts`
-    * [x] `drawing-master-data.controller.ts`
-    * [x] `drawing-master-data.service.ts`
-    * [x] `drawing.module.ts`
-    * [x] `shop-drawing.controller.ts`
-    * [x] `shop-drawing.service.ts`
+    * [x] **dto/**
+      * [x] create-contract-drawing.dto.ts
+      * [x] create-shop-drawing-revision.dto.ts
+      * [x] create-shop-drawing.dto.ts
+      * [x] search-contract-drawing.dto.ts
+      * [x] search-shop-drawing.dto.ts
+      * [x] update-contract-drawing.dto.ts
+    * [x] **entities/**
+      * [x] contract-drawing-sub-category.entity.ts
+      * [x] contract-drawing-volume.entity.ts
+      * [x] contract-drawing.entity.ts
+      * [x] shop-drawing-main-category.entity.ts
+      * [x] shop-drawing-revision.entity.ts
+      * [x] shop-drawing-sub-category.entity.ts
+      * [x] shop-drawing.entity.ts
+    * [x] contract-drawing.controller.ts
+    * [x] contract-drawing.service.ts
+    * [x] drawing-master-data.controller.ts
+    * [x] drawing-master-data.service.ts
+    * [x] drawing.module.ts
+    * [x] shop-drawing.controller.ts
+    * [x] shop-drawing.service.ts
 
 5. **rfa/** (Request for Approval & Advanced Workflow)
-    * [x] `dto/`
-      * [x] `create-rfa.dto.ts`
-      * [x] `search-rfa.dto.ts`
-      * [x] `update-rfa.dto.ts`
-    * [x] `entities/`
-      * [x] `rfa-approve-code.entity.ts`
-      * [x] `rfa-item.entity.ts`
-      * [x] `rfa-revision.entity.ts`
-      * [x] `rfa-status-code.entity.ts`
-      * [x] `rfa-type.entity.ts`
-      * [x] `rfa-workflow-template-step.entity.ts`
-      * [x] `rfa-workflow-template.entity.ts`
-      * [x] `rfa-workflow.entity.ts`
-      * [x] `rfa.entity.ts`
-    * [x] `rfa.controller.ts`
-    * [x] `rfa.module.ts`
-    * [x] `rfa.service.ts` (Unified Workflow Integration)
+    * [x] **dto/**
+      * [x] create-rfa.dto.ts
+      * [x] search-rfa.dto.ts
+      * [x] update-rfa.dto.ts
+    * [x] **entities/**
+      * [x] rfa-approve-code.entity.ts
+      * [x] rfa-item.entity.ts
+      * [x] rfa-revision.entity.ts
+      * [x] rfa-status-code.entity.ts
+      * [x] rfa-type.entity.ts
+      * [x] rfa-workflow-template-step.entity.ts
+      * [x] rfa-workflow-template.entity.ts
+      * [x] rfa-workflow.entity.ts
+      * [x] rfa.entity.ts
+    * [x] rfa.controller.ts
+    * [x] rfa.module.ts
+    * [x] rfa.service.ts
 
 6. **circulation/** (Internal Routing)
-    * [x] `dto/`
-      * [x] `create-circulation.dto.ts`
-      * [x] `update-circulation-routing.dto.ts`
-      * [x] `search-circulation.dto.ts`
-    * [x] `entities/`
-      * [x] `circulation-routing.entity.ts`
-      * [x] `circulation-status-code.entity.ts`
-      * [x] `circulation.entity.ts`
-    * [x] `circulation.controller.ts`
-    * [x] `circulation.module.ts`
-    * [x] `circulation.service.ts`
+    * [x] **dto/**
+      * [x] create-circulation.dto.ts
+      * [x] update-circulation-routing.dto.ts
+      * [x] search-circulation.dto.ts
+    * [x] **entities/**
+      * [x] circulation-routing.entity.ts
+      * [x] circulation-status-code.entity.ts
+      * [x] circulation.entity.ts
+    * [x] circulation.controller.ts
+    * [x] circulation.module.ts
+    * [x] circulation.service.ts
 
 7. **transmittal/** (Document Forwarding)
-    * [x] `dto/`
-      * [x] `create-transmittal.dto.ts`
-      * [x] `search-transmittal.dto.ts`
-      * [x] **update-transmittal.dto.ts**
-    * [x] `entities/`
-      * [x] `transmittal-item.entity.ts`
-      * [x] `transmittal.entity.ts`
-    * [x] `transmittal.controller.ts`
-    * [x] `transmittal.module.ts`
-    * [x] `transmittal.service.ts`
+    * [x] **dto/**
+      * [x] create-transmittal.dto.ts
+      * [x] search-transmittal.dto.ts
+      * [x] update-transmittal.dto.ts
+    * [x] **entities/**
+      * [x] transmittal-item.entity.ts
+      * [x] transmittal.entity.ts
+    * [x] transmittal.controller.ts
+    * [x] transmittal.module.ts
+    * [x] transmittal.service.ts
 
 8. **notification/** (System Alerts)
-    * [x] `dto/`
-      * [x] `create-notification.dto.ts`
-      * [x] `search-notification.dto.ts`
-    * [x] `entities/`
-      * [x] `notification.entity.ts`
-    * [x] `notification-cleanup.service.ts` (Cron Job)
-    * [x] `notification.controller.ts`
-    * [x] `notification.gateway.ts`
-    * [x] `notification.module.ts` (Real-time WebSocket)
-    * [x] `notification.processor.ts` (Consumer/Worker for Email & Line)
-    * [x] `notification.service.ts` (Producer)
+    * [x] **dto/**
+      * [x] create-notification.dto.ts
+      * [x] search-notification.dto.ts
+    * [x] **entities/**
+      * [x] notification.entity.ts
+    * [x] notification-cleanup.service.ts
+    * [x] notification.controller.ts
+    * [x] notification.gateway.ts
+    * [x] notification.module.ts
+    * [x] notification.processor.ts
+    * [x] notification.service.ts
 
 9. **search/** (Elasticsearch)
-    * [x] `dto/search-query.dto.ts`
-    * [x] `search.controller.ts`
-    * [x] `search.module.ts`
-    * [x] `search.service.ts` (Indexing & Searching)
+    * [x] dto/search-query.dto.ts
+    * [x] search.controller.ts
+    * [x] search.module.ts
+    * [x] search.service.ts
 
-10. **document-numbering/** (Internal Service)
-    * [x] `entities/`
-      * [x] `document-number-format.entity.ts`
-      * [x] `document-number-counter.entity.ts`
-    * [x] `document-numbering.module.ts`
-    * [x] **document-numbering.service.spec.ts**
-    * [x] `document-numbering.service.ts` (Double-Lock Mechanism)
+10. **document-numbering/**
+    * [x] **entities/**
+      * [x] document-number-format.entity.ts
+      * [x] document-number-counter.entity.ts
+    * [x] document-numbering.module.ts
+    * [x] document-numbering.service.spec.ts
+    * [x] document-numbering.service.ts
 
 11. **workflow-engine/** (Unified Logic)
     * [x] **dto/**
-      * [x] `create-workflow-definition.dto.ts`
-      * [x] `evaluate-workflow.dto.ts`
-      * [x] `get-available-actions.dto.ts`
-      * [x] `update-workflow-definition.dto.ts`
-    * [x] `interfaces/workflow.interface.ts`
-    * [x] **workflow-dsl.service.ts**
-    * [x] `workflow-engine.module.ts`
-    * [x] **workflow-engine.service.spec.ts**
-    * [x] `workflow-engine.service.ts` (State Machine Logic)
+      * [x] create-workflow-definition.dto.ts
+      * [x] evaluate-workflow.dto.ts
+      * [x] get-available-actions.dto.ts
+      * [x] update-workflow-definition.dto.ts
+    * [x] interfaces/workflow.interface.ts
+    * [x] workflow-dsl.service.ts
+    * [x] workflow-engine.module.ts
+    * [x] workflow-engine.service.spec.ts
+    * [x] workflow-engine.service.ts 
 
 12. **json-schema/** (Validation)
-    * [x] `dto/`
-      * [x] `create-json-schema.dto.ts`+
-      * [x] `search-json-schema.dto.ts`
-      * [x] `update-json-schema.dto.ts`
-    * [x] `entities/`
-      * [x] `json-schema.entity.ts`
-    * [x] **json-schema.controller.spec.ts**
-    * [x] **json-schema.controller.ts**
-    * [x] `json-schema.module.ts`
-    * [x] **json-schema.service.spec.ts**
-    * [x] `json-schema.service.ts`
+    * [x] **dto/**
+      * [x] create-json-schema.dto.ts+
+      * [x] search-json-schema.dto.ts
+      * [x] update-json-schema.dto.ts
+    * [x] **entities/**
+      * [x] json-schema.entity.ts
+    * [x] json-schema.controller.spec.ts
+    * [x] json-schema.controller.ts
+    * [x] json-schema.module.ts
+    * [x] json-schema.service.spec.ts
+    * [x] json-schema.service.ts
 
 13. **monitoring/** (Monitoring & Metrics)
-    * [x] `controllers/`
-      * [x] `health.controller.ts`
-    * [x] `logger/`
-      * [x] `winston.config.ts`
-    * [x] `services/`
-      * [x] `metrics.service.ts`
-    * [x] `monitoring.module.ts`
-
+    * [x] **controllers/**
+      * [x] health.controller.ts
+    * [x] **dto/**
+      * [ ] set-maintenance.dto.ts
+    * [x] **logger/**
+      * [x] winston.config.ts
+    * [x] **services/**
+      * [x] metrics.service.ts
+    * [x] monitoring.controller.ts
+    * [x] monitoring.service.ts
+    * [x] monitoring.module.ts
 
 ## **Folder Structure ของ Backend (NestJS)** ที่
 
@@ -354,17 +357,18 @@ backend/
     │   │   ├── jwt-auth.guard.ts               # JWT authentication guard
     │   │   ├── jwt-refresh.guard.ts            # JWT refresh guard
     │   │   ├── maintenance-mode.guard.ts       # Maintenance mode guard
-    │   │   └── rbac.guard.ts                   # Role-based access control enforcement
+    │   │   └── rbac.guard.ts                   # Role-based access control enforcement (ตรวจสอบสิทธิ์ 4 ระดับ)
     │   │
     │   ├── interceptors/           # 📡 Interceptors for common use cases
     │   │   ├── audit-log.interceptor.ts        # Automatically logs certain operations
     │   │   ├── idempotency.interceptor.ts      # Idempotency interceptor
+    │   │   ├── performance.interceptor.ts      #
     │   │   └── transform.interceptor.ts        # Standardized response formatting
     │   │
     │   ├─── resilience/             # 🛡️ Circuit-breaker / retry logic (if implemented)
     │   │   └── resilience.module.ts            # Resilience module
     │   │
-    │   └──── security/              # 🔐 Security service
+    │   └──── services/              # 🔐 Security service
     │       ├── crypto.service.ts               # Crypto service
     │       └── request-context.service.ts      # Request context service (for logging)
     │
@@ -373,7 +377,6 @@ backend/
     │   │   ├── dto/
     │   │   │   ├── assign-user-role.dto.ts     # Assign roles to users
     │   │   │   ├── create-user.dto.ts          # Create new user
-    │   │   │   ├── search-user.dto.ts          # Search users
     │   │   │   ├── update-user.dto.ts          # Update user details
     │   │   │   └── update-user-preference.dto.ts # Update user preferences
     │   │   ├── entities/
@@ -416,7 +419,7 @@ backend/
     │   │   ├── entities/
     │   │   │   ├── correspondence.entity.ts            # Correspondence table definition
     │   │   │   ├── correspondence-revision.entity.ts   # Correspondence revision entity
-    │   │   │   ├── correspondence-routing.entity.ts    # Correspondence routing entity
+    │   │   │   ├── correspondence-routing.entity.ts    # Correspondence routing entity (Unified Workflow)
     │   │   │   ├── correspondence-status.entity.ts     # Correspondence status entity
     │   │   │   ├── correspondence-type.entity.ts       # Correspondence type entity
     │   │   │   ├── correspondence-reference.entity.ts  # Correspondence reference entity
@@ -505,7 +508,7 @@ backend/
     │   │   ├── notification.module.ts              # WebSocket + Processor registration
     │   │   ├── notification.controller.ts          # REST endpoints
     │   │   ├── notification.gateway.ts             # WebSocket gateway
-    │   │   ├── notification.processor.ts           # Message consumer (e.g. mail worker)
+    │   │   ├── notification.processor.ts           # Message consumer (Consumer/Worker for Email & Line)
     │   │   ├── notification.service.ts             # Business logic
     │   │   └── notification-cleanup.service.ts     # Cron-based cleanup job
     │   │
@@ -533,11 +536,11 @@ backend/
     │   │   ├── entities/
     │   │   │   └── workflow-definition.entity.ts     # Workflow definition entity
     │   │   ├── interfaces/
-    │   │   │   └── workflow.interface.ts         # Workflow interface
-    │   │   ├── workflow-engine.controller.ts       # REST endpoints
-    │   │   ├── workflow-engine.module.ts         # Module DI container
-    │   │   ├── workflow-engine.service.ts        # Business logic
-    │   │   └── workflow-engine.service.spec.ts   # Unit tests
+    │   │   │   └── workflow.interface.ts             # Workflow interface
+    │   │   ├── workflow-engine.controller.ts         # REST endpoints
+    │   │   ├── workflow-engine.module.ts             # Module DI container
+    │   │   ├── workflow-engine.service.ts            # State Machine Logic
+    │   │   └── workflow-engine.service.spec.ts       # Unit tests
     │   │
     │   ├── json-schema/            # 📋 Dynamic request schema validation
     │   │   ├── dto/
@@ -554,15 +557,17 @@ backend/
     │   │
     │   └── monitoring/            # 📋 Dynamic request schema validation
     │       ├── controllers/
-    │       │   ├── health.controller.ts     # Create new JSON schema
-    │       │   ├── update-json-schema.dto.ts     # Update JSON schema
-    │       │   └── search-json-schema.dto.ts     # Search JSON schema
+    │       │   └── health.controller.ts          # Create new JSON schema
+    │       ├── dto/
+    │       │   └── set-maintenance.dto.ts        # Create new JSON schema
     │       ├── logger/
-    │       │   └── winston.config.ts         # JSON schema entity
+    │       │   └── winston.config.ts             # JSON schema entity
     │       ├── services/
-    │       │   └── metrics.service.ts         # JSON schema entity
-    │       └── monitoring.module.ts             # Module DI container
-    │
+    │       │   └── metrics.service.ts            # JSON schema entity
+    │       ├── monitoring.controller.ts          # REST endpoints
+    │       ├── monitoring.service.ts             # Business logic
+    │       └── monitoring.module.ts              # Module DI container
+
 ```
 
 ---
