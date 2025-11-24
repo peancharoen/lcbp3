@@ -1,12 +1,11 @@
-// File: src/common/auth/strategies/jwt.strategy.ts
-// บันทึกการแก้ไข: ปรับปรุง JwtStrategy ให้ตรวจสอบ Blacklist (Redis) และสถานะ User (T1.2)
+// บันทึกการแก้ไข: แก้ไข TS2345 (secretOrKey type) และ TS2551 (user.isActive property name)
 
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CACHE_MANAGER } from '@nestjs/cache-manager'; // ✅ ใช้สำหรับ Blacklist
-import { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { Request } from 'express';
 import { UserService } from '../../../modules/user/user.service.js';
 
@@ -14,7 +13,7 @@ import { UserService } from '../../../modules/user/user.service.js';
 export interface JwtPayload {
   sub: number;
   username: string;
-  scope?: string; // เพิ่ม Scope ถ้ามีการใช้
+  scope?: string;
 }
 
 @Injectable()
@@ -22,13 +21,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     private userService: UserService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache, // ✅ Inject Redis Cache
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
-      passReqToCallback: true, // ✅ จำเป็นต้องใช้ เพื่อดึง Raw Token มาเช็ค Blacklist
+      // ✅ Fix TS2345: ใส่ ! เพื่อยืนยันว่า Secret Key มีค่าแน่นอน
+      secretOrKey: configService.get<string>('JWT_SECRET')!,
+      passReqToCallback: true,
     });
   }
 
@@ -36,7 +36,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // 1. ดึง Token ออกมาเพื่อตรวจสอบใน Blacklist
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
 
-    // 2. ตรวจสอบว่า Token นี้อยู่ใน Redis Blacklist หรือไม่ (กรณี Logout ไปแล้ว)
+    // 2. ตรวจสอบว่า Token นี้อยู่ใน Redis Blacklist หรือไม่
     const isBlacklisted = await this.cacheManager.get(
       `blacklist:token:${token}`,
     );
@@ -53,11 +53,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // 5. (Optional) ตรวจสอบว่า User ยัง Active อยู่หรือไม่
-    if (user.is_active === false || user.is_active === 0) {
+    // ✅ Fix TS2551: แก้ไขชื่อ Property จาก is_active เป็น isActive ตาม Entity Definition
+    if (user.isActive === false) {
       throw new UnauthorizedException('User account is inactive');
     }
 
-    // คืนค่า User เพื่อนำไปใส่ใน req.user
     return user;
   }
 }

@@ -1,5 +1,5 @@
 // File: src/common/auth/auth.module.ts
-// บันทึกการแก้ไข: ลงทะเบียน Refresh Strategy และแก้ไข Config
+// บันทึกการแก้ไข: แก้ไข Type Mismatch ของ expiresIn (Fix TS2322)
 
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
@@ -21,17 +21,14 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy.js';
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          // ใช้ Template String หรือค่า Default ที่ปลอดภัย
-          expiresIn: configService.get<string>('JWT_EXPIRATION') || '15m',
+          // ✅ Fix: Cast เป็น any เพื่อแก้ปัญหา Type ไม่ตรงกับ Library (StringValue vs string)
+          expiresIn: (configService.get<string>('JWT_EXPIRATION') ||
+            '15m') as any,
         },
       }),
     }),
   ],
-  providers: [
-    AuthService,
-    JwtStrategy,
-    JwtRefreshStrategy, // ✅ เพิ่ม Strategy สำหรับ Refresh Token
-  ],
+  providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
   controllers: [AuthController],
   exports: [AuthService],
 })

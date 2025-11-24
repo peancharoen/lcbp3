@@ -1,21 +1,7 @@
-// File: src/modules/user/dto/update-preference.dto.ts
-import { IsBoolean, IsOptional, IsString, IsIn } from 'class-validator';
+// File: src/modules/user/dto/update-user.dto.ts
+// บันทึกการแก้ไข: ใช้ PartialType จาก @nestjs/swagger เพื่อรองรับ API Docs (T1.3)
 
-export class UpdatePreferenceDto {
-  @IsOptional()
-  @IsBoolean()
-  notifyEmail?: boolean;
+import { PartialType } from '@nestjs/swagger';
+import { CreateUserDto } from './create-user.dto';
 
-  @IsOptional()
-  @IsBoolean()
-  notifyLine?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  digestMode?: boolean;
-
-  @IsOptional()
-  @IsString()
-  @IsIn(['light', 'dark', 'system'])
-  uiTheme?: string;
-}
+export class UpdateUserDto extends PartialType(CreateUserDto) {}

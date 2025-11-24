@@ -8,12 +8,14 @@
 
 * [x] `.env` (สำหรับ Local Dev เท่านั้น ห้าม commit)
 * [x] `.gitignore`
-* [x] `docker-compose.yml` (Configuration หลักสำหรับ Deploy)
-* [x] `docker-compose.override.yml` (สำหรับ Inject Secrets ตอน Dev)
+* [x] `.prettierrc`
+* [x] `docker-compose.override.yml`
+* [x] `docker-compose.yml`
+* [x] `nest-cli.json`
+* [x] `tsconfig.build.json`
+* [x] `tsconfig.json`
 * [x] `package.json`
 * [x] `pnpm-lock.yaml`
-* [x] `tsconfig.json`
-* [x] `nest-cli.json`
 * [x] `README.md`
 
 ---
@@ -24,6 +26,10 @@
 
 * [x] `main.ts` (Application Bootstrap, Swagger, Global Pipes)
 * [x] `app.module.ts` (Root Module ที่รวมทุก Modules เข้าด้วยกัน)
+* [x] `app.service.ts` (Root Application Service)
+* [x] `app.controller.ts` (Root Application Controller)
+* [x] `app.controller.spec.ts` (Root Application Controller Unit Tests)
+* [x] `redlock.d.ts` (Redlock Configuration)
 
 ### **📁 src/common/** (Shared Resources)
 
@@ -32,6 +38,9 @@
   * **dto/**
     * [x] **login.dto.ts**
     * [x] **register.dto.ts**
+  * **strategies/**
+    * [x] **local.strategy.ts**
+    * [x] **jwt.strategy.ts**
   * [x] **auth.controller.spec.ts**
   * [x] **auth.controller.ts**
   * [x] **auth.module.ts**
@@ -39,10 +48,15 @@
   * [x] **auth.service.ts**
 * **config/** (Configuration Service)
   * [x] **env.validation.ts**
+  * [x] **redis.config.ts**
 * **decorators/**
   * [x] **audit.decorator.ts**
+  * [x] **bypass-maintenance.decorator.ts**
   * [x] `current-user.decorator.ts`
+  * [x] **idempotency.decorator.ts**
   * [x] `require-permission.decorator.ts`
+  * [x] **retry.decorator.ts**
+  * [x] **circuit-breaker.decorator.ts**
 * **entities/**
   * [x] **audit-log.entity.ts**
   * [x] **base.entity.ts**
@@ -56,14 +70,21 @@
   * [x] **file-storage.module.ts**
   * [x] **file-storage.service.spec.ts**
   * [x] `file-storage.service.ts` (Upload, Scan Virus, Commit)
+  * [x] **file-cleanup.service.ts** (Cleanup Temporary Files)
 * [x] `guards/`
   * [x] `jwt-auth.guard.ts`
-  * [x] **jwt.strategy.ts**
+  * [x] **jwt-refresh.guard.ts**
+  * [x] **maintenance-mode.guard.ts**
   * [x] `rbac.guard.ts` (ตรวจสอบสิทธิ์ 4 ระดับ)
 * **interceptors/**
   * [x] `audit-log.interceptor.ts` (เก็บ Log ลง DB)
+  * [x] **idempotency.interceptor.ts** (Idempotency Interceptor)
   * [x] `transform.interceptor.ts` (Standard Response Format)
 * **resilience/** (Circuit Breaker & Retry)
+  * [x] **resilience.module.ts** (Resilience Module)
+* **security/** (Security Service)
+  * [x] **crypto.service.ts** (Crypto Service)
+  * [x] **request-context.service.ts
 
 ### **📁 src/modules/** (Feature Modules)
 
@@ -71,13 +92,17 @@
     * [x] `dto/`
       * [x] **assign-user-role.dto.ts**
       * [x] `create-user.dto.ts`
+      * [ ] **search-user.dto.ts**
       * [x] `update-user.dto.ts`
+      * [x] `update-user-preference.dto.ts`
     * [x] `entities/`
       * [x] `user.entity.ts`
       * [x] `role.entity.ts`
       * [x] `permission.entity.ts`
+      * [x] **user-assignment.entity.ts**
       * [x] `user-preference.entity.ts`
     * [x] **user-assignment.service.ts**
+    * [x] **user-preference.service.ts**
     * [x] `user.controller.ts`
     * [x] `user.module.ts`
     * [x] `user.service.ts`
@@ -146,7 +171,7 @@
     * [x] `shop-drawing.controller.ts`
     * [x] `shop-drawing.service.ts`
 
-4. **rfa/** (Request for Approval & Advanced Workflow)
+5. **rfa/** (Request for Approval & Advanced Workflow)
     * [x] `dto/`
       * [x] `create-rfa.dto.ts`
       * [x] `search-rfa.dto.ts`
@@ -165,7 +190,7 @@
     * [x] `rfa.module.ts`
     * [x] `rfa.service.ts` (Unified Workflow Integration)
 
-5. **circulation/** (Internal Routing)
+6. **circulation/** (Internal Routing)
     * [x] `dto/`
       * [x] `create-circulation.dto.ts`
       * [x] `update-circulation-routing.dto.ts`
@@ -178,7 +203,7 @@
     * [x] `circulation.module.ts`
     * [x] `circulation.service.ts`
 
-6. **transmittal/** (Document Forwarding)
+7. **transmittal/** (Document Forwarding)
     * [x] `dto/`
       * [x] `create-transmittal.dto.ts`
       * [x] `search-transmittal.dto.ts`
@@ -190,7 +215,7 @@
     * [x] `transmittal.module.ts`
     * [x] `transmittal.service.ts`
 
-7. **notification/** (System Alerts)
+8. **notification/** (System Alerts)
     * [x] `dto/`
       * [x] `create-notification.dto.ts`
       * [x] `search-notification.dto.ts`
@@ -203,13 +228,13 @@
     * [x] `notification.processor.ts` (Consumer/Worker for Email & Line)
     * [x] `notification.service.ts` (Producer)
 
-8. **search/** (Elasticsearch)
+9. **search/** (Elasticsearch)
     * [x] `dto/search-query.dto.ts`
     * [x] `search.controller.ts`
     * [x] `search.module.ts`
     * [x] `search.service.ts` (Indexing & Searching)
 
-9. **document-numbering/** (Internal Service)
+10. **document-numbering/** (Internal Service)
     * [x] `entities/`
       * [x] `document-number-format.entity.ts`
       * [x] `document-number-counter.entity.ts`
@@ -217,13 +242,19 @@
     * [x] **document-numbering.service.spec.ts**
     * [x] `document-numbering.service.ts` (Double-Lock Mechanism)
 
-10. **workflow-engine/** (Unified Logic)
+11. **workflow-engine/** (Unified Logic)
+    * [x] **dto/**
+      * [x] `create-workflow-definition.dto.ts`
+      * [x] `evaluate-workflow.dto.ts`
+      * [x] `get-available-actions.dto.ts`
+      * [x] `update-workflow-definition.dto.ts`
     * [x] `interfaces/workflow.interface.ts`
+    * [x] **workflow-dsl.service.ts**
     * [x] `workflow-engine.module.ts`
     * [x] **workflow-engine.service.spec.ts**
     * [x] `workflow-engine.service.ts` (State Machine Logic)
 
-11. **json-schema/** (Validation)
+12. **json-schema/** (Validation)
     * [x] `dto/`
       * [x] `create-json-schema.dto.ts`+
       * [x] `search-json-schema.dto.ts`
@@ -236,6 +267,16 @@
     * [x] **json-schema.service.spec.ts**
     * [x] `json-schema.service.ts`
 
+13. **monitoring/** (Monitoring & Metrics)
+    * [x] `controllers/`
+      * [x] `health.controller.ts`
+    * [x] `logger/`
+      * [x] `winston.config.ts`
+    * [x] `services/`
+      * [x] `metrics.service.ts`
+    * [x] `monitoring.module.ts`
+
+
 ## **Folder Structure ของ Backend (NestJS)** ที่
 
 ---
@@ -244,40 +285,53 @@
 
 ```text
 backend/
-├── .env                    # Environment variables for local development only (not committed)
-├── .gitignore              # Git ignore rules
-├── docker-compose.yml      # Main deployment container configuration
+├── .env                         # Environment variables for local development only (not committed)
+├── .gitignore                   # Git ignore rules
+├── .prettierrc                  # Prettier configuration
+├── docker-compose.yml           # Main deployment container configuration
 ├── docker-compose.override.yml  # Dev-time secret/environment injection
-├── package.json            # Node dependencies and NPM scripts
-├── pnpm-lock.yaml          # Dependency lock file for pnpm
-├── tsconfig.json           # TypeScript compiler configuration
-├── nest-cli.json           # NestJS project configuration
-├── README.md               # Project documentation
+├── package.json                 # Node dependencies and NPM scripts
+├── pnpm-lock.yaml               # Dependency lock file for pnpm
+├── tsconfig.json                # TypeScript compiler configuration
+├── tsconfig.build.json          # TypeScript compiler configuration for production
+├── nest-cli.json                # NestJS project configuration
+├── README.md                    # Project documentation
 └── src/
-    ├── main.ts             # Application bootstrap and initialization
-    ├── app.module.ts       # Root application module
+    ├── main.ts                  # Application bootstrap and initialization
+    ├── app.module.ts            # Root application module
+    ├── app.service.ts           # Root application service
+    ├── app.controller.ts        # Root application controller
+    ├── app.controller.spec.ts   # Root application unit tests
+    ├── redlock.d.ts             # Redlock configuration
     │
-    │
-    ├── common/             # 🛠️ Shared framework resources used across modules
-    │   ├── common.module.ts        # Registers shared providers
+    ├── common/                  # 🛠️ Shared framework resources used across modules
+    │   ├── common.module.ts     # Registers shared providers
     │   │
-    │   ├── auth/                   # 🛡️ Authentication module
+    │   ├── auth/                # 🛡️ Authentication module
     │   │   ├── dto/
     │   │   │   ├── login.dto.ts                # Login request payload
     │   │   │   └── register.dto.ts             # Registration payload
+    │   │   ├── strategies/
+    │   │   │   ├── local.strategy.ts           # Local strategy for authentication
+    │   │   │   └── jwt.strategy.ts             # JWT strategy for authentication
     │   │   ├── auth.module.ts                  # Auth DI module
     │   │   ├── auth.controller.ts              # Auth REST endpoints
     │   │   ├── auth.controller.spec.ts         # Unit tests for controller
     │   │   ├── auth.service.ts                 # Authentication logic
     │   │   └── auth.service.spec.ts            # Unit test for service
     │   │
-    │   ├── config/                 # 📄 Configuration
-    │   │   └── env.validation.ts               # Zod/Joi validation for environment variables
+    │   ├── config/               # 📄 Configuration
+    │   │   ├── env.validation.ts              # Zod/Joi validation for environment variables
+    │   │   └── redis.config.ts                # Redis configuration
     │   │
-    │   ├── decorators/             # 📡 Decorators for common use cases
+    │   ├── decorators/           # 📡 Decorators for common use cases
     │   │   ├── audit.decorator.ts              # Enables audit logging for a method
+    │   │   ├── bypass-maintenance.decorator.ts # Declares bypass maintenance requirement
     │   │   ├── current-user.decorator.ts       # Extracts logged-in user from request
-    │   │   └── require-permission.decorator.ts # Declares RBAC permission requirement
+    │   │   ├── idempotency.decorator.ts        # Declares idempotency requirement
+    │   │   ├── require-permission.decorator.ts # Declares RBAC permission requirement
+    │   │   ├── retry.decorator.ts              # Declares retry requirement
+    │   │   └── circuit-breaker.decorator.ts    # Declares circuit breaker requirement
     │   │
     │   ├── entities/               # 📚 Database entities
     │   │   ├── audit-log.entity.ts             # Audit log database entity
@@ -293,186 +347,222 @@ backend/
     │   │   ├── file-storage.controller.spec.ts # Unit tests
     │   │   ├── file-storage.module.ts          # Module DI bindings
     │   │   ├── file-storage.service.ts         # File handling logic
-    │   │   └── file-storage.service.spec.ts
+    │   │   ├── file-storage.service.spec.ts    # Unit tests
+    │   │   └── file-cleanup.service.ts         # Cleanup temporary files
     │   │
     │   ├── guards/                  # 🛡️ JWT authentication guard
     │   │   ├── jwt-auth.guard.ts               # JWT authentication guard
-    │   │   ├── jwt.strategy.ts                 # JWT strategy configuration
+    │   │   ├── jwt-refresh.guard.ts            # JWT refresh guard
+    │   │   ├── maintenance-mode.guard.ts       # Maintenance mode guard
     │   │   └── rbac.guard.ts                   # Role-based access control enforcement
     │   │
-    │   ├── interceptors/            # 📡 Interceptors for common use cases
+    │   ├── interceptors/           # 📡 Interceptors for common use cases
     │   │   ├── audit-log.interceptor.ts        # Automatically logs certain operations
+    │   │   ├── idempotency.interceptor.ts      # Idempotency interceptor
     │   │   └── transform.interceptor.ts        # Standardized response formatting
     │   │
-    │   └── resilience/              # 🛡️ Circuit-breaker / retry logic (if implemented)
-    │
+    │   ├─── resilience/             # 🛡️ Circuit-breaker / retry logic (if implemented)
+    │   │   └── resilience.module.ts            # Resilience module
+    │   │
+    │   └──── security/              # 🔐 Security service
+    │       ├── crypto.service.ts               # Crypto service
+    │       └── request-context.service.ts      # Request context service (for logging)
     │
     ├── modules/             # 📦 Module-specific resources
     │   ├── user/                    # 👤 User + RBAC module
     │   │   ├── dto/
     │   │   │   ├── assign-user-role.dto.ts     # Assign roles to users
-    │   │   │   ├── create-user.dto.ts
-    │   │   │   └── update-user.dto.ts
+    │   │   │   ├── create-user.dto.ts          # Create new user
+    │   │   │   ├── search-user.dto.ts          # Search users
+    │   │   │   ├── update-user.dto.ts          # Update user details
+    │   │   │   └── update-user-preference.dto.ts # Update user preferences
     │   │   ├── entities/
     │   │   │   ├── user.entity.ts              # User table definition
     │   │   │   ├── role.entity.ts              # Role definition
     │   │   │   ├── permission.entity.ts        # Permission entity
+    │   │   │   ├── user-assignment.entity.ts   # User assignment entity
     │   │   │   └── user-preference.entity.ts   # User preference settings
+    │   │   ├── user-assignment.service.ts      # User assignment service
+    │   │   ├── user-preference.service.ts      # User preference service
     │   │   ├── user.controller.ts              # REST endpoints
+    │   │   ├── user.module.ts                  # Module DI container
     │   │   ├── user.service.ts                 # Business logic
-    │   │   ├── user.service.spec.ts            # Unit tests
-    │   │   └── user.module.ts                  # Module DI container
+    │   │   └── user.service.spec.ts            # Unit tests
     │   │
-    │   ├── project/                # 🏢 Project/Organization/Contract structure
+    │   ├── project/              # 🏢 Project/Organization/Contract structure
     │   │   ├── dto/
-    │   │   │   ├── create-project.dto.ts
-    │   │   │   ├── search-project.dto.ts
-    │   │   │   └── update-project.dto.ts
+    │   │   │   ├── create-project.dto.ts       # Create new project
+    │   │   │   ├── search-project.dto.ts       # Search projects
+    │   │   │   └── update-project.dto.ts       # Update project
     │   │   ├── entities/
-    │   │   │   ├── project.entity.ts
-    │   │   │   ├── contract.entity.ts
-    │   │   │   ├── organization.entity.ts
-    │   │   │   ├── project-organization.entity.ts
-    │   │   │   └── contract-organization.entity.ts
-    │   │   ├── project.controller.ts
-    │   │   ├── project.controller.spec.ts
-    │   │   └── project.service.ts
-    │
+    │   │   │   ├── project.entity.ts           # Project table definition
+    │   │   │   ├── contract.entity.ts          # Contract table definition
+    │   │   │   ├── organization.entity.ts      # Organization table definition
+    │   │   │   ├── project-organization.entity.ts  # Project organization entity
+    │   │   │   └── contract-organization.entity.ts  # Contract organization entity
+    │   │   ├── project.controller.ts           # REST endpoints
+    │   │   ├── project.controller.spec.ts      # Unit tests
+    │   │   ├── project.module.ts               # Module DI container
+    │   │   ├── project.service.ts              # Business logic
+    │   │   └── project.service.spec.ts         # Unit tests
+    │   │
     │   ├── correspondence/        # ✉️ Formal letters with routing workflow
     │   │   ├── dto/
-    │   │   │   ├── add-reference.dto.ts
-    │   │   │   ├── create-correspondence.dto.ts
-    │   │   │   ├── search-correspondence.dto.ts
-    │   │   │   ├── submit-correspondence.dto.ts
-    │   │   │   └── workflow-action.dto.ts
+    │   │   │   ├── add-reference.dto.ts                # Add reference to correspondence
+    │   │   │   ├── create-correspondence.dto.ts        # Create new correspondence
+    │   │   │   ├── search-correspondence.dto.ts        # Search correspondences
+    │   │   │   ├── submit-correspondence.dto.ts        # Submit correspondence
+    │   │   │   └── workflow-action.dto.ts              # Workflow action
     │   │   ├── entities/
-    │   │   │   ├── correspondence.entity.ts
-    │   │   │   ├── correspondence-revision.entity.ts
-    │   │   │   ├── correspondence-routing.entity.ts
-    │   │   │   ├── correspondence-status.entity.ts
-    │   │   │   ├── correspondence-type.entity.ts
-    │   │   │   ├── correspondence-reference.entity.ts
-    │   │   │   ├── routing-template.entity.ts
-    │   │   │   └── routing-template-step.entity.ts
-    │   │   ├── correspondence.controller.ts
-    │   │   ├── correspondence.controller.spec.ts
-    │   │   └── correspondence.service.ts
-    │
+    │   │   │   ├── correspondence.entity.ts            # Correspondence table definition
+    │   │   │   ├── correspondence-revision.entity.ts   # Correspondence revision entity
+    │   │   │   ├── correspondence-routing.entity.ts    # Correspondence routing entity
+    │   │   │   ├── correspondence-status.entity.ts     # Correspondence status entity
+    │   │   │   ├── correspondence-type.entity.ts       # Correspondence type entity
+    │   │   │   ├── correspondence-reference.entity.ts  # Correspondence reference entity
+    │   │   │   ├── routing-template.entity.ts          # Routing template entity
+    │   │   │   └── routing-template-step.entity.ts     # Routing template step entity
+    │   │   ├── correspondence.controller.ts            # REST endpoints
+    │   │   ├── correspondence.controller.spec.ts       # Unit tests
+    │   │   ├── correspondence.module.ts                # Module DI container
+    │   │   ├── correspondence.service.ts               # Business logic
+    │   │   └── correspondence.service.spec.ts          # Unit tests
+    │   │
     │   ├── drawing/               # 📐Contract & Shop drawing tracking
     │   │   ├── dto/
-    │   │   │   ├── create-contract-drawing.dto.ts
-    │   │   │   ├── create-shop-drawing.dto.ts
-    │   │   │   ├── create-shop-drawing-revision.dto.ts
-    │   │   │   ├── search-contract-drawing.dto.ts
-    │   │   │   ├── search-shop-drawing.dto.ts
-    │   │   │   └── update-contract-drawing.dto.ts
+    │   │   │   ├── create-contract-drawing.dto.ts      # Create new contract drawing
+    │   │   │   ├── create-shop-drawing.dto.ts          # Create new shop drawing
+    │   │   │   ├── create-shop-drawing-revision.dto.ts # Create new shop drawing revision
+    │   │   │   ├── search-contract-drawing.dto.ts      # Search contract drawings
+    │   │   │   ├── search-shop-drawing.dto.ts          # Search shop drawings
+    │   │   │   └── update-contract-drawing.dto.ts      # Update contract drawing
     │   │   ├── entities/
-    │   │   │   ├── contract-drawing.entity.ts
-    │   │   │   ├── contract-drawing-volume.entity.ts
-    │   │   │   ├── contract-drawing-sub-category.entity.ts
-    │   │   │   ├── shop-drawing.entity.ts
-    │   │   │   ├── shop-drawing-revision.entity.ts
-    │   │   │   ├── shop-drawing-main-category.entity.ts
-    │   │   │   └── shop-drawing-sub-category.entity.ts
-    │   │   ├── drawing.module.ts
-    │   │   ├── contract-drawing.controller.ts
-    │   │   ├── contract-drawing.service.ts
-    │   │   ├── drawing-master-data.controller.ts
-    │   │   ├── drawing-master-data.service.ts
-    │   │   ├── shop-drawing.controller.ts
-    │   │   └── shop-drawing.service.ts
-    │
+    │   │   │   ├── contract-drawing.entity.ts          # Contract drawing entity
+    │   │   │   ├── contract-drawing-volume.entity.ts   # Contract drawing volume entity
+    │   │   │   ├── contract-drawing-sub-category.entity.ts  # Contract drawing sub category entity
+    │   │   │   ├── shop-drawing.entity.ts              # Shop drawing entity
+    │   │   │   ├── shop-drawing-revision.entity.ts     # Shop drawing revision entity
+    │   │   │   ├── shop-drawing-main-category.entity.ts  # Shop drawing main category entity
+    │   │   │   └── shop-drawing-sub-category.entity.ts # Shop drawing sub category entity
+    │   │   ├── drawing.module.ts                   # Module DI container
+    │   │   ├── contract-drawing.controller.ts      # REST endpoints
+    │   │   ├── contract-drawing.service.ts         # Business logic
+    │   │   ├── drawing-master-data.controller.ts   # REST endpoints
+    │   │   ├── drawing-master-data.service.ts      # Business logic
+    │   │   ├── shop-drawing.controller.ts          # REST endpoints
+    │   │   └── shop-drawing.service.ts             # Business logic
+    │   │
     │   ├── rfa/                   # ✅ Request for Approval (multi-step workflow)
     │   │   ├── dto/
-    │   │   │   ├── create-rfa.dto.ts
-    │   │   │   ├── search-rfa.dto.ts
-    │   │   │   └── update-rfa.dto.ts
+    │   │   │   ├── create-rfa.dto.ts               # Create new RFA
+    │   │   │   ├── search-rfa.dto.ts               # Search RFAs
+    │   │   │   └── update-rfa.dto.ts               # Update RFA
     │   │   ├── entities/
-    │   │   │   ├── rfa.entity.ts
-    │   │   │   ├── rfa-revision.entity.ts
-    │   │   │   ├── rfa-item.entity.ts
-    │   │   │   ├── rfa-type.entity.ts
-    │   │   │   ├── rfa-status-code.entity.ts
-    │   │   │   ├── rfa-approve-code.entity.ts
-    │   │   │   ├── rfa-workflow.entity.ts
-    │   │   │   ├── rfa-workflow-template.entity.ts
-    │   │   │   └── rfa-workflow-template-step.entity.ts
-    │   │   ├── rfa.controller.ts
-    │   │   ├── rfa.module.ts
-    │   │   └── rfa.service.ts
-    │
+    │   │   │   ├── rfa.entity.ts                   # RFA entity
+    │   │   │   ├── rfa-revision.entity.ts          # RFA revision entity
+    │   │   │   ├── rfa-item.entity.ts              # RFA item entity
+    │   │   │   ├── rfa-type.entity.ts              # RFA type entity
+    │   │   │   ├── rfa-status-code.entity.ts       # RFA status code entity
+    │   │   │   ├── rfa-approve-code.entity.ts      # RFA approve code entity
+    │   │   │   ├── rfa-workflow.entity.ts          # RFA workflow entity
+    │   │   │   ├── rfa-workflow-template.entity.ts # RFA workflow template entity
+    │   │   │   └── rfa-workflow-template-step.entity.ts  # RFA workflow template step entity
+    │   │   ├── rfa.controller.ts                   # REST endpoints
+    │   │   ├── rfa.module.ts                       # Module DI container
+    │   │   └── rfa.service.ts                      # Business logic
+    │   │
     │   ├── circulation/           # 🔄 Internal routing workflow
     │   │   ├── dto/
-    │   │   │   ├── create-circulation.dto.ts
-    │   │   │   ├── update-circulation-routing.dto.ts
-    │   │   │   └── search-circulation.dto.ts
+    │   │   │   ├── create-circulation.dto.ts       # Create new circulation
+    │   │   │   ├── update-circulation-routing.dto.ts  # Update circulation routing
+    │   │   │   └── search-circulation.dto.ts       # Search circulation
     │   │   ├── entities/
-    │   │   │   ├── circulation.entity.ts
-    │   │   │   ├── circulation-routing.entity.ts
-    │   │   │   └── circulation-status-code.entity.ts
-    │   │   ├── circulation.controller.ts
-    │   │   ├── circulation.module.ts
-    │   │   └── circulation.service.ts
-    │
+    │   │   │   ├── circulation.entity.ts           # Circulation entity
+    │   │   │   ├── circulation-routing.entity.ts   # Circulation routing entity
+    │   │   │   └── circulation-status-code.entity.ts  # Circulation status code entity
+    │   │   ├── circulation.controller.ts           # REST endpoints
+    │   │   ├── circulation.module.ts               # Module DI container
+    │   │   └── circulation.service.ts              # Business logic
+    │   │
     │   ├── transmittal/            # 📤 Document forwarding
     │   │   ├── dto/
-    │   │   │   ├── create-transmittal.dto.ts
-    │   │   │   ├── search-transmittal.dto.ts
-    │   │   │   └── update-transmittal.dto.ts
+    │   │   │   ├── create-transmittal.dto.ts       # Create new transmittal
+    │   │   │   ├── search-transmittal.dto.ts       # Search transmittal
+    │   │   │   └── update-transmittal.dto.ts       # Update transmittal
     │   │   ├── entities/
-    │   │   │   ├── transmittal.entity.ts
-    │   │   │   └── transmittal-item.entity.ts
-    │   │   ├── transmittal.controller.ts
-    │   │   ├── transmittal.module.ts
-    │   │   └── transmittal.service.ts
-    │
+    │   │   │   ├── transmittal.entity.ts           # Transmittal entity
+    │   │   │   └── transmittal-item.entity.ts      # Transmittal item entity
+    │   │   ├── transmittal.controller.ts           # REST endpoints
+    │   │   ├── transmittal.module.ts               # Module DI container
+    │   │   └── transmittal.service.ts              # Business logic
+    │   │
     │   ├── notification/           # 🔔 Real-Time notification system
     │   │   ├── dto/
-    │   │   │   ├── create-notification.dto.ts
-    │   │   │   └── search-notification.dto.ts
+    │   │   │   ├── create-notification.dto.ts      # Create new notification
+    │   │   │   └── search-notification.dto.ts      # Search notification
     │   │   ├── entities/
-    │   │   │   └── notification.entity.ts
-    │   │   ├── notification.module.ts           # WebSocket + Processor registration
-    │   │   ├── notification.controller.ts
-    │   │   ├── notification.gateway.ts          # WebSocket gateway
-    │   │   ├── notification.processor.ts        # Message consumer (e.g. mail worker)
-    │   │   ├── notification.service.ts
-    │   │   └── notification-cleanup.service.ts  # Cron-based cleanup job
-    │
+    │   │   │   └── notification.entity.ts          # Notification entity
+    │   │   ├── notification.module.ts              # WebSocket + Processor registration
+    │   │   ├── notification.controller.ts          # REST endpoints
+    │   │   ├── notification.gateway.ts             # WebSocket gateway
+    │   │   ├── notification.processor.ts           # Message consumer (e.g. mail worker)
+    │   │   ├── notification.service.ts             # Business logic
+    │   │   └── notification-cleanup.service.ts     # Cron-based cleanup job
+    │   │
     │   ├── search/                 # 🔍 Elasticsearch integration
     │   │   ├── dto/
-    │   │   │   └── search-query.dto.ts
-    │   │   ├── search.module.ts
-    │   │   ├── search.controller.ts
-    │   │   └── search.service.ts                # Indexing/search logic
-    │
+    │   │   │   └── search-query.dto.ts             # Search query
+    │   │   ├── search.module.ts                    # Module DI container
+    │   │   ├── search.controller.ts                # REST endpoints
+    │   │   └── search.service.ts                   # Indexing/search logic
+    │   │
     │   ├── document-numbering/     # 🔢 Auto-increment controlled ID generation
     │   │   ├── entities/
-    │   │   │   ├── document-number-format.entity.ts
-    │   │   │   └── document-number-counter.entity.ts
-    │   │   ├── document-numbering.module.ts
-    │   │   ├── document-numbering.service.ts
-    │   │   └── document-numbering.service.spec.ts
-    │
+    │   │   │   ├── document-number-format.entity.ts  # Document number format entity
+    │   │   │   └── document-number-counter.entity.ts # Document number counter entity
+    │   │   ├── document-numbering.module.ts          # Module DI container
+    │   │   ├── document-numbering.service.ts         # Business logic
+    │   │   └── document-numbering.service.spec.ts    # Unit tests
+    │   │
     │   ├── workflow-engine/        # ⚙️ Unified state-machine workflow engine
+    │   │   ├── dto/
+    │   │   │   ├── create-workflow-definition.dto.ts # Create new workflow definition
+    │   │   │   ├── evaluate-workflow.dto.ts          # Evaluate workflow
+    │   │   │   ├── get-available-actions.dto.ts      # Get available actions
+    │   │   │   └── update-workflow-definition.dto.ts # Update workflow definition
+    │   │   ├── entities/
+    │   │   │   └── workflow-definition.entity.ts     # Workflow definition entity
     │   │   ├── interfaces/
-    │   │   │   └── workflow.interface.ts
-    │   │   ├── workflow-engine.module.ts
-    │   │   ├── workflow-engine.service.ts
-    │   │   └── workflow-engine.service.spec.ts
+    │   │   │   └── workflow.interface.ts         # Workflow interface
+    │   │   ├── workflow-engine.controller.ts       # REST endpoints
+    │   │   ├── workflow-engine.module.ts         # Module DI container
+    │   │   ├── workflow-engine.service.ts        # Business logic
+    │   │   └── workflow-engine.service.spec.ts   # Unit tests
+    │   │
+    │   ├── json-schema/            # 📋 Dynamic request schema validation
+    │   │   ├── dto/
+    │   │   │   ├── create-json-schema.dto.ts     # Create new JSON schema
+    │   │   │   ├── update-json-schema.dto.ts     # Update JSON schema
+    │   │   │   └── search-json-schema.dto.ts     # Search JSON schema
+    │   │   ├── entities/
+    │   │   │   └── json-schema.entity.ts         # JSON schema entity
+    │   │   ├── json-schema.module.ts             # Module DI container
+    │   │   ├── json-schema.controller.ts         # REST endpoints
+    │   │   ├── json-schema.controller.spec.ts    # Unit tests
+    │   │   ├── json-schema.service.ts            # Business logic
+    │   │   └── json-schema.service.spec.ts       # Unit tests
+    │   │
+    │   └── monitoring/            # 📋 Dynamic request schema validation
+    │       ├── controllers/
+    │       │   ├── health.controller.ts     # Create new JSON schema
+    │       │   ├── update-json-schema.dto.ts     # Update JSON schema
+    │       │   └── search-json-schema.dto.ts     # Search JSON schema
+    │       ├── logger/
+    │       │   └── winston.config.ts         # JSON schema entity
+    │       ├── services/
+    │       │   └── metrics.service.ts         # JSON schema entity
+    │       └── monitoring.module.ts             # Module DI container
     │
-    │   └── json-schema/            # 📋 Dynamic request schema validation
-    │       ├── dto/
-    │       │   ├── create-json-schema.dto.ts
-    │       │   ├── update-json-schema.dto.ts
-    │       │   └── search-json-schema.dto.ts
-    │       ├── entities/
-    │       │   └── json-schema.entity.ts
-    │       ├── json-schema.module.ts
-    │       ├── json-schema.controller.ts
-    │       ├── json-schema.controller.spec.ts
-    │       ├── json-schema.service.ts
-    │       └── json-schema.service.spec.ts
 ```
 
 ---

@@ -1,5 +1,6 @@
 // File: src/app.module.ts
 // บันทึกการแก้ไข: เพิ่ม CacheModule (Redis), Config สำหรับ Idempotency และ Maintenance Mode (T1.1)
+// บันทึกการแก้ไข: เพิ่ม MonitoringModule และ WinstonModule (T6.3)
 
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -8,18 +9,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
+import { WinstonModule } from 'nest-winston'; // ✅ Import WinstonModule
 import { redisStore } from 'cache-manager-redis-yet';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { envValidationSchema } from './common/config/env.validation.js';
 import redisConfig from './common/config/redis.config';
+import { winstonConfig } from './modules/monitoring/logger/winston.config'; // ✅ Import Config
 
 // Entities & Interceptors
 import { AuditLog } from './common/entities/audit-log.entity';
 import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
-// ✅ Import Guard ใหม่สำหรับ Maintenance Mode
 import { MaintenanceModeGuard } from './common/guards/maintenance-mode.guard';
-// import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor'; // ✅ เตรียมไว้ใช้ (ถ้าต้องการ Global)
+// import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 
 // Modules
 import { UserModule } from './modules/user/user.module';
@@ -30,7 +32,16 @@ import { AuthModule } from './common/auth/auth.module.js';
 import { JsonSchemaModule } from './modules/json-schema/json-schema.module.js';
 import { WorkflowEngineModule } from './modules/workflow-engine/workflow-engine.module';
 import { CorrespondenceModule } from './modules/correspondence/correspondence.module';
-
+import { RfaModule } from './modules/rfa/rfa.module';
+import { DrawingModule } from './modules/drawing/drawing.module';
+import { TransmittalModule } from './modules/transmittal/transmittal.module';
+import { CirculationModule } from './modules/circulation/circulation.module';
+import { NotificationModule } from './modules/notification/notification.module';
+// ✅ Import Monitoring Module
+import { MonitoringModule } from './modules/monitoring/monitoring.module';
+import { ResilienceModule } from './common/resilience/resilience.module'; // ✅ Import
+// ... imports
+import { SearchModule } from './modules/search/search.module'; // ✅ Import
 @Module({
   imports: [
     // 1. Setup Config Module พร้อม Validation
@@ -68,6 +79,9 @@ import { CorrespondenceModule } from './modules/correspondence/correspondence.mo
       inject: [ConfigService],
     }),
 
+    // 📝 Setup Winston Logger (Structured Logging) [Req 6.10]
+    WinstonModule.forRoot(winstonConfig),
+
     // 2. Setup TypeORM (MariaDB)
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -84,7 +98,7 @@ import { CorrespondenceModule } from './modules/correspondence/correspondence.mo
       }),
     }),
 
-    // ✅ 4. Register AuditLog Entity (Global Scope)
+    // Register AuditLog Entity (Global Scope)
     TypeOrmModule.forFeature([AuditLog]),
 
     // 3. BullMQ (Redis) Setup
@@ -100,6 +114,9 @@ import { CorrespondenceModule } from './modules/correspondence/correspondence.mo
       }),
     }),
 
+    // 📊 Register Monitoring Module (Health & Metrics) [Req 6.10]
+    MonitoringModule,
+
     // Feature Modules
     AuthModule,
     UserModule,
@@ -109,16 +126,23 @@ import { CorrespondenceModule } from './modules/correspondence/correspondence.mo
     JsonSchemaModule,
     WorkflowEngineModule,
     CorrespondenceModule,
+    RfaModule, // 👈 ต้องมี
+    DrawingModule, // 👈 ต้องมี
+    TransmittalModule, // 👈 ต้องมี
+    CirculationModule, // 👈 ต้องมี
+    SearchModule, // ✅ Register Module
+    NotificationModule, // 👈 ต้องมี
+    ResilienceModule, // ✅ Register Module
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    // 🛡️ 1. Register Global Guard (Rate Limit) - ทำงานก่อนเพื่อน
+    // 🛡️ 1. Register Global Guard (Rate Limit)
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
-    // 🚧 2. Maintenance Mode Guard - ทำงานต่อมา เพื่อ Block การเข้าถึงถ้าระบบปิดอยู่
+    // 🚧 2. Maintenance Mode Guard
     {
       provide: APP_GUARD,
       useClass: MaintenanceModeGuard,
@@ -128,7 +152,7 @@ import { CorrespondenceModule } from './modules/correspondence/correspondence.mo
       provide: APP_INTERCEPTOR,
       useClass: AuditLogInterceptor,
     },
-    // 🔄 4. Register Idempotency (Uncomment เมื่อต้องการบังคับใช้ Global)
+    // 🔄 4. Register Idempotency (ถ้าต้องการ Global)
     // {
     //   provide: APP_INTERCEPTOR,
     //   useClass: IdempotencyInterceptor,

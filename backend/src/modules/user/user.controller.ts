@@ -22,7 +22,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { UpdatePreferenceDto } from './dto/update-preference.dto'; // ✅ เพิ่ม DTO
 
-import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard'; // สมมติว่ามีแล้ว ถ้ายังไม่มีให้คอมเมนต์ไว้ก่อน
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
