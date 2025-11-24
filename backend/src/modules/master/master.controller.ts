@@ -1,9 +1,22 @@
 // File: src/modules/master/master.controller.ts
 
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MasterService } from './master.service';
 import { CreateTagDto } from './dto/create-tag.dto';
+import { UpdateTagDto } from './dto/update-tag.dto';
+import { SearchTagDto } from './dto/search-tag.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 
@@ -12,6 +25,10 @@ import { RequirePermission } from '../../common/decorators/require-permission.de
 @UseGuards(JwtAuthGuard) // บังคับ Login ทุก Endpoint
 export class MasterController {
   constructor(private readonly masterService: MasterService) {}
+
+  // =================================================================
+  // 📦 Dropdowns Endpoints (Read-Only for Frontend)
+  // =================================================================
 
   @Get('correspondence-types')
   @ApiOperation({ summary: 'Get all active correspondence types' })
@@ -49,16 +66,40 @@ export class MasterController {
     return this.masterService.findAllCirculationStatuses();
   }
 
+  // =================================================================
+  // 🏷️ Tag Management Endpoints
+  // =================================================================
+
   @Get('tags')
-  @ApiOperation({ summary: 'Get all tags' })
-  getTags() {
-    return this.masterService.findAllTags();
+  @ApiOperation({ summary: 'Get all tags (supports search & pagination)' })
+  getTags(@Query() query: SearchTagDto) {
+    return this.masterService.findAllTags(query);
+  }
+
+  @Get('tags/:id')
+  @ApiOperation({ summary: 'Get a tag by ID' })
+  getTagById(@Param('id', ParseIntPipe) id: number) {
+    return this.masterService.findOneTag(id);
   }
 
   @Post('tags')
-  @RequirePermission('master_data.tag.manage') // ต้องมีสิทธิ์จัดการ Tag
-  @ApiOperation({ summary: 'Create a new tag (Admin only)' })
+  @RequirePermission('master_data.tag.manage') // ต้องมีสิทธิ์ (Admin/Doc Control)
+  @ApiOperation({ summary: 'Create a new tag' })
   createTag(@Body() dto: CreateTagDto) {
     return this.masterService.createTag(dto);
+  }
+
+  @Patch('tags/:id')
+  @RequirePermission('master_data.tag.manage') // ต้องมีสิทธิ์
+  @ApiOperation({ summary: 'Update a tag' })
+  updateTag(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTagDto) {
+    return this.masterService.updateTag(id, dto);
+  }
+
+  @Delete('tags/:id')
+  @RequirePermission('master_data.tag.manage') // ต้องมีสิทธิ์
+  @ApiOperation({ summary: 'Delete a tag' })
+  deleteTag(@Param('id', ParseIntPipe) id: number) {
+    return this.masterService.deleteTag(id);
   }
 }
