@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Audit } from '../../common/decorators/audit.decorator'; // Import
 
 @ApiTags('RFA (Request for Approval)')
 @ApiBearerAuth()
@@ -29,6 +30,7 @@ export class RfaController {
   @Post()
   @ApiOperation({ summary: 'Create new RFA (Draft)' })
   @RequirePermission('rfa.create') // สิทธิ์ ID 37
+  @Audit('rfa.create', 'rfa') // ✅ แปะตรงนี้
   create(@Body() createDto: CreateRfaDto, @CurrentUser() user: User) {
     return this.rfaService.create(createDto, user);
   }

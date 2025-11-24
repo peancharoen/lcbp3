@@ -21,6 +21,12 @@ import { RfaController } from './rfa.controller';
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
 import { UserModule } from '../user/user.module';
 
+// ... imports
+import { RfaWorkflow } from './entities/rfa-workflow.entity';
+import { RfaWorkflowTemplate } from './entities/rfa-workflow-template.entity';
+import { RfaWorkflowTemplateStep } from './entities/rfa-workflow-template-step.entity';
+
+import { SearchModule } from '../search/search.module'; // ✅ เพิ่ม
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -32,9 +38,14 @@ import { UserModule } from '../user/user.module';
       RfaApproveCode,
       Correspondence,
       ShopDrawingRevision,
+      // ... (ตัวเดิม)
+      RfaWorkflow,
+      RfaWorkflowTemplate,
+      RfaWorkflowTemplateStep,
     ]),
     DocumentNumberingModule,
     UserModule,
+    SearchModule,
   ],
   providers: [RfaService],
   controllers: [RfaController],

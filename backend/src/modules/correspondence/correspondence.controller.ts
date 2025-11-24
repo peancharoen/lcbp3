@@ -21,6 +21,8 @@ import { WorkflowActionDto } from './dto/workflow-action.dto.js';
 import { AddReferenceDto } from './dto/add-reference.dto.js';
 import { SearchCorrespondenceDto } from './dto/search-correspondence.dto.js';
 import { Query, Delete } from '@nestjs/common'; // เพิ่ม Query, Delete
+import { Audit } from '../../common/decorators/audit.decorator'; // Import
+
 @Controller('correspondences')
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class CorrespondenceController {
@@ -38,6 +40,7 @@ export class CorrespondenceController {
 
   @Post()
   @RequirePermission('correspondence.create') // 🔒 ต้องมีสิทธิ์สร้าง
+  @Audit('correspondence.create', 'correspondence') // ✅ แปะตรงนี้
   create(@Body() createDto: CreateCorrespondenceDto, @Request() req: any) {
     return this.correspondenceService.create(createDto, req.user);
   }
@@ -52,6 +55,7 @@ export class CorrespondenceController {
   // ✅ เพิ่ม Endpoint นี้ครับ
   @Post(':id/submit')
   @RequirePermission('correspondence.create') // หรือจะสร้าง Permission ใหม่ 'workflow.submit' ก็ได้
+  @Audit('correspondence.create', 'correspondence') // ✅ แปะตรงนี้
   submit(
     @Param('id', ParseIntPipe) id: number,
     @Body() submitDto: SubmitCorrespondenceDto,

@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Redis Service
+  # ใช้สำหรับ: Caching ข้อมูล, Session Store และ Message Queue (สำหรับ NestJS/BullMQ)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: lcbp3_redis
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning --requirepass "${REDIS_PASSWORD:-redis_password}"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lcbp3_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Elasticsearch Service
+  # ใช้สำหรับ: Full-text Search และการวิเคราะห์ข้อมูล (Database Analysis)
+  # ---------------------------------------------------------------------------
+  elasticsearch:
+    image: elasticsearch:8.11.1
+    container_name: lcbp3_elasticsearch
+    restart: always
+    environment:
+      - node.name=lcbp3_es01
+      - cluster.name=lcbp3_es_cluster
+      - discovery.type=single-node # รันแบบ Node เดียวสำหรับ Dev/Phase 0
+      - bootstrap.memory_lock=true # ล็อคหน่วยความจำเพื่อประสิทธิภาพ
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # กำหนด Heap Size (ปรับเพิ่มได้ตาม Resource เครื่อง)
+      - xpack.security.enabled=false # ปิด Security ชั่วคราวสำหรับ Phase 0 (ควรเปิดใน Production)
+      - xpack.security.http.ssl.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - lcbp3_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+# ---------------------------------------------------------------------------
+# Volumes Configuration
+# การจัดการพื้นที่จัดเก็บข้อมูลแบบ Persistent Data
+# ---------------------------------------------------------------------------
+volumes:
+  redis_data:
+    driver: local
+    name: lcbp3_redis_vol
+  es_data:
+    driver: local
+    name: lcbp3_es_vol
+
+# ---------------------------------------------------------------------------
+# Networks Configuration
+# เครือข่ายสำหรับเชื่อมต่อ Container ภายใน
+# ---------------------------------------------------------------------------
+networks:
+  lcbp3_net:
+    driver: bridge
+    name: lcbp3_network

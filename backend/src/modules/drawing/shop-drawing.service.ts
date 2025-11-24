@@ -43,10 +43,9 @@ export class ShopDrawingService {
 
   /**
    * สร้าง Shop Drawing ใหม่ พร้อม Revision แรก (Rev 0)
-   * ทำงานภายใต้ Database Transaction เดียวกัน
    */
   async create(createDto: CreateShopDrawingDto, user: User) {
-    // 1. ตรวจสอบเลขที่แบบซ้ำ (Unique Check)
+    // 1. Check Duplicate
     const exists = await this.shopDrawingRepo.findOne({
       where: { drawingNumber: createDto.drawingNumber },
     });
@@ -61,7 +60,7 @@ export class ShopDrawingService {
     await queryRunner.startTransaction();
 
     try {
-      // 2. เตรียมข้อมูล Relations (Contract Drawings & Attachments)
+      // 2. Prepare Relations
       let contractDrawings: ContractDrawing[] = [];
       if (createDto.contractDrawingIds?.length) {
         contractDrawings = await this.contractDrawingRepo.findBy({
@@ -76,7 +75,7 @@ export class ShopDrawingService {
         });
       }
 
-      // 3. สร้าง Master Shop Drawing
+      // 3. Create Master Shop Drawing
       const shopDrawing = queryRunner.manager.create(ShopDrawing, {
         projectId: createDto.projectId,
         drawingNumber: createDto.drawingNumber,
@@ -87,23 +86,22 @@ export class ShopDrawingService {
       });
       const savedShopDrawing = await queryRunner.manager.save(shopDrawing);
 
-      // 4. สร้าง First Revision (Rev 0)
+      // 4. Create First Revision (Rev 0)
       const revision = queryRunner.manager.create(ShopDrawingRevision, {
         shopDrawingId: savedShopDrawing.id,
-        revisionNumber: 0, // เริ่มต้นที่ 0 เสมอ
+        revisionNumber: 0,
         revisionLabel: createDto.revisionLabel || '0',
         revisionDate: createDto.revisionDate
           ? new Date(createDto.revisionDate)
           : new Date(),
         description: createDto.description,
-        contractDrawings: contractDrawings, // ผูก M:N Relation
-        attachments: attachments, // ผูก M:N Relation
+        contractDrawings: contractDrawings,
+        attachments: attachments,
       });
       await queryRunner.manager.save(revision);
 
-      // 5. Commit Files (ย้ายไฟล์จาก Temp -> Permanent)
+      // 5. Commit Files
       if (createDto.attachmentIds?.length) {
-        // ✅ FIX: ใช้ commitFiles และแปลง number[] -> string[]
         await this.fileStorageService.commit(
           createDto.attachmentIds.map(String),
         );
@@ -111,13 +109,13 @@ export class ShopDrawingService {
 
       await queryRunner.commitTransaction();
 
+      // ✅ FIX: Return ข้อมูลของ ShopDrawing และ Revision (ไม่ใช่ savedCorr หรือ docNumber)
       return {
         ...savedShopDrawing,
         currentRevision: revision,
       };
     } catch (err) {
       await queryRunner.rollbackTransaction();
-      // ✅ FIX: Cast err เป็น Error
       this.logger.error(
         `Failed to create shop drawing: ${(err as Error).message}`,
       );
@@ -128,14 +126,12 @@ export class ShopDrawingService {
   }
 
   /**
-   * เพิ่ม Revision ใหม่ให้กับ Shop Drawing เดิม (Add Revision)
-   * เช่น Rev 0 -> Rev A
+   * เพิ่ม Revision ใหม่ (Add Revision)
    */
   async createRevision(
     shopDrawingId: number,
     createDto: CreateShopDrawingRevisionDto,
   ) {
-    // 1. ตรวจสอบว่ามี Master Drawing อยู่จริง
     const shopDrawing = await this.shopDrawingRepo.findOneBy({
       id: shopDrawingId,
     });
@@ -143,7 +139,6 @@ export class ShopDrawingService {
       throw new NotFoundException('Shop Drawing not found');
     }
 
-    // 2. ตรวจสอบ Label ซ้ำใน Drawing เดียวกัน
     const exists = await this.revisionRepo.findOne({
       where: { shopDrawingId, revisionLabel: createDto.revisionLabel },
     });
@@ -158,7 +153,6 @@ export class ShopDrawingService {
     await queryRunner.startTransaction();
 
     try {
-      // 3. เตรียม Relations
       let contractDrawings: ContractDrawing[] = [];
       if (createDto.contractDrawingIds?.length) {
         contractDrawings = await this.contractDrawingRepo.findBy({
@@ -173,14 +167,12 @@ export class ShopDrawingService {
         });
       }
 
-      // 4. หา Revision Number ล่าสุดเพื่อ +1 (Running Number ภายใน)
       const latestRev = await this.revisionRepo.findOne({
         where: { shopDrawingId },
         order: { revisionNumber: 'DESC' },
       });
       const nextRevNum = (latestRev?.revisionNumber ?? -1) + 1;
 
-      // 5. บันทึก Revision ใหม่
       const revision = queryRunner.manager.create(ShopDrawingRevision, {
         shopDrawingId,
         revisionNumber: nextRevNum,
@@ -194,9 +186,7 @@ export class ShopDrawingService {
       });
       await queryRunner.manager.save(revision);
 
-      // 6. Commit Files
       if (createDto.attachmentIds?.length) {
-        // ✅ FIX: ใช้ commitFiles และแปลง number[] -> string[]
         await this.fileStorageService.commit(
           createDto.attachmentIds.map(String),
         );
@@ -206,7 +196,6 @@ export class ShopDrawingService {
       return revision;
     } catch (err) {
       await queryRunner.rollbackTransaction();
-      // ✅ FIX: Cast err เป็น Error
       this.logger.error(`Failed to create revision: ${(err as Error).message}`);
       throw err;
     } finally {
@@ -215,8 +204,7 @@ export class ShopDrawingService {
   }
 
   /**
-   * ค้นหา Shop Drawing (Search & Filter)
-   * รองรับการค้นหาด้วย Text และกรองตาม Category
+   * ค้นหา Shop Drawing
    */
   async findAll(searchDto: SearchShopDrawingDto) {
     const {
@@ -260,7 +248,7 @@ export class ShopDrawingService {
 
     const [items, total] = await query.getManyAndCount();
 
-    // Transform Data: เลือก Revision ล่าสุดมาแสดงเป็น currentRevision
+    // Transform Data
     const transformedItems = items.map((item) => {
       item.revisions.sort((a, b) => b.revisionNumber - a.revisionNumber);
       const currentRevision = item.revisions[0];
@@ -283,7 +271,7 @@ export class ShopDrawingService {
   }
 
   /**
-   * ดูรายละเอียด Shop Drawing (Get One)
+   * ดูรายละเอียด Shop Drawing
    */
   async findOne(id: number) {
     const shopDrawing = await this.shopDrawingRepo.findOne({
@@ -308,7 +296,7 @@ export class ShopDrawingService {
   }
 
   /**
-   * ลบ Shop Drawing (Soft Delete)
+   * ลบ Shop Drawing
    */
   async remove(id: number, user: User) {
     const shopDrawing = await this.findOne(id);

@@ -127,7 +127,7 @@ src/
 
 - **[ ] T1.1 CommonModule - Base Infrastructure**
 
-  - [ ] สร้าง Base Entity (id, created\_at, updated\_at, deleted\_at)
+  - [ ] สร้าง Base Entity (id, created_at, updated_at, deleted_at)
   - [ ] สร้าง Global Exception Filter (ไม่เปิดเผย sensitive information)
   - [ ] สร้าง Response Transform Interceptor
   - [ ] สร้าง Audit Log Interceptor
@@ -150,7 +150,7 @@ src/
   - [ ] สร้าง JWT Strategy (Passport)
   - [ ] สร้าง JwtAuthGuard
   - [ ] สร้าง Controllers:
-    - [ ] POST /auth/login → { access\_token, refresh\_token }
+    - [ ] POST /auth/login → { access_token, refresh_token }
     - [ ] POST /auth/register → Create User (Admin only)
     - [ ] POST /auth/refresh → Refresh token
     - [ ] POST /auth/logout → Revoke token
@@ -238,8 +238,8 @@ src/
     - [ ] Generate checksum (SHA-256)
     - [ ] **Cleanup Job:** สร้าง Cron Job ลบไฟล์ใน `temp/` ที่ค้างเกิน 24 ชม. **โดยตรวจสอบจากคอลัมน์ `expires_at` ในตาราง `attachments`**
   - [ ] สร้าง Controller:
-    - [ ] POST /files/upload → { temp\_id } (Protected)
-    - [ ] POST /files/commit → { attachment\_id, url } (Protected)
+    - [ ] POST /files/upload → { temp_id } (Protected)
+    - [ ] POST /files/commit → { attachment_id, url } (Protected)
     - [ ] GET /files/:id/download → File Stream (Protected + Expiration)
   - [ ] **Security:** Access Control - ตรวจสอบสิทธิ์ผ่าน Junction Table
   - [ ] **Deliverable:** อัปโหลด/ดาวน์โหลดไฟล์ได้อย่างปลอดภัย แบบ Transactional
@@ -259,7 +259,7 @@ src/
             4. Release Redis Lock
             5. Retry on Failure ด้วย exponential backoff
     - [ ] Fallback mechanism เมื่อการขอเลขล้มเหลว
-    - [ ] Format ตาม Template: {ORG\_CODE}-{TYPE\_CODE}-{YEAR\_SHORT}-{SEQ:4}
+    - [ ] Format ตาม Template: {ORG_CODE}-{TYPE_CODE}-{YEAR_SHORT}-{SEQ:4}
   - **ไม่มี Controller** (Internal Service เท่านั้น)
   - [ ] **Security:** Implement audit log ทุกครั้งที่มีการ generate เลขที่
   - [ ] **Deliverable:** Service สร้างเลขที่เอกสารได้ถูกต้องและปลอดภัย ไม่มี Race Condition
@@ -503,7 +503,7 @@ src/
 
   - [ ] Implement Caching (Master Data, User Permissions, Search Results)
   - [ ] Database Optimization (Review Indexes, Query Optimization, Pagination)
-  - [ ] **Deliverable:** Response Time \< 200ms (90th percentile)
+  - [ ] **Deliverable:** Response Time < 200ms (90th percentile)
 
 -----
 

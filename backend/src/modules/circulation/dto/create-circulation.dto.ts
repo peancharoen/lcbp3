@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsArray,
   IsOptional,
+  ArrayMinSize, // ✅ เพิ่ม
 } from 'class-validator';
 
 export class CreateCirculationDto {
@@ -17,7 +18,7 @@ export class CreateCirculationDto {
 
   @IsArray()
   @IsInt({ each: true })
-  @IsNotEmpty()
+  @ArrayMinSize(1) // ✅ ต้องมีผู้รับอย่างน้อย 1 คน
   assigneeIds!: number[]; // รายชื่อ User ID ที่ต้องการส่งให้ (ผู้รับผิดชอบ)
 
   @IsString()

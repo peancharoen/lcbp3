@@ -3,31 +3,32 @@ import {
   OnModuleInit,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { JsonSchema } from './entities/json-schema.entity.js';
+import { JsonSchema } from './entities/json-schema.entity'; // ลบ .js
 
 @Injectable()
 export class JsonSchemaService implements OnModuleInit {
   private ajv: Ajv;
-  // Cache ตัว Validator ที่ Compile แล้ว เพื่อประสิทธิภาพ
   private validators = new Map<string, any>();
+  private readonly logger = new Logger(JsonSchemaService.name);
 
   constructor(
     @InjectRepository(JsonSchema)
     private schemaRepo: Repository<JsonSchema>,
   ) {
-    // ตั้งค่า AJV
-    this.ajv = new Ajv({ allErrors: true, strict: false }); // strict: false เพื่อยืดหยุ่นกับ custom keywords
-    addFormats(this.ajv); // รองรับ format เช่น email, date-time
+    this.ajv = new Ajv({ allErrors: true, strict: false });
+    addFormats(this.ajv);
   }
 
-  onModuleInit() {
-    // (Optional) โหลด Schema ทั้งหมดมา Cache ตอนเริ่ม App ก็ได้
-    // แต่ตอนนี้ใช้วิธี Lazy Load (โหลดเมื่อใช้) ไปก่อน
+  async onModuleInit() {
+    // Pre-load schemas (Optional for performance)
+    // const schemas = await this.schemaRepo.find({ where: { isActive: true } });
+    // schemas.forEach(s => this.createValidator(s.schemaCode, s.schemaDefinition));
   }
 
   /**
@@ -36,7 +37,6 @@ export class JsonSchemaService implements OnModuleInit {
   async validate(schemaCode: string, data: any): Promise<boolean> {
     let validate = this.validators.get(schemaCode);
 
-    // ถ้ายังไม่มีใน Cache หรือต้องการตัวล่าสุด ให้ดึงจาก DB
     if (!validate) {
       const schema = await this.schemaRepo.findOne({
         where: { schemaCode, isActive: true },
@@ -59,19 +59,21 @@ export class JsonSchemaService implements OnModuleInit {
     const valid = validate(data);
 
     if (!valid) {
-      // รวบรวม Error ทั้งหมดส่งกลับไป
       const errors = validate.errors
         ?.map((e: any) => `${e.instancePath} ${e.message}`)
         .join(', ');
+      // โยน Error กลับไปเพื่อให้ Controller/Service ปลายทางจัดการ
       throw new BadRequestException(`JSON Validation Failed: ${errors}`);
     }
 
     return true;
   }
 
-  // ฟังก์ชันสำหรับสร้าง/อัปเดต Schema (สำหรับ Admin)
-  async createOrUpdate(schemaCode: string, definition: any) {
-    // ตรวจสอบก่อนว่า Definition เป็น JSON Schema ที่ถูกต้องไหม
+  /**
+   * สร้างหรืออัปเดต Schema
+   */
+  async createOrUpdate(schemaCode: string, definition: Record<string, any>) {
+    // 1. ตรวจสอบว่า Definition เป็น JSON Schema ที่ถูกต้องไหม
     try {
       this.ajv.compile(definition);
     } catch (error: any) {
@@ -80,6 +82,7 @@ export class JsonSchemaService implements OnModuleInit {
       );
     }
 
+    // 2. บันทึกลง DB
     let schema = await this.schemaRepo.findOne({ where: { schemaCode } });
 
     if (schema) {
@@ -93,9 +96,12 @@ export class JsonSchemaService implements OnModuleInit {
       });
     }
 
-    // Clear Cache เก่า
-    this.validators.delete(schemaCode);
+    const savedSchema = await this.schemaRepo.save(schema);
 
-    return this.schemaRepo.save(schema);
+    // 3. Clear Cache เพื่อให้ครั้งหน้าโหลดตัวใหม่
+    this.validators.delete(schemaCode);
+    this.logger.log(`Schema '${schemaCode}' updated (v${savedSchema.version})`);
+
+    return savedSchema;
   }
 }

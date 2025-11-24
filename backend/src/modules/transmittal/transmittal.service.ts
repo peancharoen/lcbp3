@@ -12,6 +12,7 @@ import { Correspondence } from '../correspondence/entities/correspondence.entity
 import { CreateTransmittalDto } from './dto/create-transmittal.dto'; // ต้องสร้าง DTO
 import { User } from '../user/entities/user.entity';
 import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
+import { SearchService } from '../search/search.service'; // Import SearchService
 
 @Injectable()
 export class TransmittalService {
@@ -24,6 +25,7 @@ export class TransmittalService {
     private correspondenceRepo: Repository<Correspondence>,
     private numberingService: DocumentNumberingService,
     private dataSource: DataSource,
+    private searchService: SearchService, // Inject
   ) {}
 
   async create(createDto: CreateTransmittalDto, user: User) {

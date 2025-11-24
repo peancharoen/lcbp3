@@ -1,41 +1,72 @@
 // File: src/app.module.ts
+// บันทึกการแก้ไข: เพิ่ม CacheModule (Redis), Config สำหรับ Idempotency และ Maintenance Mode (T1.1)
+
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core'; // <--- เพิ่ม Import นี้ T2.4
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BullModule } from '@nestjs/bullmq'; // Import BullModule
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'; // <--- เพิ่ม Import นี้ T2.4
+import { BullModule } from '@nestjs/bullmq';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { envValidationSchema } from './common/config/env.validation.js'; // สังเกต .js สำหรับ ESM
-// import { CommonModule } from './common/common.module';
+import { envValidationSchema } from './common/config/env.validation.js';
+import redisConfig from './common/config/redis.config';
+
+// Entities & Interceptors
+import { AuditLog } from './common/entities/audit-log.entity';
+import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
+// ✅ Import Guard ใหม่สำหรับ Maintenance Mode
+import { MaintenanceModeGuard } from './common/guards/maintenance-mode.guard';
+// import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor'; // ✅ เตรียมไว้ใช้ (ถ้าต้องการ Global)
+
+// Modules
 import { UserModule } from './modules/user/user.module';
 import { ProjectModule } from './modules/project/project.module';
 import { FileStorageModule } from './common/file-storage/file-storage.module.js';
 import { DocumentNumberingModule } from './modules/document-numbering/document-numbering.module';
-import { AuthModule } from './common/auth/auth.module.js'; // <--- เพิ่ม Import นี้ T2.4
+import { AuthModule } from './common/auth/auth.module.js';
 import { JsonSchemaModule } from './modules/json-schema/json-schema.module.js';
 import { WorkflowEngineModule } from './modules/workflow-engine/workflow-engine.module';
 import { CorrespondenceModule } from './modules/correspondence/correspondence.module';
+
 @Module({
   imports: [
     // 1. Setup Config Module พร้อม Validation
     ConfigModule.forRoot({
-      isGlobal: true, // เรียกใช้ได้ทั่วทั้ง App ไม่ต้อง import ซ้ำ
-      envFilePath: '.env', // อ่านไฟล์ .env (สำหรับ Dev)
-      validationSchema: envValidationSchema, // ใช้ Schema ที่เราสร้างเพื่อตรวจสอบ
+      isGlobal: true,
+      envFilePath: '.env',
+      load: [redisConfig],
+      validationSchema: envValidationSchema,
       validationOptions: {
-        // ถ้ามีค่าไหนไม่ผ่าน Validation ให้ Error และหยุดทำงานทันที
         abortEarly: true,
       },
     }),
-    // 🛡️ T2.4 1. Setup Throttler Module (Rate Limiting)
+
+    // 🛡️ Setup Throttler Module (Rate Limiting)
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, // 60 วินาที (Time to Live)
-        limit: 100, // ยิงได้สูงสุด 100 ครั้ง (Global Default)
+        ttl: 60000, // 60 วินาที
+        limit: 100, // ยิงได้สูงสุด 100 ครั้ง
       },
     ]),
+
+    // 💾 Setup Cache Module (Redis)
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        store: await redisStore({
+          socket: {
+            host: configService.get<string>('redis.host'),
+            port: configService.get<number>('redis.port'),
+          },
+          ttl: configService.get<number>('redis.ttl'),
+        }),
+      }),
+      inject: [ConfigService],
+    }),
 
     // 2. Setup TypeORM (MariaDB)
     TypeOrmModule.forRootAsync({
@@ -49,15 +80,14 @@ import { CorrespondenceModule } from './modules/correspondence/correspondence.mo
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        // synchronize: true เฉพาะตอน Dev เท่านั้น ห้ามใช้บน Prod
-        // synchronize: configService.get<string>('NODE_ENV') === 'development',
-        // แก้บรรทัดนี้เป็น false ครับ
-        // เพราะเราใช้ SQL Script สร้าง DB แล้ว ไม่ต้องการให้ TypeORM มาแก้ Structure อัตโนมัติ
-        synchronize: false, // เราใช้ false ตามที่ตกลงกัน
+        synchronize: false, // Production Ready: false
       }),
     }),
 
-    // 3. BullMQ (Redis) Setup [NEW]
+    // ✅ 4. Register AuditLog Entity (Global Scope)
+    TypeOrmModule.forFeature([AuditLog]),
+
+    // 3. BullMQ (Redis) Setup
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -69,24 +99,46 @@ import { CorrespondenceModule } from './modules/correspondence/correspondence.mo
         },
       }),
     }),
+
+    // Feature Modules
     AuthModule,
-    // CommonModule,
     UserModule,
     ProjectModule,
     FileStorageModule,
     DocumentNumberingModule,
     JsonSchemaModule,
     WorkflowEngineModule,
-    CorrespondenceModule, // <--- เพิ่ม
+    CorrespondenceModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    // 🛡️ 2. Register Global Guard
+    // 🛡️ 1. Register Global Guard (Rate Limit) - ทำงานก่อนเพื่อน
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    // 🚧 2. Maintenance Mode Guard - ทำงานต่อมา เพื่อ Block การเข้าถึงถ้าระบบปิดอยู่
+    {
+      provide: APP_GUARD,
+      useClass: MaintenanceModeGuard,
+    },
+    // 📝 3. Register Global Interceptor (Audit Log)
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
+    },
+    // 🔄 4. Register Idempotency (Uncomment เมื่อต้องการบังคับใช้ Global)
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: IdempotencyInterceptor,
+    // },
   ],
 })
 export class AppModule {}
+
+/*วิธีใช้งาน
+เมื่อต้องการเปิด Maintenance Mode ให้ Admin (หรือคุณ) ยิงคำสั่งเข้า Redis หรือสร้าง API เพื่อ Set ค่า: SET system:maintenance_mode true (หรือ "true")
+
+ระบบจะตอบกลับด้วย 503 Service Unavailable ทันที ยกเว้น Controller ที่คุณใส่ @BypassMaintenance() ไว้ครับ
+*/

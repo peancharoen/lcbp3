@@ -35,7 +35,7 @@ import { DocumentNumberingService } from '../document-numbering/document-numberi
 import { JsonSchemaService } from '../json-schema/json-schema.service.js';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service.js';
 import { UserService } from '../user/user.service.js';
-
+import { SearchService } from '../search/search.service'; // Import SearchService
 @Injectable()
 export class CorrespondenceService {
   private readonly logger = new Logger(CorrespondenceService.name);
@@ -61,6 +61,7 @@ export class CorrespondenceService {
     private workflowEngine: WorkflowEngineService,
     private userService: UserService,
     private dataSource: DataSource,
+    private searchService: SearchService, // Inject
   ) {}
 
   /**
@@ -182,7 +183,18 @@ export class CorrespondenceService {
       });
       await queryRunner.manager.save(revision);
 
-      await queryRunner.commitTransaction();
+      await queryRunner.commitTransaction(); // Transaction จบแล้ว ข้อมูลชัวร์แล้ว
+      // 🔥 Fire & Forget: ไม่ต้อง await ผลลัพธ์เพื่อความเร็ว (หรือใช้ Queue ก็ได้)
+      this.searchService.indexDocument({
+        id: savedCorr.id,
+        type: 'correspondence',
+        docNumber: docNumber,
+        title: createDto.title,
+        description: createDto.description,
+        status: 'DRAFT',
+        projectId: createDto.projectId,
+        createdAt: new Date(),
+      });
 
       return {
         ...savedCorr,

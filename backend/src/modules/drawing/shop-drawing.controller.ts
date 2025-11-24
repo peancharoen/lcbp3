@@ -20,6 +20,7 @@ import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../user/entities/user.entity';
+import { Audit } from '../../common/decorators/audit.decorator'; // Import
 
 @ApiTags('Shop Drawings')
 @ApiBearerAuth()
@@ -31,6 +32,7 @@ export class ShopDrawingController {
   @Post()
   @ApiOperation({ summary: 'Create new Shop Drawing with initial revision' })
   @RequirePermission('drawing.create') // อ้างอิง Permission จาก Seed
+  @Audit('drawing.create', 'shop_drawing') // ✅ แปะตรงนี้
   create(@Body() createDto: CreateShopDrawingDto, @CurrentUser() user: User) {
     return this.shopDrawingService.create(createDto, user);
   }
@@ -52,6 +54,7 @@ export class ShopDrawingController {
   @Post(':id/revisions')
   @ApiOperation({ summary: 'Add new revision to existing Shop Drawing' })
   @RequirePermission('drawing.create') // หรือ drawing.edit ตาม Logic องค์กร
+  @Audit('drawing.create', 'shop_drawing') // ✅ แปะตรงนี้
   createRevision(
     @Param('id', ParseIntPipe) id: number,
     @Body() createRevisionDto: CreateShopDrawingRevisionDto,

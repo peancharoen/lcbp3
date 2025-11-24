@@ -7,7 +7,8 @@ import { Organization } from './entities/organization.entity.js';
 import { Contract } from './entities/contract.entity.js';
 import { ProjectOrganization } from './entities/project-organization.entity.js'; // เพิ่ม
 import { ContractOrganization } from './entities/contract-organization.entity.js'; // เพิ่ม
-
+// Modules
+import { UserModule } from '../user/user.module'; // ✅ 1. Import UserModule
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -17,6 +18,7 @@ import { ContractOrganization } from './entities/contract-organization.entity.js
       ProjectOrganization, // ลงทะเบียน
       ContractOrganization, // ลงทะเบียน
     ]),
+    UserModule, // ✅ 2. เพิ่ม UserModule เข้าไปใน imports
   ],
   controllers: [ProjectController],
   providers: [ProjectService],

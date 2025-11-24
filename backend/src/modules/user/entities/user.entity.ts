@@ -1,3 +1,6 @@
+// File: src/modules/user/entities/user.entity.ts
+// บันทึกการแก้ไข: เพิ่ม Relations กับ UserAssignment และ UserPreference (T1.3)
+
 import {
   Entity,
   Column,
@@ -5,10 +8,14 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  ManyToOne, // <--- เพิ่มตรงนี้
-  JoinColumn, // <--- เพิ่มตรงนี้
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
-import { Organization } from '../../project/entities/organization.entity.js'; // อย่าลืม import Organization
+import { Organization } from '../../project/entities/organization.entity'; // Adjust path as needed
+import { UserAssignment } from './user-assignment.entity';
+import { UserPreference } from './user-preference.entity';
 
 @Entity('users')
 export class User {
@@ -18,7 +25,7 @@ export class User {
   @Column({ unique: true, length: 50 })
   username!: string;
 
-  @Column({ name: 'password_hash' })
+  @Column({ name: 'password_hash', select: false }) // ไม่ Select Password โดย Default
   password!: string;
 
   @Column({ unique: true, length: 100 })
@@ -33,15 +40,26 @@ export class User {
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 
-  // Relation กับ Organization
+  @Column({ name: 'line_id', nullable: true, length: 100 })
+  lineId?: string;
+
+  // Relation กับ Organization (สังกัดหลัก)
   @Column({ name: 'primary_organization_id', nullable: true })
   primaryOrganizationId?: number;
 
-  @ManyToOne(() => Organization)
+  @ManyToOne(() => Organization, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'primary_organization_id' })
   organization?: Organization;
 
-  // Base Entity Fields (ที่เราแยกมาเขียนเองเพราะเรื่อง deleted_at)
+  // Relation กับ Assignments (RBAC)
+  @OneToMany(() => UserAssignment, (assignment) => assignment.user)
+  assignments?: UserAssignment[];
+
+  // Relation กับ Preferences (1:1)
+  @OneToOne(() => UserPreference, (pref) => pref.user, { cascade: true })
+  preference?: UserPreference;
+
+  // Base Entity Fields
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

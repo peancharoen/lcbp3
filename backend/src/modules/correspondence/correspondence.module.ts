@@ -16,6 +16,7 @@ import { JsonSchemaModule } from '../json-schema/json-schema.module.js'; // ต�
 import { UserModule } from '../user/user.module.js'; // <--- 1. Import UserModule
 import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module.js'; // <--- ✅ เพิ่มบรรทัดนี้ครับ
 import { CorrespondenceReference } from './entities/correspondence-reference.entity.js';
+import { SearchModule } from '../search/search.module'; // ✅ 1. เพิ่ม Import SearchModule
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { CorrespondenceReference } from './entities/correspondence-reference.ent
     JsonSchemaModule, // Import เพื่อ Validate JSON
     UserModule, // <--- 2. ใส่ UserModule ใน imports เพื่อให้ RbacGuard ทำงานได้
     WorkflowEngineModule, // <--- Import WorkflowEngine
+    SearchModule, // ✅ 2. ใส่ SearchModule ที่นี่
   ],
   controllers: [CorrespondenceController],
   providers: [CorrespondenceService],

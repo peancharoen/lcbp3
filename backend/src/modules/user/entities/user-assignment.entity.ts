@@ -1,3 +1,6 @@
+// File: src/modules/user/entities/user-assignment.entity.ts
+// บันทึกการแก้ไข: Entity สำหรับการมอบหมาย Role ให้กับ User ตาม Scope (T1.3, RBAC 4-Level)
+
 import {
   Entity,
   Column,
@@ -6,8 +9,11 @@ import {
   JoinColumn,
   CreateDateColumn,
 } from 'typeorm';
-import { User } from './user.entity.js';
-// Import Role, Org, Project, Contract entities...
+import { User } from './user.entity';
+import { Role } from './role.entity';
+import { Organization } from '../../project/entities/organization.entity'; // ปรับ Path ให้ตรงกับ ProjectModule
+import { Project } from '../../project/entities/project.entity'; // ปรับ Path ให้ตรงกับ ProjectModule
+import { Contract } from '../../project/entities/contract.entity'; // ปรับ Path ให้ตรงกับ ProjectModule
 
 @Entity('user_assignments')
 export class UserAssignment {
@@ -20,6 +26,7 @@ export class UserAssignment {
   @Column({ name: 'role_id' })
   roleId!: number;
 
+  // --- Scopes (เลือกได้เพียง 1 หรือเป็น NULL ทั้งหมดสำหรับ Global) ---
   @Column({ name: 'organization_id', nullable: true })
   organizationId?: number;
 
@@ -35,8 +42,29 @@ export class UserAssignment {
   @CreateDateColumn({ name: 'assigned_at' })
   assignedAt!: Date;
 
-  // Relation กลับไปหา User (เจ้าของสิทธิ์)
-  @ManyToOne(() => User)
+  // --- Relations ---
+
+  @ManyToOne(() => User, (user) => user.assignments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user?: User;
+  user!: User;
+
+  @ManyToOne(() => Role, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'role_id' })
+  role!: Role;
+
+  @ManyToOne(() => Organization, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'organization_id' })
+  organization?: Organization;
+
+  @ManyToOne(() => Project, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'project_id' })
+  project?: Project;
+
+  @ManyToOne(() => Contract, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'contract_id' })
+  contract?: Contract;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'assigned_by_user_id' })
+  assignedBy?: User;
 }

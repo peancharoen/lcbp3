@@ -41,10 +41,24 @@ services:
     networks:
       - lcbp3-net
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: lcbp3-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false # ปิด security เพื่อความง่ายใน Dev (Prod ต้องเปิด)
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - lcbp3-net
 volumes:
   db_data:
   redis_data: # เพิ่ม Volume
-
+  esdata:
+  
 networks:
   lcbp3-net:
     driver: bridge

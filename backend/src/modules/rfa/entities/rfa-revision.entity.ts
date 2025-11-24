@@ -15,6 +15,7 @@ import { RfaStatusCode } from './rfa-status-code.entity';
 import { RfaApproveCode } from './rfa-approve-code.entity';
 import { User } from '../../user/entities/user.entity';
 import { RfaItem } from './rfa-item.entity';
+import { RfaWorkflow } from './rfa-workflow.entity'; // Import เพิ่ม
 
 @Entity('rfa_revisions')
 @Unique(['rfaId', 'revisionNumber'])
@@ -96,4 +97,10 @@ export class RfaRevision {
   // Items (Shop Drawings inside this RFA)
   @OneToMany(() => RfaItem, (item) => item.rfaRevision, { cascade: true })
   items!: RfaItem[];
+
+  // Workflows
+  @OneToMany(() => RfaWorkflow, (workflow) => workflow.rfaRevision, {
+    cascade: true,
+  })
+  workflows!: RfaWorkflow[];
 }

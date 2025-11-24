@@ -28,7 +28,7 @@ import { ContractDrawingController } from './contract-drawing.controller';
 import { DrawingMasterDataController } from './drawing-master-data.controller';
 // Modules
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
-
+import { UserModule } from '../user/user.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -47,6 +47,7 @@ import { FileStorageModule } from '../../common/file-storage/file-storage.module
       Attachment,
     ]),
     FileStorageModule,
+    UserModule,
   ],
   providers: [
     ShopDrawingService,

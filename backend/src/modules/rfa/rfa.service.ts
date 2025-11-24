@@ -34,6 +34,7 @@ import { DocumentNumberingService } from '../document-numbering/document-numberi
 import { UserService } from '../user/user.service';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
 import { NotificationService } from '../notification/notification.service';
+import { SearchService } from '../search/search.service'; // Import SearchService
 
 @Injectable()
 export class RfaService {
@@ -66,6 +67,7 @@ export class RfaService {
     private workflowEngine: WorkflowEngineService,
     private notificationService: NotificationService,
     private dataSource: DataSource,
+    private searchService: SearchService, // Inject
   ) {}
 
   /**
@@ -166,6 +168,17 @@ export class RfaService {
       }
 
       await queryRunner.commitTransaction();
+      // 🔥 Fire & Forget: ไม่ต้อง await ผลลัพธ์เพื่อความเร็ว (หรือใช้ Queue ก็ได้)
+      this.searchService.indexDocument({
+        id: savedCorr.id,
+        type: 'correspondence',
+        docNumber: docNumber,
+        title: createDto.title,
+        description: createDto.description,
+        status: 'DRAFT',
+        projectId: createDto.projectId,
+        createdAt: new Date(),
+      });
 
       return {
         ...savedRfa,
