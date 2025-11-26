@@ -1,7 +1,8 @@
 {
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll.eslint": "explicit",
+    "source.fixAll.sqltools": "explicit"
   },
   "eslint.validate": [
     "javascript",
@@ -25,5 +26,9 @@
       "username": "root"
     }
   ],
-  "editor.fontSize": 16
+  "editor.fontSize": 16,
+  "editor.fontLigatures": false,
+  "editor.tabSize": 2,
+  "editor.minimap.sectionHeaderFontSize": 12,
+  "markdown.extension.print.theme": "dark"
 }

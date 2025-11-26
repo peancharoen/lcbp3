@@ -21,10 +21,21 @@
 				"username": "root"
 			}
 		],
-		"editor.fontSize": 15,
+		"editor.fontSize": 16,
 		"editor.codeActionsOnSave": {
-
+			"terminal": true
 		},
-		"editor.codeActions.triggerOnFocusChange": true
+		"editor.codeActions.triggerOnFocusChange": true,
+		"editor.tabSize": 2,
+		"editor.minimap.sectionHeaderFontSize": 12,
+		"terminal.integrated.fontSize": 15,
+		"workbench.colorTheme": "Default Dark Modern",
+		"workbench.colorCustomizations": {
+			"terminal.background": "#07003c",
+			"terminal.foreground": "#ffffff",
+			"terminalCursor.background": "#ffffff",
+			"terminalCursor.foreground": "#eeff00"
+		},
+		"geminicodeassist.agentYoloMode": false,
 	}
 }
