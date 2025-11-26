@@ -21,6 +21,10 @@
 				"username": "root"
 			}
 		],
-		"editor.fontSize": 15
+		"editor.fontSize": 15,
+		"editor.codeActionsOnSave": {
+
+		},
+		"editor.codeActions.triggerOnFocusChange": true
 	}
 }

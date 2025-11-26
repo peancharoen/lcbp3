@@ -1,17 +1,36 @@
+// File: src/modules/document-numbering/document-numbering.service.ts
 import {
   Injectable,
   OnModuleInit,
   OnModuleDestroy,
   InternalServerErrorException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, OptimisticLockVersionMismatchError } from 'typeorm';
+import {
+  Repository,
+  EntityManager,
+  OptimisticLockVersionMismatchError,
+} from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import Redlock from 'redlock';
-import { DocumentNumberCounter } from './entities/document-number-counter.entity.js';
-import { DocumentNumberFormat } from './entities/document-number-format.entity.js';
+
+// Entities
+import { DocumentNumberCounter } from './entities/document-number-counter.entity';
+import { DocumentNumberFormat } from './entities/document-number-format.entity';
+import { Project } from '../project/entities/project.entity'; // สมมติ path
+import { Organization } from '../project/entities/organization.entity';
+import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
+import { Discipline } from '../master/entities/discipline.entity';
+import { CorrespondenceSubType } from '../correspondence/entities/correspondence-sub-type.entity';
+
+// Interfaces
+import {
+  GenerateNumberContext,
+  DecodedTokens,
+} from './interfaces/document-numbering.interface.js';
 
 @Injectable()
 export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
@@ -24,25 +43,39 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
     private counterRepo: Repository<DocumentNumberCounter>,
     @InjectRepository(DocumentNumberFormat)
     private formatRepo: Repository<DocumentNumberFormat>,
+
+    // Inject Repositories สำหรับดึง Code มาทำ Token Replacement
+    @InjectRepository(Project) private projectRepo: Repository<Project>,
+    @InjectRepository(Organization) private orgRepo: Repository<Organization>,
+    @InjectRepository(CorrespondenceType)
+    private typeRepo: Repository<CorrespondenceType>,
+    @InjectRepository(Discipline)
+    private disciplineRepo: Repository<Discipline>,
+    @InjectRepository(CorrespondenceSubType)
+    private subTypeRepo: Repository<CorrespondenceSubType>,
+
     private configService: ConfigService,
   ) {}
 
-  // 1. เริ่มต้นเชื่อมต่อ Redis และ Redlock เมื่อ Module ถูกโหลด
   onModuleInit() {
-    this.redisClient = new Redis({
-      host: this.configService.get<string>('REDIS_HOST'),
-      port: this.configService.get<number>('REDIS_PORT'),
-      password: this.configService.get<string>('REDIS_PASSWORD'),
-    });
+    // 1. Setup Redis Connection & Redlock
+    const host = this.configService.get<string>('REDIS_HOST', 'localhost');
+    const port = this.configService.get<number>('REDIS_PORT', 6379);
+    const password = this.configService.get<string>('REDIS_PASSWORD');
 
+    this.redisClient = new Redis({ host, port, password });
+
+    // Config Redlock สำหรับ Distributed Lock
     this.redlock = new Redlock([this.redisClient], {
       driftFactor: 0.01,
-      retryCount: 10, // ลองใหม่ 10 ครั้งถ้า Lock ไม่สำเร็จ
-      retryDelay: 200, // รอ 200ms ก่อนลองใหม่
+      retryCount: 10, // Retry 10 ครั้ง
+      retryDelay: 200, // รอ 200ms ต่อครั้ง
       retryJitter: 200,
     });
 
-    this.logger.log('Redis & Redlock initialized for Document Numbering');
+    this.logger.log(
+      `Document Numbering Service initialized (Redis: ${host}:${port})`,
+    );
   }
 
   onModuleDestroy() {
@@ -50,115 +83,192 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * ฟังก์ชันหลักสำหรับขอเลขที่เอกสารถัดไป
-   * @param projectId ID โครงการ
-   * @param orgId ID องค์กรผู้ส่ง
-   * @param typeId ID ประเภทเอกสาร
-   * @param year ปีปัจจุบัน (ค.ศ.)
-   * @param replacements ค่าที่จะเอาไปแทนที่ใน Template (เช่น { ORG_CODE: 'TEAM' })
+   * สร้างเลขที่เอกสารใหม่ (Thread-Safe & Gap-free)
    */
-  async generateNextNumber(
-    projectId: number,
-    orgId: number,
-    typeId: number,
-    year: number,
-    replacements: Record<string, string> = {},
-  ): Promise<string> {
-    const resourceKey = `doc_num:${projectId}:${typeId}:${year}`;
-    const ttl = 5000; // Lock จะหมดอายุใน 5 วินาที (ป้องกัน Deadlock)
+  async generateNextNumber(ctx: GenerateNumberContext): Promise<string> {
+    const year = ctx.year || new Date().getFullYear();
+    const disciplineId = ctx.disciplineId || 0;
+
+    // 1. ดึงข้อมูล Master Data มาเตรียมไว้ (Tokens) นอก Lock เพื่อ Performance
+    const tokens = await this.resolveTokens(ctx, year);
+
+    // 2. ดึง Format Template
+    const formatTemplate = await this.getFormatTemplate(
+      ctx.projectId,
+      ctx.typeId,
+    );
+
+    // 3. สร้าง Resource Key สำหรับ Lock (ละเอียดถึงระดับ Discipline)
+    // Key: doc_num:{projectId}:{typeId}:{disciplineId}:{year}
+    const resourceKey = `doc_num:${ctx.projectId}:${ctx.typeId}:${disciplineId}:${year}`;
+    const lockTtl = 5000; // 5 วินาที
 
     let lock;
     try {
-      // 🔒 Step 1: Redis Lock (Distributed Lock)
-      // ป้องกันไม่ให้ Process อื่นเข้ามายุ่งกับ Counter ตัวนี้พร้อมกัน
-      lock = await this.redlock.acquire([resourceKey], ttl);
+      // 🔒 LAYER 1: Acquire Redis Lock
+      lock = await this.redlock.acquire([resourceKey], lockTtl);
 
-      // 🔄 Step 2: Optimistic Locking Loop (Safety Net)
-      // เผื่อ Redis Lock หลุด หรือมีคนแทรกได้จริงๆ DB จะช่วยกันไว้อีกชั้น
+      // 🔄 LAYER 2: Optimistic Lock Loop
       const maxRetries = 3;
       for (let i = 0; i < maxRetries; i++) {
         try {
-          // 2.1 ดึง Counter ปัจจุบัน
+          // A. ดึง Counter ปัจจุบัน
           let counter = await this.counterRepo.findOne({
-            where: { projectId, originatorId: orgId, typeId, year },
+            where: {
+              projectId: ctx.projectId,
+              originatorId: ctx.originatorId,
+              typeId: ctx.typeId,
+              disciplineId: disciplineId,
+              year: year,
+            },
           });
 
-          // ถ้ายังไม่มี ให้สร้างใหม่ (เริ่มที่ 0)
+          // B. ถ้ายังไม่มี ให้เริ่มใหม่ที่ 0
           if (!counter) {
             counter = this.counterRepo.create({
-              projectId,
-              originatorId: orgId,
-              typeId,
-              year,
+              projectId: ctx.projectId,
+              originatorId: ctx.originatorId,
+              typeId: ctx.typeId,
+              disciplineId: disciplineId,
+              year: year,
               lastNumber: 0,
             });
           }
 
-          // 2.2 บวกเลข
+          // C. Increment Sequence
           counter.lastNumber += 1;
 
-          // 2.3 บันทึก (จุดนี้ TypeORM จะเช็ค Version ให้เอง)
+          // D. Save (TypeORM จะเช็ค version column ตรงนี้)
           await this.counterRepo.save(counter);
 
-          // 2.4 ถ้าบันทึกผ่าน -> สร้าง String ตาม Format
-          return await this.formatNumber(
-            projectId,
-            typeId,
-            counter.lastNumber,
-            replacements,
-          );
+          // E. Format Result
+          return this.replaceTokens(formatTemplate, tokens, counter.lastNumber);
         } catch (err) {
-          // ถ้า Version ชนกัน (Optimistic Lock Error) ให้วนลูปทำใหม่
+          // ถ้า Version ไม่ตรง (มีคนแทรกได้ในเสี้ยววินาที) ให้ Retry
           if (err instanceof OptimisticLockVersionMismatchError) {
             this.logger.warn(
-              `Optimistic Lock Hit! Retrying... (${i + 1}/${maxRetries})`,
+              `Optimistic Lock Collision for ${resourceKey}. Retrying...`,
             );
             continue;
           }
-          throw err; // ถ้าเป็น Error อื่น ให้โยนออกไปเลย
+          throw err;
         }
       }
 
       throw new InternalServerErrorException(
-        'Failed to generate document number after retries',
+        'Failed to generate document number after retries.',
       );
-    } catch (err) {
-      this.logger.error('Error generating document number', err);
-      throw err;
+    } catch (error) {
+      this.logger.error(`Error generating number for ${resourceKey}`, error);
+      throw error;
     } finally {
-      // 🔓 Step 3: Release Redis Lock เสมอ (ไม่ว่าจะสำเร็จหรือล้มเหลว)
+      // 🔓 Release Lock
       if (lock) {
-        await lock.release().catch(() => {}); // ignore error if lock expired
+        await lock.release().catch(() => {});
       }
     }
   }
 
-  // Helper: แปลงเลขเป็น String ตาม Template (เช่น {ORG}-{SEQ:004})
-  private async formatNumber(
+  /**
+   * Helper: ดึงข้อมูล Code ต่างๆ จาก ID เพื่อนำมาแทนที่ใน Template
+   */
+  private async resolveTokens(
+    ctx: GenerateNumberContext,
+    year: number,
+  ): Promise<DecodedTokens> {
+    const [project, org, type] = await Promise.all([
+      this.projectRepo.findOne({ where: { id: ctx.projectId } }),
+      this.orgRepo.findOne({ where: { id: ctx.originatorId } }),
+      this.typeRepo.findOne({ where: { id: ctx.typeId } }),
+    ]);
+
+    if (!project || !org || !type) {
+      throw new NotFoundException('Project, Organization, or Type not found');
+    }
+
+    let disciplineCode = '000';
+    if (ctx.disciplineId) {
+      const discipline = await this.disciplineRepo.findOne({
+        where: { id: ctx.disciplineId },
+      });
+      if (discipline) disciplineCode = discipline.disciplineCode;
+    }
+
+    let subTypeCode = '00';
+    let subTypeNumber = '00';
+    if (ctx.subTypeId) {
+      const subType = await this.subTypeRepo.findOne({
+        where: { id: ctx.subTypeId },
+      });
+      if (subType) {
+        subTypeCode = subType.subTypeCode;
+        subTypeNumber = subType.subTypeNumber || '00';
+      }
+    }
+
+    // Convert Christian Year to Buddhist Year if needed (Req usually uses Christian, but prepared logic)
+    // ใน Req 6B ตัวอย่างใช้ 2568 (พ.ศ.) ดังนั้นต้องแปลง
+    const yearTh = (year + 543).toString();
+
+    return {
+      projectCode: project.projectCode,
+      orgCode: org.organizationCode,
+      typeCode: type.typeCode,
+      disciplineCode,
+      subTypeCode,
+      subTypeNumber,
+      year: yearTh,
+      yearShort: yearTh.slice(-2), // 68
+    };
+  }
+
+  /**
+   * Helper: หา Template จาก DB หรือใช้ Default
+   */
+  private async getFormatTemplate(
     projectId: number,
     typeId: number,
-    seq: number,
-    replacements: Record<string, string>,
   ): Promise<string> {
-    // 1. หา Template
     const format = await this.formatRepo.findOne({
       where: { projectId, correspondenceTypeId: typeId },
     });
+    // Default Fallback Format (ตาม Req 2.1)
+    return format ? format.formatTemplate : '{ORG}-{ORG}-{SEQ:4}-{YEAR}';
+  }
 
-    // ถ้าไม่มี Template ให้ใช้ Default: {SEQ}
-    let template = format ? format.formatTemplate : '{SEQ:4}';
+  /**
+   * Helper: แทนที่ Token ใน Template ด้วยค่าจริง
+   */
+  private replaceTokens(
+    template: string,
+    tokens: DecodedTokens,
+    seq: number,
+  ): string {
+    let result = template;
 
-    // 2. แทนที่ค่าต่างๆ (ORG_CODE, TYPE_CODE, YEAR)
+    const replacements: Record<string, string> = {
+      '{PROJECT}': tokens.projectCode,
+      '{ORG}': tokens.orgCode,
+      '{TYPE}': tokens.typeCode,
+      '{DISCIPLINE}': tokens.disciplineCode,
+      '{SUBTYPE}': tokens.subTypeCode,
+      '{SUBTYPE_NUM}': tokens.subTypeNumber, // [Req 6B] For Transmittal/RFA
+      '{YEAR}': tokens.year,
+      '{YEAR_SHORT}': tokens.yearShort,
+    };
+
+    // 1. Replace Standard Tokens
     for (const [key, value] of Object.entries(replacements)) {
-      template = template.replace(new RegExp(`{${key}}`, 'g'), value);
+      // ใช้ Global Replace
+      result = result.split(key).join(value);
     }
 
-    // 3. แทนที่ SEQ (รองรับรูปแบบ {SEQ:4} คือเติม 0 ข้างหน้าให้ครบ 4 หลัก)
-    template = template.replace(/{SEQ(?::(\d+))?}/g, (_, digits) => {
-      const pad = digits ? parseInt(digits, 10) : 0;
-      return seq.toString().padStart(pad, '0');
+    // 2. Replace Sequence Token {SEQ:n} e.g., {SEQ:4} -> 0001
+    result = result.replace(/{SEQ(?::(\d+))?}/g, (_, digits) => {
+      const padLength = digits ? parseInt(digits, 10) : 4; // Default padding 4
+      return seq.toString().padStart(padLength, '0');
     });
 
-    return template;
+    return result;
   }
 }

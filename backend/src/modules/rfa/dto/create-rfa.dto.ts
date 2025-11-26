@@ -1,3 +1,4 @@
+// File: src/modules/rfa/dto/create-rfa.dto.ts
 import {
   IsInt,
   IsString,
@@ -15,6 +16,10 @@ export class CreateRfaDto {
   @IsInt()
   @IsNotEmpty()
   rfaTypeId!: number;
+
+  @IsInt()
+  @IsOptional()
+  disciplineId?: number; // [Req 6B] สาขางาน (จำเป็นสำหรับการรันเลข RFA)
 
   @IsString()
   @IsNotEmpty()

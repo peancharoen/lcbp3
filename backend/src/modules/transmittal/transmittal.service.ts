@@ -1,3 +1,5 @@
+// File: src/modules/transmittal/transmittal.service.ts
+
 import {
   Injectable,
   NotFoundException,
@@ -6,13 +8,13 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
 
-import { Transmittal } from './entities/transmittal.entity';
-import { TransmittalItem } from './entities/transmittal-item.entity';
-import { Correspondence } from '../correspondence/entities/correspondence.entity';
-import { CreateTransmittalDto } from './dto/create-transmittal.dto'; // ต้องสร้าง DTO
-import { User } from '../user/entities/user.entity';
-import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
-import { SearchService } from '../search/search.service'; // Import SearchService
+import { Transmittal } from './entities/transmittal.entity.js';
+import { TransmittalItem } from './entities/transmittal-item.entity.js';
+import { Correspondence } from '../correspondence/entities/correspondence.entity.js';
+import { CreateTransmittalDto } from './dto/create-transmittal.dto.js';
+import { User } from '../user/entities/user.entity.js';
+import { DocumentNumberingService } from '../document-numbering/document-numbering.service.js';
+import { SearchService } from '../search/search.service.js';
 
 @Injectable()
 export class TransmittalService {
@@ -25,47 +27,47 @@ export class TransmittalService {
     private correspondenceRepo: Repository<Correspondence>,
     private numberingService: DocumentNumberingService,
     private dataSource: DataSource,
-    private searchService: SearchService, // Inject
+    private searchService: SearchService,
   ) {}
 
   async create(createDto: CreateTransmittalDto, user: User) {
-    // ✅ FIX: ตรวจสอบว่า User มีสังกัดองค์กรหรือไม่
     if (!user.primaryOrganizationId) {
       throw new BadRequestException(
         'User must belong to an organization to create documents',
       );
     }
-    const userOrgId = user.primaryOrganizationId; // TypeScript จะรู้ว่าเป็น number แล้ว
+    const userOrgId = user.primaryOrganizationId;
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1. Generate Document Number
-      const transmittalTypeId = 3; // TODO: ควรดึง ID จริงจาก DB หรือ Config
+      const transmittalTypeId = 3; // TODO: ดึง ID จริงจาก DB หรือ Config
       const orgCode = 'ORG'; // TODO: Fetch real ORG Code
 
-      const docNumber = await this.numberingService.generateNextNumber(
-        createDto.projectId,
-        userOrgId, // ✅ ส่งค่าที่เช็คแล้ว
-        transmittalTypeId,
-        new Date().getFullYear(),
-        { TYPE_CODE: 'TR', ORG_CODE: orgCode },
-      );
+      // [FIXED] เรียกใช้แบบ Object Context
+      const docNumber = await this.numberingService.generateNextNumber({
+        projectId: createDto.projectId,
+        originatorId: userOrgId,
+        typeId: transmittalTypeId,
+        year: new Date().getFullYear(),
+        customTokens: {
+          TYPE_CODE: 'TR',
+          ORG_CODE: orgCode,
+        },
+      });
 
-      // 2. Create Correspondence (Header)
       const correspondence = queryRunner.manager.create(Correspondence, {
         correspondenceNumber: docNumber,
         correspondenceTypeId: transmittalTypeId,
         projectId: createDto.projectId,
-        originatorId: userOrgId, // ✅ ส่งค่าที่เช็คแล้ว
+        originatorId: userOrgId,
         isInternal: false,
         createdBy: user.user_id,
       });
       const savedCorr = await queryRunner.manager.save(correspondence);
 
-      // 3. Create Transmittal (Detail)
       const transmittal = queryRunner.manager.create(Transmittal, {
         correspondenceId: savedCorr.id,
         purpose: createDto.purpose,
@@ -73,7 +75,6 @@ export class TransmittalService {
       });
       await queryRunner.manager.save(transmittal);
 
-      // 4. Link Items (Documents being sent)
       if (createDto.itemIds && createDto.itemIds.length > 0) {
         const items = createDto.itemIds.map((itemId) =>
           queryRunner.manager.create(TransmittalItem, {

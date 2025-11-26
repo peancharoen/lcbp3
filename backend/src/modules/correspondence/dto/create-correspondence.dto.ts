@@ -1,3 +1,4 @@
+// File: src/modules/correspondence/dto/create-correspondence.dto.ts
 import {
   IsInt,
   IsString,
@@ -15,6 +16,14 @@ export class CreateCorrespondenceDto {
   @IsInt()
   @IsNotEmpty()
   typeId!: number; // ID ของประเภทเอกสาร (เช่น RFA, LETTER)
+
+  @IsInt()
+  @IsOptional()
+  disciplineId?: number; // [Req 6B] สาขางาน (เช่น GEN, STR)
+
+  @IsInt()
+  @IsOptional()
+  subTypeId?: number; // [Req 6B] ประเภทย่อย (เช่น MAT, SHP สำหรับ Transmittal/RFA)
 
   @IsString()
   @IsNotEmpty()
@@ -36,9 +45,4 @@ export class CreateCorrespondenceDto {
   @IsInt()
   @IsOptional()
   originatorId?: number;
-
-  // (Optional) ถ้าจะมีการแนบไฟล์มาด้วยเลย
-  // @IsArray()
-  // @IsString({ each: true })
-  // attachmentTempIds?: string[];
 }

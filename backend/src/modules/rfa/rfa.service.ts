@@ -1,3 +1,5 @@
+// File: src/modules/rfa/rfa.service.ts
+
 import {
   Injectable,
   NotFoundException,
@@ -10,31 +12,31 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
 
 // Entities
-import { Rfa } from './entities/rfa.entity';
-import { RfaRevision } from './entities/rfa-revision.entity';
-import { RfaItem } from './entities/rfa-item.entity';
-import { RfaType } from './entities/rfa-type.entity';
-import { RfaStatusCode } from './entities/rfa-status-code.entity';
-import { RfaApproveCode } from './entities/rfa-approve-code.entity';
-import { Correspondence } from '../correspondence/entities/correspondence.entity';
-import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
-import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
-import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
-import { User } from '../user/entities/user.entity';
+import { Rfa } from './entities/rfa.entity.js';
+import { RfaRevision } from './entities/rfa-revision.entity.js';
+import { RfaItem } from './entities/rfa-item.entity.js';
+import { RfaType } from './entities/rfa-type.entity.js';
+import { RfaStatusCode } from './entities/rfa-status-code.entity.js';
+import { RfaApproveCode } from './entities/rfa-approve-code.entity.js';
+import { Correspondence } from '../correspondence/entities/correspondence.entity.js';
+import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity.js';
+import { RoutingTemplate } from '../correspondence/entities/routing-template.entity.js';
+import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity.js';
+import { User } from '../user/entities/user.entity.js';
 
 // DTOs
-import { CreateRfaDto } from './dto/create-rfa.dto';
-import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto';
+import { CreateRfaDto } from './dto/create-rfa.dto.js';
+import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto.js';
 
 // Interfaces & Enums
-import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface'; // ตรวจสอบ path นี้ให้ตรงกับไฟล์จริง
+import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface.js';
 
 // Services
-import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
-import { UserService } from '../user/user.service';
-import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
-import { NotificationService } from '../notification/notification.service';
-import { SearchService } from '../search/search.service'; // Import SearchService
+import { DocumentNumberingService } from '../document-numbering/document-numbering.service.js';
+import { UserService } from '../user/user.service.js';
+import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service.js';
+import { NotificationService } from '../notification/notification.service.js';
+import { SearchService } from '../search/search.service.js';
 
 @Injectable()
 export class RfaService {
@@ -67,12 +69,9 @@ export class RfaService {
     private workflowEngine: WorkflowEngineService,
     private notificationService: NotificationService,
     private dataSource: DataSource,
-    private searchService: SearchService, // Inject
+    private searchService: SearchService,
   ) {}
 
-  /**
-   * สร้างเอกสาร RFA ใหม่ (Create RFA)
-   */
   async create(createDto: CreateRfaDto, user: User) {
     const rfaType = await this.rfaTypeRepo.findOne({
       where: { id: createDto.rfaTypeId },
@@ -103,20 +102,24 @@ export class RfaService {
 
     try {
       const orgCode = 'ORG'; // TODO: Fetch real ORG Code
-      const docNumber = await this.numberingService.generateNextNumber(
-        createDto.projectId,
-        userOrgId,
-        createDto.rfaTypeId,
-        new Date().getFullYear(),
-        {
+
+      // [FIXED] เรียกใช้แบบ Object Context พร้อม disciplineId
+      const docNumber = await this.numberingService.generateNextNumber({
+        projectId: createDto.projectId,
+        originatorId: userOrgId,
+        typeId: createDto.rfaTypeId, // RFA Type ใช้เป็น ID ในการนับเลข
+        disciplineId: createDto.disciplineId, // สำคัญมากสำหรับ RFA (Req 6B)
+        year: new Date().getFullYear(),
+        customTokens: {
           TYPE_CODE: rfaType.typeCode,
           ORG_CODE: orgCode,
         },
-      );
+      });
 
       const correspondence = queryRunner.manager.create(Correspondence, {
         correspondenceNumber: docNumber,
-        correspondenceTypeId: createDto.rfaTypeId,
+        correspondenceTypeId: createDto.rfaTypeId, // Map RFA Type to Corr Type ID
+        disciplineId: createDto.disciplineId, // บันทึก Discipline
         projectId: createDto.projectId,
         originatorId: userOrgId,
         isInternal: false,
@@ -126,6 +129,7 @@ export class RfaService {
 
       const rfa = queryRunner.manager.create(Rfa, {
         rfaTypeId: createDto.rfaTypeId,
+        disciplineId: createDto.disciplineId, // บันทึก Discipline
         createdBy: user.user_id,
       });
       const savedRfa = await queryRunner.manager.save(rfa);
@@ -168,7 +172,7 @@ export class RfaService {
       }
 
       await queryRunner.commitTransaction();
-      // 🔥 Fire & Forget: ไม่ต้อง await ผลลัพธ์เพื่อความเร็ว (หรือใช้ Queue ก็ได้)
+
       this.searchService.indexDocument({
         id: savedCorr.id,
         type: 'correspondence',
@@ -196,9 +200,7 @@ export class RfaService {
     }
   }
 
-  /**
-   * ดึงข้อมูล RFA รายตัว (Get One)
-   */
+  // ... (method อื่นๆ findOne, submit, processAction คงเดิม)
   async findOne(id: number) {
     const rfa = await this.rfaRepo.findOne({
       where: { id },
@@ -224,9 +226,6 @@ export class RfaService {
     return rfa;
   }
 
-  /**
-   * เริ่มต้นกระบวนการอนุมัติ (Submit Workflow)
-   */
   async submit(rfaId: number, templateId: number, user: User) {
     const rfa = await this.findOne(rfaId);
     const currentRevision = rfa.revisions.find((r) => r.isCurrent);
@@ -287,7 +286,6 @@ export class RfaService {
       });
       await queryRunner.manager.save(routing);
 
-      // Notification
       const recipientUserId = await this.userService.findDocControlIdByOrg(
         firstStep.toOrganizationId,
       );
@@ -316,9 +314,6 @@ export class RfaService {
     }
   }
 
-  /**
-   * ดำเนินการอนุมัติ/ปฏิเสธ (Process Workflow Action)
-   */
   async processAction(rfaId: number, dto: WorkflowActionDto, user: User) {
     const rfa = await this.findOne(rfaId);
     const currentRevision = rfa.revisions.find((r) => r.isCurrent);
@@ -401,7 +396,6 @@ export class RfaService {
         result.nextStepSequence === null &&
         dto.action !== WorkflowAction.REJECT
       ) {
-        // Completed (Approved)
         const approveCodeStr =
           dto.action === WorkflowAction.APPROVE ? '1A' : '4X';
         const approveCode = await this.rfaApproveRepo.findOne({
@@ -414,7 +408,6 @@ export class RfaService {
         }
         await queryRunner.manager.save(currentRevision);
       } else if (dto.action === WorkflowAction.REJECT) {
-        // Rejected
         const rejectCode = await this.rfaApproveRepo.findOne({
           where: { approveCode: '4X' },
         });
