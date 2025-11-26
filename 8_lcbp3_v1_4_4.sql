@@ -1,5 +1,5 @@
 -- ==========================================================
--- DMS v1.4.3 Document Management System Database
+-- DMS v1.4.4 Document Management System Database
 -- Deploy Script Schema
 -- Server: Container Station on QNAPQNAP TS-473A
 -- Database service: MariaDB 10.11
@@ -9,8 +9,13 @@
 -- frontend sevice: next.js
 -- reverse proxy: jc21/nginx-proxy-manager:latest
 -- cron service: n8n
--- DMS v1.4.3 Improvements
--- Update: revise fron v1.4.2 add PARTITION to audit_logs & notification
+-- DMS v1.4.4 Improvements
+-- Update: revise from v1.4.3
+-- 1. add disciplines, correspondence_sub_types
+-- 2. ปรับปรุงตาราง RFAs และ Correspondences (เพิ่ม Column, document_number_counters
+-- 3. ปรับปรุง SEED DATA
+-- 4. ปรับปรุง v_current_rfas
+-- 5. แยก Seed Data ออกจาก Deploy Script Schema
 -- ==========================================================
 SET NAMES utf8mb4;
 SET time_zone = '+07:00';
@@ -100,6 +105,9 @@ DROP TABLE IF EXISTS correspondences;
 -- ============================================================
 -- ส่วนที่ 8: ตารางหมวดหมู่และข้อมูลหลัก (Master Data)
 -- ============================================================
+-- [NEW 6B] ลบตารางใหม่ที่เพิ่มเข้ามาเพื่อป้องกัน Error เวลา Re-deploy
+DROP TABLE IF EXISTS correspondence_sub_types;
+DROP TABLE IF EXISTS disciplines;
 DROP TABLE IF EXISTS shop_drawing_sub_categories;
 DROP TABLE IF EXISTS shop_drawing_main_categories;
 DROP TABLE IF EXISTS contract_drawing_sub_cats;
@@ -145,54 +153,6 @@ CREATE TABLE organizations (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด' -- FOREIGN KEY (role_id) REFERENCES organization_roles(id) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลองค์กรทั้งหมดที่เกี่ยวข้องในระบบ';
--- Seed organization
-INSERT INTO organizations (id, organization_code, organization_name)
-VALUES (1, 'กทท.', 'การท่าเรือแห่งประเทศไทย'),
-  (
-    10,
-    'สคฉ.3',
-    'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3'
-  ),
-  (
-    11,
-    'สคฉ.3-01',
-    'ตรวจรับพัสดุ ที่ปรึกษาควบคุมงาน'
-  ),
-  (12, 'สคฉ.3-02', 'ตรวจรับพัสดุ งานทางทะเล'),
-  (
-    13,
-    'สคฉ.3-03',
-    'ตรวจรับพัสดุ อาคารและระบบสาธารณูปโภค'
-  ),
-  (
-    14,
-    'สคฉ.3-04',
-    'ตรวจรับพัสดุ ตรวจสอบผลกระทบสิ่งแวดล้อม'
-  ),
-  (15, 'สคฉ.3-05', 'ตรวจรับพัสดุ เยียวยาการประมง'),
-  (
-    16,
-    'สคฉ.3-06',
-    'ตรวจรับพัสดุ งานก่อสร้าง ส่วนที่ 3'
-  ),
-  (
-    17,
-    'สคฉ.3-07',
-    'ตรวจรับพัสดุ งานก่อสร้าง ส่วนที่ 4'
-  ),
-  (
-    18,
-    'สคฉ.3-xx',
-    'ตรวจรับพัสดุ ที่ปรึกษาออกแบบ ส่วนที่ 4'
-  ),
-  (21, 'TEAM', 'Designer Consulting Ltd.'),
-  (22, 'คคง.', 'Construction Supervision Ltd.'),
-  (41, 'ผรม.1', 'Contractor งานทางทะเล'),
-  (42, 'ผรม.2', 'Contractor อาคารและระบบ'),
-  (43, 'ผรม.3', 'Contractor #3 Ltd.'),
-  (44, 'ผรม.4', 'Contractor #4 Ltd.'),
-  (31, 'EN', 'Third Party Environment'),
-  (32, 'CAR', 'Third Party Fishery Care');
 -- ตาราง Master เก็บข้อมูลโครงการ
 CREATE TABLE projects (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
@@ -203,27 +163,6 @@ CREATE TABLE projects (
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน' -- FOREIGN KEY (parent_project_id) REFERENCES projects(id) ON DELETE SET NULL,
   -- FOREIGN KEY (contractor_organization_id) REFERENCES organizations(id) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลโครงการ';
-INSERT INTO projects (project_code, project_name)
-VALUES (
-    'LCBP3',
-    'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)'
-  ),
-  (
-    'LCBP3C1',
-    'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1) งานก่อสร้างงานทางทะเล'
-  ),
-  (
-    'LCBP3C2',
-    'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 2) งานก่อสร้างอาคาร ท่าเทียบเรือ ระบบถนน และระบบสาธารณูปโภค'
-  ),
-  (
-    'LCBP3C3',
-    'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 3) งานก่อสร้าง'
-  ),
-  (
-    'LCBP3C4',
-    'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 4) งานก่อสร้าง'
-  );
 -- ตาราง Master เก็บข้อมูลสัญญา
 CREATE TABLE contracts (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
@@ -238,83 +177,6 @@ CREATE TABLE contracts (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลสัญญา';
--- ใช้ Subquery เพื่อดึง project_id มาเชื่อมโยง ทำให้ไม่ต้องมานั่งจัดการ ID ด้วยตัวเอง
-INSERT INTO contracts (
-    contract_code,
-    contract_name,
-    project_id,
-    is_active
-  )
-VALUES (
-    'DSLCBP3',
-    'งานจ้างที่ปรีกษาออกแบบ โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)',
-    (
-      SELECT id
-      FROM projects
-      WHERE project_code = 'LCBP3'
-    ),
-    TRUE
-  ),
-  (
-    'PSLCBP3',
-    'งานจ้างที่ปรีกษาควบคุมงาน โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)',
-    (
-      SELECT id
-      FROM projects
-      WHERE project_code = 'LCBP3'
-    ),
-    TRUE
-  ),
-  (
-    'LCBP3-C1',
-    'งานก่อสร้าง โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1) งานก่อสร้างงานทางทะเล',
-    (
-      SELECT id
-      FROM projects
-      WHERE project_code = 'LCBP3C1'
-    ),
-    TRUE
-  ),
-  (
-    'LCBP3-C2',
-    'งานก่อสร้าง โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 2) งานก่อสร้างอาคาร ท่าเทียบเรือ ระบบถนน และระบบสาธารณูปโภค',
-    (
-      SELECT id
-      FROM projects
-      WHERE project_code = 'LCBP3C2'
-    ),
-    TRUE
-  ),
-  (
-    'LCBP3-C3',
-    'งานก่อสร้าง โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 3) งานก่อสร้าง',
-    (
-      SELECT id
-      FROM projects
-      WHERE project_code = 'LCBP3C3'
-    ),
-    TRUE
-  ),
-  (
-    'LCBP3-C4',
-    'งานก่อสร้าง โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 4) งานก่อสร้าง',
-    (
-      SELECT id
-      FROM projects
-      WHERE project_code = 'LCBP3C4'
-    ),
-    TRUE
-  ),
-  (
-    'ENLCBP3',
-    'งานจ้างเหมาตรวจสอบผลกระทบสิ่งแวดล้อมนะหว่างงานก่อสร้างโครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)',
-    (
-      SELECT id
-      FROM projects
-      WHERE project_code = 'LCBP3'
-    ),
-    TRUE
-  );
 -- =====================================================
 -- 2. 👥 Users & RBAC (ผู้ใช้, สิทธิ์, บทบาท)
 -- =====================================================
@@ -338,57 +200,6 @@ CREATE TABLE users (
   FOREIGN KEY (primary_organization_id) REFERENCES organizations(id) ON DELETE
   SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลผู้ใช้งาน (User)';
--- Initial SUPER_ADMIN user
-INSERT INTO `users` (
-    `user_id`,
-    `username`,
-    `password_hash`,
-    `first_name`,
-    `last_name`,
-    `email`,
-    `line_id`,
-    `primary_organization_id`
-  )
-VALUES (
-    1,
-    'superadmin',
-    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
-    'Super',
-    'Admin',
-    'superadmin @example.com',
-    NULL,
-    NULL
-  ),
-  (
-    2,
-    'admin',
-    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
-    'Admin',
-    'คคง.',
-    'admin@example.com',
-    NULL,
-    1
-  ),
-  (
-    3,
-    'editor01',
-    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
-    'DC',
-    'C1',
-    'editor01 @example.com',
-    NULL,
-    41
-  ),
-  (
-    4,
-    'viewer01',
-    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
-    'Viewer',
-    'สคฉ.03',
-    'viewer01 @example.com',
-    NULL,
-    10
-  );
 -- ตาราง Master เก็บ "บทบาท" ของผู้ใช้ในระบบ
 CREATE TABLE roles (
   role_id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
@@ -399,65 +210,6 @@ CREATE TABLE roles (
   description TEXT COMMENT 'คำอธิบายบทบาท',
   is_system BOOLEAN DEFAULT FALSE COMMENT '(1 = บทบาทของระบบ ลบไม่ได้)'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ "บทบาท" ของผู้ใช้ในระบบ';
--- ==========================================================
--- Seed Roles (บทบาทพื้นฐาน 5 บทบาท ตาม Req 4.3)
--- ==========================================================
--- 1. Superadmin (Global)
-INSERT INTO roles (role_id, role_name, scope, description)
-VALUES (
-    1,
-    'Superadmin',
-    'Global',
-    'ผู้ดูแลระบบสูงสุด: สามารถทำทุกอย่างในระบบ, จัดการองค์กร, และจัดการข้อมูลหลักระดับ Global'
-  );
--- 2. Org Admin (Organization)
-INSERT INTO roles (role_id, role_name, scope, description)
-VALUES (
-    2,
-    'Org Admin',
-    'Organization',
-    'ผู้ดูแลองค์กร: จัดการผู้ใช้ในองค์กร, จัดการบทบาท / สิทธิ์ภายในองค์กร, และดูรายงานขององค์กร'
-  );
--- 3. Document Control (Organization)
-INSERT INTO roles (role_id, role_name, scope, description)
-VALUES (
-    3,
-    'Document Control',
-    'Organization',
-    'ควบคุมเอกสารขององค์กร: เพิ่ม / แก้ไข / ลบเอกสาร, และกำหนดสิทธิ์เอกสารภายในองค์กร'
-  );
--- 4. Editor (Organization)
-INSERT INTO roles (role_id, role_name, scope, description)
-VALUES (
-    4,
-    'Editor',
-    'Organization',
-    'ผู้แก้ไขเอกสารขององค์กร: เพิ่ม / แก้ไขเอกสารที่ได้รับมอบหมาย'
-  );
--- 5. Viewer (Organization)
-INSERT INTO roles (role_id, role_name, scope, description)
-VALUES (
-    5,
-    'Viewer',
-    'Organization',
-    'ผู้ดูเอกสารขององค์กร: ดูเอกสารที่มีสิทธิ์เข้าถึงเท่านั้น'
-  );
--- 6. Project Manager (Project)
-INSERT INTO roles (role_id, role_name, scope, description)
-VALUES (
-    6,
-    'Project Manager',
-    'Project',
-    'ผู้จัดการโครงการ: จัดการสมาชิกในโครงการ, สร้าง / จัดการสัญญาในโครงการ, และดูรายงานโครงการ'
-  );
--- 7. Contract Admin (Contract)
-INSERT INTO roles (role_id, role_name, scope, description)
-VALUES (
-    7,
-    'Contract Admin',
-    'Contract',
-    'ผู้ดูแลสัญญา: จัดการสมาชิกในสัญญา, สร้าง / จัดการข้อมูลหลักเฉพาะสัญญา, และอนุมัติเอกสารในสัญญา'
-  );
 -- ตาราง Master เก็บ "สิทธิ์" (Permission) หรือ "การกระทำ" ทั้งหมดในระบบ
 CREATE TABLE permissions (
   permission_id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
@@ -467,187 +219,6 @@ CREATE TABLE permissions (
   scope_level ENUM('GLOBAL', 'ORG', 'PROJECT') COMMENT 'ระดับขอบเขตของสิทธิ์',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ "สิทธิ์" (Permission) หรือ "การกระทำ" ทั้งหมดในระบบ';
--- =====================================================
--- 2. Seed Permissions (สิทธิ์การใช้งานทั้งหมด)
--- สิทธิ์ระดับระบบและการจัดการหลัก (System & Master Data)
--- =====================================================
-INSERT INTO permissions (permission_id, permission_name, description)
-VALUES (
-    1,
-    'system.manage_all',
-    'ทำทุกอย่างในระบบ (Superadmin Power)'
-  ),
-  -- การจัดการองค์กร
-  (2, 'organization.create', 'สร้างองค์กรใหม่'),
-  (3, 'organization.edit', 'แก้ไขข้อมูลองค์กร'),
-  (4, 'organization.delete', 'ลบองค์กร'),
-  (5, 'organization.view', 'ดูรายการองค์กร'),
-  -- การจัดการโครงการ
-  (6, 'project.create', 'สร้างโครงการใหม่'),
-  (7, 'project.edit', 'แก้ไขข้อมูลโครงการ'),
-  (8, 'project.delete', 'ลบโครงการ'),
-  (9, 'project.view', 'ดูรายการโครงการ'),
-  -- การจัดการบทบาทและสิทธิ์ (Roles & Permissions)
-  (10, 'role.create', 'สร้างบทบาท (Role) ใหม่'),
-  (11, 'role.edit', 'แก้ไขบทบาท (Role)'),
-  (12, 'role.delete', 'ลบบทบาท (Role)'),
-  (
-    13,
-    'permission.assign',
-    'มอบสิทธิ์ให้กับบทบาท (Role)'
-  ),
-  -- การจัดการข้อมูลหลัก (Master Data)
-  (
-    14,
-    'master_data.document_type.manage',
-    'จัดการประเภทเอกสาร (Document Types)'
-  ),
-  (
-    15,
-    'master_data.document_status.manage',
-    'จัดการสถานะเอกสาร (Document Statuses)'
-  ),
-  (
-    16,
-    'master_data.drawing_category.manage',
-    'จัดการหมวดหมู่แบบ (Drawing Categories)'
-  ),
-  (17, 'master_data.tag.manage', 'จัดการ Tags'),
-  -- การจัดการผู้ใช้งาน
-  (18, 'user.create', 'สร้างผู้ใช้งานใหม่'),
-  (19, 'user.edit', 'แก้ไขข้อมูลผู้ใช้งาน'),
-  (20, 'user.delete', 'ลบ / ปิดการใช้งานผู้ใช้'),
-  (21, 'user.view', 'ดูข้อมูลผู้ใช้งาน'),
-  (
-    22,
-    'user.assign_organization',
-    'มอบผู้ใช้งานให้กับองค์กร'
-  );
--- =====================================================
--- == 2. สิทธิ์การจัดการโครงการและสัญญา (Project & Contract) ==
--- =====================================================
-INSERT INTO permissions (permission_id, permission_name, description)
-VALUES (
-    23,
-    'project.manage_members',
-    'จัดการสมาชิกในโครงการ (เชิญ / ถอดสมาชิก)'
-  ),
-  (
-    24,
-    'project.create_contracts',
-    'สร้างสัญญาในโครงการ'
-  ),
-  (
-    25,
-    'project.manage_contracts',
-    'จัดการสัญญาในโครงการ'
-  ),
-  (
-    26,
-    'project.view_reports',
-    'ดูรายงานระดับโครงการ'
-  ),
-  (
-    27,
-    'contract.manage_members',
-    'จัดการสมาชิกในสัญญา'
-  ),
-  (28, 'contract.view', 'ดูข้อมูลสัญญา');
--- =====================================================
--- == 3. สิทธิ์การจัดการเอกสาร (Document Management) ==
--- =====================================================
--- สิทธิ์ทั่วไปสำหรับเอกสารทุกประเภท
-INSERT INTO permissions (permission_id, permission_name, description)
-VALUES (
-    29,
-    'document.create_draft',
-    'สร้างเอกสารในสถานะฉบับร่าง (Draft) '
-  ),
-  (30, 'document.submit', 'ส่งเอกสาร (Submitted)'),
-  (31, 'document.view', 'ดูเอกสาร'),
-  (32, 'document.edit', 'แก้ไขเอกสาร (ทั่วไป)'),
-  (
-    33,
-    'document.admin_edit',
-    'แก้ไข / ถอน / ยกเลิกเอกสารที่ส่งแล้ว (Admin Power) '
-  ),
-  (34, 'document.delete', 'ลบเอกสาร'),
-  (
-    35,
-    'document.attach',
-    'จัดการไฟล์แนบ (อัปโหลด / ลบ) '
-  ),
-  -- สิทธิ์เฉพาะสำหรับ Correspondence
-  (
-    36,
-    'correspondence.create',
-    'สร้างเอกสารโต้ตอบ (Correspondence) '
-  ),
-  -- สิทธิ์เฉพาะสำหรับ Request for Approval (RFA)
-  (37, 'rfa.create', 'สร้างเอกสารขออนุมัติ (RFA)'),
-  (
-    38,
-    'rfa.manage_shop_drawings',
-    'จัดการข้อมูล Shop Drawing และ Contract Drawing ที่เกี่ยวข้อง'
-  ),
-  -- สิทธิ์เฉพาะสำหรับ Shop Drawing & Contract Drawing
-  (
-    39,
-    'drawing.create',
-    'สร้าง / แก้ไขข้อมูลแบบ (Shop / Contract Drawing)'
-  ),
-  -- สิทธิ์เฉพาะสำหรับ Transmittal
-  (
-    40,
-    'transmittal.create',
-    'สร้างเอกสารนำส่ง (Transmittal)'
-  ),
-  -- สิทธิ์เฉพาะสำหรับ Circulation Sheet (ใบเวียน)
-  (
-    41,
-    'circulation.create',
-    'สร้างใบเวียนเอกสาร (Circulation)'
-  ),
-  (
-    42,
-    'circulation.respond',
-    'ตอบกลับใบเวียน (Main / Action)'
-  ),
-  (
-    43,
-    'circulation.acknowledge',
-    'รับทราบใบเวียน (Information)'
-  ),
-  (44, 'circulation.close', 'ปิดใบเวียน');
--- =====================================================
--- == 4. สิทธิ์การจัดการ Workflow ==
--- =====================================================
-INSERT INTO permissions (permission_id, permission_name, description)
-VALUES (
-    45,
-    'workflow.action_review',
-    'ดำเนินการในขั้นตอนปัจจุบัน (เช่น ตรวจสอบแล้ว)'
-  ),
-  (
-    46,
-    'workflow.force_proceed',
-    'บังคับไปยังขั้นตอนถัดไป (Document Control Power)'
-  ),
-  (
-    47,
-    'workflow.revert',
-    'ย้อนกลับไปยังขั้นตอนก่อนหน้า (Document Control Power)'
-  );
--- =====================================================
--- == 5. สิทธิ์ด้านการค้นหาและรายงาน (Search & Reporting) ==
--- =====================================================
-INSERT INTO permissions (permission_id, permission_name, description)
-VALUES (48, 'search.advanced', 'ใช้งานการค้นหาขั้นสูง'),
-  (
-    49,
-    'report.generate',
-    'สร้างรายงานสรุป (รายวัน / สัปดาห์ / เดือน / ปี)'
-  );
 -- ตารางเชื่อมระหว่าง roles และ permissions (M:N)
 CREATE TABLE role_permissions (
   role_id INT COMMENT 'ID ของบทบาท',
@@ -656,233 +227,6 @@ CREATE TABLE role_permissions (
   FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE,
   FOREIGN KEY (permission_id) REFERENCES permissions(permission_id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมระหว่าง roles และ permissions (M :N)';
--- ==========================================================
--- Seed Role-Permissions Mapping (จับคู่สิทธิ์เริ่มต้น)
--- ==========================================================
--- Seed data for the 'role_permissions 'table
--- This table links roles to their specific permissions.
--- NOTE: This assumes the role_id and permission_id from the previous seed data files.
--- Superadmin (role_id = 1), Org Admin (role_id = 2), Document Control (role_id = 3), etc.
--- =====================================================
--- == 1. Superadmin (role_id = 1) - Gets ALL permissions ==
--- =====================================================
--- Superadmin can do everything. We can dynamically link all permissions to this role.
--- This is a robust way to ensure Superadmin always has full power.
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT 1,
-  permission_id
-FROM permissions;
--- =====================================================
--- == 2. Org Admin (role_id = 2) ==
--- =====================================================
-INSERT INTO role_permissions (role_id, permission_id)
-VALUES -- จัดการผู้ใช้ในองค์กร
-  (2, 18),
-  -- user.create
-  (2, 19),
-  -- user.edit
-  (2, 20),
-  -- user.delete
-  (2, 21),
-  -- user.view
-  (2, 22),
-  -- user.assign_organization
-  -- จัดการองค์กร
-  (2, 3),
-  -- organization.edit
-  (2, 5),
-  -- organization.view
-  -- จัดการข้อมูลหลักที่อนุญาต (เฉพาะ Tags)
-  (2, 17),
-  -- master_data.tag.manage
-  -- ดูข้อมูลต่างๆ ในองค์กร
-  (2, 31),
-  -- document.view
-  (2, 9),
-  -- project.view
-  (2, 28),
-  -- contract.view
-  -- การค้นหาและรายงาน
-  (2, 48),
-  -- search.advanced
-  (2, 49);
--- report.generate
--- =====================================================
--- == 3. Document Control (role_id = 3) ==
--- =====================================================
-INSERT INTO role_permissions (role_id, permission_id)
-VALUES -- สิทธิ์จัดการเอกสารทั้งหมด
-  (3, 29),
-  -- document.create_draft
-  (3, 30),
-  -- document.submit
-  (3, 31),
-  -- document.view
-  (3, 32),
-  -- document.edit
-  (3, 33),
-  -- document.admin_edit
-  (3, 34),
-  -- document.delete
-  (3, 35),
-  -- document.attach
-  -- สิทธิ์สร้างเอกสารแต่ละประเภท
-  (3, 36),
-  -- correspondence.create
-  (3, 37),
-  -- rfa.create
-  (3, 39),
-  -- drawing.create
-  (3, 40),
-  -- transmittal.create
-  (3, 41),
-  -- circulation.create
-  -- สิทธิ์จัดการ Workflow
-  (3, 45),
-  -- workflow.action_review
-  (3, 46),
-  -- workflow.force_proceed
-  (3, 47),
-  -- workflow.revert
-  -- สิทธิ์จัดการ Circulation
-  (3, 42),
-  -- circulation.respond
-  (3, 43),
-  -- circulation.acknowledge
-  (3, 44),
-  -- circulation.close
-  -- สิทธิ์อื่นๆ ที่จำเป็น
-  (3, 38),
-  -- rfa.manage_shop_drawings
-  (3, 48),
-  -- search.advanced
-  (3, 49);
--- report.generate
--- =====================================================
--- == 4. Editor (role_id = 4) ==
--- =====================================================
-INSERT INTO role_permissions (role_id, permission_id)
-VALUES -- สิทธิ์แก้ไขเอกสาร (แต่ไม่ใช่สิทธิ์ Admin)
-  (4, 29),
-  -- document.create_draft
-  (4, 30),
-  -- document.submit
-  (4, 31),
-  -- document.view
-  (4, 32),
-  -- document.edit
-  (4, 35),
-  -- document.attach
-  -- สิทธิ์สร้างเอกสารแต่ละประเภท
-  (4, 36),
-  -- correspondence.create
-  (4, 37),
-  -- rfa.create
-  (4, 39),
-  -- drawing.create
-  (4, 40),
-  -- transmittal.create
-  (4, 41),
-  -- circulation.create
-  -- สิทธิ์อื่นๆ ที่จำเป็น
-  (4, 38),
-  -- rfa.manage_shop_drawings
-  (4, 48);
--- search.advanced
--- =====================================================
--- == 5. Viewer (role_id = 5) ==
--- =====================================================
-INSERT INTO role_permissions (role_id, permission_id)
-VALUES -- สิทธิ์ดูเท่านั้น
-  (5, 31),
-  -- document.view
-  (5, 48);
--- search.advanced
--- =====================================================
--- == 6. Project Manager (role_id = 6) ==
--- =====================================================
-INSERT INTO role_permissions (role_id, permission_id)
-VALUES -- สิทธิ์จัดการโครงการ
-  (6, 23),
-  -- project.manage_members
-  (6, 24),
-  -- project.create_contracts
-  (6, 25),
-  -- project.manage_contracts
-  (6, 26),
-  -- project.view_reports
-  (6, 9),
-  -- project.view
-  -- สิทธิ์จัดการข้อมูลหลักระดับโครงการ
-  (6, 16),
-  -- master_data.drawing_category.manage
-  -- สิทธิ์ดูข้อมูลในสัญญา
-  (6, 28),
-  -- contract.view
-  -- สิทธิ์ในการจัดการเอกสาร (ระดับ Editor)
-  (6, 29),
-  -- document.create_draft
-  (6, 30),
-  -- document.submit
-  (6, 31),
-  -- document.view
-  (6, 32),
-  -- document.edit
-  (6, 35),
-  -- document.attach
-  (6, 36),
-  -- correspondence.create
-  (6, 37),
-  -- rfa.create
-  (6, 39),
-  -- drawing.create
-  (6, 40),
-  -- transmittal.create
-  (6, 41),
-  -- circulation.create
-  (6, 38),
-  -- rfa.manage_shop_drawings
-  (6, 48),
-  -- search.advanced
-  (6, 49);
--- report.generate
--- =====================================================
--- == 7. Contract Admin (role_id = 7) ==
--- =====================================================
-INSERT INTO role_permissions (role_id, permission_id)
-VALUES -- สิทธิ์จัดการสัญญา
-  (7, 27),
-  -- contract.manage_members
-  (7, 28),
-  -- contract.view
-  -- สิทธิ์ในการอนุมัติ (ส่วนหนึ่งของ Workflow)
-  (7, 45),
-  -- workflow.action_review
-  -- สิทธิ์จัดการข้อมูลเฉพาะสัญญา
-  (7, 38),
-  -- rfa.manage_shop_drawings
-  (7, 39),
-  -- drawing.create
-  -- สิทธิ์ในการจัดการเอกสาร (ระดับ Editor)
-  (7, 29),
-  -- document.create_draft
-  (7, 30),
-  -- document.submit
-  (7, 31),
-  -- document.view
-  (7, 32),
-  -- document.edit
-  (7, 35),
-  -- document.attach
-  (7, 36),
-  -- correspondence.create
-  (7, 37),
-  -- rfa.create
-  (7, 40),
-  -- transmittal.create
-  (7, 41),
-  -- circulation.create
-  (7, 48);
 -- search.advanced
 -- ตารางเชื่อมผู้ใช้ (users)
 CREATE TABLE user_assignments (
@@ -926,33 +270,6 @@ CREATE TABLE user_assignments (
     ) -- สำหรับ Global scope
   )
 );
-INSERT INTO `user_assignments` (
-    `id`,
-    `user_id`,
-    `role_id`,
-    `organization_id`,
-    `project_id`,
-    `contract_id`,
-    `assigned_by_user_id`
-  )
-VALUES (
-    1,
-    1,
-    1,
-    NULL,
-    NULL,
-    NULL,
-    NULL
-  ),
-  (
-    2,
-    2,
-    2,
-    1,
-    NULL,
-    NULL,
-    NULL
-  );
 CREATE TABLE project_organizations (
   project_id INT NOT NULL,
   organization_id INT NOT NULL,
@@ -969,193 +286,6 @@ CREATE TABLE contract_organizations (
   FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
   FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
 );
--- =====================================================
--- == 4. การเชื่อมโยงโครงการกับองค์กร (project_organizations) ==
--- =====================================================
--- โครงการหลัก (LCBP3) จะมีองค์กรหลักๆ เข้ามาเกี่ยวข้องทั้งหมด
-INSERT INTO project_organizations (project_id, organization_id)
-SELECT (
-    SELECT id
-    FROM projects
-    WHERE project_code = 'LCBP3 '
-  ),
-  id
-FROM organizations
-WHERE organization_code IN (
-    'กทท.',
-    'สคฉ.3',
-    'TEAM',
-    'คคง.',
-    'ผรม.1',
-    'ผรม.2',
-    'ผรม.3',
-    'ผรม.4',
-    'EN',
-    'CAR '
-  );
--- โครงการย่อย (LCBP3C1) จะมีเฉพาะองค์กรที่เกี่ยวข้อง
-INSERT INTO project_organizations (project_id, organization_id)
-SELECT (
-    SELECT id
-    FROM projects
-    WHERE project_code = 'LCBP3C1 '
-  ),
-  id
-FROM organizations
-WHERE organization_code IN ('กทท.', 'สคฉ.3', 'สคฉ.3 -02', 'คคง.', 'ผรม.1 ');
--- ทำเช่นเดียวกันสำหรับโครงการอื่นๆ (ตัวอย่าง)
-INSERT INTO project_organizations (project_id, organization_id)
-SELECT (
-    SELECT id
-    FROM projects
-    WHERE project_code = 'LCBP3C2 '
-  ),
-  id
-FROM organizations
-WHERE organization_code IN ('กทท.', 'สคฉ.3', 'สคฉ.3 -03', 'คคง.', 'ผรม.2 ');
--- =====================================================
--- == 5. การเชื่อมโยงสัญญากับองค์กร (contract_organizations) ==
--- =====================================================
--- สัญญาที่ปรึกษาออกแบบ (DSLCBP3)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
-VALUES (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'DSLCBP3'
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'กทท.'
-    ),
-    'Owner'
-  ),
-  (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'DSLCBP3'
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'TEAM'
-    ),
-    'Designer'
-  );
--- สัญญาที่ปรึกษาควบคุมงาน (PSLCBP3)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
-VALUES (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'PSLCBP3 '
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'กทท.'
-    ),
-    'Owner'
-  ),
-  (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'PSLCBP3 '
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'คคง.'
-    ),
-    'Consultant'
-  );
--- สัญญางานก่อสร้าง ส่วนที่ 1 (LCBP3-C1)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
-VALUES (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'LCBP3-C1'
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'กทท.'
-    ),
-    'Owner'
-  ),
-  (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'LCBP3-C1 '
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'ผรม.1'
-    ),
-    'Contractor'
-  );
--- สัญญางานก่อสร้าง ส่วนที่ 2 (LCBP3-C2)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
-VALUES (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'LCBP3-C2'
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'กทท.'
-    ),
-    'Owner'
-  ),
-  (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'LCBP3-C2'
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'ผรม.2'
-    ),
-    'Contractor'
-  );
--- สัญญาตรวจสอบสิ่งแวดล้อม (ENLCBP3)
-INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
-VALUES (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'ENLCBP3'
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'กทท.'
-    ),
-    'Owner'
-  ),
-  (
-    (
-      SELECT id
-      FROM contracts
-      WHERE contract_code = 'ENLCBP3'
-    ),
-    (
-      SELECT id
-      FROM organizations
-      WHERE organization_code = 'EN'
-    ),
-    'Consultant'
-  );
 -- =====================================================
 -- 3. ✉️ Correspondences (เอกสารหลัก, Revisions)
 -- =====================================================
@@ -1186,30 +316,6 @@ CREATE TABLE correspondence_status (
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน '
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บสถานะของเอกสาร';
-INSERT INTO correspondence_status (status_code, status_name, sort_order, is_active)
-VALUES ('DRAFT', 'Draft', 10, 1),
-  ('SUBOWN', 'Submitted to Owner', 21, 1),
-  ('SUBDSN', 'Submitted to Designer', 22, 1),
-  ('SUBCSC', 'Submitted to CSC', 23, 1),
-  ('SUBCON', 'Submitted to Contractor', 24, 1),
-  ('SUBOTH', 'Submitted to Others', 25, 1),
-  ('REPOWN', 'Reply by Owner', 31, 1),
-  ('REPDSN', 'Reply by Designer', 32, 1),
-  ('REPCSC', 'Reply by CSC', 33, 1),
-  ('REPCON', 'Reply by Contractor', 34, 1),
-  ('REPOTH', 'Reply by Others', 35, 1),
-  ('RSBOWN', 'Resubmited by Owner', 41, 1),
-  ('RSBDSN', 'Resubmited by Designer', 42, 1),
-  ('RSBCSC', 'Resubmited by CSC', 43, 1),
-  ('RSBCON', 'Resubmited by Contractor', 44, 1),
-  ('CLBOWN', 'Closed by Owner', 51, 1),
-  ('CLBDSN', 'Closed by Designer', 52, 1),
-  ('CLBCSC', 'Closed by CSC', 53, 1),
-  ('CLBCON', 'Closed by Contractor', 54, 1),
-  ('CCBOWN', 'Canceled by Owner', 91, 1),
-  ('CCBDSN', 'Canceled by Designer', 92, 1),
-  ('CCBCSC', 'Canceled by CSC', 93, 1),
-  ('CCBCON', 'Canceled by Contractor', 94, 1);
 -- ตาราง "แม่" ของเอกสารโต้ตอบ เก็บข้อมูลที่ไม่เปลี่ยนตาม Revision
 CREATE TABLE correspondences (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง (นี่คือ "Master ID" ที่ใช้เชื่อมโยง)',
@@ -1378,25 +484,49 @@ CREATE TABLE correspondence_routings (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางติดตาม Workflow การส่งต่อเอกสารทั่วไป';
 -- ตาราง Master สำหรับประเภท RFA
 CREATE TABLE rfa_types (
-  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  type_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'รหัสประเภท RFA (เช่น DWG, DOC, MAT)',
-  type_name VARCHAR(100) NOT NULL COMMENT 'ชื่อประเภท RFA',
-  description TEXT COMMENT 'คำอธิบาย',
-  sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
-  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน '
+  id INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  contract_id INT NOT NULL COMMENT 'ผูกกับสัญญา',
+  type_code VARCHAR(20) NOT NULL COMMENT 'รหัสประเภท RFA (เช่น DWG, DOC, MAT)',
+  type_name_th VARCHAR(100) NOT NULL COMMENT 'ชื่อประเภท RFA th',
+  type_name_en VARCHAR(100) NOT NULL COMMENT 'ชื่อประเภท RFA en',
+  remark TEXT COMMENT 'หมายเหตุ',
+  -- sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน ',
+  UNIQUE KEY uk_rfa_types_contract_code (contract_id, type_code),
+  FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master สำหรับประเภท RFA';
-INSERT INTO rfa_types (type_code, type_name, sort_order, is_active)
-VALUES ('DWG', 'Shop Drawing', 10, 1),
-  ('DOC', 'Document', 20, 1),
-  ('SPC', 'Specification', 21, 1),
-  ('CAL', 'Calculation', 22, 1),
-  ('TRP', 'Test Report', 23, 1),
-  ('SRY', 'Survey Report', 24, 1),
-  ('QAQC', 'QA / QC Document', 25, 1),
-  ('MES', 'Method Statement', 30, 1),
-  ('MAT', 'Material', 40, 1),
-  ('ASB', 'As - Built', 50, 1),
-  ('OTH', 'Other', 99, 1);
+-- [NEW 6B] ตารางเก็บข้อมูลสาขางาน (Disciplines) แยกตามสัญญา
+CREATE TABLE disciplines (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  contract_id INT NOT NULL COMMENT 'ผูกกับสัญญา',
+  discipline_code VARCHAR(10) NOT NULL COMMENT 'รหัสสาขา (เช่น GEN, STR)',
+  code_name_th VARCHAR(255) COMMENT 'ชื่อไทย',
+  code_name_en VARCHAR(255) COMMENT 'ชื่ออังกฤษ',
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
+  UNIQUE KEY uk_discipline_contract (contract_id, discipline_code)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บข้อมูลสาขางาน (Disciplines) ตาม Req 6B';
+-- [NEW 6B] ตารางเก็บประเภทหนังสือย่อย (Sub Types) สำหรับ Mapping เลขรหัส
+CREATE TABLE correspondence_sub_types (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  contract_id INT NOT NULL COMMENT 'ผูกกับสัญญา',
+  correspondence_type_id INT NOT NULL COMMENT 'ผูกกับประเภทเอกสารหลัก (เช่น RFA)',
+  sub_type_code VARCHAR(20) NOT NULL COMMENT 'รหัสย่อย (เช่น MAT, SHP)',
+  sub_type_name VARCHAR(255) COMMENT 'ชื่อประเภทหนังสือย่อย',
+  sub_type_number VARCHAR(10) COMMENT 'เลขรหัสสำหรับ Running Number (เช่น 11, 22)',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
+  FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บประเภทหนังสือย่อย (Sub Types) ตาม Req 6B';
+-- หรือใช้ ALTER TABLE (แนะนำให้รันหลังสร้างตาราง disciplines เสร็จ)
+ALTER TABLE correspondences
+ADD COLUMN discipline_id INT NULL COMMENT 'สาขางาน (ถ้ามี)'
+AFTER correspondence_type_id;
+ALTER TABLE correspondences
+ADD CONSTRAINT fk_corr_discipline FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE
+SET NULL;
 -- ตาราง Master สำหรับสถานะ RFA
 CREATE TABLE rfa_status_codes (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
@@ -1406,19 +536,6 @@ CREATE TABLE rfa_status_codes (
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน '
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master สำหรับสถานะ RFA';
-INSERT INTO rfa_status_codes (
-    status_code,
-    status_name,
-    description,
-    sort_order
-  )
-VALUES ('DFT', 'Draft', 'ฉบับร่าง', 1),
-  ('FAP', 'For Approve', 'เพื่อขออนุมัติ', 11),
-  ('FRE', 'For Review', 'เพื่อตรวจสอบ', 12),
-  ('FCO', 'For Construction', 'เพื่อก่อสร้าง', 20),
-  ('ASB', 'AS - Built', 'แบบก่อสร้างจริง', 30),
-  ('OBS', 'Obsolete', 'ไม่ใช้งาน', 80),
-  ('CC', 'Canceled', 'ยกเลิก', 99);
 -- ตาราง Master สำหรับรหัสผลการอนุมัติ RFA
 CREATE TABLE rfa_approve_codes (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
@@ -1432,22 +549,6 @@ CREATE TABLE rfa_approve_codes (
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน '
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master สำหรับรหัสผลการอนุมัติ RFA';
-INSERT INTO rfa_approve_codes (
-    approve_code,
-    approve_name,
-    sort_order,
-    is_active
-  )
-VALUES ('1A', 'Approved by Authority', 10, 1),
-  ('1C', 'Approved by CSC', 11, 1),
-  ('1N', 'Approved As Note', 12, 1),
-  ('1R', 'Approved with Remarks', 13, 1),
-  ('3C', 'Consultant Comments', 31, 1),
-  ('3R', 'Revise
-    and Resubmit', 32, 1),
-  ('4X', 'Reject', 40, 1),
-  ('5N', 'No Further Action', 50, 1);
--- ตาราง "แม่" ของ RFA (มีความสัมพันธ์ 1:N กับ rfa_revisions)
 CREATE TABLE rfas (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง (RFA Master ID)',
   rfa_type_id INT NOT NULL COMMENT 'ประเภท RFA',
@@ -1458,6 +559,12 @@ CREATE TABLE rfas (
   FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE
   SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "แม่" ของ RFA (มีความสัมพันธ์ 1 :N กับ rfa_revisions)';
+ALTER TABLE rfas
+ADD COLUMN discipline_id INT NULL COMMENT 'สาขางาน (ถ้ามี)'
+AFTER rfa_type_id;
+ALTER TABLE rfas
+ADD CONSTRAINT fk_rfa_discipline FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE
+SET NULL;
 -- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ rfas (1:N)
 CREATE TABLE rfa_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
@@ -1867,10 +974,12 @@ CREATE TABLE document_number_formats (
 -- 2.1 Document Numbering - Optimistic Locking
 -- รองรับ: Backend Plan T2.3, Req 3.10.5
 -- เหตุผล: ป้องกัน Race Condition เวลาขอเลขที่เอกสารพร้อมกัน
+-- [UPDATED 6B] ตารางเก็บ "ตัวนับ" (Running Number) ล่าสุด รองรับ Discipline
 CREATE TABLE document_number_counters (
   project_id INT COMMENT 'โครงการ',
   originator_organization_id INT COMMENT 'องค์กรผู้ส่ง',
   correspondence_type_id INT COMMENT 'ประเภทเอกสาร',
+  discipline_id INT DEFAULT 0 COMMENT '[NEW] สาขางาน (0 = ไม่ระบุ)',
   current_year INT COMMENT 'ปี ค.ศ.ของตัวนับ',
   version INT DEFAULT 0 NOT NULL COMMENT 'Optimistic Lock Version',
   last_number INT DEFAULT 0 COMMENT 'เลขที่ล่าสุดที่ใช้ไปแล้ว',
@@ -1878,6 +987,8 @@ CREATE TABLE document_number_counters (
     project_id,
     originator_organization_id,
     correspondence_type_id,
+    discipline_id,
+    -- เพิ่ม Key นี้
     current_year
   ),
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
@@ -2167,7 +1278,8 @@ CREATE VIEW v_current_rfas AS
 SELECT r.id AS rfa_id,
   r.rfa_type_id,
   rt.type_code AS rfa_type_code,
-  rt.type_name AS rfa_type_name,
+  rt.type_name_th AS rfa_type_name_th,
+  rt.type_name_en AS rfa_type_name_en,
   rr.correspondence_id,
   c.correspondence_number,
   c.project_id,

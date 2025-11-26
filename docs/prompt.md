@@ -224,3 +224,201 @@ npm install --save-dev @nestjs/testing jest @types/jest @types/passport-jwt @typ
 2.  **`src/common/file-storage/file-storage.service.ts`** (เพื่อดู Logic การจัดการไฟล์และการ Commit)
 
 หรือถ้าต้องการให้ผมเริ่มเขียน Code ส่วนไหนที่ยังขาดอยู่ (เช่น Workflow DSL Parser) สามารถแจ้งได้เลยครับ
+
+
+สวัสดีครับ ในฐานะ Programmer ที่ดูแลระบบ LCBP3-DMS ผมได้ทำการ **Review เอกสาร `6B.md` (Special requirements for document-numbering)** โดยเทียบกับโครงสร้างฐานข้อมูลและแผนงานที่มีอยู่ (v1.4.3) พบประเด็นสำคัญและการปรับปรุงทางเทคนิคที่จำเป็นดังนี้ครับ
+
+-----
+
+# 📝 ผลการ Review เอกสาร 6B.md และแนวทางการ Implement
+
+## 1\. บทวิเคราะห์และผลกระทบ (Analysis & Impact)
+
+เอกสาร `6B.md` ระบุความต้องการที่ **ซับซ้อนกว่า** ระบบ Running Number ทั่วไป (ที่มักเป็น `ORG-TYPE-YEAR-SEQ`) โดยมีประเด็นสำคัญคือ:
+
+1.  **Requirement 1 (Flexibility):** Admin ต้องแก้ format ได้ → **รองรับได้** ด้วยตาราง `document_number_formats` ที่มีอยู่ แต่ต้องปรับ Logic การแทนค่าตัวแปร (Token Replacement) ให้ฉลาดขึ้น
+2.  **Requirement 2.1 (Correspondence ทั่วไป):** รูปแบบมาตรฐาน → **รองรับได้** ด้วยโครงสร้างปัจจุบัน
+3.  **Requirement 2.2 (Transmittal):** มีเงื่อนไข "To OWNER" vs "To CONTRACTOR" ใช้เลขต่างกัน และมีการ mapping `sub_type_number` → **Impact:** ต้องเพิ่ม Logic ในการเลือก Format Template ตาม "ผู้รับ" (Recipient Role) และต้องมีตารางเก็บ Mapping `sub_type_number`
+4.  **Requirement 2.3 (RFI) & 2.4 (RFA):** มีการใช้ `disciplines_code` (เช่น GEN, STR, ARC) และไม่มีปี (Year) ใน Format → **Impact:**
+      * ฐานข้อมูลปัจจุบันขาดตาราง `disciplines`
+      * ตาราง `document_number_counters` ปัจจุบัน Key คือ `(Project, Org, Type, Year)` แต่ RFA/RFI อาจจะต้องนับแยกตาม **Discipline** ด้วย หากไม่เพิ่ม Column ใน Counter อาจจะเกิดปัญหาเลขซ้ำหรือเลขกระโดดข้ามหมวดงาน
+
+-----
+
+## 2\. การออกแบบฐานข้อมูลเพิ่มเติม (Database Schema Updates)
+
+เพื่อให้รองรับ Requirement นี้ ต้องมีการเพิ่มตารางและแก้ไขตาราง `01_lcbp3_v1_4_3.sql` ดังนี้:
+
+### 2.1 เพิ่มตาราง `disciplines` และ `correspondence_sub_types`
+
+```sql
+-- File: 01_lcbp3_v1_4_3_patch_6b.sql
+-- เพิ่มตารางหมวดงาน (Disciplines) ตาม Req 6B
+CREATE TABLE disciplines (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    project_id INT NOT NULL,
+    discipline_code VARCHAR(10) NOT NULL COMMENT 'เช่น GEN, STR, ARC',
+    name_th VARCHAR(255) COMMENT 'ชื่อไทย',
+    name_en VARCHAR(255) COMMENT 'ชื่ออังกฤษ',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_discipline_project (project_id, discipline_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- เพิ่มตาราง Sub Types (สำหรับ Transmittal/RFA mapping)
+CREATE TABLE correspondence_sub_type_codes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    project_id INT NOT NULL,
+    correspondence_type_id INT NOT NULL,
+    sub_type_code VARCHAR(20) NOT NULL COMMENT 'เช่น MAT, SHP',
+    sub_type_number VARCHAR(10) COMMENT 'เลขรหัส เช่น 11, 22',
+    description VARCHAR(255),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+```
+
+### 2.2 ปรับปรุงตาราง `rfas` และ `document_number_counters`
+
+เนื่องจาก RFA/RFI ต้องวิ่งเลขตาม Discipline เราจึงต้องเก็บ Discipline ไว้ใน RFA และต้องใช้เป็นส่วนหนึ่งของ Key ในการนับเลข
+
+```sql
+-- เพิ่ม discipline_id ในตาราง RFAs
+ALTER TABLE rfas
+ADD COLUMN discipline_id INT NULL AFTER rfa_type_id,
+ADD CONSTRAINT fk_rfa_discipline FOREIGN KEY (discipline_id) REFERENCES disciplines(id);
+
+-- เพิ่ม discipline_id ในตาราง Correspondences (สำหรับ RFI)
+ALTER TABLE correspondences
+ADD COLUMN discipline_id INT NULL AFTER correspondence_type_id,
+ADD CONSTRAINT fk_corr_discipline FOREIGN KEY (discipline_id) REFERENCES disciplines(id);
+
+-- ปรับปรุงตาราง Counter ให้รองรับ Discipline และ SubType (ใช้เป็น Dynamic Key หรือเพิ่ม Column)
+-- เพื่อความ Performance และ Integrity แนะนำให้เพิ่ม Column
+ALTER TABLE document_number_counters
+ADD COLUMN discipline_id INT NULL DEFAULT NULL AFTER correspondence_type_id,
+DROP PRIMARY KEY,
+ADD PRIMARY KEY (project_id, originator_organization_id, correspondence_type_id, discipline_id, current_year);
+-- หมายเหตุ: ถ้า discipline_id เป็น NULL ให้ถือว่าเป็น Counter ทั่วไป
+```
+
+-----
+
+## 3\. แนวทางการ Implement ใน NestJS (Backend Logic)
+
+เราต้องปรับ `DocumentNumberingService` ให้เป็น **Token-Based Generator** ที่มีความยืดหยุ่นสูง
+
+### 3.1 รูปแบบ Template (Format Templates)
+
+Admin จะบันทึก Template ลง DB ในรูปแบบ:
+
+  * General: `{ORG}-{ORG}-{SEQ:4}-{YEAR}`
+  * Transmittal: `{ORG}-{ORG}-{SUBTYPE_NUM}-{SEQ:4}-{YEAR}`
+  * RFA: `{CONTRACT}-{TYPE}-{DISCIPLINE}-{SUBTYPE}-{SEQ:4}-{REV}`
+
+### 3.2 Logic การ Generate (Pseudo Code)
+
+```typescript
+// File: src/modules/document-numbering/document-numbering.service.ts
+
+/**
+ * Strategy:
+ * 1. รับค่า Context (Project, Org, Type, Discipline, SubType, Year)
+ * 2. ดึง Format Template จาก DB ตาม Type
+ * 3. ถ้าเป็น Transmittal ต้องเช็คเงื่อนไขพิเศษเพื่อเลือก Template (Owner vs Contractor)
+ * 4. Parse Template เพื่อหาว่าต้องใช้ Key ไหนบ้างในการ Lock และ Count
+ * 5. Run Redlock + Optimistic Lock
+ * 6. Replace Tokens
+ */
+
+async generateNextNumber(ctx: GenerateNumberContext): Promise<string> {
+    // 1. Get Template
+    let template = await this.formatRepo.findOne({ ... });
+
+    // 2. Handle Special Logic (Requirement 2.2 Transmittal)
+    if (ctx.typeCode === 'TRANSMITTAL') {
+        // Logic: ถ้าส่งให้ Owner ใช้ Template A, ถ้า Contractor ใช้ Template B
+        // หรือดึง sub_type_number มาเตรียมไว้
+    }
+
+    // 3. Resolve Tokens Values
+    const tokens = {
+        '{ORG}': ctx.orgCode,
+        '{CONTRACT}': ctx.contractCode,
+        '{TYPE}': ctx.typeCode,
+        '{DISCIPLINE}': ctx.disciplineCode, // จากตาราง disciplines
+        '{SUBTYPE}': ctx.subTypeCode,       // จาก rfa_types หรือ sub_type_codes
+        '{SUBTYPE_NUM}': ctx.subTypeNumber, // จาก correspondence_sub_type_codes
+        '{YEAR}': ctx.year.toString(),
+        '{YEAR_SHORT}': ctx.year.toString().slice(-2),
+    };
+
+    // 4. Construct Counter Key
+    // ถ้า Template มี {DISCIPLINE} ต้องเอา discipline_id มาเป็นส่วนหนึ่งของ Composite Key ใน DB Counter
+    const counterKey = {
+        projectId: ctx.projectId,
+        orgId: ctx.orgId,
+        typeId: ctx.typeId,
+        disciplineId: template.includes('{DISCIPLINE}') ? ctx.disciplineId : null,
+        year: template.includes('{YEAR}') ? ctx.year : 0 // ถ้าไม่ใช้ปี ให้ใช้ 0
+    };
+
+    // 5. Execute Double-Lock Mechanism (Redis + DB Optimistic)
+    const seq = await this.runDistributedCounter(counterKey);
+
+    // 6. Final Replace
+    let finalNumber = template.formatTemplate;
+    for (const [key, value] of Object.entries(tokens)) {
+        finalNumber = finalNumber.replace(key, value || '00'); // Fallback if missing
+    }
+    // Replace SEQ with padding
+    finalNumber = finalNumber.replace(/{SEQ:(\d+)}/, (_, width) =>
+        String(seq).padStart(Number(width), '0')
+    );
+
+    return finalNumber;
+}
+```
+
+-----
+
+## 4\. แผนการดำเนินการ (Action Plan)
+
+เพื่อให้รองรับ `6B.md` ได้สมบูรณ์ ผมขอเสนอให้ดำเนินการดังนี้:
+
+1.  **Database Migration:**
+      * รัน SQL Script เพื่อเพิ่มตาราง `disciplines`, `correspondence_sub_type_codes`.
+      * Alter ตาราง `rfas`, `correspondences` และ `document_number_counters` ตามข้อ 2.2
+2.  **Seed Data:**
+      * นำข้อมูลจากตารางใน `6B.md` (Disciplines, RFA Types, Sub Types) มาเขียนเป็น Seed Script ลงฐานข้อมูล เพื่อให้เริ่มต้นระบบมีข้อมูลพร้อมใช้ทันที
+3.  **Backend Implementation:**
+      * Update `DocumentNumberingService` ให้รองรับ Dynamic Token Replacement
+      * Update `CreateRfaDto` และ `CreateCorrespondenceDto` ให้รับค่า `discipline_id` และ `sub_type_id` (ถ้ามี)
+4.  **Admin Panel:**
+      * ต้องมีหน้า UI ให้ Admin จัดการ Mapping ของ `Format Template` และ `Sub Type Codes` ได้ (ตาม Requirement ข้อ 1)
+
+**ต้องการให้ผมเริ่มเขียน SQL Migration Script และ Seed Data สำหรับข้อมูลใน 6B.md เลยหรือไม่ครับ?** (ข้อมูลในตารางค่อนข้างเยอะ การทำ Seed ไว้จะช่วยลดเวลา Admin ในการกรอกข้อมูลเริ่มต้นได้มากครับ)
+
+จาก แผนการดำเนินการ (Action Plan): Database Migration และ Seed Data, ผมได้อัพเดท Basic data ข้อ 5. Data files ให้แล้ว, ช่วย review และ ปรับปรุง 4_Data_Dictionary_V1_4_3.md ,
+
+เตรียม Backend Implementation, Admin Panel
+
+
+
+
+
+### **Phase 2: High-Integrity Data & File Management (สัปดาห์ที่ 4)**
+
+* **[ ] T2.3 DocumentNumberingModule - Token-Based & Double-Lock** (Updated)
+    * [ ] Update Entity: `DocumentNumberCounter` (Add `discipline_id` to PK)
+    * [ ] Implement Token Parser & Replacer Logic (`{DISCIPLINE}`, `{SUBTYPE_NUM}`)
+    * [ ] Update `generateNextNumber` to handle optional keys (Discipline/SubType)
+    * [ ] **Deliverable:** Flexible Numbering System
+
+* **[ ] T2.6 MasterModule - Advanced Data (Req 6B)** (New)
+    * [ ] Update Entities: `Discipline`, `CorrespondenceSubType`
+    * [ ] Create Services/Controllers for CRUD Operations (Admin Panel Support)
+    * [ ] Implement Seeding Logic for initial 6B data
+    * [ ] **Deliverable:** API for managing Disciplines and Sub-types
+    * [ ] **Dependencies:** T1.1, T0.3
