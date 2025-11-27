@@ -1,62 +1,70 @@
-{ "recommendations": [
-    "aaron-bond.better-comments",
-    "anbuselvanrocky.bootstrap5-vscode",
-    "bmewburn.vscode-intelephense-client",
-    "bradlc.vscode-tailwindcss",
-    "christian-kohler.path-intellisense",
-    "codezombiech.gitignore",
+{
+  "recommendations": [
+    // Linting & Formatting
     "dbaeumer.vscode-eslint",
-    "dsznajder.es7-react-js-snippets",
-    "dunstontc.vscode-docker-syntax",
-    "eamodio.gitlens",
-    "easycodeai.chatgpt-gpt4-gpt3-vscode",
-    "ecmel.vscode-html-css",
-    "editorconfig.editorconfig",
     "esbenp.prettier-vscode",
-    "firsttris.vscode-jest-runner",
-    "formulahendry.auto-rename-tag",
-    "github.copilot",
-    "github.copilot-chat",
-    "hansuxdev.bootstrap5-snippets",
-    "heybourn.headwind",
-    "humao.rest-client",
-    "imgildev.vscode-auto-barrel",
-    "imgildev.vscode-json-flow",
-    "imgildev.vscode-nestjs-generator",
-    "imgildev.vscode-nestjs-pack",
-    "imgildev.vscode-nestjs-snippets-extension",
-    "imgildev.vscode-nestjs-swagger-snippets",
-    "inferrinizzard.prettier-sql-vscode",
-    "jmkrivocapich.drawfolderstructure",
-    "mhutchie.git-graph",
-    "mikestead.dotenv",
-    "ms-azuretools.vscode-containers",
-    "ms-azuretools.vscode-docker",
-    "ms-python.debugpy",
-    "ms-python.python",
-    "ms-vscode-remote.remote-containers",
-    "ms-vscode-remote.remote-ssh",
-    "ms-vscode-remote.remote-ssh-edit",
-    "ms-vscode.powershell",
-    "ms-vscode.remote-explorer",
-    "mtxr.sqltools",
-    "mtxr.sqltools-driver-mysql",
-    "oderwat.indent-rainbow",
-    "orta.vscode-jest",
-    "pdconsec.vscode-print",
-    "pmneo.tsimporter",
-    "postman.postman-for-vscode",
-    "prisma.prisma",
-    "redhat.vscode-yaml",
-    "rioj7.command-variable",
-    "ritwickdey.liveserver",
-    "shardulm94.trailing-spaces",
-    "steoates.autoimport",
-    "stringham.move-ts",
+    
+    // Code Quality & Error Handling
     "usernamehw.errorlens",
-    "vincaslt.highlight-matching-tag",
-    "vscode-icons-team.vscode-icons",
-    "yoavbls.pretty-ts-errors",
-    "yzhang.markdown-all-in-one",
+    "yoavbls.pretty-typescript-errors",
+    "wix.vscode-import-cost",
+    
+    // Comments & Documentation
+    "aaron-bond.better-comments",
+    "gruntfuggly.todo-tree",
+    
+    // Framework & Language Support
+    "ashinzekene.nestjs",
+    "dsznajder.es7-react-js-snippets",
+    "orta.vscode-jest",
+    "bradlc.vscode-tailwindcss",
+    "heybourn.headwind",
+    "prisma.prisma",
+    
+    // API Testing
+    "rangav.vscode-thunder-client",
+    "humao.rest-client",
+    
+    // Auto Tags
+    "formulahendry.auto-close-tag",
+    "formulahendry.auto-rename-tag",
+    
+    // Docker & DevOps
+    "ms-azuretools.vscode-docker",
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+    
+    // Database
+    "mtxr.sqltools",
+    "mongodb.mongodb-vscode",
+    
+    // YAML & Config
+    "redhat.vscode-yaml",
+    "mikestead.dotenv",
+    "editorconfig.editorconfig",
+    
+    // Git
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    "vivaxy.vscode-conventional-commits",
+    
+    // Path & Navigation
+    "christian-kohler.path-intellisense",
+    "christian-kohler.npm-intellisense",
+    "csstools.postcss",
+    
+    // CSS Enhancement
+    "pranaygp.vscode-css-peek",
+    
+    // Productivity
+    "alefragnani.bookmarks",
+    "chakrounanas.turbo-console-log",
+    "wallabyjs.console-ninja",
+    
+    // Icons & Theme
+    "pkief.material-icon-theme",
+    
+    // AI Assistance (Optional - เลือก 1 อัน)
+    "github.copilot",
+    // "tabnine.tabnine-vscode"
   ]
 }
