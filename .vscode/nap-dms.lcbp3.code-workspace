@@ -23,7 +23,7 @@
 		],
 		"editor.fontSize": 16,
 		"editor.codeActionsOnSave": {
-			"terminal": true
+			"terminal": "explicit"
 		},
 		"editor.codeActions.triggerOnFocusChange": true,
 		"editor.tabSize": 2,

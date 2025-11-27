@@ -278,7 +278,7 @@ F10_3 --> F10_4
     - [ ] Tabs, Accordion
   - [ ] Create custom design system components:
     - [ ] DataTable (responsive)
-    - [ ] FileUpload zone
+    - [ ] FileUpload **zone**
     - [ ] Workflow visualization
   - [ ] **Deliverable:** Consistent UI component library
   - [ ] **Dependencies:** F0.1

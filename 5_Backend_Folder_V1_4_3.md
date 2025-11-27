@@ -284,9 +284,9 @@
 
 ---
 
-### 📁 Backend Folder Structure (LCBP3-DMS v1.4.3)
+### 📁 Backend Folder Structure (LCBP3-DMS v1.4.4)
 
-```text
+```
 backend/
 ├── .env                         # Environment variables for local development only (not committed)
 ├── .gitignore                   # Git ignore rules

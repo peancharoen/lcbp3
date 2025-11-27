@@ -1,0 +1,43 @@
+// File: src/types/dto/transmittal/transmittal.dto.ts
+
+export enum TransmittalPurpose {
+  FOR_APPROVAL = 'FOR_APPROVAL',
+  FOR_INFORMATION = 'FOR_INFORMATION',
+  FOR_REVIEW = 'FOR_REVIEW',
+  OTHER = 'OTHER',
+}
+
+// --- Create ---
+export interface CreateTransmittalDto {
+  /** จำเป็นสำหรับการออกเลขที่เอกสาร (Running Number) */
+  projectId: number;
+
+  /** วัตถุประสงค์การส่ง */
+  purpose?: TransmittalPurpose;
+
+  /** หมายเหตุเพิ่มเติม */
+  remarks?: string;
+
+  /** ID ของเอกสาร (Correspondence IDs) ที่จะแนบไปใน Transmittal นี้ */
+  itemIds: number[];
+}
+
+// --- Update (Partial) ---
+export interface UpdateTransmittalDto extends Partial<CreateTransmittalDto> {}
+
+// --- Search ---
+export interface SearchTransmittalDto {
+  /** บังคับระบุ Project */
+  projectId: number;
+
+  purpose?: TransmittalPurpose;
+
+  /** ค้นหาจากเลขที่เอกสาร หรือ remarks */
+  search?: string;
+
+  /** หน้าปัจจุบัน (Default: 1) */
+  page?: number;
+
+  /** จำนวนต่อหน้า (Default: 20) */
+  pageSize?: number;
+}

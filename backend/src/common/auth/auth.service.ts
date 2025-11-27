@@ -1,5 +1,7 @@
 // File: src/common/auth/auth.service.ts
-// บันทึกการแก้ไข: แก้ไข Type Mismatch ใน signAsync (Fix TS2769)
+// บันทึกการแก้ไข:
+// 1. แก้ไข Type Mismatch ใน signAsync
+// 2. แก้ไข validateUser ให้ดึง password_hash ออกมาด้วย (Fix HTTP 500: data and hash arguments required)
 
 import {
   Injectable,
@@ -10,9 +12,13 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { InjectRepository } from '@nestjs/typeorm'; // [NEW]
+import { Repository } from 'typeorm'; // [NEW]
 import type { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
+
 import { UserService } from '../../modules/user/user.service.js';
+import { User } from '../../modules/user/entities/user.entity.js'; // [NEW] ต้อง Import Entity เพื่อใช้ Repository
 import { RegisterDto } from './dto/register.dto.js';
 
 @Injectable()
@@ -22,12 +28,33 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    // [NEW] Inject Repository เพื่อใช้ QueryBuilder
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   // 1. ตรวจสอบ Username/Password
   async validateUser(username: string, pass: string): Promise<any> {
-    const user = await this.userService.findOneByUsername(username);
-    if (user && (await bcrypt.compare(pass, user.password))) {
+    console.log(`🔍 Checking login for: ${username}`); // [DEBUG]
+    // [FIXED] ใช้ createQueryBuilder เพื่อ addSelect field 'password' ที่ถูกซ่อนไว้
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password') // สำคัญ! สั่งให้ดึง column password มาด้วย
+      .where('user.username = :username', { username })
+      .getOne();
+
+    if (!user) {
+      console.log('❌ User not found in database'); // [DEBUG]
+      return null;
+    }
+
+    console.log('✅ User found. Hash from DB:', user.password); // [DEBUG]
+
+    const isMatch = await bcrypt.compare(pass, user.password);
+    console.log(`🔐 Password match result: ${isMatch}`); // [DEBUG]
+
+    // ตรวจสอบว่ามี user และมี password hash หรือไม่
+    if (user && user.password && (await bcrypt.compare(pass, user.password))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;
