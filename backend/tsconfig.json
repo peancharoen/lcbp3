@@ -22,6 +22,27 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true, // ห้ามใช้ Any โดยไม่จำเป็น
     "strictBindCallApply": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@backend": ["./src"],
+      "@backend/*": ["./src/*"],
+      "@modules": ["./src/modules"],
+      "@common": ["./src/common"],
+      "@config": ["./src/common/config"],
+      "@circulation": ["./src/modules/circulation"],
+      "@correspondence": ["./src/modules/correspondence"],
+      "@document-numbering": ["./src/modules/document-numbering"],
+      "@drawing": ["./src/modules/drawing"],
+      "@json-schema": ["./src/modules/json-schema"],
+      "@master": ["./src/modules/master"],
+      "@monitoring": ["./src/modules/monitoring"],
+      "@notification": ["./src/modules/notification"],
+      "@project": ["./src/modules/project"],
+      "@rfa": ["./src/modules/rfa"],
+      "@search": ["./src/modules/search"],
+      "@transmittal": ["./src/modules/transmittal"],
+      "@users": ["./src/modules/users"],
+      "@workflow-engine": ["./src/modules/workflow-engine"]
+    }
   }
 }

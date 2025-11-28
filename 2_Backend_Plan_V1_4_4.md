@@ -4,14 +4,15 @@
 **วันที่:** 2025-11-26
 **อ้างอิง:** Requirements v1.4.3 & FullStackJS Guidelines v1.4.3
 **Classification:** Internal Technical Documentation
+**การแก้ไข:** เพิ่ม T2.5.1-T2.5.9, T3.1.1-T3.1.8,
 
------
+---
 
 ## 🎯 **ภาพรวมโครงการ**
 
 พัฒนา Backend สำหรับระบบบริหารจัดการเอกสารโครงการ (Document Management System) ที่มีความปลอดภัยสูง รองรับการทำงานพร้อมกัน (Concurrency) ได้อย่างถูกต้องแม่นยำ มีสถาปัตยกรรมที่ยืดหยุ่นต่อการขยายตัว และรองรับการจัดการเอกสารที่ซับซ้อน มีระบบ Workflow การอนุมัติ และการควบคุมสิทธิ์แบบ RBAC 4 ระดับ พร้อมมาตรการความปลอดภัยที่ทันสมัย
 
------
+---
 
 ## 📐 **สถาปัตยกรรมระบบ**
 
@@ -36,44 +37,314 @@
 
 ### **โครงสร้างโมดูล (Domain-Driven)**
 
-```tree
-src/
-├── common/                    # Shared Module
-│   ├── auth/                 # JWT, Guards, RBAC
-│   ├── config/               # Configuration Management
-│   ├── decorators/           # @RequirePermission, @RateLimit
-│   ├── entities/             # Base Entities
-│   ├── exceptions/           # Global Filters
-│   ├── file-storage/         # FileStorageService (Virus Scanning + Two-Phase)
-│   ├── guards/               # RBAC Guard, RateLimitGuard
-│   ├── interceptors/         # Audit, Transform, Performance, Idempotency
-│   ├── resilience/           # Circuit Breaker, Retry Patterns
-│   ├── security/             # Input Validation, XSS Protection
-│   ├── idempotency/          # [New] Idempotency Logic
-│   └── maintenance/          # [New] Maintenance Mode Guard
-├── modules/
-│   ├── user/                 # Users, Roles, Permissions
-│   ├── project/              # Projects, Contracts, Organizations
-│   ├── master/               # Master Data Management
-│   ├── correspondence/       # Correspondence Management
-│   ├── rfa/                  # RFA & Workflows
-│   ├── drawing/              # Shop/Contract Drawings
-│   ├── circulation/          # Internal Circulation
-│   ├── transmittal/          # Transmittals
-│   ├── search/               # Elasticsearch
-│   ├── monitoring/           # Metrics, Health Checks
-│   ├── workflow-engine/      # [New] Unified Workflow Logic
-│   ├── document-numbering/   # [Update] Double-Locking Logic
-│   ├── notification/         # [Update] Queue & Digest
-│   └── file-storage/         # [Update] Two-Phase Commit
-└── database/                 # Migrations & Seeds
+```
+📁backend
+├── .editorconfig
+├── .env
+├── .gitignore
+├── .prettierrc
+├── docker-compose.override.yml.example
+├── docker-compose.yml
+├── eslint.config.mjs
+├── Infrastructure Setup.yml
+├── nest-cli.json
+├── package-lock.json
+├── package.json
+├── pnpm-lock.yaml
+├── README.md
+├── tsconfig.build.json
+├── tsconfig.json
+├── 📁scripts
+│   ├── debug-db.ts
+│   └── verify-workflow.ts
+├── 📁test
+│   ├── app.e2e-spec.ts
+│   ├── jest-e2e.json
+│   ├── phase3-workflow.e2e-spec.ts
+│   └── simple.e2e-spec.ts
+├── 📁uploads
+│   └── 📁temp
+│       ├── 5a6d4c26-84b2-4c8a-b177-9fa267651a93.pdf
+│       └── d60d9807-a22d-4ca0-b99a-5d5d8b81b3e8.pdf
+└── 📁src
+    ├── app.controller.spec.ts
+    ├── app.controller.ts
+    ├── app.module.ts
+    ├── app.service.ts
+    ├── main.ts
+    ├── redlock.d.ts
+    ├── 📁common
+    │   ├── 📁auth
+    │   │   ├── 📁dto
+    │   │   │   ├── login.dto.ts
+    │   │   │   └──  register.dto.ts
+    │   │   ├── 📁strategies
+    │   │   │   ├── jwt-refresh.strategy.ts
+    │   │   │   └──  jwt.strategy.ts
+    │   │   ├── auth.controller.spec.ts
+    │   │   ├── auth.controller.ts
+    │   │   ├── auth.module.ts
+    │   │   ├── auth.service.spec.ts
+    │   │   └── auth.service.ts
+    │   ├── 📁config
+    │   │   ├── env.validation.ts
+    │   │   └──  redis.config.ts
+    │   ├── 📁decorators
+    │   │   ├── audit.decorator.ts
+    │   │   ├── bypass-maintenance.decorator.ts
+    │   │   ├── circuit-breaker.decorator.ts
+    │   │   ├── current-user.decorator.ts
+    │   │   ├── idempotency.decorator.ts
+    │   │   ├── require-permission.decorator.ts
+    │   │   └── retry.decorator.ts
+    │   ├── 📁entities
+    │   │   ├── audit-log.entity.ts
+    │   │   └──  base.entity.ts
+    │   ├── 📁exceptions
+    │   │   └──  http-exception.filter.ts
+    │   ├── 📁file-storage
+    │   │   ├── 📁entities
+    │   │   │   └──  attachment.entity.ts
+    │   │   ├── file-cleanup.service.ts
+    │   │   ├── file-storage.controller.spec.ts
+    │   │   ├── file-storage.controller.ts
+    │   │   ├── file-storage.module.ts
+    │   │   ├── file-storage.service.spec.ts
+    │   │   └──  file-storage.service.ts
+    │   ├── 📁guards
+    │   │   ├── jwt-auth.guard.ts
+    │   │   ├── jwt-refresh.guard.ts
+    │   │   ├── maintenance-mode.guard.ts
+    │   │   └──  rbac.guard.ts
+    │   ├── 📁idempotency
+    │   │   ├── idempotency.interceptor.ts
+    │   │   └── performance.interceptor.ts
+    │   ├── 📁interceptors
+    │   │   ├── audit-log.interceptor.ts
+    │   │   ├── idempotency.interceptor.ts
+    │   │   ├── performance.interceptor.ts
+    │   │   └── transform.interceptor.ts
+    │   ├── 📁maintenance
+    │   ├── 📁resilience
+    │   │   └──  resilience.module.ts
+    │   └── 📁security
+    │       ├── 📁services
+    │       │   ├── crypto.service.ts
+    │       │   └── request-context.service.ts
+    │       └── common.module.ts
+    ├── 📁database
+    │   ├── 📁migrations
+    │   └── 📁seeds
+    │       └── workflow-definitions.seed.ts
+    └── 📁modules
+        ├── 📁circulation
+        │   ├── 📁dto
+        │   │   ├── create-circulation.dto.ts
+        │   │   ├── search-circulation.dto.ts
+        │   │   └── update-circulation-routing.dto.ts
+        │   ├── 📁entities
+        │   │   ├── circulation-routing.entity.ts
+        │   │   ├── circulation-status-code.entity.ts
+        │   │   └── circulation.entity.ts
+        │   ├── circulation.controller.ts
+        │   ├── circulation.module.ts
+        │   └── circulation.service.ts
+        ├── 📁correspondence
+        │   ├── 📁dto
+        │   │   ├── add-reference.dto.ts
+        │   │   ├── create-correspondence.dto.ts
+        │   │   ├── search-correspondence.dto.ts
+        │   │   ├── submit-correspondence.dto.ts
+        │   │   └── workflow-action.dto.ts
+        │   ├── 📁entities
+        │   │   ├── correspondence-reference.entity.ts
+        │   │   ├── correspondence-revision.entity.ts
+        │   │   ├── correspondence-routing.entity.ts
+        │   │   ├── correspondence-status.entity.ts
+        │   │   ├── correspondence-sub-type.entity.ts
+        │   │   ├── correspondence-type.entity.ts
+        │   │   ├── correspondence.entity.ts
+        │   │   ├── routing-template-step.entity.ts
+        │   │   └── routing-template.entity.ts
+        │   ├── correspondence.controller.spec.ts
+        │   ├── correspondence.controller.ts
+        │   ├── correspondence.module.ts
+        │   ├── correspondence.service.spec.ts
+        │   └── correspondence.service.ts
+        ├── 📁document-numbering
+        │   ├── 📁entities
+        │   │   ├── document-number-counter.entity.ts
+        │   │   └── document-number-format.entity.ts
+        │   ├── 📁interfaces
+        │   │   └── document-numbering.interface.ts
+        │   ├── document-numbering.module.ts
+        │   ├── document-numbering.service.spec.ts
+        │   └── document-numbering.service.ts
+        ├── 📁drawing
+        │   ├── 📁dto
+        │   │   ├── create-contract-drawing.dto.ts
+        │   │   ├── create-shop-drawing-revision.dto.ts
+        │   │   ├── create-shop-drawing.dto.ts
+        │   │   ├── search-contract-drawing.dto.ts
+        │   │   ├── search-shop-drawing.dto.ts
+        │   │   └── update-contract-drawing.dto.ts
+        │   ├── 📁entities
+        │   │   ├── contract-drawing-sub-category.entity.ts
+        │   │   ├── contract-drawing-volume.entity.ts
+        │   │   ├── contract-drawing.entity.ts
+        │   │   ├── shop-drawing-main-category.entity.ts
+        │   │   ├── shop-drawing-revision.entity.ts
+        │   │   ├── shop-drawing-sub-category.entity.ts
+        │   │   └── shop-drawing.entity.ts
+        │   ├── contract-drawing.controller.ts
+        │   ├── contract-drawing.service.ts
+        │   ├── drawing-master-data.controller.ts
+        │   ├── drawing-master-data.service.ts
+        │   ├── drawing.module.ts
+        │   ├── shop-drawing.controller.ts
+        │   └── shop-drawing.service.ts
+        ├── 📁json-schema
+        │   ├── 📁dto
+        │   │   ├── create-json-schema.dto.ts
+        │   │   ├── search-json-schema.dto.ts
+        │   │   └── update-json-schema.dto.ts
+        │   ├── 📁entities
+        │   │   └── json-schema.entity.ts
+        │   ├── json-schema.controller.spec.ts
+        │   ├── json-schema.controller.ts
+        │   ├── json-schema.module.ts
+        │   ├── json-schema.service.spec.ts
+        │   └── json-schema.service.ts
+        ├── 📁master
+        │   ├── 📁dto
+        │   │   ├── create-discipline.dto.ts
+        │   │   ├── create-sub-type.dto.ts
+        │   │   ├── create-tag.dto.ts
+        │   │   ├── save-number-format.dto.ts
+        │   │   ├── search-tag.dto.ts
+        │   │   └── update-tag.dto.ts
+        │   ├── 📁entities
+        │   │   ├── discipline.entity.ts
+        │   │   └── tag.entity.ts
+        │   ├── master.controller.ts
+        │   ├── master.module.ts
+        │   └── master.service.ts
+        ├── 📁monitoring
+        │   ├── 📁controllers
+        │   │   └── health.controller.ts
+        │   ├── 📁dto
+        │   │   └── set-maintenance.dto.ts
+        │   ├── 📁logger
+        │   │   └── winston.config.ts
+        │   ├── 📁services
+        │   │   └── metrics.service.ts
+        │   ├── monitoring.controller.ts
+        │   ├── monitoring.module.ts
+        │   └── monitoring.service.ts
+        ├── 📁notification
+        │   ├── 📁dto
+        │   │   ├── create-notification.dto.ts
+        │   │   └── search-notification.dto.ts
+        │   ├── 📁entities
+        │   │   └── notification.entity.ts
+        │   ├── notification-cleanup.service.ts
+        │   ├── notification.controller.ts
+        │   ├── notification.gateway.ts
+        │   ├── notification.module.ts
+        │   ├── notification.processor.ts
+        │   └── notification.service.ts
+        ├── 📁project
+        │   ├── 📁dto
+        │   │   ├── create-project.dto.ts
+        │   │   ├── search-project.dto.ts
+        │   │   └── update-project.dto.ts
+        │   ├── 📁entities
+        │   │   ├── contract-organization.entity.ts
+        │   │   ├── contract.entity.ts
+        │   │   ├── organization.entity.ts
+        │   │   ├── project-organization.entity.ts
+        │   │   └── project.entity.ts
+        │   ├── project.controller.spec.ts
+        │   ├── project.controller.ts
+        │   ├── project.module.ts
+        │   ├── project.service.spec.ts
+        │   └── project.service.ts
+        ├── 📁rfa
+        │   ├── 📁dto
+        │   │   ├── create-rfa.dto.ts
+        │   │   ├── search-rfa.dto.ts
+        │   │   └── update-rfa.dto.ts
+        │   ├── 📁entities
+        │   │   ├── rfa-approve-code.entity.ts
+        │   │   ├── rfa-item.entity.ts
+        │   │   ├── rfa-revision.entity.ts
+        │   │   ├── rfa-status-code.entity.ts
+        │   │   ├── rfa-type.entity.ts
+        │   │   ├── rfa-workflow-template-step.entity.ts
+        │   │   ├── rfa-workflow-template.entity.ts
+        │   │   ├── rfa-workflow.entity.ts
+        │   │   └── rfa.entity.ts
+        │   ├── rfa.controller.ts
+        │   ├── rfa.module.ts
+        │   └── rfa.service.ts
+        ├── 📁search
+        │   ├── 📁dto
+        │   │   └── search-query.dto.ts
+        │   ├── search.controller.ts
+        │   ├── search.module.ts
+        │   └── search.service.ts
+        ├── 📁transmittal
+        │   ├── 📁dto
+        │   │   ├── create-transmittal.dto.ts
+        │   │   ├── search-transmittal.dto.ts
+        │   │   └── update-transmittal.dto.ts
+        │   ├── 📁entities
+        │   │   ├── transmittal-item.entity.ts
+        │   │   └── transmittal.entity.ts
+        │   ├── transmittal.controller.ts
+        │   ├── transmittal.module.ts
+        │   └── transmittal.service.ts
+        ├── 📁user
+        │   ├── 📁dto
+        │   │   ├── assign-role.dto.ts
+        │   │   ├── create-user.dto.ts
+        │   │   ├── update-preference.dto.ts
+        │   │   └── update-user.dto.ts
+        │   ├── 📁entities
+        │   │   ├── permission.entity.ts
+        │   │   ├── role.entity.ts
+        │   │   ├── user-assignment.entity.ts
+        │   │   ├── user-preference.entity.ts
+        │   │   └── user.entity.ts
+        │   ├── user-assignment.service.ts
+        │   ├── user-preference.service.ts
+        │   ├── user.controller.ts
+        │   ├── user.module.ts
+        │   ├── user.service.spec.ts
+        │   └── user.service.ts
+        └── 📁workflow-engine
+            ├── 📁dto
+            │   ├── create-workflow-definition.dto.ts
+            │   ├── evaluate-workflow.dto.ts
+            │   ├── get-available-actions.dto.ts
+            │   └── update-workflow-definition.dto.ts
+            ├── 📁entities
+            │   └── workflow-definition.entity.ts
+            ├── 📁interfaces
+            │   └── workflow.interface.ts
+            ├── workflow-dsl.service.ts
+            ├── workflow-engine.controller.ts
+            ├── workflow-engine.module.ts
+            ├── workflow-engine.service.spec.ts
+            └── workflow-engine.service.ts
+
 ```
 
------
+---
 
 ## 🗓️ **แผนการพัฒนาแบบ Phase-Based**
 
-- *(Dependency Diagram ถูกละไว้เพื่อประหยัดพื้นที่ เนื่องจากมีการอ้างอิงจากแผนเดิม)*
+- _(Dependency Diagram ถูกละไว้เพื่อประหยัดพื้นที่ เนื่องจากมีการอ้างอิงจากแผนเดิม)_
 
 ## **Phase 0: Infrastructure & Configuration (สัปดาห์ที่ 1)**
 
@@ -117,7 +388,7 @@ src/
   - [ ] **Deliverable:** Code อยู่ใน Version Control
   - [ ] **Dependencies:** T0.1, T0.2, T0.3
 
------
+---
 
 ## **Phase 1: Core Foundation & Security (สัปดาห์ที่ 2-3)**
 
@@ -131,8 +402,8 @@ src/
   - [ ] สร้าง Global Exception Filter (ไม่เปิดเผย sensitive information)
   - [ ] สร้าง Response Transform Interceptor
   - [ ] สร้าง Audit Log Interceptor
-  - [ ] **[New] Idempotency Interceptor:** ตรวจสอบ Header `Idempotency-Key` และ Cache Response เดิมใน Redis
-  - [ ] **[New] Maintenance Mode Middleware:** ตรวจสอบ Flag ใน **Redis Key** เพื่อ Block API ระหว่างปรับปรุงระบบ **(Admin ใช้ Redis/Admin UI ในการ Toggle สถานะ)**
+  - [ ] **Idempotency Interceptor:** ตรวจสอบ Header `Idempotency-Key` และ Cache Response เดิมใน Redis
+  - [ ] **Maintenance Mode Middleware:** ตรวจสอบ Flag ใน **Redis Key** เพื่อ Block API ระหว่างปรับปรุงระบบ **(Admin ใช้ Redis/Admin UI ในการ Toggle สถานะ)**
   - [ ] สร้าง RequestContextService - สำหรับเก็บข้อมูลระหว่าง Request
   - [ ] สร้าง ConfigService - Centralized configuration management
   - [ ] สร้าง CryptoService - สำหรับ encryption/decryption
@@ -211,7 +482,7 @@ src/
   - [ ] **Deliverable:** จัดการโครงสร้างโปรเจกต์ได้
   - [ ] **Dependencies:** T1.1, T1.2, T0.3
 
------
+---
 
 ## **Phase 2: High-Integrity Data & File Management (สัปดาห์ที่ 4)**
 
@@ -252,12 +523,7 @@ src/
     - [ ] DocumentNumberCounter
   - [ ] สร้าง DocumentNumberingService:
     - [ ] generateNextNumber(projectId, orgId, typeId, year) → string
-    - [ ] ใช้ **Double-Lock Mechanism**:
-            1. Acquire **Redis Lock** (Key: `doc_num:{project}:{type}`)
-            2. Read DB & Calculate Next Number
-            3. Update DB with **Optimistic Lock** Check (ใช้ `@VersionColumn()`)
-            4. Release Redis Lock
-            5. Retry on Failure ด้วย exponential backoff
+    - [ ] ใช้ **Double-Lock Mechanism**: 1. Acquire **Redis Lock** (Key: `doc_num:{project}:{type}`) 2. Read DB & Calculate Next Number 3. Update DB with **Optimistic Lock** Check (ใช้ `@VersionColumn()`) 4. Release Redis Lock 5. Retry on Failure ด้วย exponential backoff
     - [ ] Fallback mechanism เมื่อการขอเลขล้มเหลว
     - [ ] Format ตาม Template: {ORG_CODE}-{TYPE_CODE}-{YEAR_SHORT}-{SEQ:4}
   - **ไม่มี Controller** (Internal Service เท่านั้น)
@@ -266,10 +532,10 @@ src/
   - [ ] **Dependencies:** T1.1, T0.3
 
 * **[ ] T2.3 DocumentNumberingModule - Token-Based & Double-Lock** (Updated)
-    * [ ] Update Entity: `DocumentNumberCounter` (Add `discipline_id` to PK)
-    * [ ] Implement Token Parser & Replacer Logic (`{DISCIPLINE}`, `{SUBTYPE_NUM}`)
-    * [ ] Update `generateNextNumber` to handle optional keys (Discipline/SubType)
-    * [ ] **Deliverable:** Flexible Numbering System
+  - [ ] Update Entity: `DocumentNumberCounter` (Add `discipline_id` to PK)
+  - [ ] Implement Token Parser & Replacer Logic (`{DISCIPLINE}`, `{SUBTYPE_NUM}`)
+  - [ ] Update `generateNextNumber` to handle optional keys (Discipline/SubType)
+  - [ ] **Deliverable:** Flexible Numbering System
 
 - **[ ] T2.4 SecurityModule - Enhanced Security**
 
@@ -293,14 +559,782 @@ src/
   - [ ] **Deliverable:** JSON schema system ทำงานได้
   - [ ] **Dependencies:** T1.1
 
-* **[ ] T2.6 MasterModule - Advanced Data (Req 6B)** (New)
-    * [ ] Update Entities: `Discipline`, `CorrespondenceSubType`
-    * [ ] Create Services/Controllers for CRUD Operations (Admin Panel Support)
-    * [ ] Implement Seeding Logic for initial 6B data
-    * [ ] **Deliverable:** API for managing Disciplines and Sub-types
-    * [ ] **Dependencies:** T1.1, T0.3
+### 🚀 **T2.5 JSON Details & Schema Management - Enhanced Implementation Plan**
 
------
+#### 📋 **Overview**
+
+สร้างระบบจัดการ JSON Schema ที่ครอบคลุมสำหรับ dynamic document details, validation, transformation และ performance optimization
+
+---
+
+#### 🎯 **Enhanced Task Breakdown for T2.5**
+
+##### **[ ] T2.5.1 JSON Schema Registry & Versioning System**
+
+- [ ] **Schema Entity Design** สำหรับเก็บ JSON schemas ทุกประเภท
+- [ ] **Version Control System** สำหรับ schema evolution
+- [ ] **Migration Strategy** สำหรับ backward-compatible changes
+- [ ] **Schema Inheritance** สำหรับ shared field definitions
+
+```typescript
+// Schema Entity Design
+@Entity()
+export class JsonSchema {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  name: string; // 'CORRESPONDENCE_GENERIC', 'RFA_DWG', 'CIRCULATION_INTERNAL'
+
+  @Column()
+  entity_type: string; // 'correspondence', 'rfa', 'circulation'
+
+  @Column()
+  version: number;
+
+  @Column('json')
+  schema_definition: any; // AJV JSON Schema
+
+  @Column('json')
+  ui_schema: any; // UI configuration for form generation
+
+  @Column({ default: true })
+  is_active: boolean;
+
+  @Column('json', { nullable: true })
+  migration_script: any; // Data transformation rules
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+
+  // Virtual columns configuration for performance
+  @Column('json', { nullable: true })
+  virtual_columns: VirtualColumnConfig[];
+}
+
+interface VirtualColumnConfig {
+  json_path: string; // '$.projectId'
+  column_name: string; // 'ref_project_id'
+  data_type: 'INT' | 'VARCHAR' | 'BOOLEAN' | 'DATE';
+  index_type?: 'INDEX' | 'UNIQUE' | 'FULLTEXT';
+  is_required: boolean;
+}
+```
+
+##### **[ ] T2.5.2 Schema Validation & Transformation Engine**
+
+- [ ] **AJV Integration** สำหรับ high-performance JSON validation
+- [ ] **Custom Validators** สำหรับ business rule validation
+- [ ] **Data Transformation** สำหรับ schema version migration
+- [ ] **Sanitization Service** สำหรับ data cleansing
+
+```typescript
+@Injectable()
+export class JsonSchemaService {
+  private ajv: Ajv;
+
+  constructor() {
+    this.ajv = new Ajv({
+      allErrors: true,
+      coerceTypes: true,
+      useDefaults: true,
+      removeAdditional: true,
+      formats: {
+        'date-time': true,
+        email: true,
+        uri: true,
+        'document-number': this.documentNumberFormat,
+      },
+    });
+
+    // Register custom formats and keywords
+    this.registerCustomValidators();
+  }
+
+  async validateData(
+    schemaName: string,
+    data: any,
+    options: ValidationOptions = {}
+  ): Promise<ValidationResult> {
+    const schema = await this.getSchema(schemaName);
+    const validate = this.ajv.compile(schema);
+
+    const isValid = validate(data);
+
+    if (!isValid) {
+      return {
+        isValid: false,
+        errors: validate.errors,
+        sanitizedData: null,
+      };
+    }
+
+    // Apply data transformation if needed
+    const sanitizedData = await this.sanitizeData(data, schema, options);
+
+    return {
+      isValid: true,
+      errors: [],
+      sanitizedData,
+    };
+  }
+
+  private async sanitizeData(
+    data: any,
+    schema: any,
+    options: ValidationOptions
+  ): Promise<any> {
+    const sanitized = { ...data };
+
+    // Remove unknown properties if not allowed
+    if (options.removeAdditional !== false) {
+      const allowedProperties = this.extractPropertyNames(schema);
+      Object.keys(sanitized).forEach((key) => {
+        if (!allowedProperties.includes(key)) {
+          delete sanitized[key];
+        }
+      });
+    }
+
+    // Apply custom sanitizers based on field type
+    await this.applyFieldSanitizers(sanitized, schema);
+
+    return sanitized;
+  }
+
+  private registerCustomValidators(): void {
+    // Custom format for document numbers
+    this.ajv.addFormat('document-number', {
+      type: 'string',
+      validate: (value: string) => {
+        return /^[A-Z]{3,5}-[A-Z]{2,4}-\d{4}-\d{3,5}$/.test(value);
+      },
+    });
+
+    // Custom keyword for role-based access
+    this.ajv.addKeyword({
+      keyword: 'requiredRole',
+      type: 'string',
+      compile: (requiredRole: string) => {
+        return (data: any, dataPath: string, parentData: any) => {
+          // Check if user has required role for this field
+          const userContext = this.getUserContext();
+          return userContext.roles.includes(requiredRole);
+        };
+      },
+    });
+  }
+}
+```
+
+##### **[ ] T2.5.3 Virtual Columns & Performance Optimization**
+
+- [ ] **Virtual Column Generator** สำหรับ JSON field indexing
+- [ ] **Migration Scripts** สำหรับสร้าง generated columns
+- [ ] **Query Optimizer** สำหรับใช้ virtual columns ใน search
+- [ ] **Performance Monitoring** สำหรับ JSON query performance
+
+```typescript
+@Injectable()
+export class VirtualColumnService {
+  constructor(
+    private dataSource: DataSource,
+    private configService: ConfigService
+  ) {}
+
+  async setupVirtualColumns(
+    tableName: string,
+    schemaConfig: VirtualColumnConfig[]
+  ): Promise<void> {
+    const connection = this.dataSource.manager.connection;
+
+    for (const config of schemaConfig) {
+      await this.createVirtualColumn(tableName, config);
+    }
+  }
+
+  private async createVirtualColumn(
+    tableName: string,
+    config: VirtualColumnConfig
+  ): Promise<void> {
+    const columnDefinition = this.generateColumnDefinition(config);
+
+    const sql = `
+      ALTER TABLE ${tableName}
+      ADD COLUMN ${config.column_name} ${columnDefinition}
+    `;
+
+    await this.dataSource.query(sql);
+
+    // Create index if specified
+    if (config.index_type) {
+      await this.createIndex(tableName, config);
+    }
+  }
+
+  private generateColumnDefinition(config: VirtualColumnConfig): string {
+    const dataType = this.mapDataType(config.data_type);
+    const jsonPath = this.escapeJsonPath(config.json_path);
+
+    return `${dataType} GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(details, '${jsonPath}'))) VIRTUAL`;
+  }
+
+  private async createIndex(
+    tableName: string,
+    config: VirtualColumnConfig
+  ): Promise<void> {
+    const indexName = `idx_${tableName}_${config.column_name}`;
+    const sql = `
+      CREATE ${config.index_type} INDEX ${indexName}
+      ON ${tableName} (${config.column_name})
+    `;
+
+    await this.dataSource.query(sql);
+  }
+}
+
+// Example virtual column configuration for correspondence
+const correspondenceVirtualColumns: VirtualColumnConfig[] = [
+  {
+    json_path: '$.projectId',
+    column_name: 'ref_project_id',
+    data_type: 'INT',
+    index_type: 'INDEX',
+    is_required: true,
+  },
+  {
+    json_path: '$.priority',
+    column_name: 'ref_priority',
+    data_type: 'VARCHAR',
+    index_type: 'INDEX',
+    is_required: false,
+  },
+  {
+    json_path: '$.dueDate',
+    column_name: 'ref_due_date',
+    data_type: 'DATE',
+    index_type: 'INDEX',
+    is_required: false,
+  },
+];
+```
+
+##### **[ ] T2.5.4 Dynamic Form Schema Management**
+
+- [ ] **UI Schema Definition** สำหรับ frontend form generation
+- [ ] **Field Dependency System** สำหรับ conditional fields
+- [ ] **Validation Rule Sync** ระหว่าง backend-frontend
+- [ ] **Form Template Registry** สำหรับ reusable form patterns
+
+```typescript
+interface UiSchema {
+  type: 'object';
+  properties: {
+    [key: string]: UiSchemaField;
+  };
+  required?: string[];
+  layout?: {
+    type: 'tabs' | 'sections' | 'steps';
+    groups: LayoutGroup[];
+  };
+}
+
+interface UiSchemaField {
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  widget?: 'text' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date';
+  title: string;
+  description?: string;
+  placeholder?: string;
+  enum?: string[];
+  enumNames?: string[];
+  dependencies?: FieldDependency[];
+  conditions?: FieldCondition[];
+  properties?: { [key: string]: UiSchemaField }; // for nested objects
+  items?: UiSchemaField; // for arrays
+}
+
+interface FieldDependency {
+  field: string;
+  condition: {
+    operator: 'equals' | 'notEquals' | 'contains' | 'greaterThan';
+    value: any;
+  };
+  actions: {
+    visibility?: boolean;
+    required?: boolean;
+    options?: string[];
+  };
+}
+
+// Example: RFA Drawing Schema
+const rfaDwgSchema: UiSchema = {
+  type: 'object',
+  layout: {
+    type: 'tabs',
+    groups: [
+      {
+        title: 'Basic Information',
+        fields: ['title', 'description', 'discipline'],
+      },
+      {
+        title: 'Drawing Details',
+        fields: ['drawingReferences', 'revision', 'approvalType'],
+      },
+      {
+        title: 'Technical Specifications',
+        fields: ['materials', 'dimensions', 'tolerances'],
+      },
+    ],
+  },
+  properties: {
+    title: {
+      type: 'string',
+      widget: 'text',
+      title: 'Drawing Title',
+      placeholder: 'Enter drawing title...',
+      required: true,
+    },
+    discipline: {
+      type: 'string',
+      widget: 'select',
+      title: 'Discipline',
+      enum: ['CIVIL', 'STRUCTURAL', 'MECHANICAL', 'ELECTRICAL', 'PLUMBING'],
+      enumNames: [
+        'Civil',
+        'Structural',
+        'Mechanical',
+        'Electrical',
+        'Plumbing',
+      ],
+    },
+    drawingReferences: {
+      type: 'array',
+      title: 'Related Contract Drawings',
+      items: {
+        type: 'string',
+        widget: 'select',
+        title: 'Drawing Number',
+      },
+    },
+    approvalType: {
+      type: 'string',
+      widget: 'radio',
+      title: 'Approval Type',
+      enum: ['FULL_APPROVAL', 'PARTIAL_APPROVAL', 'COMMENTS_ONLY'],
+      enumNames: ['Full Approval', 'Partial Approval', 'Comments Only'],
+    },
+  },
+  required: ['title', 'discipline', 'approvalType'],
+};
+```
+
+##### **[ ] T2.5.5 Data Migration & Version Compatibility**
+
+- [ ] **Schema Migration Service** สำหรับอัพเกรด data ระหว่าง versions
+- [ ] **Data Transformation Pipeline** สำหรับ backward compatibility
+- [ ] **Version Rollback Mechanism** สำหรับ emergency situations
+- [ ] **Migration Testing Framework** สำหรับ 确保 data integrity
+
+```typescript
+@Injectable()
+export class SchemaMigrationService {
+  async migrateData(
+    entityType: string,
+    entityId: string,
+    targetVersion: number
+  ): Promise<MigrationResult> {
+    const currentData = await this.getCurrentData(entityType, entityId);
+    const currentVersion = await this.getCurrentSchemaVersion(
+      entityType,
+      entityId
+    );
+
+    const migrationPath = await this.findMigrationPath(
+      currentVersion,
+      targetVersion
+    );
+
+    let migratedData = currentData;
+
+    for (const migrationStep of migrationPath) {
+      migratedData = await this.applyMigrationStep(migrationStep, migratedData);
+    }
+
+    // Validate migrated data against target schema
+    const validationResult = await this.validateAgainstSchema(
+      migratedData,
+      targetVersion
+    );
+
+    if (!validationResult.isValid) {
+      throw new MigrationError(
+        'MIGRATION_VALIDATION_FAILED',
+        validationResult.errors
+      );
+    }
+
+    await this.saveMigratedData(
+      entityType,
+      entityId,
+      migratedData,
+      targetVersion
+    );
+
+    return {
+      success: true,
+      fromVersion: currentVersion,
+      toVersion: targetVersion,
+      migratedFields: this.getMigratedFields(currentData, migratedData),
+    };
+  }
+
+  private async applyMigrationStep(
+    step: MigrationStep,
+    data: any
+  ): Promise<any> {
+    switch (step.type) {
+      case 'FIELD_RENAME':
+        return this.renameField(data, step.config);
+      case 'FIELD_TRANSFORM':
+        return this.transformField(data, step.config);
+      case 'FIELD_ADD':
+        return this.addField(data, step.config);
+      case 'FIELD_REMOVE':
+        return this.removeField(data, step.config);
+      case 'STRUCTURE_CHANGE':
+        return this.restructureData(data, step.config);
+      default:
+        throw new MigrationError('UNKNOWN_MIGRATION_TYPE');
+    }
+  }
+}
+
+// Example migration configuration
+const migrationSteps = [
+  {
+    from_version: 1,
+    to_version: 2,
+    type: 'FIELD_RENAME',
+    config: {
+      old_field: 'project_id',
+      new_field: 'ref_project_id',
+    },
+  },
+  {
+    from_version: 2,
+    to_version: 3,
+    type: 'FIELD_TRANSFORM',
+    config: {
+      field: 'priority',
+      transform: 'MAP_VALUES',
+      mapping: {
+        HIGH: 'URGENT',
+        MEDIUM: 'NORMAL',
+        LOW: 'LOW',
+      },
+    },
+  },
+];
+```
+
+##### **[ ] T2.5.6 Security & Access Control for JSON Data**
+
+- [ ] **Field-level Security** 基于 user roles
+- [ ] **Data Encryption** สำหรับ sensitive fields
+- [ ] **Audit Logging** สำหรับ JSON data changes
+- [ ] **Input Sanitization** สำหรับป้องกัน XSS และ injection
+
+```typescript
+@Injectable()
+export class JsonSecurityService {
+  async applyFieldLevelSecurity(
+    data: any,
+    schema: any,
+    userContext: UserContext
+  ): Promise<any> {
+    const securedData = { ...data };
+    const securityRules = await this.getSecurityRules(schema.name);
+
+    for (const [fieldPath, fieldConfig] of Object.entries(schema.properties)) {
+      const fieldRules = securityRules[fieldPath];
+
+      if (fieldRules && !this.hasFieldAccess(fieldRules, userContext)) {
+        // Remove or mask field based on security rules
+        if (fieldRules.on_deny === 'REMOVE') {
+          this.deleteField(securedData, fieldPath);
+        } else if (fieldRules.on_deny === 'MASK') {
+          this.maskField(securedData, fieldPath, fieldRules.mask_pattern);
+        }
+      }
+    }
+
+    return securedData;
+  }
+
+  async encryptSensitiveFields(data: any, schema: any): Promise<any> {
+    const encryptedData = { ...data };
+    const sensitiveFields = this.getSensitiveFields(schema);
+
+    for (const fieldPath of sensitiveFields) {
+      const fieldValue = this.getFieldValue(data, fieldPath);
+      if (fieldValue) {
+        const encrypted = await this.cryptoService.encrypt(
+          fieldValue,
+          'field-level'
+        );
+        this.setFieldValue(encryptedData, fieldPath, encrypted);
+      }
+    }
+
+    return encryptedData;
+  }
+
+  private getSensitiveFields(schema: any): string[] {
+    const sensitiveFields: string[] = [];
+
+    const traverseSchema = (obj: any, path: string = '') => {
+      if (obj.properties) {
+        for (const [key, value] of Object.entries(obj.properties)) {
+          const currentPath = path ? `${path}.${key}` : key;
+
+          if (value.sensitive) {
+            sensitiveFields.push(currentPath);
+          }
+
+          if (value.properties || value.items) {
+            traverseSchema(value, currentPath);
+          }
+        }
+      }
+    };
+
+    traverseSchema(schema);
+    return sensitiveFields;
+  }
+}
+```
+
+##### **[ ] T2.5.7 API Design & Integration**
+
+- [ ] **Schema Management API** สำหรับ CRUD operations
+- [ ] **Validation API** สำหรับ validate data against schemas
+- [ ] **Migration API** สำหรับ manage data migrations
+- [ ] **Integration Hooks** สำหรับ other modules
+
+```typescript
+@Controller('json-schema')
+export class JsonSchemaController {
+  @Post('validate/:schemaName')
+  @RequirePermission('schema.validate')
+  async validateData(
+    @Param('schemaName') schemaName: string,
+    @Body() dto: ValidateDataDto
+  ): Promise<ValidationResult> {
+    return this.jsonSchemaService.validateData(
+      schemaName,
+      dto.data,
+      dto.options
+    );
+  }
+
+  @Post('schemas')
+  @RequirePermission('schema.manage')
+  async createSchema(@Body() dto: CreateSchemaDto): Promise<JsonSchema> {
+    return this.jsonSchemaService.createSchema(dto);
+  }
+
+  @Post('migrate/:entityType/:entityId')
+  @RequirePermission('data.migrate')
+  async migrateData(
+    @Param('entityType') entityType: string,
+    @Param('entityId') entityId: string,
+    @Body() dto: MigrateDataDto
+  ): Promise<MigrationResult> {
+    return this.migrationService.migrateData(
+      entityType,
+      entityId,
+      dto.targetVersion
+    );
+  }
+
+  @Get('ui-schema/:schemaName')
+  @RequirePermission('schema.view')
+  async getUiSchema(
+    @Param('schemaName') schemaName: string
+  ): Promise<UiSchema> {
+    return this.schemaService.getUiSchema(schemaName);
+  }
+}
+```
+
+### **[ ] T2.5.8 Integration with Document Modules**
+
+- [ ] **Correspondence Module Integration**
+- [ ] **RFA Module Integration**
+- [ ] **Circulation Module Integration**
+- [ ] **Drawing Module Integration**
+
+```typescript
+// Example: Correspondence Service Integration
+@Injectable()
+export class CorrespondenceService {
+  constructor(
+    private jsonSchemaService: JsonSchemaService,
+    private detailsService: DetailsService
+  ) {}
+
+  async createCorrespondence(
+    dto: CreateCorrespondenceDto
+  ): Promise<Correspondence> {
+    // 1. Validate details against schema
+    const validationResult = await this.jsonSchemaService.validateData(
+      `CORRESPONDENCE_${dto.type}`,
+      dto.details
+    );
+
+    if (!validationResult.isValid) {
+      throw new ValidationError('INVALID_DETAILS', validationResult.errors);
+    }
+
+    // 2. Apply security and sanitization
+    const secureDetails = await this.detailsService.sanitizeDetails(
+      validationResult.sanitizedData,
+      dto.type
+    );
+
+    // 3. Create correspondence entity
+    const correspondence = this.correspondenceRepository.create({
+      ...dto,
+      details: secureDetails,
+      schema_version: await this.getCurrentSchemaVersion(
+        `CORRESPONDENCE_${dto.type}`
+      ),
+    });
+
+    // 4. Setup virtual columns for performance
+    await this.setupVirtualColumns(correspondence);
+
+    return this.correspondenceRepository.save(correspondence);
+  }
+
+  async searchCorrespondences(
+    filters: SearchFilters
+  ): Promise<Correspondence[]> {
+    // Use virtual columns for efficient filtering
+    const query = this.correspondenceRepository.createQueryBuilder('c');
+
+    if (filters.projectId) {
+      query.andWhere('c.ref_project_id = :projectId', {
+        projectId: filters.projectId,
+      });
+    }
+
+    if (filters.priority) {
+      query.andWhere('c.ref_priority = :priority', {
+        priority: filters.priority,
+      });
+    }
+
+    return query.getMany();
+  }
+}
+```
+
+##### **[ ] T2.5.9 Testing Strategy**
+
+- [ ] **Unit Tests** สำหรับ schema validation และ transformation
+- [ ] **Integration Tests** สำหรับ end-to-end data flow
+- [ ] **Performance Tests** สำหรับ virtual columns และ large datasets
+- [ ] **Security Tests** สำหรับ field-level security
+
+```typescript
+describe('JsonSchemaService', () => {
+  describe('validateData', () => {
+    it('should validate correct RFA_DWG data successfully', async () => {
+      const testData = {
+        title: 'Structural Beam Details',
+        discipline: 'STRUCTURAL',
+        drawingReferences: ['CD-STR-001', 'CD-STR-002'],
+        approvalType: 'FULL_APPROVAL',
+        materials: ['STEEL_A36', 'CONCRETE_40MPA'],
+      };
+
+      const result = await jsonSchemaService.validateData('RFA_DWG', testData);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should reject invalid discipline value', async () => {
+      const testData = {
+        title: 'Test Drawing',
+        discipline: 'INVALID_DISCIPLINE', // Not in enum
+        approvalType: 'FULL_APPROVAL',
+      };
+
+      const result = await jsonSchemaService.validateData('RFA_DWG', testData);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors[0].message).toContain('discipline');
+    });
+  });
+});
+
+describe('VirtualColumnService', () => {
+  it('should improve search performance with virtual columns', async () => {
+    // Create test data with JSON details
+    await createTestCorrespondences(1000);
+
+    // Search without virtual column (JSON_EXTRACT)
+    const startTime1 = Date.now();
+    const result1 = await correspondenceRepository
+      .createQueryBuilder('c')
+      .where("JSON_EXTRACT(c.details, '$.projectId') = :projectId", {
+        projectId: 123,
+      })
+      .getMany();
+    const time1 = Date.now() - startTime1;
+
+    // Search with virtual column
+    const startTime2 = Date.now();
+    const result2 = await correspondenceRepository
+      .createQueryBuilder('c')
+      .where('c.ref_project_id = :projectId', { projectId: 123 })
+      .getMany();
+    const time2 = Date.now() - startTime2;
+
+    expect(time2).toBeLessThan(time1 * 0.5); // At least 2x faster
+    expect(result1.length).toEqual(result2.length);
+  });
+});
+```
+
+#### 🔗 **Critical Dependencies**
+
+- **T1.1** (Common Module) - สำหรับ base entities และ shared services
+- **T1.4** (RBAC Guard) - สำหรับ field-level security
+- **T0.3** (Database) - สำหรับ virtual columns implementation
+- **T3.2** (Correspondence) - สำหรับ integration testing
+
+#### 🎯 **Success Metrics**
+
+- ✅ JSON validation performance: < 10ms ต่อ request
+- ✅ Virtual columns improve search performance 5x+
+- ✅ Support schema evolution without data loss
+- ✅ Field-level security enforced across all modules
+- ✅ 100% test coverage สำหรับ core validation logic
+
+* **[ ] T2.6 MasterModule - Advanced Data (Req 6B)** (New)
+  - [ ] Update Entities: `Discipline`, `CorrespondenceSubType`
+  - [ ] Create Services/Controllers for CRUD Operations (Admin Panel Support)
+  - [ ] Implement Seeding Logic for initial 6B data
+  - [ ] **Deliverable:** API for managing Disciplines and Sub-types
+  - [ ] **Dependencies:** T1.1, T0.3
+
+---
 
 ## **Phase 3: Unified Workflow Engine (สัปดาห์ที่ 5-6)**
 
@@ -317,12 +1351,525 @@ src/
   - [ ] **Deliverable:** Unified Workflow Engine พร้อมใช้งาน
   - [ ] **Dependencies:** T1.1
 
+- **[ ] T3.1.1 Workflow DSL Specification & Grammar**
+  - [ ] Define EBNF Grammar สำหรับ Workflow DSL
+  - [ ] Create YAML Schema สำหรับ human-friendly workflow definitions
+  - [ ] Design JSON Schema สำหรับ compiled workflow representations
+
+```yaml
+# ตัวอย่าง DSL Structure
+
+workflow: RFA_APPROVAL
+version: 1.0
+description: "RFA Approval Workflow with Parallel Reviews"
+
+states:
+
+- name: DRAFT
+  initial: true
+  metadata:
+  color: "gray"
+  icon: "draft"
+  on:
+  SUBMIT:
+  to: TECHNICAL_REVIEW
+  conditions: - expression: "user.hasRole('ENGINEER')"
+  requirements: - role: "ENGINEER"
+  events: - type: "notify"
+  target: "reviewers"
+  template: "NEW_RFA_SUBMITTED" - type: "assign"
+  target: "technical_lead"
+
+- name: TECHNICAL_REVIEW
+  metadata:
+  color: "blue"
+  icon: "review"
+  on:
+  APPROVE:
+  to: MANAGERIAL_REVIEW
+  conditions: - expression: "user.department === context.document.department"
+  REQUEST_CHANGES:
+  to: DRAFT
+  events: - type: "notify"
+  target: "creator"
+  template: "CHANGES_REQUESTED"
+  ESCALATE:
+  to: ESCALATED_REVIEW
+  conditions: - expression: "document.priority === 'HIGH'"
+
+- name: PARALLEL_APPROVAL
+  parallel: true
+  branches:
+
+  - MANAGERIAL_REVIEW
+  - FINANCIAL_REVIEW
+    on:
+    ALL_APPROVED:
+    to: APPROVED
+    ANY_REJECTED:
+    to: REJECTED
+
+- name: APPROVED
+  terminal: true
+  metadata:
+  color: "green"
+  icon: "approved"
+  Versioning Strategy สำหรับ workflow definitions
+```
+
+- **[ ] T3.1.2 Workflow Core Entities & Database Schema**
+
+  - [ ] WorkflowDefinition Entity
+  - [ ] WorkflowInstance Entity
+  - [ ] WorkflowHistory Entity
+  - [ ] WorkflowTransition Entity
+
+```typescript
+// Core Entities Design
+@Entity()
+export class WorkflowDefinition {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  name: string;
+
+  @Column()
+  version: number;
+
+  @Column('json')
+  dsl_raw: any; // YAML/JSON DSL
+
+  @Column('json')
+  compiled_schema: any; // Normalized JSON
+
+  @Column({ default: true })
+  is_active: boolean;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @VersionColumn()
+  version: number;
+}
+
+@Entity()
+export class WorkflowInstance {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ManyToOne(() => WorkflowDefinition)
+  definition: WorkflowDefinition;
+
+  @Column()
+  entity_type: string; // 'correspondence', 'rfa', 'circulation'
+
+  @Column()
+  entity_id: string;
+
+  @Column()
+  current_state: string;
+
+  @Column('json')
+  context: any; // Workflow-specific data
+
+  @Column('json')
+  history: any[]; // State transition history
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+}
+```
+
+- **[ ] T3.1.3 DSL Parser & Compiler Service**
+
+  - [ ] YAML Parser สำหรับอ่าน DSL definitions
+  - [ ] Syntax Validator สำหรับ compile-time validation
+  - [ ] Schema Compiler สำหรับแปลง DSL → Normalized JSON
+  - [ ] Version Migration สำหรับอัพเกรด workflow definitions
+
+```typescript
+@Injectable()
+export class WorkflowDslService {
+  async parseAndValidate(dslContent: string): Promise<CompiledWorkflow> {
+    // 1. Parse YAML
+    const rawDefinition = yaml.parse(dslContent);
+
+    // 2. Validate Syntax
+    await this.validateSyntax(rawDefinition);
+
+    // 3. Compile to Normalized JSON
+    const compiled = await this.compileDefinition(rawDefinition);
+
+    // 4. Validate Business Rules
+    await this.validateBusinessRules(compiled);
+
+    return compiled;
+  }
+
+  private async validateSyntax(definition: any): Promise<void> {
+    const rules = [
+      // ต้องมีอย่างน้อย 1 initial state
+      () => definition.states.some((s) => s.initial),
+      // Terminal states ต้องไม่มี transitions
+      () => !definition.states.filter((s) => s.terminal).some((s) => s.on),
+      // State names must be unique
+      () =>
+        new Set(definition.states.map((s) => s.name)).size ===
+        definition.states.length,
+      // Transition targets must exist
+      () => this.validateTransitionTargets(definition),
+    ];
+
+    for (const rule of rules) {
+      if (!rule()) {
+        throw new WorkflowValidationError('DSL_VALIDATION_FAILED');
+      }
+    }
+  }
+}
+```
+
+- **[ ] T3.1.4 Workflow Runtime Engine**
+  - [ ] State Machine Engine สำหรับจัดการ state transitions
+  - [ ] Condition Evaluator สำหรับประเมิน conditional transitions
+  - [ ] Permission Checker สำหรับตรวจสอบสิทธิ์ในการเปลี่ยนสถานะ
+  - [ ] Event Dispatcher สำหรับจัดการ workflow events
+
+```typescript
+****@Injectable()
+export class WorkflowEngineService {
+  async processTransition(
+    instanceId: string,
+    action: string,
+    context: WorkflowContext
+  ): Promise<TransitionResult> {
+    // 1. Load Workflow Instance
+    const instance = await this.findInstance(instanceId);
+    const definition = await this.getCompiledDefinition(instance.definition_id);
+
+    // 2. Validate Current State & Action
+    const currentState = definition.states[instance.current_state];
+    const transition = currentState.transitions[action];
+
+    if (!transition) {
+      throw new WorkflowError('INVALID_TRANSITION');
+    }
+
+    // 3. Check Permissions & Conditions
+    await this.validatePermissions(transition, context);
+    await this.validateConditions(transition, context);
+
+    // 4. Execute Pre-Transition Hooks
+    await this.executeHooks('pre_transition', instance, transition, context);
+
+    // 5. Perform State Transition
+    const previousState = instance.current_state;
+    instance.current_state = transition.to;
+
+    // 6. Record History
+    await this.recordTransitionHistory(instance, {
+      from: previousState,
+      to: transition.to,
+      action,
+      user: context.userId,
+      timestamp: new Date(),
+      metadata: context.metadata
+    });
+
+    // 7. Execute Post-Transition Events
+    await this.executeEvents(transition.events, instance, context);
+
+    // 8. Execute Post-Transition Hooks
+    await this.executeHooks('post_transition', instance, transition, context);
+
+    // 9. Save Instance
+    await this.saveInstance(instance);
+
+    return {
+      success: true,
+      previousState,
+      newState: transition.to,
+      instanceId: instance.id
+    };
+  }
+
+  async getAvailableActions(
+    instanceId: string,
+    context: WorkflowContext
+  ): Promise<string[]> {
+    const instance = await this.findInstance(instanceId);
+    const definition = await this.getCompiledDefinition(instance.definition_id);
+    const currentState = definition.states[instance.current_state];
+
+    return Object.keys(currentState.transitions).filter(action => {
+      const transition = currentState.transitions[action];
+      return this.isActionAvailable(transition, context);
+    });
+  }
+}
+```
+
+- **[ ] T3.1.5 Advanced Feature Implementation**
+  - [ ] Parallel Approval Flows สำหรับ multi-department approvals
+  - [ ] Conditional Transitions ด้วย expression evaluation
+  - [ ] Timeout & Escalation สำหรับขั้นตอนที่เกินกำหนด
+  - [ ] Rollback & Compensation สำหรับย้อนกลับสถานะ
+
+```typescript
+// Parallel Workflow Support
+interface ParallelState {
+  parallel: true;
+  branches: string[];
+  completion_policy: 'ALL' | 'ANY' | 'MAJORITY';
+  on: {
+    [completionType: string]: {
+      to: string;
+      conditions?: Condition[];
+    };
+  };
+}
+
+// Conditional Transition Support
+interface ConditionalTransition {
+  to: string;
+  conditions: Array<{
+    expression: string; // "user.role === 'MANAGER' && document.value > 10000"
+    evaluator?: 'javascript' | 'jsonlogic';
+  }>;
+  requirements?: PermissionRequirement[];
+}
+
+// Timeout & Escalation
+interface StateWithTimeout {
+  timeout_seconds: number;
+  on_timeout: {
+    action: string;
+    escalate_to?: string;
+    notify?: string[];
+  };
+}
+```
+
+- **[ ] T3.1.6 Event System & Integration**
+  - [ ] Event Types (notify, assign, webhook, auto_action)
+  - [ ] Template Engine สำหรับ dynamic messages
+  - [ ] Webhook Support สำหรับ external integrations
+  - [ ] Notification Service Integration
+
+```typescript
+@Injectable()
+export class WorkflowEventService {
+  async executeEvents(
+    events: WorkflowEvent[],
+    instance: WorkflowInstance,
+    context: WorkflowContext
+  ): Promise<void> {
+    for (const event of events) {
+      switch (event.type) {
+        case 'notify':
+          await this.handleNotifyEvent(event, instance, context);
+          break;
+        case 'assign':
+          await this.handleAssignEvent(event, instance, context);
+          break;
+        case 'webhook':
+          await this.handleWebhookEvent(event, instance, context);
+          break;
+        case 'auto_action':
+          await this.handleAutoActionEvent(event, instance, context);
+          break;
+      }
+    }
+  }
+
+  private async handleNotifyEvent(
+    event: NotifyEvent,
+    instance: WorkflowInstance,
+    context: WorkflowContext
+  ): Promise<void> {
+    const recipients = await this.resolveRecipients(
+      event.target,
+      instance,
+      context
+    );
+    const message = await this.renderTemplate(
+      event.template,
+      instance,
+      context
+    );
+
+    await this.notificationService.send({
+      type: 'workflow',
+      recipients,
+      subject: message.subject,
+      body: message.body,
+      metadata: {
+        workflow_instance_id: instance.id,
+        state: instance.current_state,
+        action: context.action,
+      },
+    });
+  }
+}
+```
+
+- **[ ] T3.1.7 API Design & Controllers**
+  - [ ] REST API Endpoints สำหรับ workflow management
+  - [ ] WebSocket Support สำหรับ real-time updates
+  - [ ] Admin API สำหรับ workflow definition management
+  - [ ] Integration Hooks สำหรับ external systems
+
+```typescript
+@Controller('workflow')
+export class WorkflowEngineController {
+  @Post('instances/:id/transition')
+  @RequirePermission('workflow.execute')
+  async processTransition(
+    @Param('id') instanceId: string,
+    @Body() dto: WorkflowTransitionDto
+  ): Promise<TransitionResult> {
+    return this.workflowEngine.processTransition(
+      instanceId,
+      dto.action,
+      dto.context
+    );
+  }
+
+  @Get('instances/:id/actions')
+  @RequirePermission('workflow.view')
+  async getAvailableActions(
+    @Param('id') instanceId: string,
+    @Query() context: WorkflowContext
+  ): Promise<string[]> {
+    return this.workflowEngine.getAvailableActions(instanceId, context);
+  }
+
+  @Post('definitions')
+  @RequirePermission('workflow.manage')
+  async createWorkflowDefinition(
+    @Body() dto: CreateWorkflowDefinitionDto
+  ): Promise<WorkflowDefinition> {
+    return this.workflowDslService.compileAndSave(dto.dslContent);
+  }
+
+  @Get('instances/:id/history')
+  @RequirePermission('workflow.view')
+  async getWorkflowHistory(
+    @Param('id') instanceId: string
+  ): Promise<WorkflowHistory[]> {
+    return this.workflowHistoryService.getHistory(instanceId);
+  }
+}
+```
+
+- **[ ] T3.1.8 Integration with Existing Modules**
+  - [ ] Correspondence Module Integration
+  - [ ] RFA Module Integration
+  - [ ] Circulation Module Integration
+  - [ ] Notification Module Integration
+
+```typescript
+// Correspondence Integration Example
+@Injectable()
+export class CorrespondenceWorkflowService {
+  constructor(
+    private workflowEngine: WorkflowEngineService,
+    private correspondenceService: CorrespondenceService
+  ) {}
+
+  async submitCorrespondence(
+    correspondenceId: string,
+    userId: string
+  ): Promise<void> {
+    const correspondence = await this.correspondenceService.findById(
+      correspondenceId
+    );
+
+    // Create workflow instance
+    const instance = await this.workflowEngine.createInstance({
+      definition: 'CORRESPONDENCE_ROUTING',
+      entity_type: 'correspondence',
+      entity_id: correspondenceId,
+      context: {
+        document: correspondence,
+        user: userId,
+      },
+    });
+
+    // Process initial transition
+    await this.workflowEngine.processTransition(instance.id, 'SUBMIT', {
+      userId,
+      metadata: { correspondenceId },
+    });
+  }
+}
+```
+
+- **[ ] T3.1.9 Testing Strategy**
+  - [ ] Unit Tests สำหรับ DSL parser และ state machine
+  - [ ] Integration Tests สำหรับ end-to-end workflow execution
+  - [ ] Performance Tests สำหรับ high-concurrency scenarios
+  - [ ] Security Tests สำหรับ permission validation.
+
+```typescript
+describe('WorkflowEngineService', () => {
+  describe('processTransition', () => {
+    it('should successfully transition state with valid permissions', async () => {
+      // Arrange
+      const instance = await createTestInstance();
+      const context = { userId: 'user1', roles: ['APPROVER'] };
+
+      // Act
+      const result = await workflowEngine.processTransition(
+        instance.id,
+        'APPROVE',
+        context
+      );
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.newState).toBe('APPROVED');
+    });
+
+    it('should reject transition without required permissions', async () => {
+      // Arrange
+      const instance = await createTestInstance();
+      const context = { userId: 'user2', roles: ['VIEWER'] };
+
+      // Act & Assert
+      await expect(
+        workflowEngine.processTransition(instance.id, 'APPROVE', context)
+      ).rejects.toThrow(WorkflowError);
+    });
+  });
+});
+```
+
+- **🔗 Critical Dependencies of T3.1.1-T3.1.8**
+
+  - T1.1 (Common Module) - สำหรับ base entities และ shared services
+  - T1.4 (RBAC Guard) - สำหรับ permission checking
+  - T2.5 (JSON Schema) - สำหรับ DSL validation
+  - T6.2 (Notification) - สำหรับ event handling
+
+- **🎯 Success Metrics**
+
+  - ✅ Support ทั้ง Correspondence Routing และ RFA Workflow
+  - ✅ DSL ที่ human-readable และ editable โดยไม่ต้องแก้โค้ด
+  - ✅ Performance: < 50ms ต่อ state transition
+  - ✅ 100% test coverage สำหรับ core workflow logic
+  - ✅ Complete audit trail สำหรับทุก workflow instance
+
 - **[ ] T3.2 CorrespondenceModule - Basic CRUD**
 
   - [ ] สร้าง Entities (Correspondence, Revision, Recipient, Tag, Reference, Attachment)
   - [ ] สร้าง CorrespondenceService (Create with Document Numbering, Update with new Revision, Soft Delete)
   - [ ] สร้าง Controllers (POST/GET/PUT/DELETE /correspondences)
-  - [ ] [New] Implement Impersonation Logic: ตรวจสอบ originatorId ใน DTO หากมีการส่งมา ต้องเช็คว่า User ปัจจุบันมีสิทธิ์กระทำการแทนหรือไม่ (Superadmin)
+  - [ ] Implement Impersonation Logic: ตรวจสอบ originatorId ใน DTO หากมีการส่งมา ต้องเช็คว่า User ปัจจุบันมีสิทธิ์กระทำการแทนหรือไม่ (Superadmin)
   - [ ] **Security:** Implement permission checks สำหรับ document access
   - [ ] **Deliverable:** สร้าง/แก้ไข/ดูเอกสารได้
   - [ ] **Dependencies:** T1.1, T1.2, T1.3, T1.4, T1.5, T2.3, T2.2, T2.5
@@ -345,7 +1892,7 @@ src/
   - [ ] **Deliverable:** ระบบส่งต่อเอกสารทำงานได้สมบูรณ์ด้วย Unified Engine
   - [ ] **Dependencies:** T3.1, T3.2
 
------
+---
 
 ## **Phase 4: Drawing & Advanced Workflows (สัปดาห์ที่ 7-8)**
 
@@ -382,7 +1929,7 @@ src/
   - [ ] **Deliverable:** RFA Workflow ทำงานได้ด้วย Unified Engine
   - [ ] **Dependencies:** T3.2, T4.2, T2.5, T6.2
 
------
+---
 
 ## **Phase 5: Workflow Systems & Resilience (สัปดาห์ที่ 8-9)**
 
@@ -408,7 +1955,7 @@ src/
   - [ ] **Deliverable:** สร้าง Transmittal ได้
   - [ ] **Dependencies:** T3.2
 
------
+---
 
 ## **Phase 6: Notification & Resilience (สัปดาห์ที่ 9)**
 
@@ -462,7 +2009,7 @@ src/
   - [ ] **Deliverable:** Database Performance และ Scalability ดีขึ้น
   - [ ] **Dependencies:** T0.3
 
------
+---
 
 ## **Phase 7: Testing & Hardening (สัปดาห์ที่ 10-12)**
 
@@ -489,7 +2036,7 @@ src/
   - [ ] ทดสอบ Replay Attack โดยใช้ `Idempotency-Key` ซ้ำ
   - [ ] ทดสอบ Maintenance Mode Block API ได้จริง
   - [ ] ทดสอบ RBAC 4-Level ทำงานถูกต้อง 100%
-  - [ ] **Deliverable:** Security และ Idempotency ทำงานได้ตาม设计要求
+  - [ ] **Deliverable:** Security และ Idempotency ทำงานได้ตาม 设计要求
 
 - **[ ] T7.4 Unit Testing (80% Coverage)**
 
@@ -518,7 +2065,7 @@ src/
   - [ ] Database Optimization (Review Indexes, Query Optimization, Pagination)
   - [ ] **Deliverable:** Response Time < 200ms (90th percentile)
 
------
+---
 
 ## **Phase 8: Documentation & Deployment (สัปดาห์ที่ 14)**
 
@@ -533,12 +2080,12 @@ src/
 - **[ ] T8.5 Production Deployment**
 - **[ ] T8.6 Handover to Frontend Team**
 
------
+---
 
 ## 📊 **สรุป Timeline**
 
-| Phase   | ระยะเวลา     | จำนวนงาน      | Output หลัก                                     |
-| :------ | :----------- | :----------- | :--------------------------------------------- |
+| Phase   | ระยะเวลา       | จำนวนงาน     | Output หลัก                                    |
+| :------ | :------------- | :----------- | :--------------------------------------------- |
 | Phase 0 | 1 สัปดาห์      | 4            | Infrastructure Ready + Security Base           |
 | Phase 1 | 2 สัปดาห์      | 5            | Auth & User Management + RBAC + Idempotency    |
 | Phase 2 | 1 สัปดาห์      | 5            | High-Integrity Data & File Management          |
@@ -552,14 +2099,22 @@ src/
 
 ## **Document Control:**
 
-- **Document:** Backend Development Plan v1.4.3
+- **Document:** Backend Development Plan v1.4.4
 - **Version:** 1.4
-- **Date:** 2025-11-26
+- **Date:** 2025-11-28
 - **Author:** NAP LCBP3-DMS & Gemini
 - **Status:** FINAL-Rev.04
 - **Classification:** Internal Technical Documentation
 - **Approved By:** Nattanin
 
------
+---
 
 `End of Backend Development Plan v1.4.4`
+
+```
+
+```
+
+```
+
+```

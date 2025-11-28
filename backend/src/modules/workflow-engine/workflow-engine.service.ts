@@ -1,20 +1,29 @@
 // File: src/modules/workflow-engine/workflow-engine.service.ts
 
 import {
-  Injectable,
-  NotFoundException,
   BadRequestException,
+  Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
+
+// Entities
 import { WorkflowDefinition } from './entities/workflow-definition.entity';
-import { WorkflowDslService, CompiledWorkflow } from './workflow-dsl.service';
+import { WorkflowHistory } from './entities/workflow-history.entity';
+import {
+  WorkflowInstance,
+  WorkflowStatus,
+} from './entities/workflow-instance.entity';
+
+// Services & Interfaces
 import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dto';
 import { EvaluateWorkflowDto } from './dto/evaluate-workflow.dto';
 import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto';
+import { CompiledWorkflow, WorkflowDslService } from './workflow-dsl.service';
 
-// Interface สำหรับ Backward Compatibility (Logic เดิม)
+// Legacy Interface (Backward Compatibility)
 export enum WorkflowAction {
   APPROVE = 'APPROVE',
   REJECT = 'REJECT',
@@ -35,11 +44,16 @@ export class WorkflowEngineService {
   constructor(
     @InjectRepository(WorkflowDefinition)
     private readonly workflowDefRepo: Repository<WorkflowDefinition>,
+    @InjectRepository(WorkflowInstance)
+    private readonly instanceRepo: Repository<WorkflowInstance>,
+    @InjectRepository(WorkflowHistory)
+    private readonly historyRepo: Repository<WorkflowHistory>,
     private readonly dslService: WorkflowDslService,
+    private readonly dataSource: DataSource, // ใช้สำหรับ Transaction
   ) {}
 
   // =================================================================
-  // [NEW] DSL & Workflow Engine (Phase 6A)
+  // [PART 1] Definition Management (Phase 6A)
   // =================================================================
 
   /**
@@ -48,8 +62,10 @@ export class WorkflowEngineService {
   async createDefinition(
     dto: CreateWorkflowDefinitionDto,
   ): Promise<WorkflowDefinition> {
+    // 1. Compile & Validate DSL
     const compiled = this.dslService.compile(dto.dsl);
 
+    // 2. Check latest version
     const latest = await this.workflowDefRepo.findOne({
       where: { workflow_code: dto.workflow_code },
       order: { version: 'DESC' },
@@ -57,6 +73,7 @@ export class WorkflowEngineService {
 
     const nextVersion = latest ? latest.version + 1 : 1;
 
+    // 3. Save new version
     const entity = this.workflowDefRepo.create({
       workflow_code: dto.workflow_code,
       version: nextVersion,
@@ -65,9 +82,16 @@ export class WorkflowEngineService {
       is_active: dto.is_active ?? true,
     });
 
-    return this.workflowDefRepo.save(entity);
+    const saved = await this.workflowDefRepo.save(entity);
+    this.logger.log(
+      `Created Workflow Definition: ${saved.workflow_code} v${saved.version}`,
+    );
+    return saved;
   }
 
+  /**
+   * อัปเดต Definition (Re-compile DSL)
+   */
   async update(
     id: string,
     dto: UpdateWorkflowDefinitionDto,
@@ -95,33 +119,9 @@ export class WorkflowEngineService {
     return this.workflowDefRepo.save(definition);
   }
 
-  async evaluate(dto: EvaluateWorkflowDto): Promise<any> {
-    const definition = await this.workflowDefRepo.findOne({
-      where: { workflow_code: dto.workflow_code, is_active: true },
-      order: { version: 'DESC' },
-    });
-
-    if (!definition) {
-      throw new NotFoundException(
-        `No active workflow definition found for "${dto.workflow_code}"`,
-      );
-    }
-
-    const compiled: CompiledWorkflow = definition.compiled;
-    const result = this.dslService.evaluate(
-      compiled,
-      dto.current_state,
-      dto.action,
-      dto.context || {},
-    );
-
-    this.logger.log(
-      `Workflow Evaluated: ${dto.workflow_code} [${dto.current_state}] --${dto.action}--> [${result.nextState}]`,
-    );
-
-    return result;
-  }
-
+  /**
+   * ดึง Action ที่ทำได้ ณ State ปัจจุบัน
+   */
   async getAvailableActions(
     workflowCode: string,
     currentState: string,
@@ -140,25 +140,206 @@ export class WorkflowEngineService {
   }
 
   // =================================================================
-  // [LEGACY] Backward Compatibility for Correspondence/RFA Modules
-  // คืนค่า Logic เดิมเพื่อไม่ให้ Module อื่น Error (TS2339)
+  // [PART 2] Runtime Engine (Phase 3.1)
+  // =================================================================
+
+  /**
+   * เริ่มต้น Workflow Instance ใหม่สำหรับเอกสาร
+   */
+  async createInstance(
+    workflowCode: string,
+    entityType: string,
+    entityId: string,
+    initialContext: Record<string, any> = {},
+  ): Promise<WorkflowInstance> {
+    // 1. หา Definition ล่าสุด
+    const definition = await this.workflowDefRepo.findOne({
+      where: { workflow_code: workflowCode, is_active: true },
+      order: { version: 'DESC' },
+    });
+
+    if (!definition) {
+      throw new NotFoundException(
+        `Workflow "${workflowCode}" not found or inactive.`,
+      );
+    }
+
+    // 2. หา Initial State จาก Compiled Structure
+    const compiled: CompiledWorkflow = definition.compiled;
+    const initialState = Object.keys(compiled.states).find(
+      (key) => compiled.states[key].initial,
+    );
+
+    if (!initialState) {
+      throw new BadRequestException(
+        `Workflow "${workflowCode}" has no initial state defined.`,
+      );
+    }
+
+    // 3. สร้าง Instance
+    const instance = this.instanceRepo.create({
+      definition,
+      entityType,
+      entityId,
+      currentState: initialState,
+      status: WorkflowStatus.ACTIVE,
+      context: initialContext,
+    });
+
+    const savedInstance = await this.instanceRepo.save(instance);
+    this.logger.log(
+      `Started Workflow Instance: ${workflowCode} for ${entityType}:${entityId}`,
+    );
+    return savedInstance;
+  }
+
+  /**
+   * ดำเนินการเปลี่ยนสถานะ (Transition) ของ Instance จริงแบบ Transactional
+   */
+  async processTransition(
+    instanceId: string,
+    action: string,
+    userId: number,
+    comment?: string,
+    payload: Record<string, any> = {},
+  ) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Lock Instance เพื่อป้องกัน Race Condition (Pessimistic Write Lock)
+      const instance = await queryRunner.manager.findOne(WorkflowInstance, {
+        where: { id: instanceId },
+        relations: ['definition'],
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!instance) {
+        throw new NotFoundException(
+          `Workflow Instance "${instanceId}" not found.`,
+        );
+      }
+
+      if (instance.status !== WorkflowStatus.ACTIVE) {
+        throw new BadRequestException(
+          `Workflow is not active (Status: ${instance.status}).`,
+        );
+      }
+
+      // 2. Evaluate Logic ผ่าน DSL Service
+      const compiled: CompiledWorkflow = instance.definition.compiled;
+      const context = { ...instance.context, userId, ...payload }; // Merge Context
+
+      // * DSL Service จะ throw error ถ้า action ไม่ถูกต้อง หรือสิทธิ์ไม่พอ
+      const evaluation = this.dslService.evaluate(
+        compiled,
+        instance.currentState,
+        action,
+        context,
+      );
+
+      const fromState = instance.currentState;
+      const toState = evaluation.nextState;
+
+      // 3. อัปเดต Instance
+      instance.currentState = toState;
+      instance.context = context; // อัปเดต Context ด้วย
+
+      // เช็คว่าเป็น Terminal State หรือไม่?
+      if (compiled.states[toState].terminal) {
+        instance.status = WorkflowStatus.COMPLETED;
+      }
+
+      await queryRunner.manager.save(instance);
+
+      // 4. บันทึก History (Audit Trail)
+      const history = this.historyRepo.create({
+        instanceId: instance.id,
+        fromState,
+        toState,
+        action,
+        actionByUserId: userId,
+        comment,
+        metadata: {
+          events: evaluation.events,
+          payload,
+        },
+      });
+      await queryRunner.manager.save(history);
+
+      // 5. Trigger Events (Integration Point)
+      // ในอนาคตสามารถ Inject NotificationService มาเรียกตรงนี้ได้
+      if (evaluation.events && evaluation.events.length > 0) {
+        this.logger.log(
+          `Triggering ${evaluation.events.length} events for instance ${instanceId}`,
+        );
+        // await this.eventHandler.handle(evaluation.events);
+      }
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `Transition: ${instanceId} [${fromState}] --${action}--> [${toState}] by User:${userId}`,
+      );
+
+      return {
+        success: true,
+        nextState: toState,
+        events: evaluation.events,
+        isCompleted: instance.status === WorkflowStatus.COMPLETED,
+      };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(
+        `Transition Failed for ${instanceId}: ${(err as Error).message}`,
+      );
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * (Utility) Evaluate แบบไม่บันทึกผล (Dry Run) สำหรับ Test หรือ Preview
+   */
+  async evaluate(dto: EvaluateWorkflowDto): Promise<any> {
+    const definition = await this.workflowDefRepo.findOne({
+      where: { workflow_code: dto.workflow_code, is_active: true },
+      order: { version: 'DESC' },
+    });
+
+    if (!definition) {
+      throw new NotFoundException(`Workflow "${dto.workflow_code}" not found`);
+    }
+
+    return this.dslService.evaluate(
+      definition.compiled,
+      dto.current_state,
+      dto.action,
+      dto.context || {},
+    );
+  }
+
+  // =================================================================
+  // [PART 3] Legacy Support (Backward Compatibility)
+  // รักษา Logic เดิมไว้เพื่อให้ Module อื่น (Correspondence/RFA) ทำงานต่อได้
   // =================================================================
 
   /**
    * คำนวณสถานะถัดไปแบบ Linear Sequence (Logic เดิม)
-   * ใช้สำหรับ CorrespondenceService และ RfaService ที่ยังไม่ได้ Refactor
+   * @deprecated แนะนำให้เปลี่ยนไปใช้ processTransition แทนเมื่อ Refactor เสร็จ
    */
   processAction(
     currentSequence: number,
     totalSteps: number,
-    action: string, // รับเป็น string เพื่อความยืดหยุ่น
+    action: string,
     returnToSequence?: number,
   ): TransitionResult {
-    // Map string action to enum logic
     switch (action) {
       case WorkflowAction.APPROVE:
       case WorkflowAction.ACKNOWLEDGE:
-      case 'APPROVE': // Case sensitive handling fallback
+      case 'APPROVE':
       case 'ACKNOWLEDGE':
         if (currentSequence >= totalSteps) {
           return {
@@ -193,7 +374,6 @@ export class WorkflowEngineService {
         };
 
       default:
-        // กรณีส่ง Action อื่นมา ให้ถือว่าเป็น Approve (หรือจะ Throw Error ก็ได้)
         this.logger.warn(
           `Unknown legacy action: ${action}, treating as next step.`,
         );

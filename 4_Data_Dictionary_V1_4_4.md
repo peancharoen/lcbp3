@@ -485,26 +485,29 @@
 
 **Purpose**: Child table storing revision history of correspondences (1:N)
 
-| Column Name              | Data Type    | Constraints                       | Description                                              |
-| ------------------------ | ------------ | --------------------------------- | -------------------------------------------------------- |
-| id                       | INT          | PRIMARY KEY, AUTO_INCREMENT       | Unique revision ID                                       |
-| correspondence_id        | INT          | NOT NULL, FK                      | Master correspondence ID                                 |
-| revision_number          | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                           |
-| revision_label           | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                          |
-| is_current               | BOOLEAN      | DEFAULT FALSE                     | Current revision flag                                    |
-| correspondence_status_id | INT          | NOT NULL, FK                      | Current status of this revision                          |
-| title                    | VARCHAR(255) | NOT NULL                          | Document title                                           |
-| document_date            | DATE         | NULL                              | Document date                                            |
-| issued_date              | DATETIME     | NULL                              | Issue date                                               |
-| received_date            | DATETIME     | NULL                              | Received date                                            |
-| due_date                 | DATETIME     | NULL                              | Due date for response                                    |
-| description              | TEXT         | NULL                              | Revision description                                     |
-| details                  | JSON         | NULL                              | Type-specific details (e.g., RFI questions)              |
-| created_at               | DATETIME     | DEFAULT CURRENT_TIMESTAMP         | Revision creation timestamp                              |
-| created_by               | INT          | NULL, FK                          | User who created revision                                |
-| updated_by               | INT          | NULL, FK                          | User who last updated                                    |
+| Column Name              | Data Type    | Constraints                       | Description                                                  |
+| ------------------------ | ------------ | --------------------------------- | ------------------------------------------------------------ |
+| id                       | INT          | PRIMARY KEY, AUTO_INCREMENT       | Unique revision ID                                           |
+| correspondence_id        | INT          | NOT NULL, FK                      | Master correspondence ID                                     |
+| revision_number          | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                               |
+| revision_label           | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                              |
+| is_current               | BOOLEAN      | DEFAULT FALSE                     | Current revision flag                                        |
+| correspondence_status_id | INT          | NOT NULL, FK                      | Current status of this revision                              |
+| title                    | VARCHAR(255) | NOT NULL                          | Document title                                               |
+| document_date            | DATE         | NULL                              | Document date                                                |
+| issued_date              | DATETIME     | NULL                              | Issue date                                                   |
+| received_date            | DATETIME     | NULL                              | Received date                                                |
+| due_date                 | DATETIME     | NULL                              | Due date for response                                        |
+| description              | TEXT         | NULL                              | Revision description                                         |
+| details                  | JSON         | NULL                              | Type-specific details (e.g., RFI questions)                  |
+| created_at               | DATETIME     | DEFAULT CURRENT_TIMESTAMP         | Revision creation timestamp                                  |
+| created_by               | INT          | NULL, FK                          | User who created revision                                    |
+| updated_by               | INT          | NULL, FK                          | User who last updated                                        |
 | v_ref_project_id         | INT          | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Project ID จาก JSON details เพื่อทำ Index |
-| v_ref_type               | VARCHAR(50)  | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Type จาก JSON details                  |
+| v_ref_type               | VARCHAR(50)  | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Type จาก JSON details                     |
+| details                  | JSON         | NULL                              | Type-specific details (e.g., RFI questions)                  |
+| v_doc_subtype            | VARCHAR(50)  | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Type จาก JSON details                     |
+| schema_version           | INT          | DEFAULT 1                         | Version of the schema used with this details                 |
 
 **Indexes**:
 
@@ -521,8 +524,9 @@
 - INDEX (issued_date)
 - INDEX (v_ref_project_id)
 - INDEX (v_ref_type)
+- INDEX (v_doc_subtype)
 
-**Relationships**:
+- **Relationships**:
 
 - Parent: correspondences, correspondence_status, users
 
@@ -638,16 +642,16 @@
 
 **Purpose**: เก็บข้อมูลแม่แบบ (Template) ของสายงานการส่งต่อเอกสารเพื่อขออนุมัติ ทำให้ไม่ต้องกำหนดขั้นตอนซ้ำทุกครั้ง สามารถสร้างเป็นแม่แบบทั่วไป หรือเฉพาะสำหรับโครงการใดโครงการหนึ่งได้
 
-| Column Name     | Data Type    | Constraints                                                     | Description                                                                                |
-| --------------- | ------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| id              | INT          | PRIMARY KEY, AUTO_INCREMENT                                     | ID หลัก (Primary Key) ของแม่แบบ รันค่าอัตโนมัติ                                                   |
-| template_name   | VARCHAR(255) | NOT NULL                                                        | ชื่อของแม่แบบ เช่น "เสนอโครงการ", "ขออนุมัติจัดซื้อ"                                                 |
-| description     | TEXT         | NULL                                                            | คำอธิบายรายละเอียดเกี่ยวกับแม่แบบนี้                                                                |
+| Column Name     | Data Type    | Constraints                                                     | Description                                                                                                       |
+| --------------- | ------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| id              | INT          | PRIMARY KEY, AUTO_INCREMENT                                     | ID หลัก (Primary Key) ของแม่แบบ รันค่าอัตโนมัติ                                                                   |
+| template_name   | VARCHAR(255) | NOT NULL                                                        | ชื่อของแม่แบบ เช่น "เสนอโครงการ", "ขออนุมัติจัดซื้อ"                                                              |
+| description     | TEXT         | NULL                                                            | คำอธิบายรายละเอียดเกี่ยวกับแม่แบบนี้                                                                              |
 | project_id      | INT          | NULL                                                            | ID ของโครงการที่แม่แบบนี้สังกัดอยู่ (ถ้ามี) **ค่า NULL หมายถึง** เป็น "แม่แบบทั่วไป" ที่สามารถใช้กับทุกโครงการได้ |
-| created_at      | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP                             | วันที่และเวลาที่สร้างแม่แบบนี้                                                                      |
-| updated_at      | TIMESTAMP    | NOT NULL,`DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | วันที่และเวลาที่แก้ไขข้อมูลในแม่แบบนี้ล่าสุด                                                            |
-| is_active       | BOOLEAN      | DEFAULT TRUE                                                    | สถานะใช้งาน                                                                                 |
-| workflow_config | JSON         | NULL                                                            | เก็บ State Machine Configuration หรือ Rules เพิ่มเติมที่ซับซ้อนกว่า Column ปกติ                       |
+| created_at      | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP                             | วันที่และเวลาที่สร้างแม่แบบนี้                                                                                    |
+| updated_at      | TIMESTAMP    | NOT NULL,`DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | วันที่และเวลาที่แก้ไขข้อมูลในแม่แบบนี้ล่าสุด                                                                      |
+| is_active       | BOOLEAN      | DEFAULT TRUE                                                    | สถานะใช้งาน                                                                                                       |
+| workflow_config | JSON         | NULL                                                            | เก็บ State Machine Configuration หรือ Rules เพิ่มเติมที่ซับซ้อนกว่า Column ปกติ                                   |
 
 **Indexes**:
 
@@ -664,14 +668,14 @@
 
 **Purpose**: เก็บรายละเอียดของแต่ละขั้นตอน (Steps) ภายในแม่แบบสายงาน (correspondence_routing_templates) กำหนดว่าจะส่งไปที่องค์กรไหน ลำดับเป็นเท่าไร และเพื่อวัตถุประสงค์อะไร
 
-| Column Name        | Data Type | Constraints                 | Description                                                                                                                  |
-| :----------------- | --------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| id                 | INT       | PRIMARY KEY, AUTO_INCREMENT | ID หลักของขั้นตอน                                                                                                               |
-| template_id        | INT       | NOT NULL                    | ID ของแม่แบบที่ขั้นตอนนี้สังกัดอยู่                                                                                                     |
-| sequence           | INT       | NOT NULL                    | ลำดับของขั้นตอน (1, 2, 3, ...)                                                                                                   |
-| to_organization_id | INT       | NOT NULL                    | ID ขององค์กรที่เป็นผู้รับในขั้นตอนนี้                                                                                                   |
+| Column Name        | Data Type | Constraints                 | Description                                                                                                                                          |
+| :----------------- | --------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                 | INT       | PRIMARY KEY, AUTO_INCREMENT | ID หลักของขั้นตอน                                                                                                                                    |
+| template_id        | INT       | NOT NULL                    | ID ของแม่แบบที่ขั้นตอนนี้สังกัดอยู่                                                                                                                  |
+| sequence           | INT       | NOT NULL                    | ลำดับของขั้นตอน (1, 2, 3, ...)                                                                                                                       |
+| to_organization_id | INT       | NOT NULL                    | ID ขององค์กรที่เป็นผู้รับในขั้นตอนนี้                                                                                                                |
 | step_purpose       | ENUM      | NOT NULL,DEFAULT FOR_REVIEW | วัตถุประสงค์ของการส่งต่อในขั้นตอนนี้ **ค่าที่เป็นไปได้:** [FOR_APPROVAL: เพื่ออนุมัติ, FOR_REVIEW: เพื่อตรวจสอบ/พิจารณา, FOR_INFORMATION: เพื่อทราบ] |
-| expected_days      | INT       | NULL                        | วันที่คาดหวัง                                                                                                                    |
+| expected_days      | INT       | NULL                        | วันที่คาดหวัง                                                                                                                                        |
 
 **Indexes**:
 
@@ -690,22 +694,22 @@
 
 **Purpose**: เป็นตารางที่เก็บข้อมูลการส่งต่อเอกสารจริง (Instance/Run-time) ติดตามประวัติการเคลื่อนย้ายของแต่ละเอกสาร ว่าผ่านใครมาบ้าง อยู่ที่ใคร และสถานะปัจจุบันคืออะไร
 
-| Column Name          | Data Type | Constraints                         | Description                                                                                                                                              |
-| -------------------- | --------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| id                   | INT       | PRIMARY KEY, AUTO_INCREMENT         | ID หลักของรายการส่งต่อ                                                                                                                                      |
-| correspondence_id    | INT       | NOT NUL                             | ID ของเอกสาร (FK ไปยัง correspondence_revisions)                                                                                                          |
-| template_id          | INT       | NULL                                | ID ของแม่แบบที่ใช้สร้างสายงานนี้ (เก็บไว้เป็นข้อมูลอ้างอิง)                                                                                                            |
-| sequence             | INT       | NOT NULL                            | ลำดับของขั้นตอนการส่งต่อจริง                                                                                                                                    |
-| from_organization_id | INT       | NOT NULL                            | ID ขององค์กรผู้ส่ง                                                                                                                                           |
-| to_organization_id   | INT       | NOT NULL                            | ID ขององค์กรผู้รับ                                                                                                                                           |
-| step_purpose         | ENUM      | NOT NULL, DEFAULT FOR_REVIEW        | วัตถุประสงค์ของการส่งต่อในขั้นตอนนี้จริง  **ค่าที่เป็นไปได้:** [FOR_APPROVAL: เพื่ออนุมัติ, FOR_REVIEW: เพื่อตรวจสอบ/พิจารณา, FOR_INFORMATION: เพื่อทราบ, FOR_ACTION: เพื่อดำเนินการ] |
-| status               | ENUM      | NOT NULL, DEFAULT SENT              | [ACTIONED: ดำเนินการแล้ว, FORWARDED: ส่งต่อแล้ว, REPLIE: ตอบกลับแล้ว]                                                                                            |
-| comments             | TEXT      | NULL                                | หมายเหตุหรือความคิดเห็นในการส่งต่อ                                                                                                                             |
-| due_date             | DATETIME  | NULL                                | วันที่ครบกำหนดที่ต้องดำเนินการในขั้นตอนนี้                                                                                                                            |
-| processed_by_user_id | INT       | NULL                                | ID ของผู้ใช้ที่ดำเนินการในขั้นตอนนี้จริงๆ                                                                                                                            |
-| processed_at         | TIMESTAMP | NULL                                | เวลาที่ผู้ใช้ดำเนินการเสร็จสิ้น                                                                                                                                    |
-| created_at           | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | เวลาที่สร้างรายการส่งต่อนี้                                                                                                                                     |
-| state_context        | JSON      | NULL                                | เก็บข้อมูล Context ของ Workflow ณ ขณะนั้น (Snapshot)                                                                                                          |
+| Column Name          | Data Type | Constraints                         | Description                                                                                                                                                                          |
+| -------------------- | --------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| id                   | INT       | PRIMARY KEY, AUTO_INCREMENT         | ID หลักของรายการส่งต่อ                                                                                                                                                               |
+| correspondence_id    | INT       | NOT NUL                             | ID ของเอกสาร (FK ไปยัง correspondence_revisions)                                                                                                                                     |
+| template_id          | INT       | NULL                                | ID ของแม่แบบที่ใช้สร้างสายงานนี้ (เก็บไว้เป็นข้อมูลอ้างอิง)                                                                                                                          |
+| sequence             | INT       | NOT NULL                            | ลำดับของขั้นตอนการส่งต่อจริง                                                                                                                                                         |
+| from_organization_id | INT       | NOT NULL                            | ID ขององค์กรผู้ส่ง                                                                                                                                                                   |
+| to_organization_id   | INT       | NOT NULL                            | ID ขององค์กรผู้รับ                                                                                                                                                                   |
+| step_purpose         | ENUM      | NOT NULL, DEFAULT FOR_REVIEW        | วัตถุประสงค์ของการส่งต่อในขั้นตอนนี้จริง **ค่าที่เป็นไปได้:** [FOR_APPROVAL: เพื่ออนุมัติ, FOR_REVIEW: เพื่อตรวจสอบ/พิจารณา, FOR_INFORMATION: เพื่อทราบ, FOR_ACTION: เพื่อดำเนินการ] |
+| status               | ENUM      | NOT NULL, DEFAULT SENT              | [ACTIONED: ดำเนินการแล้ว, FORWARDED: ส่งต่อแล้ว, REPLIE: ตอบกลับแล้ว]                                                                                                                |
+| comments             | TEXT      | NULL                                | หมายเหตุหรือความคิดเห็นในการส่งต่อ                                                                                                                                                   |
+| due_date             | DATETIME  | NULL                                | วันที่ครบกำหนดที่ต้องดำเนินการในขั้นตอนนี้                                                                                                                                           |
+| processed_by_user_id | INT       | NULL                                | ID ของผู้ใช้ที่ดำเนินการในขั้นตอนนี้จริงๆ                                                                                                                                            |
+| processed_at         | TIMESTAMP | NULL                                | เวลาที่ผู้ใช้ดำเนินการเสร็จสิ้น                                                                                                                                                      |
+| created_at           | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | เวลาที่สร้างรายการส่งต่อนี้                                                                                                                                                          |
+| state_context        | JSON      | NULL                                | Snapshot ของตัวแปรต่างๆ ใน Workflow ณ จุดนี้ (เช่น ผู้อนุมัติ, เงื่อนไขที่ผ่าน)                                                                                                      |
 
 **Indexes**:
 
@@ -730,11 +734,11 @@
 
 **Purpose**: ตารางนี้ใช้กำหนดกฎ (State Machine) ว่าสถานะใดสามารถเปลี่ยนไปเป็นสถานะใดได้บ้าง โดยขึ้นอยู่กับประเภทของหนังสือ เพื่อควบคุมการไหลของสถานะให้ถูกต้องตามข้อบังคับ
 
-| Column Name    | Data Type | Constraints | Description                                     |
-| -------------- | --------- | ----------- | ----------------------------------------------- |
+| Column Name    | Data Type | Constraints | Description                                            |
+| -------------- | --------- | ----------- | ------------------------------------------------------ |
 | type_id        | INT       | PRIMARY KEY | ID ของประเภทหนังสือ (เช่น หนังสือภายใน, หนังสือภายนอก) |
-| from_status_id | INT       | PRIMARY KEY | ID ของสถานะต้นทาง (เช่น ร่าง)                      |
-| to_status_id   | INT       | PRIMARY KEY | ID ของสถานะปลายทาง (เช่น รออนุมัติ)                 |
+| from_status_id | INT       | PRIMARY KEY | ID ของสถานะต้นทาง (เช่น ร่าง)                          |
+| to_status_id   | INT       | PRIMARY KEY | ID ของสถานะปลายทาง (เช่น รออนุมัติ)                    |
 
 **คีย์หลัก (Primary Key):**
 
@@ -890,25 +894,28 @@
 
 **Purpose**: Child table storing revision history of RFAs (1:N)
 
-| Column Name         | Data Type    | Constraints                 | Description                                    |
-| ------------------- | ------------ | --------------------------- | ---------------------------------------------- |
-| id                  | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID                             |
-| correspondence_id   | INT          | NOT NULL, FK                | Link to correspondence (RFA as correspondence) |
-| rfa_id              | INT          | NOT NULL, FK                | Master RFA ID                                  |
-| revision_number     | INT          | NOT NULL                    | Revision sequence (0, 1, 2...)                 |
-| revision_label      | VARCHAR(10)  | NULL                        | Display revision (A, B, 1.1...)                |
-| is_current          | BOOLEAN      | DEFAULT FALSE               | Current revision flag                          |
-| rfa_status_code_id  | INT          | NOT NULL, FK                | Current RFA status                             |
-| rfa_approve_code_id | INT          | NULL, FK                    | Approval result code                           |
-| title               | VARCHAR(255) | NOT NULL                    | RFA title                                      |
-| document_date       | DATE         | NULL                        | Document date                                  |
-| issued_date         | DATE         | NULL                        | Issue date for approval                        |
-| received_date       | DATETIME     | NULL                        | Received date                                  |
-| approved_date       | DATE         | NULL                        | Approval date                                  |
-| description         | TEXT         | NULL                        | Revision description                           |
-| created_at          | DATETIME     | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp                    |
-| created_by          | INT          | NULL, FK                    | User who created revision                      |
-| updated_by          | INT          | NULL, FK                    | User who last updated                          |
+| Column Name         | Data Type    | Constraints                       | Description                                                     |
+| ------------------- | ------------ | --------------------------------- | --------------------------------------------------------------- |
+| id                  | INT          | PRIMARY KEY, AUTO_INCREMENT       | Unique revision ID                                              |
+| correspondence_id   | INT          | NOT NULL, FK                      | Link to correspondence (RFA as correspondence)                  |
+| rfa_id              | INT          | NOT NULL, FK                      | Master RFA ID                                                   |
+| revision_number     | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                                  |
+| revision_label      | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                                 |
+| is_current          | BOOLEAN      | DEFAULT FALSE                     | Current revision flag                                           |
+| rfa_status_code_id  | INT          | NOT NULL, FK                      | Current RFA status                                              |
+| rfa_approve_code_id | INT          | NULL, FK                          | Approval result code                                            |
+| title               | VARCHAR(255) | NOT NULL                          | RFA title                                                       |
+| document_date       | DATE         | NULL                              | Document date                                                   |
+| issued_date         | DATE         | NULL                              | Issue date for approval                                         |
+| received_date       | DATETIME     | NULL                              | Received date                                                   |
+| approved_date       | DATE         | NULL                              | Approval date                                                   |
+| description         | TEXT         | NULL                              | Revision description                                            |
+| created_at          | DATETIME     | DEFAULT CURRENT_TIMESTAMP         | Revision creation timestamp                                     |
+| created_by          | INT          | NULL, FK                          | User who created revision                                       |
+| updated_by          | INT          | NULL, FK                          | User who last updated                                           |
+| details             | JSON         | NULL                              | Type-specific details (e.g., RFI questions)                     |
+| v_ref_drawing_count | INT          | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Drawing Count จาก JSON details เพื่อทำ Index |
+| schema_version      | INT          | DEFAULT 1                         | Version of the schema used with this details                    |
 
 **Indexes**:
 
@@ -924,6 +931,7 @@
 - INDEX (rfa_status_code_id)
 - INDEX (rfa_approve_code_id)
 - INDEX (is_current)
+- INDEX (v_ref_drawing_count): ตัวอย่างการ Index ข้อมูลตัวเลขใน JSON
 
 **Relationships**:
 
@@ -970,14 +978,14 @@
 
 **Purpose**: Master table for RFA approval workflow templates
 
-| Column Name     | Data Type    | Constraints                         | Description                                                          |
-| --------------- | ------------ | ----------------------------------- | -------------------------------------------------------------------- |
-| id              | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique template ID                                                   |
-| template_name   | VARCHAR(100) | NOT NULL                            | Template name                                                        |
-| description     | TEXT         | NULL                                | Template description                                                 |
-| is_active       | TINYINT(1)   | DEFAULT 1                           | Active status                                                        |
-| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                                            |
-| updated_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                                                |
+| Column Name     | Data Type    | Constraints                         | Description                                                                     |
+| --------------- | ------------ | ----------------------------------- | ------------------------------------------------------------------------------- |
+| id              | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique template ID                                                              |
+| template_name   | VARCHAR(100) | NOT NULL                            | Template name                                                                   |
+| description     | TEXT         | NULL                                | Template description                                                            |
+| is_active       | TINYINT(1)   | DEFAULT 1                           | Active status                                                                   |
+| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                                                       |
+| updated_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                                                           |
 | workflow_config | JSON         | NULL                                | เก็บ State Machine Configuration หรือ Rules เพิ่มเติมที่ซับซ้อนกว่า Column ปกติ |
 
 **Indexes**:
@@ -1037,20 +1045,20 @@
 
 **Purpose**: Transaction log table tracking actual RFA approval workflow execution
 
-| Column Name     | Data Type | Constraints                         | Description                                       |
-| --------------- | --------- | ----------------------------------- | ------------------------------------------------- |
-| id              | INT       | PRIMARY KEY, AUTO_INCREMENT         | Unique workflow log ID                            |
-| rfa_revision_id | INT       | NOT NULL, FK                        | Reference to RFA revision                         |
-| step_number     | INT       | NOT NULL                            | Current step number                               |
-| organization_id | INT       | NOT NULL, FK                        | Organization responsible                          |
-| assigned_to     | INT       | NULL, FK                            | Assigned user ID                                  |
-| action_type     | ENUM      | NULL                                | Action type: REVIEW, APPROVE, ACKNOWLEDGE         |
-| status          | ENUM      | NULL                                | Status: PENDING, IN_PROGRESS, COMPLETED, REJECTED |
-| comments        | TEXT      | NULL                                | Comments/remarks                                  |
-| completed_at    | DATETIME  | NULL                                | Completion timestamp                              |
-| created_at      | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                         |
-| updated_at      | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                             |
-| state_context   | JSON*     | NULL                                | เก็บข้อมูล Context ของ Workflow ณ ขณะนั้น (Snapshot)   |
+| Column Name     | Data Type | Constraints                         | Description                                          |
+| --------------- | --------- | ----------------------------------- | ---------------------------------------------------- |
+| id              | INT       | PRIMARY KEY, AUTO_INCREMENT         | Unique workflow log ID                               |
+| rfa_revision_id | INT       | NOT NULL, FK                        | Reference to RFA revision                            |
+| step_number     | INT       | NOT NULL                            | Current step number                                  |
+| organization_id | INT       | NOT NULL, FK                        | Organization responsible                             |
+| assigned_to     | INT       | NULL, FK                            | Assigned user ID                                     |
+| action_type     | ENUM      | NULL                                | Action type: REVIEW, APPROVE, ACKNOWLEDGE            |
+| status          | ENUM      | NULL                                | Status: PENDING, IN_PROGRESS, COMPLETED, REJECTED    |
+| comments        | TEXT      | NULL                                | Comments/remarks                                     |
+| completed_at    | DATETIME  | NULL                                | Completion timestamp                                 |
+| created_at      | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                            |
+| updated_at      | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                                |
+| state_context   | JSON\*    | NULL                                | เก็บข้อมูล Context ของ Workflow ณ ขณะนั้น (Snapshot) |
 
 **Indexes**:
 
@@ -1124,6 +1132,7 @@
 
 - Parent: contracts, correspondence_types
 - Referenced by: (Used in logic for Document Numbering)
+
 ---
 
 ## **5. 📐 Drawings Tables (แบบ, หมวดหมู่)**
@@ -1737,20 +1746,20 @@
 
 **Purpose**: Central repository for all file attachments in the system
 
-| Column Name         | Data Type    | Constraints                 | Description                                                    |
-| ------------------- | ------------ | --------------------------- | -------------------------------------------------------------- |
-| id                  | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique attachment ID                                           |
-| original_filename   | VARCHAR(255) | NOT NULL                    | Original filename from upload                                  |
-| stored_filename     | VARCHAR(255) | NOT NULL                    | System-generated unique filename                               |
-| file_path           | VARCHAR(500) | NOT NULL                    | Full file path on server (/share/dms-data/)                    |
-| mime_type           | VARCHAR(100) | NOT NULL                    | MIME type (application/pdf, image/jpeg, etc.)                  |
-| file_size           | INT          | NOT NULL                    | File size in bytes                                             |
-| uploaded_by_user_id | INT          | NOT NULL, FK                | User who uploaded file                                         |
-| created_at          | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Upload timestamp                                               |
-| is_temporary        | BOOLEAN      | DEFAULT TRUE                | ระบุว่าเป็นไฟล์ชั่วคราว (ยังไม่ได้ Commit)                              |
-| temp_id*            | VARCHAR(100) | NULL                        | ID ชั่วคราวสำหรับอ้างอิงตอน Upload Phase 1 (อาจใช้ร่วมกับ id หรือแยกก็ได้) |
-| expires_at          | DATETIME     | NULL                        | เวลาหมดอายุของไฟล์ Temp (เพื่อให้ Cron Job ลบออก)                   |
-| checksum            | VARCHAR(64)  | NULL                        | SHA-256 Checksum สำหรับ Verify File Integrity [Req 3.9.3]        |
+| Column Name         | Data Type    | Constraints                 | Description                                                                |
+| ------------------- | ------------ | --------------------------- | -------------------------------------------------------------------------- |
+| id                  | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique attachment ID                                                       |
+| original_filename   | VARCHAR(255) | NOT NULL                    | Original filename from upload                                              |
+| stored_filename     | VARCHAR(255) | NOT NULL                    | System-generated unique filename                                           |
+| file_path           | VARCHAR(500) | NOT NULL                    | Full file path on server (/share/dms-data/)                                |
+| mime_type           | VARCHAR(100) | NOT NULL                    | MIME type (application/pdf, image/jpeg, etc.)                              |
+| file_size           | INT          | NOT NULL                    | File size in bytes                                                         |
+| uploaded_by_user_id | INT          | NOT NULL, FK                | User who uploaded file                                                     |
+| created_at          | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Upload timestamp                                                           |
+| is_temporary        | BOOLEAN      | DEFAULT TRUE                | ระบุว่าเป็นไฟล์ชั่วคราว (ยังไม่ได้ Commit)                                 |
+| temp_id\*           | VARCHAR(100) | NULL                        | ID ชั่วคราวสำหรับอ้างอิงตอน Upload Phase 1 (อาจใช้ร่วมกับ id หรือแยกก็ได้) |
+| expires_at          | DATETIME     | NULL                        | เวลาหมดอายุของไฟล์ Temp (เพื่อให้ Cron Job ลบออก)                          |
+| checksum            | VARCHAR(64)  | NULL                        | SHA-256 Checksum สำหรับ Verify File Integrity [Req 3.9.3]                  |
 
 **Indexes**:
 
@@ -1929,15 +1938,15 @@
 
 **Purpose**: Transaction table maintaining running sequence numbers for document numbering
 
-| Column Name                | Data Type | Constraints     | Description                                     |
-| -------------------------- | --------- | --------------- | ----------------------------------------------- |
-| project_id                 | INT       | PRIMARY KEY, FK | Reference to projects                           |
-| originator_organization_id | INT       | PRIMARY KEY, FK | Originating organization                        |
-| correspondence_type_id     | INT       | PRIMARY KEY, FK | Reference to correspondence types               |
-| **discipline_id**          | **INT**   | **PRIMARY KEY** | **Discipline ID (0 if not applicable)**         |
-| current_year               | INT       | PRIMARY KEY     | Year (Buddhist calendar)                        |
+| Column Name                | Data Type | Constraints     | Description                                          |
+| -------------------------- | --------- | --------------- | ---------------------------------------------------- |
+| project_id                 | INT       | PRIMARY KEY, FK | Reference to projects                                |
+| originator_organization_id | INT       | PRIMARY KEY, FK | Originating organization                             |
+| correspondence_type_id     | INT       | PRIMARY KEY, FK | Reference to correspondence types                    |
+| **discipline_id**          | **INT**   | **PRIMARY KEY** | **Discipline ID (0 if not applicable)**              |
+| current_year               | INT       | PRIMARY KEY     | Year (Buddhist calendar)                             |
 | version                    | INT       | DEFAULT 0       | ใช้สำหรับ Optimistic Locking (ตรวจสอบค่าก่อน Update) |
-| last_number                | INT       | DEFAULT 0       | Last assigned sequence number                   |
+| last_number                | INT       | DEFAULT 0       | Last assigned sequence number                        |
 
 **Indexes**:
 
@@ -1970,20 +1979,20 @@
 
 **Purpose**: Comprehensive audit trail for all significant system actions
 
-| Column Name      | Data Type                                 | Constraints                       | Description                                              |
-| ---------------- | ----------------------------------------- | --------------------------------- | -------------------------------------------------------- |
-| audit_id         | BIGINT                                    | PRIMARY KEY, AUTO_INCREMENT       | Unique audit log ID                                      |
-| user_id          | INT                                       | NULL, FK                          | User who performed action                                |
-| action           | VARCHAR(100)                              | NOT NULL                          | Action code (e.g., 'rfa.create', 'login.success')        |
-| entity_type      | VARCHAR(50)                               | NULL                              | Entity/module affected (e.g., 'rfa', 'correspondence')   |
-| entity_id        | VARCHAR(50)                               | NULL                              | Primary ID of affected record                            |
-| details_json     | JSON                                      | NULL                              | Additional context/details in JSON format                |
-| ip_address       | VARCHAR(45)                               | NULL                              | Client IP address (supports IPv6)                        |
-| user_agent       | VARCHAR(255)                              | NULL                              | Browser user agent string                                |
-| created_at       | TIMESTAMP                                 | DEFAULT CURRENT_TIMESTAMP         | Action timestamp                                         |
+| Column Name      | Data Type                                 | Constraints                       | Description                                                  |
+| ---------------- | ----------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| audit_id         | BIGINT                                    | PRIMARY KEY, AUTO_INCREMENT       | Unique audit log ID                                          |
+| user_id          | INT                                       | NULL, FK                          | User who performed action                                    |
+| action           | VARCHAR(100)                              | NOT NULL                          | Action code (e.g., 'rfa.create', 'login.success')            |
+| entity_type      | VARCHAR(50)                               | NULL                              | Entity/module affected (e.g., 'rfa', 'correspondence')       |
+| entity_id        | VARCHAR(50)                               | NULL                              | Primary ID of affected record                                |
+| details_json     | JSON                                      | NULL                              | Additional context/details in JSON format                    |
+| ip_address       | VARCHAR(45)                               | NULL                              | Client IP address (supports IPv6)                            |
+| user_agent       | VARCHAR(255)                              | NULL                              | Browser user agent string                                    |
+| created_at       | TIMESTAMP                                 | DEFAULT CURRENT_TIMESTAMP         | Action timestamp                                             |
 | v_ref_project_id | INT                                       | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Project ID จาก JSON details เพื่อทำ Index |
-| v_ref_type       | VARCHAR(50)                               | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Type จาก JSON details                  |
-| request_id       | VARCHAR(100)                              | NULL                              | Request ID/Trace ID เพื่อเชื่อมโยงกับ App Logs                |
+| v_ref_type       | VARCHAR(50)                               | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Type จาก JSON details                     |
+| request_id       | VARCHAR(100)                              | NULL                              | Request ID/Trace ID เพื่อเชื่อมโยงกับ App Logs               |
 | severity         | ENUM('INFO', 'WARN', 'ERROR', 'CRITICAL') | NULL                              | ระดับความรุนแรงของเหตุการณ์                                  |
 
 **Indexes**:
@@ -2153,27 +2162,36 @@
 
 **Purpose**: องรับ **Centralized JSON Schema Registry** เพื่อ Validate ข้อมูล JSON Details ของเอกสารแต่ละประเภท ตาม Requirements 6.11.1 และ Backend Plan T2.5.1
 
-| Column Name           | Data Type      | Constraints      | Description                                        |
-| :-------------------- | :------------- | :--------------- | :------------------------------------------------- |
-| **id**                | `INT`          | PK, AI           | Unique Identifier                                  |
-| **schema_code**       | `VARCHAR(100)` | UNIQUE, NOT NULL | รหัส Schema (เช่น `RFA_DWG_V1`, `CORR_RFI_V1`)       |
-| **version**           | `INT`          | NOT NULL         | เวอร์ชันของ Schema                                   |
-| **schema_definition** | `JSON`         | NOT NULL         | โครงสร้าง JSON Schema (Standard JSON Schema format) |
-| **is_active**         | `BOOLEAN`      | DEFAULT TRUE     | สถานะการใช้งาน                                      |
-| **created_at**        | `TIMESTAMP`    |                  | วันที่สร้าง                                            |
+| Column Name           | Data Type      | Constraints      | Description                                                  |
+| :-------------------- | :------------- | :--------------- | :----------------------------------------------------------- |
+| **id**                | `INT`          | PK, AI           | Unique Identifier                                            |
+| **schema_code**       | `VARCHAR(100)` | UNIQUE, NOT NULL | รหัส Schema (เช่น `RFA_DWG_V1`, `CORR_RFI_V1`)               |
+| **version**           | `INT`          | NOT NULL         | เวอร์ชันของ Schema                                           |
+| **table_name**        | `VARCHAR(100)` | NOT NULL         | ชื่อตารางที่ Schema นี้ผูกอยู่ (เช่น rfa_revisions)          |
+| **schema_definition** | `JSON`         | NOT NULL         | โครงสร้าง JSON Schema (Standard JSON Schema format)          |
+| **ui_schema**         | `JSON`         | NULL             | โครงสร้าง UI Schema สำหรับ Frontend Form Generator           |
+| **virtual_columns**   | `JSON`         | NULL             | Config สำหรับสร้าง Generated Columns ใน DB เพื่อ Performance |
+| **migration_script**  | `JSON`         | NULL             | Rules สำหรับแปลงข้อมูลจากเวอร์ชันก่อนหน้า (Migration)        |
+| **is_active**         | `BOOLEAN`      | DEFAULT TRUE     | สถานะการใช้งาน                                               |
+| **created_at**        | `TIMESTAMP`    |                  | วันที่สร้าง                                                  |
+| **updated_at**        | `TIMESTAMP`    |                  | วันที่อัปเดต                                                 |
+
+**Indexes**:
+
+- UNIQUE KEY (schema_code, version): ป้องกัน Version ซ้ำใน Schema เดียวกัน
 
 ### 10.6 user_preferences
 
 **Purpose**: แยกข้อมูลการตั้งค่าส่วนตัว (เช่น Notification Settings) ออกจากตาราง Users เพื่อความยืดหยุ่น ตาม Requirements 5.5 และ 6.8.3
 
-| Column Name      | Data Type     | Constraints     | Description                            |
-| :--------------- | :------------ | :-------------- | :------------------------------------- |
-| **user_id**      | `INT`         | PK, FK          | อ้างอิงตาราง users                       |
-| **notify_email** | `BOOLEAN`     | DEFAULT TRUE    | รับแจ้งเตือนทางอีเมล                       |
+| Column Name      | Data Type     | Constraints     | Description                               |
+| :--------------- | :------------ | :-------------- | :---------------------------------------- |
+| **user_id**      | `INT`         | PK, FK          | อ้างอิงตาราง users                        |
+| **notify_email** | `BOOLEAN`     | DEFAULT TRUE    | รับแจ้งเตือนทางอีเมล                      |
 | **notify_line**  | `BOOLEAN`     | DEFAULT TRUE    | รับแจ้งเตือนทาง LINE                      |
 | **digest_mode**  | `BOOLEAN`     | DEFAULT TRUE    | รับแจ้งเตือนแบบรวม (Digest) แทน Real-time |
-| **ui_theme**     | `VARCHAR(20)` | DEFAULT 'light' | ธีมหน้าจอ (Light/Dark)                   |
-| **updated_at**   | `TIMESTAMP`   |                 | วันที่แก้ไขล่าสุด                            |
+| **ui_theme**     | `VARCHAR(20)` | DEFAULT 'light' | ธีมหน้าจอ (Light/Dark)                    |
+| **updated_at**   | `TIMESTAMP`   |                 | วันที่แก้ไขล่าสุด                         |
 
 ## **11. 📊 Views & Procedures (วิว และ โปรซีเดอร์)**
 

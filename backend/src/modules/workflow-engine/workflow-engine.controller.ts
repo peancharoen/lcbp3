@@ -1,26 +1,27 @@
 // File: src/modules/workflow-engine/workflow-engine.controller.ts
 
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
   Get,
-  Query,
-  Patch,
   Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
   UseGuards,
-} from '@nestjs/common'; // เพิ่ม Patch, Param
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { WorkflowEngineService } from './workflow-engine.service';
+} from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dto';
 import { EvaluateWorkflowDto } from './dto/evaluate-workflow.dto';
-import { GetAvailableActionsDto } from './dto/get-available-actions.dto'; // [NEW]
-import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto'; // [NEW]
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { GetAvailableActionsDto } from './dto/get-available-actions.dto';
+import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto';
+import { WorkflowEngineService } from './workflow-engine.service';
 
 @ApiTags('Workflow Engine (DSL)')
 @Controller('workflow-engine')
-@UseGuards(JwtAuthGuard) // Protect all endpoints
+@UseGuards(JwtAuthGuard)
 export class WorkflowEngineController {
   constructor(private readonly workflowService: WorkflowEngineService) {}
 
@@ -42,24 +43,20 @@ export class WorkflowEngineController {
   @Get('actions')
   @ApiOperation({ summary: 'Get available actions for current state' })
   async getAvailableActions(@Query() query: GetAvailableActionsDto) {
-    // [UPDATED] ใช้ DTO แทนแยก Query
     return this.workflowService.getAvailableActions(
       query.workflow_code,
       query.current_state,
     );
   }
 
-  // [OPTIONAL/RECOMMENDED] เพิ่ม Endpoint สำหรับ Update (PATCH)
   @Patch('definitions/:id')
   @ApiOperation({
-    summary: 'Update workflow status or details (e.g. Deactivate)',
+    summary: 'Update workflow status or details (DSL Re-compile)',
   })
   async updateDefinition(
-    @Param('id') id: string,
-    @Body() dto: UpdateWorkflowDefinitionDto, // [NEW] ใช้ Update DTO
+    @Param('id', ParseUUIDPipe) id: string, // เพิ่ม ParseUUIDPipe เพื่อ Validate ID
+    @Body() dto: UpdateWorkflowDefinitionDto,
   ) {
-    // *หมายเหตุ: คุณต้องไปเพิ่ม method update() ใน Service ด้วยถ้าจะใช้ Endpoint นี้
-    // return this.workflowService.update(id, dto);
-    return { message: 'Update logic not implemented yet', id, ...dto };
+    return this.workflowService.update(id, dto);
   }
 }

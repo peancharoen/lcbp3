@@ -1001,21 +1001,25 @@ CREATE TABLE document_number_counters (
 -- 1.1 JSON Schemas Registry
 -- รองรับ: Backend Plan T2.5.1, Req 6.11.1
 -- เหตุผล: เพื่อ Validate โครงสร้าง JSON Details ของเอกสารแต่ละประเภทแบบ Centralized
-CREATE TABLE IF NOT EXISTS json_schemas (
+CREATE TABLE json_schemas (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  schema_code VARCHAR(100) NOT NULL UNIQUE COMMENT 'รหัส Schema เช่น RFA_DWG_V1,
-    CORR_GENERIC',
+  schema_code VARCHAR(100) NOT NULL COMMENT 'รหัส Schema (เช่น RFA_DWG)',
   version INT NOT NULL DEFAULT 1 COMMENT 'เวอร์ชันของ Schema',
-  schema_definition JSON NOT NULL COMMENT 'โครงสร้าง JSON Schema (Standard Format)',
-  is_active BOOLEAN DEFAULT TRUE,
+  table_name VARCHAR(100) NOT NULL COMMENT 'ชื่อตารางเป้าหมาย (เช่น rfa_revisions)',
+  schema_definition JSON NOT NULL COMMENT 'โครงสร้าง Data Schema (AJV Standard)',
+  ui_schema JSON NULL COMMENT 'โครงสร้าง UI Schema สำหรับ Frontend',
+  virtual_columns JSON NULL COMMENT 'Config สำหรับสร้าง Virtual Columns',
+  migration_script JSON NULL COMMENT 'Script สำหรับแปลงข้อมูลจากเวอร์ชันก่อนหน้า',
+  is_active BOOLEAN DEFAULT TRUE COMMENT 'สถานะการใช้งาน',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_schema_code (schema_code)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+  -- ป้องกัน Schema Code ซ้ำกันใน Version เดียวกัน
+  UNIQUE KEY uk_schema_version (schema_code, version)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บ JSON Schema และ Configuration';
 -- 1.2 User Preferences
 -- รองรับ: Req 5.5, 6.8.3
 -- เหตุผล: แยกการตั้งค่า Notification และ UI ออกจากตาราง Users หลัก
-CREATE TABLE IF NOT EXISTS user_preferences (
+CREATE TABLE user_preferences (
   user_id INT PRIMARY KEY,
   notify_email BOOLEAN DEFAULT TRUE,
   notify_line BOOLEAN DEFAULT TRUE,
@@ -1145,6 +1149,11 @@ ADD COLUMN v_ref_project_id INT GENERATED ALWAYS AS (
 ALTER TABLE correspondence_revisions
 ADD COLUMN v_doc_subtype VARCHAR(50) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(details, '$.subType'))) VIRTUAL,
   ADD INDEX idx_corr_rev_v_subtype (v_doc_subtype);
+-- 2. ปรับปรุงตาราง correspondence_revisions
+-- เพิ่ม Virtual Columns และ Schema Version
+ALTER TABLE correspondence_revisions
+ADD COLUMN schema_version INT DEFAULT 1 COMMENT 'เวอร์ชันของ Schema ที่ใช้กับ details'
+AFTER details;
 -- ทำแบบเดียวกันกับ RFA Revisions หากมีการเก็บ JSON details
 ALTER TABLE rfa_revisions
 ADD COLUMN details JSON NULL COMMENT 'RFA Specific Details'
@@ -1153,6 +1162,7 @@ ALTER TABLE rfa_revisions
 ADD COLUMN v_ref_drawing_count INT GENERATED ALWAYS AS (
     JSON_UNQUOTE(JSON_EXTRACT(details, '$.drawingCount'))
   ) VIRTUAL;
+CREATE INDEX idx_rfa_rev_v_drawing_count ON rfa_revisions(v_ref_drawing_count);
 -- ============================================================
 -- 5. PARTITIONING PREPARATION (Advance - Optional)
 -- ============================================================

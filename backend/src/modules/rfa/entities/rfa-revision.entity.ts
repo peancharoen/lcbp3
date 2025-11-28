@@ -1,3 +1,4 @@
+// File: src/modules/rfa/entities/rfa-revision.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -8,6 +9,7 @@ import {
   JoinColumn,
   OneToMany,
   Unique,
+  Index,
 } from 'typeorm';
 import { Rfa } from './rfa.entity';
 import { Correspondence } from '../../correspondence/entities/correspondence.entity';
@@ -15,7 +17,7 @@ import { RfaStatusCode } from './rfa-status-code.entity';
 import { RfaApproveCode } from './rfa-approve-code.entity';
 import { User } from '../../user/entities/user.entity';
 import { RfaItem } from './rfa-item.entity';
-import { RfaWorkflow } from './rfa-workflow.entity'; // Import เพิ่ม
+import { RfaWorkflow } from './rfa-workflow.entity';
 
 @Entity('rfa_revisions')
 @Unique(['rfaId', 'revisionNumber'])
@@ -62,6 +64,20 @@ export class RfaRevision {
 
   @Column({ type: 'text', nullable: true })
   description?: string;
+
+  // ✅ [New] เพิ่ม field details สำหรับเก็บข้อมูล Dynamic ของ RFA (เช่น Method Statement Details)
+  @Column({ type: 'json', nullable: true })
+  details?: any;
+
+  // ✅ [New] Virtual Column: ดึงจำนวนแบบที่แนบ (drawingCount) จาก JSON
+  @Column({
+    name: 'v_ref_drawing_count',
+    type: 'int',
+    generatedType: 'VIRTUAL',
+    asExpression: "JSON_UNQUOTE(JSON_EXTRACT(details, '$.drawingCount'))",
+    nullable: true,
+  })
+  vRefDrawingCount?: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

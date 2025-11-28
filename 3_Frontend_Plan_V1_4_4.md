@@ -36,229 +36,177 @@
 
 ### **โครงสร้างโปรเจกต์**
 
-```tree
-app/
-├── (auth)/
-│   ├── login/
-│   └── register/
-├── (dashboard)/
+```
+📁frontend
+├── .env.local
+├── .eslintrc.json
+├── .gitignore
+├── components.json
+├── middleware.ts
+├── next-env.d.ts
+├── next.config.mjs
+├── package.json
+├── pnpm-lock.yaml
+├── postcss.config.mjs
+├── README.md
+├── tailwind.config.ts
+├── tsconfig.json
+├── 📁app
+│   ├── 📁(auth)
+│   │   └── 📁login
+│   │   │   └── page.tsx
+│   │   └── layout.tsx
+│   ├── 📁(dashboard)
+│   │   └── 📁admin
+│   │       ├──📁users
+│   │       │   └── page.tsx
+│   │       ├──📁correspondences
+│   │       │   └── 📁new
+│   │       │   │   └── page.tsx
+│   │       │   └── page.tsx
+│   │       ├──📁dashboard
+│   │       │   └── page.tsx
+│   │       ├──📁profile
+│   │       │   └── page.tsx
+│   │       ├──📁projects
+│   │       │   ├──📁new
+│   │       │   │   └── page.tsx
+│   │       │   └── page.tsx
+│   │       └── layout.tsx
+│   ├── 📁api
+│   │   └── 📁auth
+│   │       └── 📁[...nextauth]
+│   │           └── route.ts
+│   ├── 📁demo
+│   │   └── page.tsx
+│   ├── 📁fonts
+│   │   ├── GeistMonoVF.woff
+│   │   └── GeistVF.woff
+│   ├── favicon.ico
+│   ├── globals copy.css
+│   ├── globals.css
+│   ├── layout copy.tsx
 │   ├── layout.tsx
-│   ├── page.tsx
-│   └── components/
-├── admin/
-│   ├── users/
-│   ├── roles/
-│   └── numbering-formats/
-├── correspondences/
-│   ├── page.tsx
-│   ├── [id]/
-│   └── new/
-├── rfas/
-│   ├── page.tsx
-│   ├── [id]/
-│   └── new/
-├── drawings/
-├── circulations/
-├── transmittals/
-├── search/
-└── profile/
-
-components/
-├── ui/                    # shadcn/ui components
-├── forms/                 # Dynamic form components
-├── tables/                # Responsive data tables
-├── workflow/              # Workflow visualization
-├── file-upload/           # File upload with security
-├── notifications/         # Notification system
-└── layout/                # App layout components
-
-lib/
-├── api/                   # API clients & interceptors
-├── auth/                  # Authentication utilities
-├── stores/                # Zustand stores
-├── hooks/                 # Custom React hooks
-├── utils/                 # Utility functions
-├── constants/             # App constants
-└── types/                 # TypeScript type definitions
-
-styles/
-├── globals.css
-└── components/
-
-__tests__/
-├── unit/
-├── integration/
-└── e2e/
+│   └── page.tsx
+├── 📁components
+│   ├── 📁custom
+│   │   ├── file-upload-zone.tsx
+│   │   ├── responsive-data-table.tsx
+│   │   └── workflow-visualizer.tsx
+│   ├── 📁dashboard
+│   │   └── recent-activity.tsx
+│   ├── 📁forms
+│   │   └── file-upload.tsx
+│   ├── 📁layout
+│   │   ├── dashboard-shell.tsx
+│   │   ├── navbar.tsx
+│   │   ├── sidebar.tsx
+│   │   └── user-nav.tsx
+│   ├── 📁tables
+│   └── 📁ui
+│       ├── avatar.tsx
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── calendar.tsx
+│       ├── card.tsx
+│       ├── checkbox.tsx
+│       ├── dropdown-menu.tsx
+│       ├── input.tsx
+│       ├── label.tsx
+│       ├── popover.tsx
+│       ├── progress.tsx
+│       ├── scroll-area.tsx
+│       ├── select.tsx
+│       ├── switch.tsx
+│       ├── table.tsx
+│       ├── tabs.tsx
+│       └── textarea.tsx
+├── 📁config
+│   └── menu.ts
+├── 📁lib
+│   ├── 📁api
+│   │   └── client.ts
+│   ├── 📁auth
+│   ├── 📁hooks
+│   ├── 📁services
+│   │   ├── circulation.service.ts
+│   │   ├── contract-drawing.service.ts
+│   │   ├── correspondence.service.ts
+│   │   ├── index.ts
+│   │   ├── json-schema.service.ts
+│   │   ├── master-data.service.ts
+│   │   ├── monitoring.service.ts
+│   │   ├── notification.service.ts
+│   │   ├── project.service.ts
+│   │   ├── rfa.service.ts
+│   │   ├── search.service.ts
+│   │   ├── shop-drawing.service.ts
+│   │   ├── transmittal.service.ts
+│   │   ├── user.service.ts
+│   │   └── workflow-engine.service.ts
+│   ├── 📁stores
+│   │   ├── draft-store.ts
+│   │   └── ui-store.ts
+│   ├── auth.ts
+│   └── utils.ts
+├── 📁providers
+│   ├── query-provider.tsx
+│   └── session-provider.tsx
+├── 📁public
+├── 📁styles
+└── 📁types
+    └── 📁dto
+        └── next-auth.d.ts
+        ├── 📁circulation
+        │   ├── create-circulation.dto.ts
+        │   ├── search-circulation.dto.ts
+        │   └── update-circulation-routing.dto.ts
+        ├── 📁correspondence
+        │   ├── add-reference.dto.ts
+        │   ├── create-correspondence.dto.ts
+        │   ├── search-correspondence.dto.ts
+        │   ├── submit-correspondence.dto.ts
+        │   └── workflow-action.dto.ts
+        ├── 📁drawing
+        │   ├── contract-drawing.dto.ts
+        │   └── shop-drawing.dto.ts
+        ├── 📁json-schema
+        │   └── json-schema.dto.ts
+        ├── 📁master
+        │   ├── discipline.dto.ts
+        │   ├── number-format.dto.ts
+        │   ├── sub-type.dto.ts
+        │   └── tag.dto.ts
+        ├── 📁monitoring
+        │   └── set-maintenance.dto.ts
+        ├── 📁notification
+        │   └── notification.dto.ts
+        ├── 📁project
+        │   └── project.dto.ts
+        ├── 📁rfa
+        │   └── rfa.dto.ts
+        ├── 📁search
+        │   └── search-query.dto.ts
+        ├── 📁transmittal
+        │   └── transmittal.dto.ts
+        ├── 📁user
+        │   └── user.dto.ts
+        └── 📁workflow-engine
+            └── workflow-engine.dto.ts
 ```
 
 ---
 
 ## 🗓️ **แผนการพัฒนาแบบ Phase-Based**
 
-### **Dependency Diagram (ภาพรวม)**
-
-```mermaid
-%% Phase 0: Foundation Setup
-subgraph Phase0 [Phase 0: Foundation & Configuration]
-    F0_1[F0.1: Project Setup & Tooling]
-    F0_2[F0.2: Design System & UI Components]
-    F0_3[F0.3: API Client & Authentication]
-    F0_4[F0.4: State Management Setup]
-end
-
-%% Phase 1: Core Layout & Navigation
-subgraph Phase1 [Phase 1: Core Application Structure]
-    F1_1[F1.1: Main Layout & Navigation]
-    F1_2[F1.2: Authentication Pages]
-    F1_3[F1.3: Dashboard & Landing]
-    F1_4[F1.4: Responsive Design System]
-end
-
-%% Phase 2: User Management & Profile
-subgraph Phase2 [Phase 2: User Management & Security]
-    F2_1[F2.1: User Profile & Settings]
-    F2_2[F2.2: Admin Panel - User Management]
-    F2_3[F2.3: Admin Panel - Role Management]
-    F2_4[F2.4: Permission Integration]
-end
-
-%% Phase 3: Project & Organization Management
-subgraph Phase3 [Phase 3: Project Structure]
-    F3_1[F3.1: Project Management UI]
-    F3_2[F3.2: Organization Management]
-    F3_3[F3.3: Contract Management]
-end
-
-%% Phase 4: Correspondence Management
-subgraph Phase4 [Phase 4: Correspondence System]
-    F4_1[F4.1: Correspondence List & Search]
-    F4_2[F4.2: Correspondence Creation Form]
-    F4_3[F4.3: Correspondence Detail View]
-    F4_4[F4.4: File Upload Integration]
-end
-
-%% Phase 5: Workflow & Routing System
-subgraph Phase5 [Phase 5: Workflow Management]
-    F5_1[F5.1: Workflow Visualization Component]
-    F5_2[F5.2: Routing Template Management]
-    F5_3[F5.3: Workflow Step Actions]
-    F5_4[F5.4: Real-time Status Updates]
-end
-
-%% Phase 6: Drawing Management
-subgraph Phase6 [Phase 6: Drawing System]
-    F6_1[F6.1: Contract Drawings Management]
-    F6_2[F6.2: Shop Drawings Management]
-    F6_3[F6.3: Drawing Revision System]
-    F6_4[F6.4: Drawing References]
-end
-
-%% Phase 7: RFA & Approval Workflows
-subgraph Phase7 [Phase 7: RFA System]
-    F7_1[F7.1: RFA List & Dashboard]
-    F7_2[F7.2: RFA Creation with Dynamic Forms]
-    F7_3[F7.3: RFA Workflow Integration]
-    F7_4[F7.4: RFA Approval Interface]
-end
-
-%% Phase 8: Circulation & Internal Routing
-subgraph Phase8 [Phase 8: Internal Workflows]
-    F8_1[F8.1: Circulation Management]
-    F8_2[F8.2: Task Assignment Interface]
-    F8_3[F8.3: Internal Approval Flows]
-end
-
-%% Phase 9: Advanced Features
-subgraph Phase9 [Phase 9: Advanced Features]
-    F9_1[F9.1: Advanced Search Interface]
-    F9_2[F9.2: Notification System]
-    F9_3[F9.3: Reporting & Analytics]
-    F9_4[F9.4: Mobile Optimization]
-end
-
-%% Phase 10: Testing & Optimization
-subgraph Phase10 [Phase 10: Testing & Polish]
-    F10_1[F10.1: Comprehensive Testing]
-    F10_2[F10.2: Performance Optimization]
-    F10_3[F10.3: Security Hardening]
-    F10_4[F10.4: Documentation]
-end
-
-%% Dependencies
-F0_1 --> F0_2
-F0_1 --> F0_3
-F0_1 --> F0_4
-
-F0_2 --> F1_1
-F0_3 --> F1_1
-F0_4 --> F1_1
-F1_1 --> F1_2
-F1_1 --> F1_3
-F1_1 --> F1_4
-
-F1_1 --> F2_1
-F1_3 --> F2_1
-F0_3 --> F2_1
-F2_1 --> F2_2
-F2_2 --> F2_3
-F2_3 --> F2_4
-
-F1_1 --> F3_1
-F2_4 --> F3_1
-F3_1 --> F3_2
-F3_2 --> F3_3
-
-F1_1 --> F4_1
-F3_1 --> F4_1
-F4_1 --> F4_2
-F4_2 --> F4_3
-F4_2 --> F4_4
-
-F4_1 --> F5_1
-F4_2 --> F5_2
-F4_3 --> F5_3
-F5_1 --> F5_4
-
-F3_1 --> F6_1
-F4_4 --> F6_1
-F6_1 --> F6_2
-F6_2 --> F6_3
-F6_3 --> F6_4
-
-F4_1 --> F7_1
-F5_1 --> F7_1
-F6_2 --> F7_1
-F7_1 --> F7_2
-F7_2 --> F7_3
-F7_3 --> F7_4
-
-F4_1 --> F8_1
-F5_3 --> F8_1
-F8_1 --> F8_2
-F8_2 --> F8_3
-
-F4_1 --> F9_1
-F7_1 --> F9_1
-F1_3 --> F9_2
-F5_4 --> F9_2
-F1_3 --> F9_3
-F1_4 --> F9_4
-
-F1_1 --> F10_1
-F4_1 --> F10_1
-F7_1 --> F10_1
-F10_1 --> F10_2
-F10_2 --> F10_3
-F10_3 --> F10_4
-```
-
-## **Phase 0: Foundation & Configuration (สัปดาห์ที่ 1)**
+### **Phase 0: Foundation & Configuration (สัปดาห์ที่ 1)**
 
 **Milestone:** โครงสร้างพื้นฐานพร้อม รองรับ Development Workflow ที่มีประสิทธิภาพ
 
 ### **Phase 0: Tasks**
 
 - **[ ] F0.1 Project Setup & Tooling**
+
   - [ ] Initialize Next.js 14+ project with TypeScript
   - [ ] Configure pnpm workspace
   - [ ] Setup ESLint, Prettier, and pre-commit hooks
@@ -269,6 +217,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** None
 
 - **[ ] F0.2 Design System & UI Components**
+
   - [ ] Setup color palette and design tokens
   - [ ] Create responsive design breakpoints
   - [ ] Implement core shadcn/ui components:
@@ -284,6 +233,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F0.1
 
 - **[ ] F0.3 API Client & Authentication**
+
   - [ ] Setup Axios client with interceptors:
     - [ ] Idempotency-Key header injection
     - [ ] Authentication token management
@@ -325,13 +275,14 @@ F10_3 --> F10_4
 
 ---
 
-## **Phase 1: Core Application Structure (สัปดาห์ที่ 2)**
+### **Phase 1: Core Application Structure (สัปดาห์ที่ 2)**
 
 **Milestone:** Layout หลักพร้อมใช้งาน การนำทางและ Authentication ทำงานได้
 
 ### **Phase 1: Tasks**
 
 - **[ ] F1.1 Main Layout & Navigation**
+
   - [ ] Create App Shell layout:
     - [ ] Navbar with user menu and notifications
     - [ ] Collapsible sidebar with navigation
@@ -348,6 +299,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F0.2, F0.3
 
 - **[ ] F1.2 Authentication Pages**
+
   - [ ] Create login page with form validation
   - [ ] Implement forgot password flow
   - [ ] Create registration page (admin-only)
@@ -358,6 +310,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F0.3, F1.1
 
 - **[ ] F1.3 Dashboard & Landing**
+
   - [ ] Create public landing page for non-authenticated users
   - [ ] Implement main dashboard with:
     - [ ] KPI cards (document counts, pending tasks)
@@ -382,13 +335,13 @@ F10_3 --> F10_4
 
 ### **Phase 1: Testing - Core Structure**
 
-#### **F1.T1 Layout Test Suite**
+- **[ ] F1.T1 Layout Test Suite**
 
 - [ ] **Unit Tests:** Navigation components, layout responsiveness
 - [ ] **Integration Tests:** Route protection, permission-based navigation
 - [ ] **E2E Tests:** Complete user navigation flow
 
-#### **F1.T2 Dashboard Test Suite**
+- **[ ] F1.T2 Dashboard Test Suite**
 
 - [ ] **Unit Tests:** Dashboard components, data formatting
 - [ ] **Integration Tests:** Data fetching and display, real-time updates
@@ -396,13 +349,14 @@ F10_3 --> F10_4
 
 ---
 
-## **Phase 2: User Management & Security (สัปดาห์ที่ 3)**
+### **Phase 2: User Management & Security (สัปดาห์ที่ 3)**
 
 **Milestone:** การจัดการผู้ใช้และสิทธิ์แบบสมบูรณ์
 
 ### **Phase 2: Tasks**
 
 - **[ ] F2.1 User Profile & Settings**
+
   - [ ] Create user profile page:
     - [ ] Personal information display/edit
     - [ ] Password change functionality
@@ -414,6 +368,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F1.1, F0.4
 
 - **[ ] F2.2 Admin Panel - User Management**
+
   - [ ] Create user list with search and filters
   - [ ] Implement user creation form
   - [ ] Create user edit interface
@@ -424,6 +379,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F1.1, F2.1
 
 - **[ ] F2.3 Admin Panel - Role Management**
+
   - [ ] Create role list and management interface
   - [ ] Implement role creation and editing
   - [ ] Create permission assignment interface
@@ -446,22 +402,22 @@ F10_3 --> F10_4
 
 ### **Phase 2: User Management & Admin Panel (สัปดาห์ที่ 3)**
 
-* **[ ] F2.5 Admin Panel - Master Data Management (Req 6B)** (New)
-    * [ ] Create "Disciplines Management" page (CRUD)
-    * [ ] Create "Sub-Types Management" page (CRUD + Mapping Number)
-    * [ ] Create "Numbering Format" configuration page (Template Editor)
-    * [ ] **Deliverable:** UI for Admin to configure system master data
-    * [ ] **Dependencies:** F2.1
+- **[ ] F2.5 Admin Panel - Master Data Management (Req 6B)** (New)
+  - [ ] Create "Disciplines Management" page (CRUD)
+  - [ ] Create "Sub-Types Management" page (CRUD + Mapping Number)
+  - [ ] Create "Numbering Format" configuration page (Template Editor)
+  - [ ] **Deliverable:** UI for Admin to configure system master data
+  - [ ] **Dependencies:** F2.1
 
 ### **Phase 2: Testing - User Management**
 
-#### **F2.T1 User Management Test Suite**
+- **[ ] F2.T1 User Management Test Suite**
 
 - [ ] **Unit Tests:** User CRUD operations, form validation
 - [ ] **Integration Tests:** User-role assignment, permission propagation
 - [ ] **Security Tests:** Permission escalation attempts, admin access control
 
-#### **F2.T2 RBAC Test Suite**
+- **[ ] F2.T2 RBAC Test Suite**
 
 - [ ] **Unit Tests:** Permission checks, role validation
 - [ ] **Integration Tests:** Multi-level permission enforcement, UI element protection
@@ -469,13 +425,14 @@ F10_3 --> F10_4
 
 ---
 
-## **Phase 3: Project Structure (สัปดาห์ที่ 4)**
+### **Phase 3: Project Structure (สัปดาห์ที่ 4)**
 
 **Milestone:** การจัดการโครงสร้างโปรเจกต์และองค์กร
 
 ### **Phase 3: Tasks**
 
 - **[ ] F3.1 Project Management UI**
+
   - [ ] Create project list with search and filters
   - [ ] Implement project creation and editing
   - [ ] Create project detail view
@@ -486,6 +443,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F1.1, F2.4
 
 - **[ ] F3.2 Organization Management**
+
   - [ ] Create organization list and management
   - [ ] Implement organization creation and editing
   - [ ] Create organization detail view
@@ -507,21 +465,21 @@ F10_3 --> F10_4
 
 ### **Phase 3: Testing - Project Structure**
 
-#### **F3.T1 Project Management Test Suite**
-
-- [ ] **Unit Tests:** Project CRUD operations, validation
-- [ ] **Integration Tests:** Project-organization relationships, member management
-- [ ] **Business Logic Tests:** Project hierarchy, access control
+- **[ ] F3.T1 Project Management Test Suite**
+  - [ ] **Unit Tests:** Project CRUD operations, validation
+  - [ ] **Integration Tests:** Project-organization relationships, member management
+  - [ ] **Business Logic Tests:** Project hierarchy, access control
 
 ---
 
-## **Phase 4: Correspondence System (สัปดาห์ที่ 5-6)**
+### **Phase 4: Correspondence System (สัปดาห์ที่ 5-6)**
 
 **Milestone:** ระบบจัดการเอกสารโต้ตอบแบบสมบูรณ์
 
 ### **Phase 4: Tasks**
 
 - **[ ] F4.1 Correspondence List & Search**
+
   - [ ] Create correspondence list with advanced filtering:
     - [ ] Filter by type, status, project, organization
     - [ ] Search by title, document number, content
@@ -536,6 +494,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F1.1, F3.1
 
 - **[ ] F4.2 Correspondence Creation Form**
+
   - [ ] Create dynamic form generator based on JSON schema
   - [ ] Implement form with multiple sections:
     - [ ] Basic information (type, title, recipients)
@@ -553,6 +512,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F0.4, F4.1
 
 - **[ ] F4.3 Correspondence Detail View**
+
   - [ ] Create comprehensive detail page:
     - [ ] Document header with metadata
     - [ ] Content display based on type
@@ -583,27 +543,27 @@ F10_3 --> F10_4
 
 ### **Phase 4: Testing - Correspondence System**
 
-#### **F4.T1 Correspondence Test Suite**
+- **[ ] F4.T1 Correspondence Test Suite**
 
-- [ ] **Unit Tests:** Form validation, file upload components
-- [ ] **Integration Tests:** Complete document lifecycle, file attachment flow
-- [ ] **E2E Tests:** End-to-end correspondence creation and management
+  - [ ] **Unit Tests:** Form validation, file upload components
+  - [ ] **Integration Tests:** Complete document lifecycle, file attachment flow
+  - [ ] **E2E Tests:** End-to-end correspondence creation and management
 
-#### **F4.T2 File Upload Test Suite**
-
-- [ ] **Unit Tests:** File validation, type checking
-- [ ] **Integration Tests:** Two-phase upload process, virus scan integration
-- [ ] **Security Tests:** Malicious file upload attempts, security feedback
+- **[ ] F4.T2 File Upload Test Suite**
+  - [ ] **Unit Tests:** File validation, type checking
+  - [ ] **Integration Tests:** Two-phase upload process, virus scan integration
+  - [ ] **Security Tests:** Malicious file upload attempts, security feedback
 
 ---
 
-## **Phase 5: Workflow Management (สัปดาห์ที่ 7)**
+### **Phase 5: Workflow Management (สัปดาห์ที่ 7)**
 
 **Milestone:** ระบบ Visualization และจัดการ Workflow
 
 ### **Phase 5: Tasks**
 
 - **[ ] F5.1 Workflow Visualization Component**
+
   - [ ] Create horizontal workflow progress visualization
   - [ ] Implement step status indicators (pending, active, completed, skipped)
   - [ ] Add due date and assignee information
@@ -614,6 +574,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F4.3
 
 - **[ ] F5.2 Routing Template Management**
+
   - [ ] Create routing template list and editor
   - [ ] Implement drag-and-drop step configuration
   - [ ] Add step configuration (purpose, duration, assignee rules)
@@ -624,6 +585,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F3.1, F4.2
 
 - **[ ] F5.3 Workflow Step Actions**
+
   - [ ] Create step action interface:
     - [ ] Approve, reject, request changes
     - [ ] Add comments and attachments
@@ -647,21 +609,21 @@ F10_3 --> F10_4
 
 ### **Phase 5: Testing - Workflow Management**
 
-#### **F5.T1 Workflow Test Suite**
-
-- [ ] **Unit Tests:** Workflow visualization, step status logic
-- [ ] **Integration Tests:** Complete workflow execution, real-time updates
-- [ ] **E2E Tests:** Multi-step workflow with different user roles
+- **[ ] F5.T1 Workflow Test Suite**
+  - [ ] **Unit Tests:** Workflow visualization, step status logic
+  - [ ] **Integration Tests:** Complete workflow execution, real-time updates
+  - [ ] **E2E Tests:** Multi-step workflow with different user roles
 
 ---
 
-## **Phase 6: Drawing System (สัปดาห์ที่ 8)**
+### **Phase 6: Drawing System (สัปดาห์ที่ 8)**
 
 **Milestone:** ระบบจัดการแบบแปลนแบบสมบูรณ์
 
 ### **Phase 6: Tasks**
 
 - **[ ] F6.1 Contract Drawings Management**
+
   - [ ] Create contract drawing list with categorization
   - [ ] Implement drawing upload and metadata management
   - [ ] Create drawing preview and viewer
@@ -672,6 +634,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F3.1, F4.4
 
 - **[ ] F6.2 Shop Drawings Management**
+
   - [ ] Create shop drawing list with revision tracking
   - [ ] Implement shop drawing creation and revision system
   - [ ] Create drawing comparison interface
@@ -682,6 +645,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F6.1
 
 - **[ ] F6.3 Drawing Revision System**
+
   - [ ] Create revision history interface
   - [ ] Implement revision comparison functionality
   - [ ] Add revision notes and change tracking
@@ -703,21 +667,21 @@ F10_3 --> F10_4
 
 ### **Phase 6: Testing - Drawing System**
 
-#### **F6.T1 Drawing Management Test Suite**
-
-- [ ] **Unit Tests:** Drawing CRUD operations, revision logic
-- [ ] **Integration Tests:** Drawing approval workflows, reference management
-- [ ] **E2E Tests:** Complete drawing lifecycle with revisions
+- **[ ] F6.T1 Drawing Management Test Suite**
+  - [ ] **Unit Tests:** Drawing CRUD operations, revision logic
+  - [ ] **Integration Tests:** Drawing approval workflows, reference management
+  - [ ] **E2E Tests:** Complete drawing lifecycle with revisions
 
 ---
 
-## **Phase 7: RFA System (สัปดาห์ที่ 9-10)**
+### **Phase 7: RFA System (สัปดาห์ที่ 9-10)**
 
 **Milestone:** ระบบขออนุมัติแบบสมบูรณ์พร้อม Dynamic Forms
 
 ### **Phase 7: Tasks**
 
 - **[ ] F7.1 RFA List & Dashboard**
+
   - [ ] Create RFA dashboard with status overview
   - [ ] Implement advanced RFA filtering and search
   - [ ] Create RFA calendar view for deadlines
@@ -728,6 +692,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F4.1, F5.1
 
 - **[ ] F7.2 RFA Creation with Dynamic Forms**
+
   - [ ] Create RFA type-specific form generator
   - [ ] Implement dynamic form fields based on RFA type:
     - [ ] RFA_DWG: Shop drawing selection
@@ -747,6 +712,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F4.2, F6.2
 
 - **[ ] F7.3 RFA Workflow Integration**
+
   - [ ] Integrate RFA with unified workflow engine
   - [ ] Create RFA-specific workflow steps and actions
   - [ ] Implement RFA approval interface
@@ -768,21 +734,21 @@ F10_3 --> F10_4
 
 ### **Phase 7: Testing - RFA System**
 
-#### **F7.T1 RFA Test Suite**
-
-- [ ] **Unit Tests:** RFA form generation, validation logic
-- [ ] **Integration Tests:** Complete RFA lifecycle, workflow integration
-- [ ] **E2E Tests:** Multi-type RFA creation and approval workflows
+- **[ ] F7.T1 RFA Test Suite**
+  - [ ] **Unit Tests:** RFA form generation, validation logic
+  - [ ] **Integration Tests:** Complete RFA lifecycle, workflow integration
+  - [ ] **E2E Tests:** Multi-type RFA creation and approval workflows
 
 ---
 
-## **Phase 8: Internal Workflows (สัปดาห์ที่ 11)**
+### **Phase 8: Internal Workflows (สัปดาห์ที่ 11)**
 
 **Milestone:** ระบบใบเวียนและการจัดการงานภายใน
 
 ### **Phase 8: Tasks**
 
 - **[ ] F8.1 Circulation Management**
+
   - [ ] Create circulation list and management interface
   - [ ] Implement circulation creation from correspondence
   - [ ] Create circulation template management
@@ -793,6 +759,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F4.1, F5.2
 
 - **[ ] F8.2 Task Assignment Interface**
+
   - [ ] Create task assignment interface with user selection
   - [ ] Implement task priority and deadline setting
   - [ ] Add task dependency management
@@ -814,21 +781,21 @@ F10_3 --> F10_4
 
 ### **Phase 8: Testing - Internal Workflows**
 
-#### **F8.T1 Circulation Test Suite**
-
-- [ ] **Unit Tests:** Circulation creation, task assignment logic
-- [ ] **Integration Tests:** Complete circulation workflow, internal approvals
-- [ ] **E2E Tests:** End-to-end circulation with task completion
+- **[ ] F8.T1 Circulation Test Suite**
+  - [ ] **Unit Tests:** Circulation creation, task assignment logic
+  - [ ] **Integration Tests:** Complete circulation workflow, internal approvals
+  - [ ] **E2E Tests:** End-to-end circulation with task completion
 
 ---
 
-## **Phase 9: Advanced Features (สัปดาห์ที่ 12)**
+### **Phase 9: Advanced Features (สัปดาห์ที่ 12)**
 
 **Milestone:** ฟีเจอร์ขั้นสูงและการปรับปรุงประสบการณ์ผู้ใช้
 
 ### **Phase 9: Tasks**
 
 - **[ ] F9.1 Advanced Search Interface**
+
   - [ ] Create unified search interface across all document types
   - [ ] Implement faceted search with multiple filters
   - [ ] Add search result highlighting and relevance scoring
@@ -839,6 +806,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F4.1, F7.1
 
 - **[ ] F9.2 Notification System**
+
   - [ ] Create notification center with real-time updates
   - [ ] Implement notification preferences management
   - [ ] Add notification grouping and digest views
@@ -849,6 +817,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F1.3, F5.4
 
 - **[ ] F9.3 Reporting & Analytics**
+
   - [ ] Create reporting dashboard with customizable widgets
   - [ ] Implement data visualization components (charts, graphs)
   - [ ] Add report scheduling and export
@@ -870,21 +839,21 @@ F10_3 --> F10_4
 
 ### **Phase 9: Testing - Advanced Features**
 
-#### **F9.T1 Advanced Features Test Suite**
-
-- [ ] **Unit Tests:** Search algorithms, notification logic
-- [ ] **Integration Tests:** Cross-module search, real-time notifications
-- [ ] **Performance Tests:** Search performance, mobile responsiveness
+- **[ ] F9.T1 Advanced Features Test Suite**
+  - [ ] **Unit Tests:** Search algorithms, notification logic
+  - [ ] **Integration Tests:** Cross-module search, real-time notifications
+  - [ ] **Performance Tests:** Search performance, mobile responsiveness
 
 ---
 
-## **Phase 10: Testing & Polish (สัปดาห์ที่ 13-14)**
+### **Phase 10: Testing & Polish (สัปดาห์ที่ 13-14)**
 
 **Milestone:** แอปพลิเคชันที่ผ่านการทดสอบและปรับปรุงอย่างสมบูรณ์
 
 ### **Phase 10: Tasks**
 
 - **[ ] F10.1 Comprehensive Testing**
+
   - [ ] Idempotency Testing: เพิ่มการทดสอบเฉพาะสำหรับ Axios Interceptor เพื่อจำลองการส่ง Request POST/PUT/DELETE ที่มี Idempotency-Key ซ้ำไปยัง Mock API (MSW) เพื่อยืนยันว่า Client-side ไม่ส่ง Key ซ้ำในการทำงานปกติ และไม่เกิด Side Effect จากการ Replay Attack.
   - [ ] Write unit tests for all components and utilities
   - [ ] Create integration tests for critical user flows
@@ -896,6 +865,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** All previous phases
 
 - **[ ] F10.2 Performance Optimization**
+
   - [ ] Implement code splitting and lazy loading
   - [ ] Optimize bundle size and asset delivery
   - [ ] Add performance monitoring and metrics
@@ -906,6 +876,7 @@ F10_3 --> F10_4
   - [ ] **Dependencies:** F10.1
 
 - **[ ] F10.3 Security Hardening**
+
   - [ ] Conduct security audit and penetration testing
   - [ ] Implement Content Security Policy (CSP)
   - [ ] Add security headers and protections
@@ -927,19 +898,18 @@ F10_3 --> F10_4
 
 ### **Phase 10: Testing - Final Validation**
 
-#### **F10.T1 Final Test Suite**
-
-- [ ] **Performance Tests:** Load testing, stress testing
-- [ ] **Security Tests:** Final security audit, vulnerability assessment
-- [ ] **User Acceptance Tests:** Real user testing, feedback incorporation
-- [ ] **Compatibility Tests:** Cross-browser, cross-device testing
+- **[ ] F10.T1 Final Test Suite**
+  - [ ] **Performance Tests:** Load testing, stress testing
+  - [ ] **Security Tests:** Final security audit, vulnerability assessment
+  - [ ] **User Acceptance Tests:** Real user testing, feedback incorporation
+  - [ ] **Compatibility Tests:** Cross-browser, cross-device testing
 
 ---
 
 ## 📊 **สรุป Timeline**
 
-| Phase    | ระยะเวลา     | จำนวนงาน      | Output หลัก                           |
-| -------- | ------------ | ------------ | ------------------------------------ |
+| Phase    | ระยะเวลา       | จำนวนงาน     | Output หลัก                          |
+| -------- | -------------- | ------------ | ------------------------------------ |
 | Phase 0  | 1 สัปดาห์      | 4            | Foundation & Tooling Ready           |
 | Phase 1  | 1 สัปดาห์      | 4            | Core Application Structure           |
 | Phase 2  | 1 สัปดาห์      | 4            | User Management & Security           |

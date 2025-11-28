@@ -1,3 +1,4 @@
+// File: src/modules/correspondence/entities/correspondence-routing.entity.ts
 import {
   Entity,
   Column,
@@ -9,7 +10,7 @@ import {
 import { CorrespondenceRevision } from './correspondence-revision.entity.js';
 import { Organization } from '../../project/entities/organization.entity.js';
 import { User } from '../../user/entities/user.entity.js';
-import { RoutingTemplate } from './routing-template.entity.js'; // <--- ✅ เพิ่ม Import นี้ครับ
+import { RoutingTemplate } from './routing-template.entity.js';
 
 @Entity('correspondence_routings')
 export class CorrespondenceRouting {
@@ -49,6 +50,10 @@ export class CorrespondenceRouting {
   @Column({ name: 'processed_at', type: 'datetime', nullable: true })
   processedAt?: Date;
 
+  // ✅ [New] เพิ่ม State Context เพื่อเก็บ Snapshot ข้อมูล Workflow ณ จุดนั้น
+  @Column({ name: 'state_context', type: 'json', nullable: true })
+  stateContext?: any;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
@@ -57,7 +62,7 @@ export class CorrespondenceRouting {
   @JoinColumn({ name: 'correspondence_id' })
   correspondenceRevision?: CorrespondenceRevision;
 
-  @ManyToOne(() => RoutingTemplate) // ตอนนี้ TypeScript จะรู้จัก RoutingTemplate แล้ว
+  @ManyToOne(() => RoutingTemplate)
   @JoinColumn({ name: 'template_id' })
   template?: RoutingTemplate;
 

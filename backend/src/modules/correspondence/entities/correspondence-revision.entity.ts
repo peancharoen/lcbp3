@@ -1,3 +1,4 @@
+// File: src/modules/correspondence/entities/correspondence-revision.entity.ts
 import {
   Entity,
   Column,
@@ -5,12 +6,16 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { Correspondence } from './correspondence.entity.js';
 import { CorrespondenceStatus } from './correspondence-status.entity.js';
 import { User } from '../../user/entities/user.entity.js';
 
 @Entity('correspondence_revisions')
+// ✅ เพิ่ม Index สำหรับ Virtual Columns เพื่อให้ Search เร็วขึ้น
+@Index('idx_corr_rev_v_project', ['vRefProjectId'])
+@Index('idx_corr_rev_v_type', ['vRefType'])
 export class CorrespondenceRevision {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -38,6 +43,27 @@ export class CorrespondenceRevision {
 
   @Column({ type: 'json', nullable: true })
   details?: any; // เก็บข้อมูลแบบ Dynamic ตาม Type
+
+  // ✅ [New] Virtual Column: ดึง Project ID จาก JSON details
+  @Column({
+    name: 'v_ref_project_id',
+    type: 'int',
+    generatedType: 'VIRTUAL',
+    asExpression: "JSON_UNQUOTE(JSON_EXTRACT(details, '$.projectId'))",
+    nullable: true,
+  })
+  vRefProjectId?: number;
+
+  // ✅ [New] Virtual Column: ดึง Document SubType จาก JSON details
+  @Column({
+    name: 'v_doc_subtype',
+    type: 'varchar',
+    length: 50,
+    generatedType: 'VIRTUAL',
+    asExpression: "JSON_UNQUOTE(JSON_EXTRACT(details, '$.subType'))",
+    nullable: true,
+  })
+  vRefType?: string;
 
   // Dates
   @Column({ name: 'document_date', type: 'date', nullable: true })

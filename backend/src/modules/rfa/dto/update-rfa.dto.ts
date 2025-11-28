@@ -1,4 +1,4 @@
 import { PartialType } from '@nestjs/swagger';
-import { CreateRfaDto } from './create-rfa.dto';
+import { CreateRfaRevisionDto } from './create-rfa-revision.dto';
 
-export class UpdateRfaDto extends PartialType(CreateRfaDto) {}
+export class UpdateRfaDto extends PartialType(CreateRfaRevisionDto) {}

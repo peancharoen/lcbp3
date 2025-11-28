@@ -1,107 +1,172 @@
+// File: src/modules/json-schema/json-schema.controller.ts
 import {
-  Injectable,
-  OnModuleInit,
-  BadRequestException,
-  NotFoundException,
-  Logger,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
-import { JsonSchema } from './entities/json-schema.entity'; // ลบ .js
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
-@Injectable()
-export class JsonSchemaService implements OnModuleInit {
-  private ajv: Ajv;
-  private validators = new Map<string, any>();
-  private readonly logger = new Logger(JsonSchemaService.name);
+import { JsonSchemaService } from './json-schema.service';
+import { SchemaMigrationService } from './services/schema-migration.service';
 
+import { CreateJsonSchemaDto } from './dto/create-json-schema.dto';
+import { MigrateDataDto } from './dto/migrate-data.dto';
+import { SearchJsonSchemaDto } from './dto/search-json-schema.dto';
+import { UpdateJsonSchemaDto } from './dto/update-json-schema.dto';
+
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../../common/guards/rbac.guard';
+import { User } from '../user/entities/user.entity';
+
+@ApiTags('JSON Schemas Management')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RbacGuard)
+@Controller('json-schemas')
+export class JsonSchemaController {
   constructor(
-    @InjectRepository(JsonSchema)
-    private schemaRepo: Repository<JsonSchema>,
+    private readonly jsonSchemaService: JsonSchemaService,
+    private readonly migrationService: SchemaMigrationService,
+  ) {}
+
+  // ----------------------------------------------------------------------
+  // Schema Management (CRUD)
+  // ----------------------------------------------------------------------
+
+  @Post()
+  @ApiOperation({
+    summary: 'Create a new schema or new version of existing schema',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'The schema has been successfully created.',
+  })
+  @RequirePermission('system.manage_all') // Admin Only
+  create(@Body() createDto: CreateJsonSchemaDto) {
+    return this.jsonSchemaService.create(createDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List all schemas with pagination and filtering' })
+  @RequirePermission('document.view') // Viewer+ can see schemas
+  findAll(@Query() searchDto: SearchJsonSchemaDto) {
+    return this.jsonSchemaService.findAll(searchDto);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a specific schema version by ID' })
+  @RequirePermission('document.view')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.jsonSchemaService.findOne(id);
+  }
+
+  @Get('latest/:code')
+  @ApiOperation({
+    summary: 'Get the latest active version of a schema by code',
+  })
+  @ApiParam({ name: 'code', description: 'Schema Code (e.g., RFA_DWG)' })
+  @RequirePermission('document.view')
+  findLatest(@Param('code') code: string) {
+    return this.jsonSchemaService.findLatestByCode(code);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update a specific schema (Not recommended for active schemas)',
+  })
+  @RequirePermission('system.manage_all')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateJsonSchemaDto,
   ) {
-    this.ajv = new Ajv({ allErrors: true, strict: false });
-    addFormats(this.ajv);
+    return this.jsonSchemaService.update(id, updateDto);
   }
 
-  async onModuleInit() {
-    // Pre-load schemas (Optional for performance)
-    // const schemas = await this.schemaRepo.find({ where: { isActive: true } });
-    // schemas.forEach(s => this.createValidator(s.schemaCode, s.schemaDefinition));
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a schema version (Hard Delete)' })
+  @RequirePermission('system.manage_all')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.jsonSchemaService.remove(id);
   }
 
-  /**
-   * ตรวจสอบข้อมูล JSON ว่าถูกต้องตาม Schema หรือไม่
-   */
-  async validate(schemaCode: string, data: any): Promise<boolean> {
-    let validate = this.validators.get(schemaCode);
+  // ----------------------------------------------------------------------
+  // Validation & Security
+  // ----------------------------------------------------------------------
 
-    if (!validate) {
-      const schema = await this.schemaRepo.findOne({
-        where: { schemaCode, isActive: true },
-      });
-
-      if (!schema) {
-        throw new NotFoundException(`JSON Schema '${schemaCode}' not found`);
-      }
-
-      try {
-        validate = this.ajv.compile(schema.schemaDefinition);
-        this.validators.set(schemaCode, validate);
-      } catch (error: any) {
-        throw new BadRequestException(
-          `Invalid Schema Definition for '${schemaCode}': ${error.message}`,
-        );
-      }
-    }
-
-    const valid = validate(data);
-
-    if (!valid) {
-      const errors = validate.errors
-        ?.map((e: any) => `${e.instancePath} ${e.message}`)
-        .join(', ');
-      // โยน Error กลับไปเพื่อให้ Controller/Service ปลายทางจัดการ
-      throw new BadRequestException(`JSON Validation Failed: ${errors}`);
-    }
-
-    return true;
+  @Post('validate/:code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Validate data against the latest schema version' })
+  @ApiResponse({
+    status: 200,
+    description: 'Validation result including errors and sanitized data',
+  })
+  @RequirePermission('document.view')
+  async validate(@Param('code') code: string, @Body() data: any) {
+    // Note: Validation API นี้ใช้สำหรับ Test หรือ Pre-check เท่านั้น
+    // การ Save จริงจะเรียกผ่าน Service ภายใน
+    return this.jsonSchemaService.validateData(code, data);
   }
 
-  /**
-   * สร้างหรืออัปเดต Schema
-   */
-  async createOrUpdate(schemaCode: string, definition: Record<string, any>) {
-    // 1. ตรวจสอบว่า Definition เป็น JSON Schema ที่ถูกต้องไหม
-    try {
-      this.ajv.compile(definition);
-    } catch (error: any) {
-      throw new BadRequestException(
-        `Invalid JSON Schema format: ${error.message}`,
-      );
-    }
+  @Post('read/:code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Process read data (Decrypt & Filter) based on user roles',
+  })
+  @RequirePermission('document.view')
+  async processReadData(
+    @Param('code') code: string,
+    @Body() data: any,
+    @CurrentUser() user: User,
+  ) {
+    // แปลง User Entity เป็น Security Context
+    // แก้ไข TS2339 & TS7006: Type Casting เพื่อให้เข้าถึง roles ได้โดยไม่ error
+    // เนื่องจาก User Entity ปกติไม่มี property roles (แต่อาจถูก Inject มาตอน Runtime หรือผ่าน Assignments)
+    const userWithRoles = user as any;
+    const userRoles = userWithRoles.roles
+      ? userWithRoles.roles.map((r: any) => r.roleName)
+      : [];
 
-    // 2. บันทึกลง DB
-    let schema = await this.schemaRepo.findOne({ where: { schemaCode } });
+    return this.jsonSchemaService.processReadData(code, data, { userRoles });
+  }
 
-    if (schema) {
-      schema.schemaDefinition = definition;
-      schema.version += 1;
-    } else {
-      schema = this.schemaRepo.create({
-        schemaCode,
-        schemaDefinition: definition,
-        version: 1,
-      });
-    }
+  // ----------------------------------------------------------------------
+  // Data Migration
+  // ----------------------------------------------------------------------
 
-    const savedSchema = await this.schemaRepo.save(schema);
-
-    // 3. Clear Cache เพื่อให้ครั้งหน้าโหลดตัวใหม่
-    this.validators.delete(schemaCode);
-    this.logger.log(`Schema '${schemaCode}' updated (v${savedSchema.version})`);
-
-    return savedSchema;
+  @Post('migrate/:table/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Migrate specific entity data to target schema version',
+  })
+  @ApiParam({ name: 'table', description: 'Table Name (e.g. rfa_revisions)' })
+  @ApiParam({ name: 'id', description: 'Entity ID' })
+  @RequirePermission('system.manage_all') // Dangerous Op -> Admin Only
+  async migrateData(
+    @Param('table') tableName: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: MigrateDataDto,
+  ) {
+    return this.migrationService.migrateData(
+      tableName,
+      id,
+      dto.targetSchemaCode,
+      dto.targetVersion,
+    );
   }
 }
