@@ -1,52 +1,66 @@
-// File: src/modules/rfa/dto/create-rfa-revision.dto.ts
+// File: src/modules/rfa/dto/create-rfa.dto.ts
+import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsString,
-  IsNotEmpty,
-  IsInt,
-  IsOptional,
-  IsDateString,
-  IsObject,
   IsArray,
+  IsDateString,
+  IsInt,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
 } from 'class-validator';
 
-export class CreateRfaRevisionDto {
+export class CreateRfaDto {
+  @ApiProperty({ description: 'ID ของโครงการ', example: 1 })
+  @IsInt()
+  @IsNotEmpty()
+  projectId!: number;
+
+  @ApiProperty({ description: 'ID ของประเภท RFA', example: 1 })
+  @IsInt()
+  @IsNotEmpty()
+  rfaTypeId!: number;
+
+  @ApiProperty({
+    description: 'ID ของสาขางาน (Discipline) ตาม Req 6B',
+    example: 1,
+  })
+  @IsInt()
+  @IsOptional() // Optional ไว้ก่อนเผื่อบางโครงการไม่บังคับ
+  disciplineId?: number;
+
+  @ApiProperty({
+    description: 'หัวข้อเอกสาร',
+    example: 'Submission of Shop Drawing for Building A',
+  })
   @IsString()
   @IsNotEmpty()
   title!: string;
 
-  @IsInt()
-  @IsNotEmpty()
-  rfaStatusCodeId!: number;
-
-  @IsInt()
-  @IsOptional()
-  rfaApproveCodeId?: number;
-
-  @IsDateString()
-  @IsOptional()
-  documentDate?: string;
-
-  @IsDateString()
-  @IsOptional()
-  issuedDate?: string;
-
-  @IsDateString()
-  @IsOptional()
-  receivedDate?: string;
-
-  @IsDateString()
-  @IsOptional()
-  approvedDate?: string;
-
+  @ApiProperty({ description: 'รายละเอียดเพิ่มเติม', required: false })
   @IsString()
   @IsOptional()
   description?: string;
 
+  @ApiProperty({ description: 'วันที่ในเอกสาร', required: false })
+  @IsDateString()
+  @IsOptional()
+  documentDate?: string;
+
+  @ApiProperty({
+    description: 'ข้อมูล Dynamic Details (JSON)',
+    required: false,
+  })
   @IsObject()
   @IsOptional()
   details?: Record<string, any>;
 
+  @ApiProperty({
+    description: 'รายการ Shop Drawing Revisions ที่แนบมาด้วย',
+    required: false,
+    type: [Number],
+  })
   @IsArray()
   @IsOptional()
-  shopDrawingRevisionIds?: number[]; // IDs of linked Shop Drawings
+  shopDrawingRevisionIds?: number[];
 }

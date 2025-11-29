@@ -3,35 +3,34 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Entities
-import { Rfa } from './entities/rfa.entity';
-import { RfaRevision } from './entities/rfa-revision.entity';
-import { RfaItem } from './entities/rfa-item.entity';
-import { RfaType } from './entities/rfa-type.entity';
-import { RfaStatusCode } from './entities/rfa-status-code.entity';
-import { RfaApproveCode } from './entities/rfa-approve-code.entity';
-import { Correspondence } from '../correspondence/entities/correspondence.entity';
-import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
-import { RfaWorkflow } from './entities/rfa-workflow.entity';
-import { RfaWorkflowTemplate } from './entities/rfa-workflow-template.entity';
-import { RfaWorkflowTemplateStep } from './entities/rfa-workflow-template-step.entity';
 import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
+import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
-// หมายเหตุ: ตรวจสอบชื่อไฟล์ Entity ให้ตรงกับที่มีจริง (บางทีอาจชื่อ RoutingTemplate)
+import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
+import { RfaApproveCode } from './entities/rfa-approve-code.entity';
+import { RfaItem } from './entities/rfa-item.entity';
+import { RfaRevision } from './entities/rfa-revision.entity';
+import { RfaStatusCode } from './entities/rfa-status-code.entity';
+import { RfaType } from './entities/rfa-type.entity';
+import { RfaWorkflowTemplateStep } from './entities/rfa-workflow-template-step.entity';
+import { RfaWorkflowTemplate } from './entities/rfa-workflow-template.entity';
+import { RfaWorkflow } from './entities/rfa-workflow.entity';
+import { Rfa } from './entities/rfa.entity';
 
 // Services & Controllers
-import { RfaService } from './rfa.service';
+import { RfaWorkflowService } from './rfa-workflow.service'; // Register Service
 import { RfaController } from './rfa.controller';
+import { RfaService } from './rfa.service';
 
 // External Modules
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
-import { UserModule } from '../user/user.module';
+import { NotificationModule } from '../notification/notification.module';
 import { SearchModule } from '../search/search.module';
-import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'; // ✅ Import
-import { NotificationModule } from '../notification/notification.module'; // ✅ เพิ่ม NotificationModule
+import { UserModule } from '../user/user.module';
+import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module';
 
 @Module({
   imports: [
-    // 1. Register Entities (เฉพาะ Entity เท่านั้น ห้ามใส่ Module)
     TypeOrmModule.forFeature([
       Rfa,
       RfaRevision,
@@ -47,15 +46,13 @@ import { NotificationModule } from '../notification/notification.module'; // ✅
       CorrespondenceRouting,
       RoutingTemplate,
     ]),
-
-    // 2. Import External Modules (Services ที่ Inject เข้ามา)
     DocumentNumberingModule,
     UserModule,
     SearchModule,
-    WorkflowEngineModule, // ✅ ย้ายมาใส่ตรงนี้ (imports หลัก)
-    NotificationModule, // ✅ เพิ่มตรงนี้ เพื่อแก้ dependency index [13]
+    WorkflowEngineModule,
+    NotificationModule,
   ],
-  providers: [RfaService],
+  providers: [RfaService, RfaWorkflowService],
   controllers: [RfaController],
   exports: [RfaService],
 })

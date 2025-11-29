@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { Circulation } from './entities/circulation.entity';
 import { CirculationRouting } from './entities/circulation-routing.entity';
 import { CirculationStatusCode } from './entities/circulation-status-code.entity';
+import { Circulation } from './entities/circulation.entity';
 
-import { CirculationService } from './circulation.service';
-import { CirculationController } from './circulation.controller';
 import { UserModule } from '../user/user.module';
+import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module';
+import { CirculationWorkflowService } from './circulation-workflow.service';
+import { CirculationController } from './circulation.controller';
+import { CirculationService } from './circulation.service';
 
 @Module({
   imports: [
@@ -17,9 +19,10 @@ import { UserModule } from '../user/user.module';
       CirculationStatusCode,
     ]),
     UserModule,
+    WorkflowEngineModule,
   ],
   controllers: [CirculationController],
-  providers: [CirculationService],
+  providers: [CirculationService, CirculationWorkflowService],
   exports: [CirculationService],
 })
 export class CirculationModule {}

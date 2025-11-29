@@ -22,6 +22,7 @@ import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dt
 import { EvaluateWorkflowDto } from './dto/evaluate-workflow.dto';
 import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto';
 import { CompiledWorkflow, WorkflowDslService } from './workflow-dsl.service';
+import { WorkflowEventService } from './workflow-event.service'; // [NEW] Import Event Service
 
 // Legacy Interface (Backward Compatibility)
 export enum WorkflowAction {
@@ -49,6 +50,7 @@ export class WorkflowEngineService {
     @InjectRepository(WorkflowHistory)
     private readonly historyRepo: Repository<WorkflowHistory>,
     private readonly dslService: WorkflowDslService,
+    private readonly eventService: WorkflowEventService, // [NEW] Inject Service
     private readonly dataSource: DataSource, // ใช้สำหรับ Transaction
   ) {}
 
@@ -166,9 +168,9 @@ export class WorkflowEngineService {
 
     // 2. หา Initial State จาก Compiled Structure
     const compiled: CompiledWorkflow = definition.compiled;
-    const initialState = Object.keys(compiled.states).find(
-      (key) => compiled.states[key].initial,
-    );
+    // [FIX] ใช้ initialState จาก Root Property โดยตรง (ตามที่ Optimize ใน DSL Service)
+    // เพราะ CompiledState ใน states map ไม่มี property 'initial' แล้ว
+    const initialState = compiled.initialState;
 
     if (!initialState) {
       throw new BadRequestException(
@@ -194,6 +196,25 @@ export class WorkflowEngineService {
   }
 
   /**
+   * ดึงข้อมูล Workflow Instance ตาม ID
+   * ใช้สำหรับการตรวจสอบสถานะหรือซิงค์ข้อมูลกลับไปยัง Module หลัก
+   */
+  async getInstanceById(instanceId: string): Promise<WorkflowInstance> {
+    const instance = await this.instanceRepo.findOne({
+      where: { id: instanceId },
+      relations: ['definition'],
+    });
+
+    if (!instance) {
+      throw new NotFoundException(
+        `Workflow Instance "${instanceId}" not found`,
+      );
+    }
+
+    return instance;
+  }
+
+  /**
    * ดำเนินการเปลี่ยนสถานะ (Transition) ของ Instance จริงแบบ Transactional
    */
   async processTransition(
@@ -206,6 +227,9 @@ export class WorkflowEngineService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+
+    let eventsToDispatch: any[] = [];
+    let updatedContext: any = {};
 
     try {
       // 1. Lock Instance เพื่อป้องกัน Race Condition (Pessimistic Write Lock)
@@ -268,25 +292,29 @@ export class WorkflowEngineService {
       });
       await queryRunner.manager.save(history);
 
-      // 5. Trigger Events (Integration Point)
-      // ในอนาคตสามารถ Inject NotificationService มาเรียกตรงนี้ได้
-      if (evaluation.events && evaluation.events.length > 0) {
-        this.logger.log(
-          `Triggering ${evaluation.events.length} events for instance ${instanceId}`,
-        );
-        // await this.eventHandler.handle(evaluation.events);
-      }
-
       await queryRunner.commitTransaction();
+
+      // [NEW] เก็บค่าไว้ Dispatch หลัง Commit
+      eventsToDispatch = evaluation.events;
+      updatedContext = context;
 
       this.logger.log(
         `Transition: ${instanceId} [${fromState}] --${action}--> [${toState}] by User:${userId}`,
       );
 
+      // [NEW] Dispatch Events (Async) ผ่าน WorkflowEventService
+      if (eventsToDispatch && eventsToDispatch.length > 0) {
+        this.eventService.dispatchEvents(
+          instance.id,
+          eventsToDispatch,
+          updatedContext,
+        );
+      }
+
       return {
         success: true,
         nextState: toState,
-        events: evaluation.events,
+        events: eventsToDispatch,
         isCompleted: instance.status === WorkflowStatus.COMPLETED,
       };
     } catch (err) {

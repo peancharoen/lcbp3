@@ -15,14 +15,10 @@ import { VirtualColumnService } from './services/virtual-column.service';
 import { CryptoService } from '../../common/services/crypto.service';
 
 // Import Module อื่นๆ ที่จำเป็นสำหรับ Guard (ถ้า Guards อยู่ใน Common อาจจะไม่ต้อง import ที่นี่โดยตรง)
-// import { UserModule } from '../user/user.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([JsonSchema]),
-    ConfigModule,
-    // UserModule,
-  ],
+  imports: [TypeOrmModule.forFeature([JsonSchema]), ConfigModule, UserModule],
   controllers: [JsonSchemaController],
   providers: [
     JsonSchemaService,

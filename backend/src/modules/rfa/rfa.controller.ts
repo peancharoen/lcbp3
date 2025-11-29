@@ -1,24 +1,26 @@
+// File: src/modules/rfa/rfa.controller.ts
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
   Param,
   ParseIntPipe,
+  Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { RfaService } from './rfa.service';
-import { CreateRfaDto } from './dto/create-rfa.dto';
-import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto'; // Reuse DTO
+import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto';
 import { User } from '../user/entities/user.entity';
+import { CreateRfaDto } from './dto/create-rfa.dto';
+import { SubmitRfaDto } from './dto/submit-rfa.dto'; // ✅ Import DTO ใหม่
+import { RfaService } from './rfa.service';
 
+import { Audit } from '../../common/decorators/audit.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
-import { RequirePermission } from '../../common/decorators/require-permission.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Audit } from '../../common/decorators/audit.decorator'; // Import
 
 @ApiTags('RFA (Request for Approval)')
 @ApiBearerAuth()
@@ -29,26 +31,28 @@ export class RfaController {
 
   @Post()
   @ApiOperation({ summary: 'Create new RFA (Draft)' })
-  @RequirePermission('rfa.create') // สิทธิ์ ID 37
-  @Audit('rfa.create', 'rfa') // ✅ แปะตรงนี้
+  @RequirePermission('rfa.create')
+  @Audit('rfa.create', 'rfa')
   create(@Body() createDto: CreateRfaDto, @CurrentUser() user: User) {
     return this.rfaService.create(createDto, user);
   }
 
   @Post(':id/submit')
   @ApiOperation({ summary: 'Submit RFA to Workflow' })
-  @RequirePermission('rfa.create') // ผู้สร้างมีสิทธิ์ส่ง
+  @RequirePermission('rfa.create')
+  @Audit('rfa.submit', 'rfa')
   submit(
     @Param('id', ParseIntPipe) id: number,
-    @Body('templateId', ParseIntPipe) templateId: number, // รับ Template ID
+    @Body() submitDto: SubmitRfaDto, // ✅ ใช้ DTO
     @CurrentUser() user: User,
   ) {
-    return this.rfaService.submit(id, templateId, user);
+    return this.rfaService.submit(id, submitDto.templateId, user);
   }
 
   @Post(':id/action')
   @ApiOperation({ summary: 'Process Workflow Action (Approve/Reject)' })
-  @RequirePermission('workflow.action_review') // สิทธิ์ในการ Approve/Review
+  @RequirePermission('workflow.action_review')
+  @Audit('rfa.action', 'rfa')
   processAction(
     @Param('id', ParseIntPipe) id: number,
     @Body() actionDto: WorkflowActionDto,

@@ -1,16 +1,17 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   DeleteDateColumn,
-  ManyToOne,
+  Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
-import { RfaType } from './rfa-type.entity';
+import { Discipline } from '../../master/entities/discipline.entity'; // Import ใหม่
 import { User } from '../../user/entities/user.entity';
 import { RfaRevision } from './rfa-revision.entity';
+import { RfaType } from './rfa-type.entity';
 
 @Entity('rfas')
 export class Rfa {
@@ -33,6 +34,11 @@ export class Rfa {
   @ManyToOne(() => RfaType)
   @JoinColumn({ name: 'rfa_type_id' })
   rfaType!: RfaType;
+
+  // ✅ [NEW] Relation
+  @ManyToOne(() => Discipline)
+  @JoinColumn({ name: 'discipline_id' })
+  discipline?: Discipline;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by' })

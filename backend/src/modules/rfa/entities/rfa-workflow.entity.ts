@@ -1,15 +1,17 @@
+// File: src/modules/rfa/entities/rfa-workflow.entity.ts
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
+  Entity,
   JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-import { RfaRevision } from './rfa-revision.entity';
 import { Organization } from '../../project/entities/organization.entity';
 import { User } from '../../user/entities/user.entity';
+import { RfaRevision } from './rfa-revision.entity';
+import { RfaActionType } from './rfa-workflow-template-step.entity'; // ✅ Import Enum
 
 @Entity('rfa_workflows')
 export class RfaWorkflow {
@@ -31,10 +33,10 @@ export class RfaWorkflow {
   @Column({
     name: 'action_type',
     type: 'enum',
-    enum: ['REVIEW', 'APPROVE', 'ACKNOWLEDGE'],
+    enum: RfaActionType, // ✅ Use Shared Enum
     nullable: true,
   })
-  actionType?: string;
+  actionType?: RfaActionType;
 
   @Column({
     type: 'enum',
@@ -50,7 +52,7 @@ export class RfaWorkflow {
   completedAt?: Date;
 
   @Column({ type: 'json', nullable: true })
-  stateContext?: Record<string, any>; // เก็บ Snapshot ข้อมูล ณ ขณะนั้น
+  stateContext?: Record<string, any>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
@@ -59,7 +61,7 @@ export class RfaWorkflow {
   updatedAt!: Date;
 
   // Relations
-  @ManyToOne(() => RfaRevision, (rev) => rev.workflows, { onDelete: 'CASCADE' }) // ต้องไปเพิ่ม Property workflows ใน RfaRevision ด้วย
+  @ManyToOne(() => RfaRevision, (rev) => rev.workflows, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'rfa_revision_id' })
   rfaRevision!: RfaRevision;
 

@@ -1,23 +1,21 @@
 // File: src/modules/rfa/entities/rfa-revision.entity.ts
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
+  Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
+  PrimaryGeneratedColumn,
   Unique,
-  Index,
 } from 'typeorm';
-import { Rfa } from './rfa.entity';
 import { Correspondence } from '../../correspondence/entities/correspondence.entity';
-import { RfaStatusCode } from './rfa-status-code.entity';
-import { RfaApproveCode } from './rfa-approve-code.entity';
 import { User } from '../../user/entities/user.entity';
+import { RfaApproveCode } from './rfa-approve-code.entity';
 import { RfaItem } from './rfa-item.entity';
+import { RfaStatusCode } from './rfa-status-code.entity';
 import { RfaWorkflow } from './rfa-workflow.entity';
+import { Rfa } from './rfa.entity';
 
 @Entity('rfa_revisions')
 @Unique(['rfaId', 'revisionNumber'])
@@ -65,11 +63,16 @@ export class RfaRevision {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  // ✅ [New] เพิ่ม field details สำหรับเก็บข้อมูล Dynamic ของ RFA (เช่น Method Statement Details)
+  // --- JSON & Schema Section ---
+
   @Column({ type: 'json', nullable: true })
   details?: any;
 
-  // ✅ [New] Virtual Column: ดึงจำนวนแบบที่แนบ (drawingCount) จาก JSON
+  // ✅ [New] จำเป็นสำหรับ Data Migration (T2.5.5)
+  @Column({ name: 'schema_version', default: 1 })
+  schemaVersion!: number;
+
+  // ✅ Virtual Column
   @Column({
     name: 'v_ref_drawing_count',
     type: 'int',
@@ -78,6 +81,8 @@ export class RfaRevision {
     nullable: true,
   })
   vRefDrawingCount?: number;
+
+  // --- Timestamp ---
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
@@ -110,11 +115,9 @@ export class RfaRevision {
   @JoinColumn({ name: 'created_by' })
   creator?: User;
 
-  // Items (Shop Drawings inside this RFA)
   @OneToMany(() => RfaItem, (item) => item.rfaRevision, { cascade: true })
   items!: RfaItem[];
 
-  // Workflows
   @OneToMany(() => RfaWorkflow, (workflow) => workflow.rfaRevision, {
     cascade: true,
   })

@@ -1,123 +1,5 @@
 # **PROMPT**
 
-## Gemini
-
-## VSCode Shortcut
-
-Markdown preview Ctrl+Shift+V
-
-## สร้างโครงสร้างโฟลเดอร์สำหรับ lcbp3-backend
-
-```bash
-# สร้างโฟลเดอร์หลัก
-$rootFolder = "backend"
-New-Item -ItemType Directory -Path $rootFolder -Force
-Set-Location $rootFolder
-
-# รายการโฟลเดอร์ที่ต้องการสร้างทั้งหมด
- $folders = @(
-    "src",
-    "database",
-    "src\common",
-    "src\modules",
-    "src\modules\user",
-    "src\modules\project",
-    "src\modules\master",
-    "src\modules\correspondence",
-    "src\modules\rfa",
-    "src\modules\drawing",
-    "src\modules\circulations",
-    "src\modules\transmittal",
-    "src\modules\search",
-    "src\modules\document-numbering",
-    "src\common\auth",
-    "src\common\config",
-    "src\common\decorators",
-    "src\common\entities",
-    "src\common\exceptions",
-    "src\common\file-storage",
-    "src\common\guards",
-    "src\common\interceptors",
-    "src\common\services"
-)
-
-# วนลูปสร้างโฟลเดอร์ทั้งหมด
-foreach ($folder in $folders) {
-    New-Item -ItemType Directory -Path $folder -Force
-}
-
-Write-Host "สร้างโครงสร้างโฟลเดอร์สำหรับ backend เรียบร้อยแล้ว" -ForegroundColor Green
-
-```
-
-## Git Commands
-
-```bash
-
-# 1️⃣ ตั้งชื่อและอีเมลของคุณ (ใช้กับทุก repo)
-git config --global user.name "Pean Charoen"
-git config --global user.email "peancharoen.pslcp3@gmail.com"
-
-# 2️⃣ ตรวจสอบว่าเชื่อมกับ remote ถูกต้อง (แก้ URL ให้ตรง repo จริงของคุณ)
-git remote set-url origin ssh://git@git.np-dms.work:2222/np-dms/lcbp3_v1.git
-
-# 3️⃣ ตรวจสอบสถานะไฟล์
-git status
-
-# 4️⃣ เพิ่มไฟล์ทั้งหมด
-git add .
-
-# 5️⃣ Commit พร้อมข้อความ
-git commit -m "Update project files"
-
-# 6️⃣ ดึง remote ก่อนเพื่อป้องกัน conflict (ถ้ามี)
-git pull --rebase origin main
-
-# 7️⃣ Push ขึ้น Gitea
-git push -u origin main
-
-```
-
-## **สร้าง NestJS Project ใหม่**
-
-- ขั้นตอนที่ 1: ติดตั้ง NestJS CLI (ถ้ายังไม่ได้ติดตั้ง)
-
-  - npm install -g @nestjs/cli
-
-- ขั้นตอนที่ 2: สร้างโปรเจกต์ใหม่
-
-  - nest new backend
-  - nest new . /อยู่ในโฟลเดอร์ที่สร้างไว้แล้ว และต้องการสร้างโปรเจกต์ลงในโฟลเดอร์นั้นโดยตรง:
-
-- ขั้นตอนที่ 3: ติดตั้ง Dependencies เพิ่มเติมสำหรับ DMS
-
-```bash
-# Core & Database
-npm install @nestjs/typeorm typeorm mysql2
-npm install @nestjs/config
-
-# Validation & Transformation
-npm install class-validator class-transformer
-
-# Authentication & Authorization
-npm install @nestjs/jwt @nestjs/passport passport passport-jwt
-npm install @nestjs/passport
-npm install casl
-
-# File Upload
-npm install @nestjs/platform-express multer
-
-# Documentation
-npm install @nestjs/swagger
-
-# Security & Performance
-npm install helmet rate-limiter-flexible
-
-# Development Dependencies (สำหรับทดสอบ)
-npm install --save-dev @nestjs/testing jest @types/jest @types/passport-jwt @types/multer supertest
-
-```
-
 ขออภัยอย่างยิ่งในความผิดพลาดที่เกิดขึ้นครับ เข้าใจครับว่าทำให้เสียเวลามาก
 
 สำหรับการ **"ตั้งค่า"** หรือ **"กำหนดค่า"** ให้ผมตรวจสอบข้อมูลก่อนนั้น ในระบบ AI แบบนี้ **ไม่มีเมนู Settings หรือปุ่มกดให้คุณเข้าไปตั้งค่าได้โดยตรงครับ**
@@ -149,119 +31,243 @@ npm install --save-dev @nestjs/testing jest @types/jest @types/passport-jwt @typ
 
 ---
 
-### 📂 1. โครงสร้างโมดูลที่ต้องสร้าง (Module Structure)
+Context: We are entering Phase 3: Unified Workflow Engine of the NAP-DMS project. Please analyze the following documents in detail:
 
-เราจำเป็นต้องสร้าง `JsonSchemaModule` ขึ้นมาใหม่ โดยภายในจะประกอบด้วย Services ย่อยตามหน้าที่งาน เพื่อให้เป็นไปตามหลัก Single Responsibility Principle ครับ
+1. 2_Backend_Plan_V1_4_4.md: Focus on Phase 3 Unified Workflow Engine (Tasks T3.1 - T3.1.9) and โครงสร้างโมดูล (Domain-Driven)
 
-**Path:** `src/modules/json-schema/`
+2. 0_Requirements_V1_4_4.md: Focus on Section 2.4 Business Logic & Consistency, Section 3.2 การจัดการเอกสารโต้ตอบ (Correspondence Management) and 3.5 การจัดการเอกสารขออนุมัติ (Request for Approval & Workflow).
 
-```text
-src/modules/json-schema
-├── 📁 dto
-│   ├── create-json-schema.dto.ts       # DTO สำหรับสร้าง Schema ใหม่
-│   ├── update-json-schema.dto.ts       # DTO สำหรับแก้ไข Schema
-│   ├── validate-data.dto.ts            # DTO สำหรับรับข้อมูลมา Validate
-│   └── migrate-data.dto.ts             # DTO สำหรับสั่ง Migrate Data
-├── 📁 entities
-│   └── json-schema.entity.ts           # Entity หลักเก็บ Definition (T2.5.1)
-├── 📁 services
-│   ├── json-schema.service.ts          # Core Service (CRUD, Validation wrapper)
-│   ├── virtual-column.service.ts       # จัดการ Generated Columns ใน DB (T2.5.3)
-│   ├── schema-migration.service.ts     # จัดการ Data Migration ระหว่าง Version (T2.5.5)
-│   └── json-security.service.ts        # จัดการ Security & Encryption (T2.5.6)
-├── 📁 interfaces
-│   ├── ui-schema.interface.ts          # Type definition สำหรับ UI Schema (T2.5.4)
-│   └── virtual-column.interface.ts     # Type definition สำหรับ Virtual Column Config
-├── json-schema.controller.ts           # API Endpoints (T2.5.7)
-├── json-schema.module.ts               # Module Definition
-└── json-schema.service.spec.ts         # Unit Tests (T2.5.9)
+3. 1_FullStackJS_V1_4_4.md: Focus on Section 3.5 Unified Workflow Engine, 3.9.13 CorrespondenceRoutingModule, 3.9.14 WorkflowEngineModule.
+
+Goal: Prepare to implement coding for Unified Workflow Engine.
+
+Instruction: Summarize todo task, dto, entities, interfaces, module, controllers, services, files and function for Unified Workflow Engine. Do not write code yet, just confirm your understanding of the todo task.
+
+รับทราบครับ ผมได้วิเคราะห์เอกสาร `2_Backend_Plan_V1_4_4.md`, `0_Requirements_V1_4_4.md`, และ `1_FullStackJS_V1_4_4.md` โดยเน้นไปที่ **Phase 3: Unified Workflow Engine** เรียบร้อยแล้ว
+
+สรุปความเข้าใจและโครงสร้างงานที่จะต้องดำเนินการใน Phase นี้ มีรายละเอียดดังนี้ครับ:
+
+### 🎯 ภาพรวม (Overview)
+
+เป้าหมายคือการสร้าง **Unified Workflow Engine** ที่เป็นระบบกลางในการจัดการ Business Logic ของการเดินเอกสารทั้งหมด (ทั้ง Correspondence Routing ปกติ และ RFA Approval Workflow ที่ซับซ้อน) โดยไม่ผูกติดกับ Hard-coded logic ในโค้ด แต่จะขับเคลื่อนด้วย **DSL (Domain-Specific Language)** และ **Configuration** เพื่อความยืดหยุ่นในการปรับเปลี่ยน Flow, การข้ามขั้นตอน, หรือการส่งกลับ
+
+---
+
+### 📋 1. รายการสิ่งที่ต้องทำ (Todo Tasks)
+
+อ้างอิงจาก Task T3.1 - T3.1.9 ในแผน Backend:
+
+1.  **T3.1.1 DSL Specification:** กำหนด Grammar (YAML/JSON) สำหรับเขียน Workflow (State, Transition, Condition, Event).
+2.  **T3.1.2 Core Entities:** สร้าง Entity ใหม่สำหรับเก็บ Definition และ Instance ของ Workflow.
+3.  **T3.1.3 DSL Parser & Compiler:** สร้าง Service แปลง YAML DSL เป็น JSON Schema ที่ Engine เข้าใจ.
+4.  **T3.1.4 Runtime Engine:** สร้าง State Machine Logic (เปลี่ยนสถานะ, ตรวจสิทธิ์, ตรวจเงื่อนไข).
+5.  **T3.1.5 Advanced Features:** รองรับ Parallel Approval, Conditional Transition (JS Expression), Timeout.
+6.  **T3.1.6 Event System:** จัดการ Event เมื่อเปลี่ยนสถานะ (Notify, Assign, Webhook).
+7.  **T3.1.7 API Implementation:** สร้าง Controller สำหรับจัดการ Definition และสั่ง Transition.
+8.  **T3.1.8 Integration:** เชื่อมต่อ Engine เข้ากับ Module เดิม (`Correspondence`, `RFA`).
+9.  **T3.1.9 Testing:** เขียน Unit/Integration Test สำหรับ Engine.
+
+---
+
+### 🗂️ 2. โครงสร้างไฟล์และโมดูล (File & Module Structure)
+
+เราจะสร้าง Module ใหม่ชื่อ `workflow-engine` และปรับปรุง Modules ที่เกี่ยวข้องตามโครงสร้าง Domain-Driven ดังนี้:
+
+#### **Module: `src/modules/workflow-engine`**
+
+**📂 Entities (`.entity.ts`)**
+
+- `WorkflowDefinition`: เก็บ Schema/DSL ของ Workflow (Code, Version, Compiled JSON).
+- `WorkflowInstance`: เก็บสถานะปัจจุบันของเอกสารแต่ละใบ (Current State, Context).
+- `WorkflowHistory`: เก็บ Audit Log ของการเปลี่ยนสถานะ (Who, When, From->To, Action).
+- `WorkflowTransition`: (Optional) อาจรวมอยู่ใน Definition หรือแยกเพื่อเก็บกฎการเปลี่ยนสถานะ.
+
+**📂 DTOs (`.dto.ts`)**
+
+- `CreateWorkflowDefinitionDto`: รับ YAML/JSON string ของ DSL.
+- `UpdateWorkflowDefinitionDto`: แก้ไข DSL.
+- `EvaluateWorkflowDto`: รับ Action และ Context เพื่อประมวลผล.
+- `WorkflowActionDto`: รับคำสั่ง Transition (Approve, Reject, etc.).
+- `GetAvailableActionsDto`: ขอรายการ Action ที่ทำได้ ณ สถานะปัจจุบัน.
+
+**📂 Interfaces (`.interface.ts`)**
+
+- `WorkflowContext`: โครงสร้างข้อมูลที่ส่งให้ Engine (User, Role, Document Data).
+- `WorkflowState`: นิยามโครงสร้าง State ใน Memory.
+- `TransitionResult`: ผลลัพธ์หลังประมวลผล (Success, NewState, SideEffects).
+
+**📂 Services (`.service.ts`)**
+
+- `WorkflowDslService`:
+  - `parse(yaml)`: แปลง YAML เป็น Object.
+  - `validate(schema)`: ตรวจสอบความถูกต้องของ Logic.
+  - `compile(schema)`: แปลงเป็น Optimized JSON สำหรับ Runtime.
+- `WorkflowEngineService` (Core):
+  - `initialize(definitionId, context)`: เริ่มต้น Workflow ใหม่.
+  - `processAction(instanceId, action, context)`: ประมวลผลคำสั่งเปลี่ยนสถานะ.
+  - `getAvailableActions(instanceId, context)`: คืนค่าปุ่มที่ user กดได้.
+  - `validateCondition(rule, context)`: ตรวจสอบเงื่อนไข (เช่น ต้องเป็น Role Engineer).
+- `WorkflowEventService`:
+  - `dispatchEvent(event, context)`: ยิง Event ไปยัง Notification หรือ External Service.
+
+**📂 Controller (`.controller.ts`)**
+
+- `WorkflowEngineController`:
+  - `POST /definitions`: สร้าง/อัพเดท Workflow Rules.
+  - `POST /instances/:id/transition`: สั่งเปลี่ยนสถานะเอกสาร.
+  - `GET /instances/:id/actions`: ดึง Action ที่ทำได้.
+  - `GET /instances/:id/history`: ดูประวัติการเดินเรื่อง.
+
+---
+
+### 🔗 3. การเชื่อมต่อกับระบบเดิม (Integration)
+
+**Module: `CorrespondenceRoutingModule` (ปรับปรุงจากเดิม)**
+
+- ทำหน้าที่เป็น "Client" ของ Workflow Engine.
+- เมื่อมีการสร้าง Correspondence -> เรียก `WorkflowEngineService.initialize()`.
+- เมื่อ User กดปุ่มในหน้า Routing -> เรียก `WorkflowEngineService.processAction()`.
+- Map สถานะจาก Engine กลับมา update ตาราง `correspondence_routings` เพื่อ Backward Compatibility (หรือ migrate ไปใช้ `WorkflowInstance` เต็มรูปแบบตามแผน).
+
+**Module: `RfaModule` (ปรับปรุง)**
+
+- ใช้ Logic เดียวกับ Correspondence แต่ใช้ Definition ที่ซับซ้อนกว่า (RFA Workflow Definition).
+- ใช้ Context ที่มีข้อมูล Shop Drawing / Technical data ในการตัดสินใจ Condition.
+
+---
+
+### ✅ 4. สรุปความพร้อม
+
+ผมเข้าใจโครงสร้างและสิ่งที่ต้องทำครบถ้วนแล้วครับ:
+
+1.  **Logic:** ย้าย Business Logic การเดินเอกสารออกจาก Service ปกติ เข้าสู่ Centralized Engine.
+2.  **Data:** ใช้ `workflow_definitions` และ `workflow_instances` เป็นตัวขับเคลื่อน.
+3.  **Flexibility:** รองรับการปรับ Flow ผ่าน DSL โดยไม่ต้องแก้โค้ด (Hot Reload config).
+
+**สถานะ:** พร้อมสำหรับการเริ่มเขียนโค้ดใน **Phase 3 (Task T3.1)** ครับ
+
+คุณต้องการให้ผมเริ่มที่ **Task T3.1.1 (DSL Specification)** หรือเริ่มสร้างโครงสร้าง **Module และ Entity (T3.1.2)** ก่อนดีครับ?
+
+รับทราบครับ ผมจะดำเนินการสร้าง Data Dictionary ให้ตามที่ร้องขอครับ
+
+จากการวิเคราะห์ SQL script `8_lcbp3_v1_4_4.sql` และข้อมูลที่คุณเลือกมา ผมได้สรุปโครงสร้างตารางและรายละเอียดของตารางสำหรับ **Unified Workflow Engine** ใน Phase 3 มาให้แล้วครับ
+
+---
+
+### **Data Dictionary: Unified Workflow Engine (Phase 3)**
+
+#### **1. workflow_definitions**
+
+**Purpose:** ตารางเก็บนิยามกฎการเดินเอกสาร (Workflow DSL) ที่เป็นแม่แบบสำหรับการสร้าง Workflow Instance
+
+| Column Name     | Data Type     | Constraints                                             | Description                                                                          |
+| :-------------- | :------------ | :------------------------------------------------------ | :----------------------------------------------------------------------------------- |
+| `id`            | `CHAR(36)`    | **PK**, `NOT NULL`                                      | รหัส UUID ของ Workflow Definition                                                    |
+| `workflow_code` | `VARCHAR(50)` | `NOT NULL`                                              | รหัส Workflow เช่น `RFA_FLOW_V1`, `CORRESPONDENCE_FLOW_V1`                           |
+| `version`       | `INT`         | `NOT NULL`, `DEFAULT 1`                                 | หมายเลข Version ของ Workflow (Running Number)                                        |
+| `description`   | `TEXT`        | `NULL`                                                  | คำอธิบายรายละเอียดของ Workflow                                                       |
+| `dsl`           | `JSON`        | `NOT NULL`                                              | ข้อมูลนิยาม Workflow ต้นฉบับในรูปแบบ JSON (ที่แปลงมาจาก YAML/JSON Format)            |
+| `compiled`      | `JSON`        | `NOT NULL`                                              | โครงสร้าง Execution Tree ที่ผ่านการ Compile และ Optimize แล้ว พร้อมสำหรับการ Runtime |
+| `is_active`     | `BOOLEAN`     | `DEFAULT TRUE`                                          | สถานะการใช้งาน (`TRUE` = ใช้งาน, `FALSE` = ยกเลิก/ปิดใช้งาน)                         |
+| `created_at`    | `TIMESTAMP`   | `DEFAULT CURRENT_TIMESTAMP`                             | วันที่และเวลาที่สร้าง                                                                |
+| `updated_at`    | `TIMESTAMP`   | `DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` | วันที่และเวลาที่แก้ไขล่าสุด                                                          |
+
+**Indexes:**
+
+- `PRIMARY KEY (id)`
+- `UNIQUE KEY uq_workflow_version (workflow_code, version)`: ป้องกันการมี Workflow Code และ Version ซ้ำกัน
+- `INDEX idx_workflow_active (workflow_code, is_active, version)`: สำหรับการค้นหา Workflow ที่ Active ล่าสุดได้อย่างรวดเร็ว
+
+---
+
+#### **2. workflow_instances**
+
+**Purpose:** ตารางเก็บสถานะการเดินเรื่องจริงของเอกสารแต่ละฉบับ (Runtime State)
+
+| Column Name     | Data Type     | Constraints                                             | Description                                                                                      |
+| :-------------- | :------------ | :------------------------------------------------------ | :----------------------------------------------------------------------------------------------- |
+| `id`            | `CHAR(36)`    | **PK**, `NOT NULL`                                      | รหัส UUID ของ Workflow Instance                                                                  |
+| `definition_id` | `CHAR(36)`    | **FK**, `NOT NULL`                                      | อ้างอิงไปยัง `workflow_definitions.id` เพื่อระบุว่าใช้กฎชุดไหน                                   |
+| `entity_type`   | `VARCHAR(50)` | `NOT NULL`                                              | ประเภทเอกสารที่ผูกกับ Workflow นี้ เช่น `rfa_revision`, `correspondence_revision`, `circulation` |
+| `entity_id`     | `VARCHAR(50)` | `NOT NULL`                                              | รหัสอ้างอิง (ID) ของเอกสาร (เก็บเป็น String เพื่อรองรับทั้ง Int และ UUID)                        |
+| `current_state` | `VARCHAR(50)` | `NOT NULL`                                              | ชื่อสถานะปัจจุบันของเอกสาร เช่น `DRAFT`, `IN_REVIEW`, `APPROVED`                                 |
+| `status`        | `ENUM`        | `DEFAULT 'ACTIVE'`                                      | สถานะภาพรวมของ Workflow Instance: `'ACTIVE'`, `'COMPLETED'`, `'CANCELLED'`, `'TERMINATED'`       |
+| `context`       | `JSON`        | `NULL`                                                  | ตัวแปร Context สำหรับใช้ประกอบการตัดสินใจใน Workflow (Runtime Data)                              |
+| `created_at`    | `TIMESTAMP`   | `DEFAULT CURRENT_TIMESTAMP`                             | วันที่และเวลาที่สร้าง Instance                                                                   |
+| `updated_at`    | `TIMESTAMP`   | `DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` | วันที่และเวลาที่อัปเดตสถานะล่าสุด                                                                |
+
+**Indexes:**
+
+- `PRIMARY KEY (id)`
+- `INDEX idx_wf_inst_entity (entity_type, entity_id)`: สำหรับค้นหา Instance จากเอกสารต้นทาง
+- `INDEX idx_wf_inst_state (current_state)`: สำหรับค้นหาเอกสารตามสถานะ Workflow
+- `CONSTRAINT fk_wf_inst_def FOREIGN KEY (definition_id) REFERENCES workflow_definitions(id) ON DELETE CASCADE`
+
+---
+
+#### **3. workflow_histories**
+
+**Purpose:** ตารางเก็บประวัติการเปลี่ยนสถานะ (Audit Log / History) เพื่อตรวจสอบย้อนหลัง
+
+| Column Name         | Data Type     | Constraints                 | Description                                                            |
+| :------------------ | :------------ | :-------------------------- | :--------------------------------------------------------------------- |
+| `id`                | `CHAR(36)`    | **PK**, `NOT NULL`          | รหัส UUID ของ History Record                                           |
+| `instance_id`       | `CHAR(36)`    | **FK**, `NOT NULL`          | อ้างอิงไปยัง `workflow_instances.id`                                   |
+| `from_state`        | `VARCHAR(50)` | `NOT NULL`                  | สถานะต้นทางก่อนการเปลี่ยนแปลง                                          |
+| `to_state`          | `VARCHAR(50)` | `NOT NULL`                  | สถานะปลายทางหลังการเปลี่ยนแปลง                                         |
+| `action`            | `VARCHAR(50)` | `NOT NULL`                  | ชื่อ Action ที่ผู้ใช้กระทำ เช่น `SUBMIT`, `APPROVE`, `REJECT`          |
+| `action_by_user_id` | `INT`         | `NULL`                      | รหัสผู้ใช้งาน (User ID) ที่ทำการเปลี่ยนสถานะ (`NULL` กรณี System Auto) |
+| `comment`           | `TEXT`        | `NULL`                      | ความคิดเห็นเพิ่มเติมประกอบการกระทำ                                     |
+| `metadata`          | `JSON`        | `NULL`                      | Snapshot ข้อมูล Context หรือรายละเอียดเพิ่มเติม ณ ขณะนั้น              |
+| `created_at`        | `TIMESTAMP`   | `DEFAULT CURRENT_TIMESTAMP` | วันที่และเวลาที่เกิดเหตุการณ์                                          |
+
+**Indexes:**
+
+- `PRIMARY KEY (id)`
+- `INDEX idx_wf_hist_instance (instance_id)`: สำหรับดึงประวัติทั้งหมดของ Instance หนึ่งๆ
+- `INDEX idx_wf_hist_user (action_by_user_id)`: สำหรับดูประวัติการทำงานของผู้ใช้แต่ละคน
+- `CONSTRAINT fk_wf_hist_inst FOREIGN KEY (instance_id) REFERENCES workflow_instances(id) ON DELETE CASCADE`
+
+---
+
+### **ER Diagram Concept**
+
+```mermaid
+erDiagram
+    workflow_definitions ||--o{ workflow_instances : "defines"
+    workflow_instances ||--o{ workflow_histories : "has history"
+
+    workflow_definitions {
+        char(36) id PK
+        varchar(50) workflow_code
+        int version
+        json dsl
+        json compiled
+        boolean is_active
+    }
+
+    workflow_instances {
+        char(36) id PK
+        char(36) definition_id FK
+        varchar(50) entity_type
+        varchar(50) entity_id
+        varchar(50) current_state
+        enum status
+        json context
+    }
+
+    workflow_histories {
+        char(36) id PK
+        char(36) instance_id FK
+        varchar(50) from_state
+        varchar(50) to_state
+        varchar(50) action
+        int action_by_user_id
+        text comment
+        json metadata
+    }
 ```
 
 ---
 
-### 📝 2. รายละเอียดงานในแต่ละ Task (Tasks Breakdown)
-
-#### **[ ] T2.5.1 JSON Schema Registry & Versioning**
-
-- **สิ่งที่ต้องทำ:** สร้าง `JsonSchema` Entity
-- **รายละเอียด:**
-  - เก็บ `schema_definition` (AJV format)
-  - เก็บ `ui_schema` (Form configuration)
-  - รองรับ `version` เพื่อทำ Schema Evolution
-  - เก็บ config ของ `virtual_columns`
-
-#### **[ ] T2.5.2 Schema Validation & Transformation Engine**
-
-- **สิ่งที่ต้องทำ:** Implement Logic ใน `JsonSchemaService`
-- **รายละเอียด:**
-  - ติดตั้งและ Config `AJV` library
-  - สร้าง Custom Keywords: `document-number`, `requiredRole`
-  - ฟังก์ชัน `validateData(schemaName, data)`
-  - ฟังก์ชัน `sanitizeData()` เพื่อลบ field ที่ไม่อยู่ใน schema หรือ field ที่ user ไม่มีสิทธิ์
-
-#### **[ ] T2.5.3 Virtual Columns & Performance Optimization**
-
-- **สิ่งที่ต้องทำ:** สร้าง `VirtualColumnService`
-- **รายละเอียด:**
-  - ฟังก์ชัน `setupVirtualColumns()`: อ่าน Config จาก Schema แล้วสั่ง `ALTER TABLE ... ADD COLUMN ... GENERATED ALWAYS AS ...`
-  - ฟังก์ชันสร้าง Index บน Virtual Column เพื่อให้ค้นหาเร็วขึ้น
-  - **สำคัญ:** ต้องรองรับ MariaDB 10.11 Syntax
-
-#### **[ ] T2.5.4 Dynamic Form Schema Management**
-
-- **สิ่งที่ต้องทำ:** กำหนด Interface ใน `ui-schema.interface.ts`
-- **รายละเอียด:**
-  - ออกแบบโครงสร้าง JSON ที่ Frontend จะนำไป Render เป็น Form
-  - กำหนด Logic `dependencies` (เช่น ถ้าเลือก Type A ให้แสดง Field B)
-
-#### **[ ] T2.5.5 Data Migration & Version Compatibility**
-
-- **สิ่งที่ต้องทำ:** สร้าง `SchemaMigrationService`
-- **รายละเอียด:**
-  - Logic การแปลงข้อมูลเก่าให้เข้ากับ Schema ใหม่ (Field Rename, Transform Value)
-  - ฟังก์ชัน `migrateData(entityType, entityId, targetVersion)`
-
-#### **[ ] T2.5.6 Security & Access Control for JSON Data**
-
-- **สิ่งที่ต้องทำ:** สร้าง `JsonSecurityService`
-- **รายละเอียด:**
-  - **Field-level Security:** ตรวจสอบ Role ว่าเห็น Field นี้ได้ไหม (Masking/Removal)
-  - **Encryption:** เข้ารหัส Field ที่ Sensitive ก่อนบันทึกลง JSON
-
-#### **[ ] T2.5.7 API Design & Integration**
-
-- **สิ่งที่ต้องทำ:** สร้าง `JsonSchemaController`
-- **Endpoints:**
-  - `POST /json-schema/schemas`: สร้าง Schema
-  - `POST /json-schema/validate/:name`: ตรวจสอบข้อมูล
-  - `POST /json-schema/migrate/:type/:id`: สั่ง Migrate
-  - `GET /json-schema/ui-schema/:name`: ดึง UI Config
-
-#### **[ ] T2.5.8 Integration with Document Modules**
-
-- **สิ่งที่ต้องทำ:** แก้ไข Service อื่นๆ (Correspondence, RFA)
-- **รายละเอียด:**
-  - Inject `JsonSchemaService` เข้าไปใน `CorrespondenceService` และ `RfaService`
-  - เรียก `validateData` ก่อน create/update
-  - เรียก `setupVirtualColumns` หลัง create schema ใหม่
-
-#### **[ ] T2.5.9 Testing Strategy**
-
-- **สิ่งที่ต้องทำ:** เขียน Unit Test
-- **รายละเอียด:**
-  - ทดสอบ Validation Logic (ผ่าน/ไม่ผ่าน)
-  - ทดสอบ Virtual Column Generation (SQL ถูกต้องไหม)
-  - ทดสอบ Security Masking
-
----
-
-### 🚀 ขั้นตอนถัดไป
-
-หากท่านเห็นด้วยกับโครงสร้างนี้ ผมแนะนำให้เริ่มดำเนินการตามลำดับดังนี้ครับ:
-
-1.  **สร้าง Entity และ DTOs** (T2.5.1)
-2.  **Implement JsonSchemaService Core** (Validation Logic) (T2.5.2)
-3.  **Implement VirtualColumnService** (T2.5.3) - _ส่วนนี้สำคัญมากสำหรับ Performance_
-4.  **สร้าง Controller และเชื่อมต่อ Module** (T2.5.7)
-
-ท่านต้องการให้ผมเริ่มเขียนโค้ดส่วนไหนก่อนหรือไม่ครับ? (เช่น Entity หรือ VirtualColumnService)
+ข้อมูลนี้อ้างอิงจากไฟล์ SQL Script ล่าสุดที่คุณเลือกมาครับ หากต้องการแก้ไขหรือเพิ่มเติมส่วนไหน แจ้งได้เลยครับ

@@ -1162,7 +1162,63 @@ ALTER TABLE rfa_revisions
 ADD COLUMN v_ref_drawing_count INT GENERATED ALWAYS AS (
     JSON_UNQUOTE(JSON_EXTRACT(details, '$.drawingCount'))
   ) VIRTUAL;
+ALTER TABLE rfa_revisions
+ADD COLUMN schema_version INT DEFAULT 1 COMMENT 'Version ของ JSON Schema'
+AFTER details;
 CREATE INDEX idx_rfa_rev_v_drawing_count ON rfa_revisions(v_ref_drawing_count);
+-- ... (ต่อท้ายไฟล์เดิม)
+-- ============================================================
+-- ส่วนที่ 11: Unified Workflow Engine (Phase 6A/Phase 3)
+-- ============================================================
+DROP TABLE IF EXISTS workflow_histories;
+DROP TABLE IF EXISTS workflow_instances;
+DROP TABLE IF EXISTS workflow_definitions;
+-- 1. ตารางเก็บนิยาม Workflow (Definition / DSL)
+CREATE TABLE workflow_definitions (
+  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID ของ Workflow Definition',
+  workflow_code VARCHAR(50) NOT NULL COMMENT 'รหัส Workflow เช่น RFA_FLOW_V1, CORRESPONDENCE_FLOW_V1',
+  version INT NOT NULL DEFAULT 1 COMMENT 'หมายเลข Version',
+  description TEXT NULL COMMENT 'คำอธิบาย Workflow',
+  dsl JSON NOT NULL COMMENT 'นิยาม Workflow ต้นฉบับ (YAML/JSON Format)',
+  compiled JSON NOT NULL COMMENT 'โครงสร้าง Execution Tree ที่ Compile แล้ว',
+  is_active BOOLEAN DEFAULT TRUE COMMENT 'สถานะการใช้งาน',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  -- ป้องกันการมี Workflow Code และ Version ซ้ำกัน
+  UNIQUE KEY uq_workflow_version (workflow_code, version)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บนิยามกฎการเดินเอกสาร (Workflow DSL)';
+-- สร้าง Index สำหรับการค้นหา Workflow ที่ Active ล่าสุดได้เร็วขึ้น
+CREATE INDEX idx_workflow_active ON workflow_definitions(workflow_code, is_active, version);
+-- 2. ตารางเก็บ Workflow Instance (สถานะเอกสารจริง)
+CREATE TABLE workflow_instances (
+  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID ของ Instance',
+  definition_id CHAR(36) NOT NULL COMMENT 'อ้างอิง Definition ที่ใช้',
+  entity_type VARCHAR(50) NOT NULL COMMENT 'ประเภทเอกสาร (rfa_revision, correspondence_revision, circulation)',
+  entity_id VARCHAR(50) NOT NULL COMMENT 'ID ของเอกสาร (String/Int)',
+  current_state VARCHAR(50) NOT NULL COMMENT 'สถานะปัจจุบัน',
+  status ENUM('ACTIVE', 'COMPLETED', 'CANCELLED', 'TERMINATED') DEFAULT 'ACTIVE' COMMENT 'สถานะภาพรวม',
+  context JSON NULL COMMENT 'ตัวแปร Context สำหรับตัดสินใจ',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_wf_inst_def FOREIGN KEY (definition_id) REFERENCES workflow_definitions(id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บสถานะการเดินเรื่องของเอกสาร';
+CREATE INDEX idx_wf_inst_entity ON workflow_instances(entity_type, entity_id);
+CREATE INDEX idx_wf_inst_state ON workflow_instances(current_state);
+-- 3. ตารางเก็บประวัติ (Audit Log / History)
+CREATE TABLE workflow_histories (
+  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID',
+  instance_id CHAR(36) NOT NULL COMMENT 'อ้างอิง Instance',
+  from_state VARCHAR(50) NOT NULL COMMENT 'สถานะต้นทาง',
+  to_state VARCHAR(50) NOT NULL COMMENT 'สถานะปลายทาง',
+  action VARCHAR(50) NOT NULL COMMENT 'Action ที่กระทำ',
+  action_by_user_id INT NULL COMMENT 'User ID ผู้กระทำ',
+  comment TEXT NULL COMMENT 'ความเห็น',
+  metadata JSON NULL COMMENT 'Snapshot ข้อมูล ณ ขณะนั้น',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_wf_hist_inst FOREIGN KEY (instance_id) REFERENCES workflow_instances(id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางประวัติการเปลี่ยนสถานะ Workflow';
+CREATE INDEX idx_wf_hist_instance ON workflow_histories(instance_id);
+CREATE INDEX idx_wf_hist_user ON workflow_histories(action_by_user_id);
 -- ============================================================
 -- 5. PARTITIONING PREPARATION (Advance - Optional)
 -- ============================================================
