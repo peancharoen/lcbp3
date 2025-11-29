@@ -30,9 +30,15 @@
 
 ### **2.2 Configuration & Secrets Management**
 
-- **Production/Staging:** ห้ามใส่ Secrets (Password, Keys) ใน `docker-compose.yml` หลัก
-- **Development:** ให้สร้างไฟล์ `docker-compose.override.yml` (เพิ่มใน `.gitignore`) เพื่อ Inject ตัวแปร Environment ที่เป็นความลับ
-- **Validation:** ใช้ `joi` หรือ `zod` ในการ Validate Environment Variables ตอน Start App หากขาดตัวแปรสำคัญให้ Throw Error ทันที
+- **Production/Staging:**
+  - ใช้ Docker secrets หรือ environment variables ที่ inject ผ่าน CI/CD
+  - พิจารณา Hashicorp Vault หรือ AWS Secrets Manager สำหรับ production
+  - ห้ามใส่ Secrets (Password, Keys) ใน `docker-compose.yml` หลัก
+- **Development:**
+  - ใช้ `docker-compose.override.yml` (gitignored) สำหรับ local secrets
+  - ไฟล์ `docker-compose.yml` หลักใช้ค่า dummy/placeholder
+- **Validation:**
+  - ใช้ `joi` หรือ `zod` ในการ Validate Environment Variables ตอน Start App หากขาดตัวแปรสำคัญให้ Throw Error ทันที
 
 ### **2.3 Idempotency (ความสามารถในการทำซ้ำได้)**
 
@@ -188,7 +194,8 @@ CREATE INDEX idx_ref_project_id ON correspondence_revisions(ref_project_id);
 
 #### **3.2.3 Partitioning Strategy**
 
-สำหรับตาราง `audit_logs` และ `notifications` ให้เตรียมออกแบบ Entity ให้รองรับ Partitioning (เช่น แยกตามปี) โดยใช้ Raw SQL Migration ในการสร้างตาราง
+- สำหรับตาราง `audit_logs` และ `notifications` ให้เตรียมออกแบบ Entity ให้รองรับ Partitioning (เช่น แยกตามปี) โดยใช้ Raw SQL Migration ในการสร้างตาราง
+- Automated Partition Maintenance: ต้องมี Cron Job (Scheduled Task) เพื่อตรวจสอบและสร้าง Partition สำหรับปี/เดือนถัดไปล่วงหน้า (Pre-create partitions) อย่างน้อย 1 เดือน เพื่อป้องกัน Insert Error เมื่อขึ้นช่วงเวลาใหม่
 
 ### **3.3 File Storage Service (Two-Phase Storage)**
 
@@ -202,6 +209,10 @@ CREATE INDEX idx_ref_project_id ON correspondence_revisions(ref_project_id);
    - Service จะย้ายไฟล์จาก `temp/` ไปยัง `permanent/{YYYY}/{MM}/`
    - Update path ใน Database
    - ทั้งหมดนี้ต้องอยู่ภายใต้ Database Transaction เดียวกัน (ถ้า DB Fail, ไฟล์จะค้างที่ Temp และถูกลบโดย Cron Job)
+3. **Cleanup:**
+   - มี Cron Job ลบไฟล์ใน temp/ ที่ค้างเกิน 24 ชม. (Orphan Files) โดยต้องตรวจสอบเงื่อนไขความปลอดภัยเพิ่มเติม:
+     - ไฟล์ต้องมี created_at เกิน 24 ชั่วโมง
+     - ไฟล์ต้องไม่อยู่ในสถานะ 'Locked' หรือกำลังถูก Process อยู่ (ตรวจสอบจาก Lock flag หรือ Transaction ID ถ้ามี)
 
 ### **3.4 Document Numbering (Double-Lock Mechanism)**
 
@@ -222,6 +233,8 @@ Unified Workflow Engine (Core Architecture)
     - RfaModule -> เรียก WorkflowEngine
     - CirculationModule -> เรียก WorkflowEngine
 - ห้าม สร้างตาราง Routing แยก (เช่น rfa_workflows หรือ correspondence_routings) อีกต่อไป
+- Boot-time Validation:
+  - เมื่อ Application Start (Backend Boot), ระบบต้องทำการ Validate Workflow DSL Definitions ทั้งหมด ว่า Syntax ถูกต้องและ State Transitions เชื่อมโยงกันสมบูรณ์ หากพบข้อผิดพลาดให้ Alert หรือ Block Startup (ใน Development Mode) เพื่อป้องกัน Runtime Error
 
 ### **3.6 ฟังก์ชันหลัก (Core Functionalities)**
 
@@ -233,7 +246,6 @@ Unified Workflow Engine (Core Architecture)
 ### **3.7 ข้อจำกัดในการ Deploy (QNAP Container Station)**
 
 - **ห้ามใช้ไฟล์ .env** ในการตั้งค่า Environment Variables [cite: 2.1]
-- การตั้งค่าทั้งหมด (เช่น Database connection string, JWT secret) **จะต้องถูกกำหนดผ่าน Environment Variable ใน docker-compose.yml โดยตรง** [cite: 6.5] ซึ่งจะจัดการผ่าน UI ของ QNAP Container Station [cite: 2.1]
 
 ### **3.8 ข้อจำกัดด้านความปลอดภัย (Security Constraints):**
 
@@ -317,6 +329,8 @@ Unified Workflow Engine (Core Architecture)
   - ดึง Template จาก DB
   - Parse Template เพื่อหาว่าต้องใช้ Key ใดบ้างในการทำ Grouping Counter (เช่น ถ้า Template มี `{DISCIPLINE}` ให้ใช้ `discipline_id` ในการ query counter)
   - ใช้ **Double-Lock Mechanism** (Redis + Optimistic DB Lock) ในการดึงและอัพเดทค่า `last_number`
+    - Lock Timeout: การ Acquire Redis Lock ต้องกำหนด TTL (Time-to-Live) ที่สั้นและเหมาะสม (เช่น 2-5 วินาที) เพื่อป้องกัน Deadlock กรณี Service Crash ระหว่างทำงาน
+    - Retry Logic: ต้องมี Retry mechanism แบบ Exponential Backoff (แนะนำ 3-5 ครั้ง) หากไม่สามารถ Acquire Lock ได้
 - **Features:**
   - Application-level locking เพื่อป้องกัน race condition
   - Retry mechanism ด้วย exponential backoff
@@ -338,7 +352,7 @@ Unified Workflow Engine (Core Architecture)
   - คำนวณวันครบกำหนดอัตโนมัติ
   - ส่งการแจ้งเตือนเมื่อมีการส่งต่อใหม่
 
-#### 3.9.14 WorkflowEngineModule (New Core):
+#### 3.9.14 WorkflowEngineModule (New Core)
 
 - Entities: WorkflowDefinition, WorkflowInstance, WorkflowHistory
 - Services: WorkflowEngineService, WorkflowDslService, WorkflowEventService
@@ -515,40 +529,69 @@ Backend (NestJS) ควรเป็น **Stateless** (ไม่เก็บส�
 
 #### **Performance Targets:**
 
-- API Response Time: < 200ms (90th percentile)
-- Search Query Performance: < 500ms
+- API Response Time:
+  - Simple CRUD: < 100ms
+  - Complex Search: < 500ms
+  - File Processing: < 2s
 - File Upload Performance: < 30 seconds สำหรับไฟล์ 50MB
 - Cache Hit Ratio: > 80%
 
-## 🖥️ **4. ฟรอนต์เอนด์ (Next.js) - Implementation Details**
+### **3.20 Logging Strategy for QNAP Environment**
 
-**โปรไฟล์นักพัฒนา (Developer Profile:** วิศวกร TypeScript + React/NextJS ระดับ Senior
-เชี่ยวชาญ TailwindCSS, Shadcn/UI, และ Radix สำหรับการพัฒนา UI
+เนื่องจากระบบรันบน QNAP Container Station ซึ่งอาจมีข้อจำกัดเรื่อง Disk I/O และ Storage:
+
+- Log Levels: ให้กำหนด Log Level ของ Production เป็น WARN หรือ ERROR เป็นหลัก
+- Info Logs: ใช้ INFO เฉพาะ Flow ที่สำคัญทางธุรกิจเท่านั้น (เช่น Workflow State Change, Login Success/Fail, File Upload Commit)
+- Console Logging: หลีกเลี่ยง console.log ปริมาณมาก (Verbose) ให้ใช้ Winston Logger ที่ Config ให้จัดการ Rotation และ Format ได้ดีกว่า
+- Disable Debug: ปิด Debug Log ทั้งหมดใน Production Mode
+
+## 🖥️ **4. ฟรอนต์เอนด์ (Next.js) - Implementation Details**
 
 ### **4.1 State Management & Offline Support**
 
 #### **4.1.1 Auto-Save Drafts**
 
-ใช้ `zustand` ร่วมกับ middleware `persist` (ลง LocalStorage) สำหรับฟอร์มที่มีขนาดใหญ่ (RFA, Correspondence) เพื่อป้องกันข้อมูลหายเมื่อเน็ตหลุด
+ใช้ **React Hook Form** ร่วมกับ **persist** mechanism สำหรับฟอร์มที่มีขนาดใหญ่ (เช่น RFA, Correspondence):
 
 ```typescript
-// lib/stores/draft-store.ts
-export const useDraftStore = create(
-  persist(
-    (set) => ({
-      drafts: {},
-      saveDraft: (key, data) =>
-        set((state) => ({ drafts: { ...state.drafts, [key]: data } })),
-      clearDraft: (key) =>
-        set((state) => {
-          const newDrafts = { ...state.drafts };
-          delete newDrafts[key];
-          return { drafts: newDrafts };
-        }),
-    }),
-    { name: 'form-drafts' }
-  )
-);
+// hooks/useAutoSaveForm.ts
+export const useAutoSaveForm = (formKey: string, defaultValues: any) => {
+  const { register, watch, setValue } = useForm({ defaultValues });
+
+  // Auto-save เมื่อ form เปลี่ยนแปลง
+  useEffect(() => {
+    const subscription = watch((value) => {
+      localStorage.setItem(`draft-${formKey}`, JSON.stringify(value));
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, formKey]);
+
+  // Load draft เมื่อ component mount
+  useEffect(() => {
+    const draft = localStorage.getItem(`draft-${formKey}`);
+    if (draft) {
+      const parsed = JSON.parse(draft);
+      Object.keys(parsed).forEach((key) => {
+        setValue(key, parsed[key]);
+      });
+    }
+  }, [formKey, setValue]);
+
+  return { register };
+};
+```
+
+#### **4.1.2 Silent Refresh Strategy**
+
+ใช้ React Query สำหรับจัดการ token refresh อัตโนมัติ
+
+```typescript
+// lib/api/client.ts
+const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+});
+
+// React Query จะจัดการ token refresh อัตโนมัติผ่าน interceptors
 ```
 
 ### **4.2 Dynamic Form Generator**
@@ -557,6 +600,7 @@ export const useDraftStore = create(
 
 - **Libraries:** แนะนำ `react-jsonschema-form` หรือสร้าง Wrapper บน `react-hook-form` ที่ Recursively render field ตาม Type
 - **Validation:** ใช้ `ajv` ที่ฝั่ง Client เพื่อ Validate JSON ก่อน Submit
+- Schema Dependencies: ตัว Generator ต้องรองรับ dependencies keyword ของ JSON Schema (หรือ ui:schema logic) เพื่อรองรับเงื่อนไขซับซ้อน เช่น "ถ้าเลือกประเภทเอกสารเป็น 'Shop Drawing' ให้แสดง Dropdown เลือก 'Main Category' เพิ่มขึ้นมา" (Conditional Rendering)
 
 ### **4.3 Mobile Responsiveness (Card View)**
 
@@ -611,7 +655,37 @@ export const useDraftStore = create(
 - แสดงข้อผิดพลาดด้วย **alert components** หรือข้อความ inline
 - ต้องมี labels, placeholders, และข้อความ feedback
 
-### **🧪4.8 Frontend Testing**
+### **4.8 Error Handling & Resilience (Frontend)**
+
+#### **4.8.1 Global Error Handling with React Query**
+
+ใช้ **React Query** Error Boundaries สำหรับจัดการ errors แบบรวมศูนย์:
+
+```typescript
+// app/providers.tsx
+export function QueryProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 1,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      },
+      mutations: {
+        onError: (error) => {
+          // Global mutation error handling
+          toast.error('Operation failed');
+        },
+      },
+    },
+  });
+
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
+```
+
+### **🧪4.9 Frontend Testing**
 
 เราจะใช้ **React Testing Library (RTL)** สำหรับการทดสอบ Component และ **Playwright** สำหรับ E2E:
 
@@ -626,23 +700,76 @@ export const useDraftStore = create(
   - **เครื่องมือ:** **Playwright**
   - **เป้าหมาย:** ทดสอบ User Flow ทั้งระบบโดยอัตโนมัติ (เช่น ล็อกอิน -> สร้าง RFA -> ตรวจสอบ Workflow Visualization [cite: 5.6])
 
-### **🗄️4.9 Frontend State Management**
+### **🗄️4.10 Frontend State Management (ปรับปรุง)**
 
-สำหรับ Next.js App Router เราจะแบ่ง State เป็น 4 ระดับ:
+### 🗄️4.10 Frontend State Management (ปรับปรุง)
 
-1. **Local UI State (สถานะ UI ชั่วคราว):**
-   - **เครื่องมือ:** useState, useReducer
-   - **ใช้เมื่อ:** จัดการสถานะเล็กๆ ที่จบใน Component เดียว (เช่น Modal เปิด/ปิด, ค่าใน Input)
-2. **Server State (สถานะข้อมูลจากเซิร์ฟเวอร์):**
-   - **เครื่องมือ:** **React Query (TanStack Query)** หรือ SWR
-   - **ใช้เมื่อ:** จัดการข้อมูลที่ดึงมาจาก NestJS API (เช่น รายการ correspondences, rfas, drawings)
-   - **ทำไม:** React Query เป็น "Cache" ที่จัดการ Caching, Re-fetching, และ Invalidation ให้โดยอัตโนมัติ
-3. **Global Client State (สถานะส่วนกลางฝั่ง Client):**
-   - **เครื่องมือ:** **Zustand** (แนะนำ) หรือ Context API
-   - **ใช้เมื่อ:** จัดการข้อมูลที่ต้องใช้ร่วมกันทั่วทั้งแอป และ _ไม่ใช่_ ข้อมูลจากเซิร์ฟเวอร์ (เช่น ข้อมูล User ที่ล็อกอิน, สิทธิ์ Permissions)
-4. **Form State (สถานะของฟอร์ม):**
-   - **เครื่องมือ:** **React Hook Form** + **Zod**
-   - **ใช้เมื่อ:** จัดการฟอร์มที่ซับซ้อน (เช่น ฟอร์มสร้าง RFA, ฟอร์ม Circulation [cite: 3.7])
+สำหรับ Next.js App Router เราจะใช้ State Management แบบ Simplified โดยแบ่งเป็น 3 ระดับหลัก:
+
+- 4.10.ๅ. **Server State (สถานะข้อมูลจากเซิร์ฟเวอร์)**
+
+  - **เครื่องมือ:** **TanStack Query (React Query)**
+  - **ใช้เมื่อ:** จัดการข้อมูลที่ดึงมาจาก NestJS API ทั้งหมด
+  - **ครอบคลุม:** รายการ correspondences, rfas, drawings, users, permissions
+  - **ประโยชน์:** จัดการ Caching, Re-fetching, Background Sync อัตโนมัติ
+
+- 4.10.2. **Form State (สถานะของฟอร์ม):**
+
+  - **เครื่องมือ:** **React Hook Form** + **Zod** (สำหรับ validation)
+  - **ใช้เมื่อ:** จัดการฟอร์มที่ซับซ้อนทั้งหมด
+  - **ครอบคลุม:** ฟอร์มสร้าง/แก้ไข RFA, Correspondence, Circulation
+  - **รวมฟีเจอร์:** Auto-save drafts ลง LocalStorage
+
+- 4.10.3. **UI State (สถานะ UI ชั่วคราว):**
+
+  - **เครื่องมือ:** **useState**, **useReducer** (ใน Component)
+  - **ใช้เมื่อ:** จัดการสถานะเฉพาะ Component
+  - **ครอบคลุม:** Modal เปิด/ปิด, Dropdown state, Loading states
+
+- **ยกเลิกการใช้:**
+
+  - ❌ Zustand (ไม่จำเป็น เนื่องจากใช้ React Query และ React Hook Form)
+  - ❌ Context API สำหรับ Server State (ใช้ React Query แทน)
+
+- **ตัวอย่าง Implementation:**
+
+```typescript
+// ใช้ React Query สำหรับ data fetching
+const { data: correspondences, isLoading } = useQuery({
+  queryKey: ['correspondences', projectId],
+  queryFn: () => api.getCorrespondences(projectId),
+});
+
+// ใช้ React Hook Form สำหรับ forms
+const {
+  register,
+  handleSubmit,
+  formState: { errors },
+} = useForm({
+  resolver: zodResolver(correspondenceSchema),
+});
+```
+
+### 4.11 State Management Best Practices
+
+#### **4.11.1 หลักการพื้นฐาน:**
+
+- **Server State ≠ Client State:** แยก state ตามแหล่งที่มาให้ชัดเจน
+- **ใช้ Tools ให้ถูกหน้าที่:** แต่ละ tool ใช้แก้ปัญหาที่เฉพาะเจาะจง
+- **Avoid Over-engineering:** เริ่มจาก useState ก่อน แล้วค่อยขยายตามความจำเป็น
+
+#### **4.11.2 Decision Framework:**
+
+- **Server State:** ใช้ React Query หรือ SWR
+- **Form State:** ใช้ React Hook Form หรือ Formik
+- **UI State:** ใช้ useState/useReducer
+- **Global App State:** ใช้ React Query หรือ Context API
+
+#### **4.11.3 Performance Considerations:**
+
+- ใช้ `useMemo` และ `useCallback` สำหรับ expensive computations
+- ใช้ React Query's `select` option สำหรับ derived data
+- หลีกเลี่ยง unnecessary re-renders ด้วย proper dependency arrays
 
 ## 🔐 **5. Security & Access Control (Full Stack Integration)**
 
@@ -818,11 +945,13 @@ Views เหล่านี้ทำหน้าที่เป็นแหล�
 
 ### **9.2 มาตรฐานฟอร์ม (Form Standards)**
 
-- ต้องมีการใช้งาน Dropdowns แบบขึ้นต่อกัน (Dependent dropdowns) (ตามที่สคีมารองรับ):
+- ใช้ **React Hook Form** เป็นมาตรฐานสำหรับฟอร์มทั้งหมด
+- ใช้ **Zod** สำหรับ schema validation ทั้งฝั่ง client และ server
+- ต้องมีการใช้งาน Dropdowns แบบขึ้นต่อกัน (Dependent dropdowns) (ตามที่สคีมารองรับ) ด้วย React Query สำหรับ data fetching และ React Hook Form สำหรับ state management:
   - Project → Contract Drawing Volumes
   - Contract Drawing Category → Sub-Category
   - RFA (ประเภท Shop Drawing) → Shop Drawing Revisions ที่เชื่อมโยงได้
-- **File Upload Security:** ต้องรองรับ **Multi-file upload (Drag-and-Drop)** [cite: 5.7] พร้อม virus scanning feedback
+- **File Upload Security:** ต้องรองรับ **Multi-file upload (Drag-and-Drop)** ด้วย React Hook Form integration [cite: 5.7] พร้อม virus scanning feedback
 - **File Type Indicators:** UI ต้องอนุญาตให้ผู้ใช้กำหนดว่าไฟล์ใดเป็น **"เอกสารหลัก"** หรือ "เอกสารแนบประกอบ" [cite: 5.7] พร้อมแสดง file type icons
 - **Security Feedback:** แสดง security warnings สำหรับ file types ที่เสี่ยงหรือ files ที่ fail virus scan
 - ส่ง (Submit) ผ่าน API พร้อม feedback แบบ toast
@@ -909,7 +1038,11 @@ Views เหล่านี้ทำหน้าที่เป็นแหล�
 - [ ] **Idempotency:** API รองรับ Idempotency Key แล้ว
 - [ ] **File Upload:** ใช้ Flow Two-Phase (Temp -> Perm) แล้ว
 - [ ] **Mobile:** หน้าจอแสดงผลแบบ Card View บนมือถือได้ถูกต้อง
-- [ ] **Performance:** สร้าง Index สำหรับ JSON Virtual Columns แล้ว (ถ้ามี)
+- [ ] **Performance:** สร้าง Index สำหรับ JSON Virtual Columns แล้ว (ถ้ามี), ใช้ useMemo/useCallback ที่เหมาะสม
+- [ ] **No Over-engineering:** ไม่ใช้ state management libraries เกินความจำเป็น
+- [ ] **State Management:** ใช้ React Query สำหรับ server state, React Hook Form สำหรับ forms
+- [ ] **Error Handling:** มี error boundaries และ proper error states
+- [ ] **Type Safety:** มี proper TypeScript types สำหรับทั้งหมด state
 
 ---
 
