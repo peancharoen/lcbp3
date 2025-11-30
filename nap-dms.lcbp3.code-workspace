@@ -1,21 +1,24 @@
 {
   "folders": [+
    {
-      "name": "🗓️ Documents",
-      "path": "./Documnets"
-    },
-
-    {
-      "name": "🔧 Backend",
-      "path": "./backend"
-    },
-    {
-      "name": "🎨 Frontend",
-      "path": "./frontend"
-    },
-       {
       "name": "🎯 Root",
       "path": "./"
+   },
+   {
+      "name": "🗓️ docs",
+      "path": "./docs"
+   },
+   {
+      "name": "🔗 specs",
+      "path": "./specs"
+   },
+   {
+      "name": "🔧 Backend",
+      "path": "./backend"
+   },
+   {
+      "name": "🎨 Frontend",
+      "path": "./frontend"
     }
   ],
   "settings": {

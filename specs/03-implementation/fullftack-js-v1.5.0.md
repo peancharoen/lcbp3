@@ -1,8 +1,8 @@
-# 📝 **Documents Management System Version 1.4.5: แนวทางการพัฒนา FullStackJS**
+# 📝 **Documents Management System Version 1.5.0: แนวทางการพัฒนา FullStackJS**
 
-**สถานะ:** FINAL GUIDELINE Rev.05
-**วันที่:** 2025-11-29
-**อ้างอิง:** Requirements Specification v1.4.4
+**สถานะ:** first-draft
+**วันที่:** 2025-12-01
+**อ้างอิง:** Requirements Specification v1.5.0
 **Classification:** Internal Technical Documentation
 
 ## 🧠 **1. ปรัชญาทั่วไป (General Philosophy)**
@@ -1082,14 +1082,14 @@ Views เหล่านี้ทำหน้าที่เป็นแหล�
 
 ## **Document Control:**
 
-- **Document:** FullStackJS v1.4.5
-- **Version:** 1.4
-- **Date:** 2025-11-29
+- **Document:** FullStackJS v1.5.0
+- **Version:** 1.5
+- **Date:** 2025-12-01
 - **Author:** NAP LCBP3-DMS & Gemini
-- **Status:** FINAL-Rev.05
+- **Status:** first-draft
 - **Classification:** Internal Technical Documentation
 - **Approved By:** Nattanin
 
 ---
 
-`End of FullStackJS Guidelines v1.4.5`
+`End of FullStackJS Guidelines v1.5.0`

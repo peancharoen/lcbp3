@@ -1,8 +1,8 @@
 # Frontend Development Guidelines
 
 **สำหรับ:** NAP-DMS LCBP3 Frontend (Next.js + TypeScript)
-**เวอร์ชัน:** 1.4.5
-**อัปเดต:** 2025-11-30
+**เวอร์ชัน:** 1.5.0
+**อัปเดต:** 2025-12-01
 
 ---
 
@@ -650,4 +650,4 @@ test.describe('Correspondence Workflow', () => {
 
 | Version | Date       | Changes                             |
 | ------- | ---------- | ----------------------------------- |
-| 1.0.0   | 2025-11-30 | Initial frontend guidelines created |
+| 1.5.0   | 2025-12-01 | Initial frontend guidelines created |

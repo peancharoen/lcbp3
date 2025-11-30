@@ -1,1 +1,63 @@
-# ตรวจสอบ specs
+name: Spec Validation
+
+on:
+  pull_request:
+    paths:
+      - 'specs/**'
+      - 'diagrams/**'
+  push:
+    branches: [main]
+
+jobs:
+  validate-markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # 1. ตรวจสอบ Markdown syntax
+      - name: Lint Markdown
+        uses: avto-dev/markdown-lint@v1
+        with:
+          config: '.markdownlint.json'
+          args: 'specs/**/*.md'
+
+      # 2. ตรวจสอบ internal links
+      - name: Check Links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          folder-path: 'specs'
+
+      # 3. ตรวจสอบ required metadata
+      - name: Validate Metadata
+        run: |
+          python scripts/validate-spec-metadata.py
+
+      # 4. ตรวจสอบ version consistency
+      - name: Check Version Numbers
+        run: |
+          python scripts/check-versions.py
+
+  validate-diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # ตรวจสอบว่า Mermaid diagrams render ได้
+      - name: Validate Mermaid
+        uses: neenjaw/compile-mermaid-markdown-action@v1
+        with:
+          files: 'diagrams/**/*.mmd'
+
+  check-todos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # แจ้งเตือนถ้ามี TODO/FIXME
+      - name: Check for TODOs
+        run: |
+          if grep -r "TODO\|FIXME" specs/; then
+            echo "⚠️ Found TODO/FIXME in specs!"
+            exit 1
+          fi

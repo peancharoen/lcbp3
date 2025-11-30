@@ -49,7 +49,8 @@
     "wallabyjs.console-ninja",
 
     // Icons & Theme
-    "pkief.material-icon-theme"
+    "pkief.material-icon-theme",
+    "bierner.markdown-mermaid"
 
     // AI Assistance (Optional - เลือก 1 อัน)
     // "github.copilot",

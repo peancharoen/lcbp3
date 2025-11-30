@@ -1,8 +1,8 @@
 # Backend Development Guidelines
 
 **สำหรับ:** NAP-DMS LCBP3 Backend (NestJS + TypeScript)
-**เวอร์ชัน:** 1.4.5
-**อัปเดต:** 2025-11-30
+**เวอร์ชัน:** 1.5.0
+**อัปเดต:** 2025-12-01
 
 ---
 
@@ -453,4 +453,4 @@ async approve(@Param('id') id: string, @CurrentUser() user: User) {
 
 | Version | Date       | Changes                            |
 | ------- | ---------- | ---------------------------------- |
-| 1.0.0   | 2025-11-30 | Initial backend guidelines created |
+| 1.5.0   | 2025-12-01 | Initial backend guidelines created |
