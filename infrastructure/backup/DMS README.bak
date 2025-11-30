@@ -1,0 +1,777 @@
+# 📝 0. Project Title: Document Management System (DMS) Web Application for Laem Chabang Port Development Project, Phase 3
+
+## 0. Project
+
+### 📌 0.1 Project Overview / Description
+
+- ระบบ Document Management System (DMS) เป็นเว็บแอปพลิเคชันที่ออกแบบมาเพื่อจัดการเอกสารภายในโครงการอย่างมีประสิทธิภาพ
+- โดยมีฟังก์ชันหลักในการอัปโหลด จัดเก็บ ค้นหา แชร์ และควบคุมสิทธิ์การเข้าถึงเอกสาร
+- ระบบนี้จะช่วยลดการใช้เอกสารกระดาษ เพิ่มความปลอดภัยในการจัดเก็บข้อมูล
+- เพิ่มความสะดวกในการทำงานร่วมกันระหว่างองกรณ์
+
+### 🎯 0.2 Objectives
+
+- พัฒนาระบบที่สามารถจัดการเอกสารได้อย่างเป็นระบบ
+- ลดความซ้ำซ้อนในการจัดเก็บเอกสาร
+- เพิ่มความปลอดภัยในการเข้าถึงและจัดการเอกสาร
+- รองรับการทำงานร่วมกันแบบออนไลน์
+
+### 📦 0.3 Scope of Work
+
+ระบบจะครอบคลุมฟีเจอร์หลักดังนี้:
+
+- การลงทะเบียนและเข้าสู่ระบบ ของผู้ใช้งาน
+- การอัปโหลดและจัดเก็บเอกสารในรูปแบบต่าง ๆ (PDF, DOCX, XLSX ฯลฯ)
+- การจัดหมวดหมู่และแท็กเอกสาร
+- การค้นหาเอกสารด้วยคำสำคัญหรือฟิลเตอร์
+- การกำหนดสิทธิ์การเข้าถึงเอกสาร (เช่น อ่านอย่างเดียว, แก้ไข, ลบ)
+- การบันทึกประวัติการใช้งานเอกสาร (Audit Trail)
+- การมอบหมายงานให้กับผู้เกี่ยวข้อง และแจ้งเตือนเมื่อมีการมอบหมายงาน
+- การแจ้งเตือนเมื่อถึงกำหนดวันที่ต้องส่งเอกสารต่อให้ ผู้เกี่ยวข้องอื่นๆ
+- การแจ้งเตือนเมื่อมีการเปลี่ยนแปลงเอกสาร
+
+### 👥 0.4 Target Users
+
+- พนักงานภายใน ขององค์กร
+- พนักงานควบคุมเอกสาร (Document Control)/ ผู้ดูแลระบบขององค์กร (admin)
+- ผู้จัดการฝ่ายเอกสาร ขององค์กร
+- ผู้จัดการโครงการ ขององค์กร
+- คณะกรรมการ ของโครงการ
+- ผู้ดูแลระบบ IT ของโครงการ (superadmin)
+
+### 📈 0.5 Expected Outcomes
+
+- ลดเวลาในการค้นหาเอกสารลงอย่างน้อย 50%
+- ลดเวลาในการจัดทำรายงานเอกสาร ประจำวัน, ประจำสัปดาห์, ประจำเดือน, ประจำปี และ รายงานเอกสารทั้งโครงการ
+- ลดการใช้เอกสารกระดาษในองค์กร
+- เพิ่มความปลอดภัยในการจัดเก็บข้อมูล
+- รองรับการทำงานแบบ Remote Work
+
+### 📘 0.6 Requirements Use Cases
+
+#### 📘 Use Case: Upload Document
+
+Actor: พนักงานควบคุมเอกสาร (Document Control)
+Description: พนักงานควบคุมเอกสารสามารถอัปโหลดเอกสารเข้าสู่ระบบเพื่อจัดเก็บและใช้งานในภายหลัง
+Preconditions: พนักงานควบคุมเอกสารต้องเข้าสู่ระบบก่อน
+Main Flow:
+
+พนักงานควบคุมเอกสารเลือกเมนู “อัปโหลดเอกสาร”
+เลือกไฟล์จากเครื่องคอมพิวเตอร์
+กรอกข้อมูลประกอบ เช่น ชื่อเอกสาร หมวดหมู่ แท็ก
+กดปุ่ม “อัปโหลด”
+ระบบบันทึกเอกสารและแสดงผลการอัปโหลดสำเร็จ
+
+Postconditions: เอกสารถูกจัดเก็บในระบบและสามารถค้นหาได้
+
+#### 📘 Use Case: Assign Users to Document
+
+Actor: พนักงานควบคุมเอกสาร (Document Control)
+Description: พนักงานควบคุมเอกสารสามารถ มอบหมายงานให้กับ Users
+Preconditions: พนักงานควบคุมเอกสารต้องเข้าสู่ระบบก่อน, เอกสารต้องอัปโหลดเรียบร้อยแล้ว
+Main Flow:
+
+พนักงานควบคุมเอกสารเลือกเมนู “มอบหมายงาน”
+เลือกเอกสารในระบบ
+เลือก Users กำหนดวันสิ้นสุดงาน
+กดปุ่ม “มอบหมายงาน”
+ระบบบันทึกเอกสารและแสดงผลการมอบหมายงานสำเร็จ
+
+Postconditions: งานที่มอยหมาย จัดเก็บในระบบและสามารถค้นหาได้
+
+#### 📘 Use Case: Search Document
+
+Actor: ผู้ใช้งานทั่วไป
+Description: ผู้ใช้งานสามารถค้นหาเอกสารจากระบบด้วยคำสำคัญหรือฟิลเตอร์
+Preconditions: ผู้ใช้งานต้องเข้าสู่ระบบ
+Main Flow:
+
+ผู้ใช้งานกรอกคำค้นหรือเลือกฟิลเตอร์ (หมวดหมู่, วันที่, ผู้สร้าง, ผู้ได้รับมอบหมายงาน, สถานะ, title, subject)
+กดปุ่ม “ค้นหา”
+ระบบแสดงรายการเอกสารที่ตรงกับเงื่อนไข
+
+Postconditions: ผู้ใช้งานสามารถเปิดดูหรือดาวน์โหลดเอกสารที่ค้นพบได้
+
+#### 📘 Use Case: Manage Access
+
+Actor: ผู้ดูแลระบบโครงการ (superadmin) / ผู้ดูแลระบบขององค์กร (admin)
+Description: ผู้ดูแลระบบสามารถกำหนดสิทธิ์การเข้าถึงเอกสารให้กับผู้ใช้งาน
+Preconditions: ผู้ดูแลระบบต้องเข้าสู่ระบบ
+Main Flow:
+
+ผู้ดูแลระบบเลือกเอกสาร
+กด “จัดการสิทธิ์”
+เลือกผู้ใช้งานและกำหนดสิทธิ์ (อ่าน, แก้ไข, ลบ)
+กด “บันทึก”
+
+Postconditions: สิทธิ์การเข้าถึงเอกสารถูกปรับตามที่กำหนด
+
+#### 📘 Use Case: View Document History
+
+Actor: ผู้ใช้งานทั่วไป / ผู้ดูแลระบบ
+Description: ผู้ใช้งานสามารถดูประวัติการใช้งานเอกสาร เช่น การแก้ไข การดาวน์โหลด
+Preconditions: ผู้ใช้งานต้องมีสิทธิ์เข้าถึงเอกสาร
+Main Flow:
+
+ผู้ใช้งานเปิดเอกสาร
+เลือก “ดูประวัติ”
+ระบบแสดงรายการกิจกรรมที่เกี่ยวข้องกับเอกสาร
+
+Postconditions: ผู้ใช้งานสามารถตรวจสอบการเปลี่ยนแปลงย้อนหลังได้
+
+### 🔄 0.7 Workflow อัตโนมัติในระบบ DMS
+
+✅ ประโยชน์ของ Workflow อัตโนมัติใน DMS
+
+- ลดภาระงานซ้ำ ๆ ของผู้ใช้งาน
+- เพิ่มความปลอดภัยและการควบคุมเอกสาร
+- เพิ่มความเร็วในการดำเนินงาน
+- ลดข้อผิดพลาดจากการทำงานด้วยมือ
+
+#### 🧩 Workflow: 1. Document treat Workflow
+
+กรณี: เมื่อมีการอัปโหลดเอกสารต้องได้รับการมอบหมายงานให้กับ พนักงานภายในองค์กรณ์
+ขั้นตอนอัตโนมัติ:
+
+1. ผู้ใช้งานอัปโหลดเอกสารและเลือก “มอบหมายงาน”
+2. ระบบส่งแจ้งเตือนไปยังผู้ได้รับมอบหมายงาน
+3. ผู้อนุมัติสามารถตรวจสอบและกด “ตรวจสอบแล้ว”
+4. ระบบบันทึกสถานะเอกสารและ ส่งต่อ ไปยัง องกรณือื่น ตามลำดับ เมื่อได้ผลและจัดทำเอกสารตอบแล้ว จึงแจ้งผลกลับไปยังผู้ส่ง
+
+#### 📥 Workflow: 2. Auto Tagging & Categorization
+
+กรณี: เอกสารที่อัปโหลดมีชื่อหรือเนื้อหาที่ตรงกับหมวดหมู่ที่กำหนดไว้
+ขั้นตอนอัตโนมัติ:
+
+เมื่ออัปโหลดเอกสาร ระบบวิเคราะห์ชื่อไฟล์หรือเนื้อหา
+ระบบกำหนดหมวดหมู่และแท็กให้โดยอัตโนมัติ เช่น “ใบเสนอราคา” → หมวด “การเงิน”
+ผู้ใช้งานสามารถแก้ไขได้หากต้องการ
+
+#### 🔐 Workflow: 3. Access Control Workflow
+
+กรณี: เอกสารที่มีความลับสูงต้องจำกัดการเข้าถึง
+ขั้นตอนอัตโนมัติ:
+
+เมื่ออัปโหลดเอกสารที่มีคำว่า “ลับ” หรือ “Confidential”
+ระบบกำหนดสิทธิ์เริ่มต้นให้เฉพาะผู้ใช้งานระดับผู้จัดการขึ้นไป
+ระบบแจ้งเตือนผู้ดูแลระบบให้ตรวจสอบสิทธิ์เพิ่มเติม
+
+#### 📤 Workflow: 4. Expiry & Archiving Workflow
+
+กรณี: เอกสารที่มีอายุการใช้งาน เช่น สัญญา หรือใบอนุญาต
+ขั้นตอนอัตโนมัติ:
+
+เมื่ออัปโหลดเอกสาร ผู้ใช้งานระบุวันหมดอายุ
+ระบบแจ้งเตือนก่อนหมดอายุล่วงหน้า เช่น 30 วัน
+เมื่อถึงวันหมดอายุ ระบบย้ายเอกสารไปยังหมวด “Archive” โดยอัตโนมัติ
+
+#### 📊 Workflow: 5. Audit Trail & Notification Workflow
+
+กรณี: มีการแก้ไขหรือดาวน์โหลดเอกสารสำคัญ
+ขั้นตอนอัตโนมัติ:
+
+ทุกการกระทำกับเอกสาร (เปิด, แก้ไข, ลบ) จะถูกบันทึกใน Audit Log
+หากเอกสารถูกแก้ไขโดยผู้ใช้งานที่ไม่ใช่เจ้าของ ระบบแจ้งเตือนเจ้าของเอกสารทันที
+
+## 🛠️ 1. DMS Architecture Deep Dive (Backend + Frontend)
+
+### 1.1 Executive Summary
+
+- Reverse proxy (Nginx/NPM) เผยแพร่ Frontend (Next.js) และ Backend (Node.js/Express) ผ่าน HTTPS (HSTS)
+- Backend เชื่อม MariaDB 10.11 (ข้อมูลหลัก DMS) และแยก n8n + Postgres 16 สำหรับ workflow
+- RBAC/ABAC ถูกบังคับใช้งานใน middleware + มีชุด SQL (tables → triggers → procedures → views → seed)
+- ไฟล์จริง (PDF/DWG) เก็บนอก webroot ที่ /share/dms‑data พร้อมมาตรฐานการตั้งชื่อ+โฟลเดอร์
+- Dev/Prod แยกชัดเจนผ่าน Docker multi‑stage + docker‑compose + โฟลเดอร์ persist logs/config/certs
+
+### 1.2 Runtime Topology & Trust Boundaries
+
+```text
+Internet Clients (Browser)
+    │   HTTPS 443 (HSTS)  [QNAP mgmt = 8443]
+    ▼
+┌─────────────────────────────────────────────────────┐
+│ Reverse Proxy Layer                                 │
+│  ├─ Nginx (Alpine)  or  Nginx Proxy Manager (NPM)   │
+│  ├─ TLS (LE cert; SAN multi‑subdomain)              │
+│  └─ Routes:                                         │
+│     • /, /_next/*   → Frontend (Next.js :3000)      │
+│     • /api/*        → Backend (Express :3001)       │
+│     • /pma/*        → phpMyAdmin                    │
+│     • /n8n/*        → n8n (Workflows)               │
+└─────────────────────────────────────────────────────┘
+               │                         │
+               │                         └──────────┐
+               ▼                                    │
+         Frontend (Next.js)                         │
+               │  Cookie-based Auth (HttpOnly)      │
+               ▼                                    ▼
+         Backend (Node/Express ESM)  ─────────►  MariaDB 10.11
+               │                                    │
+               └────────────────────────────────────┘
+               Project data (.pdf/.dwg) @ /share/dms-data
+
+         n8n (workflows) ──► Postgres 16  (separate DB for automations)
+```
+
+==Trust Boundaries==
+
+- Public zone: Internet ↔ Reverse proxy
+- App zone: Reverse proxy ↔ FE/BE containers (internal Docker network)
+- # Data zone: Backend ↔ Databases (MariaDB, Postgres) + /share/dms-data
+
+### 1.3 Frontend: Next.js (ESM) / React.js
+
+#### 1.3.1 Stack & Key libs
+
+- Next.js (App Router), React, ESM
+- Tailwind CSS, PostCSS, shadcn/ui (components.json)
+- Fetch API (credentials include) → Cookie Auth (HttpOnly)
+
+#### 1.3.2 Directory Layout
+
+```text
+/frontend/
+├─ app/
+│  ├─ login/
+│  ├─ dashboard/
+│  ├─ users/
+│  ├─ correspondences/
+│  ├─ health/
+│  └─ layout.tsx / page.tsx (ตาม App Router)
+├─ public/
+├─ Dockerfile (multi-stage: dev/prod)
+├─ package.json
+├─ next.config.js
+└─ ...
+```
+
+#### 1.3.3 Routing & Layouts
+
+- Public /login, /health
+- Protected: /dashboard, /users, /correspondences, ... (client-side guard)
+- เก็บ middleware.ts (ของเดิม) เพื่อหลีกเลี่ยง regression; ใช้ client‑guard + server action อย่างระมัดระวัง
+
+#### 1.3.4 Auth Flow (Cookie-based)
+
+1. ผู้ใช้ submit form /login → POST /api/auth/login (Backend)
+2. Backend set HttpOnly cookie (JWT) + SameSite=Lax/Strict, Secure
+3. หน้า protected เรียก GET /api/auth/me เพื่อตรวจสอบสถานะ
+4. หาก 401 → redirect → /login
+
+**CORS/Fetch**: เเปิด credentials: 'include' ทุกครั้ง, ตั้ง NEXT_PUBLIC_API_BASE เป็น origin ของ backend ผ่าน proxy (เช่น https://lcbp3.np-dms.work)
+
+#### 1.3.5 UI/UX
+
+- Sea‑blue palette, sidebar พับได้, card‑based KPI
+- ตารางข้อมูลเตรียมรองรับ server‑side DataTables\*\*
+- shadcn/ui: Button, Card, Badge, Tabs, Dropdown, Tooltip, Switch, etc.
+
+#### 1.3.6 Config & ENV
+
+- NEXT_PUBLIC_API_BAS (ex: https://lcbp3.np-dms.work)
+- Build output แยก dev/prod; ระวัง EACCES บน QNAP → ใช้ user node + ปรับสิทธิ์โวลุ่ม .next/\*
+
+#### 1.3.7 Error Handling & Observability (FE)
+
+- Global error boundary (app router) + toast/alert patterns
+- Network layer: แยก handler สำหรับ 401/403/500 + retry/backoff ที่จำเป็น
+- Metrics (optional): web‑vitals, UX timing (เก็บฝั่ง n8n หรือ simple logging)
+
+---
+
+### 1.4 Backend Architecture (Node.js ESM / Express)
+
+#### 1.4.1 Stack & Structure
+
+- Node 20.x, ESM modules, Express\*\*
+- mysql2/promise, jsonwebtoken, cookie-parser, cors, helmet, winston/morgan
+
+```text
+/backend/
+├─ src/
+│  ├─ index.js               # bootstrap server, CORS, cookies, health
+│  ├─ routes/
+│  │   ├─ auth.js            # /api/auth/* (login, me, logout)
+│  │   ├─ users.js           # /api/users/*
+│  │   ├─ correspondences.js # /api/correspondences/*
+│  │   ├─ drawings.js        # /api/drawings/*
+│  │   ├─ rfas.js            # /api/rfas/*
+│  │   └─ transmittals.js    # /api/transmittals/*
+│  ├─ middleware/
+│  │   ├─ authGuard.js       # verify JWT from cookie
+│  │   ├─ requirePermission.js# RBAC/ABAC enforcement
+│  │   ├─ errorHandler.js
+│  │   └─ requestLogger.js
+│  ├─ db/
+│  │   ├─ pool.js            # createPool, sane defaults
+│  │   └─ models/            # query builders (User, Drawing, ...)
+│  ├─ utils/
+│  │   ├─ hash.js (bcrypt/argon2)
+│  │   ├─ jwt.js
+│  │   ├─ pagination.js
+│  │   └─ responses.js
+│  └─ config/
+│      └─ index.js           # env, constants
+├─ Dockerfile
+└─ package.json
+```
+
+#### 1.4.2 Request Lifecycle
+
+1. helmet + cors (allow specific origin; credentials true)
+2. cookie-parser, json limit (e.g., 2MB)
+3. requestLogger → trace + response time
+4. Route handler → authGuard (protected) → requirePermission (per‑route) → Controller
+5. Error bubbles → errorHandler (JSON shape, status map)
+
+#### 1.4.3 Auth & RBAC/ABAC
+
+- JWT ใน HttpOnly cookie; Claims: sub (user_id), roles, exp
+- authGuard: ตรวจ token → แนบ req.user
+- requirePermission: เช็ค permission ตามเส้นทาง/วิธี; แผนขยาย ABAC (เช่น project scope, owner, doc state)
+- Roles/Permissions ถูก seed ใน SQL; มี view เมทริกซ์ เพื่อ debug (เช่น v_role_permission_matrix)
+
+\*\*ตัวอย่าง pseudo requirePermission(permission)
+
+```js
+export const requirePermission = (perm) => async (req, res, next) => {
+  if (!req.user) return res.status(401).json({ error: "Unauthenticated" });
+  const ok = await checkPermission(req.user.user_id, perm, req.context);
+  if (!ok) return res.status(403).json({ error: "Forbidden" });
+  return next();
+};
+```
+
+#### 1.4.4 Database Access & Pooling
+
+- createPool({ connectionLimit: 10~25, queueLimit: 0, waitForConnections: true })
+- ใช้ parameterized queries เสมอ; ปรับ sql_mode ที่จำเป็นใน my.cnf
+
+#### 1.4.5 File Storage & Secure Download
+
+- Root: /share/dms‑data
+- โครงโฟลเดอร์: {module}/{yyyy}/{mm}/{entityId}/ + ชื่อไฟล์ตามมาตรฐาน (เช่น DRW-code-REV-rev.pdf)
+- Endpoint download: ตรวจสิทธิ์ (RBAC/ABAC) → res.sendFile()/stream; ป้องกัน path traversal
+- MIME allowlist + size limit + virus scan (optional; ภายหลัง)
+
+#### 1.4.6 Health & Readiness
+
+- GET /api/health → { ok: true }
+- (optional) /api/ready ตรวจ DB ping + disk space (dms‑data)
+
+#### 1.4.7 Config & ENV (BE)
+
+- DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
+- JWT_SECRET, COOKIE_NAME, COOKIE_SAMESITE, COOKIE_SECURE
+- CORS_ORIGIN, LOG_LEVEL, APP_BASE_URL
+- FILE_ROOT=/share/dms-data
+
+#### 1.4.8 Logging
+
+- Access log (morgan) + App log (winston) → /share/Container/dms/logs/backend/
+- รูปแบบ JSON (timestamp, level, msg, reqId) + daily rotation (logrotate/container‑side)
+
+### 1.5 Database (MariaDB 10.11)
+
+#### 1.5.1 Schema Overview (ย่อ)
+
+- RBAC core: users, roles, permissions, user_roles, role_permissions
+- Domain: drawings, contracts, correspondences, rfas, transmittals, organizations, projects, ...
+- Audit: audit_logs (แผนขยาย), deleted_at (soft delete, แผนงาน)
+
+```text
+[users]──<user_roles>──[roles]──<role_permissions>──[permissions]
+   │
+   └── activities/audit_logs (future expansion)
+
+[drawings]──<mapping>──[contracts]
+[rfas]──<links>──[drawings]
+[correspondences] (internal/external flag)
+```
+
+#### 1.5.2 Init SQL Pipeline
+
+1. 01\_\*\_deploy_table_rbac.sql — สร้างตารางหลักทั้งหมด + RBAC
+2. 02\_\*\_triggers.sql — บังคับ data rules, auto‑audit fields
+3. 03\_\*\_procedures_handlers.sql — upsert/bulk handlers (เช่น sp_bulk_import_contract_dwg)
+4. 04\_\*\_views.sql — รายงาน/เมทริกซ์สิทธิ์ (v_role_permission_matrix, etc.)
+5. 05\_\*\_seed_data.sql — ค่าพื้นฐาน domain (project, categories, statuses)
+6. 06\_\*\_seed_users.sql — บัญชีเริ่มต้น (superadmin, editors, viewers)
+7. 07\_\*\_seed_contract_dwg.sql — ข้อมูลตัวอย่างแบบสัญญา
+
+#### 1.5.3 Indexing & Performance
+
+- Composite indexes ตามคอลัมน์ filter/sort (เช่น (project_id, updated_at DESC))
+- Full‑text index (optional) สำหรับ advanced search
+- Query plan review (EXPLAIN) + เพิ่ม covering index ตามรายงาน
+
+#### 1.5.4 MySQL/MariaDB Config (my.cnf — แนวทาง)
+
+```conf
+[mysqld]
+innodb_buffer_pool_size = 4G     # ปรับตาม RAM/QNAP
+innodb_log_file_size    = 512M
+innodb_flush_log_at_trx_commit = 1
+max_connections         = 200
+sql_mode                = STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_unicode_ci
+```
+
+> ปรับค่าให้เหมาะกับ workload จริง + เฝ้าดู IO/CPU ของ QNAP
+
+#### 1.5.5 Backup/Restore
+
+- Logical backup: mysqldump --routines --triggers --single-transaction
+- Physical (snapshot QNAP) + schedule ผ่าน n8n/cron
+- เก็บสำเนา off‑NAS (encrypted)
+
+### 1.6 Reverse Proxy & TLS
+
+#### 1.6.1 Nginx (Alpine) — ตัวอย่าง server block
+
+> สำคัญ: บนสภาพแวดล้อมนี้ ให้ใช้คนละบรรทัด:  
+> listen 443 ssl;
+> http2 on;
+> หลีกเลี่ยง listen 443 ssl http2;
+
+```conf
+server {
+  listen 80;
+  server_name lcbp3.np-dms.work;
+  return 301 https://$host$request_uri;
+}
+
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name lcbp3.np-dms.work;
+
+  ssl_certificate     /etc/nginx/certs/fullchain.pem;
+  ssl_certificate_key /etc/nginx/certs/privkey.pem;
+  add_header Strict-Transport-Security "max-age=63072000; preload" always;
+
+  # Frontend
+  location / {
+    proxy_pass http://frontend:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  # Next.js static
+  location /_next/ {
+    proxy_pass http://frontend:3000;
+  }
+
+  # Backend API
+  location /api/ {
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_pass http://backend:3001;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  # phpMyAdmin (sub-path)
+  location /pma/ {
+    proxy_pass http://phpmyadmin:80/;
+  }
+
+  # n8n
+  location /n8n/ {
+    proxy_pass http://n8n:5678/;
+  }
+}
+```
+
+#### 1.6.2 Nginx Proxy Manager (NPM) — Tips
+
+- ระวังอย่าใส่ proxy_http_version ซ้ำซ้อน (duplicate directive) ใน Advanced
+- ถ้าต้องแก้ไฟล์ด้านใน NPM → ระวังไฟล์ใน /data/nginx/proxy_host/\*.conf
+- จัดการ certificate / SAN หลาย sub‑domain ใน UI แต่ mainten ดีเรื่อง symlink/renew
+
+#### 1.6.3 TLS & Certificates
+
+- Let’s Encrypt (HTTP‑01 webroot/standalone) + HSTS
+- QNAP mgmt เปลี่ยนเป็น 8443 → พอร์ต 443 public ว่างสำหรับ Nginx/NPM
+
+### 1.7 Docker Compose Topology
+
+#### 1.7.1 Services (สรุป)
+
+- frontend (Next.js) :3000
+- backend (Express) :3001
+- mariadb (10.11) :3306 (internal)
+- phpmyadmin :80 (internal)
+- nginx or npm :80/443 (published)
+- n8n :5678 (internal)
+- postgres_n8n (16-alpine)
+- pgadmin4
+
+#### 1.7.2 Volumes & Paths
+
+```text
+/share/Container/dms/
+├─ mariadb/data
+├─ mariadb/init/*.sql
+├─ backend/ (code)
+├─ frontend/ (code)
+├─ phpmyadmin/{sessions,tmp,config.user.inc.php}
+├─ nginx/{nginx.conf,dms.conf,certs/}
+├─ n8n, n8n-postgres, n8n-cache
+└─ logs/{backend,frontend,nginx,pgadmin,phpmyadmin,postgres_n8n}
+/share/dms-data  (pdf/dwg storage)
+```
+
+#### 1.7.3 Healthchecks (suggested)
+
+- backend:
+
+  ```sh
+  curl http://localhost:3001/api/health
+  ```
+
+- frontend: curl /health (simple JSON)
+- mariadb: mysqladmin ping with credentials
+- nginx: nginx -t at startup
+
+#### 1.7.4 Security Hardening
+
+- รัน container ด้วย user non‑root (user: node สำหรับ FE/BE)
+- จำกัด capabilities; read‑only FS (ยกเว้นโวลุ่มจำเป็น)
+- เฉพาะ backend เมานต์ /share/dms-data
+
+### 1.8 Observability, Ops, and Troubleshooting
+
+#### 1.8.1 Logs
+
+- Frontend → /logs/frontend/\*
+- Backend → /logs/backend/\* (app/access/error)
+- Nginx/NPM → /logs/nginx/\*
+- MariaDB → default datadir log + slow query (เปิดใน my.cnf หากต้องการ)
+
+#### 1.8.2 Common Issues & Playbooks
+
+- 401 Unauthenticated: ตรวจ authGuard → JWT cookie มี/หมดอายุ → เวลา server/FE sync → CORS credentials: true
+- EACCES Next.js: สิทธิ์ .next/\* + run as`node, โวลุ่ม map ถูก user:group
+- NPM duplicate directive: ลบซ้ำ proxy_http_version ใน Advanced / ตรวจ proxy_host/\*.conf
+- LE cert path/symlink: ตรวจ /etc/letsencrypt/live/npm-\* symlink ชี้ถูก
+- DB field not found: ตรวจ schema vs code (migration/init SQL) → sync ให้ตรง
+
+#### 1.8.3 Performance Guides
+
+- Backend: keep‑alive, gzip/deflate at proxy, pool 10–25, paginate, avoid N+1
+- Frontend: prefetch critical routes, cache static, image optimization
+- DB: เพิ่ม index จุด filter, analyze query (EXPLAIN), ปรับ buffer pool
+
+### 1.9 Security & Compliance
+
+- HTTPS only + HSTS (preload)
+- CORS: allow list เฉพาะ FE origin; Access-Control-Allow-Credentials: true
+- Cookie: HttpOnly, Secure, SameSite=Lax/Strict
+- Input Validation: celebrate/zod (optional) + sanitize
+- Rate limiting: per IP/route (optional)
+- AuditLog: วางแผนเพิ่ม ครอบคลุม CRUD + mapping (actor, action, entity, before/after)
+- Backups: DB + /share/dms-data + config (encrypted off‑NAS)
+
+### 1.10 Backlog → Architecture Mapping
+
+1. RBAC Enforcement ครบ → เติม requirePermission ทุก route + test matrix ผ่าน view
+2. AuditLog ครบ CRUD/Mapping → trigger + table audit_logs + BE hook
+3. Upload/Download จริงของ Drawing Revisions → BE endpoints + virus scan (optional)
+4. Dashboard KPI → BE summary endpoints + FE cards/charts
+5. Server‑side DataTables → paging/sort/filter + indexesรองรับ
+6. รายงาน Export CSV/Excel/PDF → BE export endpoints + FE buttons
+7. Soft delete (deleted_at) → BE filter default scope + restore endpoint
+8. Validation เข้ม → celebrate/zod schema + consistent error shape
+9. Indexing/Perf → slow query log + EXPLAIN review
+10. Job/Cron Deadline Alerts → n8n schedule + SMTP
+
+### 1.11 Port & ENV Matrix (Quick Ref)
+
+| Component | Ports | Key ENV |
+| Nginx/NPM | 80/443 (public) | SSL paths, HSTS |
+| Frontend | 3000 (internal) | NEXT*PUBLIC_API_BASE |
+| Backend | 3001 (internal) | DB*\*, JWT*SECRET, CORS_ORIGIN, FILE_ROOT |
+| MariaDB | 3306 (internal) | MY_CNF, credentials |
+| n8n | 5678 (internal) | N8N*, webhook URL under /n8n/ |
+| Postgres | 5432 (internal) | n8n DB |
+
+QNAP mgmt: 8443 (already moved)
+
+### 1.12 Sample Snippets
+
+#### 1.12.1 Backend CORS (credentials)
+
+```js
+app.use(
+  cors({
+    origin: ["https://lcbp3.np-dms.work"],
+    credentials: true,
+  })
+);
+```
+
+#### 1.12.2 Secure Download (guarded)
+
+```js
+router.get(
+  "/files/:module/:id/:filename",
+  authGuard,
+  requirePermission("file.read"),
+  async (req, res) => {
+    const { module, id, filename } = req.params;
+    // 1) ABAC: verify user can access this module/entity
+    const ok = await canReadFile(req.user.user_id, module, id);
+    if (!ok) return res.status(403).json({ error: "Forbidden" });
+
+    const abs = path.join(FILE_ROOT, module, id, filename);
+    if (!abs.startsWith(FILE_ROOT))
+      return res.status(400).json({ error: "Bad path" });
+    return res.sendFile(abs);
+  }
+);
+```
+
+#### 1.12.3 Healthcheck
+
+```js
+router.get("/health", (req, res) => res.json({ ok: true }));
+```
+
+### 13 Deployment Workflow (Suggested)
+
+1. Git (Gitea) branch strategy feature/\* → PR → main
+2. Build images (dev/prod) via Dockerfile multi‑stage; pin Node/MariaDB versions
+3. docker compose up -d --build จาก /share/Container/dms
+4. Validate: /health, /api/health, login roundtrip
+5. Monitor logs + baseline perf; run SQL smoke tests (views/triggers/procs)
+
+### 14 Appendix
+
+- Naming conventions: snake_case DB, camelCase JS
+- Timezones: store UTC in DB; display in app TZ (+07:00)
+- Character set: UTF‑8 (utf8mb4_unicode_ci)
+- Large file policy: size limit (e.g., 50–200MB), allowlist extensions
+- Retention: archive strategy for old revisions (optional)
+
+## บทบาท: คุณคือ Programmer และ Document Engineer ที่เชี่ยวชาญ
+
+1. การพัฒนาเว็บแอป (Web Application Development)
+2. Configuration of Container Station on QNAP
+3. Database: mariadb:10.11
+4. Database management: phpmyadmin:5-apache
+5. Backend: node:.js (ESM)
+6. Frontend: next.js, react
+7. Workflow automation: n8n:
+8. Workflow database: postgres:16-alpine
+9. Workflow database management: pgadmin4
+10. Reverse proxy: nginx:1.27-alpine
+11. linux on QNAP
+12. การจัดการฐานข้อมูล (Database Management)
+13. การวิเคราะห์ฐานข้อมูล (Database Analysis)
+14. การจัดการฐานข้อมูลเชิงสัมพันธ์ (Relational Databases)
+15. ภาษา SQL
+16. RBAC
+
+## 2. ระบบที่ใช้
+
+## Server
+
+- ใช้ Container Station เป็น SERVER บน QNAP (Model: TS-473A, RAM: 32GB, CPU: AMD Ryzen V1500B 4 cores 8 threads) **เปลี่ยน port 443 ของ QNAP เป็น 8443 แล้ว**
+
+## การพัฒนาโครงการ
+
+- ด้วย Visual Studio Code บน Windows 11
+- ใช้ ๊ UI ของ Container Station เป็นหลัก
+
+## โครงสร้างโฟลเดอร์ (บน QNAP)
+
+/share/Container/dms/
+├─ docker-compose.yml # Create โดย UI Container Station
+├─ mariadb/
+│ ├─ data/ # ข้อมูลจริงของ MariaDB
+│ ├─ init/ # ข้อมูลเริ่มต้นของ MariaDB
+│ │ ├─ 01_dms_data_v5_1_deploy_table_rbac.sql # Create all data table & RBAC table here!
+│ │ ├─ 02_dms_data_v5_1_triggers.sql # Create all triggers here!
+│ │ ├─ 03_dms_data_v5_1_procedures_handlers.sql # Create all procedures here!
+│ │ ├─ 04_dms_data_v5_1_views.sql # Create all views here!
+│ │ ├─ 05 dms_data_v5_1_seeก_data.sql # Seed nescesary data here!
+│ │ ├─ 06_dms_data_v5_1_seed_users.sql # Seed users data here!
+│ │ └─ 07_dms_data_v5_1_seed_contract_dwg.sql # Seed contract drawing data here!
+│ └─ my.cnf
+├─ backend/
+│ ├─ app/
+│ ├─ src/
+│ │ ├─ db/
+│ │ │ └─models/
+│ │ ├─ middleware/
+│ │ ├─ routes/
+│ │ ├─ utils/
+│ │ └─ index.js
+│ ├─ Dockerfile
+│ ├─ package.json
+│ └─ package-lock.json # ไม่มี
+├─ frontend/
+│ ├─ app/
+│ │ ├─ correspondences/
+│ │ ├─ dashboard/
+│ │ ├─ health/
+│ │ ├─ login/
+│ │ └─ users/
+│ ├─ public/
+│ ├─ Dockerfile
+│ ├─ package.json
+│ ├─ package-lock.json # ไม่มี
+│ ├─ next.config.js
+│ └─ page.jsx
+├─ phpmyadmin/
+│ ├─ sessions/ # โฟลเดอร์เซสชันถาวรของ phpMyAdmin
+│ ├─ tmp/
+│ ├─ config.user.inc.php
+│ └─ zzz-custom.ini
+├─ nginx/
+│ ├─ certs/
+│ ├─ nginx.conf
+│ └─ dms.conf
+├─ n8n/
+├─ n8n-cache/
+├─ n8n-postgres/
+└─ logs/
+├─ backend/
+├─ frontend/
+├─ nginx/
+├─ pgadmin/
+├─ phpmyadmin/
+└─ postgres_n8n/
+/share/dms-data # เก็บข้อมมูล .pdf, .dwg แยกตาม correspondences, documents
+
+# งานที่ต้องการ:
+
+- ไม่ใช้ .env เด็ดขาด Container Station ไม่รองรับ และ docker-compose.yml ได้ทดสอบ รันบน Container station มาแล้ว
+- Code ของ backend ทั้งหมด
+- การทดสอบระบบ backend ทุกส่วน ให้พร้อม สำหรับ frontend
+
+# กรณี 2: มี Git อยู่แล้ว (มี main อยู่)
+
+2.1 อัปเดต main ให้ตรงล่าสุดก่อนแตกบร้านช์
+
+cd /share/Container/dms
+git checkout main
+git pull --ff-only # ถ้าเชื่อม remote อยู่
+git tag -f stable-$(date +%F) # tag จุดเสถียรปัจจุบัน
+
+2.2 แตก branch งาน Dashboard
+git checkout -b feature/dashboard-update-$(date +%y%m%d)
+git checkout -b feature/dashboard-update-251004
+
+2.3 ทำงาน/คอมมิตตามปกติ
+
+# แก้ไฟล์ frontend/app/dashboard/\* และที่เกี่ยวข้อง
+
+git add frontend/app/dashboard
+git commit -m "feat(dashboard): เพิ่มส่วนจัดการ user"
+git push -u origin feature/dashboard-update-251004
