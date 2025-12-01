@@ -280,17 +280,6 @@ CREATE TABLE correspondence_types (
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน '
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บประเภทเอกสารโต้ตอบ';
-INSERT INTO correspondence_types (type_code, type_name, sort_order, is_active)
-VALUES ('RFA', 'Request for Approval', 1, 1),
-  ('RFI', 'Request for Information', 2, 1),
-  ('TRANSMITTAL', 'Transmittal', 3, 1),
-  ('EMAIL', 'Email', 4, 1),
-  ('INSTRUCTION', 'Instruction', 5, 1),
-  ('LETTER', 'Letter', 6, 1),
-  ('MEMO', 'Memorandum', 7, 1),
-  ('MOM', 'Minutes of Meeting', 8, 1),
-  ('NOTICE', 'Notice', 9, 1),
-  ('OTHER', 'Other', 10, 1);
 -- ตาราง Master เก็บสถานะของเอกสาร
 CREATE TABLE correspondence_status (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
@@ -650,11 +639,6 @@ CREATE TABLE circulation_status_codes (
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน '
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บสถานะใบเวียน';
-INSERT INTO circulation_status_codes (code, description, sort_order)
-VALUES ('OPEN', 'Open', 1),
-  ('IN_REVIEW', 'In Review', 2),
-  ('COMPLETED', 'ปCompleted', 3),
-  ('CANCELLED', 'Cancelled / Withdrawn', 9);
 -- ตาราง "แม่" ของใบเวียนเอกสารภายใน
 CREATE TABLE circulations (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตารางใบเวียน',

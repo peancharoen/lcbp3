@@ -28,7 +28,10 @@
       "@public": ["public/*"],
       "@styles": ["styles/*"],
       "@types": ["types/*"],
-      "@api": ["app/api/*"]
+      "@api": ["app/api/*"],
+      // เพิ่มส่วนที่ขาดไปเพื่อให้ตรงกับ Workspace
+      "@hooks/*": ["app/hooks/*"],
+      "@utils/*": ["utils/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

@@ -1,0 +1,559 @@
+{
+  // ========================================
+  // EDITOR SETTINGS
+  // ========================================
+  
+  // ขนาดตัวอักษรในโค้ด
+  "editor.fontSize": 14,
+  
+  // ความสูงของแต่ละบรรทัด
+  "editor.lineHeight": 1.6,
+  
+  // แสดงเส้นแนวตั้งที่ตำแหน่งตัวอักษรที่ 80 และ 120
+  "editor.rulers": [80, 120],
+  
+  // เปิดใช้ minimap ขวามือ
+  "editor.minimap.enabled": true,
+  
+  // แสดงช่องว่างและ tab เป็นจุดและเส้น
+  "editor.renderWhitespace": "boundary",
+  
+  // เปิดใช้ bracket pair colorization
+  "editor.bracketPairColorization.enabled": true,
+  
+  // แสดงเส้นเชื่อม brackets
+  "editor.guides.bracketPairs": "active",
+  
+  // smooth scrolling
+  "editor.smoothScrolling": true,
+  
+  // cursor animation
+  "editor.cursorBlinking": "smooth",
+  "editor.cursorSmoothCaretAnimation": "on",
+  
+  // แสดง breadcrumb ด้านบน
+  "breadcrumbs.enabled": true,
+  
+  // word wrap ที่ขอบหน้าต่าง
+  "editor.wordWrap": "on",
+  
+  // ========================================
+  // FORMAT ON SAVE
+  // ========================================
+  
+  // format โค้ดอัตโนมัติเมื่อ save
+  "editor.formatOnSave": true,
+  
+  // format โค้ดเมื่อ paste
+  "editor.formatOnPaste": true,
+  
+  // ใช้ Prettier เป็น default formatter
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  
+  // กำหนด formatter เฉพาะแต่ละภาษา
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  
+  // ========================================
+  // CODE ACTION ON SAVE
+  // ========================================
+  
+  // รัน ESLint fix และจัดเรียง imports เมื่อ save
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit",
+    "source.addMissingImports": "explicit"
+  },
+  
+  // ========================================
+  // PRETTIER SETTINGS
+  // ========================================
+  
+  // ใช้ single quotes แทน double quotes
+  "prettier.singleQuote": true,
+  
+  // ใช้ semicolons ท้ายบรรทัด
+  "prettier.semi": true,
+  
+  // ความกว้างของ tab เป็น 2 spaces
+  "prettier.tabWidth": 2,
+  
+  // ใช้ spaces แทน tabs
+  "prettier.useTabs": false,
+  
+  // ใส่ trailing comma ใน ES5 (objects, arrays, etc.)
+  "prettier.trailingComma": "es5",
+  
+  // ความกว้างสูงสุดก่อนขึ้นบรรทัดใหม่
+  "prettier.printWidth": 80,
+  
+  // ใส่ comma ท้ายสุดใน multiline
+  "prettier.arrowParens": "always",
+  
+  // ใช้ LF (Line Feed) แทน CRLF
+  "prettier.endOfLine": "lf",
+  
+  // ========================================
+  // ESLINT SETTINGS
+  // ========================================
+  
+  // เปิดใช้ ESLint
+  "eslint.enable": true,
+  
+  // รัน ESLint บนไฟล์เหล่านี้
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  
+  // แสดง ESLint status ใน status bar
+  "eslint.alwaysShowStatus": true,
+  
+  // ========================================
+  // ERROR LENS SETTINGS
+  // ========================================
+  
+  // เปิดใช้ Error Lens
+  "errorLens.enabled": true,
+  
+  // แสดง errors, warnings, และ info
+  "errorLens.enabledDiagnosticLevels": [
+    "error",
+    "warning",
+    "info"
+  ],
+  
+  // ระยะห่างของข้อความจากโค้ด
+  "errorLens.padding": "0 1ch",
+  
+  // ตำแหน่งข้อความ error
+  "errorLens.messageTemplate": "$message",
+  
+  // แสดง error ท้ายบรรทัด
+  "errorLens.messageEnabled": true,
+  
+  // ========================================
+  // TAILWIND CSS SETTINGS
+  // ========================================
+  
+  // เปิดใช้ IntelliSense สำหรับ Tailwind
+  "tailwindCSS.emmetCompletions": true,
+  
+  // แสดง color preview
+  "tailwindCSS.colorDecorators": true,
+  
+  // เปิดใช้ suggestions
+  "tailwindCSS.suggestions": true,
+  
+  // ไฟล์ที่จะใช้ Tailwind IntelliSense
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+  
+  // ========================================
+  // HEADWIND (Tailwind Class Sorter)
+  // ========================================
+  
+  // รัน Headwind เมื่อ save
+  "headwind.runOnSave": true,
+  
+  // ========================================
+  // AUTO CLOSE/RENAME TAG
+  // ========================================
+  
+  // เปิดใช้ auto close tag
+  "auto-close-tag.activationOnLanguage": [
+    "html",
+    "xml",
+    "php",
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  
+  // เปิดใช้ auto rename tag
+  "auto-rename-tag.activationOnLanguage": [
+    "html",
+    "xml",
+    "php",
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  
+  // ========================================
+  // BETTER COMMENTS
+  // ========================================
+  
+  // กำหนดสีและรูปแบบของ comments
+  "better-comments.tags": [
+    {
+      "tag": "!",
+      "color": "#FF2D00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "?",
+      "color": "#3498DB",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "//",
+      "color": "#474747",
+      "strikethrough": true,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "todo",
+      "color": "#FF8C00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "*",
+      "color": "#98C379",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    }
+  ],
+  
+  // ========================================
+  // TODO TREE
+  // ========================================
+  
+  // keywords ที่จะ highlight
+  "todo-tree.general.tags": [
+    "TODO",
+    "FIXME",
+    "BUG",
+    "HACK",
+    "NOTE",
+    "XXX"
+  ],
+  
+  // highlight TODO ในโค้ด
+  "todo-tree.highlights.enabled": true,
+  
+  // แสดง TODO tree ใน activity bar
+  "todo-tree.tree.showInExplorer": false,
+  
+  // กำหนดสีของแต่ละ tag
+  "todo-tree.highlights.defaultHighlight": {
+    "foreground": "black",
+    "type": "text",
+    "opacity": 50
+  },
+  
+  "todo-tree.highlights.customHighlight": {
+    "TODO": {
+      "icon": "check",
+      "iconColour": "#FF8C00",
+      "foreground": "#FF8C00"
+    },
+    "FIXME": {
+      "icon": "alert",
+      "iconColour": "#FF2D00",
+      "foreground": "#FF2D00"
+    },
+    "BUG": {
+      "icon": "bug",
+      "iconColour": "#FF2D00",
+      "foreground": "#FF2D00"
+    },
+    "NOTE": {
+      "icon": "note",
+      "iconColour": "#3498DB",
+      "foreground": "#3498DB"
+    }
+  },
+  
+  // ========================================
+  // GITLENS SETTINGS
+  // ========================================
+  
+  // แสดง Git blame ใน status bar
+  "gitlens.statusBar.enabled": true,
+  
+  // แสดง current line blame
+  "gitlens.currentLine.enabled": true,
+  
+  // format ของ current line blame
+  "gitlens.currentLine.format": "${author}, ${agoOrDate}",
+  
+  // แสดง codelens (ข้อมูล Git เหนือฟังก์ชัน)
+  "gitlens.codeLens.enabled": true,
+  
+  // แสดง blame annotations
+  "gitlens.hovers.enabled": true,
+  
+  // ========================================
+  // GIT SETTINGS
+  // ========================================
+  
+  // เปิดใช้ Git
+  "git.enabled": true,
+  
+  // auto fetch ทุก 180 วินาที
+  "git.autofetch": true,
+  "git.autofetchPeriod": 180,
+  
+  // ยืนยันก่อน sync
+  "git.confirmSync": false,
+  
+  // enable smart commit
+  "git.enableSmartCommit": true,
+  
+  // ========================================
+  // PATH INTELLISENSE
+  // ========================================
+  
+  // mappings สำหรับ path aliases
+  "path-intellisense.mappings": {
+    "@": "${workspaceFolder}/src"
+  },
+  
+  // ========================================
+  // IMPORT COST
+  // ========================================
+  
+  // แสดงขนาดของ imports
+  "importCost.showCalculatingDecoration": true,
+  
+  // เตือนเมื่อ import ใหญ่เกิน
+  "importCost.largePackageSize": 100,
+  "importCost.mediumPackageSize": 50,
+  "importCost.smallPackageSize": 20,
+  
+  // ========================================
+  // JAVASCRIPT/TYPESCRIPT
+  // ========================================
+  
+  // auto imports
+  "javascript.suggest.autoImports": true,
+  "typescript.suggest.autoImports": true,
+  
+  // update imports on file move
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  
+  // inlay hints
+  "javascript.inlayHints.parameterNames.enabled": "all",
+  "typescript.inlayHints.parameterNames.enabled": "all",
+  "javascript.inlayHints.functionLikeReturnTypes.enabled": true,
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+  
+  // ========================================
+  // EMMET
+  // ========================================
+  
+  // เปิดใช้ Emmet
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact",
+    "typescript": "typescriptreact"
+  },
+  
+  // trigger Emmet ด้วย Tab
+  "emmet.triggerExpansionOnTab": true,
+  
+  // ========================================
+  // FILES
+  // ========================================
+  
+  // auto save
+  "files.autoSave": "onFocusChange",
+  
+  // ลบ whitespace ท้ายบรรทัดเมื่อ save
+  "files.trimTrailingWhitespace": true,
+  
+  // เพิ่มบรรทัดว่างท้ายไฟล์
+  "files.insertFinalNewline": true,
+  
+  // encoding
+  "files.encoding": "utf8",
+  
+  // line ending
+  "files.eol": "\n",
+  
+  // exclude files/folders จาก explorer
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.turbo": true
+  },
+  
+  // ========================================
+  // SEARCH
+  // ========================================
+  
+  // exclude files/folders จากการค้นหา
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.next": true,
+    "**/.turbo": true,
+    "**/coverage": true,
+    "**/.git": true,
+    "**/yarn.lock": true,
+    "**/package-lock.json": true,
+    "**/pnpm-lock.yaml": true
+  },
+  
+  // ========================================
+  // TERMINAL
+  // ========================================
+  
+  // font size ใน terminal
+  "terminal.integrated.fontSize": 13,
+  
+  // line height ใน terminal
+  "terminal.integrated.lineHeight": 1.2,
+  
+  // smooth scrolling
+  "terminal.integrated.smoothScrolling": true,
+  
+  // ========================================
+  // WORKBENCH
+  // ========================================
+  
+  // icon theme
+  "workbench.iconTheme": "material-icon-theme",
+  
+  // color theme (เลือกตามชอบ)
+  // "workbench.colorTheme": "One Dark Pro",
+  
+  // แสดง activity bar
+  "workbench.activityBar.location": "default",
+  
+  // tree indent
+  "workbench.tree.indent": 15,
+  
+  // smooth scrolling
+  "workbench.list.smoothScrolling": true,
+  
+  // ========================================
+  // EXPLORER
+  // ========================================
+  
+  // compact folders
+  "explorer.compactFolders": false,
+  
+  // confirm before delete
+  "explorer.confirmDelete": true,
+  
+  // confirm drag and drop
+  "explorer.confirmDragAndDrop": false,
+  
+  // ========================================
+  // JEST
+  // ========================================
+  
+  // auto run tests
+  "jest.autoRun": "off",
+  
+  // แสดง coverage overlay
+  "jest.showCoverageOnLoad": false,
+  
+  // ========================================
+  // DOCKER
+  // ========================================
+  
+  // format docker files
+  "docker.languageserver.formatter.ignoreMultilineInstructions": true,
+  
+  // ========================================
+  // YAML
+  // ========================================
+  
+  // schemas สำหรับ YAML validation
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}",
+    "https://json.schemastore.org/github-action.json": "action.{yml,yaml}",
+    "https://json.schemastore.org/prettierrc.json": ".prettierrc.{yml,yaml}"
+  },
+  
+  // format YAML files
+  "yaml.format.enable": true,
+  
+  // ========================================
+  // CONSOLE NINJA
+  // ========================================
+  
+  // เปิดใช้ Console Ninja
+  "console-ninja.featureSet": "Community",
+  
+  // ========================================
+  // REST CLIENT
+  // ========================================
+  
+  // timeout สำหรับ HTTP requests (milliseconds)
+  "rest-client.timeoutinmilliseconds": 30000,
+  
+  // แสดงเวลาที่ใช้ในการ request
+  "rest-client.showResponseInDifferentTab": true,
+  
+  // ========================================
+  // SECURITY
+  // ========================================
+  
+  // trust workspace
+  "security.workspace.trust.untrustedFiles": "open",
+  
+  // ========================================
+  // PERFORMANCE
+  // ========================================
+  
+  // จำกัดจำนวนไฟล์ที่เปิดพร้อมกัน
+  "files.maxMemoryForLargeFilesMB": 4096,
+  
+  // ปิด crash reporter
+  "telemetry.telemetryLevel": "off"
+}

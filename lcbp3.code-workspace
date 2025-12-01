@@ -1,32 +1,17 @@
 {
-  "folders": [+
-   {
-      "name": "🎯 Root",
-      "path": "./"
-   },
-   {
-      "name": "🗓️ docs",
-      "path": "./docs"
-   },
-   {
-      "name": "🔗 specs",
-      "path": "./specs"
-   },
-   {
-      "name": "🔧 Backend",
-      "path": "./backend"
-   },
-   {
-      "name": "🎨 Frontend",
-      "path": "./frontend"
-    }
+  "folders": [
+    { "name": "🎯 Root", "path": "./" },
+    { "name": "🔧 Backend", "path": "./backend" },
+    { "name": "🎨 Frontend", "path": "./frontend" },
+    { "name": "🗓️ docs", "path": "./docs" },
+    { "name": "🔗 specs", "path": "./specs" }
   ],
   "settings": {
     // ========================================
     // EDITOR SETTINGS
     // ========================================
 
-    "editor.fontSize": 14,
+    "editor.fontSize": 15,
     "editor.lineHeight": 1.6,
     "editor.rulers": [80, 120],
     "editor.minimap.enabled": true,
@@ -85,33 +70,27 @@
       "editor.defaultFormatter": "redhat.vscode-yaml"
     },
     "[dockerfile]": {
-      "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+      "editor.defaultFormatter": "dbaeumer.vscode-eslint"
     },
-
+    "[sql]": {
+      "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode",
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true
+    },
     // ========================================
     // CODE ACTION ON SAVE
     // ========================================
 
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit",
+      "source.fixAll": "explicit",
+      // "source.fixAll.eslint": "explicit"
       "source.organizeImports": "explicit",
       "source.addMissingImports": "explicit"
     },
 
     // ========================================
-    // PRETTIER SETTINGS
+    // PRETTIER SETTINGS .prettierrc
     // ========================================
-
-    "prettier.singleQuote": true,
-    "prettier.semi": true,
-    "prettier.tabWidth": 2,
-    "prettier.useTabs": false,
-    "prettier.trailingComma": "es5",
-    "prettier.printWidth": 80,
-    "prettier.arrowParens": "always",
-    "prettier.endOfLine": "lf",
-    "prettier.bracketSpacing": true,
-    "prettier.jsxSingleQuote": false,
 
     // ========================================
     // ESLINT SETTINGS
@@ -127,10 +106,7 @@
     "eslint.alwaysShowStatus": true,
     "eslint.format.enable": false,
     "eslint.lintTask.enable": true,
-    "eslint.workingDirectories": [
-      "./backend",
-      "./frontend"
-    ],
+    "eslint.workingDirectories": ["./backend", "./frontend"],
     // ========================================
     // PATH INTELLISENSE - ไม่มี src folder
     // ========================================
@@ -170,7 +146,7 @@
       "@public": "${workspaceFolder:🎨 Frontend (React/Next.js)}/public",
       "@styles": "${workspaceFolder:🎨 Frontend (React/Next.js)}/styles",
       "@types": "${workspaceFolder:🎨 Frontend (React/Next.js)}/types",
-      "@api": "${workspaceFolder:🎨 Frontend (React/Next.js)}/app/api",
+      "@api": "${workspaceFolder:🎨 Frontend (React/Next.js)}/app/api"
     },
     "path-intellisense.autoSlashAfterDirectory": true,
     "path-intellisense.extensionOnImport": false,
@@ -461,12 +437,18 @@
     // TERMINAL
     // ========================================
 
-    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.fontSize": 15,
     "terminal.integrated.lineHeight": 1.2,
     "terminal.integrated.smoothScrolling": true,
     "terminal.integrated.cursorBlinking": true,
     "terminal.integrated.fontFamily": "MesloLGS NF, Consolas, monospace",
-    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.profiles.windows": {
+      "PowerShell-7": {
+        "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "icon": "terminal-powershell"
+      }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell-7",
     "terminal.integrated.cwd": "${workspaceFolder}",
 
     // ========================================
@@ -513,7 +495,7 @@
       "*.jsx": "${capture}.test.jsx, ${capture}.spec.jsx"
     },
 
-     // ========================================
+    // ========================================
     // BREADCRUMBS
     // ========================================
 
@@ -525,9 +507,31 @@
     // JEST
     // ========================================
 
-    "jest.autoRun": "off",
-    "jest.showCoverageOnLoad": false,
-    "jest.rootPath": "backend",
+    // เปิดใช้งาน Jest extension
+    "jest.enable": true,
+
+    // ปิดการเปิด Terminal ตอนเปิด VS Code
+    "jest.showTerminalOnLaunch": false,
+
+    // ปิดการเปิด Terminal ตอนรันเทสต์
+    "jest.showTerminalOnTestRun": false,
+
+    // ให้รัน Jest ใน background โดยไม่ต้องเปิด terminal
+    "jest.runInWorkspace": true,
+
+    // แสดงผลลัพธ์เทสต์ใน editor (inline)
+    "jest.showInlineError": true,
+
+    // ใช้ watch mode สำหรับการรันเทสต์อัตโนมัติเมื่อไฟล์เปลี่ยน
+    "jest.runMode": "watch",
+
+    // กำหนด path ของ Jest ถ้าใช้ local install
+    "jest.pathToJest": "node_modules/.bin/jest",
+
+    // กำหนด config ของ Jest ถ้ามีไฟล์ jest.config.js
+    "jest.pathToConfig": "jest.config.js",
+
+    "jest.disabledWorkspaceFolders": ["🎯 Root", "🗓️ docs", "🔗 specs"],
 
     // ========================================
     // DOCKER
@@ -535,6 +539,7 @@
 
     "docker.languageserver.formatter.ignoreMultilineInstructions": true,
     "docker.showStartPage": false,
+
     // ========================================
     // YAML
     // ========================================
@@ -622,7 +627,7 @@
     "telemetry.telemetryLevel": "off",
     "security.workspace.trust.untrustedFiles": "open",
     "extensions.ignoreRecommendations": false,
-  // ========================================
+    // ========================================
     // DEBUGGING
     // ========================================
 
@@ -790,6 +795,67 @@
         "type": "shell",
         "command": "docker-compose down",
         "problemMatcher": []
+      },
+      {
+        "label": "Start Backend",
+        "type": "shell",
+        "command": "npm run start:dev",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}"
+        },
+        "presentation": {
+          "panel": "dedicated",
+          "group": "dev",
+          "reveal": "always"
+        }
+      },
+      // 1. Task หลักที่จะรันอัตโนมัติเมื่อเปิดโปรแกรม
+      {
+        "label": "🚀 Setup Workspace",
+        "dependsOn": ["🔧 PS: Backend", "🎨 PS: Frontend"], // สั่งให้รัน 2 task ย่อย
+        "runOptions": {
+          "runOn": "folderOpen" // <--- คำสั่งศักดิ์สิทธิ์: รันทันทีที่เปิด VS Code
+        },
+        "presentation": {
+          "reveal": "never" // ไม่ต้องโชว์หน้าต่างของตัวคุมหลัก
+        },
+        "problemMatcher": []
+      },
+
+      // 2. Task ย่อย: เปิด Terminal ที่ Backend
+      {
+        "label": "🔧 PS: Backend",
+        "type": "shell",
+        "command": "powershell", // สั่งเปิด PowerShell ค้างไว้
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}" // cd เข้า folder นี้
+        },
+        "isBackground": true, // บอก VS Code ว่าไม่ต้องรอให้จบ (รันค้างไว้เลย)
+        "problemMatcher": [],
+        "presentation": {
+          "group": "workspace-terminals", // จัดกลุ่มเดียวกัน
+          "reveal": "always",
+          "panel": "dedicated", // แยก Tab ให้ชัดเจน
+          "focus": false // ไม่ต้องแย่ง Focus ทันที
+        }
+      },
+
+      // 3. Task ย่อย: เปิด Terminal ที่ Frontend
+      {
+        "label": "🎨 PS: Frontend",
+        "type": "shell",
+        "command": "powershell",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}" // cd เข้า folder นี้
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "workspace-terminals",
+          "reveal": "always",
+          "panel": "dedicated",
+          "focus": true // ให้ Focus ที่อันนี้เป็นอันสุดท้าย (พร้อมพิมพ์)
+        }
       }
     ]
   },
@@ -832,7 +898,8 @@
       "chakrounanas.turbo-console-log",
       "wallabyjs.console-ninja",
       "pkief.material-icon-theme",
-      "github.copilot"
+      "github.copilot",
+      "inferrinizzard.prettier-sql-vscode"
     ]
   }
 }
