@@ -3,8 +3,16 @@
 -- Deploy Seed Data
 -- ==========================================================
 -- Seed organization
-insert into organizations (id, organization_code, organization_name)
-values (1, 'กทท.', 'การท่าเรือแห่งประเทศไทย'),
+insert into organizations (
+    id,
+    organization_code,
+    organization_name
+  )
+values (
+    1,
+    'กทท.',
+    'การท่าเรือแห่งประเทศไทย'
+  ),
   (
     10,
     'สคฉ.3',
@@ -15,7 +23,11 @@ values (1, 'กทท.', 'การท่าเรือแห่งประเ
     'สคฉ.3-01',
     'ตรวจรับพัสดุ ที่ปรึกษาควบคุมงาน'
   ),
-  (12, 'สคฉ.3-02', 'ตรวจรับพัสดุ งานทางทะเล'),
+  (
+    12,
+    'สคฉ.3-02',
+    'ตรวจรับพัสดุ งานทางทะเล'
+  ),
   (
     13,
     'สคฉ.3-03',
@@ -26,7 +38,11 @@ values (1, 'กทท.', 'การท่าเรือแห่งประเ
     'สคฉ.3-04',
     'ตรวจรับพัสดุ ตรวจสอบผลกระทบสิ่งแวดล้อม'
   ),
-  (15, 'สคฉ.3-05', 'ตรวจรับพัสดุ เยียวยาการประมง'),
+  (
+    15,
+    'สคฉ.3-05',
+    'ตรวจรับพัสดุ เยียวยาการประมง'
+  ),
   (
     16,
     'สคฉ.3-06',
@@ -42,14 +58,46 @@ values (1, 'กทท.', 'การท่าเรือแห่งประเ
     'สคฉ.3-xx',
     'ตรวจรับพัสดุ ที่ปรึกษาออกแบบ ส่วนที่ 4'
   ),
-  (21, 'TEAM', 'Designer Consulting Ltd.'),
-  (22, 'คคง.', 'Construction Supervision Ltd.'),
-  (41, 'ผรม.1', 'Contractor งานทางทะเล'),
-  (42, 'ผรม.2', 'Contractor อาคารและระบบ'),
-  (43, 'ผรม.3', 'Contractor #3 Ltd.'),
-  (44, 'ผรม.4', 'Contractor #4 Ltd.'),
-  (31, 'EN', 'Third Party Environment'),
-  (32, 'CAR', 'Third Party Fishery Care');
+  (
+    21,
+    'TEAM',
+    'Designer Consulting Ltd.'
+  ),
+  (
+    22,
+    'คคง.',
+    'Construction Supervision Ltd.'
+  ),
+  (
+    41,
+    'ผรม.1',
+    'Contractor งานทางทะเล'
+  ),
+  (
+    42,
+    'ผรม.2',
+    'Contractor อาคารและระบบ'
+  ),
+  (
+    43,
+    'ผรม.3',
+    'Contractor #3 Ltd.'
+  ),
+  (
+    44,
+    'ผรม.4',
+    'Contractor #4 Ltd.'
+  ),
+  (
+    31,
+    'EN',
+    'Third Party Environment'
+  ),
+  (
+    32,
+    'CAR',
+    'Third Party Fishery Care'
+  );
 -- Seed project
 insert into projects (project_code, project_name)
 values (

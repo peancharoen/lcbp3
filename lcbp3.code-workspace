@@ -73,10 +73,21 @@
       "editor.defaultFormatter": "dbaeumer.vscode-eslint"
     },
     "[sql]": {
-      "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode",
+      "editor.defaultFormatter": "mtxr.sqltools",
       "editor.tabSize": 2,
       "editor.insertSpaces": true
     },
+    "sqltools.codelensLanguages": ["sql", ""],
+    "sqltools.format": {
+      "language": "sql",
+      "params": {
+        "keywordCase": "upper", // ทำให้ INSERT, VALUES เป็นตัวใหญ่
+        "tabWidth": 2, // เยื้อง 3 ช่องว่าง (ปรับจาก 4 เป็น 3 เพื่อ match ตัวอย่าง)
+        "expressionWidth": 80 // ความยาวสูงสุดต่อบรรทัดก่อนตีบรรทัดใหม่ (ป้องกันคอลัมน์แยกบรรทัด)
+      }
+    },
+    "sqltools.formatOnSave": true,
+    "sqltools.formatOnSaveLanguage": "sql",
     // ========================================
     // CODE ACTION ON SAVE
     // ========================================
@@ -635,7 +646,18 @@
     "debug.console.lineHeight": 1.2,
     "debug.internalConsoleOptions": "openOnSessionStart",
     "debug.openDebug": "openOnDebugBreak",
-    "debug.showBreakpointsInOverviewRuler": true
+    "debug.showBreakpointsInOverviewRuler": true,
+    "prettier.configPath": "./.prettierrc",
+    "sqltools.connections": [
+      {
+        "name": "MariaDB",
+        "server": "localhost",
+        "port": 3306,
+        "user": "root",
+        "password": "",
+        "database": "lcbp3"
+      }
+    ]
   },
 
   // ========================================
