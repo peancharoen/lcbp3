@@ -73,17 +73,24 @@
       "editor.defaultFormatter": "dbaeumer.vscode-eslint"
     },
     "[sql]": {
-      "editor.defaultFormatter": "mtxr.sqltools",
       "editor.tabSize": 2,
       "editor.insertSpaces": true
     },
-    "sqltools.codelensLanguages": ["sql", ""],
+    "sqltools.codelensLanguages": ["sql"],
     "sqltools.format": {
       "language": "sql",
       "params": {
         "keywordCase": "upper", // ทำให้ INSERT, VALUES เป็นตัวใหญ่
         "tabWidth": 2, // เยื้อง 3 ช่องว่าง (ปรับจาก 4 เป็น 3 เพื่อ match ตัวอย่าง)
-        "expressionWidth": 80 // ความยาวสูงสุดต่อบรรทัดก่อนตีบรรทัดใหม่ (ป้องกันคอลัมน์แยกบรรทัด)
+        "expressionWidth": 80, // ความยาวสูงสุดต่อบรรทัดก่อนตีบรรทัดใหม่ (ป้องกันคอลัมน์แยกบรรทัด)
+        "reservedWordCase": "upper", // ทำให้คำสงวนเป็นตัวใหญ่
+        "linesBetweenQueries": 1,
+        "logicalOperatorNewline": "before",
+        "aliasAs": "before",
+        "commaPosition": "after",
+        "linesAroundComments": 0,
+        "tabulateAlias": false,
+        "newlineBeforeSemicolon": false
       }
     },
     "sqltools.formatOnSave": true,

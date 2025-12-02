@@ -3,16 +3,8 @@
 -- Deploy Seed Data
 -- ==========================================================
 -- Seed organization
-insert into organizations (
-    id,
-    organization_code,
-    organization_name
-  )
-values (
-    1,
-    'กทท.',
-    'การท่าเรือแห่งประเทศไทย'
-  ),
+INSERT INTO organizations (id, organization_code, organization_name)
+VALUES (1, 'กทท.', 'การท่าเรือแห่งประเทศไทย'),
   (
     10,
     'สคฉ.3',
@@ -23,11 +15,7 @@ values (
     'สคฉ.3-01',
     'ตรวจรับพัสดุ ที่ปรึกษาควบคุมงาน'
   ),
-  (
-    12,
-    'สคฉ.3-02',
-    'ตรวจรับพัสดุ งานทางทะเล'
-  ),
+  (12, 'สคฉ.3-02', 'ตรวจรับพัสดุ งานทางทะเล'),
   (
     13,
     'สคฉ.3-03',
@@ -38,11 +26,7 @@ values (
     'สคฉ.3-04',
     'ตรวจรับพัสดุ ตรวจสอบผลกระทบสิ่งแวดล้อม'
   ),
-  (
-    15,
-    'สคฉ.3-05',
-    'ตรวจรับพัสดุ เยียวยาการประมง'
-  ),
+  (15, 'สคฉ.3-05', 'ตรวจรับพัสดุ เยียวยาการประมง'),
   (
     16,
     'สคฉ.3-06',
@@ -58,49 +42,17 @@ values (
     'สคฉ.3-xx',
     'ตรวจรับพัสดุ ที่ปรึกษาออกแบบ ส่วนที่ 4'
   ),
-  (
-    21,
-    'TEAM',
-    'Designer Consulting Ltd.'
-  ),
-  (
-    22,
-    'คคง.',
-    'Construction Supervision Ltd.'
-  ),
-  (
-    41,
-    'ผรม.1',
-    'Contractor งานทางทะเล'
-  ),
-  (
-    42,
-    'ผรม.2',
-    'Contractor อาคารและระบบ'
-  ),
-  (
-    43,
-    'ผรม.3',
-    'Contractor #3 Ltd.'
-  ),
-  (
-    44,
-    'ผรม.4',
-    'Contractor #4 Ltd.'
-  ),
-  (
-    31,
-    'EN',
-    'Third Party Environment'
-  ),
-  (
-    32,
-    'CAR',
-    'Third Party Fishery Care'
-  );
+(21, 'TEAM', 'Designer Consulting Ltd.'),
+(22, 'คคง.', 'Construction Supervision Ltd.'),
+(41, 'ผรม.1', 'Contractor งานทางทะเล'),
+(42, 'ผรม.2', 'Contractor อาคารและระบบ'),
+(43, 'ผรม.3', 'Contractor #3 Ltd.'),
+(44, 'ผรม.4', 'Contractor #4 Ltd.'),
+(31, 'EN', 'Third Party Environment'),
+(32, 'CAR', 'Third Party Fishery Care');
 -- Seed project
-insert into projects (project_code, project_name)
-values (
+INSERT INTO projects (project_code, project_name)
+VALUES (
     'LCBP3',
     'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)'
   ),
@@ -126,19 +78,19 @@ values (
   );
 -- Seed contract
 -- ใช้ Subquery เพื่อดึง project_id มาเชื่อมโยง ทำให้ไม่ต้องมานั่งจัดการ ID ด้วยตัวเอง
-insert into contracts (
+INSERT INTO contracts (
     contract_code,
     contract_name,
     project_id,
     is_active
   )
-values (
+VALUES (
     'LCBP3-DS',
     'งานจ้างที่ปรีกษาออกแบบ โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)',
     (
-      select id
-      from projects
-      where project_code = 'LCBP3'
+      SELECT id
+      FROM projects
+      WHERE project_code = 'LCBP3'
     ),
     true
   ),
@@ -146,9 +98,9 @@ values (
     'LCBP3-PS',
     'งานจ้างที่ปรีกษาควบคุมงาน โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)',
     (
-      select id
-      from projects
-      where project_code = 'LCBP3'
+      SELECT id
+      FROM projects
+      WHERE project_code = 'LCBP3'
     ),
     true
   ),
@@ -156,9 +108,9 @@ values (
     'LCBP3-C1',
     'งานก่อสร้าง โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1) งานก่อสร้างงานทางทะเล',
     (
-      select id
-      from projects
-      where project_code = 'LCBP3-C1'
+      SELECT id
+      FROM projects
+      WHERE project_code = 'LCBP3-C1'
     ),
     true
   ),
@@ -166,9 +118,9 @@ values (
     'LCBP3-C2',
     'งานก่อสร้าง โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 2) งานก่อสร้างอาคาร ท่าเทียบเรือ ระบบถนน และระบบสาธารณูปโภค',
     (
-      select id
-      from projects
-      where project_code = 'LCBP3-C2'
+      SELECT id
+      FROM projects
+      WHERE project_code = 'LCBP3-C2'
     ),
     true
   ),
@@ -176,9 +128,9 @@ values (
     'LCBP3-C3',
     'งานก่อสร้าง โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 3) งานก่อสร้าง',
     (
-      select id
-      from projects
-      where project_code = 'LCBP3-C3'
+      SELECT id
+      FROM projects
+      WHERE project_code = 'LCBP3-C3'
     ),
     true
   ),
@@ -186,9 +138,9 @@ values (
     'LCBP3-C4',
     'งานก่อสร้าง โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 4) งานก่อสร้าง',
     (
-      select id
-      from projects
-      where project_code = 'LCBP3-C4'
+      SELECT id
+      FROM projects
+      WHERE project_code = 'LCBP3-C4'
     ),
     true
   ),
@@ -196,15 +148,15 @@ values (
     'LCBP3-EN',
     'งานจ้างเหมาตรวจสอบผลกระทบสิ่งแวดล้อมนะหว่างงานก่อสร้างโครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)',
     (
-      select id
-      from projects
-      where project_code = 'LCBP3'
+      SELECT id
+      FROM projects
+      WHERE project_code = 'LCBP3'
     ),
     true
   );
 -- Seed user
 -- Initial SUPER_ADMIN user
-insert into `users` (
+INSERT INTO `users` (
     `user_id`,
     `username`,
     `password_hash`,
@@ -214,7 +166,7 @@ insert into `users` (
     `line_id`,
     `primary_organization_id`
   )
-values (
+VALUES (
     1,
     'superadmin',
     '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
@@ -258,56 +210,91 @@ values (
 -- Seed Roles (บทบาทพื้นฐาน 5 บทบาท ตาม Req 4.3)
 -- ==========================================================
 -- 1. Superadmin (Global)
-insert into roles (role_id, role_name, scope, description)
-values (
+INSERT INTO roles (
+    role_id,
+    role_name,
+    scope,
+    description
+  )
+VALUES (
     1,
     'Superadmin',
     'Global',
     'ผู้ดูแลระบบสูงสุด: สามารถทำทุกอย่างในระบบ, จัดการองค์กร, และจัดการข้อมูลหลักระดับ Global'
   );
 -- 2. Org Admin (Organization)
-insert into roles (role_id, role_name, scope, description)
-values (
+INSERT INTO roles (
+    role_id,
+    role_name,
+    scope,
+    description
+  )
+VALUES (
     2,
     'Org Admin',
     'Organization',
     'ผู้ดูแลองค์กร: จัดการผู้ใช้ในองค์กร, จัดการบทบาท / สิทธิ์ภายในองค์กร, และดูรายงานขององค์กร'
   );
 -- 3. Document Control (Organization)
-insert into roles (role_id, role_name, scope, description)
-values (
+INSERT INTO roles (
+    role_id,
+    role_name,
+    scope,
+    description
+  )
+VALUES (
     3,
     'Document Control',
     'Organization',
     'ควบคุมเอกสารขององค์กร: เพิ่ม / แก้ไข / ลบเอกสาร, และกำหนดสิทธิ์เอกสารภายในองค์กร'
   );
 -- 4. Editor (Organization)
-insert into roles (role_id, role_name, scope, description)
-values (
+INSERT INTO roles (
+    role_id,
+    role_name,
+    scope,
+    description
+  )
+VALUES (
     4,
     'Editor',
     'Organization',
     'ผู้แก้ไขเอกสารขององค์กร: เพิ่ม / แก้ไขเอกสารที่ได้รับมอบหมาย'
   );
 -- 5. Viewer (Organization)
-insert into roles (role_id, role_name, scope, description)
-values (
+INSERT INTO roles (
+    role_id,
+    role_name,
+    scope,
+    description
+  )
+VALUES (
     5,
     'Viewer',
     'Organization',
     'ผู้ดูเอกสารขององค์กร: ดูเอกสารที่มีสิทธิ์เข้าถึงเท่านั้น'
   );
 -- 6. Project Manager (Project)
-insert into roles (role_id, role_name, scope, description)
-values (
+INSERT INTO roles (
+    role_id,
+    role_name,
+    scope,
+    description
+  )
+VALUES (
     6,
     'Project Manager',
     'Project',
     'ผู้จัดการโครงการ: จัดการสมาชิกในโครงการ, สร้าง / จัดการสัญญาในโครงการ, และดูรายงานโครงการ'
   );
 -- 7. Contract Admin (Contract)
-insert into roles (role_id, role_name, scope, description)
-values (
+INSERT INTO roles (
+    role_id,
+    role_name,
+    scope,
+    description
+  )
+VALUES (
     7,
     'Contract Admin',
     'Contract',
@@ -317,26 +304,74 @@ values (
 -- 2. Seed Permissions (สิทธิ์การใช้งานทั้งหมด)
 -- สิทธิ์ระดับระบบและการจัดการหลัก (System & Master Data)
 -- =====================================================
-insert into permissions (permission_id, permission_name, description)
-values (
+INSERT INTO permissions (
+    permission_id,
+    permission_name,
+    description
+  )
+VALUES (
     1,
     'system.manage_all',
     'ทำทุกอย่างในระบบ (Superadmin Power)'
   ),
   -- การจัดการองค์กร
-  (2, 'organization.create', 'สร้างองค์กรใหม่'),
-  (3, 'organization.edit', 'แก้ไขข้อมูลองค์กร'),
-  (4, 'organization.delete', 'ลบองค์กร'),
-  (5, 'organization.view', 'ดูรายการองค์กร'),
+  (
+    2,
+    'organization.create',
+    'สร้างองค์กรใหม่'
+  ),
+  (
+    3,
+    'organization.edit',
+    'แก้ไขข้อมูลองค์กร'
+  ),
+  (
+    4,
+    'organization.delete',
+    'ลบองค์กร'
+  ),
+  (
+    5,
+    'organization.view',
+    'ดูรายการองค์กร'
+  ),
   -- การจัดการโครงการ
-  (6, 'project.create', 'สร้างโครงการใหม่'),
-  (7, 'project.edit', 'แก้ไขข้อมูลโครงการ'),
-  (8, 'project.delete', 'ลบโครงการ'),
-  (9, 'project.view', 'ดูรายการโครงการ'),
+  (
+    6,
+    'project.create',
+    'สร้างโครงการใหม่'
+  ),
+  (
+    7,
+    'project.edit',
+    'แก้ไขข้อมูลโครงการ'
+  ),
+  (
+    8,
+    'project.delete',
+    'ลบโครงการ'
+  ),
+  (
+    9,
+    'project.view',
+    'ดูรายการโครงการ'
+  ),
   -- การจัดการบทบาทและสิทธิ์ (Roles & Permissions)
-  (10, 'role.create', 'สร้างบทบาท (Role) ใหม่'),
-  (11, 'role.edit', 'แก้ไขบทบาท (Role)'),
-  (12, 'role.delete', 'ลบบทบาท (Role)'),
+  (
+    10,
+    'role.create',
+    'สร้างบทบาท (Role) ใหม่'
+  ),
+  (
+    11,
+    'role.edit',
+    'แก้ไขบทบาท (Role)'
+  ),
+  (
+    12,
+    'role.delete',
+    'ลบบทบาท (Role)'
+  ),
   (
     13,
     'permission.assign',
@@ -358,12 +393,32 @@ values (
     'master_data.drawing_category.manage',
     'จัดการหมวดหมู่แบบ (Drawing Categories)'
   ),
-  (17, 'master_data.tag.manage', 'จัดการ Tags'),
+  (
+    17,
+    'master_data.tag.manage',
+    'จัดการ Tags'
+  ),
   -- การจัดการผู้ใช้งาน
-  (18, 'user.create', 'สร้างผู้ใช้งานใหม่'),
-  (19, 'user.edit', 'แก้ไขข้อมูลผู้ใช้งาน'),
-  (20, 'user.delete', 'ลบ / ปิดการใช้งานผู้ใช้'),
-  (21, 'user.view', 'ดูข้อมูลผู้ใช้งาน'),
+  (
+    18,
+    'user.create',
+    'สร้างผู้ใช้งานใหม่'
+  ),
+  (
+    19,
+    'user.edit',
+    'แก้ไขข้อมูลผู้ใช้งาน'
+  ),
+  (
+    20,
+    'user.delete',
+    'ลบ / ปิดการใช้งานผู้ใช้'
+  ),
+  (
+    21,
+    'user.view',
+    'ดูข้อมูลผู้ใช้งาน'
+  ),
   (
     22,
     'user.assign_organization',
@@ -372,8 +427,12 @@ values (
 -- =====================================================
 -- == 2. สิทธิ์การจัดการโครงการและสัญญา (Project & Contract) ==
 -- =====================================================
-insert into permissions (permission_id, permission_name, description)
-values (
+INSERT INTO permissions (
+    permission_id,
+    permission_name,
+    description
+  )
+VALUES (
     23,
     'project.manage_members',
     'จัดการสมาชิกในโครงการ (เชิญ / ถอดสมาชิก)'
@@ -398,26 +457,50 @@ values (
     'contract.manage_members',
     'จัดการสมาชิกในสัญญา'
   ),
-  (28, 'contract.view', 'ดูข้อมูลสัญญา');
+  (
+    28,
+    'contract.view',
+    'ดูข้อมูลสัญญา'
+  );
 -- =====================================================
 -- == 3. สิทธิ์การจัดการเอกสาร (Document Management) ==
 -- =====================================================
 -- สิทธิ์ทั่วไปสำหรับเอกสารทุกประเภท
-insert into permissions (permission_id, permission_name, description)
-values (
+INSERT INTO permissions (
+    permission_id,
+    permission_name,
+    description
+  )
+VALUES (
     29,
     'document.create_draft',
     'สร้างเอกสารในสถานะฉบับร่าง (Draft) '
   ),
-  (30, 'document.submit', 'ส่งเอกสาร (Submitted)'),
-  (31, 'document.view', 'ดูเอกสาร'),
-  (32, 'document.edit', 'แก้ไขเอกสาร (ทั่วไป)'),
+  (
+    30,
+    'document.submit',
+    'ส่งเอกสาร (Submitted)'
+  ),
+  (
+    31,
+    'document.view',
+    'ดูเอกสาร'
+  ),
+  (
+    32,
+    'document.edit',
+    'แก้ไขเอกสาร (ทั่วไป)'
+  ),
   (
     33,
     'document.admin_edit',
     'แก้ไข / ถอน / ยกเลิกเอกสารที่ส่งแล้ว (Admin Power) '
   ),
-  (34, 'document.delete', 'ลบเอกสาร'),
+  (
+    34,
+    'document.delete',
+    'ลบเอกสาร'
+  ),
   (
     35,
     'document.attach',
@@ -430,7 +513,11 @@ values (
     'สร้างเอกสารโต้ตอบ (Correspondence) '
   ),
   -- สิทธิ์เฉพาะสำหรับ Request for Approval (RFA)
-  (37, 'rfa.create', 'สร้างเอกสารขออนุมัติ (RFA)'),
+  (
+    37,
+    'rfa.create',
+    'สร้างเอกสารขออนุมัติ (RFA)'
+  ),
   (
     38,
     'rfa.manage_shop_drawings',
@@ -464,12 +551,20 @@ values (
     'circulation.acknowledge',
     'รับทราบใบเวียน (Information)'
   ),
-  (44, 'circulation.close', 'ปิดใบเวียน');
+  (
+    44,
+    'circulation.close',
+    'ปิดใบเวียน'
+  );
 -- =====================================================
 -- == 4. สิทธิ์การจัดการ Workflow ==
 -- =====================================================
-insert into permissions (permission_id, permission_name, description)
-values (
+INSERT INTO permissions (
+    permission_id,
+    permission_name,
+    description
+  )
+VALUES (
     45,
     'workflow.action_review',
     'ดำเนินการในขั้นตอนปัจจุบัน (เช่น ตรวจสอบแล้ว)'
@@ -487,8 +582,16 @@ values (
 -- =====================================================
 -- == 5. สิทธิ์ด้านการค้นหาและรายงาน (Search & Reporting) ==
 -- =====================================================
-insert into permissions (permission_id, permission_name, description)
-values (48, 'search.advanced', 'ใช้งานการค้นหาขั้นสูง'),
+INSERT INTO permissions (
+    permission_id,
+    permission_name,
+    description
+  )
+VALUES (
+    48,
+    'search.advanced',
+    'ใช้งานการค้นหาขั้นสูง'
+  ),
   (
     49,
     'report.generate',
@@ -499,22 +602,22 @@ values (48, 'search.advanced', 'ใช้งานการค้นหาขั
 -- ==========================================================
 -- Seed data for the 'role_permissions 'table
 -- This table links roles to their specific permissions.
--- NOTE: This assumes the role_id and permission_id from the previous seed data files.
+-- NOTE: This assumes the role_id and permission_id FROM the previous seed data files.
 -- Superadmin (role_id = 1), Org Admin (role_id = 2), Document Control (role_id = 3), etc.
 -- =====================================================
 -- == 1. Superadmin (role_id = 1) - Gets ALL permissions ==
 -- =====================================================
 -- Superadmin can do everything. We can dynamically link all permissions to this role.
 -- This is a robust way to ensure Superadmin always has full power.
-insert into role_permissions (role_id, permission_id)
-select 1,
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 1,
   permission_id
-from permissions;
+FROM permissions;
 -- =====================================================
 -- == 2. Org Admin (role_id = 2) ==
 -- =====================================================
-insert into role_permissions (role_id, permission_id)
-values -- จัดการผู้ใช้ในองค์กร
+INSERT INTO role_permissions (role_id, permission_id)
+VALUES -- จัดการผู้ใช้ในองค์กร
   (2, 18),
   -- user.create
   (2, 19),
@@ -548,8 +651,8 @@ values -- จัดการผู้ใช้ในองค์กร
 -- =====================================================
 -- == 3. Document Control (role_id = 3) ==
 -- =====================================================
-insert into role_permissions (role_id, permission_id)
-values -- สิทธิ์จัดการเอกสารทั้งหมด
+INSERT INTO role_permissions (role_id, permission_id)
+VALUES -- สิทธิ์จัดการเอกสารทั้งหมด
   (3, 29),
   -- document.create_draft
   (3, 30),
@@ -599,8 +702,8 @@ values -- สิทธิ์จัดการเอกสารทั้งห�
 -- =====================================================
 -- == 4. Editor (role_id = 4) ==
 -- =====================================================
-insert into role_permissions (role_id, permission_id)
-values -- สิทธิ์แก้ไขเอกสาร (แต่ไม่ใช่สิทธิ์ Admin)
+INSERT INTO role_permissions (role_id, permission_id)
+VALUES -- สิทธิ์แก้ไขเอกสาร (แต่ไม่ใช่สิทธิ์ Admin)
   (4, 29),
   -- document.create_draft
   (4, 30),
@@ -630,8 +733,8 @@ values -- สิทธิ์แก้ไขเอกสาร (แต่ไม�
 -- =====================================================
 -- == 5. Viewer (role_id = 5) ==
 -- =====================================================
-insert into role_permissions (role_id, permission_id)
-values -- สิทธิ์ดูเท่านั้น
+INSERT INTO role_permissions (role_id, permission_id)
+VALUES -- สิทธิ์ดูเท่านั้น
   (5, 31),
   -- document.view
   (5, 48);
@@ -639,8 +742,8 @@ values -- สิทธิ์ดูเท่านั้น
 -- =====================================================
 -- == 6. Project Manager (role_id = 6) ==
 -- =====================================================
-insert into role_permissions (role_id, permission_id)
-values -- สิทธิ์จัดการโครงการ
+INSERT INTO role_permissions (role_id, permission_id)
+VALUES -- สิทธิ์จัดการโครงการ
   (6, 23),
   -- project.manage_members
   (6, 24),
@@ -687,8 +790,8 @@ values -- สิทธิ์จัดการโครงการ
 -- =====================================================
 -- == 7. Contract Admin (role_id = 7) ==
 -- =====================================================
-insert into role_permissions (role_id, permission_id)
-values -- สิทธิ์จัดการสัญญา
+INSERT INTO role_permissions (role_id, permission_id)
+VALUES -- สิทธิ์จัดการสัญญา
   (7, 27),
   -- contract.manage_members
   (7, 28),
@@ -722,7 +825,7 @@ values -- สิทธิ์จัดการสัญญา
   -- circulation.create
   (7, 48);
 -- Seed data for the 'user_assignments' table
-insert into `user_assignments` (
+INSERT INTO `user_assignments` (
     `id`,
     `user_id`,
     `role_id`,
@@ -731,21 +834,29 @@ insert into `user_assignments` (
     `contract_id`,
     `assigned_by_user_id`
   )
-values (1, 1, 1, null, null, null, null),
+VALUES (
+    1,
+    1,
+    1,
+    null,
+    null,
+    null,
+    null
+  ),
   (2, 2, 2, 1, null, null, null);
 -- =====================================================
 -- == 4. การเชื่อมโยงโครงการกับองค์กร (project_organizations) ==
 -- =====================================================
 -- โครงการหลัก (LCBP3) จะมีองค์กรหลักๆ เข้ามาเกี่ยวข้องทั้งหมด
-insert into project_organizations (project_id, organization_id)
-select (
-    select id
-    from projects
-    where project_code = 'LCBP3 '
+INSERT INTO project_organizations (project_id, organization_id)
+SELECT (
+    SELECT id
+    FROM projects
+    WHERE project_code = 'LCBP3 '
   ),
   id
-from organizations
-where organization_code in (
+FROM organizations
+WHERE organization_code in (
     'กทท.',
     'สคฉ.3',
     'TEAM',
@@ -758,1424 +869,1670 @@ where organization_code in (
     'CAR '
   );
 -- โครงการย่อย (LCBP3C1) จะมีเฉพาะองค์กรที่เกี่ยวข้อง
-insert into project_organizations (project_id, organization_id)
-select (
-    select id
-    from projects
-    where project_code = 'LCBP3-C1 '
+INSERT INTO project_organizations (project_id, organization_id)
+SELECT (
+    SELECT id
+    FROM projects
+    WHERE project_code = 'LCBP3-C1 '
   ),
   id
-from organizations
-where organization_code in ('กทท.', 'สคฉ.3', 'สคฉ.3 -02', 'คคง.', 'ผรม.1 ');
+FROM organizations
+WHERE organization_code in (
+    'กทท.',
+    'สคฉ.3',
+    'สคฉ.3 -02',
+    'คคง.',
+    'ผรม.1 '
+  );
 -- ทำเช่นเดียวกันสำหรับโครงการอื่นๆ (ตัวอย่าง)
-insert into project_organizations (project_id, organization_id)
-select (
-    select id
-    from projects
-    where project_code = 'LCBP3-C2 '
+INSERT INTO project_organizations (project_id, organization_id)
+SELECT (
+    SELECT id
+    FROM projects
+    WHERE project_code = 'LCBP3-C2 '
   ),
   id
-from organizations
-where organization_code in ('กทท.', 'สคฉ.3', 'สคฉ.3 -03', 'คคง.', 'ผรม.2 ');
+FROM organizations
+WHERE organization_code in (
+    'กทท.',
+    'สคฉ.3',
+    'สคฉ.3 -03',
+    'คคง.',
+    'ผรม.2 '
+  );
 -- =====================================================
 -- == 5. การเชื่อมโยงสัญญากับองค์กร (contract_organizations) ==
 -- =====================================================
 -- สัญญาที่ปรึกษาออกแบบ (DSLCBP3)
-insert into contract_organizations (contract_id, organization_id, role_in_contract)
-values (
+INSERT INTO contract_organizations (
+    contract_id,
+    organization_id,
+    role_in_contract
+  )
+VALUES (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-DS'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-DS'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'กทท.'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'กทท.'
     ),
     'Owner'
   ),
   (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-DS'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-DS'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'TEAM'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'TEAM'
     ),
     'Designer'
   );
 -- สัญญาที่ปรึกษาควบคุมงาน (PSLCBP3)
-insert into contract_organizations (contract_id, organization_id, role_in_contract)
-values (
+INSERT INTO contract_organizations (
+    contract_id,
+    organization_id,
+    role_in_contract
+  )
+VALUES (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-PS'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-PS'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'กทท.'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'กทท.'
     ),
     'Owner'
   ),
   (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-PS'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-PS'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'คคง.'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'คคง.'
     ),
     'Consultant'
   );
 -- สัญญางานก่อสร้าง ส่วนที่ 1 (LCBP3-C1)
-insert into contract_organizations (contract_id, organization_id, role_in_contract)
-values (
+INSERT INTO contract_organizations (
+    contract_id,
+    organization_id,
+    role_in_contract
+  )
+VALUES (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-C1'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-C1'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'กทท.'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'กทท.'
     ),
     'Owner'
   ),
   (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-C1'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-C1'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'ผรม.1'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'ผรม.1'
     ),
     'Contractor'
   );
 -- สัญญางานก่อสร้าง ส่วนที่ 2 (LCBP3-C2)
-insert into contract_organizations (contract_id, organization_id, role_in_contract)
-values (
+INSERT INTO contract_organizations (
+    contract_id,
+    organization_id,
+    role_in_contract
+  )
+VALUES (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-C2'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-C2'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'กทท.'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'กทท.'
     ),
     'Owner'
   ),
   (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-C2'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-C2'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'ผรม.2'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'ผรม.2'
     ),
     'Contractor'
   );
 -- สัญญาตรวจสอบสิ่งแวดล้อม (LCBP3-EN)
-insert into contract_organizations (contract_id, organization_id, role_in_contract)
-values (
+INSERT INTO contract_organizations (
+    contract_id,
+    organization_id,
+    role_in_contract
+  )
+VALUES (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-EN'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-EN'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'กทท.'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'กทท.'
     ),
     'Owner'
   ),
   (
     (
-      select id
-      from contracts
-      where contract_code = 'LCBP3-EN'
+      SELECT id
+      FROM contracts
+      WHERE contract_code = 'LCBP3-EN'
     ),
     (
-      select id
-      from organizations
-      where organization_code = 'EN'
+      SELECT id
+      FROM organizations
+      WHERE organization_code = 'EN'
     ),
     'Consultant'
   );
 -- Seed correspondence_status
-insert into correspondence_status (status_code, status_name, sort_order, is_active)
-values ('DRAFT', 'Draft', 10, 1),
-  ('SUBOWN', 'Submitted to Owner', 21, 1),
-  ('SUBDSN', 'Submitted to Designer', 22, 1),
-  ('SUBCSC', 'Submitted to CSC', 23, 1),
-  ('SUBCON', 'Submitted to Contractor', 24, 1),
-  ('SUBOTH', 'Submitted to Others', 25, 1),
-  ('REPOWN', 'Reply by Owner', 31, 1),
-  ('REPDSN', 'Reply by Designer', 32, 1),
-  ('REPCSC', 'Reply by CSC', 33, 1),
-  ('REPCON', 'Reply by Contractor', 34, 1),
-  ('REPOTH', 'Reply by Others', 35, 1),
-  ('RSBOWN', 'Resubmited by Owner', 41, 1),
-  ('RSBDSN', 'Resubmited by Designer', 42, 1),
-  ('RSBCSC', 'Resubmited by CSC', 43, 1),
-  ('RSBCON', 'Resubmited by Contractor', 44, 1),
-  ('CLBOWN', 'Closed by Owner', 51, 1),
-  ('CLBDSN', 'Closed by Designer', 52, 1),
-  ('CLBCSC', 'Closed by CSC', 53, 1),
-  ('CLBCON', 'Closed by Contractor', 54, 1),
-  ('CCBOWN', 'Canceled by Owner', 91, 1),
-  ('CCBDSN', 'Canceled by Designer', 92, 1),
-  ('CCBCSC', 'Canceled by CSC', 93, 1),
-  ('CCBCON', 'Canceled by Contractor', 94, 1);
+INSERT INTO correspondence_status (
+    status_code,
+    status_name,
+    sort_order,
+    is_active
+  )
+VALUES ('DRAFT', 'Draft', 10, 1),
+  (
+    'SUBOWN',
+    'Submitted to Owner',
+    21,
+    1
+  ),
+  (
+    'SUBDSN',
+    'Submitted to Designer',
+    22,
+    1
+  ),
+  (
+    'SUBCSC',
+    'Submitted to CSC',
+    23,
+    1
+  ),
+  (
+    'SUBCON',
+    'Submitted to Contractor',
+    24,
+    1
+  ),
+  (
+    'SUBOTH',
+    'Submitted to Others',
+    25,
+    1
+  ),
+  (
+    'REPOWN',
+    'Reply by Owner',
+    31,
+    1
+  ),
+  (
+    'REPDSN',
+    'Reply by Designer',
+    32,
+    1
+  ),
+  (
+    'REPCSC',
+    'Reply by CSC',
+    33,
+    1
+  ),
+  (
+    'REPCON',
+    'Reply by Contractor',
+    34,
+    1
+  ),
+  (
+    'REPOTH',
+    'Reply by Others',
+    35,
+    1
+  ),
+  (
+    'RSBOWN',
+    'Resubmited by Owner',
+    41,
+    1
+  ),
+  (
+    'RSBDSN',
+    'Resubmited by Designer',
+    42,
+    1
+  ),
+  (
+    'RSBCSC',
+    'Resubmited by CSC',
+    43,
+    1
+  ),
+  (
+    'RSBCON',
+    'Resubmited by Contractor',
+    44,
+    1
+  ),
+  (
+    'CLBOWN',
+    'Closed by Owner',
+    51,
+    1
+  ),
+  (
+    'CLBDSN',
+    'Closed by Designer',
+    52,
+    1
+  ),
+  (
+    'CLBCSC',
+    'Closed by CSC',
+    53,
+    1
+  ),
+  (
+    'CLBCON',
+    'Closed by Contractor',
+    54,
+    1
+  ),
+  (
+    'CCBOWN',
+    'Canceled by Owner',
+    91,
+    1
+  ),
+  (
+    'CCBDSN',
+    'Canceled by Designer',
+    92,
+    1
+  ),
+  (
+    'CCBCSC',
+    'Canceled by CSC',
+    93,
+    1
+  ),
+  (
+    'CCBCON',
+    'Canceled by Contractor',
+    94,
+    1
+  );
 -- Seed correspondence_types
-insert into correspondence_types (type_code, type_name, sort_order, is_active)
-values ('RFA', 'Request for Approval', 1, 1),
-  ('RFI', 'Request for Information', 2, 1),
-  ('TRANSMITTAL', 'Transmittal', 3, 1),
+INSERT INTO correspondence_types (
+    type_code,
+    type_name,
+    sort_order,
+    is_active
+  )
+VALUES (
+    'RFA',
+    'Request for Approval',
+    1,
+    1
+  ),
+  (
+    'RFI',
+    'Request for Information',
+    2,
+    1
+  ),
+  (
+    'TRANSMITTAL',
+    'Transmittal',
+    3,
+    1
+  ),
   ('EMAIL', 'Email', 4, 1),
-  ('INSTRUCTION', 'Instruction', 5, 1),
+  (
+    'INSTRUCTION',
+    'Instruction',
+    5,
+    1
+  ),
   ('LETTER', 'Letter', 6, 1),
   ('MEMO', 'Memorandum', 7, 1),
-  ('MOM', 'Minutes of Meeting', 8, 1),
+  (
+    'MOM',
+    'Minutes of Meeting',
+    8,
+    1
+  ),
   ('NOTICE', 'Notice', 9, 1),
   ('OTHER', 'Other', 10, 1);
 -- Seed rfa_types
-insert into rfa_types (
+INSERT INTO rfa_types (
     contract_id,
     type_code,
     type_name_en,
     type_name_th
   )
-select id,
+SELECT id,
   'ADW',
   'As Built Drawing',
   'แบบร่างหลังการก่อสร้าง'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'BC',
   'Box Culvert',
   'ท่อระบายน้ำรูปกล่อง'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'BM',
   'Benchmark',
   'หมุดหลักฐาน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'CER',
   'Certificates',
   'ใบรับรอง'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'CN',
   'Canal Drainage',
   'ระบบระบายน้ำในคลอง'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'CON',
   'Contract',
   'สัญญา'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'DDS',
   'Design Data Submission',
   'นำส่งข้อมูลการออกแบบ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'DDW',
   'Draft Drawing',
   'แบบร่าง'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'DRW',
   'Drawings (All Types)',
   'แบบก่อสร้าง'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'DSN',
   'Design/Calculation/Manual (All Stages)',
   'ออกแบบ / คำนวณ / คู่มือ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'GEN',
   'General',
   'ทั่วไป'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'ICR',
   'Incident Report',
   'รายงานการเกิดอุบัติเหตุและการบาดเจ็บ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'INS',
   'Insurances/Bond/Guarantee',
   'การประกัน / พันธบัตร / การค้ำประกัน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'INR',
   'Inspection/Audit/Surveillance Report',
   'รายงานการตรวจสอบ / การตรวจสอบ / รายงานการเฝ้าระวัง'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'ITP',
   'Inspection and Test Plan',
   'แผนการตรวจสอบและทดสอบ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'JSA',
   'Jobs Analysis',
   'รายงานการวิเคราะห์ความปลอดภัย'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'MAN',
   'Manual',
   'คู่มือ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'MAT',
   'Materials/Equipment/Plant',
   'วัสดุ / อุปกรณ์ / โรงงาน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'MOM',
   'Minutes of Meeting',
   'รายงานการประชุม'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'MPR',
   'Monthly Progress Report',
   'รายงานความคืบหน้าประจำเดือน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'MST',
   'Method Statement for Construction/Installation',
   'ขั้นตอนการก่อสร้าง / ติดตั้ง'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'NDS',
   'Non-Design Data Submission',
   'นำส่งข้อมูลที่ไม่เกี่ยวข้องกับการออกแบบ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'PMA',
   'Payment/Invoice/Retention/Estimate',
   'การชำระเงิน / ใบแจ้งหนี้ / ประกันผลงาน / ประมาณการ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'PRD',
   'Procedure',
   'ระเบียบปฏิบัติ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'PRG',
   'Progress of Construction',
   'ความคืบหน้าของการก่อสร้าง / ภาพถ่าย / วิดีโอ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'QMS',
   'Quality Document (Plan/Work Instruction)',
   'เอกสารด้านคุณภาพ (แผนงาน / ข้อแนะนำในการทำงาน)'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'RPT',
   'Report',
   'รายงาน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SAR',
   'Semi Annual Report',
   'รายงานประจำหกเดือน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SCH',
   'Schedule and Program',
   'แผนงาน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SDW',
   'Shop Drawing',
   'แบบขยายรายละเอียด'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SI',
   'Soil Investigation',
   'การตรวจสอบดิน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SPE',
   'Specification',
   'ข้อกำหนด'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'TNR',
   'Training Report',
   'รายงานการฝึกปฏิบัติ'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'UC',
   'Underground Construction',
   'โครงสร้างใต้ดิน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'VEN',
   'Vendor',
   'ผู้ขาย'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'VRO',
   'Variation Request/Instruction/Order',
   'คำขอเปลี่ยนแปลง / ข้อเสนอแนะ / ข้อเรียกร้อง'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'WTY',
   'Warranty',
   'การประกัน'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'GEN',
   'General',
   'ทั่วไป'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'CON',
   'Contract',
   'สัญญา'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'INS',
   'Insurances/Bond/Guarantee',
   'การประกัน / พันธบัตร / การค้ำประกัน'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'SCH',
   'Schedule and Program',
   'แผนงาน'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'PMA',
   'Payment/Invoice/Retention/Estimate',
   'การชำระเงิน / ใบแจ้งหนี้ / ประกันผลงาน / ประมาณการ'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'VRO',
   'Variation Request/Instruction/Order',
   'คำขอเปลี่ยนแปลง / ข้อเสนอแนะ / ข้อเรียกร้อง'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'VEN',
   'Vendor',
   'ผู้ขาย'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'WTY',
   'Warranty',
   'การประกัน'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'DRW',
   'Drawings (All Types)',
   'แบบก่อสร้าง'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'DDW',
   'Draft Drawing',
   'แบบร่าง'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'SDW',
   'Shop Drawing',
   'แบบขยายรายละเอียด'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'ADW',
   'As Built Drawing',
   'แบบร่างหลังการก่อสร้าง'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'DDS',
   'Design Data Submission',
   'นำส่งข้อมูลการออกแบบ'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'DSN',
   'Design/Calculation/Manual (All Stages)',
   'ออกแบบ / คำนวณ / คู่มือ'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'NDS',
   'Non-Design Data Submission',
   'นำส่งข้อมูลที่ไม่เกี่ยวข้องกับการออกแบบ'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'PRD',
   'Procedure',
   'ระเบียบปฏิบัติ'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'MST',
   'Method Statement for Construction/Installation',
   'ขั้นตอนการก่อสร้าง / ติดตั้ง'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'QMS',
   'Quality Document (Plan/Work Instruction)',
   'เอกสารด้านคุณภาพ (แผนงาน / ข้อแนะนำในการทำงาน)'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'INR',
   'Inspection/Audit/Surveillance Report',
   'รายงานการตรวจสอบ / การตรวจสอบ / รายงานการเฝ้าระวัง'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'ITP',
   'Inspection and Test Plan',
   'แผนการตรวจสอบและทดสอบ'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'MAT',
   'Materials/Equipment/Plant',
   'วัสดุ / อุปกรณ์ / โรงงาน'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'SPE',
   'Specification',
   'ข้อกำหนด'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'MAN',
   'Manual',
   'คู่มือ'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'CER',
   'Certificates',
   'ใบรับรอง'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'SAR',
   'Semi Annual Report',
   'รายงานประจำหกเดือน'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'JSA',
   'Jobs Analysis',
   'รายงานการวิเคราะห์ความปลอดภัย'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'MOM',
   'Minutes of Meeting',
   'รายงานการประชุม'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'MPR',
   'Monthly Progress Report',
   'รายงานความคืบหน้าประจำเดือน'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'ICR',
   'Incident Report',
   'รายงานการเกิดอุบัติเหตุและการบาดเจ็บ'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'PRG',
   'Progress of Construction',
   'ความคืบหน้าของการก่อสร้าง / ภาพถ่าย / วิดีโอ'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'RPT',
   'Report',
   'รายงาน'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'TNR',
   'Training Report',
   'รายงานการฝึกปฏิบัติ'
-from contracts
-where contract_code = 'LCBP3-C2';
+FROM contracts
+WHERE contract_code = 'LCBP3-C2';
 -- Seed rfa_status_codes
-insert into rfa_status_codes (
+INSERT INTO rfa_status_codes (
     status_code,
     status_name,
     description,
     sort_order
   )
-values ('DFT', 'Draft', 'ฉบับร่าง', 1),
-  ('FAP', 'For Approve', 'เพื่อขออนุมัติ', 11),
-  ('FRE', 'For Review', 'เพื่อตรวจสอบ', 12),
-  ('FCO', 'For Construction', 'เพื่อก่อสร้าง', 20),
-  ('ASB', 'AS - Built', 'แบบก่อสร้างจริง', 30),
-  ('OBS', 'Obsolete', 'ไม่ใช้งาน', 80),
-  ('CC', 'Canceled', 'ยกเลิก', 99);
-insert into rfa_approve_codes (
+VALUES ('DFT', 'Draft', 'ฉบับร่าง', 1),
+  (
+    'FAP',
+    'For Approve',
+    'เพื่อขออนุมัติ',
+    11
+  ),
+  (
+    'FRE',
+    'For Review',
+    'เพื่อตรวจสอบ',
+    12
+  ),
+  (
+    'FCO',
+    'For Construction',
+    'เพื่อก่อสร้าง',
+    20
+  ),
+  (
+    'ASB',
+    'AS - Built',
+    'แบบก่อสร้างจริง',
+    30
+  ),
+  (
+    'OBS',
+    'Obsolete',
+    'ไม่ใช้งาน',
+    80
+  ),
+  (
+    'CC',
+    'Canceled',
+    'ยกเลิก',
+    99
+  );
+INSERT INTO rfa_approve_codes (
     approve_code,
     approve_name,
     sort_order,
     is_active
   )
-values ('1A', 'Approved by Authority', 10, 1),
-  ('1C', 'Approved by CSC', 11, 1),
-  ('1N', 'Approved As Note', 12, 1),
-  ('1R', 'Approved with Remarks', 13, 1),
-  ('3C', 'Consultant Comments', 31, 1),
-  ('3R', 'Revise
-    and Resubmit', 32, 1),
+VALUES (
+    '1A',
+    'Approved by Authority',
+    10,
+    1
+  ),
+  (
+    '1C',
+    'Approved by CSC',
+    11,
+    1
+  ),
+  (
+    '1N',
+    'Approved As Note',
+    12,
+    1
+  ),
+  (
+    '1R',
+    'Approved with Remarks',
+    13,
+    1
+  ),
+  (
+    '3C',
+    'Consultant Comments',
+    31,
+    1
+  ),
+  (
+    '3R',
+    'Revise
+    and Resubmit',
+    32,
+    1
+  ),
   ('4X', 'Reject', 40, 1),
-  ('5N', 'No Further Action', 50, 1);
+  (
+    '5N',
+    'No Further Action',
+    50,
+    1
+  );
 -- Seed circulation_status_codes
-insert into circulation_status_codes (code, description, sort_order)
-values ('OPEN', 'Open', 1),
+INSERT INTO circulation_status_codes (code, description, sort_order)
+VALUES ('OPEN', 'Open', 1),
   ('IN_REVIEW', 'In Review', 2),
   ('COMPLETED', 'ปCompleted', 3),
-  ('CANCELLED', 'Cancelled / Withdrawn', 9);
+  (
+    'CANCELLED',
+    'Cancelled / Withdrawn',
+    9
+  );
 -- ตาราง "แม่" ของ RFA (มีความสัมพันธ์ 1:N กับ rfa_revisions)
 -- ==========================================================
 -- SEED DATA 6B.md (Disciplines, RFA Types, Sub Types)
 -- ==========================================================
 -- 1. Seed ข้อมูล Disciplines (สาขางาน)
 -- LCBP3-C1
-insert into disciplines (
+INSERT INTO disciplines (
     contract_id,
     discipline_code,
     code_name_th,
     code_name_en
   )
-select id,
+SELECT id,
   'GEN',
   'งานบริหารโครงการ',
   'General Management'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'COD',
   'สัญญาและข้อโต้แย้ง',
   'Contracting'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'QSB',
   'สำรวจปริมาณและควบคุมงบประมาณ',
   'Quantity Survey and Budget Control'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'PPG',
   'บริหารแผนและความก้าวหน้า',
   'Plan and Progress Management'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'PRC',
   'งานจัดซื้อ',
   'Procurement'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SUB',
   'ผู้รับเหมาช่วง',
   'Subcontractor'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'ODC',
   'สำนักงาน-ควบคุมเอกสาร',
   'Operation Docment Control'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'LAW',
   'กฎหมาย',
   'Law'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'TRF',
   'จราจร',
   'Traffic'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'BIM',
   'BIM',
   'Building information modeling'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SRV',
   'งานสำรวจ',
   'Survey'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SFT',
   'ความปลอดภัย',
   'Safety'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'BST',
   'งานโครงสร้างอาคาร',
   'Building Structure Work'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'TEM',
   'งานชั่วคราว',
   'Temporary Work'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'UTL',
   'งานระบบสาธารณูปโภค',
   'Utility'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'EPW',
   'งานระบบไฟฟ้า',
   'Electrical Power Work'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'ECM',
   'งานระบบไฟฟ้าสื่อสาร',
   'Electrical Communication Work'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'ENV',
   'สิ่งแวดล้อม',
   'Environment'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'AQV',
   'คุณภาพอากาศและความสั่นสะเทือน',
   'Air quality and vibration'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'WAB',
   'คุณภาพน้ำและชีววิทยาทางน้ำ',
   'Water quality and Aquatic biology'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'ONS',
   'วิศวกรรมชายฝั่ง',
   'Onshore Engineer Work'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'PPR',
   'มวลชนสัมพันธ์และการประชาสัมพันธ์',
   'Public Relations'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'OSW',
   'งานก่อสร้างงานทางทะเล',
   'Offshore Work'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'DRE',
   'งานขุดและถมทะเล',
   'Dredging and Reclamation'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'REV',
   'งานคันหินล้อมพื้นที่ถมทะเล',
   'Revetment'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'BRW',
   'งานเขื่อนกันคลื่น',
   'Breakwater'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SOI',
   'ปรับปรุงคุณภาพดิน',
   'Soil Improvement'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'BLC',
   'งานปรับปรุงคลองบางละมุง',
   'Bang Lamung Canal Bank Protection'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'FUP',
   'งานประตูระบายน้ำและท่อลอด',
   'Floodgate & Under Ground Piping Works'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'SWP',
   'งานอาคารควบคุมสถานีสูบน้ำทะเล',
   'Sea Water Pumping Station Control BuilDing'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'NAV',
   'งานติดตั้งเครื่องหมายช่วงการเดินเรือ',
   'Navigations Aids'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'GEO',
   'งานด้านธรณีเทคนิค',
   'Geotechnical'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'CRW',
   'งานด้านโยธา - Rock Works',
   'Civil-Rock work'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'DVR',
   'ทีมนักประดาน้ำ',
   'Dive Work'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'MTS',
   'งานทดสอบวัสดุและธรณีเทคนิค',
   'Materials and Geotechnical Testing'
-from contracts
-where contract_code = 'LCBP3-C1'
+FROM contracts
+WHERE contract_code = 'LCBP3-C1'
 union all
-select id,
+SELECT id,
   'OTH',
   'อื่นๆ',
   'Other'
-from contracts
-where contract_code = 'LCBP3-C1';
+FROM contracts
+WHERE contract_code = 'LCBP3-C1';
 -- LCBP3-C2
-insert into disciplines (
+INSERT INTO disciplines (
     contract_id,
     discipline_code,
     code_name_th,
     code_name_en
   )
-select id,
+SELECT id,
   'GEN',
   'งานบริหารโครงการ',
   'Project Management'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'COD',
   'สัญญาและข้อโต้แย้ง',
   'Contracts and arguments'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'QSB',
   'สำรวจปริมาณและควบคุมงบประมาณ',
   'Survey the quantity and control the budget'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'PPM',
   'บริหารแผนและความก้าวหน้า',
   'Plan Management & Progress'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'ODC',
   'สำนักงาน-ควบคุมเอกสาร',
   'Document Control Office'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'LAW',
   'กฎหมาย',
   'Law'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'TRF',
   'จราจร',
   'Traffic'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'BIM',
   'Building Information Modeling',
   'Building Information Modeling'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'SRV',
   'งานสำรวจ',
   'Survey'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'SFT',
   'ความปลอดภัย',
   'Safety'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'BST',
   'งานโครงสร้างอาคาร',
   'Building Structure'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'UTL',
   'งานะบบสาธารณูปโภค',
   'Public Utilities'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'EPW',
   'งานระบบไฟฟ้า',
   'Electrical Systems'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'ECM',
   'งานระบบไฟฟ้าสื่อสาร',
   'Electrical Communication System'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'ENV',
   'สิ่งแวดล้อม',
   'Environment'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'AQV',
   'คุณภาพอากาศและความสั่นสะเทือน',
   'Air Quality and Vibration'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'WAB',
   'คุณภาพน้ำและชีววิทยาทางน้ำ',
   'Water Quality and Aquatic Biology'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'ONS',
   'วิศวกรรมชายฝั่ง',
   'Coastal Engineering'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'PPR',
   'มวลชนสัมพันธ์และประชาสัมพันธ์',
   'Mass Relations and Public Relations'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'OFW',
   'งานก่อสร้างทางทะเล',
   'Marine Construction'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'EXR',
   'งานขุดและถมทะเล',
   'Excavation and reclamation'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'GEO',
   'งานด้านธรณีเทคนิค',
   'Geotechnical work'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'CRW',
   'งานด้านโยธา - Rock Works',
   'Civil Works - Rock Works'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'DVW',
   'ทีมนักประดาน้ำ',
   'Team of Divers'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'MTT',
   'งานทดสอบวัสดุ',
   'Materials Testing'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'ARC',
   'งานสถาปัตยกรรม',
   'Architecture'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'STR',
   'งานโครงสร้าง',
   'Structural work'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'SAN',
   'งานระบบสุขาภิบาล',
   'Sanitation System'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'DRA',
   'งานระบบระบายน้ำ',
   'Drainage system work'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'TER',
   'งานท่าเทียบเรือ',
   'Terminal Work work'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'BUD',
   'งานอาคาร',
   'Building'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'ROW',
   'งานถนนและสะพาน',
   'Road and Bridge Work'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'MEC',
   'งานเคริองกล',
   'Mechanical work'
-from contracts
-where contract_code = 'LCBP3-C2'
+FROM contracts
+WHERE contract_code = 'LCBP3-C2'
 union all
-select id,
+SELECT id,
   'OTH',
   'อื่น ๆ',
   'Others'
-from contracts
-where contract_code = 'LCBP3-C2';
+FROM contracts
+WHERE contract_code = 'LCBP3-C2';
 -- 2. Seed ข้อมูล Correspondence Sub Types (Mapping RFA Types กับ Number)
 -- เนื่องจาก sub_type_code ตรงกับ RFA Type Code แต่ Req ต้องการ Mapping เป็น Number
 -- LCBP3-C1
-insert into correspondence_sub_types (
+INSERT INTO correspondence_sub_types (
     contract_id,
     correspondence_type_id,
     sub_type_code,
     sub_type_name,
     sub_type_number
   )
-select c.id,
+SELECT c.id,
   ct.id,
   'MAT',
   'Material Approval',
   '11'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C1'
+WHERE c.contract_code = 'LCBP3-C1'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'SHP',
   'Shop Drawing Submittal',
   '12'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C1'
+WHERE c.contract_code = 'LCBP3-C1'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'DWG',
   'Document Approval',
   '13'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C1'
+WHERE c.contract_code = 'LCBP3-C1'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'MET',
   'Engineering Document Submittal',
   '14'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C1'
+WHERE c.contract_code = 'LCBP3-C1'
   and ct.type_code = 'RFA';
 -- LCBP3-C2
-insert into correspondence_sub_types (
+INSERT INTO correspondence_sub_types (
     contract_id,
     correspondence_type_id,
     sub_type_code,
     sub_type_name,
     sub_type_number
   )
-select c.id,
+SELECT c.id,
   ct.id,
   'MAT',
   'Material Approval',
   '21'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C2'
+WHERE c.contract_code = 'LCBP3-C2'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'SHP',
   'Shop Drawing Submittal',
   '22'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C2'
+WHERE c.contract_code = 'LCBP3-C2'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'DWG',
   'Document Approval',
   '23'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C2'
+WHERE c.contract_code = 'LCBP3-C2'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'MET',
   'Engineering Document Submittal',
   '24'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C2'
+WHERE c.contract_code = 'LCBP3-C2'
   and ct.type_code = 'RFA';
 -- LCBP3-C3
-insert into correspondence_sub_types (
+INSERT INTO correspondence_sub_types (
     contract_id,
     correspondence_type_id,
     sub_type_code,
     sub_type_name,
     sub_type_number
   )
-select c.id,
+SELECT c.id,
   ct.id,
   'MAT',
   'Material Approval',
   '31'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C3'
+WHERE c.contract_code = 'LCBP3-C3'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'SHP',
   'Shop Drawing Submittal',
   '32'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C3'
+WHERE c.contract_code = 'LCBP3-C3'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'DWG',
   'Document Approval',
   '33'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C3'
+WHERE c.contract_code = 'LCBP3-C3'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'MET',
   'Engineering Document Submittal',
   '34'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C4'
+WHERE c.contract_code = 'LCBP3-C4'
   and ct.type_code = 'RFA';
 -- Note: 6B data has C4 on the right column for MET but C3 on left, checking logic... MD says C3 for first 3 rows, then C4 mixed. I will assume C4 starts at row 12 in the MD table.
 -- LCBP3-C4
-insert into correspondence_sub_types (
+INSERT INTO correspondence_sub_types (
     contract_id,
     correspondence_type_id,
     sub_type_code,
     sub_type_name,
     sub_type_number
   )
-select c.id,
+SELECT c.id,
   ct.id,
   'MAT',
   'Material Approval',
   '41'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C4'
+WHERE c.contract_code = 'LCBP3-C4'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'SHP',
   'Shop Drawing Submittal',
   '42'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C4'
+WHERE c.contract_code = 'LCBP3-C4'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'DWG',
   'Document Approval',
   '43'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C4'
+WHERE c.contract_code = 'LCBP3-C4'
   and ct.type_code = 'RFA'
 union all
-select c.id,
+SELECT c.id,
   ct.id,
   'MET',
   'Engineering Document Submittal',
   '44'
-from contracts c,
+FROM contracts c,
   correspondence_types ct
-where c.contract_code = 'LCBP3-C4'
+WHERE c.contract_code = 'LCBP3-C4'
   and ct.type_code = 'RFA';
