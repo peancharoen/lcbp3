@@ -1,8 +1,8 @@
 # Development Tasks
 
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
-**Version:** 1.5.0
-**Last Updated:** 2025-12-01
+**Version:** 1.5.1
+**Last Updated:** 2025-12-02
 
 ---
 
@@ -280,10 +280,17 @@ graph TB
 
 - **Type:** Core Service
 - **Key Deliverables:**
-  - Double-lock mechanism (Redis + DB)
-  - Template-based generator
-  - Concurrent-safe implementation
+  - Double-lock mechanism (Redis Redlock + DB Optimistic Lock)
+  - Template-based generator (10 token types)
+  - Concurrent-safe implementation (100+ concurrent requests)
+  - Comprehensive error handling (4 scenarios)
+  - Monitoring & alerting (Prometheus + Grafana)
+- **Documentation:**
+  - 📋 [Requirements](../01-requirements/03.11-document-numbering.md)
+  - 📘 [Implementation Guide](../03-implementation/document-numbering.md)
+  - 📗 [Operations Guide](../04-operations/document-numbering-operations.md)
 - **Related ADR:** [ADR-002](../05-decisions/ADR-002-document-numbering-strategy.md)
+- **Task Details:** [TASK-BE-004](./TASK-BE-004-document-numbering.md)
 
 ### TASK-BE-006: Workflow Engine
 
@@ -619,5 +626,5 @@ Add these features when:
 
 ---
 
-**Version:** 1.5.0
-**Last Updated:** 2025-11-30
+**Version:** 1.5.1
+**Last Updated:** 2025-12-02

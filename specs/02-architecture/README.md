@@ -1,4 +1,4 @@
-# 📋 Architecture Specification v1.5.0
+# 📋 Architecture Specification
 
 > **สถาปัตยกรรมระบบ LCBP3-DMS**
 >
@@ -10,9 +10,9 @@
 
 | Attribute          | Value                            |
 | ------------------ | -------------------------------- |
-| **Version**        | 1.5.0                            |
-| **Status**         | First Draft                      |
-| **Last Updated**   | 2025-11-30                       |
+| **Version**        | 1.5.1                            |
+| **Status**         | Active                           |
+| **Last Updated**   | 2025-12-02                       |
 | **Owner**          | Nattanin Peancharoen             |
 | **Classification** | Internal Technical Documentation |
 
@@ -251,9 +251,34 @@ Layer 6: File Security (Virus Scanning, Access Control)
 - Workflow Versioning
 - Polymorphic Entity Relationships
 
-**Related:** [specs/05-decisions/001-workflow-engine.md](../05-decisions/001-workflow-engine.md)
+**Related:** [ADR-001](../05-decisions/ADR-001-unified-workflow-engine.md)
 
-### ADR-002: Two-Phase File Storage
+### ADR-002: Document Numbering Strategy
+
+**Decision:** ใช้ Application-Level Locking แทน Database Stored Procedure
+
+**Rationale:**
+
+- ยืดหยุ่นกว่า (Template-Based Generator)
+- ง่ายต่อการ Debug และ Monitoring
+- รองรับ Complex Numbering Rules
+- Support ทุกประเภทเอกสาร (LETTER, RFA, TRANSMITTAL, etc.)
+
+**Implementation:**
+
+- **Layer 1:** Redis Redlock (Distributed Lock)
+- **Layer 2:** Optimistic Database Lock (`@VersionColumn()`)
+- **Retry:** Exponential Backoff with Jitter
+- **Counter Key:** Composite PK (8 columns)
+
+**Documentation:**
+- 📋 [Requirements](../01-requirements/03.11-document-numbering.md)
+- 📘 [Implementation Guide](../03-implementation/document-numbering.md)
+- 📗 [Operations Guide](../04-operations/document-numbering-operations.md)
+
+**Related:** [ADR-002](../05-decisions/ADR-002-document-numbering-strategy.md)
+
+### ADR-003: Two-Phase File Storage
 
 **Decision:** แยกการอัปโหลดไฟล์เป็น 2 ขั้นตอน (Upload → Commit)
 
@@ -269,23 +294,7 @@ Layer 6: File Security (Virus Scanning, Access Control)
 2. Phase 2: Commit to `permanent/` when operation succeeds
 3. Cleanup: Cron Job ลบไฟล์ค้างใน `temp/` > 24h
 
-**Related:** [specs/05-decisions/002-file-storage.md](../05-decisions/002-file-storage.md)
-
-### ADR-003: Document Numbering Strategy
-
-**Decision:** ใช้ Application-Level Locking แทน Database Stored Procedure
-
-**Rationale:**
-
-- ยืดหยุ่นกว่า (Token-Based Generator)
-- ง่ายต่อการ Debug
-- รองรับ Complex Numbering Rules
-
-**Implementation:**
-
-- Layer 1: Redis Distributed Lock
-- Layer 2: Optimistic Database Lock (`@VersionColumn()`)
-- Retry with Exponential Backoff
+**Related:** [ADR-003](../05-decisions/ADR-003-file-storage-approach.md)
 
 ### ADR-004: 4-Level RBAC
 
@@ -302,6 +311,8 @@ Layer 6: File Security (Virus Scanning, Access Control)
 - CASL for Permission Rules
 - Redis Cache for Performance
 - Permission Checking at Guard Level
+
+**Related:** [ADR-004](../05-decisions/ADR-004-rbac-implementation.md)
 
 ---
 

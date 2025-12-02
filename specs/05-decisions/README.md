@@ -1,6 +1,7 @@
 # Architecture Decision Records (ADRs)
 
-**Last Updated:** 2025-11-30
+**Version:** 1.5.1
+**Last Updated:** 2025-12-02
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
 
 ---
@@ -81,7 +82,10 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 ### 2. Data Integrity & Concurrency
 
-- **ADR-002:** Document Numbering - Double-lock เพื่อป้องกัน Race Condition
+- **ADR-002:** Document Numbering - Double-lock (Redis Redlock + DB Optimistic) เพื่อป้องกัน Race Condition
+  - 📋 [Requirements](../01-requirements/03.11-document-numbering.md)
+  - 📘 [Implementation Guide](../03-implementation/document-numbering.md)
+  - 📗 [Operations Guide](../04-operations/document-numbering-operations.md)
 - **ADR-003:** File Storage - Two-phase เพื่อ Transaction safety
 - **ADR-009:** Database Migration - TypeORM Migrations พร้อม Blue-Green Deployment
 
@@ -352,5 +356,5 @@ graph TB
 
 ---
 
-**Version:** 1.5.0
-**Last Review:** 2025-11-30
+**Version:** 1.5.1
+**Last Review:** 2025-12-02

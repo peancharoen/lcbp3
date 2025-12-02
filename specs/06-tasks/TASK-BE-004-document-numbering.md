@@ -10,21 +10,26 @@
 
 ## 📋 Overview
 
-สร้าง DocumentNumberingService ที่ใช้ Double-Lock mechanism (Redis + DB Optimistic Lock) สำหรับการสร้างเลขที่เอกสารอัตโนมัติ พร้อม comprehensive error handling, monitoring, และ audit logging
+สร้าง DocumentNumberingService ที่ใช้ Double-Lock mechanism (Redis + DB Optimistic Lock) สำหรับการสร้างเลขที่เอกสารอัตโนมัติ ตาม requirements ใน [03.11-document-numbering.md](file:///e:/np-dms/lcbp3/specs/01-requirements/03.11-document-numbering.md)
+
+### เอกสารอ้างอิง
+
+- **Requirements**: [03.11-document-numbering.md](file:///e:/np-dms/lcbp3/specs/01-requirements/03.11-document-numbering.md)
+- **Implementation Guide**: [document-numbering.md](file:///e:/np-dms/lcbp3/specs/03-implementation/document-numbering.md)
+- **Operations Guide**: [document-numbering-operations.md](file:///e:/np-dms/lcbp3/specs/04-operations/document-numbering-operations.md)
 
 ---
 
 ## 🎯 Objectives
 
-- ✅ Template-Based Number Generation (รองรับ 9 token types)
-- ✅ Double-Lock Protection (Redis + DB Optimistic Lock)
+- ✅ Template-Based Number Generation (รองรับ 10 token types)
+- ✅ Double-Lock Protection (Redis Redlock + DB Optimistic Lock)
 - ✅ Concurrent-Safe (No duplicate numbers, tested with 100+ concurrent requests)
-- ✅ Support 4 Document Types (Correspondence, RFA, Transmittal, Drawing)
-- ✅ Year-Based Reset (พ.ศ. และ ค.ศ.)
-- ✅ Transmittal Special Logic (To Owner vs To Contractor)
+- ✅ Support All Document Types (LETTER, RFA, TRANSMITTAL, RFI, MEMO, etc.)
+- ✅ Year-Based Auto Reset (ปี ค.ศ.)
 - ✅ 4 Error Scenarios with Fallback Strategies
 - ✅ Comprehensive Audit Logging
-- ✅ Monitoring & Alerting
+- ✅ Monitoring & Alerting (Prometheus + Grafana)
 - ✅ Rate Limiting & Security
 
 ---
@@ -34,42 +39,44 @@
 ### 1. Number Generation
 
 - ✅ Generate unique sequential numbers
-- ✅ Support all 9 token types: `{PROJECT}`, `{ORG}`, `{TYPE}`, `{SUB_TYPE}`, `{DISCIPLINE}`, `{CATEGORY}`, `{SEQ:n}`, `{YEAR:B.E.}`, `{YEAR:A.D}`, `{REV}`
+- ✅ Support all 10 token types: `{PROJECT}`, `{ORIGINATOR}`, `{RECIPIENT}`, `{CORR_TYPE}`, `{SUB_TYPE}`, `{RFA_TYPE}`, `{DISCIPLINE}`, `{SEQ:n}`, `{YEAR:B.E.}`, `{YEAR:A.D.}`, `{REV}`
 - ✅ No duplicates even with 100+ concurrent requests
 - ✅ Performance: <500ms (normal), <2s (p95), <5s (p99)
 
 ### 2. Lock Mechanism
 
-- ✅ Redis distributed lock (TTL: 5 seconds)
-- ✅ DB optimistic lock with version column
+- ✅ Redis Redlock distributed lock (TTL: 5 seconds)
+- ✅ DB optimistic lock with `version` column
 - ✅ Fallback to DB pessimistic lock when Redis unavailable
 - ✅ Retry with exponential backoff (5 retries max for lock, 2 for version conflict, 3 for DB errors)
 
 ### 3. Document Types Support
 
-- ✅ Correspondence (Letter Type และ Other Types)
-- ✅ RFA with Discipline
-- ✅ Transmittal (To Owner vs To Contractor with different formats)
-- ✅ Drawing with Category
+- ✅ LETTER / RFI / MEMO / EMAIL / MOM / INSTRUCTION / NOTICE / OTHER
+  - Counter Key: `(project_id, originator_org_id, recipient_org_id, corr_type_id, 0, 0, 0, year)`
+- ✅ TRANSMITTAL
+  - Counter Key: `(project_id, originator_org_id, recipient_org_id, corr_type_id, sub_type_id, 0, 0, year)`
+- ✅ RFA
+  - Counter Key: `(project_id, originator_org_id, NULL, corr_type_id, 0, rfa_type_id, discipline_id, year)`
 
 ### 4. Error Handling
 
-- ✅ Scenario 1: Redis Unavailable → Fallback to DB lock
+- ✅ Scenario 1: Redis Unavailable → Fallback to DB pessimistic lock
 - ✅ Scenario 2: Lock Timeout → Retry 5x with exponential backoff
-- ✅ Scenario 3: Version Conflict → Retry 2x
-- ✅ Scenario 4: DB Connection Error → Retry 3x
+- ✅ Scenario 3: Version Conflict → Retry 2x immediately
+- ✅ Scenario 4: DB Connection Error → Retry 3x with exponential backoff
 
 ### 5. Audit & Monitoring
 
-- ✅ Audit log for every generated number
-- ✅ Track lock wait times, retry counts, errors
-- ✅ Metrics collection for monitoring dashboard
+- ✅ Audit log for every generated number (with performance metrics)
+- ✅ Error logging with classification (LOCK_TIMEOUT, VERSION_CONFLICT, etc.)
+- ✅ Prometheus metrics collection
 - ✅ Alerting on failures >5%
 
 ### 6. Security
 
-- ✅ Rate limiting: 10 req/min per user, 50 req/min per IP
-- ✅ Authorization checks
+- ✅ Rate limiting: 10 req/min per user, 50 req/min per IP (using @nestjs/throttler)
+- ✅ Authorization checks (JWT + Roles)
 - ✅ IP address logging
 
 ---
@@ -136,36 +143,55 @@ export class DocumentNumberConfig {
 
 import { Entity, PrimaryColumn, Column, UpdateDateColumn, VersionColumn } from 'typeorm';
 
+/**
+ * ตาราง document_number_counters
+ * Composite PK: (project_id, originator_organization_id, recipient_organization_id,
+ *                correspondence_type_id, sub_type_id, rfa_type_id, discipline_id, current_year)
+ *
+ * References: specs/01-requirements/03.11-document-numbering.md#counter-key-components
+ */
 @Entity('document_number_counters')
 export class DocumentNumberCounter {
-  @PrimaryColumn()
-  project_id: number;
+  @PrimaryColumn({ name: 'project_id' })
+  projectId: number;
 
-  @PrimaryColumn()
-  doc_type_id: number;
+  @PrimaryColumn({ name: 'originator_organization_id' })
+  originatorOrganizationId: number;
 
-  @PrimaryColumn({ default: 0 })
-  sub_type_id: number;  // สำหรับ Correspondence types
+  @PrimaryColumn({ name: 'recipient_organization_id', nullable: true })
+  recipientOrganizationId: number | null;  // NULL for RFA
 
-  @PrimaryColumn({ default: 0 })
-  discipline_id: number;  // สำหรับ RFA, Drawing
+  @PrimaryColumn({ name: 'correspondence_type_id' })
+  correspondenceTypeId: number;
 
-  @PrimaryColumn({ type: 'varchar', length: 20, nullable: true, default: null })
-  recipient_type: string;  // สำหรับ Transmittal: 'OWNER', 'CONTRACTOR', 'CONSULTANT', 'OTHER'
+  @PrimaryColumn({ name: 'sub_type_id', default: 0 })
+  subTypeId: number;  // for TRANSMITTAL only
 
-  @PrimaryColumn()
-  year: number;  // ปี พ.ศ. หรือ ค.ศ.
+  @PrimaryColumn({ name: 'rfa_type_id', default: 0 })
+  rfaTypeId: number;  // for RFA only
 
-  @Column({ default: 0 })
-  last_number: number;
+  @PrimaryColumn({ name: 'discipline_id', default: 0 })
+  disciplineId: number;  // for RFA only
 
-  @VersionColumn({ comment: 'Optimistic Lock version' })
+  @PrimaryColumn({ name: 'current_year' })
+  currentYear: number;  // ปี ค.ศ.
+
+  @Column({ name: 'last_number', default: 0 })
+  lastNumber: number;
+
+  @VersionColumn({ name: 'version', comment: 'Optimistic Lock version' })
   version: number;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }
 ```
+
+> **⚠️ หมายเหตุ Schema:**
+>
+> - Primary Key ใช้ `COALESCE(recipient_organization_id, 0)` ในการสร้าง constraint (ดู migration file)
+> - `sub_type_id`, `rfa_type_id`, `discipline_id` ใช้ `0` แทน NULL
+> - Counter reset อัตโนมัติทุกปี (แยก counter ตาม `current_year`)
 
 #### 1.3 Document Number Audit Entity
 
@@ -1179,6 +1205,7 @@ ensure:
 ## 📦 Deliverables
 
 ### Core Implementation
+
 - [x] DocumentNumberingService with all 4 error scenarios
 - [x] DocumentNumberCounter Entity (with sub_type_id, recipient_type)
 - [x] DocumentNumberConfig Entity
@@ -1188,12 +1215,14 @@ ensure:
 - [x] Retry Logic with Exponential Backoff
 
 ### API & Security
+
 - [x] DocumentNumberingController with 4 endpoints
 - [x] Rate Limiting Guard (10/min per user, 50/min per IP)
 - [x] Authorization Guards
 - [x] API Documentation (Swagger)
 
 ### Testing
+
 - [x] Unit Tests (targeting 90%+ coverage)
 - [x] Concurrent Tests (100+ simultaneous requests)
 - [x] Error Scenario Tests (all 4 scenarios)
@@ -1202,6 +1231,7 @@ ensure:
 - [x] Load Tests (Artillery config for 50-100 req/sec)
 
 ### Monitoring & Documentation
+
 - [x] Metrics Collection Integration
 - [x] Audit Logging
 - [x] Implementation Documentation
@@ -1225,11 +1255,13 @@ ensure:
 ## 📌 Implementation Notes
 
 ### Performance Targets
+
 - **Normal Operation:** <500ms (no conflicts, Redis available)
 - **95th Percentile:** <2 seconds (including retries)
 - **99th Percentile:** <5 seconds (worst case scenarios)
 
 ### Lock Configuration
+
 - **Redis Lock TTL:** 5 seconds (auto-release)
 - **Lock Acquisition Timeout:** 10 seconds
 - **Max Retries (Lock):** 5 times with exponential backoff (1s, 2s, 4s, 8s, 16s)
@@ -1237,18 +1269,22 @@ ensure:
 - **Max Retries (DB Error):** 3 times with exponential backoff (1s, 2s, 4s)
 
 ### Rate Limiting
+
 - **Per User:** 10 requests/minute
 - **Per IP:** 50 requests/minute
 - **Global:** 5000 requests/minute
 
 ### Format Templates
+
 Stored in database (`document_number_configs` table), configurable per:
+
 - Project
 - Document Type
 - Sub Type (optional, use 0 for fallback)
 - Discipline (optional, use 0 for fallback)
 
 ### Counter Reset
+
 - Automatic reset per year (based on `{YEAR:B.E.}` or `{YEAR:A.D.}` in template)
 - Manual reset available (Super Admin only, with audit log)
 

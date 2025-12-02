@@ -44,7 +44,7 @@
   - RAM: 32GB
   - Storage: /share/dms-data
 - **IP Address:** 159.192.126.103
-- **Domain:** np-dms.work, www.np-dms.work
+- **Domain:** np-dms.work, <www.np-dms.work>
 - **Containerization:** Docker & Docker Compose via Container Station
 - **Development Environment:** VS Code/Cursor on Windows 11
 
@@ -943,9 +943,9 @@ graph LR
 
 **Document Control:**
 
-- **Version:** 1.5.0
-- **Status:** First Draft
-- **Last Updated:** 2025-11-30
+- **Version:** 1.5.1
+- **Status:** Active
+- **Last Updated:** 2025-12-02
 - **Owner:** Nattanin Peancharoen
 
 ```

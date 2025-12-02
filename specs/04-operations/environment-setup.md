@@ -1,8 +1,8 @@
 # Environment Setup & Configuration
 
 **Project:** LCBP3-DMS
-**Version:** 1.5.0
-**Last Updated:** 2025-12-01
+**Version:** 1.5.1
+**Last Updated:** 2025-12-02
 
 ---
 
@@ -458,6 +458,6 @@ docker exec lcbp3-backend env | grep NODE_ENV
 
 ---
 
-**Version:** 1.5.0
+**Version:** 1.5.1
 **Last Review:** 2025-12-01
 **Next Review:** 2026-03-01

@@ -664,7 +664,9 @@
         "password": "",
         "database": "lcbp3"
       }
-    ]
+    ],
+    "terminal.integrated.copyOnSelection": true,
+    "terminal.integrated.tabs.defaultColor": "terminal.ansiBlue"
   },
 
   // ========================================
@@ -927,8 +929,7 @@
       "chakrounanas.turbo-console-log",
       "wallabyjs.console-ninja",
       "pkief.material-icon-theme",
-      "github.copilot",
-      "inferrinizzard.prettier-sql-vscode"
+      "github.copilot"
     ]
   }
 }

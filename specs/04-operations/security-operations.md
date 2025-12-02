@@ -1,8 +1,8 @@
 # Security Operations
 
 **Project:** LCBP3-DMS
-**Version:** 1.5.0
-**Last Updated:** 2025-12-01
+**Version:** 1.5.1
+**Last Updated:** 2025-12-02
 
 ---
 
@@ -439,6 +439,6 @@ echo "Account compromise response completed for User ID: $USER_ID"
 
 ---
 
-**Version:** 1.5.0
+**Version:** 1.5.1
 **Last Review:** 2025-12-01
 **Next Review:** 2026-03-01

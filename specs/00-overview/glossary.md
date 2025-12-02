@@ -1,8 +1,8 @@
 # Glossary - คำศัพท์และคำย่อทางเทคนิค
 
 **Project:** LCBP3-DMS
-**Version:** 1.5.0
-**Last Updated:** 2025-12-01
+**Version:** 1.5.1
+**Last Updated:** 2025-12-02
 
 ---
 
@@ -491,6 +491,6 @@ Logging library สำหรับ Node.js
 
 ---
 
-**Version:** 1.5.0
-**Last Updated:** 2025-12-01
+**Version:** 1.5.1
+**Last Updated:** 2025-12-02
 **Next Review:** 2026-03-01

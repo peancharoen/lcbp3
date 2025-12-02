@@ -197,6 +197,7 @@ CREATE TABLE document_number_audit (
 #### 1. Correspondence (หนังสือราชการ)
 
 **Letter Type (TYPE = 03):**
+
 ```
 Template: {ORG}-{ORG}-{TYPE}-{SEQ:4}-{YEAR:B.E.}
 Example:  คคง.-สคฉ.3-0985-2568
@@ -204,6 +205,7 @@ Counter Key: project_id + doc_type_id + sub_type_id + year
 ```
 
 **Other Correspondence:**
+
 ```
 Template: {ORG}-{ORG}-{TYPE}-{SEQ:4}-{YEAR:B.E.}
 Example:  คคง.-สคฉ.3-STR-0001-2568
@@ -213,6 +215,7 @@ Counter Key: project_id + doc_type_id + sub_type_id + year
 #### 2. Transmittal
 
 **To Owner (Special Format):**
+
 ```
 Template: {ORG}-{ORG}-{TYPE}-{SUB_TYPE}-{SEQ:4}-{YEAR:B.E.}
 Example:  คคง.-สคฉ.3-03-21-0117-2568
@@ -221,6 +224,7 @@ Note: recipient_type แยก counter จาก To Contractor
 ```
 
 **To Contractor/Others:**
+
 ```
 Template: {ORG}-{ORG}-{TYPE}-{SEQ:4}-{YEAR:B.E.}
 Example:  ผรม.2-คคง.-0117-2568
@@ -228,6 +232,7 @@ Counter Key: project_id + doc_type_id + recipient_type('CONTRACTOR') + year
 ```
 
 **Alternative Project-based:**
+
 ```
 Template: {PROJECT}-{ORG}-{TYPE}-{DISCIPLINE}-{SEQ:4}-{REV}
 Example:  LCBP3-TR-STR-0001-A
@@ -586,6 +591,7 @@ sequenceDiagram
 **Trigger:** Redis connection error, Redis down
 
 **Fallback:**
+
 - ใช้ Database-only locking (`SELECT ... FOR UPDATE`)
 - Log warning และแจ้ง ops team
 - ระบบยังใช้งานได้แต่ performance ลดลง (slower)
@@ -595,6 +601,7 @@ sequenceDiagram
 **Trigger:** หลาย requests แย่งชิง lock พร้อมกัน
 
 **Retry Logic:**
+
 - Retry 5 ครั้งด้วย exponential backoff: 1s, 2s, 4s, 8s, 16s (รวม ~31 วินาที)
 - หลัง 5 ครั้ง: Return HTTP 503 "Service Temporarily Unavailable"
 - Frontend: แสดง "ระบบกำลังยุ่ง กรุณาลองใหม่ภายหลัง"
@@ -604,6 +611,7 @@ sequenceDiagram
 **Trigger:** Optimistic lock version mismatch
 
 **Retry Logic:**
+
 - Retry 2 ครั้ง (reload counter + retry transaction)
 - หลัง 2 ครั้ง: Return HTTP 409 Conflict
 - Frontend: แสดง "เลขที่เอกสารถูกเปลี่ยน กรุณาลองใหม่"
@@ -613,6 +621,7 @@ sequenceDiagram
 **Trigger:** Database connection timeout, connection pool exhausted
 
 **Retry Logic:**
+
 - Retry 3 ครั้งด้วย exponential backoff: 1s, 2s, 4s
 - หลัง 3 ครั้ง: Return HTTP 500 "Internal Server Error"
 - Frontend: แสดง "เกิดข้อผิดพลาดในระบบ กรุณาติดต่อผู้ดูแลระบบ"

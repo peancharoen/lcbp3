@@ -1,8 +1,8 @@
 # Quick Start Guide
 
 **Project:** LCBP3-DMS
-**Version:** 1.5.0
-**Last Updated:** 2025-12-01
+**Version:** 1.5.1
+**Last Updated:** 2025-12-02
 
 ---
 
@@ -355,7 +355,7 @@ git push origin feature/my-feature
 ### Resources
 
 - **Documentation:** `/specs` directory
-- **API Docs:** http://localhost:3000/api/docs
+- **API Docs:** <http://localhost:3000/api/docs>
 - **Issue Tracker:** [Link to issue tracker]
 
 ### Contact
@@ -373,8 +373,8 @@ git push origin feature/my-feature
 - [ ] Setup environment variables
 - [ ] Start Docker services
 - [ ] Run migrations
-- [ ] Access backend (http://localhost:3000/health)
-- [ ] Access frontend (http://localhost:3001)
+- [ ] Access backend (<http://localhost:3000/health>)
+- [ ] Access frontend (<http://localhost:3001>)
 - [ ] Login with default credentials
 - [ ] Run tests
 - [ ] Read [System Architecture](../02-architecture/system-architecture.md)
@@ -385,5 +385,5 @@ git push origin feature/my-feature
 
 **Welcome aboard! 🎉**
 
-**Version:** 1.5.0
-**Last Updated:** 2025-12-01
+**Version:** 1.5.1
+**Last Updated:** 2025-12-02
