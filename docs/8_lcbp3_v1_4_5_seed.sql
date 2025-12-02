@@ -42,14 +42,14 @@ VALUES (1, 'กทท.', 'การท่าเรือแห่งประเ
     'สคฉ.3-xx',
     'ตรวจรับพัสดุ ที่ปรึกษาออกแบบ ส่วนที่ 4'
   ),
-(21, 'TEAM', 'Designer Consulting Ltd.'),
-(22, 'คคง.', 'Construction Supervision Ltd.'),
-(41, 'ผรม.1', 'Contractor งานทางทะเล'),
-(42, 'ผรม.2', 'Contractor อาคารและระบบ'),
-(43, 'ผรม.3', 'Contractor #3 Ltd.'),
-(44, 'ผรม.4', 'Contractor #4 Ltd.'),
-(31, 'EN', 'Third Party Environment'),
-(32, 'CAR', 'Third Party Fishery Care');
+  (21, 'TEAM', 'Designer Consulting Ltd.'),
+  (22, 'คคง.', 'Construction Supervision Ltd.'),
+  (41, 'ผรม.1', 'Contractor งานทางทะเล'),
+  (42, 'ผรม.2', 'Contractor อาคารและระบบ'),
+  (43, 'ผรม.3', 'Contractor #3 Ltd.'),
+  (44, 'ผรม.4', 'Contractor #4 Ltd.'),
+  (31, 'EN', 'Third Party Environment'),
+  (32, 'CAR', 'Third Party Fishery Care');
 -- Seed project
 INSERT INTO projects (project_code, project_name)
 VALUES (
@@ -156,7 +156,7 @@ VALUES (
   );
 -- Seed user
 -- Initial SUPER_ADMIN user
-INSERT INTO `users` (
+INSERT INTO users (
     `user_id`,
     `username`,
     `password_hash`,
