@@ -81,16 +81,17 @@
       "language": "sql",
       "params": {
         "keywordCase": "upper", // ทำให้ INSERT, VALUES เป็นตัวใหญ่
-        "tabWidth": 2, // เยื้อง 3 ช่องว่าง (ปรับจาก 4 เป็น 3 เพื่อ match ตัวอย่าง)
-        "expressionWidth": 80, // ความยาวสูงสุดต่อบรรทัดก่อนตีบรรทัดใหม่ (ป้องกันคอลัมน์แยกบรรทัด)
         "reservedWordCase": "upper", // ทำให้คำสงวนเป็นตัวใหญ่
-        "linesBetweenQueries": 1,
+        "tabWidth": 2, // เยื้อง 2 ช่องว่าง
+        "expressionWidth": 100, // ความยาวสูงสุดต่อบรรทัดก่อนตีบรรทัดใหม่ (ป้องกันคอลัมน์แยกบรรทัด)
         "logicalOperatorNewline": "before",
         "aliasAs": "before",
         "commaPosition": "after",
+        "linesBetweenQueries": 1,
         "linesAroundComments": 0,
         "tabulateAlias": false,
-        "newlineBeforeSemicolon": false
+        "newlineBeforeSemicolon": false,
+        "newlineBeforeOnClauseItems": false
       }
     },
     "sqltools.formatOnSave": true,
@@ -655,18 +656,25 @@
     "debug.openDebug": "openOnDebugBreak",
     "debug.showBreakpointsInOverviewRuler": true,
     "prettier.configPath": "./.prettierrc",
+    "terminal.integrated.copyOnSelection": true,
+    "terminal.integrated.tabs.defaultColor": "terminal.ansiBlue",
     "sqltools.connections": [
       {
-        "name": "MariaDB",
+        "mysqlOptions": {
+          "authProtocol": "default",
+          "enableSsl": "Disabled"
+        },
+        "ssh": "Disabled",
+        "previewLimit": 50,
         "server": "localhost",
         "port": 3306,
-        "user": "root",
-        "password": "",
-        "database": "lcbp3"
+        "driver": "MySQL",
+        "name": "lcbp3_dev",
+        "database": "lcbp3_dev",
+        "username": "root",
+        "password": "Center#2025"
       }
-    ],
-    "terminal.integrated.copyOnSelection": true,
-    "terminal.integrated.tabs.defaultColor": "terminal.ansiBlue"
+    ]
   },
 
   // ========================================

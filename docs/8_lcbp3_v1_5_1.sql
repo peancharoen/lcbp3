@@ -141,10 +141,12 @@ CREATE TABLE organizations (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
   organization_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'รหัสองค์กร',
   organization_name VARCHAR(255) NOT NULL COMMENT 'ชื่อองค์กร',
-  -- role_id INT COMMENT 'บทบาทขององค์กร',
+  role_id INT COMMENT 'บทบาทขององค์กร',
   is_active BOOLEAN DEFAULT TRUE COMMENT 'สถานะการใช้งาน',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด' -- FOREIGN KEY (role_id) REFERENCES organization_roles(id) ON DELETE SET NULL
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  FOREIGN KEY (role_id) REFERENCES organization_roles(id) ON DELETE
+  SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลองค์กรทั้งหมดที่เกี่ยวข้องในระบบ';
 -- ตาราง Master เก็บข้อมูลโครงการ
 CREATE TABLE projects (
@@ -789,41 +791,38 @@ CREATE TABLE document_number_counters (
   rfa_type_id INT DEFAULT 0 COMMENT '[v1.5.1 NEW] ประเภท RFA เช่น SHD, RPT, MAT (0 = ไม่ใช่ RFA)',
   discipline_id INT DEFAULT 0 COMMENT 'สาขางาน เช่น TER, STR, GEO (0 = ไม่ระบุ)',
   current_year INT NOT NULL COMMENT 'ปี ค.ศ. ของตัวนับ (auto-reset ทุกปี)',
-
   -- Counter Data
   version INT DEFAULT 0 NOT NULL COMMENT 'Optimistic Lock Version (TypeORM @VersionColumn)',
   last_number INT DEFAULT 0 COMMENT 'เลขที่ล่าสุดที่ใช้ไปแล้ว (auto-increment)',
-
   -- [v1.5.1 UPDATE] Primary Key: 5 columns -> 8 columns
   -- ใช้ COALESCE เพื่อรองรับ NULL ใน recipient_organization_id
   PRIMARY KEY (
     project_id,
     originator_organization_id,
-    COALESCE(recipient_organization_id, 0),  -- [v1.5.1 NEW] Handle NULL values
+    COALESCE(recipient_organization_id, 0),
+    -- [v1.5.1 NEW] Handle NULL values
     correspondence_type_id,
-    sub_type_id,                              -- [v1.5.1 NEW]
-    rfa_type_id,                              -- [v1.5.1 NEW]
+    sub_type_id,
+    -- [v1.5.1 NEW]
+    rfa_type_id,
+    -- [v1.5.1 NEW]
     discipline_id,
     current_year
   ),
-
   -- Foreign Keys
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
   FOREIGN KEY (originator_organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
   FOREIGN KEY (recipient_organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
   FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE,
-
   -- [v1.5.1 NEW] Performance Indexes
   INDEX idx_counter_lookup (project_id, correspondence_type_id, current_year),
   INDEX idx_counter_org (originator_organization_id, current_year),
-
   -- [v1.5.1 NEW] Data Validation Constraints
   CONSTRAINT chk_last_number_positive CHECK (last_number >= 0),
-  CONSTRAINT chk_current_year_valid CHECK (current_year BETWEEN 2020 AND 2100)
-
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci
-  COMMENT = '[v1.5.1 UPDATE] ตารางเก็บ Running Number Counters - รองรับ 8-column composite PK';
-
+  CONSTRAINT chk_current_year_valid CHECK (
+    current_year BETWEEN 2020 AND 2100
+  )
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '[v1.5.1 UPDATE] ตารางเก็บ Running Number Counters - รองรับ 8-column composite PK';
 -- ==========================================================
 -- [v1.5.1 NEW] ตารางเก็บ Audit Trail สำหรับการสร้างเลขที่เอกสาร
 -- เพิ่มตาราง: document_number_audit
@@ -832,39 +831,30 @@ CREATE TABLE document_number_counters (
 -- ==========================================================
 CREATE TABLE document_number_audit (
   id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ของ audit record',
-
   -- Document Info
   document_id INT NOT NULL COMMENT 'ID ของเอกสารที่สร้างเลขที่ (correspondences.id)',
   generated_number VARCHAR(100) NOT NULL COMMENT 'เลขที่เอกสารที่สร้าง (ผลลัพธ์)',
   counter_key JSON NOT NULL COMMENT 'Counter key ที่ใช้ (JSON format) - 8 fields',
   template_used VARCHAR(200) NOT NULL COMMENT 'Template ที่ใช้ในการสร้าง',
-
   -- User Info
   user_id INT NOT NULL COMMENT 'ผู้ขอสร้างเลขที่',
   ip_address VARCHAR(45) COMMENT 'IP address ของผู้ขอ (IPv4/IPv6)',
   user_agent TEXT COMMENT 'User agent string (browser info)',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่/เวลาที่สร้าง',
-
   -- Performance & Error Tracking
   retry_count INT DEFAULT 0 COMMENT 'จำนวนครั้งที่ retry ก่อนสำเร็จ',
   lock_wait_ms INT COMMENT 'เวลารอ Redis lock (milliseconds)',
   total_duration_ms INT COMMENT 'เวลารวมทั้งหมดในการสร้าง (milliseconds)',
-  fallback_used ENUM('NONE', 'DB_LOCK', 'RETRY') DEFAULT 'NONE'
-    COMMENT 'Fallback strategy ที่ถูกใช้ (NONE=normal, DB_LOCK=Redis down, RETRY=conflict)',
-
+  fallback_used ENUM('NONE', 'DB_LOCK', 'RETRY') DEFAULT 'NONE' COMMENT 'Fallback strategy ที่ถูกใช้ (NONE=normal, DB_LOCK=Redis down, RETRY=conflict)',
   -- Indexes for performance
   INDEX idx_document_id (document_id),
   INDEX idx_user_id (user_id),
   INDEX idx_created_at (created_at),
   INDEX idx_generated_number (generated_number),
-
   -- Foreign Keys
   FOREIGN KEY (document_id) REFERENCES correspondences(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(user_id)
-
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-  COMMENT='[v1.5.1 NEW] Audit Trail สำหรับการสร้างเลขที่เอกสาร - เก็บ ≥ 7 ปี';
-
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '[v1.5.1 NEW] Audit Trail สำหรับการสร้างเลขที่เอกสาร - เก็บ ≥ 7 ปี';
 -- ==========================================================
 -- [v1.5.1 NEW] ตารางเก็บ Error Logs สำหรับ Document Numbering
 -- เพิ่มตาราง: document_number_errors
@@ -873,38 +863,34 @@ CREATE TABLE document_number_audit (
 -- ==========================================================
 CREATE TABLE document_number_errors (
   id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ของ error record',
-
   -- Error Classification
   error_type ENUM(
-    'LOCK_TIMEOUT',       -- Redis lock timeout
-    'VERSION_CONFLICT',   -- Optimistic lock version mismatch
-    'DB_ERROR',          -- Database connection/query error
-    'REDIS_ERROR',       -- Redis connection error
-    'VALIDATION_ERROR'   -- Template/input validation error
+    'LOCK_TIMEOUT',
+    -- Redis lock timeout
+    'VERSION_CONFLICT',
+    -- Optimistic lock version mismatch
+    'DB_ERROR',
+    -- Database connection/query error
+    'REDIS_ERROR',
+    -- Redis connection error
+    'VALIDATION_ERROR' -- Template/input validation error
   ) NOT NULL COMMENT 'ประเภท error (5 types)',
-
   -- Error Details
   error_message TEXT COMMENT 'ข้อความ error (stack top)',
   stack_trace TEXT COMMENT 'Stack trace แบบเต็ม (สำหรับ debugging)',
   context_data JSON COMMENT 'Context ของ request (user, project, counter_key, etc.)',
-
   -- User Info
   user_id INT COMMENT 'ผู้ที่เกิด error',
   ip_address VARCHAR(45) COMMENT 'IP address',
-
   -- Timestamps
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่เกิด error',
   resolved_at TIMESTAMP NULL COMMENT 'วันที่แก้ไขแล้ว (NULL = ยังไม่แก้)',
-
   -- Indexes for troubleshooting
   INDEX idx_error_type (error_type),
   INDEX idx_created_at (created_at),
   INDEX idx_user_id (user_id),
   INDEX idx_unresolved (resolved_at) -- Find unresolved errors
-
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-  COMMENT='[v1.5.1 NEW] Error Log สำหรับ Document Numbering System';
-
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '[v1.5.1 NEW] Error Log สำหรับ Document Numbering System';
 -- =====================================================
 -- 10. ⚙️ System & Logs (ระบบและ Log)
 -- =====================================================
