@@ -73,29 +73,18 @@
       "editor.defaultFormatter": "dbaeumer.vscode-eslint"
     },
     "[sql]": {
-      "editor.tabSize": 2,
-      "editor.insertSpaces": true
+      "editor.defaultFormatter": "renesaarsoo.sql-formatter-vsc"
     },
-    "sqltools.codelensLanguages": ["sql"],
-    "sqltools.format": {
-      "language": "sql",
-      "params": {
-        "keywordCase": "upper", // ทำให้ INSERT, VALUES เป็นตัวใหญ่
-        "reservedWordCase": "upper", // ทำให้คำสงวนเป็นตัวใหญ่
-        "tabWidth": 2, // เยื้อง 2 ช่องว่าง
-        "expressionWidth": 100, // ความยาวสูงสุดต่อบรรทัดก่อนตีบรรทัดใหม่ (ป้องกันคอลัมน์แยกบรรทัด)
-        "logicalOperatorNewline": "before",
-        "aliasAs": "before",
-        "commaPosition": "after",
-        "linesBetweenQueries": 1,
-        "linesAroundComments": 0,
-        "tabulateAlias": false,
-        "newlineBeforeSemicolon": false,
-        "newlineBeforeOnClauseItems": false
-      }
-    },
-    "sqltools.formatOnSave": true,
-    "sqltools.formatOnSaveLanguage": "sql",
+    "sql-formatter.dialect": "mysql",
+    "sql-formatter.indentStyle": "standard",
+    "sql-formatter.logicalOperatorNewline": "before",
+    "sql-formatter.expressionWidth": 120,
+    "sql-formatter.linesBetweenQueries": 2,
+    "sql-formatter.denseOperators": false,
+    "sql-formatter.newlineBeforeSemicolon": false,
+    "sql-formatter.keywordCase": "upper",
+    "sql-formatter.dataTypeCase": "upper",
+    "sql-formatter.functionCase": "upper",
     // ========================================
     // CODE ACTION ON SAVE
     // ========================================
@@ -132,40 +121,40 @@
 
     "path-intellisense.mappings": {
       // Backend paths
-      "@backend": "${workspaceFolder:🔧 Backend (NestJS)}/src",
-      "@backend/*": "${workspaceFolder:🔧 Backend (NestJS)}/src/*",
-      "@modules": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules",
-      "@common": "${workspaceFolder:🔧 Backend (NestJS)}/src/common",
-      "@config": "${workspaceFolder:🔧 Backend (NestJS)}/src/common/config",
-      "@circulation": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/circulation",
-      "@correspondence": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/correspondence",
-      "@document-numbering": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/document-numbering",
-      "@drawing": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/drawing",
-      "@json-schema": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/json-schema",
-      "@master": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/master",
-      "@monitoring": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/monitoring",
-      "@notification": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/notification",
-      "@project": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/project",
-      "@rfa": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/rfa",
-      "@search": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/search",
-      "@transmittal": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/transmittal",
-      "@users": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/users",
-      "@workflow-engine": "${workspaceFolder:🔧 Backend (NestJS)}/src/modules/workflow-engine",
+      "@backend": "${workspaceFolder:🔧 Backend}/src",
+      "@backend/*": "${workspaceFolder:🔧 Backend}/src/*",
+      "@modules": "${workspaceFolder:🔧 Backend}/src/modules",
+      "@common": "${workspaceFolder:🔧 Backend}/src/common",
+      "@config": "${workspaceFolder:🔧 Backend}/src/common/config",
+      "@circulation": "${workspaceFolder:🔧 Backend}/src/modules/circulation",
+      "@correspondence": "${workspaceFolder:🔧 Backend}/src/modules/correspondence",
+      "@document-numbering": "${workspaceFolder:🔧 Backend}/src/modules/document-numbering",
+      "@drawing": "${workspaceFolder:🔧 Backend}/src/modules/drawing",
+      "@json-schema": "${workspaceFolder:🔧 Backend}/src/modules/json-schema",
+      "@master": "${workspaceFolder:🔧 Backend}/src/modules/master",
+      "@monitoring": "${workspaceFolder:🔧 Backend}/src/modules/monitoring",
+      "@notification": "${workspaceFolder:🔧 Backend}/src/modules/notification",
+      "@project": "${workspaceFolder:🔧 Backend}/src/modules/project",
+      "@rfa": "${workspaceFolder:🔧 Backend}/src/modules/rfa",
+      "@search": "${workspaceFolder:🔧 Backend}/src/modules/search",
+      "@transmittal": "${workspaceFolder:🔧 Backend}/src/modules/transmittal",
+      "@users": "${workspaceFolder:🔧 Backend}/src/modules/users",
+      "@workflow-engine": "${workspaceFolder:🔧 Backend}/src/modules/workflow-engine",
 
       // Frontend paths (ไม่มี src)
-      "@": "${workspaceFolder:🎨 Frontend (React/Next.js)}/app",
-      "@/*": "${workspaceFolder:🎨 Frontend (React/Next.js)}/app/*",
-      "@app": "${workspaceFolder:🎨 Frontend (React/Next.js)}/app",
-      "@components": "${workspaceFolder:🎨 Frontend (React/Next.js)}/components",
-      "@config": "${workspaceFolder:🎨 Frontend (React/Next.js)}/config",
-      "@lib": "${workspaceFolder:🎨 Frontend (React/Next.js)}/lib",
-      "@hooks": "${workspaceFolder:🎨 Frontend (React/Next.js)}/app/hooks",
-      "@utils": "${workspaceFolder:🎨 Frontend (React/Next.js)}/utils",
-      "@providers": "${workspaceFolder:🎨 Frontend (React/Next.js)}/providers",
-      "@public": "${workspaceFolder:🎨 Frontend (React/Next.js)}/public",
-      "@styles": "${workspaceFolder:🎨 Frontend (React/Next.js)}/styles",
-      "@types": "${workspaceFolder:🎨 Frontend (React/Next.js)}/types",
-      "@api": "${workspaceFolder:🎨 Frontend (React/Next.js)}/app/api"
+      "@": "${workspaceFolder:🎨 Frontend}/app",
+      "@/*": "${workspaceFolder:🎨 Frontend}/app/*",
+      "@app": "${workspaceFolder:🎨 Frontend}/app",
+      "@components": "${workspaceFolder:🎨 Frontend}/components",
+      "@config": "${workspaceFolder:🎨 Frontend}/config",
+      "@lib": "${workspaceFolder:🎨 Frontend}/lib",
+      "@hooks": "${workspaceFolder:🎨 Frontend}/app/hooks",
+      "@utils": "${workspaceFolder:🎨 Frontend}/utils",
+      "@providers": "${workspaceFolder:🎨 Frontend}/providers",
+      "@public": "${workspaceFolder:🎨 Frontend}/public",
+      "@styles": "${workspaceFolder:🎨 Frontend}/styles",
+      "@types": "${workspaceFolder:🎨 Frontend}/types",
+      "@api": "${workspaceFolder:🎨 Frontend}/app/api"
     },
     "path-intellisense.autoSlashAfterDirectory": true,
     "path-intellisense.extensionOnImport": false,
@@ -380,8 +369,10 @@
     "typescript.inlayHints.variableTypes.enabled": false,
     "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
     "typescript.preferences.importModuleSpecifier": "relative",
-    "typescript.tsdk": "node_modules/typescript/lib",
-
+    "typescript.tsdk": {
+      "backend": "backend/node_modules/typescript/lib",
+      "frontend": "frontend/node_modules/typescript/lib"
+    },
     // ========================================
     // EMMET
     // ========================================
@@ -482,17 +473,6 @@
     "workbench.editor.limit.enabled": true,
     "workbench.editor.limit.value": 10,
     "workbench.startupEditor": "welcomePage",
-    "workbench.colorCustomizations": {
-      "[One Dark Pro]": {
-        "activityBarBadge.background": "#FF8C00",
-        "list.activeSelectionForeground": "#FF8C00",
-        "list.inactiveSelectionForeground": "#FF8C00",
-        "list.highlightForeground": "#FF8C00",
-        "scrollbarSlider.activeBackground": "#FF8C0050",
-        "editorSuggestWidget.highlightForeground": "#FF8C00",
-        "textLink.foreground": "#FF8C00"
-      }
-    },
     // ========================================
     // EXPLORER
     // ========================================
@@ -548,8 +528,10 @@
     "jest.pathToJest": "node_modules/.bin/jest",
 
     // กำหนด config ของ Jest ถ้ามีไฟล์ jest.config.js
-    "jest.pathToConfig": "jest.config.js",
-
+    "jest.pathToConfig": {
+      "backend": "backend/jest.config.js",
+      "frontend": "frontend/jest.config.js"
+    },
     "jest.disabledWorkspaceFolders": ["🎯 Root", "🗓️ docs", "🔗 specs"],
 
     // ========================================
@@ -674,13 +656,18 @@
         "username": "root",
         "password": "Center#2025"
       }
-    ]
+    ],
+    "database-client.variableIndicator": [":", "$"],
+    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.sideBar.location": "left",
+    "workbench.view.alwaysShowHeaderActions": true,
+    "workbench.view.showQuietly": {
+      "workbench.panel.output": false
+    }
   },
-
   // ========================================
   // LAUNCH CONFIGURATIONS
   // ========================================
-
   "launch": {
     "version": "0.2.0",
     "configurations": [
@@ -736,11 +723,9 @@
       }
     ]
   },
-
   // ========================================
   // TASKS
   // ========================================
-
   "tasks": {
     "version": "2.0.0",
     "tasks": [
@@ -835,19 +820,6 @@
         "command": "docker-compose down",
         "problemMatcher": []
       },
-      {
-        "label": "Start Backend",
-        "type": "shell",
-        "command": "npm run start:dev",
-        "options": {
-          "cwd": "${workspaceFolder:🔧 Backend}"
-        },
-        "presentation": {
-          "panel": "dedicated",
-          "group": "dev",
-          "reveal": "always"
-        }
-      },
       // 1. Task หลักที่จะรันอัตโนมัติเมื่อเปิดโปรแกรม
       {
         "label": "🚀 Setup Workspace",
@@ -860,7 +832,6 @@
         },
         "problemMatcher": []
       },
-
       // 2. Task ย่อย: เปิด Terminal ที่ Backend
       {
         "label": "🔧 PS: Backend",
@@ -878,7 +849,6 @@
           "focus": false // ไม่ต้องแย่ง Focus ทันที
         }
       },
-
       // 3. Task ย่อย: เปิด Terminal ที่ Frontend
       {
         "label": "🎨 PS: Frontend",
@@ -896,48 +866,6 @@
           "focus": true // ให้ Focus ที่อันนี้เป็นอันสุดท้าย (พร้อมพิมพ์)
         }
       }
-    ]
-  },
-
-  // ========================================
-  // EXTENSIONS
-  // ========================================
-
-  "extensions": {
-    "recommendations": [
-      "dbaeumer.vscode-eslint",
-      "esbenp.prettier-vscode",
-      "usernamehw.errorlens",
-      "yoavbls.pretty-typescript-errors",
-      "wix.vscode-import-cost",
-      "aaron-bond.better-comments",
-      "gruntfuggly.todo-tree",
-      "ashinzekene.nestjs",
-      "dsznajder.es7-react-js-snippets",
-      "orta.vscode-jest",
-      "bradlc.vscode-tailwindcss",
-      "heybourn.headwind",
-      "prisma.prisma",
-      "rangav.vscode-thunder-client",
-      "humao.rest-client",
-      "formulahendry.auto-close-tag",
-      "formulahendry.auto-rename-tag",
-      "ms-azuretools.vscode-docker",
-      "mtxr.sqltools",
-      "redhat.vscode-yaml",
-      "mikestead.dotenv",
-      "editorconfig.editorconfig",
-      "eamodio.gitlens",
-      "mhutchie.git-graph",
-      "vivaxy.vscode-conventional-commits",
-      "christian-kohler.path-intellisense",
-      "christian-kohler.npm-intellisense",
-      "pranaygp.vscode-css-peek",
-      "alefragnani.bookmarks",
-      "chakrounanas.turbo-console-log",
-      "wallabyjs.console-ninja",
-      "pkief.material-icon-theme",
-      "github.copilot"
     ]
   }
 }
