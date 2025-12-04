@@ -1,85 +1,147 @@
-// File: app/demo/page.tsx
-
 "use client";
 
-import { ResponsiveDataTable, ColumnDef } from "@/components/custom/responsive-data-table";
-import { FileUploadZone, FileWithMeta } from "@/components/custom/file-upload-zone";
-import { WorkflowVisualizer, WorkflowStep } from "@/components/custom/workflow-visualizer";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { DataTable } from "@/components/common/data-table";
+import { FileUpload } from "@/components/common/file-upload";
+import { StatusBadge } from "@/components/common/status-badge";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { Pagination } from "@/components/common/pagination";
 import { Button } from "@/components/ui/button";
+import { ColumnDef } from "@tanstack/react-table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// --- Mock Data ---
-interface DocItem {
+// Mock Data for Table
+interface Payment {
   id: string;
-  title: string;
+  amount: number;
   status: string;
-  date: string;
+  email: string;
 }
 
-const mockData: DocItem[] = [
-  { id: "RFA-001", title: "แบบก่อสร้างฐานราก", status: "Approved", date: "2023-11-01" },
-  { id: "RFA-002", title: "วัสดุงานผนัง", status: "Pending", date: "2023-11-05" },
-];
-
-const columns: ColumnDef<DocItem>[] = [
-  { key: "id", header: "Document No." },
-  { key: "title", header: "Subject" },
-  { 
-    key: "status", 
+const columns: ColumnDef<Payment>[] = [
+  {
+    accessorKey: "status",
     header: "Status",
-    cell: (item) => (
-      <Badge variant={item.status === 'Approved' ? 'default' : 'secondary'}>
-        {item.status}
-      </Badge>
-    ) 
+    cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
   },
-  { key: "date", header: "Date" },
+  {
+    accessorKey: "email",
+    header: "Email",
+  },
+  {
+    accessorKey: "amount",
+    header: "Amount",
+    cell: ({ row }) => {
+      const amount = parseFloat(row.getValue("amount"));
+      const formatted = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(amount);
+      return <div className="font-medium">{formatted}</div>;
+    },
+  },
 ];
 
-const mockSteps: WorkflowStep[] = [
-    { id: 1, label: "ผู้รับเหมา", subLabel: "Submit", status: "completed", date: "10/11/2023" },
-    { id: 2, label: "CSC", subLabel: "Review", status: "current" },
-    { id: 3, label: "Designer", subLabel: "Approve", status: "pending" },
-    { id: 4, label: "Owner", subLabel: "Acknowledge", status: "pending" },
+const data: Payment[] = [
+  { id: "1", amount: 100, status: "PENDING", email: "m@example.com" },
+  { id: "2", amount: 200, status: "APPROVED", email: "test@example.com" },
+  { id: "3", amount: 300, status: "REJECTED", email: "fail@example.com" },
+  { id: "4", amount: 400, status: "IN_REVIEW", email: "review@example.com" },
+  { id: "5", amount: 500, status: "DRAFT", email: "draft@example.com" },
 ];
 
 export default function DemoPage() {
+  const [files, setFiles] = useState<File[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
+
   return (
-    <div className="container mx-auto py-10 space-y-10">
-      <section className="space-y-4">
-        <h2 className="text-2xl font-bold">1. Responsive Data Table</h2>
-        <ResponsiveDataTable 
-            data={mockData} 
-            columns={columns} 
-            keyExtractor={(i) => i.id}
-            renderMobileCard={(item) => (
-                <div className="border p-4 rounded-lg shadow-sm bg-card">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="font-bold">{item.id}</span>
-                        <Badge>{item.status}</Badge>
-                    </div>
-                    <p className="text-sm mb-2">{item.title}</p>
-                    <div className="text-xs text-muted-foreground text-right">{item.date}</div>
-                    <Button size="sm" className="w-full mt-2" variant="outline">View Detail</Button>
-                </div>
-            )}
-        />
-      </section>
+    <div className="p-8 space-y-8">
+      <h1 className="text-3xl font-bold">Common Components Demo</h1>
 
-      <section className="space-y-4">
-        <h2 className="text-2xl font-bold">2. File Upload Zone</h2>
-        <FileUploadZone 
-            onFilesChanged={(files) => console.log("Files:", files)}
-            accept={[".pdf", ".jpg", ".png"]}
-        />
-      </section>
+      {/* Status Badges */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Status Badges</CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-4 flex-wrap">
+          <StatusBadge status="DRAFT" />
+          <StatusBadge status="PENDING" />
+          <StatusBadge status="IN_REVIEW" />
+          <StatusBadge status="APPROVED" />
+          <StatusBadge status="REJECTED" />
+          <StatusBadge status="CLOSED" />
+          <StatusBadge status="UNKNOWN" />
+        </CardContent>
+      </Card>
 
-      <section className="space-y-4">
-        <h2 className="text-2xl font-bold">3. Workflow Visualizer</h2>
-        <div className="border p-6 rounded-lg">
-             <WorkflowVisualizer steps={mockSteps} />
-        </div>
-      </section>
+      {/* File Upload */}
+      <Card>
+        <CardHeader>
+          <CardTitle>File Upload</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FileUpload
+            onFilesSelected={(files) => setFiles(files)}
+            maxFiles={3}
+          />
+          <div className="mt-4">
+            <h3 className="font-semibold">Selected Files:</h3>
+            <ul className="list-disc pl-5">
+              {files.map((f, i) => (
+                <li key={i}>
+                  {f.name} ({(f.size / 1024).toFixed(2)} KB)
+                </li>
+              ))}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Data Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Data Table</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable columns={columns} data={data} />
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pagination</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Pagination
+            currentPage={page}
+            totalPages={10}
+            total={100}
+          />
+          {/* Note: In a real app, clicking pagination would update 'page' via URL or state */}
+        </CardContent>
+      </Card>
+
+      {/* Confirm Dialog */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Confirmation Dialog</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => setDialogOpen(true)}>Open Dialog</Button>
+          <ConfirmDialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            title="Are you sure?"
+            description="This action cannot be undone. This will permanently delete your account and remove your data from our servers."
+            onConfirm={() => {
+              alert("Confirmed!");
+              setDialogOpen(false);
+            }}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

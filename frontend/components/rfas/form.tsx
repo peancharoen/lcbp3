@@ -1,0 +1,237 @@
+"use client";
+
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Plus, Trash2, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useRouter } from "next/navigation";
+import { rfaApi } from "@/lib/api/rfas";
+import { useState } from "react";
+
+const rfaItemSchema = z.object({
+  item_no: z.string().min(1, "Item No is required"),
+  description: z.string().min(3, "Description is required"),
+  quantity: z.number({ invalid_type_error: "Quantity must be a number" }).min(0),
+  unit: z.string().min(1, "Unit is required"),
+});
+
+const rfaSchema = z.object({
+  subject: z.string().min(5, "Subject must be at least 5 characters"),
+  description: z.string().optional(),
+  contract_id: z.number({ required_error: "Contract is required" }),
+  discipline_id: z.number({ required_error: "Discipline is required" }),
+  items: z.array(rfaItemSchema).min(1, "At least one item is required"),
+});
+
+type RFAFormData = z.infer<typeof rfaSchema>;
+
+export function RFAForm() {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<RFAFormData>({
+    resolver: zodResolver(rfaSchema),
+    defaultValues: {
+      items: [{ item_no: "1", description: "", quantity: 0, unit: "" }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "items",
+  });
+
+  const onSubmit = async (data: RFAFormData) => {
+    setIsSubmitting(true);
+    try {
+      await rfaApi.create(data as any);
+      router.push("/rfas");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to create RFA");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="max-w-4xl space-y-6">
+      {/* Basic Info */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">RFA Information</h3>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="subject">Subject *</Label>
+            <Input id="subject" {...register("subject")} placeholder="Enter subject" />
+            {errors.subject && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.subject.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Input id="description" {...register("description")} placeholder="Enter description" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Contract *</Label>
+              <Select
+                onValueChange={(v) => setValue("contract_id", parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Contract" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Main Construction Contract</SelectItem>
+                  <SelectItem value="2">Subcontract A</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.contract_id && (
+                <p className="text-sm text-destructive mt-1">{errors.contract_id.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label>Discipline *</Label>
+              <Select
+                onValueChange={(v) => setValue("discipline_id", parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Discipline" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Civil</SelectItem>
+                  <SelectItem value="2">Structural</SelectItem>
+                  <SelectItem value="3">Electrical</SelectItem>
+                  <SelectItem value="4">Mechanical</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.discipline_id && (
+                <p className="text-sm text-destructive mt-1">{errors.discipline_id.message}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* RFA Items */}
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">RFA Items</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              append({
+                item_no: (fields.length + 1).toString(),
+                description: "",
+                quantity: 0,
+                unit: "",
+              })
+            }
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Item
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          {fields.map((field, index) => (
+            <Card key={field.id} className="p-4 bg-muted/20">
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-medium text-sm">Item #{index + 1}</h4>
+                {fields.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    onClick={() => remove(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Item No.</Label>
+                  <Input {...register(`items.${index}.item_no`)} placeholder="1.1" />
+                  {errors.items?.[index]?.item_no && (
+                    <p className="text-xs text-destructive mt-1">{errors.items[index]?.item_no?.message}</p>
+                  )}
+                </div>
+                <div className="md:col-span-6">
+                  <Label className="text-xs">Description *</Label>
+                  <Input {...register(`items.${index}.description`)} placeholder="Item description" />
+                  {errors.items?.[index]?.description && (
+                    <p className="text-xs text-destructive mt-1">{errors.items[index]?.description?.message}</p>
+                  )}
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Quantity</Label>
+                  <Input
+                    type="number"
+                    {...register(`items.${index}.quantity`, {
+                      valueAsNumber: true,
+                    })}
+                  />
+                  {errors.items?.[index]?.quantity && (
+                    <p className="text-xs text-destructive mt-1">{errors.items[index]?.quantity?.message}</p>
+                  )}
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Unit</Label>
+                  <Input {...register(`items.${index}.unit`)} placeholder="pcs, m3" />
+                  {errors.items?.[index]?.unit && (
+                    <p className="text-xs text-destructive mt-1">{errors.items[index]?.unit?.message}</p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {errors.items?.root && (
+          <p className="text-sm text-destructive mt-2">
+            {errors.items.root.message}
+          </p>
+        )}
+      </Card>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="outline" onClick={() => router.back()}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Create RFA
+        </Button>
+      </div>
+    </form>
+  );
+}

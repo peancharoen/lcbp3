@@ -1,7 +1,5 @@
-// File: app/(dashboard)/layout.tsx
+import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Navbar } from "@/components/layout/navbar";
-import { DashboardShell } from "@/components/layout/dashboard-shell"; // Import Wrapper
 
 export default function DashboardLayout({
   children,
@@ -9,17 +7,14 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen bg-muted/10">
-      {/* Sidebar (Fixed Position) */}
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-
-      {/* Main Content (Dynamic Margin) */}
-      <DashboardShell>
-        <Navbar />
-        <main className="flex-1 p-4 lg:p-6 overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto p-6 bg-muted/10">
           {children}
         </main>
-      </DashboardShell>
+      </div>
     </div>
   );
 }
