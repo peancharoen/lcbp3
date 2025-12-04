@@ -5,14 +5,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Not } from 'typeorm'; // เพิ่ม Not
+import { Repository, DataSource, Not } from 'typeorm';
 
 import { Circulation } from './entities/circulation.entity';
 import { CirculationRouting } from './entities/circulation-routing.entity';
 import { User } from '../user/entities/user.entity';
 import { CreateCirculationDto } from './dto/create-circulation.dto';
-import { UpdateCirculationRoutingDto } from './dto/update-circulation-routing.dto'; // Import ใหม่
-import { SearchCirculationDto } from './dto/search-circulation.dto'; // Import ใหม่
+import { UpdateCirculationRoutingDto } from './dto/update-circulation-routing.dto';
+import { SearchCirculationDto } from './dto/search-circulation.dto';
+import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
 
 @Injectable()
 export class CirculationService {
@@ -21,7 +22,8 @@ export class CirculationService {
     private circulationRepo: Repository<Circulation>,
     @InjectRepository(CirculationRouting)
     private routingRepo: Repository<CirculationRouting>,
-    private dataSource: DataSource,
+    private numberingService: DocumentNumberingService,
+    private dataSource: DataSource
   ) {}
 
   async create(createDto: CreateCirculationDto, user: User) {
@@ -34,8 +36,17 @@ export class CirculationService {
     await queryRunner.startTransaction();
 
     try {
-      // Generate No. (Mock Logic) -> ควรใช้ NumberingService จริงในอนาคต
-      const circulationNo = `CIR-${Date.now()}`;
+      // Generate No. using DocumentNumberingService (Type 900 - Circulation)
+      const circulationNo = await this.numberingService.generateNextNumber({
+        projectId: createDto.projectId || 0, // Use projectId from DTO or 0
+        originatorId: user.primaryOrganizationId,
+        typeId: 900, // Fixed Type ID for Circulation
+        year: new Date().getFullYear(),
+        customTokens: {
+          TYPE_CODE: 'CIR',
+          ORG_CODE: 'ORG',
+        },
+      });
 
       const circulation = queryRunner.manager.create(Circulation, {
         organizationId: user.primaryOrganizationId,
@@ -55,7 +66,7 @@ export class CirculationService {
             organizationId: user.primaryOrganizationId,
             assignedTo: userId,
             status: 'PENDING',
-          }),
+          })
         );
         await queryRunner.manager.save(routings);
       }
@@ -83,13 +94,6 @@ export class CirculationService {
       query.andWhere('c.statusCode = :status', { status });
     }
 
-    if (search) {
-      query.andWhere(
-        '(c.circulationNo LIKE :search OR c.subject LIKE :search)',
-        { search: `%${search}%` },
-      );
-    }
-
     query
       .orderBy('c.createdAt', 'DESC')
       .skip((page - 1) * limit)
@@ -113,7 +117,7 @@ export class CirculationService {
   async updateRoutingStatus(
     routingId: number,
     dto: UpdateCirculationRoutingDto,
-    user: User,
+    user: User
   ) {
     const routing = await this.routingRepo.findOne({
       where: { id: routingId },

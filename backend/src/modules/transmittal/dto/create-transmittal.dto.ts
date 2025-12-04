@@ -4,11 +4,12 @@ import {
   IsOptional,
   IsArray,
   IsNotEmpty,
+  ValidateNested,
   IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 
-// Enum นี้ควรตรงกับใน Entity หรือสร้างไฟล์ enum แยก (ในที่นี้ใส่ไว้ใน DTO เพื่อความสะดวก)
 export enum TransmittalPurpose {
   FOR_APPROVAL = 'FOR_APPROVAL',
   FOR_INFORMATION = 'FOR_INFORMATION',
@@ -16,21 +17,57 @@ export enum TransmittalPurpose {
   OTHER = 'OTHER',
 }
 
-export class CreateTransmittalDto {
+export class TransmittalItemDto {
+  @ApiProperty({
+    description: 'ประเภทรายการ (DRAWING, RFA, CORRESPONDENCE)',
+    example: 'DRAWING',
+  })
+  @IsString()
+  @IsNotEmpty()
+  itemType!: string;
+
+  @ApiProperty({ description: 'ID ของรายการ', example: 1 })
   @IsInt()
   @IsNotEmpty()
-  projectId!: number; // จำเป็นสำหรับการออกเลขที่เอกสาร (Running Number)
+  itemId!: number;
 
-  @IsEnum(TransmittalPurpose)
-  @IsOptional()
-  purpose?: TransmittalPurpose; // วัตถุประสงค์การส่ง
-
+  @ApiProperty({ description: 'รายละเอียดเพิ่มเติม', required: false })
   @IsString()
   @IsOptional()
-  remarks?: string; // หมายเหตุเพิ่มเติม
+  description?: string;
+}
 
-  @IsArray()
-  @IsInt({ each: true })
+export class CreateTransmittalDto {
+  @ApiProperty({ description: 'ID ของโครงการ', example: 1 })
+  @IsInt()
   @IsNotEmpty()
-  itemIds!: number[]; // ID ของเอกสาร (Correspondence IDs) ที่จะแนบไปใน Transmittal นี้
+  projectId!: number;
+
+  @ApiProperty({
+    description: 'เรื่อง',
+    example: 'Transmittal for Shop Drawings',
+  })
+  @IsString()
+  @IsNotEmpty()
+  subject!: string;
+
+  @ApiProperty({ description: 'ผู้รับ (Organization ID)', example: 2 })
+  @IsInt()
+  @IsNotEmpty()
+  recipientOrganizationId!: number;
+
+  @ApiProperty({
+    description: 'วัตถุประสงค์',
+    enum: TransmittalPurpose,
+    example: TransmittalPurpose.FOR_APPROVAL,
+  })
+  @IsEnum(TransmittalPurpose)
+  @IsOptional()
+  purpose?: TransmittalPurpose;
+
+  @ApiProperty({ description: 'รายการที่แนบ', type: [TransmittalItemDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TransmittalItemDto)
+  items!: TransmittalItemDto[];
 }

@@ -25,6 +25,9 @@ export class Correspondence {
   @Column({ name: 'correspondence_type_id' })
   correspondenceTypeId!: number;
 
+  @Column({ name: 'discipline_id', nullable: true })
+  disciplineId?: number;
+
   @Column({ name: 'project_id' })
   projectId!: number;
 
@@ -64,10 +67,15 @@ export class Correspondence {
   @JoinColumn({ name: 'created_by' })
   creator?: User;
 
+  // [New V1.5.1]
+  @ManyToOne('Discipline')
+  @JoinColumn({ name: 'discipline_id' })
+  discipline?: any; // Use 'any' or import Discipline entity if available to avoid circular dependency issues if not careful, but better to import.
+
   // One Correspondence has Many Revisions
   @OneToMany(
     () => CorrespondenceRevision,
-    (revision) => revision.correspondence,
+    (revision) => revision.correspondence
   )
   revisions?: CorrespondenceRevision[];
 }

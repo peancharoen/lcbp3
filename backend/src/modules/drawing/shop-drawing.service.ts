@@ -1,8 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
-  InternalServerErrorException,
   ConflictException,
   Logger,
 } from '@nestjs/common';
@@ -38,7 +36,7 @@ export class ShopDrawingService {
     @InjectRepository(Attachment)
     private attachmentRepo: Repository<Attachment>,
     private fileStorageService: FileStorageService,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   /**
@@ -51,7 +49,7 @@ export class ShopDrawingService {
     });
     if (exists) {
       throw new ConflictException(
-        `Drawing number "${createDto.drawingNumber}" already exists.`,
+        `Drawing number "${createDto.drawingNumber}" already exists.`
       );
     }
 
@@ -103,7 +101,7 @@ export class ShopDrawingService {
       // 5. Commit Files
       if (createDto.attachmentIds?.length) {
         await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String),
+          createDto.attachmentIds.map(String)
         );
       }
 
@@ -117,7 +115,7 @@ export class ShopDrawingService {
     } catch (err) {
       await queryRunner.rollbackTransaction();
       this.logger.error(
-        `Failed to create shop drawing: ${(err as Error).message}`,
+        `Failed to create shop drawing: ${(err as Error).message}`
       );
       throw err;
     } finally {
@@ -130,7 +128,7 @@ export class ShopDrawingService {
    */
   async createRevision(
     shopDrawingId: number,
-    createDto: CreateShopDrawingRevisionDto,
+    createDto: CreateShopDrawingRevisionDto
   ) {
     const shopDrawing = await this.shopDrawingRepo.findOneBy({
       id: shopDrawingId,
@@ -144,7 +142,7 @@ export class ShopDrawingService {
     });
     if (exists) {
       throw new ConflictException(
-        `Revision label "${createDto.revisionLabel}" already exists for this drawing.`,
+        `Revision label "${createDto.revisionLabel}" already exists for this drawing.`
       );
     }
 
@@ -188,7 +186,7 @@ export class ShopDrawingService {
 
       if (createDto.attachmentIds?.length) {
         await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String),
+          createDto.attachmentIds.map(String)
         );
       }
 
@@ -237,7 +235,7 @@ export class ShopDrawingService {
           qb.where('sd.drawingNumber LIKE :search', {
             search: `%${search}%`,
           }).orWhere('sd.title LIKE :search', { search: `%${search}%` });
-        }),
+        })
       );
     }
 

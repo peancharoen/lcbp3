@@ -11,10 +11,12 @@
     // EDITOR SETTINGS
     // ========================================
 
-    "editor.fontSize": 15,
+    "editor.fontSize": 16,
+    "editor.tabSize": 2,
     "editor.lineHeight": 1.6,
     "editor.rulers": [80, 120],
     "editor.minimap.enabled": true,
+    "editor.minimap.sectionHeaderFontSize": 14,
     "editor.renderWhitespace": "boundary",
     "editor.bracketPairColorization.enabled": true,
     "editor.guides.bracketPairs": "active",
@@ -26,7 +28,6 @@
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
     "editor.suggestSelection": "first",
-    "editor.tabSize": 2,
     "editor.detectIndentation": true,
 
     // ========================================
@@ -63,7 +64,7 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "[markdown]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.defaultFormatter": "yzhang.markdown-all-in-one",
       "editor.wordWrap": "on"
     },
     "[yaml]": {
@@ -73,27 +74,53 @@
       "editor.defaultFormatter": "dbaeumer.vscode-eslint"
     },
     "[sql]": {
-      "editor.defaultFormatter": "renesaarsoo.sql-formatter-vsc"
+      "editor.defaultFormatter": "mtxr.sqltools",
+      "editor.tabSize": 2,
+      "editor.insertSpaces": true,
+      "editor.detectIndentation": false,
+      "editor.wordWrap": "off",
+      "editor.formatOnSave": true
     },
-    "sql-formatter.dialect": "mysql",
-    "sql-formatter.indentStyle": "standard",
-    "sql-formatter.logicalOperatorNewline": "before",
-    "sql-formatter.expressionWidth": 120,
-    "sql-formatter.linesBetweenQueries": 2,
-    "sql-formatter.denseOperators": false,
-    "sql-formatter.newlineBeforeSemicolon": false,
-    "sql-formatter.keywordCase": "upper",
-    "sql-formatter.dataTypeCase": "upper",
-    "sql-formatter.functionCase": "upper",
+    "sqltools.format": {
+      "indent": "  ", // 2 spaces
+      "indentStyle": "space", // ใช้ space แทน tab
+      "tabSize": 2,
+      "reservedWordCase": "upper", // คำสงวนเป็นตัวพิมพ์ใหญ่ SELECT, FROM, WHERE
+      "dataTypeCase": "lower", // varchar, int, datetime
+      "functionCase": "lower", // count(), sum(), date_format()
+      // Spacing and Lines
+      "linesBetweenQueries": 2, // เว้นบรรทัดระหว่าง query
+      "denseOperators": true,
+      "spaceAroundOperators": false,
+      // Comma Style
+      "commaPosition": "after", // ใส่ comma หลังคอลัมน์
+      "newlineBeforeComma": false,
+      "newlineAfterComma": false,
+      // Parentheses Style
+      "newlineBeforeOpenParen": false,
+      "newlineAfterOpenParen": false,
+      "newlineBeforeCloseParen": false,
+      "newlineAfterCloseParen": false,
+      // Width Control
+      "expressionWidth": 120,
+      "wrapLength": 120,
+      // Other Styles
+      "compact": true, // ไม่ย่อโค้ดให้แน่นเกินไป
+      "uppercaseKeywords": true,
+      "newlineBeforeSemicolon": false
+    },
+    // ป้องกัน extension อื่นมายุ่ง
+
     // ========================================
     // CODE ACTION ON SAVE
     // ========================================
 
     "editor.codeActionsOnSave": {
       "source.fixAll": "explicit",
-      // "source.fixAll.eslint": "explicit"
-      "source.organizeImports": "explicit",
-      "source.addMissingImports": "explicit"
+      "source.fixAll.prettier": "explicit",
+      "source.fixAll.eslint": "explicit"
+      //"source.organizeImports": "explicit",
+      //"source.addMissingImports": "explicit"
     },
 
     // ========================================
@@ -105,12 +132,7 @@
     // ========================================
 
     "eslint.enable": true,
-    "eslint.validate": [
-      "javascript",
-      "javascriptreact",
-      "typescript",
-      "typescriptreact"
-    ],
+    "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
     "eslint.alwaysShowStatus": true,
     "eslint.format.enable": false,
     "eslint.lintTask.enable": true,
@@ -263,24 +285,10 @@
     // TODO TREE
     // ========================================
 
-    "todo-tree.general.tags": [
-      "TODO",
-      "FIXME",
-      "BUG",
-      "HACK",
-      "NOTE",
-      "XXX",
-      "[ ]",
-      "[x]"
-    ],
+    "todo-tree.general.tags": ["TODO", "FIXME", "BUG", "HACK", "NOTE", "XXX", "[ ]", "[x]"],
     "todo-tree.highlights.enabled": true,
     "todo-tree.tree.showScanModeButton": true,
-    "todo-tree.filtering.excludeGlobs": [
-      "**/node_modules",
-      "**/dist",
-      "**/build",
-      "**/.next"
-    ],
+    "todo-tree.filtering.excludeGlobs": ["**/node_modules", "**/dist", "**/build", "**/.next"],
     "todo-tree.highlights.customHighlight": {
       "TODO": {
         "icon": "check",
@@ -467,12 +475,17 @@
 
     "workbench.iconTheme": "material-icon-theme",
     "workbench.activityBar.location": "default",
+    "workbench.sideBar.location": "left",
+    "workbench.view.alwaysShowHeaderActions": true,
     "workbench.tree.indent": 15,
     "workbench.list.smoothScrolling": true,
     "workbench.editor.enablePreview": false,
     "workbench.editor.limit.enabled": true,
     "workbench.editor.limit.value": 10,
     "workbench.startupEditor": "welcomePage",
+    "workbench.view.showQuietly": {
+      "workbench.panel.output": false
+    },
     // ========================================
     // EXPLORER
     // ========================================
@@ -658,12 +671,8 @@
       }
     ],
     "database-client.variableIndicator": [":", "$"],
-    "workbench.colorTheme": "Default Dark Modern",
-    "workbench.sideBar.location": "left",
-    "workbench.view.alwaysShowHeaderActions": true,
-    "workbench.view.showQuietly": {
-      "workbench.panel.output": false
-    }
+    "geminicodeassist.rules": "ใช้ภาษาไทยในการโต้ตอบ\n\n\n\n",
+    "geminicodeassist.verboseLogging": true
   },
   // ========================================
   // LAUNCH CONFIGURATIONS

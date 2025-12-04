@@ -7,6 +7,7 @@ import { Circulation } from './entities/circulation.entity';
 
 import { UserModule } from '../user/user.module';
 import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module';
+import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
 import { CirculationWorkflowService } from './circulation-workflow.service';
 import { CirculationController } from './circulation.controller';
 import { CirculationService } from './circulation.service';
@@ -20,6 +21,7 @@ import { CirculationService } from './circulation.service';
     ]),
     UserModule,
     WorkflowEngineModule,
+    DocumentNumberingModule,
   ],
   controllers: [CirculationController],
   providers: [CirculationService, CirculationWorkflowService],

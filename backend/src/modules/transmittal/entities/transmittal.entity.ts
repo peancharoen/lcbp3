@@ -1,18 +1,28 @@
 import {
   Entity,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   Column,
+  CreateDateColumn,
+  OneToMany,
   OneToOne,
   JoinColumn,
-  OneToMany,
 } from 'typeorm';
 import { Correspondence } from '../../correspondence/entities/correspondence.entity';
 import { TransmittalItem } from './transmittal-item.entity';
 
 @Entity('transmittals')
 export class Transmittal {
-  @PrimaryColumn({ name: 'correspondence_id' })
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ name: 'correspondence_id', unique: true })
   correspondenceId!: number;
+
+  @Column({ name: 'transmittal_no', length: 100 })
+  transmittalNo!: string;
+
+  @Column({ length: 500 })
+  subject!: string;
 
   @Column({
     type: 'enum',
@@ -23,6 +33,9 @@ export class Transmittal {
 
   @Column({ type: 'text', nullable: true })
   remarks?: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
 
   // Relations
   @OneToOne(() => Correspondence)

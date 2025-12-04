@@ -12,6 +12,10 @@ export class CreateCirculationDto {
   @IsNotEmpty()
   correspondenceId!: number; // เอกสารต้นเรื่องที่จะเวียน
 
+  @IsInt()
+  @IsOptional()
+  projectId?: number; // Project ID for Numbering
+
   @IsString()
   @IsNotEmpty()
   subject!: string; // หัวข้อเรื่อง (Subject)

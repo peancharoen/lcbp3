@@ -29,6 +29,7 @@ import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto';
 import { CreateRfaDto } from './dto/create-rfa.dto';
 
 // Interfaces & Enums
+import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface';
 
 // Services
 import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
@@ -68,7 +69,7 @@ export class RfaService {
     private workflowEngine: WorkflowEngineService,
     private notificationService: NotificationService,
     private dataSource: DataSource,
-    private searchService: SearchService,
+    private searchService: SearchService
   ) {}
 
   async create(createDto: CreateRfaDto, user: User) {
@@ -82,7 +83,7 @@ export class RfaService {
     });
     if (!statusDraft) {
       throw new InternalServerErrorException(
-        'Status DFT (Draft) not found in Master Data',
+        'Status DFT (Draft) not found in Master Data'
       );
     }
 
@@ -119,24 +120,20 @@ export class RfaService {
       // 1. Create Correspondence Record
       const correspondence = queryRunner.manager.create(Correspondence, {
         correspondenceNumber: docNumber,
-        correspondenceTypeId: createDto.rfaTypeId, // Assuming RFA Type maps directly or via logic
-        // Note: ถ้า CorrespondenceType แยก ID กับ RFA Type ต้อง Map ให้ถูก
-        // ในที่นี้สมมติว่าใช้ ID เดียวกัน หรือ RFA Type เป็น SubType ของ Correspondence
+        correspondenceTypeId: createDto.rfaTypeId,
         projectId: createDto.projectId,
         originatorId: userOrgId,
-        isInternalCommunication: false,
+        isInternal: false,
         createdBy: user.user_id,
-        // ✅ Add disciplineId column if correspondence table supports it (as per Data Dictionary Update)
-        // disciplineId: createDto.disciplineId
+        disciplineId: createDto.disciplineId, // ✅ Add disciplineId
       });
       const savedCorr = await queryRunner.manager.save(correspondence);
 
-      // 2. Create RFA Master Record
+      // 2. Create Rfa Master Record
       const rfa = queryRunner.manager.create(Rfa, {
         rfaTypeId: createDto.rfaTypeId,
         createdBy: user.user_id,
-        // ✅ ถ้า Entity Rfa มี disciplineId ให้ใส่ตรงนี้ด้วย
-        // disciplineId: createDto.disciplineId
+        disciplineId: createDto.disciplineId, // ✅ Add disciplineId
       });
       const savedRfa = await queryRunner.manager.save(rfa);
 
@@ -154,8 +151,8 @@ export class RfaService {
           ? new Date(createDto.documentDate)
           : new Date(),
         createdBy: user.user_id,
-        details: createDto.details, // ✅ Save JSON Details
-        schemaVersion: 1, // ✅ Default Schema Version
+        details: createDto.details,
+        schemaVersion: 1,
       });
       const savedRevision = await queryRunner.manager.save(rfaRevision);
 
@@ -174,27 +171,48 @@ export class RfaService {
 
         const rfaItems = shopDrawings.map((sd) =>
           queryRunner.manager.create(RfaItem, {
-            rfaRevisionId: savedCorr.id, // ใช้ ID ของ Correspondence (ตาม Schema ที่ออกแบบไว้) หรือ RFA Revision ID แล้วแต่การ Map Entity
-            // ตาม Entity RfaItem ที่ให้มา: rfaRevisionId map ไปที่ correspondence_id
+            rfaRevisionId: savedCorr.id, // Use Correspondence ID as per schema
             shopDrawingRevisionId: sd.id,
-          }),
+          })
         );
         await queryRunner.manager.save(rfaItems);
       }
 
       await queryRunner.commitTransaction();
 
+      // [NEW V1.5.1] Start Unified Workflow Instance
+      try {
+        const workflowCode = `RFA_${rfaType.typeCode}`; // e.g., RFA_GEN
+        await this.workflowEngine.createInstance(
+          workflowCode,
+          'rfa',
+          savedRfa.id.toString(),
+          {
+            projectId: createDto.projectId,
+            originatorId: userOrgId,
+            disciplineId: createDto.disciplineId,
+            initiatorId: user.user_id,
+          }
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Workflow not started for ${docNumber}: ${(error as Error).message}`
+        );
+      }
+
       // Indexing for Search
-      this.searchService.indexDocument({
-        id: savedCorr.id,
-        type: 'rfa',
-        docNumber: docNumber,
-        title: createDto.title,
-        description: createDto.description,
-        status: 'DRAFT',
-        projectId: createDto.projectId,
-        createdAt: new Date(),
-      });
+      this.searchService
+        .indexDocument({
+          id: savedCorr.id,
+          type: 'rfa',
+          docNumber: docNumber,
+          title: createDto.title,
+          description: createDto.description,
+          status: 'DRAFT',
+          projectId: createDto.projectId,
+          createdAt: new Date(),
+        })
+        .catch((err) => this.logger.error(`Indexing failed: ${err}`));
 
       return {
         ...savedRfa,
@@ -284,7 +302,7 @@ export class RfaService {
         stepPurpose: firstStep.stepPurpose,
         status: 'SENT',
         dueDate: new Date(
-          Date.now() + (firstStep.expectedDays || 7) * 24 * 60 * 60 * 1000,
+          Date.now() + (firstStep.expectedDays || 7) * 24 * 60 * 60 * 1000
         ),
         processedByUserId: user.user_id,
         processedAt: new Date(),
@@ -293,7 +311,7 @@ export class RfaService {
 
       // Notify
       const recipientUserId = await this.userService.findDocControlIdByOrg(
-        firstStep.toOrganizationId,
+        firstStep.toOrganizationId
       );
       if (recipientUserId) {
         await this.notificationService.send({
@@ -338,7 +356,7 @@ export class RfaService {
       throw new BadRequestException('No active workflow step found');
     if (currentRouting.toOrganizationId !== user.primaryOrganizationId) {
       throw new ForbiddenException(
-        'You are not authorized to process this step',
+        'You are not authorized to process this step'
       );
     }
 
@@ -355,7 +373,7 @@ export class RfaService {
       currentRouting.sequence,
       template.steps.length,
       dto.action,
-      dto.returnToSequence,
+      dto.returnToSequence
     );
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -364,16 +382,17 @@ export class RfaService {
 
     try {
       // Update current routing
-      currentRouting.status = dto.action === 'REJECT' ? 'REJECTED' : 'ACTIONED';
+      currentRouting.status =
+        dto.action === WorkflowAction.REJECT ? 'REJECTED' : 'ACTIONED';
       currentRouting.processedByUserId = user.user_id;
       currentRouting.processedAt = new Date();
       currentRouting.comments = dto.comments;
       await queryRunner.manager.save(currentRouting);
 
       // Create next routing if available
-      if (result.nextStepSequence && dto.action !== 'REJECT') {
+      if (result.nextStepSequence && dto.action !== WorkflowAction.REJECT) {
         const nextStep = template.steps.find(
-          (s) => s.sequence === result.nextStepSequence,
+          (s) => s.sequence === result.nextStepSequence
         );
         if (nextStep) {
           const nextRouting = queryRunner.manager.create(
@@ -387,18 +406,20 @@ export class RfaService {
               stepPurpose: nextStep.stepPurpose,
               status: 'SENT',
               dueDate: new Date(
-                Date.now() + (nextStep.expectedDays || 7) * 24 * 60 * 60 * 1000,
+                Date.now() + (nextStep.expectedDays || 7) * 24 * 60 * 60 * 1000
               ),
-            },
+            }
           );
           await queryRunner.manager.save(nextRouting);
         }
       } else if (result.nextStepSequence === null) {
         // Workflow Ended (Completed or Rejected)
         // Update RFA Status (Approved/Rejected Code)
-        if (dto.action !== 'REJECT') {
+        if (dto.action !== WorkflowAction.REJECT) {
           const approveCode = await this.rfaApproveRepo.findOne({
-            where: { approveCode: dto.action === 'APPROVE' ? '1A' : '4X' },
+            where: {
+              approveCode: dto.action === WorkflowAction.APPROVE ? '1A' : '4X',
+            },
           }); // Logic Map Code อย่างง่าย
           if (approveCode) {
             currentRevision.rfaApproveCodeId = approveCode.id;

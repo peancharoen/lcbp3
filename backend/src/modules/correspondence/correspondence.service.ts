@@ -11,31 +11,31 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Like, In } from 'typeorm';
 
-// Entities
-import { Correspondence } from './entities/correspondence.entity.js';
-import { CorrespondenceRevision } from './entities/correspondence-revision.entity.js';
-import { CorrespondenceType } from './entities/correspondence-type.entity.js';
-import { CorrespondenceStatus } from './entities/correspondence-status.entity.js';
-import { RoutingTemplate } from './entities/routing-template.entity.js';
-import { CorrespondenceRouting } from './entities/correspondence-routing.entity.js';
-import { CorrespondenceReference } from './entities/correspondence-reference.entity.js';
-import { User } from '../user/entities/user.entity.js';
+// Entitie
+import { Correspondence } from './entities/correspondence.entity';
+import { CorrespondenceRevision } from './entities/correspondence-revision.entity';
+import { CorrespondenceType } from './entities/correspondence-type.entity';
+import { CorrespondenceStatus } from './entities/correspondence-status.entity';
+import { RoutingTemplate } from './entities/routing-template.entity';
+import { CorrespondenceRouting } from './entities/correspondence-routing.entity';
+import { CorrespondenceReference } from './entities/correspondence-reference.entity';
+import { User } from '../user/entities/user.entity';
 
 // DTOs
-import { CreateCorrespondenceDto } from './dto/create-correspondence.dto.js';
-import { WorkflowActionDto } from './dto/workflow-action.dto.js';
-import { AddReferenceDto } from './dto/add-reference.dto.js';
-import { SearchCorrespondenceDto } from './dto/search-correspondence.dto.js';
+import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
+import { WorkflowActionDto } from './dto/workflow-action.dto';
+import { AddReferenceDto } from './dto/add-reference.dto';
+import { SearchCorrespondenceDto } from './dto/search-correspondence.dto';
 
 // Interfaces & Enums
-import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface.js';
+import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface';
 
 // Services
-import { DocumentNumberingService } from '../document-numbering/document-numbering.service.js';
-import { JsonSchemaService } from '../json-schema/json-schema.service.js';
-import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service.js';
-import { UserService } from '../user/user.service.js';
-import { SearchService } from '../search/search.service.js';
+import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
+import { JsonSchemaService } from '../json-schema/json-schema.service';
+import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
+import { UserService } from '../user/user.service';
+import { SearchService } from '../search/search.service';
 
 @Injectable()
 export class CorrespondenceService {
@@ -62,7 +62,7 @@ export class CorrespondenceService {
     private workflowEngine: WorkflowEngineService,
     private userService: UserService,
     private dataSource: DataSource,
-    private searchService: SearchService,
+    private searchService: SearchService
   ) {}
 
   async create(createDto: CreateCorrespondenceDto, user: User) {
@@ -76,7 +76,7 @@ export class CorrespondenceService {
     });
     if (!statusDraft) {
       throw new InternalServerErrorException(
-        'Status DRAFT not found in Master Data',
+        'Status DRAFT not found in Master Data'
       );
     }
 
@@ -92,11 +92,11 @@ export class CorrespondenceService {
     // Impersonation Logic
     if (createDto.originatorId && createDto.originatorId !== userOrgId) {
       const permissions = await this.userService.getUserPermissions(
-        user.user_id,
+        user.user_id
       );
       if (!permissions.includes('system.manage_all')) {
         throw new ForbiddenException(
-          'You do not have permission to create documents on behalf of other organizations.',
+          'You do not have permission to create documents on behalf of other organizations.'
         );
       }
       userOrgId = createDto.originatorId;
@@ -104,7 +104,7 @@ export class CorrespondenceService {
 
     if (!userOrgId) {
       throw new BadRequestException(
-        'User must belong to an organization to create documents',
+        'User must belong to an organization to create documents'
       );
     }
 
@@ -113,7 +113,7 @@ export class CorrespondenceService {
         await this.jsonSchemaService.validate(type.typeCode, createDto.details);
       } catch (error: any) {
         this.logger.warn(
-          `Schema validation warning for ${type.typeCode}: ${error.message}`,
+          `Schema validation warning for ${type.typeCode}: ${error.message}`
         );
       }
     }
@@ -131,7 +131,7 @@ export class CorrespondenceService {
         originatorId: userOrgId,
         typeId: createDto.typeId,
         disciplineId: createDto.disciplineId, // ส่ง Discipline (ถ้ามี)
-        subTypeId: createDto.subTypeId,       // ส่ง SubType (ถ้ามี)
+        subTypeId: createDto.subTypeId, // ส่ง SubType (ถ้ามี)
         year: new Date().getFullYear(),
         customTokens: {
           TYPE_CODE: type.typeCode,
@@ -165,6 +165,27 @@ export class CorrespondenceService {
 
       await queryRunner.commitTransaction();
 
+      // [NEW V1.5.1] Start Workflow Instance (After Commit)
+      try {
+        const workflowCode = `CORRESPONDENCE_${type.typeCode}`;
+        await this.workflowEngine.createInstance(
+          workflowCode,
+          'correspondence',
+          savedCorr.id.toString(),
+          {
+            projectId: createDto.projectId,
+            originatorId: userOrgId,
+            disciplineId: createDto.disciplineId,
+            initiatorId: user.user_id,
+          }
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Workflow not started for ${docNumber} (Code: CORRESPONDENCE_${type.typeCode}): ${(error as Error).message}`
+        );
+        // Non-blocking: Document is created, but workflow might not be active.
+      }
+
       this.searchService.indexDocument({
         id: savedCorr.id,
         type: 'correspondence',
@@ -183,7 +204,7 @@ export class CorrespondenceService {
     } catch (err) {
       await queryRunner.rollbackTransaction();
       this.logger.error(
-        `Failed to create correspondence: ${(err as Error).message}`,
+        `Failed to create correspondence: ${(err as Error).message}`
       );
       throw err;
     } finally {
@@ -218,7 +239,7 @@ export class CorrespondenceService {
     if (search) {
       query.andWhere(
         '(corr.correspondenceNumber LIKE :search OR rev.title LIKE :search)',
-        { search: `%${search}%` },
+        { search: `%${search}%` }
       );
     }
 
@@ -268,7 +289,7 @@ export class CorrespondenceService {
 
     if (!template || !template.steps?.length) {
       throw new BadRequestException(
-        'Invalid routing template or no steps defined',
+        'Invalid routing template or no steps defined'
       );
     }
 
@@ -288,7 +309,7 @@ export class CorrespondenceService {
         stepPurpose: firstStep.stepPurpose,
         status: 'SENT',
         dueDate: new Date(
-          Date.now() + (firstStep.expectedDays || 7) * 24 * 60 * 60 * 1000,
+          Date.now() + (firstStep.expectedDays || 7) * 24 * 60 * 60 * 1000
         ),
         processedByUserId: user.user_id,
         processedAt: new Date(),
@@ -308,7 +329,7 @@ export class CorrespondenceService {
   async processAction(
     correspondenceId: number,
     dto: WorkflowActionDto,
-    user: User,
+    user: User
   ) {
     const correspondence = await this.correspondenceRepo.findOne({
       where: { id: correspondenceId },
@@ -333,19 +354,19 @@ export class CorrespondenceService {
 
     if (!currentRouting) {
       throw new BadRequestException(
-        'No active workflow step found for this document',
+        'No active workflow step found for this document'
       );
     }
 
     if (currentRouting.toOrganizationId !== user.primaryOrganizationId) {
       throw new BadRequestException(
-        'You are not authorized to process this step',
+        'You are not authorized to process this step'
       );
     }
 
     if (!currentRouting.templateId) {
       throw new InternalServerErrorException(
-        'Routing record missing templateId',
+        'Routing record missing templateId'
       );
     }
 
@@ -365,7 +386,7 @@ export class CorrespondenceService {
       currentSeq,
       totalSteps,
       dto.action,
-      dto.returnToSequence,
+      dto.returnToSequence
     );
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -383,12 +404,12 @@ export class CorrespondenceService {
 
       if (result.nextStepSequence && dto.action !== WorkflowAction.REJECT) {
         const nextStepConfig = template.steps.find(
-          (s) => s.sequence === result.nextStepSequence,
+          (s) => s.sequence === result.nextStepSequence
         );
 
         if (!nextStepConfig) {
           this.logger.warn(
-            `Next step ${result.nextStepSequence} not found in template`,
+            `Next step ${result.nextStepSequence} not found in template`
           );
         } else {
           const nextRouting = queryRunner.manager.create(
@@ -403,9 +424,9 @@ export class CorrespondenceService {
               status: 'SENT',
               dueDate: new Date(
                 Date.now() +
-                  (nextStepConfig.expectedDays || 7) * 24 * 60 * 60 * 1000,
+                  (nextStepConfig.expectedDays || 7) * 24 * 60 * 60 * 1000
               ),
-            },
+            }
           );
           await queryRunner.manager.save(nextRouting);
         }

@@ -1,36 +1,22 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
 import { Transmittal } from './transmittal.entity';
-import { Correspondence } from '../../correspondence/entities/correspondence.entity';
 
 @Entity('transmittal_items')
 export class TransmittalItem {
-  @PrimaryGeneratedColumn()
-  id!: number;
-
-  @Column({ name: 'transmittal_id' })
+  @PrimaryColumn({ name: 'transmittal_id' })
   transmittalId!: number;
 
-  @Column({ name: 'item_correspondence_id' })
-  itemCorrespondenceId!: number;
+  @PrimaryColumn({ name: 'item_type', length: 50 })
+  itemType!: string; // DRAWING, RFA, etc.
 
-  @Column({ default: 1 })
-  quantity!: number;
+  @PrimaryColumn({ name: 'item_id' })
+  itemId!: number;
 
-  @Column({ length: 255, nullable: true })
-  remarks?: string;
+  @Column({ type: 'text', nullable: true })
+  description?: string;
 
   // Relations
   @ManyToOne(() => Transmittal, (t) => t.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'transmittal_id' })
   transmittal!: Transmittal;
-
-  @ManyToOne(() => Correspondence)
-  @JoinColumn({ name: 'item_correspondence_id' })
-  itemDocument!: Correspondence;
 }
