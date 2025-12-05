@@ -1,7 +1,11 @@
 // File: tsconfig.json
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -11,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -20,20 +24,51 @@
     ],
     "paths": {
       "baseUrl": "./",
-      "@/*": ["./*"],
-      "@components": ["components/*"],
-      "@config": ["config/*"],
-      "@lib": ["lib/*"],
-      "@providers": ["providers/*"],
-      "@public": ["public/*"],
-      "@styles": ["styles/*"],
-      "@types": ["types/*"],
-      "@api": ["app/api/*"],
+      "@/*": [
+        "./*"
+      ],
+      "@components": [
+        "components/*"
+      ],
+      "@config": [
+        "config/*"
+      ],
+      "@lib": [
+        "lib/*"
+      ],
+      "@providers": [
+        "providers/*"
+      ],
+      "@public": [
+        "public/*"
+      ],
+      "@styles": [
+        "styles/*"
+      ],
+      "@types": [
+        "types/*"
+      ],
+      "@api": [
+        "app/api/*"
+      ],
       // เพิ่มส่วนที่ขาดไปเพื่อให้ตรงกับ Workspace
-      "@hooks/*": ["app/hooks/*"],
-      "@utils/*": ["utils/*"]
-    }
+      "@hooks/*": [
+        "app/hooks/*"
+      ],
+      "@utils/*": [
+        "utils/*"
+      ]
+    },
+    "target": "ES2017"
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

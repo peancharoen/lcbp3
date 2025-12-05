@@ -5,12 +5,8 @@ import { useRouter } from "next/navigation";
 import { Search, FileText, Clipboard, Image } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+  Command, CommandEmpty, CommandGroup, CommandItem, CommandList,
+ } from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
