@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
+import { Permission } from './permission.entity';
 
 export enum RoleScope {
   GLOBAL = 'Global',
@@ -26,4 +33,15 @@ export class Role {
 
   @Column({ name: 'is_system', default: false })
   isSystem!: boolean;
+
+  @ManyToMany(() => Permission)
+  @JoinTable({
+    name: 'role_permissions',
+    joinColumn: { name: 'role_id', referencedColumnName: 'roleId' },
+    inverseJoinColumn: {
+      name: 'permission_id',
+      referencedColumnName: 'permissionId',
+    },
+  })
+  permissions?: Permission[];
 }

@@ -137,7 +137,7 @@ export const RFA_WORKFLOW_EXAMPLE: WorkflowDsl = {
           config: { status: 'APPROVED' },
         },
         {
-          type: 'send_notification',
+          type: 'create_notification',
           config: {
             message: 'RFA has been approved',
             type: 'success',

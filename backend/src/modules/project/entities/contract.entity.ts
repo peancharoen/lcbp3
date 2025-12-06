@@ -5,8 +5,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { BaseEntity } from '../../../common/entities/base.entity.js';
-import { Project } from './project.entity.js';
+import { BaseEntity } from '../../../common/entities/base.entity';
+import { Project } from './project.entity';
 
 @Entity('contracts')
 export class Contract extends BaseEntity {

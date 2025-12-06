@@ -18,10 +18,16 @@ import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import { JwtRefreshGuard } from '../guards/jwt-refresh.guard.js';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { Request } from 'express'; // ✅ Import Request
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+  ApiBody,
+} from '@nestjs/swagger';
+import { Request } from 'express';
 
-// สร้าง Interface สำหรับ Request ที่มี User (เพื่อให้ TS รู้จัก req.user)
+// สร้าง Interface สำหรับ Request ที่มี User
 interface RequestWithUser extends Request {
   user: any;
 }
@@ -34,11 +40,24 @@ export class AuthController {
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'เข้าสู่ระบบเพื่อรับ Access & Refresh Token' })
+  @ApiOperation({ summary: 'Login to get Access & Refresh Token' })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Login successful',
+    schema: {
+      type: 'object',
+      properties: {
+        access_token: { type: 'string' },
+        refresh_token: { type: 'string' },
+        user: { type: 'object' },
+      },
+    },
+  })
   async login(@Body() loginDto: LoginDto) {
     const user = await this.authService.validateUser(
       loginDto.username,
-      loginDto.password,
+      loginDto.password
     );
 
     if (!user) {
@@ -51,7 +70,9 @@ export class AuthController {
   @Post('register-admin')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'สร้างบัญชีผู้ใช้ใหม่ (Admin Only)' })
+  @ApiOperation({ summary: 'Create new user (Admin Only)' })
+  @ApiBody({ type: RegisterDto })
+  @ApiResponse({ status: 201, description: 'User registered' })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
@@ -59,9 +80,20 @@ export class AuthController {
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'ขอ Access Token ใหม่ด้วย Refresh Token' })
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Refresh Access Token using Refresh Token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token refreshed',
+    schema: {
+      type: 'object',
+      properties: {
+        access_token: { type: 'string' },
+        refresh_token: { type: 'string' },
+      },
+    },
+  })
   async refresh(@Req() req: RequestWithUser) {
-    // ✅ ระบุ Type ชัดเจน
     return this.authService.refreshToken(req.user.sub, req.user.refreshToken);
   }
 
@@ -69,23 +101,24 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'ออกจากระบบ (Revoke Token)' })
+  @ApiOperation({ summary: 'Logout (Revoke Tokens)' })
+  @ApiResponse({ status: 200, description: 'Logged out successfully' })
   async logout(@Req() req: RequestWithUser) {
-    // ✅ ระบุ Type ชัดเจน
     const token = req.headers.authorization?.split(' ')[1];
-    // ต้องเช็คว่ามี token หรือไม่ เพื่อป้องกัน runtime error
     if (!token) {
       return { message: 'No token provided' };
     }
+    // ส่ง refresh token ไปด้วยถ้ามี (ใน header หรือ body)
+    // สำหรับตอนนี้ส่งแค่ access token ไป blacklist
     return this.authService.logout(req.user.sub, token);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'ดึงข้อมูลผู้ใช้ปัจจุบัน' })
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'User profile' })
   getProfile(@Req() req: RequestWithUser) {
-    // ✅ ระบุ Type ชัดเจน
     return req.user;
   }
 }

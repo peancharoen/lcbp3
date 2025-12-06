@@ -182,7 +182,7 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
       throw new InternalServerErrorException(
         'Failed to generate document number after retries.'
       );
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error generating number for ${resourceKey}`, error);
 
       // [P0-4] Log error

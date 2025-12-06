@@ -1,0 +1,52 @@
+
+> backend@1.5.1 test D:\nap-dms.lcbp3\backend
+> jest "src/common/auth/casl/ability.factory.spec.ts"
+
+  console.log
+    ABILITY RULES: [
+      {
+        "action": "manage_all",
+        "subject": "system"
+      }
+    ]
+
+      at Object.<anonymous> (common/auth/casl/ability.factory.spec.ts:35:15)
+
+FAIL src/common/auth/casl/ability.factory.spec.ts
+  AbilityFactory
+    ΓêÜ should be defined (11 ms)
+    Global Admin
+      ├ù should grant all permissions for global admin (19 ms)
+    Organization Level
+      ΓêÜ should grant permissions for matching organization (3 ms)
+      ΓêÜ should deny permissions for non-matching organization (2 ms)
+    Project Level
+      ΓêÜ should grant permissions for matching project (3 ms)
+    Contract Level
+      ΓêÜ should grant permissions for matching contract (1 ms)
+    Multiple Assignments
+      ΓêÜ should combine permissions from multiple assignments (1 ms)
+
+  ΓùÅ AbilityFactory ΓÇ║ Global Admin ΓÇ║ should grant all permissions for global admin
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      35 |       console.log('ABILITY RULES:', JSON.stringify(ability.rules, null, 2));
+      36 |
+    > 37 |       expect(ability.can('manage', 'all')).toBe(true);
+         |                                            ^
+      38 |     });
+      39 |   });
+      40 |
+
+      at Object.<anonymous> (common/auth/casl/ability.factory.spec.ts:37:44)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 6 passed, 7 total
+Snapshots:   0 total
+Time:        1.298 s, estimated 2 s
+Ran all test suites matching src/common/auth/casl/ability.factory.spec.ts.
+ΓÇëELIFECYCLEΓÇë Test failed. See above for more details.

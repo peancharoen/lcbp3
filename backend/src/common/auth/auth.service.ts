@@ -2,6 +2,7 @@
 // บันทึกการแก้ไข:
 // 1. แก้ไข Type Mismatch ใน signAsync
 // 2. แก้ไข validateUser ให้ดึง password_hash ออกมาด้วย (Fix HTTP 500: data and hash arguments required)
+// 3. [P2-2] Implement Refresh Token storage & rotation
 
 import {
   Injectable,
@@ -12,14 +13,16 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { InjectRepository } from '@nestjs/typeorm'; // [NEW]
-import { Repository } from 'typeorm'; // [NEW]
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import type { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 import { UserService } from '../../modules/user/user.service.js';
-import { User } from '../../modules/user/entities/user.entity.js'; // [NEW] ต้อง Import Entity เพื่อใช้ Repository
+import { User } from '../../modules/user/entities/user.entity.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { RefreshToken } from './entities/refresh-token.entity.js'; // [P2-2]
 
 @Injectable()
 export class AuthService {
@@ -28,30 +31,26 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    // [NEW] Inject Repository เพื่อใช้ QueryBuilder
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    // [P2-2] Inject RefreshToken Repository
+    @InjectRepository(RefreshToken)
+    private refreshTokenRepository: Repository<RefreshToken>
   ) {}
 
   // 1. ตรวจสอบ Username/Password
   async validateUser(username: string, pass: string): Promise<any> {
-    console.log(`🔍 Checking login for: ${username}`); // [DEBUG]
-    // [FIXED] ใช้ createQueryBuilder เพื่อ addSelect field 'password' ที่ถูกซ่อนไว้
+    console.log(`🔍 Checking login for: ${username}`);
     const user = await this.usersRepository
       .createQueryBuilder('user')
-      .addSelect('user.password') // สำคัญ! สั่งให้ดึง column password มาด้วย
+      .addSelect('user.password')
       .where('user.username = :username', { username })
       .getOne();
 
     if (!user) {
-      console.log('❌ User not found in database'); // [DEBUG]
+      console.log('❌ User not found in database');
       return null;
     }
-
-    console.log('✅ User found. Hash from DB:', user.password); // [DEBUG]
-
-    const isMatch = await bcrypt.compare(pass, user.password);
-    console.log(`🔐 Password match result: ${isMatch}`); // [DEBUG]
 
     // ตรวจสอบว่ามี user และมี password hash หรือไม่
     if (user && user.password && (await bcrypt.compare(pass, user.password))) {
@@ -62,7 +61,7 @@ export class AuthService {
     return null;
   }
 
-  // 2. Login: สร้าง Access & Refresh Token
+  // 2. Login: สร้าง Access & Refresh Token และบันทึกลง DB
   async login(user: any) {
     const payload = {
       username: user.username,
@@ -70,20 +69,20 @@ export class AuthService {
       scope: 'Global',
     };
 
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-        // ✅ Fix: Cast as any
-        expiresIn: (this.configService.get<string>('JWT_EXPIRATION') ||
-          '15m') as any,
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        // ✅ Fix: Cast as any
-        expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') ||
-          '7d') as any,
-      }),
-    ]);
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: (this.configService.get<string>('JWT_EXPIRATION') ||
+        '15m') as any,
+    });
+
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') ||
+        '7d') as any,
+    });
+
+    // [P2-2] Store Refresh Token in DB
+    await this.storeRefreshToken(user.user_id, refreshToken);
 
     return {
       access_token: accessToken,
@@ -92,10 +91,28 @@ export class AuthService {
     };
   }
 
+  // [P2-2] Store Refresh Token Logic
+  private async storeRefreshToken(userId: number, token: string) {
+    // Hash token before storing for security
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresInDays = 7; // Should match JWT_REFRESH_EXPIRATION
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+
+    const refreshTokenEntity = this.refreshTokenRepository.create({
+      userId,
+      tokenHash: hash,
+      expiresAt,
+      isRevoked: false,
+    });
+
+    await this.refreshTokenRepository.save(refreshTokenEntity);
+  }
+
   // 3. Register (สำหรับ Admin)
   async register(userDto: RegisterDto) {
     const existingUser = await this.userService.findOneByUsername(
-      userDto.username,
+      userDto.username
     );
     if (existingUser) {
       throw new BadRequestException('Username already exists');
@@ -110,27 +127,79 @@ export class AuthService {
     });
   }
 
-  // 4. Refresh Token: ออก Token ใหม่
+  // 4. Refresh Token: ตรวจสอบและออก Token ใหม่ (Rotation)
   async refreshToken(userId: number, refreshToken: string) {
+    // Hash incoming token to match with DB
+    const hash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+    // Find token in DB
+    const storedToken = await this.refreshTokenRepository.findOne({
+      where: { tokenHash: hash },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (storedToken.isRevoked) {
+      // Possible token theft! Invalidate all user tokens family
+      await this.revokeAllUserTokens(userId);
+      throw new UnauthorizedException('Refresh token revoked - Security alert');
+    }
+
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    // Valid token -> Rotate it
     const user = await this.userService.findOne(userId);
     if (!user) throw new UnauthorizedException('User not found');
 
     const payload = { username: user.username, sub: user.user_id };
 
-    const accessToken = await this.jwtService.signAsync(payload, {
+    // Generate NEW tokens
+    const newAccessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
-      // ✅ Fix: Cast as any
       expiresIn: (this.configService.get<string>('JWT_EXPIRATION') ||
         '15m') as any,
     });
 
+    const newRefreshToken = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') ||
+        '7d') as any,
+    });
+
+    // Revoke OLD token and point to NEW one
+    const newHash = crypto
+      .createHash('sha256')
+      .update(newRefreshToken)
+      .digest('hex');
+
+    storedToken.isRevoked = true;
+    storedToken.replacedByToken = newHash;
+    await this.refreshTokenRepository.save(storedToken);
+
+    // Save NEW token
+    await this.storeRefreshToken(userId, newRefreshToken);
+
     return {
-      access_token: accessToken,
+      access_token: newAccessToken,
+      refresh_token: newRefreshToken,
     };
   }
 
-  // 5. Logout: นำ Token เข้า Blacklist ใน Redis
-  async logout(userId: number, accessToken: string) {
+  // [P2-2] Helper: Revoke all tokens for a user (Security Measure)
+  private async revokeAllUserTokens(userId: number) {
+    await this.refreshTokenRepository.update(
+      { userId, isRevoked: false },
+      { isRevoked: true }
+    );
+  }
+
+  // 5. Logout: Revoke current refresh token & Blacklist Access Token
+  async logout(userId: number, accessToken: string, refreshToken?: string) {
+    // Blacklist Access Token
     try {
       const decoded = this.jwtService.decode(accessToken);
       if (decoded && decoded.exp) {
@@ -139,13 +208,26 @@ export class AuthService {
           await this.cacheManager.set(
             `blacklist:token:${accessToken}`,
             true,
-            ttl * 1000,
+            ttl * 1000
           );
         }
       }
     } catch (error) {
       // Ignore decoding error
     }
+
+    // [P2-2] Revoke Refresh Token if provided
+    if (refreshToken) {
+      const hash = crypto
+        .createHash('sha256')
+        .update(refreshToken)
+        .digest('hex');
+      await this.refreshTokenRepository.update(
+        { tokenHash: hash },
+        { isRevoked: true }
+      );
+    }
+
     return { message: 'Logged out successfully' };
   }
 }

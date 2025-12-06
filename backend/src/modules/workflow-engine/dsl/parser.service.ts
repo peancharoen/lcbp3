@@ -34,7 +34,7 @@ export class WorkflowDslParser {
 
       // Step 5: Save to database
       return await this.workflowDefRepo.save(definition);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof SyntaxError) {
         throw new BadRequestException(`Invalid JSON: ${error.message}`);
       }
@@ -132,11 +132,14 @@ export class WorkflowDslParser {
    */
   private buildDefinition(dsl: WorkflowDsl): WorkflowDefinition {
     const definition = new WorkflowDefinition();
-    definition.name = dsl.name;
-    definition.version = dsl.version;
+    definition.workflow_code = dsl.name;
+    // Map Semver (1.0.0) to version int (1)
+    const majorVersion = parseInt(dsl.version.split('.')[0], 10);
+    definition.version = isNaN(majorVersion) ? 1 : majorVersion;
     definition.description = dsl.description;
-    definition.dslContent = JSON.stringify(dsl, null, 2); // Pretty print for readability
-    definition.isActive = true;
+    definition.dsl = dsl;
+    definition.compiled = dsl;
+    definition.is_active = true;
 
     return definition;
   }
@@ -144,7 +147,7 @@ export class WorkflowDslParser {
   /**
    * Get parsed DSL from WorkflowDefinition
    */
-  async getParsedDsl(definitionId: number): Promise<WorkflowDsl> {
+  async getParsedDsl(definitionId: string): Promise<WorkflowDsl> {
     const definition = await this.workflowDefRepo.findOne({
       where: { id: definitionId },
     });
@@ -156,14 +159,14 @@ export class WorkflowDslParser {
     }
 
     try {
-      const dsl = JSON.parse(definition.dslContent);
+      const dsl = definition.dsl;
       return WorkflowDslSchema.parse(dsl);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `Failed to parse stored DSL for definition ${definitionId}`,
         error
       );
-      throw new BadRequestException(`Invalid stored DSL: ${error.message}`);
+      throw new BadRequestException(`Invalid stored DSL: ${error?.message}`);
     }
   }
 
@@ -176,10 +179,10 @@ export class WorkflowDslParser {
       const dsl = WorkflowDslSchema.parse(rawDsl);
       this.validateStateMachine(dsl);
       return { valid: true };
-    } catch (error) {
+    } catch (error: any) {
       return {
         valid: false,
-        errors: [error.message],
+        errors: [error?.message || 'Unknown validation error'],
       };
     }
   }

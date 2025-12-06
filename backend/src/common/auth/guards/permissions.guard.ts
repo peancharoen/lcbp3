@@ -43,7 +43,7 @@ export class PermissionsGuard implements CanActivate {
     // Check if user has ALL required permissions
     const hasPermission = requiredPermissions.every((permission) => {
       const [action, subject] = this.parsePermission(permission);
-      return ability.can(action, subject);
+      return ability.can(action as any, subject as any);
     });
 
     if (!hasPermission) {

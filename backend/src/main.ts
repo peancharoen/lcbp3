@@ -22,11 +22,24 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   // 🛡️ 2. Security (Helmet & CORS)
-  app.use(helmet());
+  // ปรับ CSP ให้รองรับ Swagger UI
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'blob:'],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    })
+  );
 
   // ตั้งค่า CORS (ใน Production ควรระบุ origin ให้ชัดเจนจาก Config)
   app.enableCors({
-    origin: true, // หรือ configService.get('CORS_ORIGIN')
+    origin: configService.get<string>('CORS_ORIGIN') || true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -47,7 +60,7 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true, // ช่วยแปลง Type ใน Query Params
       },
-    }),
+    })
   );
 
   // ลงทะเบียน Global Interceptor และ Filter ที่เราสร้างไว้
@@ -78,4 +91,4 @@ async function bootstrap() {
   logger.log(`Application is running on: ${await app.getUrl()}/api`);
   logger.log(`Swagger UI is available at: ${await app.getUrl()}/docs`);
 }
-bootstrap();
+void bootstrap();

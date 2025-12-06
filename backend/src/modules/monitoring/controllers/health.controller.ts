@@ -8,7 +8,6 @@ import {
   MemoryHealthIndicator,
   DiskHealthIndicator,
 } from '@nestjs/terminus';
-import { MetricsService } from '../services/metrics.service';
 
 @Controller()
 export class HealthController {
@@ -17,8 +16,7 @@ export class HealthController {
     private http: HttpHealthIndicator,
     private db: TypeOrmHealthIndicator,
     private memory: MemoryHealthIndicator,
-    private disk: DiskHealthIndicator,
-    private metricsService: MetricsService,
+    private disk: DiskHealthIndicator
   ) {}
 
   @Get('health')
@@ -36,10 +34,5 @@ export class HealthController {
       () =>
         this.disk.checkStorage('storage', { path: '/', thresholdPercent: 0.9 }),
     ]);
-  }
-
-  @Get('metrics')
-  async getMetrics() {
-    return await this.metricsService.getMetrics();
   }
 }

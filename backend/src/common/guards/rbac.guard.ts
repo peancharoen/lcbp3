@@ -5,25 +5,25 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PERMISSION_KEY } from '../decorators/require-permission.decorator.js';
-import { UserService } from '../../modules/user/user.service.js';
+import { PERMISSIONS_KEY } from '../decorators/require-permission.decorator';
+import { UserService } from '../../modules/user/user.service';
 
 @Injectable()
 export class RbacGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    private userService: UserService,
+    private userService: UserService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 1. ดูว่า Controller นี้ต้องการสิทธิ์อะไร?
-    const requiredPermission = this.reflector.getAllAndOverride<string>(
-      PERMISSION_KEY,
-      [context.getHandler(), context.getClass()],
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()]
     );
 
     // ถ้าไม่ต้องการสิทธิ์อะไรเลย ก็ปล่อยผ่าน
-    if (!requiredPermission) {
+    if (!requiredPermissions || requiredPermissions.length === 0) {
       return true;
     }
 
@@ -36,17 +36,19 @@ export class RbacGuard implements CanActivate {
     // 3. (สำคัญ) ดึงสิทธิ์ทั้งหมดของ User คนนี้จาก Database
     // เราต้องเขียนฟังก์ชัน getUserPermissions ใน UserService เพิ่ม (เดี๋ยวพาทำ)
     const userPermissions = await this.userService.getUserPermissions(
-      user.userId,
+      user.userId
     );
 
-    // 4. ตรวจสอบว่ามีสิทธิ์ที่ต้องการไหม?
-    const hasPermission = userPermissions.some(
-      (p) => p === requiredPermission || p === 'system.manage_all', // Superadmin ทะลุทุกสิทธิ์
+    // 4. ตรวจสอบว่ามีสิทธิ์ที่ต้องการไหม? (User ต้องมีครบทุกสิทธิ์)
+    const hasPermission = requiredPermissions.every((req) =>
+      userPermissions.some(
+        (p) => p === req || p === 'system.manage_all' // Superadmin ทะลุทุกสิทธิ์
+      )
     );
 
     if (!hasPermission) {
       throw new ForbiddenException(
-        `You do not have permission: ${requiredPermission}`,
+        `You do not have permission: ${requiredPermissions.join(', ')}`
       );
     }
 

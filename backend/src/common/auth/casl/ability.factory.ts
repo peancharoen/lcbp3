@@ -1,11 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Ability,
-  AbilityBuilder,
-  AbilityClass,
-  ExtractSubjectType,
-  InferSubjects,
-} from '@casl/ability';
+import { Ability, AbilityBuilder, AbilityClass } from '@casl/ability';
 import { User } from '../../../modules/user/entities/user.entity';
 import { UserAssignment } from '../../../modules/user/entities/user-assignment.entity';
 
@@ -45,7 +39,7 @@ export class AbilityFactory {
    * - Level 4: Contract
    */
   createForUser(user: User, context: ScopeContext): AppAbility {
-    const { can, cannot, build } = new AbilityBuilder<AppAbility>(
+    const { can, build } = new AbilityBuilder<AppAbility>(
       Ability as AbilityClass<AppAbility>
     );
 
@@ -55,11 +49,12 @@ export class AbilityFactory {
     }
 
     // Iterate through user's role assignments
+    // Iterate through user's role assignments
     user.assignments.forEach((assignment: UserAssignment) => {
       // Check if assignment matches the current context
       if (this.matchesScope(assignment, context)) {
         // Grant permissions from the role
-        assignment.role.permissions.forEach((permission) => {
+        assignment.role.permissions?.forEach((permission) => {
           const [action, subject] = this.parsePermission(
             permission.permissionName
           );
@@ -70,8 +65,10 @@ export class AbilityFactory {
 
     return build({
       // Detect subject type (for future use with objects)
-      detectSubjectType: (item) =>
-        item.constructor as ExtractSubjectType<Subjects>,
+      detectSubjectType: (item: any) => {
+        if (typeof item === 'string') return item;
+        return item.constructor;
+      },
     });
   }
 
@@ -120,15 +117,15 @@ export class AbilityFactory {
    *         "project.view" → ["view", "project"]
    */
   private parsePermission(permissionName: string): [string, string] {
+    // Fallback for special permissions like "system.manage_all"
+    if (permissionName === 'system.manage_all') {
+      return ['manage', 'all'];
+    }
+
     const parts = permissionName.split('.');
     if (parts.length === 2) {
       const [subject, action] = parts;
       return [action, subject];
-    }
-
-    // Fallback for special permissions like "system.manage_all"
-    if (permissionName === 'system.manage_all') {
-      return ['manage', 'all'];
     }
 
     throw new Error(`Invalid permission format: ${permissionName}`);

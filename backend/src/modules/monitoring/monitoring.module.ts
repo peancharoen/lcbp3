@@ -4,6 +4,11 @@ import { Global, Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 import { HttpModule } from '@nestjs/axios';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import {
+  PrometheusModule,
+  makeCounterProvider,
+  makeHistogramProvider,
+} from '@willsoto/nestjs-prometheus';
 
 // Existing Components
 import { HealthController } from './controllers/health.controller';
@@ -14,21 +19,39 @@ import { PerformanceInterceptor } from '../../common/interceptors/performance.in
 import { MonitoringController } from './monitoring.controller';
 import { MonitoringService } from './monitoring.service';
 
-@Global() // Module นี้เป็น Global (ดีแล้วครับ)
+@Global()
 @Module({
-  imports: [TerminusModule, HttpModule],
-  controllers: [
-    HealthController, // ✅ ของเดิม: /health
-    MonitoringController, // ✅ ของใหม่: /monitoring/maintenance
+  imports: [
+    TerminusModule,
+    HttpModule,
+    PrometheusModule.register({
+      path: '/metrics',
+      defaultMetrics: {
+        enabled: true,
+      },
+    }),
   ],
+  controllers: [HealthController, MonitoringController],
   providers: [
-    MetricsService, // ✅ ของเดิม
-    MonitoringService, // ✅ ของใหม่ (Logic เปิด/ปิด Maintenance)
+    MetricsService,
+    MonitoringService,
     {
       provide: APP_INTERCEPTOR,
-      useClass: PerformanceInterceptor, // ✅ ของเดิม (จับเวลา Response Time)
+      useClass: PerformanceInterceptor,
     },
+    // Metrics Providers
+    makeCounterProvider({
+      name: 'http_requests_total',
+      help: 'Total number of HTTP requests',
+      labelNames: ['method', 'route', 'status_code'],
+    }),
+    makeHistogramProvider({
+      name: 'http_request_duration_seconds',
+      help: 'Duration of HTTP requests in seconds',
+      labelNames: ['method', 'route', 'status_code'],
+      buckets: [0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 5.0],
+    }),
   ],
-  exports: [MetricsService, MonitoringService],
+  exports: [MetricsService, MonitoringService, PrometheusModule],
 })
 export class MonitoringModule {}

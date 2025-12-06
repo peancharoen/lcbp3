@@ -33,6 +33,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // ตั้งค่า React Hook Form
   const {
@@ -50,6 +51,7 @@ export default function LoginPage() {
   // ฟังก์ชันเมื่อกด Submit
   async function onSubmit(data: LoginValues) {
     setIsLoading(true);
+    setErrorMessage(null);
 
     try {
       // เรียกใช้ NextAuth signIn (Credential Provider)
@@ -63,8 +65,7 @@ export default function LoginPage() {
       if (result?.error) {
         // กรณี Login ไม่สำเร็จ
         console.error("Login failed:", result.error);
-        // TODO: เปลี่ยนเป็น Toast Notification ในอนาคต
-        alert("เข้าสู่ระบบไม่สำเร็จ: ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง");
+        setErrorMessage("เข้าสู่ระบบไม่สำเร็จ: ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง");
         return;
       }
 
@@ -73,7 +74,7 @@ export default function LoginPage() {
       router.refresh(); // Refresh เพื่อให้ Server Component รับรู้ Session ใหม่
     } catch (error) {
       console.error("Login error:", error);
-      alert("เกิดข้อผิดพลาดที่ไม่คาดคิด");
+      setErrorMessage("เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsLoading(false);
     }
@@ -89,9 +90,14 @@ export default function LoginPage() {
           กรอกชื่อผู้ใช้งานและรหัสผ่านเพื่อเข้าสู่ระบบ
         </CardDescription>
       </CardHeader>
-      
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="grid gap-4">
+          {errorMessage && (
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md border border-destructive/20">
+              {errorMessage}
+            </div>
+          )}
           {/* Username Field */}
           <div className="grid gap-2">
             <Label htmlFor="username">ชื่อผู้ใช้งาน</Label>
