@@ -162,7 +162,7 @@ services:
 
   # MariaDB Database
   mariadb:
-    image: mariadb:10.11
+    image: mariadb:11.8
     container_name: lcbp3-mariadb
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}

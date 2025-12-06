@@ -2,7 +2,7 @@
 -- DMS v1.5.1 Document Management System Database
 -- Deploy Script Schema
 -- Server: Container Station on QNAP TS-473A
--- Database service: MariaDB 10.11
+-- Database service: MariaDB 11.8
 -- database web ui: phpmyadmin 5-apache
 -- database development ui: DBeaver
 -- backend service: NestJS
@@ -190,6 +190,8 @@ DROP TABLE IF EXISTS contracts;
 
 DROP TABLE IF EXISTS projects;
 
+DROP TABLE IF EXISTS refresh_tokens;
+
 DROP TABLE IF EXISTS users;
 
 -- Referenced by user_preferences, audit_logs, etc.
@@ -267,6 +269,18 @@ CREATE TABLE users (
   FOREIGN KEY (primary_organization_id) REFERENCES organizations (id) ON DELETE
   SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลผู้ใช้งาน (User)';
+
+-- ตารางเก็บ Refresh Tokens สำหรับ Authentication
+CREATE TABLE refresh_tokens (
+  token_id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  user_id INT NOT NULL COMMENT 'เจ้าของ Token',
+  token_hash VARCHAR(255) NOT NULL COMMENT 'Hash ของ Refresh Token',
+  expires_at DATETIME NOT NULL COMMENT 'วันหมดอายุ',
+  is_revoked TINYINT(1) DEFAULT 0 COMMENT 'สถานะยกเลิก (1=Revoked)',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  replaced_by_token VARCHAR(255) NULL COMMENT 'Token ใหม่ที่มาแทนที่ (Rotation)',
+  FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บ Refresh Tokens สำหรับ Authentication';
 
 -- ตาราง Master เก็บ "บทบาท" ของผู้ใช้ในระบบ
 CREATE TABLE roles (
@@ -1232,7 +1246,7 @@ CREATE TABLE backup_logs (
 -- 4.2 Virtual Columns for JSON Search (ตัวอย่างสำหรับ Correspondence)
 -- รองรับ: Backend Plan T2.1, Req 3.11.3
 -- เหตุผล: เพิ่มความเร็วในการ Search/Sort ข้อมูลที่อยู่ใน JSON details
--- หมายเหตุ: ต้องมั่นใจว่า MariaDB เวอร์ชัน 10.11+ รองรับ Syntax นี้
+-- หมายเหตุ: ต้องมั่นใจว่า MariaDB เวอร์ชัน 11.8+ รองรับ Syntax นี้
 -- ตัวอย่าง: ดึง Project ID ที่อ้างอิงใน details ออกมาทำ Index
 ALTER TABLE correspondence_revisions
 ADD COLUMN v_ref_project_id INT GENERATED ALWAYS AS (

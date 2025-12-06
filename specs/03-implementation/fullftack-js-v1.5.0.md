@@ -183,7 +183,7 @@ export class DocumentCounter {
 
 #### **3.2.2 Virtual Columns for JSON Performance**
 
-เนื่องจากเราใช้ MariaDB 10.11 และมีการเก็บข้อมูล JSON (Details) ให้ใช้ **Generated Columns (Virtual)** สำหรับ Field ที่ต้อง Search/Sort บ่อยๆ และทำ Index บน Virtual Column นั้น
+เนื่องจากเราใช้ MariaDB 11.8 และมีการเก็บข้อมูล JSON (Details) ให้ใช้ **Generated Columns (Virtual)** สำหรับ Field ที่ต้อง Search/Sort บ่อยๆ และทำ Index บน Virtual Column นั้น
 
 ```sql
 -- ตัวอย่าง SQL Migration
@@ -408,7 +408,7 @@ Unified Workflow Engine (Core Architecture)
 | ----------------------- | ---------------------------------------------------- | -------------------------------------- |
 | **Framework**           | `@nestjs/core`, `@nestjs/common`                     | Core Framework                         |
 | **Language**            | `TypeScript`                                         | ใช้ TypeScript ทั้งระบบ                   |
-| **Database**            | `MariaDB 10.11`                                      | ฐานข้อมูลหลัก                             |
+| **Database**            | `MariaDB 11.8`                                       | ฐานข้อมูลหลัก                             |
 | **ORM**                 | `@nestjs/typeorm`, `typeorm`                         | 🗃️จัดการการเชื่อมต่อและ Query ฐานข้อมูล       |
 | **Validation**          | `class-validator`, `class-transformer`               | 📦ตรวจสอบและแปลงข้อมูลใน DTO              |
 | **Auth**                | `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`    | 🔐การยืนยันตัวตนด้วย JWT                    |

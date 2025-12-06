@@ -72,7 +72,7 @@ related:
 # docker-compose.yml
 services:
   mariadb-master:
-    image: mariadb:10.11
+    image: mariadb:11.8
     environment:
       MYSQL_REPLICATION_MODE: master
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
@@ -82,7 +82,7 @@ services:
       - backend
 
   mariadb-replica:
-    image: mariadb:10.11
+    image: mariadb:11.8
     environment:
       MYSQL_REPLICATION_MODE: slave
       MYSQL_MASTER_HOST: mariadb-master

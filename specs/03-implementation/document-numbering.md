@@ -21,7 +21,7 @@ related:
 
 - **Backend Framework**: NestJS 10.x
 - **ORM**: TypeORM 0.3.x
-- **Database**: MariaDB 10.11
+- **Database**: MariaDB 11.8
 - **Cache/Lock**: Redis 7.x + Redlock
 - **Message Queue**: BullMQ
 - **Monitoring**: Prometheus + Grafana

@@ -41,7 +41,7 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 ```typescript
 {
   "framework": "NestJS (TypeScript, ESM)",
-  "database": "MariaDB 10.11",
+  "database": "MariaDB 11.8",
   "orm": "TypeORM",
   "authentication": "JWT + Passport",
   "authorization": "CASL (RBAC)",
@@ -111,7 +111,7 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 - **Node.js**: v20.x หรือสูงกว่า
 - **pnpm**: v8.x หรือสูงกว่า
 - **Docker**: v24.x หรือสูงกว่า
-- **MariaDB**: 10.11
+- **MariaDB**: 11.8
 - **Redis**: 7.x
 
 ### การติดตั้ง
@@ -466,7 +466,7 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 
 สำหรับคำถามหรือปัญหา กรุณาติดต่อ:
 
-- **Email**: support@np-dms.work
+- **Email**: <support@np-dms.work>
 - **Internal Chat**: [ระบุช่องทาง]
 - **Issue Tracker**: [Gitea Issues](https://git.np-dms.work/lcbp3/lcbp3-dms/issues)
 

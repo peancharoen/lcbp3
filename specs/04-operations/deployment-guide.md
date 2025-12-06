@@ -28,13 +28,13 @@ This guide provides step-by-step instructions for deploying the LCBP3-DMS system
 
 ### Hardware Requirements
 
-| Component      | Minimum Specification      |
-| -------------- | -------------------------- |
-| CPU            | 4 cores @ 2.0 GHz          |
-| RAM            | 16 GB                      |
-| Storage        | 500 GB SSD (System + Data) |
-| Network        | 1 Gbps Ethernet            |
-| QNAP Model     | TS-473A or equivalent      |
+| Component  | Minimum Specification      |
+| ---------- | -------------------------- |
+| CPU        | 4 cores @ 2.0 GHz          |
+| RAM        | 16 GB                      |
+| Storage    | 500 GB SSD (System + Data) |
+| Network    | 1 Gbps Ethernet            |
+| QNAP Model | TS-473A or equivalent      |
 
 ### Software Requirements
 
@@ -267,7 +267,7 @@ services:
       retries: 3
 
   mariadb:
-    image: mariadb:10.11
+    image: mariadb:11.8
     container_name: lcbp3-mariadb
     restart: unless-stopped
     environment:

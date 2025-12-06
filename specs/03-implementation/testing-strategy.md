@@ -52,11 +52,11 @@ related:
 
 ### Test Distribution
 
-| Level       | Coverage | Speed      | Purpose                         |
-| ----------- | -------- | ---------- | ------------------------------- |
-| Unit        | 60%      | Fast (ms)  | ทดสอบตรรกะแต่ละ Function        |
+| Level       | Coverage | Speed      | Purpose                      |
+| ----------- | -------- | ---------- | ---------------------------- |
+| Unit        | 60%      | Fast (ms)  | ทดสอบตรรกะแต่ละ Function      |
 | Integration | 30%      | Medium (s) | ทดสอบการทำงานร่วมกันของ Modules |
-| E2E         | 10%      | Slow (m)   | ทดสอบ User Journey ทั้งหมด      |
+| E2E         | 10%      | Slow (m)   | ทดสอบ User Journey ทั้งหมด     |
 
 ---
 
@@ -958,7 +958,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mariadb:
-        image: mariadb:10.11
+        image: mariadb:11.8
         env:
           MYSQL_ROOT_PASSWORD: test
           MYSQL_DATABASE: lcbp3_test

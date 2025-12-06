@@ -32,8 +32,8 @@ Before generating code or planning a solution, you MUST conceptually load the co
 
 5.  **💾 DATABASE & SCHEMA (`specs/07-databasee/`)**
     - *Action:* - **Read `specs/07-database/lcbp3-v1.5.1-schema.sql`** (or relevant `.sql` files) for exact table structures and constraints.
-        - **Consult `specs/database/data-dictionary-v1.5.1.md`** for field meanings and business rules.
-        - **Check `specs/database/lcbp3-v1.5.1-seed.sql`** to understand initial data states.
+        - **Consult `specs/07-database/data-dictionary-v1.5.1.md`** for field meanings and business rules.
+        - **Check `specs/07-database/lcbp3-v1.5.1-seed.sql`** to understand initial data states.
     - *Constraint:* NEVER invent table names or columns. Use ONLY what is defined here.
 
 6.  **⚙️ IMPLEMENTATION DETAILS (`specs/03-implementation/`)**

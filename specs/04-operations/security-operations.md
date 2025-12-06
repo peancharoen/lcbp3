@@ -190,7 +190,7 @@ npm audit --production
 # Scan Docker images
 trivy image --severity HIGH,CRITICAL lcbp3-backend:latest
 trivy image --severity HIGH,CRITICAL lcbp3-frontend:latest
-trivy image --severity HIGH,CRITICAL mariadb:10.11
+trivy image --severity HIGH,CRITICAL mariadb:11.8
 trivy image --severity HIGH,CRITICAL redis:7.2-alpine
 ```
 

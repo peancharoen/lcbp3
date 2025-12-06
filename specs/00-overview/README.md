@@ -125,7 +125,7 @@ LCBP3-DMS is a comprehensive Document Management System (DMS) designed specifica
 ### Backend
 
 - **Framework:** NestJS (TypeScript)
-- **Database:** MariaDB 10.11
+- **Database:** MariaDB 11.8
 - **Cache & Queue:** Redis 7.2
 - **Search:** Elasticsearch 8.11
 - **ORM:** TypeORM

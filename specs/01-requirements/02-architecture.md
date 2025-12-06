@@ -57,7 +57,7 @@ specs/01-objectives.md
   - Framework: NestJS (Node.js, TypeScript, ESM)
   - หน้าที่: จัดการโครงสร้างข้อมูล (Data Models), สร้าง API, จัดการสิทธิ์ผู้ใช้ (Roles & Permissions), และสร้าง Workflow ทั้งหมดของระบบ
 
-- Database: MariaDB 10.11
+- Database: MariaDB 11.8
 
   - Application name: lcbp3-db
   - Service name: mariadb

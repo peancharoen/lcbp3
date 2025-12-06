@@ -225,7 +225,7 @@ Layer 6: File Security (Virus Scanning, Access Control)
 | **Server**           | QNAP TS-473A            | Physical Server         |
 | **Containerization** | Docker + Docker Compose | Container Orchestration |
 | **Reverse Proxy**    | Nginx Proxy Manager     | SSL/TLS + Routing       |
-| **Database**         | MariaDB 10.11           | Relational Database     |
+| **Database**         | MariaDB 11.8            | Relational Database     |
 | **Cache**            | Redis 7.x               | Caching + Locking       |
 | **Search**           | Elasticsearch           | Full-text Search        |
 | **Version Control**  | Gitea                   | Self-hosted Git         |
@@ -337,7 +337,7 @@ graph TB
     end
 
     subgraph "Data Layer"
-        MariaDB[(MariaDB 10.11<br/>Primary Database)]
+        MariaDB[(MariaDB 11.8<br/>Primary Database)]
         Redis[(Redis<br/>Cache + Queue)]
         Elastic[Elasticsearch<br/>Search Engine]
         Storage[File Storage<br/>/share/dms-data]

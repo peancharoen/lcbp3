@@ -59,7 +59,7 @@ graph TB
     NPM --> N8N[n8n Workflow<br/>n8n.np-dms.work]
     NPM --> Gitea[Gitea Git<br/>git.np-dms.work]
 
-    Backend --> MariaDB[(MariaDB 10.11<br/>db.np-dms.work)]
+    Backend --> MariaDB[(MariaDB 11.8<br/>db.np-dms.work)]
     Backend --> Redis[(Redis Cache)]
     Backend --> Elastic[Elasticsearch]
     Backend --> Storage[File Storage<br/>/share/dms-data]
@@ -103,7 +103,7 @@ graph TB
 | :---------------- | :--------------- | :------------------ | :----------------------- | :-------------------------- |
 | **Frontend**      | lcbp3-frontend   | lcbp3.np-dms.work   | Next.js 14+ (App Router) | Web Application UI          |
 | **Backend**       | lcbp3-backend    | backend.np-dms.work | NestJS (TypeScript)      | API Server & Business Logic |
-| **Database**      | lcbp3-db         | db.np-dms.work      | MariaDB 10.11            | Primary Database            |
+| **Database**      | lcbp3-db         | db.np-dms.work      | MariaDB 11.8             | Primary Database            |
 | **DB Management** | lcbp3-db         | pma.np-dms.work     | phpMyAdmin               | Database Admin UI           |
 | **Reverse Proxy** | lcbp3-npm        | npm.np-dms.work     | Nginx Proxy Manager      | Reverse Proxy & SSL         |
 | **Workflow**      | lcbp3-n8n        | n8n.np-dms.work     | n8n                      | Workflow Automation         |
@@ -154,7 +154,7 @@ graph TB
 - Workflow Engine
 - Background Jobs (Notifications, Cleanup)
 
-### 3.4 Database (MariaDB 10.11)
+### 3.4 Database (MariaDB 11.8)
 
 **Features:**
 

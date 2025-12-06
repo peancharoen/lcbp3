@@ -95,7 +95,7 @@ LCBP3-DMS ต้องเลือก Technology Stack สำหรับพั�
 | **Framework**      | NestJS          | Modular, TypeScript-first, similar to Angular  |
 | **Language**       | TypeScript 5.x  | Type safety, better DX                         |
 | **ORM**            | TypeORM         | TypeScript support, migrations, repositories   |
-| **Database**       | MariaDB 10.11   | JSON support, virtual columns, QNAP compatible |
+| **Database**       | MariaDB 11.8    | JSON support, virtual columns, QNAP compatible |
 | **Validation**     | class-validator | Decorator-based, integrates with NestJS        |
 | **Authentication** | Passport + JWT  | Standard, well-supported                       |
 | **Authorization**  | CASL            | Flexible RBAC implementation                   |
@@ -112,7 +112,7 @@ LCBP3-DMS ต้องเลือก Technology Stack สำหรับพั�
 | **Styling**           | Tailwind CSS        | Utility-first, fast development        |
 | **Component Library** | shadcn/ui           | Accessible, customizable, TypeScript   |
 | **State Management**  | TanStack Query      | Server state management                |
-| **Form Handling**     | React Hook Form     | Performance, ต้ validation with Zod    |
+| **Form Handling**     | React Hook Form     | Performance, ต้ validation with Zod     |
 | **Testing**           | Vitest + Playwright | Fast unit tests, reliable E2E          |
 
 #### Infrastructure
@@ -121,7 +121,7 @@ LCBP3-DMS ต้องเลือก Technology Stack สำหรับพั�
 | :------------------- | :---------------------- | :------------------------------- |
 | **Containerization** | Docker + Docker Compose | QNAP Container Station           |
 | **Reverse Proxy**    | Nginx Proxy Manager     | UI-based SSL management          |
-| **Database**         | MariaDB 10.11           | Robust, JSON support             |
+| **Database**         | MariaDB 11.8            | Robust, JSON support             |
 | **Cache**            | Redis 7                 | Session, locks, queue management |
 | **Search**           | Elasticsearch 8         | Full-text search                 |
 | **Workflow**         | n8n                     | Visual workflow automation       |
@@ -212,7 +212,7 @@ lcbp3-dms/
 
 ### Database Choice
 
-**Chosen:** MariaDB 10.11 (Not PostgreSQL)
+**Chosen:** MariaDB 11.8 (Not PostgreSQL)
 
 **Rationale:**
 

@@ -64,7 +64,7 @@ services:
       - lcbp3-network
 
   mariadb:
-    image: mariadb:10.11
+    image: mariadb:11.8
     volumes:
       - mariadb-data:/var/lib/mysql
     networks:
