@@ -48,14 +48,14 @@
 
 ### **2.4 ข้อตกลงในการตั้งชื่อ (Naming Conventions)**
 
-| Entity (สิ่งที่ตั้งชื่อ) | Convention (รูปแบบ) | Example (ตัวอย่าง)                 |
-| :----------------------- | :------------------ | :--------------------------------- |
-| Classes                  | PascalCase          | UserService                        |
-| Property                 | snake_case          | user_id                            |
-| Variables & Functions    | camelCase           | getUserInfo                        |
-| Files & Folders          | kebab-case          | user-service.ts                    |
-| Environment Variables    | UPPERCASE           | DATABASE_URL                       |
-| Booleans                 | Verb + Noun         | isActive, canDelete, hasPermission |
+| Entity (สิ่งที่ตั้งชื่อ)      | Convention (รูปแบบ) | Example (ตัวอย่าง)                   |
+| :-------------------- | :----------------- | :--------------------------------- |
+| Classes               | PascalCase         | UserService                        |
+| Property              | snake_case         | user_id                            |
+| Variables & Functions | camelCase          | getUserInfo                        |
+| Files & Folders       | kebab-case         | user-service.ts                    |
+| Environment Variables | UPPERCASE          | DATABASE_URL                       |
+| Booleans              | Verb + Noun        | isActive, canDelete, hasPermission |
 
 ใช้คำเต็ม — ไม่ใช้อักษรย่อ — ยกเว้นคำมาตรฐาน (เช่น API, URL, req, res, err, ctx)
 
@@ -404,34 +404,34 @@ Unified Workflow Engine (Core Architecture)
 
 ### **3.13 เเทคโนโลยีที่ใช้ (Technology Stack)**
 
-| ส่วน                    | Library/Tool                                         | หมายเหตุ                                     |
-| ----------------------- | ---------------------------------------------------- | -------------------------------------------- |
-| **Framework**           | `@nestjs/core`, `@nestjs/common`                     | Core Framework                               |
-| **Language**            | `TypeScript`                                         | ใช้ TypeScript ทั้งระบบ                      |
-| **Database**            | `MariaDB 10.11`                                      | ฐานข้อมูลหลัก                                |
-| **ORM**                 | `@nestjs/typeorm`, `typeorm`                         | 🗃️จัดการการเชื่อมต่อและ Query ฐานข้อมูล      |
-| **Validation**          | `class-validator`, `class-transformer`               | 📦ตรวจสอบและแปลงข้อมูลใน DTO                 |
-| **Auth**                | `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`    | 🔐การยืนยันตัวตนด้วย JWT                     |
-| **Authorization**       | `casl`                                               | 🔐จัดการสิทธิ์แบบ RBAC                       |
-| **File Upload**         | `multer`                                             | 📁จัดการการอัปโหลดไฟล์                       |
-| **Search**              | `@nestjs/elasticsearch`                              | 🔍สำหรับการค้นหาขั้นสูง                      |
-| **Notification**        | `nodemailer`                                         | 📬ส่งอีเมลแจ้งเตือน                          |
+| ส่วน                     | Library/Tool                                         | หมายเหตุ                                |
+| ----------------------- | ---------------------------------------------------- | -------------------------------------- |
+| **Framework**           | `@nestjs/core`, `@nestjs/common`                     | Core Framework                         |
+| **Language**            | `TypeScript`                                         | ใช้ TypeScript ทั้งระบบ                   |
+| **Database**            | `MariaDB 10.11`                                      | ฐานข้อมูลหลัก                             |
+| **ORM**                 | `@nestjs/typeorm`, `typeorm`                         | 🗃️จัดการการเชื่อมต่อและ Query ฐานข้อมูล       |
+| **Validation**          | `class-validator`, `class-transformer`               | 📦ตรวจสอบและแปลงข้อมูลใน DTO              |
+| **Auth**                | `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`    | 🔐การยืนยันตัวตนด้วย JWT                    |
+| **Authorization**       | `casl`                                               | 🔐จัดการสิทธิ์แบบ RBAC                      |
+| **File Upload**         | `multer`                                             | 📁จัดการการอัปโหลดไฟล์                     |
+| **Search**              | `@nestjs/elasticsearch`                              | 🔍สำหรับการค้นหาขั้นสูง                       |
+| **Notification**        | `nodemailer`                                         | 📬ส่งอีเมลแจ้งเตือน                         |
 | **Scheduling**          | `@nestjs/schedule`                                   | 📬สำหรับ Cron Jobs (เช่น แจ้งเตือน Deadline) |
-| **Logging**             | `winston`                                            | 📊บันทึก Log ที่มีประสิทธิภาพ                |
-| **Testing**             | `@nestjs/testing`, `jest`, `supertest`               | 🧪ทดสอบ Unit, Integration และ E2E            |
-| **Documentation**       | `@nestjs/swagger`                                    | 🌐สร้าง API Documentation อัตโนมัติ          |
-| **Security**            | `helmet`, `rate-limiter-flexible`                    | 🛡️เพิ่มความปลอดภัยให้ API                    |
-| **Resilience**          | `@nestjs/circuit-breaker`                            | 🔄 Circuit breaker pattern                   |
-| **Caching**             | `@nestjs/cache-manager`, `cache-manager-redis-store` | 💾 Distributed caching                       |
-| **Security**            | `helmet`, `csurf`, `rate-limiter-flexible`           | 🛡️ Security enhancements                     |
-| **Validation**          | `class-validator`, `class-transformer`               | ✅ Input validation                          |
-| **Monitoring**          | `@nestjs/monitoring`, `winston`                      | 📊 Application monitoring                    |
-| **File Processing**     | `clamscan`                                           | 🦠 Virus scanning                            |
-| **Cryptography**        | `bcrypt`, `crypto`                                   | 🔐 Password hashing และ checksums            |
-| **JSON Validation**     | `ajv`, `ajv-formats`                                 | 🎯 JSON schema validation                    |
-| **JSON Processing**     | `jsonpath`, `json-schema-ref-parser`                 | 🔧 JSON manipulation                         |
-| **Data Transformation** | `class-transformer`                                  | 🔄 Object transformation                     |
-| **Compression**         | `compression`                                        | 📦 JSON compression                          |
+| **Logging**             | `winston`                                            | 📊บันทึก Log ที่มีประสิทธิภาพ                  |
+| **Testing**             | `@nestjs/testing`, `jest`, `supertest`               | 🧪ทดสอบ Unit, Integration และ E2E       |
+| **Documentation**       | `@nestjs/swagger`                                    | 🌐สร้าง API Documentation อัตโนมัติ         |
+| **Security**            | `helmet`, `rate-limiter-flexible`                    | 🛡️เพิ่มความปลอดภัยให้ API                   |
+| **Resilience**          | `@nestjs/circuit-breaker`                            | 🔄 Circuit breaker pattern              |
+| **Caching**             | `@nestjs/cache-manager`, `cache-manager-redis-store` | 💾 Distributed caching                  |
+| **Security**            | `helmet`, `csurf`, `rate-limiter-flexible`           | 🛡️ Security enhancements                |
+| **Validation**          | `class-validator`, `class-transformer`               | ✅ Input validation                     |
+| **Monitoring**          | `@nestjs/monitoring`, `winston`                      | 📊 Application monitoring               |
+| **File Processing**     | `clamscan`                                           | 🦠 Virus scanning                       |
+| **Cryptography**        | `bcrypt`, `crypto`                                   | 🔐 Password hashing และ checksums       |
+| **JSON Validation**     | `ajv`, `ajv-formats`                                 | 🎯 JSON schema validation               |
+| **JSON Processing**     | `jsonpath`, `json-schema-ref-parser`                 | 🔧 JSON manipulation                    |
+| **Data Transformation** | `class-transformer`                                  | 🔄 Object transformation                |
+| **Compression**         | `compression`                                        | 📦 JSON compression                     |
 
 ### **3.14 Security Testing:**
 
@@ -845,15 +845,15 @@ updateRFA(@Param('id') id: string) {
 
 ## 🔗 **7. แนวทางการบูรณาการ Full Stack (Full Stack Integration Guidelines)**
 
-| Aspect (แง่มุม)            | Backend (NestJS)           | Frontend (NextJS)              | UI Layer (Tailwind/Shadcn)             |
-| :------------------------- | :------------------------- | :----------------------------- | :------------------------------------- |
-| API                        | REST / GraphQL Controllers | API hooks ผ่าน fetch/axios/SWR | Components ที่รับข้อมูล                |
-| Validation (การตรวจสอบ)    | class-validator DTOs       | zod / react-hook-form          | สถานะของฟอร์ม/input ใน Shadcn          |
-| Auth (การยืนยันตัวตน)      | Guards, JWT                | NextAuth / cookies             | สถานะ UI ของ Auth (loading, signed in) |
-| Errors (ข้อผิดพลาด)        | Global filters             | Toasts / modals                | Alerts / ข้อความ feedback              |
-| Testing (การทดสอบ)         | Jest (unit/e2e)            | Vitest / Playwright            | Visual regression                      |
-| Styles (สไตล์)             | Scoped modules (ถ้าจำเป็น) | Tailwind / Shadcn              | Tailwind utilities                     |
-| Accessibility (การเข้าถึง) | Guards + filters           | ARIA attributes                | Semantic HTML                          |
+| Aspect (แง่มุม)            | Backend (NestJS)           | Frontend (NextJS)             | UI Layer (Tailwind/Shadcn)             |
+| :----------------------- | :------------------------- | :---------------------------- | :------------------------------------- |
+| API                      | REST / GraphQL Controllers | API hooks ผ่าน fetch/axios/SWR | Components ที่รับข้อมูล                     |
+| Validation (การตรวจสอบ)  | class-validator DTOs       | zod / react-hook-form         | สถานะของฟอร์ม/input ใน Shadcn           |
+| Auth (การยืนยันตัวตน)       | Guards, JWT                | NextAuth / cookies            | สถานะ UI ของ Auth (loading, signed in) |
+| Errors (ข้อผิดพลาด)        | Global filters             | Toasts / modals               | Alerts / ข้อความ feedback               |
+| Testing (การทดสอบ)       | Jest (unit/e2e)            | Vitest / Playwright           | Visual regression                      |
+| Styles (สไตล์)            | Scoped modules (ถ้าจำเป็น)    | Tailwind / Shadcn             | Tailwind utilities                     |
+| Accessibility (การเข้าถึง) | Guards + filters           | ARIA attributes               | Semantic HTML                          |
 
 ## 🗂️ **8. ข้อตกลงเฉพาะสำหรับ DMS (LCBP3-DMS)**
 
@@ -863,17 +863,17 @@ updateRFA(@Param('id') id: string) {
 
 บันทึกการดำเนินการ CRUD และการจับคู่ทั้งหมดลงในตาราง audit_logs
 
-| Field (ฟิลด์) | Type (จาก SQL) | Description (คำอธิบาย)                           |
-| :------------ | :------------- | :----------------------------------------------- |
-| audit_id      | BIGINT         | Primary Key                                      |
-| user_id       | INT            | ผู้ใช้ที่ดำเนินการ (FK -> users)                 |
-| action        | VARCHAR(100)   | rfa.create, correspondence.update, login.success |
-| entity_type   | VARCHAR(50)    | ชื่อตาราง/โมดูล เช่น 'rfa', 'correspondence'     |
-| entity_id     | VARCHAR(50)    | Primary ID ของระเบียนที่ได้รับผลกระทบ            |
-| details_json  | JSON           | ข้อมูลบริบท (เช่น ฟิลด์ที่มีการเปลี่ยนแปลง)      |
-| ip_address    | VARCHAR(45)    | IP address ของผู้ดำเนินการ                       |
-| user_agent    | VARCHAR(255)   | User Agent ของผู้ดำเนินการ                       |
-| created_at    | TIMESTAMP      | Timestamp (UTC)                                  |
+| Field (ฟิลด์)  | Type (จาก SQL) | Description (คำอธิบาย)                             |
+| :----------- | :------------- | :----------------------------------------------- |
+| audit_id     | BIGINT         | Primary Key                                      |
+| user_id      | INT            | ผู้ใช้ที่ดำเนินการ (FK -> users)                        |
+| action       | VARCHAR(100)   | rfa.create, correspondence.update, login.success |
+| entity_type  | VARCHAR(50)    | ชื่อตาราง/โมดูล เช่น 'rfa', 'correspondence'         |
+| entity_id    | VARCHAR(50)    | Primary ID ของระเบียนที่ได้รับผลกระทบ                 |
+| details_json | JSON           | ข้อมูลบริบท (เช่น ฟิลด์ที่มีการเปลี่ยนแปลง)                 |
+| ip_address   | VARCHAR(45)    | IP address ของผู้ดำเนินการ                           |
+| user_agent   | VARCHAR(255)   | User Agent ของผู้ดำเนินการ                           |
+| created_at   | TIMESTAMP      | Timestamp (UTC)                                  |
 
 ### 📂**8.2 การจัดการไฟล์ (File Handling)**
 
@@ -906,7 +906,7 @@ updateRFA(@Param('id') id: string) {
 - **เป้าหมาย:** สร้างเลขที่เอกสาร (เช่น correspondence_number) โดยอัตโนมัติ ตามรูปแบบที่กำหนด
 - **ตรรกะการนับ:** การนับ Running number (SEQ) จะนับแยกตาม Key: **Project + Originator Organization + Document Type + Year**
 - **ตาราง SQL (Updated):**
-  - `document_number_formats`: เก็บ Template String (เช่น `{CONTRACT}-{TYPE}-{DISCIPLINE}-{SEQ:4}`)
+  - `document_number_formats`: เก็บ Template String (เช่น `{PROJECT}-{CORR_TYPE}-{DISCIPLINE}-{SEQ:4}`)
   - `document_number_counters`: **Primary Key เปลี่ยนเป็น Composite Key ใหม่:** `(project_id, originator_id, type_id, discipline_id, current_year)` เพื่อรองรับการรันเลขแยกตามสาขา
 - **การทำงาน:**
   - Service ต้องรองรับการ Resolve Token พิเศษ เช่น `{SUBTYPE_NUM}` ที่ต้องไป Join กับตาราง `correspondence_sub_types`

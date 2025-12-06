@@ -1,8 +1,10 @@
 import { SetMetadata } from '@nestjs/common';
 
-export const PERMISSION_KEY = 'permissions';
+export const PERMISSIONS_KEY = 'permissions'; // Changed from PERMISSION_KEY
 
-// ใช้สำหรับแปะหน้า Controller/Method
-// ตัวอย่าง: @RequirePermission('user.create')
-export const RequirePermission = (permission: string) =>
-  SetMetadata(PERMISSION_KEY, permission);
+/**
+ * Decorator สำหรับกำหนด permissions ที่จำเป็นสำหรับ route
+ * รองรับ multiple permissions (user ต้องมี ALL permissions)
+ */
+export const RequirePermission = (...permissions: string[]) =>
+  SetMetadata(PERMISSIONS_KEY, permissions);

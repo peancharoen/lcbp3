@@ -68,17 +68,11 @@ related:
 
 ### **4.7. Master Data Management**
 
-| Master Data                             | Manager                         | Scope                              |
-| :-------------------------------------- | :------------------------------ | :--------------------------------- |
-| Document Type (Correspondence, RFA)     | **Superadmin**                  | Global                             |
-| Document Status (Draft, Approved, etc.) | **Superadmin**                  | Global                             |
+| Master Data                             | Manager                         | Scope                           |
+| :-------------------------------------- | :------------------------------ | :------------------------------ |
+| Document Type (Correspondence, RFA)     | **Superadmin**                  | Global                          |
+| Document Status (Draft, Approved, etc.) | **Superadmin**                  | Global                          |
 | Shop Drawing Category                   | **Project Manager**             | Project (สร้างใหม่ได้ภายในโครงการ) |
-| Tags                                    | **Org Admin / Project Manager** | Organization / Project             |
-| Custom Roles                            | **Superadmin / Org Admin**      | Global / Organization              |
-| Document Numbering Formats              | **Superadmin / Admin**          | Global / Organization              |
-
-## 🔐 4.1 การจัดการผู้ใช้ (User Management)
-
-## 🔐 4.2 การจัดการบทบาท (Role Management)
-
-## 🔐 4.3 การจัดการสิทธิ์ (Permission Management)
+| Tags                                    | **Org Admin / Project Manager** | Organization / Project          |
+| Custom Roles                            | **Superadmin / Org Admin**      | Global / Organization           |
+| Document Numbering Formats              | **Superadmin / Admin**          | Global / Organization           |

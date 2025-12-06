@@ -177,75 +177,99 @@ CREATE TABLE document_number_audit (
 
 ### Token Types Reference
 
-รองรับ Token ทั้งหมด 9 ประเภท:
+> [!IMPORTANT]
+> **Updated to align with Requirements Specification**
+>
+> This ADR now uses token names from [03.11-document-numbering.md](../01-requirements/03.11-document-numbering.md) for consistency.
 
-| Token | Description | Example Value |
-|-------|-------------|---------------|
-| `{PROJECT}` | รหัสโครงการ | `LCBP3` |
-| `{ORG}` | รหัสหน่วยงาน | `คคง.`, `C2` |
-| `{TYPE}` | รหัสชนิดเอกสาร | `RFI`, `03` |
-| `{SUB_TYPE}` | รหัสประเภทย่อย | `21` |
-| `{DISCIPLINE}` | รหัสสาขาวิชา | `STR`, `ROW` |
-| `{CATEGORY}` | หมวดหมู่ | `DRW` |
-| `{SEQ:n}` | Running number (n digits) | `0001`, `00029` |
-| `{YEAR:B.E.}` | ปี พ.ศ. | `2568` |
-| `{YEAR:A.D.}` | ปี ค.ศ. | `2025` |
-| `{REV}` | Revision Code | `A`, `B`, `AA` |
+รองรับ Token ทั้งหมด:
+
+| Token          | Description               | Example Value                  | Database Source                                                       |
+| -------------- | ------------------------- | ------------------------------ | --------------------------------------------------------------------- |
+| `{PROJECT}`    | รหัสโครงการ                | `LCBP3`, `LCBP3-C2`            | `projects.project_code`                                               |
+| `{ORIGINATOR}` | รหัสองค์กรผู้ส่ง               | `คคง.`, `ผรม.1`                | `organizations.organization_code` via `correspondences.originator_id` |
+| `{RECIPIENT}`  | รหัสองค์กรผู้รับหลัก (TO)       | `สคฉ.3`, `กทท.`                | `organizations.organization_code` via `correspondence_recipients`     |
+| `{CORR_TYPE}`  | รหัสประเภทเอกสาร           | `RFA`, `TRANSMITTAL`, `LETTER` | `correspondence_types.type_code`                                      |
+| `{SUB_TYPE}`   | หมายเลขประเภทย่อย          | `11`, `12`, `21`               | `correspondence_sub_types.sub_type_number`                            |
+| `{RFA_TYPE}`   | รหัสประเภท RFA             | `SDW`, `RPT`, `MAT`            | `rfa_types.type_code`                                                 |
+| `{DISCIPLINE}` | รหัสสาขาวิชา                | `STR`, `TER`, `GEO`            | `disciplines.discipline_code`                                         |
+| `{SEQ:n}`      | Running number (n digits) | `0001`, `0029`, `0985`         | `document_number_counters.last_number + 1`                            |
+| `{YEAR:B.E.}`  | ปี พ.ศ.                    | `2568`                         | `current_year + 543`                                                  |
+| `{YEAR:A.D.}`  | ปี ค.ศ.                    | `2025`                         | `current_year`                                                        |
+| `{REV}`        | Revision Code             | `A`, `B`, `AA`                 | `correspondence_revisions.revision_label`                             |
+
+> [!WARNING]
+> **Deprecated Token Names (DO NOT USE)**
+>
+> The following tokens were used in earlier drafts but are now **deprecated**:
+> - ~~`{ORG}`~~ → Use `{ORIGINATOR}` or `{RECIPIENT}` (explicit roles)
+> - ~~`{TYPE}`~~ → Use `{CORR_TYPE}`, `{SUB_TYPE}`, or `{RFA_TYPE}` (context-specific)
+> - ~~`{CATEGORY}`~~ → Not used in current system
+>
+> **Always refer to**: [03.11-document-numbering.md](../01-requirements/03.11-document-numbering.md) as source of truth
 
 ### Format Examples by Document Type
 
 #### 1. Correspondence (หนังสือราชการ)
 
-**Letter Type (TYPE = 03):**
+**Letter:**
 
 ```
-Template: {ORG}-{ORG}-{TYPE}-{SEQ:4}-{YEAR:B.E.}
-Example:  คคง.-สคฉ.3-0985-2568
-Counter Key: project_id + doc_type_id + sub_type_id + year
+Template: {ORIGINATOR}-{RECIPIENT}-{SEQ:4}-{YEAR:B.E.}
+Example:  คคง.-สคฉ.3-0001-2568
+Counter Key: (project_id, originator_org_id, recipient_org_id, corr_type_id, 0, 0, 0, year)
 ```
 
-**Other Correspondence:**
+> **Note**: `{CORR_TYPE}` ไม่แสดงใน template เพื่อความกระชับ แต่ยังใช้ `correspondence_type_id` ใน Counter Key เพื่อแยก counter
+
+**Other Types (RFI, MEMO, etc.):**
 
 ```
-Template: {ORG}-{ORG}-{TYPE}-{SEQ:4}-{YEAR:B.E.}
-Example:  คคง.-สคฉ.3-STR-0001-2568
-Counter Key: project_id + doc_type_id + sub_type_id + year
+Template: {ORIGINATOR}-{RECIPIENT}-{SEQ:4}-{YEAR:B.E.}
+Example (RFI):  คคง.-สคฉ.3-0042-2568
+Example (MEMO): คคง.-ผรม.1-0001-2568
+Counter Key: (project_id, originator_org_id, recipient_org_id, corr_type_id, 0, 0, 0, year)
 ```
+
+> **Note**: แต่ละ type มี counter แยกกันผ่าน `correspondence_type_id`
 
 #### 2. Transmittal
 
-**To Owner (Special Format):**
+**Standard Format:**
 
 ```
-Template: {ORG}-{ORG}-{TYPE}-{SUB_TYPE}-{SEQ:4}-{YEAR:B.E.}
-Example:  คคง.-สคฉ.3-03-21-0117-2568
-Counter Key: project_id + doc_type_id + recipient_type('OWNER') + year
-Note: recipient_type แยก counter จาก To Contractor
+Template: {ORIGINATOR}-{RECIPIENT}-{SUB_TYPE}-{SEQ:4}-{YEAR:B.E.}
+Example:  คคง.-สคฉ.3-21-0117-2568
+Counter Key: (project_id, originator_org_id, recipient_org_id, corr_type_id, sub_type_id, 0, 0, year)
 ```
 
-**To Contractor/Others:**
+**Token Breakdown:**
+- `คคง.` = `{ORIGINATOR}` - ผู้ส่ง
+- `สคฉ.3` = `{RECIPIENT}` - ผู้รับหลัก (TO)
+- `21` = `{SUB_TYPE}` - หมายเลขประเภทย่อย (11=MAT, 12=SHP, 13=DWG, 21=...)
+- `0117` = `{SEQ:4}` - Running number
+- `2568` = `{YEAR:B.E.}` - ปี พ.ศ.
 
-```
-Template: {ORG}-{ORG}-{TYPE}-{SEQ:4}-{YEAR:B.E.}
-Example:  ผรม.2-คคง.-0117-2568
-Counter Key: project_id + doc_type_id + recipient_type('CONTRACTOR') + year
-```
-
-**Alternative Project-based:**
-
-```
-Template: {PROJECT}-{ORG}-{TYPE}-{DISCIPLINE}-{SEQ:4}-{REV}
-Example:  LCBP3-TR-STR-0001-A
-Counter Key: project_id + doc_type_id + discipline_id + year
-```
+> **Note**: `{CORR_TYPE}` ไม่แสดงใน template (เหมือน LETTER) เพื่อความกระชับ
 
 #### 3. RFA (Request for Approval)
 
 ```
-Template: {PROJECT}-{ORG}-{TYPE}-{DISCIPLINE}-{SEQ:4}-{REV}
-Example:  LCBP3-C2-RFI-ROW-0029-A
-Counter Key: project_id + doc_type_id + discipline_id + year
+Template: {PROJECT}-{CORR_TYPE}-{DISCIPLINE}-{RFA_TYPE}-{SEQ:4}-{REV}
+Example:  LCBP3-C2-RFA-TER-RPT-0001-A
+Counter Key: (project_id, originator_org_id, NULL, corr_type_id, 0, rfa_type_id, discipline_id, year)
 ```
+
+**Token Breakdown:**
+- `LCBP3-C2` = `{PROJECT}` - รหัสโครงการ
+- `RFA` = `{CORR_TYPE}` - ประเภทเอกสาร (**แสดง**ในtemplate สำหรับ RFA เท่านั้น)
+- `TER` = `{DISCIPLINE}` - รหัสสาขา (TER=Terminal, STR=Structure, GEO=Geotechnical)
+- `RPT` = `{RFA_TYPE}` - ประเภท RFA (RPT=Report, SDW=Shop Drawing, MAT=Material)
+- `0001` = `{SEQ:4}` - Running number
+- `A` = `{REV}` - Revision code
+
+> **RFA Workflow**: เป็น Project-level document (ไม่ระบุ `recipient_organization_id` ใน counter key → NULL)
+> **Workflow Path**: CONTRACTOR → CONSULTANT → OWNER
 
 #### 4. Drawing
 
@@ -437,11 +461,12 @@ export class DocumentNumberingService {
     // Token replacement logic
     const tokens = {
       '{PROJECT}': await this.getProjectCode(data.projectId),
-      '{ORG}': await this.getOrgCode(data.organizationId),
-      '{TYPE}': await this.getTypeCode(data.docTypeId),
+      '{ORIGINATOR}': await this.getOriginatorOrgCode(data.originatorOrgId),
+      '{RECIPIENT}': await this.getRecipientOrgCode(data.recipientOrgId),
+      '{CORR_TYPE}': await this.getCorrespondenceTypeCode(data.corrTypeId),
       '{SUB_TYPE}': await this.getSubTypeCode(data.subTypeId),
+      '{RFA_TYPE}': await this.getRfaTypeCode(data.rfaTypeId),
       '{DISCIPLINE}': await this.getDisciplineCode(data.disciplineId),
-      '{CATEGORY}': await this.getCategoryCode(data.categoryId),
       '{SEQ:4}': data.sequenceNumber.toString().padStart(4, '0'),
       '{SEQ:5}': data.sequenceNumber.toString().padStart(5, '0'),
       '{YEAR:B.E.}': data.year.toString(),
@@ -632,18 +657,18 @@ sequenceDiagram
 
 ### Response Time Targets
 
-| Metric | Target | Description |
-|--------|--------|-------------|
-| Normal Operation | <500ms | Under normal load, no conflicts |
-| 95th Percentile | <2 seconds | Including retry scenarios |
-| 99th Percentile | <5 seconds | Extreme cases with multiple retries |
+| Metric           | Target     | Description                         |
+| ---------------- | ---------- | ----------------------------------- |
+| Normal Operation | <500ms     | Under normal load, no conflicts     |
+| 95th Percentile  | <2 seconds | Including retry scenarios           |
+| 99th Percentile  | <5 seconds | Extreme cases with multiple retries |
 
 ### Throughput Targets
 
-| Load Level | Target | Notes |
-|------------|--------|-------|
-| Normal Load | 50 req/sec | Typical office hours |
-| Peak Load | 100 req/sec | Construction deadline periods |
+| Load Level  | Target      | Notes                         |
+| ----------- | ----------- | ----------------------------- |
+| Normal Load | 50 req/sec  | Typical office hours          |
+| Peak Load   | 100 req/sec | Construction deadline periods |
 
 ### Availability
 
@@ -673,13 +698,13 @@ sequenceDiagram
 
 ### Alert Conditions
 
-| Severity | Condition | Action |
-|----------|-----------|--------|
-| 🔴 Critical | Redis unavailable >1 minute | Page ops team |
-| 🔴 Critical | Lock failures >10% in 5 min | Page ops team |
-| 🟡 Warning | Lock failures >5% in 5 min | Alert ops team |
-| 🟡 Warning | Avg lock wait time >1 second | Alert ops team |
-| 🟡 Warning | Retry count >100/hour | Review system load |
+| Severity   | Condition                    | Action             |
+| ---------- | ---------------------------- | ------------------ |
+| 🔴 Critical | Redis unavailable >1 minute  | Page ops team      |
+| 🔴 Critical | Lock failures >10% in 5 min  | Page ops team      |
+| 🟡 Warning  | Lock failures >5% in 5 min   | Alert ops team     |
+| 🟡 Warning  | Avg lock wait time >1 second | Alert ops team     |
+| 🟡 Warning  | Retry count >100/hour        | Review system load |
 
 ### Dashboard Panels
 
@@ -703,11 +728,11 @@ sequenceDiagram
 
 Prevent abuse และ resource exhaustion:
 
-| Scope | Limit | Window |
-|-------|-------|--------|
-| Per User | 10 requests | 1 minute |
-| Per IP Address | 50 requests | 1 minute |
-| Global | 5000 requests | 1 minute |
+| Scope          | Limit         | Window   |
+| -------------- | ------------- | -------- |
+| Per User       | 10 requests   | 1 minute |
+| Per IP Address | 50 requests   | 1 minute |
+| Global         | 5000 requests | 1 minute |
 
 **Implementation:** ใช้ Redis-based rate limiter middleware
 
@@ -924,7 +949,7 @@ ensure:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-11-30 | Initial decision |
-| 2.0 | 2025-12-02 | Updated with comprehensive error scenarios, monitoring, security, and all token types |
+| Version | Date       | Changes                                                                               |
+| ------- | ---------- | ------------------------------------------------------------------------------------- |
+| 1.0     | 2025-11-30 | Initial decision                                                                      |
+| 2.0     | 2025-12-02 | Updated with comprehensive error scenarios, monitoring, security, and all token types |

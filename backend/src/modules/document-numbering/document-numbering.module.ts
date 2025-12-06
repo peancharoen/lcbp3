@@ -6,6 +6,8 @@ import { ConfigModule } from '@nestjs/config';
 import { DocumentNumberingService } from './document-numbering.service';
 import { DocumentNumberFormat } from './entities/document-number-format.entity';
 import { DocumentNumberCounter } from './entities/document-number-counter.entity';
+import { DocumentNumberAudit } from './entities/document-number-audit.entity'; // [P0-4]
+import { DocumentNumberError } from './entities/document-number-error.entity'; // [P0-4]
 
 // Master Entities ที่ต้องใช้ Lookup
 import { Project } from '../project/entities/project.entity';
@@ -20,6 +22,8 @@ import { CorrespondenceSubType } from '../correspondence/entities/correspondence
     TypeOrmModule.forFeature([
       DocumentNumberFormat,
       DocumentNumberCounter,
+      DocumentNumberAudit, // [P0-4]
+      DocumentNumberError, // [P0-4]
       Project,
       Organization,
       CorrespondenceType,

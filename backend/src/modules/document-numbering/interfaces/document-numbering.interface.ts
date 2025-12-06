@@ -8,6 +8,13 @@ export interface GenerateNumberContext {
   disciplineId?: number; // (Optional) Discipline ID (สาขางาน)
   year?: number; // (Optional) ถ้าไม่ส่งจะใช้ปีปัจจุบัน
 
+  // [P1-4] Recipient organization for {RECIPIENT} token
+  recipientOrgId?: number; // Primary recipient organization
+
+  // [P0-4] Audit tracking fields
+  userId?: number; // User requesting the number
+  ipAddress?: string; // IP address of the requester
+
   // สำหรับกรณีพิเศษที่ต้องการ Override ค่าบางอย่าง
   customTokens?: Record<string, string>;
 }
@@ -21,4 +28,5 @@ export interface DecodedTokens {
   subTypeNumber: string;
   year: string;
   yearShort: string;
+  recipientCode: string; // [P1-4] Recipient organization code
 }

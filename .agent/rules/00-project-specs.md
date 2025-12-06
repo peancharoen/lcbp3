@@ -31,9 +31,9 @@ Before generating code or planning a solution, you MUST conceptually load the co
     - *Crucial:* Check `specs/05-decisions/` (ADRs) to ensure you do not violate previously agreed-upon technical decisions.
 
 5.  **💾 DATABASE & SCHEMA (`specs/07-databasee/`)**
-    - *Action:* - **Read `specs/07-database/lcbp3-v1.5.1-shema.sql`** (or relevant `.sql` files) for exact table structures and constraints.
+    - *Action:* - **Read `specs/07-database/lcbp3-v1.5.1-schema.sql`** (or relevant `.sql` files) for exact table structures and constraints.
         - **Consult `specs/database/data-dictionary-v1.5.1.md`** for field meanings and business rules.
-        - **Check `specs/database/seeds/`** to understand initial data states.
+        - **Check `specs/database/lcbp3-v1.5.1-seed.sql`** to understand initial data states.
     - *Constraint:* NEVER invent table names or columns. Use ONLY what is defined here.
 
 6.  **⚙️ IMPLEMENTATION DETAILS (`specs/03-implementation/`)**
@@ -53,7 +53,10 @@ When proposing a change or writing code, you must explicitly reference the sourc
 - **Spec vs. User Prompt:** If a user prompt contradicts `specs/05-decisions/`, warn the user before proceeding.
 
 ### 3. File Generation
-- Do not create new files outside of the structure defined in `specs/02-architecture/`.
+- Do not create new files outside of the structure defined.
 - Keep the code style consistent with `specs/03-implementation/`.
+
+### 4. Data Migration
+- Do not migrate. The schema can be modified directly.
 
 ---

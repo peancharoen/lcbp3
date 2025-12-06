@@ -2,7 +2,7 @@
 
 ---
 title: 'Operations Guide: Document Numbering System'
-version: 1.6.0
+version: 1.5.1
 status: draft
 owner: Operations Team
 last_updated: 2025-12-02
@@ -20,18 +20,18 @@ related:
 
 ### 1.1. Response Time Targets
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| 95th percentile | ≤ 2 วินาที | ตั้งแต่ request ถึง response |
-| 99th percentile | ≤ 5 วินาที | ตั้งแต่ request ถึง response |
-| Normal operation | ≤ 500ms | ไม่มี retry |
+| Metric           | Target   | Measurement              |
+| ---------------- | -------- | ------------------------ |
+| 95th percentile  | ≤ 2 วินาที | ตั้งแต่ request ถึง response |
+| 99th percentile  | ≤ 5 วินาที | ตั้งแต่ request ถึง response |
+| Normal operation | ≤ 500ms  | ไม่มี retry                |
 
 ### 1.2. Throughput Targets
 
-| Load Level | Target | Notes |
-|------------|--------|-------|
-| Normal load | ≥ 50 req/s | ใช้งานปกติ |
-| Peak load | ≥ 100 req/s | ช่วงเร่งงาน |
+| Load Level     | Target      | Notes                    |
+| -------------- | ----------- | ------------------------ |
+| Normal load    | ≥ 50 req/s  | ใช้งานปกติ                 |
+| Peak load      | ≥ 100 req/s | ช่วงเร่งงาน                |
 | Burst capacity | ≥ 200 req/s | Short duration (< 1 min) |
 
 ### 1.3. Availability SLA

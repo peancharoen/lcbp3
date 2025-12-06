@@ -224,8 +224,14 @@ docker logs lcbp3-backend 2>&1 | grep "ERROR"
 # MySQL CLI
 docker exec -it lcbp3-mariadb mysql -u root -p
 
-# Run SQL file
+# Run SQL file (Linux/Mac)
 docker exec -i lcbp3-mariadb mysql -u root -p lcbp3_dms < script.sql
+
+# Run SQL file (Windows PowerShell)
+Get-Content script.sql | docker exec -i lcbp3-mariadb mysql -u root -p lcbp3_dms
+
+# Run SQL file (Windows CMD)
+type script.sql | docker exec -i lcbp3-mariadb mysql -u root -p lcbp3_dms
 ```
 
 ### Redis Access
@@ -282,13 +288,201 @@ docker exec lcbp3-frontend npm run build
 ### Port already in use
 
 ```bash
-# Find process using port
+# Linux/Mac: Find process using port
 lsof -i :3000
 
-# Kill process
+# Windows: Find process using port
+netstat -ano | findstr :3000
+
+# Linux/Mac: Kill process
 kill -9 <PID>
 
+# Windows: Kill process
+taskkill /PID <PID> /F
+
 # Or change port in docker-compose.yml
+```
+
+---
+
+## ⚠️ Common Pitfalls
+
+### 1. **Environment Variables Not Loaded**
+
+**Problem:** Backend fails to start with "config is not defined" or similar errors.
+
+**Solution:**
+```bash
+# Ensure .env file exists
+ls backend/.env  # Linux/Mac
+dir backend\.env  # Windows
+
+# Check if Docker container has access to .env
+docker exec lcbp3-backend env | grep DB_
+
+# Restart containers after .env changes
+docker-compose down
+docker-compose up -d
+```
+
+### 2. **Database Migration Issues**
+
+**Problem:** Tables not found or schema mismatch.
+
+**Solution:**
+```bash
+# Check migration status
+docker exec lcbp3-backend npm run migration:show
+
+# Run pending migrations
+docker exec lcbp3-backend npm run migration:run
+
+# If migration fails, check logs
+docker logs lcbp3-backend --tail=50
+
+# Rollback and retry if needed
+docker exec lcbp3-backend npm run migration:revert
+```
+
+### 3. **Redis Connection Timeout**
+
+**Problem:** Queue jobs not processing or "ECONNREFUSED" errors.
+
+**Solution:**
+```bash
+# Check if Redis is running
+docker ps | grep redis
+
+# Test Redis connection
+docker exec lcbp3-redis redis-cli ping
+
+# Check Redis logs
+docker logs lcbp3-redis
+
+# Verify REDIS_HOST in .env matches docker-compose service name
+```
+
+### 4. **CORS Errors in Frontend**
+
+**Problem:** Browser blocks API requests with CORS policy errors.
+
+**Solution:**
+```bash
+# Check CORS_ORIGIN in backend/.env
+# Should match frontend URL (e.g., http://localhost:3001)
+
+# For development, can use:
+CORS_ORIGIN=http://localhost:3001,http://localhost:3000
+
+# Restart backend after changes
+docker-compose restart backend
+```
+
+### 5. **File Upload Fails**
+
+**Problem:** File uploads return 413 (Payload Too Large) or timeout.
+
+**Solution:**
+```bash
+# Check MAX_FILE_SIZE in .env (default 50MB)
+MAX_FILE_SIZE=52428800
+
+# Check NGINX upload limits if using reverse proxy
+# client_max_body_size should be set appropriately
+
+# Check disk space
+docker exec lcbp3-backend df -h  # Linux/Mac
+```
+
+### 6. **Docker Build Fails on Windows**
+
+**Problem:** Line ending issues (CRLF vs LF) cause build failures.
+
+**Solution:**
+```bash
+# Configure Git to use LF line endings
+git config --global core.autocrlf input
+
+# Re-clone or convert existing files
+git add --renormalize .
+git commit -m "Normalize line endings"
+
+# Or use .gitattributes file (already should be in repo)
+```
+
+### 7. **Permission Denied in Containers**
+
+**Problem:** Cannot write files or execute commands inside containers.
+
+**Solution:**
+```bash
+# Windows: Ensure Docker Desktop has access to the drive
+# Settings → Resources → File Sharing
+
+# Linux: Fix volume permissions
+sudo chown -R $USER:$USER .
+
+# Check container user
+docker exec lcbp3-backend whoami
+```
+
+### 8. **Hot Reload Not Working**
+
+**Problem:** Code changes don't reflect immediately during development.
+
+**Solution:**
+```bash
+# Ensure volumes are mounted correctly in docker-compose.yml
+# Check for:
+volumes:
+  - ./backend/src:/app/src
+
+# Windows: May need to enable polling in NestJS
+# Add to nest-cli.json:
+"watchAssets": true,
+"watchOptions": {
+  "poll": 1000
+}
+
+# Restart dev server
+docker-compose restart backend
+```
+
+### 9. **TypeScript Compilation Errors**
+
+**Problem:** "Cannot find module" or type errors.
+
+**Solution:**
+```bash
+# Clear build cache
+docker exec lcbp3-backend rm -rf dist
+
+# Reinstall dependencies
+docker exec lcbp3-backend rm -rf node_modules package-lock.json
+docker exec lcbp3-backend npm install
+
+# Check TypeScript version matches
+docker exec lcbp3-backend npm list typescript
+```
+
+### 10. **Document Numbering Duplicates**
+
+**Problem:** Race condition causes duplicate document numbers.
+
+**Solution:**
+```bash
+# Ensure Redis is running (required for distributed locks)
+docker ps | grep redis
+
+# Check Redis connection in logs
+docker logs lcbp3-backend | grep -i redis
+
+# Verify ENABLE_REDIS_LOCK=true in .env
+
+# Check database constraints are in place
+docker exec -i lcbp3-mariadb mysql -u root -p lcbp3_dms -e "
+SHOW CREATE TABLE document_number_counters;
+"
 ```
 
 ---

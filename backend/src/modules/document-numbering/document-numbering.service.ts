@@ -25,6 +25,8 @@ import { Organization } from '../project/entities/organization.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { Discipline } from '../master/entities/discipline.entity';
 import { CorrespondenceSubType } from '../correspondence/entities/correspondence-sub-type.entity';
+import { DocumentNumberAudit } from './entities/document-number-audit.entity'; // [P0-4]
+import { DocumentNumberError } from './entities/document-number-error.entity'; // [P0-4]
 
 // Interfaces
 import {
@@ -53,8 +55,12 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
     private disciplineRepo: Repository<Discipline>,
     @InjectRepository(CorrespondenceSubType)
     private subTypeRepo: Repository<CorrespondenceSubType>,
+    @InjectRepository(DocumentNumberAudit) // [P0-4]
+    private auditRepo: Repository<DocumentNumberAudit>,
+    @InjectRepository(DocumentNumberError) // [P0-4]
+    private errorRepo: Repository<DocumentNumberError>,
 
-    private configService: ConfigService,
+    private configService: ConfigService
   ) {}
 
   onModuleInit() {
@@ -74,7 +80,7 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.logger.log(
-      `Document Numbering Service initialized (Redis: ${host}:${port})`,
+      `Document Numbering Service initialized (Redis: ${host}:${port})`
     );
   }
 
@@ -95,7 +101,7 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
     // 2. ดึง Format Template
     const formatTemplate = await this.getFormatTemplate(
       ctx.projectId,
-      ctx.typeId,
+      ctx.typeId
     );
 
     // 3. สร้าง Resource Key สำหรับ Lock (ละเอียดถึงระดับ Discipline)
@@ -142,12 +148,30 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
           await this.counterRepo.save(counter);
 
           // E. Format Result
-          return this.replaceTokens(formatTemplate, tokens, counter.lastNumber);
+          const generatedNumber = this.replaceTokens(
+            formatTemplate,
+            tokens,
+            counter.lastNumber
+          );
+
+          // [P0-4] F. Audit Logging
+          await this.logAudit({
+            generatedNumber,
+            counterKey: resourceKey,
+            templateUsed: formatTemplate,
+            sequenceNumber: counter.lastNumber,
+            userId: ctx.userId,
+            ipAddress: ctx.ipAddress,
+            retryCount: i,
+            lockWaitMs: 0, // TODO: calculate actual wait time
+          });
+
+          return generatedNumber;
         } catch (err) {
           // ถ้า Version ไม่ตรง (มีคนแทรกได้ในเสี้ยววินาที) ให้ Retry
           if (err instanceof OptimisticLockVersionMismatchError) {
             this.logger.warn(
-              `Optimistic Lock Collision for ${resourceKey}. Retrying...`,
+              `Optimistic Lock Collision for ${resourceKey}. Retrying...`
             );
             continue;
           }
@@ -156,10 +180,22 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
       }
 
       throw new InternalServerErrorException(
-        'Failed to generate document number after retries.',
+        'Failed to generate document number after retries.'
       );
     } catch (error) {
       this.logger.error(`Error generating number for ${resourceKey}`, error);
+
+      // [P0-4] Log error
+      await this.logError({
+        counterKey: resourceKey,
+        errorType: this.classifyError(error),
+        errorMessage: error.message,
+        stackTrace: error.stack,
+        userId: ctx.userId,
+        ipAddress: ctx.ipAddress,
+        context: ctx,
+      }).catch(() => {}); // Don't throw if error logging fails
+
       throw error;
     } finally {
       // 🔓 Release Lock
@@ -174,7 +210,7 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
    */
   private async resolveTokens(
     ctx: GenerateNumberContext,
-    year: number,
+    year: number
   ): Promise<DecodedTokens> {
     const [project, org, type] = await Promise.all([
       this.projectRepo.findOne({ where: { id: ctx.projectId } }),
@@ -210,6 +246,17 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
     // ใน Req 6B ตัวอย่างใช้ 2568 (พ.ศ.) ดังนั้นต้องแปลง
     const yearTh = (year + 543).toString();
 
+    // [P1-4] Resolve recipient organization
+    let recipientCode = '';
+    if (ctx.recipientOrgId) {
+      const recipient = await this.orgRepo.findOne({
+        where: { id: ctx.recipientOrgId },
+      });
+      if (recipient) {
+        recipientCode = recipient.organizationCode;
+      }
+    }
+
     return {
       projectCode: project.projectCode,
       orgCode: org.organizationCode,
@@ -219,6 +266,7 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
       subTypeNumber,
       year: yearTh,
       yearShort: yearTh.slice(-2), // 68
+      recipientCode, // [P1-4]
     };
   }
 
@@ -227,7 +275,7 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
    */
   private async getFormatTemplate(
     projectId: number,
-    typeId: number,
+    typeId: number
   ): Promise<string> {
     const format = await this.formatRepo.findOne({
       where: { projectId, correspondenceTypeId: typeId },
@@ -242,7 +290,7 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
   private replaceTokens(
     template: string,
     tokens: DecodedTokens,
-    seq: number,
+    seq: number
   ): string {
     let result = template;
 
@@ -253,6 +301,7 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
       '{DISCIPLINE}': tokens.disciplineCode,
       '{SUBTYPE}': tokens.subTypeCode,
       '{SUBTYPE_NUM}': tokens.subTypeNumber, // [Req 6B] For Transmittal/RFA
+      '{RECIPIENT}': tokens.recipientCode, // [P1-4] Recipient organization
       '{YEAR}': tokens.year,
       '{YEAR_SHORT}': tokens.yearShort,
     };
@@ -270,5 +319,51 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
     });
 
     return result;
+  }
+
+  /**
+   * [P0-4] Log successful number generation to audit table
+   */
+  private async logAudit(
+    auditData: Partial<DocumentNumberAudit>
+  ): Promise<void> {
+    try {
+      await this.auditRepo.save(auditData);
+    } catch (error) {
+      this.logger.error('Failed to log audit', error);
+      // Don't throw - audit failure shouldn't block number generation
+    }
+  }
+
+  /**
+   * [P0-4] Log error to error table
+   */
+  private async logError(
+    errorData: Partial<DocumentNumberError>
+  ): Promise<void> {
+    try {
+      await this.errorRepo.save(errorData);
+    } catch (error) {
+      this.logger.error('Failed to log error', error);
+    }
+  }
+
+  /**
+   * [P0-4] Classify error type for logging
+   */
+  private classifyError(error: any): string {
+    if (error.message?.includes('lock') || error.message?.includes('Lock')) {
+      return 'LOCK_TIMEOUT';
+    }
+    if (error instanceof OptimisticLockVersionMismatchError) {
+      return 'VERSION_CONFLICT';
+    }
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+      return 'REDIS_ERROR';
+    }
+    if (error.name === 'QueryFailedError') {
+      return 'DB_ERROR';
+    }
+    return 'VALIDATION_ERROR';
   }
 }

@@ -199,24 +199,24 @@ lcbp3/
 
 ### Documentation
 
-| Category           | Document                                                                             | Description                           |
-| ------------------ | ------------------------------------------------------------------------------------ | ------------------------------------- |
-| **Overview**       | [Glossary](./glossary.md)                                                            | Technical terminology & abbreviations |
-| **Overview**       | [Quick Start](./quick-start.md)                                                      | 5-minute getting started guide        |
-| **Requirements**   | [Functional Requirements](../01-requirements/03-functional-requirements.md)          | Feature specifications                |
-| **Requirements**   | [Document Numbering](../01-requirements/03.11-document-numbering.md)                 | Document numbering requirements       |
-| **Architecture**   | [System Architecture](../02-architecture/system-architecture.md)                     | Overall system design                 |
-| **Architecture**   | [Data Model](../02-architecture/data-model.md)                                       | Database schema                       |
-| **Architecture**   | [API Design](../02-architecture/api-design.md)                                       | REST API specifications               |
-| **Implementation** | [Backend Guidelines](../03-implementation/backend-guidelines.md)                     | Backend coding standards              |
-| **Implementation** | [Frontend Guidelines](../03-implementation/frontend-guidelines.md)                   | Frontend coding standards             |
-| **Implementation** | [Document Numbering Implementation](../03-implementation/document-numbering.md)      | Document numbering implementation     |
-| **Implementation** | [Testing Strategy](../03-implementation/testing-strategy.md)                         | Testing approach                      |
-| **Operations**     | [Deployment Guide](../04-operations/deployment-guide.md)                             | How to deploy                         |
-| **Operations**     | [Monitoring](../04-operations/monitoring-alerting.md)                                | Monitoring & alerts                   |
-| **Operations**     | [Document Numbering Operations](../04-operations/document-numbering-operations.md)   | Doc numbering ops guide               |
-| **Decisions**      | [ADR Index](../05-decisions/README.md)                                               | Architecture decisions                |
-| **Tasks**          | [Backend Tasks](../06-tasks/README.md)                                               | Development tasks                     |
+| Category           | Document                                                                           | Description                           |
+| ------------------ | ---------------------------------------------------------------------------------- | ------------------------------------- |
+| **Overview**       | [Glossary](./glossary.md)                                                          | Technical terminology & abbreviations |
+| **Overview**       | [Quick Start](./quick-start.md)                                                    | 5-minute getting started guide        |
+| **Requirements**   | [Functional Requirements](../01-requirements/03-functional-requirements.md)        | Feature specifications                |
+| **Requirements**   | [Document Numbering](../01-requirements/03.11-document-numbering.md)               | Document numbering requirements       |
+| **Architecture**   | [System Architecture](../02-architecture/system-architecture.md)                   | Overall system design                 |
+| **Architecture**   | [Data Model](../02-architecture/data-model.md)                                     | Database schema                       |
+| **Architecture**   | [API Design](../02-architecture/api-design.md)                                     | REST API specifications               |
+| **Implementation** | [Backend Guidelines](../03-implementation/backend-guidelines.md)                   | Backend coding standards              |
+| **Implementation** | [Frontend Guidelines](../03-implementation/frontend-guidelines.md)                 | Frontend coding standards             |
+| **Implementation** | [Document Numbering Implementation](../03-implementation/document-numbering.md)    | Document numbering implementation     |
+| **Implementation** | [Testing Strategy](../03-implementation/testing-strategy.md)                       | Testing approach                      |
+| **Operations**     | [Deployment Guide](../04-operations/deployment-guide.md)                           | How to deploy                         |
+| **Operations**     | [Monitoring](../04-operations/monitoring-alerting.md)                              | Monitoring & alerts                   |
+| **Operations**     | [Document Numbering Operations](../04-operations/document-numbering-operations.md) | Doc numbering ops guide               |
+| **Decisions**      | [ADR Index](../05-decisions/README.md)                                             | Architecture decisions                |
+| **Tasks**          | [Backend Tasks](../06-tasks/README.md)                                             | Development tasks                     |
 
 ### Key ADRs
 
@@ -393,13 +393,13 @@ lcbp3/
 
 ## 🔄 Version History
 
-| Version | Date       | Description                               |
-| ------- | ---------- | ----------------------------------------- |
-| 1.6.0   | 2025-12-02 | Reorganized documentation structure       |
+| Version | Date       | Description                                |
+| ------- | ---------- | ------------------------------------------ |
+| 1.5.1   | 2025-12-02 | Reorganized documentation structure        |
 | 1.5.0   | 2025-12-01 | Complete specification with ADRs and tasks |
-| 1.4.5   | 2025-11-30 | Updated architecture documents            |
-| 1.4.4   | 2025-11-29 | Initial backend/frontend plans            |
-| 1.0.0   | 2025-11-01 | Initial requirements                      |
+| 1.4.5   | 2025-11-30 | Updated architecture documents             |
+| 1.4.4   | 2025-11-29 | Initial backend/frontend plans             |
+| 1.0.0   | 2025-11-01 | Initial requirements                       |
 
 ---
 
