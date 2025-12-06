@@ -4,9 +4,9 @@
 >
 > ระบบบริหารจัดการเอกสารโครงการแบบครบวงจร สำหรับโครงการก่อสร้างท่าเรือแหลมฉบังระยะที่ 3
 
-[![Version](https://img.shields.io/badge/version-1.4.5-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.5.1-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Internal-red.svg)]()
-[![Status](https://img.shields.io/badge/status-In%20Development-yellow.svg)]()
+[![Status](https://img.shields.io/badge/status-Active%20Development-green.svg)]()
 
 ---
 
@@ -216,14 +216,19 @@ lcbp3-dms/
 │   ├── lib/              # Utilities
 │   └── package.json
 │
-├── docs/                  # 📚 เอกสารโครงการ
-│   ├── 0_Requirements_V1_4_5.md
-│   ├── 1_FullStackJS_V1_4_5.md
-│   ├── 2_Backend_Plan_V1_4_5.md
-│   ├── 3_Frontend_Plan_V1_4_5.md
-│   ├── 4_Data_Dictionary_V1_4_5.md
-│   ├── 8_lcbp3_v1_4_5.sql
-│   └── 8_lcbp3_v1_4_5_seed.sql
+├── docs/                  # 📚 Legacy documentation
+│   └── ...
+│
+├── specs/                 # 📘 Project Specifications (v1.5.1)
+│   ├── 00-overview/       # Project overview & glossary
+│   ├── 01-requirements/   # Functional requirements
+│   ├── 02-architecture/   # System architecture & ADRs
+│   ├── 03-implementation/ # Implementation guidelines
+│   ├── 04-operations/     # Deployment & operations
+│   ├── 05-decisions/      # Architecture Decision Records
+│   ├── 06-tasks/          # Active tasks
+│   ├── 07-database/       # Database schema & seed data
+│   └── 09-history/        # Implementation history
 │
 ├── infrastructure/        # Docker & Deployment
 │   └── Markdown/         # Legacy docs
@@ -235,22 +240,29 @@ lcbp3-dms/
 
 ## 📚 เอกสารประกอบ
 
-### เอกสารหลัก
+### เอกสารหลัก (specs/ folder)
 
-| เอกสาร                    | คำอธิบาย                                   | ไฟล์                                                              |
-| ------------------------- | ------------------------------------------ | ----------------------------------------------------------------- |
-| **Requirements**          | ข้อกำหนดระบบและฟังก์ชันการทำงาน            | [0_Requirements_V1_4_5.md](./docs/0_Requirements_V1_4_5.md)       |
-| **Full Stack Guidelines** | แนวทางการพัฒนา TypeScript/NestJS/Next.js   | [1_FullStackJS_V1_4_5.md](./docs/1_FullStackJS_V1_4_5.md)         |
-| **Backend Plan**          | แผนการพัฒนา Backend แบบ Phase-Based        | [2_Backend_Plan_V1_4_5.md](./docs/2_Backend_Plan_V1_4_5.md)       |
-| **Frontend Plan**         | แผนการพัฒนา Frontend                       | [3_Frontend_Plan_V1_4_5.md](./docs/3_Frontend_Plan_V1_4_5.md)     |
-| **Data Dictionary**       | โครงสร้างฐานข้อมูลและ Entity Relationships | [4_Data_Dictionary_V1_4_5.md](./docs/4_Data_Dictionary_V1_4_5.md) |
+| เอกสาร             | คำอธิบาย                         | โฟลเดอร์                    |
+| ------------------ | ------------------------------ | -------------------------- |
+| **Overview**       | ภาพรวมโครงการ, Glossary        | `specs/00-overview/`       |
+| **Requirements**   | ข้อกำหนดระบบและฟังก์ชันการทำงาน      | `specs/01-requirements/`   |
+| **Architecture**   | สถาปัตยกรรมระบบ, ADRs           | `specs/02-architecture/`   |
+| **Implementation** | แนวทางการพัฒนา Backend/Frontend | `specs/03-implementation/` |
+| **Database**       | Schema v1.5.1 + Seed Data      | `specs/07-database/`       |
 
-### เอกสารเพิ่มเติม
+### Schema & Seed Data
 
-- **Database Schema**: [8_lcbp3_v1_4_5.sql](./docs/8_lcbp3_v1_4_5.sql)
-- **Seed Data**: [8_lcbp3_v1_4_5_seed.sql](./docs/8_lcbp3_v1_4_5_seed.sql)
-- **Changelog**: [CHANGELOG.md](./CHANGELOG.md)
-- **Contributing**: [CONTRIBUTING.md](./CONTRIBUTING.md)
+```bash
+# Import schema
+mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.5.1-schema.sql
+
+# Import seed data
+mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.5.1-seed.sql
+```
+
+### Legacy Documentation
+
+เอกสารเก่าอยู่ใน `docs/` folder
 
 ---
 
@@ -443,10 +455,10 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 
 ## 👥 Team
 
-- **Project Manager**: [ระบุชื่อ]
-- **Tech Lead**: [ระบุชื่อ]
-- **Backend Team**: [ระบุชื่อ]
-- **Frontend Team**: [ระบุชื่อ]
+- **Project Manager**: [์Nattanin Peancharoen]
+- **Tech Lead**: [Nattanin Peancharoen]
+- **Backend Team**: [Nattanin Peancharoen]
+- **Frontend Team**: [Nattanin Peancharoen]
 
 ---
 
@@ -462,20 +474,26 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 
 ## 🗺️ Roadmap
 
-### Version 1.4.5 (Current)
+### Version 1.5.1 (Current - Dec 2025)
 
 - ✅ Core Infrastructure
-- ✅ Authentication & Authorization
-- 🔄 Correspondence Module
+- ✅ Authentication & Authorization (JWT + CASL RBAC)
+- ✅ **CASL RBAC 4-Level** - Global, Org, Project, Contract
+- ✅ **Workflow DSL Parser** - Zod validation & state machine
+- ✅ Correspondence Module (Master-Revision Pattern)
+- ✅ **Document Number Audit** - Compliance tracking
+- ✅ **All Token Types** - Including {RECIPIENT}
 - 🔄 RFA Module
-- 🔄 Workflow Engine
+- 🔄 Drawing Module
+- ✅ Swagger API Documentation
 
-### Version 1.5.0 (Planned)
+### Version 1.6.0 (Planned)
 
 - 📋 Advanced Reporting
 - 📊 Dashboard Analytics
-- 🔔 Enhanced Notifications
-- 📱 Mobile App
+- 🔔 Enhanced Notifications (LINE/Email)
+- 🔄 E2E Tests for Critical APIs
+- 📈 Prometheus Metrics
 
 ---
 
