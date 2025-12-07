@@ -6,7 +6,7 @@ import {
   JoinColumn,
   Unique,
 } from 'typeorm';
-import { Project } from '../../project/entities/project.entity.js';
+import { Project } from '../../project/entities/project.entity';
 // เรายังไม่มี CorrespondenceType Entity เดี๋ยวสร้าง Dummy ไว้ก่อน หรือข้าม Relation ไปก่อนได้
 // แต่ตามหลักควรมี CorrespondenceType (Master Data)
 

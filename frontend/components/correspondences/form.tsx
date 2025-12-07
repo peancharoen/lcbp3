@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/select";
 import { FileUpload } from "@/components/common/file-upload";
 import { useRouter } from "next/navigation";
-import { correspondenceApi } from "@/lib/api/correspondences";
-import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useCreateCorrespondence } from "@/hooks/use-correspondence";
+import { useOrganizations } from "@/hooks/use-master-data";
 
 const correspondenceSchema = z.object({
   subject: z.string().min(5, "Subject must be at least 5 characters"),
@@ -34,7 +34,8 @@ type FormData = z.infer<typeof correspondenceSchema>;
 
 export function CorrespondenceForm() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createMutation = useCreateCorrespondence();
+  const { data: organizations, isLoading: isLoadingOrgs } = useOrganizations();
 
   const {
     register,
@@ -50,18 +51,12 @@ export function CorrespondenceForm() {
     },
   });
 
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    try {
-      await correspondenceApi.create(data as any); // Type casting for mock
-      router.push("/correspondences");
-      router.refresh();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to create correspondence");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onSubmit = (data: FormData) => {
+    createMutation.mutate(data as any, {
+      onSuccess: () => {
+        router.push("/correspondences");
+      },
+    });
   };
 
   return (
@@ -92,15 +87,17 @@ export function CorrespondenceForm() {
           <Label>From Organization *</Label>
           <Select
             onValueChange={(v) => setValue("from_organization_id", parseInt(v))}
+            disabled={isLoadingOrgs}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select Organization" />
+              <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              {/* Mock Data - In real app, fetch from API */}
-              <SelectItem value="1">Contractor A (CON-A)</SelectItem>
-              <SelectItem value="2">Owner (OWN)</SelectItem>
-              <SelectItem value="3">Consultant (CNS)</SelectItem>
+              {organizations?.map((org: any) => (
+                <SelectItem key={org.id} value={String(org.id)}>
+                  {org.name || org.org_name} ({org.code || org.org_code})
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {errors.from_organization_id && (
@@ -112,14 +109,17 @@ export function CorrespondenceForm() {
           <Label>To Organization *</Label>
           <Select
             onValueChange={(v) => setValue("to_organization_id", parseInt(v))}
+            disabled={isLoadingOrgs}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select Organization" />
+              <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">Contractor A (CON-A)</SelectItem>
-              <SelectItem value="2">Owner (OWN)</SelectItem>
-              <SelectItem value="3">Consultant (CNS)</SelectItem>
+              {organizations?.map((org: any) => (
+                <SelectItem key={org.id} value={String(org.id)}>
+                  {org.name || org.org_name} ({org.code || org.org_code})
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {errors.to_organization_id && (
@@ -177,8 +177,8 @@ export function CorrespondenceForm() {
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" disabled={createMutation.isPending}>
+          {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Create Correspondence
         </Button>
       </div>

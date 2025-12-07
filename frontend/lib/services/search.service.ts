@@ -10,10 +10,22 @@ export const searchService = {
   search: async (query: SearchQueryDto) => {
     // ส่ง params แบบ flat ตาม DTO
     // GET /search?q=...&type=...&projectId=...
-    const response = await apiClient.get("/search", { 
-      params: query 
+    const response = await apiClient.get("/search", {
+      params: query
     });
     return response.data;
+  },
+
+  /**
+   * Suggestion (Autocomplete)
+   * ใช้ search endpoint แต่จำกัดจำนวน
+   */
+  suggest: async (query: string) => {
+    const response = await apiClient.get("/search", {
+      params: { q: query, limit: 5 }
+    });
+    // Assuming backend returns { items: [], ... } or just []
+    return response.data.items || response.data;
   },
 
   /**

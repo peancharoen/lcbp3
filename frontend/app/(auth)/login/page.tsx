@@ -8,6 +8,7 @@ import * as z from "zod";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +34,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Removed local errorMessage state in favor of toast
 
   // ตั้งค่า React Hook Form
   const {
@@ -51,11 +52,9 @@ export default function LoginPage() {
   // ฟังก์ชันเมื่อกด Submit
   async function onSubmit(data: LoginValues) {
     setIsLoading(true);
-    setErrorMessage(null);
 
     try {
       // เรียกใช้ NextAuth signIn (Credential Provider)
-      // หมายเหตุ: เรายังไม่ได้ตั้งค่า AuthOption ใน route.ts แต่นี่คือโค้ดฝั่ง Client ที่ถูกต้อง
       const result = await signIn("credentials", {
         username: data.username,
         password: data.password,
@@ -65,16 +64,23 @@ export default function LoginPage() {
       if (result?.error) {
         // กรณี Login ไม่สำเร็จ
         console.error("Login failed:", result.error);
-        setErrorMessage("เข้าสู่ระบบไม่สำเร็จ: ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง");
+        toast.error("เข้าสู่ระบบไม่สำเร็จ", {
+          description: "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่",
+        });
         return;
       }
 
       // Login สำเร็จ -> ไปหน้า Dashboard
+      toast.success("เข้าสู่ระบบสำเร็จ", {
+        description: "กำลังพาท่านไปยังหน้า Dashboard...",
+      });
       router.push("/dashboard");
       router.refresh(); // Refresh เพื่อให้ Server Component รับรู้ Session ใหม่
     } catch (error) {
       console.error("Login error:", error);
-      setErrorMessage("เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง");
+      toast.error("เกิดข้อผิดพลาด", {
+        description: "ระบบขัดข้อง กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -93,11 +99,6 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="grid gap-4">
-          {errorMessage && (
-            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md border border-destructive/20">
-              {errorMessage}
-            </div>
-          )}
           {/* Username Field */}
           <div className="grid gap-2">
             <Label htmlFor="username">ชื่อผู้ใช้งาน</Label>

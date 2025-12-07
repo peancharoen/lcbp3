@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import QueryProvider from "@/providers/query-provider";
 import SessionProvider from "@/providers/session-provider"; // ✅ Import เข้ามา
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <SessionProvider> {/* ✅ หุ้มด้วย SessionProvider เป็นชั้นนอกสุด หรือใน body */}
           <QueryProvider>
             {children}
+            <Toaster />
           </QueryProvider>
         </SessionProvider>
       </body>

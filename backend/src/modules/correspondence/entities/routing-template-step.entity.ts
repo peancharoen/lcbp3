@@ -6,9 +6,9 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { RoutingTemplate } from './routing-template.entity.js';
-import { Organization } from '../../project/entities/organization.entity.js';
-import { Role } from '../../user/entities/role.entity.js';
+import { RoutingTemplate } from './routing-template.entity';
+import { Organization } from '../../project/entities/organization.entity';
+import { Role } from '../../user/entities/role.entity';
 
 @Entity('correspondence_routing_template_steps')
 export class RoutingTemplateStep {

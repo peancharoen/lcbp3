@@ -130,6 +130,15 @@ export class NotificationService {
     };
   }
 
+  /**
+   * ดึงจำนวน Notification ที่ยังไม่ได้อ่าน
+   */
+  async getUnreadCount(userId: number): Promise<number> {
+    return this.notificationRepo.count({
+      where: { userId, isRead: false },
+    });
+  }
+
   async markAsRead(id: number, userId: number): Promise<void> {
     const notification = await this.notificationRepo.findOne({
       where: { id, userId },

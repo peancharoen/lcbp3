@@ -1,16 +1,15 @@
+"use client";
+
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { PendingTasks } from "@/components/dashboard/pending-tasks";
 import { QuickActions } from "@/components/dashboard/quick-actions";
-import { dashboardApi } from "@/lib/api/dashboard";
+import { useDashboardStats, useRecentActivity, usePendingTasks } from "@/hooks/use-dashboard";
 
-export default async function DashboardPage() {
-  // Fetch data in parallel
-  const [stats, activities, tasks] = await Promise.all([
-    dashboardApi.getStats(),
-    dashboardApi.getRecentActivity(),
-    dashboardApi.getPendingTasks(),
-  ]);
+export default function DashboardPage() {
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: activities, isLoading: activityLoading } = useRecentActivity();
+  const { data: tasks, isLoading: tasksLoading } = usePendingTasks();
 
   return (
     <div className="space-y-8">
@@ -24,14 +23,14 @@ export default async function DashboardPage() {
         <QuickActions />
       </div>
 
-      <StatsCards stats={stats} />
+      <StatsCards stats={stats} isLoading={statsLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <RecentActivity activities={activities} />
+          <RecentActivity activities={activities} isLoading={activityLoading} />
         </div>
         <div className="lg:col-span-1">
-          <PendingTasks tasks={tasks} />
+          <PendingTasks tasks={tasks} isLoading={tasksLoading} />
         </div>
       </div>
     </div>

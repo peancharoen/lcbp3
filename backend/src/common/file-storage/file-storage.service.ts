@@ -12,7 +12,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
-import { Attachment } from './entities/attachment.entity.js';
+import { Attachment } from './entities/attachment.entity';
 import { ForbiddenException } from '@nestjs/common'; // ✅ Import เพิ่ม
 
 @Injectable()

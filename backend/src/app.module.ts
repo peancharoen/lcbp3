@@ -40,6 +40,7 @@ import { DrawingModule } from './modules/drawing/drawing.module';
 import { TransmittalModule } from './modules/transmittal/transmittal.module';
 import { CirculationModule } from './modules/circulation/circulation.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { ResilienceModule } from './common/resilience/resilience.module';
 import { SearchModule } from './modules/search/search.module';
@@ -149,6 +150,7 @@ import { SearchModule } from './modules/search/search.module';
     CirculationModule,
     SearchModule,
     NotificationModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

@@ -2,21 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, FileText, Clipboard, Image } from "lucide-react";
+import { Search, FileText, Clipboard, Image, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
-  Command, CommandEmpty, CommandGroup, CommandItem, CommandList,
+  Command, CommandGroup, CommandItem, CommandList,
  } from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { searchApi } from "@/lib/api/search";
-import { SearchResult } from "@/types/search";
-import { useDebounce } from "@/hooks/use-debounce"; // We need to create this hook or implement debounce inline
+import { useSearchSuggestions } from "@/hooks/use-search";
 
-// Simple debounce hook implementation inline for now if not exists
 function useDebounceValue<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -34,19 +31,18 @@ export function GlobalSearch() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
 
   const debouncedQuery = useDebounceValue(query, 300);
 
+  const { data: suggestions, isLoading } = useSearchSuggestions(debouncedQuery);
+
   useEffect(() => {
-    if (debouncedQuery.length > 2) {
-      searchApi.suggest(debouncedQuery).then(setSuggestions);
+    if (debouncedQuery.length > 2 && suggestions && suggestions.length > 0) {
       setOpen(true);
     } else {
-      setSuggestions([]);
       if (debouncedQuery.length === 0) setOpen(false);
     }
-  }, [debouncedQuery]);
+  }, [debouncedQuery, suggestions]);
 
   const handleSearch = () => {
     if (query.trim()) {
@@ -66,7 +62,7 @@ export function GlobalSearch() {
 
   return (
     <div className="relative w-full max-w-sm">
-      <Popover open={open && suggestions.length > 0} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -78,29 +74,42 @@ export function GlobalSearch() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               onFocus={() => {
-                if (suggestions.length > 0) setOpen(true);
+                if (suggestions && suggestions.length > 0) setOpen(true);
               }}
             />
+            {isLoading && (
+              <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
+        <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
           <Command>
             <CommandList>
-              <CommandGroup heading="Suggestions">
-                {suggestions.map((item) => (
-                  <CommandItem
-                    key={`${item.type}-${item.id}`}
-                    onSelect={() => {
-                      setQuery(item.title);
-                      router.push(`/${item.type}s/${item.id}`);
-                      setOpen(false);
-                    }}
-                  >
-                    {getIcon(item.type)}
-                    <span>{item.title}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+              {suggestions && suggestions.length > 0 && (
+                <CommandGroup heading="Suggestions">
+                  {suggestions.map((item: any) => (
+                    <CommandItem
+                      key={`${item.type}-${item.id}`}
+                      onSelect={() => {
+                        setQuery(item.title);
+                        // Assumption: item has type and id.
+                        // If type is missing, we might need a map or check usage in backend response
+                        router.push(`/${item.type}s/${item.id}`);
+                        setOpen(false);
+                      }}
+                    >
+                      {getIcon(item.type)}
+                      <span className="truncate">{item.title}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">{item.documentNumber}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+              {(!suggestions || suggestions.length === 0) && !isLoading && (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    No suggestions found.
+                  </div>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>

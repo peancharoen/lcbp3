@@ -1,6 +1,6 @@
 import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Project } from './project.entity.js';
-import { Organization } from './organization.entity.js';
+import { Project } from './project.entity';
+import { Organization } from './organization.entity';
 
 @Entity('project_organizations')
 export class ProjectOrganization {

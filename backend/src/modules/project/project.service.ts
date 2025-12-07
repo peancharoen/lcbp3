@@ -8,8 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 
 // Entities
-import { Project } from './entities/project.entity.js';
-import { Organization } from './entities/organization.entity.js';
+import { Project } from './entities/project.entity';
+import { Organization } from './entities/organization.entity';
 
 // DTOs
 import { CreateProjectDto } from './dto/create-project.dto.js';

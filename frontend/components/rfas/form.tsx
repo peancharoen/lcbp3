@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import { rfaApi } from "@/lib/api/rfas";
+import { useCreateRFA } from "@/hooks/use-rfa";
+import { useDisciplines } from "@/hooks/use-master-data";
 import { useState } from "react";
 
 const rfaItemSchema = z.object({
@@ -38,7 +39,11 @@ type RFAFormData = z.infer<typeof rfaSchema>;
 
 export function RFAForm() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createMutation = useCreateRFA();
+
+  // Fetch Disciplines (Assuming Contract 1 for now, or dynamic)
+  const selectedContractId = 1;
+  const { data: disciplines, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
 
   const {
     register,
@@ -49,6 +54,7 @@ export function RFAForm() {
   } = useForm<RFAFormData>({
     resolver: zodResolver(rfaSchema),
     defaultValues: {
+      contract_id: 1,
       items: [{ item_no: "1", description: "", quantity: 0, unit: "" }],
     },
   });
@@ -58,18 +64,12 @@ export function RFAForm() {
     name: "items",
   });
 
-  const onSubmit = async (data: RFAFormData) => {
-    setIsSubmitting(true);
-    try {
-      await rfaApi.create(data as any);
-      router.push("/rfas");
-      router.refresh();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to create RFA");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onSubmit = (data: RFAFormData) => {
+    createMutation.mutate(data as any, {
+      onSuccess: () => {
+        router.push("/rfas");
+      },
+    });
   };
 
   return (
@@ -99,13 +99,14 @@ export function RFAForm() {
               <Label>Contract *</Label>
               <Select
                 onValueChange={(v) => setValue("contract_id", parseInt(v))}
+                defaultValue="1"
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Contract" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">Main Construction Contract</SelectItem>
-                  <SelectItem value="2">Subcontract A</SelectItem>
+                  {/* Additional contracts can be fetched via API too */}
                 </SelectContent>
               </Select>
               {errors.contract_id && (
@@ -117,15 +118,20 @@ export function RFAForm() {
               <Label>Discipline *</Label>
               <Select
                 onValueChange={(v) => setValue("discipline_id", parseInt(v))}
+                disabled={isLoadingDisciplines}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Discipline" />
+                  <SelectValue placeholder={isLoadingDisciplines ? "Loading..." : "Select Discipline"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Civil</SelectItem>
-                  <SelectItem value="2">Structural</SelectItem>
-                  <SelectItem value="3">Electrical</SelectItem>
-                  <SelectItem value="4">Mechanical</SelectItem>
+                  {disciplines?.map((d: any) => (
+                    <SelectItem key={d.id} value={String(d.id)}>
+                      {d.name} ({d.code})
+                    </SelectItem>
+                  ))}
+                  {!isLoadingDisciplines && !disciplines?.length && (
+                     <SelectItem value="0" disabled>No disciplines found</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               {errors.discipline_id && (
@@ -227,8 +233,8 @@ export function RFAForm() {
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" disabled={createMutation.isPending}>
+          {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Create RFA
         </Button>
       </div>

@@ -8,9 +8,9 @@ import {
   CreateDateColumn,
   Index,
 } from 'typeorm';
-import { Correspondence } from './correspondence.entity.js';
-import { CorrespondenceStatus } from './correspondence-status.entity.js';
-import { User } from '../../user/entities/user.entity.js';
+import { Correspondence } from './correspondence.entity';
+import { CorrespondenceStatus } from './correspondence-status.entity';
+import { User } from '../../user/entities/user.entity';
 
 @Entity('correspondence_revisions')
 // ✅ เพิ่ม Index สำหรับ Virtual Columns เพื่อให้ Search เร็วขึ้น

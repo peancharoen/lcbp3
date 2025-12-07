@@ -122,6 +122,7 @@ export const {
         return {
           ...token,
           id: user.id,
+          username: user.username, // ✅ Save username
           role: user.role,
           organizationId: user.organizationId,
           accessToken: user.accessToken,
@@ -141,6 +142,7 @@ export const {
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.username = token.username as string; // ✅ Restore username
         session.user.role = token.role as string;
         session.user.organizationId = token.organizationId as number;
 

@@ -4,7 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule'; // ✅ Import
 import { FileStorageService } from './file-storage.service.js';
 import { FileStorageController } from './file-storage.controller.js';
 import { FileCleanupService } from './file-cleanup.service.js'; // ✅ Import
-import { Attachment } from './entities/attachment.entity.js';
+import { Attachment } from './entities/attachment.entity';
 
 @Module({
   imports: [

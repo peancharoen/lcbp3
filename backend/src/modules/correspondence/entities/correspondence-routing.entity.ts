@@ -7,10 +7,10 @@ import {
   JoinColumn,
   CreateDateColumn,
 } from 'typeorm';
-import { CorrespondenceRevision } from './correspondence-revision.entity.js';
-import { Organization } from '../../project/entities/organization.entity.js';
-import { User } from '../../user/entities/user.entity.js';
-import { RoutingTemplate } from './routing-template.entity.js';
+import { CorrespondenceRevision } from './correspondence-revision.entity';
+import { Organization } from '../../project/entities/organization.entity';
+import { User } from '../../user/entities/user.entity';
+import { RoutingTemplate } from './routing-template.entity';
 
 @Entity('correspondence_routings')
 export class CorrespondenceRouting {

@@ -10,7 +10,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 
 interface CorrespondenceListProps {
-  data: {
+  data?: {
     items: Correspondence[];
     total: number;
     page: number;
@@ -80,7 +80,7 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
 
   return (
     <div>
-      <DataTable columns={columns} data={data.items} />
+      <DataTable columns={columns} data={data?.items || []} />
       {/* Pagination component would go here, receiving props from data */}
     </div>
   );

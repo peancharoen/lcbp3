@@ -31,7 +31,7 @@ export class NotificationProcessor extends WorkerHost {
     private configService: ConfigService,
     private userService: UserService,
     @InjectQueue('notifications') private notificationQueue: Queue,
-    @InjectRedis() private readonly redis: Redis,
+    @InjectRedis() private readonly redis: Redis
   ) {
     super();
     // Setup Nodemailer
@@ -66,7 +66,7 @@ export class NotificationProcessor extends WorkerHost {
       // ✅ แก้ไขตรงนี้: Type Casting (error as Error)
       this.logger.error(
         `Failed to process job ${job.name}: ${(error as Error).message}`,
-        (error as Error).stack,
+        (error as Error).stack
       );
       throw error; // ให้ BullMQ จัดการ Retry
     }
@@ -85,7 +85,7 @@ export class NotificationProcessor extends WorkerHost {
       return;
     }
 
-    const prefs = user.preferences || {
+    const prefs = user.preference || {
       notify_email: true,
       notify_line: true,
       digest_mode: false,
@@ -126,13 +126,13 @@ export class NotificationProcessor extends WorkerHost {
         {
           delay: this.DIGEST_DELAY,
           jobId: `digest-${data.type}-${data.userId}-${Date.now()}`,
-        },
+        }
       );
 
       // Set Lock ไว้ตามเวลา Delay เพื่อไม่ให้สร้าง Job ซ้ำ
       await this.redis.set(lockKey, '1', 'PX', this.DIGEST_DELAY);
       this.logger.log(
-        `Scheduled digest for User ${data.userId} (${data.type}) in ${this.DIGEST_DELAY}ms`,
+        `Scheduled digest for User ${data.userId} (${data.type}) in ${this.DIGEST_DELAY}ms`
       );
     }
   }
@@ -152,7 +152,7 @@ export class NotificationProcessor extends WorkerHost {
     if (!messagesRaw || messagesRaw.length === 0) return;
 
     const messages: NotificationPayload[] = messagesRaw.map((m) =>
-      JSON.parse(m),
+      JSON.parse(m)
     );
     const user = await this.userService.findOne(userId);
 
@@ -185,7 +185,7 @@ export class NotificationProcessor extends WorkerHost {
     const listItems = messages
       .map(
         (msg) =>
-          `<li><strong>${msg.title}</strong>: ${msg.message} <a href="${msg.link}">[View]</a></li>`,
+          `<li><strong>${msg.title}</strong>: ${msg.message} <a href="${msg.link}">[View]</a></li>`
       )
       .join('');
 
@@ -200,7 +200,7 @@ export class NotificationProcessor extends WorkerHost {
       `,
     });
     this.logger.log(
-      `Digest Email sent to ${user.email} (${messages.length} items)`,
+      `Digest Email sent to ${user.email} (${messages.length} items)`
     );
   }
 

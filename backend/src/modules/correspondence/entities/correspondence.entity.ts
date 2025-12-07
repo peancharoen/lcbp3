@@ -8,11 +8,11 @@ import {
   DeleteDateColumn,
   CreateDateColumn,
 } from 'typeorm';
-import { Project } from '../../project/entities/project.entity.js';
-import { Organization } from '../../project/entities/organization.entity.js';
-import { CorrespondenceType } from './correspondence-type.entity.js';
-import { User } from '../../user/entities/user.entity.js';
-import { CorrespondenceRevision } from './correspondence-revision.entity.js'; // เดี๋ยวสร้าง
+import { Project } from '../../project/entities/project.entity';
+import { Organization } from '../../project/entities/organization.entity';
+import { CorrespondenceType } from './correspondence-type.entity';
+import { User } from '../../user/entities/user.entity';
+import { CorrespondenceRevision } from './correspondence-revision.entity'; // เดี๋ยวสร้าง
 
 @Entity('correspondences')
 export class Correspondence {

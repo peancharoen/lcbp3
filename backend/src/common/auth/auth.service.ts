@@ -20,9 +20,9 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
 import { UserService } from '../../modules/user/user.service.js';
-import { User } from '../../modules/user/entities/user.entity.js';
+import { User } from '../../modules/user/entities/user.entity';
 import { RegisterDto } from './dto/register.dto.js';
-import { RefreshToken } from './entities/refresh-token.entity.js'; // [P2-2]
+import { RefreshToken } from './entities/refresh-token.entity'; // [P2-2]
 
 @Injectable()
 export class AuthService {

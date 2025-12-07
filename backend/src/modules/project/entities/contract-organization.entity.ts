@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Contract } from './contract.entity.js';
-import { Organization } from './organization.entity.js';
+import { Contract } from './contract.entity';
+import { Organization } from './organization.entity';
 
 @Entity('contract_organizations')
 export class ContractOrganization {

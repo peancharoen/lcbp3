@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Correspondence } from './correspondence.entity.js';
+import { Correspondence } from './correspondence.entity';
 
 @Entity('correspondence_references')
 export class CorrespondenceReference {

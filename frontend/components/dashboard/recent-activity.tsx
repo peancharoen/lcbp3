@@ -8,10 +8,36 @@ import { ActivityLog } from "@/types/dashboard";
 import Link from "next/link";
 
 interface RecentActivityProps {
-  activities: ActivityLog[];
+  activities: ActivityLog[] | undefined;
+  isLoading: boolean;
 }
 
-export function RecentActivity({ activities }: RecentActivityProps) {
+export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
+  if (isLoading) {
+     return (
+        <Card className="h-full">
+            <CardHeader><CardTitle className="text-lg">Recent Activity</CardTitle></CardHeader>
+            <CardContent>
+                <div className="space-y-6">
+                    {[...Array(3)].map((_, i) => (
+                         <div key={i} className="h-16 bg-muted animate-pulse rounded-md" />
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+     )
+  }
+
+  if (!activities || activities.length === 0) {
+      return (
+        <Card className="h-full">
+          <CardHeader><CardTitle className="text-lg">Recent Activity</CardTitle></CardHeader>
+           <CardContent className="text-muted-foreground text-sm text-center py-8">
+               No recent activity.
+           </CardContent>
+        </Card>
+      );
+  }
   return (
     <Card className="h-full">
       <CardHeader>

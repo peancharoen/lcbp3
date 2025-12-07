@@ -724,9 +724,11 @@ INSERT INTO user_assignments (
     contract_id,
     assigned_by_user_id
   )
-VALUES (1, 1, 1, 1, NULL, NULL, NULL),
+VALUES (1, 1, 1, NULL, NULL, NULL, NULL),
+  -- superadmin: Global scope (organization_id = NULL)
   (2, 2, 2, 1, NULL, NULL, NULL);
 
+-- admin: Organization scope
 -- =====================================================
 -- == 4. การเชื่อมโยงโครงการกับองค์กร (project_organizations) ==
 -- =====================================================

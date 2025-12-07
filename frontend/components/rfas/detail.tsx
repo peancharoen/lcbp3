@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { rfaApi } from "@/lib/api/rfas";
+import { rfaApi } from "@/lib/api/rfas"; // Deprecated, remove if possible
 import { useRouter } from "next/navigation";
+import { useProcessRFA } from "@/hooks/use-rfa";
 
 interface RFADetailProps {
   data: RFA;
@@ -29,21 +30,26 @@ export function RFADetail({ data }: RFADetailProps) {
   const router = useRouter();
   const [approvalDialog, setApprovalDialog] = useState<"approve" | "reject" | null>(null);
   const [comments, setComments] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const processMutation = useProcessRFA();
 
   const handleApproval = async (action: "approve" | "reject") => {
-    setIsProcessing(true);
-    try {
-      const newStatus = action === "approve" ? "APPROVED" : "REJECTED";
-      await rfaApi.updateStatus(data.rfa_id, newStatus, comments);
-      setApprovalDialog(null);
-      router.refresh();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update status");
-    } finally {
-      setIsProcessing(false);
-    }
+    const apiAction = action === "approve" ? "APPROVE" : "REJECT";
+
+    processMutation.mutate(
+      {
+        id: data.rfa_id,
+        data: {
+          action: apiAction,
+          comments: comments,
+        },
+      },
+      {
+        onSuccess: () => {
+          setApprovalDialog(null);
+          // Query invalidation handled in hook
+        },
+      }
+    );
   };
 
   return (
@@ -181,16 +187,16 @@ export function RFADetail({ data }: RFADetailProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApprovalDialog(null)} disabled={isProcessing}>
+            <Button variant="outline" onClick={() => setApprovalDialog(null)} disabled={processMutation.isPending}>
               Cancel
             </Button>
             <Button
               variant={approvalDialog === "approve" ? "default" : "destructive"}
               onClick={() => handleApproval(approvalDialog!)}
-              disabled={isProcessing}
+              disabled={processMutation.isPending}
               className={approvalDialog === "approve" ? "bg-green-600 hover:bg-green-700" : ""}
             >
-              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {processMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {approvalDialog === "approve" ? "Confirm Approval" : "Confirm Rejection"}
             </Button>
           </DialogFooter>

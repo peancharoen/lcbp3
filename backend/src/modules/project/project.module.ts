@@ -7,11 +7,11 @@ import { OrganizationController } from './organization.controller.js';
 import { ContractService } from './contract.service.js';
 import { ContractController } from './contract.controller.js';
 
-import { Project } from './entities/project.entity.js';
-import { Organization } from './entities/organization.entity.js';
-import { Contract } from './entities/contract.entity.js';
-import { ProjectOrganization } from './entities/project-organization.entity.js';
-import { ContractOrganization } from './entities/contract-organization.entity.js';
+import { Project } from './entities/project.entity';
+import { Organization } from './entities/organization.entity';
+import { Contract } from './entities/contract.entity';
+import { ProjectOrganization } from './entities/project-organization.entity';
+import { ContractOrganization } from './entities/contract-organization.entity';
 // Modules
 import { UserModule } from '../user/user.module';
 

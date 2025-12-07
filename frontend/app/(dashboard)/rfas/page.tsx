@@ -1,21 +1,20 @@
-import { RFAList } from "@/components/rfas/list";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Plus } from "lucide-react";
-import { rfaApi } from "@/lib/api/rfas";
-import { Pagination } from "@/components/common/pagination";
+"use client";
 
-export default async function RFAsPage({
-  searchParams,
-}: {
-  searchParams: { page?: string; status?: string; search?: string };
-}) {
-  const page = parseInt(searchParams.page || "1");
-  const data = await rfaApi.getAll({
-    page,
-    status: searchParams.status,
-    search: searchParams.search,
-  });
+import { RFAList } from '@/components/rfas/list';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Plus, Loader2 } from 'lucide-react';
+import { useRFAs } from '@/hooks/use-rfa';
+import { useSearchParams } from 'next/navigation';
+import { Pagination } from '@/components/common/pagination';
+
+export default function RFAsPage() {
+  const searchParams = useSearchParams();
+  const page = parseInt(searchParams.get('page') || '1');
+  const status = searchParams.get('status') || undefined;
+  const search = searchParams.get('search') || undefined;
+
+  const { data, isLoading, isError } = useRFAs({ page, status, search });
 
   return (
     <div className="space-y-6">
@@ -34,15 +33,28 @@ export default async function RFAsPage({
         </Link>
       </div>
 
-      <RFAList data={data} />
+      {/* RFAFilters component could be added here if needed */}
 
-      <div className="mt-4">
-        <Pagination
-          currentPage={data.page}
-          totalPages={data.totalPages}
-          total={data.total}
-        />
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : isError ? (
+        <div className="text-red-500 text-center py-8">
+          Failed to load RFAs.
+        </div>
+      ) : (
+        <>
+          <RFAList data={data} />
+           <div className="mt-4">
+            <Pagination
+              currentPage={data?.page || 1}
+              totalPages={data?.lastPage || data?.totalPages || 1}
+              total={data?.total || 0}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

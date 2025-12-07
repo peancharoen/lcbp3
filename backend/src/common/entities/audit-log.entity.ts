@@ -47,9 +47,9 @@ export class AuditLog {
   @Column({ name: 'user_agent', length: 255, nullable: true })
   userAgent?: string;
 
-  // ✅ [Fix] รวม Decorator ไว้ที่นี่ที่เดียว
+  // ✅ [Fix] ทั้งสอง Decorator ต้องระบุ name: 'created_at'
   @CreateDateColumn({ name: 'created_at' })
-  @PrimaryColumn() // เพื่อบอกว่าเป็น Composite PK คู่กับ auditId
+  @PrimaryColumn({ name: 'created_at' }) // Composite PK คู่กับ auditId
   createdAt!: Date;
 
   // Relations

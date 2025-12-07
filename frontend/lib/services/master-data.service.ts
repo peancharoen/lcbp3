@@ -6,10 +6,11 @@ import { CreateTagDto, UpdateTagDto, SearchTagDto } from "@/types/dto/master/tag
 import { CreateDisciplineDto } from "@/types/dto/master/discipline.dto";
 import { CreateSubTypeDto } from "@/types/dto/master/sub-type.dto";
 import { SaveNumberFormatDto } from "@/types/dto/master/number-format.dto";
+import { Organization } from "@/types/organization";
 
 export const masterDataService = {
   // --- Tags Management ---
-  
+
   /** ดึงรายการ Tags ทั้งหมด (Search & Pagination) */
   getTags: async (params?: SearchTagDto) => {
     const response = await apiClient.get("/tags", { params });
@@ -34,19 +35,46 @@ export const masterDataService = {
     return response.data;
   },
 
+  // --- Organizations (Global) ---
+
+  /** ดึงรายชื่อองค์กรทั้งหมด */
+  getOrganizations: async () => {
+    const response = await apiClient.get<Organization[]>("/organizations");
+    return response.data;
+  },
+
+  /** สร้างองค์กรใหม่ */
+  createOrganization: async (data: any) => {
+    const response = await apiClient.post("/organizations", data);
+    return response.data;
+  },
+
+  /** แก้ไของค์กร */
+  updateOrganization: async (id: number, data: any) => {
+    const response = await apiClient.put(`/organizations/${id}`, data);
+    return response.data;
+  },
+
+  /** ลบองค์กร */
+  deleteOrganization: async (id: number) => {
+    const response = await apiClient.delete(`/organizations/${id}`);
+    return response.data;
+  },
+
+
   // --- Disciplines Management (Admin / Req 6B) ---
 
   /** ดึงรายชื่อสาขางาน (มักจะกรองตาม Contract ID) */
   getDisciplines: async (contractId?: number) => {
-    const response = await apiClient.get("/disciplines", { 
-      params: { contractId } 
+    const response = await apiClient.get("/master/disciplines", {
+      params: { contractId }
     });
     return response.data;
   },
 
   /** สร้างสาขางานใหม่ */
   createDiscipline: async (data: CreateDisciplineDto) => {
-    const response = await apiClient.post("/disciplines", data);
+    const response = await apiClient.post("/master/disciplines", data);
     return response.data;
   },
 
@@ -54,7 +82,7 @@ export const masterDataService = {
 
   /** ดึงรายชื่อประเภทย่อย (กรองตาม Contract และ Type) */
   getSubTypes: async (contractId?: number, typeId?: number) => {
-    const response = await apiClient.get("/sub-types", {
+    const response = await apiClient.get("/master/sub-types", {
       params: { contractId, correspondenceTypeId: typeId }
     });
     return response.data;
@@ -62,7 +90,7 @@ export const masterDataService = {
 
   /** สร้างประเภทย่อยใหม่ */
   createSubType: async (data: CreateSubTypeDto) => {
-    const response = await apiClient.post("/sub-types", data);
+    const response = await apiClient.post("/master/sub-types", data);
     return response.data;
   },
 

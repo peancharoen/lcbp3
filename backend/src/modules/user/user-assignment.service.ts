@@ -1,9 +1,9 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserAssignment } from './entities/user-assignment.entity.js'; // ต้องไปสร้าง Entity นี้ก่อน (ดูข้อ 3)
+import { UserAssignment } from './entities/user-assignment.entity'; // ต้องไปสร้าง Entity นี้ก่อน (ดูข้อ 3)
 import { AssignRoleDto } from './dto/assign-role.dto.js';
-import { User } from './entities/user.entity.js';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UserAssignmentService {

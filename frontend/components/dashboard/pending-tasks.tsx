@@ -7,10 +7,28 @@ import { PendingTask } from "@/types/dashboard";
 import { AlertCircle, ArrowRight } from "lucide-react";
 
 interface PendingTasksProps {
-  tasks: PendingTask[];
+  tasks: PendingTask[] | undefined;
+  isLoading: boolean;
 }
 
-export function PendingTasks({ tasks }: PendingTasksProps) {
+export function PendingTasks({ tasks, isLoading }: PendingTasksProps) {
+  if (isLoading) {
+     return (
+        <Card className="h-full">
+            <CardHeader><CardTitle className="text-lg">Pending Tasks</CardTitle></CardHeader>
+            <CardContent>
+                <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                         <div key={i} className="h-14 bg-muted animate-pulse rounded-md" />
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+     )
+  }
+
+  if (!tasks) tasks = [];
+
   return (
     <Card className="h-full">
       <CardHeader>

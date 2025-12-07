@@ -4,11 +4,21 @@ import { Card } from "@/components/ui/card";
 import { FileText, Clipboard, CheckCircle, Clock } from "lucide-react";
 import { DashboardStats } from "@/types/dashboard";
 
-interface StatsCardsProps {
-  stats: DashboardStats;
+export interface StatsCardsProps {
+  stats: DashboardStats | undefined;
+  isLoading: boolean;
 }
 
-export function StatsCards({ stats }: StatsCardsProps) {
+export function StatsCards({ stats, isLoading }: StatsCardsProps) {
+  if (isLoading || !stats) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="p-6 h-[100px] animate-pulse bg-muted" />
+        ))}
+      </div>
+    );
+  }
   const cards = [
     {
       title: "Total Correspondences",

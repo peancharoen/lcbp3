@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Bell, Check } from "lucide-react";
+import { Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,62 +11,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { notificationApi } from "@/lib/api/notifications";
-import { Notification } from "@/types/notification";
+import { useNotifications, useMarkNotificationRead } from "@/hooks/use-notification";
 import { formatDistanceToNow } from "date-fns";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export function NotificationsDropdown() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isOpen, setIsOpen] = useState(false);
+  const { data, isLoading } = useNotifications();
+  const markAsRead = useMarkNotificationRead();
 
-  useEffect(() => {
-    // Fetch notifications
-    const fetchNotifications = async () => {
-      try {
-        const data = await notificationApi.getUnread();
-        setNotifications(data.items);
-        setUnreadCount(data.unreadCount);
-      } catch (error) {
-        console.error("Failed to fetch notifications", error);
-      }
-    };
+  const notifications = data?.items || [];
+  const unreadCount = data?.unreadCount || 0;
 
-    fetchNotifications();
-  }, []);
-
-  const handleMarkAsRead = async (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await notificationApi.markAsRead(id);
-    setNotifications((prev) =>
-      prev.map((n) => (n.notification_id === id ? { ...n, is_read: true } : n))
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
-  };
-
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = (notification: any) => {
     if (!notification.is_read) {
-      await notificationApi.markAsRead(notification.notification_id);
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      markAsRead.mutate(notification.notification_id);
     }
-    setIsOpen(false);
     if (notification.link) {
       router.push(notification.link);
     }
   };
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-gray-600" />
-          {unreadCount > 0 && (
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && !isLoading && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] rounded-full"
+              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
             >
               {unreadCount}
             </Badge>
@@ -76,50 +49,35 @@ export function NotificationsDropdown() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel className="flex justify-between items-center">
-          <span>Notifications</span>
-          {unreadCount > 0 && (
-            <span className="text-xs font-normal text-muted-foreground">
-              {unreadCount} unread
-            </span>
-          )}
-        </DropdownMenuLabel>
+        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {notifications.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            No notifications
+        {isLoading ? (
+             <div className="flex justify-center p-4">
+                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+             </div>
+        ) : notifications.length === 0 ? (
+          <div className="p-4 text-center text-sm text-muted-foreground">
+            No new notifications
           </div>
         ) : (
-          <div className="max-h-[400px] overflow-y-auto">
-            {notifications.map((notification) => (
+          <div className="max-h-96 overflow-y-auto">
+            {notifications.slice(0, 5).map((notification: any) => (
               <DropdownMenuItem
                 key={notification.notification_id}
                 className={`flex flex-col items-start p-3 cursor-pointer ${
-                  !notification.is_read ? "bg-muted/30" : ""
+                    !notification.is_read ? 'bg-muted/30' : ''
                 }`}
                 onClick={() => handleNotificationClick(notification)}
               >
-                <div className="flex w-full justify-between items-start gap-2">
-                  <div className="font-medium text-sm line-clamp-1">
-                    {notification.title}
-                  </div>
-                  {!notification.is_read && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 text-muted-foreground hover:text-primary"
-                      onClick={(e) => handleMarkAsRead(notification.notification_id, e)}
-                      title="Mark as read"
-                    >
-                      <Check className="h-3 w-3" />
-                    </Button>
-                  )}
+                <div className="flex justify-between w-full">
+                     <span className="font-medium text-sm">{notification.title}</span>
+                     {!notification.is_read && <span className="h-2 w-2 rounded-full bg-blue-500 mt-1" />}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
                   {notification.message}
                 </div>
-                <div className="text-[10px] text-muted-foreground mt-2 w-full text-right">
+                <div className="text-[10px] text-muted-foreground mt-1 self-end">
                   {formatDistanceToNow(new Date(notification.created_at), {
                     addSuffix: true,
                   })}
@@ -130,8 +88,8 @@ export function NotificationsDropdown() {
         )}
 
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-center justify-center text-xs text-muted-foreground cursor-pointer">
-          View All Notifications
+        <DropdownMenuItem className="text-center justify-center text-xs text-muted-foreground" disabled>
+          View All Notifications (Coming Soon)
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

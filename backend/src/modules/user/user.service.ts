@@ -21,7 +21,7 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {}
 
   // 1. สร้างผู้ใช้ (Hash Password ก่อนบันทึก)
@@ -64,7 +64,7 @@ export class UserService {
   async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { user_id: id },
-      relations: ['preferences', 'roles'], // [IMPORTANT] ต้องโหลด preferences มาด้วย
+      relations: ['preference', 'assignments'], // [IMPORTANT] ต้องโหลด preference มาด้วย
     });
 
     if (!user) {
@@ -130,7 +130,7 @@ export class UserService {
     // 2. ถ้าไม่มีใน Cache ให้ Query จาก DB (View: v_user_all_permissions)
     const permissions = await this.usersRepository.query(
       `SELECT permission_name FROM v_user_all_permissions WHERE user_id = ?`,
-      [userId],
+      [userId]
     );
 
     const permissionList = permissions.map((row: any) => row.permission_name);
