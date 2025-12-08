@@ -102,7 +102,16 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout (Revoke Tokens)' })
-  @ApiResponse({ status: 200, description: 'Logged out successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Logged out successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Logged out successfully' },
+      },
+    },
+  })
   async logout(@Req() req: RequestWithUser) {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {

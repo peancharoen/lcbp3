@@ -1,33 +1,43 @@
 import { IsOptional, IsString, IsInt } from 'class-validator';
-import { Type } from 'class-transformer'; // <--- ✅ Import จาก class-transformer
+import { Type } from 'class-transformer';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SearchCorrespondenceDto {
+  @ApiPropertyOptional({
+    description: 'Search term (Title or Document Number)',
+  })
   @IsOptional()
   @IsString()
-  search?: string; // ค้นหาจาก Title หรือ Number
+  search?: string;
 
+  @ApiPropertyOptional({ description: 'Filter by Document Type ID' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   typeId?: number;
 
+  @ApiPropertyOptional({ description: 'Filter by Project ID' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   projectId?: number;
 
-  // status อาจจะซับซ้อนหน่อยเพราะอยู่ที่ Revision แต่ใส่ไว้ก่อน
+  @ApiPropertyOptional({ description: 'Filter by Status ID' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   statusId?: number;
 
-  // Pagination
+  @ApiPropertyOptional({ description: 'Page number (default 1)', default: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   page?: number;
 
+  @ApiPropertyOptional({
+    description: 'Items per page (default 10)',
+    default: 10,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

@@ -19,6 +19,9 @@
 | **TASK-FE-010** | Admin Panel               | ✅ **Done**        | 100%         | Layout, Users, Audit Logs, Organizations implemented.            |
 | **TASK-FE-011** | Workflow Config UI        | 🚧 **In Progress** | 30%          | Workflow builder UI needed.                                      |
 | **TASK-FE-012** | Numbering Config UI       | 🚧 **In Progress** | 30%          | Configuration forms needed.                                      |
+| **TASK-FE-013** | Circulation & Transmittal | 🔴 **Not Started** | 0%           | Pending implementation.                                          |
+| **TASK-FE-014** | Reference Data UI         | 🔴 **Not Started** | 0%           | Specs created.                                                   |
+| **TASK-FE-015** | Security Admin UI         | 🔴 **Not Started** | 0%           | Specs created.                                                   |
 
 ## 🛠 Detailed Status by Component
 

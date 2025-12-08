@@ -5,91 +5,118 @@ import {
   Body,
   UseGuards,
   Request,
-  Param, // <--- ✅ 1. เพิ่ม Param
-  ParseIntPipe, // <--- ✅ 2. เพิ่ม ParseIntPipe
+  Param,
+  ParseIntPipe,
+  Query,
+  Delete,
 } from '@nestjs/common';
-import { CorrespondenceService } from './correspondence.service.js';
-import { CreateCorrespondenceDto } from './dto/create-correspondence.dto.js';
-import { SubmitCorrespondenceDto } from './dto/submit-correspondence.dto.js'; // <--- ✅ 3. เพิ่ม Import DTO นี้
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { CorrespondenceService } from './correspondence.service';
+import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
+import { SubmitCorrespondenceDto } from './dto/submit-correspondence.dto';
+import { WorkflowActionDto } from './dto/workflow-action.dto';
+import { AddReferenceDto } from './dto/add-reference.dto';
+import { SearchCorrespondenceDto } from './dto/search-correspondence.dto';
 
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
-import { RbacGuard } from '../../common/guards/rbac.guard.js';
-import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../../common/guards/rbac.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
 
-import { WorkflowActionDto } from './dto/workflow-action.dto.js';
-// ... imports ...
-import { AddReferenceDto } from './dto/add-reference.dto.js';
-import { SearchCorrespondenceDto } from './dto/search-correspondence.dto.js';
-import { Query, Delete } from '@nestjs/common'; // เพิ่ม Query, Delete
-import { Audit } from '../../common/decorators/audit.decorator'; // Import
-
+@ApiTags('Correspondences')
 @Controller('correspondences')
 @UseGuards(JwtAuthGuard, RbacGuard)
+@ApiBearerAuth()
 export class CorrespondenceController {
   constructor(private readonly correspondenceService: CorrespondenceService) {}
 
   @Post(':id/workflow/action')
-  @RequirePermission('workflow.action_review') // สิทธิ์ในการกดอนุมัติ/ตรวจสอบ
+  @ApiOperation({ summary: 'Process workflow action (Approve/Reject/Review)' })
+  @ApiResponse({ status: 201, description: 'Action processed successfully.' })
+  @RequirePermission('workflow.action_review')
   processAction(
     @Param('id', ParseIntPipe) id: number,
     @Body() actionDto: WorkflowActionDto,
-    @Request() req: any,
+    @Request() req: any
   ) {
     return this.correspondenceService.processAction(id, actionDto, req.user);
   }
 
   @Post()
-  @RequirePermission('correspondence.create') // 🔒 ต้องมีสิทธิ์สร้าง
-  @Audit('correspondence.create', 'correspondence') // ✅ แปะตรงนี้
+  @ApiOperation({ summary: 'Create new correspondence' })
+  @ApiResponse({
+    status: 201,
+    description: 'Correspondence created successfully.',
+    type: CreateCorrespondenceDto,
+  })
+  @RequirePermission('correspondence.create')
+  @Audit('correspondence.create', 'correspondence')
   create(@Body() createDto: CreateCorrespondenceDto, @Request() req: any) {
     return this.correspondenceService.create(createDto, req.user);
   }
 
-  // ✅ ปรับปรุง findAll ให้รับ Query Params
   @Get()
+  @ApiOperation({ summary: 'Search correspondences' })
+  @ApiResponse({ status: 200, description: 'Return list of correspondences.' })
   @RequirePermission('document.view')
   findAll(@Query() searchDto: SearchCorrespondenceDto) {
     return this.correspondenceService.findAll(searchDto);
   }
 
-  // ✅ เพิ่ม Endpoint นี้ครับ
   @Post(':id/submit')
-  @RequirePermission('correspondence.create') // หรือจะสร้าง Permission ใหม่ 'workflow.submit' ก็ได้
-  @Audit('correspondence.create', 'correspondence') // ✅ แปะตรงนี้
+  @ApiOperation({ summary: 'Submit correspondence to workflow' })
+  @ApiResponse({
+    status: 201,
+    description: 'Correspondence submitted successfully.',
+  })
+  @RequirePermission('correspondence.create')
+  @Audit('correspondence.create', 'correspondence')
   submit(
     @Param('id', ParseIntPipe) id: number,
     @Body() submitDto: SubmitCorrespondenceDto,
-    @Request() req: any,
+    @Request() req: any
   ) {
     return this.correspondenceService.submit(
       id,
       submitDto.templateId,
-      req.user,
+      req.user
     );
   }
 
-  // --- REFERENCES ---
-
   @Get(':id/references')
+  @ApiOperation({ summary: 'Get referenced documents' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return list of referenced documents.',
+  })
   @RequirePermission('document.view')
   getReferences(@Param('id', ParseIntPipe) id: number) {
     return this.correspondenceService.getReferences(id);
   }
 
   @Post(':id/references')
-  @RequirePermission('document.edit') // ต้องมีสิทธิ์แก้ไขถึงจะเพิ่ม Ref ได้
+  @ApiOperation({ summary: 'Add reference to another document' })
+  @ApiResponse({ status: 201, description: 'Reference added successfully.' })
+  @RequirePermission('document.edit')
   addReference(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AddReferenceDto,
+    @Body() dto: AddReferenceDto
   ) {
     return this.correspondenceService.addReference(id, dto);
   }
 
   @Delete(':id/references/:targetId')
+  @ApiOperation({ summary: 'Remove reference' })
+  @ApiResponse({ status: 200, description: 'Reference removed successfully.' })
   @RequirePermission('document.edit')
   removeReference(
     @Param('id', ParseIntPipe) id: number,
-    @Param('targetId', ParseIntPipe) targetId: number,
+    @Param('targetId', ParseIntPipe) targetId: number
   ) {
     return this.correspondenceService.removeReference(id, targetId);
   }

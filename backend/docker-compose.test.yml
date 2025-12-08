@@ -1,0 +1,30 @@
+services:
+  mariadb_test:
+    image: mariadb:11.8
+    container_name: mariadb-test
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Center#2025
+      MYSQL_DATABASE: lcbp3_test
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: Center2025
+    ports:
+      - '3307:3306'
+    tmpfs:
+      - /var/lib/mysql
+    networks:
+      - lcbp3-test-net
+
+  redis_test:
+    image: redis:7-alpine
+    container_name: redis-test
+    restart: always
+    command: redis-server --requirepass "Center2025"
+    ports:
+      - '6380:6379'
+    networks:
+      - lcbp3-test-net
+
+networks:
+  lcbp3-test-net:
+    driver: bridge
