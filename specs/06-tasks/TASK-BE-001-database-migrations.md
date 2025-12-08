@@ -28,7 +28,7 @@
 
 1. **Database Schema:**
 
-   - ✅ ทุกตารางถูกสร้างตาม Data Dictionary v1.4.5
+   - ✅ ทุกตารางถูกสร้างตาม Data Dictionary v1.5.1
    - ✅ Foreign Keys ถูกต้องครบถ้วน
    - ✅ Indexes ครบตาม Specification
    - ✅ Virtual Columns สำหรับ JSON fields

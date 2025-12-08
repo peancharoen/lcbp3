@@ -21,4 +21,15 @@ export class SearchCorrespondenceDto {
   @Type(() => Number)
   @IsInt()
   statusId?: number;
+
+  // Pagination
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  limit?: number;
 }

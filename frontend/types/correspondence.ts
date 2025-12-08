@@ -4,6 +4,15 @@ export interface Organization {
   org_code: string;
 }
 
+export interface Attachment {
+  id: number;
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+  created_at?: string;
+}
+
 export interface Correspondence {
   correspondence_id: number;
   document_number: string;
@@ -18,7 +27,7 @@ export interface Correspondence {
   from_organization?: Organization;
   to_organization?: Organization;
   document_type_id: number;
-  attachments?: any[]; // Define Attachment type if needed
+  attachments?: Attachment[];
 }
 
 export interface CreateCorrespondenceDto {

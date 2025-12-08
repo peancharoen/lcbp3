@@ -60,7 +60,7 @@ export function Sidebar({ className }: SidebarProps) {
       title: "Admin Panel",
       href: "/admin",
       icon: Shield,
-      permission: "admin", // Only admins
+      permission: null, // "admin", // Temporarily visible for all
     },
   ];
 

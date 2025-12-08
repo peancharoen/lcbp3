@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -77,6 +78,14 @@ export class RfaController {
     @CurrentUser() user: User
   ) {
     return this.rfaService.processAction(id, actionDto, user);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List all RFAs with pagination' })
+  @ApiResponse({ status: 200, description: 'List of RFAs' })
+  @RequirePermission('document.view')
+  findAll(@Query() query: any) {
+    return this.rfaService.findAll(query);
   }
 
   @Get(':id')

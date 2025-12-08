@@ -208,10 +208,10 @@ export class ShopDrawingService {
     const {
       projectId,
       mainCategoryId,
-      subCategoryId,
+      // subCategoryId, // Unused
       search,
       page = 1,
-      pageSize = 20,
+      limit = 20,
     } = searchDto;
 
     const query = this.shopDrawingRepo
@@ -223,10 +223,6 @@ export class ShopDrawingService {
 
     if (mainCategoryId) {
       query.andWhere('sd.mainCategoryId = :mainCategoryId', { mainCategoryId });
-    }
-
-    if (subCategoryId) {
-      query.andWhere('sd.subCategoryId = :subCategoryId', { subCategoryId });
     }
 
     if (search) {
@@ -241,8 +237,8 @@ export class ShopDrawingService {
 
     query.orderBy('sd.updatedAt', 'DESC');
 
-    const skip = (page - 1) * pageSize;
-    query.skip(skip).take(pageSize);
+    const skip = (page - 1) * limit;
+    query.skip(skip).take(limit);
 
     const [items, total] = await query.getManyAndCount();
 
@@ -262,8 +258,8 @@ export class ShopDrawingService {
       meta: {
         total,
         page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize),
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }

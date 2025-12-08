@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -9,7 +9,9 @@ export function AuthSync() {
   const { setAuth, logout } = useAuthStore();
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
+    if (session?.error === 'RefreshAccessTokenError') {
+      signOut({ callbackUrl: '/login' });
+    } else if (status === 'authenticated' && session?.user) {
       // Map NextAuth session to AuthStore user
       // Assuming session.user has the fields we need based on types/next-auth.d.ts
 

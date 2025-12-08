@@ -136,6 +136,11 @@ export const {
         return token;
       }
 
+      // If existing token has an error, do not retry refresh (prevents infinite loop)
+      if (token.error) {
+        return token;
+      }
+
       // Token expired, refresh it
       return refreshAccessToken(token);
     },

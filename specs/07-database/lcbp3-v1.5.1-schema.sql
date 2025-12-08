@@ -204,7 +204,10 @@ DROP TABLE IF EXISTS organizations;
 -- ตาราง Master เก็บประเภทบทบาทขององค์กร
 CREATE TABLE organization_roles (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  role_name VARCHAR(20) NOT NULL UNIQUE COMMENT 'ชื่อบทบาท (OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD PARTY)'
+  role_name VARCHAR(20) NOT NULL UNIQUE COMMENT 'ชื่อบทบาท (OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD PARTY)',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บประเภทบทบาทขององค์กร';
 
 -- ตาราง Master เก็บข้อมูลองค์กรทั้งหมดที่เกี่ยวข้องในระบบ
@@ -216,6 +219,7 @@ CREATE TABLE organizations (
   is_active BOOLEAN DEFAULT TRUE COMMENT 'สถานะการใช้งาน',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)',
   FOREIGN KEY (role_id) REFERENCES organization_roles (id) ON DELETE
   SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลองค์กรทั้งหมดที่เกี่ยวข้องในระบบ';
@@ -227,8 +231,12 @@ CREATE TABLE projects (
   project_name VARCHAR(255) NOT NULL COMMENT 'ชื่อโครงการ',
   -- parent_project_id INT COMMENT 'รหัสโครงการหลัก (ถ้ามี)',
   -- contractor_organization_id INT COMMENT 'รหัสองค์กรผู้รับเหมา (ถ้ามี)',
-  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน' -- FOREIGN KEY (parent_project_id) REFERENCES projects(id) ON DELETE SET NULL,
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
+  -- FOREIGN KEY (parent_project_id) REFERENCES projects(id) ON DELETE SET NULL,
   -- FOREIGN KEY (contractor_organization_id) REFERENCES organizations(id) ON DELETE SET NULL
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลโครงการ';
 
 -- ตาราง Master เก็บข้อมูลสัญญา
@@ -243,6 +251,7 @@ CREATE TABLE contracts (
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)',
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลสัญญา';
 
@@ -295,7 +304,10 @@ CREATE TABLE roles (
   ) NOT NULL,
   -- ขอบเขตของบทบาท (จากข้อ 4.3)
   description TEXT COMMENT 'คำอธิบายบทบาท',
-  is_system BOOLEAN DEFAULT FALSE COMMENT '(1 = บทบาทของระบบ ลบไม่ได้)'
+  is_system BOOLEAN DEFAULT FALSE COMMENT '(1 = บทบาทของระบบ ลบไม่ได้)',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ "บทบาท" ของผู้ใช้ในระบบ';
 
 -- ตาราง Master เก็บ "สิทธิ์" (Permission) หรือ "การกระทำ" ทั้งหมดในระบบ
@@ -305,7 +317,10 @@ CREATE TABLE permissions (
   description TEXT COMMENT 'คำอธิบายสิทธิ์',
   module VARCHAR(50) COMMENT 'โมดูลที่เกี่ยวข้อง',
   scope_level ENUM('GLOBAL', 'ORG', 'PROJECT') COMMENT 'ระดับขอบเขตของสิทธิ์',
-  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน'
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ "สิทธิ์" (Permission) หรือ "การกระทำ" ทั้งหมดในระบบ';
 
 -- ตารางเชื่อมระหว่าง roles และ permissions (M:N)
@@ -388,7 +403,10 @@ CREATE TABLE correspondence_types (
   type_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'รหัสประเภท (เช่น RFA, RFI)',
   type_name VARCHAR(255) NOT NULL COMMENT 'ชื่อประเภท',
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
-  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน '
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน ',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บประเภทเอกสารโต้ตอบ';
 
 -- ตาราง Master เก็บสถานะของเอกสาร

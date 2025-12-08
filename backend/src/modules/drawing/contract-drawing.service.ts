@@ -31,7 +31,7 @@ export class ContractDrawingService {
     @InjectRepository(Attachment)
     private attachmentRepo: Repository<Attachment>,
     private fileStorageService: FileStorageService,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   /**
@@ -51,7 +51,7 @@ export class ContractDrawingService {
 
     if (exists) {
       throw new ConflictException(
-        `Contract Drawing No. "${createDto.contractDrawingNo}" already exists in this project.`,
+        `Contract Drawing No. "${createDto.contractDrawingNo}" already exists in this project.`
       );
     }
 
@@ -85,7 +85,7 @@ export class ContractDrawingService {
       if (createDto.attachmentIds?.length) {
         // ✅ FIX TS2345: แปลง number[] เป็น string[] ก่อนส่ง
         await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String),
+          createDto.attachmentIds.map(String)
         );
       }
 
@@ -95,7 +95,7 @@ export class ContractDrawingService {
       await queryRunner.rollbackTransaction();
       // ✅ FIX TS18046: Cast err เป็น Error
       this.logger.error(
-        `Failed to create contract drawing: ${(err as Error).message}`,
+        `Failed to create contract drawing: ${(err as Error).message}`
       );
       throw err;
     } finally {
@@ -114,7 +114,7 @@ export class ContractDrawingService {
       subCategoryId,
       search,
       page = 1,
-      pageSize = 20,
+      limit = 20,
     } = searchDto;
 
     const query = this.drawingRepo
@@ -143,14 +143,14 @@ export class ContractDrawingService {
           qb.where('drawing.contractDrawingNo LIKE :search', {
             search: `%${search}%`,
           }).orWhere('drawing.title LIKE :search', { search: `%${search}%` });
-        }),
+        })
       );
     }
 
     query.orderBy('drawing.contractDrawingNo', 'ASC');
 
-    const skip = (page - 1) * pageSize;
-    query.skip(skip).take(pageSize);
+    const skip = (page - 1) * limit;
+    query.skip(skip).take(limit);
 
     const [items, total] = await query.getManyAndCount();
 
@@ -159,8 +159,8 @@ export class ContractDrawingService {
       meta: {
         total,
         page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize),
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
@@ -213,7 +213,7 @@ export class ContractDrawingService {
         // Commit new files
         // ✅ FIX TS2345: แปลง number[] เป็น string[] ก่อนส่ง
         await this.fileStorageService.commit(
-          updateDto.attachmentIds.map(String),
+          updateDto.attachmentIds.map(String)
         );
       }
 
@@ -225,7 +225,7 @@ export class ContractDrawingService {
       await queryRunner.rollbackTransaction();
       // ✅ FIX TS18046: Cast err เป็น Error (Optional: Added logger here too for consistency)
       this.logger.error(
-        `Failed to update contract drawing: ${(err as Error).message}`,
+        `Failed to update contract drawing: ${(err as Error).message}`
       );
       throw err;
     } finally {

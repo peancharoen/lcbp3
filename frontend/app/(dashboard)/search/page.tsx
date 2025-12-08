@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { SearchFilters } from "@/components/search/filters";
 import { SearchResults } from "@/components/search/results";
 import { SearchFilters as FilterType } from "@/types/search";
 import { useSearch } from "@/hooks/use-search";
-import { Button } from "@/components/ui/button";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   // URL Params state
   const query = searchParams.get("q") || "";
@@ -65,7 +63,7 @@ export default function SearchPage() {
           {isError ? (
             <div className="text-red-500 py-8 text-center">Failed to load search results.</div>
           ) : (
-            <SearchResults results={results || []} query={query} loading={isLoading} />
+            <SearchResults results={results?.data || []} query={query} loading={isLoading} />
           )}
         </div>
       </div>

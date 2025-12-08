@@ -28,5 +28,5 @@ export class SearchShopDrawingDto {
   @IsOptional()
   @IsInt()
   @Type(() => Number)
-  pageSize: number = 20; // มีค่า Default
+  limit: number = 20; // มีค่า Default
 }

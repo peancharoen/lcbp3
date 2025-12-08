@@ -19,11 +19,12 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useCreateCorrespondence } from "@/hooks/use-correspondence";
 import { useOrganizations } from "@/hooks/use-master-data";
+import { CreateCorrespondenceDto } from "@/types/dto/correspondence/create-correspondence.dto";
 
 const correspondenceSchema = z.object({
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().optional(),
-  document_type_id: z.number().default(1), // Default to General for now
+  document_type_id: z.number().default(1),
   from_organization_id: z.number({ required_error: "Please select From Organization" }),
   to_organization_id: z.number({ required_error: "Please select To Organization" }),
   importance: z.enum(["NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
@@ -41,18 +42,38 @@ export function CorrespondenceForm() {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(correspondenceSchema),
     defaultValues: {
       importance: "NORMAL",
       document_type_id: 1,
+      // @ts-ignore: Intentionally undefined for required fields to force selection
+      from_organization_id: undefined,
+      to_organization_id: undefined,
     },
   });
 
   const onSubmit = (data: FormData) => {
-    createMutation.mutate(data as any, {
+    // Map FormData to CreateCorrespondenceDto
+    // Note: projectId is hardcoded to 1 for now as per requirements/context
+    const payload: CreateCorrespondenceDto = {
+      projectId: 1,
+      typeId: data.document_type_id,
+      title: data.subject,
+      description: data.description,
+      originatorId: data.from_organization_id, // Mapping From -> Originator (Impersonation)
+      details: {
+        to_organization_id: data.to_organization_id,
+        importance: data.importance
+      },
+      // create-correspondence DTO does not have 'attachments' field at root usually, often handled separate or via multipart
+      // If useCreateCorrespondence handles multipart, we might need to pass FormData object or specific structure
+      // For now, aligning with DTO interface.
+    };
+
+    // If the hook expects the DTO directly:
+    createMutation.mutate(payload, {
       onSuccess: () => {
         router.push("/correspondences");
       },
@@ -61,7 +82,6 @@ export function CorrespondenceForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl space-y-6">
-      {/* Subject */}
       <div className="space-y-2">
         <Label htmlFor="subject">Subject *</Label>
         <Input id="subject" {...register("subject")} placeholder="Enter subject" />
@@ -70,7 +90,6 @@ export function CorrespondenceForm() {
         )}
       </div>
 
-      {/* Description */}
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Textarea
@@ -81,7 +100,6 @@ export function CorrespondenceForm() {
         />
       </div>
 
-      {/* From/To Organizations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label>From Organization *</Label>
@@ -93,9 +111,9 @@ export function CorrespondenceForm() {
               <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              {organizations?.map((org: any) => (
-                <SelectItem key={org.id} value={String(org.id)}>
-                  {org.name || org.org_name} ({org.code || org.org_code})
+              {organizations?.map((org) => (
+                <SelectItem key={org.organization_id} value={String(org.organization_id)}>
+                  {org.org_name} ({org.org_code})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -115,9 +133,9 @@ export function CorrespondenceForm() {
               <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              {organizations?.map((org: any) => (
-                <SelectItem key={org.id} value={String(org.id)}>
-                  {org.name || org.org_name} ({org.code || org.org_code})
+              {organizations?.map((org) => (
+                <SelectItem key={org.organization_id} value={String(org.organization_id)}>
+                  {org.org_name} ({org.org_code})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -128,7 +146,6 @@ export function CorrespondenceForm() {
         </div>
       </div>
 
-      {/* Importance */}
       <div className="space-y-2">
         <Label>Importance</Label>
         <div className="flex gap-6 mt-2">
@@ -162,7 +179,6 @@ export function CorrespondenceForm() {
         </div>
       </div>
 
-      {/* File Attachments */}
       <div className="space-y-2">
         <Label>Attachments</Label>
         <FileUpload
@@ -172,7 +188,6 @@ export function CorrespondenceForm() {
         />
       </div>
 
-      {/* Actions */}
       <div className="flex justify-end gap-4 pt-6 border-t">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel

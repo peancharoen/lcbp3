@@ -1,6 +1,6 @@
 # Task: Drawing Module (Shop & Contract Drawings)
 
-**Status:** Not Started
+**Status:** In Progress
 **Priority:** P2 (Medium - Supporting Module)
 **Estimated Effort:** 6-8 days
 **Dependencies:** TASK-BE-001, TASK-BE-002, TASK-BE-003, TASK-BE-004

@@ -29,15 +29,17 @@ import { User } from '../user/entities/user.entity';
 @Controller('drawings/contract')
 export class ContractDrawingController {
   constructor(
-    private readonly contractDrawingService: ContractDrawingService,
+    private readonly contractDrawingService: ContractDrawingService
   ) {}
+
+  // Force rebuild for DTO changes
 
   @Post()
   @ApiOperation({ summary: 'Create new Contract Drawing' })
   @RequirePermission('drawing.create') // สิทธิ์ ID 39: สร้าง/แก้ไขข้อมูลแบบ
   create(
     @Body() createDto: CreateContractDrawingDto,
-    @CurrentUser() user: User,
+    @CurrentUser() user: User
   ) {
     return this.contractDrawingService.create(createDto, user);
   }
@@ -62,7 +64,7 @@ export class ContractDrawingController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateContractDrawingDto,
-    @CurrentUser() user: User,
+    @CurrentUser() user: User
   ) {
     return this.contractDrawingService.update(id, updateDto, user);
   }

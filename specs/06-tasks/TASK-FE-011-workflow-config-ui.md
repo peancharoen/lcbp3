@@ -29,11 +29,11 @@ Build UI for configuring and managing workflows using the DSL-based workflow eng
 
 ## ✅ Acceptance Criteria
 
-- [ ] List all workflows with status
-- [ ] Create/edit workflows with DSL editor
-- [ ] Visual workflow builder functional
-- [ ] DSL validation shows errors
-- [ ] Test workflow with sample data
+- [x] List all workflows with status
+- [x] Create/edit workflows with DSL editor
+- [x] Visual workflow builder functional
+- [x] DSL validation shows errors
+- [x] Test workflow with sample data
 - [ ] Workflow templates available
 - [ ] Version history viewable
 

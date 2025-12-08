@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Users, Building2, Settings, FileText, Activity } from "lucide-react";
+import { Users, Building2, Settings, FileText, Activity, GitGraph } from "lucide-react";
 
 const menuItems = [
   { href: "/admin/users", label: "Users", icon: Users },
@@ -11,6 +11,8 @@ const menuItems = [
   { href: "/admin/projects", label: "Projects", icon: FileText },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/audit-logs", label: "Audit Logs", icon: Activity },
+  { href: "/admin/workflows", label: "Workflows", icon: GitGraph },
+  { href: "/admin/numbering", label: "Numbering", icon: FileText },
 ];
 
 export function AdminSidebar() {

@@ -35,13 +35,17 @@ frontend/
 │   ├── forms/               # Form components
 │   ├── layout/              # Layout components (Navbar, Sidebar)
 │   └── tables/              # Data table components
+├── hooks/                   # Custom React hooks (Root level)
 ├── lib/
 │   ├── api/                 # API client (Axios)
-│   ├── hooks/               # Custom React hooks
 │   ├── services/            # API service functions
-│   └── stores/              # Zustand stores
+│   ├── stores/              # Zustand stores
+│   └── utils.ts             # Cn utility
+├── providers/               # Context providers
+├── public/                  # Static assets
+├── styles/                  # Global styles
 ├── types/                   # TypeScript types & DTOs
-└── providers/               # Context providers
+└── middleware.ts            # Next.js Middleware
 ```
 
 ---

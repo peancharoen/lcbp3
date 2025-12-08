@@ -29,5 +29,5 @@ export class SearchRfaDto {
   @IsOptional()
   @IsInt()
   @Type(() => Number)
-  pageSize: number = 20;
+  limit: number = 20;
 }

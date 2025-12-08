@@ -230,6 +230,52 @@ export class RfaService {
 
   // ... (ส่วน findOne, submit, processAction คงเดิมจากไฟล์ที่แนบมา แค่ปรับปรุงเล็กน้อยตาม Context) ...
 
+  async findAll(query: any) {
+    const { page = 1, limit = 20, projectId, status, search } = query;
+    const skip = (page - 1) * limit;
+
+    // Fix: Start query from Rfa entity instead of Correspondence,
+    // because Correspondence has no 'rfas' relation.
+    // [Force Rebuild]
+    const queryBuilder = this.rfaRepo
+      .createQueryBuilder('rfa')
+      .leftJoinAndSelect('rfa.revisions', 'rev')
+      .leftJoinAndSelect('rev.correspondence', 'corr')
+      .leftJoinAndSelect('rev.statusCode', 'status')
+      .where('rev.isCurrent = :isCurrent', { isCurrent: true });
+
+    if (projectId) {
+      queryBuilder.andWhere('corr.projectId = :projectId', { projectId });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('status.statusCode = :status', { status });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(corr.correspondenceNumber LIKE :search OR rev.title LIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('corr.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async findOne(id: number) {
     const rfa = await this.rfaRepo.findOne({
       where: { id },

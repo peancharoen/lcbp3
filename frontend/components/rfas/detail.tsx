@@ -7,18 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ArrowLeft, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { rfaApi } from "@/lib/api/rfas"; // Deprecated, remove if possible
 import { useRouter } from "next/navigation";
 import { useProcessRFA } from "@/hooks/use-rfa";
 
@@ -28,12 +19,14 @@ interface RFADetailProps {
 
 export function RFADetail({ data }: RFADetailProps) {
   const router = useRouter();
-  const [approvalDialog, setApprovalDialog] = useState<"approve" | "reject" | null>(null);
+  const [actionState, setActionState] = useState<"approve" | "reject" | null>(null);
   const [comments, setComments] = useState("");
   const processMutation = useProcessRFA();
 
-  const handleApproval = async (action: "approve" | "reject") => {
-    const apiAction = action === "approve" ? "APPROVE" : "REJECT";
+  const handleProcess = () => {
+    if (!actionState) return;
+
+    const apiAction = actionState === "approve" ? "APPROVE" : "REJECT";
 
     processMutation.mutate(
       {
@@ -45,7 +38,8 @@ export function RFADetail({ data }: RFADetailProps) {
       },
       {
         onSuccess: () => {
-          setApprovalDialog(null);
+          setActionState(null);
+          setComments("");
           // Query invalidation handled in hook
         },
       }
@@ -75,14 +69,14 @@ export function RFADetail({ data }: RFADetailProps) {
             <Button
               variant="outline"
               className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => setApprovalDialog("reject")}
+              onClick={() => setActionState("reject")}
             >
               <XCircle className="mr-2 h-4 w-4" />
               Reject
             </Button>
             <Button
               className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => setApprovalDialog("approve")}
+              onClick={() => setActionState("approve")}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
               Approve
@@ -90,6 +84,39 @@ export function RFADetail({ data }: RFADetailProps) {
           </div>
         )}
       </div>
+
+       {/* Action Input Area */}
+       {actionState && (
+        <Card className="border-primary">
+          <CardHeader>
+             <CardTitle className="text-lg">
+               {actionState === "approve" ? "Confirm Approval" : "Confirm Rejection"}
+             </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="space-y-2">
+               <Label>Comments</Label>
+               <Textarea
+                 value={comments}
+                 onChange={(e) => setComments(e.target.value)}
+                 placeholder="Enter comments..."
+               />
+             </div>
+             <div className="flex justify-end gap-2">
+               <Button variant="ghost" onClick={() => setActionState(null)}>Cancel</Button>
+               <Button
+                 variant={actionState === "approve" ? "default" : "destructive"}
+                 onClick={handleProcess}
+                 disabled={processMutation.isPending}
+                 className={actionState === "approve" ? "bg-green-600 hover:bg-green-700" : ""}
+               >
+                 {processMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                 Confirm {actionState === "approve" ? "Approve" : "Reject"}
+               </Button>
+             </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
@@ -109,7 +136,7 @@ export function RFADetail({ data }: RFADetailProps) {
                 </p>
               </div>
 
-              <Separator />
+              <hr className="my-4 border-t" />
 
               <div>
                 <h3 className="font-semibold mb-3">RFA Items</h3>
@@ -156,7 +183,7 @@ export function RFADetail({ data }: RFADetailProps) {
                 <p className="font-medium mt-1">{data.contract_name}</p>
               </div>
 
-              <Separator />
+              <hr className="my-4 border-t" />
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Discipline</p>
@@ -166,42 +193,6 @@ export function RFADetail({ data }: RFADetailProps) {
           </Card>
         </div>
       </div>
-
-      {/* Approval Dialog */}
-      <Dialog open={!!approvalDialog} onOpenChange={(open) => !open && setApprovalDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {approvalDialog === "approve" ? "Approve RFA" : "Reject RFA"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Comments</Label>
-              <Textarea
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                placeholder="Enter your comments here..."
-                rows={4}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setApprovalDialog(null)} disabled={processMutation.isPending}>
-              Cancel
-            </Button>
-            <Button
-              variant={approvalDialog === "approve" ? "default" : "destructive"}
-              onClick={() => handleApproval(approvalDialog!)}
-              disabled={processMutation.isPending}
-              className={approvalDialog === "approve" ? "bg-green-600 hover:bg-green-700" : ""}
-            >
-              {processMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {approvalDialog === "approve" ? "Confirm Approval" : "Confirm Rejection"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

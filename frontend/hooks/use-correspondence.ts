@@ -70,4 +70,23 @@ export function useSubmitCorrespondence() {
   });
 }
 
+export function useProcessWorkflow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: any }) =>
+      correspondenceService.processWorkflow(id, data),
+    onSuccess: (_, { id }) => {
+      toast.success('Action completed successfully');
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to process action', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
 // Add more mutations as needed (update, delete, etc.)

@@ -16,12 +16,12 @@ FOREIGN KEYS (FK),
 | id | INT | PRIMARY KEY,
 AUTO_INCREMENT | UNIQUE identifier FOR organization role | | role_name | VARCHAR(20) | NOT NULL,
 UNIQUE | Role name (
-  OWNER,
-  DESIGNER,
-  CONSULTANT,
   CONTRACTOR,
   THIRD PARTY
-) | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (role_name) ** Business Rules **: - Predefined system roles FOR organization TYPES - Cannot be deleted IF referenced by organizations ---
+) |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
+| deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (role_name) ** Business Rules **: - Predefined system roles FOR organization TYPES - Cannot be deleted IF referenced by organizations ---
 
 ### 1.2 organizations
 
@@ -29,7 +29,8 @@ UNIQUE | Role name (
 | id | INT | PRIMARY KEY,
 AUTO_INCREMENT | UNIQUE identifier FOR organization | | organization_code | VARCHAR(20) | NOT NULL,
 UNIQUE | Organization code (e.g., 'กทท.', 'TEAM') | | organization_name | VARCHAR(255) | NOT NULL | FULL organization name | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS (1 = active, 0 = inactive) | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
-UPDATE timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (organization_code) - INDEX (is_active) ** Relationships **: - Referenced by: users,
+UPDATE timestamp |
+| deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (organization_code) - INDEX (is_active) ** Relationships **: - Referenced by: users,
   project_organizations,
   contract_organizations,
   correspondences,
@@ -40,7 +41,11 @@ UPDATE timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (organization_code
   * * Purpose **: MASTER TABLE FOR ALL projects IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ------------ | ------------ | --------------------------- | ----------------------------- |
   | id | INT | PRIMARY KEY,
   AUTO_INCREMENT | UNIQUE identifier FOR project | | project_code | VARCHAR(50) | NOT NULL,
-  UNIQUE | Project code (e.g., 'LCBP3') | | project_name | VARCHAR(255) | NOT NULL | FULL project name | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (project_code) - INDEX (is_active) ** Relationships **: - Referenced by: contracts,
+  UNIQUE | Project code (e.g., 'LCBP3') | | project_name | VARCHAR(255) | NOT NULL | FULL project name | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
+| deleted_at | DATETIME | NULL | Soft delete timestamp |
+** INDEXES **: - PRIMARY KEY (id) - UNIQUE (project_code) - INDEX (is_active) ** Relationships **: - Referenced by: contracts,
   correspondences,
   document_number_formats,
   drawings ---
@@ -53,7 +58,8 @@ UPDATE timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (organization_code
   FK | Reference TO projects TABLE | | contract_code | VARCHAR(50) | NOT NULL,
   UNIQUE | Contract code | | contract_name | VARCHAR(255) | NOT NULL | FULL contract name | | description | TEXT | NULL | Contract description | | start_date | DATE | NULL | Contract START date | | end_date | DATE | NULL | Contract
 END date | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
-UPDATE timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (contract_code) - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - INDEX (project_id, is_active) ** Relationships **: - Parent: projects - Referenced by: contract_organizations,
+UPDATE timestamp |
+| deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (contract_code) - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - INDEX (project_id, is_active) ** Relationships **: - Parent: projects - Referenced by: contract_organizations,
   user_assignments ---
 
   ### 1.5 disciplines (NEW v1.5.1)
@@ -87,7 +93,11 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
   AUTO_INCREMENT | UNIQUE identifier FOR role | | role_name | VARCHAR(100) | NOT NULL | Role name (e.g., 'Superadmin', 'Document Control') | | scope | ENUM | NOT NULL | Scope LEVEL: GLOBAL,
   Organization,
   Project,
-  Contract | | description | TEXT | NULL | Role description | | is_system | BOOLEAN | DEFAULT FALSE | System role flag (cannot be deleted) | ** INDEXES **: - PRIMARY KEY (role_id) - INDEX (scope) ** Relationships **: - Referenced by: role_permissions,
+  Contract | | description | TEXT | NULL | Role description | | is_system | BOOLEAN | DEFAULT FALSE | System role flag (cannot be deleted) |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
+| deleted_at | DATETIME | NULL | Soft delete timestamp |
+** INDEXES **: - PRIMARY KEY (role_id) - INDEX (scope) ** Relationships **: - Referenced by: role_permissions,
   user_assignments ---
 
   ### 2.3 permissions
@@ -97,7 +107,11 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
   AUTO_INCREMENT | UNIQUE identifier FOR permission | | permission_name | VARCHAR(100) | NOT NULL,
   UNIQUE | Permission code (e.g., 'rfas.create', 'document.view') | | description | TEXT | NULL | Permission description | | module | VARCHAR(50) | NULL | Related module name | | scope_level | ENUM | NULL | Scope: GLOBAL,
   ORG,
-  PROJECT | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS | ** INDEXES **: - PRIMARY KEY (permission_id) - UNIQUE (permission_name) - INDEX (module) - INDEX (scope_level) - INDEX (is_active) ** Relationships **: - Referenced by: role_permissions ---
+  PROJECT | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
+| deleted_at | DATETIME | NULL | Soft delete timestamp |
+** INDEXES **: - PRIMARY KEY (permission_id) - UNIQUE (permission_name) - INDEX (module) - INDEX (scope_level) - INDEX (is_active) ** Relationships **: - Referenced by: role_permissions ---
 
   ### 2.4 role_permissions
 
@@ -205,6 +219,9 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | type_name   | VARCHAR(255) | NOT NULL                    | Full type name                                      |
 | sort_order  | INT          | DEFAULT 0                   | Display order                                       |
 | is_active   | TINYINT(1)   | DEFAULT 1                   | Active status                                       |
+| created_at  | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Record creation timestamp                           |
+| updated_at  | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Last update timestamp                               |
+| deleted_at  | DATETIME     | NULL                        | Soft delete timestamp                               |
 
 **Indexes**:
 

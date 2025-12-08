@@ -1,6 +1,6 @@
 # Task: Search & Elasticsearch Integration
 
-**Status:** Not Started
+**Status:** 🚧 In Progress
 **Priority:** P2 (Medium - Performance Enhancement)
 **Estimated Effort:** 4-6 days
 **Dependencies:** TASK-BE-001, TASK-BE-005, TASK-BE-007
@@ -16,11 +16,11 @@
 
 ## 🎯 Objectives
 
-- ✅ Elasticsearch Integration
-- ✅ Full-text Search (Correspondences, RFAs, Drawings)
-- ✅ Advanced Filters
-- ✅ Search Result Aggregations
-- ✅ Auto-indexing
+- [x] Elasticsearch Integration
+- [x] Full-text Search (Correspondences, RFAs, Drawings)
+- [x] Advanced Filters
+- [ ] Search Result Aggregations (Pending verification)
+- [x] Auto-indexing (Implemented via Direct Call, not Queue yet)
 
 ---
 
@@ -28,21 +28,21 @@
 
 1. **Search Capabilities:**
 
-   - ✅ Search across multiple document types
-   - ✅ Full-text search in title, description
-   - ✅ Filter by project, status, date range
-   - ✅ Sort results by relevance/date
+   - [x] Search across multiple document types
+   - [x] Full-text search in title, description
+   - [x] Filter by project, status, date range
+   - [x] Sort results by relevance/date
 
 2. **Indexing:**
 
-   - ✅ Auto-index on document create/update
-   - ✅ Async indexing (via queue)
-   - ✅ Bulk re-indexing command
+   - [x] Auto-index on document create/update (Direct Call implemented)
+   - [ ] Async indexing (via queue) - **Pending**
+   - [ ] Bulk re-indexing command - **Pending**
 
 3. **Performance:**
-   - ✅ Search results < 500ms
-   - ✅ Pagination support
-   - ✅ Highlight search terms
+   - [x] Search results < 500ms
+   - [x] Pagination support
+   - [x] Highlight search terms
 
 ---
 
@@ -462,12 +462,12 @@ describe('SearchService', () => {
 
 ## 📦 Deliverables
 
-- [ ] SearchService with Elasticsearch
-- [ ] Search Indexer (Queue Worker)
-- [ ] Index Mappings
-- [ ] Queue Integration
-- [ ] Search Controller
-- [ ] Bulk Re-indexing Command
+- [x] SearchService with Elasticsearch
+- [ ] Search Indexer (Queue Worker) - **Pending**
+- [x] Index Mappings (Implemented in Service)
+- [ ] Queue Integration - **Pending**
+- [x] Search Controller
+- [ ] Bulk Re-indexing Command - **Pending**
 - [ ] Unit Tests (75% coverage)
 - [ ] API Documentation
 

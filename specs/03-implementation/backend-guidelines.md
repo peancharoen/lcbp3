@@ -25,23 +25,39 @@
 ```
 backend/
 ├── src/
-│   ├── common/              # Shared utilities, decorators, guards
-│   │   ├── auth/            # Authentication module
-│   │   ├── config/          # Configuration management
+│   ├── common/              # Shared utilities
 │   │   ├── decorators/      # Custom decorators
+│   │   ├── dtos/            # Common DTOs
+│   │   ├── entities/        # Base entities
+│   │   ├── filters/         # Exception filters
 │   │   ├── guards/          # Auth guards, RBAC
 │   │   ├── interceptors/    # Logging, transform, idempotency
-│   │   └── file-storage/    # Two-phase file storage
+│   │   ├── interfaces/      # Common interfaces
+│   │   └── utils/           # Helper functions
+│   ├── config/              # Configuration management
+│   ├── database/
+│   │   ├── migrations/
+│   │   └── seeds/
 │   ├── modules/             # Business modules (domain-driven)
-│   │   ├── user/
-│   │   ├── project/
+│   │   ├── auth/
+│   │   ├── circulation/
 │   │   ├── correspondence/
+│   │   ├── dashboard/
+│   │   ├── document-numbering/
+│   │   ├── drawing/
+│   │   ├── json-schema/
+│   │   ├── master/
+│   │   ├── monitoring/
+│   │   ├── notification/
+│   │   ├── organizations/
+│   │   ├── project/
 │   │   ├── rfa/
-│   │   ├── workflow-engine/
-│   │   └── ...
-│   └── database/
-│       ├── migrations/
-│       └── seeds/
+│   │   ├── search/
+│   │   ├── transmittal/
+│   │   ├── user/
+│   │   └── workflow-engine/
+│   ├── app.module.ts
+│   └── main.ts
 ├── test/                    # E2E tests
 └── scripts/                 # Utility scripts
 ```

@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useCreateRFA } from "@/hooks/use-rfa";
-import { useDisciplines } from "@/hooks/use-master-data";
-import { useState } from "react";
+import { useDisciplines, useContracts } from "@/hooks/use-master-data";
+import { CreateRFADto } from "@/types/rfa";
 
 const rfaItemSchema = z.object({
   item_no: z.string().min(1, "Item No is required"),
@@ -41,23 +41,27 @@ export function RFAForm() {
   const router = useRouter();
   const createMutation = useCreateRFA();
 
-  // Fetch Disciplines (Assuming Contract 1 for now, or dynamic)
-  const selectedContractId = 1;
-  const { data: disciplines, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
+  // Dynamic Contract Loading (Default Project Context: 1)
+  const currentProjectId = 1;
+  const { data: contracts, isLoading: isLoadingContracts } = useContracts(currentProjectId);
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<RFAFormData>({
     resolver: zodResolver(rfaSchema),
     defaultValues: {
-      contract_id: 1,
+      contract_id: undefined, // Force selection
       items: [{ item_no: "1", description: "", quantity: 0, unit: "" }],
     },
   });
+
+  const selectedContractId = watch("contract_id");
+  const { data: disciplines, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -65,7 +69,8 @@ export function RFAForm() {
   });
 
   const onSubmit = (data: RFAFormData) => {
-    createMutation.mutate(data as any, {
+    // Map to DTO if needed, assuming generic structure matches
+    createMutation.mutate(data as unknown as CreateRFADto, {
       onSuccess: () => {
         router.push("/rfas");
       },
@@ -99,14 +104,17 @@ export function RFAForm() {
               <Label>Contract *</Label>
               <Select
                 onValueChange={(v) => setValue("contract_id", parseInt(v))}
-                defaultValue="1"
+                disabled={isLoadingContracts}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Contract" />
+                  <SelectValue placeholder={isLoadingContracts ? "Loading..." : "Select Contract"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Main Construction Contract</SelectItem>
-                  {/* Additional contracts can be fetched via API too */}
+                  {contracts?.map((c: any) => (
+                    <SelectItem key={c.id || c.contract_id} value={String(c.id || c.contract_id)}>
+                      {c.name || c.contract_no}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.contract_id && (
@@ -118,7 +126,7 @@ export function RFAForm() {
               <Label>Discipline *</Label>
               <Select
                 onValueChange={(v) => setValue("discipline_id", parseInt(v))}
-                disabled={isLoadingDisciplines}
+                disabled={!selectedContractId || isLoadingDisciplines}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={isLoadingDisciplines ? "Loading..." : "Select Discipline"} />

@@ -34,9 +34,8 @@ export class RbacGuard implements CanActivate {
     }
 
     // 3. (สำคัญ) ดึงสิทธิ์ทั้งหมดของ User คนนี้จาก Database
-    // เราต้องเขียนฟังก์ชัน getUserPermissions ใน UserService เพิ่ม (เดี๋ยวพาทำ)
     const userPermissions = await this.userService.getUserPermissions(
-      user.userId
+      user.user_id // ✅ FIX: ใช้ user_id ตาม Entity field name
     );
 
     // 4. ตรวจสอบว่ามีสิทธิ์ที่ต้องการไหม? (User ต้องมีครบทุกสิทธิ์)

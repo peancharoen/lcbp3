@@ -22,4 +22,12 @@ export function useDisciplines(contractId?: number) {
   });
 }
 
-// Add other master data hooks as needed
+// Add useContracts hook
+import { projectService } from '@/lib/services/project.service';
+export function useContracts(projectId: number = 1) {
+  return useQuery({
+    queryKey: ['contracts', projectId],
+    queryFn: () => projectService.getContracts(projectId),
+  });
+}
+

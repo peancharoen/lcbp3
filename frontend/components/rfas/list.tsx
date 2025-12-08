@@ -19,6 +19,8 @@ interface RFAListProps {
 }
 
 export function RFAList({ data }: RFAListProps) {
+  if (!data) return null;
+
   const columns: ColumnDef<RFA>[] = [
     {
       accessorKey: "rfa_number",
@@ -73,7 +75,7 @@ export function RFAList({ data }: RFAListProps) {
 
   return (
     <div>
-      <DataTable columns={columns} data={data.items} />
+      <DataTable columns={columns} data={data?.items || []} />
       {/* Pagination component would go here */}
     </div>
   );

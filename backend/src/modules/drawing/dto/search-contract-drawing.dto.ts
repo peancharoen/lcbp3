@@ -29,5 +29,9 @@ export class SearchContractDrawingDto {
   @IsOptional()
   @IsInt()
   @Type(() => Number)
-  pageSize: number = 20; // มีค่า Default ไม่ต้องใส่ ! หรือ ?
+  limit: number = 20;
+
+  @IsOptional()
+  @IsString()
+  type?: string;
 }
