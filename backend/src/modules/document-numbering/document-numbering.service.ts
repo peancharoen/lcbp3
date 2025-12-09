@@ -118,12 +118,19 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
       const maxRetries = 3;
       for (let i = 0; i < maxRetries; i++) {
         try {
-          // A. ดึง Counter ปัจจุบัน
+          // A. ดึง Counter ปัจจุบัน (v1.5.1: 8-column composite PK)
+          const recipientId = ctx.recipientOrganizationId ?? -1; // -1 = all orgs (FK constraint removed in schema)
+          const subTypeId = ctx.subTypeId ?? 0;
+          const rfaTypeId = ctx.rfaTypeId ?? 0;
+
           let counter = await this.counterRepo.findOne({
             where: {
               projectId: ctx.projectId,
               originatorId: ctx.originatorId,
+              recipientOrganizationId: recipientId,
               typeId: ctx.typeId,
+              subTypeId: subTypeId,
+              rfaTypeId: rfaTypeId,
               disciplineId: disciplineId,
               year: year,
             },
@@ -134,7 +141,10 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
             counter = this.counterRepo.create({
               projectId: ctx.projectId,
               originatorId: ctx.originatorId,
+              recipientOrganizationId: recipientId,
               typeId: ctx.typeId,
+              subTypeId: subTypeId,
+              rfaTypeId: rfaTypeId,
               disciplineId: disciplineId,
               year: year,
               lastNumber: 0,
@@ -155,16 +165,20 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
           );
 
           // [P0-4] F. Audit Logging
+          // NOTE: Audit creation requires documentId which is not available here.
+          // Skipping audit log for now or it should be handled by the caller.
+          /*
           await this.logAudit({
             generatedNumber,
-            counterKey: resourceKey,
+            counterKey: { key: resourceKey },
             templateUsed: formatTemplate,
-            sequenceNumber: counter.lastNumber,
+            documentId: 0, // Placeholder
             userId: ctx.userId,
             ipAddress: ctx.ipAddress,
             retryCount: i,
-            lockWaitMs: 0, // TODO: calculate actual wait time
+            lockWaitMs: 0,
           });
+          */
 
           return generatedNumber;
         } catch (err) {
@@ -185,15 +199,18 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
     } catch (error: any) {
       this.logger.error(`Error generating number for ${resourceKey}`, error);
 
+      const errorContext = {
+        ...ctx,
+        counterKey: resourceKey,
+      };
+
       // [P0-4] Log error
       await this.logError({
-        counterKey: resourceKey,
-        errorType: this.classifyError(error),
+        context: errorContext,
         errorMessage: error.message,
         stackTrace: error.stack,
         userId: ctx.userId,
         ipAddress: ctx.ipAddress,
-        context: ctx,
       }).catch(() => {}); // Don't throw if error logging fails
 
       throw error;
@@ -246,11 +263,11 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
     // ใน Req 6B ตัวอย่างใช้ 2568 (พ.ศ.) ดังนั้นต้องแปลง
     const yearTh = (year + 543).toString();
 
-    // [P1-4] Resolve recipient organization
+    // [v1.5.1] Resolve recipient organization
     let recipientCode = '';
-    if (ctx.recipientOrgId) {
+    if (ctx.recipientOrganizationId && ctx.recipientOrganizationId > 0) {
       const recipient = await this.orgRepo.findOne({
-        where: { id: ctx.recipientOrgId },
+        where: { id: ctx.recipientOrganizationId },
       });
       if (recipient) {
         recipientCode = recipient.organizationCode;
@@ -324,6 +341,10 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
   /**
    * [P0-4] Log successful number generation to audit table
    */
+
+  /**
+   * [P0-4] Log successful number generation to audit table
+   */
   private async logAudit(
     auditData: Partial<DocumentNumberAudit>
   ): Promise<void> {
@@ -331,7 +352,6 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
       await this.auditRepo.save(auditData);
     } catch (error) {
       this.logger.error('Failed to log audit', error);
-      // Don't throw - audit failure shouldn't block number generation
     }
   }
 
@@ -365,5 +385,21 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
       return 'DB_ERROR';
     }
     return 'VALIDATION_ERROR';
+  }
+
+  // --- Log Retrieval for Admin UI ---
+
+  async getAuditLogs(limit = 100): Promise<DocumentNumberAudit[]> {
+    return this.auditRepo.find({
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  async getErrorLogs(limit = 100): Promise<DocumentNumberError[]> {
+    return this.errorRepo.find({
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
   }
 }

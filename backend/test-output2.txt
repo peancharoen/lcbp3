@@ -1,0 +1,461 @@
+
+> backend@1.5.1 test
+> jest --forceExit
+
+FAIL src/modules/project/project.controller.spec.ts
+  ΓùÅ Test suite failed to run
+
+    Cannot find module './project.service.js' from 'modules/project/project.controller.spec.ts'
+
+      1 | import { Controller, Get, UseGuards } from '@nestjs/common';
+    > 2 | import { ProjectService } from './project.service.js';
+        | ^
+      3 | import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+      4 |
+      5 | @Controller('projects')
+
+      at Resolver._throwModNotFoundError (../node_modules/jest-resolve/build/index.js:863:11)
+      at Object.<anonymous> (modules/project/project.controller.spec.ts:2:1)
+
+FAIL src/common/auth/auth.controller.spec.ts
+  ΓùÅ Test suite failed to run
+
+    Cannot find module './auth.service.js' from 'common/auth/auth.controller.spec.ts'
+
+      1 | import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+    > 2 | import { AuthService } from './auth.service.js';
+        | ^
+      3 | import { LoginDto } from './dto/login.dto.js'; // <--- Import DTO
+      4 | import { RegisterDto } from './dto/register.dto.js'; // <--- Import DTO
+      5 |
+
+      at Resolver._throwModNotFoundError (../node_modules/jest-resolve/build/index.js:863:11)
+      at Object.<anonymous> (common/auth/auth.controller.spec.ts:2:1)
+
+PASS src/app.controller.spec.ts
+[Nest] 15476  - 12/09/2025, 8:24:46 AM   ERROR [WorkflowEngineService] Transition Failed for inst-1: DB Error
+PASS src/modules/workflow-engine/workflow-engine.service.spec.ts
+PASS src/common/auth/casl/ability.factory.spec.ts
+FAIL src/modules/project/project.service.spec.ts
+  ΓùÅ ProjectService ΓÇ║ should be defined
+
+    Nest can't resolve dependencies of the ProjectService (?, OrganizationRepository). Please make sure that the argument "ProjectRepository" at index [0] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "ProjectRepository" is a provider, is it part of the current RootTestModule?
+    - If "ProjectRepository" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "ProjectRepository" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+       6 |
+       7 |   beforeEach(async () => {
+    >  8 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+       9 |       providers: [ProjectService],
+      10 |     }).compile();
+      11 |
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:286:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadProvider (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:103:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/project/project.service.spec.ts:8:35)
+
+PASS src/modules/user/user.service.spec.ts
+[Nest] 11892  - 12/09/2025, 8:24:47 AM   ERROR [DocumentNumberingService] Error generating number for doc_num:1:1:1:2025
+[Nest] 11892  - 12/09/2025, 8:24:47 AM   ERROR [DocumentNumberingService] InternalServerErrorException: Failed to generate document number after retries.
+    at DocumentNumberingService.generateNextNumber (D:\nap-dms.lcbp3\backend\src\modules\document-numbering\document-numbering.service.ts:182:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.<anonymous> (D:\nap-dms.lcbp3\backend\src\modules\document-numbering\document-numbering.service.spec.ts:175:7) {
+  response: {
+    message: 'Failed to generate document number after retries.',
+    error: 'Internal Server Error',
+    statusCode: 500
+  },
+  status: 500,
+  options: {}
+}
+FAIL src/modules/document-numbering/document-numbering.service.spec.ts
+  ΓùÅ DocumentNumberingService ΓÇ║ should be defined
+
+    TypeError: Cannot read properties of undefined (reading 'disconnect')
+
+      86 |
+      87 |   onModuleDestroy() {
+    > 88 |     this.redisClient.disconnect();
+         |                      ^
+      89 |   }
+      90 |
+      91 |   /**
+
+      at DocumentNumberingService.onModuleDestroy (modules/document-numbering/document-numbering.service.ts:88:22)
+      at Object.<anonymous> (modules/document-numbering/document-numbering.service.spec.ts:120:13)
+
+  ΓùÅ DocumentNumberingService ΓÇ║ generateNextNumber ΓÇ║ should generate a new number successfully
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "000001"
+    Received: "0001"
+
+      146 |       const result = await service.generateNextNumber(mockContext);
+      147 |
+    > 148 |       expect(result).toBe('000001'); // Default padding 6
+          |                      ^
+      149 |       expect(counterRepo.save).toHaveBeenCalled();
+      150 |       expect(auditRepo.save).toHaveBeenCalled();
+      151 |     });
+
+      at Object.<anonymous> (modules/document-numbering/document-numbering.service.spec.ts:148:22)
+
+[Nest] 25292  - 12/09/2025, 8:24:47 AM   ERROR [WorkflowDslParser] Failed to parse stored DSL for definition 1
+[Nest] 25292  - 12/09/2025, 8:24:47 AM   ERROR [WorkflowDslParser] ZodError: [
+  {
+    "expected": "object",
+    "code": "invalid_type",
+    "path": [],
+    "message": "Invalid input: expected object, received undefined"
+  }
+]
+    at WorkflowDslParser.getParsedDsl (D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\dsl\parser.service.ts:163:32)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.<anonymous> (D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\dsl\parser.service.spec.ts:178:22)
+FAIL src/modules/workflow-engine/dsl/parser.service.spec.ts
+  ΓùÅ WorkflowDslParser ΓÇ║ parse ΓÇ║ should parse valid RFA workflow DSL
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "RFA_APPROVAL"
+    Received: undefined
+
+      41 |
+      42 |       expect(result).toBeDefined();
+    > 43 |       expect(result.name).toBe('RFA_APPROVAL');
+         |                           ^
+      44 |       expect(result.version).toBe('1.0.0');
+      45 |       expect(result.isActive).toBe(true);
+      46 |       expect(mockRepository.save).toHaveBeenCalled();
+
+      at Object.<anonymous> (modules/workflow-engine/dsl/parser.service.spec.ts:43:27)
+
+  ΓùÅ WorkflowDslParser ΓÇ║ getParsedDsl ΓÇ║ should retrieve and parse stored DSL
+
+    BadRequestException: Invalid stored DSL: [
+      {
+        "expected": "object",
+        "code": "invalid_type",
+        "path": [],
+        "message": "Invalid input: expected object, received undefined"
+      }
+    ]
+
+      167 |         error
+      168 |       );
+    > 169 |       throw new BadRequestException(`Invalid stored DSL: ${error?.message}`);
+          |             ^
+      170 |     }
+      171 |   }
+      172 |
+
+      at WorkflowDslParser.getParsedDsl (modules/workflow-engine/dsl/parser.service.ts:169:13)
+      at Object.<anonymous> (modules/workflow-engine/dsl/parser.service.spec.ts:178:22)
+
+[Nest] 23608  - 12/09/2025, 8:24:47 AM   ERROR [FileStorageService] Failed to write file: D:\nap-dms.lcbp3\backend\uploads\temp\96ed1798-25e1-45c8-8a5c-9875978ce586.pdf
+[Nest] 23608  - 12/09/2025, 8:24:47 AM   ERROR [FileStorageService] Error: Write error
+    at Object.<anonymous> (D:\nap-dms.lcbp3\backend\src\common\file-storage\file-storage.service.spec.ts:90:9)
+    at Promise.finally.completed (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:1497:10)
+    at _callCircusTest (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:1007:40)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at _runTest (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:947:3)
+    at D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+    at _runTestsForDescribeBlock (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+    at run (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\jestAdapterInit.js:1918:21)
+    at jestAdapter (D:\nap-dms.lcbp3\backend\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (D:\nap-dms.lcbp3\backend\node_modules\jest-runner\build\testWorker.js:277:16)
+    at runTest (D:\nap-dms.lcbp3\backend\node_modules\jest-runner\build\testWorker.js:345:7)
+    at Object.worker (D:\nap-dms.lcbp3\backend\node_modules\jest-runner\build\testWorker.js:499:12)
+PASS src/common/file-storage/file-storage.service.spec.ts
+FAIL src/common/auth/auth.service.spec.ts
+  ΓùÅ AuthService ΓÇ║ should be defined
+
+    TypeError: Cannot redefine property: compare
+        at Function.defineProperty (<anonymous>)
+
+      94 |     // Mock bcrypt
+      95 |     jest
+    > 96 |       .spyOn(bcrypt, 'compare')
+         |        ^
+      97 |       .mockImplementation(() => Promise.resolve(true));
+      98 |     jest
+      99 |       .spyOn(bcrypt, 'hash')
+
+      at ModuleMocker.spyOn (../node_modules/jest-mock/build/index.js:616:16)
+      at Object.<anonymous> (common/auth/auth.service.spec.ts:96:8)
+
+  ΓùÅ AuthService ΓÇ║ validateUser ΓÇ║ should return user without password if validation succeeds
+
+    TypeError: Cannot redefine property: compare
+        at Function.defineProperty (<anonymous>)
+
+      94 |     // Mock bcrypt
+      95 |     jest
+    > 96 |       .spyOn(bcrypt, 'compare')
+         |        ^
+      97 |       .mockImplementation(() => Promise.resolve(true));
+      98 |     jest
+      99 |       .spyOn(bcrypt, 'hash')
+
+      at ModuleMocker.spyOn (../node_modules/jest-mock/build/index.js:616:16)
+      at Object.<anonymous> (common/auth/auth.service.spec.ts:96:8)
+
+  ΓùÅ AuthService ΓÇ║ validateUser ΓÇ║ should return null if user not found
+
+    TypeError: Cannot redefine property: compare
+        at Function.defineProperty (<anonymous>)
+
+      94 |     // Mock bcrypt
+      95 |     jest
+    > 96 |       .spyOn(bcrypt, 'compare')
+         |        ^
+      97 |       .mockImplementation(() => Promise.resolve(true));
+      98 |     jest
+      99 |       .spyOn(bcrypt, 'hash')
+
+      at ModuleMocker.spyOn (../node_modules/jest-mock/build/index.js:616:16)
+      at Object.<anonymous> (common/auth/auth.service.spec.ts:96:8)
+
+  ΓùÅ AuthService ΓÇ║ validateUser ΓÇ║ should return null if password mismatch
+
+    TypeError: Cannot redefine property: compare
+        at Function.defineProperty (<anonymous>)
+
+      94 |     // Mock bcrypt
+      95 |     jest
+    > 96 |       .spyOn(bcrypt, 'compare')
+         |        ^
+      97 |       .mockImplementation(() => Promise.resolve(true));
+      98 |     jest
+      99 |       .spyOn(bcrypt, 'hash')
+
+      at ModuleMocker.spyOn (../node_modules/jest-mock/build/index.js:616:16)
+      at Object.<anonymous> (common/auth/auth.service.spec.ts:96:8)
+
+  ΓùÅ AuthService ΓÇ║ login ΓÇ║ should return access and refresh tokens
+
+    TypeError: Cannot redefine property: compare
+        at Function.defineProperty (<anonymous>)
+
+      94 |     // Mock bcrypt
+      95 |     jest
+    > 96 |       .spyOn(bcrypt, 'compare')
+         |        ^
+      97 |       .mockImplementation(() => Promise.resolve(true));
+      98 |     jest
+      99 |       .spyOn(bcrypt, 'hash')
+
+      at ModuleMocker.spyOn (../node_modules/jest-mock/build/index.js:616:16)
+      at Object.<anonymous> (common/auth/auth.service.spec.ts:96:8)
+
+  ΓùÅ AuthService ΓÇ║ register ΓÇ║ should register a new user
+
+    TypeError: Cannot redefine property: compare
+        at Function.defineProperty (<anonymous>)
+
+      94 |     // Mock bcrypt
+      95 |     jest
+    > 96 |       .spyOn(bcrypt, 'compare')
+         |        ^
+      97 |       .mockImplementation(() => Promise.resolve(true));
+      98 |     jest
+      99 |       .spyOn(bcrypt, 'hash')
+
+      at ModuleMocker.spyOn (../node_modules/jest-mock/build/index.js:616:16)
+      at Object.<anonymous> (common/auth/auth.service.spec.ts:96:8)
+
+  ΓùÅ AuthService ΓÇ║ refreshToken ΓÇ║ should return new tokens if valid
+
+    TypeError: Cannot redefine property: compare
+        at Function.defineProperty (<anonymous>)
+
+      94 |     // Mock bcrypt
+      95 |     jest
+    > 96 |       .spyOn(bcrypt, 'compare')
+         |        ^
+      97 |       .mockImplementation(() => Promise.resolve(true));
+      98 |     jest
+      99 |       .spyOn(bcrypt, 'hash')
+
+      at ModuleMocker.spyOn (../node_modules/jest-mock/build/index.js:616:16)
+      at Object.<anonymous> (common/auth/auth.service.spec.ts:96:8)
+
+  ΓùÅ AuthService ΓÇ║ refreshToken ΓÇ║ should throw UnauthorizedException if token revoked
+
+    TypeError: Cannot redefine property: compare
+        at Function.defineProperty (<anonymous>)
+
+      94 |     // Mock bcrypt
+      95 |     jest
+    > 96 |       .spyOn(bcrypt, 'compare')
+         |        ^
+      97 |       .mockImplementation(() => Promise.resolve(true));
+      98 |     jest
+      99 |       .spyOn(bcrypt, 'hash')
+
+      at ModuleMocker.spyOn (../node_modules/jest-mock/build/index.js:616:16)
+      at Object.<anonymous> (common/auth/auth.service.spec.ts:96:8)
+
+FAIL src/modules/correspondence/correspondence.service.spec.ts
+  ΓùÅ CorrespondenceService ΓÇ║ should be defined
+
+    Nest can't resolve dependencies of the CorrespondenceService (?, CorrespondenceRevisionRepository, CorrespondenceTypeRepository, CorrespondenceStatusRepository, RoutingTemplateRepository, CorrespondenceRoutingRepository, CorrespondenceReferenceRepository, DocumentNumberingService, JsonSchemaService, WorkflowEngineService, UserService, DataSource, SearchService). Please make sure that the argument "CorrespondenceRepository" at index [0] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "CorrespondenceRepository" is a provider, is it part of the current RootTestModule?
+    - If "CorrespondenceRepository" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "CorrespondenceRepository" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+       6 |
+       7 |   beforeEach(async () => {
+    >  8 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+       9 |       providers: [CorrespondenceService],
+      10 |     }).compile();
+      11 |
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:286:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadProvider (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:103:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/correspondence/correspondence.service.spec.ts:8:35)
+
+FAIL src/common/file-storage/file-storage.controller.spec.ts
+  ΓùÅ FileStorageController ΓÇ║ should be defined
+
+    Nest can't resolve dependencies of the FileStorageController (?). Please make sure that the argument FileStorageService at index [0] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If FileStorageService is a provider, is it part of the current RootTestModule?
+    - If FileStorageService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing FileStorageService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+       6 |
+       7 |   beforeEach(async () => {
+    >  8 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+       9 |       controllers: [FileStorageController],
+      10 |     }).compile();
+      11 |
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:286:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadController (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:94:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:68:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfControllers (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:67:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:42:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (common/file-storage/file-storage.controller.spec.ts:8:35)
+
+PASS src/modules/json-schema/json-schema.controller.spec.ts
+FAIL src/modules/correspondence/correspondence.controller.spec.ts
+  ΓùÅ CorrespondenceController ΓÇ║ should be defined
+
+    Nest can't resolve dependencies of the RbacGuard (Reflector, ?). Please make sure that the argument UserService at index [1] is available in the RootTestModule context.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If UserService is a provider, is it part of the current RootTestModule?
+    - If UserService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing UserService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+       7 |
+       8 |   beforeEach(async () => {
+    >  9 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      10 |       controllers: [CorrespondenceController],
+      11 |       providers: [
+      12 |         {
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:286:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 1)
+      at TestingInjector.resolveConstructorParams (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/correspondence/correspondence.controller.spec.ts:9:35)
+
+Test Suites: 9 failed, 6 passed, 15 total
+Tests:       16 failed, 37 passed, 53 total
+Snapshots:   0 total
+Time:        5.448 s
+Ran all test suites.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

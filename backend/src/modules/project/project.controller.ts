@@ -12,14 +12,14 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
-import { ProjectService } from './project.service.js';
-import { CreateProjectDto } from './dto/create-project.dto.js';
-import { UpdateProjectDto } from './dto/update-project.dto.js';
-import { SearchProjectDto } from './dto/search-project.dto.js';
+import { ProjectService } from './project.service';
+import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
+import { SearchProjectDto } from './dto/search-project.dto';
 
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
-import { RbacGuard } from '../../common/guards/rbac.guard.js';
-import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../../common/guards/rbac.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 
 @ApiTags('Projects')
 @ApiBearerAuth()
@@ -49,6 +49,13 @@ export class ProjectController {
     return this.projectService.findAllOrganizations();
   }
 
+  @Get(':id/contracts')
+  @ApiOperation({ summary: 'List All Contracts in Project' })
+  @RequirePermission('project.view')
+  findContracts(@Param('id', ParseIntPipe) id: number) {
+    return this.projectService.findContracts(id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get Project Details' })
   @RequirePermission('project.view')
@@ -61,7 +68,7 @@ export class ProjectController {
   @RequirePermission('project.edit')
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateDto: UpdateProjectDto,
+    @Body() updateDto: UpdateProjectDto
   ) {
     return this.projectService.update(id, updateDto);
   }

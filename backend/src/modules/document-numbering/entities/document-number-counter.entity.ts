@@ -3,7 +3,7 @@ import { Entity, Column, PrimaryColumn, VersionColumn } from 'typeorm';
 
 @Entity('document_number_counters')
 export class DocumentNumberCounter {
-  // Composite Primary Key: Project + Org + Type + Discipline + Year
+  // Composite Primary Key: 8 columns (v1.5.1 schema)
 
   @PrimaryColumn({ name: 'project_id' })
   projectId!: number;
@@ -11,11 +11,22 @@ export class DocumentNumberCounter {
   @PrimaryColumn({ name: 'originator_organization_id' })
   originatorId!: number;
 
+  // [v1.5.1 NEW] -1 = all organizations (FK removed in schema for this special value)
+  @PrimaryColumn({ name: 'recipient_organization_id', default: -1 })
+  recipientOrganizationId!: number;
+
   @PrimaryColumn({ name: 'correspondence_type_id' })
   typeId!: number;
 
-  // [New v1.4.4] เพิ่ม Discipline ใน Key เพื่อแยก Counter ตามสาขา
-  // ใช้ default 0 กรณีไม่มี discipline เพื่อความง่ายในการจัดการ Composite Key
+  // [v1.5.1 NEW] Sub-type for TRANSMITTAL (0 = not specified)
+  @PrimaryColumn({ name: 'sub_type_id', default: 0 })
+  subTypeId!: number;
+
+  // [v1.5.1 NEW] RFA type: SHD, RPT, MAT (0 = not RFA)
+  @PrimaryColumn({ name: 'rfa_type_id', default: 0 })
+  rfaTypeId!: number;
+
+  // Discipline: TER, STR, GEO (0 = not specified)
   @PrimaryColumn({ name: 'discipline_id', default: 0 })
   disciplineId!: number;
 
@@ -25,7 +36,7 @@ export class DocumentNumberCounter {
   @Column({ name: 'last_number', default: 0 })
   lastNumber!: number;
 
-  // ✨ หัวใจสำคัญของ Optimistic Lock (TypeORM จะเช็ค version นี้ก่อน update)
+  // ✨ Optimistic Lock (TypeORM checks version before update)
   @VersionColumn()
   version!: number;
 }

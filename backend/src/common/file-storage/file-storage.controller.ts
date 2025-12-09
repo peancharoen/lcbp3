@@ -18,8 +18,8 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { FileStorageService } from './file-storage.service.js';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
+import { FileStorageService } from './file-storage.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 // Interface เพื่อระบุ Type ของ Request ที่ผ่าน JwtAuthGuard มาแล้ว
 interface RequestWithUser {
@@ -47,10 +47,10 @@ export class FileStorageController {
               /(pdf|msword|openxmlformats|zip|octet-stream|image|jpeg|png)/,
           }),
         ],
-      }),
+      })
     )
     file: Express.Multer.File,
-    @Request() req: RequestWithUser,
+    @Request() req: RequestWithUser
   ) {
     // ส่ง userId จาก Token ไปด้วย
     return this.fileStorageService.upload(file, req.user.userId);
@@ -63,7 +63,7 @@ export class FileStorageController {
   @Get(':id/download')
   async downloadFile(
     @Param('id', ParseIntPipe) id: number,
-    @Res({ passthrough: true }) res: Response,
+    @Res({ passthrough: true }) res: Response
   ): Promise<StreamableFile> {
     const { stream, attachment } = await this.fileStorageService.download(id);
 
@@ -87,7 +87,7 @@ export class FileStorageController {
   @Delete(':id')
   async deleteFile(
     @Param('id', ParseIntPipe) id: number,
-    @Request() req: RequestWithUser,
+    @Request() req: RequestWithUser
   ) {
     // ส่ง userId ไปด้วยเพื่อตรวจสอบความเป็นเจ้าของ
     await this.fileStorageService.delete(id, req.user.userId);

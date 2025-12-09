@@ -24,7 +24,7 @@ export class ProjectService {
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
     @InjectRepository(Organization)
-    private organizationRepository: Repository<Organization>,
+    private organizationRepository: Repository<Organization>
   ) {}
 
   // --- CRUD Operations ---
@@ -36,7 +36,7 @@ export class ProjectService {
     });
     if (existing) {
       throw new ConflictException(
-        `Project Code "${createDto.projectCode}" already exists`,
+        `Project Code "${createDto.projectCode}" already exists`
       );
     }
 
@@ -59,7 +59,7 @@ export class ProjectService {
     if (search) {
       query.andWhere(
         '(project.projectCode LIKE :search OR project.projectName LIKE :search)',
-        { search: `%${search}%` },
+        { search: `%${search}%` }
       );
     }
 
@@ -105,6 +105,19 @@ export class ProjectService {
     const project = await this.findOne(id);
     // ใช้ Soft Delete
     return this.projectRepository.softRemove(project);
+  }
+
+  async findContracts(projectId: number) {
+    const project = await this.projectRepository.findOne({
+      where: { id: projectId },
+      relations: ['contracts'],
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project ID ${projectId} not found`);
+    }
+
+    return project.contracts;
   }
 
   // --- Organization Helper ---

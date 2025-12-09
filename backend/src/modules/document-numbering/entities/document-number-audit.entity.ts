@@ -7,29 +7,32 @@ import {
 } from 'typeorm';
 
 @Entity('document_number_audit')
-@Index(['generatedAt'])
+@Index(['createdAt'])
 @Index(['userId'])
 export class DocumentNumberAudit {
   @PrimaryGeneratedColumn()
   id!: number;
 
+  @Column({ name: 'document_id' })
+  documentId!: number;
+
   @Column({ name: 'generated_number', length: 100 })
   generatedNumber!: string;
 
-  @Column({ name: 'counter_key', length: 255 })
-  counterKey!: string;
+  @Column({ name: 'counter_key', type: 'json' })
+  counterKey!: any;
 
-  @Column({ name: 'template_used', type: 'text' })
+  @Column({ name: 'template_used', length: 200 })
   templateUsed!: string;
 
-  @Column({ name: 'sequence_number' })
-  sequenceNumber!: number;
-
-  @Column({ name: 'user_id', nullable: true })
-  userId?: number;
+  @Column({ name: 'user_id' })
+  userId!: number;
 
   @Column({ name: 'ip_address', length: 45, nullable: true })
   ipAddress?: string;
+
+  @Column({ name: 'user_agent', type: 'text', nullable: true })
+  userAgent?: string;
 
   @Column({ name: 'retry_count', default: 0 })
   retryCount!: number;
@@ -37,6 +40,17 @@ export class DocumentNumberAudit {
   @Column({ name: 'lock_wait_ms', nullable: true })
   lockWaitMs?: number;
 
-  @CreateDateColumn({ name: 'generated_at' })
-  generatedAt!: Date;
+  @Column({ name: 'total_duration_ms', nullable: true })
+  totalDurationMs?: number;
+
+  @Column({
+    name: 'fallback_used',
+    type: 'enum',
+    enum: ['NONE', 'DB_LOCK', 'RETRY'],
+    default: 'NONE',
+  })
+  fallbackUsed?: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
 }

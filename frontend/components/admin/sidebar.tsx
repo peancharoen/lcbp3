@@ -3,16 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Users, Building2, Settings, FileText, Activity, GitGraph } from "lucide-react";
+import { Users, Building2, Settings, FileText, Activity, GitGraph, Shield, BookOpen } from "lucide-react";
 
 const menuItems = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
   { href: "/admin/projects", label: "Projects", icon: FileText },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
-  { href: "/admin/audit-logs", label: "Audit Logs", icon: Activity },
-  { href: "/admin/workflows", label: "Workflows", icon: GitGraph },
+  { href: "/admin/reference", label: "Reference Data", icon: BookOpen },
   { href: "/admin/numbering", label: "Numbering", icon: FileText },
+  { href: "/admin/workflows", label: "Workflows", icon: GitGraph },
+  { href: "/admin/security/roles", label: "Security Roles", icon: Shield },
+  { href: "/admin/security/sessions", label: "Active Sessions", icon: Users },
+  { href: "/admin/system-logs/numbering", label: "System Logs", icon: Activity },
+  { href: "/admin/audit-logs", label: "Audit Logs", icon: Activity },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminSidebar() {

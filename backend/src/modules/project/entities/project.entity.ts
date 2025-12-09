@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
+import { Contract } from './contract.entity';
 
 @Entity('projects')
 export class Project extends BaseEntity {
@@ -14,4 +15,7 @@ export class Project extends BaseEntity {
 
   @Column({ name: 'is_active', default: 1, type: 'tinyint' })
   isActive!: boolean;
+
+  @OneToMany(() => Contract, (contract) => contract.project)
+  contracts!: Contract[];
 }

@@ -1,7 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
-import { BaseEntity } from '../../../common/entities/base.entity'; // ถ้าไม่ได้ใช้ BaseEntity ก็ลบออกแล้วใส่ createdAt เอง
-import { RoutingTemplateStep } from './routing-template-step.entity'; // เดี๋ยวสร้าง
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
+/**
+ * @deprecated This entity is deprecated and will be removed in future versions.
+ * Use WorkflowDefinition from the Unified Workflow Engine instead.
+ *
+ * This entity is kept for backward compatibility and historical data.
+ * The relation to RoutingTemplateStep has been removed to prevent TypeORM errors.
+ */
 @Entity('correspondence_routing_templates')
 export class RoutingTemplate {
   @PrimaryGeneratedColumn()
@@ -14,14 +19,14 @@ export class RoutingTemplate {
   description?: string;
 
   @Column({ name: 'project_id', nullable: true })
-  projectId?: number; // NULL = แม่แบบทั่วไป
+  projectId?: number;
 
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 
   @Column({ type: 'json', nullable: true, name: 'workflow_config' })
-  workflowConfig?: any;
+  workflowConfig?: Record<string, unknown>;
 
-  @OneToMany(() => RoutingTemplateStep, (step) => step.template)
-  steps?: RoutingTemplateStep[];
+  // @deprecated - Relation removed, use WorkflowDefinition instead
+  // steps?: RoutingTemplateStep[];
 }

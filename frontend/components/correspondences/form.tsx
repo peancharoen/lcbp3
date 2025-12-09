@@ -18,6 +18,7 @@ import { FileUpload } from "@/components/common/file-upload";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useCreateCorrespondence } from "@/hooks/use-correspondence";
+import { Organization } from "@/types/organization";
 import { useOrganizations } from "@/hooks/use-master-data";
 import { CreateCorrespondenceDto } from "@/types/dto/correspondence/create-correspondence.dto";
 
@@ -25,8 +26,8 @@ const correspondenceSchema = z.object({
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().optional(),
   document_type_id: z.number().default(1),
-  from_organization_id: z.number({ required_error: "Please select From Organization" }),
-  to_organization_id: z.number({ required_error: "Please select To Organization" }),
+  from_organization_id: z.number().min(1, "Please select From Organization"),
+  to_organization_id: z.number().min(1, "Please select To Organization"),
   importance: z.enum(["NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
   attachments: z.array(z.instanceof(File)).optional(),
 });
@@ -48,10 +49,7 @@ export function CorrespondenceForm() {
     defaultValues: {
       importance: "NORMAL",
       document_type_id: 1,
-      // @ts-ignore: Intentionally undefined for required fields to force selection
-      from_organization_id: undefined,
-      to_organization_id: undefined,
-    },
+    } as any, // Cast to any to handle partial defaults for required fields
   });
 
   const onSubmit = (data: FormData) => {
@@ -111,9 +109,9 @@ export function CorrespondenceForm() {
               <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              {organizations?.map((org) => (
-                <SelectItem key={org.organization_id} value={String(org.organization_id)}>
-                  {org.org_name} ({org.org_code})
+              {organizations?.map((org: Organization) => (
+                <SelectItem key={org.id} value={String(org.id)}>
+                  {org.organizationName} ({org.organizationCode})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -133,9 +131,9 @@ export function CorrespondenceForm() {
               <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              {organizations?.map((org) => (
-                <SelectItem key={org.organization_id} value={String(org.organization_id)}>
-                  {org.org_name} ({org.org_code})
+              {organizations?.map((org: Organization) => (
+                <SelectItem key={org.id} value={String(org.id)}>
+                  {org.organizationName} ({org.organizationCode})
                 </SelectItem>
               ))}
             </SelectContent>

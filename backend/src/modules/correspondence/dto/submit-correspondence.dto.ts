@@ -1,12 +1,16 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
+/**
+ * DTO for submitting correspondence to workflow
+ * Uses Unified Workflow Engine - no templateId required
+ */
 export class SubmitCorrespondenceDto {
-  @ApiProperty({
-    description: 'ID of the Workflow Template to start',
-    example: 1,
+  @ApiPropertyOptional({
+    description: 'Optional note for the submission',
+    example: 'Submitting for review',
   })
-  @IsInt()
-  @IsNotEmpty()
-  templateId!: number;
+  @IsString()
+  @IsOptional()
+  note?: string;
 }

@@ -44,6 +44,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { ResilienceModule } from './common/resilience/resilience.module';
 import { SearchModule } from './modules/search/search.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -89,7 +90,7 @@ import { SearchModule } from './modules/search/search.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         type: 'mariadb',
         host: configService.get<string>('DB_HOST'),
         port: configService.get<number>('DB_PORT'),
@@ -108,7 +109,7 @@ import { SearchModule } from './modules/search/search.module';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         connection: {
           host: configService.get<string>('REDIS_HOST'),
           port: configService.get<number>('REDIS_PORT'),
@@ -151,6 +152,7 @@ import { SearchModule } from './modules/search/search.module';
     SearchModule,
     NotificationModule,
     DashboardModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [

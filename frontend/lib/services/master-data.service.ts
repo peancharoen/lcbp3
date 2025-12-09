@@ -14,7 +14,8 @@ export const masterDataService = {
   /** ดึงรายการ Tags ทั้งหมด (Search & Pagination) */
   getTags: async (params?: SearchTagDto) => {
     const response = await apiClient.get("/tags", { params });
-    return response.data;
+    // Support both wrapped and unwrapped scenarios
+    return response.data.data || response.data;
   },
 
   /** สร้าง Tag ใหม่ */
@@ -39,8 +40,8 @@ export const masterDataService = {
 
   /** ดึงรายชื่อองค์กรทั้งหมด */
   getOrganizations: async () => {
-    const response = await apiClient.get<Organization[]>("/organizations");
-    return response.data;
+    const response = await apiClient.get<any>("/organizations");
+    return response.data.data || response.data;
   },
 
   /** สร้างองค์กรใหม่ */
@@ -69,12 +70,18 @@ export const masterDataService = {
     const response = await apiClient.get("/master/disciplines", {
       params: { contractId }
     });
-    return response.data;
+    return response.data.data || response.data;
   },
 
   /** สร้างสาขางานใหม่ */
   createDiscipline: async (data: CreateDisciplineDto) => {
     const response = await apiClient.post("/master/disciplines", data);
+    return response.data;
+  },
+
+  /** ลบสาขางาน */
+  deleteDiscipline: async (id: number) => {
+    const response = await apiClient.delete(`/master/disciplines/${id}`);
     return response.data;
   },
 
@@ -85,7 +92,7 @@ export const masterDataService = {
     const response = await apiClient.get("/master/sub-types", {
       params: { contractId, correspondenceTypeId: typeId }
     });
-    return response.data;
+    return response.data.data || response.data;
   },
 
   /** สร้างประเภทย่อยใหม่ */

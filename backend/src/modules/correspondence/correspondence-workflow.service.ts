@@ -23,13 +23,14 @@ export class CorrespondenceWorkflowService {
     private readonly revisionRepo: Repository<CorrespondenceRevision>,
     @InjectRepository(CorrespondenceStatus)
     private readonly statusRepo: Repository<CorrespondenceStatus>,
-    private readonly dataSource: DataSource,
+    private readonly dataSource: DataSource
   ) {}
 
   async submitWorkflow(
     correspondenceId: number,
     userId: number,
-    note?: string,
+    userRoles: string[], // [FIX] Added roles for DSL requirements check
+    note?: string
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -44,7 +45,7 @@ export class CorrespondenceWorkflowService {
 
       if (!revision) {
         throw new NotFoundException(
-          `Correspondence Revision for ID ${correspondenceId} not found`,
+          `Correspondence Revision for ID ${correspondenceId} not found`
         );
       }
 
@@ -66,7 +67,7 @@ export class CorrespondenceWorkflowService {
         this.WORKFLOW_CODE,
         'correspondence_revision',
         revision.id.toString(),
-        context,
+        context
       );
 
       const transitionResult = await this.workflowEngine.processTransition(
@@ -74,7 +75,7 @@ export class CorrespondenceWorkflowService {
         'SUBMIT',
         userId,
         note || 'Initial Submission',
-        {},
+        { roles: userRoles } // [FIX] Pass roles for DSL requirements check
       );
 
       await this.syncStatus(revision, transitionResult.nextState, queryRunner);
@@ -97,14 +98,14 @@ export class CorrespondenceWorkflowService {
   async processAction(
     instanceId: string,
     userId: number,
-    dto: WorkflowTransitionDto,
+    dto: WorkflowTransitionDto
   ) {
     const result = await this.workflowEngine.processTransition(
       instanceId,
       dto.action,
       userId,
       dto.comment,
-      dto.payload,
+      dto.payload
     );
 
     // ✅ FIX: Method exists now
@@ -125,7 +126,7 @@ export class CorrespondenceWorkflowService {
   private async syncStatus(
     revision: CorrespondenceRevision,
     workflowState: string,
-    queryRunner?: any,
+    queryRunner?: any
   ) {
     const statusMap: Record<string, string> = {
       DRAFT: 'DRAFT',

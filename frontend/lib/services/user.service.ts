@@ -3,11 +3,19 @@ import { CreateUserDto, UpdateUserDto, SearchUserDto, User } from "@/types/user"
 
 export const userService = {
   getAll: async (params?: SearchUserDto) => {
-    const response = await apiClient.get<User[]>("/users", { params });
-    // Assuming backend returns array or paginated object.
-    // If backend uses standard pagination { data: [], total: number }, adjust accordingly.
-    // Based on previous code checks, it seems simple array or standard structure.
-    // Let's assume standard response for now.
+    const response = await apiClient.get<any>("/users", { params });
+    // Unwrap NestJS TransformInterceptor response
+    if (response.data?.data) {
+      return response.data.data as User[];
+    }
+    return response.data as User[];
+  },
+
+  getRoles: async () => {
+    const response = await apiClient.get<any>("/users/roles");
+    if (response.data?.data) {
+      return response.data.data;
+    }
     return response.data;
   },
 

@@ -1,0 +1,111 @@
+
+> backend@1.5.1 test:e2e D:\nap-dms.lcbp3\backend
+> jest --config ./test/jest-e2e.json
+
+PASS test/simple.e2e-spec.ts
+PASS test/app.e2e-spec.ts
+[Nest] 35280  - 12/09/2025, 11:24:24 AM   ERROR [DocumentNumberingService] Failed to log audit
+[Nest] 35280  - 12/09/2025, 11:24:24 AM   ERROR [DocumentNumberingService] QueryFailedError: Unknown column 'generated_at' in 'RETURNING'
+    at Query.onResult (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\driver\mysql\MysqlQueryRunner.ts:248:33)
+    at Query.execute (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\commands\command.js:36:14)
+    at PoolConnection.handlePacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:477:34)
+    at PacketParser.onPacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:93:12)
+    at PacketParser.executeStart (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packet_parser.js:75:16)
+    at Socket.<anonymous> (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:100:25)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Socket.Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+  query: 'INSERT INTO `document_number_audit`(`id`, `generated_number`, `counter_key`, `template_used`, `sequence_number`, `user_id`, `ip_address`, `retry_count`, `lock_wait_ms`, `generated_at`) VALUES (DEFAULT, ?, ?, ?, ?, DEFAULT, DEFAULT, ?, ?, DEFAULT) RETURNING `id`, `retry_count`, `generated_at`',
+  parameters: [
+    'α╕£α╕úα╕í.1-α╕£α╕úα╕í.1-0002-2568',
+    'doc_num:1:1:0:2025',
+    '{ORG}-{ORG}-{SEQ:4}-{YEAR}',
+    2,
+    0,
+    0
+  ],
+  driverError: Error: Unknown column 'generated_at' in 'RETURNING'
+      at Packet.asError (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packets\packet.js:740:17)
+      at Query.execute (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\commands\command.js:29:26)
+      at PoolConnection.handlePacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:477:34)
+      at PacketParser.onPacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:93:12)
+      at PacketParser.executeStart (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:100:25)
+      at Socket.emit (node:events:519:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Socket.Readable.push (node:internal/streams/readable:392:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ER_BAD_FIELD_ERROR',
+    errno: 1054,
+    sqlState: '42S22',
+    sqlMessage: "Unknown column 'generated_at' in 'RETURNING'",
+    sql: "INSERT INTO `document_number_audit`(`id`, `generated_number`, `counter_key`, `template_used`, `sequence_number`, `user_id`, `ip_address`, `retry_count`, `lock_wait_ms`, `generated_at`) VALUES (DEFAULT, 'α╕£α╕úα╕í.1-α╕£α╕úα╕í.1-0002-2568', 'doc_num:1:1:0:2025', '{ORG}-{ORG}-{SEQ:4}-{YEAR}', 2, DEFAULT, DEFAULT, 0, 0, DEFAULT) RETURNING `id`, `retry_count`, `generated_at`"
+  },
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'generated_at' in 'RETURNING'",
+  sql: "INSERT INTO `document_number_audit`(`id`, `generated_number`, `counter_key`, `template_used`, `sequence_number`, `user_id`, `ip_address`, `retry_count`, `lock_wait_ms`, `generated_at`) VALUES (DEFAULT, 'α╕£α╕úα╕í.1-α╕£α╕úα╕í.1-0002-2568', 'doc_num:1:1:0:2025', '{ORG}-{ORG}-{SEQ:4}-{YEAR}', 2, DEFAULT, DEFAULT, 0, 0, DEFAULT) RETURNING `id`, `retry_count`, `generated_at`"
+}
+[Nest] 35280  - 12/09/2025, 11:24:25 AM   ERROR [WorkflowEngineService] Transition Failed for 3a51f630-c4fc-4fb4-8c2b-f1150195d8bd: Cannot read properties of undefined (reading 'roles')
+[Nest] 35280  - 12/09/2025, 11:24:25 AM   ERROR [CorrespondenceWorkflowService] Failed to submit workflow: TypeError: Cannot read properties of undefined (reading 'roles')
+[Nest] 35280  - 12/09/2025, 11:24:25 AM   ERROR [ExceptionsHandler] TypeError: Cannot read properties of undefined (reading 'roles')
+    at WorkflowDslService.checkRequirements (D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-dsl.service.ts:219:13)
+    at WorkflowDslService.evaluate (D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-dsl.service.ts:178:10)
+    at WorkflowEngineService.processTransition (D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-engine.service.ts:259:42)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at CorrespondenceWorkflowService.submitWorkflow (D:\nap-dms.lcbp3\backend\src\modules\correspondence\correspondence-workflow.service.ts:73:32)
+FAIL test/phase3-workflow.e2e-spec.ts
+  ΓùÅ Console
+
+    console.log
+      Created Correspondence ID: 4
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:84:13)
+
+    console.warn
+      Skipping action test - no instanceId from submit
+
+      104 |     // Skip if submit failed to get instanceId
+      105 |     if (!workflowInstanceId) {
+    > 106 |       console.warn('Skipping action test - no instanceId from submit');
+          |               ^
+      107 |       return;
+      108 |     }
+      109 |
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:106:15)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences/:id/submit (POST) - Submit to Workflow
+
+    expected 201 "Created", got 500 "Internal Server Error"
+
+      92 |         note: 'Submitting for E2E test',
+      93 |       })
+    > 94 |       .expect(201);
+         |        ^
+      95 |
+      96 |     expect(response.body).toHaveProperty('instanceId');
+      97 |     expect(response.body).toHaveProperty('currentState');
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:94:8)
+      ----
+      at Test._assertStatus (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:309:14)
+      at ../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:365:13
+      at Test._assertFunction (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:342:13)
+      at Test.assert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:195:23)
+      at localAssert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:138:14)
+      at Server.<anonymous> (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:152:11)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        5.652 s
+Ran all test suites.
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.

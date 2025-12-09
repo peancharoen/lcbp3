@@ -20,18 +20,19 @@
 
 ## 🗂️ Specification Structure
 
-โครงสร้างเอกสาร Specifications ของโครงการแบ่งออกเป็น 6 หมวดหลัก:
+โครงสร้างเอกสาร Specifications ของโครงการแบ่งออกเป็น 9 หมวดหลัก:
 
 ```
 specs/
-├── 00-overview/              # ภาพรวมโครงการ
-│   ├── README.md            # Project overview
-│   └── glossary.md          # คำศัพท์เทคนิค
+├── 00-overview/              # ภาพรวมโครงการ (3 docs)
+│   ├── README.md             # Project overview
+│   ├── glossary.md           # คำศัพท์เทคนิค
+│   └── quick-start.md        # Quick start guide
 │
-├── 01-requirements/          # ข้อกำหนดระบบ
-│   ├── README.md            # Requirements overview
-│   ├── 01-objectives.md     # วัตถุประสงค์
-│   ├── 02-architecture.md   # สถาปัตยกรรม
+├── 01-requirements/          # ข้อกำหนดระบบ (21 docs)
+│   ├── README.md             # Requirements overview
+│   ├── 01-objectives.md      # วัตถุประสงค์
+│   ├── 02-architecture.md    # สถาปัตยกรรม
 │   ├── 03-functional-requirements.md
 │   ├── 03.1-project-management.md
 │   ├── 03.2-correspondence.md
@@ -50,39 +51,59 @@ specs/
 │   ├── 06-non-functional.md
 │   └── 07-testing.md
 │
-├── 02-architecture/          # สถาปัตยกรรมระบบ
+├── 02-architecture/          # สถาปัตยกรรมระบบ (4 docs)
 │   ├── README.md
 │   ├── system-architecture.md
 │   ├── api-design.md
 │   └── data-model.md
 │
-├── 03-implementation/        # แผนการพัฒนา
+├── 03-implementation/        # แผนการพัฒนา (5 docs)
 │   ├── README.md
-│   ├── backend-plan.md
-│   ├── frontend-plan.md
-│   └── integration-plan.md
+│   ├── backend-guidelines.md
+│   ├── frontend-guidelines.md
+│   ├── testing-strategy.md
+│   └── code-standards.md
 │
-├── 04-operations/            # การดำเนินงาน
+├── 04-operations/            # การดำเนินงาน (9 docs)
 │   ├── README.md
 │   ├── deployment.md
-│   └── monitoring.md
+│   ├── monitoring.md
+│   └── ...
 │
-└── 05-decisions/             # Architecture Decision Records
-    ├── README.md
-    ├── 001-workflow-engine.md
-    └── 002-file-storage.md
+├── 05-decisions/             # Architecture Decision Records (17 ADRs)
+│   ├── README.md
+│   ├── ADR-001-workflow-engine.md
+│   ├── ADR-002-document-numbering.md
+│   └── ...
+│
+├── 06-tasks/                 # Active Tasks & Progress (34 files)
+│   ├── frontend-progress-report.md
+│   ├── backend-progress-report.md
+│   └── ...
+│
+├── 07-database/              # Database Schema (8 files)
+│   ├── lcbp3-v1.5.1-schema.sql
+│   ├── lcbp3-v1.5.1-seed.sql
+│   ├── data-dictionary-v1.5.1.md
+│   └── ...
+│
+└── 09-history/               # Archived Implementations (9 files)
+    └── ...
 ```
 
 ### 📋 หมวดหมู่เอกสาร
 
-| หมวด                  | วัตถุประสงค์                  | ผู้ดูแล                       |
+| หมวด                  | วัตถุประสงค์                     | ผู้ดูแล                          |
 | --------------------- | ----------------------------- | ----------------------------- |
-| **00-overview**       | ภาพรวมโครงการและคำศัพท์       | Project Manager               |
-| **01-requirements**   | ข้อกำหนดฟังก์ชันและระบบ       | Business Analyst + Tech Lead  |
-| **02-architecture**   | สถาปัตยกรรมและการออกแบบ       | Tech Lead + Architects        |
-| **03-implementation** | แผนการพัฒนาและ Implementation | Development Team Leads        |
+| **00-overview**       | ภาพรวมโครงการและคำศัพท์          | Project Manager               |
+| **01-requirements**   | ข้อกำหนดฟังก์ชันและระบบ            | Business Analyst + Tech Lead  |
+| **02-architecture**   | สถาปัตยกรรมและการออกแบบ        | Tech Lead + Architects        |
+| **03-implementation** | แผนการพัฒนาและ Implementation  | Development Team Leads        |
 | **04-operations**     | Deployment และ Operations     | DevOps Team                   |
 | **05-decisions**      | Architecture Decision Records | Tech Lead + Senior Developers |
+| **06-tasks**          | Active Tasks & Progress       | All Team Members              |
+| **07-database**       | Database Schema & Seed Data   | Backend Lead + DBA            |
+| **09-history**        | Archived Implementations      | Tech Lead                     |
 
 ---
 
@@ -454,11 +475,11 @@ Then [expected result]
 
 ### Review Levels
 
-| Level | Reviewer | Scope |
-|-------|----------|-------|
-| **L1: Peer Review** | Team Member | Format, Clarity, Completeness |
-| **L2: Technical Review** | Tech Lead | Technical Accuracy, Feasibility |
-| **L3: Approval** | Project Manager | Business Alignment, Impact |
+| Level                    | Reviewer        | Scope                           |
+| ------------------------ | --------------- | ------------------------------- |
+| **L1: Peer Review**      | Team Member     | Format, Clarity, Completeness   |
+| **L2: Technical Review** | Tech Lead       | Technical Accuracy, Feasibility |
+| **L3: Approval**         | Project Manager | Business Alignment, Impact      |
 
 ### Review Timeline
 

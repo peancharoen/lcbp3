@@ -1,9 +1,9 @@
 // File: lib/services/project.service.ts
 import apiClient from "@/lib/api/client";
-import { 
-  CreateProjectDto, 
-  UpdateProjectDto, 
-  SearchProjectDto 
+import {
+  CreateProjectDto,
+  UpdateProjectDto,
+  SearchProjectDto
 } from "@/types/dto/project/project.dto";
 
 export const projectService = {
@@ -45,19 +45,21 @@ export const projectService = {
 
   // --- Related Data / Dropdown Helpers ---
 
-  /** * ดึงรายชื่อองค์กรในโครงการ (สำหรับ Dropdown 'To/From') 
+  /** * ดึงรายชื่อองค์กรในโครงการ (สำหรับ Dropdown 'To/From')
    * GET /projects/:id/organizations
    */
   getOrganizations: async (projectId: string | number) => {
     const response = await apiClient.get(`/projects/${projectId}/organizations`);
-    return response.data;
+    // Unwrap the response data if it's wrapped in a 'data' property by the interceptor
+    return response.data.data || response.data;
   },
 
-  /** * ดึงรายชื่อสัญญาในโครงการ 
+  /** * ดึงรายชื่อสัญญาในโครงการ
    * GET /projects/:id/contracts
    */
   getContracts: async (projectId: string | number) => {
     const response = await apiClient.get(`/projects/${projectId}/contracts`);
-    return response.data;
+    // Unwrap the response data if it's wrapped in a 'data' property by the interceptor
+    return response.data.data || response.data;
   }
 };

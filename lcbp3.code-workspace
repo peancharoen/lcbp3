@@ -672,7 +672,8 @@
     ],
     "database-client.variableIndicator": [":", "$"],
     "geminicodeassist.rules": "ใช้ภาษาไทยในการโต้ตอบ\n\n\n\n",
-    "geminicodeassist.verboseLogging": true
+    "geminicodeassist.verboseLogging": true,
+    "liveServer.settings.multiRootWorkspaceName": "🎯 Root"
   },
   // ========================================
   // LAUNCH CONFIGURATIONS

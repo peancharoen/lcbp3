@@ -15,6 +15,7 @@ import { DataSource, In, Repository } from 'typeorm';
 import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
+import { RoutingTemplateStep } from '../correspondence/entities/routing-template-step.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
 import { User } from '../user/entities/user.entity';
 import { RfaApproveCode } from './entities/rfa-approve-code.entity';
@@ -63,6 +64,8 @@ export class RfaService {
     private routingRepo: Repository<CorrespondenceRouting>,
     @InjectRepository(RoutingTemplate)
     private templateRepo: Repository<RoutingTemplate>,
+    @InjectRepository(RoutingTemplateStep)
+    private templateStepRepo: Repository<RoutingTemplateStep>,
 
     private numberingService: DocumentNumberingService,
     private userService: UserService,
@@ -313,12 +316,21 @@ export class RfaService {
 
     const template = await this.templateRepo.findOne({
       where: { id: templateId },
-      relations: ['steps'],
-      order: { steps: { sequence: 'ASC' } },
+      // relations: ['steps'], // Deprecated relation removed
     });
 
-    if (!template || !template.steps || template.steps.length === 0) {
+    if (!template) {
       throw new BadRequestException('Invalid routing template');
+    }
+
+    // Manual fetch of steps
+    const steps = await this.templateStepRepo.find({
+      where: { templateId: template.id },
+      order: { sequence: 'ASC' },
+    });
+
+    if (steps.length === 0) {
+      throw new BadRequestException('Routing template has no steps');
     }
 
     const statusForApprove = await this.rfaStatusRepo.findOne({
@@ -338,7 +350,7 @@ export class RfaService {
       await queryRunner.manager.save(currentRevision);
 
       // Create First Routing Step
-      const firstStep = template.steps[0];
+      const firstStep = steps[0];
       const routing = queryRunner.manager.create(CorrespondenceRouting, {
         correspondenceId: currentRevision.correspondenceId,
         templateId: template.id,
@@ -408,16 +420,24 @@ export class RfaService {
 
     const template = await this.templateRepo.findOne({
       where: { id: currentRouting.templateId },
-      relations: ['steps'],
+      // relations: ['steps'],
     });
 
-    if (!template || !template.steps)
-      throw new InternalServerErrorException('Template not found');
+    if (!template) throw new InternalServerErrorException('Template not found');
+
+    // Manual fetch steps
+    const steps = await this.templateStepRepo.find({
+      where: { templateId: template.id },
+      order: { sequence: 'ASC' },
+    });
+
+    if (steps.length === 0)
+      throw new InternalServerErrorException('Template steps not found');
 
     // Call Engine to calculate next step
     const result = this.workflowEngine.processAction(
       currentRouting.sequence,
-      template.steps.length,
+      steps.length,
       dto.action,
       dto.returnToSequence
     );
@@ -437,7 +457,7 @@ export class RfaService {
 
       // Create next routing if available
       if (result.nextStepSequence && dto.action !== WorkflowAction.REJECT) {
-        const nextStep = template.steps.find(
+        const nextStep = steps.find(
           (s) => s.sequence === result.nextStepSequence
         );
         if (nextStep) {

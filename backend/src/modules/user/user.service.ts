@@ -13,6 +13,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager'; // ✅ FIX: เพิ่ม 'type' ตรงนี้
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
+import { Role } from './entities/role.entity';
+import { Permission } from './entities/permission.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -21,6 +23,10 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Role)
+    private roleRepository: Repository<Role>,
+    @InjectRepository(Permission)
+    private permissionRepository: Repository<Permission>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {}
 
@@ -64,7 +70,12 @@ export class UserService {
   async findOne(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { user_id: id },
-      relations: ['preference', 'assignments'], // [IMPORTANT] ต้องโหลด preference มาด้วย
+      relations: [
+        'preference',
+        'assignments',
+        'assignments.role',
+        'assignments.role.permissions', // [FIX] Required for RBAC AbilityFactory
+      ],
     });
 
     if (!user) {
@@ -139,6 +150,16 @@ export class UserService {
     await this.cacheManager.set(cacheKey, permissionList, 1800 * 1000);
 
     return permissionList;
+  }
+
+  // --- Roles & Permissions (Helper for Admin/UI) ---
+
+  async findAllRoles(): Promise<Role[]> {
+    return this.roleRepository.find();
+  }
+
+  async findAllPermissions(): Promise<Permission[]> {
+    return this.permissionRepository.find();
   }
 
   /**

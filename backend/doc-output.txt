@@ -1,0 +1,1416 @@
+
+> backend@1.5.1 doc
+> npx @compodoc/compodoc -p tsconfig.doc.json -s
+
+[0m
+[0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m
+[0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m
+[0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m
+[48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m
+[48;5;255m [48;5;255m [0m [0m [0m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m
+[48;5;255m [48;5;255m [0m [0m [0m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m
+[48;5;255m [48;5;255m [0m [0m [0m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m
+[48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m [0m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [48;5;255m [0m
+[0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m
+[0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m
+[0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [48;5;255m [48;5;255m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m [0m
+
+1.1.32
+
+TypeScript version used by Compodoc : 5.9.2
+
+TypeScript version of current project : 5.7.3
+
+Node.js version : v22.20.0
+
+Operating system : Windows 10
+
+[08:36:02] [33mNo configuration file found, switching to CLI flags.[39m
+[08:36:02] [32mUsing tsconfig file : D:\nap-dms.lcbp3\backend\tsconfig.doc.json[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/scripts/debug-db.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/scripts/verify-workflow.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/app.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/app.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/app.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/main.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/common.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/config/database.config.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/auth.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/auth.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/auth.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/config/env.validation.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/config/redis.config.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/entities/audit-log.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/entities/base.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/decorators/audit.decorator.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/decorators/bypass-maintenance.decorator.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/decorators/circuit-breaker.decorator.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/decorators/current-user.decorator.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/decorators/idempotency.decorator.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/decorators/require-permission.decorator.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/decorators/retry.decorator.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/file-storage/file-cleanup.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/file-storage/file-storage.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/file-storage/file-storage.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/file-storage/file-storage.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/exceptions/http-exception.filter.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/guards/jwt-auth.guard.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/guards/jwt-refresh.guard.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/guards/maintenance-mode.guard.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/guards/rbac.guard.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/interceptors/audit-log.interceptor.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/interceptors/idempotency.interceptor.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/interceptors/performance.interceptor.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/interceptors/transform.interceptor.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/resilience/resilience.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/services/crypto.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/services/request-context.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/database/migrations/1701676800000-V1_5_1_Schema_Update.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/database/migrations/InitialSchema.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/database/seeds/organization.seed.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/database/seeds/run-seed.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/database/seeds/user.seed.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/database/seeds/workflow-definitions.seed.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/circulation-workflow.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/circulation.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/circulation.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/circulation.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/correspondence-workflow.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/correspondence.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/correspondence.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/correspondence.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dashboard.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dashboard.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dashboard.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/document-numbering.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/document-numbering.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/contract-drawing.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/contract-drawing.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/drawing-master-data.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/drawing-master-data.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/drawing.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/shop-drawing.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/shop-drawing.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/json-schema.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/json-schema.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/json-schema.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/monitoring/monitoring.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/monitoring/monitoring.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/monitoring/monitoring.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/master.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/master.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/master.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/notification/notification-cleanup.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.gateway.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.processor.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/contract.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/contract.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/organization.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/organization.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/project.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/project.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/project.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/rfa-workflow.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/rfa.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/rfa.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/rfa.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/search/search.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/search/search.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/search/search.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/transmittal/transmittal.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/transmittal/transmittal.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/transmittal/transmittal.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/user-assignment.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/user-preference.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/user.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/user.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/user.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-dsl.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-engine.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-engine.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-engine.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-event.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/casl/ability.factory.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/casl/casl.module.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/dto/login.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/dto/register.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/entities/refresh-token.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/guards/permissions.guard.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/strategies/jwt-refresh.strategy.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/auth/strategies/jwt.strategy.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/common/file-storage/entities/attachment.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/auth/entities/role.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/dto/create-circulation.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/dto/search-circulation.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/dto/update-circulation-routing.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/entities/circulation-routing.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/entities/circulation-status-code.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/circulation/entities/circulation.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/add-reference.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/create-correspondence.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/create-routing-template.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/search-correspondence.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/submit-correspondence.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/workflow-action.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-reference.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-revision.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-routing.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-status.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-sub-type.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-type.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/routing-template-step.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/routing-template.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dto/dashboard-stats.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dto/get-activity.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dto/get-pending.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dto/index.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/entities/document-number-audit.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/entities/document-number-counter.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/entities/document-number-error.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/entities/document-number-format.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/interfaces/document-numbering.interface.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/create-contract-drawing.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/create-shop-drawing-revision.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/create-shop-drawing.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/search-contract-drawing.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/search-shop-drawing.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/update-contract-drawing.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/contract-drawing-sub-category.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/contract-drawing-volume.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/contract-drawing.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/shop-drawing-main-category.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/shop-drawing-revision.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/shop-drawing-sub-category.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/shop-drawing.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/dto/create-json-schema.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/dto/migrate-data.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/dto/search-json-schema.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/dto/update-json-schema.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/entities/json-schema.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/interfaces/ui-schema.interface.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/interfaces/validation-result.interface.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/services/json-security.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/services/schema-migration.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/services/ui-schema.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/json-schema/services/virtual-column.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/monitoring/controllers/health.controller.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/monitoring/dto/set-maintenance.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/monitoring/logger/winston.config.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/monitoring/services/metrics.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/dto/create-discipline.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/dto/create-sub-type.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/dto/create-tag.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/dto/save-number-format.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/dto/search-tag.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/dto/update-tag.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/entities/discipline.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/master/entities/tag.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/notification/dto/create-notification.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/notification/dto/search-notification.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/notification/entities/notification.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/organizations/entities/organization.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/dto/create-contract.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/dto/create-organization.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/dto/create-project.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/dto/search-project.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/dto/update-contract.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/dto/update-organization.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/dto/update-project.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/entities/contract-organization.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/entities/contract.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/entities/organization.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/entities/project-organization.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/project/entities/project.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/create-rfa-revision.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/create-rfa-workflow.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/create-rfa.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/search-rfa.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/submit-rfa.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/update-rfa.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-approve-code.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-item.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-revision.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-status-code.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-type.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-workflow-template-step.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-workflow-template.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-workflow.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/search/dto/search-query.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/transmittal/dto/create-transmittal.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/transmittal/dto/search-transmittal.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/transmittal/dto/update-transmittal.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/transmittal/entities/transmittal-item.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/transmittal/entities/transmittal.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/dto/assign-role.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/dto/create-user.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/dto/update-preference.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/dto/update-user.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/entities/permission.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/entities/role.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/entities/user-assignment.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/entities/user-preference.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/user/entities/user.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dsl/parser.service.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dsl/workflow-dsl.schema.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/create-workflow-definition.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/evaluate-workflow.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/get-available-actions.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/update-workflow-definition.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/workflow-transition.dto.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/entities/workflow-definition.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/entities/workflow-history.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/entities/workflow-instance.entity.ts[39m
+[08:36:02] [36mIncluding      : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/interfaces/workflow.interface.ts[39m
+[08:36:02] [32mSearching package.json file[39m
+[08:36:02] [32mpackage.json file found[39m
+[08:36:02] [32mProcessing package.json dependencies[39m
+[08:36:02] [32mSearching README.md, CHANGELOG.md, CONTRIBUTING.md, LICENSE.md, TODO.md files[39m
+[08:36:02] [32mREADME.md file found[39m
+[08:36:02] [33mError during D:\nap-dms.lcbp3\backend\CHANGELOG read[39m
+[08:36:02] [33mContinuing without CHANGELOG.md file[39m
+[08:36:02] [33mError during D:\nap-dms.lcbp3\backend\CONTRIBUTING read[39m
+[08:36:02] [33mContinuing without CONTRIBUTING.md file[39m
+[08:36:02] [33mError during D:\nap-dms.lcbp3\backend\LICENSE read[39m
+[08:36:02] [33mContinuing without LICENSE.md file[39m
+[08:36:02] [33mError during D:\nap-dms.lcbp3\backend\TODO read[39m
+[08:36:02] [33mContinuing without TODO.md file[39m
+[08:36:02] [32mGet dependencies data[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/scripts/debug-db.ts[39m
+[08:36:03] [36mfound          : envFile[39m
+[08:36:03] [36mfound          : getEnv[39m
+[08:36:03] [36mfound          : dataSource[39m
+[08:36:03] [36mfound          : main[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/scripts/verify-workflow.ts[39m
+[08:36:03] [36mfound          : JWT_SECRET[39m
+[08:36:03] [36mfound          : API_URL[39m
+[08:36:03] [36mfound          : signJwt[39m
+[08:36:03] [36mfound          : main[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/app.controller.ts[39m
+[08:36:03] [36mfound          : AppController[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/app.module.ts[39m
+[08:36:03] [36mfound          : AppModule[39m
+[08:36:03] [36m               : - imports:[39m
+[08:36:03] [36m               : 	- ConfigModule[39m
+[08:36:03] [36m               : 	- ThrottlerModule[39m
+[08:36:03] [36m               : 	- CacheModule[39m
+[08:36:03] [36m               : 	- WinstonModule[39m
+[08:36:03] [36m               : 	- TypeOrmModule[39m
+[08:36:03] [36m               : 	- TypeOrmModule[39m
+[08:36:03] [36m               : 	- BullModule[39m
+[08:36:03] [36m               : 	- RedisModule[39m
+[08:36:03] [36m               : 	- MonitoringModule[39m
+[08:36:03] [36m               : 	- ResilienceModule[39m
+[08:36:03] [36m               : 	- AuthModule[39m
+[08:36:03] [36m               : 	- UserModule[39m
+[08:36:03] [36m               : 	- ProjectModule[39m
+[08:36:03] [36m               : 	- MasterModule[39m
+[08:36:03] [36m               : 	- FileStorageModule[39m
+[08:36:03] [36m               : 	- DocumentNumberingModule[39m
+[08:36:03] [36m               : 	- JsonSchemaModule[39m
+[08:36:03] [36m               : 	- WorkflowEngineModule[39m
+[08:36:03] [36m               : 	- CorrespondenceModule[39m
+[08:36:03] [36m               : 	- RfaModule[39m
+[08:36:03] [36m               : 	- DrawingModule[39m
+[08:36:03] [36m               : 	- TransmittalModule[39m
+[08:36:03] [36m               : 	- CirculationModule[39m
+[08:36:03] [36m               : 	- SearchModule[39m
+[08:36:03] [36m               : 	- NotificationModule[39m
+[08:36:03] [36m               : 	- DashboardModule[39m
+[08:36:03] [36m               : - providers:[39m
+[08:36:03] [36m               : 	- AppService[39m
+[08:36:03] [36m               : 	- ThrottlerGuard[39m
+[08:36:03] [36m               : 	- MaintenanceModeGuard[39m
+[08:36:03] [36m               : 	- AuditLogInterceptor[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/app.service.ts[39m
+[08:36:03] [36mfound          : AppService[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/main.ts[39m
+[08:36:03] [36mfound          : bootstrap[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/common.module.ts[39m
+[08:36:03] [36mfound          : CommonModule[39m
+[08:36:03] [36m               : - imports:[39m
+[08:36:03] [36m               : 	- ConfigModule[39m
+[08:36:03] [36m               : - exports:[39m
+[08:36:03] [36m               : 	- CryptoService[39m
+[08:36:03] [36m               : 	- RequestContextService[39m
+[08:36:03] [36m               : - providers:[39m
+[08:36:03] [36m               : 	- CryptoService[39m
+[08:36:03] [36m               : 	- RequestContextService[39m
+[08:36:03] [36m               : 	- HttpExceptionFilter[39m
+[08:36:03] [36m               : 	- TransformInterceptor[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/config/database.config.ts[39m
+[08:36:03] [36mfound          : databaseConfig[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/auth.controller.ts[39m
+[08:36:03] [36mfound          : RequestWithUser[39m
+[08:36:03] [36mfound          : AuthController[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/auth.module.ts[39m
+[08:36:03] [36mfound          : AuthModule[39m
+[08:36:03] [36m               : - imports:[39m
+[08:36:03] [36m               : 	- TypeOrmModule[39m
+[08:36:03] [36m               : 	- UserModule[39m
+[08:36:03] [36m               : 	- PassportModule[39m
+[08:36:03] [36m               : 	- JwtModule[39m
+[08:36:03] [36m               : 	- CaslModule[39m
+[08:36:03] [36m               : - exports:[39m
+[08:36:03] [36m               : 	- AuthService[39m
+[08:36:03] [36m               : 	- PermissionsGuard[39m
+[08:36:03] [36m               : - providers:[39m
+[08:36:03] [36m               : 	- AuthService[39m
+[08:36:03] [36m               : 	- JwtStrategy[39m
+[08:36:03] [36m               : 	- JwtRefreshStrategy[39m
+[08:36:03] [36m               : 	- PermissionsGuard[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/auth.service.ts[39m
+[08:36:03] [36mfound          : AuthService[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/config/env.validation.ts[39m
+[08:36:03] [36mfound          : envValidationSchema[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/config/redis.config.ts[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/entities/audit-log.entity.ts[39m
+[08:36:03] [36mfound          : AuditLog[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/entities/base.entity.ts[39m
+[08:36:03] [36mfound          : BaseEntity[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/decorators/audit.decorator.ts[39m
+[08:36:03] [36mfound          : AUDIT_KEY[39m
+[08:36:03] [36mfound          : AuditMetadata[39m
+[08:36:03] [36mfound          : Audit[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/decorators/bypass-maintenance.decorator.ts[39m
+[08:36:03] [36mfound          : BYPASS_MAINTENANCE_KEY[39m
+[08:36:03] [36mfound          : BypassMaintenance[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/decorators/circuit-breaker.decorator.ts[39m
+[08:36:03] [36mfound          : CircuitBreakerOptions[39m
+[08:36:03] [36mfound          : UseCircuitBreaker[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/decorators/current-user.decorator.ts[39m
+[08:36:03] [36mfound          : CurrentUser[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/decorators/idempotency.decorator.ts[39m
+[08:36:03] [36mfound          : IDEMPOTENCY_KEY[39m
+[08:36:03] [36mfound          : RequireIdempotency[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/decorators/require-permission.decorator.ts[39m
+[08:36:03] [36mfound          : PERMISSIONS_KEY[39m
+[08:36:03] [36mfound          : RequirePermission[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/decorators/retry.decorator.ts[39m
+[08:36:03] [36mfound          : RetryOptions[39m
+[08:36:03] [36mfound          : Retry[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/file-storage/file-cleanup.service.ts[39m
+[08:36:03] [36mfound          : FileCleanupService[39m
+[08:36:03] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/file-storage/file-storage.controller.ts[39m
+[08:36:03] [36mfound          : RequestWithUser[39m
+[08:36:03] [36mfound          : FileStorageController[39m
+[08:36:03] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/file-storage/file-storage.module.ts[39m
+[08:36:07] [36mfound          : FileStorageModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : 	- ScheduleModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- FileStorageService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- FileStorageService[39m
+[08:36:07] [36m               : 	- FileCleanupService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/file-storage/file-storage.service.ts[39m
+[08:36:07] [36mfound          : FileStorageService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/exceptions/http-exception.filter.ts[39m
+[08:36:07] [36mfound          : HttpExceptionFilter[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/guards/jwt-auth.guard.ts[39m
+[08:36:07] [36mfound          : JwtAuthGuard[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/guards/jwt-refresh.guard.ts[39m
+[08:36:07] [36mfound          : JwtRefreshGuard[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/guards/maintenance-mode.guard.ts[39m
+[08:36:07] [36mfound          : MaintenanceModeGuard[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/guards/rbac.guard.ts[39m
+[08:36:07] [36mfound          : RbacGuard[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/interceptors/audit-log.interceptor.ts[39m
+[08:36:07] [36mfound          : AuditLogInterceptor[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/interceptors/idempotency.interceptor.ts[39m
+[08:36:07] [36mfound          : IdempotencyInterceptor[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/interceptors/performance.interceptor.ts[39m
+[08:36:07] [36mfound          : PerformanceInterceptor[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/interceptors/transform.interceptor.ts[39m
+[08:36:07] [36mfound          : Response[39m
+[08:36:07] [36mfound          : TransformInterceptor[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/resilience/resilience.module.ts[39m
+[08:36:07] [36mfound          : ResilienceModule[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/services/crypto.service.ts[39m
+[08:36:07] [36mfound          : CryptoService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/services/request-context.service.ts[39m
+[08:36:07] [36mfound          : RequestContextService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/database/migrations/1701676800000-V1_5_1_Schema_Update.ts[39m
+[08:36:07] [36mfound          : V1_5_1_Schema_Update1701676800000[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/database/migrations/InitialSchema.ts[39m
+[08:36:07] [36mfound          : InitialSchema1701234567890[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/database/seeds/organization.seed.ts[39m
+[08:36:07] [36mfound          : seedOrganizations[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/database/seeds/run-seed.ts[39m
+[08:36:07] [36mfound          : runSeeds[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/database/seeds/user.seed.ts[39m
+[08:36:07] [36mfound          : seedUsers[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/database/seeds/workflow-definitions.seed.ts[39m
+[08:36:07] [36mfound          : seedWorkflowDefinitions[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/circulation-workflow.service.ts[39m
+[08:36:07] [36mfound          : CirculationWorkflowService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/circulation.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : CirculationController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/circulation.module.ts[39m
+[08:36:07] [36mfound          : CirculationModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : 	- UserModule[39m
+[08:36:07] [36m               : 	- WorkflowEngineModule[39m
+[08:36:07] [36m               : 	- DocumentNumberingModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- CirculationService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- CirculationService[39m
+[08:36:07] [36m               : 	- CirculationWorkflowService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/circulation.service.ts[39m
+[08:36:07] [36mfound          : CirculationService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/correspondence-workflow.service.ts[39m
+[08:36:07] [36mfound          : CorrespondenceWorkflowService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/correspondence.controller.ts[39m
+[08:36:07] [36mfound          : CorrespondenceController[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/correspondence.module.ts[39m
+[08:36:07] [36mfound          : CorrespondenceModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : 	- DocumentNumberingModule[39m
+[08:36:07] [36m               : 	- JsonSchemaModule[39m
+[08:36:07] [36m               : 	- UserModule[39m
+[08:36:07] [36m               : 	- WorkflowEngineModule[39m
+[08:36:07] [36m               : 	- SearchModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- CorrespondenceService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- CorrespondenceService[39m
+[08:36:07] [36m               : 	- CorrespondenceWorkflowService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/correspondence.service.ts[39m
+[08:36:07] [36mfound          : CorrespondenceService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dashboard.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : DashboardController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dashboard.module.ts[39m
+[08:36:07] [36mfound          : DashboardModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- DashboardService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- DashboardService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dashboard.service.ts[39m
+[08:36:07] [36mfound          : DashboardService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/document-numbering.module.ts[39m
+[08:36:07] [36mfound          : DocumentNumberingModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- ConfigModule[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- DocumentNumberingService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- DocumentNumberingService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/document-numbering.service.ts[39m
+[08:36:07] [36mfound          : DocumentNumberingService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/contract-drawing.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : ContractDrawingController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/contract-drawing.service.ts[39m
+[08:36:07] [36mfound          : ContractDrawingService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/drawing-master-data.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : DrawingMasterDataController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/drawing-master-data.service.ts[39m
+[08:36:07] [36mfound          : DrawingMasterDataService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/drawing.module.ts[39m
+[08:36:07] [36mfound          : DrawingModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : 	- FileStorageModule[39m
+[08:36:07] [36m               : 	- UserModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- ShopDrawingService[39m
+[08:36:07] [36m               : 	- ContractDrawingService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- ShopDrawingService[39m
+[08:36:07] [36m               : 	- ContractDrawingService[39m
+[08:36:07] [36m               : 	- DrawingMasterDataService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/shop-drawing.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : ShopDrawingController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/shop-drawing.service.ts[39m
+[08:36:07] [36mfound          : ShopDrawingService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/json-schema.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : JsonSchemaController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/json-schema.module.ts[39m
+[08:36:07] [36mfound          : JsonSchemaModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : 	- ConfigModule[39m
+[08:36:07] [36m               : 	- UserModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- JsonSchemaService[39m
+[08:36:07] [36m               : 	- SchemaMigrationService[39m
+[08:36:07] [36m               : 	- JsonSecurityService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- JsonSchemaService[39m
+[08:36:07] [36m               : 	- VirtualColumnService[39m
+[08:36:07] [36m               : 	- UiSchemaService[39m
+[08:36:07] [36m               : 	- SchemaMigrationService[39m
+[08:36:07] [36m               : 	- JsonSecurityService[39m
+[08:36:07] [36m               : 	- CryptoService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/json-schema.service.ts[39m
+[08:36:07] [36mfound          : JsonSchemaService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/monitoring/monitoring.controller.ts[39m
+[08:36:07] [36mfound          : MonitoringController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/monitoring/monitoring.module.ts[39m
+[08:36:07] [36mfound          : MonitoringModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TerminusModule[39m
+[08:36:07] [36m               : 	- HttpModule[39m
+[08:36:07] [36m               : 	- PrometheusModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- MetricsService[39m
+[08:36:07] [36m               : 	- MonitoringService[39m
+[08:36:07] [36m               : 	- PrometheusModule[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- MetricsService[39m
+[08:36:07] [36m               : 	- MonitoringService[39m
+[08:36:07] [36m               : 	- PerformanceInterceptor[39m
+[08:36:07] [36m               : 	- makeCounterProvider({
+    name: , help: , labelNames: [, , ],
+})[39m
+[08:36:07] [36m               : 	- makeHistogramProvider({
+    name: , help: , labelNames: [, , ], buckets: [, , , , , , ],
+})[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/monitoring/monitoring.service.ts[39m
+[08:36:07] [36mfound          : MonitoringService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/master.controller.ts[39m
+[08:36:07] [36mfound          : MasterController[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/master.module.ts[39m
+[08:36:07] [36mfound          : MasterModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- MasterService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- MasterService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/master.service.ts[39m
+[08:36:07] [36mfound          : MasterService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/notification/notification-cleanup.service.ts[39m
+[08:36:07] [36mfound          : NotificationCleanupService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : NotificationController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.gateway.ts[39m
+[08:36:07] [36mfound          : NotificationGateway[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.module.ts[39m
+[08:36:07] [36mfound          : NotificationModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : 	- BullModule[39m
+[08:36:07] [36m               : 	- ScheduleModule[39m
+[08:36:07] [36m               : 	- ConfigModule[39m
+[08:36:07] [36m               : 	- UserModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- NotificationService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- NotificationService[39m
+[08:36:07] [36m               : 	- NotificationProcessor[39m
+[08:36:07] [36m               : 	- NotificationGateway[39m
+[08:36:07] [36m               : 	- NotificationCleanupService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.processor.ts[39m
+[08:36:07] [36mfound          : NotificationPayload[39m
+[08:36:07] [36mfound          : NotificationProcessor[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/notification/notification.service.ts[39m
+[08:36:07] [36mfound          : NotificationJobData[39m
+[08:36:07] [36mfound          : NotificationService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/contract.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : ContractController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/contract.service.ts[39m
+[08:36:07] [36mfound          : ContractService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/organization.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : OrganizationController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/organization.service.ts[39m
+[08:36:07] [36mfound          : OrganizationService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/project.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : ProjectController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/project.module.ts[39m
+[08:36:07] [36mfound          : ProjectModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : 	- UserModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- ProjectService[39m
+[08:36:07] [36m               : 	- OrganizationService[39m
+[08:36:07] [36m               : 	- ContractService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- ProjectService[39m
+[08:36:07] [36m               : 	- OrganizationService[39m
+[08:36:07] [36m               : 	- ContractService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/project.service.ts[39m
+[08:36:07] [36mfound          : ProjectService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/rfa-workflow.service.ts[39m
+[08:36:07] [36mfound          : RfaWorkflowService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/rfa.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : RfaController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/rfa.module.ts[39m
+[08:36:07] [36mfound          : RfaModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : 	- DocumentNumberingModule[39m
+[08:36:07] [36m               : 	- UserModule[39m
+[08:36:07] [36m               : 	- SearchModule[39m
+[08:36:07] [36m               : 	- WorkflowEngineModule[39m
+[08:36:07] [36m               : 	- NotificationModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- RfaService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- RfaService[39m
+[08:36:07] [36m               : 	- RfaWorkflowService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/rfa.service.ts[39m
+[08:36:07] [36mfound          : RfaService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/search/search.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : SearchController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/search/search.module.ts[39m
+[08:36:07] [36mfound          : SearchModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- ConfigModule[39m
+[08:36:07] [36m               : 	- UserModule[39m
+[08:36:07] [36m               : 	- ElasticsearchModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- SearchService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- SearchService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/search/search.service.ts[39m
+[08:36:07] [36mfound          : SearchService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/transmittal/transmittal.controller.ts[39m
+[08:36:07] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:07] [36mfound          : TransmittalController[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/transmittal/transmittal.module.ts[39m
+[08:36:07] [36mfound          : TransmittalModule[39m
+[08:36:07] [36m               : - imports:[39m
+[08:36:07] [36m               : 	- TypeOrmModule[39m
+[08:36:07] [36m               : 	- DocumentNumberingModule[39m
+[08:36:07] [36m               : 	- UserModule[39m
+[08:36:07] [36m               : 	- SearchModule[39m
+[08:36:07] [36m               : - exports:[39m
+[08:36:07] [36m               : 	- TransmittalService[39m
+[08:36:07] [36m               : - providers:[39m
+[08:36:07] [36m               : 	- TransmittalService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/transmittal/transmittal.service.ts[39m
+[08:36:07] [36mfound          : TransmittalService[39m
+[08:36:07] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/user-assignment.service.ts[39m
+[08:36:08] [36mfound          : UserAssignmentService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/user-preference.service.ts[39m
+[08:36:08] [36mfound          : UserPreferenceService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/user.controller.ts[39m
+[08:36:08] [36mfound          : UserController[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/user.module.ts[39m
+[08:36:08] [36mfound          : UserModule[39m
+[08:36:08] [36m               : - imports:[39m
+[08:36:08] [36m               : 	- TypeOrmModule[39m
+[08:36:08] [36m               : - exports:[39m
+[08:36:08] [36m               : 	- UserService[39m
+[08:36:08] [36m               : 	- UserAssignmentService[39m
+[08:36:08] [36m               : 	- UserPreferenceService[39m
+[08:36:08] [36m               : - providers:[39m
+[08:36:08] [36m               : 	- UserService[39m
+[08:36:08] [36m               : 	- UserAssignmentService[39m
+[08:36:08] [36m               : 	- UserPreferenceService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/user.service.ts[39m
+[08:36:08] [36mfound          : UserService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-dsl.service.ts[39m
+[08:36:08] [36mfound          : RawWorkflowDSL[39m
+[08:36:08] [36mfound          : RawState[39m
+[08:36:08] [36mfound          : RawTransition[39m
+[08:36:08] [36mfound          : RawEvent[39m
+[08:36:08] [36mfound          : CompiledWorkflow[39m
+[08:36:08] [36mfound          : CompiledState[39m
+[08:36:08] [36mfound          : CompiledTransition[39m
+[08:36:08] [36mfound          : WorkflowDslService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-engine.controller.ts[39m
+[08:36:08] [36mfound          : WorkflowEngineController[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-engine.module.ts[39m
+[08:36:08] [36mfound          : WorkflowEngineModule[39m
+[08:36:08] [36m               : - imports:[39m
+[08:36:08] [36m               : 	- TypeOrmModule[39m
+[08:36:08] [36m               : 	- UserModule[39m
+[08:36:08] [36m               : - exports:[39m
+[08:36:08] [36m               : 	- WorkflowEngineService[39m
+[08:36:08] [36m               : - providers:[39m
+[08:36:08] [36m               : 	- WorkflowEngineService[39m
+[08:36:08] [36m               : 	- WorkflowDslService[39m
+[08:36:08] [36m               : 	- WorkflowEventService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-engine.service.ts[39m
+[08:36:08] [36mfound          : WorkflowAction[39m
+[08:36:08] [36mfound          : TransitionResult[39m
+[08:36:08] [36mfound          : WorkflowEngineService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/workflow-event.service.ts[39m
+[08:36:08] [36mfound          : WorkflowEventHandler[39m
+[08:36:08] [36mfound          : WorkflowEventService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/casl/ability.factory.ts[39m
+[08:36:08] [36mfound          : Actions[39m
+[08:36:08] [36mfound          : Subjects[39m
+[08:36:08] [36mfound          : AppAbility[39m
+[08:36:08] [36mfound          : ScopeContext[39m
+[08:36:08] [36mfound          : AbilityFactory[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/casl/casl.module.ts[39m
+[08:36:08] [36mfound          : CaslModule[39m
+[08:36:08] [36m               : - exports:[39m
+[08:36:08] [36m               : 	- AbilityFactory[39m
+[08:36:08] [36m               : - providers:[39m
+[08:36:08] [36m               : 	- AbilityFactory[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/dto/login.dto.ts[39m
+[08:36:08] [36mfound          : LoginDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/dto/register.dto.ts[39m
+[08:36:08] [36mfound          : RegisterDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/entities/refresh-token.entity.ts[39m
+[08:36:08] [36mfound          : RefreshToken[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/guards/permissions.guard.ts[39m
+[08:36:08] [36mfound          : PermissionsGuard[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/strategies/jwt-refresh.strategy.ts[39m
+[08:36:08] [36mfound          : JwtRefreshStrategy[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/auth/strategies/jwt.strategy.ts[39m
+[08:36:08] [36mfound          : JwtPayload[39m
+[08:36:08] [36mfound          : JwtStrategy[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/common/file-storage/entities/attachment.entity.ts[39m
+[08:36:08] [36mfound          : Attachment[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/auth/entities/role.entity.ts[39m
+[08:36:08] [36mfound          : Permission[39m
+[08:36:08] [36mfound          : Role[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/dto/create-circulation.dto.ts[39m
+[08:36:08] [36mfound          : CreateCirculationDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/dto/search-circulation.dto.ts[39m
+[08:36:08] [36mfound          : SearchCirculationDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/dto/update-circulation-routing.dto.ts[39m
+[08:36:08] [36mfound          : CirculationAction[39m
+[08:36:08] [36mfound          : UpdateCirculationRoutingDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/entities/circulation-routing.entity.ts[39m
+[08:36:08] [36mfound          : CirculationRouting[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/entities/circulation-status-code.entity.ts[39m
+[08:36:08] [36mfound          : CirculationStatusCode[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/circulation/entities/circulation.entity.ts[39m
+[08:36:08] [36mfound          : Circulation[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/add-reference.dto.ts[39m
+[08:36:08] [36mfound          : AddReferenceDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/create-correspondence.dto.ts[39m
+[08:36:08] [36mfound          : CreateCorrespondenceDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/create-routing-template.dto.ts[39m
+[08:36:08] [36mfound          : CreateRoutingTemplateStepDto[39m
+[08:36:08] [36mfound          : CreateRoutingTemplateDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/search-correspondence.dto.ts[39m
+[08:36:08] [36mfound          : SearchCorrespondenceDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/submit-correspondence.dto.ts[39m
+[08:36:08] [36mfound          : SubmitCorrespondenceDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/dto/workflow-action.dto.ts[39m
+[08:36:08] [36mfound          : WorkflowActionDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-reference.entity.ts[39m
+[08:36:08] [36mfound          : CorrespondenceReference[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-revision.entity.ts[39m
+[08:36:08] [36mfound          : CorrespondenceRevision[39m
+[08:36:08] [36mfound          : CorrespondenceRevision[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-routing.entity.ts[39m
+[08:36:08] [36mfound          : CorrespondenceRouting[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-status.entity.ts[39m
+[08:36:08] [36mfound          : CorrespondenceStatus[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-sub-type.entity.ts[39m
+[08:36:08] [36mfound          : CorrespondenceSubType[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence-type.entity.ts[39m
+[08:36:08] [36mfound          : CorrespondenceType[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/correspondence.entity.ts[39m
+[08:36:08] [36mfound          : Correspondence[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/routing-template-step.entity.ts[39m
+[08:36:08] [36mfound          : RoutingTemplateStep[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/correspondence/entities/routing-template.entity.ts[39m
+[08:36:08] [36mfound          : RoutingTemplate[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dto/dashboard-stats.dto.ts[39m
+[08:36:08] [36mfound          : DashboardStatsDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dto/get-activity.dto.ts[39m
+[08:36:08] [36mfound          : GetActivityDto[39m
+[08:36:08] [36mfound          : ActivityItemDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dto/get-pending.dto.ts[39m
+[08:36:08] [36mfound          : GetPendingDto[39m
+[08:36:08] [36mfound          : PendingTaskItemDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/dashboard/dto/index.ts[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/entities/document-number-audit.entity.ts[39m
+[08:36:08] [36mfound          : DocumentNumberAudit[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [36mfound          : DocumentNumberAudit[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/entities/document-number-counter.entity.ts[39m
+[08:36:08] [36mfound          : DocumentNumberCounter[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/entities/document-number-error.entity.ts[39m
+[08:36:08] [36mfound          : DocumentNumberError[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [36mfound          : DocumentNumberError[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/entities/document-number-format.entity.ts[39m
+[08:36:08] [36mfound          : DocumentNumberFormat[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [36mfound          : DocumentNumberFormat[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/document-numbering/interfaces/document-numbering.interface.ts[39m
+[08:36:08] [36mfound          : GenerateNumberContext[39m
+[08:36:08] [36mfound          : DecodedTokens[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/create-contract-drawing.dto.ts[39m
+[08:36:08] [36mfound          : CreateContractDrawingDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/create-shop-drawing-revision.dto.ts[39m
+[08:36:08] [36mfound          : CreateShopDrawingRevisionDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/create-shop-drawing.dto.ts[39m
+[08:36:08] [36mfound          : CreateShopDrawingDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/search-contract-drawing.dto.ts[39m
+[08:36:08] [36mfound          : SearchContractDrawingDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/search-shop-drawing.dto.ts[39m
+[08:36:08] [36mfound          : SearchShopDrawingDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/dto/update-contract-drawing.dto.ts[39m
+[08:36:08] [36mfound          : UpdateContractDrawingDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/contract-drawing-sub-category.entity.ts[39m
+[08:36:08] [36mfound          : ContractDrawingSubCategory[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/contract-drawing-volume.entity.ts[39m
+[08:36:08] [36mfound          : ContractDrawingVolume[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/contract-drawing.entity.ts[39m
+[08:36:08] [36mfound          : ContractDrawing[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/shop-drawing-main-category.entity.ts[39m
+[08:36:08] [36mfound          : ShopDrawingMainCategory[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/shop-drawing-revision.entity.ts[39m
+[08:36:08] [36mfound          : ShopDrawingRevision[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/shop-drawing-sub-category.entity.ts[39m
+[08:36:08] [36mfound          : ShopDrawingSubCategory[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/drawing/entities/shop-drawing.entity.ts[39m
+[08:36:08] [36mfound          : ShopDrawing[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/dto/create-json-schema.dto.ts[39m
+[08:36:08] [36mfound          : VirtualColumnConfigDto[39m
+[08:36:08] [36mfound          : CreateJsonSchemaDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/dto/migrate-data.dto.ts[39m
+[08:36:08] [36mfound          : MigrateDataDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/dto/search-json-schema.dto.ts[39m
+[08:36:08] [36mfound          : SearchJsonSchemaDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/dto/update-json-schema.dto.ts[39m
+[08:36:08] [36mfound          : UpdateJsonSchemaDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/entities/json-schema.entity.ts[39m
+[08:36:08] [36mfound          : VirtualColumnConfig[39m
+[08:36:08] [36mfound          : JsonSchema[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [36mfound          : JsonSchema[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/interfaces/ui-schema.interface.ts[39m
+[08:36:08] [36mfound          : WidgetType[39m
+[08:36:08] [36mfound          : Operator[39m
+[08:36:08] [36mfound          : FieldCondition[39m
+[08:36:08] [36mfound          : FieldDependency[39m
+[08:36:08] [36mfound          : UiSchemaField[39m
+[08:36:08] [36mfound          : LayoutGroup[39m
+[08:36:08] [36mfound          : LayoutConfig[39m
+[08:36:08] [36mfound          : UiSchema[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/interfaces/validation-result.interface.ts[39m
+[08:36:08] [36mfound          : ValidationOptions[39m
+[08:36:08] [36mfound          : ValidationErrorDetail[39m
+[08:36:08] [36mfound          : ValidationResult[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/services/json-security.service.ts[39m
+[08:36:08] [36mfound          : SecurityContext[39m
+[08:36:08] [36mfound          : JsonSecurityService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/services/schema-migration.service.ts[39m
+[08:36:08] [36mfound          : MigrationStep[39m
+[08:36:08] [36mfound          : MigrationResult[39m
+[08:36:08] [36mfound          : SchemaMigrationService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/services/ui-schema.service.ts[39m
+[08:36:08] [36mfound          : UiSchemaService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/json-schema/services/virtual-column.service.ts[39m
+[08:36:08] [36mfound          : VirtualColumnService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/monitoring/controllers/health.controller.ts[39m
+[08:36:08] [36mfound          : HealthController[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/monitoring/dto/set-maintenance.dto.ts[39m
+[08:36:08] [36mfound          : SetMaintenanceDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/monitoring/logger/winston.config.ts[39m
+[08:36:08] [36mfound          : winstonConfig[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/monitoring/services/metrics.service.ts[39m
+[08:36:08] [36mfound          : MetricsService[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/dto/create-discipline.dto.ts[39m
+[08:36:08] [36mfound          : CreateDisciplineDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/dto/create-sub-type.dto.ts[39m
+[08:36:08] [36mfound          : CreateSubTypeDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/dto/create-tag.dto.ts[39m
+[08:36:08] [36mfound          : CreateTagDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/dto/save-number-format.dto.ts[39m
+[08:36:08] [36mfound          : SaveNumberFormatDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/dto/search-tag.dto.ts[39m
+[08:36:08] [36mfound          : SearchTagDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/dto/update-tag.dto.ts[39m
+[08:36:08] [36mfound          : UpdateTagDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/entities/discipline.entity.ts[39m
+[08:36:08] [36mfound          : Discipline[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [36mfound          : Discipline[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/master/entities/tag.entity.ts[39m
+[08:36:08] [36mfound          : Tag[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/notification/dto/create-notification.dto.ts[39m
+[08:36:08] [36mfound          : CreateNotificationDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/notification/dto/search-notification.dto.ts[39m
+[08:36:08] [36mfound          : SearchNotificationDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/notification/entities/notification.entity.ts[39m
+[08:36:08] [36mfound          : NotificationType[39m
+[08:36:08] [36mfound          : Notification[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/organizations/entities/organization.entity.ts[39m
+[08:36:08] [36mfound          : Organization[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/dto/create-contract.dto.ts[39m
+[08:36:08] [36mfound          : CreateContractDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/dto/create-organization.dto.ts[39m
+[08:36:08] [36mfound          : CreateOrganizationDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/dto/create-project.dto.ts[39m
+[08:36:08] [36mfound          : CreateProjectDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/dto/search-project.dto.ts[39m
+[08:36:08] [36mfound          : SearchProjectDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/dto/update-contract.dto.ts[39m
+[08:36:08] [36mfound          : UpdateContractDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/dto/update-organization.dto.ts[39m
+[08:36:08] [36mfound          : UpdateOrganizationDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/dto/update-project.dto.ts[39m
+[08:36:08] [36mfound          : UpdateProjectDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/entities/contract-organization.entity.ts[39m
+[08:36:08] [36mfound          : ContractOrganization[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/entities/contract.entity.ts[39m
+[08:36:08] [36mfound          : Contract[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/entities/organization.entity.ts[39m
+[08:36:08] [36mfound          : Organization[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/entities/project-organization.entity.ts[39m
+[08:36:08] [36mfound          : ProjectOrganization[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/project/entities/project.entity.ts[39m
+[08:36:08] [36mfound          : Project[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/create-rfa-revision.dto.ts[39m
+[08:36:08] [36mfound          : CreateRfaRevisionDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/create-rfa-workflow.dto.ts[39m
+[08:36:08] [36mfound          : RfaActionType[39m
+[08:36:08] [36mfound          : CreateRfaWorkflowDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/create-rfa.dto.ts[39m
+[08:36:08] [36mfound          : CreateRfaDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/search-rfa.dto.ts[39m
+[08:36:08] [36mfound          : SearchRfaDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/submit-rfa.dto.ts[39m
+[08:36:08] [36mfound          : SubmitRfaDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/dto/update-rfa.dto.ts[39m
+[08:36:08] [36mfound          : UpdateRfaDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-approve-code.entity.ts[39m
+[08:36:08] [36mfound          : RfaApproveCode[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-item.entity.ts[39m
+[08:36:08] [36mfound          : RfaItem[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-revision.entity.ts[39m
+[08:36:08] [36mfound          : RfaRevision[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [36mfound          : RfaRevision[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-status-code.entity.ts[39m
+[08:36:08] [36mfound          : RfaStatusCode[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-type.entity.ts[39m
+[08:36:08] [36mfound          : RfaType[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-workflow-template-step.entity.ts[39m
+[08:36:08] [36mfound          : RfaActionType[39m
+[08:36:08] [36mfound          : RfaWorkflowTemplateStep[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-workflow-template.entity.ts[39m
+[08:36:08] [36mfound          : RfaWorkflowTemplate[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa-workflow.entity.ts[39m
+[08:36:08] [36mfound          : RfaWorkflow[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/rfa/entities/rfa.entity.ts[39m
+[08:36:08] [36mfound          : Rfa[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/search/dto/search-query.dto.ts[39m
+[08:36:08] [36mfound          : SearchQueryDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/transmittal/dto/create-transmittal.dto.ts[39m
+[08:36:08] [36mfound          : TransmittalPurpose[39m
+[08:36:08] [36mfound          : TransmittalItemDto[39m
+[08:36:08] [36mfound          : CreateTransmittalDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/transmittal/dto/search-transmittal.dto.ts[39m
+[08:36:08] [36mfound          : SearchTransmittalDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/transmittal/dto/update-transmittal.dto.ts[39m
+[08:36:08] [36mfound          : UpdateTransmittalDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/transmittal/entities/transmittal-item.entity.ts[39m
+[08:36:08] [36mfound          : TransmittalItem[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/transmittal/entities/transmittal.entity.ts[39m
+[08:36:08] [36mfound          : Transmittal[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/dto/assign-role.dto.ts[39m
+[08:36:08] [36mfound          : AssignRoleDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/dto/create-user.dto.ts[39m
+[08:36:08] [36mfound          : CreateUserDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/dto/update-preference.dto.ts[39m
+[08:36:08] [36mfound          : UpdatePreferenceDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/dto/update-user.dto.ts[39m
+[08:36:08] [36mfound          : UpdateUserDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/entities/permission.entity.ts[39m
+[08:36:08] [36mfound          : Permission[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/entities/role.entity.ts[39m
+[08:36:08] [36mfound          : RoleScope[39m
+[08:36:08] [36mfound          : Role[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/entities/user-assignment.entity.ts[39m
+[08:36:08] [36mfound          : UserAssignment[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/entities/user-preference.entity.ts[39m
+[08:36:08] [36mfound          : UserPreference[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/user/entities/user.entity.ts[39m
+[08:36:08] [36mfound          : User[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dsl/parser.service.ts[39m
+[08:36:08] [36mfound          : WorkflowDslParser[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dsl/workflow-dsl.schema.ts[39m
+[08:36:08] [36mfound          : GuardSchema[39m
+[08:36:08] [36mfound          : WorkflowGuard[39m
+[08:36:08] [36mfound          : EffectSchema[39m
+[08:36:08] [36mfound          : WorkflowEffect[39m
+[08:36:08] [36mfound          : TransitionSchema[39m
+[08:36:08] [36mfound          : WorkflowTransition[39m
+[08:36:08] [36mfound          : WorkflowDslSchema[39m
+[08:36:08] [36mfound          : WorkflowDsl[39m
+[08:36:08] [36mfound          : RFA_WORKFLOW_EXAMPLE[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/create-workflow-definition.dto.ts[39m
+[08:36:08] [36mfound          : CreateWorkflowDefinitionDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/evaluate-workflow.dto.ts[39m
+[08:36:08] [36mfound          : EvaluateWorkflowDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/get-available-actions.dto.ts[39m
+[08:36:08] [36mfound          : GetAvailableActionsDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/update-workflow-definition.dto.ts[39m
+[08:36:08] [36mfound          : UpdateWorkflowDefinitionDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/dto/workflow-transition.dto.ts[39m
+[08:36:08] [36mfound          : WorkflowTransitionDto[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/entities/workflow-definition.entity.ts[39m
+[08:36:08] [36mfound          : WorkflowDefinition[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [36mfound          : WorkflowDefinition[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/entities/workflow-history.entity.ts[39m
+[08:36:08] [36mfound          : WorkflowHistory[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [36mfound          : WorkflowHistory[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/entities/workflow-instance.entity.ts[39m
+[08:36:08] [36mfound          : WorkflowStatus[39m
+[08:36:08] [36mfound          : WorkflowInstance[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [36mfound          : WorkflowInstance[39m
+[08:36:08] [33mEmpty metadatas, trying to find it with imports.[39m
+[08:36:08] [32mparsing        : D:/nap-dms.lcbp3/backend/src/modules/workflow-engine/interfaces/workflow.interface.ts[39m
+[08:36:08] [36mfound          : StepStatus[39m
+[08:36:08] [36mfound          : WorkflowAction[39m
+[08:36:08] [36mfound          : WorkflowStep[39m
+[08:36:08] [36mfound          : TransitionResult[39m
+[08:36:08] [32m-------------------[39m
+[08:36:08] [32mProject statistics [39m
+[08:36:08] [32m- files        : 239[39m
+[08:36:08] [32m- module       : 21[39m
+[08:36:08] [32m- controller   : 22[39m
+[08:36:08] [32m- entity       : 57[39m
+[08:36:08] [32m- injectable   : 48[39m
+[08:36:08] [32m- guard        : 3[39m
+[08:36:08] [32m- class        : 80[39m
+[08:36:08] [32m- interface    : 36[39m
+[08:36:08] [32m- type aliases : 9[39m
+[08:36:08] [32m-------------------[39m
+[08:36:08] [32mPrepare components[39m
+[08:36:08] [32mPrepare modules[39m
+[08:36:08] [32mPrepare controllers[39m
+[08:36:08] [32mPrepare entities[39m
+[08:36:08] [32mPrepare injectables[39m
+[08:36:08] [32mPrepare guards[39m
+[08:36:08] [32mProcess routes[39m
+[08:36:08] [32m Routes index generated[39m
+[08:36:08] [32mPrepare classes[39m
+[08:36:08] [32mPrepare interfaces[39m
+[08:36:08] [32mPrepare miscellaneous[39m
+[08:36:08] [32mProcess documentation coverage report[39m
+[08:36:08] [32mProcess main graph[39m
+[08:36:08] [32mProcess module graph : AppModule[39m
+[08:36:08] [32mProcess module graph : AuthModule[39m
+[08:36:08] [32mProcess module graph : CaslModule[39m
+[08:36:08] [32mProcess module graph : CirculationModule[39m
+[08:36:08] [32mProcess module graph : CommonModule[39m
+[08:36:08] [32mProcess module graph : CorrespondenceModule[39m
+[08:36:08] [32mProcess module graph : DashboardModule[39m
+[08:36:08] [32mProcess module graph : DocumentNumberingModule[39m
+[08:36:08] [32mProcess module graph : DrawingModule[39m
+[08:36:09] [32mProcess module graph : FileStorageModule[39m
+[08:36:09] [32mProcess module graph : JsonSchemaModule[39m
+[08:36:09] [32mProcess module graph : MasterModule[39m
+[08:36:09] [32mProcess module graph : MonitoringModule[39m
+[08:36:09] [32mProcess module graph : NotificationModule[39m
+[08:36:09] [32mProcess module graph : ProjectModule[39m
+[08:36:09] [32mProcess module graph : ResilienceModule[39m
+[08:36:09] [32mProcess module graph : RfaModule[39m
+[08:36:09] [32mProcess module graph : SearchModule[39m
+[08:36:09] [32mProcess module graph : TransmittalModule[39m
+[08:36:09] [32mProcess module graph : UserModule[39m
+[08:36:09] [32mProcess module graph : WorkflowEngineModule[39m
+[08:36:09] [32mProcess pages[39m
+[08:36:09] [32mProcess page   : AbilityFactory[39m
+[08:36:09] [32mProcess page   : ActivityItemDto[39m
+[08:36:09] [32mProcess page   : AddReferenceDto[39m
+[08:36:09] [32mProcess page   : AppController[39m
+[08:36:09] [32mProcess page   : AppModule[39m
+[08:36:09] [32mProcess page   : AppService[39m
+[08:36:09] [32mProcess page   : AssignRoleDto[39m
+[08:36:09] [32mProcess page   : Attachment[39m
+[08:36:09] [32mProcess page   : AuditLog[39m
+[08:36:09] [32mProcess page   : AuditLogInterceptor[39m
+[08:36:09] [32mProcess page   : AuditMetadata[39m
+[08:36:09] [32mProcess page   : AuthController[39m
+[08:36:09] [32mProcess page   : AuthModule[39m
+[08:36:09] [32mProcess page   : AuthService[39m
+[08:36:09] [32mProcess page   : BaseEntity[39m
+[08:36:09] [32mProcess page   : CaslModule[39m
+[08:36:09] [32mProcess page   : CircuitBreakerOptions[39m
+[08:36:09] [32mProcess page   : Circulation[39m
+[08:36:09] [32mProcess page   : CirculationController[39m
+[08:36:09] [32mProcess page   : CirculationModule[39m
+[08:36:09] [32mProcess page   : CirculationRouting[39m
+[08:36:09] [32mProcess page   : CirculationService[39m
+[08:36:09] [32mProcess page   : CirculationStatusCode[39m
+[08:36:09] [32mProcess page   : CirculationWorkflowService[39m
+[08:36:09] [32mProcess page   : CommonModule[39m
+[08:36:09] [32mProcess page   : CompiledState[39m
+[08:36:09] [32mProcess page   : CompiledTransition[39m
+[08:36:09] [32mProcess page   : CompiledWorkflow[39m
+[08:36:09] [32mProcess page   : Contract[39m
+[08:36:09] [32mProcess page   : ContractController[39m
+[08:36:09] [32mProcess page   : ContractDrawing[39m
+[08:36:09] [32mProcess page   : ContractDrawingController[39m
+[08:36:09] [32mProcess page   : ContractDrawingService[39m
+[08:36:09] [32mProcess page   : ContractDrawingSubCategory[39m
+[08:36:09] [32mProcess page   : ContractDrawingVolume[39m
+[08:36:09] [32mProcess page   : ContractOrganization[39m
+[08:36:09] [32mProcess page   : ContractService[39m
+[08:36:09] [32mProcess page   : Correspondence[39m
+[08:36:09] [32mProcess page   : CorrespondenceController[39m
+[08:36:09] [32mProcess page   : CorrespondenceModule[39m
+[08:36:09] [32mProcess page   : CorrespondenceReference[39m
+[08:36:09] [32mProcess page   : CorrespondenceRevision[39m
+[08:36:09] [32mProcess page   : CorrespondenceRouting[39m
+[08:36:09] [32mProcess page   : CorrespondenceService[39m
+[08:36:09] [32mProcess page   : CorrespondenceStatus[39m
+[08:36:09] [32mProcess page   : CorrespondenceSubType[39m
+[08:36:09] [32mProcess page   : CorrespondenceType[39m
+[08:36:09] [32mProcess page   : CorrespondenceWorkflowService[39m
+[08:36:09] [32mProcess page   : CreateCirculationDto[39m
+[08:36:09] [32mProcess page   : CreateContractDrawingDto[39m
+[08:36:09] [32mProcess page   : CreateContractDto[39m
+[08:36:09] [32mProcess page   : CreateCorrespondenceDto[39m
+[08:36:09] [32mProcess page   : CreateDisciplineDto[39m
+[08:36:09] [32mProcess page   : CreateJsonSchemaDto[39m
+[08:36:09] [32mProcess page   : CreateNotificationDto[39m
+[08:36:09] [32mProcess page   : CreateOrganizationDto[39m
+[08:36:09] [32mProcess page   : CreateProjectDto[39m
+[08:36:09] [32mProcess page   : CreateRfaDto[39m
+[08:36:09] [32mProcess page   : CreateRfaRevisionDto[39m
+[08:36:09] [32mProcess page   : CreateRfaWorkflowDto[39m
+[08:36:09] [32mProcess page   : CreateRoutingTemplateDto[39m
+[08:36:09] [32mProcess page   : CreateRoutingTemplateStepDto[39m
+[08:36:09] [32mProcess page   : CreateShopDrawingDto[39m
+[08:36:09] [32mProcess page   : CreateShopDrawingRevisionDto[39m
+[08:36:09] [32mProcess page   : CreateSubTypeDto[39m
+[08:36:09] [32mProcess page   : CreateTagDto[39m
+[08:36:09] [32mProcess page   : CreateTransmittalDto[39m
+[08:36:09] [32mProcess page   : CreateUserDto[39m
+[08:36:09] [32mProcess page   : CreateWorkflowDefinitionDto[39m
+[08:36:09] [32mProcess page   : CryptoService[39m
+[08:36:09] [32mProcess page   : DashboardController[39m
+[08:36:09] [32mProcess page   : DashboardModule[39m
+[08:36:09] [32mProcess page   : DashboardService[39m
+[08:36:09] [32mProcess page   : DashboardStatsDto[39m
+[08:36:09] [32mProcess page   : DecodedTokens[39m
+[08:36:09] [32mProcess page   : Discipline[39m
+[08:36:09] [32mProcess page   : DocumentNumberAudit[39m
+[08:36:09] [32mProcess page   : DocumentNumberCounter[39m
+[08:36:09] [32mProcess page   : DocumentNumberError[39m
+[08:36:09] [32mProcess page   : DocumentNumberFormat[39m
+[08:36:09] [32mProcess page   : DocumentNumberingModule[39m
+[08:36:09] [32mProcess page   : DocumentNumberingService[39m
+[08:36:09] [32mProcess page   : DrawingMasterDataController[39m
+[08:36:09] [32mProcess page   : DrawingMasterDataService[39m
+[08:36:09] [32mProcess page   : DrawingModule[39m
+[08:36:09] [32mProcess page   : EvaluateWorkflowDto[39m
+[08:36:09] [32mProcess page   : FieldCondition[39m
+[08:36:09] [32mProcess page   : FieldDependency[39m
+[08:36:09] [32mProcess page   : FileCleanupService[39m
+[08:36:09] [32mProcess page   : FileStorageController[39m
+[08:36:09] [32mProcess page   : FileStorageModule[39m
+[08:36:09] [32mProcess page   : FileStorageService[39m
+[08:36:09] [32mProcess page   : GenerateNumberContext[39m
+[08:36:09] [32mProcess page   : GetActivityDto[39m
+[08:36:09] [32mProcess page   : GetAvailableActionsDto[39m
+[08:36:09] [32mProcess page   : GetPendingDto[39m
+[08:36:09] [32mProcess page   : HealthController[39m
+[08:36:09] [32mProcess page   : HttpExceptionFilter[39m
+[08:36:09] [32mProcess page   : IdempotencyInterceptor[39m
+[08:36:09] [32mProcess page   : InitialSchema1701234567890[39m
+[08:36:09] [32mProcess page   : JsonSchema[39m
+[08:36:09] [32mProcess page   : JsonSchemaController[39m
+[08:36:09] [32mProcess page   : JsonSchemaModule[39m
+[08:36:09] [32mProcess page   : JsonSchemaService[39m
+[08:36:09] [32mProcess page   : JsonSecurityService[39m
+[08:36:09] [32mProcess page   : JwtAuthGuard[39m
+[08:36:09] [32mProcess page   : JwtPayload[39m
+[08:36:09] [32mProcess page   : JwtRefreshGuard[39m
+[08:36:09] [32mProcess page   : JwtRefreshStrategy[39m
+[08:36:09] [32mProcess page   : JwtStrategy[39m
+[08:36:09] [32mProcess page   : LayoutConfig[39m
+[08:36:09] [32mProcess page   : LayoutGroup[39m
+[08:36:09] [32mProcess page   : LoginDto[39m
+[08:36:09] [32mProcess page   : MaintenanceModeGuard[39m
+[08:36:09] [32mProcess page   : MasterController[39m
+[08:36:09] [32mProcess page   : MasterModule[39m
+[08:36:09] [32mProcess page   : MasterService[39m
+[08:36:09] [32mProcess page   : MetricsService[39m
+[08:36:09] [32mProcess page   : MigrateDataDto[39m
+[08:36:09] [32mProcess page   : MigrationResult[39m
+[08:36:09] [32mProcess page   : MigrationStep[39m
+[08:36:09] [32mProcess page   : MonitoringController[39m
+[08:36:10] [32mProcess page   : MonitoringModule[39m
+[08:36:10] [32mProcess page   : MonitoringService[39m
+[08:36:10] [32mProcess page   : Notification[39m
+[08:36:10] [32mProcess page   : NotificationCleanupService[39m
+[08:36:10] [32mProcess page   : NotificationController[39m
+[08:36:10] [32mProcess page   : NotificationGateway[39m
+[08:36:10] [32mProcess page   : NotificationJobData[39m
+[08:36:10] [32mProcess page   : NotificationModule[39m
+[08:36:10] [32mProcess page   : NotificationPayload[39m
+[08:36:10] [32mProcess page   : NotificationProcessor[39m
+[08:36:10] [32mProcess page   : NotificationService[39m
+[08:36:10] [32mProcess page   : Organization[39m
+[08:36:10] [32mProcess page   : Organization-1[39m
+[08:36:10] [32mProcess page   : OrganizationController[39m
+[08:36:10] [32mProcess page   : OrganizationService[39m
+[08:36:10] [32mProcess page   : PendingTaskItemDto[39m
+[08:36:10] [32mProcess page   : PerformanceInterceptor[39m
+[08:36:10] [32mProcess page   : Permission[39m
+[08:36:10] [32mProcess page   : Permission-1[39m
+[08:36:10] [32mProcess page   : PermissionsGuard[39m
+[08:36:10] [32mProcess page   : Project[39m
+[08:36:10] [32mProcess page   : ProjectController[39m
+[08:36:10] [32mProcess page   : ProjectModule[39m
+[08:36:10] [32mProcess page   : ProjectOrganization[39m
+[08:36:10] [32mProcess page   : ProjectService[39m
+[08:36:10] [32mProcess page   : RawEvent[39m
+[08:36:10] [32mProcess page   : RawState[39m
+[08:36:10] [32mProcess page   : RawTransition[39m
+[08:36:10] [32mProcess page   : RawWorkflowDSL[39m
+[08:36:10] [32mProcess page   : RbacGuard[39m
+[08:36:10] [32mProcess page   : RefreshToken[39m
+[08:36:10] [32mProcess page   : RegisterDto[39m
+[08:36:10] [32mProcess page   : RequestContextService[39m
+[08:36:10] [32mProcess page   : RequestWithUser[39m
+[08:36:10] [32mProcess page   : RequestWithUser-1[39m
+[08:36:10] [32mProcess page   : ResilienceModule[39m
+[08:36:10] [32mProcess page   : Response[39m
+[08:36:10] [32mProcess page   : RetryOptions[39m
+[08:36:10] [32mProcess page   : Rfa[39m
+[08:36:10] [32mProcess page   : RfaApproveCode[39m
+[08:36:10] [32mProcess page   : RfaController[39m
+[08:36:10] [32mProcess page   : RfaItem[39m
+[08:36:10] [32mProcess page   : RfaModule[39m
+[08:36:10] [32mProcess page   : RfaRevision[39m
+[08:36:10] [32mProcess page   : RfaService[39m
+[08:36:10] [32mProcess page   : RfaStatusCode[39m
+[08:36:10] [32mProcess page   : RfaType[39m
+[08:36:10] [32mProcess page   : RfaWorkflow[39m
+[08:36:10] [32mProcess page   : RfaWorkflowService[39m
+[08:36:10] [32mProcess page   : RfaWorkflowTemplate[39m
+[08:36:10] [32mProcess page   : RfaWorkflowTemplateStep[39m
+[08:36:10] [32mProcess page   : Role[39m
+[08:36:10] [32mProcess page   : Role-1[39m
+[08:36:10] [32mProcess page   : RoutingTemplate[39m
+[08:36:10] [32mProcess page   : RoutingTemplateStep[39m
+[08:36:10] [32mProcess page   : SaveNumberFormatDto[39m
+[08:36:10] [32mProcess page   : SchemaMigrationService[39m
+[08:36:10] [32mProcess page   : ScopeContext[39m
+[08:36:10] [32mProcess page   : SearchCirculationDto[39m
+[08:36:10] [32mProcess page   : SearchContractDrawingDto[39m
+[08:36:10] [32mProcess page   : SearchController[39m
+[08:36:10] [32mProcess page   : SearchCorrespondenceDto[39m
+[08:36:10] [32mProcess page   : SearchJsonSchemaDto[39m
+[08:36:10] [32mProcess page   : SearchModule[39m
+[08:36:10] [32mProcess page   : SearchNotificationDto[39m
+[08:36:10] [32mProcess page   : SearchProjectDto[39m
+[08:36:10] [32mProcess page   : SearchQueryDto[39m
+[08:36:10] [32mProcess page   : SearchRfaDto[39m
+[08:36:10] [32mProcess page   : SearchService[39m
+[08:36:10] [32mProcess page   : SearchShopDrawingDto[39m
+[08:36:10] [32mProcess page   : SearchTagDto[39m
+[08:36:10] [32mProcess page   : SearchTransmittalDto[39m
+[08:36:10] [32mProcess page   : SecurityContext[39m
+[08:36:10] [32mProcess page   : SetMaintenanceDto[39m
+[08:36:10] [32mProcess page   : ShopDrawing[39m
+[08:36:10] [32mProcess page   : ShopDrawingController[39m
+[08:36:10] [32mProcess page   : ShopDrawingMainCategory[39m
+[08:36:10] [32mProcess page   : ShopDrawingRevision[39m
+[08:36:10] [32mProcess page   : ShopDrawingService[39m
+[08:36:10] [32mProcess page   : ShopDrawingSubCategory[39m
+[08:36:10] [32mProcess page   : SubmitCorrespondenceDto[39m
+[08:36:10] [32mProcess page   : SubmitRfaDto[39m
+[08:36:10] [32mProcess page   : Tag[39m
+[08:36:10] [32mProcess page   : TransformInterceptor[39m
+[08:36:10] [32mProcess page   : TransitionResult[39m
+[08:36:10] [32mProcess page   : TransitionResult-1[39m
+[08:36:10] [32mProcess page   : Transmittal[39m
+[08:36:10] [32mProcess page   : TransmittalController[39m
+[08:36:10] [32mProcess page   : TransmittalItem[39m
+[08:36:10] [32mProcess page   : TransmittalItemDto[39m
+[08:36:10] [32mProcess page   : TransmittalModule[39m
+[08:36:10] [32mProcess page   : TransmittalService[39m
+[08:36:10] [32mProcess page   : UiSchema[39m
+[08:36:10] [32mProcess page   : UiSchemaField[39m
+[08:36:10] [32mProcess page   : UiSchemaService[39m
+[08:36:10] [32mProcess page   : UpdateCirculationRoutingDto[39m
+[08:36:10] [32mProcess page   : UpdateContractDrawingDto[39m
+[08:36:10] [32mProcess page   : UpdateContractDto[39m
+[08:36:10] [32mProcess page   : UpdateJsonSchemaDto[39m
+[08:36:10] [32mProcess page   : UpdateOrganizationDto[39m
+[08:36:10] [32mProcess page   : UpdatePreferenceDto[39m
+[08:36:10] [32mProcess page   : UpdateProjectDto[39m
+[08:36:10] [32mProcess page   : UpdateRfaDto[39m
+[08:36:10] [32mProcess page   : UpdateTagDto[39m
+[08:36:10] [32mProcess page   : UpdateTransmittalDto[39m
+[08:36:10] [32mProcess page   : UpdateUserDto[39m
+[08:36:10] [32mProcess page   : UpdateWorkflowDefinitionDto[39m
+[08:36:10] [32mProcess page   : User[39m
+[08:36:10] [32mProcess page   : UserAssignment[39m
+[08:36:10] [32mProcess page   : UserAssignmentService[39m
+[08:36:10] [32mProcess page   : UserController[39m
+[08:36:10] [32mProcess page   : UserModule[39m
+[08:36:10] [32mProcess page   : UserPreference[39m
+[08:36:10] [32mProcess page   : UserPreferenceService[39m
+[08:36:10] [32mProcess page   : UserService[39m
+[08:36:10] [32mProcess page   : V1_5_1_Schema_Update1701676800000[39m
+[08:36:10] [32mProcess page   : ValidationErrorDetail[39m
+[08:36:10] [32mProcess page   : ValidationOptions[39m
+[08:36:10] [32mProcess page   : ValidationResult[39m
+[08:36:10] [32mProcess page   : VirtualColumnConfig[39m
+[08:36:10] [32mProcess page   : VirtualColumnConfigDto[39m
+[08:36:10] [32mProcess page   : VirtualColumnService[39m
+[08:36:10] [32mProcess page   : WorkflowActionDto[39m
+[08:36:10] [32mProcess page   : WorkflowDefinition[39m
+[08:36:10] [32mProcess page   : WorkflowDslParser[39m
+[08:36:10] [32mProcess page   : WorkflowDslService[39m
+[08:36:10] [32mProcess page   : WorkflowEngineController[39m
+[08:36:10] [32mProcess page   : WorkflowEngineModule[39m
+[08:36:10] [32mProcess page   : WorkflowEngineService[39m
+[08:36:10] [32mProcess page   : WorkflowEventHandler[39m
+[08:36:10] [32mProcess page   : WorkflowEventService[39m
+[08:36:10] [32mProcess page   : WorkflowHistory[39m
+[08:36:10] [32mProcess page   : WorkflowInstance[39m
+[08:36:10] [32mProcess page   : WorkflowStep[39m
+[08:36:10] [32mProcess page   : WorkflowTransitionDto[39m
+[08:36:10] [32mProcess page   : coverage[39m
+[08:36:10] [32mProcess page   : dependencies[39m
+[08:36:10] [32mProcess page   : enumerations[39m
+[08:36:10] [32mProcess page   : functions[39m
+[08:36:10] [32mProcess page   : index[39m
+[08:36:10] [32mProcess page   : modules[39m
+[08:36:10] [32mProcess page   : overview[39m
+[08:36:10] [32mProcess page   : properties[39m
+[08:36:10] [32mProcess page   : routes[39m
+[08:36:10] [32mProcess page   : typealiases[39m
+[08:36:10] [32mProcess page   : variables[39m
+[08:36:11] [32mProcess menu...[39m
+[08:36:11] [32mCopy main resources[39m
+[08:36:11] [32mDocumentation generated in ./documentation/ in 9.427 seconds using gitbook theme[39m
+[08:36:11] [32mServing documentation from ./documentation/ at http://127.0.0.1:8080[39m

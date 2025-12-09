@@ -2,8 +2,8 @@
 
 **Project Name:** Laem Chabang Port Phase 3 - Document Management System (LCBP3-DMS)
 **Version:** 1.5.1
-**Status:** Planning & Specification Phase
-**Last Updated:** 2025-12-02
+**Status:** Active Development (~80% Complete)
+**Last Updated:** 2025-12-09
 
 ---
 
@@ -182,12 +182,14 @@ lcbp3/
 │
 ├── specs/                     # Technical Specifications
 │   ├── 00-overview/          # Project overview & glossary
-│   ├── 01-requirements/      # Functional requirements
+│   ├── 01-requirements/      # Functional requirements (21 docs)
 │   ├── 02-architecture/      # System architecture
 │   ├── 03-implementation/    # Implementation guidelines
 │   ├── 04-operations/        # Deployment & operations
-│   ├── 05-decisions/         # Architecture Decision Records (ADRs)
-│   └── 06-tasks/             # Development tasks
+│   ├── 05-decisions/         # Architecture Decision Records (17 ADRs)
+│   ├── 06-tasks/             # Development tasks & progress
+│   ├── 07-database/          # Database schema v1.5.1 & seed data
+│   └── 09-history/           # Archived implementations
 │
 ├── docker-compose.yml         # Docker services configuration
 └── README.md                  # Project README
@@ -383,8 +385,8 @@ lcbp3/
 ## 📝 Document Control
 
 - **Version:** 1.5.1
-- **Status:** Active
-- **Last Updated:** 2025-12-02
+- **Status:** Active Development
+- **Last Updated:** 2025-12-09
 - **Next Review:** 2026-01-01
 - **Owner:** System Architect
 - **Classification:** Internal Use Only
@@ -395,6 +397,7 @@ lcbp3/
 
 | Version | Date       | Description                                |
 | ------- | ---------- | ------------------------------------------ |
+| 1.5.1   | 2025-12-09 | TASK-FE-011/012 completed, docs updated    |
 | 1.5.1   | 2025-12-02 | Reorganized documentation structure        |
 | 1.5.0   | 2025-12-01 | Complete specification with ADRs and tasks |
 | 1.4.5   | 2025-11-30 | Updated architecture documents             |

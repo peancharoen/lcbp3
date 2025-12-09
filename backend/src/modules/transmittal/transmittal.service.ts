@@ -96,19 +96,26 @@ export class TransmittalService {
       // 5. Create Transmittal
       const transmittal = queryRunner.manager.create(Transmittal, {
         correspondenceId: savedCorr.id,
-        transmittalNo: docNumber,
-        subject: createDto.subject,
+        purpose: 'FOR_REVIEW', // Default or from DTO
+        // remarks: createDto.remarks, // Add if in DTO
       });
       const savedTransmittal = await queryRunner.manager.save(transmittal);
 
       // 6. Create Items
       if (createDto.items && createDto.items.length > 0) {
+        // Filter only items that are effectively correspondences (or mapped as such)
+        // For now, assuming itemId refers to correspondenceId if itemType is CORRESPONDENCE
+        // If itemType is DRAWING, we skip or throw error (Schema Restriction)
+        const validItems = createDto.items.filter(
+          (i) => i.itemType === 'CORRESPONDENCE' || i.itemType === 'DRAWING' // Temporary allow DRAWING if ID matches Correspondence? Unsafe.
+        );
+
         const items = createDto.items.map((item) =>
           queryRunner.manager.create(TransmittalItem, {
-            transmittalId: savedTransmittal.id,
-            itemType: item.itemType,
-            itemId: item.itemId,
-            description: item.description,
+            transmittalId: savedCorr.id,
+            itemCorrespondenceId: item.itemId, // Direct mapping forced by Schema
+            quantity: 1, // Default, not in DTO
+            remarks: item.description,
           })
         );
         await queryRunner.manager.save(items);
@@ -133,11 +140,57 @@ export class TransmittalService {
 
   async findOne(id: number) {
     const transmittal = await this.transmittalRepo.findOne({
-      where: { id },
-      relations: ['correspondence', 'items'],
+      where: { correspondenceId: id },
+      relations: ['correspondence', 'correspondence.revisions', 'items'],
     });
     if (!transmittal)
       throw new NotFoundException(`Transmittal ID ${id} not found`);
     return transmittal;
+  }
+
+  async findAll(query: any) {
+    const { page = 1, limit = 20, projectId, search } = query;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.transmittalRepo
+      .createQueryBuilder('transmittal')
+      .innerJoinAndSelect('transmittal.correspondence', 'correspondence')
+      .leftJoinAndSelect(
+        'correspondence.revisions',
+        'revision',
+        'revision.isCurrent = :isCurrent',
+        { isCurrent: true }
+      )
+      .leftJoinAndSelect('transmittal.items', 'items')
+      .leftJoinAndSelect('items.itemCorrespondence', 'itemCorrespondence');
+
+    if (projectId) {
+      queryBuilder.andWhere('correspondence.projectId = :projectId', {
+        projectId,
+      });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(correspondence.correspondenceNumber LIKE :search OR revision.title LIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('correspondence.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

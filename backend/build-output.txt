@@ -1,0 +1,72 @@
+
+> backend@1.5.1 build
+> nest build
+
+documentation/template-playground/hbs-render.service.ts:1:28 - error TS2307: Cannot find module '@angular/core' or its corresponding type declarations.
+
+1 import { Injectable } from '@angular/core';
+                             ~~~~~~~~~~~~~~~
+documentation/template-playground/hbs-render.service.ts:175:42 - error TS18046: 'error' is of type 'unknown'.
+
+175             <p><strong>Error:</strong> ${error.message}</p>
+                                             ~~~~~
+documentation/template-playground/main.ts:1:40 - error TS2307: Cannot find module '@angular/platform-browser-dynamic' or its corresponding type declarations.
+
+1 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+documentation/template-playground/main.ts:8:12 - error TS7006: Parameter 'err' implicitly has an 'any' type.
+
+8     .catch(err => console.error('Error starting template playground:', err));
+             ~~~
+documentation/template-playground/template-editor.service.ts:1:28 - error TS2307: Cannot find module '@angular/core' or its corresponding type declarations.
+
+1 import { Injectable } from '@angular/core';
+                             ~~~~~~~~~~~~~~~
+documentation/template-playground/template-playground.component.ts:1:69 - error TS2307: Cannot find module '@angular/core' or its corresponding type declarations.
+
+1 import { Component, OnInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+                                                                      ~~~~~~~~~~~~~~~
+documentation/template-playground/template-playground.component.ts:2:28 - error TS2307: Cannot find module '@angular/common/http' or its corresponding type declarations.
+
+2 import { HttpClient } from '@angular/common/http';
+                             ~~~~~~~~~~~~~~~~~~~~~~
+documentation/template-playground/template-playground.module.ts:1:26 - error TS2307: Cannot find module '@angular/core' or its corresponding type declarations.
+
+1 import { NgModule } from '@angular/core';
+                           ~~~~~~~~~~~~~~~
+documentation/template-playground/template-playground.module.ts:2:31 - error TS2307: Cannot find module '@angular/platform-browser' or its corresponding type declarations.
+
+2 import { BrowserModule } from '@angular/platform-browser';
+                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+documentation/template-playground/template-playground.module.ts:3:30 - error TS2307: Cannot find module '@angular/common' or its corresponding type declarations.
+
+3 import { CommonModule } from '@angular/common';
+                               ~~~~~~~~~~~~~~~~~
+documentation/template-playground/template-playground.module.ts:4:29 - error TS2307: Cannot find module '@angular/forms' or its corresponding type declarations.
+
+4 import { FormsModule } from '@angular/forms';
+                              ~~~~~~~~~~~~~~~~
+documentation/template-playground/template-playground.module.ts:5:34 - error TS2307: Cannot find module '@angular/common/http' or its corresponding type declarations.
+
+5 import { HttpClientModule } from '@angular/common/http';
+                                   ~~~~~~~~~~~~~~~~~~~~~~
+documentation/template-playground/zip-export.service.ts:1:28 - error TS2307: Cannot find module '@angular/core' or its corresponding type declarations.
+
+1 import { Injectable } from '@angular/core';
+                             ~~~~~~~~~~~~~~~
+src/modules/rfa/rfa.service.ts:422:11 - error TS2339: Property 'returnToSequence' does not exist on type 'WorkflowActionDto'.
+
+422       dto.returnToSequence
+              ~~~~~~~~~~~~~~~~
+src/modules/rfa/rfa.service.ts:435:37 - error TS2551: Property 'comments' does not exist on type 'WorkflowActionDto'. Did you mean 'comment'?
+
+435       currentRouting.comments = dto.comments;
+                                        ~~~~~~~~
+
+  src/modules/correspondence/dto/workflow-action.dto.ts:29:3
+    29   comment?: string;
+         ~~~~~~~
+    'comment' is declared here.
+
+Found 15 error(s).
+

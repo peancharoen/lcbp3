@@ -11,13 +11,15 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { AuthService } from './auth.service.js';
-import { LoginDto } from './dto/login.dto.js';
-import { RegisterDto } from './dto/register.dto.js';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
-import { JwtRefreshGuard } from '../guards/jwt-refresh.guard.js';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { JwtRefreshGuard } from '../guards/jwt-refresh.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -129,5 +131,23 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User profile' })
   getProfile(@Req() req: RequestWithUser) {
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('sessions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get active sessions' })
+  @ApiResponse({ status: 200, description: 'List of active sessions' })
+  async getSessions() {
+    return this.authService.getActiveSessions();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('sessions/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke session' })
+  @ApiResponse({ status: 200, description: 'Session revoked' })
+  async revokeSession(@Param('id') id: string) {
+    return this.authService.revokeSession(parseInt(id));
   }
 }

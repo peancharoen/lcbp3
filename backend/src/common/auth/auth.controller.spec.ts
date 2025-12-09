@@ -1,30 +1,86 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
-import { AuthService } from './auth.service.js';
-import { LoginDto } from './dto/login.dto.js'; // <--- Import DTO
-import { RegisterDto } from './dto/register.dto.js'; // <--- Import DTO
+import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 
-@Controller('auth')
-export class AuthController {
-  constructor(private authService: AuthService) {}
+describe('AuthController', () => {
+  let controller: AuthController;
+  let mockAuthService: Partial<AuthService>;
 
-  @Post('login')
-  // เปลี่ยน @Body() req เป็น @Body() loginDto: LoginDto
-  async login(@Body() loginDto: LoginDto) {
-    const user = await this.authService.validateUser(
-      loginDto.username,
-      loginDto.password,
-    );
+  beforeEach(async () => {
+    mockAuthService = {
+      validateUser: jest.fn(),
+      login: jest.fn(),
+      register: jest.fn(),
+      refreshToken: jest.fn(),
+      logout: jest.fn(),
+    };
 
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AuthController],
+      providers: [
+        {
+          provide: AuthService,
+          useValue: mockAuthService,
+        },
+      ],
+    }).compile();
 
-    return this.authService.login(user);
-  }
+    controller = module.get<AuthController>(AuthController);
+  });
 
-  @Post('register-admin')
-  // เปลี่ยน @Body() req เป็น @Body() registerDto: RegisterDto
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
-  }
-}
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  describe('login', () => {
+    it('should return tokens when credentials are valid', async () => {
+      const loginDto = { username: 'test', password: 'password' };
+      const mockUser = { user_id: 1, username: 'test' };
+      const mockTokens = {
+        access_token: 'access_token',
+        refresh_token: 'refresh_token',
+        user: mockUser,
+      };
+
+      (mockAuthService.validateUser as jest.Mock).mockResolvedValue(mockUser);
+      (mockAuthService.login as jest.Mock).mockResolvedValue(mockTokens);
+
+      const result = await controller.login(loginDto);
+
+      expect(mockAuthService.validateUser).toHaveBeenCalledWith(
+        'test',
+        'password'
+      );
+      expect(mockAuthService.login).toHaveBeenCalledWith(mockUser);
+      expect(result).toEqual(mockTokens);
+    });
+
+    it('should throw UnauthorizedException when credentials are invalid', async () => {
+      const loginDto = { username: 'test', password: 'wrong' };
+      (mockAuthService.validateUser as jest.Mock).mockResolvedValue(null);
+
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        UnauthorizedException
+      );
+    });
+  });
+
+  describe('register', () => {
+    it('should register a new user', async () => {
+      const registerDto = {
+        username: 'newuser',
+        password: 'password',
+        email: 'test@test.com',
+        display_name: 'Test User',
+      };
+      const mockUser = { user_id: 1, ...registerDto };
+
+      (mockAuthService.register as jest.Mock).mockResolvedValue(mockUser);
+
+      const result = await controller.register(registerDto);
+
+      expect(mockAuthService.register).toHaveBeenCalledWith(registerDto);
+    });
+  });
+});

@@ -1,0 +1,220 @@
+
+> backend@1.5.1 test:e2e D:\nap-dms.lcbp3\backend
+> jest --config ./test/jest-e2e.json
+
+PASS test/simple.e2e-spec.ts
+PASS test/app.e2e-spec.ts
+[Nest] 44520  - 12/09/2025, 11:16:08 AM   ERROR [DocumentNumberingService] Error generating number for doc_num:1:1:0:2025
+[Nest] 44520  - 12/09/2025, 11:16:08 AM   ERROR [DocumentNumberingService] QueryFailedError: Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)
+    at Query.onResult (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\driver\mysql\MysqlQueryRunner.ts:248:33)
+    at Query.execute (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\commands\command.js:36:14)
+    at PoolConnection.handlePacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:477:34)
+    at PacketParser.onPacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:93:12)
+    at PacketParser.executeStart (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packet_parser.js:75:16)
+    at Socket.<anonymous> (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:100:25)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Socket.Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+  query: 'INSERT INTO `document_number_counters`(`project_id`, `originator_organization_id`, `recipient_organization_id`, `correspondence_type_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `current_year`, `last_number`, `version`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1) RETURNING `recipient_organization_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `last_number`, `version`',
+  parameters: [
+    1,
+    41,
+    -1,
+    1,
+    0,
+    0,
+    0,
+    2025,
+    1
+  ],
+  driverError: Error: Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)
+      at Packet.asError (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packets\packet.js:740:17)
+      at Query.execute (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\commands\command.js:29:26)
+      at PoolConnection.handlePacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:477:34)
+      at PacketParser.onPacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:93:12)
+      at PacketParser.executeStart (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:100:25)
+      at Socket.emit (node:events:519:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Socket.Readable.push (node:internal/streams/readable:392:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ER_NO_REFERENCED_ROW_2',
+    errno: 1452,
+    sqlState: '23000',
+    sqlMessage: 'Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)',
+    sql: 'INSERT INTO `document_number_counters`(`project_id`, `originator_organization_id`, `recipient_organization_id`, `correspondence_type_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `current_year`, `last_number`, `version`) VALUES (1, 41, -1, 1, 0, 0, 0, 2025, 1, 1) RETURNING `recipient_organization_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `last_number`, `version`'
+  },
+  code: 'ER_NO_REFERENCED_ROW_2',
+  errno: 1452,
+  sqlState: '23000',
+  sqlMessage: 'Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)',
+  sql: 'INSERT INTO `document_number_counters`(`project_id`, `originator_organization_id`, `recipient_organization_id`, `correspondence_type_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `current_year`, `last_number`, `version`) VALUES (1, 41, -1, 1, 0, 0, 0, 2025, 1, 1) RETURNING `recipient_organization_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `last_number`, `version`'
+}
+[Nest] 44520  - 12/09/2025, 11:16:08 AM   ERROR [DocumentNumberingService] Failed to log error
+[Nest] 44520  - 12/09/2025, 11:16:08 AM   ERROR [DocumentNumberingService] QueryFailedError: Unknown column 'error_at' in 'RETURNING'
+    at Query.onResult (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\driver\mysql\MysqlQueryRunner.ts:248:33)
+    at Query.execute (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\commands\command.js:36:14)
+    at PoolConnection.handlePacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:477:34)
+    at PacketParser.onPacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:93:12)
+    at PacketParser.executeStart (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packet_parser.js:75:16)
+    at Socket.<anonymous> (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:100:25)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Socket.Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+  query: 'INSERT INTO `document_number_errors`(`id`, `counter_key`, `error_type`, `error_message`, `stack_trace`, `user_id`, `ip_address`, `context`, `error_at`) VALUES (DEFAULT, ?, ?, ?, ?, DEFAULT, DEFAULT, ?, DEFAULT) RETURNING `id`, `error_at`',
+  parameters: [
+    'doc_num:1:1:0:2025',
+    'DB_ERROR',
+    'Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)',
+    'QueryFailedError: Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)\n    at Query.onResult (D:\\nap-dms.lcbp3\\node_modules\\.pnpm\\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\\src\\driver\\mysql\\MysqlQueryRunner.ts:248:33)\n    at Query.execute (D:\\nap-dms.lcbp3\\node_modules\\.pnpm\\mysql2@3.15.3\\node_modules\\mysql2\\lib\\commands\\command.js:36:14)\n    at PoolConnection.handlePacket (D:\\nap-dms.lcbp3\\node_modules\\.pnpm\\mysql2@3.15.3\\node_modules\\mysql2\\lib\\base\\connection.js:477:34)\n    at PacketParser.onPacket (D:\\nap-dms.lcbp3\\node_modules\\.pnpm\\mysql2@3.15.3\\node_modules\\mysql2\\lib\\base\\connection.js:93:12)\n    at PacketParser.executeStart (D:\\nap-dms.lcbp3\\node_modules\\.pnpm\\mysql2@3.15.3\\node_modules\\mysql2\\lib\\packet_parser.js:75:16)\n    at Socket.<anonymous> (D:\\nap-dms.lcbp3\\node_modules\\.pnpm\\mysql2@3.15.3\\node_modules\\mysql2\\lib\\base\\connection.js:100:25)\n    at Socket.emit (node:events:519:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at Socket.Readable.push (node:internal/streams/readable:392:5)\n    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)\n    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)',
+    '{"projectId":1,"originatorId":41,"typeId":1,"year":2025,"customTokens":{"TYPE_CODE":"RFA","ORG_CODE":"ORG"}}'
+  ],
+  driverError: Error: Unknown column 'error_at' in 'RETURNING'
+      at Packet.asError (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packets\packet.js:740:17)
+      at Query.execute (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\commands\command.js:29:26)
+      at PoolConnection.handlePacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:477:34)
+      at PacketParser.onPacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:93:12)
+      at PacketParser.executeStart (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:100:25)
+      at Socket.emit (node:events:519:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Socket.Readable.push (node:internal/streams/readable:392:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ER_BAD_FIELD_ERROR',
+    errno: 1054,
+    sqlState: '42S22',
+    sqlMessage: "Unknown column 'error_at' in 'RETURNING'",
+    sql: 'INSERT INTO `document_number_errors`(`id`, `counter_key`, `error_type`, `error_message`, `stack_trace`, `user_id`, `ip_address`, `context`, `error_at`) VALUES (DEFAULT, \'doc_num:1:1:0:2025\', \'DB_ERROR\', \'Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)\', \'QueryFailedError: Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)\\n    at Query.onResult (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\\\\src\\\\driver\\\\mysql\\\\MysqlQueryRunner.ts:248:33)\\n    at Query.execute (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\commands\\\\command.js:36:14)\\n    at PoolConnection.handlePacket (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\base\\\\connection.js:477:34)\\n    at PacketParser.onPacket (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\base\\\\connection.js:93:12)\\n    at PacketParser.executeStart (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\packet_parser.js:75:16)\\n    at Socket.<anonymous> (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\base\\\\connection.js:100:25)\\n    at Socket.emit (node:events:519:28)\\n    at addChunk (node:internal/streams/readable:561:12)\\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\\n    at Socket.Readable.push (node:internal/streams/readable:392:5)\\n    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)\\n    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)\', DEFAULT, DEFAULT, \'{\\"projectId\\":1,\\"originatorId\\":41,\\"typeId\\":1,\\"year\\":2025,\\"customTokens\\":{\\"TYPE_CODE\\":\\"RFA\\",\\"ORG_CODE\\":\\"ORG\\"}}\', DEFAULT) RETURNING `id`, `error_at`'
+  },
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'error_at' in 'RETURNING'",
+  sql: 'INSERT INTO `document_number_errors`(`id`, `counter_key`, `error_type`, `error_message`, `stack_trace`, `user_id`, `ip_address`, `context`, `error_at`) VALUES (DEFAULT, \'doc_num:1:1:0:2025\', \'DB_ERROR\', \'Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)\', \'QueryFailedError: Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)\\n    at Query.onResult (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\\\\src\\\\driver\\\\mysql\\\\MysqlQueryRunner.ts:248:33)\\n    at Query.execute (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\commands\\\\command.js:36:14)\\n    at PoolConnection.handlePacket (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\base\\\\connection.js:477:34)\\n    at PacketParser.onPacket (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\base\\\\connection.js:93:12)\\n    at PacketParser.executeStart (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\packet_parser.js:75:16)\\n    at Socket.<anonymous> (D:\\\\nap-dms.lcbp3\\\\node_modules\\\\.pnpm\\\\mysql2@3.15.3\\\\node_modules\\\\mysql2\\\\lib\\\\base\\\\connection.js:100:25)\\n    at Socket.emit (node:events:519:28)\\n    at addChunk (node:internal/streams/readable:561:12)\\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\\n    at Socket.Readable.push (node:internal/streams/readable:392:5)\\n    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)\\n    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)\', DEFAULT, DEFAULT, \'{\\"projectId\\":1,\\"originatorId\\":41,\\"typeId\\":1,\\"year\\":2025,\\"customTokens\\":{\\"TYPE_CODE\\":\\"RFA\\",\\"ORG_CODE\\":\\"ORG\\"}}\', DEFAULT) RETURNING `id`, `error_at`'
+}
+[Nest] 44520  - 12/09/2025, 11:16:08 AM   ERROR [CorrespondenceService] Failed to create correspondence: Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)
+[Nest] 44520  - 12/09/2025, 11:16:08 AM   ERROR [ExceptionsHandler] QueryFailedError: Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)
+    at Query.onResult (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\driver\mysql\MysqlQueryRunner.ts:248:33)
+    at Query.execute (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\commands\command.js:36:14)
+    at PoolConnection.handlePacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:477:34)
+    at PacketParser.onPacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:93:12)
+    at PacketParser.executeStart (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packet_parser.js:75:16)
+    at Socket.<anonymous> (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:100:25)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Socket.Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+  query: 'INSERT INTO `document_number_counters`(`project_id`, `originator_organization_id`, `recipient_organization_id`, `correspondence_type_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `current_year`, `last_number`, `version`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1) RETURNING `recipient_organization_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `last_number`, `version`',
+  parameters: [
+    1,
+    41,
+    -1,
+    1,
+    0,
+    0,
+    0,
+    2025,
+    1
+  ],
+  driverError: Error: Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)
+      at Packet.asError (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packets\packet.js:740:17)
+      at Query.execute (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\commands\command.js:29:26)
+      at PoolConnection.handlePacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:477:34)
+      at PacketParser.onPacket (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:93:12)
+      at PacketParser.executeStart (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (D:\nap-dms.lcbp3\node_modules\.pnpm\mysql2@3.15.3\node_modules\mysql2\lib\base\connection.js:100:25)
+      at Socket.emit (node:events:519:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Socket.Readable.push (node:internal/streams/readable:392:5)
+      at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+      at TCP.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ER_NO_REFERENCED_ROW_2',
+    errno: 1452,
+    sqlState: '23000',
+    sqlMessage: 'Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)',
+    sql: 'INSERT INTO `document_number_counters`(`project_id`, `originator_organization_id`, `recipient_organization_id`, `correspondence_type_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `current_year`, `last_number`, `version`) VALUES (1, 41, -1, 1, 0, 0, 0, 2025, 1, 1) RETURNING `recipient_organization_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `last_number`, `version`'
+  },
+  code: 'ER_NO_REFERENCED_ROW_2',
+  errno: 1452,
+  sqlState: '23000',
+  sqlMessage: 'Cannot add or update a child row: a foreign key constraint fails (`lcbp3_dev`.`document_number_counters`, CONSTRAINT `fk_recipient_when_not_all` FOREIGN KEY (`recipient_organization_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE)',
+  sql: 'INSERT INTO `document_number_counters`(`project_id`, `originator_organization_id`, `recipient_organization_id`, `correspondence_type_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `current_year`, `last_number`, `version`) VALUES (1, 41, -1, 1, 0, 0, 0, 2025, 1, 1) RETURNING `recipient_organization_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `last_number`, `version`'
+}
+FAIL test/phase3-workflow.e2e-spec.ts
+  ΓùÅ Console
+
+    console.warn
+      Skipping action test - no instanceId from submit
+
+      104 |     // Skip if submit failed to get instanceId
+      105 |     if (!workflowInstanceId) {
+    > 106 |       console.warn('Skipping action test - no instanceId from submit');
+          |               ^
+      107 |       return;
+      108 |     }
+      109 |
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:106:15)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences (POST) - Create Document
+
+    expected 201 "Created", got 500 "Internal Server Error"
+
+      77 |         details: { question: 'Testing Unified Workflow' },
+      78 |       })
+    > 79 |       .expect(201);
+         |        ^
+      80 |
+      81 |     expect(response.body).toHaveProperty('id');
+      82 |     expect(response.body).toHaveProperty('correspondenceNumber');
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:79:8)
+      ----
+      at Test._assertStatus (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:309:14)
+      at ../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:365:13
+      at Test._assertFunction (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:342:13)
+      at Test.assert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:195:23)
+      at localAssert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:138:14)
+      at Server.<anonymous> (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:152:11)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences/:id/submit (POST) - Submit to Workflow
+
+    expected 201 "Created", got 400 "Bad Request"
+
+      92 |         note: 'Submitting for E2E test',
+      93 |       })
+    > 94 |       .expect(201);
+         |        ^
+      95 |
+      96 |     expect(response.body).toHaveProperty('instanceId');
+      97 |     expect(response.body).toHaveProperty('currentState');
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:94:8)
+      ----
+      at Test._assertStatus (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:309:14)
+      at ../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:365:13
+      at Test._assertFunction (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:342:13)
+      at Test.assert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:195:23)
+      at localAssert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:138:14)
+      at Server.<anonymous> (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:152:11)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       2 failed, 3 passed, 5 total
+Snapshots:   0 total
+Time:        5.786 s, estimated 8 s
+Ran all test suites.
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.

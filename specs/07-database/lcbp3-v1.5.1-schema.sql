@@ -1008,10 +1008,9 @@ CREATE TABLE document_number_counters (
   -- Foreign Keys
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
   FOREIGN KEY (originator_organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
-  FOREIGN KEY (recipient_organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
+  -- NOTE: recipient_organization_id uses -1 as sentinel for "all organizations"
+  -- Therefore NO FK constraint is applied here (would fail for -1)
   FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types (id) ON DELETE CASCADE,
-  -- ใช้ CHECK constraint เพื่อไม่ให้ตรวจสอบเมื่อเป็น -1
-  CONSTRAINT fk_recipient_when_not_all FOREIGN KEY (recipient_organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
   -- [v1.5.1 NEW] Performance Indexes
   INDEX idx_counter_lookup (
     project_id,

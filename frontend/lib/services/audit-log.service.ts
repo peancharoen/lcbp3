@@ -1,20 +1,27 @@
 import apiClient from "@/lib/api/client";
 
-export interface AuditLogRaw {
-    audit_log_id: number;
-    user_id: number;
-    user_name?: string;
+export interface AuditLog {
+    auditId: string;
+    userId?: number | null;
+    user?: {
+        id: number;
+        fullName?: string;
+        username: string;
+    };
     action: string;
-    entity_type: string;
-    entity_id: string; // or number
-    description: string;
-    ip_address?: string;
-    created_at: string;
+    severity: string;
+    entityType?: string;
+    entityId?: string;
+    detailsJson?: any;
+    ipAddress?: string;
+    userAgent?: string;
+    createdAt: string;
 }
 
 export const auditLogService = {
   getLogs: async (params?: any) => {
-    const response = await apiClient.get<AuditLogRaw[]>("/audit-logs", { params });
-    return response.data;
-  }
+    const response = await apiClient.get<any>("/audit-logs", { params });
+    // Support both wrapped and unwrapped scenarios
+    return response.data.data || response.data;
+  },
 };

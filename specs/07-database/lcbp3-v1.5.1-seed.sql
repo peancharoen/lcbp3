@@ -1278,7 +1278,9 @@ VALUES -- Document
   (4, 142),
   -- Dashboard & Notification
   (4, 153),
-  (4, 151);
+  (4, 151),
+  -- Workflow Actions (NEW for E2E test compatibility)
+  (4, 123);
 
 -- ==========================================================
 -- Role 5: Viewer (Organization Scope)
@@ -1367,9 +1369,13 @@ INSERT INTO user_assignments (
   )
 VALUES (1, 1, 1, NULL, NULL, NULL, NULL),
   -- superadmin: Global scope (organization_id = NULL)
-  (2, 2, 2, 1, NULL, NULL, NULL);
+  (2, 2, 2, 1, NULL, NULL, NULL),
+  -- admin: Organization scope (org_id=1 = กทท.)
+  (3, 3, 4, 41, NULL, NULL, 1),
+  -- editor01: Editor role (role_id=4) at organization 41 (คคง.), assigned by superadmin
+  (4, 4, 5, 10, NULL, NULL, 1);
 
--- admin: Organization scope
+-- viewer01: Viewer role (role_id=5) at organization 10 (สคฉ.03), assigned by superadmin
 -- =====================================================
 -- == 4. การเชื่อมโยงโครงการกับองค์กร (project_organizations) ==
 -- =====================================================
@@ -2979,4 +2985,241 @@ VALUES (
     '2025-12-06 05:41:25',
     NULL,
     NULL
+  );
+
+-- ==========================================================
+-- 20. Workflow Definitions (Unified Workflow Engine)
+-- ==========================================================
+INSERT INTO `workflow_definitions` (
+    `id`,
+    `workflow_code`,
+    `version`,
+    `description`,
+    `dsl`,
+    `compiled`,
+    `is_active`,
+    `created_at`,
+    `updated_at`
+  )
+VALUES (
+    -- CORRESPONDENCE_FLOW_V1
+    UUID(),
+    'CORRESPONDENCE_FLOW_V1',
+    1,
+    'Standard Correspondence Workflow - Draft → Submit → Review → Approve/Reject',
+    JSON_OBJECT(
+      'workflow',
+      'CORRESPONDENCE_FLOW_V1',
+      'version',
+      1,
+      'states',
+      JSON_ARRAY(
+        JSON_OBJECT(
+          'name',
+          'DRAFT',
+          'initial',
+          TRUE,
+          'on',
+          JSON_OBJECT(
+            'SUBMIT',
+            JSON_OBJECT('to', 'IN_REVIEW')
+          )
+        ),
+        JSON_OBJECT(
+          'name',
+          'IN_REVIEW',
+          'on',
+          JSON_OBJECT(
+            'APPROVE',
+            JSON_OBJECT('to', 'APPROVED'),
+            'REJECT',
+            JSON_OBJECT('to', 'REJECTED'),
+            'RETURN',
+            JSON_OBJECT('to', 'DRAFT')
+          )
+        ),
+        JSON_OBJECT('name', 'APPROVED', 'terminal', TRUE),
+        JSON_OBJECT('name', 'REJECTED', 'terminal', TRUE)
+      )
+    ),
+    JSON_OBJECT(
+      'initialState',
+      'DRAFT',
+      'states',
+      JSON_OBJECT(
+        'DRAFT',
+        JSON_OBJECT(
+          'initial',
+          TRUE,
+          'terminal',
+          false,
+          'transitions',
+          JSON_OBJECT(
+            'SUBMIT',
+            JSON_OBJECT('to', 'IN_REVIEW', 'events', JSON_ARRAY())
+          )
+        ),
+        'IN_REVIEW',
+        JSON_OBJECT(
+          'initial',
+          false,
+          'terminal',
+          false,
+          'transitions',
+          JSON_OBJECT(
+            'APPROVE',
+            JSON_OBJECT('to', 'APPROVED', 'events', JSON_ARRAY()),
+            'REJECT',
+            JSON_OBJECT('to', 'REJECTED', 'events', JSON_ARRAY()),
+            'RETURN',
+            JSON_OBJECT('to', 'DRAFT', 'events', JSON_ARRAY())
+          )
+        ),
+        'APPROVED',
+        JSON_OBJECT(
+          'initial',
+          false,
+          'terminal',
+          TRUE,
+          'transitions',
+          JSON_OBJECT()
+        ),
+        'REJECTED',
+        JSON_OBJECT(
+          'initial',
+          false,
+          'terminal',
+          TRUE,
+          'transitions',
+          JSON_OBJECT()
+        )
+      )
+    ),
+    TRUE,
+    NOW(),
+    NOW()
+  ),
+  (
+    -- RFA_APPROVAL
+    UUID(),
+    'RFA_APPROVAL',
+    1,
+    'Request for Approval Workflow - Contractor Submit → Consultant Review → Owner Review',
+    JSON_OBJECT(
+      'workflow',
+      'RFA_APPROVAL',
+      'version',
+      1,
+      'states',
+      JSON_ARRAY(
+        JSON_OBJECT(
+          'name',
+          'DRAFT',
+          'initial',
+          TRUE,
+          'on',
+          JSON_OBJECT(
+            'SUBMIT',
+            JSON_OBJECT(
+              'to',
+              'CONSULTANT_REVIEW',
+              'require',
+              JSON_OBJECT('role', 'CONTRACTOR')
+            )
+          )
+        ),
+        JSON_OBJECT(
+          'name',
+          'CONSULTANT_REVIEW',
+          'on',
+          JSON_OBJECT(
+            'APPROVE',
+            JSON_OBJECT('to', 'OWNER_REVIEW'),
+            'REJECT',
+            JSON_OBJECT('to', 'DRAFT')
+          )
+        ),
+        JSON_OBJECT(
+          'name',
+          'OWNER_REVIEW',
+          'on',
+          JSON_OBJECT(
+            'APPROVE',
+            JSON_OBJECT('to', 'APPROVED'),
+            'REJECT',
+            JSON_OBJECT('to', 'CONSULTANT_REVIEW')
+          )
+        ),
+        JSON_OBJECT('name', 'APPROVED', 'terminal', TRUE)
+      )
+    ),
+    JSON_OBJECT(
+      'initialState',
+      'DRAFT',
+      'states',
+      JSON_OBJECT(
+        'DRAFT',
+        JSON_OBJECT(
+          'initial',
+          TRUE,
+          'terminal',
+          false,
+          'transitions',
+          JSON_OBJECT(
+            'SUBMIT',
+            JSON_OBJECT(
+              'target',
+              'CONSULTANT_REVIEW',
+              'events',
+              JSON_ARRAY()
+            )
+          )
+        ),
+        'CONSULTANT_REVIEW',
+        JSON_OBJECT(
+          'initial',
+          false,
+          'terminal',
+          false,
+          'transitions',
+          JSON_OBJECT(
+            'APPROVE',
+            JSON_OBJECT('target', 'OWNER_REVIEW', 'events', JSON_ARRAY()),
+            'REJECT',
+            JSON_OBJECT('target', 'DRAFT', 'events', JSON_ARRAY())
+          )
+        ),
+        'OWNER_REVIEW',
+        JSON_OBJECT(
+          'initial',
+          false,
+          'terminal',
+          false,
+          'transitions',
+          JSON_OBJECT(
+            'APPROVE',
+            JSON_OBJECT('target', 'APPROVED', 'events', JSON_ARRAY()),
+            'REJECT',
+            JSON_OBJECT(
+              'target',
+              'CONSULTANT_REVIEW',
+              'events',
+              JSON_ARRAY()
+            )
+          )
+        ),
+        'APPROVED',
+        JSON_OBJECT(
+          'initial',
+          false,
+          'terminal',
+          TRUE,
+          'transitions',
+          JSON_OBJECT()
+        )
+      )
+    ),
+    TRUE,
+    NOW(),
+    NOW()
   );

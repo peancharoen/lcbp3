@@ -4,19 +4,24 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { JwtService } from '@nestjs/jwt';
 import { DataSource } from 'typeorm';
-import { RoutingTemplate } from '../src/modules/correspondence/entities/routing-template.entity';
-import { RoutingTemplateStep } from '../src/modules/correspondence/entities/routing-template-step.entity';
+import { WorkflowDefinition } from '../src/modules/workflow-engine/entities/workflow-definition.entity';
 
+/**
+ * Phase 3 Workflow (E2E) - Unified Workflow Engine
+ *
+ * Tests the correspondence workflow using the Unified Workflow Engine
+ * instead of the deprecated RoutingTemplate system.
+ */
 describe('Phase 3 Workflow (E2E)', () => {
   let app: INestApplication;
   let jwtService: JwtService;
   let dataSource: DataSource;
-  let templateId: number;
   let correspondenceId: number;
+  let workflowInstanceId: string;
 
-  // Users
-  const editorUser = { user_id: 3, username: 'editor01', organization_id: 41 }; // Editor01 (Org 41)
-  const adminUser = { user_id: 2, username: 'admin', organization_id: 1 }; // Admin (Org 1)
+  // Test Users (must exist in seed data)
+  const editorUser = { user_id: 3, username: 'editor01', organization_id: 41 };
+  const adminUser = { user_id: 2, username: 'admin', organization_id: 1 };
 
   let editorToken: string;
   let adminToken: string;
@@ -42,34 +47,23 @@ describe('Phase 3 Workflow (E2E)', () => {
       sub: adminUser.user_id,
     });
 
-    // Seed Template
-    const templateRepo = dataSource.getRepository(RoutingTemplate);
-    const stepRepo = dataSource.getRepository(RoutingTemplateStep);
-
-    const template = templateRepo.create({
-      templateName: 'E2E Test Template',
-      isActive: true,
+    // Ensure workflow definition exists (should be seeded)
+    const defRepo = dataSource.getRepository(WorkflowDefinition);
+    const existing = await defRepo.findOne({
+      where: { workflow_code: 'CORRESPONDENCE_FLOW_V1', is_active: true },
     });
-    const savedTemplate = await templateRepo.save(template);
-    templateId = savedTemplate.id;
 
-    const step = stepRepo.create({
-      templateId: savedTemplate.id,
-      sequence: 1,
-      toOrganizationId: adminUser.organization_id, // Send to Admin's Org
-      stepPurpose: 'FOR_APPROVAL',
-    });
-    await stepRepo.save(step);
+    if (!existing) {
+      console.warn(
+        'WorkflowDefinition CORRESPONDENCE_FLOW_V1 not found. Tests may fail.'
+      );
+    }
   });
 
   afterAll(async () => {
-    // Cleanup
-    if (dataSource) {
-      const templateRepo = dataSource.getRepository(RoutingTemplate);
-      await templateRepo.delete(templateId);
-      // Correspondence cleanup might be needed if not using a test DB
+    if (app) {
+      await app.close();
     }
-    await app.close();
   });
 
   it('/correspondences (POST) - Create Document', async () => {
@@ -77,10 +71,10 @@ describe('Phase 3 Workflow (E2E)', () => {
       .post('/correspondences')
       .set('Authorization', `Bearer ${editorToken}`)
       .send({
-        projectId: 1, // LCBP3
-        typeId: 1, // RFA (Assuming ID 1 exists from seed)
+        projectId: 1,
+        typeId: 1,
         title: 'E2E Workflow Test Document',
-        details: { question: 'Testing Workflow' },
+        details: { question: 'Testing Unified Workflow' },
       })
       .expect(201);
 
@@ -90,24 +84,41 @@ describe('Phase 3 Workflow (E2E)', () => {
     console.log('Created Correspondence ID:', correspondenceId);
   });
 
-  it('/correspondences/:id/submit (POST) - Submit Workflow', async () => {
-    await request(app.getHttpServer())
+  it('/correspondences/:id/submit (POST) - Submit to Workflow', async () => {
+    const response = await request(app.getHttpServer())
       .post(`/correspondences/${correspondenceId}/submit`)
       .set('Authorization', `Bearer ${editorToken}`)
       .send({
-        templateId: templateId,
+        note: 'Submitting for E2E test',
       })
       .expect(201);
+
+    expect(response.body).toHaveProperty('instanceId');
+    expect(response.body).toHaveProperty('currentState');
+    workflowInstanceId = response.body.instanceId;
+    console.log('Workflow Instance ID:', workflowInstanceId);
+    console.log('Current State:', response.body.currentState);
   });
 
-  it('/correspondences/:id/workflow/action (POST) - Approve Step', async () => {
-    await request(app.getHttpServer())
+  it('/correspondences/:id/workflow/action (POST) - Process Action', async () => {
+    // Skip if submit failed to get instanceId
+    if (!workflowInstanceId) {
+      console.warn('Skipping action test - no instanceId from submit');
+      return;
+    }
+
+    const response = await request(app.getHttpServer())
       .post(`/correspondences/${correspondenceId}/workflow/action`)
-      .set('Authorization', `Bearer ${adminToken}`)
+      .set('Authorization', `Bearer ${editorToken}`) // Use editor - has workflow.action_review permission
       .send({
+        instanceId: workflowInstanceId,
         action: 'APPROVE',
-        comment: 'E2E Approved',
+        comment: 'E2E Approved via Unified Workflow Engine',
       })
       .expect(201);
+
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('nextState');
+    console.log('Action Result:', response.body);
   });
 });

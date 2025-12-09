@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
+import { RoutingTemplateStep } from '../correspondence/entities/routing-template-step.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
 import { RfaApproveCode } from './entities/rfa-approve-code.entity';
 import { RfaItem } from './entities/rfa-item.entity';
@@ -45,6 +46,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
       RfaWorkflowTemplateStep,
       CorrespondenceRouting,
       RoutingTemplate,
+      RoutingTemplateStep,
     ]),
     DocumentNumberingModule,
     UserModule,

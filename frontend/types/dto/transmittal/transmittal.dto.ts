@@ -19,7 +19,13 @@ export interface CreateTransmittalDto {
   remarks?: string;
 
   /** ID ของเอกสาร (Correspondence IDs) ที่จะแนบไปใน Transmittal นี้ */
-  itemIds: number[];
+  items: CreateTransmittalItemDto[];
+}
+
+export interface CreateTransmittalItemDto {
+  itemType: string;
+  itemId: number;
+  description?: string;
 }
 
 // --- Update (Partial) ---

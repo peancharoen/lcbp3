@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 
 import { DocumentNumberingService } from './document-numbering.service';
+import { DocumentNumberingController } from './document-numbering.controller';
 import { DocumentNumberFormat } from './entities/document-number-format.entity';
 import { DocumentNumberCounter } from './entities/document-number-counter.entity';
 import { DocumentNumberAudit } from './entities/document-number-audit.entity'; // [P0-4]
@@ -15,10 +16,12 @@ import { Organization } from '../project/entities/organization.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { Discipline } from '../master/entities/discipline.entity';
 import { CorrespondenceSubType } from '../correspondence/entities/correspondence-sub-type.entity';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
     ConfigModule,
+    UserModule,
     TypeOrmModule.forFeature([
       DocumentNumberFormat,
       DocumentNumberCounter,
@@ -31,6 +34,7 @@ import { CorrespondenceSubType } from '../correspondence/entities/correspondence
       CorrespondenceSubType,
     ]),
   ],
+  controllers: [DocumentNumberingController],
   providers: [DocumentNumberingService],
   exports: [DocumentNumberingService],
 })

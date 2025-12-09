@@ -1,0 +1,421 @@
+
+> backend@1.5.1 test:e2e
+> jest --config ./test/jest-e2e.json
+
+[Nest] 13440  - 12/09/2025, 8:34:55 AM   ERROR [TypeOrmModule] Unable to connect to the database. Retrying (1)...
+AggregateError: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)
+[Nest] 12240  - 12/09/2025, 8:34:55 AM   ERROR [TypeOrmModule] Unable to connect to the database. Retrying (1)...
+AggregateError: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)
+[Nest] 41780  - 12/09/2025, 8:34:55 AM   ERROR [TypeOrmModule] Unable to connect to the database. Retrying (1)...
+AggregateError: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)
+
+  ΓùÅ  Cannot log after tests are done. Did you forget to wait for something async in your test?
+    Attempted to log "AggregateError: 
+        at internalConnectMultiple (node:net:1134:18)
+        at afterConnectMultiple (node:net:1715:7)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      code: 'ECONNREFUSED',
+      [errors]: [
+        Error: connect ECONNREFUSED ::1:6379
+            at createConnectionError (node:net:1678:14)
+            at afterConnectMultiple (node:net:1708:16)
+            at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+          errno: -4078,
+          code: 'ECONNREFUSED',
+          syscall: 'connect',
+          address: '::1',
+          port: 6379
+        },
+        Error: connect ECONNREFUSED 127.0.0.1:6379
+            at createConnectionError (node:net:1678:14)
+            at afterConnectMultiple (node:net:1708:16)
+            at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+          errno: -4078,
+          code: 'ECONNREFUSED',
+          syscall: 'connect',
+          address: '127.0.0.1',
+          port: 6379
+        }
+      ]
+    }".
+
+      at TCPConnectWrap.callbackTrampoline (../node:internal/async_hooks:130:17) {
+        code: 'ECONNREFUSED',
+        [errors]: [
+          Error: connect ECONNREFUSED ::1:6379
+      at TCPConnectWrap.callbackTrampoline (../node:internal/async_hooks:130:17) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '::1',
+            port: 6379
+          },
+          Error: connect ECONNREFUSED 127.0.0.1:6379
+      at TCPConnectWrap.callbackTrampoline (../node:internal/async_hooks:130:17) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '127.0.0.1',
+            port: 6379
+          }
+        ]
+      }".
+      at console.error (../node_modules/@jest/console/build/index.js:124:10)
+      at Queue.emit (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/queue-base.ts:129:17)
+      at Queue.emit (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/queue.ts:192:18)
+      at RedisConnection.<anonymous> (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/queue-base.ts:75:56)
+      at EventEmitter.RedisConnection.handleClientError (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/redis-connection.ts:121:12)
+      at EventEmitter.silentEmit (../../node_modules/.pnpm/ioredis@5.8.2/node_modules/ioredis/built/Redis.js:484:30)
+      at Socket.<anonymous> (../../node_modules/.pnpm/ioredis@5.8.2/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+FAIL test/app.e2e-spec.ts (7.608 s)
+  ΓùÅ Console
+
+    console.error
+      Redis Connection Error:  AggregateError: 
+          at internalConnectMultiple (node:net:1134:18)
+          at afterConnectMultiple (node:net:1715:7)
+          at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+        code: 'ECONNREFUSED',
+        [errors]: [
+          Error: connect ECONNREFUSED ::1:6379
+              at createConnectionError (node:net:1678:14)
+              at afterConnectMultiple (node:net:1708:16)
+              at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '::1',
+            port: 6379
+          },
+          Error: connect ECONNREFUSED 127.0.0.1:6379
+              at createConnectionError (node:net:1678:14)
+              at afterConnectMultiple (node:net:1708:16)
+              at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '127.0.0.1',
+            port: 6379
+          }
+        ]
+      }
+
+      72 |       imports: [ConfigModule],
+      73 |       useFactory: async (configService: ConfigService) => ({
+    > 74 |         store: await redisStore({
+         |                ^
+      75 |           socket: {
+      76 |             host: configService.get<string>('redis.host'),
+      77 |             port: configService.get<number>('redis.port'),
+
+      at redisStore (../../node_modules/.pnpm/cache-manager-redis-yet@5.1.5/node_modules/cache-manager-redis-yet/dist/index.js:101:17)
+      at InstanceWrapper.useFactory [as metatype] (../src/app.module.ts:74:16)
+      at TestingInjector.instantiateClass (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:424:37)
+      at callback (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:70:34)
+      at TestingInjector.resolveConstructorParams (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:170:24)
+      at TestingInjector.loadInstance (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadProvider (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:103:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 5)
+      at TestingInstanceLoader.createInstancesOfProviders (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 6)
+      at TestingInstanceLoader.createInstances (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (app.e2e-spec.ts:11:42)
+
+  ΓùÅ AppController (e2e) ΓÇ║ / (GET)
+
+    AggregateError:
+
+
+
+  ΓùÅ  Cannot log after tests are done. Did you forget to wait for something async in your test?
+    Attempted to log "AggregateError: 
+        at internalConnectMultiple (node:net:1134:18)
+        at afterConnectMultiple (node:net:1715:7)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      code: 'ECONNREFUSED',
+      [errors]: [
+        Error: connect ECONNREFUSED ::1:6379
+            at createConnectionError (node:net:1678:14)
+            at afterConnectMultiple (node:net:1708:16)
+            at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+          errno: -4078,
+          code: 'ECONNREFUSED',
+          syscall: 'connect',
+          address: '::1',
+          port: 6379
+        },
+        Error: connect ECONNREFUSED 127.0.0.1:6379
+            at createConnectionError (node:net:1678:14)
+            at afterConnectMultiple (node:net:1708:16)
+            at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+          errno: -4078,
+          code: 'ECONNREFUSED',
+          syscall: 'connect',
+          address: '127.0.0.1',
+          port: 6379
+        }
+      ]
+    }".
+
+      at TCPConnectWrap.callbackTrampoline (../node:internal/async_hooks:130:17) {
+        code: 'ECONNREFUSED',
+        [errors]: [
+          Error: connect ECONNREFUSED ::1:6379
+      at TCPConnectWrap.callbackTrampoline (../node:internal/async_hooks:130:17) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '::1',
+            port: 6379
+          },
+          Error: connect ECONNREFUSED 127.0.0.1:6379
+      at TCPConnectWrap.callbackTrampoline (../node:internal/async_hooks:130:17) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '127.0.0.1',
+            port: 6379
+          }
+        ]
+      }".
+      at console.error (../node_modules/@jest/console/build/index.js:124:10)
+      at Queue.emit (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/queue-base.ts:129:17)
+      at Queue.emit (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/queue.ts:192:18)
+      at RedisConnection.<anonymous> (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/queue-base.ts:75:56)
+      at EventEmitter.RedisConnection.handleClientError (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/redis-connection.ts:121:12)
+      at EventEmitter.silentEmit (../../node_modules/.pnpm/ioredis@5.8.2/node_modules/ioredis/built/Redis.js:484:30)
+      at Socket.<anonymous> (../../node_modules/.pnpm/ioredis@5.8.2/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+FAIL test/simple.e2e-spec.ts (7.616 s)
+  ΓùÅ Console
+
+    console.error
+      Redis Connection Error:  AggregateError: 
+          at internalConnectMultiple (node:net:1134:18)
+          at afterConnectMultiple (node:net:1715:7)
+          at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+        code: 'ECONNREFUSED',
+        [errors]: [
+          Error: connect ECONNREFUSED ::1:6379
+              at createConnectionError (node:net:1678:14)
+              at afterConnectMultiple (node:net:1708:16)
+              at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '::1',
+            port: 6379
+          },
+          Error: connect ECONNREFUSED 127.0.0.1:6379
+              at createConnectionError (node:net:1678:14)
+              at afterConnectMultiple (node:net:1708:16)
+              at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '127.0.0.1',
+            port: 6379
+          }
+        ]
+      }
+
+      72 |       imports: [ConfigModule],
+      73 |       useFactory: async (configService: ConfigService) => ({
+    > 74 |         store: await redisStore({
+         |                ^
+      75 |           socket: {
+      76 |             host: configService.get<string>('redis.host'),
+      77 |             port: configService.get<number>('redis.port'),
+
+      at redisStore (../../node_modules/.pnpm/cache-manager-redis-yet@5.1.5/node_modules/cache-manager-redis-yet/dist/index.js:101:17)
+      at InstanceWrapper.useFactory [as metatype] (../src/app.module.ts:74:16)
+      at TestingInjector.instantiateClass (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:424:37)
+      at callback (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:70:34)
+      at TestingInjector.resolveConstructorParams (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:170:24)
+      at TestingInjector.loadInstance (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadProvider (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:103:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 5)
+      at TestingInstanceLoader.createInstancesOfProviders (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 6)
+      at TestingInstanceLoader.createInstances (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (simple.e2e-spec.ts:9:42)
+
+  ΓùÅ Simple Test ΓÇ║ should pass
+
+    AggregateError:
+
+
+
+  ΓùÅ  Cannot log after tests are done. Did you forget to wait for something async in your test?
+    Attempted to log "AggregateError: 
+        at internalConnectMultiple (node:net:1134:18)
+        at afterConnectMultiple (node:net:1715:7)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      code: 'ECONNREFUSED',
+      [errors]: [
+        Error: connect ECONNREFUSED ::1:6379
+            at createConnectionError (node:net:1678:14)
+            at afterConnectMultiple (node:net:1708:16) {
+          errno: -4078,
+          code: 'ECONNREFUSED',
+          syscall: 'connect',
+          address: '::1',
+          port: 6379
+        },
+        Error: connect ECONNREFUSED 127.0.0.1:6379
+            at createConnectionError (node:net:1678:14)
+            at afterConnectMultiple (node:net:1708:16)
+            at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+          errno: -4078,
+          code: 'ECONNREFUSED',
+          syscall: 'connect',
+          address: '127.0.0.1',
+          port: 6379
+        }
+      ]
+    }".
+
+      at TCPConnectWrap.callbackTrampoline (../node:internal/async_hooks:130:17) {
+        code: 'ECONNREFUSED',
+        [errors]: [
+          Error: connect ECONNREFUSED ::1:6379
+      at afterConnectMultiple (../node:net:1708:16) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '::1',
+            port: 6379
+          },
+          Error: connect ECONNREFUSED 127.0.0.1:6379
+      at TCPConnectWrap.callbackTrampoline (../node:internal/async_hooks:130:17) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '127.0.0.1',
+            port: 6379
+          }
+        ]
+      }".
+      at console.error (../node_modules/@jest/console/build/index.js:124:10)
+      at Queue.emit (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/queue-base.ts:129:17)
+      at Queue.emit (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/queue.ts:192:18)
+      at RedisConnection.<anonymous> (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/queue-base.ts:75:56)
+      at EventEmitter.RedisConnection.handleClientError (../../node_modules/.pnpm/bullmq@5.65.0/node_modules/bullmq/src/classes/redis-connection.ts:121:12)
+      at EventEmitter.silentEmit (../../node_modules/.pnpm/ioredis@5.8.2/node_modules/ioredis/built/Redis.js:484:30)
+      at Socket.<anonymous> (../../node_modules/.pnpm/ioredis@5.8.2/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+FAIL test/phase3-workflow.e2e-spec.ts (7.637 s)
+  ΓùÅ Console
+
+    console.error
+      Redis Connection Error:  AggregateError: 
+          at internalConnectMultiple (node:net:1134:18)
+          at afterConnectMultiple (node:net:1715:7) {
+        code: 'ECONNREFUSED',
+        [errors]: [
+          Error: connect ECONNREFUSED ::1:6379
+              at createConnectionError (node:net:1678:14)
+              at afterConnectMultiple (node:net:1708:16) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '::1',
+            port: 6379
+          },
+          Error: connect ECONNREFUSED 127.0.0.1:6379
+              at createConnectionError (node:net:1678:14)
+              at afterConnectMultiple (node:net:1708:16) {
+            errno: -4078,
+            code: 'ECONNREFUSED',
+            syscall: 'connect',
+            address: '127.0.0.1',
+            port: 6379
+          }
+        ]
+      }
+
+      72 |       imports: [ConfigModule],
+      73 |       useFactory: async (configService: ConfigService) => ({
+    > 74 |         store: await redisStore({
+         |                ^
+      75 |           socket: {
+      76 |             host: configService.get<string>('redis.host'),
+      77 |             port: configService.get<number>('redis.port'),
+
+      at redisStore (../../node_modules/.pnpm/cache-manager-redis-yet@5.1.5/node_modules/cache-manager-redis-yet/dist/index.js:101:17)
+      at InstanceWrapper.useFactory [as metatype] (../src/app.module.ts:74:16)
+      at TestingInjector.instantiateClass (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:424:37)
+      at callback (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:70:34)
+      at TestingInjector.resolveConstructorParams (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:170:24)
+      at TestingInjector.loadInstance (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadProvider (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/injector.js:103:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 5)
+      at TestingInstanceLoader.createInstancesOfProviders (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at ../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 6)
+      at TestingInstanceLoader.createInstances (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+core@11.1.9_@nestjs_89e063bd3a6d5071b082cab065bf34d7/node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/.pnpm/@nestjs+testing@11.1.9_@nes_5fa0f54bf7d8c8acec998f5e81836857/node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:25:42)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences (POST) - Create Document
+
+    AggregateError:
+
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences/:id/submit (POST) - Submit Workflow
+
+    AggregateError:
+
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences/:id/workflow/action (POST) - Approve Step
+
+    AggregateError:
+
+
+
+  ΓùÅ Test suite failed to run
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+      70 |       // Correspondence cleanup might be needed if not using a test DB
+      71 |     }
+    > 72 |     await app.close();
+         |               ^
+      73 |   });
+      74 |
+      75 |   it('/correspondences (POST) - Create Document', async () => {
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:72:15)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Test Suites: 3 failed, 3 total
+Tests:       5 failed, 5 total
+Snapshots:   0 total
+Time:        8.87 s
+Ran all test suites.

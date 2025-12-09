@@ -44,5 +44,6 @@
       "@users": ["./src/modules/users"],
       "@workflow-engine": ["./src/modules/workflow-engine"]
     }
-  }
+  },
+  "exclude": ["node_modules", "dist", "documentation"]
 }

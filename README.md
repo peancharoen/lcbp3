@@ -194,46 +194,88 @@ Superadmin:
 
 ```
 lcbp3-dms/
-├── backend/                 # NestJS Backend
+├── backend/                    # 🔧 NestJS Backend
 │   ├── src/
-│   │   ├── common/         # Shared modules
-│   │   ├── modules/        # Feature modules
-│   │   │   ├── auth/
-│   │   │   ├── user/
-│   │   │   ├── project/
-│   │   │   ├── correspondence/
-│   │   │   ├── rfa/
-│   │   │   ├── drawing/
-│   │   │   ├── workflow-engine/
-│   │   │   └── ...
+│   │   ├── common/             # Shared utilities, guards, decorators
+│   │   ├── config/             # Configuration module
+│   │   ├── database/           # Database entities & migrations
+│   │   ├── modules/            # Feature modules (17 modules)
+│   │   │   ├── auth/           # JWT Authentication
+│   │   │   ├── user/           # User management & RBAC
+│   │   │   ├── project/        # Project & Contract management
+│   │   │   ├── correspondence/ # Correspondence module
+│   │   │   ├── rfa/            # Request for Approval
+│   │   │   ├── drawing/        # Contract & Shop Drawings
+│   │   │   ├── workflow-engine/# DSL Workflow Engine
+│   │   │   ├── document-numbering/ # Auto numbering
+│   │   │   ├── transmittal/    # Transmittal management
+│   │   │   ├── circulation/    # Circulation sheets
+│   │   │   ├── search/         # Elasticsearch integration
+│   │   │   ├── dashboard/      # Statistics & reporting
+│   │   │   ├── notification/   # Email/LINE notifications
+│   │   │   ├── monitoring/     # Health checks & metrics
+│   │   │   ├── master/         # Master data management
+│   │   │   ├── organizations/  # Organization management
+│   │   │   └── json-schema/    # JSON Schema validation
 │   │   └── main.ts
-│   ├── test/
+│   ├── test/                   # Unit & E2E tests
 │   └── package.json
 │
-├── frontend/               # Next.js Frontend
-│   ├── app/               # App Router
-│   ├── components/        # React Components
-│   ├── lib/              # Utilities
+├── frontend/                   # 🎨 Next.js Frontend
+│   ├── app/                    # App Router
+│   │   ├── (admin)/            # Admin panel routes
+│   │   │   └── admin/
+│   │   │       ├── workflows/  # Workflow configuration
+│   │   │       ├── numbering/  # Document numbering config
+│   │   │       ├── users/      # User management
+│   │   │       └── ...
+│   │   ├── (auth)/             # Authentication pages
+│   │   ├── (dashboard)/        # Main dashboard routes
+│   │   │   ├── correspondences/
+│   │   │   ├── rfas/
+│   │   │   ├── drawings/
+│   │   │   └── ...
+│   │   └── api/                # API routes (NextAuth)
+│   ├── components/             # React Components (15 groups)
+│   │   ├── ui/                 # Shadcn/UI components
+│   │   ├── layout/             # Layout components
+│   │   ├── common/             # Shared components
+│   │   ├── correspondences/    # Correspondence UI
+│   │   ├── rfas/               # RFA UI
+│   │   ├── drawings/           # Drawing UI
+│   │   ├── workflows/          # Workflow builder
+│   │   ├── numbering/          # Numbering config UI
+│   │   ├── dashboard/          # Dashboard widgets
+│   │   ├── search/             # Search components
+│   │   └── ...
+│   ├── lib/                    # Utilities & API clients
+│   │   ├── api/                # API client functions
+│   │   ├── services/           # Business logic services
+│   │   └── stores/             # Zustand state stores
+│   ├── types/                  # TypeScript definitions
 │   └── package.json
 │
-├── docs/                  # 📚 Legacy documentation
-│   └── ...
+├── specs/                      # 📘 Project Specifications (v1.5.1)
+│   ├── 00-overview/            # Project overview & glossary
+│   ├── 01-requirements/        # Functional requirements (21 docs)
+│   ├── 02-architecture/        # System architecture
+│   ├── 03-implementation/      # Implementation guidelines
+│   ├── 04-operations/          # Deployment & operations
+│   ├── 05-decisions/           # ADRs (17 decisions)
+│   ├── 06-tasks/               # Active tasks & progress
+│   ├── 07-database/            # Schema v1.5.1 & seed data
+│   └── 09-history/             # Archived implementations
 │
-├── specs/                 # 📘 Project Specifications (v1.5.1)
-│   ├── 00-overview/       # Project overview & glossary
-│   ├── 01-requirements/   # Functional requirements
-│   ├── 02-architecture/   # System architecture & ADRs
-│   ├── 03-implementation/ # Implementation guidelines
-│   ├── 04-operations/     # Deployment & operations
-│   ├── 05-decisions/      # Architecture Decision Records
-│   ├── 06-tasks/          # Active tasks
-│   ├── 07-database/       # Database schema & seed data
-│   └── 09-history/        # Implementation history
+├── docs/                       # 📚 Legacy documentation
+├── diagrams/                   # 📊 Architecture diagrams
+├── infrastructure/             # 🐳 Docker & Deployment configs
 │
-├── infrastructure/        # Docker & Deployment
-│   └── Markdown/         # Legacy docs
-│
-└── pnpm-workspace.yaml
+├── .gemini/                    # 🤖 AI agent configuration
+├── .agent/                     # Agent workflows
+├── GEMINI.md                   # AI coding guidelines
+├── CONTRIBUTING.md             # Contribution guidelines
+├── CHANGELOG.md                # Version history
+└── pnpm-workspace.yaml         # Monorepo configuration
 ```
 
 ---

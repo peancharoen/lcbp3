@@ -17,6 +17,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CorrespondenceService } from './correspondence.service';
+import { CorrespondenceWorkflowService } from './correspondence-workflow.service';
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
 import { SubmitCorrespondenceDto } from './dto/submit-correspondence.dto';
 import { WorkflowActionDto } from './dto/workflow-action.dto';
@@ -33,18 +34,43 @@ import { Audit } from '../../common/decorators/audit.decorator';
 @UseGuards(JwtAuthGuard, RbacGuard)
 @ApiBearerAuth()
 export class CorrespondenceController {
-  constructor(private readonly correspondenceService: CorrespondenceService) {}
+  constructor(
+    private readonly correspondenceService: CorrespondenceService,
+    private readonly workflowService: CorrespondenceWorkflowService
+  ) {}
 
   @Post(':id/workflow/action')
   @ApiOperation({ summary: 'Process workflow action (Approve/Reject/Review)' })
   @ApiResponse({ status: 201, description: 'Action processed successfully.' })
   @RequirePermission('workflow.action_review')
   processAction(
-    @Param('id', ParseIntPipe) id: number,
     @Body() actionDto: WorkflowActionDto,
-    @Request() req: any
+    @Request()
+    req: Request & {
+      user: {
+        user_id: number;
+        assignments?: Array<{ role: { roleName: string } }>;
+      };
+    }
   ) {
-    return this.correspondenceService.processAction(id, actionDto, req.user);
+    // Extract roles from user assignments for DSL requirements check
+    const userRoles =
+      req.user.assignments?.map((a) => a.role?.roleName).filter(Boolean) || [];
+
+    // Use Unified Workflow Engine via CorrespondenceWorkflowService
+    if (!actionDto.instanceId) {
+      throw new Error('instanceId is required for workflow action');
+    }
+
+    return this.workflowService.processAction(
+      actionDto.instanceId,
+      req.user.user_id,
+      {
+        action: actionDto.action,
+        comment: actionDto.comment,
+        payload: { ...actionDto.payload, roles: userRoles },
+      }
+    );
   }
 
   @Post()
@@ -56,8 +82,14 @@ export class CorrespondenceController {
   })
   @RequirePermission('correspondence.create')
   @Audit('correspondence.create', 'correspondence')
-  create(@Body() createDto: CreateCorrespondenceDto, @Request() req: any) {
-    return this.correspondenceService.create(createDto, req.user);
+  create(
+    @Body() createDto: CreateCorrespondenceDto,
+    @Request() req: Request & { user: unknown }
+  ) {
+    return this.correspondenceService.create(
+      createDto,
+      req.user as Parameters<typeof this.correspondenceService.create>[1]
+    );
   }
 
   @Get()
@@ -69,23 +101,43 @@ export class CorrespondenceController {
   }
 
   @Post(':id/submit')
-  @ApiOperation({ summary: 'Submit correspondence to workflow' })
+  @ApiOperation({ summary: 'Submit correspondence to Unified Workflow Engine' })
   @ApiResponse({
     status: 201,
     description: 'Correspondence submitted successfully.',
   })
   @RequirePermission('correspondence.create')
-  @Audit('correspondence.create', 'correspondence')
+  @Audit('correspondence.submit', 'correspondence')
   submit(
     @Param('id', ParseIntPipe) id: number,
     @Body() submitDto: SubmitCorrespondenceDto,
-    @Request() req: any
+    @Request()
+    req: Request & {
+      user: {
+        user_id: number;
+        assignments?: Array<{ role: { roleName: string } }>;
+      };
+    }
   ) {
-    return this.correspondenceService.submit(
+    // Extract roles from user assignments
+    const userRoles =
+      req.user.assignments?.map((a) => a.role?.roleName).filter(Boolean) || [];
+
+    // Use Unified Workflow Engine - pass user roles for DSL requirements check
+    return this.workflowService.submitWorkflow(
       id,
-      submitDto.templateId,
-      req.user
+      req.user.user_id,
+      userRoles,
+      submitDto.note
     );
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get correspondence by ID' })
+  @ApiResponse({ status: 200, description: 'Return correspondence details.' })
+  @RequirePermission('document.view')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.correspondenceService.findOne(id);
   }
 
   @Get(':id/references')

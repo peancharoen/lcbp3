@@ -16,6 +16,13 @@ export function useUsers(params?: SearchUserDto) {
   });
 }
 
+export function useRoles() {
+  return useQuery({
+    queryKey: ['roles'],
+    queryFn: () => userService.getRoles(),
+  });
+}
+
 export function useCreateUser() {
   const queryClient = useQueryClient();
   return useMutation({

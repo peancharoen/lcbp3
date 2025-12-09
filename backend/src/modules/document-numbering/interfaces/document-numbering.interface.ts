@@ -4,12 +4,13 @@ export interface GenerateNumberContext {
   projectId: number;
   originatorId: number; // องค์กรผู้ส่ง
   typeId: number; // ประเภทเอกสาร (Correspondence Type ID)
-  subTypeId?: number; // (Optional) Sub Type ID (สำหรับ RFA/Transmittal)
+  subTypeId?: number; // (Optional) Sub Type ID (สำหรับ Transmittal)
+  rfaTypeId?: number; // [v1.5.1] RFA Type: SHD, RPT, MAT (0 = not RFA)
   disciplineId?: number; // (Optional) Discipline ID (สาขางาน)
   year?: number; // (Optional) ถ้าไม่ส่งจะใช้ปีปัจจุบัน
 
-  // [P1-4] Recipient organization for {RECIPIENT} token
-  recipientOrgId?: number; // Primary recipient organization
+  // [v1.5.1] Recipient organization for counter key
+  recipientOrganizationId?: number; // Primary recipient (-1 = all orgs)
 
   // [P0-4] Audit tracking fields
   userId?: number; // User requesting the number

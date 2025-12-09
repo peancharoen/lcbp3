@@ -87,7 +87,7 @@ export class WorkflowDslService {
       if (rawState.initial) {
         if (initialFound) {
           throw new BadRequestException(
-            `DSL Error: Multiple initial states found (at "${rawState.name}").`,
+            `DSL Error: Multiple initial states found (at "${rawState.name}").`
           );
         }
         compiled.initialState = rawState.name;
@@ -105,7 +105,7 @@ export class WorkflowDslService {
           // Validation: Target state must exist
           if (!definedStates.has(rule.to)) {
             throw new BadRequestException(
-              `DSL Error: State "${rawState.name}" transitions via "${action}" to unknown state "${rule.to}".`,
+              `DSL Error: State "${rawState.name}" transitions via "${action}" to unknown state "${rule.to}".`
             );
           }
 
@@ -125,7 +125,7 @@ export class WorkflowDslService {
         }
       } else if (!rawState.terminal) {
         this.logger.warn(
-          `State "${rawState.name}" is not terminal but has no transitions.`,
+          `State "${rawState.name}" is not terminal but has no transitions.`
         );
       }
 
@@ -147,21 +147,21 @@ export class WorkflowDslService {
     compiled: CompiledWorkflow,
     currentState: string,
     action: string,
-    context: any = {},
+    context: any = {}
   ): { nextState: string; events: RawEvent[] } {
     const stateConfig = compiled.states[currentState];
 
     // 1. Validate State Existence
     if (!stateConfig) {
       throw new BadRequestException(
-        `Runtime Error: Current state "${currentState}" is invalid.`,
+        `Runtime Error: Current state "${currentState}" is invalid.`
       );
     }
 
     // 2. Check if terminal
     if (stateConfig.terminal) {
       throw new BadRequestException(
-        `Runtime Error: Cannot transition from terminal state "${currentState}".`,
+        `Runtime Error: Cannot transition from terminal state "${currentState}".`
       );
     }
 
@@ -170,7 +170,7 @@ export class WorkflowDslService {
     if (!transition) {
       const allowed = Object.keys(stateConfig.transitions).join(', ');
       throw new BadRequestException(
-        `Invalid Action: "${action}" is not allowed from "${currentState}". Allowed: [${allowed}]`,
+        `Invalid Action: "${action}" is not allowed from "${currentState}". Allowed: [${allowed}]`
       );
     }
 
@@ -182,7 +182,7 @@ export class WorkflowDslService {
       const isMet = this.evaluateCondition(transition.condition, context);
       if (!isMet) {
         throw new BadRequestException(
-          'Condition Failed: The criteria for this transition are not met.',
+          'Condition Failed: The criteria for this transition are not met.'
         );
       }
     }
@@ -203,24 +203,30 @@ export class WorkflowDslService {
     }
     if (!dsl.workflow || !dsl.states || !Array.isArray(dsl.states)) {
       throw new BadRequestException(
-        'DSL Error: Missing required fields (workflow, states).',
+        'DSL Error: Missing required fields (workflow, states).'
       );
     }
   }
 
   private checkRequirements(
     req: CompiledTransition['requirements'],
-    context: any,
+    context: any
   ) {
+    // [FIX] Early return if no requirements defined
+    if (!req) {
+      return;
+    }
+
     const userRoles: string[] = context.roles || [];
     const userId: string | number = context.userId;
 
-    // Check Roles (OR logic inside array)
-    if (req.roles.length > 0) {
-      const hasRole = req.roles.some((r) => userRoles.includes(r));
+    // Check Roles (OR logic inside array) - with null-safety
+    const requiredRoles = req.roles || [];
+    if (requiredRoles.length > 0) {
+      const hasRole = requiredRoles.some((r) => userRoles.includes(r));
       if (!hasRole) {
         throw new BadRequestException(
-          `Access Denied: Required roles [${req.roles.join(', ')}]`,
+          `Access Denied: Required roles [${requiredRoles.join(', ')}]`
         );
       }
     }

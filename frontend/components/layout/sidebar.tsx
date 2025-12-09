@@ -12,6 +12,8 @@ import {
   Settings,
   Shield,
   Menu,
+  Layers,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -51,6 +53,18 @@ export function Sidebar({ className }: SidebarProps) {
       permission: null,
     },
     {
+      title: "Circulations",
+      href: "/circulation",
+      icon: Layers, // Start with generic icon, maybe update import if needed
+      permission: null,
+    },
+    {
+      title: "Transmittals",
+      href: "/transmittals",
+      icon: FileText,
+      permission: null,
+    },
+    {
       title: "Search",
       href: "/search",
       icon: Search,
@@ -60,7 +74,25 @@ export function Sidebar({ className }: SidebarProps) {
       title: "Admin Panel",
       href: "/admin",
       icon: Shield,
-      permission: null, // "admin", // Temporarily visible for all
+      permission: null,
+    },
+    {
+      title: "Security",
+      href: "/admin/security/roles",
+      icon: Shield,
+      permission: "system.manage_security",
+    },
+    {
+      title: "System Logs",
+      href: "/admin/system-logs/numbering",
+      icon: Layers,
+      permission: "system.view_logs",
+    },
+    {
+      title: "Reference Data",
+      href: "/admin/reference",
+      icon: BookOpen,
+      permission: "master_data.view",
     },
   ];
 

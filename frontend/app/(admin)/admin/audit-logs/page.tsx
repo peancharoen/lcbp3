@@ -25,23 +25,30 @@ export default function AuditLogsPage() {
             {!logs || logs.length === 0 ? (
                 <div className="text-center text-muted-foreground py-10">No logs found</div>
             ) : (
-                logs.map((log: any) => (
-                <Card key={log.audit_log_id} className="p-4">
+                logs.map((log: import("@/lib/services/audit-log.service").AuditLog) => (
+                <Card key={log.auditId} className="p-4">
                     <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                        <span className="font-medium text-sm">{log.user_name || `User #${log.user_id}`}</span>
-                        <Badge variant="outline" className="uppercase text-[10px]">{log.action}</Badge>
-                        <Badge variant="secondary" className="uppercase text-[10px]">{log.entity_type}</Badge>
+                        <span className="font-medium text-sm">
+                            {log.user?.fullName || log.user?.username || `User #${log.userId || 'System'}`}
+                        </span>
+                        <Badge variant={log.severity === 'ERROR' ? 'destructive' : 'outline'} className="uppercase text-[10px]">
+                            {log.action}
+                        </Badge>
+                        <Badge variant="secondary" className="uppercase text-[10px]">{log.entityType || 'General'}</Badge>
                         </div>
-                        <p className="text-sm text-foreground">{log.description}</p>
+                        <p className="text-sm text-foreground">
+                            {typeof log.detailsJson === 'string' ? log.detailsJson : JSON.stringify(log.detailsJson || {})}
+                        </p>
                         <p className="text-xs text-muted-foreground mt-2">
-                        {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                        {log.createdAt && formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                         </p>
                     </div>
-                    {log.ip_address && (
-                        <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
-                        {log.ip_address}
+                    {/* Only show IP if available */}
+                    {log.ipAddress && (
+                        <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded hidden md:inline-block">
+                        {log.ipAddress}
                         </span>
                     )}
                     </div>

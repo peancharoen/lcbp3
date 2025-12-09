@@ -8,8 +8,17 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from '../../modules/user/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
 import { UnauthorizedException } from '@nestjs/common';
+
+// Mock bcrypt at top level
+jest.mock('bcrypt', () => ({
+  compare: jest.fn(),
+  hash: jest.fn().mockResolvedValue('hashedpassword'),
+  genSalt: jest.fn().mockResolvedValue('salt'),
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const bcrypt = require('bcrypt');
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -42,6 +51,9 @@ describe('AuthService', () => {
   };
 
   beforeEach(async () => {
+    // Reset bcrypt mocks
+    bcrypt.compare.mockResolvedValue(true);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -63,7 +75,7 @@ describe('AuthService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockImplementation((key) => {
+            get: jest.fn().mockImplementation((key: string) => {
               if (key.includes('EXPIRATION')) return '1h';
               return 'secret';
             }),
@@ -90,17 +102,6 @@ describe('AuthService', () => {
     userService = module.get<UserService>(UserService);
     jwtService = module.get<JwtService>(JwtService);
     tokenRepo = module.get(getRepositoryToken(RefreshToken));
-
-    // Mock bcrypt
-    jest
-      .spyOn(bcrypt, 'compare')
-      .mockImplementation(() => Promise.resolve(true));
-    jest
-      .spyOn(bcrypt, 'hash')
-      .mockImplementation(() => Promise.resolve('hashedpassword'));
-    jest
-      .spyOn(bcrypt, 'genSalt')
-      .mockImplementation(() => Promise.resolve('salt'));
   });
 
   afterEach(() => {
@@ -126,9 +127,7 @@ describe('AuthService', () => {
     });
 
     it('should return null if password mismatch', async () => {
-      jest
-        .spyOn(bcrypt, 'compare')
-        .mockImplementation(() => Promise.resolve(false));
+      bcrypt.compare.mockResolvedValueOnce(false);
       const result = await service.validateUser('testuser', 'wrongpassword');
       expect(result).toBeNull();
     });

@@ -1,0 +1,83 @@
+
+> backend@1.5.1 test:e2e
+> jest --config ./test/jest-e2e.json
+
+PASS test/simple.e2e-spec.ts
+PASS test/app.e2e-spec.ts
+FAIL test/phase3-workflow.e2e-spec.ts
+  ΓùÅ Console
+
+    console.warn
+      WorkflowDefinition CORRESPONDENCE_FLOW_V1 not found. Tests may fail.
+
+      55 |
+      56 |     if (!existing) {
+    > 57 |       console.warn(
+         |               ^
+      58 |         'WorkflowDefinition CORRESPONDENCE_FLOW_V1 not found. Tests may fail.'
+      59 |       );
+      60 |     }
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:57:15)
+
+    console.warn
+      Skipping action test - no instanceId from submit
+
+      104 |     // Skip if submit failed to get instanceId
+      105 |     if (!workflowInstanceId) {
+    > 106 |       console.warn('Skipping action test - no instanceId from submit');
+          |               ^
+      107 |       return;
+      108 |     }
+      109 |
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:106:15)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences (POST) - Create Document
+
+    expected 201 "Created", got 403 "Forbidden"
+
+      77 |         details: { question: 'Testing Unified Workflow' },
+      78 |       })
+    > 79 |       .expect(201);
+         |        ^
+      80 |
+      81 |     expect(response.body).toHaveProperty('id');
+      82 |     expect(response.body).toHaveProperty('correspondenceNumber');
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:79:8)
+      ----
+      at Test._assertStatus (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:309:14)
+      at ../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:365:13
+      at Test._assertFunction (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:342:13)
+      at Test.assert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:195:23)
+      at localAssert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:138:14)
+      at Server.<anonymous> (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:152:11)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences/:id/submit (POST) - Submit to Workflow
+
+    expected 201 "Created", got 403 "Forbidden"
+
+      92 |         note: 'Submitting for E2E test',
+      93 |       })
+    > 94 |       .expect(201);
+         |        ^
+      95 |
+      96 |     expect(response.body).toHaveProperty('instanceId');
+      97 |     expect(response.body).toHaveProperty('currentState');
+
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:94:8)
+      ----
+      at Test._assertStatus (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:309:14)
+      at ../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:365:13
+      at Test._assertFunction (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:342:13)
+      at Test.assert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:195:23)
+      at localAssert (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:138:14)
+      at Server.<anonymous> (../../node_modules/.pnpm/supertest@7.1.4/node_modules/supertest/lib/test.js:152:11)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       2 failed, 3 passed, 5 total
+Snapshots:   0 total
+Time:        5.219 s, estimated 9 s
+Ran all test suites.

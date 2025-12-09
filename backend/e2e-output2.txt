@@ -1,0 +1,63 @@
+
+> backend@1.5.1 test:e2e
+> jest --config ./test/jest-e2e.json
+
+PASS test/simple.e2e-spec.ts (7.275 s)
+PASS test/app.e2e-spec.ts (7.566 s)
+FAIL test/phase3-workflow.e2e-spec.ts (7.639 s)
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences (POST) - Create Document
+
+    QueryFailedError: Table 'lcbp3_dev.correspondence_routing_templates' doesn't exist
+
+      at Query.onResult (../../node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08/src/driver/mysql/MysqlQueryRunner.ts:248:33)
+      at Query.execute (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/commands/command.js:36:14)
+      at PoolConnection.handlePacket (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/base/connection.js:477:34)
+      at PacketParser.onPacket (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/base/connection.js:93:12)
+      at PacketParser.executeStart (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/packet_parser.js:75:16)
+      at Socket.<anonymous> (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/base/connection.js:100:25)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences/:id/submit (POST) - Submit Workflow
+
+    QueryFailedError: Table 'lcbp3_dev.correspondence_routing_templates' doesn't exist
+
+      at Query.onResult (../../node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08/src/driver/mysql/MysqlQueryRunner.ts:248:33)
+      at Query.execute (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/commands/command.js:36:14)
+      at PoolConnection.handlePacket (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/base/connection.js:477:34)
+      at PacketParser.onPacket (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/base/connection.js:93:12)
+      at PacketParser.executeStart (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/packet_parser.js:75:16)
+      at Socket.<anonymous> (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/base/connection.js:100:25)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences/:id/workflow/action (POST) - Approve Step
+
+    QueryFailedError: Table 'lcbp3_dev.correspondence_routing_templates' doesn't exist
+
+      at Query.onResult (../../node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08/src/driver/mysql/MysqlQueryRunner.ts:248:33)
+      at Query.execute (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/commands/command.js:36:14)
+      at PoolConnection.handlePacket (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/base/connection.js:477:34)
+      at PacketParser.onPacket (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/base/connection.js:93:12)
+      at PacketParser.executeStart (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/packet_parser.js:75:16)
+      at Socket.<anonymous> (../../node_modules/.pnpm/mysql2@3.15.3/node_modules/mysql2/lib/base/connection.js:100:25)
+
+
+  ΓùÅ Test suite failed to run
+
+    TypeORMError: Empty criteria(s) are not allowed for the delete method.
+
+      67 |     if (dataSource) {
+      68 |       const templateRepo = dataSource.getRepository(RoutingTemplate);
+    > 69 |       await templateRepo.delete(templateId);
+         |                                ^
+      70 |       // Correspondence cleanup might be needed if not using a test DB
+      71 |     }
+      72 |     await app.close();
+
+      at EntityManager.delete (../../node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08/src/entity-manager/EntityManager.ts:849:17)
+      at Repository.delete (../../node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08/src/repository/Repository.ts:420:35)
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:69:32)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       3 failed, 2 passed, 5 total
+Snapshots:   0 total
+Time:        9.08 s
+Ran all test suites.

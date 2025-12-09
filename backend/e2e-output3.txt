@@ -1,0 +1,165 @@
+
+> backend@1.5.1 test:e2e
+> jest --config ./test/jest-e2e.json
+
+[Nest] 28712  - 12/09/2025, 9:48:43 AM   ERROR [TypeOrmModule] Unable to connect to the database. Retrying (1)...
+TypeORMError: Entity metadata for RoutingTemplate#steps was not found. Check if you specified a correct entity object and if it's connected in the connection options.
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1128:23
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.computeInverseProperties (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1118:34)
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:160:18
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.build (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:159:25)
+    at ConnectionMetadataBuilder.buildEntityMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\connection\ConnectionMetadataBuilder.ts:106:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at DataSource.buildMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:733:13)
+    at DataSource.initialize (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:264:13)
+[Nest] 40512  - 12/09/2025, 9:48:43 AM   ERROR [TypeOrmModule] Unable to connect to the database. Retrying (1)...
+TypeORMError: Entity metadata for RoutingTemplate#steps was not found. Check if you specified a correct entity object and if it's connected in the connection options.
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1128:23
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.computeInverseProperties (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1118:34)
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:160:18
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.build (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:159:25)
+    at ConnectionMetadataBuilder.buildEntityMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\connection\ConnectionMetadataBuilder.ts:106:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at DataSource.buildMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:733:13)
+    at DataSource.initialize (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:264:13)
+[Nest] 41884  - 12/09/2025, 9:48:43 AM   ERROR [TypeOrmModule] Unable to connect to the database. Retrying (1)...
+TypeORMError: Entity metadata for RoutingTemplate#steps was not found. Check if you specified a correct entity object and if it's connected in the connection options.
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1128:23
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.computeInverseProperties (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1118:34)
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:160:18
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.build (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:159:25)
+    at ConnectionMetadataBuilder.buildEntityMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\connection\ConnectionMetadataBuilder.ts:106:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at DataSource.buildMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:733:13)
+    at DataSource.initialize (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:264:13)
+[Nest] 41884  - 12/09/2025, 9:48:46 AM   ERROR [TypeOrmModule] Unable to connect to the database. Retrying (2)...
+TypeORMError: Entity metadata for RoutingTemplate#steps was not found. Check if you specified a correct entity object and if it's connected in the connection options.
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1128:23
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.computeInverseProperties (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1118:34)
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:160:18
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.build (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:159:25)
+    at ConnectionMetadataBuilder.buildEntityMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\connection\ConnectionMetadataBuilder.ts:106:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at DataSource.buildMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:733:13)
+    at DataSource.initialize (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:264:13)
+[Nest] 28712  - 12/09/2025, 9:48:46 AM   ERROR [TypeOrmModule] Unable to connect to the database. Retrying (2)...
+TypeORMError: Entity metadata for RoutingTemplate#steps was not found. Check if you specified a correct entity object and if it's connected in the connection options.
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1128:23
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.computeInverseProperties (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1118:34)
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:160:18
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.build (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:159:25)
+    at ConnectionMetadataBuilder.buildEntityMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\connection\ConnectionMetadataBuilder.ts:106:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at DataSource.buildMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:733:13)
+    at DataSource.initialize (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:264:13)
+[Nest] 40512  - 12/09/2025, 9:48:46 AM   ERROR [TypeOrmModule] Unable to connect to the database. Retrying (2)...
+TypeORMError: Entity metadata for RoutingTemplate#steps was not found. Check if you specified a correct entity object and if it's connected in the connection options.
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1128:23
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.computeInverseProperties (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:1118:34)
+    at D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:160:18
+    at Array.forEach (<anonymous>)
+    at EntityMetadataBuilder.build (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\metadata-builder\EntityMetadataBuilder.ts:159:25)
+    at ConnectionMetadataBuilder.buildEntityMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\connection\ConnectionMetadataBuilder.ts:106:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at DataSource.buildMetadatas (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:733:13)
+    at DataSource.initialize (D:\nap-dms.lcbp3\node_modules\.pnpm\typeorm@0.3.27_ioredis@5.8._cb81dfd56f1203fe00eb0fec5dfcce08\src\data-source\DataSource.ts:264:13)
+FAIL test/app.e2e-spec.ts (8.781 s)
+  ΓùÅ AppController (e2e) ΓÇ║ / (GET)
+
+    thrown: "Exceeded timeout of 5000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+       8 |   let app: INestApplication<App>;
+       9 |
+    > 10 |   beforeEach(async () => {
+         |   ^
+      11 |     const moduleFixture: TestingModule = await Test.createTestingModule({
+      12 |       imports: [AppModule],
+      13 |     }).compile();
+
+      at app.e2e-spec.ts:10:3
+      at Object.<anonymous> (app.e2e-spec.ts:7:1)
+
+FAIL test/phase3-workflow.e2e-spec.ts (8.787 s)
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences (POST) - Create Document
+
+    thrown: "Exceeded timeout of 5000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      27 |   let adminToken: string;
+      28 |
+    > 29 |   beforeAll(async () => {
+         |   ^
+      30 |     const moduleFixture: TestingModule = await Test.createTestingModule({
+      31 |       imports: [AppModule],
+      32 |     }).compile();
+
+      at phase3-workflow.e2e-spec.ts:29:3
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:15:1)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences/:id/submit (POST) - Submit to Workflow
+
+    thrown: "Exceeded timeout of 5000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      27 |   let adminToken: string;
+      28 |
+    > 29 |   beforeAll(async () => {
+         |   ^
+      30 |     const moduleFixture: TestingModule = await Test.createTestingModule({
+      31 |       imports: [AppModule],
+      32 |     }).compile();
+
+      at phase3-workflow.e2e-spec.ts:29:3
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:15:1)
+
+  ΓùÅ Phase 3 Workflow (E2E) ΓÇ║ /correspondences/:id/workflow/action (POST) - Process Action
+
+    thrown: "Exceeded timeout of 5000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      27 |   let adminToken: string;
+      28 |
+    > 29 |   beforeAll(async () => {
+         |   ^
+      30 |     const moduleFixture: TestingModule = await Test.createTestingModule({
+      31 |       imports: [AppModule],
+      32 |     }).compile();
+
+      at phase3-workflow.e2e-spec.ts:29:3
+      at Object.<anonymous> (phase3-workflow.e2e-spec.ts:15:1)
+
+FAIL test/simple.e2e-spec.ts (8.797 s)
+  ΓùÅ Simple Test ΓÇ║ should pass
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+       6 |
+       7 | describe('Simple Test', () => {
+    >  8 |   it('should pass', async () => {
+         |   ^
+       9 |     const moduleFixture: TestingModule = await Test.createTestingModule({
+      10 |       imports: [AppModule],
+      11 |     }).compile();
+
+      at simple.e2e-spec.ts:8:3
+      at Object.<anonymous> (simple.e2e-spec.ts:7:1)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Test Suites: 3 failed, 3 total
+Tests:       5 failed, 5 total
+Snapshots:   0 total
+Time:        9.98 s
+Ran all test suites.

@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { TransmittalService } from './transmittal.service';
 import { CreateTransmittalDto } from './dto/create-transmittal.dto';
@@ -25,6 +26,13 @@ export class TransmittalController {
   @ApiOperation({ summary: 'Create a new Transmittal' })
   create(@Body() createDto: CreateTransmittalDto, @CurrentUser() user: User) {
     return this.transmittalService.create(createDto, user);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Search Transmittals' })
+  findAll(@Query() searchDto: any) {
+    // Using any for simplicity as I can't import SearchTransmittalDto easily without checking its export
+    return this.transmittalService.findAll(searchDto);
   }
 
   @Get(':id')

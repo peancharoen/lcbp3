@@ -9,26 +9,20 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Like, In } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 
-// Entitie
+// Entities
 import { Correspondence } from './entities/correspondence.entity';
 import { CorrespondenceRevision } from './entities/correspondence-revision.entity';
 import { CorrespondenceType } from './entities/correspondence-type.entity';
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
-import { RoutingTemplate } from './entities/routing-template.entity';
-import { CorrespondenceRouting } from './entities/correspondence-routing.entity';
 import { CorrespondenceReference } from './entities/correspondence-reference.entity';
 import { User } from '../user/entities/user.entity';
 
 // DTOs
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
-import { WorkflowActionDto } from './dto/workflow-action.dto';
 import { AddReferenceDto } from './dto/add-reference.dto';
 import { SearchCorrespondenceDto } from './dto/search-correspondence.dto';
-
-// Interfaces & Enums
-import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface';
 
 // Services
 import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
@@ -37,6 +31,12 @@ import { WorkflowEngineService } from '../workflow-engine/workflow-engine.servic
 import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
 
+/**
+ * CorrespondenceService - Document management (CRUD)
+ *
+ * NOTE: Workflow operations (submit, processAction) have been moved to
+ * CorrespondenceWorkflowService which uses the Unified Workflow Engine.
+ */
 @Injectable()
 export class CorrespondenceService {
   private readonly logger = new Logger(CorrespondenceService.name);
@@ -50,10 +50,6 @@ export class CorrespondenceService {
     private typeRepo: Repository<CorrespondenceType>,
     @InjectRepository(CorrespondenceStatus)
     private statusRepo: Repository<CorrespondenceStatus>,
-    @InjectRepository(RoutingTemplate)
-    private templateRepo: Repository<RoutingTemplate>,
-    @InjectRepository(CorrespondenceRouting)
-    private routingRepo: Repository<CorrespondenceRouting>,
     @InjectRepository(CorrespondenceReference)
     private referenceRepo: Repository<CorrespondenceReference>,
 
@@ -111,9 +107,9 @@ export class CorrespondenceService {
     if (createDto.details) {
       try {
         await this.jsonSchemaService.validate(type.typeCode, createDto.details);
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.logger.warn(
-          `Schema validation warning for ${type.typeCode}: ${error.message}`
+          `Schema validation warning for ${type.typeCode}: ${(error as Error).message}`
         );
       }
     }
@@ -125,13 +121,12 @@ export class CorrespondenceService {
     try {
       const orgCode = 'ORG'; // TODO: Fetch real ORG Code from Organization Entity
 
-      // [FIXED] เรียกใช้แบบ Object Context ตาม Requirement 6B
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: createDto.projectId,
         originatorId: userOrgId,
         typeId: createDto.typeId,
-        disciplineId: createDto.disciplineId, // ส่ง Discipline (ถ้ามี)
-        subTypeId: createDto.subTypeId, // ส่ง SubType (ถ้ามี)
+        disciplineId: createDto.disciplineId,
+        subTypeId: createDto.subTypeId,
         year: new Date().getFullYear(),
         customTokens: {
           TYPE_CODE: type.typeCode,
@@ -142,7 +137,7 @@ export class CorrespondenceService {
       const correspondence = queryRunner.manager.create(Correspondence, {
         correspondenceNumber: docNumber,
         correspondenceTypeId: createDto.typeId,
-        disciplineId: createDto.disciplineId, // บันทึก Discipline ลง DB
+        disciplineId: createDto.disciplineId,
         projectId: createDto.projectId,
         originatorId: userOrgId,
         isInternal: createDto.isInternal || false,
@@ -165,7 +160,7 @@ export class CorrespondenceService {
 
       await queryRunner.commitTransaction();
 
-      // [NEW V1.5.1] Start Workflow Instance (After Commit)
+      // Start Workflow Instance (non-blocking)
       try {
         const workflowCode = `CORRESPONDENCE_${type.typeCode}`;
         await this.workflowEngine.createInstance(
@@ -183,7 +178,6 @@ export class CorrespondenceService {
         this.logger.warn(
           `Workflow not started for ${docNumber} (Code: CORRESPONDENCE_${type.typeCode}): ${(error as Error).message}`
         );
-        // Non-blocking: Document is created, but workflow might not be active.
       }
 
       this.searchService.indexDocument({
@@ -212,7 +206,6 @@ export class CorrespondenceService {
     }
   }
 
-  // ... (method อื่นๆ คงเดิม)
   async findAll(searchDto: SearchCorrespondenceDto = {}) {
     const { search, typeId, projectId, statusId } = searchDto;
 
@@ -264,182 +257,6 @@ export class CorrespondenceService {
       throw new NotFoundException(`Correspondence with ID ${id} not found`);
     }
     return correspondence;
-  }
-
-  async submit(correspondenceId: number, templateId: number, user: User) {
-    const correspondence = await this.correspondenceRepo.findOne({
-      where: { id: correspondenceId },
-      relations: ['revisions'],
-    });
-
-    if (!correspondence) {
-      throw new NotFoundException('Correspondence not found');
-    }
-
-    const currentRevision = correspondence.revisions?.find((r) => r.isCurrent);
-    if (!currentRevision) {
-      throw new NotFoundException('Current revision not found');
-    }
-
-    const template = await this.templateRepo.findOne({
-      where: { id: templateId },
-      relations: ['steps'],
-      order: { steps: { sequence: 'ASC' } },
-    });
-
-    if (!template || !template.steps?.length) {
-      throw new BadRequestException(
-        'Invalid routing template or no steps defined'
-      );
-    }
-
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const firstStep = template.steps[0];
-
-      const routing = queryRunner.manager.create(CorrespondenceRouting, {
-        correspondenceId: currentRevision.id,
-        templateId: template.id,
-        sequence: 1,
-        fromOrganizationId: user.primaryOrganizationId,
-        toOrganizationId: firstStep.toOrganizationId,
-        stepPurpose: firstStep.stepPurpose,
-        status: 'SENT',
-        dueDate: new Date(
-          Date.now() + (firstStep.expectedDays || 7) * 24 * 60 * 60 * 1000
-        ),
-        processedByUserId: user.user_id,
-        processedAt: new Date(),
-      });
-      await queryRunner.manager.save(routing);
-
-      await queryRunner.commitTransaction();
-      return routing;
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  async processAction(
-    correspondenceId: number,
-    dto: WorkflowActionDto,
-    user: User
-  ) {
-    const correspondence = await this.correspondenceRepo.findOne({
-      where: { id: correspondenceId },
-      relations: ['revisions'],
-    });
-
-    if (!correspondence)
-      throw new NotFoundException('Correspondence not found');
-
-    const currentRevision = correspondence.revisions?.find((r) => r.isCurrent);
-    if (!currentRevision)
-      throw new NotFoundException('Current revision not found');
-
-    const currentRouting = await this.routingRepo.findOne({
-      where: {
-        correspondenceId: currentRevision.id,
-        status: 'SENT',
-      },
-      order: { sequence: 'DESC' },
-      relations: ['toOrganization'],
-    });
-
-    if (!currentRouting) {
-      throw new BadRequestException(
-        'No active workflow step found for this document'
-      );
-    }
-
-    if (currentRouting.toOrganizationId !== user.primaryOrganizationId) {
-      throw new BadRequestException(
-        'You are not authorized to process this step'
-      );
-    }
-
-    if (!currentRouting.templateId) {
-      throw new InternalServerErrorException(
-        'Routing record missing templateId'
-      );
-    }
-
-    const template = await this.templateRepo.findOne({
-      where: { id: currentRouting.templateId },
-      relations: ['steps'],
-    });
-
-    if (!template || !template.steps) {
-      throw new InternalServerErrorException('Template definition not found');
-    }
-
-    const totalSteps = template.steps.length;
-    const currentSeq = currentRouting.sequence;
-
-    const result = this.workflowEngine.processAction(
-      currentSeq,
-      totalSteps,
-      dto.action,
-      dto.returnToSequence
-    );
-
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      currentRouting.status =
-        dto.action === WorkflowAction.REJECT ? 'REJECTED' : 'ACTIONED';
-      currentRouting.processedByUserId = user.user_id;
-      currentRouting.processedAt = new Date();
-      currentRouting.comments = dto.comments;
-
-      await queryRunner.manager.save(currentRouting);
-
-      if (result.nextStepSequence && dto.action !== WorkflowAction.REJECT) {
-        const nextStepConfig = template.steps.find(
-          (s) => s.sequence === result.nextStepSequence
-        );
-
-        if (!nextStepConfig) {
-          this.logger.warn(
-            `Next step ${result.nextStepSequence} not found in template`
-          );
-        } else {
-          const nextRouting = queryRunner.manager.create(
-            CorrespondenceRouting,
-            {
-              correspondenceId: currentRevision.id,
-              templateId: template.id,
-              sequence: result.nextStepSequence,
-              fromOrganizationId: user.primaryOrganizationId,
-              toOrganizationId: nextStepConfig.toOrganizationId,
-              stepPurpose: nextStepConfig.stepPurpose,
-              status: 'SENT',
-              dueDate: new Date(
-                Date.now() +
-                  (nextStepConfig.expectedDays || 7) * 24 * 60 * 60 * 1000
-              ),
-            }
-          );
-          await queryRunner.manager.save(nextRouting);
-        }
-      }
-
-      await queryRunner.commitTransaction();
-      return { message: 'Action processed successfully', result };
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
-    }
   }
 
   async addReference(id: number, dto: AddReferenceDto) {

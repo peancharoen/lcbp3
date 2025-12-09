@@ -73,6 +73,24 @@ export class UserController {
     return this.userService.getUserPermissions(user.user_id);
   }
 
+  // --- Reference Data (Roles/Permissions) ---
+
+  @Get('roles')
+  @ApiOperation({ summary: 'Get all roles' })
+  @ApiResponse({ status: 200, description: 'List of roles' })
+  @RequirePermission('user.view')
+  findAllRoles() {
+    return this.userService.findAllRoles();
+  }
+
+  @Get('permissions')
+  @ApiOperation({ summary: 'Get all permissions' })
+  @ApiResponse({ status: 200, description: 'List of permissions' })
+  @RequirePermission('user.view')
+  findAllPermissions() {
+    return this.userService.findAllPermissions();
+  }
+
   // --- User CRUD (Admin) ---
 
   @Post()
