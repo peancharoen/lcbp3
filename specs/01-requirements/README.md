@@ -95,13 +95,19 @@ See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.
 
 ### By Feature Status
 
-| Feature Area               | Requirements Doc                       | Status      | Implementation | Operations |
-|----------------------------|----------------------------------------|-------------|----------------|------------|
-| Correspondence Management  | [03.2](./03.2-correspondence.md)       | ✅ Complete | Planned        | N/A        |
-| RFA Management             | [03.3](./03.3-rfa.md)                  | ✅ Complete | Planned        | N/A        |
-| Workflow Engine            | [03.6](./03.6-unified-workflow.md)     | ✅ Complete | Planned        | N/A        |
-| **Document Numbering**     | [03.11](./03.11-document-numbering.md) | ✅ Complete | [Guide](../03-implementation/document-numbering.md) | [Guide](../04-operations/document-numbering-operations.md) |
-| Access Control             | [04](./04-access-control.md)           | ✅ Complete | Planned        | N/A        |
+| Feature Area              | Requirements Doc                       | Status     | Implementation                                        | Operations                                                   |
+| ------------------------- | -------------------------------------- | ---------- | ----------------------------------------------------- | ------------------------------------------------------------ |
+| Correspondence Management | [03.2](./03.2-correspondence.md)       | ✅ Complete | ✅ Complete                                            | Available                                                    |
+| RFA Management            | [03.3](./03.3-rfa.md)                  | ✅ Complete | ✅ Complete                                            | Available                                                    |
+| Contract Drawing          | [03.4](./03.4-contract-drawing.md)     | ✅ Complete | ✅ Complete                                            | Available                                                    |
+| Shop Drawing              | [03.5](./03.5-shop-drawing.md)         | ✅ Complete | ✅ Complete                                            | Available                                                    |
+| Workflow Engine           | [03.6](./03.6-unified-workflow.md)     | ✅ Complete | ✅ Complete                                            | Available                                                    |
+| Transmittals              | [03.7](./03.7-transmittals.md)         | ✅ Complete | ✅ Complete                                            | Available                                                    |
+| Circulation Sheets        | [03.8](./03.8-circulation-sheet.md)    | ✅ Complete | ✅ Complete                                            | Available                                                    |
+| **Document Numbering**    | [03.11](./03.11-document-numbering.md) | ✅ Complete | ✅ [Guide](../03-implementation/document-numbering.md) | ✅ [Guide](../04-operations/document-numbering-operations.md) |
+| Access Control (RBAC)     | [04](./04-access-control.md)           | ✅ Complete | ✅ Complete                                            | Available                                                    |
+| Search (Elasticsearch)    | N/A                                    | ✅ Complete | 🔄 95%                                                 | Available                                                    |
+| Dashboard & Analytics     | N/A                                    | ✅ Complete | ✅ Complete                                            | Available                                                    |
 
 ### By Priority
 
@@ -168,6 +174,6 @@ All requirements documents must meet these criteria:
 
 - **Version:** 1.5.1
 - **Owner:** System Architect (Nattanin Peancharoen)
-- **Last Review:** 2025-12-02
+- **Last Review:** 2025-12-10
 - **Next Review:** 2026-01-01
 - **Classification:** Internal Use Only

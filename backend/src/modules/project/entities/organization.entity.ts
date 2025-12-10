@@ -12,6 +12,9 @@ export class Organization extends BaseEntity {
   @Column({ name: 'organization_name', length: 255 })
   organizationName!: string;
 
+  @Column({ name: 'role_id', nullable: true })
+  roleId?: number;
+
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 }

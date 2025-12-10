@@ -29,8 +29,8 @@ export function SequenceViewer() {
 
   const filteredSequences = sequences.filter(s =>
       s.year.toString().includes(search) ||
-      s.organization_code?.toLowerCase().includes(search.toLowerCase()) ||
-      s.discipline_code?.toLowerCase().includes(search.toLowerCase())
+      s.organizationCode?.toLowerCase().includes(search.toLowerCase()) ||
+      s.disciplineCode?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -57,26 +57,26 @@ export function SequenceViewer() {
         )}
         {filteredSequences.map((seq) => (
           <div
-            key={seq.sequence_id}
+            key={seq.sequenceId}
             className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded border"
           >
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-medium">Year {seq.year}</span>
-                {seq.organization_code && (
-                  <Badge>{seq.organization_code}</Badge>
+                {seq.organizationCode && (
+                  <Badge>{seq.organizationCode}</Badge>
                 )}
-                {seq.discipline_code && (
-                  <Badge variant="outline">{seq.discipline_code}</Badge>
+                {seq.disciplineCode && (
+                  <Badge variant="outline">{seq.disciplineCode}</Badge>
                 )}
               </div>
               <div className="text-sm text-muted-foreground">
-                <span className="text-foreground font-medium">Current: {seq.current_number}</span> | Last Generated:{' '}
-                <span className="font-mono">{seq.last_generated_number}</span>
+                <span className="text-foreground font-medium">Current: {seq.currentNumber}</span> | Last Generated:{' '}
+                <span className="font-mono">{seq.lastGeneratedNumber}</span>
               </div>
             </div>
             <div className="text-sm text-gray-500">
-              Updated {new Date(seq.updated_at).toLocaleDateString()}
+              Updated {new Date(seq.updatedAt).toLocaleDateString()}
             </div>
           </div>
         ))}

@@ -1,43 +1,43 @@
 export interface Role {
-  role_id: number;
-  role_name: string;
+  roleId: number;
+  roleName: string;
   description: string;
 }
 
 export interface User {
-  user_id: number;
+  userId: number;
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
-  is_active: boolean;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
   roles: Role[];
 }
 
 export interface CreateUserDto {
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   password?: string;
-  is_active: boolean;
+  isActive: boolean;
   roles: number[];
 }
 
 export interface Organization {
-  org_id: number;
-  org_code: string;
-  org_name: string;
-  org_name_th?: string;
+  orgId: number;
+  orgCode: string;
+  orgName: string;
+  orgNameTh?: string;
   description?: string;
 }
 
 export interface AuditLog {
-  audit_log_id: number;
-  user_name: string;
+  auditLogId: number;
+  userName: string;
   action: string;
-  entity_type: string;
+  entityType: string;
   description: string;
-  ip_address?: string;
-  created_at: string;
+  ipAddress?: string;
+  createdAt: string;
 }

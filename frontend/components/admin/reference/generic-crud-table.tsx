@@ -15,16 +15,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface FieldConfig {
   name: string;
   label: string;
-  type: "text" | "textarea" | "checkbox";
+  type: "text" | "textarea" | "checkbox" | "select";
   required?: boolean;
+  options?: { label: string; value: any }[];
 }
 
 interface GenericCrudTableProps {
@@ -38,6 +45,7 @@ interface GenericCrudTableProps {
   fields: FieldConfig[];
   title?: string;
   description?: string;
+  filters?: React.ReactNode;
 }
 
 export function GenericCrudTable({
@@ -51,6 +59,7 @@ export function GenericCrudTable({
   fields,
   title,
   description,
+  filters,
 }: GenericCrudTableProps) {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
@@ -165,7 +174,8 @@ export function GenericCrudTable({
             <p className="text-sm text-muted-foreground">{description}</p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {filters}
           <Button
             variant="outline"
             size="icon"
@@ -214,6 +224,22 @@ export function GenericCrudTable({
                       Enabled
                     </label>
                   </div>
+                ) : field.type === "select" ? (
+                  <Select
+                    value={formData[field.name]?.toString() || ""}
+                    onValueChange={(value) => handleChange(field.name, value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Select ${field.label}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options?.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value.toString()}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <Input
                     id={field.name}

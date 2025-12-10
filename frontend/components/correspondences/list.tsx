@@ -21,10 +21,10 @@ interface CorrespondenceListProps {
 export function CorrespondenceList({ data }: CorrespondenceListProps) {
   const columns: ColumnDef<Correspondence>[] = [
     {
-      accessorKey: "document_number",
+      accessorKey: "documentNumber",
       header: "Document No.",
       cell: ({ row }) => (
-        <span className="font-medium">{row.getValue("document_number")}</span>
+        <span className="font-medium">{row.getValue("documentNumber")}</span>
       ),
     },
     {
@@ -37,17 +37,17 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
       ),
     },
     {
-      accessorKey: "from_organization.org_name",
+      accessorKey: "fromOrganization.orgName",
       header: "From",
     },
     {
-      accessorKey: "to_organization.org_name",
+      accessorKey: "toOrganization.orgName",
       header: "To",
     },
     {
-      accessorKey: "created_at",
-      header: "Date",
-      cell: ({ row }) => format(new Date(row.getValue("created_at")), "dd MMM yyyy"),
+      accessorKey: "createdAt",
+      header: "Created",
+      cell: ({ row }) => format(new Date(row.getValue("createdAt")), "dd MMM yyyy"),
     },
     {
       accessorKey: "status",
@@ -60,13 +60,13 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
         const item = row.original;
         return (
           <div className="flex gap-2">
-            <Link href={`/correspondences/${item.correspondence_id}`}>
+            <Link href={`/correspondences/${row.original.correspondenceId}`}>
               <Button variant="ghost" size="icon" title="View">
                 <Eye className="h-4 w-4" />
               </Button>
             </Link>
             {item.status === "DRAFT" && (
-              <Link href={`/correspondences/${item.correspondence_id}/edit`}>
+              <Link href={`/correspondences/${row.original.correspondenceId}/edit`}>
                 <Button variant="ghost" size="icon" title="Edit">
                   <Edit className="h-4 w-4" />
                 </Button>

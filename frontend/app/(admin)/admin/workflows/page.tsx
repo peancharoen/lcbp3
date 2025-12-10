@@ -53,15 +53,15 @@ export default function WorkflowsPage() {
       ) : (
         <div className="grid gap-4">
           {workflows.map((workflow) => (
-            <Card key={workflow.workflow_id} className="p-6">
+            <Card key={workflow.workflowId} className="p-6">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-semibold">
-                      {workflow.workflow_name}
+                      {workflow.workflowName}
                     </h3>
-                    <Badge variant={workflow.is_active ? "default" : "secondary"} className={workflow.is_active ? "bg-green-600 hover:bg-green-700" : ""}>
-                      {workflow.is_active ? "Active" : "Inactive"}
+                    <Badge variant={workflow.isActive ? "default" : "secondary"} className={workflow.isActive ? "bg-green-600 hover:bg-green-700" : ""}>
+                      {workflow.isActive ? "Active" : "Inactive"}
                     </Badge>
                     <Badge variant="outline">v{workflow.version}</Badge>
                   </div>
@@ -69,17 +69,17 @@ export default function WorkflowsPage() {
                     {workflow.description}
                   </p>
                   <div className="flex gap-6 text-sm text-muted-foreground">
-                    <span>Type: {workflow.workflow_type}</span>
-                    <span>Steps: {workflow.step_count}</span>
+                    <span>Type: {workflow.workflowType}</span>
+                    <span>Steps: {workflow.stepCount}</span>
                     <span>
                       Updated:{" "}
-                      {new Date(workflow.updated_at).toLocaleDateString()}
+                      {new Date(workflow.updatedAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Link href={`/admin/workflows/${workflow.workflow_id}/edit`}>
+                  <Link href={`/admin/workflows/${workflow.workflowId}/edit`}>
                     <Button variant="outline" size="sm">
                       <Edit className="mr-2 h-4 w-4" />
                       Edit

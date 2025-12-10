@@ -63,7 +63,7 @@ export class ProjectService {
       );
     }
 
-    query.orderBy('project.created_at', 'DESC');
+    query.orderBy('project.createdAt', 'DESC');
     query.skip(skip).take(limit);
 
     const [items, total] = await query.getManyAndCount();

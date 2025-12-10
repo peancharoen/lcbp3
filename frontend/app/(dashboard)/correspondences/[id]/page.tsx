@@ -2,6 +2,8 @@ import { correspondenceApi } from "@/lib/api/correspondences";
 import { CorrespondenceDetail } from "@/components/correspondences/detail";
 import { notFound } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function CorrespondenceDetailPage({
   params,
 }: {

@@ -36,7 +36,7 @@ export default async function DrawingDetailPage({
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{drawing.drawing_number}</h1>
+            <h1 className="text-2xl font-bold">{drawing.drawingNumber}</h1>
             <p className="text-muted-foreground">
               {drawing.title}
             </p>
@@ -48,7 +48,7 @@ export default async function DrawingDetailPage({
             <Download className="mr-2 h-4 w-4" />
             Download Current
           </Button>
-          {drawing.revision_count > 1 && (
+          {(drawing.revisionCount ?? 0) > 1 && (
             <Button variant="outline">
               <GitCompare className="mr-2 h-4 w-4" />
               Compare Revisions
@@ -71,11 +71,15 @@ export default async function DrawingDetailPage({
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Discipline</p>
-                  <p className="font-medium mt-1">{drawing.discipline?.discipline_name} ({drawing.discipline?.discipline_code})</p>
+                  <p className="font-medium mt-1">
+                    {typeof drawing.discipline === 'object' && drawing.discipline
+                      ? `${drawing.discipline.disciplineName} (${drawing.discipline.disciplineCode})`
+                      : drawing.discipline || 'N/A'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Sheet Number</p>
-                  <p className="font-medium mt-1">{drawing.sheet_number}</p>
+                  <p className="font-medium mt-1">{drawing.sheetNumber}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Scale</p>
@@ -83,7 +87,7 @@ export default async function DrawingDetailPage({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Latest Issue Date</p>
-                  <p className="font-medium mt-1">{format(new Date(drawing.issue_date), "dd MMM yyyy")}</p>
+                  <p className="font-medium mt-1">{drawing.issueDate ? format(new Date(drawing.issueDate), "dd MMM yyyy") : 'N/A'}</p>
                 </div>
               </div>
 

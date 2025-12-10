@@ -32,19 +32,19 @@ import apiClient from "@/lib/api/client";
 // 1. กำหนด Schema สำหรับตรวจสอบข้อมูล (Validation)
 // อ้างอิงจาก Data Dictionary ตาราง projects
 const projectSchema = z.object({
-  project_code: z
+  projectCode: z
     .string()
     .min(1, "กรุณาระบุรหัสโครงการ")
     .max(50, "รหัสโครงการต้องไม่เกิน 50 ตัวอักษร")
     .regex(/^[A-Z0-9-]+$/, "รหัสโครงการควรประกอบด้วยตัวอักษรภาษาอังกฤษตัวใหญ่ ตัวเลข หรือขีด (-) เท่านั้น"),
-  project_name: z
+  projectName: z
     .string()
     .min(1, "กรุณาระบุชื่อโครงการ")
     .max(255, "ชื่อโครงการต้องไม่เกิน 255 ตัวอักษร"),
-  description: z.string().optional(), // ฟิลด์เสริม (อาจจะยังไม่มีใน DB แต่เผื่อไว้สำหรับ UI)
-  status: z.enum(["Active", "Inactive", "On Hold"]).default("Active"),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
+  description: z.string().optional(),
+  status: z.enum(["Active", "Inactive", "On Hold"]),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
 type ProjectValues = z.infer<typeof projectSchema>;
@@ -63,8 +63,8 @@ export default function CreateProjectPage() {
   } = useForm<ProjectValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      project_code: "",
-      project_name: "",
+      projectCode: "",
+      projectName: "",
       status: "Active",
     },
   });
@@ -76,10 +76,10 @@ export default function CreateProjectPage() {
       // เรียก API สร้างโครงการ (Mockup URL)
       // ใน Phase หลัง Backend จะเตรียม Endpoint POST /projects ไว้ให้
       console.log("Submitting project data:", data);
-      
+
       // จำลองการส่งข้อมูล (Artificial Delay)
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+
       // await apiClient.post("/projects", data);
 
       alert("สร้างโครงการสำเร็จ"); // TODO: เปลี่ยนเป็น Toast
@@ -122,7 +122,7 @@ export default function CreateProjectPage() {
               กรอกรายละเอียดสำคัญของโครงการ รหัสโครงการควรไม่ซ้ำกับที่มีอยู่
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
             {/* Project Code */}
             <div className="space-y-2">
@@ -132,16 +132,15 @@ export default function CreateProjectPage() {
               <Input
                 id="project_code"
                 placeholder="e.g. LCBP3-C1"
-                className={errors.project_code ? "border-destructive" : ""}
-                {...register("project_code")}
-                // แปลงเป็นตัวพิมพ์ใหญ่ให้อัตโนมัติเพื่อความเป็นระเบียบ
+                className={errors.projectCode ? "border-destructive" : ""}
+                {...register("projectCode")}
                 onChange={(e) => {
                   e.target.value = e.target.value.toUpperCase();
-                  register("project_code").onChange(e);
+                  register("projectCode").onChange(e);
                 }}
               />
-              {errors.project_code ? (
-                <p className="text-xs text-destructive">{errors.project_code.message}</p>
+              {errors.projectCode ? (
+                <p className="text-xs text-destructive">{errors.projectCode.message}</p>
               ) : (
                 <p className="text-xs text-muted-foreground">
                   ใช้ภาษาอังกฤษตัวพิมพ์ใหญ่ ตัวเลข และขีด (-) เท่านั้น
@@ -157,11 +156,11 @@ export default function CreateProjectPage() {
               <Input
                 id="project_name"
                 placeholder="ระบุชื่อโครงการฉบับเต็ม..."
-                className={errors.project_name ? "border-destructive" : ""}
-                {...register("project_name")}
+                className={errors.projectName ? "border-destructive" : ""}
+                {...register("projectName")}
               />
-              {errors.project_name && (
-                <p className="text-xs text-destructive">{errors.project_name.message}</p>
+              {errors.projectName && (
+                <p className="text-xs text-destructive">{errors.projectName.message}</p>
               )}
             </div>
 
@@ -183,7 +182,7 @@ export default function CreateProjectPage() {
                 <Input
                   id="start_date"
                   type="date"
-                  {...register("start_date")}
+                  {...register("startDate")}
                 />
               </div>
               <div className="space-y-2">
@@ -191,7 +190,7 @@ export default function CreateProjectPage() {
                 <Input
                   id="end_date"
                   type="date"
-                  {...register("end_date")}
+                  {...register("endDate")}
                 />
               </div>
             </div>
@@ -199,8 +198,8 @@ export default function CreateProjectPage() {
             {/* Status Select */}
             <div className="space-y-2">
               <Label htmlFor="status">สถานะโครงการ</Label>
-              {/* เนื่องจาก Select ของ Shadcn เป็น Custom UI 
-                เราต้องใช้ onValueChange เพื่อเชื่อมกับ React Hook Form 
+              {/* เนื่องจาก Select ของ Shadcn เป็น Custom UI
+                เราต้องใช้ onValueChange เพื่อเชื่อมกับ React Hook Form
               */}
               <Select
                 onValueChange={(value: any) => setValue("status", value)}
@@ -219,9 +218,9 @@ export default function CreateProjectPage() {
           </CardContent>
 
           <CardFooter className="flex justify-end gap-2 border-t p-4 bg-muted/50">
-            <Button 
-              type="button" 
-              variant="ghost" 
+            <Button
+              type="button"
+              variant="ghost"
               onClick={() => router.back()}
               disabled={isLoading}
             >

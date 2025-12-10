@@ -1,7 +1,7 @@
 export interface Organization {
   id: number;
-  org_name: string;
-  org_code: string;
+  orgName: string;
+  orgCode: string;
 }
 
 export interface Attachment {
@@ -10,32 +10,32 @@ export interface Attachment {
   url: string;
   size?: number;
   type?: string;
-  created_at?: string;
+  createdAt?: string;
 }
 
 export interface Correspondence {
-  correspondence_id: number;
-  document_number: string;
+  correspondenceId: number;
+  documentNumber: string;
   subject: string;
   description?: string;
   status: "DRAFT" | "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED";
   importance: "NORMAL" | "HIGH" | "URGENT";
-  created_at: string;
-  updated_at: string;
-  from_organization_id: number;
-  to_organization_id: number;
-  from_organization?: Organization;
-  to_organization?: Organization;
-  document_type_id: number;
+  createdAt: string;
+  updatedAt: string;
+  fromOrganizationId: number;
+  toOrganizationId: number;
+  fromOrganization?: Organization;
+  toOrganization?: Organization;
+  documentTypeId: number;
   attachments?: Attachment[];
 }
 
 export interface CreateCorrespondenceDto {
   subject: string;
   description?: string;
-  document_type_id: number;
-  from_organization_id: number;
-  to_organization_id: number;
+  documentTypeId: number;
+  fromOrganizationId: number;
+  toOrganizationId: number;
   importance: "NORMAL" | "HIGH" | "URGENT";
   attachments?: File[];
 }

@@ -1,33 +1,40 @@
 "use client";
 
 import { GenericCrudTable } from "@/components/admin/reference/generic-crud-table";
+import { masterDataService } from "@/lib/services/master-data.service";
 import { ColumnDef } from "@tanstack/react-table";
-import apiClient from "@/lib/api/client";
-
-// Service wrapper
-const correspondenceTypeService = {
-  getAll: async () => (await apiClient.get("/master/correspondence-types")).data,
-  create: async (data: any) => (await apiClient.post("/master/correspondence-types", data)).data,
-  update: async (id: number, data: any) => (await apiClient.patch(`/master/correspondence-types/${id}`, data)).data,
-  delete: async (id: number) => (await apiClient.delete(`/master/correspondence-types/${id}`)).data,
-};
 
 export default function CorrespondenceTypesPage() {
   const columns: ColumnDef<any>[] = [
     {
-      accessorKey: "type_code",
+      accessorKey: "typeCode",
       header: "Code",
       cell: ({ row }) => (
-        <span className="font-mono font-bold">{row.getValue("type_code")}</span>
+        <span className="font-mono font-bold">{row.getValue("typeCode")}</span>
       ),
     },
     {
-      accessorKey: "type_name_th",
-      header: "Name (TH)",
+      accessorKey: "typeName",
+      header: "Name",
     },
     {
-      accessorKey: "type_name_en",
-      header: "Name (EN)",
+      accessorKey: "sortOrder",
+      header: "Sort Order",
+    },
+    {
+      accessorKey: "isActive",
+      header: "Status",
+      cell: ({ row }) => (
+        <span
+          className={`px-2 py-1 rounded-full text-xs ${
+            row.getValue("isActive")
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {row.getValue("isActive") ? "Active" : "Inactive"}
+        </span>
+      ),
     },
   ];
 
@@ -36,16 +43,18 @@ export default function CorrespondenceTypesPage() {
       <GenericCrudTable
         entityName="Correspondence Type"
         title="Correspondence Types Management"
+        description="Manage global correspondence types (e.g., LETTER, TRANSMITTAL)"
         queryKey={["correspondence-types"]}
-        fetchFn={correspondenceTypeService.getAll}
-        createFn={correspondenceTypeService.create}
-        updateFn={correspondenceTypeService.update}
-        deleteFn={correspondenceTypeService.delete}
+        fetchFn={() => masterDataService.getCorrespondenceTypes()}
+        createFn={(data) => masterDataService.createCorrespondenceType(data)}
+        updateFn={(id, data) => masterDataService.updateCorrespondenceType(id, data)}
+        deleteFn={(id) => masterDataService.deleteCorrespondenceType(id)}
         columns={columns}
         fields={[
-          { name: "type_code", label: "Code", type: "text", required: true },
-          { name: "type_name_th", label: "Name (TH)", type: "text", required: true },
-          { name: "type_name_en", label: "Name (EN)", type: "text" },
+          { name: "typeCode", label: "Code", type: "text", required: true },
+          { name: "typeName", label: "Name", type: "text", required: true },
+          { name: "sortOrder", label: "Sort Order", type: "text" },
+          { name: "isActive", label: "Active", type: "checkbox" },
         ]}
       />
     </div>

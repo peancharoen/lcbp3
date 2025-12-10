@@ -1,6 +1,6 @@
 export interface RFAItem {
   id?: number;
-  item_no: string;
+  itemNo: string;
   description: string;
   quantity: number;
   unit: string;
@@ -8,25 +8,30 @@ export interface RFAItem {
 }
 
 export interface RFA {
-  rfa_id: number;
-  rfa_number: string;
+  rfaId: number;
+  rfaNumber: string;
   subject: string;
   description?: string;
-  contract_id: number;
-  discipline_id: number;
+  contractId: number;
+  disciplineId: number;
   status: "DRAFT" | "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED";
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
   items: RFAItem[];
   // Mock fields for display
-  contract_name?: string;
-  discipline_name?: string;
+  contractName?: string;
+  disciplineName?: string;
 }
 
 export interface CreateRFADto {
-  subject: string;
+  projectId?: number;
+  rfaTypeId: number;
+  title: string;
   description?: string;
-  contract_id: number;
-  discipline_id: number;
+  contractId: number;
+  disciplineId: number;
+  toOrganizationId: number;
+  dueDate?: string;
+  shopDrawingRevisionIds?: number[];
   items: RFAItem[];
 }

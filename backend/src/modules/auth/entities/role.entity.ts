@@ -38,7 +38,7 @@ export class Role extends BaseEntity {
   @PrimaryGeneratedColumn({ name: 'role_id' })
   id!: number;
 
-  @Column({ name: 'role_name', length: 50, unique: true })
+  @Column({ name: 'role_name', length: 100, unique: true })
   roleName!: string;
 
   @Column({ name: 'description', type: 'text', nullable: true })

@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OrganizationService } from './organization.service.js';
 import { CreateOrganizationDto } from './dto/create-organization.dto.js';
 import { UpdateOrganizationDto } from './dto/update-organization.dto.js';
+import { SearchOrganizationDto } from './dto/search-organization.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
 
@@ -32,8 +34,8 @@ export class OrganizationController {
 
   @Get()
   @ApiOperation({ summary: 'Get All Organizations' })
-  findAll() {
-    return this.orgService.findAll();
+  findAll(@Query() query: SearchOrganizationDto) {
+    return this.orgService.findAll(query);
   }
 
   @Get(':id')

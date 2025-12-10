@@ -70,6 +70,8 @@ export interface CreateTransmittalItemDto {
  * DTO for creating a transmittal
  */
 export interface CreateTransmittalDto {
+  projectId?: number;
+  recipientOrganizationId?: number;
   correspondenceId: number;
   subject: string;
   purpose?: TransmittalPurpose;

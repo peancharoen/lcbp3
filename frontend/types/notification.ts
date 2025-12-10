@@ -1,10 +1,10 @@
 export interface Notification {
-  notification_id: number;
+  notificationId: number;
   title: string;
   message: string;
   type: "INFO" | "SUCCESS" | "WARNING" | "ERROR";
-  is_read: boolean;
-  created_at: string;
+  isRead: boolean;
+  createdAt: string;
   link?: string;
 }
 

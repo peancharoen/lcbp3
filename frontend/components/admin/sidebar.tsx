@@ -9,6 +9,7 @@ const menuItems = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
   { href: "/admin/projects", label: "Projects", icon: FileText },
+  { href: "/admin/contracts", label: "Contracts", icon: FileText },
   { href: "/admin/reference", label: "Reference Data", icon: BookOpen },
   { href: "/admin/numbering", label: "Numbering", icon: FileText },
   { href: "/admin/workflows", label: "Workflows", icon: GitGraph },

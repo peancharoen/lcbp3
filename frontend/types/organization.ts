@@ -2,15 +2,8 @@ export interface Organization {
   id: number;
   organizationCode: string;
   organizationName: string;
-  organizationNameTh?: string; // Optional if not present in backend entity
-  description?: string;
+  roleId?: number; // NEW - organization role (OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD_PARTY)
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
-
-  // Keep legacy types optional for backward compatibility if needed, or remove them
-  organization_id?: number;
-  org_code?: string;
-  org_name?: string;
-  org_name_th?: string;
 }

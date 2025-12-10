@@ -47,9 +47,9 @@ export function RFAList({ data }: RFAListProps) {
       header: "Discipline",
     },
     {
-      accessorKey: "created_at",
-      header: "Date",
-      cell: ({ row }) => format(new Date(row.getValue("created_at")), "dd MMM yyyy"),
+      accessorKey: "createdAt",
+      header: "Created",
+      cell: ({ row }) => format(new Date(row.getValue("createdAt")), "dd MMM yyyy"),
     },
     {
       accessorKey: "status",
@@ -62,7 +62,7 @@ export function RFAList({ data }: RFAListProps) {
         const item = row.original;
         return (
           <div className="flex gap-2">
-            <Link href={`/rfas/${item.rfa_id}`}>
+            <Link href={`/rfas/${row.original.rfaId}`}>
               <Button variant="ghost" size="icon" title="View">
                 <Eye className="h-4 w-4" />
               </Button>

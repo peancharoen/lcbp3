@@ -25,10 +25,10 @@ import { CreateCorrespondenceDto } from "@/types/dto/correspondence/create-corre
 const correspondenceSchema = z.object({
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().optional(),
-  document_type_id: z.number().default(1),
-  from_organization_id: z.number().min(1, "Please select From Organization"),
-  to_organization_id: z.number().min(1, "Please select To Organization"),
-  importance: z.enum(["NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
+  documentTypeId: z.number(),
+  fromOrganizationId: z.number().min(1, "Please select From Organization"),
+  toOrganizationId: z.number().min(1, "Please select To Organization"),
+  importance: z.enum(["NORMAL", "HIGH", "URGENT"]),
   attachments: z.array(z.instanceof(File)).optional(),
 });
 
@@ -48,7 +48,7 @@ export function CorrespondenceForm() {
     resolver: zodResolver(correspondenceSchema),
     defaultValues: {
       importance: "NORMAL",
-      document_type_id: 1,
+      documentTypeId: 1,
     } as any, // Cast to any to handle partial defaults for required fields
   });
 
@@ -57,12 +57,12 @@ export function CorrespondenceForm() {
     // Note: projectId is hardcoded to 1 for now as per requirements/context
     const payload: CreateCorrespondenceDto = {
       projectId: 1,
-      typeId: data.document_type_id,
+      typeId: data.documentTypeId,
       title: data.subject,
       description: data.description,
-      originatorId: data.from_organization_id, // Mapping From -> Originator (Impersonation)
+      originatorId: data.fromOrganizationId, // Mapping From -> Originator (Impersonation)
       details: {
-        to_organization_id: data.to_organization_id,
+        to_organization_id: data.toOrganizationId,
         importance: data.importance
       },
       // create-correspondence DTO does not have 'attachments' field at root usually, often handled separate or via multipart
@@ -102,7 +102,7 @@ export function CorrespondenceForm() {
         <div className="space-y-2">
           <Label>From Organization *</Label>
           <Select
-            onValueChange={(v) => setValue("from_organization_id", parseInt(v))}
+            onValueChange={(v) => setValue("fromOrganizationId", parseInt(v))}
             disabled={isLoadingOrgs}
           >
             <SelectTrigger>
@@ -116,15 +116,15 @@ export function CorrespondenceForm() {
               ))}
             </SelectContent>
           </Select>
-          {errors.from_organization_id && (
-            <p className="text-sm text-destructive">{errors.from_organization_id.message}</p>
+          {errors.fromOrganizationId && (
+            <p className="text-sm text-destructive">{errors.fromOrganizationId.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label>To Organization *</Label>
           <Select
-            onValueChange={(v) => setValue("to_organization_id", parseInt(v))}
+            onValueChange={(v) => setValue("toOrganizationId", parseInt(v))}
             disabled={isLoadingOrgs}
           >
             <SelectTrigger>
@@ -138,8 +138,8 @@ export function CorrespondenceForm() {
               ))}
             </SelectContent>
           </Select>
-          {errors.to_organization_id && (
-            <p className="text-sm text-destructive">{errors.to_organization_id.message}</p>
+          {errors.toOrganizationId && (
+            <p className="text-sm text-destructive">{errors.toOrganizationId.message}</p>
           )}
         </div>
       </div>

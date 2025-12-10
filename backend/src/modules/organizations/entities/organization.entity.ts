@@ -6,7 +6,10 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { OrganizationRole } from './organization-role.entity';
 
 @Entity('organizations')
 export class Organization {
@@ -17,8 +20,11 @@ export class Organization {
   @Index('idx_org_code')
   organizationCode!: string;
 
-  @Column({ name: 'organization_name', length: 200 })
+  @Column({ name: 'organization_name', length: 255 })
   organizationName!: string;
+
+  @Column({ name: 'role_id', nullable: true })
+  roleId?: number;
 
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
@@ -31,4 +37,9 @@ export class Organization {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt!: Date;
+
+  // Relations
+  @ManyToOne(() => OrganizationRole, { nullable: true })
+  @JoinColumn({ name: 'role_id' })
+  organizationRole?: OrganizationRole;
 }

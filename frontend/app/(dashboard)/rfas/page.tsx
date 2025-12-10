@@ -7,32 +7,19 @@ import { Plus, Loader2 } from 'lucide-react';
 import { useRFAs } from '@/hooks/use-rfa';
 import { useSearchParams } from 'next/navigation';
 import { Pagination } from '@/components/common/pagination';
+import { Suspense } from 'react';
 
-export default function RFAsPage() {
+function RFAsContent() {
   const searchParams = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1');
-  const status = searchParams.get('status') || undefined;
+  const statusId = searchParams.get('status') ? parseInt(searchParams.get('status')!) : undefined;
   const search = searchParams.get('search') || undefined;
+  const projectId = searchParams.get('projectId') ? parseInt(searchParams.get('projectId')!) : undefined;
 
-  const { data, isLoading, isError } = useRFAs({ page, status, search });
+  const { data, isLoading, isError } = useRFAs({ page, statusId, search, projectId });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">RFAs (Request for Approval)</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage approval requests and submissions
-          </p>
-        </div>
-        <Link href="/rfas/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New RFA
-          </Button>
-        </Link>
-      </div>
-
+    <>
       {/* RFAFilters component could be added here if needed */}
 
       {isLoading ? (
@@ -55,6 +42,35 @@ export default function RFAsPage() {
           </div>
         </>
       )}
+    </>
+  );
+}
+
+export default function RFAsPage() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">RFAs (Request for Approval)</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage approval requests and submissions
+          </p>
+        </div>
+        <Link href="/rfas/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            New RFA
+          </Button>
+        </Link>
+      </div>
+
+      <Suspense fallback={
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }>
+        <RFAsContent />
+      </Suspense>
     </div>
   );
 }

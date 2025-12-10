@@ -21,34 +21,34 @@ export function DrawingCard({ drawing }: { drawing: Drawing }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-2">
             <div>
-              <h3 className="text-lg font-semibold truncate" title={drawing.drawing_number}>
-                {drawing.drawing_number}
+              <h3 className="text-lg font-semibold truncate" title={drawing.drawingNumber}>
+                {drawing.drawingNumber}
               </h3>
               <p className="text-sm text-muted-foreground truncate" title={drawing.title}>
                 {drawing.title}
               </p>
             </div>
-            <Badge variant="outline">{drawing.discipline?.discipline_code}</Badge>
+            <Badge variant="outline">{typeof drawing.discipline === 'object' ? drawing.discipline?.disciplineCode : drawing.discipline}</Badge>
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground mb-3">
             <div>
-              <span className="font-medium text-foreground">Sheet:</span> {drawing.sheet_number}
+              <span className="font-medium text-foreground">Sheet:</span> {drawing.sheetNumber}
             </div>
             <div>
-              <span className="font-medium text-foreground">Rev:</span> {drawing.current_revision}
+              <span className="font-medium text-foreground">Rev:</span> {drawing.revision}
             </div>
             <div>
               <span className="font-medium text-foreground">Scale:</span> {drawing.scale || "N/A"}
             </div>
             <div>
               <span className="font-medium text-foreground">Date:</span>{" "}
-              {format(new Date(drawing.issue_date), "dd/MM/yyyy")}
+              {drawing.issueDate && format(new Date(drawing.issueDate), "dd/MM/yyyy")}
             </div>
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            <Link href={`/drawings/${drawing.drawing_id}`}>
+            <Link href={`/drawings/${drawing.drawingId}`}>
               <Button variant="outline" size="sm">
                 <Eye className="mr-2 h-4 w-4" />
                 View
@@ -58,7 +58,7 @@ export function DrawingCard({ drawing }: { drawing: Drawing }) {
               <Download className="mr-2 h-4 w-4" />
               Download
             </Button>
-            {drawing.revision_count > 1 && (
+            {(drawing.revisionCount || 0) > 1 && (
               <Button variant="outline" size="sm">
                 <GitCompare className="mr-2 h-4 w-4" />
                 Compare

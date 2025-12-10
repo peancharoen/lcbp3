@@ -7,18 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { NumberingTemplate, numberingApi } from '@/lib/api/numbering';
 import { Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface TemplateTesterProps {
     open: boolean;
@@ -28,18 +22,22 @@ interface TemplateTesterProps {
 
 export function TemplateTester({ open, onOpenChange, template }: TemplateTesterProps) {
   const [testData, setTestData] = useState({
-    organization_id: '1',
-    discipline_id: '1',
+    organizationId: "1",
+    disciplineId: "1",
     year: new Date().getFullYear(),
   });
   const [generatedNumber, setGeneratedNumber] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleTest = async () => {
+  const handleGenerate = async () => {
     if (!template) return;
     setLoading(true);
     try {
-        const result = await numberingApi.generateTestNumber(template.template_id, testData);
+        // Note: generateTestNumber expects keys: organizationId, disciplineId
+        const result = await numberingApi.generateTestNumber(template.templateId, {
+            organizationId: testData.organizationId,
+            disciplineId: testData.disciplineId
+        });
         setGeneratedNumber(result.number);
     } finally {
         setLoading(false);
@@ -54,38 +52,42 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
         </DialogHeader>
 
         <div className="text-sm text-muted-foreground mb-2">
-            Template: <span className="font-mono font-bold text-foreground">{template?.template_format}</span>
+            Template: <span className="font-mono font-bold text-foreground">{template?.templateFormat}</span>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <Label>Organization (Mock Context)</Label>
-            <Select value={testData.organization_id} onValueChange={v => setTestData({...testData, organization_id: v})}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Port Authority (PAT/กทท)</SelectItem>
-                <SelectItem value="2">Contractor (CN/สค)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <Card className="p-6 mt-6 bg-muted/50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Template Tester</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 className="text-sm font-medium mb-2">Test Parameters</h4>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium">Organization</label>
+                                <Input
+                                    value={testData.organizationId}
+                                    onChange={(e) => setTestData({...testData, organizationId: e.target.value})}
+                                    placeholder="Org ID"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium">Discipline</label>
+                                <Input
+                                    value={testData.disciplineId}
+                                    onChange={(e) => setTestData({...testData, disciplineId: e.target.value})}
+                                    placeholder="Disc ID"
+                                />
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Format: {template?.templateFormat}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </Card>
 
-          <div>
-            <Label>Discipline (Mock Context)</Label>
-            <Select value={testData.discipline_id} onValueChange={v => setTestData({...testData, discipline_id: v})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select discipline" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Structure (STR)</SelectItem>
-                <SelectItem value="2">Architecture (ARC)</SelectItem>
-                <SelectItem value="3">General (GEN)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button onClick={handleTest} className="w-full" disabled={loading || !template}>
+          <Button onClick={handleGenerate} className="w-full" disabled={loading || !template}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Generate Test Number
           </Button>
@@ -98,7 +100,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
               </p>
             </Card>
           )}
-        </div>
+
       </DialogContent>
     </Dialog>
   );

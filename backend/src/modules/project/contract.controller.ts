@@ -19,6 +19,7 @@ import {
 import { ContractService } from './contract.service.js';
 import { CreateContractDto } from './dto/create-contract.dto.js';
 import { UpdateContractDto } from './dto/update-contract.dto.js';
+import { SearchContractDto } from './dto/search-contract.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
 
@@ -38,11 +39,10 @@ export class ContractController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get All Contracts (Optional: filter by projectId)',
+    summary: 'Get All Contracts (Search & Filter)',
   })
-  @ApiQuery({ name: 'projectId', required: false, type: Number })
-  findAll(@Query('projectId') projectId?: number) {
-    return this.contractService.findAll(projectId);
+  findAll(@Query() query: SearchContractDto) {
+    return this.contractService.findAll(query);
   }
 
   @Get(':id')

@@ -3,59 +3,59 @@ import { User, CreateUserDto, Organization, AuditLog } from "@/types/admin";
 // Mock Data
 const mockUsers: User[] = [
   {
-    user_id: 1,
+    userId: 1,
     username: "admin",
     email: "admin@example.com",
-    first_name: "System",
-    last_name: "Admin",
-    is_active: true,
-    roles: [{ role_id: 1, role_name: "ADMIN", description: "Administrator" }],
+    firstName: "System",
+    lastName: "Admin",
+    isActive: true,
+    roles: [{ roleId: 1, roleName: "ADMIN", description: "Administrator" }],
   },
   {
-    user_id: 2,
+    userId: 2,
     username: "jdoe",
     email: "john.doe@example.com",
-    first_name: "John",
-    last_name: "Doe",
-    is_active: true,
-    roles: [{ role_id: 2, role_name: "USER", description: "Regular User" }],
+    firstName: "John",
+    lastName: "Doe",
+    isActive: true,
+    roles: [{ roleId: 2, roleName: "USER", description: "Regular User" }],
   },
 ];
 
 const mockOrgs: Organization[] = [
   {
-    org_id: 1,
-    org_code: "PAT",
-    org_name: "Port Authority of Thailand",
-    org_name_th: "การท่าเรือแห่งประเทศไทย",
+    orgId: 1,
+    orgCode: "PAT",
+    orgName: "Port Authority of Thailand",
+    orgNameTh: "การท่าเรือแห่งประเทศไทย",
     description: "Owner",
   },
   {
-    org_id: 2,
-    org_code: "CNPC",
-    org_name: "CNPC Consortium",
+    orgId: 2,
+    orgCode: "CNPC",
+    orgName: "CNPC Consortium",
     description: "Main Contractor",
   },
 ];
 
 const mockLogs: AuditLog[] = [
   {
-    audit_log_id: 1,
-    user_name: "admin",
+    auditLogId: 1,
+    userName: "admin",
     action: "CREATE",
-    entity_type: "user",
+    entityType: "user",
     description: "Created user 'jdoe'",
-    ip_address: "192.168.1.1",
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    ipAddress: "192.168.1.1",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
   },
   {
-    audit_log_id: 2,
-    user_name: "jdoe",
+    auditLogId: 2,
+    userName: "jdoe",
     action: "UPDATE",
-    entity_type: "rfa",
+    entityType: "rfa",
     description: "Updated status of RFA-001 to APPROVED",
-    ip_address: "192.168.1.5",
-    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    ipAddress: "192.168.1.5",
+    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
   },
 ];
 
@@ -68,15 +68,15 @@ export const adminApi = {
   createUser: async (data: CreateUserDto): Promise<User> => {
     await new Promise((resolve) => setTimeout(resolve, 800));
     const newUser: User = {
-      user_id: Math.max(...mockUsers.map((u) => u.user_id)) + 1,
+      userId: Math.max(...mockUsers.map((u) => u.userId)) + 1,
       username: data.username,
       email: data.email,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      is_active: data.is_active,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      isActive: data.isActive,
       roles: data.roles.map((id) => ({
-        role_id: id,
-        role_name: id === 1 ? "ADMIN" : "USER",
+        roleId: id,
+        roleName: id === 1 ? "ADMIN" : "USER",
         description: "",
       })),
     };
@@ -89,9 +89,9 @@ export const adminApi = {
     return [...mockOrgs];
   },
 
-  createOrganization: async (data: Omit<Organization, "org_id">): Promise<Organization> => {
+  createOrganization: async (data: Omit<Organization, "orgId">): Promise<Organization> => {
     await new Promise((resolve) => setTimeout(resolve, 600));
-    const newOrg = { ...data, org_id: Math.max(...mockOrgs.map((o) => o.org_id)) + 1 };
+    const newOrg = { ...data, orgId: Math.max(...mockOrgs.map((o) => o.orgId)) + 1 };
     mockOrgs.push(newOrg);
     return newOrg;
   },

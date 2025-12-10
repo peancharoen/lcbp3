@@ -50,20 +50,68 @@ export class UserService {
     }
   }
 
-  // 2. ดึงข้อมูลทั้งหมด
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find({
-      select: [
-        'user_id',
-        'username',
-        'email',
-        'firstName',
-        'lastName',
-        'isActive',
-        'createdAt',
-        'updatedAt',
-      ],
-    });
+  // 2. ดึงข้อมูลทั้งหมด (Search & Pagination)
+  async findAll(params?: any): Promise<any> {
+    const {
+      search,
+      roleId,
+      primaryOrganizationId,
+      page = 1,
+      limit = 100,
+    } = params || {};
+
+    // Create query builder
+    const query = this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.preference', 'preference') // Optional
+      .leftJoinAndSelect('user.assignments', 'assignments')
+      .leftJoinAndSelect('assignments.role', 'role')
+      .select([
+        'user.user_id',
+        'user.username',
+        'user.email',
+        'user.firstName',
+        'user.lastName',
+        'user.lineId',
+        'user.primaryOrganizationId',
+        'user.isActive',
+        'user.createdAt',
+        'user.updatedAt',
+        'assignments.id',
+        'role.roleId',
+        'role.roleName',
+      ]);
+
+    // Apply Filters
+    if (search) {
+      query.andWhere(
+        '(user.username LIKE :search OR user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    if (primaryOrganizationId) {
+      query.andWhere('user.primaryOrganizationId = :orgId', {
+        orgId: primaryOrganizationId,
+      });
+    }
+
+    if (roleId) {
+      query.andWhere('role.roleId = :roleId', { roleId });
+    }
+
+    // Pagination
+    query.skip((page - 1) * limit).take(limit);
+
+    const [data, total] = await query.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   // 3. ดึงข้อมูลรายคน

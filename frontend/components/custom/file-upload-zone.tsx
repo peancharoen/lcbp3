@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { UploadCloud, File, X, AlertTriangle, CheckCircle } from "lucide-react";
+import { UploadCloud, File as FileIcon, X, AlertTriangle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,7 +74,7 @@ export function FileUploadZone({
       const processedFiles: FileWithMeta[] = newFiles.map((file) => {
         const error = validateFile(file);
         // สร้าง Object ใหม่เพื่อไม่ให้กระทบ File object เดิม
-        const fileWithMeta = new File([file], file.name, { type: file.type }) as FileWithMeta;
+        const fileWithMeta = new File([file], file.name, { type: file.type } as any) as FileWithMeta;
         fileWithMeta.validationError = error;
         return fileWithMeta;
       });
@@ -163,7 +163,7 @@ export function FileUploadZone({
               >
                 <div className="flex items-center gap-3 overflow-hidden">
                   <div className="p-2 bg-primary/10 rounded-md shrink-0">
-                    <File className="w-5 h-5 text-primary" />
+                    <FileIcon className="w-5 h-5 text-primary" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate max-w-[200px] sm:max-w-md">

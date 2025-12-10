@@ -30,7 +30,7 @@ export function RFADetail({ data }: RFADetailProps) {
 
     processMutation.mutate(
       {
-        id: data.rfa_id,
+        id: data.rfaId,
         data: {
           action: apiAction,
           comments: comments,
@@ -57,9 +57,9 @@ export function RFADetail({ data }: RFADetailProps) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{data.rfa_number}</h1>
+            <h1 className="text-2xl font-bold">{data.rfaNumber}</h1>
             <p className="text-muted-foreground">
-              Created on {format(new Date(data.created_at), "dd MMM yyyy HH:mm")}
+              Created on {format(new Date(data.createdAt), "dd MMM yyyy HH:mm")}
             </p>
           </div>
         </div>
@@ -154,7 +154,7 @@ export function RFADetail({ data }: RFADetailProps) {
                     <tbody className="divide-y">
                       {data.items.map((item) => (
                         <tr key={item.id}>
-                          <td className="px-4 py-3 font-medium">{item.item_no}</td>
+                          <td className="px-4 py-3 font-medium">{item.itemNo}</td>
                           <td className="px-4 py-3">{item.description}</td>
                           <td className="px-4 py-3 text-right">{item.quantity}</td>
                           <td className="px-4 py-3 text-muted-foreground">{item.unit}</td>
@@ -180,14 +180,14 @@ export function RFADetail({ data }: RFADetailProps) {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Contract</p>
-                <p className="font-medium mt-1">{data.contract_name}</p>
+                <p className="font-medium mt-1">{data.contractName}</p>
               </div>
 
               <hr className="my-4 border-t" />
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Discipline</p>
-                <p className="font-medium mt-1">{data.discipline_name}</p>
+                <p className="font-medium mt-1">{data.disciplineName}</p>
               </div>
             </CardContent>
           </Card>

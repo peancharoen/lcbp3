@@ -25,10 +25,10 @@ export default function NewWorkflowPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [workflowData, setWorkflowData] = useState({
-    workflow_name: "",
+    workflowName: "",
     description: "",
-    workflow_type: "CORRESPONDENCE" as WorkflowType,
-    dsl_definition: "name: New Workflow\nsteps: []",
+    workflowType: "CORRESPONDENCE" as WorkflowType,
+    dslDefinition: 'name: New Workflow\nversion: 1.0\nsteps: []',
   });
 
   const handleSave = async () => {
@@ -63,11 +63,11 @@ export default function NewWorkflowPage() {
             <Label htmlFor="workflow_name">Workflow Name *</Label>
             <Input
               id="workflow_name"
-              value={workflowData.workflow_name}
+              value={workflowData.workflowName}
               onChange={(e) =>
                 setWorkflowData({
                   ...workflowData,
-                  workflow_name: e.target.value,
+                  workflowName: e.target.value,
                 })
               }
               placeholder="e.g., Special RFA Approval"
@@ -92,9 +92,9 @@ export default function NewWorkflowPage() {
           <div>
             <Label htmlFor="workflow_type">Workflow Type</Label>
             <Select
-              value={workflowData.workflow_type}
+              value={workflowData.workflowType}
               onValueChange={(value) =>
-                setWorkflowData({ ...workflowData, workflow_type: value as WorkflowType })
+                setWorkflowData({ ...workflowData, workflowType: value as WorkflowType })
               }
             >
               <SelectTrigger id="workflow_type">
@@ -118,9 +118,9 @@ export default function NewWorkflowPage() {
 
         <TabsContent value="dsl" className="mt-4">
           <DSLEditor
-            initialValue={workflowData.dsl_definition}
+            initialValue={workflowData.dslDefinition}
             onChange={(value) =>
-              setWorkflowData({ ...workflowData, dsl_definition: value })
+              setWorkflowData({ ...workflowData, dslDefinition: value })
             }
           />
         </TabsContent>

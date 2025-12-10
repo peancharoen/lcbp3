@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Organization } from './entities/organization.entity';
 import { CreateOrganizationDto } from './dto/create-organization.dto.js';
 import { UpdateOrganizationDto } from './dto/update-organization.dto.js';
@@ -29,10 +29,40 @@ export class OrganizationService {
     return this.orgRepo.save(org);
   }
 
-  async findAll() {
-    return this.orgRepo.find({
+  async findAll(params?: any) {
+    const { search, page = 1, limit = 100 } = params || {};
+    const skip = (page - 1) * limit;
+
+    // Use findAndCount for safer, standard TypeORM queries
+    const findOptions: any = {
       order: { organizationCode: 'ASC' },
-    });
+      skip,
+      take: limit,
+    };
+
+    if (search) {
+      findOptions.where = [
+        { organizationCode: Like(`%${search}%`) },
+        { organizationName: Like(`%${search}%`) },
+      ];
+    }
+
+    // Debug logging
+    console.log(
+      '[OrganizationService] Finding all with options:',
+      JSON.stringify(findOptions)
+    );
+
+    const [data, total] = await this.orgRepo.findAndCount(findOptions);
+    console.log(`[OrganizationService] Found ${total} organizations`);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number) {

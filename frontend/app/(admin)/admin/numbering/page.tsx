@@ -61,7 +61,7 @@ export default function NumberingPage() {
   const handleSave = async (data: Partial<NumberingTemplate>) => {
       try {
           await numberingApi.saveTemplate(data);
-          toast.success(data.template_id ? "Template updated" : "Template created");
+          toast.success(data.templateId ? "Template updated" : "Template created");
           setIsEditing(false);
           loadTemplates();
       } catch {
@@ -124,39 +124,39 @@ export default function NumberingPage() {
             <h2 className="text-lg font-semibold">Templates - {selectedProjectName}</h2>
             <div className="grid gap-4">
                 {templates
-                  .filter(t => !t.project_id || t.project_id === Number(selectedProjectId)) // Show all if no project_id (legacy mock), or match
+                  .filter(t => !t.projectId || t.projectId === Number(selectedProjectId))
                   .map((template) => (
-                <Card key={template.template_id} className="p-6 hover:shadow-md transition-shadow">
+                <Card key={template.templateId} className="p-6 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start">
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-semibold">
-                            {template.document_type_name}
+                            {template.documentTypeName}
                         </h3>
                         <Badge variant="outline" className="text-xs">
-                             {PROJECTS.find(p => p.id === template.project_id?.toString())?.name || selectedProjectName}
+                             {PROJECTS.find(p => p.id === template.projectId?.toString())?.name || selectedProjectName}
                         </Badge>
-                        {template.discipline_code && <Badge>{template.discipline_code}</Badge>}
-                        <Badge variant={template.is_active ? 'default' : 'secondary'}>
-                            {template.is_active ? 'Active' : 'Inactive'}
+                        {template.disciplineCode && <Badge>{template.disciplineCode}</Badge>}
+                        <Badge variant={template.isActive ? 'default' : 'secondary'}>
+                            {template.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                         </div>
 
                         <div className="bg-slate-100 dark:bg-slate-900 rounded px-3 py-2 mb-3 font-mono text-sm inline-block border">
-                        {template.template_format}
+                        {template.templateFormat}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 text-sm mt-2">
                             <div>
                                 <span className="text-muted-foreground">Example: </span>
                                 <span className="font-medium font-mono text-green-600 dark:text-green-400">
-                                {template.example_number}
+                                {template.exampleNumber}
                                 </span>
                             </div>
                             <div>
                                 <span className="text-muted-foreground">Reset: </span>
                                 <span>
-                                {template.reset_annually ? 'Annually' : 'Never'}
+                                {template.resetAnnually ? 'Annually' : 'Never'}
                                 </span>
                             </div>
                         </div>

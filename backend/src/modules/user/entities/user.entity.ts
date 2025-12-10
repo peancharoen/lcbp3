@@ -40,6 +40,15 @@ export class User {
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 
+  @Column({ name: 'failed_attempts', default: 0 })
+  failedAttempts!: number;
+
+  @Column({ name: 'locked_until', type: 'datetime', nullable: true })
+  lockedUntil?: Date;
+
+  @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
+  lastLoginAt?: Date;
+
   @Column({ name: 'line_id', nullable: true, length: 100 })
   lineId?: string;
 

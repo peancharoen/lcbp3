@@ -3,13 +3,13 @@ import { Workflow, CreateWorkflowDto, ValidationResult } from "@/types/workflow"
 // Mock Data
 let mockWorkflows: Workflow[] = [
   {
-    workflow_id: 1,
-    workflow_name: "Standard RFA Workflow",
+    workflowId: 1,
+    workflowName: "Standard RFA Workflow",
     description: "Default approval process for RFAs",
-    workflow_type: "RFA",
+    workflowType: "RFA",
     version: 1,
-    is_active: true,
-    dsl_definition: `name: Standard RFA Workflow
+    isActive: true,
+    dslDefinition: `name: Standard RFA Workflow
 steps:
   - name: Review
     type: REVIEW
@@ -18,23 +18,23 @@ steps:
   - name: Approval
     type: APPROVAL
     role: PM`,
-    step_count: 2,
-    updated_at: new Date().toISOString(),
+    stepCount: 2,
+    updatedAt: new Date().toISOString(),
   },
   {
-    workflow_id: 2,
-    workflow_name: "Correspondence Review",
+    workflowId: 2,
+    workflowName: "Correspondence Review",
     description: "Incoming correspondence review flow",
-    workflow_type: "CORRESPONDENCE",
+    workflowType: "CORRESPONDENCE",
     version: 2,
-    is_active: true,
-    dsl_definition: `name: Correspondence Review
+    isActive: true,
+    dslDefinition: `name: Correspondence Review
 steps:
   - name: Initial Review
     type: REVIEW
     role: DC`,
-    step_count: 1,
-    updated_at: new Date(Date.now() - 86400000).toISOString(),
+    stepCount: 1,
+    updatedAt: new Date(Date.now() - 86400000).toISOString(),
   },
 ];
 
@@ -46,18 +46,18 @@ export const workflowApi = {
 
   getWorkflow: async (id: number): Promise<Workflow | undefined> => {
     await new Promise((resolve) => setTimeout(resolve, 300));
-    return mockWorkflows.find((w) => w.workflow_id === id);
+    return mockWorkflows.find((w) => w.workflowId === id);
   },
 
   createWorkflow: async (data: CreateWorkflowDto): Promise<Workflow> => {
     await new Promise((resolve) => setTimeout(resolve, 800));
     const newWorkflow: Workflow = {
-      workflow_id: Math.max(...mockWorkflows.map((w) => w.workflow_id)) + 1,
+      workflowId: Math.max(...mockWorkflows.map((w) => w.workflowId)) + 1,
       ...data,
       version: 1,
-      is_active: true,
-      step_count: 0, // Simplified for mock
-      updated_at: new Date().toISOString(),
+      isActive: true,
+      stepCount: 0, // Simplified for mock
+      updatedAt: new Date().toISOString(),
     };
     mockWorkflows.push(newWorkflow);
     return newWorkflow;
@@ -65,10 +65,10 @@ export const workflowApi = {
 
   updateWorkflow: async (id: number, data: Partial<CreateWorkflowDto>): Promise<Workflow> => {
     await new Promise((resolve) => setTimeout(resolve, 600));
-    const index = mockWorkflows.findIndex((w) => w.workflow_id === id);
+    const index = mockWorkflows.findIndex((w) => w.workflowId === id);
     if (index === -1) throw new Error("Workflow not found");
 
-    const updatedWorkflow = { ...mockWorkflows[index], ...data, updated_at: new Date().toISOString() };
+    const updatedWorkflow = { ...mockWorkflows[index], ...data, updatedAt: new Date().toISOString() };
     mockWorkflows[index] = updatedWorkflow;
     return updatedWorkflow;
   },

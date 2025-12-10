@@ -26,8 +26,8 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
     if (confirm("Are you sure you want to submit this correspondence?")) {
       // TODO: Implement Template Selection. Hardcoded to 1 for now.
       submitMutation.mutate({
-        id: data.correspondence_id,
-        data: { templateId: 1 }
+        id: data.correspondenceId,
+        data: {}
       });
     }
   };
@@ -37,7 +37,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
     const action = actionState === "approve" ? "APPROVE" : "REJECT";
     processMutation.mutate({
-      id: data.correspondence_id,
+      id: data.correspondenceId,
       data: {
         action,
         comments
@@ -61,9 +61,9 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{data.document_number}</h1>
+            <h1 className="text-2xl font-bold">{data.documentNumber}</h1>
             <p className="text-muted-foreground">
-              Created on {format(new Date(data.created_at), "dd MMM yyyy HH:mm")}
+              Created on {format(new Date(data.createdAt), "dd MMM yyyy HH:mm")}
             </p>
           </div>
         </div>
@@ -200,14 +200,14 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">From Organization</p>
-                <p className="font-medium mt-1">{data.from_organization?.org_name}</p>
-                <p className="text-xs text-muted-foreground">{data.from_organization?.org_code}</p>
+                <p className="font-medium mt-1">{data.fromOrganization?.orgName}</p>
+                <p className="text-xs text-muted-foreground">{data.fromOrganization?.orgCode}</p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">To Organization</p>
-                <p className="font-medium mt-1">{data.to_organization?.org_name}</p>
-                <p className="text-xs text-muted-foreground">{data.to_organization?.org_code}</p>
+                <p className="font-medium mt-1">{data.toOrganization?.orgName}</p>
+                <p className="text-xs text-muted-foreground">{data.toOrganization?.orgCode}</p>
               </div>
             </CardContent>
           </Card>

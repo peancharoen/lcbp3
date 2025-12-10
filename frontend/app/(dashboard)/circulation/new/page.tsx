@@ -45,7 +45,7 @@ import { cn } from "@/lib/utils";
 
 // Form validation schema
 const formSchema = z.object({
-  correspondenceId: z.number({ required_error: "Please select a document" }),
+  correspondenceId: z.number(),
   subject: z.string().min(1, "Subject is required"),
   assigneeIds: z.array(z.number()).min(1, "At least one assignee is required"),
   remarks: z.string().optional(),
@@ -156,7 +156,7 @@ export default function CreateCirculationPage() {
                             )}
                           >
                             {selectedDoc
-                              ? selectedDoc.correspondence_number
+                              ? selectedDoc.correspondenceNumber
                               : "Select document..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -168,10 +168,10 @@ export default function CreateCirculationPage() {
                           <CommandList>
                             <CommandEmpty>No document found.</CommandEmpty>
                             <CommandGroup>
-                              {correspondences?.data?.map((doc: { id: number; correspondence_number: string }) => (
+                              {correspondences?.data?.map((doc: { id: number; correspondenceNumber: string }) => (
                                 <CommandItem
                                   key={doc.id}
-                                  value={doc.correspondence_number}
+                                  value={doc.correspondenceNumber}
                                   onSelect={() => {
                                     form.setValue("correspondenceId", doc.id);
                                     setDocOpen(false);
@@ -185,7 +185,7 @@ export default function CreateCirculationPage() {
                                         : "opacity-0"
                                     )}
                                   />
-                                  {doc.correspondence_number}
+                                  {doc.correspondenceNumber}
                                 </CommandItem>
                               ))}
                             </CommandGroup>
@@ -232,7 +232,7 @@ export default function CreateCirculationPage() {
                               <div className="flex flex-wrap gap-1">
                                 {selectedAssignees.map((userId) => {
                                   const user = users.find(
-                                    (u: { user_id: number }) => u.user_id === userId
+                                    (u: { userId: number }) => u.userId === userId
                                   );
                                   return user ? (
                                     <Badge
@@ -240,7 +240,7 @@ export default function CreateCirculationPage() {
                                       variant="secondary"
                                       className="mr-1"
                                     >
-                                      {user.first_name || user.username}
+                                      {user.firstName || user.username}
                                       <X
                                         className="ml-1 h-3 w-3 cursor-pointer"
                                         onClick={(e) => {
@@ -267,22 +267,22 @@ export default function CreateCirculationPage() {
                           <CommandList>
                             <CommandEmpty>No user found.</CommandEmpty>
                             <CommandGroup>
-                              {users.map((user: { user_id: number; username: string; first_name?: string; last_name?: string }) => (
+                              {users.map((user: { userId: number; username: string; firstName?: string; lastName?: string }) => (
                                 <CommandItem
-                                  key={user.user_id}
+                                  key={user.userId}
                                   value={user.username}
-                                  onSelect={() => toggleAssignee(user.user_id)}
+                                  onSelect={() => toggleAssignee(user.userId)}
                                 >
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      selectedAssignees.includes(user.user_id)
+                                      selectedAssignees.includes(user.userId)
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}
                                   />
-                                  {user.first_name && user.last_name
-                                    ? `${user.first_name} ${user.last_name}`
+                                  {user.firstName && user.lastName
+                                    ? `${user.firstName} ${user.lastName}`
                                     : user.username}
                                 </CommandItem>
                               ))}

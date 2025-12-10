@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # NAP-DMS Project Context & Rules
 
 ## 🧠 Role & Persona
@@ -14,8 +18,8 @@ This is **LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)**.
 
 ## 💻 Tech Stack & Constraints
 
-- **Backend:** NestJS (Modular Architecture), TypeORM, MariaDB 10.11, Redis (BullMQ).
-- **Frontend:** Next.js 14+ (App Router), Tailwind CSS, Shadcn/UI.
+- **Backend:** NestJS (Modular Architecture), TypeORM, MariaDB 10.11, Redis 7.2 (BullMQ), Elasticsearch 8.11, JWT (JSON Web Tokens), CASL (4-Level RBAC).
+- **Frontend:** Next.js 14+ (App Router), Tailwind CSS, Shadcn/UI, React Context / Zustand, React Hook Form + Zod, Axios.
 - **Language:** TypeScript (Strict Mode). **NO `any` types allowed.**
 
 ## 🛡️ Security & Integrity Rules
@@ -27,8 +31,8 @@ This is **LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)**.
 
 ## workflow Guidelines
 
-- When implementing **Workflow Engine**, strictly follow the **DSL** design in `2_Backend_Plan_V1_4_4.Phase6A.md`.
-- Always verify database schema against `4_Data_Dictionary_V1_4_4.md` before writing queries.
+- When implementing strictly follow the documents in `specs/`.
+- Always verify database schema against `specs/07-database/` before writing queries.
 
 ## 🚫 Forbidden Actions
 

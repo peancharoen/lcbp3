@@ -16,6 +16,10 @@ export const projectService = {
   getAll: async (params?: SearchProjectDto) => {
     // GET /projects
     const response = await apiClient.get("/projects", { params });
+    // Handle paginated response
+    if (response.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+    }
     return response.data;
   },
 
@@ -57,9 +61,27 @@ export const projectService = {
   /** * ดึงรายชื่อสัญญาในโครงการ
    * GET /projects/:id/contracts
    */
+  /** * ดึงรายชื่อสัญญาในโครงการ (Legacy/Specific)
+   * GET /projects/:id/contracts
+   */
   getContracts: async (projectId: string | number) => {
-    const response = await apiClient.get(`/projects/${projectId}/contracts`);
-    // Unwrap the response data if it's wrapped in a 'data' property by the interceptor
+    // Note: If backend doesn't have /projects/:id/contracts, use /contracts?projectId=:id
+    const response = await apiClient.get(`/contracts`, { params: { projectId } });
+    // Handle paginated response
+    if (response.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+    }
+    return response.data.data || response.data;
+  },
+
+  /**
+   * ดึงรายการสัญญาเรื้งหมด (Global Search)
+   */
+  getAllContracts: async (params?: any) => {
+    const response = await apiClient.get("/contracts", { params });
+    if (response.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+    }
     return response.data.data || response.data;
   }
 };

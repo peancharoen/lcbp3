@@ -20,6 +20,10 @@ export class CreateOrganizationDto {
   @Length(1, 255)
   organizationName!: string;
 
+  @ApiProperty({ example: 1, required: false })
+  @IsOptional()
+  roleId?: number;
+
   @ApiProperty({ example: true, required: false })
   @IsOptional()
   @IsBoolean()

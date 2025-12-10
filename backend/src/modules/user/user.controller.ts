@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -24,6 +25,7 @@ import { UserPreferenceService } from './user-preference.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
+import { SearchUserDto } from './dto/search-user.dto';
 import { UpdatePreferenceDto } from './dto/update-preference.dto';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -106,8 +108,8 @@ export class UserController {
   @ApiOperation({ summary: 'List all users' })
   @ApiResponse({ status: 200, description: 'List of users' })
   @RequirePermission('user.view')
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() query: SearchUserDto) {
+    return this.userService.findAll(query);
   }
 
   @Get(':id')

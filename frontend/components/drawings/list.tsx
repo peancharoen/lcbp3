@@ -42,7 +42,7 @@ export function DrawingList({ type }: DrawingListProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
       {drawings.data.map((drawing: Drawing) => (
-        <DrawingCard key={(drawing as any)[type === 'CONTRACT' ? 'contract_drawing_id' : 'shop_drawing_id'] || drawing.drawing_id || (drawing as any).id} drawing={drawing} />
+        <DrawingCard key={drawing.drawingId} drawing={drawing} />
       ))}
     </div>
   );

@@ -7,6 +7,11 @@ import { CreateDisciplineDto } from "@/types/dto/master/discipline.dto";
 import { CreateSubTypeDto } from "@/types/dto/master/sub-type.dto";
 import { SaveNumberFormatDto } from "@/types/dto/master/number-format.dto";
 import { Organization } from "@/types/organization";
+import {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+  SearchOrganizationDto,
+} from "@/types/dto/organization.dto";
 
 export const masterDataService = {
   // --- Tags Management ---
@@ -39,19 +44,39 @@ export const masterDataService = {
   // --- Organizations (Global) ---
 
   /** ดึงรายชื่อองค์กรทั้งหมด */
-  getOrganizations: async () => {
-    const response = await apiClient.get<any>("/organizations");
-    return response.data.data || response.data;
+  getOrganizations: async (params?: SearchOrganizationDto) => {
+    const response = await apiClient.get<Organization[] | { data: Organization[] }>("/organizations", { params });
+    // Support paginated response
+    if (response.data && Array.isArray((response.data as { data: Organization[] }).data)) {
+        return (response.data as { data: Organization[] }).data;
+    }
+    // If response.data itself is an array
+    if (Array.isArray(response.data)) {
+        return response.data;
+    }
+    // If we're here, it might be { data: [], total: ... } but data is missing? or empty?
+    // Or it returned the object but data.data check failed (shouldn't happen if it follows schema).
+    // Let's default to [] if we can't find an array, because callers expect array.
+    // However, if we return [] we lose data if it was there but not recognized.
+
+    // Fallback: Check if response.data is object?
+    // If it's the paginated object, return the data array if it exists
+    if (response.data && (response.data as { data: Organization[] }).data) {
+        // Maybe it's not an array?
+        return Array.isArray((response.data as { data: Organization[] }).data) ? (response.data as { data: Organization[] }).data : [];
+    }
+
+    return []; // Return empty array to prevent map errors
   },
 
   /** สร้างองค์กรใหม่ */
-  createOrganization: async (data: any) => {
+  createOrganization: async (data: CreateOrganizationDto) => {
     const response = await apiClient.post("/organizations", data);
     return response.data;
   },
 
   /** แก้ไของค์กร */
-  updateOrganization: async (id: number, data: any) => {
+  updateOrganization: async (id: number, data: UpdateOrganizationDto) => {
     const response = await apiClient.put(`/organizations/${id}`, data);
     return response.data;
   },
@@ -101,7 +126,58 @@ export const masterDataService = {
     return response.data;
   },
 
+  // --- RFA Types Management (Admin) ---
+
+  /** ดึงประเภท RFA ทั้งหมด */
+  getRfaTypes: async (contractId?: number) => {
+    const response = await apiClient.get("/master/rfa-types", {
+      params: { contractId }
+    });
+    return response.data.data || response.data;
+  },
+
+  /** สร้างประเภท RFA ใหม่ */
+  createRfaType: async (data: any) => {
+    // Note: Assuming endpoint is /master/rfa-types (POST)
+    // Currently RfaController handles /rfas, but master data usually goes to MasterController or dedicated
+    // The previous implementation used direct apiClient calls in the page.
+    // Let's assume we use the endpoint we just updated in MasterController which is GET only?
+    // Wait, MasterController doesn't have createRfaType.
+    // Let's check where RFA Types are created. RfaController creates RFAs (documents).
+    // RFA Types are likely master data.
+    // I need to add create/update/delete endpoints for RFA Types to MasterController if they don't exist.
+    // Checking MasterController again... it DOES NOT have createRfaType.
+    // I will add them to MasterController first.
+    return apiClient.post("/master/rfa-types", data).then(res => res.data);
+  },
+
+  updateRfaType: async (id: number, data: any) => {
+    return apiClient.patch(`/master/rfa-types/${id}`, data).then(res => res.data);
+  },
+
+  deleteRfaType: async (id: number) => {
+    return apiClient.delete(`/master/rfa-types/${id}`).then(res => res.data);
+  },
+
   // --- Document Numbering Format (Admin Config) ---
+
+  // --- Correspondence Types Management ---
+  getCorrespondenceTypes: async () => {
+    const response = await apiClient.get("/master/correspondence-types");
+    return response.data.data || response.data;
+  },
+
+  createCorrespondenceType: async (data: any) => {
+    return apiClient.post("/master/correspondence-types", data).then(res => res.data);
+  },
+
+  updateCorrespondenceType: async (id: number, data: any) => {
+    return apiClient.patch(`/master/correspondence-types/${id}`, data).then(res => res.data);
+  },
+
+  deleteCorrespondenceType: async (id: number) => {
+    return apiClient.delete(`/master/correspondence-types/${id}`).then(res => res.data);
+  },
 
   /** บันทึกรูปแบบเลขที่เอกสาร */
   saveNumberFormat: async (data: SaveNumberFormatDto) => {

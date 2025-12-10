@@ -21,17 +21,20 @@ import { useDisciplines, useContracts } from "@/hooks/use-master-data";
 import { CreateRFADto } from "@/types/rfa";
 
 const rfaItemSchema = z.object({
-  item_no: z.string().min(1, "Item No is required"),
+  itemNo: z.string().min(1, "Item No is required"),
   description: z.string().min(3, "Description is required"),
-  quantity: z.number({ invalid_type_error: "Quantity must be a number" }).min(0),
+  quantity: z.number().min(0, "Quantity must be positive"),
   unit: z.string().min(1, "Unit is required"),
 });
-
 const rfaSchema = z.object({
-  subject: z.string().min(5, "Subject must be at least 5 characters"),
+  contractId: z.number().min(1, "Contract is required"),
+  disciplineId: z.number().min(1, "Discipline is required"),
+  rfaTypeId: z.number().min(1, "Type is required"),
+  title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().optional(),
-  contract_id: z.number({ required_error: "Contract is required" }),
-  discipline_id: z.number({ required_error: "Discipline is required" }),
+  toOrganizationId: z.number().min(1, "Please select To Organization"),
+  dueDate: z.string().optional(),
+  shopDrawingRevisionIds: z.array(z.number()).optional(),
   items: z.array(rfaItemSchema).min(1, "At least one item is required"),
 });
 
@@ -55,12 +58,19 @@ export function RFAForm() {
   } = useForm<RFAFormData>({
     resolver: zodResolver(rfaSchema),
     defaultValues: {
-      contract_id: undefined, // Force selection
-      items: [{ item_no: "1", description: "", quantity: 0, unit: "" }],
+      contractId: 0,
+      disciplineId: 0,
+      rfaTypeId: 0,
+      title: "",
+      description: "",
+      toOrganizationId: 0,
+      dueDate: "",
+      shopDrawingRevisionIds: [],
+      items: [{ itemNo: "1", description: "", quantity: 0, unit: "" }],
     },
   });
 
-  const selectedContractId = watch("contract_id");
+  const selectedContractId = watch("contractId");
   const { data: disciplines, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
 
   const { fields, append, remove } = useFieldArray({
@@ -69,8 +79,11 @@ export function RFAForm() {
   });
 
   const onSubmit = (data: RFAFormData) => {
-    // Map to DTO if needed, assuming generic structure matches
-    createMutation.mutate(data as unknown as CreateRFADto, {
+    const payload: CreateRFADto = {
+      ...data,
+      projectId: currentProjectId,
+    };
+    createMutation.mutate(payload as any, {
       onSuccess: () => {
         router.push("/rfas");
       },
@@ -85,11 +98,11 @@ export function RFAForm() {
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="subject">Subject *</Label>
-            <Input id="subject" {...register("subject")} placeholder="Enter subject" />
-            {errors.subject && (
+            <Label htmlFor="title">Title *</Label>
+            <Input id="title" {...register("title")} placeholder="Enter title" />
+            {errors.title && (
               <p className="text-sm text-destructive mt-1">
-                {errors.subject.message}
+                {errors.title.message}
               </p>
             )}
           </div>
@@ -103,7 +116,7 @@ export function RFAForm() {
             <div>
               <Label>Contract *</Label>
               <Select
-                onValueChange={(v) => setValue("contract_id", parseInt(v))}
+                onValueChange={(val) => setValue("contractId", Number(val))}
                 disabled={isLoadingContracts}
               >
                 <SelectTrigger>
@@ -117,15 +130,15 @@ export function RFAForm() {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.contract_id && (
-                <p className="text-sm text-destructive mt-1">{errors.contract_id.message}</p>
+              {errors.contractId && (
+                <p className="text-sm text-destructive mt-1">{errors.contractId.message}</p>
               )}
             </div>
 
             <div>
               <Label>Discipline *</Label>
               <Select
-                onValueChange={(v) => setValue("discipline_id", parseInt(v))}
+                onValueChange={(val) => setValue("disciplineId", Number(val))}
                 disabled={!selectedContractId || isLoadingDisciplines}
               >
                 <SelectTrigger>
@@ -142,8 +155,8 @@ export function RFAForm() {
                   )}
                 </SelectContent>
               </Select>
-              {errors.discipline_id && (
-                <p className="text-sm text-destructive mt-1">{errors.discipline_id.message}</p>
+              {errors.disciplineId && (
+                <p className="text-sm text-destructive mt-1">{errors.disciplineId.message}</p>
               )}
             </div>
           </div>
@@ -160,7 +173,7 @@ export function RFAForm() {
             size="sm"
             onClick={() =>
               append({
-                item_no: (fields.length + 1).toString(),
+                itemNo: (fields.length + 1).toString(),
                 description: "",
                 quantity: 0,
                 unit: "",
@@ -193,9 +206,9 @@ export function RFAForm() {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                 <div className="md:col-span-2">
                   <Label className="text-xs">Item No.</Label>
-                  <Input {...register(`items.${index}.item_no`)} placeholder="1.1" />
-                  {errors.items?.[index]?.item_no && (
-                    <p className="text-xs text-destructive mt-1">{errors.items[index]?.item_no?.message}</p>
+                  <Input {...register(`items.${index}.itemNo`)} placeholder="1.1" />
+                  {errors.items?.[index]?.itemNo && (
+                    <p className="text-xs text-destructive mt-1">{errors.items[index]?.itemNo?.message}</p>
                   )}
                 </div>
                 <div className="md:col-span-6">

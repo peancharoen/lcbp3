@@ -21,11 +21,11 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 const drawingSchema = z.object({
-  drawing_type: z.enum(["CONTRACT", "SHOP"], { required_error: "Type is required" }),
-  drawing_number: z.string().min(1, "Drawing Number is required"),
+  drawingType: z.enum(["CONTRACT", "SHOP"]),
+  drawingNumber: z.string().min(1, "Drawing Number is required"),
   title: z.string().min(5, "Title must be at least 5 characters"),
-  discipline_id: z.number({ required_error: "Discipline is required" }),
-  sheet_number: z.string().min(1, "Sheet Number is required"),
+  disciplineId: z.number().min(1, "Discipline is required"),
+  sheetNumber: z.string().min(1, "Sheet Number is required"),
   scale: z.string().optional(),
   file: z.instanceof(File, { message: "File is required" }), // In real app, might validation creation before upload
 });
@@ -48,7 +48,7 @@ export function DrawingUploadForm() {
     resolver: zodResolver(drawingSchema),
   });
 
-  const drawingType = watch("drawing_type");
+  const drawingType = watch("drawingType");
   const createMutation = useCreateDrawing(drawingType); // Hook depends on type but defaults to undefined initially which is fine or handled
 
   const onSubmit = (data: DrawingFormData) => {
@@ -84,10 +84,10 @@ export function DrawingUploadForm() {
 
     // Actually better to handle FormData logic here since we have the File object
     const formData = new FormData();
-    formData.append('drawing_number', data.drawing_number);
+    formData.append('drawingNumber', data.drawingNumber);
     formData.append('title', data.title);
-    formData.append('discipline_id', String(data.discipline_id));
-    formData.append('sheet_number', data.sheet_number);
+    formData.append('disciplineId', String(data.disciplineId));
+    formData.append('sheetNumber', data.sheetNumber);
     if(data.scale) formData.append('scale', data.scale);
     formData.append('file', data.file);
     // Type specific fields if any? (Project ID?)
@@ -138,7 +138,7 @@ export function DrawingUploadForm() {
         <div className="space-y-4">
           <div>
             <Label>Drawing Type *</Label>
-            <Select onValueChange={(v) => setValue("drawing_type", v as any)}>
+            <Select onValueChange={(v) => setValue("drawingType", v as any)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
@@ -147,24 +147,24 @@ export function DrawingUploadForm() {
                 <SelectItem value="SHOP">Shop Drawing</SelectItem>
               </SelectContent>
             </Select>
-            {errors.drawing_type && (
-              <p className="text-sm text-destructive mt-1">{errors.drawing_type.message}</p>
+            {errors.drawingType && (
+              <p className="text-sm text-destructive mt-1">{errors.drawingType.message}</p>
             )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="drawing_number">Drawing Number *</Label>
-              <Input id="drawing_number" {...register("drawing_number")} placeholder="e.g. A-101" />
-              {errors.drawing_number && (
-                <p className="text-sm text-destructive mt-1">{errors.drawing_number.message}</p>
+              <Label htmlFor="drawingNumber">Drawing Number *</Label>
+              <Input id="drawingNumber" {...register("drawingNumber")} placeholder="e.g. A-101" />
+              {errors.drawingNumber && (
+                <p className="text-sm text-destructive mt-1">{errors.drawingNumber.message}</p>
               )}
             </div>
             <div>
-              <Label htmlFor="sheet_number">Sheet Number *</Label>
-              <Input id="sheet_number" {...register("sheet_number")} placeholder="e.g. 01" />
-              {errors.sheet_number && (
-                <p className="text-sm text-destructive mt-1">{errors.sheet_number.message}</p>
+              <Label htmlFor="sheetNumber">Sheet Number *</Label>
+              <Input id="sheetNumber" {...register("sheetNumber")} placeholder="e.g. 01" />
+              {errors.sheetNumber && (
+                <p className="text-sm text-destructive mt-1">{errors.sheetNumber.message}</p>
               )}
             </div>
           </div>
@@ -181,7 +181,7 @@ export function DrawingUploadForm() {
             <div>
               <Label>Discipline *</Label>
               <Select
-                onValueChange={(v) => setValue("discipline_id", parseInt(v))}
+                onValueChange={(v) => setValue("disciplineId", parseInt(v))}
                 disabled={isLoadingDisciplines}
               >
                 <SelectTrigger>
@@ -195,8 +195,8 @@ export function DrawingUploadForm() {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.discipline_id && (
-                <p className="text-sm text-destructive mt-1">{errors.discipline_id.message}</p>
+              {errors.disciplineId && (
+                <p className="text-sm text-destructive mt-1">{errors.disciplineId.message}</p>
               )}
             </div>
             <div>

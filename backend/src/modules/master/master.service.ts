@@ -54,7 +54,7 @@ export class MasterService {
     @InjectRepository(CorrespondenceSubType)
     private readonly subTypeRepo: Repository<CorrespondenceSubType>,
     @InjectRepository(DocumentNumberFormat)
-    private readonly formatRepo: Repository<DocumentNumberFormat>,
+    private readonly formatRepo: Repository<DocumentNumberFormat>
   ) {}
 
   // ... (Method เดิม: findAllCorrespondenceTypes, findAllCorrespondenceStatuses, ฯลฯ เก็บไว้เหมือนเดิม) ...
@@ -67,17 +67,61 @@ export class MasterService {
       order: { sortOrder: 'ASC' },
     });
   }
+
+  async createCorrespondenceType(dto: any) {
+    const item = this.corrTypeRepo.create(dto);
+    return this.corrTypeRepo.save(item);
+  }
+
+  async updateCorrespondenceType(id: number, dto: any) {
+    const item = await this.corrTypeRepo.findOne({ where: { id } });
+    if (!item) throw new NotFoundException('Correspondence Type not found');
+    Object.assign(item, dto);
+    return this.corrTypeRepo.save(item);
+  }
+
+  async deleteCorrespondenceType(id: number) {
+    const result = await this.corrTypeRepo.delete(id);
+    if (result.affected === 0)
+      throw new NotFoundException('Correspondence Type not found');
+    return { deleted: true };
+  }
   async findAllCorrespondenceStatuses() {
     return this.corrStatusRepo.find({
       where: { isActive: true },
       order: { sortOrder: 'ASC' },
     });
   }
-  async findAllRfaTypes() {
+  async findAllRfaTypes(contractId?: number) {
+    const where: any = { isActive: true };
+    if (contractId) {
+      where.contractId = contractId;
+    }
     return this.rfaTypeRepo.find({
-      where: { isActive: true },
-      order: { sortOrder: 'ASC' },
+      where,
+      order: { typeCode: 'ASC' },
+      relations: contractId ? [] : [], // Add relations if needed later
     });
+  }
+
+  async createRfaType(dto: any) {
+    // Validate unique code if needed
+    const rfaType = this.rfaTypeRepo.create(dto);
+    return this.rfaTypeRepo.save(rfaType);
+  }
+
+  async updateRfaType(id: number, dto: any) {
+    const rfaType = await this.rfaTypeRepo.findOne({ where: { id } });
+    if (!rfaType) throw new NotFoundException('RFA Type not found');
+    Object.assign(rfaType, dto);
+    return this.rfaTypeRepo.save(rfaType);
+  }
+
+  async deleteRfaType(id: number) {
+    const result = await this.rfaTypeRepo.delete(id);
+    if (result.affected === 0)
+      throw new NotFoundException('RFA Type not found');
+    return { deleted: true };
   }
   async findAllRfaStatuses() {
     return this.rfaStatusRepo.find({
@@ -123,7 +167,7 @@ export class MasterService {
     });
     if (exists)
       throw new ConflictException(
-        'Discipline code already exists in this contract',
+        'Discipline code already exists in this contract'
       );
 
     const discipline = this.disciplineRepo.create(dto);

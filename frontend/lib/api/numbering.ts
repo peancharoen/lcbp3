@@ -1,83 +1,84 @@
 // Types
 export interface NumberingTemplate {
-  template_id: number;
-  project_id?: number; // Added optional for flexibility in mock, generally required
-  document_type_name: string; // e.g. Correspondence, RFA
-  discipline_code?: string; // e.g. STR, ARC, NULL for all
-  template_format: string; // e.g. {ORG}-{DOCTYPE}-{YYYY}-{SEQ}
-  example_number: string;
-  current_number: number;
-  reset_annually: boolean;
-  padding_length: number;
-  is_active: boolean;
+  templateId: number;
+  projectId?: number;
+  documentTypeId?: string;
+  documentTypeName: string;
+  disciplineCode?: string;
+  templateFormat: string;
+  exampleNumber: string;
+  currentNumber: number;
+  resetAnnually: boolean;
+  paddingLength: number;
+  isActive: boolean;
 }
 
 export interface NumberSequence {
-  sequence_id: number;
+  sequenceId: number;
   year: number;
-  organization_code?: string;
-  discipline_code?: string;
-  current_number: number;
-  last_generated_number: string;
-  updated_at: string;
+  organizationCode?: string;
+  disciplineCode?: string;
+  currentNumber: number;
+  lastGeneratedNumber: string;
+  updatedAt: string;
 }
 
 // Mock Data
 const mockTemplates: NumberingTemplate[] = [
   {
-    template_id: 1,
-    project_id: 1, // LCBP3
-    document_type_name: 'Correspondence',
-    discipline_code: '',
-    template_format: '{ORIGINATOR}-{RECIPIENT}-{SEQ:4}-{YEAR:B.E.}',
-    example_number: 'PAT-CN-0001-2568',
-    current_number: 142,
-    reset_annually: true,
-    padding_length: 4,
-    is_active: true,
+    templateId: 1,
+    projectId: 1,
+    documentTypeName: 'Correspondence',
+    disciplineCode: '',
+    templateFormat: '{ORIGINATOR}-{RECIPIENT}-{SEQ:4}-{YEAR:B.E.}',
+    exampleNumber: 'PAT-CN-0001-2568',
+    currentNumber: 142,
+    resetAnnually: true,
+    paddingLength: 4,
+    isActive: true,
   },
   {
-    template_id: 2,
-    project_id: 1, // LCBP3
-    document_type_name: 'RFA',
-    discipline_code: 'STR',
-    template_format: '{PROJECT}-{CORR_TYPE}-{DISCIPLINE}-{RFA_TYPE}-{SEQ:4}-{REV}',
-    example_number: 'LCBP3-RFA-STR-SDW-0056-A',
-    current_number: 56,
-    reset_annually: true,
-    padding_length: 4,
-    is_active: true,
+    templateId: 2,
+    projectId: 1,
+    documentTypeName: 'RFA',
+    disciplineCode: 'STR',
+    templateFormat: '{PROJECT}-{CORR_TYPE}-{DISCIPLINE}-{RFA_TYPE}-{SEQ:4}-{REV}',
+    exampleNumber: 'LCBP3-RFA-STR-SDW-0056-A',
+    currentNumber: 56,
+    resetAnnually: true,
+    paddingLength: 4,
+    isActive: true,
   },
   {
-    template_id: 3,
-    project_id: 2, // LCBP3-Maintenance
-    document_type_name: 'Maintenance Request',
-    discipline_code: '',
-    template_format: 'MAINT-{SEQ:4}',
-    example_number: 'MAINT-0001',
-    current_number: 1,
-    reset_annually: true,
-    padding_length: 4,
-    is_active: true,
+    templateId: 3,
+    projectId: 2,
+    documentTypeName: 'Maintenance Request',
+    disciplineCode: '',
+    templateFormat: 'MAINT-{SEQ:4}',
+    exampleNumber: 'MAINT-0001',
+    currentNumber: 1,
+    resetAnnually: true,
+    paddingLength: 4,
+    isActive: true,
   },
 ];
 
 const mockSequences: NumberSequence[] = [
   {
-    sequence_id: 1,
+    sequenceId: 1,
     year: 2025,
-    organization_code: 'PAT',
-    current_number: 142,
-    last_generated_number: 'PAT-CORR-2025-0142',
-    updated_at: new Date().toISOString(),
+    organizationCode: 'PAT',
+    currentNumber: 142,
+    lastGeneratedNumber: 'PAT-CORR-2025-0142',
+    updatedAt: new Date().toISOString(),
   },
   {
-    sequence_id: 2,
+    sequenceId: 2,
     year: 2025,
-    discipline_code: 'STR',
-    current_number: 56,
-    last_generated_number: 'RFA-STR-2025-0056',
-    updated_at: new Date().toISOString(),
+    disciplineCode: 'STR',
+    currentNumber: 56,
+    lastGeneratedNumber: 'RFA-STR-2025-0056',
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -90,32 +91,32 @@ export const numberingApi = {
 
   getTemplate: async (id: number): Promise<NumberingTemplate | undefined> => {
      return new Promise((resolve) => {
-        setTimeout(() => resolve(mockTemplates.find(t => t.template_id === id)), 300);
+        setTimeout(() => resolve(mockTemplates.find(t => t.templateId === id)), 300);
      });
   },
 
   saveTemplate: async (template: Partial<NumberingTemplate>): Promise<NumberingTemplate> => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        if (template.template_id) {
+        if (template.templateId) {
            // Update
-           const index = mockTemplates.findIndex(t => t.template_id === template.template_id);
+           const index = mockTemplates.findIndex(t => t.templateId === template.templateId);
            if (index !== -1) {
                mockTemplates[index] = { ...mockTemplates[index], ...template } as NumberingTemplate;
                resolve(mockTemplates[index]);
-           }
+          }
         } else {
            // Create
            const newTemplate: NumberingTemplate = {
-               template_id: Math.floor(Math.random() * 1000),
-               document_type_name: 'New Type',
-               is_active: true,
-               current_number: 0,
-               example_number: 'PREVIEW',
-               template_format: template.template_format || '',
-               discipline_code: template.discipline_code,
-               padding_length: template.padding_length ?? 4,
-               reset_annually: template.reset_annually ?? true,
+               templateId: Math.floor(Math.random() * 1000),
+               documentTypeName: 'New Type',
+               isActive: true,
+               currentNumber: 0,
+               exampleNumber: 'PREVIEW',
+               templateFormat: template.templateFormat || '',
+               disciplineCode: template.disciplineCode,
+               paddingLength: template.paddingLength ?? 4,
+               resetAnnually: template.resetAnnually ?? true,
                ...template
            } as NumberingTemplate;
            mockTemplates.push(newTemplate);
@@ -131,19 +132,19 @@ export const numberingApi = {
       });
   },
 
-  generateTestNumber: async (templateId: number, context: { organization_id: string, discipline_id: string }): Promise<{ number: string }> => {
+  generateTestNumber: async (templateId: number, context: { organizationId: string, disciplineId: string }): Promise<{ number: string }> => {
       return new Promise((resolve) => {
           setTimeout(() => {
-              const template = mockTemplates.find(t => t.template_id === templateId);
+              const template = mockTemplates.find(t => t.templateId === templateId);
               if (!template) return resolve({ number: 'ERROR' });
 
-              let format = template.template_format;
+              let format = template.templateFormat;
               // Mock replacement
               format = format.replace('{PROJECT}', 'LCBP3');
-              format = format.replace('{ORIGINATOR}', context.organization_id === '1' ? 'PAT' : 'CN');
-              format = format.replace('{RECIPIENT}', context.organization_id === '1' ? 'CN' : 'PAT');
-              format = format.replace('{CORR_TYPE}', template.document_type_name === 'Correspondence' ? 'CORR' : 'RFA');
-              format = format.replace('{DISCIPLINE}', context.discipline_id === '1' ? 'STR' : (context.discipline_id === '2' ? 'ARC' : 'GEN'));
+              format = format.replace('{ORIGINATOR}', context.organizationId === '1' ? 'PAT' : 'CN');
+              format = format.replace('{RECIPIENT}', context.organizationId === '1' ? 'CN' : 'PAT');
+              format = format.replace('{CORR_TYPE}', template.documentTypeName === 'Correspondence' ? 'CORR' : 'RFA');
+              format = format.replace('{DISCIPLINE}', context.disciplineId === '1' ? 'STR' : (context.disciplineId === '2' ? 'ARC' : 'GEN'));
               format = format.replace('{RFA_TYPE}', 'SDW'); // Mock
 
               const year = new Date().getFullYear();

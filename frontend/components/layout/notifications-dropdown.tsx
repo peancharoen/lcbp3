@@ -24,8 +24,8 @@ export function NotificationsDropdown() {
   const unreadCount = data?.unreadCount || 0;
 
   const handleNotificationClick = (notification: any) => {
-    if (!notification.is_read) {
-      markAsRead.mutate(notification.notification_id);
+    if (!notification.isRead) {
+      markAsRead.mutate(notification.notificationId);
     }
     if (notification.link) {
       router.push(notification.link);
@@ -64,21 +64,21 @@ export function NotificationsDropdown() {
           <div className="max-h-96 overflow-y-auto">
             {notifications.slice(0, 5).map((notification: any) => (
               <DropdownMenuItem
-                key={notification.notification_id}
+                key={notification.notificationId}
                 className={`flex flex-col items-start p-3 cursor-pointer ${
-                    !notification.is_read ? 'bg-muted/30' : ''
+                    !notification.isRead ? 'bg-muted/30' : ''
                 }`}
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex justify-between w-full">
                      <span className="font-medium text-sm">{notification.title}</span>
-                     {!notification.is_read && <span className="h-2 w-2 rounded-full bg-blue-500 mt-1" />}
+                     {!notification.isRead && <span className="h-2 w-2 rounded-full bg-blue-500 mt-1" />}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
                   {notification.message}
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-1 self-end">
-                  {formatDistanceToNow(new Date(notification.created_at), {
+                  {formatDistanceToNow(new Date(notification.createdAt), {
                     addSuffix: true,
                   })}
                 </div>

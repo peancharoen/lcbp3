@@ -182,16 +182,19 @@ export abstract class BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @CreateDateColumn()
-  created_at: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 
-  @DeleteDateColumn()
-  deleted_at: Date; // NULL = Active, NOT NULL = Soft Deleted
+  @DeleteDateColumn({ name: 'deleted_at' })
+  deletedAt?: Date; // NULL = Active, NOT NULL = Soft Deleted
 }
 ```
+
+> [!NOTE]
+> **Property Naming Convention:** TypeScript properties use **camelCase** (`createdAt`, `updatedAt`, `deletedAt`) while database columns use **snake_case** (`created_at`, `updated_at`, `deleted_at`). The `{ name: 'column_name' }` decorator maps between them.
 
 ---
 

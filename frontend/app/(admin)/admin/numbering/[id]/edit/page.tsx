@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { TemplateEditor } from "@/components/numbering/template-editor";
 import { SequenceViewer } from "@/components/numbering/sequence-viewer";
 import { numberingApi } from "@/lib/api/numbering";
-import { CreateTemplateDto } from "@/types/numbering";
+import { NumberingTemplate } from "@/types/numbering";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function EditTemplatePage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [initialData, setInitialData] = useState<Partial<CreateTemplateDto> | null>(null);
+  const [template, setTemplate] = useState<NumberingTemplate | null>(null);
 
   useEffect(() => {
     const fetchTemplate = async () => {
@@ -20,14 +20,7 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
       try {
         const data = await numberingApi.getTemplate(parseInt(params.id));
         if (data) {
-          setInitialData({
-            document_type_id: data.document_type_id,
-            discipline_code: data.discipline_code,
-            template_format: data.template_format,
-            reset_annually: data.reset_annually,
-            padding_length: data.padding_length,
-            starting_number: 1, // Default for edit view as we don't usually reset this
-          });
+          setTemplate(data);
         }
       } catch (error) {
         console.error("Failed to fetch template", error);
@@ -39,9 +32,9 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
     fetchTemplate();
   }, [params.id]);
 
-  const handleSave = async (data: CreateTemplateDto) => {
+  const handleSave = async (data: Partial<NumberingTemplate>) => {
     try {
-      await numberingApi.updateTemplate(parseInt(params.id), data);
+      await numberingApi.saveTemplate({ ...data, templateId: parseInt(params.id) });
       router.push("/admin/numbering");
     } catch (error) {
       console.error("Failed to update template", error);
@@ -49,10 +42,22 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
     }
   };
 
+  const handleCancel = () => {
+    router.push("/admin/numbering");
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!template) {
+    return (
+      <div className="p-6">
+        <p className="text-muted-foreground">Template not found</p>
       </div>
     );
   }
@@ -68,13 +73,17 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
         </TabsList>
 
         <TabsContent value="config" className="mt-4">
-          {initialData && (
-            <TemplateEditor initialData={initialData} onSave={handleSave} />
-          )}
+          <TemplateEditor
+            template={template}
+            projectId={template.projectId || 1}
+            projectName="LCBP3"
+            onSave={handleSave}
+            onCancel={handleCancel}
+          />
         </TabsContent>
 
         <TabsContent value="sequences" className="mt-4">
-          <SequenceViewer templateId={parseInt(params.id)} />
+          <SequenceViewer />
         </TabsContent>
       </Tabs>
     </div>

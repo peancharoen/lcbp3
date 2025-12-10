@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SearchFilters } from "@/components/search/filters";
 import { SearchResults } from "@/components/search/results";
 import { SearchFilters as FilterType } from "@/types/search";
 import { useSearch } from "@/hooks/use-search";
+import { Loader2 } from "lucide-react";
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
 
   // URL Params state
@@ -43,7 +44,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <>
       <div>
         <h1 className="text-3xl font-bold">Search Results</h1>
         <p className="text-muted-foreground mt-1">
@@ -67,6 +68,20 @@ export default function SearchPage() {
           )}
         </div>
       </div>
+    </>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <div className="space-y-6">
+      <Suspense fallback={
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }>
+        <SearchContent />
+      </Suspense>
     </div>
   );
 }

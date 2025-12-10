@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   useProjects,
@@ -19,7 +20,7 @@ import {
   useDeleteProject,
 } from "@/hooks/use-projects";
 import { ColumnDef } from "@tanstack/react-table";
-import { Pencil, Trash, Plus, Folder } from "lucide-react";
+import { Pencil, Trash, Plus, Folder, Search as SearchIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 interface Project {
   id: number;
@@ -37,18 +41,39 @@ interface Project {
   updatedAt: string;
 }
 
+const projectSchema = z.object({
+  projectCode: z.string().min(1, "Project Code is required"),
+  projectName: z.string().min(1, "Project Name is required"),
+  isActive: z.boolean().optional(),
+});
+
+type ProjectFormData = z.infer<typeof projectSchema>;
+
 export default function ProjectsPage() {
-  const { data: projects, isLoading } = useProjects();
+  const [search, setSearch] = useState("");
+  const { data: projects, isLoading } = useProjects({ search: search || undefined });
+
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [formData, setFormData] = useState({
-    projectCode: "",
-    projectName: "",
-    isActive: true,
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      projectCode: "",
+      projectName: "",
+      isActive: true,
+    },
   });
 
   const columns: ColumnDef<Project>[] = [
@@ -104,8 +129,8 @@ export default function ProjectsPage() {
   ];
 
   const handleEdit = (project: Project) => {
-    setEditingProject(project);
-    setFormData({
+    setEditingId(project.id);
+    reset({
       projectCode: project.projectCode,
       projectName: project.projectName,
       isActive: project.isActive,
@@ -113,30 +138,33 @@ export default function ProjectsPage() {
     setDialogOpen(true);
   };
 
-  const handleAdd = () => {
-    setEditingProject(null);
-    setFormData({ projectCode: "", projectName: "", isActive: true });
+  const handleCreate = () => {
+    setEditingId(null);
+    reset({
+      projectCode: "",
+      projectName: "",
+      isActive: true,
+    });
     setDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingProject) {
+  const onSubmit = (data: ProjectFormData) => {
+    if (editingId) {
       updateProject.mutate(
-        { id: editingProject.id, data: formData },
+        { id: editingId, data },
         {
           onSuccess: () => setDialogOpen(false),
         }
       );
     } else {
-      createProject.mutate(formData, {
+      createProject.mutate(data, {
         onSuccess: () => setDialogOpen(false),
       });
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Projects</h1>
@@ -144,55 +172,70 @@ export default function ProjectsPage() {
             Manage construction projects and configurations
           </p>
         </div>
-        <Button onClick={handleAdd}>
+        <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" /> Add Project
         </Button>
       </div>
 
-      <DataTable columns={columns} data={projects || []} />
+      <div className="flex items-center space-x-2 bg-muted/30 p-4 rounded-lg">
+        <div className="relative flex-1 max-w-sm">
+            <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+                placeholder="Search projects by code or name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 bg-background"
+            />
+        </div>
+      </div>
+
+      {isLoading ? (
+         <div className="text-center py-10">Loading projects...</div>
+      ) : (
+         <DataTable columns={columns} data={projects || []} />
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingProject ? "Edit Project" : "New Project"}
+              {editingId ? "Edit Project" : "New Project"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label>Project Code</Label>
+              <Label>Project Code *</Label>
               <Input
                 placeholder="e.g. LCBP3"
-                value={formData.projectCode}
-                onChange={(e) =>
-                  setFormData({ ...formData, projectCode: e.target.value })
-                }
-                required
-                disabled={!!editingProject} // Code is usually immutable or derived
+                {...register("projectCode")}
+                disabled={!!editingId} // Code is immutable after creation usually
               />
+              {errors.projectCode && (
+                  <p className="text-sm text-red-500">{errors.projectCode.message}</p>
+              )}
             </div>
+
             <div className="space-y-2">
-              <Label>Project Name</Label>
+              <Label>Project Name *</Label>
               <Input
                 placeholder="Full project name"
-                value={formData.projectName}
-                onChange={(e) =>
-                  setFormData({ ...formData, projectName: e.target.value })
-                }
-                required
+                {...register("projectName")}
               />
+              {errors.projectName && (
+                  <p className="text-sm text-red-500">{errors.projectName.message}</p>
+              )}
             </div>
+
             <div className="flex items-center space-x-2 pt-2">
               <Switch
                 id="active"
-                checked={formData.isActive}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, isActive: checked })
-                }
+                checked={watch("isActive")}
+                onCheckedChange={(checked) => setValue("isActive", checked)}
               />
               <Label htmlFor="active">Active Status</Label>
             </div>
-            <div className="flex justify-end gap-2 pt-4">
+
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -204,9 +247,9 @@ export default function ProjectsPage() {
                 type="submit"
                 disabled={createProject.isPending || updateProject.isPending}
               >
-                Save
+                {editingId ? "Save Changes" : "Create Project"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

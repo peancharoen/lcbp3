@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Contract } from './entities/contract.entity';
 import { CreateContractDto } from './dto/create-contract.dto.js';
 import { UpdateContractDto } from './dto/update-contract.dto.js';
@@ -29,17 +29,51 @@ export class ContractService {
     return this.contractRepo.save(contract);
   }
 
-  async findAll(projectId?: number) {
-    const query = this.contractRepo
-      .createQueryBuilder('c')
-      .leftJoinAndSelect('c.project', 'p')
-      .orderBy('c.contractCode', 'ASC');
+  async findAll(params?: any) {
+    const { search, projectId, page = 1, limit = 100 } = params || {};
+    const skip = (page - 1) * limit;
 
-    if (projectId) {
-      query.where('c.projectId = :projectId', { projectId });
+    const findOptions: any = {
+      relations: ['project'],
+      order: { contractCode: 'ASC' },
+      skip,
+      take: limit,
+      where: [],
+    };
+
+    const searchConditions = [];
+    if (search) {
+      searchConditions.push({ contractCode: Like(`%${search}%`) });
+      searchConditions.push({ contractName: Like(`%${search}%`) });
     }
 
-    return query.getMany();
+    if (projectId) {
+      // Combine project filter with search if exists
+      if (searchConditions.length > 0) {
+        findOptions.where = searchConditions.map((cond) => ({
+          ...cond,
+          projectId,
+        }));
+      } else {
+        findOptions.where = { projectId };
+      }
+    } else {
+      if (searchConditions.length > 0) {
+        findOptions.where = searchConditions;
+      } else {
+        delete findOptions.where; // No filters
+      }
+    }
+
+    const [data, total] = await this.contractRepo.findAndCount(findOptions);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number) {

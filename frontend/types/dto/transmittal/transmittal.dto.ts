@@ -9,16 +9,12 @@ export enum TransmittalPurpose {
 
 // --- Create ---
 export interface CreateTransmittalDto {
-  /** จำเป็นสำหรับการออกเลขที่เอกสาร (Running Number) */
-  projectId: number;
-
-  /** วัตถุประสงค์การส่ง */
-  purpose?: TransmittalPurpose;
-
-  /** หมายเหตุเพิ่มเติม */
+  projectId?: number;
+  recipientOrganizationId?: number;
+  subject: string;
+  purpose?: string;
   remarks?: string;
-
-  /** ID ของเอกสาร (Correspondence IDs) ที่จะแนบไปใน Transmittal นี้ */
+  correspondenceId: number; // For now linked correspondence
   items: CreateTransmittalItemDto[];
 }
 

@@ -52,11 +52,11 @@ export interface TemplateEditorProps {
 }
 
 export function TemplateEditor({ template, projectId, projectName, onSave, onCancel }: TemplateEditorProps) {
-  const [format, setFormat] = useState(template?.template_format || '');
-  const [docType, setDocType] = useState(template?.document_type_name || '');
-  const [discipline, setDiscipline] = useState(template?.discipline_code || '');
-  const [padding, setPadding] = useState(template?.padding_length || 4);
-  const [reset, setReset] = useState(template?.reset_annually ?? true);
+  const [format, setFormat] = useState(template?.templateFormat || '');
+  const [docType, setDocType] = useState(template?.documentTypeName || '');
+  const [discipline, setDiscipline] = useState(template?.disciplineCode || '');
+  const [padding, setPadding] = useState(template?.paddingLength || 4);
+  const [reset, setReset] = useState(template?.resetAnnually ?? true);
 
   const [preview, setPreview] = useState('');
 
@@ -83,13 +83,13 @@ export function TemplateEditor({ template, projectId, projectName, onSave, onCan
   const handleSave = () => {
       onSave({
           ...template,
-          project_id: projectId, // Ensure project_id is included
-          template_format: format,
-          document_type_name: docType,
-          discipline_code: discipline || undefined,
-          padding_length: padding,
-          reset_annually: reset,
-          example_number: preview
+          projectId: projectId,
+          templateFormat: format,
+          documentTypeName: docType,
+          disciplineCode: discipline || undefined,
+          paddingLength: padding,
+          resetAnnually: reset,
+          exampleNumber: preview
       });
   };
 

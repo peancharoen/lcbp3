@@ -15,8 +15,8 @@ interface Session {
   userId: number;
   user: {
     username: string;
-    first_name: string;
-    last_name: string;
+    firstName: string;
+    lastName: string;
   };
   deviceName: string; // e.g., "Chrome on Windows"
   ipAddress: string;
@@ -56,7 +56,7 @@ export default function SessionsPage() {
           <div className="flex flex-col">
             <span className="font-medium">{user.username}</span>
             <span className="text-xs text-muted-foreground">
-              {user.first_name} {user.last_name}
+              {user.firstName} {user.lastName}
             </span>
           </div>
         );

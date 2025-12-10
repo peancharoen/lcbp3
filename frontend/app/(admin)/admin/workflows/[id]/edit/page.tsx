@@ -25,11 +25,11 @@ export default function WorkflowEditPage() {
   const [loading, setLoading] = useState(!!id);
   const [saving, setSaving] = useState(false);
   const [workflowData, setWorkflowData] = useState<Partial<Workflow>>({
-    workflow_name: '',
+    workflowName: '',
     description: '',
-    workflow_type: 'CORRESPONDENCE',
-    dsl_definition: 'name: New Workflow\nversion: 1.0\nsteps: []',
-    is_active: true,
+    workflowType: 'CORRESPONDENCE',
+    dslDefinition: 'name: New Workflow\nversion: 1.0\nsteps: []',
+    isActive: true,
   });
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export default function WorkflowEditPage() {
   }, [id, router]);
 
   const handleSave = async () => {
-    if (!workflowData.workflow_name) {
+    if (!workflowData.workflowName) {
         toast.error("Workflow name is required");
         return;
     }
@@ -63,10 +63,10 @@ export default function WorkflowEditPage() {
     setSaving(true);
     try {
         const dto: CreateWorkflowDto = {
-            workflow_name: workflowData.workflow_name || '',
+            workflowName: workflowData.workflowName || '',
             description: workflowData.description || '',
-            workflow_type: workflowData.workflow_type || 'CORRESPONDENCE',
-            dsl_definition: workflowData.dsl_definition || '',
+            workflowType: workflowData.workflowType || 'CORRESPONDENCE',
+            dslDefinition: workflowData.dslDefinition || '',
         };
 
         if (id) {
@@ -127,11 +127,11 @@ export default function WorkflowEditPage() {
                     <Label htmlFor="name">Workflow Name *</Label>
                     <Input
                     id="name"
-                    value={workflowData.workflow_name}
+                    value={workflowData.workflowName}
                     onChange={(e) =>
                         setWorkflowData({
                         ...workflowData,
-                        workflow_name: e.target.value,
+                        workflowName: e.target.value,
                         })
                     }
                     placeholder="e.g. Standard RFA Workflow"
@@ -156,9 +156,9 @@ export default function WorkflowEditPage() {
                 <div>
                     <Label htmlFor="type">Workflow Type</Label>
                     <Select
-                    value={workflowData.workflow_type}
-                    onValueChange={(value: Workflow['workflow_type']) =>
-                        setWorkflowData({ ...workflowData, workflow_type: value })
+                    value={workflowData.workflowType}
+                    onValueChange={(value: Workflow['workflowType']) =>
+                        setWorkflowData({ ...workflowData, workflowType: value })
                     }
                     >
                     <SelectTrigger>
@@ -184,17 +184,17 @@ export default function WorkflowEditPage() {
 
                 <TabsContent value="dsl" className="mt-4">
                 <DSLEditor
-                    initialValue={workflowData.dsl_definition}
+                    initialValue={workflowData.dslDefinition}
                     onChange={(value) =>
-                       setWorkflowData({ ...workflowData, dsl_definition: value })
+                       setWorkflowData({ ...workflowData, dslDefinition: value })
                     }
                 />
                 </TabsContent>
 
                 <TabsContent value="visual" className="mt-4 h-[600px]">
                 <VisualWorkflowBuilder
-                   dslString={workflowData.dsl_definition}
-                   onDslChange={(newDsl) => setWorkflowData({ ...workflowData, dsl_definition: newDsl })}
+                   dslString={workflowData.dslDefinition}
+                   onDslChange={(newDsl) => setWorkflowData({ ...workflowData, dslDefinition: newDsl })}
                    onSave={() => toast.info("Visual state saving not implemented in this demo")}
                 />
                 </TabsContent>

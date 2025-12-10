@@ -43,6 +43,30 @@ export class MasterController {
     return this.masterService.findAllCorrespondenceTypes();
   }
 
+  @Post('correspondence-types')
+  @RequirePermission('master_data.manage')
+  @ApiOperation({ summary: 'Create Correspondence Type' })
+  createCorrespondenceType(@Body() dto: any) {
+    return this.masterService.createCorrespondenceType(dto);
+  }
+
+  @Patch('correspondence-types/:id')
+  @RequirePermission('master_data.manage')
+  @ApiOperation({ summary: 'Update Correspondence Type' })
+  updateCorrespondenceType(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: any
+  ) {
+    return this.masterService.updateCorrespondenceType(id, dto);
+  }
+
+  @Delete('correspondence-types/:id')
+  @RequirePermission('master_data.manage')
+  @ApiOperation({ summary: 'Delete Correspondence Type' })
+  deleteCorrespondenceType(@Param('id', ParseIntPipe) id: number) {
+    return this.masterService.deleteCorrespondenceType(id);
+  }
+
   @Get('correspondence-statuses')
   @ApiOperation({ summary: 'Get all active correspondence statuses' })
   getCorrespondenceStatuses() {
@@ -51,8 +75,33 @@ export class MasterController {
 
   @Get('rfa-types')
   @ApiOperation({ summary: 'Get all active RFA types' })
-  getRfaTypes() {
-    return this.masterService.findAllRfaTypes();
+  @ApiQuery({ name: 'contractId', required: false, type: Number })
+  getRfaTypes(@Query('contractId') contractId?: number) {
+    return this.masterService.findAllRfaTypes(contractId);
+  }
+
+  @Post('rfa-types')
+  @RequirePermission('master_data.manage')
+  @ApiOperation({ summary: 'Create RFA Type' })
+  createRfaType(@Body() dto: any) {
+    // Note: Should use proper DTO. Delegating to service.
+    // Need to add createRfaType to MasterService or RfaService?
+    // Given the context, MasterService seems appropriate for "Reference Data".
+    return this.masterService.createRfaType(dto);
+  }
+
+  @Patch('rfa-types/:id')
+  @RequirePermission('master_data.manage')
+  @ApiOperation({ summary: 'Update RFA Type' })
+  updateRfaType(@Param('id', ParseIntPipe) id: number, @Body() dto: any) {
+    return this.masterService.updateRfaType(id, dto);
+  }
+
+  @Delete('rfa-types/:id')
+  @RequirePermission('master_data.manage')
+  @ApiOperation({ summary: 'Delete RFA Type' })
+  deleteRfaType(@Param('id', ParseIntPipe) id: number) {
+    return this.masterService.deleteRfaType(id);
   }
 
   @Get('rfa-statuses')
@@ -108,7 +157,7 @@ export class MasterController {
   @ApiQuery({ name: 'typeId', required: false, type: Number })
   getSubTypes(
     @Query('contractId') contractId?: number,
-    @Query('typeId') typeId?: number,
+    @Query('typeId') typeId?: number
   ) {
     return this.masterService.findAllSubTypes(contractId, typeId);
   }
@@ -136,7 +185,7 @@ export class MasterController {
   @ApiOperation({ summary: 'Get numbering format for specific project/type' })
   getNumberFormat(
     @Query('projectId', ParseIntPipe) projectId: number,
-    @Query('typeId', ParseIntPipe) typeId: number,
+    @Query('typeId', ParseIntPipe) typeId: number
   ) {
     return this.masterService.findNumberFormat(projectId, typeId);
   }

@@ -35,8 +35,8 @@ export interface UpdateRfaDto extends Partial<CreateRfaDto> {}
 
 // --- Search ---
 export interface SearchRfaDto {
-  /** บังคับระบุ Project ID เสมอ */
-  projectId: number;
+  /** Filter by Project ID (optional to allow cross-project search) */
+  projectId?: number;
 
   /** กรองตามประเภท RFA */
   rfaTypeId?: number;

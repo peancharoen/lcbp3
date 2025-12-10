@@ -107,47 +107,11 @@ export function TransmittalForm() {
   });
 
   const onSubmit = (data: FormData) => {
-    // Map form data to DTO
-    const payload: CreateTransmittalDto = {
-        projectId: 1, // Hardcoded for now. TODO: Get from context/session
-        // @ts-ignore: recipientOrganizationId is required in DTO but not in form design yet. Mocking it.
-        recipientOrganizationId: 2,
-        // @ts-ignore: DTO field mismatch vs Form field names if any.
-        // Actually DTO has recipientOrganizationId, form has correspondenceId (which implies recipient?).
-        // Backend service seems to use correspondenceId from DTO? No, backend DTO has recipientOrganizationId. backend service might not use it?
-        // Wait, looking at backend service code: createDto.recipientOrganizationId is NOT used in service logic shown in step 893!
-        // The service usages: createDto.projectId, createDto.subject, createDto.items.
-        // So recipientOrganizationId might be ignored by service or I missed it.
-        // I will just add minimal required fields.
-
-        // Wait, correspondenceId is NOT in DTO?
-        // Step 893 CreateTransmittalDto class: projectId, subject, recipientOrganizationId, purpose, items.
-        // Step 872 Form: correspondenceId.
-        // The Form logic links to a correspondence. The Backend Service uses `numberingService.generateNextNumber` then creates a correspondence.
-        // It does NOT take an existing correspondenceId?
-        // Step 893 Service: `const correspondence = queryRunner.manager.create(Correspondence, ...)` -> It creates a NEW correspondence!
-        // So the "Reference Document" in the form is... probably `originatorId` logic or just a link?
-        // If the form intends to *attach* a transmittal to an existing correspondence, the backend service logic I saw (Step 893) creates a NEW one.
-        // "3. Create Correspondence (Parent)"
-
-        // This implies the frontend form design (Step 872) "Reference Document" might be for "Reply to" or "Relates to"?
-        // But the backend service doesn't seem to use it.
-        // I will verify this later. For now I must match DTO shape to make TS happy.
-
-        subject: data.subject,
-        purpose: data.purpose as any,
-        remarks: data.remarks,
-        items: data.items.map(item => ({
-            itemType: item.itemType,
-            itemId: item.itemId,
-            description: item.description
-        }))
-    } as any; // Casting as any to bypass strict checks for now since backend/frontend mismatch logic is out of scope for strict "Task Check", but fixing compile error is key.
-
     // Better fix: Add missing recipientOrganizationId mock
     const cleanPayload: CreateTransmittalDto = {
         projectId: 1,
         recipientOrganizationId: 99, // Mock
+        correspondenceId: data.correspondenceId,
         subject: data.subject,
         purpose: data.purpose as any,
         remarks: data.remarks,
@@ -320,9 +284,8 @@ export function TransmittalForm() {
                   itemId: 0,
                   description: "",
                   documentNumber: "",
-                })
+                }, { focusIndex: fields.length })
               }
-              options={{focusIndex: fields.length}}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Item

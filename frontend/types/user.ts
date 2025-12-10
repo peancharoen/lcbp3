@@ -5,44 +5,52 @@ export interface Role {
 }
 
 export interface UserOrganization {
-  organization_id: number;
-  org_code: string;
-  org_name: string;
-  org_name_th?: string;
+  organizationId: number;
+  orgCode: string;
+  orgName: string;
+  orgNameTh?: string;
 }
 
 export interface User {
-  user_id: number;
+  userId: number;
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
-  is_active: boolean;
-  line_id?: string;
-  primary_organization_id?: number;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+  lineId?: string;
+  primaryOrganizationId?: number;
   organization?: UserOrganization;
   roles?: Role[];
-  created_at?: string;
-  updated_at?: string;
+
+  // Security fields (from backend v1.5.1)
+  failedAttempts: number;
+  lockedUntil?: string;
+  lastLoginAt?: string;
+
+  // Audit columns
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateUserDto {
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   password?: string;
-  is_active: boolean;
-  line_id?: string;
-  primary_organization_id?: number;
-  role_ids: number[];
+  isActive: boolean;
+  lineId?: string;
+  primaryOrganizationId?: number;
+  roleIds: number[];
 }
 
-export interface UpdateUserDto extends Partial<CreateUserDto> {}
+export type UpdateUserDto = Partial<CreateUserDto>;
 
 export interface SearchUserDto {
   page?: number;
   limit?: number;
   search?: string;
-  role_id?: number;
+  roleId?: number;
+  primaryOrganizationId?: number;
 }

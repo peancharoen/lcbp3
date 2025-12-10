@@ -68,12 +68,15 @@ export class SearchModule {}
 
 ### 2. Index Mapping
 
+> [!NOTE]
+> **Field Naming Convention:** Elasticsearch fields use **camelCase** to match TypeScript/JavaScript conventions in the application layer. Database columns remain **snake_case** with TypeORM mapping.
+
 ```typescript
 // File: backend/src/modules/search/mappings/correspondence.mapping.ts
 export const correspondenceMapping = {
   properties: {
     id: { type: 'integer' },
-    correspondence_number: { type: 'keyword' },
+    correspondenceNumber: { type: 'keyword' },
     title: {
       type: 'text',
       analyzer: 'standard',
@@ -85,14 +88,14 @@ export const correspondenceMapping = {
       type: 'text',
       analyzer: 'standard',
     },
-    project_id: { type: 'integer' },
-    project_name: { type: 'keyword' },
+    projectId: { type: 'integer' },
+    projectName: { type: 'keyword' },
     status: { type: 'keyword' },
-    created_at: { type: 'date' },
-    created_by_username: { type: 'keyword' },
-    organization_name: { type: 'keyword' },
-    type_name: { type: 'keyword' },
-    discipline_name: { type: 'keyword' },
+    createdAt: { type: 'date' },
+    createdByUsername: { type: 'keyword' },
+    organizationName: { type: 'keyword' },
+    typeName: { type: 'keyword' },
+    disciplineName: { type: 'keyword' },
   },
 };
 ```
@@ -168,7 +171,7 @@ export class SearchService {
       const range: any = {};
       if (query.date_from) range.gte = query.date_from;
       if (query.date_to) range.lte = query.date_to;
-      filter.push({ range: { created_at: range } });
+      filter.push({ range: { createdAt: range } });
     }
 
     // Execute search
@@ -189,7 +192,7 @@ export class SearchService {
         },
         sort: query.sort_by
           ? [{ [query.sort_by]: { order: query.sort_order || 'desc' } }]
-          : [{ _score: 'desc' }, { created_at: 'desc' }],
+          : [{ _score: 'desc' }, { createdAt: 'desc' }],
         highlight: {
           fields: {
             title: {},
@@ -300,14 +303,14 @@ export class SearchIndexer {
       correspondence.id,
       {
         id: correspondence.id,
-        correspondence_number: correspondence.correspondence_number,
+        correspondenceNumber: correspondence.correspondence_number,
         title: correspondence.title,
         description: latestRevision?.description,
-        project_id: correspondence.project_id,
-        project_name: correspondence.project.project_name,
+        projectId: correspondence.project_id,
+        projectName: correspondence.project.project_name,
         status: correspondence.status,
-        created_at: correspondence.created_at,
-        organization_name:
+        createdAt: correspondence.createdAt,
+        organizationName:
           correspondence.originatorOrganization.organization_name,
       }
     );
@@ -328,13 +331,13 @@ export class SearchIndexer {
 
     await this.searchService.indexDocument('rfa', rfa.id, {
       id: rfa.id,
-      rfa_number: rfa.rfa_number,
+      rfaNumber: rfa.rfa_number,
       title: rfa.subject,
       description: latestRevision?.description,
-      project_id: rfa.project_id,
-      project_name: rfa.project.project_name,
+      projectId: rfa.project_id,
+      projectName: rfa.project.project_name,
       status: rfa.status,
-      created_at: rfa.created_at,
+      createdAt: rfa.createdAt,
     });
   }
 
