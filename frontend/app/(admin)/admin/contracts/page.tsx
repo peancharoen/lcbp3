@@ -34,11 +34,40 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-// import { useProjects } from "@/lib/services/project.service"; // Removed invalid import
-// I need to import useProjects hook from the page where it was defined or create it.
-// Checking projects/page.tsx, it uses useProjects from somewhere?
-// Ah, usually I define hooks in a separate file or inline if simple.
-// Let's rely on standard react-query params here.
+import { contractService } from "@/lib/services/contract.service";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SearchContractDto, CreateContractDto, UpdateContractDto } from "@/types/dto/contract/contract.dto";
+import { AxiosError } from "axios";
+
+interface Project {
+  id: number;
+  projectCode: string;
+  projectName: string;
+}
+
+interface Contract {
+    id: number;
+    contractCode: string;
+    contractName: string;
+    projectId: number;
+    description?: string;
+    startDate?: string;
+    endDate?: string;
+    project?: {
+      projectCode: string;
+      projectName: string;
+    }
+}
 
 const contractSchema = z.object({
   contractCode: z.string().min(1, "Contract Code is required"),
@@ -51,10 +80,7 @@ const contractSchema = z.object({
 
 type ContractFormData = z.infer<typeof contractSchema>;
 
-import { contractService } from "@/lib/services/contract.service";
-
-// Inline hooks for simplicity, or could move to hooks/use-master-data
-const useContracts = (params?: any) => {
+const useContracts = (params?: SearchContractDto) => {
     return useQuery({
         queryKey: ['contracts', params],
         queryFn: () => contractService.getAll(params),
@@ -76,23 +102,23 @@ export default function ContractsPage() {
   const queryClient = useQueryClient();
 
   const createContract = useMutation({
-      mutationFn: (data: any) => apiClient.post("/contracts", data).then(res => res.data),
+      mutationFn: (data: CreateContractDto) => apiClient.post("/contracts", data).then(res => res.data),
       onSuccess: () => {
           toast.success("Contract created successfully");
           queryClient.invalidateQueries({ queryKey: ['contracts'] });
           setDialogOpen(false);
       },
-      onError: (err: any) => toast.error(err.message || "Failed to create contract")
+      onError: (err: AxiosError<{ message: string }>) => toast.error(err.response?.data?.message || "Failed to create contract")
   });
 
   const updateContract = useMutation({
-      mutationFn: ({ id, data }: { id: number, data: any }) => apiClient.patch(`/contracts/${id}`, data).then(res => res.data),
+      mutationFn: ({ id, data }: { id: number, data: UpdateContractDto }) => apiClient.patch(`/contracts/${id}`, data).then(res => res.data),
       onSuccess: () => {
           toast.success("Contract updated successfully");
           queryClient.invalidateQueries({ queryKey: ['contracts'] });
           setDialogOpen(false);
       },
-      onError: (err: any) => toast.error(err.message || "Failed to update contract")
+      onError: (err: AxiosError<{ message: string }>) => toast.error(err.response?.data?.message || "Failed to update contract")
   });
 
   const deleteContract = useMutation({
@@ -101,11 +127,31 @@ export default function ContractsPage() {
           toast.success("Contract deleted successfully");
           queryClient.invalidateQueries({ queryKey: ['contracts'] });
       },
-      onError: (err: any) => toast.error(err.message || "Failed to delete contract")
+      onError: (err: AxiosError<{ message: string }>) => toast.error(err.response?.data?.message || "Failed to delete contract")
   });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Stats for Delete Dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
+
+  const handleDeleteClick = (contract: Contract) => {
+    setContractToDelete(contract);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (contractToDelete) {
+      deleteContract.mutate(contractToDelete.id, {
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          setContractToDelete(null);
+        },
+      });
+    }
+  };
 
   const {
       register,
@@ -124,7 +170,7 @@ export default function ContractsPage() {
       },
   });
 
-  const columns: ColumnDef<any>[] = [
+  const columns: ColumnDef<Contract>[] = [
     {
        accessorKey: "contractCode",
        header: "Code",
@@ -154,12 +200,8 @@ export default function ContractsPage() {
                         <Pencil className="mr-2 h-4 w-4" /> Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => {
-                            if (confirm(`Delete contract ${row.original.contractCode}?`)) {
-                                deleteContract.mutate(row.original.id);
-                            }
-                        }}
+                        className="text-red-600 focus:text-red-600"
+                        onClick={() => handleDeleteClick(row.original)}
                     >
                         <Trash className="mr-2 h-4 w-4" /> Delete
                     </DropdownMenuItem>
@@ -169,7 +211,7 @@ export default function ContractsPage() {
     }
   ];
 
-  const handleEdit = (contract: any) => {
+  const handleEdit = (contract: Contract) => {
       setEditingId(contract.id);
       reset({
           contractCode: contract.contractCode,
@@ -233,7 +275,13 @@ export default function ContractsPage() {
        </div>
 
       {isLoading ? (
-          <div className="text-center py-10">Loading contracts...</div>
+        <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-full" />
+            </div>
+            ))}
+        </div>
       ) : (
           <DataTable columns={columns} data={contracts || []} />
       )}
@@ -255,7 +303,7 @@ export default function ContractsPage() {
                         <SelectValue placeholder="Select Project" />
                     </SelectTrigger>
                     <SelectContent>
-                        {projects?.map((p: any) => (
+                        {(projects as Project[])?.map((p) => (
                             <SelectItem key={p.id} value={p.id.toString()}>
                                 {p.projectCode} - {p.projectName}
                             </SelectItem>
@@ -321,6 +369,28 @@ export default function ContractsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the contract
+              <span className="font-semibold text-foreground"> {contractToDelete?.contractCode} </span>
+              and remove it from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+            >
+                {deleteContract.isPending ? "Deleting..." : "Delete Contract"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

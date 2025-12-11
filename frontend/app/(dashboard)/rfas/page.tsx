@@ -16,11 +16,30 @@ function RFAsContent() {
   const search = searchParams.get('search') || undefined;
   const projectId = searchParams.get('projectId') ? parseInt(searchParams.get('projectId')!) : undefined;
 
-  const { data, isLoading, isError } = useRFAs({ page, statusId, search, projectId });
+  const revisionStatus = (searchParams.get('revisionStatus') as 'CURRENT' | 'ALL' | 'OLD') || 'CURRENT';
+
+  const { data, isLoading, isError } = useRFAs({ page, statusId, search, projectId, revisionStatus });
+
+
 
   return (
     <>
-      {/* RFAFilters component could be added here if needed */}
+      <div className="mb-4 flex gap-2">
+        {/* Simple Filter Buttons using standard Buttons for now, or use a Select if imported */}
+        <div className="flex gap-1 bg-muted p-1 rounded-md">
+           {['ALL', 'CURRENT', 'OLD'].map((status) => (
+             <Link key={status} href={`?${new URLSearchParams({...Object.fromEntries(searchParams.entries()), revisionStatus: status, page: '1'}).toString()}`}>
+               <Button
+                 variant={revisionStatus === status ? 'default' : 'ghost'}
+                 size="sm"
+                 className="text-xs px-3"
+               >
+                 {status === 'CURRENT' ? 'Latest' : status === 'OLD' ? 'Previous' : 'All'}
+               </Button>
+             </Link>
+           ))}
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center py-8">
@@ -32,12 +51,12 @@ function RFAsContent() {
         </div>
       ) : (
         <>
-          <RFAList data={data} />
+          <RFAList data={data?.data || []} />
            <div className="mt-4">
             <Pagination
-              currentPage={data?.page || 1}
-              totalPages={data?.lastPage || data?.totalPages || 1}
-              total={data?.total || 0}
+              currentPage={data?.meta?.page || 1}
+              totalPages={data?.meta?.totalPages || 1}
+              total={data?.meta?.total || 0}
             />
           </div>
         </>

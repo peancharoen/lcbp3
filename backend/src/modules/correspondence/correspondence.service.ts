@@ -207,15 +207,34 @@ export class CorrespondenceService {
   }
 
   async findAll(searchDto: SearchCorrespondenceDto = {}) {
-    const { search, typeId, projectId, statusId } = searchDto;
+    const {
+      search,
+      typeId,
+      projectId,
+      statusId,
+      page = 1,
+      limit = 10,
+    } = searchDto;
+    const skip = (page - 1) * limit;
 
-    const query = this.correspondenceRepo
-      .createQueryBuilder('corr')
-      .leftJoinAndSelect('corr.revisions', 'rev')
+    // Change: Query from Revision Repo
+    const query = this.revisionRepo
+      .createQueryBuilder('rev')
+      .leftJoinAndSelect('rev.correspondence', 'corr')
       .leftJoinAndSelect('corr.type', 'type')
       .leftJoinAndSelect('corr.project', 'project')
       .leftJoinAndSelect('corr.originator', 'org')
-      .where('rev.isCurrent = :isCurrent', { isCurrent: true });
+      .leftJoinAndSelect('rev.status', 'status');
+
+    // Filter by Revision Status
+    const revStatus = searchDto.revisionStatus || 'CURRENT';
+
+    if (revStatus === 'CURRENT') {
+      query.where('rev.isCurrent = :isCurrent', { isCurrent: true });
+    } else if (revStatus === 'OLD') {
+      query.where('rev.isCurrent = :isCurrent', { isCurrent: false });
+    }
+    // If 'ALL', no filter needed on isCurrent
 
     if (projectId) {
       query.andWhere('corr.projectId = :projectId', { projectId });
@@ -236,9 +255,20 @@ export class CorrespondenceService {
       );
     }
 
-    query.orderBy('corr.createdAt', 'DESC');
+    // Default Sort: Latest Created
+    query.orderBy('rev.createdAt', 'DESC').skip(skip).take(limit);
 
-    return query.getMany();
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: number) {

@@ -24,6 +24,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import { Organization } from "@/types/organization";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
@@ -39,6 +52,27 @@ export default function UsersPage() {
   const deleteMutation = useDeleteUser();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // Stats for Delete Dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (userToDelete) {
+      deleteMutation.mutate(userToDelete.userId, {
+        onSuccess: () => {
+            setDeleteDialogOpen(false);
+            setUserToDelete(null);
+        },
+      });
+    }
+  };
+
 
   const columns: ColumnDef<User>[] = [
     {
@@ -59,12 +93,8 @@ export default function UsersPage() {
       id: "organization",
       header: "Organization",
       cell: ({ row }) => {
-        // Need to find org in list if not populated or if only ID exists
-        // Assuming backend populates organization object or we map it from ID
-        // Currently User type has organization?
-        // Let's rely on finding it from the master data if missing
         const orgId = row.original.primaryOrganizationId;
-        const org = organizations.find((o: any) => o.id === orgId);
+        const org = (organizations as Organization[]).find((o) => o.id === orgId);
         return org ? org.organizationCode : "-";
       },
     },
@@ -73,7 +103,6 @@ export default function UsersPage() {
       header: "Roles",
       cell: ({ row }) => {
         const roles = row.original.roles || [];
-        // If roles is empty, it might be lazy loaded or just assignments
         return (
           <div className="flex flex-wrap gap-1">
             {roles.map((r) => (
@@ -112,10 +141,8 @@ export default function UsersPage() {
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-red-600"
-                onClick={() => {
-                  if (confirm("Are you sure?")) deleteMutation.mutate(user.userId);
-                }}
+                className="text-red-600 focus:text-red-600"
+                onClick={() => handleDeleteClick(user)}
               >
                 <Trash className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
@@ -158,7 +185,7 @@ export default function UsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Organizations</SelectItem>
-                {Array.isArray(organizations) && organizations.map((org: any) => (
+                {Array.isArray(organizations) && (organizations as Organization[]).map((org) => (
                   <SelectItem key={org.id} value={org.id.toString()}>
                     {org.organizationCode} - {org.organizationName}
                   </SelectItem>
@@ -169,7 +196,13 @@ export default function UsersPage() {
       </div>
 
       {isLoading ? (
-          <div className="text-center py-10">Loading users...</div>
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ))}
+          </div>
       ) : (
           <DataTable columns={columns} data={users || []} />
       )}
@@ -179,6 +212,28 @@ export default function UsersPage() {
          onOpenChange={setDialogOpen}
          user={selectedUser}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user
+              <span className="font-semibold text-foreground"> {userToDelete?.username} </span>
+              and remove them from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+            >
+                {deleteMutation.isPending ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

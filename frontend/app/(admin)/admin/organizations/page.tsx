@@ -19,6 +19,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Organization } from "@/types/organization";
 import { OrganizationDialog } from "@/components/admin/organization-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Organization role types for display
 const ORGANIZATION_ROLES = [
@@ -40,6 +51,26 @@ export default function OrganizationsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrganization, setSelectedOrganization] =
     useState<Organization | null>(null);
+
+  // Stats for Delete Dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orgToDelete, setOrgToDelete] = useState<Organization | null>(null);
+
+  const handleDeleteClick = (org: Organization) => {
+    setOrgToDelete(org);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (orgToDelete) {
+      deleteOrg.mutate(orgToDelete.id, {
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          setOrgToDelete(null);
+        },
+      });
+    }
+  };
 
   const columns: ColumnDef<Organization>[] = [
     {
@@ -101,12 +132,8 @@ export default function OrganizationsPage() {
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="text-red-600"
-                onClick={() => {
-                  if (confirm(`Delete organization ${org.organizationCode}?`)) {
-                    deleteOrg.mutate(org.id);
-                  }
-                }}
+                className="text-red-600 focus:text-red-600"
+                onClick={() => handleDeleteClick(org)}
               >
                 <Trash className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
@@ -149,7 +176,13 @@ export default function OrganizationsPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-10">Loading organizations...</div>
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ))}
+          </div>
       ) : (
         <DataTable columns={columns} data={organizations || []} />
       )}
@@ -159,6 +192,28 @@ export default function OrganizationsPage() {
         onOpenChange={setDialogOpen}
         organization={selectedOrganization}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the organization
+              <span className="font-semibold text-foreground"> {orgToDelete?.organizationName} </span>
+              and remove it from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+            >
+                {deleteOrg.isPending ? "Deleting..." : "Delete Organization"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

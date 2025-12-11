@@ -31,6 +31,17 @@ import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Project {
   id: number;
@@ -59,6 +70,26 @@ export default function ProjectsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Stats for Delete Dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+
+  const handleDeleteClick = (project: Project) => {
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (projectToDelete) {
+      deleteProject.mutate(projectToDelete.id, {
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          setProjectToDelete(null);
+        },
+      });
+    }
+  };
 
   const {
     register,
@@ -113,12 +144,8 @@ export default function ProjectsPage() {
               <Pencil className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="text-red-600"
-              onClick={() => {
-                if (confirm(`Delete project ${row.original.projectCode}?`)) {
-                  deleteProject.mutate(row.original.id);
-                }
-              }}
+              className="text-red-600 focus:text-red-600"
+              onClick={() => handleDeleteClick(row.original)}
             >
               <Trash className="mr-2 h-4 w-4" /> Delete
             </DropdownMenuItem>
@@ -190,7 +217,13 @@ export default function ProjectsPage() {
       </div>
 
       {isLoading ? (
-         <div className="text-center py-10">Loading projects...</div>
+         <div className="space-y-2">
+           {[1, 2, 3, 4, 5].map((i) => (
+             <div key={i} className="flex items-center space-x-4">
+               <Skeleton className="h-12 w-full" />
+             </div>
+           ))}
+         </div>
       ) : (
          <DataTable columns={columns} data={projects || []} />
       )}
@@ -253,6 +286,28 @@ export default function ProjectsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the project
+              <span className="font-semibold text-foreground"> {projectToDelete?.projectCode} </span>
+              and remove it from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+            >
+                {deleteProject.isPending ? "Deleting..." : "Delete Project"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

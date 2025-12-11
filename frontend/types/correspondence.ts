@@ -13,21 +13,51 @@ export interface Attachment {
   createdAt?: string;
 }
 
-export interface Correspondence {
-  correspondenceId: number;
-  documentNumber: string;
-  subject: string;
+// Used in List View mainly
+export interface CorrespondenceRevision {
+  id: number;
+  revisionNumber: number;
+  revisionLabel?: string; // e.g. "A", "00"
+  title: string;
   description?: string;
-  status: "DRAFT" | "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED";
-  importance: "NORMAL" | "HIGH" | "URGENT";
-  createdAt: string;
-  updatedAt: string;
-  fromOrganizationId: number;
-  toOrganizationId: number;
-  fromOrganization?: Organization;
-  toOrganization?: Organization;
-  documentTypeId: number;
+  isCurrent: boolean;
+  status?: {
+    id: number;
+    statusCode: string;
+    statusName: string;
+  };
+  details?: any;
   attachments?: Attachment[];
+  createdAt: string;
+
+  // Nested Relation from Backend Refactor
+  correspondence: {
+    id: number;
+    correspondenceNumber: string;
+    projectId: number;
+    originatorId?: number;
+    isInternal: boolean;
+    originator?: Organization;
+    project?: { id: number; projectName: string; projectCode: string };
+    type?: { id: number; typeName: string; typeCode: string };
+  }
+}
+
+// Keep explicit Correspondence for Detail View if needed, or merge concepts
+export interface Correspondence {
+  id: number;
+  correspondenceNumber: string;
+  projectId: number;
+  originatorId?: number;
+  correspondenceTypeId: number;
+  isInternal: boolean;
+  createdAt: string;
+
+  // Relations
+  originator?: Organization;
+  project?: { id: number; projectName: string; projectCode: string };
+  type?: { id: number; typeName: string; typeCode: string };
+  revisions?: CorrespondenceRevision[]; // Nested revisions
 }
 
 export interface CreateCorrespondenceDto {

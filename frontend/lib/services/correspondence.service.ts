@@ -17,7 +17,7 @@ export const correspondenceService = {
 
   getById: async (id: string | number) => {
     const response = await apiClient.get(`/correspondences/${id}`);
-    return response.data;
+    return response.data.data; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
   create: async (data: CreateCorrespondenceDto) => {

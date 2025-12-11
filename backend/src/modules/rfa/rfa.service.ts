@@ -174,7 +174,7 @@ export class RfaService {
 
         const rfaItems = shopDrawings.map((sd) =>
           queryRunner.manager.create(RfaItem, {
-            rfaRevisionId: savedCorr.id, // Use Correspondence ID as per schema
+            rfaRevisionId: savedRevision.id, // Correctly link to RfaRevision
             shopDrawingRevisionId: sd.id,
           })
         );
@@ -244,8 +244,22 @@ export class RfaService {
       .createQueryBuilder('rfa')
       .leftJoinAndSelect('rfa.revisions', 'rev')
       .leftJoinAndSelect('rev.correspondence', 'corr')
+      .leftJoinAndSelect('corr.project', 'project')
+      .leftJoinAndSelect('rfa.discipline', 'discipline')
       .leftJoinAndSelect('rev.statusCode', 'status')
-      .where('rev.isCurrent = :isCurrent', { isCurrent: true });
+      .leftJoinAndSelect('rev.items', 'items')
+      .leftJoinAndSelect('items.shopDrawingRevision', 'sdRev')
+      .leftJoinAndSelect('sdRev.attachments', 'attachments');
+
+    // Filter by Revision Status (from query param 'revisionStatus')
+    const revStatus = query.revisionStatus || 'CURRENT';
+
+    if (revStatus === 'CURRENT') {
+      queryBuilder.where('rev.isCurrent = :isCurrent', { isCurrent: true });
+    } else if (revStatus === 'OLD') {
+      queryBuilder.where('rev.isCurrent = :isCurrent', { isCurrent: false });
+    }
+    // If 'ALL', no filter
 
     if (projectId) {
       queryBuilder.andWhere('corr.projectId = :projectId', { projectId });
@@ -267,6 +281,10 @@ export class RfaService {
       .skip(skip)
       .take(limit)
       .getManyAndCount();
+
+    this.logger.log(
+      `[DEBUG] RFA findAll: Found ${total} items. Query: ${JSON.stringify(query)}`
+    );
 
     return {
       data: items,

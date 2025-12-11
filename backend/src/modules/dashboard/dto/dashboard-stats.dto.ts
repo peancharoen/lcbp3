@@ -16,6 +16,9 @@ export class DashboardStatsDto {
   @ApiProperty({ description: 'จำนวนงานที่รออนุมัติ', example: 12 })
   pendingApprovals!: number;
 
+  @ApiProperty({ description: 'จำนวนเอกสารที่อนุมัติแล้ว', example: 100 })
+  approved!: number;
+
   @ApiProperty({ description: 'จำนวน RFA ทั้งหมด', example: 45 })
   totalRfas!: number;
 

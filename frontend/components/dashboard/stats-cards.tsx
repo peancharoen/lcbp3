@@ -22,14 +22,14 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
   const cards = [
     {
       title: "Total Correspondences",
-      value: stats.correspondences,
+      value: stats.totalDocuments,
       icon: FileText,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
     },
     {
       title: "Active RFAs",
-      value: stats.rfas,
+      value: stats.totalRfas,
       icon: Clipboard,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
@@ -43,7 +43,7 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
     },
     {
       title: "Pending Approvals",
-      value: stats.pending,
+      value: stats.pendingApprovals,
       icon: Clock,
       color: "text-orange-600",
       bgColor: "bg-orange-50",

@@ -80,10 +80,31 @@ export class DashboardService {
       10
     );
 
+    // นับเอกสารที่อนุมัติแล้ว (APPROVED)
+    // NOTE: อาจจะต้องปรับ logic ตาม Business ว่า "อนุมัติ" หมายถึงอะไร
+    // เบื้องต้นนับจาก CorrespondenceStatus ที่เป็น 'APPROVED' หรือ 'CODE 1'
+    // หรือนับจาก Workflow ที่ Completed และ Action เป็น APPROVE
+    // เพื่อความง่ายในเบื้องต้น นับจาก CorrespondenceRevision ที่มี status 'APPROVED' (ถ้ามี)
+    // หรือนับจาก RFA ที่มี Approve Code
+
+    // สำหรับ LCBP3 นับ RFA ที่ approveCodeId ไม่ใช่ null (หรือ check status code = APR/FAP)
+    // และ Correspondence ทั่วไปที่มีสถานะ Completed
+    // เพื่อความรวดเร็ว ใช้วิธีนับ Revision ที่ isCurrent = 1 และ statusCode = 'APR' (Approved)
+
+    // Check status code 'APR' exists
+    const aprStatusCount = await this.dataSource.query(`
+        SELECT COUNT(r.id) as count
+        FROM correspondence_revisions r
+        JOIN correspondence_status s ON r.correspondence_status_id = s.id
+        WHERE r.is_current = 1 AND s.status_code IN ('APR', 'CMP')
+    `);
+    const approved = parseInt(aprStatusCount[0]?.count || '0', 10);
+
     return {
       totalDocuments,
       documentsThisMonth,
       pendingApprovals,
+      approved,
       totalRfas,
       totalCirculations,
     };

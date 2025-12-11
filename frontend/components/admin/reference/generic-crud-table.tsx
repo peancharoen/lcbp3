@@ -25,6 +25,17 @@ import {
 import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FieldConfig {
   name: string;
@@ -66,6 +77,10 @@ export function GenericCrudTable({
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
 
+  // Delete Dialog State
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<number | null>(null);
+
   const { data, isLoading, refetch } = useQuery({
     queryKey,
     queryFn: fetchFn,
@@ -96,6 +111,8 @@ export function GenericCrudTable({
     onSuccess: () => {
       toast.success(`${entityName} deleted successfully`);
       queryClient.invalidateQueries({ queryKey });
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
     },
     onError: () => toast.error(`Failed to delete ${entityName}`),
   });
@@ -112,9 +129,14 @@ export function GenericCrudTable({
     setIsOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm(`Are you sure you want to delete this ${entityName}?`)) {
-      deleteMutation.mutate(id);
+  const handleDeleteClick = (id: number) => {
+    setItemToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      deleteMutation.mutate(itemToDelete);
     }
   };
 
@@ -156,7 +178,7 @@ export function GenericCrudTable({
             variant="ghost"
             size="icon"
             className="text-destructive"
-            onClick={() => handleDelete(row.original.id)}
+            onClick={() => handleDeleteClick(row.original.id)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -191,7 +213,17 @@ export function GenericCrudTable({
         </div>
       </div>
 
-      <DataTable columns={tableColumns} data={data || []} />
+      {isLoading ? (
+        <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-full" />
+            </div>
+            ))}
+        </div>
+      ) : (
+          <DataTable columns={tableColumns} data={data || []} />
+      )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
@@ -270,6 +302,26 @@ export function GenericCrudTable({
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the {entityName.toLowerCase()} and remove it from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+            >
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

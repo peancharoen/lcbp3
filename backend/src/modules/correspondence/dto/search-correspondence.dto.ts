@@ -28,6 +28,13 @@ export class SearchCorrespondenceDto {
   @IsInt()
   statusId?: number;
 
+  @ApiPropertyOptional({
+    description: 'Revision Filter: CURRENT (default), ALL, OLD',
+  })
+  @IsOptional()
+  @IsString()
+  revisionStatus?: 'CURRENT' | 'ALL' | 'OLD';
+
   @ApiPropertyOptional({ description: 'Page number (default 1)', default: 1 })
   @IsOptional()
   @Type(() => Number)

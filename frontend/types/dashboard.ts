@@ -1,8 +1,10 @@
 export interface DashboardStats {
-  correspondences: number;
-  rfas: number;
+  totalDocuments: number;
+  documentsThisMonth: number;
+  pendingApprovals: number;
   approved: number;
-  pending: number;
+  totalRfas: number;
+  totalCirculations: number;
 }
 
 export interface ActivityLog {

@@ -17,7 +17,7 @@ import {
 import { FileUpload } from "@/components/common/file-upload";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { useCreateCorrespondence } from "@/hooks/use-correspondence";
+import { useCreateCorrespondence, useUpdateCorrespondence } from "@/hooks/use-correspondence";
 import { Organization } from "@/types/organization";
 import { useOrganizations } from "@/hooks/use-master-data";
 import { CreateCorrespondenceDto } from "@/types/dto/correspondence/create-correspondence.dto";
@@ -34,49 +34,65 @@ const correspondenceSchema = z.object({
 
 type FormData = z.infer<typeof correspondenceSchema>;
 
-export function CorrespondenceForm() {
+export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?: number }) {
   const router = useRouter();
   const createMutation = useCreateCorrespondence();
+  const updateMutation = useUpdateCorrespondence(); // Add this hook
   const { data: organizations, isLoading: isLoadingOrgs } = useOrganizations();
+
+  // Extract initial values if editing
+  const currentRev = initialData?.revisions?.find((r: any) => r.isCurrent) || initialData?.revisions?.[0];
+  const defaultValues: Partial<FormData> = {
+    subject: currentRev?.title || "",
+    description: currentRev?.description || "",
+    documentTypeId: initialData?.correspondenceTypeId || 1,
+    fromOrganizationId: initialData?.originatorId || undefined,
+    toOrganizationId: currentRev?.details?.to_organization_id || undefined,
+    importance: currentRev?.details?.importance || "NORMAL",
+  };
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch, // Watch values to control Select value props if needed, or rely on RHF
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(correspondenceSchema),
-    defaultValues: {
-      importance: "NORMAL",
-      documentTypeId: 1,
-    } as any, // Cast to any to handle partial defaults for required fields
+    defaultValues: defaultValues as any,
   });
 
+  // Watch for controlled inputs to set value in Select components if needed for better UX
+  const fromOrgId = watch("fromOrganizationId");
+  const toOrgId = watch("toOrganizationId");
+
   const onSubmit = (data: FormData) => {
-    // Map FormData to CreateCorrespondenceDto
-    // Note: projectId is hardcoded to 1 for now as per requirements/context
     const payload: CreateCorrespondenceDto = {
       projectId: 1,
       typeId: data.documentTypeId,
       title: data.subject,
       description: data.description,
-      originatorId: data.fromOrganizationId, // Mapping From -> Originator (Impersonation)
+      originatorId: data.fromOrganizationId,
       details: {
         to_organization_id: data.toOrganizationId,
         importance: data.importance
       },
-      // create-correspondence DTO does not have 'attachments' field at root usually, often handled separate or via multipart
-      // If useCreateCorrespondence handles multipart, we might need to pass FormData object or specific structure
-      // For now, aligning with DTO interface.
     };
 
-    // If the hook expects the DTO directly:
-    createMutation.mutate(payload, {
-      onSuccess: () => {
-        router.push("/correspondences");
-      },
-    });
+    if (id && initialData) {
+       // UPDATE Mode
+       updateMutation.mutate({ id, data: payload }, {
+         onSuccess: () => router.push(`/correspondences/${id}`)
+       });
+    } else {
+       // CREATE Mode
+       createMutation.mutate(payload, {
+         onSuccess: () => router.push("/correspondences"),
+       });
+    }
   };
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl space-y-6">
@@ -103,6 +119,7 @@ export function CorrespondenceForm() {
           <Label>From Organization *</Label>
           <Select
             onValueChange={(v) => setValue("fromOrganizationId", parseInt(v))}
+            value={fromOrgId ? String(fromOrgId) : undefined}
             disabled={isLoadingOrgs}
           >
             <SelectTrigger>
@@ -125,6 +142,7 @@ export function CorrespondenceForm() {
           <Label>To Organization *</Label>
           <Select
             onValueChange={(v) => setValue("toOrganizationId", parseInt(v))}
+            value={toOrgId ? String(toOrgId) : undefined}
             disabled={isLoadingOrgs}
           >
             <SelectTrigger>
@@ -177,22 +195,24 @@ export function CorrespondenceForm() {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>Attachments</Label>
-        <FileUpload
-          onFilesSelected={(files) => setValue("attachments", files)}
-          maxFiles={10}
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png"
-        />
-      </div>
+      {!initialData && (
+        <div className="space-y-2">
+          <Label>Attachments</Label>
+          <FileUpload
+            onFilesSelected={(files) => setValue("attachments", files)}
+            maxFiles={10}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png"
+          />
+        </div>
+      )}
 
       <div className="flex justify-end gap-4 pt-6 border-t">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button type="submit" disabled={createMutation.isPending}>
-          {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Create Correspondence
+        <Button type="submit" disabled={isPending}>
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {id ? "Update Correspondence" : "Create Correspondence"}
         </Button>
       </div>
     </form>

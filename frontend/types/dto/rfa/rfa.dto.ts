@@ -52,4 +52,7 @@ export interface SearchRfaDto {
 
   /** จำนวนต่อหน้า (Default: 20) */
   pageSize?: number;
+
+  /** Revision Status Filter */
+  revisionStatus?: 'CURRENT' | 'ALL' | 'OLD';
 }

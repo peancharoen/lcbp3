@@ -8,17 +8,28 @@ export interface RFAItem {
 }
 
 export interface RFA {
-  rfaId: number;
-  rfaNumber: string;
-  subject: string;
-  description?: string;
-  contractId: number;
-  disciplineId: number;
-  status: "DRAFT" | "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED";
-  createdAt: string;
-  updatedAt: string;
-  items: RFAItem[];
-  // Mock fields for display
+  id: number;
+  rfaTypeId: number;
+  createdBy: number;
+  disciplineId?: number;
+  revisions: {
+    items?: {
+       shopDrawingRevision?: {
+         attachments?: { id: number; url: string; name: string }[]
+       }
+    }[];
+  }[];
+  discipline?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  // Deprecated/Mapped fields (keep optional if frontend uses them elsewhere)
+  rfaId?: number;
+  rfaNumber?: string;
+  subject?: string;
+  status?: string;
+  createdAt?: string;
   contractName?: string;
   disciplineName?: string;
 }

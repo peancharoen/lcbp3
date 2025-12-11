@@ -7,21 +7,21 @@ import { ColumnDef } from "@tanstack/react-table";
 export default function DrawingCategoriesPage() {
   const columns: ColumnDef<any>[] = [
     {
-      accessorKey: "type_code",
+      accessorKey: "subTypeCode",
       header: "Code",
       cell: ({ row }) => (
-        <span className="font-mono font-bold">{row.getValue("type_code")}</span>
+        <span className="font-mono font-bold">{row.getValue("subTypeCode")}</span>
       ),
     },
     {
-      accessorKey: "type_name",
+      accessorKey: "subTypeName",
       header: "Name",
     },
     {
-      accessorKey: "classification",
-      header: "Classification",
+      accessorKey: "subTypeNumber",
+      header: "Running Code",
       cell: ({ row }) => (
-        <span className="capitalize">{row.getValue("classification") || "General"}</span>
+        <span className="font-mono">{row.getValue("subTypeNumber") || "-"}</span>
       ),
     },
   ];
@@ -34,14 +34,14 @@ export default function DrawingCategoriesPage() {
         description="Manage drawing sub-types and categories"
         queryKey={["drawing-categories"]}
         fetchFn={() => masterDataService.getSubTypes(1)} // Default contract ID 1
-        createFn={(data) => masterDataService.createSubType({ ...data, contractId: 1 })}
-        updateFn={(id, data) => Promise.reject("Not implemented yet")}
-        deleteFn={(id) => Promise.reject("Not implemented yet")} // Delete might be restricted
+        createFn={(data) => masterDataService.createSubType({ ...data, contractId: 1, correspondenceTypeId: 3 })} // Assuming 3 is Drawings, hardcoded for now to prevent error
+        updateFn={() => Promise.reject("Not implemented yet")}
+        deleteFn={() => Promise.reject("Not implemented yet")} // Delete might be restricted
         columns={columns}
         fields={[
-          { name: "type_code", label: "Code", type: "text", required: true },
-          { name: "type_name", label: "Name", type: "text", required: true },
-          { name: "classification", label: "Classification", type: "text" },
+          { name: "subTypeCode", label: "Code", type: "text", required: true },
+          { name: "subTypeName", label: "Name", type: "text", required: true },
+          { name: "subTypeNumber", label: "Running Code", type: "text" },
         ]}
       />
     </div>

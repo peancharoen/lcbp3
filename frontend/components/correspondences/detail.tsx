@@ -1,11 +1,11 @@
 "use client";
 
-import { Correspondence, Attachment } from "@/types/correspondence";
+import { Correspondence } from "@/types/correspondence";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
-import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit } from "lucide-react";
 import Link from "next/link";
 import { useSubmitCorrespondence, useProcessWorkflow } from "@/hooks/use-correspondence";
 import { useState } from "react";
@@ -22,11 +22,24 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
   const [actionState, setActionState] = useState<"approve" | "reject" | null>(null);
   const [comments, setComments] = useState("");
 
+  if (!data) return <div>No data found</div>;
+
+  console.log("Correspondence Detail Data:", data);
+
+  // Derive Current Revision Data
+  const currentRevision = data.revisions?.find(r => r.isCurrent) || data.revisions?.[0];
+  const subject = currentRevision?.title || "-";
+  const description = currentRevision?.description || "-";
+  const status = currentRevision?.status?.statusCode || "UNKNOWN"; // e.g. DRAFT
+  const attachments = currentRevision?.attachments || [];
+
+  // Note: Importance might be in details
+  const importance = currentRevision?.details?.importance || "NORMAL";
+
   const handleSubmit = () => {
     if (confirm("Are you sure you want to submit this correspondence?")) {
-      // TODO: Implement Template Selection. Hardcoded to 1 for now.
       submitMutation.mutate({
-        id: data.correspondenceId,
+        id: data.id,
         data: {}
       });
     }
@@ -37,7 +50,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
     const action = actionState === "approve" ? "APPROVE" : "REJECT";
     processMutation.mutate({
-      id: data.correspondenceId,
+      id: data.id,
       data: {
         action,
         comments
@@ -61,20 +74,30 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{data.documentNumber}</h1>
+            <h1 className="text-2xl font-bold">{data.correspondenceNumber}</h1>
             <p className="text-muted-foreground">
-              Created on {format(new Date(data.createdAt), "dd MMM yyyy HH:mm")}
+              Created on {data.createdAt ? format(new Date(data.createdAt), "dd MMM yyyy HH:mm") : '-'}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-          {data.status === "DRAFT" && (
+           {/* EDIT BUTTON LOGIC: Show if DRAFT */}
+          {status === "DRAFT" && (
+             <Link href={`/correspondences/${data.id}/edit`}>
+                <Button variant="outline">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+             </Link>
+          )}
+
+          {status === "DRAFT" && (
             <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
               {submitMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               Submit for Review
             </Button>
           )}
-          {data.status === "IN_REVIEW" && (
+          {status === "IN_REVIEW" && (
             <>
               <Button
                 variant="destructive"
@@ -134,15 +157,15 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-start">
-                <CardTitle className="text-xl">{data.subject}</CardTitle>
-                <StatusBadge status={data.status} />
+                <CardTitle className="text-xl">{subject}</CardTitle>
+                <StatusBadge status={status} />
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
                 <h3 className="font-semibold mb-2">Description</h3>
                 <p className="text-gray-700 whitespace-pre-wrap">
-                  {data.description || "No description provided."}
+                  {description}
                 </p>
               </div>
 
@@ -150,9 +173,9 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
               <div>
                 <h3 className="font-semibold mb-3">Attachments</h3>
-                {data.attachments && data.attachments.length > 0 ? (
+                {attachments && attachments.length > 0 ? (
                   <div className="grid gap-2">
-                    {data.attachments.map((file, index) => (
+                    {attachments.map((file, index) => (
                       <div
                         key={file.id || index}
                         className="flex items-center justify-between p-3 border rounded-lg bg-muted/20"
@@ -170,7 +193,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground italic">No attachments.</p>
+                  <p className="text-sm text-muted-foreground italic">No attachments found.</p>
                 )}
               </div>
             </CardContent>
@@ -188,10 +211,10 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
                 <p className="text-sm font-medium text-muted-foreground">Importance</p>
                 <div className="mt-1">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${data.importance === 'URGENT' ? 'bg-red-100 text-red-800' :
-                      data.importance === 'HIGH' ? 'bg-orange-100 text-orange-800' :
+                    ${importance === 'URGENT' ? 'bg-red-100 text-red-800' :
+                      importance === 'HIGH' ? 'bg-orange-100 text-orange-800' :
                       'bg-blue-100 text-blue-800'}`}>
-                    {data.importance}
+                    {importance}
                   </span>
                 </div>
               </div>
@@ -199,15 +222,15 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
               <hr className="my-4 border-t" />
 
               <div>
-                <p className="text-sm font-medium text-muted-foreground">From Organization</p>
-                <p className="font-medium mt-1">{data.fromOrganization?.orgName}</p>
-                <p className="text-xs text-muted-foreground">{data.fromOrganization?.orgCode}</p>
+                <p className="text-sm font-medium text-muted-foreground">Originator</p>
+                <p className="font-medium mt-1">{data.originator?.orgName || '-'}</p>
+                <p className="text-xs text-muted-foreground">{data.originator?.orgCode || '-'}</p>
               </div>
 
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">To Organization</p>
-                <p className="font-medium mt-1">{data.toOrganization?.orgName}</p>
-                <p className="text-xs text-muted-foreground">{data.toOrganization?.orgCode}</p>
+               <div>
+                <p className="text-sm font-medium text-muted-foreground">Project</p>
+                <p className="font-medium mt-1">{data.project?.projectName || '-'}</p>
+                <p className="text-xs text-muted-foreground">{data.project?.projectCode || '-'}</p>
               </div>
             </CardContent>
           </Card>
