@@ -9,7 +9,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Correspondence } from '../../correspondence/entities/correspondence.entity';
-import { Organization } from '../../project/entities/organization.entity';
+import { Organization } from '../../organization/entities/organization.entity';
 import { User } from '../../user/entities/user.entity';
 import { CirculationStatusCode } from './circulation-status-code.entity';
 import { CirculationRouting } from './circulation-routing.entity';

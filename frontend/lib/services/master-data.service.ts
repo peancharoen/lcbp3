@@ -11,33 +11,33 @@ import {
   CreateOrganizationDto,
   UpdateOrganizationDto,
   SearchOrganizationDto,
-} from "@/types/dto/organization.dto";
+} from "@/types/dto/organization/organization.dto";
 
 export const masterDataService = {
   // --- Tags Management ---
 
   /** ดึงรายการ Tags ทั้งหมด (Search & Pagination) */
   getTags: async (params?: SearchTagDto) => {
-    const response = await apiClient.get("/tags", { params });
+    const response = await apiClient.get("/master/tags", { params });
     // Support both wrapped and unwrapped scenarios
     return response.data.data || response.data;
   },
 
   /** สร้าง Tag ใหม่ */
   createTag: async (data: CreateTagDto) => {
-    const response = await apiClient.post("/tags", data);
+    const response = await apiClient.post("/master/tags", data);
     return response.data;
   },
 
   /** แก้ไข Tag */
   updateTag: async (id: number | string, data: UpdateTagDto) => {
-    const response = await apiClient.put(`/tags/${id}`, data);
+    const response = await apiClient.patch(`/master/tags/${id}`, data);
     return response.data;
   },
 
   /** ลบ Tag */
   deleteTag: async (id: number | string) => {
-    const response = await apiClient.delete(`/tags/${id}`);
+    const response = await apiClient.delete(`/master/tags/${id}`);
     return response.data;
   },
 

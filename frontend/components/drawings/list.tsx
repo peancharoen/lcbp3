@@ -7,10 +7,11 @@ import { Loader2 } from "lucide-react";
 
 interface DrawingListProps {
   type: "CONTRACT" | "SHOP";
+  projectId?: number;
 }
 
-export function DrawingList({ type }: DrawingListProps) {
-  const { data: drawings, isLoading, isError } = useDrawings(type, { projectId: 1 });
+export function DrawingList({ type, projectId }: DrawingListProps) {
+  const { data: drawings, isLoading, isError } = useDrawings(type, { projectId: projectId ?? 1 });
 
   // Note: The hook handles switching services based on type.
   // The params { type } might be redundant if getAll doesn't use it, but safe to pass.

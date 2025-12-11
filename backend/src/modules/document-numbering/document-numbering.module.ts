@@ -12,7 +12,7 @@ import { DocumentNumberError } from './entities/document-number-error.entity'; /
 
 // Master Entities ที่ต้องใช้ Lookup
 import { Project } from '../project/entities/project.entity';
-import { Organization } from '../project/entities/organization.entity';
+import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { Discipline } from '../master/entities/discipline.entity';
 import { CorrespondenceSubType } from '../correspondence/entities/correspondence-sub-type.entity';

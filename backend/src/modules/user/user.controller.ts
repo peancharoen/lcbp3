@@ -93,6 +93,16 @@ export class UserController {
     return this.userService.findAllPermissions();
   }
 
+  @Patch('roles/:id/permissions')
+  @RequirePermission('permission.assign')
+  @ApiOperation({ summary: 'Update role permissions' })
+  async updateRolePermissions(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('permissionIds') permissionIds: number[]
+  ) {
+    return this.userService.updateRolePermissions(id, permissionIds);
+  }
+
   // --- User CRUD (Admin) ---
 
   @Post()

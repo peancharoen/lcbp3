@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
   Unique,
 } from 'typeorm';
-import { Contract } from '../../project/entities/contract.entity'; // ปรับ path ตามจริง
+import { Contract } from '../../contract/entities/contract.entity'; // ปรับ path ตามจริง
 
 @Entity('disciplines')
 @Unique(['contractId', 'disciplineCode']) // ป้องกันรหัสซ้ำในสัญญาเดียวกัน

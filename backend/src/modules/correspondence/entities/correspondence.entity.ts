@@ -9,7 +9,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { Project } from '../../project/entities/project.entity';
-import { Organization } from '../../project/entities/organization.entity';
+import { Organization } from '../../organization/entities/organization.entity';
 import { CorrespondenceType } from './correspondence-type.entity';
 import { User } from '../../user/entities/user.entity';
 import { CorrespondenceRevision } from './correspondence-revision.entity'; // เดี๋ยวสร้าง

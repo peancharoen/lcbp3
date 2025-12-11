@@ -18,7 +18,10 @@ interface NumberingError {
 }
 
 const logService = {
-  getNumberingErrors: async () => (await apiClient.get("/document-numbering/logs/errors")).data,
+  getNumberingErrors: async () => {
+    const response = await apiClient.get("/document-numbering/logs/errors");
+    return response.data.data || response.data;
+  },
 };
 
 export default function NumberingLogsPage() {

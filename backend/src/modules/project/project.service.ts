@@ -9,7 +9,7 @@ import { Repository, Like } from 'typeorm';
 
 // Entities
 import { Project } from './entities/project.entity';
-import { Organization } from './entities/organization.entity';
+import { OrganizationService } from '../organization/organization.service';
 
 // DTOs
 import { CreateProjectDto } from './dto/create-project.dto.js';
@@ -23,8 +23,7 @@ export class ProjectService {
   constructor(
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
-    @InjectRepository(Organization)
-    private organizationRepository: Repository<Organization>
+    private organizationService: OrganizationService
   ) {}
 
   // --- CRUD Operations ---
@@ -123,9 +122,6 @@ export class ProjectService {
   // --- Organization Helper ---
 
   async findAllOrganizations() {
-    return this.organizationRepository.find({
-      where: { isActive: true },
-      order: { organizationCode: 'ASC' },
-    });
+    return this.organizationService.findAllActive();
   }
 }

@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Organization } from '../../project/entities/organization.entity';
+import { Organization } from '../../organization/entities/organization.entity';
 import { User } from '../../user/entities/user.entity';
 import { RfaRevision } from './rfa-revision.entity';
 import { RfaActionType } from './rfa-workflow-template-step.entity'; // ✅ Import Enum

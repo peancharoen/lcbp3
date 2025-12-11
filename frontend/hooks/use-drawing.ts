@@ -6,18 +6,20 @@ import { SearchShopDrawingDto, CreateShopDrawingDto } from '@/types/dto/drawing/
 import { toast } from 'sonner';
 
 type DrawingType = 'CONTRACT' | 'SHOP';
+type DrawingSearchParams = SearchContractDrawingDto | SearchShopDrawingDto;
+type CreateDrawingData = CreateContractDrawingDto | CreateShopDrawingDto;
 
 export const drawingKeys = {
   all: ['drawings'] as const,
   lists: () => [...drawingKeys.all, 'list'] as const,
-  list: (type: DrawingType, params: any) => [...drawingKeys.lists(), type, params] as const,
+  list: (type: DrawingType, params: DrawingSearchParams) => [...drawingKeys.lists(), type, params] as const,
   details: () => [...drawingKeys.all, 'detail'] as const,
   detail: (type: DrawingType, id: number | string) => [...drawingKeys.details(), type, id] as const,
 };
 
 // --- Queries ---
 
-export function useDrawings(type: DrawingType, params: any) {
+export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
   return useQuery({
     queryKey: drawingKeys.list(type, params),
     queryFn: async () => {
@@ -51,7 +53,7 @@ export function useCreateDrawing(type: DrawingType) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: CreateDrawingData) => {
       if (type === 'CONTRACT') {
         return contractDrawingService.create(data as CreateContractDrawingDto);
       } else {
@@ -62,7 +64,7 @@ export function useCreateDrawing(type: DrawingType) {
       toast.success(`${type === 'CONTRACT' ? 'Contract' : 'Shop'} Drawing uploaded successfully`);
       queryClient.invalidateQueries({ queryKey: drawingKeys.lists() });
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error('Failed to upload drawing', {
         description: error.response?.data?.message || 'Something went wrong',
       });

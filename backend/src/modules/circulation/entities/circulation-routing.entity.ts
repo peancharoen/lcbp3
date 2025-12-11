@@ -8,7 +8,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Circulation } from './circulation.entity';
-import { Organization } from '../../project/entities/organization.entity';
+import { Organization } from '../../organization/entities/organization.entity';
 import { User } from '../../user/entities/user.entity';
 
 @Entity('circulation_routings')

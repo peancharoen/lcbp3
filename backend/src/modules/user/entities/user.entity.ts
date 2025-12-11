@@ -13,7 +13,7 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
-import { Organization } from '../../project/entities/organization.entity'; // Adjust path as needed
+import { Organization } from '../../organization/entities/organization.entity'; // Adjust path as needed
 import { UserAssignment } from './user-assignment.entity';
 import { UserPreference } from './user-preference.entity';
 

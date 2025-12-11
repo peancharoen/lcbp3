@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { Organization } from '../../modules/organizations/entities/organization.entity';
+import { Organization } from '../../modules/organization/entities/organization.entity';
 
 export async function seedOrganizations(dataSource: DataSource) {
   const repo = dataSource.getRepository(Organization);

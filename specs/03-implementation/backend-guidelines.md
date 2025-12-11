@@ -49,8 +49,9 @@ backend/
 │   │   ├── master/
 │   │   ├── monitoring/
 │   │   ├── notification/
-│   │   ├── organizations/
 │   │   ├── project/
+│   │   ├── organization/
+│   │   ├── contract/
 │   │   ├── rfa/
 │   │   ├── search/
 │   │   ├── transmittal/

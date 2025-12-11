@@ -203,11 +203,37 @@ export class UserService {
   // --- Roles & Permissions (Helper for Admin/UI) ---
 
   async findAllRoles(): Promise<Role[]> {
-    return this.roleRepository.find();
+    return this.roleRepository.find({ relations: ['permissions'] });
   }
 
   async findAllPermissions(): Promise<Permission[]> {
     return this.permissionRepository.find();
+  }
+
+  async updateRolePermissions(roleId: number, permissionIds: number[]) {
+    const role = await this.roleRepository.findOne({
+      where: { roleId },
+      relations: ['permissions'],
+    });
+
+    if (!role) {
+      throw new NotFoundException(`Role ID ${roleId} not found`);
+    }
+
+    // Load permissions entities
+    const permissions = [];
+    if (permissionIds.length > 0) {
+      // Note: findByIds is deprecated in newer TypeORM, uses In() instead
+      // but if current version supports it or using a simplified query:
+      const perms = await this.permissionRepository
+        .createQueryBuilder('p')
+        .where('p.permissionId IN (:...ids)', { ids: permissionIds })
+        .getMany();
+      permissions.push(...perms);
+    }
+
+    role.permissions = permissions;
+    return this.roleRepository.save(role);
   }
 
   /**

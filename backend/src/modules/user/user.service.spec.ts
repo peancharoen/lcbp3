@@ -4,6 +4,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserService } from './user.service';
 import { User } from './entities/user.entity';
+import { Role } from './entities/role.entity';
+import { Permission } from './entities/permission.entity';
 
 // Mock Repository
 const mockUserRepository = {
@@ -14,6 +16,14 @@ const mockUserRepository = {
   merge: jest.fn(),
   softDelete: jest.fn(),
   query: jest.fn(),
+  createQueryBuilder: jest.fn(() => ({
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+  })),
 };
 
 // Mock Cache Manager
@@ -38,6 +48,14 @@ describe('UserService', () => {
           provide: CACHE_MANAGER,
           useValue: mockCacheManager,
         },
+        {
+          provide: getRepositoryToken(Role),
+          useValue: mockUserRepository, // Reuse generic mock
+        },
+        {
+          provide: getRepositoryToken(Permission),
+          useValue: mockUserRepository, // Reuse generic mock
+        },
       ],
     }).compile();
 
@@ -53,14 +71,26 @@ describe('UserService', () => {
   });
 
   describe('findAll', () => {
-    it('should return array of users', async () => {
+    it('should return paginated users', async () => {
       const mockUsers = [{ user_id: 1, username: 'test' }];
-      mockUserRepository.find.mockResolvedValue(mockUsers);
+      const mockTotal = 1;
+
+      const mockQB = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([mockUsers, mockTotal]),
+      };
+
+      mockUserRepository.createQueryBuilder.mockReturnValue(mockQB);
 
       const result = await service.findAll();
 
-      expect(result).toEqual(mockUsers);
-      expect(mockUserRepository.find).toHaveBeenCalled();
+      expect(result.data).toEqual(mockUsers);
+      expect(result.total).toEqual(mockTotal);
+      expect(mockUserRepository.createQueryBuilder).toHaveBeenCalled();
     });
   });
 

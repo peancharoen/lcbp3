@@ -40,9 +40,9 @@ describe('WorkflowDslParser', () => {
       const result = await parser.parse(dslJson);
 
       expect(result).toBeDefined();
-      expect(result.name).toBe('RFA_APPROVAL');
-      expect(result.version).toBe('1.0.0');
-      expect(result.isActive).toBe(true);
+      expect(result.workflow_code).toBe('RFA_APPROVAL');
+      expect(result.version).toBe(1);
+      expect(result.is_active).toBe(true);
       expect(mockRepository.save).toHaveBeenCalled();
     });
 
@@ -168,14 +168,14 @@ describe('WorkflowDslParser', () => {
     it('should retrieve and parse stored DSL', async () => {
       const storedDefinition = {
         id: 1,
-        name: 'RFA_APPROVAL',
-        version: '1.0.0',
-        dslContent: JSON.stringify(RFA_WORKFLOW_EXAMPLE),
+        workflow_code: 'RFA_APPROVAL',
+        version: 1,
+        dsl: RFA_WORKFLOW_EXAMPLE,
       };
 
       mockRepository.findOne = jest.fn().mockResolvedValue(storedDefinition);
 
-      const result = await parser.getParsedDsl(1);
+      const result = await parser.getParsedDsl('1');
 
       expect(result).toBeDefined();
       expect(result.name).toBe('RFA_APPROVAL');

@@ -49,39 +49,8 @@ export const projectService = {
 
   // --- Related Data / Dropdown Helpers ---
 
-  /** * ดึงรายชื่อองค์กรในโครงการ (สำหรับ Dropdown 'To/From')
-   * GET /projects/:id/organizations
-   */
-  getOrganizations: async (projectId: string | number) => {
-    const response = await apiClient.get(`/projects/${projectId}/organizations`);
-    // Unwrap the response data if it's wrapped in a 'data' property by the interceptor
-    return response.data.data || response.data;
-  },
-
-  /** * ดึงรายชื่อสัญญาในโครงการ
-   * GET /projects/:id/contracts
-   */
-  /** * ดึงรายชื่อสัญญาในโครงการ (Legacy/Specific)
-   * GET /projects/:id/contracts
-   */
-  getContracts: async (projectId: string | number) => {
-    // Note: If backend doesn't have /projects/:id/contracts, use /contracts?projectId=:id
-    const response = await apiClient.get(`/contracts`, { params: { projectId } });
-    // Handle paginated response
-    if (response.data && Array.isArray(response.data.data)) {
-        return response.data.data;
-    }
-    return response.data.data || response.data;
-  },
-
-  /**
-   * ดึงรายการสัญญาเรื้งหมด (Global Search)
-   */
-  getAllContracts: async (params?: any) => {
-    const response = await apiClient.get("/contracts", { params });
-    if (response.data && Array.isArray(response.data.data)) {
-        return response.data.data;
-    }
-    return response.data.data || response.data;
-  }
+  // --- Related Data / Dropdown Helpers ---
+  // Organizations and Contracts should now be fetched via their respective services
+  // organizationService.getAll({ projectId })
+  // contractService.getAll({ projectId })
 };

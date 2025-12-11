@@ -108,6 +108,7 @@ describe('CorrespondenceController', () => {
       expect(mockWorkflowService.submitWorkflow).toHaveBeenCalledWith(
         1,
         1,
+        [],
         'Test note'
       );
       expect(result).toEqual(mockResult);

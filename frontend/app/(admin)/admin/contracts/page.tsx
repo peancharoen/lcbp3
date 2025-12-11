@@ -51,11 +51,13 @@ const contractSchema = z.object({
 
 type ContractFormData = z.infer<typeof contractSchema>;
 
+import { contractService } from "@/lib/services/contract.service";
+
 // Inline hooks for simplicity, or could move to hooks/use-master-data
 const useContracts = (params?: any) => {
     return useQuery({
         queryKey: ['contracts', params],
-        queryFn: () => projectService.getAllContracts(params),
+        queryFn: () => contractService.getAll(params),
     });
 };
 

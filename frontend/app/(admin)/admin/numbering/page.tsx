@@ -19,13 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const PROJECTS = [
-  { id: '1', name: 'LCBP3' },
-  { id: '2', name: 'LCBP3-Maintenance' },
-];
+import { useProjects } from '@/hooks/use-master-data';
 
 export default function NumberingPage() {
+  const { data: projects = [] } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState("1");
+
   const [templates, setTemplates] = useState<NumberingTemplate[]>([]);
   const [, setLoading] = useState(true);
 
@@ -35,7 +34,7 @@ export default function NumberingPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState<NumberingTemplate | null>(null);
 
-  const selectedProjectName = PROJECTS.find(p => p.id === selectedProjectId)?.name || 'Unknown Project';
+  const selectedProjectName = projects.find((p: any) => p.id.toString() === selectedProjectId)?.projectName || 'Unknown Project';
 
   const loadTemplates = async () => {
     setLoading(true);
@@ -105,9 +104,9 @@ export default function NumberingPage() {
                     <SelectValue placeholder="Select Project" />
                 </SelectTrigger>
                 <SelectContent>
-                    {PROJECTS.map(project => (
-                        <SelectItem key={project.id} value={project.id}>
-                            {project.name}
+                    {projects.map((project: any) => (
+                        <SelectItem key={project.id} value={project.id.toString()}>
+                            {project.projectCode} - {project.projectName}
                         </SelectItem>
                     ))}
                 </SelectContent>
@@ -134,7 +133,7 @@ export default function NumberingPage() {
                             {template.documentTypeName}
                         </h3>
                         <Badge variant="outline" className="text-xs">
-                             {PROJECTS.find(p => p.id === template.projectId?.toString())?.name || selectedProjectName}
+                             {projects.find((p: any) => p.id.toString() === template.projectId?.toString())?.projectName || selectedProjectName}
                         </Badge>
                         {template.disciplineCode && <Badge>{template.disciplineCode}</Badge>}
                         <Badge variant={template.isActive ? 'default' : 'secondary'}>

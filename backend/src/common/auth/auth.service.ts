@@ -244,16 +244,16 @@ export class AuthService {
 
     const now = new Date();
     // Filter expired tokens in memory if query builder is complex, or rely on where clause if possible.
-    // Since we want to return mapped data:
+    // Filter expired tokens
     return activeTokens
-      .filter((t) => t.expiresAt > now)
+      .filter((t) => new Date(t.expiresAt) > now)
       .map((t) => ({
         id: t.tokenId.toString(),
         userId: t.userId,
         user: {
           username: t.user?.username || 'Unknown',
-          first_name: t.user?.firstName || '',
-          last_name: t.user?.lastName || '',
+          firstName: t.user?.firstName || '',
+          lastName: t.user?.lastName || '',
         },
         deviceName: 'Unknown Device', // Not stored in DB
         ipAddress: 'Unknown IP', // Not stored in DB

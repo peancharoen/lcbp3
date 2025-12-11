@@ -11,9 +11,9 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { Role } from './role.entity';
-import { Organization } from '../../project/entities/organization.entity'; // ปรับ Path ให้ตรงกับ ProjectModule
+import { Organization } from '../../organization/entities/organization.entity'; // ปรับ Path ให้ตรงกับ ProjectModule
 import { Project } from '../../project/entities/project.entity'; // ปรับ Path ให้ตรงกับ ProjectModule
-import { Contract } from '../../project/entities/contract.entity'; // ปรับ Path ให้ตรงกับ ProjectModule
+import { Contract } from '../../contract/entities/contract.entity'; // ปรับ Path ให้ตรงกับ ProjectModule
 
 @Entity('user_assignments')
 export class UserAssignment {

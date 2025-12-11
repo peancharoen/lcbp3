@@ -29,6 +29,8 @@ import { MaintenanceModeGuard } from './common/guards/maintenance-mode.guard';
 import { AuthModule } from './common/auth/auth.module.js';
 import { UserModule } from './modules/user/user.module';
 import { ProjectModule } from './modules/project/project.module';
+import { OrganizationModule } from './modules/organization/organization.module';
+import { ContractModule } from './modules/contract/contract.module';
 import { MasterModule } from './modules/master/master.module'; // [NEW] ✅ เพิ่ม MasterModule
 import { FileStorageModule } from './common/file-storage/file-storage.module.js';
 import { DocumentNumberingModule } from './modules/document-numbering/document-numbering.module';
@@ -138,7 +140,10 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     // 📦 Feature Modules
     AuthModule,
     UserModule,
+    UserModule,
     ProjectModule,
+    OrganizationModule,
+    ContractModule,
     MasterModule, // ✅ [NEW] Register MasterModule here
     FileStorageModule,
     DocumentNumberingModule,

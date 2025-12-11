@@ -25,7 +25,10 @@ interface Session {
 }
 
 const sessionService = {
-  getAll: async () => (await apiClient.get("/auth/sessions")).data,
+  getAll: async () => {
+    const response = await apiClient.get("/auth/sessions");
+    return response.data.data || response.data;
+  },
   revoke: async (sessionId: string) => (await apiClient.delete(`/auth/sessions/${sessionId}`)).data,
 };
 

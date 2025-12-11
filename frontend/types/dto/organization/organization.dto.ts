@@ -17,6 +17,7 @@ export interface UpdateOrganizationDto {
 
 export interface SearchOrganizationDto {
   search?: string;
+  projectId?: number;
   page?: number;
   limit?: number;
 }

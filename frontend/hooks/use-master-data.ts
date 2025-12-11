@@ -5,7 +5,7 @@ import {
   CreateOrganizationDto,
   UpdateOrganizationDto,
   SearchOrganizationDto,
-} from '@/types/dto/organization.dto';
+} from '@/types/dto/organization/organization.dto';
 import { AxiosError } from 'axios';
 
 export const masterDataKeys = {
@@ -15,10 +15,12 @@ export const masterDataKeys = {
   disciplines: (contractId?: number) => [...masterDataKeys.all, 'disciplines', contractId] as const,
 };
 
+import { organizationService } from '@/lib/services/organization.service';
+
 export function useOrganizations(params?: SearchOrganizationDto) {
   return useQuery({
     queryKey: [...masterDataKeys.organizations(), params],
-    queryFn: () => masterDataService.getOrganizations(params),
+    queryFn: () => organizationService.getAll(params),
   });
 }
 
@@ -77,12 +79,23 @@ export function useDisciplines(contractId?: number) {
   });
 }
 
-// Add useContracts hook
+// Add useProjects hook
 import { projectService } from '@/lib/services/project.service';
+
+export function useProjects(isActive: boolean = true) {
+  return useQuery({
+    queryKey: ['projects', { isActive }],
+    queryFn: () => projectService.getAll({ isActive }),
+  });
+}
+
+// Add useContracts hook
+import { contractService } from '@/lib/services/contract.service';
+
 export function useContracts(projectId: number = 1) {
   return useQuery({
     queryKey: ['contracts', projectId],
-    queryFn: () => projectService.getContracts(projectId),
+    queryFn: () => contractService.getAll({ projectId }),
   });
 }
 

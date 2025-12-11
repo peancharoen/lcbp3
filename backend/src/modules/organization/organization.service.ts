@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Organization } from './entities/organization.entity';
 import { CreateOrganizationDto } from './dto/create-organization.dto.js';
 import { UpdateOrganizationDto } from './dto/update-organization.dto.js';
@@ -30,38 +30,53 @@ export class OrganizationService {
   }
 
   async findAll(params?: any) {
-    const { search, page = 1, limit = 100 } = params || {};
+    const { search, roleId, projectId, page = 1, limit = 100 } = params || {};
     const skip = (page - 1) * limit;
 
-    // Use findAndCount for safer, standard TypeORM queries
-    const findOptions: any = {
-      order: { organizationCode: 'ASC' },
-      skip,
-      take: limit,
-    };
+    // Start with a basic query builder to handle dynamic conditions easily
+    const queryBuilder = this.orgRepo.createQueryBuilder('org');
 
     if (search) {
-      findOptions.where = [
-        { organizationCode: Like(`%${search}%`) },
-        { organizationName: Like(`%${search}%`) },
-      ];
+      queryBuilder.andWhere(
+        '(org.organizationCode LIKE :search OR org.organizationName LIKE :search)',
+        { search: `%${search}%` }
+      );
     }
 
-    // Debug logging
-    console.log(
-      '[OrganizationService] Finding all with options:',
-      JSON.stringify(findOptions)
-    );
+    // [Refactor] Support filtering by roleId (e.g., getting all CONTRACTORS)
+    if (roleId) {
+      // Assuming there is a relation or a way to filter by role.
+      // If Organization has a roleId column directly:
+      queryBuilder.andWhere('org.roleId = :roleId', { roleId });
+    }
 
-    const [data, total] = await this.orgRepo.findAndCount(findOptions);
+    // [New] Support filtering by projectId (e.g. organizations in a project)
+    // Assuming a Many-to-Many or One-to-Many relation exists via ProjectOrganization
+    if (projectId) {
+      // Use raw join to avoid circular dependency with ProjectOrganization entity
+      queryBuilder.innerJoin(
+        'project_organizations',
+        'po',
+        'po.organization_id = org.id AND po.project_id = :projectId',
+        { projectId }
+      );
+    }
+
+    queryBuilder.orderBy('org.organizationCode', 'ASC').skip(skip).take(limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    // Debug logging
     console.log(`[OrganizationService] Found ${total} organizations`);
 
     return {
       data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -83,5 +98,12 @@ export class OrganizationService {
     // Schema says: created_at, updated_at. No deleted_at.
     // So hard delete.
     return this.orgRepo.remove(org);
+  }
+
+  async findAllActive() {
+    return this.orgRepo.find({
+      where: { isActive: true },
+      order: { organizationCode: 'ASC' },
+    });
   }
 }

@@ -21,7 +21,7 @@ import Redlock from 'redlock';
 import { DocumentNumberCounter } from './entities/document-number-counter.entity';
 import { DocumentNumberFormat } from './entities/document-number-format.entity';
 import { Project } from '../project/entities/project.entity'; // สมมติ path
-import { Organization } from '../project/entities/organization.entity';
+import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { Discipline } from '../master/entities/discipline.entity';
 import { CorrespondenceSubType } from '../correspondence/entities/correspondence-sub-type.entity';

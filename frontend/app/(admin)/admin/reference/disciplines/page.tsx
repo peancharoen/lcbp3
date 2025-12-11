@@ -2,10 +2,9 @@
 
 import { GenericCrudTable } from "@/components/admin/reference/generic-crud-table";
 import { masterDataService } from "@/lib/services/master-data.service";
-import { projectService } from "@/lib/services/project.service";
+import { contractService } from "@/lib/services/contract.service";
 import { ColumnDef } from "@tanstack/react-table";
 import { useState, useEffect } from "react";
-import apiClient from "@/lib/api/client";
 import {
   Select,
   SelectContent,
@@ -22,8 +21,7 @@ export default function DisciplinesPage() {
 
   useEffect(() => {
     // Fetch contracts for filter and form options
-    // Fetch contracts for filter and form options
-    projectService.getAllContracts().then((data) => {
+    contractService.getAll().then((data) => {
       setContracts(Array.isArray(data) ? data : []);
     }).catch(err => {
         console.error("Failed to load contracts:", err);

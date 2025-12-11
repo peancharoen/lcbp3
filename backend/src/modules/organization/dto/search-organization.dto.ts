@@ -14,6 +14,12 @@ export class SearchOrganizationDto {
   @Type(() => Number)
   roleId?: number;
 
+  @ApiPropertyOptional({ description: 'Filter by Project ID' })
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  projectId?: number;
+
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()
   @IsInt()

@@ -3,7 +3,11 @@ import { correspondenceService } from '@/lib/services/correspondence.service';
 import { SearchCorrespondenceDto } from '@/types/dto/correspondence/search-correspondence.dto';
 import { CreateCorrespondenceDto } from '@/types/dto/correspondence/create-correspondence.dto';
 import { SubmitCorrespondenceDto } from '@/types/dto/correspondence/submit-correspondence.dto';
+import { WorkflowActionDto } from '@/types/dto/correspondence/workflow-action.dto';
 import { toast } from 'sonner';
+
+// Error type for axios errors
+type ApiError = Error & { response?: { data?: { message?: string } } };
 
 // Keys for Query Cache
 export const correspondenceKeys = {
@@ -43,8 +47,44 @@ export function useCreateCorrespondence() {
       toast.success('Correspondence created successfully');
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       toast.error('Failed to create correspondence', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
+export function useUpdateCorrespondence() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number | string; data: Partial<CreateCorrespondenceDto> }) =>
+      correspondenceService.update(id, data),
+    onSuccess: (_, { id }) => {
+      toast.success('Correspondence updated successfully');
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
+    },
+    onError: (error: ApiError) => {
+      toast.error('Failed to update correspondence', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
+export function useDeleteCorrespondence() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number | string) => correspondenceService.delete(id),
+    onSuccess: () => {
+      toast.success('Correspondence deleted successfully');
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
+    },
+    onError: (error: ApiError) => {
+      toast.error('Failed to delete correspondence', {
         description: error.response?.data?.message || 'Something went wrong',
       });
     },
@@ -62,7 +102,7 @@ export function useSubmitCorrespondence() {
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       toast.error('Failed to submit correspondence', {
         description: error.response?.data?.message || 'Something went wrong',
       });
@@ -74,14 +114,14 @@ export function useProcessWorkflow() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: any }) =>
+    mutationFn: ({ id, data }: { id: number | string; data: WorkflowActionDto }) =>
       correspondenceService.processWorkflow(id, data),
     onSuccess: (_, { id }) => {
       toast.success('Action completed successfully');
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       toast.error('Failed to process action', {
         description: error.response?.data?.message || 'Something went wrong',
       });
@@ -89,4 +129,3 @@ export function useProcessWorkflow() {
   });
 }
 
-// Add more mutations as needed (update, delete, etc.)

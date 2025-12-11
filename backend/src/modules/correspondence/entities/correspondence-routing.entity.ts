@@ -8,7 +8,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { CorrespondenceRevision } from './correspondence-revision.entity';
-import { Organization } from '../../project/entities/organization.entity';
+import { Organization } from '../../organization/entities/organization.entity';
 import { User } from '../../user/entities/user.entity';
 import { RoutingTemplate } from './routing-template.entity';
 

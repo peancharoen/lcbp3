@@ -2,12 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ProjectService } from './project.service';
 import { Project } from './entities/project.entity';
-import { Organization } from './entities/organization.entity';
+import { OrganizationService } from '../organization/organization.service';
 
 describe('ProjectService', () => {
   let service: ProjectService;
   let mockProjectRepository: Record<string, jest.Mock>;
-  let mockOrganizationRepository: Record<string, jest.Mock>;
+  let mockOrganizationService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     mockProjectRepository = {
@@ -27,9 +27,8 @@ describe('ProjectService', () => {
       })),
     };
 
-    mockOrganizationRepository = {
-      find: jest.fn(),
-      findOne: jest.fn(),
+    mockOrganizationService = {
+      findAllActive: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -40,8 +39,8 @@ describe('ProjectService', () => {
           useValue: mockProjectRepository,
         },
         {
-          provide: getRepositoryToken(Organization),
-          useValue: mockOrganizationRepository,
+          provide: OrganizationService,
+          useValue: mockOrganizationService,
         },
       ],
     }).compile();
@@ -66,7 +65,7 @@ describe('ProjectService', () => {
         .createQueryBuilder()
         .getManyAndCount.mockResolvedValue([mockProjects, 1]);
 
-      const result = await service.findAll({});
+      const result = await service.findAll({ page: 1, limit: 10 });
 
       expect(result.data).toBeDefined();
       expect(result.meta).toBeDefined();
@@ -76,11 +75,11 @@ describe('ProjectService', () => {
   describe('findAllOrganizations', () => {
     it('should return all organizations', async () => {
       const mockOrgs = [{ organization_id: 1, name: 'Test Org' }];
-      mockOrganizationRepository.find.mockResolvedValue(mockOrgs);
+      mockOrganizationService.findAllActive.mockResolvedValue(mockOrgs);
 
       const result = await service.findAllOrganizations();
 
-      expect(mockOrganizationRepository.find).toHaveBeenCalled();
+      expect(mockOrganizationService.findAllActive).toHaveBeenCalled();
       expect(result).toEqual(mockOrgs);
     });
   });

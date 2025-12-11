@@ -6,7 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { RfaWorkflowTemplate } from './rfa-workflow-template.entity';
-import { Organization } from '../../project/entities/organization.entity';
+import { Organization } from '../../organization/entities/organization.entity';
 import { Role } from '../../user/entities/role.entity';
 
 // ✅ 1. สร้าง Enum เพื่อให้ Type Safe

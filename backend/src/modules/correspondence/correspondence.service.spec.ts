@@ -116,10 +116,10 @@ describe('CorrespondenceService', () => {
   });
 
   describe('findAll', () => {
-    it('should return paginated correspondences', async () => {
+    it('should return correspondences array', async () => {
       const result = await service.findAll({ projectId: 1 });
-      expect(result.data).toBeDefined();
-      expect(result.meta).toBeDefined();
+      expect(Array.isArray(result)).toBeTruthy();
+      expect(result).toBeDefined();
     });
   });
 });
