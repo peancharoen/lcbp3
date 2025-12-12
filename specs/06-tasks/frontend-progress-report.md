@@ -1,6 +1,6 @@
 # Frontend Progress Report
 
-**Date:** 2025-12-11
+**Date:** 2025-12-12
 **Status:** ✅ **Complete (~100%)**
 
 ## 📊 Overview
@@ -10,7 +10,7 @@
 | **TASK-FE-001** | Frontend Setup            | ✅ **Done** | 100%         | Project structure, Tailwind, Shadcn/UI initialized.                 |
 | **TASK-FE-002** | Auth UI                   | ✅ **Done** | 100%         | Store, RBAC, Login UI, Refresh Token, Session Sync implemented.     |
 | **TASK-FE-003** | Layout & Navigation       | ✅ **Done** | 100%         | Sidebar, Header, Layouts are implemented.                           |
-| **TASK-FE-004** | Correspondence UI         | ✅ **Done** | 100%         | Refactored to Revision-based List. Edit/View fully functional.      |
+| **TASK-FE-004** | Correspondence UI         | ✅ **Done** | 100%         | Form enhanced with Project/Type/Discipline dropdowns (2025-12-12).  |
 | **TASK-FE-005** | Common Components         | ✅ **Done** | 100%         | Data tables, File upload, etc. implemented.                         |
 | **TASK-FE-006** | RFA UI                    | ✅ **Done** | 100%         | Integrated with Backend (Workflow/Create/List).                     |
 | **TASK-FE-007** | Drawing UI                | ✅ **Done** | 100%         | Drawings List & Upload integrated with Real API (Contract/Shop).    |
@@ -44,7 +44,7 @@
 
 ### 3. Business Modules (✅ Completed)
 
-- **Correspondences:** Refactored List to show "One Row per Revision". Detail and Edit pages fully integrated with Backend API.
+- **Correspondences:** Form enhanced with Project/Type/Discipline dropdowns. `organizationCode` column fix. Document numbering `{RECIPIENT}` token fix (2025-12-12).
 - **RFAs:** List and Form UI components integrated.
 - **Drawings:** List and Upload integrated.
 - **Integration:** All modules using `tanstack-query` and aligned with Backend DTOs.

@@ -1,7 +1,7 @@
 export interface Organization {
   id: number;
-  orgName: string;
-  orgCode: string;
+  organizationName: string;
+  organizationCode: string;
 }
 
 export interface Attachment {

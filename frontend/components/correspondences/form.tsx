@@ -19,13 +19,16 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useCreateCorrespondence, useUpdateCorrespondence } from "@/hooks/use-correspondence";
 import { Organization } from "@/types/organization";
-import { useOrganizations } from "@/hooks/use-master-data";
+import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines } from "@/hooks/use-master-data";
 import { CreateCorrespondenceDto } from "@/types/dto/correspondence/create-correspondence.dto";
 
+// Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
+  projectId: z.number().min(1, "Please select a Project"),
+  documentTypeId: z.number().min(1, "Please select a Document Type"),
+  disciplineId: z.number().optional(),
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().optional(),
-  documentTypeId: z.number(),
   fromOrganizationId: z.number().min(1, "Please select From Organization"),
   toOrganizationId: z.number().min(1, "Please select To Organization"),
   importance: z.enum(["NORMAL", "HIGH", "URGENT"]),
@@ -37,15 +40,22 @@ type FormData = z.infer<typeof correspondenceSchema>;
 export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?: number }) {
   const router = useRouter();
   const createMutation = useCreateCorrespondence();
-  const updateMutation = useUpdateCorrespondence(); // Add this hook
+  const updateMutation = useUpdateCorrespondence();
+
+  // Fetch master data for dropdowns
+  const { data: projects, isLoading: isLoadingProjects } = useProjects();
   const { data: organizations, isLoading: isLoadingOrgs } = useOrganizations();
+  const { data: correspondenceTypes, isLoading: isLoadingTypes } = useCorrespondenceTypes();
+  const { data: disciplines, isLoading: isLoadingDisciplines } = useDisciplines();
 
   // Extract initial values if editing
   const currentRev = initialData?.revisions?.find((r: any) => r.isCurrent) || initialData?.revisions?.[0];
   const defaultValues: Partial<FormData> = {
+    projectId: initialData?.projectId || undefined,
+    documentTypeId: initialData?.correspondenceTypeId || undefined,
+    disciplineId: initialData?.disciplineId || undefined,
     subject: currentRev?.title || "",
     description: currentRev?.description || "",
-    documentTypeId: initialData?.correspondenceTypeId || 1,
     fromOrganizationId: initialData?.originatorId || undefined,
     toOrganizationId: currentRev?.details?.to_organization_id || undefined,
     importance: currentRev?.details?.importance || "NORMAL",
@@ -55,21 +65,25 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
     register,
     handleSubmit,
     setValue,
-    watch, // Watch values to control Select value props if needed, or rely on RHF
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(correspondenceSchema),
     defaultValues: defaultValues as any,
   });
 
-  // Watch for controlled inputs to set value in Select components if needed for better UX
+  // Watch for controlled inputs
+  const projectId = watch("projectId");
+  const documentTypeId = watch("documentTypeId");
+  const disciplineId = watch("disciplineId");
   const fromOrgId = watch("fromOrganizationId");
   const toOrgId = watch("toOrganizationId");
 
   const onSubmit = (data: FormData) => {
     const payload: CreateCorrespondenceDto = {
-      projectId: 1,
+      projectId: data.projectId,
       typeId: data.documentTypeId,
+      disciplineId: data.disciplineId,
       title: data.subject,
       description: data.description,
       originatorId: data.fromOrganizationId,
@@ -96,6 +110,79 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl space-y-6">
+      {/* Document Metadata Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Project Dropdown */}
+        <div className="space-y-2">
+          <Label>Project *</Label>
+          <Select
+            onValueChange={(v) => setValue("projectId", parseInt(v))}
+            value={projectId ? String(projectId) : undefined}
+            disabled={isLoadingProjects}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={isLoadingProjects ? "Loading..." : "Select Project"} />
+            </SelectTrigger>
+            <SelectContent>
+              {(projects || []).map((p: any) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.projectName} ({p.projectCode})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.projectId && (
+            <p className="text-sm text-destructive">{errors.projectId.message}</p>
+          )}
+        </div>
+
+        {/* Document Type Dropdown */}
+        <div className="space-y-2">
+          <Label>Document Type *</Label>
+          <Select
+            onValueChange={(v) => setValue("documentTypeId", parseInt(v))}
+            value={documentTypeId ? String(documentTypeId) : undefined}
+            disabled={isLoadingTypes}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={isLoadingTypes ? "Loading..." : "Select Type"} />
+            </SelectTrigger>
+            <SelectContent>
+              {(correspondenceTypes || []).map((t: any) => (
+                <SelectItem key={t.id} value={String(t.id)}>
+                  {t.typeName} ({t.typeCode})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.documentTypeId && (
+            <p className="text-sm text-destructive">{errors.documentTypeId.message}</p>
+          )}
+        </div>
+
+        {/* Discipline Dropdown (Optional) */}
+        <div className="space-y-2">
+          <Label>Discipline</Label>
+          <Select
+            onValueChange={(v) => setValue("disciplineId", v ? parseInt(v) : undefined)}
+            value={disciplineId ? String(disciplineId) : undefined}
+            disabled={isLoadingDisciplines}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={isLoadingDisciplines ? "Loading..." : "Select Discipline (Optional)"} />
+            </SelectTrigger>
+            <SelectContent>
+              {(disciplines || []).map((d: any) => (
+                <SelectItem key={d.id} value={String(d.id)}>
+                  {d.codeNameEn || d.disciplineCode}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Subject */}
       <div className="space-y-2">
         <Label htmlFor="subject">Subject *</Label>
         <Input id="subject" {...register("subject")} placeholder="Enter subject" />
@@ -104,6 +191,7 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
         )}
       </div>
 
+      {/* Description */}
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Textarea
@@ -114,6 +202,7 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
         />
       </div>
 
+      {/* Organizations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label>From Organization *</Label>
@@ -126,7 +215,7 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
               <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              {organizations?.map((org: Organization) => (
+              {(organizations || []).map((org: Organization) => (
                 <SelectItem key={org.id} value={String(org.id)}>
                   {org.organizationName} ({org.organizationCode})
                 </SelectItem>
@@ -149,7 +238,7 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
               <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              {organizations?.map((org: Organization) => (
+              {(organizations || []).map((org: Organization) => (
                 <SelectItem key={org.id} value={String(org.id)}>
                   {org.organizationName} ({org.organizationCode})
                 </SelectItem>
@@ -162,6 +251,7 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
         </div>
       </div>
 
+      {/* Importance */}
       <div className="space-y-2">
         <Label>Importance</Label>
         <div className="flex gap-6 mt-2">
@@ -195,6 +285,7 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
         </div>
       </div>
 
+      {/* Attachments (only for new documents) */}
       {!initialData && (
         <div className="space-y-2">
           <Label>Attachments</Label>
@@ -206,6 +297,7 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
         </div>
       )}
 
+      {/* Actions */}
       <div className="flex justify-end gap-4 pt-6 border-t">
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel

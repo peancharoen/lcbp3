@@ -39,18 +39,19 @@ describe('correspondenceService', () => {
 
   describe('getById', () => {
     it('should call GET /correspondences/:id', async () => {
-      const mockResponse = { id: 1, title: 'Test' };
-      vi.mocked(apiClient.get).mockResolvedValue({ data: mockResponse });
+      const mockData = { id: 1, title: 'Test' };
+      // Service expects response.data.data (NestJS interceptor wrapper)
+      vi.mocked(apiClient.get).mockResolvedValue({ data: { data: mockData } });
 
       const result = await correspondenceService.getById(1);
 
       expect(apiClient.get).toHaveBeenCalledWith('/correspondences/1');
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual(mockData);
     });
 
     it('should work with string id', async () => {
-      const mockResponse = { id: 1 };
-      vi.mocked(apiClient.get).mockResolvedValue({ data: mockResponse });
+      const mockData = { id: 1 };
+      vi.mocked(apiClient.get).mockResolvedValue({ data: { data: mockData } });
 
       await correspondenceService.getById('123');
 

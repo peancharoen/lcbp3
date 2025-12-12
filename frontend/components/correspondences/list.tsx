@@ -39,10 +39,10 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
       ),
     },
     {
-      accessorKey: "correspondence.originator.orgName",
+      accessorKey: "correspondence.originator.organizationCode",
       header: "From",
       cell: ({ row }) => (
-        <span>{row.original.correspondence?.originator?.orgName || '-'}</span>
+        <span className="font-medium">{row.original.correspondence?.originator?.organizationCode || '-'}</span>
       ),
     },
     {

@@ -17,7 +17,9 @@
     "editor.rulers": [80, 120],
     "editor.minimap.enabled": true,
     "editor.minimap.sectionHeaderFontSize": 14,
-    "editor.renderWhitespace": "boundary",
+    "editor.renderWhitespace": "selection",
+    // "editor.renderWhitespace": "boundary",
+    "editor.renderControlCharacters": true,
     "editor.bracketPairColorization.enabled": true,
     "editor.guides.bracketPairs": "active",
     "editor.smoothScrolling": true,
@@ -71,7 +73,7 @@
       "editor.defaultFormatter": "redhat.vscode-yaml"
     },
     "[dockerfile]": {
-      "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+      "editor.defaultFormatter": "ms-azuretools.vscode-containers"
     },
     "[sql]": {
       "editor.defaultFormatter": "mtxr.sqltools",
@@ -168,7 +170,7 @@
       "@/*": "${workspaceFolder:🎨 Frontend}/app/*",
       "@app": "${workspaceFolder:🎨 Frontend}/app",
       "@components": "${workspaceFolder:🎨 Frontend}/components",
-      "@config": "${workspaceFolder:🎨 Frontend}/config",
+      "@fe-config": "${workspaceFolder:🎨 Frontend}/config",
       "@lib": "${workspaceFolder:🎨 Frontend}/lib",
       "@hooks": "${workspaceFolder:🎨 Frontend}/app/hooks",
       "@utils": "${workspaceFolder:🎨 Frontend}/utils",
@@ -377,10 +379,7 @@
     "typescript.inlayHints.variableTypes.enabled": false,
     "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
     "typescript.preferences.importModuleSpecifier": "relative",
-    "typescript.tsdk": {
-      "backend": "backend/node_modules/typescript/lib",
-      "frontend": "frontend/node_modules/typescript/lib"
-    },
+    "typescript.tsdk": "node_modules/typescript/lib", // ✅ ใช้ relative path
     // ========================================
     // EMMET
     // ========================================
@@ -400,6 +399,7 @@
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
     "files.encoding": "utf8",
+    "files.autoGuessEncoding": true,
     "files.eol": "\n",
     "files.associations": {
       "*.css": "tailwindcss",
@@ -460,14 +460,15 @@
     "terminal.integrated.smoothScrolling": true,
     "terminal.integrated.cursorBlinking": true,
     "terminal.integrated.fontFamily": "MesloLGS NF, Consolas, monospace",
+    "terminal.integrated.copyOnSelection": true,
+    "terminal.integrated.tabs.defaultColor": "terminal.ansiBlue",
+    "terminal.integrated.defaultProfile.windows": "PowerShell-7",
     "terminal.integrated.profiles.windows": {
       "PowerShell-7": {
         "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
         "icon": "terminal-powershell"
       }
     },
-    "terminal.integrated.defaultProfile.windows": "PowerShell-7",
-    "terminal.integrated.cwd": "${workspaceFolder}",
 
     // ========================================
     // WORKBENCH
@@ -540,12 +541,7 @@
     // กำหนด path ของ Jest ถ้าใช้ local install
     "jest.pathToJest": "node_modules/.bin/jest",
 
-    // กำหนด config ของ Jest ถ้ามีไฟล์ jest.config.js
-    "jest.pathToConfig": {
-      "backend": "backend/jest.config.js",
-      "frontend": "frontend/jest.config.js"
-    },
-    "jest.disabledWorkspaceFolders": ["🎯 Root", "🗓️ docs", "🔗 specs"],
+    "jest.disabledWorkspaceFolders": ["🎯 Root", "🗓️ docs", "🔗 specs", "🎨 Frontend"],
 
     // ========================================
     // DOCKER
@@ -587,16 +583,6 @@
       "production": {
         "apiUrl": "https://lcbp3.nap-dms.work"
       }
-    },
-
-    // ========================================
-    // CONSOLE NINJA
-    // ========================================
-
-    "console-ninja.featureSet": "Community",
-    "console-ninja.toolsToEnableSupportAutomaticallyFor": {
-      "live-server-extension": true,
-      "live-preview-extension": true
     },
 
     // ========================================
@@ -645,14 +631,14 @@
     // DEBUGGING
     // ========================================
 
-    "debug.console.fontSize": 13,
-    "debug.console.lineHeight": 1.2,
+    "debug.console.fontSize": 14,
+    "debug.console.fontFamily": "Consolas, 'Courier New', monospace",
+    "debug.console.lineHeight": 20,
+    "debug.console.wordWrap": false,
     "debug.internalConsoleOptions": "openOnSessionStart",
     "debug.openDebug": "openOnDebugBreak",
     "debug.showBreakpointsInOverviewRuler": true,
     "prettier.configPath": "./.prettierrc",
-    "terminal.integrated.copyOnSelection": true,
-    "terminal.integrated.tabs.defaultColor": "terminal.ansiBlue",
     "sqltools.connections": [
       {
         "mysqlOptions": {
@@ -667,13 +653,17 @@
         "name": "lcbp3_dev",
         "database": "lcbp3_dev",
         "username": "root",
-        "password": "Center#2025"
+        "password": "",
+        "askForPassword": true // ✅ ปลอดภัยกว่า
       }
     ],
     "database-client.variableIndicator": [":", "$"],
     "geminicodeassist.rules": "ใช้ภาษาไทยในการโต้ตอบ\n\n\n\n",
     "geminicodeassist.verboseLogging": true,
-    "liveServer.settings.multiRootWorkspaceName": "🎯 Root"
+    "liveServer.settings.multiRootWorkspaceName": "🎯 Root",
+    "vitest.commandLine": "npm run test --",
+    "vitest.enable": true,
+    "yaml.maxItemsComputed": 6000
   },
   // ========================================
   // LAUNCH CONFIGURATIONS
@@ -682,40 +672,42 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "🔧 Debug Backend",
+        "name": "🔧 Debug Backend (NestJS)",
         "type": "node",
         "request": "launch",
         "runtimeExecutable": "npm",
         "runtimeArgs": ["run", "start:debug"],
         "cwd": "${workspaceFolder:🔧 Backend}",
         "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen",
+        // "internalConsoleOptions": "neverOpen",
         "skipFiles": ["<node_internals>/**"],
         "sourceMaps": true,
         "restart": true
       },
       {
-        "name": "🎨 Debug Frontend",
-        "type": "chrome",
+        "name": "🎨 Debug Frontend (Next.js)",
+        "type": "node",
         "request": "launch",
-        "url": "http://localhost:3000",
-        "webRoot": "${workspaceFolder:🎨 Frontend}",
-        "sourceMapPathOverrides": {
-          "webpack:///./*": "${webRoot}/*"
+        "cwd": "${workspaceFolder:🎨 Frontend}",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev"],
+        "serverReadyAction": {
+          "pattern": "- Local:.+(https?://\\S+)",
+          "uriFormat": "%s",
+          "action": "debugWithChrome"
         }
       },
       {
-        "name": "🧪 Debug Jest Tests (Backend)",
+        "name": "🧪 Debug Backend Tests (Jest)",
         "type": "node",
         "request": "launch",
         "runtimeExecutable": "npm",
         "runtimeArgs": ["run", "test:debug"],
         "cwd": "${workspaceFolder:🔧 Backend}",
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen"
+        "console": "integratedTerminal"
       },
       {
-        "name": "🧪 Debug Jest Tests (Frontend)",
+        "name": "🧪 Debug Frontend Tests (Vitest)",
         "type": "node",
         "request": "launch",
         "runtimeExecutable": "npm",
@@ -725,10 +717,11 @@
         "internalConsoleOptions": "neverOpen"
       }
     ],
+
     "compounds": [
       {
         "name": "🚀 Debug Full Stack",
-        "configurations": ["🔧 Debug Backend", "🎨 Debug Frontend"],
+        "configurations": ["🔧 Debug Backend (NestJS)", "🎨 Debug Frontend (Next.js)"],
         "stopAll": true
       }
     ]
@@ -741,10 +734,13 @@
     "tasks": [
       {
         "label": "🔧 Start Backend Dev",
-        "type": "npm",
-        "script": "start:dev",
-        "path": "backend/",
+        "type": "shell",
+        "command": "npm run start:dev",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}"
+        },
         "problemMatcher": [],
+        "isBackground": true,
         "presentation": {
           "reveal": "always",
           "panel": "dedicated",
@@ -753,10 +749,13 @@
       },
       {
         "label": "🎨 Start Frontend Dev",
-        "type": "npm",
-        "script": "dev",
-        "path": "frontend/",
+        "type": "shell",
+        "command": "npm run dev",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}"
+        },
         "problemMatcher": [],
+        "isBackground": true,
         "presentation": {
           "reveal": "always",
           "panel": "dedicated",
@@ -770,23 +769,49 @@
       },
       {
         "label": "🧪 Run Backend Tests",
-        "type": "npm",
-        "script": "test",
-        "path": "backend/",
+        "type": "shell",
+        "command": "npm run test",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}"
+        },
         "problemMatcher": []
       },
       {
         "label": "🧪 Run Frontend Tests",
-        "type": "npm",
-        "script": "test",
-        "path": "frontend/",
+        "type": "shell",
+        "command": "npm run test",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}"
+        },
         "problemMatcher": []
       },
       {
+        "label": "🧪 Watch Backend Tests",
+        "type": "shell",
+        "command": "npm run test:watch",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}"
+        },
+        "problemMatcher": [],
+        "isBackground": true
+      },
+      {
+        "label": "🧪 Watch Frontend Tests",
+        "type": "shell",
+        "command": "npm run test:watch",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}"
+        },
+        "problemMatcher": [],
+        "isBackground": true
+      },
+      {
         "label": "🏗️ Build Backend",
-        "type": "npm",
-        "script": "build",
-        "path": "backend/",
+        "type": "shell",
+        "command": "npm run build",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}"
+        },
         "problemMatcher": ["$tsc"],
         "group": {
           "kind": "build",
@@ -795,9 +820,11 @@
       },
       {
         "label": "🏗️ Build Frontend",
-        "type": "npm",
-        "script": "build",
-        "path": "frontend/",
+        "type": "shell",
+        "command": "npm run build",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}"
+        },
         "problemMatcher": ["$tsc"],
         "group": {
           "kind": "build",
@@ -806,16 +833,20 @@
       },
       {
         "label": "🔍 Lint Backend",
-        "type": "npm",
-        "script": "lint",
-        "path": "backend/",
+        "type": "shell",
+        "command": "npm run lint",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}"
+        },
         "problemMatcher": ["$eslint-stylish"]
       },
       {
         "label": "🔍 Lint Frontend",
-        "type": "npm",
-        "script": "lint",
-        "path": "frontend/",
+        "type": "shell",
+        "command": "npm run lint",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}"
+        },
         "problemMatcher": ["$eslint-stylish"]
       },
       {
@@ -829,52 +860,6 @@
         "type": "shell",
         "command": "docker-compose down",
         "problemMatcher": []
-      },
-      // 1. Task หลักที่จะรันอัตโนมัติเมื่อเปิดโปรแกรม
-      {
-        "label": "🚀 Setup Workspace",
-        "dependsOn": ["🔧 PS: Backend", "🎨 PS: Frontend"], // สั่งให้รัน 2 task ย่อย
-        "runOptions": {
-          "runOn": "folderOpen" // <--- คำสั่งศักดิ์สิทธิ์: รันทันทีที่เปิด VS Code
-        },
-        "presentation": {
-          "reveal": "never" // ไม่ต้องโชว์หน้าต่างของตัวคุมหลัก
-        },
-        "problemMatcher": []
-      },
-      // 2. Task ย่อย: เปิด Terminal ที่ Backend
-      {
-        "label": "🔧 PS: Backend",
-        "type": "shell",
-        "command": "powershell", // สั่งเปิด PowerShell ค้างไว้
-        "options": {
-          "cwd": "${workspaceFolder:🔧 Backend}" // cd เข้า folder นี้
-        },
-        "isBackground": true, // บอก VS Code ว่าไม่ต้องรอให้จบ (รันค้างไว้เลย)
-        "problemMatcher": [],
-        "presentation": {
-          "group": "workspace-terminals", // จัดกลุ่มเดียวกัน
-          "reveal": "always",
-          "panel": "dedicated", // แยก Tab ให้ชัดเจน
-          "focus": false // ไม่ต้องแย่ง Focus ทันที
-        }
-      },
-      // 3. Task ย่อย: เปิด Terminal ที่ Frontend
-      {
-        "label": "🎨 PS: Frontend",
-        "type": "shell",
-        "command": "powershell",
-        "options": {
-          "cwd": "${workspaceFolder:🎨 Frontend}" // cd เข้า folder นี้
-        },
-        "isBackground": true,
-        "problemMatcher": [],
-        "presentation": {
-          "group": "workspace-terminals",
-          "reveal": "always",
-          "panel": "dedicated",
-          "focus": true // ให้ Focus ที่อันนี้เป็นอันสุดท้าย (พร้อมพิมพ์)
-        }
       }
     ]
   }

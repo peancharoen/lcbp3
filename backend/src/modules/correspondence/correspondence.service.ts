@@ -121,12 +121,18 @@ export class CorrespondenceService {
     try {
       const orgCode = 'ORG'; // TODO: Fetch real ORG Code from Organization Entity
 
+      // Extract recipient organization from details
+      const recipientOrganizationId = createDto.details?.to_organization_id as
+        | number
+        | undefined;
+
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: createDto.projectId,
         originatorId: userOrgId,
         typeId: createDto.typeId,
         disciplineId: createDto.disciplineId,
         subTypeId: createDto.subTypeId,
+        recipientOrganizationId, // [v1.5.1] Pass recipient for document number format
         year: new Date().getFullYear(),
         customTokens: {
           TYPE_CODE: type.typeCode,

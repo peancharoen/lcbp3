@@ -298,7 +298,7 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
       where: { projectId, correspondenceTypeId: typeId },
     });
     // Default Fallback Format (ตาม Req 2.1)
-    return format ? format.formatTemplate : '{ORG}-{ORG}-{SEQ:4}-{YEAR}';
+    return format ? format.formatTemplate : '{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR}';
   }
 
   /**

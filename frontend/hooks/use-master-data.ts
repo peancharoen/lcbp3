@@ -99,3 +99,9 @@ export function useContracts(projectId: number = 1) {
   });
 }
 
+export function useCorrespondenceTypes() {
+  return useQuery({
+    queryKey: masterDataKeys.correspondenceTypes(),
+    queryFn: () => masterDataService.getCorrespondenceTypes(),
+  });
+}

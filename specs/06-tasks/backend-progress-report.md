@@ -1,6 +1,6 @@
 # Backend Progress Report
 
-**Date:** 2025-12-10
+**Date:** 2025-12-12
 **Status:** ✅ **Advanced / Nearly Complete (~95%)**
 
 ## 📊 Overview
@@ -10,7 +10,7 @@
 | **TASK-BE-001** | Database Migrations       | ✅ **Done**        | 100%         | Schema v1.5.1 active. TypeORM configured.                                   |
 | **TASK-BE-002** | Auth & RBAC               | ✅ **Done**        | 100%         | JWT, Refresh Token, RBAC Guard, Permissions complete.                       |
 | **TASK-BE-003** | File Storage              | ✅ **Done**        | 100%         | MinIO/S3 strategies implemented (in `common`).                              |
-| **TASK-BE-004** | Document Numbering        | ✅ **Done**        | 100%         | **High Quality**: Redlock + Optimistic Locking logic.                       |
+| **TASK-BE-004** | Document Numbering        | ✅ **Done**        | 100%         | Redlock + Optimistic Lock. `{RECIPIENT}` token fix (2025-12-12).            |
 | **TASK-BE-005** | Correspondence Module     | ✅ **Done**        | 95%          | CRUD, Workflow Submit, References, Audit Log complete.                      |
 | **TASK-BE-006** | Workflow Engine           | ✅ **Done**        | 100%         | DSL Evaluator, Versioning, Event Dispatching complete.                      |
 | **TASK-BE-007** | RFA Module                | ✅ **Done**        | 95%          | Full Swagger, Revision handling, Workflow integration.                      |

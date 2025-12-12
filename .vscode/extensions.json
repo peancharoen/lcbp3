@@ -33,6 +33,7 @@
     "alefragnani.bookmarks",
     "pkief.material-icon-theme",
     "github.copilot",
-    "bierner.markdown-mermaid"
+    "bierner.markdown-mermaid",
+    "vitest.explorer"
   ]
 }
