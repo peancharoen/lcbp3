@@ -4,20 +4,20 @@
 >
 > ระบบบริหารจัดการเอกสารโครงการแบบครบวงจร สำหรับโครงการก่อสร้างท่าเรือแหลมฉบังระยะที่ 3
 
-[![Version](https://img.shields.io/badge/version-1.5.1-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Internal-red.svg)]()
 [![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)]()
 
 ---
 
-## 📈 Current Status (As of 2025-12-10)
+## 📈 Current Status (As of 2025-12-13)
 
 **Overall Progress: ~95% Feature Complete - Production Ready**
 
 - ✅ **Backend**: All 18 core modules implemented (~95%)
 - ✅ **Frontend**: All 15 UI tasks completed (100%)
-- ✅ **Database**: Schema v1.5.1 active with complete seed data
-- ✅ **Documentation**: Comprehensive specs/ at v1.5.1
+- ✅ **Database**: Schema v1.6.0 active with complete seed data
+- ✅ **Documentation**: Comprehensive specs/ at v1.6.0
 - ✅ **Admin Tools**: Workflow & Numbering configuration UIs complete
 - 🔄 **Testing**: E2E tests and UAT in progress
 - 📋 **Next**: Production deployment preparation
@@ -304,16 +304,16 @@ lcbp3-dms/
 | **Requirements**   | ข้อกำหนดระบบและฟังก์ชันการทำงาน      | `specs/01-requirements/`   |
 | **Architecture**   | สถาปัตยกรรมระบบ, ADRs           | `specs/02-architecture/`   |
 | **Implementation** | แนวทางการพัฒนา Backend/Frontend | `specs/03-implementation/` |
-| **Database**       | Schema v1.5.1 + Seed Data      | `specs/07-database/`       |
+| **Database**       | Schema v1.6.0 + Seed Data      | `specs/07-database/`       |
 
 ### Schema & Seed Data
 
 ```bash
 # Import schema
-mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.5.1-schema.sql
+mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.6.0-schema.sql
 
 # Import seed data
-mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.5.1-seed.sql
+mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.6.0-seed-basic.sql
 ```
 
 ### Legacy Documentation
@@ -558,11 +558,11 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 - ✅ Responsive Layout (Desktop & Mobile)
 
 **Documentation**
-- ✅ Complete specs/ v1.5.1 (21 requirements, 17 ADRs)
-- ✅ Database Schema v1.5.1 with seed data
+- ✅ Complete specs/ v1.6.0 (21 requirements, 17 ADRs)
+- ✅ Database Schema v1.6.0 with seed data
 - ✅ Implementation & Operations Guides
 
-### Version 1.6.0 (Planned - Q1 2026)
+### Version 1.7.0 (Planned - Q1 2026)
 
 **Production Enhancements**
 - 📋 E2E Test Coverage (Playwright/Cypress)

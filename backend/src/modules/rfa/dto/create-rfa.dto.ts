@@ -35,7 +35,22 @@ export class CreateRfaDto {
   })
   @IsString()
   @IsNotEmpty()
-  title!: string;
+  subject!: string;
+
+  @ApiProperty({ description: 'Body', required: false })
+  @IsString()
+  @IsOptional()
+  body?: string;
+
+  @ApiProperty({ description: 'Remarks', required: false })
+  @IsString()
+  @IsOptional()
+  remarks?: string;
+
+  @ApiProperty({ description: 'Due Date', required: false })
+  @IsDateString()
+  @IsOptional()
+  dueDate?: string;
 
   @ApiProperty({ description: 'รายละเอียดเพิ่มเติม', required: false })
   @IsString()

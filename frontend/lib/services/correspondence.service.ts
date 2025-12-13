@@ -70,5 +70,12 @@ export const correspondenceService = {
       data: data
     });
     return response.data;
+  },
+  /**
+   * Preview Document Number
+   */
+  previewNumber: async (data: Partial<CreateCorrespondenceDto>) => {
+    const response = await apiClient.post("/correspondences/preview-number", data);
+    return response.data;
   }
 };

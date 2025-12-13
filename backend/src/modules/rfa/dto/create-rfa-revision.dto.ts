@@ -10,10 +10,25 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateRfaRevisionDto {
-  @ApiProperty({ description: 'RFA Title', example: 'RFA for Building A' })
+  @ApiProperty({ description: 'RFA Subject', example: 'RFA for Building A' })
   @IsString()
   @IsNotEmpty()
-  title!: string;
+  subject!: string;
+
+  @ApiPropertyOptional({ description: 'Body', example: '<p>...</p>' })
+  @IsString()
+  @IsOptional()
+  body?: string;
+
+  @ApiPropertyOptional({ description: 'Remarks', example: 'Note' })
+  @IsString()
+  @IsOptional()
+  remarks?: string;
+
+  @ApiPropertyOptional({ description: 'Due Date', example: '2025-12-06' })
+  @IsDateString()
+  @IsOptional()
+  dueDate?: string;
 
   @ApiProperty({ description: 'RFA Status Code ID', example: 1 })
   @IsInt()

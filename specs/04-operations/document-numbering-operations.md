@@ -2,7 +2,7 @@
 
 ---
 title: 'Operations Guide: Document Numbering System'
-version: 1.5.1
+version: 1.6.0
 status: draft
 owner: Operations Team
 last_updated: 2025-12-02

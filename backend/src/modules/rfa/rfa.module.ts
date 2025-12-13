@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 // Entities
 import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
+import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
 import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
 import { RoutingTemplateStep } from '../correspondence/entities/routing-template-step.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
@@ -47,6 +48,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
       CorrespondenceRouting,
       RoutingTemplate,
       RoutingTemplateStep,
+      CorrespondenceRecipient,
     ]),
     DocumentNumberingModule,
     UserModule,

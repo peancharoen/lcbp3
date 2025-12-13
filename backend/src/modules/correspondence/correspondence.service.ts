@@ -17,12 +17,16 @@ import { CorrespondenceRevision } from './entities/correspondence-revision.entit
 import { CorrespondenceType } from './entities/correspondence-type.entity';
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { CorrespondenceReference } from './entities/correspondence-reference.entity';
+import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
 import { User } from '../user/entities/user.entity';
+import { Organization } from '../organization/entities/organization.entity';
 
 // DTOs
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
+import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
 import { AddReferenceDto } from './dto/add-reference.dto';
 import { SearchCorrespondenceDto } from './dto/search-correspondence.dto';
+import { DeepPartial } from 'typeorm';
 
 // Services
 import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
@@ -52,6 +56,8 @@ export class CorrespondenceService {
     private statusRepo: Repository<CorrespondenceStatus>,
     @InjectRepository(CorrespondenceReference)
     private referenceRepo: Repository<CorrespondenceReference>,
+    @InjectRepository(Organization)
+    private orgRepo: Repository<Organization>,
 
     private numberingService: DocumentNumberingService,
     private jsonSchemaService: JsonSchemaService,
@@ -121,10 +127,17 @@ export class CorrespondenceService {
     try {
       const orgCode = 'ORG'; // TODO: Fetch real ORG Code from Organization Entity
 
-      // Extract recipient organization from details
-      const recipientOrganizationId = createDto.details?.to_organization_id as
-        | number
-        | undefined;
+      // [v1.5.1] Extract recipient organization from recipients array (Primary TO)
+      const toRecipient = createDto.recipients?.find((r) => r.type === 'TO');
+      const recipientOrganizationId = toRecipient?.organizationId;
+
+      let recipientCode = '';
+      if (recipientOrganizationId) {
+        const recOrg = await this.orgRepo.findOne({
+          where: { id: recipientOrganizationId },
+        });
+        if (recOrg) recipientCode = recOrg.organizationCode;
+      }
 
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: createDto.projectId,
@@ -137,6 +150,8 @@ export class CorrespondenceService {
         customTokens: {
           TYPE_CODE: type.typeCode,
           ORG_CODE: orgCode,
+          RECIPIENT_CODE: recipientCode,
+          REC_CODE: recipientCode,
         },
       });
 
@@ -157,12 +172,28 @@ export class CorrespondenceService {
         revisionLabel: 'A',
         isCurrent: true,
         statusId: statusDraft.id,
-        title: createDto.title,
+        subject: createDto.subject,
+        body: createDto.body,
+        remarks: createDto.remarks,
+        dueDate: createDto.dueDate ? new Date(createDto.dueDate) : undefined,
         description: createDto.description,
         details: createDto.details,
         createdBy: user.user_id,
+        schemaVersion: 1,
       });
       await queryRunner.manager.save(revision);
+
+      // Save Recipients
+      if (createDto.recipients && createDto.recipients.length > 0) {
+        const recipients = createDto.recipients.map((r) =>
+          queryRunner.manager.create(CorrespondenceRecipient, {
+            correspondenceId: savedCorr.id,
+            recipientOrganizationId: r.organizationId,
+            recipientType: r.type,
+          })
+        );
+        await queryRunner.manager.save(recipients);
+      }
 
       await queryRunner.commitTransaction();
 
@@ -190,7 +221,7 @@ export class CorrespondenceService {
         id: savedCorr.id,
         type: 'correspondence',
         docNumber: docNumber,
-        title: createDto.title,
+        title: createDto.subject,
         description: createDto.description,
         status: 'DRAFT',
         projectId: createDto.projectId,
@@ -256,7 +287,7 @@ export class CorrespondenceService {
 
     if (search) {
       query.andWhere(
-        '(corr.correspondenceNumber LIKE :search OR rev.title LIKE :search)',
+        '(corr.correspondenceNumber LIKE :search OR rev.subject LIKE :search)',
         { search: `%${search}%` }
       );
     }
@@ -286,6 +317,8 @@ export class CorrespondenceService {
         'type',
         'project',
         'originator',
+        'recipients',
+        'recipients.recipientOrganization', // [v1.5.1] Fixed relation name
       ],
     });
 
@@ -351,5 +384,182 @@ export class CorrespondenceService {
     });
 
     return { outgoing, incoming };
+  }
+
+  async update(id: number, updateDto: UpdateCorrespondenceDto, user: User) {
+    // 1. Find Current Revision
+    const revision = await this.revisionRepo.findOne({
+      where: {
+        correspondenceId: id,
+        isCurrent: true,
+      },
+      relations: ['correspondence'],
+    });
+
+    if (!revision) {
+      throw new NotFoundException(
+        `Current revision for correspondence ${id} not found`
+      );
+    }
+
+    // 2. Check Permission
+    if (revision.statusId) {
+      const status = await this.statusRepo.findOne({
+        where: { id: revision.statusId },
+      });
+      if (status && status.statusCode !== 'DRAFT') {
+        throw new BadRequestException('Only DRAFT documents can be updated');
+      }
+    }
+
+    // 3. Update Correspondence Entity if needed
+    const correspondenceUpdate: DeepPartial<Correspondence> = {};
+    if (updateDto.disciplineId)
+      correspondenceUpdate.disciplineId = updateDto.disciplineId;
+    if (updateDto.projectId)
+      correspondenceUpdate.projectId = updateDto.projectId;
+
+    if (Object.keys(correspondenceUpdate).length > 0) {
+      await this.correspondenceRepo.update(id, correspondenceUpdate);
+    }
+
+    // 4. Update Revision Entity
+    const revisionUpdate: DeepPartial<CorrespondenceRevision> = {};
+    if (updateDto.subject) revisionUpdate.subject = updateDto.subject;
+    if (updateDto.body) revisionUpdate.body = updateDto.body;
+    if (updateDto.remarks) revisionUpdate.remarks = updateDto.remarks;
+    // Format Date correctly if string
+    if (updateDto.dueDate) revisionUpdate.dueDate = new Date(updateDto.dueDate);
+    if (updateDto.description)
+      revisionUpdate.description = updateDto.description;
+    if (updateDto.details) revisionUpdate.details = updateDto.details;
+
+    if (Object.keys(revisionUpdate).length > 0) {
+      await this.revisionRepo.update(revision.id, revisionUpdate);
+    }
+
+    // 5. Update Recipients if provided
+    if (updateDto.recipients) {
+      const recipientRepo = this.dataSource.getRepository(
+        CorrespondenceRecipient
+      );
+      await recipientRepo.delete({ correspondenceId: id });
+
+      const newRecipients = updateDto.recipients.map((r) =>
+        recipientRepo.create({
+          correspondenceId: id,
+          recipientOrganizationId: r.organizationId,
+          recipientType: r.type,
+        })
+      );
+      await recipientRepo.save(newRecipients);
+    }
+
+    // 6. Regenerate Document Number if structural fields changed (Recipient, Discipline, Type, Project)
+    // AND it is a DRAFT.
+    const hasRecipientChange = !!updateDto.recipients?.find(
+      (r) => r.type === 'TO'
+    );
+    const hasStructureChange =
+      updateDto.typeId ||
+      updateDto.disciplineId ||
+      updateDto.projectId ||
+      hasRecipientChange;
+
+    if (hasStructureChange) {
+      // Re-fetch fresh data for context
+      const freshCorr = await this.correspondenceRepo.findOne({
+        where: { id },
+        relations: ['type', 'recipients', 'recipients.recipientOrganization'],
+      });
+
+      if (freshCorr) {
+        const toRecipient = freshCorr.recipients?.find(
+          (r) => r.recipientType === 'TO'
+        );
+        const recipientOrganizationId = toRecipient?.recipientOrganizationId;
+        const type = freshCorr.type;
+
+        let recipientCode = '';
+        if (toRecipient?.recipientOrganization) {
+          recipientCode = toRecipient.recipientOrganization.organizationCode;
+        } else if (recipientOrganizationId) {
+          // Fallback fetch if relation not loaded (though we added it)
+          const recOrg = await this.orgRepo.findOne({
+            where: { id: recipientOrganizationId },
+          });
+          if (recOrg) recipientCode = recOrg.organizationCode;
+        }
+
+        const orgCode = 'ORG'; // Placeholder
+
+        const newDocNumber = await this.numberingService.generateNextNumber({
+          projectId: freshCorr.projectId,
+          originatorId: freshCorr.originatorId!,
+          typeId: freshCorr.correspondenceTypeId,
+          disciplineId: freshCorr.disciplineId,
+          // Use undefined for subTypeId if not present implicitly
+          year: new Date().getFullYear(),
+          recipientOrganizationId: recipientOrganizationId ?? 0,
+          customTokens: {
+            TYPE_CODE: type?.typeCode || '',
+            ORG_CODE: orgCode,
+            RECIPIENT_CODE: recipientCode,
+            REC_CODE: recipientCode,
+          },
+        });
+
+        await this.correspondenceRepo.update(id, {
+          correspondenceNumber: newDocNumber,
+        });
+      }
+    }
+
+    return this.findOne(id);
+  }
+
+  async previewDocumentNumber(createDto: CreateCorrespondenceDto, user: User) {
+    const type = await this.typeRepo.findOne({
+      where: { id: createDto.typeId },
+    });
+    if (!type) throw new NotFoundException('Document Type not found');
+
+    let userOrgId = user.primaryOrganizationId;
+    if (!userOrgId) {
+      const fullUser = await this.userService.findOne(user.user_id);
+      if (fullUser) userOrgId = fullUser.primaryOrganizationId;
+    }
+
+    if (createDto.originatorId && createDto.originatorId !== userOrgId) {
+      // Allow impersonation for preview
+      userOrgId = createDto.originatorId;
+    }
+
+    // Extract recipient from recipients array
+    const toRecipient = createDto.recipients?.find((r) => r.type === 'TO');
+    const recipientOrganizationId = toRecipient?.organizationId;
+
+    let recipientCode = '';
+    if (recipientOrganizationId) {
+      const recOrg = await this.orgRepo.findOne({
+        where: { id: recipientOrganizationId },
+      });
+      if (recOrg) recipientCode = recOrg.organizationCode;
+    }
+
+    return this.numberingService.previewNextNumber({
+      projectId: createDto.projectId,
+      originatorId: userOrgId!,
+      typeId: createDto.typeId,
+      disciplineId: createDto.disciplineId,
+      subTypeId: createDto.subTypeId,
+      recipientOrganizationId,
+      year: new Date().getFullYear(),
+      customTokens: {
+        TYPE_CODE: type.typeCode,
+        RECIPIENT_CODE: recipientCode,
+        REC_CODE: recipientCode,
+      },
+    });
   }
 }

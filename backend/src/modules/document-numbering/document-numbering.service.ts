@@ -223,6 +223,53 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Preview the next document number without incrementing the counter.
+   * Returns the number and whether a custom template was found.
+   */
+  async previewNextNumber(
+    ctx: GenerateNumberContext
+  ): Promise<{ number: string; isDefaultTemplate: boolean }> {
+    const year = ctx.year || new Date().getFullYear();
+    const disciplineId = ctx.disciplineId || 0;
+
+    // 1. Resolve Tokens
+    const tokens = await this.resolveTokens(ctx, year);
+
+    // 2. Get Format Template
+    const { template, isDefault } = await this.getFormatTemplateWithMeta(
+      ctx.projectId,
+      ctx.typeId
+    );
+
+    // 3. Get Current Counter (No Lock needed for preview)
+    const recipientId = ctx.recipientOrganizationId ?? -1;
+    const subTypeId = ctx.subTypeId ?? 0;
+    const rfaTypeId = ctx.rfaTypeId ?? 0;
+
+    const counter = await this.counterRepo.findOne({
+      where: {
+        projectId: ctx.projectId,
+        originatorId: ctx.originatorId,
+        recipientOrganizationId: recipientId,
+        typeId: ctx.typeId,
+        subTypeId: subTypeId,
+        rfaTypeId: rfaTypeId,
+        disciplineId: disciplineId,
+        year: year,
+      },
+    });
+
+    const nextSeq = (counter?.lastNumber || 0) + 1;
+
+    const generatedNumber = this.replaceTokens(template, tokens, nextSeq);
+
+    return {
+      number: generatedNumber,
+      isDefaultTemplate: isDefault,
+    };
+  }
+
+  /**
    * Helper: ดึงข้อมูล Code ต่างๆ จาก ID เพื่อนำมาแทนที่ใน Template
    */
   private async resolveTokens(
@@ -239,17 +286,20 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
       throw new NotFoundException('Project, Organization, or Type not found');
     }
 
-    let disciplineCode = '000';
-    if (ctx.disciplineId) {
+    // [v1.5.1] Support Custom Tokens Override
+    const custom = ctx.customTokens || {};
+
+    let disciplineCode = custom.DISCIPLINE_CODE || '000';
+    if (!custom.DISCIPLINE_CODE && ctx.disciplineId) {
       const discipline = await this.disciplineRepo.findOne({
         where: { id: ctx.disciplineId },
       });
       if (discipline) disciplineCode = discipline.disciplineCode;
     }
 
-    let subTypeCode = '00';
-    let subTypeNumber = '00';
-    if (ctx.subTypeId) {
+    let subTypeCode = custom.SUB_TYPE_CODE || '00';
+    let subTypeNumber = custom.SUB_TYPE_NUMBER || '00';
+    if (!custom.SUB_TYPE_CODE && ctx.subTypeId) {
       const subType = await this.subTypeRepo.findOne({
         where: { id: ctx.subTypeId },
       });
@@ -264,8 +314,12 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
     const yearTh = (year + 543).toString();
 
     // [v1.5.1] Resolve recipient organization
-    let recipientCode = '';
-    if (ctx.recipientOrganizationId && ctx.recipientOrganizationId > 0) {
+    let recipientCode = custom.RECIPIENT_CODE || custom.REC_CODE || '';
+    if (
+      !recipientCode &&
+      ctx.recipientOrganizationId &&
+      ctx.recipientOrganizationId > 0
+    ) {
       const recipient = await this.orgRepo.findOne({
         where: { id: ctx.recipientOrganizationId },
       });
@@ -288,17 +342,36 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Helper: หา Template จาก DB หรือใช้ Default
+   * Helper: Find Template from DB or use Default (with metadata)
+   */
+  private async getFormatTemplateWithMeta(
+    projectId: number,
+    typeId: number
+  ): Promise<{ template: string; isDefault: boolean }> {
+    const format = await this.formatRepo.findOne({
+      where: { projectId, correspondenceTypeId: typeId },
+    });
+
+    if (format) {
+      return { template: format.formatTemplate, isDefault: false };
+    }
+
+    // Default Fallback Format
+    return { template: '{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR}', isDefault: true };
+  }
+
+  /**
+   * Legacy wrapper for backward compatibility
    */
   private async getFormatTemplate(
     projectId: number,
     typeId: number
   ): Promise<string> {
-    const format = await this.formatRepo.findOne({
-      where: { projectId, correspondenceTypeId: typeId },
-    });
-    // Default Fallback Format (ตาม Req 2.1)
-    return format ? format.formatTemplate : '{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR}';
+    const { template } = await this.getFormatTemplateWithMeta(
+      projectId,
+      typeId
+    );
+    return template;
   }
 
   /**
@@ -337,10 +410,6 @@ export class DocumentNumberingService implements OnModuleInit, OnModuleDestroy {
 
     return result;
   }
-
-  /**
-   * [P0-4] Log successful number generation to audit table
-   */
 
   /**
    * [P0-4] Log successful number generation to audit table

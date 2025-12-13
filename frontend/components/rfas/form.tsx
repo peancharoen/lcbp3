@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Plus, Trash2, Loader2 } from "lucide-react";
@@ -19,6 +20,8 @@ import { useRouter } from "next/navigation";
 import { useCreateRFA } from "@/hooks/use-rfa";
 import { useDisciplines, useContracts } from "@/hooks/use-master-data";
 import { CreateRFADto } from "@/types/rfa";
+import { useState, useEffect } from "react";
+import { correspondenceService } from "@/lib/services/correspondence.service";
 
 const rfaItemSchema = z.object({
   itemNo: z.string().min(1, "Item No is required"),
@@ -30,8 +33,10 @@ const rfaSchema = z.object({
   contractId: z.number().min(1, "Contract is required"),
   disciplineId: z.number().min(1, "Discipline is required"),
   rfaTypeId: z.number().min(1, "Type is required"),
-  title: z.string().min(5, "Title must be at least 5 characters"),
+  subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().optional(),
+  body: z.string().optional(),
+  remarks: z.string().optional(),
   toOrganizationId: z.number().min(1, "Please select To Organization"),
   dueDate: z.string().optional(),
   shopDrawingRevisionIds: z.array(z.number()).optional(),
@@ -61,8 +66,10 @@ export function RFAForm() {
       contractId: 0,
       disciplineId: 0,
       rfaTypeId: 0,
-      title: "",
+      subject: "",
       description: "",
+      body: "",
+      remarks: "",
       toOrganizationId: 0,
       dueDate: "",
       shopDrawingRevisionIds: [],
@@ -72,6 +79,40 @@ export function RFAForm() {
 
   const selectedContractId = watch("contractId");
   const { data: disciplines, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
+
+  // Watch fields for preview
+  const rfaTypeId = watch("rfaTypeId");
+  const disciplineId = watch("disciplineId");
+  const toOrganizationId = watch("toOrganizationId");
+
+  // -- Preview Logic --
+  const [preview, setPreview] = useState<{ number: string; isDefaultTemplate: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!rfaTypeId || !disciplineId || !toOrganizationId) {
+       setPreview(null);
+       return;
+    }
+
+    const fetchPreview = async () => {
+       try {
+         const res = await correspondenceService.previewNumber({
+             projectId: currentProjectId,
+             typeId: rfaTypeId, // RfaTypeId acts as TypeId
+             disciplineId,
+             // RFA uses 'TO' organization as recipient
+             recipients: [{ organizationId: toOrganizationId, type: 'TO' }],
+             dueDate: new Date().toISOString()
+         });
+         setPreview(res);
+       } catch (err) {
+         setPreview(null);
+       }
+    };
+
+    const timer = setTimeout(fetchPreview, 500);
+    return () => clearTimeout(timer);
+  }, [rfaTypeId, disciplineId, toOrganizationId, currentProjectId]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -92,24 +133,49 @@ export function RFAForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-4xl space-y-6">
+      {/* Preview Section */}
+      {preview && (
+        <Card className="p-4 bg-muted border-l-4 border-l-primary">
+           <p className="text-sm text-muted-foreground mb-1">Document Number Preview</p>
+           <div className="flex items-center gap-3">
+             <span className="text-xl font-bold font-mono text-primary tracking-wide">{preview.number}</span>
+             {preview.isDefaultTemplate && (
+                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                   Default Template
+                </span>
+             )}
+           </div>
+        </Card>
+      )}
+
       {/* Basic Info */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4">RFA Information</h3>
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="title">Title *</Label>
-            <Input id="title" {...register("title")} placeholder="Enter title" />
-            {errors.title && (
+            <Label htmlFor="subject">Subject *</Label>
+            <Input id="subject" {...register("subject")} placeholder="Enter subject" />
+            {errors.subject && (
               <p className="text-sm text-destructive mt-1">
-                {errors.title.message}
+                {errors.subject.message}
               </p>
             )}
           </div>
 
           <div>
+             <Label htmlFor="body">Body (Content)</Label>
+             <Textarea id="body" {...register("body")} rows={4} placeholder="Enter content..." />
+          </div>
+
+           <div>
+             <Label htmlFor="remarks">Remarks</Label>
+             <Input id="remarks" {...register("remarks")} placeholder="Optional remarks" />
+          </div>
+
+          <div>
             <Label htmlFor="description">Description</Label>
-            <Input id="description" {...register("description")} placeholder="Enter description" />
+            <Input id="description" {...register("description")} placeholder="Enter key description" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

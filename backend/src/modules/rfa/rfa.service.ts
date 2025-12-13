@@ -148,11 +148,14 @@ export class RfaService {
         revisionLabel: '0',
         isCurrent: true,
         rfaStatusCodeId: statusDraft.id,
-        title: createDto.title,
+        subject: createDto.subject,
+        body: createDto.body,
+        remarks: createDto.remarks,
         description: createDto.description,
         documentDate: createDto.documentDate
           ? new Date(createDto.documentDate)
           : new Date(),
+        dueDate: createDto.dueDate ? new Date(createDto.dueDate) : undefined,
         createdBy: user.user_id,
         details: createDto.details,
         schemaVersion: 1,
@@ -209,7 +212,7 @@ export class RfaService {
           id: savedCorr.id,
           type: 'rfa',
           docNumber: docNumber,
-          title: createDto.title,
+          title: createDto.subject,
           description: createDto.description,
           status: 'DRAFT',
           projectId: createDto.projectId,
@@ -242,10 +245,10 @@ export class RfaService {
     // [Force Rebuild]
     const queryBuilder = this.rfaRepo
       .createQueryBuilder('rfa')
+      .leftJoinAndSelect('rfa.correspondence', 'corr')
       .leftJoinAndSelect('rfa.revisions', 'rev')
-      .leftJoinAndSelect('rev.correspondence', 'corr')
       .leftJoinAndSelect('corr.project', 'project')
-      .leftJoinAndSelect('rfa.discipline', 'discipline')
+      .leftJoinAndSelect('corr.discipline', 'discipline')
       .leftJoinAndSelect('rev.statusCode', 'status')
       .leftJoinAndSelect('rev.items', 'items')
       .leftJoinAndSelect('items.shopDrawingRevision', 'sdRev')
@@ -271,7 +274,7 @@ export class RfaService {
 
     if (search) {
       queryBuilder.andWhere(
-        '(corr.correspondenceNumber LIKE :search OR rev.title LIKE :search)',
+        '(corr.correspondenceNumber LIKE :search OR rev.subject LIKE :search)',
         { search: `%${search}%` }
       );
     }
@@ -301,11 +304,11 @@ export class RfaService {
     const rfa = await this.rfaRepo.findOne({
       where: { id },
       relations: [
+        'correspondence', // ✅ Add relation to master correspondence
         'rfaType',
         'revisions',
         'revisions.statusCode',
         'revisions.approveCode',
-        'revisions.correspondence',
         'revisions.items',
         'revisions.items.shopDrawingRevision',
         'revisions.items.shopDrawingRevision.shopDrawing',
@@ -370,7 +373,7 @@ export class RfaService {
       // Create First Routing Step
       const firstStep = steps[0];
       const routing = queryRunner.manager.create(CorrespondenceRouting, {
-        correspondenceId: currentRevision.correspondenceId,
+        correspondenceId: rfa.correspondence.id, // ✅ Use master correspondence id
         templateId: template.id,
         sequence: 1,
         fromOrganizationId: user.primaryOrganizationId,
@@ -392,8 +395,8 @@ export class RfaService {
       if (recipientUserId) {
         await this.notificationService.send({
           userId: recipientUserId,
-          title: `RFA Submitted: ${currentRevision.title}`,
-          message: `RFA ${currentRevision.correspondence.correspondenceNumber} submitted for approval.`,
+          title: `RFA Submitted: ${currentRevision.subject}`,
+          message: `RFA ${rfa.correspondence.correspondenceNumber} submitted for approval.`,
           type: 'SYSTEM',
           entityType: 'rfa',
           entityId: rfa.id,
@@ -421,7 +424,7 @@ export class RfaService {
 
     const currentRouting = await this.routingRepo.findOne({
       where: {
-        correspondenceId: currentRevision.correspondenceId,
+        correspondenceId: rfa.correspondence.id, // ✅ Use master correspondence id
         status: 'SENT',
       },
       order: { sequence: 'DESC' },
@@ -482,7 +485,7 @@ export class RfaService {
           const nextRouting = queryRunner.manager.create(
             CorrespondenceRouting,
             {
-              correspondenceId: currentRevision.correspondenceId,
+              correspondenceId: rfa.correspondence.id, // ✅ Use master correspondence id
               templateId: template.id,
               sequence: result.nextStepSequence,
               fromOrganizationId: user.primaryOrganizationId,

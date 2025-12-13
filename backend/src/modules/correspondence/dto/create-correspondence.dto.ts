@@ -5,6 +5,8 @@ import {
   IsOptional,
   IsBoolean,
   IsObject,
+  IsDateString,
+  IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -30,12 +32,36 @@ export class CreateCorrespondenceDto {
   subTypeId?: number; // [Req 6B] ประเภทย่อย (เช่น MAT, SHP สำหรับ Transmittal/RFA)
 
   @ApiProperty({
-    description: 'Correspondence Title',
+    description: 'Correspondence Subject',
     example: 'Monthly Progress Report',
   })
   @IsString()
   @IsNotEmpty()
-  title!: string;
+  subject!: string;
+
+  @ApiPropertyOptional({
+    description: 'Body/Content',
+    example: '<p>...</p>',
+  })
+  @IsString()
+  @IsOptional()
+  body?: string;
+
+  @ApiPropertyOptional({
+    description: 'Remarks',
+    example: 'Note...',
+  })
+  @IsString()
+  @IsOptional()
+  remarks?: string;
+
+  @ApiPropertyOptional({
+    description: 'Due Date',
+    example: '2025-12-06T00:00:00Z',
+  })
+  @IsDateString()
+  @IsOptional()
+  dueDate?: string;
 
   @ApiPropertyOptional({
     description: 'Correspondence Description',
@@ -66,4 +92,12 @@ export class CreateCorrespondenceDto {
   @IsInt()
   @IsOptional()
   originatorId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Recipients',
+    example: [{ organizationId: 1, type: 'TO' }],
+  })
+  @IsArray()
+  @IsOptional()
+  recipients?: { organizationId: number; type: 'TO' | 'CC' }[];
 }

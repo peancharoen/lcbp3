@@ -1,7 +1,7 @@
 # Backup & Recovery Procedures
 
 **Project:** LCBP3-DMS
-**Version:** 1.5.1
+**Version:** 1.6.0
 **Last Updated:** 2025-12-02
 
 ---
@@ -369,6 +369,6 @@ WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 YEAR);
 
 ---
 
-**Version:** 1.5.1
+**Version:** 1.6.0
 **Last Review:** 2025-12-01
 **Next Review:** 2026-03-01

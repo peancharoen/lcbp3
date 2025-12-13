@@ -18,7 +18,11 @@ export interface CorrespondenceRevision {
   id: number;
   revisionNumber: number;
   revisionLabel?: string; // e.g. "A", "00"
-  title: string;
+  subject: string;
+  body?: string;
+  remarks?: string;
+  dueDate?: string;
+  schemaVersion?: number;
   description?: string;
   isCurrent: boolean;
   status?: {
@@ -40,7 +44,7 @@ export interface CorrespondenceRevision {
     originator?: Organization;
     project?: { id: number; projectName: string; projectCode: string };
     type?: { id: number; typeName: string; typeCode: string };
-  }
+  };
 }
 
 // Keep explicit Correspondence for Detail View if needed, or merge concepts
@@ -58,14 +62,27 @@ export interface Correspondence {
   project?: { id: number; projectName: string; projectCode: string };
   type?: { id: number; typeName: string; typeCode: string };
   revisions?: CorrespondenceRevision[]; // Nested revisions
+  recipients?: {
+    correspondenceId: number;
+    recipientOrganizationId: number;
+    recipientType: 'TO' | 'CC';
+    recipientOrganization?: Organization;
+  }[];
 }
 
 export interface CreateCorrespondenceDto {
+  projectId: number;
+  typeId: number;
+  subTypeId?: number;
+  disciplineId?: number;
   subject: string;
+  body?: string;
+  remarks?: string;
+  dueDate?: string;
   description?: string;
-  documentTypeId: number;
-  fromOrganizationId: number;
-  toOrganizationId: number;
-  importance: "NORMAL" | "HIGH" | "URGENT";
+  details?: Record<string, any>;
+  isInternal?: boolean;
+  originatorId?: number;
+  recipients?: { organizationId: number; type: 'TO' | 'CC' }[];
   attachments?: File[];
 }

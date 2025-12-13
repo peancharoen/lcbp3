@@ -28,7 +28,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
   // Derive Current Revision Data
   const currentRevision = data.revisions?.find(r => r.isCurrent) || data.revisions?.[0];
-  const subject = currentRevision?.title || "-";
+  const subject = currentRevision?.subject || "-";
   const description = currentRevision?.description || "-";
   const status = currentRevision?.status?.statusCode || "UNKNOWN"; // e.g. DRAFT
   const attachments = currentRevision?.attachments || [];
@@ -169,6 +169,24 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
                 </p>
               </div>
 
+              {currentRevision?.body && (
+                <div>
+                  <h3 className="font-semibold mb-2">Content</h3>
+                  <div className="text-gray-700 whitespace-pre-wrap p-3 bg-muted/10 rounded-md border">
+                    {currentRevision.body}
+                  </div>
+                </div>
+              )}
+
+              {currentRevision?.remarks && (
+                <div>
+                  <h3 className="font-semibold mb-2">Remarks</h3>
+                  <p className="text-gray-600 italic">
+                    {currentRevision.remarks}
+                  </p>
+                </div>
+              )}
+
               <hr className="my-4 border-t" />
 
               <div>
@@ -223,8 +241,8 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Originator</p>
-                <p className="font-medium mt-1">{data.originator?.orgName || '-'}</p>
-                <p className="text-xs text-muted-foreground">{data.originator?.orgCode || '-'}</p>
+                <p className="font-medium mt-1">{data.originator?.organizationName || '-'}</p>
+                <p className="text-xs text-muted-foreground">{data.originator?.organizationCode || '-'}</p>
               </div>
 
                <div>

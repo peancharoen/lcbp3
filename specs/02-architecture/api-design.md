@@ -3,7 +3,7 @@
 ---
 
 **title:** 'API Design'
-**version:** 1.5.1
+**version:** 1.6.0
 **status:** active
 **owner:** Nattanin Peancharoen
 **last_updated:** 2025-12-02
@@ -546,7 +546,7 @@ X-API-Deprecation-Info: https://docs.np-dms.work/migration/v2
 
 **Document Control:**
 
-- **Version:** 1.5.1
+- **Version:** 1.6.0
 - **Status:** Active
-- **Last Updated:** 2025-12-02
+- **Last Updated:** 2025-12-13
 - **Owner:** Nattanin Peancharoen

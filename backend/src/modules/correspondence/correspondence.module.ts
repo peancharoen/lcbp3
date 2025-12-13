@@ -10,6 +10,8 @@ import { CorrespondenceRevision } from './entities/correspondence-revision.entit
 import { CorrespondenceType } from './entities/correspondence-type.entity';
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { CorrespondenceReference } from './entities/correspondence-reference.entity';
+import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
+import { Organization } from '../organization/entities/organization.entity';
 
 // Dependent Modules
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
@@ -32,6 +34,8 @@ import { SearchModule } from '../search/search.module';
       CorrespondenceType,
       CorrespondenceStatus,
       CorrespondenceReference,
+      CorrespondenceRecipient,
+      Organization,
     ]),
     DocumentNumberingModule,
     JsonSchemaModule,

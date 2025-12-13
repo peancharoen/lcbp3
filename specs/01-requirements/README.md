@@ -1,8 +1,8 @@
 # 📋 Requirements Specification
 
-**Version:** 1.5.1
+**Version:** 1.6.0
 **Status:** Active
-**Last Updated:** 2025-12-02
+**Last Updated:** 2025-12-13
 
 ---
 
@@ -65,6 +65,12 @@ This directory contains the functional and non-functional requirements for the L
 ---
 
 ## 🔄 Recent Changes
+
+### v1.6.0 (2025-12-13)
+
+- ✅ **Schema Refactoring** - Major restructuring of correspondence and RFA tables
+- ✅ Updated data dictionary for schema v1.6.0
+- ✅ Breaking changes documented in CHANGELOG.md
 
 ### v1.5.1 (2025-12-02)
 
@@ -172,8 +178,8 @@ All requirements documents must meet these criteria:
 
 ## 📝 Document Control
 
-- **Version:** 1.5.1
+- **Version:** 1.6.0
 - **Owner:** System Architect (Nattanin Peancharoen)
-- **Last Review:** 2025-12-10
+- **Last Review:** 2025-12-13
 - **Next Review:** 2026-01-01
 - **Classification:** Internal Use Only

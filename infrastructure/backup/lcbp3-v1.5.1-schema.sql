@@ -455,7 +455,7 @@ CREATE TABLE correspondence_revisions (
   received_date DATETIME COMMENT 'วันที่ลงรับเอกสาร',
   due_date DATETIME COMMENT 'วันที่ครบกำหนด',
   description TEXT COMMENT 'คำอธิบายการแก้ไขใน Revision นี้',
-  details JSON COMMENT 'ข้อมูลเฉพาะ (เช่น RFI details)',
+  details JSON COMMENT 'ข้อมูลเฉพาะ (เช่น LETTER details)',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้างเอกสาร',
   created_by INT COMMENT 'ผู้สร้าง',
   updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',

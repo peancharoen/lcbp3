@@ -7,6 +7,36 @@
 - Performance optimization and load testing
 - Production deployment preparation
 
+## 1.6.0 (2025-12-13)
+
+### Summary
+**Schema Refactoring Release** - Major restructuring of correspondence and RFA tables for improved data consistency.
+
+### Database Schema Changes 💾
+
+#### Breaking Changes ⚠️
+- **`correspondence_recipients`**: FK changed from `correspondence_revisions(correspondence_id)` → `correspondences(id)`
+- **`rfa_items`**: Column renamed `rfarev_correspondence_id` → `rfa_revision_id`
+
+#### Schema Refactoring
+- **`correspondences`**: Reordered columns, `discipline_id` now inline (no ALTER TABLE)
+- **`correspondence_revisions`**:
+  - Renamed: `title` → `subject`
+  - Added: `body TEXT`, `remarks TEXT`, `schema_version INT`
+  - Added Virtual Columns: `v_ref_project_id`, `v_doc_subtype`
+- **`rfas`**:
+  - Changed to Shared PK pattern (no AUTO_INCREMENT)
+  - PK now FK to `correspondences(id)`
+- **`rfa_revisions`**:
+  - Removed: `correspondence_id` (uses rfas.id instead)
+  - Renamed: `title` → `subject`
+  - Added: `body TEXT`, `remarks TEXT`, `due_date DATETIME`, `schema_version INT`
+  - Added Virtual Column: `v_ref_drawing_count`
+
+### Documentation 📚
+- Updated Data Dictionary to v1.6.0
+- Updated schema SQL files (`lcbp3-v1.6.0-schema.sql`, seed files)
+
 ## 1.5.1 (2025-12-10)
 
 ### Summary

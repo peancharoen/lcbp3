@@ -22,6 +22,7 @@
 | **TASK-FE-013** | Circulation & Transmittal | ✅ **Done** | 100%         | Circulation and Transmittal modules implemented with DataTable.     |
 | **TASK-FE-014** | Reference Data UI         | ✅ **Done** | 100%         | Generic CRUD Table refactored (Skeleton/Dialogs). All pages linked. |
 | **TASK-FE-015** | Security Admin UI         | ✅ **Done** | 100%         | RBAC Matrix, Roles, Active Sessions, System Logs implemented.       |
+| **TASK-FE-016** | Schema v1.6.0 Adaptation  | ✅ **Done** | 100%         | Update Forms/Types/Lists for v1.6.0 changes (2025-12-13).           |
 
 ## 🛠 Detailed Status by Component
 

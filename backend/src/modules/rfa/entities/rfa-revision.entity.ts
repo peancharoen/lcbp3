@@ -9,7 +9,6 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
-import { Correspondence } from '../../correspondence/entities/correspondence.entity';
 import { User } from '../../user/entities/user.entity';
 import { RfaApproveCode } from './rfa-approve-code.entity';
 import { RfaItem } from './rfa-item.entity';
@@ -23,9 +22,6 @@ import { Rfa } from './rfa.entity';
 export class RfaRevision {
   @PrimaryGeneratedColumn()
   id!: number;
-
-  @Column({ name: 'correspondence_id' })
-  correspondenceId!: number;
 
   @Column({ name: 'rfa_id' })
   rfaId!: number;
@@ -45,8 +41,8 @@ export class RfaRevision {
   @Column({ name: 'rfa_approve_code_id', nullable: true })
   rfaApproveCodeId?: number;
 
-  @Column({ length: 255 })
-  title!: string;
+  @Column({ length: 500 })
+  subject!: string;
 
   @Column({ name: 'document_date', type: 'date', nullable: true })
   documentDate?: Date;
@@ -57,11 +53,20 @@ export class RfaRevision {
   @Column({ name: 'received_date', type: 'datetime', nullable: true })
   receivedDate?: Date;
 
+  @Column({ name: 'due_date', type: 'datetime', nullable: true })
+  dueDate?: Date;
+
   @Column({ name: 'approved_date', type: 'date', nullable: true })
   approvedDate?: Date;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
+
+  @Column({ type: 'text', nullable: true })
+  body?: string;
+
+  @Column({ type: 'text', nullable: true })
+  remarks?: string;
 
   // --- JSON & Schema Section ---
 
@@ -94,10 +99,6 @@ export class RfaRevision {
   updatedBy?: number;
 
   // --- Relations ---
-
-  @ManyToOne(() => Correspondence)
-  @JoinColumn({ name: 'correspondence_id' })
-  correspondence!: Correspondence;
 
   @ManyToOne(() => Rfa)
   @JoinColumn({ name: 'rfa_id' })

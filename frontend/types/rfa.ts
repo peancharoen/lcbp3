@@ -8,13 +8,22 @@ export interface RFAItem {
 }
 
 export interface RFA {
-  id: number;
+  id: number; // Shared PK with Correspondence
   rfaTypeId: number;
   createdBy: number;
   disciplineId?: number;
   revisions: {
+    id: number;
+    revisionNumber: number;
+    subject: string;
+    isCurrent: boolean;
+    createdAt?: string;
+    statusCode?: { statusCode: string; statusName: string };
     items?: {
        shopDrawingRevision?: {
+         id: number;
+         revisionLabel: string;
+         shopDrawing?: { drawingType?: { hasNumber: boolean } }; // Mock structure
          attachments?: { id: number; url: string; name: string }[]
        }
     }[];
@@ -24,25 +33,33 @@ export interface RFA {
     name: string;
     code: string;
   };
-  // Deprecated/Mapped fields (keep optional if frontend uses them elsewhere)
-  rfaId?: number;
-  rfaNumber?: string;
-  subject?: string;
-  status?: string;
-  createdAt?: string;
-  contractName?: string;
-  disciplineName?: string;
+  // Shared Correspondence Relation
+  correspondence?: {
+    id: number;
+    correspondenceNumber: string;
+    projectId: number;
+    originatorId?: number;
+    createdAt?: string;
+    project?: {
+      projectName: string;
+      projectCode: string;
+    };
+  };
+
+  // Deprecated/Mapped fields
+  correspondenceNumber?: string; // Convenience accessor
 }
 
 export interface CreateRFADto {
-  projectId?: number;
+  projectId: number;
   rfaTypeId: number;
-  title: string;
+  disciplineId?: number;
+  subject: string;
+  body?: string; // [New]
+  remarks?: string; // [New]
+  dueDate?: string; // [New]
   description?: string;
-  contractId: number;
-  disciplineId: number;
-  toOrganizationId: number;
-  dueDate?: string;
+  documentDate?: string;
+  details?: Record<string, any>;
   shopDrawingRevisionIds?: number[];
-  items: RFAItem[];
 }

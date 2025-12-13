@@ -1,7 +1,7 @@
 # Incident Response Procedures
 
 **Project:** LCBP3-DMS
-**Version:** 1.5.1
+**Version:** 1.6.0
 **Last Updated:** 2025-12-02
 
 ---
@@ -478,6 +478,6 @@ Database connection pool was exhausted due to slow queries not releasing connect
 
 ---
 
-**Version:** 1.5.1
+**Version:** 1.6.0
 **Last Review:** 2025-12-01
 **Next Review:** 2026-03-01

@@ -31,7 +31,7 @@ export class RfaWorkflowService {
     private readonly statusRepo: Repository<RfaStatusCode>,
     @InjectRepository(RfaApproveCode)
     private readonly approveCodeRepo: Repository<RfaApproveCode>,
-    private readonly dataSource: DataSource,
+    private readonly dataSource: DataSource
   ) {}
 
   /**
@@ -46,19 +46,23 @@ export class RfaWorkflowService {
       // 1. ดึงข้อมูล Revision ปัจจุบัน
       const revision = await this.revisionRepo.findOne({
         where: { id: rfaId, isCurrent: true },
-        relations: ['rfa'],
+        relations: [
+          'rfa',
+          'rfa.correspondence',
+          'rfa.correspondence.discipline',
+        ],
       });
 
       if (!revision) {
         throw new NotFoundException(
-          `Current Revision for RFA ID ${rfaId} not found`,
+          `Current Revision for RFA ID ${rfaId} not found`
         );
       }
 
       // 2. สร้าง Context (ข้อมูลประกอบการตัดสินใจ)
       const context = {
         rfaType: revision.rfa.rfaTypeId,
-        discipline: revision.rfa.discipline,
+        discipline: revision.rfa.correspondence?.discipline,
         ownerId: userId,
         // อาจเพิ่มเงื่อนไขอื่นๆ เช่น จำนวนวัน, ความเร่งด่วน
       };
@@ -69,7 +73,7 @@ export class RfaWorkflowService {
         this.WORKFLOW_CODE,
         'rfa_revision',
         revision.id.toString(),
-        context,
+        context
       );
 
       // 4. Auto Transition: SUBMIT
@@ -78,7 +82,7 @@ export class RfaWorkflowService {
         'SUBMIT',
         userId,
         note || 'RFA Submitted',
-        {},
+        {}
       );
 
       // 5. Sync สถานะกลับตาราง RFA Revision
@@ -86,13 +90,13 @@ export class RfaWorkflowService {
         revision,
         transitionResult.nextState,
         undefined,
-        queryRunner,
+        queryRunner
       );
 
       await queryRunner.commitTransaction();
 
       this.logger.log(
-        `Started workflow for RFA #${rfaId} (Instance: ${instance.id})`,
+        `Started workflow for RFA #${rfaId} (Instance: ${instance.id})`
       );
 
       return {
@@ -114,7 +118,7 @@ export class RfaWorkflowService {
   async processAction(
     instanceId: string,
     userId: number,
-    dto: WorkflowTransitionDto,
+    dto: WorkflowTransitionDto
   ) {
     // 1. ส่งคำสั่งให้ Engine ประมวลผล
     const result = await this.workflowEngine.processTransition(
@@ -122,7 +126,7 @@ export class RfaWorkflowService {
       dto.action,
       userId,
       dto.comment,
-      dto.payload,
+      dto.payload
     );
 
     // 2. Sync สถานะกลับตารางเดิม
@@ -148,7 +152,7 @@ export class RfaWorkflowService {
     revision: RfaRevision,
     workflowState: string,
     approveCodeStr?: string, // เช่น '1A', '1C'
-    queryRunner?: any,
+    queryRunner?: any
   ) {
     // 1. Map Workflow State -> RFA Status Code (DFT, FAP, FCO...)
     const statusMap: Record<string, string> = {
@@ -187,7 +191,7 @@ export class RfaWorkflowService {
     await manager.save(revision);
 
     this.logger.log(
-      `Synced RFA Status Revision ${revision.id}: State=${workflowState} -> Status=${targetStatusCode}, AppCode=${approveCodeStr}`,
+      `Synced RFA Status Revision ${revision.id}: State=${workflowState} -> Status=${targetStatusCode}, AppCode=${approveCodeStr}`
     );
   }
 }

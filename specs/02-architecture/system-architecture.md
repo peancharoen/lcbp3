@@ -943,9 +943,9 @@ graph LR
 
 **Document Control:**
 
-- **Version:** 1.5.1
+- **Version:** 1.6.0
 - **Status:** Active
-- **Last Updated:** 2025-12-02
+- **Last Updated:** 2025-12-13
 - **Owner:** Nattanin Peancharoen
 
 ```

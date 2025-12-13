@@ -10,9 +10,9 @@
 
 | Attribute          | Value                            |
 | ------------------ | -------------------------------- |
-| **Version**        | 1.5.1                            |
+| **Version**        | 1.6.0                            |
 | **Status**         | Active                           |
-| **Last Updated**   | 2025-12-02                       |
+| **Last Updated**   | 2025-12-13                       |
 | **Owner**          | Nattanin Peancharoen             |
 | **Classification** | Internal Technical Documentation |
 
@@ -463,6 +463,7 @@ sequenceDiagram
 
 | Version | Date       | Author      | Changes                            |
 | ------- | ---------- | ----------- | ---------------------------------- |
+| 1.6.0   | 2025-12-13 | Nattanin P. | Schema refactoring v1.6.0          |
 | 1.5.0   | 2025-11-30 | Nattanin P. | Initial architecture specification |
 | 1.4.5   | 2025-11-29 | -           | Added security requirements        |
 | 1.4.4   | 2025-11-28 | -           | Enhanced resilience patterns       |
@@ -489,7 +490,7 @@ sequenceDiagram
 
 <div align="center">
 
-**LCBP3-DMS Architecture Specification v1.5.0**
+**LCBP3-DMS Architecture Specification v1.6.0**
 
 [System Architecture](./system-architecture.md) • [API Design](./api-design.md) • [Data Model](./data-model.md)
 

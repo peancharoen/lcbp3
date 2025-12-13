@@ -3,7 +3,7 @@
 ---
 
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
-**Version:** 1.5.1
+**Version:** 1.6.0
 **Last Updated:** 2025-12-02
 **Owner:** Operations Team
 **Status:** Active
@@ -932,6 +932,6 @@ docker exec lcbp3-mariadb mysql -u root -p -e "
 
 ---
 
-**Version:** 1.5.1
+**Version:** 1.6.0
 **Last Updated:** 2025-12-02
 **Next Review:** 2026-06-01

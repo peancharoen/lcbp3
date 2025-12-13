@@ -20,6 +20,7 @@
 | **TASK-BE-011** | Notification & Audit      | ✅ **Done**        | 100%         | Global Audit Interceptor & Notification Module active.                      |
 | **TASK-BE-012** | Master Data Management    | ✅ **Done**        | 100%         | Disciplines, SubTypes, Tags, Config APIs complete.                          |
 | **TASK-BE-013** | User Management           | ✅ **Done**        | 100%         | CRUD, Assignments, Preferences, Soft Delete complete.                       |
+| **TASK-BE-015** | Schema v1.6.0 Migration   | ✅ **Done**        | 100%         | Correspondence/RFA Shared PK, New Fields (2025-12-13).                      |
 
 ## 🛠 Detailed Findings by Component
 

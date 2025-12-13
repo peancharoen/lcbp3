@@ -21,8 +21,7 @@ export function RFAList({ data }: RFAListProps) {
       accessorKey: "rfa_number",
       header: "RFA No.",
       cell: ({ row }) => {
-        const rev = row.original.revisions?.[0];
-        return <span className="font-medium">{rev?.correspondence?.correspondenceNumber || '-'}</span>;
+        return <span className="font-medium">{row.original.correspondence?.correspondenceNumber || '-'}</span>;
       },
     },
     {
@@ -31,8 +30,8 @@ export function RFAList({ data }: RFAListProps) {
       cell: ({ row }) => {
         const rev = row.original.revisions?.[0];
         return (
-          <div className="max-w-[300px] truncate" title={rev?.title}>
-            {rev?.title || '-'}
+          <div className="max-w-[300px] truncate" title={rev?.subject}>
+            {rev?.subject || '-'}
           </div>
         );
       },
@@ -41,8 +40,7 @@ export function RFAList({ data }: RFAListProps) {
       accessorKey: "contract_name", // AccessorKey can be anything if we provide cell
       header: "Contract",
       cell: ({ row }) => {
-        const rev = row.original.revisions?.[0];
-        return <span>{rev?.correspondence?.project?.projectName || '-'}</span>;
+        return <span>{row.original.correspondence?.project?.projectName || '-'}</span>;
       },
     },
     {
@@ -54,7 +52,10 @@ export function RFAList({ data }: RFAListProps) {
       accessorKey: "createdAt",
       header: "Created",
       cell: ({ row }) => {
-         const date = row.original.revisions?.[0]?.correspondence?.createdAt;
+         const date = row.original.correspondence?.createdAt || row.original.revisions?.[0]?.createdAt; // Fallback or strict?
+         // In backend I set RFA -> Correspondence (createdAt is in Correspondence base)
+         // But RFA revision also has createdAt?
+         // Use correspondence.createdAt usually for document date.
          return date ? format(new Date(date), "dd MMM yyyy") : '-';
       },
     },

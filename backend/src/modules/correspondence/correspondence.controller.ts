@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Query,
   Delete,
+  Put,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +20,7 @@ import {
 import { CorrespondenceService } from './correspondence.service';
 import { CorrespondenceWorkflowService } from './correspondence-workflow.service';
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
+import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
 import { SubmitCorrespondenceDto } from './dto/submit-correspondence.dto';
 import { WorkflowActionDto } from './dto/workflow-action.dto';
 import { AddReferenceDto } from './dto/add-reference.dto';
@@ -92,6 +94,23 @@ export class CorrespondenceController {
     );
   }
 
+  @Post('preview-number')
+  @ApiOperation({ summary: 'Preview next document number' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return preview number and status.',
+  })
+  @RequirePermission('correspondence.create')
+  previewNumber(
+    @Body() createDto: CreateCorrespondenceDto,
+    @Request() req: Request & { user: unknown }
+  ) {
+    return this.correspondenceService.previewDocumentNumber(
+      createDto,
+      req.user as Parameters<typeof this.correspondenceService.create>[1]
+    );
+  }
+
   @Get()
   @ApiOperation({ summary: 'Search correspondences' })
   @ApiResponse({ status: 200, description: 'Return list of correspondences.' })
@@ -138,6 +157,26 @@ export class CorrespondenceController {
   @RequirePermission('document.view')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.correspondenceService.findOne(id);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update correspondence (Draft only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Correspondence updated successfully.',
+  })
+  @RequirePermission('correspondence.create') // Assuming create permission is enough for draft update, or add 'correspondence.edit'
+  @Audit('correspondence.update', 'correspondence')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateCorrespondenceDto,
+    @Request() req: Request & { user: unknown }
+  ) {
+    return this.correspondenceService.update(
+      id,
+      updateDto,
+      req.user as Parameters<typeof this.correspondenceService.create>[1]
+    );
   }
 
   @Get(':id/references')

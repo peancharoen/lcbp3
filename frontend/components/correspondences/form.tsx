@@ -21,6 +21,8 @@ import { useCreateCorrespondence, useUpdateCorrespondence } from "@/hooks/use-co
 import { Organization } from "@/types/organization";
 import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines } from "@/hooks/use-master-data";
 import { CreateCorrespondenceDto } from "@/types/dto/correspondence/create-correspondence.dto";
+import { useState, useEffect } from "react";
+import { correspondenceService } from "@/lib/services/correspondence.service";
 
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
@@ -29,6 +31,9 @@ const correspondenceSchema = z.object({
   disciplineId: z.number().optional(),
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().optional(),
+  body: z.string().optional(),
+  remarks: z.string().optional(),
+  dueDate: z.string().optional(), // ISO Date string
   fromOrganizationId: z.number().min(1, "Please select From Organization"),
   toOrganizationId: z.number().min(1, "Please select To Organization"),
   importance: z.enum(["NORMAL", "HIGH", "URGENT"]),
@@ -54,10 +59,14 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
     projectId: initialData?.projectId || undefined,
     documentTypeId: initialData?.correspondenceTypeId || undefined,
     disciplineId: initialData?.disciplineId || undefined,
-    subject: currentRev?.title || "",
+    subject: currentRev?.subject || currentRev?.title || "",
     description: currentRev?.description || "",
+    body: currentRev?.body || "",
+    remarks: currentRev?.remarks || "",
+    dueDate: currentRev?.dueDate ? new Date(currentRev.dueDate).toISOString().split('T')[0] : undefined,
     fromOrganizationId: initialData?.originatorId || undefined,
-    toOrganizationId: currentRev?.details?.to_organization_id || undefined,
+    // Map initial recipient (TO) - Simplified for now
+    toOrganizationId: initialData?.recipients?.find((r: any) => r.recipientType === 'TO')?.recipientOrganizationId || undefined,
     importance: currentRev?.details?.importance || "NORMAL",
   };
 
@@ -84,11 +93,16 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
       projectId: data.projectId,
       typeId: data.documentTypeId,
       disciplineId: data.disciplineId,
-      title: data.subject,
+      subject: data.subject,
       description: data.description,
+      body: data.body,
+      remarks: data.remarks,
+      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : undefined,
       originatorId: data.fromOrganizationId,
+      recipients: [
+        { organizationId: data.toOrganizationId, type: 'TO' }
+      ],
       details: {
-        to_organization_id: data.toOrganizationId,
         importance: data.importance
       },
     };
@@ -108,8 +122,56 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  // -- Preview Logic --
+  const [preview, setPreview] = useState<{ number: string; isDefaultTemplate: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!projectId || !documentTypeId || !fromOrgId || !toOrgId) {
+       setPreview(null);
+       return;
+    }
+
+    const fetchPreview = async () => {
+       try {
+         const res = await correspondenceService.previewNumber({
+             projectId,
+             typeId: documentTypeId,
+             disciplineId,
+             originatorId: fromOrgId,
+             // Map recipients structure matching backend expectation
+             recipients: [{ organizationId: toOrgId, type: 'TO' }],
+             // Add date just to be safe, though service uses 'now'
+             dueDate: new Date().toISOString()
+         });
+         setPreview(res);
+       } catch (err) {
+         setPreview(null);
+       }
+    };
+
+    const timer = setTimeout(fetchPreview, 500);
+    return () => clearTimeout(timer);
+  }, [projectId, documentTypeId, disciplineId, fromOrgId, toOrgId]);
+
+
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl space-y-6">
+      {/* Preview Section */}
+      {preview && (
+        <div className="p-4 rounded-md bg-muted border border-border">
+           <p className="text-sm text-muted-foreground mb-1">Document Number Preview</p>
+           <div className="flex items-center gap-3">
+             <span className="text-xl font-bold font-mono text-primary tracking-wide">{preview.number}</span>
+             {preview.isDefaultTemplate && (
+                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                   Default Template
+                </span>
+             )}
+           </div>
+        </div>
+      )}
+
       {/* Document Metadata Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Project Dropdown */}
@@ -191,14 +253,37 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
         )}
       </div>
 
+       {/* Body */}
+       <div className="space-y-2">
+        <Label htmlFor="body">Body (Content)</Label>
+        <Textarea
+          id="body"
+          {...register("body")}
+          rows={6}
+          placeholder="Enter letter content..."
+        />
+      </div>
+
+      {/* Remarks & Due Date */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="remarks">Remarks</Label>
+            <Input id="remarks" {...register("remarks")} placeholder="Optional remarks" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="dueDate">Due Date</Label>
+            <Input id="dueDate" type="date" {...register("dueDate")} />
+          </div>
+      </div>
+
       {/* Description */}
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">Description (Internal Note)</Label>
         <Textarea
           id="description"
           {...register("description")}
-          rows={4}
-          placeholder="Enter description details..."
+          rows={2}
+          placeholder="Enter description..."
         />
       </div>
 

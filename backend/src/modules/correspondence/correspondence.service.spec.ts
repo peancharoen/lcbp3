@@ -118,8 +118,8 @@ describe('CorrespondenceService', () => {
   describe('findAll', () => {
     it('should return correspondences array', async () => {
       const result = await service.findAll({ projectId: 1 });
-      expect(Array.isArray(result)).toBeTruthy();
-      expect(result).toBeDefined();
+      expect(Array.isArray(result.data)).toBeTruthy();
+      expect(result.meta).toBeDefined();
     });
   });
 });

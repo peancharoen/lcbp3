@@ -1,7 +1,7 @@
 # Quick Start Guide
 
 **Project:** LCBP3-DMS
-**Version:** 1.5.1
+**Version:** 1.6.0
 **Last Updated:** 2025-12-02
 
 ---
@@ -579,5 +579,5 @@ git push origin feature/my-feature
 
 **Welcome aboard! 🎉**
 
-**Version:** 1.5.1
+**Version:** 1.6.0
 **Last Updated:** 2025-12-02

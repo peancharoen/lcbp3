@@ -30,11 +30,11 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
       ),
     },
     {
-      accessorKey: "title",
+      accessorKey: "subject",
       header: "Subject",
       cell: ({ row }) => (
-        <div className="max-w-[300px] truncate" title={row.original.title}>
-          {row.original.title}
+        <div className="max-w-[300px] truncate" title={row.original.subject}>
+          {row.original.subject}
         </div>
       ),
     },

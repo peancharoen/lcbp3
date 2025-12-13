@@ -35,14 +35,23 @@ export class CorrespondenceRevision {
   @Column({ name: 'correspondence_status_id' })
   statusId!: number;
 
-  @Column({ length: 255 })
-  title!: string;
+  @Column({ length: 500 })
+  subject!: string;
 
   @Column({ name: 'description', type: 'text', nullable: true })
   description?: string;
 
+  @Column({ type: 'text', nullable: true })
+  body?: string;
+
+  @Column({ type: 'text', nullable: true })
+  remarks?: string;
+
   @Column({ type: 'json', nullable: true })
   details?: any; // เก็บข้อมูลแบบ Dynamic ตาม Type
+
+  @Column({ name: 'schema_version', default: 1 })
+  schemaVersion!: number;
 
   // ✅ [New] Virtual Column: ดึง Project ID จาก JSON details
   @Column({

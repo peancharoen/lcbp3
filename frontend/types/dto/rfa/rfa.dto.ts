@@ -12,7 +12,13 @@ export interface CreateRfaDto {
   disciplineId?: number;
 
   /** หัวข้อเรื่อง */
-  title: string;
+  subject: string;
+
+  /** เนื้อหา (Rich Text) */
+  body?: string;
+
+  /** หมายเหตุ */
+  remarks?: string;
 
   /** ส่งถึงใคร (สำหรับ Routing Step 1) */
   toOrganizationId: number;

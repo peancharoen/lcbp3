@@ -5,19 +5,28 @@ export interface CreateCorrespondenceDto {
   projectId: number;
 
   /** ID ของประเภทเอกสาร (เช่น RFA, LETTER) */
-  typeId: number; 
-  
+  typeId: number;
+
   /** [Req 6B] สาขางาน (เช่น GEN, STR) */
-  disciplineId?: number; 
+  disciplineId?: number;
 
   /** [Req 6B] ประเภทย่อย (เช่น MAT, SHP สำหรับ Transmittal/RFA) */
   subTypeId?: number;
- 
+
   /** หัวข้อเอกสาร */
-  title: string;
+  subject: string;
 
   /** รายละเอียดเพิ่มเติม (Optional) */
   description?: string;
+
+  /** เนื้อหาเอกสาร (Rich Text) */
+  body?: string;
+
+  /** หมายเหตุ */
+  remarks?: string;
+
+  /** กำหนดวันตอบกลับ (ISO Date String) */
+  dueDate?: string;
 
   /** ข้อมูล JSON เฉพาะประเภท (เช่น RFI question, RFA details) */
   details?: Record<string, any>;
@@ -29,4 +38,7 @@ export interface CreateCorrespondenceDto {
    * ใช้กรณี Admin สร้างเอกสารแทนผู้อื่น
    */
   originatorId?: number;
+
+  /** รายชื่อผู้รับ */
+  recipients?: { organizationId: number; type: 'TO' | 'CC' }[];
 }
