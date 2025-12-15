@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { DocumentNumberingService } from './document-numbering.service';
 import { DocumentNumberingController } from './document-numbering.controller';
+import { DocumentNumberingAdminController } from './document-numbering-admin.controller';
 import { DocumentNumberFormat } from './entities/document-number-format.entity';
 import { DocumentNumberCounter } from './entities/document-number-counter.entity';
 import { DocumentNumberAudit } from './entities/document-number-audit.entity'; // [P0-4]
@@ -34,7 +35,7 @@ import { UserModule } from '../user/user.module';
       CorrespondenceSubType,
     ]),
   ],
-  controllers: [DocumentNumberingController],
+  controllers: [DocumentNumberingController, DocumentNumberingAdminController],
   providers: [DocumentNumberingService],
   exports: [DocumentNumberingService],
 })

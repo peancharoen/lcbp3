@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useProcessRFA } from "@/hooks/use-rfa";
 
 interface RFADetailProps {
-  data: RFA;
+  data: any;
 }
 
 export function RFADetail({ data }: RFADetailProps) {
@@ -152,7 +152,7 @@ export function RFADetail({ data }: RFADetailProps) {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {data.items.map((item) => (
+                      {data.items.map((item: any) => (
                         <tr key={item.id}>
                           <td className="px-4 py-3 font-medium">{item.itemNo}</td>
                           <td className="px-4 py-3">{item.description}</td>

@@ -34,7 +34,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
     setLoading(true);
     try {
         // Note: generateTestNumber expects keys: organizationId, disciplineId
-        const result = await numberingApi.generateTestNumber(template.templateId, {
+        const result = await numberingApi.generateTestNumber(template.id || template.templateId || 0, {
             organizationId: testData.organizationId,
             disciplineId: testData.disciplineId
         });

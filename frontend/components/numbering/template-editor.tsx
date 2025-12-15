@@ -15,48 +15,52 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { NumberingTemplate } from '@/lib/api/numbering';
+import { cn } from '@/lib/utils';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
 
-const DOCUMENT_TYPES = [
-  { value: 'RFA', label: 'Request for Approval (RFA)' },
-  { value: 'RFI', label: 'Request for Information (RFI)' },
-  { value: 'TRANSMITTAL', label: 'Transmittal' },
-  { value: 'EMAIL', label: 'Email' },
-  { value: 'INSTRUCTION', label: 'Instruction' },
-  { value: 'LETTER', label: 'Letter' },
-  { value: 'MEMO', label: 'Memorandum' },
-  { value: 'MOM', label: 'Minutes of Meeting' },
-  { value: 'NOTICE', label: 'Notice' },
-  { value: 'OTHER', label: 'Other' },
-];
-
+// Aligned with Backend replacement logic
 const VARIABLES = [
   { key: '{PROJECT}', name: 'Project Code', example: 'LCBP3' },
-  { key: '{ORIGINATOR}', name: 'Originator Code', example: 'PAT' },
+  { key: '{ORG}', name: 'Originator Code', example: 'PAT' },
   { key: '{RECIPIENT}', name: 'Recipient Code', example: 'CN' },
-  { key: '{CORR_TYPE}', name: 'Correspondence Type', example: 'RFA' },
-  { key: '{SUB_TYPE}', name: 'Sub Type', example: '21' },
-  { key: '{DISCIPLINE}', name: 'Discipline', example: 'STR' },
-  { key: '{RFA_TYPE}', name: 'RFA Type', example: 'SDW' },
-  { key: '{YEAR:B.E.}', name: 'Year (B.E.)', example: '2568' },
-  { key: '{YEAR:A.D.}', name: 'Year (A.D.)', example: '2025' },
+  { key: '{TYPE}', name: 'Type Code', example: 'RFA' },
+  { key: '{DISCIPLINE}', name: 'Discipline Code', example: 'STR' },
+  { key: '{SUBTYPE}', name: 'Sub-Type Code', example: 'GEN' },
+  { key: '{SUBTYPE_NUM}', name: 'Sub-Type Number', example: '01' },
+  { key: '{YEAR}', name: 'Year (B.E.)', example: '2568' },
+  { key: '{YEAR_SHORT}', name: 'Year Short (68)', example: '68' },
   { key: '{SEQ:4}', name: 'Sequence (4-digit)', example: '0001' },
-  { key: '{REV}', name: 'Revision', example: 'A' },
 ];
 
 export interface TemplateEditorProps {
     template?: NumberingTemplate;
     projectId: number;
     projectName: string;
+    correspondenceTypes: any[];
+    disciplines: any[];
     onSave: (data: Partial<NumberingTemplate>) => void;
     onCancel: () => void;
 }
 
-export function TemplateEditor({ template, projectId, projectName, onSave, onCancel }: TemplateEditorProps) {
-  const [format, setFormat] = useState(template?.templateFormat || '');
-  const [docType, setDocType] = useState(template?.documentTypeName || '');
-  const [discipline, setDiscipline] = useState(template?.disciplineCode || '');
+export function TemplateEditor({
+  template,
+  projectId,
+  projectName,
+  correspondenceTypes,
+  disciplines,
+  onSave,
+  onCancel
+}: TemplateEditorProps) {
+  const [format, setFormat] = useState(template?.formatTemplate || template?.templateFormat || '');
+  const [typeId, setTypeId] = useState<string>(template?.correspondenceTypeId?.toString() || '');
+  const [disciplineId, setDisciplineId] = useState<string>(template?.disciplineId?.toString() || '0');
   const [padding, setPadding] = useState(template?.paddingLength || 4);
   const [reset, setReset] = useState(template?.resetAnnually ?? true);
+  const [isActive, setIsActive] = useState(template?.isActive ?? true);
 
   const [preview, setPreview] = useState('');
 
@@ -64,17 +68,25 @@ export function TemplateEditor({ template, projectId, projectName, onSave, onCan
     // Generate preview
     let previewText = format || '';
     VARIABLES.forEach((v) => {
+        // Simple mock replacement for preview
         let replacement = v.example;
-        // Dynamic preview for dates to be more realistic
-        if (v.key === '{YYYY}') replacement = new Date().getFullYear().toString();
-        if (v.key === '{YY}') replacement = new Date().getFullYear().toString().slice(-2);
-        if (v.key === '{THXXXX}') replacement = (new Date().getFullYear() + 543).toString();
-        if (v.key === '{THXX}') replacement = (new Date().getFullYear() + 543).toString().slice(-2);
+        if (v.key === '{YEAR}') replacement = (new Date().getFullYear() + 543).toString();
+        if (v.key === '{YEAR_SHORT}') replacement = (new Date().getFullYear() + 543).toString().slice(-2);
+
+        // Dynamic context based on selection (optional visual enhancement)
+        if (v.key === '{TYPE}' && typeId) {
+             const t = correspondenceTypes.find(ct => ct.id.toString() === typeId);
+             if (t) replacement = t.typeCode;
+        }
+        if (v.key === '{DISCIPLINE}' && disciplineId !== '0') {
+             const d = disciplines.find(di => di.id.toString() === disciplineId);
+             if (d) replacement = d.disciplineCode;
+        }
 
         previewText = previewText.replace(new RegExp(v.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacement);
     });
     setPreview(previewText);
-  }, [format]);
+  }, [format, typeId, disciplineId, correspondenceTypes, disciplines]);
 
   const insertVariable = (variable: string) => {
     setFormat((prev) => prev + variable);
@@ -84,140 +96,151 @@ export function TemplateEditor({ template, projectId, projectName, onSave, onCan
       onSave({
           ...template,
           projectId: projectId,
-          templateFormat: format,
-          documentTypeName: docType,
-          disciplineCode: discipline || undefined,
+          correspondenceTypeId: Number(typeId),
+          disciplineId: Number(disciplineId),
+          formatTemplate: format,
+          templateFormat: format, // Legacy support
           paddingLength: padding,
           resetAnnually: reset,
+          isActive: isActive,
           exampleNumber: preview
       });
   };
 
+  const isValid = format.length > 0 && typeId;
+
   return (
     <Card className="p-6 space-y-6">
-      <div>
-        <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">{template ? 'Edit Template' : 'New Template'}</h3>
-            <Badge variant="outline" className="text-base px-3 py-1">
+      <div className="flex justify-between items-start">
+        <div>
+           <div className="flex items-center gap-2 mb-1">
+             <h3 className="text-lg font-semibold">{template ? 'Edit Template' : 'New Template'}</h3>
+             <Badge variant={isActive ? "default" : "secondary"}>
+                {isActive ? 'Active' : 'Inactive'}
+             </Badge>
+           </div>
+           <p className="text-sm text-muted-foreground">Define how document numbers are generated for this project.</p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+             <Badge variant="outline" className="text-base px-3 py-1 bg-slate-50">
                 Project: {projectName}
             </Badge>
-        </div>
-
-        <div className="grid gap-4">
-          <div>
-            <Label>Document Type *</Label>
-            <Select value={docType} onValueChange={setDocType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select document type" />
-              </SelectTrigger>
-              <SelectContent>
-                {DOCUMENT_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Discipline (Optional)</Label>
-            <Select value={discipline || "ALL"} onValueChange={(val) => setDiscipline(val === "ALL" ? "" : val)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All disciplines" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All</SelectItem>
-                <SelectItem value="STR">STR - Structure</SelectItem>
-                <SelectItem value="ARC">ARC - Architecture</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Template Format *</Label>
-            <div className="space-y-2">
-              <Input
-                value={format}
-                onChange={(e) => setFormat(e.target.value)}
-                placeholder="e.g., {ORIGINATOR}-{RECIPIENT}-{DOCTYPE}-{YYYY}-{SEQ}"
-                className="font-mono text-base"
-              />
-              <div className="flex flex-wrap gap-2">
-                {VARIABLES.map((v) => (
-                  <Button
-                    key={v.key}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => insertVariable(v.key)}
-                    type="button"
-                    className="font-mono text-xs"
-                  >
-                    {v.key}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <Label>Preview</Label>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-gray-600 mb-1">Example number:</p>
-              <p className="text-2xl font-mono font-bold text-green-700">
-                {preview || 'Enter format above'}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Sequence Padding Length</Label>
-              <Input
-                type="number"
-                value={padding}
-                onChange={e => setPadding(Number(e.target.value))}
-                min={1} max={10}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Number of digits (e.g., 4 = 0001)
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox checked={reset} onCheckedChange={(checked) => setReset(!!checked)} />
-              <span className="text-sm select-none">Reset annually (on January 1st)</span>
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+               <Checkbox checked={isActive} onCheckedChange={(c) => setIsActive(!!c)} />
+               Active
             </label>
-          </div>
         </div>
       </div>
 
-      {/* Variable Reference */}
-      <div>
-        <h4 className="font-semibold mb-3">Available Variables</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {VARIABLES.map((v) => (
-            <div
-              key={v.key}
-              className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded border"
-            >
-              <div>
-                <Badge variant="outline" className="font-mono bg-white dark:bg-black">
-                  {v.key}
-                </Badge>
-                <p className="text-xs text-muted-foreground mt-1">{v.name}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Configuration Column */}
+          <div className="space-y-4">
+             <div>
+                <Label>Document Type *</Label>
+                <Select value={typeId} onValueChange={setTypeId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {correspondenceTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.id.toString()}>
+                        {type.typeCode} - {type.typeName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <span className="text-sm text-foreground">{v.example}</span>
-            </div>
-          ))}
-        </div>
+
+              <div>
+                <Label>Discipline (Optional)</Label>
+                <Select value={disciplineId} onValueChange={setDisciplineId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All/None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">All Disciplines (Default)</SelectItem>
+                    {disciplines.map((d) => (
+                      <SelectItem key={d.id} value={d.id.toString()}>
+                        {d.disciplineCode} - {d.disciplineName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                   Specific discipline templates take precedence over 'All'.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Padding Length</Label>
+                  <Input
+                    type="number"
+                    value={padding}
+                    onChange={e => setPadding(Number(e.target.value))}
+                    min={1} max={10}
+                  />
+                </div>
+                <div>
+                   <Label>Reset Rule</Label>
+                   <div className="flex items-center h-10">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox checked={reset} onCheckedChange={(c) => setReset(!!c)} />
+                        <span className="text-sm">Reset Annually</span>
+                      </label>
+                   </div>
+                </div>
+              </div>
+          </div>
+
+          {/* Format Column */}
+          <div className="space-y-4">
+              <div>
+                <Label>Template Format *</Label>
+                <Input
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value)}
+                  placeholder="{ORG}-{TYPE}-{SEQ:4}"
+                  className="font-mono text-base mb-2"
+                />
+                 <div className="flex flex-wrap gap-2">
+                    {VARIABLES.map((v) => (
+                      <HoverCard key={v.key}>
+                        <HoverCardTrigger asChild>
+                           <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => insertVariable(v.key)}
+                            type="button"
+                            className="font-mono text-xs bg-slate-50 hover:bg-slate-100"
+                          >
+                            {v.key}
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-60 p-3">
+                           <p className="font-semibold text-sm">{v.name}</p>
+                           <p className="text-xs text-muted-foreground mt-1">Example: <span className="font-mono">{v.example}</span></p>
+                        </HoverCardContent>
+                      </HoverCard>
+                    ))}
+                  </div>
+              </div>
+
+              <div className="bg-green-50/50 border border-green-200 rounded-lg p-4">
+                  <p className="text-xs uppercase tracking-wide text-green-700 font-semibold mb-2">Preview Output</p>
+                  <p className="text-2xl font-mono font-bold text-green-800 tracking-tight">
+                    {preview || '...'}
+                  </p>
+                  <p className="text-xs text-green-600 mt-2">
+                     * This is an approximation. Actual numbers depend on runtime context.
+                  </p>
+              </div>
+          </div>
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 pt-4 border-t">
         <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={handleSave}>Save Template</Button>
+        <Button onClick={handleSave} disabled={!isValid}>Save Template</Button>
       </div>
     </Card>
   );

@@ -141,7 +141,9 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
              // Map recipients structure matching backend expectation
              recipients: [{ organizationId: toOrgId, type: 'TO' }],
              // Add date just to be safe, though service uses 'now'
-             dueDate: new Date().toISOString()
+             dueDate: new Date().toISOString(),
+             // [Fix] Subject is required by DTO validation, send placeholder if empty
+             subject: watch('subject') || "Preview Subject"
          });
          setPreview(res);
        } catch (err) {
@@ -157,18 +159,47 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl space-y-6">
+      {/* Existing Document Number (Read Only) */}
+      {initialData?.correspondenceNumber && (
+        <div className="space-y-2">
+          <Label>Current Document Number</Label>
+          <div className="flex items-center gap-2">
+             <Input value={initialData.correspondenceNumber} disabled readOnly className="bg-muted font-mono font-bold text-lg w-full" />
+             {preview && preview.number !== initialData.correspondenceNumber && (
+                 <span className="text-xs text-amber-600 font-semibold whitespace-nowrap px-2">
+                    Start Change Detected
+                 </span>
+             )}
+          </div>
+        </div>
+      )}
+
       {/* Preview Section */}
       {preview && (
-        <div className="p-4 rounded-md bg-muted border border-border">
-           <p className="text-sm text-muted-foreground mb-1">Document Number Preview</p>
+        <div className={`p-4 rounded-md border ${preview.number !== initialData?.correspondenceNumber ? 'bg-amber-50 border-amber-200' : 'bg-muted border-border'}`}>
+           <p className="text-sm font-semibold mb-1 flex items-center gap-2">
+              {initialData?.correspondenceNumber ? "New Document Number (Preview)" : "Document Number Preview"}
+              {preview.number !== initialData?.correspondenceNumber && initialData?.correspondenceNumber && (
+                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+                      Will Update
+                  </span>
+              )}
+           </p>
            <div className="flex items-center gap-3">
-             <span className="text-xl font-bold font-mono text-primary tracking-wide">{preview.number}</span>
+             <span className={`text-xl font-bold font-mono tracking-wide ${preview.number !== initialData?.correspondenceNumber ? 'text-amber-700' : 'text-primary'}`}>
+                {preview.number}
+             </span>
              {preview.isDefaultTemplate && (
                 <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
                    Default Template
                 </span>
              )}
            </div>
+           {preview.number !== initialData?.correspondenceNumber && initialData?.correspondenceNumber && (
+              <p className="text-xs text-muted-foreground mt-2">
+                 * The document number will be regenerated because critical fields were changed.
+              </p>
+           )}
         </div>
       )}
 

@@ -418,6 +418,8 @@ export class CorrespondenceService {
       correspondenceUpdate.disciplineId = updateDto.disciplineId;
     if (updateDto.projectId)
       correspondenceUpdate.projectId = updateDto.projectId;
+    if (updateDto.originatorId)
+      correspondenceUpdate.originatorId = updateDto.originatorId;
 
     if (Object.keys(correspondenceUpdate).length > 0) {
       await this.correspondenceRepo.update(id, correspondenceUpdate);
@@ -457,57 +459,109 @@ export class CorrespondenceService {
 
     // 6. Regenerate Document Number if structural fields changed (Recipient, Discipline, Type, Project)
     // AND it is a DRAFT.
-    const hasRecipientChange = !!updateDto.recipients?.find(
-      (r) => r.type === 'TO'
-    );
-    const hasStructureChange =
-      updateDto.typeId ||
-      updateDto.disciplineId ||
-      updateDto.projectId ||
-      hasRecipientChange;
 
-    if (hasStructureChange) {
-      // Re-fetch fresh data for context
-      const freshCorr = await this.correspondenceRepo.findOne({
-        where: { id },
-        relations: ['type', 'recipients', 'recipients.recipientOrganization'],
-      });
+    // Fetch fresh data for context and comparison
+    const currentCorr = await this.correspondenceRepo.findOne({
+      where: { id },
+      relations: ['type', 'recipients', 'recipients.recipientOrganization'],
+    });
 
-      if (freshCorr) {
-        const toRecipient = freshCorr.recipients?.find(
-          (r) => r.recipientType === 'TO'
+    if (currentCorr) {
+      const currentToRecipient = currentCorr.recipients?.find(
+        (r) => r.recipientType === 'TO'
+      );
+      const currentRecipientId = currentToRecipient?.recipientOrganizationId;
+
+      // Check for ACTUAL value changes
+      const isProjectChanged =
+        updateDto.projectId !== undefined &&
+        updateDto.projectId !== currentCorr.projectId;
+      const isOriginatorChanged =
+        updateDto.originatorId !== undefined &&
+        updateDto.originatorId !== currentCorr.originatorId;
+      const isDisciplineChanged =
+        updateDto.disciplineId !== undefined &&
+        updateDto.disciplineId !== currentCorr.disciplineId;
+      const isTypeChanged =
+        updateDto.typeId !== undefined &&
+        updateDto.typeId !== currentCorr.correspondenceTypeId;
+
+      let isRecipientChanged = false;
+      let newRecipientId: number | undefined;
+
+      if (updateDto.recipients) {
+        // Safe check for 'type' or 'recipientType' (mismatch safeguard)
+        const newToRecipient = updateDto.recipients.find(
+          (r: any) => r.type === 'TO' || r.recipientType === 'TO'
         );
-        const recipientOrganizationId = toRecipient?.recipientOrganizationId;
-        const type = freshCorr.type;
+        newRecipientId = newToRecipient?.organizationId;
 
+        if (newRecipientId !== currentRecipientId) {
+          isRecipientChanged = true;
+        }
+      }
+
+      if (
+        isProjectChanged ||
+        isDisciplineChanged ||
+        isTypeChanged ||
+        isRecipientChanged ||
+        isOriginatorChanged
+      ) {
+        const targetRecipientId = isRecipientChanged
+          ? newRecipientId
+          : currentRecipientId;
+
+        // Resolve Recipient Code for the NEW context
         let recipientCode = '';
-        if (toRecipient?.recipientOrganization) {
-          recipientCode = toRecipient.recipientOrganization.organizationCode;
-        } else if (recipientOrganizationId) {
-          // Fallback fetch if relation not loaded (though we added it)
+        if (targetRecipientId) {
           const recOrg = await this.orgRepo.findOne({
-            where: { id: recipientOrganizationId },
+            where: { id: targetRecipientId },
           });
           if (recOrg) recipientCode = recOrg.organizationCode;
         }
 
-        const orgCode = 'ORG'; // Placeholder
+        const orgCode = 'ORG'; // Placeholder - should be fetched from Originator if needed in future
 
-        const newDocNumber = await this.numberingService.generateNextNumber({
-          projectId: freshCorr.projectId,
-          originatorId: freshCorr.originatorId!,
-          typeId: freshCorr.correspondenceTypeId,
-          disciplineId: freshCorr.disciplineId,
-          // Use undefined for subTypeId if not present implicitly
+        // Prepare Contexts
+        const oldCtx = {
+          projectId: currentCorr.projectId,
+          originatorId: currentCorr.originatorId ?? 0,
+          typeId: currentCorr.correspondenceTypeId,
+          disciplineId: currentCorr.disciplineId,
+          recipientOrganizationId: currentRecipientId,
           year: new Date().getFullYear(),
-          recipientOrganizationId: recipientOrganizationId ?? 0,
+        };
+
+        const newCtx = {
+          projectId: updateDto.projectId ?? currentCorr.projectId,
+          originatorId: updateDto.originatorId ?? currentCorr.originatorId ?? 0,
+          typeId: updateDto.typeId ?? currentCorr.correspondenceTypeId,
+          disciplineId: updateDto.disciplineId ?? currentCorr.disciplineId,
+          recipientOrganizationId: targetRecipientId,
+          year: new Date().getFullYear(),
+          userId: user.user_id, // Pass User ID for Audit
           customTokens: {
-            TYPE_CODE: type?.typeCode || '',
+            TYPE_CODE: currentCorr.type?.typeCode || '',
             ORG_CODE: orgCode,
             RECIPIENT_CODE: recipientCode,
             REC_CODE: recipientCode,
           },
-        });
+        };
+
+        // If Type Changed, need NEW Type Code
+        if (isTypeChanged) {
+          const newType = await this.typeRepo.findOne({
+            where: { id: newCtx.typeId },
+          });
+          if (newType) newCtx.customTokens.TYPE_CODE = newType.typeCode;
+        }
+
+        const newDocNumber = await this.numberingService.updateNumberForDraft(
+          currentCorr.correspondenceNumber,
+          oldCtx,
+          newCtx
+        );
 
         await this.correspondenceRepo.update(id, {
           correspondenceNumber: newDocNumber,

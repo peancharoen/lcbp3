@@ -25,6 +25,17 @@ export class DocumentNumberAudit {
   @Column({ name: 'template_used', length: 200 })
   templateUsed!: string;
 
+  @Column({
+    name: 'operation',
+    type: 'enum',
+    enum: ['RESERVE', 'CONFIRM', 'MANUAL_OVERRIDE', 'VOID_REPLACE', 'CANCEL'],
+    default: 'CONFIRM',
+  })
+  operation!: string;
+
+  @Column({ name: 'metadata', type: 'json', nullable: true })
+  metadata?: any;
+
   @Column({ name: 'user_id' })
   userId!: number;
 

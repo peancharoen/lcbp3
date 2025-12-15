@@ -4,15 +4,27 @@ import { useState, useEffect } from "react";
 import { TemplateEditor } from "@/components/numbering/template-editor";
 import { SequenceViewer } from "@/components/numbering/sequence-viewer";
 import { numberingApi } from "@/lib/api/numbering";
-import { NumberingTemplate } from "@/types/numbering";
+import { NumberingTemplate } from "@/lib/api/numbering"; // Correct import
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCorrespondenceTypes, useContracts, useDisciplines } from "@/hooks/use-master-data";
+import { useProjects } from "@/hooks/use-projects";
 
 export default function EditTemplatePage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [template, setTemplate] = useState<NumberingTemplate | null>(null);
+
+  // Master Data
+  const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
+  const { data: projects = [] } = useProjects();
+  const projectId = template?.projectId || 1;
+  const { data: contracts = [] } = useContracts(projectId);
+  const contractId = contracts[0]?.id;
+  const { data: disciplines = [] } = useDisciplines(contractId);
+
+  const selectedProjectName = projects.find((p: any) => p.id === projectId)?.projectName || 'LCBP3';
 
   useEffect(() => {
     const fetchTemplate = async () => {
@@ -76,7 +88,9 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
           <TemplateEditor
             template={template}
             projectId={template.projectId || 1}
-            projectName="LCBP3"
+            projectName={selectedProjectName}
+            correspondenceTypes={correspondenceTypes}
+            disciplines={disciplines}
             onSave={handleSave}
             onCancel={handleCancel}
           />

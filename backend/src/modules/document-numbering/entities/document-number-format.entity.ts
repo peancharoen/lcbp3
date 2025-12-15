@@ -23,7 +23,22 @@ export class DocumentNumberFormat {
   correspondenceTypeId!: number;
 
   @Column({ name: 'format_template', length: 255 })
-  formatTemplate!: string; // เช่น "{ORG_CODE}-{TYPE_CODE}-{YEAR}-{SEQ:4}"
+  formatTemplate!: string;
+
+  @Column({ name: 'discipline_id', default: 0 })
+  disciplineId!: number;
+
+  @Column({ name: 'example_number', length: 100, nullable: true })
+  exampleNumber?: string;
+
+  @Column({ name: 'padding_length', default: 4 })
+  paddingLength!: number;
+
+  @Column({ name: 'reset_annually', default: true })
+  resetAnnually!: boolean;
+
+  @Column({ name: 'is_active', default: true })
+  isActive!: boolean;
 
   // Relation
   @ManyToOne(() => Project)

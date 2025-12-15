@@ -456,11 +456,14 @@ CREATE TABLE correspondences (
   deleted_at DATETIME NULL COMMENT 'สำหรับ Soft Delete',
   FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types (id) ON DELETE RESTRICT,
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
-  FOREIGN KEY (originator_id) REFERENCES organizations (id) ON DELETE SET NULL,
-  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE SET NULL,
-  -- Foreign Key ที่รวมเข้ามาจาก ALTER (ระบุชื่อ Constraint ตามที่ต้องการ)
-  CONSTRAINT fk_corr_discipline FOREIGN KEY (discipline_id) REFERENCES disciplines (id) ON DELETE SET NULL,
-  UNIQUE KEY uq_corr_no_per_project (project_id, correspondence_number)
+  FOREIGN KEY (originator_id) REFERENCES organizations (id) ON DELETE
+  SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    -- Foreign Key ที่รวมเข้ามาจาก ALTER (ระบุชื่อ Constraint ตามที่ต้องการ)
+    CONSTRAINT fk_corr_discipline FOREIGN KEY (discipline_id) REFERENCES disciplines (id) ON DELETE
+  SET NULL,
+    UNIQUE KEY uq_corr_no_per_project (project_id, correspondence_number)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "แม่" ของเอกสารโต้ตอบ เก็บข้อมูลที่ไม่เปลี่ยนตาม Revision';
 
 -- ตารางเชื่อมผู้รับ (TO/CC) สำหรับเอกสารแต่ละฉบับ (M:N)
@@ -480,51 +483,46 @@ CREATE TABLE correspondence_recipients (
 -- ตาราง "ลูก" เก็บประวัติการแก้ไข (Revisions) ของ correspondences (1:N)
 CREATE TABLE correspondence_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
-
   correspondence_id INT NOT NULL COMMENT 'Master ID',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
   is_current BOOLEAN DEFAULT FALSE COMMENT '(1 = Revision ปัจจุบัน)',
-
   -- ข้อมูลเนื้อหาที่เปลี่ยนได้
   correspondence_status_id INT NOT NULL COMMENT 'สถานะของ Revision นี้',
-
   subject VARCHAR(500) NOT NULL COMMENT 'หัวข้อเรื่อง',
   description TEXT COMMENT 'คำอธิบายการแก้ไขใน Revision นี้',
   body TEXT NULL COMMENT 'เนื้อความ (ถ้ามี)',
   remarks TEXT COMMENT 'หมายเหตุ',
-
   document_date DATE COMMENT 'วันที่ในเอกสาร',
   issued_date DATETIME COMMENT 'วันที่ออกเอกสาร',
   received_date DATETIME COMMENT 'วันที่ลงรับเอกสาร',
   due_date DATETIME COMMENT 'วันที่ครบกำหนด',
-
   -- Standard Meta Columns
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้างเอกสาร',
   created_by INT COMMENT 'ผู้สร้าง',
   updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
-
   -- ส่วนของ JSON และ Schema Version
   details JSON COMMENT 'ข้อมูลเฉพาะ (เช่น LETTET details)',
   schema_version INT DEFAULT 1 COMMENT 'เวอร์ชันของ Schema ที่ใช้กับ details',
-
   -- Generated Virtual Columns (ดึงค่าจาก JSON โดยอัตโนมัติ)
   v_ref_project_id INT GENERATED ALWAYS AS (
-    CAST(JSON_UNQUOTE(JSON_EXTRACT(details, '$.projectId')) AS UNSIGNED)
+    CAST(
+      JSON_UNQUOTE(JSON_EXTRACT(details, '$.projectId')) AS UNSIGNED
+    )
   ) VIRTUAL COMMENT 'Virtual Column: Project ID จาก JSON',
-
   v_doc_subtype VARCHAR(50) GENERATED ALWAYS AS (
     JSON_UNQUOTE(JSON_EXTRACT(details, '$.subType'))
   ) VIRTUAL COMMENT 'Virtual Column: Document Subtype จาก JSON',
-
   FOREIGN KEY (correspondence_id) REFERENCES correspondences (id) ON DELETE CASCADE,
   FOREIGN KEY (correspondence_status_id) REFERENCES correspondence_status (id) ON DELETE RESTRICT,
-  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE SET NULL,
-  FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE SET NULL,
-  UNIQUE KEY uq_master_revision_number (correspondence_id, revision_number ),
-  UNIQUE KEY uq_master_current (correspondence_id, is_current),
-  INDEX idx_corr_rev_v_project (v_ref_project_id),
-  INDEX idx_corr_rev_v_subtype (v_doc_subtype)
+  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    UNIQUE KEY uq_master_revision_number (correspondence_id, revision_number),
+    UNIQUE KEY uq_master_current (correspondence_id, is_current),
+    INDEX idx_corr_rev_v_project (v_ref_project_id),
+    INDEX idx_corr_rev_v_subtype (v_doc_subtype)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติการแก้ไข (Revisions) ของ correspondences (1 :N)';
 
 -- ตาราง Master เก็บ Tags ทั้งหมดที่ใช้ในระบบ
@@ -599,27 +597,27 @@ CREATE TABLE rfa_approve_codes (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master สำหรับรหัสผลการอนุมัติ RFA';
 
 CREATE TABLE rfas (
-  id INT PRIMARY KEY COMMENT 'ID ของตาราง (RFA Master ID)', -- ❌ ไม่มี AUTO_INCREMENT
+  id INT PRIMARY KEY COMMENT 'ID ของตาราง (RFA Master ID)',
+  -- ❌ ไม่มี AUTO_INCREMENT
   rfa_type_id INT NOT NULL COMMENT 'ประเภท RFA',
   -- discipline_id INT NULL COMMENT 'สาขางาน (ถ้ามี)',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   created_by INT COMMENT 'ผู้สร้าง',
   deleted_at DATETIME NULL COMMENT 'สำหรับ Soft Delete',
   FOREIGN KEY (rfa_type_id) REFERENCES rfa_types (id),
-  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE SET NULL,
-  -- CONSTRAINT fk_rfa_discipline FOREIGN KEY (discipline_id) REFERENCES disciplines (id) ON DELETE SET NULL,
-  CONSTRAINT fk_rfas_parent FOREIGN KEY (id) REFERENCES correspondences (id) ON DELETE CASCADE
+  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    -- CONSTRAINT fk_rfa_discipline FOREIGN KEY (discipline_id) REFERENCES disciplines (id) ON DELETE SET NULL,
+    CONSTRAINT fk_rfas_parent FOREIGN KEY (id) REFERENCES correspondences (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "แม่" ของ RFA (มีความสัมพันธ์ 1 :N กับ rfa_revisions)';
 
 -- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ rfas (1:N)
 CREATE TABLE rfa_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
-
   rfa_id INT NOT NULL COMMENT 'Master ID ของ RFA',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
   is_current BOOLEAN DEFAULT FALSE COMMENT '(1 = Revision ปัจจุบัน)',
-
   -- ข้อมูลเฉพาะของ RFA Revision ที่ซับซ้อน
   rfa_status_code_id INT NOT NULL COMMENT 'สถานะ RFA',
   rfa_approve_code_id INT COMMENT 'ผลการอนุมัติ',
@@ -627,36 +625,34 @@ CREATE TABLE rfa_revisions (
   description TEXT COMMENT 'คำอธิบายการแก้ไขใน Revision นี้',
   body TEXT NULL COMMENT 'เนื้อความ (ถ้ามี)',
   remarks TEXT COMMENT 'หมายเหตุ',
-
   document_date DATE COMMENT 'วันที่ในเอกสาร',
   issued_date DATE COMMENT 'วันที่ส่งขออนุมัติ',
   received_date DATETIME COMMENT 'วันที่ลงรับเอกสาร',
   due_date DATETIME COMMENT 'วันที่ครบกำหนด',
   approved_date DATE COMMENT 'วันที่อนุมัติ',
-
   -- Standard Meta Columns
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้างเอกสาร',
   created_by INT COMMENT 'ผู้สร้าง',
   updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
-
   -- ส่วนของ JSON และ Schema Version
   details JSON NULL COMMENT 'RFA Specific Details',
   schema_version INT DEFAULT 1 COMMENT 'Version ของ JSON Schema',
-
   -- Generated Virtual Columns (ดึงค่าจาก JSON โดยอัตโนมัติ)
   v_ref_drawing_count INT GENERATED ALWAYS AS (
     JSON_UNQUOTE(
       JSON_EXTRACT(details, '$.drawingCount')
     )
   ) VIRTUAL,
-
   FOREIGN KEY (rfa_id) REFERENCES rfas (id) ON DELETE CASCADE,
   FOREIGN KEY (rfa_status_code_id) REFERENCES rfa_status_codes (id),
-  FOREIGN KEY (rfa_approve_code_id) REFERENCES rfa_approve_codes (id) ON DELETE SET NULL,
-  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE SET NULL,
-  FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE SET NULL,
-  UNIQUE KEY uq_rr_rev_number (rfa_id, revision_number),
-  UNIQUE KEY uq_rr_current (rfa_id, is_current)
+  FOREIGN KEY (rfa_approve_code_id) REFERENCES rfa_approve_codes (id) ON DELETE
+  SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    UNIQUE KEY uq_rr_rev_number (rfa_id, revision_number),
+    UNIQUE KEY uq_rr_current (rfa_id, is_current)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติ (Revisions) ของ rfas (1 :N)';
 
 -- ตารางเชื่อมระหว่าง rfa_revisions (ที่เป็นประเภท DWG) กับ shop_drawing_revisions (M:N)
@@ -968,15 +964,21 @@ CREATE TABLE document_number_formats (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
   project_id INT NOT NULL COMMENT 'โครงการ',
   correspondence_type_id INT NOT NULL COMMENT 'ประเภทเอกสาร',
-  format_template VARCHAR(255) NOT NULL COMMENT 'รูปแบบ Template (เช่น { ORG_CODE } - { TYPE_CODE } - { SEQ :4 })',
+  discipline_id INT DEFAULT 0 COMMENT 'สาขางาน (0 = ทุกสาขา/ไม่ระบุ)',
+  format_template VARCHAR(255) NOT NULL COMMENT 'รูปแบบ Template (เช่น {ORG_CODE}-{TYPE_CODE}-{SEQ:4})',
+  example_number VARCHAR(100) COMMENT 'ตัวอย่างเลขที่ได้จาก Template',
+  padding_length INT DEFAULT 4 COMMENT 'ความยาวของลำดับเลข (Padding)',
+  reset_annually BOOLEAN DEFAULT TRUE COMMENT 'เริ่มนับใหม่ทุกปี',
+  is_active BOOLEAN DEFAULT TRUE COMMENT 'สถานะการใช้งาน',
   description TEXT COMMENT 'คำอธิบายรูปแบบนี้',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
   FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types (id) ON DELETE CASCADE,
-  UNIQUE KEY uk_project_type (
+  UNIQUE KEY uk_proj_type_disc (
     project_id,
-    correspondence_type_id
+    correspondence_type_id,
+    discipline_id
   )
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ "รูปแบบ" Template ของเลขที่เอกสาร';
 
@@ -1061,7 +1063,15 @@ CREATE TABLE document_number_audit (
   -- Document Info
   document_id INT NOT NULL COMMENT 'ID ของเอกสารที่สร้างเลขที่ (correspondences.id)',
   generated_number VARCHAR(100) NOT NULL COMMENT 'เลขที่เอกสารที่สร้าง (ผลลัพธ์)',
+  operation ENUM(
+    'RESERVE',
+    'CONFIRM',
+    'MANUAL_OVERRIDE',
+    'VOID_REPLACE',
+    'CANCEL'
+  ) NOT NULL DEFAULT 'CONFIRM' COMMENT 'ประเภทการดำเนินการ',
   counter_key JSON NOT NULL COMMENT 'Counter key ที่ใช้ (JSON format) - 8 fields',
+  metadata JSON COMMENT 'Additional context data',
   template_used VARCHAR(200) NOT NULL COMMENT 'Template ที่ใช้ในการสร้าง',
   -- User Info
   user_id INT NOT NULL COMMENT 'ผู้ขอสร้างเลขที่',
@@ -1507,15 +1517,16 @@ WHERE cr.is_current = TRUE
 
 -- View แสดง Revision "ปัจจุบัน" ของ rfa_revisions ทั้งหมด
 CREATE VIEW v_current_rfas AS
-SELECT
-  r.id AS rfa_id,
+SELECT r.id AS rfa_id,
   r.rfa_type_id,
   rt.type_code AS rfa_type_code,
   rt.type_name_th AS rfa_type_name_th,
   rt.type_name_en AS rfa_type_name_en,
   c.correspondence_number,
-  c.discipline_id, -- ✅ ดึงจาก Correspondences
-  d.discipline_code, -- ✅ Join เพิ่มเพื่อแสดง code
+  c.discipline_id,
+  -- ✅ ดึงจาก Correspondences
+  d.discipline_code,
+  -- ✅ Join เพิ่มเพื่อแสดง code
   c.project_id,
   p.project_code,
   p.project_name,
@@ -1540,10 +1551,8 @@ SELECT
   rr.created_at AS revision_created_at
 FROM rfas r
   INNER JOIN rfa_types rt ON r.rfa_type_id = rt.id
-  INNER JOIN rfa_revisions rr ON r.id = rr.rfa_id
-  -- RFA uses shared primary key with correspondences (1:1)
-  INNER JOIN correspondences c ON r.id = c.id
-  -- [FIX 1] เพิ่มการ Join ตาราง disciplines
+  INNER JOIN rfa_revisions rr ON r.id = rr.rfa_id -- RFA uses shared primary key with correspondences (1:1)
+  INNER JOIN correspondences c ON r.id = c.id -- [FIX 1] เพิ่มการ Join ตาราง disciplines
   LEFT JOIN disciplines d ON c.discipline_id = d.id
   INNER JOIN projects p ON c.project_id = p.id
   INNER JOIN organizations org ON c.originator_id = org.id

@@ -4,10 +4,12 @@ export const dashboardApi = {
   getStats: async (): Promise<DashboardStats> => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {
-      correspondences: 124,
-      rfas: 45,
+      totalDocuments: 124,
+      documentsThisMonth: 12,
+      pendingApprovals: 4,
       approved: 89,
-      pending: 12,
+      totalRfas: 45,
+      totalCirculations: 15,
     };
   },
 
