@@ -2,8 +2,8 @@
 
 ---
 title: 'Implementation Guide: Document Numbering System'
-version: 1.6.1
-status: draft
+version: 1.7.0
+status: implemented
 owner: Development Team
 last_updated: 2025-12-16
 related:
@@ -570,47 +570,174 @@ export class CounterResetJob extends WorkerHost {
 
 ## 5. API Controller
 
+### 5.1. Main Controller (`/document-numbering`)
+
 ```typescript
-// File: src/modules/document-numbering/controllers/document-numbering.controller.ts
-import { Controller, Post, Put, Body, Param, UseGuards } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
-import { Throttle } from '@nestjs/throttler';
-import { DocumentNumberingService } from '../services/document-numbering.service';
-import { Roles } from 'src/auth/decorators/roles.decorator';
+// File: src/modules/document-numbering/document-numbering.controller.ts
+import {
+  Controller, Get, Post, Patch,
+  Body, Param, Query, UseGuards, ParseIntPipe,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../../common/guards/rbac.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { DocumentNumberingService } from './document-numbering.service';
+import { PreviewNumberDto } from './dto/preview-number.dto';
 
 @Controller('document-numbering')
-@UseGuards(ThrottlerGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
 export class DocumentNumberingController {
-  constructor(
-    private readonly documentNumberingService: DocumentNumberingService,
-  ) {}
+  constructor(private readonly numberingService: DocumentNumberingService) {}
 
-  @Post('generate')
-  @Throttle(10, 60) // 10 requests per 60 seconds
-  async generateNumber(@Body() dto: GenerateNumberDto) {
-    const number = await this.documentNumberingService.generateDocumentNumber(dto);
-    return { documentNumber: number };
+  // --- Logs ---
+
+  @Get('logs/audit')
+  @RequirePermission('system.view_logs')
+  getAuditLogs(@Query('limit') limit?: number) {
+    return this.numberingService.getAuditLogs(limit ? Number(limit) : 100);
   }
 
-  @Put('configs/:configId')
-  @Roles('PROJECT_ADMIN')
-  async updateTemplate(
-    @Param('configId') configId: number,
-    @Body() dto: UpdateTemplateDto,
-  ) {
-    // Update template configuration
+  @Get('logs/errors')
+  @RequirePermission('system.view_logs')
+  getErrorLogs(@Query('limit') limit?: number) {
+    return this.numberingService.getErrorLogs(limit ? Number(limit) : 100);
   }
 
-  @Post('configs/:configId/reset-counter')
-  @Roles('SUPER_ADMIN')
-  async resetCounter(
-    @Param('configId') configId: number,
-    @Body() dto: ResetCounterDto,
+  // --- Sequences / Counters ---
+
+  @Get('sequences')
+  @RequirePermission('correspondence.read')
+  getSequences(@Query('projectId') projectId?: number) {
+    return this.numberingService.getSequences(projectId ? Number(projectId) : undefined);
+  }
+
+  @Patch('counters/:id')
+  @RequirePermission('system.manage_settings')
+  async updateCounter(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('sequence') sequence: number
   ) {
-    // Manual counter reset (requires approval)
+    return this.numberingService.setCounterValue(id, sequence);
+  }
+
+  // --- Preview ---
+
+  @Post('preview')
+  @RequirePermission('correspondence.read')
+  async previewNumber(@Body() dto: PreviewNumberDto) {
+    return this.numberingService.previewNumber(dto);
   }
 }
 ```
+
+### 5.2. Admin Controller (`/admin/document-numbering`)
+
+```typescript
+// File: src/modules/document-numbering/document-numbering-admin.controller.ts
+import {
+  Controller, Get, Post, Delete, Body, Param, Query,
+  UseGuards, ParseIntPipe,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../../common/guards/rbac.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { DocumentNumberingService } from './document-numbering.service';
+
+@Controller('admin/document-numbering')
+@UseGuards(JwtAuthGuard, RbacGuard)
+export class DocumentNumberingAdminController {
+  constructor(private readonly service: DocumentNumberingService) {}
+
+  // --- Template Management ---
+
+  @Get('templates')
+  @RequirePermission('system.manage_settings')
+  async getTemplates(@Query('projectId') projectId?: number) {
+    if (projectId) {
+      return this.service.getTemplatesByProject(projectId);
+    }
+    return this.service.getTemplates();
+  }
+
+  @Post('templates')
+  @RequirePermission('system.manage_settings')
+  async saveTemplate(@Body() dto: any) {
+    return this.service.saveTemplate(dto);
+  }
+
+  @Delete('templates/:id')
+  @RequirePermission('system.manage_settings')
+  async deleteTemplate(@Param('id', ParseIntPipe) id: number) {
+    await this.service.deleteTemplate(id);
+    return { success: true };
+  }
+
+  // --- Metrics ---
+
+  @Get('metrics')
+  @RequirePermission('system.view_logs')
+  async getMetrics() {
+    const audit = await this.service.getAuditLogs(50);
+    const errors = await this.service.getErrorLogs(50);
+    return { audit, errors };
+  }
+
+  // --- Admin Operations ---
+
+  @Post('manual-override')
+  @RequirePermission('system.manage_settings')
+  async manualOverride(@Body() dto: {
+    projectId: number;
+    correspondenceTypeId: number | null;
+    year: number;
+    newValue: number;
+  }) {
+    return this.service.manualOverride(dto);
+  }
+
+  @Post('void-and-replace')
+  @RequirePermission('system.manage_settings')
+  async voidAndReplace(@Body() dto: {
+    documentId: number;
+    reason: string;
+  }) {
+    return this.service.voidAndReplace(dto);
+  }
+
+  @Post('cancel')
+  @RequirePermission('system.manage_settings')
+  async cancelNumber(@Body() dto: {
+    documentNumber: string;
+    reason: string;
+  }) {
+    return this.service.cancelNumber(dto);
+  }
+
+  @Post('bulk-import')
+  @RequirePermission('system.manage_settings')
+  async bulkImport(@Body() items: any[]) {
+    return this.service.bulkImport(items);
+  }
+}
+```
+
+### 5.3. API Endpoints Summary
+
+| Endpoint                                     | Method | Permission               | Description                       |
+| -------------------------------------------- | ------ | ------------------------ | --------------------------------- |
+| `/document-numbering/logs/audit`             | GET    | `system.view_logs`       | Get audit logs                    |
+| `/document-numbering/logs/errors`            | GET    | `system.view_logs`       | Get error logs                    |
+| `/document-numbering/sequences`              | GET    | `correspondence.read`    | Get counter sequences             |
+| `/document-numbering/counters/:id`           | PATCH  | `system.manage_settings` | Update counter value              |
+| `/document-numbering/preview`                | POST   | `correspondence.read`    | Preview number without generating |
+| `/admin/document-numbering/templates`        | GET    | `system.manage_settings` | Get all templates                 |
+| `/admin/document-numbering/templates`        | POST   | `system.manage_settings` | Create/update template            |
+| `/admin/document-numbering/templates/:id`    | DELETE | `system.manage_settings` | Delete template                   |
+| `/admin/document-numbering/metrics`          | GET    | `system.view_logs`       | Get metrics (audit + errors)      |
+| `/admin/document-numbering/manual-override`  | POST   | `system.manage_settings` | Override counter value            |
+| `/admin/document-numbering/void-and-replace` | POST   | `system.manage_settings` | Void and replace number           |
+| `/admin/document-numbering/cancel`           | POST   | `system.manage_settings` | Cancel a number                   |
+| `/admin/document-numbering/bulk-import`      | POST   | `system.manage_settings` | Bulk import counters              |
 
 ## 6. Module Configuration
 

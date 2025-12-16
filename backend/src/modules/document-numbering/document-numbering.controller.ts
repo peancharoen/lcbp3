@@ -1,6 +1,10 @@
 import {
   Controller,
   Get,
+  Post,
+  Patch,
+  Param,
+  Body,
   UseGuards,
   Query,
   ParseIntPipe,
@@ -16,6 +20,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { DocumentNumberingService } from './document-numbering.service';
+import { PreviewNumberDto } from './dto/preview-number.dto';
 
 @ApiTags('Document Numbering')
 @ApiBearerAuth()
@@ -23,6 +28,10 @@ import { DocumentNumberingService } from './document-numbering.service';
 @UseGuards(JwtAuthGuard, RbacGuard)
 export class DocumentNumberingController {
   constructor(private readonly numberingService: DocumentNumberingService) {}
+
+  // ----------------------------------------------------------
+  // Logs
+  // ----------------------------------------------------------
 
   @Get('logs/audit')
   @ApiOperation({ summary: 'Get document generation audit logs' })
@@ -42,12 +51,43 @@ export class DocumentNumberingController {
     return this.numberingService.getErrorLogs(limit ? Number(limit) : 100);
   }
 
+  // ----------------------------------------------------------
+  // Sequences / Counters
+  // ----------------------------------------------------------
+
+  @Get('sequences')
+  @ApiOperation({ summary: 'Get all number sequences/counters' })
+  @ApiResponse({ status: 200, description: 'List of counter sequences' })
+  @ApiQuery({ name: 'projectId', required: false, type: Number })
+  @RequirePermission('correspondence.read')
+  getSequences(@Query('projectId') projectId?: number) {
+    return this.numberingService.getSequences(
+      projectId ? Number(projectId) : undefined
+    );
+  }
+
   @Patch('counters/:id')
-  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Update counter sequence value (Admin only)' })
+  @RequirePermission('system.manage_settings')
   async updateCounter(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body('sequence') sequence: number
   ) {
-    return this.service.setCounterValue(id, sequence);
+    return this.numberingService.setCounterValue(id, sequence);
+  }
+
+  // ----------------------------------------------------------
+  // Preview / Test
+  // ----------------------------------------------------------
+
+  @Post('preview')
+  @ApiOperation({ summary: 'Preview what a document number would look like' })
+  @ApiResponse({
+    status: 200,
+    description: 'Preview result without incrementing counter',
+  })
+  @RequirePermission('correspondence.read')
+  async previewNumber(@Body() dto: PreviewNumberDto) {
+    return this.numberingService.previewNumber(dto);
   }
 }

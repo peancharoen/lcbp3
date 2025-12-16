@@ -41,12 +41,9 @@ function ManualOverrideForm({ onSuccess, projectId }: { onSuccess: () => void, p
         try {
             await numberingApi.manualOverride({
                 projectId,
-                typeId: parseInt(formData.typeId),
-                disciplineId: formData.disciplineId ? parseInt(formData.disciplineId) : undefined,
+                correspondenceTypeId: parseInt(formData.typeId) || null,
                 year: parseInt(formData.year),
-                newSequence: parseInt(formData.newSequence),
-                reason: formData.reason,
-                userId: 1 // TODO: Get from auth context
+                newValue: parseInt(formData.newSequence),
             });
             toast.success("Manual override applied successfully");
             onSuccess();
@@ -181,10 +178,13 @@ export default function NumberingPage() {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-        const data = await numberingApi.getTemplates();
+        const response = await numberingApi.getTemplates();
+        // Handle wrapped response { data: [...] } or direct array
+        const data = Array.isArray(response) ? response : (response as { data?: NumberingTemplate[] })?.data ?? [];
         setTemplates(data);
     } catch {
         toast.error("Failed to load templates");
+        setTemplates([]);
     } finally {
         setLoading(false);
     }
@@ -202,7 +202,7 @@ export default function NumberingPage() {
   const handleSave = async (data: Partial<NumberingTemplate>) => {
       try {
           await numberingApi.saveTemplate(data);
-          toast.success(data.id || data.templateId ? "Template updated" : "Template created");
+          toast.success(data.id ? "Template updated" : "Template created");
           setIsEditing(false);
           loadTemplates();
       } catch {
@@ -281,37 +281,34 @@ export default function NumberingPage() {
                         {templates
                           .filter(t => !t.projectId || t.projectId === Number(selectedProjectId))
                           .map((template) => (
-                        <Card key={template.templateId} className="p-6 hover:shadow-md transition-shadow">
+                        <Card key={template.id} className="p-6 hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start">
                             <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
                                 <h3 className="text-lg font-semibold">
-                                    {template.documentTypeName}
+                                    {template.correspondenceType?.typeName || 'Default Format'}
                                 </h3>
                                 <Badge variant="outline" className="text-xs">
-                                     {projects.find((p: any) => p.id.toString() === template.projectId?.toString())?.projectName || selectedProjectName}
+                                     {template.project?.projectCode || selectedProjectName}
                                 </Badge>
-                                {template.disciplineCode && <Badge>{template.disciplineCode}</Badge>}
-                                <Badge variant={template.isActive ? 'default' : 'secondary'}>
-                                    {template.isActive ? 'Active' : 'Inactive'}
-                                </Badge>
+                                {template.description && <Badge variant="secondary">{template.description}</Badge>}
                                 </div>
 
                                 <div className="bg-slate-100 dark:bg-slate-900 rounded px-3 py-2 mb-3 font-mono text-sm inline-block border">
-                                {template.templateFormat}
+                                {template.formatTemplate}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 text-sm mt-2">
                                     <div>
-                                        <span className="text-muted-foreground">Example: </span>
+                                        <span className="text-muted-foreground">Type Code: </span>
                                         <span className="font-medium font-mono text-green-600 dark:text-green-400">
-                                        {template.exampleNumber}
+                                        {template.correspondenceType?.typeCode || 'DEFAULT'}
                                         </span>
                                     </div>
                                     <div>
                                         <span className="text-muted-foreground">Reset: </span>
                                         <span>
-                                        {template.resetAnnually ? 'Annually' : 'Never'}
+                                        {template.resetSequenceYearly ? 'Annually' : 'Continuous'}
                                         </span>
                                     </div>
                                 </div>

@@ -37,7 +37,7 @@ export class CirculationService {
 
     try {
       // Generate No. using DocumentNumberingService (Type 900 - Circulation)
-      const circulationNo = await this.numberingService.generateNextNumber({
+      const result = await this.numberingService.generateNextNumber({
         projectId: createDto.projectId || 0, // Use projectId from DTO or 0
         originatorId: user.primaryOrganizationId,
         typeId: 900, // Fixed Type ID for Circulation
@@ -51,7 +51,7 @@ export class CirculationService {
       const circulation = queryRunner.manager.create(Circulation, {
         organizationId: user.primaryOrganizationId,
         correspondenceId: createDto.correspondenceId,
-        circulationNo: circulationNo,
+        circulationNo: result.number,
         subject: createDto.subject,
         statusCode: 'OPEN',
         createdByUserId: user.user_id,

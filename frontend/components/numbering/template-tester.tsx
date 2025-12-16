@@ -34,7 +34,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
     setLoading(true);
     try {
         // Note: generateTestNumber expects keys: organizationId, disciplineId
-        const result = await numberingApi.generateTestNumber(template.id || template.templateId || 0, {
+        const result = await numberingApi.generateTestNumber(template.id ?? 0, {
             organizationId: testData.organizationId,
             disciplineId: testData.disciplineId
         });
@@ -52,7 +52,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
         </DialogHeader>
 
         <div className="text-sm text-muted-foreground mb-2">
-            Template: <span className="font-mono font-bold text-foreground">{template?.templateFormat}</span>
+            Template: <span className="font-mono font-bold text-foreground">{template?.formatTemplate}</span>
         </div>
 
         <Card className="p-6 mt-6 bg-muted/50 rounded-lg">
@@ -80,7 +80,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
                             </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Format: {template?.templateFormat}
+                            Format: {template?.formatTemplate}
                         </p>
                     </div>
                 </div>

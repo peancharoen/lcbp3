@@ -96,7 +96,7 @@ export function TemplateEditor({
       onSave({
           ...template,
           projectId: projectId,
-          correspondenceTypeId: Number(typeId),
+          correspondenceTypeId: typeId && typeId !== '__default__' ? Number(typeId) : null,
           disciplineId: Number(disciplineId),
           formatTemplate: format,
           templateFormat: format, // Legacy support
@@ -107,7 +107,7 @@ export function TemplateEditor({
       });
   };
 
-  const isValid = format.length > 0 && typeId;
+  const isValid = format.length > 0; // typeId is optional (null = default for all types)
 
   return (
     <Card className="p-6 space-y-6">
@@ -136,12 +136,13 @@ export function TemplateEditor({
           {/* Configuration Column */}
           <div className="space-y-4">
              <div>
-                <Label>Document Type *</Label>
+                <Label>Document Type (Optional)</Label>
                 <Select value={typeId} onValueChange={setTypeId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select type..." />
+                    <SelectValue placeholder="Default (All Types)" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__default__">Default (All Types)</SelectItem>
                     {correspondenceTypes.map((type) => (
                       <SelectItem key={type.id} value={type.id.toString()}>
                         {type.typeCode} - {type.typeName}
@@ -149,6 +150,9 @@ export function TemplateEditor({
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                   Leave empty to create a default template for this project.
+                </p>
               </div>
 
               <div>

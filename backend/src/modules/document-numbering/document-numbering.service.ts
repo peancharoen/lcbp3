@@ -270,6 +270,354 @@ export class DocumentNumberingService implements OnModuleInit {
     return discipline ? discipline.code : 'GEN';
   }
 
+  // ============================================================
+  // Template Management Methods
+  // ============================================================
+
+  /**
+   * Get all document numbering templates/formats
+   */
+  async getTemplates(): Promise<DocumentNumberFormat[]> {
+    try {
+      return await this.formatRepo.find({
+        relations: ['correspondenceType', 'project'],
+        order: { projectId: 'ASC', correspondenceTypeId: 'ASC' },
+      });
+    } catch (error) {
+      // Fallback: return without relations if there's an error
+      this.logger.warn(
+        'Failed to load templates with relations, trying without',
+        error
+      );
+      return this.formatRepo.find({
+        order: { projectId: 'ASC', correspondenceTypeId: 'ASC' },
+      });
+    }
+  }
+
+  /**
+   * Get templates filtered by project
+   */
+  async getTemplatesByProject(
+    projectId: number
+  ): Promise<DocumentNumberFormat[]> {
+    return this.formatRepo.find({
+      where: { projectId },
+      relations: ['correspondenceType'],
+      order: { correspondenceTypeId: 'ASC' },
+    });
+  }
+
+  /**
+   * Save (create or update) a template
+   */
+  async saveTemplate(
+    dto: Partial<DocumentNumberFormat>
+  ): Promise<DocumentNumberFormat> {
+    if (dto.id) {
+      // Update existing
+      await this.formatRepo.update(dto.id, {
+        formatTemplate: dto.formatTemplate,
+        correspondenceTypeId: dto.correspondenceTypeId,
+        description: dto.description,
+        resetSequenceYearly: dto.resetSequenceYearly,
+      });
+      const updated = await this.formatRepo.findOne({ where: { id: dto.id } });
+      if (!updated) throw new Error('Template not found after update');
+      return updated;
+    } else {
+      // Create new
+      const template = this.formatRepo.create({
+        projectId: dto.projectId,
+        correspondenceTypeId: dto.correspondenceTypeId ?? null,
+        formatTemplate: dto.formatTemplate,
+        description: dto.description,
+        resetSequenceYearly: dto.resetSequenceYearly ?? true,
+      });
+      return this.formatRepo.save(template);
+    }
+  }
+
+  /**
+   * Delete a template by ID
+   */
+  async deleteTemplate(id: number): Promise<void> {
+    await this.formatRepo.delete(id);
+  }
+
+  // ============================================================
+  // Audit & Error Log Methods
+  // ============================================================
+
+  /**
+   * Get audit logs for document number generation
+   */
+  async getAuditLogs(limit = 100): Promise<DocumentNumberAudit[]> {
+    return this.auditRepo.find({
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  /**
+   * Get error logs for document numbering
+   */
+  async getErrorLogs(limit = 100): Promise<DocumentNumberError[]> {
+    return this.errorRepo.find({
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  // ============================================================
+  // Admin Override Methods (Stubs - To be fully implemented)
+  // ============================================================
+
+  /**
+   * Manually override/set a counter value
+   * @param dto { projectId, correspondenceTypeId, year, newValue }
+   */
+  async manualOverride(dto: {
+    projectId: number;
+    correspondenceTypeId: number | null;
+    year: number;
+    newValue: number;
+  }): Promise<{ success: boolean; message: string }> {
+    this.logger.warn(`Manual override requested: ${JSON.stringify(dto)}`);
+
+    const counter = await this.counterRepo.findOne({
+      where: {
+        projectId: dto.projectId,
+        correspondenceTypeId: dto.correspondenceTypeId ?? undefined,
+        currentYear: dto.year,
+      },
+    });
+
+    if (counter) {
+      counter.lastNumber = dto.newValue;
+      await this.counterRepo.save(counter);
+      return { success: true, message: `Counter updated to ${dto.newValue}` };
+    }
+
+    // Create new counter if not exists
+    const newCounter = this.counterRepo.create({
+      projectId: dto.projectId,
+      correspondenceTypeId: dto.correspondenceTypeId,
+      currentYear: dto.year,
+      lastNumber: dto.newValue,
+      version: 0,
+    });
+    await this.counterRepo.save(newCounter);
+    return {
+      success: true,
+      message: `New counter created with value ${dto.newValue}`,
+    };
+  }
+
+  /**
+   * Void a document number and generate a replacement
+   * @param dto { documentId, reason, context }
+   */
+  async voidAndReplace(dto: {
+    documentId: number;
+    reason: string;
+    context?: GenerateNumberContext;
+  }): Promise<{ newNumber: string; auditId: number }> {
+    this.logger.warn(
+      `Void and replace requested for document: ${dto.documentId}`
+    );
+
+    // 1. Find original audit record for this document
+    const originalAudit = await this.auditRepo.findOne({
+      where: { documentId: dto.documentId },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!originalAudit) {
+      throw new Error(
+        `No audit record found for document ID: ${dto.documentId}`
+      );
+    }
+
+    // 2. Create void audit record
+    const voidAudit = this.auditRepo.create({
+      documentId: dto.documentId,
+      generatedNumber: originalAudit.generatedNumber,
+      counterKey: originalAudit.counterKey,
+      templateUsed: originalAudit.templateUsed,
+      operation: 'VOID_REPLACE',
+      metadata: {
+        reason: dto.reason,
+        originalAuditId: originalAudit.id,
+        voidedAt: new Date().toISOString(),
+      },
+      userId: dto.context?.userId ?? 0,
+      ipAddress: dto.context?.ipAddress,
+    });
+    await this.auditRepo.save(voidAudit);
+
+    // 3. Generate new number if context is provided
+    if (dto.context) {
+      const result = await this.generateNextNumber(dto.context);
+      return result;
+    }
+
+    // If no context, return info about the void operation
+    return {
+      newNumber: `VOIDED:${originalAudit.generatedNumber}`,
+      auditId: voidAudit.id,
+    };
+  }
+
+  /**
+   * Cancel/skip a specific document number
+   * @param dto { documentNumber, reason, userId }
+   */
+  async cancelNumber(dto: {
+    documentNumber: string;
+    reason: string;
+    userId?: number;
+    ipAddress?: string;
+  }): Promise<{ success: boolean; auditId: number }> {
+    this.logger.warn(`Cancel number requested: ${dto.documentNumber}`);
+
+    // Find existing audit record for this number
+    const existingAudit = await this.auditRepo.findOne({
+      where: { generatedNumber: dto.documentNumber },
+      order: { createdAt: 'DESC' },
+    });
+
+    // Create cancellation audit record
+    const cancelAudit = this.auditRepo.create({
+      documentId: existingAudit?.documentId ?? 0,
+      generatedNumber: dto.documentNumber,
+      counterKey: existingAudit?.counterKey ?? { cancelled: true },
+      templateUsed: existingAudit?.templateUsed ?? 'CANCELLED',
+      operation: 'CANCEL',
+      metadata: {
+        reason: dto.reason,
+        cancelledAt: new Date().toISOString(),
+        originalAuditId: existingAudit?.id,
+      },
+      userId: dto.userId ?? 0,
+      ipAddress: dto.ipAddress,
+    });
+
+    const saved = await this.auditRepo.save(cancelAudit);
+
+    return { success: true, auditId: saved.id };
+  }
+
+  /**
+   * Bulk import counter values
+   */
+  async bulkImport(
+    items: Array<{
+      projectId: number;
+      correspondenceTypeId: number | null;
+      year: number;
+      lastNumber: number;
+    }>
+  ): Promise<{ imported: number; errors: string[] }> {
+    const errors: string[] = [];
+    let imported = 0;
+
+    for (const item of items) {
+      try {
+        await this.manualOverride({
+          projectId: item.projectId,
+          correspondenceTypeId: item.correspondenceTypeId,
+          year: item.year,
+          newValue: item.lastNumber,
+        });
+        imported++;
+      } catch (e: any) {
+        errors.push(`Failed to import: ${JSON.stringify(item)} - ${e.message}`);
+      }
+    }
+
+    return { imported, errors };
+  }
+
+  // ============================================================
+  // Query Methods
+  // ============================================================
+
+  /**
+   * Get all counter sequences - for admin UI
+   */
+  async getSequences(projectId?: number): Promise<
+    Array<{
+      projectId: number;
+      originatorId: number;
+      recipientOrganizationId: number;
+      typeId: number;
+      disciplineId: number;
+      year: number;
+      lastNumber: number;
+    }>
+  > {
+    const whereClause = projectId ? { projectId } : {};
+
+    const counters = await this.counterRepo.find({
+      where: whereClause,
+      order: { year: 'DESC', lastNumber: 'DESC' },
+    });
+
+    return counters.map((c) => ({
+      projectId: c.projectId,
+      originatorId: c.originatorId,
+      recipientOrganizationId: c.recipientOrganizationId,
+      typeId: c.typeId,
+      disciplineId: c.disciplineId,
+      year: c.year,
+      lastNumber: c.lastNumber,
+    }));
+  }
+
+  /**
+   * Preview what a document number would look like
+   * WITHOUT actually incrementing the counter
+   */
+  async previewNumber(
+    ctx: GenerateNumberContext
+  ): Promise<{ previewNumber: string; nextSequence: number }> {
+    const currentYear = new Date().getFullYear();
+
+    // 1. Resolve Format
+    const { template, resetSequenceYearly } =
+      await this.resolveFormatAndScope(ctx);
+    const tokens = await this.resolveTokens(ctx, currentYear);
+
+    // 2. Get current counter value (without incrementing)
+    const counterYear = resetSequenceYearly ? currentYear : 0;
+
+    const existingCounter = await this.counterRepo.findOne({
+      where: {
+        projectId: ctx.projectId,
+        originatorId: ctx.originatorId,
+        typeId: ctx.typeId,
+        disciplineId: ctx.disciplineId ?? 0,
+        year: counterYear,
+      },
+    });
+
+    const currentSequence = existingCounter?.lastNumber ?? 0;
+    const nextSequence = currentSequence + 1;
+
+    // 3. Generate preview number
+    const previewNumber = this.replaceTokens(template, tokens, nextSequence);
+
+    return { previewNumber, nextSequence };
+  }
+
+  /**
+   * Set counter value directly (for admin use)
+   */
+  async setCounterValue(counterId: number, newSequence: number): Promise<void> {
+    await this.counterRepo.update(counterId, { lastNumber: newSequence });
+  }
+
   private async logAudit(data: any): Promise<DocumentNumberAudit> {
     const audit = this.auditRepo.create({
       ...data,
