@@ -122,20 +122,19 @@ LCBP3-DMS ต้องสร้างเลขที่เอกสารอั�
 
 ```sql
 -- Format Templates
-CREATE TABLE document_number_configs (
+CREATE TABLE document_number_formats (
   id INT PRIMARY KEY AUTO_INCREMENT,
   project_id INT NOT NULL,
-  doc_type_id INT NOT NULL COMMENT 'Correspondence, RFA, Transmittal, Drawing',
-  sub_type_id INT DEFAULT 0 COMMENT 'ประเภทย่อย (nullable, use 0 for fallback)',
-  discipline_id INT DEFAULT 0 COMMENT 'สาขาวิชา (nullable, use 0 for fallback)',
-  template VARCHAR(255) NOT NULL COMMENT 'e.g. {PROJECT}-{ORG}-{TYPE}-{DISCIPLINE}-{SEQ:4}-{REV}',
+  correspondence_type_id INT NULL COMMENT 'Specific Type ID, or NULL for Project Default', -- CHANGED: Allow NULL
+  format_template VARCHAR(100) NOT NULL COMMENT 'e.g. {PROJECT}-{TYPE}-{YEAR}-{SEQ:4}',
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  version INT DEFAULT 0 NOT NULL COMMENT 'For template versioning',
-  FOREIGN KEY (project_id) REFERENCES projects(id),
-  FOREIGN KEY (doc_type_id) REFERENCES document_types(id),
-  UNIQUE KEY unique_config (project_id, doc_type_id, sub_type_id, discipline_id)
+
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE,
+  -- Note: Application logic must enforce single default format per project
+  UNIQUE KEY unique_format (project_id, correspondence_type_id)
 ) ENGINE=InnoDB COMMENT='Template configurations for document numbering';
 
 -- Counter Table with Optimistic Locking
@@ -207,6 +206,19 @@ CREATE TABLE document_number_audit (
 > - ~~`{CATEGORY}`~~ → Not used in current system
 >
 > **Always refer to**: [03.11-document-numbering.md](../01-requirements/03.11-document-numbering.md) as source of truth
+
+### Format Resolution Strategy (Fallback Logic)
+
+The system resolves the numbering format using the following priority:
+1.  **Specific Format:** Search for a record matching both `project_id` and `correspondence_type_id`.
+2.  **Default Format:** If not found, search for a record with matching `project_id` where `correspondence_type_id` is `NULL`.
+3.  **System Fallback:** If neither exists, use the hardcoded system default: `{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}`.
+
+| Priority | Scenario | Template Source | Counter Scope (Key) | Reset Behavior |
+| --- | --- | --- | --- | --- |
+| 1 | Specific Format Found | Database (project_id, type_id) | Specific Type (type_id) | Based on reset_sequence_yearly flag |
+| 2 | Default Format Found | Database (project_id, type_id=NULL) | Shared Counter (type_id=NULL) | Based on reset_sequence_yearly flag |
+| 3 | Fallback (No Config) | System Default: {ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE} | Shared Counter (type_id=NULL) | Reset Yearly (Default: True) |
 
 ### Format Examples by Document Type
 

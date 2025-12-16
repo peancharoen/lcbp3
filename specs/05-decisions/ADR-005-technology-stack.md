@@ -107,7 +107,7 @@ LCBP3-DMS ต้องเลือก Technology Stack สำหรับพั�
 | Component             | Technology          | Rationale                              |
 | :-------------------- | :------------------ | :------------------------------------- |
 | **Framework**         | Next.js 14+         | App Router, SSR/SSG, React integration |
-| **UI Library**        | React 18            | Industry standard, large ecosystem     |
+| **UI Library**        | React 19            | Industry standard, large ecosystem     |
 | **Language**          | TypeScript 5.x      | Consistency with backend               |
 | **Styling**           | Tailwind CSS        | Utility-first, fast development        |
 | **Component Library** | shadcn/ui           | Accessible, customizable, TypeScript   |

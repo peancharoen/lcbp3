@@ -1,3 +1,5 @@
+// backend/src/modules/document-numbering/entities/document-number-format.entity.ts
+
 import {
   Entity,
   Column,
@@ -5,43 +7,46 @@ import {
   ManyToOne,
   JoinColumn,
   Unique,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Project } from '../../project/entities/project.entity';
-// เรายังไม่มี CorrespondenceType Entity เดี๋ยวสร้าง Dummy ไว้ก่อน หรือข้าม Relation ไปก่อนได้
-// แต่ตามหลักควรมี CorrespondenceType (Master Data)
+import { CorrespondenceType } from '../../correspondence/entities/correspondence-type.entity';
 
 @Entity('document_number_formats')
-@Unique(['projectId', 'correspondenceTypeId']) // 1 Project + 1 Type มีได้แค่ 1 Format
+@Unique(['projectId', 'correspondenceTypeId'])
 export class DocumentNumberFormat {
   @PrimaryGeneratedColumn()
-  id!: number;
+  id: number;
 
   @Column({ name: 'project_id' })
-  projectId!: number;
+  projectId: number;
 
-  @Column({ name: 'correspondence_type_id' })
-  correspondenceTypeId!: number;
+  @Column({ name: 'correspondence_type_id', nullable: true })
+  correspondenceTypeId: number | null;
 
-  @Column({ name: 'format_template', length: 255 })
-  formatTemplate!: string;
+  @Column({ name: 'format_template', length: 100 })
+  formatTemplate: string;
 
-  @Column({ name: 'discipline_id', default: 0 })
-  disciplineId!: number;
+  @Column({ name: 'description', nullable: true })
+  description: string;
 
-  @Column({ name: 'example_number', length: 100, nullable: true })
-  exampleNumber?: string;
+  // [NEW] Control yearly reset behavior
+  @Column({ name: 'reset_sequence_yearly', default: true })
+  resetSequenceYearly: boolean;
 
-  @Column({ name: 'padding_length', default: 4 })
-  paddingLength!: number;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 
-  @Column({ name: 'reset_annually', default: true })
-  resetAnnually!: boolean;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 
-  @Column({ name: 'is_active', default: true })
-  isActive!: boolean;
-
-  // Relation
+  // Relations
   @ManyToOne(() => Project)
   @JoinColumn({ name: 'project_id' })
-  project?: Project;
+  project: Project;
+
+  @ManyToOne(() => CorrespondenceType)
+  @JoinColumn({ name: 'correspondence_type_id' })
+  correspondenceType: CorrespondenceType | null;
 }

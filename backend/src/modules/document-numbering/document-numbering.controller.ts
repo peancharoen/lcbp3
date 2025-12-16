@@ -41,4 +41,13 @@ export class DocumentNumberingController {
   getErrorLogs(@Query('limit') limit?: number) {
     return this.numberingService.getErrorLogs(limit ? Number(limit) : 100);
   }
+
+  @Patch('counters/:id')
+  @Roles(Role.ADMIN)
+  async updateCounter(
+    @Param('id') id: number,
+    @Body('sequence') sequence: number
+  ) {
+    return this.service.setCounterValue(id, sequence);
+  }
 }

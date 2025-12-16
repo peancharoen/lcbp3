@@ -963,9 +963,10 @@ CREATE TABLE contract_drawing_attachments (
 CREATE TABLE document_number_formats (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
   project_id INT NOT NULL COMMENT 'โครงการ',
-  correspondence_type_id INT NOT NULL COMMENT 'ประเภทเอกสาร',
+  correspondence_type_id INT NULL COMMENT 'ประเภทเอกสาร',
   discipline_id INT DEFAULT 0 COMMENT 'สาขางาน (0 = ทุกสาขา/ไม่ระบุ)',
-  format_template VARCHAR(255) NOT NULL COMMENT 'รูปแบบ Template (เช่น {ORG_CODE}-{TYPE_CODE}-{SEQ:4})',
+  format_template VARCHAR(255) NOT NULL COMMENT 'รูปแบบ Template (เช่น {ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE})',
+  reset_sequence_yearly TINYINT(1) DEFAULT 1,
   example_number VARCHAR(100) COMMENT 'ตัวอย่างเลขที่ได้จาก Template',
   padding_length INT DEFAULT 4 COMMENT 'ความยาวของลำดับเลข (Padding)',
   reset_annually BOOLEAN DEFAULT TRUE COMMENT 'เริ่มนับใหม่ทุกปี',
@@ -975,10 +976,9 @@ CREATE TABLE document_number_formats (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
   FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types (id) ON DELETE CASCADE,
-  UNIQUE KEY uk_proj_type_disc (
+  UNIQUE KEY unique_format (
     project_id,
-    correspondence_type_id,
-    discipline_id
+    correspondence_type_id
   )
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ "รูปแบบ" Template ของเลขที่เอกสาร';
 

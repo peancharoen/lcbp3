@@ -2,10 +2,10 @@
 
 ---
 title: 'Implementation Guide: Document Numbering System'
-version: 1.5.1
+version: 1.6.1
 status: draft
 owner: Development Team
-last_updated: 2025-12-02
+last_updated: 2025-12-16
 related:
 
 - specs/01-requirements/03.11-document-numbering.md
@@ -31,6 +31,21 @@ related:
 ### 1.1. Counter Table Schema
 
 ```sql
+CREATE TABLE document_number_formats (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  correspondence_type_id INT NULL, -- NULL indicates default format for the project
+  format_template VARCHAR(100) NOT NULL,
+  reset_sequence_yearly TINYINT(1) DEFAULT 1,
+  description VARCHAR(255),
+  created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+
+  UNIQUE KEY idx_unique_project_type (project_id, correspondence_type_id),
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE
+);
+
 CREATE TABLE document_number_counters (
   project_id INT NOT NULL,
   originator_organization_id INT NOT NULL,
@@ -73,14 +88,15 @@ CREATE TABLE document_number_counters (
 ```sql
 CREATE TABLE document_number_audit (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  document_id INT NOT NULL,
+  document_id INT NULL COMMENT 'FK to documents (NULL initially, updated after doc creation)',
   generated_number VARCHAR(100) NOT NULL,
   counter_key JSON NOT NULL COMMENT 'Counter key used (JSON format)',
   template_used VARCHAR(200) NOT NULL,
-  user_id INT NOT NULL,
+  user_id INT NULL COMMENT 'FK to users (Allow NULL for system generation)',
   ip_address VARCHAR(45),
   user_agent TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  is_success BOOLEAN DEFAULT TRUE COMMENT 'Track success/failure status',
 
   -- Performance & Error Tracking
   retry_count INT DEFAULT 0,
@@ -152,7 +168,50 @@ src/modules/document-numbering/
     └── metrics.service.ts
 ```
 
-### 2.2. TypeORM Entity
+### 2.2. Number Generation Process
+
+#### 2.2.1. Resolve Format Template:
+  * Query document_number_formats by project_id + type_id.
+  * If no result, query by project_id + NULL (Default Project Format).
+  * If still no result, apply System Default Template: `{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}`.
+  * Determine resetSequenceYearly flag from the found format (default: true)
+
+#### 2.2.2. Determine Counter Key:
+  * If resetSequenceYearly is True: Use Current Year (e.g., 2025).
+  * If resetSequenceYearly is False: Use 0 (Continuous).
+  * Use type_id from the resolved format (Specific ID or NULL).
+
+#### 2.2.3. Generate Number:
+  * Use format template to generate number.
+  * Replace tokens with actual values:
+    * {PROJECT} -> Project Code
+    * {ORG} -> Originator Organization Code
+    * {RECIPIENT} -> Recipient Organization Code
+    * {TYPE} -> Type Code
+    * {YEAR} -> Current Year
+    * {SEQ} -> Sequence Number
+    * {REV} -> Revision Number
+
+#### 2.2.4. Validate Number:
+  * Check if generated number is unique.
+  * If not unique, increment sequence and retry.
+
+#### 2.2.5. Update Counter:
+  * Update document_number_counters with new sequence.
+
+#### 2.2.6. Generate Audit Record:
+  * Create audit record with:
+    * Generated number
+    * Counter key used
+    * Template used
+    * User ID
+    * IP Address
+    * User Agent
+
+#### 2.2.7. Return Generated Number:
+  * Return generated number to caller.
+
+### 2.3. TypeORM Entity
 
 ```typescript
 // File: src/modules/document-numbering/entities/document-number-counter.entity.ts
@@ -192,7 +251,7 @@ export class DocumentNumberCounter {
 }
 ```
 
-### 2.3. Redis Lock Service
+### 2.4. Redis Lock Service
 
 ```typescript
 // File: src/modules/document-numbering/services/document-numbering-lock.service.ts

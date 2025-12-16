@@ -2,8 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentNumberingService } from './document-numbering.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository, OptimisticLockVersionMismatchError } from 'typeorm';
-import { InternalServerErrorException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { DocumentNumberCounter } from './entities/document-number-counter.entity';
 import { DocumentNumberFormat } from './entities/document-number-format.entity';
 import { Project } from '../project/entities/project.entity';
@@ -17,6 +16,7 @@ import { DocumentNumberError } from './entities/document-number-error.entity';
 // Mock Redis and Redlock
 const mockRedis = {
   disconnect: jest.fn(),
+  on: jest.fn(),
 };
 const mockRedlock = {
   acquire: jest.fn(),
@@ -37,9 +37,7 @@ jest.mock('redlock', () => {
 describe('DocumentNumberingService', () => {
   let service: DocumentNumberingService;
   let module: TestingModule;
-  let counterRepo: Repository<DocumentNumberCounter>;
-  let formatRepo: Repository<DocumentNumberFormat>;
-  let auditRepo: Repository<DocumentNumberAudit>;
+  let formatRepo: jest.Mocked<{ findOne: jest.Mock }>;
 
   const mockProject = { id: 1, projectCode: 'LCBP3' };
   const mockOrg = { id: 1, name: 'Google' };
@@ -79,11 +77,17 @@ describe('DocumentNumberingService', () => {
         },
         {
           provide: getRepositoryToken(DocumentNumberAudit),
-          useValue: { save: jest.fn() },
+          useValue: {
+            create: jest.fn().mockReturnValue({ id: 1 }),
+            save: jest.fn().mockResolvedValue({ id: 1 }),
+          },
         },
         {
           provide: getRepositoryToken(DocumentNumberError),
-          useValue: { save: jest.fn() },
+          useValue: {
+            create: jest.fn().mockReturnValue({}),
+            save: jest.fn().mockResolvedValue({}),
+          },
         },
         // Mock other dependencies used inside generateNextNumber lookups
         {
@@ -106,16 +110,26 @@ describe('DocumentNumberingService', () => {
           provide: getRepositoryToken(CorrespondenceSubType),
           useValue: { findOne: jest.fn() },
         },
+        {
+          provide: DataSource,
+          useValue: {
+            transaction: jest.fn((cb) =>
+              cb({
+                findOne: jest.fn().mockResolvedValue(null),
+                create: jest.fn().mockReturnValue({ lastSequence: 0 }),
+                save: jest.fn().mockResolvedValue({ lastSequence: 1 }),
+              })
+            ),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<DocumentNumberingService>(DocumentNumberingService);
-    counterRepo = module.get(getRepositoryToken(DocumentNumberCounter));
     formatRepo = module.get(getRepositoryToken(DocumentNumberFormat));
-    auditRepo = module.get(getRepositoryToken(DocumentNumberAudit));
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     jest.clearAllMocks();
     // Don't call onModuleDestroy - redisClient is mocked and would cause undefined error
   });
@@ -136,46 +150,46 @@ describe('DocumentNumberingService', () => {
       (typeRepo.findOne as jest.Mock).mockResolvedValue(mockType);
       (disciplineRepo.findOne as jest.Mock).mockResolvedValue(mockDiscipline);
       (formatRepo.findOne as jest.Mock).mockResolvedValue({
-        formatTemplate: '{SEQ}',
+        formatTemplate: '{SEQ:4}',
+        resetSequenceYearly: true,
       });
-      (counterRepo.findOne as jest.Mock).mockResolvedValue(null); // First time
-      (counterRepo.save as jest.Mock).mockResolvedValue({ lastNumber: 1 });
 
       service.onModuleInit();
 
       const result = await service.generateNextNumber(mockContext);
 
-      expect(result).toBe('0001'); // Default padding 4 (see replaceTokens method)
-      expect(counterRepo.save).toHaveBeenCalled();
-      // expect(auditRepo.save).toHaveBeenCalled(); // Disabled in implementation
+      // Service returns object with number and auditId
+      expect(result).toHaveProperty('number');
+      expect(result).toHaveProperty('auditId');
+      expect(result.number).toBe('0001'); // Padded to 4 digits
     });
 
-    it('should throw InternalServerErrorException if max retries exceeded', async () => {
+    it('should throw error when transaction fails', async () => {
       const projectRepo = module.get(getRepositoryToken(Project));
       const orgRepo = module.get(getRepositoryToken(Organization));
       const typeRepo = module.get(getRepositoryToken(CorrespondenceType));
       const disciplineRepo = module.get(getRepositoryToken(Discipline));
+      const dataSource = module.get(DataSource);
 
       (projectRepo.findOne as jest.Mock).mockResolvedValue(mockProject);
       (orgRepo.findOne as jest.Mock).mockResolvedValue(mockOrg);
       (typeRepo.findOne as jest.Mock).mockResolvedValue(mockType);
       (disciplineRepo.findOne as jest.Mock).mockResolvedValue(mockDiscipline);
       (formatRepo.findOne as jest.Mock).mockResolvedValue({
-        formatTemplate: '{SEQ}',
+        formatTemplate: '{SEQ:4}',
+        resetSequenceYearly: true,
       });
-      (counterRepo.findOne as jest.Mock).mockResolvedValue({ lastNumber: 1 });
 
-      // Always fail
-      (counterRepo.save as jest.Mock).mockRejectedValue(
-        new OptimisticLockVersionMismatchError('Counter', 1, 2)
+      // Mock transaction to throw error
+      (dataSource.transaction as jest.Mock).mockRejectedValue(
+        new Error('Transaction failed')
       );
 
       service.onModuleInit();
 
       await expect(service.generateNextNumber(mockContext)).rejects.toThrow(
-        InternalServerErrorException
+        Error
       );
-      expect(counterRepo.save).toHaveBeenCalledTimes(3); // Max retries
     });
   });
 });
