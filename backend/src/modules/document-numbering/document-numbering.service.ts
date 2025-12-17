@@ -51,10 +51,12 @@ export class DocumentNumberingService implements OnModuleInit {
   onModuleInit() {
     const host = this.configService.get<string>('REDIS_HOST', 'localhost');
     const port = this.configService.get<number>('REDIS_PORT', 6379);
+    const password = this.configService.get<string>('REDIS_PASSWORD');
 
     this.redisClient = new Redis({
       host,
       port,
+      password,
       retryStrategy: (times) => Math.min(times * 50, 2000),
       maxRetriesPerRequest: 3,
     });

@@ -2,14 +2,15 @@
 
 ---
 title: 'Operations Guide: Document Numbering System'
-version: 1.6.0
-status: draft
+version: 1.6.2
+status: APPROVED
 owner: Operations Team
-last_updated: 2025-12-02
+last_updated: 2025-12-17
 related:
   - specs/01-requirements/03.11-document-numbering.md
   - specs/03-implementation/document-numbering.md
   - specs/04-operations/monitoring-alerting.md
+  - specs/05-decisions/ADR-002-document-numbering-strategy.md
 ---
 
 ## Overview
@@ -678,7 +679,8 @@ See: [Backup & Recovery Guide](file:///e:/np-dms/lcbp3/specs/04-operations/backu
 
 ## References
 
-- [Requirements](file:///e:/np-dms/lcbp3/specs/01-requirements/03.11-document-numbering.md)
-- [Implementation Guide](file:///e:/np-dms/lcbp3/specs/03-implementation/document-numbering.md)
-- [Monitoring & Alerting](file:///e:/np-dms/lcbp3/specs/04-operations/monitoring-alerting.md)
-- [Incident Response](file:///e:/np-dms/lcbp3/specs/04-operations/incident-response.md)
+- [Requirements](file:///d:/nap-dms.lcbp3/specs/01-requirements/03.11-document-numbering.md)
+- [Implementation Guide](file:///d:/nap-dms.lcbp3/specs/03-implementation/document-numbering.md)
+- [ADR-002 Document Numbering Strategy](file:///d:/nap-dms.lcbp3/specs/05-decisions/ADR-002-document-numbering-strategy.md)
+- [Monitoring & Alerting](file:///d:/nap-dms.lcbp3/specs/04-operations/monitoring-alerting.md)
+- [Incident Response](file:///d:/nap-dms.lcbp3/specs/04-operations/incident-response.md)

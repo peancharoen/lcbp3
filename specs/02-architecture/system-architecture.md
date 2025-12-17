@@ -3,15 +3,15 @@
 ---
 
 **title:** 'System Architecture'
-**version:** 1.5.0
+**version:** 1.6.2
 **status:** first-draft
 **owner:** Nattanin Peancharoen
-**last_updated:** 2025-11-30
+**last_updated:** 2025-12-17
 **related:**
 
 - specs/01-requirements/02-architecture.md
 - specs/01-requirements/06-non-functional.md
-- specs/03-implementation/fullftack-js-v1.5.0.md
+- specs/03-implementation/fullftack-js-v1.6.2.md
 
 ---
 
@@ -19,9 +19,50 @@
 
 เอกสารนี้อธิบายสถาปัตยกรรมระบบ LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System) ที่ใช้แนวทาง **Headless/API-First Architecture** พร้อมการ Deploy บน QNAP Server ผ่าน Container Station
 
-## 🎯 Architecture Principles
+## 1. 🎯 Architecture Principles
 
-### 1.1 Core Principles
+### 1.1 Component Overview
+```
+┌──────────────────────────────────────────────────────┐
+│                  Load Balancer                        │
+│              (Nginx Proxy Manager)                    │
+└────────────┬─────────────────────────────────────────┘
+             │
+    ┌────────┴────────┬──────────────┬──────────────┐
+    │                 │              │              │
+┌───▼────┐    ┌──────▼──────┐   ┌──▼───┐    ┌─────▼─────┐
+│Backend │    │Backend      │   │Backend│    │ Backend   │
+│Node 1  │    │Node 2       │   │Node 3 │    │ Node 4    │
+└───┬────┘    └──────┬──────┘   └──┬────┘    └─────┬─────┘
+    │                │              │               │
+    └────────────────┴──────────────┴───────────────┘
+                     │
+         ┌───────────┼───────────┬──────────────┐
+         │           │           │              │
+    ┌────▼────┐  ┌──▼───┐  ┌───▼────┐    ┌────▼─────┐
+    │ MariaDB │  │Redis │  │ Redis  │    │  Redis   │
+    │ Primary │  │Node 1│  │ Node 2 │    │  Node 3  │
+    └────┬────┘  └──────┘  └────────┘    └──────────┘
+         │
+    ┌────▼────┐
+    │ MariaDB │
+    │Replicas │
+    └─────────┘
+```
+### 1.2 Component Responsibilities
+
+| Component       | Purpose                           | Critical? |
+| --------------- | --------------------------------- | --------- |
+| Backend Nodes   | API processing, number generation | YES       |
+| MariaDB Primary | Persistent sequence storage       | YES       |
+| Redis Cluster   | Distributed locking, reservations | YES       |
+| Load Balancer   | Traffic distribution              | YES       |
+| Prometheus      | Metrics collection                | NO        |
+| Grafana         | Monitoring dashboard              | NO        |
+
+---
+
+### 1.3 Core Principles
 
 1. **Data Integrity First:** ความถูกต้องของข้อมูลต้องมาก่อนทุกอย่าง
 2. **Security by Design:** รักษาความปลอดภัยที่ทุกชั้น
@@ -29,13 +70,13 @@
 4. **Resilience:** ทนทานต่อ Failure และ Recovery ได้รวดเร็ว
 5. **Observability:** ติดตามและวิเคราะห์สถานะระบบได้ง่าย
 
-### 1.2 Architecture Style
+### 1.4 Architecture Style
 
 - **Headless CMS Architecture:** แยก Frontend และ Backend เป็นอิสระ
 - **API-First:** Backend เป็น API Server ที่ Frontend หรือ Third-party สามารถเรียกใช้ได้
 - **Microservices-Ready:** ออกแบบเป็น Modular Architecture พร้อมแยกเป็น Microservices ในอนาคต
 
-## 🏢 Infrastructure & Deployment
+## 2. 🏢 Infrastructure & Deployment
 
 ### 2.1 Server Infrastructure
 
@@ -95,7 +136,7 @@ graph TB
    - ใช้ Joi/Zod validate Environment Variables ตอน App Start
    - Throw Error ทันทีหากขาด Variable สำคัญ
 
-## 🔧 Core Services
+## 3. 🔧 Core Services
 
 ### 3.1 Service Overview
 
@@ -195,7 +236,7 @@ graph TB
 - Index อัตโนมัติเมื่อ Create/Update เอกสาร
 - Async Indexing ผ่าน Queue (ไม่ Block Main Request)
 
-## 🧱 Backend Module Architecture
+## 4. 🧱 Backend Module Architecture
 
 ### 4.1 Modular Design
 
@@ -378,7 +419,7 @@ graph TB
 - Dynamic Schema Generation
 - Data Transformation
 
-## 📊 Data Flow Architecture
+## 5. 📊 Data Flow Architecture
 
 ### 5.1 Main Request Flow
 
@@ -518,7 +559,7 @@ sequenceDiagram
     end
 ```
 
-## 🛡️ Security Architecture
+## 6. 🛡️ Security Architecture
 
 ### 6.1 Security Layers
 
@@ -643,7 +684,7 @@ graph TB
 | Insecure Deserialization          | Input Validation                     |
 | Using Known Vulnerable Components | Regular Dependency Updates           |
 
-## 📈 Performance & Scalability
+## 7. 📈 Performance & Scalability
 
 ### 7.1 Caching Strategy
 
@@ -686,7 +727,7 @@ graph TB
 | Cache Hit Ratio                     | > 80%   | Master Data    |
 | Application Startup                 | < 30s   | Cold Start     |
 
-## 🔄 Resilience & Error Handling
+## 8. 🔄 Resilience & Error Handling
 
 ### 8.1 Resilience Patterns
 
@@ -725,7 +766,7 @@ graph TB
 - Fallback UI Components
 - Retry Mechanisms for Failed Requests
 
-## 📊 Monitoring & Observability
+## 9. 📊 Monitoring & Observability
 
 ### 9.1 Health Checks
 
@@ -819,7 +860,7 @@ GET /health/live     # Liveness probe
 - `ip_address`, `user_agent`
 - `timestamp`
 
-## 💾 Backup & Disaster Recovery
+## 10. 💾 Backup & Disaster Recovery
 
 ### 10.1 Backup Strategy
 
@@ -867,7 +908,7 @@ GET /health/live     # Liveness probe
    - Run consistency checks
    - Verify critical business data
 
-## 🏗️ Deployment Architecture
+## 11. 🏗️ Deployment Architecture
 
 ### 11.1 Container Deployment
 
@@ -916,7 +957,7 @@ graph LR
     ProdDeploy --> Monitor[Monitor & Alert]
 ```
 
-## 🎯 Future Enhancements
+## 12.🎯 Future Enhancements
 
 ### 12.1 Scalability Improvements
 
@@ -932,7 +973,7 @@ graph LR
 - [ ] Mobile Native Apps
 - [ ] Blockchain Integration for Document Integrity
 
-### 12.3 Infrastructure
+### 12.3 Infrastructure Enhancements
 
 - [ ] Multi-Region Deployment
 - [ ] CDN for Static Assets
@@ -943,9 +984,9 @@ graph LR
 
 **Document Control:**
 
-- **Version:** 1.6.0
+- **Version:** 1.6.2
 - **Status:** Active
-- **Last Updated:** 2025-12-13
+- **Last Updated:** 2025-12-17
 - **Owner:** Nattanin Peancharoen
 
 ```

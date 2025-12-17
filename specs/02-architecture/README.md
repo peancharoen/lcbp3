@@ -10,9 +10,9 @@
 
 | Attribute          | Value                            |
 | ------------------ | -------------------------------- |
-| **Version**        | 1.6.0                            |
+| **Version**        | 1.6.2                            |
 | **Status**         | Active                           |
-| **Last Updated**   | 2025-12-13                       |
+| **Last Updated**   | 2025-12-17                       |
 | **Owner**          | Nattanin Peancharoen             |
 | **Classification** | Internal Technical Documentation |
 

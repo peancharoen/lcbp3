@@ -214,11 +214,11 @@ The system resolves the numbering format using the following priority:
 2.  **Default Format:** If not found, search for a record with matching `project_id` where `correspondence_type_id` is `NULL`.
 3.  **System Fallback:** If neither exists, use the hardcoded system default: `{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}`.
 
-| Priority | Scenario | Template Source | Counter Scope (Key) | Reset Behavior |
-| --- | --- | --- | --- | --- |
-| 1 | Specific Format Found | Database (project_id, type_id) | Specific Type (type_id) | Based on reset_sequence_yearly flag |
-| 2 | Default Format Found | Database (project_id, type_id=NULL) | Shared Counter (type_id=NULL) | Based on reset_sequence_yearly flag |
-| 3 | Fallback (No Config) | System Default: {ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE} | Shared Counter (type_id=NULL) | Reset Yearly (Default: True) |
+| Priority | Scenario              | Template Source                                     | Counter Scope (Key)           | Reset Behavior                      |
+| -------- | --------------------- | --------------------------------------------------- | ----------------------------- | ----------------------------------- |
+| 1        | Specific Format Found | Database (project_id, type_id)                      | Specific Type (type_id)       | Based on reset_sequence_yearly flag |
+| 2        | Default Format Found  | Database (project_id, type_id=NULL)                 | Shared Counter (type_id=NULL) | Based on reset_sequence_yearly flag |
+| 3        | Fallback (No Config)  | System Default: {ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE} | Shared Counter (type_id=NULL) | Reset Yearly (Default: True)        |
 
 ### Format Examples by Document Type
 
@@ -934,9 +934,9 @@ ensure:
 
 เป็นไปตาม:
 
-- ✅ [Requirements 3.11](../01-requirements/03.11-document-numbering.md) - Document Numbering Management (v1.5.0)
-- ✅ [Backend Plan Section 4.2.10](../../docs/2_Backend_Plan_V1_4_5.md) - DocumentNumberingModule
-- ✅ [Data Dictionary](../../docs/4_Data_Dictionary_V1_4_4.md) - Counter Tables
+- ✅ [Requirements 3.11](../01-requirements/03.11-document-numbering.md) - Document Numbering Management (v1.6.2)
+- ✅ [Implementation Guide](../03-implementation/document-numbering.md) - DocumentNumberingModule (v1.6.1)
+- ✅ [Operations Guide](../04-operations/document-numbering-operations.md) - Monitoring & Troubleshooting
 - ✅ [Security Best Practices](../02-architecture/security-architecture.md) - Rate Limiting, Audit Logging
 
 ---
@@ -961,7 +961,8 @@ ensure:
 
 ## Version History
 
-| Version | Date       | Changes                                                                               |
-| ------- | ---------- | ------------------------------------------------------------------------------------- |
-| 1.0     | 2025-11-30 | Initial decision                                                                      |
-| 2.0     | 2025-12-02 | Updated with comprehensive error scenarios, monitoring, security, and all token types |
+| Version | Date       | Changes                                                                                           |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------- |
+| 1.0     | 2025-11-30 | Initial decision                                                                                  |
+| 2.0     | 2025-12-02 | Updated with comprehensive error scenarios, monitoring, security, and all token types             |
+| 3.0     | 2025-12-17 | Aligned with Requirements v1.6.2: updated counter schema, token definitions, Number State Machine |
