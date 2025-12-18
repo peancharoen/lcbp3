@@ -1,0 +1,571 @@
+Starting link verification in d:\nap-dms.lcbp3\specs...
+
+Audit Summary:
+Total Internal Links Scanned: 322
+Total Broken Links Found: 141
+
+Broken Links Detail:
+1. Source: d:\nap-dms.lcbp3\specs\00-overview\00-01-quick-start.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+2. Source: d:\nap-dms.lcbp3\specs\00-overview\00-01-quick-start.md
+   Link: [Backend Guidelines](../03-implementation/backend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+3. Source: d:\nap-dms.lcbp3\specs\00-overview\00-01-quick-start.md
+   Link: [Deployment Guide](../04-operations/deployment-guide.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\deployment-guide.md
+--------------------
+4. Source: d:\nap-dms.lcbp3\specs\00-overview\00-01-quick-start.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+5. Source: d:\nap-dms.lcbp3\specs\00-overview\00-01-quick-start.md
+   Link: [Backend Guidelines](../03-implementation/backend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+6. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Functional Requirements](../01-requirements/03-functional-requirements.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03-functional-requirements.md
+--------------------
+7. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Document Numbering](../01-requirements/03.11-document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.11-document-numbering.md
+--------------------
+8. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+9. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Data Model](../02-architecture/data-model.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\data-model.md
+--------------------
+10. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [API Design](../02-architecture/api-design.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\api-design.md
+--------------------
+11. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Backend Guidelines](../03-implementation/backend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+12. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Frontend Guidelines](../03-implementation/frontend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\frontend-guidelines.md
+--------------------
+13. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Document Numbering Implementation](../03-implementation/document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\document-numbering.md
+--------------------
+14. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Testing Strategy](../03-implementation/testing-strategy.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\testing-strategy.md
+--------------------
+15. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Deployment Guide](../04-operations/deployment-guide.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\deployment-guide.md
+--------------------
+16. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Monitoring](../04-operations/monitoring-alerting.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\monitoring-alerting.md
+--------------------
+17. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Document Numbering Operations](../04-operations/document-numbering-operations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\document-numbering-operations.md
+--------------------
+18. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+19. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Backend](../03-implementation/backend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+20. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Frontend](../03-implementation/frontend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\frontend-guidelines.md
+--------------------
+21. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Environment Setup](../04-operations/environment-setup.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\environment-setup.md
+--------------------
+22. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Deployment Guide](../04-operations/deployment-guide.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\deployment-guide.md
+--------------------
+23. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Backup & Recovery](../04-operations/backup-recovery.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\backup-recovery.md
+--------------------
+24. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Monitoring](../04-operations/monitoring-alerting.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\monitoring-alerting.md
+--------------------
+25. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Maintenance Procedures](../04-operations/maintenance-procedures.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\maintenance-procedures.md
+--------------------
+26. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Incident Response](../04-operations/incident-response.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\incident-response.md
+--------------------
+27. Source: d:\nap-dms.lcbp3\specs\00-overview\README.md
+   Link: [Security Operations](../04-operations/security-operations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\security-operations.md
+--------------------
+28. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.1-project-management.md](./03.1-project-management.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.1-project-management.md
+--------------------
+29. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.2-correspondence.md](./03.2-correspondence.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.2-correspondence.md
+--------------------
+30. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.3-rfa.md](./03.3-rfa.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.3-rfa.md
+--------------------
+31. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.4-contract-drawing.md](./03.4-contract-drawing.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.4-contract-drawing.md
+--------------------
+32. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.5-shop-drawing.md](./03.5-shop-drawing.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.5-shop-drawing.md
+--------------------
+33. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.6-unified-workflow.md](./03.6-unified-workflow.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.6-unified-workflow.md
+--------------------
+34. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.7-transmittals.md](./03.7-transmittals.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.7-transmittals.md
+--------------------
+35. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.8-circulation-sheet.md](./03.8-circulation-sheet.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.8-circulation-sheet.md
+--------------------
+36. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.9-logs.md](./03.9-logs.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.9-logs.md
+--------------------
+37. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.10-file-handling.md](./03.10-file-handling.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.10-file-handling.md
+--------------------
+38. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.11-document-numbering.md](./03.11-document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.11-document-numbering.md
+--------------------
+39. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03-functional-requirements.md
+   Link: [specs/01-requirements/03.12-json-details.md](./03.12-json-details.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.12-json-details.md
+--------------------
+40. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03.11-document-numbering.md
+   Link: [document-numbering.md](file:///d:/nap-dms.lcbp3/specs/03-implementation/document-numbering.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\03-implementation\document-numbering.md
+--------------------
+41. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03.11-document-numbering.md
+   Link: [document-numbering-operations.md](file:///d:/nap-dms.lcbp3/specs/04-operations/document-numbering-operations.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\04-operations\document-numbering-operations.md
+--------------------
+42. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03.11-document-numbering.md
+   Link: [Implementation Guide](file:///d:/nap-dms.lcbp3/specs/03-implementation/document-numbering.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\03-implementation\document-numbering.md
+--------------------
+43. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03.11-document-numbering.md
+   Link: [Operations Guide](file:///d:/nap-dms.lcbp3/specs/04-operations/document-numbering-operations.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\04-operations\document-numbering-operations.md
+--------------------
+44. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03.11-document-numbering.md
+   Link: [API Design](file:///d:/nap-dms.lcbp3/specs/02-architecture/api-design.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\02-architecture\api-design.md
+--------------------
+45. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03.11-document-numbering.md
+   Link: [Data Dictionary](file:///d:/nap-dms.lcbp3/specs/04-data-dictionary/4_Data_Dictionary_V1_4_4.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\04-data-dictionary\4_Data_Dictionary_V1_4_4.md
+--------------------
+46. Source: d:\nap-dms.lcbp3\specs\01-requirements\01-03.11-document-numbering.md
+   Link: [ADR-018: Document Numbering Strategy](file:///d:/nap-dms.lcbp3/specs/05-decisions/adr-018-document-numbering.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\05-decisions\adr-018-document-numbering.md
+--------------------
+47. Source: d:\nap-dms.lcbp3\specs\01-requirements\README.md
+   Link: [Non-Functional Requirements](./06-non-functional.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\06-non-functional.md
+--------------------
+48. Source: d:\nap-dms.lcbp3\specs\02-architecture\02-03-data-model.md
+   Link: [System Architecture](./02-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\02-architecture.md
+--------------------
+49. Source: d:\nap-dms.lcbp3\specs\02-architecture\02-03-data-model.md
+   Link: [API Design](./api-design.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\api-design.md
+--------------------
+50. Source: d:\nap-dms.lcbp3\specs\02-architecture\02-03-data-model.md
+   Link: [Functional Requirements](../01-requirements/03-functional-requirements.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03-functional-requirements.md
+--------------------
+51. Source: d:\nap-dms.lcbp3\specs\02-architecture\README.md
+   Link: [Requirements](../01-requirements/03.11-document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.11-document-numbering.md
+--------------------
+52. Source: d:\nap-dms.lcbp3\specs\02-architecture\README.md
+   Link: [Implementation Guide](../03-implementation/document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\document-numbering.md
+--------------------
+53. Source: d:\nap-dms.lcbp3\specs\02-architecture\README.md
+   Link: [Operations Guide](../04-operations/document-numbering-operations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\document-numbering-operations.md
+--------------------
+54. Source: d:\nap-dms.lcbp3\specs\02-architecture\README.md
+   Link: [System Architecture](./system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+55. Source: d:\nap-dms.lcbp3\specs\02-architecture\README.md
+   Link: [API Design](./api-design.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\api-design.md
+--------------------
+56. Source: d:\nap-dms.lcbp3\specs\02-architecture\README.md
+   Link: [Data Model](./data-model.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\data-model.md
+--------------------
+57. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-02-backend-guidelines.md
+   Link: [FullStack Guidelines](./fullftack-js-V1.5.0.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\fullftack-js-V1.5.0.md
+--------------------
+58. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-03-frontend-guidelines.md
+   Link: [FullStack Guidelines](./fullftack-js-V1.5.0.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\fullftack-js-V1.5.0.md
+--------------------
+59. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-04-document-numbering.md
+   Link: [Requirements](file:///d:/nap-dms.lcbp3/specs/01-requirements/03.11-document-numbering.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\01-requirements\03.11-document-numbering.md
+--------------------
+60. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-04-document-numbering.md
+   Link: [Operations Guide](file:///d:/nap-dms.lcbp3/specs/04-operations/document-numbering-operations.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\04-operations\document-numbering-operations.md
+--------------------
+61. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-04-document-numbering.md
+   Link: [ADR-018 Document Numbering](file:///d:/nap-dms.lcbp3/specs/05-decisions/adr-018-document-numbering.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\05-decisions\adr-018-document-numbering.md
+--------------------
+62. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-04-document-numbering.md
+   Link: [Backend Guidelines](file:///d:/nap-dms.lcbp3/specs/03-implementation/backend-guidelines.md)
+   Resolved Path: d:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+63. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-05-testing-strategy.md
+   Link: [Backend Guidelines](./backend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+64. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-05-testing-strategy.md
+   Link: [Frontend Guidelines](./frontend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\frontend-guidelines.md
+--------------------
+65. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-05-testing-strategy.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+66. Source: d:\nap-dms.lcbp3\specs\03-implementation\03-05-testing-strategy.md
+   Link: [API Design](../02-architecture/api-design.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\api-design.md
+--------------------
+67. Source: d:\nap-dms.lcbp3\specs\04-operations\04-01-deployment-guide.md
+   Link: [Environment Setup Guide](./environment-setup.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\environment-setup.md
+--------------------
+68. Source: d:\nap-dms.lcbp3\specs\04-operations\04-01-deployment-guide.md
+   Link: [Backup & Recovery](./backup-recovery.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\backup-recovery.md
+--------------------
+69. Source: d:\nap-dms.lcbp3\specs\04-operations\04-01-deployment-guide.md
+   Link: [Monitoring & Alerting](./monitoring-alerting.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\monitoring-alerting.md
+--------------------
+70. Source: d:\nap-dms.lcbp3\specs\04-operations\04-01-deployment-guide.md
+   Link: [Maintenance Procedures](./maintenance-procedures.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\maintenance-procedures.md
+--------------------
+71. Source: d:\nap-dms.lcbp3\specs\04-operations\04-02-environment-setup.md
+   Link: [Deployment Guide](./deployment-guide.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\deployment-guide.md
+--------------------
+72. Source: d:\nap-dms.lcbp3\specs\04-operations\04-02-environment-setup.md
+   Link: [Security Operations](./security-operations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\security-operations.md
+--------------------
+73. Source: d:\nap-dms.lcbp3\specs\04-operations\04-03-monitoring-alerting.md
+   Link: [Backup & Recovery](./backup-recovery.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\backup-recovery.md
+--------------------
+74. Source: d:\nap-dms.lcbp3\specs\04-operations\04-03-monitoring-alerting.md
+   Link: [Incident Response](./incident-response.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\incident-response.md
+--------------------
+75. Source: d:\nap-dms.lcbp3\specs\04-operations\04-04-backup-recovery.md
+   Link: [Deployment Guide](./deployment-guide.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\deployment-guide.md
+--------------------
+76. Source: d:\nap-dms.lcbp3\specs\04-operations\04-04-backup-recovery.md
+   Link: [Monitoring & Alerting](./monitoring-alerting.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\monitoring-alerting.md
+--------------------
+77. Source: d:\nap-dms.lcbp3\specs\04-operations\04-04-backup-recovery.md
+   Link: [Incident Response](./incident-response.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\incident-response.md
+--------------------
+78. Source: d:\nap-dms.lcbp3\specs\04-operations\04-05-maintenance-procedures.md
+   Link: [Deployment Guide](./deployment-guide.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\deployment-guide.md
+--------------------
+79. Source: d:\nap-dms.lcbp3\specs\04-operations\04-05-maintenance-procedures.md
+   Link: [Backup & Recovery](./backup-recovery.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\backup-recovery.md
+--------------------
+80. Source: d:\nap-dms.lcbp3\specs\04-operations\04-05-maintenance-procedures.md
+   Link: [Monitoring & Alerting](./monitoring-alerting.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\monitoring-alerting.md
+--------------------
+81. Source: d:\nap-dms.lcbp3\specs\04-operations\04-06-security-operations.md
+   Link: [Incident Response](./incident-response.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\incident-response.md
+--------------------
+82. Source: d:\nap-dms.lcbp3\specs\04-operations\04-06-security-operations.md
+   Link: [Monitoring & Alerting](./monitoring-alerting.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\monitoring-alerting.md
+--------------------
+83. Source: d:\nap-dms.lcbp3\specs\04-operations\04-07-incident-response.md
+   Link: [Monitoring & Alerting](./monitoring-alerting.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\monitoring-alerting.md
+--------------------
+84. Source: d:\nap-dms.lcbp3\specs\04-operations\04-07-incident-response.md
+   Link: [Backup & Recovery](./backup-recovery.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\backup-recovery.md
+--------------------
+85. Source: d:\nap-dms.lcbp3\specs\04-operations\04-07-incident-response.md
+   Link: [Security Operations](./security-operations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\security-operations.md
+--------------------
+86. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [deployment-guide.md](./deployment-guide.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\deployment-guide.md
+--------------------
+87. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [environment-setup.md](./environment-setup.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\environment-setup.md
+--------------------
+88. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [monitoring-alerting.md](./monitoring-alerting.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\monitoring-alerting.md
+--------------------
+89. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [backup-recovery.md](./backup-recovery.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\backup-recovery.md
+--------------------
+90. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [maintenance-procedures.md](./maintenance-procedures.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\maintenance-procedures.md
+--------------------
+91. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [security-operations.md](./security-operations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\security-operations.md
+--------------------
+92. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [incident-response.md](./incident-response.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\incident-response.md
+--------------------
+93. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [deployment-guide.md](./deployment-guide.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\deployment-guide.md
+--------------------
+94. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [environment-setup.md](./environment-setup.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\environment-setup.md
+--------------------
+95. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [monitoring-alerting.md](./monitoring-alerting.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\monitoring-alerting.md
+--------------------
+96. Source: d:\nap-dms.lcbp3\specs\04-operations\README.md
+   Link: [backup-recovery.md](./backup-recovery.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\backup-recovery.md
+--------------------
+97. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-001-unified-workflow-engine.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+98. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-001-unified-workflow-engine.md
+   Link: [Unified Workflow Requirements](../01-requirements/03.6-unified-workflow.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.6-unified-workflow.md
+--------------------
+99. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-001-unified-workflow-engine.md
+   Link: [Requirements 3.6](../01-requirements/03.6-unified-workflow.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.6-unified-workflow.md
+--------------------
+100. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-002-document-numbering-strategy.md
+   Link: [03.11-document-numbering.md](../01-requirements/03.11-document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.11-document-numbering.md
+--------------------
+101. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-002-document-numbering-strategy.md
+   Link: [03.11-document-numbering.md](../01-requirements/03.11-document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.11-document-numbering.md
+--------------------
+102. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-002-document-numbering-strategy.md
+   Link: [Requirements 3.11](../01-requirements/03.11-document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.11-document-numbering.md
+--------------------
+103. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-002-document-numbering-strategy.md
+   Link: [Implementation Guide](../03-implementation/document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\document-numbering.md
+--------------------
+104. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-002-document-numbering-strategy.md
+   Link: [Operations Guide](../04-operations/document-numbering-operations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\document-numbering-operations.md
+--------------------
+105. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-002-document-numbering-strategy.md
+   Link: [Security Best Practices](../02-architecture/security-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\security-architecture.md
+--------------------
+106. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-002-document-numbering-strategy.md
+   Link: [ADR-005: Redis Usage Strategy](./ADR-005-redis-usage-strategy.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\05-decisions\ADR-005-redis-usage-strategy.md
+--------------------
+107. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-002-document-numbering-strategy.md
+   Link: [ADR-006: Audit Logging Strategy](./ADR-006-audit-logging-strategy.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\05-decisions\ADR-006-audit-logging-strategy.md
+--------------------
+108. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-003-file-storage-approach.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+109. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-003-file-storage-approach.md
+   Link: [File Handling Requirements](../01-requirements/03.10-file-handling.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.10-file-handling.md
+--------------------
+110. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-003-file-storage-approach.md
+   Link: [Requirements 3.10](../01-requirements/03.10-file-handling.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.10-file-handling.md
+--------------------
+111. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-003-file-storage-approach.md
+   Link: [System Architecture Section 5.2](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+112. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-003-file-storage-approach.md
+   Link: [ADR-006: Security Best Practices](./ADR-006-security-best-practices.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\05-decisions\ADR-006-security-best-practices.md
+--------------------
+113. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-004-rbac-implementation.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+114. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-004-rbac-implementation.md
+   Link: [Access Control Requirements](../01-requirements/04-access-control.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\04-access-control.md
+--------------------
+115. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-004-rbac-implementation.md
+   Link: [Requirements Section 4](../01-requirements/04-access-control.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\04-access-control.md
+--------------------
+116. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-004-rbac-implementation.md
+   Link: [ADR-005: Redis Usage Strategy](./ADR-005-redis-usage-strategy.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\05-decisions\ADR-005-redis-usage-strategy.md
+--------------------
+117. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-005-technology-stack.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+118. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-005-technology-stack.md
+   Link: [FullStack JS Guidelines](../03-implementation/fullftack-js-v1.5.0.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\fullftack-js-v1.5.0.md
+--------------------
+119. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-005-technology-stack.md
+   Link: [FullStack JS Guidelines](../03-implementation/fullftack-js-v1.5.0.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\fullftack-js-v1.5.0.md
+--------------------
+120. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-005-technology-stack.md
+   Link: [Backend Guidelines](../03-implementation/backend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+121. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-005-technology-stack.md
+   Link: [Frontend Guidelines](../03-implementation/frontend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\frontend-guidelines.md
+--------------------
+122. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-005-technology-stack.md
+   Link: [ADR-007: Deployment Strategy](./ADR-007-deployment-strategy.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\05-decisions\ADR-007-deployment-strategy.md
+--------------------
+123. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-006-redis-caching-strategy.md
+   Link: [System Architecture](../02-architecture/system-architecture.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+124. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-006-redis-caching-strategy.md
+   Link: [Performance Requirements](../01-requirements/06-non-functional.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\06-non-functional.md
+--------------------
+125. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-006-redis-caching-strategy.md
+   Link: [System Architecture Section 3.5](../02-architecture/system-architecture.md#redis)
+   Resolved Path: D:\nap-dms.lcbp3\specs\02-architecture\system-architecture.md
+--------------------
+126. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-006-redis-caching-strategy.md
+   Link: [Performance Requirements](../01-requirements/06-non-functional.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\06-non-functional.md
+--------------------
+127. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-007-api-design-error-handling.md
+   Link: [Backend Guidelines](../03-implementation/backend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+128. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-008-email-notification-strategy.md
+   Link: [Backend Guidelines](../03-implementation/backend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+129. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-008-email-notification-strategy.md
+   Link: [TASK-BE-011](../06-tasks/TASK-BE-011-notification-audit.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\06-tasks\TASK-BE-011-notification-audit.md
+--------------------
+130. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-008-email-notification-strategy.md
+   Link: [TASK-BE-011: Notification & Audit](../06-tasks/TASK-BE-011-notification-audit.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\06-tasks\TASK-BE-011-notification-audit.md
+--------------------
+131. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-009-database-migration-strategy.md
+   Link: [TASK-BE-001](../06-tasks/TASK-BE-001-database-migrations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\06-tasks\TASK-BE-001-database-migrations.md
+--------------------
+132. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-009-database-migration-strategy.md
+   Link: [TASK-BE-001: Database Migrations](../06-tasks/TASK-BE-001-database-migrations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\06-tasks\TASK-BE-001-database-migrations.md
+--------------------
+133. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-010-logging-monitoring-strategy.md
+   Link: [Backend Guidelines](../03-implementation/backend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\backend-guidelines.md
+--------------------
+134. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-011-nextjs-app-router.md
+   Link: [Frontend Guidelines](../03-implementation/frontend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\frontend-guidelines.md
+--------------------
+135. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-012-ui-component-library.md
+   Link: [Frontend Guidelines](../03-implementation/frontend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\frontend-guidelines.md
+--------------------
+136. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-013-form-handling-validation.md
+   Link: [Frontend Guidelines](../03-implementation/frontend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\frontend-guidelines.md
+--------------------
+137. Source: d:\nap-dms.lcbp3\specs\05-decisions\ADR-014-state-management.md
+   Link: [Frontend Guidelines](../03-implementation/frontend-guidelines.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\frontend-guidelines.md
+--------------------
+138. Source: d:\nap-dms.lcbp3\specs\05-decisions\README.md
+   Link: [Requirements](../01-requirements/03.11-document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\01-requirements\03.11-document-numbering.md
+--------------------
+139. Source: d:\nap-dms.lcbp3\specs\05-decisions\README.md
+   Link: [Implementation Guide](../03-implementation/document-numbering.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\03-implementation\document-numbering.md
+--------------------
+140. Source: d:\nap-dms.lcbp3\specs\05-decisions\README.md
+   Link: [Operations Guide](../04-operations/document-numbering-operations.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\04-operations\document-numbering-operations.md
+--------------------
+141. Source: d:\nap-dms.lcbp3\specs\05-decisions\README.md
+   Link: [ADR-XXX: Title](./ADR-XXX.md)
+   Resolved Path: D:\nap-dms.lcbp3\specs\05-decisions\ADR-XXX.md
+--------------------

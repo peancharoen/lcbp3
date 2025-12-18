@@ -82,9 +82,9 @@ specs/
 │   └── ...
 │
 ├── 07-database/              # Database Schema (8 files)
-│   ├── lcbp3-v1.5.1-schema.sql
-│   ├── lcbp3-v1.5.1-seed.sql
-│   ├── data-dictionary-v1.5.1.md
+│   ├── lcbp3-v1.7.0-schema.sql
+│   ├── lcbp3-v1.7.0-seed.sql
+│   ├── data-dictionary-v1.7.0.md
 │   └── ...
 │
 └── 09-history/               # Archived Implementations (9 files)

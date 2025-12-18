@@ -1,12 +1,12 @@
 # ADR-002: Document Numbering Strategy
 
 **Status:** Accepted
-**Date:** 2025-12-02
+**Date:** 2025-12-18
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [System Architecture](../02-architecture/system-architecture.md)
-- [Document Numbering Requirements](../01-requirements/03.11-document-numbering.md)
+- [System Architecture](../02-architecture/02-01-system-architecture.md)
+- [Document Numbering Requirements](../01-requirements/01-03.11-document-numbering.md)
 
 ---
 
@@ -179,7 +179,7 @@ CREATE TABLE document_number_audit (
 > [!IMPORTANT]
 > **Updated to align with Requirements Specification**
 >
-> This ADR now uses token names from [03.11-document-numbering.md](../01-requirements/03.11-document-numbering.md) for consistency.
+> This ADR now uses token names from [03.11-document-numbering.md](../01-requirements/01-03.11-document-numbering.md) for consistency.
 
 รองรับ Token ทั้งหมด:
 
@@ -205,7 +205,7 @@ CREATE TABLE document_number_audit (
 > - ~~`{TYPE}`~~ → Use `{CORR_TYPE}`, `{SUB_TYPE}`, or `{RFA_TYPE}` (context-specific)
 > - ~~`{CATEGORY}`~~ → Not used in current system
 >
-> **Always refer to**: [03.11-document-numbering.md](../01-requirements/03.11-document-numbering.md) as source of truth
+> **Always refer to**: [03.11-document-numbering.md](../01-requirements/01-03.11-document-numbering.md) as source of truth
 
 ### Format Resolution Strategy (Fallback Logic)
 
@@ -934,9 +934,9 @@ ensure:
 
 เป็นไปตาม:
 
-- ✅ [Requirements 3.11](../01-requirements/03.11-document-numbering.md) - Document Numbering Management (v1.6.2)
-- ✅ [Implementation Guide](../03-implementation/document-numbering.md) - DocumentNumberingModule (v1.6.1)
-- ✅ [Operations Guide](../04-operations/document-numbering-operations.md) - Monitoring & Troubleshooting
+- ✅ [Requirements 3.11](../01-requirements/01-03.11-document-numbering.md) - Document Numbering Management (v1.6.2)
+- ✅ [Implementation Guide](../03-implementation/03-04-document-numbering.md) - DocumentNumberingModule (v1.6.1)
+- ✅ [Operations Guide](../04-operations/04-08-document-numbering-operations.md) - Monitoring & Troubleshooting
 - ✅ [Security Best Practices](../02-architecture/security-architecture.md) - Rate Limiting, Audit Logging
 
 ---

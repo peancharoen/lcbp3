@@ -13,7 +13,7 @@ import { User } from '../user/entities/user.entity';
 import { CreateCirculationDto } from './dto/create-circulation.dto';
 import { UpdateCirculationRoutingDto } from './dto/update-circulation-routing.dto';
 import { SearchCirculationDto } from './dto/search-circulation.dto';
-import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
+import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 
 @Injectable()
 export class CirculationService {
@@ -39,7 +39,7 @@ export class CirculationService {
       // Generate No. using DocumentNumberingService (Type 900 - Circulation)
       const result = await this.numberingService.generateNextNumber({
         projectId: createDto.projectId || 0, // Use projectId from DTO or 0
-        originatorId: user.primaryOrganizationId,
+        originatorOrganizationId: user.primaryOrganizationId,
         typeId: 900, // Fixed Type ID for Circulation
         year: new Date().getFullYear(),
         customTokens: {

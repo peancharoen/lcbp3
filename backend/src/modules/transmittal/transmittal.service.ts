@@ -11,7 +11,7 @@ import { Transmittal } from './entities/transmittal.entity';
 import { TransmittalItem } from './entities/transmittal-item.entity';
 import { CreateTransmittalDto } from './dto/create-transmittal.dto';
 import { User } from '../user/entities/user.entity';
-import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
+import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
@@ -61,7 +61,7 @@ export class TransmittalService {
       // 2. Generate Number
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: createDto.projectId,
-        originatorId: user.primaryOrganizationId,
+        originatorOrganizationId: user.primaryOrganizationId,
         typeId: type.id,
         year: new Date().getFullYear(),
         customTokens: {
@@ -72,7 +72,7 @@ export class TransmittalService {
 
       // 3. Create Correspondence (Parent)
       const correspondence = queryRunner.manager.create(Correspondence, {
-        correspondenceNumber: docNumber,
+        correspondenceNumber: docNumber.number,
         correspondenceTypeId: type.id,
         projectId: createDto.projectId,
         originatorId: user.primaryOrganizationId,

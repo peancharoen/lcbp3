@@ -1,0 +1,13 @@
+
+> backend@1.5.1 test D:\nap-dms.lcbp3\backend
+> jest --forceExit "rfa"
+
+No tests found, exiting with code 1
+Run with `--passWithNoTests` to exit with code 0
+In D:\nap-dms.lcbp3\backend\src
+  273 files checked.
+  testMatch:  - 0 matches
+  testPathIgnorePatterns: \\node_modules\\ - 273 matches
+  testRegex: .*\.spec\.ts$ - 15 matches
+Pattern: rfa - 0 matches
+ΓÇëELIFECYCLEΓÇë Test failed. See above for more details.

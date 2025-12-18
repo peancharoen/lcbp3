@@ -3,7 +3,7 @@
 **Status:** ✅ Accepted
 **Date:** 2025-12-01
 **Decision Makers:** Backend Team, System Architect
-**Related Documents:** [Backend Guidelines](../03-implementation/backend-guidelines.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
+**Related Documents:** [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
 
 ---
 

@@ -3,7 +3,7 @@
 **Status:** ✅ Accepted
 **Date:** 2025-12-01
 **Decision Makers:** Frontend Team
-**Related Documents:** [Frontend Guidelines](../03-implementation/frontend-guidelines.md)
+**Related Documents:** [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md)
 
 ---
 

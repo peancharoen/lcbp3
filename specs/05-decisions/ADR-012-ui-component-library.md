@@ -3,7 +3,7 @@
 **Status:** ✅ Accepted
 **Date:** 2025-12-01
 **Decision Makers:** Frontend Team, UX Designer
-**Related Documents:** [Frontend Guidelines](../03-implementation/frontend-guidelines.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
+**Related Documents:** [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
 
 ---
 

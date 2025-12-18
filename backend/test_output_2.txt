@@ -1,0 +1,17 @@
+
+> backend@1.5.1 test
+> jest --forceExit modules/document-numbering/document-numbering.service.spec.ts
+
+PASS src/modules/document-numbering/document-numbering.service.spec.ts
+  DocumentNumberingService
+    ΓêÜ should be defined (13 ms)
+    generateNextNumber
+      ΓêÜ should generate a new number successfully (6 ms)
+      ΓêÜ should throw error when increment fails (12 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        1.449 s, estimated 2 s
+Ran all test suites matching modules/document-numbering/document-numbering.service.spec.ts.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

@@ -1,8 +1,8 @@
 # Development Tasks
 
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
-**Version:** 1.5.1
-**Last Updated:** 2025-12-02
+**Version:** 1.7.0
+**Last Updated:** 2025-12-18
 
 ---
 
@@ -128,7 +128,7 @@ graph TB
 
 | ID                                             | Task                        | Priority | Effort   | Status        | Dependencies |
 | ---------------------------------------------- | --------------------------- | -------- | -------- | ------------- | ------------ |
-| [BE-001](./TASK-BE-001-database-migrations.md) | Database Setup & Migrations | P0       | 2-3 days | 🔴 Not Started | None         |
+| [BE-001](TASK-BE-015-schema-v160-migration.md) | Database Setup & Migrations | P0       | 2-3 days | 🔴 Not Started | None         |
 | [BE-002](./TASK-BE-002-auth-rbac.md)           | Auth & RBAC Module          | P0       | 5-7 days | 🔴 Not Started | BE-001       |
 
 ### Phase 2: Core Infrastructure (3-4 weeks)
@@ -160,7 +160,7 @@ graph TB
 
 | ID                                            | Task                     | Priority | Effort   | Status        | Dependencies   |
 | --------------------------------------------- | ------------------------ | -------- | -------- | ------------- | -------------- |
-| [BE-011](./TASK-BE-011-notification-audit.md) | Notification & Audit Log | P3       | 3-5 days | 🔴 Not Started | BE-001, BE-002 |
+| [BE-011](README.md) | Notification & Audit Log | P3       | 3-5 days | 🔴 Not Started | BE-001, BE-002 |
 
 ---
 
@@ -289,9 +289,9 @@ graph TB
   - Comprehensive error handling (4 scenarios)
   - Monitoring & alerting (Prometheus + Grafana)
 - **Documentation:**
-  - 📋 [Requirements](../01-requirements/03.11-document-numbering.md)
-  - 📘 [Implementation Guide](../03-implementation/document-numbering.md)
-  - 📗 [Operations Guide](../04-operations/document-numbering-operations.md)
+  - 📋 [Requirements](../01-requirements/01-03.11-document-numbering.md)
+  - 📘 [Implementation Guide](../03-implementation/03-04-document-numbering.md)
+  - 📗 [Operations Guide](../04-operations/04-08-document-numbering-operations.md)
 - **Related ADR:** [ADR-002](../05-decisions/ADR-002-document-numbering-strategy.md)
 - **Task Details:** [TASK-BE-004](./TASK-BE-004-document-numbering.md)
 
@@ -398,7 +398,7 @@ BE-001 (Database)
 
 ### Code Quality
 
-- ✅ Code เป็นไปตาม [Backend Guidelines](../03-implementation/backend-guidelines.md)
+- ✅ Code เป็นไปตาม [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
 - ✅ No `any` types (TypeScript Strict Mode)
 - ✅ ESLint และ Prettier passed
 - ✅ No console.log (use Logger)
@@ -448,14 +448,14 @@ Track potential blockers:
 
 ### Architecture
 
-- [System Architecture](../02-architecture/system-architecture.md)
-- [Data Model](../02-architecture/data-model.md)
-- [API Design](../02-architecture/api-design.md)
+- [System Architecture](../02-architecture/02-01-system-architecture.md)
+- [Data Model](../02-architecture/02-03-data-model.md)
+- [API Design](../02-architecture/02-02-api-design.md)
 
 ### Guidelines
 
-- [Backend Guidelines](../03-implementation/backend-guidelines.md)
-- [Testing Strategy](../03-implementation/testing-strategy.md)
+- [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
+- [Testing Strategy](../03-implementation/03-05-testing-strategy.md)
 
 ### Decisions
 
@@ -619,5 +619,5 @@ Add these features when:
 
 ---
 
-**Version:** 1.5.1
-**Last Updated:** 2025-12-02
+**Version:** 1.7.0
+**Last Updated:** 2025-12-18

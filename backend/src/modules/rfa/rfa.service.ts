@@ -33,7 +33,7 @@ import { CreateRfaDto } from './dto/create-rfa.dto';
 import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface';
 
 // Services
-import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
+import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 import { NotificationService } from '../notification/notification.service';
 import { SearchService } from '../search/search.service';
 import { UserService } from '../user/user.service';
@@ -110,7 +110,7 @@ export class RfaService {
       // [UPDATED] Generate Document Number with Discipline
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: createDto.projectId,
-        originatorId: userOrgId,
+        originatorOrganizationId: userOrgId,
         typeId: createDto.rfaTypeId,
         disciplineId: createDto.disciplineId ?? 0, // ✅ ส่ง disciplineId ไปด้วย (0 ถ้าไม่มี)
         year: new Date().getFullYear(),
@@ -122,7 +122,7 @@ export class RfaService {
 
       // 1. Create Correspondence Record
       const correspondence = queryRunner.manager.create(Correspondence, {
-        correspondenceNumber: docNumber,
+        correspondenceNumber: docNumber.number,
         correspondenceTypeId: createDto.rfaTypeId,
         projectId: createDto.projectId,
         originatorId: userOrgId,
@@ -202,7 +202,7 @@ export class RfaService {
         );
       } catch (error) {
         this.logger.warn(
-          `Workflow not started for ${docNumber}: ${(error as Error).message}`
+          `Workflow not started for ${docNumber.number}: ${(error as Error).message}`
         );
       }
 
@@ -211,7 +211,7 @@ export class RfaService {
         .indexDocument({
           id: savedCorr.id,
           type: 'rfa',
-          docNumber: docNumber,
+          docNumber: docNumber.number,
           title: createDto.subject,
           description: createDto.description,
           status: 'DRAFT',

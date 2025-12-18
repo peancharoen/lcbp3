@@ -3,7 +3,7 @@
 **Status:** ✅ Accepted
 **Date:** 2025-12-01
 **Decision Makers:** Backend Team, System Architect
-**Related Documents:** [Backend Guidelines](../03-implementation/backend-guidelines.md), [TASK-BE-011](../06-tasks/TASK-BE-011-notification-audit.md)
+**Related Documents:** [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md), [TASK-BE-011](../06-tasks/README.md)
 
 ---
 
@@ -372,7 +372,7 @@ async notifyWorkflowTransition(
 ## Related ADRs
 
 - [ADR-006: Redis Caching Strategy](./ADR-006-redis-caching-strategy.md) - ใช้ Redis สำหรับ Queue
-- [TASK-BE-011: Notification & Audit](../06-tasks/TASK-BE-011-notification-audit.md)
+- [TASK-BE-011: Notification & Audit](../06-tasks/README.md)
 
 ---
 

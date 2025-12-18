@@ -2,7 +2,7 @@
 
 export interface GenerateNumberContext {
   projectId: number;
-  originatorId: number; // องค์กรผู้ส่ง
+  originatorOrganizationId: number; // องค์กรผู้ส่ง
   typeId: number; // ประเภทเอกสาร (Correspondence Type ID)
   subTypeId?: number; // (Optional) Sub Type ID (สำหรับ Transmittal)
   rfaTypeId?: number; // [v1.5.1] RFA Type: SHD, RPT, MAT (0 = not RFA)
@@ -20,14 +20,4 @@ export interface GenerateNumberContext {
   customTokens?: Record<string, string>;
 }
 
-export interface DecodedTokens {
-  projectCode: string;
-  orgCode: string;
-  typeCode: string;
-  disciplineCode: string;
-  subTypeCode: string;
-  subTypeNumber: string;
-  year: string;
-  yearShort: string;
-  recipientCode: string; // [P1-4] Recipient organization code
-}
+export type DecodedTokens = Record<string, string>;

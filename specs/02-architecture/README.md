@@ -10,9 +10,9 @@
 
 | Attribute          | Value                            |
 | ------------------ | -------------------------------- |
-| **Version**        | 1.6.2                            |
+| **Version**        | 1.7.0                            |
 | **Status**         | Active                           |
-| **Last Updated**   | 2025-12-17                       |
+| **Last Updated**   | 2025-12-18                       |
 | **Owner**          | Nattanin Peancharoen             |
 | **Classification** | Internal Technical Documentation |
 
@@ -64,7 +64,7 @@
 
 ## 📖 เอกสารสถาปัตยกรรม
 
-### 1. [System Architecture](./system-architecture.md)
+### 1. [System Architecture](./02-01-system-architecture.md)
 
 **สถาปัตยกรรมระบบโดยรวม**
 
@@ -88,7 +88,7 @@
 - ✅ Caching Strategy
 - ✅ Rate Limiting
 
-### 2. [API Design](./api-design.md)
+### 2. [API Design](./02-02-api-design.md)
 
 **การออกแบบ API แบบ RESTful**
 
@@ -111,12 +111,12 @@
 - ✅ Rate Limiting per Role
 - ✅ File Upload Security
 
-### 3. [Data Model](./data-model.md)
+### 3. [Data Model](./02-03-data-model.md)
 
 **โครงสร้างฐานข้อมูลและ Entity Relationships**
 
 > [!NOTE]
-> เอกสารนี้อยู่ระหว่างการพัฒนา กรุณาอ้างอิง [Data Dictionary](../../docs/4_Data_Dictionary_V1_4_5.md) สำหรับข้อมูลละเอียด
+> เอกสารนี้อยู่ระหว่างการพัฒนา กรุณาอ้างอิง [Data Dictionary](../07-database/data-dictionary-v1.7.0.md) สำหรับข้อมูลละเอียด
 
 **Expected Content:**
 
@@ -272,9 +272,9 @@ Layer 6: File Security (Virus Scanning, Access Control)
 - **Counter Key:** Composite PK (8 columns)
 
 **Documentation:**
-- 📋 [Requirements](../01-requirements/03.11-document-numbering.md)
-- 📘 [Implementation Guide](../03-implementation/document-numbering.md)
-- 📗 [Operations Guide](../04-operations/document-numbering-operations.md)
+- 📋 [Requirements](../01-requirements/01-03.11-document-numbering.md)
+- 📘 [Implementation Guide](../03-implementation/03-04-document-numbering.md)
+- 📗 [Operations Guide](../04-operations/04-08-document-numbering-operations.md)
 
 **Related:** [ADR-002](../05-decisions/ADR-002-document-numbering-strategy.md)
 
@@ -492,7 +492,7 @@ sequenceDiagram
 
 **LCBP3-DMS Architecture Specification v1.6.0**
 
-[System Architecture](./system-architecture.md) • [API Design](./api-design.md) • [Data Model](./data-model.md)
+[System Architecture](02-01-system-architecture.md) • [API Design](02-02-api-design.md) • [Data Model](02-03-data-model.md)
 
 [Main README](../../README.md) • [Requirements](../01-requirements/README.md) • [Implementation](../03-implementation/README.md)
 

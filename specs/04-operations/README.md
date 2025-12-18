@@ -1,8 +1,8 @@
 # Operations Documentation
 
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
-**Version:** 1.6.0
-**Last Updated:** 2025-12-02
+**Version:** 1.7.0
+**Last Updated:** 2025-12-18
 
 ---
 
@@ -18,23 +18,23 @@ This directory contains operational documentation for deploying, maintaining, an
 
 | Document                                       | Description                                            | Status     |
 | ---------------------------------------------- | ------------------------------------------------------ | ---------- |
-| [deployment-guide.md](./deployment-guide.md)   | Docker deployment procedures on QNAP Container Station | ✅ Complete |
-| [environment-setup.md](./environment-setup.md) | Environment variables and configuration management     | ✅ Complete |
+| [deployment-guide.md](04-01-deployment-guide.md)   | Docker deployment procedures on QNAP Container Station | ✅ Complete |
+| [environment-setup.md](04-02-environment-setup.md) | Environment variables and configuration management     | ✅ Complete |
 
 ### Monitoring & Maintenance
 
 | Document                                                 | Description                                         | Status     |
 | -------------------------------------------------------- | --------------------------------------------------- | ---------- |
-| [monitoring-alerting.md](./monitoring-alerting.md)       | Monitoring setup, health checks, and alerting rules | ✅ Complete |
-| [backup-recovery.md](./backup-recovery.md)               | Backup strategies and disaster recovery procedures  | ✅ Complete |
-| [maintenance-procedures.md](./maintenance-procedures.md) | Routine maintenance and update procedures           | ✅ Complete |
+| [monitoring-alerting.md](04-03-monitoring-alerting.md)       | Monitoring setup, health checks, and alerting rules | ✅ Complete |
+| [backup-recovery.md](04-04-backup-recovery.md)               | Backup strategies and disaster recovery procedures  | ✅ Complete |
+| [maintenance-procedures.md](04-05-maintenance-procedures.md) | Routine maintenance and update procedures           | ✅ Complete |
 
 ### Security & Compliance
 
 | Document                                           | Description                                    | Status     |
 | -------------------------------------------------- | ---------------------------------------------- | ---------- |
-| [security-operations.md](./security-operations.md) | Security monitoring and incident response      | ✅ Complete |
-| [incident-response.md](./incident-response.md)     | Incident classification and response playbooks | ✅ Complete |
+| [security-operations.md](04-06-security-operations.md) | Security monitoring and incident response      | ✅ Complete |
+| [incident-response.md](04-07-incident-response.md)     | Incident classification and response playbooks | ✅ Complete |
 
 ---
 
@@ -42,10 +42,10 @@ This directory contains operational documentation for deploying, maintaining, an
 
 ### Initial Setup
 
-1. **Read Deployment Guide** - [deployment-guide.md](./deployment-guide.md)
-2. **Configure Environment** - [environment-setup.md](./environment-setup.md)
-3. **Setup Monitoring** - [monitoring-alerting.md](./monitoring-alerting.md)
-4. **Configure Backups** - [backup-recovery.md](./backup-recovery.md)
+1. **Read Deployment Guide** - [deployment-guide.md](04-01-deployment-guide.md)
+2. **Configure Environment** - [environment-setup.md](04-02-environment-setup.md)
+3. **Setup Monitoring** - [monitoring-alerting.md](04-03-monitoring-alerting.md)
+4. **Configure Backups** - [backup-recovery.md](04-04-backup-recovery.md)
 
 ### Daily Operations
 
@@ -185,6 +185,7 @@ graph TB
 
 ---
 
-**Version:** 1.6.0
+**Version:** 1.7.0
+**Last Updated:** 2025-12-18
 **Status:** Active
 **Classification:** Internal Use Only

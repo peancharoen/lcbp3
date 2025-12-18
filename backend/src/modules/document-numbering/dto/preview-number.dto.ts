@@ -6,10 +6,10 @@ export class PreviewNumberDto {
   projectId!: number;
 
   @ApiProperty({ description: 'Originator organization ID' })
-  originatorId!: number;
+  originatorOrganizationId!: number;
 
   @ApiProperty({ description: 'Correspondence type ID' })
-  typeId!: number;
+  correspondenceTypeId!: number;
 
   @ApiPropertyOptional({ description: 'Sub type ID (for TRANSMITTAL)' })
   subTypeId?: number;
@@ -25,4 +25,7 @@ export class PreviewNumberDto {
 
   @ApiPropertyOptional({ description: 'Recipient organization ID' })
   recipientOrganizationId?: number;
+
+  @ApiPropertyOptional({ description: 'Custom tokens' })
+  customTokens?: Record<string, string>;
 }

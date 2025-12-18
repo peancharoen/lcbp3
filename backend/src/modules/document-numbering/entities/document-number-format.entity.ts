@@ -17,36 +17,36 @@ import { CorrespondenceType } from '../../correspondence/entities/correspondence
 @Unique(['projectId', 'correspondenceTypeId'])
 export class DocumentNumberFormat {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ name: 'project_id' })
-  projectId: number;
+  projectId!: number;
 
   @Column({ name: 'correspondence_type_id', nullable: true })
-  correspondenceTypeId: number | null;
+  correspondenceTypeId?: number;
 
   @Column({ name: 'format_template', length: 100 })
-  formatTemplate: string;
+  formatTemplate!: string;
 
   @Column({ name: 'description', nullable: true })
-  description: string;
+  description?: string;
 
   // [NEW] Control yearly reset behavior
   @Column({ name: 'reset_sequence_yearly', default: true })
-  resetSequenceYearly: boolean;
+  resetSequenceYearly!: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // Relations
   @ManyToOne(() => Project)
   @JoinColumn({ name: 'project_id' })
-  project: Project;
+  project!: Project;
 
   @ManyToOne(() => CorrespondenceType)
   @JoinColumn({ name: 'correspondence_type_id' })
-  correspondenceType: CorrespondenceType | null;
+  correspondenceType?: CorrespondenceType;
 }

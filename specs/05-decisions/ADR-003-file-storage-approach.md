@@ -5,8 +5,8 @@
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [System Architecture](../02-architecture/system-architecture.md)
-- [File Handling Requirements](../01-requirements/03.10-file-handling.md)
+- [System Architecture](../02-architecture/02-01-system-architecture.md)
+- [File Handling Requirements](../01-requirements/01-03.10-file-handling.md)
 
 ---
 
@@ -487,8 +487,8 @@ export class CorrespondenceController {
 เป็นไปตาม:
 
 - [Backend Plan Section 4.2.1](../../docs/2_Backend_Plan_V1_4_5.md) - FileStorageService
-- [Requirements 3.10](../01-requirements/03.10-file-handling.md) - File Handling
-- [System Architecture Section 5.2](../02-architecture/system-architecture.md) - File Upload Flow
+- [Requirements 3.10](../01-requirements/01-03.10-file-handling.md) - File Handling
+- [System Architecture Section 5.2](../02-architecture/02-01-system-architecture.md) - File Upload Flow
 
 ---
 

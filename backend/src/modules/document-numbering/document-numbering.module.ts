@@ -3,13 +3,17 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 
-import { DocumentNumberingService } from './document-numbering.service';
-import { DocumentNumberingController } from './document-numbering.controller';
-import { DocumentNumberingAdminController } from './document-numbering-admin.controller';
+import { DocumentNumberingService } from './services/document-numbering.service';
+import { DocumentNumberingController } from './controllers/document-numbering.controller';
+import { DocumentNumberingAdminController } from './controllers/document-numbering-admin.controller';
 import { DocumentNumberFormat } from './entities/document-number-format.entity';
 import { DocumentNumberCounter } from './entities/document-number-counter.entity';
-import { DocumentNumberAudit } from './entities/document-number-audit.entity'; // [P0-4]
-import { DocumentNumberError } from './entities/document-number-error.entity'; // [P0-4]
+import { DocumentNumberReservation } from './entities/document-number-reservation.entity';
+import { DocumentNumberAudit } from './entities/document-number-audit.entity';
+import { DocumentNumberError } from './entities/document-number-error.entity';
+import { CounterService } from './services/counter.service';
+import { ReservationService } from './services/reservation.service';
+import { FormatService } from './services/format.service';
 
 // Master Entities ที่ต้องใช้ Lookup
 import { Project } from '../project/entities/project.entity';
@@ -26,8 +30,9 @@ import { UserModule } from '../user/user.module';
     TypeOrmModule.forFeature([
       DocumentNumberFormat,
       DocumentNumberCounter,
-      DocumentNumberAudit, // [P0-4]
-      DocumentNumberError, // [P0-4]
+      DocumentNumberReservation,
+      DocumentNumberAudit,
+      DocumentNumberError,
       Project,
       Organization,
       CorrespondenceType,
@@ -36,7 +41,17 @@ import { UserModule } from '../user/user.module';
     ]),
   ],
   controllers: [DocumentNumberingController, DocumentNumberingAdminController],
-  providers: [DocumentNumberingService],
-  exports: [DocumentNumberingService],
+  providers: [
+    DocumentNumberingService,
+    CounterService,
+    ReservationService,
+    FormatService,
+  ],
+  exports: [
+    DocumentNumberingService,
+    CounterService,
+    ReservationService,
+    FormatService,
+  ],
 })
 export class DocumentNumberingModule {}

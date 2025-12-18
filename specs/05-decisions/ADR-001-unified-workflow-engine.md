@@ -5,8 +5,8 @@
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [System Architecture](../02-architecture/system-architecture.md)
-- [Unified Workflow Requirements](../01-requirements/03.6-unified-workflow.md)
+- [System Architecture](../02-architecture/02-01-system-architecture.md)
+- [Unified Workflow Requirements](../01-requirements/01-03.6-unified-workflow.md)
 
 ---
 
@@ -326,7 +326,7 @@ export class WorkflowEngineService {
 เป็นไปตาม:
 
 - [Backend Plan Section 2.4.1](../../docs/2_Backend_Plan_V1_4_5.md) - Unified Workflow Engine
-- [Requirements 3.6](../01-requirements/03.6-unified-workflow.md) - Unified Workflow Specification
+- [Requirements 3.6](../01-requirements/01-03.6-unified-workflow.md) - Unified Workflow Specification
 
 ---
 

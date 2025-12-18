@@ -3,9 +3,54 @@
 ## [Unreleased]
 
 ### In Progress
+- Backend Document Numbering Refactor (TASK-BE-017)
 - E2E Testing & UAT preparation
-- Performance optimization and load testing
 - Production deployment preparation
+
+## 1.7.0 (2025-12-18)
+
+### Summary
+**Schema Stabilization & Document Numbering Overhaul** - Significant schema updates to support advanced document numbering (reservations, varying reset scopes) and a unified workflow engine.
+
+### Database Schema Changes 💾
+
+#### Document Numbering System (V2) 🔢
+- **`document_number_counters`**:
+  - **Breaking Change**: Primary Key changed to 8-column Composite Key (`project_id`, `originator_id`, `recipient_id`, `type_id`, `sub_type_id`, `rfa_type_id`, `discipline_id`, `reset_scope`).
+  - **New Feature**: Added `reset_scope` column to support flexible resetting (YEAR, MONTH, PROJECT, NONE).
+  - **New Feature**: Added `version` column for Optimistic Locking.
+- **`document_number_reservations`** (NEW):
+  - Implemented Two-Phase Commit pattern (Reserve -> Confirm) for document numbers.
+  - Prevents race conditions and gaps in numbering.
+- **`document_number_errors`** (NEW):
+  - Helper table for tracking numbering failures and deadlocks.
+- **`document_number_audit`**:
+  - Enhanced with reservation tokens and performance metrics.
+
+#### Unified Workflow Engine 🔄
+- **`workflow_definitions`**:
+  - Updated structure to support compiled DSL and versioning.
+  - Added `dsl` (JSON) and `compiled` (JSON) columns.
+- **`workflow_instances`**:
+  - Changed ID to UUID.
+  - Added `entity_type` and `entity_id` for polymorphic polymorphism.
+- **`workflow_histories`**:
+  - Updated to link with UUID instances.
+
+#### System & Audit 🛡️
+- **`audit_logs`**:
+  - Updated schema for better partitioning support (`created_at` in PK).
+  - Standardized JSON details column.
+- **`notifications`**:
+  - Updated schema to support polymorphic entity linking.
+
+#### Master Data
+- **`disciplines`**:
+  - Added relation to `correspondences` and `rfas`.
+
+### Documentation 📚
+- **Data Dictionary**: Updated to v1.7.0 with full index summaries and business rules.
+- **Schema**: Released `lcbp3-v1.7.0-schema.sql` and `lcbp3-v1.7.0-seed.sql`.
 
 ## 1.6.0 (2025-12-13)
 
@@ -144,5 +189,3 @@ Initial spec-kit structure establishment and documentation organization.
 
 - Changed the version to 1.5.0
 - Modified to Spec-kit
-
-### Summary

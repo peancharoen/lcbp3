@@ -5,8 +5,8 @@
 **Decision Makers:** Development Team, CTO
 **Related Documents:**
 
-- [System Architecture](../02-architecture/system-architecture.md)
-- [FullStack JS Guidelines](../03-implementation/fullftack-js-v1.5.0.md)
+- [System Architecture](../02-architecture/02-01-system-architecture.md)
+- [FullStack JS Guidelines](../03-implementation/03-01-fullftack-js-v1.7.0.md)
 
 ---
 
@@ -271,9 +271,9 @@ lcbp3-dms/
 
 เป็นไปตาม:
 
-- [FullStack JS Guidelines](../03-implementation/fullftack-js-v1.5.0.md)
-- [Backend Guidelines](../03-implementation/backend-guidelines.md)
-- [Frontend Guidelines](../03-implementation/frontend-guidelines.md)
+- [FullStack JS Guidelines](../03-implementation/03-01-fullftack-js-v1.7.0.md)
+- [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
+- [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md)
 
 ---
 

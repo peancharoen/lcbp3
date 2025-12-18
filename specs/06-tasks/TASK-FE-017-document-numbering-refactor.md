@@ -187,6 +187,6 @@ interface AuditQueryParams {
 
 ## References
 
-- [Requirements v1.6.2](file:///d:/nap-dms.lcbp3/specs/01-requirements/03.11-document-numbering.md)
-- [Frontend Guidelines](file:///d:/nap-dms.lcbp3/specs/03-implementation/frontend-guidelines.md)
-- [REQ-009 Original Task](file:///d:/nap-dms.lcbp3/specs/06-tasks/REQ-009-DocumentNumbering.md)
+- [Requirements v1.6.2](../01-requirements/01-03.11-document-numbering.md)
+- [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md)
+- [REQ-009 Original Task](REQ-009-DocumentNumbering.md)

@@ -3,7 +3,7 @@
 **Status:** ✅ Accepted
 **Date:** 2025-12-01
 **Decision Makers:** Backend Team, DevOps Team, System Architect
-**Related Documents:** [TASK-BE-001](../06-tasks/TASK-BE-001-database-migrations.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
+**Related Documents:** [TASK-BE-001](../06-tasks/TASK-BE-015-schema-v160-migration.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
 
 ---
 
@@ -367,7 +367,7 @@ describe('Migrations', () => {
 ## Related ADRs
 
 - [ADR-005: Technology Stack](./ADR-005-technology-stack.md) - เลือกใช้ TypeORM
-- [TASK-BE-001: Database Migrations](../06-tasks/TASK-BE-001-database-migrations.md)
+- [TASK-BE-001: Database Migrations](../06-tasks/TASK-BE-015-schema-v160-migration.md)
 
 ---
 

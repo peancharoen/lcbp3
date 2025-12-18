@@ -1,0 +1,141 @@
+
+> backend@1.5.1 build
+> nest build
+
+src/modules/document-numbering/controllers/document-numbering.controller.ts:93:37 - error TS2551: Property 'originatorOrganizationId' does not exist on type 'PreviewNumberDto'. Did you mean 'recipientOrganizationId'?
+
+93       originatorOrganizationId: dto.originatorOrganizationId,
+                                       ~~~~~~~~~~~~~~~~~~~~~~~~
+
+  src/modules/document-numbering/dto/preview-number.dto.ts:27:3
+    27   recipientOrganizationId?: number;
+         ~~~~~~~~~~~~~~~~~~~~~~~
+    'recipientOrganizationId' is declared here.
+src/modules/document-numbering/controllers/document-numbering.controller.ts:94:19 - error TS2339: Property 'correspondenceTypeId' does not exist on type 'PreviewNumberDto'.
+
+94       typeId: dto.correspondenceTypeId,
+                     ~~~~~~~~~~~~~~~~~~~~
+src/modules/document-numbering/controllers/document-numbering.controller.ts:100:25 - error TS2339: Property 'customTokens' does not exist on type 'PreviewNumberDto'.
+
+100       customTokens: dto.customTokens,
+                            ~~~~~~~~~~~~
+src/modules/document-numbering/dto/confirm-reservation.dto.ts:13:3 - error TS2564: Property 'documentNumber' has no initializer and is not definitely assigned in the constructor.
+
+13   documentNumber: string;
+     ~~~~~~~~~~~~~~
+src/modules/document-numbering/dto/confirm-reservation.dto.ts:14:3 - error TS2564: Property 'confirmedAt' has no initializer and is not definitely assigned in the constructor.
+
+14   confirmedAt: Date;
+     ~~~~~~~~~~~
+src/modules/document-numbering/dto/counter-key.dto.ts:2:3 - error TS2564: Property 'projectId' has no initializer and is not definitely assigned in the constructor.
+
+2   projectId: number;
+    ~~~~~~~~~
+src/modules/document-numbering/dto/counter-key.dto.ts:3:3 - error TS2564: Property 'originatorOrganizationId' has no initializer and is not definitely assigned in the constructor.
+
+3   originatorOrganizationId: number;
+    ~~~~~~~~~~~~~~~~~~~~~~~~
+src/modules/document-numbering/dto/counter-key.dto.ts:4:3 - error TS2564: Property 'recipientOrganizationId' has no initializer and is not definitely assigned in the constructor.
+
+4   recipientOrganizationId: number;
+    ~~~~~~~~~~~~~~~~~~~~~~~
+src/modules/document-numbering/dto/counter-key.dto.ts:5:3 - error TS2564: Property 'correspondenceTypeId' has no initializer and is not definitely assigned in the constructor.
+
+5   correspondenceTypeId: number;
+    ~~~~~~~~~~~~~~~~~~~~
+src/modules/document-numbering/dto/counter-key.dto.ts:6:3 - error TS2564: Property 'subTypeId' has no initializer and is not definitely assigned in the constructor.
+
+6   subTypeId: number;
+    ~~~~~~~~~
+src/modules/document-numbering/dto/counter-key.dto.ts:7:3 - error TS2564: Property 'rfaTypeId' has no initializer and is not definitely assigned in the constructor.
+
+7   rfaTypeId: number;
+    ~~~~~~~~~
+src/modules/document-numbering/dto/counter-key.dto.ts:8:3 - error TS2564: Property 'disciplineId' has no initializer and is not definitely assigned in the constructor.
+
+8   disciplineId: number;
+    ~~~~~~~~~~~~
+src/modules/document-numbering/dto/counter-key.dto.ts:9:3 - error TS2564: Property 'resetScope' has no initializer and is not definitely assigned in the constructor.
+
+9   resetScope: string;
+    ~~~~~~~~~~
+src/modules/document-numbering/dto/reserve-number.dto.ts:5:3 - error TS2564: Property 'projectId' has no initializer and is not definitely assigned in the constructor.
+
+5   projectId: number;
+    ~~~~~~~~~
+src/modules/document-numbering/dto/reserve-number.dto.ts:8:3 - error TS2564: Property 'originatorOrganizationId' has no initializer and is not definitely assigned in the constructor.
+
+8   originatorOrganizationId: number;
+    ~~~~~~~~~~~~~~~~~~~~~~~~
+src/modules/document-numbering/dto/reserve-number.dto.ts:15:3 - error TS2564: Property 'correspondenceTypeId' has no initializer and is not definitely assigned in the constructor.
+
+15   correspondenceTypeId: number;
+     ~~~~~~~~~~~~~~~~~~~~
+src/modules/document-numbering/dto/reserve-number.dto.ts:35:3 - error TS2564: Property 'token' has no initializer and is not definitely assigned in the constructor.
+
+35   token: string;
+     ~~~~~
+src/modules/document-numbering/dto/reserve-number.dto.ts:36:3 - error TS2564: Property 'documentNumber' has no initializer and is not definitely assigned in the constructor.
+
+36   documentNumber: string;
+     ~~~~~~~~~~~~~~
+src/modules/document-numbering/dto/reserve-number.dto.ts:37:3 - error TS2564: Property 'expiresAt' has no initializer and is not definitely assigned in the constructor.
+
+37   expiresAt: Date;
+     ~~~~~~~~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:20:3 - error TS2564: Property 'id' has no initializer and is not definitely assigned in the constructor.
+
+20   id: number;
+     ~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:23:3 - error TS2564: Property 'projectId' has no initializer and is not definitely assigned in the constructor.
+
+23   projectId: number;
+     ~~~~~~~~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:26:3 - error TS2564: Property 'correspondenceTypeId' has no initializer and is not definitely assigned in the constructor.
+
+26   correspondenceTypeId: number | null;
+     ~~~~~~~~~~~~~~~~~~~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:29:3 - error TS2564: Property 'formatTemplate' has no initializer and is not definitely assigned in the constructor.
+
+29   formatTemplate: string;
+     ~~~~~~~~~~~~~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:32:3 - error TS2564: Property 'description' has no initializer and is not definitely assigned in the constructor.
+
+32   description: string;
+     ~~~~~~~~~~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:36:3 - error TS2564: Property 'resetSequenceYearly' has no initializer and is not definitely assigned in the constructor.
+
+36   resetSequenceYearly: boolean;
+     ~~~~~~~~~~~~~~~~~~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:39:3 - error TS2564: Property 'createdAt' has no initializer and is not definitely assigned in the constructor.
+
+39   createdAt: Date;
+     ~~~~~~~~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:42:3 - error TS2564: Property 'updatedAt' has no initializer and is not definitely assigned in the constructor.
+
+42   updatedAt: Date;
+     ~~~~~~~~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:47:3 - error TS2564: Property 'project' has no initializer and is not definitely assigned in the constructor.
+
+47   project: Project;
+     ~~~~~~~
+src/modules/document-numbering/entities/document-number-format.entity.ts:51:3 - error TS2564: Property 'correspondenceType' has no initializer and is not definitely assigned in the constructor.
+
+51   correspondenceType: CorrespondenceType | null;
+     ~~~~~~~~~~~~~~~~~~
+src/modules/document-numbering/services/document-numbering.service.ts:249:5 - error TS2740: Type 'DocumentNumberAudit[]' is missing the following properties from type 'DocumentNumberAudit': id, documentId, generatedNumber, counterKey, and 5 more.
+
+249     return await this.auditRepo.save(audit);
+        ~~~~~~
+src/modules/document-numbering/services/document-numbering.service.ts:256:11 - error TS2769: No overload matches this call.
+  Overload 1 of 3, '(entityLikeArray: DeepPartial<DocumentNumberError>[]): DocumentNumberError[]', gave the following error.
+    Object literal may only specify known properties, and 'projectId' does not exist in type 'DeepPartial<DocumentNumberError>[]'.
+  Overload 2 of 3, '(entityLike: DeepPartial<DocumentNumberError>): DocumentNumberError', gave the following error.
+    Object literal may only specify known properties, and 'projectId' does not exist in type 'DeepPartial<DocumentNumberError>'.
+
+256           projectId: ctx.projectId,
+              ~~~~~~~~~
+
+
+Found 31 error(s).
+

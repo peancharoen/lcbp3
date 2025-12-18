@@ -5,8 +5,8 @@
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [System Architecture](../02-architecture/system-architecture.md)
-- [Performance Requirements](../01-requirements/06-non-functional.md)
+- [System Architecture](../02-architecture/02-01-system-architecture.md)
+- [Performance Requirements](../01-requirements/01-06-non-functional.md)
 
 ---
 
@@ -418,8 +418,8 @@ export class RedisMonitoringService {
 
 เป็นไปตาม:
 
-- [System Architecture Section 3.5](../02-architecture/system-architecture.md#redis)
-- [Performance Requirements](../01-requirements/06-non-functional.md)
+- [System Architecture Section 3.5](../02-architecture/02-01-system-architecture.md#redis)
+- [Performance Requirements](../01-requirements/01-06-non-functional.md)
 
 ---
 

@@ -1,7 +1,7 @@
 # Architecture Decision Records (ADRs)
 
-**Version:** 1.6.0
-**Last Updated:** 2025-12-02
+**Version:** 1.7.0
+**Last Updated:** 2025-12-18
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
 
 ---
@@ -83,9 +83,9 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 ### 2. Data Integrity & Concurrency
 
 - **ADR-002:** Document Numbering - Double-lock (Redis Redlock + DB Optimistic) เพื่อป้องกัน Race Condition
-  - 📋 [Requirements](../01-requirements/03.11-document-numbering.md)
-  - 📘 [Implementation Guide](../03-implementation/document-numbering.md)
-  - 📗 [Operations Guide](../04-operations/document-numbering-operations.md)
+  - 📋 [Requirements](../01-requirements/01-03.11-document-numbering.md)
+  - 📘 [Implementation Guide](../03-implementation/03-04-document-numbering.md)
+  - 📗 [Operations Guide](../04-operations/04-08-document-numbering-operations.md)
 - **ADR-003:** File Storage - Two-phase เพื่อ Transaction safety
 - **ADR-009:** Database Migration - TypeORM Migrations พร้อม Blue-Green Deployment
 
@@ -285,11 +285,11 @@ graph TB
 
 ## 🔗 Related Documentation
 
-- [System Architecture](../02-architecture/system-architecture.md) - สถาปัตยกรรมระบบโดยรวม
-- [Data Model](../02-architecture/data-model.md) - โครงสร้างฐานข้อมูล
-- [API Design](../02-architecture/api-design.md) - การออกแบบ API
-- [Backend Guidelines](../03-implementation/backend-guidelines.md) - มาตรฐานการพัฒนา Backend
-- [Frontend Guidelines](../03-implementation/frontend-guidelines.md) - มาตรฐานการพัฒนา Frontend
+- [System Architecture](../02-architecture/02-01-system-architecture.md) - สถาปัตยกรรมระบบโดยรวม
+- [Data Model](../02-architecture/02-03-data-model.md) - โครงสร้างฐานข้อมูล
+- [API Design](../02-architecture/02-02-api-design.md) - การออกแบบ API
+- [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md) - มาตรฐานการพัฒนา Backend
+- [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md) - มาตรฐานการพัฒนา Frontend
 
 ---
 
@@ -356,5 +356,5 @@ graph TB
 
 ---
 
-**Version:** 1.6.0
-**Last Review:** 2025-12-02
+**Version:** 1.7.0
+**Last Review:** 2025-12-18

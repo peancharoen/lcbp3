@@ -29,7 +29,7 @@ import { SearchCorrespondenceDto } from './dto/search-correspondence.dto';
 import { DeepPartial } from 'typeorm';
 
 // Services
-import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
+import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 import { JsonSchemaService } from '../json-schema/json-schema.service';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
 import { UserService } from '../user/user.service';
@@ -141,7 +141,7 @@ export class CorrespondenceService {
 
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: createDto.projectId,
-        originatorId: userOrgId,
+        originatorOrganizationId: userOrgId,
         typeId: createDto.typeId,
         disciplineId: createDto.disciplineId,
         subTypeId: createDto.subTypeId,
@@ -156,7 +156,7 @@ export class CorrespondenceService {
       });
 
       const correspondence = queryRunner.manager.create(Correspondence, {
-        correspondenceNumber: docNumber,
+        correspondenceNumber: docNumber.number,
         correspondenceTypeId: createDto.typeId,
         disciplineId: createDto.disciplineId,
         projectId: createDto.projectId,
@@ -213,14 +213,14 @@ export class CorrespondenceService {
         );
       } catch (error) {
         this.logger.warn(
-          `Workflow not started for ${docNumber} (Code: CORRESPONDENCE_${type.typeCode}): ${(error as Error).message}`
+          `Workflow not started for ${docNumber.number} (Code: CORRESPONDENCE_${type.typeCode}): ${(error as Error).message}`
         );
       }
 
       this.searchService.indexDocument({
         id: savedCorr.id,
         type: 'correspondence',
-        docNumber: docNumber,
+        docNumber: docNumber.number,
         title: createDto.subject,
         description: createDto.description,
         status: 'DRAFT',
@@ -526,7 +526,7 @@ export class CorrespondenceService {
         // Prepare Contexts
         const oldCtx = {
           projectId: currentCorr.projectId,
-          originatorId: currentCorr.originatorId ?? 0,
+          originatorOrganizationId: currentCorr.originatorId ?? 0,
           typeId: currentCorr.correspondenceTypeId,
           disciplineId: currentCorr.disciplineId,
           recipientOrganizationId: currentRecipientId,
@@ -535,7 +535,8 @@ export class CorrespondenceService {
 
         const newCtx = {
           projectId: updateDto.projectId ?? currentCorr.projectId,
-          originatorId: updateDto.originatorId ?? currentCorr.originatorId ?? 0,
+          originatorOrganizationId:
+            updateDto.originatorId ?? currentCorr.originatorId ?? 0,
           typeId: updateDto.typeId ?? currentCorr.correspondenceTypeId,
           disciplineId: updateDto.disciplineId ?? currentCorr.disciplineId,
           recipientOrganizationId: targetRecipientId,
@@ -601,9 +602,9 @@ export class CorrespondenceService {
       if (recOrg) recipientCode = recOrg.organizationCode;
     }
 
-    return this.numberingService.previewNextNumber({
+    return this.numberingService.previewNumber({
       projectId: createDto.projectId,
-      originatorId: userOrgId!,
+      originatorOrganizationId: userOrgId!,
       typeId: createDto.typeId,
       disciplineId: createDto.disciplineId,
       subTypeId: createDto.subTypeId,

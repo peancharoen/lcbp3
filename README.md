@@ -4,23 +4,23 @@
 >
 > ระบบบริหารจัดการเอกสารโครงการแบบครบวงจร สำหรับโครงการก่อสร้างท่าเรือแหลมฉบังระยะที่ 3
 
-[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.0-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Internal-red.svg)]()
 [![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)]()
 
 ---
 
-## 📈 Current Status (As of 2025-12-13)
+## 📈 Current Status (As of 2025-12-18)
 
-**Overall Progress: ~95% Feature Complete - Production Ready**
+**Overall Progress: ~97% Feature Complete - Production Ready Preparation**
 
-- ✅ **Backend**: All 18 core modules implemented (~95%)
-- ✅ **Frontend**: All 15 UI tasks completed (100%)
-- ✅ **Database**: Schema v1.6.0 active with complete seed data
-- ✅ **Documentation**: Comprehensive specs/ at v1.6.0
-- ✅ **Admin Tools**: Workflow & Numbering configuration UIs complete
-- 🔄 **Testing**: E2E tests and UAT in progress
-- 📋 **Next**: Production deployment preparation
+- ✅ **Backend**: Core modules implemented, refactoring for v1.7.0 Schema
+- ✅ **Frontend**: UI tasks completed (100%), integrating new v1.7.0 features
+- ✅ **Database**: Schema v1.7.0 active (Stabilized for Production)
+- ✅ **Documentation**: Comprehensive specs/ at v1.7.0
+- ✅ **Admin Tools**: Unified Workflow & Advanced Numbering Config
+- 🔄 **Testing**: E2E tests and UAT preparation
+- 📋 **Next**: Final Security Audit & Deployment
 
 ---
 
@@ -304,16 +304,16 @@ lcbp3-dms/
 | **Requirements**   | ข้อกำหนดระบบและฟังก์ชันการทำงาน      | `specs/01-requirements/`   |
 | **Architecture**   | สถาปัตยกรรมระบบ, ADRs           | `specs/02-architecture/`   |
 | **Implementation** | แนวทางการพัฒนา Backend/Frontend | `specs/03-implementation/` |
-| **Database**       | Schema v1.6.0 + Seed Data      | `specs/07-database/`       |
+| **Database**       | Schema v1.7.0 + Seed Data      | `specs/07-database/`       |
 
 ### Schema & Seed Data
 
 ```bash
 # Import schema
-mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.6.0-schema.sql
+mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.7.0-schema.sql
 
 # Import seed data
-mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.6.0-seed-basic.sql
+mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.7.0-seed.sql
 ```
 
 ### Legacy Documentation
@@ -562,22 +562,24 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 - ✅ Database Schema v1.6.0 with seed data
 - ✅ Implementation & Operations Guides
 
-### Version 1.7.0 (Planned - Q1 2026)
+### Version 1.7.0 (Current - Dec 2025)
+
+**Schema & Core Stabilization**
+- ✅ **Document Numbering V2**: Composite Keys, Reservations, Reset Scopes
+- ✅ **Unified Workflow Engine**: Compiled DSL, Polymorphic Instances
+- ✅ **Data Dictionary**: Complete Update to v1.7.0
+- 🔄 **Backend Refactor**: Aligning services with new schema
+- 📋 **E2E Test Coverage**: Playwright/Cypress rollout
+
+### Version 1.8.0+ (Planned - Q1 2026)
 
 **Production Enhancements**
-- 📋 E2E Test Coverage (Playwright/Cypress)
 - 📊 Advanced Reporting & Analytics Dashboard
 - 🔔 Enhanced Notifications (Real-time WebSocket)
 - 📈 Prometheus Metrics & Grafana Dashboards
 - 🔍 Queue-based Elasticsearch Indexing
 - 🚀 Performance Optimization & Caching Strategy
 - 📱 Mobile App (React Native)
-
-**Optional Improvements**
-- 🤖 AI-powered Document Classification
-- 📧 Advanced Email Templates
-- 🔐 SSO Integration (LDAP/Active Directory)
-- 📦 Bulk Operations & Import/Export Tools
 
 ---
 

@@ -458,7 +458,7 @@ describe('SearchService', () => {
 
 ## 📚 Related Documents
 
-- [System Architecture - Search](../02-architecture/system-architecture.md#elasticsearch)
+- [System Architecture - Search](../02-architecture/02-01-system-architecture.md#elasticsearch)
 - [ADR-005: Technology Stack](../05-decisions/ADR-005-technology-stack.md)
 
 ---

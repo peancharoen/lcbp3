@@ -203,20 +203,20 @@ lcbp3/
 
 | Category           | Document                                                                           | Description                           |
 | ------------------ | ---------------------------------------------------------------------------------- | ------------------------------------- |
-| **Overview**       | [Glossary](./glossary.md)                                                          | Technical terminology & abbreviations |
-| **Overview**       | [Quick Start](./quick-start.md)                                                    | 5-minute getting started guide        |
-| **Requirements**   | [Functional Requirements](../01-requirements/03-functional-requirements.md)        | Feature specifications                |
-| **Requirements**   | [Document Numbering](../01-requirements/03.11-document-numbering.md)               | Document numbering requirements       |
-| **Architecture**   | [System Architecture](../02-architecture/system-architecture.md)                   | Overall system design                 |
-| **Architecture**   | [Data Model](../02-architecture/data-model.md)                                     | Database schema                       |
-| **Architecture**   | [API Design](../02-architecture/api-design.md)                                     | REST API specifications               |
-| **Implementation** | [Backend Guidelines](../03-implementation/backend-guidelines.md)                   | Backend coding standards              |
-| **Implementation** | [Frontend Guidelines](../03-implementation/frontend-guidelines.md)                 | Frontend coding standards             |
-| **Implementation** | [Document Numbering Implementation](../03-implementation/document-numbering.md)    | Document numbering implementation     |
-| **Implementation** | [Testing Strategy](../03-implementation/testing-strategy.md)                       | Testing approach                      |
-| **Operations**     | [Deployment Guide](../04-operations/deployment-guide.md)                           | How to deploy                         |
-| **Operations**     | [Monitoring](../04-operations/monitoring-alerting.md)                              | Monitoring & alerts                   |
-| **Operations**     | [Document Numbering Operations](../04-operations/document-numbering-operations.md) | Doc numbering ops guide               |
+| **Overview**       | [Glossary](./00-02-glossary.md)                                                          | Technical terminology & abbreviations |
+| **Overview**       | [Quick Start](./00-01-quick-start.md)                                                    | 5-minute getting started guide        |
+| **Requirements**   | [Functional Requirements](../01-requirements/01-03-functional-requirements.md)        | Feature specifications                |
+| **Requirements**   | [Document Numbering](../01-requirements/01-03.11-document-numbering.md)               | Document numbering requirements       |
+| **Architecture**   | [System Architecture](../02-architecture/02-01-system-architecture.md)                   | Overall system design                 |
+| **Architecture**   | [Data Model](../02-architecture/02-03-data-model.md)                                     | Database schema                       |
+| **Architecture**   | [API Design](../02-architecture/02-02-api-design.md)                                     | REST API specifications               |
+| **Implementation** | [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)                   | Backend coding standards              |
+| **Implementation** | [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md)                 | Frontend coding standards             |
+| **Implementation** | [Document Numbering Implementation](../03-implementation/03-04-document-numbering.md)    | Document numbering implementation     |
+| **Implementation** | [Testing Strategy](../03-implementation/03-05-testing-strategy.md)                       | Testing approach                      |
+| **Operations**     | [Deployment Guide](../04-operations/04-01-deployment-guide.md)                           | How to deploy                         |
+| **Operations**     | [Monitoring](../04-operations/04-03-monitoring-alerting.md)                              | Monitoring & alerts                   |
+| **Operations**     | [Document Numbering Operations](../04-operations/04-08-document-numbering-operations.md) | Doc numbering ops guide               |
 | **Decisions**      | [ADR Index](../05-decisions/README.md)                                             | Architecture decisions                |
 | **Tasks**          | [Backend Tasks](../06-tasks/README.md)                                             | Development tasks                     |
 
@@ -236,9 +236,9 @@ lcbp3/
 
 1. **Read Documentation**
 
-   - Start with [Quick Start Guide](./quick-start.md)
-   - Review [System Architecture](../02-architecture/system-architecture.md)
-   - Study [Backend](../03-implementation/backend-guidelines.md) / [Frontend](../03-implementation/frontend-guidelines.md) guidelines
+   - Start with [Quick Start Guide](./00-01-quick-start.md)
+   - Review [System Architecture](../02-architecture/02-01-system-architecture.md)
+   - Study [Backend](../03-implementation/03-02-backend-guidelines.md) / [Frontend](../03-implementation/03-03-frontend-guidelines.md) guidelines
 
 2. **Setup Development Environment**
 
@@ -258,20 +258,20 @@ lcbp3/
 
 1. **Infrastructure Setup**
 
-   - Review [Environment Setup](../04-operations/environment-setup.md)
+   - Review [Environment Setup](../04-operations/04-02-environment-setup.md)
    - Configure QNAP Container Station
    - Setup Docker Compose
 
 2. **Deployment**
 
-   - Follow [Deployment Guide](../04-operations/deployment-guide.md)
-   - Configure [Backup & Recovery](../04-operations/backup-recovery.md)
-   - Setup [Monitoring](../04-operations/monitoring-alerting.md)
+   - Follow [Deployment Guide](../04-operations/04-01-deployment-guide.md)
+   - Configure [Backup & Recovery](../04-operations/04-04-backup-recovery.md)
+   - Setup [Monitoring](../04-operations/04-03-monitoring-alerting.md)
 
 3. **Maintenance**
-   - Review [Maintenance Procedures](../04-operations/maintenance-procedures.md)
-   - Setup [Incident Response](../04-operations/incident-response.md)
-   - Configure [Security Operations](../04-operations/security-operations.md)
+   - Review [Maintenance Procedures](../04-operations/04-05-maintenance-procedures.md)
+   - Setup [Incident Response](../04-operations/04-07-incident-response.md)
+   - Configure [Security Operations](../04-operations/04-06-security-operations.md)
 
 ---
 
@@ -289,9 +289,9 @@ lcbp3/
 ### Stakeholders
 
 - **Port Authority of Thailand (กทท.)** - Owner
-- **Project Supervisors (สค©.)** - Consultants
+- **Project Administrators (สค©.)** - Administrator
 - **Design Consultants (TEAM)** - Designers
-- **Construction Supervisors (คคง.)** - Supervision
+- **Project Supervisors (คคง.)** - Consultants
 - **Contractors (ผรม.1-4)** - Construction
 
 ---
@@ -384,9 +384,9 @@ lcbp3/
 
 ## 📝 Document Control
 
-- **Version:** 1.6.0
+- **Version:** 1.7.0
 - **Status:** Active Development
-- **Last Updated:** 2025-12-13
+- **Last Updated:** 2025-12-18
 - **Next Review:** 2026-01-01
 - **Owner:** System Architect
 - **Classification:** Internal Use Only

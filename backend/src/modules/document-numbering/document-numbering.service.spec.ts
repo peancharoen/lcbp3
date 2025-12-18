@@ -1,19 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DocumentNumberingService } from './document-numbering.service';
+import { DocumentNumberingService } from './services/document-numbering.service';
+import { CounterService } from './services/counter.service';
+import { ReservationService } from './services/reservation.service';
+import { FormatService } from './services/format.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
-import { DocumentNumberCounter } from './entities/document-number-counter.entity';
 import { DocumentNumberFormat } from './entities/document-number-format.entity';
-import { Project } from '../project/entities/project.entity';
-import { Organization } from '../organization/entities/organization.entity';
-import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
-import { Discipline } from '../master/entities/discipline.entity';
-import { CorrespondenceSubType } from '../correspondence/entities/correspondence-sub-type.entity';
 import { DocumentNumberAudit } from './entities/document-number-audit.entity';
 import { DocumentNumberError } from './entities/document-number-error.entity';
 
-// Mock Redis and Redlock
+// Mock Redis and Redlock (legacy mocks, kept just in case)
 const mockRedis = {
   disconnect: jest.fn(),
   on: jest.fn(),
@@ -37,16 +33,12 @@ jest.mock('redlock', () => {
 describe('DocumentNumberingService', () => {
   let service: DocumentNumberingService;
   let module: TestingModule;
-  let formatRepo: jest.Mocked<{ findOne: jest.Mock }>;
-
-  const mockProject = { id: 1, projectCode: 'LCBP3' };
-  const mockOrg = { id: 1, name: 'Google' };
-  const mockType = { id: 1, typeCode: 'COR' };
-  const mockDiscipline = { id: 1, code: 'CIV' };
+  let counterService: CounterService;
+  let formatService: FormatService;
 
   const mockContext = {
     projectId: 1,
-    originatorId: 1,
+    originatorOrganizationId: 1,
     typeId: 1,
     disciplineId: 1,
     year: 2025,
@@ -64,11 +56,24 @@ describe('DocumentNumberingService', () => {
           useValue: { get: jest.fn().mockReturnValue('localhost') },
         },
         {
-          provide: getRepositoryToken(DocumentNumberCounter),
+          provide: CounterService,
           useValue: {
-            findOne: jest.fn(),
-            save: jest.fn(),
-            create: jest.fn().mockReturnValue({ lastNumber: 0 }),
+            incrementCounter: jest.fn().mockResolvedValue(1),
+            getCurrentSequence: jest.fn().mockResolvedValue(0),
+          },
+        },
+        {
+          provide: ReservationService,
+          useValue: {
+            reserve: jest.fn(),
+            confirm: jest.fn(),
+            cancel: jest.fn(),
+          },
+        },
+        {
+          provide: FormatService,
+          useValue: {
+            format: jest.fn().mockResolvedValue('0001'),
           },
         },
         {
@@ -89,49 +94,16 @@ describe('DocumentNumberingService', () => {
             save: jest.fn().mockResolvedValue({}),
           },
         },
-        // Mock other dependencies used inside generateNextNumber lookups
-        {
-          provide: getRepositoryToken(Project),
-          useValue: { findOne: jest.fn() },
-        },
-        {
-          provide: getRepositoryToken(Organization),
-          useValue: { findOne: jest.fn() },
-        },
-        {
-          provide: getRepositoryToken(CorrespondenceType),
-          useValue: { findOne: jest.fn() },
-        },
-        {
-          provide: getRepositoryToken(Discipline),
-          useValue: { findOne: jest.fn() },
-        },
-        {
-          provide: getRepositoryToken(CorrespondenceSubType),
-          useValue: { findOne: jest.fn() },
-        },
-        {
-          provide: DataSource,
-          useValue: {
-            transaction: jest.fn((cb) =>
-              cb({
-                findOne: jest.fn().mockResolvedValue(null),
-                create: jest.fn().mockReturnValue({ lastSequence: 0 }),
-                save: jest.fn().mockResolvedValue({ lastSequence: 1 }),
-              })
-            ),
-          },
-        },
       ],
     }).compile();
 
     service = module.get<DocumentNumberingService>(DocumentNumberingService);
-    formatRepo = module.get(getRepositoryToken(DocumentNumberFormat));
+    counterService = module.get<CounterService>(CounterService);
+    formatService = module.get<FormatService>(FormatService);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    // Don't call onModuleDestroy - redisClient is mocked and would cause undefined error
   });
 
   it('should be defined', () => {
@@ -140,55 +112,27 @@ describe('DocumentNumberingService', () => {
 
   describe('generateNextNumber', () => {
     it('should generate a new number successfully', async () => {
-      const projectRepo = module.get(getRepositoryToken(Project));
-      const orgRepo = module.get(getRepositoryToken(Organization));
-      const typeRepo = module.get(getRepositoryToken(CorrespondenceType));
-      const disciplineRepo = module.get(getRepositoryToken(Discipline));
-
-      (projectRepo.findOne as jest.Mock).mockResolvedValue(mockProject);
-      (orgRepo.findOne as jest.Mock).mockResolvedValue(mockOrg);
-      (typeRepo.findOne as jest.Mock).mockResolvedValue(mockType);
-      (disciplineRepo.findOne as jest.Mock).mockResolvedValue(mockDiscipline);
-      (formatRepo.findOne as jest.Mock).mockResolvedValue({
-        formatTemplate: '{SEQ:4}',
-        resetSequenceYearly: true,
-      });
-
-      service.onModuleInit();
+      (counterService.incrementCounter as jest.Mock).mockResolvedValue(1);
+      (formatService.format as jest.Mock).mockResolvedValue('DOC-0001');
 
       const result = await service.generateNextNumber(mockContext);
 
       // Service returns object with number and auditId
       expect(result).toHaveProperty('number');
       expect(result).toHaveProperty('auditId');
-      expect(result.number).toBe('0001'); // Padded to 4 digits
+      expect(result.number).toBe('DOC-0001');
+      expect(counterService.incrementCounter).toHaveBeenCalled();
+      expect(formatService.format).toHaveBeenCalled();
     });
 
-    it('should throw error when transaction fails', async () => {
-      const projectRepo = module.get(getRepositoryToken(Project));
-      const orgRepo = module.get(getRepositoryToken(Organization));
-      const typeRepo = module.get(getRepositoryToken(CorrespondenceType));
-      const disciplineRepo = module.get(getRepositoryToken(Discipline));
-      const dataSource = module.get(DataSource);
-
-      (projectRepo.findOne as jest.Mock).mockResolvedValue(mockProject);
-      (orgRepo.findOne as jest.Mock).mockResolvedValue(mockOrg);
-      (typeRepo.findOne as jest.Mock).mockResolvedValue(mockType);
-      (disciplineRepo.findOne as jest.Mock).mockResolvedValue(mockDiscipline);
-      (formatRepo.findOne as jest.Mock).mockResolvedValue({
-        formatTemplate: '{SEQ:4}',
-        resetSequenceYearly: true,
-      });
-
-      // Mock transaction to throw error
-      (dataSource.transaction as jest.Mock).mockRejectedValue(
+    it('should throw error when increment fails', async () => {
+      // Mock CounterService to throw error
+      (counterService.incrementCounter as jest.Mock).mockRejectedValue(
         new Error('Transaction failed')
       );
 
-      service.onModuleInit();
-
       await expect(service.generateNextNumber(mockContext)).rejects.toThrow(
-        Error
+        'Transaction failed'
       );
     });
   });

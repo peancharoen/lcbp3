@@ -9,7 +9,7 @@ import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { CorrespondenceReference } from './entities/correspondence-reference.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
-import { DocumentNumberingService } from '../document-numbering/document-numbering.service';
+import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 import { JsonSchemaService } from '../json-schema/json-schema.service';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
 import { UserService } from '../user/user.service';
