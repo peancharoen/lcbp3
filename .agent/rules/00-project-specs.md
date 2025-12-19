@@ -31,9 +31,10 @@ Before generating code or planning a solution, you MUST conceptually load the co
     - *Crucial:* Check `specs/05-decisions/` (ADRs) to ensure you do not violate previously agreed-upon technical decisions.
 
 5.  **💾 DATABASE & SCHEMA (`specs/07-databasee/`)**
-    - *Action:* - **Read `specs/07-database/lcbp3-v1.6.0-schema.sql`** (or relevant `.sql` files) for exact table structures and constraints.
-        - **Consult `specs/07-database/data-dictionary-v1.6.0.md`** for field meanings and business rules.
-        - **Check `specs/07-database/lcbp3-v1.6.0-seed.sql`** to understand initial data states.
+    - *Action:* - **Read `specs/07-database/lcbp3-v1.7.0-schema.sql`** (or relevant `.sql` files) for exact table structures and constraints.
+        - **Consult `specs/07-database/data-dictionary-v1.7.0.md`** for field meanings and business rules.
+        - **Check `specs/07-database/lcbp3-v1.7.0-seed.sql`** to understand initial data states.
+        - **Check `specs/07-database/lcbp3-v1.7.0-seed-permissions.sql`** to understand initial permissions states.
     - *Constraint:* NEVER invent table names or columns. Use ONLY what is defined here.
 
 6.  **⚙️ IMPLEMENTATION DETAILS (`specs/03-implementation/`)**

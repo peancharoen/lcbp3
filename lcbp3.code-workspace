@@ -663,7 +663,8 @@
     "liveServer.settings.multiRootWorkspaceName": "🎯 Root",
     "vitest.commandLine": "npm run test --",
     "vitest.enable": true,
-    "yaml.maxItemsComputed": 6000
+    "yaml.maxItemsComputed": 6000,
+    "powershell.cwd": "🎯 Root"
   },
   // ========================================
   // LAUNCH CONFIGURATIONS
