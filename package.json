@@ -8,7 +8,8 @@
     "example": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:mcp": "node ./scripts/start-mcp.js"
   },
   "repository": {
     "type": "git",

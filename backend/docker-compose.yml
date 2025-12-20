@@ -7,7 +7,7 @@ services:
       MYSQL_ROOT_PASSWORD: Center#2025
       MYSQL_DATABASE: lcbp3_dev
       MYSQL_USER: admin
-      MYSQL_PASSWORD: Center2025
+      MYSQL_PASSWORD: Center#2025
     ports:
       - '3306:3306'
     volumes:
@@ -58,7 +58,7 @@ volumes:
   db_data:
   redis_data: # เพิ่ม Volume
   esdata:
-  
+
 networks:
   lcbp3-net:
     driver: bridge

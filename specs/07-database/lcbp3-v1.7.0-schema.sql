@@ -716,6 +716,7 @@ CREATE TABLE contract_drawing_sub_cats (
 
 -- ตารางเชื่อมระหว่าง หมวดหมู่หลัก-ย่อย (M:N)
 CREATE TABLE contract_drawing_subcat_cat_maps (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
   project_id INT COMMENT 'ID ของโครงการ',
   sub_cat_id INT COMMENT 'ID ของหมวดหมู่ย่อย',
   cat_id INT COMMENT 'ID ของหมวดหมู่หลัก',
@@ -735,14 +736,15 @@ CREATE TABLE contract_drawings (
   project_id INT NOT NULL COMMENT 'โครงการ',
   condwg_no VARCHAR(255) NOT NULL COMMENT 'เลขที่แบบสัญญา',
   title VARCHAR(255) NOT NULL COMMENT 'ชื่อแบบสัญญา',
-  sub_cat_id INT COMMENT 'หมวดหมู่ย่อย',
+  map_cat_id INT COMMENT 'หมวดหมู่ย่อย',
   volume_id INT COMMENT 'เล่ม',
+  volume_page INT COMMENT 'หน้าที่',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   deleted_at DATETIME NULL COMMENT 'วันที่ลบ',
   updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
-  FOREIGN KEY (sub_cat_id) REFERENCES contract_drawing_sub_cats (id) ON DELETE RESTRICT,
+  FOREIGN KEY (map_cat_id) REFERENCES contract_drawing_subcat_cat_maps (id) ON DELETE RESTRICT,
   FOREIGN KEY (volume_id) REFERENCES contract_drawing_volumes (id) ON DELETE RESTRICT,
   UNIQUE KEY ux_condwg_no_project (project_id, condwg_no)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูล "แบบคู่สัญญา"';
