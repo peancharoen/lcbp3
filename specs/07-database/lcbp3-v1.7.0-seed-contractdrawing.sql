@@ -313,7 +313,7 @@ VALUES
 (2179, 3, 60, 40),
 (2180, 3, 61, 41);
 
-INSERT INTO contract_drawings (project_id, condwg_no, title, sub_cat_id, volume_id, volume_page)
+INSERT INTO contract_drawings (project_id, condwg_no, title, map_cat_id, volume_id, volume_page)
 VALUES
   (3, 'LP3-GN-LA-001', 'สารบัญ ,รายละเอียดสัญลักษณ์ประกอบและคำย่อ', 2001, 1, 1),
   (3, 'LP3-GN-LA-002', 'รายการประกอบวัสดุพืชพรรณ', 2001, 1, 2),
@@ -2370,7 +2370,3 @@ VALUES
   (3, 'LP3-UT-EE-023', 'รายละเอียดการติดตั้ง แผ่นที่ 6', 2180, 8, 23),
   (3, 'LP3-UT-EE-024', 'รายละเอียดการติดตั้ง แผ่นที่ 7', 2180, 8, 24),
   (3, 'LP3-UT-EE-025', 'รายละเอียดการติดตั้ง แผ่นที่ 8', 2180, 8, 25);
-
-
-
-

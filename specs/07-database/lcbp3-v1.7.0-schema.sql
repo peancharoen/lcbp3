@@ -721,6 +721,7 @@ CREATE TABLE contract_drawing_subcat_cat_maps (
   sub_cat_id INT COMMENT 'ID ของหมวดหมู่ย่อย',
   cat_id INT COMMENT 'ID ของหมวดหมู่หลัก',
   PRIMARY KEY (
+    id,
     project_id,
     sub_cat_id,
     cat_id
@@ -752,27 +753,29 @@ CREATE TABLE contract_drawings (
 -- ตาราง Master สำหรับ "หมวดหมู่หลัก" ของแบบก่อสร้าง
 CREATE TABLE shop_drawing_main_categories (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  project_id INT NOT NULL COMMENT 'โครงการ',
   main_category_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'รหัสหมวดหมู่หลัก (เช่น ARCH, STR)',
   main_category_name VARCHAR(255) NOT NULL COMMENT 'ชื่อหมวดหมู่หลัก',
   description TEXT COMMENT 'คำอธิบาย',
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด '
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด ',
+  FOREIGN KEY (project_id) REFERENCES projects (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master สำหรับ "หมวดหมู่หลัก" ของแบบก่อสร้าง';
 
 -- ตาราง Master สำหรับ "หมวดหมู่ย่อย" ของแบบก่อสร้าง
 CREATE TABLE shop_drawing_sub_categories (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  project_id INT NOT NULL COMMENT 'โครงการ',
   sub_category_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'รหัสหมวดหมู่ย่อย (เช่น STR - COLUMN)',
   sub_category_name VARCHAR(255) NOT NULL COMMENT 'ชื่อหมวดหมู่ย่อย',
-  main_category_id INT NOT NULL COMMENT 'หมวดหมู่หลัก',
   description TEXT COMMENT 'คำอธิบาย',
   sort_order INT DEFAULT 0 COMMENT 'ลำดับการแสดงผล',
   is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
-  FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories (id)
+  FOREIGN KEY (project_id) REFERENCES projects (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master สำหรับ "หมวดหมู่ย่อย" ของแบบก่อสร้าง';
 
 -- ตาราง Master เก็บข้อมูล "แบบก่อสร้าง"
@@ -780,7 +783,6 @@ CREATE TABLE shop_drawings (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
   project_id INT NOT NULL COMMENT 'โครงการ',
   drawing_number VARCHAR(100) NOT NULL UNIQUE COMMENT 'เลขที่ Shop Drawing',
-  title VARCHAR(500) NOT NULL COMMENT 'ชื่อแบบ',
   main_category_id INT NOT NULL COMMENT 'หมวดหมู่หลัก',
   sub_category_id INT NOT NULL COMMENT 'หมวดหมู่ย่อย',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
@@ -799,7 +801,9 @@ CREATE TABLE shop_drawing_revisions (
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (เช่น 0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
   revision_date DATE COMMENT 'วันที่ของ Revision',
+  title VARCHAR(500) NOT NULL COMMENT 'ชื่อแบบ',
   description TEXT COMMENT 'คำอธิบายการแก้ไข',
+  legacy_drawing_number VARCHAR(100) NULL COMMENT 'เลขที่เดิมของ Shop Drawing',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   FOREIGN KEY (shop_drawing_id) REFERENCES shop_drawings (id) ON DELETE CASCADE,
   UNIQUE KEY ux_sd_rev_drawing_revision (shop_drawing_id, revision_number)
