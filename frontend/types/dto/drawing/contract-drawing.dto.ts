@@ -11,11 +11,14 @@ export interface CreateContractDrawingDto {
   /** ชื่อแบบ */
   title: string;
 
-  /** ID หมวดหมู่ย่อย */
-  subCategoryId?: number;
+  /** ID หมวดหมู่ย่อย (Mapping) */
+  mapCatId?: number;
 
   /** ID เล่มของแบบ */
   volumeId?: number;
+
+  /** เลขหน้าในเล่ม */
+  volumePage?: number;
 
   /** รายการ ID ของไฟล์แนบ (PDF/DWG) */
   attachmentIds?: number[];
@@ -30,7 +33,7 @@ export interface SearchContractDrawingDto {
   projectId: number;
 
   volumeId?: number;
-  subCategoryId?: number;
+  mapCatId?: number;
   search?: string; // ค้นหาจาก Title หรือ Number
 
   page?: number;     // Default: 1

@@ -9,26 +9,9 @@ import { DocumentNumberFormat } from './entities/document-number-format.entity';
 import { DocumentNumberAudit } from './entities/document-number-audit.entity';
 import { DocumentNumberError } from './entities/document-number-error.entity';
 
-// Mock Redis and Redlock (legacy mocks, kept just in case)
-const mockRedis = {
-  disconnect: jest.fn(),
-  on: jest.fn(),
-};
-const mockRedlock = {
-  acquire: jest.fn(),
-};
-const mockLock = {
-  release: jest.fn().mockResolvedValue(undefined),
-};
-
-jest.mock('ioredis', () => {
-  return jest.fn().mockImplementation(() => mockRedis);
-});
-jest.mock('redlock', () => {
-  return jest.fn().mockImplementation(() => {
-    return mockRedlock;
-  });
-});
+import { DocumentNumberingLockService } from './services/document-numbering-lock.service';
+import { ManualOverrideService } from './services/manual-override.service';
+import { MetricsService } from './services/metrics.service';
 
 describe('DocumentNumberingService', () => {
   let service: DocumentNumberingService;
@@ -39,15 +22,16 @@ describe('DocumentNumberingService', () => {
   const mockContext = {
     projectId: 1,
     originatorOrganizationId: 1,
+    recipientOrganizationId: 1,
     typeId: 1,
+    subTypeId: 1,
+    rfaTypeId: 1,
     disciplineId: 1,
     year: 2025,
     customTokens: { TYPE_CODE: 'COR', ORG_CODE: 'GGL' },
   };
 
   beforeEach(async () => {
-    mockRedlock.acquire.mockResolvedValue(mockLock);
-
     module = await Test.createTestingModule({
       providers: [
         DocumentNumberingService,
@@ -77,6 +61,24 @@ describe('DocumentNumberingService', () => {
           },
         },
         {
+          provide: DocumentNumberingLockService,
+          useValue: {
+            acquireLock: jest.fn().mockResolvedValue({ release: jest.fn() }),
+            releaseLock: jest.fn(),
+          },
+        },
+        {
+          provide: ManualOverrideService,
+          useValue: { applyOverride: jest.fn() },
+        },
+        {
+          provide: MetricsService,
+          useValue: {
+            numbersGenerated: { inc: jest.fn() },
+            lockFailures: { inc: jest.fn() },
+          },
+        },
+        {
           provide: getRepositoryToken(DocumentNumberFormat),
           useValue: { findOne: jest.fn() },
         },
@@ -85,6 +87,7 @@ describe('DocumentNumberingService', () => {
           useValue: {
             create: jest.fn().mockReturnValue({ id: 1 }),
             save: jest.fn().mockResolvedValue({ id: 1 }),
+            findOne: jest.fn(),
           },
         },
         {
@@ -134,6 +137,43 @@ describe('DocumentNumberingService', () => {
       await expect(service.generateNextNumber(mockContext)).rejects.toThrow(
         'Transaction failed'
       );
+    });
+  });
+
+  describe('Admin Operations', () => {
+    it('voidAndReplace should verify audit log exists', async () => {
+      const auditRepo = module.get(getRepositoryToken(DocumentNumberAudit));
+      (auditRepo.findOne as jest.Mock).mockResolvedValue({
+        generatedNumber: 'DOC-001',
+        counterKey: JSON.stringify({ projectId: 1, correspondenceTypeId: 1 }),
+        templateUsed: 'test',
+      });
+      (auditRepo.save as jest.Mock).mockResolvedValue({ id: 2 });
+
+      const result = await service.voidAndReplace({
+        documentNumber: 'DOC-001',
+        reason: 'test',
+        replace: false,
+      });
+      expect(result.status).toBe('VOIDED');
+      expect(auditRepo.save).toHaveBeenCalled();
+    });
+
+    it('cancelNumber should log cancellation', async () => {
+      const auditRepo = module.get(getRepositoryToken(DocumentNumberAudit));
+      (auditRepo.findOne as jest.Mock).mockResolvedValue({
+        generatedNumber: 'DOC-002',
+        counterKey: {},
+      });
+      (auditRepo.save as jest.Mock).mockResolvedValue({ id: 3 });
+
+      const result = await service.cancelNumber({
+        documentNumber: 'DOC-002',
+        reason: 'bad',
+        projectId: 1,
+      });
+      expect(result.status).toBe('CANCELLED');
+      expect(auditRepo.save).toHaveBeenCalled();
     });
   });
 });

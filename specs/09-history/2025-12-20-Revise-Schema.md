@@ -13,3 +13,6 @@
 ## TABLE shop_drawing_revisions
   - add title
   - add legacy_drawing_number VARCHAR(100) NULL  COMMENT 'เลขที่เดิมของ Shop Drawing',
+## TABLE asbuilt_drawings
+## TABLE asbuilt_drawing_revisions
+## TABLE asbuilt_revision_shop_revisions_refs

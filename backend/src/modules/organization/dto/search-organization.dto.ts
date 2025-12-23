@@ -1,5 +1,5 @@
-import { IsOptional, IsString, IsInt, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsString, IsInt, Min, IsBoolean } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SearchOrganizationDto {
@@ -33,4 +33,10 @@ export class SearchOrganizationDto {
   @Min(1)
   @Type(() => Number)
   limit?: number = 100;
+
+  @ApiPropertyOptional({ description: 'Filter by Active status' })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  isActive?: boolean;
 }

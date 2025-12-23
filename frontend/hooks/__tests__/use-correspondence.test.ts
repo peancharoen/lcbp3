@@ -114,21 +114,25 @@ describe('use-correspondence hooks', () => {
       const mockResponse = { id: 1, title: 'New Correspondence' };
       vi.mocked(correspondenceService.create).mockResolvedValue(mockResponse);
 
-      const { wrapper, queryClient } = createTestQueryClient();
+      const { wrapper } = createTestQueryClient();
       const { result } = renderHook(() => useCreateCorrespondence(), { wrapper });
 
       await act(async () => {
         await result.current.mutateAsync({
-          title: 'New Correspondence',
+          subject: 'New Correspondence',
           projectId: 1,
-          correspondenceTypeId: 1,
+          typeId: 1,
+          originatorId: 1,
+          recipients: []
         });
       });
 
       expect(correspondenceService.create).toHaveBeenCalledWith({
-        title: 'New Correspondence',
+        subject: 'New Correspondence',
         projectId: 1,
-        correspondenceTypeId: 1,
+        typeId: 1,
+        originatorId: 1,
+        recipients: []
       });
       expect(toast.success).toHaveBeenCalledWith('Correspondence created successfully');
     });
@@ -146,9 +150,11 @@ describe('use-correspondence hooks', () => {
       await act(async () => {
         try {
           await result.current.mutateAsync({
-            title: '',
+            subject: '',
             projectId: 1,
-            correspondenceTypeId: 1,
+            typeId: 1,
+            originatorId: 1,
+            recipients: []
           });
         } catch {
           // Expected to throw
@@ -163,7 +169,7 @@ describe('use-correspondence hooks', () => {
 
   describe('useUpdateCorrespondence', () => {
     it('should update correspondence and invalidate cache', async () => {
-      const mockResponse = { id: 1, title: 'Updated Correspondence' };
+      const mockResponse = { id: 1, subject: 'Updated Correspondence' };
       vi.mocked(correspondenceService.update).mockResolvedValue(mockResponse);
 
       const { wrapper } = createTestQueryClient();
@@ -172,12 +178,12 @@ describe('use-correspondence hooks', () => {
       await act(async () => {
         await result.current.mutateAsync({
           id: 1,
-          data: { title: 'Updated Correspondence' },
+          data: { subject: 'Updated Correspondence' },
         });
       });
 
       expect(correspondenceService.update).toHaveBeenCalledWith(1, {
-        title: 'Updated Correspondence',
+        subject: 'Updated Correspondence',
       });
       expect(toast.success).toHaveBeenCalledWith('Correspondence updated successfully');
     });
@@ -210,11 +216,11 @@ describe('use-correspondence hooks', () => {
       await act(async () => {
         await result.current.mutateAsync({
           id: 1,
-          data: { recipientIds: [2, 3] },
+          data: { note: 'Ready for review' },
         });
       });
 
-      expect(correspondenceService.submit).toHaveBeenCalledWith(1, { recipientIds: [2, 3] });
+      expect(correspondenceService.submit).toHaveBeenCalledWith(1, { note: 'Ready for review' });
       expect(toast.success).toHaveBeenCalledWith('Correspondence submitted successfully');
     });
   });
@@ -230,13 +236,13 @@ describe('use-correspondence hooks', () => {
       await act(async () => {
         await result.current.mutateAsync({
           id: 1,
-          data: { action: 'approve', comment: 'LGTM' },
+          data: { action: 'APPROVE', comments: 'LGTM' },
         });
       });
 
       expect(correspondenceService.processWorkflow).toHaveBeenCalledWith(1, {
-        action: 'approve',
-        comment: 'LGTM',
+        action: 'APPROVE',
+        comments: 'LGTM',
       });
       expect(toast.success).toHaveBeenCalledWith('Action completed successfully');
     });
@@ -255,7 +261,7 @@ describe('use-correspondence hooks', () => {
         try {
           await result.current.mutateAsync({
             id: 1,
-            data: { action: 'approve' },
+            data: { action: 'APPROVE' },
           });
         } catch {
           // Expected to throw

@@ -110,6 +110,8 @@ describe('use-rfa hooks', () => {
         await result.current.mutateAsync({
           projectId: 1,
           subject: 'Test RFA',
+          rfaTypeId: 1,
+          toOrganizationId: 1
         });
       });
 
@@ -132,6 +134,8 @@ describe('use-rfa hooks', () => {
           await result.current.mutateAsync({
             projectId: 1,
             subject: '',
+            rfaTypeId: 1,
+            toOrganizationId: 1
           });
         } catch {
           // Expected
@@ -175,13 +179,13 @@ describe('use-rfa hooks', () => {
       await act(async () => {
         await result.current.mutateAsync({
           id: 1,
-          data: { action: 'approve', comment: 'Approved' },
+          data: { action: 'APPROVE', comments: 'Approved' },
         });
       });
 
       expect(rfaService.processWorkflow).toHaveBeenCalledWith(1, {
-        action: 'approve',
-        comment: 'Approved',
+        action: 'APPROVE',
+        comments: 'Approved',
       });
       expect(toast.success).toHaveBeenCalledWith('Workflow status updated successfully');
     });
@@ -200,7 +204,7 @@ describe('use-rfa hooks', () => {
         try {
           await result.current.mutateAsync({
             id: 1,
-            data: { action: 'reject' },
+            data: { action: 'REJECT' },
           });
         } catch {
           // Expected

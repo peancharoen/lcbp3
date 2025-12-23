@@ -20,4 +20,5 @@ export interface SearchOrganizationDto {
   projectId?: number;
   page?: number;
   limit?: number;
+  isActive?: boolean;
 }

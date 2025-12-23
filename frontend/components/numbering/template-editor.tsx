@@ -15,7 +15,6 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { NumberingTemplate } from '@/lib/api/numbering';
-import { cn } from '@/lib/utils';
 import {
   HoverCard,
   HoverCardContent,
@@ -40,8 +39,10 @@ export interface TemplateEditorProps {
     template?: NumberingTemplate;
     projectId: number;
     projectName: string;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     correspondenceTypes: any[];
     disciplines: any[];
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     onSave: (data: Partial<NumberingTemplate>) => void;
     onCancel: () => void;
 }
@@ -51,16 +52,14 @@ export function TemplateEditor({
   projectId,
   projectName,
   correspondenceTypes,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   disciplines,
   onSave,
   onCancel
 }: TemplateEditorProps) {
-  const [format, setFormat] = useState(template?.formatTemplate || template?.templateFormat || '');
+  const [format, setFormat] = useState(template?.formatTemplate || '');
   const [typeId, setTypeId] = useState<string>(template?.correspondenceTypeId?.toString() || '');
-  const [disciplineId, setDisciplineId] = useState<string>(template?.disciplineId?.toString() || '0');
-  const [padding, setPadding] = useState(template?.paddingLength || 4);
-  const [reset, setReset] = useState(template?.resetAnnually ?? true);
-  const [isActive, setIsActive] = useState(template?.isActive ?? true);
+  const [reset, setReset] = useState(template?.resetSequenceYearly ?? true);
 
   const [preview, setPreview] = useState('');
 
@@ -78,18 +77,14 @@ export function TemplateEditor({
              const t = correspondenceTypes.find(ct => ct.id.toString() === typeId);
              if (t) replacement = t.typeCode;
         }
-        if (v.key === '{DISCIPLINE}' && disciplineId !== '0') {
-             const d = disciplines.find(di => di.id.toString() === disciplineId);
-             if (d) replacement = d.disciplineCode;
-        }
 
         previewText = previewText.replace(new RegExp(v.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacement);
     });
     setPreview(previewText);
-  }, [format, typeId, disciplineId, correspondenceTypes, disciplines]);
+  }, [format, typeId, correspondenceTypes]);
 
   const insertVariable = (variable: string) => {
-    setFormat((prev) => prev + variable);
+    setFormat((prev: string) => prev + variable);
   };
 
   const handleSave = () => {
@@ -97,13 +92,8 @@ export function TemplateEditor({
           ...template,
           projectId: projectId,
           correspondenceTypeId: typeId && typeId !== '__default__' ? Number(typeId) : null,
-          disciplineId: Number(disciplineId),
           formatTemplate: format,
-          templateFormat: format, // Legacy support
-          paddingLength: padding,
-          resetAnnually: reset,
-          isActive: isActive,
-          exampleNumber: preview
+          resetSequenceYearly: reset,
       });
   };
 
@@ -115,9 +105,6 @@ export function TemplateEditor({
         <div>
            <div className="flex items-center gap-2 mb-1">
              <h3 className="text-lg font-semibold">{template ? 'Edit Template' : 'New Template'}</h3>
-             <Badge variant={isActive ? "default" : "secondary"}>
-                {isActive ? 'Active' : 'Inactive'}
-             </Badge>
            </div>
            <p className="text-sm text-muted-foreground">Define how document numbers are generated for this project.</p>
         </div>
@@ -125,10 +112,6 @@ export function TemplateEditor({
              <Badge variant="outline" className="text-base px-3 py-1 bg-slate-50">
                 Project: {projectName}
             </Badge>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-               <Checkbox checked={isActive} onCheckedChange={(c) => setIsActive(!!c)} />
-               Active
-            </label>
         </div>
       </div>
 
@@ -143,7 +126,8 @@ export function TemplateEditor({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__default__">Default (All Types)</SelectItem>
-                    {correspondenceTypes.map((type) => (
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {correspondenceTypes.map((type: any) => (
                       <SelectItem key={type.id} value={type.id.toString()}>
                         {type.typeCode} - {type.typeName}
                       </SelectItem>
@@ -155,36 +139,7 @@ export function TemplateEditor({
                 </p>
               </div>
 
-              <div>
-                <Label>Discipline (Optional)</Label>
-                <Select value={disciplineId} onValueChange={setDisciplineId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All/None" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">All Disciplines (Default)</SelectItem>
-                    {disciplines.map((d) => (
-                      <SelectItem key={d.id} value={d.id.toString()}>
-                        {d.disciplineCode} - {d.disciplineName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                   Specific discipline templates take precedence over 'All'.
-                </p>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Padding Length</Label>
-                  <Input
-                    type="number"
-                    value={padding}
-                    onChange={e => setPadding(Number(e.target.value))}
-                    min={1} max={10}
-                  />
-                </div>
                 <div>
                    <Label>Reset Rule</Label>
                    <div className="flex items-center h-10">

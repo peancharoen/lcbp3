@@ -191,5 +191,24 @@ export const masterDataService = {
       params: { projectId, correspondenceTypeId: typeId }
     });
     return response.data;
+  },
+
+  // --- Drawing Categories ---
+
+  getContractDrawingCategories: async () => {
+    const response = await apiClient.get("/drawings/contract/categories");
+    return response.data.data || response.data;
+  },
+
+  getShopMainCategories: async (projectId: number) => {
+    const response = await apiClient.get("/drawings/shop/main-categories", { params: { projectId } });
+    return response.data.data || response.data;
+  },
+
+  getShopSubCategories: async (projectId: number, mainCategoryId?: number) => {
+    const response = await apiClient.get("/drawings/shop/sub-categories", {
+      params: { projectId, mainCategoryId }
+    });
+    return response.data.data || response.data;
   }
 };

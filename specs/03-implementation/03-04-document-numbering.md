@@ -116,7 +116,7 @@ CREATE TABLE document_number_counters (
   rfa_type_id INT DEFAULT 0,
   discipline_id INT DEFAULT 0,
   reset_scope VARCHAR(20) NOT NULL,
-  last_number INT DEFAULT 0 NOT NULL,,
+  last_number INT DEFAULT 0 NOT NULL,
   version INT DEFAULT 0 NOT NULL,
   created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6),
   updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
@@ -124,7 +124,7 @@ CREATE TABLE document_number_counters (
   PRIMARY KEY (
     project_id,
     originator_organization_id,
-    COALESCE(recipient_organization_id, 0),
+    recipient_organization_id,
     correspondence_type_id,
     sub_type_id,
     rfa_type_id,
@@ -142,10 +142,8 @@ CREATE TABLE document_number_counters (
 
   CONSTRAINT chk_last_number_positive CHECK (last_number >= 0),
   CONSTRAINT chk_reset_scope_format CHECK (
-    reset_scope IN ('NONE') OR
-    reset_scope LIKE 'YEAR_%' OR
-    reset_scope LIKE 'MONTH_%' OR
-    reset_scope LIKE 'CONTRACT_%'
+    reset_scope = 'NONE' OR
+    reset_scope LIKE 'YEAR_%'
   )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Running Number Counters';

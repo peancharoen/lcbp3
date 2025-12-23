@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -73,8 +72,9 @@ export class ContractDrawingService {
         projectId: createDto.projectId,
         contractDrawingNo: createDto.contractDrawingNo,
         title: createDto.title,
-        subCategoryId: createDto.subCategoryId,
+        mapCatId: createDto.mapCatId, // Updated
         volumeId: createDto.volumeId,
+        volumePage: createDto.volumePage, // Updated
         updatedBy: user.user_id,
         attachments: attachments,
       });
@@ -111,7 +111,7 @@ export class ContractDrawingService {
     const {
       projectId,
       volumeId,
-      subCategoryId,
+      mapCatId,
       search,
       page = 1,
       limit = 20,
@@ -129,11 +129,9 @@ export class ContractDrawingService {
       query.andWhere('drawing.volumeId = :volumeId', { volumeId });
     }
 
-    // Filter by SubCategory
-    if (subCategoryId) {
-      query.andWhere('drawing.subCategoryId = :subCategoryId', {
-        subCategoryId,
-      });
+    // Filter by Map Category (Updated)
+    if (mapCatId) {
+      query.andWhere('drawing.mapCatId = :mapCatId', { mapCatId });
     }
 
     // Search Text (No. or Title)
@@ -198,8 +196,10 @@ export class ContractDrawingService {
       if (updateDto.title) drawing.title = updateDto.title;
       if (updateDto.volumeId !== undefined)
         drawing.volumeId = updateDto.volumeId;
-      if (updateDto.subCategoryId !== undefined)
-        drawing.subCategoryId = updateDto.subCategoryId;
+      if (updateDto.volumePage !== undefined)
+        drawing.volumePage = updateDto.volumePage;
+      if (updateDto.mapCatId !== undefined)
+        drawing.mapCatId = updateDto.mapCatId;
 
       drawing.updatedBy = user.user_id;
 

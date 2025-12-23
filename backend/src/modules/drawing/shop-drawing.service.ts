@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In, Brackets } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 
 // Entities
 import { ShopDrawing } from './entities/shop-drawing.entity';
@@ -77,7 +77,6 @@ export class ShopDrawingService {
       const shopDrawing = queryRunner.manager.create(ShopDrawing, {
         projectId: createDto.projectId,
         drawingNumber: createDto.drawingNumber,
-        title: createDto.title,
         mainCategoryId: createDto.mainCategoryId,
         subCategoryId: createDto.subCategoryId,
         updatedBy: user.user_id,
@@ -89,6 +88,7 @@ export class ShopDrawingService {
         shopDrawingId: savedShopDrawing.id,
         revisionNumber: 0,
         revisionLabel: createDto.revisionLabel || '0',
+        title: createDto.title, // Add title to revision
         revisionDate: createDto.revisionDate
           ? new Date(createDto.revisionDate)
           : new Date(),
@@ -175,6 +175,8 @@ export class ShopDrawingService {
         shopDrawingId,
         revisionNumber: nextRevNum,
         revisionLabel: createDto.revisionLabel,
+        title: createDto.title, // Add title from DTO
+        legacyDrawingNumber: createDto.legacyDrawingNumber, // Add legacy number
         revisionDate: createDto.revisionDate
           ? new Date(createDto.revisionDate)
           : new Date(),
@@ -226,13 +228,9 @@ export class ShopDrawingService {
     }
 
     if (search) {
-      query.andWhere(
-        new Brackets((qb) => {
-          qb.where('sd.drawingNumber LIKE :search', {
-            search: `%${search}%`,
-          }).orWhere('sd.title LIKE :search', { search: `%${search}%` });
-        })
-      );
+      query.andWhere('sd.drawingNumber LIKE :search', {
+        search: `%${search}%`,
+      });
     }
 
     query.orderBy('sd.updatedAt', 'DESC');

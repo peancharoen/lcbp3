@@ -261,9 +261,9 @@ FCO (For Construction) / ASB (As-Built) / 3R (Revise) / 4X (Reject)
 **Hierarchy:**
 
 ```
-Volume (เล่ม)
+Volume (เล่ม) - has volume_page
   └─ Category (หมวดหมู่หลัก)
-      └─ Sub-Category (หมวดหมู่ย่อย)
+      └─ Sub-Category (หมวดหมู่ย่อย) -- Linked via Map Table
           └─ Drawing (แบบ)
 ```
 
@@ -271,23 +271,38 @@ Volume (เล่ม)
 
 **Tables:**
 
-- `shop_drawing_main_categories` - หมวดหมู่หลัก (ARCH, STR, MEP, etc.)
-- `shop_drawing_sub_categories` - หมวดหมู่ย่อย
-- `shop_drawings` - Master แบบก่อสร้าง
-- `shop_drawing_revisions` - Revisions
+- `shop_drawing_main_categories` - หมวดหมู่หลัก (Project Specific)
+- `shop_drawing_sub_categories` - หมวดหมู่ย่อย (Project Specific)
+- `shop_drawings` - Master แบบก่อสร้าง (No title, number only)
+- `shop_drawing_revisions` - Revisions (Holds Title & Legacy Number)
 - `shop_drawing_revision_contract_refs` - M:N อ้างอิงแบบคู่สัญญา
 
 **Revision Tracking:**
 
 ```sql
 -- Get latest revision of a shop drawing
-SELECT sd.drawing_number, sdr.revision_label, sdr.revision_date
+SELECT sd.shop_drawing_number, sdr.revision_label, sdr.revision_date
 FROM shop_drawings sd
 JOIN shop_drawing_revisions sdr ON sd.id = sdr.shop_drawing_id
-WHERE sd.drawing_number = 'SD-STR-001'
+WHERE sd.shop_drawing_number = 'SD-STR-001'
 ORDER BY sdr.revision_number DESC
 LIMIT 1;
 ```
+
+#### 5.3 As Built Drawings (แบบสร้างจริง) [NEW v1.7.0]
+
+**Tables:**
+
+- `asbuilt_drawings` - Master แบบสร้างจริง
+- `asbuilt_drawing_revisions` - Revisions history
+- `asbuilt_revision_shop_revisions_refs` - เชื่อมโยงกับ Shop Drawing Revision source
+- `asbuilt_drawing_revision_attachments` - ไฟล์แนบ (PDF/DWG)
+
+**Business Rules:**
+
+- As Built 1 ใบ อาจมาจาก Shop Drawing หลายใบ (Many-to-Many via refs table)
+- แยก Counter distinct จาก Shop Drawing และ Contract Drawing
+- รองรับไฟล์แนบหลายประเภท (PDF, DWG, SOURCE)
 
 ---
 
@@ -400,7 +415,16 @@ CREATE TABLE document_number_counters (
   current_year INT,
   version INT DEFAULT 0,        -- Optimistic Lock
   last_number INT DEFAULT 0,
-  PRIMARY KEY (project_id, originator_organization_id, correspondence_type_id, discipline_id, current_year)
+  PRIMARY KEY (
+    project_id,
+    originator_organization_id,
+    recipient_organization_id,
+    correspondence_type_id,
+    sub_type_id,
+    rfa_type_id,
+    discipline_id,
+    reset_scope
+  )
 );
 ```
 

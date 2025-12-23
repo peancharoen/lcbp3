@@ -25,9 +25,6 @@ export class ShopDrawing {
   @Column({ name: 'drawing_number', length: 100, unique: true })
   drawingNumber!: string; // เติม !
 
-  @Column({ length: 500 })
-  title!: string; // เติม !
-
   @Column({ name: 'main_category_id' })
   mainCategoryId!: number; // เติม !
 

@@ -12,6 +12,7 @@ export interface CreateShopDrawingDto {
   revisionLabel?: string;
   revisionDate?: string; // ISO Date String
   description?: string;
+  legacyDrawingNumber?: string; // Legacy number for the first revision
   contractDrawingIds?: number[]; // อ้างอิงแบบสัญญา
   attachmentIds?: number[];
 }
@@ -19,6 +20,8 @@ export interface CreateShopDrawingDto {
 // --- Create New Revision ---
 export interface CreateShopDrawingRevisionDto {
   revisionLabel: string;
+  title: string; // Title per revision
+  legacyDrawingNumber?: string;
   revisionDate?: string;
   description?: string;
   contractDrawingIds?: number[];

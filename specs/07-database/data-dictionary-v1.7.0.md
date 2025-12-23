@@ -2,11 +2,18 @@
 
 เอกสารนี้สรุปโครงสร้างตาราง,
 FOREIGN KEYS (FK),
-และ Constraints ที่สำคัญทั้งหมดในฐานข้อมูล LCBP3 - DMS (v1.7.0) เพื่อใช้เป็นเอกสารอ้างอิงสำหรับทีมพัฒนา Backend (NestJS) และ Frontend (Next.js) โดยอิงจาก Requirements และ SQL Script ล่าสุด ** สถานะ: ** FINAL GUIDELINE ** วันที่: ** 2025 -12 -18 ** อ้างอิง: ** Requirements v1.7.0 & FullStackJS Guidelines v1.7.0 ** Classification: ** Internal Technical Documentation ## 📝 สรุปรายการปรับปรุง (Summary of Changes in v1.7.0)
-1. **Document Numbering Overhaul**: ปรับปรุงโครงสร้าง `document_number_counters` เปลี่ยน PK เป็น Composite 8 columns และใช้ `reset_scope` แทน `current_year`
-2. **Audit & Error Logging**: ปรับปรุงตาราง `document_number_audit`, `document_number_errors` และเพิ่ม `document_number_reservations`
-3. **JSON Schemas**: เพิ่ม columns `version`, `table_name`, `ui_schema`, `virtual_columns`, `migration_script` ในตาราง `json_schemas`
-4. **Schema Cleanup**: ลบ `correspondence_id` ออกจาก `rfa_revisions` และปรับปรุง Virtual Columns ใน `correspondence_revisions` ---
+และ Constraints ที่สำคัญทั้งหมดในฐานข้อมูล LCBP3 - DMS (v1.7.0) เพื่อใช้เป็นเอกสารอ้างอิงสำหรับทีมพัฒนา Backend (NestJS) และ Frontend (Next.js) โดยอิงจาก Requirements และ SQL Script ล่าสุด ** สถานะ: ** FINAL GUIDELINE ** วันที่: ** 2025 -12 -23 ** อ้างอิง: ** Requirements v1.7.0 & FullStackJS Guidelines v1.7.0 ** Classification: ** Internal Technical Documentation ## 📝 สรุปรายการปรับปรุง (Summary of Changes in v1.7.0)
+1. **Drawing Tables Restructuring**:
+   - `contract_drawing_subcat_cat_maps`: เปลี่ยน PK จาก composite เป็น `id` AUTO_INCREMENT พร้อม UNIQUE constraint
+   - `contract_drawings`: เปลี่ยน `sub_cat_id` → `map_cat_id` และเพิ่ม `volume_page`
+   - `shop_drawing_main_categories` และ `shop_drawing_sub_categories`: เพิ่ม `project_id` (เปลี่ยนจาก global เป็น project-specific)
+   - `shop_drawings`: ย้าย `title` ไปยัง `shop_drawing_revisions`
+   - `shop_drawing_revisions`: เพิ่ม `title` และ `legacy_drawing_number`
+2. **AS Built Drawings (NEW)**: เพิ่มตาราง `asbuilt_drawings`, `asbuilt_drawing_revisions`, `asbuilt_revision_shop_revisions_refs`, และ `asbuilt_drawing_revision_attachments`
+3. **Document Numbering Overhaul**: ปรับปรุงโครงสร้าง `document_number_counters` เปลี่ยน PK เป็น Composite 8 columns และใช้ `reset_scope` แทน `current_year`
+4. **Audit & Error Logging**: ปรับปรุงตาราง `document_number_audit`, `document_number_errors` และเพิ่ม `document_number_reservations`
+5. **JSON Schemas**: เพิ่ม columns `version`, `table_name`, `ui_schema`, `virtual_columns`, `migration_script` ในตาราง `json_schemas`
+6. **Schema Cleanup**: ลบ `correspondence_id` ออกจาก `rfa_revisions` และปรับปรุง Virtual Columns ใน `correspondence_revisions` ---
 
 ## **1. 🏢 Core & Master Data Tables (องค์กร, โครงการ, สัญญา)**
 
@@ -718,19 +725,21 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 ---
 
-### 5.4 contract_drawing_subcat_cat_maps
+### 5.4 contract_drawing_subcat_cat_maps (UPDATE v1.7.0)
 
 **Purpose**: Junction table mapping sub-categories to main categories (M:N)
 
-| Column Name | Data Type | Constraints     | Description                |
-| ----------- | --------- | --------------- | -------------------------- |
-| project_id  | INT       | PRIMARY KEY, FK | Reference to projects      |
-| sub_cat_id  | INT       | PRIMARY KEY, FK | Reference to sub-category  |
-| cat_id      | INT       | PRIMARY KEY, FK | Reference to main category |
+| Column Name | Data Type | Constraints                     | Description                |
+| ----------- | --------- | ------------------------------- | -------------------------- |
+| **id**      | **INT**   | **PRIMARY KEY, AUTO_INCREMENT** | **Unique mapping ID**      |
+| project_id  | INT       | NOT NULL, FK                    | Reference to projects      |
+| sub_cat_id  | INT       | NOT NULL, FK                    | Reference to sub-category  |
+| cat_id      | INT       | NOT NULL, FK                    | Reference to main category |
 
 **Indexes**:
 
-* PRIMARY KEY (project_id, sub_cat_id, cat_id)
+* PRIMARY KEY (id)
+* **UNIQUE KEY (project_id, sub_cat_id, cat_id)**
 * FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 * FOREIGN KEY (sub_cat_id) REFERENCES contract_drawing_sub_cats(id) ON DELETE CASCADE
 * FOREIGN KEY (cat_id) REFERENCES contract_drawing_cats(id) ON DELETE CASCADE
@@ -740,47 +749,49 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 **Relationships**:
 
 * Parent: projects, contract_drawing_sub_cats, contract_drawing_cats
+* Referenced by: contract_drawings
 
 **Business Rules**:
 
 * Allows flexible categorization
 * One sub-category can belong to multiple main categories
-* All three fields required for uniqueness
+* Composite uniqueness enforced via UNIQUE constraint
 
 ---
 
-### 5.5 contract_drawings
+### 5.5 contract_drawings (UPDATE v1.7.0)
 
 **Purpose**: Master table for contract drawings (from contract specifications)
 
-| Column Name | Data Type    | Constraints                         | Description               |
-| ----------- | ------------ | ----------------------------------- | ------------------------- |
-| id          | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID         |
-| project_id  | INT          | NOT NULL, FK                        | Reference to projects     |
-| condwg_no   | VARCHAR(255) | NOT NULL                            | Contract drawing number   |
-| title       | VARCHAR(255) | NOT NULL                            | Drawing title             |
-| sub_cat_id  | INT          | NULL, FK                            | Reference to sub-category |
-| volume_id   | INT          | NULL, FK                            | Reference to volume       |
-| created_at  | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp |
-| updated_at  | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp     |
-| deleted_at  | DATETIME     | NULL                                | Soft delete timestamp     |
-| updated_by  | INT          | NULL, FK                            | User who last updated     |
+| Column Name     | Data Type    | Constraints                         | Description                              |
+| --------------- | ------------ | ----------------------------------- | ---------------------------------------- |
+| id              | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                        |
+| project_id      | INT          | NOT NULL, FK                        | Reference to projects                    |
+| condwg_no       | VARCHAR(255) | NOT NULL                            | Contract drawing number                  |
+| title           | VARCHAR(255) | NOT NULL                            | Drawing title                            |
+| **map_cat_id**  | **INT**      | **NULL, FK**                        | **[CHANGED] Reference to mapping table** |
+| volume_id       | INT          | NULL, FK                            | Reference to volume                      |
+| **volume_page** | **INT**      | **NULL**                            | **[NEW] Page number within volume**      |
+| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp                |
+| updated_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                    |
+| deleted_at      | DATETIME     | NULL                                | Soft delete timestamp                    |
+| updated_by      | INT          | NULL, FK                            | User who last updated                    |
 
 **Indexes**:
 
 * PRIMARY KEY (id)
 * FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-* FOREIGN KEY (sub_cat_id) REFERENCES contract_drawing_sub_cats(id) ON DELETE RESTRICT
+* **FOREIGN KEY (map_cat_id) REFERENCES contract_drawing_subcat_cat_maps(id) ON DELETE RESTRICT**
 * FOREIGN KEY (volume_id) REFERENCES contract_drawing_volumes(id) ON DELETE RESTRICT
 * FOREIGN KEY (updated_by) REFERENCES users(user_id)
 * UNIQUE KEY (project_id, condwg_no)
-* INDEX (sub_cat_id)
+* INDEX (map_cat_id)
 * INDEX (volume_id)
 * INDEX (deleted_at)
 
 **Relationships**:
 
-* Parent: projects, contract_drawing_sub_cats, contract_drawing_volumes, users
+* Parent: projects, contract_drawing_subcat_cat_maps, contract_drawing_volumes, users
 * Referenced by: shop_drawing_revision_contract_refs, contract_drawing_attachments
 
 **Business Rules**:
@@ -789,16 +800,18 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * Represents baseline/contract drawings
 * Referenced by shop drawings for compliance tracking
 * Soft delete preserves history
+* **map_cat_id references the mapping table for flexible categorization**
 
 ---
 
-### 5.6 shop_drawing_main_categories
+### 5.6 shop_drawing_main_categories (UPDATE v1.7.0)
 
 **Purpose**: Master table for shop drawing main categories (discipline-level)
 
 | Column Name        | Data Type    | Constraints                         | Description                          |
 | ------------------ | ------------ | ----------------------------------- | ------------------------------------ |
 | id                 | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique category ID                   |
+| **project_id**     | **INT**      | **NOT NULL, FK**                    | **[NEW] Reference to projects**      |
 | main_category_code | VARCHAR(50)  | NOT NULL, UNIQUE                    | Category code (ARCH, STR, MEP, etc.) |
 | main_category_name | VARCHAR(255) | NOT NULL                            | Category name                        |
 | description        | TEXT         | NULL                                | Category description                 |
@@ -810,31 +823,33 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 **Indexes**:
 
 * PRIMARY KEY (id)
+* **FOREIGN KEY (project_id) REFERENCES projects(id)**
 * UNIQUE (main_category_code)
 * INDEX (is_active)
 * INDEX (sort_order)
 
 **Relationships**:
 
-* Referenced by: shop_drawing_sub_categories, shop_drawings
+* **Parent: projects**
+* Referenced by: shop_drawings, asbuilt_drawings
 
 **Business Rules**:
 
-* Global categories (not project-specific)
+* **[CHANGED] Project-specific categories (was global)**
 * Typically represents engineering disciplines
 
 ---
 
-### 5.7 shop_drawing_sub_categories
+### 5.7 shop_drawing_sub_categories (UPDATE v1.7.0)
 
 **Purpose**: Master table for shop drawing sub-categories (component-level)
 
 | Column Name       | Data Type    | Constraints                         | Description                                     |
 | ----------------- | ------------ | ----------------------------------- | ----------------------------------------------- |
 | id                | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique sub-category ID                          |
+| **project_id**    | **INT**      | **NOT NULL, FK**                    | **[NEW] Reference to projects**                 |
 | sub_category_code | VARCHAR(50)  | NOT NULL, UNIQUE                    | Sub-category code (STR-COLUMN, ARCH-DOOR, etc.) |
 | sub_category_name | VARCHAR(255) | NOT NULL                            | Sub-category name                               |
-| main_category_id  | INT          | NOT NULL, FK                        | Reference to main category                      |
 | description       | TEXT         | NULL                                | Sub-category description                        |
 | sort_order        | INT          | DEFAULT 0                           | Display order                                   |
 | is_active         | TINYINT(1)   | DEFAULT 1                           | Active status                                   |
@@ -844,26 +859,25 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 **Indexes**:
 
 * PRIMARY KEY (id)
+* **FOREIGN KEY (project_id) REFERENCES projects(id)**
 * UNIQUE (sub_category_code)
-* FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories(id)
-* INDEX (main_category_id)
 * INDEX (is_active)
 * INDEX (sort_order)
 
 **Relationships**:
 
-* Parent: shop_drawing_main_categories
-* Referenced by: shop_drawings
+* **Parent: projects**
+* Referenced by: shop_drawings, asbuilt_drawings
 
 **Business Rules**:
 
-* Global sub-categories (not project-specific)
-* Hierarchical under main categories
+* **[CHANGED] Project-specific sub-categories (was global)**
+* **[REMOVED] No longer hierarchical under main categories**
 * Represents specific drawing types or components
 
 ---
 
-### 5.8 shop_drawings
+### 5.8 shop_drawings (UPDATE v1.7.0)
 
 **Purpose**: Master table for shop drawings (contractor-submitted)
 
@@ -872,7 +886,6 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID          |
 | project_id       | INT          | NOT NULL, FK                        | Reference to projects      |
 | drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | Shop drawing number        |
-| title            | VARCHAR(500) | NOT NULL                            | Drawing title              |
 | main_category_id | INT          | NOT NULL, FK                        | Reference to main category |
 | sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category  |
 | created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp  |
@@ -904,22 +917,25 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * Represents contractor shop drawings
 * Can have multiple revisions
 * Soft delete preserves history
+* **[CHANGED] Title moved to shop_drawing_revisions table**
 
 ---
 
-### 5.9 shop_drawing_revisions
+### 5.9 shop_drawing_revisions (UPDATE v1.7.0)
 
 **Purpose**: Child table storing revision history of shop drawings (1:N)
 
-| Column Name     | Data Type   | Constraints                 | Description                    |
-| --------------- | ----------- | --------------------------- | ------------------------------ |
-| id              | INT         | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID             |
-| shop_drawing_id | INT         | NOT NULL, FK                | Master shop drawing ID         |
-| revision_number | INT         | NOT NULL                    | Revision sequence (0, 1, 2...) |
-| revision_label  | VARCHAR(10) | NULL                        | Display revision (A, B, C...)  |
-| revision_date   | DATE        | NULL                        | Revision date                  |
-| description     | TEXT        | NULL                        | Revision description/changes   |
-| created_at      | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp    |
+| Column Name               | Data Type        | Constraints                 | Description                              |
+| ------------------------- | ---------------- | --------------------------- | ---------------------------------------- |
+| id                        | INT              | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID                       |
+| shop_drawing_id           | INT              | NOT NULL, FK                | Master shop drawing ID                   |
+| revision_number           | INT              | NOT NULL                    | Revision sequence (0, 1, 2...)           |
+| revision_label            | VARCHAR(10)      | NULL                        | Display revision (A, B, C...)            |
+| revision_date             | DATE             | NULL                        | Revision date                            |
+| **title**                 | **VARCHAR(500)** | **NOT NULL**                | **[NEW] Drawing title**                  |
+| description               | TEXT             | NULL                        | Revision description/changes             |
+| **legacy_drawing_number** | **VARCHAR(100)** | **NULL**                    | **[NEW] Original/legacy drawing number** |
+| created_at                | TIMESTAMP        | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp              |
 
 **Indexes**:
 
@@ -931,7 +947,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 **Relationships**:
 
 * Parent: shop_drawings
-* Referenced by: rfa_items, shop_drawing_revision_contract_refs, shop_drawing_revision_attachments
+* Referenced by: rfa_items, shop_drawing_revision_contract_refs, shop_drawing_revision_attachments, asbuilt_revision_shop_revisions_refs
 
 **Business Rules**:
 
@@ -939,6 +955,8 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * Each revision can reference multiple contract drawings
 * Each revision can have multiple file attachments
 * Linked to RFAs for approval tracking
+* **[NEW] Title stored at revision level for version-specific naming**
+* **[NEW] legacy_drawing_number supports data migration from old systems**
 
 ---
 
@@ -967,6 +985,148 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * Tracks which contract drawings each shop drawing revision is based on
 * Ensures compliance with contract specifications
 * One shop drawing revision can reference multiple contract drawings
+
+---
+
+### 5.11 asbuilt_drawings (NEW v1.7.0)
+
+**Purpose**: Master table for AS Built drawings (final construction records)
+
+| Column Name      | Data Type    | Constraints                         | Description                |
+| ---------------- | ------------ | ----------------------------------- | -------------------------- |
+| id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID          |
+| project_id       | INT          | NOT NULL, FK                        | Reference to projects      |
+| drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | AS Built drawing number    |
+| main_category_id | INT          | NOT NULL, FK                        | Reference to main category |
+| sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category  |
+| created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp  |
+| updated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp      |
+| deleted_at       | DATETIME     | NULL                                | Soft delete timestamp      |
+| updated_by       | INT          | NULL, FK                            | User who last updated      |
+
+**Indexes**:
+
+* PRIMARY KEY (id)
+* UNIQUE (drawing_number)
+* FOREIGN KEY (project_id) REFERENCES projects(id)
+* FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories(id)
+* FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories(id)
+* FOREIGN KEY (updated_by) REFERENCES users(user_id)
+* INDEX (project_id)
+* INDEX (main_category_id)
+* INDEX (sub_category_id)
+* INDEX (deleted_at)
+
+**Relationships**:
+
+* Parent: projects, shop_drawing_main_categories, shop_drawing_sub_categories, users
+* Children: asbuilt_drawing_revisions
+
+**Business Rules**:
+
+* Drawing numbers are globally unique across all projects
+* Represents final as-built construction drawings
+* Can have multiple revisions
+* Soft delete preserves history
+* Uses same category structure as shop drawings
+
+---
+
+### 5.12 asbuilt_drawing_revisions (NEW v1.7.0)
+
+**Purpose**: Child table storing revision history of AS Built drawings (1:N)
+
+| Column Name           | Data Type    | Constraints                 | Description                    |
+| --------------------- | ------------ | --------------------------- | ------------------------------ |
+| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID             |
+| asbuilt_drawing_id    | INT          | NOT NULL, FK                | Master AS Built drawing ID     |
+| revision_number       | INT          | NOT NULL                    | Revision sequence (0, 1, 2...) |
+| revision_label        | VARCHAR(10)  | NULL                        | Display revision (A, B, C...)  |
+| revision_date         | DATE         | NULL                        | Revision date                  |
+| title                 | VARCHAR(500) | NOT NULL                    | Drawing title                  |
+| description           | TEXT         | NULL                        | Revision description/changes   |
+| legacy_drawing_number | VARCHAR(100) | NULL                        | Original/legacy drawing number |
+| created_at            | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp    |
+
+**Indexes**:
+
+* PRIMARY KEY (id)
+* FOREIGN KEY (asbuilt_drawing_id) REFERENCES asbuilt_drawings(id) ON DELETE CASCADE
+* UNIQUE KEY (asbuilt_drawing_id, revision_number)
+* INDEX (revision_date)
+
+**Relationships**:
+
+* Parent: asbuilt_drawings
+* Referenced by: asbuilt_revision_shop_revisions_refs, asbuilt_drawing_revision_attachments
+
+**Business Rules**:
+
+* Revision numbers are sequential starting from 0
+* Each revision can reference multiple shop drawing revisions
+* Each revision can have multiple file attachments
+* Title stored at revision level for version-specific naming
+* legacy_drawing_number supports data migration from old systems
+
+---
+
+### 5.13 asbuilt_revision_shop_revisions_refs (NEW v1.7.0)
+
+**Purpose**: Junction table linking AS Built drawing revisions to shop drawing revisions (M:N)
+
+| Column Name                 | Data Type | Constraints     | Description                        |
+| --------------------------- | --------- | --------------- | ---------------------------------- |
+| asbuilt_drawing_revision_id | INT       | PRIMARY KEY, FK | Reference to AS Built revision     |
+| shop_drawing_revision_id    | INT       | PRIMARY KEY, FK | Reference to shop drawing revision |
+
+**Indexes**:
+
+* PRIMARY KEY (asbuilt_drawing_revision_id, shop_drawing_revision_id)
+* FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions(id) ON DELETE CASCADE
+* FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
+* INDEX (shop_drawing_revision_id)
+
+**Relationships**:
+
+* Parent: asbuilt_drawing_revisions, shop_drawing_revisions
+
+**Business Rules**:
+
+* Tracks which shop drawings each AS Built drawing revision is based on
+* Maintains construction document lineage
+* One AS Built revision can reference multiple shop drawing revisions
+* Supports traceability from final construction to approved shop drawings
+
+---
+
+### 5.14 asbuilt_drawing_revision_attachments (NEW v1.7.0)
+
+**Purpose**: Junction table linking AS Built drawing revisions to file attachments (M:N)
+
+| Column Name                 | Data Type                             | Constraints     | Description                           |
+| --------------------------- | ------------------------------------- | --------------- | ------------------------------------- |
+| asbuilt_drawing_revision_id | INT                                   | PRIMARY KEY, FK | Reference to AS Built revision        |
+| attachment_id               | INT                                   | PRIMARY KEY, FK | Reference to attachment file          |
+| file_type                   | ENUM('PDF', 'DWG', 'SOURCE', 'OTHER') | NULL            | File type classification              |
+| is_main_document            | BOOLEAN                               | DEFAULT FALSE   | Main document flag (1 = primary file) |
+
+**Indexes**:
+
+* PRIMARY KEY (asbuilt_drawing_revision_id, attachment_id)
+* FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions(id) ON DELETE CASCADE
+* FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
+* INDEX (attachment_id)
+
+**Relationships**:
+
+* Parent: asbuilt_drawing_revisions, attachments
+
+**Business Rules**:
+
+* Each AS Built revision can have multiple file attachments
+* File types: PDF (documents), DWG (CAD files), SOURCE (source files), OTHER (miscellaneous)
+* One attachment can be marked as main document per revision
+* Cascade delete when revision is deleted
 
 ---
 
@@ -1281,6 +1441,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | correspondence_type_id | INT          | NOT NULL, FK                | Reference to correspondence_types            |
 | format_string          | VARCHAR(100) | NOT NULL                    | Format pattern (e.g., {ORG}-{TYPE}-{YYYY}-#) |
 | description            | TEXT         | NULL                        | Format description                           |
+| reset_annually         | BOOLEAN      | DEFAULT TRUE                | Start sequence new every year                |
 | is_active              | TINYINT(1)   | DEFAULT 1                   | Active status                                |
 
 **Indexes**:
@@ -1341,17 +1502,20 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name                | Data Type    | Constraints        | Description                             |
 | :------------------------- | :----------- | :----------------- | :-------------------------------------- |
 | id                         | INT          | PK, AI             | ID ของ audit record                     |
-| document_id                | INT          | NOT NULL, FK       | ID ของเอกสารที่สร้างเลขที่                   |
+| document_id                | INT          | NULL, FK           | ID ของเอกสารที่สร้างเลขที่ (NULL if failed)  |
 | document_type              | VARCHAR(50)  | NULL               | ประเภทเอกสาร                            |
 | document_number            | VARCHAR(100) | NOT NULL           | เลขที่เอกสารที่สร้าง (ผลลัพธ์)                 |
 | operation                  | ENUM         | DEFAULT 'CONFIRM'  | RESERVE, CONFIRM, MANUAL_OVERRIDE, etc. |
 | status                     | ENUM         | DEFAULT 'RESERVED' | RESERVED, CONFIRMED, CANCELLED, VOID    |
 | counter_key                | JSON         | NOT NULL           | Counter key ที่ใช้ (JSON 8 fields)         |
 | reservation_token          | VARCHAR(36)  | NULL               | Token การจอง                            |
+| idempotency_key            | VARCHAR(128) | NULL               | Idempotency Key from request            |
 | originator_organization_id | INT          | NULL               | องค์กรผู้ส่ง                                |
 | recipient_organization_id  | INT          | NULL               | องค์กรผู้รับ                                |
 | template_used              | VARCHAR(200) | NOT NULL           | Template ที่ใช้ในการสร้าง                   |
-| user_id                    | INT          | NOT NULL, FK       | ผู้ขอสร้างเลขที่                             |
+| old_value                  | TEXT         | NULL               | Previous value                          |
+| new_value                  | TEXT         | NULL               | New value                               |
+| user_id                    | INT          | NULL, FK           | ผู้ขอสร้างเลขที่                             |
 | is_success                 | BOOLEAN      | DEFAULT TRUE       | สถานะความสำเร็จ                           |
 | created_at                 | TIMESTAMP    | DEFAULT NOW        | วันที่/เวลาที่สร้าง                           |
 | total_duration_ms          | INT          | NULL               | เวลารวมทั้งหมดในการสร้าง (ms)              |

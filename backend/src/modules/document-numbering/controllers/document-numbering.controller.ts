@@ -90,8 +90,8 @@ export class DocumentNumberingController {
   async previewNumber(@Body() dto: PreviewNumberDto) {
     return this.numberingService.previewNumber({
       projectId: dto.projectId,
-      originatorOrganizationId: dto.originatorOrganizationId,
-      typeId: dto.correspondenceTypeId,
+      originatorOrganizationId: dto.originatorId,
+      typeId: dto.typeId,
       subTypeId: dto.subTypeId,
       rfaTypeId: dto.rfaTypeId,
       disciplineId: dto.disciplineId,

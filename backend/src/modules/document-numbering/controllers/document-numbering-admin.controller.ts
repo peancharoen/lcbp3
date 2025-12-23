@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../../common/guards/rbac.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 @ApiTags('Admin / Document Numbering')
 @ApiBearerAuth()
@@ -73,8 +74,8 @@ export class DocumentNumberingAdminController {
     summary: 'Manually override or set a document number counter',
   })
   @RequirePermission('system.manage_settings')
-  async manualOverride(@Body() dto: any) {
-    return this.service.manualOverride(dto);
+  async manualOverride(@Body() dto: any, @CurrentUser() user: any) {
+    return this.service.manualOverride(dto, user.userId);
   }
 
   @Post('void-and-replace')

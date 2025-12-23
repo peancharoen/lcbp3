@@ -6,7 +6,7 @@ import { Drawing } from "@/types/drawing";
 import { Loader2 } from "lucide-react";
 
 interface DrawingListProps {
-  type: "CONTRACT" | "SHOP";
+  type: "CONTRACT" | "SHOP" | "AS_BUILT";
   projectId?: number;
 }
 

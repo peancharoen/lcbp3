@@ -1,13 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contractDrawingService } from '@/lib/services/contract-drawing.service';
 import { shopDrawingService } from '@/lib/services/shop-drawing.service';
+import { asBuiltDrawingService } from '@/lib/services/asbuilt-drawing.service'; // Added
 import { SearchContractDrawingDto, CreateContractDrawingDto } from '@/types/dto/drawing/contract-drawing.dto';
 import { SearchShopDrawingDto, CreateShopDrawingDto } from '@/types/dto/drawing/shop-drawing.dto';
+import { SearchAsBuiltDrawingDto, CreateAsBuiltDrawingDto } from '@/types/dto/drawing/asbuilt-drawing.dto'; // Added
 import { toast } from 'sonner';
 
-type DrawingType = 'CONTRACT' | 'SHOP';
-type DrawingSearchParams = SearchContractDrawingDto | SearchShopDrawingDto;
-type CreateDrawingData = CreateContractDrawingDto | CreateShopDrawingDto;
+type DrawingType = 'CONTRACT' | 'SHOP' | 'AS_BUILT'; // Added AS_BUILT
+type DrawingSearchParams = SearchContractDrawingDto | SearchShopDrawingDto | SearchAsBuiltDrawingDto;
+type CreateDrawingData = CreateContractDrawingDto | CreateShopDrawingDto | CreateAsBuiltDrawingDto;
 
 export const drawingKeys = {
   all: ['drawings'] as const,
@@ -25,8 +27,10 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
     queryFn: async () => {
       if (type === 'CONTRACT') {
         return contractDrawingService.getAll(params as SearchContractDrawingDto);
-      } else {
+      } else if (type === 'SHOP') {
         return shopDrawingService.getAll(params as SearchShopDrawingDto);
+      } else {
+        return asBuiltDrawingService.getAll(params as SearchAsBuiltDrawingDto);
       }
     },
     placeholderData: (previousData) => previousData,
@@ -39,8 +43,10 @@ export function useDrawing(type: DrawingType, id: number | string) {
     queryFn: async () => {
       if (type === 'CONTRACT') {
         return contractDrawingService.getById(id);
-      } else {
+      } else if (type === 'SHOP') {
         return shopDrawingService.getById(id);
+      } else {
+        return asBuiltDrawingService.getById(id);
       }
     },
     enabled: !!id,
@@ -56,8 +62,10 @@ export function useCreateDrawing(type: DrawingType) {
     mutationFn: async (data: CreateDrawingData) => {
       if (type === 'CONTRACT') {
         return contractDrawingService.create(data as CreateContractDrawingDto);
-      } else {
+      } else if (type === 'SHOP') {
         return shopDrawingService.create(data as CreateShopDrawingDto);
+      } else {
+        return asBuiltDrawingService.create(data as CreateAsBuiltDrawingDto);
       }
     },
     onSuccess: () => {

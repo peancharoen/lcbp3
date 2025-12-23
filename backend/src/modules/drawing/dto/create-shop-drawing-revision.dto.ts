@@ -10,6 +10,13 @@ export class CreateShopDrawingRevisionDto {
   @IsString()
   revisionLabel!: string; // จำเป็น: ใส่ !
 
+  @IsString()
+  title!: string; // Add title
+
+  @IsString()
+  @IsOptional()
+  legacyDrawingNumber?: string;
+
   @IsDateString()
   @IsOptional()
   revisionDate?: string; // Optional: ใส่ ?

@@ -16,27 +16,73 @@ import {
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useCreateDrawing } from "@/hooks/use-drawing";
-import { useDisciplines } from "@/hooks/use-master-data";
-import { useState } from "react";
+import { useContractDrawingCategories, useShopMainCategories, useShopSubCategories } from "@/hooks/use-master-data";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
-const drawingSchema = z.object({
-  drawingType: z.enum(["CONTRACT", "SHOP"]),
-  drawingNumber: z.string().min(1, "Drawing Number is required"),
-  title: z.string().min(5, "Title must be at least 5 characters"),
-  disciplineId: z.number().min(1, "Discipline is required"),
-  sheetNumber: z.string().min(1, "Sheet Number is required"),
-  scale: z.string().optional(),
-  file: z.instanceof(File, { message: "File is required" }), // In real app, might validation creation before upload
+// Base Schema
+const baseSchema = z.object({
+  drawingType: z.enum(["CONTRACT", "SHOP", "AS_BUILT"]),
+  projectId: z.number().default(1), // Hardcoded for now
+  file: z.instanceof(File, { message: "File is required" }),
 });
 
-type DrawingFormData = z.infer<typeof drawingSchema>;
+// Contract Schema
+const contractSchema = baseSchema.extend({
+  drawingType: z.literal("CONTRACT"),
+  contractDrawingNo: z.string().min(1, "Drawing Number is required"),
+  title: z.string().min(3, "Title is required"),
+  volumeId: z.string().optional(), // Select input returns string usually (changed to string for input compatibility)
+  volumePage: z.string().transform(val => parseInt(val, 10)).optional(), // Input type number returns string
+  mapCatId: z.string().min(1, "Category is required"),
+});
 
-export function DrawingUploadForm() {
+// Shop Schema
+const shopSchema = baseSchema.extend({
+  drawingType: z.literal("SHOP"),
+  drawingNumber: z.string().min(1, "Drawing Number is required"),
+  mainCategoryId: z.string().min(1, "Main Category is required"),
+  subCategoryId: z.string().min(1, "Sub Category is required"),
+  // Revision Fields
+  revisionLabel: z.string().default("0"),
+  title: z.string().min(3, "Revision Title is required"),
+  legacyDrawingNumber: z.string().optional(),
+  description: z.string().optional(),
+});
+
+// As Built Schema
+const asBuiltSchema = baseSchema.extend({
+  drawingType: z.literal("AS_BUILT"),
+  drawingNumber: z.string().min(1, "Drawing Number is required"),
+  // Revision Fields
+  revisionLabel: z.string().default("0"),
+  title: z.string().optional(),
+  legacyDrawingNumber: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const formSchema = z.discriminatedUnion("drawingType", [
+  contractSchema,
+  shopSchema,
+  asBuiltSchema,
+]);
+
+type DrawingFormData = z.infer<typeof formSchema>;
+
+interface DrawingUploadFormProps {
+  projectId?: number;
+}
+
+export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
   const router = useRouter();
 
-  // Discipline Hook
-  const { data: disciplines, isLoading: isLoadingDisciplines } = useDisciplines();
+  // Hooks
+  const { data: contractCategories } = useContractDrawingCategories();
+  const { data: shopMainCats } = useShopMainCategories(projectId);
+
+  const [selectedShopMainCat, setSelectedShopMainCat] = useState<number | undefined>();
+  const { data: shopSubCats } = useShopSubCategories(projectId, selectedShopMainCat);
 
   const {
     register,
@@ -45,167 +91,233 @@ export function DrawingUploadForm() {
     watch,
     formState: { errors },
   } = useForm<DrawingFormData>({
-    resolver: zodResolver(drawingSchema),
+    resolver: zodResolver(formSchema) as any,
+    defaultValues: {
+      projectId,
+      drawingType: "CONTRACT",
+    }
   });
 
   const drawingType = watch("drawingType");
-  const createMutation = useCreateDrawing(drawingType); // Hook depends on type but defaults to undefined initially which is fine or handled
+  const createMutation = useCreateDrawing(drawingType);
+
+  // Reset logic when type changes
+  useEffect(() => {
+    // Optional: clear fields or set defaults
+  }, [drawingType]);
 
   const onSubmit = (data: DrawingFormData) => {
-    // Only proceed if createMutation is valid for the type (it should be since we watch type)
-    if (!drawingType) return;
-
-    // Convert to FormData
-    // Note: Backend might expect JSON Body or Multipart/Form-Data depending on implementation.
-    // Assuming Multipart/Form-Data if file is involved, OR
-    // Two-step upload: 1. Upload File -> Get URL 2. Create Record with URL.
-    // The previous code assumed direct call.
-    // Let's assume the service handles FormData conversion if we pass plain object or we construct here.
-    // My previous assumption in implementation plan: "File upload will use FormData".
-    // I should check service again. `contract-drawing.service` takes `CreateContractDrawingDto`.
-    // Usually NestJS with FileUpload uses Interceptors and FormData.
-
-    // Creating FormData manually to be safe for file upload
-    /*
     const formData = new FormData();
-    formData.append('title', data.title);
-    // ...
-    // BUT useCreateDrawing calls service.create(data). Service uses apiClient.post(data).
-    // axios handles FormData automatically if passed directly, but nested objects are tricky.
-    // Let's pass the raw DTO and hope services handle it or assume Backend accepts DTO JSON and file separately?
-    // Actually standard Axios with FormData:
-    */
 
-    // Let's try to construct FormData here as generic approach for file uploads
-    // However, if I change the argument to FormData, Types might complain.
-    // Let's just pass `data` and let the developer (me) ensure Service handles it correctly or modify service later if failed.
-    // Wait, `contractDrawingService.create` takes `CreateContractDrawingDto`.
-    // I will assume for now I pass the object. If file upload fails, I will fix service.
-
-    // Actually better to handle FormData logic here since we have the File object
-    const formData = new FormData();
-    formData.append('drawingNumber', data.drawingNumber);
-    formData.append('title', data.title);
-    formData.append('disciplineId', String(data.disciplineId));
-    formData.append('sheetNumber', data.sheetNumber);
-    if(data.scale) formData.append('scale', data.scale);
+    // Common fields
+    formData.append('projectId', String(data.projectId));
     formData.append('file', data.file);
-    // Type specific fields if any? (Project ID?)
-    // Contract/Shop might have different fields. Assuming minimal common set.
 
-    createMutation.mutate(data as any, { // Passing raw data or FormData? Hook awaits 'any'.
-        // If I pass FormData, Axios sends it as multipart/form-data.
-        // If I pass JSON, it sends as JSON (and File is empty object).
-        // Since there is a File, I MUST use FormData for it to work with standard uploads.
-        // But wait, the `useCreateDrawing` calls `service.create` which calls `apiClient.post`.
-        // If I pass FormData to `mutate`, it goes to `service.create`.
-        // So I will pass FormData but `data as any` above cast allows it.
-        // BUT `data` argument in `onSubmit` is `DrawingFormData` (Object).
-        // I will pass `formData` to mutate.
-        // WARNING: Hooks expects correct type. I used `any` in hook definition.
-       onSuccess: () => {
-         router.push("/drawings");
-       }
+    if (data.drawingType === 'CONTRACT') {
+      formData.append('contractDrawingNo', data.contractDrawingNo);
+      formData.append('title', data.title);
+      formData.append('mapCatId', data.mapCatId);
+      if (data.volumeId) formData.append('volumeId', data.volumeId);
+      if (data.volumePage) formData.append('volumePage', String(data.volumePage));
+    } else if (data.drawingType === 'SHOP') {
+      formData.append('drawingNumber', data.drawingNumber);
+      formData.append('mainCategoryId', data.mainCategoryId);
+      formData.append('subCategoryId', data.subCategoryId);
+      formData.append('revisionLabel', data.revisionLabel || '0');
+      formData.append('title', data.title); // Revision Title
+      if (data.legacyDrawingNumber) formData.append('legacyDrawingNumber', data.legacyDrawingNumber);
+      if (data.description) formData.append('description', data.description);
+      // Date default to now
+    } else if (data.drawingType === 'AS_BUILT') {
+      formData.append('drawingNumber', data.drawingNumber);
+      formData.append('revisionLabel', data.revisionLabel || '0');
+      if (data.title) formData.append('title', data.title);
+      if (data.legacyDrawingNumber) formData.append('legacyDrawingNumber', data.legacyDrawingNumber);
+      if (data.description) formData.append('description', data.description);
+    }
+
+    createMutation.mutate(formData as any, {
+      onSuccess: () => {
+        router.push("/drawings");
+      }
     });
   };
 
-  // Actually, to make it work with TypeScript and `mutate`, let's wrap logic
-  const handleFormSubmit = (data: DrawingFormData) => {
-      // Create FormData
-      const formData = new FormData();
-      Object.keys(data).forEach(key => {
-          if (key === 'file') {
-              formData.append(key, data.file);
-          } else {
-              formData.append(key, String((data as any)[key]));
-          }
-      });
-      // Append projectId if needed (hardcoded 1 for now)
-      formData.append('projectId', '1');
-
-      createMutation.mutate(formData as any, {
-          onSuccess: () => {
-              router.push("/drawings");
-          }
-      });
-  }
-
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="max-w-2xl space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl space-y-6">
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4">Drawing Information</h3>
 
         <div className="space-y-4">
           <div>
             <Label>Drawing Type *</Label>
-            <Select onValueChange={(v) => setValue("drawingType", v as any)}>
+            <Select
+              onValueChange={(v) => {
+                setValue("drawingType", v as any);
+                // Reset errors or fields if needed
+              }}
+              defaultValue="CONTRACT"
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="CONTRACT">Contract Drawing</SelectItem>
                 <SelectItem value="SHOP">Shop Drawing</SelectItem>
+                <SelectItem value="AS_BUILT">As Built Drawing</SelectItem>
               </SelectContent>
             </Select>
-            {errors.drawingType && (
-              <p className="text-sm text-destructive mt-1">{errors.drawingType.message}</p>
-            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="drawingNumber">Drawing Number *</Label>
-              <Input id="drawingNumber" {...register("drawingNumber")} placeholder="e.g. A-101" />
-              {errors.drawingNumber && (
-                <p className="text-sm text-destructive mt-1">{errors.drawingNumber.message}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="sheetNumber">Sheet Number *</Label>
-              <Input id="sheetNumber" {...register("sheetNumber")} placeholder="e.g. 01" />
-              {errors.sheetNumber && (
-                <p className="text-sm text-destructive mt-1">{errors.sheetNumber.message}</p>
-              )}
-            </div>
-          </div>
+          {/* CONTRACT FIELDS */}
+          {drawingType === 'CONTRACT' && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Contract Drawing No *</Label>
+                  <Input {...register("contractDrawingNo")} placeholder="e.g. CD-001" />
+                  {(errors as any).contractDrawingNo && (
+                    <p className="text-sm text-destructive">{(errors as any).contractDrawingNo.message}</p>
+                  )}
+                </div>
+                <div>
+                   <Label>Title *</Label>
+                   <Input {...register("title")} placeholder="Drawing Title" />
+                   {(errors as any).title && (
+                    <p className="text-sm text-destructive">{(errors as any).title.message}</p>
+                  )}
+                </div>
+              </div>
 
-          <div>
-            <Label htmlFor="title">Title *</Label>
-            <Input id="title" {...register("title")} placeholder="Drawing Title" />
-            {errors.title && (
-              <p className="text-sm text-destructive mt-1">{errors.title.message}</p>
-            )}
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                    <Label>Category *</Label>
+                    <Select onValueChange={(v) => setValue("mapCatId", v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contractCategories?.map((c: any) => (
+                           <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {(errors as any).mapCatId && (
+                      <p className="text-sm text-destructive">{(errors as any).mapCatId.message}</p>
+                    )}
+                 </div>
+                 <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label>Volume ID</Label>
+                      <Input {...register("volumeId")} placeholder="Vol. 1" />
+                    </div>
+                    <div>
+                      <Label>Page No.</Label>
+                      <Input {...register("volumePage")} type="number" placeholder="1" />
+                    </div>
+                 </div>
+              </div>
+            </>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Discipline *</Label>
-              <Select
-                onValueChange={(v) => setValue("disciplineId", parseInt(v))}
-                disabled={isLoadingDisciplines}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={isLoadingDisciplines ? "Loading..." : "Select Discipline"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {disciplines?.map((d: any) => (
-                    <SelectItem key={d.id} value={String(d.id)}>
-                      {d.name} ({d.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.disciplineId && (
-                <p className="text-sm text-destructive mt-1">{errors.disciplineId.message}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="scale">Scale</Label>
-              <Input id="scale" {...register("scale")} placeholder="e.g. 1:100" />
-            </div>
-          </div>
+          {/* SHOP FIELDS */}
+          {drawingType === 'SHOP' && (
+             <>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Shop Drawing No *</Label>
+                    <Input {...register("drawingNumber")} placeholder="e.g. SD-101" />
+                    {(errors as any).drawingNumber && (
+                       <p className="text-sm text-destructive">{(errors as any).drawingNumber.message}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Legacy Number</Label>
+                    <Input {...register("legacyDrawingNumber")} placeholder="Legacy No." />
+                  </div>
+               </div>
 
-          <div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Main Category *</Label>
+                    <Select onValueChange={(v) => {
+                       setValue("mainCategoryId", v);
+                      setSelectedShopMainCat(v ? parseInt(v) : undefined);
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Main Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shopMainCats?.map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                     {(errors as any).mainCategoryId && (
+                       <p className="text-sm text-destructive">{(errors as any).mainCategoryId.message}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Sub Category *</Label>
+                    <Select onValueChange={(v) => setValue("subCategoryId", v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Sub Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shopSubCats?.map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                     {(errors as any).subCategoryId && (
+                       <p className="text-sm text-destructive">{(errors as any).subCategoryId.message}</p>
+                    )}
+                  </div>
+               </div>
+
+               <div>
+                 <Label>Revision Title *</Label>
+                 <Input {...register("title")} placeholder="Current Revision Title" />
+                 {(errors as any).title && (
+                    <p className="text-sm text-destructive">{(errors as any).title.message}</p>
+                 )}
+               </div>
+
+               <div>
+                 <Label>Description</Label>
+                 <Textarea {...register("description")} />
+               </div>
+             </>
+          )}
+
+          {/* AS BUILT FIELDS */}
+          {drawingType === 'AS_BUILT' && (
+             <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Drawing No *</Label>
+                    <Input {...register("drawingNumber")} placeholder="e.g. AB-101" />
+                    {(errors as any).drawingNumber && (
+                       <p className="text-sm text-destructive">{(errors as any).drawingNumber.message}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Legacy Number</Label>
+                    <Input {...register("legacyDrawingNumber")} placeholder="Legacy No." />
+                  </div>
+               </div>
+               <div>
+                 <Label>Title</Label>
+                 <Input {...register("title")} placeholder="Title" />
+               </div>
+               <div>
+                 <Label>Description</Label>
+                 <Textarea {...register("description")} />
+               </div>
+             </>
+          )}
+
+          <div className="mt-4">
             <Label htmlFor="file">Drawing File *</Label>
             <Input
               id="file"
@@ -217,13 +329,11 @@ export function DrawingUploadForm() {
                 if (file) setValue("file", file);
               }}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Accepted: PDF, DWG (Max 50MB)
-            </p>
             {errors.file && (
               <p className="text-sm text-destructive mt-1">{errors.file.message}</p>
             )}
           </div>
+
         </div>
       </Card>
 
@@ -231,7 +341,7 @@ export function DrawingUploadForm() {
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
-        <Button type="submit" disabled={createMutation.isPending || !drawingType}>
+        <Button type="submit" disabled={createMutation.isPending}>
           {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Upload Drawing
         </Button>

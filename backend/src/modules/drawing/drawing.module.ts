@@ -11,6 +11,8 @@ import { ContractDrawingVolume } from './entities/contract-drawing-volume.entity
 import { ContractDrawingSubCategory } from './entities/contract-drawing-sub-category.entity';
 
 // Entities (Master Data - Shop Drawing) - ✅ เพิ่มใหม่
+import { ContractDrawingSubcatCatMap } from './entities/contract-drawing-subcat-cat-map.entity';
+import { ContractDrawingCategory } from './entities/contract-drawing-category.entity';
 import { ShopDrawingMainCategory } from './entities/shop-drawing-main-category.entity';
 import { ShopDrawingSubCategory } from './entities/shop-drawing-sub-category.entity';
 
@@ -40,6 +42,8 @@ import { UserModule } from '../user/user.module';
       // Master Data
       ContractDrawingVolume,
       ContractDrawingSubCategory,
+      ContractDrawingSubcatCatMap,
+      ContractDrawingCategory,
       ShopDrawingMainCategory, // ✅
       ShopDrawingSubCategory, // ✅
 

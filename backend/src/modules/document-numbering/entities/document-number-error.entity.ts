@@ -7,11 +7,28 @@ import {
 } from 'typeorm';
 
 @Entity('document_number_errors')
+@Index(['errorType'])
 @Index(['createdAt'])
 @Index(['userId'])
 export class DocumentNumberError {
   @PrimaryGeneratedColumn()
   id!: number;
+
+  @Column({
+    name: 'error_type',
+    type: 'enum',
+    enum: [
+      'LOCK_TIMEOUT',
+      'VERSION_CONFLICT',
+      'DB_ERROR',
+      'REDIS_ERROR',
+      'VALIDATION_ERROR',
+      'SEQUENCE_EXHAUSTED',
+      'RESERVATION_EXPIRED',
+      'DUPLICATE_NUMBER',
+    ],
+  })
+  errorType!: string;
 
   @Column({ name: 'error_message', type: 'text' })
   errorMessage!: string;
@@ -20,7 +37,7 @@ export class DocumentNumberError {
   stackTrace?: string;
 
   @Column({ name: 'context_data', type: 'json', nullable: true })
-  context?: any;
+  contextData?: any;
 
   @Column({ name: 'user_id', nullable: true })
   userId?: number;

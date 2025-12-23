@@ -9,12 +9,17 @@ import {
 @Entity('document_number_audit')
 @Index(['createdAt'])
 @Index(['userId'])
+@Index(['documentId'])
+@Index(['status'])
+@Index(['operation'])
+@Index(['generatedNumber'])
+@Index(['reservationToken'])
 export class DocumentNumberAudit {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ name: 'document_id' })
-  documentId!: number;
+  @Column({ name: 'document_id', nullable: true })
+  documentId?: number;
 
   @Column({ name: 'generated_number', length: 100 })
   generatedNumber!: string;
@@ -28,22 +33,58 @@ export class DocumentNumberAudit {
   @Column({
     name: 'operation',
     type: 'enum',
-    enum: ['RESERVE', 'CONFIRM', 'MANUAL_OVERRIDE', 'VOID_REPLACE', 'CANCEL'],
+    enum: [
+      'RESERVE',
+      'CONFIRM',
+      'CANCEL',
+      'MANUAL_OVERRIDE',
+      'VOID',
+      'GENERATE',
+    ],
     default: 'CONFIRM',
   })
   operation!: string;
 
+  @Column({
+    name: 'status',
+    type: 'enum',
+    enum: ['RESERVED', 'CONFIRMED', 'CANCELLED', 'VOID', 'MANUAL'],
+    nullable: true,
+  })
+  status?: string;
+
+  @Column({ name: 'reservation_token', length: 36, nullable: true })
+  reservationToken?: string;
+
+  @Column({ name: 'idempotency_key', length: 36, nullable: true })
+  idempotencyKey?: string;
+
+  @Column({ name: 'originator_organization_id', nullable: true })
+  originatorOrganizationId?: number;
+
+  @Column({ name: 'recipient_organization_id', nullable: true })
+  recipientOrganizationId?: number;
+
+  @Column({ name: 'old_value', type: 'text', nullable: true })
+  oldValue?: string;
+
+  @Column({ name: 'new_value', type: 'text', nullable: true })
+  newValue?: string;
+
   @Column({ name: 'metadata', type: 'json', nullable: true })
   metadata?: any;
 
-  @Column({ name: 'user_id' })
-  userId!: number;
+  @Column({ name: 'user_id', nullable: true })
+  userId?: number;
 
   @Column({ name: 'ip_address', length: 45, nullable: true })
   ipAddress?: string;
 
   @Column({ name: 'user_agent', type: 'text', nullable: true })
   userAgent?: string;
+
+  @Column({ name: 'is_success', default: true })
+  isSuccess!: boolean;
 
   @Column({ name: 'retry_count', default: 0 })
   retryCount!: number;

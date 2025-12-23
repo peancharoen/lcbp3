@@ -5,9 +5,9 @@ status: TODO
 priority: HIGH
 estimated_effort: 2-3 days
 dependencies:
-  - TASK-BE-017-document-numbering-refactor.md
-  - specs/01-requirements/03.11-document-numbering.md (v1.6.2)
-  - specs/03-implementation/document-numbering.md (v1.6.2)
+  - specs/06-tasks/TASK-BE-017-document-numbering-refactor.md
+  - specs/01-requirements/01-03.11-document-numbering.md (v1.6.2)
+  - specs/03-implementation/03-04-document-numbering.md (v1.6.2)
 ---
 
 ## Objective
@@ -136,13 +136,13 @@ interface AuditQueryParams {
 
 ### 4. Components to Create
 
-| Component          | Path                                            | Description                 |
-| ------------------ | ----------------------------------------------- | --------------------------- |
-| MetricsDashboard   | `components/numbering/metrics-dashboard.tsx`    | Metrics charts and gauges   |
-| AuditLogsTable     | `components/numbering/audit-logs-table.tsx`     | Filterable audit log viewer |
-| ManualOverrideForm | `components/numbering/manual-override-form.tsx` | Admin tool form             |
-| VoidReplaceForm    | `components/numbering/void-replace-form.tsx`    | Admin tool form             |
-| BulkImportForm     | `components/numbering/bulk-import-form.tsx`     | CSV/Excel uploader          |
+| Component          | Path                                                     | Description                 |
+| ------------------ | -------------------------------------------------------- | --------------------------- |
+| MetricsDashboard   | `frontend/components/numbering/metrics-dashboard.tsx`    | Metrics charts and gauges   |
+| AuditLogsTable     | `frontend/components/numbering/audit-logs-table.tsx`     | Filterable audit log viewer |
+| ManualOverrideForm | `frontend/components/numbering/manual-override-form.tsx` | Admin tool form             |
+| VoidReplaceForm    | `frontend/components/numbering/void-replace-form.tsx`    | Admin tool form             |
+| BulkImportForm     | `frontend/components/numbering/bulk-import-form.tsx`     | CSV/Excel uploader          |
 
 ---
 

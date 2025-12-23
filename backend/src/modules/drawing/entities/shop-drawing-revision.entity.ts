@@ -23,6 +23,12 @@ export class ShopDrawingRevision {
   @Column({ name: 'revision_number' })
   revisionNumber!: number; // เติม !
 
+  @Column({ name: 'title', length: 255 })
+  title!: string; // เติม !
+
+  @Column({ name: 'legacy_drawing_number', length: 100, nullable: true })
+  legacyDrawingNumber?: string;
+
   @Column({ name: 'revision_label', length: 10, nullable: true })
   revisionLabel?: string; // nullable ใช้ ?
 

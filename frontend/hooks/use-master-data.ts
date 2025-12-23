@@ -105,3 +105,28 @@ export function useCorrespondenceTypes() {
     queryFn: () => masterDataService.getCorrespondenceTypes(),
   });
 }
+
+// --- Drawing Categories Hooks ---
+
+export function useContractDrawingCategories() {
+  return useQuery({
+    queryKey: ['contract-drawing-categories'],
+    queryFn: () => masterDataService.getContractDrawingCategories(),
+  });
+}
+
+export function useShopMainCategories(projectId: number) {
+  return useQuery({
+    queryKey: ['shop-main-categories', projectId],
+    queryFn: () => masterDataService.getShopMainCategories(projectId),
+    enabled: !!projectId,
+  });
+}
+
+export function useShopSubCategories(projectId: number, mainCategoryId?: number) {
+  return useQuery({
+    queryKey: ['shop-sub-categories', projectId, mainCategoryId],
+    queryFn: () => masterDataService.getShopSubCategories(projectId, mainCategoryId),
+    enabled: !!projectId,
+  });
+}

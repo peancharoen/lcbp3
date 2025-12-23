@@ -14,8 +14,8 @@ export class SearchContractDrawingDto {
 
   @IsOptional()
   @IsInt()
-  @Type(() => Number)
-  subCategoryId?: number; // Optional: ใส่ ?
+  @IsOptional()
+  mapCatId?: number; // Optional: ใส่ ?
 
   @IsOptional()
   @IsString()

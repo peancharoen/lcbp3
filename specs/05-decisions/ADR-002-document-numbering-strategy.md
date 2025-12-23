@@ -140,19 +140,28 @@ CREATE TABLE document_number_formats (
 -- Counter Table with Optimistic Locking
 CREATE TABLE document_number_counters (
   project_id INT NOT NULL,
-  doc_type_id INT NOT NULL,
-  sub_type_id INT DEFAULT 0 COMMENT 'For Correspondence types, 0 = fallback',
-  discipline_id INT DEFAULT 0 COMMENT 'For RFA/Drawing, 0 = fallback',
-  recipient_type VARCHAR(20) DEFAULT NULL COMMENT 'For Transmittal: OWNER, CONTRACTOR, CONSULTANT, OTHER',
-  year INT NOT NULL COMMENT 'ปี พ.ศ. หรือ ค.ศ. ตาม template',
-  last_number INT DEFAULT 0,
-  version INT DEFAULT 0 NOT NULL COMMENT 'Version for Optimistic Lock',
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (project_id, doc_type_id, sub_type_id, discipline_id, COALESCE(recipient_type, ''), year),
-  FOREIGN KEY (project_id) REFERENCES projects(id),
-  FOREIGN KEY (doc_type_id) REFERENCES document_types(id),
-  INDEX idx_counter_lookup (project_id, doc_type_id, year)
-) ENGINE=InnoDB COMMENT='Running number counters with optimistic locking';
+  correspondence_type_id INT NULL,
+  originator_organization_id INT NOT NULL,
+  recipient_organization_id INT NOT NULL DEFAULT 0, -- 0 = no recipient (RFA)
+  sub_type_id INT DEFAULT 0,
+  rfa_type_id INT DEFAULT 0,
+  discipline_id INT DEFAULT 0,
+  reset_scope VARCHAR(20) NOT NULL,
+  last_number INT DEFAULT 0 NOT NULL,
+  version INT DEFAULT 0 NOT NULL,
+  created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (
+    project_id,
+    originator_organization_id,
+    recipient_organization_id,
+    correspondence_type_id,
+    sub_type_id,
+    rfa_type_id,
+    discipline_id,
+    reset_scope
+  )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Running Number Counters';
 
 -- Audit Trail
 CREATE TABLE document_number_audit (

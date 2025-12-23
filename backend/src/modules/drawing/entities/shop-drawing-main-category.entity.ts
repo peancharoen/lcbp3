@@ -11,6 +11,9 @@ export class ShopDrawingMainCategory {
   @PrimaryGeneratedColumn()
   id!: number; // เติม !
 
+  @Column({ name: 'project_id' })
+  projectId!: number; // เติม !
+
   @Column({ name: 'main_category_code', length: 50, unique: true })
   mainCategoryCode!: string; // เติม !
 

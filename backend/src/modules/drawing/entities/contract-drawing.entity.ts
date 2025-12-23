@@ -13,7 +13,7 @@ import {
 import { Project } from '../../project/entities/project.entity';
 import { User } from '../../user/entities/user.entity';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
-import { ContractDrawingSubCategory } from './contract-drawing-sub-category.entity';
+import { ContractDrawingSubcatCatMap } from './contract-drawing-subcat-cat-map.entity';
 import { ContractDrawingVolume } from './contract-drawing-volume.entity';
 
 @Entity('contract_drawings')
@@ -30,11 +30,14 @@ export class ContractDrawing {
   @Column({ length: 255 })
   title!: string; // ! ห้ามว่าง
 
-  @Column({ name: 'sub_cat_id', nullable: true })
-  subCategoryId?: number; // ? ว่างได้ (Nullable)
+  @Column({ name: 'map_cat_id', nullable: true })
+  mapCatId?: number; // ? ว่างได้ (Nullable)
 
   @Column({ name: 'volume_id', nullable: true })
   volumeId?: number; // ? ว่างได้ (Nullable)
+
+  @Column({ name: 'volume_page', nullable: true })
+  volumePage?: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date; // ! ห้ามว่าง
@@ -58,9 +61,9 @@ export class ContractDrawing {
   @JoinColumn({ name: 'updated_by' })
   updater?: User; // ? ว่างได้
 
-  @ManyToOne(() => ContractDrawingSubCategory)
-  @JoinColumn({ name: 'sub_cat_id' })
-  subCategory?: ContractDrawingSubCategory; // ? ว่างได้ (สัมพันธ์กับ subCategoryId)
+  @ManyToOne(() => ContractDrawingSubcatCatMap)
+  @JoinColumn({ name: 'map_cat_id' })
+  mapCategory?: ContractDrawingSubcatCatMap;
 
   @ManyToOne(() => ContractDrawingVolume)
   @JoinColumn({ name: 'volume_id' })

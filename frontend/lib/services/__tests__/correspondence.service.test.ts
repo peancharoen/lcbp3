@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { correspondenceService } from '../correspondence.service';
 import apiClient from '@/lib/api/client';
+import { WorkflowActionDto } from '@/types/dto/correspondence/workflow-action.dto';
 
 // apiClient is already mocked in vitest.setup.ts
 
@@ -12,7 +13,7 @@ describe('correspondenceService', () => {
   describe('getAll', () => {
     it('should call GET /correspondences with params', async () => {
       const mockResponse = {
-        data: [{ id: 1, title: 'Test' }],
+        data: [{ id: 1, subject: 'Test' }],
         meta: { total: 1 },
       };
       vi.mocked(apiClient.get).mockResolvedValue({ data: mockResponse });
@@ -39,7 +40,7 @@ describe('correspondenceService', () => {
 
   describe('getById', () => {
     it('should call GET /correspondences/:id', async () => {
-      const mockData = { id: 1, title: 'Test' };
+      const mockData = { id: 1, subject: 'Test' };
       // Service expects response.data.data (NestJS interceptor wrapper)
       vi.mocked(apiClient.get).mockResolvedValue({ data: { data: mockData } });
 
@@ -62,9 +63,9 @@ describe('correspondenceService', () => {
   describe('create', () => {
     it('should call POST /correspondences with data', async () => {
       const createDto = {
-        title: 'New Correspondence',
+        subject: 'New Correspondence',
         projectId: 1,
-        correspondenceTypeId: 1,
+        typeId: 1,
       };
       const mockResponse = { id: 1, ...createDto };
       vi.mocked(apiClient.post).mockResolvedValue({ data: mockResponse });
@@ -78,8 +79,8 @@ describe('correspondenceService', () => {
 
   describe('update', () => {
     it('should call PUT /correspondences/:id with data', async () => {
-      const updateData = { title: 'Updated Title' };
-      const mockResponse = { id: 1, title: 'Updated Title' };
+      const updateData = { subject: 'Updated Title' };
+      const mockResponse = { id: 1, subject: 'Updated Title' };
       vi.mocked(apiClient.put).mockResolvedValue({ data: mockResponse });
 
       const result = await correspondenceService.update(1, updateData);
@@ -102,7 +103,7 @@ describe('correspondenceService', () => {
 
   describe('submit', () => {
     it('should call POST /correspondences/:id/submit', async () => {
-      const submitDto = { recipientIds: [2, 3] };
+      const submitDto = { note: 'Ready for review' };
       const mockResponse = { id: 1, status: 'submitted' };
       vi.mocked(apiClient.post).mockResolvedValue({ data: mockResponse });
 
@@ -115,7 +116,7 @@ describe('correspondenceService', () => {
 
   describe('processWorkflow', () => {
     it('should call POST /correspondences/:id/workflow', async () => {
-      const workflowDto = { action: 'approve', comment: 'LGTM' };
+      const workflowDto: WorkflowActionDto = { action: 'APPROVE', comments: 'LGTM' };
       const mockResponse = { id: 1, status: 'approved' };
       vi.mocked(apiClient.post).mockResolvedValue({ data: mockResponse });
 
@@ -128,7 +129,7 @@ describe('correspondenceService', () => {
 
   describe('addReference', () => {
     it('should call POST /correspondences/:id/references', async () => {
-      const referenceDto = { referencedDocumentId: 2, referenceType: 'reply_to' };
+      const referenceDto = { targetId: 2, referenceType: 'reply_to' };
       const mockResponse = { id: 1 };
       vi.mocked(apiClient.post).mockResolvedValue({ data: mockResponse });
 
@@ -144,7 +145,7 @@ describe('correspondenceService', () => {
 
   describe('removeReference', () => {
     it('should call DELETE /correspondences/:id/references with body', async () => {
-      const referenceDto = { referencedDocumentId: 2 };
+      const referenceDto = { targetId: 2 };
       vi.mocked(apiClient.delete).mockResolvedValue({ data: {} });
 
       const result = await correspondenceService.removeReference(1, referenceDto);

@@ -21,11 +21,15 @@ export class CreateContractDrawingDto {
 
   @IsInt()
   @IsOptional()
-  subCategoryId?: number; // ✅ ใส่ ?
+  mapCatId?: number; // ✅ ใส่ ?
 
   @IsInt()
   @IsOptional()
   volumeId?: number; // ✅ ใส่ ?
+
+  @IsInt()
+  @IsOptional()
+  volumePage?: number;
 
   @IsArray()
   @IsInt({ each: true })

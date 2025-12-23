@@ -1,5 +1,5 @@
 -- ==========================================================
--- DMS v1.6.0 Document Management System Database
+-- DMS v1.7.0 Document Management System Database
 -- Deploy Script Schema
 -- Server: Container Station on QNAP TS-473A
 -- Database service: MariaDB 11.8
@@ -10,11 +10,22 @@
 -- reverse proxy: jc21/nginx-proxy-manager:latest
 -- cron service: n8n
 -- ==========================================================
--- [v1.6.0 UPDATE] Refactor Schema
--- Update: Upgraded from v1.5.1
--- Last Updated: 2025-12-13
+-- [v1.7.0 UPDATE] Refactor Schema
+-- Update: Upgraded from v1.6.0
+-- Last Updated: 2025-12-18
 -- Major Changes:
---   1. ปรับปรุง: corespondences, correspondence_revisions, correspondence_recipients, rfas, rfa_revisions
+--   1. ปรับปรุง:
+--     1.1 TABLE contract_drawings
+--     1.2 TABLE contract_drawing_subcat_cat_maps
+--     1.3 TABLE shop_drawing_sub_categories
+--     1.4 TABLE shop_drawing_main_categories
+--     1.5 TABLE shop_drawings
+--     1.6 TABLE shop_drawing_revisions
+--   2. เพิ่ม:
+--     2.1 TABLE asbuilt_drawings
+--     2.2 TABLE asbuilt_drawing_revisions
+--     2.3 TABLE asbuilt_revision_shop_revisions_refs
+--     2.4 TABLE asbuilt_drawing_revision_attachments
 -- ==========================================================
 SET NAMES utf8mb4;
 
@@ -73,6 +84,8 @@ DROP TABLE IF EXISTS document_number_reservations;
 -- ============================================================
 DROP TABLE IF EXISTS correspondence_tags;
 
+DROP TABLE IF EXISTS asbuilt_revision_shop_revisions_refs;
+
 DROP TABLE IF EXISTS shop_drawing_revision_contract_refs;
 
 DROP TABLE IF EXISTS contract_drawing_subcat_cat_maps;
@@ -85,6 +98,8 @@ DROP TABLE IF EXISTS contract_drawing_attachments;
 DROP TABLE IF EXISTS circulation_attachments;
 
 DROP TABLE IF EXISTS shop_drawing_revision_attachments;
+
+DROP TABLE IF EXISTS asbuilt_drawing_revision_attachments;
 
 DROP TABLE IF EXISTS correspondence_attachments;
 
@@ -113,6 +128,8 @@ DROP TABLE IF EXISTS transmittal_items;
 
 DROP TABLE IF EXISTS shop_drawing_revisions;
 
+DROP TABLE IF EXISTS asbuilt_drawing_revisions;
+
 DROP TABLE IF EXISTS rfa_items;
 
 DROP TABLE IF EXISTS rfa_revisions;
@@ -134,6 +151,8 @@ DROP TABLE IF EXISTS transmittals;
 DROP TABLE IF EXISTS contract_drawings;
 
 DROP TABLE IF EXISTS shop_drawings;
+
+DROP TABLE IF EXISTS asbuilt_drawings;
 
 DROP TABLE IF EXISTS rfas;
 
@@ -720,12 +739,7 @@ CREATE TABLE contract_drawing_subcat_cat_maps (
   project_id INT COMMENT 'ID ของโครงการ',
   sub_cat_id INT COMMENT 'ID ของหมวดหมู่ย่อย',
   cat_id INT COMMENT 'ID ของหมวดหมู่หลัก',
-  PRIMARY KEY (
-    id,
-    project_id,
-    sub_cat_id,
-    cat_id
-  ),
+  UNIQUE KEY ux_map_unique (project_id, sub_cat_id, cat_id),
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
   FOREIGN KEY (sub_cat_id) REFERENCES contract_drawing_sub_cats (id) ON DELETE CASCADE,
   FOREIGN KEY (cat_id) REFERENCES contract_drawing_cats (id) ON DELETE CASCADE
@@ -820,6 +834,49 @@ CREATE TABLE shop_drawing_revision_contract_refs (
   FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions (id) ON DELETE CASCADE,
   FOREIGN KEY (contract_drawing_id) REFERENCES contract_drawings (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมระหว่าง shop_drawing_revisions กับ contract_drawings (M :N)';
+
+-- ตาราง Master เก็บข้อมูล "AS Built"
+CREATE TABLE asbuilt_drawings (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  project_id INT NOT NULL COMMENT 'โครงการ',
+  drawing_number VARCHAR(100) NOT NULL UNIQUE COMMENT 'เลขที่ AS Built Drawing',
+  main_category_id INT NOT NULL COMMENT 'หมวดหมู่หลัก',
+  sub_category_id INT NOT NULL COMMENT 'หมวดหมู่ย่อย',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ',
+  updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
+  FOREIGN KEY (project_id) REFERENCES projects (id),
+  FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories (id),
+  FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories (id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูล "แบบก่อสร้าง"';
+
+-- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ shop_drawings (1:N)
+CREATE TABLE asbuilt_drawing_revisions (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
+  asbuilt_drawing_id INT NOT NULL COMMENT 'Master ID',
+  revision_number INT NOT NULL COMMENT 'หมายเลข Revision (เช่น 0, 1, 2...)',
+  revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
+  revision_date DATE COMMENT 'วันที่ของ Revision',
+  title VARCHAR(500) NOT NULL COMMENT 'ชื่อแบบ',
+  description TEXT COMMENT 'คำอธิบายการแก้ไข',
+  legacy_drawing_number VARCHAR(100) NULL COMMENT 'เลขที่เดิมของ AS Built Drawing',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  FOREIGN KEY (asbuilt_drawing_id) REFERENCES asbuilt_drawings (id) ON DELETE CASCADE,
+  UNIQUE KEY ux_sd_rev_drawing_revision (asbuilt_drawing_id, revision_number)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติ (Revisions) ของ asbuilt_drawings (1 :N)';
+
+-- ตารางเชื่อมระหว่าง asbuilt_drawing_revisions กับ shop_drawings (M:N)
+CREATE TABLE asbuilt_revision_shop_revisions_refs (
+  asbuilt_drawing_revision_id INT COMMENT 'ID ของ AS Built Drawing Revision',
+  shop_drawing_revision_id INT COMMENT 'ID ของ Shop Drawing Revision',
+  PRIMARY KEY (
+    asbuilt_drawing_revision_id,
+    shop_drawing_revision_id
+  ),
+  FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions (id) ON DELETE CASCADE,
+  FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions (id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมระหว่าง asbuilt_drawing_revisions กับ shop_drawing_revisions (M :N)';
 
 -- =====================================================
 -- 6. 🔄 Circulations (ใบเวียนภายใน)
@@ -927,6 +984,25 @@ CREATE TABLE circulation_attachments (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อม circulations กับ attachments (M :N)';
 
 -- ตารางเชื่อม shop_drawing_revisions กับ attachments (M:N)
+CREATE TABLE asbuilt_drawing_revision_attachments (
+  asbuilt_drawing_revision_id INT COMMENT 'ID ของ asbuilt Drawing Revision',
+  attachment_id INT COMMENT 'ID ของไฟล์แนบ',
+  file_type ENUM(
+    'PDF',
+    'DWG',
+    'SOURCE',
+    'OTHER '
+  ) COMMENT 'ประเภทไฟล์',
+  is_main_document BOOLEAN DEFAULT FALSE COMMENT '(1 = ไฟล์หลัก)',
+  PRIMARY KEY (
+    asbuilt_drawing_revision_id,
+    attachment_id
+  ),
+  FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions (id) ON DELETE CASCADE,
+  FOREIGN KEY (attachment_id) REFERENCES attachments (id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อม asbuilt_drawing_revisions กับ attachments (M :N)';
+
+-- ตารางเชื่อม shop_drawing_revisions กับ attachments (M:N)
 CREATE TABLE shop_drawing_revision_attachments (
   shop_drawing_revision_id INT COMMENT 'ID ของ Shop Drawing Revision',
   attachment_id INT COMMENT 'ID ของไฟล์แนบ',
@@ -973,13 +1049,10 @@ CREATE TABLE document_number_formats (
   project_id INT NOT NULL COMMENT 'โครงการ',
   correspondence_type_id INT NULL COMMENT 'ประเภทเอกสาร',
   discipline_id INT DEFAULT 0 COMMENT 'สาขางาน (0 = ทุกสาขา/ไม่ระบุ)',
-  format_template VARCHAR(255) NOT NULL COMMENT 'รูปแบบ Template (เช่น {ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE})',
-  reset_sequence_yearly TINYINT(1) DEFAULT 1,
-  example_number VARCHAR(100) COMMENT 'ตัวอย่างเลขที่ได้จาก Template',
-  padding_length INT DEFAULT 4 COMMENT 'ความยาวของลำดับเลข (Padding)',
+  format_string VARCHAR(100) NOT NULL COMMENT 'Format pattern (e.g., {ORG}-{TYPE}-{YYYY}-#)',
+  description TEXT COMMENT 'Format description',
   reset_annually BOOLEAN DEFAULT TRUE COMMENT 'เริ่มนับใหม่ทุกปี',
-  is_active BOOLEAN DEFAULT TRUE COMMENT 'สถานะการใช้งาน',
-  description TEXT COMMENT 'คำอธิบายรูปแบบนี้',
+  is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
@@ -1038,10 +1111,11 @@ CREATE TABLE document_number_counters (
   -- Constraints
   CONSTRAINT chk_last_number_positive CHECK (last_number >= 0),
   CONSTRAINT chk_reset_scope_format CHECK (
-  reset_scope IN ('NONE')
-  OR reset_scope LIKE 'YEAR_%'
-  OR reset_scope LIKE 'MONTH_%'
-  OR reset_scope LIKE 'CONTRACT_%')
+    reset_scope IN ('NONE')
+    OR reset_scope LIKE 'YEAR_%'
+    OR reset_scope LIKE 'MONTH_%'
+    OR reset_scope LIKE 'CONTRACT_%'
+  )
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บ Running Number Counters - รองรับ 8-column composite PK';
 
 -- ==========================================================
@@ -1052,7 +1126,7 @@ CREATE TABLE document_number_counters (
 CREATE TABLE document_number_audit (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID ของ audit record',
   -- Document Info
-  document_id INT NOT NULL COMMENT 'ID ของเอกสารที่สร้างเลขที่ (correspondences.id)',
+  document_id INT NULL COMMENT 'ID ของเอกสารที่สร้างเลขที่ (correspondences.id) - NULL if failed/reserved',
   document_type VARCHAR(50),
   document_number VARCHAR(100) NOT NULL COMMENT 'เลขที่เอกสารที่สร้าง (ผลลัพธ์)',
   operation ENUM(
@@ -1062,23 +1136,23 @@ CREATE TABLE document_number_audit (
     'VOID_REPLACE',
     'CANCEL'
   ) NOT NULL DEFAULT 'CONFIRM' COMMENT 'ประเภทการดำเนินการ',
-  status ENUM(
+  STATUS ENUM(
     'RESERVED',
     'CONFIRMED',
-  'CANCELLED',
+    'CANCELLED',
     'VOID',
     'MANUAL'
   ) NOT NULL DEFAULT 'RESERVED' COMMENT 'สถานะเลขที่เอกสาร',
   counter_key JSON NOT NULL COMMENT 'Counter key ที่ใช้ (JSON format) - 8 fields',
   reservation_token VARCHAR(36) NULL,
+  idempotency_key VARCHAR(128) NULL COMMENT 'Idempotency Key from request',
   originator_organization_id INT NULL,
   recipient_organization_id INT NULL,
-
   template_used VARCHAR(200) NOT NULL COMMENT 'Template ที่ใช้ในการสร้าง',
-  old_value TEXT NULL,
-  new_value TEXT NULL,
+  old_value TEXT NULL COMMENT 'Previous value for audit',
+  new_value TEXT NULL COMMENT 'New value for audit',
   -- User Info
-  user_id INT NOT NULL COMMENT 'ผู้ขอสร้างเลขที่',
+  user_id INT NULL COMMENT 'ผู้ขอสร้างเลขที่',
   ip_address VARCHAR(45) COMMENT 'IP address ของผู้ขอ (IPv4/IPv6)',
   user_agent TEXT COMMENT 'User agent string (browser info)',
   is_success BOOLEAN DEFAULT TRUE,
@@ -1089,14 +1163,14 @@ CREATE TABLE document_number_audit (
   total_duration_ms INT COMMENT 'เวลารวมทั้งหมดในการสร้าง (milliseconds)',
   fallback_used ENUM('NONE', 'DB_LOCK', 'RETRY') DEFAULT 'NONE' COMMENT 'Fallback strategy ที่ถูกใช้ (NONE=normal, DB_LOCK=Redis down, RETRY=conflict)',
   metadata JSON COMMENT 'Additional context data',
-
   -- Indexes for performance
   INDEX idx_document_id (document_id),
   INDEX idx_user_id (user_id),
-  INDEX idx_status (status),
+  INDEX idx_status (STATUS),
   INDEX idx_operation (operation),
   INDEX idx_document_number (document_number),
   INDEX idx_reservation_token (reservation_token),
+  INDEX idx_idempotency_key (idempotency_key),
   INDEX idx_created_at (created_at),
   -- Foreign Keys
   FOREIGN KEY (document_id) REFERENCES correspondences (id) ON DELETE CASCADE,
@@ -1172,11 +1246,13 @@ CREATE TABLE document_number_reservations (
   INDEX idx_user_id (user_id),
   INDEX idx_reserved_at (reserved_at),
   -- Foreign Keys
-  FOREIGN KEY (document_id) REFERENCES correspondence_revisions(id) ON DELETE SET NULL,
-  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-  FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+  FOREIGN KEY (document_id) REFERENCES correspondence_revisions(id) ON DELETE
+  SET NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Document Number Reservations - Two-Phase Commit';
+
 -- =====================================================
 -- 10. ⚙️ System & Logs (ระบบและ Log)
 -- =====================================================
@@ -1488,7 +1564,6 @@ CREATE INDEX idx_backup_logs_completed_at ON backup_logs (completed_at);
 -- Additional Composite Indexes for Performance
 -- =====================================================
 -- Composite index for document_number_counters for faster lookups
-
 -- Composite index for notifications for user-specific queries
 CREATE INDEX idx_notifications_user_unread ON notifications (user_id, is_read, created_at);
 
@@ -1901,5 +1976,9 @@ CREATE INDEX idx_rfa_revisions_rfa_current ON rfa_revisions (rfa_id, is_current)
 CREATE INDEX idx_correspondences_project_type ON correspondences (project_id, correspondence_type_id);
 
 CREATE INDEX idx_corr_revisions_status_current ON correspondence_revisions (correspondence_status_id, is_current);
+
+CREATE INDEX IDX_AUDIT_DOC_ID ON document_number_audit (document_id);
+CREATE INDEX IDX_AUDIT_STATUS ON document_number_audit (status);
+CREATE INDEX IDX_AUDIT_OPERATION ON document_number_audit (operation);
 
 SET FOREIGN_KEY_CHECKS = 1;

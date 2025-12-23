@@ -24,7 +24,7 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
   const contractId = contracts[0]?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
 
-  const selectedProjectName = projects.find((p: any) => p.id === projectId)?.projectName || 'LCBP3';
+  const selectedProjectName = projects.find((p: { id: number; projectName: string }) => p.id === projectId)?.projectName || 'LCBP3';
 
   useEffect(() => {
     const fetchTemplate = async () => {
@@ -46,7 +46,7 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
 
   const handleSave = async (data: Partial<NumberingTemplate>) => {
     try {
-      await numberingApi.saveTemplate({ ...data, templateId: parseInt(params.id) });
+      await numberingApi.saveTemplate({ ...data, id: parseInt(params.id) });
       router.push("/admin/numbering");
     } catch (error) {
       console.error("Failed to update template", error);

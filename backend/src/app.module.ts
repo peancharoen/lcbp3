@@ -140,7 +140,6 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     // 📦 Feature Modules
     AuthModule,
     UserModule,
-    UserModule,
     ProjectModule,
     OrganizationModule,
     ContractModule,

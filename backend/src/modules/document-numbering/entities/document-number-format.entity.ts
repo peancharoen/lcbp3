@@ -25,14 +25,14 @@ export class DocumentNumberFormat {
   @Column({ name: 'correspondence_type_id', nullable: true })
   correspondenceTypeId?: number;
 
-  @Column({ name: 'format_template', length: 100 })
+  @Column({ name: 'format_string', length: 100 })
   formatTemplate!: string;
 
   @Column({ name: 'description', nullable: true })
   description?: string;
 
   // [NEW] Control yearly reset behavior
-  @Column({ name: 'reset_sequence_yearly', default: true })
+  @Column({ name: 'reset_annually', default: true })
   resetSequenceYearly!: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

@@ -2,13 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Play, AlertTriangle, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit, Play } from 'lucide-react';
 import { numberingApi, NumberingTemplate } from '@/lib/api/numbering';
 import { TemplateEditor } from '@/components/numbering/template-editor';
 import { SequenceViewer } from '@/components/numbering/sequence-viewer';
@@ -22,136 +19,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProjects, useCorrespondenceTypes, useContracts, useDisciplines } from '@/hooks/use-master-data';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// --- Sub-components for Tools ---
-function ManualOverrideForm({ onSuccess, projectId }: { onSuccess: () => void, projectId: number }) {
-    const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        typeId: '',
-        disciplineId: '',
-        year: new Date().getFullYear().toString(),
-        newSequence: '',
-        reason: ''
-    });
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            await numberingApi.manualOverride({
-                projectId,
-                correspondenceTypeId: parseInt(formData.typeId) || null,
-                year: parseInt(formData.year),
-                newValue: parseInt(formData.newSequence),
-            });
-            toast.success("Manual override applied successfully");
-            onSuccess();
-        } catch (error) {
-            toast.error("Failed to apply override");
-        } finally {
-            setLoading(false);
-        }
-    };
+import { ManualOverrideForm } from '@/components/numbering/manual-override-form';
+import { MetricsDashboard } from '@/components/numbering/metrics-dashboard';
+import { AuditLogsTable } from '@/components/numbering/audit-logs-table';
+import { VoidReplaceForm } from '@/components/numbering/void-replace-form';
+import { CancelNumberForm } from '@/components/numbering/cancel-number-form';
+import { BulkImportForm } from '@/components/numbering/bulk-import-form';
 
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Manual Override</CardTitle>
-                <CardDescription>Force set a counter sequence. Use with caution.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Alert variant="destructive" className="mb-4">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Warning</AlertTitle>
-                    <AlertDescription>Changing counters manually can cause duplication errors.</AlertDescription>
-                </Alert>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Type ID</Label>
-                            <Input
-                                placeholder="e.g. 1"
-                                value={formData.typeId}
-                                onChange={e => setFormData({...formData, typeId: e.target.value})}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                             <Label>Discipline ID</Label>
-                             <Input
-                                placeholder="Optional"
-                                value={formData.disciplineId}
-                                onChange={e => setFormData({...formData, disciplineId: e.target.value})}
-                             />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                             <Label>Year</Label>
-                             <Input
-                                type="number"
-                                value={formData.year}
-                                onChange={e => setFormData({...formData, year: e.target.value})}
-                                required
-                             />
-                        </div>
-                        <div className="space-y-2">
-                             <Label>New Sequence</Label>
-                             <Input
-                                type="number"
-                                placeholder="e.g. 5"
-                                value={formData.newSequence}
-                                onChange={e => setFormData({...formData, newSequence: e.target.value})}
-                                required
-                             />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Reason</Label>
-                        <Textarea
-                            placeholder="Why is this override needed?"
-                            value={formData.reason}
-                            onChange={e => setFormData({...formData, reason: e.target.value})}
-                            required
-                        />
-                    </div>
-                    <Button type="submit" disabled={loading} className="w-full">
-                        {loading && <ShieldAlert className="mr-2 h-4 w-4 animate-spin" />}
-                        Apply Override
-                    </Button>
-                </form>
-            </CardContent>
-        </Card>
-    )
-}
-
-function AdminMetrics() {
-     // Fetch metrics from /admin/document-numbering/metrics
-     return (
-         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-             <Card>
-                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                     <CardTitle className="text-sm font-medium">Generation Success Rate</CardTitle>
-                     <CheckCircle2 className="h-4 w-4 text-green-500" />
-                 </CardHeader>
-                 <CardContent>
-                     <div className="text-2xl font-bold">99.9%</div>
-                     <p className="text-xs text-muted-foreground">+0.1% from last month</p>
-                 </CardContent>
-             </Card>
-              {/* More cards... */}
-              <Card className="col-span-full">
-                  <CardHeader>
-                      <CardTitle>Recent Audit Logs</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <p className="text-sm text-muted-foreground">Log viewer implementation pending.</p>
-                  </CardContent>
-              </Card>
-         </div>
-     )
-}
 
 export default function NumberingPage() {
   const { data: projects = [] } = useProjects();
@@ -159,7 +35,6 @@ export default function NumberingPage() {
   const [activeTab, setActiveTab] = useState("templates");
 
   const [templates, setTemplates] = useState<NumberingTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // View states
   const [isEditing, setIsEditing] = useState(false);
@@ -167,7 +42,7 @@ export default function NumberingPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState<NumberingTemplate | null>(null);
 
-  const selectedProjectName = projects.find((p: any) => p.id.toString() === selectedProjectId)?.projectName || 'Unknown Project';
+  const selectedProjectName = projects.find((p: { id: number; projectName: string }) => p.id.toString() === selectedProjectId)?.projectName || 'Unknown Project';
 
   // Master Data
   const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
@@ -176,7 +51,6 @@ export default function NumberingPage() {
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const loadTemplates = async () => {
-    setLoading(true);
     try {
         const response = await numberingApi.getTemplates();
         // Handle wrapped response { data: [...] } or direct array
@@ -185,8 +59,6 @@ export default function NumberingPage() {
     } catch {
         toast.error("Failed to load templates");
         setTemplates([]);
-    } finally {
-        setLoading(false);
     }
   };
 
@@ -250,7 +122,7 @@ export default function NumberingPage() {
                     <SelectValue placeholder="Select Project" />
                 </SelectTrigger>
                 <SelectContent>
-                    {projects.map((project: any) => (
+                    {projects.map((project: { id: number; projectCode: string; projectName: string }) => (
                         <SelectItem key={project.id} value={project.id.toString()}>
                             {project.projectCode} - {project.projectName}
                         </SelectItem>
@@ -337,31 +209,21 @@ export default function NumberingPage() {
           </TabsContent>
 
           <TabsContent value="metrics" className="space-y-4">
-              <AdminMetrics />
+              <MetricsDashboard />
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-4">Audit Logs</h3>
+                <AuditLogsTable />
+              </div>
           </TabsContent>
 
           <TabsContent value="tools" className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                  <ManualOverrideForm onSuccess={() => {}} projectId={Number(selectedProjectId)} />
-
-                  <Card>
-                      <CardHeader>
-                          <CardTitle>Void & Replace</CardTitle>
-                          <CardDescription>Safe voiding of issued numbers.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="space-y-4">
-                               <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-900 text-sm">
-                                   To void and replace numbers, please use the <strong>Correspondences</strong> list view actions or edit specific documents directly.
-                                   <br/><br/>
-                                   This ensures the void action is linked to the correct document record.
-                               </div>
-                               <Button variant="outline" className="w-full" disabled>
-                                   Standalone Void Tool (Coming Soon)
-                               </Button>
-                          </div>
-                      </CardContent>
-                  </Card>
+                  <ManualOverrideForm projectId={Number(selectedProjectId)} />
+                  <VoidReplaceForm projectId={Number(selectedProjectId)} />
+                  <CancelNumberForm />
+                  <div className="md:col-span-2">
+                     <BulkImportForm projectId={Number(selectedProjectId)} />
+                  </div>
               </div>
           </TabsContent>
       </Tabs>

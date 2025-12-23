@@ -25,9 +25,10 @@ export default function DrawingsPage() {
       </div>
 
       <Tabs defaultValue="contract" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+        <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
           <TabsTrigger value="contract">Contract Drawings</TabsTrigger>
           <TabsTrigger value="shop">Shop Drawings</TabsTrigger>
+          <TabsTrigger value="asbuilt">As Built Drawings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="contract" className="mt-6">
@@ -36,6 +37,10 @@ export default function DrawingsPage() {
 
         <TabsContent value="shop" className="mt-6">
           <DrawingList type="SHOP" />
+        </TabsContent>
+
+        <TabsContent value="asbuilt" className="mt-6">
+          <DrawingList type="AS_BUILT" />
         </TabsContent>
       </Tabs>
     </div>

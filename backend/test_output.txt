@@ -1,35 +1,43 @@
-
-> backend@1.5.1 test
-> jest --forceExit modules/document-numbering/document-numbering.service.spec.ts
-
 FAIL src/modules/document-numbering/document-numbering.service.spec.ts
   DocumentNumberingService
-    ΓêÜ should be defined (19 ms)
+    ΓêÜ should be defined (15 ms)
     generateNextNumber
-      ΓêÜ should generate a new number successfully (17 ms)
-      ├ù should throw error when transaction fails (7 ms)
+      ΓêÜ should generate a new number successfully (4 ms)
+      ΓêÜ should throw error when increment fails (9 ms)
+    Admin Operations
+      ├ù voidAndReplace should verify audit log exists (2 ms)
+      ├ù cancelNumber should log cancellation (3 ms)
 
-  ΓùÅ DocumentNumberingService ΓÇ║ generateNextNumber ΓÇ║ should throw error when transaction fails
+  ΓùÅ DocumentNumberingService ΓÇ║ Admin Operations ΓÇ║ voidAndReplace should verify audit log exists
 
-    expect(received).rejects.toThrow()
+    TypeError: Cannot read properties of undefined (reading 'mockResolvedValue')
 
-    Received promise resolved instead of rejected
-    Resolved to value: {"auditId": 1, "number": "0001"}
+      143 |     it('voidAndReplace should verify audit log exists', async () => {
+      144 |       const auditRepo = module.get(getRepositoryToken(DocumentNumberAudit));
+    > 145 |       (auditRepo.findOne as jest.Mock).mockResolvedValue({
+          |                                        ^
+      146 |         generatedNumber: 'DOC-001',
+      147 |         counterKey: JSON.stringify({ projectId: 1, correspondenceTypeId: 1 }),
+      148 |         templateUsed: 'test',
 
-      201 |       );
-      202 |
-    > 203 |       await expect(service.generateNextNumber(mockContext)).rejects.toThrow(
-          |             ^
-      204 |         Error
-      205 |       );
-      206 |     });
+      at Object.<anonymous> (modules/document-numbering/document-numbering.service.spec.ts:145:40)
 
-      at expect (../node_modules/expect/build/index.js:2116:15)
-      at Object.<anonymous> (modules/document-numbering/document-numbering.service.spec.ts:203:13)
+  ΓùÅ DocumentNumberingService ΓÇ║ Admin Operations ΓÇ║ cancelNumber should log cancellation
+
+    TypeError: Cannot read properties of undefined (reading 'mockResolvedValue')
+
+      161 |     it('cancelNumber should log cancellation', async () => {
+      162 |       const auditRepo = module.get(getRepositoryToken(DocumentNumberAudit));
+    > 163 |       (auditRepo.findOne as jest.Mock).mockResolvedValue({
+          |                                        ^
+      164 |         generatedNumber: 'DOC-002',
+      165 |         counterKey: {},
+      166 |       });
+
+      at Object.<anonymous> (modules/document-numbering/document-numbering.service.spec.ts:163:40)
 
 Test Suites: 1 failed, 1 total
-Tests:       1 failed, 2 passed, 3 total
+Tests:       2 failed, 3 passed, 5 total
 Snapshots:   0 total
-Time:        1.506 s, estimated 2 s
-Ran all test suites matching modules/document-numbering/document-numbering.service.spec.ts.
-Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+Time:        1.381 s, estimated 2 s
+Ran all test suites matching src/modules/document-numbering/document-numbering.service.spec.ts.
