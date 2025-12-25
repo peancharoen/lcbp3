@@ -30,8 +30,8 @@ const VARIABLES = [
   { key: '{DISCIPLINE}', name: 'Discipline Code', example: 'STR' },
   { key: '{SUBTYPE}', name: 'Sub-Type Code', example: 'GEN' },
   { key: '{SUBTYPE_NUM}', name: 'Sub-Type Number', example: '01' },
-  { key: '{YEAR}', name: 'Year (B.E.)', example: '2568' },
-  { key: '{YEAR_SHORT}', name: 'Year Short (68)', example: '68' },
+  { key: '{YEAR:BE}', name: 'Year (B.E.)', example: '2568' },
+  { key: '{YEAR:CE}', name: 'Year (C.E.)', example: '2025' },
   { key: '{SEQ:4}', name: 'Sequence (4-digit)', example: '0001' },
 ];
 
@@ -69,8 +69,8 @@ export function TemplateEditor({
     VARIABLES.forEach((v) => {
         // Simple mock replacement for preview
         let replacement = v.example;
-        if (v.key === '{YEAR}') replacement = (new Date().getFullYear() + 543).toString();
-        if (v.key === '{YEAR_SHORT}') replacement = (new Date().getFullYear() + 543).toString().slice(-2);
+        if (v.key === '{YEAR:BE}') replacement = (new Date().getFullYear() + 543).toString();
+        if (v.key === '{YEAR:CE}') replacement = new Date().getFullYear().toString();
 
         // Dynamic context based on selection (optional visual enhancement)
         if (v.key === '{TYPE}' && typeId) {

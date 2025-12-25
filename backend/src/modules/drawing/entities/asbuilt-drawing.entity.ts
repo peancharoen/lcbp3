@@ -12,6 +12,8 @@ import {
 import { Project } from '../../project/entities/project.entity';
 import { AsBuiltDrawingRevision } from './asbuilt-drawing-revision.entity';
 import { User } from '../../user/entities/user.entity';
+import { ShopDrawingMainCategory } from './shop-drawing-main-category.entity';
+import { ShopDrawingSubCategory } from './shop-drawing-sub-category.entity';
 
 @Entity('asbuilt_drawings')
 export class AsBuiltDrawing {
@@ -23,6 +25,12 @@ export class AsBuiltDrawing {
 
   @Column({ name: 'drawing_number', length: 100, unique: true })
   drawingNumber!: string;
+
+  @Column({ name: 'main_category_id' })
+  mainCategoryId!: number;
+
+  @Column({ name: 'sub_category_id' })
+  subCategoryId!: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
@@ -40,6 +48,14 @@ export class AsBuiltDrawing {
   @ManyToOne(() => Project)
   @JoinColumn({ name: 'project_id' })
   project!: Project;
+
+  @ManyToOne(() => ShopDrawingMainCategory)
+  @JoinColumn({ name: 'main_category_id' })
+  mainCategory!: ShopDrawingMainCategory;
+
+  @ManyToOne(() => ShopDrawingSubCategory)
+  @JoinColumn({ name: 'sub_category_id' })
+  subCategory!: ShopDrawingSubCategory;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'updated_by' })

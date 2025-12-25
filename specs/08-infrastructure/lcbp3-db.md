@@ -1,57 +1,5 @@
-# การติดตั้ง MAriaDB และ PHPMyAdmin ใน Docker
-
-* user id ของ mariadb:
-
-  * uid=0(root) gid=0(root) groups=0(root)
-
-## กำหนดสิทธิ
-
-```bash
-chown -R 999:999 /share/nap-dms/mariadb/init
-chmod 755 /share/nap-dms/mariadb/init
-setfacl -R -m u:999:r-x /share/nap-dms/mariadb/init
-setfacl -R -d -m u:999:r-x /share/nap-dms/mariadb/init
-
-chown -R 33:33 /share/Container/pma/tmp
-chmod 755 /share/Container/pma/tmp
-setfacl -R -m u:33:rwx /share/Container/pma/tmp
-setfacl -R -d -m u:33:rwx /share/Container/pma/tmp
-
-chown -R 33:33 /share/dms-data/logs/pma
-chmod 755 /share/dms-data/logs/pma
-setfacl -R -m u:33:rwx /share/dms-data/logs/pma
-setfacl -R -d -m u:33:rwx /share/dms-data/logs/pma
-
-setfacl -R -m u:1000:rwx /share/Container/gitea
-setfacl -R -m u:1000:rwx /share/dms-data/gitea_repos
-setfacl -R -m u:1000:rwx /share/dms-data/gitea_registry
-```
-
-## เพิ่ม database & user สำหรับ Nginx Proxy Manager (NPM)
-
-```bash
-docker exec -it mariadb mysql -u root -p
-  CREATE DATABASE npm;
-  CREATE USER 'npm'@'%' IDENTIFIED BY 'npm';
-  GRANT ALL PRIVILEGES ON npm.* TO 'npm'@'%';
-  FLUSH PRIVILEGES;
-```
-
-## เพิ่ม database & user สำหรับ Gitea
-
-```bash
-docker exec -it mariadb mysql -u root -p
- CREATE DATABASE gitea CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
- CREATE USER 'gitea'@'%' IDENTIFIED BY 'Center#2025';
- GRANT ALL PRIVILEGES ON gitea.* TO 'gitea'@'%';
- FLUSH PRIVILEGES;
-```
-
-## Docker file
-
-```yml
-# File: share/Container/mariadb/docker-compose.yml
-# DMS Container v1_4_1 : แยก service และ folder,Application name: lcbp3-db, Servive: mariadb, pma
+# File: mariadb/docker-compose-db.yml
+# DMS Container v1_7_0 Servive: mariadb, pma
 x-restart: &restart_policy
   restart: unless-stopped
 
@@ -135,4 +83,28 @@ services:
 networks:
   lcbp3:
     external: true
-```
+
+# chown -R 999:999 /share/nap-dms/mariadb/init
+# chmod 755 /share/nap-dms/mariadb/init
+# setfacl -R -m u:999:r-x /share/nap-dms/mariadb/init
+# setfacl -R -d -m u:999:r-x /share/nap-dms/mariadb/init
+
+# chown -R 33:33 /share/Container/pma/tmp
+# chmod 755 /share/Container/pma/tmp
+# setfacl -R -m u:33:rwx /share/Container/pma/tmp
+# setfacl -R -d -m u:33:rwx /share/Container/pma/tmp
+
+# chown -R 33:33 /share/dms-data/logs/pma
+# chmod 755 /share/dms-data/logs/pma
+# setfacl -R -m u:33:rwx /share/dms-data/logs/pma
+# setfacl -R -d -m u:33:rwx /share/dms-data/logs/pma
+
+# setfacl -R -m u:1000:rwx /share/Container/gitea
+# setfacl -R -m u:1000:rwx /share/dms-data/gitea_repos
+# setfacl -R -m u:1000:rwx /share/dms-data/gitea_registry
+
+# docker exec -it mariadb mysql -u root -p
+#   CREATE DATABASE npm;
+#   CREATE USER 'npm'@'%' IDENTIFIED BY 'npm';
+#   GRANT ALL PRIVILEGES ON npm.* TO 'npm'@'%';
+#   FLUSH PRIVILEGES;

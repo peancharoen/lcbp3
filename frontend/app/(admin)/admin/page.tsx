@@ -11,6 +11,7 @@ import {
   Shield,
   Activity,
   ArrowRight,
+  FileStack,
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -77,6 +78,12 @@ export default function AdminPage() {
       description: "Setup document numbering templates",
       href: "/admin/numbering",
       icon: Settings,
+    },
+    {
+      title: "Drawing Master Data",
+      description: "Manage drawing categories, volumes, and classifications",
+      href: "/admin/drawings",
+      icon: FileStack,
     },
   ];
 

@@ -108,8 +108,8 @@ export class FormatService {
       '{ORG}': orgCode,
       '{RECIPIENT}': recipientCode,
       '{DISCIPLINE}': disciplineCode,
-      '{YEAR}': year.toString().substring(2),
-      '{YEAR:BE}': (year + 543).toString().substring(2),
+      '{YEAR}': year.toString(),
+      '{YEAR:BE}': (year + 543).toString(),
       '{REV}': '0',
     };
   }

@@ -1,7 +1,6 @@
 // File: lib/api/client.ts
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from "axios";
 import { v4 as uuidv4 } from "uuid";
-import { getSession } from "next-auth/react";
 
 // อ่านค่า Base URL จาก Environment Variable
 const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
@@ -29,18 +28,20 @@ apiClient.interceptors.request.use(
     }
 
     // 2. Authentication Token Injection
-    // ดึง Session จาก NextAuth (ทำงานเฉพาะฝั่ง Client)
+    // ดึง Token จาก Zustand persist store (localStorage)
     if (typeof window !== "undefined") {
       try {
-        const session = await getSession();
-        // @ts-ignore: Session type extended in types/next-auth.d.ts
-        const token = session?.accessToken; 
+        const authStorage = localStorage.getItem('auth-storage');
+        if (authStorage) {
+          const parsed = JSON.parse(authStorage);
+          const token = parsed?.state?.token;
 
-        if (token) {
-          config.headers["Authorization"] = `Bearer ${token}`;
+          if (token) {
+            config.headers["Authorization"] = `Bearer ${token}`;
+          }
         }
       } catch (error) {
-        console.warn("Failed to retrieve session token:", error);
+        console.warn("Failed to retrieve auth token:", error);
       }
     }
 

@@ -5,13 +5,21 @@ import { useDrawings } from "@/hooks/use-drawing";
 import { Drawing } from "@/types/drawing";
 import { Loader2 } from "lucide-react";
 
+import { SearchContractDrawingDto } from "@/types/dto/drawing/contract-drawing.dto";
+import { SearchShopDrawingDto } from "@/types/dto/drawing/shop-drawing.dto";
+import { SearchAsBuiltDrawingDto } from "@/types/dto/drawing/asbuilt-drawing.dto";
+
+type DrawingSearchParams = SearchContractDrawingDto | SearchShopDrawingDto | SearchAsBuiltDrawingDto;
+
 interface DrawingListProps {
   type: "CONTRACT" | "SHOP" | "AS_BUILT";
-  projectId?: number;
+  projectId: number;
+  filters?: Partial<DrawingSearchParams>;
 }
 
-export function DrawingList({ type, projectId }: DrawingListProps) {
-  const { data: drawings, isLoading, isError } = useDrawings(type, { projectId: projectId ?? 1 });
+export function DrawingList({ type, projectId, filters }: DrawingListProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: drawings, isLoading, isError } = useDrawings(type, { projectId, ...filters } as any);
 
   // Note: The hook handles switching services based on type.
   // The params { type } might be redundant if getAll doesn't use it, but safe to pass.

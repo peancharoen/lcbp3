@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ContractDrawing } from './entities/contract-drawing.entity';
 import { ShopDrawing } from './entities/shop-drawing.entity';
 import { ShopDrawingRevision } from './entities/shop-drawing-revision.entity';
+import { AsBuiltDrawing } from './entities/asbuilt-drawing.entity';
+import { AsBuiltDrawingRevision } from './entities/asbuilt-drawing-revision.entity';
 
 // Entities (Master Data - Contract Drawing)
 import { ContractDrawingVolume } from './entities/contract-drawing-volume.entity';
@@ -22,15 +24,19 @@ import { Attachment } from '../../common/file-storage/entities/attachment.entity
 // Services
 import { ShopDrawingService } from './shop-drawing.service';
 import { ContractDrawingService } from './contract-drawing.service';
-import { DrawingMasterDataService } from './drawing-master-data.service'; // ✅ New
+import { AsBuiltDrawingService } from './asbuilt-drawing.service';
+import { DrawingMasterDataService } from './drawing-master-data.service';
 
 // Controllers
 import { ShopDrawingController } from './shop-drawing.controller';
 import { ContractDrawingController } from './contract-drawing.controller';
+import { AsBuiltDrawingController } from './asbuilt-drawing.controller';
 import { DrawingMasterDataController } from './drawing-master-data.controller';
+
 // Modules
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 import { UserModule } from '../user/user.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -38,14 +44,16 @@ import { UserModule } from '../user/user.module';
       ContractDrawing,
       ShopDrawing,
       ShopDrawingRevision,
+      AsBuiltDrawing,
+      AsBuiltDrawingRevision,
 
       // Master Data
       ContractDrawingVolume,
       ContractDrawingSubCategory,
       ContractDrawingSubcatCatMap,
       ContractDrawingCategory,
-      ShopDrawingMainCategory, // ✅
-      ShopDrawingSubCategory, // ✅
+      ShopDrawingMainCategory,
+      ShopDrawingSubCategory,
 
       // Common
       Attachment,
@@ -56,13 +64,15 @@ import { UserModule } from '../user/user.module';
   providers: [
     ShopDrawingService,
     ContractDrawingService,
+    AsBuiltDrawingService,
     DrawingMasterDataService,
   ],
   controllers: [
     ShopDrawingController,
     ContractDrawingController,
+    AsBuiltDrawingController,
     DrawingMasterDataController,
   ],
-  exports: [ShopDrawingService, ContractDrawingService],
+  exports: [ShopDrawingService, ContractDrawingService, AsBuiltDrawingService],
 })
 export class DrawingModule {}

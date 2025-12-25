@@ -8,7 +8,9 @@ export interface DrawingRevision {
   revisionDescription?: string;
   revisedByName: string;
   fileUrl: string;
-  isCurrent: boolean;
+  isCurrent: boolean | null; // Updated: null = not current (MariaDB UNIQUE pattern)
+  createdBy?: number; // Added v1.7.0
+  updatedBy?: number; // Added v1.7.0
 }
 
 export interface ContractDrawing {
@@ -39,6 +41,8 @@ export interface AsBuiltDrawing {
   id: number;
   drawingNumber: string;
   projectId: number;
+  mainCategoryId: number;
+  subCategoryId: number;
   currentRevision?: DrawingRevision;
   createdAt: string;
   updatedAt: string;

@@ -274,18 +274,19 @@ export const numberingApi = {
    */
   previewNumber: async (ctx: {
     projectId: number;
-    originatorId: number;
-    typeId: number;
+    originatorOrganizationId: number;
+    correspondenceTypeId: number;
     disciplineId?: number;
     subTypeId?: number;
     rfaTypeId?: number;
     recipientOrganizationId?: number;
   }): Promise<{ previewNumber: string; nextSequence: number }> => {
-    const res = await apiClient.post<{ previewNumber: string; nextSequence: number }>(
+    const res = await apiClient.post<{ data: { previewNumber: string; nextSequence: number } }>(
       '/document-numbering/preview',
       ctx
     );
-    return res.data;
+    // Backend wraps response in { data: { ... }, message: "Success" }
+    return res.data.data || res.data;
   },
 
   /**

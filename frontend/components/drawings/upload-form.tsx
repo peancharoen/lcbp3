@@ -55,9 +55,11 @@ const shopSchema = baseSchema.extend({
 const asBuiltSchema = baseSchema.extend({
   drawingType: z.literal("AS_BUILT"),
   drawingNumber: z.string().min(1, "Drawing Number is required"),
+  mainCategoryId: z.string().min(1, "Main Category is required"),
+  subCategoryId: z.string().min(1, "Sub Category is required"),
   // Revision Fields
   revisionLabel: z.string().default("0"),
-  title: z.string().optional(),
+  title: z.string().min(1, "Title is required"),
   legacyDrawingNumber: z.string().optional(),
   description: z.string().optional(),
 });
@@ -130,8 +132,10 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
       // Date default to now
     } else if (data.drawingType === 'AS_BUILT') {
       formData.append('drawingNumber', data.drawingNumber);
+      formData.append('mainCategoryId', data.mainCategoryId);
+      formData.append('subCategoryId', data.subCategoryId);
       formData.append('revisionLabel', data.revisionLabel || '0');
-      if (data.title) formData.append('title', data.title);
+      formData.append('title', data.title);
       if (data.legacyDrawingNumber) formData.append('legacyDrawingNumber', data.legacyDrawingNumber);
       if (data.description) formData.append('description', data.description);
     }
@@ -293,7 +297,7 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
           {/* AS BUILT FIELDS */}
           {drawingType === 'AS_BUILT' && (
              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Drawing No *</Label>
                     <Input {...register("drawingNumber")} placeholder="e.g. AB-101" />
@@ -306,9 +310,51 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
                     <Input {...register("legacyDrawingNumber")} placeholder="Legacy No." />
                   </div>
                </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Main Category *</Label>
+                    <Select onValueChange={(v) => {
+                       setValue("mainCategoryId", v);
+                      setSelectedShopMainCat(v ? parseInt(v) : undefined);
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Main Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shopMainCats?.map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                     {(errors as any).mainCategoryId && (
+                       <p className="text-sm text-destructive">{(errors as any).mainCategoryId.message}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Sub Category *</Label>
+                    <Select onValueChange={(v) => setValue("subCategoryId", v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Sub Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {shopSubCats?.map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                     {(errors as any).subCategoryId && (
+                       <p className="text-sm text-destructive">{(errors as any).subCategoryId.message}</p>
+                    )}
+                  </div>
+               </div>
+
                <div>
-                 <Label>Title</Label>
-                 <Input {...register("title")} placeholder="Title" />
+                 <Label>Title *</Label>
+                 <Input {...register("title")} placeholder="Drawing Title" />
+                 {(errors as any).title && (
+                    <p className="text-sm text-destructive">{(errors as any).title.message}</p>
+                 )}
                </div>
                <div>
                  <Label>Description</Label>

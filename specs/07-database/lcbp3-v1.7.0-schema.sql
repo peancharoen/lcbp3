@@ -796,7 +796,7 @@ CREATE TABLE shop_drawing_sub_categories (
 CREATE TABLE shop_drawings (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
   project_id INT NOT NULL COMMENT 'โครงการ',
-  drawing_number VARCHAR(100) NOT NULL UNIQUE COMMENT 'เลขที่ Shop Drawing',
+  drawing_number VARCHAR(100) NOT NULL COMMENT 'เลขที่ Shop Drawing',
   main_category_id INT NOT NULL COMMENT 'หมวดหมู่หลัก',
   sub_category_id INT NOT NULL COMMENT 'หมวดหมู่ย่อย',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
@@ -805,7 +805,8 @@ CREATE TABLE shop_drawings (
   updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
   FOREIGN KEY (project_id) REFERENCES projects (id),
   FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories (id),
-  FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories (id)
+  FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories (id),
+  UNIQUE KEY ux_shop_dwg_no_project (project_id, drawing_number)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูล "แบบก่อสร้าง"';
 
 -- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ shop_drawings (1:N)
@@ -814,14 +815,22 @@ CREATE TABLE shop_drawing_revisions (
   shop_drawing_id INT NOT NULL COMMENT 'Master ID',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (เช่น 0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
+  is_current BOOLEAN DEFAULT NULL COMMENT '(TRUE = Revision ปัจจุบัน, NULL = ไม่ใช่ปัจจุบัน)',
   revision_date DATE COMMENT 'วันที่ของ Revision',
   title VARCHAR(500) NOT NULL COMMENT 'ชื่อแบบ',
   description TEXT COMMENT 'คำอธิบายการแก้ไข',
   legacy_drawing_number VARCHAR(100) NULL COMMENT 'เลขที่เดิมของ Shop Drawing',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  created_by INT COMMENT 'ผู้สร้าง',
+  updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
   FOREIGN KEY (shop_drawing_id) REFERENCES shop_drawings (id) ON DELETE CASCADE,
-  UNIQUE KEY ux_sd_rev_drawing_revision (shop_drawing_id, revision_number)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติ (Revisions) ของ shop_drawings (1 :N)';
+  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    UNIQUE KEY ux_sd_rev_drawing_revision (shop_drawing_id, revision_number),
+    UNIQUE KEY uq_sd_current (shop_drawing_id, is_current)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติ (Revisions) ของ shop_drawings (1:N)';
 
 -- ตารางเชื่อมระหว่าง shop_drawing_revisions กับ contract_drawings (M:N)
 CREATE TABLE shop_drawing_revision_contract_refs (
@@ -839,7 +848,7 @@ CREATE TABLE shop_drawing_revision_contract_refs (
 CREATE TABLE asbuilt_drawings (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
   project_id INT NOT NULL COMMENT 'โครงการ',
-  drawing_number VARCHAR(100) NOT NULL UNIQUE COMMENT 'เลขที่ AS Built Drawing',
+  drawing_number VARCHAR(100) NOT NULL COMMENT 'เลขที่ AS Built Drawing',
   main_category_id INT NOT NULL COMMENT 'หมวดหมู่หลัก',
   sub_category_id INT NOT NULL COMMENT 'หมวดหมู่ย่อย',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
@@ -848,25 +857,34 @@ CREATE TABLE asbuilt_drawings (
   updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
   FOREIGN KEY (project_id) REFERENCES projects (id),
   FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories (id),
-  FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories (id)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูล "แบบก่อสร้าง"';
+  FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories (id),
+  UNIQUE KEY ux_asbuilt_no_project (project_id, drawing_number)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูล "แบบ AS Built"';
 
--- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ shop_drawings (1:N)
+-- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ AS Built (1:N)
 CREATE TABLE asbuilt_drawing_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
   asbuilt_drawing_id INT NOT NULL COMMENT 'Master ID',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (เช่น 0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
+  is_current BOOLEAN DEFAULT NULL COMMENT '(TRUE = Revision ปัจจุบัน, NULL = ไม่ใช่ปัจจุบัน)',
   revision_date DATE COMMENT 'วันที่ของ Revision',
   title VARCHAR(500) NOT NULL COMMENT 'ชื่อแบบ',
   description TEXT COMMENT 'คำอธิบายการแก้ไข',
   legacy_drawing_number VARCHAR(100) NULL COMMENT 'เลขที่เดิมของ AS Built Drawing',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  created_by INT COMMENT 'ผู้สร้าง',
+  updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
   FOREIGN KEY (asbuilt_drawing_id) REFERENCES asbuilt_drawings (id) ON DELETE CASCADE,
-  UNIQUE KEY ux_sd_rev_drawing_revision (asbuilt_drawing_id, revision_number)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติ (Revisions) ของ asbuilt_drawings (1 :N)';
+  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    UNIQUE KEY ux_asbuilt_rev_drawing_revision (asbuilt_drawing_id, revision_number),
+    UNIQUE KEY uq_asbuilt_current (asbuilt_drawing_id, is_current)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติ (Revisions) ของ asbuilt_drawings (1:N)';
 
--- ตารางเชื่อมระหว่าง asbuilt_drawing_revisions กับ shop_drawings (M:N)
+-- ตารางเชื่อมระหว่าง asbuilt_drawing_revisions กับ shop_drawing_revisions (M:N)
 CREATE TABLE asbuilt_revision_shop_revisions_refs (
   asbuilt_drawing_revision_id INT COMMENT 'ID ของ AS Built Drawing Revision',
   shop_drawing_revision_id INT COMMENT 'ID ของ Shop Drawing Revision',
@@ -877,6 +895,58 @@ CREATE TABLE asbuilt_revision_shop_revisions_refs (
   FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions (id) ON DELETE CASCADE,
   FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมระหว่าง asbuilt_drawing_revisions กับ shop_drawing_revisions (M :N)';
+
+-- =====================================================
+-- View: Shop Drawing พร้อม Current Revision
+-- =====================================================
+CREATE OR REPLACE VIEW vw_shop_drawing_current AS
+SELECT sd.id,
+  sd.project_id,
+  sd.drawing_number,
+  sd.main_category_id,
+  sd.sub_category_id,
+  sd.created_at,
+  sd.updated_at,
+  sd.deleted_at,
+  sd.updated_by,
+  sdr.id AS revision_id,
+  sdr.revision_number,
+  sdr.revision_label,
+  sdr.revision_date,
+  sdr.title AS revision_title,
+  sdr.description AS revision_description,
+  sdr.legacy_drawing_number,
+  sdr.created_by AS revision_created_by,
+  sdr.updated_by AS revision_updated_by
+FROM shop_drawings sd
+  LEFT JOIN shop_drawing_revisions sdr ON sd.id = sdr.shop_drawing_id
+  AND sdr.is_current = TRUE;
+
+-- =====================================================
+-- View: As Built Drawing พร้อม Current Revision
+-- =====================================================
+CREATE OR REPLACE VIEW vw_asbuilt_drawing_current AS
+SELECT ad.id,
+  ad.project_id,
+  ad.drawing_number,
+  ad.main_category_id,
+  ad.sub_category_id,
+  ad.created_at,
+  ad.updated_at,
+  ad.deleted_at,
+  ad.updated_by,
+  adr.id AS revision_id,
+  adr.revision_number,
+  adr.revision_label,
+  adr.revision_date,
+  adr.title AS revision_title,
+  adr.description AS revision_description,
+  adr.legacy_drawing_number,
+  adr.created_by AS revision_created_by,
+  adr.updated_by AS revision_updated_by
+FROM asbuilt_drawings ad
+  LEFT JOIN asbuilt_drawing_revisions adr ON ad.id = adr.asbuilt_drawing_id
+  AND adr.is_current = TRUE;
 
 -- =====================================================
 -- 6. 🔄 Circulations (ใบเวียนภายใน)
@@ -1978,7 +2048,9 @@ CREATE INDEX idx_correspondences_project_type ON correspondences (project_id, co
 CREATE INDEX idx_corr_revisions_status_current ON correspondence_revisions (correspondence_status_id, is_current);
 
 CREATE INDEX IDX_AUDIT_DOC_ID ON document_number_audit (document_id);
-CREATE INDEX IDX_AUDIT_STATUS ON document_number_audit (status);
+
+CREATE INDEX IDX_AUDIT_STATUS ON document_number_audit (STATUS);
+
 CREATE INDEX IDX_AUDIT_OPERATION ON document_number_audit (operation);
 
 SET FOREIGN_KEY_CHECKS = 1;

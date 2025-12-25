@@ -12,12 +12,12 @@ export class PreviewNumberDto {
   @ApiProperty({ description: 'Originator organization ID' })
   @IsInt()
   @Type(() => Number)
-  originatorId!: number;
+  originatorOrganizationId!: number;
 
   @ApiProperty({ description: 'Correspondence type ID' })
   @IsInt()
   @Type(() => Number)
-  typeId!: number;
+  correspondenceTypeId!: number;
 
   @ApiPropertyOptional({ description: 'Sub type ID (for TRANSMITTAL)' })
   @IsOptional()

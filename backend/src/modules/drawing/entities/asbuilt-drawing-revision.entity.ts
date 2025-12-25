@@ -7,12 +7,15 @@ import {
   JoinColumn,
   ManyToMany,
   JoinTable,
+  Unique,
 } from 'typeorm';
 import { AsBuiltDrawing } from './asbuilt-drawing.entity';
 import { ShopDrawingRevision } from './shop-drawing-revision.entity';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
+import { User } from '../../user/entities/user.entity';
 
 @Entity('asbuilt_drawing_revisions')
+@Unique(['asBuiltDrawingId', 'isCurrent'])
 export class AsBuiltDrawingRevision {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -35,8 +38,25 @@ export class AsBuiltDrawingRevision {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
+  @Column({ name: 'legacy_drawing_number', length: 100, nullable: true })
+  legacyDrawingNumber?: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
+
+  @Column({
+    name: 'is_current',
+    type: 'boolean',
+    nullable: true,
+    default: null,
+  })
+  isCurrent?: boolean | null;
+
+  @Column({ name: 'created_by', nullable: true })
+  createdBy?: number;
+
+  @Column({ name: 'updated_by', nullable: true })
+  updatedBy?: number;
 
   // Relations
   @ManyToOne(() => AsBuiltDrawing, (drawing) => drawing.revisions, {
@@ -44,6 +64,14 @@ export class AsBuiltDrawingRevision {
   })
   @JoinColumn({ name: 'asbuilt_drawing_id' })
   asBuiltDrawing!: AsBuiltDrawing;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'created_by' })
+  creator?: User;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'updated_by' })
+  updater?: User;
 
   // Relation to Shop Drawing Revisions (M:N)
   @ManyToMany(() => ShopDrawingRevision)

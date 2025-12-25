@@ -4,6 +4,8 @@
 export interface CreateAsBuiltDrawingDto {
   projectId: number;
   drawingNumber: string;
+  mainCategoryId: number;
+  subCategoryId: number;
 
   // First Revision Data
   revisionLabel?: string;

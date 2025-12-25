@@ -202,7 +202,7 @@ INSERT INTO users (
 VALUES (
     1,
     'superadmin',
-    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
+    '$2b$10$MpKnf1UEvlu8hZcqMkhMsuWG3gYD/priWTUr71GpF/uuroaGxtose',
     'Super',
     'Admin',
     'superadmin @example.com',
@@ -212,7 +212,7 @@ VALUES (
   (
     2,
     'admin',
-    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
+    '$2b$10$MpKnf1UEvlu8hZcqMkhMsuWG3gYD/priWTUr71GpF/uuroaGxtose',
     'Admin',
     'คคง.',
     'admin@example.com',
@@ -222,7 +222,7 @@ VALUES (
   (
     3,
     'editor01',
-    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
+    '$2b$10$MpKnf1UEvlu8hZcqMkhMsuWG3gYD/priWTUr71GpF/uuroaGxtose',
     'DC',
     'C1',
     'editor01 @example.com',
@@ -232,7 +232,7 @@ VALUES (
   (
     4,
     'viewer01',
-    '$2b$10$E6d5k.f46jr.POGWKHhiQ.X1ZsFrMpZox//sCxeOiLUULGuAHO0NW',
+    '$2b$10$MpKnf1UEvlu8hZcqMkhMsuWG3gYD/priWTUr71GpF/uuroaGxtose',
     'Viewer',
     'สคฉ.03',
     'viewer01 @example.com',
