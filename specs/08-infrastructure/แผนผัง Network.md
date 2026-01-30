@@ -1,120 +1,359 @@
-# **🗺️ แผนผัง Network Architecture & Firewall (LCBP3-DMS)**
+# 🗺️ แผนผัง Network Architecture & Container Services (LCBP3-DMS)
 
-แผนผังนี้แสดงการแบ่งส่วนเครือข่าย (VLANs) และกฎ Firewall (ACLs) สำหรับ TP-Link Omada (ER7206/OC200) เพื่อรักษาความปลอดภัยของ QNAP NAS และ Docker Services
+แผนผังนี้แสดงการแบ่งส่วนเครือข่าย (VLANs), การเชื่อมต่อ Firewall (ACLs) และบทบาทของ Server ทั้งสองตัว (QNAP: Application, ASUSTOR: Infrastructure)
 
-## **1\. แผนผังการเชื่อมต่อ (Connection Flow Diagram)**
+---
 
-graph TD  
+## 1. ภาพรวมการแบ่งบทบาท Server
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                        LCBP3-DMS INFRASTRUCTURE                              │
+├────────────────────────────────┬─────────────────────────────────────────────┤
+│      QNAP TS-473A              │         ASUSTOR AS5403T                     │
+│   (Application & Database)     │       (Infrastructure & Backup)             │
+├────────────────────────────────┼─────────────────────────────────────────────┤
+│ ✔ Application Runtime          │ ✔ File Storage (NFS/SMB)                    │
+│ ✔ API / Web (NestJS, Next.js)  │ ✔ Backup Target (Restic/Borg)               │
+│ ✔ Database (MariaDB Primary)   │ ✔ Docker Infra (Registry, Portainer)        │
+│ ✔ High CPU / RAM usage         │ ✔ Monitoring (Prometheus, Grafana)          │
+│ ✔ Worker / Queue (Redis)       │ ✔ Log Aggregation (Loki)                    │
+│ ✔ API Gateway (NPM)            │ ✔ Uptime Monitoring (Uptime Kuma)           │
+│ ✖ ไม่เก็บ backup ระยะยาว      │ ✖ ไม่รัน App logic หนัก                      │
+├────────────────────────────────┼─────────────────────────────────────────────┤
+│ Container: Container Station   │ Container: Portainer                        │
+│ IP: 192.168.10.8               │ IP: 192.168.10.9                             │
+│ Storage: 4TB×4 RAID5 + 1TB SSD │ Storage: 6TB×3 RAID5 + 1TB SSD              │
+└────────────────────────────────┴─────────────────────────────────────────────┘
+```
+
+---
+
+## 2. Data Flow Diagram
+
+```mermaid
+flowchart TB
+    subgraph Internet["🌐 Internet"]
+        User[("👤 User")]
+    end
+
+    subgraph QNAP["💾 QNAP TS-473A (App Server)"]
+        NPM["🔲 NPM<br/>(Reverse Proxy)"]
+        Frontend["📱 Next.js<br/>(Frontend)"]
+        Backend["⚙️ NestJS<br/>(Backend API)"]
+        DB["🗄️ MariaDB"]
+        Redis["📦 Redis"]
+        ES["🔍 Elasticsearch"]
+    end
+
+    subgraph ASUSTOR["💾 ASUSTOR AS5403T (Infra Server)"]
+        Portainer["🐳 Portainer"]
+        Registry["📦 Registry"]
+        Prometheus["📊 Prometheus"]
+        Grafana["📈 Grafana"]
+        Uptime["⏱️ Uptime Kuma"]
+        Backup["💾 Restic/Borg"]
+        NFS["📁 NFS Storage"]
+    end
+
+    User -->|HTTPS 443| NPM
+    NPM --> Frontend
+    NPM --> Backend
+    Frontend --> Backend
+    Backend --> DB
+    Backend --> Redis
+    Backend --> ES
+
+    DB -.->|Scheduled Backup| Backup
+    Backup --> NFS
+
+    Portainer -.->|Manage| QNAP
+    Prometheus -.->|Collect Metrics| Backend
+    Prometheus -.->|Collect Metrics| DB
+    Uptime -.->|Health Check| NPM
+```
+
+---
+
+## 3. Docker Management View
+
+```mermaid
+flowchart TB
+    subgraph Portainer["🐳 Portainer (ASUSTOR - Central Management)"]
+        direction TB
+
+        subgraph LocalStack["📦 Local Infra Stack"]
+            Registry["Docker Registry"]
+            Prometheus["Prometheus"]
+            Grafana["Grafana"]
+            Uptime["Uptime Kuma"]
+            Backup["Restic/Borg"]
+            Loki["Loki (Logs)"]
+            ClamAV["ClamAV"]
+        end
+
+        subgraph RemoteStack["🔗 Remote: QNAP App Stack"]
+            Frontend["Next.js"]
+            Backend["NestJS"]
+            MariaDB["MariaDB"]
+            Redis["Redis"]
+            ES["Elasticsearch"]
+            NPM["NPM"]
+            Gitea["Gitea"]
+            N8N["n8n"]
+            PMA["phpMyAdmin"]
+        end
+    end
+```
+
+---
+
+## 4. Security Zones Diagram
+
+```mermaid
+flowchart TB
+    subgraph PublicZone["🌐 PUBLIC ZONE"]
+        direction LR
+        NPM["NPM (Reverse Proxy)"]
+        SSL["SSL/TLS Termination"]
+    end
+
+    subgraph AppZone["📱 APPLICATION ZONE (QNAP)"]
+        direction LR
+        Frontend["Next.js"]
+        Backend["NestJS"]
+        N8N["n8n"]
+        Gitea["Gitea"]
+    end
+
+    subgraph DataZone["💾 DATA ZONE (QNAP - Internal Only)"]
+        direction LR
+        MariaDB["MariaDB"]
+        Redis["Redis"]
+        ES["Elasticsearch"]
+    end
+
+    subgraph InfraZone["🛠️ INFRASTRUCTURE ZONE (ASUSTOR)"]
+        direction LR
+        Backup["Backup Services"]
+        Registry["Docker Registry"]
+        Monitoring["Prometheus + Grafana"]
+        Logs["Loki / Syslog"]
+    end
+
+    PublicZone -->|HTTPS Only| AppZone
+    AppZone -->|Internal API| DataZone
+    DataZone -.->|Backup| InfraZone
+    AppZone -.->|Metrics| InfraZone
+```
+
+---
+
+## 5. แผนผังการเชื่อมต่อเครือข่าย (Network Flow)
+
+```mermaid
+graph TD
     direction TB
 
-    subgraph Flow1 \[\<b\>การเชื่อมต่อจากภายนอก (Public WAN)\</b\>\]  
-        User\[ผู้ใช้งานภายนอก (Internet)\]  
+    subgraph Flow1["การเชื่อมต่อจากภายนอก (Public WAN)"]
+        User["ผู้ใช้งานภายนอก (Internet)"]
     end
 
-    subgraph Router \[\<b\>Router (ER7206)\</b\> \- Gateway\]  
-        User \-- "Port 80/443 (HTTPS/HTTP)" \--\> ER7206  
-        ER7206(\<b\>Port Forwarding\</b\>\<br/\>TCP 80 \-\> 192.168.10.100:80\<br/\>TCP 443 \-\> 192.168.10.100:443)  
+    subgraph Router["Router (ER7206) - Gateway"]
+        User -- "Port 80/443 (HTTPS/HTTP)" --> ER7206
+        ER7206["Port Forwarding<br/>TCP 80 → 192.168.10.8:80<br/>TCP 443 → 192.168.10.8:443"]
     end
 
-    subgraph VLANs \[\<b\>เครือข่ายภายใน (VLANs & Firewall Rules)\</b\>\]  
+    subgraph VLANs["เครือข่ายภายใน (VLANs & Firewall Rules)"]
         direction LR
 
-        subgraph VLAN10 \[\<b\>VLAN 10: Servers (DMZ)\</b\>\<br/\>192.168.10.x\]  
-            QNAP\[\<b\>QNAP NAS (192.168.10.100)\</b\>\]  
-        end  
-          
-        subgraph VLAN20 \[\<b\>VLAN 20: Office\</b\>\<br/\>192.168.20.x\]  
-            OfficePC\[PC พนักงาน/Wi-Fi\]  
+        subgraph VLAN10["VLAN 10: Servers<br/>192.168.10.x"]
+            QNAP["QNAP NAS<br/>(192.168.10.8)"]
+            ASUSTOR["ASUSTOR NAS<br/>(192.168.10.9)"]
         end
 
-        subgraph VLAN30 \[\<b\>VLAN 30: Guests\</b\>\<br/\>192.168.30.x\]  
-            GuestPC\[Guest Wi-Fi\]  
+        subgraph VLAN20["VLAN 20: MGMT<br/>192.168.20.x"]
+            AdminPC["Admin PC / Switches"]
         end
 
-        subgraph Firewall \[\<b\>Firewall ACLs (ควบคุมโดย OC200)\</b\>\]  
-            direction TB  
-            rule1(\<b\>Rule 1: DENY\</b\>\<br/\>Guest (VLAN 30\) \-\> All VLANs)  
-            rule2(\<b\>Rule 2: DENY\</b\>\<br/\>Server (VLAN 10\) \-\> Office (VLAN 20))  
-            rule3(\<b\>Rule 3: ALLOW\</b\>\<br/\>Office (VLAN 20\) \-\> QNAP (192.168.10.100)\<br/\>Ports: 443, 80, 81, 2222\)  
+        subgraph VLAN30["VLAN 30: USER<br/>192.168.30.x"]
+            OfficePC["PC พนักงาน/Wi-Fi"]
         end
 
-        %% \--- แสดงผล Firewall Rules \---  
-        GuestPC \-.x|rule1| QNAP  
-        QNAP \-.x|rule2| OfficePC  
-        OfficePC \-- "\[https://lcbp3.np-dms.work\](https://lcbp3.np-dms.work)" \--\>|rule3| QNAP  
+        subgraph VLAN70["VLAN 70: GUEST<br/>192.168.70.x"]
+            GuestPC["Guest Wi-Fi"]
+        end
+
+        subgraph Firewall["Firewall ACLs (OC200/ER7206)"]
+            direction TB
+            rule1["Rule 1: DENY<br/>Guest (VLAN 70) → All VLANs"]
+            rule2["Rule 2: DENY<br/>Server (VLAN 10) → User (VLAN 30)"]
+            rule3["Rule 3: ALLOW<br/>User (VLAN 30) → QNAP<br/>Ports: 443, 80"]
+            rule4["Rule 4: ALLOW<br/>MGMT (VLAN 20) → All"]
+        end
+
+        GuestPC -.x|rule1| QNAP
+        QNAP -.x|rule2| OfficePC
+        OfficePC -- "https://lcbp3.np-dms.work" -->|rule3| QNAP
+        AdminPC -->|rule4| QNAP
+        AdminPC -->|rule4| ASUSTOR
     end
 
-    %% \--- เชื่อมต่อ Router กับ QNAP \---  
-    ER7206 \--\> QNAP
+    ER7206 --> QNAP
 
-    subgraph Docker \[\<b\>Docker Network 'lcbp3' (ภายใน QNAP)\</b\>\]  
-        direction TB  
-          
-        subgraph PublicServices \[Services ที่ NPM เปิดสู่ภายนอก\]  
-            direction LR  
-            NPM\[\<b\>NPM (Nginx Proxy Manager)\</b\>\<br/\>รับการจราจรจาก QNAP\]  
-            Frontend(frontend:3000)  
-            Backend(backend:3000)  
-            Gitea(gitea:3000)  
-            PMA(pma:80)  
-            N8N(n8n:5678)  
+    subgraph DockerQNAP["Docker 'lcbp3' (QNAP - Applications)"]
+        direction TB
+
+        subgraph PublicServices["Services ที่ NPM เปิดสู่ภายนอก"]
+            direction LR
+            NPM["NPM (Nginx Proxy Manager)"]
+            FrontendC["frontend:3000"]
+            BackendC["backend:3000"]
+            GiteaC["gitea:3000"]
+            PMAC["pma:80"]
+            N8NC["n8n:5678"]
         end
 
-        subgraph InternalServices \[Internal Services (Backend เรียกใช้เท่านั้น)\]  
-            direction LR  
-            DB(mariadb:3306)  
-            Cache(cache:6379)  
-            Search(search:9200)  
+        subgraph InternalServices["Internal Services (Backend Only)"]
+            direction LR
+            DBC["mariadb:3306"]
+            CacheC["cache:6379"]
+            SearchC["search:9200"]
         end
 
-        %% \--- การเชื่อมต่อภายใน Docker \---  
-        NPM \-- "lcbp3.np-dms.work" \--\> Frontend  
-        NPM \-- "backend.np-dms.work" \--\> Backend  
-        NPM \-- "git.np-dms.work" \--\> Gitea  
-        NPM \-- "pma.np-dms.work" \--\> PMA  
-        NPM \-- "n8n.np-dms.work" \--\> N8N
+        NPM -- "lcbp3.np-dms.work" --> FrontendC
+        NPM -- "backend.np-dms.work" --> BackendC
+        NPM -- "git.np-dms.work" --> GiteaC
+        NPM -- "pma.np-dms.work" --> PMAC
+        NPM -- "n8n.np-dms.work" --> N8NC
 
-        Backend \-- "lcbp3 Network" \--\> DB  
-        Backend \-- "lcbp3 Network" \--\> Cache  
-        Backend \-- "lcbp3 Network" \--\> Search  
-          
-    end  
-      
-    %% \--- เชื่อมต่อ QNAP กับ Docker \---  
-    QNAP \--\> NPM
+        BackendC -- "lcbp3 Network" --> DBC
+        BackendC -- "lcbp3 Network" --> CacheC
+        BackendC -- "lcbp3 Network" --> SearchC
+    end
 
-    %% \--- Styling \---  
-    classDef default fill:\#f9f9f9,stroke:\#333,stroke-width:2px;  
-    classDef router fill:\#e6f7ff,stroke:\#0056b3,stroke-width:2px;  
-    classDef vlan fill:\#fffbe6,stroke:\#d46b08,stroke-width:2px;  
-    classDef docker fill:\#e6ffed,stroke:\#096dd9,stroke-width:2px;  
-    classDef internal fill:\#f0f0f0,stroke:\#595959,stroke-width:2px,stroke-dasharray: 5 5;  
-    classDef fw fill:\#fff0f0,stroke:\#d9363e,stroke-width:2px,stroke-dasharray: 3 3;
+    subgraph DockerASUSTOR["Docker 'lcbp3' (ASUSTOR - Infrastructure)"]
+        direction TB
 
-    class Router,ER7206 router;  
-    class VLANs,VLAN10,VLAN20,VLAN30 vlan;  
-    class Docker,PublicServices,InternalServices docker;  
-    class DB,Cache,Search internal;  
-    class Firewall,rule1,rule2,rule3 fw;
+        subgraph InfraServices["Infrastructure Services"]
+            direction LR
+            PortainerC["portainer:9443"]
+            RegistryC["registry:5000"]
+            PrometheusC["prometheus:9090"]
+            GrafanaC["grafana:3000"]
+            UptimeC["uptime-kuma:3001"]
+        end
 
-## **2\. สรุปการตั้งค่า Firewall ACLs (สำหรับ Omada OC200)**
+        subgraph BackupServices["Backup & Storage"]
+            direction LR
+            ResticC["restic/borg"]
+            NFSC["NFS Share"]
+        end
 
-นี่คือรายการกฎ (Rules) ที่คุณต้องสร้างใน Settings \> Network Security \> ACL (เรียงลำดับจากบนลงล่าง):
+        PortainerC -.->|"Remote Endpoint"| NPM
+        PrometheusC -.->|"Scrape Metrics"| BackendC
+        ResticC --> NFSC
+    end
 
-| ลำดับ | Name | Policy | Source | Destination | Ports |
-| :---- | :---- | :---- | :---- | :---- | :---- |
-| **1** | Isolate-Guests | **Deny** | Network \-\> VLAN 30 (Guests) | Network \-\> VLAN 1, 10, 20 | All |
-| **2** | Isolate-Servers | **Deny** | Network \-\> VLAN 10 (Servers) | Network \-\> VLAN 20 (Office) | All |
-| **3** | Block-Office-to-Mgmt | **Deny** | Network \-\> VLAN 20 (Office) | Network \-\> VLAN 1 (Mgmt) | All |
-| **4** | Allow-Office-to-Services | **Allow** | Network \-\> VLAN 20 (Office) | IP Group \-\> QNAP\_Services (192.168.10.100) | Port Group \-\> Web\_Services (443, 80, 81, 2222\) |
-| **5** | (Default) | Allow | Any | Any | All |
+    QNAP --> NPM
+    ASUSTOR --> PortainerC
+    DBC -.->|"Scheduled Backup"| ResticC
+```
 
-## **3\. สรุปการตั้งค่า Port Forwarding (สำหรับ Omada ER7206)**
+---
 
-นี่คือรายการกฎที่คุณต้องสร้างใน Settings \> Transmission \> Port Forwarding:
+## 6. สรุปการตั้งค่า Firewall ACLs (สำหรับ Omada OC200)
 
-| Name | External Port | Internal IP | Internal Port | Protocol |
-| :---- | :---- | :---- | :---- | :---- |
-| Allow-NPM-HTTPS | 443 | 192.168.10.100 | 443 | TCP |
-| Allow-NPM-HTTP | 80 | 192.168.10.100 | 80 | TCP |
+นี่คือรายการกฎ (Rules) ที่คุณต้องสร้างใน **Settings > Network Security > ACL** (เรียงลำดับจากบนลงล่าง):
 
+| ลำดับ   | Name                   | Policy    | Source            | Destination               | Ports                                |
+| :---- | :--------------------- | :-------- | :---------------- | :------------------------ | :----------------------------------- |
+| **1** | Isolate-Guests         | **Deny**  | Network → VLAN 70 | Network → VLAN 10, 20, 30 | All                                  |
+| **2** | Isolate-Servers        | **Deny**  | Network → VLAN 10 | Network → VLAN 30 (USER)  | All                                  |
+| **3** | Block-User-to-Mgmt     | **Deny**  | Network → VLAN 30 | Network → VLAN 20 (MGMT)  | All                                  |
+| **4** | Allow-User-to-Services | **Allow** | Network → VLAN 30 | IP → QNAP (192.168.10.8)  | Port Group → Web (443, 80, 81, 2222) |
+| **5** | Allow-MGMT-to-All      | **Allow** | Network → VLAN 20 | Any                       | All                                  |
+| **6** | Allow-Server-Internal  | **Allow** | IP → 192.168.10.8 | IP → 192.168.10.9         | All (QNAP ↔ ASUSTOR)                 |
+| **7** | (Default)              | Deny      | Any               | Any                       | All                                  |
+
+---
+
+## 7. สรุปการตั้งค่า Port Forwarding (สำหรับ Omada ER7206)
+
+นี่คือรายการกฎที่คุณต้องสร้างใน **Settings > Transmission > Port Forwarding**:
+
+| Name            | External Port | Internal IP  | Internal Port | Protocol |
+| :-------------- | :------------ | :----------- | :------------ | :------- |
+| Allow-NPM-HTTPS | 443           | 192.168.10.8 | 443           | TCP      |
+| Allow-NPM-HTTP  | 80            | 192.168.10.8 | 80            | TCP      |
+
+> **หมายเหตุ**: Port forwarding ไปที่ QNAP (NPM) เท่านั้น, ASUSTOR ไม่ควรเปิดรับ traffic จากภายนอก
+
+---
+
+## 8. Container Service Distribution
+
+### QNAP (192.168.10.8) - Application Services
+
+| Container     | Port | Domain              | Network |
+| :------------ | :--- | :------------------ | :------ |
+| npm           | 81   | npm.np-dms.work     | lcbp3   |
+| frontend      | 3000 | lcbp3.np-dms.work   | lcbp3   |
+| backend       | 3000 | backend.np-dms.work | lcbp3   |
+| mariadb       | 3306 | (internal)          | lcbp3   |
+| cache (redis) | 6379 | (internal)          | lcbp3   |
+| search (es)   | 9200 | (internal)          | lcbp3   |
+| gitea         | 3000 | git.np-dms.work     | lcbp3   |
+| n8n           | 5678 | n8n.np-dms.work     | lcbp3   |
+| pma           | 80   | pma.np-dms.work     | lcbp3   |
+
+### ASUSTOR (192.168.10.9) - Infrastructure Services
+
+| Container     | Port | Domain                 | Network |
+| :------------ | :--- | :--------------------- | :------ |
+| portainer     | 9443 | portainer.np-dms.work  | lcbp3   |
+| prometheus    | 9090 | prometheus.np-dms.work | lcbp3   |
+| grafana       | 3000 | grafana.np-dms.work    | lcbp3   |
+| uptime-kuma   | 3001 | uptime.np-dms.work     | lcbp3   |
+| registry      | 5000 | registry.np-dms.work   | lcbp3   |
+| node-exporter | 9100 | (internal)             | lcbp3   |
+| cadvisor      | 8080 | (internal)             | lcbp3   |
+| loki          | 3100 | (internal)             | lcbp3   |
+| restic/borg   | N/A  | (scheduled job)        | host    |
+
+---
+
+## 9. Backup Flow
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                         BACKUP STRATEGY                                │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│   QNAP (Source)                         ASUSTOR (Target)               │
+│   ┌──────────────┐                      ┌──────────────────────┐       │
+│   │  MariaDB     │ ──── Daily 2AM ────▶ │  /volume1/backup/db/ │       │
+│   │  (mysqldump) │                      │  (Restic Repository) │       │
+│   └──────────────┘                      └──────────────────────┘       │
+│                                                                        │
+│   ┌──────────────┐                      ┌──────────────────────┐       │
+│   │  Redis RDB   │ ──── Daily 3AM ────▶ │  /volume1/backup/    │       │
+│   │  + AOF       │                      │  redis/              │       │
+│   └──────────────┘                      └──────────────────────┘       │
+│                                                                        │
+│   ┌──────────────┐                      ┌──────────────────────┐       │
+│   │  App Config  │ ──── Weekly ───────▶ │  /volume1/backup/    │       │
+│   │  + Volumes   │      Sunday 4AM      │  config/             │       │
+│   └──────────────┘                      └──────────────────────┘       │
+│                                                                        │
+│   Retention Policy:                                                    │
+│   • Daily: 7 days                                                      │
+│   • Weekly: 4 weeks                                                    │
+│   • Monthly: 6 months                                                  │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+> 📝 **หมายเหตุ**: เอกสารนี้อ้างอิงจาก Architecture Document **v1.8.0** - Last updated: 2026-01-28

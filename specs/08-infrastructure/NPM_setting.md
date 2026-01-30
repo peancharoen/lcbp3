@@ -33,8 +33,9 @@ setfacl -R -m u:0:rwx /share/Container/npm
 ## Docker file
 
 ```yml
-# File: share/Container/npm/docker-compose-npm.yml
-# DMS Container v1_4_1 แยก service และ folder, Application name: lcbp3-npm, Servive:npm
+# File: share/np-dms/npm/docker-compose-npm.yml
+# DMS Container v1_7_0 : ย้าย folder ไปที่ share/np-dms/
+# Application name: lcbp3-npm, Servive:npm
 x-restart: &restart_policy
   restart: unless-stopped
 
@@ -73,17 +74,17 @@ services:
       - lcbp3
       - giteanet
     volumes:
-      - "/share/Container/npm/data:/data"
+      - "/share/np-dms/npm/data:/data"
       - "/share/dms-data/logs/npm:/data/logs" # <-- เพิ่ม logging volume
-      - "/share/Container/npm/letsencrypt:/etc/letsencrypt"
-      - "/share/Container/npm/custom:/data/nginx/custom" # <-- สำคัญสำหรับ http_top.conf
+      - "/share/np-dms/npm/letsencrypt:/etc/letsencrypt"
+      - "/share/np-dms/npm/custom:/data/nginx/custom" # <-- สำคัญสำหรับ http_top.conf
       # - "/share/Container/lcbp3/npm/landing:/data/landing:ro"
   landing:
    image: nginx:1.27-alpine
    container_name: landing
    restart: unless-stopped
    volumes:
-     - "/share/Container/npm/landing:/usr/share/nginx/html:ro"
+     - "/share/np-dms/npm/landing:/usr/share/nginx/html:ro"
    networks:
      - lcbp3
 networks:
@@ -92,7 +93,7 @@ networks:
   giteanet:
     external: true
     name: gitnet
-    
+
 
 
 

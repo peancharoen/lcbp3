@@ -35,4 +35,3 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "✅ Done!" -ForegroundColor Green
-pause

@@ -36,24 +36,25 @@
 
 ```bash
 # สร้าง Directory
-mkdir -p /share/Container/services/cache/data
-mkdir -p /share/Container/services/search/data
+mkdir -p /share/np-dms/services/cache/data
+mkdir -p /share/np-dms/services/search/data
 
 # กำหนดสิทธิ์ให้ตรงกับ User ID ใน Container
 # Redis (UID 999)
-chown -R 999:999 /share/Container/services/cache/data
-chmod -R 750 /share/Container/services/cache/data
+chown -R 999:999 /share/np-dms/services/cache/data
+chmod -R 750 /share/np-dms/services/cache/data
 
 # Elasticsearch (UID 1000)
-chown -R 1000:1000 /share/Container/services/search/data
-chmod -R 750 /share/Container/services/search/data
+chown -R 1000:1000 /share/np-dms/services/search/data
+chmod -R 750 /share/np-dms/services/search/data
 ```
 
 ## Docker file
 
 ```yml
-# File: /share/Container/services/docker-compose.yml (หรือไฟล์ที่คุณใช้รวม)
-# DMS Container v1_4_1: เพิ่ม Application name: services, Services 'cache' (Redis) และ 'search' (Elasticsearch)
+# File: /share/np-dms/services/docker-compose.yml (หรือไฟล์ที่คุณใช้รวม)
+# DMS Container v1_7_0: เพิ่ม Application name: services
+#Services 'cache' (Redis) และ 'search' (Elasticsearch)
 
 x-restart: &restart_policy
   restart: unless-stopped
@@ -93,7 +94,7 @@ services:
     networks:
       - lcbp3 # เชื่อมต่อ network ภายในเท่านั้น
     volumes:
-      - "/share/Container/cache/data:/data" # Map volume สำหรับเก็บข้อมูล (ถ้าต้องการ persistence)
+      - "/share/np-dms/services/cache/data:/data" # Map volume สำหรับเก็บข้อมูล (ถ้าต้องการ persistence)
     healthcheck:
       test: ["CMD", "redis-cli", "ping"] # ตรวจสอบว่า service พร้อมใช้งาน
       interval: 10s
@@ -132,7 +133,7 @@ services:
     networks:
       - lcbp3 # เชื่อมต่อ network ภายใน (NPM จะ proxy port 9200 จากภายนอก)
     volumes:
-      - "/share/Container/search/data:/usr/share/elasticsearch/data" # Map volume สำหรับเก็บ data/indices
+      - "/share/np-dms/services/search/data:/usr/share/elasticsearch/data" # Map volume สำหรับเก็บ data/indices
     healthcheck:
       # รอจนกว่า cluster health จะเป็น yellow หรือ green
       test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\\\"status\":\"yellow\"'"]

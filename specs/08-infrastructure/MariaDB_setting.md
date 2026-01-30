@@ -7,24 +7,30 @@
 ## กำหนดสิทธิ
 
 ```bash
-chown -R 999:999 /share/nap-dms/mariadb/init
-chmod 755 /share/nap-dms/mariadb/init
-setfacl -R -m u:999:r-x /share/nap-dms/mariadb/init
-setfacl -R -d -m u:999:r-x /share/nap-dms/mariadb/init
 
-chown -R 33:33 /share/Container/pma/tmp
-chmod 755 /share/Container/pma/tmp
-setfacl -R -m u:33:rwx /share/Container/pma/tmp
-setfacl -R -d -m u:33:rwx /share/Container/pma/tmp
+chown -R 999:999 /share/np-dms/mariadb
+chmod -R 755 /share/np-dms/mariadb
+setfacl -R -m u:999:rwx /share/np-dms/mariadb
+setfacl -R -d -m u:999:rwx /share/np-dms/mariadb
+
+chown -R 999:999 /share/np-dms/mariadb/init
+chmod 755 /share/np-dms/mariadb/init
+setfacl -R -m u:999:r-x /share/np-dms/mariadb/init
+setfacl -R -d -m u:999:r-x /share/np-dms/mariadb/init
+
+chown -R 33:33 /share/np-dms/pma/tmp
+chmod 755 /share/np-dms/pma/tmp
+setfacl -R -m u:33:rwx /share/np-dms/pma/tmp
+setfacl -R -d -m u:33:rwx /share/np-dms/pma/tmp
 
 chown -R 33:33 /share/dms-data/logs/pma
 chmod 755 /share/dms-data/logs/pma
 setfacl -R -m u:33:rwx /share/dms-data/logs/pma
 setfacl -R -d -m u:33:rwx /share/dms-data/logs/pma
 
-setfacl -R -m u:1000:rwx /share/Container/gitea
-setfacl -R -m u:1000:rwx /share/dms-data/gitea_repos
-setfacl -R -m u:1000:rwx /share/dms-data/gitea_registry
+setfacl -R -m u:1000:rwx /share/nap-dms/gitea
+setfacl -R -m u:1000:rwx /share/nap-dms/gitea/gitea_repos
+setfacl -R -m u:1000:rwx /share/nap-dms/gitea/gitea_registry
 ```
 
 ## เพิ่ม database & user สำหรับ Nginx Proxy Manager (NPM)
@@ -50,8 +56,9 @@ docker exec -it mariadb mysql -u root -p
 ## Docker file
 
 ```yml
-# File: share/Container/mariadb/docker-compose.yml
-# DMS Container v1_4_1 : แยก service และ folder,Application name: lcbp3-db, Servive: mariadb, pma
+# File: share/nap-dms/mariadb/docker-compose.yml
+# DMS Container v1_7_0 : ย้าย folder ไปที่ share/nap-dms/
+# Application name: lcbp3-db, Servive: mariadb, pma
 x-restart: &restart_policy
   restart: unless-stopped
 
@@ -85,19 +92,19 @@ services:
       TZ: "Asia/Bangkok"
     ports:
       - "3306:3306"
+    networks:
+      - lcbp3
     volumes:
-      - "/share/nap-dms/mariadb/data:/var/lib/mysql"
-      - "/share/nap-dms/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf:ro"
-      - "/share/nap-dms/mariadb/init:/docker-entrypoint-initdb.d:ro"
+      - "/share/np-dms/mariadb/data:/var/lib/mysql"
+      - "/share/np-dms/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf:ro"
+      - "/share/np-dms/mariadb/init:/docker-entrypoint-initdb.d:ro"
       - "/share/dms-data/mariadb/backup:/backup"
     healthcheck:
-      test:
-        ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -pCenter#2025 || exit 1"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
-      retries: 15
-    networks:
-      lcbp3: {}
+      retries: 3
+      start_period: 30s
 
   pma:
     <<: [*restart_policy, *default_logging]
@@ -119,20 +126,46 @@ services:
       MEMORY_LIMIT: "512M"
     ports:
       - "89:80"
+    networks:
+      - lcbp3
     # expose:
     #  - "80"
     volumes:
-      - "/share/Container/pma/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro"
-      - "/share/Container/pma/zzz-custom.ini:/usr/local/etc/php/conf.d/zzz-custom.ini:ro"
-      - "/share/Container/pma/tmp:/var/lib/phpmyadmin/tmp:rw"
+      - "/share/np-dms/pma/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro"
+      - "/share/np-dms/pma/zzz-custom.ini:/usr/local/etc/php/conf.d/zzz-custom.ini:ro"
+      - "/share/np-dms/pma/tmp:/var/lib/phpmyadmin/tmp:rw"
       - "/share/dms-data/logs/pma:/var/log/apache2"
     depends_on:
       mariadb:
         condition: service_healthy
-    networks:
-      lcbp3: {}
 
 networks:
   lcbp3:
     external: true
+
+# chown -R 999:999 /share/np-dms/mariadb/init
+# chmod 755 /share/np-dms/mariadb/init
+# setfacl -R -m u:999:r-x /share/np-dms/mariadb/init
+# setfacl -R -d -m u:999:r-x /share/np-dms/mariadb/init
+
+# chown -R 33:33 /share/np-dms/pma/tmp
+# chmod 755 /share/np-dms/pma/tmp
+# setfacl -R -m u:33:rwx /share/np-dms/pma/tmp
+# setfacl -R -d -m u:33:rwx /share/np-dms/pma/tmp
+
+# chown -R 33:33 /share/dms-data/logs/pma
+# chmod 755 /share/dms-data/logs/pma
+# setfacl -R -m u:33:rwx /share/dms-data/logs/pma
+# setfacl -R -d -m u:33:rwx /share/dms-data/logs/pma
+
+# setfacl -R -m u:1000:rwx /share/Container/gitea
+# setfacl -R -m u:1000:rwx /share/dms-data/gitea_repos
+# setfacl -R -m u:1000:rwx /share/dms-data/gitea_registry
+
+# docker exec -it mariadb mysql -u root -p
+#   CREATE DATABASE npm;
+#   CREATE USER 'npm'@'%' IDENTIFIED BY 'npm';
+#   GRANT ALL PRIVILEGES ON npm.* TO 'npm'@'%';
+#   FLUSH PRIVILEGES;
+
 ```

@@ -7,25 +7,26 @@
 ## กำหนดสิทธิ
 
 ```bash
-chown -R 1000:1000 /share/Container/gitea/
+chown -R 1000:1000 /share/np-dms/gitea/
 [/share/Container/git] # ls -l /share/Container/gitea/etc/app.ini
 [/share/Container/git] # setfacl -R -m u:1000:rwx /share/Container/gitea/
 [/share/Container/git] # setfacl -R -m u:70:rwx /share/Container/git/postgres/
-getfacl /share/Container/git/etc/app.ini
-chown -R 1000:1000 /share/Container/gitea/
-ล้าง
-setfacl -R -b /share/Container/gitea/
+getfacl /share/np-dms/git/etc/app.ini
+chown -R 1000:1000 /share/np-dms/gitea/
+ล้างสิทธิ์
+setfacl -R -b /share/np-dms/gitea/
 
-chgrp -R administrators /share/Container/gitea/
-chown -R 1000:1000 /share/Container/gitea/etc /share/Container/gitea/lib /share/Container/gitea/backup
-setfacl -m u:1000:rwx -m g:1000:rwx /share/Container/gitea/etc /share/Container/gitea/lib /share/Container/gitea/backup
+chgrp -R administrators /share/np-dms/gitea/
+chown -R 1000:1000 /share/np-dms/gitea/etc /share/np-dms/gitea/lib /share/np-dms/gitea/backup
+setfacl -m u:1000:rwx -m g:1000:rwx /share/np-dms/gitea/etc /share/np-dms/gitea/lib /share/np-dms/gitea/backup
 ```
 
 ## Docker file
 
 ```yml
-# File: share/Container/git/docker-compose.yml
-# DMS Container v1_4_1 : แยก service และ folder, Application name: git, Servive:gitea
+# File: share/np-dms/git/docker-compose.yml
+# DMS Container v1_7_0 : แยก service และ folder
+# Application name: git, Servive:gitea
 networks:
   lcbp3:
     external: true
@@ -74,12 +75,12 @@ services:
       # Optional: lock install after setup (เปลี่ยนเป็น true เมื่อจบ onboarding)
       GITEA__security__INSTALL_LOCK: "true"
     volumes:
-      - /share/Container/gitea/backup:/backup
-      - /share/Container/gitea/etc:/etc/gitea
-      - /share/Container/gitea/lib:/var/lib/gitea
+      - /share/np-dms/gitea/backup:/backup
+      - /share/np-dms/gitea/etc:/etc/gitea
+      - /share/np-dms/gitea/lib:/var/lib/gitea
       # ให้ repo root ใช้จาก /share/dms-data/gitea_repos
-      - /share/dms-data/gitea_repos:/var/lib/gitea/git/repositories
-      - /share/dms-data/gitea_registry:/data/registry
+      - /share/np-dms/gitea/gitea_repos:/var/lib/gitea/git/repositories
+      - /share/np-dms/gitea/gitea_registry:/data/registry
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:

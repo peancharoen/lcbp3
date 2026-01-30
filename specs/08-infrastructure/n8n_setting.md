@@ -8,15 +8,15 @@
 
 ```bash
 # สำหรับ n8n volumes
-chown -R 1000:1000 /share/Container/n8n
-chmod -R 755 /share/Container/n8n
+chown -R 1000:1000 /share/np-dms/n8n
+chmod -R 755 /share/np-dms/n8n
 ```
 
 ## Docker file
 
 ```yml
-# File: share/Container/n8n/docker-compose.yml
-# DMS Container v1_4_1 แยก service และ folder, Application name:n8n service n8n
+# File: share/np-dms/n8n/docker-compose.yml
+# DMS Container v1_7_0 แยก service และ folder, Application name:n8n service n8n
 x-restart: &restart_policy
   restart: unless-stopped
 
@@ -72,10 +72,10 @@ services:
     networks:
       lcbp3: {}
     volumes:
-      - "/share/Container/n8n:/home/node/.n8n"
-      - "/share/Container/n8n/cache:/home/node/.cache"
-      - "/share/Container/n8n/scripts:/scripts"
-      - "/share/Container/n8n/data:/data"
+      - "/share/np-dms/n8n:/home/node/.n8n"
+      - "/share/np-dms/n8n/cache:/home/node/.cache"
+      - "/share/np-dms/n8n/scripts:/scripts"
+      - "/share/np-dms/n8n/data:/data"
       - "/var/run/docker.sock:/var/run/docker.sock"
 
     healthcheck:

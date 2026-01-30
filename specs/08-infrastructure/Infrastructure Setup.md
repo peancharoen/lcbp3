@@ -1,6 +1,27 @@
 # Infrastructure Setup
 
-## 1. Redis Cluster Configuration
+> 📍 **Document Version:** v1.8.0
+> 🖥️ **Primary Server:** QNAP TS-473A (Application & Database)
+> 💾 **Backup Server:** ASUSTOR AS5403T (Infrastructure & Backup)
+
+---
+
+## Server Role Overview
+
+| Component             | QNAP TS-473A                  | ASUSTOR AS5403T              |
+| :-------------------- | :---------------------------- | :--------------------------- |
+| **Redis/Cache**       | ✅ Primary (Section 1)         | ❌ Not deployed               |
+| **Database**          | ✅ Primary MariaDB (Section 2) | ❌ Not deployed               |
+| **Backend Service**   | ✅ NestJS API (Section 3)      | ❌ Not deployed               |
+| **Monitoring**        | ❌ Exporters only              | ✅ Prometheus/Grafana         |
+| **Backup Target**     | ❌ Source only                 | ✅ Backup storage (Section 5) |
+| **Disaster Recovery** | ✅ Recovery target             | ✅ Backup source (Section 7)  |
+
+> 📖 See [monitoring.md](monitoring.md) for ASUSTOR-specific monitoring setup
+
+---
+
+## 1. Redis Configuration (Standalone + Persistence)
 
 ### 1.1 Docker Compose Setup
 ```yaml
@@ -8,99 +29,29 @@
 version: '3.8'
 
 services:
-  redis-1:
-    image: redis:7-alpine
-    container_name: lcbp3-redis-1
-    command: redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf
-    ports:
-      - "6379:6379"
-      - "16379:16379"
-    volumes:
-      - redis-1-data:/data
-    networks:
-      - lcbp3-network
+  redis:
+    image: 'redis:7.2-alpine'
+    container_name: lcbp3-redis
     restart: unless-stopped
-
-  redis-2:
-    image: redis:7-alpine
-    container_name: lcbp3-redis-2
-    command: redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf
-    ports:
-      - "6380:6379"
-      - "16380:16379"
+    # AOF: Enabled for durability
+    # Maxmemory: Prevent OOM
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --maxmemory 1gb --maxmemory-policy noeviction
     volumes:
-      - redis-2-data:/data
-    networks:
-      - lcbp3-network
-    restart: unless-stopped
-
-  redis-3:
-    image: redis:7-alpine
-    container_name: lcbp3-redis-3
-    command: redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf
+      - ./redis/data:/data
     ports:
-      - "6381:6379"
-      - "16381:16379"
-    volumes:
-      - redis-3-data:/data
+      - '6379:6379'
     networks:
-      - lcbp3-network
-    restart: unless-stopped
-
-volumes:
-  redis-1-data:
-  redis-2-data:
-  redis-3-data:
-
+      - lcbp3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1.5G
 networks:
   lcbp3-network:
     external: true
 ```
 
-#### Initialize Cluster
-```bash
-# Start Redis nodes
-docker-compose -f docker-compose-redis.yml up -d
-
-# Wait for nodes to start
-sleep 10
-
-# Create cluster
-docker exec -it lcbp3-redis-1 redis-cli --cluster create \
-  172.20.0.2:6379 \
-  172.20.0.3:6379 \
-  172.20.0.4:6379 \
-  --cluster-replicas 0
-
-# Verify cluster
-docker exec -it lcbp3-redis-1 redis-cli cluster info
-docker exec -it lcbp3-redis-1 redis-cli cluster nodes
-```
-
-#### Health Check Script
-```bash
-#!/bin/bash
-# scripts/check-redis-cluster.sh
-
-echo "🔍 Checking Redis Cluster Health..."
-
-for port in 6379 6380 6381; do
-  echo "\n📍 Node on port $port:"
-
-  # Check if node is up
-  docker exec lcbp3-redis-$(($port - 6378)) redis-cli -p 6379 ping
-
-  # Check cluster status
-  docker exec lcbp3-redis-$(($port - 6378)) redis-cli -p 6379 cluster info | grep cluster_state
-
-  # Check memory usage
-  docker exec lcbp3-redis-$(($port - 6378)) redis-cli -p 6379 info memory | grep used_memory_human
-done
-
-echo "\n✅ Cluster check complete"
-```
-
----
 
 ## 2. Database Configuration
 
