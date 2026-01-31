@@ -2,30 +2,7 @@
 
 แผนผังนี้แสดงการแบ่งส่วนเครือข่าย (VLANs), การเชื่อมต่อ Firewall (ACLs) และบทบาทของ Server ทั้งสองตัว (QNAP: Application, ASUSTOR: Infrastructure)
 
----
-
-## 1. ภาพรวมการแบ่งบทบาท Server
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                        LCBP3-DMS INFRASTRUCTURE                              │
-├────────────────────────────────┬─────────────────────────────────────────────┤
-│      QNAP TS-473A              │         ASUSTOR AS5403T                     │
-│   (Application & Database)     │       (Infrastructure & Backup)             │
-├────────────────────────────────┼─────────────────────────────────────────────┤
-│ ✔ Application Runtime          │ ✔ File Storage (NFS/SMB)                    │
-│ ✔ API / Web (NestJS, Next.js)  │ ✔ Backup Target (Restic/Borg)               │
-│ ✔ Database (MariaDB Primary)   │ ✔ Docker Infra (Registry, Portainer)        │
-│ ✔ High CPU / RAM usage         │ ✔ Monitoring (Prometheus, Grafana)          │
-│ ✔ Worker / Queue (Redis)       │ ✔ Log Aggregation (Loki)                    │
-│ ✔ API Gateway (NPM)            │ ✔ Uptime Monitoring (Uptime Kuma)           │
-│ ✖ ไม่เก็บ backup ระยะยาว      │ ✖ ไม่รัน App logic หนัก                      │
-├────────────────────────────────┼─────────────────────────────────────────────┤
-│ Container: Container Station   │ Container: Portainer                        │
-│ IP: 192.168.10.8               │ IP: 192.168.10.9                             │
-│ Storage: 4TB×4 RAID5 + 1TB SSD │ Storage: 6TB×3 RAID5 + 1TB SSD              │
-└────────────────────────────────┴─────────────────────────────────────────────┘
-```
+> 📖 **ดูรายละเอียด Server Roles และ Service Distribution ได้ที่:** [README.md](README.md#-hardware-infrastructure)
 
 ---
 
@@ -291,35 +268,9 @@ graph TD
 
 ---
 
-## 8. Container Service Distribution
+## 6. Container Service Distribution
 
-### QNAP (192.168.10.8) - Application Services
-
-| Container     | Port | Domain              | Network |
-| :------------ | :--- | :------------------ | :------ |
-| npm           | 81   | npm.np-dms.work     | lcbp3   |
-| frontend      | 3000 | lcbp3.np-dms.work   | lcbp3   |
-| backend       | 3000 | backend.np-dms.work | lcbp3   |
-| mariadb       | 3306 | (internal)          | lcbp3   |
-| cache (redis) | 6379 | (internal)          | lcbp3   |
-| search (es)   | 9200 | (internal)          | lcbp3   |
-| gitea         | 3000 | git.np-dms.work     | lcbp3   |
-| n8n           | 5678 | n8n.np-dms.work     | lcbp3   |
-| pma           | 80   | pma.np-dms.work     | lcbp3   |
-
-### ASUSTOR (192.168.10.9) - Infrastructure Services
-
-| Container     | Port | Domain                 | Network |
-| :------------ | :--- | :--------------------- | :------ |
-| portainer     | 9443 | portainer.np-dms.work  | lcbp3   |
-| prometheus    | 9090 | prometheus.np-dms.work | lcbp3   |
-| grafana       | 3000 | grafana.np-dms.work    | lcbp3   |
-| uptime-kuma   | 3001 | uptime.np-dms.work     | lcbp3   |
-| registry      | 5000 | registry.np-dms.work   | lcbp3   |
-| node-exporter | 9100 | (internal)             | lcbp3   |
-| cadvisor      | 8080 | (internal)             | lcbp3   |
-| loki          | 3100 | (internal)             | lcbp3   |
-| restic/borg   | N/A  | (scheduled job)        | host    |
+> 📖 **ดูรายละเอียด Container Services, Ports, และ Domain Mapping ได้ที่:** [README.md](README.md#-domain-mapping-npm-proxy)
 
 ---
 

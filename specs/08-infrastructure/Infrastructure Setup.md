@@ -6,18 +6,11 @@
 
 ---
 
-## Server Role Overview
+## Overview
 
-| Component             | QNAP TS-473A                  | ASUSTOR AS5403T              |
-| :-------------------- | :---------------------------- | :--------------------------- |
-| **Redis/Cache**       | ✅ Primary (Section 1)         | ❌ Not deployed               |
-| **Database**          | ✅ Primary MariaDB (Section 2) | ❌ Not deployed               |
-| **Backend Service**   | ✅ NestJS API (Section 3)      | ❌ Not deployed               |
-| **Monitoring**        | ❌ Exporters only              | ✅ Prometheus/Grafana         |
-| **Backup Target**     | ❌ Source only                 | ✅ Backup storage (Section 5) |
-| **Disaster Recovery** | ✅ Recovery target             | ✅ Backup source (Section 7)  |
-
-> 📖 See [monitoring.md](monitoring.md) for ASUSTOR-specific monitoring setup
+> 📖 **ดูรายละเอียด Server Roles และ Service Distribution ได้ที่:** [README.md](README.md#-hardware-infrastructure)
+>
+> เอกสารนี้มุ่งเน้นการตั้งค่า Technical Configuration สำหรับแต่ละ Service
 
 ---
 
