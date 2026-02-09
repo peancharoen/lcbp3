@@ -6,7 +6,7 @@
 > 🌐 **Domain:** `*.np-dms.work` (IP: 159.192.126.103)
 > 🔒 **Network:** `lcbp3` (Docker External Network)
 > 📄 **Version:** v1.8.0 (aligned with 01-02-architecture.md)
-dckr_pat_VzAvAsjeHB3TORZ7vX0kSABIeKI
+
 ---
 
 ## 🏢 Hardware Infrastructure
@@ -89,16 +89,17 @@ dckr_pat_VzAvAsjeHB3TORZ7vX0kSABIeKI
 
 ### Static IP Allocation (Key Devices)
 
-| VLAN       | Device  | IP Address     | Role                |
-| :--------- | :------ | :------------- | :------------------ |
-| SERVER(10) | QNAP    | 192.168.10.8   | App/DB Server       |
-| SERVER(10) | ASUSTOR | 192.168.10.9   | Infra/Backup Server |
-| MGMT(20)   | ER7206  | 192.168.20.1   | Gateway/Router      |
-| MGMT(20)   | SG2428P | 192.168.20.2   | Core Switch         |
-| MGMT(20)   | AMPCOM  | 192.168.20.3   | Server Switch       |
-| MGMT(20)   | OC200   | 192.168.20.250 | Omada Controller    |
-| USER(30)   | Printer | 192.168.30.222 | Kyocera CS3554ci    |
-| CCTV(40)   | NVR     | 192.168.40.100 | HikVision NVR       |
+| VLAN       | Device   | IP Address                    | Role                |
+| :--------- | :------- | :---------------------------- | :------------------ |
+| SERVER(10) | QNAP     | 192.168.10.8                  | App/DB Server       |
+| SERVER(10) | ASUSTOR  | 192.168.10.9                  | Infra/Backup Server |
+| MGMT(20)   | ER7206   | 192.168.20.1                  | Gateway/Router      |
+| MGMT(20)   | SG2428P  | 192.168.20.2                  | Core Switch         |
+| MGMT(20)   | AMPCOM   | 192.168.20.3                  | Server Switch       |
+| MGMT(20)   | OC200    | 192.168.20.250                | Omada Controller    |
+| USER(30)   | Printer  | 192.168.30.222                | Kyocera CS3554ci    |
+| CCTV(40)   | NVR      | 192.168.40.200                | HikVision NVR       |
+| VOICE(50)  | IP Phone | 192.168.50.211-192.168.50.221 | IP Phone            |
 
 ### Network Equipment
 
@@ -146,21 +147,22 @@ graph TB
     end
 
     subgraph OtherSwitches["Distribution"]
-        CCTV_SW[("🔲 TL-SL1226P<br/>CCTV")]
-        PHONE_SW[("🔲 SG1210P<br/>IP Phone")]
-        ADMIN_SW[("🔲 ES205G<br/>Admin")]
+        OC200[("🔲OC200<br/>Omada Controller")]
+        CCTV_SW[("🔲 TL-SL1226P<br/>CCTV Switch")]
+        PHONE_SW[("🔲 SG1210P<br/>IP Phone Switch")]
+        ADMIN_SW[("🔲 ES205G<br/>Admin Switch")]
     end
 
     WAN --> R
-    R -->|Port 3| CS
-    CS -->|LAG Port 3-4| SS
+    R -->|Port 3 - Port 1| CS
+    CS -->|LAG Port 3| SS
     SS -->|Port 3-4 LACP| QNAP
     SS -->|Port 5-6 LACP| ASUSTOR
-    SS -->|Port 8| ADMIN_SW
     CS -->|Port 5-20| AP
+    CS -->|Port 2| OC200
     CS -->|SFP 25| CCTV_SW
     CS -->|SFP 26| PHONE_SW
-    CS -->|Port 24| ADMIN_SW
+    CS -->|Port 21| ADMIN_SW
 ```
 
 ---
@@ -189,12 +191,12 @@ graph TB
 
 ### Infrastructure Services (ASUSTOR)
 
-| ไฟล์                            | Application        | Services                                             | Path บน ASUSTOR               |
-| :----------------------------- | :----------------- | :--------------------------------------------------- | :---------------------------- |
-| [monitoring.md](monitoring.md) | `lcbp3-monitoring` | `prometheus`, `grafana`, `node-exporter`, `cadvisor` | `/volume1/np-dms/monitoring/` |
-| *(NEW)* backup.md              | `lcbp3-backup`     | `restic`, `borg`                                     | `/volume1/np-dms/backup/`     |
-| *(NEW)* registry.md            | `lcbp3-registry`   | `registry`                                           | `/volume1/np-dms/registry/`   |
-| *(NEW)* uptime-kuma.md         | `lcbp3-uptime`     | `uptime-kuma`                                        | `/volume1/np-dms/uptime/`     |
+| ไฟล์                                                  | Application        | Services                                             | Path บน ASUSTOR               |
+| :--------------------------------------------------- | :----------------- | :--------------------------------------------------- | :---------------------------- |
+| [05_monitoring.md](05_monitoring.md)                 | `lcbp3-monitoring` | `prometheus`, `grafana`, `node-exporter`, `cadvisor` | `/volume1/np-dms/monitoring/` |
+| [06_backup.md](06_backup.md)                         | `lcbp3-backup`     | `restic`, Pull-based strategy                        | `/volume1/np-dms/backup/`     |
+| [07_disaster_recovery.md](07_disaster_recovery.md)   | -                  | DR Plan, RTO/RPO Targets                             | -                             |
+| [08_secrets_management.md](08_secrets_management.md) | -                  | Secrets & Credentials Management                     | -                             |
 
 ---
 

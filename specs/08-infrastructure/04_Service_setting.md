@@ -1,4 +1,4 @@
-# การติดตั้ง Nginx Proxy Manager (NPM) ใน Docker
+# การตั้งค่า Redis และ Elasticsearch
 
 ---
 

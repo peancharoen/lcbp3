@@ -41,7 +41,7 @@ services:
           cpus: '2.0'
           memory: 1.5G
 networks:
-  lcbp3-network:
+  lcbp3:
     external: true
 ```
 
@@ -120,19 +120,18 @@ services:
     container_name: lcbp3-backend-1
     environment:
       - NODE_ENV=production
-      - DB_HOST=mariadb-primary
-      - REDIS_CLUSTER_NODES=redis-1:6379,redis-2:6379,redis-3:6379
+      - DB_HOST=mariadb
+      - REDIS_HOST=cache
+      - REDIS_PORT=6379
       - NUMBERING_LOCK_TIMEOUT=5000
       - NUMBERING_RESERVATION_TTL=300
     ports:
       - "3001:3000"
     depends_on:
-      - mariadb-primary
-      - redis-1
-      - redis-2
-      - redis-3
+      - mariadb
+      - cache
     networks:
-      - lcbp3-network
+      - lcbp3
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -145,19 +144,20 @@ services:
     container_name: lcbp3-backend-2
     environment:
       - NODE_ENV=production
-      - DB_HOST=mariadb-primary
-      - REDIS_CLUSTER_NODES=redis-1:6379,redis-2:6379,redis-3:6379
+      - DB_HOST=mariadb
+      - REDIS_HOST=cache
+      - REDIS_PORT=6379
     ports:
       - "3002:3000"
     depends_on:
-      - mariadb-primary
-      - redis-1
+      - mariadb
+      - cache
     networks:
-      - lcbp3-network
+      - lcbp3
     restart: unless-stopped
 
 networks:
-  lcbp3-network:
+  lcbp3:
     external: true
 ```
 
@@ -346,7 +346,7 @@ curl -X POST http://admin:admin@localhost:3000/api/dashboards/db \
 2. **Sequence Utilization** - Current usage vs max (alert >90%)
 3. **Lock Wait Time (p95)** - Performance indicator
 4. **Lock Failures** - System health indicator
-5. **Redis Cluster Health** - Node status
+5. **Redis Health (Single instance)** - Node status
 6. **Database Connection Pool** - Resource usage
 
 ---
@@ -426,31 +426,31 @@ BACKUP_DIR="/backups/redis"
 
 mkdir -p $BACKUP_DIR
 
-for i in 1 2 3; do
-  echo "Backing up redis-$i..."
+echo "Backing up Redis..."
 
-  # Trigger BGSAVE
-  docker exec lcbp3-redis-$i redis-cli -p 6379 BGSAVE
+# Trigger BGSAVE
+docker exec cache redis-cli BGSAVE
 
-  # Wait for save to complete
-  sleep 10
+# Wait for save to complete
+sleep 10
 
-  # Copy RDB file
-  docker cp lcbp3-redis-$i:/data/dump.rdb \
-    $BACKUP_DIR/redis-${i}_${DATE}.rdb
+# Copy RDB file
+docker cp cache:/data/dump.rdb \
+  $BACKUP_DIR/redis_${DATE}.rdb
 
-  # Copy AOF file
-  docker cp lcbp3-redis-$i:/data/appendonly.aof \
-    $BACKUP_DIR/redis-${i}_${DATE}.aof
-done
+# Copy AOF file
+docker cp cache:/data/appendonly.aof \
+  $BACKUP_DIR/redis_${DATE}.aof
 
 # Compress
-tar -czf $BACKUP_DIR/redis_cluster_${DATE}.tar.gz $BACKUP_DIR/*_${DATE}.*
+tar -czf $BACKUP_DIR/redis_${DATE}.tar.gz \
+  $BACKUP_DIR/redis_${DATE}.rdb \
+  $BACKUP_DIR/redis_${DATE}.aof
 
 # Cleanup
-rm $BACKUP_DIR/*_${DATE}.rdb $BACKUP_DIR/*_${DATE}.aof
+rm $BACKUP_DIR/redis_${DATE}.rdb $BACKUP_DIR/redis_${DATE}.aof
 
-echo "✅ Redis backup complete"
+echo "✅ Redis backup complete: redis_${DATE}.tar.gz"
 ```
 
 ### 5.3 Recovery Procedures
@@ -490,17 +490,19 @@ echo "✅ Restore complete"
 echo "🔄 Please verify sequence integrity"
 ```
 
-#### Scenario 2: Redis Node Failure
+#### Scenario 2: Redis Failure
 ```bash
-# Automatically handled by cluster
-# Node will rejoin cluster when restarted
+# Check Redis status
+docker exec cache redis-cli ping
 
-# Check cluster status
-docker exec lcbp3-redis-1 redis-cli cluster info
+# If Redis is down, restart container
+docker restart cache
 
-# If node is failed, remove and add back
-docker exec lcbp3-redis-1 redis-cli --cluster del-node <node-id>
-docker exec lcbp3-redis-1 redis-cli --cluster add-node <new-node-ip>:6379 <cluster-ip>:6379
+# Verify Redis is running
+docker exec cache redis-cli ping
+
+# If restart fails, restore from backup
+./scripts/restore-redis.sh /backups/redis/latest.tar.gz
 ```
 
 ---
@@ -759,16 +761,14 @@ echo "⚠️  Please verify system functionality manually"
 
 ---
 
-### 8.3 Redis Cluster Down
+### 8.3 Redis Down
 
 **Alert**: `RedisUnavailable`
 
 **Steps**:
-1. Verify all nodes down
+1. Verify Redis is down
    ```bash
-   for i in {1..3}; do
-     docker exec lcbp3-redis-$i redis-cli ping || echo "Node $i DOWN"
-   done
+   docker exec cache redis-cli ping || echo "Redis DOWN"
    ```
 
 2. Check system falls back to DB-only mode
@@ -777,11 +777,11 @@ echo "⚠️  Please verify system functionality manually"
    # Should show: fallback_mode: true
    ```
 
-3. Restart Redis cluster
+3. Restart Redis container
    ```bash
-   docker-compose -f docker-compose-redis.yml restart
-   sleep 30
-   ./scripts/check-redis-cluster.sh
+   docker restart cache
+   sleep 10
+   docker exec cache redis-cli ping
    ```
 
 4. If restart fails, restore from backup
@@ -796,6 +796,9 @@ echo "⚠️  Please verify system functionality manually"
    ```
 
 6. Review logs for root cause
+   ```bash
+   docker logs cache --tail 100
+   ```
 
 ---
 
@@ -830,18 +833,18 @@ OPTIMIZE TABLE document_numbering_sequences;
 ANALYZE TABLE document_numbering_sequences;
 ```
 
-### 8.2 Redis Memory Optimization
+### 9.2 Redis Memory Optimization
 
 ```bash
 # Check memory usage
-docker exec lcbp3-redis-1 redis-cli INFO memory
+docker exec cache redis-cli INFO memory
 
 # If memory high, check keys
-docker exec lcbp3-redis-1 redis-cli --bigkeys
+docker exec cache redis-cli --bigkeys
 
 # Set maxmemory policy
-docker exec lcbp3-redis-1 redis-cli CONFIG SET maxmemory 2gb
-docker exec lcbp3-redis-1 redis-cli CONFIG SET maxmemory-policy allkeys-lru
+docker exec cache redis-cli CONFIG SET maxmemory 2gb
+docker exec cache redis-cli CONFIG SET maxmemory-policy allkeys-lru
 ```
 
 ---
@@ -878,7 +881,7 @@ FLUSH PRIVILEGES;
 ```yaml
 # docker-compose-network.yml
 networks:
-  lcbp3-network:
+  lcbp3:
     driver: bridge
     ipam:
       config:

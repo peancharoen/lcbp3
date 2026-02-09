@@ -6,7 +6,7 @@
 
 ---
 
-## 2. Data Flow Diagram
+## 1. Data Flow Diagram
 
 ```mermaid
 flowchart TB
@@ -52,7 +52,7 @@ flowchart TB
 
 ---
 
-## 3. Docker Management View
+## 2. Docker Management View
 
 ```mermaid
 flowchart TB
@@ -85,7 +85,7 @@ flowchart TB
 
 ---
 
-## 4. Security Zones Diagram
+## 3. Security Zones Diagram
 
 ```mermaid
 flowchart TB
@@ -126,7 +126,7 @@ flowchart TB
 
 ---
 
-## 5. แผนผังการเชื่อมต่อเครือข่าย (Network Flow)
+## 4. แผนผังการเชื่อมต่อเครือข่าย (Network Flow)
 
 ```mermaid
 graph TD
@@ -239,32 +239,14 @@ graph TD
 
 ---
 
-## 6. สรุปการตั้งค่า Firewall ACLs (สำหรับ Omada OC200)
+## 5. Firewall & Security Configuration
 
-นี่คือรายการกฎ (Rules) ที่คุณต้องสร้างใน **Settings > Network Security > ACL** (เรียงลำดับจากบนลงล่าง):
+> 📖 **ดูรายละเอียด Firewall ACLs และ Port Forwarding ได้ที่:** [03_Securities.md](03_Securities.md)
 
-| ลำดับ   | Name                   | Policy    | Source            | Destination               | Ports                                |
-| :---- | :--------------------- | :-------- | :---------------- | :------------------------ | :----------------------------------- |
-| **1** | Isolate-Guests         | **Deny**  | Network → VLAN 70 | Network → VLAN 10, 20, 30 | All                                  |
-| **2** | Isolate-Servers        | **Deny**  | Network → VLAN 10 | Network → VLAN 30 (USER)  | All                                  |
-| **3** | Block-User-to-Mgmt     | **Deny**  | Network → VLAN 30 | Network → VLAN 20 (MGMT)  | All                                  |
-| **4** | Allow-User-to-Services | **Allow** | Network → VLAN 30 | IP → QNAP (192.168.10.8)  | Port Group → Web (443, 80, 81, 2222) |
-| **5** | Allow-MGMT-to-All      | **Allow** | Network → VLAN 20 | Any                       | All                                  |
-| **6** | Allow-Server-Internal  | **Allow** | IP → 192.168.10.8 | IP → 192.168.10.9         | All (QNAP ↔ ASUSTOR)                 |
-| **7** | (Default)              | Deny      | Any               | Any                       | All                                  |
-
----
-
-## 7. สรุปการตั้งค่า Port Forwarding (สำหรับ Omada ER7206)
-
-นี่คือรายการกฎที่คุณต้องสร้างใน **Settings > Transmission > Port Forwarding**:
-
-| Name            | External Port | Internal IP  | Internal Port | Protocol |
-| :-------------- | :------------ | :----------- | :------------ | :------- |
-| Allow-NPM-HTTPS | 443           | 192.168.10.8 | 443           | TCP      |
-| Allow-NPM-HTTP  | 80            | 192.168.10.8 | 80            | TCP      |
-
-> **หมายเหตุ**: Port forwarding ไปที่ QNAP (NPM) เท่านั้น, ASUSTOR ไม่ควรเปิดรับ traffic จากภายนอก
+ไฟล์ `03_Securities.md` ประกอบด้วย:
+- 🌐 VLAN Segmentation
+- 🔥 Firewall Rules (IP Groups, Port Groups, Switch ACL, Gateway ACL)
+- 🚪 Port Forwarding Configuration
 
 ---
 
@@ -274,35 +256,33 @@ graph TD
 
 ---
 
-## 9. Backup Flow
+## 7. Backup Flow
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                         BACKUP STRATEGY                                │
-├────────────────────────────────────────────────────────────────────────┤
-│                                                                        │
-│   QNAP (Source)                         ASUSTOR (Target)               │
-│   ┌──────────────┐                      ┌──────────────────────┐       │
-│   │  MariaDB     │ ──── Daily 2AM ────▶ │  /volume1/backup/db/ │       │
-│   │  (mysqldump) │                      │  (Restic Repository) │       │
-│   └──────────────┘                      └──────────────────────┘       │
-│                                                                        │
-│   ┌──────────────┐                      ┌──────────────────────┐       │
-│   │  Redis RDB   │ ──── Daily 3AM ────▶ │  /volume1/backup/    │       │
-│   │  + AOF       │                      │  redis/              │       │
-│   └──────────────┘                      └──────────────────────┘       │
-│                                                                        │
-│   ┌──────────────┐                      ┌──────────────────────┐       │
-│   │  App Config  │ ──── Weekly ───────▶ │  /volume1/backup/    │       │
-│   │  + Volumes   │      Sunday 4AM      │  config/             │       │
-│   └──────────────┘                      └──────────────────────┘       │
-│                                                                        │
-│   Retention Policy:                                                    │
-│   • Daily: 7 days                                                      │
-│   • Weekly: 4 weeks                                                    │
-│   • Monthly: 6 months                                                  │
-│                                                                        │
-└────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph QNAP["💾 QNAP TS-473A (Source)"]
+        direction TB
+        DB["🗄️ MariaDB<br/>(mysqldump)"]
+        Redis["📦 Redis<br/>(RDB + AOF)"]
+        Config["⚙️ App Config<br/>+ Volumes"]
+    end
+
+    subgraph ASUSTOR["💾 ASUSTOR AS5403T (Target)"]
+        direction TB
+        BackupDB["📁 /volume1/backup/db/<br/>(Restic Repository)"]
+        BackupRedis["📁 /volume1/backup/redis/"]
+        BackupConfig["📁 /volume1/backup/config/"]
+    end
+
+    DB -->|"Daily 2AM"| BackupDB
+    Redis -->|"Daily 3AM"| BackupRedis
+    Config -->|"Weekly Sun 4AM"| BackupConfig
+
+    subgraph Retention["📋 Retention Policy"]
+        R1["Daily: 7 days"]
+        R2["Weekly: 4 weeks"]
+        R3["Monthly: 6 months"]
+    end
 ```
 
 ---
