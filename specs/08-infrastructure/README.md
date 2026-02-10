@@ -181,13 +181,14 @@ graph TB
 
 ### Core Services (QNAP)
 
-| ไฟล์                                      | Application | Services                                  | Path บน QNAP              |
-| :--------------------------------------- | :---------- | :---------------------------------------- | :------------------------ |
-| [MariaDB_setting.md](MariaDB_setting.md) | `lcbp3-db`  | `mariadb`, `pma`                          | `/share/np-dms/mariadb/`  |
-| [NPM_setting.md](NPM_setting.md)         | `lcbp3-npm` | `npm`, `landing`                          | `/share/np-dms/npm/`      |
-| [Service_setting.md](Service_setting.md) | `services`  | `cache` (Redis), `search` (Elasticsearch) | `/share/np-dms/services/` |
-| [Gitea_setting.md](Gitea_setting.md)     | `git`       | `gitea`                                   | `/share/np-dms/gitea/`    |
-| [n8n_setting.md](n8n_setting.md)         | `n8n`       | `n8n`                                     | `/share/np-dms/n8n/`      |
+| ไฟล์                                              | Application | Services                                  | Path บน QNAP              |
+| :----------------------------------------------- | :---------- | :---------------------------------------- | :------------------------ |
+| [MariaDB_setting.md](MariaDB_setting.md)         | `lcbp3-db`  | `mariadb`, `pma`                          | `/share/np-dms/mariadb/`  |
+| [NPM_setting.md](NPM_setting.md)                 | `lcbp3-npm` | `npm`, `landing`                          | `/share/np-dms/npm/`      |
+| [Service_setting.md](Service_setting.md)         | `services`  | `cache` (Redis), `search` (Elasticsearch) | `/share/np-dms/services/` |
+| [Gitea_setting.md](Gitea_setting.md)             | `git`       | `gitea`                                   | `/share/np-dms/gitea/`    |
+| [n8n_setting.md](n8n_setting.md)                 | `n8n`       | `n8n`                                     | `/share/np-dms/n8n/`      |
+| [docker-compose-app.yml](docker-compose-app.yml) | `lcbp3-app` | `backend` (NestJS), `frontend` (Next.js)  | `/share/np-dms/app/`      |
 
 ### Infrastructure Services (ASUSTOR)
 
@@ -333,10 +334,11 @@ docker exec mariadb mysqldump -u root -p lcbp3 > backup.sql
 
 ## 📚 เอกสารเสริม
 
-| ไฟล์                              | คำอธิบาย                                            |
-| :------------------------------- | :------------------------------------------------ |
-| [Git_command.md](Git_command.md) | คำสั่ง Git + Gitea Cheat Sheet                       |
-| [lcbp3-db.md](lcbp3-db.md)       | Docker Compose สำหรับ MariaDB (alternative version) |
+| ไฟล์                                          | คำอธิบาย                                                    |
+| :------------------------------------------- | :-------------------------------------------------------- |
+| [Git_command.md](Git_command.md)             | คำสั่ง Git + Gitea Cheat Sheet                               |
+| [lcbp3-db.md](lcbp3-db.md)                   | Docker Compose สำหรับ MariaDB (alternative version)         |
+| [09_app_deployment.md](09_app_deployment.md) | ขั้นตอน Deploy Backend + Frontend บน QNAP Container Station |
 
 ---
 

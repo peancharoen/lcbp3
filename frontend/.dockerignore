@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+.ignored_node_modules
+
+# Build output
+.next
+
+# Git
+.git
+.gitignore
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+vitest.config.ts
+vitest.setup.ts
+coverage
+
+# Documentation
+*.md
+!README.md
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Environment (local dev only)
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build logs
+*.log
+build-output.txt
+build-detailed.txt
+tsc.log
+tsconfig.tsbuildinfo

@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Git
+.git
+.gitignore
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test
+test
+coverage
+**/*.spec.ts
+**/*.test.ts
+jest.config.*
+docker-compose.test.yml
+
+# Documentation
+*.md
+!README.md
+docs
+documentation
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.tgz
+bfg.jar

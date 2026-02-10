@@ -1,0 +1,63 @@
+# ============================================================
+# Root .dockerignore — pnpm workspace monorepo
+# Build context is workspace root for both backend and frontend
+# ============================================================
+
+# Dependencies (re-installed inside Docker)
+node_modules
+**/node_modules
+
+# Git
+.git
+.github
+.gitignore
+
+# IDE / Editor
+.vscode
+.idea
+.agent
+.gemini
+.specify
+*.swp
+
+# Build artifacts (rebuilt inside Docker)
+backend/dist
+frontend/.next
+
+# Specs & docs (not needed in image)
+specs
+docs
+diagrams
+examples
+
+# Test artifacts
+coverage
+**/*.spec.ts
+**/*.test.ts
+**/*.test.tsx
+
+# Misc
+*.log
+*.md
+!backend/README.md
+!frontend/README.md
+.prettierrc
+.prettierignore
+.spectral.yml
+.cursorignore
+.aignore
+lcbp3.code-workspace
+lcbp3_dev.session.sql
+bfg.jar
+fix_links.py
+verify_links.py
+link_audit_results*.txt
+2git.ps1
+scripts
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+**/.env.local
