@@ -1,7 +1,4 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { config } from 'dotenv';
-
-config();
 
 export const databaseConfig: TypeOrmModuleOptions = {
   type: 'mysql',

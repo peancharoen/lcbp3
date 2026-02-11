@@ -48,8 +48,10 @@ async function bootstrap() {
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 
-  // 🌐 4. Global Prefix
-  app.setGlobalPrefix('api');
+  // 🌐 4. Global Prefix (ยกเว้น /health, /metrics สำหรับ monitoring)
+  app.setGlobalPrefix('api', {
+    exclude: ['health', 'metrics'],
+  });
 
   // ⚙️ 5. Global Pipes & Interceptors & Filters
   app.useGlobalPipes(

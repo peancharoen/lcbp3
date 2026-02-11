@@ -18,21 +18,26 @@ import { ForbiddenException } from '@nestjs/common'; // ✅ Import เพิ่�
 @Injectable()
 export class FileStorageService {
   private readonly logger = new Logger(FileStorageService.name);
-  private readonly uploadRoot: string;
+  private readonly tempDir: string;
+  private readonly permanentDir: string;
 
   constructor(
     @InjectRepository(Attachment)
     private attachmentRepository: Repository<Attachment>,
-    private configService: ConfigService,
+    private configService: ConfigService
   ) {
-    // ใช้ Path จริงถ้าอยู่บน Server (Production) หรือใช้ ./uploads ถ้าอยู่ Local
-    this.uploadRoot =
-      this.configService.get('NODE_ENV') === 'production'
-        ? '/share/dms-data'
-        : path.join(process.cwd(), 'uploads');
+    // ใช้ env vars จาก docker-compose สำหรับ Production
+    // ถ้าไม่ได้กำหนดจะ fallback เป็น ./uploads/temp และ ./uploads/permanent
+    this.tempDir =
+      this.configService.get<string>('UPLOAD_TEMP_DIR') ||
+      path.join(process.cwd(), 'uploads', 'temp');
+    this.permanentDir =
+      this.configService.get<string>('UPLOAD_PERMANENT_DIR') ||
+      path.join(process.cwd(), 'uploads', 'permanent');
 
-    // สร้างโฟลเดอร์ temp รอไว้เลยถ้ายังไม่มี
-    fs.ensureDirSync(path.join(this.uploadRoot, 'temp'));
+    // สร้างโฟลเดอร์ temp และ permanent รอไว้เลยถ้ายังไม่มี
+    fs.ensureDirSync(this.tempDir);
+    fs.ensureDirSync(this.permanentDir);
   }
 
   /**
@@ -42,7 +47,7 @@ export class FileStorageService {
     const tempId = uuidv4();
     const fileExt = path.extname(file.originalname);
     const storedFilename = `${uuidv4()}${fileExt}`;
-    const tempPath = path.join(this.uploadRoot, 'temp', storedFilename);
+    const tempPath = path.join(this.tempDir, storedFilename);
 
     // 1. คำนวณ Checksum (SHA-256) เพื่อความปลอดภัยและความถูกต้องของไฟล์
     const checksum = this.calculateChecksum(file.buffer);
@@ -89,7 +94,7 @@ export class FileStorageService {
       // แจ้งเตือนแต่อาจจะไม่ throw ถ้าต้องการให้ process ต่อไปได้บางส่วน (ขึ้นอยู่กับ business logic)
       // แต่เพื่อความปลอดภัยควรแจ้งว่าไฟล์ไม่ครบ
       this.logger.warn(
-        `Expected ${tempIds.length} files to commit, but found ${attachments.length}`,
+        `Expected ${tempIds.length} files to commit, but found ${attachments.length}`
       );
       throw new NotFoundException('Some files not found or already committed');
     }
@@ -100,7 +105,7 @@ export class FileStorageService {
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
 
     // โฟลเดอร์ถาวรแยกตาม ปี/เดือน
-    const permanentDir = path.join(this.uploadRoot, 'permanent', year, month);
+    const permanentDir = path.join(this.permanentDir, year, month);
     await fs.ensureDir(permanentDir);
 
     for (const att of attachments) {
@@ -122,16 +127,16 @@ export class FileStorageService {
         } else {
           this.logger.error(`File missing during commit: ${oldPath}`);
           throw new NotFoundException(
-            `File not found on disk: ${att.originalFilename}`,
+            `File not found on disk: ${att.originalFilename}`
           );
         }
       } catch (error) {
         this.logger.error(
           `Failed to move file from ${oldPath} to ${newPath}`,
-          error,
+          error
         );
         throw new BadRequestException(
-          `Failed to commit file: ${att.originalFilename}`,
+          `Failed to commit file: ${att.originalFilename}`
         );
       }
     }
@@ -144,7 +149,7 @@ export class FileStorageService {
    * ดึงไฟล์มาเป็น Stream เพื่อส่งกลับไปให้ Controller
    */
   async download(
-    id: number,
+    id: number
   ): Promise<{ stream: fs.ReadStream; attachment: Attachment }> {
     // 1. ค้นหาข้อมูลไฟล์จาก DB
     const attachment = await this.attachmentRepository.findOne({
@@ -191,7 +196,7 @@ export class FileStorageService {
     // (ในอนาคตอาจเพิ่มเงื่อนไข OR User เป็น Admin/Document Control)
     if (attachment.uploadedByUserId !== userId) {
       this.logger.warn(
-        `User ${userId} tried to delete file ${id} owned by ${attachment.uploadedByUserId}`,
+        `User ${userId} tried to delete file ${id} owned by ${attachment.uploadedByUserId}`
       );
       throw new ForbiddenException('You are not allowed to delete this file');
     }
@@ -202,13 +207,13 @@ export class FileStorageService {
         await fs.remove(attachment.filePath);
       } else {
         this.logger.warn(
-          `File not found on disk during deletion: ${attachment.filePath}`,
+          `File not found on disk during deletion: ${attachment.filePath}`
         );
       }
     } catch (error) {
       this.logger.error(
         `Failed to delete file from disk: ${attachment.filePath}`,
-        error,
+        error
       );
       throw new BadRequestException('Failed to delete file from storage');
     }

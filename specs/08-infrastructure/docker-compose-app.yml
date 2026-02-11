@@ -48,8 +48,8 @@ services:
       # --- Database ---
       DB_HOST: 'mariadb'
       DB_PORT: '3306'
-      DB_NAME: 'lcbp3'
-      DB_USER: 'center'
+      DB_DATABASE: 'lcbp3'
+      DB_USERNAME: 'center'
       DB_PASSWORD: 'Center#2025'
       # --- Redis ---
       REDIS_HOST: 'cache'
@@ -60,7 +60,8 @@ services:
       ELASTICSEARCH_PORT: '9200'
       # --- JWT ---
       JWT_SECRET: 'eebc122aa65adde8c76c6a0847d9649b2b67a06db1504693e6c912e51499b76e'
-      JWT_EXPIRES_IN: '8h'
+      JWT_EXPIRATION: '8h'
+      JWT_REFRESH_SECRET: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2'
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'
@@ -72,9 +73,9 @@ services:
       - lcbp3
     volumes:
       # Two-Phase Storage: จัดเก็บไฟล์นอก container
-      - '/share/dms-data/uploads/temp:/app/uploads/temp'
-      - '/share/dms-data/uploads/permanent:/app/uploads/permanent'
-      - '/share/dms-data/logs/backend:/app/logs'
+      - '/share/np-dms/data/uploads/temp:/app/uploads/temp'
+      - '/share/np-dms/data/uploads/permanent:/app/uploads/permanent'
+      - '/share/np-dms/data/logs/backend:/app/logs'
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
       interval: 30s

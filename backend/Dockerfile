@@ -43,8 +43,8 @@ COPY backend/ ./backend/
 # Build NestJS → backend/dist
 RUN cd backend && pnpm run build
 
-# Prune dev dependencies
-RUN pnpm prune --prod --filter backend...
+# Deploy with production deps only (pnpm workspace isolation)
+RUN pnpm --filter backend deploy --prod --legacy /app/backend-prod
 
 # =========================
 # Stage 3: Production Runtime
@@ -65,8 +65,8 @@ RUN addgroup -g 1001 -S nestjs && \
 
 # Copy production artifacts only
 COPY --from=build --chown=nestjs:nestjs /app/backend/dist ./dist
-COPY --from=build --chown=nestjs:nestjs /app/backend/node_modules ./node_modules
-COPY --from=build --chown=nestjs:nestjs /app/backend/package.json ./
+COPY --from=build --chown=nestjs:nestjs /app/backend-prod/node_modules ./node_modules
+COPY --from=build --chown=nestjs:nestjs /app/backend-prod/package.json ./
 
 # Create uploads directory (Two-Phase Storage)
 RUN mkdir -p /app/uploads/temp /app/uploads/permanent && \

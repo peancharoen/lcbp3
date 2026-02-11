@@ -22,25 +22,25 @@
 
 ## 1. Build Docker Images
 
-### Option A: Build บน Dev Machine แล้ว Transfer
+### Option A: Build บน Dev Machine (Windows) แล้ว Transfer
 
-```bash
+```powershell
 # อยู่ที่ workspace root (nap-dms.lcbp3/)
 
 # Build Backend
 docker build -f backend/Dockerfile -t lcbp3-backend:latest .
 
 # Build Frontend (NEXT_PUBLIC_API_URL bake เข้าไปตอน build)
-docker build -f frontend/Dockerfile \
-  --build-arg NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api \
+docker build -f frontend/Dockerfile `
+  --build-arg NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api `
   -t lcbp3-frontend:latest .
 
 # Export เป็น .tar เพื่อ Transfer
-docker save lcbp3-backend:latest | gzip > lcbp3-backend.tar.gz
-docker save lcbp3-frontend:latest | gzip > lcbp3-frontend.tar.gz
+docker save lcbp3-backend:latest -o lcbp3-backend.tar
+docker save lcbp3-frontend:latest -o lcbp3-frontend.tar
 
-# Transfer ไปยัง QNAP (ผ่าน SCP หรือ Shared Folder)
-scp lcbp3-*.tar.gz admin@192.168.10.8:/share/np-dms/app/
+# Transfer ไปยัง QNAP (ผ่าน SMB Shared Folder)
+# Copy lcbp3-backend.tar และ lcbp3-frontend.tar ไปที่ \\192.168.10.8\np-dms\app\
 ```
 
 ### Option B: Build บน QNAP โดยตรง (SSH)
@@ -69,8 +69,8 @@ docker build -f frontend/Dockerfile \
 ssh admin@192.168.10.8
 
 # Load images
-docker load < /share/np-dms/app/lcbp3-backend.tar.gz
-docker load < /share/np-dms/app/lcbp3-frontend.tar.gz
+docker load < /share/np-dms/app/lcbp3-backend.tar
+docker load < /share/np-dms/app/lcbp3-frontend.tar
 
 # ตรวจสอบ
 docker images | grep lcbp3
@@ -82,15 +82,15 @@ docker images | grep lcbp3
 
 ```bash
 # สร้าง directories สำหรับ volumes
-mkdir -p /share/dms-data/uploads/temp
-mkdir -p /share/dms-data/uploads/permanent
-mkdir -p /share/dms-data/logs/backend
+mkdir -p /share/np-dms/data/uploads/temp
+mkdir -p /share/np-dms/data/uploads/permanent
+mkdir -p /share/np-dms/data/logs/backend
 mkdir -p /share/np-dms/app
 
 # กำหนดสิทธิ์ให้ non-root user ใน container (UID 1001)
-chown -R 1001:1001 /share/dms-data/uploads
-chown -R 1001:1001 /share/dms-data/logs/backend
-chmod -R 750 /share/dms-data/uploads
+chown -R 1001:1001 /share/np-dms/data/uploads
+chown -R 1001:1001 /share/np-dms/data/logs/backend
+chmod -R 750 /share/np-dms/data/uploads
 ```
 
 ---
@@ -160,20 +160,22 @@ docker logs -f frontend
 
 เมื่อต้องการ deploy version ใหม่:
 
-```bash
-# 1. Build images ใหม่ (บน Dev Machine)
+```powershell
+# 1. Build images ใหม่ (บน Dev Machine - PowerShell)
 docker build -f backend/Dockerfile -t lcbp3-backend:latest .
-docker build -f frontend/Dockerfile -t lcbp3-frontend:latest .
+docker build -f frontend/Dockerfile `
+  --build-arg NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api `
+  -t lcbp3-frontend:latest .
 
 # 2. Export & Transfer
-docker save lcbp3-backend:latest | gzip > lcbp3-backend.tar.gz
-docker save lcbp3-frontend:latest | gzip > lcbp3-frontend.tar.gz
-scp lcbp3-*.tar.gz admin@192.168.10.8:/share/np-dms/app/
+docker save lcbp3-backend:latest -o lcbp3-backend.tar
+docker save lcbp3-frontend:latest -o lcbp3-frontend.tar
+# Copy ไปที่ \\192.168.10.8\np-dms\app\ ผ่าน SMB Shared Folder
 
-# 3. Load บน QNAP
+# 3. Load บน QNAP (SSH)
 ssh admin@192.168.10.8
-docker load < /share/np-dms/app/lcbp3-backend.tar.gz
-docker load < /share/np-dms/app/lcbp3-frontend.tar.gz
+docker load < /share/np-dms/app/lcbp3-backend.tar
+docker load < /share/np-dms/app/lcbp3-frontend.tar
 
 # 4. Restart ใน Container Station
 #    Applications → lcbp3-app → Restart
