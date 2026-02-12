@@ -7,14 +7,14 @@
 
 Stack สำหรับ Monitoring ประกอบด้วย:
 
-| Service           | Port | Purpose                           | Host    |
-| :---------------- | :--- | :-------------------------------- | :------ |
-| **Prometheus**    | 9090 | เก็บ Metrics และ Time-series data  | ASUSTOR |
-| **Grafana**       | 3000 | Dashboard สำหรับแสดงผล Metrics      | ASUSTOR |
-| **Node Exporter** | 9100 | เก็บ Metrics ของ Host system       | Both    |
-| **cAdvisor**      | 8080 | เก็บ Metrics ของ Docker containers | Both    |
-| **Uptime Kuma**   | 3001 | Service Availability Monitoring   | ASUSTOR |
-| **Loki**          | 3100 | Log aggregation                   | ASUSTOR |
+| Service           | Port                         | Purpose                           | Host    |
+| :---------------- | :--------------------------- | :-------------------------------- | :------ |
+| **Prometheus**    | 9090                         | เก็บ Metrics และ Time-series data  | ASUSTOR |
+| **Grafana**       | 3000                         | Dashboard สำหรับแสดงผล Metrics      | ASUSTOR |
+| **Node Exporter** | 9100                         | เก็บ Metrics ของ Host system       | Both    |
+| **cAdvisor**      | 8080 (ASUSTOR) / 8088 (QNAP) | เก็บ Metrics ของ Docker containers | Both    |
+| **Uptime Kuma**   | 3001                         | Service Availability Monitoring   | ASUSTOR |
+| **Loki**          | 3100                         | Log aggregation                   | ASUSTOR |
 
 ---
 
@@ -84,15 +84,48 @@ chmod -R 750 /volume1/np-dms/monitoring/loki/data
 
 ---
 
-## Note: NPM Proxy Configuration (ถ้าใช้ NPM บน ASUSTOR)
+## 🔗 สร้าง Docker Network (ทำครั้งแรกครั้งเดียว)
 
-| Domain Names           | Forward Hostname | IP Forward Port | Cache Assets | Block Common Exploits | Websockets | Force SSL | HTTP/2 |
-| :--------------------- | :--------------- | :-------------- | :----------- | :-------------------- | :--------- | :-------- | :----- |
-| grafana.np-dms.work    | grafana          | 3000            | [ ]          | [x]                   | [x]        | [x]       | [x]    |
-| prometheus.np-dms.work | prometheus       | 9090            | [ ]          | [x]                   | [ ]        | [x]       | [x]    |
-| uptime.np-dms.work     | uptime-kuma      | 3001            | [ ]          | [x]                   | [x]        | [x]       | [x]    |
+> ⚠️ **ต้องสร้าง network ก่อน deploy docker-compose ทุกตัว** เพราะทุก service ใช้ `lcbp3` เป็น external network
 
-> **หมายเหตุ**: ถ้าใช้ NPM บน QNAP เพียงตัวเดียว ให้ forward ไปยัง IP ของ ASUSTOR (192.168.10.9)
+### สร้างผ่าน Portainer (แนะนำ)
+
+1. เปิด **Portainer** → เลือก Environment ของ ASUSTOR
+2. ไปที่ **Networks** → **Add network**
+3. กรอกข้อมูล:
+   - **Name:** `lcbp3`
+   - **Driver:** `bridge`
+4. กด **Create the network**
+
+### สร้างผ่าน SSH
+
+```bash
+# SSH เข้า ASUSTOR
+ssh admin@192.168.10.9
+
+# สร้าง external network
+docker network create lcbp3
+
+# ตรวจสอบ
+docker network ls | grep lcbp3
+docker network inspect lcbp3
+```
+
+> 📖 **QNAP** ก็ต้องมี network ชื่อ `lcbp3` เช่นกัน (สร้างผ่าน Container Station หรือ SSH)
+> ดู [README.md – Quick Reference](README.md#-quick-reference) สำหรับคำสั่งบน QNAP
+
+---
+
+## Note: NPM Proxy Configuration (NPM รันบน QNAP → Forward ไป ASUSTOR)
+
+> ⚠️ เนื่องจาก NPM อยู่บน **QNAP** แต่ Monitoring services อยู่บน **ASUSTOR**
+> ต้องใช้ **IP Address** (`192.168.10.9`) แทนชื่อ container (resolve ข้ามเครื่องไม่ได้)
+
+| Domain Names           | Scheme | Forward Hostname | Forward Port | Block Common Exploits | Websockets | Force SSL | HTTP/2 |
+| :--------------------- | :----- | :--------------- | :----------- | :-------------------- | :--------- | :-------- | :----- |
+| grafana.np-dms.work    | `http` | `192.168.10.9`   | 3000         | [x]                   | [x]        | [x]       | [x]    |
+| prometheus.np-dms.work | `http` | `192.168.10.9`   | 9090         | [x]                   | [ ]        | [x]       | [x]    |
+| uptime.np-dms.work     | `http` | `192.168.10.9`   | 3001         | [x]                   | [x]        | [x]       | [x]    |
 
 ---
 
@@ -143,6 +176,8 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=30d'
       - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
     networks:
       - lcbp3
     volumes:
@@ -174,9 +209,11 @@ services:
     environment:
       TZ: "Asia/Bangkok"
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-Center#2025}
+      GF_SECURITY_ADMIN_PASSWORD: "Center#2025"
       GF_SERVER_ROOT_URL: "https://grafana.np-dms.work"
       GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-piechart-panel
+    ports:
+      - "3000:3000"
     networks:
       - lcbp3
     volumes:
@@ -203,12 +240,14 @@ services:
           memory: 256M
     environment:
       TZ: "Asia/Bangkok"
+    ports:
+      - "3001:3001"
     networks:
       - lcbp3
     volumes:
       - "/volume1/np-dms/monitoring/uptime-kuma/data:/app/data"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/api/entry-page || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -231,6 +270,8 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
     networks:
       - lcbp3
     volumes:
@@ -257,6 +298,8 @@ services:
           memory: 256M
     environment:
       TZ: "Asia/Bangkok"
+    ports:
+      - "8088:8088"
     networks:
       - lcbp3
     volumes:
@@ -285,6 +328,8 @@ services:
     environment:
       TZ: "Asia/Bangkok"
     command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
     networks:
       - lcbp3
     volumes:
@@ -321,6 +366,8 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
     networks:
       - lcbp3
     volumes:
@@ -332,6 +379,9 @@ services:
     image: gcr.io/cadvisor/cadvisor:v0.47.2
     container_name: cadvisor
     restart: unless-stopped
+    privileged: true
+    ports:
+      - "8088:8080"
     networks:
       - lcbp3
     volumes:
@@ -339,6 +389,7 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
 ```
 
 ---
@@ -390,7 +441,7 @@ scrape_configs:
   # Container metrics from cAdvisor (QNAP)
   - job_name: 'qnap-cadvisor'
     static_configs:
-      - targets: ['192.168.10.8:8080']
+      - targets: ['192.168.10.8:8088']
         labels:
           host: 'qnap'
 
@@ -441,7 +492,11 @@ scrape_configs:
 | 1860         | Node Exporter Full           | Host system metrics |
 | 14282        | cAdvisor exporter            | Container metrics   |
 | 11074        | Node Exporter for Prometheus | Node overview       |
-| 7362         | Docker and Host Monitoring   | Combined view       |
+| 893          | Docker and Container         | Docker overview     |
+| 7362         | MySQL                        | MySQL view          |
+| 1214         | Redis                        | Redis view          |
+| 14204        | Elasticsearch                | Elasticsearch view  |
+
 
 ### Import Dashboard via Grafana UI
 
@@ -452,4 +507,169 @@ scrape_configs:
 
 ---
 
+## 🚀 Deploy lcbp3-monitoring บน ASUSTOR
+
+### 📋 Prerequisites Checklist
+
+| #    | ขั้นตอน                                                                                              | Status |
+| :--- | :------------------------------------------------------------------------------------------------- | :----- |
+| 1    | SSH เข้า ASUSTOR ได้ (`ssh admin@192.168.10.9`)                                                      | ☐      |
+| 2    | Docker Network `lcbp3` สร้างแล้ว (ดูหัวข้อ [สร้าง Docker Network](#-สร้าง-docker-network-ทำครั้งแรกครั้งเดียว)) | ☐      |
+| 3    | สร้าง Directories และกำหนดสิทธิ์แล้ว (ดูหัวข้อ [กำหนดสิทธิ](#กำหนดสิทธิ-บน-asustor))                              | ☐      |
+| 4    | สร้าง `prometheus.yml` แล้ว (ดูหัวข้อ [Prometheus Configuration](#prometheus-configuration))            | ☐      |
+
+---
+
+### Step 1: สร้าง prometheus.yml
+
+```bash
+# SSH เข้า ASUSTOR
+ssh admin@192.168.10.9
+
+# สร้างไฟล์ prometheus.yml
+cat > /volume1/np-dms/monitoring/prometheus/config/prometheus.yml << 'EOF'
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'asustor-node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          host: 'asustor'
+
+  - job_name: 'asustor-cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          host: 'asustor'
+
+  - job_name: 'qnap-node'
+    static_configs:
+      - targets: ['192.168.10.8:9100']
+        labels:
+          host: 'qnap'
+
+  - job_name: 'qnap-cadvisor'
+    static_configs:
+      - targets: ['192.168.10.8:8088']
+        labels:
+          host: 'qnap'
+
+  - job_name: 'backend'
+    static_configs:
+      - targets: ['192.168.10.8:3000']
+        labels:
+          host: 'qnap'
+    metrics_path: '/metrics'
+EOF
+
+# ตรวจสอบ
+cat /volume1/np-dms/monitoring/prometheus/config/prometheus.yml
+```
+
+---
+
+### Step 2: Deploy ผ่าน Portainer (แนะนำ)
+
+1. เปิด **Portainer** → เลือก Environment ของ **ASUSTOR**
+2. ไปที่ **Stacks** → **Add stack**
+3. กรอกข้อมูล:
+   - **Name:** `lcbp3-monitoring`
+   - **Build method:** เลือก **Web editor**
+4. วาง (Paste) เนื้อหาจาก [Docker Compose File (ASUSTOR)](#docker-compose-file-asustor) ด้านบน
+5. กด **Deploy the stack**
+
+> ⚠️ **สำคัญ:** ตรวจสอบ Password ของ Grafana (`GF_SECURITY_ADMIN_PASSWORD`) ใน docker-compose ก่อน deploy
+
+### Deploy ผ่าน SSH (วิธีสำรอง)
+
+```bash
+# SSH เข้า ASUSTOR
+ssh admin@192.168.10.9
+
+# คัดลอก docker-compose.yml ไปยัง path
+# (วางไฟล์ที่ /volume1/np-dms/monitoring/docker-compose.yml)
+
+# Deploy
+cd /volume1/np-dms/monitoring
+docker compose up -d
+
+# ตรวจสอบ container status
+docker compose ps
+```
+
+---
+
+### Step 3: Verify Services
+
+```bash
+# ตรวจสอบ containers ทั้งหมด
+docker ps --filter "name=prometheus" --filter "name=grafana" \
+  --filter "name=uptime-kuma" --filter "name=node-exporter" \
+  --filter "name=cadvisor" --filter "name=loki"
+```
+
+| Service           | วิธีตรวจสอบ                                                          | Expected Result                |
+| :---------------- | :----------------------------------------------------------------- | :----------------------------- |
+| ✅ **Prometheus**    | `curl http://192.168.10.9:9090/-/healthy`                          | `Prometheus Server is Healthy` |
+| ✅ **Grafana**     | เปิด `https://grafana.np-dms.work` (หรือ `http://192.168.10.9:3000`) | หน้า Login                      |
+| ✅ **Uptime Kuma** | เปิด `https://uptime.np-dms.work` (หรือ `http://192.168.10.9:3001`)  | หน้า Setup                      |
+| ✅ **Node Exp.**   | `curl http://192.168.10.9:9100/metrics \| head`                    | Metrics output                 |
+| ✅ **cAdvisor**    | `curl http://192.168.10.9:8080/healthz`                            | `ok`                           |
+| ✅ **Loki**        | `curl http://192.168.10.9:3100/ready`                              | `ready`                        |
+
+---
+
+### Step 4: Deploy QNAP Exporters
+
+ติดตั้ง node-exporter และ cAdvisor บน QNAP เพื่อให้ Prometheus scrape ข้ามเครื่องได้:
+
+#### ผ่าน Container Station (QNAP)
+
+1. เปิด **Container Station** บน QNAP Web UI
+2. ไปที่ **Applications** → **Create**
+3. ตั้งชื่อ Application: `lcbp3-exporters`
+4. วาง (Paste) เนื้อหาจาก [QNAP Node Exporter & cAdvisor](#qnap-node-exporter--cadvisor)
+5. กด **Create**
+
+#### ตรวจสอบจาก ASUSTOR
+
+```bash
+# ตรวจว่า Prometheus scrape QNAP ได้
+curl -s http://localhost:9090/api/v1/targets | grep -E '"qnap-(node|cadvisor)"'
+
+# หรือเปิด Prometheus UI → Targets
+# URL: http://192.168.10.9:9090/targets
+# ดูว่า qnap-node, qnap-cadvisor เป็น State: UP
+```
+
+---
+
+### Step 5: ตั้งค่า Grafana & Uptime Kuma
+
+#### Grafana — First Login
+
+1. เปิด `https://grafana.np-dms.work`
+2. Login: `admin` / `Center#2025` (หรือ password ที่ตั้งไว้)
+3. ไปที่ **Connections** → **Data sources** → **Add data source**
+4. เลือก **Prometheus**
+   - URL: `http://prometheus:9090`
+   - กด **Save & Test** → ต้องขึ้น ✅
+5. Import Dashboards (ดูหัวข้อ [Grafana Dashboards](#grafana-dashboards))
+
+#### Uptime Kuma — First Setup
+
+1. เปิด `https://uptime.np-dms.work`
+2. สร้าง Admin account
+3. เพิ่ม Monitors ตาม [ตาราง Uptime Kuma Monitors](#uptime-kuma-monitors)
+
+---
+
 > 📝 **หมายเหตุ**: เอกสารนี้อ้างอิงจาก Architecture Document **v1.8.0** - Monitoring Stack deploy บน ASUSTOR AS5403T
+

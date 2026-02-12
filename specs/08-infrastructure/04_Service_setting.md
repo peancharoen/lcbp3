@@ -8,7 +8,7 @@
 
   * Image: redis:7-alpine มีขนาดเล็กและทันสมัย
 
-  * Port: ไม่ได้ expose port 6379 ออกมาที่ Host QNAP เพราะตามสถาปัตยกรรม Service backend (NestJS) จะคุยกับ cache (Redis) ผ่าน lcbp3 network ภายในโดยตรง ซึ่งปลอดภัยกว่าครับ
+  * Port: expose port 6379 ออกมาที่ Host QNAP เพื่อให้ Uptime Kuma (ASUSTOR) สามารถ monitor ได้ — Backend (NestJS) ยังคงคุยผ่าน lcbp3 network ภายในโดยตรง
 
   * Volume: map data ไปที่ /share/Container/cache/data เผื่อใช้ Redis ในการทำ Persistent Cache (ถ้าต้องการแค่ Locking อาจจะไม่จำเป็นต้อง map volume ก็ได้ครับ)
 
@@ -18,7 +18,7 @@
 
   * Image: elasticsearch:8.11.1 ผมเลือกเวอร์ชัน 8 ที่ใหม่และระบุชัดเจน (ไม่ใช้ latest) เพื่อความเสถียรครับ
 
-  * Port: ไม่ได้ expose port 9200 ออกมาที่ Host เช่นกัน เพราะ NPM_setting.md ระบุว่า npm (Nginx Proxy Manager) จะ forward search.np-dms.work ไปยัง service search ที่ port 9200 ผ่าน lcbp3 network ครับ
+  * Port: expose port 9200 ออกมาที่ Host QNAP เพื่อให้ Uptime Kuma (ASUSTOR) และ Prometheus สามารถ monitor ได้
 
   * Environment (สำคัญมาก):
 
@@ -91,8 +91,10 @@ services:
           memory: 512M
     environment:
       TZ: "Asia/Bangkok"
+    ports:
+      - "6379:6379"
     networks:
-      - lcbp3 # เชื่อมต่อ network ภายในเท่านั้น
+      - lcbp3
     volumes:
       - "/share/np-dms/services/cache/data:/data" # Map volume สำหรับเก็บข้อมูล (ถ้าต้องการ persistence)
     healthcheck:
@@ -130,8 +132,10 @@ services:
       # --- Performance Tuning ---
       # กำหนด Heap size (1GB) ให้เหมาะสมกับ memory limit (4GB)
       ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+    ports:
+      - "9200:9200"
     networks:
-      - lcbp3 # เชื่อมต่อ network ภายใน (NPM จะ proxy port 9200 จากภายนอก)
+      - lcbp3
     volumes:
       - "/share/np-dms/services/search/data:/usr/share/elasticsearch/data" # Map volume สำหรับเก็บ data/indices
     healthcheck:
