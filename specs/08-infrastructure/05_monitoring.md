@@ -15,6 +15,7 @@ Stack สำหรับ Monitoring ประกอบด้วย:
 | **cAdvisor**      | 8080 (ASUSTOR) / 8088 (QNAP) | เก็บ Metrics ของ Docker containers | Both    |
 | **Uptime Kuma**   | 3001                         | Service Availability Monitoring   | ASUSTOR |
 | **Loki**          | 3100                         | Log aggregation                   | ASUSTOR |
+| **Promtail**      | -                            | Log shipper (Sender)              | ASUSTOR |
 
 ---
 
@@ -31,11 +32,11 @@ Stack สำหรับ Monitoring ประกอบด้วย:
 │         │                                                               │
 │         │ Scrape Metrics                                                │
 │         ▼                                                               │
-│  ┌─────────────┐    ┌─────────────┐                                    │
-│  │node-exporter│    │  cAdvisor   │                                    │
-│  │   :9100     │    │   :8080     │                                    │
-│  │  (Local)    │    │  (Local)    │                                    │
-│  └─────────────┘    └─────────────┘                                    │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                 │
+│  │node-exporter│    │  cAdvisor   │    │  Promtail   │                 │
+│  │   :9100     │    │   :8080     │    │  (Log Ship) │                 │
+│  │  (Local)    │    │  (Local)    │    │   (Local)   │                 │
+│  └─────────────┘    └─────────────┘    └─────────────┘                 │
 └─────────────────────────────────────────────────────────────────────────┘
          │ Remote Scrape
          ▼
@@ -63,6 +64,7 @@ mkdir -p /volume1/np-dms/monitoring/prometheus/config
 mkdir -p /volume1/np-dms/monitoring/grafana/data
 mkdir -p /volume1/np-dms/monitoring/uptime-kuma/data
 mkdir -p /volume1/np-dms/monitoring/loki/data
+mkdir -p /volume1/np-dms/monitoring/promtail/config
 
 # กำหนดสิทธิ์ให้ตรงกับ User ID ใน Container
 # Prometheus (UID 65534 - nobody)
@@ -80,6 +82,10 @@ chmod -R 750 /volume1/np-dms/monitoring/uptime-kuma/data
 # Loki (UID 10001)
 chown -R 10001:10001 /volume1/np-dms/monitoring/loki/data
 chmod -R 750 /volume1/np-dms/monitoring/loki/data
+
+# Promtail (Runs as root to read docker logs - no specific chown needed for config dir if created by admin)
+# But ensure config file is readable
+chmod -R 755 /volume1/np-dms/monitoring/promtail/config
 ```
 
 ---
@@ -135,7 +141,7 @@ docker network inspect lcbp3
 # File: /volume1/np-dms/monitoring/docker-compose.yml
 # DMS Container v1.8.0: Application name: lcbp3-monitoring
 # Deploy on: ASUSTOR AS5403T
-# Services: prometheus, grafana, node-exporter, cadvisor, uptime-kuma, loki
+# Services: prometheus, grafana, node-exporter, cadvisor, uptime-kuma, loki, promtail
 
 x-restart: &restart_policy
   restart: unless-stopped
@@ -339,6 +345,31 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # ----------------------------------------------------------------
+  # 7. Promtail (Log Shipper)
+  # ----------------------------------------------------------------
+  promtail:
+    <<: [*restart_policy, *default_logging]
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    user: "0:0"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    environment:
+      TZ: "Asia/Bangkok"
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - lcbp3
+    volumes:
+      - "/volume1/np-dms/monitoring/promtail/config:/etc/promtail:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/var/lib/docker/containers:/var/lib/docker/containers:ro"
+    depends_on:
+      - loki
 ```
 
 ---
@@ -489,8 +520,8 @@ scrape_configs:
 
 | Dashboard ID | Name                         | Purpose             |
 | :----------- | :--------------------------- | :------------------ |
-| 1860         | Node Exporter Full           | Host system metrics |
-| 14282        | cAdvisor exporter            | Container metrics   |
+| 1860         | Node Exporter Full           | Host system metrics | ป |
+| 14282        | cAdvisor exporter            | Container metrics   | ป |
 | 11074        | Node Exporter for Prometheus | Node overview       |
 | 893          | Docker and Container         | Docker overview     |
 | 7362         | MySQL                        | MySQL view          |
@@ -513,10 +544,11 @@ scrape_configs:
 
 | #    | ขั้นตอน                                                                                              | Status |
 | :--- | :------------------------------------------------------------------------------------------------- | :----- |
-| 1    | SSH เข้า ASUSTOR ได้ (`ssh admin@192.168.10.9`)                                                      | ☐      |
-| 2    | Docker Network `lcbp3` สร้างแล้ว (ดูหัวข้อ [สร้าง Docker Network](#-สร้าง-docker-network-ทำครั้งแรกครั้งเดียว)) | ☐      |
-| 3    | สร้าง Directories และกำหนดสิทธิ์แล้ว (ดูหัวข้อ [กำหนดสิทธิ](#กำหนดสิทธิ-บน-asustor))                              | ☐      |
-| 4    | สร้าง `prometheus.yml` แล้ว (ดูหัวข้อ [Prometheus Configuration](#prometheus-configuration))            | ☐      |
+| 1    | SSH เข้า ASUSTOR ได้ (`ssh admin@192.168.10.9`)                                                      | ✅      |
+| 2    | Docker Network `lcbp3` สร้างแล้ว (ดูหัวข้อ [สร้าง Docker Network](#-สร้าง-docker-network-ทำครั้งแรกครั้งเดียว)) | ✅      |
+| 3    | สร้าง Directories และกำหนดสิทธิ์แล้ว (ดูหัวข้อ [กำหนดสิทธิ](#กำหนดสิทธิ-บน-asustor))                        | ✅      |
+| 4    | สร้าง `prometheus.yml` แล้ว (ดูหัวข้อ [Prometheus Configuration](#prometheus-configuration))            | ✅      |
+| 5    | สร้าง `promtail-config.yml` แล้ว (ดูหัวข้อ [Step 1.2](#step-12-สร้าง-promtail-configyml))                | ✅      |
 
 ---
 
@@ -573,6 +605,40 @@ EOF
 cat /volume1/np-dms/monitoring/prometheus/config/prometheus.yml
 ```
 
+### Step 1.2: สร้าง promtail-config.yml
+
+ต้องสร้าง Config ให้ Promtail อ่าน logs จาก Docker containers และส่งไป Loki:
+
+```bash
+# สร้างไฟล์ promtail-config.yml
+cat > /volume1/np-dms/monitoring/promtail/config/promtail-config.yml << 'EOF'
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+EOF
+
+# ตรวจสอบ
+cat /volume1/np-dms/monitoring/promtail/config/promtail-config.yml
+```
+
 ---
 
 ### Step 2: Deploy ผ่าน Portainer (แนะนำ)
@@ -612,17 +678,18 @@ docker compose ps
 # ตรวจสอบ containers ทั้งหมด
 docker ps --filter "name=prometheus" --filter "name=grafana" \
   --filter "name=uptime-kuma" --filter "name=node-exporter" \
-  --filter "name=cadvisor" --filter "name=loki"
+  --filter "name=cadvisor" --filter "name=loki" --filter "name=promtail"
 ```
 
-| Service           | วิธีตรวจสอบ                                                          | Expected Result                |
-| :---------------- | :----------------------------------------------------------------- | :----------------------------- |
-| ✅ **Prometheus**    | `curl http://192.168.10.9:9090/-/healthy`                          | `Prometheus Server is Healthy` |
-| ✅ **Grafana**     | เปิด `https://grafana.np-dms.work` (หรือ `http://192.168.10.9:3000`) | หน้า Login                      |
-| ✅ **Uptime Kuma** | เปิด `https://uptime.np-dms.work` (หรือ `http://192.168.10.9:3001`)  | หน้า Setup                      |
-| ✅ **Node Exp.**   | `curl http://192.168.10.9:9100/metrics \| head`                    | Metrics output                 |
-| ✅ **cAdvisor**    | `curl http://192.168.10.9:8080/healthz`                            | `ok`                           |
-| ✅ **Loki**        | `curl http://192.168.10.9:3100/ready`                              | `ready`                        |
+| Service           | วิธีตรวจสอบ                                                          | Expected Result                       |
+| :---------------- | :----------------------------------------------------------------- | :------------------------------------ |
+| ✅ **Prometheus**  | `curl http://192.168.10.9:9090/-/healthy`                          | `Prometheus Server is Healthy`        |
+| ✅ **Grafana**     | เปิด `https://grafana.np-dms.work` (หรือ `http://192.168.10.9:3000`) | หน้า Login                             |
+| ✅ **Uptime Kuma** | เปิด `https://uptime.np-dms.work` (หรือ `http://192.168.10.9:3001`)  | หน้า Setup                             |
+| ✅ **Node Exp.**   | `curl http://192.168.10.9:9100/metrics \| head`                    | Metrics output                        |
+| ✅ **cAdvisor**    | `curl http://192.168.10.9:8080/healthz`                            | `ok`                                  |
+| ✅ **Loki**        | `curl http://192.168.10.9:3100/ready`                              | `ready`                               |
+| ✅ **Promtail**    | เช็ค Logs: `docker logs promtail`                                   | ไม่ควรมี Error + เห็น connection success |
 
 ---
 
@@ -661,13 +728,70 @@ curl -s http://localhost:9090/api/v1/targets | grep -E '"qnap-(node|cadvisor)"'
 4. เลือก **Prometheus**
    - URL: `http://prometheus:9090`
    - กด **Save & Test** → ต้องขึ้น ✅
-5. Import Dashboards (ดูหัวข้อ [Grafana Dashboards](#grafana-dashboards))
+5. Import Dashboards (ดูรายละเอียดในหัวข้อ [6. Grafana Dashboards Setup](#6-grafana-dashboards-setup))
 
 #### Uptime Kuma — First Setup
 
 1. เปิด `https://uptime.np-dms.work`
 2. สร้าง Admin account
 3. เพิ่ม Monitors ตาม [ตาราง Uptime Kuma Monitors](#uptime-kuma-monitors)
+
+---
+
+### 6. Grafana Dashboards Setup
+
+เพื่อการ Monitor ที่สมบูรณ์ แนะนำให้ Import Dashboards ต่อไปนี้:
+
+#### 6.1 Host Monitoring (Node Exporter)
+*   **Concept:** ดู resource ของเครื่อง Host (CPU, RAM, Disk, Network)
+*   **Dashboard ID:** `1860` (Node Exporter Full)
+*   **วิธี Import:**
+    1. ไปที่ **Dashboards** → **New** → **Import**
+    2. ช่อง **Import via grafana.com** ใส่เลข `1860` กด **Load**
+    3. เลือก Data source: **Prometheus**
+    4. กด **Import**
+
+#### 6.2 Container Monitoring (cAdvisor)
+*   **Concept:** ดู resource ของแต่ละ Container (เชื่อม Logs ด้วย)
+*   **Dashboard ID:** `14282` (Cadvisor exporter)
+*   **วิธี Import:**
+    1. ใส่เลข `14282` กด **Load**
+    2. เลือก Data source: **Prometheus**
+    3. กด **Import**
+
+#### 6.3 Logs Monitoring (Loki Integration)
+เพื่อให้ Dashboard ของ Container แสดง Logs จาก Loki ได้ด้วย:
+
+1. เปิด Dashboard **Cadvisor exporter** ที่เพิ่ง Import มา
+2. กดปุ่ม **Add visualization** (หรือ Edit dashboard)
+3. เลือก Data source: **Loki**
+4. ในช่อง Query ใส่: `{container="$name"}`
+    *   *(Note: `$name` มาจาก Variable ของ Dashboard 14282)*
+5. ปรับ Visualization type เป็น **Logs**
+6. ตั้งชื่อ Panel ว่า **"Container Logs"**
+7. กด **Apply** และ **Save Dashboard**
+
+ตอนนี้เราจะเห็นทั้ง **กราฟการกินทรัพยากร** และ **Logs** ของ Container นั้นๆ ในหน้าเดียวกันครับ
+
+#### 6.4 Integrated Dashboard (Recommended)
+
+ผมได้เตรียม JSON file ที่รวม Metrics และ Logs ไว้ให้แล้วครับ:
+
+1.  ไปที่ **Dashboards** → **New** → **Import**
+2.  ลากไฟล์ หรือ Copy เนื้อหาจากไฟล์:
+    `specs/08-infrastructure/grafana/dashboards/lcbp3-docker-monitoring.json`
+3.  กด **Load** และ **Import**
+
+## 7.3 Backup / Export Dashboards
+
+เมื่อปรับแต่ง Dashboard จนพอใจแล้ว ควร Export เก็บเป็นไฟล์ JSON ไว้ backup หรือ version control:
+
+1.  เปิด Dashboard ที่ต้องการ backup
+2.  ไปที่ปุ่ม **Share Dashboard** (ไอคอน 🔗 หรือ Share มุมซ้ายบน)
+3.  เลือกTab **Export**
+4.  เปิดตัวเลือก **Export for sharing externally** (เพื่อให้ลบ hardcoded value)
+5.  กด **Save to file**
+6.  นำไฟล์ JSON มาเก็บไว้ที่ path: `specs/08-infrastructure/grafana/dashboards/`
 
 ---
 
