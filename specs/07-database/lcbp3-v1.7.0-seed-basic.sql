@@ -5,7 +5,6 @@ VALUES (1, 'OWNER'),
   (4, 'CONTRACTOR'),
   (5, 'THIRD PARTY'),
   (6, 'GUEST');
-
 INSERT INTO organizations (
     id,
     organization_code,
@@ -80,7 +79,6 @@ VALUES (1, 'กทท.', 'การท่าเรือแห่งประเ
   ),
   (31, 'EN', 'Third Party Environment', 5),
   (32, 'CAR', 'Third Party Fishery Care', 5);
-
 -- Seed project
 INSERT INTO projects (project_code, project_name)
 VALUES (
@@ -107,7 +105,6 @@ VALUES (
     'LCBP3-EN',
     'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 4) งานก่อสร้าง'
   );
-
 -- Seed contract
 -- ใช้ Subquery เพื่อดึง project_id มาเชื่อมโยง ทำให้ไม่ต้องมานั่งจัดการ ID ด้วยตัวเอง
 INSERT INTO contracts (
@@ -186,7 +183,6 @@ VALUES (
     ),
     TRUE
   );
-
 -- Seed user
 -- Initial SUPER_ADMIN user
 INSERT INTO users (
@@ -239,7 +235,6 @@ VALUES (
     NULL,
     10
   );
-
 -- ==========================================================
 -- Seed Roles (บทบาทพื้นฐาน 5 บทบาท ตาม Req 4.3)
 -- ==========================================================
@@ -293,7 +288,6 @@ VALUES (
     'Contract',
     'ผู้ดูแลสัญญา: จัดการสมาชิกในสัญญา, สร้าง / จัดการข้อมูลหลักเฉพาะสัญญา, และอนุมัติเอกสารในสัญญา'
   );
-
 -- ==========================================================
 -- Seed Role-Permissions Mapping (จับคู่สิทธิ์เริ่มต้น)
 -- ==========================================================
@@ -304,7 +298,6 @@ VALUES (
 -- ==========================================================
 -- SECTION 2: ROLE-PERMISSION MAPPINGS
 -- ==========================================================
-
 -- Seed data for the 'user_assignments' table
 INSERT INTO user_assignments (
     id,
@@ -322,7 +315,6 @@ VALUES (1, 1, 1, NULL, NULL, NULL, NULL),
   (3, 3, 4, 41, NULL, NULL, 1),
   -- editor01: Editor role (role_id=4) at organization 41 (คคง.), assigned by superadmin
   (4, 4, 5, 10, NULL, NULL, 1);
-
 -- viewer01: Viewer role (role_id=5) at organization 10 (สคฉ.03), assigned by superadmin
 -- =====================================================
 -- == 4. การเชื่อมโยงโครงการกับองค์กร (project_organizations) ==
@@ -348,7 +340,6 @@ WHERE organization_code IN (
     'EN',
     'CAR'
   );
-
 -- โครงการย่อย (LCBP3C1) จะมีเฉพาะองค์กรที่เกี่ยวข้อง
 INSERT INTO project_organizations (project_id, organization_id)
 SELECT (
@@ -365,7 +356,6 @@ WHERE organization_code IN (
     'คคง.',
     'ผรม.1 '
   );
-
 -- ทำเช่นเดียวกันสำหรับโครงการอื่นๆ (ตัวอย่าง)
 INSERT INTO project_organizations (project_id, organization_id)
 SELECT (
@@ -382,7 +372,6 @@ WHERE organization_code IN (
     'คคง.',
     'ผรม.2'
   );
-
 -- =====================================================
 -- == 5. การเชื่อมโยงสัญญากับองค์กร (contract_organizations) ==
 -- =====================================================
@@ -414,7 +403,6 @@ VALUES (
     ),
     'Designer'
   );
-
 -- สัญญาที่ปรึกษาควบคุมงาน (PSLCBP3)
 INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
 VALUES (
@@ -443,7 +431,6 @@ VALUES (
     ),
     'Consultant'
   );
-
 -- สัญญางานก่อสร้าง ส่วนที่ 1 (LCBP3-C1)
 INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
 VALUES (
@@ -472,7 +459,6 @@ VALUES (
     ),
     'Contractor'
   );
-
 -- สัญญางานก่อสร้าง ส่วนที่ 2 (LCBP3-C2)
 INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
 VALUES (
@@ -501,7 +487,6 @@ VALUES (
     ),
     'Contractor'
   );
-
 -- สัญญาตรวจสอบสิ่งแวดล้อม (LCBP3-EN)
 INSERT INTO contract_organizations (contract_id, organization_id, role_in_contract)
 VALUES (
@@ -530,7 +515,6 @@ VALUES (
     ),
     'Consultant'
   );
-
 -- Seed correspondence_status
 INSERT INTO correspondence_status (
     status_code,
@@ -561,7 +545,6 @@ VALUES ('DRAFT', 'Draft', 10, 1),
   ('CCBDSN', 'Canceled by Designer', 92, 1),
   ('CCBCSC', 'Canceled by CSC', 93, 1),
   ('CCBCON', 'Canceled by Contractor', 94, 1);
-
 -- Seed correspondence_types
 INSERT INTO correspondence_types (type_code, type_name, sort_order, is_active)
 VALUES ('RFA', 'Request for Approval', 1, 1),
@@ -574,7 +557,6 @@ VALUES ('RFA', 'Request for Approval', 1, 1),
   ('MOM', 'Minutes of Meeting', 8, 1),
   ('NOTICE', 'Notice', 9, 1),
   ('OTHER', 'Other', 10, 1);
-
 -- Seed rfa_types
 INSERT INTO rfa_types (
     contract_id,
@@ -1064,7 +1046,6 @@ SELECT id,
   'รายงานการฝึกปฏิบัติ'
 FROM contracts
 WHERE contract_code = 'LCBP3-C2';
-
 -- Seed rfa_status_codes
 INSERT INTO rfa_status_codes (
     status_code,
@@ -1079,7 +1060,6 @@ VALUES ('DFT', 'Draft', 'ฉบับร่าง', 1),
   ('ASB', 'AS - Built', 'แบบก่อสร้างจริง', 30),
   ('OBS', 'Obsolete', 'ไม่ใช้งาน', 80),
   ('CC', 'Canceled', 'ยกเลิก', 99);
-
 INSERT INTO rfa_approve_codes (
     approve_code,
     approve_name,
@@ -1094,14 +1074,12 @@ VALUES ('1A', 'Approved by Authority', 10, 1),
   ('3R', 'Revise and Resubmit', 32, 1),
   ('4X', 'Reject', 40, 1),
   ('5N', 'No Further Action', 50, 1);
-
 -- Seed circulation_status_codes
 INSERT INTO circulation_status_codes (code, description, sort_order)
 VALUES ('OPEN', 'Open', 1),
   ('IN_REVIEW', 'In Review', 2),
   ('COMPLETED', 'ปCompleted', 3),
   ('CANCELLED', 'Cancelled / Withdrawn', 9);
-
 -- ตาราง "แม่" ของ RFA (มีความสัมพันธ์ 1:N กับ rfa_revisions)
 -- ==========================================================
 -- SEED DATA 6B.md (Disciplines, RFA Types, Sub Types)
@@ -1365,7 +1343,6 @@ SELECT id,
   'Other'
 FROM contracts
 WHERE contract_code = 'LCBP3-C1';
-
 -- LCBP3-C2
 INSERT INTO disciplines (
     contract_id,
@@ -1610,7 +1587,6 @@ SELECT id,
   'Others'
 FROM contracts
 WHERE contract_code = 'LCBP3-C2';
-
 -- 2. Seed ข้อมูล Correspondence Sub Types (Mapping RFA Types กับ Number)
 -- เนื่องจาก sub_type_code ตรงกับ RFA Type Code แต่ Req ต้องการ Mapping เป็น Number
 -- LCBP3-C1
@@ -1661,7 +1637,6 @@ FROM contracts c,
   correspondence_types ct
 WHERE c.contract_code = 'LCBP3-C1'
   AND ct.type_code = 'RFA';
-
 -- LCBP3-C2
 INSERT INTO correspondence_sub_types (
     contract_id,
@@ -1709,7 +1684,6 @@ FROM contracts c,
   correspondence_types ct
 WHERE c.contract_code = 'LCBP3-C2'
   AND ct.type_code = 'RFA';
-
 -- LCBP3-C3
 INSERT INTO correspondence_sub_types (
     contract_id,
@@ -1757,7 +1731,6 @@ FROM contracts c,
   correspondence_types ct
 WHERE c.contract_code = 'LCBP3-C3'
   AND ct.type_code = 'RFA';
-
 -- LCBP3-C4
 INSERT INTO correspondence_sub_types (
     contract_id,
@@ -1805,7 +1778,6 @@ FROM contracts c,
   correspondence_types ct
 WHERE c.contract_code = 'LCBP3-C4'
   AND ct.type_code = 'RFA';
-
 INSERT INTO `correspondences` (
     `id`,
     `correspondence_number`,
@@ -1842,7 +1814,6 @@ VALUES (
     1,
     NULL
   );
-
 INSERT INTO `correspondence_revisions` (
     `id`,
     `correspondence_id`,
@@ -1881,7 +1852,6 @@ VALUES (
     1,
     NULL
   );
-
 INSERT INTO `rfas` (
     `id`,
     `rfa_type_id`,
@@ -1890,7 +1860,6 @@ INSERT INTO `rfas` (
     `deleted_at`
   )
 VALUES (2, 68, '2025-12-06 05:40:02', 1, NULL);
-
 INSERT INTO `rfa_revisions` (
     `id`,
     `rfa_id`,
@@ -1931,7 +1900,6 @@ VALUES (
     NULL,
     NULL
   );
-
 -- ==========================================================
 -- 20. Workflow Definitions (Unified Workflow Engine)
 -- ==========================================================
@@ -2168,16 +2136,12 @@ VALUES (
     NOW(),
     NOW()
   );
-
 INSERT INTO `document_number_formats` (
     `id`,
     `project_id`,
     `correspondence_type_id`,
     `discipline_id`,
-    `format_template`,
-    `reset_sequence_yearly`,
-    `example_number`,
-    `padding_length`,
+    `format_string`,
     `reset_annually`,
     `is_active`,
     `description`,
@@ -2191,9 +2155,6 @@ VALUES (
     0,
     '{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR}',
     1,
-    NULL,
-    4,
-    1,
     1,
     NULL,
     '2025-12-16 09:33:36',
@@ -2205,9 +2166,6 @@ VALUES (
     NULL,
     0,
     '{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR}',
-    1,
-    NULL,
-    4,
     1,
     1,
     NULL,

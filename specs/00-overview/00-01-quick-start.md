@@ -88,7 +88,7 @@ http://localhost:3000/api/docs
 **Default Admin Account:**
 
 - Username: `admin`
-- Password: `Admin@123` (Change immediately!)
+- Password: `Center2025` (Change immediately!)
 
 ---
 

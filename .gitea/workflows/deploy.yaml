@@ -1,0 +1,48 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to QNAP via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script_stop_signal: true # Stop script on error
+          script: |
+            echo "🚀 Starting Deployment..."
+
+            # 1. Update Code
+            echo "📂 Pulling latest code..."
+            cd /share/np-dms/app/source
+            git pull origin main
+
+            # 2. Build Backend
+            echo "🏗️ Building Backend..."
+            docker build -f backend/Dockerfile -t lcbp3-backend:latest .
+
+            # 3. Build Frontend
+            echo "🏗️ Building Frontend..."
+            docker build -f frontend/Dockerfile \
+              --build-arg NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api \
+              -t lcbp3-frontend:latest .
+              
+            # 4. Update Containers
+            echo "🔄 Updating Containers..."
+            cd /share/np-dms/app
+            docker-compose up -d
+
+            # 5. Cleanup
+            echo "🧹 Cleaning up unused images..."
+            docker image prune -f
+
+            echo "✅ Deployment Complete!"

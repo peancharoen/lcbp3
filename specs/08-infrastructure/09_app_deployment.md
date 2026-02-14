@@ -183,6 +183,27 @@ docker load < /share/np-dms/app/lcbp3-frontend.tar
 
 ---
 
+## 7. Automated Deployment via Gitea
+
+ระบบรองรับการ Deploy อัตโนมัติผ่าน **Gitea Actions** เมื่อมีการ Push code เข้าสู่ branch `main`
+
+### 7.1 Prerequisites
+1. **Enable Actions:** เปิดใช้งาน Gitea Actions ใน Repository Settings
+2. **Secrets:** ต้องกำหนด Secrets ต่อไปนี้ใน Repository Settings -> Actions -> Secrets:
+    - `HOST`: IP Address ของ QNAP Server (e.g. `192.168.10.8`)
+    - `USERNAME`: SSH Username (e.g. `admin`)
+    - `PASSWORD`: SSH Password (หรือใช้ `KEY` สำหรับ Private Key)
+    - `PORT`: SSH Port (Default: `22`)
+
+### 7.2 Workflow Process
+เมื่อ Pipeline ทำงาน จะดำเนินการดังนี้ผ่าน SSH:
+1. `git pull`: ดึง Code ล่าสุดที่ `/share/np-dms/app/source`
+2. `docker build`: Build images ใหม่สำหรับ Backend และ Frontend
+3. `docker-compose up -d`: Recreate containers ด้วย image ใหม่
+4. `docker image prune`: ลบ Image เก่าที่ไม่ได้ใช้เพื่อประหยัดพื้นที่
+
+---
+
 ## 📦 Resource Summary
 
 | Service      | Image                   | CPU Limit | Memory Limit | Port |
