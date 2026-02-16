@@ -183,24 +183,62 @@ docker load < /share/np-dms/app/lcbp3-frontend.tar
 
 ---
 
-## 7. Automated Deployment via Gitea
+## 7. Automated Deployment via Gitea (CI/CD)
 
-ระบบรองรับการ Deploy อัตโนมัติผ่าน **Gitea Actions** เมื่อมีการ Push code เข้าสู่ branch `main`
+ระบบใช้ **Gitea Actions** เพื่อทำ CI/CD โดยจะทำงานอัตโนมัติเมื่อมีการ `push` เข้าสู่สาขา `main` หรือเรียกใช้งานแบบ `manual`
 
-### 7.1 Prerequisites
-1. **Enable Actions:** เปิดใช้งาน Gitea Actions ใน Repository Settings
-2. **Secrets:** ต้องกำหนด Secrets ต่อไปนี้ใน Repository Settings -> Actions -> Secrets:
-    - `HOST`: IP Address ของ QNAP Server (e.g. `192.168.10.8`)
-    - `USERNAME`: SSH Username (e.g. `admin`)
-    - `PASSWORD`: SSH Password (หรือใช้ `KEY` สำหรับ Private Key)
-    - `PORT`: SSH Port (Default: `22`)
+### 7.1 การตั้งค่า Gitea Secrets
+เพื่อให้ Pipeline สามารถเชื่อมต่อกับ QNAP ผ่าน SSH ได้อย่างปลอดภัย ต้องตั้งค่า Secrets ที่ **Gitea Web UI**:
+1. เข้าไปที่ Repository: `np-dms/lcbp3`
+2. ไปที่ **Settings** → **Actions** → **Secrets**
+3. กด **Add New Secret** สำหรับค่าต่อไปนี้:
 
-### 7.2 Workflow Process
-เมื่อ Pipeline ทำงาน จะดำเนินการดังนี้ผ่าน SSH:
-1. `git pull`: ดึง Code ล่าสุดที่ `/share/np-dms/app/source`
-2. `docker build`: Build images ใหม่สำหรับ Backend และ Frontend
-3. `docker-compose up -d`: Recreate containers ด้วย image ใหม่
-4. `docker image prune`: ลบ Image เก่าที่ไม่ได้ใช้เพื่อประหยัดพื้นที่
+| Secret Name | Value Example  | Description                              |
+| :---------- | :------------- | :--------------------------------------- |
+| `HOST`      | `192.168.10.8` | IP ภายในของ QNAP (VLAN 10)               |
+| `PORT`      | `22`           | SSH Port ของ QNAP                        |
+| `USERNAME`  | `admin`        | User ที่มีสิทธิ์รัน Docker                      |
+| `PASSWORD`  | `********`     | รหัสผ่าน SSH (แนะนำให้ใช้ SSH Key แทนในอนาคต) |
+
+### 7.2 โครงสร้าง Pipeline (`deploy.yaml`)
+ไฟล์ตั้งค่าอยู่ที่ [`.gitea/workflows/deploy.yaml`](file://../../.gitea/workflows/deploy.yaml) โดยมีขั้นตอนหลักดังนี้:
+
+```mermaid
+graph TD
+    A[Push to main] --> B[Gitea Runner Pick up Task]
+    B --> C[SSH to QNAP]
+    C --> D[git pull latest code]
+    D --> E[Build Backend Image]
+    E --> F[Build Frontend Image]
+    F --> G[docker-compose up -d]
+    G --> H[Cleanup Unused Images]
+    H --> I[Finish Deploy]
+```
+
+### 7.3 วิธีการรันแบบ Manual (Manual Trigger)
+หากต้องการ Re-deploy โดยไม่ต้องแก้โค้ด:
+1. ไปที่เมนู **Actions** ใน Gitea
+2. เลือก Workflow **"Build and Deploy"** ทางซ้ายมือ
+3. กดปุ่ม **Run workflow** -> เลือก Branch `main` -> กด **Run workflow**
+
+### 7.4 การตรวจสอบและแก้ไขปัญหา (Troubleshooting)
+*   **ตรวจสอบ Runner:** หาก Action ค้างที่สถานะ "Waiting" ให้ตรวจสอบว่า Gitea Runner ใน ASUSTOR (หรือเครื่องที่ติดตั้ง) ทำงานอยู่หรือไม่
+*   **SSH Timeout:** ตรวจสอบว่า QNAP เปิด SSH Service และ Firewall (ACL) อนุญาตให้เครื่องที่เป็น Runner เชื่อมต่อมายัง Port 22 ได้
+*   **Disk Full:** หาก Build ไม่ผ่านบ่อยๆ อาจเกิดจาก Disk เต็ม ให้รัน `docker image prune -a` บน QNAP เพื่อล้าง Image ทั้งหมดที่ไม่ถูกใช้งาน
+*   **Build Failure:** หากติด Error ตอน Build Frontend ให้ตรวจสอบว่า `NEXT_PUBLIC_API_URL` ใน `deploy.yaml` ถูกต้องตาม DNS ล่าสุดหรือไม่
+
+---
+### 7.5 การตรวจสอบ Gitea Runner (Critical Component)
+Pipeline จะรันได้ต้องมี **act_runner** รันอยู่ในระบบ (ปกติจะติดตั้งบน ASUSTOR หรือ QNAP):
+1. เข้าไปที่เมนู **Site Administration** (ต้องใช้สิทธิ์ Admin) -> **Actions** -> **Runners**
+2. ตรวจสอบว่ามี Runner ที่มีสถานะเป็น **"Idle" (สีเขียว)** หรือไม่
+3. หากไม่มี Runner ให้ติดต่อ Admin เพื่อติดตั้งและ Register Runner ด้วย Token ที่ได้จากหน้าแอดมิน
+
+### 7.6 ขั้นตอนการตรวจสอบผลการ Deploy
+เมื่อมีการ Push โค้ดหรือรัน Manual แล้ว สามารถดูสถานะการ Deploy ได้ที่:
+1. แท็บ **Actions** ในหน้าโปรเจกต์ Gitea
+2. คลิกที่หัวข้อ Commit หรือ Workflow ล่าสุด
+3. จะเห็นรายละเอียดของแต่ละขั้นตอน (Build Backend, Build Frontend, etc.) หากผ่านจะเป็นสีเขียว หากติดปัญหาจะเป็นสีแดงพร้อม Log รายละเอียด
 
 ---
 
