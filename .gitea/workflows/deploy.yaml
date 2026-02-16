@@ -43,6 +43,8 @@ jobs:
 
             # 4. Update Containers
             echo "🔄 Updating Containers..."
+            # Sync compose file จาก repo → app directory
+            cp /share/np-dms/app/source/lcbp3/specs/08-infrastructure/docker-compose-app.yml /share/np-dms/app/docker-compose-app.yml
             cd /share/np-dms/app
             # ⚠️ ลบ container เดิมที่อาจสร้างจาก Container Station
             docker rm -f backend frontend 2>/dev/null || true
