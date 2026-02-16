@@ -20,7 +20,9 @@ jobs:
           script_stop_signal: true # Stop script on error
           script: |
             # ⚠️ QNAP SSH ไม่มี PATH เต็ม ต้อง export เอง
-            export PATH="/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:$PATH"
+            # docker: /share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker
+            # git:    /opt/bin/git
+            export PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
             echo "🚀 Starting Deployment..."
 
