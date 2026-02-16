@@ -41,9 +41,10 @@ jobs:
               --build-arg NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api \
               -t lcbp3-frontend:latest .
 
-            # 4. Update Containers
+            # 4. Update Containers (stop เก่า แล้ว recreate ใหม่)
             echo "🔄 Updating Containers..."
             cd /share/np-dms/app
+            docker compose -f docker-compose-app.yml down
             docker compose -f docker-compose-app.yml up -d
 
             # 5. Cleanup
