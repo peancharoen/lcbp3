@@ -196,6 +196,7 @@ graph TB
 | ไฟล์                                                  | Application        | Services                                             | Path บน ASUSTOR                 |
 | :--------------------------------------------------- | :----------------- | :--------------------------------------------------- | :------------------------------ |
 | [05_monitoring.md](05_monitoring.md)                 | `lcbp3-monitoring` | `prometheus`, `grafana`, `node-exporter`, `cadvisor` | `/volume1/np-dms/monitoring/`   |
+| [lcbp3-registry.yml](lcbp3-registry.yml)             | `lcbp3-registry`   | `registry`                                           | `/volume1/np-dms/registry/`     |
 | [10_gitea_runner.md](10_gitea_runner.md)             | `gitea-runner`     | `act_runner`                                         | `/volume1/np-dms/gitea-runner/` |
 | [06_backup.md](06_backup.md)                         | `lcbp3-backup`     | `restic`, Pull-based strategy                        | `/volume1/np-dms/backup/`       |
 | [07_disaster_recovery.md](07_disaster_recovery.md)   | -                  | DR Plan, RTO/RPO Targets                             | -                               |

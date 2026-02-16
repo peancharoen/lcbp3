@@ -1,0 +1,58 @@
+# File: /volume1/np-dms/registry/docker-compose.yml
+# DMS Container v1.8.0: Application name: lcbp3-registry
+# Deploy on: ASUSTOR AS5403T
+# Services: registry
+# ============================================================
+# ⚠️  ข้อกำหนด:
+#     - ต้องสร้าง Docker Network ก่อน: docker network create lcbp3
+#     - Registry ใช้ Port 5000 (domain: registry.np-dms.work)
+#     - Portainer มีอยู่แล้วบน ASUSTOR (ไม่ต้อง deploy ซ้ำ)
+# ============================================================
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+networks:
+  lcbp3:
+    external: true
+
+services:
+  # ----------------------------------------------------------------
+  # 1. Docker Registry (Private Container Image Storage)
+  # ----------------------------------------------------------------
+  registry:
+    <<: [*restart_policy, *default_logging]
+    image: registry:2
+    container_name: registry
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    environment:
+      TZ: 'Asia/Bangkok'
+      # --- Storage ---
+      REGISTRY_STORAGE_DELETE_ENABLED: 'true'
+      # --- Garbage Collection (ลบ layer ที่ไม่ใช้) ---
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+    ports:
+      - '5000:5000'
+    networks:
+      - lcbp3
+    volumes:
+      - '/volume1/np-dms/registry/data:/var/lib/registry'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:5000/v2/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
