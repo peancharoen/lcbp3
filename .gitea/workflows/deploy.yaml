@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # ⚠️ ต้องตรงกับ Label ของ Runner ใน Gitea Settings (เช่น self-hosted)
     steps:
       - name: Deploy to QNAP via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -23,7 +23,7 @@ jobs:
 
             # 1. Update Code
             echo "📂 Pulling latest code..."
-            cd /share/np-dms/app/source
+            cd /share/np-dms/app/source/lcbp3
             git pull origin main
 
             # 2. Build Backend
