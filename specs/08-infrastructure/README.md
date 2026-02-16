@@ -50,14 +50,15 @@
 | **Code**        | Gitea                     | Git Repository                  | 1.0 CPU / 1GB RAM     |
 
 #### ASUSTOR AS5403T (Infrastructure Stack)
-| Category         | Service             | Notes                           |
-| :--------------- | :------------------ | :------------------------------ |
-| **File Storage** | NFS / SMB           | Shared volumes for backup       |
-| **Backup**       | Restic / Borg       | Pull-based Backup (More Safe)   |
-| **Docker Infra** | Registry, Portainer | Container image registry, mgmt  |
-| **Monitoring**   | Uptime Kuma         | Service availability monitoring |
-| **Metrics**      | Prometheus, Grafana | Cross-Server Scraping           |
-| **Log**          | Loki / Syslog       | Centralized logging             |
+| Category         | Service             | Notes                             |
+| :--------------- | :------------------ | :-------------------------------- |
+| **File Storage** | NFS / SMB           | Shared volumes for backup         |
+| **Backup**       | Restic / Borg       | Pull-based Backup (More Safe)     |
+| **Docker Infra** | Registry, Portainer | Container image registry, mgmt    |
+| **Monitoring**   | Uptime Kuma         | Service availability monitoring   |
+| **Metrics**      | Prometheus, Grafana | Cross-Server Scraping             |
+| **Log**          | Loki / Syslog       | Centralized logging               |
+| **CI/CD**        | Gitea Runner        | Automated Deployment (act_runner) |
 
 ---
 
@@ -192,12 +193,13 @@ graph TB
 
 ### Infrastructure Services (ASUSTOR)
 
-| ไฟล์                                                  | Application        | Services                                             | Path บน ASUSTOR               |
-| :--------------------------------------------------- | :----------------- | :--------------------------------------------------- | :---------------------------- |
-| [05_monitoring.md](05_monitoring.md)                 | `lcbp3-monitoring` | `prometheus`, `grafana`, `node-exporter`, `cadvisor` | `/volume1/np-dms/monitoring/` |
-| [06_backup.md](06_backup.md)                         | `lcbp3-backup`     | `restic`, Pull-based strategy                        | `/volume1/np-dms/backup/`     |
-| [07_disaster_recovery.md](07_disaster_recovery.md)   | -                  | DR Plan, RTO/RPO Targets                             | -                             |
-| [08_secrets_management.md](08_secrets_management.md) | -                  | Secrets & Credentials Management                     | -                             |
+| ไฟล์                                                  | Application        | Services                                             | Path บน ASUSTOR                 |
+| :--------------------------------------------------- | :----------------- | :--------------------------------------------------- | :------------------------------ |
+| [05_monitoring.md](05_monitoring.md)                 | `lcbp3-monitoring` | `prometheus`, `grafana`, `node-exporter`, `cadvisor` | `/volume1/np-dms/monitoring/`   |
+| [10_gitea_runner.md](10_gitea_runner.md)             | `gitea-runner`     | `act_runner`                                         | `/volume1/np-dms/gitea-runner/` |
+| [06_backup.md](06_backup.md)                         | `lcbp3-backup`     | `restic`, Pull-based strategy                        | `/volume1/np-dms/backup/`       |
+| [07_disaster_recovery.md](07_disaster_recovery.md)   | -                  | DR Plan, RTO/RPO Targets                             | -                               |
+| [08_secrets_management.md](08_secrets_management.md) | -                  | Secrets & Credentials Management                     | -                               |
 
 ---
 

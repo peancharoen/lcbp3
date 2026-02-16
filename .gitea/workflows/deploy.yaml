@@ -19,6 +19,9 @@ jobs:
           port: ${{ secrets.PORT }}
           script_stop_signal: true # Stop script on error
           script: |
+            # ⚠️ QNAP SSH ไม่มี PATH เต็ม ต้อง export เอง
+            export PATH="/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:$PATH"
+
             echo "🚀 Starting Deployment..."
 
             # 1. Update Code
@@ -35,11 +38,11 @@ jobs:
             docker build -f frontend/Dockerfile \
               --build-arg NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api \
               -t lcbp3-frontend:latest .
-              
+
             # 4. Update Containers
             echo "🔄 Updating Containers..."
             cd /share/np-dms/app
-            docker-compose up -d
+            docker compose -f docker-compose-app.yml up -d
 
             # 5. Cleanup
             echo "🧹 Cleaning up unused images..."
