@@ -44,9 +44,29 @@ jobs:
             # 4. Update Containers
             echo "🔄 Updating Containers..."
             cd /share/np-dms/app
-            # ⚠️ ต้อง rm -f เพราะ container เดิมอาจสร้างจาก compose คนละ project
+            # ⚠️ ลบ container เดิมที่อาจสร้างจาก Container Station
             docker rm -f backend frontend 2>/dev/null || true
-            docker compose -f docker-compose-app.yml up -d
+
+            # 4a. Start Backend ก่อน
+            echo "🟢 Starting Backend..."
+            docker compose -f docker-compose-app.yml up -d backend
+
+            # 4b. รอ Backend healthy (ทุก 5 วิ สูงสุด 60 วิ)
+            echo "⏳ Waiting for Backend health check..."
+            for i in $(seq 1 12); do
+              if docker inspect --format='{{.State.Health.Status}}' backend 2>/dev/null | grep -q healthy; then
+                echo "✅ Backend is healthy!"
+                break
+              fi
+              if [ "$i" = "12" ]; then
+                echo "⚠️ Backend health check timeout - starting frontend anyway"
+              fi
+              sleep 5
+            done
+
+            # 4c. Start Frontend
+            echo "🟢 Starting Frontend..."
+            docker compose -f docker-compose-app.yml up -d frontend
 
             # 5. Cleanup
             echo "🧹 Cleaning up unused images..."
