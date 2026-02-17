@@ -297,6 +297,9 @@ services:
     <<: [*restart_policy, *default_logging]
     image: gcr.io/cadvisor/cadvisor:v0.47.2
     container_name: cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
     deploy:
       resources:
         limits:
@@ -313,6 +316,7 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
       interval: 30s
@@ -421,6 +425,20 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.15.0
+    container_name: mysqld-exporter
+    restart: unless-stopped
+    user: root
+    command:
+      - '--config.my-cnf=/etc/mysql/my.cnf'
+    ports:
+      - "9104:9104"
+    networks:
+      - lcbp3
+    volumes:
+      - "/share/np-dms/monitoring/mysqld-exporter/.my.cnf:/etc/mysql/my.cnf:ro"
 ```
 
 ---
@@ -484,12 +502,12 @@ scrape_configs:
           host: 'qnap'
     metrics_path: '/metrics'
 
-  # MariaDB Exporter (optional - QNAP)
-  # - job_name: 'mariadb'
-  #   static_configs:
-  #     - targets: ['192.168.10.8:9104']
-  #       labels:
-  #         host: 'qnap'
+  # MariaDB Exporter (QNAP)
+  - job_name: 'mariadb'
+    static_configs:
+      - targets: ['192.168.10.8:9104']
+        labels:
+          host: 'qnap'
 ```
 
 ---
@@ -518,15 +536,16 @@ scrape_configs:
 
 ### Recommended Dashboards to Import
 
-| Dashboard ID | Name                         | Purpose             |
-| :----------- | :--------------------------- | :------------------ |
-| 1860         | Node Exporter Full           | Host system metrics | ป |
-| 14282        | cAdvisor exporter            | Container metrics   | ป |
-| 11074        | Node Exporter for Prometheus | Node overview       |
-| 893          | Docker and Container         | Docker overview     |
-| 7362         | MySQL                        | MySQL view          |
-| 1214         | Redis                        | Redis view          |
-| 14204        | Elasticsearch                | Elasticsearch view  |
+| Dashboard ID | Name                         | Purpose                        |
+| :----------- | :--------------------------- | :----------------------------- |
+| 1860         | Node Exporter Full           | Host system metrics            |
+| 14282        | cAdvisor exporter            | Container metrics              |
+| 11074        | Node Exporter for Prometheus | Node overview                  |
+| 893          | Docker and Container         | Docker overview                |
+| 7362         | MySQL                        | MySQL view                     |
+| 1214         | Redis                        | Redis view                     |
+| 14204        | Elasticsearch                | Elasticsearch view             |
+| 13106        | MySQL/MariaDB Overview       | Detailed MySQL/MariaDB metrics |
 
 
 ### Import Dashboard via Grafana UI
@@ -546,7 +565,7 @@ scrape_configs:
 | :--- | :------------------------------------------------------------------------------------------------- | :----- |
 | 1    | SSH เข้า ASUSTOR ได้ (`ssh admin@192.168.10.9`)                                                      | ✅      |
 | 2    | Docker Network `lcbp3` สร้างแล้ว (ดูหัวข้อ [สร้าง Docker Network](#-สร้าง-docker-network-ทำครั้งแรกครั้งเดียว)) | ✅      |
-| 3    | สร้าง Directories และกำหนดสิทธิ์แล้ว (ดูหัวข้อ [กำหนดสิทธิ](#กำหนดสิทธิ-บน-asustor))                        | ✅      |
+| 3    | สร้าง Directories และกำหนดสิทธิ์แล้ว (ดูหัวข้อ [กำหนดสิทธิ](#กำหนดสิทธิ-บน-asustor))                              | ✅      |
 | 4    | สร้าง `prometheus.yml` แล้ว (ดูหัวข้อ [Prometheus Configuration](#prometheus-configuration))            | ✅      |
 | 5    | สร้าง `promtail-config.yml` แล้ว (ดูหัวข้อ [Step 1.2](#step-12-สร้าง-promtail-configyml))                | ✅      |
 
@@ -634,6 +653,41 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_log_stream']
         target_label: 'stream'
 EOF
+
+# ขั้นตอนการเตรียมระบบที่ QNAP (ก่อน Deploy Stack)
+
+### 1. สร้าง Monitoring User ใน MariaDB
+รันคำสั่ง SQL นี้ผ่าน **phpMyAdmin** หรือ `docker exec`:
+```sql
+CREATE USER 'exporter'@'%' IDENTIFIED BY 'Center2025' WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT, SELECT, SLAVE MONITOR ON *.* TO 'exporter'@'%';
+FLUSH PRIVILEGES;
+```
+
+### 2. สร้างไฟล์คอนฟิก .my.cnf บน QNAP
+เพื่อให้ `mysqld-exporter` อ่านรหัสผ่านที่มีตัวอักษรพิเศษได้ถูกต้อง:
+
+1. **SSH เข้า QNAP** (หรือใช้ File Station สร้าง Folder):
+   ```bash
+   ssh admin@192.168.10.8
+   ```
+2. **สร้าง Directory สำหรับเก็บ Config**:
+   ```bash
+   mkdir -p /share/np-dms/monitoring/mysqld-exporter
+   ```
+3. **สร้างไฟล์ .my.cnf**:
+   ```bash
+   cat > /share/np-dms/monitoring/mysqld-exporter/.my.cnf << 'EOF'
+[client]
+user=exporter
+password=Center2025
+host=mariadb
+EOF
+   ```
+4. **กำหนดสิทธิ์ไฟล์** (เพื่อให้ Container อ่านไฟล์ได้):
+   ```bash
+   chmod 644 /share/np-dms/monitoring/mysqld-exporter/.my.cnf
+   ```
 
 # ตรวจสอบ
 cat /volume1/np-dms/monitoring/promtail/config/promtail-config.yml

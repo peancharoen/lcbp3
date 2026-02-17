@@ -10,7 +10,7 @@ export class NotificationCleanupService {
 
   constructor(
     @InjectRepository(Notification)
-    private notificationRepo: Repository<Notification>,
+    private notificationRepo: Repository<Notification>
   ) {}
 
   /**
@@ -26,10 +26,14 @@ export class NotificationCleanupService {
     dateThreshold.setDate(dateThreshold.getDate() - daysAgo);
 
     try {
-      const result = await this.notificationRepo.delete({
-        isRead: true,
-        createdAt: LessThan(dateThreshold),
-      });
+      const result = await this.notificationRepo
+        .createQueryBuilder()
+        .delete()
+        .from(Notification)
+        .where('is_read = :isRead', { isRead: true })
+        // Use column name 'created_at' explicitly
+        .andWhere('created_at < :dateThreshold', { dateThreshold })
+        .execute();
 
       this.logger.log(`Deleted ${result.affected} old read notifications.`);
     } catch (error) {

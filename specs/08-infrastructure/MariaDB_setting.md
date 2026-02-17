@@ -51,6 +51,11 @@ docker exec -it mariadb mysql -u root -p
  CREATE USER 'gitea'@'%' IDENTIFIED BY 'Center#2025';
  GRANT ALL PRIVILEGES ON gitea.* TO 'gitea'@'%';
  FLUSH PRIVILEGES;
+
+docker exec -it mariadb mysql -u root -p
+  CREATE USER 'exporter'@'%' IDENTIFIED BY 'Center#2025' WITH MAX_USER_CONNECTIONS 3;
+  GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'%';
+  FLUSH PRIVILEGES;
 ```
 
 ## Docker file
