@@ -1,17 +1,17 @@
 // File: middleware.ts
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { auth } from '@/lib/auth';
 
 // รายการ Route ที่ไม่ต้อง Login ก็เข้าได้ (Public Routes)
-const publicRoutes = ["/login", "/register", "/"];
+const publicRoutes = ['/login', '/register', '/'];
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const { nextUrl } = req;
-  
+
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
-  const isAuthRoute = nextUrl.pathname.startsWith("/api/auth");
+  const isAuthRoute = nextUrl.pathname.startsWith('/api/auth');
 
   // 1. ถ้าเป็น API Auth routes ให้ผ่านไปเลย
   if (isAuthRoute) {
@@ -19,8 +19,8 @@ export default auth((req) => {
   }
 
   // 2. ถ้า Login อยู่แล้ว แต่พยายามเข้าหน้า Login -> ให้ไป Dashboard
-  if (isLoggedIn && nextUrl.pathname === "/login") {
-    return Response.redirect(new URL("/dashboard", nextUrl));
+  if (isLoggedIn && nextUrl.pathname === '/login') {
+    return Response.redirect(new URL('/dashboard', nextUrl));
   }
 
   // 3. ถ้ายังไม่ Login และพยายามเข้า Private Route -> ให้ไป Login
@@ -30,9 +30,17 @@ export default auth((req) => {
     if (nextUrl.search) {
       callbackUrl += nextUrl.search;
     }
-    
+
     const encodedCallbackUrl = encodeURIComponent(callbackUrl);
     return Response.redirect(new URL(`/login?callbackUrl=${encodedCallbackUrl}`, nextUrl));
+  }
+
+  // 4. Protect Admin Routes (Security Phase 1)
+  if (nextUrl.pathname.startsWith('/admin')) {
+    const userRole = req.auth?.user?.role as string | undefined;
+    if (userRole !== 'ADMIN' && userRole !== 'DC') {
+      return Response.redirect(new URL('/dashboard', nextUrl));
+    }
   }
 
   return NextResponse.next(); // แก้ไขจาก null

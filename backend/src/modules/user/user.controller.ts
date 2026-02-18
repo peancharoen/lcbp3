@@ -27,6 +27,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { SearchUserDto } from './dto/search-user.dto';
 import { UpdatePreferenceDto } from './dto/update-preference.dto';
+import { BulkAssignmentDto } from './dto/bulk-assignment.dto';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
@@ -94,7 +95,7 @@ export class UserController {
   }
 
   @Patch('roles/:id/permissions')
-  @RequirePermission('permission.assign')
+  @RequirePermission('role.assign_permissions')
   @ApiOperation({ summary: 'Update role permissions' })
   async updateRolePermissions(
     @Param('id', ParseIntPipe) id: number,
@@ -159,8 +160,21 @@ export class UserController {
   @ApiOperation({ summary: 'Assign role to user' })
   @ApiBody({ type: AssignRoleDto })
   @ApiResponse({ status: 201, description: 'Role assigned' })
-  @RequirePermission('permission.assign')
+  @RequirePermission('user.manage_assignments')
   assignRole(@Body() dto: AssignRoleDto, @CurrentUser() user: User) {
     return this.assignmentService.assignRole(dto, user);
+  }
+
+  @Post('assignments/bulk')
+  @ApiOperation({ summary: 'Bulk update user assignments' })
+  @ApiBody({ type: BulkAssignmentDto })
+  @ApiResponse({ status: 200, description: 'Assignments updated' })
+  // @RequirePermission('user.manage_assignments')
+  @RequirePermission('user.manage_assignments')
+  bulkUpdateAssignments(
+    @Body() dto: BulkAssignmentDto,
+    @CurrentUser() user: User
+  ) {
+    return this.assignmentService.bulkUpdateAssignments(dto, user);
   }
 }

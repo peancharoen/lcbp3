@@ -85,7 +85,8 @@ export class ContractDrawingService {
       if (createDto.attachmentIds?.length) {
         // ✅ FIX TS2345: แปลง number[] เป็น string[] ก่อนส่ง
         await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String)
+          createDto.attachmentIds.map(String),
+          { documentType: 'ContractDrawing' }
         );
       }
 
@@ -213,7 +214,8 @@ export class ContractDrawingService {
         // Commit new files
         // ✅ FIX TS2345: แปลง number[] เป็น string[] ก่อนส่ง
         await this.fileStorageService.commit(
-          updateDto.attachmentIds.map(String)
+          updateDto.attachmentIds.map(String),
+          { documentType: 'ContractDrawing' }
         );
       }
 

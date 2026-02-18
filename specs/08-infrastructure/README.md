@@ -48,6 +48,7 @@
 | **API Gateway** | NPM (Nginx Proxy Manager) | SSL Termination                 | 1.0 CPU / 512MB RAM   |
 | **Workflow**    | n8n                       | Automation                      | 1.0 CPU / 1GB RAM     |
 | **Code**        | Gitea                     | Git Repository                  | 1.0 CPU / 1GB RAM     |
+| **Chat**        | Rocket.Chat               | **Standalone + MongoDB RS**     | 2.0 CPU / 2GB RAM     |
 
 #### ASUSTOR AS5403T (Infrastructure Stack)
 | Category         | Service             | Notes                             |
@@ -208,14 +209,15 @@ graph TB
 
 ### Application Domains (QNAP)
 
-| Domain                | Service  | Port | Host | Description               |
-| :-------------------- | :------- | :--- | :--- | :------------------------ |
-| `lcbp3.np-dms.work`   | frontend | 3000 | QNAP | Frontend Next.js          |
-| `backend.np-dms.work` | backend  | 3000 | QNAP | Backend NestJS API        |
-| `pma.np-dms.work`     | pma      | 80   | QNAP | phpMyAdmin                |
-| `git.np-dms.work`     | gitea    | 3000 | QNAP | Gitea Git Server          |
-| `n8n.np-dms.work`     | n8n      | 5678 | QNAP | n8n Workflow Automation   |
-| `npm.np-dms.work`     | npm      | 81   | QNAP | Nginx Proxy Manager Admin |
+| Domain                | Service    | Port | Host | Description               |
+| :-------------------- | :--------- | :--- | :--- | :------------------------ |
+| `lcbp3.np-dms.work`   | frontend   | 3000 | QNAP | Frontend Next.js          |
+| `backend.np-dms.work` | backend    | 3000 | QNAP | Backend NestJS API        |
+| `pma.np-dms.work`     | pma        | 80   | QNAP | phpMyAdmin                |
+| `git.np-dms.work`     | gitea      | 3000 | QNAP | Gitea Git Server          |
+| `n8n.np-dms.work`     | n8n        | 5678 | QNAP | n8n Workflow Automation   |
+| `chat.np-dms.work`    | rocketchat | 3000 | QNAP | Rocket.Chat Service       |
+| `npm.np-dms.work`     | npm        | 81   | QNAP | Nginx Proxy Manager Admin |
 
 ### Infrastructure Domains (ASUSTOR)
 

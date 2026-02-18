@@ -101,7 +101,8 @@ export class ShopDrawingService {
       // 5. Commit Files
       if (createDto.attachmentIds?.length) {
         await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String)
+          createDto.attachmentIds.map(String),
+          { issueDate: revision.revisionDate, documentType: 'ShopDrawing' }
         );
       }
 
@@ -188,7 +189,8 @@ export class ShopDrawingService {
 
       if (createDto.attachmentIds?.length) {
         await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String)
+          createDto.attachmentIds.map(String),
+          { issueDate: revision.revisionDate, documentType: 'ShopDrawing' }
         );
       }
 

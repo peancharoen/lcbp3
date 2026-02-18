@@ -26,6 +26,7 @@ setfacl -R -m u:0:rwx /share/Container/npm
 | db.np-dms.work                 | mariadb          | 3306            | [x]          | [x]                   | [x]        | [x]       | [x]    | [ ]                 |
 | git.np-dms.work                | gitea            | 3000            | [x]          | [x]                   | [x]        | [x]       | [x]    | [ ]                 |
 | n8n.np-dms.work                | n8n              | 5678            | [x]          | [x]                   | [x]        | [x]       | [x]    | [ ]                 |
+| chat.np-dms.work               | rocketchat       | 3000            | [x]          | [x]                   | [x]        | [x]       | [x]    | [ ]                 |
 | npm.np-dms.work                | npm              | 81              | [ ]          | [x]                   | [x]        | [x]       | [x]    | [ ]                 |
 | pma.np-dms.work                | pma              | 80              | [x]          | [x]                   | [ ]        | [x]       | [x]    | [ ]                 |
 | np-dms.work, [www.np-dms.work] | localhost        | 80              | [x]          | [x]                   | [ ]        | [x]       | [x]    | [ ]                 |

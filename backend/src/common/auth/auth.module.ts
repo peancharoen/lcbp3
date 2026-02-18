@@ -10,6 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
+import { SessionController } from './session.controller.js';
 import { UserModule } from '../../modules/user/user.module.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy.js';
@@ -37,7 +38,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
     CaslModule,
   ],
   providers: [AuthService, JwtStrategy, JwtRefreshStrategy, PermissionsGuard],
-  controllers: [AuthController],
+  controllers: [AuthController, SessionController],
   exports: [AuthService, PermissionsGuard],
 })
 export class AuthModule {}

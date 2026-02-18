@@ -102,7 +102,8 @@ export class AsBuiltDrawingService {
       // 5. Commit Files
       if (createDto.attachmentIds?.length) {
         await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String)
+          createDto.attachmentIds.map(String),
+          { issueDate: revision.revisionDate, documentType: 'AsBuiltDrawing' }
         );
       }
 
@@ -188,7 +189,8 @@ export class AsBuiltDrawingService {
 
       if (createDto.attachmentIds?.length) {
         await this.fileStorageService.commit(
-          createDto.attachmentIds.map(String)
+          createDto.attachmentIds.map(String),
+          { issueDate: revision.revisionDate, documentType: 'AsBuiltDrawing' }
         );
       }
 

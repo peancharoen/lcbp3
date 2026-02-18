@@ -40,6 +40,9 @@ export class Attachment {
   @Column({ length: 64, nullable: true })
   checksum?: string;
 
+  @Column({ name: 'reference_date', type: 'date', nullable: true })
+  referenceDate?: Date;
+
   @Column({ name: 'uploaded_by_user_id' })
   uploadedByUserId!: number;
 

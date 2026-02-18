@@ -81,7 +81,15 @@ export class FileStorageService {
    * Phase 2: Commit (ย้ายไฟล์จาก Temp -> Permanent)
    * เมธอดนี้จะถูกเรียกโดย Service อื่น (เช่น CorrespondenceService) เมื่อกด Save
    */
-  async commit(tempIds: string[]): Promise<Attachment[]> {
+  /**
+   * Phase 2: Commit (ย้ายไฟล์จาก Temp -> Permanent)
+   * เมธอดนี้จะถูกเรียกโดย Service อื่น (เช่น CorrespondenceService) เมื่อกด Save
+   * Updated [Phase 2]: Support issueDate and documentType for organized storage
+   */
+  async commit(
+    tempIds: string[],
+    options?: { issueDate?: Date; documentType?: string }
+  ): Promise<Attachment[]> {
     if (!tempIds || tempIds.length === 0) {
       return [];
     }
@@ -100,12 +108,27 @@ export class FileStorageService {
     }
 
     const committedAttachments: Attachment[] = [];
-    const today = new Date();
-    const year = today.getFullYear().toString();
-    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    // Use issueDate if provided, otherwise default to current date
+    const refDate = options?.issueDate
+      ? new Date(options.issueDate)
+      : new Date();
 
-    // โฟลเดอร์ถาวรแยกตาม ปี/เดือน
-    const permanentDir = path.join(this.permanentDir, year, month);
+    // Validate Date (in case invalid string passed)
+    const effectiveDate = isNaN(refDate.getTime()) ? new Date() : refDate;
+
+    const year = effectiveDate.getFullYear().toString();
+    const month = (effectiveDate.getMonth() + 1).toString().padStart(2, '0');
+
+    // Construct Path: permanent/{DocumentType}/{YYYY}/{MM}/filename
+    const docTypeFolder = options?.documentType || 'General';
+
+    // โฟลเดอร์ถาวรแยกตาม Type/ปี/เดือน
+    const permanentDir = path.join(
+      this.permanentDir,
+      docTypeFolder,
+      year,
+      month
+    );
     await fs.ensureDir(permanentDir);
 
     for (const att of attachments) {
@@ -122,6 +145,7 @@ export class FileStorageService {
           att.isTemporary = false;
           att.tempId = null as any; // เคลียร์ tempId (TypeORM อาจต้องการ null แทน undefined สำหรับ nullable)
           att.expiresAt = null as any; // เคลียร์วันหมดอายุ
+          att.referenceDate = effectiveDate; // Save reference date
 
           committedAttachments.push(await this.attachmentRepository.save(att));
         } else {
