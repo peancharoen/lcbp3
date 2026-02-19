@@ -44,6 +44,8 @@ export class AuthService {
     const user = await this.usersRepository
       .createQueryBuilder('user')
       .addSelect('user.password')
+      .leftJoinAndSelect('user.assignments', 'assignments')
+      .leftJoinAndSelect('assignments.role', 'role')
       .where('user.username = :username', { username })
       .getOne();
 
@@ -54,9 +56,28 @@ export class AuthService {
 
     // ตรวจสอบว่ามี user และมี password hash หรือไม่
     if (user && user.password && (await bcrypt.compare(pass, user.password))) {
+      // Logic: Map RBAC Roles to 'ADMIN' | 'DC' | 'User' for Frontend Compatibility
+      // Roles Table: 'Superadmin', 'Org Admin', 'Document Control', 'Editor', 'Viewer'
+
+      let derivedRole = 'User';
+      if (user.assignments && user.assignments.length > 0) {
+        const roleNames = user.assignments
+          .map((a) => a.role?.roleName)
+          .filter(Boolean);
+
+        // Check for Admin privileges
+        if (roleNames.some((r) => r === 'Superadmin' || r === 'Org Admin')) {
+          derivedRole = 'ADMIN';
+        }
+        // Check for Document Control privileges
+        else if (roleNames.some((r) => r === 'Document Control')) {
+          derivedRole = 'DC';
+        }
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
-      return result;
+      return { ...result, role: derivedRole };
     }
     return null;
   }
