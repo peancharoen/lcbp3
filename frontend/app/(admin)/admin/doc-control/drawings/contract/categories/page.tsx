@@ -101,7 +101,12 @@ export default function ContractCategoriesPage() {
         title="Contract Drawing Categories"
         description="Manage main categories (หมวดหมู่หลัก) for contract drawings"
         queryKey={['contract-drawing-categories', String(selectedProjectId)]}
-        fetchFn={() => drawingMasterDataService.getContractCategories(selectedProjectId)}
+        fetchFn={async () => {
+          console.log(`Fetching Contract Categories for project ${selectedProjectId}`);
+          const data = await drawingMasterDataService.getContractCategories(selectedProjectId);
+          console.log('Contract Categories Data:', data);
+          return data;
+        }}
         createFn={(data) => drawingMasterDataService.createContractCategory({ ...data, projectId: selectedProjectId })}
         updateFn={(id, data) => drawingMasterDataService.updateContractCategory(id, data)}
         deleteFn={(id) => drawingMasterDataService.deleteContractCategory(id)}
@@ -259,21 +264,23 @@ function ManageMappings({ projectId }: { projectId: number }) {
               <div className="p-4 text-center text-sm text-muted-foreground">No sub-categories mapped yet.</div>
             ) : (
               <div className="divide-y">
-                {mappings.map((m: { id: number; subCategory: ContractSubCategory }) => (
-                  <div key={m.id} className="p-2 grid grid-cols-[1fr,auto] gap-2 items-center">
-                    <span className="text-sm">
-                      {m.subCategory.subCatCode} - {m.subCategory.subCatName}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(m.id)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                ))}
+                {mappings
+                  .filter((m: any) => m && m.subCategory)
+                  .map((m: { id: number; subCategory: ContractSubCategory }) => (
+                    <div key={m.id} className="p-2 grid grid-cols-[1fr,auto] gap-2 items-center">
+                      <span className="text-sm">
+                        {m.subCategory?.subCatCode ?? '?'} - {m.subCategory?.subCatName ?? 'Unknown'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteMutation.mutate(m.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
               </div>
             )}
           </div>

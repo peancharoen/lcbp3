@@ -107,7 +107,12 @@ export default function ShopSubCategoriesPage() {
         title="Shop Drawing Sub-categories"
         description="Manage sub-categories (หมวดหมู่ย่อย) for shop drawings"
         queryKey={['shop-drawing-sub-categories', String(selectedProjectId)]}
-        fetchFn={() => drawingMasterDataService.getShopSubCategories(selectedProjectId)}
+        fetchFn={async () => {
+          console.log(`Fetching Shop Sub-Categories for project ${selectedProjectId}`);
+          const data = await drawingMasterDataService.getShopSubCategories(selectedProjectId);
+          console.log('Shop Sub-Categories Data:', data);
+          return data;
+        }}
         createFn={(data) =>
           drawingMasterDataService.createShopSubCategory({
             ...data,
