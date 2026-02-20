@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -27,6 +28,8 @@ import { RequirePermission } from '../../common/decorators/require-permission.de
 @UseGuards(JwtAuthGuard, RbacGuard)
 @Controller('drawings/master-data')
 export class DrawingMasterDataController {
+  private readonly logger = new Logger(DrawingMasterDataController.name);
+
   constructor(private readonly masterDataService: DrawingMasterDataService) {}
 
   // =====================================================
@@ -38,8 +41,11 @@ export class DrawingMasterDataController {
   @ApiQuery({ name: 'projectId', required: true, type: Number })
   @RequirePermission('document.view')
   getVolumes(@Query('projectId', ParseIntPipe) projectId: number) {
+    this.logger.log(`Fetching Contract Volumes for Project ID: ${projectId}`);
     return this.masterDataService.findAllVolumes(projectId);
   }
+
+  // ... (Create/Update/Delete methods remain unchanged) ...
 
   @Post('contract/volumes')
   @ApiOperation({ summary: 'Create Volume' })
@@ -89,8 +95,13 @@ export class DrawingMasterDataController {
   @ApiQuery({ name: 'projectId', required: true, type: Number })
   @RequirePermission('document.view')
   getCategories(@Query('projectId', ParseIntPipe) projectId: number) {
+    this.logger.log(
+      `Fetching Contract Categories for Project ID: ${projectId}`
+    );
     return this.masterDataService.findAllCategories(projectId);
   }
+
+  // ... (Create/Update/Delete methods remain unchanged) ...
 
   @Post('contract/categories')
   @ApiOperation({ summary: 'Create Category' })
@@ -140,8 +151,13 @@ export class DrawingMasterDataController {
   @ApiQuery({ name: 'projectId', required: true, type: Number })
   @RequirePermission('document.view')
   getContractSubCats(@Query('projectId', ParseIntPipe) projectId: number) {
+    this.logger.log(
+      `Fetching Contract Sub-Categories for Project ID: ${projectId}`
+    );
     return this.masterDataService.findAllContractSubCats(projectId);
   }
+
+  // ... (Create/Update/Delete methods remain unchanged) ...
 
   @Post('contract/sub-categories')
   @ApiOperation({ summary: 'Create Contract Sub-Category' })
@@ -228,8 +244,13 @@ export class DrawingMasterDataController {
   @ApiQuery({ name: 'projectId', required: true, type: Number })
   @RequirePermission('document.view')
   getShopMainCats(@Query('projectId', ParseIntPipe) projectId: number) {
+    this.logger.log(
+      `Fetching Shop Main Categories for Project ID: ${projectId}`
+    );
     return this.masterDataService.findAllShopMainCats(projectId);
   }
+
+  // ... (Create/Update/Delete methods remain unchanged) ...
 
   @Post('shop/main-categories')
   @ApiOperation({ summary: 'Create Shop Main Category' })
@@ -285,6 +306,9 @@ export class DrawingMasterDataController {
     @Query('projectId', ParseIntPipe) projectId: number,
     @Query('mainCategoryId') mainCategoryId?: number
   ) {
+    this.logger.log(
+      `Fetching Shop Sub-Categories for Project ID: ${projectId}, MainCategory: ${mainCategoryId}`
+    );
     return this.masterDataService.findAllShopSubCats(
       projectId,
       mainCategoryId ? Number(mainCategoryId) : undefined

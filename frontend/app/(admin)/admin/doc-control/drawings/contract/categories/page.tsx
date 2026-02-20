@@ -232,10 +232,10 @@ function ManageMappings({ projectId }: { projectId: number }) {
                   <SelectValue placeholder="Select Sub-Category to add..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {subCategories
+                  {(subCategories || [])
                     .filter(
                       (s: ContractSubCategory) =>
-                        !mappings.find((m: { subCategory: { id: number } }) => m.subCategory.id === s.id)
+                        !(mappings || []).find((m: { subCategory: { id: number } }) => m.subCategory?.id === s.id)
                     )
                     .map((s: ContractSubCategory) => (
                       <SelectItem key={s.id} value={String(s.id)}>
