@@ -1,17 +1,17 @@
 // File: lib/services/shop-drawing.service.ts
-import apiClient from "@/lib/api/client";
+import apiClient from '@/lib/api/client';
 import {
   CreateShopDrawingDto,
   CreateShopDrawingRevisionDto,
-  SearchShopDrawingDto
-} from "@/types/dto/drawing/shop-drawing.dto";
+  SearchShopDrawingDto,
+} from '@/types/dto/drawing/shop-drawing.dto';
 
 export const shopDrawingService = {
   /**
    * ดึงรายการแบบก่อสร้าง (Shop Drawings)
    */
   getAll: async (params: SearchShopDrawingDto) => {
-    const response = await apiClient.get("/drawings/shop", { params });
+    const response = await apiClient.get('/drawings/shop', { params });
     return response.data;
   },
 
@@ -27,7 +27,7 @@ export const shopDrawingService = {
    * สร้าง Shop Drawing ใหม่ (พร้อม Revision 0)
    */
   create: async (data: CreateShopDrawingDto | FormData) => {
-    const response = await apiClient.post("/drawings/shop", data);
+    const response = await apiClient.post('/drawings/shop', data);
     return response.data;
   },
 
@@ -37,5 +37,5 @@ export const shopDrawingService = {
   createRevision: async (id: string | number, data: CreateShopDrawingRevisionDto) => {
     const response = await apiClient.post(`/drawings/shop/${id}/revisions`, data);
     return response.data;
-  }
+  },
 };

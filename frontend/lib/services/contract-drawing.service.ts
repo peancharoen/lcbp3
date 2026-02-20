@@ -1,18 +1,16 @@
 // File: lib/services/contract-drawing.service.ts
-import apiClient from "@/lib/api/client";
+import apiClient from '@/lib/api/client';
 import {
   CreateContractDrawingDto,
   UpdateContractDrawingDto,
-  SearchContractDrawingDto
-} from "@/types/dto/drawing/contract-drawing.dto";
+  SearchContractDrawingDto,
+} from '@/types/dto/drawing/contract-drawing.dto';
 
 export const contractDrawingService = {
-  /**
-   * ดึงรายการแบบสัญญา (Contract Drawings)
-   */
   getAll: async (params: SearchContractDrawingDto) => {
     // GET /drawings/contract?projectId=1&page=1...
-    const response = await apiClient.get("/drawings/contract", { params });
+    const response = await apiClient.get('/drawings/contract', { params });
+    // The interceptor returns { statusCode, message, data, meta }
     return response.data;
   },
 
@@ -28,7 +26,7 @@ export const contractDrawingService = {
    * สร้างแบบสัญญาใหม่
    */
   create: async (data: CreateContractDrawingDto | FormData) => {
-    const response = await apiClient.post("/drawings/contract", data);
+    const response = await apiClient.post('/drawings/contract', data);
     return response.data;
   },
 
@@ -46,5 +44,5 @@ export const contractDrawingService = {
   delete: async (id: string | number) => {
     const response = await apiClient.delete(`/drawings/contract/${id}`);
     return response.data;
-  }
+  },
 };

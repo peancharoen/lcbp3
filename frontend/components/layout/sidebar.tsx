@@ -13,13 +13,22 @@ import {
   Shield,
   Menu,
   Layers,
-  BookOpen,
+  LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { Can } from '@/components/common/can';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
-export const mainNavItems = [
+export type NavItem = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  permission?: string | null;
+  adminOnly?: boolean;
+};
+
+export const mainNavItems: NavItem[] = [
   {
     title: 'Dashboard',
     href: '/dashboard',
@@ -67,24 +76,7 @@ export const mainNavItems = [
     href: '/admin',
     icon: Shield,
     permission: null,
-  },
-  {
-    title: 'Security',
-    href: '/admin/access-control/roles',
-    icon: Shield,
-    permission: 'system.manage_security',
-  },
-  {
-    title: 'System Logs',
-    href: '/admin/monitoring/system-logs/numbering',
-    icon: Layers,
-    permission: 'system.view_logs',
-  },
-  {
-    title: 'Reference Data',
-    href: '/admin/doc-control/reference',
-    icon: BookOpen,
-    permission: 'master_data.view',
+    adminOnly: true,
   },
 ];
 
@@ -95,6 +87,8 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'DC';
 
   return (
     <div
@@ -119,6 +113,8 @@ export function Sidebar({ className }: SidebarProps) {
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="grid gap-1 px-2">
           {mainNavItems.map((item, index) => {
+            if (item.adminOnly && !isAdmin) return null;
+
             const isActive = pathname.startsWith(item.href);
 
             const LinkComponent = (
@@ -172,6 +168,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 export function MobileSidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'DC';
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -189,6 +187,8 @@ export function MobileSidebar() {
         <div className="flex-1 overflow-y-auto py-4 h-[calc(100vh-4rem)]">
           <nav className="grid gap-1 px-2">
             {mainNavItems.map((item, index) => {
+              if (item.adminOnly && !isAdmin) return null;
+
               const isActive = pathname.startsWith(item.href);
 
               const LinkComponent = (

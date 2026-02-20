@@ -1,11 +1,11 @@
 // File: lib/services/workflow-engine.service.ts
-import apiClient from "@/lib/api/client";
-import { 
-  CreateWorkflowDefinitionDto, 
-  UpdateWorkflowDefinitionDto, 
-  EvaluateWorkflowDto, 
-  GetAvailableActionsDto 
-} from "@/types/dto/workflow-engine/workflow-engine.dto";
+import apiClient from '@/lib/api/client';
+import {
+  CreateWorkflowDefinitionDto,
+  UpdateWorkflowDefinitionDto,
+  EvaluateWorkflowDto,
+  GetAvailableActionsDto,
+} from '@/types/dto/workflow-engine/workflow-engine.dto';
 
 export const workflowEngineService = {
   // --- Engine Execution (Low-Level) ---
@@ -15,8 +15,8 @@ export const workflowEngineService = {
    * POST /workflow-engine/available-actions
    */
   getAvailableActions: async (data: GetAvailableActionsDto) => {
-    const response = await apiClient.post("/workflow-engine/available-actions", data);
-    return response.data; // string[] e.g. ['APPROVE', 'REJECT']
+    const response = await apiClient.post('/workflow-engine/available-actions', data);
+    return response.data?.data || response.data; // string[] e.g. ['APPROVE', 'REJECT']
   },
 
   /**
@@ -24,8 +24,8 @@ export const workflowEngineService = {
    * POST /workflow-engine/evaluate
    */
   evaluate: async (data: EvaluateWorkflowDto) => {
-    const response = await apiClient.post("/workflow-engine/evaluate", data);
-    return response.data; // { nextState: '...', events: [...] }
+    const response = await apiClient.post('/workflow-engine/evaluate', data);
+    return response.data?.data || response.data; // { nextState: '...', events: [...] }
   },
 
   // --- Definition Management (Admin / Workflow Editor) ---
@@ -35,8 +35,8 @@ export const workflowEngineService = {
    * GET /workflow-engine/definitions
    */
   getDefinitions: async () => {
-    const response = await apiClient.get("/workflow-engine/definitions");
-    return response.data;
+    const response = await apiClient.get('/workflow-engine/definitions');
+    return response.data?.data || response.data;
   },
 
   /**
@@ -45,7 +45,7 @@ export const workflowEngineService = {
    */
   getDefinitionById: async (id: string | number) => {
     const response = await apiClient.get(`/workflow-engine/definitions/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   /**
@@ -53,8 +53,8 @@ export const workflowEngineService = {
    * POST /workflow-engine/definitions
    */
   createDefinition: async (data: CreateWorkflowDefinitionDto) => {
-    const response = await apiClient.post("/workflow-engine/definitions", data);
-    return response.data;
+    const response = await apiClient.post('/workflow-engine/definitions', data);
+    return response.data?.data || response.data;
   },
 
   /**
@@ -63,7 +63,7 @@ export const workflowEngineService = {
    */
   updateDefinition: async (id: string | number, data: UpdateWorkflowDefinitionDto) => {
     const response = await apiClient.patch(`/workflow-engine/definitions/${id}`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   /**
@@ -72,6 +72,6 @@ export const workflowEngineService = {
    */
   deleteDefinition: async (id: string | number) => {
     const response = await apiClient.delete(`/workflow-engine/definitions/${id}`);
-    return response.data;
-  }
+    return response.data?.data || response.data;
+  },
 };

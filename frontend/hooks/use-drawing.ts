@@ -6,7 +6,7 @@ import { SearchContractDrawingDto, CreateContractDrawingDto } from '@/types/dto/
 import { SearchShopDrawingDto, CreateShopDrawingDto } from '@/types/dto/drawing/shop-drawing.dto';
 import { SearchAsBuiltDrawingDto, CreateAsBuiltDrawingDto } from '@/types/dto/drawing/asbuilt-drawing.dto';
 import { toast } from 'sonner';
-import { ContractDrawing, ShopDrawing, AsBuiltDrawing } from "@/types/drawing";
+import { ContractDrawing, ShopDrawing, AsBuiltDrawing } from '@/types/drawing';
 
 type DrawingType = 'CONTRACT' | 'SHOP' | 'AS_BUILT';
 type DrawingSearchParams = SearchContractDrawingDto | SearchShopDrawingDto | SearchAsBuiltDrawingDto;
@@ -31,38 +31,44 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         response = await contractDrawingService.getAll(params as SearchContractDrawingDto);
         // Map ContractDrawing to Drawing
         if (response && response.data) {
-           response.data = response.data.map((d: ContractDrawing) => ({
-             ...d,
-             drawingId: d.id,
-             drawingNumber: d.contractDrawingNo,
-             type: 'CONTRACT',
-           }));
+          const mappedData = response.data.map((d: ContractDrawing) => ({
+            ...d,
+            drawingId: d.id,
+            drawingNumber: d.contractDrawingNo,
+            type: 'CONTRACT',
+          }));
+          // Re-wrap to preserve meta
+          response = { ...response, data: mappedData };
         }
       } else if (type === 'SHOP') {
         response = await shopDrawingService.getAll(params as SearchShopDrawingDto);
         // Map ShopDrawing to Drawing
         if (response && response.data) {
-           response.data = response.data.map((d: ShopDrawing) => ({
-             ...d,
-             drawingId: d.id,
-             type: 'SHOP',
-             title: d.currentRevision?.title || "Untitled",
-             revision: d.currentRevision?.revisionNumber,
-             legacyDrawingNumber: d.currentRevision?.legacyDrawingNumber,
-           }));
+          const mappedData = response.data.map((d: ShopDrawing) => ({
+            ...d,
+            drawingId: d.id,
+            type: 'SHOP',
+            title: d.currentRevision?.title || 'Untitled',
+            revision: d.currentRevision?.revisionNumber,
+            legacyDrawingNumber: d.currentRevision?.legacyDrawingNumber,
+          }));
+          // Re-wrap to preserve meta
+          response = { ...response, data: mappedData };
         }
       } else {
         response = await asBuiltDrawingService.getAll(params as SearchAsBuiltDrawingDto);
         // Map AsBuiltDrawing to Drawing
         if (response && response.data) {
-            response.data = response.data.map((d: AsBuiltDrawing) => ({
-              ...d,
-              drawingId: d.id,
-              type: 'AS_BUILT',
-              title: d.currentRevision?.title || "Untitled",
-              revision: d.currentRevision?.revisionNumber,
-            }));
-         }
+          const mappedData = response.data.map((d: AsBuiltDrawing) => ({
+            ...d,
+            drawingId: d.id,
+            type: 'AS_BUILT',
+            title: d.currentRevision?.title || 'Untitled',
+            revision: d.currentRevision?.revisionNumber,
+          }));
+          // Re-wrap to preserve meta
+          response = { ...response, data: mappedData };
+        }
       }
       return response;
     },
