@@ -4,19 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import {
-  Users,
-  Building2,
-  Settings,
-  FileText,
-  Activity,
-  GitGraph,
-  Shield,
-  BookOpen,
-  FileStack,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react';
+import { Settings, Activity, Shield, FileStack, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface MenuItem {
   href?: string;
@@ -25,7 +13,7 @@ interface MenuItem {
   children?: { href: string; label: string }[];
 }
 
-const menuItems: MenuItem[] = [
+export const menuItems: MenuItem[] = [
   {
     label: 'Access Control',
     icon: Shield,
@@ -167,5 +155,124 @@ export function AdminSidebar() {
         </Link>
       </div>
     </aside>
+  );
+}
+
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
+
+export function AdminMobileSidebar() {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(
+    menuItems
+      .filter((item) => item.children?.some((child) => pathname.startsWith(child.href)))
+      .map((item) => item.label)
+  );
+
+  const toggleMenu = (label: string) => {
+    setExpandedMenus((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]));
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle admin menu</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-64 p-0">
+        <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
+        <div className="h-16 flex items-center px-4 border-b">
+          <span className="text-lg font-bold tracking-tight">Admin Console</span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-4 h-[calc(100vh-4rem)]">
+          <nav className="space-y-1 px-2">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+
+              if (item.children) {
+                const isExpanded = expandedMenus.includes(item.label);
+                const hasActiveChild = item.children.some((child) => pathname.startsWith(child.href));
+
+                return (
+                  <div key={item.label}>
+                    <button
+                      onClick={() => toggleMenu(item.label)}
+                      className={cn(
+                        'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium',
+                        hasActiveChild
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </span>
+                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="ml-4 mt-1 space-y-1 border-l pl-4">
+                        {item.children.map((child) => {
+                          const isActive = pathname === child.href;
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={() => setOpen(false)}
+                              className={cn(
+                                'block px-3 py-1.5 rounded-lg transition-colors text-sm',
+                                isActive
+                                  ? 'bg-primary text-primary-foreground shadow-sm'
+                                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                              )}
+                            >
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              const isActive = pathname.startsWith(item.href!);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href!}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium',
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="p-4 mt-8 border-t absolute bottom-0 w-full left-0 bg-background">
+            <Link
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
+            >
+              ← Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
