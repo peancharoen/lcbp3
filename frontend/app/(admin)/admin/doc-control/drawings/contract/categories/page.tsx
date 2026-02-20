@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { GenericCrudTable } from '@/components/admin/reference/generic-crud-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -120,19 +120,6 @@ export default function ContractCategoriesPage() {
         filters={projectFilter}
       />
 
-      {/*
-        Note: For mapping, we should ideally have a separate "Mappings" column or action button.
-        Since GenericCrudTable might not support custom action columns easily without modification,
-        we are currently just listing categories. To add mapping functionality, we might need
-        to either extend GenericCrudTable or create a dedicated page for mappings.
-
-        Given the constraints, I will add a "Mapped Sub-categories" management section
-        that opens when clicking a category ROW or adding a custom action if GenericCrudTable supports it.
-        For now, let's assume we need to extend GenericCrudTable or replace it to support this specific requirement.
-        
-        However, to keep it simple and consistent:
-        Let's add a separate section below the table or a dialog triggered by a custom cell.
-       */}
       <div className="mt-8 border-t pt-8">
         <CategoryMappingSection projectId={selectedProjectId} />
       </div>
@@ -140,22 +127,47 @@ export default function ContractCategoriesPage() {
   );
 }
 
+// =====================================================
+// Error Boundary to prevent mapping section from crashing the page
+// =====================================================
+class MappingErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 border border-red-200 bg-red-50 rounded-md text-sm text-red-700">
+          <p className="font-medium">Failed to load mapping section</p>
+          <p className="text-xs mt-1">{this.state.error?.message || 'Unknown error'}</p>
+          <button className="mt-2 text-xs underline" onClick={() => this.setState({ hasError: false, error: null })}>
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function CategoryMappingSection({ projectId }: { projectId: number }) {
-  // ... logic to manage mappings would go here ...
-  // But to properly implement this, we need a full mapping UI.
-  // Let's defer this implementation pattern to a separate component to keep this file clean
-  // and just mount it here.
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Category Mappings (Map Sub-categories to Categories)</h2>
       <div className="bg-muted/30 p-4 rounded-lg border-dashed border">
         <p className="text-sm text-muted-foreground">Select a category to view and manage its sub-categories.</p>
-        {/* 
-                  Real implementation would be complex here. 
-                  Better approach: Add a "Manage Sub-categories" button to the Categories table if possible.
-                  Or simpler: A separate "Mapping" page.
-                */}
-        <ManageMappings projectId={projectId} />
+        <MappingErrorBoundary>
+          <ManageMappings projectId={projectId} />
+        </MappingErrorBoundary>
       </div>
     </div>
   );
@@ -166,38 +178,54 @@ function ManageMappings({ projectId }: { projectId: number }) {
   const [selectedCat, setSelectedCat] = useState<string>('');
   const [selectedSubCat, setSelectedSubCat] = useState<string>('');
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['contract-categories', String(projectId)],
+  const {
+    data: rawCategories,
+    isLoading: isLoadingCats,
+    isError: isCatError,
+  } = useQuery({
+    queryKey: ['contract-categories-mapping', String(projectId)],
     queryFn: () => drawingMasterDataService.getContractCategories(projectId),
   });
 
-  const { data: subCategories = [] } = useQuery({
-    queryKey: ['contract-sub-categories', String(projectId)],
+  const {
+    data: rawSubCategories,
+    isLoading: isLoadingSubCats,
+    isError: isSubCatError,
+  } = useQuery({
+    queryKey: ['contract-sub-categories-mapping', String(projectId)],
     queryFn: () => drawingMasterDataService.getContractSubCategories(projectId),
   });
 
-  const { data: mappings = [] } = useQuery({
+  const { data: rawMappings, isLoading: isLoadingMappings } = useQuery({
     queryKey: ['contract-mappings', String(projectId), selectedCat],
     queryFn: () =>
       drawingMasterDataService.getContractMappings(projectId, selectedCat ? parseInt(selectedCat) : undefined),
     enabled: !!selectedCat,
   });
 
+  // Ensure data is always an array - defensive against unexpected API responses
+  const categories = Array.isArray(rawCategories) ? rawCategories : [];
+  const subCategories = Array.isArray(rawSubCategories) ? rawSubCategories : [];
+  const mappings = Array.isArray(rawMappings) ? rawMappings : [];
+
   const createMutation = useMutation({
-    mutationFn: drawingMasterDataService.createContractMapping,
+    mutationFn: (data: { projectId: number; categoryId: number; subCategoryId: number }) =>
+      drawingMasterDataService.createContractMapping(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contract-mappings'] });
       toast.success('Mapping created');
       setSelectedSubCat('');
     },
+    onError: () => toast.error('Failed to create mapping'),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: drawingMasterDataService.deleteContractMapping,
+    mutationFn: (id: number) => drawingMasterDataService.deleteContractMapping(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contract-mappings'] });
       toast.success('Mapping removed');
     },
+    onError: () => toast.error('Failed to delete mapping'),
   });
 
   const handleAdd = () => {
@@ -209,8 +237,20 @@ function ManageMappings({ projectId }: { projectId: number }) {
     });
   };
 
+  if (isLoadingCats || isLoadingSubCats) {
+    return <p className="text-sm text-muted-foreground py-2">Loading data...</p>;
+  }
+
+  if (isCatError || isSubCatError) {
+    return (
+      <p className="text-sm text-red-500 py-2">
+        Failed to load categories or sub-categories. Please check your permissions.
+      </p>
+    );
+  }
+
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-6 md:grid-cols-2 mt-4">
       <div className="space-y-2">
         <label className="text-sm font-medium">Select Category</label>
         <Select value={selectedCat} onValueChange={setSelectedCat}>
@@ -237,10 +277,13 @@ function ManageMappings({ projectId }: { projectId: number }) {
                   <SelectValue placeholder="Select Sub-Category to add..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(subCategories || [])
+                  {subCategories
                     .filter(
                       (s: ContractSubCategory) =>
-                        !(mappings || []).find((m: { subCategory: { id: number } }) => m.subCategory?.id === s.id)
+                        !mappings.find((m: Record<string, unknown>) => {
+                          const sub = m.subCategory as { id?: number } | undefined;
+                          return sub?.id === s.id;
+                        })
                     )
                     .map((s: ContractSubCategory) => (
                       <SelectItem key={s.id} value={String(s.id)}>
@@ -260,12 +303,14 @@ function ManageMappings({ projectId }: { projectId: number }) {
               <span>Mapped Sub-Categories</span>
               <span>Action</span>
             </div>
-            {mappings.length === 0 ? (
+            {isLoadingMappings ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">Loading mappings...</div>
+            ) : mappings.length === 0 ? (
               <div className="p-4 text-center text-sm text-muted-foreground">No sub-categories mapped yet.</div>
             ) : (
               <div className="divide-y">
                 {mappings
-                  .filter((m: any) => m && m.subCategory)
+                  .filter((m: Record<string, unknown>) => m && m.subCategory)
                   .map((m: { id: number; subCategory: ContractSubCategory }) => (
                     <div key={m.id} className="p-2 grid grid-cols-[1fr,auto] gap-2 items-center">
                       <span className="text-sm">

@@ -1,0 +1,22 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Γû▓ Next.js 16.0.7 (Turbopack)
+   - Environments: .env.local
+
+ ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ Γ£ô Compiled successfully in 7.5s
+   Running TypeScript ...
+Failed to compile.
+
+.next/dev/types/validator.ts:53:39
+Type error: Cannot find module '../../../app/(admin)/admin/audit-logs/page.js' or its corresponding type declarations.
+
+  51 | {
+  52 |   type __IsExpected<Specific extends AppPageConfig<"/admin/audit-logs">> = Specific
+> 53 |   const handler = {} as typeof import("../../../app/(admin)/admin/audit-logs/page.js")
+     |                                       ^
+  54 |   type __Check = __IsExpected<typeof handler>
+  55 |   // @ts-ignore
+  56 |   type __Unused = __Check
+Next.js build worker exited with code: 1 and signal: null
