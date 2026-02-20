@@ -1,33 +1,27 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DSLEditor } from "@/components/workflows/dsl-editor";
-import { VisualWorkflowBuilder } from "@/components/workflows/visual-builder";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { workflowApi } from "@/lib/api/workflows";
-import { WorkflowType } from "@/types/workflow";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DSLEditor } from '@/components/workflows/dsl-editor';
+import { VisualWorkflowBuilder } from '@/components/workflows/visual-builder';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { workflowApi } from '@/lib/api/workflows';
+import { WorkflowType } from '@/types/workflow';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 export default function NewWorkflowPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [workflowData, setWorkflowData] = useState({
-    workflowName: "",
-    description: "",
-    workflowType: "CORRESPONDENCE" as WorkflowType,
+    workflowName: '',
+    description: '',
+    workflowType: 'CORRESPONDENCE' as WorkflowType,
     dslDefinition: 'name: New Workflow\nversion: 1.0\nsteps: []',
   });
 
@@ -35,10 +29,10 @@ export default function NewWorkflowPage() {
     setSaving(true);
     try {
       await workflowApi.createWorkflow(workflowData);
-      router.push("/admin/workflows");
+      router.push('/admin/doc-control/workflows');
     } catch (error) {
-      console.error("Failed to create workflow", error);
-      alert("Failed to create workflow");
+      console.error('Failed to create workflow', error);
+      alert('Failed to create workflow');
     } finally {
       setSaving(false);
     }
@@ -49,7 +43,9 @@ export default function NewWorkflowPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">New Workflow</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
+          <Button variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Workflow
@@ -93,9 +89,7 @@ export default function NewWorkflowPage() {
             <Label htmlFor="workflow_type">Workflow Type</Label>
             <Select
               value={workflowData.workflowType}
-              onValueChange={(value) =>
-                setWorkflowData({ ...workflowData, workflowType: value as WorkflowType })
-              }
+              onValueChange={(value) => setWorkflowData({ ...workflowData, workflowType: value as WorkflowType })}
             >
               <SelectTrigger id="workflow_type">
                 <SelectValue />
@@ -119,9 +113,7 @@ export default function NewWorkflowPage() {
         <TabsContent value="dsl" className="mt-4">
           <DSLEditor
             initialValue={workflowData.dslDefinition}
-            onChange={(value) =>
-              setWorkflowData({ ...workflowData, dslDefinition: value })
-            }
+            onChange={(value) => setWorkflowData({ ...workflowData, dslDefinition: value })}
           />
         </TabsContent>
 

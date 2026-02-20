@@ -67,7 +67,7 @@ export default function WorkflowEditPage() {
       } else {
         await createMutation.mutateAsync(dto);
         toast.success('Workflow created successfully');
-        router.push('/admin/workflows');
+        router.push('/admin/doc-control/workflows');
       }
     } catch (error) {
       toast.error('Failed to save workflow');
@@ -87,7 +87,7 @@ export default function WorkflowEditPage() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <Link href="/admin/workflows">
+          <Link href="/admin/doc-control/workflows">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -100,7 +100,7 @@ export default function WorkflowEditPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/workflows">
+          <Link href="/admin/doc-control/workflows">
             <Button variant="outline">Cancel</Button>
           </Link>
           <Button onClick={handleSave} disabled={saving}>

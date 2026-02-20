@@ -36,7 +36,7 @@ export default function WorkflowsPage() {
           <h1 className="text-3xl font-bold">Workflow Configuration</h1>
           <p className="text-muted-foreground mt-1">Manage workflow definitions and routing rules</p>
         </div>
-        <Link href="/admin/workflows/new">
+        <Link href="/admin/doc-control/workflows/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             New Workflow
@@ -73,7 +73,7 @@ export default function WorkflowsPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Link href={`/admin/workflows/${workflow.workflowId}/edit`}>
+                  <Link href={`/admin/doc-control/workflows/${workflow.workflowId}/edit`}>
                     <Button variant="outline" size="sm">
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
