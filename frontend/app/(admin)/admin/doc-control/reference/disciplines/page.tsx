@@ -1,64 +1,43 @@
-"use client";
+'use client';
 
-import { GenericCrudTable } from "@/components/admin/reference/generic-crud-table";
-import { masterDataService } from "@/lib/services/master-data.service";
-import { contractService } from "@/lib/services/contract.service";
-import { ColumnDef } from "@tanstack/react-table";
-import { useState, useEffect } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { GenericCrudTable } from '@/components/admin/reference/generic-crud-table';
+import { masterDataService } from '@/lib/services/master-data.service';
+import { useContracts } from '@/hooks/use-master-data';
+import { ColumnDef } from '@tanstack/react-table';
+import { useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function DisciplinesPage() {
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [selectedContractId, setSelectedContractId] = useState<string | null>(
-    null
-  );
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Fetch contracts for filter and form options
-    contractService.getAll().then((data) => {
-      setContracts(Array.isArray(data) ? data : []);
-    }).catch(err => {
-        console.error("Failed to load contracts:", err);
-        setContracts([]);
-    });
-  }, []);
+  const { data: contractsData = [] } = useContracts();
+  // Ensure we consistently use an array
+  const contracts = Array.isArray(contractsData) ? contractsData : [];
 
   const columns: ColumnDef<any>[] = [
     {
-      accessorKey: "disciplineCode",
-      header: "Code",
-      cell: ({ row }) => (
-        <span className="font-mono font-bold">
-          {row.getValue("disciplineCode")}
-        </span>
-      ),
+      accessorKey: 'disciplineCode',
+      header: 'Code',
+      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('disciplineCode')}</span>,
     },
     {
-      accessorKey: "codeNameTh",
-      header: "Name (TH)",
+      accessorKey: 'codeNameTh',
+      header: 'Name (TH)',
     },
     {
-      accessorKey: "codeNameEn",
-      header: "Name (EN)",
+      accessorKey: 'codeNameEn',
+      header: 'Name (EN)',
     },
     {
-      accessorKey: "isActive",
-      header: "Status",
+      accessorKey: 'isActive',
+      header: 'Status',
       cell: ({ row }) => (
         <span
           className={`px-2 py-1 rounded-full text-xs ${
-            row.getValue("isActive")
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
+            row.getValue('isActive') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
-          {row.getValue("isActive") ? "Active" : "Inactive"}
+          {row.getValue('isActive') ? 'Active' : 'Inactive'}
         </span>
       ),
     },
@@ -75,23 +54,17 @@ export default function DisciplinesPage() {
         entityName="Discipline"
         title="Disciplines Management"
         description="Manage system disciplines (e.g., ARCH, STR, MEC)"
-        queryKey={["disciplines", selectedContractId ?? "all"]}
-        fetchFn={() =>
-          masterDataService.getDisciplines(
-            selectedContractId ? parseInt(selectedContractId) : undefined
-          )
-        }
+        queryKey={['disciplines', selectedContractId ?? 'all']}
+        fetchFn={() => masterDataService.getDisciplines(selectedContractId ? parseInt(selectedContractId) : undefined)}
         createFn={(data) => masterDataService.createDiscipline(data)}
-        updateFn={(id, data) => Promise.reject("Not implemented yet")} // Update endpoint needs to be verified/added if missing
+        updateFn={(id, data) => Promise.reject('Not implemented yet')} // Update endpoint needs to be verified/added if missing
         deleteFn={(id) => masterDataService.deleteDiscipline(id)}
         columns={columns}
         filters={
           <div className="w-[300px]">
             <Select
-              value={selectedContractId || "all"}
-              onValueChange={(val) =>
-                setSelectedContractId(val === "all" ? null : val)
-              }
+              value={selectedContractId || 'all'}
+              onValueChange={(val) => setSelectedContractId(val === 'all' ? null : val)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Filter by Contract" />
@@ -109,26 +82,26 @@ export default function DisciplinesPage() {
         }
         fields={[
           {
-            name: "contractId",
-            label: "Contract",
-            type: "select",
+            name: 'contractId',
+            label: 'Contract',
+            type: 'select',
             required: true,
             options: contractOptions,
           },
           {
-            name: "disciplineCode",
-            label: "Code",
-            type: "text",
+            name: 'disciplineCode',
+            label: 'Code',
+            type: 'text',
             required: true,
           },
           {
-            name: "codeNameTh",
-            label: "Name (TH)",
-            type: "text",
+            name: 'codeNameTh',
+            label: 'Name (TH)',
+            type: 'text',
             required: true,
           },
-          { name: "codeNameEn", label: "Name (EN)", type: "text" },
-          { name: "isActive", label: "Active", type: "checkbox" },
+          { name: 'codeNameEn', label: 'Name (EN)', type: 'text' },
+          { name: 'isActive', label: 'Active', type: 'checkbox' },
         ]}
       />
     </div>

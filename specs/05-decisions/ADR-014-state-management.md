@@ -93,7 +93,7 @@
 
 ## Decision Outcome
 
-**Chosen Option:** **Zustand (Client State) + Native Fetch with Server Components (Server State)**
+**Chosen Option:** **Zustand (Client State) + TanStack Query (Server State) + React Hook Form + Zod (Form State)**
 
 ### Rationale
 
@@ -103,8 +103,12 @@
 
 **For Server State (API data):**
 
-- Use **Server Components** + **SWR** (เฉพาะที่จำเป็น)
-- Server Components ดึงข้อมูลฝั่ง Server ไม่ต้องจัดการ state
+- Use **TanStack Query** (React Query) สำหรับ data fetching, caching, synchronization
+- Server Components สำหรับ initial data loading
+
+**For Form State:**
+
+- Use **React Hook Form + Zod** สำหรับ type-safe form management
 
 ---
 
@@ -253,38 +257,35 @@ export default async function CorrespondencesPage() {
 }
 ```
 
-### 6. Client-Side Fetching (with SWR for real-time data)
+### 6. Client-Side Fetching (with TanStack Query)
 
 ```bash
-npm install swr
+npm install @tanstack/react-query
 ```
 
 ```typescript
-// File: components/correspondences/realtime-list.tsx
+// File: components/correspondences/correspondence-list.tsx
 'use client';
 
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
+import { getCorrespondences } from '@/lib/api/correspondences';
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-export function RealtimeCorrespondenceList() {
-  const { data, error, isLoading, mutate } = useSWR(
-    '/api/correspondences',
-    fetcher,
-    {
-      refreshInterval: 30000, // Auto refresh every 30s
-    }
-  );
+export function CorrespondenceList() {
+  const { data, error, isLoading, refetch } = useQuery({
+    queryKey: ['correspondences'],
+    queryFn: getCorrespondences,
+    refetchInterval: 30000, // Auto refresh every 30s
+  });
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading data</div>;
 
   return (
     <div>
-      {data.map((item) => (
+      {data?.map((item) => (
         <div key={item.id}>{item.subject}</div>
       ))}
-      <button onClick={() => mutate()}>Refresh</button>
+      <button onClick={() => refetch()}>Refresh</button>
     </div>
   );
 }
@@ -347,14 +348,16 @@ export const useUIStore = create<UIState>()(
 - SEO-important content
 - Data that doesn't need real-time updates
 
-### When to Use SWR (Client-Side Server State)
+### When to Use TanStack Query (Client-Side Server State)
 
-✅ Use SWR for:
+✅ Use TanStack Query for:
 
 - Real-time data (notifications count)
 - Polling/Auto-refresh data
 - User-specific data that changes often
 - Optimistic UI updates
+- Complex cache invalidation
+- Paginated/infinite scroll data
 
 ---
 
@@ -392,9 +395,10 @@ export const useUIStore = create<UIState>()(
 ## References
 
 - [Zustand Documentation](https://github.com/pmndrs/zustand)
-- [SWR Documentation](https://swr.vercel.app/)
+- [TanStack Query Documentation](https://tanstack.com/query/latest)
+- [React Hook Form Documentation](https://react-hook-form.com/)
 
 ---
 
-**Last Updated:** 2025-12-01
+**Last Updated:** 2026-02-20
 **Next Review:** 2026-06-01

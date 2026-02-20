@@ -10,9 +10,9 @@
 
 | Attribute          | Value                            |
 | ------------------ | -------------------------------- |
-| **Version**        | 1.7.0                            |
+| **Version**        | 1.8.0                            |
 | **Status**         | Active                           |
-| **Last Updated**   | 2025-12-18                       |
+| **Last Updated**   | 2026-02-20                       |
 | **Owner**          | Nattanin Peancharoen             |
 | **Classification** | Internal Technical Documentation |
 
@@ -200,7 +200,9 @@ Layer 6: File Security (Virus Scanning, Access Control)
 | **Language**         | TypeScript (ESM)                 | Type-safe JavaScript         |
 | **Styling**          | Tailwind CSS + PostCSS           | Utility-first CSS            |
 | **Components**       | shadcn/ui                        | Accessible Component Library |
-| **State Management** | TanStack Query + React Hook Form | Server State + Form State    |
+| **Server State**     | TanStack Query                   | Server State Management      |
+| **Client State**     | Zustand                          | Client State Management      |
+| **Form State**       | React Hook Form + Zod            | Form State Management        |
 | **Validation**       | Zod                              | Schema Validation            |
 | **Testing**          | Vitest + Playwright              | Unit + E2E Testing           |
 
@@ -340,7 +342,7 @@ graph TB
         MariaDB[(MariaDB 11.8<br/>Primary Database)]
         Redis[(Redis<br/>Cache + Queue)]
         Elastic[Elasticsearch<br/>Search Engine]
-        Storage[File Storage<br/>/share/dms-data]
+        Storage[File Storage<br/>/share/np-dms/data/]
     end
 
     subgraph "Integration Layer"
@@ -490,7 +492,7 @@ sequenceDiagram
 
 <div align="center">
 
-**LCBP3-DMS Architecture Specification v1.6.0**
+**LCBP3-DMS Architecture Specification v1.8.0**
 
 [System Architecture](02-01-system-architecture.md) • [API Design](02-02-api-design.md) • [Data Model](02-03-data-model.md)
 

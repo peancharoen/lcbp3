@@ -30,10 +30,10 @@ Before generating code or planning a solution, you MUST conceptually load the co
     - *Action:* Adhere to the defined system design.
     - *Crucial:* Check `specs/05-decisions/` (ADRs) to ensure you do not violate previously agreed-upon technical decisions.
 
-5.  **💾 DATABASE & SCHEMA (`specs/07-databasee/`)**
+5.  **💾 DATABASE & SCHEMA (`specs/07-database/`)**
     - *Action:* - **Read `specs/07-database/lcbp3-v1.7.0-schema.sql`** (or relevant `.sql` files) for exact table structures and constraints.
         - **Consult `specs/07-database/data-dictionary-v1.7.0.md`** for field meanings and business rules.
-        - **Check `specs/07-database/lcbp3-v1.7.0-seed.sql`** to understand initial data states.
+        - **Check `specs/07-database/lcbp3-v1.7.0-seed-basic.sql`** to understand initial data states.
         - **Check `specs/07-database/lcbp3-v1.7.0-seed-permissions.sql`** to understand initial permissions states.
     - *Constraint:* NEVER invent table names or columns. Use ONLY what is defined here.
 
@@ -42,6 +42,10 @@ Before generating code or planning a solution, you MUST conceptually load the co
 
 7.  **🚀 OPERATIONS (`specs/04-operations/`)**
     - *Action:* Ensure deployability and configuration compliance.
+
+8.  **🏗️ INFRASTRUCTURE (`specs/08-infrastructure/`)**
+    - *Action:* Review Docker Compose configurations, network diagrams, monitoring setup, and security zones.
+    - *Constraint:* Ensure deployment paths, port mappings, and volume mounts are consistent with this documentation.
 
 ## Execution Rules
 

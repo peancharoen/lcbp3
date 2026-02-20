@@ -1,9 +1,9 @@
 # LCBP3-DMS - Project Overview
 
 **Project Name:** Laem Chabang Port Phase 3 - Document Management System (LCBP3-DMS)
-**Version:** 1.6.0
+**Version:** 1.8.0
 **Status:** Active Development (~95% Complete)
-**Last Updated:** 2025-12-13
+**Last Updated:** 2026-02-20
 
 ---
 
@@ -140,8 +140,9 @@ LCBP3-DMS is a comprehensive Document Management System (DMS) designed specifica
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
 - **UI Components:** Shadcn/UI
-- **State Management:** React Context / Zustand
-- **Forms:** React Hook Form + Zod
+- **Server State:** TanStack Query
+- **Client State:** Zustand
+- **Form State:** React Hook Form + Zod
 - **API Client:** Axios
 
 ### Infrastructure
@@ -384,10 +385,10 @@ lcbp3/
 
 ## 📝 Document Control
 
-- **Version:** 1.7.0
+- **Version:** 1.8.0
 - **Status:** Active Development
-- **Last Updated:** 2025-12-18
-- **Next Review:** 2026-01-01
+- **Last Updated:** 2026-02-20
+- **Next Review:** 2026-03-31
 - **Owner:** System Architect
 - **Classification:** Internal Use Only
 
@@ -397,6 +398,8 @@ lcbp3/
 
 | Version | Date       | Description                                |
 | ------- | ---------- | ------------------------------------------ |
+| 1.8.0   | 2026-02-20 | Contract Categories Page Crash Fix         |
+| 1.7.0   | 2025-12-18 | Schema refactoring, documentation updated  |
 | 1.6.0   | 2025-12-13 | Schema refactoring, documentation updated  |
 | 1.5.1   | 2025-12-09 | TASK-FE-011/012 completed, docs updated    |
 | 1.5.1   | 2025-12-02 | Reorganized documentation structure        |
