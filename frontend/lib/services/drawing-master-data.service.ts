@@ -1,5 +1,5 @@
 // File: lib/services/drawing-master-data.service.ts
-import apiClient from "@/lib/api/client";
+import apiClient from '@/lib/api/client';
 
 // ===========================
 // Contract Drawing Volumes
@@ -114,7 +114,7 @@ export const drawingMasterDataService = {
     const response = await apiClient.get(`/drawings/master-data/contract/volumes`, {
       params: { projectId },
     });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async createContractVolume(data: CreateContractVolumeDto): Promise<ContractVolume> {
@@ -136,7 +136,7 @@ export const drawingMasterDataService = {
     const response = await apiClient.get(`/drawings/master-data/contract/categories`, {
       params: { projectId },
     });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async createContractCategory(data: CreateContractCategoryDto): Promise<ContractCategory> {
@@ -158,7 +158,7 @@ export const drawingMasterDataService = {
     const response = await apiClient.get(`/drawings/master-data/contract/sub-categories`, {
       params: { projectId },
     });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async createContractSubCategory(data: CreateContractSubCategoryDto): Promise<ContractSubCategory> {
@@ -166,7 +166,10 @@ export const drawingMasterDataService = {
     return response.data;
   },
 
-  async updateContractSubCategory(id: number, data: Partial<CreateContractSubCategoryDto>): Promise<ContractSubCategory> {
+  async updateContractSubCategory(
+    id: number,
+    data: Partial<CreateContractSubCategoryDto>
+  ): Promise<ContractSubCategory> {
     const response = await apiClient.patch(`/drawings/master-data/contract/sub-categories/${id}`, data);
     return response.data;
   },
@@ -183,7 +186,7 @@ export const drawingMasterDataService = {
     const response = await apiClient.get(`/drawings/master-data/contract/mappings`, {
       params: { projectId, categoryId },
     });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async createContractMapping(data: {
@@ -204,7 +207,7 @@ export const drawingMasterDataService = {
     const response = await apiClient.get(`/drawings/master-data/shop/main-categories`, {
       params: { projectId },
     });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async createShopMainCategory(data: CreateShopMainCategoryDto): Promise<ShopMainCategory> {
@@ -226,7 +229,7 @@ export const drawingMasterDataService = {
     const response = await apiClient.get(`/drawings/master-data/shop/sub-categories`, {
       params: { projectId, mainCategoryId },
     });
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async createShopSubCategory(data: CreateShopSubCategoryDto): Promise<ShopSubCategory> {
