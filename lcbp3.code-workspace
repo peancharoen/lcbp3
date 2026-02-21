@@ -4,7 +4,7 @@
     { "name": "🔧 Backend", "path": "./backend" },
     { "name": "🎨 Frontend", "path": "./frontend" },
     { "name": "🗓️ docs", "path": "./docs" },
-    { "name": "🔗 specs", "path": "./specs" }
+    { "name": "🔗 specs", "path": "./specs" },
   ],
   "settings": {
     // ========================================
@@ -25,7 +25,7 @@
     "editor.smoothScrolling": true,
     "editor.cursorBlinking": "smooth",
     "editor.cursorSmoothCaretAnimation": "on",
-    "editor.wordWrap": "on",
+    "editor.wordWrap": "off",
     "editor.linkedEditing": true,
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
@@ -39,41 +39,41 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode",
 
     "[javascript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[javascriptreact]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[typescript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[typescriptreact]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[json]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[jsonc]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[html]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[css]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[scss]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
     "[markdown]": {
       "editor.defaultFormatter": "yzhang.markdown-all-in-one",
-      "editor.wordWrap": "on"
+      "editor.wordWrap": "on",
     },
     "[yaml]": {
-      "editor.defaultFormatter": "redhat.vscode-yaml"
+      "editor.defaultFormatter": "redhat.vscode-yaml",
     },
     "[dockerfile]": {
-      "editor.defaultFormatter": "ms-azuretools.vscode-containers"
+      "editor.defaultFormatter": "ms-azuretools.vscode-containers",
     },
     "[sql]": {
       "editor.defaultFormatter": "mtxr.sqltools",
@@ -81,7 +81,7 @@
       "editor.insertSpaces": true,
       "editor.detectIndentation": false,
       "editor.wordWrap": "off",
-      "editor.formatOnSave": true
+      "editor.formatOnSave": true,
     },
     "sqltools.format": {
       "indent": "  ", // 2 spaces
@@ -92,7 +92,7 @@
       "functionCase": "lower", // count(), sum(), date_format()
       // Spacing and Lines
       "linesBetweenQueries": 2, // เว้นบรรทัดระหว่าง query
-      "denseOperators": true,
+      //"denseOperators": true,
       "spaceAroundOperators": false,
       // Comma Style
       "commaPosition": "after", // ใส่ comma หลังคอลัมน์
@@ -109,7 +109,7 @@
       // Other Styles
       "compact": true, // ไม่ย่อโค้ดให้แน่นเกินไป
       "uppercaseKeywords": true,
-      "newlineBeforeSemicolon": false
+      "newlineBeforeSemicolon": false,
     },
     // ป้องกัน extension อื่นมายุ่ง
 
@@ -120,7 +120,7 @@
     "editor.codeActionsOnSave": {
       "source.fixAll": "explicit",
       "source.fixAll.prettier": "explicit",
-      "source.fixAll.eslint": "explicit"
+      "source.fixAll.eslint": "explicit",
       //"source.organizeImports": "explicit",
       //"source.addMissingImports": "explicit"
     },
@@ -178,7 +178,7 @@
       "@public": "${workspaceFolder:🎨 Frontend}/public",
       "@styles": "${workspaceFolder:🎨 Frontend}/styles",
       "@types": "${workspaceFolder:🎨 Frontend}/types",
-      "@api": "${workspaceFolder:🎨 Frontend}/app/api"
+      "@api": "${workspaceFolder:🎨 Frontend}/app/api",
     },
     "path-intellisense.autoSlashAfterDirectory": true,
     "path-intellisense.extensionOnImport": false,
@@ -203,18 +203,18 @@
     "tailwindCSS.suggestions": true,
     "tailwindCSS.includeLanguages": {
       "typescript": "javascript",
-      "typescriptreact": "javascript"
+      "typescriptreact": "javascript",
     },
     "tailwindCSS.experimental.classRegex": [
       ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
       ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
-      "class[Nn]ame\\s*=\\s*['\"`]([^'\"`]*)['\"`]"
+      "class[Nn]ame\\s*=\\s*['\"`]([^'\"`]*)['\"`]",
     ],
 
     // ระบุที่ตั้งของ tailwind.config (ถ้ามี)
     "tailwindCSS.experimental.configFile": {
       //"backend/tailwind.config.js": "backend/**",
-      "frontend/tailwind.config.ts": "frontend/**"
+      "frontend/tailwind.config.ts": "frontend/**",
     },
 
     // ========================================
@@ -233,7 +233,7 @@
       "javascript",
       "javascriptreact",
       "typescript",
-      "typescriptreact"
+      "typescriptreact",
     ],
 
     "auto-rename-tag.activationOnLanguage": [
@@ -242,7 +242,7 @@
       "javascript",
       "javascriptreact",
       "typescript",
-      "typescriptreact"
+      "typescriptreact",
     ],
 
     // ========================================
@@ -255,32 +255,32 @@
         "color": "#FF2D00",
         "strikethrough": false,
         "backgroundColor": "transparent",
-        "bold": true
+        "bold": true,
       },
       {
         "tag": "?",
         "color": "#3498DB",
         "strikethrough": false,
-        "backgroundColor": "transparent"
+        "backgroundColor": "transparent",
       },
       {
         "tag": "//",
         "color": "#474747",
         "strikethrough": true,
-        "backgroundColor": "transparent"
+        "backgroundColor": "transparent",
       },
       {
         "tag": "todo",
         "color": "#FF8C00",
         "strikethrough": false,
-        "backgroundColor": "transparent"
+        "backgroundColor": "transparent",
       },
       {
         "tag": "*",
         "color": "#98C379",
         "strikethrough": false,
-        "backgroundColor": "transparent"
-      }
+        "backgroundColor": "transparent",
+      },
     ],
 
     // ========================================
@@ -295,28 +295,28 @@
       "TODO": {
         "icon": "check",
         "iconColour": "#FF8C00",
-        "foreground": "#FF8C00"
+        "foreground": "#FF8C00",
       },
       "FIXME": {
         "icon": "alert",
         "iconColour": "#FF2D00",
-        "foreground": "#FF2D00"
+        "foreground": "#FF2D00",
       },
       "BUG": {
         "icon": "bug",
         "iconColour": "#FF2D00",
-        "foreground": "#FF2D00"
+        "foreground": "#FF2D00",
       },
       "NOTE": {
         "icon": "note",
         "iconColour": "#3498DB",
-        "foreground": "#3498DB"
+        "foreground": "#3498DB",
       },
       "HACK": {
         "icon": "tools",
         "iconColour": "#FFA500",
-        "foreground": "#FFA500"
-      }
+        "foreground": "#FFA500",
+      },
     },
 
     // ========================================
@@ -335,6 +335,7 @@
     "gitlens.views.repositories.location": "scm",
     "gitlens.views.fileHistory.location": "explorer",
     "gitlens.views.lineHistory.location": "explorer",
+    "gitlens.terminal.enabled": false,
 
     // ========================================
     // GIT
@@ -369,7 +370,7 @@
     "javascript.updateImportsOnFileMove.enabled": "always",
     "javascript.inlayHints.parameterNames.enabled": "all",
     "javascript.inlayHints.functionLikeReturnTypes.enabled": true,
-    "javascript.inlayHints.variableTypes.enabled": true,
+    "javascript.inlayHints.variableTypes.enabled": false,
     "javascript.preferences.importModuleSpecifier": "relative",
 
     "typescript.suggest.autoImports": true,
@@ -386,7 +387,7 @@
 
     "emmet.includeLanguages": {
       "javascript": "javascriptreact",
-      "typescript": "typescriptreact"
+      "typescript": "typescriptreact",
     },
     "emmet.triggerExpansionOnTab": true,
     "emmet.showSuggestionsAsSnippets": true,
@@ -404,7 +405,7 @@
     "files.associations": {
       "*.css": "tailwindcss",
       ".env*": "dotenv",
-      "*.md": "markdown"
+      "*.md": "markdown",
     },
 
     "files.exclude": {
@@ -417,7 +418,7 @@
       "**/.turbo": true,
       "**/coverage": true,
       "**/.nyc_output": true,
-      "**/*.log": true
+      "**/*.log": true,
     },
 
     "files.watcherExclude": {
@@ -427,7 +428,7 @@
       "**/.next/**": true,
       "**/dist/**": true,
       "**/build/**": true,
-      "**/.turbo/**": true
+      "**/.turbo/**": true,
     },
 
     // ========================================
@@ -445,7 +446,7 @@
       "**/yarn.lock": true,
       "**/package-lock.json": true,
       "**/pnpm-lock.yaml": true,
-      "**/*.log": true
+      "**/*.log": true,
     },
     "search.followSymlinks": false,
     "search.useIgnoreFiles": true,
@@ -466,8 +467,22 @@
     "terminal.integrated.profiles.windows": {
       "PowerShell-7": {
         "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
-        "icon": "terminal-powershell"
-      }
+        "icon": "terminal-powershell",
+      },
+      "SSH QNAP": {
+        "path": "C:\\Windows\\System32\\OpenSSH\\ssh.exe",
+        "args": ["qnap"],
+        "icon": "terminal-linux",
+        "color": "terminal.ansiGreen",
+        "overrideName": true,
+      },
+      "SSH ASUSTOR": {
+        "path": "C:\\Windows\\System32\\OpenSSH\\ssh.exe",
+        "args": ["asustor"],
+        "icon": "terminal-linux",
+        "color": "terminal.ansiBlue",
+        "overrideName": true,
+      },
     },
 
     // ========================================
@@ -485,7 +500,7 @@
     "workbench.editor.limit.value": 10,
     "workbench.startupEditor": "welcomePage",
     "workbench.view.showQuietly": {
-      "workbench.panel.output": false
+      "workbench.panel.output": false,
     },
     // ========================================
     // EXPLORER
@@ -505,7 +520,7 @@
       "*.ts": "${capture}.test.ts, ${capture}.spec.ts",
       "*.tsx": "${capture}.test.tsx, ${capture}.spec.tsx, ${capture}.module.css",
       "*.js": "${capture}.test.js, ${capture}.spec.js",
-      "*.jsx": "${capture}.test.jsx, ${capture}.spec.jsx"
+      "*.jsx": "${capture}.test.jsx, ${capture}.spec.jsx",
     },
 
     // ========================================
@@ -555,10 +570,8 @@
     // ========================================
 
     "yaml.schemas": {
-      "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}",
-      "https://json.schemastore.org/github-action.json": "action.{yml,yaml}",
       "https://json.schemastore.org/prettierrc.json": ".prettierrc.{yml,yaml}",
-      "https://json.schemastore.org/docker-compose.json": "docker-compose*.{yml,yaml}"
+      "https://json.schemastore.org/docker-compose.json": "docker-compose*.{yml,yaml}",
     },
     "yaml.format.enable": true,
     "yaml.format.singleQuote": false,
@@ -575,14 +588,14 @@
     "rest-client.showResponseInDifferentTab": true,
     "rest-client.environmentVariables": {
       "$shared": {
-        "apiUrl": "http://localhost:3000"
+        "apiUrl": "http://localhost:3000",
       },
       "development": {
-        "apiUrl": "http://localhost:3000"
+        "apiUrl": "http://localhost:3000",
       },
       "production": {
-        "apiUrl": "https://lcbp3.nap-dms.work"
-      }
+        "apiUrl": "https://lcbp3.nap-dms.work",
+      },
     },
 
     // ========================================
@@ -595,7 +608,7 @@
       "*.env.local": "Tune",
       "*.env.development": "Tune",
       "*.env.production": "Tune",
-      "docker-compose.*.yml": "Docker"
+      "docker-compose.*.yml": "Docker",
     },
     "material-icon-theme.folders.associations": {
       "hooks": "Custom",
@@ -607,7 +620,7 @@
       "entities": "Database",
       "modules": "Folder-Controllers",
       "common": "Shared",
-      "config": "Config"
+      "config": "Config",
     },
 
     // ========================================
@@ -623,7 +636,7 @@
     // PERFORMANCE
     // ========================================
 
-    "files.maxMemoryForLargeFilesMB": 4096,
+    "files.maxMemoryForLargeFilesMB": 1024,
     "telemetry.telemetryLevel": "off",
     "security.workspace.trust.untrustedFiles": "open",
     "extensions.ignoreRecommendations": false,
@@ -643,7 +656,7 @@
       {
         "mysqlOptions": {
           "authProtocol": "default",
-          "enableSsl": "Disabled"
+          "enableSsl": "Disabled",
         },
         "ssh": "Disabled",
         "previewLimit": 50,
@@ -654,8 +667,8 @@
         "database": "lcbp3_dev",
         "username": "root",
         "password": "",
-        "askForPassword": true // ✅ ปลอดภัยกว่า
-      }
+        "askForPassword": true, // ✅ ปลอดภัยกว่า
+      },
     ],
     "database-client.variableIndicator": [":", "$"],
     "geminicodeassist.rules": "ใช้ภาษาไทยในการโต้ตอบ\n\n\n\n",
@@ -664,7 +677,7 @@
     "vitest.commandLine": "npm run test --",
     "vitest.enable": true,
     "yaml.maxItemsComputed": 6000,
-    "powershell.cwd": "🎯 Root"
+    "powershell.cwd": "🎯 Root",
   },
   // ========================================
   // LAUNCH CONFIGURATIONS
@@ -683,7 +696,7 @@
         // "internalConsoleOptions": "neverOpen",
         "skipFiles": ["<node_internals>/**"],
         "sourceMaps": true,
-        "restart": true
+        "restart": true,
       },
       {
         "name": "🎨 Debug Frontend (Next.js)",
@@ -695,8 +708,8 @@
         "serverReadyAction": {
           "pattern": "- Local:.+(https?://\\S+)",
           "uriFormat": "%s",
-          "action": "debugWithChrome"
-        }
+          "action": "debugWithChrome",
+        },
       },
       {
         "name": "🧪 Debug Backend Tests (Jest)",
@@ -705,7 +718,7 @@
         "runtimeExecutable": "npm",
         "runtimeArgs": ["run", "test:debug"],
         "cwd": "${workspaceFolder:🔧 Backend}",
-        "console": "integratedTerminal"
+        "console": "integratedTerminal",
       },
       {
         "name": "🧪 Debug Frontend Tests (Vitest)",
@@ -715,17 +728,17 @@
         "runtimeArgs": ["run", "test:debug"],
         "cwd": "${workspaceFolder:🎨 Frontend}",
         "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen"
-      }
+        "internalConsoleOptions": "neverOpen",
+      },
     ],
 
     "compounds": [
       {
         "name": "🚀 Debug Full Stack",
         "configurations": ["🔧 Debug Backend (NestJS)", "🎨 Debug Frontend (Next.js)"],
-        "stopAll": true
-      }
-    ]
+        "stopAll": true,
+      },
+    ],
   },
   // ========================================
   // TASKS
@@ -738,130 +751,166 @@
         "type": "shell",
         "command": "npm run start:dev",
         "options": {
-          "cwd": "${workspaceFolder:🔧 Backend}"
+          "cwd": "${workspaceFolder:🔧 Backend}",
         },
         "problemMatcher": [],
         "isBackground": true,
         "presentation": {
           "reveal": "always",
           "panel": "dedicated",
-          "group": "dev"
-        }
+          "group": "dev",
+        },
       },
       {
         "label": "🎨 Start Frontend Dev",
         "type": "shell",
         "command": "npm run dev",
         "options": {
-          "cwd": "${workspaceFolder:🎨 Frontend}"
+          "cwd": "${workspaceFolder:🎨 Frontend}",
         },
         "problemMatcher": [],
         "isBackground": true,
         "presentation": {
           "reveal": "always",
           "panel": "dedicated",
-          "group": "dev"
-        }
+          "group": "dev",
+        },
       },
       {
         "label": "🚀 Start Full Stack",
         "dependsOn": ["🔧 Start Backend Dev", "🎨 Start Frontend Dev"],
-        "problemMatcher": []
+        "problemMatcher": [],
       },
       {
         "label": "🧪 Run Backend Tests",
         "type": "shell",
         "command": "npm run test",
         "options": {
-          "cwd": "${workspaceFolder:🔧 Backend}"
+          "cwd": "${workspaceFolder:🔧 Backend}",
         },
-        "problemMatcher": []
+        "problemMatcher": [],
       },
       {
         "label": "🧪 Run Frontend Tests",
         "type": "shell",
         "command": "npm run test",
         "options": {
-          "cwd": "${workspaceFolder:🎨 Frontend}"
+          "cwd": "${workspaceFolder:🎨 Frontend}",
         },
-        "problemMatcher": []
+        "problemMatcher": [],
       },
       {
         "label": "🧪 Watch Backend Tests",
         "type": "shell",
         "command": "npm run test:watch",
         "options": {
-          "cwd": "${workspaceFolder:🔧 Backend}"
+          "cwd": "${workspaceFolder:🔧 Backend}",
         },
         "problemMatcher": [],
-        "isBackground": true
+        "isBackground": true,
       },
       {
         "label": "🧪 Watch Frontend Tests",
         "type": "shell",
         "command": "npm run test:watch",
         "options": {
-          "cwd": "${workspaceFolder:🎨 Frontend}"
+          "cwd": "${workspaceFolder:🎨 Frontend}",
         },
         "problemMatcher": [],
-        "isBackground": true
+        "isBackground": true,
       },
       {
         "label": "🏗️ Build Backend",
         "type": "shell",
         "command": "npm run build",
         "options": {
-          "cwd": "${workspaceFolder:🔧 Backend}"
+          "cwd": "${workspaceFolder:🔧 Backend}",
         },
         "problemMatcher": ["$tsc"],
         "group": {
           "kind": "build",
-          "isDefault": false
-        }
+          "isDefault": false,
+        },
       },
       {
         "label": "🏗️ Build Frontend",
         "type": "shell",
         "command": "npm run build",
         "options": {
-          "cwd": "${workspaceFolder:🎨 Frontend}"
+          "cwd": "${workspaceFolder:🎨 Frontend}",
         },
         "problemMatcher": ["$tsc"],
         "group": {
           "kind": "build",
-          "isDefault": false
-        }
+          "isDefault": false,
+        },
       },
       {
         "label": "🔍 Lint Backend",
         "type": "shell",
         "command": "npm run lint",
         "options": {
-          "cwd": "${workspaceFolder:🔧 Backend}"
+          "cwd": "${workspaceFolder:🔧 Backend}",
         },
-        "problemMatcher": ["$eslint-stylish"]
+        "problemMatcher": ["$eslint-stylish"],
       },
       {
         "label": "🔍 Lint Frontend",
         "type": "shell",
         "command": "npm run lint",
         "options": {
-          "cwd": "${workspaceFolder:🎨 Frontend}"
+          "cwd": "${workspaceFolder:🎨 Frontend}",
         },
-        "problemMatcher": ["$eslint-stylish"]
+        "problemMatcher": ["$eslint-stylish"],
       },
       {
         "label": "🐳 Docker Compose Up",
         "type": "shell",
         "command": "docker-compose up -d",
-        "problemMatcher": []
+        "options": {
+          "cwd": "${workspaceFolder:🎯 Root}",
+        },
+        "problemMatcher": [],
       },
       {
         "label": "🐳 Docker Compose Down",
         "type": "shell",
         "command": "docker-compose down",
-        "problemMatcher": []
-      }
-    ]
-  }
+        "options": {
+          "cwd": "${workspaceFolder:🎯 Root}",
+        },
+        "problemMatcher": [],
+      },
+      {
+        "label": "🖥️ SSH QNAP",
+        "type": "shell",
+        "command": "ssh qnap",
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated",
+          "group": "ssh",
+        },
+        "runOptions": {
+          "runOn": "folderOpen",
+        },
+      },
+      {
+        "label": "🖥️ SSH ASUSTOR",
+        "type": "shell",
+        "command": "ssh asustor",
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated",
+          "group": "ssh",
+        },
+        "runOptions": {
+          "runOn": "folderOpen",
+        },
+      },
+    ],
+  },
 }
