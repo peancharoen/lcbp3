@@ -1,0 +1,86 @@
+# File: share/nap-dms/mariadb/docker-compose-lcbp3-db.yml
+# DMS Container v1_8_0 : ย้าย folder ไปที่ share/nap-dms/
+# Application name: lcbp3-db, Servive: mariadb, pma
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  mariadb:
+    <<: [*restart_policy, *default_logging]
+    image: mariadb:11.8
+    container_name: mariadb
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+    environment:
+      MYSQL_ROOT_PASSWORD: "Center#2025"
+      MYSQL_DATABASE: "lcbp3"
+      MYSQL_USER: "center"
+      MYSQL_PASSWORD: "Center#2025"
+      TZ: "Asia/Bangkok"
+    ports:
+      - "3306:3306"
+    networks:
+      - lcbp3
+    volumes:
+      - "/share/np-dms/mariadb/data:/var/lib/mysql"
+      - "/share/np-dms/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf:ro"
+      - "/share/np-dms/mariadb/init:/docker-entrypoint-initdb.d:ro"
+      - "/share/dms-data/mariadb/backup:/backup"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  pma:
+    <<: [*restart_policy, *default_logging]
+    image: phpmyadmin:5-apache
+    container_name: pma
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+    environment:
+      TZ: "Asia/Bangkok"
+      PMA_HOST: "mariadb"
+      PMA_PORT: "3306"
+      PMA_ABSOLUTE_URI: "https://pma.np-dms.work/"
+      UPLOAD_LIMIT: "1G"
+      MEMORY_LIMIT: "512M"
+    ports:
+      - "89:80"
+    networks:
+      - lcbp3
+    # expose:
+    #  - "80"
+    volumes:
+      - "/share/np-dms/pma/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro"
+      - "/share/np-dms/pma/zzz-custom.ini:/usr/local/etc/php/conf.d/zzz-custom.ini:ro"
+      - "/share/np-dms/pma/tmp:/var/lib/phpmyadmin/tmp:rw"
+      - "/share/dms-data/logs/pma:/var/log/apache2"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+networks:
+  lcbp3:
+    external: true

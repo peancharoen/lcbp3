@@ -1,0 +1,75 @@
+# File: share/np-dms/n8n/docker-compose-lcbp3-n8n.yml
+# DMS Container v1_8_0 แยก service และ folder, Application name:n8n service n8n
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+services:
+  n8n:
+    <<: [*restart_policy, *default_logging]
+    image: n8nio/n8n:1.78.0
+    container_name: n8n
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    environment:
+      TZ: "Asia/Bangkok"
+      NODE_ENV: "production"
+      # N8N_PATH: "/n8n/"
+      N8N_PUBLIC_URL: "https://n8n.np-dms.work/"
+      WEBHOOK_URL: "https://n8n.np-dms.work/"
+      N8N_EDITOR_BASE_URL: "https://n8n.np-dms.work/"
+      N8N_PROTOCOL: "https"
+      N8N_HOST: "n8n.np-dms.work"
+      N8N_PORT: 5678
+      N8N_PROXY_HOPS: "1"
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_SECURE_COOKIE: 'true'
+      N8N_ENCRYPTION_KEY: "9AAIB7Da9DW1qAhJE5/Bz4SnbQjeAngI"
+      N8N_BASIC_AUTH_ACTIVE: 'true'
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: Center#2025
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      GENERIC_TIMEZONE: "Asia/Bangkok"
+      # DB: MySQL/MariaDB removed in n8n v1.x — now using SQLite (default)
+      # Data is persisted in /home/node/.n8n (mounted volume below)
+      DB_TYPE: sqlite
+
+    ports:
+      - "5678:5678"
+    networks:
+      lcbp3: {}
+    volumes:
+      - "/share/np-dms/n8n:/home/node/.n8n"
+      - "/share/np-dms/n8n/cache:/home/node/.cache"
+      - "/share/np-dms/n8n/scripts:/scripts"
+      - "/share/np-dms/n8n/data:/data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+networks:
+  lcbp3:
+    external: true
+
+# สำหรับ n8n volumes
+# chown -R 1000:1000 /share/Container/n8n
+# chmod -R 755 /share/Container/n8n
+
