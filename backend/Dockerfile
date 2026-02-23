@@ -44,7 +44,7 @@ COPY backend/ ./backend/
 RUN cd backend && pnpm run build
 
 # Deploy with production deps only (pnpm workspace isolation)
-RUN pnpm --filter backend deploy --prod --legacy /app/backend-prod
+RUN pnpm --filter backend deploy --prod --shamefully-hoist /app/backend-prod
 
 # =========================
 # Stage 3: Production Runtime
