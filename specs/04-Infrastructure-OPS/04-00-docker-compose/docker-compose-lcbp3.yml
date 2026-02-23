@@ -1,0 +1,122 @@
+# File: /share/np-dms/app/docker-compose.yml
+# DMS Container v1.8.0: Application Stack (Backend + Frontend)
+# Application name: lcbp3-app
+# ============================================================
+# ⚠️  ใช้งานร่วมกับ services อื่นที่รันอยู่แล้วบน QNAP:
+#     - mariadb (lcbp3-db)
+#     - cache   (services)
+#     - search  (services)
+#     - npm     (lcbp3-npm)
+# ============================================================
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+networks:
+  lcbp3:
+    external: true
+
+services:
+  # ----------------------------------------------------------------
+  # 1. Backend API (NestJS)
+  # Service Name: backend (ตามที่ NPM อ้างอิง → backend:3000)
+  # ----------------------------------------------------------------
+  backend:
+    <<: [*restart_policy, *default_logging]
+    image: lcbp3-backend:latest
+    container_name: backend
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1536M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    environment:
+      TZ: 'Asia/Bangkok'
+      NODE_ENV: 'production'
+      # --- Database ---
+      DB_HOST: 'mariadb'
+      DB_PORT: '3306'
+      DB_DATABASE: 'lcbp3'
+      DB_USERNAME: 'center'
+      DB_PASSWORD: 'Center#2025'
+      # --- Redis ---
+      REDIS_HOST: 'cache'
+      REDIS_PORT: '6379'
+      REDIS_PASSWORD: 'Center2025'
+      # --- Elasticsearch ---
+      ELASTICSEARCH_HOST: 'search'
+      ELASTICSEARCH_PORT: '9200'
+      # --- JWT ---
+      JWT_SECRET: 'eebc122aa65adde8c76c6a0847d9649b2b67a06db1504693e6c912e51499b76e'
+      JWT_EXPIRATION: '8h'
+      JWT_REFRESH_SECRET: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2'
+      # --- Numbering ---
+      NUMBERING_LOCK_TIMEOUT: '5000'
+      NUMBERING_RESERVATION_TTL: '300'
+      # --- File Upload ---
+      UPLOAD_TEMP_DIR: '/app/uploads/temp'
+      UPLOAD_PERMANENT_DIR: '/app/uploads/permanent'
+      MAX_FILE_SIZE: '52428800'
+    networks:
+      - lcbp3
+    volumes:
+      # Two-Phase Storage: จัดเก็บไฟล์นอก container
+      - '/share/np-dms/data/uploads/temp:/app/uploads/temp'
+      - '/share/np-dms/data/uploads/permanent:/app/uploads/permanent'
+      - '/share/np-dms/data/logs/backend:/app/logs'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ----------------------------------------------------------------
+  # 2. Frontend Web App (Next.js)
+  # Service Name: frontend (ตามที่ NPM อ้างอิง → frontend:3000)
+  # ----------------------------------------------------------------
+  frontend:
+    <<: [*restart_policy, *default_logging]
+    image: lcbp3-frontend:latest
+    container_name: frontend
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    environment:
+      TZ: 'Asia/Bangkok'
+      NODE_ENV: 'production'
+      HOSTNAME: '0.0.0.0'
+      PORT: '3000'
+      # --- NextAuth ---
+      AUTH_SECRET: 'eebc122aa65adde8c76c6a0847d9649b2b67a06db1504693e6c912e51499b76e'
+      AUTH_URL: 'https://lcbp3.np-dms.work'
+    networks:
+      - lcbp3
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      backend:
+        condition: service_healthy

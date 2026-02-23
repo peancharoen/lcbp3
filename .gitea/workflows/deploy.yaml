@@ -44,14 +44,14 @@ jobs:
             # 4. Update Containers
             echo "🔄 Updating Containers..."
             # Sync compose file จาก repo → app directory
-            cp /share/np-dms/app/source/lcbp3/specs/08-infrastructure/docker-compose-app.yml /share/np-dms/app/docker-compose-app.yml
+            cp /share/np-dms/app/source/lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/docker-compose-lcbp3.yml /share/np-dms/app/docker-compose-lcbp3.yml
             cd /share/np-dms/app
             # ⚠️ ลบ container เดิมที่อาจสร้างจาก Container Station
             docker rm -f backend frontend 2>/dev/null || true
 
             # 4a. Start Backend ก่อน
             echo "🟢 Starting Backend..."
-            docker compose -f docker-compose-app.yml up -d backend
+            docker compose -f docker-compose-lcbp3.yml up -d backend
 
             # 4b. รอ Backend healthy (ทุก 5 วิ สูงสุด 60 วิ)
             echo "⏳ Waiting for Backend health check..."
@@ -68,7 +68,7 @@ jobs:
 
             # 4c. Start Frontend
             echo "🟢 Starting Frontend..."
-            docker compose -f docker-compose-app.yml up -d frontend
+            docker compose -f docker-compose-lcbp3.yml up -d frontend
 
             # 5. Cleanup
             echo "🧹 Cleaning up unused images..."
