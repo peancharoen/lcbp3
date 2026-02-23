@@ -442,3 +442,180 @@ echo "Account compromise response completed for User ID: $USER_ID"
 **Version:** 1.8.0
 **Last Review:** 2025-12-01
 **Next Review:** 2026-03-01
+
+---
+
+# Appendix A — SSH Setup (QNAP & ASUSTOR)
+
+> คู่มือการตั้งค่าและใช้งาน SSH สำหรับ NAS ทั้ง 2 เครื่อง
+
+## A.1 Connection Info
+
+| Item          | QNAP (TS-473A)     | ASUSTOR (AS5403T)       |
+| ------------- | ------------------ | ----------------------- |
+| **Role**      | Application Server | Infrastructure / Backup |
+| **IP**        | `192.168.10.8`     | `192.168.10.9`          |
+| **SSH Port**  | `22`               | `22`                    |
+| **SSH Alias** | `qnap`             | `asustor`               |
+
+## A.2 Enable SSH on NAS
+
+**QNAP:** QTS Web UI → Control Panel → Network & File Services → Telnet/SSH → Enable SSH (port 22)
+
+**ASUSTOR:** ADM Web UI → Settings → Terminal & SNMP → Enable SSH service (port 22)
+
+## A.3 SSH Key Setup (Client → NAS)
+
+```powershell
+# Create key (once on dev machine)
+ssh-keygen -t ed25519 -C "nattanin@np-dms"
+
+# Copy public key to NAS
+ssh-copy-id -i ~/.ssh/id_ed25519.pub nattanin@192.168.10.8   # QNAP
+ssh-copy-id -i ~/.ssh/id_ed25519.pub nattanin@192.168.10.9   # ASUSTOR
+```
+
+## A.4 SSH Config (`~/.ssh/config`)
+
+```ssh-config
+Host gitea
+    HostName git.np-dms.work
+    User git
+    Port 2222
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+
+Host qnap
+    HostName 192.168.10.8
+    User nattanin
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+
+Host asustor
+    HostName 192.168.10.9
+    User nattanin
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+```
+
+## A.5 SSH Hardening (`/etc/ssh/sshd_config` on NAS)
+
+```bash
+PasswordAuthentication no   # Key-only login
+PermitRootLogin no
+AllowUsers nattanin
+
+# Restart SSH
+/etc/init.d/login_server.sh restart   # QNAP
+/etc/init.d/sshd restart              # ASUSTOR
+```
+
+> ⚠️ **ตรวจสอบว่า SSH Key ใช้งานได้ก่อนปิด PasswordAuthentication**
+
+## A.6 SSH Port Forwarding (Useful Tunnels)
+
+```powershell
+# MariaDB local tunnel
+ssh -L 3306:localhost:3306 qnap
+
+# Elasticsearch tunnel
+ssh -L 9200:localhost:9200 qnap
+
+# Grafana tunnel (from ASUSTOR)
+ssh -L 3000:localhost:3000 asustor
+```
+
+## A.7 SSH Troubleshooting
+
+| Problem                         | Cause                    | Fix                                                    |
+| ------------------------------- | ------------------------ | ------------------------------------------------------ |
+| `Connection refused`            | SSH not enabled on NAS   | Enable SSH via Web UI                                  |
+| `Permission denied (publickey)` | Wrong key or permissions | `chmod 700 ~/.ssh`, `chmod 600 ~/.ssh/authorized_keys` |
+| `Host key verification failed`  | IP changed, stale key    | `ssh-keygen -R 192.168.10.8`                           |
+| `Connection timed out`          | Firewall / wrong IP      | Check ACL and ping                                     |
+
+---
+
+# Appendix B — Secrets Management (QNAP Deployment)
+
+> ⚠️ **Security Level: CONFIDENTIAL** — ห้าม commit secrets ลง Git
+
+## B.1 Secret Categories
+
+| Category             | Examples                       | Storage                |
+| -------------------- | ------------------------------ | ---------------------- |
+| Database Credentials | `MYSQL_ROOT_PASSWORD`          | `.env` (gitignored)    |
+| API Keys             | `JWT_SECRET`, `REDIS_PASSWORD` | `.env` (gitignored)    |
+| SSL Certificates     | Let's Encrypt                  | NPM volume             |
+| SSH Keys             | Backup access keys             | ASUSTOR secure storage |
+
+## B.2 Environment File (QNAP)
+
+```bash
+# File: /share/np-dms/.env
+# ⚠️ MUST be in .gitignore
+
+# === Database ===
+MYSQL_ROOT_PASSWORD=<strong-password>
+MYSQL_DATABASE=lcbp3
+MYSQL_USER=center
+MYSQL_PASSWORD=<strong-password>
+
+# === Redis ===
+REDIS_PASSWORD=<strong-password>
+
+# === Application ===
+JWT_SECRET=<random-64-hex>       # openssl rand -hex 64
+JWT_REFRESH_SECRET=<random-64-hex>
+
+# === Monitoring ===
+GRAFANA_PASSWORD=<admin-password>
+
+# === External Services ===
+LINE_CHANNEL_SECRET=<line-secret>
+LINE_CHANNEL_ACCESS_TOKEN=<line-token>
+```
+
+## B.3 Generate Strong Secrets
+
+```bash
+openssl rand -base64 32    # Strong password (24+ chars)
+openssl rand -hex 64       # JWT Secret (64 hex chars)
+```
+
+## B.4 Rotation Schedule
+
+| Secret            | Period               | Impact                  |
+| ----------------- | -------------------- | ----------------------- |
+| JWT Secret        | 90 days              | Users re-login required |
+| Database Password | 180 days             | Service restart needed  |
+| Redis Password    | 180 days             | Service restart needed  |
+| SSL Certificates  | Auto (Let's Encrypt) | None                    |
+
+## B.5 Encrypted Secret Backup
+
+```bash
+# Encrypt and back up to ASUSTOR
+gpg --symmetric --cipher-algo AES256 /share/np-dms/.env -o /tmp/env.gpg
+scp /tmp/env.gpg admin@192.168.10.9:/volume1/backup/secrets/
+rm /tmp/env.gpg
+
+# Restore
+scp admin@192.168.10.9:/volume1/backup/secrets/env.gpg /tmp/
+gpg --decrypt /tmp/env.gpg > /share/np-dms/.env
+rm /tmp/env.gpg
+```
+
+## B.6 Gitea Actions Secrets (CI/CD)
+
+Configure at: Gitea → Repository → Settings → Actions → Secrets
+
+| Secret Name | Description                   |
+| ----------- | ----------------------------- |
+| `HOST`      | QNAP IP (`192.168.10.8`)      |
+| `PORT`      | SSH Port (`22`)               |
+| `USERNAME`  | SSH user with Docker access   |
+| `PASSWORD`  | SSH password (prefer SSH Key) |
+

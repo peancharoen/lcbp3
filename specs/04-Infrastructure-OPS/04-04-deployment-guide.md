@@ -935,3 +935,159 @@ docker exec lcbp3-mariadb mysql -u root -p -e "
 **Version:** 1.8.0
 **Last Updated:** 2025-12-02
 **Next Review:** 2026-06-01
+
+---
+
+# Appendix A — QNAP Container Station Deployment
+
+> 🖥️ **Platform:** QNAP TS-473A · Container Station · Docker Compose App path: `/share/np-dms/app/`
+
+## A.1 Prerequisites Checklist
+
+Before deploying `lcbp3-app`, ensure these services are **healthy**:
+
+| Service        | Container Name | Stack                         |
+| -------------- | -------------- | ----------------------------- |
+| MariaDB        | `mariadb`      | `lcbp3-db`                    |
+| Redis          | `cache`        | `services`                    |
+| Elasticsearch  | `search`       | `services`                    |
+| NPM            | `npm`          | `lcbp3-npm`                   |
+| Docker Network | `lcbp3`        | `docker network create lcbp3` |
+
+## A.2 Directory Setup (QNAP SSH)
+
+```bash
+mkdir -p /share/np-dms/data/uploads/temp
+mkdir -p /share/np-dms/data/uploads/permanent
+mkdir -p /share/np-dms/data/logs/backend
+mkdir -p /share/np-dms/app
+
+# UID 1001 = non-root nestjs user in container
+chown -R 1001:1001 /share/np-dms/data/uploads
+chown -R 1001:1001 /share/np-dms/data/logs/backend
+chmod -R 750 /share/np-dms/data/uploads
+```
+
+## A.3 Deploy via Container Station UI
+
+1. เปิด **Container Station** → **Applications** → **Create**
+2. ตั้งชื่อ Application: `lcbp3-app`
+3. วาง content จาก `specs/04-Infrastructure-OPS/docker-compose-app.yml`
+4. แก้ไข Environment Variables ตามต้องการ (secrets ต้องไม่อยู่ใน git)
+5. กด **Create**
+
+ตรวจสอบ Container Status: Applications → `lcbp3-app`
+- ✅ `backend` → Running (healthy)
+- ✅ `frontend` → Running (healthy)
+
+## A.4 Verify Deployment
+
+```bash
+# Backend health (inside Docker network)
+docker exec frontend wget -qO- http://backend:3000/health
+
+# Via NPM
+curl -I https://lcbp3.np-dms.work
+curl -I https://backend.np-dms.work/api
+```
+
+---
+
+# Appendix B — Gitea Actions CI/CD Pipeline
+
+> 🔄 Automated Build + Deploy on every push to `main`
+
+## B.1 Setup Gitea Secrets
+
+Gitea → Repository → Settings → Actions → Secrets → **Add New Secret**:
+
+| Secret Name | Value          | Description                   |
+| ----------- | -------------- | ----------------------------- |
+| `HOST`      | `192.168.10.8` | QNAP IP (VLAN 10)             |
+| `PORT`      | `22`           | SSH Port                      |
+| `USERNAME`  | `admin`        | SSH user with Docker access   |
+| `PASSWORD`  | `***`          | SSH password (or use SSH Key) |
+
+## B.2 Pipeline Flow
+
+```mermaid
+graph TD
+    A[Push to main] --> B[Gitea Runner picks up job]
+    B --> C[SSH to QNAP]
+    C --> D[git pull latest code]
+    D --> E[Build Backend Image]
+    E --> F[Build Frontend Image]
+    F --> G[docker compose up -d]
+    G --> H[Cleanup old images]
+    H --> I[Deploy complete ✅]
+```
+
+## B.3 Manual Trigger (Re-deploy without code change)
+
+1. Go to repository → **Actions** tab (top menu)
+2. Select workflow **"Build and Deploy"**
+3. Click **"Run workflow"** → Select branch `main` → **Run**
+
+## B.4 Troubleshooting
+
+| Error                                          | Cause                           | Fix                                           |
+| ---------------------------------------------- | ------------------------------- | --------------------------------------------- |
+| `No matching runner with label: ubuntu-latest` | Runner not registered / offline | Register act_runner per Appendix C            |
+| `SSH Timeout`                                  | QNAP firewall / ACL             | Check VLAN 10 ACL allows runner IP on port 22 |
+| `Disk Full`                                    | Old images accumulate           | `docker image prune -a` on QNAP               |
+| `Build failed: ENOENT .bin/ts-script`          | pnpm deploy symlink error       | Use `--shamefully-hoist` flag in Dockerfile   |
+
+---
+
+# Appendix C — Gitea Runner (act_runner) on ASUSTOR
+
+> **Platform:** ASUSTOR AS5403T · Path: `/volume1/np-dms/gitea-runner/`
+> **Note:** Gitea is on QNAP, Runner is on ASUSTOR (per Server Role Separation)
+
+## C.1 Get Registration Token
+
+Gitea Web UI → **Site Administration** → **Actions** → **Runners** → **Create new Runner** → Copy token
+
+## C.2 Setup Directory
+
+```bash
+ssh asustor
+mkdir -p /volume1/np-dms/gitea-runner/data
+```
+
+## C.3 Docker Compose
+
+```yaml
+# /volume1/np-dms/gitea-runner/docker-compose.yml
+services:
+  runner:
+    image: gitea/act_runner:latest
+    container_name: gitea-runner
+    restart: always
+    environment:
+      GITEA_INSTANCE_URL: https://git.np-dms.work
+      GITEA_RUNNER_REGISTRATION_TOKEN: <paste-token-here>
+      GITEA_RUNNER_NAME: asustor-runner
+      # Label must match runs-on in deploy.yaml
+      GITEA_RUNNER_LABELS: ubuntu-latest:docker://node:18-bullseye,self-hosted:docker://node:18-bullseye
+    volumes:
+      - /volume1/np-dms/gitea-runner/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+
+```bash
+cd /volume1/np-dms/gitea-runner
+docker compose up -d
+```
+
+## C.4 Verify
+
+Gitea → **Settings** → **Actions** → **Runners** — should show **Total: 1** with green indicator next to `asustor-runner`.
+
+## C.5 Maintenance
+
+```bash
+# Cleanup old build images periodically
+docker image prune -a    # on ASUSTOR (runner images)
+ssh qnap "docker image prune -a"  # on QNAP (app images)
+```

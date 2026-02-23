@@ -1387,3 +1387,456 @@ networks:
 -- Export audit logs for compliance
 SELECT *
 FROM document_numbering
+
+---
+
+# Appendix A — Live QNAP Production Configs
+
+> 🖥️ **Server:** QNAP TS-473A · Path: `/share/np-dms/`
+> These are the **actual running Docker Compose configurations** on QNAP Container Station (v1.8.0).
+> They differ from the generic Blue-Green templates above in that they use the real `lcbp3` Docker external network.
+
+---
+
+## A.1 Database Stack (`lcbp3-db`)
+
+> **Path:** `/share/np-dms/mariadb/docker-compose.yml`
+> **Application name:** `lcbp3-db` — Services: `mariadb`, `pma`
+
+### Pre-requisite: File Permissions
+
+```bash
+chown -R 999:999 /share/np-dms/mariadb
+chmod -R 755 /share/np-dms/mariadb
+setfacl -R -m u:999:rwx /share/np-dms/mariadb
+
+# phpMyAdmin (UID 33)
+chown -R 33:33 /share/np-dms/pma/tmp
+chmod 755 /share/np-dms/pma/tmp
+
+# Add Prometheus exporter user
+# docker exec -it mariadb mysql -u root -p
+# CREATE USER 'exporter'@'%' IDENTIFIED BY '<PASSWORD>' WITH MAX_USER_CONNECTIONS 3;
+# GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'%';
+# FLUSH PRIVILEGES;
+```
+
+### Add Databases for NPM & Gitea
+
+```sql
+-- Nginx Proxy Manager
+CREATE DATABASE npm;
+CREATE USER 'npm'@'%' IDENTIFIED BY 'npm';
+GRANT ALL PRIVILEGES ON npm.* TO 'npm'@'%';
+FLUSH PRIVILEGES;
+
+-- Gitea
+CREATE DATABASE gitea CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
+CREATE USER 'gitea'@'%' IDENTIFIED BY '<PASSWORD>';
+GRANT ALL PRIVILEGES ON gitea.* TO 'gitea'@'%';
+FLUSH PRIVILEGES;
+```
+
+```yaml
+# /share/np-dms/mariadb/docker-compose.yml
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+networks:
+  lcbp3:
+    external: true
+
+services:
+  mariadb:
+    <<: [*restart_policy, *default_logging]
+    image: mariadb:11.8
+    container_name: mariadb
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+    environment:
+      MYSQL_ROOT_PASSWORD: "<ROOT_PASSWORD>"
+      MYSQL_DATABASE: "lcbp3"
+      MYSQL_USER: "center"
+      MYSQL_PASSWORD: "<PASSWORD>"
+      TZ: "Asia/Bangkok"
+    ports:
+      - "3306:3306"
+    networks:
+      - lcbp3
+    volumes:
+      - "/share/np-dms/mariadb/data:/var/lib/mysql"
+      - "/share/np-dms/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf:ro"
+      - "/share/np-dms/mariadb/init:/docker-entrypoint-initdb.d:ro"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  pma:
+    <<: [*restart_policy, *default_logging]
+    image: phpmyadmin:5-apache
+    container_name: pma
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+    environment:
+      TZ: "Asia/Bangkok"
+      PMA_HOST: "mariadb"
+      PMA_PORT: "3306"
+      PMA_ABSOLUTE_URI: "https://pma.np-dms.work/"
+      UPLOAD_LIMIT: "1G"
+      MEMORY_LIMIT: "512M"
+    ports:
+      - "89:80"
+    networks:
+      - lcbp3
+    volumes:
+      - "/share/np-dms/pma/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro"
+      - "/share/np-dms/pma/tmp:/var/lib/phpmyadmin/tmp:rw"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+```
+
+---
+
+## A.2 Cache + Search Stack (`services`)
+
+> **Path:** `/share/np-dms/services/docker-compose.yml`
+> **Application name:** `services` — Services: `cache` (Redis 7.2), `search` (Elasticsearch 8.11)
+
+### Pre-requisite: File Permissions
+
+```bash
+mkdir -p /share/np-dms/services/cache/data
+mkdir -p /share/np-dms/services/search/data
+
+# Redis (UID 999)
+chown -R 999:999 /share/np-dms/services/cache/data
+chmod -R 750 /share/np-dms/services/cache/data
+
+# Elasticsearch (UID 1000)
+chown -R 1000:1000 /share/np-dms/services/search/data
+chmod -R 750 /share/np-dms/services/search/data
+```
+
+```yaml
+# /share/np-dms/services/docker-compose.yml
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+networks:
+  lcbp3:
+    external: true
+
+services:
+  cache:
+    <<: [*restart_policy, *default_logging]
+    image: redis:7-alpine
+    container_name: cache
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    environment:
+      TZ: "Asia/Bangkok"
+    ports:
+      - "6379:6379"
+    networks:
+      - lcbp3
+    volumes:
+      - "/share/np-dms/services/cache/data:/data"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  search:
+    <<: [*restart_policy, *default_logging]
+    image: elasticsearch:8.11.1
+    container_name: search
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 2G
+    environment:
+      TZ: "Asia/Bangkok"
+      discovery.type: "single-node"
+      xpack.security.enabled: "false"
+      # Heap locked at 1GB per ADR-005
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+    ports:
+      - "9200:9200"
+    networks:
+      - lcbp3
+    volumes:
+      - "/share/np-dms/services/search/data:/usr/share/elasticsearch/data"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+```
+
+---
+
+## A.3 Nginx Proxy Manager (`lcbp3-npm`)
+
+> **Path:** `/share/np-dms/npm/docker-compose.yml`
+> **Application name:** `lcbp3-npm` — Services: `npm`, `landing`
+
+### NPM Proxy Host Config Reference
+
+| Domain                | Forward Host | Port | Cache | Block Exploits | WebSocket | SSL  |
+| :-------------------- | :----------- | :--- | :---- | :------------- | :-------- | :--- |
+| `backend.np-dms.work` | `backend`    | 3000 | ❌     | ✅              | ❌         | ✅    |
+| `lcbp3.np-dms.work`   | `frontend`   | 3000 | ✅     | ✅              | ✅         | ✅    |
+| `git.np-dms.work`     | `gitea`      | 3000 | ✅     | ✅              | ✅         | ✅    |
+| `n8n.np-dms.work`     | `n8n`        | 5678 | ✅     | ✅              | ✅         | ✅    |
+| `chat.np-dms.work`    | `rocketchat` | 3000 | ✅     | ✅              | ✅         | ✅    |
+| `npm.np-dms.work`     | `npm`        | 81   | ❌     | ✅              | ✅         | ✅    |
+| `pma.np-dms.work`     | `pma`        | 80   | ✅     | ✅              | ❌         | ✅    |
+
+```yaml
+# /share/np-dms/npm/docker-compose.yml
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+networks:
+  lcbp3:
+    external: true
+  giteanet:
+    external: true
+    name: gitnet
+
+services:
+  npm:
+    <<: [*restart_policy, *default_logging]
+    image: jc21/nginx-proxy-manager:latest
+    container_name: npm
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    environment:
+      TZ: "Asia/Bangkok"
+      DB_MYSQL_HOST: "mariadb"
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: "npm"
+      DB_MYSQL_PASSWORD: "npm"
+      DB_MYSQL_NAME: "npm"
+      DISABLE_IPV6: "true"
+    networks:
+      - lcbp3
+      - giteanet
+    volumes:
+      - "/share/np-dms/npm/data:/data"
+      - "/share/np-dms/npm/letsencrypt:/etc/letsencrypt"
+      - "/share/np-dms/npm/custom:/data/nginx/custom"
+
+  landing:
+    image: nginx:1.27-alpine
+    container_name: landing
+    restart: unless-stopped
+    volumes:
+      - "/share/np-dms/npm/landing:/usr/share/nginx/html:ro"
+    networks:
+      - lcbp3
+```
+
+---
+
+## A.4 Gitea (`git`)
+
+> **Path:** `/share/np-dms/git/docker-compose.yml`
+> **Application name:** `git` — Service: `gitea` (rootless)
+
+### Pre-requisite: File Permissions
+
+```bash
+chown -R 1000:1000 /share/np-dms/gitea/
+setfacl -m u:1000:rwx /share/np-dms/gitea/etc \
+        /share/np-dms/gitea/lib \
+        /share/np-dms/gitea/backup
+```
+
+```yaml
+# /share/np-dms/git/docker-compose.yml
+networks:
+  lcbp3:
+    external: true
+  giteanet:
+    external: true
+    name: gitnet
+
+services:
+  gitea:
+    image: gitea/gitea:latest-rootless
+    container_name: gitea
+    restart: always
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      TZ: Asia/Bangkok
+      GITEA__server__ROOT_URL: https://git.np-dms.work/
+      GITEA__server__DOMAIN: git.np-dms.work
+      GITEA__server__SSH_DOMAIN: git.np-dms.work
+      GITEA__server__START_SSH_SERVER: "true"
+      GITEA__server__SSH_PORT: "22"
+      GITEA__server__SSH_LISTEN_PORT: "22"
+      GITEA__server__LFS_START_SERVER: "true"
+      GITEA__server__HTTP_PORT: "3000"
+      GITEA__server__TRUSTED_PROXIES: "127.0.0.1/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+      GITEA__database__DB_TYPE: mysql
+      GITEA__database__HOST: mariadb:3306
+      GITEA__database__NAME: "gitea"
+      GITEA__database__USER: "gitea"
+      GITEA__database__PASSWD: "<PASSWORD>"
+      GITEA__packages__ENABLED: "true"
+      GITEA__security__INSTALL_LOCK: "true"
+    volumes:
+      - /share/np-dms/gitea/backup:/backup
+      - /share/np-dms/gitea/etc:/etc/gitea
+      - /share/np-dms/gitea/lib:/var/lib/gitea
+      - /share/np-dms/gitea/gitea_repos:/var/lib/gitea/git/repositories
+      - /share/np-dms/gitea/gitea_registry:/data/registry
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3003:3000"
+      - "2222:22"
+    networks:
+      - lcbp3
+      - giteanet
+```
+
+---
+
+## A.5 n8n Automation
+
+> **Path:** `/share/np-dms/n8n/docker-compose.yml`
+
+```bash
+chown -R 1000:1000 /share/np-dms/n8n
+chmod -R 755 /share/np-dms/n8n
+```
+
+```yaml
+# /share/np-dms/n8n/docker-compose.yml
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+networks:
+  lcbp3:
+    external: true
+
+services:
+  n8n:
+    <<: [*restart_policy, *default_logging]
+    image: n8nio/n8n:latest
+    container_name: n8n
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    environment:
+      TZ: "Asia/Bangkok"
+      NODE_ENV: "production"
+      N8N_PUBLIC_URL: "https://n8n.np-dms.work/"
+      WEBHOOK_URL: "https://n8n.np-dms.work/"
+      N8N_HOST: "n8n.np-dms.work"
+      N8N_PORT: 5678
+      N8N_PROTOCOL: "https"
+      N8N_PROXY_HOPS: "1"
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_SECURE_COOKIE: 'true'
+      # N8N_ENCRYPTION_KEY should be kept in .env (gitignored)
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      DB_TYPE: mysqldb
+      DB_MYSQLDB_DATABASE: "n8n"
+      DB_MYSQLDB_USER: "center"
+      DB_MYSQLDB_HOST: "mariadb"
+      DB_MYSQLDB_PORT: 3306
+    ports:
+      - "5678:5678"
+    networks:
+      lcbp3: {}
+    volumes:
+      - "/share/np-dms/n8n:/home/node/.n8n"
+      - "/share/np-dms/n8n/cache:/home/node/.cache"
+      - "/share/np-dms/n8n/scripts:/scripts"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5678/"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+```
+
+---
+
+## A.6 Application Stack (`lcbp3-app`)
+
+> **Path:** `/share/np-dms/app/docker-compose.yml`
+> See the annotated version in [`04-Infrastructure-OPS/docker-compose-app.yml`](./docker-compose-app.yml)
+
+This stack contains `backend` (NestJS) and `frontend` (Next.js).
+Refer to [04-04-deployment-guide.md](./04-04-deployment-guide.md) for full deployment steps and CI/CD pipeline details.
+
