@@ -23,6 +23,7 @@ import { winstonConfig } from './modules/monitoring/logger/winston.config';
 // Entities & Interceptors
 import { AuditLog } from './common/entities/audit-log.entity';
 import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
+import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { MaintenanceModeGuard } from './common/guards/maintenance-mode.guard';
 
 // Modules
@@ -175,6 +176,11 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditLogInterceptor,
+    },
+    // 🔑 4. Register Global Interceptor (Idempotency) — ป้องกัน duplicate POST/PUT requests
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: IdempotencyInterceptor,
     },
   ],
 })

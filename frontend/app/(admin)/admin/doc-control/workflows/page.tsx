@@ -8,6 +8,7 @@ import { Plus, Edit, Copy, Trash, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Workflow } from '@/types/workflow';
 import { workflowApi } from '@/lib/api/workflows';
+import { toast } from 'sonner';
 
 export default function WorkflowsPage() {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -20,7 +21,8 @@ export default function WorkflowsPage() {
         const data = await workflowApi.getWorkflows();
         setWorkflows(data);
       } catch (error) {
-        console.error('Failed to fetch workflows', error);
+        toast.error('Failed to load workflows');
+        console.error('[WorkflowsPage]', error);
       } finally {
         setLoading(false);
       }

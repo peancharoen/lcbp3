@@ -27,7 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import apiClient from "@/lib/api/client";
+import { toast } from "sonner";
 
 // 1. กำหนด Schema สำหรับตรวจสอบข้อมูล (Validation)
 // อ้างอิงจาก Data Dictionary ตาราง projects
@@ -58,7 +58,6 @@ export default function CreateProjectPage() {
     register,
     handleSubmit,
     setValue, // ใช้สำหรับ manual set value (เช่น Select)
-    watch,    // ใช้ดูค่า (สำหรับ Debug หรือ Conditional Logic)
     formState: { errors },
   } = useForm<ProjectValues>({
     resolver: zodResolver(projectSchema),
@@ -82,12 +81,12 @@ export default function CreateProjectPage() {
 
       // await apiClient.post("/projects", data);
 
-      alert("สร้างโครงการสำเร็จ"); // TODO: เปลี่ยนเป็น Toast
-      router.push("/projects");
+      toast.success('สร้างโครงการสำเร็จ');
+      router.push('/projects');
       router.refresh();
     } catch (error) {
-      console.error("Failed to create project:", error);
-      alert("เกิดข้อผิดพลาดในการสร้างโครงการ");
+      toast.error('เกิดข้อผิดพลาดในการสร้างโครงการ');
+      console.error('[CreateProjectPage]', error);
     } finally {
       setIsLoading(false);
     }
@@ -202,7 +201,7 @@ export default function CreateProjectPage() {
                 เราต้องใช้ onValueChange เพื่อเชื่อมกับ React Hook Form
               */}
               <Select
-                onValueChange={(value: any) => setValue("status", value)}
+                onValueChange={(value: 'Active' | 'Inactive' | 'On Hold') => setValue('status', value)}
                 defaultValue="Active"
               >
                 <SelectTrigger>

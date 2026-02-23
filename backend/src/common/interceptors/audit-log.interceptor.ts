@@ -1,3 +1,7 @@
+// File: src/common/interceptors/audit-log.interceptor.ts
+// Fix #2: Replaced `as unknown as AuditLog` with CreateAuditLogPayload typed interface
+// Lint fixes: async-in-tap pattern, null vs undefined entityId, safe any handling
+
 import {
   CallHandler,
   ExecutionContext,
@@ -16,6 +20,17 @@ import { AuditLog } from '../entities/audit-log.entity';
 import { AUDIT_KEY, AuditMetadata } from '../decorators/audit.decorator';
 import { User } from '../../modules/user/entities/user.entity';
 
+/** Typed payload for creating AuditLog, replacing the `as unknown as AuditLog` cast */
+interface CreateAuditLogPayload {
+  userId: number | null | undefined;
+  action: string;
+  entityType?: string;
+  entityId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  severity: string;
+}
+
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
   private readonly logger = new Logger(AuditLogInterceptor.name);
@@ -23,13 +38,13 @@ export class AuditLogInterceptor implements NestInterceptor {
   constructor(
     private reflector: Reflector,
     @InjectRepository(AuditLog)
-    private auditLogRepo: Repository<AuditLog>,
+    private auditLogRepo: Repository<AuditLog>
   ) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const auditMetadata = this.reflector.getAllAndOverride<AuditMetadata>(
       AUDIT_KEY,
-      [context.getHandler(), context.getClass()],
+      [context.getHandler(), context.getClass()]
     );
 
     if (!auditMetadata) {
@@ -37,44 +52,70 @@ export class AuditLogInterceptor implements NestInterceptor {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
-    const user = (request as any).user as User;
-    const rawIp = request.ip || request.socket.remoteAddress;
-    const ip = Array.isArray(rawIp) ? rawIp[0] : rawIp;
+    const user = (request as Request & { user?: User }).user;
+    const rawIp: string | string[] | undefined =
+      request.ip ?? request.socket.remoteAddress;
+    const ip: string | undefined = Array.isArray(rawIp) ? rawIp[0] : rawIp;
     const userAgent = request.get('user-agent');
 
     return next.handle().pipe(
-      tap(async (data) => {
-        try {
-          let entityId = null;
-
-          if (data && typeof data === 'object') {
-            if ('id' in data) entityId = String(data.id);
-            else if ('audit_id' in data) entityId = String(data.audit_id);
-            else if ('user_id' in data) entityId = String(data.user_id);
-          }
-
-          if (!entityId && request.params.id) {
-            entityId = String(request.params.id);
-          }
-
-          // ✅ FIX: ใช้ user?.user_id || null
-          const auditLog = this.auditLogRepo.create({
-            userId: user ? user.user_id : null,
-            action: auditMetadata.action,
-            entityType: auditMetadata.entityType,
-            entityId: entityId,
-            ipAddress: ip,
-            userAgent: userAgent,
-            severity: 'INFO',
-          } as unknown as AuditLog); // ✨ Trick: Cast ผ่าน unknown เพื่อล้าง Error ถ้า TS ยังไม่อัปเดต
-
-          await this.auditLogRepo.save(auditLog);
-        } catch (error) {
-          this.logger.error(
-            `Failed to create audit log for ${auditMetadata.action}: ${(error as Error).message}`,
-          );
-        }
-      }),
+      // Use void for fire-and-forget: tap() does not support async callbacks
+      tap((data: unknown) => {
+        void this.saveAuditLog(
+          data,
+          auditMetadata,
+          request,
+          user,
+          ip,
+          userAgent
+        );
+      })
     );
+  }
+
+  /** Extracted async method to aoid "Promise returned in tap" lint warning */
+  private async saveAuditLog(
+    data: unknown,
+    auditMetadata: AuditMetadata,
+    request: Request,
+    user: User | undefined,
+    ip: string | undefined,
+    userAgent: string | undefined
+  ): Promise<void> {
+    try {
+      let entityId: string | undefined;
+
+      if (data !== null && typeof data === 'object') {
+        const dataRecord = data as Record<string, unknown>;
+        if ('id' in dataRecord) {
+          entityId = String(dataRecord['id']);
+        } else if ('audit_id' in dataRecord) {
+          entityId = String(dataRecord['audit_id']);
+        } else if ('user_id' in dataRecord) {
+          entityId = String(dataRecord['user_id']);
+        }
+      }
+
+      if (!entityId && request.params['id']) {
+        entityId = String(request.params['id']);
+      }
+
+      const payload: CreateAuditLogPayload = {
+        userId: user?.user_id ?? null,
+        action: auditMetadata.action,
+        entityType: auditMetadata.entityType,
+        entityId,
+        ipAddress: ip,
+        userAgent,
+        severity: 'INFO',
+      };
+
+      const auditLog = this.auditLogRepo.create(payload as Partial<AuditLog>);
+      await this.auditLogRepo.save(auditLog);
+    } catch (error) {
+      this.logger.error(
+        `Failed to create audit log for ${auditMetadata.action}: ${(error as Error).message}`
+      );
+    }
   }
 }

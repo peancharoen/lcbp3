@@ -12,9 +12,10 @@ import { format } from "date-fns";
 export default async function DrawingDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const id = parseInt(params.id);
+  const { id: rawId } = await params;
+  const id = parseInt(rawId);
   if (isNaN(id)) {
     notFound();
   }

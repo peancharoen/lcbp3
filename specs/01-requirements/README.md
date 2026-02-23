@@ -1,8 +1,8 @@
 # 📋 Requirements Specification
 
-**Version:** 1.7.0
+**Version:** 1.8.0
 **Status:** Active
-**Last Updated:** 2025-12-18
+**Last Updated:** 2026-02-23
 
 ---
 
@@ -17,30 +17,30 @@ This directory contains the functional and non-functional requirements for the L
 ### Core Requirements
 
 1. [Objectives & Goals](./01-01-objectives.md) - Project objectives and success criteria
-2. [System Architecture & Technology](./01-02-architecture.md) - High-level architecture requirements
-3. [Functional Requirements](./01-03-functional-requirements.md) - Detailed feature specifications
+2. [System Architecture & Technology](../02-Architecture/README.md) - High-level architecture requirements
+3. [Functional Requirements](./01-02-modules/01-02-00-index.md) - Detailed feature specifications
 
 ### Functional Areas
 
 #### Document Management
 
-- [3.1 Project & Organization Management](./01-03.1-project-management.md) - Projects, contracts, organizations
-- [3.2 Correspondence Management](./01-03.2-correspondence.md) - Letters and communications
-- [3.3 RFA Management](./01-03.3-rfa.md) - Request for Approval
-- [3.4 Contract Drawing Management](./01-03.4-contract-drawing.md) - Contract drawings (แบบคู่สัญญา)
-- [3.5 Shop Drawing Management](./01-03.5-shop-drawing.md) - Shop drawings (แบบก่อสร้าง)
+- [3.1 Project & Organization Management](./01-02-modules/01-02-01-project-management.md) - Projects, contracts, organizations
+- [3.2 Correspondence Management](./01-02-modules/01-02-02-correspondence.md) - Letters and communications
+- [3.3 RFA Management](./01-02-modules/01-02-03-rfa.md) - Request for Approval
+- [3.4 Contract Drawing Management](./01-02-modules/01-02-04-contract-drawing.md) - Contract drawings (แบบคู่สัญญา)
+- [3.5 Shop Drawing Management](./01-02-modules/01-02-05-shop-drawing.md) - Shop drawings (แบบก่อสร้าง)
 
 #### Supporting Features
 
-- [3.6 Unified Workflow](./01-03.6-unified-workflow.md) - Workflow engine and routing
-- [3.7 Transmittals Management](./01-03.7-transmittals.md) - Document transmittals
-- [3.8 Circulation Sheet Management](./01-03.8-circulation-sheet.md) - Document circulation
-- [3.9 Revisions Management](./01-03.9-logs.md) - Version control
-- [3.10 File Handling](./01-03.10-file-handling.md) - File storage and processing
+- [3.6 Unified Workflow](./01-02-modules/01-02-06-unified-workflow.md) - Workflow engine and routing
+- [3.7 Transmittals Management](./01-02-modules/01-02-07-transmittals.md) - Document transmittals
+- [3.8 Circulation Sheet Management](./01-02-modules/01-02-08-circulation-sheet.md) - Document circulation
+- [3.9 Revisions Management](./01-02-modules/01-02-09-logs.md) - Version control
+- [3.10 JSON Details](./01-02-modules/01-02-10-json-details.md) - JSON field specifications
 
 #### **⭐ Document Numbering System**
 
-- [3.11 Document Numbering](./01-03.11-document-numbering.md) - **Requirements**
+- [3.11 Document Numbering](./01-01-business-rules/01-01-02-doc-numbering-rules.md) - **Requirements**
   - Automatic number generation
   - Template-based formatting
   - Concurrent request handling
@@ -51,16 +51,14 @@ This directory contains the functional and non-functional requirements for the L
 - 📘 [Implementation Guide](../03-implementation/03-04-document-numbering.md) - NestJS, TypeORM, Redis code examples
 - 📗 [Operations Guide](../04-operations/04-08-document-numbering-operations.md) - Monitoring, troubleshooting, runbooks
 
-#### Technical Details
 
-- [3.12 JSON Details](./01-03.12-json-details.md) - JSON field specifications
 
 ### Cross-Cutting Concerns
 
-4. [Access Control & RBAC](./01-04-access-control.md) - 4-level hierarchical RBAC
-5. [UI/UX Requirements](./01-05-ui-ux.md) - User interface specifications
-6. [Non-Functional Requirements](./01-06-non-functional.md) - Performance, security, scalability
-7. [Testing Requirements](./01-07-testing.md) - Test strategy and coverage
+4. [Access Control & RBAC](./01-01-business-rules/01-01-01-rbac-matrix.md) - 4-level hierarchical RBAC
+5. [UI/UX Requirements](./01-01-business-rules/01-01-03-ui-ux-rules.md) - User interface specifications
+6. [Non-Functional Requirements](./01-01-business-rules/01-01-04-non-functional-rules.md) - Performance, security, scalability
+7. [Testing Requirements](./01-01-business-rules/01-01-05-testing-rules.md) - Test strategy and coverage
 
 ---
 
@@ -101,19 +99,19 @@ See [CHANGELOG.md](../../CHANGELOG.md) for detailed version history.
 
 ### By Feature Status
 
-| Feature Area              | Requirements Doc                          | Status     | Implementation                                              | Operations                                                         |
-| ------------------------- | ----------------------------------------- | ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| Correspondence Management | [03.2](./01-03.2-correspondence.md)       | ✅ Complete | ✅ Complete                                                  | Available                                                          |
-| RFA Management            | [03.3](./01-03.3-rfa.md)                  | ✅ Complete | ✅ Complete                                                  | Available                                                          |
-| Contract Drawing          | [03.4](./01-03.4-contract-drawing.md)     | ✅ Complete | ✅ Complete                                                  | Available                                                          |
-| Shop Drawing              | [03.5](./01-03.5-shop-drawing.md)         | ✅ Complete | ✅ Complete                                                  | Available                                                          |
-| Workflow Engine           | [03.6](./01-03.6-unified-workflow.md)     | ✅ Complete | ✅ Complete                                                  | Available                                                          |
-| Transmittals              | [03.7](./01-03.7-transmittals.md)         | ✅ Complete | ✅ Complete                                                  | Available                                                          |
-| Circulation Sheets        | [03.8](./01-03.8-circulation-sheet.md)    | ✅ Complete | ✅ Complete                                                  | Available                                                          |
-| **Document Numbering**    | [03.11](./01-03.11-document-numbering.md) | ✅ Complete | ✅ [Guide](../03-implementation/03-04-document-numbering.md) | ✅ [Guide](../04-operations/04-08-document-numbering-operations.md) |
-| Access Control (RBAC)     | [04](./01-04-access-control.md)           | ✅ Complete | ✅ Complete                                                  | Available                                                          |
-| Search (Elasticsearch)    | N/A                                       | ✅ Complete | 🔄 95%                                                       | Available                                                          |
-| Dashboard & Analytics     | N/A                                       | ✅ Complete | ✅ Complete                                                  | Available                                                          |
+| Feature Area              | Requirements Doc                                     | Status     | Implementation                                              | Operations                                                         |
+| ------------------------- | ---------------------------------------------------- | ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| Correspondence Management | [03.2](./01-03.2-correspondence.md)                  | ✅ Complete | ✅ Complete                                                  | Available                                                          |
+| RFA Management            | [03.3](./01-03.3-rfa.md)                             | ✅ Complete | ✅ Complete                                                  | Available                                                          |
+| Contract Drawing          | [03.4](./01-03.4-contract-drawing.md)                | ✅ Complete | ✅ Complete                                                  | Available                                                          |
+| Shop Drawing              | [03.5](./01-03.5-shop-drawing.md)                    | ✅ Complete | ✅ Complete                                                  | Available                                                          |
+| Workflow Engine           | [03.6](./01-03.6-unified-workflow.md)                | ✅ Complete | ✅ Complete                                                  | Available                                                          |
+| Transmittals              | [03.7](./01-03.7-transmittals.md)                    | ✅ Complete | ✅ Complete                                                  | Available                                                          |
+| Circulation Sheets        | [03.8](./01-03.8-circulation-sheet.md)               | ✅ Complete | ✅ Complete                                                  | Available                                                          |
+| **Document Numbering**    | [03.11](./01-03.11-document-numbering.md)            | ✅ Complete | ✅ [Guide](../03-implementation/03-04-document-numbering.md) | ✅ [Guide](../04-operations/04-08-document-numbering-operations.md) |
+| Access Control (RBAC)     | [04](./01-02-business-rules/01-02-01-rbac-matrix.md) | ✅ Complete | ✅ Complete                                                  | Available                                                          |
+| Search (Elasticsearch)    | N/A                                                  | ✅ Complete | 🔄 95%                                                       | Available                                                          |
+| Dashboard & Analytics     | N/A                                                  | ✅ Complete | ✅ Complete                                                  | Available                                                          |
 
 ### By Priority
 
@@ -178,8 +176,8 @@ All requirements documents must meet these criteria:
 
 ## 📝 Document Control
 
-- **Version:** 1.7.0
+- **Version:** 1.8.0
 - **Owner:** System Architect (Nattanin Peancharoen)
-- **Last Review:** 2025-12-18
-- **Next Review:** 2026-01-01
+- **Last Review:** 2026-02-23
+- **Next Review:** 2026-03-01
 - **Classification:** Internal Use Only

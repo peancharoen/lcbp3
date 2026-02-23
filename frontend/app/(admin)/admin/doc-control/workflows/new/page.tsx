@@ -14,6 +14,7 @@ import { workflowApi } from '@/lib/api/workflows';
 import { WorkflowType } from '@/types/workflow';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function NewWorkflowPage() {
   const router = useRouter();
@@ -31,8 +32,8 @@ export default function NewWorkflowPage() {
       await workflowApi.createWorkflow(workflowData);
       router.push('/admin/doc-control/workflows');
     } catch (error) {
-      console.error('Failed to create workflow', error);
-      alert('Failed to create workflow');
+      toast.error('Failed to create workflow');
+      console.error('[NewWorkflowPage]', error);
     } finally {
       setSaving(false);
     }

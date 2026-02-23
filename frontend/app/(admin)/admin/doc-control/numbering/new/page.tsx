@@ -5,6 +5,7 @@ import { numberingApi, NumberingTemplate } from "@/lib/api/numbering";
 import { useRouter } from "next/navigation";
 import { useCorrespondenceTypes, useContracts, useDisciplines } from "@/hooks/use-master-data";
 import { useProjects } from "@/hooks/use-projects";
+import { toast } from 'sonner';
 
 export default function NewTemplatePage() {
   const router = useRouter();
@@ -17,20 +18,21 @@ export default function NewTemplatePage() {
   const contractId = contracts[0]?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
 
-  const selectedProjectName = projects.find((p: any) => p.id === projectId)?.projectName || 'LCBP3';
+  const selectedProjectName =
+    projects.find((p: { id: number; projectName: string }) => p.id === projectId)?.projectName || 'LCBP3';
 
   const handleSave = async (data: Partial<NumberingTemplate>) => {
     try {
       await numberingApi.saveTemplate(data);
       router.push("/admin/numbering");
     } catch (error) {
-      console.error("Failed to create template", error);
-      alert("Failed to create template");
+      toast.error('Failed to create template');
+      console.error('[NewTemplatePage]', error);
     }
   };
 
   const handleCancel = () => {
-    router.push("/admin/numbering");
+    router.push('/admin/doc-control/numbering');
   };
 
   return (

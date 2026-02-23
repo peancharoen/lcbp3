@@ -1,17 +1,21 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { TemplateEditor } from "@/components/numbering/template-editor";
-import { SequenceViewer } from "@/components/numbering/sequence-viewer";
-import { numberingApi } from "@/lib/api/numbering";
-import { NumberingTemplate } from "@/lib/api/numbering"; // Correct import
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCorrespondenceTypes, useContracts, useDisciplines } from "@/hooks/use-master-data";
-import { useProjects } from "@/hooks/use-projects";
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { TemplateEditor } from '@/components/numbering/template-editor';
+import { SequenceViewer } from '@/components/numbering/sequence-viewer';
+import { numberingApi } from '@/lib/api/numbering';
+import { NumberingTemplate } from '@/lib/api/numbering';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCorrespondenceTypes, useContracts, useDisciplines } from '@/hooks/use-master-data';
+import { useProjects } from '@/hooks/use-projects';
+import { toast } from 'sonner';
 
-export default function EditTemplatePage({ params }: { params: { id: string } }) {
+export default function EditTemplatePage() {
+  const params = useParams();
+  const id = params['id'] as string;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [template, setTemplate] = useState<NumberingTemplate | null>(null);
@@ -24,33 +28,36 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
   const contractId = contracts[0]?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
 
-  const selectedProjectName = projects.find((p: { id: number; projectName: string }) => p.id === projectId)?.projectName || 'LCBP3';
+  const selectedProjectName =
+    projects.find((p: { id: number; projectName: string }) => p.id === projectId)?.projectName ||
+    'LCBP3';
 
   useEffect(() => {
     const fetchTemplate = async () => {
       setLoading(true);
       try {
-        const data = await numberingApi.getTemplate(parseInt(params.id));
+        const data = await numberingApi.getTemplate(parseInt(id));
         if (data) {
           setTemplate(data);
         }
       } catch (error) {
-        console.error("Failed to fetch template", error);
+        toast.error('Failed to load template');
+        console.error('[EditTemplatePage] fetchTemplate:', error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchTemplate();
-  }, [params.id]);
+  }, [id]);
 
   const handleSave = async (data: Partial<NumberingTemplate>) => {
     try {
-      await numberingApi.saveTemplate({ ...data, id: parseInt(params.id) });
-      router.push("/admin/numbering");
+      await numberingApi.saveTemplate({ ...data, id: parseInt(id) });
+      router.push('/admin/doc-control/numbering');
     } catch (error) {
-      console.error("Failed to update template", error);
-      alert("Failed to update template");
+      toast.error('Failed to update template');
+      console.error('[EditTemplatePage] handleSave:', error);
     }
   };
 

@@ -19,6 +19,8 @@ const nextConfig = {
     ],
     // ลดขนาดไฟล์รูปภาพที่จะถูก optimize
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    // Cache optimized images for 24h (reduces re-optimization on containers)
+    minimumCacheTTL: 86400,
   },
 
   // 4. (Optional) Rewrites: กรณีต้องการ Proxy API ผ่าน Next.js เพื่อเลี่ยง CORS ใน Dev
@@ -33,7 +35,7 @@ const nextConfig = {
     ]
   },
   */
-  
+
   // 5. Security Headers (แนะนำ)
   async headers() {
     return [

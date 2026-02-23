@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import apiClient from "@/lib/api/client";
+import { toast } from "sonner";
 
 // -----------------------------------------------------------------------------
 // Schemas
@@ -63,12 +64,12 @@ export default function ProfilePage() {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
       });
-      
-      alert("เปลี่ยนรหัสผ่านสำเร็จ"); // ในอนาคตใช้ Toast
+
+      toast.success('เปลี่ยนรหัสผ่านสำเร็จ');
       reset();
     } catch (error) {
-      console.error(error);
-      alert("ไม่สามารถเปลี่ยนรหัสผ่านได้: รหัสผ่านปัจจุบันไม่ถูกต้อง");
+      toast.error('ไม่สามารถเปลี่ยนรหัสผ่านได้: รหัสผ่านปัจจุบันไม่ถูกต้อง');
+      console.error('[ProfilePage] onPasswordSubmit:', error);
     } finally {
       setIsLoading(false);
     }
@@ -159,8 +160,8 @@ export default function ProfilePage() {
               </div>
             </CardContent>
             {/* <CardFooter>
-              <Button>บันทึกการเปลี่ยนแปลง</Button> 
-            </CardFooter> 
+              <Button>บันทึกการเปลี่ยนแปลง</Button>
+            </CardFooter>
             */}
           </Card>
         </TabsContent>
@@ -243,7 +244,7 @@ export default function ProfilePage() {
                   onCheckedChange={setNotifyEmail}
                 />
               </div>
-              
+
               <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="notify-line" className="flex flex-col space-y-1">
                   <span>LINE Notifications</span>
@@ -273,7 +274,7 @@ export default function ProfilePage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" onClick={() => alert("บันทึกการตั้งค่าแจ้งเตือนแล้ว")}>
+              <Button variant="outline" onClick={() => toast.success('บันทึกการตั้งค่าแจ้งเตือนแล้ว')}>
                 บันทึกการตั้งค่า
               </Button>
             </CardFooter>

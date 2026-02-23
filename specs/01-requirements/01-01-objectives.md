@@ -3,10 +3,10 @@
 ---
 
 title: 'Objectives'
-version: 1.5.0
+version: 1.8.0
 status: first-draft
 owner: Nattanin Peancharoen
-last_updated: 2025-11-30
+last_updated: 2026-02-23
 related: -
 
 ---

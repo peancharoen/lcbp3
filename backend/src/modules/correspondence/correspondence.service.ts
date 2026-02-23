@@ -125,7 +125,11 @@ export class CorrespondenceService {
     await queryRunner.startTransaction();
 
     try {
-      const orgCode = 'ORG'; // TODO: Fetch real ORG Code from Organization Entity
+      // [Fix #6] Fetch real ORG Code from Organization entity
+      const originatorOrg = await this.orgRepo.findOne({
+        where: { id: userOrgId },
+      });
+      const orgCode = originatorOrg?.organizationCode ?? 'UNK';
 
       // [v1.5.1] Extract recipient organization from recipients array (Primary TO)
       const toRecipient = createDto.recipients?.find((r) => r.type === 'TO');
@@ -217,7 +221,8 @@ export class CorrespondenceService {
         );
       }
 
-      this.searchService.indexDocument({
+      // Fire-and-forget search indexing (non-blocking, void intentional)
+      void this.searchService.indexDocument({
         id: savedCorr.id,
         type: 'correspondence',
         docNumber: docNumber.number,
@@ -491,8 +496,13 @@ export class CorrespondenceService {
 
       if (updateDto.recipients) {
         // Safe check for 'type' or 'recipientType' (mismatch safeguard)
+        interface RecipientInput {
+          type?: string;
+          recipientType?: string;
+          organizationId?: number;
+        }
         const newToRecipient = updateDto.recipients.find(
-          (r: any) => r.type === 'TO' || r.recipientType === 'TO'
+          (r: RecipientInput) => r.type === 'TO' || r.recipientType === 'TO'
         );
         newRecipientId = newToRecipient?.organizationId;
 
@@ -521,7 +531,13 @@ export class CorrespondenceService {
           if (recOrg) recipientCode = recOrg.organizationCode;
         }
 
-        const orgCode = 'ORG'; // Placeholder - should be fetched from Originator if needed in future
+        // [Fix #6] Fetch real ORG Code from originator organization
+        const originatorOrgForUpdate = await this.orgRepo.findOne({
+          where: {
+            id: updateDto.originatorId ?? currentCorr.originatorId ?? 0,
+          },
+        });
+        const orgCode = originatorOrgForUpdate?.organizationCode ?? 'UNK';
 
         // Prepare Contexts
         const oldCtx = {
