@@ -25,7 +25,7 @@ export const correspondenceService = {
     return response.data;
   },
 
-  update: async (id: string | number, data: any) => {
+  update: async (id: string | number, data: Partial<CreateCorrespondenceDto>) => {
     const response = await apiClient.put(`/correspondences/${id}`, data);
     return response.data;
   },

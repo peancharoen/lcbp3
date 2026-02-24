@@ -30,7 +30,7 @@ export interface CorrespondenceRevision {
     statusCode: string;
     statusName: string;
   };
-  details?: any;
+  details?: Record<string, unknown> | null;
   attachments?: Attachment[];
   createdAt: string;
 
@@ -80,7 +80,7 @@ export interface CreateCorrespondenceDto {
   remarks?: string;
   dueDate?: string;
   description?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   isInternal?: boolean;
   originatorId?: number;
   recipients?: { organizationId: number; type: 'TO' | 'CC' }[];

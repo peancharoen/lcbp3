@@ -1,9 +1,9 @@
 # ADR-014: State Management Strategy
 
 **Status:** ✅ Accepted
-**Date:** 2025-12-01
+**Date:** 2026-02-24
 **Decision Makers:** Frontend Team
-**Related Documents:** [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md), [ADR-011: App Router](./ADR-011-nextjs-app-router.md)
+**Related Documents:** [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md), [ADR-011: App Router](./ADR-011-nextjs-app-router.md)
 
 ---
 
@@ -400,5 +400,5 @@ export const useUIStore = create<UIState>()(
 
 ---
 
-**Last Updated:** 2026-02-20
+**Last Updated:** 2026-02-24
 **Next Review:** 2026-06-01

@@ -25,7 +25,7 @@ export interface CreateContractDrawingDto {
 }
 
 // --- Update (Partial) ---
-export interface UpdateContractDrawingDto extends Partial<CreateContractDrawingDto> {}
+export type UpdateContractDrawingDto = Partial<CreateContractDrawingDto>;
 
 // --- Search ---
 export interface SearchContractDrawingDto {

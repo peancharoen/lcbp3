@@ -1,7 +1,7 @@
 # ADR-005: Technology Stack Selection
 
-**Status:** Accepted
-**Date:** 2025-11-30
+**Status:** Accept
+**Date:** 2026-02-24
 **Decision Makers:** Development Team, CTO
 **Related Documents:**
 
@@ -89,18 +89,18 @@ LCBP3-DMS ต้องเลือก Technology Stack สำหรับพั�
 
 #### Backend Stack
 
-| Component          | Technology      | Rationale                                      |
-| :----------------- | :-------------- | :--------------------------------------------- |
-| **Runtime**        | Node.js 20 LTS  | Stable, modern features, long-term support     |
-| **Framework**      | NestJS          | Modular, TypeScript-first, similar to Angular  |
-| **Language**       | TypeScript 5.x  | Type safety, better DX                         |
-| **ORM**            | TypeORM         | TypeScript support, migrations, repositories   |
-| **Database**       | MariaDB 11.8    | JSON support, virtual columns, QNAP compatible |
-| **Validation**     | class-validator | Decorator-based, integrates with NestJS        |
-| **Authentication** | Passport + JWT  | Standard, well-supported                       |
-| **Authorization**  | CASL            | Flexible RBAC implementation                   |
-| **Documentation**  | Swagger/OpenAPI | Auto-generated from decorators                 |
-| **Testing**        | Jest            | Built-in with NestJS                           |
+| Component          | Technology      | Rationale                                                                  |
+| :----------------- | :-------------- | :------------------------------------------------------------------------- |
+| **Runtime**        | Node.js 20 LTS  | Stable, modern features, long-term support                                 |
+| **Framework**      | NestJS          | Modular, TypeScript-first, similar to Angular                              |
+| **Language**       | TypeScript 5.x  | Type safety, better DX                                                     |
+| **ORM**            | TypeORM         | TypeScript support, migrations, repositories                               |
+| **Database**       | MariaDB 11.8    | JSON support, virtual columns, QNAP compatible                             |
+| **Validation**     | class-validator | Decorator-based, integrates with NestJS                                    |
+| **Authentication** | Passport + JWT  | Standard, well-supported                                                   |
+| **Authorization**  | CASL **6.7.5+** | Flexible RBAC implementation ⚠️ Patched CVE-2026-1774 (Prototype Pollution) |
+| **Documentation**  | Swagger/OpenAPI | Auto-generated from decorators                                             |
+| **Testing**        | Jest            | Built-in with NestJS                                                       |
 
 #### Frontend Stack
 

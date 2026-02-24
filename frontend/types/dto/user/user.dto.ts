@@ -13,13 +13,13 @@ export interface CreateUserDto {
 }
 
 // --- Update User ---
-export interface UpdateUserDto extends Partial<CreateUserDto> {}
+export type UpdateUserDto = Partial<CreateUserDto>;
 
 // --- Assign Role ---
 export interface AssignRoleDto {
   userId: number;
   roleId: number;
-  
+
   // Scope (Optional)
   organizationId?: number;
   projectId?: number;

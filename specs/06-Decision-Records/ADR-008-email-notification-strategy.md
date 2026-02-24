@@ -1,7 +1,7 @@
 # ADR-008: Email & Notification Strategy
 
-**Status:** ✅ Accepted
-**Date:** 2025-12-01
+**Status:** ✅ Accepted (Pending Review)
+**Date:** 2026-02-24
 **Decision Makers:** Backend Team, System Architect
 **Related Documents:** [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md), [TASK-BE-011](../06-tasks/README.md)
 

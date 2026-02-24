@@ -1,54 +1,62 @@
 import apiClient from "@/lib/api/client";
 import { CreateUserDto, UpdateUserDto, SearchUserDto, User } from "@/types/user";
 
-const transformUser = (user: any): User => {
+/** Raw API user shape (before transform) */
+interface RawUser {
+  user_id?: number;
+  userId?: number;
+  assignments?: Array<{ role: unknown }>;
+  [key: string]: unknown;
+}
+
+const transformUser = (user: RawUser): User => {
   return {
-    ...user,
-    userId: user.user_id,
-    roles: user.assignments?.map((a: any) => a.role) || [],
+    ...(user as unknown as User),
+    userId: (user.user_id ?? user.userId) as number,
+    roles: (user.assignments?.map((a) => a.role) ?? []) as User['roles'],
   };
 };
 
+/** Paginated or unwrapped response shape */
+type UserListResponse = User[] | { data: User[] | { data: User[] } };
+
 export const userService = {
   getAll: async (params?: SearchUserDto) => {
-    const response = await apiClient.get<any>("/users", { params });
+    const response = await apiClient.get<UserListResponse>("/users", { params });
 
     // Handle both paginated and non-paginated responses
-    let rawData = response.data?.data || response.data;
-
-    // If paginated (has .data property which is array)
-    if (rawData && Array.isArray(rawData.data)) {
-        rawData = rawData.data;
+    let rawData: RawUser[] | unknown = response.data;
+    if (rawData && !Array.isArray(rawData) && 'data' in (rawData as object)) {
+      rawData = (rawData as { data: unknown }).data;
     }
-
-    // If still not array (e.g. error or empty), default to []
-    if (!Array.isArray(rawData)) {
-        return [];
+    if (rawData && !Array.isArray(rawData) && typeof rawData === 'object' && 'data' in (rawData as object)) {
+      rawData = (rawData as { data: unknown }).data;
     }
+    if (!Array.isArray(rawData)) return [];
 
-    return rawData.map(transformUser);
+    return (rawData as RawUser[]).map(transformUser);
   },
 
   getRoles: async () => {
-    const response = await apiClient.get<any>("/users/roles");
-    if (response.data?.data) {
-      return response.data.data;
+    const response = await apiClient.get<{ data: unknown } | unknown>("/users/roles");
+    if (response.data && typeof response.data === 'object' && 'data' in (response.data as object)) {
+      return (response.data as { data: unknown }).data;
     }
     return response.data;
   },
 
   getById: async (id: number) => {
-    const response = await apiClient.get<User>(`/users/${id}`);
+    const response = await apiClient.get<RawUser>(`/users/${id}`);
     return transformUser(response.data);
   },
 
   create: async (data: CreateUserDto) => {
-    const response = await apiClient.post<User>("/users", data);
+    const response = await apiClient.post<RawUser>("/users", data);
     return transformUser(response.data);
   },
 
   update: async (id: number, data: UpdateUserDto) => {
-    const response = await apiClient.put<User>(`/users/${id}`, data);
+    const response = await apiClient.put<RawUser>(`/users/${id}`, data);
     return transformUser(response.data);
   },
 

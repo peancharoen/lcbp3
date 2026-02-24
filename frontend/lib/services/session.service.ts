@@ -16,8 +16,8 @@ export interface Session {
 
 export const sessionService = {
   getActiveSessions: async () => {
-    const response = await apiClient.get<any>('/auth/sessions');
-    return response.data.data || response.data;
+    const response = await apiClient.get<Session[] | { data: Session[] }>('/auth/sessions');
+    return (response.data as { data: Session[] }).data ?? response.data;
   },
 
   revokeSession: async (sessionId: number) => {

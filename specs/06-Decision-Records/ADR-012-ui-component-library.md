@@ -1,9 +1,9 @@
 # ADR-012: UI Component Library Strategy
 
 **Status:** ✅ Accepted
-**Date:** 2025-12-01
+**Date:** 2026-02-24
 **Decision Makers:** Frontend Team, UX Designer
-**Related Documents:** [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
+**Related Documents:** [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
 
 ---
 
@@ -405,7 +405,7 @@ export function CorrespondenceCard({ correspondence }) {
 - **Documentation:** เขียนเอกสารว่า Components ไหนมา version ไหน
 - **Changelog:** Track changes ที่ทำกับ Components
 - **Testing:** เขียน Tests สำหรับ Custom components
-- **Review Updates:** Check Shadcn/UI releases เป็นระยะ
+- **Review Updates:** Check Shadcn/UI releases เป็นระยะ (แนะนำให้ใช้ `npx shadcn-ui@latest diff` ตรวจสอบความแตกต่างทุกๆ X เดือนเพื่อลดภาระการอัปเดตแบบ manual)
 
 ---
 

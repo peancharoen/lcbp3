@@ -7,7 +7,7 @@ export interface CreateContractDto {
   endDate?: string;
 }
 
-export interface UpdateContractDto extends Partial<CreateContractDto> {}
+export type UpdateContractDto = Partial<CreateContractDto>;
 
 export interface SearchContractDto {
   search?: string;

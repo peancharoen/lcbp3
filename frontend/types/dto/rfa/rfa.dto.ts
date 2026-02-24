@@ -37,7 +37,7 @@ export interface CreateRfaDto {
 }
 
 // --- Update (Partial) ---
-export interface UpdateRfaDto extends Partial<CreateRfaDto> {}
+export type UpdateRfaDto = Partial<CreateRfaDto>;
 
 // --- Search ---
 export interface SearchRfaDto {

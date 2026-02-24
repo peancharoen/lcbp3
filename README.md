@@ -4,20 +4,20 @@
 >
 > ระบบบริหารจัดการเอกสารโครงการแบบครบวงจร สำหรับโครงการก่อสร้างท่าเรือแหลมฉบังระยะที่ 3
 
-[![Version](https://img.shields.io/badge/version-1.7.0-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Internal-red.svg)]()
 [![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)]()
 
 ---
 
-## 📈 Current Status (As of 2025-12-18)
+## 📈 Current Status (As of 2026-02-24)
 
-**Overall Progress: ~97% Feature Complete - Production Ready Preparation**
+**Overall Progress: ~98% Feature Complete - Production Ready Preparation**
 
-- ✅ **Backend**: Core modules implemented, refactoring for v1.7.0 Schema
-- ✅ **Frontend**: UI tasks completed (100%), integrating new v1.7.0 features
-- ✅ **Database**: Schema v1.7.0 active (Stabilized for Production)
-- ✅ **Documentation**: Comprehensive specs/ at v1.7.0
+- ✅ **Backend**: Core modules implemented, refactoring for v1.8.0 Schema
+- ✅ **Frontend**: UI tasks completed (100%), integrating new v1.8.0 features
+- ✅ **Database**: Schema v1.8.0 active (Stabilized for Production)
+- ✅ **Documentation**: Comprehensive specs/ at v1.8.0
 - ✅ **Admin Tools**: Unified Workflow & Advanced Numbering Config
 - 🔄 **Testing**: E2E tests and UAT preparation
 - 📋 **Next**: Final Security Audit & Deployment
@@ -269,23 +269,21 @@ lcbp3-dms/
 │   ├── types/                  # TypeScript definitions
 │   └── package.json
 │
-├── specs/                      # 📘 Project Specifications (v1.5.1)
-│   ├── 00-overview/            # Project overview & glossary
-│   ├── 01-requirements/        # Functional requirements (21 docs)
-│   ├── 02-architecture/        # System architecture
-│   ├── 03-implementation/      # Implementation guidelines
-│   ├── 04-operations/          # Deployment & operations
-│   ├── 05-decisions/           # ADRs (17 decisions)
-│   ├── 06-tasks/               # Active tasks & progress
-│   ├── 07-database/            # Schema v1.5.1 & seed data
-│   └── 09-history/             # Archived implementations
+├── specs/                      # 📘 Project Specifications (v1.8.0)
+│   ├── 00-Overview/            # ภาพรวมระบบและแบบย่อ
+│   ├── 01-Requirements/        # Business Requirements & กฎระเบียบ (21 docs)
+│   ├── 02-Architecture/        # สถาปัตยกรรมระบบ
+│   ├── 03-Data-and-Storage/    # โครงสร้างฐานข้อมูล v1.8.0 & Data Dictionary
+│   ├── 04-Infrastructure-OPS/  # การเตรียม Operations & Infrastructure
+│   ├── 05-Engineering-Guidelines/ # มาตรฐานการพัฒนาสำหรับโปรแกรมเมอร์
+│   ├── 06-Decision-Records/    # สรุปเหตุผลด้านสถาปัตยกรรม (ADRs)
+│   └── 99-archives/            # ประวัติการทำงานและ Tasks เก่า
 │
 ├── docs/                       # 📚 Legacy documentation
-├── diagrams/                   # 📊 Architecture diagrams
 ├── infrastructure/             # 🐳 Docker & Deployment configs
 │
 ├── .gemini/                    # 🤖 AI agent configuration
-├── .agent/                     # Agent workflows
+├── .agents/                    # Agent workflows and tools
 ├── GEMINI.md                   # AI coding guidelines
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── CHANGELOG.md                # Version history
@@ -298,22 +296,24 @@ lcbp3-dms/
 
 ### เอกสารหลัก (specs/ folder)
 
-| เอกสาร             | คำอธิบาย                         | โฟลเดอร์                    |
-| ------------------ | ------------------------------ | -------------------------- |
-| **Overview**       | ภาพรวมโครงการ, Glossary        | `specs/00-overview/`       |
-| **Requirements**   | ข้อกำหนดระบบและฟังก์ชันการทำงาน      | `specs/01-requirements/`   |
-| **Architecture**   | สถาปัตยกรรมระบบ, ADRs           | `specs/02-architecture/`   |
-| **Implementation** | แนวทางการพัฒนา Backend/Frontend | `specs/03-implementation/` |
-| **Database**       | Schema v1.7.0 + Seed Data      | `specs/07-database/`       |
+| เอกสาร              | คำอธิบาย                         | โฟลเดอร์                            |
+| ------------------- | ------------------------------ | ---------------------------------- |
+| **Overview**        | ภาพรวมโครงการ, Glossary        | `specs/00-Overview/`               |
+| **Requirements**    | ข้อกำหนดระบบและฟังก์ชันการทำงาน      | `specs/01-Requirements/`           |
+| **Architecture**    | สถาปัตยกรรมระบบ                 | `specs/02-Architecture/`           |
+| **Database**        | Schema v1.8.0 + Seed Data      | `specs/03-Data-and-Storage/`       |
+| **Ops & Deploy**    | วิธีการนำระบบขึ้นเซิร์ฟเวอร์           | `specs/04-Infrastructure-OPS/`     |
+| **Guidelines**      | แนวทางการพัฒนา Backend/Frontend | `specs/05-Engineering-Guidelines/` |
+| **Decisions (ADR)** | เหตุผลการตัดสินใจทางสถาปัตยกรรม    | `specs/06-Decision-Records/`       |
 
 ### Schema & Seed Data
 
 ```bash
 # Import schema
-mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.7.0-schema.sql
+mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.7.0-schema.sql
 
 # Import seed data
-mysql -u root -p lcbp3_dev < specs/07-database/lcbp3-v1.7.0-seed.sql
+mysql -u root -p lcbp3_dev < specs/03-Data-and-Storage/lcbp3-v1.7.0-seed-basic.sql
 ```
 
 ### Legacy Documentation
@@ -401,12 +401,10 @@ pnpm test:e2e         # Playwright E2E
 ### Security Best Practices
 
 1. **ห้ามเก็บ Secrets ใน Git**
-
    - ใช้ `.env` สำหรับ Development
    - ใช้ `docker-compose.override.yml` (gitignored)
 
 2. **Password Policy**
-
    - ความยาวขั้นต่ำ: 8 ตัวอักษร
    - ต้องมี uppercase, lowercase, number, special character
    - เปลี่ยน password ทุก 90 วัน
@@ -533,6 +531,7 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 ### Version 1.5.1 (Current - Dec 2025) ✅ **FEATURE COMPLETE**
 
 **Backend (18 Modules - ~95%)**
+
 - ✅ Core Infrastructure (Auth, RBAC, File Storage)
 - ✅ Authentication & Authorization (JWT + CASL RBAC 4-Level)
 - ✅ Correspondence Module (Master-Revision Pattern)
@@ -549,6 +548,7 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 - ✅ Swagger API Documentation
 
 **Frontend (15 Tasks - 100%)**
+
 - ✅ Complete UI Implementation (17 component groups)
 - ✅ All Business Modules (Correspondence, RFA, Drawings)
 - ✅ Admin Panel (10 routes including Workflow & Numbering Config)
@@ -558,22 +558,24 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 - ✅ Responsive Layout (Desktop & Mobile)
 
 **Documentation**
+
 - ✅ Complete specs/ v1.6.0 (21 requirements, 17 ADRs)
 - ✅ Database Schema v1.6.0 with seed data
 - ✅ Implementation & Operations Guides
 
-### Version 1.7.0 (Current - Dec 2025)
+### Version 1.8.0 (Current - Feb 2026)
 
-**Schema & Core Stabilization**
-- ✅ **Document Numbering V2**: Composite Keys, Reservations, Reset Scopes
-- ✅ **Unified Workflow Engine**: Compiled DSL, Polymorphic Instances
-- ✅ **Data Dictionary**: Complete Update to v1.7.0
-- 🔄 **Backend Refactor**: Aligning services with new schema
-- 📋 **E2E Test Coverage**: Playwright/Cypress rollout
+**Schema & Documentation Realignment**
 
-### Version 1.8.0+ (Planned - Q1 2026)
+- ✅ **Specs Refactoring**: Merged infrastructure docs, reorganized `specs` tree to standard structure.
+- ✅ **Database & Models**: Fully aligned Next.js features and TanStack Query with real v1.8.0 implementation.
+- ✅ **Clean Code**: Comprehensive purge of `any` types from Frontend and robust Error Handling.
+- 📋 **Deployment Readiness**: Preparing robust healthcheck and Nginx configurations for QNAP/ASUSTOR.
+
+### Version 1.9.0+ (Planned)
 
 **Production Enhancements**
+
 - 📊 Advanced Reporting & Analytics Dashboard
 - 🔔 Enhanced Notifications (Real-time WebSocket)
 - 📈 Prometheus Metrics & Grafana Dashboards

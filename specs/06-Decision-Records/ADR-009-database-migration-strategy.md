@@ -1,7 +1,7 @@
 # ADR-009: Database Migration & Deployment Strategy
 
-**Status:** ✅ Accepted
-**Date:** 2025-12-01
+**Status:** ✅ Accepted (Penging)
+**Date:** 2026-02-24
 **Decision Makers:** Backend Team, DevOps Team, System Architect
 **Related Documents:** [TASK-BE-001](../06-tasks/TASK-BE-015-schema-v160-migration.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
 

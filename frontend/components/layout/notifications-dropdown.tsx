@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNotifications, useMarkNotificationRead } from "@/hooks/use-notification";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
+import type { Notification } from "@/types/notification";
 
 export function NotificationsDropdown() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export function NotificationsDropdown() {
   const notifications = data?.items || [];
   const unreadCount = data?.unreadCount || 0;
 
-  const handleNotificationClick = (notification: any) => {
+  const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
       markAsRead.mutate(notification.notificationId);
     }
@@ -62,7 +63,7 @@ export function NotificationsDropdown() {
           </div>
         ) : (
           <div className="max-h-96 overflow-y-auto">
-            {notifications.slice(0, 5).map((notification: any) => (
+            {notifications.slice(0, 5).map((notification: Notification) => (
               <DropdownMenuItem
                 key={notification.notificationId}
                 className={`flex flex-col items-start p-3 cursor-pointer ${

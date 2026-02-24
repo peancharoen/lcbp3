@@ -1,12 +1,12 @@
 # ADR-002: Document Numbering Strategy
 
 **Status:** Accepted
-**Date:** 2025-12-18
+**Date:** 2026-02-24
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [System Architecture](../02-architecture/02-01-system-architecture.md)
-- [Document Numbering Requirements](../01-requirements/01-03.11-document-numbering.md)
+- [Software Architecture](../02-Architecture/02-02-software-architecture.md)
+- [Document Numbering Requirements](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md)
 
 ---
 
@@ -188,7 +188,7 @@ CREATE TABLE document_number_audit (
 > [!IMPORTANT]
 > **Updated to align with Requirements Specification**
 >
-> This ADR now uses token names from [03.11-document-numbering.md](../01-requirements/01-03.11-document-numbering.md) for consistency.
+> This ADR now uses token names from [Document Numbering Rules](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) for consistency.
 
 รองรับ Token ทั้งหมด:
 
@@ -214,7 +214,7 @@ CREATE TABLE document_number_audit (
 > - ~~`{TYPE}`~~ → Use `{CORR_TYPE}`, `{SUB_TYPE}`, or `{RFA_TYPE}` (context-specific)
 > - ~~`{CATEGORY}`~~ → Not used in current system
 >
-> **Always refer to**: [03.11-document-numbering.md](../01-requirements/01-03.11-document-numbering.md) as source of truth
+> **Always refer to**: [Document Numbering Rules](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) as source of truth
 
 ### Format Resolution Strategy (Fallback Logic)
 
@@ -943,18 +943,18 @@ ensure:
 
 เป็นไปตาม:
 
-- ✅ [Requirements 3.11](../01-requirements/01-03.11-document-numbering.md) - Document Numbering Management (v1.6.2)
-- ✅ [Implementation Guide](../03-implementation/03-04-document-numbering.md) - DocumentNumberingModule (v1.6.1)
-- ✅ [Operations Guide](../04-operations/04-08-document-numbering-operations.md) - Monitoring & Troubleshooting
-- ✅ [Security Best Practices](../02-architecture/security-architecture.md) - Rate Limiting, Audit Logging
+- ✅ [Document Numbering Rules](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) - Document Numbering Management (v1.6.2)
+- ✅ [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md) - DocumentNumberingModule Section
+- ✅ [Operations Guide](../04-Infrastructure-OPS/04-03-monitoring.md) - Monitoring & Troubleshooting
+- ✅ [Security Best Practices](../05-Engineering-Guidelines/05-02-backend-guidelines.md#security-guidelines) - Rate Limiting, Audit Logging
 
 ---
 
 ## Related ADRs
 
 - [ADR-001: Unified Workflow Engine](./ADR-001-unified-workflow-engine.md) - Workflow triggers number generation
-- [ADR-005: Redis Usage Strategy](./ADR-005-redis-usage-strategy.md) - Redis lock implementation details
-- [ADR-006: Audit Logging Strategy](./ADR-006-audit-logging-strategy.md) - Comprehensive audit requirements
+- [ADR-006: Redis Caching Strategy](./ADR-006-redis-caching-strategy.md) - Redis lock implementation details
+- [ADR-010: Logging & Monitoring Strategy](./ADR-010-logging-monitoring-strategy.md) - Comprehensive audit requirements
 
 ---
 

@@ -1,12 +1,12 @@
 # ADR-006: Redis Usage and Caching Strategy
 
 **Status:** Accepted
-**Date:** 2025-11-30
+**Date:** 2026-02-24
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [System Architecture](../02-architecture/02-01-system-architecture.md)
-- [Performance Requirements](../01-requirements/01-06-non-functional.md)
+- [Software Architecture](../02-Architecture/02-02-software-architecture.md)
+- [Non-Functional Rules](../01-Requirements/01-02-business-rules/01-02-04-non-functional-rules.md)
 
 ---
 
@@ -418,15 +418,15 @@ export class RedisMonitoringService {
 
 เป็นไปตาม:
 
-- [System Architecture Section 3.5](../02-architecture/02-01-system-architecture.md#redis)
-- [Performance Requirements](../01-requirements/01-06-non-functional.md)
+- [Software Architecture](../02-Architecture/02-02-software-architecture.md#redis)
+- [Non-Functional Rules](../01-Requirements/01-02-business-rules/01-02-04-non-functional-rules.md)
 
 ---
 
 ## Related ADRs
 
 - [ADR-002: Document Numbering Strategy](./ADR-002-document-numbering-strategy.md) - Redis locks
-- [ADR-004: RBAC Implementation](./ADR-004-rbac-implementation.md) - Permission caching
+- [RBAC Matrix](../01-Requirements/01-02-business-rules/01-02-01-rbac-matrix.md) - Permission caching
 
 ---
 

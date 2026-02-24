@@ -1,10 +1,21 @@
 {
   "folders": [
-    { "name": "🎯 Root", "path": "./" },
-    { "name": "🔧 Backend", "path": "./backend" },
-    { "name": "🎨 Frontend", "path": "./frontend" },
-    { "name": "🗓️ docs", "path": "./docs" },
-    { "name": "🔗 specs", "path": "./specs" },
+    {
+      "name": "🎯 Root",
+      "path": ".",
+    },
+    {
+      "name": "🔧 Backend",
+      "path": "backend",
+    },
+    {
+      "name": "🎨 Frontend",
+      "path": "frontend",
+    },
+    {
+      "name": "🔗 specs",
+      "path": "specs",
+    },
   ],
   "settings": {
     // ========================================
@@ -880,6 +891,53 @@
           "cwd": "${workspaceFolder:🎯 Root}",
         },
         "problemMatcher": [],
+      },
+      // 1. Task หลักที่จะรันอัตโนมัติเมื่อเปิดโปรแกรม
+      {
+        "label": "🚀 Setup Workspace",
+        "dependsOn": ["🔧 PS: Backend", "🎨 PS: Frontend"], // สั่งให้รัน 2 task ย่อย
+        "runOptions": {
+          "runOn": "folderOpen", // <--- คำสั่งศักดิ์สิทธิ์: รันทันทีที่เปิด VS Code
+        },
+        "presentation": {
+          "reveal": "never", // ไม่ต้องโชว์หน้าต่างของตัวคุมหลัก
+        },
+        "problemMatcher": [],
+      },
+      // 2. Task ย่อย: เปิด Terminal ที่ Backend
+      {
+        "label": "🔧 PS: Backend",
+        "type": "shell",
+        "command": "powershell", // สั่งเปิด PowerShell ค้างไว้
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}", // cd เข้า folder นี้
+        },
+        "isBackground": true, // บอก VS Code ว่าไม่ต้องรอให้จบ (รันค้างไว้เลย)
+        "problemMatcher": [],
+        "presentation": {
+          "group": "workspace-terminals", // จัดกลุ่มเดียวกัน
+          "reveal": "always",
+          "panel": "dedicated", // แยก Tab ให้ชัดเจน
+          "focus": false, // ไม่ต้องแย่ง Focus ทันที
+        },
+      },
+      // 3. Task ย่อย: เปิด Terminal ที่ Frontend
+      {
+        "label": "🎨 PS: Frontend",
+        "type": "shell",
+        "command": "powershell",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}", // cd เข้า folder นี้
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "workspace-terminals",
+          "reveal": "always",
+          "panel": "dedicated",
+          "focus": false, // ไม่ต้องแย่ง Focus ทันที
+          // "focus": true // ให้ Focus ที่อันนี้เป็นอันสุดท้าย (พร้อมพิมพ์)
+        },
       },
       {
         "label": "🖥️ SSH QNAP",

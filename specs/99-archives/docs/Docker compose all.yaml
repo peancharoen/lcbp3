@@ -1,0 +1,194 @@
+# version: '3.8'
+
+# ==========================================================
+# Volumes (พื้นที่จัดเก็บข้อมูลถาวร)
+# ==========================================================
+volumes:
+  # (จากไฟล์เดิม)
+  backend_node_modules:
+
+  # (ที่เพิ่มใหม่)
+  db_data:            # 2.4. Database
+  npm_data:           # 2.8. Reverse Proxy
+  npm_letsencrypt:    # 2.8. SSL Certs
+  es_data:            # 6.2. Elasticsearch
+  n8n_data:           # 2.7. n8n
+  gitea_data:         # 2.2. Gitea
+
+# ==========================================================
+# Services (บริการทั้งหมดของระบบ)
+# ==========================================================
+services:
+  # --------------------------------------------------------
+  # Service 1: Reverse Proxy (Nginx Proxy Manager)
+  # --------------------------------------------------------
+  npm:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: npm
+    restart: unless-stopped
+    ports:
+      - '80:80'    # HTTP
+      - '443:443'  # HTTPS
+      - '81:81'    # Admin UI
+    volumes:
+      - npm_data:/data
+      - npm_letsencrypt:/etc/letsencrypt
+    networks:
+      - lcbp3
+
+  # --------------------------------------------------------
+  # Service 2: Database (MariaDB)
+  # --------------------------------------------------------
+  mariadb:
+    image: mariadb:10.11
+    container_name: mariadb
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=YOUR_STRONG_ROOT_PASSWORD
+      - MYSQL_DATABASE=lcbp3
+      - MYSQL_USER=center
+      - MYSQL_PASSWORD=Center#2025
+      - TZ=Asia/Bangkok
+    networks:
+      - lcbp3
+
+  # --------------------------------------------------------
+  # Service 3: Database UI (phpMyAdmin)
+  # --------------------------------------------------------
+  pma:
+    image: phpmyadmin:5-apache
+    container_name: pma
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_PORT=3306
+      - UPLOAD_LIMIT=256M
+    networks:
+      - lcbp3
+    depends_on:
+      - mariadb
+
+  # --------------------------------------------------------
+  # Service 4: Backend (NestJS)
+  # (ปรับแก้จากไฟล์ ของคุณ)
+  # --------------------------------------------------------
+  backend:
+    build:
+      context: /share/Container/lcbp3/backend
+    container_name: backend
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command: npm run start:dev
+    networks:
+      - lcbp3
+    ports:
+      - "3000:3000"
+    environment:
+      # --- Database Connection (จากไฟล์เดิม) ---
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_USER=center
+      - DB_PASSWORD=Center#2025
+      - DB_NAME=lcbp3
+      - PORT=3000
+      # --- Security (จากไฟล์เดิม) ---
+      - JWT_SECRET=9a6d8705a6695ab9bae4ca1cd46c72a6379aa72404b96e2c5b59af881bb55c639dd583afdce5a885c68e188da55ce6dbc1fb4aa9cd4055ceb51507e56204e4ca
+      - JWT_EXPIRES_IN=1d
+      # --- (เพิ่มใหม่) Environment Variables ที่ Service ต้องการ ---
+      - STORAGE_PATH=/app/storage # (Path ภายใน Container ที่เชื่อมกับ /share/dms-data)
+      - ELASTICSEARCH_NODE=http://elasticsearch:9200
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/lcbp3-notify
+    volumes:
+      - /share/Container/lcbp3/backend:/app
+      - /share/dms-data:/app/storage # (เชื่อม Path จริงบน QNAP เข้ากับ Container)
+      - /share/Container/dms/logs/backend:/app/logs:rw
+      - backend_node_modules:/app/node_modules
+    depends_on:
+      - mariadb
+
+  # --------------------------------------------------------
+  # Service 5: Frontend (Next.js)
+  # --------------------------------------------------------
+  frontend:
+    build:
+      context: /share/Container/lcbp3/frontend
+    container_name: frontend
+    restart: unless-stopped
+    command: npm run dev
+    ports:
+      - "3001:3000" # (ใช้ Host Port 3001)
+    networks:
+      - lcbp3
+    volumes:
+      - /share/Container/lcbp3/frontend:/app
+      - /share/Container/lcbp3/frontend/node_modules:/app/node_modules
+    environment:
+      # (Frontend ต้องเรียก API ผ่าน Domain ที่ NPM จัดการ)
+      - NEXT_PUBLIC_API_URL=https://backend.np-dms.work
+    depends_on:
+      - backend
+
+  # --------------------------------------------------------
+  # Service 6: Search (Elasticsearch)
+  # --------------------------------------------------------
+  elasticsearch:
+    image: elasticsearch:8.11.0 # (แนะนำให้ระบุเวอร์ชัน)
+    container_name: elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false # (ปิดการยืนยันตัวตนสำหรับ Dev)
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m # (จำกัด RAM)
+    networks:
+      - lcbp3
+
+  # --------------------------------------------------------
+  # Service 7: Workflow (n8n)
+  # --------------------------------------------------------
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - TZ=Asia/Bangkok
+    networks:
+      - lcbp3
+
+  # --------------------------------------------------------
+  # Service 8: Code Hosting (Gitea)
+  # --------------------------------------------------------
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    restart: unless-stopped
+    ports:
+      - "3002:3000" # (ใช้ Host Port 3002)
+      - "2222:22"   # (ใช้ Host Port 2222 สำหรับ SSH)
+    volumes:
+      - gitea_data:/data
+    networks:
+      - lcbp3
+    depends_on:
+      - mariadb
+
+# ==========================================================
+# Networks (เครือข่ายกลาง)
+# ==========================================================
+networks:
+  lcbp3:
+    external: true

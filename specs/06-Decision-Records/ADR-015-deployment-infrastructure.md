@@ -1,9 +1,9 @@
 # ADR-015: Deployment & Infrastructure Strategy
 
 **Status:** ✅ Accepted
-**Date:** 2025-12-01
+**Date:** 2026-02-24
 **Decision Makers:** DevOps Team, System Architect
-**Related Documents:** [ADR-005: Technology Stack](./ADR-005-technology-stack.md), [Operations Guide](../04-operations/)
+**Related Documents:** [ADR-005: Technology Stack](./ADR-005-technology-stack.md), [Operations Guide](../04-Infrastructure-OPS/04-04-deployment-guide.md), [Docker Compose Setup](../04-Infrastructure-OPS/04-01-docker-compose.md)
 
 ---
 
@@ -435,6 +435,8 @@ server {
 - **Automated Backups:** Cron jobs สำหรับ Database backups
 - **Documentation:** เขียน Runbook สำหรับ Common issues
 - **Health Checks:** Implement comprehensive health endpoints
+- **CI/CD Integration (Gitea Actions):** แม้ว่า Deploy Script จะเขียนไว้สำหรับ Manual Run แต่ในทางปฏิบัติควรเขียน Gitea Actions workflow เพื่อ trigger script เหล่านี้ไปรันที่ QNAP สลับ Blue/Green ให้อัตโนมัติเมื่อ Merge โค้ด
+- **Compose Templates:** โครงสร้าง Baseline Compose ควรอ้างอิงจาก `04-01-docker-compose.md` เป็นต้นแบบ ก่อนจะแปลงเป็นสองโฟลเดอร์สำหรับ Blue-Green ใน `04-04-deployment-guide.md`
 
 ---
 
@@ -453,5 +455,5 @@ server {
 
 ---
 
-**Last Updated:** 2025-12-01
+**Last Updated:** 2026-02-24
 **Next Review:** 2026-06-01

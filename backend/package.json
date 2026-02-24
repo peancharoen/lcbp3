@@ -23,7 +23,7 @@
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts"
   },
   "dependencies": {
-    "@casl/ability": "^6.7.3",
+    "@casl/ability": "^6.7.5",
     "@elastic/elasticsearch": "^8.11.1",
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/axios": "^4.0.1",
@@ -130,5 +130,10 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "pnpm": {
+    "overrides": {
+      "fast-xml-parser": "^5.3.5"
+    }
   }
 }

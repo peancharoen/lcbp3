@@ -3,6 +3,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import type { User } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 
 // Schema for input validation
 const loginSchema = z.object({
@@ -17,12 +18,12 @@ function getJwtExpiry(token: string): number {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     return payload.exp * 1000; // Convert to ms
-  } catch (e) {
+  } catch {
     return Date.now(); // If invalid, treat as expired
   }
 }
 
-async function refreshAccessToken(token: any) {
+async function refreshAccessToken(token: JWT) {
   try {
     const response = await fetch(`${baseUrl}/auth/refresh`, {
       method: "POST",

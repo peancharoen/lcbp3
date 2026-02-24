@@ -463,7 +463,7 @@ async approve(@Param('id') id: string, @CurrentUser() user: User) {
 ## 📚 เอกสารอ้างอิง
 
 - [FullStack Guidelines](05-01-fullstack-js-guidelines.md)
-- [Backend Plan v1.4.5](../02-Architecture/02-02-software-architecture.md)
+- [Backend Plan v1.8.0](../02-Architecture/02-02-software-architecture.md)
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
 - [Workflow Engine Plan](../01-Requirements/01-03-modules/README.md)
 

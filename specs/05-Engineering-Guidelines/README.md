@@ -10,9 +10,9 @@
 
 | Attribute          | Value                            |
 | ------------------ | -------------------------------- |
-| **Version**        | 1.7.0                            |
+| **Version**        | 1.8.0                            |
 | **Status**         | Active                           |
-| **Last Updated**   | 2025-12-18                       |
+| **Last Updated**   | 2026-02-24                       |
 | **Owner**          | Nattanin Peancharoen             |
 | **Classification** | Internal Technical Documentation |
 
@@ -20,12 +20,18 @@
 
 ## 📚 Table of Contents
 
-- [หลักการพัฒนาหลัก (Core Principles)](#-หลักการพัฒนาหลัก-core-principles)
-- [คู่มือการพัฒนา (Implementation Guides)](#-คู่มือการพัฒนา-implementation-guides)
-- [มาตรฐานการเขียนโปรแกรม (Coding Standards)](#-มาตรฐานการเขียนโปรแกรม-coding-standards)
-- [Technology Stack Recap](#-technology-stack-recap)
-- [Testing Strategy](#-testing-strategy)
-- [Related Documents](#-related-documents)
+- [🛠️ Implementation Specification](#️-implementation-specification)
+  - [📊 Document Status](#-document-status)
+  - [📚 Table of Contents](#-table-of-contents)
+  - [🎯 หลักการพัฒนาหลัก (Core Principles)](#-หลักการพัฒนาหลัก-core-principles)
+  - [📖 คู่มือการพัฒนา (Implementation Guides)](#-คู่มือการพัฒนา-implementation-guides)
+    - [1. FullStack JS Guidelines](#1-fullstack-js-guidelines)
+    - [2. Backend Guidelines](#2-backend-guidelines)
+    - [3. Frontend Guidelines](#3-frontend-guidelines)
+    - [4. Document Numbering System](#4-document-numbering-system)
+  - [🧪 Testing Strategy](#-testing-strategy)
+  - [🛠️ Technology Stack Recap](#️-technology-stack-recap)
+  - [🔗 Related Documents](#-related-documents)
 
 ---
 
@@ -44,7 +50,7 @@
 ## 📖 คู่มือการพัฒนา (Implementation Guides)
 
 ### 1. [FullStack JS Guidelines](./05-01-fullstack-js-guidelines.md)
-**แนวทางการพัฒนาภาพรวมทั้งระบบ (v1.7.0)**
+**แนวทางการพัฒนาภาพรวมทั้งระบบ (v1.8.0)**
 - โครงสร้างโปรเจกต์ (Monorepo-like focus)
 - Naming Conventions & Code Style
 - Secrets & Environment Management
@@ -67,7 +73,7 @@
 - React Hook Form + Zod for Client Validation
 - API Client Interceptors (Auth & Idempotency)
 
-### 4. [Document Numbering System](./../01-Requirements/business-rules/01-02-02-doc-numbering-rules.md)
+### 4. [Document Numbering System](../01-Requirements/business-rules/01-02-02-doc-numbering-rules.md)
 **รายละเอียดการนำระบบออกเลขที่เอกสารไปใช้งาน**
 - Table Schema: Templates, Counters, Audit
 - Double-Lock Strategy (Redis Redlock + Database VersionColumn)
@@ -101,19 +107,18 @@
 
 ## 🔗 Related Documents
 
-- 📋 [Requirements Specification](../01-requirements/README.md)
-- 🏗️ [Architecture Specification](../02-architecture/README.md)
+- 📋 [Requirements Specification](../01-Requirements/README.md)
+- 🏗️ [Architecture Specification](../02-Architecture/README.md)
 - 🚀 [Operations Specification](../04-Infrastructure-OPS/README.md)
-- 🎯 [Active Tasks](../06-tasks/README.md)
 
 ---
 
 <div align="center">
 
-**LCBP3-DMS Implementation Specification v1.7.0**
+**LCBP3-DMS Implementation Specification v1.8.0**
 
 [FullStack](./05-01-fullstack-js-guidelines.md) • [Backend](./05-02-backend-guidelines.md) • [Frontend](./05-03-frontend-guidelines.md) • [Testing](./05-04-testing-strategy.md)
 
-[Main README](../../README.md) • [Architecture](../02-architecture/README.md) • [Requirements](../01-requirements/README.md)
+[Main README](../../README.md) • [Architecture](../02-Architecture/README.md) • [Requirements](../01-Requirements/README.md)
 
 </div>

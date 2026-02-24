@@ -192,8 +192,8 @@ export function useCreateCorrespondence() {
       await queryClient.cancelQueries({ queryKey: ['correspondences'] });
       const previous = queryClient.getQueryData(['correspondences']);
 
-      queryClient.setQueryData(['correspondences'], (old: any) => [
-        ...old,
+      queryClient.setQueryData(['correspondences'], (old: Correspondence[] | undefined) => [
+        ...(old || []),
         newCorrespondence,
       ]);
 
@@ -272,9 +272,9 @@ import { persist } from 'zustand/middleware';
 
 // Draft Store (with localStorage persistence)
 interface DraftStore {
-  drafts: Record<string, any>;
-  saveDraft: (formKey: string, data: any) => void;
-  loadDraft: (formKey: string) => any;
+  drafts: Record<string, unknown>;
+  saveDraft: (formKey: string, data: Record<string, unknown>) => void;
+  loadDraft: (formKey: string) => Record<string, unknown> | undefined;
   clearDraft: (formKey: string) => void;
 }
 
@@ -416,7 +416,7 @@ import { useQuery } from '@tanstack/react-query';
 
 interface DynamicFormProps {
   schemaName: string;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Record<string, unknown>) => void;
 }
 
 export function DynamicForm({ schemaName, onSubmit }: DynamicFormProps) {
@@ -442,7 +442,7 @@ export function DynamicForm({ schemaName, onSubmit }: DynamicFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         {Object.entries(schema.schema_definition.properties).map(
-          ([key, prop]: [string, any]) => (
+          ([key, prop]: [string, Record<string, unknown>]) => (
             <FormField
               key={key}
               control={form.control}
@@ -466,7 +466,7 @@ export function DynamicForm({ schemaName, onSubmit }: DynamicFormProps) {
 }
 
 // Helper function to render different field types
-function renderFieldByType(type: string, field: any) {
+function renderFieldByType(type: string, field: Record<string, unknown>) {
   switch (type) {
     case 'string':
       return <Input {...field} />;
@@ -643,7 +643,7 @@ test.describe('Correspondence Workflow', () => {
 ## 📚 เอกสารอ้างอิง
 
 - [FullStack Guidelines](05-01-fullstack-js-guidelines.md)
-- [Frontend Plan v1.4.5](../02-Architecture/02-02-software-architecture.md)
+- [Frontend Plan v1.8.0](../02-Architecture/02-02-software-architecture.md)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [TanStack Query](https://tanstack.com/query)
 - [shadcn/ui](https://ui.shadcn.com)

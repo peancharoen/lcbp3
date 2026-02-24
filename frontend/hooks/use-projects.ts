@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/lib/services/project.service';
 import { CreateProjectDto, UpdateProjectDto, SearchProjectDto } from '@/types/dto/project/project.dto';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/types/api-error';
 
 export const projectKeys = {
   all: ['projects'] as const,
@@ -24,9 +25,9 @@ export function useCreateProject() {
       toast.success("Project created successfully");
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error("Failed to create project", {
-        description: error.response?.data?.message || "Unknown error"
+        description: getApiErrorMessage(error, "Unknown error")
       });
     }
   });
@@ -40,9 +41,9 @@ export function useUpdateProject() {
       toast.success("Project updated successfully");
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error("Failed to update project", {
-        description: error.response?.data?.message || "Unknown error"
+        description: getApiErrorMessage(error, "Unknown error")
       });
     }
   });
@@ -56,9 +57,9 @@ export function useDeleteProject() {
       toast.success("Project deleted successfully");
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error("Failed to delete project", {
-        description: error.response?.data?.message || "Unknown error"
+        description: getApiErrorMessage(error, "Unknown error")
       });
     }
   });

@@ -14,6 +14,14 @@ import {
 } from "@/components/ui/popover";
 import { useSearchSuggestions } from "@/hooks/use-search";
 
+/** Search suggestion item returned from the API */
+interface SearchSuggestion {
+  id: string | number;
+  type: string;
+  title: string;
+  documentNumber?: string;
+}
+
 function useDebounceValue<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -87,7 +95,7 @@ export function GlobalSearch() {
             <CommandList>
               {suggestions && suggestions.length > 0 && (
                 <CommandGroup heading="Suggestions">
-                  {suggestions.map((item: any) => (
+                  {(suggestions as SearchSuggestion[]).map((item) => (
                     <CommandItem
                       key={`${item.type}-${item.id}`}
                       onSelect={() => {

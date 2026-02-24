@@ -513,7 +513,7 @@ services:
     restart: unless-stopped
     # AOF: Enabled for durability
     # Maxmemory: Prevent OOM
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --maxmemory 1gb --maxmemory-policy noeviction
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --maxmemory 1gb --maxmemory-policy allkeys-lru
     volumes:
       - ./redis/data:/data
     ports:

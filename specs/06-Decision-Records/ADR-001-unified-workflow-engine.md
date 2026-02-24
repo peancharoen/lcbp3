@@ -1,12 +1,12 @@
 # ADR-001: Unified Workflow Engine
 
 **Status:** Accepted
-**Date:** 2025-11-30
+**Date:** 2026-02-24
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**
 
-- [System Architecture](../02-architecture/02-01-system-architecture.md)
-- [Unified Workflow Requirements](../01-requirements/01-03.6-unified-workflow.md)
+- [Software Architecture](../02-Architecture/02-02-software-architecture.md)
+- [Unified Workflow Requirements](../01-Requirements/01-03-modules/01-03-06-unified-workflow.md)
 
 ---
 
@@ -85,7 +85,7 @@ LCBP3-DMS ต้องจัดการเอกสารหลายประ�
 - ✅ **Runtime Flexibility:** แก้ Workflow ได้โดยไม่ต้อง Deploy
 - ✅ **Reusability:** Workflow templates สามารถใช้ซ้ำได้
 - ✅ **Consistency:** State management เป็นมาตรฐานเดียวกัน
-- ✅ **Audit Trail:** ประวัติครบถ้วนใน `workflow_history`
+- ✅ **Audit Trail:** ประวัติครบถ้วนใน `workflow_histories`
 - ✅ **Scalability:** เพิ่ม Document Type ใหม่ได้ง่าย
 
 **Cons:**
@@ -120,41 +120,44 @@ LCBP3-DMS ต้องจัดการเอกสารหลายประ�
 ```sql
 -- Workflow Definitions (Templates)
 CREATE TABLE workflow_definitions (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(100) NOT NULL,
-  version INT NOT NULL,
-  entity_type ENUM('correspondence', 'rfa', 'circulation'),
-  definition JSON NOT NULL,  -- DSL Configuration
+  id VARCHAR(36) PRIMARY KEY, -- UUID
+  workflow_code VARCHAR(50) NOT NULL,
+  version INT NOT NULL DEFAULT 1,
+  description TEXT NULL,
+  dsl JSON NOT NULL,       -- Raw DSL from user
+  compiled JSON NOT NULL,  -- Validated and optimized for Runtime
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY (name, version)
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY (workflow_code, version)
 );
 
 -- Workflow Instances (Running Workflows)
 CREATE TABLE workflow_instances (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  definition_id INT NOT NULL,
-  entity_type VARCHAR(50) NOT NULL,
-  entity_id INT NOT NULL,
+  id VARCHAR(36) PRIMARY KEY, -- UUID
+  definition_id VARCHAR(36) NOT NULL,
+  entity_type VARCHAR(50) NOT NULL, -- e.g. "correspondence", "rfa"
+  entity_id VARCHAR(50) NOT NULL,
   current_state VARCHAR(50) NOT NULL,
-  context JSON,  -- Runtime data
-  started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  completed_at TIMESTAMP NULL,
+  status ENUM('ACTIVE', 'COMPLETED', 'CANCELLED', 'TERMINATED') DEFAULT 'ACTIVE',
+  context JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (definition_id) REFERENCES workflow_definitions(id)
 );
 
 -- Workflow History (Audit Trail)
-CREATE TABLE workflow_history (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  instance_id INT NOT NULL,
-  from_state VARCHAR(50),
+CREATE TABLE workflow_histories (
+  id VARCHAR(36) PRIMARY KEY, -- UUID
+  instance_id VARCHAR(36) NOT NULL,
+  from_state VARCHAR(50) NOT NULL,
   to_state VARCHAR(50) NOT NULL,
   action VARCHAR(50) NOT NULL,
-  actor_id INT NOT NULL,
-  metadata JSON,
-  transitioned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (instance_id) REFERENCES workflow_instances(id),
-  FOREIGN KEY (actor_id) REFERENCES users(user_id)
+  action_by_user_id INT NULL,
+  comment TEXT NULL,
+  metadata JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (instance_id) REFERENCES workflow_instances(id) ON DELETE CASCADE
 );
 ```
 
@@ -162,57 +165,53 @@ CREATE TABLE workflow_history (
 
 ```json
 {
-  "name": "CORRESPONDENCE_ROUTING",
+  "workflow": "CORRESPONDENCE_ROUTING",
   "version": 1,
-  "entity_type": "correspondence",
+  "description": "Standard correspondence routing",
   "states": [
     {
       "name": "DRAFT",
-      "type": "initial",
-      "allowed_transitions": ["SUBMIT"]
+      "initial": true,
+      "on": {
+        "SUBMIT": {
+          "to": "SUBMITTED",
+          "require": {
+            "role": ["Admin"],
+            "user": "123"
+          },
+          "condition": "context.requiresLegal > 0",
+          "events": [
+            {
+              "type": "notify",
+              "target": "originator",
+              "template": "correspondence_submitted"
+            }
+          ]
+        }
+      }
     },
     {
       "name": "SUBMITTED",
-      "type": "intermediate",
-      "allowed_transitions": ["RECEIVE", "RETURN", "CANCEL"]
+      "on": {
+        "RECEIVE": {
+          "to": "RECEIVED"
+        },
+        "RETURN": {
+          "to": "DRAFT"
+        }
+      }
     },
     {
       "name": "RECEIVED",
-      "type": "intermediate",
-      "allowed_transitions": ["REPLY", "FORWARD", "CLOSE"]
+      "on": {
+        "CLOSE": {
+          "to": "CLOSED"
+        }
+      }
     },
     {
       "name": "CLOSED",
-      "type": "final"
-    }
-  ],
-  "transitions": [
-    {
-      "action": "SUBMIT",
-      "from": "DRAFT",
-      "to": "SUBMITTED",
-      "guards": [
-        {
-          "type": "permission",
-          "permission": "correspondence.submit"
-        },
-        {
-          "type": "validation",
-          "rules": ["hasRecipient", "hasAttachment"]
-        }
-      ],
-      "effects": [
-        {
-          "type": "notification",
-          "template": "correspondence_submitted",
-          "recipients": ["originator", "assigned_reviewer"]
-        },
-        {
-          "type": "update_entity",
-          "field": "submitted_at",
-          "value": "{{now}}"
-        }
-      ]
+      "terminal": true
     }
   ]
 }
@@ -229,14 +228,13 @@ CREATE TABLE workflow_history (
       WorkflowInstance,
       WorkflowHistory,
     ]),
+    UserModule,
   ],
+  controllers: [WorkflowEngineController],
   providers: [
     WorkflowEngineService,
-    WorkflowDefinitionService,
-    WorkflowInstanceService,
-    DslParserService,
-    StateValidator,
-    TransitionExecutor,
+    WorkflowDslService,
+    WorkflowEventService,
   ],
   exports: [WorkflowEngineService],
 })
@@ -246,46 +244,55 @@ export class WorkflowEngineModule {}
 @Injectable()
 export class WorkflowEngineService {
   async createInstance(
-    definitionId: number,
+    workflowCode: string,
     entityType: string,
-    entityId: number
+    entityId: string,
+    initialContext: Record<string, unknown> = {}
   ): Promise<WorkflowInstance> {
-    const definition = await this.getActiveDefinition(definitionId);
-    const initialState = this.dslParser.getInitialState(definition.definition);
+    const definition = await this.workflowDefRepo.findOne({
+      where: { workflow_code: workflowCode, is_active: true },
+      order: { version: 'DESC' },
+    });
+
+    // Initial state directly from compiled DSL
+    const initialState = definition.compiled.initialState;
 
     return this.instanceRepo.save({
-      definition_id: definitionId,
-      entity_type: entityType,
-      entity_id: entityId,
-      current_state: initialState,
+      definition_id: definition.id,
+      entityType,
+      entityId,
+      currentState: initialState,
+      status: WorkflowStatus.ACTIVE,
+      context: initialContext,
     });
   }
 
-  async executeTransition(
-    instanceId: number,
+  async processTransition(
+    instanceId: string,
     action: string,
-    actorId: number
-  ): Promise<void> {
-    const instance = await this.instanceRepo.findOne(instanceId);
-    const definition = await this.definitionRepo.findOne(
-      instance.definition_id
+    userId: number,
+    comment?: string,
+    payload: Record<string, unknown> = {}
+  ) {
+    // Evaluation via WorkflowDslService
+    const evaluation = this.dslService.evaluate(
+      compiled,
+      instance.currentState,
+      action,
+      context
     );
 
-    // Validate transition
-    const transition = this.stateValidator.validateTransition(
-      definition.definition,
-      instance.current_state,
-      action
-    );
+    // Update state to target State
+    instance.currentState = evaluation.nextState;
 
-    // Execute guards
-    await this.checkGuards(transition.guards, instance, actorId);
+    if (compiled.states[evaluation.nextState].terminal) {
+      instance.status = WorkflowStatus.COMPLETED;
+    }
 
-    // Update state
-    await this.transitionExecutor.execute(instance, transition, actorId);
-
-    // Record history
-    await this.recordHistory(instance, transition, actorId);
+    // Process background events asynchronously
+    if (evaluation.events && evaluation.events.length > 0) {
+      this.eventService.dispatchEvents(instance.id, evaluation.events, context);
+    }
   }
 }
 ```
@@ -298,7 +305,7 @@ export class WorkflowEngineService {
 
 1. ✅ **Unified State Management:** สถานะทุก Document Type จัดการโดย Engine เดียว
 2. ✅ **No Code Changes for Workflow Updates:** แก้ Workflow ผ่าน JSON DSL
-3. ✅ **Complete Audit Trail:** ประวัติครบถ้วนใน `workflow_history`
+3. ✅ **Complete Audit Trail:** ประวัติครบถ้วนใน `workflow_histories`
 4. ✅ **Versioning Support:** In-progress documents ใช้ Workflow Version เดิม
 5. ✅ **Reusable Templates:** สามารถ Clone Workflow Template ได้
 6. ✅ **Future-proof:** พร้อมสำหรับ Document Types ใหม่
@@ -325,8 +332,8 @@ export class WorkflowEngineService {
 
 เป็นไปตาม:
 
-- [Backend Plan Section 2.4.1](../../docs/2_Backend_Plan_V1_4_5.md) - Unified Workflow Engine
-- [Requirements 3.6](../01-requirements/01-03.6-unified-workflow.md) - Unified Workflow Specification
+- [Backend Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md#workflow-engine-integration) - Unified Workflow Engine
+- [Unified Workflow Requirements](../01-Requirements/01-03-modules/01-03-06-unified-workflow.md) - Unified Workflow Specification
 
 ---
 
@@ -342,7 +349,7 @@ export class WorkflowEngineService {
 ## Related ADRs
 
 - [ADR-002: Document Numbering Strategy](./ADR-002-document-numbering-strategy.md) - ใช้ Workflow Engine trigger Document Number Generation
-- [ADR-004: RBAC Implementation](./ADR-004-rbac-implementation.md) - Permission Guards ใน Workflow Transitions
+- [RBAC Matrix](../01-Requirements/01-02-business-rules/01-02-01-rbac-matrix.md) - Permission Guards ใน Workflow Transitions
 
 ---
 

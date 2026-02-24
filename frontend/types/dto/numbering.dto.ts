@@ -1,6 +1,15 @@
+import type { AuditLog } from '@/lib/services/audit-log.service';
+
+export interface AuditErrorRecord {
+  code: string;
+  message: string;
+  timestamp: string;
+  context?: Record<string, unknown>;
+}
+
 export interface NumberingMetrics {
-  audit: any[]; // Replace with specific AuditLog type if available
-  errors: any[]; // Replace with specific ErrorLog type
+  audit: AuditLog[];
+  errors: AuditErrorRecord[];
 }
 
 export interface ManualOverrideDto {

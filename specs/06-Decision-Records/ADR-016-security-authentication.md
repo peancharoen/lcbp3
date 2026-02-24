@@ -1,7 +1,7 @@
 # ADR-016: Security & Authentication Strategy
 
 **Status:** ✅ Accepted
-**Date:** 2025-12-01
+**Date:** 2026-02-24
 **Decision Makers:** Security Team, System Architect
 **Related Documents:** [ADR-004: RBAC Implementation](./ADR-004-rbac-implementation.md), [ADR-007: API Design](./ADR-007-api-design-error-handling.md)
 
@@ -37,7 +37,9 @@ LCBP3-DMS จัดการเอกสารสำคัญของโปร�
 
 ### 1. Authentication Strategy
 
-**Chosen:** **JWT (JSON Web Tokens) with HTTP-only Cookies**
+**Chosen:** **JWT (JSON Web Tokens) with Bearer Token Strategy (Stored in LocalStorage via Zustand)**
+
+*Note: Initial plan was HTTP-only cookies, but shifted to Bearer tokens to ease cross-domain Next.js to NestJS communication.*
 
 ```typescript
 // File: src/auth/auth.service.ts
@@ -95,7 +97,9 @@ export class AuthService {
 
 ### 2. Password Security
 
-**Strategy:** **bcrypt with salt rounds = 12**
+**Strategy:** **bcrypt with salt rounds = 10 (Current implementation defaults to 10 via `genSalt()`)**
+
+*Note: Code currently uses `bcrypt.genSalt()` without arguments, defaulting to 10 rounds. If 12 is strictly required, codebase needs updating.*
 
 ```typescript
 import * as bcrypt from 'bcrypt';
@@ -369,7 +373,7 @@ await this.auditLogService.create({
 
 ### Application Security
 
-- [x] JWT authentication with short-lived tokens
+- [x] JWT authentication with short-lived tokens (Bearer Token)
 - [x] Password hashing with bcrypt (12 rounds)
 - [x] HTTPS only (TLS 1.3)
 - [x] Security headers (Helmet.js)
@@ -377,7 +381,7 @@ await this.auditLogService.create({
 - [x] Input validation (class-validator)
 - [x] SQL injection prevention (TypeORM)
 - [x] XSS prevention (sanitize-html)
-- [x] CSRF protection (SameSite cookies)
+- [x] CSRF protection (Mitigated by Bearer token usage instead of cookies)
 - [x] Rate limiting (Throttler)
 
 ### Data Security
@@ -401,8 +405,9 @@ await this.auditLogService.create({
 - [x] Firewall configured
 - [x] Intrusion detection (optional)
 - [x] Regular security updates
-- [x] Vulnerability scanning
+- [x] Vulnerability scanning (`pnpm audit` — run before each deploy)
 - [x] Penetration testing (before go-live)
+- [x] Dependency vulnerabilities patched — CASL 6.7.5 (CVE-2026-1774, 2026-02-24)
 
 ---
 
@@ -428,6 +433,7 @@ await this.auditLogService.create({
 - **Training:** อบรม Security awareness
 - **Automation:** Automated security scans
 - **Monitoring:** Real-time security monitoring
+- **Frontend Sync:** ตรวจสอบว่า `localStorage` ไม่ถูกดักจับผ่าน XSS ได้ง่าย ๆ เนื่องจากเปลี่ยนจาก `HTTP-only Cookies` มาเป็น `LocalStorage`
 
 ---
 
@@ -447,5 +453,5 @@ await this.auditLogService.create({
 
 ---
 
-**Last Updated:** 2025-12-01
-**Next Review:** 2026-03-01 (Quarterly review)
+**Last Updated:** 2026-02-24
+**Next Review:** 2026-06-01 (Quarterly review)

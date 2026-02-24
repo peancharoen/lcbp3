@@ -1232,7 +1232,7 @@ describe('[ClassName/FeatureName]', () => {
 - [Backend Guidelines](05-02-backend-guidelines.md) - Backend development standards
 - [Frontend Guidelines](05-03-frontend-guidelines.md) - Frontend development standards
 - [System Architecture](../02-Architecture/02-01-system-context.md) - System overview
-- [API Design](../02-architecture/02-02-api-design.md) - API specifications
+- [API Design](../02-Architecture/02-04-api-design.md) - API specifications
 
 ---
 

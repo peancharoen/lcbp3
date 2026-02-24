@@ -8,7 +8,7 @@ export interface CreateTagDto {
   description?: string;
 }
 
-export interface UpdateTagDto extends Partial<CreateTagDto> {}
+export type UpdateTagDto = Partial<CreateTagDto>;
 
 export interface SearchTagDto {
   /** คำค้นหา (ชื่อ Tag หรือ คำอธิบาย) */

@@ -13,7 +13,7 @@ export interface CreateProjectDto {
 }
 
 // --- Update (Partial) ---
-export interface UpdateProjectDto extends Partial<CreateProjectDto> {}
+export type UpdateProjectDto = Partial<CreateProjectDto>;
 
 // --- Search ---
 export interface SearchProjectDto {

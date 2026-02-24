@@ -2,10 +2,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+/** A draft can hold any serializable form data — typed as unknown for strictness */
+type DraftValue = Record<string, unknown>;
+
 interface DraftState {
-  drafts: Record<string, any>;
-  saveDraft: (key: string, data: any) => void;
-  getDraft: (key: string) => any;
+  drafts: Record<string, DraftValue>;
+  saveDraft: (key: string, data: DraftValue) => void;
+  getDraft: (key: string) => DraftValue | undefined;
   clearDraft: (key: string) => void;
 }
 

@@ -42,24 +42,24 @@ interface FieldConfig {
   label: string;
   type: "text" | "textarea" | "checkbox" | "select";
   required?: boolean;
-  options?: { label: string; value: any }[];
+  options?: { label: string; value: string | number | boolean }[];
 }
 
-interface GenericCrudTableProps {
+interface GenericCrudTableProps<TEntity extends { id: number }> {
   entityName: string;
   queryKey: string[];
-  fetchFn: () => Promise<any>;
-  createFn: (data: any) => Promise<any>;
-  updateFn: (id: number, data: any) => Promise<any>;
-  deleteFn: (id: number) => Promise<any>;
-  columns: ColumnDef<any>[];
+  fetchFn: () => Promise<TEntity[]>;
+  createFn: (data: Record<string, unknown>) => Promise<TEntity>;
+  updateFn: (id: number, data: Record<string, unknown>) => Promise<TEntity>;
+  deleteFn: (id: number) => Promise<unknown>;
+  columns: ColumnDef<TEntity>[];
   fields: FieldConfig[];
   title?: string;
   description?: string;
   filters?: React.ReactNode;
 }
 
-export function GenericCrudTable({
+export function GenericCrudTable<TEntity extends { id: number }>({
   entityName,
   queryKey,
   fetchFn,
@@ -71,11 +71,11 @@ export function GenericCrudTable({
   title,
   description,
   filters,
-}: GenericCrudTableProps) {
+}: GenericCrudTableProps<TEntity>) {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [editingItem, setEditingItem] = useState<TEntity | null>(null);
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
 
   // Delete Dialog State
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -97,7 +97,7 @@ export function GenericCrudTable({
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => updateFn(id, data),
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) => updateFn(id, data),
     onSuccess: () => {
       toast.success(`${entityName} updated successfully`);
       queryClient.invalidateQueries({ queryKey });
@@ -123,7 +123,7 @@ export function GenericCrudTable({
     setIsOpen(true);
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: TEntity) => {
     setEditingItem(item);
     setFormData({ ...item });
     setIsOpen(true);
@@ -155,8 +155,8 @@ export function GenericCrudTable({
     }
   };
 
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [field]: value }));
+  const handleChange = (field: string, value: unknown) => {
+    setFormData((prev: Record<string, unknown>) => ({ ...prev, [field]: value }));
   };
 
   // Add default Actions column if not present
@@ -165,7 +165,7 @@ export function GenericCrudTable({
     {
       id: "actions",
       header: "Actions",
-      cell: ({ row }: { row: any }) => (
+      cell: ({ row }: { row: { original: TEntity } }) => (
         <div className="flex gap-2 justify-end">
           <Button
             variant="ghost"
@@ -239,7 +239,7 @@ export function GenericCrudTable({
                 {field.type === "textarea" ? (
                   <Textarea
                     id={field.name}
-                    value={formData[field.name] || ""}
+                    value={(formData[field.name] as string) || ""}
                     onChange={(e) => handleChange(field.name, e.target.value)}
                     required={field.required}
                   />
@@ -266,7 +266,7 @@ export function GenericCrudTable({
                     </SelectTrigger>
                     <SelectContent>
                       {field.options?.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value.toString()}>
+                        <SelectItem key={(opt.value as string | number)} value={opt.value.toString()}>
                           {opt.label}
                         </SelectItem>
                       ))}
@@ -276,7 +276,7 @@ export function GenericCrudTable({
                   <Input
                     id={field.name}
                     type="text"
-                    value={formData[field.name] || ""}
+                    value={(formData[field.name] as string) || ""}
                     onChange={(e) => handleChange(field.name, e.target.value)}
                     required={field.required}
                   />

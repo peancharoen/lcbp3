@@ -3,6 +3,7 @@ import { rfaService } from '@/lib/services/rfa.service';
 import { SearchRfaDto, CreateRfaDto, UpdateRfaDto } from '@/types/dto/rfa/rfa.dto';
 import { WorkflowActionDto } from '@/lib/services/rfa.service';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/types/api-error';
 
 // Keys
 export const rfaKeys = {
@@ -42,9 +43,9 @@ export function useCreateRFA() {
       toast.success('RFA created successfully');
       queryClient.invalidateQueries({ queryKey: rfaKeys.lists() });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to create RFA', {
-        description: error.response?.data?.message || 'Something went wrong',
+        description: getApiErrorMessage(error, 'Something went wrong'),
       });
     },
   });
@@ -61,9 +62,9 @@ export function useUpdateRFA() {
       queryClient.invalidateQueries({ queryKey: rfaKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: rfaKeys.lists() });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to update RFA', {
-        description: error.response?.data?.message || 'Something went wrong',
+        description: getApiErrorMessage(error, 'Something went wrong'),
       });
     },
   });
@@ -80,9 +81,9 @@ export function useProcessRFA() {
       queryClient.invalidateQueries({ queryKey: rfaKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: rfaKeys.lists() });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to process workflow', {
-        description: error.response?.data?.message || 'Something went wrong',
+        description: getApiErrorMessage(error, 'Something went wrong'),
       });
     },
   });

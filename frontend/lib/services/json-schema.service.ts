@@ -1,9 +1,9 @@
 // File: lib/services/json-schema.service.ts
 import apiClient from "@/lib/api/client";
-import { 
-  CreateJsonSchemaDto, 
-  UpdateJsonSchemaDto, 
-  SearchJsonSchemaDto 
+import {
+  CreateJsonSchemaDto,
+  UpdateJsonSchemaDto,
+  SearchJsonSchemaDto
 } from "@/types/dto/json-schema/json-schema.dto";
 
 export const jsonSchemaService = {
@@ -64,7 +64,7 @@ export const jsonSchemaService = {
   /**
    * (Optional) ตรวจสอบความถูกต้องของข้อมูลกับ Schema ฝั่ง Server
    */
-  validate: async (code: string, data: any) => {
+  validate: async (code: string, data: Record<string, unknown>) => {
     // POST /json-schemas/validate
     const response = await apiClient.post(`/json-schemas/validate`, {
       schemaCode: code,

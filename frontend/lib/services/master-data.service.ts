@@ -6,6 +6,8 @@ import { CreateTagDto, UpdateTagDto, SearchTagDto } from "@/types/dto/master/tag
 import { CreateDisciplineDto } from "@/types/dto/master/discipline.dto";
 import { CreateSubTypeDto } from "@/types/dto/master/sub-type.dto";
 import { SaveNumberFormatDto } from "@/types/dto/master/number-format.dto";
+import { CreateRfaTypeDto, UpdateRfaTypeDto } from "@/types/dto/master/rfa-type.dto";
+import { CreateCorrespondenceTypeDto, UpdateCorrespondenceTypeDto } from "@/types/dto/master/correspondence-type.dto";
 import { Organization } from "@/types/organization";
 import {
   CreateOrganizationDto,
@@ -137,21 +139,11 @@ export const masterDataService = {
   },
 
   /** สร้างประเภท RFA ใหม่ */
-  createRfaType: async (data: any) => {
-    // Note: Assuming endpoint is /master/rfa-types (POST)
-    // Currently RfaController handles /rfas, but master data usually goes to MasterController or dedicated
-    // The previous implementation used direct apiClient calls in the page.
-    // Let's assume we use the endpoint we just updated in MasterController which is GET only?
-    // Wait, MasterController doesn't have createRfaType.
-    // Let's check where RFA Types are created. RfaController creates RFAs (documents).
-    // RFA Types are likely master data.
-    // I need to add create/update/delete endpoints for RFA Types to MasterController if they don't exist.
-    // Checking MasterController again... it DOES NOT have createRfaType.
-    // I will add them to MasterController first.
+  createRfaType: async (data: CreateRfaTypeDto) => {
     return apiClient.post("/master/rfa-types", data).then(res => res.data);
   },
 
-  updateRfaType: async (id: number, data: any) => {
+  updateRfaType: async (id: number, data: UpdateRfaTypeDto) => {
     return apiClient.patch(`/master/rfa-types/${id}`, data).then(res => res.data);
   },
 
@@ -167,11 +159,11 @@ export const masterDataService = {
     return response.data.data || response.data;
   },
 
-  createCorrespondenceType: async (data: any) => {
+  createCorrespondenceType: async (data: CreateCorrespondenceTypeDto) => {
     return apiClient.post("/master/correspondence-types", data).then(res => res.data);
   },
 
-  updateCorrespondenceType: async (id: number, data: any) => {
+  updateCorrespondenceType: async (id: number, data: UpdateCorrespondenceTypeDto) => {
     return apiClient.patch(`/master/correspondence-types/${id}`, data).then(res => res.data);
   },
 

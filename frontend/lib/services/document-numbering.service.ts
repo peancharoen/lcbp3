@@ -4,8 +4,15 @@ import {
   ManualOverrideDto,
   VoidReplaceDto,
   CancelNumberDto,
-  AuditQueryParams
 } from "@/types/dto/numbering.dto";
+
+/** A bulk-import record row */
+export interface BulkImportRecord {
+  documentNumber: string;
+  projectId: number;
+  sequenceNumber: number;
+  [key: string]: unknown;
+}
 
 export const documentNumberingService = {
   // --- Admin Dashboard Metrics ---
@@ -19,7 +26,7 @@ export const documentNumberingService = {
     await apiClient.post("/admin/document-numbering/manual-override", dto);
   },
 
-  voidAndReplace: async (dto: VoidReplaceDto): Promise<any> => {
+  voidAndReplace: async (dto: VoidReplaceDto): Promise<{ documentNumber: string }> => {
     const response = await apiClient.post("/admin/document-numbering/void-and-replace", dto);
     return response.data;
   },
@@ -28,7 +35,7 @@ export const documentNumberingService = {
     await apiClient.post("/admin/document-numbering/cancel", dto);
   },
 
-  bulkImport: async (data: FormData | any[]): Promise<any> => {
+  bulkImport: async (data: FormData | BulkImportRecord[]): Promise<{ imported: number; errors: string[] }> => {
     const isFormData = data instanceof FormData;
     const config = isFormData ? { headers: { "Content-Type": "multipart/form-data" } } : {};
     const response = await apiClient.post("/admin/document-numbering/bulk-import", data, config);
@@ -36,7 +43,7 @@ export const documentNumberingService = {
   },
 
   // --- Audit Logs ---
-  getAuditLogs: async (params?: AuditQueryParams) => {
+  getAuditLogs: async () => {
       // NOTE: endpoint might be merged with metrics or separate
       // Currently controller has getMetrics returning audit logs too.
       // But if we want separate pagination later:

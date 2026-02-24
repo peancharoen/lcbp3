@@ -1,7 +1,7 @@
 # 📝 **Documents Management System Version 1.6.1: แนวทางการพัฒนา FullStackJS**
 
-**สถานะ:** first-draft
-**วันที่:** 2025-12-17
+**สถานะ:**
+**วันที่:** 2026-02-24
 **อ้างอิง:** Requirements Specification v1.8.0
 **Classification:** Internal Technical Documentation
 
@@ -380,7 +380,7 @@ Unified Workflow Engine (Core Architecture)
 
 ### **3.10 สถาปัตยกรรมระบบ (System Architecture)**
 
-โครงสร้างโมดูล (Module Structure) อ้างถึง Backend Development Plan v1.4.5
+โครงสร้างโมดูล (Module Structure) อ้างถึง Backend Development Plan v1.8.0
 
 ### **3.11 กลยุทธ์ความทนทานและการจัดการข้อผิดพลาด (Resilience & Error Handling Strategy)**
 
@@ -706,7 +706,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
 
 สำหรับ Next.js App Router เราจะใช้ State Management แบบ Simplified โดยแบ่งเป็น 3 ระดับหลัก:
 
-- 4.10.ๅ. **Server State (สถานะข้อมูลจากเซิร์ฟเวอร์)**
+- 4.10.1. **Server State (สถานะข้อมูลจากเซิร์ฟเวอร์)**
 
   - **เครื่องมือ:** **TanStack Query (React Query)**
   - **ใช้เมื่อ:** จัดการข้อมูลที่ดึงมาจาก NestJS API ทั้งหมด
@@ -722,13 +722,12 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
 
 - 4.10.3. **UI State (สถานะ UI ชั่วคราว):**
 
-  - **เครื่องมือ:** **useState**, **useReducer** (ใน Component)
-  - **ใช้เมื่อ:** จัดการสถานะเฉพาะ Component
-  - **ครอบคลุม:** Modal เปิด/ปิด, Dropdown state, Loading states
+  - **เครื่องมือ:** **useState**, **useReducer** (ใน Component) หรือ **Zustand** (สำหรับ Global Client State เช่น Preferences, Auth)
+  - **ใช้เมื่อ:** จัดการสถานะเฉพาะ Component หรือข้อมูลที่แชร์ทั้งแอปโดยไม่พึ่งพาเซิร์ฟเวอร์
+  - **ครอบคลุม:** Modal เปิด/ปิด, Dropdown state, Loading states, Themes, Sidebar
 
 - **ยกเลิกการใช้:**
 
-  - ❌ Zustand (ไม่จำเป็น เนื่องจากใช้ React Query และ React Hook Form)
   - ❌ Context API สำหรับ Server State (ใช้ React Query แทน)
 
 - **ตัวอย่าง Implementation:**
@@ -1082,9 +1081,9 @@ Views เหล่านี้ทำหน้าที่เป็นแหล�
 
 ## **Document Control:**
 
-- **Document:** FullStackJS v1.6.1
-- **Version:** 1.6
-- **Date:** 2025-12-17
+- **Document:** FullStackJS v1.8.0
+- **Version:** 1.8
+- **Date:** 2026-02-24
 - **Author:** NAP LCBP3-DMS & Gemini
 - **Status:** first-draft
 - **Classification:** Internal Technical Documentation
@@ -1092,4 +1091,4 @@ Views เหล่านี้ทำหน้าที่เป็นแหล�
 
 ---
 
-`End of FullStackJS Guidelines v1.6.1`
+`End of FullStackJS Guidelines v1.8.0`

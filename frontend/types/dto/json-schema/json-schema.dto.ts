@@ -9,14 +9,14 @@ export interface CreateJsonSchemaDto {
   version?: number;
 
   /** โครงสร้าง JSON Schema (Standard Format) */
-  schemaDefinition: Record<string, any>;
+  schemaDefinition: Record<string, unknown>;
 
   /** สถานะการใช้งาน */
   isActive?: boolean;
 }
 
 // --- Update (Partial) ---
-export interface UpdateJsonSchemaDto extends Partial<CreateJsonSchemaDto> {}
+export type UpdateJsonSchemaDto = Partial<CreateJsonSchemaDto>;
 
 // --- Search ---
 export interface SearchJsonSchemaDto {

@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { masterDataService } from '@/lib/services/master-data.service';
+import type { CreateDisciplineDto } from '@/types/dto/master/discipline.dto';
+import type { CreateRfaTypeDto, UpdateRfaTypeDto } from '@/types/dto/master/rfa-type.dto';
+import type { CreateCorrespondenceTypeDto, UpdateCorrespondenceTypeDto } from '@/types/dto/master/correspondence-type.dto';
 
 export const referenceDataKeys = {
   all: ['reference-data'] as const,
@@ -19,7 +22,7 @@ export const useRfaTypes = (contractId?: number) => {
 export const useCreateRfaType = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => masterDataService.createRfaType(data),
+    mutationFn: (data: CreateRfaTypeDto) => masterDataService.createRfaType(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reference-data', 'rfaTypes'] });
     },
@@ -29,7 +32,7 @@ export const useCreateRfaType = () => {
 export const useUpdateRfaType = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => masterDataService.updateRfaType(id, data),
+    mutationFn: ({ id, data }: { id: number; data: UpdateRfaTypeDto }) => masterDataService.updateRfaType(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reference-data', 'rfaTypes'] });
     },
@@ -57,7 +60,7 @@ export const useDisciplines = (contractId?: number) => {
 export const useCreateDiscipline = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => masterDataService.createDiscipline(data),
+    mutationFn: (data: CreateDisciplineDto) => masterDataService.createDiscipline(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reference-data', 'disciplines'] });
     },
@@ -85,7 +88,7 @@ export const useCorrespondenceTypes = () => {
 export const useCreateCorrespondenceType = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => masterDataService.createCorrespondenceType(data),
+    mutationFn: (data: CreateCorrespondenceTypeDto) => masterDataService.createCorrespondenceType(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reference-data', 'correspondenceTypes'] });
     },
@@ -95,7 +98,7 @@ export const useCreateCorrespondenceType = () => {
 export const useUpdateCorrespondenceType = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => masterDataService.updateCorrespondenceType(id, data),
+    mutationFn: ({ id, data }: { id: number; data: UpdateCorrespondenceTypeDto }) => masterDataService.updateCorrespondenceType(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reference-data', 'correspondenceTypes'] });
     },

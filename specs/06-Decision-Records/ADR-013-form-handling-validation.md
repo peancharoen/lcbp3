@@ -1,9 +1,9 @@
 # ADR-013: Form Handling & Validation Strategy
 
 **Status:** ✅ Accepted
-**Date:** 2025-12-01
+**Date:** 2026-02-24
 **Decision Makers:** Frontend Team
-**Related Documents:** [Frontend Guidelines](../03-implementation/03-03-frontend-guidelines.md)
+**Related Documents:** [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md)
 
 ---
 
@@ -476,6 +476,7 @@ import { Controller } from 'react-hook-form';
 - **Documentation:** เขียน Form patterns และ Examples
 - **Reusable Components:** สร้าง FormField wrapper
 - **Code Review:** Review forms ให้ใช้ best practices
+- **Backend Sync:** ถึงแม้ฝั่ง Frontend จะใช้ `Zod` แต่ฝั่ง Backend (NestJS) ใช้ `class-validator` กับ `class-transformer` เป็นหลักใน DTOs ควรตรวจสอบ Validation Logic ทั้ง 2 ฝั่งให้อัปเดตตรงกันเสมอผ่าน Type Definitions หรือ Documentation
 
 ---
 
@@ -493,5 +494,5 @@ import { Controller } from 'react-hook-form';
 
 ---
 
-**Last Updated:** 2025-12-01
+**Last Updated:** 2026-02-24
 **Next Review:** 2026-06-01

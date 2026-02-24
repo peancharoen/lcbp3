@@ -60,6 +60,6 @@ export interface CreateRFADto {
   dueDate?: string; // [New]
   description?: string;
   documentDate?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   shopDrawingRevisionIds?: number[];
 }

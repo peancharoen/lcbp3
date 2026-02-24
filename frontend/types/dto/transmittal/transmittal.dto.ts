@@ -25,7 +25,7 @@ export interface CreateTransmittalItemDto {
 }
 
 // --- Update (Partial) ---
-export interface UpdateTransmittalDto extends Partial<CreateTransmittalDto> {}
+export type UpdateTransmittalDto = Partial<CreateTransmittalDto>;
 
 // --- Search ---
 export interface SearchTransmittalDto {

@@ -24,86 +24,67 @@
 
 ```
 specs/
-├── 00-overview/              # ภาพรวมโครงการ (3 docs)
+├── 00-Overview/              # ภาพรวมโครงการ
 │   ├── README.md             # Project overview
-│   ├── glossary.md           # คำศัพท์เทคนิค
-│   └── quick-start.md        # Quick start guide
+│   ├── 00-02-glossary.md     # คำศัพท์เทคนิค
+│   └── 00-01-quick-start.md  # Quick start guide
 │
-├── 01-requirements/          # ข้อกำหนดระบบ (21 docs)
+├── 01-Requirements/          # ข้อกำหนดระบบ (21 docs)
 │   ├── README.md             # Requirements overview
-│   ├── 01-objectives.md      # วัตถุประสงค์
-│   ├── 02-architecture.md    # สถาปัตยกรรม
-│   ├── 03-functional-requirements.md
-│   ├── 03.1-project-management.md
-│   ├── 03.2-correspondence.md
-│   ├── 03.3-rfa.md
-│   ├── 03.4-contract-drawing.md
-│   ├── 03.5-shop-drawing.md
-│   ├── 03.6-unified-workflow.md
-│   ├── 03.7-transmittals.md
-│   ├── 03.8-circulation-sheet.md
-│   ├── 03.9-logs.md
-│   ├── 03.10-file-handling.md
-│   ├── 03.11-document-numbering.md
-│   ├── 03.12-json-details.md
-│   ├── 04-access-control.md
-│   ├── 05-ui-ux.md
-│   ├── 06-non-functional.md
-│   └── 07-testing.md
+│   ├── 01-01-objectives.md   # วัตถุประสงค์
+│   ├── 01-02-business-rules/ # กฏธุรกิจที่ห้ามละเมิด
+│   └── 01-03-modules/        # สเปกของแต่ละฟีเจอร์หลัก
 │
-├── 02-architecture/          # สถาปัตยกรรมระบบ (4 docs)
+├── 02-Architecture/          # สถาปัตยกรรมระบบ (4 docs)
 │   ├── README.md
-│   ├── system-architecture.md
-│   ├── api-design.md
-│   └── data-model.md
+│   ├── 02-01-system-context.md
+│   ├── 02-02-software-architecture.md
+│   ├── 02-03-network-design.md
+│   └── 02-04-api-design.md
 │
-├── 03-implementation/        # แผนการพัฒนา (5 docs)
+├── 03-Data-and-Storage/      # Database Schema (4 files)
 │   ├── README.md
-│   ├── backend-guidelines.md
-│   ├── frontend-guidelines.md
-│   ├── testing-strategy.md
-│   └── code-standards.md
+│   ├── lcbp3-v1.7.0-schema.sql
+│   ├── lcbp3-v1.7.0-seed-basic.sql
+│   └── 03-01-data-dictionary.md
 │
-├── 04-operations/            # การดำเนินงาน (9 docs)
+├── 04-Infrastructure-OPS/    # Deployment & Operations (9 docs)
 │   ├── README.md
-│   ├── deployment.md
-│   ├── monitoring.md
+│   ├── 04-01-docker-compose.md
+│   ├── 04-03-monitoring.md
 │   └── ...
 │
-├── 05-decisions/             # Architecture Decision Records (17 ADRs)
+├── 05-Engineering-Guidelines/# แผนการพัฒนา (5 docs)
 │   ├── README.md
-│   ├── ADR-001-workflow-engine.md
+│   ├── 05-01-fullstack-js-guidelines.md
+│   ├── 05-02-backend-guidelines.md
+│   ├── 05-03-frontend-guidelines.md
+│   └── 05-04-testing-strategy.md
+│
+├── 06-Decision-Records/      # Architecture Decision Records (17 ADRs)
+│   ├── README.md
+│   ├── ADR-001-unified-workflow.md
 │   ├── ADR-002-document-numbering.md
 │   └── ...
 │
-├── 06-tasks/                 # Active Tasks & Progress (34 files)
-│   ├── frontend-progress-report.md
-│   ├── backend-progress-report.md
-│   └── ...
-│
-├── 07-database/              # Database Schema (8 files)
-│   ├── lcbp3-v1.7.0-schema.sql
-│   ├── lcbp3-v1.7.0-seed.sql
-│   ├── data-dictionary-v1.7.0.md
-│   └── ...
-│
-└── 09-history/               # Archived Implementations (9 files)
-    └── ...
+└── 99-archives/              # ประวัติการทำงานและ Tasks เก่า
+    ├── history/
+    ├── tasks/
+    └── obsolete-specs/
 ```
 
 ### 📋 หมวดหมู่เอกสาร
 
-| หมวด                  | วัตถุประสงค์                     | ผู้ดูแล                          |
-| --------------------- | ----------------------------- | ----------------------------- |
-| **00-overview**       | ภาพรวมโครงการและคำศัพท์          | Project Manager               |
-| **01-requirements**   | ข้อกำหนดฟังก์ชันและระบบ            | Business Analyst + Tech Lead  |
-| **02-architecture**   | สถาปัตยกรรมและการออกแบบ        | Tech Lead + Architects        |
-| **03-implementation** | แผนการพัฒนาและ Implementation  | Development Team Leads        |
-| **04-operations**     | Deployment และ Operations     | DevOps Team                   |
-| **05-decisions**      | Architecture Decision Records | Tech Lead + Senior Developers |
-| **06-tasks**          | Active Tasks & Progress       | All Team Members              |
-| **07-database**       | Database Schema & Seed Data   | Backend Lead + DBA            |
-| **09-history**        | Archived Implementations      | Tech Lead                     |
+| หมวด                          | วัตถุประสงค์                     | ผู้ดูแล                          |
+| ----------------------------- | ----------------------------- | ----------------------------- |
+| **00-Overview**               | ภาพรวมโครงการและคำศัพท์          | Project Manager               |
+| **01-Requirements**           | ข้อกำหนดฟังก์ชันและระบบ            | Business Analyst + Tech Lead  |
+| **02-Architecture**           | สถาปัตยกรรมและการออกแบบ        | Tech Lead + Architects        |
+| **03-Data-and-Storage**       | Database Schema & Seed Data   | Backend Lead + DBA            |
+| **04-Infrastructure-OPS**     | Deployment และ Operations     | DevOps Team                   |
+| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation  | Development Team Leads        |
+| **06-Decision-Records**       | Architecture Decision Records | Tech Lead + Senior Developers |
+| **99-archives**               | Archived / Tasks              | All Team Members              |
 
 ---
 
@@ -184,8 +165,8 @@ POST /api/correspondences
 
 ---
 
-**Last Updated**: 2025-11-30
-**Version**: 1.4.5
+**Last Updated**: 2026-02-24
+**Version**: 1.8.0
 **Status**: Draft | Review | Approved
 ```
 
@@ -222,7 +203,7 @@ git checkout -b spec/adr/file-storage-strategy
 
 ```bash
 # แก้ไขไฟล์ที่เกี่ยวข้อง
-vim specs/01-requirements/03.2-correspondence.md
+vim specs/01-Requirements/01-03-modules/03-correspondence.md
 
 # ตรวจสอบ markdown syntax
 pnpm run lint:markdown
@@ -526,10 +507,10 @@ graph LR
 ```markdown
 ## Related Documents
 
-- Requirements: [03.2-correspondence.md](./03.2-correspondence.md)
-- Architecture: [system-architecture.md](../02-architecture/system-architecture.md)
-- ADR: [ADR-001: Workflow Engine](../05-decisions/001-workflow-engine.md)
-- Implementation: [Backend Plan](../../docs/2_Backend_Plan_V1_4_5.md)
+- Requirements: [03.2-correspondence.md](../01-Requirements/01-03-modules/03-correspondence.md)
+- Architecture: [02-02-software-architecture.md](../02-Architecture/02-02-software-architecture.md)
+- ADR: [ADR-001-unified-workflow.md](../06-Decision-Records/ADR-001-unified-workflow.md)
+- Implementation: [05-02-backend-guidelines.md](../05-Engineering-Guidelines/05-02-backend-guidelines.md)
 ````
 
 ### 4. Version Control
@@ -545,14 +526,14 @@ graph LR
 | 1.1.0   | 2025-02-20 | Jane Smith | Add CC support  |
 | 1.2.0   | 2025-03-10 | John Doe   | Update workflow |
 
-**Current Version**: 1.2.0
+**Current Version**: 1.8.0
 **Status**: Approved
-**Last Updated**: 2025-03-10
+**Last Updated**: 2026-02-24
 ```
 
 ### 5. ใช้ Consistent Terminology
 
-อ้างอิงจาก [glossary.md](./specs/00-overview/glossary.md) เสมอ
+อ้างอิงจาก [glossary.md](./specs/00-Overview/00-02-glossary.md) เสมอ
 
 ```markdown
 - ✅ ใช้: "Correspondence" (เอกสารโต้ตอบ)
@@ -625,7 +606,7 @@ Create `.markdownlint.json`:
 ### คำถามเกี่ยวกับ Specs
 
 1. **ตรวจสอบเอกสารที่มีอยู่**: [specs/](./specs/)
-2. **ดู Glossary**: [specs/00-overview/glossary.md](./specs/00-overview/glossary.md)
+2. **ดู Glossary**: [00-02-glossary.md](./specs/00-Overview/00-02-glossary.md)
 3. **ค้นหา Issues**: [Gitea Issues](https://git.np-dms.work/lcbp3/lcbp3-dms/issues)
 4. **ถาม Team**: [ช่องทางการติดต่อ]
 

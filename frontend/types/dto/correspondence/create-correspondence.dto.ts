@@ -29,7 +29,7 @@ export interface CreateCorrespondenceDto {
   dueDate?: string;
 
   /** ข้อมูล JSON เฉพาะประเภท (เช่น RFI question, RFA details) */
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 
   /** เอกสารภายในหรือไม่ (True = ภายใน) */
   isInternal?: boolean;
