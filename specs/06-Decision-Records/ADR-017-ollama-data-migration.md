@@ -2,33 +2,40 @@
 
 **Status:** Accepted
 **Date:** 2026-02-26
+**Version:** 1.8.0
 **Decision Makers:** Development Team, DevOps Engineer
 **Related Documents:**
-
 - [Legacy Data Migration Plan](../03-Data-and-Storage/03-04-legacy-data-migration.md)
+- [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
 - [Software Architecture](../02-Architecture/02-02-software-architecture.md)
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
+
+> **Note:** ADR-017 is clarified and hardened by ADR-018 regarding AI physical isolation. Category Enum system-driven, Idempotency Contract, Duplicate Handling Clarification, Storage Enforcement, Audit Log Enhancement, Review Queue Integration, Revision Drift Protection, Execution Time, Encoding Normalization, Security Hardening, AI Physical Isolation (ASUSTOR).
 
 ---
 
 ## Context and Problem Statement
 
-โครงการ LCBP3-DMS มีความจำเป็นต้องนำเข้าเอกสาร (Data Migration) ประเภท PDF เก่าจำนวนกว่า 20,000 ฉบับ ซึ่งมาพร้อมกับ Metadata ในรูปแบบไฟล์ Excel เข้าสู่ระบบใหม่เพื่อให้สามารถเริ่มใช้งานได้อย่างสมบูรณ์
+โครงการ LCBP3-DMS มีความจำเป็นต้องนำเข้าเอกสาร PDF เก่าจำนวนกว่า 20,000 ฉบับ พร้อม Metadata ใน Excel เข้าสู่ระบบใหม่
 
-ความท้าทายหลักของการทำ Migration ชุดนี้คือ **Data Integrity และความถูกต้องของ Metadata** เนื่องจากเป็นข้อมูลเก่าที่มีโอกาสเกิด Human Error ในขั้นตอนการจัดทำ Index (เช่น ชื่อไฟล์ หรือ Document Number พิมพ์ผิด) เราจึงต้องการเครื่องมืออัตโนมัติมาช่วย Validate เอกสารและจำแนกประเภทก่อนการนำเข้า
+ความท้าทายหลักคือ **Data Integrity และความถูกต้องของ Metadata** เนื่องจากข้อมูลเก่ามีโอกาสเกิด Human Error เราจึงต้องการ AI ช่วย Validate ก่อนนำเข้า
 
-ทว่าการส่งข้อมูล 20,000 รายการ ขึ้นไปวิเคราะห์บน Cloud AI Provider (เช่น OpenAI, Anthropic) มีปัญหาใหญ่ 2 ประการ:
-1. **Data Privacy / Confidentiality:** เอกสารก่อสร้างท่าเรือเป็นข้อมูลความลับ ไม่ควรส่งขึ้น Public API
-2. **Cost:** ค่าใช้จ่ายต่อ Token ในการวิเคราะห์เอกสารจำนวนมากจะสูงเกินความจำเป็น
+การส่งข้อมูลขึ้น Cloud AI Provider มีปัญหา 2 ประการ:
+1. **Data Privacy:** เอกสารก่อสร้างท่าเรือเป็นความลับ ห้ามออกนอกเครือข่าย
+2. **Cost:** ~$0.01–0.03 ต่อ Record = อาจสูงถึง $600 สำหรับ 20,000 records
 
 ---
 
 ## Decision Drivers
 
-- **Security & Privacy:** ต้องเก็บข้อมูลและประมวลผลภายในระบบเครือข่ายภายในองค์กร (On-Premise)
-- **Cost Effectiveness:** ไม่เสียค่าใช้จ่ายแบบ Pay-per-use (API Costs) ไม่จำกัดจำนวน Request
-- **Performance:** ต้องสามารถประมวลผลได้อย่างรวดเร็วในระยะเวลาที่จำกัด
-- **Maintainability:** เครื่องมือ Migration ต้องแยก Context ออกจาก Core Application (ไม่นำไปเขียนเป็น Script ฝังใน NestJS เพื่อทำงานชั่วคราว)
+- **Security & Privacy:** ประมวลผลภายในเครือข่ายองค์กร (On-Premise) เท่านั้น
+- **Cost Effectiveness:** ไม่เสียค่า Pay-per-use
+- **Performance:** ประมวลผลได้ในระยะเวลาที่จำกัด (~3–4 คืน)
+- **Maintainability:** แยก Migration ออกจาก Core Application
+- **Recoverability:** Rollback ได้สมบูรณ์
+- **Resilience:** รองรับ Checkpoint/Resume และ Hardware Failure
+- **Data Integrity:** Idempotency, Revision Drift Protection, Enum Enforcement
+- **Storage Governance:** ทุก File Move ต้องผ่าน StorageService
 
 ---
 
@@ -36,57 +43,306 @@
 
 ### Option 1: NestJS Custom Script + Public AI API
 
-**แนวทาง:** เขียน Script ชั่วคราวใน NestJS อ่านไฟล์ Excel และยิง API ไปยัง OpenAI/Anthropic เพื่อตรวจสอบ
-
-**Pros:**
-- ไม่ต้องจัดหา Hardware เพิ่มเติมสำหรับประมวลผล AI
-- AI มีความฉลาดสูง (GPT-4 / Claude 3)
+**Pros:** ไม่ต้องจัดหา Hardware เพิ่ม, AI ฉลาดสูง
 
 **Cons:**
-- ❌ ผิดนโยบายเรื่อง Data Privacy
-- ❌ มีค่าใช้จ่ายต่อเนื่องตามจำนวน Token ที่ประมวลผล
-- ❌ โค้ดสกปรก: นำ Script การทำงานชั่วคราวไปปะปนกับ Source Code หลักของ Application
+- ❌ ผิดนโยบาย Data Privacy
+- ❌ ค่าใช้จ่ายสูง (~$600)
+- ❌ Code สกปรก ปะปนกับ Source Code หลัก
 
 ### Option 2: Pure Scripting (No AI)
 
-**แนวทาง:** เขียน Script ตรวจสอบ Format โดยใช้ Regular Expressions เช็คความยาวหรือ Pattern ของข้อความเท่านั้น
-
-**Pros:**
-- เร็วมาก และไม่มีค่าใช้จ่าย
+**Pros:** เร็ว ไม่มีค่าใช้จ่าย
 
 **Cons:**
-- ❌ ความแม่นยำต่ำ: ทราบเพียงว่า Format ตรง แต่ไม่ทราบว่าความหมายของชื่อเรื่อง สอดคล้องกับประเภทเอกสารและเอกสารอ้างอิงหรือไม่
-- ❌ ต้องใช้แรงงานคน (Manual Review) กลับมาสุ่มตรวจหรือแก้ไขข้อผิดพลาดจำนวนมากหลังนำเข้า
+- ❌ ความแม่นยำต่ำ ตรวจได้แค่ Format
+- ❌ ต้องใช้ Manual Review จำนวนมาก
 
-### Option 3: Local AI Model (Ollama) + n8n Workflow Automation ⭐ (Selected)
-
-**แนวทาง:** จำลอง Workflow การ Migration ผ่าน n8n (ซึ่งติดตั้งอยู่บน QNAP NAS ของระบบอยู่แล้ว) และใช้ Ollama รัน Local Language Model (เช่น LLaMA 3.2 หรือ Mistral) โดยประมวลผลบนเครื่อง Desktop PC ที่มี GPU (เช่น RTX 2060 SUPER) ภายในเครือข่าย Local Network เดียวกัน ความเร็วในการส่งไฟล์ผ่าน 2.5G LAN
+### Option 3: Local AI Model (Ollama) + n8n ⭐ (Selected)
 
 **Pros:**
-- ✅ **Privacy Guaranteed:** ข้อมูลไม่รั่วไหลออกสู่อินเทอร์เน็ต
-- ✅ **Zero Cost:** ใช้ Hardware ที่มีอยู่แล้ว ไม่มีค่าใช้จ่ายด้าน Token
-- ✅ **Clean Architecture:** กระบวนการทำ Migration ถูกแยกออกจากการพัฒนาซอฟต์แวร์หลักของระบบ (NestJS Backend รับผิดชอบแค่ Ingest API เท่านั้น)
-- ✅ **Visual & Debuggable:** n8n ช่วยให้มองเห็น Flow การทำงานแบบเป็นภาพ (Visual Node Editor) จัดการ Batch, Retry และดู Error Logs ได้ง่าย
+- ✅ Privacy Guaranteed
+- ✅ Zero Cost
+- ✅ Clean Architecture
+- ✅ Visual & Debuggable
+- ✅ Resilient (Checkpoint/Resume)
+- ✅ Structured Output ด้วย JSON Schema
 
 **Cons:**
-- ❌ จำเป็นต้องเปิดคอมพิวเตอร์ Desktop ทิ้งไว้ และควบคุมอุณหภูมิ GPU ในช่วงที่ทำ Migration
+- ❌ ต้องเปิด Desktop ทิ้งไว้ดูแล GPU Temperature
+- ❌ Model เล็กอาจแม่นน้อยกว่า Cloud AI → ต้องมี Human Review Queue
 
 ---
 
 ## Decision Outcome
 
-**Chosen Option:** Option 3 - Local AI Model (Ollama) + n8n Workflow Automation
+**Chosen Option:** Option 3 — Local AI Model (Ollama) + n8n
 
-### Rationale
-
-เราเลือกแนวทางนี้เพราะเป็นการประยุกต์ใช้ทรัพยากรที่มีอยู่ให้เกิดประโยชน์สูงสุด โดยไม่ขัดหลักการด้าน Cybersecurity และ Privacy ของโครงการ การนำ Automation Tool (n8n) แยกออกมาเป็น Orchestrator ช่วยลดความเสี่ยงที่การรัน Migration script ขนาดใหญ่จะไปส่งผลกระทบให้ Core Backend (NestJS) ของระบบในฝั่ง Production หยุดชะงัก (Downtime) หรือ Memory รั่ว
+**Rationale:** ประยุกต์ใช้ Hardware ที่มีอยู่ โดยไม่ขัดหลัก Privacy และ Security ของโครงการ n8n ช่วยลด Risk ที่จะกระทบ Core Backend และรองรับ Checkpoint/Resume ได้ดีกว่าการเขียน Script เอง
 
 ---
 
 ## Implementation Summary
 
-- **Migration Orchestrator:** n8n (Docker container ภายในระบบ Infrastructure เดิม)
-- **AI Brain:** Ollama Native (รันนอก Environment หลัก บน Hardware แยกเพื่อรับโหลด AI โดยตรง)
-- **Data Ingestion:** ส่งผ่าน RESTful API ของ LCBP3-DMS Backend (พร้อม Token สิทธิพิเศษ)
+| Component              | รายละเอียด                                                     |
+| ---------------------- | ------------------------------------------------------------- |
+| Migration Orchestrator | n8n (Docker บน ASUSTOR NAS)                                   |
+| AI Model Primary       | Ollama `llama3.2:3b`                                          |
+| AI Model Fallback      | Ollama `mistral:7b-instruct-q4_K_M`                           |
+| Hardware               | ASUSTOR NAS (AI Processing Only)                              |
+| Data Ingestion         | RESTful API + Migration Token (7 วัน) + Idempotency-Key Header |
+| Concurrency            | Sequential — 1 Request/ครั้ง, Delay 2 วินาที                      |
+| Checkpoint             | MariaDB `migration_progress`                                  |
+| Fallback               | Auto-switch Model เมื่อ Error ≥ Threshold                       |
+| Storage                | Backend StorageService เท่านั้น — ห้าม move file โดยตรง           |
+| Expected Runtime       | ~16.6 ชั่วโมง (~3–4 คืน) สำหรับ 20,000 records                     |
 
-*หมายเหตุ: สำหรับขั้นตอนปฏิบัติงานแบบละเอียด โปรดดูที่ไฟล์ `03-04-legacy-data-migration.md`*
+---
+
+## AI Output Contract (JSON Schema)
+
+```json
+{
+  "is_valid": true,
+  "confidence": 0.92,
+  "suggested_category": "Correspondence",
+  "detected_issues": [],
+  "suggested_title": null
+}
+```
+
+| Field                | Type                      | คำอธิบาย                      |
+| -------------------- | ------------------------- | --------------------------- |
+| `is_valid`           | boolean                   | เอกสารผ่านการตรวจสอบหรือไม่    |
+| `confidence`         | float (0.0–1.0)           | ความมั่นใจของ AI              |
+| `suggested_category` | string (enum จาก Backend) | หมวดหมู่ที่ AI แนะนำ             |
+| `detected_issues`    | string[]                  | รายการปัญหา (array ว่างถ้าไม่มี) |
+| `suggested_title`    | string \| null            | Title ที่แก้ไขแล้ว หรือ null     |
+
+> ⚠️ **Patch:** `suggested_category` ต้องตรงกับ System Enum จาก `GET /api/meta/categories` เท่านั้น — ห้าม hardcode Category List ใน Prompt
+
+---
+
+## Confidence Threshold Policy
+
+| ระดับ Confidence                 | การดำเนินการ                              |
+| ------------------------------- | --------------------------------------- |
+| `>= 0.85` และ `is_valid = true` | Auto Ingest เข้าระบบ                     |
+| `0.60–0.84`                     | ส่งไป Human Review Queue                 |
+| `< 0.60` หรือ `is_valid = false` | ส่งไป Reject Log รอ Manual Fix           |
+| AI Parse Error                  | ส่งไป Error Log + Trigger Fallback Logic |
+| Revision Drift                  | ส่งไป Review Queue พร้อม reason           |
+
+---
+
+## Idempotency Contract
+
+**HTTP Header ที่ต้องส่งทุก Request:**
+```
+Idempotency-Key: <document_number>:<batch_id>
+```
+
+**Backend Logic:**
+```
+IF idempotency_key EXISTS in import_transactions → RETURN HTTP 200 (no action)
+ELSE → Process normally → INSERT import_transactions → RETURN HTTP 201
+```
+
+ป้องกัน Revision ซ้ำกรณี n8n Retry หรือ Network Error
+
+---
+
+## Duplicate Handling Clarification
+
+Bypass Duplicate **Validation Error**
+
+Hard Rules:
+- ❌ Migration Token ไม่สามารถ Overwrite Revision ที่มีอยู่
+- ❌ Migration Token ไม่สามารถ Delete Revision ก่อนหน้า
+- ✅ Migration Token trigger Revision increment logic ตามปกติเท่านั้น
+
+---
+
+## Storage Governance (Patch)
+
+**ข้อห้าม:**
+```
+❌ mv /data/dms/staging_ai/TCC-COR-0001.pdf /final/path/...
+```
+
+**ข้อบังคับ:**
+```
+✅ POST /api/correspondences/import
+   body: { source_file_path: "/data/dms/staging_ai/TCC-COR-0001.pdf", ... }
+```
+
+Backend จะ:
+1. Generate UUID
+2. Enforce path strategy: `/data/dms/uploads/YYYY/MM/{uuid}.pdf`
+3. Move file atomically ผ่าน StorageService
+4. Create revision folder ถ้าจำเป็น
+
+---
+
+## Review Queue Contract
+
+- `migration_review_queue` เป็น **Temporary Table เท่านั้น** — ไม่ใช่ Business Schema
+- ห้ามสร้าง Correspondence record จนกว่า Admin จะ Approve
+- Approval Flow: `Review → Admin Approve → POST /api/correspondences/import`
+
+---
+
+## Revision Drift Protection
+
+ถ้า Excel มี revision column:
+```
+IF excel_revision != current_db_revision + 1
+→ ROUTE ไป Review Queue พร้อม reason: "Revision drift"
+```
+
+---
+
+## Execution Time Estimate
+
+| Parameter            | ค่า                           |
+| -------------------- | ---------------------------- |
+| Delay ระหว่าง Request | 2 วินาที                       |
+| Inference Time (avg) | ~1 วินาที                      |
+| เวลาต่อ Record        | ~3 วินาที                      |
+| จำนวน Record          | 20,000                       |
+| เวลารวม              | ~60,000 วินาที (~16.6 ชั่วโมง)   |
+| **จำนวนคืนที่ต้องใช้**     | **~3–4 คืน** (รัน 22:00–06:00) |
+
+---
+
+## Encoding Normalization
+
+ก่อน Ingestion ทุกครั้ง:
+- Excel data → Convert เป็น **UTF-8**
+- Filename → Normalize เป็น **NFC UTF-8** ป้องกันปัญหาภาษาไทยเพี้ยนข้าม OS
+
+---
+
+## Security Constraints
+
+1. Migration Token อายุ **≤ 7 วัน** — Revoke ทันทีหลัง Migration
+2. Token Bypass ได้เฉพาะ: Virus Scan, Duplicate Validation Error, Created-by
+3. Token **ไม่มีสิทธิ์** ลบหรือ Overwrite Record เดิม
+4. ทุก Request บันทึก Audit Log: `action=IMPORT, source=MIGRATION, created_by=SYSTEM_IMPORT`
+5. **IP Whitelist:** ใช้ได้เฉพาะจาก `<NAS_IP>`
+6. **Nginx Rate Limit:** `limit_req zone=migration burst=5 nodelay`
+7. **Docker Hardening:** `mem_limit: 2g`, log rotation `max-size: 10m, max-file: 3`
+
+---
+
+## Rollback Strategy
+
+1. Disable Migration Token ใน DB ทันที
+2. ลบ Records ทั้งหมด `created_by = 'SYSTEM_IMPORT'` ผ่าน Transaction SQL (รวม `import_transactions`)
+3. ย้ายไฟล์ PDF กลับ `migration_temp/`
+4. Reset `migration_progress` และ `migration_fallback_state`
+5. วิเคราะห์ Root Cause ก่อนรันใหม่
+
+รายละเอียดดูที่ `03-04-legacy-data-migration.md` หัวข้อ 4
+
+---
+
+## Architecture Validation Checklist (GO-LIVE GATE)
+
+### 🟢 A. Infrastructure Validation
+
+| Check                        | Expected      | ✅   |
+| ---------------------------- | ------------- | --- |
+| Ollama `/api/tags` reachable | HTTP 200      |     |
+| Backend `/health` OK         | HTTP 200      |     |
+| MariaDB reachable            | SELECT 1      |     |
+| `staging_ai` mounted RO      | ls works      |     |
+| `migration_logs` mounted RW  | write test OK |     |
+| GPU VRAM < 70% idle          | safe margin   |     |
+| Disk space > 30% free        | safe          |     |
+
+### 🟢 B. Security Validation
+
+| Check                                  | Expected | ✅   |
+| -------------------------------------- | -------- | --- |
+| Migration Token expiry ≤ 7 days        | Verified |     |
+| Token IP Whitelist = NAS IP only       | Verified |     |
+| Token cannot DELETE records            | Verified |     |
+| Token cannot UPDATE non-import records | Verified |     |
+| Audit Log records `source=MIGRATION`   | Verified |     |
+| Nginx rate limit configured            | Verified |     |
+| Docker mem_limit = 2g                  | Verified |     |
+
+### 🟢 C. Data Integrity Validation
+
+| Check                                          | Expected       | ✅   |
+| ---------------------------------------------- | -------------- | --- |
+| Enum fetched from `/api/meta/categories`       | Not hardcoded  |     |
+| `Idempotency-Key` header enforced              | Verified       |     |
+| Duplicate revision test (run same batch twice) | No overwrite   |     |
+| Revision drift test                            | Sent to Review |     |
+| Storage path matches Core Storage Spec v1.8.0  | Verified       |     |
+| Encoding normalization NFC UTF-8               | Verified       |     |
+
+### 🟢 D. Workflow Validation (Dry Run 20 Records)
+
+| Check                                    | Expected     | ✅   |
+| ---------------------------------------- | ------------ | --- |
+| JSON parse success rate                  | > 95%        |     |
+| Confidence distribution reasonable       | Mean 0.7–0.9 |     |
+| Checkpoint updates every 10 records      | Verified     |     |
+| Fallback model not prematurely triggered | Verified     |     |
+| Reject log written to `migration_logs/`  | Verified     |     |
+| Error log written to `migration_logs/`   | Verified     |     |
+| Review queue inserts to DB               | Verified     |     |
+
+### 🟢 E. Performance Validation
+
+| Check                           | Expected | ✅   |
+| ------------------------------- | -------- | --- |
+| 10 records processed < 1 minute | Verified |     |
+| GPU temp < 80°C                 | Verified |     |
+| No memory leak after 1 hour     | Verified |     |
+| No duplicate revision created   | Verified |     |
+
+### 🟢 F. Rollback Test (Mandatory)
+
+| Check                                | Expected          | ✅   |
+| ------------------------------------ | ----------------- | --- |
+| Disable token works                  | is_active = false |     |
+| Delete `SYSTEM_IMPORT` records works | COUNT = 0         |     |
+| `import_transactions` cleared        | COUNT = 0         |     |
+| Checkpoint reset to 0                | Verified          |     |
+| Fallback state reset                 | Verified          |     |
+
+---
+
+## GO / NO-GO Criteria
+
+**GO ถ้า:**
+- A, B, C ทุก Check = PASS
+- Dry run error rate < 10%
+- JSON parse failure < 5%
+- Revision conflict < 3%
+
+**NO-GO ถ้า:**
+- Enum mismatch (Category hardcoded)
+- Idempotency ไม่ได้ implement
+- Storage bypass (move file โดยตรง)
+- Audit log ไม่ครบ
+
+---
+
+## Final Architectural Assessment
+
+| Area               | Status                                           |
+| ------------------ | ------------------------------------------------ |
+| ADR Compliance     | ✅ Fully aligned                                  |
+| Security           | ✅ Hardened (IP Whitelist, Rate Limit, Docker)    |
+| Data Integrity     | ✅ Controlled (Idempotency, Revision Drift, Enum) |
+| Storage Governance | ✅ Enforced (StorageService only)                 |
+| Operational Safety | ✅ Production Grade                               |
+
+---
+
+*สำหรับขั้นตอนปฏิบัติงานแบบละเอียด ดูที่ `03-04-legacy-data-migration.md` และ `03-05-n8n-migration-setup-guide.md`*

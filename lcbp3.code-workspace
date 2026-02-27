@@ -971,4 +971,7 @@
       },
     ],
   },
+  "extensions": {
+    "recommendations": ["jlcodes.antigravity-cockpit"],
+  },
 }
