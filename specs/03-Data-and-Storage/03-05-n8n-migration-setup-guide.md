@@ -2,77 +2,103 @@
 
 เอกสารนี้จัดทำขึ้นเพื่อรองรับการ Migration เอกสาร PDF 20,000 ฉบับ ตามแผนใน `03-04-legacy-data-migration.md` และ `ADR-017-ollama-data-migration.md`
 
-> **Note:** Category Enum system-driven, Idempotency-Key Header, Storage Enforcement, Audit Log, Encoding Normalization, Security Hardening, Nginx Rate Limit, Docker Hardening, AI Physical Isolation (ASUSTOR), Folder Standard (/data/dms)
+> **Note:** Category Enum system-driven, Idempotency-Key Header, Storage Enforcement, Audit Log, Encoding Normalization, Security Hardening, Nginx Rate Limit, Docker Hardening, Orchestrator on QNAP, AI Physical Isolation (Desktop Desk-5439), Folder Standard (/share/np-dms/n8n)
 
 ---
 
 ## 📌 ส่วนที่ 1: การติดตั้งและตั้งค่าเบื้องต้น
 
-### 1.1 ติดตั้ง n8n บน ASUSTOR NAS (Docker)
+### 1.1 ปรับปรุง n8n บน QNAP NAS (Docker)
 
-```bash
-mkdir -p /data/dms/n8n
-cd /data/dms/n8n
+คุณสามารถเพิ่ม PostgreSQL Service เข้าไปใน `docker-compose-lcbp3-n8n.yml` ปัจจุบันบน QNAP NAS ได้ดังนี้:
 
-cat > docker-compose.yml << 'EOF'
+```yaml
 version: '3.8'
 
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
 services:
+  n8n-db:
+    <<: [*restart_policy, *default_logging]
+    image: postgres:16-alpine
+    container_name: n8n-db
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=<strong_password>
+      - POSTGRES_DB=n8n
+    volumes:
+      - "/share/np-dms/n8n/postgres-data:/var/lib/postgresql/data"
+    networks:
+      lcbp3: {}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U n8n -d n8n']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   n8n:
-    image: n8nio/n8n:latest
-    container_name: n8n-migration
-    restart: unless-stopped
-    # Docker Hardening (Patch)
-    mem_limit: 2g
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    <<: [*restart_policy, *default_logging]
+    image: n8nio/n8n:1.78.0
+    container_name: n8n
+    depends_on:
+      n8n-db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2G
+    environment:
+      TZ: "Asia/Bangkok"
+      NODE_ENV: "production"
+      N8N_PUBLIC_URL: "https://n8n.np-dms.work/"
+      WEBHOOK_URL: "https://n8n.np-dms.work/"
+      N8N_EDITOR_BASE_URL: "https://n8n.np-dms.work/"
+      N8N_PROTOCOL: "https"
+      N8N_HOST: "n8n.np-dms.work"
+      N8N_PORT: 5678
+      N8N_PROXY_HOPS: "1"
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_SECURE_COOKIE: 'true'
+      N8N_ENCRYPTION_KEY: "9AAIB7Da9DW1qAhJE5/Bz4SnbQjeAngI"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      GENERIC_TIMEZONE: "Asia/Bangkok"
+      # DB Setup
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_HOST: n8n-db
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: <strong_password>
+      # Data Prune
+      EXECUTIONS_DATA_PRUNE: 'true'
+      EXECUTIONS_DATA_MAX_AGE: 168
+      EXECUTIONS_DATA_PRUNE_TIMEOUT: 60
     ports:
       - "5678:5678"
-    environment:
-      - N8N_HOST=0.0.0.0
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=http
-      - NODE_ENV=production
-      - WEBHOOK_URL=http://<NAS_IP>:5678/
-      - GENERIC_TIMEZONE=Asia/Bangkok
-      - TZ=Asia/Bangkok
-      - N8N_SECURE_COOKIE=false
-      - N8N_USER_FOLDER=/home/node/.n8n
-      - N8N_PUBLIC_API_DISABLED=true
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=<strong_password>
-      - N8N_PAYLOAD_SIZE_MAX=10485760
-      - EXECUTIONS_DATA_PRUNE=true
-      - EXECUTIONS_DATA_MAX_AGE=168
-      - EXECUTIONS_DATA_PRUNE_TIMEOUT=60
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=<DB_IP>
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_USER=n8n
-      - DB_POSTGRESDB_PASSWORD=<password>
-    volumes:
-      - ./n8n_data:/home/node/.n8n
-      # read-only: อ่านไฟล์ PDF ต้นฉบับเท่านั้น
-      - /data/dms/staging_ai:/data/dms/staging_ai:ro
-      # read-write: เขียน Log และ CSV ทั้งหมด
-      - /data/dms/migration_logs:/data/dms/migration_logs:rw
     networks:
-      - n8n-network
-
-networks:
-  n8n-network:
-    driver: bridge
-EOF
-
-docker-compose up -d
+      lcbp3: {}
+    volumes:
+      - "/share/np-dms/n8n:/home/node/.n8n"
+      - "/share/np-dms/n8n/cache:/home/node/.cache"
+      - "/share/np-dms/n8n/scripts:/scripts"
+      - "/share/np-dms/n8n/data:/data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      # read-only: อ่านไฟล์ PDF ต้นฉบับเท่านั้น
+      - "/share/np-dms/staging_ai:/share/np-dms/staging_ai:ro"
+      # read-write: เขียน Log และ CSV ทั้งหมด
+      - "/share/np-dms/n8n/migration_logs:/share/np-dms/n8n/migration_logs:rw"
 ```
 
-> ⚠️ **Volume หมายเหตุ:** `/data/dms/staging_ai` = **read-only** (อ่านไฟล์ต้นฉบับ) และ `/data/dms/migration_logs` = **read-write** (เขียน Log/CSV) — ห้ามเขียน CSV ลง `staging_ai` เพราะจะ Error ทันที
+> ⚠️ **Volume หมายเหตุ:** `/share/np-dms/staging_ai` = **read-only** (อ่านไฟล์ต้นฉบับ) และ `/share/np-dms/n8n/migration_logs` = **read-write** (เขียน Log/CSV) — ห้ามเขียน CSV ลง `staging_ai` เพราะจะ Error ทันที
 
 ### 1.2 Nginx Rate Limit
 
@@ -92,19 +118,19 @@ location /api/correspondences/import {
 
 **Settings → Environment Variables ใน n8n UI:**
 
-| Variable                    | ค่าที่แนะนำ                      | คำอธิบาย                               |
-| --------------------------- | ---------------------------- | ------------------------------------ |
-| `OLLAMA_HOST`               | `http://<ASUSTOR_IP>:11434`  | URL ของ Ollama (ใน internal network) |
-| `OLLAMA_MODEL_PRIMARY`      | `llama3.2:3b`                | Model หลัก                            |
-| `OLLAMA_MODEL_FALLBACK`     | `mistral:7b-instruct-q4_K_M` | Model สำรอง                           |
-| `MIGRATION_BATCH_SIZE`      | `10`                         | จำนวน Record ต่อ Batch                 |
-| `MIGRATION_DELAY_MS`        | `2000`                       | Delay ระหว่าง Request (ms)            |
-| `CONFIDENCE_THRESHOLD_HIGH` | `0.85`                       | Threshold Auto Ingest                |
-| `CONFIDENCE_THRESHOLD_LOW`  | `0.60`                       | Threshold Review Queue               |
-| `MAX_RETRY_COUNT`           | `3`                          | จำนวนครั้ง Retry                        |
-| `FALLBACK_ERROR_THRESHOLD`  | `5`                          | Error ที่ trigger Fallback             |
-| `BACKEND_URL`               | `https://<BACKEND_URL>`      | URL ของ LCBP3 Backend                |
-| `MIGRATION_BATCH_ID`        | `migration_20260226`         | ID ของ Batch                         |
+| Variable                    | ค่าที่แนะนำ                       | คำอธิบาย                             |
+| --------------------------- | ----------------------------- | ---------------------------------- |
+| `OLLAMA_HOST`               | `http://192.168.20.100:11434` | URL ของ Ollama (Desktop Desk-5439) |
+| `OLLAMA_MODEL_PRIMARY`      | `llama3.2:3b`                 | Model หลัก                          |
+| `OLLAMA_MODEL_FALLBACK`     | `mistral:7b-instruct-q4_K_M`  | Model สำรอง                         |
+| `MIGRATION_BATCH_SIZE`      | `10`                          | จำนวน Record ต่อ Batch               |
+| `MIGRATION_DELAY_MS`        | `2000`                        | Delay ระหว่าง Request (ms)          |
+| `CONFIDENCE_THRESHOLD_HIGH` | `0.85`                        | Threshold Auto Ingest              |
+| `CONFIDENCE_THRESHOLD_LOW`  | `0.60`                        | Threshold Review Queue             |
+| `MAX_RETRY_COUNT`           | `3`                           | จำนวนครั้ง Retry                      |
+| `FALLBACK_ERROR_THRESHOLD`  | `5`                           | Error ที่ trigger Fallback           |
+| `BACKEND_URL`               | `https://<BACKEND_URL>`       | URL ของ LCBP3 Backend              |
+| `MIGRATION_BATCH_ID`        | `migration_20260226`          | ID ของ Batch                       |
 
 ---
 
@@ -193,12 +219,12 @@ CREATE TABLE IF NOT EXISTS migration_daily_summary (
 **Credentials → Add New:**
 
 #### 🔐 Ollama API
-| Field          | ค่า                          |
-| -------------- | --------------------------- |
-| Name           | `Ollama Local API`          |
-| Type           | `HTTP Request`              |
-| Base URL       | `http://<ASUSTOR_IP>:11434` |
-| Authentication | `None`                      |
+| Field          | ค่า                            |
+| -------------- | ----------------------------- |
+| Name           | `Ollama Local API`            |
+| Type           | `HTTP Request`                |
+| Base URL       | `http://192.168.20.100:11434` |
+| Authentication | `None`                        |
 
 #### 🔐 LCBP3 Backend API
 | Field          | ค่า                          |
@@ -306,9 +332,9 @@ $workflow.variables.system_categories = categories;
 
 // ตรวจ File Mount
 try {
-  const files = fs.readdirSync('/data/dms/staging_ai');
+  const files = fs.readdirSync('/share/np-dms/staging_ai');
   if (files.length === 0) throw new Error('staging_ai is empty');
-  fs.writeFileSync('/data/dms/migration_logs/.preflight_ok', new Date().toISOString());
+  fs.writeFileSync('/share/np-dms/n8n/migration_logs/.preflight_ok', new Date().toISOString());
 } catch (err) {
   throw new Error(`File mount check failed: ${err.message}`);
 }
@@ -382,9 +408,9 @@ for (const item of items) {
   const safeName = path.basename(
     String(docNumber).replace(/[^a-zA-Z0-9\-_.]/g, '_')
   ).normalize('NFC');
-  const filePath = path.resolve('/data/dms/staging_ai', `${safeName}.pdf`);
+  const filePath = path.resolve('/share/np-dms/staging_ai', `${safeName}.pdf`);
 
-  if (!filePath.startsWith('/data/dms/staging_ai/')) {
+  if (!filePath.startsWith('/share/np-dms/staging_ai/')) {
     errorItems.push({ ...item, json: { ...item.json, error: 'Path traversal detected', error_type: 'FILE_NOT_FOUND' } });
     continue;
   }
@@ -612,7 +638,10 @@ return [autoIngest, reviewQueue, rejectLog, errorLog];
     "ai_confidence":     "={{ $json.ai_result.confidence }}",
     "ai_issues":         "={{ $json.ai_result.detected_issues }}",
     "migrated_by":       "SYSTEM_IMPORT",
-    "batch_id":          "={{ $env.MIGRATION_BATCH_ID }}"
+    "batch_id":          "={{ $env.MIGRATION_BATCH_ID }}",
+    "details":           {
+      "legacy_number":   "={{ $json.legacy_document_number }}"
+    }
   },
   "options": { "timeout": 30000, "retry": { "count": 3, "delay": 5000 } }
 }
@@ -662,12 +691,12 @@ ON DUPLICATE KEY UPDATE status = 'PENDING', review_reason = '{{ $json.review_rea
 
 ---
 
-### 4.10 Node 5C: Reject Log → `/data/migration_logs/`
+#### 4.10 Node 5C: Reject Log → `/share/np-dms/n8n/migration_logs/`
 
 ```javascript
 const fs   = require('fs');
 const item = $input.first();
-const csvPath = '/data/dms/migration_logs/reject_log.csv';
+const csvPath = '/share/np-dms/n8n/migration_logs/reject_log.csv';
 const header  = 'timestamp,document_number,title,reject_reason,ai_confidence,ai_issues\n';
 const esc = (s) => `"${String(s||'').replace(/"/g,'""')}"`;
 
@@ -687,12 +716,12 @@ return [$input.first()];
 
 ---
 
-### 4.11 Node 5D: Error Log → `/data/migration_logs/` + MariaDB
+#### 4.11 Node 5D: Error Log → `/share/np-dms/n8n/migration_logs/` + MariaDB
 
 ```javascript
 const fs   = require('fs');
 const item = $input.first();
-const csvPath = '/data/dms/migration_logs/error_log.csv';
+const csvPath = '/share/np-dms/n8n/migration_logs/error_log.csv';
 const header  = 'timestamp,document_number,error_type,error_message,raw_ai_response\n';
 const esc = (s) => `"${String(s||'').replace(/"/g,'""')}"`;
 

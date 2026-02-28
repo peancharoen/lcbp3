@@ -48,6 +48,7 @@ import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { ResilienceModule } from './common/resilience/resilience.module';
 import { SearchModule } from './modules/search/search.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { MigrationModule } from './modules/migration/migration.module';
 
 @Module({
   imports: [
@@ -158,6 +159,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     NotificationModule,
     DashboardModule,
     AuditLogModule,
+    MigrationModule,
   ],
   controllers: [AppController],
   providers: [

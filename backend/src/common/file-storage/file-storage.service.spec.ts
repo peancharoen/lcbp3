@@ -64,11 +64,16 @@ describe('FileStorageService', () => {
     attachmentRepo = module.get(getRepositoryToken(Attachment));
 
     jest.clearAllMocks();
-    (fs.ensureDirSync as jest.Mock).mockReturnValue(true);
-    (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
-    (fs.pathExists as jest.Mock).mockResolvedValue(true);
-    (fs.move as jest.Mock).mockResolvedValue(undefined);
-    (fs.remove as jest.Mock).mockResolvedValue(undefined);
+    (fs.ensureDirSync as unknown as jest.Mock).mockReturnValue(true);
+    (fs.writeFile as unknown as jest.Mock).mockResolvedValue(undefined);
+    (fs.pathExists as unknown as jest.Mock).mockResolvedValue(true);
+    (fs.move as unknown as jest.Mock).mockResolvedValue(undefined);
+    (fs.remove as unknown as jest.Mock).mockResolvedValue(undefined);
+    (fs.readFile as unknown as jest.Mock).mockResolvedValue(
+      Buffer.from('test')
+    );
+    (fs.stat as unknown as jest.Mock).mockResolvedValue({ size: 1024 });
+    (fs.ensureDir as unknown as jest.Mock).mockResolvedValue(undefined);
   });
 
   it('should be defined', () => {
@@ -86,7 +91,7 @@ describe('FileStorageService', () => {
     });
 
     it('should throw BadRequestException if write fails', async () => {
-      (fs.writeFile as jest.Mock).mockRejectedValueOnce(
+      (fs.writeFile as unknown as jest.Mock).mockRejectedValueOnce(
         new Error('Write error')
       );
       await expect(service.upload(mockFile, 1)).rejects.toThrow(

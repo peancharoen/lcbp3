@@ -76,7 +76,7 @@ describe('CorrespondenceController', () => {
       const createDto = {
         projectId: 1,
         typeId: 1,
-        title: 'Test Subject',
+        subject: 'Test Subject',
       };
 
       const result = await controller.create(

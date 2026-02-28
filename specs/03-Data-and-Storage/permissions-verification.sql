@@ -1,6 +1,6 @@
 -- ==========================================================
--- Permission System Verification Queries
--- File: specs/07-database/permissions-verification.sql
+-- Permission System Verification Queries (v1.8.0)
+-- File: specs/03-Data-and-Storage/permissions-verification.sql
 -- Purpose: Verify permissions setup after seed data deployment
 -- ==========================================================
 -- ==========================================================
@@ -271,6 +271,8 @@ FROM (
     SELECT 'drawing.view'
     UNION
     SELECT 'workflow.action_review'
+    UNION
+    SELECT 'project.view'
   ) required_perms
   LEFT JOIN permissions p USING (permission_name)
 ORDER BY permission_name;

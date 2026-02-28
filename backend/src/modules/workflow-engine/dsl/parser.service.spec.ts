@@ -12,7 +12,7 @@ describe('WorkflowDslParser', () => {
 
   beforeEach(async () => {
     mockRepository = {
-      save: jest.fn((def) => Promise.resolve(def)),
+      save: jest.fn((def) => Promise.resolve(def)) as unknown as jest.Mock,
       findOne: jest.fn(),
     };
 
@@ -160,7 +160,7 @@ describe('WorkflowDslParser', () => {
 
       expect(result.valid).toBe(false);
       expect(result.errors).toBeDefined();
-      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors?.length).toBeGreaterThan(0);
     });
   });
 
@@ -184,7 +184,7 @@ describe('WorkflowDslParser', () => {
     it('should throw error if definition not found', async () => {
       mockRepository.findOne = jest.fn().mockResolvedValue(null);
 
-      await expect(parser.getParsedDsl(999)).rejects.toThrow(
+      await expect(parser.getParsedDsl('999')).rejects.toThrow(
         BadRequestException
       );
     });

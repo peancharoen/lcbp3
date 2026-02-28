@@ -9,9 +9,7 @@
 - [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
 - [Software Architecture](../02-Architecture/02-02-software-architecture.md)
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
-
-> **Note:** ADR-017 is clarified and hardened by ADR-018 regarding AI physical isolation. Category Enum system-driven, Idempotency Contract, Duplicate Handling Clarification, Storage Enforcement, Audit Log Enhancement, Review Queue Integration, Revision Drift Protection, Execution Time, Encoding Normalization, Security Hardening, AI Physical Isolation (ASUSTOR).
-
+> **Note:** ADR-017 is clarified and hardened by ADR-018 regarding AI physical isolation. Category Enum system-driven, Idempotency Contract, Duplicate Handling Clarification, Storage Enforcement, Audit Log Enhancement, Review Queue Integration, Revision Drift Protection, Execution Time, Encoding Normalization, Security Hardening, Orchestrator on QNAP, AI Physical Isolation (Desktop Desk-5439).
 ---
 
 ## Context and Problem Statement
@@ -84,18 +82,18 @@
 
 ## Implementation Summary
 
-| Component              | รายละเอียด                                                     |
-| ---------------------- | ------------------------------------------------------------- |
-| Migration Orchestrator | n8n (Docker บน ASUSTOR NAS)                                   |
-| AI Model Primary       | Ollama `llama3.2:3b`                                          |
-| AI Model Fallback      | Ollama `mistral:7b-instruct-q4_K_M`                           |
-| Hardware               | ASUSTOR NAS (AI Processing Only)                              |
-| Data Ingestion         | RESTful API + Migration Token (7 วัน) + Idempotency-Key Header |
-| Concurrency            | Sequential — 1 Request/ครั้ง, Delay 2 วินาที                      |
-| Checkpoint             | MariaDB `migration_progress`                                  |
-| Fallback               | Auto-switch Model เมื่อ Error ≥ Threshold                       |
-| Storage                | Backend StorageService เท่านั้น — ห้าม move file โดยตรง           |
-| Expected Runtime       | ~16.6 ชั่วโมง (~3–4 คืน) สำหรับ 20,000 records                     |
+| Component              | รายละเอียด                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| Migration Orchestrator | n8n (Docker บน QNAP NAS)                                                        |
+| AI Model Primary       | Ollama `llama3.2:3b`                                                            |
+| AI Model Fallback      | Ollama `mistral:7b-instruct-q4_K_M`                                             |
+| Hardware               | QNAP NAS (Orchestrator) + Desktop Desk-5439 (AI Processing, RTX 2060 SUPER 8GB) |
+| Data Ingestion         | RESTful API + Migration Token (7 วัน) + Idempotency-Key Header                   |
+| Concurrency            | Sequential — 1 Request/ครั้ง, Delay 2 วินาที                                        |
+| Checkpoint             | MariaDB `migration_progress`                                                    |
+| Fallback               | Auto-switch Model เมื่อ Error ≥ Threshold                                         |
+| Storage                | Backend StorageService เท่านั้น — ห้าม move file โดยตรง                             |
+| Expected Runtime       | ~16.6 ชั่วโมง (~3–4 คืน) สำหรับ 20,000 records                                       |
 
 ---
 

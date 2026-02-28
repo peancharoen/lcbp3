@@ -202,6 +202,77 @@ export class FileStorageService {
   }
 
   /**
+   * ✅ NEW: Import Staging File (For Legacy Migration)
+   * ย้ายไฟล์จาก staging_ai ไปยัง permanent storage โดยตรง
+   */
+  async importStagingFile(
+    sourceFilePath: string,
+    userId: number,
+    options?: { issueDate?: Date; documentType?: string }
+  ): Promise<Attachment> {
+    if (!(await fs.pathExists(sourceFilePath))) {
+      this.logger.error(`Staging file not found: ${sourceFilePath}`);
+      throw new NotFoundException(`Source file not found: ${sourceFilePath}`);
+    }
+
+    // 1. Get file stats & checksum
+    const stats = await fs.stat(sourceFilePath);
+    const fileExt = path.extname(sourceFilePath);
+    const originalFilename = path.basename(sourceFilePath);
+    const storedFilename = `${uuidv4()}${fileExt}`;
+
+    // Determine mime type basic
+    let mimeType = 'application/octet-stream';
+    if (fileExt.toLowerCase() === '.pdf') mimeType = 'application/pdf';
+    else if (fileExt.toLowerCase() === '.xlsx')
+      mimeType =
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+    const fileBuffer = await fs.readFile(sourceFilePath);
+    const checksum = this.calculateChecksum(fileBuffer);
+
+    // 2. Generate Permanent Path
+    const refDate = options?.issueDate || new Date();
+    const effectiveDate = isNaN(refDate.getTime()) ? new Date() : refDate;
+    const year = effectiveDate.getFullYear().toString();
+    const month = (effectiveDate.getMonth() + 1).toString().padStart(2, '0');
+    const docTypeFolder = options?.documentType || 'General';
+
+    const permanentDir = path.join(
+      this.permanentDir,
+      docTypeFolder,
+      year,
+      month
+    );
+    await fs.ensureDir(permanentDir);
+
+    const newPath = path.join(permanentDir, storedFilename);
+
+    // 3. Move File
+    try {
+      await fs.move(sourceFilePath, newPath, { overwrite: true });
+    } catch (error) {
+      this.logger.error(`Failed to move staging file to ${newPath}`, error);
+      throw new BadRequestException('Failed to process staging file');
+    }
+
+    // 4. Create Database Record
+    const attachment = this.attachmentRepository.create({
+      originalFilename,
+      storedFilename,
+      filePath: newPath,
+      mimeType,
+      fileSize: stats.size,
+      isTemporary: false,
+      referenceDate: effectiveDate,
+      checksum,
+      uploadedByUserId: userId,
+    });
+
+    return this.attachmentRepository.save(attachment);
+  }
+
+  /**
    * ✅ NEW: Delete File
    * ลบไฟล์ออกจาก Disk และ Database
    */

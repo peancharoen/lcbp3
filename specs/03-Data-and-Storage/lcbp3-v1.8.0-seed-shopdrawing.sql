@@ -1,3 +1,15 @@
+-- ==========================================================
+-- DMS v1.8.0 Document Management System Database
+-- Seed Shop Drawing data
+-- Server: Container Station on QNAP TS-473A
+-- Database service: MariaDB 11.8
+-- database web ui: phpmyadmin 5-apache
+-- database development ui: DBeaver
+-- backend service: NestJS
+-- frontend service: next.js
+-- reverse proxy: jc21/nginx-proxy-manager:latest
+-- cron service: n8n
+-- ==========================================================
 INSERT INTO shop_drawing_sub_categories(
     project_id,
     sub_category_code,

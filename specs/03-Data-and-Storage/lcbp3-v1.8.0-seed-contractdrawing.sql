@@ -1,15 +1,14 @@
 -- ==========================================================
--- DMS DMS v0.5.0
--- Database v5.1 - Seed contract_dwg data
--- Server: Container Station on QNAPQNAP TS-473A
--- Database service: MariaDB 10.11
--- database ui: phpmyadmin 5-apache
--- backend sevice: node.js
--- frontend sevice: next.js
--- reverse proxy: nginx 1.27-alpine
+-- DMS v1.8.0 Document Management System Database
+-- Seed Contract Drawing data
+-- Server: Container Station on QNAP TS-473A
+-- Database service: MariaDB 11.8
+-- database web ui: phpmyadmin 5-apache
+-- database development ui: DBeaver
+-- backend service: NestJS
+-- frontend service: next.js
+-- reverse proxy: jc21/nginx-proxy-manager:latest
 -- cron service: n8n
--- scripts: alpine:3.20
--- Notes:
 -- ==========================================================
 
 INSERT INTO contract_drawing_volumes (project_id, volume_code, volume_name, description)

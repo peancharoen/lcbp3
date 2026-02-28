@@ -4,7 +4,7 @@
 | ------------------------------------------------------------------ | ------- |
 | legacy PDF document migration to system v1.8.0 uses n8n and Ollama | 1.8.0   |
 
-> **Note:** Category Enum system-driven, Idempotency Contract, Duplicate Handling Clarification, Storage Enforcement, Audit Log Enhancement, Review Queue Integration, Revision Drift Protection, Execution Time, Encoding Normalization, Security Hardening, AI Physical Isolation (ASUSTOR), Folder Standard (/data/dms)
+> **Note:** Category Enum system-driven, Idempotency Contract, Duplicate Handling Clarification, Storage Enforcement, Audit Log Enhancement, Review Queue Integration, Revision Drift Protection, Execution Time, Encoding Normalization, Security Hardening, Orchestrator on QNAP, AI Physical Isolation (Desktop Desk-5439), Folder Standard (/share/np-dms/n8n)
 
 ---
 
@@ -21,8 +21,8 @@
 
 ## 2. โครงสร้างพื้นฐาน (Migration Infrastructure)
 
-- **Migration Orchestrator:** n8n (รันจาก Docker Container บน ASUSTOR NAS)
-- **AI Validator:** Ollama (รันใน Internal Network บน ASUSTOR NAS)
+- **Migration Orchestrator:** n8n (รันจาก Docker Container บน QNAP NAS)
+- **AI Validator:** Ollama (รันใน Internal Network บน Desktop Desk-5439, RTX 2060 SUPER 8GB)
 - **Target Database:** MariaDB (`correspondences` table) บน QNAP NAS
 - **Target Storage:** QNAP File System — **ผ่าน Backend StorageService API เท่านั้น** (ห้าม move file โดยตรง)
 - **Connection:** 2.5G LAN + LACP / Internal VLAN
@@ -35,18 +35,18 @@
 
 **File Migration:**
 - ย้ายไฟล์ PDF ทั้งหมดจากแหล่งเก็บไปยัง Folder ชั่วคราวบน NAS (QNAP)
-- Target Path: `/data/dms/staging_ai/`
+- Target Path: `/share/np-dms/staging_ai/`
 
 **Mount Folder:**
-- Bind Mount `/data/dms/staging_ai/` เข้ากับ n8n Container แบบ **read-only**
-- สร้าง `/data/dms/migration_logs/` Volume แยกสำหรับเขียน Log แบบ **read-write**
+- Bind Mount `/share/np-dms/staging_ai/` เข้ากับ n8n Container แบบ **read-only**
+- สร้าง `/share/np-dms/n8n/migration_logs/` Volume แยกสำหรับเขียน Log แบบ **read-write**
 
 **Ollama Config:**
-- ติดตั้ง Ollama บน ASUSTOR NAS
+- ติดตั้ง Ollama บน Desktop (Desk-5439, RTX 2060 SUPER 8GB)
 - No DB credentials, Internal network only
 
 ```bash
-# แนะนำ: llama3.2:3b (เร็ว, VRAM ~3GB, เหมาะ Classification)
+# แนะนำ: llama3.2:3b (เร็ว, VRAM ~3GB, เหมาะ Classification) หรือ ollama run llama3.2:3b
 ollama pull llama3.2:3b
 
 # Fallback: mistral:7b-instruct-q4_K_M (แม่นกว่า, VRAM ~5GB)
@@ -55,7 +55,7 @@ ollama pull llama3.2:3b
 
 **ทดสอบ Ollama:**
 ```bash
-curl http://<OLLAMA_HOST>:11434/api/generate \
+curl http://192.168.20.100:11434/api/generate \
   -d '{"model":"llama3.2:3b","prompt":"reply: ok","stream":false}'
 ```
 
@@ -165,7 +165,9 @@ return items.map(item => ({
   json: {
     ...item.json,
     document_number: normalize(item.json.document_number),
-    title: normalize(item.json.title)
+    title: normalize(item.json.title),
+    // Mapping เลขอ้างอิงเก่า (Legacy Number) เพื่อนำไปเก็บใน details JSON
+    legacy_document_number: item.json.document_number
   }
 }));
 ```
@@ -174,7 +176,7 @@ return items.map(item => ({
 
 - ตรวจสอบไฟล์ PDF มีอยู่จริงบน NAS
 - Normalize ชื่อไฟล์เป็น **UTF-8 NFC**
-- Path Traversal Guard: resolved path ต้องอยู่ใน `/data/dms/staging_ai` เท่านั้น
+- Path Traversal Guard: resolved path ต้องอยู่ใน `/share/np-dms/staging_ai` เท่านั้น
 - **Output 0** → valid → Node 3
 - **Output 1** → error → Node 5D (ไม่หายเงียบ)
 
@@ -246,7 +248,7 @@ if (item.json.excel_revision !== undefined) {
 
 #### Node 5A: Auto Ingest — Backend API
 
-> ⚠️ **Storage Enforcement:** n8n ส่งแค่ `source_file_path` — Backend จะ generate UUID, enforce path strategy (`/data/dms/uploads/YYYY/MM/{uuid}.pdf`), และ move file atomically ผ่าน StorageService
+> ⚠️ **Storage Enforcement:** n8n ส่งแค่ `source_file_path` — Backend จะ generate UUID, enforce path strategy (`/share/np-dms/staging_ai/...`), และ move file atomically ผ่าน StorageService
 
 ```http
 POST /api/correspondences/import
@@ -303,9 +305,9 @@ Review → Admin Approve → POST /api/correspondences/import (เหมือ�
 Admin Reject → ลบออกจาก queue ไม่สร้าง record
 ```
 
-#### Node 5C: Reject Log → `/data/dms/migration_logs/reject_log.csv`
+#### Node 5C: Reject Log → `/share/np-dms/n8n/migration_logs/reject_log.csv`
 
-#### Node 5D: Error Log → `/data/dms/migration_logs/error_log.csv` + MariaDB
+#### Node 5D: Error Log → `/share/np-dms/n8n/migration_logs/error_log.csv` + MariaDB
 
 ---
 
@@ -370,7 +372,7 @@ SELECT ROW_COUNT();
 COMMIT;
 ```
 
-**Step 3:** ย้ายไฟล์กลับ `/data/dms/staging_ai/` ผ่าน Script แยก
+**Step 3:** ย้ายไฟล์กลับ `/share/np-dms/staging_ai/` ผ่าน Script แยก
 
 **Step 4:** Reset State
 ```sql
@@ -424,4 +426,4 @@ GROUP BY idempotency_key HAVING COUNT(*) > 1;
 
 ---
 
-> **ข้อแนะนำด้าน Physical Storage:** ไฟล์ PDF ทั้ง 20,000 ไฟล์จะถูก move โดย Backend StorageService ไปยัง path ที่ถูกต้องโดยอัตโนมัติ ไม่ปล่อยค้างไว้ที่ `/data/dms/staging_ai/`
+> **ข้อแนะนำด้าน Physical Storage:** ไฟล์ PDF ทั้ง 20,000 ไฟล์จะถูก move โดย Backend StorageService ไปยัง path ที่ถูกต้องโดยอัตโนมัติ ไม่ปล่อยค้างไว้ที่ `/share/np-dms/staging_ai/`

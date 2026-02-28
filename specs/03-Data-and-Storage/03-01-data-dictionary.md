@@ -3,12 +3,10 @@ title: 'Data & Storage: Data Dictionary and Data Model Architecture'
 version: 1.8.0
 status: released
 owner: Nattanin Peancharoen
-last_updated: 2026-02-22
+last_updated: 2026-02-28
 related:
   - specs/01-requirements/02-architecture.md
   - specs/01-requirements/03-functional-requirements.md
-  - docs/4_Data_Dictionary_V1_4_5.md
-  - docs/8_lcbp3_v1_4_5.sql
 ---
 
 # 1. Data Model Architecture Overview
@@ -2043,6 +2041,92 @@ PARTITION BY RANGE (YEAR(created_at)) (
 
 ---
 
+
+### 16.3 Temporary Migration Tracking Tables (V1.8.0 n8n Migration)
+
+ตารางเหล่านี้ถูกใช้ชั่วคราวระหว่างกระบวนการ Migrate เอกสาร PDF 20,000 ฉบับด้วย n8n (ดูรายละเอียดใน  3-05-n8n-migration-setup-guide.md) และไม่ใช่ตาราง Business หลักของระบบ
+
+#### 16.3.1 migration_progress
+**Purpose**: เก็บ Checkpoint สถานะการ Migrate
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| batch_id | VARCHAR(50) | PRIMARY KEY | รหัสชุดการ Migrate |
+| last_processed_index | INT | DEFAULT 0 | ลำดับล่าสุดที่ประมวลผลผ่าน |
+| status | ENUM | DEFAULT 'RUNNING' | สถานะ (RUNNING, COMPLETED, FAILED) |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | เวลาอัปเดตล่าสุด |
+
+#### 16.3.2 migration_review_queue
+**Purpose**: คิวเอกสารที่ต้องการให้เจ้าหน้าที่ตรวจสอบ (Confidence ต่ำกว่าเกณฑ์)
+*หมายเหตุ: เมื่อตรวจสอบผ่านและสร้าง Correspondence จริงแล้ว ข้อมูลในนี้อาจถูกลบหรือเก็บเป็น Log ได้*
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique ID |
+| document_number | VARCHAR(100) | NOT NULL, UNIQUE | เลขที่เอกสาร (จาก OCR) |
+| title | TEXT | | ชื่อเรื่อง |
+| original_title | TEXT | | ชื่อเรื่องต้นฉบับก่อนตรวจสอบ |
+| ai_suggested_category | VARCHAR(50) | | หมวดหมู่ที่ AI แนะนำ |
+| ai_confidence | DECIMAL(4,3) | | ค่าความมั่นใจของ AI (0.000 - 1.000) |
+| ai_issues | JSON | | รายละเอียดปัญหาที่ AI พบ |
+| review_reason | VARCHAR(255) | | เหตุผลที่ต้องตรวจสอบ (เช่น Confidence ต่ำ) |
+| status | ENUM | DEFAULT 'PENDING' | PENDING, APPROVED, REJECTED |
+| reviewed_by | VARCHAR(100) | | ผู้ตรวจสอบ |
+| reviewed_at | TIMESTAMP | NULL | เวลาที่ตรวจสอบ |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | วันที่บันทึกเข้าคิว |
+
+#### 16.3.3 migration_errors
+**Purpose**: บันทึกข้อผิดพลาด (Errors) ระหว่างการทำงานของ n8n workflow
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique ID |
+| batch_id | VARCHAR(50) | INDEX | รหัสชุดการ Migrate |
+| document_number | VARCHAR(100) | | เลขที่เอกสาร |
+| error_type | ENUM | INDEX | ประเภท Error (FILE_NOT_FOUND, AI_PARSE_ERROR, etc.) |
+| error_message | TEXT | | รายละเอียด Error |
+| raw_ai_response | TEXT | | Raw response จาก AI กรณีแปลผลไม่ได้ |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | วันที่บันทึก |
+
+#### 16.3.4 migration_fallback_state
+**Purpose**: ติดตามสถานะ Fallback ของ AI (เช่น เปลี่ยน Model เมื่อ Error ถี่)
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique ID |
+| batch_id | VARCHAR(50) | UNIQUE | รหัสชุดการ Migrate |
+| recent_error_count | INT | DEFAULT 0 | จำนวน Error รวดล่าสุด |
+| is_fallback_active | BOOLEAN | DEFAULT FALSE | สถานะการใช้งาน Fallback Model |
+| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | เวลาอัปเดตล่าสุด |
+
+#### 16.3.5 import_transactions
+**Purpose**: ป้องกันข้อมูลซ้ำ (Idempotency) ระหว่างการ Patch ข้อมูล
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique ID |
+| idempotency_key | VARCHAR(255) | UNIQUE, NOT NULL | Key สำหรับเช็คซ้ำ |
+| document_number | VARCHAR(100) | | เลขที่เอกสาร |
+| batch_id | VARCHAR(100) | | รหัสชุดการ Migrate |
+| status_code | INT | DEFAULT 201 | HTTP Status ของการ Import |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | วันที่บันทึก |
+
+#### 16.3.6 migration_daily_summary
+**Purpose**: สรุปยอดการทำงานรายวันแยกตาม Batch
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | Unique ID |
+| batch_id | VARCHAR(50) | UNIQUE KEY PART 1 | รหัสชุดการ Migrate |
+| summary_date | DATE | UNIQUE KEY PART 2 | วันที่สรุป |
+| total_processed | INT | DEFAULT 0 | จำนวนที่ประมวลผลรวม |
+| auto_ingested | INT | DEFAULT 0 | จำนวนที่เข้าสู่ระบบสำเร็จ |
+| sent_to_review | INT | DEFAULT 0 | จำนวนที่ส่งคิวตรวจสอบ |
+| rejected | INT | DEFAULT 0 | จำนวนที่ถูกปฏิเสธ |
+| errors | INT | DEFAULT 0 | จำนวนที่เกิด Error |
+| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | วันที่บันทึก |
+
+---
 ## **17. 📈 Monitoring & Maintenance (การดูแลรักษา)**
 
 ### 17.1 Database Maintenance
