@@ -19,6 +19,7 @@ jobs:
           port: ${{ secrets.PORT }}
           script_stop_signal: true # Stop script on error
           script: |
+            set -e
             # ⚠️ QNAP SSH ไม่มี PATH เต็ม ต้อง export เอง
             # docker: /share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker
             # git:    /opt/bin/git
