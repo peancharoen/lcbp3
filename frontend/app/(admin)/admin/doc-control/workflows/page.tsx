@@ -1,35 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Copy, Trash, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useWorkflowDefinitions } from '@/hooks/use-workflows';
 import { Workflow } from '@/types/workflow';
-import { workflowApi } from '@/lib/api/workflows';
-import { toast } from 'sonner';
 
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchWorkflows = async () => {
-      setLoading(true);
-      try {
-        const data = await workflowApi.getWorkflows();
-        setWorkflows(data);
-      } catch (error) {
-        toast.error('Failed to load workflows');
-        console.error('[WorkflowsPage]', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWorkflows();
-  }, []);
+  const { data: workflows = [], isLoading: loading } = useWorkflowDefinitions();
 
   return (
     <div className="p-6 space-y-6">
@@ -52,7 +32,7 @@ export default function WorkflowsPage() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {workflows.map((workflow) => (
+          {workflows.map((workflow: Workflow) => (
             <Card key={workflow.workflowId} className="p-6">
               <div className="flex justify-between items-start">
                 <div className="flex-1">

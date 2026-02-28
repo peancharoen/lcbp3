@@ -7,6 +7,23 @@ import {
   GetAvailableActionsDto,
 } from '@/types/dto/workflow-engine/workflow-engine.dto';
 
+import { Workflow } from '@/types/workflow';
+
+const mapWorkflow = (backendObj: any): Workflow => {
+  if (!backendObj) throw new Error('Workflow not found');
+  return {
+    workflowId: backendObj.id,
+    workflowName: backendObj.dsl?.workflowName || backendObj.workflow_code,
+    description: backendObj.description || backendObj.dsl?.description || '',
+    workflowType: backendObj.workflow_code,
+    version: backendObj.version || 1,
+    isActive: backendObj.is_active,
+    dslDefinition: typeof backendObj.dsl === 'string' ? backendObj.dsl : backendObj.dsl?.dslDefinition || JSON.stringify(backendObj.dsl, null, 2),
+    stepCount: backendObj.compiled?.states ? Object.keys(backendObj.compiled.states).length : 0,
+    updatedAt: backendObj.updated_at || new Date().toISOString(),
+  };
+};
+
 export const workflowEngineService = {
   // --- Engine Execution (Low-Level) ---
 
@@ -34,18 +51,20 @@ export const workflowEngineService = {
    * ดึง Workflow Definition ทั้งหมด
    * GET /workflow-engine/definitions
    */
-  getDefinitions: async () => {
+  getDefinitions: async (): Promise<Workflow[]> => {
     const response = await apiClient.get('/workflow-engine/definitions');
-    return response.data?.data || response.data;
+    const data = response.data?.data || response.data;
+    return Array.isArray(data) ? data.map(mapWorkflow) : data;
   },
 
   /**
    * ดึง Workflow Definition ตาม ID
    * GET /workflow-engine/definitions/:id
    */
-  getDefinitionById: async (id: string | number) => {
+  getDefinitionById: async (id: string | number): Promise<Workflow> => {
     const response = await apiClient.get(`/workflow-engine/definitions/${id}`);
-    return response.data?.data || response.data;
+    const data = response.data?.data || response.data;
+    return mapWorkflow(data);
   },
 
   /**

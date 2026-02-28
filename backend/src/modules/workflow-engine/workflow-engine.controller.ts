@@ -52,12 +52,26 @@ export class WorkflowEngineController {
     return this.workflowService.createDefinition(dto);
   }
 
+  @Get('definitions')
+  @ApiOperation({ summary: 'ดึง Workflow Definition ทั้งหมด' })
+  @RequirePermission('system.manage_all')
+  async getDefinitions() {
+    return this.workflowService.getDefinitions();
+  }
+
+  @Get('definitions/:id')
+  @ApiOperation({ summary: 'ดึง Workflow Definition ด้วย ID' })
+  @RequirePermission('system.manage_all')
+  async getDefinitionById(@Param('id') id: string) {
+    return this.workflowService.getDefinitionById(id);
+  }
+
   @Patch('definitions/:id')
   @ApiOperation({ summary: 'แก้ไข Workflow Definition (Re-compile DSL)' })
   @RequirePermission('system.manage_all')
   async updateDefinition(
     @Param('id') id: string,
-    @Body() dto: UpdateWorkflowDefinitionDto,
+    @Body() dto: UpdateWorkflowDefinitionDto
   ) {
     return this.workflowService.update(id, dto);
   }
@@ -81,7 +95,7 @@ export class WorkflowEngineController {
   async processTransition(
     @Param('id') instanceId: string,
     @Body() dto: WorkflowTransitionDto,
-    @Request() req: any,
+    @Request() req: any
   ) {
     // ดึง User ID จาก Token (req.user มาจาก JwtStrategy)
     const userId = req.user?.userId;
@@ -91,7 +105,7 @@ export class WorkflowEngineController {
       dto.action,
       userId,
       dto.comment,
-      dto.payload,
+      dto.payload
     );
   }
 

@@ -122,6 +122,33 @@ export class WorkflowEngineService {
   }
 
   /**
+   * ดึง Workflow Definition ทั้งหมด (เฉพาะ Version ล่าสุดของแต่ละ Workflow Code)
+   */
+  async getDefinitions(): Promise<WorkflowDefinition[]> {
+    // หา version ล่าสุดของแต่ละ workflow_code
+    // ใช้ query builder เพื่อ group by และหา max version
+    const latestDefinitions = await this.workflowDefRepo
+      .createQueryBuilder('def')
+      .where(
+        'def.version = (SELECT MAX(sub.version) FROM workflow_definitions sub WHERE sub.workflow_code = def.workflow_code)',
+      )
+      .getMany();
+
+    return latestDefinitions;
+  }
+
+  /**
+   * ดึง Workflow Definition ตาม ID หรือ Code
+   */
+  async getDefinitionById(id: string): Promise<WorkflowDefinition> {
+    const definition = await this.workflowDefRepo.findOne({ where: { id } });
+    if (!definition) {
+      throw new NotFoundException(`Workflow Definition with ID "${id}" not found`);
+    }
+    return definition;
+  }
+
+  /**
    * ดึง Action ที่ทำได้ ณ State ปัจจุบัน
    */
   async getAvailableActions(

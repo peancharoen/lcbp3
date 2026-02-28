@@ -11,7 +11,7 @@ export interface WorkflowStep {
 }
 
 export interface Workflow {
-  workflowId: number;
+  workflowId: string | number;
   workflowName: string;
   description: string;
   workflowType: WorkflowType;

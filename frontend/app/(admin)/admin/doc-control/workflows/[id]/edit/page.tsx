@@ -21,7 +21,7 @@ import Link from 'next/link';
 export default function WorkflowEditPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params?.id === 'new' ? null : Number(params?.id);
+  const id = params?.id === 'new' ? null : params?.id as string;
 
   const [workflowData, setWorkflowData] = useState<Partial<Workflow>>({
     workflowName: '',
@@ -31,7 +31,7 @@ export default function WorkflowEditPage() {
     isActive: true,
   });
 
-  const { data: fetchedWorkflow, isLoading: loadingWorkflow } = useWorkflowDefinition(id as number);
+  const { data: fetchedWorkflow, isLoading: loadingWorkflow } = useWorkflowDefinition(id as string);
   const createMutation = useCreateWorkflowDefinition();
   const updateMutation = useUpdateWorkflowDefinition();
 
