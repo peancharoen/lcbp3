@@ -8,7 +8,7 @@ import { CorrespondenceRevision } from '../correspondence/entities/correspondenc
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { Project } from '../project/entities/project.entity';
-// Import any other required modules for JwtAuthGuard (usually AuthModule or similar, but global guards handle this mostly)
+import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 
 @Module({
   imports: [
@@ -20,6 +20,7 @@ import { Project } from '../project/entities/project.entity';
       CorrespondenceStatus,
       Project,
     ]),
+    FileStorageModule,
   ],
   controllers: [MigrationController],
   providers: [MigrationService],
