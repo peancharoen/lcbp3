@@ -69,10 +69,10 @@ function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
         const parsedDsl = JSON.parse(dsl);
         const states = parsedDsl.states || [];
 
-        states.forEach((state: { id: string, name: string, type: string, role?: string, transitions?: { event: string, to: string }[] }) => {
+        states.forEach((state: { id?: string, name: string, type?: string, role?: string, initial?: boolean, terminal?: boolean, on?: Record<string, { to: string }> }) => {
             const isCondition = state.type === 'CONDITION';
-            const isStart = state.type === 'START';
-            const isEnd = state.type === 'END';
+            const isStart = state.initial === true || state.type === 'START';
+            const isEnd = state.terminal === true || state.type === 'END';
 
             let nodeType = 'default';
             let style = { ...nodeStyle };
@@ -88,7 +88,7 @@ function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
             }
 
             nodes.push({
-                id: state.id,
+                id: state.name || state.id || `node-${Date.now()}`,
                 type: nodeType,
                 data: {
                     label: isStart || isEnd ? state.name : `${state.name}\n(${state.role || 'No Role'})`,
@@ -100,15 +100,19 @@ function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
                 style: style
             });
 
-            if (state.transitions) {
-                state.transitions.forEach((trans: { event: string, to: string }) => {
-                    edges.push({
-                        id: `e-${state.id}-${trans.to}`,
-                        source: state.id,
-                        target: trans.to,
-                        label: trans.event,
-                        markerEnd: { type: MarkerType.ArrowClosed }
-                    });
+            if (state.on) {
+                const transitions = state.on;
+                Object.keys(transitions).forEach((eventName) => {
+                    const trans = transitions[eventName];
+                    if (trans && trans.to) {
+                        edges.push({
+                            id: `e-${state.name || state.id || 'node'}-${trans.to}`,
+                            source: state.name || state.id || 'node',
+                            target: trans.to,
+                            label: eventName,
+                            markerEnd: { type: MarkerType.ArrowClosed }
+                        });
+                    }
                 });
             }
 
@@ -175,23 +179,51 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
 
   // Generate JSON DSL
   const generateDSL = () => {
+    let hasStart = false;
     const states = nodes.map(n => {
         const outgoingEdges = edges.filter(e => e.source === n.id);
-        const transitions = outgoingEdges.map(e => ({
-            event: e.label || 'PROCEED',
-            to: e.target
-        }));
+        const onConfig: Record<string, { to: string }> = {};
 
-        return {
-            id: n.id,
+        outgoingEdges.forEach(e => {
+            const eventName = e.label || 'PROCEED';
+            onConfig[eventName as string] = { to: e.target };
+        });
+
+        const isStartNode = n.type === 'input';
+        const isEndNode = n.type === 'output';
+
+        if (isStartNode) hasStart = true;
+
+        const stateObj: { name: string; type?: string; role?: string; initial?: boolean; terminal?: boolean; on?: Record<string, { to: string }> } = {
             name: n.data.name || n.data.label.split('\n')[0],
-            type: n.data.type || 'TASK',
-            role: n.data.role,
-            transitions: transitions
         };
+
+        if (n.data.type && n.data.type !== 'START' && n.data.type !== 'END' && n.data.type !== 'TASK') {
+            stateObj.type = n.data.type;
+        }
+
+        if (n.data.role && !isStartNode && !isEndNode) {
+            stateObj.role = n.data.role;
+        }
+
+        if (isStartNode && !hasStart) {
+            stateObj.initial = true;
+        }
+        if (isEndNode) {
+            stateObj.terminal = true;
+        }
+        if (Object.keys(onConfig).length > 0) {
+            stateObj.on = onConfig;
+        }
+
+        return stateObj;
     });
 
-    const dslObj = { states };
+    const dslObj = {
+        workflow: "VISUAL_WORKFLOW",
+        version: 1,
+        states
+    };
     const dsl = JSON.stringify(dslObj, null, 2);
 
     console.log("Generated DSL:", dsl);
