@@ -63,82 +63,60 @@ interface VisualWorkflowBuilderProps {
 function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    let yOffset = 100;
+    let yOffset = 50;
 
     try {
-        // Simple line-based parser for the demo YAML structure
-        // name: Workflow
-        // steps:
-        //   - name: Step1 ...
+        const parsedDsl = JSON.parse(dsl);
+        const states = parsedDsl.states || [];
 
-        const lines = dsl.split('\n');
-        let currentStep: Record<string, string> | null = null;
-        const steps: Record<string, string>[] = [];
+        states.forEach((state: { id: string, name: string, type: string, role?: string, transitions?: { event: string, to: string }[] }) => {
+            const isCondition = state.type === 'CONDITION';
+            const isStart = state.type === 'START';
+            const isEnd = state.type === 'END';
 
-        // Very basic parser logic (replace with js-yaml in production)
-        let inSteps = false;
-        for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('steps:')) {
-                inSteps = true;
-                continue;
+            let nodeType = 'default';
+            let style = { ...nodeStyle };
+
+            if (isStart) {
+                nodeType = 'input';
+                style = { ...nodeStyle, background: '#10b981', color: 'white', border: 'none' };
+            } else if (isEnd) {
+                nodeType = 'output';
+                style = { ...nodeStyle, background: '#ef4444', color: 'white', border: 'none' };
+            } else if (isCondition) {
+                style = conditionNodeStyle;
             }
-            if (inSteps && trimmed.startsWith('- name:')) {
-                if (currentStep) steps.push(currentStep);
-                currentStep = { name: trimmed.replace('- name:', '').trim() };
-            } else if (inSteps && currentStep && trimmed.startsWith('next:')) {
-                currentStep.next = trimmed.replace('next:', '').trim();
-            } else if (inSteps && currentStep && trimmed.startsWith('type:')) {
-                currentStep.type = trimmed.replace('type:', '').trim();
-            } else if (inSteps && currentStep && trimmed.startsWith('role:')) {
-                currentStep.role = trimmed.replace('role:', '').trim();
-            }
-        }
-        if (currentStep) steps.push(currentStep);
 
-        // Generate Nodes
-        nodes.push({
-            id: 'start',
-            type: 'input',
-            data: { label: 'Start' },
-            position: { x: 250, y: 0 },
-            style: { ...nodeStyle, background: '#10b981', color: 'white', border: 'none' }
-        });
-
-        steps.forEach((step) => {
-            const isCondition = step.type === 'CONDITION';
             nodes.push({
-                id: step.name,
-                data: { label: `${step.name}\n(${step.role || 'No Role'})`, name: step.name, role: step.role, type: step.type }, // Store role in data
+                id: state.id,
+                type: nodeType,
+                data: {
+                    label: isStart || isEnd ? state.name : `${state.name}\n(${state.role || 'No Role'})`,
+                    name: state.name,
+                    role: state.role,
+                    type: state.type || (isStart ? 'START' : isEnd ? 'END' : 'TASK')
+                },
                 position: { x: 250, y: yOffset },
-                style: isCondition ? conditionNodeStyle : { ...nodeStyle }
+                style: style
             });
-            yOffset += 100;
-        });
 
-        nodes.push({
-            id: 'end',
-            type: 'output',
-            data: { label: 'End' },
-            position: { x: 250, y: yOffset },
-            style: { ...nodeStyle, background: '#ef4444', color: 'white', border: 'none' }
-        });
+            if (state.transitions) {
+                state.transitions.forEach((trans: { event: string, to: string }) => {
+                    edges.push({
+                        id: `e-${state.id}-${trans.to}`,
+                        source: state.id,
+                        target: trans.to,
+                        label: trans.event,
+                        markerEnd: { type: MarkerType.ArrowClosed }
+                    });
+                });
+            }
 
-        // Generate Edges
-        edges.push({ id: 'e-start-first', source: 'start', target: steps[0]?.name || 'end', markerEnd: { type: MarkerType.ArrowClosed } });
-
-        steps.forEach((step, index) => {
-            const nextStep = step.next || (index + 1 < steps.length ? steps[index + 1].name : 'end');
-            edges.push({
-                id: `e-${step.name}-${nextStep}`,
-                source: step.name,
-                target: nextStep,
-                markerEnd: { type: MarkerType.ArrowClosed }
-            });
+            yOffset += 120;
         });
 
     } catch (e) {
-        console.error("Failed to parse DSL", e);
+        console.error("Failed to parse DSL as JSON", e);
     }
 
     return { nodes, edges };
@@ -169,10 +147,12 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
 
   const addNode = (type: string, label: string) => {
     const id = `${type}-${Date.now()}`;
+    const nodeType = type === 'condition' ? 'CONDITION' : type === 'end' ? 'END' : type === 'start' ? 'START' : 'TASK';
+
     const newNode: Node = {
       id,
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
-      data: { label: label, name: label, role: 'User', type: type === 'condition' ? 'CONDITION' : 'APPROVAL' },
+      data: { label: label, name: label, role: 'User', type: nodeType },
       style: { ...nodeStyle },
     };
 
@@ -193,38 +173,26 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
       onSave?.(nodes, edges);
   };
 
-  // Mock DSL generation for demonstration
+  // Generate JSON DSL
   const generateDSL = () => {
-    const steps = nodes
-        .filter(n => n.type !== 'input' && n.type !== 'output')
-        .map(n => ({
-            // name: n.data.label, // Removed duplicate
-            // Actually, we should probably separate name and label display.
-            // For now, let's assume data.label IS the name, and we render it differently?
-            // Wait, ReactFlow Default Node renders 'label'.
-            // If I change label to "Name\nRole", then generateDSL will use "Name\nRole" as name.
-            // BAD.
-            // Fix: ReactFlow Node Component.
-            // custom Node?
-            // Quick fix: Keep label as Name. Render a CUSTOM NODE?
-            // Or just parsing: keep label as name.
-            // But user wants to SEE role.
-            // If I change label, I break name.
-            // Change: Use data.name for name, data.role for role.
-            // And label = `${name}\n(${role})`
-            // And here: use data.name if available, else label (cleaned).
-            name: n.data.name || n.data.label.split('\n')[0],
-            role: n.data.role,
-            type: n.data.type || 'APPROVAL', // Use stored type
-            next: edges.find(e => e.source === n.id)?.target || 'End'
+    const states = nodes.map(n => {
+        const outgoingEdges = edges.filter(e => e.source === n.id);
+        const transitions = outgoingEdges.map(e => ({
+            event: e.label || 'PROCEED',
+            to: e.target
         }));
 
-    const dsl = `name: Visual Workflow
-steps:
-${steps.map(s => `  - name: ${s.name}
-    role: ${s.role || 'User'}
-    type: ${s.type}
-    next: ${s.next}`).join('\n')}`;
+        return {
+            id: n.id,
+            name: n.data.name || n.data.label.split('\n')[0],
+            type: n.data.type || 'TASK',
+            role: n.data.role,
+            transitions: transitions
+        };
+    });
+
+    const dslObj = { states };
+    const dsl = JSON.stringify(dslObj, null, 2);
 
     console.log("Generated DSL:", dsl);
     onDslChange?.(dsl);

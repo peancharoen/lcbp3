@@ -1,0 +1,361 @@
+2026-02-28T08:11:13.1455297Z asustor-runner(version:v0.2.13) received task 38 of job deploy, be triggered by event: push
+2026-02-28T08:11:13.1460941Z workflow prepared
+2026-02-28T08:11:13.1461851Z evaluating expression 'success()'
+2026-02-28T08:11:13.1463419Z expression 'success()' evaluated to 'true'
+2026-02-28T08:11:13.1463726Z 🚀  Start image=node:18-bullseye
+2026-02-28T08:11:13.1561775Z   🐳  docker pull image=node:18-bullseye platform= username= forcePull=false
+2026-02-28T08:11:13.1562202Z   🐳  docker pull node:18-bullseye
+2026-02-28T08:11:13.1580643Z Image exists? true
+2026-02-28T08:11:13.1641310Z Cleaning up network for job deploy, and network name is: GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy-deploy-network
+2026-02-28T08:11:13.6631804Z   🐳  docker create image=node:18-bullseye platform= entrypoint=["/bin/sleep" "10800"] cmd=[] network="GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy-deploy-network"
+2026-02-28T08:11:14.7491971Z Created container name=GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy id=df1847c529d3c91dc5115053f0f06a13076ac7b4ce4267be87b4***5bc650652e from image node:18-bullseye (platform: )
+2026-02-28T08:11:14.7496373Z ENV ==> [RUNNER_TOOL_CACHE=/opt/hostedtoolcache RUNNER_OS=Linux RUNNER_ARCH=X64 RUNNER_TEMP=/tmp LANG=C.UTF-8]
+2026-02-28T08:11:14.7496834Z   🐳  docker run image=node:18-bullseye platform= entrypoint=["/bin/sleep" "10800"] cmd=[] network="GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy-deploy-network"
+2026-02-28T08:11:14.7497191Z Starting container: df1847c529d3c91dc5115053f0f06a13076ac7b4ce4267be87b4***5bc650652e
+2026-02-28T08:11:16.4241148Z Started container: df1847c529d3c91dc5115053f0f06a13076ac7b4ce4267be87b4***5bc650652e
+2026-02-28T08:11:16.5774327Z Writing entry to tarball workflow/event.json len:4615
+2026-02-28T08:11:16.5774986Z Writing entry to tarball workflow/envs.txt len:0
+2026-02-28T08:11:16.5775326Z Extracting content to '/var/run/act/'
+2026-02-28T08:11:16.6018297Z   ☁  git clone 'https://github.com/appleboy/ssh-action' # ref=v1.0.3
+2026-02-28T08:11:16.6018814Z   cloning https://github.com/appleboy/ssh-action to /root/.cache/act/dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d
+2026-02-28T08:11:17.4006038Z Cloned https://github.com/appleboy/ssh-action to /root/.cache/act/dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d
+2026-02-28T08:11:17.4184523Z Checked out v1.0.3
+2026-02-28T08:11:17.4391289Z expression '${{ secrets.PORT }}' rewritten to 'format('{0}', secrets.PORT)'
+2026-02-28T08:11:17.4391934Z evaluating expression 'format('{0}', secrets.PORT)'
+2026-02-28T08:11:17.4392423Z expression 'format('{0}', secrets.PORT)' evaluated to '%!t(string=***)'
+2026-02-28T08:11:17.4392827Z expression '${{ secrets.PASSWORD }}' rewritten to 'format('{0}', secrets.PASSWORD)'
+2026-02-28T08:11:17.4393076Z evaluating expression 'format('{0}', secrets.PASSWORD)'
+2026-02-28T08:11:17.4393401Z expression 'format('{0}', secrets.PASSWORD)' evaluated to '%!t(string=***)'
+2026-02-28T08:11:17.4393690Z expression '${{ secrets.USERNAME }}' rewritten to 'format('{0}', secrets.USERNAME)'
+2026-02-28T08:11:17.4393908Z evaluating expression 'format('{0}', secrets.USERNAME)'
+2026-02-28T08:11:17.4394246Z expression 'format('{0}', secrets.USERNAME)' evaluated to '%!t(string=***)'
+2026-02-28T08:11:17.4394529Z expression '${{ secrets.HOST }}' rewritten to 'format('{0}', secrets.HOST)'
+2026-02-28T08:11:17.4394708Z evaluating expression 'format('{0}', secrets.HOST)'
+2026-02-28T08:11:17.4395031Z expression 'format('{0}', secrets.HOST)' evaluated to '%!t(string=***)'
+2026-02-28T08:11:17.4493046Z evaluating expression ''
+2026-02-28T08:11:17.4493833Z expression '' evaluated to 'true'
+2026-02-28T08:11:17.4494075Z ⭐ Run Main Deploy to QNAP via SSH
+2026-02-28T08:11:17.4494464Z Writing entry to tarball workflow/outputcmd.txt len:0
+2026-02-28T08:11:17.4494824Z Writing entry to tarball workflow/statecmd.txt len:0
+2026-02-28T08:11:17.4495064Z Writing entry to tarball workflow/pathcmd.txt len:0
+2026-02-28T08:11:17.4495299Z Writing entry to tarball workflow/envs.txt len:0
+2026-02-28T08:11:17.4495516Z Writing entry to tarball workflow/SUMMARY.md len:0
+2026-02-28T08:11:17.4495759Z Extracting content to '/var/run/act'
+2026-02-28T08:11:17.4624052Z type=remote-action actionDir=/root/.cache/act/dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d actionPath= workdir=/workspace/np-dms/lcbp3 actionCacheDir=/root/.cache/act actionName=dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d containerActionDir=/var/run/act/actions/dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d
+2026-02-28T08:11:17.4660559Z image 'act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest' for architecture '' already exists
+2026-02-28T08:11:17.4853470Z expression '${{ secrets.HOST }}' rewritten to 'format('{0}', secrets.HOST)'
+2026-02-28T08:11:17.4853987Z evaluating expression 'format('{0}', secrets.HOST)'
+2026-02-28T08:11:17.4854506Z expression 'format('{0}', secrets.HOST)' evaluated to '%!t(string=***)'
+2026-02-28T08:11:17.4854838Z expression '${{ secrets.PASSWORD }}' rewritten to 'format('{0}', secrets.PASSWORD)'
+2026-02-28T08:11:17.4855036Z evaluating expression 'format('{0}', secrets.PASSWORD)'
+2026-02-28T08:11:17.4855406Z expression 'format('{0}', secrets.PASSWORD)' evaluated to '%!t(string=***)'
+2026-02-28T08:11:17.4855704Z expression '${{ secrets.PORT }}' rewritten to 'format('{0}', secrets.PORT)'
+2026-02-28T08:11:17.4855893Z evaluating expression 'format('{0}', secrets.PORT)'
+2026-02-28T08:11:17.4856265Z expression 'format('{0}', secrets.PORT)' evaluated to '%!t(string=***)'
+2026-02-28T08:11:17.4856623Z expression '${{ secrets.USERNAME }}' rewritten to 'format('{0}', secrets.USERNAME)'
+2026-02-28T08:11:17.4856823Z evaluating expression 'format('{0}', secrets.USERNAME)'
+2026-02-28T08:11:17.4857184Z expression 'format('{0}', secrets.USERNAME)' evaluated to '%!t(string=***)'
+2026-02-28T08:11:17.5156573Z   🐳  docker pull image=act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest platform= username= forcePull=false
+2026-02-28T08:11:17.5157106Z   🐳  docker pull act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest
+2026-02-28T08:11:17.5179385Z Image exists? true
+2026-02-28T08:11:17.5225467Z   🐳  docker create image=act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest platform= entrypoint=[] cmd=[] network="container:GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy"
+2026-02-28T08:11:18.3997293Z Created container name=GITEA-ACTIONS-TASK-38-WORKFLOW-Build-and-Deploy-JOB-deploy_STEP-0 id=1215308902fa65321dc77c55e703f8f2459be588f78498054217203271b6d732 from image act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest (platform: )
+2026-02-28T08:11:18.3998657Z ENV ==> [INPUT_USE_INSECURE_CIPHER= INPUT_ENVS_FORMAT= proxy_host= proxy_timeout=30s envs_format= GITHUB_WORKFLOW=Build and Deploy GITHUB_RETENTION_DAYS= INPUT_PORT=*** INPUT_PROXY_HOST= INPUT_REQUEST_PTY= host=*** key_path= script_stop= ACTIONS_RUNTIME_TOKEN=*** GITHUB_ENV=/var/run/act/workflow/envs.txt INPUT_PROXY_USERNAME= INPUT_KEY= timeout=30s cipher= key= GITHUB_REPOSITORY=np-dms/lcbp3 INPUT_SCRIPT=set -e\n# ⚠️ QNAP SSH ไม่มี PATH เต็ม ต้อง export เอง\n# docker: /share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker\n# git:    /opt/bin/git\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\necho "🚀 Starting Deployment..."\n\n# 1. Update Code\necho "📂 Pulling latest code..."\ncd /share/np-dms/app/source/lcbp3\ngit pull origin main\n\n# 2. Build Backend\necho "🏗️ Building Backend..."\ndocker build -f backend/Dockerfile -t lcbp3-backend:latest .\n\n# 3. Build Frontend\necho "🏗️ Building Frontend..."\ndocker build -f frontend/Dockerfile \\n  --build-arg NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api \\n  -t lcbp3-frontend:latest .\n\n# 4. Update Containers\necho "🔄 Updating Containers..."\n# Sync compose file จาก repo → app directory\ncp /share/np-dms/app/source/lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/docker-compose-lcbp3.yml /share/np-dms/app/docker-compose-lcbp3.yml\ncd /share/np-dms/app\n# ⚠️ ลบ container เดิมที่อาจสร้างจาก Container Station\ndocker rm -f backend frontend 2>/dev/null || true\n\n# 4a. Start Backend ก่อน\necho "🟢 Starting Backend..."\ndocker compose -f docker-compose-lcbp3.yml up -d backend\n\n# 4b. รอ Backend healthy (ทุก 5 วิ สูงสุด 60 วิ)\necho "⏳ Waiting for Backend health check..."\nfor i in $(seq 1 12); do\n  if docker inspect --format='{{.State.Health.Status}}' backend 2>/dev/null | grep -q healthy; then\n    echo "✅ Backend is healthy!"\n    break\n  fi\n  if [ "$i" = "12" ]; then\n    echo "⚠️ Backend health check timeout - starting frontend anyway"\n  fi\n  sleep 5\ndone\n\n# 4c. Start Frontend\necho "🟢 Starting Frontend..."\ndocker compose -f docker-compose-lcbp3.yml up -d frontend\n\n# 5. Cleanup\necho "🧹 Cleaning up unused images..."\ndocker image prune -f\n\necho "✅ Deployment Complete!"\n INPUT_PROXY_USE_INSECURE_CIPHER= INPUT_DEBUG= script=set -e\n# ⚠️ QNAP SSH ไม่มี PATH เต็ม ต้อง export เอง\n# docker: /share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker\n# git:    /opt/bin/git\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\necho "🚀 Starting Deployment..."\n\n# 1. Update Code\necho "📂 Pulling latest code..."\ncd /share/np-dms/app/source/lcbp3\ngit pull origin main\n\n# 2. Build Backend\necho "🏗️ Building Backend..."\ndocker build -f backend/Dockerfile -t lcbp3-backend:latest .\n\n# 3. Build Frontend\necho "🏗️ Building Frontend..."\ndocker build -f frontend/Dockerfile \\n  --build-arg NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api \\n  -t lcbp3-frontend:latest .\n\n# 4. Update Containers\necho "🔄 Updating Containers..."\n# Sync compose file จาก repo → app directory\ncp /share/np-dms/app/source/lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/docker-compose-lcbp3.yml /share/np-dms/app/docker-compose-lcbp3.yml\ncd /share/np-dms/app\n# ⚠️ ลบ container เดิมที่อาจสร้างจาก Container Station\ndocker rm -f backend frontend 2>/dev/null || true\n\n# 4a. Start Backend ก่อน\necho "🟢 Starting Backend..."\ndocker compose -f docker-compose-lcbp3.yml up -d backend\n\n# 4b. รอ Backend healthy (ทุก 5 วิ สูงสุด 60 วิ)\necho "⏳ Waiting for Backend health check..."\nfor i in $(seq 1 12); do\n  if docker inspect --format='{{.State.Health.Status}}' backend 2>/dev/null | grep -q healthy; then\n    echo "✅ Backend is healthy!"\n    break\n  fi\n  if [ "$i" = "12" ]; then\n    echo "⚠️ Backend health check timeout - starting frontend anyway"\n  fi\n  sleep 5\ndone\n\n# 4c. Start Frontend\necho "🟢 Starting Frontend..."\ndocker compose -f docker-compose-lcbp3.yml up -d frontend\n\n# 5. Cleanup\necho "🧹 Cleaning up unused images..."\ndocker image prune -f\n\necho "✅ Deployment Complete!"\n proxy_password= GITEA_ACTIONS_RUNNER_VERSION=v0.2.13 GITHUB_BASE_REF= GITHUB_HEAD_REF= INPUT_PROXY_PORT=*** INPUT_PROXY_FINGERPRINT= envs= ACTIONS_RUNTIME_URL=https://git.np-dms.work/api/actions_pipeline/ GITHUB_ACTION_REF=v1.0.3 INPUT_PASSWORD=*** INPUT_USERNAME=*** INPUT_SCRIPT_STOP= INPUT_SYNC= use_insecure_cipher= sync= GITEA_ENV=/var/run/act/workflow/envs.txt INPUT_PROXY_KEY= proxy_fingerprint= proxy_passphrase= request_pty= fingerprint= ACT=true GITHUB_SERVER_URL=https://git.np-dms.work INPUT_KEY_PATH= INPUT_PROXY_CIPHER= proxy_cipher= proxy_port=*** GITHUB_REF=refs/heads/main CI=true GITHUB_RUN_NUMBER=92 GITHUB_ACTION_PATH= GITHUB_EVENT_NAME=push INPUT_SCRIPT_STOP_SIGNAL=true GITHUB_STATE=/var/run/act/workflow/statecmd.txt GITHUB_PATH=/var/run/act/workflow/pathcmd.txt GITHUB_REF_NAME=main ACTIONS_CACHE_URL=http://172.19.0.2:33669/ JOB_CONTAINER_NAME=GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy GITHUB_RUN_ID=92 INPUT_PASSPHRASE= INPUT_TIMEOUT=30s INPUT_FINGERPRINT= INPUT_PROXY_TIMEOUT=30s GITEA_PATH=/var/run/act/workflow/pathcmd.txt INPUT_PROXY_KEY_PATH= INPUT_PROXY_PASSPHRASE= INPUT_ENVS= proxy_key_path= proxy_use_insecure_cipher= command_timeout=10m GITHUB_REPOSITORY_OWNER=np-dms ACTIONS_RESULTS_URL=https://git.np-dms.work GITHUB_JOB=deploy GITHUB_GRAPHQL_URL= INPUT_ALLENVS= allenvs= password=*** username=*** GITHUB_SHA=5378c0bd2a0e73216655dadbd89b54dbec948355 GITHUB_ACTOR=*** GITHUB_OUTPUT=/var/run/act/workflow/outputcmd.txt GITEA_OUTPUT=/var/run/act/workflow/outputcmd.txt INPUT_CIPHER= proxy_key= GITHUB_REF_TYPE=branch GITEA_ACTIONS=true ImageOS=ubuntu20 INPUT_PROXY_PASSWORD= port=*** script_stop_signal=true GITHUB_API_URL=https://git.np-dms.work/api/v1 INPUT_HOST=*** passphrase= debug= proxy_username= GITHUB_ACTION=0 GITHUB_WORKSPACE=/workspace/np-dms/lcbp3 RUNNER_PERFLOG=/dev/null RUNNER_TRACKING_ID= GITHUB_STEP_SUMMARY=/var/run/act/workflow/SUMMARY.md GITEA_STATE=/var/run/act/workflow/statecmd.txt GITEA_STEP_SUMMARY=/var/run/act/workflow/SUMMARY.md INPUT_COMMAND_TIMEOUT=10m GITHUB_ACTION_REPOSITORY=appleboy/ssh-action GITHUB_ACTIONS=true GITHUB_EVENT_PATH=/var/run/act/workflow/event.json RUNNER_TOOL_CACHE=/opt/hostedtoolcache RUNNER_OS=Linux RUNNER_ARCH=X64 RUNNER_TEMP=/tmp]
+2026-02-28T08:11:18.4001648Z   🐳  docker run image=act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest platform= entrypoint=[] cmd=[] network="container:GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy"
+2026-02-28T08:11:18.4009287Z Starting container: 1215308902fa65321dc77c55e703f8f2459be588f78498054217203271b6d732
+2026-02-28T08:11:18.9175342Z ======CMD======
+2026-02-28T08:11:18.9176221Z set -e
+2026-02-28T08:11:18.9176462Z # ⚠️ QNAP SSH ไม่มี PATH เต็ม ต้อง export เอง
+2026-02-28T08:11:18.9176753Z # docker: /share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker
+2026-02-28T08:11:18.9176987Z # git:    /opt/bin/git
+2026-02-28T08:11:18.9177245Z export PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+2026-02-28T08:11:18.9179347Z
+2026-02-28T08:11:18.9179782Z echo "🚀 Starting Deployment..."
+2026-02-28T08:11:18.9180378Z
+2026-02-28T08:11:18.9180786Z # 1. Update Code
+2026-02-28T08:11:18.9181132Z echo "📂 Pulling latest code..."
+2026-02-28T08:11:18.9181493Z cd /share/np-dms/app/source/lcbp3
+2026-02-28T08:11:18.9190838Z git pull origin main
+2026-02-28T08:11:18.9193186Z
+2026-02-28T08:11:18.9193421Z # 2. Build Backend
+2026-02-28T08:11:18.9193656Z echo "🏗️ Building Backend..."
+2026-02-28T08:11:18.9193889Z docker build -f backend/Dockerfile -t lcbp3-backend:latest .
+2026-02-28T08:11:18.9194090Z
+2026-02-28T08:11:18.9194270Z # 3. Build Frontend
+2026-02-28T08:11:18.9194475Z echo "🏗️ Building Frontend..."
+2026-02-28T08:11:18.9194686Z docker build -f frontend/Dockerfile \
+2026-02-28T08:11:18.9194892Z   --build-arg NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api \
+2026-02-28T08:11:18.9195109Z   -t lcbp3-frontend:latest .
+2026-02-28T08:11:18.9195297Z
+2026-02-28T08:11:18.9195480Z # 4. Update Containers
+2026-02-28T08:11:18.9195699Z echo "🔄 Updating Containers..."
+2026-02-28T08:11:18.9195948Z # Sync compose file จาก repo → app directory
+2026-02-28T08:11:18.9196225Z cp /share/np-dms/app/source/lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/docker-compose-lcbp3.yml /share/np-dms/app/docker-compose-lcbp3.yml
+2026-02-28T08:11:18.9196519Z cd /share/np-dms/app
+2026-02-28T08:11:18.9196771Z # ⚠️ ลบ container เดิมที่อาจสร้างจาก Container Station
+2026-02-28T08:11:18.9197051Z docker rm -f backend frontend 2>/dev/null || true
+2026-02-28T08:11:18.9197273Z
+2026-02-28T08:11:18.9197540Z # 4a. Start Backend ก่อน
+2026-02-28T08:11:18.9197773Z echo "🟢 Starting Backend..."
+2026-02-28T08:11:18.9198039Z docker compose -f docker-compose-lcbp3.yml up -d backend
+2026-02-28T08:11:18.9198274Z
+2026-02-28T08:11:18.9198519Z # 4b. รอ Backend healthy (ทุก 5 วิ สูงสุด 60 วิ)
+2026-02-28T08:11:18.9198784Z echo "⏳ Waiting for Backend health check..."
+2026-02-28T08:11:18.9199056Z for i in $(seq 1 12); do
+2026-02-28T08:11:18.9199283Z   if docker inspect --format='{{.State.Health.Status}}' backend 2>/dev/null | grep -q healthy; then
+2026-02-28T08:11:18.9199554Z     echo "✅ Backend is healthy!"
+2026-02-28T08:11:18.9200064Z     break
+2026-02-28T08:11:18.9200319Z   fi
+2026-02-28T08:11:18.9200546Z   if [ "$i" = "12" ]; then
+2026-02-28T08:11:18.9200782Z     echo "⚠️ Backend health check timeout - starting frontend anyway"
+2026-02-28T08:11:18.9201049Z   fi
+2026-02-28T08:11:18.9201298Z   sleep 5
+2026-02-28T08:11:18.9201528Z done
+2026-02-28T08:11:18.9201740Z
+2026-02-28T08:11:18.9202018Z # 4c. Start Frontend
+2026-02-28T08:11:18.9202276Z echo "🟢 Starting Frontend..."
+2026-02-28T08:11:18.9202527Z docker compose -f docker-compose-lcbp3.yml up -d frontend
+2026-02-28T08:11:18.9202768Z
+2026-02-28T08:11:18.9202964Z # 5. Cleanup
+2026-02-28T08:11:18.9203150Z echo "🧹 Cleaning up unused images..."
+2026-02-28T08:11:18.9203373Z docker image prune -f
+2026-02-28T08:11:18.9203545Z
+2026-02-28T08:11:18.9203723Z echo "✅ Deployment Complete!"
+2026-02-28T08:11:18.9203910Z
+2026-02-28T08:11:18.9204081Z ======END======
+2026-02-28T08:11:19.1255236Z out: 🚀 Starting Deployment...
+2026-02-28T08:11:19.1256068Z out: 📂 Pulling latest code...
+2026-02-28T08:11:19.2038848Z err: From https://git.np-dms.work/np-dms/lcbp3
+2026-02-28T08:11:19.2039658Z err:  * branch            main       -> FETCH_HEAD
+2026-02-28T08:11:19.2046347Z err:    603f987..5378c0b  main       -> origin/main
+2026-02-28T08:11:19.2170279Z out: Updating 603f987..5378c0b
+2026-02-28T08:11:19.2171009Z out: Fast-forward
+2026-02-28T08:11:19.2194114Z out:  backend/src/modules/migration/migration.module.ts | 3 ++-
+2026-02-28T08:11:19.2194451Z out:  1 file changed, 2 insertions(+), 1 deletion(-)
+2026-02-28T08:11:19.2199301Z out: 🏗️ Building Backend...
+2026-02-28T08:11:19.8368941Z err: #0 building with "default" instance using docker driver
+2026-02-28T08:11:19.8369616Z err: #1 [internal] load build definition from Dockerfile
+2026-02-28T08:11:19.8370459Z err: #1 transferring dockerfile: 2.63kB done
+2026-02-28T08:11:19.8370693Z err: #1 DONE 0.2s
+2026-02-28T08:11:20.0630399Z err: #2 [internal] load metadata for docker.io/library/node:***-alpine
+2026-02-28T08:11:21.8273901Z err: #2 DONE 1.9s
+2026-02-28T08:11:22.0134016Z err: #3 [internal] load .dockerignore
+2026-02-28T08:11:22.0134709Z err: #3 transferring context: 1.09kB done
+2026-02-28T08:11:22.0295161Z err: #3 DONE 0.2s
+2026-02-28T08:11:22.2210479Z err: #4 [deps 1/6] FROM docker.io/library/node:***-alpine@sha256:e4bf2a82ad0a4037d28035ae71529873c069b13eb0455466ae0bc13363826e34
+2026-02-28T08:11:22.2211351Z err: #4 DONE 0.0s
+2026-02-28T08:11:22.2211582Z err: #5 [internal] load build context
+2026-02-28T08:11:22.4016753Z err: #5 transferring context: 1.72MB 0.2s done
+2026-02-28T08:11:22.4017407Z err: #5 DONE 0.3s
+2026-02-28T08:11:22.6432136Z err: #6 [deps 5/6] COPY backend/package.json ./backend/
+2026-02-28T08:11:22.6432868Z err: #6 CACHED
+2026-02-28T08:11:22.6433406Z err: #7 [deps 6/6] RUN pnpm install --frozen-lockfile --filter backend...
+2026-02-28T08:11:22.6433709Z err: #7 CACHED
+2026-02-28T08:11:22.6433966Z err: #8 [build 5/9] COPY --from=deps /app/node_modules ./node_modules
+2026-02-28T08:11:22.6434190Z err: #8 CACHED
+2026-02-28T08:11:22.6434381Z err: #9 [deps 2/6] RUN corepack enable && corepack prepare pnpm@latest --activate
+2026-02-28T08:11:22.6434660Z err: #9 CACHED
+2026-02-28T08:11:22.6434843Z err: #10 [deps 3/6] WORKDIR /app
+2026-02-28T08:11:22.6435069Z err: #10 CACHED
+2026-02-28T08:11:22.6435257Z err: #11 [deps 4/6] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-02-28T08:11:22.6435748Z err: #11 CACHED
+2026-02-28T08:11:22.6435943Z err: #12 [build 6/9] COPY --from=deps /app/backend/node_modules ./backend/node_modules
+2026-02-28T08:11:22.6436174Z err: #12 CACHED
+2026-02-28T08:11:22.6436452Z err: #13 [build 7/9] COPY backend/ ./backend/
+2026-02-28T08:11:24.4840819Z err: #13 DONE 2.0s
+2026-02-28T08:11:24.6637888Z err: #14 [build 8/9] RUN cd backend && pnpm run build
+2026-02-28T08:11:27.1218603Z err: #14 2.609
+2026-02-28T08:11:27.1219259Z err: #14 2.609 > backend@1.5.1 build /app/backend
+2026-02-28T08:11:27.1219484Z err: #14 2.609 > nest build
+2026-02-28T08:11:27.1219683Z err: #14 2.609
+2026-02-28T08:11:43.9108455Z err: #14 DONE 19.4s
+2026-02-28T08:11:44.1221808Z err: #15 [build 9/9] RUN pnpm --filter backend deploy --prod --shamefully-hoist --legacy /app/backend-prod
+2026-02-28T08:11:46.8478089Z err: #15 2.726 backend                                  |  WARN  The field "pnpm.overrides" was found in /app/backend/package.json. This will not take effect. You should configure "pnpm.overrides" at the root of the workspace instead.
+2026-02-28T08:11:47.3972609Z err: #15 3.275  WARN  Shared workspace lockfile detected but configuration forces legacy deploy implementation.
+2026-02-28T08:11:47.5628312Z err: #15 3.440 Packages are copied from the content-addressable store to the virtual store.
+2026-02-28T08:11:47.5629049Z err: #15 3.440   Content-addressable store is at: /root/.local/share/pnpm/store/v10
+2026-02-28T08:11:47.5629353Z err: #15 3.440   Virtual store is at:             backend-prod/node_modules/.pnpm
+2026-02-28T08:11:48.0336165Z err: #15 3.912 Progress: resolved 0, reused 0, downloaded 1, added 0
+2026-02-28T08:11:48.6700830Z err: #15 4.548 backend                                  |  WARN  deprecated cache-manager-redis-yet@5.1.5
+2026-02-28T08:11:49.0357461Z err: #15 4.913 Progress: resolved 41, reused 0, downloaded 41, added 0
+2026-02-28T08:11:49.8656487Z err: #15 5.743 backend                                  |  WARN  deprecated @types/cache-manager@5.0.0
+2026-02-28T08:11:50.0170250Z err: #15 5.745 backend                                  |  WARN  deprecated @types/ioredis@5.0.0
+2026-02-28T08:11:50.0356320Z err: #15 5.914 Progress: resolved 76, reused 0, downloaded 76, added 0
+2026-02-28T08:11:51.0357631Z err: #15 6.914 Progress: resolved 84, reused 0, downloaded 84, added 0
+2026-02-28T08:11:51.3419646Z err: #15 7.***0  WARN  Tarball download average speed 5 KiB/s (size 6 KiB) is below 50 KiB/s: https://registry.npmjs.org/@types/fs-extra/-/fs-extra-11.0.4.tgz (GET)
+2026-02-28T08:11:52.0356915Z err: #15 7.913 Progress: resolved 87, reused 0, downloaded 87, added 0
+2026-02-28T08:12:02.4211433Z err: #15 18.30 Progress: resolved 87, reused 0, downloaded 88, added 0
+2026-02-28T08:12:03.4271678Z err: #15 19.30 Progress: resolved 131, reused 0, downloaded 131, added 0
+2026-02-28T08:12:04.4281788Z err: #15 20.31 Progress: resolved 201, reused 0, downloaded 200, added 0
+2026-02-28T08:12:05.4288529Z err: #15 21.31 Progress: resolved 265, reused 0, downloaded 264, added 0
+2026-02-28T08:12:06.4293413Z err: #15 ***.31 Progress: resolved 339, reused 0, downloaded 338, added 0
+2026-02-28T08:12:07.4300015Z err: #15 23.31 Progress: resolved 384, reused 0, downloaded 383, added 0
+2026-02-28T08:12:08.4296208Z err: #15 24.31 Progress: resolved 415, reused 0, downloaded 414, added 0
+2026-02-28T08:12:09.4298272Z err: #15 25.31 Progress: resolved 486, reused 0, downloaded 486, added 0
+2026-02-28T08:12:10.4302624Z err: #15 26.31 Progress: resolved 562, reused 0, downloaded 562, added 0
+2026-02-28T08:12:11.4342457Z err: #15 27.31 Progress: resolved 669, reused 0, downloaded 669, added 0
+2026-02-28T08:12:12.4341356Z err: #15 28.31 Progress: resolved 7***, reused 0, downloaded 721, added 0
+2026-02-28T08:12:13.4335976Z err: #15 29.31 Progress: resolved 773, reused 0, downloaded 773, added 0
+2026-02-28T08:12:14.4338906Z err: #15 30.31 Progress: resolved 823, reused 0, downloaded 817, added 0
+2026-02-28T08:12:15.4340994Z err: #15 31.31 Progress: resolved 883, reused 0, downloaded 877, added 0
+2026-02-28T08:12:16.4348012Z err: #15 32.31 Progress: resolved 918, reused 0, downloaded 908, added 0
+2026-02-28T08:12:17.4345186Z err: #15 33.31 Progress: resolved 979, reused 0, downloaded 956, added 0
+2026-02-28T08:12:18.4347509Z err: #15 34.31 Progress: resolved 1009, reused 0, downloaded 985, added 0
+2026-02-28T08:12:19.4341027Z err: #15 35.31 Progress: resolved 1020, reused 0, downloaded 994, added 0
+2026-02-28T08:12:20.4340543Z err: #15 36.31 Progress: resolved 1021, reused 0, downloaded 997, added 0
+2026-02-28T08:12:24.7578053Z err: #15 40.64 Progress: resolved 1021, reused 0, downloaded 998, added 0
+2026-02-28T08:12:25.7579119Z err: #15 41.64 Progress: resolved 1038, reused 0, downloaded 1012, added 0
+2026-02-28T08:12:26.7581740Z err: #15 42.64 Progress: resolved 1078, reused 0, downloaded 1051, added 0
+2026-02-28T08:12:27.7643957Z err: #15 43.64 Progress: resolved 1135, reused 0, downloaded 1111, added 0
+2026-02-28T08:12:28.7650184Z err: #15 44.64 Progress: resolved 1***6, reused 0, downloaded 1202, added 0
+2026-02-28T08:12:29.7655609Z err: #15 45.64 Progress: resolved 1230, reused 0, downloaded 1205, added 0
+2026-02-28T08:12:30.7650959Z err: #15 46.64 Progress: resolved 1233, reused 0, downloaded 1208, added 0
+2026-02-28T08:12:31.8588881Z err: #15 47.74 Progress: resolved 1233, reused 0, downloaded 1209, added 0
+2026-02-28T08:12:32.8588524Z err: #15 48.74 Progress: resolved 1235, reused 0, downloaded 1211, added 0
+2026-02-28T08:12:33.7939086Z err: #15 49.67  WARN  2 deprecated subdependencies found: glob@7.2.3, inflight@1.0.6
+2026-02-28T08:12:34.0146119Z err: #15 49.74 .                                        | +493 ++++++++++++++++++++++++++++++++
+2026-02-28T08:12:34.3328531Z err: #15 50.21 Progress: resolved 1235, reused 0, downloaded 1211, added 1
+2026-02-28T08:12:34.9656990Z err: #15 50.84 Progress: resolved 1235, reused 0, downloaded 1211, added 493, done
+2026-02-28T08:12:35.3335480Z err: #15 51.21 .../node_modules/@scarf/scarf postinstall$ node ./report.js
+2026-02-28T08:12:35.5299325Z err: #15 51.25 .../node_modules/msgpackr-extract install$ node-gyp-build-optional-packages
+2026-02-28T08:12:35.5300142Z err: #15 51.25 .../bcrypt@6.0.0/node_modules/bcrypt install$ node-gyp-build
+2026-02-28T08:12:35.5300551Z err: #15 51.26 .../node_modules/@nestjs/core postinstall$ opencollective || exit 0
+2026-02-28T08:12:35.5360280Z err: #15 51.41 .../bcrypt@6.0.0/node_modules/bcrypt install: Done
+2026-02-28T08:12:35.6915832Z err: #15 51.42 .../node_modules/msgpackr-extract install: Done
+2026-02-28T08:12:35.7973202Z err: #15 51.67 .../node_modules/@nestjs/core postinstall:                            Thanks for installing nest
+2026-02-28T08:12:35.9093214Z err: #15 51.68 .../node_modules/@nestjs/core postinstall:                  Please consider donating to our open collective
+2026-02-28T08:12:35.9093970Z err: #15 51.68 .../node_modules/@nestjs/core postinstall:                         to help us maintain this package.
+2026-02-28T08:12:35.9094285Z err: #15 51.68 .../node_modules/@nestjs/core postinstall:
+2026-02-28T08:12:35.9094501Z err: #15 51.68 .../node_modules/@nestjs/core postinstall:                             Number of contributors: 0
+2026-02-28T08:12:35.9094787Z err: #15 51.68 .../node_modules/@nestjs/core postinstall:                              Number of backers: 1179
+2026-02-28T08:12:35.9095025Z err: #15 51.72 .../node_modules/@nestjs/core postinstall:                              Annual budget: $146,595
+2026-02-28T08:12:35.9095271Z err: #15 51.72 .../node_modules/@nestjs/core postinstall:                              Current balance: $14,737
+2026-02-28T08:12:35.9095502Z err: #15 51.72 .../node_modules/@nestjs/core postinstall:
+2026-02-28T08:12:35.9095717Z err: #15 51.72 .../node_modules/@nestjs/core postinstall:              Become a partner: https://opencollective.com/nest/donate
+2026-02-28T08:12:35.9095966Z err: #15 51.72 .../node_modules/@nestjs/core postinstall:
+2026-02-28T08:12:35.9096252Z err: #15 51.79 .../node_modules/@nestjs/core postinstall: Done
+2026-02-28T08:12:37.5699083Z err: #15 53.45 .../node_modules/@scarf/scarf postinstall: Done
+2026-02-28T08:12:37.7630170Z err: #15 53.49  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_cb81dfd56f1203fe00eb0fec5dfcce08/node_modules/typeorm/node_modules/.bin/ts-node. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@***.19.1_typescript@5.9.3/node_modules/ts-node/dist/bin.js'
+2026-02-28T08:12:37.7631104Z err: #15 53.49  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_cb81dfd56f1203fe00eb0fec5dfcce08/node_modules/typeorm/node_modules/.bin/ts-node-cwd. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@***.19.1_typescript@5.9.3/node_modules/ts-node/dist/bin-cwd.js'
+2026-02-28T08:12:37.7631551Z err: #15 53.49  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_cb81dfd56f1203fe00eb0fec5dfcce08/node_modules/typeorm/node_modules/.bin/ts-node-esm. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@***.19.1_typescript@5.9.3/node_modules/ts-node/dist/bin-esm.js'
+2026-02-28T08:12:37.7631939Z err: #15 53.49  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_cb81dfd56f1203fe00eb0fec5dfcce08/node_modules/typeorm/node_modules/.bin/ts-node-script. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@***.19.1_typescript@5.9.3/node_modules/ts-node/dist/bin-script.js'
+2026-02-28T08:12:37.7632284Z err: #15 53.49  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_cb81dfd56f1203fe00eb0fec5dfcce08/node_modules/typeorm/node_modules/.bin/ts-node-transpile-only. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@***.19.1_typescript@5.9.3/node_modules/ts-node/dist/bin-transpile.js'
+2026-02-28T08:12:37.7632667Z err: #15 53.49  WARN  Failed to create bin at /app/backend-prod/node_modules/.pnpm/typeorm@0.3.27_ioredis@5.8.2_mysql2@3.15.3_redis@4.7.1_reflect-metadata@0.2.2_ts-node@1_cb81dfd56f1203fe00eb0fec5dfcce08/node_modules/typeorm/node_modules/.bin/ts-script. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/ts-node@10.9.2_@types+node@***.19.1_typescript@5.9.3/node_modules/ts-node/dist/bin-script-deprecated.js'
+2026-02-28T08:12:37.8310889Z err: #15 53.71  WARN  Failed to create bin at /app/backend/backend-prod/node_modules/.bin/browserslist. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/browserslist@4.28.0/node_modules/browserslist/cli.js'
+2026-02-28T08:12:37.9819637Z err: #15 53.71  WARN  Failed to create bin at /app/backend/backend-prod/node_modules/.bin/webpack. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/webpack@5.100.2/node_modules/webpack/bin/webpack.js'
+2026-02-28T08:12:37.9820543Z err: #15 53.71  WARN  Failed to create bin at /app/backend/backend-prod/node_modules/.bin/jiti. ENOENT: no such file or directory, open '/app/backend-prod/node_modules/.pnpm/jiti@1.21.7/node_modules/jiti/bin/jiti.js'
+2026-02-28T08:12:38.3436102Z err: #15 54.***  WARN  Issues with peer dependencies found
+2026-02-28T08:12:38.3436885Z err: #15 54.*** backend
+2026-02-28T08:12:38.3437251Z err: #15 54.*** └─┬ @nestjs-modules/ioredis 2.0.2
+2026-02-28T08:12:38.3437491Z err: #15 54.***   └─┬ @nestjs/terminus 10.2.0
+2026-02-28T08:12:38.3437735Z err: #15 54.***     ├── ✕ unmet peer @nestjs/core@"^9.0.0 || ^10.0.0": found 11.1.9
+2026-02-28T08:12:38.3438045Z err: #15 54.***     ├── ✕ unmet peer @nestjs/axios@"^1.0.0 || ^2.0.0 || ^3.0.0": found 4.0.1
+2026-02-28T08:12:38.3438294Z err: #15 54.***     ├── ✕ unmet peer @nestjs/common@"^9.0.0 || ^10.0.0": found 11.1.9
+2026-02-28T08:12:38.3438555Z err: #15 54.***     ├── ✕ unmet peer @nestjs/typeorm@"^9.0.0 || ^10.0.0": found 11.0.0
+2026-02-28T08:12:38.3438784Z err: #15 54.***     └── ✕ unmet peer reflect-metadata@0.1.x: found 0.2.2
+2026-02-28T08:12:40.2800744Z err: #15 DONE 56.2s
+2026-02-28T08:12:45.7850332Z err: #16 [production 2/8] RUN apk add --no-cache curl
+2026-02-28T08:12:45.7851065Z err: #16 CACHED
+2026-02-28T08:12:45.7851342Z err: #17 [production 3/8] WORKDIR /app
+2026-02-28T08:12:45.7851556Z err: #17 CACHED
+2026-02-28T08:12:45.7851869Z err: #18 [production 4/8] RUN addgroup -g 1001 -S nestjs &&     adduser -S nestjs -u 1001
+2026-02-28T08:12:45.9351550Z err: #18 CACHED
+2026-02-28T08:12:45.9352198Z err: #19 [production 5/8] COPY --from=build --chown=nestjs:nestjs /app/backend/dist ./dist
+2026-02-28T08:12:47.4815233Z err: #19 DONE 1.7s
+2026-02-28T08:12:47.6638987Z err: #20 [production 6/8] COPY --from=build --chown=nestjs:nestjs /app/backend-prod/node_modules ./node_modules
+2026-02-28T08:13:01.1246457Z err: #20 DONE 13.6s
+2026-02-28T08:13:01.3545313Z err: #21 [production 7/8] COPY --from=build --chown=nestjs:nestjs /app/backend-prod/package.json ./
+2026-02-28T08:13:04.1040746Z err: #21 DONE 2.9s
+2026-02-28T08:13:04.2971931Z err: #*** [production 8/8] RUN mkdir -p /app/uploads/temp /app/uploads/permanent &&     chown -R nestjs:nestjs /app/uploads
+2026-02-28T08:13:06.2103973Z err: #*** DONE 2.1s
+2026-02-28T08:13:06.5145613Z err: #23 exporting to image
+2026-02-28T08:13:06.5146252Z err: #23 exporting layers
+2026-02-28T08:13:14.1180831Z err: #23 exporting layers 7.6s done
+2026-02-28T08:13:14.3570047Z err: #23 writing image sha256:d1acea346ad75cda88a4ab78904a01a5971a8da1138a8d0c136db7560cc85f9a 0.0s done
+2026-02-28T08:13:14.3570798Z err: #23 naming to docker.io/library/lcbp3-backend:latest 0.1s done
+2026-02-28T08:13:14.4467809Z err: #23 DONE 7.9s
+2026-02-28T08:13:16.0827183Z out: 🏗️ Building Frontend...
+2026-02-28T08:13:16.6379471Z err: #0 building with "default" instance using docker driver
+2026-02-28T08:13:16.6380357Z err: #1 [internal] load build definition from Dockerfile
+2026-02-28T08:13:16.8749313Z err: #1 transferring dockerfile:
+2026-02-28T08:13:16.9950592Z err: #1 transferring dockerfile: 2.51kB done
+2026-02-28T08:13:16.9951314Z err: #1 DONE 0.5s
+2026-02-28T08:13:16.9951548Z err: #2 [internal] load metadata for docker.io/library/node:***-alpine
+2026-02-28T08:13:18.0771213Z err: #2 DONE 1.1s
+2026-02-28T08:13:18.2424400Z err: #3 [internal] load .dockerignore
+2026-02-28T08:13:18.2425061Z err: #3 transferring context: 1.09kB done
+2026-02-28T08:13:18.2425367Z err: #3 DONE 0.2s
+2026-02-28T08:13:18.4140648Z err: #4 [deps 1/6] FROM docker.io/library/node:***-alpine@sha256:e4bf2a82ad0a4037d28035ae71529873c069b13eb0455466ae0bc13363826e34
+2026-02-28T08:13:18.4141421Z err: #4 DONE 0.0s
+2026-02-28T08:13:18.4141703Z err: #5 [internal] load build context
+2026-02-28T08:13:18.5277018Z err: #5 transferring context: 1.03MB 0.1s done
+2026-02-28T08:13:18.5277674Z err: #5 DONE 0.3s
+2026-02-28T08:13:18.6736691Z err: #6 [production 2/6] WORKDIR /app
+2026-02-28T08:13:18.6737358Z err: #6 CACHED
+2026-02-28T08:13:18.6737588Z err: #7 [deps 5/6] COPY frontend/package.json ./frontend/
+2026-02-28T08:13:18.6737806Z err: #7 CACHED
+2026-02-28T08:13:18.6738027Z err: #8 [build 6/8] COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
+2026-02-28T08:13:18.6738373Z err: #8 CACHED
+2026-02-28T08:13:18.6738571Z err: #9 [build 8/8] RUN cd frontend && pnpm run build
+2026-02-28T08:13:18.6738768Z err: #9 CACHED
+2026-02-28T08:13:18.6738985Z err: #10 [deps 4/6] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-02-28T08:13:18.6739230Z err: #10 CACHED
+2026-02-28T08:13:18.6739419Z err: #11 [deps 6/6] RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
+2026-02-28T08:13:18.6739646Z err: #11 CACHED
+2026-02-28T08:13:18.6739947Z err: #12 [deps 3/6] WORKDIR /app
+2026-02-28T08:13:18.6740150Z err: #12 CACHED
+2026-02-28T08:13:18.6740356Z err: #13 [build 7/8] COPY frontend/ ./frontend/
+2026-02-28T08:13:18.6740551Z err: #13 CACHED
+2026-02-28T08:13:18.6740731Z err: #14 [production 4/6] RUN apk add --no-cache curl
+2026-02-28T08:13:18.6740929Z err: #14 CACHED
+2026-02-28T08:13:18.6741106Z err: #15 [production 3/6] RUN addgroup -g 1001 -S nextjs &&     adduser -S nextjs -u 1001
+2026-02-28T08:13:18.6741330Z err: #15 CACHED
+2026-02-28T08:13:18.6741540Z err: #16 [production 5/6] COPY --from=build --chown=nextjs:nextjs /app/frontend/.next/standalone ./
+2026-02-28T08:13:18.6741760Z err: #16 CACHED
+2026-02-28T08:13:18.6741942Z err: #17 [deps 2/6] RUN corepack enable && corepack prepare pnpm@latest --activate
+2026-02-28T08:13:18.6742249Z err: #17 CACHED
+2026-02-28T08:13:18.6742446Z err: #18 [build 5/8] COPY --from=deps /app/node_modules ./node_modules
+2026-02-28T08:13:18.6742643Z err: #18 CACHED
+2026-02-28T08:13:18.6742868Z err: #19 [production 6/6] COPY --from=build --chown=nextjs:nextjs /app/frontend/.next/static ./frontend/.next/static
+2026-02-28T08:13:18.6743245Z err: #19 CACHED
+2026-02-28T08:13:18.6743467Z err: #20 exporting to image
+2026-02-28T08:13:18.6743655Z err: #20 exporting layers done
+2026-02-28T08:13:18.6743880Z err: #20 writing image sha256:0131caaa1dba540fb8ac297f454818f53c03002ba91cedfbf3870cd3ba872d90 0.0s done
+2026-02-28T08:13:18.6744129Z err: #20 naming to docker.io/library/lcbp3-frontend:latest
+2026-02-28T08:13:18.7972735Z err: #20 naming to docker.io/library/lcbp3-frontend:latest 0.1s done
+2026-02-28T08:13:19.0031719Z err: #20 DONE 0.2s
+2026-02-28T08:13:20.3941901Z out: 🔄 Updating Containers...
+2026-02-28T08:13:20.7381572Z out: backend
+2026-02-28T08:13:20.7382220Z out: frontend
+2026-02-28T08:13:20.7402934Z out: 🟢 Starting Backend...
+2026-02-28T08:13:20.8705631Z err:  Container backend  Creating
+2026-02-28T08:13:22.7620531Z err:  Container backend  Created
+2026-02-28T08:13:22.7644007Z err:  Container backend  Starting
+2026-02-28T08:13:24.6579282Z err:  Container backend  Started
+2026-02-28T08:13:24.6652748Z out: ⏳ Waiting for Backend health check...
+2026-02-28T08:13:44.8641867Z out: ✅ Backend is healthy!
+2026-02-28T08:13:44.8642631Z out: 🟢 Starting Frontend...
+2026-02-28T08:13:44.9762281Z err:  Container backend  Running
+2026-02-28T08:13:44.9762986Z err:  Container frontend  Creating
+2026-02-28T08:13:46.0740188Z err:  Container frontend  Created
+2026-02-28T08:13:46.0759267Z err:  Container backend  Waiting
+2026-02-28T08:13:46.5781490Z err:  Container backend  Healthy
+2026-02-28T08:13:46.5782150Z err:  Container frontend  Starting
+2026-02-28T08:13:48.4425616Z err:  Container frontend  Started
+2026-02-28T08:13:48.4490957Z out: 🧹 Cleaning up unused images...
+2026-02-28T08:13:48.5179381Z out: Deleted Images:
+2026-02-28T08:13:48.5180194Z out: deleted: sha256:3fe866eefa***acfa3203ed7cee3b0ce8bff2981502c5f059212f200999f4f6b9
+2026-02-28T08:13:48.5180577Z out: deleted: sha256:***24c9c0d88743***a58cf054cb20038a4925d8db899345d60ee196c5e282e431
+2026-02-28T08:13:48.5180825Z out: deleted: sha256:2e51848bf7d2f143e7148d61a2ea8d95874437900a3320d0fe1ed829b8aa2739
+2026-02-28T08:13:48.5181101Z out: Total reclaimed space: 0B
+2026-02-28T08:13:48.5195767Z out: ✅ Deployment Complete!
+2026-02-28T08:13:48.5200318Z ==============================================
+2026-02-28T08:13:48.5200684Z ✅ Successfully executed commands to all host.
+2026-02-28T08:13:48.5200900Z ==============================================
+2026-02-28T08:13:49.3617894Z failed to remove container: Error response from daemon: removal of container 1215308902fa65321dc77c55e703f8f2459be588f78498054217203271b6d732 is already in progress
+2026-02-28T08:13:49.3725385Z Cleaning up container for job deploy
+2026-02-28T08:13:50.6148069Z Removed container: df1847c529d3c91dc5115053f0f06a13076ac7b4ce4267be87b4***5bc650652e
+2026-02-28T08:13:50.6161459Z   🐳  docker volume rm GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy
+2026-02-28T08:13:50.7280852Z   🐳  docker volume rm GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy-env
+2026-02-28T08:13:50.8432367Z Cleaning up network for job deploy, and network name is: GITEA-ACTIONS-TASK-38_WORKFLOW-Build-and-Deploy_JOB-deploy-deploy-network
+2026-02-28T08:13:51.3272977Z 🏁  Job succeeded
