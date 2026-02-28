@@ -44,8 +44,13 @@ COPY frontend/ ./frontend/
 ARG NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
+# Prevent OOMs during build by limiting Node memory to 2GB and disabling telemetry
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV NEXT_TELEMETRY_DISABLED=1
+
 # Build Next.js → frontend/.next/standalone
 RUN cd frontend && pnpm run build
+
 
 # =========================
 # Stage 3: Production Runtime
