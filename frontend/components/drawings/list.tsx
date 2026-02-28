@@ -1,9 +1,6 @@
 'use client';
 
-import { DrawingCard } from '@/components/drawings/card';
 import { useDrawings } from '@/hooks/use-drawing';
-import { Drawing } from '@/types/drawing';
-import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { PaginationState, SortingState } from '@tanstack/react-table';
 import { ServerDataTable } from '@/components/documents/common/server-data-table';
@@ -32,12 +29,11 @@ export function DrawingList({ type, projectId, filters }: DrawingListProps) {
   const {
     data: response,
     isLoading,
-    isError,
   } = useDrawings(type, {
     projectId,
     ...filters,
     page: pagination.pageIndex + 1, // API is 1-based
-    pageSize: pagination.pageSize,
+    limit: pagination.pageSize,
   } as any);
 
   const drawings = response?.data || [];

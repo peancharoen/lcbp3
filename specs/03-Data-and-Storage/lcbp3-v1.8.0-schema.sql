@@ -1044,8 +1044,10 @@ CREATE TABLE attachments (
   uploaded_by_user_id INT NOT NULL COMMENT 'ผู้อัปโหลดไฟล์',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่อัปโหลด',
   expires_at DATETIME NULL COMMENT 'เวลาหมดอายุของไฟล์ Temp',
-  CHECKSUM VARCHAR(64) NULL COMMENT 'SHA -256 Checksum',
-  FOREIGN KEY (uploaded_by_user_id) REFERENCES users (user_id) ON DELETE CASCADE
+  CHECKSUM VARCHAR(64) NULL COMMENT 'SHA-256 Checksum',
+  reference_date DATE NULL COMMENT 'Date used for folder structure (e.g. Issue Date) to prevent broken paths',
+  FOREIGN KEY (uploaded_by_user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+  INDEX idx_attachments_reference_date (reference_date)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "กลาง" เก็บไฟล์แนบทั้งหมดของระบบ';
 
 -- ตารางเชื่อม correspondences กับ attachments (M:N)
