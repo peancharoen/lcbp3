@@ -27,12 +27,6 @@ const refMenu = [
     href: '/admin/doc-control/reference/tags',
     icon: Tag,
   },
-  {
-    title: 'Drawing Categories',
-    description: 'Manage drawing sub-types and classifications',
-    href: '/admin/doc-control/reference/drawing-categories',
-    icon: Layers,
-  },
 ];
 
 export default function ReferenceDataPage() {
