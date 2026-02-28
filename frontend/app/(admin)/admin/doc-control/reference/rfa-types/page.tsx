@@ -59,7 +59,7 @@ export default function RfaTypesPage() {
         title="RFA Types Management"
         queryKey={['rfa-types', selectedContractId ?? 'all']}
         fetchFn={() => masterDataService.getRfaTypes(selectedContractId ? parseInt(selectedContractId) : undefined)}
-        createFn={(data) => masterDataService.createRfaType(data)}
+        createFn={(data: Record<string, unknown>) => masterDataService.createRfaType(data as unknown as any)}
         updateFn={(id, data) => masterDataService.updateRfaType(id, data)}
         deleteFn={(id) => masterDataService.deleteRfaType(id)}
         columns={columns}

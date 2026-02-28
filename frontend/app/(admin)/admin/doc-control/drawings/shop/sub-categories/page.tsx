@@ -6,7 +6,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useProjects } from '@/hooks/use-master-data';
-import { drawingMasterDataService } from '@/lib/services/drawing-master-data.service';
+import { drawingMasterDataService, CreateShopSubCategoryDto } from '@/lib/services/drawing-master-data.service';
 import { Badge } from '@/components/ui/badge';
 
 interface SubCategory {
@@ -113,9 +113,9 @@ export default function ShopSubCategoriesPage() {
           console.log('Shop Sub-Categories Data:', data);
           return data;
         }}
-        createFn={(data) =>
+        createFn={(data: Record<string, unknown>) =>
           drawingMasterDataService.createShopSubCategory({
-            ...data,
+            ...(data as unknown as CreateShopSubCategoryDto),
             projectId: selectedProjectId,
             isActive: data.isActive === 'true' || data.isActive === true,
           })

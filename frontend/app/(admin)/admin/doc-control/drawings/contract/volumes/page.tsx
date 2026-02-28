@@ -109,7 +109,7 @@ export default function ContractVolumesPage() {
         description="Manage drawing volumes (เล่ม) for contract drawings"
         queryKey={["contract-drawing-volumes", String(selectedProjectId)]}
         fetchFn={() => drawingMasterDataService.getContractVolumes(selectedProjectId)}
-        createFn={(data) => drawingMasterDataService.createContractVolume({ ...data, projectId: selectedProjectId })}
+        createFn={(data: Record<string, unknown>) => drawingMasterDataService.createContractVolume({ ...(data as unknown as Parameters<typeof drawingMasterDataService.createContractVolume>[0]), projectId: selectedProjectId })}
         updateFn={(id, data) => drawingMasterDataService.updateContractVolume(id, data)}
         deleteFn={(id) => drawingMasterDataService.deleteContractVolume(id)}
         columns={columns}

@@ -24,7 +24,7 @@ export default function TagsPage() {
       entityName="Tag"
       queryKey={["tags"]}
       fetchFn={() => masterDataService.getTags()}
-      createFn={(data: CreateTagDto) => masterDataService.createTag(data)}
+      createFn={(data: Record<string, unknown>) => masterDataService.createTag(data as unknown as CreateTagDto)}
       updateFn={(id, data) => masterDataService.updateTag(id, data)}
       deleteFn={(id) => masterDataService.deleteTag(id)}
       columns={columns}

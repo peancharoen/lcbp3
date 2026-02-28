@@ -52,7 +52,7 @@ export const workflowApi = {
   createWorkflow: async (data: CreateWorkflowDto): Promise<Workflow> => {
     await new Promise((resolve) => setTimeout(resolve, 800));
     const newWorkflow: Workflow = {
-      workflowId: Math.max(...mockWorkflows.map((w) => w.workflowId)) + 1,
+      workflowId: Math.max(...mockWorkflows.map((w) => Number(w.workflowId))) + 1,
       ...data,
       version: 1,
       isActive: true,

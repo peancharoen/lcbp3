@@ -232,7 +232,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
                     ${importance === 'URGENT' ? 'bg-red-100 text-red-800' :
                       importance === 'HIGH' ? 'bg-orange-100 text-orange-800' :
                       'bg-blue-100 text-blue-800'}`}>
-                    {importance}
+                    {String(importance)}
                   </span>
                 </div>
               </div>

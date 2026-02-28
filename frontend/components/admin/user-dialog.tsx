@@ -299,8 +299,8 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
           <div>
             <Label className="mb-3 block">Roles</Label>
             <div className="space-y-2 border p-3 rounded-md max-h-[200px] overflow-y-auto">
-              {roles.length === 0 && <p className="text-sm text-muted-foreground">Loading roles...</p>}
-              {roles.map((role: any) => (
+              {Array.isArray(roles) && roles.length === 0 && <p className="text-sm text-muted-foreground">Loading roles...</p>}
+              {Array.isArray(roles) && roles.map((role: any) => (
                 <div key={role.roleId} className="flex items-start space-x-2">
                   <Checkbox
                     id={`role-${role.roleId}`}

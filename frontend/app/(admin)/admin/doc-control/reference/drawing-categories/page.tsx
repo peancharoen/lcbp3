@@ -34,7 +34,7 @@ export default function DrawingCategoriesPage() {
         description="Manage drawing sub-types and categories"
         queryKey={["drawing-categories"]}
         fetchFn={() => masterDataService.getSubTypes(1)} // Default contract ID 1
-        createFn={(data) => masterDataService.createSubType({ ...data, contractId: 1, correspondenceTypeId: 3 })} // Assuming 3 is Drawings, hardcoded for now to prevent error
+        createFn={(data: Record<string, unknown>) => masterDataService.createSubType({ ...(data as unknown as Parameters<typeof masterDataService.createSubType>[0]), contractId: 1, correspondenceTypeId: 3 })} // Assuming 3 is Drawings, hardcoded for now to prevent error
         updateFn={() => Promise.reject("Not implemented yet")}
         deleteFn={() => Promise.reject("Not implemented yet")} // Delete might be restricted
         columns={columns}

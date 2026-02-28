@@ -56,7 +56,7 @@ export default function DisciplinesPage() {
         description="Manage system disciplines (e.g., ARCH, STR, MEC)"
         queryKey={['disciplines', selectedContractId ?? 'all']}
         fetchFn={() => masterDataService.getDisciplines(selectedContractId ? parseInt(selectedContractId) : undefined)}
-        createFn={(data) => masterDataService.createDiscipline(data)}
+        createFn={(data: Record<string, unknown>) => masterDataService.createDiscipline(data as unknown as Parameters<typeof masterDataService.createDiscipline>[0])}
         updateFn={(id, data) => Promise.reject('Not implemented yet')} // Update endpoint needs to be verified/added if missing
         deleteFn={(id) => masterDataService.deleteDiscipline(id)}
         columns={columns}

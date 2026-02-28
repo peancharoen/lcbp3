@@ -6,7 +6,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useProjects } from '@/hooks/use-master-data';
-import { drawingMasterDataService } from '@/lib/services/drawing-master-data.service';
+import { drawingMasterDataService, CreateShopMainCategoryDto } from '@/lib/services/drawing-master-data.service';
 import { Badge } from '@/components/ui/badge';
 
 interface MainCategory {
@@ -111,9 +111,9 @@ export default function ShopMainCategoriesPage() {
           console.log('Shop Main Categories Data:', data);
           return data;
         }}
-        createFn={(data) =>
+        createFn={(data: Record<string, unknown>) =>
           drawingMasterDataService.createShopMainCategory({
-            ...data,
+            ...(data as unknown as CreateShopMainCategoryDto),
             projectId: selectedProjectId,
             isActive: data.isActive === 'true' || data.isActive === true,
           })

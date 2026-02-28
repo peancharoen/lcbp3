@@ -10,6 +10,7 @@ import {
   drawingMasterDataService,
   ContractCategory,
   ContractSubCategory,
+  CreateContractCategoryDto,
 } from '@/lib/services/drawing-master-data.service';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -107,7 +108,7 @@ export default function ContractCategoriesPage() {
           console.log('Contract Categories Data:', data);
           return data;
         }}
-        createFn={(data) => drawingMasterDataService.createContractCategory({ ...data, projectId: selectedProjectId })}
+        createFn={(data: Record<string, unknown>) => drawingMasterDataService.createContractCategory({ ...(data as unknown as CreateContractCategoryDto), projectId: selectedProjectId })}
         updateFn={(id, data) => drawingMasterDataService.updateContractCategory(id, data)}
         deleteFn={(id) => drawingMasterDataService.deleteContractCategory(id)}
         columns={columns}

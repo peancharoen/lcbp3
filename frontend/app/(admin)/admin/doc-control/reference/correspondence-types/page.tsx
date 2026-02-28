@@ -46,7 +46,7 @@ export default function CorrespondenceTypesPage() {
         description="Manage global correspondence types (e.g., LETTER, TRANSMITTAL)"
         queryKey={["correspondence-types"]}
         fetchFn={() => masterDataService.getCorrespondenceTypes()}
-        createFn={(data) => masterDataService.createCorrespondenceType(data)}
+        createFn={(data: Record<string, unknown>) => masterDataService.createCorrespondenceType(data as unknown as Parameters<typeof masterDataService.createCorrespondenceType>[0])}
         updateFn={(id, data) => masterDataService.updateCorrespondenceType(id, data)}
         deleteFn={(id) => masterDataService.deleteCorrespondenceType(id)}
         columns={columns}

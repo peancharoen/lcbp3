@@ -6,7 +6,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { useProjects } from '@/hooks/use-master-data';
-import { drawingMasterDataService } from '@/lib/services/drawing-master-data.service';
+import { drawingMasterDataService, CreateContractSubCategoryDto } from '@/lib/services/drawing-master-data.service';
 import { Badge } from '@/components/ui/badge';
 
 interface SubCategory {
@@ -100,8 +100,8 @@ export default function ContractSubCategoriesPage() {
           console.log('Contract Sub-Categories Data:', data);
           return data;
         }}
-        createFn={(data) =>
-          drawingMasterDataService.createContractSubCategory({ ...data, projectId: selectedProjectId })
+        createFn={(data: Record<string, unknown>) =>
+          drawingMasterDataService.createContractSubCategory({ ...(data as unknown as CreateContractSubCategoryDto), projectId: selectedProjectId })
         }
         updateFn={(id, data) => drawingMasterDataService.updateContractSubCategory(id, data)}
         deleteFn={(id) => drawingMasterDataService.deleteContractSubCategory(id)}
