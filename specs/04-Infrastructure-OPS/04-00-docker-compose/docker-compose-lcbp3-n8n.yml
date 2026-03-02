@@ -59,7 +59,11 @@ services:
       N8N_DIAGNOSTICS_ENABLED: 'false'
       N8N_SECURE_COOKIE: 'true'
       N8N_ENCRYPTION_KEY: "9AAIB7Da9DW1qAhJE5/Bz4SnbQjeAngI"
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      # File access control for "Read/Write Files from Disk" nodes
+      # Ref: https://github.com/n8n-io/n8n/blob/master/packages/@n8n/config/src/configs/security.config.ts
+      # Default is "~/.n8n-files". Separate multiple dirs with semicolon (;)
+      N8N_RESTRICT_FILE_ACCESS_TO: "/home/node/.n8n-files"
+      N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: "false"
       GENERIC_TIMEZONE: "Asia/Bangkok"
       # DB Setup
       DB_TYPE: postgresdb
@@ -84,9 +88,9 @@ services:
       - "/share/np-dms/n8n/data:/data"
       - "/var/run/docker.sock:/var/run/docker.sock"
       # read-only: อ่านไฟล์ PDF ต้นฉบับเท่านั้น
-      - "/share/np-dms-as/Legacy:/share/np-dms/staging_ai:ro"
+      - "/share/np-dms-as/Legacy:/home/node/.n8n-files/staging_ai:ro" # Add alias for np-dms-as to match the node setting
       # read-write: เขียน Log และ CSV ทั้งหมด
-      - "/share/np-dms/n8n/migration_logs:/share/np-dms/n8n/migration_logs:rw"
+      - "/share/np-dms/n8n/migration_logs:/home/node/.n8n-files/migration_logs:rw"
 
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5678/healthz || exit 1"]
