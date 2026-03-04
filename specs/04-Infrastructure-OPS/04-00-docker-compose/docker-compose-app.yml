@@ -13,6 +13,8 @@
 #              ใช้ Environment Variables ใน Container Station UI
 # ============================================================
 
+name: lcbp3
+
 x-restart: &restart_policy
   restart: unless-stopped
 
@@ -30,12 +32,12 @@ networks:
 services:
   # ----------------------------------------------------------------
   # 1. Backend API (NestJS)
-  # Service Name: backend (ตามที่ NPM อ้างอิง → lcbp3-backend:3000)
+  # Service Name: backend (ตามที่ NPM อ้างอิง → backend:3000)
   # ----------------------------------------------------------------
   backend:
     <<: [*restart_policy, *default_logging]
     image: lcbp3-backend:latest
-    container_name: lcbp3-backend
+    container_name: backend
     stdin_open: true
     tty: true
     deploy:
@@ -89,12 +91,12 @@ services:
 
   # ----------------------------------------------------------------
   # 2. Frontend Web App (Next.js)
-  # Service Name: frontend (ตามที่ NPM อ้างอิง → lcbp3-frontend:3000)
+  # Service Name: frontend (ตามที่ NPM อ้างอิง → frontend:3000)
   # ----------------------------------------------------------------
   frontend:
     <<: [*restart_policy, *default_logging]
     image: lcbp3-frontend:latest
-    container_name: lcbp3-frontend
+    container_name: frontend
     stdin_open: true
     tty: true
     deploy:
