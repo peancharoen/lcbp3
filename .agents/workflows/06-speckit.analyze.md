@@ -10,7 +10,7 @@ description: Perform a non-destructive cross-artifact consistency and quality an
    - The user has provided an input prompt. Treat this as the primary input for the skill.
 
 2. **Load Skill**:
-   - Use the `view_file` tool to read the skill file at: `.agent/skills/speckit.analyze/SKILL.md`
+   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit.analyze/SKILL.md`
 
 3. **Execute**:
    - Follow the instructions in the `SKILL.md` exactly.

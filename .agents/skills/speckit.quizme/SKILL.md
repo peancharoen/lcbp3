@@ -1,7 +1,8 @@
 ---
 name: speckit.quizme
 description: Challenge the specification with Socratic questioning to identify logical gaps, unhandled edge cases, and robustness issues.
-handoffs: 
+version: 1.0.0
+handoffs:
   - label: Clarify Spec Requirements
     agent: speckit.clarify
     prompt: Clarify specification requirements
@@ -38,8 +39,9 @@ Execution steps:
    - Challenge security (e.g., "You rely on client-side validation here, but what if I curl the API?").
 
 4. **The Quiz Loop**:
-   - Present 3-5 challenging scenarios *one by one*.
+   - Present 3-5 challenging scenarios _one by one_.
    - Format:
+
      > **Scenario**: [Describe a plausible edge case or failure]
      > **Current Spec**: [Quote where the spec implies behavior or is silent]
      > **The Quiz**: What should the system do here?
@@ -62,4 +64,4 @@ Execution steps:
 
 - **Be a Skeptic**: Don't assume the happy path works.
 - **Focus on "When" and "If"**: When high load, If network drops, When concurrent edits.
-- **Don't be annoying**: Focus on *critical* flaws, not nitpicks.
+- **Don't be annoying**: Focus on _critical_ flaws, not nitpicks.

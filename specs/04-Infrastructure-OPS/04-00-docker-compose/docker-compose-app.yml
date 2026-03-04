@@ -1,9 +1,10 @@
-# File: /share/np-dms/app/docker-compose.yml
+# File: /share/np-dms/app/docker-compose-app.yml
 # DMS Container v1.8.0: Application Stack (Backend + Frontend)
 # Application name: lcbp3-app
 # ============================================================
 # ⚠️  ใช้งานร่วมกับ services อื่นที่รันอยู่แล้วบน QNAP:
 #     - mariadb (lcbp3-db)
+#     - redis   (lcbp3-redis)
 #     - cache   (services)
 #     - search  (services)
 #     - npm     (lcbp3-npm)
@@ -29,12 +30,12 @@ networks:
 services:
   # ----------------------------------------------------------------
   # 1. Backend API (NestJS)
-  # Service Name: backend (ตามที่ NPM อ้างอิง → backend:3000)
+  # Service Name: backend (ตามที่ NPM อ้างอิง → lcbp3-backend:3000)
   # ----------------------------------------------------------------
   backend:
     <<: [*restart_policy, *default_logging]
     image: lcbp3-backend:latest
-    container_name: backend
+    container_name: lcbp3-backend
     stdin_open: true
     tty: true
     deploy:
@@ -88,12 +89,12 @@ services:
 
   # ----------------------------------------------------------------
   # 2. Frontend Web App (Next.js)
-  # Service Name: frontend (ตามที่ NPM อ้างอิง → frontend:3000)
+  # Service Name: frontend (ตามที่ NPM อ้างอิง → lcbp3-frontend:3000)
   # ----------------------------------------------------------------
   frontend:
     <<: [*restart_policy, *default_logging]
     image: lcbp3-frontend:latest
-    container_name: frontend
+    container_name: lcbp3-frontend
     stdin_open: true
     tty: true
     deploy:

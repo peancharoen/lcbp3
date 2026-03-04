@@ -9,7 +9,7 @@ description: Create or update the feature specification from a natural language 
    - This is typically the starting point of a new feature.
 
 2. **Load Skill**:
-   - Use the `view_file` tool to read the skill file at: `.agent/skills/speckit.specify/SKILL.md`
+   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit.specify/SKILL.md`
 
 3. **Execute**:
    - Follow the instructions in the `SKILL.md` exactly.

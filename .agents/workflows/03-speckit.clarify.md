@@ -8,7 +8,7 @@ description: Identify underspecified areas in the current feature spec by asking
    - The user has provided an input prompt. Treat this as the primary input for the skill.
 
 2. **Load Skill**:
-   - Use the `view_file` tool to read the skill file at: `.agent/skills/speckit.clarify/SKILL.md`
+   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit.clarify/SKILL.md`
 
 3. **Execute**:
    - Follow the instructions in the `SKILL.md` exactly.

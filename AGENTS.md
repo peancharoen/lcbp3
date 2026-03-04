@@ -1,8 +1,6 @@
----
-trigger: always_on
----
-
 # NAP-DMS Project Context & Rules
+
+> **For:** Codex CLI, opencode, Amp, Amazon Q Developer CLI, IBM Bob, and other AGENTS.md-compatible tools.
 
 ## 🧠 Role & Persona
 
@@ -41,17 +39,13 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 6. **Rate Limiting:** Apply ThrottlerGuard on auth endpoints.
 7. **AI Isolation (ADR-018):** Ollama MUST run on ASUSTOR only. AI has NO direct DB access, NO write access to uploads. Output JSON only.
 
-## 📋 Workflow & Spec Guidelines
+## 📋 Spec Guidelines
 
 - Always follow specs in `specs/` (v1.8.0). Priority: `06-Decision-Records` > `05-Engineering-Guidelines` > others.
 - Always verify database schema against **`specs/03-Data-and-Storage/lcbp3-v1.8.0-schema.sql`** before writing queries.
 - Check data dictionary at **`specs/03-Data-and-Storage/03-01-data-dictionary.md`** for field meanings and business rules.
-- Check seed data: **`lcbp3-v1.8.0-seed-basic.sql`** (reference data), **`lcbp3-v1.8.0-seed-permissions.sql`** (CASL permissions).
-- For migration context: **`specs/03-Data-and-Storage/03-04-legacy-data-migration.md`** and **`03-05-n8n-migration-setup-guide.md`**.
 
 ### ADR Reference (All 17 + Patch)
-
-Adhere to all ADRs in `specs/06-Decision-Records/`:
 
 | ADR     | Topic                     | Key Decision                                       |
 | ------- | ------------------------- | -------------------------------------------------- |
@@ -70,28 +64,6 @@ Adhere to all ADRs in `specs/06-Decision-Records/`:
 | ADR-016 | Security                  | JWT + CASL RBAC + Helmet.js + ClamAV               |
 | ADR-017 | Ollama Migration          | Local AI + n8n for legacy data import              |
 | ADR-018 | AI Boundary (Patch 1.8.1) | AI isolation — no direct DB/storage access         |
-
-## 🎯 Active Skills
-
-- **`nestjs-best-practices`** — Apply when writing/reviewing any NestJS code (modules, services, controllers, guards, interceptors, DTOs)
-- **`next-best-practices`** — Apply when writing/reviewing any Next.js code (App Router, RSC boundaries, async patterns, data fetching, error handling)
-- **`speckit.security-audit`** — Apply when auditing security (OWASP Top 10, CASL, ClamAV, LCBP3-specific checks)
-
-## 🔄 Speckit Workflow Pipeline
-
-Use `/slash-command` to trigger these workflows. Always prefer spec-driven development for new features.
-
-| Phase                | Command                                                    | เมื่อใช้                                                 |
-| -------------------- | ---------------------------------------------------------- | ----------------------------------------------------- |
-| **Full Pipeline**    | `/speckit.all`                                             | Feature ใหม่ — รัน Specify→...→Validate (10 steps)      |
-| **Feature Design**   | `/speckit.prepare`                                         | Preparation only — Specify→Clarify→Plan→Tasks→Analyze |
-| **Implement**        | `/07-speckit.implement`                                    | เขียนโค้ดตาม tasks.md พร้อม anti-regression              |
-| **QA**               | `/08-speckit.checker`                                      | ตรวจ TypeScript + ESLint + Security                   |
-| **Test**             | `/09-speckit.tester`                                       | รัน Jest/Vitest + coverage report                      |
-| **Review**           | `/10-speckit.reviewer`                                     | Code review — Logic, Performance, Style               |
-| **Validate**         | `/11-speckit.validate`                                     | ยืนยันว่า implementation ตรงกับ spec.md                   |
-| **Schema Change**    | `/schema-change`                                           | แก้ schema SQL → data dictionary → notify user         |
-| **Project-Specific** | `/create-backend-module` `/create-frontend-page` `/deploy` | งานประจำของ LCBP3-DMS                                  |
 
 ## 🚫 Forbidden Actions
 

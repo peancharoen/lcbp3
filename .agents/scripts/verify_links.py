@@ -1,30 +1,33 @@
 import os
 import re
+import sys
 from pathlib import Path
 
-# Configuration
-BASE_DIR = Path(r"d:\nap-dms.lcbp3\specs")
+# Configuration - default base directory, can be overridden via CLI argument
+DEFAULT_BASE_DIR = Path(__file__).resolve().parent.parent.parent / "specs"
+
 DIRECTORIES = [
-    "00-overview",
-    "01-requirements",
-    "02-architecture",
-    "03-implementation",
-    "04-operations",
-    "05-decisions"
+    "00-Overview",
+    "01-Requirements",
+    "02-Architecture",
+    "03-Data-and-Storage",
+    "04-Infrastructure-OPS",
+    "05-Engineering-Guidelines",
+    "06-Decision-Records"
 ]
 
 # Regex for Markdown links: [label](path)
 # Handles relative paths, absolute file paths, and anchors
 LINK_PATTERN = re.compile(r'\[([^\]]+)\]\(([^)]+)\)')
 
-def verify_links():
+def verify_links(base_dir: Path):
     results = {
         "total_links": 0,
         "broken_links": []
     }
 
     for dir_name in DIRECTORIES:
-        directory = BASE_DIR / dir_name
+        directory = base_dir / dir_name
         if not directory.exists():
             print(f"Directory not found: {directory}")
             continue
@@ -53,7 +56,7 @@ def verify_links():
                         # 2. Handle relative paths
                         # Remove anchor if present
                         clean_target_str = target.split("#")[0]
-                        if not clean_target_str: # It was just an anchor to another file but path is empty? Wait.
+                        if not clean_target_str:
                             continue
 
                         # Resolve path relative to current file
@@ -71,8 +74,17 @@ def verify_links():
     return results
 
 if __name__ == "__main__":
-    print(f"Starting link verification in {BASE_DIR}...")
-    audit_results = verify_links()
+    if len(sys.argv) > 1:
+        base_dir = Path(sys.argv[1])
+    else:
+        base_dir = DEFAULT_BASE_DIR
+
+    if not base_dir.exists():
+        print(f"Error: Directory not found: {base_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Starting link verification in {base_dir}...")
+    audit_results = verify_links(base_dir)
 
     print(f"\nAudit Summary:")
     print(f"Total Internal Links Scanned: {audit_results['total_links']}")

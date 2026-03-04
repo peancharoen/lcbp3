@@ -30,10 +30,12 @@ Before generating code or planning a solution, you MUST conceptually load the co
 
 4.  **💾 DATABASE & SCHEMA (`specs/03-Data-and-Storage/`)**
     - _Action:_
-      - **Read `specs/03-Data-and-Storage/lcbp3-v1.7.0-schema.sql`** for exact table structures and constraints.
+      - **Read `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema.sql`** for exact table structures and constraints.
       - **Consult `specs/03-Data-and-Storage/03-01-data-dictionary.md`** for field meanings and business rules.
-      - **Check `specs/03-Data-and-Storage/lcbp3-v1.7.0-seed-basic.sql`** to understand initial data states.
-      - **Check `specs/03-Data-and-Storage/lcbp3-v1.7.0-seed-permissions.sql`** to understand initial permissions states.
+      - **Check `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-basic.sql`** to understand initial data states.
+      - **Check `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql`** to understand initial permissions states.
+      - **Check `specs/03-Data-and-Storage/03-04-legacy-data-migration.md`** for migration context (ADR-017).
+      - **Check `specs/03-Data-and-Storage/03-05-n8n-migration-setup-guide.md`** for n8n workflow setup.
     - _Constraint:_ NEVER invent table names or columns. Use ONLY what is defined here.
 
 5.  **⚙️ IMPLEMENTATION DETAILS (`specs/05-Engineering-Guidelines/`)**
@@ -68,8 +70,9 @@ When proposing a change or writing code, you must explicitly reference the sourc
 ### 4. Schema Changes
 
 - **DO NOT** create or run TypeORM migration files.
-- Modify the schema directly in `specs/03-Data-and-Storage/lcbp3-v1.7.0-schema.sql`.
+- Modify the schema directly in `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema.sql`.
 - Update `specs/03-Data-and-Storage/03-01-data-dictionary.md` if adding/changing columns.
 - Notify the user so they can apply the SQL change to the live database manually.
+- **AI Isolation (ADR-018):** Ollama runs on ASUSTOR only. AI has NO direct DB access, NO write access to uploads. All writes go through DMS API.
 
 ---

@@ -9,9 +9,11 @@ Follows `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md` and ADR-00
 
 ## Steps
 
+// turbo
+
 1. **Verify requirements exist** — confirm the feature is in `specs/01-Requirements/` before starting
 
-2. **Check schema** — read `specs/03-Data-and-Storage/lcbp3-v1.7.0-schema.sql` for relevant tables
+// turbo 2. **Check schema** — read `specs/03-Data-and-Storage/lcbp3-v1.7.0-schema.sql` for relevant tables
 
 3. **Scaffold module folder**
 
@@ -40,10 +42,10 @@ backend/src/modules/<module-name>/
 
 9. **Register in AppModule** — import the new module in `app.module.ts`.
 
-10. **Write unit test** — cover service methods with Jest mocks. Run:
+// turbo 10. **Write unit test** — cover service methods with Jest mocks. Run:
 
 ```bash
 pnpm test:watch
 ```
 
-11. **Citation** — confirm implementation references `specs/01-Requirements/` and `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`
+// turbo 11. **Citation** — confirm implementation references `specs/01-Requirements/` and `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`

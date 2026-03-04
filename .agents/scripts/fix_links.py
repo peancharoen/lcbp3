@@ -1,26 +1,28 @@
 import os
 import re
+import sys
 from pathlib import Path
 
-# Configuration
-BASE_DIR = Path(r"d:\nap-dms.lcbp3\specs")
+# Configuration - default base directory, can be overridden via CLI argument
+DEFAULT_BASE_DIR = Path(__file__).resolve().parent.parent.parent / "specs"
+
 DIRECTORIES = [
-    "00-overview",
-    "01-requirements",
-    "02-architecture",
-    "03-implementation",
-    "04-operations",
-    "05-decisions",
-    "06-tasks"
+    "00-Overview",
+    "01-Requirements",
+    "02-Architecture",
+    "03-Data-and-Storage",
+    "04-Infrastructure-OPS",
+    "05-Engineering-Guidelines",
+    "06-Decision-Records"
 ]
 
 LINK_PATTERN = re.compile(r'(\[([^\]]+)\]\(([^)]+)\))')
 
-def get_file_map():
+def get_file_map(base_dir: Path):
     """Builds a map of {basename}.md -> {prefixed_name}.md across all dirs."""
     file_map = {}
     for dir_name in DIRECTORIES:
-        directory = BASE_DIR / dir_name
+        directory = base_dir / dir_name
         if not directory.exists():
             continue
         for file_path in directory.glob("*.md"):
@@ -53,41 +55,14 @@ def get_file_map():
                             if secondary_base:
                                 file_map[secondary_base] = f"{dir_name}/{actual_name}"
 
-    # Hardcoded specific overrides for versioning and common typos
-    overrides = {
-        "fullftack-js-v1.5.0.md": "03-implementation/03-01-fullftack-js-v1.7.0.md",
-        "fullstack-js-v1.5.0.md": "03-implementation/03-01-fullftack-js-v1.7.0.md",
-        "system-architecture.md": "02-architecture/02-01-system-architecture.md",
-        "api-design.md": "02-architecture/02-02-api-design.md",
-        "data-model.md": "02-architecture/02-03-data-model.md",
-        "backend-guidelines.md": "03-implementation/03-02-backend-guidelines.md",
-        "frontend-guidelines.md": "03-implementation/03-03-frontend-guidelines.md",
-        "document-numbering.md": "03-implementation/03-04-document-numbering.md",
-        "testing-strategy.md": "03-implementation/03-05-testing-strategy.md",
-        "deployment-guide.md": "04-operations/04-01-deployment-guide.md",
-        "environment-setup.md": "04-operations/04-02-environment-setup.md",
-        "monitoring-alerting.md": "04-operations/04-03-monitoring-alerting.md",
-        "backup-recovery.md": "04-operations/04-04-backup-recovery.md",
-        "maintenance-procedures.md": "04-operations/04-05-maintenance-procedures.md",
-        "security-operations.md": "04-operations/04-06-security-operations.md",
-        "incident-response.md": "04-operations/04-07-incident-response.md",
-        "document-numbering-operations.md": "04-operations/04-08-document-numbering-operations.md",
-        # Missing task files - redirect to README or best match
-        "task-be-011-notification-audit.md": "06-tasks/README.md",
-        "task-be-001-database-migrations.md": "06-tasks/TASK-BE-015-schema-v160-migration.md", # Best match
-    }
-
-    for k, v in overrides.items():
-        file_map[k] = v
-
     return file_map
 
-def fix_links():
-    file_map = get_file_map()
+def fix_links(base_dir: Path):
+    file_map = get_file_map(base_dir)
     changes_made = 0
 
     for dir_name in DIRECTORIES:
-        directory = BASE_DIR / dir_name
+        directory = base_dir / dir_name
         if not directory.exists():
             continue
 
@@ -107,8 +82,12 @@ def fix_links():
                 if not target_path:
                     continue
 
-                # Special case: file:///d:/nap-dms.lcbp3/specs/
-                clean_target_path = target_path.replace("file:///d:/nap-dms.lcbp3/specs/", "").replace("file:///D:/nap-dms.lcbp3/specs/", "")
+                # Special case: file:/// absolute paths
+                clean_target_path = re.sub(
+                    r'^file:///[a-zA-Z]:[/\\].*?specs[/\\]',
+                    '',
+                    target_path
+                )
 
                 resolved_locally = (file_path.parent / target_path).resolve()
                 if resolved_locally.exists() and resolved_locally.is_file():
@@ -119,7 +98,7 @@ def fix_links():
                 if target_filename in file_map:
                     correct_relative_to_specs = file_map[target_filename]
                     # Calculate relative path from current file's parent to the correct file
-                    correct_abs = (BASE_DIR / correct_relative_to_specs).resolve()
+                    correct_abs = (base_dir / correct_relative_to_specs).resolve()
 
                     try:
                         new_relative_path = os.path.relpath(correct_abs, file_path.parent).replace(os.sep, "/")
@@ -143,4 +122,14 @@ def fix_links():
     print(f"\nTotal files updated: {changes_made}")
 
 if __name__ == "__main__":
-    fix_links()
+    if len(sys.argv) > 1:
+        base_dir = Path(sys.argv[1])
+    else:
+        base_dir = DEFAULT_BASE_DIR
+
+    if not base_dir.exists():
+        print(f"Error: Directory not found: {base_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Scanning specs directory: {base_dir}")
+    fix_links(base_dir)
