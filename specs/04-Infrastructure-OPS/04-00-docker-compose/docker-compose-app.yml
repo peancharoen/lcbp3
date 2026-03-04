@@ -56,18 +56,18 @@ services:
       DB_PORT: '3306'
       DB_DATABASE: 'lcbp3'
       DB_USERNAME: 'center'
-      DB_PASSWORD: '<SET_IN_CONTAINER_STATION>'
+      DB_PASSWORD: '${DB_PASSWORD}'
       # --- Redis ---
       REDIS_HOST: 'cache'
       REDIS_PORT: '6379'
-      REDIS_PASSWORD: '<SET_IN_CONTAINER_STATION>'
+      REDIS_PASSWORD: '${REDIS_PASSWORD}'
       # --- Elasticsearch ---
       ELASTICSEARCH_HOST: 'search'
       ELASTICSEARCH_PORT: '9200'
       # --- JWT ---
-      JWT_SECRET: '<SET_IN_CONTAINER_STATION>'
+      JWT_SECRET: '${JWT_SECRET}'
       JWT_EXPIRATION: '8h'
-      JWT_REFRESH_SECRET: '<SET_IN_CONTAINER_STATION>'
+      JWT_REFRESH_SECRET: '${JWT_REFRESH_SECRET}'
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'
@@ -113,7 +113,7 @@ services:
       HOSTNAME: '0.0.0.0'
       PORT: '3000'
       # --- NextAuth ---
-      AUTH_SECRET: '<SET_IN_CONTAINER_STATION>'
+      AUTH_SECRET: '${AUTH_SECRET}'
       AUTH_URL: 'https://lcbp3.np-dms.work'
     networks:
       - lcbp3
