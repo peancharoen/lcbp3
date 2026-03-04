@@ -70,7 +70,7 @@ Adhere to all ADRs in `specs/06-Decision-Records/`:
 ## 🚫 Forbidden Actions
 
 - DO NOT use SQL Triggers (Business logic must be in NestJS services).
-- DO NOT use `.env` files for production configuration (Use Docker environment variables).
+- DO NOT use `.env` files for production deployment — QNAP Container Station requires secrets directly in `docker-compose.yml` environment section.
 - DO NOT run database migrations — modify the schema SQL file directly.
 - DO NOT invent table names or columns — use ONLY what is defined in the schema SQL file.
 - DO NOT generate code that violates OWASP Top 10 security practices.

@@ -46,8 +46,6 @@ jobs:
             echo "🔄 Updating Containers..."
             # Sync compose file จาก repo → app directory
             cp /share/np-dms/app/source/lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/docker-compose-app.yml /share/np-dms/app/docker-compose-app.yml
-            # ⚠️ .env ต้องมีค่าจริงอยู่บน QNAP แล้ว (ไม่ sync จาก repo เพราะ repo มีแค่ template)
-            # ถ้ายังไม่มี: cp .env.example .env แล้วตั้งค่าจริง
             cd /share/np-dms/app
             # ⚠️ ลบ container เดิมที่อาจสร้างจาก Container Station
             docker rm -f backend frontend 2>/dev/null || true
