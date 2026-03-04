@@ -42,7 +42,7 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 ## 📋 Spec Guidelines
 
 - Always follow specs in `specs/` (v1.8.0). Priority: `06-Decision-Records` > `05-Engineering-Guidelines` > others.
-- Always verify database schema against **`specs/03-Data-and-Storage/lcbp3-v1.8.0-schema.sql`** before writing queries.
+- Always verify database schema against **`specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`** before writing queries. (Schema split: `01-drop`, `02-tables`, `03-views-indexes`)
 - Check data dictionary at **`specs/03-Data-and-Storage/03-01-data-dictionary.md`** for field meanings and business rules.
 
 ### ADR Reference (All 17 + Patch)

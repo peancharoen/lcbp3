@@ -19,13 +19,6 @@
 --       - INDEX idx_doc_number (correspondence_number),
 --       - INDEX idx_deleted_at (deleted_at),
 --       - INDEX idx_created_by (created_by),
---   2. เพิ่ม:
---      2.1 TABLE migration_progress
---      2.2 TABLE import_transactions
---      2.3 TABLE migration_review_queue
---      2.4 TABLE migration_errors
---      2.5 TABLE migration_fallback_state
---      2.6 TABLE migration_daily_summary
 -- ==========================================================
 SET NAMES utf8mb4;
 
@@ -54,18 +47,6 @@ DROP VIEW IF EXISTS v_current_correspondences;
 -- 🗑️ DROP TABLE SCRIPT: LCBP3-DMS v1.4.2
 -- คำเตือน: ข้อมูลทั้งหมดจะหายไป กรุณา Backup ก่อนรันบน Production
 SET FOREIGN_KEY_CHECKS = 0;
-
-DROP TABLE IF EXISTS migration_progress;
-
-DROP TABLE IF EXISTS import_transactions;
-
-DROP TABLE IF EXISTS migration_review_queue;
-
-DROP TABLE IF EXISTS migration_errors;
-
-DROP TABLE IF EXISTS migration_fallback_state;
-
-DROP TABLE IF EXISTS migration_daily_summary;
 
 -- ============================================================
 -- ส่วนที่ 1: ตาราง System, Logs & Preferences (ตารางปลายทาง/ส่วนเสริม)
@@ -1563,24 +1544,6 @@ CREATE INDEX idx_wf_hist_instance ON workflow_histories (instance_id);
 
 CREATE INDEX idx_wf_hist_user ON workflow_histories (action_by_user_id);
 
--- Checkpoint Table:
-CREATE TABLE IF NOT EXISTS migration_progress (
-  batch_id VARCHAR(50) PRIMARY KEY,
-  last_processed_index INT DEFAULT 0,
-  STATUS ENUM('RUNNING', 'COMPLETED', 'FAILED') DEFAULT 'RUNNING',
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Idempotency Table :
-CREATE TABLE IF NOT EXISTS import_transactions (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  idempotency_key VARCHAR(255) UNIQUE NOT NULL,
-  document_number VARCHAR(100),
-  batch_id VARCHAR(100),
-  status_code INT DEFAULT 201,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_idem_key (idempotency_key)
-);
 
 -- ============================================================
 -- 5. PARTITIONING PREPARATION (Advance - Optional)
@@ -2070,87 +2033,6 @@ GROUP BY p.id,
 CREATE INDEX idx_correspondences_type_project ON correspondences (correspondence_type_id, project_id);
 
 CREATE INDEX idx_corr_revisions_current_status ON correspondence_revisions (is_current, correspondence_status_id);
-
--- =====================================================
--- Migration Tracking Tables (Temporary)
--- =====================================================
--- Checkpoint
-CREATE TABLE IF NOT EXISTS migration_progress (
-  batch_id VARCHAR(50) PRIMARY KEY,
-  last_processed_index INT DEFAULT 0,
-  STATUS ENUM('RUNNING', 'COMPLETED', 'FAILED') DEFAULT 'RUNNING',
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Review Queue (Temporary — ไม่ใช่ Business Schema)
-CREATE TABLE IF NOT EXISTS migration_review_queue (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  document_number VARCHAR(100) NOT NULL,
-  title TEXT,
-  original_title TEXT,
-  ai_suggested_category VARCHAR(50),
-  ai_confidence DECIMAL(4, 3),
-  ai_issues JSON,
-  review_reason VARCHAR(255),
-  STATUS ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
-  reviewed_by VARCHAR(100),
-  reviewed_at TIMESTAMP NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_doc_number (document_number)
-);
-
--- Error Log
-CREATE TABLE IF NOT EXISTS migration_errors (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  batch_id VARCHAR(50),
-  document_number VARCHAR(100),
-  error_type ENUM(
-    'FILE_NOT_FOUND',
-    'AI_PARSE_ERROR',
-    'API_ERROR',
-    'DB_ERROR',
-    'UNKNOWN'
-  ),
-  error_message TEXT,
-  raw_ai_response TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_batch_id (batch_id),
-  INDEX idx_error_type (error_type)
-);
-
--- Fallback State
-CREATE TABLE IF NOT EXISTS migration_fallback_state (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  batch_id VARCHAR(50) UNIQUE,
-  recent_error_count INT DEFAULT 0,
-  is_fallback_active BOOLEAN DEFAULT FALSE,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Idempotency (Patch)
-CREATE TABLE IF NOT EXISTS import_transactions (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  idempotency_key VARCHAR(255) UNIQUE NOT NULL,
-  document_number VARCHAR(100),
-  batch_id VARCHAR(100),
-  status_code INT DEFAULT 201,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_idem_key (idempotency_key)
-);
-
--- Daily Summary
-CREATE TABLE IF NOT EXISTS migration_daily_summary (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  batch_id VARCHAR(50),
-  summary_date DATE,
-  total_processed INT DEFAULT 0,
-  auto_ingested INT DEFAULT 0,
-  sent_to_review INT DEFAULT 0,
-  rejected INT DEFAULT 0,
-  errors INT DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_batch_date (batch_id, summary_date)
-);
 
 CREATE INDEX idx_corr_revisions_correspondence_current ON correspondence_revisions (correspondence_id, is_current);
 
