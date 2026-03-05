@@ -161,9 +161,11 @@ return [{ json: { config_loaded: true, timestamp: new Date().toISOString() }}];
 
 เนื่องจาก Free Plan ไม่สามารถซ่อน Sensitive Data ได้ทั้งหมด แนะนำให้:
 
-1. **สร้าง Dedicated User สำหรับ Migration เท่านั้น**
+1. **สร้าง Dedicated User สำหรับ Migration เท่านั้น** (แนะนำใช้ชื่อ `migration_bot`)
 2. **ใช้ Token ที่มีสิทธิ์จำกัด** (เฉพาะ API ที่จำเป็น)
 3. **Rotate Token ทันทีหลัง Migration เสร็จ**
+4. **💡 หมายเหตุ:** Backend ระบบ DMS ได้ถูกตั้งค่าให้สร้าง Token แบบไม่มีวันหมดอายุ (100 ปี) สำหรับ User ชื่อ `migration_bot` โดยเฉพาะ เพื่อป้องกันปัญหา Token หมดอายุระหว่างที่ Workflow กำลังทำงานข้ามวัน
+
 
 **Credentials (ถ้าใช้):**
 
@@ -172,6 +174,20 @@ return [{ json: { config_loaded: true, timestamp: new Date().toISOString() }}];
 | Ollama API | HTTP Request | Ollama AI Analysis |
 | LCBP3 Backend | HTTP Request | Import to Backend, Fetch Categories |
 | MariaDB | MySQL | ทุก Database Node |
+
+
+### ขั้นตอนที่ 3: วิธีการรับ MIGRATION_TOKEN
+
+1. **เข้าสู่ระบบ DMS** ด้วยบัญชี `migration_bot` (หรือบัญชี Admin สำหรับทดสอบ)
+2. กดปุ่ม `F12` เพื่อเปิด Developer Tools ของเบราว์เซอร์
+3. ไปที่แท็บ **Network** (เครือข่าย)
+4. ทำกิจกรรมใดกิจกรรมหนึ่งบนหน้าเว็บ (เช่น คลิกเปลี่ยนหน้าหรือโหลดข้อมูล)
+5. คลิกดูรายละเอียดของ Request ใดก็ได้ที่เรียกไปยัง API
+6. ภายใต้ส่วน **Request Headers** ให้มองหาแอตทริบิวต์ `Authorization`
+7. ให้คัดลอกค่าที่ตามหลังตคำว่า `Bearer` (ซึงจะเป็นสายอักขระยาวๆ)
+8. นำค่าดังกล่าวมาใส่ทดแทนในส่วนของค่าคอนฟิก `MIGRATION_TOKEN` ของ Node **Set Configuration**
+
+*(หรือใช้เครื่องมือ API Testing เช่น Postman รันคำสั่ง `POST /api/auth/login` และนำตัวแปร `accessToken` จากผลลัพธ์มาใช้งานโดยตรง)*
 
 ---
 

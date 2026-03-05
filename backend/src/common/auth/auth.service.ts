@@ -90,16 +90,23 @@ export class AuthService {
       scope: 'Global',
     };
 
+    const isBot = user.username === 'migration_bot';
+    const accessTokenExpiresIn = isBot
+      ? '100y'
+      : (this.configService.get<string>('JWT_EXPIRATION') || '15m');
+
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
-      expiresIn: (this.configService.get<string>('JWT_EXPIRATION') ||
-        '15m') as any,
+      expiresIn: accessTokenExpiresIn as any,
     });
+
+    const refreshTokenExpiresIn = isBot
+      ? '100y'
+      : (this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d');
 
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') ||
-        '7d') as any,
+      expiresIn: refreshTokenExpiresIn as any,
     });
 
     // [P2-2] Store Refresh Token in DB
