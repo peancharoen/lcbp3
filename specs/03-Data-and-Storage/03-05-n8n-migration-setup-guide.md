@@ -124,7 +124,7 @@ const CONFIG = {
   OLLAMA_MODEL_FALLBACK: 'mistral:7b-instruct-q4_K_M',
 
   // Backend Settings
-  BACKEND_URL: 'https://api.np-dms.work',
+  BACKEND_URL: 'https://backend.np-dms.work',
   MIGRATION_TOKEN: 'Bearer YOUR_MIGRATION_TOKEN_HERE', // 🔴 เปลี่ยน
 
   // Batch Settings
@@ -178,16 +178,23 @@ return [{ json: { config_loaded: true, timestamp: new Date().toISOString() }}];
 
 ### ขั้นตอนที่ 3: วิธีการรับ MIGRATION_TOKEN
 
-1. **เข้าสู่ระบบ DMS** ด้วยบัญชี `migration_bot` (หรือบัญชี Admin สำหรับทดสอบ)
-2. กดปุ่ม `F12` เพื่อเปิด Developer Tools ของเบราว์เซอร์
-3. ไปที่แท็บ **Network** (เครือข่าย)
-4. ทำกิจกรรมใดกิจกรรมหนึ่งบนหน้าเว็บ (เช่น คลิกเปลี่ยนหน้าหรือโหลดข้อมูล)
-5. คลิกดูรายละเอียดของ Request ใดก็ได้ที่เรียกไปยัง API
-6. ภายใต้ส่วน **Request Headers** ให้มองหาแอตทริบิวต์ `Authorization`
-7. ให้คัดลอกค่าที่ตามหลังตคำว่า `Bearer` (ซึงจะเป็นสายอักขระยาวๆ)
-8. นำค่าดังกล่าวมาใส่ทดแทนในส่วนของค่าคอนฟิก `MIGRATION_TOKEN` ของ Node **Set Configuration**
+เนื่องจากหน้าเว็บ DMS ใช้ระบบ Session Cookies (Auth.js) จึงไม่สามารถคัดลอก JWT Token จาก Network Tab ในเบราว์เซอร์ได้โดยตรง
 
-*(หรือใช้เครื่องมือ API Testing เช่น Postman รันคำสั่ง `POST /api/auth/login` และนำตัวแปร `accessToken` จากผลลัพธ์มาใช้งานโดยตรง)*
+ให้ใช้วิธี **เรียก API ตรงไปที่ Backend** ด้วยเครื่องมืออย่าง Postman, cURL หรือ Thunder Client แทน:
+
+**ตัวอย่างคำสั่ง cURL:**
+```bash
+curl -X POST https://api.np-dms.work/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"migration_bot","password":"YOUR_PASSWORD"}'
+```
+
+**การนำไปใช้งาน:**
+1. เปลี่ยน URL ให้ตรงกับ Backend ของคุณ (เช่น `http://localhost:3001/api/auth/login` สำหรับ Local)
+2. นำรหัสผ่านของบัญชี `migration_bot` มาใส่แทนที่ `YOUR_PASSWORD`
+3. ในผลลัพธ์ที่ได้ ให้คัดลอกเฉพาะค่าจากฟิลด์ `access_token` (ข้อความยาวๆ)
+4. นำมาตั้งค่าใน n8n Node "Set Configuration" (Node 0) ในรูปแบบ:
+   `MIGRATION_TOKEN: 'Bearer <คัดลอก Token มาวางที่นี่>'`
 
 ---
 
