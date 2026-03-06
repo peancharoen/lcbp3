@@ -44,7 +44,7 @@ export default function TagsPage() {
               className="w-3 h-3 rounded-full border border-border"
               style={{ backgroundColor: isHex ? color : (color === 'default' ? '#e2e8f0' : color) }}
             />
-            {row.original.tag_name}
+            {String(row.original.tag_name)}
           </div>
         );
       }
