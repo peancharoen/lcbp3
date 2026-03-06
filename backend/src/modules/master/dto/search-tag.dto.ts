@@ -5,6 +5,14 @@ import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SearchTagDto {
+  @ApiPropertyOptional({
+    description: 'ID โครงการ (ใช้กรอง Tag ของแต่ละโปรเจกต์)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  project_id?: number;
+
   @ApiPropertyOptional({ description: 'คำค้นหา (ชื่อ Tag หรือ คำอธิบาย)' })
   @IsOptional()
   @IsString()

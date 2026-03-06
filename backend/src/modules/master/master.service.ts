@@ -253,10 +253,20 @@ export class MasterService {
   // ... (Tag Logic เดิม คงไว้ตามปกติ) ...
   async findAllTags(query?: SearchTagDto) {
     const qb = this.tagRepo.createQueryBuilder('tag');
-    if (query?.search) {
-      qb.where('tag.tag_name LIKE :search OR tag.description LIKE :search', {
-        search: `%${query.search}%`,
+
+    if (query?.project_id) {
+      qb.andWhere('tag.project_id = :projectId', {
+        projectId: query.project_id,
       });
+    }
+
+    if (query?.search) {
+      qb.andWhere(
+        '(tag.tag_name LIKE :search OR tag.description LIKE :search)',
+        {
+          search: `%${query.search}%`,
+        }
+      );
     }
     qb.orderBy('tag.tag_name', 'ASC');
     if (query?.page && query?.limit) {
@@ -278,8 +288,11 @@ export class MasterService {
     return tag;
   }
 
-  async createTag(dto: CreateTagDto) {
-    const tag = this.tagRepo.create(dto);
+  async createTag(dto: CreateTagDto, userId: number) {
+    const tag = this.tagRepo.create({
+      ...dto,
+      created_by: userId,
+    });
     return this.tagRepo.save(tag);
   }
 

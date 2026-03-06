@@ -3,7 +3,9 @@
 -- รัน: mysql < 01-schema-drop.sql แล้วจึงรัน 02-schema-tables.sql
 -- ==========================================================
 SET NAMES utf8mb4;
+
 SET time_zone = '+07:00';
+
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- =====================================================
@@ -342,11 +344,21 @@ CREATE TABLE correspondence_revisions (
 -- ตาราง Master เก็บ Tags ทั้งหมดที่ใช้ในระบบ
 CREATE TABLE tags (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
-  tag_name VARCHAR(100) NOT NULL UNIQUE COMMENT 'ชื่อ Tag',
+  project_id INT NULL COMMENT 'ID โครงการ (NULL = Global Tag)',
+  tag_name VARCHAR(100) NOT NULL COMMENT 'ชื่อ Tag',
+  color_code VARCHAR(30) DEFAULT 'default' COMMENT 'รหัสสี หรือชื่อคลาสสำหรับ UI',
   description TEXT COMMENT 'คำอธิบายแท็ก',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด '
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ Tags ทั้งหมดที่ใช้ในระบบ';
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  created_by INT COMMENT 'ผู้สร้าง',
+  deleted_at DATETIME NULL COMMENT 'ลบแบบ Soft Delete',
+  -- Constraints & Indexes
+  FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    UNIQUE KEY ux_tag_project (project_id, tag_name),
+    INDEX idx_tags_deleted_at (deleted_at)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บ Tags ย่อยตาม Project';
 
 -- ตารางเชื่อมระหว่าง correspondences และ tags (M:N)
 CREATE TABLE correspondence_tags (
@@ -354,8 +366,9 @@ CREATE TABLE correspondence_tags (
   tag_id INT COMMENT 'ID ของ Tag',
   PRIMARY KEY (correspondence_id, tag_id),
   FOREIGN KEY (correspondence_id) REFERENCES correspondences (id) ON DELETE CASCADE,
-  FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมระหว่าง correspondences และ tags (M :N)';
+  FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
+  INDEX idx_tag_lookup (tag_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมระหว่าง correspondences และ tags (M:N)';
 
 -- ตารางเชื่อมการอ้างอิงระหว่างเอกสาร (M:N)
 CREATE TABLE correspondence_references (
@@ -1340,5 +1353,3 @@ CREATE TABLE workflow_histories (
 CREATE INDEX idx_wf_hist_instance ON workflow_histories (instance_id);
 
 CREATE INDEX idx_wf_hist_user ON workflow_histories (action_by_user_id);
-
-

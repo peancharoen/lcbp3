@@ -1,48 +1,41 @@
 {
   "name": "LCBP3 Migration Workflow v1.8.0",
-  "meta": {
-    "instanceId": "lcbp3-migration-free"
-  },
-  "settings": {
-    "executionOrder": "v1"
-  },
   "nodes": [
     {
       "parameters": {},
-      "id": "trigger-manual",
+      "id": "c41e7a06-5115-48e8-a8ce-821bb3e4d2dc",
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        0,
-        0
+        4640,
+        3696
       ],
       "notes": "กดรันด้วยตนเอง"
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// CONFIGURATION - แก้ไขค่าที่นี่\n// ============================================\nconst CONFIG = {\n  // Ollama Settings\n  OLLAMA_HOST: 'http://192.168.20.100:11434',\n  OLLAMA_MODEL_PRIMARY: 'llama3.2:3b',\n  OLLAMA_MODEL_FALLBACK: 'mistral:7b-instruct-q4_K_M',\n  \n  // Backend Settings\n  BACKEND_URL: 'https://api.np-dms.work',\n  MIGRATION_TOKEN: 'Bearer YOUR_MIGRATION_TOKEN_HERE',\n  \n  // Batch Settings\n  BATCH_SIZE: 10,\n  BATCH_ID: 'migration_20260226',\n  DELAY_MS: 2000,\n  \n  // Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n  MAX_RETRY: 3,\n  FALLBACK_THRESHOLD: 5,\n  \n  // Paths\n  STAGING_PATH: '/home/node/.n8n-files/staging_ai',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n  \n  // Database\n  DB_HOST: '192.168.1.100',\n  DB_PORT: 3306,\n  DB_NAME: 'lcbp3_db',\n  DB_USER: 'migration_bot',\n  DB_PASSWORD: 'YOUR_DB_PASSWORD_HERE'\n};\n\nreturn [{ json: { config_loaded: true, timestamp: new Date().toISOString(), config: CONFIG } }];"
+        "jsCode": "// ============================================\n// CONFIGURATION - แก้ไขค่าที่นี่\n// ============================================\nconst CONFIG = {\n  // Ollama Settings\n  OLLAMA_HOST: 'http://192.168.20.100:11434',\n  OLLAMA_MODEL_PRIMARY: 'llama3.2:3b',\n  OLLAMA_MODEL_FALLBACK: 'mistral:7b-instruct-q4_K_M',\n  \n  // Backend Settings\n  BACKEND_URL: 'https://backend.np-dms.work',\n  MIGRATION_TOKEN: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1pZ3JhdGlvbl9ib3QiLCJzdWIiOjUsInNjb3BlIjoiR2xvYmFsIiwiaWF0IjoxNzcyNzc0MzI5LCJleHAiOjQ5Mjg1MzQzMjl9.TtA8zoHy7G9J5jPgYQPv7yw-9X--B_hl-Nv-c9V4PaA',\n  \n  // Batch Settings\n  BATCH_SIZE: 10,\n  BATCH_ID: 'migration_20260226',\n  DELAY_MS: 2000,\n  \n  // Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n  MAX_RETRY: 3,\n  FALLBACK_THRESHOLD: 5,\n  \n  // Source Definitions - แก้ไขโฟลเดอร์และไฟล์ทำงานที่นี่\n  EXCEL_FILE: '/home/node/.n8n-files/staging_ai/C22024.xlsx',\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai/Incoming/08 ผรม.2/2567',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n  \n  // Database\n  DB_HOST: '192.168.10.8',\n  DB_PORT: 3306,\n  DB_NAME: 'lcbp3',\n  DB_USER: 'migration_bot',\n  DB_PASSWORD: 'Center2025'\n};\n\nreturn [{ json: { config_loaded: true, timestamp: new Date().toISOString(), config: CONFIG } }];"
       },
-      "id": "config-setter",
+      "id": "bc8c9b9d-284d-4ce5-b7ff-d5b4bb36e748",
       "name": "Set Configuration",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        200,
-        0
+        4832,
+        3696
       ],
       "notes": "กำหนดค่า Configuration ทั้งหมด - แก้ไขที่นี่ก่อนรัน"
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/master/correspondence-types",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "={{$workflow.staticData.config.MIGRATION_TOKEN}}"
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
             }
           ]
         },
@@ -50,150 +43,165 @@
           "timeout": 10000
         }
       },
-      "id": "preflight-categories",
+      "id": "ccb5fea4-773d-4584-a14c-88845f4c2bc3",
       "name": "Fetch Categories",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        400,
-        0
+        5040,
+        3696
       ],
       "notes": "ดึง Categories จาก Backend"
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/health",
         "options": {
           "timeout": 5000
         }
       },
-      "id": "preflight-health",
+      "id": "0fe2cc93-7d88-4290-8170-2863e087afd3",
       "name": "Check Backend Health",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        400,
-        200
+        5008,
+        3328
       ],
-      "notes": "ตรวจสอบ Backend พร้อมใช้งาน",
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "notes": "ตรวจสอบ Backend พร้อมใช้งาน"
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\n// Check file mount\ntry {\n  const files = fs.readdirSync(config.STAGING_PATH);\n  if (files.length === 0) throw new Error('staging_ai is empty');\n  \n  // Check write permission to log path\n  fs.writeFileSync(`${config.LOG_PATH}/.preflight_ok`, new Date().toISOString());\n  \n  // Store categories\n  const categories = $input.first().json.categories || \n    ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  $('File Mount Check').first().json.system_categories = categories;\n  \n  return [{ json: { \n    preflight_ok: true, \n    file_count: files.length,\n    system_categories: categories,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}"
+        "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\n// Check file mount and inputs\ntry {\n  if (!fs.existsSync(config.EXCEL_FILE)) {\n    throw new Error(`Excel file not found at: ${config.EXCEL_FILE}`);\n  }\n  if (!fs.existsSync(config.SOURCE_PDF_DIR)) {\n    throw new Error(`PDF Source directory not found at: ${config.SOURCE_PDF_DIR}`);\n  }\n  \n  const files = fs.readdirSync(config.SOURCE_PDF_DIR);\n  \n  // Check write permission to log path\n  fs.writeFileSync(`${config.LOG_PATH}/.preflight_ok`, new Date().toISOString());\n  \n  // Grab categories out of the previous node (Fetch Categories) if available\n  // otherwise use fallback array\n  let categories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  try {\n    const upstreamData = $('Fetch Categories').first()?.json?.data;\n    if (upstreamData && Array.isArray(upstreamData)) {\n        categories = upstreamData.map(c => c.name || c.type || c); // very loose mapping depending on API response\n    }\n  } catch(e) {}\n    \n  return [{ json: { \n    preflight_ok: true, \n    pdf_count_in_source: files.length,\n    excel_target: config.EXCEL_FILE,\n    system_categories: categories,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}"
       },
-      "id": "preflight-check",
+      "id": "5bdb31ca-9588-404d-92ce-3438bdd9835b",
       "name": "File Mount Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        600,
-        0
+        5248,
+        3392
       ],
-      "notes": "ตรวจสอบ File System และเก็บ Categories"
+      "notes": "ตรวจสอบ File System มีไฟล์ Excel และ Folder ตามตั้งค่า"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "host": "={{$('Set Configuration').first().json.config.DB_HOST}}",
-        "port": "={{$('Set Configuration').first().json.config.DB_PORT}}",
-        "database": "={{$('Set Configuration').first().json.config.DB_NAME}}",
-        "user": "={{$('Set Configuration').first().json.config.DB_USER}}",
-        "password": "={{$('Set Configuration').first().json.config.DB_PASSWORD}}",
         "query": "SELECT last_processed_index, status FROM migration_progress WHERE batch_id = '{{$('Set Configuration').first().json.config.BATCH_ID}}' LIMIT 1",
         "options": {}
       },
-      "id": "checkpoint-read",
+      "id": "2907a4ca-2a46-45ef-8920-9684d00ffda7",
       "name": "Read Checkpoint",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        800,
-        0
+        5504,
+        3376
       ],
-      "notes": "อ่านตำแหน่งล่าสุดที่ประมวลผล",
-      "onError": "continueErrorOutput"
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "CHHfbKhMacNo03V4",
+          "name": "MySQL account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "notes": "อ่านตำแหน่งล่าสุดที่ประมวลผล"
     },
     {
       "parameters": {
-        "operation": "toData",
-        "binaryProperty": "data",
-        "options": {
-          "sheetName": "Sheet1"
-        }
+        "fileSelector": "={{ $json.excel_target }}",
+        "options": {}
       },
-      "id": "excel-reader",
+      "id": "f035d28b-413b-4386-bbef-d242cd22aa8f",
+      "name": "Read Excel Binary",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        5040,
+        4112
+      ],
+      "notes": "ดึงไฟล์ Excel ขึ้นมาไว้ในหน่วยความจำ"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "35727d79-e3c2-4fdf-8bc3-064914393cf7",
       "name": "Read Excel",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
       "position": [
-        800,
-        200
+        5264,
+        3968
       ],
-      "notes": "อ่านไฟล์ Excel รายการเอกสาร"
+      "notes": "แปลงข้อมูล Excel เป็น JSON Data"
     },
     {
       "parameters": {
-        "jsCode": "const checkpoint = $input.first().json[0] || { last_processed_index: 0, status: 'NEW' };\nconst startIndex = checkpoint.last_processed_index || 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all()[0].json.data || [];\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Encoding Normalization\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => ({\n  json: {\n    document_number: normalize(item.document_number || item['Document Number']),\n    title: normalize(item.title || item.Title || item['Subject']),\n    legacy_number: normalize(item.legacy_number || item['Legacy Number']),\n    excel_revision: item.revision || item.Revision || 1,\n    original_index: startIndex + i,\n    batch_id: config.BATCH_ID,\n    file_name: `${normalize(item.document_number)}.pdf`\n  }\n}));"
+        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.last_processed_index || 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Encoding Normalization\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const docNum = item.document_number || item['Document Number'] || item['Corr. No.'];\n  return {\n    json: {\n      document_number: normalize(docNum),\n      title: normalize(item.title || item.Title || item['Subject']),\n      legacy_number: normalize(item.legacy_number || item['Legacy Number'] || item['Response Doc.'] || ''),\n      excel_revision: item.revision || item.Revision || item.rev || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: `${normalize(docNum)}.pdf`\n    }\n  };\n});"
       },
-      "id": "batch-processor",
+      "id": "49c98c75-456b-4a1d-a203-a5b2bf19fd15",
       "name": "Process Batch + Encoding",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1000,
-        0
+        5712,
+        3360
       ],
+      "alwaysOutputData": true,
       "notes": "ตัด Batch + Normalize UTF-8"
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst config = $('Set Configuration').first().json.config;\n\nconst items = $input.all();\nconst validated = [];\nconst errors = [];\n\nfor (const item of items) {\n  const docNum = item.json.document_number;\n  \n  // Sanitize filename\n  const safeName = path.basename(String(docNum).replace(/[^a-zA-Z0-9\\-_.]/g, '_')).normalize('NFC');\n  const filePath = path.resolve(config.STAGING_PATH, `${safeName}.pdf`);\n  \n  // Path traversal check\n  if (!filePath.startsWith(config.STAGING_PATH)) {\n    errors.push({\n      ...item,\n      json: { ...item.json, error: 'Path traversal detected', error_type: 'SECURITY', file_exists: false }\n    });\n    continue;\n  }\n  \n  try {\n    if (fs.existsSync(filePath)) {\n      const stats = fs.statSync(filePath);\n      validated.push({\n        ...item,\n        json: { ...item.json, file_exists: true, file_size: stats.size, file_path: filePath }\n      });\n    } else {\n      errors.push({\n        ...item,\n        json: { ...item.json, error: `File not found: ${safeName}.pdf`, error_type: 'FILE_NOT_FOUND', file_exists: false }\n      });\n    }\n  } catch (err) {\n    errors.push({\n      ...item,\n      json: { ...item.json, error: err.message, error_type: 'FILE_ERROR', file_exists: false }\n    });\n  }\n}\n\n// Output 0: Validated, Output 1: Errors\nreturn [validated, errors];"
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst config = $('Set Configuration').first().json.config;\n\nconst items = $input.all();\nif (!items || items.length === 0) return [];\n\nconst validated = [];\nconst errors = [];\n\nfor (const item of items) {\n  const docNum = item.json?.document_number;\n  if (!docNum) continue;\n  \n  // Sanitize filename\n  const safeName = path.basename(String(docNum).replace(/[^a-zA-Z0-9\\-_.]/g, '_')).normalize('NFC');\n  const filePath = path.resolve(config.SOURCE_PDF_DIR, `${safeName}.pdf`);\n  \n  // Path traversal check\n  if (!filePath.startsWith(path.resolve(config.SOURCE_PDF_DIR))) {\n    errors.push({\n      ...item,\n      json: { ...item.json, file_valid: false, error: 'Path traversal detected in Source PDF path', error_type: 'SECURITY', file_exists: false }\n    });\n    continue;\n  }\n  \n  try {\n    if (fs.existsSync(filePath)) {\n      const stats = fs.statSync(filePath);\n      validated.push({\n        ...item,\n        json: { ...item.json, file_valid: true, file_exists: true, file_size: stats.size, file_path: filePath }\n      });\n    } else {\n      errors.push({\n        ...item,\n        json: { ...item.json, file_valid: false, error: `File not found: ${safeName}.pdf in ${config.SOURCE_PDF_DIR}`, error_type: 'FILE_NOT_FOUND', file_exists: false }\n      });\n    }\n  } catch (err) {\n    errors.push({\n      ...item,\n      json: { ...item.json, file_valid: false, error: err.message, error_type: 'FILE_ERROR', file_exists: false }\n    });\n  }\n}\n\nreturn [...validated, ...errors];"
       },
-      "id": "file-validator",
+      "id": "51e91c88-98cd-4df4-81ac-e452b25e5c06",
       "name": "File Validator",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
-        0
+        5904,
+        3264
       ],
-      "notes": "ตรวจสอบไฟล์ PDF มีอยู่จริง + Sanitize path"
+      "notes": "ตรวจสอบไฟล์ PDF ตัวชี้ใน Directory จาก Config"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "host": "={{$('Set Configuration').first().json.config.DB_HOST}}",
-        "port": "={{$('Set Configuration').first().json.config.DB_PORT}}",
-        "database": "={{$('Set Configuration').first().json.config.DB_NAME}}",
-        "user": "={{$('Set Configuration').first().json.config.DB_USER}}",
-        "password": "={{$('Set Configuration').first().json.config.DB_PASSWORD}}",
         "query": "SELECT is_fallback_active, recent_error_count FROM migration_fallback_state WHERE batch_id = '{{$('Set Configuration').first().json.config.BATCH_ID}}' LIMIT 1",
         "options": {}
       },
-      "id": "fallback-check",
+      "id": "88c205b6-9b94-4a4f-ad53-ab3cad6fde27",
       "name": "Check Fallback State",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        1400,
-        -200
+        6032,
+        3488
       ],
-      "notes": "ตรวจสอบว่าต้องใช้ Fallback Model หรือไม่",
-      "onError": "continueErrorOutput"
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "CHHfbKhMacNo03V4",
+          "name": "MySQL account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "notes": "ตรวจสอบว่าต้องใช้ Fallback Model หรือไม่"
     },
     {
       "parameters": {
-        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst fallbackState = $input.first().json[0] || { is_fallback_active: false, recent_error_count: 0 };\n\nconst isFallback = fallbackState.is_fallback_active || false;\nconst model = isFallback ? config.OLLAMA_MODEL_FALLBACK : config.OLLAMA_MODEL_PRIMARY;\n\nconst systemCategories = $('File Mount Check').first().json.system_categories || \n  ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n\nconst items = $('File Validator').all();\n\nreturn items.map(item => {\n  const systemPrompt = `You are a Document Controller for a large construction project.\nYour task is to validate document metadata.\nYou MUST respond ONLY with valid JSON. No explanation, no markdown, no extra text.\nIf there are no issues, \"detected_issues\" must be an empty array [].`;\n\n  const userPrompt = `Validate this document metadata and respond in JSON:\n\nDocument Number: ${item.json.document_number}\nTitle: ${item.json.title}\nExpected Pattern: [ORG]-[TYPE]-[SEQ] e.g. \"TCC-COR-0001\"\nCategory List (MUST match system enum exactly): ${JSON.stringify(systemCategories)}\n\nRespond ONLY with this exact JSON structure:\n{\n  \"is_valid\": true | false,\n  \"confidence\": 0.0 to 1.0,\n  \"suggested_category\": \"<one from Category List>\",\n  \"detected_issues\": [\"<issue1>\"],\n  \"suggested_title\": \"<corrected title or null>\"\n}`;\n\n  return {\n    json: {\n      ...item.json,\n      active_model: model,\n      is_fallback: isFallback,\n      system_categories: systemCategories,\n      ollama_payload: {\n        model: model,\n        prompt: `${systemPrompt}\\n\\n${userPrompt}`,\n        stream: false,\n        format: 'json'\n      }\n    }\n  };\n});"
+        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst fallbackState = $input.first().json[0] || { is_fallback_active: false, recent_error_count: 0 };\n\nconst isFallback = fallbackState.is_fallback_active || false;\nconst model = isFallback ? config.OLLAMA_MODEL_FALLBACK : config.OLLAMA_MODEL_PRIMARY;\n\n// Safely pull categories from the first Check node\nlet systemCategories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\ntry { systemCategories = $('File Mount Check').first().json.system_categories || systemCategories; } catch (e) {}\n\nconst items = $('File Validator').all();\n\nreturn items.map(item => {\n  const systemPrompt = `You are a Document Controller for a large construction project.\nYour task is to validate document metadata.\nYou MUST respond ONLY with valid JSON. No explanation, no markdown, no extra text.\nIf there are no issues, \"detected_issues\" must be an empty array [].`;\n\n  const userPrompt = `Validate this document metadata and respond in JSON:\n\nDocument Number: ${item.json.document_number}\nTitle: ${item.json.title}\nExpected Pattern: [ORG]-[TYPE]-[SEQ] e.g. \"TCC-COR-0001\"\nCategory List (MUST match system enum exactly): ${JSON.stringify(systemCategories)}\n\nRespond ONLY with this exact JSON structure:\n{\n  \"is_valid\": true | false,\n  \"confidence\": 0.0 to 1.0,\n  \"suggested_category\": \"<one from Category List>\",\n  \"detected_issues\": [\"<issue1>\"],\n  \"suggested_title\": \"<corrected title or null>\"\n}`;\n\n  return {\n    json: {\n      ...item.json,\n      active_model: model,\n      is_fallback: isFallback,\n      system_categories: systemCategories,\n      ollama_payload: {\n        model: model,\n        prompt: `${systemPrompt}\\n\\n${userPrompt}`,\n        stream: false,\n        format: 'json'\n      }\n    }\n  };\n});"
       },
-      "id": "prompt-builder",
+      "id": "9f82950f-7533-4cbd-8e1e-8e441c1cb2a5",
       "name": "Build AI Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1400,
-        0
+        6032,
+        3696
       ],
       "notes": "สร้าง Prompt โดยใช้ Categories จาก System"
     },
@@ -208,13 +216,13 @@
           "timeout": 30000
         }
       },
-      "id": "ollama-call",
+      "id": "ae9b6be5-284c-44db-b7f0-b4839a59230e",
       "name": "Ollama AI Analysis",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1600,
-        0
+        6240,
+        3696
       ],
       "notes": "เรียก Ollama วิเคราะห์เอกสาร"
     },
@@ -222,48 +230,49 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst parsed = [];\nconst parseErrors = [];\n\nfor (const item of items) {\n  try {\n    let raw = item.json.response || '';\n    \n    // Clean markdown\n    raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();\n    const result = JSON.parse(raw);\n    \n    // Schema Validation\n    if (typeof result.is_valid !== 'boolean') throw new Error('is_valid must be boolean');\n    if (typeof result.confidence !== 'number' || result.confidence < 0 || result.confidence > 1) {\n      throw new Error('confidence must be float 0.0-1.0');\n    }\n    if (!Array.isArray(result.detected_issues)) throw new Error('detected_issues must be array');\n    \n    // Enum Validation\n    const systemCategories = item.json.system_categories || [];\n    if (!systemCategories.includes(result.suggested_category)) {\n      throw new Error(`Category \"${result.suggested_category}\" not in system enum`);\n    }\n    \n    parsed.push({\n      ...item,\n      json: { ...item.json, ai_result: result, parse_error: null }\n    });\n  } catch (err) {\n    parseErrors.push({\n      ...item,\n      json: {\n        ...item.json,\n        ai_result: null,\n        parse_error: err.message,\n        raw_ai_response: item.json.response,\n        error_type: 'AI_PARSE_ERROR'\n      }\n    });\n  }\n}\n\nreturn [parsed, parseErrors];"
       },
-      "id": "json-parser",
+      "id": "281dc950-a3b6-4412-a0b4-76663b8c37ea",
       "name": "Parse & Validate AI Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1800,
-        0
+        6432,
+        3696
       ],
       "notes": "Parse JSON + Validate Schema + Enum Check"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "host": "={{$('Set Configuration').first().json.config.DB_HOST}}",
-        "port": "={{$('Set Configuration').first().json.config.DB_PORT}}",
-        "database": "={{$('Set Configuration').first().json.config.DB_NAME}}",
-        "user": "={{$('Set Configuration').first().json.config.DB_USER}}",
-        "password": "={{$('Set Configuration').first().json.config.DB_PASSWORD}}",
         "query": "INSERT INTO migration_fallback_state (batch_id, recent_error_count, is_fallback_active) VALUES ('{{$('Set Configuration').first().json.config.BATCH_ID}}', 1, FALSE) ON DUPLICATE KEY UPDATE recent_error_count = recent_error_count + 1, is_fallback_active = CASE WHEN recent_error_count + 1 >= {{$('Set Configuration').first().json.config.FALLBACK_THRESHOLD}} THEN TRUE ELSE is_fallback_active END, updated_at = NOW()",
         "options": {}
       },
-      "id": "fallback-update",
+      "id": "41904cb6-b6f3-4a32-9dd5-c44e8e0cefab",
       "name": "Update Fallback State",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        2000,
-        200
+        6640,
+        3888
       ],
+      "credentials": {
+        "mySql": {
+          "id": "CHHfbKhMacNo03V4",
+          "name": "MySQL account"
+        }
+      },
       "notes": "เพิ่ม Error count และตรวจสอบ Fallback threshold"
     },
     {
       "parameters": {
         "jsCode": "const config = $('Set Configuration').first().json.config;\nconst items = $('Parse & Validate AI Response').all();\n\nconst autoIngest = [];\nconst reviewQueue = [];\nconst rejectLog = [];\nconst errorLog = [];\n\nfor (const item of items) {\n  if (item.json.parse_error || !item.json.ai_result) {\n    errorLog.push(item);\n    continue;\n  }\n  \n  const ai = item.json.ai_result;\n  \n  // Revision Drift Protection (ถ้ามีข้อมูลจาก DB)\n  if (item.json.current_db_revision !== undefined) {\n    const expectedRev = item.json.current_db_revision + 1;\n    if (parseInt(item.json.excel_revision) !== expectedRev) {\n      reviewQueue.push({\n        ...item,\n        json: { ...item.json, review_reason: `Revision drift: Excel=${item.json.excel_revision}, Expected=${expectedRev}` }\n      });\n      continue;\n    }\n  }\n  \n  // Confidence Routing\n  if (ai.confidence >= config.CONFIDENCE_HIGH && ai.is_valid === true) {\n    autoIngest.push(item);\n  } else if (ai.confidence >= config.CONFIDENCE_LOW) {\n    reviewQueue.push({\n      ...item,\n      json: { ...item.json, review_reason: `Confidence ${ai.confidence.toFixed(2)} < ${config.CONFIDENCE_HIGH}` }\n    });\n  } else {\n    rejectLog.push({\n      ...item,\n      json: { ...item.json, reject_reason: ai.is_valid === false ? 'AI marked invalid' : `Confidence ${ai.confidence.toFixed(2)} < ${config.CONFIDENCE_LOW}` }\n    });\n  }\n}\n\n// Output 0: Auto, 1: Review, 2: Reject, 3: Error\nreturn [autoIngest, reviewQueue, rejectLog, errorLog];"
       },
-      "id": "confidence-router",
+      "id": "897dfc43-9f4f-4a9b-8727-64f3483ac56a",
       "name": "Confidence Router",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2000,
-        0
+        6640,
+        3696
       ],
       "notes": "แยกตาม Confidence: Auto(≥0.85) / Review(≥0.60) / Reject(<0.60)"
     },
@@ -276,11 +285,11 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "={{$workflow.staticData.config.MIGRATION_TOKEN}}"
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
             },
             {
               "name": "Idempotency-Key",
-              "value": "={{$json.document_number}}:{{$workflow.staticData.config.BATCH_ID}}"
+              "value": "={{$json.document_number}}:{{$('Set Configuration').first().json.config.BATCH_ID}}"
             }
           ]
         },
@@ -291,13 +300,13 @@
           "timeout": 30000
         }
       },
-      "id": "backend-import",
+      "id": "49762c5d-0cb3-4acf-97f7-7e22905148dc",
       "name": "Import to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        2200,
-        -200
+        6832,
+        3488
       ],
       "notes": "ส่งข้อมูลเข้า LCBP3 Backend พร้อม Idempotency-Key"
     },
@@ -305,69 +314,71 @@
       "parameters": {
         "jsCode": "const item = $input.first();\nconst shouldCheckpoint = item.json.original_index % 10 === 0;\n\nreturn [{\n  json: {\n    ...item.json,\n    should_update_checkpoint: shouldCheckpoint,\n    checkpoint_index: item.json.original_index,\n    import_status: 'success',\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
-      "id": "checkpoint-flag",
+      "id": "7fd03017-f08c-4e93-9486-36069f91ce57",
       "name": "Flag Checkpoint",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2400,
-        -200
+        7040,
+        3488
       ],
       "notes": "กำหนดว่าจะบันทึก Checkpoint หรือไม่ (ทุก 10 records)"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "host": "={{$('Set Configuration').first().json.config.DB_HOST}}",
-        "port": "={{$('Set Configuration').first().json.config.DB_PORT}}",
-        "database": "={{$('Set Configuration').first().json.config.DB_NAME}}",
-        "user": "={{$('Set Configuration').first().json.config.DB_USER}}",
-        "password": "={{$('Set Configuration').first().json.config.DB_PASSWORD}}",
         "query": "INSERT INTO migration_progress (batch_id, last_processed_index, status) VALUES ('{{$('Set Configuration').first().json.config.BATCH_ID}}', {{$json.checkpoint_index}}, 'RUNNING') ON DUPLICATE KEY UPDATE last_processed_index = {{$json.checkpoint_index}}, updated_at = NOW()",
         "options": {}
       },
-      "id": "checkpoint-save",
+      "id": "27b26d7b-2b57-479f-81ca-8d9319a45a7d",
       "name": "Save Checkpoint",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        2600,
-        -200
+        7232,
+        3488
       ],
+      "credentials": {
+        "mySql": {
+          "id": "CHHfbKhMacNo03V4",
+          "name": "MySQL account"
+        }
+      },
       "notes": "บันทึกความคืบหน้าลง Database"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "host": "={{$('Set Configuration').first().json.config.DB_HOST}}",
-        "port": "={{$('Set Configuration').first().json.config.DB_PORT}}",
-        "database": "={{$('Set Configuration').first().json.config.DB_NAME}}",
-        "user": "={{$('Set Configuration').first().json.config.DB_USER}}",
-        "password": "={{$('Set Configuration').first().json.config.DB_PASSWORD}}",
         "query": "INSERT INTO migration_review_queue (document_number, title, original_title, ai_suggested_category, ai_confidence, ai_issues, review_reason, status, created_at) VALUES ('{{$json.document_number}}', '{{$json.ai_result.suggested_title || $json.title}}', '{{$json.title}}', '{{$json.ai_result.suggested_category}}', {{$json.ai_result.confidence}}, '{{JSON.stringify($json.ai_result.detected_issues)}}', '{{$json.review_reason}}', 'PENDING', NOW()) ON DUPLICATE KEY UPDATE status = 'PENDING', review_reason = '{{$json.review_reason}}', created_at = NOW()",
         "options": {}
       },
-      "id": "review-queue-insert",
+      "id": "5d9547a9-36c8-434d-93e2-405be47d4e43",
       "name": "Insert Review Queue",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        2200,
-        0
+        6832,
+        3696
       ],
+      "credentials": {
+        "mySql": {
+          "id": "CHHfbKhMacNo03V4",
+          "name": "MySQL account"
+        }
+      },
       "notes": "บันทึกรายการที่ต้องตรวจสอบโดยคน (ไม่สร้าง Correspondence)"
     },
     {
       "parameters": {
         "jsCode": "const fs = require('fs');\nconst item = $input.first();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/reject_log.csv`;\nconst header = 'timestamp,document_number,title,reject_reason,ai_confidence,ai_issues\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nconst line = [\n  new Date().toISOString(),\n  esc(item.json.document_number),\n  esc(item.json.title),\n  esc(item.json.reject_reason),\n  item.json.ai_result?.confidence ?? 'N/A',\n  esc(JSON.stringify(item.json.ai_result?.detected_issues || []))\n].join(',') + '\\n';\n\nfs.appendFileSync(csvPath, line, 'utf8');\n\nreturn [$input.first()];"
       },
-      "id": "reject-logger",
+      "id": "e933dc6a-885c-4607-916f-f28c655ceac4",
       "name": "Log Reject to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2200,
-        200
+        6832,
+        3888
       ],
       "notes": "บันทึกรายการที่ถูกปฏิเสธลง CSV"
     },
@@ -375,35 +386,36 @@
       "parameters": {
         "jsCode": "const fs = require('fs');\nconst items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/error_log.csv`;\nconst header = 'timestamp,document_number,error_type,error_message,raw_ai_response\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nfor (const item of items) {\n  const line = [\n    new Date().toISOString(),\n    esc(item.json.document_number),\n    esc(item.json.error_type || 'UNKNOWN'),\n    esc(item.json.error || item.json.parse_error),\n    esc(item.json.raw_ai_response || '')\n  ].join(',') + '\\n';\n  \n  fs.appendFileSync(csvPath, line, 'utf8');\n}\n\nreturn items;"
       },
-      "id": "error-logger-csv",
+      "id": "cda3d253-a14d-4ec5-adaa-3e7b276be1f2",
       "name": "Log Error to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1400,
-        400
+        6032,
+        4096
       ],
       "notes": "บันทึก Error ลง CSV (จาก File Validator)"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "host": "={{$('Set Configuration').first().json.config.DB_HOST}}",
-        "port": "={{$('Set Configuration').first().json.config.DB_PORT}}",
-        "database": "={{$('Set Configuration').first().json.config.DB_NAME}}",
-        "user": "={{$('Set Configuration').first().json.config.DB_USER}}",
-        "password": "={{$('Set Configuration').first().json.config.DB_PASSWORD}}",
         "query": "INSERT INTO migration_errors (batch_id, document_number, error_type, error_message, raw_ai_response, created_at) VALUES ('{{$('Set Configuration').first().json.config.BATCH_ID}}', '{{$json.document_number}}', '{{$json.error_type || \"UNKNOWN\"}}', '{{$json.error || $json.parse_error}}', '{{$json.raw_ai_response || \"\"}}', NOW())",
         "options": {}
       },
-      "id": "error-logger-db",
+      "id": "1ee11a28-e339-42ac-9066-0ff6dac30920",
       "name": "Log Error to DB",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        2000,
-        400
+        6640,
+        4096
       ],
+      "credentials": {
+        "mySql": {
+          "id": "CHHfbKhMacNo03V4",
+          "name": "MySQL account"
+        }
+      },
       "notes": "บันทึก Error ลง MariaDB"
     },
     {
@@ -411,17 +423,19 @@
         "amount": "={{$('Set Configuration').first().json.config.DELAY_MS}}",
         "unit": "milliseconds"
       },
-      "id": "delay-node",
+      "id": "0bd637f6-6260-44ab-a27e-d7f4cb372ce4",
       "name": "Delay",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
       "position": [
-        2800,
-        0
+        7440,
+        3696
       ],
+      "webhookId": "38e97a99-4dcc-4b63-977a-a02945a1c369",
       "notes": "หน่วงเวลาระหว่าง Batches"
     }
   ],
+  "pinData": {},
   "connections": {
     "Manual Trigger": {
       "main": [
@@ -435,6 +449,17 @@
       ]
     },
     "Set Configuration": {
+      "main": [
+        [
+          {
+            "node": "Check Backend Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Backend Health": {
       "main": [
         [
           {
@@ -457,6 +482,28 @@
       ]
     },
     "File Mount Check": {
+      "main": [
+        [
+          {
+            "node": "Read Excel Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Excel Binary": {
+      "main": [
+        [
+          {
+            "node": "Read Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Excel": {
       "main": [
         [
           {
@@ -493,14 +540,18 @@
       "main": [
         [
           {
-            "node": "Build AI Prompt",
+            "node": "Check Fallback State",
             "type": "main",
             "index": 0
           }
-        ],
+        ]
+      ]
+    },
+    "Check Fallback State": {
+      "main": [
         [
           {
-            "node": "Log Error to CSV",
+            "node": "Build AI Prompt",
             "type": "main",
             "index": 0
           }
@@ -537,13 +588,6 @@
             "type": "main",
             "index": 0
           }
-        ],
-        [
-          {
-            "node": "Update Fallback State",
-            "type": "main",
-            "index": 0
-          }
         ]
       ]
     },
@@ -555,24 +599,25 @@
             "type": "main",
             "index": 0
           }
-        ],
+        ]
+      ]
+    },
+    "Insert Review Queue": {
+      "main": [
         [
           {
-            "node": "Insert Review Queue",
+            "node": "Delay",
             "type": "main",
             "index": 0
           }
-        ],
+        ]
+      ]
+    },
+    "Log Reject to CSV": {
+      "main": [
         [
           {
-            "node": "Log Reject to CSV",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log Error to DB",
+            "node": "Delay",
             "type": "main",
             "index": 0
           }
@@ -601,6 +646,17 @@
         ]
       ]
     },
+    "Save Checkpoint": {
+      "main": [
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Log Error to CSV": {
       "main": [
         [
@@ -611,6 +667,40 @@
           }
         ]
       ]
+    },
+    "Log Error to DB": {
+      "main": [
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay": {
+      "main": [
+        [
+          {
+            "node": "Read Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
-  }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c52d7a07-398b-495e-b384-fb4f02ef3fed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e70e47c1eaf3bac72f497ddfbde0983f840f7d0f059537f7e37dd70de18ecb7"
+  },
+  "id": "u7CLP05AyFb8Um0P",
+  "tags": []
 }

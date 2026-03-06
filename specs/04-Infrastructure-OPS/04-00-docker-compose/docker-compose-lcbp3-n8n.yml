@@ -65,6 +65,7 @@ services:
       N8N_RESTRICT_FILE_ACCESS_TO: "/home/node/.n8n-files"
       N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: "false"
       GENERIC_TIMEZONE: "Asia/Bangkok"
+      NODE_FUNCTION_ALLOW_BUILTIN: "*"
       # DB Setup
       DB_TYPE: postgresdb
       DB_POSTGRESDB_DATABASE: n8n
@@ -75,7 +76,7 @@ services:
       # Data Prune
       EXECUTIONS_DATA_PRUNE: 'true'
       EXECUTIONS_DATA_MAX_AGE: 168
-      EXECUTIONS_DATA_PRUNE_TIMEOUT: 60
+      # EXECUTIONS_DATA_PRUNE_TIMEOUT: 60
 
     ports:
       - "5678:5678"

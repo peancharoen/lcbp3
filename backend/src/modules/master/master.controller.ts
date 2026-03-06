@@ -26,6 +26,7 @@ import { SaveNumberFormatDto } from './dto/save-number-format.dto'; // [New]
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Master Data')
 @Controller('master')
@@ -216,8 +217,11 @@ export class MasterController {
   @Post('tags')
   @RequirePermission('master_data.tag.manage')
   @ApiOperation({ summary: 'Create a new tag' })
-  createTag(@Body() dto: CreateTagDto) {
-    return this.masterService.createTag(dto);
+  createTag(
+    @CurrentUser() user: { userId: number },
+    @Body() dto: CreateTagDto
+  ) {
+    return this.masterService.createTag(dto, user.userId);
   }
 
   @Patch('tags/:id')

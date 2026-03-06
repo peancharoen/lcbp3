@@ -434,31 +434,38 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 ---
 
-### 3.6 tags
+### 3.6 tags (UPDATE v1.8.0)
 
-**Purpose**: Master table for document tagging system
+**Purpose**: Master table for document tagging system (Supports multi-tenant per project)
 
-| Column Name | Data Type    | Constraints                         | Description               |
-| ----------- | ------------ | ----------------------------------- | ------------------------- |
-| id          | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique tag ID             |
-| tag_name    | VARCHAR(100) | NOT NULL, UNIQUE                    | Tag name                  |
-| description | TEXT         | NULL                                | Tag description           |
-| created_at  | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp |
-| updated_at  | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp     |
+| Column Name    | Data Type       | Constraints                         | Description                             |
+| -------------- | --------------- | ----------------------------------- | --------------------------------------- |
+| id             | INT             | PRIMARY KEY, AUTO_INCREMENT         | Unique tag ID                           |
+| **project_id** | **INT**         | **NULL, FK**                        | **[NEW] Project scope (NULL = Global)** |
+| tag_name       | VARCHAR(100)    | NOT NULL                            | Tag name                                |
+| **color_code** | **VARCHAR(30)** | **DEFAULT 'default'**               | **[NEW] UI Color/Class Code**           |
+| description    | TEXT            | NULL                                | Tag description                         |
+| created_at     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp               |
+| updated_at     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp                   |
+| **created_by** | **INT**         | **NULL, FK**                        | **[NEW] User who created the tag**      |
+| **deleted_at** | **DATETIME**    | **NULL**                            | **[NEW] Soft delete timestamp**         |
 
 **Indexes**:
 
 * PRIMARY KEY (id)
-* UNIQUE (tag_name)
-* INDEX (tag_name) - For autocomplete
+* **FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE**
+* **FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL**
+* **UNIQUE KEY (project_id, tag_name)**
+* INDEX (deleted_at)
 
 **Relationships**:
 
+* Parent: projects, users
 * Referenced by: correspondence_tags
 
 ---
 
-### 3.7 correspondence_tags
+### 3.7 correspondence_tags (UPDATE v1.8.0)
 
 **Purpose**: Junction table linking correspondences to tags (M:N)
 
@@ -472,7 +479,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * PRIMARY KEY (correspondence_id, tag_id)
 * FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
 * FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-* INDEX (tag_id)
+* **INDEX idx_tag_lookup (tag_id) - For reverse lookup (Find documents by tag)**
 
 **Relationships**:
 
