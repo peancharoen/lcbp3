@@ -36,7 +36,7 @@ export default function TagsPage() {
       accessorKey: "tag_name",
       header: "Tag Name",
       cell: ({ row }) => {
-        const color = row.original.color_code || 'default';
+        const color = String(row.original.color_code || 'default');
         const isHex = color.startsWith('#');
         return (
           <div className="flex items-center gap-2">
