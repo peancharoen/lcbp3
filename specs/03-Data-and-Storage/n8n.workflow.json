@@ -55,6 +55,32 @@
     },
     {
       "parameters": {
+        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/tags",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "f1a2b3c4-d5e6-7f8g-9h0i-j1k2l3m4n5o6",
+      "name": "Fetch Tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        5040,
+        3856
+      ],
+      "notes": "ดึง Tags ที่มีอยู่แล้วจาก Backend"
+    },
+    {
+      "parameters": {
         "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/health",
         "options": {
           "timeout": 5000
@@ -73,7 +99,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\n// Check file mount and inputs\ntry {\n  if (!fs.existsSync(config.EXCEL_FILE)) {\n    throw new Error(`Excel file not found at: ${config.EXCEL_FILE}`);\n  }\n  if (!fs.existsSync(config.SOURCE_PDF_DIR)) {\n    throw new Error(`PDF Source directory not found at: ${config.SOURCE_PDF_DIR}`);\n  }\n  \n  const files = fs.readdirSync(config.SOURCE_PDF_DIR);\n  \n  // Check write permission to log path\n  fs.writeFileSync(`${config.LOG_PATH}/.preflight_ok`, new Date().toISOString());\n  \n  // Grab categories out of the previous node (Fetch Categories) if available\n  // otherwise use fallback array\n  let categories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  try {\n    const upstreamData = $('Fetch Categories').first()?.json?.data;\n    if (upstreamData && Array.isArray(upstreamData)) {\n        categories = upstreamData.map(c => c.name || c.type || c); // very loose mapping depending on API response\n    }\n  } catch(e) {}\n    \n  return [{ json: { \n    preflight_ok: true, \n    pdf_count_in_source: files.length,\n    excel_target: config.EXCEL_FILE,\n    system_categories: categories,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}"
+        "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\n// Check file mount and inputs\ntry {\n  if (!fs.existsSync(config.EXCEL_FILE)) {\n    throw new Error(`Excel file not found at: ${config.EXCEL_FILE}`);\n  }\n  if (!fs.existsSync(config.SOURCE_PDF_DIR)) {\n    throw new Error(`PDF Source directory not found at: ${config.SOURCE_PDF_DIR}`);\n  }\n  \n  const files = fs.readdirSync(config.SOURCE_PDF_DIR);\n  \n  // Check write permission to log path\n  fs.writeFileSync(`${config.LOG_PATH}/.preflight_ok`, new Date().toISOString());\n  \n  // Grab categories out of the previous node (Fetch Categories) if available\n  // otherwise use fallback array\n  let categories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  try {\n    const upstreamData = $('Fetch Categories').first()?.json?.data;\n    if (upstreamData && Array.isArray(upstreamData)) {\n        categories = upstreamData.map(c => c.name || c.type || c); // very loose mapping depending on API response\n    }\n  } catch(e) {}\n  \n  // Grab existing tags from Fetch Tags node\n  let existingTags = [];\n  try {\n    const tagData = $('Fetch Tags').first()?.json?.data || [];\n    existingTags = Array.isArray(tagData) ? tagData.map(t => t.tag_name || t.name || '').filter(Boolean) : [];\n  } catch(e) {}\n    \n  return [{ json: { \n    preflight_ok: true, \n    pdf_count_in_source: files.length,\n    excel_target: config.EXCEL_FILE,\n    system_categories: categories,\n    existing_tags: existingTags,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}\n}"
       },
       "id": "5bdb31ca-9588-404d-92ce-3438bdd9835b",
       "name": "File Mount Check",
@@ -193,7 +219,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst fallbackState = $input.first().json[0] || { is_fallback_active: false, recent_error_count: 0 };\n\nconst isFallback = fallbackState.is_fallback_active || false;\nconst model = isFallback ? config.OLLAMA_MODEL_FALLBACK : config.OLLAMA_MODEL_PRIMARY;\n\n// Safely pull categories from the first Check node\nlet systemCategories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\ntry { systemCategories = $('File Mount Check').first().json.system_categories || systemCategories; } catch (e) {}\n\nconst items = $('File Validator').all();\n\nreturn items.map(item => {\n  const systemPrompt = `You are a Document Controller for a large construction project.\nYour task is to validate document metadata.\nYou MUST respond ONLY with valid JSON. No explanation, no markdown, no extra text.\nIf there are no issues, \"detected_issues\" must be an empty array [].`;\n\n  const userPrompt = `Validate this document metadata and respond in JSON:\n\nDocument Number: ${item.json.document_number}\nTitle: ${item.json.title}\nExpected Pattern: [ORG]-[TYPE]-[SEQ] e.g. \"TCC-COR-0001\"\nCategory List (MUST match system enum exactly): ${JSON.stringify(systemCategories)}\n\nRespond ONLY with this exact JSON structure:\n{\n  \"is_valid\": true | false,\n  \"confidence\": 0.0 to 1.0,\n  \"suggested_category\": \"<one from Category List>\",\n  \"detected_issues\": [\"<issue1>\"],\n  \"suggested_title\": \"<corrected title or null>\"\n}`;\n\n  return {\n    json: {\n      ...item.json,\n      active_model: model,\n      is_fallback: isFallback,\n      system_categories: systemCategories,\n      ollama_payload: {\n        model: model,\n        prompt: `${systemPrompt}\\n\\n${userPrompt}`,\n        stream: false,\n        format: 'json'\n      }\n    }\n  };\n});"
+        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst fallbackState = $input.first().json[0] || { is_fallback_active: false, recent_error_count: 0 };\n\nconst isFallback = fallbackState.is_fallback_active || false;\nconst model = isFallback ? config.OLLAMA_MODEL_FALLBACK : config.OLLAMA_MODEL_PRIMARY;\n\n// Safely pull categories from the first Check node\nlet systemCategories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\ntry { systemCategories = $('File Mount Check').first().json.system_categories || systemCategories; } catch (e) {}\n\nconst items = $('File Validator').all();\n\nreturn items.map(item => {\n  const systemPrompt = `You are a Document Controller for a large construction project.\nYour task is to validate document metadata and suggest relevant tags.\nYou MUST respond ONLY with valid JSON. No explanation, no markdown, no extra text.\nIf there are no issues, \"detected_issues\" must be an empty array [].`;\n\n  const userPrompt = `Validate this document metadata and respond in JSON:\n\nDocument Number: ${item.json.document_number}\nTitle: ${item.json.title}\nExpected Pattern: [ORG]-[TYPE]-[SEQ] e.g. \"TCC-COR-0001\"\nCategory List (MUST match system enum exactly): ${JSON.stringify(systemCategories)}\n\nAnalyze the document and suggest relevant tags based on:\n1. Document content/title keywords (e.g., \"Foundation\", \"Structure\", \"Electrical\", \"Safety\")\n2. Document type indicators (e.g., \"Drawing\", \"Report\", \"Inspection\")\n3. Organization codes present in document number\n4. Any discipline or phase indicators\n\nRespond ONLY with this exact JSON structure:\n{\n  \"is_valid\": true | false,\n  \"confidence\": 0.0 to 1.0,\n  \"suggested_category\": \"<one from Category List>\",\n  \"detected_issues\": [\"<issue1>\"],\n  \"suggested_title\": \"<corrected title or null>\",\n  \"suggested_tags\": [\"<tag1>\", \"<tag2>\"],\n  \"tag_confidence\": 0.0 to 1.0\n}`;\n\n  return {\n    json: {\n      ...item.json,\n      active_model: model,\n      is_fallback: isFallback,\n      system_categories: systemCategories,\n      ollama_payload: {\n        model: model,\n        prompt: `${systemPrompt}\\n\\n${userPrompt}`,\n        stream: false,\n        format: 'json'\n      }\n    }\n  };\n});"
       },
       "id": "9f82950f-7533-4cbd-8e1e-8e441c1cb2a5",
       "name": "Build AI Prompt",
@@ -228,7 +254,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst parsed = [];\nconst parseErrors = [];\n\nfor (const item of items) {\n  try {\n    let raw = item.json.response || '';\n    \n    // Clean markdown\n    raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();\n    const result = JSON.parse(raw);\n    \n    // Schema Validation\n    if (typeof result.is_valid !== 'boolean') throw new Error('is_valid must be boolean');\n    if (typeof result.confidence !== 'number' || result.confidence < 0 || result.confidence > 1) {\n      throw new Error('confidence must be float 0.0-1.0');\n    }\n    if (!Array.isArray(result.detected_issues)) throw new Error('detected_issues must be array');\n    \n    // Enum Validation\n    const systemCategories = item.json.system_categories || [];\n    if (!systemCategories.includes(result.suggested_category)) {\n      throw new Error(`Category \"${result.suggested_category}\" not in system enum`);\n    }\n    \n    parsed.push({\n      ...item,\n      json: { ...item.json, ai_result: result, parse_error: null }\n    });\n  } catch (err) {\n    parseErrors.push({\n      ...item,\n      json: {\n        ...item.json,\n        ai_result: null,\n        parse_error: err.message,\n        raw_ai_response: item.json.response,\n        error_type: 'AI_PARSE_ERROR'\n      }\n    });\n  }\n}\n\nreturn [parsed, parseErrors];"
+        "jsCode": "const items = $input.all();\nconst parsed = [];\nconst parseErrors = [];\n\nfor (const item of items) {\n  try {\n    let raw = item.json.response || '';\n    \n    // Clean markdown\n    raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();\n    const result = JSON.parse(raw);\n    \n    // Schema Validation\n    if (typeof result.is_valid !== 'boolean') throw new Error('is_valid must be boolean');\n    if (typeof result.confidence !== 'number' || result.confidence < 0 || result.confidence > 1) {\n      throw new Error('confidence must be float 0.0-1.0');\n    }\n    if (!Array.isArray(result.detected_issues)) throw new Error('detected_issues must be array');\n    \n    // Tag Validation - ensure suggested_tags is an array\n    if (!Array.isArray(result.suggested_tags)) {\n      result.suggested_tags = [];\n    }\n    // Normalize tags: trim, lowercase, remove duplicates\n    result.suggested_tags = [...new Set(result.suggested_tags.map(t => String(t).trim()).filter(t => t.length > 0))];\n    \n    // Tag confidence validation\n    if (typeof result.tag_confidence !== 'number' || result.tag_confidence < 0 || result.tag_confidence > 1) {\n      result.tag_confidence = 0.5; // default if missing or invalid\n    }\n    \n    // Enum Validation\n    const systemCategories = item.json.system_categories || [];\n    if (!systemCategories.includes(result.suggested_category)) {\n      throw new Error(`Category \"${result.suggested_category}\" not in system enum`);\n    }\n    \n    parsed.push({\n      ...item,\n      json: { ...item.json, ai_result: result, parse_error: null }\n    });\n  } catch (err) {\n    parseErrors.push({\n      ...item,\n      json: {\n        ...item.json,\n        ai_result: null,\n        parse_error: err.message,\n        raw_ai_response: item.json.response,\n        error_type: 'AI_PARSE_ERROR'\n      }\n    });\n  }\n}\n\nreturn [parsed, parseErrors];"
       },
       "id": "281dc950-a3b6-4412-a0b4-76663b8c37ea",
       "name": "Parse & Validate AI Response",
@@ -295,7 +321,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"document_number\": \"{{$json.document_number}}\",\n  \"title\": \"{{$json.ai_result.suggested_title || $json.title}}\",\n  \"category\": \"{{$json.ai_result.suggested_category}}\",\n  \"source_file_path\": \"{{$json.file_path}}\",\n  \"ai_confidence\": {{$json.ai_result.confidence}},\n  \"ai_issues\": {{JSON.stringify($json.ai_result.detected_issues)}},\n  \"migrated_by\": \"SYSTEM_IMPORT\",\n  \"batch_id\": \"{{$('Set Configuration').first().json.config.BATCH_ID}}\",\n  \"details\": {\n    \"legacy_number\": \"{{$json.legacy_number}}\"\n  }\n}",
+        "jsonBody": "={\n  \"document_number\": \"{{$json.document_number}}\",\n  \"title\": \"{{$json.ai_result.suggested_title || $json.title}}\",\n  \"category\": \"{{$json.ai_result.suggested_category}}\",\n  \"source_file_path\": \"{{$json.file_path}}\",\n  \"ai_confidence\": {{$json.ai_result.confidence}},\n  \"ai_issues\": {{JSON.stringify($json.ai_result.detected_issues)}},\n  \"ai_tags\": {{JSON.stringify($json.ai_result.suggested_tags || [])}},\n  \"tag_confidence\": {{$json.ai_result.tag_confidence || 0}},\n  \"migrated_by\": \"SYSTEM_IMPORT\",\n  \"batch_id\": \"{{$('Set Configuration').first().json.config.BATCH_ID}}\",\n  \"details\": {\n    \"legacy_number\": \"{{$json.legacy_number}}\"\n  }\n}",
         "options": {
           "timeout": 30000
         }
@@ -471,6 +497,17 @@
       ]
     },
     "Fetch Categories": {
+      "main": [
+        [
+          {
+            "node": "Fetch Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Tags": {
       "main": [
         [
           {

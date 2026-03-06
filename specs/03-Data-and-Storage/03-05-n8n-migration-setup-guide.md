@@ -230,8 +230,9 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 ### Node 1-2: Pre-flight Checks
 - ตรวจสอบ Backend Health
 - ดึง Categories จาก `/api/master/correspondence-types`
+- ดึง Tags ที่มีอยู่แล้วจาก `/api/tags` (สำหรับ AI Tag Extraction)
 - ตรวจ File Mount (Read-only)
-- เก็บ Categories ใน `$workflow.staticData.systemCategories`
+- เก็บ Categories และ Existing Tags ใน `$workflow.staticData.systemCategories`
 
 ### Node 3: Read Checkpoint
 - อ่าน `last_processed_index` จาก `migration_progress`
@@ -251,16 +252,19 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 ### Node 6: Build AI Prompt
 - ดึง Categories จาก `staticData` (ไม่ hardcode)
 - เลือก Model ตาม Fallback State
-- สร้าง Prompt ตาม Template
+- สร้าง Prompt ตาม Template พร้อม **Tag Extraction Instructions**
+- AI จะวิเคราะห์ Title และ Document Number เพื่อสกัด Tags ที่เกี่ยวข้อง
 
 ### Node 7: Ollama AI Analysis
 - เรียก `POST /api/generate`
 - Timeout 30 วินาที
 - Retry 3 ครั้ง (n8n built-in)
+- AI Response รวม `suggested_tags` และ `tag_confidence`
 
 ### Node 8: Parse & Validate
 - Parse JSON Response
 - Schema Validation (is_valid, confidence, detected_issues)
+- **Tag Validation**: Normalize tags (trim, lowercase, deduplicate)
 - Enum Validation (ตรวจ Category ว่าอยู่ใน List หรือไม่)
 - **Output 2 ทาง**: Success → Router, Error → Fallback
 
@@ -274,6 +278,8 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 ### Node 10A: Auto Ingest
 - POST `/api/migration/import`
 - Header: `Idempotency-Key: {doc_num}:{batch_id}`
+- Payload รวม **ai_tags** และ **tag_confidence**
+- Backend จะสร้าง Tags ที่ยังไม่มี และผูกกับเอกสารอัตโนมัติ
 - บันทึก Checkpoint ทุก 10 records
 
 ### Node 10B: Review Queue
@@ -397,9 +403,11 @@ mysql -h <DB_IP> -u root -p \
 | 5   | File Mount RO ถูกต้อง    | `docker exec n8n ls /home/node/.n8n-files/staging_ai`             |
 | 6   | Log Mount RW ถูกต้อง     | `docker exec n8n touch /home/node/.n8n-files/migration_logs/test` |
 | 7   | Categories ไม่ hardcode | ดูผลลัพธ์ Node Fetch Categories                                      |
-| 8   | Idempotency Key ถูกต้อง  | ตรวจ Header ใน Node Import                                        |
-| 9   | Checkpoint บันทึก        | ตรวจสอบ `migration_progress` หลังรัน                                |
-| 10  | Error Log สร้างไฟล์      | ตรวจสอบ `error_log.csv`                                           |
+| 8   | Tags โหลดถูกต้อง        | ดูผลลัพธ์ Node Fetch Tags (ควรแสดงรายการ Tags ที่มีอยู่)             |
+| 9   | AI Tag Extraction ทำงาน | ตรวจ `suggested_tags` ใน Response จาก Parse & Validate Node       |
+| 10  | Idempotency Key ถูกต้อง  | ตรวจ Header ใน Node Import                                        |
+| 11  | Checkpoint บันทึก        | ตรวจสอบ `migration_progress` หลังรัน                                |
+| 12  | Error Log สร้างไฟล์      | ตรวจสอบ `error_log.csv`                                           |
 
 ---
 
@@ -421,11 +429,33 @@ return [{ json: {
 }}];
 ```
 
-### ปัญหา: Ollama Timeout
+### ปัญหา: AI Tag Extraction ไม่ทำงาน
+**ตรวจสอบ:**
+1. ดู Response ใน Node "Parse & Validate" ว่ามี field `suggested_tags` หรือไม่
+2. ถ้าไม่มี → ตรวจสอบ Prompt ใน "Build AI Prompt" ว่ารวม Tag Extraction Instructions แล้ว
+3. ถ้า AI ตอบแต่ Tags ไม่ถูกต้อง → ปรับ Threshold หรือส่งไป Review Queue
+
+```javascript
+// Debug Code Node ชั่วคราว
+return [{
+  json: {
+    has_suggested_tags: !!$json.ai_result?.suggested_tags,
+    tag_count: $json.ai_result?.suggested_tags?.length || 0,
+    suggested_tags: $json.ai_result?.suggested_tags,
+    tag_confidence: $json.ai_result?.tag_confidence
+  }
+}];
+```
+
+### ปัญหา: Tags ซ้ำหรือผิดพลาด
 **แก้ไข:**
-- เพิ่ม `DELAY_MS` เป็น 3000 หรือ 5000
-- ลด `BATCH_SIZE` เหลือ 5
-- ตรวจสอบ GPU/CPU ของ Ollama Server
+- ใช้ SQL ตรวจสอบ Tags ที่ซ้ำ:
+```sql
+SELECT tag_name, COUNT(*) as cnt FROM tags
+WHERE created_by = (SELECT user_id FROM users WHERE username = 'migration_bot')
+GROUP BY tag_name HAVING cnt > 1;
+```
+- ถ้าพบซ้ำ → ใช้ Node Normalize ก่อนบันทึก (มีแล้วใน Parse & Validate)
 
 ---
 
@@ -442,6 +472,12 @@ docker exec n8n sh -c "tail -10 /home/node/.n8n-files/migration_logs/error_log.c
 
 # ดู Checkpoint ใน DB
 mysql -h <DB_HOST> -u migration_bot -p -e "SELECT * FROM migration_progress WHERE batch_id = 'migration_20260226'"
+
+# ดู Tags ที่สร้างจาก Migration
+mysql -h <DB_HOST> -u migration_bot -p -e "SELECT tag_name, created_at FROM tags WHERE created_by = (SELECT user_id FROM users WHERE username = 'migration_bot') ORDER BY created_at DESC LIMIT 20"
+
+# ดูสถิติการผูก Tag กับเอกสาร
+mysql -h <DB_HOST> -u migration_bot -p -e "SELECT COUNT(DISTINCT ct.correspondence_id) as docs_with_tags, COUNT(DISTINCT ct.tag_id) as unique_tags_used FROM correspondence_tags ct JOIN correspondences c ON ct.correspondence_id = c.id WHERE c.created_by = (SELECT user_id FROM users WHERE username = 'migration_bot')"
 ```
 
 ---

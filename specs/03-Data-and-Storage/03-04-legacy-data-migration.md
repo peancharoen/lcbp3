@@ -4,7 +4,7 @@
 | ------------------------------------------------------------------ | ------- |
 | legacy PDF document migration to system v1.8.0 uses n8n and Ollama | 1.8.0   |
 
-> **Note:** Category Enum system-driven, Idempotency Contract, Duplicate Handling Clarification, Storage Enforcement, Audit Log Enhancement, Review Queue Integration, Revision Drift Protection, Execution Time, Encoding Normalization, Security Hardening, Orchestrator on QNAP, AI Physical Isolation (Desktop Desk-5439), Folder Standard (/share/np-dms/n8n)
+> **Note:** Category Enum system-driven, Idempotency Contract, Duplicate Handling Clarification, Storage Enforcement, Audit Log Enhancement, Review Queue Integration, Revision Drift Protection, Execution Time, Encoding Normalization, Security Hardening, Orchestrator on QNAP, AI Physical Isolation (Desktop Desk-5439), Folder Standard (/share/np-dms/n8n), **AI Tag Extraction & Auto-Tagging**
 
 ---
 
@@ -12,6 +12,7 @@
 
 - นำเข้าเอกสาร PDF 20,000 ฉบับ พร้อม Metadata จาก Excel (Legacy system export) เข้าสู่ระบบ LCBP3-DMS
 - ใช้ AI (Ollama Local Model) เพื่อตรวจสอบความถูกต้องของลักษณะข้อมูล (Data format, Title consistency) ก่อนการนำเข้า
+- **AI Tag Extraction:** ใช้ Ollama วิเคราะห์เอกสารและสกัด Tags ที่เกี่ยวข้อง (เช่น สาขางาน, ประเภทเอกสาร, องค์กร) อัตโนมัติ
 - รักษาโครงสร้างความสัมพันธ์ (Project / Contract / Ref No.) และระบบการทำ Revision ตาม Business Rules
 - **Checkpoint Support:** รองรับการหยุดและเริ่มงานต่อ (Resume) จากจุดที่ค้างอยู่ได้กรณีเกิดเหตุขัดข้อง
 
@@ -81,6 +82,36 @@ CREATE TABLE IF NOT EXISTS migration_progress (
     last_processed_index INT DEFAULT 0,
     status               ENUM('RUNNING','COMPLETED','FAILED') DEFAULT 'RUNNING',
     updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+**Tags Table (สำหรับ AI Tag Extraction):**
+```sql
+-- ตาราง Master เก็บ Tags (Global หรือ Project-specific)
+CREATE TABLE tags (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  project_id INT NULL COMMENT 'NULL = Global Tag',
+  tag_name VARCHAR(100) NOT NULL,
+  color_code VARCHAR(30) DEFAULT 'default',
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_by INT,
+  deleted_at DATETIME NULL,
+  UNIQUE KEY ux_tag_project (project_id, tag_name),
+  INDEX idx_tags_deleted_at (deleted_at),
+  FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE SET NULL
+);
+
+-- ตารางเชื่อมระหว่าง correspondences และ tags (M:N)
+CREATE TABLE correspondence_tags (
+  correspondence_id INT,
+  tag_id INT,
+  PRIMARY KEY (correspondence_id, tag_id),
+  FOREIGN KEY (correspondence_id) REFERENCES correspondences (id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
+  INDEX idx_tag_lookup (tag_id)
 );
 ```
 
@@ -185,7 +216,7 @@ return items.map(item => ({
 **System Prompt:**
 ```text
 You are a Document Controller for a large construction project.
-Your task is to validate document metadata.
+Your task is to validate document metadata and suggest relevant tags.
 You MUST respond ONLY with valid JSON. No explanation, no markdown, no extra text.
 If there are no issues, "detected_issues" must be an empty array [].
 ```
@@ -199,21 +230,41 @@ Title: {{$json.title}}
 Expected Pattern: [ORG]-[TYPE]-[SEQ] e.g. "TCC-COR-0001"
 Category List (MUST match system enum exactly): {{$workflow.variables.system_categories}}
 
+Analyze the document and suggest relevant tags based on:
+1. Document content/title keywords (e.g., "Foundation", "Structure", "Electrical", "Safety")
+2. Document type indicators (e.g., "Drawing", "Report", "Inspection")
+3. Organization codes present in document number
+4. Any discipline or phase indicators
+
 Respond ONLY with this exact JSON structure:
 {
   "is_valid": true | false,
   "confidence": 0.0 to 1.0,
   "suggested_category": "<one from Category List>",
   "detected_issues": ["<issue1>"],
-  "suggested_title": "<corrected title or null>"
+  "suggested_title": "<corrected title or null>",
+  "suggested_tags": ["<tag1>", "<tag2>"],
+  "tag_confidence": 0.0 to 1.0
 }
 ```
 
-**JSON Validation (ตรวจ Category ตรง Enum):**
+**JSON Validation (ตรวจ Category ตรง Enum + Tag Normalization):**
 ```javascript
 const systemCategories = $workflow.variables.system_categories;
 if (!systemCategories.includes(result.suggested_category)) {
   throw new Error(`Category "${result.suggested_category}" not in system enum: ${systemCategories.join(', ')}`);
+}
+
+// Tag Validation
+if (!Array.isArray(result.suggested_tags)) {
+  result.suggested_tags = [];
+}
+// Normalize: trim, lowercase, remove duplicates
+result.suggested_tags = [...new Set(result.suggested_tags.map(t => String(t).trim()).filter(t => t.length > 0))];
+
+// Tag confidence validation
+if (typeof result.tag_confidence !== 'number' || result.tag_confidence < 0 || result.tag_confidence > 1) {
+  result.tag_confidence = 0.5;
 }
 ```
 
@@ -257,6 +308,24 @@ Idempotency-Key: <document_number>:<batch_id>
 Content-Type: application/json
 ```
 
+**Backend Tag Handling Logic:**
+
+เมื่อ Backend รับ Payload พร้อม `ai_tags` ระบบจะ:
+
+1. **Validate Tags:** ตรวจสอบว่า tag name อยู่ในรูปแบบที่ถูกต้อง (ไม่ว่าง, ไม่มีอักขระพิเศษ)
+2. **Create Missing Tags:** ถ้า Tag ไม่มีอยู่ใน `tags` table → สร้างใหม่โดยอัตโนมัติ
+   ```sql
+   INSERT INTO tags (tag_name, created_by, created_at)
+   VALUES ('<tag_name>', (SELECT user_id FROM users WHERE username = 'migration_bot'), NOW())
+   ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id);
+   ```
+3. **Link Document Tags:** บันทึกความสัมพันธ์ใน `correspondence_tags`
+   ```sql
+   INSERT INTO correspondence_tags (correspondence_id, tag_id)
+   SELECT LAST_INSERT_ID(), tag_id FROM tags WHERE tag_name IN (<ai_tags>);
+   ```
+4. **Tag Confidence Logging:** บันทึก `tag_confidence` ลงใน `details` JSON ของ Revision
+
 Payload:
 ```json
 {
@@ -266,6 +335,8 @@ Payload:
   "source_file_path":  "{{file_path}}",
   "ai_confidence":     "{{ai_result.confidence}}",
   "ai_issues":         "{{ai_result.detected_issues}}",
+  "ai_tags":           "{{ai_result.suggested_tags}}",
+  "tag_confidence":    "{{ai_result.tag_confidence}}",
   "migrated_by":       "SYSTEM_IMPORT",
   "batch_id":          "{{$env.MIGRATION_BATCH_ID}}"
 }
@@ -400,7 +471,8 @@ WHERE batch_id = 'migration_20260226';
 | 7    | GPU VRAM Overflow          | ใช้เฉพาะ Quantized Model (q4_K_M)                   |
 | 8    | ดิสก์ NAS เต็ม                | ปิด "Save Successful Executions" ใน n8n             |
 | 9    | Migration Token ถูกขโมย     | Token 7 วัน, IP Whitelist `<NAS_IP>` เท่านั้น          |
-| 10   | ไฟดับ/ล่มกลางคัน              | Checkpoint Table → Resume จากจุดที่ค้าง                |
+| 11   | AI Tag Extraction ผิดพลาด | Tag confidence < 0.6 → ส่งไป Review Queue / บันทึกใน metadata |
+| 12   | Tag ซ้ำ/คล้ายกัน        | Normalization ก่อนบันทึก (lowercase, trim, deduplicate) |
 
 ---
 
@@ -422,6 +494,25 @@ WHERE created_by = 'SYSTEM_IMPORT' AND action = 'IMPORT';
 -- 4. ตรวจ Idempotency ไม่มีซ้ำ
 SELECT idempotency_key, COUNT(*) FROM import_transactions
 GROUP BY idempotency_key HAVING COUNT(*) > 1;
+
+-- 5. ตรวจ Tags ที่สร้างจาก Migration
+SELECT COUNT(*) as total_tags FROM tags WHERE created_by = (SELECT user_id FROM users WHERE username = 'migration_bot');
+
+-- 6. ตรวจเอกสารที่มี Tag ผูกอยู่
+SELECT COUNT(DISTINCT correspondence_id) as docs_with_tags
+FROM correspondence_tags ct
+JOIN correspondences c ON ct.correspondence_id = c.id
+WHERE c.created_by = (SELECT user_id FROM users WHERE username = 'migration_bot');
+
+-- 7. ตรวจ Tag Distribution
+SELECT t.tag_name, COUNT(ct.correspondence_id) as doc_count
+FROM tags t
+JOIN correspondence_tags ct ON t.id = ct.tag_id
+JOIN correspondences c ON ct.correspondence_id = c.id
+WHERE c.created_by = (SELECT user_id FROM users WHERE username = 'migration_bot')
+GROUP BY t.id, t.tag_name
+ORDER BY doc_count DESC
+LIMIT 20;
 ```
 
 ---
