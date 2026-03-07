@@ -41,4 +41,20 @@ export class ImportCorrespondenceDto {
   @IsObject()
   @IsOptional()
   details?: Record<string, any>;
+
+  @IsNumber()
+  @IsNotEmpty()
+  project_id!: number;
+
+  @IsString()
+  @IsOptional()
+  issued_date?: string;
+
+  @IsString()
+  @IsOptional()
+  received_date?: string;
+
+  @IsString()
+  @IsOptional()
+  body?: string;
 }

@@ -15,7 +15,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// CONFIGURATION - แก้ไขค่าที่นี่\n// ============================================\nconst CONFIG = {\n  // Ollama Settings\n  OLLAMA_HOST: 'http://192.168.20.100:11434',\n  OLLAMA_MODEL_PRIMARY: 'llama3.2:3b',\n  OLLAMA_MODEL_FALLBACK: 'mistral:7b-instruct-q4_K_M',\n  \n  // Backend Settings\n  BACKEND_URL: 'https://backend.np-dms.work',\n  MIGRATION_TOKEN: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1pZ3JhdGlvbl9ib3QiLCJzdWIiOjUsInNjb3BlIjoiR2xvYmFsIiwiaWF0IjoxNzcyNzc0MzI5LCJleHAiOjQ5Mjg1MzQzMjl9.TtA8zoHy7G9J5jPgYQPv7yw-9X--B_hl-Nv-c9V4PaA',\n  \n  // Batch Settings\n  BATCH_SIZE: 5,\n  BATCH_ID: 'migration_20260226',\n  DELAY_MS: 2000,\n  \n  // Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n  MAX_RETRY: 3,\n  FALLBACK_THRESHOLD: 5,\n  \n  // Source Definitions - แก้ไขโฟลเดอร์และไฟล์ทำงานที่นี่\n  EXCEL_FILE: '/home/node/.n8n-files/staging_ai/C22024.xlsx',\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai/Incoming/08C.2/2567',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n  \n  // Database\n  DB_HOST: '192.168.10.8',\n  DB_PORT: 3306,\n  DB_NAME: 'lcbp3',\n  DB_USER: 'migration_bot',\n  DB_PASSWORD: 'Center2025',\n  PROJECT_ID: 1\n};\n\nreturn [{ json: { config_loaded: true, timestamp: new Date().toISOString(), config: CONFIG } }];"
+        "jsCode": "// ============================================\n// CONFIGURATION - แก้ไขค่าที่นี่\n// ============================================\nconst CONFIG = {\n  // Ollama Settings\n  OLLAMA_HOST: 'http://192.168.20.100:11434',\n  OLLAMA_MODEL_PRIMARY: 'llama3.2:3b',\n  OLLAMA_MODEL_FALLBACK: 'mistral:7b-instruct-q4_K_M',\n  \n  // Backend Settings\n  BACKEND_URL: 'https://backend.np-dms.work',\n  MIGRATION_TOKEN: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1pZ3JhdGlvbl9ib3QiLCJzdWIiOjUsInNjb3BlIjoiR2xvYmFsIiwiaWF0IjoxNzcyNzc0MzI5LCJleHAiOjQ5Mjg1MzQzMjl9.TtA8zoHy7G9J5jPgYQPv7yw-9X--B_hl-Nv-c9V4PaA',\n  \n  // Batch Settings\n  BATCH_SIZE: 5,\n  BATCH_ID: 'migration_20260226',\n  DELAY_MS: 2000,\n  \n  // Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n  MAX_RETRY: 3,\n  FALLBACK_THRESHOLD: 5,\n  \n  // Source Definitions - แก้ไขโฟลเดอร์และไฟล์ทำงานที่นี่\n  EXCEL_FILE: '/home/node/.n8n-files/staging_ai/C22024.xlsx',\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai/Incoming/08C.2/2567',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n  \n  // Database\n  DB_HOST: '192.168.10.8',\n  DB_PORT: 3306,\n  DB_NAME: 'lcbp3',\n  DB_USER: 'migration_bot',\n  DB_PASSWORD: 'Center2025'\n};\n\nreturn [{ json: { config_loaded: true, timestamp: new Date().toISOString(), config: CONFIG } }];"
       },
       "id": "bc8c9b9d-284d-4ce5-b7ff-d5b4bb36e748",
       "name": "Set Configuration",
@@ -166,7 +166,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.last_processed_index || 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Encoding Normalization\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const docNum = item.document_number || item['Document Number'] || item['Corr. No.'];\n  // Use File name from Excel directly - must exist\n  const excelFileName = item['File name'] || item.file_name || item['File Name'] || item.filename;\n  if (!excelFileName) {\n    throw new Error(`Missing 'File name' column for row ${i + startIndex + 1}, document: ${docNum}`);\n  }\n  const fileName = normalize(excelFileName);\n  return {\n    json: {\n      document_number: normalize(docNum),\n      title: normalize(item.title || item.Title || item['Subject']),\n      legacy_number: normalize(item.legacy_number || item['Legacy Number'] || item['Response Doc.'] || ''),\n      excel_revision: item.revision || item.Revision || item.rev || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: fileName,\n      issued_date: normalize(item.issued_date || item['Issued Date'] || item.date || item.Date || item.document_date || item.Document_Date),\n      received_date: normalize(item.received_date || item['Received Date'] || item.receive || item.Receive)\n    }\n  };\n});"
+        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.last_processed_index || 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Encoding Normalization\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const docNum = item.document_number || item['Document Number'] || item['Corr. No.'];\n  // Use File name from Excel directly - must exist\n  const excelFileName = item['File name'] || item.file_name || item['File Name'] || item.filename;\n  if (!excelFileName) {\n    throw new Error(`Missing 'File name' column for row ${i + startIndex + 1}, document: ${docNum}`);\n  }\n  const fileName = normalize(excelFileName);\n  return {\n    json: {\n      document_number: normalize(docNum),\n      title: normalize(item.title || item.Title || item['Subject']),\n      legacy_number: normalize(item.legacy_number || item['Legacy Number'] || item['Response Doc.'] || ''),\n      excel_revision: item.revision || item.Revision || item.rev || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: fileName\n    }\n  };\n});"
       },
       "id": "49c98c75-456b-4a1d-a203-a5b2bf19fd15",
       "name": "Process Batch + Encoding",
@@ -219,7 +219,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst fallbackState = $input.first().json[0] || { is_fallback_active: false, recent_error_count: 0 };\n\nconst isFallback = fallbackState.is_fallback_active || false;\nconst model = isFallback ? config.OLLAMA_MODEL_FALLBACK : config.OLLAMA_MODEL_PRIMARY;\n\n// Safely pull categories from the first Check node\nlet systemCategories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\ntry { systemCategories = $('File Mount Check').first().json.system_categories || systemCategories; } catch (e) {}\n\nconst items = $('Extract PDF Text').all();\n\nreturn items.map(item => {\n  const docNum = String(item.json.document_number || '');\n  const isRFA = docNum.includes('-RFA-') || String(item.json.title || '').toLowerCase().includes('rfa');\n  \n  const systemPrompt = `You are an expert Document Controller for a large construction project (LCBP3).\nYour task is to classify documents and extract precise metadata for the Document Management System.\nYou MUST respond ONLY with valid JSON. No explanation, no markdown.`;\n\n  const pdfText = String(item.json.text || '').substring(0, 3000).replace(/[^a-zA-Z0-9ก-๙\\s\\./]/g, ' ');\n  const userPrompt = `Analyze this document metadata:\nDocument Number: ${item.json.document_number}\nTitle: ${item.json.title}\nLegacy Number: ${item.json.legacy_number}\n\nRules:\n1. Category must be one of: ${JSON.stringify(systemCategories)}\n2. If Document Number contains \"-RFA-\", suggest_category MUST be \"RFA\".\n3. For RFA, extract:\n   - \"ref_no\": Reference number if mentioned in title/legacy.\n   - \"response_to\": If this is a response to another document.\n4. For Letters (Correspondence), identify:\n   - \"from_org\": Sending organization (e.g., TCC, CNNC).\n   - \"to_org\": Receiving organization.\n\nRespond ONLY with this JSON structure:\n{\n  \"is_valid\": true,\n  \"confidence\": 0.95,\n  \"suggested_category\": \"${isRFA ? 'RFA' : 'Correspondence'}\",\n  \"detected_issues\": [],\n  \"suggested_title\": null,\n  \"suggested_tags\": [\"Construction\", \"${isRFA ? 'Request' : 'Letter'}\"],\n  \"metadata\": {\n    \"ref_no\": null,\n    \"response_to\": null,\n    \"from_org\": null,\n    \"to_org\": null,\n    \"body\": null\n  }\n}`;\n\n  return {\n    json: {\n      ...item.json,\n      active_model: model,\n      is_fallback: isFallback,\n      system_categories: systemCategories,\n      ollama_payload: {\n        model: model,\n        prompt: `${systemPrompt}\\n\\n${userPrompt}`,\n        stream: false,\n        format: 'json'\n      }\n    }\n  };\n});"
+        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst fallbackState = $input.first().json[0] || { is_fallback_active: false, recent_error_count: 0 };\n\nconst isFallback = fallbackState.is_fallback_active || false;\nconst model = isFallback ? config.OLLAMA_MODEL_FALLBACK : config.OLLAMA_MODEL_PRIMARY;\n\n// Safely pull categories from the first Check node\nlet systemCategories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\ntry { systemCategories = $('File Mount Check').first().json.system_categories || systemCategories; } catch (e) {}\n\nconst items = $('File Validator').all();\n\nreturn items.map(item => {\n  const docNum = String(item.json.document_number || '');\n  const isRFA = docNum.includes('-RFA-') || String(item.json.title || '').toLowerCase().includes('rfa');\n  \n  const systemPrompt = `You are an expert Document Controller for a large construction project (LCBP3).\nYour task is to classify documents and extract precise metadata for the Document Management System.\nYou MUST respond ONLY with valid JSON. No explanation, no markdown.`;\n\n  const userPrompt = `Analyze this document metadata:\nDocument Number: ${item.json.document_number}\nTitle: ${item.json.title}\nLegacy Number: ${item.json.legacy_number}\n\nRules:\n1. Category must be one of: ${JSON.stringify(systemCategories)}\n2. If Document Number contains \"-RFA-\", suggest_category MUST be \"RFA\".\n3. For RFA, extract:\n   - \"ref_no\": Reference number if mentioned in title/legacy.\n   - \"response_to\": If this is a response to another document.\n4. For Letters (Correspondence), identify:\n   - \"from_org\": Sending organization (e.g., TCC, CNNC).\n   - \"to_org\": Receiving organization.\n\nRespond ONLY with this JSON structure:\n{\n  \"is_valid\": true,\n  \"confidence\": 0.95,\n  \"suggested_category\": \"${isRFA ? 'RFA' : 'Correspondence'}\",\n  \"detected_issues\": [],\n  \"suggested_title\": null,\n  \"suggested_tags\": [\"Construction\", \"${isRFA ? 'Request' : 'Letter'}\"],\n  \"metadata\": {\n    \"ref_no\": null,\n    \"response_to\": null,\n    \"from_org\": null,\n    \"to_org\": null\n  }\n}`;\n\n  return {\n    json: {\n      ...item.json,\n      active_model: model,\n      is_fallback: isFallback,\n      system_categories: systemCategories,\n      ollama_payload: {\n        model: model,\n        prompt: `${systemPrompt}\\n\\n${userPrompt}`,\n        stream: false,\n        format: 'json'\n      }\n    }\n  };\n});"
       },
       "id": "9f82950f-7533-4cbd-8e1e-8e441c1cb2a5",
       "name": "Build AI Prompt",
@@ -254,7 +254,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  try {\n    let raw = item.json.response || '';\n    \n    // Clean markdown and whitespace\n    raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();\n    if (!raw) throw new Error('Empty response from AI');\n\n    const result = JSON.parse(raw);\n    \n    // Metadata mapping & normalization\n    const meta = result.metadata || {};\n    const metadata = {\n      ref_no: String(meta.ref_no || '').trim() || null,\n      response_to: String(meta.response_to || '').trim() || null,\n      from_org: String(meta.from_org || '').trim() || null,\n      to_org: String(meta.to_org || '').trim() || null,\n      body: String(result.body || meta.body || '').trim() || null\n    };\n    \n    // Tag Validation\n    let tags = Array.isArray(result.suggested_tags) ? result.suggested_tags : [];\n    tags = [...new Set(tags.map(t => String(t).trim()).filter(t => t.length > 0))];\n    \n    // Enum Validation for Category\n    const systemCategories = item.json.system_categories || [];\n    let finalCategory = result.suggested_category;\n    if (!systemCategories.includes(finalCategory)) {\n      finalCategory = String(item.json.document_number || '').includes('-RFA-') ? 'RFA' : 'Correspondence';\n    }\n    \n    const d_issued = item.json.issued_date || null;\n    const d_received = item.json.received_date || d_issued;\n    results.push({\n      json: { \n        ...item.json, \n        ai_result: { ...result, suggested_category: finalCategory, suggested_tags: tags, body: result.body || meta.body || null }, \n        metadata: metadata,\n        issued_date: d_issued,\n        received_date: d_received,\n        parse_error: null \n      }\n    });\n  } catch (err) {\n    results.push({\n      json: {\n        ...item.json,\n        ai_result: null,\n        parse_error: err.message,\n        raw_ai_response: item.json.response,\n        error_type: 'AI_PARSE_ERROR'\n      }\n    });\n  }\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  try {\n    let raw = item.json.response || '';\n    \n    // Clean markdown and whitespace\n    raw = raw.replace(/```json/gi, '').replace(/```/g, '').trim();\n    if (!raw) throw new Error('Empty response from AI');\n\n    const result = JSON.parse(raw);\n    \n    // Metadata mapping & normalization\n    const meta = result.metadata || {};\n    const metadata = {\n      ref_no: String(meta.ref_no || '').trim() || null,\n      response_to: String(meta.response_to || '').trim() || null,\n      from_org: String(meta.from_org || '').trim() || null,\n      to_org: String(meta.to_org || '').trim() || null\n    };\n    \n    // Tag Validation\n    let tags = Array.isArray(result.suggested_tags) ? result.suggested_tags : [];\n    tags = [...new Set(tags.map(t => String(t).trim()).filter(t => t.length > 0))];\n    \n    // Enum Validation for Category\n    const systemCategories = item.json.system_categories || [];\n    let finalCategory = result.suggested_category;\n    if (!systemCategories.includes(finalCategory)) {\n      finalCategory = String(item.json.document_number || '').includes('-RFA-') ? 'RFA' : 'Correspondence';\n    }\n    \n    results.push({\n      json: { \n        ...item.json, \n        ai_result: { ...result, suggested_category: finalCategory, suggested_tags: tags }, \n        metadata: metadata,\n        parse_error: null \n      }\n    });\n  } catch (err) {\n    results.push({\n      json: {\n        ...item.json,\n        ai_result: null,\n        parse_error: err.message,\n        raw_ai_response: item.json.response,\n        error_type: 'AI_PARSE_ERROR'\n      }\n    });\n  }\n}\n\nreturn results;"
       },
       "id": "281dc950-a3b6-4412-a0b4-76663b8c37ea",
       "name": "Parse & Validate AI Response",
@@ -321,7 +321,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"document_number\": \"{{$json.document_number}}\",\n  \"title\": \"{{$json.ai_result.suggested_title || $json.title}}\",\n  \"category\": \"{{$json.ai_result.suggested_category}}\",\n  \"source_file_path\": \"{{$json.file_path}}\",\n  \"ai_confidence\": {{$json.ai_result.confidence}},\n  \"ai_issues\": {{JSON.stringify($json.ai_result.detected_issues || [])}},\n  \"migrated_by\": \"SYSTEM_IMPORT\",\n  \"batch_id\": \"{{$('Set Configuration').first().json.config.BATCH_ID}}\",\n  \"project_id\": {{$('Set Configuration').first().json.config.PROJECT_ID}},\n  \"issued_date\": \"{{$json.issued_date}}\",\n  \"received_date\": \"{{$json.received_date}}\",\n  \"body\": {{JSON.stringify($json.ai_result.body || \"\")}},\n  \"details\": {\n    \"legacy_number\": \"{{$json.legacy_number}}\",\n    \"ref_no\": \"{{$json.metadata.ref_no}}\",\n    \"response_to\": \"{{$json.metadata.response_to}}\",\n    \"from_org\": \"{{$json.metadata.from_org}}\",\n    \"to_org\": \"{{$json.metadata.to_org}}\"\n  }\n}",
+        "jsonBody": "={\n  \"document_number\": \"{{$json.document_number}}\",\n  \"title\": \"{{$json.ai_result.suggested_title || $json.title}}\",\n  \"category\": \"{{$json.ai_result.suggested_category}}\",\n  \"source_file_path\": \"{{$json.file_path}}\",\n  \"ai_confidence\": {{$json.ai_result.confidence}},\n  \"ai_issues\": {{JSON.stringify($json.ai_result.detected_issues || [])}},\n  \"migrated_by\": \"SYSTEM_IMPORT\",\n  \"batch_id\": \"{{$('Set Configuration').first().json.config.BATCH_ID}}\",\n  \"details\": {\n    \"legacy_number\": \"{{$json.legacy_number}}\",\n    \"ref_no\": \"{{$json.metadata.ref_no}}\",\n    \"response_to\": \"{{$json.metadata.response_to}}\",\n    \"from_org\": \"{{$json.metadata.from_org}}\",\n    \"to_org\": \"{{$json.metadata.to_org}}\"\n  }\n}",
         "options": {
           "timeout": 30000
         }
@@ -571,37 +571,6 @@
           ]
         }
       }
-    },
-    {
-      "parameters": {
-        "fileSelector": "={{ $json.file_path }}",
-        "options": {}
-      },
-      "id": "node-read-pdf-1",
-      "name": "Read PDF File",
-      "type": "n8n-nodes-base.readWriteFile",
-      "typeVersion": 1,
-      "position": [
-        5904,
-        3064
-      ],
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "operation": "pdf",
-        "binaryPropertyName": "data",
-        "options": {}
-      },
-      "id": "node-extract-pdf-1",
-      "name": "Extract PDF Text",
-      "type": "n8n-nodes-base.extractFromFile",
-      "typeVersion": 1,
-      "position": [
-        6032,
-        3064
-      ],
-      "onError": "continueErrorOutput"
     }
   ],
   "pinData": {},
@@ -720,7 +689,7 @@
       "main": [
         [
           {
-            "node": "Read PDF File",
+            "node": "Check Fallback State",
             "type": "main",
             "index": 0
           }
@@ -896,28 +865,6 @@
         [
           {
             "node": "Log Error to CSV",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Read PDF File": {
-      "main": [
-        [
-          {
-            "node": "Extract PDF Text",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extract PDF Text": {
-      "main": [
-        [
-          {
-            "node": "Check Fallback State",
             "type": "main",
             "index": 0
           }
