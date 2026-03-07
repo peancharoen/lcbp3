@@ -28,9 +28,25 @@ services:
       timeout: 5s
       retries: 5
 
+  tika:
+    <<: [*restart_policy, *default_logging]
+    image: apache/tika:latest-full
+    container_name: tika
+    user: "root"
+    environment:
+      - TESSDATA_PREFIX=/tessdata
+    volumes:
+      - /share/np-dms/n8n/tessdata:/tessdata
+    networks:
+      lcbp3: {}
+    expose:
+      - "9998"
+
   n8n:
     <<: [*restart_policy, *default_logging]
     image: n8nio/n8n:latest
+    # build:
+    #   context: ./n8n-custom
     container_name: n8n
     stdin_open: true
     tty: true
@@ -41,7 +57,7 @@ services:
       resources:
         limits:
           cpus: "1.5"
-          memory: 2G
+          memory: 3G
         reservations:
           cpus: "0.25"
           memory: 512M
@@ -66,6 +82,7 @@ services:
       N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: "false"
       GENERIC_TIMEZONE: "Asia/Bangkok"
       NODE_FUNCTION_ALLOW_BUILTIN: "*"
+      NODES_EXCLUDE: "[]"
       # DB Setup
       DB_TYPE: postgresdb
       DB_POSTGRESDB_DATABASE: n8n
@@ -109,4 +126,5 @@ networks:
 # chmod -R 755 /share/np-dms/n8n3
 # chown -R 999:999 /share/np-dms/n8n/postgres-data
 # chmod -R 700 /share/np-dms/n8n/postgres-data
-
+#
+# docker compose -f docker-compose-lcbp3-n8n.yml build n8n
