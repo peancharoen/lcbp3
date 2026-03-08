@@ -49,7 +49,7 @@
 ```bash
 # แนะนำ: llama3.2:3b (เร็ว, VRAM ~3GB, เหมาะ Classification) หรือ ollama run llama3.2:3b
 ollama pull llama3.2:3b
-
+ollama pull qwen2.5:7b-instruct-q4_K_M
 # Fallback: mistral:7b-instruct-q4_K_M (แม่นกว่า, VRAM ~5GB)
 # ollama pull mistral:7b-instruct-q4_K_M
 ```
