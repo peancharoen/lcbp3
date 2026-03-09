@@ -23,7 +23,6 @@
     "redhat.vscode-yaml",
     "mikestead.dotenv",
     "editorconfig.editorconfig",
-    "eamodio.gitlens",
     "mhutchie.git-graph",
     "vivaxy.vscode-conventional-commits",
     "christian-kohler.path-intellisense",

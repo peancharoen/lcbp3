@@ -46,13 +46,40 @@
 - ติดตั้ง Ollama บน Desktop (Desk-5439, RTX 2060 SUPER 8GB)
 - No DB credentials, Internal network only
 
+#### 🔍 เปรียบเทียบผลลัพธ์ที่คาดหวัง
+
+| งาน | Typhoon2-4B | Qwen2.5-7B | OpenThaiGPT-7B |
+|-----|-------------|------------|----------------|
+| ความเร็ว (ток/วินาที) | ~35-45 | ~8-12 | ~10-15 |
+| ความเข้าใจบริบทไทย | ดีมาก | ดี | ดีมาก |
+| การสร้างแท็กแม่นยำ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| ความเสถียรบน 8GB | ✅ สูง | ⚠️ ปานกลาง | ⚠️ ปานกลาง |
+
 ```bash
 # แนะนำ: llama3.2:3b (เร็ว, VRAM ~3GB, เหมาะ Classification) หรือ ollama run llama3.2:3b
 ollama pull llama3.2:3b
+
+# ทางเลือกที่ 1: เร็ว + ไทยดี (แนะนำ)
+ollama pull scb10x/typhoon2.1-gemma3-4b
+ollama run scb10x/typhoon2.1-gemma3-4b --system "คุณเป็นผู้ช่วยจัดหมวดหมู่เอกสารภาษาไทย โปรดตอบกลับในรูปแบบ JSON เท่านั้น" --option temperature=0.2 --option num_ctx=4096
+
+# ทางเลือกที่ 2: คุณภาพสูง (โมเดลที่คุณใช้อยู่)
 ollama pull qwen2.5:7b-instruct-q4_K_M
+ollama run qwen2.5:7b-instruct-q4_K_M --system "คุณเป็นผู้ช่วยจัดหมวดหมู่เอกสารภาษาไทย โปรดตอบกลับในรูปแบบ JSON เท่านั้น" --option temperature=0.2 --option num_ctx=4096
+# ถ้า Q4_K_M ยังหนักไป ลอง Q3_K_M (คุณภาพลดเล็กน้อย แต่ประหยัดแรม)
+ollama pull qwen2.5:7b-instruct-q3_K_M
+
+# ทางเลือกที่ 3: ไทยเฉพาะทาง
+ollama pull promptnow/openthaigpt1.5-7b-instruct-q4_k_m
+ollama run openthaigpt1.5-7b-instruct-q4_k_m --system "คุณเป็นผู้ช่วยจัดหมวดหมู่เอกสารภาษาไทย โปรดตอบกลับในรูปแบบ JSON เท่านั้น" --option temperature=0.2 --option num_ctx=4096
+
+# เปิด terminal อีกหน้าต่างแล้วรัน
+watch -n 1 nvidia-smi
+
 # Fallback: mistral:7b-instruct-q4_K_M (แม่นกว่า, VRAM ~5GB)
 # ollama pull mistral:7b-instruct-q4_K_M
 ```
+ใช้ ทางเลือกที่ 1
 
 **ทดสอบ Ollama:**
 ```bash

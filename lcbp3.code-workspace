@@ -329,25 +329,6 @@
         "foreground": "#FFA500",
       },
     },
-
-    // ========================================
-    // GITLENS
-    // ========================================
-
-    "gitlens.statusBar.enabled": true,
-    "gitlens.currentLine.enabled": true,
-    "gitlens.currentLine.format": "${author}, ${agoOrDate}",
-    "gitlens.codeLens.enabled": true,
-    "gitlens.codeLens.authors.enabled": false,
-    "gitlens.codeLens.recentChange.enabled": true,
-    "gitlens.hovers.enabled": true,
-    "gitlens.blame.format": "${author|10} ${agoOrDate|14-}",
-    "gitlens.blame.highlight.enabled": false,
-    "gitlens.views.repositories.location": "scm",
-    "gitlens.views.fileHistory.location": "explorer",
-    "gitlens.views.lineHistory.location": "explorer",
-    "gitlens.terminal.enabled": false,
-
     // ========================================
     // GIT
     // ========================================
@@ -650,7 +631,7 @@
     "files.maxMemoryForLargeFilesMB": 1024,
     "telemetry.telemetryLevel": "off",
     "security.workspace.trust.untrustedFiles": "open",
-    "extensions.ignoreRecommendations": false,
+    "extensions.ignoreRecommendations": true,
     // ========================================
     // DEBUGGING
     // ========================================
@@ -937,36 +918,6 @@
           "panel": "dedicated",
           "focus": false, // ไม่ต้องแย่ง Focus ทันที
           // "focus": true // ให้ Focus ที่อันนี้เป็นอันสุดท้าย (พร้อมพิมพ์)
-        },
-      },
-      {
-        "label": "🖥️ SSH QNAP",
-        "type": "shell",
-        "command": "ssh qnap",
-        "isBackground": true,
-        "problemMatcher": [],
-        "presentation": {
-          "reveal": "always",
-          "panel": "dedicated",
-          "group": "ssh",
-        },
-        "runOptions": {
-          "runOn": "folderOpen",
-        },
-      },
-      {
-        "label": "🖥️ SSH ASUSTOR",
-        "type": "shell",
-        "command": "ssh asustor",
-        "isBackground": true,
-        "problemMatcher": [],
-        "presentation": {
-          "reveal": "always",
-          "panel": "dedicated",
-          "group": "ssh",
-        },
-        "runOptions": {
-          "runOn": "folderOpen",
         },
       },
     ],
