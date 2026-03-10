@@ -1,0 +1,9 @@
+SELECT 'projects' as type, id, project_code as text1, project_name as text2 FROM projects
+UNION ALL
+SELECT 'disciplines' as type, id, code_name_th as text1, code_name_en as text2 FROM disciplines
+UNION ALL
+SELECT 'organizations' as type, id, organization_name as text1, organization_code as text2 FROM organizations
+UNION ALL
+SELECT 'tags' as type, id, tag_name as text1, description as text2 FROM tags
+UNION ALL
+SELECT 'correspondence_types' as type, id, type_code as text1, type_name as text2 FROM correspondence_types

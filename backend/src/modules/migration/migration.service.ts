@@ -127,22 +127,25 @@ export class MigrationService {
           correspondenceNumber: dto.document_number,
           correspondenceTypeId: typeId,
           projectId: project.id,
+          disciplineId: dto.discipline_id || undefined,
           isInternal: false,
           createdBy: userId,
         });
         await queryRunner.manager.save(correspondence);
+      } else if (dto.discipline_id && !correspondence.disciplineId) {
+        // อัพเดต discipline_id หากเอกสารเดิมยังไม่มี
+        correspondence.disciplineId = dto.discipline_id;
+        await queryRunner.manager.save(correspondence);
       }
 
       // 4. File Handling
-      // We will map the source file and create an Attachment record using FileStorageService
-      // For legacy migrations, we pass document_number mapping logic or basic processing
       let attachmentId: number | null = null;
       if (dto.source_file_path) {
         try {
           const attachment = await this.fileStorageService.importStagingFile(
             dto.source_file_path,
             userId,
-            { documentType: dto.category } // use category from DTO directly
+            { documentType: dto.category }
           );
           attachmentId = attachment.id;
         } catch (fileError: unknown) {
@@ -163,7 +166,6 @@ export class MigrationService {
         }
       );
 
-      // Determine revision number. Support mapping multiple batches to the same document number by incrementing revision.
       const revNum = revisionCount;
       const revision = queryRunner.manager.create(CorrespondenceRevision, {
         correspondenceId: correspondence.id,
@@ -173,15 +175,16 @@ export class MigrationService {
         statusId: status.id,
         subject: dto.title,
         description: 'Migrated from legacy system via Auto Ingest',
+        body: dto.body || undefined, // Map from DTO
         details: {
           ...dto.details,
           ai_confidence: dto.ai_confidence,
           ai_issues: dto.ai_issues as unknown,
           source_file_path: dto.source_file_path,
-          attachment_id: attachmentId, // Link attachment ID if successful
+          attachment_id: attachmentId,
         },
         schemaVersion: 1,
-        createdBy: userId, // Bot ID
+        createdBy: userId,
       });
 
       if (revisionCount > 0) {

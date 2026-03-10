@@ -440,22 +440,47 @@ CREATE TABLE rfas (
 
 -- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ rfas (1:N)
 CREATE TABLE rfa_revisions (
-  id INT PRIMARY KEY COMMENT 'ID (แชร์กับ correspondence_revisions)',
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
+  rfa_id INT NOT NULL COMMENT 'Master ID ของ RFA',
+  revision_number INT NOT NULL COMMENT 'หมายเลข Revision (0, 1, 2...)',
+  revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
+  is_current BOOLEAN DEFAULT FALSE COMMENT '(1 = Revision ปัจจุบัน)',
+  -- ข้อมูลเฉพาะของ RFA Revision ที่ซับซ้อน
   rfa_status_code_id INT NOT NULL COMMENT 'สถานะ RFA',
   rfa_approve_code_id INT COMMENT 'ผลการอนุมัติ',
+  subject VARCHAR(500) NOT NULL COMMENT 'หัวข้อเรื่อง',
+  description TEXT COMMENT 'คำอธิบายการแก้ไขใน Revision นี้',
+  body TEXT NULL COMMENT 'เนื้อความ (ถ้ามี)',
+  remarks TEXT COMMENT 'หมายเหตุ',
+  document_date DATE COMMENT 'วันที่ในเอกสาร',
+  issued_date DATE COMMENT 'วันที่ส่งขออนุมัติ',
+  received_date DATETIME COMMENT 'วันที่ลงรับเอกสาร',
+  due_date DATETIME COMMENT 'วันที่ครบกำหนด',
   approved_date DATE COMMENT 'วันที่อนุมัติ',
+  -- Standard Meta Columns
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้างเอกสาร',
+  created_by INT COMMENT 'ผู้สร้าง',
+  updated_by INT COMMENT 'ผู้แก้ไขล่าสุด',
+  -- ส่วนของ JSON และ Schema Version
   details JSON NULL COMMENT 'RFA Specific Details',
   schema_version INT DEFAULT 1 COMMENT 'Version ของ JSON Schema',
+  -- Generated Virtual Columns (ดึงค่าจาก JSON โดยอัตโนมัติ)
   v_ref_drawing_count INT GENERATED ALWAYS AS (
     JSON_UNQUOTE(
       JSON_EXTRACT(details, '$.drawingCount')
     )
   ) VIRTUAL,
-  FOREIGN KEY (id) REFERENCES correspondence_revisions (id) ON DELETE CASCADE,
+  FOREIGN KEY (rfa_id) REFERENCES rfas (id) ON DELETE CASCADE,
   FOREIGN KEY (rfa_status_code_id) REFERENCES rfa_status_codes (id),
   FOREIGN KEY (rfa_approve_code_id) REFERENCES rfa_approve_codes (id) ON DELETE
-  SET NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางขยายของ correspondence_revisions สำหรับ RFA (1:1)';
+  SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    UNIQUE KEY uq_rr_rev_number (rfa_id, revision_number),
+    UNIQUE KEY uq_rr_current (rfa_id, is_current)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติ (Revisions) ของ rfas (1 :N)';
 
 -- ตารางเชื่อมระหว่าง rfa_revisions (ที่เป็นประเภท DWG) กับ shop_drawing_revisions (M:N)
 CREATE TABLE rfa_items (

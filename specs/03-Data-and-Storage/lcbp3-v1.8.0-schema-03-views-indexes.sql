@@ -3,6 +3,7 @@
 -- รัน: หลังจาก 02-schema-tables.sql เสร็จ
 -- ==========================================================
 SET NAMES utf8mb4;
+
 SET time_zone = '+07:00';
 
 -- ============================================================
@@ -176,12 +177,12 @@ SELECT r.id AS rfa_id,
   c.originator_id,
   org.organization_name AS originator_name,
   rr.id AS revision_id,
-  rr.revision_number,
-  rr.revision_label,
-  rr.subject,
-  rr.document_date,
-  rr.issued_date,
-  rr.received_date,
+  cr.revision_number,
+  cr.revision_label,
+  cr.subject,
+  cr.document_date,
+  cr.issued_date,
+  cr.received_date,
   rr.approved_date,
   rr.rfa_status_code_id,
   rsc.status_code AS rfa_status_code,
@@ -189,21 +190,22 @@ SELECT r.id AS rfa_id,
   rr.rfa_approve_code_id,
   rac.approve_code AS rfa_approve_code,
   rac.approve_name AS rfa_approve_name,
-  rr.created_by,
+  cr.created_by,
   u.username AS created_by_username,
-  rr.created_at AS revision_created_at
+  cr.created_at AS revision_created_at
 FROM rfas r
   INNER JOIN rfa_types rt ON r.rfa_type_id = rt.id
-  INNER JOIN rfa_revisions rr ON r.id = rr.rfa_id -- RFA uses shared primary key with correspondences (1:1)
-  INNER JOIN correspondences c ON r.id = c.id -- [FIX 1] เพิ่มการ Join ตาราง disciplines
+  INNER JOIN correspondences c ON r.id = c.id
+  INNER JOIN correspondence_revisions cr ON c.id = cr.correspondence_id
+  INNER JOIN rfa_revisions rr ON cr.id = rr.id -- RFA uses shared primary key with correspondence_revisions (1:1)
+  -- [FIX 1] เพิ่มการ Join ตาราง disciplines
   LEFT JOIN disciplines d ON c.discipline_id = d.id
   INNER JOIN projects p ON c.project_id = p.id
   INNER JOIN organizations org ON c.originator_id = org.id
   INNER JOIN rfa_status_codes rsc ON rr.rfa_status_code_id = rsc.id
   LEFT JOIN rfa_approve_codes rac ON rr.rfa_approve_code_id = rac.id
-  LEFT JOIN users u ON rr.created_by = u.user_id
-WHERE rr.is_current = TRUE
-  AND r.deleted_at IS NULL
+  LEFT JOIN users u ON cr.created_by = u.user_id
+WHERE cr.is_current = TRUE
   AND c.deleted_at IS NULL;
 
 -- View แสดงความสัมพันธ์ทั้งหมดระหว่าง Contract, Project, และ Organization
@@ -249,7 +251,7 @@ SELECT -- 1. Workflow Instance Info
     ELSE 'N/A'
   END AS document_number,
   CASE
-    WHEN wi.entity_type = 'rfa_revision' THEN rfa_rev.subject
+    WHEN wi.entity_type = 'rfa_revision' THEN rfa_corr_rev.subject
     WHEN wi.entity_type = 'circulation' THEN circ.circulation_subject
     WHEN wi.entity_type = 'correspondence_revision' THEN corr_rev.subject
     ELSE 'Unknown Document'
@@ -262,7 +264,8 @@ FROM workflow_instances wi
   JOIN workflow_definitions wd ON wi.definition_id = wd.id -- 5. Joins for RFA (ซับซ้อนหน่อยเพราะ RFA ผูกกับ Correspondence อีกที)
   LEFT JOIN rfa_revisions rfa_rev ON wi.entity_type = 'rfa_revision'
   AND wi.entity_id = CAST(rfa_rev.id AS CHAR)
-  LEFT JOIN correspondences rfa_corr ON rfa_rev.id = rfa_corr.id -- 6. Joins for Circulation
+  LEFT JOIN correspondence_revisions rfa_corr_rev ON rfa_rev.id = rfa_corr_rev.id
+  LEFT JOIN correspondences rfa_corr ON rfa_corr_rev.correspondence_id = rfa_corr.id -- 6. Joins for Circulation
   LEFT JOIN circulations circ ON wi.entity_type = 'circulation'
   AND wi.entity_id = CAST(circ.id AS CHAR) -- 7. Joins for Correspondence
   LEFT JOIN correspondence_revisions corr_rev ON wi.entity_type = 'correspondence_revision'
@@ -497,9 +500,7 @@ CREATE INDEX idx_corr_revisions_current_status ON correspondence_revisions (is_c
 CREATE INDEX idx_corr_revisions_correspondence_current ON correspondence_revisions (correspondence_id, is_current);
 
 -- Indexes for v_current_rfas performance
-CREATE INDEX idx_rfa_revisions_current_status ON rfa_revisions (is_current, rfa_status_code_id);
-
-CREATE INDEX idx_rfa_revisions_rfa_current ON rfa_revisions (rfa_id, is_current);
+CREATE INDEX idx_rfa_revisions_status ON rfa_revisions (rfa_status_code_id);
 
 -- Indexes for document statistics performance
 CREATE INDEX idx_correspondences_project_type ON correspondences (project_id, correspondence_type_id);
@@ -513,4 +514,3 @@ CREATE INDEX IDX_AUDIT_STATUS ON document_number_audit (STATUS);
 CREATE INDEX IDX_AUDIT_OPERATION ON document_number_audit (operation);
 
 SET FOREIGN_KEY_CHECKS = 1;
-

@@ -54,6 +54,10 @@ export class ImportCorrespondenceDto {
   @IsOptional()
   received_date?: string;
 
+  @IsNumber()
+  @IsOptional()
+  discipline_id?: number;
+
   @IsString()
   @IsOptional()
   body?: string;

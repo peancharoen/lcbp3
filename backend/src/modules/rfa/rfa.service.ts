@@ -14,6 +14,8 @@ import { DataSource, In, Repository } from 'typeorm';
 // Entities
 import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
+import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
+import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
 import { RoutingTemplateStep } from '../correspondence/entities/routing-template-step.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
@@ -54,6 +56,10 @@ export class RfaService {
     private correspondenceRepo: Repository<Correspondence>,
     @InjectRepository(RfaType)
     private rfaTypeRepo: Repository<RfaType>,
+    @InjectRepository(CorrespondenceRevision)
+    private corrRevRepo: Repository<CorrespondenceRevision>,
+    @InjectRepository(CorrespondenceStatus)
+    private corrStatusRepo: Repository<CorrespondenceStatus>,
     @InjectRepository(RfaStatusCode)
     private rfaStatusRepo: Repository<RfaStatusCode>,
     @InjectRepository(RfaApproveCode)
@@ -120,6 +126,18 @@ export class RfaService {
         },
       });
 
+      // Get Generic Draft Status for Correspondence
+      const corrStatusDraft = await queryRunner.manager.findOne(
+        CorrespondenceStatus,
+        {
+          where: { statusCode: 'DRAFT' },
+        }
+      );
+      if (!corrStatusDraft)
+        throw new InternalServerErrorException(
+          'Correspondence Status DRAFT not found'
+        );
+
       // 1. Create Correspondence Record
       const correspondence = queryRunner.manager.create(Correspondence, {
         correspondenceNumber: docNumber.number,
@@ -134,20 +152,19 @@ export class RfaService {
 
       // 2. Create Rfa Master Record
       const rfa = queryRunner.manager.create(Rfa, {
+        id: savedCorr.id, // ✅ CTI Key share
         rfaTypeId: createDto.rfaTypeId,
         createdBy: user.user_id,
-        disciplineId: createDto.disciplineId, // ✅ Add disciplineId
       });
       const savedRfa = await queryRunner.manager.save(rfa);
 
-      // 3. Create First Revision (Draft)
-      const rfaRevision = queryRunner.manager.create(RfaRevision, {
+      // 3. Create First Correspondence Revision
+      const corrRevision = queryRunner.manager.create(CorrespondenceRevision, {
         correspondenceId: savedCorr.id,
-        rfaId: savedRfa.id,
         revisionNumber: 0,
         revisionLabel: '0',
         isCurrent: true,
-        rfaStatusCodeId: statusDraft.id,
+        statusId: corrStatusDraft.id,
         subject: createDto.subject,
         body: createDto.body,
         remarks: createDto.remarks,
@@ -157,6 +174,14 @@ export class RfaService {
           : new Date(),
         dueDate: createDto.dueDate ? new Date(createDto.dueDate) : undefined,
         createdBy: user.user_id,
+        schemaVersion: 1,
+      });
+      const savedCorrRev = await queryRunner.manager.save(corrRevision);
+
+      // 4. Create First RFA Revision (CTI Extends CorrespondenceRevision)
+      const rfaRevision = queryRunner.manager.create(RfaRevision, {
+        id: savedCorrRev.id, // ✅ Matches correspondence revision id
+        rfaStatusCodeId: statusDraft.id,
         details: createDto.details,
         schemaVersion: 1,
       });
@@ -246,11 +271,12 @@ export class RfaService {
     const queryBuilder = this.rfaRepo
       .createQueryBuilder('rfa')
       .leftJoinAndSelect('rfa.correspondence', 'corr')
-      .leftJoinAndSelect('rfa.revisions', 'rev')
+      .leftJoinAndSelect('corr.revisions', 'corrRev')
+      .leftJoinAndSelect('corrRev.rfaRevision', 'rfaRev')
       .leftJoinAndSelect('corr.project', 'project')
       .leftJoinAndSelect('corr.discipline', 'discipline')
-      .leftJoinAndSelect('rev.statusCode', 'status')
-      .leftJoinAndSelect('rev.items', 'items')
+      .leftJoinAndSelect('rfaRev.statusCode', 'status')
+      .leftJoinAndSelect('rfaRev.items', 'items')
       .leftJoinAndSelect('items.shopDrawingRevision', 'sdRev')
       .leftJoinAndSelect('sdRev.attachments', 'attachments');
 
@@ -258,9 +284,11 @@ export class RfaService {
     const revStatus = query.revisionStatus || 'CURRENT';
 
     if (revStatus === 'CURRENT') {
-      queryBuilder.where('rev.isCurrent = :isCurrent', { isCurrent: true });
+      queryBuilder.where('corrRev.isCurrent = :isCurrent', { isCurrent: true });
     } else if (revStatus === 'OLD') {
-      queryBuilder.where('rev.isCurrent = :isCurrent', { isCurrent: false });
+      queryBuilder.where('corrRev.isCurrent = :isCurrent', {
+        isCurrent: false,
+      });
     }
     // If 'ALL', no filter
 
@@ -274,7 +302,7 @@ export class RfaService {
 
     if (search) {
       queryBuilder.andWhere(
-        '(corr.correspondenceNumber LIKE :search OR rev.subject LIKE :search)',
+        '(corr.correspondenceNumber LIKE :search OR corrRev.subject LIKE :search)',
         { search: `%${search}%` }
       );
     }
@@ -289,8 +317,20 @@ export class RfaService {
       `[DEBUG] RFA findAll: Found ${total} items. Query: ${JSON.stringify(query)}`
     );
 
+    // Map `revisions` property back to the expected payload for the frontend
+    const mappedItems = items.map((rfa) => {
+      const mappedRfa = { ...rfa } as any;
+      mappedRfa.revisions =
+        rfa.correspondence?.revisions?.map((cr) => ({
+          ...cr,
+          ...(cr.rfaRevision || {}),
+          id: cr.rfaRevision?.id || cr.id,
+        })) || [];
+      return mappedRfa;
+    });
+
     return {
-      data: items,
+      data: mappedItems,
       meta: {
         total,
         page,
@@ -300,21 +340,22 @@ export class RfaService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, rawEntities = false) {
     const rfa = await this.rfaRepo.findOne({
       where: { id },
       relations: [
-        'correspondence', // ✅ Add relation to master correspondence
+        'correspondence',
         'rfaType',
-        'revisions',
-        'revisions.statusCode',
-        'revisions.approveCode',
-        'revisions.items',
-        'revisions.items.shopDrawingRevision',
-        'revisions.items.shopDrawingRevision.shopDrawing',
+        'correspondence.revisions',
+        'correspondence.revisions.rfaRevision',
+        'correspondence.revisions.rfaRevision.statusCode',
+        'correspondence.revisions.rfaRevision.approveCode',
+        'correspondence.revisions.rfaRevision.items',
+        'correspondence.revisions.rfaRevision.items.shopDrawingRevision',
+        'correspondence.revisions.rfaRevision.items.shopDrawingRevision.shopDrawing',
       ],
       order: {
-        revisions: { revisionNumber: 'DESC' },
+        correspondence: { revisions: { revisionNumber: 'DESC' } },
       },
     });
 
@@ -322,16 +363,33 @@ export class RfaService {
       throw new NotFoundException(`RFA ID ${id} not found`);
     }
 
-    return rfa;
+    if (rawEntities) {
+      return rfa;
+    }
+
+    // Map to structure expected by frontend DTO
+    const mappedRfa = { ...rfa } as any;
+    mappedRfa.revisions =
+      rfa.correspondence?.revisions?.map((cr) => ({
+        ...cr,
+        ...(cr.rfaRevision || {}),
+        id: cr.rfaRevision?.id || cr.id,
+      })) || [];
+
+    return mappedRfa;
   }
 
   async submit(rfaId: number, templateId: number, user: User) {
-    const rfa = await this.findOne(rfaId);
-    const currentRevision = rfa.revisions.find((r) => r.isCurrent);
-
-    if (!currentRevision)
+    const rfa = await this.findOne(rfaId, true);
+    const currentCorrRev = rfa.correspondence?.revisions?.find(
+      (r: any) => r.isCurrent
+    );
+    if (!currentCorrRev || !currentCorrRev.rfaRevision)
       throw new NotFoundException('Current revision not found');
-    if (currentRevision.statusCode.statusCode !== 'DFT') {
+
+    const currentRfaRev = currentCorrRev.rfaRevision;
+
+    if (currentRfaRev.statusCode.statusCode !== 'DFT') {
       throw new BadRequestException('Only DRAFT documents can be submitted');
     }
 
@@ -366,9 +424,10 @@ export class RfaService {
 
     try {
       // Update Revision Status
-      currentRevision.rfaStatusCodeId = statusForApprove.id;
-      currentRevision.issuedDate = new Date();
-      await queryRunner.manager.save(currentRevision);
+      currentRfaRev.rfaStatusCodeId = statusForApprove.id;
+      currentCorrRev.issuedDate = new Date();
+      await queryRunner.manager.save(currentRfaRev);
+      await queryRunner.manager.save(currentCorrRev);
 
       // Create First Routing Step
       const firstStep = steps[0];
@@ -395,7 +454,7 @@ export class RfaService {
       if (recipientUserId) {
         await this.notificationService.send({
           userId: recipientUserId,
-          title: `RFA Submitted: ${currentRevision.subject}`,
+          title: `RFA Submitted: ${currentCorrRev.subject}`,
           message: `RFA ${rfa.correspondence.correspondenceNumber} submitted for approval.`,
           type: 'SYSTEM',
           entityType: 'rfa',
@@ -415,12 +474,14 @@ export class RfaService {
 
   async processAction(rfaId: number, dto: WorkflowActionDto, user: User) {
     // Logic คงเดิม: หา Current Routing -> Check Permission -> Call Workflow Engine -> Update DB
-    // ใช้ this.workflowEngine.processAction (Legacy Support)
-    // ... (สามารถใช้ Code เดิมจากที่คุณแนบมาได้เลย เพราะ Logic ถูกต้องแล้วสำหรับการใช้ CorrespondenceRouting) ...
-    const rfa = await this.findOne(rfaId);
-    const currentRevision = rfa.revisions.find((r) => r.isCurrent);
-    if (!currentRevision)
+    const rfa = await this.findOne(rfaId, true);
+    const currentCorrRev = rfa.correspondence?.revisions?.find(
+      (r: any) => r.isCurrent
+    );
+    if (!currentCorrRev || !currentCorrRev.rfaRevision)
       throw new NotFoundException('Current revision not found');
+
+    const currentRfaRev = currentCorrRev.rfaRevision;
 
     const currentRouting = await this.routingRepo.findOne({
       where: {
@@ -509,16 +570,16 @@ export class RfaService {
             },
           }); // Logic Map Code อย่างง่าย
           if (approveCode) {
-            currentRevision.rfaApproveCodeId = approveCode.id;
-            currentRevision.approvedDate = new Date();
+            currentRfaRev.rfaApproveCodeId = approveCode.id;
+            currentRfaRev.approvedDate = new Date();
           }
         } else {
           const rejectCode = await this.rfaApproveRepo.findOne({
             where: { approveCode: '4X' },
           });
-          if (rejectCode) currentRevision.rfaApproveCodeId = rejectCode.id;
+          if (rejectCode) currentRfaRev.rfaApproveCodeId = rejectCode.id;
         }
-        await queryRunner.manager.save(currentRevision);
+        await queryRunner.manager.save(currentRfaRev);
       }
 
       await queryRunner.commitTransaction();

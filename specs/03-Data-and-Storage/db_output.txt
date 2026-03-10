@@ -1,0 +1,61 @@
+Organizations: [
+  {
+    id: 1,
+    organization_name: 'การท่าเรือแห่งประเทศไทย',
+    organization_code: 'กทท.'
+  },
+  {
+    id: 10,
+    organization_name: 'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3',
+    organization_code: 'สคฉ.3'
+  },
+  {
+    id: 11,
+    organization_name: 'ตรวจรับพัสดุ ที่ปรึกษาควบคุมงาน',
+    organization_code: 'สคฉ.3-01'
+  },
+  {
+    id: 12,
+    organization_name: 'ตรวจรับพัสดุ งานทางทะเล',
+    organization_code: 'สคฉ.3-02'
+  },
+  {
+    id: 13,
+    organization_name: 'ตรวจรับพัสดุ อาคารและระบบสาธารณูปโภค',
+    organization_code: 'สคฉ.3-03'
+  }
+]
+Projects: [
+  {
+    id: 1,
+    project_code: 'LCBP3',
+    project_name: 'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)'
+  },
+  {
+    id: 2,
+    project_code: 'LCBP3-C1',
+    project_name: 'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1) งานก่อสร้างงานทางทะเล'
+  },
+  {
+    id: 3,
+    project_code: 'LCBP3-C2',
+    project_name: 'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 2) งานก่อสร้างอาคาร ท่าเทียบเรือ ระบบถนน และระบบสาธารณูปโภค'
+  },
+  {
+    id: 4,
+    project_code: 'LCBP3-C3',
+    project_name: 'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 3) งานก่อสร้าง'
+  },
+  {
+    id: 5,
+    project_code: 'LCBP3-C4',
+    project_name: 'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 4) งานก่อสร้าง'
+  }
+]
+Correspondence Types: [
+  { id: 1, type_code: 'RFA', type_name: 'Request for Approval' },
+  { id: 2, type_code: 'RFI', type_name: 'Request for Information' },
+  { id: 3, type_code: 'TRANSMITTAL', type_name: 'Transmittal' },
+  { id: 4, type_code: 'EMAIL', type_name: 'Email' },
+  { id: 5, type_code: 'INSTRUCTION', type_name: 'Instruction' }
+]

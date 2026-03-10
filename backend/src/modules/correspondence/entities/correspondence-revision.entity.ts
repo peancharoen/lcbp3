@@ -7,7 +7,9 @@ import {
   JoinColumn,
   CreateDateColumn,
   Index,
+  OneToOne,
 } from 'typeorm';
+import { RfaRevision } from '../../rfa/entities/rfa-revision.entity';
 import { Correspondence } from './correspondence.entity';
 import { CorrespondenceStatus } from './correspondence-status.entity';
 import { User } from '../../user/entities/user.entity';
@@ -107,4 +109,8 @@ export class CorrespondenceRevision {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by' })
   creator?: User;
+
+  // Added inverse relation for CTI mapping to subclasses (RFA)
+  @OneToOne(() => RfaRevision, (rfaRev) => rfaRev.correspondenceRevision)
+  rfaRevision?: RfaRevision;
 }

@@ -12,6 +12,7 @@ import { RfaApproveCode } from './entities/rfa-approve-code.entity';
 import { RfaRevision } from './entities/rfa-revision.entity';
 import { RfaStatusCode } from './entities/rfa-status-code.entity';
 import { Rfa } from './entities/rfa.entity';
+import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 
 // DTOs
 import { WorkflowTransitionDto } from '../workflow-engine/dto/workflow-transition.dto';
@@ -27,6 +28,8 @@ export class RfaWorkflowService {
     private readonly rfaRepo: Repository<Rfa>,
     @InjectRepository(RfaRevision)
     private readonly revisionRepo: Repository<RfaRevision>,
+    @InjectRepository(CorrespondenceRevision)
+    private readonly corrRevisionRepo: Repository<CorrespondenceRevision>,
     @InjectRepository(RfaStatusCode)
     private readonly statusRepo: Repository<RfaStatusCode>,
     @InjectRepository(RfaApproveCode)
@@ -44,16 +47,16 @@ export class RfaWorkflowService {
 
     try {
       // 1. ดึงข้อมูล Revision ปัจจุบัน
-      const revision = await this.revisionRepo.findOne({
-        where: { id: rfaId, isCurrent: true },
+      const corrRevision = await this.corrRevisionRepo.findOne({
+        where: { correspondenceId: rfaId, isCurrent: true },
         relations: [
-          'rfa',
-          'rfa.correspondence',
-          'rfa.correspondence.discipline',
+          'rfaRevision',
+          'correspondence',
+          'correspondence.discipline',
         ],
       });
 
-      if (!revision) {
+      if (!corrRevision || !corrRevision.rfaRevision) {
         throw new NotFoundException(
           `Current Revision for RFA ID ${rfaId} not found`
         );
@@ -61,8 +64,8 @@ export class RfaWorkflowService {
 
       // 2. สร้าง Context (ข้อมูลประกอบการตัดสินใจ)
       const context = {
-        rfaType: revision.rfa.rfaTypeId,
-        discipline: revision.rfa.correspondence?.discipline,
+        rfaType: corrRevision.correspondence?.correspondenceTypeId,
+        discipline: corrRevision.correspondence?.discipline,
         ownerId: userId,
         // อาจเพิ่มเงื่อนไขอื่นๆ เช่น จำนวนวัน, ความเร่งด่วน
       };
@@ -72,7 +75,7 @@ export class RfaWorkflowService {
       const instance = await this.workflowEngine.createInstance(
         this.WORKFLOW_CODE,
         'rfa_revision',
-        revision.id.toString(),
+        corrRevision.id.toString(),
         context
       );
 
@@ -87,7 +90,7 @@ export class RfaWorkflowService {
 
       // 5. Sync สถานะกลับตาราง RFA Revision
       await this.syncStatus(
-        revision,
+        corrRevision.rfaRevision,
         transitionResult.nextState,
         undefined,
         queryRunner
@@ -132,13 +135,13 @@ export class RfaWorkflowService {
     // 2. Sync สถานะกลับตารางเดิม
     const instance = await this.workflowEngine.getInstanceById(instanceId);
     if (instance && instance.entityType === 'rfa_revision') {
-      const revision = await this.revisionRepo.findOne({
+      const rfaRev = await this.revisionRepo.findOne({
         where: { id: parseInt(instance.entityId) },
       });
-      if (revision) {
+      if (rfaRev) {
         // เช็คว่า Action นี้มีการระบุ Approve Code มาใน Payload หรือไม่ (เช่น '1A', '3R')
         const approveCodeStr = dto.payload?.approveCode;
-        await this.syncStatus(revision, result.nextState, approveCodeStr);
+        await this.syncStatus(rfaRev, result.nextState, approveCodeStr);
       }
     }
 

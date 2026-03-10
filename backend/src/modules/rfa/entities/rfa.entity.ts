@@ -5,14 +5,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToMany,
   PrimaryColumn,
   OneToOne,
 } from 'typeorm';
 
 import { User } from '../../user/entities/user.entity';
 import { Correspondence } from '../../correspondence/entities/correspondence.entity'; // Import
-import { RfaRevision } from './rfa-revision.entity';
 import { RfaType } from './rfa-type.entity';
 
 @Entity('rfas')
@@ -45,6 +43,5 @@ export class Rfa {
   @JoinColumn({ name: 'created_by' })
   creator?: User;
 
-  @OneToMany(() => RfaRevision, (revision) => revision.rfa)
-  revisions!: RfaRevision[];
+  // Revisions are accessed via correspondence.revisions -> rfaRevision
 }

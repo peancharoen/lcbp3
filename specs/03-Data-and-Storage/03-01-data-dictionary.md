@@ -622,47 +622,28 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Child table storing revision history of RFAs (1:N)
 
-| Column Name | Data Type | Constraints                 | Description        |
-| ----------- | --------- | --------------------------- | ------------------ |
-| id          | INT       | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID |
-
-| rfa_id              | INT          | NOT NULL, FK                      | Master RFA ID                                               |
-| revision_number     | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                              |
-| revision_label      | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                             |
-| is_current          | BOOLEAN      | DEFAULT FALSE                     | Current revision flag                                       |
-| rfa_status_code_id  | INT          | NOT NULL, FK                      | Current RFA status                                          |
-| rfa_approve_code_id | INT          | NULL, FK                          | Approval result code                                        |
-| title               | VARCHAR(255) | NOT NULL                          | RFA title                                                   |
-| document_date       | DATE         | NULL                              | Document date                                               |
-| issued_date         | DATE         | NULL                              | Issue date for approval                                     |
-| received_date       | DATETIME     | NULL                              | Received date                                               |
-| approved_date       | DATE         | NULL                              | Approval date                                               |
-| description         | TEXT         | NULL                              | Revision description                                        |
-| created_at          | DATETIME     | DEFAULT CURRENT_TIMESTAMP         | Revision creation timestamp                                 |
-| created_by          | INT          | NULL, FK                          | User who created revision                                   |
-| updated_by          | INT          | NULL, FK                          | User who last updated                                       |
-| details             | JSON         | NULL                              | Type-specific details (e.g., RFI questions)                 |
-| v_ref_drawing_count | INT          | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Drawing Count จาก JSON details เพื่อทำ Index |
-| schema_version      | INT          | DEFAULT 1                         | Version of the schema used with this details                |
+| Column Name         | Data Type | Constraints                       | Description                                                 |
+| ------------------- | --------- | --------------------------------- | ----------------------------------------------------------- |
+| id                  | INT       | PK, FK                            | Master Revision ID (Shared with correspondence_revisions)   |
+| rfa_status_code_id  | INT       | NOT NULL, FK                      | Current RFA status                                          |
+| rfa_approve_code_id | INT       | NULL, FK                          | Approval result code                                        |
+| details             | JSON      | NULL                              | Type-specific details (e.g., RFI questions)                 |
+| v_ref_drawing_count | INT       | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Drawing Count จาก JSON details เพื่อทำ Index |
+| schema_version      | INT       | DEFAULT 1                         | Version of the schema used with this details                |
 
 **Indexes**:
 
 * PRIMARY KEY (id)
-* FOREIGN KEY (rfa_id) REFERENCES rfas(id) ON DELETE CASCADE
+* FOREIGN KEY (id) REFERENCES correspondence_revisions(id) ON DELETE CASCADE
 * FOREIGN KEY (rfa_status_code_id) REFERENCES rfa_status_codes(id)
 * FOREIGN KEY (rfa_approve_code_id) REFERENCES rfa_approve_codes(id) ON DELETE SET NULL
-* FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
-* FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
-* UNIQUE KEY (rfa_id, revision_number)
-* UNIQUE KEY (rfa_id, is_current)
 * INDEX (rfa_status_code_id)
 * INDEX (rfa_approve_code_id)
-* INDEX (is_current)
 * INDEX (v_ref_drawing_count): ตัวอย่างการ Index ข้อมูลตัวเลขใน JSON
 
 **Relationships**:
 
-* Parent: correspondences, rfas, rfa_status_codes, rfa_approve_codes, users
+* Parent: correspondence_revisions, rfas, rfa_status_codes, rfa_approve_codes
 * Children: rfa_items
 
 ---
