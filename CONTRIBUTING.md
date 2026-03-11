@@ -25,15 +25,23 @@
 ```
 specs/
 ├── 00-Overview/              # ภาพรวมโครงการ
-│   ├── README.md             # Project overview
-│   ├── 00-02-glossary.md     # คำศัพท์เทคนิค
-│   └── 00-01-quick-start.md  # Quick start guide
+│   ├── README.md
+│   ├── 00-01-quick-start.md     # Quick start guide
+│   ├── 00-02-glossary.md        # คำศัพท์เทคนิค
+│   ├── 00-03-product-vision.md  # Gap 1: Vision, Strategy, Guardrails [★ NEW]
+│   ├── 00-04-stakeholder-signoff-and-risk.md  # Gap 5: Sign-off, Risk [★ NEW]
+│   ├── 00-05-kpi-baseline.md    # Gap 6: 14 KPIs + Baseline Plan [★ NEW]
+│   └── 00-06-training-plan.md   # Gap 9: Training Curriculum [★ NEW]
 │
-├── 01-Requirements/          # ข้อกำหนดระบบ (21 docs)
-│   ├── README.md             # Requirements overview
-│   ├── 01-01-objectives.md   # วัตถุประสงค์
-│   ├── 01-02-business-rules/ # กฏธุรกิจที่ห้ามละเมิด
-│   └── 01-03-modules/        # สเปกของแต่ละฟีเจอร์หลัก
+├── 01-Requirements/          # ข้อกำหนดระบบ (21+ docs)
+│   ├── README.md
+│   ├── 01-01-objectives.md      # วัตถุประสงค์
+│   ├── 01-02-business-rules/    # กฏธุรกิจที่ห้ามละเมิด
+│   ├── 01-03-modules/           # สเปกของแต่ละฟีเจอร์หลัก
+│   ├── 01-04-user-stories.md    # Gap 2: 27 Stories, 8 Epics, MoSCoW [★ NEW]
+│   ├── 01-05-acceptance-criteria.md  # Gap 3: UAT Criteria + Sign-off [★ NEW]
+│   ├── 01-06-edge-cases-and-rules.md # Gap 10: 37 Edge Cases [★ NEW]
+│   └── 01-07-ui-wireframes.md   # Gap 4: 26 Screens, Design System [★ NEW]
 │
 ├── 02-Architecture/          # สถาปัตยกรรมระบบ (4 docs)
 │   ├── README.md
@@ -42,17 +50,23 @@ specs/
 │   ├── 02-03-network-design.md
 │   └── 02-04-api-design.md
 │
-├── 03-Data-and-Storage/      # Database Schema (4 files)
+├── 03-Data-and-Storage/      # Database Schema v1.8.0 (3-file split)
 │   ├── README.md
-│   ├── lcbp3-v1.7.0-schema.sql
-│   ├── lcbp3-v1.7.0-seed-basic.sql
-│   └── 03-01-data-dictionary.md
+│   ├── lcbp3-v1.8.0-schema-01-drop.sql       # DROP statements
+│   ├── lcbp3-v1.8.0-schema-02-tables.sql     # CREATE TABLE
+│   ├── lcbp3-v1.8.0-schema-03-views-indexes.sql  # Views + Indexes
+│   ├── lcbp3-v1.8.0-seed-basic.sql           # Master Data Seed
+│   ├── lcbp3-v1.8.0-seed-permissions.sql     # RBAC Permissions Seed
+│   ├── 03-01-data-dictionary.md
+│   └── 03-06-migration-business-scope.md     # Gap 7: Migration Scope [★ NEW]
 │
-├── 04-Infrastructure-OPS/    # Deployment & Operations (9 docs)
+├── 04-Infrastructure-OPS/    # Deployment & Operations (8 docs)
 │   ├── README.md
 │   ├── 04-01-docker-compose.md
 │   ├── 04-03-monitoring.md
-│   └── ...
+│   ├── 04-04-deployment-guide.md
+│   ├── 04-07-incident-response.md
+│   └── 04-08-release-management-policy.md    # Gap 8: Release Policy [★ NEW]
 │
 ├── 05-Engineering-Guidelines/# แผนการพัฒนา (5 docs)
 │   ├── README.md
@@ -61,11 +75,12 @@ specs/
 │   ├── 05-03-frontend-guidelines.md
 │   └── 05-04-testing-strategy.md
 │
-├── 06-Decision-Records/      # Architecture Decision Records (17 ADRs)
+├── 06-Decision-Records/      # Architecture Decision Records (17+1 ADRs)
 │   ├── README.md
 │   ├── ADR-001-unified-workflow.md
 │   ├── ADR-002-document-numbering.md
-│   └── ...
+│   ├── ... (ADR-003 to ADR-017)
+│   └── ADR-018-ai-boundary.md   # AI Isolation Policy [★ Patch 1.8.1]
 │
 └── 99-archives/              # ประวัติการทำงานและ Tasks เก่า
     ├── history/
@@ -75,16 +90,16 @@ specs/
 
 ### 📋 หมวดหมู่เอกสาร
 
-| หมวด                          | วัตถุประสงค์                     | ผู้ดูแล                          |
-| ----------------------------- | ----------------------------- | ----------------------------- |
-| **00-Overview**               | ภาพรวมโครงการและคำศัพท์          | Project Manager               |
-| **01-Requirements**           | ข้อกำหนดฟังก์ชันและระบบ            | Business Analyst + Tech Lead  |
-| **02-Architecture**           | สถาปัตยกรรมและการออกแบบ        | Tech Lead + Architects        |
-| **03-Data-and-Storage**       | Database Schema & Seed Data   | Backend Lead + DBA            |
-| **04-Infrastructure-OPS**     | Deployment และ Operations     | DevOps Team                   |
-| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation  | Development Team Leads        |
-| **06-Decision-Records**       | Architecture Decision Records | Tech Lead + Senior Developers |
-| **99-archives**               | Archived / Tasks              | All Team Members              |
+| หมวด | วัตถุประสงค์ | ไฟล์สำคัญ | ผู้ดูแล |
+|------|---------|---------|--------|
+| **00-Overview** | ภาพรวม, Product Vision, KPI, Training | Gap 1/5/6/9 | Project Manager / PO |
+| **01-Requirements** | User Stories, UAT, UI, Edge Cases | Gap 2/3/4/10 | Business Analyst + PO |
+| **02-Architecture** | สถาปัตยกรรมและการออกแบบ | — | Tech Lead + Architects |
+| **03-Data-and-Storage** | Schema v1.8.0, Migration Scope | Gap 7 | Backend Lead + DBA |
+| **04-Infrastructure-OPS** | Deployment, Operations, Release Policy | Gap 8 | DevOps Team |
+| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation | — | Development Team Leads |
+| **06-Decision-Records** | Architecture Decision Records (17+1) | ADR-018 | Tech Lead + Senior Devs |
+| **99-archives** | Archived / Tasks | — | All Team Members |
 
 ---
 

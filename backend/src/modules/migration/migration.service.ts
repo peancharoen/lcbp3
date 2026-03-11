@@ -83,8 +83,7 @@ export class MigrationService {
       );
     }
 
-    // Migrate documents typically end up as 'Closed by Owner' or a similar terminal state, unless specifically pending.
-    // For legacy, let's use a default terminal status 'CLBOWN' if available. If not, fallback to 'DRAFT'.
+    // Default status for correspondence
     let status = await this.correspondenceStatusRepo.findOne({
       where: { statusCode: 'CLBOWN' },
     });
@@ -99,15 +98,17 @@ export class MigrationService {
       );
     }
 
-    // We assume migration runs for LCBP3 project
+    // We now use project_id from n8n (instead of hardcoding LCBP3)
     const project = await this.projectRepo.findOne({
-      where: { projectCode: 'LCBP3' },
+      where: { id: dto.project_id },
     });
     if (!project) {
-      throw new InternalServerErrorException(
-        'Project LCBP3 not found in database'
+      throw new BadRequestException(
+        `Project ID ${dto.project_id} not found in database`
       );
     }
+
+    const isRFA = type?.typeCode === 'RFA' || dto.category === 'RFA';
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -128,14 +129,39 @@ export class MigrationService {
           correspondenceTypeId: typeId,
           projectId: project.id,
           disciplineId: dto.discipline_id || undefined,
+          originatorId: dto.sender_id || undefined, // Set explicitly from DTO
           isInternal: false,
           createdBy: userId,
         });
         await queryRunner.manager.save(correspondence);
-      } else if (dto.discipline_id && !correspondence.disciplineId) {
-        // อัพเดต discipline_id หากเอกสารเดิมยังไม่มี
-        correspondence.disciplineId = dto.discipline_id;
-        await queryRunner.manager.save(correspondence);
+
+        // --- CTI: insert RFA class ---
+        if (isRFA) {
+          // Default RFA type generic mapping
+          const rfaTypeRes = (await queryRunner.manager.query(
+            "SELECT id FROM rfa_types WHERE type_code = 'GEN' LIMIT 1"
+          )) as Array<{ id: number }>;
+          const rfa = queryRunner.manager.create('Rfa', {
+            id: correspondence.id,
+            rfaTypeId: rfaTypeRes[0]?.id || 1, // fallback to id 1
+            createdBy: userId,
+          });
+          await queryRunner.manager.save('Rfa', rfa);
+        }
+      } else {
+        // Update values if missing
+        let hasChanges = false;
+        if (dto.discipline_id && !correspondence.disciplineId) {
+          correspondence.disciplineId = dto.discipline_id;
+          hasChanges = true;
+        }
+        if (dto.sender_id && !correspondence.originatorId) {
+          correspondence.originatorId = dto.sender_id;
+          hasChanges = true;
+        }
+        if (hasChanges) {
+          await queryRunner.manager.save(correspondence);
+        }
       }
 
       // 4. File Handling
@@ -158,6 +184,9 @@ export class MigrationService {
         }
       }
 
+      // Helper function to parse Date safety
+      const parseDateStr = (d?: string) => (d ? new Date(d) : undefined);
+
       // 5. Create Revision
       const revisionCount = await queryRunner.manager.count(
         CorrespondenceRevision,
@@ -175,7 +204,10 @@ export class MigrationService {
         statusId: status.id,
         subject: dto.title,
         description: 'Migrated from legacy system via Auto Ingest',
-        body: dto.body || undefined, // Map from DTO
+        body: dto.body || undefined,
+        documentDate: parseDateStr(dto.document_date || dto.issued_date),
+        issuedDate: parseDateStr(dto.issued_date),
+        receivedDate: parseDateStr(dto.received_date),
         details: {
           ...dto.details,
           ai_confidence: dto.ai_confidence,
@@ -197,7 +229,26 @@ export class MigrationService {
 
       await queryRunner.manager.save(revision);
 
-      // 5. Track Transaction
+      // --- CTI: insert RfaRevision ---
+      if (isRFA) {
+        // Map Status code to RFA Equivalent 'APP' (Approved) if exist, or id 3 (typically Approved)
+        const rfaStatusRes = (await queryRunner.manager.query(
+          "SELECT id FROM rfa_status_codes WHERE status_code = 'APP' LIMIT 1"
+        )) as Array<{ id: number }>;
+
+        const rfaRev = queryRunner.manager.create('RfaRevision', {
+          id: revision.id,
+          rfaStatusCodeId: rfaStatusRes[0]?.id || 3, // Fallback to 3 if APP not found
+          details: {
+            // Keep drawingCount as 0 for migration stub
+            drawingCount: 0,
+          },
+          schemaVersion: 1,
+        });
+        await queryRunner.manager.save('RfaRevision', rfaRev);
+      }
+
+      // 6. Track Transaction
       const transaction = queryRunner.manager.create(ImportTransaction, {
         idempotencyKey,
         documentNumber: dto.document_number,

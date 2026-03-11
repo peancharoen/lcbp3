@@ -2,7 +2,7 @@
 
 > **The Event Horizon of Software Quality.**
 > _Adapted for Google Antigravity IDE from [github/spec-kit](https://github.com/github/spec-kit)._
-> _Version: 1.1.0_
+> _Version: 1.2.0 — LCBP3-DMS Edition (v1.8.1 UAT Ready)_
 
 ---
 
@@ -251,6 +251,52 @@ If you change your mind mid-project:
 - **Shared Script Core**: Logic resides in `.agents/scripts/bash` (modular) with PowerShell equivalents in `scripts/powershell/` for Windows-native execution.
 - **Agent-Native**: Designed to be invoked via Antigravity tool calls and reasoning rather than just terminal strings.
 - **LCBP3-DMS Specific**: Includes project-specific skills (`nestjs-best-practices`, `next-best-practices`, `speckit.security-audit`) and workflows (`/schema-change`, `/create-backend-module`, `/deploy`).
+
+---
+
+## 🏗️ LCBP3-DMS Project Notes (v1.8.1)
+
+### 📊 Current Status: UAT Ready (2026-03-11)
+
+| Area | Status |
+|------|--------|
+| Backend | ✅ 18 Modules, Production Ready |
+| Frontend | ✅ 100% Complete |
+| Database | ✅ Schema v1.8.0 Stable |
+| Documentation | ✅ **10/10 Gaps Closed** |
+| AI Migration | 🔄 Pre-migration Setup (n8n + Ollama) |
+| UAT | 🔄 In Progress |
+| Deployment | 📋 Pending Go-Live |
+
+### 📁 Key Spec Files (Always Check Before Writing Code)
+
+| เอกสาร | Path | ใช้เมื่อ |
+|--------|------|--------|
+| Schema Tables | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` | ก่อนเขียน Query |
+| Data Dictionary | `specs/03-Data-and-Storage/03-01-data-dictionary.md` | ตรวจ Business Rules |
+| Edge Cases | `specs/01-Requirements/01-06-edge-cases-and-rules.md` | 37 Rules |
+| Migration Scope | `specs/03-Data-and-Storage/03-06-migration-business-scope.md` | Migration Bot |
+| Release Policy | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md` | ก่อน Deploy |
+| UAT Criteria | `specs/01-Requirements/01-05-acceptance-criteria.md` | ตรวจ Feature |
+
+### ⚡ Project-Specific Workflow Cheatsheet
+
+| Task | Workflow / Command | Notes |
+|------|--------------------|-------|
+| Create Backend Module | `/create-backend-module` | Scaffolds NestJS module |
+| Create Frontend Page | `/create-frontend-page` | Next.js App Router page |
+| Schema Change | `/schema-change` | ADR-009: No migrations |
+| Deploy | `/deploy` | Blue-Green via Gitea CI/CD |
+| UAT Feature Check | `/11-speckit.validate` | vs `01-05-acceptance-criteria.md` |
+| Security Audit | `@speckit.security-audit` | OWASP + CASL + ClamAV |
+
+### 🚫 Critical Forbidden Actions
+
+- ❌ DO NOT bypass Release Gates before deploying — `04-08-release-management-policy.md`
+- ❌ DO NOT start Migration without Gate #1 approval — `03-06-migration-business-scope.md`
+- ❌ DO NOT use TypeORM Migrations — modify schema SQL directly (ADR-009)
+- ❌ DO NOT give Ollama direct DB access — all writes via DMS API (ADR-018)
+- ❌ DO NOT use `any` TypeScript type anywhere
 
 ---
 

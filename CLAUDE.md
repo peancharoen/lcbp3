@@ -13,9 +13,10 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 - **Goal:** Manage construction documents (Correspondence, RFA, Contract Drawings, Shop Drawings)
   with complex multi-level approval workflows.
 - **Infrastructure:**
-  - **QNAP NAS:** Container Station (Docker), Nginx Proxy Manager, MariaDB, Redis, Elasticsearch, ClamAV
-  - **ASUSTOR NAS:** Ollama (AI Processing), n8n (Workflow Automation), Portainer
-  - **Shared:** Gitea (Git + CI/CD), Prometheus + Loki + Grafana (Monitoring/Logging)
+  - **QNAP NAS:** Container Station — DMS Frontend/Backend, MariaDB, Redis, Elasticsearch, Nginx Proxy Manager, n8n + n8n-db, Tika, Gitea, RocketChat, cAdvisor, exporters
+  - **ASUSTOR NAS:** Portainer — Monitoring Hub (Grafana, Prometheus, Loki, Promtail, uptime-kuma), Gitea Runner (act_runner), Docker Registry, cAdvisor, Cloudflared
+  - **Admin Desktop:** Ollama (AI Processing) — i9-9900K, 32GB RAM, RTX 2060 SUPER 8GB
+  - **Shared Network:** Internal VLAN — QNAP scrapes by ASUSTOR Prometheus
 
 ## 💻 Tech Stack & Constraints
 
@@ -24,7 +25,7 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 - **Frontend:** Next.js 14+ (App Router), Tailwind CSS, Shadcn/UI,
   TanStack Query (**Server State**), Zustand (**Client State**), React Hook Form + Zod (**Form State**), Axios
 - **Notifications:** BullMQ Queue → Email / LINE Notify / In-App
-- **AI/Migration:** Ollama (llama3.2:3b / mistral:7b) on ASUSTOR + n8n orchestration
+- **AI/Migration:** Ollama (llama3.2:3b / mistral:7b) on Admin Desktop (RTX 2060 SUPER) + n8n on QNAP
 - **Language:** TypeScript (Strict Mode). **NO `any` types allowed.**
 
 ## 🛡️ Security & Integrity Rules
@@ -35,7 +36,7 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 4. **Validation:** Use Zod (frontend) or Class-validator (backend DTO) for all inputs.
 5. **Password:** bcrypt with 12 salt rounds. Enforce password policy.
 6. **Rate Limiting:** Apply ThrottlerGuard on auth endpoints.
-7. **AI Isolation (ADR-018):** Ollama MUST run on ASUSTOR only. AI has NO direct DB access, NO write access to uploads. Output JSON only.
+7. **AI Isolation (ADR-018):** Ollama MUST run on Admin Desktop only (NOT on QNAP/production server). AI has NO direct DB access, NO write access to uploads. Output JSON only.
 
 ## 📋 Workflow & Spec Guidelines
 

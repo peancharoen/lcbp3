@@ -26,20 +26,33 @@ Spec 1.8.1 แก้ความไม่สอดคล้องระหว่
 
 ### Infrastructure Layout
 
-| Component     | Host    | Responsibility       |
-| ------------- | ------- | -------------------- |
-| DMS App       | QNAP    | Production system    |
-| MariaDB       | QNAP    | Authoritative DB     |
-| File Storage  | QNAP    | Primary file store   |
-| Reverse Proxy | QNAP    | Public ingress       |
-| Ollama        | ASUSTOR | AI processing only   |
-| n8n           | ASUSTOR | Automation engine    |
-| Portainer     | ASUSTOR | Container management |
+| Component          | Host          | Responsibility |
+| ------------------ | ------------- | -------------- |
+| DMS Frontend       | QNAP          | Production UI |
+| DMS Backend        | QNAP          | Core API |
+| MariaDB            | QNAP          | Authoritative DB |
+| Redis              | QNAP          | Cache / BullMQ |
+| Elasticsearch      | QNAP          | Full-text Search |
+| Nginx Proxy Manager| QNAP          | Public ingress / SSL |
+| n8n + n8n-db       | QNAP          | Automation engine |
+| Tika               | QNAP          | OCR / PDF extraction |
+| Gitea              | QNAP          | Git + CI/CD |
+| RocketChat         | QNAP          | Team communication |
+| Grafana            | ASUSTOR       | Metrics dashboard |
+| Prometheus         | ASUSTOR       | Metrics collection |
+| Loki               | ASUSTOR       | Log aggregation |
+| Promtail           | ASUSTOR       | Log shipper |
+| uptime-kuma        | ASUSTOR       | Service availability |
+| Gitea Runner       | ASUSTOR       | CI/CD build agent |
+| Docker Registry    | ASUSTOR       | Image storage |
+| Cloudflared        | ASUSTOR       | Tunnel / remote access |
+| Ollama             | Admin Desktop | AI processing only (i9-9900K, RTX 2060 SUPER 8GB) |
 
-**Constraint:**
+**Constraints:**
 
-* Ollama MUST NOT run on QNAP
+* Ollama MUST NOT run on QNAP (production server)
 * AI containers MUST NOT access production DB directly
+* n8n calls Ollama via internal VLAN HTTP only
 
 ---
 
@@ -173,7 +186,7 @@ Production DMS must remain authoritative.
 
 Ollama must:
 
-* Run on ASUSTOR only
+* Run on **Admin Desktop only** (NOT on QNAP)
 * Have NO DB credentials
 * Have NO write access to uploads
 * Access only `/staging_ai`

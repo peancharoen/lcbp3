@@ -19,6 +19,9 @@ This directory contains the functional and non-functional requirements for the L
 1. [Objectives & Goals](./01-01-objectives.md) - Project objectives and success criteria
 2. [System Architecture & Technology](../02-Architecture/README.md) - High-level architecture requirements
 3. [Functional Requirements](./01-02-modules/01-02-00-index.md) - Detailed feature specifications
+4. **[📖 User Stories](./01-04-user-stories.md)** - 27 User Stories (8 Epics, MoSCoW priority, AC links)
+5. **[🛡️ Edge Cases & Business Rules](./01-06-edge-cases-and-rules.md)** - 37 Edge Cases ป้องกัน Bug
+6. **[🖼️ UI/UX Wireframes](./01-07-ui-wireframes.md)** - 26 Screens, Navigation Map, Design System
 
 ### Functional Areas
 
@@ -55,10 +58,12 @@ This directory contains the functional and non-functional requirements for the L
 
 ### Cross-Cutting Concerns
 
-4. [Access Control & RBAC](./01-01-business-rules/01-01-01-rbac-matrix.md) - 4-level hierarchical RBAC
-5. [UI/UX Requirements](./01-01-business-rules/01-01-03-ui-ux-rules.md) - User interface specifications
-6. [Non-Functional Requirements](./01-01-business-rules/01-01-04-non-functional-rules.md) - Performance, security, scalability
-7. [Testing Requirements](./01-01-business-rules/01-01-05-testing-rules.md) - Test strategy and coverage
+4. [Access Control & RBAC](./01-01-business-rules/01-02-01-rbac-matrix.md) - 4-level hierarchical RBAC
+5. [UI/UX Requirements](./01-02-business-rules/01-02-03-ui-ux-rules.md) - User interface specifications
+6. [Non-Functional Requirements](./01-02-business-rules/01-02-04-non-functional-rules.md) - Performance, security, scalability
+7. [Testing Requirements](./01-02-business-rules/01-02-05-testing-rules.md) - Test strategy and coverage
+8. **[✅ Acceptance Criteria (UAT)](./01-05-acceptance-criteria.md)** - MVP Go-Live criteria, UAT Scenarios, Sign-off checklist
+9. **[🎓 Training Plan](../00-Overview/00-06-training-plan.md)** - Training Curriculum, Change Management (see also `00-Overview/`)
 
 ---
 

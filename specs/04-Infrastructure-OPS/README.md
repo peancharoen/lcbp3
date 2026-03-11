@@ -25,6 +25,7 @@ It consolidates what was previously split across multiple operations and specifi
 | **[04-05-maintenance-procedures.md](./04-05-maintenance-procedures.md)** | Routine Care           | Log rotation, dependency updates, scheduled DB optimizations                                                                                    |
 | **[04-06-security-operations.md](./04-06-security-operations.md)**       | Hardening & Audit      | User access review, SSL renewals, vulnerability scanning, **Appendix A: SSH Setup**, **Appendix B: Secrets Management**                         |
 | **[04-07-incident-response.md](./04-07-incident-response.md)**           | Escalation             | P0-P3 classifications, incident commander roles, Post-Incident Review                                                                           |
+| **[🚀 04-08-release-management-policy.md](./04-08-release-management-policy.md)** | Release Policy | SemVer, Git Flow, 5 Release Gates, Hotfix Process, Rollback Policy, CI/CD Pipeline                                               |
 
 ### 🐳 Live Docker Compose Files (QNAP)
 

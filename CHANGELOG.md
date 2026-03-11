@@ -4,8 +4,96 @@
 
 ### In Progress
 
-- Continuous Integration & End-to-End Test (E2E) Improvements
-- Advanced Analytics Dashboard Planning
+- UAT (User Acceptance Testing) — ตาม `01-05-acceptance-criteria.md`
+- KPI Baseline Collection (As-Is Metrics ก่อน Go-Live)
+- Legacy Data Migration — Tier 1 (2,000 docs Critical)
+- Final Security Audit — ตาม `04-06-security-operations.md`
+- Go-Live: Blue-Green Deploy บน QNAP Container Station
+
+---
+
+## 1.8.1 Patch (2026-03-11)
+
+### Summary
+
+**Product Owner Documentation Complete** — ปิด 10/10 Documentation Gaps สำหรับ UAT Readiness  
+ระบบมีเอกสารครบถ้วนสำหรับ Stakeholder Sign-off และ Go-Live Process
+
+### Documentation 📚 — 10/10 Gaps Closed
+
+#### Gap 1: Product Vision Statement ✅ `specs/00-Overview/00-03-product-vision.md`
+- Elevator Pitch, Problem Statement, Geoffrey Moore Vision Format
+- Strategic Pillars: Speed / Security / Visibility
+- Phase Roadmap (Now → 24 เดือน), Guardrails, Success Metrics
+
+#### Gap 2: User Stories ✅ `specs/01-Requirements/01-04-user-stories.md`
+- 27 User Stories ครอบคลุม 8 Epics
+- MoSCoW Prioritization per Story
+- Acceptance Criteria + Definition of Done
+
+#### Gap 3: Acceptance Criteria (UAT) ✅ `specs/01-Requirements/01-05-acceptance-criteria.md`
+- 35 Acceptance Criteria (All Modules)
+- UAT Plan: 4 Phases, Sign-off Process
+- Go-Live Criteria Matrix
+
+#### Gap 4: UI/UX Wireframes ✅ `specs/01-Requirements/01-07-ui-wireframes.md`
+- Screen Inventory: 26 Screens พร้อม Role + Priority
+- Navigation Map / Site Map ครบทุก Route
+- ASCII Wireframes: Login, Dashboard, Correspondence, RFA, Circulation, Admin
+- Design System Tokens + Interaction Patterns
+
+#### Gap 5: Stakeholder Sign-off & Risk ✅ `specs/00-Overview/00-04-stakeholder-signoff-and-risk.md`
+- Sign-off Process 4-Step + Digital Sign Matrix
+- Risk Register: 15 Risks (Impact × Probability Matrix)
+- Change Control Policy + Emergency Change Process
+
+#### Gap 6: KPI Baseline Data ✅ `specs/00-Overview/00-05-kpi-baseline.md`
+- 14 KPIs พร้อม Baseline Collection Form
+- SQL Measurement Queries + Grafana Dashboard Specs
+- User Satisfaction Survey Template
+
+#### Gap 7: Migration Business Scope ✅ `specs/03-Data-and-Storage/03-06-migration-business-scope.md`
+- Data Scope: IN/OUT SCOPE (ปี 2564 → Go-Live)
+- Migration Tiers: Tier 1 (2K Critical) / Tier 2 (10K) / Tier 3 (8K Archive)
+- Excel Metadata Mapping (11 Columns → Field ใหม่)
+- Organization Code Lookup Table
+- Timeline: T-6 สัปดาห์ → Go-Live → T+30
+- Go/No-Go Gates 3 ด่าน
+- Data Security: AI Isolation (ADR-018) + Token 7 วัน + IP Whitelist
+
+#### Gap 8: Release Management Policy ✅ `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`
+- SemVer Strategy + Git Flow (main/release/develop/hotfix)
+- 5 Release Gates: Code Complete → QA → Staging → Approval → Production
+- Quality Thresholds: TS 0 errors, ≥80% Test Coverage, 0 Critical Vuln
+- Hotfix Process: P0 < 4h / P1 < 24h + Decision Tree
+- Rollback Policy: SLA < 30 วิ (Blue-Green) + Auto-trigger Rules
+- CI/CD Pipeline: 5 Stages (Quality → Security → Build → Integration → Release)
+- Release Checklist + Security Pre-release Requirements
+
+#### Gap 9: Training Plan ✅ `specs/00-Overview/00-06-training-plan.md`
+- Curriculum แบ่งตาม Role (4 Roles)
+- 4-Phase Training Timeline
+- Hands-on Lab + Assessment Criteria
+
+#### Gap 10: Edge Cases & Business Rules ✅ `specs/01-Requirements/01-06-edge-cases-and-rules.md`
+- 37 Edge Cases ครอบคลุมทุก Module
+- Business Logic Guards + Error Handling Matrix
+
+### Architecture Decision Records 🏛️
+
+- **ADR-018** (Patch 1.8.1): AI Boundary — Ollama Isolation Policy
+  - Ollama ไม่มี Direct DB/Storage Access
+  - AI Output ต้องผ่าน Backend Validation ก่อน Write
+  - Migration Bot Token: IP Whitelist + 7-day Expiry
+
+### READMEs Updated 📄
+
+- `README.md`: Status badge v1.8.1, UAT Ready, 10/10 Gaps table, fixed schema commands, updated Roadmap
+- `CONTRIBUTING.md`: Spec tree updated (new files), schema filenames corrected, category table updated
+- `specs/00-Overview/README.md`: Quick Links table เพิ่ม Gap 4/7/8 links
+- `specs/01-Requirements/README.md`: Gap documents registered
+- `specs/03-Data-and-Storage/README.md`: Migration Scope registered
+- `specs/04-Infrastructure-OPS/README.md`: Release Policy registered
 
 ## 1.8.0 (2026-02-24)
 

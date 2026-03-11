@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "LCBP3 Migration Workflow v1.8.0",
   "nodes": [
     {
@@ -701,7 +701,7 @@
       "name": "Build Import Payload",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "const item = $input.first();\nconst config = $('Set Configuration').first().json.config;\nconst ai = item.json.ai_result || {};\n\nreturn [{\n  json: {\n    ...item.json,\n    import_payload: {\n      document_number: String(item.json.document_number || ''),\n      title: String(ai.subject || item.json.title || 'ไม่มีชื่อเรื่อง'),\n      category: ai.type_code || 'LETTER',\n      source_file_path: item.json.file_path || '/dev/null',\n      ai_confidence: ai.confidence || 0.8,\n      migrated_by: 'SYSTEM_IMPORT',\n      batch_id: config.BATCH_ID,\n      project_id: Number(ai.project_id || config.PROJECT_ID),\n      issued_date: ai.issued_date || '',\n      received_date: ai.received_date || '',\n      body: ai.body || '',\n      details: {\n        legacy_number: item.json.legacy_number || '',\n        remark: ai.remark || '',\n        key_points: ai.key_points || [],\n        tags: ai.tags || []\n      }\n    }\n  }\n}];"
+        "jsCode": "const item = $input.first();\nconst config = $('Set Configuration').first().json.config;\nconst ai = item.json.ai_result || {};\n\nreturn [{\n  json: {\n    ...item.json,\n    import_payload: {\n      document_number: String(item.json.document_number || ''),\n      title: String(ai.subject || item.json.title || 'ไม่มีชื่อเรื่อง'),\n      category: ai.type_code || 'LETTER',\n      source_file_path: item.json.file_path || '/dev/null',\n      ai_confidence: ai.confidence || 0.8,\n      migrated_by: 'SYSTEM_IMPORT',\n      batch_id: config.BATCH_ID,\n      project_id: Number(ai.project_id || config.PROJECT_ID),\n      discipline_id: ai.discipline_id || null,\n      sender_id: ai.sender_id || null,\n      receiver_id: ai.receiver_id || null,\n      document_date: ai.issued_date || '',\n      issued_date: ai.issued_date || '',\n      received_date: ai.received_date || '',\n      body: ai.body || '',\n      details: {\n        legacy_number: item.json.legacy_number || '',\n        remark: ai.remark || '',\n        key_points: ai.key_points || [],\n        tags: ai.tags || []\n      }\n    }\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "position": [
@@ -738,6 +738,12 @@
         17000,
         6592
       ],
+      "credentials": {
+        "mySql": {
+          "id": "CHHfbKhMacNo03V4",
+          "name": "MySQL account"
+        }
+      },
       "notes": "Insert into correspondence_tags"
     }
   ],
