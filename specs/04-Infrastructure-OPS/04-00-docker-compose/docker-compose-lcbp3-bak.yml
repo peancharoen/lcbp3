@@ -76,6 +76,8 @@ services:
       - '/share/np-dms/data/uploads/temp:/app/uploads/temp'
       - '/share/np-dms/data/uploads/permanent:/app/uploads/permanent'
       - '/share/np-dms/data/logs/backend:/app/logs'
+      # Mount legacy staging folder to match n8n's output path
+      - '/share/np-dms-as/Legacy:/home/node/.n8n-files/staging_ai:ro'
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
       interval: 30s
