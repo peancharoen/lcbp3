@@ -15,7 +15,14 @@ import { CorrespondenceType } from '../correspondence/entities/correspondence-ty
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { Project } from '../project/entities/project.entity';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
-
+import {
+  MigrationReviewQueue,
+  MigrationReviewStatus,
+} from './entities/migration-review-queue.entity';
+import { MigrationError } from './entities/migration-error.entity';
+import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
+import { createReadStream, existsSync } from 'fs';
+import * as path from 'path';
 @Injectable()
 export class MigrationService {
   private readonly logger = new Logger(MigrationService.name);
@@ -30,6 +37,10 @@ export class MigrationService {
     private readonly correspondenceStatusRepo: Repository<CorrespondenceStatus>,
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
+    @InjectRepository(MigrationReviewQueue)
+    private readonly reviewQueueRepo: Repository<MigrationReviewQueue>,
+    @InjectRepository(MigrationError)
+    private readonly errorRepo: Repository<MigrationError>,
     private readonly fileStorageService: FileStorageService
   ) {}
 
@@ -202,7 +213,7 @@ export class MigrationService {
         revisionLabel: revNum === 0 ? '0' : revNum.toString(),
         isCurrent: true,
         statusId: status.id,
-        subject: dto.title,
+        subject: dto.subject,
         description: 'Migrated from legacy system via Auto Ingest',
         body: dto.body || undefined,
         documentDate: parseDateStr(dto.document_date || dto.issued_date),
@@ -248,6 +259,50 @@ export class MigrationService {
         await queryRunner.manager.save('RfaRevision', rfaRev);
       }
 
+      // 5.5 Handle Tags
+      if (
+        dto.details &&
+        Array.isArray(dto.details.tags) &&
+        dto.details.tags.length > 0
+      ) {
+        for (const tagItem of dto.details.tags) {
+          let tagName: string | undefined;
+
+          if (typeof tagItem === 'string') {
+            tagName = tagItem;
+          } else if (tagItem && typeof tagItem === 'object') {
+            const tObj = tagItem as { tag_name?: unknown };
+            if (typeof tObj.tag_name === 'string') {
+              tagName = tObj.tag_name;
+            }
+          }
+
+          if (!tagName) continue;
+
+          // Find or create Tag
+          const tagRes = (await queryRunner.manager.query(
+            'SELECT id FROM tags WHERE project_id = ? AND tag_name = ? LIMIT 1',
+            [project.id, tagName]
+          )) as Array<{ id: number }>;
+
+          let tagId: number;
+          if (tagRes && tagRes.length > 0) {
+            tagId = tagRes[0].id;
+          } else {
+            const insertRes = (await queryRunner.manager.query(
+              "INSERT INTO tags (project_id, tag_name, color_code, created_by) VALUES (?, ?, 'default', ?)",
+              [project.id, tagName, userId]
+            )) as { insertId: number };
+            tagId = insertRes.insertId;
+          }
+
+          // Link to correspondence
+          await queryRunner.manager.query(
+            'INSERT IGNORE INTO correspondence_tags (correspondence_id, tag_id) VALUES (?, ?)',
+            [correspondence.id, tagId]
+          );
+        }
+      }
       // 6. Track Transaction
       const transaction = queryRunner.manager.create(ImportTransaction, {
         idempotencyKey,
@@ -295,4 +350,105 @@ export class MigrationService {
       await queryRunner.release();
     }
   }
+  async getReviewQueue(query: MigrationQueueQueryDto) {
+    const { page = 1, limit = 10, status } = query;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.reviewQueueRepo.createQueryBuilder('queue');
+    if (status) {
+      queryBuilder.where('queue.status = :status', { status });
+    }
+    
+    queryBuilder.orderBy('queue.createdAt', 'DESC');
+    queryBuilder.skip(skip).take(limit);
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getQueueItemById(id: number) {
+    const item = await this.reviewQueueRepo.findOne({ where: { id } });
+    if (!item) {
+      throw new BadRequestException(`Queue item with ID ${id} not found`);
+    }
+    return item;
+  }
+
+  async getErrors(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.errorRepo.findAndCount({
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async approveQueueItem(id: number, dto: ImportCorrespondenceDto, idempotencyKey: string, userId: number) {
+    const queueItem = await this.reviewQueueRepo.findOne({ where: { id } });
+    if (!queueItem) {
+      throw new BadRequestException('Queue item not found');
+    }
+
+    if (queueItem.status !== MigrationReviewStatus.PENDING) {
+      throw new BadRequestException(`Queue item is already ${queueItem.status}`);
+    }
+
+    // Attempt the import
+    const result = await this.importCorrespondence(dto, idempotencyKey, userId);
+
+    // If successful, update the queue item status
+    queueItem.status = MigrationReviewStatus.APPROVED;
+    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedAt = new Date();
+    await this.reviewQueueRepo.save(queueItem);
+
+    return result;
+  }
+
+  async rejectQueueItem(id: number, userId: number) {
+    const queueItem = await this.reviewQueueRepo.findOne({ where: { id } });
+    if (!queueItem) {
+      throw new BadRequestException('Queue item not found');
+    }
+
+    queueItem.status = MigrationReviewStatus.REJECTED;
+    queueItem.reviewedBy = userId.toString();
+    queueItem.reviewedAt = new Date();
+    await this.reviewQueueRepo.save(queueItem);
+
+    return {
+      message: 'Document rejected successfully',
+      id: queueItem.id,
+    };
+  }
+
+  getStagingFileStream(filePath: string) {
+    if (!filePath) {
+        throw new BadRequestException('File path is required');
+    }
+
+    const resolvedPath = path.resolve(filePath);
+    if (!existsSync(resolvedPath)) {
+        throw new BadRequestException('File not found at specified path');
+    }
+
+    return createReadStream(resolvedPath);
+  }
 }
+

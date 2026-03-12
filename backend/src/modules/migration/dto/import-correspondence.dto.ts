@@ -13,7 +13,7 @@ export class ImportCorrespondenceDto {
 
   @IsString()
   @IsNotEmpty()
-  title!: string;
+  subject!: string;
 
   @IsString()
   @IsNotEmpty()

@@ -10,10 +10,15 @@ import { CorrespondenceStatus } from '../correspondence/entities/correspondence-
 import { Project } from '../project/entities/project.entity';
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 
+import { MigrationReviewQueue } from './entities/migration-review-queue.entity';
+import { MigrationError } from './entities/migration-error.entity';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       ImportTransaction,
+      MigrationReviewQueue,
+      MigrationError,
       Correspondence,
       CorrespondenceRevision,
       CorrespondenceType,

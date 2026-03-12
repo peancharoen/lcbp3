@@ -3,7 +3,10 @@ import { MigrationService } from './migration.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
+import { Get, Param, Query, Res, ParseIntPipe, Body, Headers, Post, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 
 @ApiTags('Migration')
 @ApiBearerAuth()
@@ -27,4 +30,79 @@ export class MigrationController {
     const userId = user?.id || user?.userId || 5;
     return this.migrationService.importCorrespondence(dto, idempotencyKey, userId);
   }
+
+  @Get('queue')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get migration review queue' })
+  async getReviewQueue(@Query() query: MigrationQueueQueryDto) {
+    return this.migrationService.getReviewQueue(query);
+  }
+
+  @Get('queue/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get a specific queue item by ID' })
+  @ApiParam({ name: 'id', type: Number })
+  async getQueueItemById(@Param('id', ParseIntPipe) id: number) {
+    return this.migrationService.getQueueItemById(id);
+  }
+
+  @Get('errors')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get migration errors' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getErrors(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number
+  ) {
+    return this.migrationService.getErrors(page, limit);
+  }
+
+  @Post('queue/:id/approve')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Approve and import a queued migration item' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key per document and batch to prevent duplicate inserts',
+    required: true,
+  })
+  async approveQueueItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ImportCorrespondenceDto,
+    @Headers('idempotency-key') idempotencyKey: string,
+    @CurrentUser() user: any
+  ) {
+    const userId = user?.id || user?.userId || 5;
+    return this.migrationService.approveQueueItem(id, dto, idempotencyKey, userId);
+  }
+
+  @Post('queue/:id/reject')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Reject a queued migration item' })
+  @ApiParam({ name: 'id', type: Number })
+  async rejectQueueItem(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: any
+  ) {
+    const userId = user?.id || user?.userId || 5;
+    return this.migrationService.rejectQueueItem(id, userId);
+  }
+
+  @Get('staging-file')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Stream a file from staging' })
+  @ApiQuery({ name: 'path', required: true, type: String })
+  async getStagingFile(
+    @Query('path') filePath: string,
+    @Res() res: Response
+  ) {
+    const stream = this.migrationService.getStagingFileStream(filePath);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'inline; filename="document.pdf"',
+    });
+    stream.pipe(res);
+  }
 }
+
