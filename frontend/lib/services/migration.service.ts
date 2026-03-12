@@ -13,12 +13,12 @@ export const migrationService = {
     status?: MigrationReviewStatus;
   }): Promise<PaginatedResponse<MigrationReviewQueueItem>> => {
     const { data } = await api.get('/migration/queue', { params });
-    return data;
+    return data?.data || data;
   },
 
   getQueueItem: async (id: number): Promise<MigrationReviewQueueItem> => {
     const { data } = await api.get(`/migration/queue/${id}`);
-    return data;
+    return data?.data || data;
   },
 
   getErrors: async (params: {
@@ -26,7 +26,7 @@ export const migrationService = {
     limit?: number;
   }): Promise<PaginatedResponse<MigrationErrorItem>> => {
     const { data } = await api.get('/migration/errors', { params });
-    return data;
+    return data?.data || data;
   },
 
   approveQueueItem: async (id: number, payload: any, idempotencyKey: string) => {
@@ -35,12 +35,12 @@ export const migrationService = {
         'idempotency-key': idempotencyKey,
       },
     });
-    return data;
+    return data?.data || data;
   },
 
   rejectQueueItem: async (id: number) => {
     const { data } = await api.post(`/migration/queue/${id}/reject`);
-    return data;
+    return data?.data || data;
   },
 
   getStagingFileUrl: (filePath: string) => {
