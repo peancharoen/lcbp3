@@ -196,7 +196,17 @@ export class MigrationService {
       }
 
       // Helper function to parse Date safety
-      const parseDateStr = (d?: string) => (d ? new Date(d) : undefined);
+      const parseDateStr = (d?: string | number) => {
+        if (!d) return undefined;
+        const num = Number(d);
+        if (!isNaN(num) && num > 20000 && num < 100000) {
+          return new Date(Math.round((num - 25569) * 86400 * 1000));
+        }
+        const parsed = new Date(d);
+        if (isNaN(parsed.getTime())) return undefined;
+        if (parsed.getFullYear() > 2100 || parsed.getFullYear() < 1900) return undefined;
+        return parsed;
+      };
 
       // 5. Create Revision
       const revisionCount = await queryRunner.manager.count(
