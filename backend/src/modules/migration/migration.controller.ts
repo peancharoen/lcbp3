@@ -1,6 +1,7 @@
 import { Controller, Post, Body, Headers, UseGuards, Get, Param, Query, Res, ParseIntPipe } from '@nestjs/common';
 import { MigrationService } from './migration.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
+import { EnqueueMigrationDto } from './dto/enqueue-migration.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader, ApiQuery, ApiParam } from '@nestjs/swagger';
@@ -28,6 +29,13 @@ export class MigrationController {
   ) {
     const userId = user?.id || user?.userId || 5;
     return this.migrationService.importCorrespondence(dto, idempotencyKey, userId);
+  }
+
+  @Post('queue')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Enqueue a record into the staging migration review queue' })
+  async enqueueRecord(@Body() dto: EnqueueMigrationDto) {
+    return this.migrationService.enqueueRecord(dto);
   }
 
   @Get('queue')

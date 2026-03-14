@@ -206,206 +206,102 @@ n8n ต้องเก็บ categories นี้ไว้ใน Workflow Variab
 
 #### Node 1: Data Reader & Checkpoint
 
-- อ่าน Checkpoint จาก **MariaDB Node แยก** (ไม่ใช่ async call ใน Code Node)
-- Batch ทีละ **10–20 แถว** ตาม `$env.MIGRATION_BATCH_SIZE`
-- ติด `original_index` ทุก Item
+#### Node 1: Data Reader & Checkpoint
 
-**Encoding Normalization:**
-```javascript
-// Normalize ข้อมูลจาก Excel เป็น UTF-8 NFC ก่อนประมวลผล
-const normalize = (str) => {
-  if (!str) return '';
-  return Buffer.from(str, 'utf8').toString('utf8').normalize('NFC');
-};
+- อ่าน Checkpoint จาก **MariaDB Node แยก** 
+- Batch ทีละ **50–100 แถว** ตาม `$env.MIGRATION_BATCH_SIZE` (ควรจำกัด Batch Size ป้องกัน DB Connection Overload)
+- ติด `original_index` ทุก Item และ Normalize Encoding (UTF-8 NFC) สำหรับ ชื่อไฟล์ และ เลขเอกสารเก่า
 
-return items.map(item => ({
-  ...item,
-  json: {
-    ...item.json,
-    document_number: normalize(item.json.document_number),
-    title: normalize(item.json.title),
-    // Mapping เลขอ้างอิงเก่า (Legacy Number) เพื่อนำไปเก็บใน details JSON
-    legacy_document_number: item.json.document_number
-  }
-}));
-```
+#### Node 2: DB Lookup & Data Augmentation
 
-#### Node 2: File Validator & Sanitizer
+- **Task:** ให้ n8n นำข้อมูลจาก Excel (เช่น รหัสโปรเจ็กต์, รหัสผู้ส่ง) ยิงคำสั่ง Query ไปยัง MariaDB เพื่อแปลงเป็น `id`
+- **Queries:**
+  1. แปลง `project_code` -> `project_id`
+  2. แปลง `sender_code` -> `sender_organization_id`
+  3. แปลง `receiver_code` -> `receiver_organization_id`
+  4. หา Tags ที่มีอยู่ในโปรเจ็กต์: `SELECT * FROM tags WHERE project_id = {{project_id}}`
+- **Output:** n8n เก็บ `project_id`, `organization_ids` และ `existing_tags_json` ไว้ในแต่ละ item
+- *ถ้าหารหัสโปรเจ็กต์ไม่เจอ ให้ส่งเข้า Error Log ไม่ทำต่อ*
 
-- ตรวจสอบไฟล์ PDF มีอยู่จริงบน NAS
-- Normalize ชื่อไฟล์เป็น **UTF-8 NFC**
-- Path Traversal Guard: resolved path ต้องอยู่ใน `/share/np-dms/staging_ai` เท่านั้น
-- **Output 0** → valid → Node 3
-- **Output 1** → error → Node 5D (ไม่หายเงียบ)
+#### Node 3: File Processor (Extract PDF Text & Temp Upload)
 
-#### Node 3: AI Analysis (Sequential เท่านั้น)
+- ตรวจสอบไฟล์ PDF มีอยู่จริงบน NAS `/share/np-dms/staging_ai`
+- **Extract PDF Text:** ใช้ Apache Tika สกัดข้อความจากเอกสาร
+- **Two-Phase Storage (Upload):**
+  - n8n ยิง `POST /api/storage/upload` ส่งไฟล์ PDF เข้า Backend
+  - Backend อัพโหลดไฟล์, กำหนด `is_temporary = TRUE`
+  - Backend ส่งคืน `attachment_id` ให้ n8n (จะเรียกว่า `temp_attachment_id`)
+
+#### Node 4: AI Analysis (Sequential เท่านั้น)
 
 **System Prompt:**
 ```text
 You are a Document Controller for a large construction project.
-Your task is to validate document metadata and suggest relevant tags.
-You MUST respond ONLY with valid JSON. No explanation, no markdown, no extra text.
-If there are no issues, "detected_issues" must be an empty array [].
+Your task is to validate document metadata, summarize content, and suggest relevant tags.
+You MUST respond ONLY with valid JSON. No explanation, no markdown.
 ```
 
-**User Prompt (Category List มาจาก Backend ไม่ hardcode):**
+**User Prompt:**
 ```text
-Validate this document metadata and respond in JSON:
-
+Validate and summarize this document. Respond in JSON.
 Document Number: {{$json.document_number}}
 Title: {{$json.title}}
-Expected Pattern: [ORG]-[TYPE]-[SEQ] e.g. "TCC-COR-0001"
-Category List (MUST match system enum exactly): {{$workflow.variables.system_categories}}
+Extracted Text: {{$json.extracted_text}}
 
-Analyze the document and suggest relevant tags based on:
-1. Document content/title keywords (e.g., "Foundation", "Structure", "Electrical", "Safety")
-2. Document type indicators (e.g., "Drawing", "Report", "Inspection")
-3. Organization codes present in document number
-4. Any discipline or phase indicators
+Existing Project Tags: {{$json.existing_tags_json}}
+
+Analyze the content to provide:
+1. Validation of Subject/Dates with PDF text.
+2. A 4-5 sentence summary.
+3. Suggest tags. Select from Existing Project Tags if applicable. If no existing tag fits, suggest a NEW one (set is_new: true).
 
 Respond ONLY with this exact JSON structure:
 {
   "is_valid": true | false,
   "confidence": 0.0 to 1.0,
-  "suggested_category": "<one from Category List>",
-  "detected_issues": ["<issue1>"],
-  "suggested_title": "<corrected title or null>",
-  "suggested_tags": ["<tag1>", "<tag2>"],
-  "tag_confidence": 0.0 to 1.0
+  "category": "Correspondence",
+  "summary": "<4-5 sentence summary>",
+  "suggested_tags": [
+    {"name": "Structural", "description": "...", "is_new": false}
+  ],
+  "detected_issues": []
 }
 ```
 
-**JSON Validation (ตรวจ Category ตรง Enum + Tag Normalization):**
-```javascript
-const systemCategories = $workflow.variables.system_categories;
-if (!systemCategories.includes(result.suggested_category)) {
-  throw new Error(`Category "${result.suggested_category}" not in system enum: ${systemCategories.join(', ')}`);
-}
+#### Node 5: Staging Ingestion (Insert to Review Queue)
 
-// Tag Validation
-if (!Array.isArray(result.suggested_tags)) {
-  result.suggested_tags = [];
-}
-// Normalize: trim, lowercase, remove duplicates
-result.suggested_tags = [...new Set(result.suggested_tags.map(t => String(t).trim()).filter(t => t.length > 0))];
+ข้อมูลทั้งหมดที่ผ่าน n8n และ AI Model **จะต้องไม่ถูกอัพเดทเข้าตารางหลักอัตโนมัติ** แต่จะถูกบังคับนำเข้าตาราง Staging `migration_review_queue` แทน เพื่อรอมนุษย์จัดการผ่าน Frontend UI
 
-// Tag confidence validation
-if (typeof result.tag_confidence !== 'number' || result.tag_confidence < 0 || result.tag_confidence > 1) {
-  result.tag_confidence = 0.5;
-}
-```
+**Status Routing Policy:**
+- `confidence >= 0.85` และ `is_valid = true` -> Status **`PENDING`** (พร้อมรับ Batch Import)
+- `confidence >= 0.60` และ `< 0.85` -> Status **`PENDING`** (ติด Flag ให้ระวัง)
+- `confidence < 0.60` หรือ `is_valid = false` -> Status **`REJECTED`**
+- Parse Error / AI ไม่ตอบ -> **Error Log** (Node ถัดไป)
 
-#### Node 3.5: Fallback Model Manager
-
-- อัปเดต `migration_fallback_state` ทุกครั้งที่เกิด Parse Error
-- Auto-switch ไป `OLLAMA_MODEL_FALLBACK` เมื่อ Error ≥ `FALLBACK_ERROR_THRESHOLD`
-- ส่ง Alert Email เมื่อ Fallback ถูก Activate
-
-#### Node 4: Confidence Router (4 outputs)
-
-| เงื่อนไข                                     | การดำเนินการ                       |
-| ------------------------------------------ | -------------------------------- |
-| `confidence >= 0.85` และ `is_valid = true` | **Output 0** → Auto Ingest       |
-| `confidence >= 0.60` และ `< 0.85`          | **Output 1** → Review Queue      |
-| `confidence < 0.60` หรือ `is_valid = false` | **Output 2** → Reject Log        |
-| Parse Error / AI ไม่ตอบ                     | **Output 3** → Error Log         |
-| Fallback: Error > 5 ใน 10 Request          | สลับ Model / หยุด Workflow + Alert |
-
-**Revision Drift Protection:**
-```javascript
-// ถ้า Excel มี revision column — ตรวจสอบก่อน route
-if (item.json.excel_revision !== undefined) {
-  const expectedRevision = (item.json.current_db_revision || 0) + 1;
-  if (parseInt(item.json.excel_revision) !== expectedRevision) {
-    item.json.review_reason = `Revision drift: Excel=${item.json.excel_revision}, Expected=${expectedRevision}`;
-    reviewQueue.push(item);
-    continue;
-  }
-}
-```
-
-#### Node 5A: Auto Ingest — Backend API
-
-> ⚠️ **Storage Enforcement:** n8n ส่งแค่ `source_file_path` — Backend จะ generate UUID, enforce path strategy (`/share/np-dms/staging_ai/...`), และ move file atomically ผ่าน StorageService
-
-```http
-POST /api/correspondences/import
-Authorization: Bearer <MIGRATION_TOKEN>
-Idempotency-Key: <document_number>:<batch_id>
-Content-Type: application/json
-```
-
-**Backend Tag Handling Logic:**
-
-เมื่อ Backend รับ Payload พร้อม `ai_tags` ระบบจะ:
-
-1. **Validate Tags:** ตรวจสอบว่า tag name อยู่ในรูปแบบที่ถูกต้อง (ไม่ว่าง, ไม่มีอักขระพิเศษ)
-2. **Create Missing Tags:** ถ้า Tag ไม่มีอยู่ใน `tags` table → สร้างใหม่โดยอัตโนมัติ
-   ```sql
-   INSERT INTO tags (tag_name, created_by, created_at)
-   VALUES ('<tag_name>', (SELECT user_id FROM users WHERE username = 'migration_bot'), NOW())
-   ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id);
-   ```
-3. **Link Document Tags:** บันทึกความสัมพันธ์ใน `correspondence_tags`
-   ```sql
-   INSERT INTO correspondence_tags (correspondence_id, tag_id)
-   SELECT LAST_INSERT_ID(), tag_id FROM tags WHERE tag_name IN (<ai_tags>);
-   ```
-4. **Tag Confidence Logging:** บันทึก `tag_confidence` ลงใน `details` JSON ของ Revision
-
-Payload:
-```json
-{
-  "document_number":   "{{document_number}}",
-  "title":             "{{ai_result.suggested_title || title}}",
-  "category":          "{{ai_result.suggested_category}}",
-  "source_file_path":  "{{file_path}}",
-  "ai_confidence":     "{{ai_result.confidence}}",
-  "ai_issues":         "{{ai_result.detected_issues}}",
-  "ai_tags":           "{{ai_result.suggested_tags}}",
-  "tag_confidence":    "{{ai_result.tag_confidence}}",
-  "migrated_by":       "SYSTEM_IMPORT",
-  "batch_id":          "{{$env.MIGRATION_BATCH_ID}}"
-}
-```
-
-**Audit Log ที่ Backend ต้องสร้าง:**
-```json
-{
-  "action":     "IMPORT",
-  "source":     "MIGRATION",
-  "batch_id":   "migration_20260226",
-  "created_by": "SYSTEM_IMPORT",
-  "metadata": {
-    "migration":     true,
-    "batch_id":      "migration_20260226",
-    "ai_confidence": 0.91
-  }
-}
-```
-
-**Checkpoint Update (ทุก 10 Records — ผ่าน IF Node + MariaDB Node):**
+**Insert into staging:**
 ```sql
-INSERT INTO migration_progress (batch_id, last_processed_index, status)
-VALUES ('{{$env.MIGRATION_BATCH_ID}}', {{checkpoint_index}}, 'RUNNING')
-ON DUPLICATE KEY UPDATE
-  last_processed_index = {{checkpoint_index}},
-  updated_at = NOW();
+INSERT INTO migration_review_queue (
+  document_number, title, project_id, sender_organization_id, receiver_organization_id,
+  received_date, issued_date, remarks, ai_suggested_category, ai_confidence,
+  ai_issues, ai_summary, extracted_tags, temp_attachment_id, status
+) VALUES ( ... )
+ON DUPLICATE KEY UPDATE status = VALUES(status), ai_summary = VALUES(ai_summary);
 ```
 
-#### Node 5B: Review Queue
+#### Node 6: Error Log & Reject Log
 
-> ⚠️ **`migration_review_queue` เป็น Temporary Table เท่านั้น** — ห้ามสร้าง Correspondence record จนกว่า Admin จะ Approve
+- Parse Error → เขียนลงไฟล์ `/share/np-dms/n8n/migration_logs/error_log.csv` 
+- ทุก 10-50 ราบการอัพเดท MariaDB `migration_progress` เพื่อเป็น Checkpoint.
 
-Approval Flow:
-```
-Review → Admin Approve → POST /api/correspondences/import (เหมือน Auto Ingest)
-Admin Reject → ลบออกจาก queue ไม่สร้าง record
-```
+---
 
-#### Node 5C: Reject Log → `/share/np-dms/n8n/migration_logs/reject_log.csv`
+### Phase 4: Frontend Management & Final Commit (UI -> Backend API)
 
-#### Node 5D: Error Log → `/share/np-dms/n8n/migration_logs/error_log.csv` + MariaDB
+1. หน้าจอ **Frontend Management UI** ดึงข้อมูลจาก `migration_review_queue`
+2. Admin สามารถ Browse & Edit ข้อมูล
+3. **Tag Review:** Admin สามารถพิจารณา Tags ที่เป็น `is_new: true` ว่าควรตีตก หรือเปลี่ยนไปแมตช์ของเดิม
+4. Admin กดปุ่ม **Execute Import** ส่งให้ Backend รัน Final Commit.
+5. Backend ยิงคำสั่งสร้าง Correspondence, นำ `temp_attachment_id` ไปผูกกับ Revision, ปรับเป็น `is_temporary = FALSE` และสร้าง/เชื่อม Tags จริง.
 
 ---
 

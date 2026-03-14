@@ -56,6 +56,33 @@ export class MigrationReviewQueue {
   @Column({ name: 'reviewed_at', type: 'timestamp', nullable: true })
   reviewedAt?: Date;
 
+  @Column({ name: 'project_id', type: 'int', nullable: true })
+  projectId?: number;
+
+  @Column({ name: 'sender_organization_id', type: 'int', nullable: true })
+  senderOrganizationId?: number;
+
+  @Column({ name: 'receiver_organization_id', type: 'int', nullable: true })
+  receiverOrganizationId?: number;
+
+  @Column({ name: 'received_date', type: 'date', nullable: true })
+  receivedDate?: Date;
+
+  @Column({ name: 'issued_date', type: 'date', nullable: true })
+  issuedDate?: Date;
+
+  @Column({ type: 'text', nullable: true })
+  remarks?: string;
+
+  @Column({ name: 'ai_summary', type: 'text', nullable: true })
+  aiSummary?: string;
+
+  @Column({ name: 'extracted_tags', type: 'json', nullable: true })
+  extractedTags?: any;
+
+  @Column({ name: 'temp_attachment_id', type: 'int', nullable: true })
+  tempAttachmentId?: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }

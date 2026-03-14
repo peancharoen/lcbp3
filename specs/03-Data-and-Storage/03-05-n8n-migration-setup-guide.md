@@ -35,8 +35,8 @@
 │  └──────┬──────┘                                             │
 │         │                                                    │
 │  ┌──────▼──────┐    ┌──────────────┐    ┌──────────────┐   │
-│  │Pre-flight   │───▶│Fetch Categories│──▶│File Validator│   │
-│  │Checks       │    │from Backend    │    │+ Sanitize    │   │
+│  │Pre-flight   │───▶│DB Lookup &   │──▶│File Upload &  │   │
+│  │Checks       │    │Data Fetch    │    │Temp Storage  │   │
 │  └─────────────┘    └──────────────┘    └──────┬───────┘   │
 │                                                 │           │
 │                    ┌────────────────────────────┤           │
@@ -57,9 +57,9 @@
 │    ┌─────────┘   │   └─────────┐                           │
 │    ▼             ▼             ▼                           │
 │ ┌──────┐   ┌──────────┐   ┌────────┐                      │
-│ │Auto  │   │ Review   │   │Reject  │                      │
-│ │Ingest│   │ Queue    │   │Log     │                      │
-│ │+Chkpt│   │(DB only) │   │(CSV)   │                      │
+│ │Review│   │ Review   │   │Reject  │                      │
+│ │Queue │   │ Queue    │   │Log     │                      │
+│ │(AUTO)│   │(FLAGGED) │   │(CSV)   │                      │
 │ └──────┘   └──────────┘   └────────┘                      │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
@@ -227,70 +227,43 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 - เก็บค่า Config ทั้งหมดใน `$workflow.staticData.config`
 - อ่านผ่าน `$workflow.staticData.config.KEY` ใน Node อื่น
 
-### Node 1-2: Pre-flight Checks
-- ตรวจสอบ Backend Health
-- ดึง Categories จาก `/api/master/correspondence-types`
-- ดึง Tags ที่มีอยู่แล้วจาก `/api/tags` (สำหรับ AI Tag Extraction)
-- ตรวจ File Mount (Read-only)
-- เก็บ Categories และ Existing Tags ใน `$workflow.staticData.systemCategories`
+### Node 1: Pre-flight Checks & Data Reader
+- ตรวจสอบ Backend Health และ Ollama Ping
+- อ่าน Checkpoint (`last_processed_index`) จาก `migration_progress`
+- Batch ข้อมูลจาก Excel ตามตาราง `BATCH_SIZE` ปกติ (50-100)
+- Normalize ข้อมูล UTF-8 (NFC) และสร้าง `original_index`
 
-### Node 3: Read Checkpoint
-- อ่าน `last_processed_index` จาก `migration_progress`
-- ถ้าไม่มี เริ่มจาก 0
+### Node 2: DB Lookup & Categories Fetch
+- ดึง Categories จาก `/api/meta/categories` เพื่อเตรียม Prompt
+- Query ทะลวง DB: แปลงรหัสใน Excel (`project_code`, `sender`, `receiver`) ให้เป็น IDs จาก MariaDB
+- Query ดึง Master Tags ของโปรเจ็กต์: `SELECT tag_name, description FROM tags WHERE project_id = ...`
+- Output: แปลง ID เรียบร้อยและเตรียม `existing_tags_json` ให้ Ollama
 
-### Node 4: Process Batch
-- อ่าน Excel
-- Normalize UTF-8 (NFC)
-- ตัด Batch ตาม `BATCH_SIZE`
+### Node 3: Text Extraction & Temp Upload
+- ใช้ **Apache Tika** (ผ่าน `Extract PDF Text` node หรือ HTTP Request) สกัดข้อความ (OCR/Text) ออกจาก PDF ใน staging
+- แนบไฟล์ไปยัง Backend: ยิง HTTP Request **`POST /api/storage/upload`** ของ Backend
+- รอรับผลลัพธ์เป็น `temp_attachment_id` (หมายความว่าไฟล์นี้เข้าข่าย Temporary ถูกเก็บจัดการใน NAS เรียบร้อยแล้ว)
+- Output: ไฟล์พร้อมใช้งาน, ได้เนื้อหา Text มาเตรียม prompt
 
-### Node 5: File Validator
-- Sanitize filename (replace special chars)
-- Path traversal check
-- ตรวจสอบไฟล์มีอยู่จริง
-- **Output 2 ทาง**: Valid → AI, Error → Log
+### Node 4: AI Analysis
+- วาง System Prompt บังคับ Output JSON
+- โยน Metadata (Title, Date, DB Lookups) พร้อม Extracted PDF Text คุยกับ **Ollama `llama3.2:3b`**
+- ให้ AI วิเคราะห์ และสรุปเป็น `ai_summary` 
+- ให้ AI แนะนำ Tags ใหม่หรือเลือก Tags เดิมจาก `existing_tags_json`
 
-### Node 6: Build AI Prompt
-- ดึง Categories จาก `staticData` (ไม่ hardcode)
-- เลือก Model ตาม Fallback State
-- สร้าง Prompt ตาม Template พร้อม **Tag Extraction Instructions**
-- AI จะวิเคราะห์ Title และ Document Number เพื่อสกัด Tags ที่เกี่ยวข้อง
+### Node 5: Parse & Validate
+- Schema Validation (ดูให้แน่ใจว่า AI ตอบ `is_valid`, `confidence`, `summary`, `suggested_tags`)
+- Normalizing categories, trimming tags (`is_new: true / false` flag สำคัญมาก)
+- จัดชุดค่า Status ใหม่
 
-### Node 7: Ollama AI Analysis
-- เรียก `POST /api/generate`
-- Timeout 30 วินาที
-- Retry 3 ครั้ง (n8n built-in)
-- AI Response รวม `suggested_tags` และ `tag_confidence`
+### Node 6: Confidence Router & Staging Ingest
+**แยกสาย 4 สาย:**
+1. **PENDING (Auto Ready):** (`confidence ≥ 0.85` && `is_valid = true`) → INSERT เข้า `migration_review_queue` 
+2. **PENDING (Flagged):** (`confidence 0.60 - 0.84`) → INSERT เข้า `migration_review_queue` พร้อม Highlight/Remarks ให้ Admin ดูละเอียด
+3. **REJECTED:** (`confidence < 0.60` หรือ `is_valid = false`) → INSERT เข้า `migration_review_queue` สถานะรอแก้แบบ Manual
+4. **Error/Parse Fail:** ไปลง CSV Reject Log + DB `migration_errors`
 
-### Node 8: Parse & Validate
-- Parse JSON Response
-- Schema Validation (is_valid, confidence, detected_issues)
-- **Tag Validation**: Normalize tags (trim, lowercase, deduplicate)
-- Enum Validation (ตรวจ Category ว่าอยู่ใน List หรือไม่)
-- **Output 2 ทาง**: Success → Router, Error → Fallback
-
-### Node 9: Confidence Router
-- **4 Outputs**:
-  1. Auto Ingest (confidence ≥ 0.85 && is_valid)
-  2. Review Queue (0.60 ≤ confidence < 0.85)
-  3. Reject Log (confidence < 0.60 หรือ is_valid = false)
-  4. Error Log (parse error)
-
-### Node 10A: Auto Ingest
-- POST `/api/migration/import`
-- Header: `Idempotency-Key: {doc_num}:{batch_id}`
-- Payload รวม **ai_tags** และ **tag_confidence**
-- Backend จะสร้าง Tags ที่ยังไม่มี และผูกกับเอกสารอัตโนมัติ
-- บันทึก Checkpoint ทุก 10 records
-
-### Node 10B: Review Queue
-- INSERT เข้า `migration_review_queue` เท่านั้น
-- ยังไม่สร้าง Correspondence
-
-### Node 10C: Reject Log
-- เขียน CSV ที่ `/home/node/.n8n-files/migration_logs/reject_log.csv`
-
-### Node 10D: Error Log
-- เขียน CSV + INSERT เข้า `migration_errors`
+**สำคัญมาก:** *n8n จะทำหน้าที่สูบข้อมูลและจัดเตรียมเข้า `migration_review_queue` เท่านั้น จะไม่มีการข้ามขั้นตอนไป Import ลงตารางหลัก `correspondences` อัตโนมัติ (Final Commit ต้องทำบน Frontend UI)*
 
 ---
 

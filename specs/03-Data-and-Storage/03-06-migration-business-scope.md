@@ -189,6 +189,7 @@ T+1 เดือน:
 | Dry Run 2 AI Category Accuracy | ≥ 90% (Manual Spot-check 50 docs) | Human Review |
 | Idempotency Test: รัน Batch ซ้ำ | 0 Duplicate Records | SQL Count |
 | Organization Mapping ครบ | 100% | Lookup Table review |
+| Frontend Review UI พร้อมใช้งาน | ✅ | UAT Passed สำหรับหน้าจออนุมัติ |
 | Migration Bot Token Active + Whitelisted | ✅ | API Test |
 | Staging NAS Space: ≥ 500GB free | ✅ | QNAP Dashboard |
 
@@ -202,7 +203,7 @@ T+1 เดือน:
 |-------|---------|
 | Tier 1 Migration: 100% เสร็จ + Verified | ✅ |
 | Tier 2 Migration: ≥ 90% เสร็จ + Verified | ✅ |
-| Review Queue: ≤ 5% ค้างอยู่ (Critical Tier 1 = 0%) | ✅ |
+| Review Queue (รวมการพิจารณา AI New Tags): ≤ 5% ค้างอยู่ (Critical Tier 1 = 0%) | ✅ |
 | Migration Bot Token: REVOKED | ✅ |
 | Integrity Queries ผ่านทั้งหมด | ✅ |
 | Legacy System ยังเข้าถึงได้ (Read-only Fallback) | ✅ |
@@ -229,7 +230,7 @@ T+1 เดือน:
 | **Organization Lookup Table** | Superadmin (NAP) | สร้างก่อน T-6 |
 | **Tier 1 Document List** | Document Control ทุก Org | ยืนยัน T-5 |
 | **Daily Monitoring (n8n Runs)** | Nattanin P. | T-3 ถึง Go-Live |
-| **Admin Review Queue** | Document Control (สค.) | ทุกเช้าวันทำงาน |
+| **Admin Review Queue & AI Tag Approval** | Document Control (สค.) | ทุกเช้าวันทำงาน (บังคับตรวจสอบ New Tags) |
 | **Post-migration Verification** | Nattanin P. | After each Gate |
 | **Legacy System Archival** | กทท. IT + NAP | T+30 |
 

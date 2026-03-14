@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
+import { EnqueueMigrationDto } from './dto/enqueue-migration.dto';
 import { ImportTransaction } from './entities/import-transaction.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
@@ -21,6 +22,7 @@ import {
 } from './entities/migration-review-queue.entity';
 import { MigrationError } from './entities/migration-error.entity';
 import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
+import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { createReadStream, existsSync } from 'fs';
 import * as path from 'path';
 @Injectable()
@@ -177,7 +179,20 @@ export class MigrationService {
 
       // 4. File Handling
       let attachmentId: number | null = null;
-      if (dto.source_file_path) {
+      if (dto.temp_attachment_id) {
+        attachmentId = dto.temp_attachment_id;
+        try {
+          // Mark attachment as permanent
+          await queryRunner.manager.update(
+            Attachment,
+            { id: attachmentId },
+            { isTemporary: false }
+          );
+        } catch (fileError: unknown) {
+          const errMsg = fileError instanceof Error ? fileError.message : String(fileError);
+          this.logger.warn(`Failed to update temp_file [id:${attachmentId}]: ${errMsg}`);
+        }
+      } else if (dto.source_file_path) {
         try {
           const attachment = await this.fileStorageService.importStagingFile(
             dto.source_file_path,
@@ -360,6 +375,63 @@ export class MigrationService {
       await queryRunner.release();
     }
   }
+
+  async enqueueRecord(dto: EnqueueMigrationDto) {
+    if (!dto.document_number) {
+      throw new BadRequestException('document_number is required');
+    }
+
+    // Determine status based on confidence policy in ADR-017
+    let autoStatus = MigrationReviewStatus.PENDING;
+    if (dto.is_valid === false || (dto.confidence != null && dto.confidence < 0.60)) {
+      autoStatus = MigrationReviewStatus.REJECTED;
+    }
+
+    // Upsert or create new queue item
+    let queueItem = await this.reviewQueueRepo.findOne({
+      where: { documentNumber: dto.document_number },
+    });
+
+    if (!queueItem) {
+      queueItem = this.reviewQueueRepo.create({
+        documentNumber: dto.document_number,
+      });
+    }
+
+    queueItem.title = dto.title;
+    queueItem.originalTitle = dto.original_title;
+    queueItem.aiSuggestedCategory = dto.category;
+    queueItem.aiConfidence = dto.confidence;
+    queueItem.aiIssues = dto.ai_issues;
+    queueItem.projectId = dto.project_id;
+    queueItem.senderOrganizationId = dto.sender_org_id;
+    queueItem.receiverOrganizationId = dto.receiver_org_id;
+    queueItem.remarks = dto.remarks;
+    queueItem.aiSummary = dto.ai_summary;
+    queueItem.extractedTags = dto.extracted_tags;
+    queueItem.tempAttachmentId = dto.temp_attachment_id;
+    queueItem.status = autoStatus;
+
+    if (dto.issued_date) {
+      const parsed = new Date(dto.issued_date);
+      if (!isNaN(parsed.getTime())) queueItem.issuedDate = parsed;
+    }
+    if (dto.received_date) {
+      const parsed = new Date(dto.received_date);
+      if (!isNaN(parsed.getTime())) queueItem.receivedDate = parsed;
+    }
+
+    await this.reviewQueueRepo.save(queueItem);
+
+    this.logger.log(`Enqueued document [${dto.document_number}] to staging queue with status [${autoStatus}]`);
+
+    return {
+      message: 'Document enqueued successfully',
+      id: queueItem.id,
+      status: autoStatus,
+    };
+  }
+
   async getReviewQueue(query: MigrationQueueQueryDto) {
     const { page = 1, limit = 10, status } = query;
     const skip = (page - 1) * limit;

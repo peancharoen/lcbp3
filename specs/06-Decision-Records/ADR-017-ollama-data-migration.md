@@ -85,14 +85,15 @@
 | Component              | รายละเอียด                                                                       |
 | ---------------------- | ------------------------------------------------------------------------------- |
 | Migration Orchestrator | n8n (Docker บน QNAP NAS)                                                        |
-| AI Model Primary       | Ollama `llama3.2:3b`                                                            |
+| AI Model Primary       | Ollama `llama3.2:3b` (Validation, Summarization, Tagging)                       |
 | AI Model Fallback      | Ollama `mistral:7b-instruct-q4_K_M`                                             |
 | Hardware               | QNAP NAS (Orchestrator) + Desktop Desk-5439 (AI Processing, RTX 2060 SUPER 8GB) |
-| Data Ingestion         | RESTful API + Migration Token (7 วัน) + Idempotency-Key Header                   |
-| Concurrency            | Sequential — 1 Request/ครั้ง, Delay 2 วินาที                                        |
-| Checkpoint             | MariaDB `migration_progress`                                                    |
+| DB Lookup (n8n)        | n8n ทำการ Query `project_id`, `organization_id` และดึง `Tags` จาก DB ให้ AI       |
+| Data Ingestion         | 1. Staging ลง `migration_review_queue` -> 2. กดยืนยันผ่าน Frontend Management UI -> 3. Final Commit ผ่าน API |
+| Concurrency (n8n)      | Sequential — Batch Size 50-100 ป้องกัน DB Connection Overload                     |
+| Checkpoint             | MariaDB `migration_progress` และการใช้ `ON DUPLICATE KEY UPDATE` ใน Staging        |
 | Fallback               | Auto-switch Model เมื่อ Error ≥ Threshold                                         |
-| Storage                | Backend StorageService เท่านั้น — ห้าม move file โดยตรง                             |
+| Storage                | Two-Phase Storage: 1. `POST /api/storage/upload` (Temp) -> 2. Commit ภายหลัง       |
 | Expected Runtime       | ~16.6 ชั่วโมง (~3–4 คืน) สำหรับ 20,000 records                                       |
 
 ---
@@ -105,31 +106,42 @@
   "confidence": 0.92,
   "suggested_category": "Correspondence",
   "detected_issues": [],
-  "suggested_title": null
+  "suggested_title": null,
+  "summary": "This document outlines the revised design specifications for the electrical subsystem in phase 2...",
+  "suggested_tags": [
+    { "name": "Electrical", "description": "Electrical engineering design documents.", "is_new": false },
+    { "name": "Phase2-Specs", "description": "Specific requirements for Phase 2 implementation.", "is_new": true }
+  ]
 }
 ```
 
 | Field                | Type                      | คำอธิบาย                      |
 | -------------------- | ------------------------- | --------------------------- |
-| `is_valid`           | boolean                   | เอกสารผ่านการตรวจสอบหรือไม่    |
+| `is_valid`           | boolean                   | เอกสารผ่านการตรวจสอบหรือไม่ (เปรียบเทียบ subject vs pdf) |
 | `confidence`         | float (0.0–1.0)           | ความมั่นใจของ AI              |
 | `suggested_category` | string (enum จาก Backend) | หมวดหมู่ที่ AI แนะนำ             |
 | `detected_issues`    | string[]                  | รายการปัญหา (array ว่างถ้าไม่มี) |
 | `suggested_title`    | string \| null            | Title ที่แก้ไขแล้ว หรือ null     |
+| `summary`            | string                    | สรุปเนื้อหา 4-5 ประโยค สำหรับใส่ใน `body` |
+| `suggested_tags`     | array of objects          | รายการ Tags ที่จับคู่ได้ หรือ แนะนำให้สร้างใหม่ (`is_new: true`) |
 
 > ⚠️ **Patch:** `suggested_category` ต้องตรงกับ System Enum จาก `GET /api/meta/categories` เท่านั้น — ห้าม hardcode Category List ใน Prompt
 
 ---
 
-## Confidence Threshold Policy
+## Confidence Threshold Policy (Staging Logic)
 
-| ระดับ Confidence                 | การดำเนินการ                              |
+**ข้อมูลทุกชุดจาก n8n จะต้องถูกส่งเข้าตาราง `migration_review_queue` เสมอ** โดยจัดสถานะเบื้องต้นตาม Confidence:
+
+| ระดับ Confidence                 | สถานะใน Review Queue                    |
 | ------------------------------- | --------------------------------------- |
-| `>= 0.85` และ `is_valid = true` | Auto Ingest เข้าระบบ                     |
-| `0.60–0.84`                     | ส่งไป Human Review Queue                 |
-| `< 0.60` หรือ `is_valid = false` | ส่งไป Reject Log รอ Manual Fix           |
+| `>= 0.85` และ `is_valid = true` | `PENDING` (พร้อมให้ Admin เลือก Batch Import) |
+| `0.60–0.84`                     | `PENDING` (ไฮไลต์แจ้งให้ Admin ตรวจสอบข้อมูลก่อน) |
+| `< 0.60` หรือ `is_valid = false` | `REJECTED` (รอให้ Admin แก้ไขข้อมูล Manual) |
 | AI Parse Error                  | ส่งไป Error Log + Trigger Fallback Logic |
-| Revision Drift                  | ส่งไป Review Queue พร้อม reason           |
+| Revision Drift                  | `PENDING` พร้อมระบุ reason: "Revision drift" |
+
+> ⚠️ **Tag Review:** ข้อมูลใดที่มี `is_new: true` ใน `suggested_tags` จะถูกบังคับให้ Admin ตรวจสอบบน Frontend UI ก่อน เพื่อป้องกัน AI สร้าง Tags ขยะซ้ำซ้อน
 
 ---
 
@@ -161,32 +173,45 @@ Hard Rules:
 
 ---
 
-## Storage Governance (Patch)
+## Storage Governance (Two-Phase Storage)
 
 **ข้อห้าม:**
 ```
 ❌ mv /data/dms/staging_ai/TCC-COR-0001.pdf /final/path/...
 ```
 
-**ข้อบังคับ:**
+**ข้อบังคับ (Two-Phase Strategy):**
+
+**Phase 1: Temp Upload (โดย n8n)**
 ```
-✅ POST /api/correspondences/import
-   body: { source_file_path: "/data/dms/staging_ai/TCC-COR-0001.pdf", ... }
+✅ POST /api/storage/upload
+   (Upload ไฟล์ PDF ได้ผลลัพธ์เป็น attachment_id เช่น 1024)
+   *ไฟล์จะถูกระบุเป็น `is_temporary = TRUE`*
 ```
 
-Backend จะ:
-1. Generate UUID
-2. Enforce path strategy: `/data/dms/uploads/YYYY/MM/{uuid}.pdf`
-3. Move file atomically ผ่าน StorageService
-4. Create revision folder ถ้าจำเป็น
+**Phase 2: Final Commit (โดย Frontend UI -> Backend API)**
+```
+✅ POST /api/migration/commit_batch
+   body: { queue_ids: [1, 2, 3] }
+```
+
+Backend จะทำหน้าที่:
+1. อ่านข้อมูลจาก `migration_review_queue` ซึ่งมี `temp_attachment_id` อยู่
+2. นำ `temp_attachment_id` ไปเชื่อมกับเอกสาร (Link to `correspondence_attachments`)
+3. เปลี่ยนสถานะอัพเดต `is_temporary = FALSE`
+4. Move ไฟล์ไปที่ `/data/dms/uploads/YYYY/MM/{uuid}.pdf` ผ่าน StorageService อย่างถูกต้อง
 
 ---
 
-## Review Queue Contract
+## Review Queue Contract & Frontend UI
 
-- `migration_review_queue` เป็น **Temporary Table เท่านั้น** — ไม่ใช่ Business Schema
-- ห้ามสร้าง Correspondence record จนกว่า Admin จะ Approve
-- Approval Flow: `Review → Admin Approve → POST /api/correspondences/import`
+- `migration_review_queue` เป็น **Staging Table หลัก** (ไม่ auto-ingest ข้ามขั้นตอนนี้)
+- ห้ามสร้าง Correspondence record จนกว่า Admin จะสั่ง Execute การ Import จากหน้าจอ 
+- **Approval Flow:** 
+  1. N8N Insert เข้า `migration_review_queue` (พร้อม `temp_attachment_id`)
+  2. Admin Review บน Frontend UI (ให้ความสำคัญกับการเช็ค `is_new: true` Tags)
+  3. Admin เลือก Rows แล้วกด **"Execute Import"**
+  4. Frontend ส่งคำสั่ง `POST /api/migration/commit_batch` ถือว่าเป็นการ Ingest ลงตาราง Business Schema จริง
 
 ---
 

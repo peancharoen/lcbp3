@@ -20,8 +20,12 @@ export class ImportCorrespondenceDto {
   category!: string;
 
   @IsString()
-  @IsNotEmpty()
-  source_file_path!: string;
+  @IsOptional()
+  source_file_path?: string;
+
+  @IsNumber()
+  @IsOptional()
+  temp_attachment_id?: number;
 
   @IsNumber()
   @IsOptional()
