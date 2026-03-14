@@ -11,18 +11,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { EyeIcon, FileXIcon } from "lucide-react";
+import { EyeIcon, FileXIcon, CheckSquareIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function MigrationReviewQueuePage() {
   const [items, setItems] = useState<MigrationReviewQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("PENDING");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -36,10 +39,68 @@ export default function MigrationReviewQueuePage() {
         limit: 50,
       });
       setItems(res.items);
+      setSelectedIds([]); // reset selection on fetch
     } catch (error) {
       console.error("Failed to fetch queue", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === items.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(items.map((i) => i.id));
+    }
+  };
+
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) => 
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBatchApprove = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      setSubmitting(true);
+      
+      const batchItems = items
+        .filter((i) => selectedIds.includes(i.id))
+        .map((item) => ({
+          queueId: item.id,
+          dto: {
+            document_number: item.documentNumber,
+            subject: item.title || item.originalTitle || 'Untitled',
+            category: item.aiSuggestedCategory || 'Correspondence',
+            project_id: item.projectId || 1,
+            migrated_by: 'SYSTEM_IMPORT',
+            temp_attachment_id: item.tempAttachmentId,
+            ai_confidence: item.aiConfidence,
+            ai_issues: item.aiIssues,
+            issued_date: item.issuedDate,
+            received_date: item.receivedDate,
+            sender_id: item.senderOrganizationId,
+            receiver_id: item.receiverOrganizationId,
+            details: {
+              tags: item.extractedTags
+            }
+          }
+        }));
+
+      const batchId = `BATCH_UI_${Date.now()}`;
+      await migrationService.commitBatch(
+        { items: batchItems, batchId },
+        batchId
+      );
+      
+      fetchData();
+    } catch (error) {
+      console.error("Batch commit failed", error);
+      alert("Batch commit failed. See console for details.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -53,6 +114,16 @@ export default function MigrationReviewQueuePage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {selectedIds.length > 0 && (
+            <Button 
+              variant="default" 
+              onClick={handleBatchApprove} 
+              disabled={submitting}
+            >
+              <CheckSquareIcon className="mr-2 h-4 w-4" /> 
+              {submitting ? "Processing..." : `Batch Approve (${selectedIds.length})`}
+            </Button>
+          )}
           <Link href="/admin/migration/errors">
             <Button variant="outline">
               <FileXIcon className="mr-2 h-4 w-4" /> View Error Logs
@@ -86,6 +157,13 @@ export default function MigrationReviewQueuePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">
+                      <Checkbox 
+                        checked={items.length > 0 && selectedIds.length === items.length}
+                        onCheckedChange={handleToggleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
                     <TableHead>Document No.</TableHead>
                     <TableHead>Suggested Category</TableHead>
                     <TableHead>Confidence</TableHead>
@@ -97,6 +175,13 @@ export default function MigrationReviewQueuePage() {
                 <TableBody>
                   {items.map((item) => (
                     <TableRow key={item.id}>
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedIds.includes(item.id)}
+                          onCheckedChange={() => handleToggleSelect(item.id)}
+                          aria-label={`Select item ${item.id}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{item.documentNumber}</TableCell>
                       <TableCell>{item.aiSuggestedCategory || "Unknown"}</TableCell>
                       <TableCell>

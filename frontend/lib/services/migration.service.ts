@@ -4,6 +4,7 @@ import {
   MigrationErrorItem,
   PaginatedResponse,
   MigrationReviewStatus,
+  CommitBatchDto,
 } from '@/types/migration';
 
 export const migrationService = {
@@ -40,6 +41,15 @@ export const migrationService = {
 
   rejectQueueItem: async (id: number) => {
     const { data } = await api.post(`/migration/queue/${id}/reject`);
+    return data?.data || data;
+  },
+
+  commitBatch: async (payload: CommitBatchDto, idempotencyKey: string) => {
+    const { data } = await api.post(`/migration/commit_batch`, payload, {
+      headers: {
+        'idempotency-key': idempotencyKey,
+      },
+    });
     return data?.data || data;
   },
 

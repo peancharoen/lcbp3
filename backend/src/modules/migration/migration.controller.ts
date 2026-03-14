@@ -2,6 +2,7 @@ import { Controller, Post, Body, Headers, UseGuards, Get, Param, Query, Res, Par
 import { MigrationService } from './migration.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { EnqueueMigrationDto } from './dto/enqueue-migration.dto';
+import { CommitBatchDto } from './dto/commit-batch.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader, ApiQuery, ApiParam } from '@nestjs/swagger';
@@ -29,6 +30,23 @@ export class MigrationController {
   ) {
     const userId = user?.id || user?.userId || 5;
     return this.migrationService.importCorrespondence(dto, idempotencyKey, userId);
+  }
+
+  @Post('commit_batch')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Batch approve and import migration review queue items' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key for the entire batch to prevent duplicate execution',
+    required: true,
+  })
+  async commitBatch(
+    @Body() dto: CommitBatchDto,
+    @Headers('idempotency-key') idempotencyKey: string,
+    @CurrentUser() user: any
+  ) {
+    const userId = user?.id || user?.userId || 5;
+    return this.migrationService.commitBatch(dto, idempotencyKey, userId);
   }
 
   @Post('queue')

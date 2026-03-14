@@ -17,6 +17,25 @@ export interface MigrationReviewQueueItem {
   reviewedBy?: string;
   reviewedAt?: string;
   createdAt: string;
+  projectId?: number;
+  senderOrganizationId?: number;
+  receiverOrganizationId?: number;
+  receivedDate?: string;
+  issuedDate?: string;
+  remarks?: string;
+  aiSummary?: string;
+  extractedTags?: any;
+  tempAttachmentId?: number;
+}
+
+export interface CommitBatchItemDto {
+  queueId: number;
+  dto: Record<string, any>;
+}
+
+export interface CommitBatchDto {
+  items: CommitBatchItemDto[];
+  batchId: string;
 }
 
 export enum MigrationErrorType {
