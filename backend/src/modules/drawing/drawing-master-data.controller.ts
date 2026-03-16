@@ -38,28 +38,16 @@ export class DrawingMasterDataController {
 
   @Get('contract/volumes')
   @ApiOperation({ summary: 'List Contract Drawing Volumes' })
-  @ApiQuery({ name: 'projectId', required: true, type: Number })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
   @RequirePermission('document.view')
-  getVolumes(@Query('projectId', ParseIntPipe) projectId: number) {
-    this.logger.log(`Fetching Contract Volumes for Project ID: ${projectId}`);
+  getVolumes(@Query('projectId') projectId: string | number) {
     return this.masterDataService.findAllVolumes(projectId);
   }
-
-  // ... (Create/Update/Delete methods remain unchanged) ...
 
   @Post('contract/volumes')
   @ApiOperation({ summary: 'Create Volume' })
   @RequirePermission('master_data.drawing_category.manage')
-  createVolume(
-    @Body()
-    body: {
-      projectId: number;
-      volumeCode: string;
-      volumeName: string;
-      description?: string;
-      sortOrder: number;
-    }
-  ) {
+  createVolume(@Body() body: any) {
     return this.masterDataService.createVolume(body);
   }
 
@@ -68,13 +56,7 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateVolume(
     @Param('id', ParseIntPipe) id: number,
-    @Body()
-    body: {
-      volumeCode?: string;
-      volumeName?: string;
-      description?: string;
-      sortOrder?: number;
-    }
+    @Body() body: any
   ) {
     return this.masterDataService.updateVolume(id, body);
   }
@@ -92,30 +74,16 @@ export class DrawingMasterDataController {
 
   @Get('contract/categories')
   @ApiOperation({ summary: 'List Contract Drawing Categories' })
-  @ApiQuery({ name: 'projectId', required: true, type: Number })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
   @RequirePermission('document.view')
-  getCategories(@Query('projectId', ParseIntPipe) projectId: number) {
-    this.logger.log(
-      `Fetching Contract Categories for Project ID: ${projectId}`
-    );
+  getCategories(@Query('projectId') projectId: string | number) {
     return this.masterDataService.findAllCategories(projectId);
   }
-
-  // ... (Create/Update/Delete methods remain unchanged) ...
 
   @Post('contract/categories')
   @ApiOperation({ summary: 'Create Category' })
   @RequirePermission('master_data.drawing_category.manage')
-  createCategory(
-    @Body()
-    body: {
-      projectId: number;
-      catCode: string;
-      catName: string;
-      description?: string;
-      sortOrder: number;
-    }
-  ) {
+  createCategory(@Body() body: any) {
     return this.masterDataService.createCategory(body);
   }
 
@@ -124,13 +92,7 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateCategory(
     @Param('id', ParseIntPipe) id: number,
-    @Body()
-    body: {
-      catCode?: string;
-      catName?: string;
-      description?: string;
-      sortOrder?: number;
-    }
+    @Body() body: any
   ) {
     return this.masterDataService.updateCategory(id, body);
   }
@@ -148,30 +110,16 @@ export class DrawingMasterDataController {
 
   @Get('contract/sub-categories')
   @ApiOperation({ summary: 'List Contract Drawing Sub-Categories' })
-  @ApiQuery({ name: 'projectId', required: true, type: Number })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
   @RequirePermission('document.view')
-  getContractSubCats(@Query('projectId', ParseIntPipe) projectId: number) {
-    this.logger.log(
-      `Fetching Contract Sub-Categories for Project ID: ${projectId}`
-    );
+  getContractSubCats(@Query('projectId') projectId: string | number) {
     return this.masterDataService.findAllContractSubCats(projectId);
   }
-
-  // ... (Create/Update/Delete methods remain unchanged) ...
 
   @Post('contract/sub-categories')
   @ApiOperation({ summary: 'Create Contract Sub-Category' })
   @RequirePermission('master_data.drawing_category.manage')
-  createContractSubCat(
-    @Body()
-    body: {
-      projectId: number;
-      subCatCode: string;
-      subCatName: string;
-      description?: string;
-      sortOrder: number;
-    }
-  ) {
+  createContractSubCat(@Body() body: any) {
     return this.masterDataService.createContractSubCat(body);
   }
 
@@ -180,18 +128,15 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateContractSubCat(
     @Param('id', ParseIntPipe) id: number,
-    @Body()
-    body: {
-      subCatCode?: string;
-      subCatName?: string;
-      description?: string;
-      sortOrder?: number;
-    }
+    @Body() body: any
   ) {
     return this.masterDataService.updateContractSubCat(id, body);
   }
 
-  async deleteContractSubCat(@Param('id', ParseIntPipe) id: number) {
+  @Delete('contract/sub-categories/:id')
+  @ApiOperation({ summary: 'Delete Contract Sub-Category' })
+  @RequirePermission('master_data.drawing_category.manage')
+  deleteContractSubCat(@Param('id', ParseIntPipe) id: number) {
     return this.masterDataService.deleteContractSubCat(id);
   }
 
@@ -201,11 +146,11 @@ export class DrawingMasterDataController {
 
   @Get('contract/mappings')
   @ApiOperation({ summary: 'List Contract Drawing Mappings' })
-  @ApiQuery({ name: 'projectId', required: true, type: Number })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
   @ApiQuery({ name: 'categoryId', required: false, type: Number })
   @RequirePermission('document.view')
   getContractMappings(
-    @Query('projectId', ParseIntPipe) projectId: number,
+    @Query('projectId') projectId: string | number,
     @Query('categoryId') categoryId?: number
   ) {
     return this.masterDataService.findContractMappings(
@@ -217,14 +162,7 @@ export class DrawingMasterDataController {
   @Post('contract/mappings')
   @ApiOperation({ summary: 'Create Contract Drawing Mapping' })
   @RequirePermission('master_data.drawing_category.manage')
-  createContractMapping(
-    @Body()
-    body: {
-      projectId: number;
-      categoryId: number;
-      subCategoryId: number;
-    }
-  ) {
+  createContractMapping(@Body() body: any) {
     return this.masterDataService.createContractMapping(body);
   }
 
@@ -241,31 +179,16 @@ export class DrawingMasterDataController {
 
   @Get('shop/main-categories')
   @ApiOperation({ summary: 'List Shop Drawing Main Categories' })
-  @ApiQuery({ name: 'projectId', required: true, type: Number })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
   @RequirePermission('document.view')
-  getShopMainCats(@Query('projectId', ParseIntPipe) projectId: number) {
-    this.logger.log(
-      `Fetching Shop Main Categories for Project ID: ${projectId}`
-    );
+  getShopMainCats(@Query('projectId') projectId: string | number) {
     return this.masterDataService.findAllShopMainCats(projectId);
   }
-
-  // ... (Create/Update/Delete methods remain unchanged) ...
 
   @Post('shop/main-categories')
   @ApiOperation({ summary: 'Create Shop Main Category' })
   @RequirePermission('master_data.drawing_category.manage')
-  createShopMainCat(
-    @Body()
-    body: {
-      projectId: number;
-      mainCategoryCode: string;
-      mainCategoryName: string;
-      description?: string;
-      isActive?: boolean;
-      sortOrder: number;
-    }
-  ) {
+  createShopMainCat(@Body() body: any) {
     return this.masterDataService.createShopMainCat(body);
   }
 
@@ -274,14 +197,7 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateShopMainCat(
     @Param('id', ParseIntPipe) id: number,
-    @Body()
-    body: {
-      mainCategoryCode?: string;
-      mainCategoryName?: string;
-      description?: string;
-      isActive?: boolean;
-      sortOrder?: number;
-    }
+    @Body() body: any
   ) {
     return this.masterDataService.updateShopMainCat(id, body);
   }
@@ -299,16 +215,13 @@ export class DrawingMasterDataController {
 
   @Get('shop/sub-categories')
   @ApiOperation({ summary: 'List Shop Drawing Sub-Categories' })
-  @ApiQuery({ name: 'projectId', required: true, type: Number })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
   @ApiQuery({ name: 'mainCategoryId', required: false, type: Number })
   @RequirePermission('document.view')
   getShopSubCats(
-    @Query('projectId', ParseIntPipe) projectId: number,
+    @Query('projectId') projectId: string | number,
     @Query('mainCategoryId') mainCategoryId?: number
   ) {
-    this.logger.log(
-      `Fetching Shop Sub-Categories for Project ID: ${projectId}, MainCategory: ${mainCategoryId}`
-    );
     return this.masterDataService.findAllShopSubCats(
       projectId,
       mainCategoryId ? Number(mainCategoryId) : undefined
@@ -318,17 +231,7 @@ export class DrawingMasterDataController {
   @Post('shop/sub-categories')
   @ApiOperation({ summary: 'Create Shop Sub-Category' })
   @RequirePermission('master_data.drawing_category.manage')
-  createShopSubCat(
-    @Body()
-    body: {
-      projectId: number;
-      subCategoryCode: string;
-      subCategoryName: string;
-      description?: string;
-      isActive?: boolean;
-      sortOrder: number;
-    }
-  ) {
+  createShopSubCat(@Body() body: any) {
     return this.masterDataService.createShopSubCat(body);
   }
 
@@ -337,14 +240,7 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateShopSubCat(
     @Param('id', ParseIntPipe) id: number,
-    @Body()
-    body: {
-      subCategoryCode?: string;
-      subCategoryName?: string;
-      description?: string;
-      isActive?: boolean;
-      sortOrder?: number;
-    }
+    @Body() body: any
   ) {
     return this.masterDataService.updateShopSubCat(id, body);
   }

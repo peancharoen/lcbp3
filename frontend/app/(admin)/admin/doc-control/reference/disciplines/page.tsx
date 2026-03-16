@@ -43,9 +43,9 @@ export default function DisciplinesPage() {
     },
   ];
 
-  const contractOptions = contracts.map((c) => ({
+  const contractOptions = contracts.map((c: any) => ({
     label: `${c.contractName} (${c.contractCode})`,
-    value: c.id,
+    value: String(c.id || c.uuid),
   }));
 
   return (
@@ -55,8 +55,8 @@ export default function DisciplinesPage() {
         title="Disciplines Management"
         description="Manage system disciplines (e.g., ARCH, STR, MEC)"
         queryKey={['disciplines', selectedContractId ?? 'all']}
-        fetchFn={() => masterDataService.getDisciplines(selectedContractId ? parseInt(selectedContractId) : undefined)}
-        createFn={(data: Record<string, unknown>) => masterDataService.createDiscipline(data as unknown as Parameters<typeof masterDataService.createDiscipline>[0])}
+        fetchFn={() => masterDataService.getDisciplines(selectedContractId ? selectedContractId : undefined)}
+        createFn={(data: Record<string, unknown>) => masterDataService.createDiscipline(data as any)}
         updateFn={(id, data) => Promise.reject('Not implemented yet')} 
         deleteFn={(id) => masterDataService.deleteDiscipline(id)}
         columns={columns}
@@ -71,8 +71,8 @@ export default function DisciplinesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
-                {contracts.map((c) => (
-                  <SelectItem key={c.id} value={c.id.toString()}>
+                {contracts.map((c: any) => (
+                  <SelectItem key={c.uuid || c.id} value={String(c.id || c.uuid)}>
                     {c.contractName} ({c.contractCode})
                   </SelectItem>
                 ))}

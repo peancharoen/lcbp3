@@ -62,8 +62,8 @@ export default function ContractSubCategoriesPage() {
           )}
         </SelectTrigger>
         <SelectContent>
-          {projects.map((project: { id: number; projectName: string; projectCode: string }) => (
-            <SelectItem key={project.id} value={String(project.id)}>
+          {(projects as any[]).map((project) => (
+            <SelectItem key={project.uuid || project.id} value={String(project.id || project.uuid)}>
               {project.projectCode} - {project.projectName}
             </SelectItem>
           ))}

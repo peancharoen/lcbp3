@@ -24,8 +24,16 @@ import { BulkImportForm } from '@/components/numbering/bulk-import-form';
 
 export default function NumberingPage() {
   const { data: projects = [] } = useProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState('1');
+  // Initialize with empty string or first project if available
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [activeTab, setActiveTab] = useState('templates');
+
+  useEffect(() => {
+    if (projects.length > 0 && !selectedProjectId) {
+      const first = projects[0] as any;
+      setSelectedProjectId(String(first.id || first.uuid));
+    }
+  }, [projects, selectedProjectId]);
 
   // View states
   const [isEditing, setIsEditing] = useState(false);
@@ -33,20 +41,20 @@ export default function NumberingPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState<NumberingTemplate | null>(null);
 
-  const selectedProjectName =
-    projects.find((p: { id: number; projectName: string }) => p.id.toString() === selectedProjectId)?.projectName ||
-    'Unknown Project';
+  const selectedProject = projects.find((p: any) => String(p.id || p.uuid) === selectedProjectId) as any;
+  const selectedProjectName = selectedProject?.projectName || 'Unknown Project';
 
   // Master Data
   const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
-  const { data: contracts = [] } = useContracts(Number(selectedProjectId));
-  const contractId = contracts[0]?.id;
+  const { data: contracts = [] } = useContracts(selectedProjectId as any); // Passing UUID/ID string
+  const firstContract = contracts[0] as any;
+  const contractId = firstContract?.id || firstContract?.uuid;
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const { data: templateResponse, isLoading: isLoadingTemplates } = useTemplates();
   const saveTemplateMutation = useSaveTemplate();
 
-  // Extract templates array from response (handles both direct array and { data: array } formats)
+  // Extract templates array from response
   const templates: NumberingTemplate[] = Array.isArray(templateResponse)
     ? templateResponse
     : ((templateResponse as any)?.data ?? []);
@@ -76,7 +84,7 @@ export default function NumberingPage() {
       <div className="p-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4">
         <TemplateEditor
           template={activeTemplate}
-          projectId={Number(selectedProjectId)}
+          projectId={selectedProjectId as any}
           projectName={selectedProjectName}
           correspondenceTypes={correspondenceTypes}
           disciplines={disciplines}
@@ -100,8 +108,8 @@ export default function NumberingPage() {
               <SelectValue placeholder="Select Project" />
             </SelectTrigger>
             <SelectContent>
-              {projects.map((project: { id: number; projectCode: string; projectName: string }) => (
-                <SelectItem key={project.id} value={project.id.toString()}>
+              {(projects as any[]).map((project) => (
+                <SelectItem key={project.uuid || project.id} value={String(project.id || project.uuid)}>
                   {project.projectCode} - {project.projectName}
                 </SelectItem>
               ))}
@@ -129,7 +137,7 @@ export default function NumberingPage() {
             <div className="lg:col-span-2 space-y-4">
               <div className="grid gap-4">
                 {templates
-                  .filter((t) => !t.projectId || t.projectId === Number(selectedProjectId))
+                  .filter((t: any) => !t.projectId || String(t.projectId) === selectedProjectId || t.project?.uuid === selectedProjectId)
                   .map((template) => (
                     <Card key={template.id} className="p-6 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">
@@ -194,11 +202,11 @@ export default function NumberingPage() {
 
         <TabsContent value="tools" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <ManualOverrideForm projectId={Number(selectedProjectId)} />
-            <VoidReplaceForm projectId={Number(selectedProjectId)} />
+            <ManualOverrideForm projectId={selectedProjectId as any} />
+            <VoidReplaceForm projectId={selectedProjectId as any} />
             <CancelNumberForm />
             <div className="md:col-span-2">
-              <BulkImportForm projectId={Number(selectedProjectId)} />
+              <BulkImportForm projectId={selectedProjectId as any} />
             </div>
           </div>
         </TabsContent>

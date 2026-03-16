@@ -7,7 +7,7 @@ import {
   BeforeInsert,
 } from 'typeorm';
 import { v7 as uuidv7 } from 'uuid';
-import { Exclude } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Project } from '../../project/entities/project.entity';
 
@@ -17,6 +17,7 @@ export class Contract extends BaseEntity {
   @Exclude()
   id!: number;
 
+  @Expose({ name: 'id' })
   @Column({
     type: 'uuid',
     unique: true,

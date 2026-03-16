@@ -214,10 +214,12 @@ export default function ContractsPage() {
 
   const handleEdit = (contract: Contract) => {
       setEditingUuid(contract.uuid);
+      // ADR-019: projectId might be a number or a UUID string from the entity response
+      const pId = String((contract as any).id || (contract as any).projectId || "");
       reset({
           contractCode: contract.contractCode,
           contractName: contract.contractName,
-          projectId: contract.projectId?.toString() || "",
+          projectId: pId,
           description: contract.description || "",
           startDate: contract.startDate ? new Date(contract.startDate).toISOString().split('T')[0] : "",
           endDate: contract.endDate ? new Date(contract.endDate).toISOString().split('T')[0] : "",
@@ -239,10 +241,11 @@ export default function ContractsPage() {
   };
 
   const onSubmit = (data: ContractFormData) => {
+      // ADR-019: Resolve projectId (ID or UUID)
       const submitData = {
           ...data,
-          projectId: parseInt(data.projectId),
-      };
+          projectId: isNaN(Number(data.projectId)) ? data.projectId : Number(data.projectId),
+      } as any;
 
       if (editingUuid) {
           updateContract.mutate({ uuid: editingUuid, data: submitData });
@@ -304,8 +307,8 @@ export default function ContractsPage() {
                         <SelectValue placeholder="Select Project" />
                     </SelectTrigger>
                     <SelectContent>
-                        {(projects as Project[])?.map((p) => (
-                            <SelectItem key={p.id} value={p.id.toString()}>
+                        {(projects as any[])?.map((p) => (
+                            <SelectItem key={p.uuid || p.id} value={String(p.id || p.uuid)}>
                                 {p.projectCode} - {p.projectName}
                             </SelectItem>
                         ))}

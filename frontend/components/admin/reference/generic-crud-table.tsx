@@ -1,9 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { DataTable } from "@/components/common/data-table";
-import { ColumnDef } from "@tanstack/react-table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  ColumnDef,
+} from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
+import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,20 +24,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,31 +39,41 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
-interface FieldConfig {
+interface Field {
   name: string;
   label: string;
-  type: "text" | "textarea" | "checkbox" | "select";
+  type: "text" | "number" | "checkbox" | "select" | "textarea";
   required?: boolean;
-  options?: { label: string; value: string | number | boolean }[];
+  options?: { label: string; value: string | number }[];
 }
 
-interface GenericCrudTableProps<TEntity extends { id: number }> {
-  entityName: string;
-  queryKey: string[];
-  fetchFn: () => Promise<TEntity[]>;
-  createFn: (data: Record<string, unknown>) => Promise<TEntity>;
-  updateFn: (id: number, data: Record<string, unknown>) => Promise<TEntity>;
-  deleteFn: (id: number) => Promise<unknown>;
-  columns: ColumnDef<TEntity>[];
-  fields: FieldConfig[];
-  title?: string;
+interface GenericCrudTableProps<T> {
+  title: string;
   description?: string;
+  entityName: string;
+  queryKey: any[];
+  fetchFn: () => Promise<T[] | { data: T[] }>;
+  createFn: (data: any) => Promise<any>;
+  updateFn: (id: number, data: any) => Promise<any>;
+  deleteFn: (id: number) => Promise<any>;
+  columns: ColumnDef<T>[];
+  fields: Field[];
   filters?: React.ReactNode;
 }
 
-export function GenericCrudTable<TEntity extends { id: number }>({
+export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
+  title,
+  description,
   entityName,
   queryKey,
   fetchFn,
@@ -68,218 +82,264 @@ export function GenericCrudTable<TEntity extends { id: number }>({
   deleteFn,
   columns,
   fields,
-  title,
-  description,
   filters,
-}: GenericCrudTableProps<TEntity>) {
+}: GenericCrudTableProps<T>) {
   const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<TEntity | null>(null);
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
-
-  // Delete Dialog State
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingItem, setEditingId] = useState<number | null>(null);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data: rawData, isLoading, refetch } = useQuery({
     queryKey,
     queryFn: fetchFn,
   });
 
+  // ADR-019: Support both direct array or wrapped data object
+  const data: T[] = Array.isArray(rawData) ? rawData : (rawData as any)?.data || [];
+
   const createMutation = useMutation({
     mutationFn: createFn,
     onSuccess: () => {
-      toast.success(`${entityName} created successfully`);
       queryClient.invalidateQueries({ queryKey });
-      handleClose();
+      toast.success(`${entityName} created successfully`);
+      setIsDialogOpen(false);
+      reset();
     },
-    onError: () => toast.error(`Failed to create ${entityName}`),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || `Failed to create ${entityName}`);
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) => updateFn(id, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => updateFn(id, data),
     onSuccess: () => {
-      toast.success(`${entityName} updated successfully`);
       queryClient.invalidateQueries({ queryKey });
-      handleClose();
+      toast.success(`${entityName} updated successfully`);
+      setIsDialogOpen(false);
+      setEditingId(null);
+      reset();
     },
-    onError: () => toast.error(`Failed to update ${entityName}`),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || `Failed to update ${entityName}`);
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteFn,
     onSuccess: () => {
-      toast.success(`${entityName} deleted successfully`);
       queryClient.invalidateQueries({ queryKey });
-      setDeleteDialogOpen(false);
+      toast.success(`${entityName} deleted successfully`);
       setItemToDelete(null);
     },
-    onError: () => toast.error(`Failed to delete ${entityName}`),
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || `Failed to delete ${entityName}`);
+    },
   });
 
-  const handleCreate = () => {
-    setEditingItem(null);
-    setFormData({});
-    setIsOpen(true);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm();
+
+  const table = useReactTable({
+    data,
+    columns: [
+      ...columns,
+      {
+        id: "actions",
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEdit(row.original)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => setItemToDelete(row.original.id as number)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  const handleAdd = () => {
+    setEditingId(null);
+    reset();
+    fields.forEach((f) => {
+      if (f.type === "checkbox") setValue(f.name, true);
+    });
+    setIsDialogOpen(true);
   };
 
-  const handleEdit = (item: TEntity) => {
-    setEditingItem(item);
-    setFormData({ ...item });
-    setIsOpen(true);
+  const handleEdit = (item: any) => {
+    setEditingId(item.id);
+    reset(item);
+    // Ensure select values are strings for Shadcn Select
+    fields.forEach(f => {
+        if (f.type === 'select' && item[f.name]) {
+            setValue(f.name, String(item[f.name]));
+        }
+    });
+    setIsDialogOpen(true);
   };
 
-  const handleDeleteClick = (id: number) => {
-    setItemToDelete(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (itemToDelete) {
-      deleteMutation.mutate(itemToDelete);
-    }
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-    setEditingItem(null);
-    setFormData({});
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = (formData: any) => {
     if (editingItem) {
-      updateMutation.mutate({ id: editingItem.id, data: formData });
+      updateMutation.mutate({ id: editingItem, data: formData });
     } else {
       createMutation.mutate(formData);
     }
   };
 
-  const handleChange = (field: string, value: unknown) => {
-    setFormData((prev: Record<string, unknown>) => ({ ...prev, [field]: value }));
-  };
-
-  // Add default Actions column if not present
-  const tableColumns = [
-    ...columns,
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }: { row: { original: TEntity } }) => (
-        <div className="flex gap-2 justify-end">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleEdit(row.original)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-destructive"
-            onClick={() => handleDeleteClick(row.original.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <div>
-          {title && <h2 className="text-xl font-bold">{title}</h2>}
+          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
           {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className="text-muted-foreground">{description}</p>
           )}
         </div>
-        <div className="flex gap-2 items-center">
-          {filters}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => refetch()}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add {entityName}
-          </Button>
-        </div>
+        <Button onClick={handleAdd}>
+          <Plus className="h-4 w-4 mr-2" /> Add {entityName}
+        </Button>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center space-x-4">
-                <Skeleton className="h-12 w-full" />
-            </div>
-            ))}
-        </div>
-      ) : (
-          <DataTable columns={tableColumns} data={data || []} />
-      )}
+      {filters && <div className="py-2">{filters}</div>}
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
+      <div className="rounded-md border bg-card">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length + 1}
+                  className="h-24 text-center"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : data.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length + 1}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  No data found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingItem ? `Edit ${entityName}` : `New ${entityName}`}
+              {editingItem ? `Edit ${entityName}` : `Add New ${entityName}`}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
             {fields.map((field) => (
               <div key={field.name} className="space-y-2">
-                <Label htmlFor={field.name}>{field.label}</Label>
-                {field.type === "textarea" ? (
-                  <Textarea
-                    id={field.name}
-                    value={(formData[field.name] as string) || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    required={field.required}
-                  />
-                ) : field.type === "checkbox" ? (
+                <Label htmlFor={field.name}>
+                  {field.label} {field.required && "*"}
+                </Label>
+                {field.type === "checkbox" ? (
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id={field.name}
-                      checked={!!formData[field.name]}
-                      onCheckedChange={(checked) =>
-                        handleChange(field.name, checked)
-                      }
+                      checked={watch(field.name)}
+                      onCheckedChange={(checked) => setValue(field.name, checked)}
                     />
-                    <label htmlFor={field.name} className="text-sm">
-                      Enabled
+                    <label
+                      htmlFor={field.name}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Active
                     </label>
                   </div>
                 ) : field.type === "select" ? (
                   <Select
-                    value={formData[field.name]?.toString() || ""}
-                    onValueChange={(value) => handleChange(field.name, value)}
+                    value={String(watch(field.name) || "")}
+                    onValueChange={(val) => setValue(field.name, val)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={`Select ${field.label}`} />
+                      <SelectValue placeholder={`Select ${field.label}...`} />
                     </SelectTrigger>
                     <SelectContent>
                       {field.options?.map((opt) => (
-                        <SelectItem key={(opt.value as string | number)} value={opt.value.toString()}>
+                        <SelectItem key={opt.value} value={String(opt.value)}>
                           {opt.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                ) : field.type === "textarea" ? (
+                  <Textarea
+                    id={field.name}
+                    {...register(field.name, { required: field.required })}
+                  />
                 ) : (
                   <Input
                     id={field.name}
-                    type="text"
-                    value={(formData[field.name] as string) || ""}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    required={field.required}
+                    type={field.type}
+                    {...register(field.name, {
+                      required: field.required,
+                      valueAsNumber: field.type === "number",
+                    })}
                   />
+                )}
+                {errors[field.name] && (
+                  <p className="text-xs text-red-500 font-medium">
+                    {field.label} is required
+                  </p>
                 )}
               </div>
             ))}
@@ -287,35 +347,38 @@ export function GenericCrudTable<TEntity extends { id: number }>({
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleClose}
-                disabled={createMutation.isPending || updateMutation.isPending}
+                onClick={() => setIsDialogOpen(false)}
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                {editingItem ? "Update" : "Create"}
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {editingItem ? "Save Changes" : `Add ${entityName}`}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog
+        open={itemToDelete !== null}
+        onOpenChange={(open) => !open && setItemToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the {entityName.toLowerCase()} and remove it from the system.
+              This action cannot be undone. This will permanently delete this{" "}
+              {entityName.toLowerCase()} and remove its data from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-                onClick={confirmDelete}
-                className="bg-red-600 hover:bg-red-700"
+              onClick={() => itemToDelete && deleteMutation.mutate(itemToDelete)}
+              className="bg-red-600 hover:bg-red-700"
             >
                 {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>

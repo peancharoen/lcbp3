@@ -5,8 +5,8 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
+import { Repository, EntityManager } from 'typeorm';
 
 // Import Entities
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
@@ -21,6 +21,8 @@ import { Tag } from './entities/tag.entity';
 import { Discipline } from './entities/discipline.entity';
 import { CorrespondenceSubType } from '../correspondence/entities/correspondence-sub-type.entity';
 import { DocumentNumberFormat } from '../document-numbering/entities/document-number-format.entity';
+import { Project } from '../project/entities/project.entity';
+import { Contract } from '../contract/entities/contract.entity';
 
 // Import DTOs
 import { CreateTagDto } from './dto/create-tag.dto';
@@ -54,12 +56,41 @@ export class MasterService {
     @InjectRepository(CorrespondenceSubType)
     private readonly subTypeRepo: Repository<CorrespondenceSubType>,
     @InjectRepository(DocumentNumberFormat)
-    private readonly formatRepo: Repository<DocumentNumberFormat>
+    private readonly formatRepo: Repository<DocumentNumberFormat>,
+
+    @InjectEntityManager()
+    private readonly entityManager: EntityManager
   ) {}
 
-  // ... (Method เดิม: findAllCorrespondenceTypes, findAllCorrespondenceStatuses, ฯลฯ เก็บไว้เหมือนเดิม) ...
-  // หมายเหตุ: ตรวจสอบว่า Entity ใช้ชื่อ property ว่า isActive หรือ is_active (ใน SQL เป็น is_active แต่ใน Entity มักเป็น isActive)
-  // โค้ดเดิมใช้ `where: { isActive: true }` ซึ่งถูกต้องถ้า Entity map column name แล้ว
+  /**
+   * Helper to resolve projectId (ID or UUID) to internal INT ID
+   */
+  async resolveProjectId(projectId: number | string): Promise<number> {
+    if (typeof projectId === 'number') return projectId;
+    const num = Number(projectId);
+    if (!isNaN(num)) return num;
+    const project = await this.entityManager.findOne(Project, {
+      where: { uuid: projectId as string },
+      select: ['id'],
+    });
+    if (!project) throw new NotFoundException(`Project with UUID ${projectId} not found`);
+    return project.id;
+  }
+
+  /**
+   * Helper to resolve contractId (ID or UUID) to internal INT ID
+   */
+  async resolveContractId(contractId: number | string): Promise<number> {
+    if (typeof contractId === 'number') return contractId;
+    const num = Number(contractId);
+    if (!isNaN(num)) return num;
+    const contract = await this.entityManager.findOne(Contract, {
+      where: { uuid: contractId as string },
+      select: ['id'],
+    });
+    if (!contract) throw new NotFoundException(`Contract with UUID ${contractId} not found`);
+    return contract.id;
+  }
 
   async findAllCorrespondenceTypes() {
     return this.corrTypeRepo.find({
@@ -92,27 +123,29 @@ export class MasterService {
       order: { sortOrder: 'ASC' },
     });
   }
-  async findAllRfaTypes(contractId?: number) {
+  async findAllRfaTypes(contractId?: number | string) {
     const where: any = { isActive: true };
     if (contractId) {
-      where.contractId = contractId;
+      where.contractId = await this.resolveContractId(contractId);
     }
     return this.rfaTypeRepo.find({
       where,
       order: { typeCode: 'ASC' },
-      relations: contractId ? [] : [], // Add relations if needed later
     });
   }
 
   async createRfaType(dto: any) {
-    // Validate unique code if needed
-    const rfaType = this.rfaTypeRepo.create(dto);
+    const internalContractId = await this.resolveContractId(dto.contractId);
+    const rfaType = this.rfaTypeRepo.create({ ...dto, contractId: internalContractId });
     return this.rfaTypeRepo.save(rfaType);
   }
 
   async updateRfaType(id: number, dto: any) {
     const rfaType = await this.rfaTypeRepo.findOne({ where: { id } });
     if (!rfaType) throw new NotFoundException('RFA Type not found');
+    if (dto.contractId) {
+        dto.contractId = await this.resolveContractId(dto.contractId);
+    }
     Object.assign(rfaType, dto);
     return this.rfaTypeRepo.save(rfaType);
   }
@@ -146,31 +179,32 @@ export class MasterService {
   // 🏗️ Disciplines Logic
   // =================================================================
 
-  async findAllDisciplines(contractId?: number) {
+  async findAllDisciplines(contractId?: number | string) {
     const query = this.disciplineRepo
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.contract', 'c')
       .orderBy('d.disciplineCode', 'ASC');
 
     if (contractId) {
-      query.where('d.contractId = :contractId', { contractId });
+      const internalId = await this.resolveContractId(contractId);
+      query.where('d.contractId = :contractId', { contractId: internalId });
     }
-    // เพิ่มเงื่อนไข Active หากต้องการ
     query.andWhere('d.isActive = :isActive', { isActive: true });
 
     return query.getMany();
   }
 
-  async createDiscipline(dto: CreateDisciplineDto) {
+  async createDiscipline(dto: any) {
+    const internalContractId = await this.resolveContractId(dto.contractId);
     const exists = await this.disciplineRepo.findOne({
-      where: { contractId: dto.contractId, disciplineCode: dto.disciplineCode },
+      where: { contractId: internalContractId, disciplineCode: dto.disciplineCode },
     });
     if (exists)
       throw new ConflictException(
         'Discipline code already exists in this contract'
       );
 
-    const discipline = this.disciplineRepo.create(dto);
+    const discipline = this.disciplineRepo.create({ ...dto, contractId: internalContractId });
     return this.disciplineRepo.save(discipline);
   }
 
@@ -185,23 +219,25 @@ export class MasterService {
   // 📑 Sub-Types Logic
   // =================================================================
 
-  async findAllSubTypes(contractId?: number, typeId?: number) {
+  async findAllSubTypes(contractId?: number | string, typeId?: number) {
     const query = this.subTypeRepo
       .createQueryBuilder('st')
       .leftJoinAndSelect('st.contract', 'c')
       .leftJoinAndSelect('st.correspondenceType', 'ct')
       .orderBy('st.subTypeCode', 'ASC');
 
-    if (contractId)
-      query.andWhere('st.contractId = :contractId', { contractId });
+    if (contractId) {
+      const internalId = await this.resolveContractId(contractId);
+      query.andWhere('st.contractId = :contractId', { contractId: internalId });
+    }
     if (typeId) query.andWhere('st.correspondenceTypeId = :typeId', { typeId });
 
     return query.getMany();
   }
 
-  async createSubType(dto: CreateSubTypeDto) {
-    // อาจจะเช็ค Duplicate code ด้วย logic คล้าย discipline
-    const subType = this.subTypeRepo.create(dto);
+  async createSubType(dto: any) {
+    const internalContractId = await this.resolveContractId(dto.contractId);
+    const subType = this.subTypeRepo.create({ ...dto, contractId: internalContractId });
     return this.subTypeRepo.save(subType);
   }
 
@@ -216,47 +252,43 @@ export class MasterService {
   // 🔢 Numbering Formats Logic
   // =================================================================
 
-  async findNumberFormat(projectId: number, typeId: number) {
+  async findNumberFormat(projectId: number | string, typeId: number) {
+    const internalId = await this.resolveProjectId(projectId);
     const format = await this.formatRepo.findOne({
-      where: { projectId, correspondenceTypeId: typeId },
+      where: { projectId: internalId, correspondenceTypeId: typeId },
     });
-    if (!format) {
-      // Optional: Return default format structure or null
-      return null;
-    }
-    return format;
+    return format || null;
   }
 
-  async saveNumberFormat(dto: SaveNumberFormatDto) {
-    // Check if exists (Upsert)
+  async saveNumberFormat(dto: any) {
+    const internalProjectId = await this.resolveProjectId(dto.projectId);
     let format = await this.formatRepo.findOne({
       where: {
-        projectId: dto.projectId,
+        projectId: internalProjectId,
         correspondenceTypeId: dto.correspondenceTypeId,
       },
     });
 
     if (format) {
       format.formatTemplate = dto.formatTemplate;
-      // format.updatedBy = ... (ถ้ามี)
     } else {
       format = this.formatRepo.create({
-        projectId: dto.projectId,
-        correspondenceTypeId: dto.correspondenceTypeId,
-        formatTemplate: dto.formatTemplate,
+        ...dto,
+        projectId: internalProjectId,
       });
     }
 
     return this.formatRepo.save(format);
   }
 
-  // ... (Tag Logic เดิม คงไว้ตามปกติ) ...
   async findAllTags(query?: SearchTagDto) {
     const qb = this.tagRepo.createQueryBuilder('tag');
 
     if (query?.project_id) {
+      // In Tags, we use project_id (INT) directly or resolve if UUID passed via query
+      const internalId = await this.resolveProjectId(query.project_id);
       qb.andWhere('tag.project_id = :projectId', {
-        projectId: query.project_id,
+        projectId: internalId,
       });
     }
 
@@ -288,16 +320,21 @@ export class MasterService {
     return tag;
   }
 
-  async createTag(dto: CreateTagDto, userId: number) {
+  async createTag(dto: any, userId: number) {
+    const internalProjectId = dto.project_id ? await this.resolveProjectId(dto.project_id) : null;
     const tag = this.tagRepo.create({
       ...dto,
+      project_id: internalProjectId,
       created_by: userId,
     });
     return this.tagRepo.save(tag);
   }
 
-  async updateTag(id: number, dto: UpdateTagDto) {
+  async updateTag(id: number, dto: any) {
     const tag = await this.findOneTag(id);
+    if (dto.project_id) {
+        dto.project_id = await this.resolveProjectId(dto.project_id);
+    }
     Object.assign(tag, dto);
     return this.tagRepo.save(tag);
   }
