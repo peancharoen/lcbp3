@@ -14,7 +14,7 @@ export default function TagsPage() {
   });
 
   const projectOptions = [
-    { label: "Global (All Projects)", value: "" },
+    { label: "Global (All Projects)", value: "__none__" },
     ...(projectsData || []).map((p: Record<string, unknown>) => ({
       label: p.project_name || p.project_code || `Project ${p.id}`,
       value: String(p.id),
@@ -57,11 +57,9 @@ export default function TagsPage() {
 
   const formatPayload = (data: Record<string, unknown>) => {
     const payload = { ...data };
-    // Backend entity uses project_id (underscore) per ADR-017/018 schema
-    if (!payload.project_id || payload.project_id === "") {
+    // ADR-019: project_id is now a UUID string or '__none__' for global
+    if (!payload.project_id || payload.project_id === "__none__") {
         payload.project_id = null;
-    } else {
-        payload.project_id = Number(payload.project_id);
     }
     return payload;
   };

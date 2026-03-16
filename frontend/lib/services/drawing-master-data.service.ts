@@ -14,7 +14,7 @@ export interface ContractVolume {
 }
 
 export interface CreateContractVolumeDto {
-  projectId: number;
+  projectId: number | string;
   volumeCode: string;
   volumeName: string;
   description?: string;
@@ -34,7 +34,7 @@ export interface ContractCategory {
 }
 
 export interface CreateContractCategoryDto {
-  projectId: number;
+  projectId: number | string;
   catCode: string;
   catName: string;
   description?: string;
@@ -54,7 +54,7 @@ export interface ContractSubCategory {
 }
 
 export interface CreateContractSubCategoryDto {
-  projectId: number;
+  projectId: number | string;
   subCatCode: string;
   subCatName: string;
   description?: string;
@@ -75,7 +75,7 @@ export interface ShopMainCategory {
 }
 
 export interface CreateShopMainCategoryDto {
-  projectId: number;
+  projectId: number | string;
   mainCategoryCode: string;
   mainCategoryName: string;
   description?: string;
@@ -97,7 +97,7 @@ export interface ShopSubCategory {
 }
 
 export interface CreateShopSubCategoryDto {
-  projectId: number;
+  projectId: number | string;
   subCategoryCode: string;
   subCategoryName: string;
   description?: string;
@@ -110,7 +110,7 @@ export interface CreateShopSubCategoryDto {
 // ===========================
 export const drawingMasterDataService = {
   // --- Contract Volumes ---
-  async getContractVolumes(projectId: number): Promise<ContractVolume[]> {
+  async getContractVolumes(projectId: number | string): Promise<ContractVolume[]> {
     const response = await apiClient.get(`/drawings/master-data/contract/volumes`, {
       params: { projectId },
     });
@@ -132,7 +132,7 @@ export const drawingMasterDataService = {
   },
 
   // --- Contract Categories ---
-  async getContractCategories(projectId: number): Promise<ContractCategory[]> {
+  async getContractCategories(projectId: number | string): Promise<ContractCategory[]> {
     const response = await apiClient.get(`/drawings/master-data/contract/categories`, {
       params: { projectId },
     });
@@ -154,7 +154,7 @@ export const drawingMasterDataService = {
   },
 
   // --- Contract Sub-categories ---
-  async getContractSubCategories(projectId: number): Promise<ContractSubCategory[]> {
+  async getContractSubCategories(projectId: number | string): Promise<ContractSubCategory[]> {
     const response = await apiClient.get(`/drawings/master-data/contract/sub-categories`, {
       params: { projectId },
     });
@@ -180,7 +180,7 @@ export const drawingMasterDataService = {
 
   // --- Contract Category Mappings ---
   async getContractMappings(
-    projectId: number,
+    projectId: number | string,
     categoryId?: number
   ): Promise<{ id: number; subCategory: ContractSubCategory; category: ContractCategory }[]> {
     const response = await apiClient.get(`/drawings/master-data/contract/mappings`, {
@@ -190,7 +190,7 @@ export const drawingMasterDataService = {
   },
 
   async createContractMapping(data: {
-    projectId: number;
+    projectId: number | string;
     categoryId: number;
     subCategoryId: number;
   }): Promise<{ id: number }> {
@@ -203,7 +203,7 @@ export const drawingMasterDataService = {
   },
 
   // --- Shop Main Categories ---
-  async getShopMainCategories(projectId: number): Promise<ShopMainCategory[]> {
+  async getShopMainCategories(projectId: number | string): Promise<ShopMainCategory[]> {
     const response = await apiClient.get(`/drawings/master-data/shop/main-categories`, {
       params: { projectId },
     });
@@ -225,7 +225,7 @@ export const drawingMasterDataService = {
   },
 
   // --- Shop Sub-categories ---
-  async getShopSubCategories(projectId: number, mainCategoryId?: number): Promise<ShopSubCategory[]> {
+  async getShopSubCategories(projectId: number | string, mainCategoryId?: number): Promise<ShopSubCategory[]> {
     const response = await apiClient.get(`/drawings/master-data/shop/sub-categories`, {
       params: { projectId, mainCategoryId },
     });

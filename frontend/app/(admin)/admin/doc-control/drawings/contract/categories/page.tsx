@@ -26,7 +26,7 @@ interface Category {
 }
 
 export default function ContractCategoriesPage() {
-  const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(undefined);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
 
   const columns: ColumnDef<Category>[] = [
@@ -59,8 +59,8 @@ export default function ContractCategoriesPage() {
     <div className="flex items-center gap-4">
       <span className="text-sm font-medium">Project:</span>
       <Select
-        value={selectedProjectId?.toString() ?? ''}
-        onValueChange={(v) => setSelectedProjectId(v ? parseInt(v) : undefined)}
+        value={selectedProjectId ?? ''}
+        onValueChange={(v) => setSelectedProjectId(v || undefined)}
       >
         <SelectTrigger className="w-[300px]">
           {isLoadingProjects ? (
@@ -160,7 +160,7 @@ class MappingErrorBoundary extends React.Component<
   }
 }
 
-function CategoryMappingSection({ projectId }: { projectId: number }) {
+function CategoryMappingSection({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Category Mappings (Map Sub-categories to Categories)</h2>
@@ -174,7 +174,7 @@ function CategoryMappingSection({ projectId }: { projectId: number }) {
   );
 }
 
-function ManageMappings({ projectId }: { projectId: number }) {
+function ManageMappings({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
   const [selectedCat, setSelectedCat] = useState<string>('');
   const [selectedSubCat, setSelectedSubCat] = useState<string>('');
@@ -210,7 +210,7 @@ function ManageMappings({ projectId }: { projectId: number }) {
   const mappings = Array.isArray(rawMappings) ? rawMappings : [];
 
   const createMutation = useMutation({
-    mutationFn: (data: { projectId: number; categoryId: number; subCategoryId: number }) =>
+    mutationFn: (data: { projectId: number | string; categoryId: number; subCategoryId: number }) =>
       drawingMasterDataService.createContractMapping(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contract-mappings'] });

@@ -19,7 +19,7 @@ interface MainCategory {
 }
 
 export default function ShopMainCategoriesPage() {
-  const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(undefined);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
 
   const columns: ColumnDef<MainCategory>[] = [
@@ -62,8 +62,8 @@ export default function ShopMainCategoriesPage() {
     <div className="flex items-center gap-4">
       <span className="text-sm font-medium">Project:</span>
       <Select
-        value={selectedProjectId?.toString() ?? ''}
-        onValueChange={(v) => setSelectedProjectId(v ? parseInt(v) : undefined)}
+        value={selectedProjectId ?? ''}
+        onValueChange={(v) => setSelectedProjectId(v || undefined)}
       >
         <SelectTrigger className="w-[300px]">
           {isLoadingProjects ? (
