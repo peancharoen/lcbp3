@@ -93,7 +93,7 @@ export const masterDataService = {
   // --- Disciplines Management (Admin / Req 6B) ---
 
   /** ดึงรายชื่อสาขางาน (มักจะกรองตาม Contract ID) */
-  getDisciplines: async (contractId?: number) => {
+  getDisciplines: async (contractId?: number | string) => {
     const response = await apiClient.get("/master/disciplines", {
       params: { contractId }
     });
@@ -115,7 +115,7 @@ export const masterDataService = {
   // --- Sub-Types Management (Admin / Req 6B) ---
 
   /** ดึงรายชื่อประเภทย่อย (กรองตาม Contract และ Type) */
-  getSubTypes: async (contractId?: number, typeId?: number) => {
+  getSubTypes: async (contractId?: number | string, typeId?: number) => {
     const response = await apiClient.get("/master/sub-types", {
       params: { contractId, correspondenceTypeId: typeId }
     });
@@ -131,7 +131,7 @@ export const masterDataService = {
   // --- RFA Types Management (Admin) ---
 
   /** ดึงประเภท RFA ทั้งหมด */
-  getRfaTypes: async (contractId?: number) => {
+  getRfaTypes: async (contractId?: number | string) => {
     const response = await apiClient.get("/master/rfa-types", {
       params: { contractId }
     });
