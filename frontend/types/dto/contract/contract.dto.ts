@@ -1,7 +1,7 @@
 export interface CreateContractDto {
   contractCode: string;
   contractName: string;
-  projectId: number;
+  projectId: number | string;
   description?: string;
   startDate?: string;
   endDate?: string;
@@ -11,7 +11,7 @@ export type UpdateContractDto = Partial<CreateContractDto>;
 
 export interface SearchContractDto {
   search?: string;
-  projectId?: number;
+  projectId?: number | string;
   page?: number;
   limit?: number;
 }

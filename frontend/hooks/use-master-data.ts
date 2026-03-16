@@ -15,7 +15,7 @@ export const masterDataKeys = {
   all: ['masterData'] as const,
   organizations: () => [...masterDataKeys.all, 'organizations'] as const,
   correspondenceTypes: () => [...masterDataKeys.all, 'correspondenceTypes'] as const,
-  disciplines: (contractId?: number) => [...masterDataKeys.all, 'disciplines', contractId] as const,
+  disciplines: (contractId?: number | string) => [...masterDataKeys.all, 'disciplines', contractId] as const,
 };
 
 export function useOrganizations(params?: SearchOrganizationDto) {
@@ -74,7 +74,7 @@ export function useDeleteOrganization() {
   });
 }
 
-export function useDisciplines(contractId?: number) {
+export function useDisciplines(contractId?: number | string) {
   return useQuery({
     queryKey: masterDataKeys.disciplines(contractId),
     queryFn: () => masterDataService.getDisciplines(contractId),
@@ -88,10 +88,10 @@ export function useProjects(isActive: boolean = true) {
   });
 }
 
-export function useContracts(projectId: number = 1) {
+export function useContracts(projectId?: number | string) {
   return useQuery({
-    queryKey: ['contracts', projectId],
-    queryFn: () => contractService.getAll({ projectId }),
+    queryKey: ['contracts', projectId ?? 'all'],
+    queryFn: () => contractService.getAll(projectId ? { projectId } : undefined),
   });
 }
 

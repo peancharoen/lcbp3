@@ -50,14 +50,13 @@ import { SearchContractDto, CreateContractDto, UpdateContractDto } from "@/types
 import { AxiosError } from "axios";
 
 interface Project {
-  id: number;
+  id: string; // ADR-019: uuid exposed as 'id'
   projectCode: string;
   projectName: string;
 }
 
 interface Contract {
-    uuid: string;
-    id?: number; // Excluded from API responses (ADR-019)
+    id: string; // ADR-019: uuid exposed as 'id'
     contractCode: string;
     contractName: string;
     projectId: number;
@@ -65,6 +64,7 @@ interface Contract {
     startDate?: string;
     endDate?: string;
     project?: {
+      id: string; // ADR-019: project uuid exposed as 'id'
       projectCode: string;
       projectName: string;
     }
@@ -145,7 +145,7 @@ export default function ContractsPage() {
 
   const confirmDelete = () => {
     if (contractToDelete) {
-      deleteContract.mutate(contractToDelete.uuid, {
+      deleteContract.mutate(contractToDelete.id, {
         onSuccess: () => {
           setDeleteDialogOpen(false);
           setContractToDelete(null);
@@ -213,9 +213,9 @@ export default function ContractsPage() {
   ];
 
   const handleEdit = (contract: Contract) => {
-      setEditingUuid(contract.uuid);
-      // ADR-019: projectId might be a number or a UUID string from the entity response
-      const pId = String((contract as any).id || (contract as any).projectId || "");
+      setEditingUuid(contract.id);
+      // ADR-019: project.id is the project's UUID (exposed via @Expose)
+      const pId = contract.project?.id || '';
       reset({
           contractCode: contract.contractCode,
           contractName: contract.contractName,
@@ -242,10 +242,11 @@ export default function ContractsPage() {
 
   const onSubmit = (data: ContractFormData) => {
       // ADR-019: Resolve projectId (ID or UUID)
+      // ADR-019: projectId is now a UUID string — backend resolveProjectId handles both
       const submitData = {
           ...data,
-          projectId: isNaN(Number(data.projectId)) ? data.projectId : Number(data.projectId),
-      } as any;
+          projectId: data.projectId,
+      };
 
       if (editingUuid) {
           updateContract.mutate({ uuid: editingUuid, data: submitData });
