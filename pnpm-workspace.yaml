@@ -2,6 +2,9 @@ packages:
   - backend
   - frontend
 
+ignoredBuiltDependencies:
+  - '@compodoc/compodoc'
+
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@scarf/scarf'
