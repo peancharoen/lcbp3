@@ -1,5 +1,6 @@
 export interface Notification {
-  notificationId: number;
+  uuid: string;
+  notificationId?: number; // Excluded from API responses (ADR-019)
   title: string;
   message: string;
   type: "INFO" | "SUCCESS" | "WARNING" | "ERROR";

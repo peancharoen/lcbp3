@@ -13,10 +13,13 @@ import { ShopDrawingRevision } from './shop-drawing-revision.entity';
 import { Project } from '../../project/entities/project.entity';
 import { ShopDrawingMainCategory } from './shop-drawing-main-category.entity';
 import { ShopDrawingSubCategory } from './shop-drawing-sub-category.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('shop_drawings')
-export class ShopDrawing {
+export class ShopDrawing extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number; // เติม !
 
   @Column({ name: 'project_id' })

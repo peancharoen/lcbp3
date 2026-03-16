@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  ParseIntPipe,
   Query,
 } from '@nestjs/common';
 import {
@@ -22,6 +21,7 @@ import { UpdateContractDto } from './dto/update-contract.dto.js';
 import { SearchContractDto } from './dto/search-contract.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 
 @ApiTags('Contracts')
 @ApiBearerAuth()
@@ -45,26 +45,26 @@ export class ContractController {
     return this.contractService.findAll(query);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get Contract by ID' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.contractService.findOne(id);
+  @Get(':uuid')
+  @ApiOperation({ summary: 'Get Contract by UUID' })
+  findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.contractService.findOneByUuid(uuid);
   }
 
-  @Patch(':id')
+  @Patch(':uuid')
   @RequirePermission('master_data.manage')
   @ApiOperation({ summary: 'Update Contract' })
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() dto: UpdateContractDto
   ) {
-    return this.contractService.update(id, dto);
+    return this.contractService.update(uuid, dto);
   }
 
-  @Delete(':id')
+  @Delete(':uuid')
   @RequirePermission('master_data.manage')
   @ApiOperation({ summary: 'Delete Contract' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.contractService.remove(id);
+  remove(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.contractService.remove(uuid);
   }
 }

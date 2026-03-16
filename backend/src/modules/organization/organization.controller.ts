@@ -8,7 +8,6 @@ import {
   Delete,
   Query,
   UseGuards,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OrganizationService } from './organization.service.js';
@@ -17,6 +16,7 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto.js';
 import { SearchOrganizationDto } from './dto/search-organization.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -38,26 +38,26 @@ export class OrganizationController {
     return this.orgService.findAll(query);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get Organization by ID' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.orgService.findOne(id);
+  @Get(':uuid')
+  @ApiOperation({ summary: 'Get Organization by UUID' })
+  findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.orgService.findOneByUuid(uuid);
   }
 
-  @Patch(':id')
+  @Patch(':uuid')
   @RequirePermission('master_data.manage')
   @ApiOperation({ summary: 'Update Organization' })
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() dto: UpdateOrganizationDto
   ) {
-    return this.orgService.update(id, dto);
+    return this.orgService.update(uuid, dto);
   }
 
-  @Delete(':id')
+  @Delete(':uuid')
   @RequirePermission('master_data.manage')
   @ApiOperation({ summary: 'Delete Organization' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.orgService.remove(id);
+  remove(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.orgService.remove(uuid);
   }
 }

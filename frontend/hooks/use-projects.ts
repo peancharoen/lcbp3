@@ -7,7 +7,7 @@ import { getApiErrorMessage } from '@/types/api-error';
 export const projectKeys = {
   all: ['projects'] as const,
   list: (params: SearchProjectDto) => [...projectKeys.all, 'list', params] as const,
-  detail: (id: number) => [...projectKeys.all, 'detail', id] as const,
+  detail: (uuid: string) => [...projectKeys.all, 'detail', uuid] as const,
 };
 
 export function useProjects(params?: SearchProjectDto) {
@@ -36,7 +36,7 @@ export function useCreateProject() {
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateProjectDto }) => projectService.update(id, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: UpdateProjectDto }) => projectService.update(uuid, data),
     onSuccess: () => {
       toast.success("Project updated successfully");
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
@@ -52,7 +52,7 @@ export function useUpdateProject() {
 export function useDeleteProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => projectService.delete(id),
+    mutationFn: (uuid: string) => projectService.delete(uuid),
     onSuccess: () => {
       toast.success("Project deleted successfully");
       queryClient.invalidateQueries({ queryKey: projectKeys.all });

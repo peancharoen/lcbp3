@@ -13,11 +13,14 @@ import { AsBuiltDrawing } from './asbuilt-drawing.entity';
 import { ShopDrawingRevision } from './shop-drawing-revision.entity';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { User } from '../../user/entities/user.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('asbuilt_drawing_revisions')
 @Unique(['asBuiltDrawingId', 'isCurrent'])
-export class AsBuiltDrawingRevision {
+export class AsBuiltDrawingRevision extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number;
 
   @Column({ name: 'asbuilt_drawing_id' })

@@ -19,11 +19,11 @@ export const contractService = {
   },
 
   /**
-   * Get contract by ID
-   * GET /contracts/:id
+   * Get contract by UUID
+   * GET /contracts/:uuid
    */
-  getById: async (id: number) => {
-    const response = await apiClient.get(`/contracts/${id}`);
+  getByUuid: async (uuid: string) => {
+    const response = await apiClient.get(`/contracts/${uuid}`);
     return response.data;
   },
 
@@ -38,19 +38,19 @@ export const contractService = {
 
   /**
    * Update contract
-   * PATCH /contracts/:id
+   * PATCH /contracts/:uuid
    */
-  update: async (id: number, data: UpdateContractDto) => {
-    const response = await apiClient.patch(`/contracts/${id}`, data);
+  update: async (uuid: string, data: UpdateContractDto) => {
+    const response = await apiClient.patch(`/contracts/${uuid}`, data);
     return response.data;
   },
 
   /**
    * Delete contract
-   * DELETE /contracts/:id
+   * DELETE /contracts/:uuid
    */
-  delete: async (id: number) => {
-    const response = await apiClient.delete(`/contracts/${id}`);
+  delete: async (uuid: string) => {
+    const response = await apiClient.delete(`/contracts/${uuid}`);
     return response.data;
   },
 };

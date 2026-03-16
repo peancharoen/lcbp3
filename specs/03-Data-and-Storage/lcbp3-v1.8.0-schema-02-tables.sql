@@ -23,6 +23,7 @@ CREATE TABLE organization_roles (
 -- ตาราง Master เก็บข้อมูลองค์กรทั้งหมดที่เกี่ยวข้องในระบบ
 CREATE TABLE organizations (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   organization_code VARCHAR(20) NOT NULL UNIQUE COMMENT 'รหัสองค์กร',
   organization_name VARCHAR(255) NOT NULL COMMENT 'ชื่อองค์กร',
   role_id INT COMMENT 'บทบาทขององค์กร',
@@ -31,12 +32,14 @@ CREATE TABLE organizations (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)',
   FOREIGN KEY (role_id) REFERENCES organization_roles (id) ON DELETE
-  SET NULL
+  SET NULL,
+    UNIQUE INDEX idx_organizations_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลองค์กรทั้งหมดที่เกี่ยวข้องในระบบ';
 
 -- ตาราง Master เก็บข้อมูลโครงการ
 CREATE TABLE projects (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   project_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'รหัสโครงการ',
   project_name VARCHAR(255) NOT NULL COMMENT 'ชื่อโครงการ',
   -- parent_project_id INT COMMENT 'รหัสโครงการหลัก (ถ้ามี)',
@@ -46,12 +49,14 @@ CREATE TABLE projects (
   -- FOREIGN KEY (contractor_organization_id) REFERENCES organizations(id) ON DELETE SET NULL
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
-  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)'
+  deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)',
+  UNIQUE INDEX idx_projects_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลโครงการ';
 
 -- ตาราง Master เก็บข้อมูลสัญญา
 CREATE TABLE contracts (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   project_id INT NOT NULL,
   contract_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'รหัสสัญญา',
   contract_name VARCHAR(255) NOT NULL COMMENT 'ชื่อสัญญา',
@@ -62,7 +67,8 @@ CREATE TABLE contracts (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   deleted_at DATETIME NULL COMMENT 'วันที่ลบ (Soft Delete)',
-  FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
+  FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
+  UNIQUE INDEX idx_contracts_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลสัญญา';
 
 -- =====================================================
@@ -71,6 +77,7 @@ CREATE TABLE contracts (
 -- ตาราง Master เก็บข้อมูลผู้ใช้งาน (User)
 CREATE TABLE users (
   user_id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   username VARCHAR(50) NOT NULL UNIQUE COMMENT 'ชื่อผู้ใช้งาน',
   password_hash VARCHAR(255) NOT NULL COMMENT 'รหัสผ่าน (Hashed)',
   first_name VARCHAR(50) COMMENT 'ชื่อจริง',
@@ -86,7 +93,8 @@ CREATE TABLE users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   deleted_at DATETIME NULL DEFAULT NULL COMMENT 'วันที่ลบ',
   FOREIGN KEY (primary_organization_id) REFERENCES organizations (id) ON DELETE
-  SET NULL
+  SET NULL,
+    UNIQUE INDEX idx_users_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูลผู้ใช้งาน (User)';
 
 -- ตารางเก็บ Refresh Tokens สำหรับ Authentication
@@ -258,6 +266,7 @@ CREATE TABLE correspondence_status (
 -- ตาราง "แม่" ของเอกสารโต้ตอบ เก็บข้อมูลที่ไม่เปลี่ยนตาม Revision
 CREATE TABLE correspondences (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง (นี่คือ "Master ID" ที่ใช้เชื่อมโยง)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   correspondence_type_id INT NOT NULL COMMENT 'ประเภทเอกสาร ใช้แบ่งแยกว่าเป็น RFA หรือ อื่นๆ',
   correspondence_number VARCHAR(100) NOT NULL COMMENT 'เลขที่เอกสาร (สร้างจาก DocumentNumberingModule)',
   discipline_id INT NULL COMMENT 'สาขางาน (ถ้ามี)',
@@ -279,7 +288,8 @@ CREATE TABLE correspondences (
     -- Foreign Key ที่รวมเข้ามาจาก ALTER (ระบุชื่อ Constraint ตามที่ต้องการ)
     CONSTRAINT fk_corr_discipline FOREIGN KEY (discipline_id) REFERENCES disciplines (id) ON DELETE
   SET NULL,
-    UNIQUE KEY uq_corr_no_per_project (project_id, correspondence_number)
+    UNIQUE KEY uq_corr_no_per_project (project_id, correspondence_number),
+    UNIQUE INDEX idx_correspondences_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "แม่" ของเอกสารโต้ตอบ เก็บข้อมูลที่ไม่เปลี่ยนตาม Revision';
 
 -- ตารางเชื่อมผู้รับ (TO/CC) สำหรับเอกสารแต่ละฉบับ (M:N)
@@ -299,6 +309,7 @@ CREATE TABLE correspondence_recipients (
 -- ตาราง "ลูก" เก็บประวัติการแก้ไข (Revisions) ของ correspondences (1:N)
 CREATE TABLE correspondence_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   correspondence_id INT NOT NULL COMMENT 'Master ID',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
@@ -338,7 +349,8 @@ CREATE TABLE correspondence_revisions (
     UNIQUE KEY uq_master_revision_number (correspondence_id, revision_number),
     UNIQUE KEY uq_master_current (correspondence_id, is_current),
     INDEX idx_corr_rev_v_project (v_ref_project_id),
-    INDEX idx_corr_rev_v_subtype (v_doc_subtype)
+    INDEX idx_corr_rev_v_subtype (v_doc_subtype),
+    UNIQUE INDEX idx_correspondence_revisions_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติการแก้ไข (Revisions) ของ correspondences (1 :N)';
 
 -- ตาราง Master เก็บ Tags ทั้งหมดที่ใช้ในระบบ
@@ -529,6 +541,7 @@ CREATE TABLE contract_drawing_subcat_cat_maps (
 -- ตาราง Master เก็บข้อมูล "แบบคู่สัญญา"
 CREATE TABLE contract_drawings (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   project_id INT NOT NULL COMMENT 'โครงการ',
   condwg_no VARCHAR(255) NOT NULL COMMENT 'เลขที่แบบสัญญา',
   title VARCHAR(255) NOT NULL COMMENT 'ชื่อแบบสัญญา',
@@ -542,7 +555,8 @@ CREATE TABLE contract_drawings (
   FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
   FOREIGN KEY (map_cat_id) REFERENCES contract_drawing_subcat_cat_maps (id) ON DELETE RESTRICT,
   FOREIGN KEY (volume_id) REFERENCES contract_drawing_volumes (id) ON DELETE RESTRICT,
-  UNIQUE KEY ux_condwg_no_project (project_id, condwg_no)
+  UNIQUE KEY ux_condwg_no_project (project_id, condwg_no),
+  UNIQUE INDEX idx_contract_drawings_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูล "แบบคู่สัญญา"';
 
 -- ตาราง Master สำหรับ "หมวดหมู่หลัก" ของแบบก่อสร้าง
@@ -576,6 +590,7 @@ CREATE TABLE shop_drawing_sub_categories (
 -- ตาราง Master เก็บข้อมูล "แบบก่อสร้าง"
 CREATE TABLE shop_drawings (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   project_id INT NOT NULL COMMENT 'โครงการ',
   drawing_number VARCHAR(100) NOT NULL COMMENT 'เลขที่ Shop Drawing',
   main_category_id INT NOT NULL COMMENT 'หมวดหมู่หลัก',
@@ -587,12 +602,14 @@ CREATE TABLE shop_drawings (
   FOREIGN KEY (project_id) REFERENCES projects (id),
   FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories (id),
   FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories (id),
-  UNIQUE KEY ux_shop_dwg_no_project (project_id, drawing_number)
+  UNIQUE KEY ux_shop_dwg_no_project (project_id, drawing_number),
+  UNIQUE INDEX idx_shop_drawings_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูล "แบบก่อสร้าง"';
 
 -- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ shop_drawings (1:N)
 CREATE TABLE shop_drawing_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   shop_drawing_id INT NOT NULL COMMENT 'Master ID',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (เช่น 0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
@@ -610,7 +627,8 @@ CREATE TABLE shop_drawing_revisions (
     FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE
   SET NULL,
     UNIQUE KEY ux_sd_rev_drawing_revision (shop_drawing_id, revision_number),
-    UNIQUE KEY uq_sd_current (shop_drawing_id, is_current)
+    UNIQUE KEY uq_sd_current (shop_drawing_id, is_current),
+    UNIQUE INDEX idx_shop_drawing_revisions_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติ (Revisions) ของ shop_drawings (1:N)';
 
 -- ตารางเชื่อมระหว่าง shop_drawing_revisions กับ contract_drawings (M:N)
@@ -628,6 +646,7 @@ CREATE TABLE shop_drawing_revision_contract_refs (
 -- ตาราง Master เก็บข้อมูล "AS Built"
 CREATE TABLE asbuilt_drawings (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   project_id INT NOT NULL COMMENT 'โครงการ',
   drawing_number VARCHAR(100) NOT NULL COMMENT 'เลขที่ AS Built Drawing',
   main_category_id INT NOT NULL COMMENT 'หมวดหมู่หลัก',
@@ -639,12 +658,14 @@ CREATE TABLE asbuilt_drawings (
   FOREIGN KEY (project_id) REFERENCES projects (id),
   FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories (id),
   FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories (id),
-  UNIQUE KEY ux_asbuilt_no_project (project_id, drawing_number)
+  UNIQUE KEY ux_asbuilt_no_project (project_id, drawing_number),
+  UNIQUE INDEX idx_asbuilt_drawings_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง Master เก็บข้อมูล "แบบ AS Built"';
 
 -- ตาราง "ลูก" เก็บประวัติ (Revisions) ของ AS Built (1:N)
 CREATE TABLE asbuilt_drawing_revisions (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของ Revision',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   asbuilt_drawing_id INT NOT NULL COMMENT 'Master ID',
   revision_number INT NOT NULL COMMENT 'หมายเลข Revision (เช่น 0, 1, 2...)',
   revision_label VARCHAR(10) COMMENT 'Revision ที่แสดง (เช่น A, B, 1.1)',
@@ -662,7 +683,8 @@ CREATE TABLE asbuilt_drawing_revisions (
     FOREIGN KEY (updated_by) REFERENCES users (user_id) ON DELETE
   SET NULL,
     UNIQUE KEY ux_asbuilt_rev_drawing_revision (asbuilt_drawing_id, revision_number),
-    UNIQUE KEY uq_asbuilt_current (asbuilt_drawing_id, is_current)
+    UNIQUE KEY uq_asbuilt_current (asbuilt_drawing_id, is_current),
+    UNIQUE INDEX idx_asbuilt_drawing_revisions_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "ลูก" เก็บประวัติ (Revisions) ของ asbuilt_drawings (1:N)';
 
 -- ตารางเชื่อมระหว่าง asbuilt_drawing_revisions กับ shop_drawing_revisions (M:N)
@@ -744,6 +766,7 @@ CREATE TABLE circulation_status_codes (
 -- ตาราง "แม่" ของใบเวียนเอกสารภายใน
 CREATE TABLE circulations (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตารางใบเวียน',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   correspondence_id INT UNIQUE COMMENT 'ID ของเอกสาร (จากตาราง correspondences)',
   organization_id INT NOT NULL COMMENT 'ID ขององค์กรณ์ที่เป็นเจ้าของใบเวียนนี้',
   circulation_no VARCHAR(100) NOT NULL COMMENT 'เลขที่ใบเวียน',
@@ -757,7 +780,8 @@ CREATE TABLE circulations (
   FOREIGN KEY (correspondence_id) REFERENCES correspondences (id),
   FOREIGN KEY (organization_id) REFERENCES organizations (id),
   FOREIGN KEY (circulation_status_code) REFERENCES circulation_status_codes (code),
-  FOREIGN KEY (created_by_user_id) REFERENCES users (user_id)
+  FOREIGN KEY (created_by_user_id) REFERENCES users (user_id),
+  UNIQUE INDEX idx_circulations_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "แม่" ของใบเวียนเอกสารภายใน';
 
 -- =====================================================
@@ -800,6 +824,7 @@ CREATE TABLE transmittal_items (
 -- เหตุผล: จัดการไฟล์ขยะ (Orphan Files) และตรวจสอบความถูกต้องไฟล์
 CREATE TABLE attachments (
   id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของไฟล์แนบ',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   original_filename VARCHAR(255) NOT NULL COMMENT 'ชื่อไฟล์ดั้งเดิมตอนอัปโหลด',
   stored_filename VARCHAR(255) NOT NULL COMMENT 'ชื่อไฟล์ที่เก็บจริงบน Server (ป้องกันชื่อซ้ำ)',
   file_path VARCHAR(500) NOT NULL COMMENT 'Path ที่เก็บไฟล์ (บน QNAP / share / dms - data /)',
@@ -813,7 +838,8 @@ CREATE TABLE attachments (
   CHECKSUM VARCHAR(64) NULL COMMENT 'SHA-256 Checksum',
   reference_date DATE NULL COMMENT 'Date used for folder structure (e.g. Issue Date) to prevent broken paths',
   FOREIGN KEY (uploaded_by_user_id) REFERENCES users (user_id) ON DELETE CASCADE,
-  INDEX idx_attachments_reference_date (reference_date)
+  INDEX idx_attachments_reference_date (reference_date),
+  UNIQUE INDEX idx_attachments_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "กลาง" เก็บไฟล์แนบทั้งหมดของระบบ';
 
 -- ตารางเชื่อม correspondences กับ attachments (M:N)
@@ -1198,6 +1224,7 @@ PARTITION BY RANGE (YEAR(created_at)) (
 -- ตารางสำหรับจัดการการแจ้งเตือน (Email/Line/System)
 CREATE TABLE notifications (
   id INT NOT NULL AUTO_INCREMENT COMMENT 'ID ของการแจ้งเตือน',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   user_id INT NOT NULL COMMENT 'ID ผู้ใช้',
   title VARCHAR(255) NOT NULL COMMENT 'หัวข้อการแจ้งเตือน',
   message TEXT NOT NULL COMMENT 'รายละเอียดการแจ้งเตือน',
@@ -1213,7 +1240,8 @@ CREATE TABLE notifications (
   INDEX idx_notif_user (user_id),
   INDEX idx_notif_type (notification_type),
   INDEX idx_notif_read (is_read),
-  INDEX idx_notif_created (created_at)
+  INDEX idx_notif_created (created_at),
+  INDEX idx_notifications_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางสำหรับจัดการการแจ้งเตือน (Email / Line / System)' -- [เพิ่ม] คำสั่ง Partition
 PARTITION BY RANGE (YEAR(created_at)) (
   PARTITION p_old

@@ -33,6 +33,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { User } from './entities/user.entity';
 
 @ApiTags('Users')
@@ -123,35 +124,35 @@ export class UserController {
     return this.userService.findAll(query);
   }
 
-  @Get(':id')
+  @Get(':uuid')
   @ApiOperation({ summary: 'Get user details' })
-  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiParam({ name: 'uuid', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User details' })
   @RequirePermission('user.view')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.findOne(id);
+  findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.userService.findOneByUuid(uuid);
   }
 
-  @Patch(':id')
+  @Patch(':uuid')
   @ApiOperation({ summary: 'Update user' })
-  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiParam({ name: 'uuid', description: 'User UUID' })
   @ApiBody({ type: UpdateUserDto })
   @ApiResponse({ status: 200, description: 'User updated' })
   @RequirePermission('user.edit')
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() updateUserDto: UpdateUserDto
   ) {
-    return this.userService.update(id, updateUserDto);
+    return this.userService.update(uuid, updateUserDto);
   }
 
-  @Delete(':id')
+  @Delete(':uuid')
   @ApiOperation({ summary: 'Delete user (Soft delete)' })
-  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiParam({ name: 'uuid', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User deleted' })
   @RequirePermission('user.delete')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.remove(id);
+  remove(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.userService.remove(uuid);
   }
 
   // --- Role Assignment ---

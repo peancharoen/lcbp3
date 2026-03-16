@@ -15,8 +15,8 @@ export const correspondenceService = {
     return response.data;
   },
 
-  getById: async (id: string | number) => {
-    const response = await apiClient.get(`/correspondences/${id}`);
+  getByUuid: async (uuid: string) => {
+    const response = await apiClient.get(`/correspondences/${uuid}`);
     return response.data.data; // Unwrap NestJS Interceptor 'data' wrapper
   },
 
@@ -25,13 +25,13 @@ export const correspondenceService = {
     return response.data;
   },
 
-  update: async (id: string | number, data: Partial<CreateCorrespondenceDto>) => {
-    const response = await apiClient.put(`/correspondences/${id}`, data);
+  update: async (uuid: string, data: Partial<CreateCorrespondenceDto>) => {
+    const response = await apiClient.put(`/correspondences/${uuid}`, data);
     return response.data;
   },
 
-  delete: async (id: string | number) => {
-    const response = await apiClient.delete(`/correspondences/${id}`);
+  delete: async (uuid: string) => {
+    const response = await apiClient.delete(`/correspondences/${uuid}`);
     return response.data;
   },
 
@@ -40,33 +40,33 @@ export const correspondenceService = {
   /**
    * ส่งเอกสาร (Submit) เพื่อเริ่ม Workflow
    */
-  submit: async (id: string | number, data: SubmitCorrespondenceDto) => {
-    const response = await apiClient.post(`/correspondences/${id}/submit`, data);
+  submit: async (uuid: string, data: SubmitCorrespondenceDto) => {
+    const response = await apiClient.post(`/correspondences/${uuid}/submit`, data);
     return response.data;
   },
 
   /**
    * ดำเนินการ Workflow (เช่น Approve, Reject) ในขั้นตอนปัจจุบัน
    */
-  processWorkflow: async (id: string | number, data: WorkflowActionDto) => {
-    const response = await apiClient.post(`/correspondences/${id}/workflow`, data);
+  processWorkflow: async (uuid: string, data: WorkflowActionDto) => {
+    const response = await apiClient.post(`/correspondences/${uuid}/workflow`, data);
     return response.data;
   },
 
   /**
    * เพิ่มเอกสารอ้างอิง
    */
-  addReference: async (id: string | number, data: AddReferenceDto) => {
-    const response = await apiClient.post(`/correspondences/${id}/references`, data);
+  addReference: async (uuid: string, data: AddReferenceDto) => {
+    const response = await apiClient.post(`/correspondences/${uuid}/references`, data);
     return response.data;
   },
 
   /**
    * ลบเอกสารอ้างอิง
    */
-  removeReference: async (id: string | number, data: RemoveReferenceDto) => {
+  removeReference: async (uuid: string, data: RemoveReferenceDto) => {
     // ใช้ DELETE method โดยส่ง body ไปด้วย (axios รองรับผ่าน config.data)
-    const response = await apiClient.delete(`/correspondences/${id}/references`, {
+    const response = await apiClient.delete(`/correspondences/${uuid}/references`, {
       data: data
     });
     return response.data;

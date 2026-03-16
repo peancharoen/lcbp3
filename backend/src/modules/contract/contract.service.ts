@@ -87,15 +87,24 @@ export class ContractService {
     return contract;
   }
 
-  async update(id: number, dto: UpdateContractDto) {
-    const contract = await this.findOne(id);
+  async findOneByUuid(uuid: string) {
+    const contract = await this.contractRepo.findOne({
+      where: { uuid },
+      relations: ['project'],
+    });
+    if (!contract)
+      throw new NotFoundException(`Contract UUID ${uuid} not found`);
+    return contract;
+  }
+
+  async update(uuid: string, dto: UpdateContractDto) {
+    const contract = await this.findOneByUuid(uuid);
     Object.assign(contract, dto);
     return this.contractRepo.save(contract);
   }
 
-  async remove(id: number) {
-    const contract = await this.findOne(id);
-    // Schema doesn't have deleted_at for Contract either.
+  async remove(uuid: string) {
+    const contract = await this.findOneByUuid(uuid);
     return this.contractRepo.remove(contract);
   }
 }

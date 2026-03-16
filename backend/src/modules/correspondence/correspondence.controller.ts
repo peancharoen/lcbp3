@@ -30,6 +30,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 
 @ApiTags('Correspondences')
 @Controller('correspondences')
@@ -119,7 +120,7 @@ export class CorrespondenceController {
     return this.correspondenceService.findAll(searchDto);
   }
 
-  @Post(':id/submit')
+  @Post(':uuid/submit')
   @ApiOperation({ summary: 'Submit correspondence to Unified Workflow Engine' })
   @ApiResponse({
     status: 201,
@@ -127,8 +128,8 @@ export class CorrespondenceController {
   })
   @RequirePermission('correspondence.create')
   @Audit('correspondence.submit', 'correspondence')
-  submit(
-    @Param('id', ParseIntPipe) id: number,
+  async submit(
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() submitDto: SubmitCorrespondenceDto,
     @Request()
     req: Request & {
@@ -138,28 +139,29 @@ export class CorrespondenceController {
       };
     }
   ) {
+    const corr = await this.correspondenceService.findOneByUuid(uuid);
     // Extract roles from user assignments
     const userRoles =
       req.user.assignments?.map((a) => a.role?.roleName).filter(Boolean) || [];
 
     // Use Unified Workflow Engine - pass user roles for DSL requirements check
     return this.workflowService.submitWorkflow(
-      id,
+      corr.id,
       req.user.user_id,
       userRoles,
       submitDto.note
     );
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get correspondence by ID' })
+  @Get(':uuid')
+  @ApiOperation({ summary: 'Get correspondence by UUID' })
   @ApiResponse({ status: 200, description: 'Return correspondence details.' })
   @RequirePermission('document.view')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.correspondenceService.findOne(id);
+  findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.correspondenceService.findOneByUuid(uuid);
   }
 
-  @Put(':id')
+  @Put(':uuid')
   @ApiOperation({ summary: 'Update correspondence (Draft only)' })
   @ApiResponse({
     status: 200,
@@ -167,48 +169,52 @@ export class CorrespondenceController {
   })
   @RequirePermission('correspondence.create') // Assuming create permission is enough for draft update, or add 'correspondence.edit'
   @Audit('correspondence.update', 'correspondence')
-  update(
-    @Param('id', ParseIntPipe) id: number,
+  async update(
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() updateDto: UpdateCorrespondenceDto,
     @Request() req: Request & { user: unknown }
   ) {
+    const corr = await this.correspondenceService.findOneByUuid(uuid);
     return this.correspondenceService.update(
-      id,
+      corr.id,
       updateDto,
       req.user as Parameters<typeof this.correspondenceService.create>[1]
     );
   }
 
-  @Get(':id/references')
+  @Get(':uuid/references')
   @ApiOperation({ summary: 'Get referenced documents' })
   @ApiResponse({
     status: 200,
     description: 'Return list of referenced documents.',
   })
   @RequirePermission('document.view')
-  getReferences(@Param('id', ParseIntPipe) id: number) {
-    return this.correspondenceService.getReferences(id);
+  async getReferences(@Param('uuid', ParseUuidPipe) uuid: string) {
+    const corr = await this.correspondenceService.findOneByUuid(uuid);
+    return this.correspondenceService.getReferences(corr.id);
   }
 
-  @Post(':id/references')
+  @Post(':uuid/references')
   @ApiOperation({ summary: 'Add reference to another document' })
   @ApiResponse({ status: 201, description: 'Reference added successfully.' })
   @RequirePermission('document.edit')
-  addReference(
-    @Param('id', ParseIntPipe) id: number,
+  async addReference(
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() dto: AddReferenceDto
   ) {
-    return this.correspondenceService.addReference(id, dto);
+    const corr = await this.correspondenceService.findOneByUuid(uuid);
+    return this.correspondenceService.addReference(corr.id, dto);
   }
 
-  @Delete(':id/references/:targetId')
+  @Delete(':uuid/references/:targetId')
   @ApiOperation({ summary: 'Remove reference' })
   @ApiResponse({ status: 200, description: 'Reference removed successfully.' })
   @RequirePermission('document.edit')
-  removeReference(
-    @Param('id', ParseIntPipe) id: number,
+  async removeReference(
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Param('targetId', ParseIntPipe) targetId: number
   ) {
-    return this.correspondenceService.removeReference(id, targetId);
+    const corr = await this.correspondenceService.findOneByUuid(uuid);
+    return this.correspondenceService.removeReference(corr.id, targetId);
   }
 }

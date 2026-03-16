@@ -13,10 +13,13 @@ import { Organization } from '../../organization/entities/organization.entity';
 import { User } from '../../user/entities/user.entity';
 import { CirculationStatusCode } from './circulation-status-code.entity';
 import { CirculationRouting } from './circulation-routing.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('circulations')
-export class Circulation {
+export class Circulation extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number;
 
   @Column({ name: 'correspondence_id', nullable: true })

@@ -78,14 +78,14 @@ export const masterDataService = {
   },
 
   /** แก้ไของค์กร */
-  updateOrganization: async (id: number, data: UpdateOrganizationDto) => {
-    const response = await apiClient.put(`/organizations/${id}`, data);
+  updateOrganization: async (uuid: string, data: UpdateOrganizationDto) => {
+    const response = await apiClient.put(`/organizations/${uuid}`, data);
     return response.data;
   },
 
   /** ลบองค์กร */
-  deleteOrganization: async (id: number) => {
-    const response = await apiClient.delete(`/organizations/${id}`);
+  deleteOrganization: async (uuid: string) => {
+    const response = await apiClient.delete(`/organizations/${uuid}`);
     return response.data;
   },
 

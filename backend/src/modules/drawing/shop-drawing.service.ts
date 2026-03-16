@@ -289,6 +289,28 @@ export class ShopDrawingService {
     return shopDrawing;
   }
 
+  async findOneByUuid(uuid: string) {
+    const shopDrawing = await this.shopDrawingRepo.findOne({
+      where: { uuid },
+      relations: [
+        'mainCategory',
+        'subCategory',
+        'revisions',
+        'revisions.attachments',
+        'revisions.contractDrawings',
+      ],
+      order: {
+        revisions: { revisionNumber: 'DESC' },
+      },
+    });
+
+    if (!shopDrawing) {
+      throw new NotFoundException(`Shop Drawing UUID ${uuid} not found`);
+    }
+
+    return shopDrawing;
+  }
+
   /**
    * ลบ Shop Drawing
    */

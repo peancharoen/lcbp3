@@ -10,10 +10,13 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { OrganizationRole } from './organization-role.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('organizations')
-export class Organization {
+export class Organization extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number;
 
   @Column({ name: 'organization_code', length: 20, unique: true })

@@ -86,17 +86,21 @@ export class OrganizationService {
     return org;
   }
 
-  async update(id: number, dto: UpdateOrganizationDto) {
-    const org = await this.findOne(id);
+  async findOneByUuid(uuid: string) {
+    const org = await this.orgRepo.findOne({ where: { uuid } });
+    if (!org)
+      throw new NotFoundException(`Organization UUID ${uuid} not found`);
+    return org;
+  }
+
+  async update(uuid: string, dto: UpdateOrganizationDto) {
+    const org = await this.findOneByUuid(uuid);
     Object.assign(org, dto);
     return this.orgRepo.save(org);
   }
 
-  async remove(id: number) {
-    const org = await this.findOne(id);
-    // Hard delete or Soft delete? Schema doesn't have deleted_at for Organization, but let's check.
-    // Schema says: created_at, updated_at. No deleted_at.
-    // So hard delete.
+  async remove(uuid: string) {
+    const org = await this.findOneByUuid(uuid);
     return this.orgRepo.remove(org);
   }
 

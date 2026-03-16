@@ -1,4 +1,3 @@
-import { drawingApi } from "@/lib/api/drawings";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, FileText, GitCompare } from "lucide-react";
@@ -8,19 +7,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { RevisionHistory } from "@/components/drawings/revision-history";
 import { format } from "date-fns";
+import { drawingApi } from "@/lib/api/drawings";
 
 export default async function DrawingDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ uuid: string }>;
 }) {
-  const { id: rawId } = await params;
-  const id = parseInt(rawId);
-  if (isNaN(id)) {
+  const { uuid } = await params;
+  if (!uuid) {
     notFound();
   }
 
-  const drawing = await drawingApi.getById(id);
+  // TODO: Replace mock drawingApi with real service call using UUID
+  // For now, keep using the mock API with a numeric fallback
+  const drawingId = parseInt(uuid);
+  const drawing = !isNaN(drawingId) ? await drawingApi.getById(drawingId) : undefined;
 
   if (!drawing) {
     notFound();

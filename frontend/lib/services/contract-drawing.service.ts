@@ -17,8 +17,8 @@ export const contractDrawingService = {
   /**
    * ดึงรายละเอียดตาม ID
    */
-  getById: async (id: string | number) => {
-    const response = await apiClient.get(`/drawings/contract/${id}`);
+  getByUuid: async (uuid: string) => {
+    const response = await apiClient.get(`/drawings/contract/${uuid}`);
     return response.data;
   },
 
@@ -33,16 +33,16 @@ export const contractDrawingService = {
   /**
    * แก้ไขข้อมูลแบบสัญญา
    */
-  update: async (id: string | number, data: UpdateContractDrawingDto) => {
-    const response = await apiClient.put(`/drawings/contract/${id}`, data);
+  update: async (uuid: string, data: UpdateContractDrawingDto) => {
+    const response = await apiClient.put(`/drawings/contract/${uuid}`, data);
     return response.data;
   },
 
   /**
    * ลบแบบสัญญา (Soft Delete)
    */
-  delete: async (id: string | number) => {
-    const response = await apiClient.delete(`/drawings/contract/${id}`);
+  delete: async (uuid: string) => {
+    const response = await apiClient.delete(`/drawings/contract/${uuid}`);
     return response.data;
   },
 };

@@ -22,6 +22,7 @@ import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Audit } from '../../common/decorators/audit.decorator'; // Import
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 
 @ApiTags('Circulations')
 @ApiBearerAuth()
@@ -45,11 +46,11 @@ export class CirculationController {
     return this.circulationService.findAll(searchDto, user);
   }
 
-  @Get(':id')
+  @Get(':uuid')
   @ApiOperation({ summary: 'Get circulation details' })
   @RequirePermission('document.view')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.circulationService.findOne(id);
+  findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.circulationService.findOneByUuid(uuid);
   }
 
   @Patch('routings/:id')
@@ -58,7 +59,7 @@ export class CirculationController {
   updateRouting(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateCirculationRoutingDto,
-    @CurrentUser() user: User,
+    @CurrentUser() user: User
   ) {
     return this.circulationService.updateRoutingStatus(id, updateDto, user);
   }

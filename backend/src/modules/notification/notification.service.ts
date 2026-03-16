@@ -39,7 +39,7 @@ export class NotificationService {
     @InjectRepository(User)
     private userRepo: Repository<User>,
     // ไม่ต้อง Inject UserPrefRepo แล้ว เพราะ Processor จะจัดการเอง
-    private notificationGateway: NotificationGateway,
+    private notificationGateway: NotificationGateway
   ) {}
 
   /**
@@ -84,14 +84,14 @@ export class NotificationService {
             delay: 5000,
           },
           removeOnComplete: true,
-        },
+        }
       );
 
       this.logger.debug(`Dispatched notification job for user ${data.userId}`);
     } catch (error) {
       this.logger.error(
         `Failed to process notification for user ${data.userId}`,
-        (error as Error).stack,
+        (error as Error).stack
       );
     }
   }
@@ -154,10 +154,25 @@ export class NotificationService {
     }
   }
 
+  async markAsReadByUuid(uuid: string, userId: number): Promise<void> {
+    const notification = await this.notificationRepo.findOne({
+      where: { uuid, userId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException(`Notification UUID ${uuid} not found`);
+    }
+
+    if (!notification.isRead) {
+      notification.isRead = true;
+      await this.notificationRepo.save(notification);
+    }
+  }
+
   async markAllAsRead(userId: number): Promise<void> {
     await this.notificationRepo.update(
       { userId, isRead: false },
-      { isRead: true },
+      { isRead: true }
     );
   }
 

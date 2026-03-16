@@ -22,7 +22,7 @@
     // EDITOR SETTINGS
     // ========================================
 
-    "editor.fontSize": 18,
+    "editor.fontSize": 20,
     "editor.tabSize": 2,
     "editor.lineHeight": 1.6,
     "editor.rulers": [80, 120],
@@ -636,7 +636,7 @@
     // DEBUGGING
     // ========================================
 
-    "debug.console.fontSize": 14,
+    "debug.console.fontSize": 16,
     "debug.console.fontFamily": "Consolas, 'Courier New', monospace",
     "debug.console.lineHeight": 20,
     "debug.console.wordWrap": false,
@@ -670,6 +670,11 @@
     "vitest.enable": true,
     "yaml.maxItemsComputed": 6000,
     "powershell.cwd": "🎯 Root",
+    "files.autoSave": "onFocusChange",
+    "diffEditor.codeLens": false,
+    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.preferredDarkColorTheme": "Default Dark Modern",
+    "scm.alwaysShowActions": false,
   },
   // ========================================
   // LAUNCH CONFIGURATIONS

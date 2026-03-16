@@ -133,13 +133,31 @@ export class UserService {
     return user;
   }
 
+  async findOneByUuid(uuid: string): Promise<User> {
+    const user = await this.usersRepository.findOne({
+      where: { uuid },
+      relations: [
+        'preference',
+        'assignments',
+        'assignments.role',
+        'assignments.role.permissions',
+      ],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with UUID ${uuid} not found`);
+    }
+
+    return user;
+  }
+
   async findOneByUsername(username: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { username } });
   }
 
   // 4. แก้ไขข้อมูล
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
+  async update(uuid: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.findOneByUuid(uuid);
 
     if (updateUserDto.password) {
       const salt = await bcrypt.genSalt();
@@ -150,20 +168,21 @@ export class UserService {
     const savedUser = await this.usersRepository.save(updatedUser);
 
     // ⚠️ สำคัญ: เมื่อมีการแก้ไขข้อมูล User ต้องเคลียร์ Cache สิทธิ์เสมอ
-    await this.clearUserCache(id);
+    await this.clearUserCache(user.user_id);
 
     return savedUser;
   }
 
   // 5. ลบผู้ใช้ (Soft Delete)
-  async remove(id: number): Promise<void> {
-    const result = await this.usersRepository.softDelete(id);
+  async remove(uuid: string): Promise<void> {
+    const user = await this.findOneByUuid(uuid);
+    const result = await this.usersRepository.softDelete(user.user_id);
 
     if (result.affected === 0) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException(`User with UUID ${uuid} not found`);
     }
     // เคลียร์ Cache เมื่อลบ
-    await this.clearUserCache(id);
+    await this.clearUserCache(user.user_id);
   }
 
   async findDocControlIdByOrg(organizationId: number): Promise<number | null> {

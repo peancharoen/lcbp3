@@ -6,7 +6,6 @@ import {
   Param,
   Query,
   UseGuards,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -18,6 +17,7 @@ import { CreateShopDrawingRevisionDto } from './dto/create-shop-drawing-revision
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../user/entities/user.entity';
 import { Audit } from '../../common/decorators/audit.decorator'; // Import
@@ -44,21 +44,22 @@ export class ShopDrawingController {
     return this.shopDrawingService.findAll(searchDto);
   }
 
-  @Get(':id')
+  @Get(':uuid')
   @ApiOperation({ summary: 'Get Shop Drawing details with revisions' })
   @RequirePermission('drawing.view')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.shopDrawingService.findOne(id);
+  findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.shopDrawingService.findOneByUuid(uuid);
   }
 
-  @Post(':id/revisions')
+  @Post(':uuid/revisions')
   @ApiOperation({ summary: 'Add new revision to existing Shop Drawing' })
   @RequirePermission('drawing.create') // หรือ drawing.edit ตาม Logic องค์กร
   @Audit('drawing.create', 'shop_drawing') // ✅ แปะตรงนี้
-  createRevision(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() createRevisionDto: CreateShopDrawingRevisionDto,
+  async createRevision(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Body() createRevisionDto: CreateShopDrawingRevisionDto
   ) {
-    return this.shopDrawingService.createRevision(id, createRevisionDto);
+    const sd = await this.shopDrawingService.findOneByUuid(uuid);
+    return this.shopDrawingService.createRevision(sd.id, createRevisionDto);
   }
 }

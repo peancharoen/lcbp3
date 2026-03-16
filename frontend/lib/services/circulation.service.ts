@@ -19,9 +19,9 @@ export const circulationService = {
   /**
    * ดึงรายละเอียดใบเวียนตาม ID
    */
-  getById: async (id: string | number) => {
-    // GET /circulations/:id
-    const response = await apiClient.get(`/circulations/${id}`);
+  getByUuid: async (uuid: string) => {
+    // GET /circulations/:uuid
+    const response = await apiClient.get(`/circulations/${uuid}`);
     return response.data;
   },
 
@@ -47,8 +47,8 @@ export const circulationService = {
   /**
    * ลบ/ยกเลิกใบเวียน
    */
-  delete: async (id: string | number) => {
-    const response = await apiClient.delete(`/circulations/${id}`);
+  delete: async (uuid: string) => {
+    const response = await apiClient.delete(`/circulations/${uuid}`);
     return response.data;
   }
 };

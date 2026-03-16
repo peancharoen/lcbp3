@@ -15,10 +15,13 @@ import { User } from '../../user/entities/user.entity';
 import { CorrespondenceRecipient } from './correspondence-recipient.entity';
 import { CorrespondenceRevision } from './correspondence-revision.entity';
 import { Discipline } from '../../master/entities/discipline.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('correspondences')
-export class Correspondence {
+export class Correspondence extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number;
 
   @Column({ name: 'correspondence_number', length: 100 })

@@ -113,7 +113,7 @@ export function CirculationList({ data }: CirculationListProps) {
         const item = row.original;
         return (
           <div className="flex gap-1">
-            <Link href={`/circulation/${item.id}`}>
+            <Link href={`/circulation/${item.uuid}`}>
               <Button variant="ghost" size="icon" title="View Details">
                 <Eye className="h-4 w-4" />
               </Button>

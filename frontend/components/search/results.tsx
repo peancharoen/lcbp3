@@ -44,7 +44,7 @@ export function SearchResults({ results, query, loading }: SearchResultsProps) {
   };
 
   const getLink = (result: SearchResult) => {
-    return `/${result.type}s/${result.id}`; // Assuming routes are plural (correspondences, rfas, drawings)
+    return `/${result.type}s/${result.uuid}`; // ADR-019: Use UUID for public routes
   };
 
   return (
@@ -54,7 +54,7 @@ export function SearchResults({ results, query, loading }: SearchResultsProps) {
 
         return (
           <Card
-            key={`${result.type}-${result.id}-${index}`}
+            key={`${result.type}-${result.uuid}-${index}`}
             className="p-6 hover:shadow-md transition-shadow group"
           >
             <Link href={getLink(result)}>

@@ -18,8 +18,8 @@ export const asBuiltDrawingService = {
   /**
    * Get details by ID
    */
-  getById: async (id: string | number) => {
-    const response = await apiClient.get(`/drawings/asbuilt/${id}`);
+  getByUuid: async (uuid: string) => {
+    const response = await apiClient.get(`/drawings/asbuilt/${uuid}`);
     return response.data;
   },
 
@@ -34,8 +34,8 @@ export const asBuiltDrawingService = {
   /**
    * Create New Revision
    */
-  createRevision: async (id: string | number, data: CreateAsBuiltDrawingRevisionDto) => {
-    const response = await apiClient.post(`/drawings/asbuilt/${id}/revisions`, data);
+  createRevision: async (uuid: string, data: CreateAsBuiltDrawingRevisionDto) => {
+    const response = await apiClient.post(`/drawings/asbuilt/${uuid}/revisions`, data);
     return response.data;
   },
 };

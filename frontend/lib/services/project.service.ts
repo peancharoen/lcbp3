@@ -23,9 +23,9 @@ export const projectService = {
     return response.data;
   },
 
-  /** ดึงรายละเอียดโครงการตาม ID */
-  getById: async (id: string | number) => {
-    const response = await apiClient.get(`/projects/${id}`);
+  /** ดึงรายละเอียดโครงการตาม UUID */
+  getByUuid: async (uuid: string) => {
+    const response = await apiClient.get(`/projects/${uuid}`);
     return response.data;
   },
 
@@ -36,14 +36,14 @@ export const projectService = {
   },
 
   /** แก้ไขโครงการ */
-  update: async (id: string | number, data: UpdateProjectDto) => {
-    const response = await apiClient.put(`/projects/${id}`, data);
+  update: async (uuid: string, data: UpdateProjectDto) => {
+    const response = await apiClient.put(`/projects/${uuid}`, data);
     return response.data;
   },
 
   /** ลบโครงการ (Soft Delete) */
-  delete: async (id: string | number) => {
-    const response = await apiClient.delete(`/projects/${id}`);
+  delete: async (uuid: string) => {
+    const response = await apiClient.delete(`/projects/${uuid}`);
     return response.data;
   },
 

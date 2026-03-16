@@ -180,6 +180,19 @@ export class ContractDrawingService {
     return drawing;
   }
 
+  async findOneByUuid(uuid: string) {
+    const drawing = await this.drawingRepo.findOne({
+      where: { uuid },
+      relations: ['attachments'],
+    });
+
+    if (!drawing) {
+      throw new NotFoundException(`Contract Drawing UUID ${uuid} not found`);
+    }
+
+    return drawing;
+  }
+
   /**
    * แก้ไขข้อมูลแบบ (Update)
    */

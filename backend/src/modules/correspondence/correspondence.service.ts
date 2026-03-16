@@ -333,6 +333,26 @@ export class CorrespondenceService {
     return correspondence;
   }
 
+  async findOneByUuid(uuid: string) {
+    const correspondence = await this.correspondenceRepo.findOne({
+      where: { uuid },
+      relations: [
+        'revisions',
+        'revisions.status',
+        'type',
+        'project',
+        'originator',
+        'recipients',
+        'recipients.recipientOrganization',
+      ],
+    });
+
+    if (!correspondence) {
+      throw new NotFoundException(`Correspondence with UUID ${uuid} not found`);
+    }
+    return correspondence;
+  }
+
   async addReference(id: number, dto: AddReferenceDto) {
     const source = await this.correspondenceRepo.findOne({ where: { id } });
     const target = await this.correspondenceRepo.findOne({

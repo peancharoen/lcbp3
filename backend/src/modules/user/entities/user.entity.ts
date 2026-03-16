@@ -16,10 +16,13 @@ import {
 import { Organization } from '../../organization/entities/organization.entity'; // Adjust path as needed
 import { UserAssignment } from './user-assignment.entity';
 import { UserPreference } from './user-preference.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('users')
-export class User {
+export class User extends UuidBaseEntity {
   @PrimaryGeneratedColumn({ name: 'user_id' })
+  @Exclude()
   user_id!: number;
 
   @Column({ unique: true, length: 50 })

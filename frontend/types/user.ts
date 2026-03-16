@@ -12,7 +12,8 @@ export interface UserOrganization {
 }
 
 export interface User {
-  userId: number;
+  uuid: string;
+  userId?: number; // Excluded from API responses (ADR-019)
   username: string;
   email: string;
   firstName: string;

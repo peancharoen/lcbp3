@@ -104,7 +104,7 @@ UNIQUE | Role name (
 
 * * Purpose **: MASTER TABLE storing ALL organizations involved IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ----------------- | ------------ | ----------------------------------- | ---------------------------------------- |
 | id | INT | PRIMARY KEY,
-AUTO_INCREMENT | UNIQUE identifier FOR organization | | organization_code | VARCHAR(20) | NOT NULL,
+AUTO_INCREMENT | UNIQUE identifier FOR organization | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | organization_code | VARCHAR(20) | NOT NULL,
 UNIQUE | Organization code (e.g., 'กทท.', 'TEAM') | | organization_name | VARCHAR(255) | NOT NULL | FULL organization name | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS (1 = active, 0 = inactive) | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
 UPDATE timestamp |
 | deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (organization_code) - INDEX (is_active) ** Relationships **: - Referenced by: users,
@@ -117,7 +117,7 @@ UPDATE timestamp |
 
   * * Purpose **: MASTER TABLE FOR ALL projects IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ------------ | ------------ | --------------------------- | ----------------------------- |
   | id | INT | PRIMARY KEY,
-  AUTO_INCREMENT | UNIQUE identifier FOR project | | project_code | VARCHAR(50) | NOT NULL,
+  AUTO_INCREMENT | UNIQUE identifier FOR project | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | project_code | VARCHAR(50) | NOT NULL,
   UNIQUE | Project code (e.g., 'LCBP3') | | project_name | VARCHAR(255) | NOT NULL | FULL project name | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
 | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
@@ -131,7 +131,7 @@ UPDATE timestamp |
 
   * * Purpose **: MASTER TABLE FOR contracts within projects | COLUMN Name | Data TYPE | Constraints | Description | | ------------- | ------------ | ----------------------------------- | ------------------------------ |
   | id | INT | PRIMARY KEY,
-  AUTO_INCREMENT | UNIQUE identifier FOR contract | | project_id | INT | NOT NULL,
+  AUTO_INCREMENT | UNIQUE identifier FOR contract | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | project_id | INT | NOT NULL,
   FK | Reference TO projects TABLE | | contract_code | VARCHAR(50) | NOT NULL,
   UNIQUE | Contract code | | contract_name | VARCHAR(255) | NOT NULL | FULL contract name | | description | TEXT | NULL | Contract description | | start_date | DATE | NULL | Contract START date | | end_date | DATE | NULL | Contract
 END date | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
@@ -152,7 +152,7 @@ UPDATE timestamp |
 
   * * Purpose **: MASTER TABLE storing ALL system users | COLUMN Name | Data TYPE | Constraints | Description | | ----------------------- | ------------ | ----------------------------------- | -------------------------------- |
   | user_id | INT | PRIMARY KEY,
-  AUTO_INCREMENT | UNIQUE identifier FOR user | | username | VARCHAR(50) | NOT NULL,
+  AUTO_INCREMENT | UNIQUE identifier FOR user | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | username | VARCHAR(50) | NOT NULL,
   UNIQUE | Login username | | password_hash | VARCHAR(255) | NOT NULL | Hashed PASSWORD (bcrypt) | | first_name | VARCHAR(50) | NULL | User 's first name                |
 | last_name               | VARCHAR(50)  | NULL                                | User' s last name | | email | VARCHAR(100) | NOT NULL,
   UNIQUE | Email address | | line_id | VARCHAR(100) | NULL | LINE messenger ID | | primary_organization_id | INT | NULL,
@@ -335,6 +335,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name               | Data Type    | Constraints                 | Description                                |
 | ------------------------- | ------------ | --------------------------- | ------------------------------------------ |
 | id                        | INT          | PRIMARY KEY, AUTO_INCREMENT | Master correspondence ID                   |
+| uuid                      | UUID   | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)         |
 | correspondence_number     | VARCHAR(100) | NOT NULL                    | Document number (from numbering system)    |
 | correspondence_type_id    | INT          | NOT NULL, FK                | Reference to correspondence_types          |
 | **discipline_id**         | **INT**      | **NULL, FK**                | **[NEW] สาขางาน (ถ้ามี)**                    |
@@ -354,6 +355,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * FOREIGN KEY (originator_id) REFERENCES organizations(id) ON DELETE SET NULL
 * FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
 * UNIQUE KEY (project_id, correspondence_number)
+* UNIQUE INDEX idx_correspondences_uuid (uuid)
 * INDEX (correspondence_type_id)
 * INDEX (originator_id)
 * INDEX (deleted_at)
@@ -372,6 +374,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name              | Data Type    | Constraints                       | Description                                              |
 | ------------------------ | ------------ | --------------------------------- | -------------------------------------------------------- |
 | id                       | INT          | PRIMARY KEY, AUTO_INCREMENT       | Unique revision ID                                       |
+| uuid                     | UUID   | NOT NULL, UNIQUE, DEFAULT         | UUID Public Identifier (ADR-019)                       |
 | correspondence_id        | INT          | NOT NULL, FK                      | Master correspondence ID                                 |
 | revision_number          | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                           |
 | revision_label           | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                          |
@@ -824,6 +827,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name     | Data Type    | Constraints                         | Description                              |
 | --------------- | ------------ | ----------------------------------- | ---------------------------------------- |
 | id              | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                        |
+| uuid            | UUID   | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019)       |
 | project_id      | INT          | NOT NULL, FK                        | Reference to projects                    |
 | condwg_no       | VARCHAR(255) | NOT NULL                            | Contract drawing number                  |
 | title           | VARCHAR(255) | NOT NULL                            | Drawing title                            |
@@ -843,6 +847,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * FOREIGN KEY (volume_id) REFERENCES contract_drawing_volumes(id) ON DELETE RESTRICT
 * FOREIGN KEY (updated_by) REFERENCES users(user_id)
 * UNIQUE KEY (project_id, condwg_no)
+* UNIQUE INDEX idx_contract_drawings_uuid (uuid)
 * INDEX (map_cat_id)
 * INDEX (volume_id)
 * INDEX (deleted_at)
@@ -942,6 +947,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name      | Data Type    | Constraints                         | Description                |
 | ---------------- | ------------ | ----------------------------------- | -------------------------- |
 | id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID          |
+| uuid             | UUID   | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019) |
 | project_id       | INT          | NOT NULL, FK                        | Reference to projects      |
 | drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | Shop drawing number        |
 | main_category_id | INT          | NOT NULL, FK                        | Reference to main category |
@@ -955,6 +961,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 * PRIMARY KEY (id)
 * UNIQUE (drawing_number)
+* UNIQUE INDEX idx_shop_drawings_uuid (uuid)
 * FOREIGN KEY (project_id) REFERENCES projects(id)
 * FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories(id)
 * FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories(id)
@@ -986,6 +993,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name               | Data Type        | Constraints                 | Description                              |
 | ------------------------- | ---------------- | --------------------------- | ---------------------------------------- |
 | id                        | INT              | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID                       |
+| uuid                      | UUID       | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)       |
 | shop_drawing_id           | INT              | NOT NULL, FK                | Master shop drawing ID                   |
 | revision_number           | INT              | NOT NULL                    | Revision sequence (0, 1, 2...)           |
 | revision_label            | VARCHAR(10)      | NULL                        | Display revision (A, B, C...)            |
@@ -1000,6 +1008,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * PRIMARY KEY (id)
 * FOREIGN KEY (shop_drawing_id) REFERENCES shop_drawings(id) ON DELETE CASCADE
 * UNIQUE KEY (shop_drawing_id, revision_number)
+* UNIQUE INDEX idx_shop_drawing_revisions_uuid (uuid)
 * INDEX (revision_date)
 
 **Relationships**:
@@ -1053,6 +1062,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name      | Data Type    | Constraints                         | Description                |
 | ---------------- | ------------ | ----------------------------------- | -------------------------- |
 | id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID          |
+| uuid             | UUID   | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019) |
 | project_id       | INT          | NOT NULL, FK                        | Reference to projects      |
 | drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | AS Built drawing number    |
 | main_category_id | INT          | NOT NULL, FK                        | Reference to main category |
@@ -1066,6 +1076,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 * PRIMARY KEY (id)
 * UNIQUE (drawing_number)
+* UNIQUE INDEX idx_asbuilt_drawings_uuid (uuid)
 * FOREIGN KEY (project_id) REFERENCES projects(id)
 * FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories(id)
 * FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories(id)
@@ -1097,6 +1108,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name           | Data Type    | Constraints                 | Description                    |
 | --------------------- | ------------ | --------------------------- | ------------------------------ |
 | id                    | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID             |
+| uuid                  | UUID   | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019) |
 | asbuilt_drawing_id    | INT          | NOT NULL, FK                | Master AS Built drawing ID     |
 | revision_number       | INT          | NOT NULL                    | Revision sequence (0, 1, 2...) |
 | revision_label        | VARCHAR(10)  | NULL                        | Display revision (A, B, C...)  |
@@ -1111,6 +1123,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * PRIMARY KEY (id)
 * FOREIGN KEY (asbuilt_drawing_id) REFERENCES asbuilt_drawings(id) ON DELETE CASCADE
 * UNIQUE KEY (asbuilt_drawing_id, revision_number)
+* UNIQUE INDEX idx_asbuilt_drawing_revisions_uuid (uuid)
 * INDEX (revision_date)
 
 **Relationships**:
@@ -1229,6 +1242,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name             | Data Type    | Constraints                         | Description                               |
 | ----------------------- | ------------ | ----------------------------------- | ----------------------------------------- |
 | id                      | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique circulation ID                     |
+| uuid                    | UUID   | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019)        |
 | correspondence_id       | INT          | UNIQUE, FK                          | Link to correspondence (1:1 relationship) |
 | organization_id         | INT          | NOT NULL, FK                        | Organization that owns this circulation   |
 | circulation_no          | VARCHAR(100) | NOT NULL                            | Circulation sheet number                  |
@@ -1249,6 +1263,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * FOREIGN KEY (circulation_status_code) REFERENCES circulation_status_codes(code)
 * FOREIGN KEY (created_by_user_id) REFERENCES users(user_id)
 * INDEX (organization_id)
+* UNIQUE INDEX idx_circulations_uuid (uuid)
 * INDEX (circulation_status_code)
 * INDEX (created_by_user_id)
 
@@ -1338,6 +1353,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name         | Data Type    | Constraints                 | Description                                                              |
 | ------------------- | ------------ | --------------------------- | ------------------------------------------------------------------------ |
 | id                  | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique attachment ID                                                     |
+| uuid                | UUID   | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)                                       |
 | original_filename   | VARCHAR(255) | NOT NULL                    | Original filename from upload                                            |
 | stored_filename     | VARCHAR(255) | NOT NULL                    | System-generated unique filename                                         |
 | file_path           | VARCHAR(500) | NOT NULL                    | Full file path on server (/share/dms-data/)                              |
@@ -1358,6 +1374,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * INDEX (stored_filename)
 * INDEX (mime_type)
 * INDEX (uploaded_by_user_id)
+* UNIQUE INDEX idx_attachments_uuid (uuid)
 * INDEX (created_at)
 * INDEX (reference_date)
 
@@ -1820,6 +1837,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name       | Data Type    | Constraints                 | Description               |
 | :---------------- | :----------- | :-------------------------- | :------------------------ |
 | id                | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique notification ID    |
+| uuid              | UUID   | NOT NULL, DEFAULT           | UUID Public Identifier (ADR-019) |
 | user_id           | INT          | NOT NULL, FK                | Recipient user ID         |
 | title             | VARCHAR(255) | NOT NULL                    | Notification title        |
 | message           | TEXT         | NOT NULL                    | Notification body         |
@@ -1836,6 +1854,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * INDEX idx_notif_type (notification_type)
 * INDEX idx_notif_read (is_read)
 * INDEX idx_notif_created (created_at)
+* INDEX idx_notifications_uuid (uuid)
 
 **Partitioning**:
 * **PARTITION BY RANGE (YEAR(created_at))**: แบ่ง Partition รายปี

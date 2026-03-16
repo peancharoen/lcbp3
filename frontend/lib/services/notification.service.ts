@@ -9,8 +9,8 @@ export const notificationService = {
     return response.data;
   },
 
-  markAsRead: async (id: number) => {
-    const response = await apiClient.patch(`/notifications/${id}/read`);
+  markAsRead: async (uuid: string) => {
+    const response = await apiClient.put(`/notifications/${uuid}/read`);
     return response.data;
   },
 

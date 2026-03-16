@@ -1,11 +1,13 @@
 export interface Organization {
-  id: number;
+  uuid: string;
+  id?: number; // Excluded from API responses (ADR-019)
   organizationName: string;
   organizationCode: string;
 }
 
 export interface Attachment {
-  id: number;
+  uuid: string;
+  id?: number; // Excluded from API responses (ADR-019)
   name: string;
   url: string;
   size?: number;
@@ -15,7 +17,8 @@ export interface Attachment {
 
 // Used in List View mainly
 export interface CorrespondenceRevision {
-  id: number;
+  uuid: string;
+  id?: number; // Excluded from API responses (ADR-019)
   revisionNumber: number;
   revisionLabel?: string; // e.g. "A", "00"
   subject: string;
@@ -36,20 +39,22 @@ export interface CorrespondenceRevision {
 
   // Nested Relation from Backend Refactor
   correspondence: {
-    id: number;
+    uuid: string;
+    id?: number; // Excluded from API responses (ADR-019)
     correspondenceNumber: string;
     projectId: number;
     originatorId?: number;
     isInternal: boolean;
     originator?: Organization;
-    project?: { id: number; projectName: string; projectCode: string };
+    project?: { uuid: string; id?: number; projectName: string; projectCode: string };
     type?: { id: number; typeName: string; typeCode: string };
   };
 }
 
 // Keep explicit Correspondence for Detail View if needed, or merge concepts
 export interface Correspondence {
-  id: number;
+  uuid: string;
+  id?: number; // Excluded from API responses (ADR-019)
   correspondenceNumber: string;
   projectId: number;
   originatorId?: number;
@@ -59,7 +64,7 @@ export interface Correspondence {
 
   // Relations
   originator?: Organization;
-  project?: { id: number; projectName: string; projectCode: string };
+  project?: { uuid: string; id?: number; projectName: string; projectCode: string };
   type?: { id: number; typeName: string; typeCode: string };
   revisions?: CorrespondenceRevision[]; // Nested revisions
   recipients?: {

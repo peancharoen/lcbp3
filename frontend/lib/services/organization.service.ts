@@ -20,11 +20,11 @@ export const organizationService = {
   },
 
   /**
-   * Get organization by ID
-   * GET /organizations/:id
+   * Get organization by UUID
+   * GET /organizations/:uuid
    */
-  getById: async (id: number) => {
-    const response = await apiClient.get(`/organizations/${id}`);
+  getByUuid: async (uuid: string) => {
+    const response = await apiClient.get(`/organizations/${uuid}`);
     return response.data;
   },
 
@@ -39,19 +39,19 @@ export const organizationService = {
 
   /**
    * Update organization
-   * PATCH /organizations/:id
+   * PATCH /organizations/:uuid
    */
-  update: async (id: number, data: UpdateOrganizationDto) => {
-    const response = await apiClient.patch(`/organizations/${id}`, data);
+  update: async (uuid: string, data: UpdateOrganizationDto) => {
+    const response = await apiClient.patch(`/organizations/${uuid}`, data);
     return response.data;
   },
 
   /**
    * Delete organization
-   * DELETE /organizations/:id
+   * DELETE /organizations/:uuid
    */
-  delete: async (id: number) => {
-    const response = await apiClient.delete(`/organizations/${id}`);
+  delete: async (uuid: string) => {
+    const response = await apiClient.delete(`/organizations/${uuid}`);
     return response.data;
   },
 };

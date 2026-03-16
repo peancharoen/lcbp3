@@ -151,7 +151,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
 
     if (user) {
       updateUser.mutate(
-        { id: user.userId, data: payload },
+        { uuid: user.uuid, data: payload },
         { onSuccess: () => onOpenChange(false) }
       );
     } else {
@@ -230,10 +230,13 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                   <SelectValue placeholder="Select Organization" />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* TODO: ADR-019 — Backend DTO needs to accept UUID for primaryOrganization.
+                     Currently using org.id which is excluded from API responses.
+                     Temporary: org.id may still exist in some query responses. */}
                   {organizations?.map((org: any) => (
                     <SelectItem
-                      key={org.id}
-                      value={org.id.toString()}
+                      key={org.uuid ?? org.id}
+                      value={(org.id ?? 0).toString()}
                     >
                       {org.organizationCode} - {org.organizationName}
                     </SelectItem>

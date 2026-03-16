@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { instanceToPlain } from 'class-transformer';
 
 /** Metadata สำหรับ Paginated Response */
 export interface ResponseMeta {
@@ -53,24 +54,31 @@ export class TransformInterceptor<T>
   ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
       map((data: T) => {
-        const response = context.switchToHttp().getResponse<{ statusCode: number }>();
+        const response = context
+          .switchToHttp()
+          .getResponse<{ statusCode: number }>();
+
+        // ADR-019: Serialize entities via class-transformer
+        // This applies @Exclude() decorators to strip internal INT ids from responses
+        const serialized = instanceToPlain(data) as T;
 
         // Handle Pagination Response (Standardize)
         // ถ้า data มี structure { data: [], meta: {} } ให้ unzip ออกมา
-        if (isPaginatedPayload(data)) {
+        if (isPaginatedPayload(serialized)) {
           return {
             statusCode: response.statusCode,
-            message: data.message ?? 'Success',
-            data: data.data as unknown as T,
-            meta: data.meta,
+            message: serialized.message ?? 'Success',
+            data: serialized.data as unknown as T,
+            meta: serialized.meta,
           };
         }
 
-        const dataAsRecord = data as Record<string, unknown>;
+        const dataAsRecord = serialized as Record<string, unknown>;
         return {
           statusCode: response.statusCode,
-          message: (dataAsRecord?.['message'] as string | undefined) ?? 'Success',
-          data: (dataAsRecord?.['result'] as T | undefined) ?? data,
+          message:
+            (dataAsRecord?.['message'] as string | undefined) ?? 'Success',
+          data: (dataAsRecord?.['result'] as T | undefined) ?? serialized,
         };
       })
     );

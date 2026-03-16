@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Param,
-  UseGuards,
-  ParseIntPipe,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Put, Param, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -17,6 +9,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../user/entities/user.entity';
 import { SearchNotificationDto } from './dto/search-notification.dto'; // ✅ Import
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
@@ -26,14 +19,14 @@ export class NotificationController {
   constructor(
     private readonly notificationService: NotificationService,
     @InjectRepository(Notification)
-    private notificationRepo: Repository<Notification>,
+    private notificationRepo: Repository<Notification>
   ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get my notifications' })
   async getMyNotifications(
     @CurrentUser() user: User,
-    @Query() searchDto: SearchNotificationDto, // ✅ ใช้ DTO แทน
+    @Query() searchDto: SearchNotificationDto // ✅ ใช้ DTO แทน
   ) {
     const { page = 1, limit = 20, isRead } = searchDto;
 
@@ -65,13 +58,13 @@ export class NotificationController {
     return { unreadCount: count };
   }
 
-  @Put(':id/read')
+  @Put(':uuid/read')
   @ApiOperation({ summary: 'Mark notification as read' })
   async markAsRead(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: User,
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @CurrentUser() user: User
   ) {
-    return this.notificationService.markAsRead(id, user.user_id);
+    return this.notificationService.markAsReadByUuid(uuid, user.user_id);
   }
 
   @Put('read-all')

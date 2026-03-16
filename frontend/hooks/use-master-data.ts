@@ -44,8 +44,8 @@ export function useCreateOrganization() {
 export function useUpdateOrganization() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateOrganizationDto }) =>
-      masterDataService.updateOrganization(id, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: UpdateOrganizationDto }) =>
+      masterDataService.updateOrganization(uuid, data),
     onSuccess: () => {
       toast.success('Organization updated successfully');
       queryClient.invalidateQueries({ queryKey: masterDataKeys.organizations() });
@@ -61,7 +61,7 @@ export function useUpdateOrganization() {
 export function useDeleteOrganization() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => masterDataService.deleteOrganization(id),
+    mutationFn: (uuid: string) => masterDataService.deleteOrganization(uuid),
     onSuccess: () => {
       toast.success('Organization deleted successfully');
       queryClient.invalidateQueries({ queryKey: masterDataKeys.organizations() });

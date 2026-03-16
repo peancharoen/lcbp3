@@ -91,8 +91,21 @@ export class ProjectService {
     return project;
   }
 
-  async update(id: number, updateDto: UpdateProjectDto) {
-    const project = await this.findOne(id);
+  async findOneByUuid(uuid: string) {
+    const project = await this.projectRepository.findOne({
+      where: { uuid },
+      relations: ['contracts'],
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project UUID ${uuid} not found`);
+    }
+
+    return project;
+  }
+
+  async update(uuid: string, updateDto: UpdateProjectDto) {
+    const project = await this.findOneByUuid(uuid);
 
     // Merge ข้อมูลใหม่ใส่ข้อมูลเดิม
     this.projectRepository.merge(project, updateDto);
@@ -100,22 +113,14 @@ export class ProjectService {
     return this.projectRepository.save(project);
   }
 
-  async remove(id: number) {
-    const project = await this.findOne(id);
+  async remove(uuid: string) {
+    const project = await this.findOneByUuid(uuid);
     // ใช้ Soft Delete
     return this.projectRepository.softRemove(project);
   }
 
-  async findContracts(projectId: number) {
-    const project = await this.projectRepository.findOne({
-      where: { id: projectId },
-      relations: ['contracts'],
-    });
-
-    if (!project) {
-      throw new NotFoundException(`Project ID ${projectId} not found`);
-    }
-
+  async findContracts(uuid: string) {
+    const project = await this.findOneByUuid(uuid);
     return project.contracts;
   }
 

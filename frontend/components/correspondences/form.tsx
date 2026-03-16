@@ -42,7 +42,7 @@ const correspondenceSchema = z.object({
 
 type FormData = z.infer<typeof correspondenceSchema>;
 
-export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?: number }) {
+export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, uuid?: string }) {
   const router = useRouter();
   const createMutation = useCreateCorrespondence();
   const updateMutation = useUpdateCorrespondence();
@@ -107,10 +107,10 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
       },
     };
 
-    if (id && initialData) {
+    if (uuid && initialData) {
        // UPDATE Mode
-       updateMutation.mutate({ id, data: payload }, {
-         onSuccess: () => router.push(`/correspondences/${id}`)
+       updateMutation.mutate({ uuid, data: payload }, {
+         onSuccess: () => router.push(`/correspondences/${uuid}`)
        });
     } else {
        // CREATE Mode
@@ -420,7 +420,7 @@ export function CorrespondenceForm({ initialData, id }: { initialData?: any, id?
         </Button>
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {id ? "Update Correspondence" : "Create Correspondence"}
+          {uuid ? "Update Correspondence" : "Create Correspondence"}
         </Button>
       </div>
     </form>

@@ -44,7 +44,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Project {
-  id: number;
+  uuid: string;
+  id?: number; // Excluded from API responses (ADR-019)
   projectCode: string;
   projectName: string;
   isActive: boolean;
@@ -69,7 +70,7 @@ export default function ProjectsPage() {
   const deleteProject = useDeleteProject();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingUuid, setEditingUuid] = useState<string | null>(null);
 
   // Stats for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -82,7 +83,7 @@ export default function ProjectsPage() {
 
   const confirmDelete = () => {
     if (projectToDelete) {
-      deleteProject.mutate(projectToDelete.id, {
+      deleteProject.mutate(projectToDelete.uuid, {
         onSuccess: () => {
           setDeleteDialogOpen(false);
           setProjectToDelete(null);
@@ -156,7 +157,7 @@ export default function ProjectsPage() {
   ];
 
   const handleEdit = (project: Project) => {
-    setEditingId(project.id);
+    setEditingUuid(project.uuid);
     reset({
       projectCode: project.projectCode,
       projectName: project.projectName,
@@ -166,7 +167,7 @@ export default function ProjectsPage() {
   };
 
   const handleCreate = () => {
-    setEditingId(null);
+    setEditingUuid(null);
     reset({
       projectCode: "",
       projectName: "",
@@ -176,9 +177,9 @@ export default function ProjectsPage() {
   };
 
   const onSubmit = (data: ProjectFormData) => {
-    if (editingId) {
+    if (editingUuid) {
       updateProject.mutate(
-        { id: editingId, data },
+        { uuid: editingUuid, data },
         {
           onSuccess: () => setDialogOpen(false),
         }
@@ -232,7 +233,7 @@ export default function ProjectsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingId ? "Edit Project" : "New Project"}
+              {editingUuid ? "Edit Project" : "New Project"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -241,7 +242,7 @@ export default function ProjectsPage() {
               <Input
                 placeholder="e.g. LCBP3"
                 {...register("projectCode")}
-                disabled={!!editingId} // Code is immutable after creation usually
+                disabled={!!editingUuid} // Code is immutable after creation usually
               />
               {errors.projectCode && (
                   <p className="text-sm text-red-500">{errors.projectCode.message}</p>
@@ -280,7 +281,7 @@ export default function ProjectsPage() {
                 type="submit"
                 disabled={createProject.isPending || updateProject.isPending}
               >
-                {editingId ? "Save Changes" : "Create Project"}
+                {editingUuid ? "Save Changes" : "Create Project"}
               </Button>
             </DialogFooter>
           </form>

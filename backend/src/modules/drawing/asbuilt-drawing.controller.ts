@@ -6,7 +6,6 @@ import {
   Body,
   Param,
   Query,
-  ParseIntPipe,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -34,6 +33,7 @@ import { SearchAsBuiltDrawingDto } from './dto/search-asbuilt-drawing.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { User } from '../user/entities/user.entity';
 
 @ApiTags('Drawings - AS Built')
@@ -56,16 +56,17 @@ export class AsBuiltDrawingController {
     return this.asBuiltDrawingService.create(createDto, user);
   }
 
-  @Post(':id/revisions')
+  @Post(':uuid/revisions')
   @ApiOperation({ summary: 'Create new revision for AS Built Drawing' })
   @ApiResponse({ status: 201, description: 'Revision created' })
   @ApiResponse({ status: 404, description: 'AS Built Drawing not found' })
   @ApiResponse({ status: 409, description: 'Revision label already exists' })
   async createRevision(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() createDto: CreateAsBuiltDrawingRevisionDto
   ) {
-    return this.asBuiltDrawingService.createRevision(id, createDto);
+    const drawing = await this.asBuiltDrawingService.findOneByUuid(uuid);
+    return this.asBuiltDrawingService.createRevision(drawing.id, createDto);
   }
 
   @Get()
@@ -76,16 +77,16 @@ export class AsBuiltDrawingController {
     return this.asBuiltDrawingService.findAll(searchDto);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get AS Built Drawing by ID' })
+  @Get(':uuid')
+  @ApiOperation({ summary: 'Get AS Built Drawing by UUID' })
   @ApiResponse({ status: 200, description: 'AS Built Drawing details' })
   @ApiResponse({ status: 404, description: 'AS Built Drawing not found' })
   @RequirePermission('drawing.view')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.asBuiltDrawingService.findOne(id);
+  async findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.asBuiltDrawingService.findOneByUuid(uuid);
   }
 
-  @Delete(':id')
+  @Delete(':uuid')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete AS Built Drawing' })
   @ApiResponse({ status: 204, description: 'AS Built Drawing deleted' })
@@ -93,9 +94,10 @@ export class AsBuiltDrawingController {
   @RequirePermission('drawing.delete')
   @Audit('drawing.delete', 'asbuilt_drawing')
   async remove(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @CurrentUser() user: User
   ) {
-    return this.asBuiltDrawingService.remove(id, user);
+    const drawing = await this.asBuiltDrawingService.findOneByUuid(uuid);
+    return this.asBuiltDrawingService.remove(drawing.id, user);
   }
 }

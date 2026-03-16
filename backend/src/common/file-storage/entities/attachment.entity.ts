@@ -7,10 +7,13 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../../modules/user/entities/user.entity';
+import { UuidBaseEntity } from '../../entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('attachments')
-export class Attachment {
+export class Attachment extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number;
 
   @Column({ name: 'original_filename', length: 255 })

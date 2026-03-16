@@ -3,26 +3,21 @@
 import { CorrespondenceDetail } from "@/components/correspondences/detail";
 import { useCorrespondence } from "@/hooks/use-correspondence";
 import { Loader2 } from "lucide-react";
-import { notFound, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 
 export default function CorrespondenceDetailPage() {
   const params = useParams();
-  const id = Number(params?.id); // useParams returns string | string[]
+  const uuid = (params?.uuid as string) ?? '';
 
-  if (isNaN(id)) {
-    // We can't use notFound() directly in client component render without breaking sometimes,
-    // but typically it works. Better to handle gracefully or redirect.
-    // For now, let's keep it or return 404 UI.
-    // Actually notFound() is for server components mostly.
-    // Let's just return our error UI if ID is invalid.
+  const { data: correspondence, isLoading, isError } = useCorrespondence(uuid);
+
+  if (!uuid) {
     return (
        <div className="flex flex-col items-center justify-center min-h-screen">
-          <h1 className="text-xl font-bold text-red-500">Invalid Correspondence ID</h1>
+          <h1 className="text-xl font-bold text-red-500">Invalid Correspondence UUID</h1>
        </div>
     );
   }
-
-  const { data: correspondence, isLoading, isError } = useCorrespondence(id);
 
   if (isLoading) {
     return (
@@ -33,11 +28,10 @@ export default function CorrespondenceDetailPage() {
   }
 
   if (isError || !correspondence) {
-    // Optionally handle 404 vs other errors differently, but for now simple handling
     return (
        <div className="flex flex-col items-center justify-center min-h-screen">
           <h1 className="text-xl font-bold text-red-500">Failed to load correspondence</h1>
-          <p>Please try again later or verify the ID.</p>
+          <p>Please try again later or verify the UUID.</p>
        </div>
     );
   }

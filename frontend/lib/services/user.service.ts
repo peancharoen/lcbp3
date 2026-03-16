@@ -12,7 +12,8 @@ interface RawUser {
 const transformUser = (user: RawUser): User => {
   return {
     ...(user as unknown as User),
-    userId: (user.user_id ?? user.userId) as number,
+    uuid: (user.uuid as string) ?? '',
+    userId: (user.user_id ?? user.userId) as number | undefined,
     roles: (user.assignments?.map((a) => a.role) ?? []) as User['roles'],
   };
 };
@@ -45,8 +46,8 @@ export const userService = {
     return response.data;
   },
 
-  getById: async (id: number) => {
-    const response = await apiClient.get<RawUser>(`/users/${id}`);
+  getByUuid: async (uuid: string) => {
+    const response = await apiClient.get<RawUser>(`/users/${uuid}`);
     return transformUser(response.data);
   },
 
@@ -55,13 +56,13 @@ export const userService = {
     return transformUser(response.data);
   },
 
-  update: async (id: number, data: UpdateUserDto) => {
-    const response = await apiClient.put<RawUser>(`/users/${id}`, data);
+  update: async (uuid: string, data: UpdateUserDto) => {
+    const response = await apiClient.put<RawUser>(`/users/${uuid}`, data);
     return transformUser(response.data);
   },
 
-  delete: async (id: number) => {
-    const response = await apiClient.delete(`/users/${id}`);
+  delete: async (uuid: string) => {
+    const response = await apiClient.delete(`/users/${uuid}`);
     return response.data;
   },
 

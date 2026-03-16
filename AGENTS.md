@@ -14,15 +14,15 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 
 ### 📊 Project Status: UAT Ready (2026-03-11)
 
-| Area | Status | Notes |
-|------|--------|-------|
-| Backend | ✅ Production Ready | 18 Modules, ADR-018 AI Isolation |
-| Frontend | ✅ 100% Complete | App Router, TanStack Query, Zustand |
-| Database | ✅ Schema v1.8.0 Stable | MariaDB 11.8, No-migration (ADR-009) |
-| Documentation | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy |
-| AI Migration | 🔄 Pre-migration Setup | n8n + Ollama (ADR-017/018) |
-| Testing | 🔄 UAT In Progress | Per `01-05-acceptance-criteria.md` |
-| Deployment | 📋 Pending Go-Live | Blue-Green, QNAP Container Station |
+| Area          | Status                   | Notes                                |
+| ------------- | ------------------------ | ------------------------------------ |
+| Backend       | ✅ Production Ready      | 18 Modules, ADR-018 AI Isolation     |
+| Frontend      | ✅ 100% Complete         | App Router, TanStack Query, Zustand  |
+| Database      | ✅ Schema v1.8.0 Stable  | MariaDB 11.8, No-migration (ADR-009) |
+| Documentation | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy      |
+| AI Migration  | 🔄 Pre-migration Setup   | n8n + Ollama (ADR-017/018)           |
+| Testing       | 🔄 UAT In Progress       | Per `01-05-acceptance-criteria.md`   |
+| Deployment    | 📋 Pending Go-Live       | Blue-Green, QNAP Container Station   |
 
 - **Goal:** Manage construction documents (Correspondence, RFA, Contract Drawings, Shop Drawings)
   with complex multi-level approval workflows.
@@ -60,37 +60,39 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 
 ### 📁 Key Spec Documents (Quick Reference)
 
-| เอกสาร | Path | ใช้เมื่อ |
-|--------|------|--------|
-| **Schema Tables** | `03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` | ก่อนเขียน Query ทุกครั้ง |
-| **Data Dictionary** | `03-Data-and-Storage/03-01-data-dictionary.md` | ตรวจ Field Meaning + Business Rules |
-| **Seed Permissions** | `03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` | ตรวจ CASL Permission Matrix |
-| **Edge Cases** | `01-Requirements/01-06-edge-cases-and-rules.md` | 37 Rules ป้องกัน Bug |
-| **Migration Scope** | `03-Data-and-Storage/03-06-migration-business-scope.md` | งาน Migration Bot |
-| **Release Policy** | `04-Infrastructure-OPS/04-08-release-management-policy.md` | ก่อน Deploy / Hotfix |
-| **UAT Criteria** | `01-Requirements/01-05-acceptance-criteria.md` | ตรวจความสมบูรณ์ Feature |
-| **ADR-009** | `06-Decision-Records/ADR-009-db-strategy.md` | Schema Change Process |
-| **ADR-018** | `06-Decision-Records/ADR-018-ai-boundary.md` | AI/Ollama Integration Rules |
+| เอกสาร               | Path                                                        | ใช้เมื่อ                            |
+| -------------------- | ----------------------------------------------------------- | ----------------------------------- |
+| **Schema Tables**    | `03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`     | ก่อนเขียน Query ทุกครั้ง            |
+| **Data Dictionary**  | `03-Data-and-Storage/03-01-data-dictionary.md`              | ตรวจ Field Meaning + Business Rules |
+| **Seed Permissions** | `03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql`     | ตรวจ CASL Permission Matrix         |
+| **Edge Cases**       | `01-Requirements/01-06-edge-cases-and-rules.md`             | 37 Rules ป้องกัน Bug                |
+| **Migration Scope**  | `03-Data-and-Storage/03-06-migration-business-scope.md`     | งาน Migration Bot                   |
+| **Release Policy**   | `04-Infrastructure-OPS/04-08-release-management-policy.md`  | ก่อน Deploy / Hotfix                |
+| **UAT Criteria**     | `01-Requirements/01-05-acceptance-criteria.md`              | ตรวจความสมบูรณ์ Feature             |
+| **ADR-009**          | `06-Decision-Records/ADR-009-db-strategy.md`                | Schema Change Process               |
+| **ADR-018**          | `06-Decision-Records/ADR-018-ai-boundary.md`                | AI/Ollama Integration Rules         |
+| **ADR-019**          | `06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | Hybrid ID Strategy (INT + UUIDv7)   |
 
-### ADR Reference (All 17 + Patch)
+### ADR Reference (All 17 + Patch + ADR-019)
 
-| ADR     | Topic                     | Key Decision                                       |
-| ------- | ------------------------- | -------------------------------------------------- |
-| ADR-001 | Workflow Engine           | Unified state machine for document workflows       |
-| ADR-002 | Doc Numbering             | Redis Redlock + DB optimistic locking              |
-| ADR-005 | Technology Stack          | NestJS + Next.js + MariaDB + Redis                 |
-| ADR-006 | Redis Caching             | Cache strategy and invalidation patterns           |
-| ADR-008 | Email Notification        | BullMQ queue-based email/LINE/in-app               |
-| ADR-009 | DB Strategy               | No TypeORM migrations — modify schema SQL directly |
-| ADR-010 | Logging/Monitoring        | Prometheus + Loki + Grafana stack                  |
-| ADR-011 | App Router                | Next.js App Router with RSC patterns               |
-| ADR-012 | UI Components             | Shadcn/UI component library                        |
-| ADR-013 | Form Handling             | React Hook Form + Zod validation                   |
-| ADR-014 | State Management          | TanStack Query (server) + Zustand (client)         |
-| ADR-015 | Deployment                | Docker Compose + Gitea CI/CD                       |
-| ADR-016 | Security                  | JWT + CASL RBAC + Helmet.js + ClamAV               |
-| ADR-017 | Ollama Migration          | Local AI + n8n for legacy data import              |
-| ADR-018 | AI Boundary (Patch 1.8.1) | AI isolation — no direct DB/storage access         |
+| ADR     | Topic                      | Key Decision                                       |
+| ------- | -------------------------- | -------------------------------------------------- |
+| ADR-001 | Workflow Engine            | Unified state machine for document workflows       |
+| ADR-002 | Doc Numbering              | Redis Redlock + DB optimistic locking              |
+| ADR-005 | Technology Stack           | NestJS + Next.js + MariaDB + Redis                 |
+| ADR-006 | Redis Caching              | Cache strategy and invalidation patterns           |
+| ADR-008 | Email Notification         | BullMQ queue-based email/LINE/in-app               |
+| ADR-009 | DB Strategy                | No TypeORM migrations — modify schema SQL directly |
+| ADR-010 | Logging/Monitoring         | Prometheus + Loki + Grafana stack                  |
+| ADR-011 | App Router                 | Next.js App Router with RSC patterns               |
+| ADR-012 | UI Components              | Shadcn/UI component library                        |
+| ADR-013 | Form Handling              | React Hook Form + Zod validation                   |
+| ADR-014 | State Management           | TanStack Query (server) + Zustand (client)         |
+| ADR-015 | Deployment                 | Docker Compose + Gitea CI/CD                       |
+| ADR-016 | Security                   | JWT + CASL RBAC + Helmet.js + ClamAV               |
+| ADR-017 | Ollama Migration           | Local AI + n8n for legacy data import              |
+| ADR-018 | AI Boundary (Patch 1.8.1)  | AI isolation — no direct DB/storage access         |
+| ADR-019 | Hybrid Identifier Strategy | INT PK (internal) + UUIDv7 BINARY(16) (public API) |
 
 ## 🚫 Forbidden Actions
 

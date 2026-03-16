@@ -15,7 +15,7 @@ export const correspondenceKeys = {
   lists: () => [...correspondenceKeys.all, 'list'] as const,
   list: (params: SearchCorrespondenceDto) => [...correspondenceKeys.lists(), params] as const,
   details: () => [...correspondenceKeys.all, 'detail'] as const,
-  detail: (id: number | string) => [...correspondenceKeys.details(), id] as const,
+  detail: (uuid: string) => [...correspondenceKeys.details(), uuid] as const,
 };
 
 // --- Queries ---
@@ -28,11 +28,11 @@ export function useCorrespondences(params: SearchCorrespondenceDto) {
   });
 }
 
-export function useCorrespondence(id: number | string) {
+export function useCorrespondence(uuid: string) {
   return useQuery({
-    queryKey: correspondenceKeys.detail(id),
-    queryFn: () => correspondenceService.getById(id),
-    enabled: !!id,
+    queryKey: correspondenceKeys.detail(uuid),
+    queryFn: () => correspondenceService.getByUuid(uuid),
+    enabled: !!uuid,
   });
 }
 
@@ -59,11 +59,11 @@ export function useUpdateCorrespondence() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: Partial<CreateCorrespondenceDto> }) =>
-      correspondenceService.update(id, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ uuid, data }: { uuid: string; data: Partial<CreateCorrespondenceDto> }) =>
+      correspondenceService.update(uuid, data),
+    onSuccess: (_, { uuid }) => {
       toast.success('Correspondence updated successfully');
-      queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(uuid) });
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
     },
     onError: (error: ApiError) => {
@@ -78,7 +78,7 @@ export function useDeleteCorrespondence() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number | string) => correspondenceService.delete(id),
+    mutationFn: (uuid: string) => correspondenceService.delete(uuid),
     onSuccess: () => {
       toast.success('Correspondence deleted successfully');
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
@@ -95,11 +95,11 @@ export function useSubmitCorrespondence() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: SubmitCorrespondenceDto }) =>
-      correspondenceService.submit(id, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ uuid, data }: { uuid: string; data: SubmitCorrespondenceDto }) =>
+      correspondenceService.submit(uuid, data),
+    onSuccess: (_, { uuid }) => {
       toast.success('Correspondence submitted successfully');
-      queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(uuid) });
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
     },
     onError: (error: ApiError) => {
@@ -114,11 +114,11 @@ export function useProcessWorkflow() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: WorkflowActionDto }) =>
-      correspondenceService.processWorkflow(id, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ uuid, data }: { uuid: string; data: WorkflowActionDto }) =>
+      correspondenceService.processWorkflow(uuid, data),
+    onSuccess: (_, { uuid }) => {
       toast.success('Action completed successfully');
-      queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(uuid) });
       queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
     },
     onError: (error: ApiError) => {

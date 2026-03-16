@@ -13,11 +13,14 @@ import { ShopDrawing } from './shop-drawing.entity';
 import { ContractDrawing } from './contract-drawing.entity';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { User } from '../../user/entities/user.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('shop_drawing_revisions')
 @Unique(['shopDrawingId', 'isCurrent'])
-export class ShopDrawingRevision {
+export class ShopDrawingRevision extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number; // เติม !
 
   @Column({ name: 'shop_drawing_id' })

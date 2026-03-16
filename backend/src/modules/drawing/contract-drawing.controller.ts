@@ -8,7 +8,6 @@ import {
   Put,
   Query,
   UseGuards,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -20,6 +19,7 @@ import { SearchContractDrawingDto } from './dto/search-contract-drawing.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../user/entities/user.entity';
 
@@ -51,28 +51,33 @@ export class ContractDrawingController {
     return this.contractDrawingService.findAll(searchDto);
   }
 
-  @Get(':id')
+  @Get(':uuid')
   @ApiOperation({ summary: 'Get Contract Drawing details' })
   @RequirePermission('document.view')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.contractDrawingService.findOne(id);
+  findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.contractDrawingService.findOneByUuid(uuid);
   }
 
-  @Put(':id')
+  @Put(':uuid')
   @ApiOperation({ summary: 'Update Contract Drawing' })
   @RequirePermission('drawing.create') // สิทธิ์ ID 39 ครอบคลุมการแก้ไขด้วย
-  update(
-    @Param('id', ParseIntPipe) id: number,
+  async update(
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() updateDto: UpdateContractDrawingDto,
     @CurrentUser() user: User
   ) {
-    return this.contractDrawingService.update(id, updateDto, user);
+    const drawing = await this.contractDrawingService.findOneByUuid(uuid);
+    return this.contractDrawingService.update(drawing.id, updateDto, user);
   }
 
-  @Delete(':id')
+  @Delete(':uuid')
   @ApiOperation({ summary: 'Delete Contract Drawing (Soft Delete)' })
   @RequirePermission('document.delete') // สิทธิ์ ID 34: ลบเอกสาร
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
-    return this.contractDrawingService.remove(id, user);
+  async remove(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @CurrentUser() user: User
+  ) {
+    const drawing = await this.contractDrawingService.findOneByUuid(uuid);
+    return this.contractDrawingService.remove(drawing.id, user);
   }
 }

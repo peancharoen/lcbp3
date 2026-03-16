@@ -295,6 +295,28 @@ export class AsBuiltDrawingService {
     return asBuiltDrawing;
   }
 
+  async findOneByUuid(uuid: string) {
+    const asBuiltDrawing = await this.asBuiltDrawingRepo.findOne({
+      where: { uuid },
+      relations: [
+        'mainCategory',
+        'subCategory',
+        'revisions',
+        'revisions.attachments',
+        'revisions.shopDrawingRevisions',
+      ],
+      order: {
+        revisions: { revisionNumber: 'DESC' },
+      },
+    });
+
+    if (!asBuiltDrawing) {
+      throw new NotFoundException(`AS Built Drawing UUID ${uuid} not found`);
+    }
+
+    return asBuiltDrawing;
+  }
+
   /**
    * ลบ AS Built Drawing
    */

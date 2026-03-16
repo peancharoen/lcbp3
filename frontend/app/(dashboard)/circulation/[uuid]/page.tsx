@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { circulationService } from "@/lib/services/circulation.service";
 import { Circulation, UpdateCirculationRoutingDto } from "@/types/circulation";
@@ -42,14 +42,13 @@ function getStatusVariant(status: string): "default" | "secondary" | "destructiv
 
 export default function CirculationDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const queryClient = useQueryClient();
-  const id = params.id as string;
+  const uuid = params.uuid as string;
 
   const { data: circulation, isLoading, error } = useQuery<Circulation>({
-    queryKey: ["circulation", id],
-    queryFn: () => circulationService.getById(id),
-    enabled: !!id,
+    queryKey: ["circulation", uuid],
+    queryFn: () => circulationService.getByUuid(uuid),
+    enabled: !!uuid,
   });
 
   const completeMutation = useMutation({
@@ -57,7 +56,7 @@ export default function CirculationDetailPage() {
       circulationService.updateRouting(routingId, data),
     onSuccess: () => {
       toast.success("Task completed successfully");
-      queryClient.invalidateQueries({ queryKey: ["circulation", id] });
+      queryClient.invalidateQueries({ queryKey: ["circulation", uuid] });
     },
     onError: () => {
       toast.error("Failed to update task status");
@@ -146,7 +145,7 @@ export default function CirculationDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Linked Document</p>
               <Link
-                href={`/correspondences/${circulation.correspondenceId}`}
+                href={`/correspondences/${circulation.correspondence.uuid}`}
                 className="font-medium text-primary hover:underline"
               >
                 {circulation.correspondence.correspondence_number}

@@ -8,6 +8,8 @@ import {
   PrimaryColumn, // ✅ [Fix] เพิ่ม Import นี้
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 export enum NotificationType {
   EMAIL = 'EMAIL',
@@ -16,8 +18,9 @@ export enum NotificationType {
 }
 
 @Entity('notifications')
-export class Notification {
+export class Notification extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number;
 
   @Column({ name: 'user_id' })

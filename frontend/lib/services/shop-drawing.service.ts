@@ -18,8 +18,8 @@ export const shopDrawingService = {
   /**
    * ดึงรายละเอียดตาม ID (ควรได้ Revision History มาด้วย)
    */
-  getById: async (id: string | number) => {
-    const response = await apiClient.get(`/drawings/shop/${id}`);
+  getByUuid: async (uuid: string) => {
+    const response = await apiClient.get(`/drawings/shop/${uuid}`);
     return response.data;
   },
 
@@ -34,8 +34,8 @@ export const shopDrawingService = {
   /**
    * สร้าง Revision ใหม่สำหรับ Shop Drawing เดิม
    */
-  createRevision: async (id: string | number, data: CreateShopDrawingRevisionDto) => {
-    const response = await apiClient.post(`/drawings/shop/${id}/revisions`, data);
+  createRevision: async (uuid: string, data: CreateShopDrawingRevisionDto) => {
+    const response = await apiClient.post(`/drawings/shop/${uuid}/revisions`, data);
     return response.data;
   },
 };

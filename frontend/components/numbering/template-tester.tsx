@@ -117,7 +117,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
                                     </SelectTrigger>
                                     <SelectContent>
                                         {(organizations as Organization[])?.map((org) => (
-                                            <SelectItem key={org.id} value={org.id.toString()}>
+                                            <SelectItem key={org.uuid} value={(org.id ?? org.uuid).toString()}>
                                                 {org.organizationCode} - {org.organizationName}
                                             </SelectItem>
                                         ))}
@@ -137,7 +137,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
                                     </SelectTrigger>
                                     <SelectContent>
                                         {(organizations as Organization[])?.map((org) => (
-                                            <SelectItem key={org.id} value={org.id.toString()}>
+                                            <SelectItem key={org.uuid} value={(org.id ?? org.uuid).toString()}>
                                                 {org.organizationCode} - {org.organizationName}
                                             </SelectItem>
                                         ))}

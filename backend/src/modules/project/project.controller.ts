@@ -8,7 +8,6 @@ import {
   Delete,
   Query,
   UseGuards,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -19,6 +18,7 @@ import { SearchProjectDto } from './dto/search-project.dto';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 
 @ApiTags('Projects')
@@ -49,34 +49,34 @@ export class ProjectController {
     return this.projectService.findAllOrganizations();
   }
 
-  @Get(':id/contracts')
+  @Get(':uuid/contracts')
   @ApiOperation({ summary: 'List All Contracts in Project' })
   @RequirePermission('project.view')
-  findContracts(@Param('id', ParseIntPipe) id: number) {
-    return this.projectService.findContracts(id);
+  findContracts(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.projectService.findContracts(uuid);
   }
 
-  @Get(':id')
+  @Get(':uuid')
   @ApiOperation({ summary: 'Get Project Details' })
   @RequirePermission('project.view')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.projectService.findOne(id);
+  findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.projectService.findOneByUuid(uuid);
   }
 
-  @Patch(':id')
+  @Patch(':uuid')
   @ApiOperation({ summary: 'Update Project' })
   @RequirePermission('project.edit')
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() updateDto: UpdateProjectDto
   ) {
-    return this.projectService.update(id, updateDto);
+    return this.projectService.update(uuid, updateDto);
   }
 
-  @Delete(':id')
+  @Delete(':uuid')
   @ApiOperation({ summary: 'Delete Project (Soft Delete)' })
   @RequirePermission('project.delete')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.projectService.remove(id);
+  remove(@Param('uuid', ParseUuidPipe) uuid: string) {
+    return this.projectService.remove(uuid);
   }
 }

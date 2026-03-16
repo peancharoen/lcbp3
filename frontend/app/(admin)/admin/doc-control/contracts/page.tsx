@@ -56,7 +56,8 @@ interface Project {
 }
 
 interface Contract {
-    id: number;
+    uuid: string;
+    id?: number; // Excluded from API responses (ADR-019)
     contractCode: string;
     contractName: string;
     projectId: number;
@@ -112,7 +113,7 @@ export default function ContractsPage() {
   });
 
   const updateContract = useMutation({
-      mutationFn: ({ id, data }: { id: number, data: UpdateContractDto }) => apiClient.patch(`/contracts/${id}`, data).then(res => res.data),
+      mutationFn: ({ uuid, data }: { uuid: string, data: UpdateContractDto }) => apiClient.patch(`/contracts/${uuid}`, data).then(res => res.data),
       onSuccess: () => {
           toast.success("Contract updated successfully");
           queryClient.invalidateQueries({ queryKey: ['contracts'] });
@@ -122,7 +123,7 @@ export default function ContractsPage() {
   });
 
   const deleteContract = useMutation({
-      mutationFn: (id: number) => apiClient.delete(`/contracts/${id}`).then(res => res.data),
+      mutationFn: (uuid: string) => apiClient.delete(`/contracts/${uuid}`).then(res => res.data),
       onSuccess: () => {
           toast.success("Contract deleted successfully");
           queryClient.invalidateQueries({ queryKey: ['contracts'] });
@@ -131,7 +132,7 @@ export default function ContractsPage() {
   });
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingUuid, setEditingUuid] = useState<string | null>(null);
 
   // Stats for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -144,7 +145,7 @@ export default function ContractsPage() {
 
   const confirmDelete = () => {
     if (contractToDelete) {
-      deleteContract.mutate(contractToDelete.id, {
+      deleteContract.mutate(contractToDelete.uuid, {
         onSuccess: () => {
           setDeleteDialogOpen(false);
           setContractToDelete(null);
@@ -212,7 +213,7 @@ export default function ContractsPage() {
   ];
 
   const handleEdit = (contract: Contract) => {
-      setEditingId(contract.id);
+      setEditingUuid(contract.uuid);
       reset({
           contractCode: contract.contractCode,
           contractName: contract.contractName,
@@ -225,7 +226,7 @@ export default function ContractsPage() {
   };
 
   const handleCreate = () => {
-      setEditingId(null);
+      setEditingUuid(null);
       reset({
           contractCode: "",
           contractName: "",
@@ -243,8 +244,8 @@ export default function ContractsPage() {
           projectId: parseInt(data.projectId),
       };
 
-      if (editingId) {
-          updateContract.mutate({ id: editingId, data: submitData });
+      if (editingUuid) {
+          updateContract.mutate({ uuid: editingUuid, data: submitData });
       } else {
           createContract.mutate(submitData);
       }
@@ -289,7 +290,7 @@ export default function ContractsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Contract" : "New Contract"}</DialogTitle>
+            <DialogTitle>{editingUuid ? "Edit Contract" : "New Contract"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
@@ -363,7 +364,7 @@ export default function ContractsPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={createContract.isPending || updateContract.isPending}>
-                {editingId ? "Save Changes" : "Create Contract"}
+                {editingUuid ? "Save Changes" : "Create Contract"}
               </Button>
             </DialogFooter>
           </form>

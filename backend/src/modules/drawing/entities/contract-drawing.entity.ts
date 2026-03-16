@@ -15,10 +15,13 @@ import { User } from '../../user/entities/user.entity';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { ContractDrawingSubcatCatMap } from './contract-drawing-subcat-cat-map.entity';
 import { ContractDrawingVolume } from './contract-drawing-volume.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('contract_drawings')
-export class ContractDrawing {
+export class ContractDrawing extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number; // ! ห้ามว่าง
 
   @Column({ name: 'project_id' })

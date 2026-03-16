@@ -13,13 +13,16 @@ import { RfaRevision } from '../../rfa/entities/rfa-revision.entity';
 import { Correspondence } from './correspondence.entity';
 import { CorrespondenceStatus } from './correspondence-status.entity';
 import { User } from '../../user/entities/user.entity';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('correspondence_revisions')
 // ✅ เพิ่ม Index สำหรับ Virtual Columns เพื่อให้ Search เร็วขึ้น
 @Index('idx_corr_rev_v_project', ['vRefProjectId'])
 @Index('idx_corr_rev_v_type', ['vRefType'])
-export class CorrespondenceRevision {
+export class CorrespondenceRevision extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
+  @Exclude()
   id!: number;
 
   @Column({ name: 'correspondence_id' })

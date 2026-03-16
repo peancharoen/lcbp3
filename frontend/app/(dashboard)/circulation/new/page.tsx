@@ -83,7 +83,7 @@ export default function CreateCirculationPage() {
     mutationFn: (data: CreateCirculationDto) => circulationService.create(data),
     onSuccess: (result) => {
       toast.success("Circulation created successfully");
-      router.push(`/circulation/${result.id}`);
+      router.push(`/circulation/${result.uuid}`);
     },
     onError: () => {
       toast.error("Failed to create circulation");
@@ -232,7 +232,7 @@ export default function CreateCirculationPage() {
                               <div className="flex flex-wrap gap-1">
                                 {selectedAssignees.map((userId) => {
                                   const user = users.find(
-                                    (u: { userId: number }) => u.userId === userId
+                                    (u) => u.userId === userId
                                   );
                                   return user ? (
                                     <Badge
@@ -267,16 +267,16 @@ export default function CreateCirculationPage() {
                           <CommandList>
                             <CommandEmpty>No user found.</CommandEmpty>
                             <CommandGroup>
-                              {users.map((user: { userId: number; username: string; firstName?: string; lastName?: string }) => (
+                              {users.map((user) => (
                                 <CommandItem
-                                  key={user.userId}
+                                  key={user.userId ?? user.uuid}
                                   value={user.username}
-                                  onSelect={() => toggleAssignee(user.userId)}
+                                  onSelect={() => user.userId && toggleAssignee(user.userId)}
                                 >
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      selectedAssignees.includes(user.userId)
+                                      user.userId != null && selectedAssignees.includes(user.userId)
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}

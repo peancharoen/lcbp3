@@ -59,15 +59,15 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
       id: "actions",
       cell: ({ row }) => {
         const item = row.original;
-        // Edit/View link goes to the DOCUMENT detail (correspondence.id)
-        // Ideally we might pass ?revId=item.id to view specific revision, but detail page defaults to latest.
+        // Edit/View link goes to the DOCUMENT detail (correspondence.uuid)
+        // Ideally we might pass ?revId=item.uuid to view specific revision, but detail page defaults to latest.
         // For editing, we edit the document.
-        const docId = item.correspondence.id;
+        const docUuid = item.correspondence.uuid;
         const statusCode = item.status?.statusCode;
 
         return (
           <div className="flex gap-2">
-            <Link href={`/correspondences/${docId}`}>
+            <Link href={`/correspondences/${docUuid}`}>
               <Button variant="ghost" size="icon" title="View Details">
                 <Eye className="h-4 w-4" />
               </Button>
@@ -89,7 +89,7 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
                 <FileText className="h-4 w-4" />
               </Button>
             {statusCode === "DRAFT" && (
-              <Link href={`/correspondences/${docId}/edit`}>
+              <Link href={`/correspondences/${docUuid}/edit`}>
                 <Button variant="ghost" size="icon" title="Edit">
                   <Edit className="h-4 w-4" />
                 </Button>

@@ -17,7 +17,7 @@ export const drawingKeys = {
   lists: () => [...drawingKeys.all, 'list'] as const,
   list: (type: DrawingType, params: DrawingSearchParams) => [...drawingKeys.lists(), type, params] as const,
   details: () => [...drawingKeys.all, 'detail'] as const,
-  detail: (type: DrawingType, id: number | string) => [...drawingKeys.details(), type, id] as const,
+  detail: (type: DrawingType, uuid: string) => [...drawingKeys.details(), type, uuid] as const,
 };
 
 // --- Queries ---
@@ -33,7 +33,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         if (response && response.data) {
           const mappedData = response.data.map((d: ContractDrawing) => ({
             ...d,
-            drawingId: d.id,
+            uuid: d.uuid,
             drawingNumber: d.contractDrawingNo,
             type: 'CONTRACT',
           }));
@@ -46,7 +46,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         if (response && response.data) {
           const mappedData = response.data.map((d: ShopDrawing) => ({
             ...d,
-            drawingId: d.id,
+            uuid: d.uuid,
             type: 'SHOP',
             title: d.currentRevision?.title || 'Untitled',
             revision: d.currentRevision?.revisionNumber,
@@ -61,7 +61,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         if (response && response.data) {
           const mappedData = response.data.map((d: AsBuiltDrawing) => ({
             ...d,
-            drawingId: d.id,
+            uuid: d.uuid,
             type: 'AS_BUILT',
             title: d.currentRevision?.title || 'Untitled',
             revision: d.currentRevision?.revisionNumber,
@@ -76,19 +76,19 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
   });
 }
 
-export function useDrawing(type: DrawingType, id: number | string) {
+export function useDrawing(type: DrawingType, uuid: string) {
   return useQuery({
-    queryKey: drawingKeys.detail(type, id),
+    queryKey: drawingKeys.detail(type, uuid),
     queryFn: async () => {
       if (type === 'CONTRACT') {
-        return contractDrawingService.getById(id);
+        return contractDrawingService.getByUuid(uuid);
       } else if (type === 'SHOP') {
-        return shopDrawingService.getById(id);
+        return shopDrawingService.getByUuid(uuid);
       } else {
-        return asBuiltDrawingService.getById(id);
+        return asBuiltDrawingService.getByUuid(uuid);
       }
     },
-    enabled: !!id,
+    enabled: !!uuid,
   });
 }
 

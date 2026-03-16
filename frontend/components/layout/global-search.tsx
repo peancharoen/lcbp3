@@ -16,7 +16,8 @@ import { useSearchSuggestions } from "@/hooks/use-search";
 
 /** Search suggestion item returned from the API */
 interface SearchSuggestion {
-  id: string | number;
+  uuid: string;
+  id?: string | number; // Excluded from API responses (ADR-019)
   type: string;
   title: string;
   documentNumber?: string;
@@ -97,12 +98,11 @@ export function GlobalSearch() {
                 <CommandGroup heading="Suggestions">
                   {(suggestions as SearchSuggestion[]).map((item) => (
                     <CommandItem
-                      key={`${item.type}-${item.id}`}
+                      key={`${item.type}-${item.uuid}`}
                       onSelect={() => {
                         setQuery(item.title);
-                        // Assumption: item has type and id.
-                        // If type is missing, we might need a map or check usage in backend response
-                        router.push(`/${item.type}s/${item.id}`);
+                        // ADR-019: Use UUID for public routes
+                        router.push(`/${item.type}s/${item.uuid}`);
                         setOpen(false);
                       }}
                     >

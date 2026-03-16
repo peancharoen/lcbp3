@@ -39,7 +39,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
   const handleSubmit = () => {
     if (confirm("Are you sure you want to submit this correspondence?")) {
       submitMutation.mutate({
-        id: data.id,
+        uuid: data.uuid,
         data: {}
       });
     }
@@ -50,7 +50,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
     const action = actionState === "approve" ? "APPROVE" : "REJECT";
     processMutation.mutate({
-      id: data.id,
+      uuid: data.uuid,
       data: {
         action,
         comments
@@ -83,7 +83,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
         <div className="flex gap-2">
            {/* EDIT BUTTON LOGIC: Show if DRAFT */}
           {status === "DRAFT" && (
-             <Link href={`/correspondences/${data.id}/edit`}>
+             <Link href={`/correspondences/${data.uuid}/edit`}>
                 <Button variant="outline">
                   <Edit className="mr-2 h-4 w-4" />
                   Edit

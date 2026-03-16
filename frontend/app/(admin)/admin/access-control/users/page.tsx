@@ -64,7 +64,7 @@ export default function UsersPage() {
 
   const confirmDelete = () => {
     if (userToDelete) {
-      deleteMutation.mutate(userToDelete.userId, {
+      deleteMutation.mutate(userToDelete.uuid, {
         onSuccess: () => {
             setDeleteDialogOpen(false);
             setUserToDelete(null);
@@ -186,7 +186,7 @@ export default function UsersPage() {
               <SelectContent>
                 <SelectItem value="all">All Organizations</SelectItem>
                 {Array.isArray(organizations) && (organizations as Organization[]).map((org) => (
-                  <SelectItem key={org.id} value={org.id.toString()}>
+                  <SelectItem key={org.uuid} value={(org.id ?? org.uuid).toString()}>
                     {org.organizationCode} - {org.organizationName}
                   </SelectItem>
                 ))}

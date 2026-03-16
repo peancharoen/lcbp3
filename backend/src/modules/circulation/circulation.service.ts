@@ -113,6 +113,17 @@ export class CirculationService {
     return circulation;
   }
 
+  async findOneByUuid(uuid: string) {
+    const circulation = await this.circulationRepo.findOne({
+      where: { uuid },
+      relations: ['routings', 'routings.assignee', 'correspondence', 'creator'],
+      order: { routings: { stepNumber: 'ASC' } },
+    });
+    if (!circulation)
+      throw new NotFoundException(`Circulation UUID ${uuid} not found`);
+    return circulation;
+  }
+
   // ✅ Logic อัปเดตสถานะและปิดงาน
   async updateRoutingStatus(
     routingId: number,

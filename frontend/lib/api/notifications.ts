@@ -3,6 +3,7 @@ import { NotificationResponse } from "@/types/notification";
 // Mock Data
 let mockNotifications = [
   {
+    uuid: "019575a0-0001-7000-8000-000000000001",
     notificationId: 1,
     title: "RFA Approved",
     message: "RFA-001 has been approved by the Project Manager.",
@@ -12,6 +13,7 @@ let mockNotifications = [
     link: "/rfas/1",
   },
   {
+    uuid: "019575a0-0002-7000-8000-000000000002",
     notificationId: 2,
     title: "New Correspondence",
     message: "You have received a new correspondence from Contractor A.",
@@ -21,6 +23,7 @@ let mockNotifications = [
     link: "/correspondences/3",
   },
   {
+    uuid: "019575a0-0003-7000-8000-000000000003",
     notificationId: 3,
     title: "Drawing Revision Required",
     message: "Drawing S-201 requires revision based on recent comments.",

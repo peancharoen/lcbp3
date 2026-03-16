@@ -7,7 +7,7 @@ import { getApiErrorMessage } from '@/types/api-error';
 export const userKeys = {
   all: ['users'] as const,
   list: (params?: SearchUserDto) => [...userKeys.all, 'list', params] as const,
-  detail: (id: number) => [...userKeys.all, 'detail', id] as const,
+  detail: (uuid: string) => [...userKeys.all, 'detail', uuid] as const,
 };
 
 export function useUsers(params?: SearchUserDto) {
@@ -43,7 +43,7 @@ export function useCreateUser() {
 export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateUserDto }) => userService.update(id, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: UpdateUserDto }) => userService.update(uuid, data),
     onSuccess: () => {
       toast.success("User updated successfully");
       queryClient.invalidateQueries({ queryKey: userKeys.all });
@@ -59,7 +59,7 @@ export function useUpdateUser() {
 export function useDeleteUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => userService.delete(id),
+    mutationFn: (uuid: string) => userService.delete(uuid),
     onSuccess: () => {
       toast.success("User deleted successfully");
       queryClient.invalidateQueries({ queryKey: userKeys.all });
