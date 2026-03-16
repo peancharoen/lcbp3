@@ -57,6 +57,7 @@ export default function TagsPage() {
 
   const formatPayload = (data: Record<string, unknown>) => {
     const payload = { ...data };
+    // Backend entity uses project_id (underscore) per ADR-017/018 schema
     if (!payload.project_id || payload.project_id === "") {
         payload.project_id = null;
     } else {

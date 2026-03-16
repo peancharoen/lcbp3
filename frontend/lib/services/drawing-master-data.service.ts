@@ -119,12 +119,12 @@ export const drawingMasterDataService = {
 
   async createContractVolume(data: CreateContractVolumeDto): Promise<ContractVolume> {
     const response = await apiClient.post(`/drawings/master-data/contract/volumes`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateContractVolume(id: number, data: Partial<CreateContractVolumeDto>): Promise<ContractVolume> {
     const response = await apiClient.patch(`/drawings/master-data/contract/volumes/${id}`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteContractVolume(id: number): Promise<void> {
@@ -141,12 +141,12 @@ export const drawingMasterDataService = {
 
   async createContractCategory(data: CreateContractCategoryDto): Promise<ContractCategory> {
     const response = await apiClient.post(`/drawings/master-data/contract/categories`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateContractCategory(id: number, data: Partial<CreateContractCategoryDto>): Promise<ContractCategory> {
     const response = await apiClient.patch(`/drawings/master-data/contract/categories/${id}`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteContractCategory(id: number): Promise<void> {
@@ -163,7 +163,7 @@ export const drawingMasterDataService = {
 
   async createContractSubCategory(data: CreateContractSubCategoryDto): Promise<ContractSubCategory> {
     const response = await apiClient.post(`/drawings/master-data/contract/sub-categories`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateContractSubCategory(
@@ -171,7 +171,7 @@ export const drawingMasterDataService = {
     data: Partial<CreateContractSubCategoryDto>
   ): Promise<ContractSubCategory> {
     const response = await apiClient.patch(`/drawings/master-data/contract/sub-categories/${id}`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteContractSubCategory(id: number): Promise<void> {
@@ -195,7 +195,7 @@ export const drawingMasterDataService = {
     subCategoryId: number;
   }): Promise<{ id: number }> {
     const response = await apiClient.post(`/drawings/master-data/contract/mappings`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteContractMapping(id: number): Promise<void> {
@@ -212,12 +212,12 @@ export const drawingMasterDataService = {
 
   async createShopMainCategory(data: CreateShopMainCategoryDto): Promise<ShopMainCategory> {
     const response = await apiClient.post(`/drawings/master-data/shop/main-categories`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateShopMainCategory(id: number, data: Partial<CreateShopMainCategoryDto>): Promise<ShopMainCategory> {
     const response = await apiClient.patch(`/drawings/master-data/shop/main-categories/${id}`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteShopMainCategory(id: number): Promise<void> {
@@ -234,12 +234,12 @@ export const drawingMasterDataService = {
 
   async createShopSubCategory(data: CreateShopSubCategoryDto): Promise<ShopSubCategory> {
     const response = await apiClient.post(`/drawings/master-data/shop/sub-categories`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async updateShopSubCategory(id: number, data: Partial<CreateShopSubCategoryDto>): Promise<ShopSubCategory> {
     const response = await apiClient.patch(`/drawings/master-data/shop/sub-categories/${id}`, data);
-    return response.data;
+    return response.data?.data || response.data;
   },
 
   async deleteShopSubCategory(id: number): Promise<void> {

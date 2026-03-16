@@ -44,7 +44,7 @@ export default function DisciplinesPage() {
   ];
 
   const contractOptions = contracts.map((c) => ({
-    label: `${c.contractName} (${c.contractNo})`,
+    label: `${c.contractName} (${c.contractCode})`,
     value: c.id,
   }));
 
@@ -57,7 +57,7 @@ export default function DisciplinesPage() {
         queryKey={['disciplines', selectedContractId ?? 'all']}
         fetchFn={() => masterDataService.getDisciplines(selectedContractId ? parseInt(selectedContractId) : undefined)}
         createFn={(data: Record<string, unknown>) => masterDataService.createDiscipline(data as unknown as Parameters<typeof masterDataService.createDiscipline>[0])}
-        updateFn={(id, data) => Promise.reject('Not implemented yet')} // Update endpoint needs to be verified/added if missing
+        updateFn={(id, data) => Promise.reject('Not implemented yet')} 
         deleteFn={(id) => masterDataService.deleteDiscipline(id)}
         columns={columns}
         filters={
@@ -73,7 +73,7 @@ export default function DisciplinesPage() {
                 <SelectItem value="all">All Contracts</SelectItem>
                 {contracts.map((c) => (
                   <SelectItem key={c.id} value={c.id.toString()}>
-                    {c.contractName} ({c.contractNo})
+                    {c.contractName} ({c.contractCode})
                   </SelectItem>
                 ))}
               </SelectContent>

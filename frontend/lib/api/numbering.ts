@@ -125,18 +125,18 @@ export const numberingApi = {
    * Get all templates
    */
   getTemplates: async (): Promise<NumberingTemplate[]> => {
-    const res = await apiClient.get<NumberingTemplate[]>('/admin/document-numbering/templates');
-    return res.data;
+    const res = await apiClient.get<any>('/admin/document-numbering/templates');
+    return res.data.data || res.data;
   },
 
   /**
    * Get templates for a specific project
    */
   getTemplatesByProject: async (projectId: number): Promise<NumberingTemplate[]> => {
-    const res = await apiClient.get<NumberingTemplate[]>(
+    const res = await apiClient.get<any>(
       `/admin/document-numbering/templates?projectId=${projectId}`
     );
-    return res.data;
+    return res.data.data || res.data;
   },
 
   /**
@@ -151,11 +151,11 @@ export const numberingApi = {
    * Save (create or update) a template
    */
   saveTemplate: async (dto: Partial<NumberingTemplate>): Promise<NumberingTemplate> => {
-    const res = await apiClient.post<NumberingTemplate>(
+    const res = await apiClient.post<any>(
       '/admin/document-numbering/templates',
       dto
     );
-    return res.data;
+    return res.data.data || res.data;
   },
 
   /**
@@ -173,30 +173,30 @@ export const numberingApi = {
    * Get audit logs
    */
   getAuditLogs: async (limit = 100): Promise<DocumentNumberAudit[]> => {
-    const res = await apiClient.get<DocumentNumberAudit[]>(
+    const res = await apiClient.get<any>(
       `/document-numbering/logs/audit?limit=${limit}`
     );
-    return res.data;
+    return res.data.data || res.data;
   },
 
   /**
    * Get error logs
    */
   getErrorLogs: async (limit = 100): Promise<DocumentNumberError[]> => {
-    const res = await apiClient.get<DocumentNumberError[]>(
+    const res = await apiClient.get<any>(
       `/document-numbering/logs/errors?limit=${limit}`
     );
-    return res.data;
+    return res.data.data || res.data;
   },
 
   /**
    * Get metrics (audit + errors combined)
    */
   getMetrics: async (): Promise<{ audit: DocumentNumberAudit[]; errors: DocumentNumberError[] }> => {
-    const res = await apiClient.get<{ audit: DocumentNumberAudit[]; errors: DocumentNumberError[] }>(
+    const res = await apiClient.get<any>(
       '/admin/document-numbering/metrics'
     );
-    return res.data;
+    return res.data.data || res.data;
   },
 
   // ----------------------------------------------------------
@@ -207,44 +207,44 @@ export const numberingApi = {
    * Manually override/set a counter value
    */
   manualOverride: async (dto: ManualOverrideDto): Promise<{ success: boolean; message: string }> => {
-    const res = await apiClient.post<{ success: boolean; message: string }>(
+    const res = await apiClient.post<any>(
       '/admin/document-numbering/manual-override',
       dto
     );
-    return res.data;
+    return res.data.data || res.data;
   },
 
   /**
    * Void a document number and generate replacement
    */
   voidAndReplace: async (dto: VoidAndReplaceDto): Promise<{ newNumber: string; auditId: number }> => {
-    const res = await apiClient.post<{ newNumber: string; auditId: number }>(
+    const res = await apiClient.post<any>(
       '/admin/document-numbering/void-and-replace',
       dto
     );
-    return res.data;
+    return res.data.data || res.data;
   },
 
   /**
    * Cancel/skip a document number
    */
   cancelNumber: async (dto: CancelNumberDto): Promise<{ success: boolean }> => {
-    const res = await apiClient.post<{ success: boolean }>(
+    const res = await apiClient.post<any>(
       '/admin/document-numbering/cancel',
       dto
     );
-    return res.data;
+    return res.data.data || res.data;
   },
 
   /**
    * Bulk import counter values
    */
   bulkImport: async (items: BulkImportItem[]): Promise<{ imported: number; errors: string[] }> => {
-    const res = await apiClient.post<{ imported: number; errors: string[] }>(
+    const res = await apiClient.post<any>(
       '/admin/document-numbering/bulk-import',
       items
     );
-    return res.data;
+    return res.data.data || res.data;
   },
 
   /**
@@ -265,8 +265,8 @@ export const numberingApi = {
     const url = projectId
       ? `/document-numbering/sequences?projectId=${projectId}`
       : '/document-numbering/sequences';
-    const res = await apiClient.get<NumberSequence[]>(url);
-    return res.data;
+    const res = await apiClient.get<any>(url);
+    return res.data.data || res.data;
   },
 
   /**

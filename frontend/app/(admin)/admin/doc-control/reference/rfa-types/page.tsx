@@ -48,7 +48,7 @@ export default function RfaTypesPage() {
   ];
 
   const contractOptions = contracts.map((c) => ({
-    label: `${c.contractName} (${c.contractNo})`,
+    label: `${c.contractName} (${c.contractCode})`,
     value: c.id,
   }));
 
@@ -76,7 +76,7 @@ export default function RfaTypesPage() {
                 <SelectItem value="all">All Contracts</SelectItem>
                 {contracts.map((c) => (
                   <SelectItem key={c.id} value={c.id.toString()}>
-                    {c.contractName} ({c.contractNo})
+                    {c.contractName} ({c.contractCode})
                   </SelectItem>
                 ))}
               </SelectContent>
