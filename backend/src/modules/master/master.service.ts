@@ -73,7 +73,8 @@ export class MasterService {
       where: { uuid: projectId as string },
       select: ['id'],
     });
-    if (!project) throw new NotFoundException(`Project with UUID ${projectId} not found`);
+    if (!project)
+      throw new NotFoundException(`Project with UUID ${projectId} not found`);
     return project.id;
   }
 
@@ -88,7 +89,8 @@ export class MasterService {
       where: { uuid: contractId as string },
       select: ['id'],
     });
-    if (!contract) throw new NotFoundException(`Contract with UUID ${contractId} not found`);
+    if (!contract)
+      throw new NotFoundException(`Contract with UUID ${contractId} not found`);
     return contract.id;
   }
 
@@ -136,7 +138,10 @@ export class MasterService {
 
   async createRfaType(dto: any) {
     const internalContractId = await this.resolveContractId(dto.contractId);
-    const rfaType = this.rfaTypeRepo.create({ ...dto, contractId: internalContractId });
+    const rfaType = this.rfaTypeRepo.create({
+      ...dto,
+      contractId: internalContractId,
+    });
     return this.rfaTypeRepo.save(rfaType);
   }
 
@@ -144,7 +149,7 @@ export class MasterService {
     const rfaType = await this.rfaTypeRepo.findOne({ where: { id } });
     if (!rfaType) throw new NotFoundException('RFA Type not found');
     if (dto.contractId) {
-        dto.contractId = await this.resolveContractId(dto.contractId);
+      dto.contractId = await this.resolveContractId(dto.contractId);
     }
     Object.assign(rfaType, dto);
     return this.rfaTypeRepo.save(rfaType);
@@ -197,14 +202,20 @@ export class MasterService {
   async createDiscipline(dto: any) {
     const internalContractId = await this.resolveContractId(dto.contractId);
     const exists = await this.disciplineRepo.findOne({
-      where: { contractId: internalContractId, disciplineCode: dto.disciplineCode },
+      where: {
+        contractId: internalContractId,
+        disciplineCode: dto.disciplineCode,
+      },
     });
     if (exists)
       throw new ConflictException(
         'Discipline code already exists in this contract'
       );
 
-    const discipline = this.disciplineRepo.create({ ...dto, contractId: internalContractId });
+    const discipline = this.disciplineRepo.create({
+      ...dto,
+      contractId: internalContractId,
+    });
     return this.disciplineRepo.save(discipline);
   }
 
@@ -237,7 +248,10 @@ export class MasterService {
 
   async createSubType(dto: any) {
     const internalContractId = await this.resolveContractId(dto.contractId);
-    const subType = this.subTypeRepo.create({ ...dto, contractId: internalContractId });
+    const subType = this.subTypeRepo.create({
+      ...dto,
+      contractId: internalContractId,
+    });
     return this.subTypeRepo.save(subType);
   }
 
@@ -262,7 +276,7 @@ export class MasterService {
 
   async saveNumberFormat(dto: any) {
     const internalProjectId = await this.resolveProjectId(dto.projectId);
-    let format = await this.formatRepo.findOne({
+    let format: DocumentNumberFormat | null = await this.formatRepo.findOne({
       where: {
         projectId: internalProjectId,
         correspondenceTypeId: dto.correspondenceTypeId,
@@ -275,10 +289,10 @@ export class MasterService {
       format = this.formatRepo.create({
         ...dto,
         projectId: internalProjectId,
-      });
+      } as Partial<DocumentNumberFormat>);
     }
 
-    return this.formatRepo.save(format);
+    return this.formatRepo.save(format!);
   }
 
   async findAllTags(query?: SearchTagDto) {
@@ -321,7 +335,9 @@ export class MasterService {
   }
 
   async createTag(dto: any, userId: number) {
-    const internalProjectId = dto.project_id ? await this.resolveProjectId(dto.project_id) : null;
+    const internalProjectId = dto.project_id
+      ? await this.resolveProjectId(dto.project_id)
+      : null;
     const tag = this.tagRepo.create({
       ...dto,
       project_id: internalProjectId,
@@ -333,7 +349,7 @@ export class MasterService {
   async updateTag(id: number, dto: any) {
     const tag = await this.findOneTag(id);
     if (dto.project_id) {
-        dto.project_id = await this.resolveProjectId(dto.project_id);
+      dto.project_id = await this.resolveProjectId(dto.project_id);
     }
     Object.assign(tag, dto);
     return this.tagRepo.save(tag);
