@@ -19,9 +19,11 @@ import { Discipline } from './entities/discipline.entity';
 import { CorrespondenceSubType } from '../correspondence/entities/correspondence-sub-type.entity';
 // Entity นี้อาจจะอยู่ใน module document-numbering แต่นำมาใช้ที่นี่เพื่อการจัดการ Master Data
 import { DocumentNumberFormat } from '../document-numbering/entities/document-number-format.entity';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
+    UserModule,
     TypeOrmModule.forFeature([
       Tag,
       CorrespondenceType,
