@@ -27,12 +27,7 @@ import {
   ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
-import { Request } from 'express';
-
-// สร้าง Interface สำหรับ Request ที่มี User
-interface RequestWithUser extends Request {
-  user: any;
-}
+import type { RequestWithUser, RequestWithRefreshUser } from '../interfaces/request-with-user.interface';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -95,7 +90,7 @@ export class AuthController {
       },
     },
   })
-  async refresh(@Req() req: RequestWithUser) {
+  async refresh(@Req() req: RequestWithRefreshUser) {
     return this.authService.refreshToken(req.user.sub, req.user.refreshToken);
   }
 
@@ -121,7 +116,7 @@ export class AuthController {
     }
     // ส่ง refresh token ไปด้วยถ้ามี (ใน header หรือ body)
     // สำหรับตอนนี้ส่งแค่ access token ไป blacklist
-    return this.authService.logout(req.user.sub, token);
+    return this.authService.logout(req.user.user_id, token);
   }
 
   @UseGuards(JwtAuthGuard)

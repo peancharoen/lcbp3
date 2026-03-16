@@ -20,14 +20,7 @@ import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileStorageService } from './file-storage.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-
-// Interface เพื่อระบุ Type ของ Request ที่ผ่าน JwtAuthGuard มาแล้ว
-interface RequestWithUser {
-  user: {
-    userId: number;
-    username: string;
-  };
-}
+import type { RequestWithUser } from '../interfaces/request-with-user.interface';
 
 @Controller('files')
 @UseGuards(JwtAuthGuard)
@@ -53,7 +46,7 @@ export class FileStorageController {
     @Request() req: RequestWithUser
   ) {
     // ส่ง userId จาก Token ไปด้วย
-    return this.fileStorageService.upload(file, req.user.userId);
+    return this.fileStorageService.upload(file, req.user.user_id);
   }
 
   /**
@@ -90,7 +83,7 @@ export class FileStorageController {
     @Request() req: RequestWithUser
   ) {
     // ส่ง userId ไปด้วยเพื่อตรวจสอบความเป็นเจ้าของ
-    await this.fileStorageService.delete(id, req.user.userId);
+    await this.fileStorageService.delete(id, req.user.user_id);
     return { message: 'File deleted successfully', id };
   }
 }

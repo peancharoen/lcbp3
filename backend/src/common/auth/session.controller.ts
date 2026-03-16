@@ -17,6 +17,7 @@ import {
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../../modules/user/entities/user.entity';
+import type { RequestWithUser } from '../interfaces/request-with-user.interface';
 
 @ApiTags('Authentication')
 @Controller('auth/sessions')
@@ -28,7 +29,7 @@ export class SessionController {
   @Get()
   @ApiOperation({ summary: 'List all active sessions (Admin/DC Only)' })
   @ApiResponse({ status: 200, description: 'List of active sessions' })
-  async getActiveSessions(@Req() req: any) {
+  async getActiveSessions(@Req() req: RequestWithUser) {
     this.checkAdminRole(req.user);
     return this.authService.getActiveSessions();
   }
@@ -36,7 +37,10 @@ export class SessionController {
   @Delete(':id')
   @ApiOperation({ summary: 'Revoke a session by ID (Admin/DC Only)' })
   @ApiResponse({ status: 200, description: 'Session revoked' })
-  async revokeSession(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async revokeSession(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestWithUser
+  ) {
     this.checkAdminRole(req.user);
     await this.authService.revokeSession(id);
     return { message: 'Session revoked successfully' };

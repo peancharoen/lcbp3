@@ -163,6 +163,30 @@ const testScenarios = {
 - ห่อหุ้มโค้ดที่ใช้ซ้ำได้ไว้ใน **common module** (@app/common):
   - Configs, decorators, DTOs, guards, interceptors, notifications, shared services, types, validators
 
+### **3.1.1 NestJS 11 Patterns (Updated 2026-03-16)**
+
+| Pattern | คำอธิบาย |
+| :--- | :--- |
+| **`import type` สำหรับ decorated signatures** | เมื่อ `isolatedModules` + `emitDecoratorMetadata` เปิดอยู่ ต้องใช้ `import type` สำหรับ interface ที่ใช้ใน decorated parameter (เช่น `@Req() req: RequestWithUser`) |
+| **Shared `RequestWithUser` interface** | ใช้ `src/common/interfaces/request-with-user.interface.ts` แทนการประกาศ local interface ในแต่ละ controller — ห้ามใช้ `req: any` |
+| **`@nestjs/mapped-types` ถูกลบออก** | DTO utility types (`PartialType`, `OmitType`, `IntersectionType`) ต้อง import จาก `@nestjs/swagger` เท่านั้น |
+| **Express v5** | `@nestjs/platform-express` v11 ใช้ Express 5 — path parameter syntax เปลี่ยน (`:id` → `:id` ยังใช้ได้ แต่ wildcard `*` → `*name`) |
+| **Swagger version** | Swagger doc version ต้องตรงกับ project version ปัจจุบัน (`1.8.1`) |
+
+```typescript
+// ✅ ถูกต้อง — NestJS 11 pattern
+import type { RequestWithUser } from '../interfaces/request-with-user.interface';
+
+@Get('profile')
+getProfile(@Req() req: RequestWithUser) {
+  return req.user;
+}
+
+// ❌ ห้ามใช้
+@Get('profile')
+getProfile(@Req() req: any) { ... }
+```
+
 ### **3.2 Database & Data Modeling (MariaDB + TypeORM)**
 
 #### **3.2.1 Optimistic Locking & Versioning**

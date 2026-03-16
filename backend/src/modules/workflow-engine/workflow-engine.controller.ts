@@ -31,6 +31,7 @@ import { WorkflowTransitionDto } from './dto/workflow-transition.dto';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
+import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
 @ApiTags('Workflow Engine')
 @ApiBearerAuth() // ระบุว่าต้องใช้ Token ใน Swagger
@@ -95,10 +96,10 @@ export class WorkflowEngineController {
   async processTransition(
     @Param('id') instanceId: string,
     @Body() dto: WorkflowTransitionDto,
-    @Request() req: any
+    @Request() req: RequestWithUser
   ) {
     // ดึง User ID จาก Token (req.user มาจาก JwtStrategy)
-    const userId = req.user?.userId;
+    const userId = req.user?.user_id;
 
     return this.workflowService.processTransition(
       instanceId,

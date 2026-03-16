@@ -73,7 +73,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('LCBP3 DMS API')
     .setDescription('Document Management System API Documentation')
-    .setVersion('1.4.3')
+    .setVersion('1.8.1')
     .addBearerAuth() // เพิ่มปุ่มใส่ Token (รูปกุญแจ)
     .build();
 

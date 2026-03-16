@@ -31,6 +31,7 @@ import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
+import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
 @ApiTags('Correspondences')
 @Controller('correspondences')
@@ -48,13 +49,7 @@ export class CorrespondenceController {
   @RequirePermission('workflow.action_review')
   processAction(
     @Body() actionDto: WorkflowActionDto,
-    @Request()
-    req: Request & {
-      user: {
-        user_id: number;
-        assignments?: Array<{ role: { roleName: string } }>;
-      };
-    }
+    @Request() req: RequestWithUser
   ) {
     // Extract roles from user assignments for DSL requirements check
     const userRoles =
@@ -87,12 +82,9 @@ export class CorrespondenceController {
   @Audit('correspondence.create', 'correspondence')
   create(
     @Body() createDto: CreateCorrespondenceDto,
-    @Request() req: Request & { user: unknown }
+    @Request() req: RequestWithUser
   ) {
-    return this.correspondenceService.create(
-      createDto,
-      req.user as Parameters<typeof this.correspondenceService.create>[1]
-    );
+    return this.correspondenceService.create(createDto, req.user);
   }
 
   @Post('preview-number')
@@ -104,11 +96,11 @@ export class CorrespondenceController {
   @RequirePermission('correspondence.create')
   previewNumber(
     @Body() createDto: CreateCorrespondenceDto,
-    @Request() req: Request & { user: unknown }
+    @Request() req: RequestWithUser
   ) {
     return this.correspondenceService.previewDocumentNumber(
       createDto,
-      req.user as Parameters<typeof this.correspondenceService.create>[1]
+      req.user
     );
   }
 
@@ -131,13 +123,7 @@ export class CorrespondenceController {
   async submit(
     @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() submitDto: SubmitCorrespondenceDto,
-    @Request()
-    req: Request & {
-      user: {
-        user_id: number;
-        assignments?: Array<{ role: { roleName: string } }>;
-      };
-    }
+    @Request() req: RequestWithUser
   ) {
     const corr = await this.correspondenceService.findOneByUuid(uuid);
     // Extract roles from user assignments
@@ -172,14 +158,10 @@ export class CorrespondenceController {
   async update(
     @Param('uuid', ParseUuidPipe) uuid: string,
     @Body() updateDto: UpdateCorrespondenceDto,
-    @Request() req: Request & { user: unknown }
+    @Request() req: RequestWithUser
   ) {
     const corr = await this.correspondenceService.findOneByUuid(uuid);
-    return this.correspondenceService.update(
-      corr.id,
-      updateDto,
-      req.user as Parameters<typeof this.correspondenceService.create>[1]
-    );
+    return this.correspondenceService.update(corr.id, updateDto, req.user);
   }
 
   @Get(':uuid/references')
