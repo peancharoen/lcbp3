@@ -10,9 +10,9 @@
 
 | Attribute          | Value                            |
 | ------------------ | -------------------------------- |
-| **Version**        | 1.8.0                            |
+| **Version**        | 1.8.1                            |
 | **Status**         | Active                           |
-| **Last Updated**   | 2026-02-24                       |
+| **Last Updated**   | 2026-03-16                       |
 | **Owner**          | Nattanin Peancharoen             |
 | **Classification** | Internal Technical Documentation |
 
@@ -50,7 +50,7 @@
 ## 📖 คู่มือการพัฒนา (Implementation Guides)
 
 ### 1. [FullStack JS Guidelines](./05-01-fullstack-js-guidelines.md)
-**แนวทางการพัฒนาภาพรวมทั้งระบบ (v1.8.0)**
+**แนวทางการพัฒนาภาพรวมทั้งระบบ (v1.8.1 — includes NestJS 11 Patterns)**
 - โครงสร้างโปรเจกต์ (Monorepo-like focus)
 - Naming Conventions & Code Style
 - Secrets & Environment Management
@@ -58,7 +58,7 @@
 - Double-Lock Mechanism for Numbering
 
 ### 2. [Backend Guidelines](./05-02-backend-guidelines.md)
-**แนวทางการพัฒนา NestJS Backend**
+**แนวทางการพัฒนา NestJS 11 Backend**
 - Modular Architecture Detail
 - DTO Validation & Transformer
 - TypeORM Best Practices & Optimistic Locking
@@ -66,7 +66,7 @@
 - BullMQ for Background Jobs
 
 ### 3. [Frontend Guidelines](./05-03-frontend-guidelines.md)
-**แนวทางการพัฒนา Next.js Frontend**
+**แนวทางการพัฒนา Next.js 16 Frontend**
 - App Router Patterns
 - Shadcn/UI & Tailwind Styling
 - TanStack Query for Data Fetching
@@ -97,8 +97,8 @@
 
 | Layer        | Primary Technology | Secondary/Supporting |
 | ------------ | ------------------ | -------------------- |
-| **Backend**  | NestJS (Node.js)   | TypeORM, BullMQ      |
-| **Frontend** | Next.js 14+        | Shadcn/UI, Tailwind  |
+| **Backend**  | NestJS 11 (Express v5) | TypeORM, BullMQ      |
+| **Frontend** | Next.js 16 (React 19)  | Shadcn/UI, Tailwind  |
 | **Database** | MariaDB 11.8       | Redis 7 (Cache/Lock) |
 | **Search**   | Elasticsearch      | -                    |
 | **Testing**  | Jest, Vitest       | Playwright           |
@@ -115,7 +115,7 @@
 
 <div align="center">
 
-**LCBP3-DMS Implementation Specification v1.8.0**
+**LCBP3-DMS Implementation Specification v1.8.1**
 
 [FullStack](./05-01-fullstack-js-guidelines.md) • [Backend](./05-02-backend-guidelines.md) • [Frontend](./05-03-frontend-guidelines.md) • [Testing](./05-04-testing-strategy.md)
 

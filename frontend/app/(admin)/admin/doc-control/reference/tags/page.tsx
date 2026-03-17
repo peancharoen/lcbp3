@@ -16,7 +16,7 @@ export default function TagsPage() {
   const projectOptions = [
     { label: "Global (All Projects)", value: "__none__" },
     ...(projectsData || []).map((p: Record<string, unknown>) => ({
-      label: p.project_name || p.project_code || `Project ${p.id}`,
+      label: p.projectName || p.projectCode || p.project_name || p.project_code || `Project ${p.id}`,
       value: String(p.id),
     })),
   ];
@@ -29,7 +29,7 @@ export default function TagsPage() {
         const pId = row.original.project_id;
         if (!pId) return <span className="text-muted-foreground italic">Global</span>;
         const p = (projectsData || []).find((proj: Record<string, unknown>) => proj.id === pId);
-        return p ? (p.project_name || p.project_code || `Project ${pId}`) as React.ReactNode : pId as React.ReactNode;
+        return p ? (p.projectName || p.projectCode || p.project_name || p.project_code || `Project ${pId}`) as React.ReactNode : pId as React.ReactNode;
       },
     },
     {

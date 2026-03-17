@@ -10,49 +10,95 @@
 - Final Security Audit — ตาม `04-06-security-operations.md`
 - Go-Live: Blue-Green Deploy บน QNAP Container Station
 
+### NestJS 11 + Next.js 16 Migration (2026-03-16)
+
+#### Backend 🔧
+
+- **NestJS 11 Upgrade**: `@nestjs/*` v11, Express v5, removed `@nestjs/mapped-types`
+- **RequestWithUser Interface**: Shared typed interface replacing `req: any` across 6 controllers (`auth`, `session`, `file-storage`, `workflow-engine`, `correspondence`, `jwt-refresh`)
+- **MasterModule DI Fix**: Imported `UserModule` so `RbacGuard` can resolve `UserService`
+- **TypeORM Fix**: Explicit typing for `DocumentNumberFormat` save/create overload resolution
+- **Swagger**: Updated API version to 1.8.1
+
+#### Frontend 🎨
+
+- **Next.js 16 Upgrade**: Next.js 16.0.7, React 19
+- **proxy.ts Rename**: `middleware.ts` → `proxy.ts` (Next.js 16 deprecated `middleware` convention)
+- **ADR-019 UUID Fixes — Drawing Admin Pages (5 pages)**:
+  - `contract/volumes`, `contract/categories`, `contract/sub-categories`
+  - `shop/main-categories`, `shop/sub-categories`
+  - Changed `useState<number>` → `useState<string>`, removed `parseInt(uuid)`
+- **ADR-019 UUID Fixes — Contract Page**:
+  - Fixed edit form showing "New Contract" (`contract.uuid` → `contract.id` after `@Expose`)
+  - Fixed blank Project dropdown (was using contract's UUID instead of project's UUID)
+  - Fixed delete passing `undefined` uuid
+  - Updated `Contract` interface to match serialized API response
+- **ADR-019 UUID Fixes — Disciplines & RFA Types**:
+  - `useContracts(projectId=1)` → optional param, fetches all contracts when unspecified
+  - `useDisciplines(contractId?: number)` → `number | string`
+- **ADR-019 UUID Fixes — Tags Page**:
+  - Fixed Radix Select crash on empty `value=""` → `"__none__"` sentinel
+  - Fixed Project Scope dropdown showing UUIDs (snake_case → camelCase field names)
+- **DTO Updates**: `CreateContractDto`, `SearchContractDto`, `CreateShopMainCategoryDto`, etc. — `projectId: number` → `number | string`
+- **Service Updates**: `drawing-master-data.service.ts`, `master-data.service.ts` — accept `string | number` for project/contract IDs
+
+#### Documentation 📚
+
+- **ADR-005**: Updated Backend Stack table (NestJS 11, Express v5)
+- **Engineering Guidelines** (`05-01`): Added NestJS 11 specific patterns section
+- **README.md**: Tech stack versions, status date, ADR-019 in roadmap
+- **AGENTS.md**: Tech stack versions updated
+
 ---
 
 ## 1.8.1 Patch (2026-03-11)
 
 ### Summary
 
-**Product Owner Documentation Complete** — ปิด 10/10 Documentation Gaps สำหรับ UAT Readiness  
+**Product Owner Documentation Complete** — ปิด 10/10 Documentation Gaps สำหรับ UAT Readiness
 ระบบมีเอกสารครบถ้วนสำหรับ Stakeholder Sign-off และ Go-Live Process
 
 ### Documentation 📚 — 10/10 Gaps Closed
 
 #### Gap 1: Product Vision Statement ✅ `specs/00-Overview/00-03-product-vision.md`
+
 - Elevator Pitch, Problem Statement, Geoffrey Moore Vision Format
 - Strategic Pillars: Speed / Security / Visibility
 - Phase Roadmap (Now → 24 เดือน), Guardrails, Success Metrics
 
 #### Gap 2: User Stories ✅ `specs/01-Requirements/01-04-user-stories.md`
+
 - 27 User Stories ครอบคลุม 8 Epics
 - MoSCoW Prioritization per Story
 - Acceptance Criteria + Definition of Done
 
 #### Gap 3: Acceptance Criteria (UAT) ✅ `specs/01-Requirements/01-05-acceptance-criteria.md`
+
 - 35 Acceptance Criteria (All Modules)
 - UAT Plan: 4 Phases, Sign-off Process
 - Go-Live Criteria Matrix
 
 #### Gap 4: UI/UX Wireframes ✅ `specs/01-Requirements/01-07-ui-wireframes.md`
+
 - Screen Inventory: 26 Screens พร้อม Role + Priority
 - Navigation Map / Site Map ครบทุก Route
 - ASCII Wireframes: Login, Dashboard, Correspondence, RFA, Circulation, Admin
 - Design System Tokens + Interaction Patterns
 
 #### Gap 5: Stakeholder Sign-off & Risk ✅ `specs/00-Overview/00-04-stakeholder-signoff-and-risk.md`
+
 - Sign-off Process 4-Step + Digital Sign Matrix
 - Risk Register: 15 Risks (Impact × Probability Matrix)
 - Change Control Policy + Emergency Change Process
 
 #### Gap 6: KPI Baseline Data ✅ `specs/00-Overview/00-05-kpi-baseline.md`
+
 - 14 KPIs พร้อม Baseline Collection Form
 - SQL Measurement Queries + Grafana Dashboard Specs
 - User Satisfaction Survey Template
 
 #### Gap 7: Migration Business Scope ✅ `specs/03-Data-and-Storage/03-06-migration-business-scope.md`
+
 - Data Scope: IN/OUT SCOPE (ปี 2564 → Go-Live)
 - Migration Tiers: Tier 1 (2K Critical) / Tier 2 (10K) / Tier 3 (8K Archive)
 - Excel Metadata Mapping (11 Columns → Field ใหม่)
@@ -62,6 +108,7 @@
 - Data Security: AI Isolation (ADR-018) + Token 7 วัน + IP Whitelist
 
 #### Gap 8: Release Management Policy ✅ `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`
+
 - SemVer Strategy + Git Flow (main/release/develop/hotfix)
 - 5 Release Gates: Code Complete → QA → Staging → Approval → Production
 - Quality Thresholds: TS 0 errors, ≥80% Test Coverage, 0 Critical Vuln
@@ -71,11 +118,13 @@
 - Release Checklist + Security Pre-release Requirements
 
 #### Gap 9: Training Plan ✅ `specs/00-Overview/00-06-training-plan.md`
+
 - Curriculum แบ่งตาม Role (4 Roles)
 - 4-Phase Training Timeline
 - Hands-on Lab + Assessment Criteria
 
 #### Gap 10: Edge Cases & Business Rules ✅ `specs/01-Requirements/01-06-edge-cases-and-rules.md`
+
 - 37 Edge Cases ครอบคลุมทุก Module
 - Business Logic Guards + Error Handling Matrix
 

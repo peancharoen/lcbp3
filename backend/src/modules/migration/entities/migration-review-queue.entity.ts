@@ -20,10 +20,13 @@ export class MigrationReviewQueue {
   documentNumber!: string;
 
   @Column({ type: 'text', nullable: true })
-  title?: string;
+  subject?: string;
 
-  @Column({ name: 'original_title', type: 'text', nullable: true })
-  originalTitle?: string;
+  @Column({ name: 'original_subject', type: 'text', nullable: true })
+  originalSubject?: string;
+
+  @Column({ type: 'text', nullable: true })
+  body?: string;
 
   @Column({ name: 'ai_suggested_category', length: 50, nullable: true })
   aiSuggestedCategory?: string;

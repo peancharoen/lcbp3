@@ -14,11 +14,15 @@ export class EnqueueMigrationDto {
 
   @IsString()
   @IsOptional()
-  title?: string;
+  subject?: string;
 
   @IsString()
   @IsOptional()
-  original_title?: string;
+  original_subject?: string;
+
+  @IsString()
+  @IsOptional()
+  body?: string;
 
   @IsString()
   @IsOptional()
@@ -54,7 +58,10 @@ export class EnqueueMigrationDto {
 
   @IsArray()
   @IsOptional()
-  extracted_tags?: any[];
+  extracted_tags?: Record<string, string>[];
+
+  @IsOptional()
+  details?: Record<string, unknown>;
 
   @IsNumber()
   @IsOptional()

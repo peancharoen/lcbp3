@@ -1,8 +1,8 @@
 # Frontend Development Guidelines
 
-**สำหรับ:** NAP-DMS LCBP3 Frontend (Next.js + TypeScript)
-**เวอร์ชัน:** 1.5.0
-**อัปเดต:** 2025-12-01
+**สำหรับ:** NAP-DMS LCBP3 Frontend (Next.js 16 + TypeScript)
+**เวอร์ชัน:** 1.8.1
+**อัปเดต:** 2026-03-16
 
 ---
 
@@ -45,7 +45,7 @@ frontend/
 ├── public/                  # Static assets
 ├── styles/                  # Global styles
 ├── types/                   # TypeScript types & DTOs
-└── middleware.ts            # Next.js Middleware
+└── proxy.ts                # Next.js Proxy (renamed from middleware.ts in Next.js 16)
 ```
 
 ---

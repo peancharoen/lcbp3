@@ -10,19 +10,19 @@
 
 ---
 
-## 📈 Current Status (As of 2026-03-11)
+## 📈 Current Status (As of 2026-03-16)
 
 **Version 1.8.1 (Patch) — UAT Ready**
 
-| Area | Status | หมายเหตุ |
-|------|--------|--------|
-| 🔧 **Backend** | ✅ Production Ready | 18 Modules, ADR-018 AI Isolation |
-| 🎨 **Frontend** | ✅ 100% Complete | App Router, TanStack Query, Zustand |
-| 💾 **Database** | ✅ Schema v1.8.0 Stable | MariaDB 11.8, No-migration Policy |
-| 📘 **Documentation** | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy |
-| 🤖 **AI Migration** | 🔄 Pre-migration Setup | n8n + Ollama (ADR-017/018) |
-| 🧪 **Testing** | 🔄 UAT Preparation | E2E + Acceptance Criteria ready |
-| 🚀 **Deployment** | 📋 Pending Go-Live Gate | Blue-Green on QNAP Container Station |
+| Area                 | Status                   | หมายเหตุ                             |
+| -------------------- | ------------------------ | ------------------------------------ |
+| 🔧 **Backend**       | ✅ Production Ready      | NestJS 11, Express v5, 18 Modules    |
+| 🎨 **Frontend**      | ✅ 100% Complete         | Next.js 16, React 19, TanStack Query |
+| 💾 **Database**      | ✅ Schema v1.8.0 Stable  | MariaDB 11.8, No-migration Policy    |
+| 📘 **Documentation** | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy      |
+| 🤖 **AI Migration**  | 🔄 Pre-migration Setup   | n8n + Ollama (ADR-017/018)           |
+| 🧪 **Testing**       | 🔄 UAT Preparation       | E2E + Acceptance Criteria ready      |
+| 🚀 **Deployment**    | 📋 Pending Go-Live Gate  | Blue-Green on QNAP Container Station |
 
 ---
 
@@ -57,7 +57,7 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 
 ```typescript
 {
-  "framework": "NestJS (TypeScript, ESM)",
+  "framework": "NestJS 11 (TypeScript, Express v5)",
   "database": "MariaDB 11.8",
   "orm": "TypeORM",
   "authentication": "JWT + Passport",
@@ -75,7 +75,7 @@ LCBP3-DMS เป็นระบบบริหารจัดการเอก�
 
 ```typescript
 {
-  "framework": "Next.js 14+ (App Router)",
+  "framework": "Next.js 16 (App Router, proxy.ts)",
   "language": "TypeScript",
   "styling": "Tailwind CSS",
   "components": "shadcn/ui",
@@ -219,7 +219,7 @@ lcbp3-dms/
 │   │   ├── common/             # Shared utilities, guards, decorators
 │   │   ├── config/             # Configuration module
 │   │   ├── database/           # Database entities & migrations
-│   │   ├── modules/            # Feature modules (17 modules)
+│   │   ├── modules/            # Feature modules (18 modules)
 │   │   │   ├── auth/           # JWT Authentication
 │   │   │   ├── user/           # User management & RBAC
 │   │   │   ├── project/        # Project & Contract management
@@ -298,6 +298,7 @@ lcbp3-dms/
 │
 ├── .gemini/                    # 🤖 AI agent configuration
 ├── .agents/                    # Agent workflows and tools
+├── AGENTS.md                   # AI agent rules & project context
 ├── GEMINI.md                   # AI coding guidelines
 ├── CONTRIBUTING.md             # Contribution guidelines
 ├── CHANGELOG.md                # Version history
@@ -310,21 +311,21 @@ lcbp3-dms/
 
 ### เอกสารหลัก (specs/ folder)
 
-| เอกสาร | คำอธิบาย | Gap | ไฟล์หลัก |
-|--------|---------|-----|--------|
-| **Product Vision** | Vision, Strategic Pillars, Guardrails | Gap 1 ✅ | `00-03-product-vision.md` |
-| **User Stories** | 27 Stories, 8 Epics, MoSCoW | Gap 2 ✅ | `01-04-user-stories.md` |
-| **Acceptance Criteria** | UAT Criteria, Sign-off Process | Gap 3 ✅ | `01-05-acceptance-criteria.md` |
-| **UI/UX Wireframes** | 26 Screens, ASCII Wireframes, Design System | Gap 4 ✅ | `01-07-ui-wireframes.md` |
-| **Stakeholder & Risk** | Sign-off, Risk Register, Change Control | Gap 5 ✅ | `00-04-stakeholder-signoff-and-risk.md` |
-| **KPI Baseline** | 14 KPIs, SQL Queries, Grafana Specs | Gap 6 ✅ | `00-05-kpi-baseline.md` |
-| **Migration Scope** | 20K Docs, 3 Tiers, Go/No-Go Gates | Gap 7 ✅ | `03-06-migration-business-scope.md` |
-| **Release Policy** | SemVer, 5 Gates, Hotfix, Rollback | Gap 8 ✅ | `04-08-release-management-policy.md` |
-| **Training Plan** | Curriculum per Role, UAT Training | Gap 9 ✅ | `00-06-training-plan.md` |
-| **Edge Cases & Rules** | 37 Edge Cases, Business Logic Guards | Gap 10 ✅ | `01-06-edge-cases-and-rules.md` |
-| **Schema v1.8.0** | Tables, Views, Indexes (3-file split) | — | `lcbp3-v1.8.0-schema-*.sql` |
-| **Data Dictionary** | Field Meanings, Business Rules | — | `03-01-data-dictionary.md` |
-| **ADRs (17+1)** | All Architecture Decisions incl. ADR-018 | — | `06-Decision-Records/` |
+| เอกสาร                  | คำอธิบาย                                     | Gap       | ไฟล์หลัก                                |
+| ----------------------- | -------------------------------------------- | --------- | --------------------------------------- |
+| **Product Vision**      | Vision, Strategic Pillars, Guardrails        | Gap 1 ✅  | `00-03-product-vision.md`               |
+| **User Stories**        | 27 Stories, 8 Epics, MoSCoW                  | Gap 2 ✅  | `01-04-user-stories.md`                 |
+| **Acceptance Criteria** | UAT Criteria, Sign-off Process               | Gap 3 ✅  | `01-05-acceptance-criteria.md`          |
+| **UI/UX Wireframes**    | 26 Screens, ASCII Wireframes, Design System  | Gap 4 ✅  | `01-07-ui-wireframes.md`                |
+| **Stakeholder & Risk**  | Sign-off, Risk Register, Change Control      | Gap 5 ✅  | `00-04-stakeholder-signoff-and-risk.md` |
+| **KPI Baseline**        | 14 KPIs, SQL Queries, Grafana Specs          | Gap 6 ✅  | `00-05-kpi-baseline.md`                 |
+| **Migration Scope**     | 20K Docs, 3 Tiers, Go/No-Go Gates            | Gap 7 ✅  | `03-06-migration-business-scope.md`     |
+| **Release Policy**      | SemVer, 5 Gates, Hotfix, Rollback            | Gap 8 ✅  | `04-08-release-management-policy.md`    |
+| **Training Plan**       | Curriculum per Role, UAT Training            | Gap 9 ✅  | `00-06-training-plan.md`                |
+| **Edge Cases & Rules**  | 37 Edge Cases, Business Logic Guards         | Gap 10 ✅ | `01-06-edge-cases-and-rules.md`         |
+| **Schema v1.8.0**       | Tables, Views, Indexes (3-file split)        | —         | `lcbp3-v1.8.0-schema-*.sql`             |
+| **Data Dictionary**     | Field Meanings, Business Rules               | —         | `03-01-data-dictionary.md`              |
+| **ADRs (17+2)**         | All Architecture Decisions incl. ADR-018/019 | —         | `06-Decision-Records/`                  |
 
 ### Schema & Seed Data (v1.8.0)
 
@@ -562,21 +563,31 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 
 **10/10 Documentation Gaps Closed:**
 
-| Gap | เอกสาร | สถานะ |
-|-----|--------|------|
-| 1 | Product Vision Statement | ✅ |
-| 2 | User Stories (27 Stories, 8 Epics) | ✅ |
-| 3 | Acceptance Criteria & UAT Plan | ✅ |
-| 4 | UI/UX Wireframes (26 Screens) | ✅ |
-| 5 | Stakeholder Sign-off & Risk Register | ✅ |
-| 6 | KPI Baseline Data (14 KPIs) | ✅ |
-| 7 | Migration Business Scope (20K Docs) | ✅ |
-| 8 | Release Management Policy (SemVer + Gates) | ✅ |
-| 9 | Training Plan (per Role, 4 phases) | ✅ |
-| 10 | Edge Cases & Business Rules (37 rules) | ✅ |
+| Gap | เอกสาร                                     | สถานะ |
+| --- | ------------------------------------------ | ----- |
+| 1   | Product Vision Statement                   | ✅    |
+| 2   | User Stories (27 Stories, 8 Epics)         | ✅    |
+| 3   | Acceptance Criteria & UAT Plan             | ✅    |
+| 4   | UI/UX Wireframes (26 Screens)              | ✅    |
+| 5   | Stakeholder Sign-off & Risk Register       | ✅    |
+| 6   | KPI Baseline Data (14 KPIs)                | ✅    |
+| 7   | Migration Business Scope (20K Docs)        | ✅    |
+| 8   | Release Management Policy (SemVer + Gates) | ✅    |
+| 9   | Training Plan (per Role, 4 phases)         | ✅    |
+| 10  | Edge Cases & Business Rules (37 rules)     | ✅    |
 
 - ✅ ADR-018: AI Boundary (Ollama Isolation มี No Direct DB/Storage Access)
+- ✅ ADR-019: Hybrid Identifier Strategy (INT PK + UUIDv7 Public API)
 - ✅ Migration n8n Workflow + AI Isolation Plan
+
+### ✅ NestJS 11 + Next.js 16 Migration (Mar 2026)
+
+- ✅ Backend upgraded to **NestJS 11** (Express v5, `@nestjs/*` v11)
+- ✅ Shared `RequestWithUser` typed interface (replaced `req: any` across 6 controllers)
+- ✅ Frontend upgraded to **Next.js 16** (React 19)
+- ✅ Renamed `middleware.ts` → `proxy.ts` (Next.js 16 convention)
+- ✅ ADR-019 UUID fixes: Drawing admin pages (5), Contracts, Disciplines, Tags, RFA Types
+- ✅ Fixed contract edit form (UUID mismatch), disciplines dropdown (hardcoded projectId), tags crash (empty Select value)
 
 ### 🔄 Next: Go-Live Preparation
 

@@ -1,7 +1,7 @@
 # Architecture Decision Records (ADRs)
 
-**Version:** 1.8.0
-**Last Updated:** 2026-02-24
+**Version:** 1.8.1
+**Last Updated:** 2026-03-16
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
 
 ---
@@ -43,7 +43,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 | ADR                                                 | Title                                | Status               | Date       | Summary                                                      |
 | --------------------------------------------------- | ------------------------------------ | -------------------- | ---------- | ------------------------------------------------------------ |
-| [ADR-005](./ADR-005-technology-stack.md)            | Technology Stack Selection           | ✅ Accepted           | 2026-02-24 | Full Stack TypeScript: NestJS + Next.js + MariaDB + Redis    |
+| [ADR-005](./ADR-005-technology-stack.md)            | Technology Stack Selection           | ✅ Accepted           | 2026-02-24 | Full Stack TypeScript: NestJS 11 + Next.js 16 + MariaDB + Redis |
 | [ADR-006](./ADR-006-redis-caching-strategy.md)      | Redis Usage & Caching Strategy       | ✅ Accepted           | 2026-02-24 | Redis สำหรับ Distributed Lock, Cache, Queue, และ Rate Limiting |
 | [ADR-009](./ADR-009-database-migration-strategy.md) | Database Migration & Deployment      | ✅ Accepted (Pending) | 2026-02-24 | TypeORM Migrations พร้อม Blue-Green Deployment                |
 | [ADR-015](./ADR-015-deployment-infrastructure.md)   | Deployment & Infrastructure Strategy | ✅ Accepted           | 2026-02-24 | Docker Compose with Blue-Green Deployment on QNAP            |
@@ -69,6 +69,12 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 | [ADR-013](./ADR-013-form-handling-validation.md) | Form Handling & Validation       | ✅ Accepted | 2026-02-24 | React Hook Form + Zod for Type-Safe Forms             |
 | [ADR-014](./ADR-014-state-management.md)         | State Management Strategy        | ✅ Accepted | 2026-02-24 | Zustand for Client State + Server Components          |
 
+### Data & Identity
+
+| ADR                                                          | Title                        | Status     | Date       | Summary                                                  |
+| ------------------------------------------------------------ | ---------------------------- | ---------- | ---------- | -------------------------------------------------------- |
+| [ADR-019](./ADR-019-hybrid-identifier-strategy.md)           | Hybrid Identifier Strategy   | ✅ Accepted | 2026-03-11 | INT PK (internal) + UUIDv7 (public API) on 14 tables     |
+
 ---
 
 ## 🔍 ADR Categories
@@ -91,7 +97,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 ### 4. Infrastructure & Performance
 
-- **ADR-005:** Technology Stack - TypeScript ecosystem
+- **ADR-005:** Technology Stack - TypeScript ecosystem (NestJS 11, Next.js 16)
 - **ADR-006:** Redis - Caching และ Distributed coordination
 - **ADR-015:** Deployment - Docker Compose with Blue-Green Deployment
 
@@ -109,6 +115,10 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 - **ADR-012:** UI Components - Shadcn/UI + Tailwind CSS
 - **ADR-013:** Form Handling - React Hook Form + Zod Validation
 - **ADR-014:** State Management - Zustand + Server Components
+
+### 8. Data & Identity
+
+- **ADR-019:** Hybrid Identifier Strategy - INT PK (internal) + UUIDv7 (public API) บน 14 tables
 
 ---
 

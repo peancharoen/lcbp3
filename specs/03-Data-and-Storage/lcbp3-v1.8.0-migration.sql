@@ -23,8 +23,9 @@ CREATE TABLE IF NOT EXISTS migration_progress (
 CREATE TABLE IF NOT EXISTS migration_review_queue (
   id INT AUTO_INCREMENT PRIMARY KEY,
   document_number VARCHAR(100) NOT NULL,
-  title TEXT,
-  original_title TEXT,
+  subject TEXT COMMENT 'หัวข้อเรื่อง (ตรงกับ correspondence_revisions.subject)',
+  original_subject TEXT COMMENT 'หัวข้อเดิมจาก Excel (ก่อน AI แก้ไข)',
+  body TEXT NULL COMMENT 'เนื้อความสรุปจาก AI (เตรียมนำเข้า correspondence_revisions.body)',
   project_id INT NULL COMMENT 'Project ID จาก Lookups',
   sender_organization_id INT NULL COMMENT 'Sender ID จาก Lookups',
   receiver_organization_id INT NULL COMMENT 'Receiver ID จาก Lookups',
@@ -54,6 +55,8 @@ CREATE TABLE IF NOT EXISTS migration_errors (
   document_number VARCHAR(100),
   error_type ENUM(
     'FILE_NOT_FOUND',
+    'MISSING_FILENAME',
+    'FILE_ERROR',
     'AI_PARSE_ERROR',
     'API_ERROR',
     'DB_ERROR',

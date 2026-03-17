@@ -1,11 +1,30 @@
-import { Controller, Post, Body, Headers, UseGuards, Get, Param, Query, Res, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Headers,
+  UseGuards,
+  Get,
+  Param,
+  Query,
+  Res,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { MigrationService } from './migration.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { EnqueueMigrationDto } from './dto/enqueue-migration.dto';
 import { CommitBatchDto } from './dto/commit-batch.dto';
+import { CreateMigrationErrorDto } from './dto/create-migration-error.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader, ApiQuery, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiHeader,
+  ApiQuery,
+  ApiParam,
+} from '@nestjs/swagger';
 import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
 import type { Response } from 'express';
 
@@ -17,10 +36,13 @@ export class MigrationController {
 
   @Post('import')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Import generic legacy correspondence record via n8n integration' })
+  @ApiOperation({
+    summary: 'Import generic legacy correspondence record via n8n integration',
+  })
   @ApiHeader({
     name: 'Idempotency-Key',
-    description: 'Unique key per document and batch to prevent duplicate inserts',
+    description:
+      'Unique key per document and batch to prevent duplicate inserts',
     required: true,
   })
   async importCorrespondence(
@@ -29,15 +51,22 @@ export class MigrationController {
     @CurrentUser() user: any
   ) {
     const userId = user?.id || user?.userId || 5;
-    return this.migrationService.importCorrespondence(dto, idempotencyKey, userId);
+    return this.migrationService.importCorrespondence(
+      dto,
+      idempotencyKey,
+      userId
+    );
   }
 
   @Post('commit_batch')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Batch approve and import migration review queue items' })
+  @ApiOperation({
+    summary: 'Batch approve and import migration review queue items',
+  })
   @ApiHeader({
     name: 'Idempotency-Key',
-    description: 'Unique key for the entire batch to prevent duplicate execution',
+    description:
+      'Unique key for the entire batch to prevent duplicate execution',
     required: true,
   })
   async commitBatch(
@@ -51,7 +80,9 @@ export class MigrationController {
 
   @Post('queue')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Enqueue a record into the staging migration review queue' })
+  @ApiOperation({
+    summary: 'Enqueue a record into the staging migration review queue',
+  })
   async enqueueRecord(@Body() dto: EnqueueMigrationDto) {
     return this.migrationService.enqueueRecord(dto);
   }
@@ -69,6 +100,13 @@ export class MigrationController {
   @ApiParam({ name: 'id', type: Number })
   async getQueueItemById(@Param('id', ParseIntPipe) id: number) {
     return this.migrationService.getQueueItemById(id);
+  }
+
+  @Post('errors')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Log a migration error from n8n workflow' })
+  async createError(@Body() dto: CreateMigrationErrorDto) {
+    return this.migrationService.createError(dto);
   }
 
   @Get('errors')
@@ -89,7 +127,8 @@ export class MigrationController {
   @ApiParam({ name: 'id', type: Number })
   @ApiHeader({
     name: 'Idempotency-Key',
-    description: 'Unique key per document and batch to prevent duplicate inserts',
+    description:
+      'Unique key per document and batch to prevent duplicate inserts',
     required: true,
   })
   async approveQueueItem(
@@ -99,7 +138,12 @@ export class MigrationController {
     @CurrentUser() user: any
   ) {
     const userId = user?.id || user?.userId || 5;
-    return this.migrationService.approveQueueItem(id, dto, idempotencyKey, userId);
+    return this.migrationService.approveQueueItem(
+      id,
+      dto,
+      idempotencyKey,
+      userId
+    );
   }
 
   @Post('queue/:id/reject')
@@ -118,10 +162,7 @@ export class MigrationController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Stream a file from staging' })
   @ApiQuery({ name: 'path', required: true, type: String })
-  async getStagingFile(
-    @Query('path') filePath: string,
-    @Res() res: Response
-  ) {
+  async getStagingFile(@Query('path') filePath: string, @Res() res: Response) {
     const stream = this.migrationService.getStagingFileStream(filePath);
     res.set({
       'Content-Type': 'application/pdf',
@@ -130,4 +171,3 @@ export class MigrationController {
     stream.pipe(res);
   }
 }
-

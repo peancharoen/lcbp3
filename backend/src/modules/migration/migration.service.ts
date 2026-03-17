@@ -10,6 +10,7 @@ import { Repository, DataSource } from 'typeorm';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
 import { EnqueueMigrationDto } from './dto/enqueue-migration.dto';
 import { CommitBatchDto } from './dto/commit-batch.dto';
+import { CreateMigrationErrorDto } from './dto/create-migration-error.dto';
 import { ImportTransaction } from './entities/import-transaction.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
@@ -78,18 +79,36 @@ export class MigrationService {
     }
 
     // 2. Fetch Dependencies
+    // Alias map: n8n AI categories → correspondence_types.type_code
+    const CATEGORY_ALIAS: Record<string, string> = {
+      Correspondence: 'LETTER',
+      Letter: 'LETTER',
+      Drawing: 'OTHER',
+      Report: 'OTHER',
+      Other: 'OTHER',
+    };
+
     const type = await this.correspondenceTypeRepo.findOne({
       where: { typeName: dto.category },
     });
 
     // If exact name isn't found, try typeCode just in case
-    const typeId = type
+    let typeId = type
       ? type.id
       : (
           await this.correspondenceTypeRepo.findOne({
             where: { typeCode: dto.category },
           })
         )?.id;
+
+    // Third-level fallback: resolve via alias map
+    if (!typeId && dto.category && CATEGORY_ALIAS[dto.category]) {
+      typeId = (
+        await this.correspondenceTypeRepo.findOne({
+          where: { typeCode: CATEGORY_ALIAS[dto.category] },
+        })
+      )?.id;
+    }
 
     if (!typeId) {
       throw new BadRequestException(
@@ -152,9 +171,9 @@ export class MigrationService {
         // --- CTI: insert RFA class ---
         if (isRFA) {
           // Default RFA type generic mapping
-          const rfaTypeRes = (await queryRunner.manager.query(
+          const rfaTypeRes = await queryRunner.manager.query(
             "SELECT id FROM rfa_types WHERE type_code = 'GEN' LIMIT 1"
-          )) as Array<{ id: number }>;
+          );
           const rfa = queryRunner.manager.create('Rfa', {
             id: correspondence.id,
             rfaTypeId: rfaTypeRes[0]?.id || 1, // fallback to id 1
@@ -190,8 +209,11 @@ export class MigrationService {
             { isTemporary: false }
           );
         } catch (fileError: unknown) {
-          const errMsg = fileError instanceof Error ? fileError.message : String(fileError);
-          this.logger.warn(`Failed to update temp_file [id:${attachmentId}]: ${errMsg}`);
+          const errMsg =
+            fileError instanceof Error ? fileError.message : String(fileError);
+          this.logger.warn(
+            `Failed to update temp_file [id:${attachmentId}]: ${errMsg}`
+          );
         }
       } else if (dto.source_file_path) {
         try {
@@ -220,7 +242,8 @@ export class MigrationService {
         }
         const parsed = new Date(d);
         if (isNaN(parsed.getTime())) return undefined;
-        if (parsed.getFullYear() > 2100 || parsed.getFullYear() < 1900) return undefined;
+        if (parsed.getFullYear() > 2100 || parsed.getFullYear() < 1900)
+          return undefined;
         return parsed;
       };
 
@@ -269,9 +292,9 @@ export class MigrationService {
       // --- CTI: insert RfaRevision ---
       if (isRFA) {
         // Map Status code to RFA Equivalent 'APP' (Approved) if exist, or id 3 (typically Approved)
-        const rfaStatusRes = (await queryRunner.manager.query(
+        const rfaStatusRes = await queryRunner.manager.query(
           "SELECT id FROM rfa_status_codes WHERE status_code = 'APP' LIMIT 1"
-        )) as Array<{ id: number }>;
+        );
 
         const rfaRev = queryRunner.manager.create('RfaRevision', {
           id: revision.id,
@@ -306,19 +329,19 @@ export class MigrationService {
           if (!tagName) continue;
 
           // Find or create Tag
-          const tagRes = (await queryRunner.manager.query(
+          const tagRes = await queryRunner.manager.query(
             'SELECT id FROM tags WHERE project_id = ? AND tag_name = ? LIMIT 1',
             [project.id, tagName]
-          )) as Array<{ id: number }>;
+          );
 
           let tagId: number;
           if (tagRes && tagRes.length > 0) {
             tagId = tagRes[0].id;
           } else {
-            const insertRes = (await queryRunner.manager.query(
+            const insertRes = await queryRunner.manager.query(
               "INSERT INTO tags (project_id, tag_name, color_code, created_by) VALUES (?, ?, 'default', ?)",
               [project.id, tagName, userId]
-            )) as { insertId: number };
+            );
             tagId = insertRes.insertId;
           }
 
@@ -384,7 +407,10 @@ export class MigrationService {
 
     // Determine status based on confidence policy in ADR-017
     let autoStatus = MigrationReviewStatus.PENDING;
-    if (dto.is_valid === false || (dto.confidence != null && dto.confidence < 0.60)) {
+    if (
+      dto.is_valid === false ||
+      (dto.confidence != null && dto.confidence < 0.6)
+    ) {
       autoStatus = MigrationReviewStatus.REJECTED;
     }
 
@@ -399,8 +425,9 @@ export class MigrationService {
       });
     }
 
-    queueItem.title = dto.title;
-    queueItem.originalTitle = dto.original_title;
+    queueItem.subject = dto.subject;
+    queueItem.originalSubject = dto.original_subject;
+    queueItem.body = dto.body;
     queueItem.aiSuggestedCategory = dto.category;
     queueItem.aiConfidence = dto.confidence;
     queueItem.aiIssues = dto.ai_issues;
@@ -424,7 +451,9 @@ export class MigrationService {
 
     await this.reviewQueueRepo.save(queueItem);
 
-    this.logger.log(`Enqueued document [${dto.document_number}] to staging queue with status [${autoStatus}]`);
+    this.logger.log(
+      `Enqueued document [${dto.document_number}] to staging queue with status [${autoStatus}]`
+    );
 
     return {
       message: 'Document enqueued successfully',
@@ -441,7 +470,7 @@ export class MigrationService {
     if (status) {
       queryBuilder.where('queue.status = :status', { status });
     }
-    
+
     queryBuilder.orderBy('queue.createdAt', 'DESC');
     queryBuilder.skip(skip).take(limit);
 
@@ -464,6 +493,21 @@ export class MigrationService {
     return item;
   }
 
+  async createError(dto: CreateMigrationErrorDto) {
+    const error = this.errorRepo.create({
+      batchId: dto.batch_id,
+      documentNumber: dto.document_number,
+      errorType: dto.error_type,
+      errorMessage: dto.error_message,
+      rawAiResponse: dto.raw_ai_response,
+    });
+    const saved = await this.errorRepo.save(error);
+    this.logger.warn(
+      `Migration error logged [${dto.error_type}] for doc [${dto.document_number}] batch [${dto.batch_id}]`
+    );
+    return { message: 'Error logged', id: saved.id };
+  }
+
   async getErrors(page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
 
@@ -482,14 +526,21 @@ export class MigrationService {
     };
   }
 
-  async approveQueueItem(id: number, dto: ImportCorrespondenceDto, idempotencyKey: string, userId: number) {
+  async approveQueueItem(
+    id: number,
+    dto: ImportCorrespondenceDto,
+    idempotencyKey: string,
+    userId: number
+  ) {
     const queueItem = await this.reviewQueueRepo.findOne({ where: { id } });
     if (!queueItem) {
       throw new BadRequestException(`Queue item ${id} not found`);
     }
 
     if (queueItem.status !== MigrationReviewStatus.PENDING) {
-      throw new BadRequestException(`Queue item ${id} is already ${queueItem.status}`);
+      throw new BadRequestException(
+        `Queue item ${id} is already ${queueItem.status}`
+      );
     }
 
     // Attempt the import
@@ -504,42 +555,53 @@ export class MigrationService {
     return result;
   }
 
-  async commitBatch(dto: CommitBatchDto, idempotencyKey: string, userId: number) {
+  async commitBatch(
+    dto: CommitBatchDto,
+    idempotencyKey: string,
+    userId: number
+  ) {
     if (!idempotencyKey) {
       throw new BadRequestException('Idempotency-Key header is required');
     }
 
     const results = [];
     const errors = [];
-    
-    // We let each import have its own transaction via approveQueueItem 
+
+    // We let each import have its own transaction via approveQueueItem
     // to avoid one bad record failing the entire batch of valid ones.
-    
+
     for (const item of dto.items) {
-       // Create a unique sub-key for each item to avoid idempotency conflicts
-       // when using a batch idempotency key.
-       const subKey = `${idempotencyKey}_${item.queueId}`;
-       
-       // Force batchId on the item dto
-       item.dto.batch_id = dto.batchId;
-       
-       try {
-           const result = await this.approveQueueItem(item.queueId, item.dto, subKey, userId);
-           results.push({ queueId: item.queueId, result });
-       } catch (err: unknown) {
-           const errorMessage = err instanceof Error ? err.message : String(err);
-           errors.push({ queueId: item.queueId, error: errorMessage });
-           this.logger.error(`Batch commit failed for queue ID ${item.queueId}: ${errorMessage}`);
-       }
+      // Create a unique sub-key for each item to avoid idempotency conflicts
+      // when using a batch idempotency key.
+      const subKey = `${idempotencyKey}_${item.queueId}`;
+
+      // Force batchId on the item dto
+      item.dto.batch_id = dto.batchId;
+
+      try {
+        const result = await this.approveQueueItem(
+          item.queueId,
+          item.dto,
+          subKey,
+          userId
+        );
+        results.push({ queueId: item.queueId, result });
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        errors.push({ queueId: item.queueId, error: errorMessage });
+        this.logger.error(
+          `Batch commit failed for queue ID ${item.queueId}: ${errorMessage}`
+        );
+      }
     }
-    
+
     return {
-        message: 'Batch processing completed',
-        batchId: dto.batchId,
-        processed: results.length,
-        failed: errors.length,
-        results,
-        errors
+      message: 'Batch processing completed',
+      batchId: dto.batchId,
+      processed: results.length,
+      failed: errors.length,
+      results,
+      errors,
     };
   }
 
@@ -562,15 +624,14 @@ export class MigrationService {
 
   getStagingFileStream(filePath: string) {
     if (!filePath) {
-        throw new BadRequestException('File path is required');
+      throw new BadRequestException('File path is required');
     }
 
     const resolvedPath = path.resolve(filePath);
     if (!existsSync(resolvedPath)) {
-        throw new BadRequestException('File not found at specified path');
+      throw new BadRequestException('File not found at specified path');
     }
 
     return createReadStream(resolvedPath);
   }
 }
-

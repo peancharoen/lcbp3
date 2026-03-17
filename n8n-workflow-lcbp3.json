@@ -38,23 +38,23 @@
         },
         "options": {}
       },
-      "id": "4609ab68-f7e4-4800-ad39-19ce32de60d0",
+      "id": "8ae8102d-0de5-4646-87c9-ed4bb619614d",
       "name": "Form Trigger",
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
-      "position": [31024, 13504],
-      "webhookId": "e164a362-0c6b-4243-a5ad-b325aa943f4f",
+      "position": [-1360, -27472],
+      "webhookId": "5cb2ee58-164a-4db4-a107-46cf1a51009f",
       "notes": "เปิด URL เพื่อเลือก Model ก่อนรัน"
     },
     {
       "parameters": {
         "jsCode": "// Read model selected from Form Trigger dropdown\nconst formData = $('Form Trigger').first()?.json || {};\nconst selectedModelLabel = String(formData['Ollama Model (Primary)'] || '');\n\n// Extract just the model ID (before the space in the label)\nconst MODEL_MAP = {\n  'qwen2.5:7b-instruct-q4_K_M (สมดุล - แนะนำ)': 'qwen2.5:7b-instruct-q4_K_M',\n  'scb10x/typhoon2.1-gemma3-4b (เร็ว + ไทยดี)': 'scb10x/typhoon2.1-gemma3-4b',\n  'promptnow/openthaigpt1.5-7b-instruct-q4_k_m (ไทยเฉพาะทาง)': 'promptnow/openthaigpt1.5-7b-instruct-q4_k_m'\n};\nconst selectedModel = MODEL_MAP[selectedModelLabel] || 'scb10x/typhoon2.1-gemma3-4b';\n\nconst batchSizeInput = parseInt(formData['Batch Size'] || '0');\nconst excelFileInput = String(formData['Excel File Path'] || '').trim();\n\nconst CONFIG = {\n  // Ollama Settings\n  OLLAMA_HOST: 'http://192.168.20.100:11434',\n  // Model selected from Form UI\n  OLLAMA_MODEL_PRIMARY: selectedModel,\n  // Fallback\n  OLLAMA_MODEL_FALLBACK: 'mistral:7b-instruct-q4_K_M',\n  \n  // Backend Settings\n  BACKEND_URL: 'https://backend.np-dms.work',\n  MIGRATION_TOKEN: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1pZ3JhdGlvbl9ib3QiLCJzdWIiOjUsInNjb3BlIjoiR2xvYmFsIiwiaWF0IjoxNzcyNzc0MzI5LCJleHAiOjQ5Mjg1MzQzMjl9.TtA8zoHy7G9J5jPgYQPv7yw-9X--B_hl-Nv-c9V4PaA',\n  \n  // Batch Settings\n  BATCH_SIZE: batchSizeInput > 0 ? batchSizeInput : 2,\n  BATCH_ID: (() => { const d = new Date(Date.now() + 7 * 3600000); const s = d.toISOString(); return s.substring(0,10).replace(/-/g,'') + ':' + s.substring(11,16).replace(/:/g,''); })(),\n  DELAY_MS: 2000,\n  \n  // Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n  MAX_RETRY: 3,\n  FALLBACK_THRESHOLD: 5,\n  \n  // Source Definitions - แก้ไขโฟลเดอร์และไฟล์ทำงานที่นี่\n  EXCEL_FILE: excelFileInput || '/home/node/.n8n-files/staging_ai/C22024.xlsx',\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai/Incoming/08C.2/2567',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n  PROJECT_ID: 1\n};\n\nreturn { config: CONFIG };"
       },
-      "id": "8f1d3378-cca6-48b6-99db-693e46ac81ef",
+      "id": "f6d94e21-daa6-4dcc-ba37-e822ded168d6",
       "name": "Set Configuration",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [31216, 13504],
+      "position": [-1184, -27584],
       "notes": "กำหนดค่า Configuration ทั้งหมด - แก้ไขที่นี่ก่อนรัน"
     },
     {
@@ -73,11 +73,11 @@
           "timeout": 10000
         }
       },
-      "id": "6c6679b4-85f3-4c2c-ac8e-4281d6ae61f6",
+      "id": "9f8bd98a-997d-4471-a80d-d93abe64888f",
       "name": "Fetch Categories",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [31216, 13696],
+      "position": [-1184, -27392],
       "notes": "ดึง Categories จาก Backend"
     },
     {
@@ -96,11 +96,11 @@
           "timeout": 10000
         }
       },
-      "id": "98b9159a-f21d-4b33-9524-058a78ccfc93",
+      "id": "c40d67a5-de33-4898-8d2d-cf77bd89fa20",
       "name": "Fetch Tags",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [31392, 13696],
+      "position": [-1008, -27392],
       "notes": "ดึง Tags ที่มีอยู่แล้วจาก Backend"
     },
     {
@@ -110,23 +110,23 @@
           "timeout": 5000
         }
       },
-      "id": "60e81de6-e9b2-4bff-afcc-bef9d5b959b5",
+      "id": "02ef2241-b2b9-436e-98b2-7bbad7da67e6",
       "name": "Check Backend Health",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [31392, 13504],
+      "position": [-816, -27584],
       "onError": "continueErrorOutput",
       "notes": "ตรวจสอบ Backend พร้อมใช้งาน"
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\n// Check file mount and inputs\ntry {\n  if (!fs.existsSync(config.EXCEL_FILE)) {\n    throw new Error(`Excel file not found at: ${config.EXCEL_FILE}`);\n  }\n  if (!fs.existsSync(config.SOURCE_PDF_DIR)) {\n    throw new Error(`PDF Source directory not found at: ${config.SOURCE_PDF_DIR}`);\n  }\n  \n  const files = fs.readdirSync(config.SOURCE_PDF_DIR);\n  \n  // Check write permission to log path\n  if (!fs.existsSync(config.LOG_PATH)) {\n    fs.mkdirSync(config.LOG_PATH, { recursive: true });\n  }\n  fs.writeFileSync(`${config.LOG_PATH}/.preflight_ok`, new Date().toISOString());\n  \n  // Grab categories out of the previous node (Fetch Categories) if available\n  let categories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  try {\n    const upstreamData = $('Fetch Categories').first()?.json?.data;\n    if (upstreamData && Array.isArray(upstreamData)) {\n        categories = upstreamData.map(c => c.name || c.type || c); \n    }\n  } catch(e) {}\n  \n  // Grab existing tags from Fetch Tags node\n  let existingTags = [];\n  try {\n    const tagData = $('Fetch Tags').first()?.json?.data || [];\n    existingTags = Array.isArray(tagData) ? tagData.map(t => t.tag_name || t.name || '').filter(Boolean) : [];\n  } catch(e) {}\n    \n  return [{ json: { \n    preflight_ok: true, \n    pdf_count_in_source: files.length,\n    excel_target: config.EXCEL_FILE,\n    system_categories: categories,\n    existing_tags: existingTags,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}"
+        "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\n// Check file mount and inputs\ntry {\n  if (!fs.existsSync(config.EXCEL_FILE)) {\n    throw new Error(`Excel file not found at: ${config.EXCEL_FILE}`);\n  }\n  if (!fs.existsSync(config.SOURCE_PDF_DIR)) {\n    throw new Error(`PDF Source directory not found at: ${config.SOURCE_PDF_DIR}`);\n  }\n  \n  const files = fs.readdirSync(config.SOURCE_PDF_DIR);\n  \n  // Check write permission to log path\n  if (!fs.existsSync(config.LOG_PATH)) {\n    fs.mkdirSync(config.LOG_PATH, { recursive: true });\n  }\n  fs.writeFileSync(`${config.LOG_PATH}/.preflight_ok`, new Date().toISOString());\n  \n  // Grab categories out of the previous node (Fetch Categories) if available\n  // API returns raw array — each item becomes a separate n8n item\n  let categories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  try {\n    const upstreamItems = $('Fetch Categories').all().map(i => i.json);\n    if (upstreamItems && upstreamItems.length > 0) {\n        categories = upstreamItems.map(c => c.typeName || c.typeCode || c); \n    }\n  } catch(e) {}\n  \n  // Grab existing tags from Fetch Tags node\n  // API returns raw array — each item becomes a separate n8n item\n  let existingTags = [];\n  try {\n    const tagItems = $('Fetch Tags').all().map(i => i.json);\n    existingTags = Array.isArray(tagItems) ? tagItems.map(t => t.tag_name || t.name || '').filter(Boolean) : [];\n  } catch(e) {}\n    \n  return [{ json: { \n    preflight_ok: true, \n    pdf_count_in_source: files.length,\n    excel_target: config.EXCEL_FILE,\n    system_categories: categories,\n    existing_tags: existingTags,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}"
       },
-      "id": "910b13e2-994a-4fb6-bca1-637e1628c586",
+      "id": "2204f397-a2bf-4eaa-88b6-d0242d06fad7",
       "name": "File Mount Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [31216, 13904],
+      "position": [-816, -27392],
       "notes": "ตรวจสอบ File System มีไฟล์ Excel และ Folder ตามตั้งค่า"
     },
     {
@@ -135,11 +135,11 @@
         "query": "SELECT last_processed_index, status FROM migration_progress WHERE batch_id = '{{$('Set Configuration').first().json.config.BATCH_ID}}' LIMIT 1",
         "options": {}
       },
-      "id": "a83f8598-72fd-4cc8-9d98-1ea3cb3b42df",
+      "id": "a1630364-d44b-4ef4-bc51-f0f75adf20f9",
       "name": "Read Checkpoint",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [31632, 13744],
+      "position": [-768, -27168],
       "alwaysOutputData": true,
       "credentials": {
         "mySql": {
@@ -155,45 +155,45 @@
         "fileSelector": "={{ $json.excel_target }}",
         "options": {}
       },
-      "id": "063bcef1-791a-4923-a659-8b9a0ba3e336",
+      "id": "71e94a39-e01d-46c1-8f35-c36da02211dc",
       "name": "Read Excel Binary",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [31392, 13904],
+      "position": [-1168, -27168],
       "notes": "ดึงไฟล์ Excel ขึ้นมาไว้ในหน่วยความจำ"
     },
     {
       "parameters": {
         "options": {}
       },
-      "id": "e07efdde-b9b1-402a-ba01-44175982749b",
+      "id": "023aaed1-8c33-480c-ab43-8241702ac17d",
       "name": "Read Excel",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
-      "position": [31392, 14112],
+      "position": [-976, -27168],
       "notes": "แปลงข้อมูล Excel เป็น JSON Data"
     },
     {
       "parameters": {
-        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.last_processed_index || 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Encoding Normalization\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const getVal = (possibleKeys) => {\n    const exactMatch = possibleKeys.find(k => item[k] !== undefined);\n    if (exactMatch) return item[exactMatch];\n    const lowerTrimmedKeys = Object.keys(item).map(k => ({ original: k, parsed: k.toLowerCase().trim() }));\n    for (const pk of possibleKeys) {\n      const found = lowerTrimmedKeys.find(k => k.parsed === pk.toLowerCase().trim());\n      if (found) return item[found.original];\n    }\n    return '';\n  };\n\n  const docNum = getVal(['document_number', 'correspondence_number', 'Document Number', 'Corr. No.']);\n  const excelFileName = getVal(['File name', 'file_name', 'File Name', 'filename']);\n  \n  if (!excelFileName) {\n    throw new Error(`Missing 'File name' column for row ${i + startIndex + 1}, document: ${docNum}`);\n  }\n  \n  return {\n    json: {\n      document_number: normalize(docNum),\n      title: normalize(getVal(['title', 'Title', 'Subject', 'subject'])),\n      legacy_number: normalize(getVal(['legacy_number', 'Legacy Number', 'Response Doc.'])),\n      excel_revision: getVal(['revision', 'Revision', 'rev']) || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: normalize(excelFileName),\n      issued_date: normalize(getVal(['issued_date', 'Issued_date', 'Issued Date', 'date', 'Date', 'document_date'])),\n      received_date: normalize(getVal(['received_date', 'Received_date', 'Received Date'])),\n      correspondence_type: getVal(['correspondence_type', 'type', 'Type', 'Category']),\n      sender: normalize(getVal(['sender', 'Sender', 'From', 'from'])),\n      receiver: normalize(getVal(['receiver', 'Receiver', 'To', 'to'])),\n      project_code: normalize(getVal(['project', 'Project', 'project_code']))\n    }\n  };\n});"
+        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.last_processed_index || 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Encoding Normalization\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const getVal = (possibleKeys) => {\n    const exactMatch = possibleKeys.find(k => item[k] !== undefined);\n    if (exactMatch) return item[exactMatch];\n    const lowerTrimmedKeys = Object.keys(item).map(k => ({ original: k, parsed: k.toLowerCase().trim() }));\n    for (const pk of possibleKeys) {\n      const found = lowerTrimmedKeys.find(k => k.parsed === pk.toLowerCase().trim());\n      if (found) return item[found.original];\n    }\n    return '';\n  };\n\n  const docNum = getVal(['document_number', 'correspondence_number', 'Document Number', 'Corr. No.']);\n  const excelFileName = getVal(['File name', 'file_name', 'File Name', 'filename']);\n  \n  if (!excelFileName) {\n    throw new Error(`Missing 'File name' column for row ${i + startIndex + 1}, document: ${docNum}`);\n  }\n  \n  return {\n    json: {\n      document_number: normalize(docNum),\n      subject: normalize(getVal(['Subject', 'subject', 'Title', 'title'])),\n      legacy_number: normalize(getVal(['legacy_number', 'Legacy Number', 'Response Doc.'])),\n      excel_revision: getVal(['revision', 'Revision', 'rev']) || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: normalize(excelFileName),\n      issued_date: normalize(getVal(['issued_date', 'Issued_date', 'Issued Date', 'date', 'Date', 'document_date'])),\n      received_date: normalize(getVal(['received_date', 'Received_date', 'Received Date'])),\n      correspondence_type: getVal(['correspondence_type', 'type', 'Type', 'Category']),\n      sender: normalize(getVal(['sender', 'Sender', 'From', 'from'])),\n      receiver: normalize(getVal(['receiver', 'Receiver', 'To', 'to'])),\n      project_code: normalize(getVal(['project', 'Project', 'project_code']))\n    }\n  };\n});"
       },
-      "id": "80845e32-c283-4e9f-af73-6339d675fb38",
+      "id": "0b6f8817-fe02-4482-b707-64c58692d77b",
       "name": "Process Batch + Encoding",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [31808, 13488],
+      "position": [-560, -27584],
       "alwaysOutputData": true,
       "notes": "ตัด Batch + Normalize UTF-8"
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst config = $('Set Configuration').first().json.config;\n\nconst items = $input.all();\nif (!items || items.length === 0) return [];\n\nconst validated = [];\nconst errors = [];\n\nfor (const item of items) {\n  const fileName = item.json?.file_name;\n  if (!fileName) {\n    errors.push({\n      ...item,\n      json: { ...item.json, file_valid: false, error: 'file_name is missing', error_type: 'MISSING_FILENAME', file_exists: false }\n    });\n    continue;\n  }\n  \n  let safeName = path.basename(String(fileName)).normalize('NFC');\n  if (!safeName.toLowerCase().endsWith('.pdf')) {\n    safeName += '.pdf';\n  }\n  const filePath = path.resolve(config.SOURCE_PDF_DIR, safeName);\n  \n  if (!filePath.startsWith(path.resolve(config.SOURCE_PDF_DIR))) {\n    errors.push({\n      ...item,\n      json: { ...item.json, file_valid: false, error: 'Path traversal detected', error_type: 'SECURITY', file_exists: false }\n    });\n    continue;\n  }\n  \n  try {\n    if (fs.existsSync(filePath)) {\n      const stats = fs.statSync(filePath);\n      validated.push({\n        ...item,\n        json: { ...item.json, file_valid: true, file_exists: true, file_size: stats.size, file_path: filePath }\n      });\n    } else {\n      errors.push({\n        ...item,\n        json: { ...item.json, file_valid: false, error: `File not found: ${safeName}`, error_type: 'FILE_NOT_FOUND', file_exists: false }\n      });\n    }\n  } catch (err) {\n    errors.push({\n      ...item,\n      json: { ...item.json, file_valid: false, error: err.message, error_type: 'FILE_ERROR', file_exists: false }\n    });\n  }\n}\n\nreturn [...validated, ...errors];"
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst config = $('Set Configuration').first().json.config;\n\nconst items = $input.all();\nif (!items || items.length === 0) return [];\n\nconst validated = [];\nconst errors = [];\n\nfor (const item of items) {\n  const fileName = item.json?.file_name;\n  if (!fileName) {\n    errors.push({\n      ...item,\n      json: { ...item.json, file_valid: false, error: 'file_name is missing', error_type: 'FILE_NOT_FOUND', file_exists: false }\n    });\n    continue;\n  }\n  \n  let safeName = path.basename(String(fileName)).normalize('NFC');\n  if (!safeName.toLowerCase().endsWith('.pdf')) {\n    safeName += '.pdf';\n  }\n  const filePath = path.resolve(config.SOURCE_PDF_DIR, safeName);\n  \n  if (!filePath.startsWith(path.resolve(config.SOURCE_PDF_DIR))) {\n    errors.push({\n      ...item,\n      json: { ...item.json, file_valid: false, error: 'Path traversal detected', error_type: 'SECURITY', file_exists: false }\n    });\n    continue;\n  }\n  \n  try {\n    if (fs.existsSync(filePath)) {\n      const stats = fs.statSync(filePath);\n      validated.push({\n        ...item,\n        json: { ...item.json, file_valid: true, file_exists: true, file_size: stats.size, file_path: filePath }\n      });\n    } else {\n      errors.push({\n        ...item,\n        json: { ...item.json, file_valid: false, error: `File not found: ${safeName}`, error_type: 'FILE_NOT_FOUND', file_exists: false }\n      });\n    }\n  } catch (err) {\n    errors.push({\n      ...item,\n      json: { ...item.json, file_valid: false, error: err.message, error_type: 'UNKNOWN', file_exists: false }\n    });\n  }\n}\n\n// Log errors inline to CSV (single-output node — errors don't flow downstream)\nif (errors.length > 0) {\n  const csvPath = `${config.LOG_PATH}/error_log.csv`;\n  const header = 'timestamp,document_number,error_type,error_message\\n';\n  const esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n  if (!fs.existsSync(config.LOG_PATH)) fs.mkdirSync(config.LOG_PATH, { recursive: true });\n  if (!fs.existsSync(csvPath)) fs.writeFileSync(csvPath, header, 'utf8');\n  for (const e of errors) {\n    const line = [new Date().toISOString(), esc(e.json.document_number), esc(e.json.error_type), esc(e.json.error)].join(',') + '\\n';\n    fs.appendFileSync(csvPath, line, 'utf8');\n  }\n}\n\nreturn validated;"
       },
-      "id": "2183d687-4708-4d77-a0a9-13ccf29baf69",
+      "id": "254e8f42-e32a-486f-a5d8-c77bfcb5ee44",
       "name": "File Validator",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [31984, 13488],
+      "position": [-384, -27584],
       "notes": "ตรวจสอบไฟล์ PDF ตัวชี้ใน Directory จาก Config"
     },
     {
@@ -202,11 +202,11 @@
         "query": "SELECT is_fallback_active, recent_error_count FROM migration_fallback_state WHERE batch_id = '{{$('Set Configuration').first().json.config.BATCH_ID}}' LIMIT 1",
         "options": {}
       },
-      "id": "8b0c61d0-96e4-468a-991f-a40e534e167a",
+      "id": "c86229c0-493d-4138-a450-db65e0bc1d5d",
       "name": "Check Fallback State",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [31792, 13888],
+      "position": [-560, -27184],
       "alwaysOutputData": true,
       "credentials": {
         "mySql": {
@@ -219,13 +219,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst fallbackState = $('Check Fallback State').first()?.json || { is_fallback_active: false, recent_error_count: 0 };\nconst isFallback = fallbackState.is_fallback_active || false;\nconst model = isFallback ? config.OLLAMA_MODEL_FALLBACK : config.OLLAMA_MODEL_PRIMARY;\n\nconst dbContext = $('Fetch DB Context').all().map(i => i.json);\nconst dbProjects = dbContext.filter(d => d.type === 'projects').map(d => ({id: d.id, code: d.text1, name: d.text2}));\nconst dbDisciplines = dbContext.filter(d => d.type === 'disciplines').map(d => ({id: d.id, th: d.text1, en: d.text2}));\nconst dbOrgs = dbContext.filter(d => d.type === 'organizations').map(d => ({id: d.id, name: d.text1, code: d.text2}));\nconst dbTags = dbContext.filter(d => d.type === 'tags').map(d => ({id: d.id, name: d.text1}));\nconst dbCorrTypes = dbContext.filter(d => d.type === 'correspondence_types').map(d => ({id: d.id, code: d.text1, name: d.text2}));\n\nlet systemCategories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\ntry { systemCategories = $('File Mount Check').first().json.system_categories || systemCategories; } catch (e) {}\n\nconst pdfItems = $('Extract PDF Text').all();\nconst metaItems = $('File Validator').all();\n\nreturn pdfItems.map((pdfItem, i) => {\n  const item = metaItems[i] || pdfItem;\n\n  const docNum = String(item.json.document_number || '');\n  const title = String(item.json.title || '');\n  const legacyNum = String(item.json.legacy_number || '');\n  const issuedDate = String(item.json.issued_date || '');\n  const receivedDate = String(item.json.received_date || '');\n  const corrType = String(item.json.correspondence_type || '');\n  const senderCode = String(item.json.sender || '');\n  const receiverCode = String(item.json.receiver || '');\n\n  const prompt = `Validate and summarize this document. Respond in JSON.\nDocument Number: ${docNum}\nOriginal Title: ${title}\nExtracted Text: ${(pdfItem.json.response || pdfItem.json.data || '').substring(0, 4000)}\n\nExisting Projects: ${JSON.stringify(dbProjects)}\nExisting Disciplines: ${JSON.stringify(dbDisciplines)}\nExisting Orgs: ${JSON.stringify(dbOrgs)}\nExisting Categories: ${JSON.stringify(systemCategories)}\nExisting Tags: ${JSON.stringify(dbTags)}\n\nAnalyze the content to provide:\n1. Validation of Subject/Dates with PDF text.\n2. A 4-5 sentence summary.\n3. Suggest tags. Select from Existing Tags if applicable.\n\nRespond ONLY with this exact JSON structure:\n{\n  \"is_valid\": true,\n  \"confidence\": 0.9,\n  \"category\": \"Correspondence\",\n  \"subject\": \"...\",\n  \"summary\": \"...\",\n  \"discipline_id\": 64,\n  \"tags\": [{\"tag_name\": \"...\", \"description\": \"...\"}],\n  \"key_points\": [\"...\"],\n  \"document_date\": \"YYYY-MM-DD\",\n  \"issued_date\": \"YYYY-MM-DD\",\n  \"received_date\": \"YYYY-MM-DD\"\n}`;\n\n  return {\n    json: {\n      ...item.json,\n      temp_attachment_id: pdfItem.json.temp_attachment_id,\n      ollama_payload: {\n        model: model,\n        prompt: prompt,\n        stream: false,\n        format: \"json\",\n        options: { temperature: 0.2, num_ctx: 8192 }\n      },\n      system_categories: systemCategories,\n      pre_mapped: {\n        project_id: dbProjects.find(p => docNum.includes(p.code))?.id || config.PROJECT_ID,\n        sender_id: dbOrgs.find(o => senderCode.includes(o.code) || senderCode.includes(o.name))?.id,\n        receiver_id: dbOrgs.find(o => receiverCode.includes(o.code) || receiverCode.includes(o.name))?.id\n      }\n    }\n  };\n});"
+        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst fallbackState = $('Check Fallback State').first()?.json || { is_fallback_active: false, recent_error_count: 0 };\nconst isFallback = fallbackState.is_fallback_active || false;\nconst model = isFallback ? config.OLLAMA_MODEL_FALLBACK : config.OLLAMA_MODEL_PRIMARY;\n\nconst dbContext = $('Fetch DB Context').all().map(i => i.json);\nconst dbProjects = dbContext.filter(d => d.type === 'projects').map(d => ({id: d.id, code: d.text1, name: d.text2}));\nconst dbDisciplines = dbContext.filter(d => d.type === 'disciplines').map(d => ({id: d.id, th: d.text1, en: d.text2}));\nconst dbOrgs = dbContext.filter(d => d.type === 'organizations').map(d => ({id: d.id, name: d.text1, code: d.text2}));\nconst dbTags = dbContext.filter(d => d.type === 'tags').map(d => ({id: d.id, name: d.text1, description: d.text2 || ''}));\nconst dbCorrTypes = dbContext.filter(d => d.type === 'correspondence_types').map(d => ({id: d.id, code: d.text1, name: d.text2}));\n\nlet systemCategories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\ntry { systemCategories = $('File Mount Check').first().json.system_categories || systemCategories; } catch (e) {}\n\nconst pdfItems = $('Extract PDF Text').all();\nconst metaItems = $('File Validator').all();\n\nreturn pdfItems.map((pdfItem, i) => {\n  const item = metaItems[i] || pdfItem;\n\n  const docNum = String(item.json.document_number || '');\n  const subject = String(item.json.subject || '');\n  const projectCode = String(item.json.project_code || '');\n  const legacyNum = String(item.json.legacy_number || '');\n  const issuedDate = String(item.json.issued_date || '');\n  const receivedDate = String(item.json.received_date || '');\n  const corrType = String(item.json.correspondence_type || '');\n  const senderCode = String(item.json.sender || '');\n  const receiverCode = String(item.json.receiver || '');\n\n  const prompt = `Validate and summarize this document. Respond in JSON.\nDocument Number: ${docNum}\nOriginal Subject: ${subject}\nExtracted Text: ${(pdfItem.json.response || pdfItem.json.data || '').substring(0, 4000)}\n\nExisting Projects: ${JSON.stringify(dbProjects)}\nExisting Disciplines: ${JSON.stringify(dbDisciplines)}\nExisting Orgs: ${JSON.stringify(dbOrgs)}\nExisting Categories: ${JSON.stringify(systemCategories)}\nExisting Tags: ${JSON.stringify(dbTags)}\n\nAnalyze the content to provide:\n1. Validate the Subject and Dates against PDF text.\n2. Write a detailed summary (4-5 sentences) for the body field.\n3. Suggest 1-5 tags. Prefer Existing Tags when applicable. Each tag MUST have tag_name and description.\n\nRespond ONLY with this exact JSON structure:\n{\n  \"is_valid\": true,\n  \"confidence\": 0.9,\n  \"category\": \"Correspondence\",\n  \"subject\": \"Verified or corrected subject line\",\n  \"body\": \"Detailed 4-5 sentence summary of the document content for archival.\",\n  \"discipline_id\": 64,\n  \"tags\": [{\"tag_name\": \"TagName\", \"description\": \"Why this tag applies\"}],\n  \"key_points\": [\"...\"],\n  \"document_date\": \"YYYY-MM-DD\",\n  \"issued_date\": \"YYYY-MM-DD\",\n  \"received_date\": \"YYYY-MM-DD\"\n}`;\n\n  return {\n    json: {\n      ...item.json,\n      ollama_payload: {\n        model: model,\n        prompt: prompt,\n        stream: false,\n        format: \"json\",\n        options: { temperature: 0.2, num_ctx: 8192 }\n      },\n      system_categories: systemCategories,\n      pre_mapped: {\n        project_id: (projectCode && dbProjects.find(p => p.code === projectCode)?.id) || dbProjects.find(p => docNum.includes(p.code))?.id || config.PROJECT_ID,\n        sender_id: dbOrgs.find(o => senderCode.includes(o.code) || senderCode.includes(o.name))?.id,\n        receiver_id: dbOrgs.find(o => receiverCode.includes(o.code) || receiverCode.includes(o.name))?.id\n      }\n    }\n  };\n});"
       },
-      "id": "2ba75d42-1de3-4846-a1a3-39d580e7d764",
+      "id": "81346da7-a5b0-4a5f-9dc5-34bfc61ebac2",
       "name": "Build AI Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [32144, 13872],
+      "position": [-192, -27200],
       "notes": "สร้าง Prompt โดยใช้ Categories จาก System"
     },
     {
@@ -239,22 +239,22 @@
           "timeout": 120000
         }
       },
-      "id": "3e8b33cb-8f8f-4d2e-b4cb-9d68cc54d96e",
+      "id": "8634f965-41f4-485e-9c01-22640b42d8cd",
       "name": "Ollama AI Analysis",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [31792, 14096],
+      "position": [-560, -26992],
       "notes": "เรียก Ollama วิเคราะห์เอกสาร"
     },
     {
       "parameters": {
-        "jsCode": "const ollamaItems = $input.all();\nconst originalItems = $('Build AI Prompt').all();\nconst results = [];\n\nconst CATEGORY_TO_TYPE_CODE = {\n  'Correspondence': 'LETTER',\n  'RFA': 'RFA',\n  'Transmittal': 'TRANSMITTAL',\n  'Drawing': 'OTHER',\n  'Report': 'OTHER',\n  'Other': 'OTHER',\n};\n\nfor (let i = 0; i < ollamaItems.length; i++) {\n  const ollamaItem = ollamaItems[i];\n  const originalItem = originalItems[i];\n  if (!originalItem) continue;\n  const baseJson = originalItem.json;\n\n  try {\n    let raw = ollamaItem.json.response || '';\n    raw = raw.replace(/`{3}json/gi, '').replace(/`{3}/g, '').trim();\n    if (!raw) throw new Error('Empty response from AI');\n\n    const result = JSON.parse(raw);\n    const systemCategories = baseJson.system_categories || [];\n    let finalCategory = result.category;\n    if (!systemCategories.includes(finalCategory)) {\n      finalCategory = String(baseJson.document_number || '').includes('-RFA-') ? 'RFA' : 'Correspondence';\n    }\n\n    const typeCode = CATEGORY_TO_TYPE_CODE[finalCategory] || 'LETTER';\n    const preMapped = baseJson.pre_mapped || {};\n\n    results.push({\n      json: {\n        ...baseJson,\n        ai_result: {\n          suggested_category: finalCategory,\n          type_code: typeCode,\n          confidence: result.confidence || 0.8,\n          project_id: preMapped.project_id || null,\n          discipline_id: result.discipline_id || 64,\n          sender_id: preMapped.sender_id || null,\n          receiver_id: preMapped.receiver_id || null,\n          subject: result.subject || baseJson.title,\n          issued_date: result.issued_date || baseJson.issued_date,\n          received_date: result.received_date || baseJson.received_date,\n          summary: result.summary || '',\n          key_points: result.key_points || [],\n          tags: result.tags || [],\n          is_valid: result.is_valid !== false\n        }\n      }\n    });\n  } catch (err) {\n    results.push({\n      json: {\n        ...baseJson,\n        parse_error: err.message,\n        raw_ai_response: ollamaItem.json.response\n      }\n    });\n  }\n}\n\nreturn results;"
+        "jsCode": "const ollamaItems = $input.all();\nconst originalItems = $('Build AI Prompt').all();\nconst results = [];\n\nconst CATEGORY_TO_TYPE_CODE = {\n  'Correspondence': 'LETTER',\n  'RFA': 'RFA',\n  'Transmittal': 'TRANSMITTAL',\n  'Drawing': 'OTHER',\n  'Report': 'OTHER',\n  'Other': 'OTHER',\n};\n\nfor (let i = 0; i < ollamaItems.length; i++) {\n  const ollamaItem = ollamaItems[i];\n  const originalItem = originalItems[i];\n  if (!originalItem) continue;\n  const baseJson = originalItem.json;\n\n  try {\n    let raw = ollamaItem.json.response || '';\n    raw = raw.replace(/`{3}json/gi, '').replace(/`{3}/g, '').trim();\n    if (!raw) throw new Error('Empty response from AI');\n\n    const result = JSON.parse(raw);\n    const systemCategories = baseJson.system_categories || [];\n    let finalCategory = result.category;\n    if (!systemCategories.includes(finalCategory)) {\n      finalCategory = String(baseJson.document_number || '').includes('-RFA-') ? 'RFA' : 'Correspondence';\n    }\n\n    const typeCode = CATEGORY_TO_TYPE_CODE[finalCategory] || 'LETTER';\n    const preMapped = baseJson.pre_mapped || {};\n\n    results.push({\n      json: {\n        ...baseJson,\n        ai_result: {\n          suggested_category: finalCategory,\n          type_code: typeCode,\n          confidence: result.confidence || 0.8,\n          project_id: preMapped.project_id || null,\n          discipline_id: result.discipline_id || 64,\n          sender_id: preMapped.sender_id || null,\n          receiver_id: preMapped.receiver_id || null,\n          subject: result.subject || baseJson.subject || '',\n          body: result.body || result.summary || '',\n          issued_date: result.issued_date || baseJson.issued_date,\n          received_date: result.received_date || baseJson.received_date,\n          summary: result.summary || result.body || '',\n          key_points: result.key_points || [],\n          tags: (result.tags || []).map(t => (typeof t === 'string' ? { tag_name: t, description: '' } : { tag_name: t.tag_name || t.name || '', description: t.description || '' })).filter(t => t.tag_name),\n          is_valid: result.is_valid !== false\n        }\n      }\n    });\n  } catch (err) {\n    results.push({\n      json: {\n        ...baseJson,\n        parse_error: err.message,\n        raw_ai_response: ollamaItem.json.response\n      }\n    });\n  }\n}\n\nreturn results;"
       },
-      "id": "6716162f-1129-4552-a05f-a08ac115fe10",
+      "id": "2154cfc3-e4d1-499f-b918-923e78f442e9",
       "name": "Parse & Validate AI Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [32000, 14096],
+      "position": [-352, -26992],
       "notes": "Parse JSON + Validate Schema + Enum Check"
     },
     {
@@ -263,11 +263,11 @@
         "query": "INSERT INTO migration_fallback_state (batch_id, recent_error_count, is_fallback_active) VALUES ('{{$('Set Configuration').first().json.config.BATCH_ID}}', 1, FALSE) ON DUPLICATE KEY UPDATE recent_error_count = recent_error_count + 1, is_fallback_active = CASE WHEN recent_error_count + 1 >= {{$('Set Configuration').first().json.config.FALLBACK_THRESHOLD}} THEN TRUE ELSE is_fallback_active END, updated_at = NOW()",
         "options": {}
       },
-      "id": "b2ac9722-f917-42fd-81e9-c77e84b84104",
+      "id": "a1adab22-8382-4336-ba74-15a4721d51f4",
       "name": "Update Fallback State",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [32464, 13472],
+      "position": [0, -27488],
       "credentials": {
         "mySql": {
           "id": "CHHfbKhMacNo03V4",
@@ -280,64 +280,73 @@
       "parameters": {
         "jsCode": "const config = $('Set Configuration').first().json.config;\nconst items = $('Parse & Validate AI Response').all();\n\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  let resultItem = { json: { ...data } };\n  \n  if (data.parse_error || !data.ai_result) {\n    resultItem.json.route_index = 3;\n    results.push(resultItem);\n    continue;\n  }\n  \n  const ai = data.ai_result;\n  \n  if (ai.confidence >= config.CONFIDENCE_HIGH) {\n    resultItem.json.route_index = 0;\n    resultItem.json.staging_status = 'PENDING';\n    resultItem.json.staging_remarks = 'Ready for auto-ingest (High Confidence)';\n  } else if (ai.confidence >= config.CONFIDENCE_LOW) {\n    resultItem.json.route_index = 1;\n    resultItem.json.staging_status = 'PENDING';\n    resultItem.json.staging_remarks = 'Flagged for human review (Medium Confidence)';\n  } else {\n    resultItem.json.route_index = 2;\n    resultItem.json.staging_status = 'REJECTED';\n    resultItem.json.staging_remarks = ai.is_valid === false ? 'AI marked invalid' : `Rejected for human review (Low Confidence: ${ai.confidence.toFixed(2)})`;\n  }\n  results.push(resultItem);\n}\n\nreturn results;"
       },
-      "id": "ccaaee30-ead6-46c0-954a-eb8b98620cb3",
+      "id": "34288a94-82da-4642-88b1-b0929f921eeb",
       "name": "Confidence Router",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [32160, 14096],
+      "position": [-192, -26992],
       "notes": "แยกตาม Confidence: Auto(≥0.85) / Review(≥0.60) / Reject(<0.60)"
     },
     {
       "parameters": {
         "jsCode": "const fs = require('fs');\nconst item = $input.first();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/reject_log.csv`;\nconst header = 'timestamp,document_number,title,reject_reason,ai_confidence,key_points\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(config.LOG_PATH)) {\n  fs.mkdirSync(config.LOG_PATH, { recursive: true });\n}\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nconst line = [\n  new Date().toISOString(),\n  esc(item.json.document_number),\n  esc(item.json.title),\n  esc(item.json.staging_remarks),\n  item.json.ai_result?.confidence ?? 'N/A',\n  esc(JSON.stringify(item.json.ai_result?.key_points || []))\n].join(',') + '\\n';\n\nfs.appendFileSync(csvPath, line, 'utf8');\n\nreturn [$input.first()];"
       },
-      "id": "0bb3530f-02d5-44d0-ad94-c94d97d91b6a",
+      "id": "e12e7219-0f80-4414-8d4a-aa9363ec1ee9",
       "name": "Log Reject to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [32624, 14032],
+      "position": [304, -27216],
       "notes": "บันทึกรายการที่ถูกปฏิเสธลง CSV"
     },
     {
       "parameters": {
         "jsCode": "const fs = require('fs');\nconst items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/error_log.csv`;\nconst header = 'timestamp,document_number,error_type,error_message,raw_ai_response\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(config.LOG_PATH)) {\n  fs.mkdirSync(config.LOG_PATH, { recursive: true });\n}\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nfor (const item of items) {\n  const line = [\n    new Date().toISOString(),\n    esc(item.json.document_number),\n    esc(item.json.error_type || 'UNKNOWN'),\n    esc(item.json.error || item.json.parse_error),\n    esc(item.json.raw_ai_response || '')\n  ].join(',') + '\\n';\n  \n  fs.appendFileSync(csvPath, line, 'utf8');\n}\n\nreturn items;"
       },
-      "id": "8250dd88-ca81-45aa-93d8-480c9bcd6b14",
+      "id": "a2526431-176a-4246-a9ad-3b2dbfec574a",
       "name": "Log Error to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [32448, 14128],
+      "position": [144, -27120],
       "notes": "บันทึก Error ลง CSV (จาก File Validator)"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO migration_errors (batch_id, document_number, error_type, error_message, raw_ai_response, created_at) VALUES ('{{$('Set Configuration').first().json.config.BATCH_ID}}', '{{$json.document_number}}', '{{$json.error_type || \"UNKNOWN\"}}', '{{$json.error || $json.parse_error}}', '{{$json.raw_ai_response || \"\"}}', NOW())",
-        "options": {}
-      },
-      "id": "0f058ad0-3c09-4c9f-bdcf-503cd58ee395",
-      "name": "Log Error to DB",
-      "type": "n8n-nodes-base.mySql",
-      "typeVersion": 2.4,
-      "position": [32752, 14128],
-      "credentials": {
-        "mySql": {
-          "id": "CHHfbKhMacNo03V4",
-          "name": "MySQL account"
+        "method": "POST",
+        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/migration/errors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batch_id: $('Set Configuration').first().json.config.BATCH_ID, document_number: $json.document_number || '', error_type: $json.error_type || 'UNKNOWN', error_message: $json.error || $json.parse_error || '', raw_ai_response: $json.raw_ai_response || '' }) }}",
+        "options": {
+          "timeout": 10000
         }
       },
-      "notes": "บันทึก Error ลง MariaDB"
+      "id": "7d620e96-a067-430e-af53-06c4492c11e4",
+      "name": "Log Error to DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [464, -27104],
+      "onError": "continueErrorOutput",
+      "notes": "บันทึก Error ผ่าน Backend API (ป้องกัน SQL Injection)"
     },
     {
       "parameters": {
         "amount": "={{$('Set Configuration').first().json.config.DELAY_MS / 1000}}",
         "unit": "seconds"
       },
-      "id": "07c1c5d5-5ffc-4e3d-ab3e-4b62ad079388",
+      "id": "5909f64b-67a5-40e7-b7b0-3e031376e5ad",
       "name": "Delay",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
-      "position": [33104, 14080],
+      "position": [704, -27152],
       "webhookId": "38e97a99-4dcc-4b63-977a-a02945a1c369",
       "notes": "หน่วงเวลาระหว่าง Batches"
     },
@@ -445,22 +454,22 @@
         },
         "options": {}
       },
-      "id": "65f0bb6c-496a-4409-8b88-3132866cf9a4",
+      "id": "0558f317-fc7a-460a-bcfd-60ea541fc2b9",
       "name": "Route by Confidence",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [32336, 13744]
+      "position": [-16, -27312]
     },
     {
       "parameters": {
         "fileSelector": "={{ $json.file_path }}",
         "options": {}
       },
-      "id": "4fd3133e-39e1-4860-95c7-3e87ee43ed51",
+      "id": "319a9a0b-2837-4f1c-8e5a-58a0e95dfed5",
       "name": "Read PDF File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [31824, 13680],
+      "position": [-224, -27584],
       "onError": "continueErrorOutput"
     },
     {
@@ -481,8 +490,8 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "file",
               "parameterType": "formBinaryData",
+              "name": "file",
               "inputDataFieldName": "data"
             }
           ]
@@ -491,23 +500,23 @@
           "timeout": 60000
         }
       },
-      "id": "452d3a33-4f51-404c-8f4b-7a3d3a3a3a3a",
+      "id": "6db11a13-cd5f-4e85-9263-085590e0b07f",
       "name": "Upload to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [31968, 13680],
+      "position": [-544, -27376],
       "notes": "Upload PDF to Backend Temp Storage"
     },
     {
       "parameters": {
-        "jsCode": "const uploadRes = $input.first()?.json || {};\nconst binaryData = $('Read PDF File').first().binary.data;\n\nreturn {\n  json: {\n    ...$input.first().json,\n    temp_attachment_id: uploadRes.id\n  },\n  binary: {\n    data: binaryData\n  }\n};"
+        "jsCode": "const item = $input.first();\nconst binaryData = $('Read PDF File').first().binary.data;\n\nreturn {\n  json: { ...item.json },\n  binary: { data: binaryData }\n};"
       },
-      "id": "b3e3e3e3-e3e3-4e3e-ae3e-3e3e3e3e3e3e",
-      "name": "Process Upload",
+      "id": "eeea6259-6bb0-42cc-8812-d6dd22e8fa1c",
+      "name": "Restore Binary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [32112, 13680],
-      "notes": "Capture ID and Restore Binary for Tika"
+      "position": [-400, -27376],
+      "notes": "Re-attach PDF binary จาก Read PDF File เพื่อส่ง Upload (หลัง AI ตรวจแล้ว)"
     },
     {
       "parameters": {
@@ -546,11 +555,11 @@
           "timeout": 600000
         }
       },
-      "id": "2d3868e0-ed56-4921-8d68-bf7b69a64546",
+      "id": "0b34e1a9-9d83-4c8a-9d59-2d9be4b23123",
       "name": "Extract PDF Text",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [32256, 13664],
+      "position": [-240, -27376],
       "onError": "continueErrorOutput"
     },
     {
@@ -559,11 +568,11 @@
         "query": "SELECT 'projects' as type, id, project_code as text1, project_name as text2 FROM projects\nUNION ALL\nSELECT 'disciplines' as type, id, code_name_th as text1, code_name_en as text2 FROM disciplines\nUNION ALL\nSELECT 'organizations' as type, id, organization_name as text1, organization_code as text2 FROM organizations\nUNION ALL\nSELECT 'tags' as type, id, tag_name as text1, description as text2 FROM tags\nUNION ALL\nSELECT 'correspondence_types' as type, id, type_code as text1, type_name as text2 FROM correspondence_types",
         "options": {}
       },
-      "id": "2e31dc54-3d57-4c88-9d35-1aba0132cdf9",
+      "id": "5f785556-e8f5-40ae-8fd6-786c46ed7090",
       "name": "Fetch DB Context",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [32000, 13872],
+      "position": [-336, -27200],
       "alwaysOutputData": true,
       "credentials": {
         "mySql": {
@@ -575,13 +584,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nreturn items.map(itemWrapper => {\n  const item = itemWrapper.json;\n  const ai = item.ai_result || {};\n\n  return {\n    json: {\n      ...item,\n      enqueue_payload: {\n        document_number: String(item.document_number || ''),\n        title: String(ai.subject || item.title || ''),\n        original_title: String(item.title || ''),\n        category: ai.suggested_category || 'Correspondence',\n        ai_summary: ai.summary || '',\n        project_id: Number(ai.project_id || config.PROJECT_ID),\n        sender_org_id: ai.sender_id || null,\n        receiver_org_id: ai.receiver_id || null,\n        issued_date: ai.issued_date || item.issued_date || '',\n        received_date: ai.received_date || item.received_date || '',\n        remarks: item.staging_remarks || '',\n        extracted_tags: ai.tags || [],\n        temp_attachment_id: item.temp_attachment_id || null,\n        is_valid: ai.is_valid !== false,\n        confidence: ai.confidence || 0.0,\n        ai_issues: ai.key_points || []\n      }\n    }\n  };\n});"
+        "jsCode": "const items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nreturn items.map(itemWrapper => {\n  const item = itemWrapper.json;\n  const ai = item.ai_result || {};\n\n  return {\n    json: {\n      ...item,\n      enqueue_payload: {\n        document_number: String(item.document_number || ''),\n        subject: String(ai.subject || item.subject || ''),\n        original_subject: String(item.subject || ''),\n        category: ai.suggested_category || 'Correspondence',\n        body: String(ai.body || ai.summary || ''),\n        ai_summary: ai.summary || ai.body || '',\n        project_id: Number(ai.project_id || config.PROJECT_ID),\n        sender_org_id: ai.sender_id || null,\n        receiver_org_id: ai.receiver_id || null,\n        issued_date: ai.issued_date || item.issued_date || '',\n        received_date: ai.received_date || item.received_date || '',\n        remarks: item.staging_remarks || '',\n        extracted_tags: ai.tags || [],\n        details: { tags: ai.tags || [] },\n        temp_attachment_id: $('Upload to Backend').first()?.json?.id || item.temp_attachment_id || null,\n        is_valid: ai.is_valid !== false,\n        confidence: ai.confidence || 0.0,\n        ai_issues: ai.key_points || []\n      }\n    }\n  };\n});"
       },
-      "id": "57421305-8c7e-4fa4-a339-1144902cae22",
+      "id": "6bc2f3a0-9094-4bfd-a0a0-ba9a8effb53a",
       "name": "Build Enqueue Payload",
       "typeVersion": 2,
       "type": "n8n-nodes-base.code",
-      "position": [32544, 13664],
+      "position": [192, -27408],
       "notes": "สร้าง payload สำหรับ Enqueue Migration"
     },
     {
@@ -604,11 +613,11 @@
           "timeout": 30000
         }
       },
-      "id": "f5f5f5f5-f5f5-4f5f-af5f-f5f5f5f5f5f5",
+      "id": "69152618-eed4-4b2b-a34f-e03cb630649a",
       "name": "Enqueue to Review Queue",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [32736, 13664],
+      "position": [368, -27408],
       "notes": "ส่งข้อมูลเข้า Staging Queue"
     },
     {
@@ -617,11 +626,11 @@
         "query": "INSERT INTO migration_progress (batch_id, last_processed_index, status) VALUES ('{{$('Set Configuration').first().json.config.BATCH_ID}}', {{$json.original_index || 0}}, 'RUNNING') ON DUPLICATE KEY UPDATE last_processed_index = {{$json.original_index || 0}}, updated_at = NOW()",
         "options": {}
       },
-      "id": "bb0e611b-db28-4266-ba40-3b5d534a16f7",
+      "id": "a7926600-01e6-49d3-9f29-ef7bab1c79c0",
       "name": "Save Checkpoint",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [32928, 13856],
+      "position": [560, -27312],
       "credentials": {
         "mySql": {
           "id": "CHHfbKhMacNo03V4",
@@ -631,6 +640,7 @@
       "notes": "บันทึกความคืบหน้าลง Database"
     }
   ],
+  "pinData": {},
   "connections": {
     "Form Trigger": {
       "main": [
@@ -764,7 +774,7 @@
       "main": [
         [
           {
-            "node": "Upload to Backend",
+            "node": "Extract PDF Text",
             "type": "main",
             "index": 0
           }
@@ -775,18 +785,18 @@
       "main": [
         [
           {
-            "node": "Process Upload",
+            "node": "Build Enqueue Payload",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Process Upload": {
+    "Restore Binary": {
       "main": [
         [
           {
-            "node": "Extract PDF Text",
+            "node": "Upload to Backend",
             "type": "main",
             "index": 0
           }
@@ -874,14 +884,14 @@
       "main": [
         [
           {
-            "node": "Build Enqueue Payload",
+            "node": "Restore Binary",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Build Enqueue Payload",
+            "node": "Restore Binary",
             "type": "main",
             "index": 0
           }
@@ -980,7 +990,16 @@
       ]
     }
   },
+  "active": false,
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1a305c6e-35fe-43cb-b5fa-bda279a36500",
+  "meta": {
+    "instanceId": "9e70e47c1eaf3bac72f497ddfbde0983f840f7d0f059537f7e37dd70de18ecb7"
+  },
+  "id": "8Z6xwWVQ3TUflnSY",
+  "tags": []
 }

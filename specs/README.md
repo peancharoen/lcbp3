@@ -1,7 +1,7 @@
 # 📚 LCBP3-DMS Specifications Directory
 
 **Version:** 1.8.1 (Patch)
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-16
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
 **Status:** ✅ UAT Ready — 10/10 Documentation Gaps Closed
 
@@ -68,16 +68,18 @@ specs/
 │   └── README.md                # Infrastructure & Operations Guide
 │
 ├── 05-Engineering-Guidelines/   # มาตรฐานการพัฒนาและการเขียนโค้ด
-│   ├── 05-01-fullstack-js-guidelines.md # JS/TS Guidelines รวมๆ
+│   ├── 05-01-fullstack-js-guidelines.md # JS/TS Guidelines + NestJS 11 Patterns
 │   ├── 05-02-backend-guidelines.md      # NestJS Backend, Error Handling
 │   ├── 05-03-frontend-guidelines.md     # UI/UX, React Hook Form, State Strategy
 │   ├── 05-04-testing-strategy.md        # Unit/E2E Testing ยุทธศาสตร์
 │   ├── 05-05-git-cheatsheet.md          # การใช้ Git สำหรับทีมงาน
+│   ├── 05-07-hybrid-uuid-implementation-plan.md  # ADR-019 Implementation Guide
 │   └── README.md                        # ภาพรวมเป้าหมายงาน Engineering
 │
-├── 06-Decision-Records/         # Architecture Decision Records (17 + 1 Patch)
+├── 06-Decision-Records/         # Architecture Decision Records (17 + Patch + ADR-019)
 │   ├── ADR-001 to ADR-017...    # ไฟล์อธิบายสถาปัตยกรรม (ADR)
 │   ├── ADR-018-ai-boundary.md   # ★ Patch 1.8.1: AI/Ollama Isolation Policy
+│   ├── ADR-019-hybrid-identifier-strategy.md  # ★ Hybrid ID: INT PK + UUIDv7 Public API
 │   └── README.md                # รายชื่อ ADR ทั้งหมดพร้อมสถานะและวันที่
 │
 └── 99-archives/                 # ประวัติการทำงานและ Tasks เก่า
@@ -122,6 +124,7 @@ specs/
 | **UAT Criteria** | `01-Requirements/01-05-acceptance-criteria.md` | ตรวจความสมบูรณ์ Feature |
 | **ADR-009** | `06-Decision-Records/ADR-009-db-strategy.md` | Schema Change Process |
 | **ADR-018** | `06-Decision-Records/ADR-018-ai-boundary.md` | AI/Ollama Integration Rules |
+| **ADR-019** | `06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | Hybrid ID Strategy (INT + UUIDv7) |
 
 ---
 
@@ -145,13 +148,13 @@ specs/
 
 ---
 
-## 🏛️ ADR Reference (All 17 + 1 Patch)
+## 🏛️ ADR Reference (All 17 + Patch + ADR-019)
 
 | ADR | Topic | Key Decision |
 |-----|-------|-------------|
 | ADR-001 | Workflow Engine | Unified state machine for document workflows |
 | ADR-002 | Doc Numbering | Redis Redlock + DB optimistic locking |
-| ADR-005 | Technology Stack | NestJS + Next.js + MariaDB + Redis |
+| ADR-005 | Technology Stack | NestJS 11 + Next.js 16 + MariaDB + Redis |
 | ADR-006 | Redis Caching | Cache strategy and invalidation patterns |
 | ADR-008 | Email Notification | BullMQ queue-based email/LINE/in-app |
 | ADR-009 | DB Strategy | No TypeORM migrations — modify schema SQL directly |
@@ -164,5 +167,6 @@ specs/
 | ADR-016 | Security | JWT + CASL RBAC + Helmet.js + ClamAV |
 | ADR-017 | Ollama Migration | Local AI + n8n for legacy data import |
 | ADR-018 ★ | AI Boundary (Patch 1.8.1) | AI isolation — no direct DB/storage access |
+| ADR-019 ★ | Hybrid Identifier Strategy | INT PK (internal) + UUIDv7 (public API) |
 
 > **Priority:** `06-Decision-Records` > `05-Engineering-Guidelines` > others
