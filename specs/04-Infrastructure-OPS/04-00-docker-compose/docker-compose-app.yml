@@ -79,8 +79,8 @@ services:
       - lcbp3
     volumes:
       # Two-Phase Storage: จัดเก็บไฟล์นอก container
-      - '/share/np-dms/data/uploads/temp:/app/uploads/temp'
-      - '/share/np-dms/data/uploads/permanent:/app/uploads/permanent'
+      - '/share/np-dms-as/data/uploads/temp:/app/uploads/temp'
+      - '/share/np-dms-as/data/uploads/permanent:/app/uploads/permanent'
       - '/share/np-dms/data/logs/backend:/app/logs'
       # Mount legacy staging folder to match n8n's output path
       - '/share/np-dms-as/Legacy:/home/node/.n8n-files/staging_ai:ro'

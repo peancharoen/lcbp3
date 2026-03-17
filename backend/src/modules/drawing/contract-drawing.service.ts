@@ -11,6 +11,7 @@ import { Repository, DataSource, In, Brackets } from 'typeorm';
 import { ContractDrawing } from './entities/contract-drawing.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { User } from '../user/entities/user.entity';
+import { Contract } from '../contract/entities/contract.entity';
 
 // DTOs
 import { CreateContractDrawingDto } from './dto/create-contract-drawing.dto';
@@ -29,9 +30,22 @@ export class ContractDrawingService {
     private drawingRepo: Repository<ContractDrawing>,
     @InjectRepository(Attachment)
     private attachmentRepo: Repository<Attachment>,
+    @InjectRepository(Contract)
+    private contractRepo: Repository<Contract>,
     private fileStorageService: FileStorageService,
     private dataSource: DataSource
   ) {}
+
+  /**
+   * Resolve issueDate from contract.startDate for file storage path
+   * Fallback: contract.startDate → current date
+   */
+  private async resolveIssueDateByProject(projectId: number): Promise<Date> {
+    const contract = await this.contractRepo.findOne({
+      where: { projectId },
+    });
+    return contract?.startDate ?? new Date();
+  }
 
   /**
    * สร้างแบบสัญญาใหม่ (Create Contract Drawing)
@@ -84,9 +98,12 @@ export class ContractDrawingService {
       // 4. Commit Files (ย้ายไฟล์จริง)
       if (createDto.attachmentIds?.length) {
         // ✅ FIX TS2345: แปลง number[] เป็น string[] ก่อนส่ง
+        const issueDate = await this.resolveIssueDateByProject(
+          createDto.projectId
+        );
         await this.fileStorageService.commit(
           createDto.attachmentIds.map(String),
-          { documentType: 'ContractDrawing' }
+          { issueDate, documentType: 'ContractDrawing' }
         );
       }
 
@@ -225,10 +242,14 @@ export class ContractDrawingService {
         drawing.attachments = newAttachments;
 
         // Commit new files
+
         // ✅ FIX TS2345: แปลง number[] เป็น string[] ก่อนส่ง
+        const issueDate = await this.resolveIssueDateByProject(
+          drawing.projectId
+        );
         await this.fileStorageService.commit(
           updateDto.attachmentIds.map(String),
-          { documentType: 'ContractDrawing' }
+          { issueDate, documentType: 'ContractDrawing' }
         );
       }
 

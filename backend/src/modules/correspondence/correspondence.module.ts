@@ -19,6 +19,7 @@ import { JsonSchemaModule } from '../json-schema/json-schema.module';
 import { UserModule } from '../user/user.module';
 import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module';
 import { SearchModule } from '../search/search.module';
+import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 
 /**
  * CorrespondenceModule
@@ -42,6 +43,7 @@ import { SearchModule } from '../search/search.module';
     UserModule,
     WorkflowEngineModule,
     SearchModule,
+    FileStorageModule,
   ],
   controllers: [CorrespondenceController],
   providers: [CorrespondenceService, CorrespondenceWorkflowService],

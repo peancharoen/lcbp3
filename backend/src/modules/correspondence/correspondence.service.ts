@@ -34,6 +34,7 @@ import { JsonSchemaService } from '../json-schema/json-schema.service';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
 import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
+import { FileStorageService } from '../../common/file-storage/file-storage.service';
 
 /**
  * CorrespondenceService - Document management (CRUD)
@@ -64,7 +65,8 @@ export class CorrespondenceService {
     private workflowEngine: WorkflowEngineService,
     private userService: UserService,
     private dataSource: DataSource,
-    private searchService: SearchService
+    private searchService: SearchService,
+    private fileStorageService: FileStorageService
   ) {}
 
   async create(createDto: CreateCorrespondenceDto, user: User) {
@@ -180,6 +182,12 @@ export class CorrespondenceService {
         body: createDto.body,
         remarks: createDto.remarks,
         dueDate: createDto.dueDate ? new Date(createDto.dueDate) : undefined,
+        documentDate: createDto.documentDate
+          ? new Date(createDto.documentDate)
+          : undefined,
+        issuedDate: createDto.issuedDate
+          ? new Date(createDto.issuedDate)
+          : undefined,
         description: createDto.description,
         details: createDto.details,
         createdBy: user.user_id,
@@ -197,6 +205,20 @@ export class CorrespondenceService {
           })
         );
         await queryRunner.manager.save(recipients);
+      }
+
+      // Commit attachments from Temp → Permanent (Two-Phase Storage)
+      if (createDto.attachmentTempIds?.length) {
+        const issueDate = createDto.issuedDate
+          ? new Date(createDto.issuedDate)
+          : createDto.documentDate
+            ? new Date(createDto.documentDate)
+            : undefined;
+
+        await this.fileStorageService.commit(createDto.attachmentTempIds, {
+          issueDate,
+          documentType: 'Correspondence',
+        });
       }
 
       await queryRunner.commitTransaction();
@@ -457,12 +479,30 @@ export class CorrespondenceService {
     if (updateDto.remarks) revisionUpdate.remarks = updateDto.remarks;
     // Format Date correctly if string
     if (updateDto.dueDate) revisionUpdate.dueDate = new Date(updateDto.dueDate);
+    if (updateDto.documentDate)
+      revisionUpdate.documentDate = new Date(updateDto.documentDate);
+    if (updateDto.issuedDate)
+      revisionUpdate.issuedDate = new Date(updateDto.issuedDate);
     if (updateDto.description)
       revisionUpdate.description = updateDto.description;
     if (updateDto.details) revisionUpdate.details = updateDto.details;
 
     if (Object.keys(revisionUpdate).length > 0) {
       await this.revisionRepo.update(revision.id, revisionUpdate);
+    }
+
+    // 4.5 Commit new attachments from Temp → Permanent (Two-Phase Storage)
+    if (updateDto.attachmentTempIds?.length) {
+      const issueDate = updateDto.issuedDate
+        ? new Date(updateDto.issuedDate)
+        : updateDto.documentDate
+          ? new Date(updateDto.documentDate)
+          : revision.issuedDate || revision.documentDate || undefined;
+
+      await this.fileStorageService.commit(updateDto.attachmentTempIds, {
+        issueDate: issueDate ? new Date(issueDate) : undefined,
+        documentType: 'Correspondence',
+      });
     }
 
     // 5. Update Recipients if provided

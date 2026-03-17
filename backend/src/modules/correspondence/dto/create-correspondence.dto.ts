@@ -84,6 +84,30 @@ export class CreateCorrespondenceDto {
   @IsOptional()
   isInternal?: boolean;
 
+  @ApiPropertyOptional({
+    description: 'Document Date (วันที่เอกสาร)',
+    example: '2025-12-06',
+  })
+  @IsDateString()
+  @IsOptional()
+  documentDate?: string;
+
+  @ApiPropertyOptional({
+    description: 'Issued Date (วันที่ออกเอกสาร) — ใช้จัดเก็บไฟล์ตาม YYYY/MM',
+    example: '2025-12-06T00:00:00Z',
+  })
+  @IsDateString()
+  @IsOptional()
+  issuedDate?: string;
+
+  @ApiPropertyOptional({
+    description: 'Attachment temp IDs from upload phase (Two-Phase Storage)',
+    example: ['uuid-temp-1', 'uuid-temp-2'],
+  })
+  @IsArray()
+  @IsOptional()
+  attachmentTempIds?: string[];
+
   // ✅ เพิ่ม Field สำหรับ Impersonation (เลือกองค์กรผู้ส่ง)
   @ApiPropertyOptional({
     description: 'Originator Organization ID (for impersonation)',

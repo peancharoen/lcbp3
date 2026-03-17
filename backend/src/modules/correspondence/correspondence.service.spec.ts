@@ -14,6 +14,7 @@ import { JsonSchemaService } from '../json-schema/json-schema.service';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
 import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
+import { FileStorageService } from '../../common/file-storage/file-storage.service';
 
 describe('CorrespondenceService', () => {
   let service: CorrespondenceService;
@@ -117,6 +118,10 @@ describe('CorrespondenceService', () => {
         {
           provide: SearchService,
           useValue: { indexDocument: jest.fn() },
+        },
+        {
+          provide: FileStorageService,
+          useValue: { commit: jest.fn().mockResolvedValue([]) },
         },
       ],
     }).compile();

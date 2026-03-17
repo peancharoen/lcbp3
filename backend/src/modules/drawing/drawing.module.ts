@@ -20,6 +20,7 @@ import { ShopDrawingSubCategory } from './entities/shop-drawing-sub-category.ent
 
 // Common Entities
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
+import { Contract } from '../contract/entities/contract.entity';
 
 // Services
 import { ShopDrawingService } from './shop-drawing.service';
@@ -57,6 +58,7 @@ import { UserModule } from '../user/user.module';
 
       // Common
       Attachment,
+      Contract,
     ]),
     FileStorageModule,
     UserModule,
