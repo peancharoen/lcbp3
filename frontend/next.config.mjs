@@ -42,7 +42,7 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
 
-  // 6. Security Headers (แนะนำ)
+  // 5.1. Security Headers + MIME Types
   async headers() {
     return [
       {
