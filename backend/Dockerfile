@@ -12,7 +12,7 @@
 # =========================
 FROM node:22-alpine AS deps
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ RUN pnpm install --frozen-lockfile --filter backend...
 # =========================
 FROM node:22-alpine AS build
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
 WORKDIR /app
 
