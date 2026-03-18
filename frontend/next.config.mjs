@@ -36,7 +36,13 @@ const nextConfig = {
   },
   */
 
-  // 5. Security Headers (แนะนำ)
+  // 5. Experimental: Handle client component static generation issues
+  experimental: {
+    // Disable static optimization for client components that cause build failures
+    missingSuspenseWithCSRBailout: false,
+  },
+
+  // 6. Security Headers (แนะนำ)
   async headers() {
     return [
       {

@@ -5,6 +5,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { TransmittalForm } from "@/components/transmittal/transmittal-form";
 
+// Force dynamic rendering to prevent build-time prerendering issues
+export const dynamic = 'force-dynamic';
+
 export default function CreateTransmittalPage() {
   return (
     <section className="space-y-6 max-w-4xl">
