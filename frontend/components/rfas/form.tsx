@@ -19,6 +19,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useCreateRFA } from "@/hooks/use-rfa";
 import { useDisciplines, useContracts } from "@/hooks/use-master-data";
+import { useProjects } from "@/hooks/use-projects";
 import { CreateRFADto } from "@/types/rfa";
 import { useState, useEffect } from "react";
 import { correspondenceService } from "@/lib/services/correspondence.service";
@@ -30,6 +31,7 @@ const rfaItemSchema = z.object({
   unit: z.string().min(1, "Unit is required"),
 });
 const rfaSchema = z.object({
+  projectId: z.string().min(1, "Project is required"), // ADR-019: UUID
   contractId: z.string().min(1, "Contract is required"),
   disciplineId: z.number().min(1, "Discipline is required"),
   rfaTypeId: z.number().min(1, "Type is required"),
@@ -49,9 +51,9 @@ export function RFAForm() {
   const router = useRouter();
   const createMutation = useCreateRFA();
 
-  // Dynamic Contract Loading (Default Project Context: 1)
-  const currentProjectId = 1;
-  const { data: contracts, isLoading: isLoadingContracts } = useContracts(currentProjectId);
+  // ADR-019: Dynamic project selection
+  const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
+  const projects = projectsData?.data || projectsData || [];
 
   const {
     register,
@@ -63,6 +65,7 @@ export function RFAForm() {
   } = useForm<RFAFormData>({
     resolver: zodResolver(rfaSchema),
     defaultValues: {
+      projectId: "",
       contractId: "",
       disciplineId: 0,
       rfaTypeId: 0,
@@ -76,6 +79,9 @@ export function RFAForm() {
       items: [{ itemNo: "1", description: "", quantity: 0, unit: "" }],
     },
   });
+
+  const selectedProjectId = watch("projectId");
+  const { data: contracts, isLoading: isLoadingContracts } = useContracts(selectedProjectId);
 
   const selectedContractId = watch("contractId");
   const { data: disciplines, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
@@ -97,7 +103,7 @@ export function RFAForm() {
     const fetchPreview = async () => {
        try {
          const res = await correspondenceService.previewNumber({
-             projectId: currentProjectId,
+             projectId: selectedProjectId,
              typeId: rfaTypeId, // RfaTypeId acts as TypeId
              disciplineId,
              // RFA uses 'TO' organization as recipient
@@ -112,7 +118,7 @@ export function RFAForm() {
 
     const timer = setTimeout(fetchPreview, 500);
     return () => clearTimeout(timer);
-  }, [rfaTypeId, disciplineId, toOrganizationId, currentProjectId]);
+  }, [rfaTypeId, disciplineId, toOrganizationId, selectedProjectId]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -122,7 +128,7 @@ export function RFAForm() {
   const onSubmit = (data: RFAFormData) => {
     const payload: CreateRFADto = {
       ...data,
-      projectId: currentProjectId,
+      // ADR-019: projectId is already a UUID string from the form
     };
     createMutation.mutate(payload as any, {
       onSuccess: () => {
@@ -178,19 +184,45 @@ export function RFAForm() {
             <Input id="description" {...register("description")} placeholder="Enter key description" />
           </div>
 
+          {/* ADR-019: Project selector */}
+          <div>
+            <Label>Project *</Label>
+            <Select
+              onValueChange={(val) => {
+                setValue("projectId", val);
+                setValue("contractId", ""); // Reset contract when project changes
+              }}
+              disabled={isLoadingProjects}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={isLoadingProjects ? "Loading..." : "Select Project"} />
+              </SelectTrigger>
+              <SelectContent>
+                {(Array.isArray(projects) ? projects : []).map((p: { uuid: string; projectName?: string; projectCode?: string }) => (
+                  <SelectItem key={p.uuid} value={p.uuid}>
+                    {p.projectName || p.projectCode}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.projectId && (
+              <p className="text-sm text-destructive mt-1">{errors.projectId.message}</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Contract *</Label>
               <Select
                 onValueChange={(val) => setValue("contractId", val)}
-                disabled={isLoadingContracts}
+                disabled={!selectedProjectId || isLoadingContracts}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={isLoadingContracts ? "Loading..." : "Select Contract"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {contracts?.map((c: any) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
+                  {contracts?.map((c: { uuid: string; contractName?: string; name?: string; contractCode?: string }) => (
+                    <SelectItem key={c.uuid} value={c.uuid}>
                       {c.contractName || c.name || c.contractCode}
                     </SelectItem>
                   ))}

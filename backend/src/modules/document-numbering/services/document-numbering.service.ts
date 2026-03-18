@@ -267,12 +267,17 @@ export class DocumentNumberingService {
   // --- Admin / Legacy ---
 
   async getTemplates() {
-    return this.formatRepo.find();
+    return this.formatRepo.find({
+      relations: ['project', 'correspondenceType'],
+    });
   }
 
   async getTemplatesByProject(projectId: number | string) {
     const internalId = await this.resolveProjectId(projectId);
-    return this.formatRepo.find({ where: { projectId: internalId } });
+    return this.formatRepo.find({
+      where: { projectId: internalId },
+      relations: ['project', 'correspondenceType'],
+    });
   }
 
   async saveTemplate(dto: any) {

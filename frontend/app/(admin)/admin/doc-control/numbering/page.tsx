@@ -31,7 +31,7 @@ export default function NumberingPage() {
   useEffect(() => {
     if (projects.length > 0 && !selectedProjectId) {
       const first = projects[0] as any;
-      setSelectedProjectId(String(first.id || first.uuid));
+      setSelectedProjectId(String(first.id ?? first.uuid));
     }
   }, [projects, selectedProjectId]);
 
@@ -41,7 +41,7 @@ export default function NumberingPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState<NumberingTemplate | null>(null);
 
-  const selectedProject = projects.find((p: any) => String(p.id || p.uuid) === selectedProjectId) as any;
+  const selectedProject = projects.find((p: any) => String(p.id ?? p.uuid) === selectedProjectId) as any;
   const selectedProjectName = selectedProject?.projectName || 'Unknown Project';
 
   // Master Data
@@ -109,7 +109,7 @@ export default function NumberingPage() {
             </SelectTrigger>
             <SelectContent>
               {(projects as any[]).map((project) => (
-                <SelectItem key={project.uuid || project.id} value={String(project.id || project.uuid)}>
+                <SelectItem key={project.id ?? project.uuid} value={String(project.id ?? project.uuid)}>
                   {project.projectCode} - {project.projectName}
                 </SelectItem>
               ))}
@@ -137,7 +137,7 @@ export default function NumberingPage() {
             <div className="lg:col-span-2 space-y-4">
               <div className="grid gap-4">
                 {templates
-                  .filter((t: any) => !t.projectId || String(t.projectId) === selectedProjectId || t.project?.uuid === selectedProjectId)
+                  .filter((t: any) => !t.projectId || String(t.project?.id ?? t.project?.uuid) === selectedProjectId || t.project?.uuid === selectedProjectId)
                   .map((template) => (
                     <Card key={template.id} className="p-6 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">

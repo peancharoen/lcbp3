@@ -32,6 +32,17 @@ import { Rfa } from './entities/rfa.entity';
 // DTOs
 import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto';
 import { CreateRfaDto } from './dto/create-rfa.dto';
+import { SearchRfaDto } from './dto/search-rfa.dto';
+
+// ------- Local type helpers (no-any ADR-019) -------
+/** CorrespondenceRevision with the rfaRevision relation loaded at runtime */
+type CorrRevWithRfa = CorrespondenceRevision & { rfaRevision?: RfaRevision };
+
+/** RFA entity + a flat `revisions` convenience array for the frontend */
+export interface RfaMapped extends Rfa {
+  uuid?: string; // ADR-019: top-level UUID from correspondence
+  revisions: CorrRevWithRfa[];
+}
 
 // Interfaces & Enums
 import { WorkflowAction } from '../workflow-engine/interfaces/workflow.interface';
@@ -272,6 +283,7 @@ export class RfaService {
       this.searchService
         .indexDocument({
           id: savedCorr.id,
+          uuid: savedCorr.uuid, // ADR-019: index UUID for search
           type: 'rfa',
           docNumber: docNumber.number,
           title: createDto.subject,
@@ -298,13 +310,19 @@ export class RfaService {
 
   // ... (ส่วน findOne, submit, processAction คงเดิมจากไฟล์ที่แนบมา แค่ปรับปรุงเล็กน้อยตาม Context) ...
 
-  async findAll(query: any) {
-    const { page = 1, limit = 20, projectId, status, search } = query;
+  async findAll(query: SearchRfaDto) {
+    const {
+      page = 1,
+      limit = 20,
+      projectId,
+      search,
+      revisionStatus = 'CURRENT',
+      statusCode,
+    } = query;
     const skip = (page - 1) * limit;
 
     // Fix: Start query from Rfa entity instead of Correspondence,
     // because Correspondence has no 'rfas' relation.
-    // [Force Rebuild]
     const queryBuilder = this.rfaRepo
       .createQueryBuilder('rfa')
       .leftJoinAndSelect('rfa.correspondence', 'corr')
@@ -318,11 +336,9 @@ export class RfaService {
       .leftJoinAndSelect('sdRev.attachments', 'attachments');
 
     // Filter by Revision Status (from query param 'revisionStatus')
-    const revStatus = query.revisionStatus || 'CURRENT';
-
-    if (revStatus === 'CURRENT') {
+    if (revisionStatus === 'CURRENT') {
       queryBuilder.where('corrRev.isCurrent = :isCurrent', { isCurrent: true });
-    } else if (revStatus === 'OLD') {
+    } else if (revisionStatus === 'OLD') {
       queryBuilder.where('corrRev.isCurrent = :isCurrent', {
         isCurrent: false,
       });
@@ -333,8 +349,8 @@ export class RfaService {
       queryBuilder.andWhere('corr.projectId = :projectId', { projectId });
     }
 
-    if (status) {
-      queryBuilder.andWhere('status.statusCode = :status', { status });
+    if (statusCode) {
+      queryBuilder.andWhere('status.statusCode = :statusCode', { statusCode });
     }
 
     if (search) {
@@ -355,15 +371,18 @@ export class RfaService {
     );
 
     // Map `revisions` property back to the expected payload for the frontend
-    const mappedItems = items.map((rfa) => {
-      const mappedRfa = { ...rfa } as any;
-      mappedRfa.revisions =
-        rfa.correspondence?.revisions?.map((cr) => ({
+    const mappedItems: RfaMapped[] = items.map((rfa) => {
+      const revisions =
+        (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
+      return {
+        ...rfa,
+        uuid: rfa.correspondence?.uuid, // ADR-019: expose UUID at top level
+        revisions: revisions.map((cr) => ({
           ...cr,
-          ...(cr.rfaRevision || {}),
-          id: cr.rfaRevision?.id || cr.id,
-        })) || [];
-      return mappedRfa;
+          ...(cr.rfaRevision ?? {}),
+          id: cr.rfaRevision?.id ?? cr.id,
+        })) as CorrRevWithRfa[],
+      };
     });
 
     return {
@@ -375,6 +394,32 @@ export class RfaService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * ADR-019: Find RFA by the parent Correspondence UUID (public identifier).
+   * Resolves correspondence.uuid → internal rfa.id
+   */
+  async findOneByUuid(uuid: string) {
+    const correspondence = await this.correspondenceRepo.findOne({
+      where: { uuid },
+      select: ['id'],
+    });
+    if (!correspondence) {
+      throw new NotFoundException(`RFA with UUID ${uuid} not found`);
+    }
+    return this.findOne(correspondence.id);
+  }
+
+  async findOneByUuidRaw(uuid: string) {
+    const correspondence = await this.correspondenceRepo.findOne({
+      where: { uuid },
+      select: ['id'],
+    });
+    if (!correspondence) {
+      throw new NotFoundException(`RFA with UUID ${uuid} not found`);
+    }
+    return this.findOne(correspondence.id, true);
   }
 
   async findOne(id: number, rawEntities = false) {
@@ -405,22 +450,26 @@ export class RfaService {
     }
 
     // Map to structure expected by frontend DTO
-    const mappedRfa = { ...rfa } as any;
-    mappedRfa.revisions =
-      rfa.correspondence?.revisions?.map((cr) => ({
+    const revisions =
+      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
+    const mappedRfa: RfaMapped = {
+      ...rfa,
+      uuid: rfa.correspondence?.uuid, // ADR-019: expose UUID at top level
+      revisions: revisions.map((cr) => ({
         ...cr,
-        ...(cr.rfaRevision || {}),
-        id: cr.rfaRevision?.id || cr.id,
-      })) || [];
+        ...(cr.rfaRevision ?? {}),
+        id: cr.rfaRevision?.id ?? cr.id,
+      })) as CorrRevWithRfa[],
+    };
 
     return mappedRfa;
   }
 
   async submit(rfaId: number, templateId: number, user: User) {
     const rfa = await this.findOne(rfaId, true);
-    const currentCorrRev = rfa.correspondence?.revisions?.find(
-      (r: any) => r.isCurrent
-    );
+    const corrRevisions =
+      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
+    const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
     if (!currentCorrRev || !currentCorrRev.rfaRevision)
       throw new NotFoundException('Current revision not found');
 
@@ -512,9 +561,9 @@ export class RfaService {
   async processAction(rfaId: number, dto: WorkflowActionDto, user: User) {
     // Logic คงเดิม: หา Current Routing -> Check Permission -> Call Workflow Engine -> Update DB
     const rfa = await this.findOne(rfaId, true);
-    const currentCorrRev = rfa.correspondence?.revisions?.find(
-      (r: any) => r.isCurrent
-    );
+    const corrRevisions =
+      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
+    const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
     if (!currentCorrRev || !currentCorrRev.rfaRevision)
       throw new NotFoundException('Current revision not found');
 

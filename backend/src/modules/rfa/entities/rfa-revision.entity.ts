@@ -35,7 +35,7 @@ export class RfaRevision {
   // --- JSON & Schema Section ---
 
   @Column({ type: 'json', nullable: true })
-  details?: any;
+  details?: object; // Dynamic JSON — typed as `object` per TypeORM JSON column convention (no-any, ADR-019)
 
   // ✅ [New] จำเป็นสำหรับ Data Migration (T2.5.5)
   @Column({ name: 'schema_version', default: 1 })

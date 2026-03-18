@@ -30,7 +30,7 @@ export function RFADetail({ data }: RFADetailProps) {
 
     processMutation.mutate(
       {
-        id: data.rfaId,
+        uuid: data.uuid,
         data: {
           action: apiAction,
           comments: comments,

@@ -8,6 +8,7 @@ import { CorrespondenceStatus } from '../correspondence/entities/correspondence-
 import { TransmittalService } from './transmittal.service';
 import { TransmittalController } from './transmittal.controller';
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
+import { ProjectModule } from '../project/project.module';
 import { UserModule } from '../user/user.module';
 import { SearchModule } from '../search/search.module';
 
@@ -21,6 +22,7 @@ import { SearchModule } from '../search/search.module';
       CorrespondenceStatus,
     ]),
     DocumentNumberingModule,
+    ProjectModule,
     UserModule,
     SearchModule,
   ],

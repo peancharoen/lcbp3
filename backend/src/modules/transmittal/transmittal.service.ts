@@ -9,7 +9,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Transmittal } from './entities/transmittal.entity';
 import { TransmittalItem } from './entities/transmittal-item.entity';
-import { CreateTransmittalDto } from './dto/create-transmittal.dto';
+import {
+  CreateTransmittalDto,
+  TransmittalItemDto,
+} from './dto/create-transmittal.dto';
+import { SearchTransmittalDto } from './dto/search-transmittal.dto';
 import { User } from '../user/entities/user.entity';
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
@@ -125,14 +129,7 @@ export class TransmittalService {
 
       // 6. Create Items
       if (createDto.items && createDto.items.length > 0) {
-        // Filter only items that are effectively correspondences (or mapped as such)
-        // For now, assuming itemId refers to correspondenceId if itemType is CORRESPONDENCE
-        // If itemType is DRAWING, we skip or throw error (Schema Restriction)
-        const validItems = createDto.items.filter(
-          (i) => i.itemType === 'CORRESPONDENCE' || i.itemType === 'DRAWING' // Temporary allow DRAWING if ID matches Correspondence? Unsafe.
-        );
-
-        const items = createDto.items.map((item) =>
+        const items = createDto.items.map((item: TransmittalItemDto) =>
           queryRunner.manager.create(TransmittalItem, {
             transmittalId: savedCorr.id,
             itemCorrespondenceId: item.itemId, // Direct mapping forced by Schema
@@ -160,6 +157,21 @@ export class TransmittalService {
     }
   }
 
+  /**
+   * ADR-019: Find Transmittal by parent Correspondence UUID (public identifier).
+   * Resolves correspondence.uuid → internal correspondenceId (INT)
+   */
+  async findOneByUuid(uuid: string) {
+    const correspondence = await this.dataSource.manager.findOne(
+      Correspondence,
+      { where: { uuid }, select: ['id'] }
+    );
+    if (!correspondence) {
+      throw new NotFoundException(`Transmittal with UUID ${uuid} not found`);
+    }
+    return this.findOne(correspondence.id);
+  }
+
   async findOne(id: number) {
     const transmittal = await this.transmittalRepo.findOne({
       where: { correspondenceId: id },
@@ -170,9 +182,9 @@ export class TransmittalService {
     return transmittal;
   }
 
-  async findAll(query: any) {
+  async findAll(query: SearchTransmittalDto) {
     const { page = 1, limit = 20, projectId, search } = query;
-    const skip = (page - 1) * limit;
+    const skip = ((page ?? 1) - 1) * (limit ?? 20);
 
     const queryBuilder = this.transmittalRepo
       .createQueryBuilder('transmittal')
@@ -205,8 +217,14 @@ export class TransmittalService {
       .take(limit)
       .getManyAndCount();
 
+    // ADR-019: Map correspondence.uuid to top level for frontend convenience
+    const mappedItems = items.map((t) => ({
+      ...t,
+      uuid: t.correspondence?.uuid,
+    }));
+
     return {
-      data: items,
+      data: mappedItems,
       meta: {
         total,
         page,

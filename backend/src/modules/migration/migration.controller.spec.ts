@@ -33,11 +33,12 @@ describe('MigrationController', () => {
   it('should call importCorrespondence on service', async () => {
     const dto: ImportCorrespondenceDto = {
       document_number: 'DOC-001',
-      title: 'Legacy Record',
+      subject: 'Legacy Record',
       category: 'Correspondence',
       source_file_path: '/staging_ai/test.pdf',
       migrated_by: 'SYSTEM_IMPORT',
       batch_id: 'batch1',
+      project_id: 1,
     };
 
     const idempotencyKey = 'key123';

@@ -10,7 +10,7 @@ export class SearchService implements OnModuleInit {
 
   constructor(
     private readonly esService: ElasticsearchService,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {}
 
   async onModuleInit() {
@@ -34,6 +34,7 @@ export class SearchService implements OnModuleInit {
             mappings: {
               properties: {
                 id: { type: 'integer' },
+                uuid: { type: 'keyword' }, // ADR-019: public identifier
                 type: { type: 'keyword' }, // correspondence, rfa, drawing
                 docNumber: { type: 'text' },
                 title: { type: 'text', analyzer: 'standard' },
@@ -60,12 +61,12 @@ export class SearchService implements OnModuleInit {
     try {
       return await this.esService.index({
         index: this.indexName,
-        id: `${doc.type}_${doc.id}`, // Unique ID: rfa_101
+        id: doc.uuid ? `${doc.type}_${doc.uuid}` : `${doc.type}_${doc.id}`, // ADR-019: prefer UUID key
         document: doc, // ✅ Library รุ่นใหม่ใช้ 'document' แทน 'body' ในบางเวอร์ชัน
       });
     } catch (error) {
       this.logger.error(
-        `Failed to index document: ${(error as Error).message}`,
+        `Failed to index document: ${(error as Error).message}`
       );
     }
   }
@@ -81,7 +82,7 @@ export class SearchService implements OnModuleInit {
       });
     } catch (error) {
       this.logger.error(
-        `Failed to remove document: ${(error as Error).message}`,
+        `Failed to remove document: ${(error as Error).message}`
       );
     }
   }

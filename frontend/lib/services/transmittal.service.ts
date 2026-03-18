@@ -1,9 +1,9 @@
 // File: lib/services/transmittal.service.ts
 import apiClient from "@/lib/api/client";
-import { 
-  CreateTransmittalDto, 
-  UpdateTransmittalDto, 
-  SearchTransmittalDto 
+import {
+  CreateTransmittalDto,
+  UpdateTransmittalDto,
+  SearchTransmittalDto
 } from "@/types/dto/transmittal/transmittal.dto";
 
 export const transmittalService = {
@@ -17,11 +17,11 @@ export const transmittalService = {
   },
 
   /**
-   * ดึงรายละเอียด Transmittal ตาม ID
+   * ดึงรายละเอียด Transmittal ตาม UUID (ADR-019)
    */
-  getById: async (id: string | number) => {
-    // GET /transmittals/:id
-    const response = await apiClient.get(`/transmittals/${id}`);
+  getByUuid: async (uuid: string) => {
+    // GET /transmittals/:uuid
+    const response = await apiClient.get(`/transmittals/${uuid}`);
     return response.data;
   },
 
@@ -37,18 +37,18 @@ export const transmittalService = {
   /**
    * แก้ไขข้อมูล Transmittal (เฉพาะ Draft)
    */
-  update: async (id: string | number, data: UpdateTransmittalDto) => {
-    // PUT /transmittals/:id
-    const response = await apiClient.put(`/transmittals/${id}`, data);
+  update: async (uuid: string, data: UpdateTransmittalDto) => {
+    // PUT /transmittals/:uuid (ADR-019)
+    const response = await apiClient.put(`/transmittals/${uuid}`, data);
     return response.data;
   },
 
   /**
    * ลบเอกสาร (Soft Delete)
    */
-  delete: async (id: string | number) => {
-    // DELETE /transmittals/:id
-    const response = await apiClient.delete(`/transmittals/${id}`);
+  delete: async (uuid: string) => {
+    // DELETE /transmittals/:uuid (ADR-019)
+    const response = await apiClient.delete(`/transmittals/${uuid}`);
     return response.data;
   }
 };

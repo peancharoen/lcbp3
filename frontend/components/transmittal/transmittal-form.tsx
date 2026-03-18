@@ -9,6 +9,8 @@ import { z } from "zod";
 
 import { transmittalService } from "@/lib/services/transmittal.service";
 import { correspondenceService } from "@/lib/services/correspondence.service";
+import { projectService } from "@/lib/services/project.service";
+import { organizationService } from "@/lib/services/organization.service";
 import { CreateTransmittalDto } from "@/types/dto/transmittal/transmittal.dto";
 
 // UI Components
@@ -59,6 +61,8 @@ const itemSchema = z.object({
 
 // Main form schema
 const formSchema = z.object({
+  projectId: z.string().min(1, "Project is required"), // ADR-019: UUID
+  recipientOrganizationId: z.string().min(1, "Recipient is required"), // ADR-019: UUID
   correspondenceId: z.string().min(1, "Correspondence is required"), // ADR-019: UUID string
   subject: z.string().min(1, "Subject is required"),
   purpose: z.enum(["FOR_APPROVAL", "FOR_INFORMATION", "FOR_REVIEW", "OTHER"]),
@@ -75,6 +79,9 @@ export function TransmittalForm() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      projectId: "",
+      recipientOrganizationId: "",
+      correspondenceId: "",
       subject: "",
       purpose: "FOR_APPROVAL",
       remarks: "",
@@ -89,6 +96,19 @@ export function TransmittalForm() {
     name: "items",
   });
 
+  // ADR-019: Fetch projects and organizations for UUID-based selectors
+  const { data: projectsData, isLoading: isLoadingProjects } = useQuery({
+    queryKey: ["projects-dropdown"],
+    queryFn: () => projectService.getAll(),
+  });
+  const projectsList = projectsData?.data || projectsData || [];
+
+  const { data: orgsData, isLoading: isLoadingOrgs } = useQuery({
+    queryKey: ["organizations-dropdown"],
+    queryFn: () => organizationService.getAll(),
+  });
+  const orgsList = orgsData?.data || orgsData || [];
+
   // Fetch correspondences (for header linkage)
   const { data: correspondences } = useQuery({
     queryKey: ["correspondences-dropdown"],
@@ -99,7 +119,8 @@ export function TransmittalForm() {
     mutationFn: (data: CreateTransmittalDto) => transmittalService.create(data),
     onSuccess: (result) => {
       toast.success("Transmittal created successfully");
-      router.push(`/transmittals/${result.id}`);
+      // ADR-019: Navigate using UUID from correspondence
+      router.push(`/transmittals/${result.correspondence?.uuid || result.uuid}`);
     },
     onError: () => {
       toast.error("Failed to create transmittal");
@@ -107,13 +128,13 @@ export function TransmittalForm() {
   });
 
   const onSubmit = (data: FormData) => {
-    // Better fix: Add missing recipientOrganizationId mock
+    // ADR-019: All IDs are now UUID strings from the form
     const cleanPayload: CreateTransmittalDto = {
-        projectId: 1,
-        recipientOrganizationId: 99, // Mock
+        projectId: data.projectId,
+        recipientOrganizationId: data.recipientOrganizationId,
         correspondenceId: data.correspondenceId,
         subject: data.subject,
-        purpose: data.purpose as any,
+        purpose: data.purpose as string,
         remarks: data.remarks,
         items: data.items.map(item => ({
              itemType: item.itemType,
@@ -139,6 +160,59 @@ export function TransmittalForm() {
             <CardTitle>Transmittal Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* ADR-019: Project & Recipient Organization selectors */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingProjects}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={isLoadingProjects ? "Loading..." : "Select Project"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(Array.isArray(projectsList) ? projectsList : []).map((p: { uuid: string; projectName?: string; projectCode?: string }) => (
+                          <SelectItem key={p.uuid} value={p.uuid}>
+                            {p.projectName || p.projectCode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="recipientOrganizationId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Recipient Organization</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingOrgs}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(Array.isArray(orgsList) ? orgsList : []).map((o: { uuid: string; organizationName?: string; orgCode?: string }) => (
+                          <SelectItem key={o.uuid} value={o.uuid}>
+                            {o.organizationName || o.orgCode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Linked Correspondence (Ref No) */}
               <FormField

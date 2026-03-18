@@ -76,7 +76,7 @@ export class CreateCorrespondenceDto {
   })
   @IsObject()
   @IsOptional()
-  details?: Record<string, any>; // ข้อมูล JSON (เช่น RFI question)
+  details?: Record<string, unknown>; // ข้อมูล JSON (เช่น RFI question)
 
   @ApiPropertyOptional({ description: 'Is internal document?', default: false })
   @IsBoolean()

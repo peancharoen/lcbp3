@@ -6,7 +6,6 @@ import {
   UseGuards,
   Request,
   Param,
-  ParseIntPipe,
   Query,
   Delete,
   Put,
@@ -43,7 +42,7 @@ export class CorrespondenceController {
     private readonly workflowService: CorrespondenceWorkflowService
   ) {}
 
-  @Post(':id/workflow/action')
+  @Post(':uuid/workflow/action')
   @ApiOperation({ summary: 'Process workflow action (Approve/Reject/Review)' })
   @ApiResponse({ status: 201, description: 'Action processed successfully.' })
   @RequirePermission('workflow.action_review')
@@ -188,15 +187,16 @@ export class CorrespondenceController {
     return this.correspondenceService.addReference(corr.id, dto);
   }
 
-  @Delete(':uuid/references/:targetId')
+  @Delete(':uuid/references/:targetUuid')
   @ApiOperation({ summary: 'Remove reference' })
   @ApiResponse({ status: 200, description: 'Reference removed successfully.' })
   @RequirePermission('document.edit')
   async removeReference(
     @Param('uuid', ParseUuidPipe) uuid: string,
-    @Param('targetId', ParseIntPipe) targetId: number
+    @Param('targetUuid', ParseUuidPipe) targetUuid: string
   ) {
     const corr = await this.correspondenceService.findOneByUuid(uuid);
-    return this.correspondenceService.removeReference(corr.id, targetId);
+    const target = await this.correspondenceService.findOneByUuid(targetUuid);
+    return this.correspondenceService.removeReference(corr.id, target.id);
   }
 }

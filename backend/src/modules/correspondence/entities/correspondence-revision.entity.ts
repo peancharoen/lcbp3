@@ -53,7 +53,7 @@ export class CorrespondenceRevision extends UuidBaseEntity {
   remarks?: string;
 
   @Column({ type: 'json', nullable: true })
-  details?: any; // เก็บข้อมูลแบบ Dynamic ตาม Type
+  details?: object; // Dynamic JSON — typed as `object` per TypeORM JSON column convention (no-any, ADR-019)
 
   @Column({ name: 'schema_version', default: 1 })
   schemaVersion!: number;

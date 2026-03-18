@@ -1,22 +1,41 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { TransmittalList } from "@/components/transmittal/transmittal-list";
 import { transmittalService } from "@/lib/services/transmittal.service";
+import { projectService } from "@/lib/services/project.service";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { TransmittalListResponse } from "@/types/transmittal";
 
 export default function TransmittalPage() {
+  // ADR-019: Dynamic project selection via UUID
+  const [selectedProjectUuid, setSelectedProjectUuid] = useState<string>("");
+
+  const { data: projectsData } = useQuery({
+    queryKey: ["projects-for-transmittals"],
+    queryFn: () => projectService.getAll(),
+  });
+  const projects = projectsData?.data || projectsData || [];
+
   const {
     data,
     isLoading,
     error,
     refetch,
   } = useQuery<TransmittalListResponse>({
-    queryKey: ["transmittals"],
-    queryFn: () => transmittalService.getAll({ projectId: 1 }),
+    queryKey: ["transmittals", selectedProjectUuid],
+    queryFn: () => transmittalService.getAll({ projectId: selectedProjectUuid }),
+    enabled: !!selectedProjectUuid,
   });
 
   return (
@@ -45,6 +64,23 @@ export default function TransmittalPage() {
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* ADR-019: Project filter */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-muted-foreground">Project:</span>
+        <Select value={selectedProjectUuid} onValueChange={setSelectedProjectUuid}>
+          <SelectTrigger className="w-[280px]">
+            <SelectValue placeholder="Select a project" />
+          </SelectTrigger>
+          <SelectContent>
+            {(Array.isArray(projects) ? projects : []).map((p: { uuid: string; projectName?: string; projectCode?: string }) => (
+              <SelectItem key={p.uuid} value={p.uuid}>
+                {p.projectName || p.projectCode}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {error && (

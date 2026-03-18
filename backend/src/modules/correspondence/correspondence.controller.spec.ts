@@ -100,7 +100,7 @@ describe('CorrespondenceController', () => {
 
       const mockReq = { user: { user_id: 1 } };
       const result = await controller.submit(
-        1,
+        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         { note: 'Test note' },
         mockReq as Parameters<typeof controller.submit>[2]
       );

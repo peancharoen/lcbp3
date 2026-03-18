@@ -1,11 +1,12 @@
-import { IsInt, IsOptional, IsString, IsNotEmpty } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchRfaDto {
-  @IsInt()
-  @Type(() => Number)
-  @IsNotEmpty()
-  projectId!: number; // บังคับระบุ Project
+  @IsUUID('all')
+  projectUuid!: string; // ADR-019: Public UUID of the project
+
+  /** @internal Resolved INT ID — set by controller, do NOT expose in API */
+  projectId?: number;
 
   @IsOptional()
   @IsInt()
@@ -13,9 +14,12 @@ export class SearchRfaDto {
   rfaTypeId?: number; // กรองตามประเภท RFA
 
   @IsOptional()
-  @IsInt()
-  @Type(() => Number)
-  statusId?: number; // กรองตามสถานะ (เช่น Draft, For Approve)
+  @IsString()
+  statusCode?: string; // กรองตามสถานะโดยใช้ status code เช่น 'DFT', 'FAP'
+
+  @IsOptional()
+  @IsString()
+  revisionStatus?: string; // 'CURRENT' | 'OLD' | 'ALL' — default 'CURRENT'
 
   @IsOptional()
   @IsString()

@@ -8,7 +8,8 @@ export interface RFAItem {
 }
 
 export interface RFA {
-  id: number; // Shared PK with Correspondence
+  uuid: string; // ADR-019: from correspondence.uuid
+  id?: number; // Excluded from API responses (ADR-019)
   rfaTypeId: number;
   createdBy: number;
   disciplineId?: number;
@@ -35,12 +36,14 @@ export interface RFA {
   };
   // Shared Correspondence Relation
   correspondence?: {
-    id: number;
+    uuid: string;
+    id?: number; // Excluded from API responses (ADR-019)
     correspondenceNumber: string;
     projectId: number;
     originatorId?: number;
     createdAt?: string;
     project?: {
+      uuid: string;
       projectName: string;
       projectCode: string;
     };

@@ -53,7 +53,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
   const [loading, setLoading] = useState(false);
 
   // Master Data Hooks
-  const projectId = template?.projectId || 1;
+  const projectId = (template as any)?.project?.id ?? (template as any)?.project?.uuid ?? template?.projectId ?? 1;
   const { data: organizations } = useOrganizations({ isActive: true });
   const { data: correspondenceTypes } = useCorrespondenceTypes();
   const { data: contracts } = useContracts(projectId);
@@ -117,7 +117,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
                                     </SelectTrigger>
                                     <SelectContent>
                                         {(organizations as Organization[])?.map((org) => (
-                                            <SelectItem key={org.uuid} value={(org.id ?? org.uuid).toString()}>
+                                            <SelectItem key={org.uuid} value={org.uuid}>
                                                 {org.organizationCode} - {org.organizationName}
                                             </SelectItem>
                                         ))}
@@ -137,7 +137,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
                                     </SelectTrigger>
                                     <SelectContent>
                                         {(organizations as Organization[])?.map((org) => (
-                                            <SelectItem key={org.uuid} value={(org.id ?? org.uuid).toString()}>
+                                            <SelectItem key={org.uuid} value={org.uuid}>
                                                 {org.organizationCode} - {org.organizationName}
                                             </SelectItem>
                                         ))}

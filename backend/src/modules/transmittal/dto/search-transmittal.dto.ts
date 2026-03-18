@@ -3,16 +3,18 @@ import {
   IsOptional,
   IsString,
   IsEnum,
-  IsNotEmpty,
+  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TransmittalPurpose } from './create-transmittal.dto';
 
 export class SearchTransmittalDto {
-  @IsInt()
-  @Type(() => Number)
-  @IsNotEmpty()
-  projectId!: number; // บังคับระบุ Project
+  @IsUUID('all')
+  @IsOptional()
+  projectUuid?: string; // ADR-019: Public UUID of the project
+
+  /** @internal Resolved INT ID — set by controller, do NOT expose in API */
+  projectId?: number;
 
   @IsEnum(TransmittalPurpose)
   @IsOptional()

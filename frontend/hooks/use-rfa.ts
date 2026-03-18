@@ -11,7 +11,7 @@ export const rfaKeys = {
   lists: () => [...rfaKeys.all, 'list'] as const,
   list: (params: SearchRfaDto) => [...rfaKeys.lists(), params] as const,
   details: () => [...rfaKeys.all, 'detail'] as const,
-  detail: (id: number | string) => [...rfaKeys.details(), id] as const,
+  detail: (uuid: string) => [...rfaKeys.details(), uuid] as const,
 };
 
 // --- Queries ---
@@ -24,11 +24,11 @@ export function useRFAs(params: SearchRfaDto) {
   });
 }
 
-export function useRFA(id: number | string) {
+export function useRFA(uuid: string) {
   return useQuery({
-    queryKey: rfaKeys.detail(id),
-    queryFn: () => rfaService.getById(id),
-    enabled: !!id,
+    queryKey: rfaKeys.detail(uuid),
+    queryFn: () => rfaService.getByUuid(uuid),
+    enabled: !!uuid,
   });
 }
 
@@ -55,11 +55,11 @@ export function useUpdateRFA() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: UpdateRfaDto }) =>
-      rfaService.update(id, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ uuid, data }: { uuid: string; data: UpdateRfaDto }) =>
+      rfaService.update(uuid, data),
+    onSuccess: (_, { uuid }) => {
       toast.success('RFA updated successfully');
-      queryClient.invalidateQueries({ queryKey: rfaKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: rfaKeys.detail(uuid) });
       queryClient.invalidateQueries({ queryKey: rfaKeys.lists() });
     },
     onError: (error: unknown) => {
@@ -74,11 +74,11 @@ export function useProcessRFA() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number | string; data: WorkflowActionDto }) =>
-      rfaService.processWorkflow(id, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ uuid, data }: { uuid: string; data: WorkflowActionDto }) =>
+      rfaService.processWorkflow(uuid, data),
+    onSuccess: (_, { uuid }) => {
       toast.success('Workflow status updated successfully');
-      queryClient.invalidateQueries({ queryKey: rfaKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: rfaKeys.detail(uuid) });
       queryClient.invalidateQueries({ queryKey: rfaKeys.lists() });
     },
     onError: (error: unknown) => {

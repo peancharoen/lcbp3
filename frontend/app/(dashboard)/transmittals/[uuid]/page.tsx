@@ -22,12 +22,12 @@ import { toast } from "sonner";
 
 export default function TransmittalDetailPage() {
   const params = useParams();
-  const id = params.id as string;
+  const uuid = params.uuid as string;
 
   const { data: transmittal, isLoading, error } = useQuery<Transmittal>({
-    queryKey: ["transmittal", id],
-    queryFn: () => transmittalService.getById(id),
-    enabled: !!id,
+    queryKey: ["transmittal", uuid],
+    queryFn: () => transmittalService.getByUuid(uuid),
+    enabled: !!uuid,
   });
 
   const handlePrint = () => {
@@ -100,7 +100,7 @@ export default function TransmittalDetailPage() {
             <p className="text-sm text-muted-foreground">Generated From</p>
             {transmittal.correspondence ? (
               <Link
-                href={`/correspondences/${transmittal.correspondenceId}`}
+                href={`/correspondences/${transmittal.correspondence.uuid}`}
                 className="font-medium text-primary hover:underline"
               >
                 {transmittal.correspondence.correspondence_number}

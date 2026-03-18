@@ -29,6 +29,7 @@ import { RfaService } from './rfa.service';
 // External Modules
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
 import { NotificationModule } from '../notification/notification.module';
+import { ProjectModule } from '../project/project.module';
 import { SearchModule } from '../search/search.module';
 import { UserModule } from '../user/user.module';
 import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module';
@@ -56,6 +57,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
     ]),
     DocumentNumberingModule,
     UserModule,
+    ProjectModule,
     SearchModule,
     WorkflowEngineModule,
     NotificationModule,

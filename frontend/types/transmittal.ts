@@ -28,8 +28,9 @@ export interface TransmittalItem {
  * Main Transmittal entity
  */
 export interface Transmittal {
-  id: number;
-  correspondenceId: number;
+  uuid: string; // ADR-019: from correspondence.uuid
+  id?: number; // Excluded from API responses (ADR-019)
+  correspondenceId?: number | string;
   transmittalNo: string;
   subject: string;
   purpose?: TransmittalPurpose;
@@ -38,7 +39,8 @@ export interface Transmittal {
   // Joined relations from API
   items?: TransmittalItem[];
   correspondence?: {
-    id: number;
+    uuid: string;
+    id?: number; // Excluded from API responses (ADR-019)
     correspondence_number: string;
     project_id: number;
   };
@@ -70,9 +72,9 @@ export interface CreateTransmittalItemDto {
  * DTO for creating a transmittal
  */
 export interface CreateTransmittalDto {
-  projectId?: number;
-  recipientOrganizationId?: number;
-  correspondenceId: number;
+  projectId?: number | string; // ADR-019: Accept UUID
+  recipientOrganizationId?: number | string; // ADR-019: Accept UUID
+  correspondenceId: number | string; // ADR-019: Accept UUID
   subject: string;
   purpose?: TransmittalPurpose;
   remarks?: string;
@@ -85,6 +87,6 @@ export interface CreateTransmittalDto {
 export interface SearchTransmittalDto {
   page?: number;
   limit?: number;
-  projectId?: number;
+  projectId?: number | string; // ADR-019: Accept UUID
   search?: string;
 }

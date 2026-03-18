@@ -6,11 +6,11 @@ import { useRFA } from "@/hooks/use-rfa";
 import { Loader2 } from "lucide-react";
 
 export default function RFADetailPage() {
-  const { id } = useParams();
+  const { uuid } = useParams();
 
-  if (!id) notFound();
+  if (!uuid) notFound();
 
-  const { data: rfa, isLoading, isError } = useRFA(String(id));
+  const { data: rfa, isLoading, isError } = useRFA(String(uuid));
 
   if (isLoading) {
     return (

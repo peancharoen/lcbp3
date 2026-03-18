@@ -423,8 +423,9 @@ export class CorrespondenceService {
 
   async addReference(id: number, dto: AddReferenceDto) {
     const source = await this.correspondenceRepo.findOne({ where: { id } });
+    // ADR-019: Resolve target UUID → internal INT id
     const target = await this.correspondenceRepo.findOne({
-      where: { id: dto.targetId },
+      where: { uuid: dto.targetUuid },
     });
 
     if (!source || !target) {
@@ -438,7 +439,7 @@ export class CorrespondenceService {
     const exists = await this.referenceRepo.findOne({
       where: {
         sourceId: id,
-        targetId: dto.targetId,
+        targetId: target.id,
       },
     });
 
@@ -448,7 +449,7 @@ export class CorrespondenceService {
 
     const ref = this.referenceRepo.create({
       sourceId: id,
-      targetId: dto.targetId,
+      targetId: target.id,
     });
 
     return this.referenceRepo.save(ref);
