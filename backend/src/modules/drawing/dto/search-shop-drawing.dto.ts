@@ -1,10 +1,14 @@
-import { IsInt, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchShopDrawingDto {
+  @IsUUID()
+  projectUuid!: string;
+
+  @IsOptional()
   @IsInt()
   @Type(() => Number)
-  projectId!: number; // จำเป็น: ใส่ !
+  projectId?: number;
 
   @IsOptional()
   @IsInt()

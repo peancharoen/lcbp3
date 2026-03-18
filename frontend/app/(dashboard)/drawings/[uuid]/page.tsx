@@ -1,32 +1,86 @@
+"use client";
+
+import { use } from "react";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, FileText, GitCompare } from "lucide-react";
+import { ArrowLeft, Download, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { RevisionHistory } from "@/components/drawings/revision-history";
 import { format } from "date-fns";
-import { drawingApi } from "@/lib/api/drawings";
+import { useQuery } from "@tanstack/react-query";
+import { contractDrawingService } from "@/lib/services/contract-drawing.service";
+import { shopDrawingService } from "@/lib/services/shop-drawing.service";
+import { asBuiltDrawingService } from "@/lib/services/asbuilt-drawing.service";
 
-export default async function DrawingDetailPage({
+async function fetchDrawingByUuid(uuid: string) {
+  // Try each drawing type until one succeeds
+  try {
+    const result = await contractDrawingService.getByUuid(uuid);
+    if (result?.data) return { ...result.data, _type: "CONTRACT" };
+  } catch { /* not found in contract drawings */ }
+
+  try {
+    const result = await shopDrawingService.getByUuid(uuid);
+    if (result?.data) return { ...result.data, _type: "SHOP" };
+  } catch { /* not found in shop drawings */ }
+
+  try {
+    const result = await asBuiltDrawingService.getByUuid(uuid);
+    if (result?.data) return { ...result.data, _type: "AS_BUILT" };
+  } catch { /* not found in asbuilt drawings */ }
+
+  return null;
+}
+
+export default function DrawingDetailPage({
   params,
 }: {
   params: Promise<{ uuid: string }>;
 }) {
-  const { uuid } = await params;
+  const { uuid } = use(params);
+
+  const { data: drawing, isLoading } = useQuery({
+    queryKey: ["drawing-detail", uuid],
+    queryFn: () => fetchDrawingByUuid(uuid),
+    enabled: !!uuid,
+  });
+
   if (!uuid) {
     notFound();
   }
 
-  // TODO: Replace mock drawingApi with real service call using UUID
-  // For now, keep using the mock API with a numeric fallback
-  const drawingId = parseInt(uuid);
-  const drawing = !isNaN(drawingId) ? await drawingApi.getById(drawingId) : undefined;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!drawing) {
-    notFound();
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link href="/drawings">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold">Drawing Not Found</h1>
+        </div>
+        <p className="text-muted-foreground">
+          The drawing with UUID <code>{uuid}</code> could not be found.
+        </p>
+      </div>
+    );
   }
+
+  const drawingNumber = drawing.contractDrawingNo || drawing.drawingNumber || "N/A";
+  const title = drawing.title || drawing.currentRevision?.title || "Untitled";
+  const revisions = drawing.revisions || [];
 
   return (
     <div className="space-y-6">
@@ -39,10 +93,8 @@ export default async function DrawingDetailPage({
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{drawing.drawingNumber}</h1>
-            <p className="text-muted-foreground">
-              {drawing.title}
-            </p>
+            <h1 className="text-2xl font-bold">{drawingNumber}</h1>
+            <p className="text-muted-foreground">{title}</p>
           </div>
         </div>
 
@@ -51,12 +103,6 @@ export default async function DrawingDetailPage({
             <Download className="mr-2 h-4 w-4" />
             Download Current
           </Button>
-          {(drawing.revisionCount ?? 0) > 1 && (
-            <Button variant="outline">
-              <GitCompare className="mr-2 h-4 w-4" />
-              Compare Revisions
-            </Button>
-          )}
         </div>
       </div>
 
@@ -67,30 +113,30 @@ export default async function DrawingDetailPage({
             <CardHeader>
               <div className="flex justify-between items-start">
                 <CardTitle className="text-xl">Drawing Details</CardTitle>
-                <Badge>{drawing.type}</Badge>
+                <Badge>{drawing._type}</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Discipline</p>
+                  <p className="text-sm font-medium text-muted-foreground">Drawing Number</p>
+                  <p className="font-medium mt-1">{drawingNumber}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Type</p>
+                  <p className="font-medium mt-1">{drawing._type}</p>
+                </div>
+                {drawing.volumePage && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Volume Page</p>
+                    <p className="font-medium mt-1">{drawing.volumePage}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Created</p>
                   <p className="font-medium mt-1">
-                    {typeof drawing.discipline === 'object' && drawing.discipline
-                      ? `${drawing.discipline.disciplineName} (${drawing.discipline.disciplineCode})`
-                      : drawing.discipline || 'N/A'}
+                    {drawing.createdAt ? format(new Date(drawing.createdAt), "dd MMM yyyy") : "N/A"}
                   </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Sheet Number</p>
-                  <p className="font-medium mt-1">{drawing.sheetNumber}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Scale</p>
-                  <p className="font-medium mt-1">{drawing.scale || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Latest Issue Date</p>
-                  <p className="font-medium mt-1">{drawing.issueDate ? format(new Date(drawing.issueDate), "dd MMM yyyy") : 'N/A'}</p>
                 </div>
               </div>
 
@@ -111,7 +157,7 @@ export default async function DrawingDetailPage({
 
         {/* Revisions */}
         <div className="space-y-6">
-          <RevisionHistory revisions={drawing.revisions || []} />
+          <RevisionHistory revisions={revisions} />
         </div>
       </div>
     </div>

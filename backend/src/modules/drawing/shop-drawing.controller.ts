@@ -21,13 +21,17 @@ import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../user/entities/user.entity';
 import { Audit } from '../../common/decorators/audit.decorator'; // Import
+import { ProjectService } from '../project/project.service';
 
 @ApiTags('Shop Drawings')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RbacGuard)
 @Controller('drawings/shop')
 export class ShopDrawingController {
-  constructor(private readonly shopDrawingService: ShopDrawingService) {}
+  constructor(
+    private readonly shopDrawingService: ShopDrawingService,
+    private readonly projectService: ProjectService
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create new Shop Drawing with initial revision' })
@@ -40,7 +44,11 @@ export class ShopDrawingController {
   @Get()
   @ApiOperation({ summary: 'Search Shop Drawings' })
   @RequirePermission('drawing.view')
-  findAll(@Query() searchDto: SearchShopDrawingDto) {
+  async findAll(@Query() searchDto: SearchShopDrawingDto) {
+    const project = await this.projectService.findOneByUuid(
+      searchDto.projectUuid
+    );
+    searchDto.projectId = project.id;
     return this.shopDrawingService.findAll(searchDto);
   }
 

@@ -16,7 +16,7 @@ import Link from "next/link";
 import { useProjects } from "@/hooks/use-master-data";
 
 export default function DrawingsPage() {
-  const [selectedProjectId, setSelectedProjectId] = useState<number | undefined>(undefined);
+  const [selectedProjectUuid, setSelectedProjectUuid] = useState<string | undefined>(undefined);
   const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
 
   return (
@@ -40,8 +40,8 @@ export default function DrawingsPage() {
       <div className="flex items-center gap-4">
         <span className="text-sm font-medium">Project:</span>
         <Select
-          value={selectedProjectId?.toString() ?? ""}
-          onValueChange={(v) => setSelectedProjectId(v ? parseInt(v) : undefined)}
+          value={selectedProjectUuid ?? ""}
+          onValueChange={(v) => setSelectedProjectUuid(v || undefined)}
         >
           <SelectTrigger className="w-[300px]">
             {isLoadingProjects ? (
@@ -51,8 +51,8 @@ export default function DrawingsPage() {
             )}
           </SelectTrigger>
           <SelectContent>
-            {projects.map((project: { id: number; projectName: string; projectCode: string }) => (
-              <SelectItem key={project.id} value={String(project.id)}>
+            {projects.map((project: { id: string; projectName: string; projectCode: string }) => (
+              <SelectItem key={project.id} value={project.id}>
                 {project.projectCode} - {project.projectName}
               </SelectItem>
             ))}
@@ -60,18 +60,18 @@ export default function DrawingsPage() {
         </Select>
       </div>
 
-      {!selectedProjectId ? (
+      {!selectedProjectUuid ? (
         <div className="text-center py-12 text-muted-foreground border rounded-lg border-dashed">
           Please select a project to view drawings.
         </div>
       ) : (
-        <DrawingTabs projectId={selectedProjectId} />
+        <DrawingTabs projectUuid={selectedProjectUuid} />
       )}
     </div>
   );
 }
 
-function DrawingTabs({ projectId }: { projectId: number }) {
+function DrawingTabs({ projectUuid }: { projectUuid: string }) {
   const [search, setSearch] = useState("");
   // We can add more specific filters here (e.g. category) later
 
@@ -98,15 +98,15 @@ function DrawingTabs({ projectId }: { projectId: number }) {
           </div>
 
           <TabsContent value="contract" className="mt-0">
-            <DrawingList type="CONTRACT" projectId={projectId} filters={{ search }} />
+            <DrawingList type="CONTRACT" projectUuid={projectUuid} filters={{ search }} />
           </TabsContent>
 
           <TabsContent value="shop" className="mt-0">
-            <DrawingList type="SHOP" projectId={projectId} filters={{ search }} />
+            <DrawingList type="SHOP" projectUuid={projectUuid} filters={{ search }} />
           </TabsContent>
 
           <TabsContent value="asbuilt" className="mt-0">
-            <DrawingList type="AS_BUILT" projectId={projectId} filters={{ search }} />
+            <DrawingList type="AS_BUILT" projectUuid={projectUuid} filters={{ search }} />
           </TabsContent>
         </Tabs>
   )

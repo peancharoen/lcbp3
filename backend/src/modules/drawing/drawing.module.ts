@@ -37,6 +37,7 @@ import { DrawingMasterDataController } from './drawing-master-data.controller';
 // Modules
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 import { UserModule } from '../user/user.module';
+import { ProjectModule } from '../project/project.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { UserModule } from '../user/user.module';
     ]),
     FileStorageModule,
     UserModule,
+    ProjectModule,
   ],
   providers: [
     ShopDrawingService,

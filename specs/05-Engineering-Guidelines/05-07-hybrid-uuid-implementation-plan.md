@@ -14,7 +14,7 @@ This document outlines the step-by-step implementation plan to integrate UUIDv7 
 
 ---
 
-## Phase 1: Database Foundation (✅ COMPLETED)
+## Phase 1: Database Foundation (✅ COMPLETED — 2026-03-16)
 
 - [x] Create ADR-019 document
 - [x] Add `uuid UUID` columns (MariaDB native type) to 14 public-facing tables in schema SQL
@@ -50,7 +50,7 @@ This document outlines the step-by-step implementation plan to integrate UUIDv7 
 
 ---
 
-## Phase 2: Backend — TypeORM Base Entity & UUID Utilities
+## Phase 2: Backend — TypeORM Base Entity & UUID Utilities (✅ COMPLETED)
 
 > **Simplified by MariaDB Native UUID Type:** MariaDB 10.7+ stores UUID as `BINARY(16)` internally but auto-converts to/from string format. No manual binary conversion utilities or TypeORM transformers needed.
 
@@ -94,7 +94,7 @@ npm install -D @types/uuid
 
 ---
 
-## Phase 3: Backend — Update Existing Entities
+## Phase 3: Backend — Update Existing Entities (✅ COMPLETED)
 
 For each of the 14 public-facing entities, extend or mix in the UUID column:
 
@@ -135,7 +135,7 @@ export class Correspondence extends UuidBaseEntity {
 
 ---
 
-## Phase 4: Backend — API Layer Changes
+## Phase 4: Backend — API Layer Changes (✅ COMPLETED)
 
 ### 4.1 UUID Pipe (Parameter Validation)
 
@@ -211,25 +211,62 @@ async findByUuidOrId(identifier: string): Promise<Entity> {
 
 ---
 
-## Phase 5: Frontend — UUID Integration
+## Phase 5: Frontend — UUID Integration (🔄 PARTIAL — see 5.4)
 
-### 5.1 API Client Updates
+### 5.1 API Client Updates (✅ COMPLETED)
 
-- Update all API calls to use UUID in URL paths instead of INT id
-- Update TanStack Query cache keys to use UUID
-- Update Zustand stores to key by UUID
+- [x] Update all API calls to use UUID in URL paths instead of INT id
+- [x] Update TanStack Query cache keys to use UUID
+- [x] Service functions renamed `getById` → `getByUuid` (12 services)
+- [x] Hooks updated with UUID-based cache keys and mutation params
 
-### 5.2 Route Parameters
+### 5.2 Route Parameters (✅ COMPLETED)
 
 ```typescript
 // BEFORE: /correspondences/[id]
 // AFTER:  /correspondences/[uuid]
 ```
 
-### 5.3 Form Handling
+- [x] `/correspondences/[uuid]`, `/circulation/[uuid]`, `/drawings/[uuid]` migrated
+- [ ] `/rfas/[id]` and `/transmittals/[id]` — NOT migrated (separate feature scope)
 
-- Hidden `uuid` field in forms for edit operations
-- No changes needed for create operations (UUID generated server-side)
+### 5.3 Form Handling (✅ PARTIAL)
+
+- [x] Drawing search: `projectUuid` sent to backend (resolved in controller)
+- [x] Drawing detail page: UUID-based service calls replace mock API
+- [ ] Correspondence form: still sends `parseInt(projectId)` — see 5.4
+- [ ] User dialog: still sends `parseInt(orgId)` — see 5.4
+
+### 5.4 Remaining: FK Reference UUID Migration (❌ PENDING)
+
+> **Root Cause:** Backend Create/Update DTOs still accept **integer FK IDs** (e.g., `projectId`, `fromOrganizationId`), but the API **no longer returns integer IDs** in responses (stripped by `@Exclude()` + `instanceToPlain()` in `TransformInterceptor`). Frontend forms that use `parseInt()` on Select values break because the values are either UUID strings or `undefined`.
+
+#### Pattern: Drawing Search (✅ FIXED — reference implementation)
+
+- Backend DTO accepts `projectUuid: string` instead of `projectId: number`
+- Controller resolves: `projectService.findOneByUuid(dto.projectUuid)` → `dto.projectId = project.id`
+- Frontend sends UUID string directly (no `parseInt`)
+
+#### Remaining Issues
+
+| File | Field | Entity | Issue |
+|------|-------|--------|-------|
+| `correspondences/form.tsx:212` | `projectId` | Project | `parseInt(p.id)` where `p.id` = UUID string (garbled number) |
+| `correspondences/form.tsx:326` | `fromOrganizationId` | Organization | `parseInt(String(org.id))` where `org.id` = undefined (NaN) |
+| `correspondences/form.tsx:349` | `toOrganizationId` | Organization | Same as above |
+| `admin/users/page.tsx:47` | `primaryOrganizationId` (filter) | Organization | `parseInt(selectedOrgId)` where value = UUID string |
+| `admin/user-dialog.tsx:226` | `primaryOrganizationId` | Organization | `parseInt(val)` where `org.id` = undefined → `"0"` fallback |
+| `numbering/template-tester.tsx:71-74` | `originatorOrganizationId`, `recipientOrganizationId` | Organization | `parseInt` on org UUID |
+| `rfas/page.tsx:17` | `projectId` (URL param) | Project | `parseInt(searchParams.get('projectId'))` — UUID if from URL |
+
+#### Fix Strategy (same pattern as Drawing Search fix)
+
+For each affected backend DTO:
+1. Add `projectUuid?: string` / `organizationUuid?: string` field
+2. Controller resolves UUID → INT id via respective service's `findOneByUuid()`
+3. Frontend sends UUID string directly (remove `parseInt`)
+
+**Estimated Effort:** M (2-3 days) — requires backend DTO changes for Correspondence, User, Numbering modules
 
 ---
 
@@ -259,20 +296,21 @@ async findByUuidOrId(identifier: string): Promise<Entity> {
 
 ## Implementation Order (Priority)
 
-| Order | Task | Effort | Depends On |
-|-------|------|--------|------------|
-| 1 | UuidBaseEntity (no transformer needed — MariaDB native UUID) | S | Phase 1 |
-| 2 | Install `uuid` package | XS | — |
-| 3 | Update 14 entity files with uuid column | M | Task 1 |
-| 4 | Create ParseUuidPipe | S | — |
-| 5 | Update controllers to use UUID params | L | Tasks 3, 4 |
-| 6 | Update services with findByUuid methods | L | Task 3 |
-| 7 | Update DTOs to expose uuid, hide id | M | Task 3 |
-| 8 | Update frontend API calls | L | Tasks 5, 6, 7 |
-| 9 | Update frontend routes | M | Task 8 |
-| 10 | Write unit + integration tests | M | Tasks 1-7 |
-ำ
-**Estimated Total Effort:** ~3-5 days for backend, ~2-3 days for frontend
+| Order | Task | Effort | Status |
+|-------|------|--------|--------|
+| 1 | UuidBaseEntity (no transformer needed — MariaDB native UUID) | S | ✅ Done |
+| 2 | Install `uuid` package | XS | ✅ Done |
+| 3 | Update 14 entity files with uuid column | M | ✅ Done |
+| 4 | Create ParseUuidPipe | S | ✅ Done |
+| 5 | Update controllers to use UUID params | L | ✅ Done |
+| 6 | Update services with findByUuid methods | L | ✅ Done |
+| 7 | Update DTOs to expose uuid, hide id | M | ✅ Done |
+| 8 | Update frontend API calls & routes | L | ✅ Done |
+| 9 | Drawing search: projectUuid migration | S | ✅ Done (2026-03-18) |
+| 10 | FK reference UUID migration (Correspondence, User, Numbering) | M | ❌ Pending (see Phase 5.4) |
+| 11 | Write unit + integration tests | M | ❌ Pending |
+
+**Estimated Remaining Effort:** ~2-3 days for FK migration + ~2 days for tests
 
 ---
 

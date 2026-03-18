@@ -35,13 +35,17 @@ import { RequirePermission } from '../../common/decorators/require-permission.de
 import { Audit } from '../../common/decorators/audit.decorator';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { User } from '../user/entities/user.entity';
+import { ProjectService } from '../project/project.service';
 
 @ApiTags('Drawings - AS Built')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RbacGuard)
 @Controller('drawings/asbuilt')
 export class AsBuiltDrawingController {
-  constructor(private readonly asBuiltDrawingService: AsBuiltDrawingService) {}
+  constructor(
+    private readonly asBuiltDrawingService: AsBuiltDrawingService,
+    private readonly projectService: ProjectService
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create new AS Built Drawing' })
@@ -74,6 +78,10 @@ export class AsBuiltDrawingController {
   @ApiResponse({ status: 200, description: 'List of AS Built Drawings' })
   @RequirePermission('drawing.view')
   async findAll(@Query() searchDto: SearchAsBuiltDrawingDto) {
+    const project = await this.projectService.findOneByUuid(
+      searchDto.projectUuid
+    );
+    searchDto.projectId = project.id;
     return this.asBuiltDrawingService.findAll(searchDto);
   }
 

@@ -7,6 +7,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   username: process.env.DB_USERNAME || 'root',
   password: process.env.DB_PASSWORD || 'Center#2025',
   database: process.env.DB_DATABASE || 'lcbp3_dev',
+  charset: 'utf8mb4',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
   synchronize: false,

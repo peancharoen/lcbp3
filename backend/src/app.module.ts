@@ -101,6 +101,7 @@ import { MigrationModule } from './modules/migration/migration.module';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
+        charset: 'utf8mb4',
         autoLoadEntities: true,
         synchronize: false, // Production Ready: false
       }),

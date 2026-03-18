@@ -14,11 +14,11 @@ type DrawingSearchParams = SearchContractDrawingDto | SearchShopDrawingDto | Sea
 
 interface DrawingListProps {
   type: 'CONTRACT' | 'SHOP' | 'AS_BUILT';
-  projectId: number;
+  projectUuid: string;
   filters?: Partial<DrawingSearchParams>;
 }
 
-export function DrawingList({ type, projectId, filters }: DrawingListProps) {
+export function DrawingList({ type, projectUuid, filters }: DrawingListProps) {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -30,7 +30,7 @@ export function DrawingList({ type, projectId, filters }: DrawingListProps) {
     data: response,
     isLoading,
   } = useDrawings(type, {
-    projectId,
+    projectUuid,
     ...filters,
     page: pagination.pageIndex + 1, // API is 1-based
     limit: pagination.pageSize,

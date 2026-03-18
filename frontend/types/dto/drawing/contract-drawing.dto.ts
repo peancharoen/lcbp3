@@ -29,13 +29,13 @@ export type UpdateContractDrawingDto = Partial<CreateContractDrawingDto>;
 
 // --- Search ---
 export interface SearchContractDrawingDto {
-  /** จำเป็นต้องระบุ Project ID เสมอ */
-  projectId: number;
+  /** จำเป็นต้องระบุ Project UUID เสมอ */
+  projectUuid: string;
 
   volumeId?: number;
   mapCatId?: number;
   search?: string; // ค้นหาจาก Title หรือ Number
 
   page?: number;     // Default: 1
-  pageSize?: number; // Default: 20
+  limit?: number;    // Default: 20
 }

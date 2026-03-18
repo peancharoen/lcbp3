@@ -1,11 +1,14 @@
-import { IsInt, IsOptional, IsString, IsNotEmpty } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchContractDrawingDto {
+  @IsUUID()
+  projectUuid!: string;
+
+  @IsOptional()
   @IsInt()
   @Type(() => Number)
-  @IsNotEmpty()
-  projectId!: number; // จำเป็น: ใส่ !
+  projectId?: number;
 
   @IsOptional()
   @IsInt()

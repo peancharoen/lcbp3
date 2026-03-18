@@ -32,9 +32,9 @@ export interface CreateAsBuiltDrawingRevisionDto {
 
 // --- Search ---
 export interface SearchAsBuiltDrawingDto {
-  projectId: number;
+  projectUuid: string;
   search?: string;
 
   page?: number;     // Default: 1
-  pageSize?: number; // Default: 20
+  limit?: number;    // Default: 20
 }

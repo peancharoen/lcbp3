@@ -22,6 +22,7 @@ import { RequirePermission } from '../../common/decorators/require-permission.de
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../user/entities/user.entity';
+import { ProjectService } from '../project/project.service';
 
 @ApiTags('Contract Drawings')
 @ApiBearerAuth()
@@ -29,7 +30,8 @@ import { User } from '../user/entities/user.entity';
 @Controller('drawings/contract')
 export class ContractDrawingController {
   constructor(
-    private readonly contractDrawingService: ContractDrawingService
+    private readonly contractDrawingService: ContractDrawingService,
+    private readonly projectService: ProjectService
   ) {}
 
   // Force rebuild for DTO changes
@@ -47,7 +49,11 @@ export class ContractDrawingController {
   @Get()
   @ApiOperation({ summary: 'Search Contract Drawings' })
   @RequirePermission('document.view') // สิทธิ์ ID 31: ดูเอกสารทั่วไป
-  findAll(@Query() searchDto: SearchContractDrawingDto) {
+  async findAll(@Query() searchDto: SearchContractDrawingDto) {
+    const project = await this.projectService.findOneByUuid(
+      searchDto.projectUuid
+    );
+    searchDto.projectId = project.id;
     return this.contractDrawingService.findAll(searchDto);
   }
 

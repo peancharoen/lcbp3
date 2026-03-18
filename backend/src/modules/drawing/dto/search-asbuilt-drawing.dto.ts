@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -6,10 +6,15 @@ import { Type } from 'class-transformer';
  * DTO for searching/filtering AS Built Drawings
  */
 export class SearchAsBuiltDrawingDto {
-  @ApiProperty({ description: 'Project ID' })
+  @ApiProperty({ description: 'Project UUID' })
+  @IsUUID()
+  projectUuid!: string;
+
+  @ApiPropertyOptional({ description: 'Project ID (resolved internally)' })
   @Type(() => Number)
   @IsNumber()
-  projectId!: number;
+  @IsOptional()
+  projectId?: number;
 
   @ApiPropertyOptional({ description: 'Filter by Main Category ID' })
   @Type(() => Number)

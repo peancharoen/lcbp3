@@ -90,16 +90,16 @@ specs/
 
 ### 📋 หมวดหมู่เอกสาร
 
-| หมวด | วัตถุประสงค์ | ไฟล์สำคัญ | ผู้ดูแล |
-|------|---------|---------|--------|
-| **00-Overview** | ภาพรวม, Product Vision, KPI, Training | Gap 1/5/6/9 | Project Manager / PO |
-| **01-Requirements** | User Stories, UAT, UI, Edge Cases | Gap 2/3/4/10 | Business Analyst + PO |
-| **02-Architecture** | สถาปัตยกรรมและการออกแบบ | — | Tech Lead + Architects |
-| **03-Data-and-Storage** | Schema v1.8.0, Migration Scope | Gap 7 | Backend Lead + DBA |
-| **04-Infrastructure-OPS** | Deployment, Operations, Release Policy | Gap 8 | DevOps Team |
-| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation | — | Development Team Leads |
-| **06-Decision-Records** | Architecture Decision Records (17+1) | ADR-018 | Tech Lead + Senior Devs |
-| **99-archives** | Archived / Tasks | — | All Team Members |
+| หมวด                          | วัตถุประสงค์                           | ไฟล์สำคัญ    | ผู้ดูแล                 |
+| ----------------------------- | -------------------------------------- | ------------ | ----------------------- |
+| **00-Overview**               | ภาพรวม, Product Vision, KPI, Training  | Gap 1/5/6/9  | Project Manager / PO    |
+| **01-Requirements**           | User Stories, UAT, UI, Edge Cases      | Gap 2/3/4/10 | Business Analyst + PO   |
+| **02-Architecture**           | สถาปัตยกรรมและการออกแบบ                | —            | Tech Lead + Architects  |
+| **03-Data-and-Storage**       | Schema v1.8.0, Migration Scope         | Gap 7        | Backend Lead + DBA      |
+| **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8        | DevOps Team             |
+| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —            | Development Team Leads  |
+| **06-Decision-Records**       | Architecture Decision Records (17+1)   | ADR-018      | Tech Lead + Senior Devs |
+| **99-archives**               | Archived / Tasks                       | —            | All Team Members        |
 
 ---
 
@@ -546,7 +546,58 @@ graph LR
 **Last Updated**: 2026-02-24
 ```
 
-### 5. ใช้ Consistent Terminology
+### 5. UUID Conventions (ADR-019)
+
+โครงการใช้ **Hybrid Identifier Strategy** — INT PK สำหรับ internal, UUIDv7 สำหรับ public API
+
+#### Backend Entity Pattern
+
+```typescript
+// ❌ ผิด — ส่ง INT id ออก public API
+@Get(':id')
+findOne(@Param('id', ParseIntPipe) id: number) { ... }
+
+// ✅ ถูกต้อง — ใช้ UUID สำหรับ public API
+@Get(':uuid')
+findOne(@Param('uuid', ParseUuidPipe) uuid: string) { ... }
+```
+
+#### Backend DTO — FK References
+
+```typescript
+// ❌ ผิด — frontend ไม่มี INT id (ถูก @Exclude() แล้ว)
+@IsInt()
+projectId!: number;
+
+// ✅ ถูกต้อง — รับ UUID จาก frontend, resolve เป็น INT ใน controller
+@IsUUID()
+projectUuid!: string;
+
+@IsOptional()
+@IsInt()
+projectId?: number; // resolved internally by controller
+```
+
+#### Frontend — Select Components
+
+```typescript
+// ❌ ผิด — parseInt บน UUID string จะได้ค่าผิด
+onValueChange={(v) => setValue("projectId", parseInt(v))}
+
+// ✅ ถูกต้อง — ส่ง UUID string ตรงๆ
+onValueChange={(v) => setValue("projectUuid", v)}
+```
+
+#### Serialization Behavior
+
+- `TransformInterceptor` ใช้ `instanceToPlain()` → `@Exclude()` และ `@Expose()` มีผล
+- Entity ทั้ง 14 ตาราง มี `@Exclude()` บน INT `id` → API response **ไม่มี** `id` เป็นตัวเลข
+- Project & Contract มี `@Expose({ name: 'id' })` บน `uuid` → API response มี `id` = UUID string
+- Entity อื่นๆ มี `uuid` field แยก → API response มี `uuid` แต่ไม่มี `id`
+
+> ดูรายละเอียดเพิ่มเติมที่ [05-07-hybrid-uuid-implementation-plan.md](./specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md)
+
+### 6. ใช้ Consistent Terminology
 
 อ้างอิงจาก [glossary.md](./specs/00-Overview/00-02-glossary.md) เสมอ
 

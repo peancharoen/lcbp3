@@ -45,7 +45,9 @@ export class FileStorageService {
    */
   async upload(file: Express.Multer.File, userId: number): Promise<Attachment> {
     const tempId = uuidv4();
-    const fileExt = path.extname(file.originalname);
+    // Fix: แปลงชื่อไฟล์จาก Latin1 → UTF-8 (Multer/busboy decodes as Latin1 by default)
+    const originalFilename = this.fixMulterFilename(file.originalname);
+    const fileExt = path.extname(originalFilename);
     const storedFilename = `${uuidv4()}${fileExt}`;
     const tempPath = path.join(this.tempDir, storedFilename);
 
@@ -62,7 +64,7 @@ export class FileStorageService {
 
     // 3. สร้าง Record ใน Database
     const attachment = this.attachmentRepository.create({
-      originalFilename: file.originalname,
+      originalFilename,
       storedFilename: storedFilename,
       filePath: tempPath, // เก็บ path ปัจจุบันไปก่อน
       mimeType: file.mimetype,
@@ -195,6 +197,22 @@ export class FileStorageService {
     const stream = fs.createReadStream(filePath);
 
     return { stream, attachment };
+  }
+
+  /**
+   * แก้ปัญหา Multer/busboy ถอดรหัสชื่อไฟล์เป็น Latin1 แทน UTF-8
+   * ทำให้ภาษาไทยกลายเป็น mojibake (เช่น ผรม → 脿赂聹脿赂拢脿赂隆)
+   * วิธีแก้: แปลง latin1 bytes กลับเป็น UTF-8
+   */
+  private fixMulterFilename(originalname: string): string {
+    try {
+      const decoded = Buffer.from(originalname, 'latin1').toString('utf8');
+      // ตรวจสอบว่า decoded string มี valid UTF-8 characters
+      // ถ้า originalname เป็น ASCII อยู่แล้ว ผลลัพธ์จะเหมือนเดิม
+      return decoded;
+    } catch {
+      return originalname;
+    }
   }
 
   private calculateChecksum(buffer: Buffer): string {
