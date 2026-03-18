@@ -19,6 +19,11 @@ export class HealthController {
     private disk: DiskHealthIndicator
   ) {}
 
+  @Get('ping')
+  ping() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+
   @Get('health')
   @HealthCheck()
   check() {

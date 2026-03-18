@@ -54,17 +54,23 @@ jobs:
             echo "🟢 Starting Backend..."
             docker compose -f docker-compose-app.yml up -d backend
 
-            # 4b. รอ Backend healthy (ทุก 5 วิ สูงสุด 60 วิ)
+            # 4b. รอ Backend healthy (ทุก 30 วิ สูงสุด 180 วิ)
             echo "⏳ Waiting for Backend health check..."
-            for i in $(seq 1 12); do
-              if docker inspect --format='{{.State.Health.Status}}' backend 2>/dev/null | grep -q healthy; then
+            for i in $(seq 1 6); do
+              echo "🔍 Health check attempt $i/6..."
+              health=$(docker inspect --format='{{.State.Health.Status}}' backend 2>/dev/null || echo "starting")
+              echo "📊 Health status: $health"
+              if [ "$health" = "healthy" ]; then
                 echo "✅ Backend is healthy!"
                 break
               fi
-              if [ "$i" = "12" ]; then
-                echo "⚠️ Backend health check timeout - starting frontend anyway"
+              if [ "$i" = "6" ]; then
+                echo "⚠️ Backend health check timeout after 180s - checking logs"
+                echo "📋 Backend logs (last 20 lines):"
+                docker logs --tail 20 backend
+                echo "🔧 Starting frontend anyway (backend may still be starting)"
               fi
-              sleep 5
+              sleep 30
             done
 
             # 4c. Start Frontend
