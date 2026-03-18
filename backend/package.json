@@ -131,11 +131,7 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   },
-  "pnpm": {
-    "overrides": {
-      "fast-xml-parser": "^5.3.5"
-    }
-  },
+
   "main": "index.js",
   "directories": {
     "test": "test"

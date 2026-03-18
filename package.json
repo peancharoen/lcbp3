@@ -18,5 +18,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "pnpm": {
+    "overrides": {
+      "fast-xml-parser": "^5.3.5"
+    }
+  }
 }
