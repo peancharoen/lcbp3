@@ -17,6 +17,7 @@ import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Organization } from '../organization/entities/organization.entity';
 
 @Injectable()
 export class UserService {
@@ -30,13 +31,35 @@ export class UserService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {}
 
+  /**
+   * ADR-019: Resolve organizationId (INT or UUID string) to internal INT ID
+   */
+  private async resolveOrganizationId(orgId: number | string): Promise<number> {
+    if (typeof orgId === 'number') return orgId;
+    const num = Number(orgId);
+    if (!isNaN(num)) return num;
+    const org = await this.usersRepository.manager.findOne(Organization, {
+      where: { uuid: orgId },
+      select: ['id'],
+    });
+    if (!org)
+      throw new NotFoundException(`Organization with UUID ${orgId} not found`);
+    return org.id;
+  }
+
   // 1. สร้างผู้ใช้ (Hash Password ก่อนบันทึก)
   async create(createUserDto: CreateUserDto): Promise<User> {
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(createUserDto.password, salt);
 
+    // ADR-019: Resolve UUID→INT for primaryOrganizationId
+    const resolvedOrgId = createUserDto.primaryOrganizationId
+      ? await this.resolveOrganizationId(createUserDto.primaryOrganizationId)
+      : undefined;
+
     const newUser = this.usersRepository.create({
       ...createUserDto,
+      primaryOrganizationId: resolvedOrgId,
       password: hashedPassword,
     });
 
@@ -91,8 +114,12 @@ export class UserService {
     }
 
     if (primaryOrganizationId) {
+      // ADR-019: Resolve UUID→INT for filtering
+      const resolvedOrgId = await this.resolveOrganizationId(
+        primaryOrganizationId
+      );
       query.andWhere('user.primaryOrganizationId = :orgId', {
-        orgId: primaryOrganizationId,
+        orgId: resolvedOrgId,
       });
     }
 
@@ -164,7 +191,18 @@ export class UserService {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, salt);
     }
 
-    const updatedUser = this.usersRepository.merge(user, updateUserDto);
+    // ADR-019: Resolve UUID→INT for primaryOrganizationId before merge
+    const resolvedDto: Record<string, unknown> = { ...updateUserDto };
+    if (updateUserDto.primaryOrganizationId !== undefined) {
+      resolvedDto.primaryOrganizationId = await this.resolveOrganizationId(
+        updateUserDto.primaryOrganizationId
+      );
+    }
+
+    const updatedUser = this.usersRepository.merge(
+      user,
+      resolvedDto as Partial<User>
+    );
     const savedUser = await this.usersRepository.save(updatedUser);
 
     // ⚠️ สำคัญ: เมื่อมีการแก้ไขข้อมูล User ต้องเคลียร์ Cache สิทธิ์เสมอ

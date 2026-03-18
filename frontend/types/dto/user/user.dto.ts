@@ -8,7 +8,7 @@ export interface CreateUserDto {
   firstName?: string;
   lastName?: string;
   lineId?: string;
-  primaryOrganizationId?: number;
+  primaryOrganizationId?: number | string; // ADR-019: Accept UUID
   isActive?: boolean;
 }
 

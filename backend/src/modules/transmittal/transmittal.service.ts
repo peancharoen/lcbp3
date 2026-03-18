@@ -16,6 +16,7 @@ import { Correspondence } from '../correspondence/entities/correspondence.entity
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
+import { Project } from '../project/entities/project.entity';
 
 @Injectable()
 export class TransmittalService {
@@ -33,6 +34,22 @@ export class TransmittalService {
     private numberingService: DocumentNumberingService,
     private dataSource: DataSource
   ) {}
+
+  /**
+   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
+   */
+  private async resolveProjectId(projectId: number | string): Promise<number> {
+    if (typeof projectId === 'number') return projectId;
+    const num = Number(projectId);
+    if (!isNaN(num)) return num;
+    const project = await this.dataSource.manager.findOne(Project, {
+      where: { uuid: projectId },
+      select: ['id'],
+    });
+    if (!project)
+      throw new NotFoundException(`Project with UUID ${projectId} not found`);
+    return project.id;
+  }
 
   async create(createDto: CreateTransmittalDto, user: User) {
     // 1. Get Transmittal Type (Assuming Code '901' or 'TRN')
@@ -58,9 +75,14 @@ export class TransmittalService {
     }
 
     try {
+      // ADR-019: Resolve UUID→INT for projectId
+      const internalProjectId = await this.resolveProjectId(
+        createDto.projectId
+      );
+
       // 2. Generate Number
       const docNumber = await this.numberingService.generateNextNumber({
-        projectId: createDto.projectId,
+        projectId: internalProjectId,
         originatorOrganizationId: user.primaryOrganizationId,
         typeId: type.id,
         year: new Date().getFullYear(),
@@ -74,7 +96,7 @@ export class TransmittalService {
       const correspondence = queryRunner.manager.create(Correspondence, {
         correspondenceNumber: docNumber.number,
         correspondenceTypeId: type.id,
-        projectId: createDto.projectId,
+        projectId: internalProjectId,
         originatorId: user.primaryOrganizationId,
         isInternal: false,
         createdBy: user.user_id,

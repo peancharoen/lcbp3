@@ -88,14 +88,31 @@ export class DocumentNumberingController {
   })
   @RequirePermission('correspondence.read')
   async previewNumber(@Body() dto: PreviewNumberDto) {
+    // ADR-019: Resolve UUID→INT for project and organization IDs
+    const resolvedProjectId = await this.numberingService.resolveIdForPreview(
+      'project',
+      dto.projectId
+    );
+    const resolvedOriginatorId =
+      await this.numberingService.resolveIdForPreview(
+        'organization',
+        dto.originatorOrganizationId
+      );
+    const resolvedRecipientId = dto.recipientOrganizationId
+      ? await this.numberingService.resolveIdForPreview(
+          'organization',
+          dto.recipientOrganizationId
+        )
+      : undefined;
+
     return this.numberingService.previewNumber({
-      projectId: dto.projectId,
-      originatorOrganizationId: dto.originatorOrganizationId,
+      projectId: resolvedProjectId,
+      originatorOrganizationId: resolvedOriginatorId,
       typeId: dto.correspondenceTypeId,
       subTypeId: dto.subTypeId,
       rfaTypeId: dto.rfaTypeId,
       disciplineId: dto.disciplineId,
-      recipientOrganizationId: dto.recipientOrganizationId,
+      recipientOrganizationId: resolvedRecipientId,
       year: dto.year,
       customTokens: dto.customTokens,
     });

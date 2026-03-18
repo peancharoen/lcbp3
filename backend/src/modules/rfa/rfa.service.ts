@@ -12,6 +12,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 
 // Entities
+import { Project } from '../project/entities/project.entity';
+import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
@@ -81,7 +83,42 @@ export class RfaService {
     private searchService: SearchService
   ) {}
 
+  /**
+   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
+   */
+  private async resolveProjectId(projectId: number | string): Promise<number> {
+    if (typeof projectId === 'number') return projectId;
+    const num = Number(projectId);
+    if (!isNaN(num)) return num;
+    const project = await this.dataSource.manager.findOne(Project, {
+      where: { uuid: projectId },
+      select: ['id'],
+    });
+    if (!project)
+      throw new NotFoundException(`Project with UUID ${projectId} not found`);
+    return project.id;
+  }
+
+  /**
+   * ADR-019: Resolve organizationId (INT or UUID string) to internal INT ID
+   */
+  private async resolveOrganizationId(orgId: number | string): Promise<number> {
+    if (typeof orgId === 'number') return orgId;
+    const num = Number(orgId);
+    if (!isNaN(num)) return num;
+    const org = await this.dataSource.manager.findOne(Organization, {
+      where: { uuid: orgId },
+      select: ['id'],
+    });
+    if (!org)
+      throw new NotFoundException(`Organization with UUID ${orgId} not found`);
+    return org.id;
+  }
+
   async create(createDto: CreateRfaDto, user: User) {
+    // ADR-019: Resolve UUID→INT for projectId
+    const internalProjectId = await this.resolveProjectId(createDto.projectId);
+
     const rfaType = await this.rfaTypeRepo.findOne({
       where: { id: createDto.rfaTypeId },
     });
@@ -115,7 +152,7 @@ export class RfaService {
 
       // [UPDATED] Generate Document Number with Discipline
       const docNumber = await this.numberingService.generateNextNumber({
-        projectId: createDto.projectId,
+        projectId: internalProjectId,
         originatorOrganizationId: userOrgId,
         typeId: createDto.rfaTypeId,
         disciplineId: createDto.disciplineId ?? 0, // ✅ ส่ง disciplineId ไปด้วย (0 ถ้าไม่มี)
@@ -142,7 +179,7 @@ export class RfaService {
       const correspondence = queryRunner.manager.create(Correspondence, {
         correspondenceNumber: docNumber.number,
         correspondenceTypeId: createDto.rfaTypeId,
-        projectId: createDto.projectId,
+        projectId: internalProjectId,
         originatorId: userOrgId,
         isInternal: false,
         createdBy: user.user_id,
@@ -219,7 +256,7 @@ export class RfaService {
           'rfa',
           savedRfa.id.toString(),
           {
-            projectId: createDto.projectId,
+            projectId: internalProjectId,
             originatorId: userOrgId,
             disciplineId: createDto.disciplineId,
             initiatorId: user.user_id,
@@ -240,7 +277,7 @@ export class RfaService {
           title: createDto.subject,
           description: createDto.description,
           status: 'DRAFT',
-          projectId: createDto.projectId,
+          projectId: internalProjectId,
           createdAt: new Date(),
         })
         .catch((err) => this.logger.error(`Indexing failed: ${err}`));

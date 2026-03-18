@@ -5,7 +5,6 @@ import {
   MinLength,
   IsOptional,
   IsBoolean,
-  IsInt,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -44,10 +43,12 @@ export class CreateUserDto {
   @IsOptional()
   lineId?: string;
 
-  @ApiPropertyOptional({ description: 'Primary Organization ID', example: 1 })
-  @IsInt()
+  @ApiPropertyOptional({
+    description: 'Primary Organization ID or UUID',
+    example: 1,
+  })
   @IsOptional()
-  primaryOrganizationId?: number; // รับเป็น ID ของ Organization
+  primaryOrganizationId?: number | string; // ADR-019: Accept INT or UUID
 
   @ApiPropertyOptional({ description: 'Is user active?', default: true })
   @IsBoolean()

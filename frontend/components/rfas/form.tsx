@@ -30,14 +30,14 @@ const rfaItemSchema = z.object({
   unit: z.string().min(1, "Unit is required"),
 });
 const rfaSchema = z.object({
-  contractId: z.number().min(1, "Contract is required"),
+  contractId: z.string().min(1, "Contract is required"),
   disciplineId: z.number().min(1, "Discipline is required"),
   rfaTypeId: z.number().min(1, "Type is required"),
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().optional(),
   body: z.string().optional(),
   remarks: z.string().optional(),
-  toOrganizationId: z.number().min(1, "Please select To Organization"),
+  toOrganizationId: z.string().min(1, "Please select To Organization"),
   dueDate: z.string().optional(),
   shopDrawingRevisionIds: z.array(z.number()).optional(),
   items: z.array(rfaItemSchema).min(1, "At least one item is required"),
@@ -63,14 +63,14 @@ export function RFAForm() {
   } = useForm<RFAFormData>({
     resolver: zodResolver(rfaSchema),
     defaultValues: {
-      contractId: 0,
+      contractId: "",
       disciplineId: 0,
       rfaTypeId: 0,
       subject: "",
       description: "",
       body: "",
       remarks: "",
-      toOrganizationId: 0,
+      toOrganizationId: "",
       dueDate: "",
       shopDrawingRevisionIds: [],
       items: [{ itemNo: "1", description: "", quantity: 0, unit: "" }],
@@ -182,7 +182,7 @@ export function RFAForm() {
             <div>
               <Label>Contract *</Label>
               <Select
-                onValueChange={(val) => setValue("contractId", Number(val))}
+                onValueChange={(val) => setValue("contractId", val)}
                 disabled={isLoadingContracts}
               >
                 <SelectTrigger>
@@ -190,8 +190,8 @@ export function RFAForm() {
                 </SelectTrigger>
                 <SelectContent>
                   {contracts?.map((c: any) => (
-                    <SelectItem key={c.id || c.contract_id} value={String(c.id || c.contract_id)}>
-                      {c.name || c.contract_no}
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.contractName || c.name || c.contractCode}
                     </SelectItem>
                   ))}
                 </SelectContent>

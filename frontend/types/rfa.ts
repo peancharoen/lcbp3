@@ -51,7 +51,9 @@ export interface RFA {
 }
 
 export interface CreateRFADto {
-  projectId: number;
+  projectId: number | string; // ADR-019: Accept UUID
+  contractId?: string; // ADR-019: Contract UUID
+  toOrganizationId?: number | string; // ADR-019: Recipient org UUID
   rfaTypeId: number;
   disciplineId?: number;
   subject: string;

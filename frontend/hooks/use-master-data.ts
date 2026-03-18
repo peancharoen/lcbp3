@@ -104,10 +104,11 @@ export function useCorrespondenceTypes() {
 
 // --- Drawing Categories Hooks ---
 
-export function useContractDrawingCategories() {
+export function useContractDrawingCategories(projectId?: number | string) {
   return useQuery({
-    queryKey: ['contract-drawing-categories'],
-    queryFn: () => masterDataService.getContractDrawingCategories(),
+    queryKey: ['contract-drawing-categories', projectId],
+    queryFn: () => masterDataService.getContractDrawingCategories(projectId),
+    enabled: !!projectId,
   });
 }
 

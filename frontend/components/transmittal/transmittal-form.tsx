@@ -59,7 +59,7 @@ const itemSchema = z.object({
 
 // Main form schema
 const formSchema = z.object({
-  correspondenceId: z.number().min(1, "Correspondence is required"), // Linked correspondence (e.g. Originator Letter)
+  correspondenceId: z.string().min(1, "Correspondence is required"), // ADR-019: UUID string
   subject: z.string().min(1, "Subject is required"),
   purpose: z.enum(["FOR_APPROVAL", "FOR_INFORMATION", "FOR_REVIEW", "OTHER"]),
   remarks: z.string().optional(),
@@ -127,7 +127,7 @@ export function TransmittalForm() {
 
   const selectedDocId = form.watch("correspondenceId");
   const selectedDoc = correspondences?.data?.find(
-    (c: { id: number }) => c.id === selectedDocId
+    (c: { uuid: string }) => c.uuid === selectedDocId
   );
 
   return (
@@ -172,19 +172,19 @@ export function TransmittalForm() {
                             <CommandEmpty>No document found.</CommandEmpty>
                             <CommandGroup>
                               {correspondences?.data?.map(
-                                (doc: { id: number; correspondence_number: string }) => (
+                                (doc: { uuid: string; correspondence_number: string }) => (
                                   <CommandItem
-                                    key={doc.id}
+                                    key={doc.uuid}
                                     value={doc.correspondence_number}
                                     onSelect={() => {
-                                      form.setValue("correspondenceId", doc.id);
+                                      form.setValue("correspondenceId", doc.uuid);
                                       setDocOpen(false);
                                     }}
                                   >
                                     <Check
                                       className={cn(
                                         "mr-2 h-4 w-4",
-                                        doc.id === field.value
+                                        doc.uuid === field.value
                                           ? "opacity-100"
                                           : "opacity-0"
                                       )}

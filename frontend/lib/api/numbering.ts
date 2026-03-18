@@ -10,7 +10,7 @@ import apiClient from '@/lib/api/client';
  */
 export interface NumberingTemplate {
   id: number;
-  projectId: number;
+  projectId: number | string;
   correspondenceTypeId: number | null; // null = Default Format for project
   correspondenceType?: {
     id: number;
@@ -18,9 +18,10 @@ export interface NumberingTemplate {
     typeName: string;
   } | null;
   project?: {
-    id: number;
+    id: number | string;
     projectCode: string;
     projectName: string;
+    uuid?: string;
   };
   formatTemplate: string;
   description?: string;

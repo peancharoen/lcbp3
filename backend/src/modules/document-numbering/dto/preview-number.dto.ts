@@ -1,18 +1,16 @@
 // File: src/modules/document-numbering/dto/preview-number.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsObject } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class PreviewNumberDto {
-  @ApiProperty({ description: 'Project ID' })
-  @IsInt()
-  @Type(() => Number)
-  projectId!: number;
+  @ApiProperty({ description: 'Project ID or UUID' })
+  @IsNotEmpty()
+  projectId!: number | string;
 
-  @ApiProperty({ description: 'Originator organization ID' })
-  @IsInt()
-  @Type(() => Number)
-  originatorOrganizationId!: number;
+  @ApiProperty({ description: 'Originator organization ID or UUID' })
+  @IsNotEmpty()
+  originatorOrganizationId!: number | string;
 
   @ApiProperty({ description: 'Correspondence type ID' })
   @IsInt()
@@ -43,11 +41,9 @@ export class PreviewNumberDto {
   @Type(() => Number)
   year?: number;
 
-  @ApiPropertyOptional({ description: 'Recipient organization ID' })
+  @ApiPropertyOptional({ description: 'Recipient organization ID or UUID' })
   @IsOptional()
-  @IsInt()
-  @Type(() => Number)
-  recipientOrganizationId?: number;
+  recipientOrganizationId?: number | string;
 
   @ApiPropertyOptional({ description: 'Custom tokens' })
   @IsOptional()

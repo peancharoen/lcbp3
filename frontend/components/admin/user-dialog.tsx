@@ -36,7 +36,7 @@ const userSchema = z.object({
   confirmPassword: z.string().optional(),
   isActive: z.boolean().optional(),
   lineId: z.string().optional(),
-  primaryOrganizationId: z.number().optional(),
+  primaryOrganizationId: z.string().optional(),
   roleIds: z.array(z.number()).optional(),
 }).refine((data) => {
   // If password is provided (creating or resetting), confirmPassword must match
@@ -107,7 +107,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
         lastName: user.lastName,
         isActive: user.isActive,
         lineId: user.lineId || "",
-        primaryOrganizationId: user.primaryOrganizationId,
+        primaryOrganizationId: user.primaryOrganizationId?.toString(),
         roleIds: user.roles?.map((r: any) => r.roleId) || [],
         password: "",
         confirmPassword: ""
@@ -221,22 +221,19 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
             <div>
               <Label>Primary Organization</Label>
               <Select
-                value={watch("primaryOrganizationId")?.toString()}
+                value={watch("primaryOrganizationId") ?? undefined}
                 onValueChange={(val) =>
-                  setValue("primaryOrganizationId", parseInt(val))
+                  setValue("primaryOrganizationId", val)
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Organization" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* TODO: ADR-019 — Backend DTO needs to accept UUID for primaryOrganization.
-                     Currently using org.id which is excluded from API responses.
-                     Temporary: org.id may still exist in some query responses. */}
                   {organizations?.map((org: any) => (
                     <SelectItem
-                      key={org.uuid ?? org.id}
-                      value={(org.id ?? 0).toString()}
+                      key={org.uuid}
+                      value={org.uuid}
                     >
                       {org.organizationCode} - {org.organizationName}
                     </SelectItem>

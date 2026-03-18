@@ -20,7 +20,7 @@ export interface User {
   lastName: string;
   isActive: boolean;
   lineId?: string;
-  primaryOrganizationId?: number;
+  primaryOrganizationId?: number | string; // ADR-019: May be INT or UUID
   organization?: UserOrganization;
   roles?: Role[];
 
@@ -42,7 +42,7 @@ export interface CreateUserDto {
   password?: string;
   isActive: boolean;
   lineId?: string;
-  primaryOrganizationId?: number;
+  primaryOrganizationId?: number | string; // ADR-019: Accept UUID
   roleIds: number[];
 }
 
@@ -53,5 +53,5 @@ export interface SearchUserDto {
   limit?: number;
   search?: string;
   roleId?: number;
-  primaryOrganizationId?: number;
+  primaryOrganizationId?: number | string; // ADR-019: Accept UUID
 }

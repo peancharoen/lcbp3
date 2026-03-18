@@ -26,6 +26,7 @@ import { GenerateNumberContext } from '../interfaces/document-numbering.interfac
 import { ReserveNumberDto } from '../dto/reserve-number.dto';
 import { ConfirmReservationDto } from '../dto/confirm-reservation.dto';
 import { Project } from '../../project/entities/project.entity';
+import { Organization } from '../../organization/entities/organization.entity';
 
 @Injectable()
 export class DocumentNumberingService {
@@ -64,6 +65,33 @@ export class DocumentNumberingService {
     if (!project)
       throw new NotFoundException(`Project with UUID ${projectId} not found`);
     return project.id;
+  }
+
+  /**
+   * ADR-019: Public facade for controllers to resolve project/organization IDs
+   */
+  async resolveIdForPreview(
+    type: 'project' | 'organization',
+    id: number | string
+  ): Promise<number> {
+    if (type === 'project') return this.resolveProjectId(id);
+    return this.resolveOrganizationId(id);
+  }
+
+  /**
+   * ADR-019: Resolve organizationId (INT or UUID string) to internal INT ID
+   */
+  private async resolveOrganizationId(orgId: number | string): Promise<number> {
+    if (typeof orgId === 'number') return orgId;
+    const num = Number(orgId);
+    if (!isNaN(num)) return num;
+    const org = await this.entityManager.findOne(Organization, {
+      where: { uuid: orgId },
+      select: ['id'],
+    });
+    if (!org)
+      throw new NotFoundException(`Organization with UUID ${orgId} not found`);
+    return org.id;
   }
 
   async generateNextNumber(

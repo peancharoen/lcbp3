@@ -187,8 +187,10 @@ export const masterDataService = {
 
   // --- Drawing Categories ---
 
-  getContractDrawingCategories: async () => {
-    const response = await apiClient.get("/drawings/contract/categories");
+  getContractDrawingCategories: async (projectId?: number | string) => {
+    const response = await apiClient.get("/drawings/contract/categories", {
+      params: { projectId }
+    });
     return response.data.data || response.data;
   },
 

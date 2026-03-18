@@ -12,6 +12,7 @@ import { ContractDrawing } from './entities/contract-drawing.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { User } from '../user/entities/user.entity';
 import { Contract } from '../contract/entities/contract.entity';
+import { Project } from '../project/entities/project.entity';
 
 // DTOs
 import { CreateContractDrawingDto } from './dto/create-contract-drawing.dto';
@@ -37,6 +38,22 @@ export class ContractDrawingService {
   ) {}
 
   /**
+   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
+   */
+  private async resolveProjectId(projectId: number | string): Promise<number> {
+    if (typeof projectId === 'number') return projectId;
+    const num = Number(projectId);
+    if (!isNaN(num)) return num;
+    const project = await this.dataSource.manager.findOne(Project, {
+      where: { uuid: projectId },
+      select: ['id'],
+    });
+    if (!project)
+      throw new NotFoundException(`Project with UUID ${projectId} not found`);
+    return project.id;
+  }
+
+  /**
    * Resolve issueDate from contract.startDate for file storage path
    * Fallback: contract.startDate → current date
    */
@@ -54,10 +71,13 @@ export class ContractDrawingService {
    * - ผูกไฟล์แนบและ Commit ไฟล์จาก Temp -> Permanent
    */
   async create(createDto: CreateContractDrawingDto, user: User) {
+    // ADR-019: Resolve UUID→INT for projectId
+    const internalProjectId = await this.resolveProjectId(createDto.projectId);
+
     // 1. ตรวจสอบเลขที่แบบซ้ำ (Unique per Project)
     const exists = await this.drawingRepo.findOne({
       where: {
-        projectId: createDto.projectId,
+        projectId: internalProjectId,
         contractDrawingNo: createDto.contractDrawingNo,
       },
     });
@@ -83,7 +103,7 @@ export class ContractDrawingService {
 
       // 3. สร้าง Entity
       const drawing = queryRunner.manager.create(ContractDrawing, {
-        projectId: createDto.projectId,
+        projectId: internalProjectId,
         contractDrawingNo: createDto.contractDrawingNo,
         title: createDto.title,
         mapCatId: createDto.mapCatId, // Updated
@@ -98,9 +118,8 @@ export class ContractDrawingService {
       // 4. Commit Files (ย้ายไฟล์จริง)
       if (createDto.attachmentIds?.length) {
         // ✅ FIX TS2345: แปลง number[] เป็น string[] ก่อนส่ง
-        const issueDate = await this.resolveIssueDateByProject(
-          createDto.projectId
-        );
+        const issueDate =
+          await this.resolveIssueDateByProject(internalProjectId);
         await this.fileStorageService.commit(
           createDto.attachmentIds.map(String),
           { issueDate, documentType: 'ContractDrawing' }

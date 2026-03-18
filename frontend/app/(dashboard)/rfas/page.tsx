@@ -14,7 +14,7 @@ function RFAsContent() {
   const page = parseInt(searchParams.get('page') || '1');
   const statusId = searchParams.get('status') ? parseInt(searchParams.get('status')!) : undefined;
   const search = searchParams.get('search') || undefined;
-  const projectId = searchParams.get('projectId') ? parseInt(searchParams.get('projectId')!) : undefined;
+  const projectId = searchParams.get('projectId') || undefined; // ADR-019: Pass UUID string directly
 
   const revisionStatus = (searchParams.get('revisionStatus') as 'CURRENT' | 'ALL' | 'OLD') || 'CURRENT';
 

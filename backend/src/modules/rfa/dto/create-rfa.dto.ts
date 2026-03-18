@@ -11,10 +11,18 @@ import {
 } from 'class-validator';
 
 export class CreateRfaDto {
-  @ApiProperty({ description: 'ID ของโครงการ', example: 1 })
-  @IsInt()
+  @ApiProperty({ description: 'ID or UUID ของโครงการ', example: 1 })
   @IsNotEmpty()
-  projectId!: number;
+  projectId!: number | string;
+
+  @ApiProperty({ description: 'Contract ID or UUID', required: false })
+  @IsString()
+  @IsOptional()
+  contractId?: string;
+
+  @ApiProperty({ description: 'To Organization ID or UUID', required: false })
+  @IsOptional()
+  toOrganizationId?: number | string;
 
   @ApiProperty({ description: 'ID ของประเภท RFA', example: 1 })
   @IsInt()

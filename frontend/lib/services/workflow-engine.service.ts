@@ -15,7 +15,7 @@ const mapWorkflow = (backendObj: any): Workflow => {
     workflowId: backendObj.id,
     workflowName: backendObj.dsl?.workflowName || backendObj.workflow_code,
     description: backendObj.description || backendObj.dsl?.description || '',
-    workflowType: backendObj.workflow_code,
+    workflowType: backendObj.workflow_code?.toUpperCase() || backendObj.workflow_code,
     version: backendObj.version || 1,
     isActive: backendObj.is_active,
     dslDefinition: typeof backendObj.dsl === 'string' ? backendObj.dsl : backendObj.dsl?.dslDefinition || JSON.stringify(backendObj.dsl, null, 2),

@@ -9,12 +9,12 @@ export enum TransmittalPurpose {
 
 // --- Create ---
 export interface CreateTransmittalDto {
-  projectId?: number;
-  recipientOrganizationId?: number;
+  projectId?: number | string; // ADR-019: Accept UUID
+  recipientOrganizationId?: number | string; // ADR-019: Accept UUID
   subject: string;
   purpose?: string;
   remarks?: string;
-  correspondenceId: number; // For now linked correspondence
+  correspondenceId: number | string; // ADR-019: Accept UUID
   items: CreateTransmittalItemDto[];
 }
 
@@ -30,7 +30,7 @@ export type UpdateTransmittalDto = Partial<CreateTransmittalDto>;
 // --- Search ---
 export interface SearchTransmittalDto {
   /** บังคับระบุ Project */
-  projectId: number;
+  projectId: number | string; // ADR-019: Accept UUID
 
   purpose?: TransmittalPurpose;
 

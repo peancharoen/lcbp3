@@ -16,11 +16,9 @@ export class SearchUserDto {
   @Type(() => Number)
   roleId?: number;
 
-  @ApiPropertyOptional({ description: 'Filter by Organization ID' })
+  @ApiPropertyOptional({ description: 'Filter by Organization ID or UUID' })
   @IsOptional()
-  @IsInt()
-  @Type(() => Number)
-  primaryOrganizationId?: number;
+  primaryOrganizationId?: number | string; // ADR-019: Accept INT or UUID
 
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()

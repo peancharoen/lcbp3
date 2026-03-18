@@ -13,6 +13,7 @@ import { AsBuiltDrawingRevision } from './entities/asbuilt-drawing-revision.enti
 import { ShopDrawingRevision } from './entities/shop-drawing-revision.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { User } from '../user/entities/user.entity';
+import { Project } from '../project/entities/project.entity';
 
 // DTOs
 import { CreateAsBuiltDrawingDto } from './dto/create-asbuilt-drawing.dto';
@@ -38,6 +39,22 @@ export class AsBuiltDrawingService {
     private fileStorageService: FileStorageService,
     private dataSource: DataSource
   ) {}
+
+  /**
+   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
+   */
+  private async resolveProjectId(projectId: number | string): Promise<number> {
+    if (typeof projectId === 'number') return projectId;
+    const num = Number(projectId);
+    if (!isNaN(num)) return num;
+    const project = await this.dataSource.manager.findOne(Project, {
+      where: { uuid: projectId },
+      select: ['id'],
+    });
+    if (!project)
+      throw new NotFoundException(`Project with UUID ${projectId} not found`);
+    return project.id;
+  }
 
   /**
    * สร้าง AS Built Drawing ใหม่ พร้อม Revision แรก (Rev 0)
@@ -73,9 +90,14 @@ export class AsBuiltDrawingService {
         });
       }
 
+      // ADR-019: Resolve UUID→INT
+      const internalProjectId = await this.resolveProjectId(
+        createDto.projectId
+      );
+
       // 3. Create Master AS Built Drawing
       const asBuiltDrawing = queryRunner.manager.create(AsBuiltDrawing, {
-        projectId: createDto.projectId,
+        projectId: internalProjectId,
         drawingNumber: createDto.drawingNumber,
         mainCategoryId: createDto.mainCategoryId,
         subCategoryId: createDto.subCategoryId,

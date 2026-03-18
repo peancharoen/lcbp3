@@ -37,7 +37,7 @@ const VARIABLES = [
 
 export interface TemplateEditorProps {
     template?: NumberingTemplate;
-    projectId: number;
+    projectId: number | string;
     projectName: string;
     /* eslint-disable @typescript-eslint/no-explicit-any */
     correspondenceTypes: any[];

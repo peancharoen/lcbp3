@@ -44,7 +44,7 @@ export default function UsersPage() {
 
   const { data: users, isLoading } = useUsers({
     search: search || undefined,
-    primaryOrganizationId: selectedOrgId ? parseInt(selectedOrgId) : undefined,
+    primaryOrganizationId: selectedOrgId ?? undefined,
   });
 
   const { data: organizations = [] } = useOrganizations();
@@ -94,7 +94,7 @@ export default function UsersPage() {
       header: "Organization",
       cell: ({ row }) => {
         const orgId = row.original.primaryOrganizationId;
-        const org = (organizations as Organization[]).find((o) => o.id === orgId);
+        const org = (organizations as Organization[]).find((o) => (o.id ?? o.uuid) === orgId?.toString() || o.uuid === orgId?.toString());
         return org ? org.organizationCode : "-";
       },
     },
@@ -186,7 +186,7 @@ export default function UsersPage() {
               <SelectContent>
                 <SelectItem value="all">All Organizations</SelectItem>
                 {Array.isArray(organizations) && (organizations as Organization[]).map((org) => (
-                  <SelectItem key={org.uuid} value={(org.id ?? org.uuid).toString()}>
+                  <SelectItem key={org.uuid} value={org.uuid}>
                     {org.organizationCode} - {org.organizationName}
                   </SelectItem>
                 ))}

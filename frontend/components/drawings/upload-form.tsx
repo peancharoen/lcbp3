@@ -80,7 +80,7 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
   const router = useRouter();
 
   // Hooks
-  const { data: contractCategories } = useContractDrawingCategories();
+  const { data: contractCategories } = useContractDrawingCategories(projectId);
   const { data: shopMainCats } = useShopMainCategories(projectId);
 
   const [selectedShopMainCat, setSelectedShopMainCat] = useState<number | undefined>();
@@ -202,7 +202,7 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
                       </SelectTrigger>
                       <SelectContent>
                         {contractCategories?.map((c: any) => (
-                           <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                           <SelectItem key={c.id} value={String(c.id)}>{c.catName || c.catCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -253,7 +253,7 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
                       </SelectTrigger>
                       <SelectContent>
                         {shopMainCats?.map((c: any) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          <SelectItem key={c.id} value={String(c.id)}>{c.mainCategoryName || c.mainCategoryCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -269,7 +269,7 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
                       </SelectTrigger>
                       <SelectContent>
                         {shopSubCats?.map((c: any) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          <SelectItem key={c.id} value={String(c.id)}>{c.subCategoryName || c.subCategoryCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -323,7 +323,7 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
                       </SelectTrigger>
                       <SelectContent>
                         {shopMainCats?.map((c: any) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          <SelectItem key={c.id} value={String(c.id)}>{c.mainCategoryName || c.mainCategoryCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -339,7 +339,7 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
                       </SelectTrigger>
                       <SelectContent>
                         {shopSubCats?.map((c: any) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          <SelectItem key={c.id} value={String(c.id)}>{c.subCategoryName || c.subCategoryCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

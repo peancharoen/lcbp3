@@ -2,8 +2,8 @@
 
 // --- Create ---
 export interface CreateRfaDto {
-  /** ID ของโครงการ */
-  projectId: number;
+  /** ID or UUID ของโครงการ */
+  projectId: number | string; // ADR-019: Accept UUID
 
   /** ประเภท RFA (เช่น DWG, MAT) */
   rfaTypeId: number;
@@ -20,8 +20,11 @@ export interface CreateRfaDto {
   /** หมายเหตุ */
   remarks?: string;
 
+  /** Contract UUID (optional) */
+  contractId?: string; // ADR-019: Contract UUID
+
   /** ส่งถึงใคร (สำหรับ Routing Step 1) */
-  toOrganizationId: number;
+  toOrganizationId: number | string; // ADR-019: Accept UUID
 
   /** รายละเอียดเพิ่มเติม */
   description?: string;
@@ -41,8 +44,8 @@ export type UpdateRfaDto = Partial<CreateRfaDto>;
 
 // --- Search ---
 export interface SearchRfaDto {
-  /** Filter by Project ID (optional to allow cross-project search) */
-  projectId?: number;
+  /** Filter by Project ID or UUID (optional to allow cross-project search) */
+  projectId?: number | string; // ADR-019: Accept UUID
 
   /** กรองตามประเภท RFA */
   rfaTypeId?: number;
