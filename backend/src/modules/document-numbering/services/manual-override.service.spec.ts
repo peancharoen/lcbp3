@@ -56,7 +56,7 @@ describe('ManualOverrideService', () => {
     expect(counterService.forceUpdateCounter).toHaveBeenCalledWith(dto, 999);
     expect(auditService.log).toHaveBeenCalledWith(
       expect.objectContaining({
-        generatedNumber: 'OVERRIDE-TO-999',
+        documentNumber: 'OVERRIDE-TO-999',
         operation: 'MANUAL_OVERRIDE',
         status: 'MANUAL',
         userId: userId,

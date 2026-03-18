@@ -146,7 +146,7 @@ export class DocumentNumberingService {
       const sequence = await this.counterService.incrementCounter(key);
 
       // 4. Format Number
-      const generatedNumber = await this.formatService.format({
+      const documentNumber = await this.formatService.format({
         projectId: ctx.projectId,
         correspondenceTypeId: ctx.typeId,
         subTypeId: ctx.subTypeId,
@@ -161,7 +161,7 @@ export class DocumentNumberingService {
 
       // 5. Audit Log
       const audit = await this.logAudit({
-        generatedNumber,
+        documentNumber,
         counterKey: JSON.stringify(key),
         templateUsed: 'DELEGATED_TO_FORMAT_SERVICE',
         context: ctx,
@@ -175,7 +175,7 @@ export class DocumentNumberingService {
         type_id: String(ctx.typeId),
       });
 
-      return { number: generatedNumber, auditId: audit.id };
+      return { number: documentNumber, auditId: audit.id };
     } catch (error: any) {
       await this.logError(error, ctx, 'GENERATE');
       throw error;
@@ -322,7 +322,7 @@ export class DocumentNumberingService {
   }) {
     // 1. Find the audit log for this number to get context
     const lastAudit = await this.auditRepo.findOne({
-      where: { generatedNumber: dto.documentNumber },
+      where: { documentNumber: dto.documentNumber },
       order: { createdAt: 'DESC' },
     });
 
@@ -334,7 +334,7 @@ export class DocumentNumberingService {
       );
       // Create a void audit anyway if possible?
       await this.logAudit({
-        generatedNumber: dto.documentNumber,
+        documentNumber: dto.documentNumber,
         counterKey: {}, // Unknown
         templateUsed: 'VOID_UNKNOWN',
         context: { userId: 0, ipAddress: '0.0.0.0' }, // System
@@ -349,7 +349,7 @@ export class DocumentNumberingService {
 
     // 2. Log VOID
     await this.logAudit({
-      generatedNumber: dto.documentNumber,
+      documentNumber: dto.documentNumber,
       counterKey: lastAudit.counterKey,
       templateUsed: lastAudit.templateUsed,
       context: { userId: 0, ipAddress: '0.0.0.0' }, // TODO: Pass userId from controller
@@ -409,14 +409,14 @@ export class DocumentNumberingService {
   }) {
     // Similar to VOID but status CANCELLED
     const lastAudit = await this.auditRepo.findOne({
-      where: { generatedNumber: dto.documentNumber },
+      where: { documentNumber: dto.documentNumber },
       order: { createdAt: 'DESC' },
     });
 
     const contextKey = lastAudit?.counterKey;
 
     await this.logAudit({
-      generatedNumber: dto.documentNumber,
+      documentNumber: dto.documentNumber,
       counterKey: contextKey || {},
       templateUsed: lastAudit?.templateUsed || 'CANCEL',
       context: {

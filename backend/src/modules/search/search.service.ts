@@ -7,6 +7,7 @@ import { SearchQueryDto } from './dto/search-query.dto';
 export class SearchService implements OnModuleInit {
   private readonly logger = new Logger(SearchService.name);
   private readonly indexName = 'dms_documents';
+  private isElasticsearchAvailable = false;
 
   constructor(
     private readonly esService: ElasticsearchService,
@@ -14,6 +15,20 @@ export class SearchService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    // Test Elasticsearch connection first
+    try {
+      await this.esService.ping();
+      this.logger.log('Elasticsearch connection successful');
+      this.isElasticsearchAvailable = true;
+    } catch (error) {
+      this.logger.error(
+        `Elasticsearch connection failed: ${(error as Error).message}`,
+        (error as Error).stack
+      );
+      this.isElasticsearchAvailable = false;
+      return; // Don't try to create index if connection fails
+    }
+
     await this.createIndexIfNotExists();
   }
 
@@ -94,6 +109,12 @@ export class SearchService implements OnModuleInit {
     const { q, type, projectId, page = 1, limit = 20 } = queryDto;
     const from = (page - 1) * limit;
 
+    // Early fallback if Elasticsearch is not available
+    if (!this.isElasticsearchAvailable) {
+      this.logger.warn('Search unavailable - Elasticsearch not connected');
+      return { data: [], meta: { total: 0, page, limit, took: 0 } };
+    }
+
     const mustQueries: any[] = [];
 
     // 1. Full-text search logic
@@ -146,7 +167,14 @@ export class SearchService implements OnModuleInit {
         },
       };
     } catch (error) {
-      this.logger.error(`Search failed: ${(error as Error).message}`);
+      const err = error as Error;
+      this.logger.error(`Search failed: ${err.message}`, err.stack);
+      this.logger.debug(
+        `Search query context: ${JSON.stringify({
+          query: queryDto,
+          esNode: this.configService.get('ELASTICSEARCH_NODE'),
+        })}`
+      );
       return { data: [], meta: { total: 0, page, limit, took: 0 } };
     }
   }

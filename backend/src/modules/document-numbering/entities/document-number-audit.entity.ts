@@ -12,7 +12,7 @@ import {
 @Index(['documentId'])
 @Index(['status'])
 @Index(['operation'])
-@Index(['generatedNumber'])
+@Index(['documentNumber'])
 @Index(['reservationToken'])
 export class DocumentNumberAudit {
   @PrimaryGeneratedColumn()
@@ -21,8 +21,8 @@ export class DocumentNumberAudit {
   @Column({ name: 'document_id', nullable: true })
   documentId?: number;
 
-  @Column({ name: 'generated_number', length: 100 })
-  generatedNumber!: string;
+  @Column({ name: 'document_number', length: 100 })
+  documentNumber!: string;
 
   @Column({ name: 'counter_key', type: 'json' })
   counterKey!: any;

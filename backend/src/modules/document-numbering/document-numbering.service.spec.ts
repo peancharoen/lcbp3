@@ -144,7 +144,7 @@ describe('DocumentNumberingService', () => {
     it('voidAndReplace should verify audit log exists', async () => {
       const auditRepo = module.get(getRepositoryToken(DocumentNumberAudit));
       (auditRepo.findOne as jest.Mock).mockResolvedValue({
-        generatedNumber: 'DOC-001',
+        documentNumber: 'DOC-001',
         counterKey: JSON.stringify({ projectId: 1, correspondenceTypeId: 1 }),
         templateUsed: 'test',
       });
@@ -162,7 +162,7 @@ describe('DocumentNumberingService', () => {
     it('cancelNumber should log cancellation', async () => {
       const auditRepo = module.get(getRepositoryToken(DocumentNumberAudit));
       (auditRepo.findOne as jest.Mock).mockResolvedValue({
-        generatedNumber: 'DOC-002',
+        documentNumber: 'DOC-002',
         counterKey: {},
       });
       (auditRepo.save as jest.Mock).mockResolvedValue({ id: 3 });

@@ -23,7 +23,7 @@ export class ManualOverrideService {
     // 2. Log Audit
     await this.auditService.log({
       documentId: undefined, // No specific document
-      generatedNumber: `OVERRIDE-TO-${dto.newLastNumber}`,
+      documentNumber: `OVERRIDE-TO-${dto.newLastNumber}`,
       operation: 'MANUAL_OVERRIDE',
       status: 'MANUAL',
       counterKey: dto, // CounterKeyDto part of ManualOverrideDto
