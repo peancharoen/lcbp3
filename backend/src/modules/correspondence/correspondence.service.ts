@@ -35,6 +35,7 @@ import { WorkflowEngineService } from '../workflow-engine/workflow-engine.servic
 import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { Project } from '../project/entities/project.entity';
 
 /**
  * CorrespondenceService - Document management (CRUD)
@@ -69,7 +70,52 @@ export class CorrespondenceService {
     private fileStorageService: FileStorageService
   ) {}
 
+  /**
+   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
+   */
+  private async resolveProjectId(projectId: number | string): Promise<number> {
+    if (typeof projectId === 'number') return projectId;
+    const num = Number(projectId);
+    if (!isNaN(num)) return num;
+    const project = await this.dataSource.manager.findOne(Project, {
+      where: { uuid: projectId },
+      select: ['id'],
+    });
+    if (!project)
+      throw new NotFoundException(`Project with UUID ${projectId} not found`);
+    return project.id;
+  }
+
+  /**
+   * ADR-019: Resolve organizationId (INT or UUID string) to internal INT ID
+   */
+  private async resolveOrganizationId(orgId: number | string): Promise<number> {
+    if (typeof orgId === 'number') return orgId;
+    const num = Number(orgId);
+    if (!isNaN(num)) return num;
+    const org = await this.orgRepo.findOne({
+      where: { uuid: orgId },
+      select: ['id'],
+    });
+    if (!org)
+      throw new NotFoundException(`Organization with UUID ${orgId} not found`);
+    return org.id;
+  }
+
   async create(createDto: CreateCorrespondenceDto, user: User) {
+    // ADR-019: Resolve UUID references to internal INT IDs
+    const resolvedProjectId = await this.resolveProjectId(createDto.projectId);
+    const resolvedOriginatorId = createDto.originatorId
+      ? await this.resolveOrganizationId(createDto.originatorId)
+      : undefined;
+    const resolvedRecipients = createDto.recipients
+      ? await Promise.all(
+          createDto.recipients.map(async (r) => ({
+            organizationId: await this.resolveOrganizationId(r.organizationId),
+            type: r.type,
+          }))
+        )
+      : undefined;
     const type = await this.typeRepo.findOne({
       where: { id: createDto.typeId },
     });
@@ -94,7 +140,7 @@ export class CorrespondenceService {
     }
 
     // Impersonation Logic
-    if (createDto.originatorId && createDto.originatorId !== userOrgId) {
+    if (resolvedOriginatorId && resolvedOriginatorId !== userOrgId) {
       const permissions = await this.userService.getUserPermissions(
         user.user_id
       );
@@ -103,7 +149,7 @@ export class CorrespondenceService {
           'You do not have permission to create documents on behalf of other organizations.'
         );
       }
-      userOrgId = createDto.originatorId;
+      userOrgId = resolvedOriginatorId;
     }
 
     if (!userOrgId) {
@@ -134,7 +180,7 @@ export class CorrespondenceService {
       const orgCode = originatorOrg?.organizationCode ?? 'UNK';
 
       // [v1.5.1] Extract recipient organization from recipients array (Primary TO)
-      const toRecipient = createDto.recipients?.find((r) => r.type === 'TO');
+      const toRecipient = resolvedRecipients?.find((r) => r.type === 'TO');
       const recipientOrganizationId = toRecipient?.organizationId;
 
       let recipientCode = '';
@@ -146,7 +192,7 @@ export class CorrespondenceService {
       }
 
       const docNumber = await this.numberingService.generateNextNumber({
-        projectId: createDto.projectId,
+        projectId: resolvedProjectId,
         originatorOrganizationId: userOrgId,
         typeId: createDto.typeId,
         disciplineId: createDto.disciplineId,
@@ -165,7 +211,7 @@ export class CorrespondenceService {
         correspondenceNumber: docNumber.number,
         correspondenceTypeId: createDto.typeId,
         disciplineId: createDto.disciplineId,
-        projectId: createDto.projectId,
+        projectId: resolvedProjectId,
         originatorId: userOrgId,
         isInternal: createDto.isInternal || false,
         createdBy: user.user_id,
@@ -195,9 +241,9 @@ export class CorrespondenceService {
       });
       await queryRunner.manager.save(revision);
 
-      // Save Recipients
-      if (createDto.recipients && createDto.recipients.length > 0) {
-        const recipients = createDto.recipients.map((r) =>
+      // Save Recipients (using resolved INT IDs)
+      if (resolvedRecipients && resolvedRecipients.length > 0) {
+        const recipients = resolvedRecipients.map((r) =>
           queryRunner.manager.create(CorrespondenceRecipient, {
             correspondenceId: savedCorr.id,
             recipientOrganizationId: r.organizationId,
@@ -459,14 +505,30 @@ export class CorrespondenceService {
       }
     }
 
+    // ADR-019: Resolve UUID references in update DTO
+    const updResolvedProjectId = updateDto.projectId
+      ? await this.resolveProjectId(updateDto.projectId)
+      : undefined;
+    const updResolvedOriginatorId = updateDto.originatorId
+      ? await this.resolveOrganizationId(updateDto.originatorId)
+      : undefined;
+    const updResolvedRecipients = updateDto.recipients
+      ? await Promise.all(
+          updateDto.recipients.map(async (r) => ({
+            organizationId: await this.resolveOrganizationId(r.organizationId),
+            type: r.type,
+          }))
+        )
+      : undefined;
+
     // 3. Update Correspondence Entity if needed
     const correspondenceUpdate: DeepPartial<Correspondence> = {};
     if (updateDto.disciplineId)
       correspondenceUpdate.disciplineId = updateDto.disciplineId;
-    if (updateDto.projectId)
-      correspondenceUpdate.projectId = updateDto.projectId;
-    if (updateDto.originatorId)
-      correspondenceUpdate.originatorId = updateDto.originatorId;
+    if (updResolvedProjectId)
+      correspondenceUpdate.projectId = updResolvedProjectId;
+    if (updResolvedOriginatorId)
+      correspondenceUpdate.originatorId = updResolvedOriginatorId;
 
     if (Object.keys(correspondenceUpdate).length > 0) {
       await this.correspondenceRepo.update(id, correspondenceUpdate);
@@ -506,13 +568,13 @@ export class CorrespondenceService {
     }
 
     // 5. Update Recipients if provided
-    if (updateDto.recipients) {
+    if (updResolvedRecipients) {
       const recipientRepo = this.dataSource.getRepository(
         CorrespondenceRecipient
       );
       await recipientRepo.delete({ correspondenceId: id });
 
-      const newRecipients = updateDto.recipients.map((r) =>
+      const newRecipients = updResolvedRecipients.map((r) =>
         recipientRepo.create({
           correspondenceId: id,
           recipientOrganizationId: r.organizationId,
@@ -539,11 +601,11 @@ export class CorrespondenceService {
 
       // Check for ACTUAL value changes
       const isProjectChanged =
-        updateDto.projectId !== undefined &&
-        updateDto.projectId !== currentCorr.projectId;
+        updResolvedProjectId !== undefined &&
+        updResolvedProjectId !== currentCorr.projectId;
       const isOriginatorChanged =
-        updateDto.originatorId !== undefined &&
-        updateDto.originatorId !== currentCorr.originatorId;
+        updResolvedOriginatorId !== undefined &&
+        updResolvedOriginatorId !== currentCorr.originatorId;
       const isDisciplineChanged =
         updateDto.disciplineId !== undefined &&
         updateDto.disciplineId !== currentCorr.disciplineId;
@@ -554,15 +616,9 @@ export class CorrespondenceService {
       let isRecipientChanged = false;
       let newRecipientId: number | undefined;
 
-      if (updateDto.recipients) {
-        // Safe check for 'type' or 'recipientType' (mismatch safeguard)
-        interface RecipientInput {
-          type?: string;
-          recipientType?: string;
-          organizationId?: number;
-        }
-        const newToRecipient = updateDto.recipients.find(
-          (r: RecipientInput) => r.type === 'TO' || r.recipientType === 'TO'
+      if (updResolvedRecipients) {
+        const newToRecipient = updResolvedRecipients.find(
+          (r) => r.type === 'TO'
         );
         newRecipientId = newToRecipient?.organizationId;
 
@@ -594,7 +650,7 @@ export class CorrespondenceService {
         // [Fix #6] Fetch real ORG Code from originator organization
         const originatorOrgForUpdate = await this.orgRepo.findOne({
           where: {
-            id: updateDto.originatorId ?? currentCorr.originatorId ?? 0,
+            id: updResolvedOriginatorId ?? currentCorr.originatorId ?? 0,
           },
         });
         const orgCode = originatorOrgForUpdate?.organizationCode ?? 'UNK';
@@ -610,9 +666,9 @@ export class CorrespondenceService {
         };
 
         const newCtx = {
-          projectId: updateDto.projectId ?? currentCorr.projectId,
+          projectId: updResolvedProjectId ?? currentCorr.projectId,
           originatorOrganizationId:
-            updateDto.originatorId ?? currentCorr.originatorId ?? 0,
+            updResolvedOriginatorId ?? currentCorr.originatorId ?? 0,
           typeId: updateDto.typeId ?? currentCorr.correspondenceTypeId,
           disciplineId: updateDto.disciplineId ?? currentCorr.disciplineId,
           recipientOrganizationId: targetRecipientId,
@@ -650,6 +706,20 @@ export class CorrespondenceService {
   }
 
   async previewDocumentNumber(createDto: CreateCorrespondenceDto, user: User) {
+    // ADR-019: Resolve UUID references
+    const previewProjectId = await this.resolveProjectId(createDto.projectId);
+    const previewOriginatorId = createDto.originatorId
+      ? await this.resolveOrganizationId(createDto.originatorId)
+      : undefined;
+    const previewRecipients = createDto.recipients
+      ? await Promise.all(
+          createDto.recipients.map(async (r) => ({
+            organizationId: await this.resolveOrganizationId(r.organizationId),
+            type: r.type,
+          }))
+        )
+      : undefined;
+
     const type = await this.typeRepo.findOne({
       where: { id: createDto.typeId },
     });
@@ -661,13 +731,13 @@ export class CorrespondenceService {
       if (fullUser) userOrgId = fullUser.primaryOrganizationId;
     }
 
-    if (createDto.originatorId && createDto.originatorId !== userOrgId) {
+    if (previewOriginatorId && previewOriginatorId !== userOrgId) {
       // Allow impersonation for preview
-      userOrgId = createDto.originatorId;
+      userOrgId = previewOriginatorId;
     }
 
     // Extract recipient from recipients array
-    const toRecipient = createDto.recipients?.find((r) => r.type === 'TO');
+    const toRecipient = previewRecipients?.find((r) => r.type === 'TO');
     const recipientOrganizationId = toRecipient?.organizationId;
 
     let recipientCode = '';
@@ -679,7 +749,7 @@ export class CorrespondenceService {
     }
 
     return this.numberingService.previewNumber({
-      projectId: createDto.projectId,
+      projectId: previewProjectId,
       originatorOrganizationId: userOrgId!,
       typeId: createDto.typeId,
       disciplineId: createDto.disciplineId,

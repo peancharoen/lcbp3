@@ -45,9 +45,9 @@ import { cn } from "@/lib/utils";
 
 // Form validation schema
 const formSchema = z.object({
-  correspondenceId: z.number(),
+  correspondenceId: z.string().min(1, "Please select a document"),
   subject: z.string().min(1, "Subject is required"),
-  assigneeIds: z.array(z.number()).min(1, "At least one assignee is required"),
+  assigneeIds: z.array(z.string()).min(1, "At least one assignee is required"),
   remarks: z.string().optional(),
 });
 
@@ -98,18 +98,18 @@ export default function CreateCirculationPage() {
   const selectedDocId = form.watch("correspondenceId");
 
   const selectedDoc = correspondences?.data?.find(
-    (c: { id: number }) => c.id === selectedDocId
+    (c: { uuid: string }) => c.uuid === selectedDocId
   );
 
-  const toggleAssignee = (userId: number) => {
+  const toggleAssignee = (userUuid: string) => {
     const current = form.getValues("assigneeIds");
-    if (current.includes(userId)) {
+    if (current.includes(userUuid)) {
       form.setValue(
         "assigneeIds",
-        current.filter((id) => id !== userId)
+        current.filter((id) => id !== userUuid)
       );
     } else {
-      form.setValue("assigneeIds", [...current, userId]);
+      form.setValue("assigneeIds", [...current, userUuid]);
     }
   };
 
@@ -168,19 +168,19 @@ export default function CreateCirculationPage() {
                           <CommandList>
                             <CommandEmpty>No document found.</CommandEmpty>
                             <CommandGroup>
-                              {correspondences?.data?.map((doc: { id: number; correspondenceNumber: string }) => (
+                              {correspondences?.data?.map((doc: { uuid: string; correspondenceNumber: string }) => (
                                 <CommandItem
-                                  key={doc.id}
+                                  key={doc.uuid}
                                   value={doc.correspondenceNumber}
                                   onSelect={() => {
-                                    form.setValue("correspondenceId", doc.id);
+                                    form.setValue("correspondenceId", doc.uuid);
                                     setDocOpen(false);
                                   }}
                                 >
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      doc.id === field.value
+                                      doc.uuid === field.value
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}
@@ -230,13 +230,13 @@ export default function CreateCirculationPage() {
                           >
                             {selectedAssignees.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
-                                {selectedAssignees.map((userId) => {
+                                {selectedAssignees.map((userUuid) => {
                                   const user = users.find(
-                                    (u) => u.userId === userId
+                                    (u) => u.uuid === userUuid
                                   );
                                   return user ? (
                                     <Badge
-                                      key={userId}
+                                      key={userUuid}
                                       variant="secondary"
                                       className="mr-1"
                                     >
@@ -245,7 +245,7 @@ export default function CreateCirculationPage() {
                                         className="ml-1 h-3 w-3 cursor-pointer"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          toggleAssignee(userId);
+                                          toggleAssignee(userUuid);
                                         }}
                                       />
                                     </Badge>
@@ -269,14 +269,14 @@ export default function CreateCirculationPage() {
                             <CommandGroup>
                               {users.map((user) => (
                                 <CommandItem
-                                  key={user.userId ?? user.uuid}
+                                  key={user.uuid}
                                   value={user.username}
-                                  onSelect={() => user.userId && toggleAssignee(user.userId)}
+                                  onSelect={() => toggleAssignee(user.uuid)}
                                 >
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      user.userId != null && selectedAssignees.includes(user.userId)
+                                      selectedAssignees.includes(user.uuid)
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}

@@ -89,10 +89,10 @@ export interface CirculationListResponse {
  * DTO for creating a circulation
  */
 export interface CreateCirculationDto {
-  correspondenceId: number;
-  projectId?: number;
+  correspondenceId: number | string;
+  projectId?: number | string;
   subject: string;
-  assigneeIds: number[];
+  assigneeIds: (number | string)[];
   remarks?: string;
 }
 

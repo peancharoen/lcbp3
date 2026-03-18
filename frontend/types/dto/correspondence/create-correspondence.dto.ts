@@ -1,8 +1,8 @@
 // File: src/types/dto/correspondence/create-correspondence.dto.ts
 
 export interface CreateCorrespondenceDto {
-  /** ID ของโครงการ */
-  projectId: number;
+  /** ID or UUID ของโครงการ */
+  projectId: number | string;
 
   /** ID ของประเภทเอกสาร (เช่น RFA, LETTER) */
   typeId: number;
@@ -37,8 +37,8 @@ export interface CreateCorrespondenceDto {
   /** * ✅ Field สำหรับ Impersonation (เลือกองค์กรผู้ส่ง)
    * ใช้กรณี Admin สร้างเอกสารแทนผู้อื่น
    */
-  originatorId?: number;
+  originatorId?: number | string;
 
   /** รายชื่อผู้รับ */
-  recipients?: { organizationId: number; type: 'TO' | 'CC' }[];
+  recipients?: { organizationId: number | string; type: 'TO' | 'CC' }[];
 }

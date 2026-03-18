@@ -16,8 +16,8 @@ export default function TagsPage() {
   const projectOptions = [
     { label: "Global (All Projects)", value: "__none__" },
     ...(projectsData || []).map((p: Record<string, unknown>) => ({
-      label: p.projectName || p.projectCode || p.project_name || p.project_code || `Project ${p.id}`,
-      value: String(p.id),
+      label: (p.projectName || p.projectCode || p.project_name || p.project_code || `Project ${p.id}`) as string,
+      value: String(p.id), // p.id = UUID string via serialization
     })),
   ];
 
@@ -26,10 +26,10 @@ export default function TagsPage() {
       accessorKey: "project_id",
       header: "Project",
       cell: ({ row }) => {
-        const pId = row.original.project_id;
-        if (!pId) return <span className="text-muted-foreground italic">Global</span>;
-        const p = (projectsData || []).find((proj: Record<string, unknown>) => proj.id === pId);
-        return p ? (p.projectName || p.projectCode || p.project_name || p.project_code || `Project ${pId}`) as React.ReactNode : pId as React.ReactNode;
+        const item = row.original as Record<string, unknown>;
+        const project = item.project as Record<string, unknown> | null;
+        if (!project) return <span className="text-muted-foreground italic">Global</span>;
+        return (project.projectName || project.projectCode || `Project ${project.id}`) as React.ReactNode;
       },
     },
     {
@@ -70,7 +70,14 @@ export default function TagsPage() {
       description="Manage system tags, multi-tenant capable."
       entityName="Tag"
       queryKey={["tags"]}
-      fetchFn={() => masterDataService.getTags()}
+      fetchFn={async () => {
+        const items = await masterDataService.getTags();
+        // ADR-019: Map project_id INT → project UUID for edit mode select matching
+        return (items as any[]).map((item: any) => ({
+          ...item,
+          project_id: item.project?.id || item.project?.uuid || (item.project_id ? String(item.project_id) : null),
+        }));
+      }}
       createFn={(data: Record<string, unknown>) => masterDataService.createTag(formatPayload(data) as unknown as CreateTagDto)}
       updateFn={(id, data) => masterDataService.updateTag(id, formatPayload(data))}
       deleteFn={(id) => masterDataService.deleteTag(id)}

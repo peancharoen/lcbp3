@@ -33,7 +33,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         if (response && response.data) {
           const mappedData = response.data.map((d: ContractDrawing) => ({
             ...d,
-            uuid: d.uuid,
+            uuid: d.uuid || (d as unknown as { id: string }).id,
             drawingNumber: d.contractDrawingNo,
             type: 'CONTRACT',
           }));
@@ -46,7 +46,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         if (response && response.data) {
           const mappedData = response.data.map((d: ShopDrawing) => ({
             ...d,
-            uuid: d.uuid,
+            uuid: d.uuid || (d as unknown as { id: string }).id,
             type: 'SHOP',
             title: d.currentRevision?.title || 'Untitled',
             revision: d.currentRevision?.revisionNumber,
@@ -61,7 +61,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         if (response && response.data) {
           const mappedData = response.data.map((d: AsBuiltDrawing) => ({
             ...d,
-            uuid: d.uuid,
+            uuid: d.uuid || (d as unknown as { id: string }).id,
             type: 'AS_BUILT',
             title: d.currentRevision?.title || 'Untitled',
             revision: d.currentRevision?.revisionNumber,

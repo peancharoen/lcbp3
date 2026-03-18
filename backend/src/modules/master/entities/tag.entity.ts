@@ -6,7 +6,10 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Unique,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Project } from '../../project/entities/project.entity';
 
 @Entity('tags')
 @Unique('ux_tag_project', ['project_id', 'tag_name'])
@@ -25,6 +28,11 @@ export class Tag {
 
   @Column({ type: 'text', nullable: true })
   description!: string | null; // เพิ่ม !
+
+  // Relations
+  @ManyToOne(() => Project)
+  @JoinColumn({ name: 'project_id' })
+  project?: Project;
 
   @CreateDateColumn()
   created_at!: Date; // เพิ่ม !

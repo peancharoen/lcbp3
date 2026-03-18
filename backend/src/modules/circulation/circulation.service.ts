@@ -14,6 +14,8 @@ import { CreateCirculationDto } from './dto/create-circulation.dto';
 import { UpdateCirculationRoutingDto } from './dto/update-circulation-routing.dto';
 import { SearchCirculationDto } from './dto/search-circulation.dto';
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
+import { Project } from '../project/entities/project.entity';
+import { Correspondence } from '../correspondence/entities/correspondence.entity';
 
 @Injectable()
 export class CirculationService {
@@ -26,6 +28,58 @@ export class CirculationService {
     private dataSource: DataSource
   ) {}
 
+  /**
+   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
+   */
+  private async resolveProjectId(projectId: number | string): Promise<number> {
+    if (typeof projectId === 'number') return projectId;
+    const num = Number(projectId);
+    if (!isNaN(num)) return num;
+    const project = await this.dataSource.manager.findOne(Project, {
+      where: { uuid: projectId },
+      select: ['id'],
+    });
+    if (!project)
+      throw new NotFoundException(`Project with UUID ${projectId} not found`);
+    return project.id;
+  }
+
+  /**
+   * ADR-019: Resolve correspondenceId (INT or UUID string) to internal INT ID
+   */
+  private async resolveCorrespondenceId(
+    corrId: number | string
+  ): Promise<number> {
+    if (typeof corrId === 'number') return corrId;
+    const num = Number(corrId);
+    if (!isNaN(num)) return num;
+    const corr = await this.dataSource.manager.findOne(Correspondence, {
+      where: { uuid: corrId },
+      select: ['id'],
+    });
+    if (!corr)
+      throw new NotFoundException(
+        `Correspondence with UUID ${corrId} not found`
+      );
+    return corr.id;
+  }
+
+  /**
+   * ADR-019: Resolve userId (INT or UUID string) to internal user_id
+   */
+  private async resolveUserId(userId: number | string): Promise<number> {
+    if (typeof userId === 'number') return userId;
+    const num = Number(userId);
+    if (!isNaN(num)) return num;
+    const user = await this.dataSource.manager.findOne(User, {
+      where: { uuid: userId },
+      select: ['user_id'],
+    });
+    if (!user)
+      throw new NotFoundException(`User with UUID ${userId} not found`);
+    return user.user_id;
+  }
+
   async create(createDto: CreateCirculationDto, user: User) {
     if (!user.primaryOrganizationId) {
       throw new BadRequestException('User must belong to an organization');
@@ -36,9 +90,20 @@ export class CirculationService {
     await queryRunner.startTransaction();
 
     try {
+      // ADR-019: Resolve UUID references to internal INT IDs
+      const resolvedProjectId = createDto.projectId
+        ? await this.resolveProjectId(createDto.projectId)
+        : 0;
+      const resolvedCorrId = await this.resolveCorrespondenceId(
+        createDto.correspondenceId
+      );
+      const resolvedAssigneeIds = await Promise.all(
+        createDto.assigneeIds.map((id) => this.resolveUserId(id))
+      );
+
       // Generate No. using DocumentNumberingService (Type 900 - Circulation)
       const result = await this.numberingService.generateNextNumber({
-        projectId: createDto.projectId || 0, // Use projectId from DTO or 0
+        projectId: resolvedProjectId,
         originatorOrganizationId: user.primaryOrganizationId,
         typeId: 900, // Fixed Type ID for Circulation
         year: new Date().getFullYear(),
@@ -50,7 +115,7 @@ export class CirculationService {
 
       const circulation = queryRunner.manager.create(Circulation, {
         organizationId: user.primaryOrganizationId,
-        correspondenceId: createDto.correspondenceId,
+        correspondenceId: resolvedCorrId,
         circulationNo: result.number,
         subject: createDto.subject,
         statusCode: 'OPEN',
@@ -58,13 +123,13 @@ export class CirculationService {
       });
       const savedCirculation = await queryRunner.manager.save(circulation);
 
-      if (createDto.assigneeIds && createDto.assigneeIds.length > 0) {
-        const routings = createDto.assigneeIds.map((userId, index) =>
+      if (resolvedAssigneeIds.length > 0) {
+        const routings = resolvedAssigneeIds.map((assigneeId, index) =>
           queryRunner.manager.create(CirculationRouting, {
             circulationId: savedCirculation.id,
             stepNumber: index + 1,
             organizationId: user.primaryOrganizationId,
-            assignedTo: userId,
+            assignedTo: assigneeId,
             status: 'PENDING',
           })
         );

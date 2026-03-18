@@ -68,8 +68,8 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
     try {
         const result = await numberingApi.previewNumber({
             projectId: projectId,
-            originatorOrganizationId: parseInt(testData.originatorId || "0"),
-            recipientOrganizationId: parseInt(testData.recipientId || "0"),
+            originatorOrganizationId: testData.originatorId || "0",
+            recipientOrganizationId: testData.recipientId || "0",
             correspondenceTypeId: parseInt(testData.correspondenceTypeId || "0"),
             disciplineId: parseInt(testData.disciplineId || "0"),
         });

@@ -1,6 +1,11 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 
 import { DocumentNumberFormat } from '../entities/document-number-format.entity';
@@ -20,6 +25,7 @@ import { CounterKeyDto } from '../dto/counter-key.dto';
 import { GenerateNumberContext } from '../interfaces/document-numbering.interface';
 import { ReserveNumberDto } from '../dto/reserve-number.dto';
 import { ConfirmReservationDto } from '../dto/confirm-reservation.dto';
+import { Project } from '../../project/entities/project.entity';
 
 @Injectable()
 export class DocumentNumberingService {
@@ -39,8 +45,26 @@ export class DocumentNumberingService {
     private lockService: DocumentNumberingLockService,
     private configService: ConfigService,
     private manualOverrideService: ManualOverrideService,
-    private metricsService: MetricsService
+    private metricsService: MetricsService,
+    @InjectEntityManager()
+    private entityManager: EntityManager
   ) {}
+
+  /**
+   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
+   */
+  private async resolveProjectId(projectId: number | string): Promise<number> {
+    if (typeof projectId === 'number') return projectId;
+    const num = Number(projectId);
+    if (!isNaN(num)) return num;
+    const project = await this.entityManager.findOne(Project, {
+      where: { uuid: projectId },
+      select: ['id'],
+    });
+    if (!project)
+      throw new NotFoundException(`Project with UUID ${projectId} not found`);
+    return project.id;
+  }
 
   async generateNextNumber(
     ctx: GenerateNumberContext
@@ -218,11 +242,15 @@ export class DocumentNumberingService {
     return this.formatRepo.find();
   }
 
-  async getTemplatesByProject(projectId: number) {
-    return this.formatRepo.find({ where: { projectId } });
+  async getTemplatesByProject(projectId: number | string) {
+    const internalId = await this.resolveProjectId(projectId);
+    return this.formatRepo.find({ where: { projectId: internalId } });
   }
 
   async saveTemplate(dto: any) {
+    if (dto.projectId) {
+      dto.projectId = await this.resolveProjectId(dto.projectId);
+    }
     return this.formatRepo.save(dto);
   }
 

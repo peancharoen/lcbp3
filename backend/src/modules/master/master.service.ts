@@ -132,6 +132,7 @@ export class MasterService {
     }
     return this.rfaTypeRepo.find({
       where,
+      relations: ['contract'],
       order: { typeCode: 'ASC' },
     });
   }
@@ -296,7 +297,9 @@ export class MasterService {
   }
 
   async findAllTags(query?: SearchTagDto) {
-    const qb = this.tagRepo.createQueryBuilder('tag');
+    const qb = this.tagRepo
+      .createQueryBuilder('tag')
+      .leftJoinAndSelect('tag.project', 'project');
 
     if (query?.project_id) {
       // In Tags, we use project_id (INT) directly or resolve if UUID passed via query

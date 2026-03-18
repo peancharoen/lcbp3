@@ -45,7 +45,7 @@ export default function DisciplinesPage() {
 
   const contractOptions = contracts.map((c: any) => ({
     label: `${c.contractName} (${c.contractCode})`,
-    value: String(c.id || c.uuid),
+    value: String(c.id),
   }));
 
   return (
@@ -55,9 +55,16 @@ export default function DisciplinesPage() {
         title="Disciplines Management"
         description="Manage system disciplines (e.g., ARCH, STR, MEC)"
         queryKey={['disciplines', selectedContractId ?? 'all']}
-        fetchFn={() => masterDataService.getDisciplines(selectedContractId ? selectedContractId : undefined)}
+        fetchFn={async () => {
+          const items = await masterDataService.getDisciplines(selectedContractId ? selectedContractId : undefined);
+          // ADR-019: Map contractId INT → contract UUID for edit mode select matching
+          return (items as any[]).map((item: any) => ({
+            ...item,
+            contractId: item.contract?.id || item.contract?.uuid || String(item.contractId),
+          }));
+        }}
         createFn={(data: Record<string, unknown>) => masterDataService.createDiscipline(data as any)}
-        updateFn={(id, data) => Promise.reject('Not implemented yet')} 
+        updateFn={(id, data) => Promise.reject('Not implemented yet')}
         deleteFn={(id) => masterDataService.deleteDiscipline(id)}
         columns={columns}
         filters={
@@ -72,7 +79,7 @@ export default function DisciplinesPage() {
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
                 {contracts.map((c: any) => (
-                  <SelectItem key={c.uuid || c.id} value={String(c.id || c.uuid)}>
+                  <SelectItem key={c.id} value={String(c.id)}>
                     {c.contractName} ({c.contractCode})
                   </SelectItem>
                 ))}

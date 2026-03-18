@@ -34,7 +34,7 @@ export interface NumberingTemplate {
  */
 export interface SaveTemplateDto {
   id?: number; // If present, update; otherwise create
-  projectId: number;
+  projectId: number | string;
   correspondenceTypeId: number | null;
   formatTemplate: string;
   description?: string;
@@ -273,13 +273,13 @@ export const numberingApi = {
    * Preview what a document number would look like (without generating)
    */
   previewNumber: async (ctx: {
-    projectId: number;
-    originatorOrganizationId: number;
+    projectId: number | string;
+    originatorOrganizationId: number | string;
     correspondenceTypeId: number;
     disciplineId?: number;
     subTypeId?: number;
     rfaTypeId?: number;
-    recipientOrganizationId?: number;
+    recipientOrganizationId?: number | string;
   }): Promise<{ previewNumber: string; nextSequence: number }> => {
     const res = await apiClient.post<{ data: { previewNumber: string; nextSequence: number } }>(
       '/document-numbering/preview',

@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, AfterLoad } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  AfterLoad,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { Contract } from '../../contract/entities/contract.entity';
 
 @Entity('rfa_types')
 export class RfaType {
@@ -22,6 +30,11 @@ export class RfaType {
 
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
+
+  // Relations
+  @ManyToOne(() => Contract)
+  @JoinColumn({ name: 'contract_id' })
+  contract?: Contract;
 
   // Virtual property for backward compatibility
   typeName!: string;

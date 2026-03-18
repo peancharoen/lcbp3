@@ -49,7 +49,7 @@ export default function RfaTypesPage() {
 
   const contractOptions = contracts.map((c: any) => ({
     label: `${c.contractName} (${c.contractCode})`,
-    value: String(c.id || c.uuid),
+    value: String(c.id),
   }));
 
   return (
@@ -58,7 +58,14 @@ export default function RfaTypesPage() {
         entityName="RFA Type"
         title="RFA Types Management"
         queryKey={['rfa-types', selectedContractId ?? 'all']}
-        fetchFn={() => masterDataService.getRfaTypes(selectedContractId ? selectedContractId : undefined)}
+        fetchFn={async () => {
+          const items = await masterDataService.getRfaTypes(selectedContractId ? selectedContractId : undefined);
+          // ADR-019: Map contractId INT → contract UUID for edit mode select matching
+          return (items as any[]).map((item: any) => ({
+            ...item,
+            contractId: item.contract?.id || item.contract?.uuid || String(item.contractId),
+          }));
+        }}
         createFn={(data: Record<string, unknown>) => masterDataService.createRfaType(data as any)}
         updateFn={(id, data) => masterDataService.updateRfaType(id, data)}
         deleteFn={(id) => masterDataService.deleteRfaType(id)}
@@ -75,7 +82,7 @@ export default function RfaTypesPage() {
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
                 {contracts.map((c: any) => (
-                  <SelectItem key={c.uuid || c.id} value={String(c.id || c.uuid)}>
+                  <SelectItem key={c.id} value={String(c.id)}>
                     {c.contractName} ({c.contractCode})
                   </SelectItem>
                 ))}

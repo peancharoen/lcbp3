@@ -11,10 +11,9 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCorrespondenceDto {
-  @ApiProperty({ description: 'Project ID', example: 1 })
-  @IsInt()
+  @ApiProperty({ description: 'Project ID or UUID', example: 1 })
   @IsNotEmpty()
-  projectId!: number;
+  projectId!: number | string;
 
   @ApiProperty({ description: 'Document Type ID', example: 1 })
   @IsInt()
@@ -110,12 +109,11 @@ export class CreateCorrespondenceDto {
 
   // ✅ เพิ่ม Field สำหรับ Impersonation (เลือกองค์กรผู้ส่ง)
   @ApiPropertyOptional({
-    description: 'Originator Organization ID (for impersonation)',
+    description: 'Originator Organization ID or UUID (for impersonation)',
     example: 1,
   })
-  @IsInt()
   @IsOptional()
-  originatorId?: number;
+  originatorId?: number | string;
 
   @ApiPropertyOptional({
     description: 'Recipients',
@@ -123,5 +121,5 @@ export class CreateCorrespondenceDto {
   })
   @IsArray()
   @IsOptional()
-  recipients?: { organizationId: number; type: 'TO' | 'CC' }[];
+  recipients?: { organizationId: number | string; type: 'TO' | 'CC' }[];
 }

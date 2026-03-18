@@ -4,6 +4,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Drawing } from '@/types/drawing';
 import { Button } from '@/components/ui/button';
 import { ArrowUpDown, MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,7 +67,9 @@ export const columns: ColumnDef<Drawing>[] = [
               Copy Drawing No.
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>View Details</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/drawings/${drawing.uuid}`}>View Details</Link>
+            </DropdownMenuItem>
             {/* Add download/view functionality later */}
           </DropdownMenuContent>
         </DropdownMenu>

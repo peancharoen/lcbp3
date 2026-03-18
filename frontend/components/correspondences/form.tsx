@@ -26,7 +26,7 @@ import { correspondenceService } from "@/lib/services/correspondence.service";
 
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
-  projectId: z.number().min(1, "Please select a Project"),
+  projectId: z.string().min(1, "Please select a Project"),
   documentTypeId: z.number().min(1, "Please select a Document Type"),
   disciplineId: z.number().optional(),
   subject: z.string().min(5, "Subject must be at least 5 characters"),
@@ -34,8 +34,8 @@ const correspondenceSchema = z.object({
   body: z.string().optional(),
   remarks: z.string().optional(),
   dueDate: z.string().optional(), // ISO Date string
-  fromOrganizationId: z.number().min(1, "Please select From Organization"),
-  toOrganizationId: z.number().min(1, "Please select To Organization"),
+  fromOrganizationId: z.string().min(1, "Please select From Organization"),
+  toOrganizationId: z.string().min(1, "Please select To Organization"),
   importance: z.enum(["NORMAL", "HIGH", "URGENT"]),
   attachments: z.array(z.instanceof(File)).optional(),
 });
@@ -56,7 +56,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
   // Extract initial values if editing
   const currentRev = initialData?.revisions?.find((r: any) => r.isCurrent) || initialData?.revisions?.[0];
   const defaultValues: Partial<FormData> = {
-    projectId: initialData?.projectId || undefined,
+    projectId: initialData?.projectId ? String(initialData.projectId) : undefined,
     documentTypeId: initialData?.correspondenceTypeId || undefined,
     disciplineId: initialData?.disciplineId || undefined,
     subject: currentRev?.subject || currentRev?.title || "",
@@ -64,9 +64,11 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
     body: currentRev?.body || "",
     remarks: currentRev?.remarks || "",
     dueDate: currentRev?.dueDate ? new Date(currentRev.dueDate).toISOString().split('T')[0] : undefined,
-    fromOrganizationId: initialData?.originatorId || undefined,
+    fromOrganizationId: initialData?.originatorId ? String(initialData.originatorId) : undefined,
     // Map initial recipient (TO) - Simplified for now
-    toOrganizationId: initialData?.recipients?.find((r: any) => r.recipientType === 'TO')?.recipientOrganizationId || undefined,
+    toOrganizationId: initialData?.recipients?.find((r: any) => r.recipientType === 'TO')?.recipientOrganizationId
+      ? String(initialData.recipients.find((r: any) => r.recipientType === 'TO').recipientOrganizationId)
+      : undefined,
     importance: currentRev?.details?.importance || "NORMAL",
   };
 
@@ -209,8 +211,8 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         <div className="space-y-2">
           <Label>Project *</Label>
           <Select
-            onValueChange={(v) => setValue("projectId", parseInt(v))}
-            value={projectId ? String(projectId) : undefined}
+            onValueChange={(v) => setValue("projectId", v)}
+            value={projectId || undefined}
             disabled={isLoadingProjects}
           >
             <SelectTrigger>
@@ -323,8 +325,8 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         <div className="space-y-2">
           <Label>From Organization *</Label>
           <Select
-            onValueChange={(v) => setValue("fromOrganizationId", parseInt(v))}
-            value={fromOrgId ? String(fromOrgId) : undefined}
+            onValueChange={(v) => setValue("fromOrganizationId", v)}
+            value={fromOrgId || undefined}
             disabled={isLoadingOrgs}
           >
             <SelectTrigger>
@@ -332,7 +334,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
             </SelectTrigger>
             <SelectContent>
               {(organizations || []).map((org: Organization) => (
-                <SelectItem key={org.id} value={String(org.id)}>
+                <SelectItem key={org.uuid} value={org.uuid}>
                   {org.organizationName} ({org.organizationCode})
                 </SelectItem>
               ))}
@@ -346,8 +348,8 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         <div className="space-y-2">
           <Label>To Organization *</Label>
           <Select
-            onValueChange={(v) => setValue("toOrganizationId", parseInt(v))}
-            value={toOrgId ? String(toOrgId) : undefined}
+            onValueChange={(v) => setValue("toOrganizationId", v)}
+            value={toOrgId || undefined}
             disabled={isLoadingOrgs}
           >
             <SelectTrigger>
@@ -355,7 +357,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
             </SelectTrigger>
             <SelectContent>
               {(organizations || []).map((org: Organization) => (
-                <SelectItem key={org.id} value={String(org.id)}>
+                <SelectItem key={org.uuid} value={org.uuid}>
                   {org.organizationName} ({org.organizationCode})
                 </SelectItem>
               ))}
