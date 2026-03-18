@@ -29,6 +29,8 @@ export function DrawingList({ type, projectUuid, filters }: DrawingListProps) {
   const {
     data: response,
     isLoading,
+    isError,
+    error,
   } = useDrawings(type, {
     projectUuid,
     ...filters,
@@ -38,6 +40,21 @@ export function DrawingList({ type, projectUuid, filters }: DrawingListProps) {
 
   const drawings = response?.data || [];
   const meta = response?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 };
+
+  if (isError) {
+    const axiosError = error as Error & { response?: { status?: number; data?: { message?: string | string[] } } };
+    const status = axiosError?.response?.status;
+    const message = axiosError?.response?.data?.message;
+    return (
+      <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+        <p className="font-medium">Failed to load {type.toLowerCase()} drawings</p>
+        <p className="mt-1 text-xs opacity-80">
+          {status && `HTTP ${status}: `}
+          {Array.isArray(message) ? message.join(', ') : message || axiosError.message}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
