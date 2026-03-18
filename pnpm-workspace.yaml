@@ -4,6 +4,8 @@ packages:
 
 ignoredBuiltDependencies:
   - '@compodoc/compodoc'
+  - esbuild
+  - unrs-resolver
 
 onlyBuiltDependencies:
   - '@nestjs/core'
