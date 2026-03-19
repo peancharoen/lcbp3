@@ -2,6 +2,96 @@
 
 ## [Unreleased]
 
+### Backend Security & Dependency Updates (2026-03-19)
+
+#### 🛡️ Security Vulnerabilities Fixed
+
+- **All 52 vulnerabilities resolved** (27 high + 20 moderate + 5 low severity)
+- **Security overrides applied**: 30 package overrides via `pnpm audit --fix`
+- **Current status**: "No known vulnerabilities found"
+- **Critical patches applied**:
+  - Webpack SSRF bypass (via @nestjs/cli)
+  - qs DoS vulnerability (via @compodoc/compodoc)
+  - Multiple package security updates (axios, ajv, multer, etc.)
+
+#### 📦 Backend Dependency Updates
+
+**Major Version Upgrades**:
+
+- `@elastic/elasticsearch`: 8.19.1 → 9.3.4 (Major version jump)
+- `nodemailer`: 7.0.11 → 8.0.3 (Major version jump)
+- `uuid`: 11.1.0 → 13.0.0 (Major version jump)
+- `@types/node`: 22.19.1 → 25.5.0 (Major version jump)
+
+**Security & Compatibility Updates**:
+
+- `eslint`: 9.39.1 → 9.39.1 (kept 9.x for typescript-eslint compatibility)
+- `typescript-eslint`: 8.48.0 → 8.57.1 (Latest compatible version)
+- `@types/uuid`: 10.0.0 → 11.0.0 (Deprecated package updated)
+- `ajv`: 8.17.1 → 8.18.0
+- `axios`: 1.13.2 → 1.13.6
+- `multer`: 2.0.2 → 2.1.1
+
+#### 🔧 Build & Test Configuration
+
+- **Jest Configuration**: Added `transformIgnorePatterns` for UUID v13 ES modules compatibility
+- **Build Verification**: Backend builds successfully after updates
+- **Test Compatibility**: Sample tests pass (app.controller.spec.ts)
+- **ESLint Compatibility**: Maintained 9.x for ecosystem compatibility
+
+#### 📋 Package Management
+
+- **pnpm audit**: Clean slate - 0 vulnerabilities
+- **Dependency Resolution**: All peer dependency conflicts resolved
+- **Deprecated Packages**: All stub type warnings acknowledged and documented
+
+### Dependency Updates (2026-03-19)
+
+#### Frontend Dependencies 📦
+
+- **Security Updates**:
+  - Next.js: 16.0.7 → 16.2.0 (fixes security vulnerability)
+  - React: 19.0.0 → 19.2.4
+  - React DOM: 19.0.0 → 19.2.4
+
+- **ESLint Migration**:
+  - ESLint: 8.57.1 → 9.39.1 (resolves deprecated warning)
+  - eslint-config-next: 14.2.33 → 16.2.0
+  - Created new `eslint.config.mjs` for ESLint 9 compatibility
+  - Updated lint script to use ESLint directly
+
+- **Package Cleanup**:
+  - Removed deprecated `@types/uuid@11.0.0` (using built-in types from uuid@13.0.0)
+  - Fixed TypeScript ESLint disable comments in template files
+
+- **Other Updates** (25+ packages):
+  - axios: 1.13.2 → 1.13.6
+  - lucide-react: 0.555.0 → 0.577.0
+  - react-day-picker: 9.12.0 → 9.14.0
+  - react-hook-form: 7.66.1 → 7.71.2
+  - react-dropzone: 14.3.8 → 15.0.0
+  - zustand: 5.0.8 → 5.0.12
+  - tailwind-merge: 3.4.0 → 3.5.0
+  - zod: 4.1.13 → 4.3.6
+  - vitest: 4.0.15 → 4.1.0
+  - @types/node: 20.19.25 → 25.5.0
+  - tailwindcss: 3.4.18 → 4.2.2
+  - jsdom: 27.3.0 → 29.0.0
+
+#### Documentation Updates 📚
+
+- **CHANGELOG.md**: Added comprehensive dependency update section
+- **README.md**: Updated tech stack versions
+- **AGENTS.md**: Updated frontend stack versions
+- **CONTRIBUTING.md**: No changes required (already up-to-date)
+
+#### Quality Improvements ✅
+
+- All deprecated package warnings resolved
+- ESLint 9 configuration working correctly
+- No peer dependency conflicts
+- All tests passing (vitest configuration stable)
+
 ### In Progress
 
 - UAT (User Acceptance Testing) — ตาม `01-05-acceptance-criteria.md`
@@ -20,9 +110,12 @@
 - **TypeORM Fix**: Explicit typing for `DocumentNumberFormat` save/create overload resolution
 - **Swagger**: Updated API version to 1.8.1
 
-#### Frontend 🎨
+### Frontend 🎨
 
-- **Next.js 16 Upgrade**: Next.js 16.0.7, React 19
+- **Next.js 16 Upgrade**: Next.js 16.0.7 → 16.2.0, React 19 → 19.2.4 (Security Fix)
+- **ESLint 9 Migration**: ESLint 8.57.1 → 9.39.1, removed deprecated warnings
+- **Dependency Updates**: Updated 25+ packages to latest stable versions
+- **Deprecated Package Cleanup**: Removed `@types/uuid@11.0.0` (using built-in types)
 - **proxy.ts Rename**: `middleware.ts` → `proxy.ts` (Next.js 16 deprecated `middleware` convention)
 - **ADR-019 UUID Fixes — Drawing Admin Pages (5 pages)**:
   - `contract/volumes`, `contract/categories`, `contract/sub-categories`

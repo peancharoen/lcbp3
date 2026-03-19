@@ -12,17 +12,17 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 
 **LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)** — Version 1.8.1 (Patch)
 
-### 📊 Project Status: UAT Ready (2026-03-16)
+### 📊 Project Status: UAT Ready, Security Hardened (2026-03-19)
 
-| Area          | Status                   | Notes                                |
-| ------------- | ------------------------ | ------------------------------------ |
-| Backend       | ✅ Production Ready      | NestJS 11, Express v5, 18 Modules    |
-| Frontend      | ✅ 100% Complete         | Next.js 16, React 19, proxy.ts       |
-| Database      | ✅ Schema v1.8.0 Stable  | MariaDB 11.8, No-migration (ADR-009) |
-| Documentation | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy      |
-| AI Migration  | 🔄 Pre-migration Setup   | n8n + Ollama (ADR-017/018)           |
-| Testing       | 🔄 UAT In Progress       | Per `01-05-acceptance-criteria.md`   |
-| Deployment    | 📋 Pending Go-Live       | Blue-Green, QNAP Container Station   |
+| Area          | Status                   | Notes                                    |
+| ------------- | ------------------------ | ---------------------------------------- |
+| Backend       | ✅ Production Ready      | NestJS 11, Express v5, 0 Vulnerabilities |
+| Frontend      | ✅ 100% Complete         | Next.js 16.2.0, React 19.2.4, ESLint 9   |
+| Database      | ✅ Schema v1.8.0 Stable  | MariaDB 11.8, No-migration (ADR-009)     |
+| Documentation | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy          |
+| AI Migration  | 🔄 Pre-migration Setup   | n8n + Ollama (ADR-017/018)               |
+| Testing       | 🔄 UAT In Progress       | Per `01-05-acceptance-criteria.md`       |
+| Deployment    | 📋 Pending Go-Live       | Blue-Green, QNAP Container Station       |
 
 - **Goal:** Manage construction documents (Correspondence, RFA, Circulation, Transmittal, Contract Drawings, Shop Drawings)
   with complex multi-level approval workflows.
@@ -35,12 +35,14 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 ## 💻 Tech Stack & Constraints
 
 - **Backend:** NestJS 11 (Express v5, Modular Architecture), TypeORM, MariaDB 11.8, Redis 7.2 (BullMQ),
-  Elasticsearch 8.11, JWT + Passport, CASL (4-Level RBAC), ClamAV (Virus Scanning), Helmet.js
-- **Frontend:** Next.js 16 (App Router, proxy.ts), Tailwind CSS, Shadcn/UI,
-  TanStack Query (**Server State**), Zustand (**Client State**), React Hook Form + Zod (**Form State**), Axios
+  Elasticsearch 9.3.4, JWT + Passport, CASL (4-Level RBAC), ClamAV (Virus Scanning), Helmet.js
+- **Frontend:** Next.js 16.2.0 (App Router, proxy.ts), Tailwind CSS 4.2.2, Shadcn/UI,
+  TanStack Query (**Server State**), Zustand (**Client State**), React Hook Form 7.71.2 + Zod 4.3.6 (**Form State**), Axios
+- **Testing:** Vitest 4.1.0, ESLint 9.39.1
 - **Notifications:** BullMQ Queue → Email / LINE Notify / In-App
 - **AI/Migration:** Ollama (llama3.2:3b / mistral:7b) on Admin Desktop (RTX 2060 SUPER) + n8n on QNAP
 - **Language:** TypeScript (Strict Mode). **NO `any` types allowed.**
+- **Security**: 0 vulnerabilities (as of 2026-03-19)
 
 ## 🛡️ Security & Integrity Rules
 

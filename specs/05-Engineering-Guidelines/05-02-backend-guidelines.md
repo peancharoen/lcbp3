@@ -1,8 +1,8 @@
 # Backend Development Guidelines
 
 **สำหรับ:** NAP-DMS LCBP3 Backend (NestJS + TypeScript)
-**เวอร์ชัน:** 1.5.0
-**อัปเดต:** 2025-12-01
+**เวอร์ชัน:** 1.8.1
+**อัปเดต:** 2026-03-19
 
 ---
 
@@ -17,6 +17,7 @@
 3. **Security First:** ทุก Endpoint ต้องผ่าน Authentication, Authorization, และ Input Validation
 4. **Idempotency:** Request สำคัญต้องทำซ้ำได้โดยไม่เกิดผลกระทบซ้ำซ้อน
 5. **Resilience:** รองรับ Network Failure และ External Service Downtime
+6. **Zero Vulnerabilities:** รักษาความปลอดภัยของ dependencies เป็นประจำ (0 vulnerabilities ณ 2026-03-19)
 
 ---
 

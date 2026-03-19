@@ -1,8 +1,8 @@
 # Frontend Development Guidelines
 
-**สำหรับ:** NAP-DMS LCBP3 Frontend (Next.js 16 + TypeScript)
+**สำหรับ:** NAP-DMS LCBP3 Frontend (Next.js 16.2.0 + TypeScript)
 **เวอร์ชัน:** 1.8.1
-**อัปเดต:** 2026-03-16
+**อัปเดต:** 2026-03-19
 
 ---
 

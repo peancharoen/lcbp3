@@ -98,7 +98,7 @@
 | Layer        | Primary Technology | Secondary/Supporting |
 | ------------ | ------------------ | -------------------- |
 | **Backend**  | NestJS 11 (Express v5) | TypeORM, BullMQ      |
-| **Frontend** | Next.js 16 (React 19)  | Shadcn/UI, Tailwind  |
+| **Frontend** | Next.js 16.2.0 (React 19.2.4)  | Shadcn/UI, Tailwind 4.2.2  |
 | **Database** | MariaDB 11.8       | Redis 7 (Cache/Lock) |
 | **Search**   | Elasticsearch      | -                    |
 | **Testing**  | Jest, Vitest       | Playwright           |

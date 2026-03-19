@@ -39,10 +39,8 @@ export interface TemplateEditorProps {
     template?: NumberingTemplate;
     projectId: number | string;
     projectName: string;
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    correspondenceTypes: any[];
-    disciplines: any[];
-    /* eslint-enable @typescript-eslint/no-explicit-any */
+    correspondenceTypes: unknown[];
+    disciplines: unknown[];
     onSave: (data: Partial<NumberingTemplate>) => void;
     onCancel: () => void;
 }
@@ -52,7 +50,6 @@ export function TemplateEditor({
   projectId,
   projectName,
   correspondenceTypes,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   disciplines,
   onSave,
   onCancel
@@ -126,12 +123,14 @@ export function TemplateEditor({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__default__">Default (All Types)</SelectItem>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {correspondenceTypes.map((type: any) => (
-                      <SelectItem key={type.id} value={type.id.toString()}>
-                        {type.typeCode} - {type.typeName}
-                      </SelectItem>
-                    ))}
+                    {correspondenceTypes.map((type: unknown) => {
+                      const typedType = type as { id: number; typeCode: string; typeName: string };
+                      return (
+                        <SelectItem key={typedType.id} value={typedType.id.toString()}>
+                          {typedType.typeCode} - {typedType.typeName}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">

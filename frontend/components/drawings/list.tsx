@@ -25,7 +25,6 @@ export function DrawingList({ type, projectUuid, filters }: DrawingListProps) {
   });
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const {
     data: response,
     isLoading,

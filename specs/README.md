@@ -1,7 +1,7 @@
 # 📚 LCBP3-DMS Specifications Directory
 
 **Version:** 1.8.1 (Patch)
-**Last Updated:** 2026-03-16
+**Last Updated:** 2026-03-19
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
 **Status:** ✅ UAT Ready — 10/10 Documentation Gaps Closed
 
@@ -154,12 +154,12 @@ specs/
 |-----|-------|-------------|
 | ADR-001 | Workflow Engine | Unified state machine for document workflows |
 | ADR-002 | Doc Numbering | Redis Redlock + DB optimistic locking |
-| ADR-005 | Technology Stack | NestJS 11 + Next.js 16 + MariaDB + Redis |
+| ADR-005 | Technology Stack | NestJS 11 + Next.js 16.2.0 + MariaDB + Redis |
 | ADR-006 | Redis Caching | Cache strategy and invalidation patterns |
 | ADR-008 | Email Notification | BullMQ queue-based email/LINE/in-app |
 | ADR-009 | DB Strategy | No TypeORM migrations — modify schema SQL directly |
 | ADR-010 | Logging/Monitoring | Prometheus + Loki + Grafana stack |
-| ADR-011 | App Router | Next.js App Router with RSC patterns |
+| ADR-011 | App Router | Next.js 16.2.0 App Router with RSC patterns |
 | ADR-012 | UI Components | Shadcn/UI component library |
 | ADR-013 | Form Handling | React Hook Form + Zod validation |
 | ADR-014 | State Management | TanStack Query (server) + Zustand (client) |

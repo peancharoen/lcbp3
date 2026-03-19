@@ -180,8 +180,8 @@ POST /api/correspondences
 
 ---
 
-**Last Updated**: 2026-02-24
-**Version**: 1.8.0
+**Last Updated**: 2026-03-19
+**Version**: 1.8.1
 **Status**: Draft | Review | Approved
 ```
 
@@ -200,6 +200,7 @@ Description:
 - เพิ่มข้อกำหนดการ CC หลายองค์กร
 - อัพเดท Workflow diagram
 - เพิ่ม validation rules
+Labels: spec, requirements, security
 ```
 
 #### 2. สร้าง Branch
@@ -535,15 +536,17 @@ graph LR
 
 **Document History**:
 
-| Version | Date       | Author     | Changes         |
-| ------- | ---------- | ---------- | --------------- |
-| 1.0.0   | 2025-01-15 | John Doe   | Initial version |
-| 1.1.0   | 2025-02-20 | Jane Smith | Add CC support  |
-| 1.2.0   | 2025-03-10 | John Doe   | Update workflow |
+| Version | Date       | Author     | Changes                                |
+| ------- | ---------- | ---------- | -------------------------------------- |
+| 1.0.0   | 2025-01-15 | John Doe   | Initial version                        |
+| 1.1.0   | 2025-02-20 | Jane Smith | Add CC support                         |
+| 1.2.0   | 2025-03-10 | John Doe   | Update workflow                        |
+| 1.8.1   | 2026-03-19 | Tech Lead  | Security hardening, dependency updates |
 
-**Current Version**: 1.8.0
+**Current Version**: 1.8.1
 **Status**: Approved
-**Last Updated**: 2026-02-24
+**Last Updated**: 2026-03-19
+**Security**: 0 vulnerabilities (backend)
 ```
 
 ### 5. UUID Conventions (ADR-019)
