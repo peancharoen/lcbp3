@@ -36,11 +36,7 @@ jobs:
 
             # 2. Build Backend
             echo "🏗️ Building Backend..."
-            # Enable BuildKit for better caching and parallel builds
-            DOCKER_BUILDKIT=1 docker build \
-              --cache-from type=local,src=/tmp/.buildx-cache \
-              --cache-to type=local,dest=/tmp/.buildx-cache \
-              -f backend/Dockerfile -t lcbp3-backend:latest .
+            docker build -f backend/Dockerfile -t lcbp3-backend:latest .
 
             # 3. Build Frontend
             echo "🏗️ Building Frontend..."

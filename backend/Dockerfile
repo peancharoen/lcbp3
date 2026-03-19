@@ -49,10 +49,14 @@ RUN cd backend && \
     pnpm run build
 
 # Deploy with production deps only (pnpm workspace isolation)
-RUN pnpm --filter backend deploy --prod --shamefully-hoist --legacy /app/backend-prod \
-    && find /app/backend-prod/node_modules -name "*.md" -delete \
+RUN pnpm --filter backend deploy --prod --shamefully-hoist --legacy /app/backend-prod
+
+# Clean up unnecessary files to reduce size
+RUN find /app/backend-prod/node_modules -name "*.md" -delete \
     && find /app/backend-prod/node_modules -name "*.txt" -delete \
-    && find /app/backend-prod/node_modules -name "LICENSE*" -delete
+    && find /app/backend-prod/node_modules -name "LICENSE*" -delete \
+    && find /app/backend-prod/node_modules -name "README*" -delete \
+    && find /app/backend-prod/node_modules -name "CHANGELOG*" -delete
 
 # =========================
 # Stage 3: Production Runtime
