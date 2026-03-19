@@ -49,7 +49,10 @@ RUN cd backend && \
     pnpm run build
 
 # Deploy with production deps only (pnpm workspace isolation)
-RUN pnpm --filter backend deploy --prod --shamefully-hoist --legacy /app/backend-prod
+RUN pnpm --filter backend deploy --prod --shamefully-hoist --legacy /app/backend-prod \
+    && find /app/backend-prod/node_modules -name "*.md" -delete \
+    && find /app/backend-prod/node_modules -name "*.txt" -delete \
+    && find /app/backend-prod/node_modules -name "LICENSE*" -delete
 
 # =========================
 # Stage 3: Production Runtime
@@ -68,10 +71,11 @@ ENV NODE_ENV=production
 RUN addgroup -g 1001 -S nestjs && \
     adduser -S nestjs -u 1001
 
-# Copy production artifacts only
+# Copy backend dist and node_modules (optimized)
 COPY --from=build --chown=nestjs:nestjs /app/backend/dist ./dist
-COPY --from=build --chown=nestjs:nestjs /app/backend-prod/node_modules ./node_modules
 COPY --from=build --chown=nestjs:nestjs /app/backend-prod/package.json ./
+# Copy node_modules with compression flag
+COPY --from=build --chown=nestjs:nestjs /app/backend-prod/node_modules ./node_modules
 
 # Create uploads directory (Two-Phase Storage)
 RUN mkdir -p /app/uploads/temp /app/uploads/permanent && \

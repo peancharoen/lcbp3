@@ -17,8 +17,8 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
-          timeout: 600s # 10 minutes total timeout
-          command_timeout: 300s # 5 minutes per command timeout
+          timeout: 900s # 15 minutes total timeout
+          command_timeout: 600s # 10 minutes per command timeout
           script_stop_signal: true # Stop script on error
           script: |
             set -e
@@ -36,7 +36,11 @@ jobs:
 
             # 2. Build Backend
             echo "🏗️ Building Backend..."
-            docker build -f backend/Dockerfile -t lcbp3-backend:latest .
+            # Enable BuildKit for better caching and parallel builds
+            DOCKER_BUILDKIT=1 docker build \
+              --cache-from type=local,src=/tmp/.buildx-cache \
+              --cache-to type=local,dest=/tmp/.buildx-cache \
+              -f backend/Dockerfile -t lcbp3-backend:latest .
 
             # 3. Build Frontend
             echo "🏗️ Building Frontend..."
