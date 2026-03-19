@@ -35,9 +35,10 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 ## 💻 Tech Stack & Constraints
 
 - **Backend:** NestJS 11 (Express v5, Modular Architecture), TypeORM, MariaDB 11.8, Redis 7.2 (BullMQ),
-  Elasticsearch 9.3.4, JWT + Passport, CASL (4-Level RBAC), ClamAV (Virus Scanning), Helmet.js
-- **Frontend:** Next.js 16.2.0 (App Router, proxy.ts), Tailwind CSS 4.2.2, Shadcn/UI,
-  TanStack Query (**Server State**), Zustand (**Client State**), React Hook Form 7.71.2 + Zod 4.3.6 (**Form State**), Axios
+  Elasticsearch 9.3.4, JWT + Passport, CASL (4-Level RBAC), ClamAV (Virus Scanning), Helmet.js,
+  cache-manager-redis-store@3.0.1 (Redis caching)
+- **Frontend:** Next.js 16.2.0 (App Router, proxy.ts), Tailwind CSS 3.4.3, Shadcn/UI,
+  TanStack Query (**Server State**), Zustand (**Client State**), React Hook Form 7.71.2 + Zod 4.3.6 + @hookform/resolvers 3.9.0 (**Form State**), Axios
 - **Testing:** Vitest 4.1.0, ESLint 9.39.1
 - **Notifications:** BullMQ Queue → Email / LINE Notify / In-App
 - **AI/Migration:** Ollama (llama3.2:3b / mistral:7b) on Admin Desktop (RTX 2060 SUPER) + n8n on QNAP

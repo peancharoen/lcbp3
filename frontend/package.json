@@ -15,7 +15,7 @@
     "test:debug": "vitest --inspect-brk --no-file-parallelism"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.2.2",
+    "@hookform/resolvers": "3.9.0",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
@@ -53,7 +53,7 @@
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^13.0.0",
-    "zod": "^4.3.6",
+    "zod": "4.3.6",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -78,7 +78,7 @@
     "globals": "^17.4.0",
     "jsdom": "^29.0.0",
     "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.2",
+    "tailwindcss": "3.4.3",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
   }

@@ -53,7 +53,7 @@
     "bcrypt": "^6.0.0",
     "bullmq": "^5.63.2",
     "cache-manager": "^7.2.5",
-    "cache-manager-redis-yet": "^5.1.5",
+    "cache-manager-redis-store": "3.0.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "express": "^5.1.0",
@@ -88,17 +88,15 @@
     "@nestjs/testing": "^11.0.1",
     "@types/async-retry": "^1.4.9",
     "@types/bcrypt": "^6.0.0",
-    "@types/cache-manager": "^5.0.0",
     "@types/express": "^5.0.0",
     "@types/fs-extra": "^11.0.4",
-    "@types/ioredis": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.5.0",
     "@types/opossum": "^8.1.9",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.2",
-    "@types/uuid": "^11.0.0",
+    "baseline-browser-mapping": "^2.10.8",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -112,8 +110,7 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.57.1",
-    "baseline-browser-mapping": "^2.10.8"
+    "typescript-eslint": "^8.57.1"
   },
   "jest": {
     "moduleFileExtensions": [

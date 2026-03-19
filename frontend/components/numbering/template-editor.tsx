@@ -71,7 +71,7 @@ export function TemplateEditor({
 
         // Dynamic context based on selection (optional visual enhancement)
         if (v.key === '{TYPE}' && typeId) {
-             const t = correspondenceTypes.find(ct => ct.id.toString() === typeId);
+             const t = (correspondenceTypes as any[]).find((ct: any) => ct.id?.toString() === typeId);
              if (t) replacement = t.typeCode;
         }
 
