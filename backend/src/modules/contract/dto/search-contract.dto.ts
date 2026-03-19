@@ -8,11 +8,11 @@ export class SearchContractDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by Project ID' })
+  @ApiPropertyOptional({
+    description: 'Filter by Project ID or UUID (ADR-019)',
+  })
   @IsOptional()
-  @IsInt()
-  @Type(() => Number)
-  projectId?: number;
+  projectId?: number | string;
 
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()

@@ -71,18 +71,22 @@ import { UserModule } from '../user/user.module';
     makeCounterProvider({
       name: 'numbering_sequences_total',
       help: 'Total number of sequences generated',
+      labelNames: ['project_id', 'type_id'],
     }),
     makeGaugeProvider({
       name: 'numbering_sequence_utilization',
       help: 'Current utilization of sequence space',
+      labelNames: ['project_id'],
     }),
     makeHistogramProvider({
       name: 'numbering_lock_wait_seconds',
       help: 'Time spent waiting for locks',
+      labelNames: ['project_id'],
     }),
     makeCounterProvider({
       name: 'numbering_lock_failures_total',
       help: 'Total number of lock acquisition failures',
+      labelNames: ['project_id'],
     }),
   ],
   exports: [

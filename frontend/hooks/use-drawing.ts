@@ -2,9 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contractDrawingService } from '@/lib/services/contract-drawing.service';
 import { shopDrawingService } from '@/lib/services/shop-drawing.service';
 import { asBuiltDrawingService } from '@/lib/services/asbuilt-drawing.service';
-import { SearchContractDrawingDto, CreateContractDrawingDto } from '@/types/dto/drawing/contract-drawing.dto';
-import { SearchShopDrawingDto, CreateShopDrawingDto } from '@/types/dto/drawing/shop-drawing.dto';
-import { SearchAsBuiltDrawingDto, CreateAsBuiltDrawingDto } from '@/types/dto/drawing/asbuilt-drawing.dto';
+import { SearchContractDrawingDto, CreateContractDrawingDto, UpdateContractDrawingDto } from '@/types/dto/drawing/contract-drawing.dto';
+import { SearchShopDrawingDto, CreateShopDrawingDto, CreateShopDrawingRevisionDto } from '@/types/dto/drawing/shop-drawing.dto';
+import { SearchAsBuiltDrawingDto, CreateAsBuiltDrawingDto, CreateAsBuiltDrawingRevisionDto } from '@/types/dto/drawing/asbuilt-drawing.dto';
 import { toast } from 'sonner';
 import { ContractDrawing, ShopDrawing, AsBuiltDrawing } from '@/types/drawing';
 
@@ -114,6 +114,46 @@ export function useCreateDrawing(type: DrawingType) {
     },
     onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error('Failed to upload drawing', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
+export function useUpdateContractDrawing() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ uuid, data }: { uuid: string; data: UpdateContractDrawingDto }) => {
+      return contractDrawingService.update(uuid, data);
+    },
+    onSuccess: () => {
+      toast.success('Drawing updated successfully');
+      queryClient.invalidateQueries({ queryKey: drawingKeys.all });
+    },
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+      toast.error('Failed to update drawing', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
+export function useUploadRevision(type: DrawingType) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ uuid, data }: { uuid: string; data: CreateShopDrawingRevisionDto | CreateAsBuiltDrawingRevisionDto }) => {
+      if (type === 'SHOP') {
+        return shopDrawingService.createRevision(uuid, data as CreateShopDrawingRevisionDto);
+      } else {
+        return asBuiltDrawingService.createRevision(uuid, data as CreateAsBuiltDrawingRevisionDto);
+      }
+    },
+    onSuccess: () => {
+      toast.success('Revision uploaded successfully');
+      queryClient.invalidateQueries({ queryKey: drawingKeys.all });
+    },
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+      toast.error('Failed to upload revision', {
         description: error.response?.data?.message || 'Something went wrong',
       });
     },

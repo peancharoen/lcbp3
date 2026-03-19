@@ -243,9 +243,9 @@ export function RFAForm() {
                   <SelectValue placeholder={isLoadingDisciplines ? "Loading..." : "Select Discipline"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {disciplines?.map((d: any) => (
+                  {disciplines?.map((d: { id: number; disciplineCode: string; codeNameEn?: string; codeNameTh?: string }) => (
                     <SelectItem key={d.id} value={String(d.id)}>
-                      {d.name} ({d.code})
+                      {d.codeNameEn || d.codeNameTh || d.disciplineCode} ({d.disciplineCode})
                     </SelectItem>
                   ))}
                   {!isLoadingDisciplines && !disciplines?.length && (
