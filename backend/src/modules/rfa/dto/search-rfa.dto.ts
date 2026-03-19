@@ -1,12 +1,15 @@
-import { IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsInt, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchRfaDto {
-  @IsUUID('all')
-  projectUuid!: string; // ADR-019: Public UUID of the project
+  @IsOptional()
+  @IsString()
+  projectId?: number | string; // ADR-019: Accept INT or UUID string
 
-  /** @internal Resolved INT ID — set by controller, do NOT expose in API */
-  projectId?: number;
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  statusId?: number;
 
   @IsOptional()
   @IsInt()

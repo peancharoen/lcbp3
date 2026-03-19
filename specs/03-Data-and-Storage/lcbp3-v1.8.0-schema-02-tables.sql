@@ -1013,7 +1013,9 @@ CREATE TABLE document_number_audit (
     'CONFIRM',
     'MANUAL_OVERRIDE',
     'VOID_REPLACE',
-    'CANCEL'
+    'CANCEL',
+    'VOID',
+    'GENERATE'
   ) NOT NULL DEFAULT 'CONFIRM' COMMENT 'ประเภทการดำเนินการ',
   STATUS ENUM(
     'RESERVED',
@@ -1074,8 +1076,16 @@ CREATE TABLE document_number_errors (
     -- Database connection/query error
     'REDIS_ERROR',
     -- Redis connection error
-    'VALIDATION_ERROR' -- Template/input validation error
-  ) NOT NULL COMMENT 'ประเภท error (5 types)',
+    'VALIDATION_ERROR',
+    -- Template/input validation error
+    'SEQUENCE_EXHAUSTED',
+    -- Counter reached maximum value
+    'RESERVATION_EXPIRED',
+    -- Reservation token expired
+    'DUPLICATE_NUMBER',
+    -- Duplicate document number detected
+    'GENERATE_ERROR' -- General generation error
+  ) NOT NULL COMMENT 'ประเภท error (9 types)',
   -- Error Details
   error_message TEXT COMMENT 'ข้อความ error (stack top)',
   stack_trace TEXT COMMENT 'Stack trace แบบเต็ม (สำหรับ debugging)',

@@ -54,7 +54,10 @@ export class RfaController {
 
   @Post(':uuid/submit')
   @ApiOperation({ summary: 'Submit RFA to Workflow' })
-  @ApiParam({ name: 'uuid', description: 'RFA UUID (from correspondences.uuid)' })
+  @ApiParam({
+    name: 'uuid',
+    description: 'RFA UUID (from correspondences.uuid)',
+  })
   @ApiBody({ type: SubmitRfaDto })
   @ApiResponse({ status: 200, description: 'RFA submitted successfully' })
   @RequirePermission('rfa.create')
@@ -71,7 +74,10 @@ export class RfaController {
 
   @Post(':uuid/action')
   @ApiOperation({ summary: 'Process Workflow Action (Approve/Reject)' })
-  @ApiParam({ name: 'uuid', description: 'RFA UUID (from correspondences.uuid)' })
+  @ApiParam({
+    name: 'uuid',
+    description: 'RFA UUID (from correspondences.uuid)',
+  })
   @ApiBody({ type: WorkflowActionDto })
   @ApiResponse({
     status: 200,
@@ -94,15 +100,24 @@ export class RfaController {
   @ApiResponse({ status: 200, description: 'List of RFAs' })
   @RequirePermission('document.view')
   async findAll(@Query() query: SearchRfaDto) {
-    // ADR-019: resolve projectUuid → internal INT projectId
-    const project = await this.projectService.findOneByUuid(query.projectUuid);
-    query.projectId = project.id;
+    // ADR-019: resolve projectId UUID→INT if provided
+    if (query.projectId) {
+      const pid = query.projectId;
+      const num = Number(pid);
+      if (typeof pid === 'string' && isNaN(num)) {
+        const project = await this.projectService.findOneByUuid(pid);
+        query.projectId = project.id;
+      }
+    }
     return this.rfaService.findAll(query);
   }
 
   @Get(':uuid')
   @ApiOperation({ summary: 'Get RFA details with revisions and items' })
-  @ApiParam({ name: 'uuid', description: 'RFA UUID (from correspondences.uuid)' })
+  @ApiParam({
+    name: 'uuid',
+    description: 'RFA UUID (from correspondences.uuid)',
+  })
   @ApiResponse({ status: 200, description: 'RFA details' })
   @RequirePermission('document.view')
   findOne(@Param('uuid', ParseUuidPipe) uuid: string) {

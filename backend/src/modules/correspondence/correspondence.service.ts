@@ -277,7 +277,7 @@ export class CorrespondenceService {
           'correspondence',
           savedCorr.id.toString(),
           {
-            projectId: createDto.projectId,
+            projectId: resolvedProjectId,
             originatorId: userOrgId,
             disciplineId: createDto.disciplineId,
             initiatorId: user.user_id,
@@ -297,7 +297,7 @@ export class CorrespondenceService {
         title: createDto.subject,
         description: createDto.description,
         status: 'DRAFT',
-        projectId: createDto.projectId,
+        projectId: resolvedProjectId,
         createdAt: new Date(),
       });
 

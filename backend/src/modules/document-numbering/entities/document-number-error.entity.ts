@@ -26,6 +26,7 @@ export class DocumentNumberError {
       'SEQUENCE_EXHAUSTED',
       'RESERVATION_EXPIRED',
       'DUPLICATE_NUMBER',
+      'GENERATE_ERROR',
     ],
   })
   errorType!: string;

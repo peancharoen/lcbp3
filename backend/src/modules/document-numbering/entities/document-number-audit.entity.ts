@@ -39,6 +39,7 @@ export class DocumentNumberAudit {
       'CANCEL',
       'MANUAL_OVERRIDE',
       'VOID',
+      'VOID_REPLACE',
       'GENERATE',
     ],
     default: 'CONFIRM',

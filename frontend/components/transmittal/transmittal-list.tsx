@@ -18,20 +18,25 @@ export function TransmittalList({ data }: TransmittalListProps) {
 
   const columns: ColumnDef<Transmittal>[] = [
     {
-      accessorKey: "transmittalNo",
+      id: "transmittalNo",
       header: "Transmittal No.",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.getValue("transmittalNo")}</span>
-      ),
+      cell: ({ row }) => {
+        const no = row.original.correspondence?.correspondenceNumber || row.original.transmittalNo || '-';
+        return <span className="font-medium">{no}</span>;
+      },
     },
     {
-      accessorKey: "subject",
+      id: "subject",
       header: "Subject",
-      cell: ({ row }) => (
-        <div className="max-w-[300px] truncate" title={row.getValue("subject")}>
-          {row.getValue("subject")}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const currentRev = row.original.correspondence?.revisions?.find(r => r.isCurrent);
+        const subject = currentRev?.title || row.original.subject || '-';
+        return (
+          <div className="max-w-[300px] truncate" title={subject}>
+            {subject}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "purpose",
@@ -49,10 +54,13 @@ export function TransmittalList({ data }: TransmittalListProps) {
       },
     },
     {
-      accessorKey: "createdAt",
+      id: "createdAt",
       header: "Date",
-      cell: ({ row }) =>
-        format(new Date(row.getValue("createdAt")), "dd MMM yyyy"),
+      cell: ({ row }) => {
+        const dateStr = row.original.correspondence?.createdAt || row.original.createdAt;
+        if (!dateStr) return '-';
+        return format(new Date(dateStr), "dd MMM yyyy");
+      },
     },
     {
       id: "actions",

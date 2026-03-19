@@ -40,9 +40,11 @@ export interface Transmittal {
   items?: TransmittalItem[];
   correspondence?: {
     uuid: string;
-    id?: number; // Excluded from API responses (ADR-019)
-    correspondence_number: string;
-    project_id: number;
+    id?: number;
+    correspondenceNumber: string;
+    projectId: number;
+    createdAt?: string;
+    revisions?: { title?: string; isCurrent?: boolean }[];
   };
 }
 

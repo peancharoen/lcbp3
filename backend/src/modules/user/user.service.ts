@@ -91,6 +91,7 @@ export class UserService {
       .leftJoinAndSelect('assignments.role', 'role')
       .select([
         'user.user_id',
+        'user.uuid',
         'user.username',
         'user.email',
         'user.firstName',

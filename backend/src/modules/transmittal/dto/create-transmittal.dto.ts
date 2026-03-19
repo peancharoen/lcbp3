@@ -38,10 +38,9 @@ export class TransmittalItemDto {
 }
 
 export class CreateTransmittalDto {
-  @ApiProperty({ description: 'ID ของโครงการ', example: 1 })
-  @IsInt()
+  @ApiProperty({ description: 'ID หรือ UUID ของโครงการ (ADR-019)' })
   @IsNotEmpty()
-  projectId!: number;
+  projectId!: number | string;
 
   @ApiProperty({
     description: 'เรื่อง',
@@ -51,10 +50,16 @@ export class CreateTransmittalDto {
   @IsNotEmpty()
   subject!: string;
 
-  @ApiProperty({ description: 'ผู้รับ (Organization ID)', example: 2 })
-  @IsInt()
+  @ApiProperty({ description: 'ผู้รับ Organization ID หรือ UUID (ADR-019)' })
   @IsNotEmpty()
-  recipientOrganizationId!: number;
+  recipientOrganizationId!: number | string;
+
+  @ApiProperty({
+    description: 'Correspondence ID หรือ UUID (ADR-019)',
+    required: false,
+  })
+  @IsOptional()
+  correspondenceId?: number | string;
 
   @ApiProperty({
     description: 'วัตถุประสงค์',
@@ -64,6 +69,11 @@ export class CreateTransmittalDto {
   @IsEnum(TransmittalPurpose)
   @IsOptional()
   purpose?: TransmittalPurpose;
+
+  @ApiProperty({ description: 'หมายเหตุ', required: false })
+  @IsString()
+  @IsOptional()
+  remarks?: string;
 
   @ApiProperty({ description: 'รายการที่แนบ', type: [TransmittalItemDto] })
   @IsArray()

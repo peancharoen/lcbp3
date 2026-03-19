@@ -23,17 +23,11 @@ function SearchContent() {
     statuses: statusParam ? [statusParam] : [],
   });
 
-  // Construct search DTO
+  // Construct search DTO — only send fields recognized by backend SearchQueryDto
+  // Backend uses forbidNonWhitelisted: true, so unknown fields (types[], statuses[]) cause 400
   const searchDto = {
     q: query,
-    // Map internal types to backend expectation if needed, assumes direct mapping for now
-    type: filters.types?.length === 1 ? filters.types[0] : undefined, // Backend might support single type or multiple?
-    // DTO says 'type?: string', 'status?: string'. If multiple, our backend might need adjustment or we only support single filter for now?
-    // Spec says "Advanced filters work (type, status)". Let's assume generic loose mapping for now or comma separated.
-    // Let's assume the hook and backend handle it. If backend expects single value, we pick first or join.
-    // Backend controller uses `SearchQueryDto`. Let's check DTO if I can view it.
-    // Actually, I'll pass them and let the service handle serialization if needed.
-    ...filters
+    type: filters.types?.length ? filters.types[0] : undefined,
   };
 
   const { data: results, isLoading, isError } = useSearch(searchDto);
@@ -50,7 +44,7 @@ function SearchContent() {
         <p className="text-muted-foreground mt-1">
           {isLoading
             ? "Searching..."
-            : `Found ${results?.length || 0} results for "${query}"`
+            : `Found ${results?.meta?.total ?? results?.data?.length ?? 0} results for "${query}"`
           }
         </p>
       </div>

@@ -24,7 +24,7 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 | Testing       | 🔄 UAT In Progress       | Per `01-05-acceptance-criteria.md`   |
 | Deployment    | 📋 Pending Go-Live       | Blue-Green, QNAP Container Station   |
 
-- **Goal:** Manage construction documents (Correspondence, RFA, Contract Drawings, Shop Drawings)
+- **Goal:** Manage construction documents (Correspondence, RFA, Circulation, Transmittal, Contract Drawings, Shop Drawings)
   with complex multi-level approval workflows.
 - **Infrastructure:**
   - **QNAP NAS:** Container Station — DMS Frontend/Backend, MariaDB, Redis, Elasticsearch, Nginx Proxy Manager, n8n + n8n-db, Tika, Gitea, RocketChat, cAdvisor, exporters

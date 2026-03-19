@@ -475,17 +475,35 @@ export class DocumentNumberingService {
     return (await this.auditRepo.save(audit)) as unknown as DocumentNumberAudit;
   }
 
-  private async logError(error: any, ctx: any, operation: string) {
+  private mapErrorType(error: Error): string {
+    const name = error.name || '';
+    const msg = error.message || '';
+    if (name === 'ConflictException' || msg.includes('version'))
+      return 'VERSION_CONFLICT';
+    if (msg.includes('lock') || msg.includes('timeout')) return 'LOCK_TIMEOUT';
+    if (msg.includes('Redis') || msg.includes('redis')) return 'REDIS_ERROR';
+    if (msg.includes('duplicate') || msg.includes('Duplicate'))
+      return 'DUPLICATE_NUMBER';
+    if (msg.includes('validation') || msg.includes('Validation'))
+      return 'VALIDATION_ERROR';
+    if (msg.includes('exhausted') || msg.includes('maximum'))
+      return 'SEQUENCE_EXHAUSTED';
+    if (msg.includes('expired') || msg.includes('reservation'))
+      return 'RESERVATION_EXPIRED';
+    if (msg.includes('database') || msg.includes('query')) return 'DB_ERROR';
+    return 'GENERATE_ERROR';
+  }
+
+  private async logError(error: unknown, ctx: unknown, operation: string) {
     try {
+      const err = error instanceof Error ? error : new Error(String(error));
       const errEntity = this.errorRepo.create({
-        errorMessage: error.message || 'Unknown Error',
-        errorType: error.name || 'GENERATE_ERROR', // Simple mapping
+        errorMessage: err.message || 'Unknown Error',
+        errorType: this.mapErrorType(err),
         contextData: {
-          // Mapped from context
-          ...ctx,
+          ...(typeof ctx === 'object' && ctx !== null ? ctx : {}),
           operation,
-          inputPayload: JSON.stringify(ctx),
-        },
+        } as Record<string, unknown>,
       });
       await this.errorRepo.save(errEntity);
     } catch (e) {

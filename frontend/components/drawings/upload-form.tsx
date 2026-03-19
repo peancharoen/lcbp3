@@ -16,7 +16,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useCreateDrawing } from "@/hooks/use-drawing";
-import { useContractDrawingCategories, useShopMainCategories, useShopSubCategories } from "@/hooks/use-master-data";
+import { useContractDrawingCategories, useShopMainCategories, useShopSubCategories, useProjects } from "@/hooks/use-master-data";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 // Base Schema
 const baseSchema = z.object({
   drawingType: z.enum(["CONTRACT", "SHOP", "AS_BUILT"]),
-  projectId: z.number().default(1), // Hardcoded for now
+  projectId: z.string().min(1, "Project is required"),
   file: z.instanceof(File, { message: "File is required" }),
 });
 
@@ -72,19 +72,21 @@ const formSchema = z.discriminatedUnion("drawingType", [
 
 type DrawingFormData = z.infer<typeof formSchema>;
 
-interface DrawingUploadFormProps {
-  projectId?: number;
-}
-
-export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
+export function DrawingUploadForm() {
   const router = useRouter();
 
-  // Hooks
-  const { data: contractCategories } = useContractDrawingCategories(projectId);
-  const { data: shopMainCats } = useShopMainCategories(projectId);
+  // Project list
+  const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
+
+  // Selected project for category fetching
+  const [selectedProjectId, setSelectedProjectId] = useState<number | string | undefined>(undefined);
+
+  // Hooks — categories depend on selected project
+  const { data: contractCategories } = useContractDrawingCategories(selectedProjectId);
+  const { data: shopMainCats } = useShopMainCategories(selectedProjectId as number);
 
   const [selectedShopMainCat, setSelectedShopMainCat] = useState<number | undefined>();
-  const { data: shopSubCats } = useShopSubCategories(projectId, selectedShopMainCat);
+  const { data: shopSubCats } = useShopSubCategories(selectedProjectId as number, selectedShopMainCat);
 
   const {
     register,
@@ -95,18 +97,24 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
   } = useForm<DrawingFormData>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      projectId,
       drawingType: "CONTRACT",
     }
   });
 
   const drawingType = watch("drawingType");
+  const watchedProjectId = watch("projectId");
   const createMutation = useCreateDrawing(drawingType);
 
-  // Reset logic when type changes
+  // When project changes, update selectedProjectId for category hooks
   useEffect(() => {
-    // Optional: clear fields or set defaults
-  }, [drawingType]);
+    if (!watchedProjectId) {
+      setSelectedProjectId(undefined);
+      return;
+    }
+    // Try to resolve UUID→INT from projects list, or pass UUID directly
+    const project = projects.find((p: { id: string; uuid?: string }) => p.id === watchedProjectId || p.uuid === watchedProjectId) as { id: string; uuid?: string } | undefined;
+    setSelectedProjectId(project?.id ?? watchedProjectId);
+  }, [watchedProjectId, projects]);
 
   const onSubmit = (data: DrawingFormData) => {
     const formData = new FormData();
@@ -153,6 +161,32 @@ export function DrawingUploadForm({ projectId = 1 }: DrawingUploadFormProps) {
         <h3 className="text-lg font-semibold mb-4">Drawing Information</h3>
 
         <div className="space-y-4">
+          {/* Project Selector */}
+          <div>
+            <Label>Project *</Label>
+            <Select
+              onValueChange={(v) => setValue("projectId", v)}
+            >
+              <SelectTrigger>
+                {isLoadingProjects ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <SelectValue placeholder="Select Project" />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project: { id: string; projectName: string; projectCode: string }) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.projectCode} - {project.projectName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.projectId && (
+              <p className="text-sm text-destructive">{errors.projectId.message}</p>
+            )}
+          </div>
+
           <div>
             <Label>Drawing Type *</Label>
             <Select

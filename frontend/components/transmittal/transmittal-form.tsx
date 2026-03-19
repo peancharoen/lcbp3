@@ -53,7 +53,7 @@ import { cn } from "@/lib/utils";
 // Schema for items
 const itemSchema = z.object({
   itemType: z.enum(["DRAWING", "RFA", "CORRESPONDENCE"]),
-  itemId: z.number().min(1, "Document is required"),
+  itemId: z.coerce.number().min(1, "Document ID is required"),
   description: z.string().optional(),
   // Virtual fields for UI display
   documentNumber: z.string().optional(),
@@ -77,7 +77,7 @@ export function TransmittalForm() {
   const [docOpen, setDocOpen] = useState(false);
 
   const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       projectId: "",
       recipientOrganizationId: "",
@@ -86,7 +86,7 @@ export function TransmittalForm() {
       purpose: "FOR_APPROVAL",
       remarks: "",
       items: [
-        { itemType: "DRAWING", itemId: 0, description: "" }, // Initial empty row
+        { itemType: "DRAWING", itemId: 0, description: "" },
       ],
     },
   });
@@ -147,7 +147,8 @@ export function TransmittalForm() {
   };
 
   const selectedDocId = form.watch("correspondenceId");
-  const selectedDoc = correspondences?.data?.find(
+  const correspondenceList = correspondences?.data || [];
+  const selectedDoc = correspondenceList.find(
     (c: { uuid: string }) => c.uuid === selectedDocId
   );
 
@@ -200,9 +201,9 @@ export function TransmittalForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {(Array.isArray(orgsList) ? orgsList : []).map((o: { uuid: string; organizationName?: string; orgCode?: string }) => (
+                        {(Array.isArray(orgsList) ? orgsList : []).map((o: { uuid: string; organizationName?: string; organizationCode?: string }) => (
                           <SelectItem key={o.uuid} value={o.uuid}>
-                            {o.organizationName || o.orgCode}
+                            {o.organizationName || o.organizationCode}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -233,7 +234,7 @@ export function TransmittalForm() {
                             )}
                           >
                             {selectedDoc
-                              ? selectedDoc.correspondence_number
+                              ? (selectedDoc as { correspondenceNumber?: string }).correspondenceNumber || 'Selected'
                               : "Select reference..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -245,11 +246,11 @@ export function TransmittalForm() {
                           <CommandList>
                             <CommandEmpty>No document found.</CommandEmpty>
                             <CommandGroup>
-                              {correspondences?.data?.map(
-                                (doc: { uuid: string; correspondence_number: string }) => (
+                              {correspondenceList.map(
+                                (doc: { uuid: string; correspondenceNumber?: string }) => (
                                   <CommandItem
                                     key={doc.uuid}
-                                    value={doc.correspondence_number}
+                                    value={doc.correspondenceNumber || doc.uuid}
                                     onSelect={() => {
                                       form.setValue("correspondenceId", doc.uuid);
                                       setDocOpen(false);
@@ -263,7 +264,7 @@ export function TransmittalForm() {
                                           : "opacity-0"
                                       )}
                                     />
-                                    {doc.correspondence_number}
+                                    {doc.correspondenceNumber || doc.uuid}
                                   </CommandItem>
                                 )
                               )}

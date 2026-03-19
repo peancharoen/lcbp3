@@ -3,7 +3,7 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { Drawing } from '@/types/drawing';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown, MoreHorizontal } from 'lucide-react';
+import { ArrowUpDown, MoreHorizontal, Pencil, Upload } from 'lucide-react';
 import Link from 'next/link';
 import {
   DropdownMenu,
@@ -68,9 +68,22 @@ export const columns: ColumnDef<Drawing>[] = [
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/drawings/${drawing.uuid}`}>View Details</Link>
+              <Link href={`/drawings/${drawing.uuid}`}>
+                View Details
+              </Link>
             </DropdownMenuItem>
-            {/* Add download/view functionality later */}
+            <DropdownMenuItem asChild>
+              <Link href={`/drawings/${drawing.uuid}?edit=true`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Detail
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/drawings/${drawing.uuid}?upload=true`}>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Revision
+              </Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

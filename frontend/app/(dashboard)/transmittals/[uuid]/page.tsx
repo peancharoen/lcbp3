@@ -70,8 +70,12 @@ export default function TransmittalDetailPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{transmittal.transmittalNo}</h1>
-            <p className="text-muted-foreground">{transmittal.subject}</p>
+            <h1 className="text-2xl font-bold">
+              {transmittal.correspondence?.correspondenceNumber || transmittal.transmittalNo}
+            </h1>
+            <p className="text-muted-foreground">
+              {transmittal.correspondence?.revisions?.find(r => r.isCurrent)?.title || transmittal.subject}
+            </p>
           </div>
         </div>
         <Button variant="outline" onClick={handlePrint}>
@@ -93,7 +97,7 @@ export default function TransmittalDetailPage() {
           <div>
             <p className="text-sm text-muted-foreground">Date</p>
             <p className="font-medium">
-              {format(new Date(transmittal.createdAt), "dd MMM yyyy")}
+              {format(new Date(transmittal.correspondence?.createdAt || transmittal.createdAt), "dd MMM yyyy")}
             </p>
           </div>
           <div>
@@ -103,7 +107,7 @@ export default function TransmittalDetailPage() {
                 href={`/correspondences/${transmittal.correspondence.uuid}`}
                 className="font-medium text-primary hover:underline"
               >
-                {transmittal.correspondence.correspondence_number}
+                {transmittal.correspondence.correspondenceNumber}
               </Link>
             ) : (
               <span className="text-muted-foreground">-</span>
