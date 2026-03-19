@@ -131,11 +131,15 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   },
-
   "main": "index.js",
   "directories": {
     "test": "test"
   },
   "keywords": [],
-  "type": "commonjs"
+  "type": "commonjs",
+  "pnpm": {
+    "overrides": {
+      "baseline-browser-mapping": "latest"
+    }
+  }
 }

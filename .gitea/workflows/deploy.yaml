@@ -17,6 +17,8 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
+          timeout: 600s # 10 minutes total timeout
+          command_timeout: 300s # 5 minutes per command timeout
           script_stop_signal: true # Stop script on error
           script: |
             set -e
