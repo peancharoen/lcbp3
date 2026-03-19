@@ -32,6 +32,9 @@ RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
 WORKDIR /app
 
+# Enable build cache for better performance
+ENV PNPM_STORE_DIR=/root/.local/share/pnpm/store
+
 # Copy workspace structure
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --from=deps /app/node_modules ./node_modules
@@ -40,8 +43,10 @@ COPY --from=deps /app/backend/node_modules ./backend/node_modules
 # Copy backend source
 COPY backend/ ./backend/
 
-# Build NestJS → backend/dist
-RUN cd backend && pnpm run build
+# Build NestJS → backend/dist (with optimizations)
+RUN cd backend && \
+    NODE_OPTIONS="--max-old-space-size=4096" \
+    pnpm run build
 
 # Deploy with production deps only (pnpm workspace isolation)
 RUN pnpm --filter backend deploy --prod --shamefully-hoist --legacy /app/backend-prod
