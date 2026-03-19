@@ -36,13 +36,12 @@ const nextConfig = {
   },
   */
 
-  // 5. Experimental: Handle client component static generation issues
-  experimental: {
-    // Disable static optimization for client components that cause build failures
-    missingSuspenseWithCSRBailout: false,
+  // 5. Turbopack config for Next.js 16
+  turbopack: {
+    // Empty config to silence Turbopack warnings
   },
 
-  // 5.1. Webpack config to suppress warnings
+  // 5.1. Webpack config (fallback for Turbopack)
   webpack: (config, { dev, isServer }) => {
     if (!dev && !isServer) {
       config.stats = {
