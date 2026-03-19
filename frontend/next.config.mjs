@@ -42,6 +42,17 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
 
+  // 5.1. Webpack config to suppress warnings
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      config.stats = {
+        ...config.stats,
+        warnings: false,
+      };
+    }
+    return config;
+  },
+
   // 5.1. Security Headers + MIME Types
   async headers() {
     return [
