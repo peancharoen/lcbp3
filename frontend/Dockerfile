@@ -57,8 +57,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # nested App Router paths. Redirect .next output to ultra-short root path /n
 # to minimise overlay nesting depth, then move back after build completes.
 RUN mkdir /n && ln -s /n .next && \
-    pnpm run build --webpack && \
+    pnpm run build && \
     rm .next && mv /n .next
+
+# Verify standalone build was created
+RUN ls -la /w/frontend/.next/standalone/ || (echo "ERROR: Standalone build not found!" && exit 1)
 
 
 # =========================
@@ -82,7 +85,10 @@ RUN apk add --no-cache curl
 
 # Copy standalone output from build
 COPY --from=build --chown=nextjs:nextjs /w/frontend/.next/standalone ./
-COPY --from=build --chown=nextjs:nextjs /w/frontend/.next/static ./frontend/.next/static
+COPY --from=build --chown=nextjs:nextjs /w/frontend/.next/static ./.next/static
+
+# Debug: Verify files exist
+RUN ls -la ./ && ls -la ./.next/ && ls -la ./.next/static/ || (echo "ERROR: Required files not found!" && exit 1)
 
 USER nextjs
 
