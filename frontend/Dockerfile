@@ -6,6 +6,11 @@
 # Build context: workspace root (nap-dms.lcbp3/)
 # Usage: docker build -f frontend/Dockerfile -t lcbp3-frontend:latest .
 # ============================================================
+# NOTE: Build stage uses short paths (/w = workspace, /b = build root)
+# to avoid "Unknown system error -10" caused by QNAP overlayfs
+# path-depth limits with deeply nested App Router routes like
+# (admin)/admin/doc-control/drawings/contract/categories.
+# ============================================================
 
 # =========================
 # Stage 1: Install Dependencies
@@ -14,7 +19,7 @@ FROM node:22-alpine AS deps
 
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
-WORKDIR /app
+WORKDIR /w
 
 # Copy workspace root manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -30,15 +35,15 @@ FROM node:22-alpine AS build
 
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
-WORKDIR /app
-
-# Copy workspace structure
+# --- Workspace root at /w (holds pnpm manifests + root node_modules) ---
+WORKDIR /w
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
+COPY --from=deps /w/node_modules ./node_modules
 
-# Copy frontend source
-COPY frontend/ ./frontend/
+# --- Frontend source directly at /w/frontend ---
+WORKDIR /w/frontend
+COPY --from=deps /w/frontend/node_modules ./node_modules
+COPY frontend/ ./
 
 # NEXT_PUBLIC_* vars must be set at BUILD TIME (baked into client bundle)
 ARG NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api
@@ -48,8 +53,12 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build Next.js → frontend/.next/standalone (use webpack to avoid Turbopack issues)
-RUN cd frontend && pnpm run build --webpack
+# WORKAROUND: QNAP overlayfs fails with "Unknown system error -10" on deeply
+# nested App Router paths. Redirect .next output to ultra-short root path /n
+# to minimise overlay nesting depth, then move back after build completes.
+RUN mkdir /n && ln -s /n .next && \
+    pnpm run build --webpack && \
+    rm .next && mv /n .next
 
 
 # =========================
@@ -72,8 +81,8 @@ RUN addgroup -g 1001 -S nextjs && \
 RUN apk add --no-cache curl
 
 # Copy standalone output from build
-COPY --from=build --chown=nextjs:nextjs /app/frontend/.next/standalone ./
-COPY --from=build --chown=nextjs:nextjs /app/frontend/.next/static ./frontend/.next/static
+COPY --from=build --chown=nextjs:nextjs /w/frontend/.next/standalone ./
+COPY --from=build --chown=nextjs:nextjs /w/frontend/.next/static ./frontend/.next/static
 
 USER nextjs
 
@@ -83,3 +92,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
   CMD curl -f http://localhost:3000/ || exit 1
 
 CMD ["node", "frontend/server.js"]
+
