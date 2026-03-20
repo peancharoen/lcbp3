@@ -25,6 +25,7 @@ import type { StringValue } from 'ms';
     TypeOrmModule.forFeature([User, RefreshToken]), // [P2-2] Added RefreshToken
     UserModule,
     PassportModule,
+    // CacheModule is now global (from AppModule)
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

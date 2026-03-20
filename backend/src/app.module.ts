@@ -10,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { WinstonModule } from 'nest-winston';
+import { CacheModule } from '@nestjs/cache-manager';
 // Redis store will be imported dynamically in the factory
 import { RedisModule } from '@nestjs-modules/ioredis';
 
@@ -92,6 +93,12 @@ import { MigrationModule } from './modules/migration/migration.module';
       inject: [ConfigService],
     }),
     */
+
+    // 🔄 Temporary Cache Module (In-Memory) for build fixes
+    CacheModule.register({
+      isGlobal: true, // Make available globally for all modules
+      ttl: 300, // 5 minutes default TTL
+    }),
 
     // 📝 Setup Winston Logger
     WinstonModule.forRoot(winstonConfig),
