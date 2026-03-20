@@ -74,6 +74,7 @@ services:
       # --- File Upload ---
       UPLOAD_TEMP_DIR: '/app/uploads/temp'
       UPLOAD_PERMANENT_DIR: '/app/uploads/permanent'
+      PORT: '3000'
       MAX_FILE_SIZE: '52428800'
     networks:
       - lcbp3

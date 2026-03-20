@@ -70,27 +70,45 @@ export const {
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
-        try {
-          const { username, password } = await loginSchema.parseAsync(credentials);
+        if (!credentials?.username || !credentials?.password) return null;
 
+        try {
+          // 1. Sanitize payload (Only send username and password)
+          const payload = {
+            username: credentials.username as string,
+            password: credentials.password as string,
+          };
+
+          console.log(`[AUTH] Attempting login at: ${baseUrl}/auth/login`);
+          console.log(`[AUTH] Current process.env.INTERNAL_API_URL: ${process.env.INTERNAL_API_URL}`);
+          console.log(`[AUTH] Current process.env.NEXT_PUBLIC_API_URL: ${process.env.NEXT_PUBLIC_API_URL}`);
 
           const res = await fetch(`${baseUrl}/auth/login`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify(payload),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            cache: 'no-store', // Disable caching for auth requests
           });
 
           if (!res.ok) {
-            const errorMsg = await res.text();
+            console.error(`[AUTH] Login Failed: status ${res.status}`);
+            const errorBody = await res.text().catch(() => "No error body");
+            console.error(`[AUTH] Error details: ${errorBody}`);
             return null;
           }
 
-          const responseJson = await res.json();
-          const backendData = responseJson.data || responseJson;
+          const data = await res.json();
+          // Handling both { data: { ... } } and direct { ... } response formats
+          const backendData = data.data || data;
 
           if (!backendData || !backendData.access_token) {
+            console.error("[AUTH] Login failed: Invalid response format from backend (missing access_token)");
             return null;
           }
+
+          console.log(`[AUTH] Login Successful for user: ${backendData.user?.username || 'unknown'}`);
 
           return {
             id: backendData.user.user_id.toString(),
@@ -104,6 +122,7 @@ export const {
           } as User;
 
         } catch (error) {
+          console.error("[AUTH] Network/Fetch Error during authorize:", error);
           return null;
         }
       },
