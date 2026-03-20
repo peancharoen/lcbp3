@@ -66,7 +66,7 @@ RUN ls -la /w/frontend/.next/ || (echo "ERROR: Build not found!" && exit 1)
 # Create a self-contained deployment with flat node_modules (no pnpm symlinks)
 # pnpm deploy resolves all workspace symlinks into real files that Docker COPY can handle
 WORKDIR /w
-RUN pnpm --filter lcbp3-frontend deploy /deploy --prod
+RUN pnpm --filter lcbp3-frontend deploy /deploy --prod --legacy
 
 
 # =========================
