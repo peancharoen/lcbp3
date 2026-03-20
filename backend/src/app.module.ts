@@ -26,6 +26,7 @@ import { IdempotencyInterceptor } from './common/interceptors/idempotency.interc
 import { MaintenanceModeGuard } from './common/guards/maintenance-mode.guard';
 
 // Modules
+import { CommonModule } from './common/common.module';
 import { AuthModule } from './common/auth/auth.module.js';
 import { UserModule } from './modules/user/user.module';
 import { ProjectModule } from './modules/project/project.module';
@@ -146,6 +147,7 @@ import { MigrationModule } from './modules/migration/migration.module';
     ResilienceModule,
 
     // 📦 Feature Modules
+    CommonModule, // Must be imported first to provide global services
     AuthModule,
     UserModule,
     ProjectModule,
