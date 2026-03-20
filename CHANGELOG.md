@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+### Build & Deployment Fixes (2026-03-20)
+
+#### 🔧 **Backend Dependency Resolution**
+
+- **Issue**: `ms` package not found during build
+- **Fix**: Added `"ms": "^2.1.3"` to dependencies and `"@types/ms": "^2.1.0"` to devDependencies
+- **Issue**: `CACHE_MANAGER` not available in UserModule and AuthModule
+- **Fix**: Added global `CacheModule.register({ isGlobal: true, ttl: 300 })` to AppModule
+- **Issue**: `UuidResolverService` not available despite `@Global()` decorator
+- **Fix**: Added `CommonModule` import to AppModule to initialize global services
+- **Result**: Backend starts successfully with all dependencies resolved
+
+#### 🐳 **Docker Build Fixes**
+
+- **Issue**: Next.js standalone build failed with pnpm symlink structure
+- **Error**: `ENOENT: no such file or directory` creating standalone node_modules
+- **Fix**: Temporarily disabled `output: "standalone"` in next.config.mjs
+- **Fix**: Updated Dockerfile to copy full app and node_modules instead of standalone output
+- **Result**: Frontend builds successfully in Docker (slightly larger image)
+
+#### 📦 **Cache Architecture Update**
+
+- **Before**: Local CacheModule imports in UserModule and AuthModule
+- **After**: Global CacheModule in AppModule (TTL 5 minutes, in-memory)
+- **Benefit**: All services (UserService, AuthService, JwtStrategy, IdempotencyInterceptor, MaintenanceModeGuard) can inject CACHE_MANAGER
+- **Note**: Temporary solution until Redis store TypeScript issues are resolved
+
 ### Frontend Quality Refactor Pass (2026-03-20)
 
 #### 🔧 **ESLint Hardening**

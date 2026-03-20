@@ -1,6 +1,6 @@
 # ============================================================
 # LCBP3 Frontend — Next.js Production Dockerfile
-# Multi-stage build: deps → build → production (standalone)
+# Multi-stage build: deps → build → production (pnpm deploy)
 # Target: QNAP TS-473A (Container Station)
 # ============================================================
 # Build context: workspace root (nap-dms.lcbp3/)
@@ -63,6 +63,11 @@ RUN mkdir /n && ln -s /n .next && \
 # Verify build was created
 RUN ls -la /w/frontend/.next/ || (echo "ERROR: Build not found!" && exit 1)
 
+# Create a self-contained deployment with flat node_modules (no pnpm symlinks)
+# pnpm deploy resolves all workspace symlinks into real files that Docker COPY can handle
+WORKDIR /w
+RUN pnpm --filter lcbp3-frontend deploy /deploy --prod
+
 
 # =========================
 # Stage 3: Production Runtime
@@ -80,16 +85,18 @@ ENV PORT=3000
 RUN addgroup -g 1001 -S nextjs && \
     adduser -S nextjs -u 1001
 
-# Install curl and pnpm for healthcheck
-RUN apk add --no-cache curl && \
-    npm install -g pnpm@10.32.1
+# Install curl for healthcheck
+RUN apk add --no-cache curl
 
-# Copy application and node_modules from build
-COPY --from=build --chown=nextjs:nextjs /w/frontend ./
-COPY --from=build --chown=nextjs:nextjs /w/frontend/node_modules ./node_modules
+# Copy flat node_modules from pnpm deploy (no symlinks, Docker-safe)
+COPY --from=build --chown=nextjs:nextjs /deploy/node_modules ./node_modules
+# Copy build output and public assets
+COPY --from=build --chown=nextjs:nextjs /w/frontend/.next ./.next
+COPY --from=build --chown=nextjs:nextjs /w/frontend/public ./public
+COPY --from=build --chown=nextjs:nextjs /w/frontend/package.json ./
 
-# Debug: Verify files exist
-RUN ls -la ./ && ls -la ./.next/ && ls -la ./node_modules/ || (echo "ERROR: Required files not found!" && exit 1)
+# Verify files exist
+RUN ls -la ./node_modules/next/dist/bin/next && ls -la ./.next/ || (echo "ERROR: Required files not found!" && exit 1)
 
 USER nextjs
 
@@ -98,5 +105,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
   CMD curl -f http://localhost:3000/ || exit 1
 
-CMD ["pnpm", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start"]
 
