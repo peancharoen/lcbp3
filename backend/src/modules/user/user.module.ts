@@ -3,6 +3,7 @@
 
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CacheModule } from '@nestjs/cache-manager';
 
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
@@ -26,6 +27,10 @@ import { Permission } from './entities/permission.entity';
       Role,
       Permission,
     ]),
+    // Add CacheModule for CACHE_MANAGER provider
+    CacheModule.register({
+      isGlobal: false, // Keep it local to this module
+    }),
   ],
   controllers: [UserController],
   providers: [
