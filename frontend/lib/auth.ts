@@ -11,7 +11,7 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+const baseUrl = (typeof window === "undefined" ? process.env.INTERNAL_API_URL : null) || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 // Helper to parse JWT expiry
 function getJwtExpiry(token: string): number {
