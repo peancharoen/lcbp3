@@ -1,6 +1,11 @@
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 
+// Force dynamic rendering for all pages under (dashboard) route group.
+// QNAP overlayfs cannot handle the .segments/!<base64> directories
+// that Next.js 16 creates during static page generation.
+export const dynamic = "force-dynamic";
+
 export default function DashboardLayout({
   children,
 }: {
