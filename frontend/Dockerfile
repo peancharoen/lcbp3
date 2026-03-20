@@ -60,8 +60,8 @@ RUN mkdir /n && ln -s /n .next && \
     pnpm run build && \
     rm .next && mv /n .next
 
-# Verify standalone build was created
-RUN ls -la /w/frontend/.next/standalone/ || (echo "ERROR: Standalone build not found!" && exit 1)
+# Verify build was created
+RUN ls -la /w/frontend/.next/ || (echo "ERROR: Build not found!" && exit 1)
 
 
 # =========================
@@ -80,15 +80,16 @@ ENV PORT=3000
 RUN addgroup -g 1001 -S nextjs && \
     adduser -S nextjs -u 1001
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Install curl and pnpm for healthcheck
+RUN apk add --no-cache curl && \
+    npm install -g pnpm@10.32.1
 
-# Copy standalone output from build
-COPY --from=build --chown=nextjs:nextjs /w/frontend/.next/standalone ./
-COPY --from=build --chown=nextjs:nextjs /w/frontend/.next/static ./.next/static
+# Copy application and node_modules from build
+COPY --from=build --chown=nextjs:nextjs /w/frontend ./
+COPY --from=build --chown=nextjs:nextjs /w/frontend/node_modules ./node_modules
 
 # Debug: Verify files exist
-RUN ls -la ./ && ls -la ./.next/ && ls -la ./.next/static/ || (echo "ERROR: Required files not found!" && exit 1)
+RUN ls -la ./ && ls -la ./.next/ && ls -la ./node_modules/ || (echo "ERROR: Required files not found!" && exit 1)
 
 USER nextjs
 
@@ -97,5 +98,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
   CMD curl -f http://localhost:3000/ || exit 1
 
-CMD ["node", "frontend/server.js"]
+CMD ["pnpm", "start"]
 

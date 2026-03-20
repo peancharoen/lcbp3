@@ -4,7 +4,8 @@
 const nextConfig = {
   // 1. Standalone Output: จำเป็นสำหรับการ Deploy บน Docker (QNAP)
   // Next.js จะคัดแยกเฉพาะไฟล์ที่จำเป็นต้องใช้จริงออกมาไว้ในโฟลเดอร์ .next/standalone
-  output: "standalone",
+  // TEMPORARILY DISABLED: pnpm standalone build issues
+  // output: "standalone",
 
   // 2. React Strict Mode: ช่วยดักจับ Bug ในช่วง Dev (เช่น Component render ซ้ำ)
   reactStrictMode: true,
