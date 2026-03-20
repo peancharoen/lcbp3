@@ -152,7 +152,7 @@ git checkout <previous-commit-hash>
 docker ps -a
 
 # Service URLs
-curl -I https://frontend.np-dms.work
+curl -I https://lcbp3.np-dms.work
 curl -I https://backend.np-dms.work/api/health
 
 # Logs

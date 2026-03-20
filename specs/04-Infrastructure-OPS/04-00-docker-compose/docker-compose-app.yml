@@ -118,7 +118,7 @@ services:
       NEXT_PUBLIC_API_URL: 'https://backend.np-dms.work/api'
       # --- NextAuth ---
       AUTH_SECRET: 'eebc122aa65adde8c76c6a0847d9649b2b67a06db1504693e6c912e51499b76e'
-      AUTH_URL: 'https://frontend.np-dms.work'
+      AUTH_URL: 'https://lcbp3.np-dms.work'
     networks:
       - lcbp3
     healthcheck:
