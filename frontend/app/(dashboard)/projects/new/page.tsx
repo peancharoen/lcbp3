@@ -29,6 +29,12 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 
+// Force dynamic rendering to prevent build-time prerendering issues
+export const dynamic = 'force-dynamic';
+
+// Ensure this page is never statically generated
+export const fetchCache = 'force-no-store';
+
 // 1. กำหนด Schema สำหรับตรวจสอบข้อมูล (Validation)
 // อ้างอิงจาก Data Dictionary ตาราง projects
 const projectSchema = z.object({
@@ -74,7 +80,6 @@ export default function CreateProjectPage() {
     try {
       // เรียก API สร้างโครงการ (Mockup URL)
       // ใน Phase หลัง Backend จะเตรียม Endpoint POST /projects ไว้ให้
-      console.log("Submitting project data:", data);
 
       // จำลองการส่งข้อมูล (Artificial Delay)
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -86,7 +91,7 @@ export default function CreateProjectPage() {
       router.refresh();
     } catch (error) {
       toast.error('เกิดข้อผิดพลาดในการสร้างโครงการ');
-      console.error('[CreateProjectPage]', error);
+      // Project creation failed - toast shown
     } finally {
       setIsLoading(false);
     }

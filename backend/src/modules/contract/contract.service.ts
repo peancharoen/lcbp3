@@ -3,45 +3,26 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
-import { Repository, Like, EntityManager } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Like, FindOptionsWhere, FindManyOptions } from 'typeorm';
 import { Contract } from './entities/contract.entity';
 import { CreateContractDto } from './dto/create-contract.dto.js';
 import { UpdateContractDto } from './dto/update-contract.dto.js';
-import { Project } from '../project/entities/project.entity';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @Injectable()
 export class ContractService {
   constructor(
     @InjectRepository(Contract)
     private readonly contractRepo: Repository<Contract>,
-    @InjectEntityManager()
-    private readonly entityManager: EntityManager
+    private readonly uuidResolver: UuidResolverService
   ) {}
 
-  /**
-   * Helper to resolve projectId (ID or UUID) to internal INT ID
-   */
-  async resolveProjectId(projectId: number | string): Promise<number> {
-    if (typeof projectId === 'number') return projectId;
-    const num = Number(projectId);
-    if (!isNaN(num)) return num;
-
-    const project = await this.entityManager.findOne(Project, {
-      where: { uuid: projectId as string },
-      select: ['id'],
-    });
-
-    if (!project) {
-      throw new NotFoundException(`Project with UUID ${projectId} not found`);
-    }
-
-    return project.id;
-  }
-
   async create(dto: CreateContractDto) {
-    const internalProjectId = await this.resolveProjectId(dto.projectId);
-    
+    const internalProjectId = await this.uuidResolver.resolveProjectId(
+      dto.projectId
+    );
+
     const existing = await this.contractRepo.findOne({
       where: { contractCode: dto.contractCode },
     });
@@ -50,28 +31,35 @@ export class ContractService {
         `Contract Code "${dto.contractCode}" already exists`
       );
     }
-    const contract = this.contractRepo.create({ ...dto, projectId: internalProjectId });
+    const contract = this.contractRepo.create({
+      ...dto,
+      projectId: internalProjectId,
+    });
     return this.contractRepo.save(contract);
   }
 
-  async findAll(params?: any) {
+  async findAll(params?: {
+    search?: string;
+    projectId?: number | string;
+    page?: number;
+    limit?: number;
+  }) {
     const { search, projectId, page = 1, limit = 100 } = params || {};
     const skip = (page - 1) * limit;
 
-    let internalProjectId = undefined;
+    let internalProjectId: number | undefined = undefined;
     if (projectId) {
-        internalProjectId = await this.resolveProjectId(projectId);
+      internalProjectId = await this.uuidResolver.resolveProjectId(projectId);
     }
 
-    const findOptions: any = {
+    const findOptions: FindManyOptions<Contract> = {
       relations: ['project'],
       order: { contractCode: 'ASC' },
       skip,
       take: limit,
-      where: [],
     };
 
-    const searchConditions = [];
+    const searchConditions: FindOptionsWhere<Contract>[] = [];
     if (search) {
       searchConditions.push({ contractCode: Like(`%${search}%`) });
       searchConditions.push({ contractName: Like(`%${search}%`) });
@@ -86,12 +74,8 @@ export class ContractService {
       } else {
         findOptions.where = { projectId: internalProjectId };
       }
-    } else {
-      if (searchConditions.length > 0) {
-        findOptions.where = searchConditions;
-      } else {
-        delete findOptions.where;
-      }
+    } else if (searchConditions.length > 0) {
+      findOptions.where = searchConditions;
     }
 
     const [data, total] = await this.contractRepo.findAndCount(findOptions);
@@ -129,7 +113,7 @@ export class ContractService {
   async update(uuid: string, dto: UpdateContractDto) {
     const contract = await this.findOneByUuid(uuid);
     if (dto.projectId) {
-        dto.projectId = await this.resolveProjectId(dto.projectId);
+      dto.projectId = await this.uuidResolver.resolveProjectId(dto.projectId);
     }
     Object.assign(contract, dto);
     return this.contractRepo.save(contract);

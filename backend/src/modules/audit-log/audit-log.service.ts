@@ -10,7 +10,13 @@ export class AuditLogService {
     private readonly auditLogRepository: Repository<AuditLog>
   ) {}
 
-  async findAll(query: any) {
+  async findAll(query: {
+    page?: number;
+    limit?: number;
+    entityName?: string;
+    action?: string;
+    userId?: number;
+  }) {
     const { page = 1, limit = 20, entityName, action, userId } = query;
     const skip = (page - 1) * limit;
 

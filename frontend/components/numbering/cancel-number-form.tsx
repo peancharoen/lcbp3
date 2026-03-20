@@ -29,7 +29,7 @@ export function CancelNumberForm() {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<CancelNumberFormData>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- zod 4 + @hookform/resolvers compat
     defaultValues: {
       documentNumber: "",
       reason: "",
@@ -45,7 +45,6 @@ export function CancelNumberForm() {
       form.reset();
     } catch (error) {
       toast.error("Failed to cancel number. It may not exist or is already cancelled.");
-      console.error(error);
     } finally {
       setLoading(false);
     }

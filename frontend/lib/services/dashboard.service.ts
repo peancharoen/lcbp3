@@ -14,10 +14,8 @@ export const dashboardService = {
       if (Array.isArray(response.data)) {
         return response.data;
       }
-      console.warn('Dashboard activity: expected array, got:', typeof response.data);
       return [];
     } catch (error) {
-      console.error('Failed to fetch recent activity:', error);
       return [];
     }
   },
@@ -32,10 +30,8 @@ export const dashboardService = {
       if (Array.isArray(response.data)) {
         return response.data;
       }
-      console.warn('Dashboard pending: unexpected format:', typeof response.data);
       return [];
     } catch (error) {
-      console.error('Failed to fetch pending tasks:', error);
       return [];
     }
   },

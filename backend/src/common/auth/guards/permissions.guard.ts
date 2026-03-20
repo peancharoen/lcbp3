@@ -5,7 +5,12 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AbilityFactory, ScopeContext } from '../casl/ability.factory';
+import {
+  AbilityFactory,
+  ScopeContext,
+  Actions,
+  Subjects,
+} from '../casl/ability.factory';
 import { PERMISSIONS_KEY } from '../../decorators/require-permission.decorator';
 
 @Injectable()
@@ -43,7 +48,7 @@ export class PermissionsGuard implements CanActivate {
     // Check if user has ALL required permissions
     const hasPermission = requiredPermissions.every((permission) => {
       const [action, subject] = this.parsePermission(permission);
-      return ability.can(action as any, subject as any);
+      return ability.can(action as Actions, subject as Subjects);
     });
 
     if (!hasPermission) {
@@ -59,23 +64,31 @@ export class PermissionsGuard implements CanActivate {
    * Extract scope context from request
    * Priority: params > body > query
    */
-  private extractScope(request: any): ScopeContext {
-    return {
+  private extractScope(request: {
+    params: Record<string, string>;
+    body: Record<string, unknown>;
+    query: Record<string, unknown>;
+  }): ScopeContext {
+    const raw = {
       organizationId:
         request.params.organizationId ||
         request.body.organizationId ||
-        request.query.organizationId ||
-        undefined,
+        request.query.organizationId,
       projectId:
         request.params.projectId ||
         request.body.projectId ||
-        request.query.projectId ||
-        undefined,
+        request.query.projectId,
       contractId:
         request.params.contractId ||
         request.body.contractId ||
-        request.query.contractId ||
-        undefined,
+        request.query.contractId,
+    };
+    return {
+      organizationId: raw.organizationId
+        ? Number(raw.organizationId)
+        : undefined,
+      projectId: raw.projectId ? Number(raw.projectId) : undefined,
+      contractId: raw.contractId ? Number(raw.contractId) : undefined,
     };
   }
 

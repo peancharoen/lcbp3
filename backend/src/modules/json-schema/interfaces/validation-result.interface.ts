@@ -23,12 +23,11 @@ export interface ValidationOptions {
 export interface ValidationErrorDetail {
   field: string;
   message: string;
-  value?: any;
+  value?: unknown;
 }
 
 export interface ValidationResult {
   isValid: boolean;
   errors: ValidationErrorDetail[];
-  sanitizedData: any;
+  sanitizedData: Record<string, unknown> | null;
 }
-

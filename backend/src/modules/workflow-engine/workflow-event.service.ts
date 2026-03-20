@@ -9,9 +9,9 @@ export interface WorkflowEventHandler {
   handleNotification(
     target: string,
     template: string,
-    payload: any,
+    payload: Record<string, unknown>
   ): Promise<void>;
-  handleWebhook(url: string, payload: any): Promise<void>;
+  handleWebhook(url: string, payload: Record<string, unknown>): Promise<void>;
   handleAutoAction(instanceId: string, action: string): Promise<void>;
 }
 
@@ -28,19 +28,17 @@ export class WorkflowEventService {
   async dispatchEvents(
     instanceId: string,
     events: RawEvent[],
-    context: Record<string, any>,
+    context: Record<string, any>
   ) {
     if (!events || events.length === 0) return;
 
     this.logger.log(
-      `Dispatching ${events.length} events for Instance ${instanceId}`,
+      `Dispatching ${events.length} events for Instance ${instanceId}`
     );
 
     // ทำแบบ Async ไม่รอผล (Fire-and-forget) เพื่อไม่ให้กระทบ Response Time ของ User
     Promise.allSettled(
-      events.map((event) =>
-        this.processSingleEvent(instanceId, event, context),
-      ),
+      events.map((event) => this.processSingleEvent(instanceId, event, context))
     ).then((results) => {
       // Log errors if any
       results.forEach((res, idx) => {
@@ -54,7 +52,7 @@ export class WorkflowEventService {
   private async processSingleEvent(
     instanceId: string,
     event: RawEvent,
-    context: any,
+    context: Record<string, unknown>
   ) {
     try {
       switch (event.type) {
@@ -79,18 +77,24 @@ export class WorkflowEventService {
 
   // --- Handlers ---
 
-  private async handleNotify(event: RawEvent, context: any) {
+  private async handleNotify(
+    event: RawEvent,
+    _context: Record<string, unknown>
+  ) {
     // Mockup: ในของจริงจะเรียก NotificationService.send()
     // const recipients = this.resolveRecipients(event.target, context);
     this.logger.log(
-      `[EVENT] Notify target: "${event.target}" | Template: "${event.template}"`,
+      `[EVENT] Notify target: "${event.target}" | Template: "${event.template}"`
     );
   }
 
-  private async handleWebhook(event: RawEvent, context: any) {
+  private async handleWebhook(
+    event: RawEvent,
+    _context: Record<string, unknown>
+  ) {
     // Mockup: เรียก HttpService.post()
     this.logger.log(
-      `[EVENT] Webhook to: "${event.target}" | Payload: ${JSON.stringify(event.payload)}`,
+      `[EVENT] Webhook to: "${event.target}" | Payload: ${JSON.stringify(event.payload)}`
     );
   }
 }

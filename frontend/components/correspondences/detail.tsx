@@ -24,8 +24,6 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
   if (!data) return <div>No data found</div>;
 
-  console.log("Correspondence Detail Data:", data);
-
   // Derive Current Revision Data
   const currentRevision = data.revisions?.find(r => r.isCurrent) || data.revisions?.[0];
   const subject = currentRevision?.subject || "-";

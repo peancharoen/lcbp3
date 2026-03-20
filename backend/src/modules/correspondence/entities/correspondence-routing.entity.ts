@@ -52,7 +52,7 @@ export class CorrespondenceRouting {
 
   // ✅ [New] เพิ่ม State Context เพื่อเก็บ Snapshot ข้อมูล Workflow ณ จุดนั้น
   @Column({ name: 'state_context', type: 'json', nullable: true })
-  stateContext?: any;
+  stateContext?: Record<string, unknown>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

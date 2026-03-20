@@ -10,7 +10,7 @@ export interface MigrationStep {
     | 'FIELD_ADD'
     | 'FIELD_REMOVE'
     | 'STRUCTURE_CHANGE';
-  config: any;
+  config: Record<string, unknown>;
 }
 
 export interface MigrationResult {
@@ -27,7 +27,7 @@ export class SchemaMigrationService {
 
   constructor(
     private readonly dataSource: DataSource,
-    private readonly jsonSchemaService: JsonSchemaService,
+    private readonly jsonSchemaService: JsonSchemaService
   ) {}
 
   /**
@@ -37,7 +37,7 @@ export class SchemaMigrationService {
     entityType: string, // e.g., 'rfa_revisions', 'correspondence_revisions'
     entityId: number,
     targetSchemaCode: string,
-    targetVersion?: number,
+    targetVersion?: number
   ): Promise<MigrationResult> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -49,7 +49,7 @@ export class SchemaMigrationService {
       if (targetVersion) {
         targetSchema = await this.jsonSchemaService.findOneByCodeAndVersion(
           targetSchemaCode,
-          targetVersion,
+          targetVersion
         );
       } else {
         targetSchema =
@@ -61,12 +61,12 @@ export class SchemaMigrationService {
       // If schema_version is not present, we assume version 1
       const entity = await queryRunner.manager.query(
         `SELECT details, schema_version FROM ${entityType} WHERE id = ?`,
-        [entityId],
+        [entityId]
       );
 
       if (!entity || entity.length === 0) {
         throw new BadRequestException(
-          `Entity ${entityType} with ID ${entityId} not found.`,
+          `Entity ${entityType} with ID ${entityId} not found.`
         );
       }
 
@@ -90,12 +90,12 @@ export class SchemaMigrationService {
       for (let v = currentVersion + 1; v <= targetSchema.version; v++) {
         const schemaVer = await this.jsonSchemaService.findOneByCodeAndVersion(
           targetSchemaCode,
-          v,
+          v
         );
 
         if (schemaVer && schemaVer.migrationScript) {
           this.logger.log(
-            `Applying migration script for ${targetSchemaCode} v${v}...`,
+            `Applying migration script for ${targetSchemaCode} v${v}...`
           );
 
           const script = schemaVer.migrationScript;
@@ -115,12 +115,12 @@ export class SchemaMigrationService {
       // 4. Validate Migrated Data against Target Schema
       const validation = await this.jsonSchemaService.validateData(
         targetSchema.schemaCode,
-        migratedData,
+        migratedData
       );
 
       if (!validation.isValid) {
         throw new BadRequestException(
-          `Migration failed: Resulting data does not match target schema v${targetSchema.version}. Errors: ${JSON.stringify(validation.errors)}`,
+          `Migration failed: Resulting data does not match target schema v${targetSchema.version}. Errors: ${JSON.stringify(validation.errors)}`
         );
       }
 
@@ -132,7 +132,7 @@ export class SchemaMigrationService {
           JSON.stringify(validation.sanitizedData),
           targetSchema.version,
           entityId,
-        ],
+        ]
       );
 
       await queryRunner.commitTransaction();
@@ -143,9 +143,12 @@ export class SchemaMigrationService {
         toVersion: targetSchema.version,
         migratedFields: [...new Set(migratedFields)],
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Migration failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `Migration failed: ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err.stack : undefined
+      );
       throw err;
     } finally {
       await queryRunner.release();
@@ -157,40 +160,45 @@ export class SchemaMigrationService {
    */
   private async applyMigrationStep(
     step: MigrationStep,
-    data: any,
-  ): Promise<any> {
+    data: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
     const newData = { ...data };
+
+    const field = step.config.field as string;
+    const oldField = step.config.old_field as string;
+    const newField = step.config.new_field as string;
 
     switch (step.type) {
       case 'FIELD_RENAME':
-        if (newData[step.config.old_field] !== undefined) {
-          newData[step.config.new_field] = newData[step.config.old_field];
-          delete newData[step.config.old_field];
+        if (newData[oldField] !== undefined) {
+          newData[newField] = newData[oldField];
+          delete newData[oldField];
         }
         break;
 
       case 'FIELD_ADD':
-        if (newData[step.config.field] === undefined) {
-          newData[step.config.field] = step.config.default_value;
+        if (newData[field] === undefined) {
+          newData[field] = step.config.default_value;
         }
         break;
 
       case 'FIELD_REMOVE':
-        delete newData[step.config.field];
+        delete newData[field];
         break;
 
       case 'FIELD_TRANSFORM':
-        if (newData[step.config.field] !== undefined) {
+        if (newData[field] !== undefined) {
           // Simple transform logic (e.g., map values)
           if (step.config.transform === 'MAP_VALUES' && step.config.mapping) {
-            const oldVal = newData[step.config.field];
-            newData[step.config.field] = step.config.mapping[oldVal] || oldVal;
+            const oldVal = String(newData[field]);
+            const mapping = step.config.mapping as Record<string, unknown>;
+            newData[field] = mapping[oldVal] || newData[field];
           }
           // Type casting
           else if (step.config.transform === 'TO_NUMBER') {
-            newData[step.config.field] = Number(newData[step.config.field]);
+            newData[field] = Number(newData[field]);
           } else if (step.config.transform === 'TO_STRING') {
-            newData[step.config.field] = String(newData[step.config.field]);
+            newData[field] = String(newData[field]);
           }
         }
         break;
@@ -202,4 +210,3 @@ export class SchemaMigrationService {
     return newData;
   }
 }
-

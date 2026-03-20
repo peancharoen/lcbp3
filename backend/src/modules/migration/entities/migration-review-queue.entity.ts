@@ -41,7 +41,7 @@ export class MigrationReviewQueue {
   aiConfidence?: number;
 
   @Column({ name: 'ai_issues', type: 'json', nullable: true })
-  aiIssues?: any;
+  aiIssues?: Record<string, unknown>[];
 
   @Column({ name: 'review_reason', length: 255, nullable: true })
   reviewReason?: string;
@@ -81,7 +81,7 @@ export class MigrationReviewQueue {
   aiSummary?: string;
 
   @Column({ name: 'extracted_tags', type: 'json', nullable: true })
-  extractedTags?: any;
+  extractedTags?: Record<string, string>[];
 
   @Column({ name: 'temp_attachment_id', type: 'int', nullable: true })
   tempAttachmentId?: number;

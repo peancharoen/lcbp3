@@ -74,7 +74,7 @@ export function FileUploadZone({
       const processedFiles: FileWithMeta[] = newFiles.map((file) => {
         const error = validateFile(file);
         // สร้าง Object ใหม่เพื่อไม่ให้กระทบ File object เดิม
-        const fileWithMeta = new File([file], file.name, { type: file.type } as any) as FileWithMeta;
+        const fileWithMeta = new File([file], file.name, { type: file.type }) as FileWithMeta;
         fileWithMeta.validationError = error;
         return fileWithMeta;
       });

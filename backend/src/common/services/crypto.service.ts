@@ -30,9 +30,10 @@ export class CryptoService {
       let encrypted = cipher.update(stringValue, 'utf8', 'hex');
       encrypted += cipher.final('hex');
       return `${iv.toString('hex')}:${encrypted}`;
-    } catch (error: any) {
-      // Fix TS18046: Cast error to any or Error to access .message
-      this.logger.error(`Encryption failed: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Encryption failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       throw error;
     }
   }
@@ -49,10 +50,9 @@ export class CryptoService {
       let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       return decrypted;
-    } catch (error: any) {
-      // Fix TS18046: Cast error to any or Error to access .message
+    } catch (error: unknown) {
       this.logger.warn(
-        `Decryption failed for value. Returning original text. Error: ${error.message}`,
+        `Decryption failed for value. Returning original text. Error: ${error instanceof Error ? error.message : String(error)}`
       );
       // กรณี Decrypt ไม่ได้ ให้คืนค่าเดิมเพื่อป้องกัน App Crash
       return text;

@@ -15,20 +15,29 @@ export function AuthSync() {
       // Map NextAuth session to AuthStore user
       // Assuming session.user has the fields we need based on types/next-auth.d.ts
 
-      // cast to any or specific type if needed, as NextAuth types might need assertion
-      const user = session.user as any;
+      // Map NextAuth session user to AuthStore user type
+      const user = session.user as {
+        id?: string;
+        user_id?: string;
+        username?: string;
+        email?: string;
+        firstName?: string;
+        lastName?: string;
+        role?: string;
+        permissions?: string[];
+      };
 
       setAuth(
         {
-          id: user.id || user.user_id,
-          username: user.username,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          permissions: user.permissions // If backend/auth.ts provides this
+          id: user.id || user.user_id || '',
+          username: user.username || '',
+          email: user.email || '',
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          role: user.role || 'User',
+          permissions: user.permissions
         },
-        session.accessToken || '' // If we store token in session
+        (session as { accessToken?: string }).accessToken || ''
       );
     } else if (status === 'unauthenticated') {
       logout();

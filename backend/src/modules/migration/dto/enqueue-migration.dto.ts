@@ -77,5 +77,5 @@ export class EnqueueMigrationDto {
 
   @IsArray()
   @IsOptional()
-  ai_issues?: any[];
+  ai_issues?: Record<string, unknown>[];
 }

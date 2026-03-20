@@ -112,14 +112,14 @@ export function Sidebar({ className }: SidebarProps) {
 
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="grid gap-1 px-2">
-          {mainNavItems.map((item, index) => {
+          {mainNavItems.map((item) => {
             if (item.adminOnly && !isAdmin) return null;
 
             const isActive = pathname.startsWith(item.href);
 
             const LinkComponent = (
               <Link
-                key={index}
+                key={item.href}
                 href={item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground',
@@ -135,7 +135,7 @@ export function Sidebar({ className }: SidebarProps) {
 
             if (item.permission) {
               return (
-                <Can key={index} permission={item.permission}>
+                <Can key={item.href} permission={item.permission}>
                   {LinkComponent}
                 </Can>
               );
@@ -186,14 +186,14 @@ export function MobileSidebar() {
         </div>
         <div className="flex-1 overflow-y-auto py-4 h-[calc(100vh-4rem)]">
           <nav className="grid gap-1 px-2">
-            {mainNavItems.map((item, index) => {
+            {mainNavItems.map((item) => {
               if (item.adminOnly && !isAdmin) return null;
 
               const isActive = pathname.startsWith(item.href);
 
               const LinkComponent = (
                 <Link
-                  key={index}
+                  key={item.href}
                   href={item.href}
                   onClick={() => setOpen(false)}
                   className={cn(
@@ -208,7 +208,7 @@ export function MobileSidebar() {
 
               if (item.permission) {
                 return (
-                  <Can key={index} permission={item.permission}>
+                  <Can key={item.href} permission={item.permission}>
                     {LinkComponent}
                   </Can>
                 );

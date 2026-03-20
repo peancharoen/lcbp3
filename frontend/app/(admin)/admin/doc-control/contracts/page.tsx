@@ -308,7 +308,7 @@ export default function ContractsPage() {
                         <SelectValue placeholder="Select Project" />
                     </SelectTrigger>
                     <SelectContent>
-                        {(projects as any[])?.map((p) => (
+                        {(projects as { id?: number; uuid?: string; projectCode: string; projectName: string }[])?.map((p) => (
                             <SelectItem key={p.uuid || p.id} value={String(p.id || p.uuid)}>
                                 {p.projectCode} - {p.projectName}
                             </SelectItem>

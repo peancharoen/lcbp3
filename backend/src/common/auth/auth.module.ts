@@ -18,6 +18,7 @@ import { User } from '../../modules/user/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity'; // [P2-2]
 import { CaslModule } from './casl/casl.module';
 import { PermissionsGuard } from './guards/permissions.guard';
+import type { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -31,7 +32,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
           expiresIn: (configService.get<string>('JWT_EXPIRATION') ||
-            '15m') as any,
+            '15m') as StringValue,
         },
       }),
     }),

@@ -48,7 +48,7 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false }: DSL
       const result = await workflowApi.validateDSL(dsl);
       setValidationResult(result);
     } catch (error) {
-      console.error("Validation error:", error);
+      // Validation failed - error state shown in UI
       setValidationResult({ valid: false, errors: ['Validation failed due to server error'] });
     } finally {
       setIsValidating(false);

@@ -155,7 +155,7 @@ export class RfaWorkflowService {
     revision: RfaRevision,
     workflowState: string,
     approveCodeStr?: string, // เช่น '1A', '1C'
-    queryRunner?: any
+    queryRunner?: import('typeorm').QueryRunner
   ) {
     // 1. Map Workflow State -> RFA Status Code (DFT, FAP, FCO...)
     const statusMap: Record<string, string> = {

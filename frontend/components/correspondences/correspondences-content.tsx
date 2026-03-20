@@ -18,10 +18,9 @@ export function CorrespondencesContent() {
 
   const { data, isLoading, isError } = useCorrespondences({
     page,
-    status,
     search,
     revisionStatus,
-  } as any);
+  });
 
   if (isLoading) {
     return (

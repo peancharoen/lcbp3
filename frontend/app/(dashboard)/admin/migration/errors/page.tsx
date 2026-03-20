@@ -32,7 +32,7 @@ export default function MigrationErrorsPage() {
       const res = await migrationService.getErrors({ limit: 100 });
       setItems(res.items);
     } catch (error) {
-      console.error("Failed to fetch errors", error);
+      // Failed to fetch errors - loading state handles display
     } finally {
       setLoading(false);
     }

@@ -10,6 +10,7 @@ import * as nodemailer from 'nodemailer';
 import axios from 'axios';
 
 import { UserService } from '../user/user.service';
+import { User } from '../user/entities/user.entity';
 
 interface NotificationPayload {
   userId: number;
@@ -78,7 +79,7 @@ export class NotificationProcessor extends WorkerHost {
    */
   private async handleDispatch(data: NotificationPayload) {
     // 1. ดึง User พร้อม Preferences
-    const user: any = await this.userService.findOne(data.userId);
+    const user = await this.userService.findOne(data.userId);
 
     if (!user) {
       this.logger.warn(`User ${data.userId} not found, skipping notification.`);
@@ -86,17 +87,17 @@ export class NotificationProcessor extends WorkerHost {
     }
 
     const prefs = user.preference || {
-      notify_email: true,
-      notify_line: true,
-      digest_mode: false,
+      notifyEmail: true,
+      notifyLine: true,
+      digestMode: false,
     };
 
     // 2. ตรวจสอบว่า User ปิดรับการแจ้งเตือนหรือไม่
-    if (data.type === 'EMAIL' && !prefs.notify_email) return;
-    if (data.type === 'LINE' && !prefs.notify_line) return;
+    if (data.type === 'EMAIL' && !prefs.notifyEmail) return;
+    if (data.type === 'LINE' && !prefs.notifyLine) return;
 
     // 3. ตรวจสอบ Digest Mode
-    if (prefs.digest_mode) {
+    if (prefs.digestMode) {
       await this.addToDigest(data);
     } else {
       // ส่งทันที (Real-time)
@@ -167,7 +168,7 @@ export class NotificationProcessor extends WorkerHost {
   // SENDERS (Immediate & Digest)
   // =====================================================
 
-  private async sendEmailImmediate(user: any, data: NotificationPayload) {
+  private async sendEmailImmediate(user: User, data: NotificationPayload) {
     if (!user.email) return;
     await this.mailerTransport.sendMail({
       from: '"LCBP3 DMS" <no-reply@np-dms.work>',
@@ -178,7 +179,7 @@ export class NotificationProcessor extends WorkerHost {
     this.logger.log(`Email sent to ${user.email}`);
   }
 
-  private async sendEmailDigest(user: any, messages: NotificationPayload[]) {
+  private async sendEmailDigest(user: User, messages: NotificationPayload[]) {
     if (!user.email) return;
 
     // สร้าง HTML List
@@ -204,7 +205,7 @@ export class NotificationProcessor extends WorkerHost {
     );
   }
 
-  private async sendLineImmediate(user: any, data: NotificationPayload) {
+  private async sendLineImmediate(user: User, data: NotificationPayload) {
     const n8nWebhookUrl = this.configService.get('N8N_LINE_WEBHOOK_URL');
     if (!n8nWebhookUrl) return;
 
@@ -221,7 +222,7 @@ export class NotificationProcessor extends WorkerHost {
     }
   }
 
-  private async sendLineDigest(user: any, messages: NotificationPayload[]) {
+  private async sendLineDigest(user: User, messages: NotificationPayload[]) {
     const n8nWebhookUrl = this.configService.get('N8N_LINE_WEBHOOK_URL');
     if (!n8nWebhookUrl) return;
 

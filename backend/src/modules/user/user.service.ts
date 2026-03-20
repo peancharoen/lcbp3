@@ -17,7 +17,9 @@ import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { SearchUserDto } from './dto/search-user.dto';
 import { Organization } from '../organization/entities/organization.entity';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @Injectable()
 export class UserService {
@@ -28,24 +30,9 @@ export class UserService {
     private roleRepository: Repository<Role>,
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private uuidResolver: UuidResolverService
   ) {}
-
-  /**
-   * ADR-019: Resolve organizationId (INT or UUID string) to internal INT ID
-   */
-  private async resolveOrganizationId(orgId: number | string): Promise<number> {
-    if (typeof orgId === 'number') return orgId;
-    const num = Number(orgId);
-    if (!isNaN(num)) return num;
-    const org = await this.usersRepository.manager.findOne(Organization, {
-      where: { uuid: orgId },
-      select: ['id'],
-    });
-    if (!org)
-      throw new NotFoundException(`Organization with UUID ${orgId} not found`);
-    return org.id;
-  }
 
   // 1. สร้างผู้ใช้ (Hash Password ก่อนบันทึก)
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -54,7 +41,9 @@ export class UserService {
 
     // ADR-019: Resolve UUID→INT for primaryOrganizationId
     const resolvedOrgId = createUserDto.primaryOrganizationId
-      ? await this.resolveOrganizationId(createUserDto.primaryOrganizationId)
+      ? await this.uuidResolver.resolveOrganizationId(
+          createUserDto.primaryOrganizationId
+        )
       : undefined;
 
     const newUser = this.usersRepository.create({
@@ -65,8 +54,9 @@ export class UserService {
 
     try {
       return await this.usersRepository.save(newUser);
-    } catch (error: any) {
-      if (error.code === 'ER_DUP_ENTRY') {
+    } catch (error: unknown) {
+      const dbError = error as { code?: string };
+      if (dbError.code === 'ER_DUP_ENTRY') {
         throw new ConflictException('Username or Email already exists');
       }
       throw error;
@@ -74,7 +64,13 @@ export class UserService {
   }
 
   // 2. ดึงข้อมูลทั้งหมด (Search & Pagination)
-  async findAll(params?: any): Promise<any> {
+  async findAll(params?: SearchUserDto): Promise<{
+    data: User[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const {
       search,
       roleId,
@@ -116,7 +112,7 @@ export class UserService {
 
     if (primaryOrganizationId) {
       // ADR-019: Resolve UUID→INT for filtering
-      const resolvedOrgId = await this.resolveOrganizationId(
+      const resolvedOrgId = await this.uuidResolver.resolveOrganizationId(
         primaryOrganizationId
       );
       query.andWhere('user.primaryOrganizationId = :orgId', {
@@ -195,9 +191,10 @@ export class UserService {
     // ADR-019: Resolve UUID→INT for primaryOrganizationId before merge
     const resolvedDto: Record<string, unknown> = { ...updateUserDto };
     if (updateUserDto.primaryOrganizationId !== undefined) {
-      resolvedDto.primaryOrganizationId = await this.resolveOrganizationId(
-        updateUserDto.primaryOrganizationId
-      );
+      resolvedDto.primaryOrganizationId =
+        await this.uuidResolver.resolveOrganizationId(
+          updateUserDto.primaryOrganizationId
+        );
     }
 
     const updatedUser = this.usersRepository.merge(
@@ -250,7 +247,9 @@ export class UserService {
       [userId]
     );
 
-    const permissionList = permissions.map((row: any) => row.permission_name);
+    const permissionList = permissions.map(
+      (row: { permission_name: string }) => row.permission_name
+    );
 
     // 3. บันทึกลง Cache (TTL 1800 วินาที = 30 นาที)
     await this.cacheManager.set(cacheKey, permissionList, 1800 * 1000);

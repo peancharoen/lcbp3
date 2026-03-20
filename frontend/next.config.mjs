@@ -52,7 +52,10 @@ const nextConfig = {
     return config;
   },
 
-  // 5.1. Security Headers + MIME Types
+  // 6. Static Generation Prevention for Dynamic Routes
+  // Individual pages will use dynamic exports
+
+  // 7. Security Headers + MIME Types
   async headers() {
     return [
       {

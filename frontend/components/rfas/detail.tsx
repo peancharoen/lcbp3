@@ -1,6 +1,5 @@
 "use client";
 
-import { RFA } from "@/types/rfa";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,8 +12,29 @@ import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
 import { useProcessRFA } from "@/hooks/use-rfa";
 
+interface RFADetailItem {
+  id: number;
+  itemNo: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  status?: string;
+}
+
+interface RFADetailData {
+  uuid: string;
+  rfaNumber: string;
+  subject: string;
+  description?: string;
+  status: string;
+  createdAt: string;
+  contractName?: string;
+  disciplineName?: string;
+  items: RFADetailItem[];
+}
+
 interface RFADetailProps {
-  data: any;
+  data: RFADetailData;
 }
 
 export function RFADetail({ data }: RFADetailProps) {
@@ -152,7 +172,7 @@ export function RFADetail({ data }: RFADetailProps) {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {data.items.map((item: any) => (
+                      {data.items.map((item) => (
                         <tr key={item.id}>
                           <td className="px-4 py-3 font-medium">{item.itemNo}</td>
                           <td className="px-4 py-3">{item.description}</td>

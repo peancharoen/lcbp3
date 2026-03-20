@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateTagDto {
@@ -11,4 +11,12 @@ export class CreateTagDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @ApiProperty({
+    example: 1,
+    description: 'Project ID or UUID',
+    required: false,
+  })
+  @IsOptional()
+  project_id?: number | string;
 }

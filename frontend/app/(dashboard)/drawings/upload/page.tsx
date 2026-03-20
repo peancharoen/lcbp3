@@ -1,5 +1,11 @@
 import { DrawingUploadForm } from "@/components/drawings/upload-form";
 
+// Force dynamic rendering to prevent build-time prerendering issues
+export const dynamic = 'force-dynamic';
+
+// Ensure this page is never statically generated
+export const fetchCache = 'force-no-store';
+
 export default function DrawingUploadPage() {
   return (
     <div className="max-w-4xl mx-auto py-6">

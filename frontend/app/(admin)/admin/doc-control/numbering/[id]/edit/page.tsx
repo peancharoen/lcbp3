@@ -42,7 +42,6 @@ export default function EditTemplatePage() {
         }
       } catch (error) {
         toast.error('Failed to load template');
-        console.error('[EditTemplatePage] fetchTemplate:', error);
       } finally {
         setLoading(false);
       }
@@ -57,7 +56,6 @@ export default function EditTemplatePage() {
       router.push('/admin/doc-control/numbering');
     } catch (error) {
       toast.error('Failed to update template');
-      console.error('[EditTemplatePage] handleSave:', error);
     }
   };
 

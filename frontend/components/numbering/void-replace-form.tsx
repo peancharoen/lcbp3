@@ -29,16 +29,16 @@ const formSchema = z.object({
 
 type VoidReplaceFormData = z.infer<typeof formSchema>;
 
-export function VoidReplaceForm({ projectId = 1 }: { projectId?: number }) {
+export function VoidReplaceForm({ projectId = 1 }: { projectId?: number | string }) {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<VoidReplaceFormData>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- zod 4 + @hookform/resolvers compat
     defaultValues: {
       documentNumber: "",
       reason: "",
       replace: false,
-      projectId: projectId
+      projectId: Number(projectId)
     },
   });
 
@@ -53,7 +53,6 @@ export function VoidReplaceForm({ projectId = 1 }: { projectId?: number }) {
       form.reset();
     } catch (error) {
       toast.error("Failed to void number. Check if it exists.");
-      console.error(error);
     } finally {
       setLoading(false);
     }

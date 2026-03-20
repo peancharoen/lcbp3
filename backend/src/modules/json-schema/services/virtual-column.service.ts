@@ -21,14 +21,14 @@ export class VirtualColumnService {
 
     try {
       this.logger.log(
-        `Start setting up virtual columns for table '${tableName}'...`,
+        `Start setting up virtual columns for table '${tableName}'...`
       );
 
       // 1. ตรวจสอบว่าตารางมีอยู่จริงไหม
       const tableExists = await queryRunner.hasTable(tableName);
       if (!tableExists) {
         this.logger.warn(
-          `Table '${tableName}' not found. Skipping virtual columns.`,
+          `Table '${tableName}' not found. Skipping virtual columns.`
         );
         return;
       }
@@ -42,12 +42,12 @@ export class VirtualColumnService {
       }
 
       this.logger.log(
-        `Finished setting up virtual columns for '${tableName}'.`,
+        `Finished setting up virtual columns for '${tableName}'.`
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.error(
-        `Failed to setup virtual columns: ${err.message}`,
-        err.stack,
+        `Failed to setup virtual columns: ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err.stack : undefined
       );
       throw err;
     } finally {
@@ -61,11 +61,11 @@ export class VirtualColumnService {
   private async ensureVirtualColumn(
     queryRunner: QueryRunner,
     tableName: string,
-    config: VirtualColumnConfig,
+    config: VirtualColumnConfig
   ) {
     const hasColumn = await queryRunner.hasColumn(
       tableName,
-      config.column_name,
+      config.column_name
     );
 
     if (!hasColumn) {
@@ -75,7 +75,7 @@ export class VirtualColumnService {
     } else {
       // TODO: (Advance) ถ้ามี Column แล้ว แต่ Definition เปลี่ยน อาจต้อง ALTER MODIFY
       this.logger.debug(
-        `Column '${config.column_name}' already exists in '${tableName}'.`,
+        `Column '${config.column_name}' already exists in '${tableName}'.`
       );
     }
   }
@@ -86,7 +86,7 @@ export class VirtualColumnService {
   private async ensureIndex(
     queryRunner: QueryRunner,
     tableName: string,
-    config: VirtualColumnConfig,
+    config: VirtualColumnConfig
   ) {
     const indexName = `idx_${tableName}_${config.column_name}`;
 
@@ -116,7 +116,7 @@ export class VirtualColumnService {
    */
   private generateAddColumnSql(
     tableName: string,
-    config: VirtualColumnConfig,
+    config: VirtualColumnConfig
   ): string {
     const dbType = this.mapDataTypeToSql(config.data_type);
     // JSON_UNQUOTE(JSON_EXTRACT(details, '$.path'))
@@ -149,4 +149,3 @@ export class VirtualColumnService {
     }
   }
 }
-

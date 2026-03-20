@@ -12,7 +12,7 @@ export class RequestContextService {
     this.cls.run(new Map(), fn);
   }
 
-  static set(key: string, value: any) {
+  static set(key: string, value: unknown) {
     const store = this.cls.getStore();
     if (store) {
       store.set(key, value);

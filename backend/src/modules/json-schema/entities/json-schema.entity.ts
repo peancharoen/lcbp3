@@ -32,16 +32,16 @@ export class JsonSchema {
   tableName!: string;
 
   @Column({ name: 'schema_definition', type: 'json' })
-  schemaDefinition!: any;
+  schemaDefinition!: Record<string, unknown>;
 
   @Column({ name: 'ui_schema', type: 'json', nullable: true })
-  uiSchema?: any;
+  uiSchema?: Record<string, unknown>;
 
   @Column({ name: 'virtual_columns', type: 'json', nullable: true })
   virtualColumns?: VirtualColumnConfig[];
 
   @Column({ name: 'migration_script', type: 'json', nullable: true })
-  migrationScript?: any;
+  migrationScript?: Record<string, unknown>;
 
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;

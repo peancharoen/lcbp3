@@ -27,7 +27,6 @@ export default function NewTemplatePage() {
       router.push("/admin/numbering");
     } catch (error) {
       toast.error('Failed to create template');
-      console.error('[NewTemplatePage]', error);
     }
   };
 

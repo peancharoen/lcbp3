@@ -39,7 +39,7 @@ export class AuditLog {
   entityId?: string;
 
   @Column({ name: 'details_json', type: 'json', nullable: true })
-  detailsJson?: any;
+  detailsJson?: Record<string, unknown>;
 
   @Column({ name: 'ip_address', length: 45, nullable: true })
   ipAddress?: string;

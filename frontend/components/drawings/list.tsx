@@ -35,7 +35,7 @@ export function DrawingList({ type, projectUuid, filters }: DrawingListProps) {
     ...filters,
     page: pagination.pageIndex + 1, // API is 1-based
     limit: pagination.pageSize,
-  } as any);
+  } as DrawingSearchParams);
 
   const drawings = response?.data || [];
   const meta = response?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 };

@@ -138,7 +138,7 @@ specs/
 
 4. **Follow Blue-Green Deployment:** โปรเจกต์พึ่งพาการทำ Blue-Green Environment เพื่อ Downtime ขั้นต่ำ ต้องผ่าน **5 Release Gates** ก่อน Deploy ทุกครั้ง — ดู `04-08-release-management-policy.md`
 
-5. **No `any` Types:** ไม่อนุญาตให้ใช้ `any` ในโค้ด พยายามใช้ Validation ผ่าน DTO / Zod แบบ Strongly-typed เสมอ
+5. **No `any` Types:** ไม่อนุญาตให้ใช้ `any` ในโค้ด พยายามใช้ Validation ผ่าน DTO / Zod แบบ Strongly-typed เสมอ — **Enforced ✅** (0 remaining in backend as of v1.8.1, ดูเทคนิคที่ `05-02-backend-guidelines.md`)
 
 6. **AI Isolation (ADR-018):** Ollama ต้องรันบน **Admin Desktop** (i9-9900K, RTX 2060 SUPER 8GB) เท่านั้น — ห้ามรันบน QNAP/Production Server ห้ามมี Direct DB Access โดยเด็ดขาด AI Output ต้องผ่าน Backend Validation ก่อน Write ทุกครั้ง
 

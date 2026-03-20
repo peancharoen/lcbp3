@@ -41,7 +41,7 @@ apiClient.interceptors.request.use(
           }
         }
       } catch (error) {
-        console.warn("Failed to retrieve auth token:", error);
+        // Auth token retrieval failed - request will proceed without token
       }
     }
 
@@ -66,7 +66,7 @@ apiClient.interceptors.response.use(
 
       // กรณี Token หมดอายุ หรือ ไม่มีสิทธิ์
       if (status === 401) {
-        console.error("Unauthorized: Please login again.");
+        // Unauthorized: redirect handled by auth interceptor
         // สามารถเพิ่ม Logic Redirect ไปหน้า Login ได้ถ้าต้องการ
       }
     }

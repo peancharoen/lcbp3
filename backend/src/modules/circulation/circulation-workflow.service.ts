@@ -25,7 +25,7 @@ export class CirculationWorkflowService {
     private readonly circulationRepo: Repository<Circulation>,
     @InjectRepository(CirculationStatusCode)
     private readonly statusRepo: Repository<CirculationStatusCode>,
-    private readonly dataSource: DataSource,
+    private readonly dataSource: DataSource
   ) {}
 
   /**
@@ -44,7 +44,7 @@ export class CirculationWorkflowService {
 
       if (!circulation) {
         throw new NotFoundException(
-          `Circulation ID ${circulationId} not found`,
+          `Circulation ID ${circulationId} not found`
         );
       }
 
@@ -59,7 +59,7 @@ export class CirculationWorkflowService {
         this.WORKFLOW_CODE,
         'circulation',
         circulation.id.toString(),
-        context,
+        context
       );
 
       // Auto start (OPEN -> IN_REVIEW)
@@ -68,14 +68,14 @@ export class CirculationWorkflowService {
         'START',
         userId,
         'Start Circulation Process',
-        {},
+        {}
       );
 
       // Sync Status
       await this.syncStatus(
         circulation,
         transitionResult.nextState,
-        queryRunner,
+        queryRunner
       );
 
       await queryRunner.commitTransaction();
@@ -99,7 +99,7 @@ export class CirculationWorkflowService {
   async processAction(
     instanceId: string,
     userId: number,
-    dto: WorkflowTransitionDto,
+    dto: WorkflowTransitionDto
   ) {
     // ส่งให้ Engine
     const result = await this.workflowEngine.processTransition(
@@ -107,7 +107,7 @@ export class CirculationWorkflowService {
       dto.action,
       userId,
       dto.comment,
-      dto.payload,
+      dto.payload
     );
 
     // Sync Status กลับ
@@ -130,7 +130,7 @@ export class CirculationWorkflowService {
   private async syncStatus(
     circulation: Circulation,
     workflowState: string,
-    queryRunner?: any,
+    queryRunner?: import('typeorm').QueryRunner
   ) {
     const statusMap: Record<string, string> = {
       DRAFT: 'OPEN',
@@ -158,7 +158,7 @@ export class CirculationWorkflowService {
     await manager.save(circulation);
 
     this.logger.log(
-      `Synced Circulation #${circulation.id}: State=${workflowState} -> Status=${targetCode}`,
+      `Synced Circulation #${circulation.id}: State=${workflowState} -> Status=${targetCode}`
     );
   }
 }

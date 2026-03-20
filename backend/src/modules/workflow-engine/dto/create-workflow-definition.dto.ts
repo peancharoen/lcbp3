@@ -7,6 +7,7 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import type { RawWorkflowDSL } from '../workflow-dsl.service';
 
 export class CreateWorkflowDefinitionDto {
   @ApiProperty({ example: 'RFA', description: 'รหัสของ Workflow' })
@@ -17,7 +18,7 @@ export class CreateWorkflowDefinitionDto {
   @ApiProperty({ description: 'นิยาม Workflow' })
   @IsObject()
   @IsNotEmpty()
-  dsl!: any; // เพิ่ม !
+  dsl!: RawWorkflowDSL; // เพิ่ม !
 
   @ApiProperty({ description: 'เปิดใช้งานทันทีหรือไม่', default: true })
   @IsBoolean()

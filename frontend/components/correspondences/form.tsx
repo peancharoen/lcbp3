@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileUpload } from "@/components/common/file-upload";
+import { FileUploadZone } from "@/components/custom/file-upload-zone";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useCreateCorrespondence, useUpdateCorrespondence } from "@/hooks/use-correspondence";
@@ -80,7 +80,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(correspondenceSchema),
-    defaultValues: defaultValues as any,
+    defaultValues: defaultValues as FormData,
   });
 
   // Watch for controlled inputs
@@ -407,10 +407,10 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
       {!initialData && (
         <div className="space-y-2">
           <Label>Attachments</Label>
-          <FileUpload
-            onFilesSelected={(files) => setValue("attachments", files)}
-            maxFiles={10}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png"
+          <FileUploadZone
+            onFilesChanged={(files) => setValue("attachments", files)}
+            multiple
+            accept={[".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".png"]}
           />
         </div>
       )}

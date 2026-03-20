@@ -6,7 +6,7 @@ export interface CircuitBreakerOptions {
   timeout?: number;
   errorThresholdPercentage?: number;
   resetTimeout?: number;
-  fallback?: (...args: any[]) => any;
+  fallback?: (...args: unknown[]) => unknown;
 }
 
 /**
@@ -17,7 +17,7 @@ export function UseCircuitBreaker(options: CircuitBreakerOptions = {}) {
   return function (
     target: any,
     propertyKey: string,
-    descriptor: PropertyDescriptor,
+    descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
     const logger = new Logger('CircuitBreakerDecorator');
@@ -31,7 +31,7 @@ export function UseCircuitBreaker(options: CircuitBreakerOptions = {}) {
 
     breaker.on('open', () => logger.warn(`Circuit OPEN for ${propertyKey}`));
     breaker.on('halfOpen', () =>
-      logger.log(`Circuit HALF-OPEN for ${propertyKey}`),
+      logger.log(`Circuit HALF-OPEN for ${propertyKey}`)
     );
     breaker.on('close', () => logger.log(`Circuit CLOSED for ${propertyKey}`));
 
@@ -39,7 +39,7 @@ export function UseCircuitBreaker(options: CircuitBreakerOptions = {}) {
       breaker.fallback(options.fallback);
     }
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       // ✅ ใช้ .fire โดยส่ง this context ให้ถูกต้อง
       return breaker.fire.apply(breaker, [this, ...args]);
     };

@@ -33,7 +33,6 @@ export default function NewWorkflowPage() {
       router.push('/admin/doc-control/workflows');
     } catch (error) {
       toast.error('Failed to create workflow');
-      console.error('[NewWorkflowPage]', error);
     } finally {
       setSaving(false);
     }

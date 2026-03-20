@@ -73,10 +73,13 @@ export default function TagsPage() {
       fetchFn={async () => {
         const items = await masterDataService.getTags();
         // ADR-019: Map project_id INT → project UUID for edit mode select matching
-        return (items as any[]).map((item: any) => ({
-          ...item,
-          project_id: item.project?.id || item.project?.uuid || (item.project_id ? String(item.project_id) : null),
-        }));
+        return (items as Record<string, unknown>[]).map((item) => {
+          const rec = item as { project?: { id?: number; uuid?: string }; project_id?: number };
+          return {
+            ...item,
+            project_id: rec.project?.id || rec.project?.uuid || (rec.project_id ? String(rec.project_id) : null),
+          };
+        });
       }}
       createFn={(data: Record<string, unknown>) => masterDataService.createTag(formatPayload(data) as unknown as CreateTagDto)}
       updateFn={(id, data) => masterDataService.updateTag(id, formatPayload(data))}

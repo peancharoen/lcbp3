@@ -13,12 +13,23 @@ import {
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { MasterService } from './master.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { User } from '../user/entities/user.entity';
+import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
+import { RfaType } from '../rfa/entities/rfa-type.entity';
+import { CreateDisciplineDto } from './dto/create-discipline.dto';
+import { CreateSubTypeDto } from './dto/create-sub-type.dto';
+import { SaveNumberFormatDto } from './dto/save-number-format.dto';
 
 // Import DTOs
 import { CreateTagDto } from './dto/create-tag.dto';
@@ -41,7 +52,7 @@ export class MasterController {
 
   @Post('correspondence-types')
   @RequirePermission('master_data.manage')
-  createCorrespondenceType(@Body() dto: any) {
+  createCorrespondenceType(@Body() dto: Partial<CorrespondenceType>) {
     return this.masterService.createCorrespondenceType(dto);
   }
 
@@ -55,7 +66,9 @@ export class MasterController {
 
   @Post('rfa-types')
   @RequirePermission('master_data.manage')
-  createRfaType(@Body() dto: any) {
+  createRfaType(
+    @Body() dto: Partial<RfaType> & { contractId: number | string }
+  ) {
     return this.masterService.createRfaType(dto);
   }
 
@@ -69,7 +82,9 @@ export class MasterController {
 
   @Post('disciplines')
   @RequirePermission('master_data.manage')
-  createDiscipline(@Body() dto: any) {
+  createDiscipline(
+    @Body() dto: CreateDisciplineDto & { contractId: number | string }
+  ) {
     return this.masterService.createDiscipline(dto);
   }
 
@@ -92,7 +107,9 @@ export class MasterController {
 
   @Post('sub-types')
   @RequirePermission('master_data.manage')
-  createSubType(@Body() dto: any) {
+  createSubType(
+    @Body() dto: CreateSubTypeDto & { contractId: number | string }
+  ) {
     return this.masterService.createSubType(dto);
   }
 
@@ -108,7 +125,7 @@ export class MasterController {
 
   @Post('numbering-formats')
   @RequirePermission('master_data.manage')
-  saveNumberFormat(@Body() dto: any) {
+  saveNumberFormat(@Body() dto: SaveNumberFormatDto) {
     return this.masterService.saveNumberFormat(dto);
   }
 
@@ -128,8 +145,8 @@ export class MasterController {
   @Post('tags')
   @RequirePermission('master_data.tag.manage')
   @ApiOperation({ summary: 'Create a new tag' })
-  createTag(@Body() dto: CreateTagDto, @CurrentUser() user: any) {
-    return this.masterService.createTag(dto, user.userId);
+  createTag(@Body() dto: CreateTagDto, @CurrentUser() user: User) {
+    return this.masterService.createTag(dto, user.user_id);
   }
 
   @Patch('tags/:id')

@@ -23,10 +23,16 @@ import { MetricsService } from './metrics.service';
 // DTOs
 import { CounterKeyDto } from '../dto/counter-key.dto';
 import { GenerateNumberContext } from '../interfaces/document-numbering.interface';
-import { ReserveNumberDto } from '../dto/reserve-number.dto';
-import { ConfirmReservationDto } from '../dto/confirm-reservation.dto';
-import { Project } from '../../project/entities/project.entity';
-import { Organization } from '../../organization/entities/organization.entity';
+import {
+  ReserveNumberDto,
+  ReserveNumberResponseDto,
+} from '../dto/reserve-number.dto';
+import {
+  ConfirmReservationDto,
+  ConfirmReservationResponseDto,
+} from '../dto/confirm-reservation.dto';
+import { ManualOverrideDto } from '../dto/manual-override.dto';
+import { UuidResolverService } from '../../../common/services/uuid-resolver.service';
 
 @Injectable()
 export class DocumentNumberingService {
@@ -48,24 +54,9 @@ export class DocumentNumberingService {
     private manualOverrideService: ManualOverrideService,
     private metricsService: MetricsService,
     @InjectEntityManager()
-    private entityManager: EntityManager
+    private entityManager: EntityManager,
+    private uuidResolver: UuidResolverService
   ) {}
-
-  /**
-   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
-   */
-  private async resolveProjectId(projectId: number | string): Promise<number> {
-    if (typeof projectId === 'number') return projectId;
-    const num = Number(projectId);
-    if (!isNaN(num)) return num;
-    const project = await this.entityManager.findOne(Project, {
-      where: { uuid: projectId },
-      select: ['id'],
-    });
-    if (!project)
-      throw new NotFoundException(`Project with UUID ${projectId} not found`);
-    return project.id;
-  }
 
   /**
    * ADR-019: Public facade for controllers to resolve project/organization IDs
@@ -74,24 +65,8 @@ export class DocumentNumberingService {
     type: 'project' | 'organization',
     id: number | string
   ): Promise<number> {
-    if (type === 'project') return this.resolveProjectId(id);
-    return this.resolveOrganizationId(id);
-  }
-
-  /**
-   * ADR-019: Resolve organizationId (INT or UUID string) to internal INT ID
-   */
-  private async resolveOrganizationId(orgId: number | string): Promise<number> {
-    if (typeof orgId === 'number') return orgId;
-    const num = Number(orgId);
-    if (!isNaN(num)) return num;
-    const org = await this.entityManager.findOne(Organization, {
-      where: { uuid: orgId },
-      select: ['id'],
-    });
-    if (!org)
-      throw new NotFoundException(`Organization with UUID ${orgId} not found`);
-    return org.id;
+    if (type === 'project') return this.uuidResolver.resolveProjectId(id);
+    return this.uuidResolver.resolveOrganizationId(id);
   }
 
   async generateNextNumber(
@@ -176,7 +151,7 @@ export class DocumentNumberingService {
       });
 
       return { number: documentNumber, auditId: audit.id };
-    } catch (error: any) {
+    } catch (error: unknown) {
       await this.logError(error, ctx, 'GENERATE');
       throw error;
     } finally {
@@ -190,7 +165,7 @@ export class DocumentNumberingService {
     dto: ReserveNumberDto,
     userId: number,
     ipAddress?: string
-  ): Promise<any> {
+  ): Promise<ReserveNumberResponseDto> {
     try {
       // Delegate completely to ReservationService
       return await this.reservationService.reserve(
@@ -199,7 +174,7 @@ export class DocumentNumberingService {
         ipAddress || '0.0.0.0',
         'Unknown' // userAgent not passed in legacy call
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Reservation failed', error);
       throw error;
     }
@@ -208,7 +183,7 @@ export class DocumentNumberingService {
   async confirmReservation(
     dto: ConfirmReservationDto,
     userId: number
-  ): Promise<any> {
+  ): Promise<ConfirmReservationResponseDto> {
     return this.reservationService.confirm(dto, userId);
   }
 
@@ -273,16 +248,18 @@ export class DocumentNumberingService {
   }
 
   async getTemplatesByProject(projectId: number | string) {
-    const internalId = await this.resolveProjectId(projectId);
+    const internalId = await this.uuidResolver.resolveProjectId(projectId);
     return this.formatRepo.find({
       where: { projectId: internalId },
       relations: ['project', 'correspondenceType'],
     });
   }
 
-  async saveTemplate(dto: any) {
+  async saveTemplate(
+    dto: Partial<DocumentNumberFormat> & { projectId?: number | string }
+  ) {
     if (dto.projectId) {
-      dto.projectId = await this.resolveProjectId(dto.projectId);
+      dto.projectId = await this.uuidResolver.resolveProjectId(dto.projectId);
     }
     return this.formatRepo.save(dto);
   }
@@ -312,7 +289,7 @@ export class DocumentNumberingService {
     );
   }
 
-  async manualOverride(dto: any, userId: number) {
+  async manualOverride(dto: ManualOverrideDto, userId: number) {
     return this.manualOverrideService.applyOverride(dto, userId);
   }
   async voidAndReplace(dto: {
@@ -433,7 +410,7 @@ export class DocumentNumberingService {
     return { status: 'CANCELLED' };
   }
 
-  async bulkImport(items: any[]) {
+  async bulkImport(items: ManualOverrideDto[]) {
     const results = { success: 0, failed: 0, errors: [] as string[] };
 
     // items expected to be ManualOverrideDto[] or similar
@@ -464,15 +441,32 @@ export class DocumentNumberingService {
     return results;
   }
 
-  private async logAudit(data: any): Promise<DocumentNumberAudit> {
+  private async logAudit(data: {
+    documentNumber: string;
+    counterKey: unknown;
+    templateUsed: string;
+    context: { projectId?: number; userId?: number; ipAddress?: string };
+    isSuccess: boolean;
+    operation: string;
+    status?: string;
+    oldValue?: string;
+    newValue?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<DocumentNumberAudit> {
     const audit = this.auditRepo.create({
-      ...data,
-      projectId: data.context.projectId,
-      createdBy: data.context.userId,
+      documentNumber: data.documentNumber,
+      counterKey: data.counterKey,
+      templateUsed: data.templateUsed,
+      isSuccess: data.isSuccess,
+      operation: data.operation,
+      status: data.status,
+      oldValue: data.oldValue,
+      newValue: data.newValue,
+      metadata: data.metadata,
+      userId: data.context.userId,
       ipAddress: data.context.ipAddress,
-      // map other fields
     });
-    return (await this.auditRepo.save(audit)) as unknown as DocumentNumberAudit;
+    return this.auditRepo.save(audit);
   }
 
   private mapErrorType(error: Error): string {

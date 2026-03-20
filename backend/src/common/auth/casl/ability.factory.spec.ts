@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AbilityFactory, ScopeContext } from './ability.factory';
 import { User } from '../../../modules/user/entities/user.entity';
 import { UserAssignment } from '../../../modules/user/entities/user-assignment.entity';
+import { Role } from '../../../modules/auth/entities/role.entity';
 
 describe('AbilityFactory', () => {
   let factory: AbilityFactory;
@@ -158,7 +159,7 @@ function createMockAssignment(props: {
     permissions: props.permissionNames.map((name) => ({
       permissionName: name,
     })),
-  } as any;
+  } as Partial<Role> as Role;
 
   return assignment;
 }

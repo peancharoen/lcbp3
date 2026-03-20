@@ -30,7 +30,7 @@ export class NotificationController {
   ) {
     const { page = 1, limit = 20, isRead } = searchDto;
 
-    const where: any = { userId: user.user_id };
+    const where: Record<string, unknown> = { userId: user.user_id };
 
     // เพิ่ม Filter isRead ถ้ามีการส่งมา
     if (isRead !== undefined) {

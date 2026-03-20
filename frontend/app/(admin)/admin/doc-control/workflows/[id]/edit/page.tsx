@@ -71,7 +71,6 @@ export default function WorkflowEditPage() {
       }
     } catch (error) {
       toast.error('Failed to save workflow');
-      console.error(error);
     }
   };
 

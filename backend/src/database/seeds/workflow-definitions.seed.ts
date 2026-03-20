@@ -116,18 +116,19 @@ export const seedWorkflowDefinitions = async (dataSource: DataSource) => {
     if (!exists) {
       try {
         // Compile เพื่อ Validate และ Normalize ก่อนบันทึก
-        // cast as any เพื่อ bypass type checking ตอน seed raw data
-        const compiled = dslService.compile(dsl as any);
+        const compiled = dslService.compile(
+          dsl as unknown as import('../../modules/workflow-engine/workflow-dsl.service').RawWorkflowDSL
+        );
 
         await repo.save(
           repo.create({
             workflow_code: dsl.workflow,
             version: dsl.version,
             description: dsl.description,
-            dsl: dsl,
-            compiled: compiled,
+            dsl: dsl as unknown as Record<string, unknown>,
+            compiled: compiled as unknown as Record<string, unknown>,
             is_active: true,
-          }),
+          })
         );
         console.log(`✅ Seeded Workflow: ${dsl.workflow} v${dsl.version}`);
       } catch (error) {
@@ -135,7 +136,7 @@ export const seedWorkflowDefinitions = async (dataSource: DataSource) => {
       }
     } else {
       console.log(
-        `⏭️  Workflow already exists: ${dsl.workflow} v${dsl.version}`,
+        `⏭️  Workflow already exists: ${dsl.workflow} v${dsl.version}`
       );
     }
   }

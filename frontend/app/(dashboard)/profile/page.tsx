@@ -69,7 +69,7 @@ export default function ProfilePage() {
       reset();
     } catch (error) {
       toast.error('ไม่สามารถเปลี่ยนรหัสผ่านได้: รหัสผ่านปัจจุบันไม่ถูกต้อง');
-      console.error('[ProfilePage] onPasswordSubmit:', error);
+      // Password change failed - toast shown
     } finally {
       setIsLoading(false);
     }

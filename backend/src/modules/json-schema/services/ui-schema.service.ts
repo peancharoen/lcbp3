@@ -1,6 +1,10 @@
 // File: src/modules/json-schema/services/ui-schema.service.ts
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { UiSchema, UiSchemaField } from '../interfaces/ui-schema.interface';
+import {
+  UiSchema,
+  UiSchemaField,
+  WidgetType,
+} from '../interfaces/ui-schema.interface';
 
 @Injectable()
 export class UiSchemaService {
@@ -9,13 +13,16 @@ export class UiSchemaService {
   /**
    * ตรวจสอบความถูกต้องของ UI Schema
    */
-  validateUiSchema(uiSchema: UiSchema, dataSchema: any): boolean {
+  validateUiSchema(
+    uiSchema: UiSchema,
+    dataSchema: Record<string, unknown>
+  ): boolean {
     if (!uiSchema) return true; // Optional field
 
     // 1. Validate Structure เบื้องต้น
     if (!uiSchema.layout || !uiSchema.fields) {
       throw new BadRequestException(
-        'UI Schema must contain "layout" and "fields" properties.',
+        'UI Schema must contain "layout" and "fields" properties.'
       );
     }
 
@@ -28,7 +35,7 @@ export class UiSchemaService {
         layoutFields.add(fieldKey);
         if (!definedFields.has(fieldKey)) {
           throw new BadRequestException(
-            `Field "${fieldKey}" used in layout "${group.title}" is not defined in "fields".`,
+            `Field "${fieldKey}" used in layout "${group.title}" is not defined in "fields".`
           );
         }
       });
@@ -42,7 +49,7 @@ export class UiSchemaService {
 
       if (missingFields.length > 0) {
         this.logger.warn(
-          `Data schema properties [${missingFields.join(', ')}] are missing from UI Schema.`,
+          `Data schema properties [${missingFields.join(', ')}] are missing from UI Schema.`
         );
         // ไม่ Throw Error เพราะบางทีเราอาจตั้งใจซ่อน Field (Hidden field)
       }
@@ -55,7 +62,7 @@ export class UiSchemaService {
    * สร้าง UI Schema พื้นฐานจาก Data Schema (AJV) อัตโนมัติ
    * ใช้กรณี user ไม่ได้ส่ง UI Schema มาให้
    */
-  generateDefaultUiSchema(dataSchema: any): UiSchema {
+  generateDefaultUiSchema(dataSchema: Record<string, unknown>): UiSchema {
     if (!dataSchema || !dataSchema.properties) {
       return {
         layout: { type: 'stack', groups: [] },
@@ -66,15 +73,17 @@ export class UiSchemaService {
     const fields: { [key: string]: UiSchemaField } = {};
     const groupFields: string[] = [];
 
-    for (const [key, value] of Object.entries<any>(dataSchema.properties)) {
+    for (const [key, value] of Object.entries(
+      dataSchema.properties as Record<string, Record<string, unknown>>
+    )) {
       groupFields.push(key);
 
       fields[key] = {
-        type: value.type || 'string',
-        title: value.title || this.humanize(key),
-        description: value.description,
-        required: (dataSchema.required || []).includes(key),
-        widget: this.guessWidget(value),
+        type: (value.type as UiSchemaField['type']) || 'string',
+        title: (value.title as string) || this.humanize(key),
+        description: value.description as string | undefined,
+        required: ((dataSchema.required as string[]) || []).includes(key),
+        widget: this.guessWidget(value) as WidgetType,
         colSpan: 12, // Default full width
       };
     }
@@ -103,7 +112,7 @@ export class UiSchemaService {
       .trim();
   }
 
-  private guessWidget(schemaProp: any): any {
+  private guessWidget(schemaProp: Record<string, unknown>): WidgetType {
     if (schemaProp.enum) return 'select';
     if (schemaProp.type === 'boolean') return 'checkbox';
     if (schemaProp.format === 'date') return 'date';
@@ -112,4 +121,3 @@ export class UiSchemaService {
     return 'text';
   }
 }
-

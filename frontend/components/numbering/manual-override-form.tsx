@@ -29,13 +29,13 @@ const formSchema = z.object({
   resetScope: z.string().optional()
 });
 
-export function ManualOverrideForm({ projectId = 1 }: { projectId?: number }) {
+export function ManualOverrideForm({ projectId = 1 }: { projectId?: number | string }) {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- zod 4 + @hookform/resolvers compat
     defaultValues: {
-      projectId: projectId,
+      projectId: Number(projectId),
       originatorOrganizationId: 0,
       recipientOrganizationId: 0,
       correspondenceTypeId: 0,
@@ -57,7 +57,6 @@ export function ManualOverrideForm({ projectId = 1 }: { projectId?: number }) {
       form.reset();
     } catch (error) {
       toast.error("Failed to apply override.");
-      console.error(error);
     } finally {
       setLoading(false);
     }

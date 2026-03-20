@@ -454,10 +454,25 @@ async approve(@Param('id') id: string, @CurrentUser() user: User) {
 
 1. ❌ **ห้ามใช้ SQL Triggers** สำหรับ Business Logic
 2. ❌ **ห้ามใช้ .env** ใน Production (ใช้ Docker ENV)
-3. ❌ **ห้ามใช้ `any` Type**
+3. ❌ **ห้ามใช้ `any` Type** — Enforced ✅ (0 remaining as of v1.8.1, see techniques below)
 4. ❌ **ห้าม Hardcode Secrets**
 5. ❌ **ห้ามสร้างตาราง Routing แยก** (ใช้ Workflow Engine)
 6. ❌ **ห้ามใช้ console.log** (ใช้ Logger)
+
+### `any` Type Elimination Techniques (v1.8.1)
+
+Backend codebase has **zero** `any` types remaining. Key techniques used:
+
+| Pattern | Solution |
+|---------|----------|
+| JWT `expiresIn` branded type | `import type { StringValue } from 'ms'`; cast `as StringValue` |
+| CASL `detectSubjectType` callback | Type param as `object`, internal cast via `Record<string, unknown>` |
+| CASL `ability.can()` params | Export `Actions`/`Subjects` types from `ability.factory.ts`, cast explicitly |
+| TypeORM nullable column clearing | Use `undefined` instead of `null as any` for optional (`?:`) properties |
+| Test mock objects | Use `as unknown as InterfaceType` or `as Partial<Entity> as Entity` |
+| TypeScript legacy decorators | `target: any` is unavoidable — whitelisted per TS spec limitation |
+
+> **Exceptions:** Only `target: any` in legacy TS decorators (`circuit-breaker.decorator.ts`, `retry.decorator.ts`) remains — this is a TypeScript language constraint, not a code quality issue.
 
 ---
 
@@ -475,3 +490,4 @@ async approve(@Param('id') id: string, @CurrentUser() user: User) {
 | Version | Date       | Changes                            |
 | ------- | ---------- | ---------------------------------- |
 | 1.5.0   | 2025-12-01 | Initial backend guidelines created |
+| 1.8.1   | 2026-03-20 | Added `any` type elimination techniques, enforced 0 remaining `any` |

@@ -57,15 +57,19 @@ interface Field {
   options?: { label: string; value: string | number }[];
 }
 
+interface ApiError extends Error {
+  response?: { data?: { message?: string } };
+}
+
 interface GenericCrudTableProps<T> {
   title: string;
   description?: string;
   entityName: string;
-  queryKey: any[];
+  queryKey: string[];
   fetchFn: () => Promise<T[] | { data: T[] }>;
-  createFn: (data: any) => Promise<any>;
-  updateFn: (id: number, data: any) => Promise<any>;
-  deleteFn: (id: number) => Promise<any>;
+  createFn: (data: Record<string, unknown>) => Promise<unknown>;
+  updateFn: (id: number, data: Record<string, unknown>) => Promise<unknown>;
+  deleteFn: (id: number) => Promise<unknown>;
   columns: ColumnDef<T>[];
   fields: Field[];
   filters?: React.ReactNode;
@@ -95,7 +99,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
   });
 
   // ADR-019: Support both direct array or wrapped data object
-  const data: T[] = Array.isArray(rawData) ? rawData : (rawData as any)?.data || [];
+  const data: T[] = Array.isArray(rawData) ? rawData : (rawData as { data?: T[] } | undefined)?.data || [];
 
   const createMutation = useMutation({
     mutationFn: createFn,
@@ -105,13 +109,13 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
       setIsDialogOpen(false);
       reset();
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       toast.error(error.response?.data?.message || `Failed to create ${entityName}`);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => updateFn(id, data),
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) => updateFn(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success(`${entityName} updated successfully`);
@@ -119,7 +123,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
       setEditingId(null);
       reset();
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       toast.error(error.response?.data?.message || `Failed to update ${entityName}`);
     },
   });
@@ -131,7 +135,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
       toast.success(`${entityName} deleted successfully`);
       setItemToDelete(null);
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       toast.error(error.response?.data?.message || `Failed to delete ${entityName}`);
     },
   });
@@ -184,19 +188,20 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
     setIsDialogOpen(true);
   };
 
-  const handleEdit = (item: any) => {
-    setEditingId(item.id);
-    reset(item);
+  const handleEdit = (item: T) => {
+    setEditingId(item.id as number);
+    reset(item as Record<string, unknown>);
     // Ensure select values are strings for Shadcn Select
     fields.forEach(f => {
-        if (f.type === 'select' && item[f.name]) {
-            setValue(f.name, String(item[f.name]));
+        const record = item as Record<string, unknown>;
+        if (f.type === 'select' && record[f.name]) {
+            setValue(f.name, String(record[f.name]));
         }
     });
     setIsDialogOpen(true);
   };
 
-  const onSubmit = (formData: any) => {
+  const onSubmit = (formData: Record<string, unknown>) => {
     if (editingItem) {
       updateMutation.mutate({ id: editingItem, data: formData });
     } else {

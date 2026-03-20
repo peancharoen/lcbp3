@@ -73,7 +73,7 @@ export default function ShopMainCategoriesPage() {
           )}
         </SelectTrigger>
         <SelectContent>
-          {(projects as any[]).map((project) => (
+          {(projects as { id?: number; uuid?: string; projectCode: string; projectName: string }[]).map((project) => (
             <SelectItem key={project.uuid || project.id} value={String(project.id || project.uuid)}>
               {project.projectCode} - {project.projectName}
             </SelectItem>
@@ -106,9 +106,7 @@ export default function ShopMainCategoriesPage() {
         description="Manage main categories (หมวดหมู่หลัก) for shop drawings"
         queryKey={['shop-drawing-main-categories', String(selectedProjectId)]}
         fetchFn={async () => {
-          console.log(`Fetching Shop Main Categories for project ${selectedProjectId}`);
           const data = await drawingMasterDataService.getShopMainCategories(selectedProjectId);
-          console.log('Shop Main Categories Data:', data);
           return data;
         }}
         createFn={(data: Record<string, unknown>) =>

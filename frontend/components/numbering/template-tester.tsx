@@ -53,7 +53,8 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
   const [loading, setLoading] = useState(false);
 
   // Master Data Hooks
-  const projectId = (template as any)?.project?.id ?? (template as any)?.project?.uuid ?? template?.projectId ?? 1;
+  const templateWithProject = template as (NumberingTemplate & { project?: { id?: number; uuid?: string } }) | null;
+  const projectId = templateWithProject?.project?.id ?? templateWithProject?.project?.uuid ?? template?.projectId ?? 1;
   const { data: organizations } = useOrganizations({ isActive: true });
   const { data: correspondenceTypes } = useCorrespondenceTypes();
   const { data: contracts } = useContracts(projectId);
@@ -74,14 +75,9 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
             disciplineId: parseInt(testData.disciplineId || "0"),
         });
         setGeneratedNumber(result.previewNumber);
-    } catch (error: any) {
-        console.error("Failed to generate test number", error);
-        setGeneratedNumber("");
-        // Assuming toast is available globally or we can use console for now,
-        // but better to show visible error.
-        // Alert is primitive but effective for 'tester' component debugging if toast not imported.
-        // Actually, let's just set the error string in display if we can, or add a simple red text.
-        setGeneratedNumber(`Error: ${error.response?.data?.message || error.message || "Unknown error"}`);
+    } catch (error: unknown) {
+        const err = error as { response?: { data?: { message?: string } }; message?: string };
+        setGeneratedNumber(`Error: ${err.response?.data?.message || err.message || "Unknown error"}`);
     } finally {
         setLoading(false);
     }

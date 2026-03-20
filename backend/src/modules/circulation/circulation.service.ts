@@ -14,8 +14,7 @@ import { CreateCirculationDto } from './dto/create-circulation.dto';
 import { UpdateCirculationRoutingDto } from './dto/update-circulation-routing.dto';
 import { SearchCirculationDto } from './dto/search-circulation.dto';
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
-import { Project } from '../project/entities/project.entity';
-import { Correspondence } from '../correspondence/entities/correspondence.entity';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @Injectable()
 export class CirculationService {
@@ -25,60 +24,9 @@ export class CirculationService {
     @InjectRepository(CirculationRouting)
     private routingRepo: Repository<CirculationRouting>,
     private numberingService: DocumentNumberingService,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private uuidResolver: UuidResolverService
   ) {}
-
-  /**
-   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
-   */
-  private async resolveProjectId(projectId: number | string): Promise<number> {
-    if (typeof projectId === 'number') return projectId;
-    const num = Number(projectId);
-    if (!isNaN(num)) return num;
-    const project = await this.dataSource.manager.findOne(Project, {
-      where: { uuid: projectId },
-      select: ['id'],
-    });
-    if (!project)
-      throw new NotFoundException(`Project with UUID ${projectId} not found`);
-    return project.id;
-  }
-
-  /**
-   * ADR-019: Resolve correspondenceId (INT or UUID string) to internal INT ID
-   */
-  private async resolveCorrespondenceId(
-    corrId: number | string
-  ): Promise<number> {
-    if (typeof corrId === 'number') return corrId;
-    const num = Number(corrId);
-    if (!isNaN(num)) return num;
-    const corr = await this.dataSource.manager.findOne(Correspondence, {
-      where: { uuid: corrId },
-      select: ['id'],
-    });
-    if (!corr)
-      throw new NotFoundException(
-        `Correspondence with UUID ${corrId} not found`
-      );
-    return corr.id;
-  }
-
-  /**
-   * ADR-019: Resolve userId (INT or UUID string) to internal user_id
-   */
-  private async resolveUserId(userId: number | string): Promise<number> {
-    if (typeof userId === 'number') return userId;
-    const num = Number(userId);
-    if (!isNaN(num)) return num;
-    const user = await this.dataSource.manager.findOne(User, {
-      where: { uuid: userId },
-      select: ['user_id'],
-    });
-    if (!user)
-      throw new NotFoundException(`User with UUID ${userId} not found`);
-    return user.user_id;
-  }
 
   async create(createDto: CreateCirculationDto, user: User) {
     if (!user.primaryOrganizationId) {
@@ -92,13 +40,13 @@ export class CirculationService {
     try {
       // ADR-019: Resolve UUID references to internal INT IDs
       const resolvedProjectId = createDto.projectId
-        ? await this.resolveProjectId(createDto.projectId)
+        ? await this.uuidResolver.resolveProjectId(createDto.projectId)
         : 0;
-      const resolvedCorrId = await this.resolveCorrespondenceId(
+      const resolvedCorrId = await this.uuidResolver.resolveCorrespondenceId(
         createDto.correspondenceId
       );
       const resolvedAssigneeIds = await Promise.all(
-        createDto.assigneeIds.map((id) => this.resolveUserId(id))
+        createDto.assigneeIds.map((id) => this.uuidResolver.resolveUserId(id))
       );
 
       // Generate No. using DocumentNumberingService (Type 900 - Circulation)

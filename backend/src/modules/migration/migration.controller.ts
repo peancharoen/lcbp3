@@ -17,6 +17,7 @@ import { CommitBatchDto } from './dto/commit-batch.dto';
 import { CreateMigrationErrorDto } from './dto/create-migration-error.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { User } from '../user/entities/user.entity';
 import {
   ApiTags,
   ApiOperation,
@@ -48,9 +49,9 @@ export class MigrationController {
   async importCorrespondence(
     @Body() dto: ImportCorrespondenceDto,
     @Headers('idempotency-key') idempotencyKey: string,
-    @CurrentUser() user: any
+    @CurrentUser() user: User
   ) {
-    const userId = user?.id || user?.userId || 5;
+    const userId = user?.user_id || 5;
     return this.migrationService.importCorrespondence(
       dto,
       idempotencyKey,
@@ -72,9 +73,9 @@ export class MigrationController {
   async commitBatch(
     @Body() dto: CommitBatchDto,
     @Headers('idempotency-key') idempotencyKey: string,
-    @CurrentUser() user: any
+    @CurrentUser() user: User
   ) {
-    const userId = user?.id || user?.userId || 5;
+    const userId = user?.user_id || 5;
     return this.migrationService.commitBatch(dto, idempotencyKey, userId);
   }
 
@@ -135,9 +136,9 @@ export class MigrationController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ImportCorrespondenceDto,
     @Headers('idempotency-key') idempotencyKey: string,
-    @CurrentUser() user: any
+    @CurrentUser() user: User
   ) {
-    const userId = user?.id || user?.userId || 5;
+    const userId = user?.user_id || 5;
     return this.migrationService.approveQueueItem(
       id,
       dto,
@@ -152,9 +153,9 @@ export class MigrationController {
   @ApiParam({ name: 'id', type: Number })
   async rejectQueueItem(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any
+    @CurrentUser() user: User
   ) {
-    const userId = user?.id || user?.userId || 5;
+    const userId = user?.user_id || 5;
     return this.migrationService.rejectQueueItem(id, userId);
   }
 

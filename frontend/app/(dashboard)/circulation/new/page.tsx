@@ -43,6 +43,12 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+// Force dynamic rendering to prevent build-time prerendering issues
+export const dynamic = 'force-dynamic';
+
+// Ensure this page is never statically generated
+export const fetchCache = 'force-no-store';
+
 // Form validation schema
 const formSchema = z.object({
   correspondenceId: z.string().min(1, "Please select a document"),

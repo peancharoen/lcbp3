@@ -126,7 +126,7 @@ export class CorrespondenceWorkflowService {
   private async syncStatus(
     revision: CorrespondenceRevision,
     workflowState: string,
-    queryRunner?: any
+    queryRunner?: import('typeorm').QueryRunner
   ) {
     const statusMap: Record<string, string> = {
       DRAFT: 'DRAFT',

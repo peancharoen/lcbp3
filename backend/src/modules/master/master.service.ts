@@ -5,8 +5,8 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
-import { Repository, EntityManager } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 // Import Entities
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
@@ -21,8 +21,7 @@ import { Tag } from './entities/tag.entity';
 import { Discipline } from './entities/discipline.entity';
 import { CorrespondenceSubType } from '../correspondence/entities/correspondence-sub-type.entity';
 import { DocumentNumberFormat } from '../document-numbering/entities/document-number-format.entity';
-import { Project } from '../project/entities/project.entity';
-import { Contract } from '../contract/entities/contract.entity';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 // Import DTOs
 import { CreateTagDto } from './dto/create-tag.dto';
@@ -58,41 +57,8 @@ export class MasterService {
     @InjectRepository(DocumentNumberFormat)
     private readonly formatRepo: Repository<DocumentNumberFormat>,
 
-    @InjectEntityManager()
-    private readonly entityManager: EntityManager
+    private readonly uuidResolver: UuidResolverService
   ) {}
-
-  /**
-   * Helper to resolve projectId (ID or UUID) to internal INT ID
-   */
-  async resolveProjectId(projectId: number | string): Promise<number> {
-    if (typeof projectId === 'number') return projectId;
-    const num = Number(projectId);
-    if (!isNaN(num)) return num;
-    const project = await this.entityManager.findOne(Project, {
-      where: { uuid: projectId as string },
-      select: ['id'],
-    });
-    if (!project)
-      throw new NotFoundException(`Project with UUID ${projectId} not found`);
-    return project.id;
-  }
-
-  /**
-   * Helper to resolve contractId (ID or UUID) to internal INT ID
-   */
-  async resolveContractId(contractId: number | string): Promise<number> {
-    if (typeof contractId === 'number') return contractId;
-    const num = Number(contractId);
-    if (!isNaN(num)) return num;
-    const contract = await this.entityManager.findOne(Contract, {
-      where: { uuid: contractId as string },
-      select: ['id'],
-    });
-    if (!contract)
-      throw new NotFoundException(`Contract with UUID ${contractId} not found`);
-    return contract.id;
-  }
 
   async findAllCorrespondenceTypes() {
     return this.corrTypeRepo.find({
@@ -101,12 +67,12 @@ export class MasterService {
     });
   }
 
-  async createCorrespondenceType(dto: any) {
+  async createCorrespondenceType(dto: Partial<CorrespondenceType>) {
     const item = this.corrTypeRepo.create(dto);
     return this.corrTypeRepo.save(item);
   }
 
-  async updateCorrespondenceType(id: number, dto: any) {
+  async updateCorrespondenceType(id: number, dto: Partial<CorrespondenceType>) {
     const item = await this.corrTypeRepo.findOne({ where: { id } });
     if (!item) throw new NotFoundException('Correspondence Type not found');
     Object.assign(item, dto);
@@ -126,9 +92,11 @@ export class MasterService {
     });
   }
   async findAllRfaTypes(contractId?: number | string) {
-    const where: any = { isActive: true };
+    const where: { isActive: boolean; contractId?: number } = {
+      isActive: true,
+    };
     if (contractId) {
-      where.contractId = await this.resolveContractId(contractId);
+      where.contractId = await this.uuidResolver.resolveContractId(contractId);
     }
     return this.rfaTypeRepo.find({
       where,
@@ -137,8 +105,10 @@ export class MasterService {
     });
   }
 
-  async createRfaType(dto: any) {
-    const internalContractId = await this.resolveContractId(dto.contractId);
+  async createRfaType(dto: Partial<RfaType> & { contractId: number | string }) {
+    const internalContractId = await this.uuidResolver.resolveContractId(
+      dto.contractId
+    );
     const rfaType = this.rfaTypeRepo.create({
       ...dto,
       contractId: internalContractId,
@@ -146,11 +116,16 @@ export class MasterService {
     return this.rfaTypeRepo.save(rfaType);
   }
 
-  async updateRfaType(id: number, dto: any) {
+  async updateRfaType(
+    id: number,
+    dto: Partial<RfaType> & { contractId?: number | string }
+  ) {
     const rfaType = await this.rfaTypeRepo.findOne({ where: { id } });
     if (!rfaType) throw new NotFoundException('RFA Type not found');
     if (dto.contractId) {
-      dto.contractId = await this.resolveContractId(dto.contractId);
+      dto.contractId = await this.uuidResolver.resolveContractId(
+        dto.contractId
+      );
     }
     Object.assign(rfaType, dto);
     return this.rfaTypeRepo.save(rfaType);
@@ -192,7 +167,7 @@ export class MasterService {
       .orderBy('d.disciplineCode', 'ASC');
 
     if (contractId) {
-      const internalId = await this.resolveContractId(contractId);
+      const internalId = await this.uuidResolver.resolveContractId(contractId);
       query.where('d.contractId = :contractId', { contractId: internalId });
     }
     query.andWhere('d.isActive = :isActive', { isActive: true });
@@ -200,8 +175,12 @@ export class MasterService {
     return query.getMany();
   }
 
-  async createDiscipline(dto: any) {
-    const internalContractId = await this.resolveContractId(dto.contractId);
+  async createDiscipline(
+    dto: CreateDisciplineDto & { contractId: number | string }
+  ) {
+    const internalContractId = await this.uuidResolver.resolveContractId(
+      dto.contractId
+    );
     const exists = await this.disciplineRepo.findOne({
       where: {
         contractId: internalContractId,
@@ -239,7 +218,7 @@ export class MasterService {
       .orderBy('st.subTypeCode', 'ASC');
 
     if (contractId) {
-      const internalId = await this.resolveContractId(contractId);
+      const internalId = await this.uuidResolver.resolveContractId(contractId);
       query.andWhere('st.contractId = :contractId', { contractId: internalId });
     }
     if (typeId) query.andWhere('st.correspondenceTypeId = :typeId', { typeId });
@@ -247,8 +226,10 @@ export class MasterService {
     return query.getMany();
   }
 
-  async createSubType(dto: any) {
-    const internalContractId = await this.resolveContractId(dto.contractId);
+  async createSubType(dto: CreateSubTypeDto & { contractId: number | string }) {
+    const internalContractId = await this.uuidResolver.resolveContractId(
+      dto.contractId
+    );
     const subType = this.subTypeRepo.create({
       ...dto,
       contractId: internalContractId,
@@ -268,15 +249,17 @@ export class MasterService {
   // =================================================================
 
   async findNumberFormat(projectId: number | string, typeId: number) {
-    const internalId = await this.resolveProjectId(projectId);
+    const internalId = await this.uuidResolver.resolveProjectId(projectId);
     const format = await this.formatRepo.findOne({
       where: { projectId: internalId, correspondenceTypeId: typeId },
     });
     return format || null;
   }
 
-  async saveNumberFormat(dto: any) {
-    const internalProjectId = await this.resolveProjectId(dto.projectId);
+  async saveNumberFormat(dto: SaveNumberFormatDto) {
+    const internalProjectId = await this.uuidResolver.resolveProjectId(
+      dto.projectId
+    );
     let format: DocumentNumberFormat | null = await this.formatRepo.findOne({
       where: {
         projectId: internalProjectId,
@@ -303,7 +286,9 @@ export class MasterService {
 
     if (query?.project_id) {
       // In Tags, we use project_id (INT) directly or resolve if UUID passed via query
-      const internalId = await this.resolveProjectId(query.project_id);
+      const internalId = await this.uuidResolver.resolveProjectId(
+        query.project_id
+      );
       qb.andWhere('tag.project_id = :projectId', {
         projectId: internalId,
       });
@@ -337,9 +322,9 @@ export class MasterService {
     return tag;
   }
 
-  async createTag(dto: any, userId: number) {
+  async createTag(dto: CreateTagDto, userId: number) {
     const internalProjectId = dto.project_id
-      ? await this.resolveProjectId(dto.project_id)
+      ? await this.uuidResolver.resolveProjectId(dto.project_id)
       : null;
     const tag = this.tagRepo.create({
       ...dto,
@@ -349,10 +334,10 @@ export class MasterService {
     return this.tagRepo.save(tag);
   }
 
-  async updateTag(id: number, dto: any) {
+  async updateTag(id: number, dto: UpdateTagDto) {
     const tag = await this.findOneTag(id);
     if (dto.project_id) {
-      dto.project_id = await this.resolveProjectId(dto.project_id);
+      dto.project_id = await this.uuidResolver.resolveProjectId(dto.project_id);
     }
     Object.assign(tag, dto);
     return this.tagRepo.save(tag);

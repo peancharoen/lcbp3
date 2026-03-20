@@ -24,6 +24,7 @@ import {
   SecurityContext,
 } from './services/json-security.service';
 import { UiSchemaService } from './services/ui-schema.service';
+import { UiSchema } from './interfaces/ui-schema.interface';
 import { VirtualColumnService } from './services/virtual-column.service';
 
 import {
@@ -50,7 +51,7 @@ export class JsonSchemaService implements OnModuleInit {
     private readonly jsonSchemaRepository: Repository<JsonSchema>,
     private readonly virtualColumnService: VirtualColumnService,
     private readonly uiSchemaService: UiSchemaService,
-    private readonly jsonSecurityService: JsonSecurityService,
+    private readonly jsonSecurityService: JsonSecurityService
   ) {
     // กำหนดค่าเริ่มต้นให้กับ AJV Validation Engine
     this.ajv = new Ajv({
@@ -78,7 +79,7 @@ export class JsonSchemaService implements OnModuleInit {
       validate: (value: string) => {
         // Regex อย่างง่าย: กลุ่มตัวอักษรขีดคั่นด้วย -
         return /^[A-Z0-9]{2,10}-[A-Z]{2,5}(-[A-Z0-9]{2,5})?-\d{4}-\d{3,5}$/.test(
-          value,
+          value
         );
       },
     });
@@ -88,7 +89,7 @@ export class JsonSchemaService implements OnModuleInit {
       keyword: 'requiredRole',
       type: 'string',
       metaSchema: { type: 'string' },
-      validate: (schema: string, data: any) => true, // ผ่านเสมอในขั้น AJV (Security Service จะจัดการเอง)
+      validate: (_schema: string, _data: unknown) => true, // ผ่านเสมอในขั้น AJV (Security Service จะจัดการเอง)
     });
   }
 
@@ -99,9 +100,9 @@ export class JsonSchemaService implements OnModuleInit {
     // 1. ตรวจสอบความถูกต้องของ JSON Schema Definition (AJV Syntax)
     try {
       this.ajv.compile(createDto.schemaDefinition);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new BadRequestException(
-        `Invalid JSON Schema format: ${error.message}`,
+        `Invalid JSON Schema format: ${error instanceof Error ? error.message : String(error)}`
       );
     }
 
@@ -109,13 +110,13 @@ export class JsonSchemaService implements OnModuleInit {
     if (createDto.uiSchema) {
       // ถ้าส่งมา ให้ตรวจสอบความถูกต้องเทียบกับ Data Schema
       this.uiSchemaService.validateUiSchema(
-        createDto.uiSchema as any,
-        createDto.schemaDefinition,
+        createDto.uiSchema as unknown as UiSchema,
+        createDto.schemaDefinition
       );
     } else {
       // ถ้าไม่ส่งมา ให้สร้าง UI Schema พื้นฐานให้อัตโนมัติ
       createDto.uiSchema = this.uiSchemaService.generateDefaultUiSchema(
-        createDto.schemaDefinition,
+        createDto.schemaDefinition
       );
     }
 
@@ -149,7 +150,7 @@ export class JsonSchemaService implements OnModuleInit {
     this.validators.delete(savedSchema.schemaCode);
 
     this.logger.log(
-      `Schema '${savedSchema.schemaCode}' created (v${savedSchema.version})`,
+      `Schema '${savedSchema.schemaCode}' created (v${savedSchema.version})`
     );
 
     // 5. สร้าง/อัปเดต Virtual Columns บน Database จริง (Performance Optimization)
@@ -157,7 +158,7 @@ export class JsonSchemaService implements OnModuleInit {
     if (savedSchema.virtualColumns && savedSchema.virtualColumns.length > 0) {
       await this.virtualColumnService.setupVirtualColumns(
         savedSchema.tableName,
-        savedSchema.virtualColumns || [],
+        savedSchema.virtualColumns || []
       );
     }
 
@@ -216,7 +217,7 @@ export class JsonSchemaService implements OnModuleInit {
    */
   async findOneByCodeAndVersion(
     code: string,
-    version: number,
+    version: number
   ): Promise<JsonSchema> {
     const schema = await this.jsonSchemaRepository.findOne({
       where: { schemaCode: code, version },
@@ -224,7 +225,7 @@ export class JsonSchemaService implements OnModuleInit {
 
     if (!schema) {
       throw new NotFoundException(
-        `JsonSchema '${code}' version ${version} not found`,
+        `JsonSchema '${code}' version ${version} not found`
       );
     }
     return schema;
@@ -241,7 +242,7 @@ export class JsonSchemaService implements OnModuleInit {
 
     if (!schema) {
       throw new NotFoundException(
-        `Active JsonSchema with code '${code}' not found`,
+        `Active JsonSchema with code '${code}' not found`
       );
     }
     return schema;
@@ -253,15 +254,17 @@ export class JsonSchemaService implements OnModuleInit {
    */
   async validateData(
     schemaCode: string,
-    data: any,
-    options: ValidationOptions = {},
+    data: Record<string, unknown>,
+    options: ValidationOptions = {}
   ): Promise<ValidationResult> {
     // 1. ดึงและ Compile Validator
     const validate = await this.getValidator(schemaCode);
     const schema = await this.findLatestByCode(schemaCode); // ดึง Full Schema เพื่อใช้ Config อื่นๆ
 
     // 2. สำเนาข้อมูลเพื่อป้องกัน Side Effect และเตรียมสำหรับ AJV Mutation (Sanitization)
-    const dataToValidate = JSON.parse(JSON.stringify(data));
+    const dataToValidate: Record<string, unknown> = JSON.parse(
+      JSON.stringify(data)
+    );
 
     // 3. เริ่มการตรวจสอบ (AJV จะทำการ Coerce Type และ Remove Additional Properties ให้ด้วย)
     const valid = validate(dataToValidate);
@@ -273,7 +276,7 @@ export class JsonSchemaService implements OnModuleInit {
           field: err.instancePath || 'root',
           message: err.message || 'Validation error',
           value: err.params,
-        }),
+        })
       );
 
       return {
@@ -286,7 +289,7 @@ export class JsonSchemaService implements OnModuleInit {
     // 5. เข้ารหัสข้อมูล (Encryption) สำหรับ Field ที่มีความลับ (x-encrypt: true)
     const secureData = this.jsonSecurityService.encryptFields(
       dataToValidate,
-      schema.schemaDefinition,
+      schema.schemaDefinition
     );
 
     return {
@@ -302,9 +305,9 @@ export class JsonSchemaService implements OnModuleInit {
    */
   async processReadData(
     schemaCode: string,
-    data: any,
-    userContext: SecurityContext,
-  ): Promise<any> {
+    data: Record<string, unknown>,
+    userContext: SecurityContext
+  ): Promise<Record<string, unknown>> {
     if (!data) return data;
 
     // ดึง Schema เพื่อดู Config การถอดรหัสและการมองเห็น
@@ -313,7 +316,7 @@ export class JsonSchemaService implements OnModuleInit {
     return this.jsonSecurityService.decryptAndFilterFields(
       data,
       schema.schemaDefinition,
-      userContext,
+      userContext
     );
   }
 
@@ -328,9 +331,9 @@ export class JsonSchemaService implements OnModuleInit {
       try {
         validate = this.ajv.compile(schema.schemaDefinition);
         this.validators.set(schemaCode, validate);
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new BadRequestException(
-          `Invalid Schema Definition for '${schemaCode}': ${error.message}`,
+          `Invalid Schema Definition for '${schemaCode}': ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
@@ -340,7 +343,10 @@ export class JsonSchemaService implements OnModuleInit {
   /**
    * Wrapper เก่าสำหรับ Backward Compatibility (ถ้ามีโค้ดเก่าเรียกใช้)
    */
-  async validate(schemaCode: string, data: any): Promise<boolean> {
+  async validate(
+    schemaCode: string,
+    data: Record<string, unknown>
+  ): Promise<boolean> {
     const result = await this.validateData(schemaCode, data);
     if (!result.isValid) {
       const errorMsg = result.errors
@@ -356,7 +362,7 @@ export class JsonSchemaService implements OnModuleInit {
    */
   async update(
     id: number,
-    updateDto: UpdateJsonSchemaDto,
+    updateDto: UpdateJsonSchemaDto
   ): Promise<JsonSchema> {
     const schema = await this.findOne(id);
 
@@ -364,9 +370,9 @@ export class JsonSchemaService implements OnModuleInit {
     if (updateDto.schemaDefinition) {
       try {
         this.ajv.compile(updateDto.schemaDefinition);
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new BadRequestException(
-          `Invalid JSON Schema format: ${error.message}`,
+          `Invalid JSON Schema format: ${error instanceof Error ? error.message : String(error)}`
         );
       }
       this.validators.delete(schema.schemaCode); // เคลียร์ Cache เก่า
@@ -375,8 +381,8 @@ export class JsonSchemaService implements OnModuleInit {
     // ตรวจสอบ UI Schema
     if (updateDto.uiSchema) {
       this.uiSchemaService.validateUiSchema(
-        updateDto.uiSchema as any,
-        updateDto.schemaDefinition || schema.schemaDefinition,
+        updateDto.uiSchema as unknown as UiSchema,
+        updateDto.schemaDefinition || schema.schemaDefinition
       );
     }
 
@@ -388,7 +394,7 @@ export class JsonSchemaService implements OnModuleInit {
     if (updateDto.virtualColumns && updatedSchema.virtualColumns) {
       await this.virtualColumnService.setupVirtualColumns(
         savedSchema.tableName,
-        savedSchema.virtualColumns || [],
+        savedSchema.virtualColumns || []
       );
     }
 

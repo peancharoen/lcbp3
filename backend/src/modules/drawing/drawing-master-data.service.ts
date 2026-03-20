@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, EntityManager } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm';
 
 // Entities
 import { ContractDrawingVolume } from './entities/contract-drawing-volume.entity';
@@ -9,7 +9,7 @@ import { ContractDrawingSubCategory } from './entities/contract-drawing-sub-cate
 import { ShopDrawingMainCategory } from './entities/shop-drawing-main-category.entity';
 import { ShopDrawingSubCategory } from './entities/shop-drawing-sub-category.entity';
 import { ContractDrawingSubcatCatMap } from './entities/contract-drawing-subcat-cat-map.entity';
-import { Project } from '../project/entities/project.entity';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @Injectable()
 export class DrawingMasterDataService {
@@ -26,45 +26,25 @@ export class DrawingMasterDataService {
     private sdSubCatRepo: Repository<ShopDrawingSubCategory>,
     @InjectRepository(ContractDrawingSubcatCatMap)
     private cdMapRepo: Repository<ContractDrawingSubcatCatMap>,
-    @InjectEntityManager()
-    private entityManager: EntityManager
+    private uuidResolver: UuidResolverService
   ) {}
-
-  /**
-   * Helper to resolve projectId (ID or UUID) to internal INT ID
-   */
-  async resolveProjectId(projectId: number | string): Promise<number> {
-    if (typeof projectId === 'number') return projectId;
-    const num = Number(projectId);
-    if (!isNaN(num)) return num;
-
-    // If it's a string and not a number, it's a UUID (ADR-019)
-    const project = await this.entityManager.findOne(Project, {
-      where: { uuid: projectId as string },
-      select: ['id'],
-    });
-
-    if (!project) {
-      throw new NotFoundException(`Project with UUID ${projectId} not found`);
-    }
-
-    return project.id;
-  }
 
   // =====================================================
   // Contract Drawing Volumes
   // =====================================================
 
   async findAllVolumes(projectId: number | string) {
-    const internalId = await this.resolveProjectId(projectId);
+    const internalId = await this.uuidResolver.resolveProjectId(projectId);
     return this.cdVolumeRepo.find({
       where: { projectId: internalId },
       order: { sortOrder: 'ASC' },
     });
   }
 
-  async createVolume(data: any) {
-    const internalId = await this.resolveProjectId(data.projectId);
+  async createVolume(
+    data: Partial<ContractDrawingVolume> & { projectId: number | string }
+  ) {
+    const internalId = await this.uuidResolver.resolveProjectId(data.projectId);
     const volume = this.cdVolumeRepo.create({ ...data, projectId: internalId });
     return this.cdVolumeRepo.save(volume);
   }
@@ -88,15 +68,17 @@ export class DrawingMasterDataService {
   // =====================================================
 
   async findAllCategories(projectId: number | string) {
-    const internalId = await this.resolveProjectId(projectId);
+    const internalId = await this.uuidResolver.resolveProjectId(projectId);
     return this.cdCatRepo.find({
       where: { projectId: internalId },
       order: { sortOrder: 'ASC' },
     });
   }
 
-  async createCategory(data: any) {
-    const internalId = await this.resolveProjectId(data.projectId);
+  async createCategory(
+    data: Partial<ContractDrawingCategory> & { projectId: number | string }
+  ) {
+    const internalId = await this.uuidResolver.resolveProjectId(data.projectId);
     const cat = this.cdCatRepo.create({ ...data, projectId: internalId });
     return this.cdCatRepo.save(cat);
   }
@@ -120,15 +102,17 @@ export class DrawingMasterDataService {
   // =====================================================
 
   async findAllContractSubCats(projectId: number | string) {
-    const internalId = await this.resolveProjectId(projectId);
+    const internalId = await this.uuidResolver.resolveProjectId(projectId);
     return this.cdSubCatRepo.find({
       where: { projectId: internalId },
       order: { sortOrder: 'ASC' },
     });
   }
 
-  async createContractSubCat(data: any) {
-    const internalId = await this.resolveProjectId(data.projectId);
+  async createContractSubCat(
+    data: Partial<ContractDrawingSubCategory> & { projectId: number | string }
+  ) {
+    const internalId = await this.uuidResolver.resolveProjectId(data.projectId);
     const subCat = this.cdSubCatRepo.create({ ...data, projectId: internalId });
     return this.cdSubCatRepo.save(subCat);
   }
@@ -155,8 +139,10 @@ export class DrawingMasterDataService {
   // =====================================================
 
   async findContractMappings(projectId: number | string, categoryId?: number) {
-    const internalId = await this.resolveProjectId(projectId);
-    const where: FindOptionsWhere<ContractDrawingSubcatCatMap> = { projectId: internalId };
+    const internalId = await this.uuidResolver.resolveProjectId(projectId);
+    const where: FindOptionsWhere<ContractDrawingSubcatCatMap> = {
+      projectId: internalId,
+    };
     if (categoryId) {
       where.categoryId = categoryId;
     }
@@ -167,8 +153,10 @@ export class DrawingMasterDataService {
     });
   }
 
-  async createContractMapping(data: any) {
-    const internalId = await this.resolveProjectId(data.projectId);
+  async createContractMapping(
+    data: Partial<ContractDrawingSubcatCatMap> & { projectId: number | string }
+  ) {
+    const internalId = await this.uuidResolver.resolveProjectId(data.projectId);
     // Check if mapping already exists to prevent duplicates (though DB has UNIQUE constraint)
     const existing = await this.cdMapRepo.findOne({
       where: {
@@ -196,15 +184,17 @@ export class DrawingMasterDataService {
   // =====================================================
 
   async findAllShopMainCats(projectId: number | string) {
-    const internalId = await this.resolveProjectId(projectId);
+    const internalId = await this.uuidResolver.resolveProjectId(projectId);
     return this.sdMainCatRepo.find({
       where: { projectId: internalId },
       order: { sortOrder: 'ASC' },
     });
   }
 
-  async createShopMainCat(data: any) {
-    const internalId = await this.resolveProjectId(data.projectId);
+  async createShopMainCat(
+    data: Partial<ShopDrawingMainCategory> & { projectId: number | string }
+  ) {
+    const internalId = await this.uuidResolver.resolveProjectId(data.projectId);
     const cat = this.sdMainCatRepo.create({ ...data, projectId: internalId });
     return this.sdMainCatRepo.save(cat);
   }
@@ -227,8 +217,11 @@ export class DrawingMasterDataService {
   // Shop Drawing Sub-Categories
   // =====================================================
 
-  async findAllShopSubCats(projectId: number | string, mainCategoryId?: number) {
-    const internalId = await this.resolveProjectId(projectId);
+  async findAllShopSubCats(
+    projectId: number | string,
+    mainCategoryId?: number
+  ) {
+    const internalId = await this.uuidResolver.resolveProjectId(projectId);
     const where: FindOptionsWhere<ShopDrawingSubCategory> = {
       projectId: internalId,
       ...(mainCategoryId ? { mainCategoryId } : {}),
@@ -240,8 +233,10 @@ export class DrawingMasterDataService {
     });
   }
 
-  async createShopSubCat(data: any) {
-    const internalId = await this.resolveProjectId(data.projectId);
+  async createShopSubCat(
+    data: Partial<ShopDrawingSubCategory> & { projectId: number | string }
+  ) {
+    const internalId = await this.uuidResolver.resolveProjectId(data.projectId);
     const subCat = this.sdSubCatRepo.create({ ...data, projectId: internalId });
     return this.sdSubCatRepo.save(subCat);
   }

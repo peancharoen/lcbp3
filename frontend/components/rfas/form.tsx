@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation";
 import { useCreateRFA } from "@/hooks/use-rfa";
 import { useDisciplines, useContracts } from "@/hooks/use-master-data";
 import { useProjects } from "@/hooks/use-projects";
-import { CreateRFADto } from "@/types/rfa";
+import { CreateRfaDto } from "@/types/dto/rfa/rfa.dto";
 import { useState, useEffect } from "react";
 import { correspondenceService } from "@/lib/services/correspondence.service";
 
@@ -126,11 +126,11 @@ export function RFAForm() {
   });
 
   const onSubmit = (data: RFAFormData) => {
-    const payload: CreateRFADto = {
+    const payload: CreateRfaDto = {
       ...data,
       // ADR-019: projectId is already a UUID string from the form
     };
-    createMutation.mutate(payload as any, {
+    createMutation.mutate(payload, {
       onSuccess: () => {
         router.push("/rfas");
       },

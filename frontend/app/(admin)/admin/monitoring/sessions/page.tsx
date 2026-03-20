@@ -28,7 +28,6 @@ export default function SessionManagementPage() {
     },
     onError: (error) => {
       toast.error('Failed to revoke session');
-      console.error(error);
     },
   });
 

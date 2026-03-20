@@ -2,6 +2,58 @@
 
 ## [Unreleased]
 
+### Frontend Quality Refactor Pass (2026-03-20)
+
+#### 🔧 **ESLint Hardening**
+
+- Added `@typescript-eslint/no-explicit-any` as warning for TypeScript files
+- Added `no-console` as warning for TypeScript files
+- Added `eslint-plugin-react-hooks` rules (rules-of-hooks: error, exhaustive-deps: warn)
+
+#### 🧹 **Eliminate `any` Types (69 → 4)**
+
+- **admin pages**: Replaced `(projects as any[])` with typed `{ id?; uuid?; projectCode; projectName }` casts (6 pages)
+- **drawings/upload-form.tsx**: Fixed discriminated union form errors with `Record<string, FieldError | undefined>`
+- **generic-crud-table.tsx**: Added `ApiError` interface, replaced `any` with `Record<string, unknown>` generics
+- **numbering components**: Updated `projectId` prop types to `number | string`, coerced with `Number()`
+- **numbering/page.tsx**: Defined `ProjectItem` interface, typed find/filter operations
+- **admin/user-dialog.tsx**: Typed roles, organizations, and mutation payloads with `CreateUserDto`
+- **admin/security/rbac-matrix.tsx**: Typed API responses with explicit `Role[]` / `Permission[]` return types
+- **numbering/template-tester.tsx**: Typed template project access, fixed `error: any` → `error: unknown`
+- **numbering/template-editor.tsx**: Typed correspondence type lookup
+- **rfas/detail.tsx**: Created `RFADetailData` / `RFADetailItem` interfaces
+- **rfas/form.tsx**: Added `items` to `CreateRfaDto`, aligned DTO imports
+- **correspondences/form.tsx**: Fixed `defaultValues as any` → `as FormData`
+- **correspondences-content.tsx**: Removed `as any` on `useCorrespondences` params
+- **drawings/list.tsx**: Replaced `as any` with `as DrawingSearchParams`
+- **auth/auth-sync.tsx**: Typed NextAuth session user with explicit interface
+- **migration/review/[id]/page.tsx**: Fixed `error: any` → `error: unknown` with typed response cast
+- **reference pages** (disciplines, rfa-types, tags): Typed `fetchFn` mapping and `createFn` casts
+- **Remaining 4**: All `zodResolver(formSchema) as any` — known zod 4 + @hookform/resolvers compat (marked with `eslint-disable`)
+
+#### 🔇 **Remove Production Console Logs (53 → 4)**
+
+- Removed all `console.log`, `console.warn`, `console.error` from production code
+- **Kept**: 4 Next.js error boundary files (`error.tsx`, `global-error.tsx`) — required by framework
+- **Replaced**: Redundant catch-block logging where `toast` already provides user feedback
+- **Files cleaned**: `lib/auth.ts`, `lib/api/client.ts`, `lib/api/numbering.ts`, `lib/services/dashboard.service.ts`, all numbering components, admin pages, migration pages, workflow components, login page
+
+#### 🔑 **Fix Index-as-Key Anti-pattern**
+
+- **layout/sidebar.tsx**: Replaced `key={index}` with `key={item.href}` (desktop + mobile nav)
+- **admin/page.tsx**: Replaced `key={index}` with `key={stat.title}` and `key={link.href}`
+
+#### 📦 **Component Consolidation**
+
+- **correspondences/form.tsx**: Replaced duplicate `FileUpload` import with canonical `FileUploadZone`
+- **custom/file-upload-zone.tsx**: Removed unnecessary `as any` cast in File constructor
+
+#### 📊 **Type System Improvements**
+
+- **types/rfa.ts**: Added `items?: RFAItem[]` to `CreateRFADto`
+- **types/dto/rfa/rfa.dto.ts**: Added `items?: RFAItem[]` to `CreateRfaDto` (DTO version)
+- **Build**: ✅ `pnpm run build` passes with zero errors
+
 ### Build Fixes & Dependency Updates (2026-03-19)
 
 #### 🔧 **Build Issues Fixed**

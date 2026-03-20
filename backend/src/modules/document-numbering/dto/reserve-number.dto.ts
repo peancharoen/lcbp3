@@ -28,7 +28,7 @@ export class ReserveNumberDto {
 
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class ReserveNumberResponseDto {

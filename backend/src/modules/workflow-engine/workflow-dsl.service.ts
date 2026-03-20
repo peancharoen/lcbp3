@@ -33,7 +33,7 @@ export interface RawEvent {
   type: 'notify' | 'webhook' | 'assign' | 'auto_action';
   target?: string;
   template?: string;
-  payload?: any;
+  payload?: Record<string, unknown>;
 }
 
 // ==========================================
@@ -147,7 +147,7 @@ export class WorkflowDslService {
     compiled: CompiledWorkflow,
     currentState: string,
     action: string,
-    context: any = {}
+    context: Record<string, unknown> = {}
   ): { nextState: string; events: RawEvent[] } {
     const stateConfig = compiled.states[currentState];
 
@@ -197,11 +197,12 @@ export class WorkflowDslService {
   // Private Helpers
   // --------------------------------------------------------
 
-  private validateSchemaStructure(dsl: any) {
+  private validateSchemaStructure(dsl: unknown) {
     if (!dsl || typeof dsl !== 'object') {
       throw new BadRequestException('DSL must be a JSON object.');
     }
-    if (!dsl.workflow || !dsl.states || !Array.isArray(dsl.states)) {
+    const d = dsl as Record<string, unknown>;
+    if (!d.workflow || !d.states || !Array.isArray(d.states)) {
       throw new BadRequestException(
         'DSL Error: Missing required fields (workflow, states).'
       );
@@ -210,15 +211,15 @@ export class WorkflowDslService {
 
   private checkRequirements(
     req: CompiledTransition['requirements'],
-    context: any
+    context: Record<string, unknown>
   ) {
     // [FIX] Early return if no requirements defined
     if (!req) {
       return;
     }
 
-    const userRoles: string[] = context.roles || [];
-    const userId: string | number = context.userId;
+    const userRoles: string[] = (context.roles as string[]) || [];
+    const userId: string | number = context.userId as string | number;
 
     // Check Roles (OR logic inside array) - with null-safety
     const requiredRoles = req.roles || [];
@@ -242,7 +243,10 @@ export class WorkflowDslService {
    * NOTE: In production, use a safe parser like 'json-logic-js' or vm2
    * For this phase, we use a simple Function constructor with restricted scope.
    */
-  private evaluateCondition(expression: string, context: any): boolean {
+  private evaluateCondition(
+    expression: string,
+    context: Record<string, unknown>
+  ): boolean {
     try {
       // Simple guard against malicious code (basic)
       if (expression.includes('process') || expression.includes('require')) {
@@ -253,8 +257,10 @@ export class WorkflowDslService {
       // "context" is available inside the expression
       const func = new Function('context', `return ${expression};`);
       return !!func(context);
-    } catch (error: any) {
-      this.logger.error(`Condition Error: "${expression}" -> ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Condition Error: "${expression}" -> ${error instanceof Error ? error.message : String(error)}`
+      );
       return false; // Fail safe
     }
   }

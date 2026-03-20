@@ -87,7 +87,6 @@ export default function MigrationReviewPage() {
         });
       }
     } catch (error) {
-      console.error("Failed to load queue item", error);
       toast.error("Failed to load queue item");
     } finally {
       setLoading(false);
@@ -100,7 +99,7 @@ export default function MigrationReviewPage() {
     try {
       setSubmitting(true);
       const issues = item.aiIssues || {};
-      
+
       const payload = {
         document_number: values.document_number,
         subject: values.subject,
@@ -123,12 +122,12 @@ export default function MigrationReviewPage() {
       // Mock idempotency key based on timestamp to ensure uniqueness per approval retry
       const idempotencyKey = `review-${item.id}-${Date.now()}`;
       await migrationService.approveQueueItem(item.id, payload, idempotencyKey);
-      
+
       toast.success("Document approved and imported successfully");
       router.push("/admin/migration");
-    } catch (error: any) {
-      console.error("Failed to approve item", error);
-      toast.error(error?.response?.data?.message || "Failed to approve and import");
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err?.response?.data?.message || "Failed to approve and import");
     } finally {
       setSubmitting(false);
     }
@@ -142,8 +141,7 @@ export default function MigrationReviewPage() {
       await migrationService.rejectQueueItem(item.id);
       toast.success("Document rejected");
       router.push("/admin/migration");
-    } catch (error: any) {
-      console.error("Failed to reject item", error);
+    } catch (error: unknown) {
       toast.error("Failed to reject document");
     } finally {
       setSubmitting(false);
@@ -158,7 +156,7 @@ export default function MigrationReviewPage() {
     return <div className="py-10 text-center text-red-500">Document not found</div>;
   }
 
-  const pdfUrl = item.aiIssues?.source_file_path 
+  const pdfUrl = item.aiIssues?.source_file_path
     ? migrationService.getStagingFileUrl(item.aiIssues.source_file_path)
     : null;
 
@@ -240,7 +238,7 @@ export default function MigrationReviewPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -343,9 +341,9 @@ export default function MigrationReviewPage() {
                     <XCircleIcon className="w-4 h-4 mr-2" />
                     Reject
                   </Button>
-                  <Button 
-                    type="submit" 
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white" 
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                     disabled={submitting || item.status !== 'PENDING'}
                   >
                     <CheckCircleIcon className="w-4 h-4 mr-2" />

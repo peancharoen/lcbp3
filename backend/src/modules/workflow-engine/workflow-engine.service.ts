@@ -21,7 +21,11 @@ import {
 import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dto';
 import { EvaluateWorkflowDto } from './dto/evaluate-workflow.dto';
 import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto';
-import { CompiledWorkflow, WorkflowDslService } from './workflow-dsl.service';
+import {
+  CompiledWorkflow,
+  RawEvent,
+  WorkflowDslService,
+} from './workflow-dsl.service';
 import { WorkflowEventService } from './workflow-event.service'; // [NEW] Import Event Service
 
 // Legacy Interface (Backward Compatibility)
@@ -51,7 +55,7 @@ export class WorkflowEngineService {
     private readonly historyRepo: Repository<WorkflowHistory>,
     private readonly dslService: WorkflowDslService,
     private readonly eventService: WorkflowEventService, // [NEW] Inject Service
-    private readonly dataSource: DataSource, // ใช้สำหรับ Transaction
+    private readonly dataSource: DataSource // ใช้สำหรับ Transaction
   ) {}
 
   // =================================================================
@@ -62,7 +66,7 @@ export class WorkflowEngineService {
    * สร้างหรืออัปเดต Workflow Definition ใหม่ (Auto Versioning)
    */
   async createDefinition(
-    dto: CreateWorkflowDefinitionDto,
+    dto: CreateWorkflowDefinitionDto
   ): Promise<WorkflowDefinition> {
     // 1. Compile & Validate DSL
     const compiled = this.dslService.compile(dto.dsl);
@@ -79,16 +83,16 @@ export class WorkflowEngineService {
     const entity = this.workflowDefRepo.create({
       workflow_code: dto.workflow_code,
       version: nextVersion,
-      dsl: dto.dsl,
-      compiled: compiled,
+      dsl: dto.dsl as unknown as Record<string, unknown>,
+      compiled: compiled as unknown as Record<string, unknown>,
       is_active: dto.is_active ?? true,
     });
 
     const saved = await this.workflowDefRepo.save(entity);
     this.logger.log(
-      `Created Workflow Definition: ${saved.workflow_code} v${saved.version}`,
+      `Created Workflow Definition: ${(saved as WorkflowDefinition).workflow_code} v${(saved as WorkflowDefinition).version}`
     );
-    return saved;
+    return saved as WorkflowDefinition;
   }
 
   /**
@@ -96,22 +100,24 @@ export class WorkflowEngineService {
    */
   async update(
     id: string,
-    dto: UpdateWorkflowDefinitionDto,
+    dto: UpdateWorkflowDefinitionDto
   ): Promise<WorkflowDefinition> {
     const definition = await this.workflowDefRepo.findOne({ where: { id } });
     if (!definition) {
       throw new NotFoundException(
-        `Workflow Definition with ID "${id}" not found`,
+        `Workflow Definition with ID "${id}" not found`
       );
     }
 
     if (dto.dsl) {
       try {
         const compiled = this.dslService.compile(dto.dsl);
-        definition.dsl = dto.dsl;
-        definition.compiled = compiled;
-      } catch (error: any) {
-        throw new BadRequestException(`Invalid DSL: ${error.message}`);
+        definition.dsl = dto.dsl as unknown as Record<string, unknown>;
+        definition.compiled = compiled as unknown as Record<string, unknown>;
+      } catch (error: unknown) {
+        throw new BadRequestException(
+          `Invalid DSL: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
 
@@ -130,7 +136,7 @@ export class WorkflowEngineService {
     const latestDefinitions = await this.workflowDefRepo
       .createQueryBuilder('def')
       .where(
-        'def.version = (SELECT MAX(sub.version) FROM workflow_definitions sub WHERE sub.workflow_code = def.workflow_code)',
+        'def.version = (SELECT MAX(sub.version) FROM workflow_definitions sub WHERE sub.workflow_code = def.workflow_code)'
       )
       .getMany();
 
@@ -143,7 +149,9 @@ export class WorkflowEngineService {
   async getDefinitionById(id: string): Promise<WorkflowDefinition> {
     const definition = await this.workflowDefRepo.findOne({ where: { id } });
     if (!definition) {
-      throw new NotFoundException(`Workflow Definition with ID "${id}" not found`);
+      throw new NotFoundException(
+        `Workflow Definition with ID "${id}" not found`
+      );
     }
     return definition;
   }
@@ -153,7 +161,7 @@ export class WorkflowEngineService {
    */
   async getAvailableActions(
     workflowCode: string,
-    currentState: string,
+    currentState: string
   ): Promise<string[]> {
     const definition = await this.workflowDefRepo.findOne({
       where: { workflow_code: workflowCode, is_active: true },
@@ -162,7 +170,8 @@ export class WorkflowEngineService {
 
     if (!definition) return [];
 
-    const stateConfig = definition.compiled.states[currentState];
+    const compiled = definition.compiled as unknown as CompiledWorkflow;
+    const stateConfig = compiled.states[currentState];
     if (!stateConfig || !stateConfig.transitions) return [];
 
     return Object.keys(stateConfig.transitions);
@@ -179,7 +188,7 @@ export class WorkflowEngineService {
     workflowCode: string,
     entityType: string,
     entityId: string,
-    initialContext: Record<string, any> = {},
+    initialContext: Record<string, unknown> = {}
   ): Promise<WorkflowInstance> {
     // 1. หา Definition ล่าสุด
     const definition = await this.workflowDefRepo.findOne({
@@ -189,19 +198,19 @@ export class WorkflowEngineService {
 
     if (!definition) {
       throw new NotFoundException(
-        `Workflow "${workflowCode}" not found or inactive.`,
+        `Workflow "${workflowCode}" not found or inactive.`
       );
     }
 
     // 2. หา Initial State จาก Compiled Structure
-    const compiled: CompiledWorkflow = definition.compiled;
+    const compiled = definition.compiled as unknown as CompiledWorkflow;
     // [FIX] ใช้ initialState จาก Root Property โดยตรง (ตามที่ Optimize ใน DSL Service)
     // เพราะ CompiledState ใน states map ไม่มี property 'initial' แล้ว
     const initialState = compiled.initialState;
 
     if (!initialState) {
       throw new BadRequestException(
-        `Workflow "${workflowCode}" has no initial state defined.`,
+        `Workflow "${workflowCode}" has no initial state defined.`
       );
     }
 
@@ -217,7 +226,7 @@ export class WorkflowEngineService {
 
     const savedInstance = await this.instanceRepo.save(instance);
     this.logger.log(
-      `Started Workflow Instance: ${workflowCode} for ${entityType}:${entityId}`,
+      `Started Workflow Instance: ${workflowCode} for ${entityType}:${entityId}`
     );
     return savedInstance;
   }
@@ -234,7 +243,7 @@ export class WorkflowEngineService {
 
     if (!instance) {
       throw new NotFoundException(
-        `Workflow Instance "${instanceId}" not found`,
+        `Workflow Instance "${instanceId}" not found`
       );
     }
 
@@ -249,14 +258,14 @@ export class WorkflowEngineService {
     action: string,
     userId: number,
     comment?: string,
-    payload: Record<string, any> = {},
+    payload: Record<string, any> = {}
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    let eventsToDispatch: any[] = [];
-    let updatedContext: any = {};
+    let eventsToDispatch: RawEvent[] = [];
+    let updatedContext: Record<string, unknown> = {};
 
     try {
       // 1. Lock Instance เพื่อป้องกัน Race Condition (Pessimistic Write Lock)
@@ -268,18 +277,19 @@ export class WorkflowEngineService {
 
       if (!instance) {
         throw new NotFoundException(
-          `Workflow Instance "${instanceId}" not found.`,
+          `Workflow Instance "${instanceId}" not found.`
         );
       }
 
       if (instance.status !== WorkflowStatus.ACTIVE) {
         throw new BadRequestException(
-          `Workflow is not active (Status: ${instance.status}).`,
+          `Workflow is not active (Status: ${instance.status}).`
         );
       }
 
       // 2. Evaluate Logic ผ่าน DSL Service
-      const compiled: CompiledWorkflow = instance.definition.compiled;
+      const compiled = instance.definition
+        .compiled as unknown as CompiledWorkflow;
       const context = { ...instance.context, userId, ...payload }; // Merge Context
 
       // * DSL Service จะ throw error ถ้า action ไม่ถูกต้อง หรือสิทธิ์ไม่พอ
@@ -287,7 +297,7 @@ export class WorkflowEngineService {
         compiled,
         instance.currentState,
         action,
-        context,
+        context
       );
 
       const fromState = instance.currentState;
@@ -326,7 +336,7 @@ export class WorkflowEngineService {
       updatedContext = context;
 
       this.logger.log(
-        `Transition: ${instanceId} [${fromState}] --${action}--> [${toState}] by User:${userId}`,
+        `Transition: ${instanceId} [${fromState}] --${action}--> [${toState}] by User:${userId}`
       );
 
       // [NEW] Dispatch Events (Async) ผ่าน WorkflowEventService
@@ -334,7 +344,7 @@ export class WorkflowEngineService {
         this.eventService.dispatchEvents(
           instance.id,
           eventsToDispatch,
-          updatedContext,
+          updatedContext
         );
       }
 
@@ -347,7 +357,7 @@ export class WorkflowEngineService {
     } catch (err) {
       await queryRunner.rollbackTransaction();
       this.logger.error(
-        `Transition Failed for ${instanceId}: ${(err as Error).message}`,
+        `Transition Failed for ${instanceId}: ${(err as Error).message}`
       );
       throw err;
     } finally {
@@ -369,10 +379,10 @@ export class WorkflowEngineService {
     }
 
     return this.dslService.evaluate(
-      definition.compiled,
+      definition.compiled as unknown as CompiledWorkflow,
       dto.current_state,
       dto.action,
-      dto.context || {},
+      dto.context || {}
     );
   }
 
@@ -389,7 +399,7 @@ export class WorkflowEngineService {
     currentSequence: number,
     totalSteps: number,
     action: string,
-    returnToSequence?: number,
+    returnToSequence?: number
   ): TransitionResult {
     switch (action) {
       case WorkflowAction.APPROVE:
@@ -430,7 +440,7 @@ export class WorkflowEngineService {
 
       default:
         this.logger.warn(
-          `Unknown legacy action: ${action}, treating as next step.`,
+          `Unknown legacy action: ${action}, treating as next step.`
         );
         if (currentSequence >= totalSteps) {
           return {

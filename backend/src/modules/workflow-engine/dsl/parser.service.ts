@@ -34,13 +34,18 @@ export class WorkflowDslParser {
 
       // Step 5: Save to database
       return await this.workflowDefRepo.save(definition);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof SyntaxError) {
         throw new BadRequestException(`Invalid JSON: ${error.message}`);
       }
-      if (error.name === 'ZodError') {
+      const err = error as {
+        name?: string;
+        errors?: unknown;
+        message?: string;
+      };
+      if (err.name === 'ZodError') {
         throw new BadRequestException(
-          `Invalid workflow DSL: ${JSON.stringify(error.errors)}`
+          `Invalid workflow DSL: ${JSON.stringify(err.errors)}`
         );
       }
       throw error;
@@ -161,12 +166,14 @@ export class WorkflowDslParser {
     try {
       const dsl = definition.dsl;
       return WorkflowDslSchema.parse(dsl);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(
         `Failed to parse stored DSL for definition ${definitionId}`,
         error
       );
-      throw new BadRequestException(`Invalid stored DSL: ${error?.message}`);
+      throw new BadRequestException(
+        `Invalid stored DSL: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -179,10 +186,12 @@ export class WorkflowDslParser {
       const dsl = WorkflowDslSchema.parse(rawDsl);
       this.validateStateMachine(dsl);
       return { valid: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         valid: false,
-        errors: [error?.message || 'Unknown validation error'],
+        errors: [
+          error instanceof Error ? error.message : 'Unknown validation error',
+        ],
       };
     }
   }

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
@@ -41,7 +42,7 @@ export default function MigrationReviewQueuePage() {
       setItems(res.items);
       setSelectedIds([]); // reset selection on fetch
     } catch (error) {
-      console.error("Failed to fetch queue", error);
+      // Failed to fetch queue - loading state handles display
     } finally {
       setLoading(false);
     }
@@ -56,7 +57,7 @@ export default function MigrationReviewQueuePage() {
   };
 
   const handleToggleSelect = (id: number) => {
-    setSelectedIds((prev) => 
+    setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
@@ -65,7 +66,7 @@ export default function MigrationReviewQueuePage() {
     if (selectedIds.length === 0) return;
     try {
       setSubmitting(true);
-      
+
       const batchItems = items
         .filter((i) => selectedIds.includes(i.id))
         .map((item) => ({
@@ -94,11 +95,10 @@ export default function MigrationReviewQueuePage() {
         { items: batchItems, batchId },
         batchId
       );
-      
+
       fetchData();
     } catch (error) {
-      console.error("Batch commit failed", error);
-      alert("Batch commit failed. See console for details.");
+      toast.error("Batch commit failed.");
     } finally {
       setSubmitting(false);
     }
@@ -115,12 +115,12 @@ export default function MigrationReviewQueuePage() {
         </div>
         <div className="flex items-center gap-4">
           {selectedIds.length > 0 && (
-            <Button 
-              variant="default" 
-              onClick={handleBatchApprove} 
+            <Button
+              variant="default"
+              onClick={handleBatchApprove}
               disabled={submitting}
             >
-              <CheckSquareIcon className="mr-2 h-4 w-4" /> 
+              <CheckSquareIcon className="mr-2 h-4 w-4" />
               {submitting ? "Processing..." : `Batch Approve (${selectedIds.length})`}
             </Button>
           )}
@@ -158,7 +158,7 @@ export default function MigrationReviewQueuePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px]">
-                      <Checkbox 
+                      <Checkbox
                         checked={items.length > 0 && selectedIds.length === items.length}
                         onCheckedChange={handleToggleSelectAll}
                         aria-label="Select all"
@@ -176,7 +176,7 @@ export default function MigrationReviewQueuePage() {
                   {items.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <Checkbox 
+                        <Checkbox
                           checked={selectedIds.includes(item.id)}
                           onCheckedChange={() => handleToggleSelect(item.id)}
                           aria-label={`Select item ${item.id}`}
@@ -185,14 +185,14 @@ export default function MigrationReviewQueuePage() {
                       <TableCell className="font-medium">{item.documentNumber}</TableCell>
                       <TableCell>{item.aiSuggestedCategory || "Unknown"}</TableCell>
                       <TableCell>
-                        <Badge 
+                        <Badge
                           variant={
-                            !item.aiConfidence 
-                              ? "destructive" 
-                              : item.aiConfidence > 0.8 
-                                ? "default" 
-                                : item.aiConfidence > 0.5 
-                                  ? "secondary" 
+                            !item.aiConfidence
+                              ? "destructive"
+                              : item.aiConfidence > 0.8
+                                ? "default"
+                                : item.aiConfidence > 0.5
+                                  ? "secondary"
                                   : "destructive"
                           }
                         >

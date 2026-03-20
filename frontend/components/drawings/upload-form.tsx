@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -95,11 +95,14 @@ export function DrawingUploadForm() {
     watch,
     formState: { errors },
   } = useForm<DrawingFormData>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema),
     defaultValues: {
       drawingType: "CONTRACT",
-    }
+    } as DrawingFormData
   });
+
+  // Type-safe error access for discriminated union fields
+  const formErrors = errors as Record<string, FieldError | undefined>;
 
   const drawingType = watch("drawingType");
   const watchedProjectId = watch("projectId");
@@ -148,7 +151,7 @@ export function DrawingUploadForm() {
       if (data.description) formData.append('description', data.description);
     }
 
-    createMutation.mutate(formData as any, {
+    createMutation.mutate(formData, {
       onSuccess: () => {
         router.push("/drawings");
       }
@@ -191,7 +194,7 @@ export function DrawingUploadForm() {
             <Label>Drawing Type *</Label>
             <Select
               onValueChange={(v) => {
-                setValue("drawingType", v as any);
+                setValue("drawingType", v as DrawingFormData["drawingType"]);
                 // Reset errors or fields if needed
               }}
               defaultValue="CONTRACT"
@@ -214,15 +217,15 @@ export function DrawingUploadForm() {
                 <div>
                   <Label>Contract Drawing No *</Label>
                   <Input {...register("contractDrawingNo")} placeholder="e.g. CD-001" />
-                  {(errors as any).contractDrawingNo && (
-                    <p className="text-sm text-destructive">{(errors as any).contractDrawingNo.message}</p>
+                  {formErrors.contractDrawingNo && (
+                    <p className="text-sm text-destructive">{formErrors.contractDrawingNo.message}</p>
                   )}
                 </div>
                 <div>
                    <Label>Title *</Label>
                    <Input {...register("title")} placeholder="Drawing Title" />
-                   {(errors as any).title && (
-                    <p className="text-sm text-destructive">{(errors as any).title.message}</p>
+                   {formErrors.title && (
+                    <p className="text-sm text-destructive">{formErrors.title.message}</p>
                   )}
                 </div>
               </div>
@@ -235,13 +238,13 @@ export function DrawingUploadForm() {
                         <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {contractCategories?.map((c: any) => (
+                        {contractCategories?.map((c: { id: number; catName?: string; catCode?: string; name?: string }) => (
                            <SelectItem key={c.id} value={String(c.id)}>{c.catName || c.catCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {(errors as any).mapCatId && (
-                      <p className="text-sm text-destructive">{(errors as any).mapCatId.message}</p>
+                    {formErrors.mapCatId && (
+                      <p className="text-sm text-destructive">{formErrors.mapCatId.message}</p>
                     )}
                  </div>
                  <div className="grid grid-cols-2 gap-2">
@@ -265,8 +268,8 @@ export function DrawingUploadForm() {
                   <div>
                     <Label>Shop Drawing No *</Label>
                     <Input {...register("drawingNumber")} placeholder="e.g. SD-101" />
-                    {(errors as any).drawingNumber && (
-                       <p className="text-sm text-destructive">{(errors as any).drawingNumber.message}</p>
+                    {formErrors.drawingNumber && (
+                       <p className="text-sm text-destructive">{formErrors.drawingNumber.message}</p>
                     )}
                   </div>
                   <div>
@@ -286,13 +289,13 @@ export function DrawingUploadForm() {
                         <SelectValue placeholder="Select Main Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {shopMainCats?.map((c: any) => (
+                        {shopMainCats?.map((c: { id: number; mainCategoryName?: string; mainCategoryCode?: string; name?: string }) => (
                           <SelectItem key={c.id} value={String(c.id)}>{c.mainCategoryName || c.mainCategoryCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                     {(errors as any).mainCategoryId && (
-                       <p className="text-sm text-destructive">{(errors as any).mainCategoryId.message}</p>
+                     {formErrors.mainCategoryId && (
+                       <p className="text-sm text-destructive">{formErrors.mainCategoryId.message}</p>
                     )}
                   </div>
                   <div>
@@ -302,13 +305,13 @@ export function DrawingUploadForm() {
                         <SelectValue placeholder="Select Sub Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {shopSubCats?.map((c: any) => (
+                        {shopSubCats?.map((c: { id: number; subCategoryName?: string; subCategoryCode?: string; name?: string }) => (
                           <SelectItem key={c.id} value={String(c.id)}>{c.subCategoryName || c.subCategoryCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                     {(errors as any).subCategoryId && (
-                       <p className="text-sm text-destructive">{(errors as any).subCategoryId.message}</p>
+                     {formErrors.subCategoryId && (
+                       <p className="text-sm text-destructive">{formErrors.subCategoryId.message}</p>
                     )}
                   </div>
                </div>
@@ -316,8 +319,8 @@ export function DrawingUploadForm() {
                <div>
                  <Label>Revision Title *</Label>
                  <Input {...register("title")} placeholder="Current Revision Title" />
-                 {(errors as any).title && (
-                    <p className="text-sm text-destructive">{(errors as any).title.message}</p>
+                 {formErrors.title && (
+                    <p className="text-sm text-destructive">{formErrors.title.message}</p>
                  )}
                </div>
 
@@ -335,8 +338,8 @@ export function DrawingUploadForm() {
                   <div>
                     <Label>Drawing No *</Label>
                     <Input {...register("drawingNumber")} placeholder="e.g. AB-101" />
-                    {(errors as any).drawingNumber && (
-                       <p className="text-sm text-destructive">{(errors as any).drawingNumber.message}</p>
+                    {formErrors.drawingNumber && (
+                       <p className="text-sm text-destructive">{formErrors.drawingNumber.message}</p>
                     )}
                   </div>
                   <div>
@@ -356,13 +359,13 @@ export function DrawingUploadForm() {
                         <SelectValue placeholder="Select Main Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {shopMainCats?.map((c: any) => (
+                        {shopMainCats?.map((c: { id: number; mainCategoryName?: string; mainCategoryCode?: string; name?: string }) => (
                           <SelectItem key={c.id} value={String(c.id)}>{c.mainCategoryName || c.mainCategoryCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                     {(errors as any).mainCategoryId && (
-                       <p className="text-sm text-destructive">{(errors as any).mainCategoryId.message}</p>
+                     {formErrors.mainCategoryId && (
+                       <p className="text-sm text-destructive">{formErrors.mainCategoryId.message}</p>
                     )}
                   </div>
                   <div>
@@ -372,13 +375,13 @@ export function DrawingUploadForm() {
                         <SelectValue placeholder="Select Sub Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {shopSubCats?.map((c: any) => (
+                        {shopSubCats?.map((c: { id: number; subCategoryName?: string; subCategoryCode?: string; name?: string }) => (
                           <SelectItem key={c.id} value={String(c.id)}>{c.subCategoryName || c.subCategoryCode || c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                     {(errors as any).subCategoryId && (
-                       <p className="text-sm text-destructive">{(errors as any).subCategoryId.message}</p>
+                     {formErrors.subCategoryId && (
+                       <p className="text-sm text-destructive">{formErrors.subCategoryId.message}</p>
                     )}
                   </div>
                </div>
@@ -386,8 +389,8 @@ export function DrawingUploadForm() {
                <div>
                  <Label>Title *</Label>
                  <Input {...register("title")} placeholder="Drawing Title" />
-                 {(errors as any).title && (
-                    <p className="text-sm text-destructive">{(errors as any).title.message}</p>
+                 {formErrors.title && (
+                    <p className="text-sm text-destructive">{formErrors.title.message}</p>
                  )}
                </div>
                <div>

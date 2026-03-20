@@ -62,7 +62,7 @@ export default function ContractSubCategoriesPage() {
           )}
         </SelectTrigger>
         <SelectContent>
-          {(projects as any[]).map((project) => (
+          {(projects as { id?: number; uuid?: string; projectCode: string; projectName: string }[]).map((project) => (
             <SelectItem key={project.uuid || project.id} value={String(project.id || project.uuid)}>
               {project.projectCode} - {project.projectName}
             </SelectItem>
@@ -95,9 +95,7 @@ export default function ContractSubCategoriesPage() {
         description="Manage sub-categories (หมวดหมู่ย่อย) for contract drawings"
         queryKey={['contract-drawing-sub-categories', String(selectedProjectId)]}
         fetchFn={async () => {
-          console.log(`Fetching Contract Sub-Categories for project ${selectedProjectId}`);
           const data = await drawingMasterDataService.getContractSubCategories(selectedProjectId);
-          console.log('Contract Sub-Categories Data:', data);
           return data;
         }}
         createFn={(data: Record<string, unknown>) =>

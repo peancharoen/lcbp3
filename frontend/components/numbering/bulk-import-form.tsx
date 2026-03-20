@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { documentNumberingService } from "@/lib/services/document-numbering.service";
 
-export function BulkImportForm({ projectId = 1 }: { projectId?: number }) {
+export function BulkImportForm({ projectId = 1 }: { projectId?: number | string }) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +30,6 @@ export function BulkImportForm({ projectId = 1 }: { projectId?: number }) {
       setFile(null);
     } catch (error) {
       toast.error("Failed to import numbers.");
-      console.error(error);
     } finally {
       setLoading(false);
     }

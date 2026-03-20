@@ -7,7 +7,7 @@ export interface RetryOptions {
   factor?: number;
   minTimeout?: number;
   maxTimeout?: number;
-  onRetry?: (e: Error, attempt: number) => any;
+  onRetry?: (e: Error, attempt: number) => void;
 }
 
 /**
@@ -18,12 +18,12 @@ export function Retry(options: RetryOptions = {}) {
   return function (
     target: any,
     propertyKey: string,
-    descriptor: PropertyDescriptor,
+    descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
     const logger = new Logger('RetryDecorator');
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       return retry(
         // ✅ ระบุ Type ให้กับ bail และ attempt เพื่อแก้ Implicit any
         async (bail: (e: Error) => void, attempt: number) => {
@@ -38,7 +38,7 @@ export function Retry(options: RetryOptions = {}) {
             }
 
             logger.warn(
-              `Attempt ${attempt} failed for ${propertyKey}. Error: ${err.message}`, // ✅ ใช้ err.message
+              `Attempt ${attempt} failed for ${propertyKey}. Error: ${err.message}` // ✅ ใช้ err.message
             );
 
             // ถ้าต้องการให้หยุด Retry ทันทีในบางเงื่อนไข สามารถเรียก bail(err) ได้ที่นี่
@@ -51,7 +51,7 @@ export function Retry(options: RetryOptions = {}) {
           minTimeout: options.minTimeout || 1000,
           maxTimeout: options.maxTimeout || 5000,
           ...options,
-        },
+        }
       );
     };
 

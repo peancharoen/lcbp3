@@ -72,7 +72,9 @@ export class SearchService implements OnModuleInit {
   /**
    * Index เอกสาร (Create/Update)
    */
-  async indexDocument(doc: any) {
+  async indexDocument(
+    doc: Record<string, unknown> & { type: string; id?: number; uuid?: string }
+  ) {
     try {
       return await this.esService.index({
         index: this.indexName,
@@ -115,7 +117,7 @@ export class SearchService implements OnModuleInit {
       return { data: [], meta: { total: 0, page, limit, took: 0 } };
     }
 
-    const mustQueries: any[] = [];
+    const mustQueries: Record<string, unknown>[] = [];
 
     // 1. Full-text search logic
     if (q) {
@@ -131,7 +133,7 @@ export class SearchService implements OnModuleInit {
     }
 
     // 2. Filter logic
-    const filterQueries: any[] = [];
+    const filterQueries: Record<string, unknown>[] = [];
     if (type) filterQueries.push({ term: { type } });
     if (projectId) filterQueries.push({ term: { projectId } });
 

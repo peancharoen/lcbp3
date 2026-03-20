@@ -23,7 +23,7 @@ export type Operator =
 export interface FieldCondition {
   field: string;
   operator: Operator;
-  value: any;
+  value: unknown;
 }
 
 export interface FieldDependency {
@@ -32,7 +32,7 @@ export interface FieldDependency {
     visibility?: boolean; // true = show, false = hide
     required?: boolean;
     disabled?: boolean;
-    filterOptions?: Record<string, any>; // เช่น กรอง Dropdown ตามค่าที่เลือก
+    filterOptions?: Record<string, unknown>; // เช่น กรอง Dropdown ตามค่าที่เลือก
   };
 }
 
@@ -42,10 +42,10 @@ export interface UiSchemaField {
   title: string;
   description?: string;
   placeholder?: string;
-  enum?: any[]; // กรณีเป็น static options
+  enum?: unknown[]; // กรณีเป็น static options
   enumNames?: string[]; // label สำหรับ options
   dataSource?: string; // กรณีดึง options จาก API (เช่น 'master-data/disciplines')
-  defaultValue?: any;
+  defaultValue?: unknown;
   readOnly?: boolean;
   hidden?: boolean;
 
@@ -72,7 +72,7 @@ export interface LayoutGroup {
 export interface LayoutConfig {
   type: 'stack' | 'grid' | 'tabs' | 'steps' | 'wizard';
   groups: LayoutGroup[];
-  options?: Record<string, any>; // Config เพิ่มเติมเฉพาะ Layout type
+  options?: Record<string, unknown>; // Config เพิ่มเติมเฉพาะ Layout type
 }
 
 export interface UiSchema {
@@ -81,4 +81,3 @@ export interface UiSchema {
     [key: string]: UiSchemaField;
   };
 }
-

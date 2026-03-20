@@ -21,7 +21,7 @@ export function SequenceViewer() {
       const data = Array.isArray(response) ? response : (response as { data?: NumberSequence[] })?.data ?? [];
       setSequences(data);
     } catch {
-      console.error('Failed to fetch sequences');
+      // Failed to fetch sequences - show empty state
       setSequences([]);
     } finally {
       setLoading(false);

@@ -15,6 +15,9 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../../common/guards/rbac.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { User } from '../../user/entities/user.entity';
+import { DocumentNumberFormat } from '../entities/document-number-format.entity';
+import { ManualOverrideDto } from '../dto/manual-override.dto';
 
 @ApiTags('Admin / Document Numbering')
 @ApiBearerAuth()
@@ -40,7 +43,9 @@ export class DocumentNumberingAdminController {
   @Post('templates')
   @ApiOperation({ summary: 'Create or Update a numbering template' })
   @RequirePermission('system.manage_settings')
-  async saveTemplate(@Body() dto: any) {
+  async saveTemplate(
+    @Body() dto: Partial<DocumentNumberFormat> & { projectId?: number | string }
+  ) {
     return this.service.saveTemplate(dto);
   }
 
@@ -74,28 +79,48 @@ export class DocumentNumberingAdminController {
     summary: 'Manually override or set a document number counter',
   })
   @RequirePermission('system.manage_settings')
-  async manualOverride(@Body() dto: any, @CurrentUser() user: any) {
-    return this.service.manualOverride(dto, user.userId);
+  async manualOverride(
+    @Body() dto: ManualOverrideDto,
+    @CurrentUser() user: User
+  ) {
+    return this.service.manualOverride(dto, user.user_id);
   }
 
   @Post('void-and-replace')
   @ApiOperation({ summary: 'Void a number and replace with a new generation' })
   @RequirePermission('system.manage_settings')
-  async voidAndReplace(@Body() dto: any) {
+  async voidAndReplace(
+    @Body()
+    dto: {
+      documentNumber: string;
+      reason: string;
+      replace: boolean;
+      projectId?: number;
+      typeId?: number;
+    }
+  ) {
     return this.service.voidAndReplace(dto);
   }
 
   @Post('cancel')
   @ApiOperation({ summary: 'Cancel/Skip a specific document number' })
   @RequirePermission('system.manage_settings')
-  async cancelNumber(@Body() dto: any) {
+  async cancelNumber(
+    @Body()
+    dto: {
+      documentNumber: string;
+      reason: string;
+      projectId?: number;
+      typeId?: number;
+    }
+  ) {
     return this.service.cancelNumber(dto);
   }
 
   @Post('bulk-import')
   @ApiOperation({ summary: 'Bulk import/set document number counters' })
   @RequirePermission('system.manage_settings')
-  async bulkImport(@Body() items: any[]) {
+  async bulkImport(@Body() items: ManualOverrideDto[]) {
     return this.service.bulkImport(items);
   }
 }

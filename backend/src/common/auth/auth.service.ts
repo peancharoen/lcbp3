@@ -18,6 +18,7 @@ import { Repository } from 'typeorm';
 import type { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import type { StringValue } from 'ms';
 
 import { UserService } from '../../modules/user/user.service';
 import { User } from '../../modules/user/entities/user.entity';
@@ -83,7 +84,7 @@ export class AuthService {
   }
 
   // 2. Login: สร้าง Access & Refresh Token และบันทึกลง DB
-  async login(user: any) {
+  async login(user: User) {
     const payload = {
       username: user.username,
       sub: user.user_id,
@@ -93,20 +94,20 @@ export class AuthService {
     const isBot = user.username === 'migration_bot';
     const accessTokenExpiresIn = isBot
       ? '100y'
-      : (this.configService.get<string>('JWT_EXPIRATION') || '15m');
+      : this.configService.get<string>('JWT_EXPIRATION') || '15m';
 
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
-      expiresIn: accessTokenExpiresIn as any,
+      expiresIn: accessTokenExpiresIn as StringValue,
     });
 
     const refreshTokenExpiresIn = isBot
       ? '100y'
-      : (this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d');
+      : this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d';
 
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: refreshTokenExpiresIn as any,
+      expiresIn: refreshTokenExpiresIn as StringValue,
     });
 
     // [P2-2] Store Refresh Token in DB
@@ -189,13 +190,13 @@ export class AuthService {
     const newAccessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
       expiresIn: (this.configService.get<string>('JWT_EXPIRATION') ||
-        '15m') as any,
+        '15m') as StringValue,
     });
 
     const newRefreshToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') ||
-        '7d') as any,
+        '7d') as StringValue,
     });
 
     // Revoke OLD token and point to NEW one

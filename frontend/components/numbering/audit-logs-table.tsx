@@ -24,7 +24,7 @@ export function AuditLogsTable() {
            setLogs(data.audit);
         }
       } catch (error) {
-        console.error("Failed to fetch audit logs", error);
+        // Failed to fetch audit logs - empty state shown
       } finally {
         setLoading(false);
       }

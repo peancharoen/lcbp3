@@ -47,7 +47,7 @@ async function refreshAccessToken(token: JWT) {
       refreshToken: data.refresh_token ?? token.refreshToken,
     };
   } catch (error) {
-    console.log("RefreshAccessTokenError", error);
+    // RefreshAccessTokenError - token will be invalidated
 
     return {
       ...token,
@@ -73,7 +73,6 @@ export const {
         try {
           const { username, password } = await loginSchema.parseAsync(credentials);
 
-          console.log(`Attempting login to: ${baseUrl}/auth/login`);
 
           const res = await fetch(`${baseUrl}/auth/login`, {
             method: "POST",
@@ -83,7 +82,6 @@ export const {
 
           if (!res.ok) {
             const errorMsg = await res.text();
-            console.error("Login failed:", errorMsg);
             return null;
           }
 
@@ -91,7 +89,6 @@ export const {
           const backendData = responseJson.data || responseJson;
 
           if (!backendData || !backendData.access_token) {
-            console.error("No access token received");
             return null;
           }
 
@@ -107,7 +104,6 @@ export const {
           } as User;
 
         } catch (error) {
-          console.error("Auth error:", error);
           return null;
         }
       },

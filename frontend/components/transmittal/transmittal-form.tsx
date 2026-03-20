@@ -77,7 +77,7 @@ export function TransmittalForm() {
   const [docOpen, setDocOpen] = useState(false);
 
   const form = useForm<FormData>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- zod 4 + @hookform/resolvers compat
     defaultValues: {
       projectId: "",
       recipientOrganizationId: "",

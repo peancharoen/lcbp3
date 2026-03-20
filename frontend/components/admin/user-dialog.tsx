@@ -108,7 +108,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
         isActive: user.isActive,
         lineId: user.lineId || "",
         primaryOrganizationId: user.primaryOrganizationId?.toString(),
-        roleIds: user.roles?.map((r: any) => r.roleId) || [],
+        roleIds: user.roles?.map((r: { roleId: number }) => r.roleId) || [],
         password: "",
         confirmPassword: ""
       });
@@ -158,7 +158,17 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
       // Create req: Password mandatory
       if (!payload.password) return; // Should allow Zod to catch or show error
 
-      createUser.mutate(payload as any, {
+      createUser.mutate({
+        username: payload.username,
+        email: payload.email,
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+        password: payload.password,
+        isActive: payload.isActive ?? true,
+        lineId: payload.lineId,
+        primaryOrganizationId: payload.primaryOrganizationId,
+        roleIds: payload.roleIds ?? [],
+      }, {
         onSuccess: () => onOpenChange(false),
       });
     }
@@ -230,7 +240,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                   <SelectValue placeholder="Select Organization" />
                 </SelectTrigger>
                 <SelectContent>
-                  {organizations?.map((org: any) => (
+                  {organizations?.map((org: { uuid: string; organizationCode: string; organizationName: string }) => (
                     <SelectItem
                       key={org.uuid}
                       value={org.uuid}
@@ -300,7 +310,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
             <Label className="mb-3 block">Roles</Label>
             <div className="space-y-2 border p-3 rounded-md max-h-[200px] overflow-y-auto">
               {Array.isArray(roles) && roles.length === 0 && <p className="text-sm text-muted-foreground">Loading roles...</p>}
-              {Array.isArray(roles) && roles.map((role: any) => (
+              {Array.isArray(roles) && roles.map((role: { roleId: number; roleName: string; description?: string }) => (
                 <div key={role.roleId} className="flex items-start space-x-2">
                   <Checkbox
                     id={`role-${role.roleId}`}

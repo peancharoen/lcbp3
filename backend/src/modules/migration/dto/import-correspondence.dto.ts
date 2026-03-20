@@ -32,7 +32,7 @@ export class ImportCorrespondenceDto {
   ai_confidence?: number;
 
   @IsOptional()
-  ai_issues?: any;
+  ai_issues?: Record<string, unknown>[];
 
   @IsString()
   @IsNotEmpty()
@@ -44,7 +44,7 @@ export class ImportCorrespondenceDto {
 
   @IsObject()
   @IsOptional()
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 
   @IsNumber()
   @IsNotEmpty()

@@ -70,7 +70,12 @@ export class UserAssignmentService {
           results.push(await queryRunner.manager.save(newAssignment));
         } else if (action === ActionType.REMOVE) {
           // Construct delete criteria
-          const criteria: any = { userId, roleId };
+          const criteria: {
+            userId: number;
+            roleId: number;
+            organizationId?: number;
+            projectId?: number;
+          } = { userId, roleId };
           if (organizationId) criteria.organizationId = organizationId;
           if (projectId) criteria.projectId = projectId;
 

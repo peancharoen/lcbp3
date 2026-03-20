@@ -22,8 +22,6 @@ export default function ShopSubCategoriesPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
 
-  console.log('Projects Data:', projects);
-
   const columns: ColumnDef<SubCategory>[] = [
     {
       accessorKey: 'subCategoryCode',
@@ -75,7 +73,7 @@ export default function ShopSubCategoriesPage() {
           )}
         </SelectTrigger>
         <SelectContent>
-          {(projects as any[]).map((project) => (
+          {(projects as { id?: number; uuid?: string; projectCode: string; projectName: string }[]).map((project) => (
             <SelectItem key={project.uuid || project.id} value={String(project.id || project.uuid)}>
               {project.projectCode} - {project.projectName}
             </SelectItem>
@@ -108,9 +106,7 @@ export default function ShopSubCategoriesPage() {
         description="Manage sub-categories (หมวดหมู่ย่อย) for shop drawings"
         queryKey={['shop-drawing-sub-categories', String(selectedProjectId)]}
         fetchFn={async () => {
-          console.log(`Fetching Shop Sub-Categories for project ${selectedProjectId}`);
           const data = await drawingMasterDataService.getShopSubCategories(selectedProjectId);
-          console.log('Shop Sub-Categories Data:', data);
           return data;
         }}
         createFn={(data: Record<string, unknown>) =>

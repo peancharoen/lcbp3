@@ -63,7 +63,6 @@ export default function LoginPage() {
 
       if (result?.error) {
         // กรณี Login ไม่สำเร็จ
-        console.error("Login failed:", result.error);
         toast.error("เข้าสู่ระบบไม่สำเร็จ", {
           description: "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่",
         });
@@ -77,7 +76,6 @@ export default function LoginPage() {
       router.push("/dashboard");
       router.refresh(); // Refresh เพื่อให้ Server Component รับรู้ Session ใหม่
     } catch (error) {
-      console.error("Login error:", error);
       toast.error("เกิดข้อผิดพลาด", {
         description: "ระบบขัดข้อง กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ",
       });

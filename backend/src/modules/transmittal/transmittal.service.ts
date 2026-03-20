@@ -20,8 +20,7 @@ import { Correspondence } from '../correspondence/entities/correspondence.entity
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
-import { Project } from '../project/entities/project.entity';
-import { Organization } from '../organization/entities/organization.entity';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
 
 @Injectable()
@@ -38,40 +37,9 @@ export class TransmittalService {
     @InjectRepository(CorrespondenceStatus)
     private statusRepo: Repository<CorrespondenceStatus>,
     private numberingService: DocumentNumberingService,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private uuidResolver: UuidResolverService
   ) {}
-
-  /**
-   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
-   */
-  private async resolveProjectId(projectId: number | string): Promise<number> {
-    if (typeof projectId === 'number') return projectId;
-    const num = Number(projectId);
-    if (!isNaN(num)) return num;
-    const project = await this.dataSource.manager.findOne(Project, {
-      where: { uuid: projectId },
-      select: ['id'],
-    });
-    if (!project)
-      throw new NotFoundException(`Project with UUID ${projectId} not found`);
-    return project.id;
-  }
-
-  /**
-   * ADR-019: Resolve organizationId (INT or UUID string) to internal INT ID
-   */
-  private async resolveOrganizationId(orgId: number | string): Promise<number> {
-    if (typeof orgId === 'number') return orgId;
-    const num = Number(orgId);
-    if (!isNaN(num)) return num;
-    const org = await this.dataSource.manager.findOne(Organization, {
-      where: { uuid: orgId },
-      select: ['id'],
-    });
-    if (!org)
-      throw new NotFoundException(`Organization with UUID ${orgId} not found`);
-    return org.id;
-  }
 
   async create(createDto: CreateTransmittalDto, user: User) {
     // 1. Get Transmittal Type (Assuming Code '901' or 'TRN')
@@ -98,7 +66,7 @@ export class TransmittalService {
 
     try {
       // ADR-019: Resolve UUID→INT for projectId
-      const internalProjectId = await this.resolveProjectId(
+      const internalProjectId = await this.uuidResolver.resolveProjectId(
         createDto.projectId
       );
 
@@ -138,9 +106,10 @@ export class TransmittalService {
       await queryRunner.manager.save(revision);
 
       // ADR-019: Resolve recipientOrganizationId UUID→INT and create recipient record
-      const internalRecipientOrgId = await this.resolveOrganizationId(
-        createDto.recipientOrganizationId
-      );
+      const internalRecipientOrgId =
+        await this.uuidResolver.resolveOrganizationId(
+          createDto.recipientOrganizationId
+        );
       const recipient = queryRunner.manager.create(CorrespondenceRecipient, {
         correspondenceId: savedCorr.id,
         recipientOrganizationId: internalRecipientOrgId,

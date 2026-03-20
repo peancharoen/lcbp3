@@ -38,7 +38,7 @@ export class DocumentNumberError {
   stackTrace?: string;
 
   @Column({ name: 'context_data', type: 'json', nullable: true })
-  contextData?: any;
+  contextData?: Record<string, unknown>;
 
   @Column({ name: 'user_id', nullable: true })
   userId?: number;

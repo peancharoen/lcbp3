@@ -6,6 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { Notification } from './entities/notification.entity';
 
 @WebSocketGateway({
   cors: {
@@ -32,7 +33,7 @@ export class NotificationGateway
   /**
    * ส่งแจ้งเตือนไปหา User แบบ Real-time
    */
-  sendToUser(userId: number, payload: any) {
+  sendToUser(userId: number, payload: Notification) {
     this.server.to(`user_${userId}`).emit('new_notification', payload);
   }
 }

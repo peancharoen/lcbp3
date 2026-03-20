@@ -61,12 +61,15 @@ export default function RfaTypesPage() {
         fetchFn={async () => {
           const items = await masterDataService.getRfaTypes(selectedContractId ? selectedContractId : undefined);
           // ADR-019: Map contractId INT → contract UUID for edit mode select matching
-          return (items as any[]).map((item: any) => ({
-            ...item,
-            contractId: item.contract?.id || item.contract?.uuid || String(item.contractId),
-          }));
+          return (items as Record<string, unknown>[]).map((item) => {
+            const rec = item as { contract?: { id?: number; uuid?: string }; contractId?: number };
+            return {
+              ...item,
+              contractId: rec.contract?.id || rec.contract?.uuid || String(rec.contractId),
+            };
+          });
         }}
-        createFn={(data: Record<string, unknown>) => masterDataService.createRfaType(data as any)}
+        createFn={(data) => masterDataService.createRfaType(data as unknown as Parameters<typeof masterDataService.createRfaType>[0])}
         updateFn={(id, data) => masterDataService.updateRfaType(id, data)}
         deleteFn={(id) => masterDataService.deleteRfaType(id)}
         columns={columns}

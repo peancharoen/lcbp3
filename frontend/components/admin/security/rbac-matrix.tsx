@@ -35,13 +35,15 @@ interface RbacMatrixProps {
 }
 
 const securityService = {
-  getRoles: async () => {
-    const response = await apiClient.get<any>("/users/roles");
-    return response.data?.data || response.data;
+  getRoles: async (): Promise<Role[]> => {
+    const response = await apiClient.get("/users/roles");
+    const data = response.data?.data || response.data;
+    return Array.isArray(data) ? data : [];
   },
-  getPermissions: async () => {
-    const response = await apiClient.get<any>("/users/permissions");
-    return response.data?.data || response.data;
+  getPermissions: async (): Promise<Permission[]> => {
+    const response = await apiClient.get("/users/permissions");
+    const data = response.data?.data || response.data;
+    return Array.isArray(data) ? data : [];
   },
   updateRolePermissions: async (roleId: number, permissionIds: number[]) => {
     // This endpoint might not exist as a bulk update, usually it's per role
@@ -137,9 +139,9 @@ export function RbacMatrix() {
                   <div>{perm.permissionName}</div>
                   <div className="text-xs text-muted-foreground">{perm.description}</div>
                 </TableCell>
-                {roles.map((role: any) => {
+                {roles.map((role) => {
                   // Assume role.permissions is populated
-                  const currentRolePerms = role.permissions?.map((p: any) => p.permissionId) || [];
+                  const currentRolePerms = role.permissions?.map((p) => p.permissionId) || [];
                   const activePerms = pendingChanges[role.roleId] || currentRolePerms;
                   const isChecked = activePerms.includes(perm.permissionId);
 

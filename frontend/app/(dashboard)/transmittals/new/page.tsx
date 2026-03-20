@@ -8,6 +8,9 @@ import { TransmittalForm } from "@/components/transmittal/transmittal-form";
 // Force dynamic rendering to prevent build-time prerendering issues
 export const dynamic = 'force-dynamic';
 
+// Ensure this page is never statically generated
+export const fetchCache = 'force-no-store';
+
 export default function CreateTransmittalPage() {
   return (
     <section className="space-y-6 max-w-4xl">

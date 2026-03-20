@@ -12,7 +12,6 @@ import { ContractDrawing } from './entities/contract-drawing.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { User } from '../user/entities/user.entity';
 import { Contract } from '../contract/entities/contract.entity';
-import { Project } from '../project/entities/project.entity';
 
 // DTOs
 import { CreateContractDrawingDto } from './dto/create-contract-drawing.dto';
@@ -21,6 +20,7 @@ import { UpdateContractDrawingDto } from './dto/update-contract-drawing.dto';
 
 // Services
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @Injectable()
 export class ContractDrawingService {
@@ -34,24 +34,9 @@ export class ContractDrawingService {
     @InjectRepository(Contract)
     private contractRepo: Repository<Contract>,
     private fileStorageService: FileStorageService,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private uuidResolver: UuidResolverService
   ) {}
-
-  /**
-   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
-   */
-  private async resolveProjectId(projectId: number | string): Promise<number> {
-    if (typeof projectId === 'number') return projectId;
-    const num = Number(projectId);
-    if (!isNaN(num)) return num;
-    const project = await this.dataSource.manager.findOne(Project, {
-      where: { uuid: projectId },
-      select: ['id'],
-    });
-    if (!project)
-      throw new NotFoundException(`Project with UUID ${projectId} not found`);
-    return project.id;
-  }
 
   /**
    * Resolve issueDate from contract.startDate for file storage path
@@ -72,7 +57,9 @@ export class ContractDrawingService {
    */
   async create(createDto: CreateContractDrawingDto, user: User) {
     // ADR-019: Resolve UUID→INT for projectId
-    const internalProjectId = await this.resolveProjectId(createDto.projectId);
+    const internalProjectId = await this.uuidResolver.resolveProjectId(
+      createDto.projectId
+    );
 
     // 1. ตรวจสอบเลขที่แบบซ้ำ (Unique per Project)
     const exists = await this.drawingRepo.findOne({

@@ -93,5 +93,5 @@ export class DocumentNumberReservation {
   userAgent!: string | null;
 
   @Column({ type: 'json', nullable: true })
-  metadata!: any | null;
+  metadata!: Record<string, unknown> | null;
 }

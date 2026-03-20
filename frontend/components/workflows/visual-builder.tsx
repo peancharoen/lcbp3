@@ -120,7 +120,7 @@ function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
         });
 
     } catch (e) {
-        console.error("Failed to parse DSL as JSON", e);
+        // Failed to parse DSL as JSON - nodes/edges remain empty
     }
 
     return { nodes, edges };
@@ -226,7 +226,7 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
     };
     const dsl = JSON.stringify(dslObj, null, 2);
 
-    console.log("Generated DSL:", dsl);
+    // DSL generated from visual builder
     onDslChange?.(dsl);
     alert("DSL Updated from Visual Builder!");
   };

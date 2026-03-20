@@ -12,8 +12,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 
 // Entities
-import { Project } from '../project/entities/project.entity';
-import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
@@ -53,6 +51,7 @@ import { NotificationService } from '../notification/notification.service';
 import { SearchService } from '../search/search.service';
 import { UserService } from '../user/user.service';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @Injectable()
 export class RfaService {
@@ -91,44 +90,15 @@ export class RfaService {
     private workflowEngine: WorkflowEngineService,
     private notificationService: NotificationService,
     private dataSource: DataSource,
-    private searchService: SearchService
+    private searchService: SearchService,
+    private uuidResolver: UuidResolverService
   ) {}
-
-  /**
-   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
-   */
-  private async resolveProjectId(projectId: number | string): Promise<number> {
-    if (typeof projectId === 'number') return projectId;
-    const num = Number(projectId);
-    if (!isNaN(num)) return num;
-    const project = await this.dataSource.manager.findOne(Project, {
-      where: { uuid: projectId },
-      select: ['id'],
-    });
-    if (!project)
-      throw new NotFoundException(`Project with UUID ${projectId} not found`);
-    return project.id;
-  }
-
-  /**
-   * ADR-019: Resolve organizationId (INT or UUID string) to internal INT ID
-   */
-  private async resolveOrganizationId(orgId: number | string): Promise<number> {
-    if (typeof orgId === 'number') return orgId;
-    const num = Number(orgId);
-    if (!isNaN(num)) return num;
-    const org = await this.dataSource.manager.findOne(Organization, {
-      where: { uuid: orgId },
-      select: ['id'],
-    });
-    if (!org)
-      throw new NotFoundException(`Organization with UUID ${orgId} not found`);
-    return org.id;
-  }
 
   async create(createDto: CreateRfaDto, user: User) {
     // ADR-019: Resolve UUID→INT for projectId
-    const internalProjectId = await this.resolveProjectId(createDto.projectId);
+    const internalProjectId = await this.uuidResolver.resolveProjectId(
+      createDto.projectId
+    );
 
     const rfaType = await this.rfaTypeRepo.findOne({
       where: { id: createDto.rfaTypeId },

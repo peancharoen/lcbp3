@@ -15,6 +15,13 @@ import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProjects, useCorrespondenceTypes, useContracts, useDisciplines } from '@/hooks/use-master-data';
 
+interface ProjectItem {
+  id: number | string;
+  uuid?: string;
+  projectName: string;
+  projectCode: string;
+}
+
 import { ManualOverrideForm } from '@/components/numbering/manual-override-form';
 import { MetricsDashboard } from '@/components/numbering/metrics-dashboard';
 import { AuditLogsTable } from '@/components/numbering/audit-logs-table';
@@ -30,8 +37,8 @@ export default function NumberingPage() {
 
   useEffect(() => {
     if (projects.length > 0 && !selectedProjectId) {
-      const first = projects[0] as any;
-      setSelectedProjectId(String(first.id ?? first.uuid));
+      const first = projects[0] as ProjectItem;
+      setSelectedProjectId(String(first.uuid ?? first.id));
     }
   }, [projects, selectedProjectId]);
 
@@ -41,14 +48,14 @@ export default function NumberingPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState<NumberingTemplate | null>(null);
 
-  const selectedProject = projects.find((p: any) => String(p.id ?? p.uuid) === selectedProjectId) as any;
+  const selectedProject = (projects as ProjectItem[]).find((p) => String(p.uuid ?? p.id) === selectedProjectId);
   const selectedProjectName = selectedProject?.projectName || 'Unknown Project';
 
   // Master Data
   const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
-  const { data: contracts = [] } = useContracts(selectedProjectId as any); // Passing UUID/ID string
-  const firstContract = contracts[0] as any;
-  const contractId = firstContract?.id || firstContract?.uuid;
+  const { data: contracts = [] } = useContracts(selectedProjectId);
+  const firstContract = contracts[0] as { id?: number; uuid?: string } | undefined;
+  const contractId = firstContract?.uuid ?? firstContract?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const { data: templateResponse, isLoading: isLoadingTemplates } = useTemplates();
@@ -57,7 +64,7 @@ export default function NumberingPage() {
   // Extract templates array from response
   const templates: NumberingTemplate[] = Array.isArray(templateResponse)
     ? templateResponse
-    : ((templateResponse as any)?.data ?? []);
+    : ((templateResponse as { data?: NumberingTemplate[] } | undefined)?.data ?? []);
 
   const handleEdit = (template?: NumberingTemplate) => {
     setActiveTemplate(template);
@@ -84,7 +91,7 @@ export default function NumberingPage() {
       <div className="p-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4">
         <TemplateEditor
           template={activeTemplate}
-          projectId={selectedProjectId as any}
+          projectId={selectedProjectId}
           projectName={selectedProjectName}
           correspondenceTypes={correspondenceTypes}
           disciplines={disciplines}
@@ -108,8 +115,8 @@ export default function NumberingPage() {
               <SelectValue placeholder="Select Project" />
             </SelectTrigger>
             <SelectContent>
-              {(projects as any[]).map((project) => (
-                <SelectItem key={project.id ?? project.uuid} value={String(project.id ?? project.uuid)}>
+              {(projects as ProjectItem[]).map((project) => (
+                <SelectItem key={String(project.uuid ?? project.id)} value={String(project.uuid ?? project.id)}>
                   {project.projectCode} - {project.projectName}
                 </SelectItem>
               ))}
@@ -137,7 +144,7 @@ export default function NumberingPage() {
             <div className="lg:col-span-2 space-y-4">
               <div className="grid gap-4">
                 {templates
-                  .filter((t: any) => !t.projectId || String(t.project?.id ?? t.project?.uuid) === selectedProjectId || t.project?.uuid === selectedProjectId)
+                  .filter((t) => !t.projectId || String(t.project?.id ?? t.project?.uuid) === selectedProjectId || t.project?.uuid === selectedProjectId)
                   .map((template) => (
                     <Card key={template.id} className="p-6 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">
@@ -202,11 +209,11 @@ export default function NumberingPage() {
 
         <TabsContent value="tools" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <ManualOverrideForm projectId={selectedProjectId as any} />
-            <VoidReplaceForm projectId={selectedProjectId as any} />
+            <ManualOverrideForm projectId={selectedProjectId} />
+            <VoidReplaceForm projectId={selectedProjectId} />
             <CancelNumberForm />
             <div className="md:col-span-2">
-              <BulkImportForm projectId={selectedProjectId as any} />
+              <BulkImportForm projectId={selectedProjectId} />
             </div>
           </div>
         </TabsContent>

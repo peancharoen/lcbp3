@@ -21,7 +21,7 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 | Area          | Status                   | Notes                                    |
 | ------------- | ------------------------ | ---------------------------------------- |
 | Backend       | ✅ Production Ready      | NestJS 11, Express v5, 0 Vulnerabilities |
-| Frontend      | ✅ 100% Complete         | Next.js 16.2.0, React 19.2.4, ESLint 9   |
+| Frontend      | ✅ Quality Hardened      | Next.js 16.2.0, 0 `any`, 0 console.log   |
 | Database      | ✅ Schema v1.8.0 Stable  | MariaDB 11.8, No-migration (ADR-009)     |
 | Documentation | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy          |
 | AI Migration  | 🔄 Pre-migration Setup   | n8n + Ollama (ADR-017/018)               |
@@ -39,7 +39,8 @@ You value **Data Integrity**, **Security**, and **Clean Architecture**.
 ## 💻 Tech Stack & Constraints
 
 - **Backend:** NestJS 11 (Express v5, Modular Architecture), TypeORM, MariaDB 11.8, Redis 7.2 (BullMQ),
-  Elasticsearch 9.3.4, JWT + Passport, CASL (4-Level RBAC), ClamAV (Virus Scanning), Helmet.js
+  Elasticsearch 9.3.4, JWT + Passport, CASL (4-Level RBAC), ClamAV (Virus Scanning), Helmet.js,
+  cache-manager-redis-store@3.0.1 (Redis caching)
 - **Frontend:** Next.js 16.2.0 (App Router, proxy.ts), Tailwind CSS 3.4.3, Shadcn/UI,
   TanStack Query (**Server State**), Zustand (**Client State**), React Hook Form 7.71.2 + Zod 4.3.6 + @hookform/resolvers 3.9.0 (**Form State**), Axios
 - **Testing:** Vitest 4.1.0, ESLint 9.39.1

@@ -5,6 +5,7 @@ import { Module, Global } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CryptoService } from './services/crypto.service';
 import { RequestContextService } from './services/request-context.service';
+import { UuidResolverService } from './services/uuid-resolver.service';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { HttpExceptionFilter } from './exceptions/http-exception.filter';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
@@ -16,6 +17,7 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
   providers: [
     CryptoService,
     RequestContextService,
+    UuidResolverService,
     // Register Global Filter & Interceptor ที่นี่ หรือใน AppModule ก็ได้
     {
       provide: APP_FILTER,
@@ -26,6 +28,6 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
       useClass: TransformInterceptor,
     },
   ],
-  exports: [CryptoService, RequestContextService],
+  exports: [CryptoService, RequestContextService, UuidResolverService],
 })
 export class CommonModule {}

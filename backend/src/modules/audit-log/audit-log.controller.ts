@@ -11,7 +11,16 @@ export class AuditLogController {
 
   @Get()
   @RequirePermission('audit-log.view')
-  findAll(@Query() query: any) {
+  findAll(
+    @Query()
+    query: {
+      page?: number;
+      limit?: number;
+      entityName?: string;
+      action?: string;
+      userId?: number;
+    }
+  ) {
     return this.auditLogService.findAll(query);
   }
 }

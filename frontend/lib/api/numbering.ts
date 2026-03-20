@@ -300,7 +300,6 @@ export const numberingApi = {
   ): Promise<{ number: string }> => {
     // Fallback mock for legacy UI - requires proper context for real use
     const mockNumber = `TEST-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
-    console.log('Using mock generateTestNumber. Context:', context);
     return { number: mockNumber };
   },
 };

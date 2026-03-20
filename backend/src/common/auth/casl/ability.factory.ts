@@ -4,10 +4,10 @@ import { User } from '../../../modules/user/entities/user.entity';
 import { UserAssignment } from '../../../modules/user/entities/user-assignment.entity';
 
 // Define action types
-type Actions = 'create' | 'read' | 'update' | 'delete' | 'manage';
+export type Actions = 'create' | 'read' | 'update' | 'delete' | 'manage';
 
 // Define subject types (resources)
-type Subjects =
+export type Subjects =
   | 'correspondence'
   | 'rfa'
   | 'drawing'
@@ -65,9 +65,10 @@ export class AbilityFactory {
 
     return build({
       // Detect subject type (for future use with objects)
-      detectSubjectType: (item: any) => {
+      detectSubjectType: (item: object) => {
         if (typeof item === 'string') return item;
-        return item.constructor;
+        return (item as Record<string, unknown>)
+          .constructor as unknown as Subjects;
       },
     });
   }

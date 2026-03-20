@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FileStorageController } from './file-storage.controller';
 import { FileStorageService } from './file-storage.service';
+import { RequestWithUser } from '../interfaces/request-with-user.interface';
 
 describe('FileStorageController', () => {
   let controller: FileStorageController;
@@ -44,8 +45,10 @@ describe('FileStorageController', () => {
         mockResult
       );
 
-      const mockReq = { user: { userId: 1, username: 'testuser' } };
-      const result = await controller.uploadFile(mockFile, mockReq as any);
+      const mockReq = {
+        user: { user_id: 1, username: 'testuser' },
+      } as unknown as RequestWithUser;
+      const result = await controller.uploadFile(mockFile, mockReq);
 
       expect(mockFileStorageService.upload).toHaveBeenCalledWith(mockFile, 1);
     });

@@ -38,14 +38,14 @@ export class WorkflowDefinition {
     type: 'json',
     comment: 'Raw DSL ที่ User/Admin เขียน (เก็บไว้เพื่อดูหรือแก้ไข)',
   })
-  dsl!: any; // ควรตรงกับ RawWorkflowDSL interface
+  dsl!: Record<string, unknown>; // RawWorkflowDSL | WorkflowDsl
 
   @Column({
     type: 'json',
     comment:
       'Compiled JSON Structure ที่ผ่านการ Validate และ Optimize สำหรับ Runtime Engine แล้ว',
   })
-  compiled!: any; // ควรตรงกับ CompiledWorkflow interface
+  compiled!: Record<string, unknown>; // CompiledWorkflow | WorkflowDsl
 
   @Column({ default: true, comment: 'สถานะการใช้งาน (Soft Disable)' })
   is_active!: boolean;

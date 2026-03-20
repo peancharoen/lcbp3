@@ -42,7 +42,7 @@ import { User } from '../user/entities/user.entity';
 export class JsonSchemaController {
   constructor(
     private readonly jsonSchemaService: JsonSchemaService,
-    private readonly migrationService: SchemaMigrationService,
+    private readonly migrationService: SchemaMigrationService
   ) {}
 
   // ----------------------------------------------------------------------
@@ -93,7 +93,7 @@ export class JsonSchemaController {
   @RequirePermission('system.manage_all')
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateDto: UpdateJsonSchemaDto,
+    @Body() updateDto: UpdateJsonSchemaDto
   ) {
     return this.jsonSchemaService.update(id, updateDto);
   }
@@ -117,7 +117,10 @@ export class JsonSchemaController {
     description: 'Validation result including errors and sanitized data',
   })
   @RequirePermission('document.view')
-  async validate(@Param('code') code: string, @Body() data: any) {
+  async validate(
+    @Param('code') code: string,
+    @Body() data: Record<string, unknown>
+  ) {
     // Note: Validation API นี้ใช้สำหรับ Test หรือ Pre-check เท่านั้น
     // การ Save จริงจะเรียกผ่าน Service ภายใน
     return this.jsonSchemaService.validateData(code, data);
@@ -131,15 +134,16 @@ export class JsonSchemaController {
   @RequirePermission('document.view')
   async processReadData(
     @Param('code') code: string,
-    @Body() data: any,
-    @CurrentUser() user: User,
+    @Body() data: Record<string, unknown>,
+    @CurrentUser() user: User
   ) {
     // แปลง User Entity เป็น Security Context
-    // ใช้ as any เพื่อ bypass type checking ชั่วคราว เนื่องจาก roles มักจะถูก inject เข้ามาใน request.user
-    // โดย Strategy หรือ Guard แม้จะไม่มีใน Entity หลัก
-    const userWithRoles = user as any;
+    // roles มักจะถูก inject เข้ามาใน request.user โดย Strategy หรือ Guard แม้จะไม่มีใน Entity หลัก
+    const userWithRoles = user as User & {
+      roles?: Array<{ roleName: string } | string>;
+    };
     const userRoles = userWithRoles.roles
-      ? userWithRoles.roles.map((r: any) => r.roleName || r) // รองรับทั้ง Object Role และ String Role
+      ? userWithRoles.roles.map((r) => (typeof r === 'string' ? r : r.roleName)) // รองรับทั้ง Object Role และ String Role
       : [];
 
     return this.jsonSchemaService.processReadData(code, data, { userRoles });
@@ -160,13 +164,13 @@ export class JsonSchemaController {
   async migrateData(
     @Param('table') tableName: string,
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: MigrateDataDto,
+    @Body() dto: MigrateDataDto
   ) {
     return this.migrationService.migrateData(
       tableName,
       id,
       dto.targetSchemaCode,
-      dto.targetVersion,
+      dto.targetVersion
     );
   }
 }

@@ -58,12 +58,15 @@ export default function DisciplinesPage() {
         fetchFn={async () => {
           const items = await masterDataService.getDisciplines(selectedContractId ? selectedContractId : undefined);
           // ADR-019: Map contractId INT → contract UUID for edit mode select matching
-          return (items as any[]).map((item: any) => ({
-            ...item,
-            contractId: item.contract?.id || item.contract?.uuid || String(item.contractId),
-          }));
+          return (items as Record<string, unknown>[]).map((item) => {
+            const rec = item as { contract?: { id?: number; uuid?: string }; contractId?: number };
+            return {
+              ...item,
+              contractId: rec.contract?.id || rec.contract?.uuid || String(rec.contractId),
+            };
+          });
         }}
-        createFn={(data: Record<string, unknown>) => masterDataService.createDiscipline(data as any)}
+        createFn={(data) => masterDataService.createDiscipline(data as unknown as Parameters<typeof masterDataService.createDiscipline>[0])}
         updateFn={(id, data) => Promise.reject('Not implemented yet')}
         deleteFn={(id) => masterDataService.deleteDiscipline(id)}
         columns={columns}

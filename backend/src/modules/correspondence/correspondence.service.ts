@@ -35,7 +35,7 @@ import { WorkflowEngineService } from '../workflow-engine/workflow-engine.servic
 import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
-import { Project } from '../project/entities/project.entity';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 /**
  * CorrespondenceService - Document management (CRUD)
@@ -58,60 +58,30 @@ export class CorrespondenceService {
     private statusRepo: Repository<CorrespondenceStatus>,
     @InjectRepository(CorrespondenceReference)
     private referenceRepo: Repository<CorrespondenceReference>,
-    @InjectRepository(Organization)
-    private orgRepo: Repository<Organization>,
-
     private numberingService: DocumentNumberingService,
     private jsonSchemaService: JsonSchemaService,
     private workflowEngine: WorkflowEngineService,
     private userService: UserService,
     private dataSource: DataSource,
     private searchService: SearchService,
-    private fileStorageService: FileStorageService
+    private fileStorageService: FileStorageService,
+    private uuidResolver: UuidResolverService
   ) {}
-
-  /**
-   * ADR-019: Resolve projectId (INT or UUID string) to internal INT ID
-   */
-  private async resolveProjectId(projectId: number | string): Promise<number> {
-    if (typeof projectId === 'number') return projectId;
-    const num = Number(projectId);
-    if (!isNaN(num)) return num;
-    const project = await this.dataSource.manager.findOne(Project, {
-      where: { uuid: projectId },
-      select: ['id'],
-    });
-    if (!project)
-      throw new NotFoundException(`Project with UUID ${projectId} not found`);
-    return project.id;
-  }
-
-  /**
-   * ADR-019: Resolve organizationId (INT or UUID string) to internal INT ID
-   */
-  private async resolveOrganizationId(orgId: number | string): Promise<number> {
-    if (typeof orgId === 'number') return orgId;
-    const num = Number(orgId);
-    if (!isNaN(num)) return num;
-    const org = await this.orgRepo.findOne({
-      where: { uuid: orgId },
-      select: ['id'],
-    });
-    if (!org)
-      throw new NotFoundException(`Organization with UUID ${orgId} not found`);
-    return org.id;
-  }
 
   async create(createDto: CreateCorrespondenceDto, user: User) {
     // ADR-019: Resolve UUID references to internal INT IDs
-    const resolvedProjectId = await this.resolveProjectId(createDto.projectId);
+    const resolvedProjectId = await this.uuidResolver.resolveProjectId(
+      createDto.projectId
+    );
     const resolvedOriginatorId = createDto.originatorId
-      ? await this.resolveOrganizationId(createDto.originatorId)
+      ? await this.uuidResolver.resolveOrganizationId(createDto.originatorId)
       : undefined;
     const resolvedRecipients = createDto.recipients
       ? await Promise.all(
           createDto.recipients.map(async (r) => ({
-            organizationId: await this.resolveOrganizationId(r.organizationId),
+            organizationId: await this.uuidResolver.resolveOrganizationId(
+              r.organizationId
+            ),
             type: r.type,
           }))
         )
@@ -174,9 +144,12 @@ export class CorrespondenceService {
 
     try {
       // [Fix #6] Fetch real ORG Code from Organization entity
-      const originatorOrg = await this.orgRepo.findOne({
-        where: { id: userOrgId },
-      });
+      const originatorOrg = await this.dataSource.manager.findOne(
+        Organization,
+        {
+          where: { id: userOrgId },
+        }
+      );
       const orgCode = originatorOrg?.organizationCode ?? 'UNK';
 
       // [v1.5.1] Extract recipient organization from recipients array (Primary TO)
@@ -185,7 +158,7 @@ export class CorrespondenceService {
 
       let recipientCode = '';
       if (recipientOrganizationId) {
-        const recOrg = await this.orgRepo.findOne({
+        const recOrg = await this.dataSource.manager.findOne(Organization, {
           where: { id: recipientOrganizationId },
         });
         if (recOrg) recipientCode = recOrg.organizationCode;
@@ -508,15 +481,17 @@ export class CorrespondenceService {
 
     // ADR-019: Resolve UUID references in update DTO
     const updResolvedProjectId = updateDto.projectId
-      ? await this.resolveProjectId(updateDto.projectId)
+      ? await this.uuidResolver.resolveProjectId(updateDto.projectId)
       : undefined;
     const updResolvedOriginatorId = updateDto.originatorId
-      ? await this.resolveOrganizationId(updateDto.originatorId)
+      ? await this.uuidResolver.resolveOrganizationId(updateDto.originatorId)
       : undefined;
     const updResolvedRecipients = updateDto.recipients
       ? await Promise.all(
           updateDto.recipients.map(async (r) => ({
-            organizationId: await this.resolveOrganizationId(r.organizationId),
+            organizationId: await this.uuidResolver.resolveOrganizationId(
+              r.organizationId
+            ),
             type: r.type,
           }))
         )
@@ -642,18 +617,21 @@ export class CorrespondenceService {
         // Resolve Recipient Code for the NEW context
         let recipientCode = '';
         if (targetRecipientId) {
-          const recOrg = await this.orgRepo.findOne({
+          const recOrg = await this.dataSource.manager.findOne(Organization, {
             where: { id: targetRecipientId },
           });
           if (recOrg) recipientCode = recOrg.organizationCode;
         }
 
         // [Fix #6] Fetch real ORG Code from originator organization
-        const originatorOrgForUpdate = await this.orgRepo.findOne({
-          where: {
-            id: updResolvedOriginatorId ?? currentCorr.originatorId ?? 0,
-          },
-        });
+        const originatorOrgForUpdate = await this.dataSource.manager.findOne(
+          Organization,
+          {
+            where: {
+              id: updResolvedOriginatorId ?? currentCorr.originatorId ?? 0,
+            },
+          }
+        );
         const orgCode = originatorOrgForUpdate?.organizationCode ?? 'UNK';
 
         // Prepare Contexts
@@ -708,14 +686,18 @@ export class CorrespondenceService {
 
   async previewDocumentNumber(createDto: CreateCorrespondenceDto, user: User) {
     // ADR-019: Resolve UUID references
-    const previewProjectId = await this.resolveProjectId(createDto.projectId);
+    const previewProjectId = await this.uuidResolver.resolveProjectId(
+      createDto.projectId
+    );
     const previewOriginatorId = createDto.originatorId
-      ? await this.resolveOrganizationId(createDto.originatorId)
+      ? await this.uuidResolver.resolveOrganizationId(createDto.originatorId)
       : undefined;
     const previewRecipients = createDto.recipients
       ? await Promise.all(
           createDto.recipients.map(async (r) => ({
-            organizationId: await this.resolveOrganizationId(r.organizationId),
+            organizationId: await this.uuidResolver.resolveOrganizationId(
+              r.organizationId
+            ),
             type: r.type,
           }))
         )
@@ -743,7 +725,7 @@ export class CorrespondenceService {
 
     let recipientCode = '';
     if (recipientOrganizationId) {
-      const recOrg = await this.orgRepo.findOne({
+      const recOrg = await this.dataSource.manager.findOne(Organization, {
         where: { id: recipientOrganizationId },
       });
       if (recOrg) recipientCode = recOrg.organizationCode;

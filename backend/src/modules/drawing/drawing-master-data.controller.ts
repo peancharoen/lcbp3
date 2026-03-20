@@ -19,6 +19,12 @@ import {
 } from '@nestjs/swagger';
 
 import { DrawingMasterDataService } from './drawing-master-data.service';
+import { ContractDrawingVolume } from './entities/contract-drawing-volume.entity';
+import { ContractDrawingCategory } from './entities/contract-drawing-category.entity';
+import { ContractDrawingSubCategory } from './entities/contract-drawing-sub-category.entity';
+import { ContractDrawingSubcatCatMap } from './entities/contract-drawing-subcat-cat-map.entity';
+import { ShopDrawingMainCategory } from './entities/shop-drawing-main-category.entity';
+import { ShopDrawingSubCategory } from './entities/shop-drawing-sub-category.entity';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
@@ -47,7 +53,10 @@ export class DrawingMasterDataController {
   @Post('contract/volumes')
   @ApiOperation({ summary: 'Create Volume' })
   @RequirePermission('master_data.drawing_category.manage')
-  createVolume(@Body() body: any) {
+  createVolume(
+    @Body()
+    body: Partial<ContractDrawingVolume> & { projectId: number | string }
+  ) {
     return this.masterDataService.createVolume(body);
   }
 
@@ -56,7 +65,7 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateVolume(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: any
+    @Body() body: Partial<ContractDrawingVolume>
   ) {
     return this.masterDataService.updateVolume(id, body);
   }
@@ -83,7 +92,10 @@ export class DrawingMasterDataController {
   @Post('contract/categories')
   @ApiOperation({ summary: 'Create Category' })
   @RequirePermission('master_data.drawing_category.manage')
-  createCategory(@Body() body: any) {
+  createCategory(
+    @Body()
+    body: Partial<ContractDrawingCategory> & { projectId: number | string }
+  ) {
     return this.masterDataService.createCategory(body);
   }
 
@@ -92,7 +104,7 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateCategory(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: any
+    @Body() body: Partial<ContractDrawingCategory>
   ) {
     return this.masterDataService.updateCategory(id, body);
   }
@@ -119,7 +131,10 @@ export class DrawingMasterDataController {
   @Post('contract/sub-categories')
   @ApiOperation({ summary: 'Create Contract Sub-Category' })
   @RequirePermission('master_data.drawing_category.manage')
-  createContractSubCat(@Body() body: any) {
+  createContractSubCat(
+    @Body()
+    body: Partial<ContractDrawingSubCategory> & { projectId: number | string }
+  ) {
     return this.masterDataService.createContractSubCat(body);
   }
 
@@ -128,7 +143,7 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateContractSubCat(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: any
+    @Body() body: Partial<ContractDrawingSubCategory>
   ) {
     return this.masterDataService.updateContractSubCat(id, body);
   }
@@ -162,7 +177,10 @@ export class DrawingMasterDataController {
   @Post('contract/mappings')
   @ApiOperation({ summary: 'Create Contract Drawing Mapping' })
   @RequirePermission('master_data.drawing_category.manage')
-  createContractMapping(@Body() body: any) {
+  createContractMapping(
+    @Body()
+    body: Partial<ContractDrawingSubcatCatMap> & { projectId: number | string }
+  ) {
     return this.masterDataService.createContractMapping(body);
   }
 
@@ -188,7 +206,10 @@ export class DrawingMasterDataController {
   @Post('shop/main-categories')
   @ApiOperation({ summary: 'Create Shop Main Category' })
   @RequirePermission('master_data.drawing_category.manage')
-  createShopMainCat(@Body() body: any) {
+  createShopMainCat(
+    @Body()
+    body: Partial<ShopDrawingMainCategory> & { projectId: number | string }
+  ) {
     return this.masterDataService.createShopMainCat(body);
   }
 
@@ -197,7 +218,7 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateShopMainCat(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: any
+    @Body() body: Partial<ShopDrawingMainCategory>
   ) {
     return this.masterDataService.updateShopMainCat(id, body);
   }
@@ -231,7 +252,10 @@ export class DrawingMasterDataController {
   @Post('shop/sub-categories')
   @ApiOperation({ summary: 'Create Shop Sub-Category' })
   @RequirePermission('master_data.drawing_category.manage')
-  createShopSubCat(@Body() body: any) {
+  createShopSubCat(
+    @Body()
+    body: Partial<ShopDrawingSubCategory> & { projectId: number | string }
+  ) {
     return this.masterDataService.createShopSubCat(body);
   }
 
@@ -240,7 +264,7 @@ export class DrawingMasterDataController {
   @RequirePermission('master_data.drawing_category.manage')
   updateShopSubCat(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: any
+    @Body() body: Partial<ShopDrawingSubCategory>
   ) {
     return this.masterDataService.updateShopSubCat(id, body);
   }

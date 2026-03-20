@@ -67,4 +67,5 @@ export interface CreateRFADto {
   documentDate?: string;
   details?: Record<string, unknown>;
   shopDrawingRevisionIds?: number[];
+  items?: RFAItem[];
 }

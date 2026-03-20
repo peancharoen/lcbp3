@@ -29,7 +29,13 @@ export class OrganizationService {
     return this.orgRepo.save(org);
   }
 
-  async findAll(params?: any) {
+  async findAll(params?: {
+    search?: string;
+    roleId?: number;
+    projectId?: number;
+    page?: number;
+    limit?: number;
+  }) {
     const { search, roleId, projectId, page = 1, limit = 100 } = params || {};
     const skip = (page - 1) * limit;
 

@@ -145,8 +145,8 @@ export class FileStorageService {
           // อัปเดตข้อมูลใน DB
           att.filePath = newPath;
           att.isTemporary = false;
-          att.tempId = null as any; // เคลียร์ tempId (TypeORM อาจต้องการ null แทน undefined สำหรับ nullable)
-          att.expiresAt = null as any; // เคลียร์วันหมดอายุ
+          att.tempId = undefined; // เคลียร์ tempId
+          att.expiresAt = undefined; // เคลียร์วันหมดอายุ
           att.referenceDate = effectiveDate; // Save reference date
 
           committedAttachments.push(await this.attachmentRepository.save(att));
