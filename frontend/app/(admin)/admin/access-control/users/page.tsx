@@ -37,17 +37,20 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { Organization } from "@/types/organization";
+import { getApiErrorMessage } from "@/types/api-error";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
-  const { data: users, isLoading } = useUsers({
+  const { data: users, isLoading, isError, error } = useUsers({
     search: search || undefined,
     primaryOrganizationId: selectedOrgId ?? undefined,
   });
 
   const { data: organizations = [] } = useOrganizations();
+  const userList = Array.isArray(users) ? users : [];
+  const organizationList = Array.isArray(organizations) ? organizations : [];
 
   const deleteMutation = useDeleteUser();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -94,8 +97,12 @@ export default function UsersPage() {
       header: "Organization",
       cell: ({ row }) => {
         const orgId = row.original.primaryOrganizationId;
-        const org = (organizations as Organization[]).find((o) => (o.id ?? o.uuid) === orgId?.toString() || o.uuid === orgId?.toString());
-        return org ? org.organizationCode : "-";
+        if (!orgId) {
+          return "All Organizations";
+        }
+
+        const org = organizationList.find((o) => (o.id ?? o.uuid) === orgId?.toString() || o.uuid === orgId?.toString());
+        return org ? org.organizationCode : "All Organizations";
       },
     },
     {
@@ -185,7 +192,7 @@ export default function UsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Organizations</SelectItem>
-                {Array.isArray(organizations) && (organizations as Organization[]).map((org) => (
+                {organizationList.map((org) => (
                   <SelectItem key={org.uuid} value={org.uuid}>
                     {org.organizationCode} - {org.organizationName}
                   </SelectItem>
@@ -194,6 +201,12 @@ export default function UsersPage() {
             </Select>
          </div>
       </div>
+
+      {isError && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {getApiErrorMessage(error, "Failed to load users")}
+        </div>
+      )}
 
       {isLoading ? (
           <div className="space-y-2">
@@ -204,7 +217,7 @@ export default function UsersPage() {
             ))}
           </div>
       ) : (
-          <DataTable columns={columns} data={users || []} />
+          <DataTable columns={columns} data={userList} />
       )}
 
       <UserDialog

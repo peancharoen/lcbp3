@@ -7,18 +7,112 @@ import {
   GetAvailableActionsDto,
 } from '@/types/dto/workflow-engine/workflow-engine.dto';
 
-import { Workflow } from '@/types/workflow';
+import { Workflow, WorkflowType } from '@/types/workflow';
 
-const mapWorkflow = (backendObj: any): Workflow => {
+interface WorkflowResponseShape {
+  data?: unknown;
+}
+
+interface WorkflowDslShape {
+  workflowName?: string;
+  description?: string;
+  dslDefinition?: string;
+  workflow?: string;
+  states?: unknown;
+}
+
+interface BackendWorkflowShape {
+  id?: string | number;
+  workflow_code?: string;
+  description?: string;
+  version?: number;
+  is_active?: boolean;
+  dsl?: string | WorkflowDslShape;
+  compiled?: {
+    states?: Record<string, unknown>;
+  };
+  updated_at?: string;
+}
+
+const extractArrayData = <T,>(value: unknown): T[] => {
+  let current: unknown = value;
+
+  for (let i = 0; i < 5; i += 1) {
+    if (Array.isArray(current)) {
+      return current as T[];
+    }
+
+    if (!current || typeof current !== 'object' || !('data' in current)) {
+      return [];
+    }
+
+    current = (current as { data?: unknown }).data;
+  }
+
+  return Array.isArray(current) ? (current as T[]) : [];
+};
+
+const extractNestedData = <T,>(value: unknown): T => {
+  let current: unknown = value;
+
+  for (let i = 0; i < 5; i += 1) {
+    if (!current || typeof current !== 'object' || !('data' in current)) {
+      return current as T;
+    }
+
+    current = (current as WorkflowResponseShape).data;
+  }
+
+  return current as T;
+};
+
+const extractDslDefinition = (dsl: BackendWorkflowShape['dsl']): string => {
+  if (typeof dsl === 'string') {
+    return dsl;
+  }
+
+  if (!dsl || typeof dsl !== 'object') {
+    return '';
+  }
+
+  if (typeof dsl.dslDefinition === 'string') {
+    return dsl.dslDefinition;
+  }
+
+  return JSON.stringify(dsl, null, 2);
+};
+
+const normalizeWorkflowType = (workflowCode?: string): WorkflowType => {
+  const normalizedCode = workflowCode?.toUpperCase() ?? '';
+
+  if (normalizedCode.includes('RFA')) {
+    return 'RFA';
+  }
+
+  if (normalizedCode.includes('DRAWING')) {
+    return 'DRAWING';
+  }
+
+  return 'CORRESPONDENCE';
+};
+
+const mapWorkflow = (backendObj: BackendWorkflowShape): Workflow => {
   if (!backendObj) throw new Error('Workflow not found');
   return {
-    workflowId: backendObj.id,
-    workflowName: backendObj.dsl?.workflowName || backendObj.workflow_code,
-    description: backendObj.description || backendObj.dsl?.description || '',
-    workflowType: backendObj.workflow_code?.toUpperCase() || backendObj.workflow_code,
+    workflowId: backendObj.id ?? backendObj.workflow_code ?? '',
+    workflowName:
+      (typeof backendObj.dsl === 'object' ? backendObj.dsl?.workflowName : undefined) ||
+      (typeof backendObj.dsl === 'object' ? backendObj.dsl?.workflow : undefined) ||
+      backendObj.workflow_code ||
+      '',
+    description:
+      backendObj.description ||
+      (typeof backendObj.dsl === 'object' ? backendObj.dsl?.description : undefined) ||
+      '',
+    workflowType: normalizeWorkflowType(backendObj.workflow_code),
     version: backendObj.version || 1,
-    isActive: backendObj.is_active,
-    dslDefinition: typeof backendObj.dsl === 'string' ? backendObj.dsl : backendObj.dsl?.dslDefinition || JSON.stringify(backendObj.dsl, null, 2),
+    isActive: backendObj.is_active ?? false,
+    dslDefinition: extractDslDefinition(backendObj.dsl),
     stepCount: backendObj.compiled?.states ? Object.keys(backendObj.compiled.states).length : 0,
     updatedAt: backendObj.updated_at || new Date().toISOString(),
   };
@@ -53,8 +147,7 @@ export const workflowEngineService = {
    */
   getDefinitions: async (): Promise<Workflow[]> => {
     const response = await apiClient.get('/workflow-engine/definitions');
-    const data = response.data?.data || response.data;
-    return Array.isArray(data) ? data.map(mapWorkflow) : data;
+    return extractArrayData<BackendWorkflowShape>(response.data).map((workflow) => mapWorkflow(workflow));
   },
 
   /**
@@ -63,7 +156,7 @@ export const workflowEngineService = {
    */
   getDefinitionById: async (id: string | number): Promise<Workflow> => {
     const response = await apiClient.get(`/workflow-engine/definitions/${id}`);
-    const data = response.data?.data || response.data;
+    const data = extractNestedData<BackendWorkflowShape>(response.data);
     return mapWorkflow(data);
   },
 

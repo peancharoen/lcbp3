@@ -17,10 +17,12 @@ import { format } from "date-fns";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getApiErrorMessage } from "@/types/api-error";
 
 export default function MigrationErrorsPage() {
   const [items, setItems] = useState<MigrationErrorItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -29,10 +31,12 @@ export default function MigrationErrorsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setErrorMessage(null);
       const res = await migrationService.getErrors({ limit: 100 });
-      setItems(res.items);
-    } catch (error) {
-      // Failed to fetch errors - loading state handles display
+      setItems(Array.isArray(res.items) ? res.items : []);
+    } catch (error: unknown) {
+      setItems([]);
+      setErrorMessage(getApiErrorMessage(error, "Failed to load errors"));
     } finally {
       setLoading(false);
     }
@@ -59,6 +63,11 @@ export default function MigrationErrorsPage() {
           <CardTitle>Error Audit Log</CardTitle>
         </CardHeader>
         <CardContent>
+          {errorMessage && (
+            <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {errorMessage}
+            </div>
+          )}
           {loading ? (
             <div className="py-10 text-center">Loading errors...</div>
           ) : items.length === 0 ? (

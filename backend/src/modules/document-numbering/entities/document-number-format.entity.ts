@@ -14,7 +14,7 @@ import { Project } from '../../project/entities/project.entity';
 import { CorrespondenceType } from '../../correspondence/entities/correspondence-type.entity';
 
 @Entity('document_number_formats')
-@Unique(['projectId', 'correspondenceTypeId'])
+@Unique(['projectId', 'correspondenceTypeId', 'disciplineId'])
 export class DocumentNumberFormat {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -25,6 +25,9 @@ export class DocumentNumberFormat {
   @Column({ name: 'correspondence_type_id', nullable: true })
   correspondenceTypeId?: number;
 
+  @Column({ name: 'discipline_id', default: 0 })
+  disciplineId!: number;
+
   @Column({ name: 'format_string', length: 100 })
   formatTemplate!: string;
 
@@ -34,6 +37,9 @@ export class DocumentNumberFormat {
   // [NEW] Control yearly reset behavior
   @Column({ name: 'reset_annually', default: true })
   resetSequenceYearly!: boolean;
+
+  @Column({ name: 'is_active', default: 1 })
+  isActive!: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

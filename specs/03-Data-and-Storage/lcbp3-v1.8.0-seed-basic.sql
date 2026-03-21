@@ -222,7 +222,7 @@ INSERT INTO users (
 VALUES (
     1,
     'superadmin',
-    '$2b$10$MpKnf1UEvlu8hZcqMkhMsuWG3gYD/priWTUr71GpF/uuroaGxtose',
+    '$2b$10$60HqaxJFZSF8.n.kOPubge2pK3SXbz4tmNTmrQB/coZ8QXrFMcdIK',
     'Super',
     'Admin',
     'superadmin @example.com',
@@ -232,7 +232,7 @@ VALUES (
   (
     2,
     'admin',
-    '$2b$10$MpKnf1UEvlu8hZcqMkhMsuWG3gYD/priWTUr71GpF/uuroaGxtose',
+    '$2b$10$60HqaxJFZSF8.n.kOPubge2pK3SXbz4tmNTmrQB/coZ8QXrFMcdIK',
     'Admin',
     'คคง.',
     'admin@example.com',
@@ -242,7 +242,7 @@ VALUES (
   (
     3,
     'editor01',
-    '$2b$10$MpKnf1UEvlu8hZcqMkhMsuWG3gYD/priWTUr71GpF/uuroaGxtose',
+    '$2b$10$60HqaxJFZSF8.n.kOPubge2pK3SXbz4tmNTmrQB/coZ8QXrFMcdIK',
     'DC',
     'C1',
     'editor01 @example.com',
@@ -252,7 +252,7 @@ VALUES (
   (
     4,
     'viewer01',
-    '$2b$10$MpKnf1UEvlu8hZcqMkhMsuWG3gYD/priWTUr71GpF/uuroaGxtose',
+    '$2b$10$60HqaxJFZSF8.n.kOPubge2pK3SXbz4tmNTmrQB/coZ8QXrFMcdIK',
     'Viewer',
     'สคฉ.03',
     'viewer01@example.com',
@@ -273,7 +273,7 @@ INSERT INTO users (
 VALUES (
     5,
     'migration_bot',
-    '$2b$10$MpKnf1UEvlu8hZcqMkhMsuWG3gYD/priWTUr71GpF/uuroaGxtose',
+    '$2b$10$60HqaxJFZSF8.n.kOPubge2pK3SXbz4tmNTmrQB/coZ8QXrFMcdIK',
     'Migration',
     'Bot',
     'migration@system.internal',

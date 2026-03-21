@@ -20,6 +20,52 @@ import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/button';
 import { Plus, Download, Save, Layout } from 'lucide-react';
 
+interface WorkflowStateNodeData {
+  label?: string;
+  name?: string;
+  role?: string;
+  type?: string;
+}
+
+interface RawTransitionShape {
+  to?: string;
+  target?: string;
+  require?: {
+    role?: string | string[];
+  };
+}
+
+interface RawStateShape {
+  id?: string;
+  name: string;
+  type?: string;
+  role?: string;
+  initial?: boolean;
+  terminal?: boolean;
+  on?: Record<string, RawTransitionShape>;
+}
+
+interface CompiledTransitionShape {
+  to?: string;
+  target?: string;
+  requirements?: {
+    roles?: string[];
+  };
+}
+
+interface CompiledStateShape {
+  initial?: boolean;
+  terminal?: boolean;
+  transitions?: Record<string, CompiledTransitionShape>;
+}
+
+interface ParsedDslShape {
+  workflow?: string;
+  initialState?: string;
+  states?: RawStateShape[] | Record<string, CompiledStateShape>;
+  dslDefinition?: string;
+}
+
 // Define custom node styles (simplified for now)
 const nodeStyle = {
     padding: '10px 20px',
@@ -55,75 +101,145 @@ const initialNodes: Node[] = [
 interface VisualWorkflowBuilderProps {
     initialNodes?: Node[];
     initialEdges?: Edge[];
-    dslString?: string; // New prop
+    dslString?: string;
     onSave?: (nodes: Node[], edges: Edge[]) => void;
     onDslChange?: (dsl: string) => void;
 }
 
+const createNode = (
+  name: string,
+  yOffset: number,
+  options?: {
+    isCondition?: boolean;
+    isStart?: boolean;
+    isEnd?: boolean;
+    role?: string;
+    type?: string;
+  }
+): Node<WorkflowStateNodeData> => {
+  const isCondition = options?.isCondition === true;
+  const isStart = options?.isStart === true;
+  const isEnd = options?.isEnd === true;
+
+  let nodeType: Node['type'] = 'default';
+  let style = { ...nodeStyle };
+
+  if (isStart) {
+    nodeType = 'input';
+    style = { ...nodeStyle, background: '#10b981', color: 'white', border: 'none' };
+  } else if (isEnd) {
+    nodeType = 'output';
+    style = { ...nodeStyle, background: '#ef4444', color: 'white', border: 'none' };
+  } else if (isCondition) {
+    style = conditionNodeStyle;
+  }
+
+  return {
+    id: name,
+    type: nodeType,
+    data: {
+      label: isStart || isEnd ? name : `${name}\n(${options?.role || 'No Role'})`,
+      name,
+      role: options?.role,
+      type: options?.type || (isStart ? 'START' : isEnd ? 'END' : 'TASK')
+    },
+    position: { x: 250, y: yOffset },
+    style
+  };
+};
+
+const createEdge = (source: string, target: string, label: string): Edge => ({
+  id: `e-${source}-${label}-${target}`,
+  source,
+  target,
+  label,
+  markerEnd: { type: MarkerType.ArrowClosed }
+});
+
 function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
-    const nodes: Node[] = [];
-    const edges: Edge[] = [];
-    let yOffset = 50;
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+  let yOffset = 50;
 
-    try {
-        const parsedDsl = JSON.parse(dsl);
-        const states = parsedDsl.states || [];
+  try {
+    const parsedDsl = JSON.parse(dsl) as ParsedDslShape;
 
-        states.forEach((state: { id?: string, name: string, type?: string, role?: string, initial?: boolean, terminal?: boolean, on?: Record<string, { to: string }> }) => {
-            const isCondition = state.type === 'CONDITION';
-            const isStart = state.initial === true || state.type === 'START';
-            const isEnd = state.terminal === true || state.type === 'END';
-
-            let nodeType = 'default';
-            let style = { ...nodeStyle };
-
-            if (isStart) {
-                nodeType = 'input';
-                style = { ...nodeStyle, background: '#10b981', color: 'white', border: 'none' };
-            } else if (isEnd) {
-                nodeType = 'output';
-                style = { ...nodeStyle, background: '#ef4444', color: 'white', border: 'none' };
-            } else if (isCondition) {
-                style = conditionNodeStyle;
-            }
-
-            nodes.push({
-                id: state.name || state.id || `node-${Date.now()}`,
-                type: nodeType,
-                data: {
-                    label: isStart || isEnd ? state.name : `${state.name}\n(${state.role || 'No Role'})`,
-                    name: state.name,
-                    role: state.role,
-                    type: state.type || (isStart ? 'START' : isEnd ? 'END' : 'TASK')
-                },
-                position: { x: 250, y: yOffset },
-                style: style
-            });
-
-            if (state.on) {
-                const transitions = state.on;
-                Object.keys(transitions).forEach((eventName) => {
-                    const trans = transitions[eventName];
-                    if (trans && trans.to) {
-                        edges.push({
-                            id: `e-${state.name || state.id || 'node'}-${trans.to}`,
-                            source: state.name || state.id || 'node',
-                            target: trans.to,
-                            label: eventName,
-                            markerEnd: { type: MarkerType.ArrowClosed }
-                        });
-                    }
-                });
-            }
-
-            yOffset += 120;
-        });
-
-    } catch (e) {
-        // Failed to parse DSL as JSON - nodes/edges remain empty
+    if (typeof parsedDsl.dslDefinition === 'string') {
+      return parseDSL(parsedDsl.dslDefinition);
     }
 
-    return { nodes, edges };
+    if (Array.isArray(parsedDsl.states)) {
+      parsedDsl.states.forEach((state) => {
+        const stateName = state.name || state.id || `node-${Date.now()}`;
+        const role =
+          state.role ||
+          (Array.isArray(state.on?.SUBMIT?.require?.role)
+            ? state.on?.SUBMIT?.require?.role.join(', ')
+            : state.on?.SUBMIT?.require?.role);
+        const isCondition = state.type === 'CONDITION';
+        const isStart = state.initial === true || state.type === 'START';
+        const isEnd = state.terminal === true || state.type === 'END';
+
+        nodes.push(
+          createNode(stateName, yOffset, {
+            isCondition,
+            isStart,
+            isEnd,
+            role,
+            type: state.type
+          })
+        );
+
+        if (state.on) {
+          Object.entries(state.on).forEach(([eventName, transition]) => {
+            const target = transition?.to || transition?.target;
+            if (target) {
+              edges.push(createEdge(stateName, target, eventName));
+            }
+          });
+        }
+
+        yOffset += 120;
+      });
+
+      return { nodes, edges };
+    }
+
+    if (parsedDsl.states && typeof parsedDsl.states === 'object') {
+      Object.entries(parsedDsl.states).forEach(([stateName, state]) => {
+        const roles = state.transitions
+          ? Object.values(state.transitions)
+              .flatMap((transition) => transition.requirements?.roles || [])
+              .filter((role, index, array) => array.indexOf(role) === index)
+          : [];
+        const isStart = parsedDsl.initialState === stateName || state.initial === true;
+        const isEnd = state.terminal === true;
+
+        nodes.push(
+          createNode(stateName, yOffset, {
+            isStart,
+            isEnd,
+            role: roles.join(', ')
+          })
+        );
+
+        if (state.transitions) {
+          Object.entries(state.transitions).forEach(([eventName, transition]) => {
+            const target = transition?.to || transition?.target;
+            if (target) {
+              edges.push(createEdge(stateName, target, eventName));
+            }
+          });
+        }
+
+        yOffset += 120;
+      });
+    }
+  } catch (e) {
+    // Failed to parse DSL as JSON - nodes/edges remain empty
+  }
+
+  return { nodes, edges };
 }
 
 function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: propEdges, dslString, onSave, onDslChange }: VisualWorkflowBuilderProps) {
@@ -135,14 +251,11 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
   useEffect(() => {
       if (dslString) {
           const { nodes: newNodes, edges: newEdges } = parseDSL(dslString);
-          if (newNodes.length > 0) {
-              setNodes(newNodes);
-              setEdges(newEdges);
-              // Fit view after update
-              setTimeout(() => fitView(), 100);
-          }
+          setNodes(newNodes.length > 0 ? newNodes : propNodes || initialNodes);
+          setEdges(newNodes.length > 0 ? newEdges : propEdges || []);
+          setTimeout(() => fitView(), 100);
       }
-  }, [dslString, setNodes, setEdges, fitView]);
+  }, [dslString, fitView, propEdges, propNodes, setEdges, setNodes]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({ ...params, markerEnd: { type: MarkerType.ArrowClosed } }, eds)),
@@ -153,7 +266,7 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
     const id = `${type}-${Date.now()}`;
     const nodeType = type === 'condition' ? 'CONDITION' : type === 'end' ? 'END' : type === 'start' ? 'START' : 'TASK';
 
-    const newNode: Node = {
+    const newNode: Node<WorkflowStateNodeData> = {
       id,
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
       data: { label: label, name: label, role: 'User', type: nodeType },
@@ -179,7 +292,6 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
 
   // Generate JSON DSL
   const generateDSL = () => {
-    let hasStart = false;
     const states = nodes.map(n => {
         const outgoingEdges = edges.filter(e => e.source === n.id);
         const onConfig: Record<string, { to: string }> = {};
@@ -191,22 +303,21 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
 
         const isStartNode = n.type === 'input';
         const isEndNode = n.type === 'output';
-
-        if (isStartNode) hasStart = true;
+        const nodeData = n.data as WorkflowStateNodeData;
 
         const stateObj: { name: string; type?: string; role?: string; initial?: boolean; terminal?: boolean; on?: Record<string, { to: string }> } = {
-            name: n.data.name || n.data.label.split('\n')[0],
+            name: nodeData.name || nodeData.label?.split('\n')[0] || n.id,
         };
 
-        if (n.data.type && n.data.type !== 'START' && n.data.type !== 'END' && n.data.type !== 'TASK') {
-            stateObj.type = n.data.type;
+        if (nodeData.type && nodeData.type !== 'START' && nodeData.type !== 'END' && nodeData.type !== 'TASK') {
+            stateObj.type = nodeData.type;
         }
 
-        if (n.data.role && !isStartNode && !isEndNode) {
-            stateObj.role = n.data.role;
+        if (nodeData.role && !isStartNode && !isEndNode) {
+            stateObj.role = nodeData.role;
         }
 
-        if (isStartNode && !hasStart) {
+        if (isStartNode) {
             stateObj.initial = true;
         }
         if (isEndNode) {

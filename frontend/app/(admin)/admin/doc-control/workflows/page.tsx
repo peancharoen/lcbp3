@@ -10,6 +10,7 @@ import { Workflow } from '@/types/workflow';
 
 export default function WorkflowsPage() {
   const { data: workflows = [], isLoading: loading, error } = useWorkflowDefinitions();
+  const workflowList = Array.isArray(workflows) ? workflows : [];
 
   return (
     <div className="p-6 space-y-6">
@@ -34,13 +35,13 @@ export default function WorkflowsPage() {
         <div className="text-center py-12 text-destructive border rounded-lg border-dashed border-destructive/50 bg-destructive/10">
           Failed to load workflows. Please try again later.
         </div>
-      ) : workflows.length === 0 ? (
+      ) : workflowList.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground border rounded-lg border-dashed">
           No workflow definitions found. Click &quot;New Workflow&quot; to create one.
         </div>
       ) : (
         <div className="grid gap-4">
-          {workflows.map((workflow: Workflow) => (
+          {workflowList.map((workflow: Workflow) => (
             <Card key={workflow.workflowId} className="p-6">
               <div className="flex justify-between items-start">
                 <div className="flex-1">

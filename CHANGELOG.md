@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Document Numbering System Fixes (2026-03-21)
+
+#### 🔢 **Template Management Hardening**
+- **Issue**: Save/Edit functionality failing due to missing fields and data complexity.
+- **Fix (Backend)**: Added `disciplineId` and `isActive` to `DocumentNumberFormat` entity.
+- **Fix (Backend)**: Implemented automated "Upsert" logic in `DocumentNumberingService` to handle business keys (Project + Type + Discipline).
+- **Fix (Frontend)**: Refactored `numberingApi.saveTemplate` to sanitize DTOs and avoid sending nested relation objects.
+- **Feature**: Added **Discipline** selection to the Template Editor UI for granular numbering rules.
+- **Result**: Administrators can now successfully create, update, and manage numbering templates globally or per discipline.
+
 ### Build & Deployment Fixes (2026-03-20)
 
 #### 🔧 **Backend Dependency Resolution**

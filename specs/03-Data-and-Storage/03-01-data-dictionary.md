@@ -522,7 +522,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | :----------- | :----------- | :-------------------------- | :------------------------------ |
 | id           | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique identifier               |
 | contract_id  | INT          | NOT NULL, FK                | Contract reference              |
-| type_code    | VARCHAR(20)  | NOT NULL                    | Type code (DWG, DOC, MAT, etc.) |
+| type_code    | VARCHAR(20)  | NOT NULL                    | Type code (DDW, SDW, ADW, DOC, MAT, etc.) |
 | type_name_th | VARCHAR(100) | NOT NULL                    | Full type name (TH)             |
 | type_name_en | VARCHAR(100) | NOT NULL                    | Full type name (EN)             |
 | remark       | TEXT         | NULL                        | Remark                          |
@@ -653,29 +653,41 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 ### 4.6 rfa_items
 
-**Purpose**: Junction table linking RFA revisions to shop drawing revisions (M:N)
+**Purpose**: Child table linking RFA revisions to drawing revisions that require approval
 
-| Column Name              | Data Type | Constraints     | Description              |
-| :----------------------- | :-------- | :-------------- | :----------------------- |
-| rfa_revision_id          | INT       | PRIMARY KEY, FK | RFA Revision ID          |
-| shop_drawing_revision_id | INT       | PRIMARY KEY, FK | Shop drawing revision ID |
+| Column Name                | Data Type                | Constraints          | Description                        |
+| :------------------------- | :----------------------- | :------------------- | :--------------------------------- |
+| id                         | INT                      | PRIMARY KEY, AI      | Unique identifier                  |
+| rfa_revision_id            | INT                      | NOT NULL, FK         | RFA Revision ID                    |
+| item_type                  | ENUM('SHOP','AS_BUILT')  | NOT NULL             | Drawing reference type             |
+| shop_drawing_revision_id   | INT                      | NULL, FK             | Shop drawing revision ID           |
+| asbuilt_drawing_revision_id| INT                      | NULL, FK             | As-Built drawing revision ID       |
 
 **Indexes**:
 
-* PRIMARY KEY (rfa_revision_id, shop_drawing_revision_id)
+* PRIMARY KEY (id)
 * FOREIGN KEY (rfa_revision_id) REFERENCES rfa_revisions(id) ON DELETE CASCADE
 * FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
+* FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions(id) ON DELETE CASCADE
+* UNIQUE KEY (rfa_revision_id, shop_drawing_revision_id)
+* UNIQUE KEY (rfa_revision_id, asbuilt_drawing_revision_id)
+* INDEX (item_type)
 * INDEX (shop_drawing_revision_id)
+* INDEX (asbuilt_drawing_revision_id)
 
 **Relationships**:
 
-* Parent: rfa_revisions, shop_drawing_revisions
+* Parent: rfa_revisions, shop_drawing_revisions, asbuilt_drawing_revisions
 
 **Business Rules**:
 
-* Used primarily for RFA type = ' DWG ' (Shop Drawing)
-* One RFA can contain multiple shop drawings
-* One shop drawing can be referenced by multiple RFAs
+* `correspondences.correspondence_type_id` for an RFA must always point to `correspondence_types.type_code = 'RFA'`
+* `rfas.rfa_type_id` stores the selected RFA subtype
+* `DDW` and `SDW` RFA types must reference `shop_drawing_revisions`
+* `ADW` RFA types must reference `asbuilt_drawing_revisions`
+* Each `rfa_items` row must reference exactly one drawing revision target according to `item_type`
+* One RFA can contain multiple drawing references
+* One drawing revision can be referenced by multiple RFAs
 
 ---
 
@@ -1515,7 +1527,8 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | ---------------------- | ------------ | --------------------------- | -------------------------------------------- |
 | id                     | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique format ID                             |
 | project_id             | INT          | NOT NULL, FK                | Reference to projects                        |
-| correspondence_type_id | INT          | NOT NULL, FK                | Reference to correspondence_types            |
+| correspondence_type_id | INT          | NULL, FK                   | Reference to correspondence_types           |
+| discipline_id          | INT          | DEFAULT 0, FK               | Reference to disciplines (0 = all)           |
 | format_string          | VARCHAR(100) | NOT NULL                    | Format pattern (e.g., {ORG}-{TYPE}-{YYYY}-#) |
 | description            | TEXT         | NULL                        | Format description                           |
 | reset_annually         | BOOLEAN      | DEFAULT TRUE                | Start sequence new every year                |
@@ -1526,7 +1539,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 * PRIMARY KEY (id)
 * FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 * FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE
-* UNIQUE KEY (project_id, correspondence_type_id)
+* UNIQUE KEY (project_id, correspondence_type_id, discipline_id)
 * INDEX (is_active)
 
 **Relationships**:

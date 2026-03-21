@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '@/lib/services/user.service';
-import { CreateUserDto, UpdateUserDto, SearchUserDto } from '@/types/user';
+import { CreateUserDto, UpdateUserDto, SearchUserDto, Role } from '@/types/user';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/types/api-error';
 
@@ -18,7 +18,7 @@ export function useUsers(params?: SearchUserDto) {
 }
 
 export function useRoles() {
-  return useQuery({
+  return useQuery<Role[]>({
     queryKey: ['roles'],
     queryFn: () => userService.getRoles(),
   });

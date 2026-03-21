@@ -469,17 +469,22 @@ CREATE TABLE rfa_revisions (
   SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางขยายของ correspondence_revisions สำหรับ RFA (1:1)';
 
--- ตารางเชื่อมระหว่าง rfa_revisions (ที่เป็นประเภท DWG) กับ shop_drawing_revisions (M:N)
+-- ตารางรายการอ้างอิง Drawing Revision ของ RFA (รองรับ Shop Drawing และ As-Built Drawing)
 CREATE TABLE rfa_items (
-  rfa_revision_id INT COMMENT 'ID ของ RFA Revision',
-  shop_drawing_revision_id INT COMMENT 'ID ของ Shop Drawing Revision',
-  PRIMARY KEY (
-    rfa_revision_id,
-    shop_drawing_revision_id
-  ),
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของตาราง',
+  rfa_revision_id INT NOT NULL COMMENT 'ID ของ RFA Revision',
+  item_type ENUM('SHOP', 'AS_BUILT') NOT NULL COMMENT 'ประเภท Drawing Revision ที่ถูกอ้างอิง',
+  shop_drawing_revision_id INT NULL COMMENT 'ID ของ Shop Drawing Revision',
+  asbuilt_drawing_revision_id INT NULL COMMENT 'ID ของ As-Built Drawing Revision',
   FOREIGN KEY (rfa_revision_id) REFERENCES rfa_revisions (id) ON DELETE CASCADE,
-  FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions (id) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อมระหว่าง rfa_revisions (ที่เป็นประเภท DWG) กับ shop_drawing_revisions (M :N)';
+  FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions (id) ON DELETE CASCADE,
+  FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions (id) ON DELETE CASCADE,
+  UNIQUE KEY uq_rfa_items_shop (rfa_revision_id, shop_drawing_revision_id),
+  UNIQUE KEY uq_rfa_items_asbuilt (rfa_revision_id, asbuilt_drawing_revision_id),
+  INDEX idx_rfa_items_type (item_type),
+  INDEX idx_rfa_items_shop (shop_drawing_revision_id),
+  INDEX idx_rfa_items_asbuilt (asbuilt_drawing_revision_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางรายการอ้างอิง Drawing Revision ของ RFA โดย 1 แถวต้องอ้างอิง Shop Drawing Revision หรือ As-Built Drawing Revision อย่างใดอย่างหนึ่ง';
 
 -- =====================================================
 -- 5. 📐 Drawings (แบบ, หมวดหมู่)

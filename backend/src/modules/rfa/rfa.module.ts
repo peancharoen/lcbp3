@@ -7,10 +7,13 @@ import { CorrespondenceRouting } from '../correspondence/entities/correspondence
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
+import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
 import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
 import { RoutingTemplateStep } from '../correspondence/entities/routing-template-step.entity';
+import { AsBuiltDrawingRevision } from '../drawing/entities/asbuilt-drawing-revision.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
+import { Discipline } from '../master/entities/discipline.entity';
 import { RfaApproveCode } from './entities/rfa-approve-code.entity';
 import { RfaItem } from './entities/rfa-item.entity';
 import { RfaRevision } from './entities/rfa-revision.entity';
@@ -46,7 +49,10 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
       Correspondence,
       CorrespondenceRevision,
       CorrespondenceStatus,
+      CorrespondenceType,
+      AsBuiltDrawingRevision,
       ShopDrawingRevision,
+      Discipline,
       RfaWorkflow,
       RfaWorkflowTemplate,
       RfaWorkflowTemplateStep,

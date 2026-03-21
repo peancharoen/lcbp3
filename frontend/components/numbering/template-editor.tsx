@@ -56,6 +56,7 @@ export function TemplateEditor({
 }: TemplateEditorProps) {
   const [format, setFormat] = useState(template?.formatTemplate || '');
   const [typeId, setTypeId] = useState<string>(template?.correspondenceTypeId?.toString() || '');
+  const [disciplineId, setDisciplineId] = useState<string>(template?.disciplineId?.toString() || '0');
   const [reset, setReset] = useState(template?.resetSequenceYearly ?? true);
 
   const [preview, setPreview] = useState('');
@@ -89,6 +90,7 @@ export function TemplateEditor({
           ...template,
           projectId: projectId,
           correspondenceTypeId: typeId && typeId !== '__default__' ? Number(typeId) : null,
+          disciplineId: Number(disciplineId),
           formatTemplate: format,
           resetSequenceYearly: reset,
       });
@@ -139,6 +141,22 @@ export function TemplateEditor({
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <Label>Discipline (Optional)</Label>
+                    <Select value={disciplineId} onValueChange={setDisciplineId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Disciplines" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">All Disciplines</SelectItem>
+                        {disciplines.map((d: any) => (
+                          <SelectItem key={d.id} value={d.id.toString()}>
+                            {d.disciplineCode} - {d.codeNameEn || d.codeNameTh}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                </div>
                 <div>
                    <Label>Reset Rule</Label>
                    <div className="flex items-center h-10">

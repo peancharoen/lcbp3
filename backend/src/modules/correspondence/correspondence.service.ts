@@ -207,6 +207,9 @@ export class CorrespondenceService {
         issuedDate: createDto.issuedDate
           ? new Date(createDto.issuedDate)
           : undefined,
+        receivedDate: createDto.receivedDate
+          ? new Date(createDto.receivedDate)
+          : undefined,
         description: createDto.description,
         details: createDto.details,
         createdBy: user.user_id,
@@ -521,6 +524,8 @@ export class CorrespondenceService {
       revisionUpdate.documentDate = new Date(updateDto.documentDate);
     if (updateDto.issuedDate)
       revisionUpdate.issuedDate = new Date(updateDto.issuedDate);
+    if (updateDto.receivedDate)
+      revisionUpdate.receivedDate = new Date(updateDto.receivedDate);
     if (updateDto.description)
       revisionUpdate.description = updateDto.description;
     if (updateDto.details) revisionUpdate.details = updateDto.details;

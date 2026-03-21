@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { Eye, EyeOff } from "lucide-react";
 
+const ALL_ORGANIZATIONS_VALUE = "all";
+
 // Update schema to include confirmPassword
 const userSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -92,7 +94,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
       isActive: true,
       roleIds: [],
       lineId: "",
-      primaryOrganizationId: undefined,
+      primaryOrganizationId: ALL_ORGANIZATIONS_VALUE,
       password: "",
       confirmPassword: ""
     },
@@ -107,7 +109,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
         lastName: user.lastName,
         isActive: user.isActive,
         lineId: user.lineId || "",
-        primaryOrganizationId: user.primaryOrganizationId?.toString(),
+        primaryOrganizationId: user.primaryOrganizationId?.toString() || ALL_ORGANIZATIONS_VALUE,
         roleIds: user.roles?.map((r: { roleId: number }) => r.roleId) || [],
         password: "",
         confirmPassword: ""
@@ -120,7 +122,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
         lastName: "",
         isActive: true,
         lineId: "",
-        primaryOrganizationId: undefined,
+        primaryOrganizationId: ALL_ORGANIZATIONS_VALUE,
         roleIds: [],
         password: "",
         confirmPassword: ""
@@ -148,6 +150,9 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
     const payload = { ...data };
     delete payload.confirmPassword; // Don't send to API
     if (!payload.password) delete payload.password; // Don't send empty password on edit
+    if (payload.primaryOrganizationId === ALL_ORGANIZATIONS_VALUE) {
+      delete payload.primaryOrganizationId;
+    }
 
     if (user) {
       updateUser.mutate(
@@ -231,7 +236,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
             <div>
               <Label>Primary Organization</Label>
               <Select
-                value={watch("primaryOrganizationId") ?? undefined}
+                value={watch("primaryOrganizationId") || ALL_ORGANIZATIONS_VALUE}
                 onValueChange={(val) =>
                   setValue("primaryOrganizationId", val)
                 }
@@ -240,7 +245,8 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                   <SelectValue placeholder="Select Organization" />
                 </SelectTrigger>
                 <SelectContent>
-                  {organizations?.map((org: { uuid: string; organizationCode: string; organizationName: string }) => (
+                  <SelectItem value={ALL_ORGANIZATIONS_VALUE}>All Organizations</SelectItem>
+                  {Array.isArray(organizations) && organizations.map((org: { uuid: string; organizationCode: string; organizationName: string }) => (
                     <SelectItem
                       key={org.uuid}
                       value={org.uuid}

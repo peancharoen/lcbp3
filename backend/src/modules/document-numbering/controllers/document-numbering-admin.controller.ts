@@ -32,7 +32,7 @@ export class DocumentNumberingAdminController {
 
   @Get('templates')
   @ApiOperation({ summary: 'Get all document numbering templates' })
-  @RequirePermission('system.manage_settings')
+  @RequirePermission('numbering.view_formats')
   async getTemplates(@Query('projectId') projectId?: number) {
     if (projectId) {
       return this.service.getTemplatesByProject(projectId);
@@ -42,7 +42,7 @@ export class DocumentNumberingAdminController {
 
   @Post('templates')
   @ApiOperation({ summary: 'Create or Update a numbering template' })
-  @RequirePermission('system.manage_settings')
+  @RequirePermission('numbering.manage_formats')
   async saveTemplate(
     @Body() dto: Partial<DocumentNumberFormat> & { projectId?: number | string }
   ) {
@@ -51,7 +51,7 @@ export class DocumentNumberingAdminController {
 
   @Delete('templates/:id')
   @ApiOperation({ summary: 'Delete a numbering template' })
-  @RequirePermission('system.manage_settings')
+  @RequirePermission('numbering.manage_formats')
   async deleteTemplate(@Param('id', ParseIntPipe) id: number) {
     await this.service.deleteTemplate(id);
     return { success: true };
@@ -78,7 +78,7 @@ export class DocumentNumberingAdminController {
   @ApiOperation({
     summary: 'Manually override or set a document number counter',
   })
-  @RequirePermission('system.manage_settings')
+  @RequirePermission('numbering.manage_formats')
   async manualOverride(
     @Body() dto: ManualOverrideDto,
     @CurrentUser() user: User
@@ -88,7 +88,7 @@ export class DocumentNumberingAdminController {
 
   @Post('void-and-replace')
   @ApiOperation({ summary: 'Void a number and replace with a new generation' })
-  @RequirePermission('system.manage_settings')
+  @RequirePermission('numbering.manage_formats')
   async voidAndReplace(
     @Body()
     dto: {
@@ -104,7 +104,7 @@ export class DocumentNumberingAdminController {
 
   @Post('cancel')
   @ApiOperation({ summary: 'Cancel/Skip a specific document number' })
-  @RequirePermission('system.manage_settings')
+  @RequirePermission('numbering.manage_formats')
   async cancelNumber(
     @Body()
     dto: {
@@ -119,7 +119,7 @@ export class DocumentNumberingAdminController {
 
   @Post('bulk-import')
   @ApiOperation({ summary: 'Bulk import/set document number counters' })
-  @RequirePermission('system.manage_settings')
+  @RequirePermission('numbering.manage_formats')
   async bulkImport(@Body() items: ManualOverrideDto[]) {
     return this.service.bulkImport(items);
   }

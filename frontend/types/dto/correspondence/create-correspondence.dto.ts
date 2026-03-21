@@ -28,6 +28,15 @@ export interface CreateCorrespondenceDto {
   /** กำหนดวันตอบกลับ (ISO Date String) */
   dueDate?: string;
 
+  /** วันที่เอกสาร (ISO Date String) */
+  documentDate?: string;
+
+  /** วันที่ออกเอกสาร (ISO Date String) */
+  issuedDate?: string;
+
+  /** วันที่รับเอกสาร (ISO Date String) */
+  receivedDate?: string;
+
   /** ข้อมูล JSON เฉพาะประเภท (เช่น RFI question, RFA details) */
   details?: Record<string, unknown>;
 

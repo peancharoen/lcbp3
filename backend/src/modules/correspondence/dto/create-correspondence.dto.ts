@@ -100,6 +100,14 @@ export class CreateCorrespondenceDto {
   issuedDate?: string;
 
   @ApiPropertyOptional({
+    description: 'Received Date (วันที่รับเอกสาร)',
+    example: '2025-12-06T00:00:00Z',
+  })
+  @IsDateString()
+  @IsOptional()
+  receivedDate?: string;
+
+  @ApiPropertyOptional({
     description: 'Attachment temp IDs from upload phase (Two-Phase Storage)',
     example: ['uuid-temp-1', 'uuid-temp-2'],
   })

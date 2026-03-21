@@ -1,5 +1,5 @@
 import apiClient from "@/lib/api/client";
-import { CreateUserDto, UpdateUserDto, SearchUserDto, User } from "@/types/user";
+import { CreateUserDto, UpdateUserDto, SearchUserDto, User, Role } from "@/types/user";
 
 /** Raw API user shape (before transform) */
 interface RawUser {
@@ -8,6 +8,24 @@ interface RawUser {
   assignments?: Array<{ role: unknown }>;
   [key: string]: unknown;
 }
+
+const extractArrayData = <T,>(value: unknown): T[] => {
+  let current: unknown = value;
+
+  for (let i = 0; i < 5; i += 1) {
+    if (Array.isArray(current)) {
+      return current as T[];
+    }
+
+    if (!current || typeof current !== "object" || !("data" in current)) {
+      return [];
+    }
+
+    current = (current as { data?: unknown }).data;
+  }
+
+  return Array.isArray(current) ? (current as T[]) : [];
+};
 
 const transformUser = (user: RawUser): User => {
   return {
@@ -24,26 +42,12 @@ type UserListResponse = User[] | { data: User[] | { data: User[] } };
 export const userService = {
   getAll: async (params?: SearchUserDto) => {
     const response = await apiClient.get<UserListResponse>("/users", { params });
-
-    // Handle both paginated and non-paginated responses
-    let rawData: RawUser[] | unknown = response.data;
-    if (rawData && !Array.isArray(rawData) && 'data' in (rawData as object)) {
-      rawData = (rawData as { data: unknown }).data;
-    }
-    if (rawData && !Array.isArray(rawData) && typeof rawData === 'object' && 'data' in (rawData as object)) {
-      rawData = (rawData as { data: unknown }).data;
-    }
-    if (!Array.isArray(rawData)) return [];
-
-    return (rawData as RawUser[]).map(transformUser);
+    return extractArrayData<RawUser>(response.data).map(transformUser);
   },
 
-  getRoles: async () => {
+  getRoles: async (): Promise<Role[]> => {
     const response = await apiClient.get<{ data: unknown } | unknown>("/users/roles");
-    if (response.data && typeof response.data === 'object' && 'data' in (response.data as object)) {
-      return (response.data as { data: unknown }).data;
-    }
-    return response.data;
+    return extractArrayData<Role>(response.data);
   },
 
   getByUuid: async (uuid: string) => {

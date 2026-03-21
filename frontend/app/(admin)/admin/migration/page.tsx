@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { EyeIcon, FileXIcon, CheckSquareIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getApiErrorMessage } from "@/types/api-error";
 
 export default function MigrationReviewQueuePage() {
   const [items, setItems] = useState<MigrationReviewQueueItem[]>([]);
@@ -27,6 +28,7 @@ export default function MigrationReviewQueuePage() {
   const [submitting, setSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("PENDING");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -35,14 +37,16 @@ export default function MigrationReviewQueuePage() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setErrorMessage(null);
       const res = await migrationService.getReviewQueue({
         status: statusFilter === "ALL" ? undefined : (statusFilter as MigrationReviewStatus),
         limit: 50,
       });
-      setItems(res.items);
+      setItems(Array.isArray(res.items) ? res.items : []);
       setSelectedIds([]); // reset selection on fetch
-    } catch (error) {
-      // Failed to fetch queue - loading state handles display
+    } catch (error: unknown) {
+      setItems([]);
+      setErrorMessage(getApiErrorMessage(error, "Failed to load queue"));
     } finally {
       setLoading(false);
     }
@@ -148,6 +152,11 @@ export default function MigrationReviewQueuePage() {
           <CardTitle>Queue Items - {statusFilter}</CardTitle>
         </CardHeader>
         <CardContent>
+          {errorMessage && (
+            <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {errorMessage}
+            </div>
+          )}
           {loading ? (
             <div className="py-10 text-center">Loading queue...</div>
           ) : items.length === 0 ? (

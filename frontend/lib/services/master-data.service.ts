@@ -15,6 +15,24 @@ import {
   SearchOrganizationDto,
 } from "@/types/dto/organization/organization.dto";
 
+const extractArrayData = <T>(value: unknown): T[] => {
+  let current: unknown = value;
+
+  for (let i = 0; i < 5; i += 1) {
+    if (Array.isArray(current)) {
+      return current as T[];
+    }
+
+    if (!current || typeof current !== "object" || !("data" in current)) {
+      return [];
+    }
+
+    current = (current as { data?: unknown }).data;
+  }
+
+  return Array.isArray(current) ? (current as T[]) : [];
+};
+
 export const masterDataService = {
   // --- Tags Management ---
 
@@ -77,7 +95,7 @@ export const masterDataService = {
     return response.data;
   },
 
-  /** แก้ไของค์กร */
+  /** แก้ไองค์กร */
   updateOrganization: async (uuid: string, data: UpdateOrganizationDto) => {
     const response = await apiClient.put(`/organizations/${uuid}`, data);
     return response.data;
@@ -97,7 +115,7 @@ export const masterDataService = {
     const response = await apiClient.get("/master/disciplines", {
       params: { contractId }
     });
-    return response.data.data || response.data;
+    return extractArrayData(response.data);
   },
 
   /** สร้างสาขางานใหม่ */
@@ -119,7 +137,7 @@ export const masterDataService = {
     const response = await apiClient.get("/master/sub-types", {
       params: { contractId, correspondenceTypeId: typeId }
     });
-    return response.data.data || response.data;
+    return extractArrayData(response.data);
   },
 
   /** สร้างประเภทย่อยใหม่ */
@@ -135,7 +153,7 @@ export const masterDataService = {
     const response = await apiClient.get("/master/rfa-types", {
       params: { contractId }
     });
-    return response.data.data || response.data;
+    return extractArrayData(response.data);
   },
 
   /** สร้างประเภท RFA ใหม่ */
@@ -156,7 +174,7 @@ export const masterDataService = {
   // --- Correspondence Types Management ---
   getCorrespondenceTypes: async () => {
     const response = await apiClient.get("/master/correspondence-types");
-    return response.data.data || response.data;
+    return extractArrayData(response.data);
   },
 
   createCorrespondenceType: async (data: CreateCorrespondenceTypeDto) => {
@@ -191,18 +209,18 @@ export const masterDataService = {
     const response = await apiClient.get("/drawings/contract/categories", {
       params: { projectId }
     });
-    return response.data.data || response.data;
+    return extractArrayData(response.data);
   },
 
   getShopMainCategories: async (projectId: number) => {
     const response = await apiClient.get("/drawings/shop/main-categories", { params: { projectId } });
-    return response.data.data || response.data;
+    return extractArrayData(response.data);
   },
 
   getShopSubCategories: async (projectId: number, mainCategoryId?: number) => {
     const response = await apiClient.get("/drawings/shop/sub-categories", {
       params: { projectId, mainCategoryId }
     });
-    return response.data.data || response.data;
+    return extractArrayData(response.data);
   }
 };

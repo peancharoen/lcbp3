@@ -5,7 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
-import { Repository, EntityManager } from 'typeorm';
+import {
+  Repository,
+  EntityManager,
+  In,
+  IsNull,
+  Equal,
+} from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 
 import { DocumentNumberFormat } from '../entities/document-number-format.entity';
@@ -121,7 +127,7 @@ export class DocumentNumberingService {
       const sequence = await this.counterService.incrementCounter(key);
 
       // 4. Format Number
-      const documentNumber = await this.formatService.format({
+      const { previewNumber: documentNumber } = await this.formatService.format({
         projectId: ctx.projectId,
         correspondenceTypeId: ctx.typeId,
         subTypeId: ctx.subTypeId,
@@ -193,7 +199,7 @@ export class DocumentNumberingService {
 
   async previewNumber(
     ctx: GenerateNumberContext
-  ): Promise<{ previewNumber: string; nextSequence: number }> {
+  ): Promise<{ previewNumber: string; nextSequence: number; isDefault: boolean }> {
     const currentYear = new Date().getFullYear();
     const resetScope = `YEAR_${currentYear}`;
 
@@ -211,7 +217,7 @@ export class DocumentNumberingService {
     const currentSeq = await this.counterService.getCurrentCounter(key);
     const nextSequence = currentSeq + 1;
 
-    const previewNumber = await this.formatService.format({
+    const { previewNumber, isDefault } = await this.formatService.format({
       projectId: ctx.projectId,
       correspondenceTypeId: ctx.typeId,
       subTypeId: ctx.subTypeId,
@@ -224,7 +230,7 @@ export class DocumentNumberingService {
       recipientOrganizationId: ctx.recipientOrganizationId,
     });
 
-    return { previewNumber, nextSequence };
+    return { previewNumber, nextSequence, isDefault };
   }
 
   /**
@@ -258,10 +264,36 @@ export class DocumentNumberingService {
   async saveTemplate(
     dto: Partial<DocumentNumberFormat> & { projectId?: number | string }
   ) {
-    if (dto.projectId) {
-      dto.projectId = await this.uuidResolver.resolveProjectId(dto.projectId);
+    try {
+      this.logger.log(`Saving numbering template: ${JSON.stringify(dto)}`);
+      
+      // Resolve project ID if it's a UUID/String
+      if (dto.projectId && typeof dto.projectId === 'string') {
+        dto.projectId = await this.uuidResolver.resolveProjectId(dto.projectId);
+      }
+
+      // Upsert logic: If no ID provided, check for existing template with same business key
+      if (!dto.id) {
+        const existing = await this.formatRepo.findOne({
+          where: {
+            projectId: Number(dto.projectId),
+            correspondenceTypeId: dto.correspondenceTypeId ? Equal(dto.correspondenceTypeId) : IsNull(),
+            disciplineId: dto.disciplineId || 0,
+          },
+        });
+        if (existing) {
+          this.logger.log(`Found existing template ID: ${existing.id} for business key, updating instead of creating.`);
+          dto.id = existing.id;
+        }
+      }
+
+      const result = await this.formatRepo.save(dto);
+      this.logger.log(`Successfully saved template ID: ${result.id}`);
+      return result;
+    } catch (e: any) {
+      this.logger.error(`Failed to save numbering template: ${e.message}`, e.stack);
+      throw e;
     }
-    return this.formatRepo.save(dto);
   }
 
   async deleteTemplate(id: number) {

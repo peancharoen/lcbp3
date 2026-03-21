@@ -23,6 +23,9 @@ export const drawingKeys = {
 // --- Queries ---
 
 export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
+  const shouldEnable =
+    'projectUuid' in params ? Boolean(params.projectUuid) : true;
+
   return useQuery({
     queryKey: drawingKeys.list(type, params),
     queryFn: async () => {
@@ -50,6 +53,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
             type: 'SHOP',
             title: d.currentRevision?.title || 'Untitled',
             revision: d.currentRevision?.revisionNumber,
+            currentRevisionUuid: d.currentRevision?.uuid,
             legacyDrawingNumber: d.currentRevision?.legacyDrawingNumber,
           }));
           // Re-wrap to preserve meta
@@ -65,6 +69,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
             type: 'AS_BUILT',
             title: d.currentRevision?.title || 'Untitled',
             revision: d.currentRevision?.revisionNumber,
+            currentRevisionUuid: d.currentRevision?.uuid,
           }));
           // Re-wrap to preserve meta
           response = { ...response, data: mappedData };
@@ -72,6 +77,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
       }
       return response;
     },
+    enabled: shouldEnable,
     placeholderData: (previousData) => previousData,
   });
 }

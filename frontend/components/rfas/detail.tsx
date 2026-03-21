@@ -1,5 +1,6 @@
 "use client";
 
+import type { RFA, RFAItem } from "@/types/rfa";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,39 +10,48 @@ import Link from "next/link";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useRouter } from "next/navigation";
 import { useProcessRFA } from "@/hooks/use-rfa";
 
-interface RFADetailItem {
-  id: number;
-  itemNo: string;
-  description: string;
-  quantity: number;
-  unit: string;
-  status?: string;
-}
-
-interface RFADetailData {
-  uuid: string;
-  rfaNumber: string;
-  subject: string;
-  description?: string;
-  status: string;
-  createdAt: string;
-  contractName?: string;
-  disciplineName?: string;
-  items: RFADetailItem[];
-}
-
 interface RFADetailProps {
-  data: RFADetailData;
+  data: RFA;
 }
 
 export function RFADetail({ data }: RFADetailProps) {
-  const router = useRouter();
   const [actionState, setActionState] = useState<"approve" | "reject" | null>(null);
   const [comments, setComments] = useState("");
   const processMutation = useProcessRFA();
+  const currentRevision = data.revisions.find((revision) => revision.isCurrent) ?? data.revisions[0];
+  const currentItems = currentRevision?.items ?? [];
+  const currentStatus = currentRevision?.statusCode?.statusName || currentRevision?.statusCode?.statusCode || "Unknown";
+  const createdAt = data.correspondence?.createdAt || currentRevision?.createdAt;
+
+  const getDrawingNumber = (item: RFAItem) =>
+    item.shopDrawingRevision?.shopDrawing?.drawingNumber ||
+    item.asBuiltDrawingRevision?.asBuiltDrawing?.drawingNumber ||
+    "-";
+
+  const getRevisionLabel = (item: RFAItem) => {
+    if (item.shopDrawingRevision?.revisionLabel) {
+      return item.shopDrawingRevision.revisionLabel;
+    }
+
+    if (item.shopDrawingRevision?.revisionNumber !== undefined) {
+      return String(item.shopDrawingRevision.revisionNumber);
+    }
+
+    if (item.asBuiltDrawingRevision?.revisionLabel) {
+      return item.asBuiltDrawingRevision.revisionLabel;
+    }
+
+    if (item.asBuiltDrawingRevision?.revisionNumber !== undefined) {
+      return String(item.asBuiltDrawingRevision.revisionNumber);
+    }
+
+    return "-";
+  };
+
+  const getRevisionTitle = (item: RFAItem) =>
+    item.shopDrawingRevision?.title || item.asBuiltDrawingRevision?.title || "-";
 
   const handleProcess = () => {
     if (!actionState) return;
@@ -77,14 +87,16 @@ export function RFADetail({ data }: RFADetailProps) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">{data.rfaNumber}</h1>
-            <p className="text-muted-foreground">
-              Created on {format(new Date(data.createdAt), "dd MMM yyyy HH:mm")}
-            </p>
+            <h1 className="text-2xl font-bold">{data.correspondence?.correspondenceNumber || "RFA"}</h1>
+            {createdAt && (
+              <p className="text-muted-foreground">
+                Created on {format(new Date(createdAt), "dd MMM yyyy HH:mm")}
+              </p>
+            )}
           </div>
         </div>
 
-        {data.status === "PENDING" && (
+        {currentStatus === "PENDING" && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -144,15 +156,15 @@ export function RFADetail({ data }: RFADetailProps) {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-start">
-                <CardTitle className="text-xl">{data.subject}</CardTitle>
-                <StatusBadge status={data.status} />
+                <CardTitle className="text-xl">{currentRevision?.subject || "Untitled RFA"}</CardTitle>
+                <StatusBadge status={currentStatus} />
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
                 <h3 className="font-semibold mb-2">Description</h3>
                 <p className="text-gray-700 whitespace-pre-wrap">
-                  {data.description || "No description provided."}
+                  {currentRevision?.description || "No description provided."}
                 </p>
               </div>
 
@@ -160,32 +172,32 @@ export function RFADetail({ data }: RFADetailProps) {
 
               <div>
                 <h3 className="font-semibold mb-3">RFA Items</h3>
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium">Item No.</th>
-                        <th className="px-4 py-3 text-left font-medium">Description</th>
-                        <th className="px-4 py-3 text-right font-medium">Qty</th>
-                        <th className="px-4 py-3 text-left font-medium">Unit</th>
-                        <th className="px-4 py-3 text-left font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {data.items.map((item) => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-3 font-medium">{item.itemNo}</td>
-                          <td className="px-4 py-3">{item.description}</td>
-                          <td className="px-4 py-3 text-right">{item.quantity}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{item.unit}</td>
-                          <td className="px-4 py-3">
-                            <StatusBadge status={item.status || "PENDING"} className="text-[10px] px-2 py-0.5 h-5" />
-                          </td>
+                {currentItems.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No drawing items linked to this RFA.</p>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-medium">Type</th>
+                          <th className="px-4 py-3 text-left font-medium">Drawing No.</th>
+                          <th className="px-4 py-3 text-left font-medium">Revision</th>
+                          <th className="px-4 py-3 text-left font-medium">Title</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y">
+                        {currentItems.map((item) => (
+                          <tr key={item.id}>
+                            <td className="px-4 py-3 font-medium">{item.itemType}</td>
+                            <td className="px-4 py-3">{getDrawingNumber(item)}</td>
+                            <td className="px-4 py-3">{getRevisionLabel(item)}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{getRevisionTitle(item)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -199,15 +211,15 @@ export function RFADetail({ data }: RFADetailProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Contract</p>
-                <p className="font-medium mt-1">{data.contractName}</p>
+                <p className="text-sm font-medium text-muted-foreground">Project</p>
+                <p className="font-medium mt-1">{data.correspondence?.project?.projectName || "-"}</p>
               </div>
 
               <hr className="my-4 border-t" />
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Discipline</p>
-                <p className="font-medium mt-1">{data.disciplineName}</p>
+                <p className="font-medium mt-1">{data.discipline?.name || data.discipline?.code || "-"}</p>
               </div>
             </CardContent>
           </Card>

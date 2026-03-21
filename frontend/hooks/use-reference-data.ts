@@ -6,13 +6,13 @@ import type { CreateCorrespondenceTypeDto, UpdateCorrespondenceTypeDto } from '@
 
 export const referenceDataKeys = {
   all: ['reference-data'] as const,
-  rfaTypes: (contractId?: number) => [...referenceDataKeys.all, 'rfaTypes', contractId] as const,
+  rfaTypes: (contractId?: number | string) => [...referenceDataKeys.all, 'rfaTypes', contractId] as const,
   disciplines: (contractId?: number) => [...referenceDataKeys.all, 'disciplines', contractId] as const,
   correspondenceTypes: () => [...referenceDataKeys.all, 'correspondenceTypes'] as const,
 };
 
 // --- RFA Types ---
-export const useRfaTypes = (contractId?: number) => {
+export const useRfaTypes = (contractId?: number | string) => {
   return useQuery({
     queryKey: referenceDataKeys.rfaTypes(contractId),
     queryFn: () => masterDataService.getRfaTypes(contractId),

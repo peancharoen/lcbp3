@@ -61,7 +61,7 @@ export class ReservationService {
     const sequence = await this.counterService.incrementCounter(counterKey);
 
     // Format document number
-    const documentNumber = await this.formatService.format({
+    const { previewNumber: documentNumber } = await this.formatService.format({
       ...dto,
       sequence,
       resetScope: counterKey.resetScope,

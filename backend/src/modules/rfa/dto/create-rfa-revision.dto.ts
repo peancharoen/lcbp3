@@ -86,13 +86,21 @@ export class CreateRfaRevisionDto {
   })
   @IsObject()
   @IsOptional()
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 
   @ApiPropertyOptional({
-    description: 'Linked Shop Drawing Revision IDs',
-    example: [1, 2],
+    description: 'Linked Shop Drawing Revision IDs or UUIDs',
+    example: ['shop-revision-uuid-1', 'shop-revision-uuid-2'],
   })
   @IsArray()
   @IsOptional()
-  shopDrawingRevisionIds?: number[]; // IDs of linked Shop Drawings
+  shopDrawingRevisionIds?: Array<number | string>;
+
+  @ApiPropertyOptional({
+    description: 'Linked As-Built Drawing Revision IDs or UUIDs',
+    example: ['asbuilt-revision-uuid-1'],
+  })
+  @IsArray()
+  @IsOptional()
+  asBuiltDrawingRevisionIds?: Array<number | string>;
 }

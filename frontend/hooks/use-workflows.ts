@@ -6,6 +6,7 @@ import {
   EvaluateWorkflowDto,
   GetAvailableActionsDto,
 } from '@/types/dto/workflow-engine/workflow-engine.dto';
+import { Workflow } from '@/types/workflow';
 
 export const workflowKeys = {
   all: ['workflows'] as const,
@@ -14,14 +15,14 @@ export const workflowKeys = {
 };
 
 export const useWorkflowDefinitions = () => {
-  return useQuery({
+  return useQuery<Workflow[]>({
     queryKey: workflowKeys.definitions(),
     queryFn: () => workflowEngineService.getDefinitions(),
   });
 };
 
 export const useWorkflowDefinition = (id: string | number) => {
-  return useQuery({
+  return useQuery<Workflow>({
     queryKey: workflowKeys.definition(id),
     queryFn: () => workflowEngineService.getDefinitionById(id),
     enabled: !!id,

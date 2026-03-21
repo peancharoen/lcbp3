@@ -13,12 +13,16 @@ import { DataSource, In, Repository } from 'typeorm';
 
 // Entities
 import { CorrespondenceRouting } from '../correspondence/entities/correspondence-routing.entity';
+import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
 import { Correspondence } from '../correspondence/entities/correspondence.entity';
 import { CorrespondenceRevision } from '../correspondence/entities/correspondence-revision.entity';
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
+import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
 import { RoutingTemplateStep } from '../correspondence/entities/routing-template-step.entity';
+import { AsBuiltDrawingRevision } from '../drawing/entities/asbuilt-drawing-revision.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
+import { Discipline } from '../master/entities/discipline.entity';
 import { User } from '../user/entities/user.entity';
 import { RfaApproveCode } from './entities/rfa-approve-code.entity';
 import { RfaItem } from './entities/rfa-item.entity';
@@ -72,10 +76,16 @@ export class RfaService {
     private corrRevRepo: Repository<CorrespondenceRevision>,
     @InjectRepository(CorrespondenceStatus)
     private corrStatusRepo: Repository<CorrespondenceStatus>,
+    @InjectRepository(CorrespondenceType)
+    private correspondenceTypeRepo: Repository<CorrespondenceType>,
+    @InjectRepository(Discipline)
+    private disciplineRepo: Repository<Discipline>,
     @InjectRepository(RfaStatusCode)
     private rfaStatusRepo: Repository<RfaStatusCode>,
     @InjectRepository(RfaApproveCode)
     private rfaApproveRepo: Repository<RfaApproveCode>,
+    @InjectRepository(AsBuiltDrawingRevision)
+    private asBuiltDrawingRevRepo: Repository<AsBuiltDrawingRevision>,
     @InjectRepository(ShopDrawingRevision)
     private shopDrawingRevRepo: Repository<ShopDrawingRevision>,
     @InjectRepository(CorrespondenceRouting)
@@ -104,6 +114,104 @@ export class RfaService {
       where: { id: createDto.rfaTypeId },
     });
     if (!rfaType) throw new NotFoundException('RFA Type not found');
+
+    const rfaTypeCode = rfaType.typeCode.toUpperCase();
+    const rawShopDrawingRefs = createDto.shopDrawingRevisionIds ?? [];
+    const rawAsBuiltDrawingRefs = createDto.asBuiltDrawingRevisionIds ?? [];
+
+    if (['DDW', 'SDW'].includes(rfaTypeCode)) {
+      if (rawShopDrawingRefs.length === 0) {
+        throw new BadRequestException(
+          'Selected RFA Type requires at least one Shop Drawing Revision'
+        );
+      }
+
+      if (rawAsBuiltDrawingRefs.length > 0) {
+        throw new BadRequestException(
+          'Selected RFA Type cannot reference As-Built Drawing Revisions'
+        );
+      }
+    } else if (rfaTypeCode === 'ADW') {
+      if (rawAsBuiltDrawingRefs.length === 0) {
+        throw new BadRequestException(
+          'Selected RFA Type requires at least one As-Built Drawing Revision'
+        );
+      }
+
+      if (rawShopDrawingRefs.length > 0) {
+        throw new BadRequestException(
+          'Selected RFA Type cannot reference Shop Drawing Revisions'
+        );
+      }
+    } else if (
+      rawShopDrawingRefs.length > 0 ||
+      rawAsBuiltDrawingRefs.length > 0
+    ) {
+      throw new BadRequestException(
+        'Selected RFA Type does not support drawing revision items'
+      );
+    }
+
+    const shopDrawingRevisionIds = Array.from(
+      new Set(
+        await Promise.all(
+          rawShopDrawingRefs.map((ref) =>
+            this.uuidResolver.resolveShopDrawingRevisionId(ref)
+          )
+        )
+      )
+    );
+
+    const asBuiltDrawingRevisionIds = Array.from(
+      new Set(
+        await Promise.all(
+          rawAsBuiltDrawingRefs.map((ref) =>
+            this.uuidResolver.resolveAsBuiltDrawingRevisionId(ref)
+          )
+        )
+      )
+    );
+
+    const correspondenceType = await this.correspondenceTypeRepo.findOne({
+      where: { typeCode: 'RFA', isActive: true },
+    });
+    if (!correspondenceType) {
+      throw new InternalServerErrorException(
+        'Correspondence Type RFA not found in Master Data'
+      );
+    }
+
+    const internalContractId = createDto.contractId
+      ? await this.uuidResolver.resolveContractId(createDto.contractId)
+      : rfaType.contractId;
+
+    if (rfaType.contractId !== internalContractId) {
+      throw new BadRequestException(
+        'Selected RFA Type does not belong to the selected contract'
+      );
+    }
+
+    if (createDto.disciplineId) {
+      const discipline = await this.disciplineRepo.findOne({
+        where: { id: createDto.disciplineId },
+      });
+
+      if (!discipline) {
+        throw new NotFoundException('Discipline not found');
+      }
+
+      if (discipline.contractId !== internalContractId) {
+        throw new BadRequestException(
+          'Selected Discipline does not belong to the selected contract'
+        );
+      }
+    }
+
+    const internalRecipientOrgId = createDto.toOrganizationId
+      ? await this.uuidResolver.resolveOrganizationId(
+          createDto.toOrganizationId
+        )
+      : undefined;
 
     const statusDraft = await this.rfaStatusRepo.findOne({
       where: { statusCode: 'DFT' },
@@ -135,7 +243,9 @@ export class RfaService {
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: internalProjectId,
         originatorOrganizationId: userOrgId,
-        typeId: createDto.rfaTypeId,
+        recipientOrganizationId: internalRecipientOrgId,
+        typeId: correspondenceType.id,
+        rfaTypeId: createDto.rfaTypeId,
         disciplineId: createDto.disciplineId ?? 0, // ✅ ส่ง disciplineId ไปด้วย (0 ถ้าไม่มี)
         year: new Date().getFullYear(),
         customTokens: {
@@ -159,7 +269,7 @@ export class RfaService {
       // 1. Create Correspondence Record
       const correspondence = queryRunner.manager.create(Correspondence, {
         correspondenceNumber: docNumber.number,
-        correspondenceTypeId: createDto.rfaTypeId,
+        correspondenceTypeId: correspondenceType.id,
         projectId: internalProjectId,
         originatorId: userOrgId,
         isInternal: false,
@@ -167,6 +277,15 @@ export class RfaService {
         disciplineId: createDto.disciplineId, // ✅ Add disciplineId
       });
       const savedCorr = await queryRunner.manager.save(correspondence);
+
+      if (internalRecipientOrgId) {
+        const recipient = queryRunner.manager.create(CorrespondenceRecipient, {
+          correspondenceId: savedCorr.id,
+          recipientOrganizationId: internalRecipientOrgId,
+          recipientType: 'TO',
+        });
+        await queryRunner.manager.save(recipient);
+      }
 
       // 2. Create Rfa Master Record
       const rfa = queryRunner.manager.create(Rfa, {
@@ -205,25 +324,51 @@ export class RfaService {
       });
       const savedRevision = await queryRunner.manager.save(rfaRevision);
 
-      // 4. Link Shop Drawings
-      if (
-        createDto.shopDrawingRevisionIds &&
-        createDto.shopDrawingRevisionIds.length > 0
-      ) {
+      const rfaItems: RfaItem[] = [];
+
+      if (shopDrawingRevisionIds.length > 0) {
         const shopDrawings = await this.shopDrawingRevRepo.findBy({
-          id: In(createDto.shopDrawingRevisionIds),
+          id: In(shopDrawingRevisionIds),
         });
 
-        if (shopDrawings.length !== createDto.shopDrawingRevisionIds.length) {
+        if (shopDrawings.length !== shopDrawingRevisionIds.length) {
           throw new NotFoundException('Some Shop Drawing Revisions not found');
         }
 
-        const rfaItems = shopDrawings.map((sd) =>
-          queryRunner.manager.create(RfaItem, {
-            rfaRevisionId: savedRevision.id, // Correctly link to RfaRevision
-            shopDrawingRevisionId: sd.id,
-          })
+        rfaItems.push(
+          ...shopDrawings.map((sd) =>
+            queryRunner.manager.create(RfaItem, {
+              rfaRevisionId: savedRevision.id,
+              itemType: 'SHOP',
+              shopDrawingRevisionId: sd.id,
+            })
+          )
         );
+      }
+
+      if (asBuiltDrawingRevisionIds.length > 0) {
+        const asBuiltDrawings = await this.asBuiltDrawingRevRepo.findBy({
+          id: In(asBuiltDrawingRevisionIds),
+        });
+
+        if (asBuiltDrawings.length !== asBuiltDrawingRevisionIds.length) {
+          throw new NotFoundException(
+            'Some As-Built Drawing Revisions not found'
+          );
+        }
+
+        rfaItems.push(
+          ...asBuiltDrawings.map((ad) =>
+            queryRunner.manager.create(RfaItem, {
+              rfaRevisionId: savedRevision.id,
+              itemType: 'AS_BUILT',
+              asBuiltDrawingRevisionId: ad.id,
+            })
+          )
+        );
+      }
+
+      if (rfaItems.length > 0) {
         await queryRunner.manager.save(rfaItems);
       }
 
@@ -303,7 +448,11 @@ export class RfaService {
       .leftJoinAndSelect('rfaRev.statusCode', 'status')
       .leftJoinAndSelect('rfaRev.items', 'items')
       .leftJoinAndSelect('items.shopDrawingRevision', 'sdRev')
-      .leftJoinAndSelect('sdRev.attachments', 'attachments');
+      .leftJoinAndSelect('sdRev.shopDrawing', 'shopDrawing')
+      .leftJoinAndSelect('sdRev.attachments', 'shopAttachments')
+      .leftJoinAndSelect('items.asBuiltDrawingRevision', 'adRev')
+      .leftJoinAndSelect('adRev.asBuiltDrawing', 'asBuiltDrawing')
+      .leftJoinAndSelect('adRev.attachments', 'asBuiltAttachments');
 
     // Filter by Revision Status (from query param 'revisionStatus')
     if (revisionStatus === 'CURRENT') {
@@ -405,6 +554,10 @@ export class RfaService {
         'correspondence.revisions.rfaRevision.items',
         'correspondence.revisions.rfaRevision.items.shopDrawingRevision',
         'correspondence.revisions.rfaRevision.items.shopDrawingRevision.shopDrawing',
+        'correspondence.revisions.rfaRevision.items.shopDrawingRevision.attachments',
+        'correspondence.revisions.rfaRevision.items.asBuiltDrawingRevision',
+        'correspondence.revisions.rfaRevision.items.asBuiltDrawingRevision.asBuiltDrawing',
+        'correspondence.revisions.rfaRevision.items.asBuiltDrawingRevision.attachments',
       ],
       order: {
         correspondence: { revisions: { revisionNumber: 'DESC' } },

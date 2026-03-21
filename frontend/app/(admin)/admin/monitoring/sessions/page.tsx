@@ -1,12 +1,13 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { sessionService } from '@/lib/services/session.service';
+import { Session, sessionService } from '@/lib/services/session.service';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Loader2, Trash2, Monitor, Smartphone } from 'lucide-react';
+import { Loader2, Trash2, Monitor } from 'lucide-react';
 import { format } from 'date-fns';
+import { getApiErrorMessage } from '@/types/api-error';
 
 export default function SessionManagementPage() {
   const queryClient = useQueryClient();
@@ -15,10 +16,11 @@ export default function SessionManagementPage() {
     data: sessions,
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<Session[]>({
     queryKey: ['sessions'],
     queryFn: sessionService.getActiveSessions,
   });
+  const sessionList = Array.isArray(sessions) ? sessions : [];
 
   const revokeMutation = useMutation({
     mutationFn: sessionService.revokeSession,
@@ -26,8 +28,10 @@ export default function SessionManagementPage() {
       toast.success('Session revoked successfully');
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
-    onError: (error) => {
-      toast.error('Failed to revoke session');
+    onError: (mutationError: unknown) => {
+      toast.error('Failed to revoke session', {
+        description: getApiErrorMessage(mutationError, 'Unknown error'),
+      });
     },
   });
 
@@ -46,7 +50,7 @@ export default function SessionManagementPage() {
   }
 
   if (error) {
-    return <div className="p-8 text-center text-red-500">Failed to load sessions. Please try again.</div>;
+    return <div className="p-8 text-center text-red-500">{getApiErrorMessage(error, 'Failed to load sessions. Please try again.')}</div>;
   }
 
   return (
@@ -67,7 +71,7 @@ export default function SessionManagementPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sessions?.map((session: any) => (
+            {sessionList.map((session) => (
               <TableRow key={session.id}>
                 <TableCell>
                   <div className="flex flex-col">
@@ -94,7 +98,7 @@ export default function SessionManagementPage() {
                     variant="destructive"
                     size="sm"
                     className="h-8"
-                    onClick={() => handleRevoke(Number(session.id))}
+                    onClick={() => handleRevoke(session.id)}
                     disabled={revokeMutation.isPending}
                   >
                     <Trash2 className="mr-2 h-3.5 w-3.5" />
@@ -103,7 +107,7 @@ export default function SessionManagementPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {(!sessions || sessions.length === 0) && (
+            {sessionList.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                   No active sessions found.

@@ -24,8 +24,10 @@ export interface NumberingTemplate {
     uuid?: string;
   };
   formatTemplate: string;
+  disciplineId: number;
   description?: string;
   resetSequenceYearly: boolean; // Controls yearly counter reset
+  isActive: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -38,8 +40,10 @@ export interface SaveTemplateDto {
   projectId: number | string;
   correspondenceTypeId: number | null;
   formatTemplate: string;
+  disciplineId?: number;
   description?: string;
   resetSequenceYearly?: boolean;
+  isActive?: number;
 }
 
 /**
@@ -151,10 +155,22 @@ export const numberingApi = {
   /**
    * Save (create or update) a template
    */
-  saveTemplate: async (dto: Partial<NumberingTemplate>): Promise<NumberingTemplate> => {
+  saveTemplate: async (dto: SaveTemplateDto): Promise<NumberingTemplate> => {
+    // Clean the DTO to avoid sending nested objects that might confuse TypeORM or violate constraints
+    const cleanDto: any = {
+      id: dto.id,
+      projectId: dto.projectId,
+      correspondenceTypeId: dto.correspondenceTypeId,
+      disciplineId: dto.disciplineId || 0,
+      formatTemplate: dto.formatTemplate,
+      description: dto.description,
+      resetSequenceYearly: dto.resetSequenceYearly,
+      isActive: dto.isActive ?? 1,
+    };
+
     const res = await apiClient.post<any>(
       '/admin/document-numbering/templates',
-      dto
+      cleanDto
     );
     return res.data.data || res.data;
   },
@@ -281,13 +297,38 @@ export const numberingApi = {
     subTypeId?: number;
     rfaTypeId?: number;
     recipientOrganizationId?: number | string;
-  }): Promise<{ previewNumber: string; nextSequence: number }> => {
-    const res = await apiClient.post<{ data: { previewNumber: string; nextSequence: number } }>(
+  }): Promise<{ previewNumber: string; nextSequence: number; isDefault: boolean }> => {
+    const res = await apiClient.post<any>(
       '/document-numbering/preview',
       ctx
     );
-    // Backend wraps response in { data: { ... }, message: "Success" }
-    return res.data.data || res.data;
+    
+    // Explicit debug log for frontend developers to see in browser console
+    console.log("[numberingApi.previewNumber] Raw Response Data:", res.data);
+
+    const body = res.data;
+    console.log("[numberingApi.previewNumber] Full Body:", body);
+
+    // Drill down to find the actual data object
+    let data = body;
+    let depth = 0;
+    while (data && typeof data === 'object' && !data.previewNumber && !data.number && data.data && depth < 3) {
+        data = data.data;
+        depth++;
+    }
+
+    console.log(`[numberingApi.previewNumber] Unwrapped at depth ${depth}:`, data);
+
+    // Final extraction
+    const previewNumber = data?.previewNumber || data?.number || (typeof data === 'string' ? data : '');
+    const nextSequence = data?.nextSequence ?? data?.sequence ?? 0;
+    const isDefault = data?.isDefault === true;
+
+    return {
+      previewNumber: previewNumber || JSON.stringify(body), // Fallback to body string if all else fails
+      nextSequence: nextSequence,
+      isDefault: isDefault
+    };
   },
 
   /**

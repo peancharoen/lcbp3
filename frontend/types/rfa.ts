@@ -1,10 +1,30 @@
 export interface RFAItem {
   id?: number;
-  itemNo: string;
-  description: string;
-  quantity: number;
-  unit: string;
-  status?: "PENDING" | "APPROVED" | "REJECTED";
+  itemType: "SHOP" | "AS_BUILT";
+  shopDrawingRevision?: {
+    uuid?: string;
+    revisionLabel?: string;
+    revisionNumber?: number;
+    title?: string;
+    legacyDrawingNumber?: string;
+    attachments?: { id?: number; url?: string; name?: string }[];
+    shopDrawing?: {
+      uuid?: string;
+      drawingNumber?: string;
+    };
+  };
+  asBuiltDrawingRevision?: {
+    uuid?: string;
+    revisionLabel?: string;
+    revisionNumber?: number;
+    title?: string;
+    legacyDrawingNumber?: string;
+    attachments?: { id?: number; url?: string; name?: string }[];
+    asBuiltDrawing?: {
+      uuid?: string;
+      drawingNumber?: string;
+    };
+  };
 }
 
 export interface RFA {
@@ -17,17 +37,11 @@ export interface RFA {
     id: number;
     revisionNumber: number;
     subject: string;
+    description?: string;
     isCurrent: boolean;
     createdAt?: string;
     statusCode?: { statusCode: string; statusName: string };
-    items?: {
-       shopDrawingRevision?: {
-         id: number;
-         revisionLabel: string;
-         shopDrawing?: { drawingType?: { hasNumber: boolean } }; // Mock structure
-         attachments?: { id: number; url: string; name: string }[]
-       }
-    }[];
+    items?: RFAItem[];
   }[];
   discipline?: {
     id: number;
@@ -66,6 +80,6 @@ export interface CreateRFADto {
   description?: string;
   documentDate?: string;
   details?: Record<string, unknown>;
-  shopDrawingRevisionIds?: number[];
-  items?: RFAItem[];
+  shopDrawingRevisionIds?: Array<number | string>;
+  asBuiltDrawingRevisionIds?: Array<number | string>;
 }

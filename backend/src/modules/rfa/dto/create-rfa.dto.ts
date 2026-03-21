@@ -20,9 +20,9 @@ export class CreateRfaDto {
   @IsOptional()
   contractId?: string;
 
-  @ApiProperty({ description: 'To Organization ID or UUID', required: false })
-  @IsOptional()
-  toOrganizationId?: number | string;
+  @ApiProperty({ description: 'To Organization ID or UUID' })
+  @IsNotEmpty()
+  toOrganizationId!: number | string;
 
   @ApiProperty({ description: 'ID ของประเภท RFA', example: 1 })
   @IsInt()
@@ -76,14 +76,23 @@ export class CreateRfaDto {
   })
   @IsObject()
   @IsOptional()
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 
   @ApiProperty({
-    description: 'รายการ Shop Drawing Revisions ที่แนบมาด้วย',
+    description: 'รายการ Shop Drawing Revision IDs หรือ UUIDs ที่แนบมาด้วย',
     required: false,
-    type: [Number],
+    type: [String],
   })
   @IsArray()
   @IsOptional()
-  shopDrawingRevisionIds?: number[];
+  shopDrawingRevisionIds?: Array<number | string>;
+
+  @ApiProperty({
+    description: 'รายการ As-Built Drawing Revision IDs หรือ UUIDs ที่แนบมาด้วย',
+    required: false,
+    type: [String],
+  })
+  @IsArray()
+  @IsOptional()
+  asBuiltDrawingRevisionIds?: Array<number | string>;
 }

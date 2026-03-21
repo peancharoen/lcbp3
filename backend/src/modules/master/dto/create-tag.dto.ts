@@ -13,6 +13,15 @@ export class CreateTagDto {
   description?: string;
 
   @ApiProperty({
+    example: 'red',
+    description: 'รหัสสี หรือชื่อคลาสสำหรับ UI',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  color_code?: string;
+
+  @ApiProperty({
     example: 1,
     description: 'Project ID or UUID',
     required: false,

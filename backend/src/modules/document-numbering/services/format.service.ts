@@ -39,12 +39,14 @@ export class FormatService {
     private disciplineRepo: Repository<Discipline>
   ) {}
 
-  async format(options: FormatOptions): Promise<string> {
-    const { template } = await this.resolveFormatAndScope(options);
+  async format(options: FormatOptions): Promise<{ previewNumber: string; isDefault: boolean }> {
+    const { template, isDefault } = await this.resolveFormatAndScope(options);
     const currentYear = options.year || new Date().getFullYear();
     const tokens = await this.resolveTokens(options, currentYear);
 
-    return this.replaceTokens(template, tokens, options.sequence);
+    const previewNumber = this.replaceTokens(template, tokens, options.sequence);
+    console.log(`[FormatService] Generated: "${previewNumber}" | Template: "${template}" | isDefault: ${isDefault}`);
+    return { previewNumber, isDefault };
   }
 
   // --- Helpers ---
@@ -52,6 +54,7 @@ export class FormatService {
   private async resolveFormatAndScope(options: FormatOptions): Promise<{
     template: string;
     resetSequenceYearly: boolean;
+    isDefault: boolean;
   }> {
     // 1. Specific Format
     const specificFormat = await this.formatRepo.findOne({
@@ -64,6 +67,7 @@ export class FormatService {
       return {
         template: specificFormat.formatTemplate,
         resetSequenceYearly: specificFormat.resetSequenceYearly,
+        isDefault: false,
       };
 
     // 2. Default Format
@@ -74,12 +78,14 @@ export class FormatService {
       return {
         template: defaultFormat.formatTemplate,
         resetSequenceYearly: defaultFormat.resetSequenceYearly,
+        isDefault: true,
       };
 
     // 3. Fallback
     return {
       template: '{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}',
       resetSequenceYearly: true,
+      isDefault: true,
     };
   }
 

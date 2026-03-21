@@ -4,10 +4,10 @@ services:
     container_name: mariadb-local
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: Center#2025
+      MYSQL_ROOT_PASSWORD: Center2025
       MYSQL_DATABASE: lcbp3_dev
       MYSQL_USER: admin
-      MYSQL_PASSWORD: Center#2025
+      MYSQL_PASSWORD: Center2025
     ports:
       - '3306:3306'
     volumes:
@@ -47,9 +47,9 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false # ปิด security เพื่อความง่ายใน Dev (Prod ต้องเปิด)
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
     ports:
-      - "9200:9200"
+      - '9200:9200'
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:

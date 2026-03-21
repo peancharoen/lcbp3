@@ -29,7 +29,7 @@ export default function EditTemplatePage() {
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const selectedProjectName =
-    projects.find((p: { id: number; projectName: string }) => p.id === projectId)?.projectName ||
+    projects.find((p: { id?: number; uuid?: string; projectCode: string; projectName: string }) => p.id === projectId)?.projectName ||
     'LCBP3';
 
   useEffect(() => {

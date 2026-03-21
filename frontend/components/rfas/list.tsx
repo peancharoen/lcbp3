@@ -74,8 +74,10 @@ export function RFAList({ data }: RFAListProps) {
 
         const handleViewFile = (e: React.MouseEvent) => {
            e.preventDefault();
-           // Logic to find first attachment: Check items -> shopDrawingRevision -> attachments
-           const firstAttachment = item.revisions?.[0]?.items?.[0]?.shopDrawingRevision?.attachments?.[0];
+           const firstItem = item.revisions?.[0]?.items?.[0];
+           const firstAttachment =
+             firstItem?.shopDrawingRevision?.attachments?.[0] ||
+             firstItem?.asBuiltDrawingRevision?.attachments?.[0];
            if (firstAttachment?.url) {
              window.open(firstAttachment.url, '_blank');
            } else {

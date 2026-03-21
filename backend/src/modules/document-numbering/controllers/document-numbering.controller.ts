@@ -68,7 +68,7 @@ export class DocumentNumberingController {
 
   @Patch('counters/:id')
   @ApiOperation({ summary: 'Update counter sequence value (Admin only)' })
-  @RequirePermission('system.manage_settings')
+  @RequirePermission('numbering.manage_formats')
   async updateCounter(
     @Param('id', ParseIntPipe) id: number,
     @Body('sequence') sequence: number
@@ -105,7 +105,7 @@ export class DocumentNumberingController {
         )
       : undefined;
 
-    return this.numberingService.previewNumber({
+    const result = await this.numberingService.previewNumber({
       projectId: resolvedProjectId,
       originatorOrganizationId: resolvedOriginatorId,
       typeId: dto.correspondenceTypeId,
@@ -116,5 +116,7 @@ export class DocumentNumberingController {
       year: dto.year,
       customTokens: dto.customTokens,
     });
+    console.log('[DocumentNumberingController] Preview result:', JSON.stringify(result));
+    return result;
   }
 }

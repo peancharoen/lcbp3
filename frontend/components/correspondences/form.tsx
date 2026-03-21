@@ -23,6 +23,7 @@ import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines }
 import { CreateCorrespondenceDto } from "@/types/dto/correspondence/create-correspondence.dto";
 import { useState, useEffect } from "react";
 import { correspondenceService } from "@/lib/services/correspondence.service";
+import { numberingApi } from "@/lib/api/numbering";
 
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
@@ -34,6 +35,9 @@ const correspondenceSchema = z.object({
   body: z.string().optional(),
   remarks: z.string().optional(),
   dueDate: z.string().optional(), // ISO Date string
+  documentDate: z.string().optional(),
+  issuedDate: z.string().optional(),
+  receivedDate: z.string().optional(),
   fromOrganizationId: z.string().min(1, "Please select From Organization"),
   toOrganizationId: z.string().min(1, "Please select To Organization"),
   importance: z.enum(["NORMAL", "HIGH", "URGENT"]),
@@ -42,21 +46,62 @@ const correspondenceSchema = z.object({
 
 type FormData = z.infer<typeof correspondenceSchema>;
 
+type ProjectOption = {
+  uuid?: string;
+  id?: number;
+  projectName: string;
+  projectCode: string;
+};
+
+type CorrespondenceTypeOption = {
+  id: number;
+  typeName: string;
+  typeCode: string;
+};
+
+type DisciplineOption = {
+  id: number;
+  disciplineCode: string;
+  codeNameEn?: string;
+};
+
+const extractArrayData = <T,>(value: unknown): T[] => {
+  let current: unknown = value;
+
+  for (let i = 0; i < 5; i += 1) {
+    if (Array.isArray(current)) {
+      return current as T[];
+    }
+
+    if (!current || typeof current !== "object" || !("data" in current)) {
+      return [];
+    }
+
+    current = (current as { data?: unknown }).data;
+  }
+
+  return Array.isArray(current) ? (current as T[]) : [];
+};
+
 export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, uuid?: string }) {
   const router = useRouter();
   const createMutation = useCreateCorrespondence();
   const updateMutation = useUpdateCorrespondence();
 
   // Fetch master data for dropdowns
-  const { data: projects, isLoading: isLoadingProjects } = useProjects();
+  const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
   const { data: organizations, isLoading: isLoadingOrgs } = useOrganizations();
-  const { data: correspondenceTypes, isLoading: isLoadingTypes } = useCorrespondenceTypes();
-  const { data: disciplines, isLoading: isLoadingDisciplines } = useDisciplines();
+  const { data: correspondenceTypesData, isLoading: isLoadingTypes } = useCorrespondenceTypes();
+  const { data: disciplinesData, isLoading: isLoadingDisciplines } = useDisciplines();
+  const projects = extractArrayData<ProjectOption>(projectsData);
+  const organizationOptions = extractArrayData<Organization>(organizations);
+  const correspondenceTypes = extractArrayData<CorrespondenceTypeOption>(correspondenceTypesData);
+  const disciplines = extractArrayData<DisciplineOption>(disciplinesData);
 
   // Extract initial values if editing
   const currentRev = initialData?.revisions?.find((r: any) => r.isCurrent) || initialData?.revisions?.[0];
   const defaultValues: Partial<FormData> = {
-    projectId: initialData?.projectId ? String(initialData.projectId) : undefined,
+    projectId: initialData?.project?.uuid || (initialData?.projectId ? String(initialData.projectId) : undefined),
     documentTypeId: initialData?.correspondenceTypeId || undefined,
     disciplineId: initialData?.disciplineId || undefined,
     subject: currentRev?.subject || currentRev?.title || "",
@@ -64,6 +109,9 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
     body: currentRev?.body || "",
     remarks: currentRev?.remarks || "",
     dueDate: currentRev?.dueDate ? new Date(currentRev.dueDate).toISOString().split('T')[0] : undefined,
+    documentDate: currentRev?.documentDate ? new Date(currentRev.documentDate).toISOString().split('T')[0] : undefined,
+    issuedDate: currentRev?.issuedDate ? new Date(currentRev.issuedDate).toISOString().split('T')[0] : undefined,
+    receivedDate: currentRev?.receivedDate ? new Date(currentRev.receivedDate).toISOString().split('T')[0] : undefined,
     fromOrganizationId: initialData?.originatorId ? String(initialData.originatorId) : undefined,
     // Map initial recipient (TO) - Simplified for now
     toOrganizationId: initialData?.recipients?.find((r: any) => r.recipientType === 'TO')?.recipientOrganizationId
@@ -79,7 +127,8 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
     watch,
     formState: { errors },
   } = useForm<FormData>({
-    resolver: zodResolver(correspondenceSchema),
+    // @ts-ignore: Zod version mismatch in monorepo
+    resolver: zodResolver(correspondenceSchema) as any,
     defaultValues: defaultValues as FormData,
   });
 
@@ -100,6 +149,9 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
       body: data.body,
       remarks: data.remarks,
       dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : undefined,
+      documentDate: data.documentDate ? new Date(data.documentDate).toISOString() : undefined,
+      issuedDate: data.issuedDate ? new Date(data.issuedDate).toISOString() : undefined,
+      receivedDate: data.receivedDate ? new Date(data.receivedDate).toISOString() : undefined,
       originatorId: data.fromOrganizationId,
       recipients: [
         { organizationId: data.toOrganizationId, type: 'TO' }
@@ -135,19 +187,14 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
 
     const fetchPreview = async () => {
        try {
-         const res = await correspondenceService.previewNumber({
+         const res = await numberingApi.previewNumber({
              projectId,
-             typeId: documentTypeId,
+             correspondenceTypeId: documentTypeId,
              disciplineId,
-             originatorId: fromOrgId,
-             // Map recipients structure matching backend expectation
-             recipients: [{ organizationId: toOrgId, type: 'TO' }],
-             // Add date just to be safe, though service uses 'now'
-             dueDate: new Date().toISOString(),
-             // [Fix] Subject is required by DTO validation, send placeholder if empty
-             subject: watch('subject') || "Preview Subject"
+             originatorOrganizationId: fromOrgId,
+             recipientOrganizationId: toOrgId
          });
-         setPreview(res);
+         setPreview({ number: res.previewNumber, isDefaultTemplate: res.isDefault });
        } catch (err) {
          setPreview(null);
        }
@@ -219,8 +266,8 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
               <SelectValue placeholder={isLoadingProjects ? "Loading..." : "Select Project"} />
             </SelectTrigger>
             <SelectContent>
-              {(projects || []).map((p: any) => (
-                <SelectItem key={p.id} value={String(p.id)}>
+              {projects.map((p) => (
+                <SelectItem key={p.uuid || String(p.id)} value={p.uuid || String(p.id)}>
                   {p.projectName} ({p.projectCode})
                 </SelectItem>
               ))}
@@ -243,7 +290,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
               <SelectValue placeholder={isLoadingTypes ? "Loading..." : "Select Type"} />
             </SelectTrigger>
             <SelectContent>
-              {(correspondenceTypes || []).map((t: any) => (
+              {correspondenceTypes.map((t) => (
                 <SelectItem key={t.id} value={String(t.id)}>
                   {t.typeName} ({t.typeCode})
                 </SelectItem>
@@ -267,7 +314,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
               <SelectValue placeholder={isLoadingDisciplines ? "Loading..." : "Select Discipline (Optional)"} />
             </SelectTrigger>
             <SelectContent>
-              {(disciplines || []).map((d: any) => (
+              {disciplines.map((d) => (
                 <SelectItem key={d.id} value={String(d.id)}>
                   {d.codeNameEn || d.disciplineCode}
                 </SelectItem>
@@ -297,15 +344,59 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         />
       </div>
 
-      {/* Remarks & Due Date */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Date Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="remarks">Remarks</Label>
-            <Input id="remarks" {...register("remarks")} placeholder="Optional remarks" />
+            <Label htmlFor="documentDate">Document Date</Label>
+            <Input 
+               id="documentDate" 
+               type="date" 
+               {...register("documentDate")} 
+               onChange={(e) => {
+                 const val = e.target.value;
+                 setValue("documentDate", val, { shouldValidate: true, shouldDirty: true });
+                 if (val) {
+                   setValue("issuedDate", val, { shouldValidate: true, shouldDirty: true });
+                   setValue("receivedDate", val, { shouldValidate: true, shouldDirty: true });
+                   const d = new Date(val);
+                   d.setDate(d.getDate() + 7);
+                   setValue("dueDate", d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
+                 }
+               }}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="issuedDate">Issued Date</Label>
+            <Input id="issuedDate" type="date" {...register("issuedDate")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="receivedDate">Received Date</Label>
+            <Input 
+               id="receivedDate" 
+               type="date" 
+               {...register("receivedDate")} 
+               onChange={(e) => {
+                 const val = e.target.value;
+                 setValue("receivedDate", val, { shouldValidate: true, shouldDirty: true });
+                 if (val) {
+                   const d = new Date(val);
+                   d.setDate(d.getDate() + 7);
+                   setValue("dueDate", d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
+                 }
+               }}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="dueDate">Due Date</Label>
             <Input id="dueDate" type="date" {...register("dueDate")} />
+          </div>
+      </div>
+
+      {/* Remarks */}
+      <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="remarks">Remarks</Label>
+            <Input id="remarks" {...register("remarks")} placeholder="Optional remarks" />
           </div>
       </div>
 
@@ -333,7 +424,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
               <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              {(organizations || []).map((org: Organization) => (
+              {organizationOptions.map((org) => (
                 <SelectItem key={org.uuid} value={org.uuid}>
                   {org.organizationName} ({org.organizationCode})
                 </SelectItem>
@@ -356,7 +447,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
               <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
             </SelectTrigger>
             <SelectContent>
-              {(organizations || []).map((org: Organization) => (
+              {organizationOptions.map((org) => (
                 <SelectItem key={org.uuid} value={org.uuid}>
                   {org.organizationName} ({org.organizationCode})
                 </SelectItem>

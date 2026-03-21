@@ -1,5 +1,4 @@
 // File: src/types/dto/rfa/rfa.dto.ts
-import type { RFAItem } from '@/types/rfa';
 
 // --- Create ---
 export interface CreateRfaDto {
@@ -36,11 +35,11 @@ export interface CreateRfaDto {
   /** กำหนดวันตอบกลับ (ISO Date String) */
   dueDate?: string;
 
-  /** รายการ ID ของ Shop Drawings ที่แนบมา (ถ้ามี) */
-  shopDrawingRevisionIds?: number[];
+  /** รายการ ID หรือ UUID ของ Shop Drawing Revisions ที่แนบมา (ถ้ามี) */
+  shopDrawingRevisionIds?: Array<number | string>;
 
-  /** รายการ Items ของ RFA */
-  items?: RFAItem[];
+  /** รายการ ID หรือ UUID ของ As-Built Drawing Revisions ที่แนบมา (ถ้ามี) */
+  asBuiltDrawingRevisionIds?: Array<number | string>;
 }
 
 // --- Update (Partial) ---

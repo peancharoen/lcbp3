@@ -102,4 +102,32 @@ export class UuidResolverService {
   async resolveContractId(contractId: number | string): Promise<number> {
     return this.resolve('Contract', 'contracts', 'id', contractId);
   }
+
+  /**
+   * Resolve shopDrawingRevisionId (INT or UUID string) to internal INT ID.
+   */
+  async resolveShopDrawingRevisionId(
+    shopDrawingRevisionId: number | string
+  ): Promise<number> {
+    return this.resolve(
+      'Shop Drawing Revision',
+      'shop_drawing_revisions',
+      'id',
+      shopDrawingRevisionId
+    );
+  }
+
+  /**
+   * Resolve asBuiltDrawingRevisionId (INT or UUID string) to internal INT ID.
+   */
+  async resolveAsBuiltDrawingRevisionId(
+    asBuiltDrawingRevisionId: number | string
+  ): Promise<number> {
+    return this.resolve(
+      'As-Built Drawing Revision',
+      'asbuilt_drawing_revisions',
+      'id',
+      asBuiltDrawingRevisionId
+    );
+  }
 }

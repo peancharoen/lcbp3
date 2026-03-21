@@ -23,6 +23,59 @@ function getJwtExpiry(token: string): number {
   }
 }
 
+interface TokenPayload {
+  access_token: string;
+  refresh_token?: string;
+}
+
+interface LoginPayload extends TokenPayload {
+  user: {
+    user_id: number;
+    username: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+    primaryOrganizationId?: number;
+  };
+}
+
+function unwrapApiResponse(value: unknown): unknown {
+  let current = value;
+
+  for (let i = 0; i < 5; i += 1) {
+    if (!current || typeof current !== "object") {
+      return current;
+    }
+
+    const record = current as Record<string, unknown>;
+    if (typeof record.access_token === "string") {
+      return current;
+    }
+
+    if (!("data" in record)) {
+      return current;
+    }
+
+    current = record.data;
+  }
+
+  return current;
+}
+
+function isTokenPayload(value: unknown): value is TokenPayload {
+  return !!value && typeof value === "object" && typeof (value as Record<string, unknown>).access_token === "string";
+}
+
+function isLoginPayload(value: unknown): value is LoginPayload {
+  if (!isTokenPayload(value)) {
+    return false;
+  }
+
+  const user = (value as unknown as { user?: unknown }).user;
+  return !!user && typeof user === "object" && typeof (user as Record<string, unknown>).username === "string";
+}
+
 async function refreshAccessToken(token: JWT) {
   try {
     const response = await fetch(`${baseUrl}/auth/refresh`, {
@@ -38,7 +91,11 @@ async function refreshAccessToken(token: JWT) {
       throw refreshedTokens;
     }
 
-    const data = refreshedTokens.data || refreshedTokens;
+    const data = unwrapApiResponse(refreshedTokens);
+
+    if (!isTokenPayload(data)) {
+      throw new Error("Invalid refresh response format");
+    }
 
     return {
       ...token,
@@ -100,10 +157,9 @@ export const {
           }
 
           const data = await res.json();
-          // Handling both { data: { ... } } and direct { ... } response formats
-          const backendData = data.data || data;
+          const backendData = unwrapApiResponse(data);
 
-          if (!backendData || !backendData.access_token) {
+          if (!isLoginPayload(backendData)) {
             console.error("[AUTH] Login failed: Invalid response format from backend (missing access_token)");
             return null;
           }
@@ -112,7 +168,7 @@ export const {
 
           return {
             id: backendData.user.user_id.toString(),
-            name: `${backendData.user.firstName} ${backendData.user.lastName}`,
+            name: `${backendData.user.firstName ?? ""} ${backendData.user.lastName ?? ""}`.trim(),
             email: backendData.user.email,
             username: backendData.user.username,
             role: backendData.user.role || "User",

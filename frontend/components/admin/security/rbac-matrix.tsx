@@ -34,16 +34,32 @@ interface RbacMatrixProps {
   rolePermissions: Record<number, number[]>; // roleId -> permissionIds[]
 }
 
+const extractArrayData = <T,>(value: unknown): T[] => {
+  let current: unknown = value;
+
+  for (let i = 0; i < 5; i += 1) {
+    if (Array.isArray(current)) {
+      return current as T[];
+    }
+
+    if (!current || typeof current !== "object" || !("data" in current)) {
+      return [];
+    }
+
+    current = (current as { data?: unknown }).data;
+  }
+
+  return Array.isArray(current) ? (current as T[]) : [];
+};
+
 const securityService = {
   getRoles: async (): Promise<Role[]> => {
     const response = await apiClient.get("/users/roles");
-    const data = response.data?.data || response.data;
-    return Array.isArray(data) ? data : [];
+    return extractArrayData<Role>(response.data);
   },
   getPermissions: async (): Promise<Permission[]> => {
     const response = await apiClient.get("/users/permissions");
-    const data = response.data?.data || response.data;
-    return Array.isArray(data) ? data : [];
+    return extractArrayData<Permission>(response.data);
   },
   updateRolePermissions: async (roleId: number, permissionIds: number[]) => {
     // This endpoint might not exist as a bulk update, usually it's per role
@@ -98,6 +114,8 @@ export function RbacMatrix() {
   };
 
   const hasChanges = Object.keys(pendingChanges).length > 0;
+  const roleList = Array.isArray(roles) ? roles : [];
+  const permissionList = Array.isArray(permissions) ? permissions : [];
 
   if (rolesLoading || permsLoading) {
     return (
@@ -125,7 +143,7 @@ export function RbacMatrix() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[300px]">Permission</TableHead>
-              {roles.map((role) => (
+              {roleList.map((role) => (
                 <TableHead key={role.roleId} className="text-center min-w-[100px]">
                   {role.roleName}
                 </TableHead>
@@ -133,13 +151,13 @@ export function RbacMatrix() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {permissions.map((perm) => (
+            {permissionList.map((perm) => (
               <TableRow key={perm.permissionId}>
                 <TableCell className="font-medium">
                   <div>{perm.permissionName}</div>
                   <div className="text-xs text-muted-foreground">{perm.description}</div>
                 </TableCell>
-                {roles.map((role) => {
+                {roleList.map((role) => {
                   // Assume role.permissions is populated
                   const currentRolePerms = role.permissions?.map((p) => p.permissionId) || [];
                   const activePerms = pendingChanges[role.roleId] || currentRolePerms;
