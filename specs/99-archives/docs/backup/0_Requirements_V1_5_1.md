@@ -8,13 +8,16 @@
 ## 📌 1. Objectives
 
 # 📌 Section 1: Objectives (วัตถุประสงค์)
+
 ---
+
 title: 'Objectives'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related: -
+
 ---
 
 สร้างเว็บแอปพลิเคชันสำหรับระบบบริหารจัดการเอกสารโครงการ (Document Management System - DMS) แบบครบวงจร ที่เน้นความปลอดภัยสูงสุด ความถูกต้องของข้อมูล (Data Integrity) และรองรับการขยายตัวในอนาคต (Scalability) โดยแก้ไขปัญหา Race Condition และเพิ่มความเสถียรในการจัดการไฟล์ และใช้ Unified Workflow Engine ในการจัดการกระบวนการอนุมัติทั้งหมดเพื่อความยืดหยุ่น
@@ -29,18 +32,22 @@ related: -
 ## 🛠️ 2. System Architecture
 
 # 🛠️ Section 2: System Architecture (สถาปัตยกรรมและเทคโนโลยี)
+
 ---
+
 title: 'System Architecture'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related: - specs/01-objectives.md
+
 ---
 
 ชื่อกำหนด สถาปัตยกรรมแบบ Headless/API-First ที่ทันสมัย ทำงานทั้งหมดบน QNAP Server ผ่าน Container Station เพื่อความสะดวกในการจัดการและบำรุงรักษา
 
 ### 2.1 Infrastructure & Environment
+
 - Domain: `np-dms.work`, `www.np-dms.work`
 - IP: 159.192.126.103
 - Server: QNAP (Model: TS-473A, RAM: 32GB, CPU: AMD Ryzen V1500B)
@@ -50,6 +57,7 @@ related: - specs/01-objectives.md
 - ข้อจำกัด: ไม่สามารถใช้ .env ในการกำหนดตัวแปรภายนอกได้ ต้องกำหนดใน docker-compose.yml เท่านั้น
 
 ### 2.2 Configuration Management
+
 - ใช้ docker-compose.yml สำหรับ environment variables ตามข้อจำกัดของ QNAP
 - Secrets Management: ใช้ docker-compose.override.yml (gitignore) สำหรับ secret injection, Docker secrets หรือ Hashicorp Vault, encrypted env vars
 - Development environment ยังใช้ .env ได้ แต่ต้องไม่ commit เข้า version control
@@ -58,6 +66,7 @@ related: - specs/01-objectives.md
 - Docker Network: lcbp3
 
 ### 2.3 Core Services
+
 - Code Hosting: Gitea (`git.np-dms.work`)
 - Backend / Data Platform: NestJS (`backend.np-dms.work`)
 - Database: MariaDB 10.11 (`db.np-dms.work`)
@@ -69,6 +78,7 @@ related: - specs/01-objectives.md
 - Cache: Redis
 
 ### 2.4 Business Logic & Consistency
+
 - Unified Workflow Engine (central) with DSL JSON configuration
 - Versioning of workflow definitions, optimistic locking with Redis lock for document numbering
 - No SQL triggers; all business logic in NestJS services
@@ -78,14 +88,18 @@ related: - specs/01-objectives.md
 ### 3.1 Project Management
 
 # 3.1 Project Management (การจัดการโครงสร้างโครงการและองค์กร)
+
 ---
+
 title: "Functional Requirements: Project Management"
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related: -
+
 ---
+
 - 3.1.1. โครงการ (Projects): ระบบต้องสามารถจัดการเอกสารภายในหลายโครงการได้ (ปัจจุบันมี 4 โครงการ และจะเพิ่มขึ้นในอนาคต)
 - 3.1.2. สัญญา (Contracts): ระบบต้องสามารถจัดการเอกสารภายในแต่ละสัญญาได้ ในแต่ละโครงการ มีได้หลายสัญญา หรืออย่างน้อย 1 สัญญา
 - 3.1.3. องค์กร (Organizations):
@@ -95,14 +109,18 @@ related: -
 ### 3.2 Correspondence Management
 
 # 3.2 การจัดการเอกสารโต้ตอบ (Correspondence Management)
+
 ---
+
 title: 'Functional Requirements: Correspondence Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related: -
+
 ---
+
 - 3.2.1. วัตถุประสงค์: เอกสารโต้ตอบระหว่างองค์กรภายในและภายนอกโครงการ, รองรับ To และ CC หลายองค์กร
 - 3.2.2. ประเภทเอกสาร: PDF, ZIP; Types include Letter, Email, RFI, RFA (with revisions)
 - 3.2.3. การสร้างเอกสาร: ผู้ใช้ที่มีสิทธิ์สร้าง Draft, Submit requires Admin approval
@@ -112,14 +130,18 @@ related: -
 ### 3.3 RFA Management
 
 # 3.3 RFA Management (การจัดการเอกสาขออนุมัติ)
+
 ---
+
 title: 'Functional Requirements: RFA Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related: -
+
 ---
+
 - 3.3.1. วัตถุประสงค์: เอกสารขออนุมัติภายในโครงการ
 - 3.3.2. ประเภทเอกสาร: PDF, รองรับหลาย revision และหลายประเภท RFA
 - 3.3.3. การสร้างเอกสาร: Draft creation by Document Control, Submit requires Admin
@@ -129,14 +151,18 @@ related: -
 ### 3.4 Contract Drawing Management
 
 # 3.4 Contract Drawing Management (การจัดการแบบคู่สัญญา)
+
 ---
+
 title: 'Functional Requirements: Contract Drawing Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related: -
+
 ---
+
 - 3.4.1. วัตถุประสงค์: ใช้เพื่ออ้างอิงและตรวจสอบ
 - 3.4.2. ประเภทเอกสาร: PDF
 - 3.4.3. การสร้างเอกสาร: ผู้มีสิทธิ์สร้างและแก้ไข
@@ -145,14 +171,18 @@ related: -
 ### 3.5 Shop Drawing Management
 
 # 3.5 Shop Drawing Management (การจัดการแบบก่อสร้าง)
+
 ---
+
 title: 'Functional Requirements: Shop Drawing Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related: -
+
 ---
+
 - 3.5.1. วัตถุประสงค์: ใช้ในการตรวจสอบและจัดส่งด้วย RFA
 - 3.5.2. ประเภทเอกสาร: PDF, DWG, ZIP
 - 3.5.3. การสร้างเอกสาร: ผู้มีสิทธิ์สร้าง/แก้ไข, Draft visibility control
@@ -161,14 +191,18 @@ related: -
 ### 3.6 Unified Workflow Management
 
 # 3.6 Unified Workflow Management (การจัดการ Workflow)
+
 ---
+
 title: 'Functional Requirements: Unified Workflow Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related: -
+
 ---
+
 - 3.6.1 Workflow Definition: Admin can create/edit rules via UI DSL Editor, define State, Transition, Role, Condition
 - 3.6.2 Workflow Execution: Create instances polymorphic to documents, support actions Approve, Reject, Comment, Return, auto-actions
 - 3.6.3 Flexibility: Parallel Review, Conditional Flow
@@ -176,101 +210,134 @@ related: -
 - 3.6.5 Management: Deadline setting, notifications, step skipping, backtrack
 
 # 3.7 Transmittals Management (การจัดการเอกสารนำส่ง)
+
 ---
+
 title: 'Functional Requirements: Transmittals Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related:
-  - specs/01-requirements/01-objectives.md
-  - specs/01-requirements/02-architecture.md
-  - specs/01-requirements/03-functional-requirements.md
+
+- specs/01-requirements/01-objectives.md
+- specs/01-requirements/02-architecture.md
+- specs/01-requirements/03-functional-requirements.md
+
 ---
+
 ## 3.7.1. วัตถุประสงค์:
+
 - เอกสารนำส่ง ใช้สำหรับ นำส่ง Request for Approval (RFAS) หลายฉบับ ไปยังองค์กรอื่น
 
 ## 3.7.2. ประเภทเอกสาร:
+
 - ไฟล์ PDF
 
 ## 3.7.3. การสร้างเอกสาร:
+
 - ผู้ใช้ที่มีสิทธิ์ สามารถสร้างและแก้ไขได้
 
 ## 3.7.4. การอ้างอิงและจัดกลุ่ม:
+
 - เอกสารนำส่ง เป็นส่วนหนึ่งใน Correspondence
 
 # 3.8 Circulation Sheet Management (การจัดการใบเวียนเอกสาร)
+
 ---
+
 title: 'Functional Requirements: Circulation Sheet Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related:
-  - specs/01-requirements/01-objectives.md
-  - specs/01-requirements/02-architecture.md
-  - specs/01-requirements/03-functional-requirements.md
+
+- specs/01-requirements/01-objectives.md
+- specs/01-requirements/02-architecture.md
+- specs/01-requirements/03-functional-requirements.md
+
 ---
+
 ## 3.8.1. วัตถุประสงค์:
+
 - การสื่อสาร เอกสาร (Correspondence) ทุกฉบับ จะมีใบเวียนเอกสารเพื่อควบคุมและมอบหมายงานภายในองค์กร (สามารถดูและแก้ไขได้เฉพาะคนในองค์กร)
 
 ## 3.8.2. ประเภทเอกสาร:
+
 - ไฟล์ PDF
 
 ## 3.8.3. การสร้างเอกสาร:
+
 - ผู้ใช้ที่มีสิทธิ์ในองค์กรนั้น สามารถสร้างและแก้ไขได้
 
 ## 3.8.4. การอ้างอิงและจัดกลุ่ม:
+
 - การระบุผู้รับผิดชอบ:
   - ผู้รับผิดชอบหลัก (Main): มีได้หลายคน
   - ผู้ร่วมปฏิบัติงาน (Action): มีได้หลายคน
   - ผู้ที่ต้องรับทราบ (Information): มีได้หลายคน
 
 ## 3.8.5. การติดตามงาน:
+
 - สามารถกำหนดวันแล้วเสร็จ (Deadline) สำหรับผู้รับผิดชอบประเภท Main และ Action ได้
 - มีระบบแจ้งเตือนเมื่อมี Circulation ใหม่ และแจ้งเตือนล่วงหน้าก่อนถึงวันแล้วเสร็จ
 - สามารถปิด Circulation ได้เมื่อดำเนินการตอบกลับไปยังองค์กรผู้ส่ง (Originator) แล้ว หรือ รับทราบแล้ว (For Information)
 
 # 3.9 Logs Management (ประวัติการแก้ไข)
+
 ---
+
 title: 'Functional Requirements: Logs Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related:
-  - specs/01-requirements/01-objectives.md
-  - specs/01-requirements/02-architecture.md
-  - specs/01-requirements/03-functional-requirements.md
+
+- specs/01-requirements/01-objectives.md
+- specs/01-requirements/02-architecture.md
+- specs/01-requirements/03-functional-requirements.md
+
 ---
+
 ## 3.9.1. วัตถุประสงค์:
+
 - เพื่อ บันทึกการกระทำ CRUD ของเอกสารทั้งหมด รวมถึงการ เข้าใช้งาน ของ users
 - admin สามารถดูประวัติการแก้ไขของเอกสารทั้งหมด พร้อม จัดทำรายงายตามข้อกำหนดที่ ต้องการได้
 
 # 3.10 File Handling Management (การจัดการไฟล์)
+
 ---
+
 title: 'Functional Requirements: File Handling Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related:
-  - specs/01-requirements/01-objectives.md
-  - specs/01-requirements/02-architecture.md
-  - specs/01-requirements/03-functional-requirements.md
+
+- specs/01-requirements/01-objectives.md
+- specs/01-requirements/02-architecture.md
+- specs/01-requirements/03-functional-requirements.md
+
 ---
+
 ## 3.10.1 Two-Phase Storage Strategy:
+
 1. Phase 1 (Upload): ไฟล์ถูกอัปโหลดเข้าโฟลเดอร์ temp/ และได้รับ temp_id
 2. Phase 2 (Commit): เมื่อ User กด Submit ฟอร์มสำเร็จ ระบบจะย้ายไฟล์จาก temp/ ไปยัง permanent/{YYYY}/{MM}/ และบันทึกลง Database ภายใน Transaction เดียวกัน
 3. Cleanup: มี Cron Job ลบไฟล์ใน temp/ ที่ค้างเกิน 24 ชม. (Orphan Files)
 
 ## 3.10.2 Security:
+
 - Virus Scan (ClamAV) ก่อนย้ายเข้า permanent
 - Whitelist File Types: PDF, DWG, DOCX, XLSX, ZIP
 - Max Size: 50MB
 - Access Control: ตรวจสอบสิทธิ์ผ่าน Junction Table ก่อนให้ Download Link
 
 ## 3.10.3 ความปลอดภัยของการจัดเก็บไฟล์:
+
 - ต้องมีการ scan virus สำหรับไฟล์ที่อัปโหลดทั้งหมด โดยใช้ ClamAV หรือบริการ third-party
 - จำกัดประเภทไฟล์ที่อนุญาต: PDF, DWG, DOCX, XLSX, ZIP (ต้องระบุรายการที่ชัดเจน)
 - ขนาดไฟล์สูงสุด: 50MB ต่อไฟล์
@@ -280,64 +347,80 @@ related:
 - ต้องบันทึก audit log ทุกครั้งที่มีการดาวน์โหลดไฟล์สำคัญ
 
 # 3.11 Document Numbering Management (การจัดการเลขที่เอกสาร)
+
 ---
+
 title: 'Functional Requirements: Document Numbering Management'
 version: 1.6.0
 status: draft
 owner: Nattanin Peancharoen
 last_updated: 2025-12-02
 related:
-  - specs/01-requirements/01-objectives.md
-  - specs/01-requirements/02-architecture.md
-  - specs/01-requirements/03-functional-requirements.md
-  - specs/03-implementation/document-numbering.md
-  - specs/04-operations/document-numbering-operations.md
-  - specs/04-data-dictionary/4_Data_Dictionary_V1_4_4.md
+
+- specs/01-requirements/01-objectives.md
+- specs/01-requirements/02-architecture.md
+- specs/01-requirements/03-functional-requirements.md
+- specs/03-implementation/document-numbering.md
+- specs/04-operations/document-numbering-operations.md
+- specs/04-data-dictionary/4_Data_Dictionary_V1_4_4.md
+
 ---
+
 ## 3.11.1 วัตถุประสงค์:
+
 - ระบบต้องสามารถสร้างเลขที่เอกสาร (Running Number) ได้โดยอัตโนมัติและยืดหยุ่นสูง
 - ระบบต้องสามารถกำหนดรูปแบบ (template) เลขที่เอกสารได้ สำหรับแต่ละโครงการ, ชนิดเอกสาร, ประเภทเอกสาร
 - ระบบต้องรับประกัน Uniqueness ของเลขที่เอกสารในทุกสถานการณ์
 - ระบบต้องรองรับการทำงานแบบ concurrent ได้อย่างปลอดภัย
 
 ## 3.11.2 Logic การนับเลข (Counter Logic)
+
 การนับเลขจะแยกตาม **Counter Key** ที่ประกอบด้วยหลายส่วน ขึ้นกับประเภทเอกสาร
 
 ### Counter Key Components
-| Component                    | Required?        | Description         | Database Source                                           | Default if NULL |
-| ---------------------------- | ---------------- | ------------------- | --------------------------------------------------------- | --------------- |
-| `project_id`                 | ✅ Yes            | ID โครงการ          | Derived from user context or organization                 | -               |
-| `originator_organization_id` | ✅ Yes            | ID องค์กรผู้ส่ง         | `correspondences.originator_id`                           | -               |
+
+| Component                    | Required?        | Description              | Database Source                                           | Default if NULL |
+| ---------------------------- | ---------------- | ------------------------ | --------------------------------------------------------- | --------------- |
+| `project_id`                 | ✅ Yes           | ID โครงการ               | Derived from user context or organization                 | -               |
+| `originator_organization_id` | ✅ Yes           | ID องค์กรผู้ส่ง          | `correspondences.originator_id`                           | -               |
 | `recipient_organization_id`  | Depends on type  | ID องค์กรผู้รับหลัก (TO) | `correspondence_recipients` where `recipient_type = 'TO'` | NULL for RFA    |
-| `correspondence_type_id`     | ✅ Yes            | ID ประเภทเอกสาร     | `correspondence_types.id`                                 | -               |
-| `sub_type_id`                | TRANSMITTAL only | ID ประเภทย่อย        | `correspondence_sub_types.id`                             | 0               |
-| `rfa_type_id`                | RFA only         | ID ประเภท RFA       | `rfa_types.id`                                            | 0               |
-| `discipline_id`              | RFA only         | ID สาขางาน          | `disciplines.id`                                          | 0               |
-| `current_year`               | ✅ Yes            | ปี ค.ศ.              | System year (ปัจจุบัน)                                       | -               |
+| `correspondence_type_id`     | ✅ Yes           | ID ประเภทเอกสาร          | `correspondence_types.id`                                 | -               |
+| `sub_type_id`                | TRANSMITTAL only | ID ประเภทย่อย            | `correspondence_sub_types.id`                             | 0               |
+| `rfa_type_id`                | RFA only         | ID ประเภท RFA            | `rfa_types.id`                                            | 0               |
+| `discipline_id`              | RFA only         | ID สาขางาน               | `disciplines.id`                                          | 0               |
+| `current_year`               | ✅ Yes           | ปี ค.ศ.                  | System year (ปัจจุบัน)                                    | -               |
 
 ### Counter Key แยกตามประเภทเอกสาร
+
 **LETTER / RFI / MEMO / EMAIL / MOM / INSTRUCTION / NOTICE / OTHER**:
+
 ```
 (project_id, originator_organization_id, recipient_organization_id,
  correspondence_type_id, 0, 0, 0, current_year)
 ```
-*หมายเหตุ*: ไม่ใช้ `discipline_id`, `sub_type_id`, `rfa_type_id`
+
+_หมายเหตุ_: ไม่ใช้ `discipline_id`, `sub_type_id`, `rfa_type_id`
 
 **TRANSMITTAL**:
+
 ```
 (project_id, originator_organization_id, recipient_organization_id,
  correspondence_type_id, sub_type_id, 0, 0, current_year)
 ```
-*หมายเหตุ*: ใช้ `sub_type_id` เพิ่มเติม
+
+_หมายเหตุ_: ใช้ `sub_type_id` เพิ่มเติม
 
 **RFA**:
+
 ```
 (project_id, originator_organization_id, NULL,
  correspondence_type_id, 0, rfa_type_id, discipline_id, current_year)
 ```
-*หมายเหตุ*: RFA ไม่ใช้ `recipient_organization_id` เพราะเป็นเอกสารโครงการ (CONTRACTOR → CONSULTANT → OWNER)
+
+_หมายเหตุ_: RFA ไม่ใช้ `recipient_organization_id` เพราะเป็นเอกสารโครงการ (CONTRACTOR → CONSULTANT → OWNER)
 
 ### วิธีการหา project_id
+
 1. **User Context** (แนะนำ):
    - เมื่อ User สร้างเอกสาร UI จะให้เลือก Project/Contract ก่อน
    - ใช้ `project_id` จาก Context ที่เลือก
@@ -350,97 +433,135 @@ related:
    - ตรวจสอบว่า project/contract เป็น active
 
 ### Fallback สำหรับค่า NULL
+
 - `discipline_id`: ใช้ `0` (ไม่ระบุสาขางาน)
 - `sub_type_id`: ใช้ `0` (ไม่มีประเภทย่อย)
 - `rfa_type_id`: ใช้ `0` (ไม่ระบุประเภท RFA)
 - `recipient_organization_id`: ใช้ `NULL` สำหรับ RFA, Required สำหรับ LETTER/TRANSMITTAL
 
 ## 3.11.3 Format Templates by Correspondence Type
+
 ### 3.11.3.1. Letter (TYPE = LETTER)
+
 **Template**:
+
 ```
 {ORIGINATOR}-{RECIPIENT}-{SEQ:4}-{YEAR:B.E.}
 ```
+
 **Example**: `คคง.-สคฉ.3-0001-2568`
 **Token Breakdown**:
+
 - `คคง.` = {ORIGINATOR} = รหัสองค์กรผู้ส่ง
 - `สคฉ.3` = {RECIPIENT} = รหัสองค์กรผู้รับหลัก (TO)
 - `0001` = {SEQ:4} = Running number (เริ่ม 0001, 0002, ...)
 - `2568` = {YEAR:B.E.} = ปี พ.ศ.
-> **⚠️ Template vs Counter Separation**
+  > **⚠️ Template vs Counter Separation**
 - {CORR_TYPE} **ไม่แสดง**ใน template เพื่อความกระชับ
 - แต่ระบบ**ยังใช้ correspondence_type_id ใน Counter Key** เพื่อแยก counter
 - LETTER, MEMO, RFI **มี counter แยกกัน** แม้ template format เหมือนกัน
-**Counter Key**: `(project_id, originator_org_id, recipient_org_id, corr_type_id, 0, 0, 0, year)`
+  **Counter Key**: `(project_id, originator_org_id, recipient_org_id, corr_type_id, 0, 0, 0, year)`
+
 ---
+
 ### 3.11.3.2. Transmittal (TYPE = TRANSMITTAL)
+
 **Template**:
+
 ```
 {ORIGINATOR}-{RECIPIENT}-{SUB_TYPE}-{SEQ:4}-{YEAR:B.E.}
 ```
+
 **Example**: `คคง.-สคฉ.3-21-0117-2568`
 **Token Breakdown**:
+
 - `คคง.` = {ORIGINATOR}
 - `สคฉ.3` = {RECIPIENT}
 - `21` = {SUB_TYPE} = หมายเลขประเภทย่อย (11=MAT, 12=SHP, 13=DWG, 14=MET, ...)
 - `0117` = {SEQ:4}
 - `2568` = {YEAR:B.E.}
-> **⚠️ Template vs Counter Separation**
+  > **⚠️ Template vs Counter Separation**
 - {CORR_TYPE} **ไม่แสดง**ใน template (เหมือน LETTER)
 - TRANSMITTAL มี counter แยกจาก LETTER
-**Counter Key**: `(project_id, originator_org_id, recipient_org_id, corr_type_id, sub_type_id, 0, 0, year)`
+  **Counter Key**: `(project_id, originator_org_id, recipient_org_id, corr_type_id, sub_type_id, 0, 0, year)`
+
 ---
+
 ### 3.11.3.3. RFA (Request for Approval)
+
 **Template**:
+
 ```
 {PROJECT}-{CORR_TYPE}-{DISCIPLINE}-{RFA_TYPE}-{SEQ:4}-{REV}
 ```
+
 **Example**: `LCBP3-C2-RFA-TER-RPT-0001-A`
 **Token Breakdown**:
+
 - `LCBP3-C2` = {PROJECT} = รหัสโครงการ
 - `RFA` = {CORR_TYPE} = ประเภทเอกสาร (แสดงใน RFA template)
 - `TER` = {DISCIPLINE} = รหัสสาขางาน (TER=Terminal, STR=Structure, ...)
 - `RPT` = {RFA_TYPE} = ประเภท RFA (RPT=Report, SDW=Shop Drawing, ...)
 - `0001` = {SEQ:4}
 - `A` = {REV} = Revision code
-> **📋 RFA Workflow**
+  > **📋 RFA Workflow**
 - RFA เป็น **เอกสารโครงการ** (Project-level document)
 - Workflow: **CONTRACTOR → CONSULTANT → OWNER**
 - ไม่มี specific `recipient_id` เพราะเป็น workflow ที่กำหนดไว้แล้ว
-**Counter Key**: `(project_id, originator_org_id, NULL, corr_type_id, 0, rfa_type_id, discipline_id, year)`
+  **Counter Key**: `(project_id, originator_org_id, NULL, corr_type_id, 0, rfa_type_id, discipline_id, year)`
+
 ---
+
 ## 3.11.4. Security & Data Integrity Requirements
+
 ### 3.11.4.1. Concurrency Control
+
 **Requirements:**
+
 - ระบบ**ต้อง**ป้องกัน race condition เมื่อมีการสร้างเลขที่เอกสารพร้อมกัน
 - ระบบ**ต้อง**รับประกัน uniqueness ของเลขที่เอกสารในทุกสถานการณ์
 - ระบบ**ควร**ใช้ Distributed Lock (Redis) เป็นกลไก primary
 - ระบบ**ต้อง**มี fallback mechanism เมื่อ Redis ไม่พร้อมใช้งาน
+
 ### 3.11.4.2. Data Integrity
+
 **Requirements:**
+
 - ระบบ**ต้อง**ใช้ Optimistic Locking เพื่อตรวจจับ concurrent updates
 - ระบบ**ต้อง**มี database constraints เพื่อป้องกันข้อมูลผิดพลาด:
   - Unique constraint บน `document_number`
   - Foreign key constraints ทุก relationship
   - Check constraints สำหรับ business rules
+
 ---
+
 ## 3.11.5. Validation Rules
+
 - ต้องมี JSON schema validation สำหรับแต่ละประเภท
 - ต้องรองรับ versioning ของ schema
 - ต้องมี default values สำหรับ field ที่ไม่บังคับ
 - ต้องตรวจสอบ data types และ format ให้ถูกต้อง
+
 ---
+
 ## 3.11.6. Performance Requirements
+
 - JSON field ต้องมีขนาดไม่เกิน 50KB
 - ต้องรองรับ indexing สำหรับ field ที่ใช้ค้นหาบ่อย
 - ต้องมี compression สำหรับ JSON ขนาดใหญ่
+
 ---
+
 ## 3.11.7. Security Requirements
+
 - ต้อง sanitize JSON input เพื่อป้องกัน injection attacks
 - ต้อง validate JSON structure ก่อนบันทึก
 - ต้อง encrypt sensitive data ใน JSON fields
+
 ---
+
 ## 3.11.8. JSON Schema Migration Strategy
+
 - สำหรับ Schema Breaking Changes:
   - Phase 1 - Add New Column
     ALTER TABLE correspondence_revisions
@@ -457,24 +578,34 @@ related:
 - สำหรับ Non-Breaking Changes
   - เพิ่ม optional field ใน schema
   - Old records ที่ไม่มี field = ใช้ default value
+
 ---
+
 # 3.12 JSON Details Management (การจัดการ JSON Details)
+
 ---
+
 title: 'Functional Requirements: JSON Details Management'
 version: 1.5.0
 status: first-draft
 owner: Nattanin Peancharoen
 last_updated: 2025-11-30
 related:
-  - specs/01-requirements/01-objectives.md
-  - specs/01-requirements/02-architecture.md
-  - specs/01-requirements/03-functional-requirements.md
+
+- specs/01-requirements/01-objectives.md
+- specs/01-requirements/02-architecture.md
+- specs/01-requirements/03-functional-requirements.md
+
 ---
+
 ## 3.12.1 วัตถุประสงค์
+
 - จัดเก็บข้อมูลแบบไดนามิกที่เฉพาะเจาะจงกับแต่ละประเภทของเอกสาร
 - รองรับการขยายตัวของระบบโดยไม่ต้องเปลี่ยนแปลง database schema
 - จัดการ metadata และข้อมูลประกอบสำหรับ correspondence, routing, และ workflows
+
 ## 3.12.2 โครงสร้าง JSON Schema
+
 - ระบบต้องมี predefined JSON schemas สำหรับประเภทเอกสารต่างๆ:
   - 3.12.2.1 Correspondence Types
     - GENERIC: ข้อมูลพื้นฐานสำหรับเอกสารทั่วไป
@@ -490,27 +621,37 @@ related:
   - 3.12.2.3 Audit Types
     - AUDIT_LOG: ข้อมูลการตรวจสอบ
     - SECURITY_SCAN: ผลการตรวจสอบความปลอดภัย
+
 ## 3.12.3 Virtual Columns (ปรับปรุง)
+
 - สำหรับ Field ใน JSON ที่ต้องใช้ในการค้นหา (Search) หรือจัดเรียง (Sort) บ่อยๆ ต้องสร้าง Generated Column (Virtual Column) ใน Database และทำ Index ไว้ เพื่อประสิทธิภาพสูงสุด
 - Schema Consistency: Field ที่ถูกกำหนดเป็น Virtual Column ห้าม เปลี่ยนแปลง Key Name หรือ Data Type ใน JSON Schema Version ถัดไป หากจำเป็นต้องเปลี่ยน ต้องมีแผนการ Re-index หรือ Migration ข้อมูลเดิมที่ชัดเจน
+
 ## 3.12.4 Validation Rules
+
 - ต้องมี JSON schema validation สำหรับแต่ละประเภท
 - ต้องรองรับ versioning ของ schema
 - ต้องมี default values สำหรับ field ที่ไม่บังคับ
 - ต้องตรวจสอบ data types และ format ให้ถูกต้อง
+
 ## 3.12.5 Performance Requirements
+
 - JSON field ต้องมีขนาดไม่เกิน 50KB
 - ต้องรองรับ indexing สำหรับ field ที่ใช้ค้นหาบ่อย
 - ต้องมี compression สำหรับ JSON ขนาดใหญ่
+
 ## 3.12.6 Security Requirements
+
 - ต้อง sanitize JSON input เพื่อป้องกัน injection attacks
 - ต้อง validate JSON structure ก่อนบันทึก
 - ต้อง encrypt sensitive data ใน JSON fields
+
 ---
 
 ## 📂 4. Non‑Functional Requirements
 
 # 4.1 Access Control
+
 # 🔐 Section 4: Access Control (ข้อกำหนดด้านสิทธิ์และการเข้าถึง)
 
 ## 4.1. Overview:
@@ -567,14 +708,14 @@ related:
 
 ### **4.7. Master Data Management**
 
-| Master Data                             | Manager                         | Scope                           |
-| :-------------------------------------- | :------------------------------ | :------------------------------ |
-| Document Type (Correspondence, RFA)     | **Superadmin**                  | Global                          |
-| Document Status (Draft, Approved, etc.) | **Superadmin**                  | Global                          |
+| Master Data                             | Manager                         | Scope                              |
+| :-------------------------------------- | :------------------------------ | :--------------------------------- |
+| Document Type (Correspondence, RFA)     | **Superadmin**                  | Global                             |
+| Document Status (Draft, Approved, etc.) | **Superadmin**                  | Global                             |
 | Shop Drawing Category                   | **Project Manager**             | Project (สร้างใหม่ได้ภายในโครงการ) |
-| Tags                                    | **Org Admin / Project Manager** | Organization / Project          |
-| Custom Roles                            | **Superadmin / Org Admin**      | Global / Organization           |
-| Document Numbering Formats              | **Superadmin / Admin**          | Global / Organization           |
+| Tags                                    | **Org Admin / Project Manager** | Organization / Project             |
+| Custom Roles                            | **Superadmin / Org Admin**      | Global / Organization              |
+| Document Numbering Formats              | **Superadmin / Admin**          | Global / Organization              |
 
 ## 4.8. การบันทึกการกระทำ (Audit Log)
 
@@ -616,7 +757,6 @@ related:
 - มีการใช้ Caching กับข้อมูลที่เรียกใช้บ่อย และใช้ Pagination ในตารางข้อมูลเพื่อจัดการข้อมูลจำนวนมาก
 
 - ตัวชี้วัดประสิทธิภาพ:
-
   - **API Response Time:** < 200ms (90th percentile) สำหรับ operation ทั่วไป
   - **Search Query Performance:** < 500ms สำหรับการค้นหาขั้นสูง
   - **File Upload Performance:** < 30 seconds สำหรับไฟล์ขนาด 50MB
@@ -626,7 +766,6 @@ related:
   - **Application Startup Time:** < 30 seconds
 
 - Caching Strategy:
-
   - **Master Data Cache:** Roles, Permissions, Organizations, Project metadata (TTL: 1 hour)
   - **User Session Cache:** User permissions และ profile data (TTL: 30 minutes)
   - **Search Result Cache:** Frequently searched queries (TTL: 15 minutes)
@@ -716,7 +855,7 @@ related:
 
 ## 4.15. กลยุทธ์การแจ้งเตือน (Notification Strategy - ปรับปรุง)
 
-- ระบบจะส่งการแจ้งเตือน (ผ่าน Email หรือ Line [cite: 2.7]) เมื่อมีการกระทำที่สำคัญ** ดังนี้:
+- ระบบจะส่งการแจ้งเตือน (ผ่าน Email หรือ Line [cite: 2.7]) เมื่อมีการกระทำที่สำคัญ\*\* ดังนี้:
   1. เมื่อมีเอกสารใหม่ (Correspondence, RFA) ถูกส่งมาถึงองค์กรณ์ของเรา
   2. เมื่อมีใบเวียน (Circulation) ใหม่ มอบหมายงานมาที่เรา
   3. (ทางเลือก) เมื่อเอกสารที่เราส่งไป ถูกดำเนินการ (เช่น อนุมัติ/ปฏิเสธ)
@@ -773,10 +912,12 @@ related:
   - ต้องมี default fallback values
   - ต้องบันทึก error logs สำหรับ validation failures
 
-
 # 5. UI/UX Guidelines
+
 # 👥 Section 5: UI/UX Requirements (ข้อกำหนดด้านผู้ใช้งาน)
+
 ---
+
 title: 'UI/UX Requirements'
 version: 1.5.0
 status: first-draft
@@ -786,6 +927,7 @@ related:
 
 - specs/02-architecture/data-model.md#correspondence
 - specs/03-implementation/backend-guidelines.md#correspondencemodule
+
 ---
 
 ## 5.1. Layout หลัก
@@ -860,6 +1002,7 @@ related:
 - 5.13.3 Performance: ต้องรองรับการส่งข้อมูลแบบ Streaming (Range Requests) เพื่อให้เปิดดูไฟล์ขนาดใหญ่ (เช่น แบบแปลน 50MB+) ได้รวดเร็วโดยไม่ต้องรอโหลดเสร็จทั้งไฟล์
 
 ## 🧪 6. Testing Requirements
+
 ## 6.1 Unit Testing
 
 - ต้องมี unit tests สำหรับ business logic ทั้งหมด
@@ -907,5 +1050,7 @@ related:
   - **Permission Test:** ทดสอบ CASL Integration ทั้งฝั่ง Backend และ Frontend ให้ตรงกัน
 
 ---
-*Version History*
+
+_Version History_
+
 - **v1.5.1** – 2025‑12‑04 – Consolidated requirement specifications into single document.

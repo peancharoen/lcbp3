@@ -1,19 +1,12 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { documentNumberingService } from "@/lib/services/document-numbering.service";
-import { format } from "date-fns";
+import { useEffect, useState } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { documentNumberingService } from '@/lib/services/document-numbering.service';
+import { format } from 'date-fns';
 
 export function AuditLogsTable() {
-  const [logs, setLogs] = useState<any[]>([]); // Replace with AuditLog type
+  const [logs, setLogs] = useState<unknown[]>([]); // Replace with AuditLog type
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,9 +14,9 @@ export function AuditLogsTable() {
       try {
         const data = await documentNumberingService.getMetrics(); // Using metrics endpoint for now as it contains logs
         if (data && data.audit) {
-           setLogs(data.audit);
+          setLogs(data.audit);
         }
-      } catch (error) {
+      } catch (_error) {
         // Failed to fetch audit logs - empty state shown
       } finally {
         setLoading(false);
@@ -49,15 +42,17 @@ export function AuditLogsTable() {
         <TableBody>
           {logs.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center">No logs found.</TableCell>
+              <TableCell colSpan={5} className="text-center">
+                No logs found.
+              </TableCell>
             </TableRow>
           ) : (
             logs.map((log) => (
               <TableRow key={log.id}>
-                <TableCell>{format(new Date(log.createdAt), "yyyy-MM-dd HH:mm:ss")}</TableCell>
+                <TableCell>{format(new Date(log.createdAt), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
                 <TableCell>{log.operation}</TableCell>
                 <TableCell>{log.generatedNumber}</TableCell>
-                <TableCell>{log.createdBy || "System"}</TableCell>
+                <TableCell>{log.createdBy || 'System'}</TableCell>
                 <TableCell>{log.status}</TableCell>
               </TableRow>
             ))

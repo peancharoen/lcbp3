@@ -3,6 +3,7 @@
 ## 🚨 Issues Encountered
 
 ### Backend Build Failures
+
 1. **Missing `ms` package**
    - Error: `Cannot find module 'ms' or its corresponding type declarations`
    - Impact: Auth module couldn't build
@@ -16,6 +17,7 @@
    - Impact: UUID resolution failed across modules
 
 ### Frontend Docker Build Failures
+
 1. **Next.js standalone build with pnpm**
    - Error: `ENOENT: no such file or directory` creating standalone node_modules
    - Impact: Docker build failed
@@ -27,6 +29,7 @@
 ### Backend Fixes
 
 #### 1. Add Missing Dependencies
+
 ```json
 // package.json
 {
@@ -40,6 +43,7 @@
 ```
 
 #### 2. Global Cache Configuration
+
 ```typescript
 // app.module.ts
 import { CacheModule } from '@nestjs/cache-manager';
@@ -57,6 +61,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 ```
 
 #### 3. CommonModule Import
+
 ```typescript
 // app.module.ts
 import { CommonModule } from './common/common.module';
@@ -72,6 +77,7 @@ import { CommonModule } from './common/common.module';
 ### Frontend Docker Fixes
 
 #### 1. Disable Standalone Mode
+
 ```javascript
 // next.config.mjs
 const nextConfig = {
@@ -81,6 +87,7 @@ const nextConfig = {
 ```
 
 #### 2. Update Dockerfile
+
 ```dockerfile
 # Copy full app instead of standalone
 COPY --from=build --chown=nextjs:nextjs /w/frontend ./
@@ -95,12 +102,14 @@ CMD ["pnpm", "start"]
 ## 📊 Impact Assessment
 
 ### Backend
+
 - ✅ All dependency injection issues resolved
 - ✅ Cache manager available globally
 - ✅ UUID resolver service accessible
 - ✅ Build time: ~21s (successful)
 
 ### Frontend
+
 - ✅ Docker build successful
 - ⚠️ Image size increased (no standalone optimization)
 - ✅ Build time: ~51s (successful)
@@ -110,12 +119,14 @@ CMD ["pnpm", "start"]
 ## 🔄 Future Improvements
 
 ### Backend
+
 1. **Redis Cache Integration**
    - Replace in-memory cache with Redis store
    - Resolve `cache-manager-redis-store` TypeScript issues
    - Enable distributed caching
 
 ### Frontend
+
 1. **Standalone Build Recovery**
    - Fix pnpm symlink compatibility
    - Re-enable `output: "standalone"`

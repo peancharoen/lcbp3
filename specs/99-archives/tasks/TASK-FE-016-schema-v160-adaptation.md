@@ -28,46 +28,49 @@
 
 ### 1. Correspondence Revisions ⚠️ UI IMPACT
 
-| Change     | Old Field | New Field | Business Rule                           |
-| ---------- | --------- | --------- | --------------------------------------- |
+| Change     | Old Field | New Field | Business Rule                                   |
+| ---------- | --------- | --------- | ----------------------------------------------- |
 | **Rename** | `title`   | `subject` | Form label เปลี่ยนจาก "หัวเรื่อง" เป็น "เรื่อง" |
-| **Add**    | -         | `body`    | เพิ่ม Rich Text Editor สำหรับเนื้อความ        |
-| **Add**    | -         | `remarks` | เพิ่ม Textarea สำหรับหมายเหตุ                |
-| **Add**    | -         | `dueDate` | เพิ่ม Date Picker สำหรับกำหนดส่ง              |
+| **Add**    | -         | `body`    | เพิ่ม Rich Text Editor สำหรับเนื้อความ          |
+| **Add**    | -         | `remarks` | เพิ่ม Textarea สำหรับหมายเหตุ                   |
+| **Add**    | -         | `dueDate` | เพิ่ม Date Picker สำหรับกำหนดส่ง                |
 
 **UI Impact:**
+
 - Correspondence Form: เพิ่ม 3 fields ใหม่
 - Correspondence List: เปลี่ยน column header
 - Correspondence Detail: แสดง body และ remarks
 
 ### 2. Correspondence Recipients ⚠️ RELATION CHANGE
 
-| Before                   | After                  | Business Rule              |
-| ------------------------ | ---------------------- | -------------------------- |
+| Before                     | After                    | Business Rule                     |
+| -------------------------- | ------------------------ | --------------------------------- |
 | Recipients ผูกกับ Revision | Recipients ผูกกับ Master | ผู้รับคงที่ตลอด Revisions ทั้งหมด |
 
 **UI Impact:**
+
 - ย้าย Recipients Selection ออกจาก Revision Form
 - ไปอยู่ใน Master Correspondence Form แทน
 - Recipients จะไม่เปลี่ยนเมื่อสร้าง New Revision
 
 ### 3. RFA System 🔄 ARCHITECTURE CHANGE
 
-| Change           | Description                | Business Rule                                |
-| ---------------- | -------------------------- | -------------------------------------------- |
+| Change           | Description                | Business Rule                                      |
+| ---------------- | -------------------------- | -------------------------------------------------- |
 | **Shared ID**    | RFA.id = Correspondence.id | สร้าง Correspondence ก่อน แล้ว RFA ใช้ ID เดียวกัน |
-| **Subject**      | `title` → `subject`        | เหมือนกับ Correspondence                       |
-| **Body/Remarks** | เพิ่ม fields ใหม่             | เหมือนกับ Correspondence                       |
-| **Due Date**     | เพิ่ม field                  | กำหนดวันที่ต้องตอบกลับ                             |
+| **Subject**      | `title` → `subject`        | เหมือนกับ Correspondence                           |
+| **Body/Remarks** | เพิ่ม fields ใหม่          | เหมือนกับ Correspondence                           |
+| **Due Date**     | เพิ่ม field                | กำหนดวันที่ต้องตอบกลับ                             |
 
 **UI Impact:**
+
 - RFA Form: เพิ่ม body, remarks, dueDate
 - RFA Creation Flow: อาจต้อง adjust การ submit
 
 ### 4. RFA Items ⚠️ API CHANGE
 
-| Before                   | After           | Impact                                      |
-| ------------------------ | --------------- | ------------------------------------------- |
+| Before                   | After           | Impact                                        |
+| ------------------------ | --------------- | --------------------------------------------- |
 | `rfaRevCorrespondenceId` | `rfaRevisionId` | เปลี่ยน property name ใน API request/response |
 
 ---
@@ -87,18 +90,18 @@ interface CorrespondenceRevision {
 
 // AFTER
 interface CorrespondenceRevision {
-  subject: string;           // renamed from title
-  body?: string;             // NEW
-  remarks?: string;          // NEW
-  dueDate?: string;          // NEW
-  schemaVersion?: number;    // NEW
+  subject: string; // renamed from title
+  body?: string; // NEW
+  remarks?: string; // NEW
+  dueDate?: string; // NEW
+  schemaVersion?: number; // NEW
   // ...
 }
 
 // Move recipients to master level
 interface Correspondence {
   // ...existing fields
-  recipients: CorrespondenceRecipient[];  // MOVED from revision
+  recipients: CorrespondenceRecipient[]; // MOVED from revision
 }
 ```
 
@@ -115,10 +118,10 @@ interface RfaRevision {
 // AFTER
 interface RfaRevision {
   // correspondenceId: REMOVED
-  subject: string;           // renamed from title
-  body?: string;             // NEW
-  remarks?: string;          // NEW
-  dueDate?: string;          // NEW
+  subject: string; // renamed from title
+  body?: string; // NEW
+  remarks?: string; // NEW
+  dueDate?: string; // NEW
   // ...
 }
 
@@ -130,7 +133,7 @@ interface RfaItem {
 
 // AFTER
 interface RfaItem {
-  rfaRevisionId: number;     // renamed
+  rfaRevisionId: number; // renamed
   // ...
 }
 ```
@@ -161,7 +164,7 @@ const columns = [
   // BEFORE: { header: 'หัวเรื่อง', accessorKey: 'title' }
   // AFTER:
   { header: 'เรื่อง', accessorKey: 'subject' },
-  { header: 'กำหนดส่ง', accessorKey: 'dueDate' },  // NEW column
+  { header: 'กำหนดส่ง', accessorKey: 'dueDate' }, // NEW column
 ];
 ```
 
@@ -183,31 +186,31 @@ const columns = [
 
 | File                          | Status | Changes                                 |
 | ----------------------------- | ------ | --------------------------------------- |
-| `lib/types/correspondence.ts` | ✅      | title→subject, add body/remarks/dueDate |
-| `lib/types/rfa.ts`            | ✅      | Same + remove correspondenceId          |
+| `lib/types/correspondence.ts` | ✅     | title→subject, add body/remarks/dueDate |
+| `lib/types/rfa.ts`            | ✅     | Same + remove correspondenceId          |
 
 ### Forms
 
 | File                                                 | Status | Changes                |
 | ---------------------------------------------------- | ------ | ---------------------- |
-| `app/(dashboard)/correspondences/new/page.tsx`       | ✅      | Add new fields, rename |
-| `app/(dashboard)/correspondences/[id]/edit/page.tsx` | ✅      | Same                   |
-| `app/(dashboard)/rfas/new/page.tsx`                  | ✅      | Add new fields, rename |
-| `app/(dashboard)/rfas/[id]/edit/page.tsx`            | ✅      | Same                   |
+| `app/(dashboard)/correspondences/new/page.tsx`       | ✅     | Add new fields, rename |
+| `app/(dashboard)/correspondences/[id]/edit/page.tsx` | ✅     | Same                   |
+| `app/(dashboard)/rfas/new/page.tsx`                  | ✅     | Add new fields, rename |
+| `app/(dashboard)/rfas/[id]/edit/page.tsx`            | ✅     | Same                   |
 
 ### Lists/Tables
 
 | File                                                | Status | Changes       |
 | --------------------------------------------------- | ------ | ------------- |
-| `components/correspondence/correspondence-list.tsx` | ✅      | Column rename |
-| `components/rfa/rfa-list.tsx`                       | ✅      | Column rename |
+| `components/correspondence/correspondence-list.tsx` | ✅     | Column rename |
+| `components/rfa/rfa-list.tsx`                       | ✅     | Column rename |
 
 ### Services
 
 | File                                     | Status | Changes     |
 | ---------------------------------------- | ------ | ----------- |
-| `lib/services/correspondence.service.ts` | ✅      | DTO mapping |
-| `lib/services/rfa.service.ts`            | ✅      | DTO mapping |
+| `lib/services/correspondence.service.ts` | ✅     | DTO mapping |
+| `lib/services/rfa.service.ts`            | ✅     | DTO mapping |
 
 ---
 

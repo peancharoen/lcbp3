@@ -15,8 +15,8 @@ Review frontend integration status and fix minor issues in Correspondences, RFAs
 
 Verified that all 3 core modules are properly integrated with Backend APIs:
 
-| Module            | Service                       | Hook                    | API Endpoint         | Status     |
-| ----------------- | ----------------------------- | ----------------------- | -------------------- | ---------- |
+| Module            | Service                       | Hook                    | API Endpoint         | Status      |
+| ----------------- | ----------------------------- | ----------------------- | -------------------- | ----------- |
 | Correspondences   | `correspondence.service.ts`   | `use-correspondence.ts` | `/correspondences`   | ✅ Real API |
 | RFAs              | `rfa.service.ts`              | `use-rfa.ts`            | `/rfas`              | ✅ Real API |
 | Contract Drawings | `contract-drawing.service.ts` | `use-drawing.ts`        | `/drawings/contract` | ✅ Real API |
@@ -25,6 +25,7 @@ Verified that all 3 core modules are properly integrated with Backend APIs:
 ### 2. Minor Issues Fixed ✅
 
 #### 2.1 `components/drawings/list.tsx`
+
 - **Issue:** Hardcoded `projectId: 1`
 - **Fix:** Added optional `projectId` prop to `DrawingListProps` interface
 
@@ -41,6 +42,7 @@ interface DrawingListProps {
 ```
 
 #### 2.2 `hooks/use-drawing.ts`
+
 - **Issue:** `any` types in multiple places
 - **Fix:** Added proper types
 
@@ -59,6 +61,7 @@ interface DrawingListProps {
 ```
 
 #### 2.3 `hooks/use-correspondence.ts`
+
 - **Issue:** `any` types and missing mutations
 - **Fix:**
   - Added `ApiError` type for error handling

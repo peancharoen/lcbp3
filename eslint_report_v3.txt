@@ -1,0 +1,795 @@
+
+D:\nap-dms.lcbp3\backend\src\common\auth\auth.controller.spec.ts
+  81:13  error  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\common\auth\auth.controller.ts
+  58:11  error  Unsafe assignment of an `any` value                                   @typescript-eslint/no-unsafe-assignment
+  67:35  error  Unsafe argument of type `any` assigned to a parameter of type `User`  @typescript-eslint/no-unsafe-argument
+
+D:\nap-dms.lcbp3\backend\src\common\auth\auth.service.spec.ts
+   21:7   error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+   26:7   error  'jwtService' is assigned a value but never used                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   27:7   error  'tokenRepo' is assigned a value but never used                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   56:5   error  Unsafe call of an `any` typed value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-call
+   56:12  error  Unsafe member access .compare on an `any` value                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unsafe-member-access
+  118:13  error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  121:21  error  Unsafe member access .username on an `any` value                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unsafe-member-access
+  126:13  error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  131:7   error  Unsafe call of an `any` typed value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-call
+  131:14  error  Unsafe member access .compare on an `any` value                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unsafe-member-access
+  132:13  error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  165:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+D:\nap-dms.lcbp3\backend\src\common\auth\auth.service.ts
+   46:63  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   47:5   error  Unexpected console statement                 no-console
+   57:7   error  Unexpected console statement                 no-console
+  266:13  error  Unsafe assignment of an `any` value          @typescript-eslint/no-unsafe-assignment
+  267:30  error  Unsafe member access .exp on an `any` value  @typescript-eslint/no-unsafe-member-access
+  268:29  error  Unsafe member access .exp on an `any` value  @typescript-eslint/no-unsafe-member-access
+  277:14  error  'error' is defined but never used            @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\common\auth\guards\permissions.guard.ts
+  23:3   error  Async method 'canActivate' has no 'await' expression                                                                                                                @typescript-eslint/require-await
+  35:11  error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  36:11  error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  36:26  error  Unsafe member access .user on an `any` value                                                                                                                        @typescript-eslint/no-unsafe-member-access
+  43:44  error  Unsafe argument of type `any` assigned to a parameter of type `{ params: Record<string, string>; body: Record<string, unknown>; query: Record<string, unknown>; }`  @typescript-eslint/no-unsafe-argument
+  46:55  error  Unsafe argument of type `any` assigned to a parameter of type `User`                                                                                                @typescript-eslint/no-unsafe-argument
+
+D:\nap-dms.lcbp3\backend\src\common\auth\strategies\jwt-refresh.strategy.ts
+  27:3  error  Async method 'validate' has no 'await' expression  @typescript-eslint/require-await
+
+D:\nap-dms.lcbp3\backend\src\common\decorators\circuit-breaker.decorator.ts
+  18:13  error  Unexpected any. Specify a different type                                                                  @typescript-eslint/no-explicit-any
+  22:11  error  Unsafe assignment of an `any` value                                                                       @typescript-eslint/no-unsafe-assignment
+  26:40  error  Unsafe argument of type `any` assigned to a parameter of type `(...args: unknown[]) => Promise<unknown>`  @typescript-eslint/no-unsafe-argument
+
+D:\nap-dms.lcbp3\backend\src\common\decorators\current-user.decorator.ts
+  15:11  error  Unsafe assignment of an `any` value           @typescript-eslint/no-unsafe-assignment
+  17:5   error  Unsafe return of a value of type `any`        @typescript-eslint/no-unsafe-return
+  17:20  error  Unsafe member access .user on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+D:\nap-dms.lcbp3\backend\src\common\decorators\retry.decorator.ts
+  19:13  error  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  23:11  error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  27:7   error  Unsafe return of a value of type `Promise<any>`  @typescript-eslint/no-unsafe-return
+  31:13  error  Unsafe return of a value of type `any`           @typescript-eslint/no-unsafe-return
+  31:26  error  Unsafe call of an `any` typed value              @typescript-eslint/no-unsafe-call
+  31:41  error  Unsafe member access .apply on an `any` value    @typescript-eslint/no-unsafe-member-access
+
+D:\nap-dms.lcbp3\backend\src\common\file-storage\file-storage.controller.spec.ts
+  51:13  error  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\common\file-storage\file-storage.service.spec.ts
+   88:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+   89:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  121:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  139:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+D:\nap-dms.lcbp3\backend\src\common\guards\maintenance-mode.guard.ts
+  46:15  error  Unsafe assignment of an `any` value          @typescript-eslint/no-unsafe-assignment
+  51:41  error  Unsafe member access .url on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+D:\nap-dms.lcbp3\backend\src\common\guards\rbac.guard.ts
+  31:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  38:7   error  Unsafe argument of type `any` assigned to a parameter of type `number`  @typescript-eslint/no-unsafe-argument
+  38:12  error  Unsafe member access .user_id on an `any` value                         @typescript-eslint/no-unsafe-member-access
+
+D:\nap-dms.lcbp3\backend\src\common\interceptors\audit-log.interceptor.ts
+  58:11  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+D:\nap-dms.lcbp3\backend\src\common\interceptors\idempotency.interceptor.ts
+  11:3   error  'ConflictException' is defined but never used                           @typescript-eslint/no-unused-vars
+  29:25  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  55:11  error  Promise returned in function argument where a void return was expected  @typescript-eslint/no-misused-promises
+
+D:\nap-dms.lcbp3\backend\src\common\interceptors\performance.interceptor.ts
+  19:71  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  21:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  22:13  error  Unsafe member access .url on an `any` value                             @typescript-eslint/no-unsafe-member-access
+  22:39  error  Unsafe member access .url on an `any` value                             @typescript-eslint/no-unsafe-member-access
+  26:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  26:24  error  Unsafe member access .method on an `any` value                          @typescript-eslint/no-unsafe-member-access
+  27:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  27:21  error  Unsafe member access .route on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  27:33  error  Unsafe member access .route on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  27:50  error  Unsafe member access .url on an `any` value                             @typescript-eslint/no-unsafe-member-access
+  32:16  error  'data' is defined but never used                                        @typescript-eslint/no-unused-vars
+  33:39  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  33:47  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  36:17  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  36:30  error  Unsafe member access .status on an `any` value                          @typescript-eslint/no-unsafe-member-access
+  37:39  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  37:47  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  37:63  error  Unsafe argument of type `any` assigned to a parameter of type `number`  @typescript-eslint/no-unsafe-argument
+  53:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  54:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  54:29  error  Unsafe member access .statusCode on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  65:7   error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  65:20  error  Unsafe call of an `any` typed value                                     @typescript-eslint/no-unsafe-call
+  65:32  error  Unsafe member access .toString on an `any` value                        @typescript-eslint/no-unsafe-member-access
+  72:9   error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  72:22  error  Unsafe call of an `any` typed value                                     @typescript-eslint/no-unsafe-call
+  72:34  error  Unsafe member access .toString on an `any` value                        @typescript-eslint/no-unsafe-member-access
+  84:9   error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+
+D:\nap-dms.lcbp3\backend\src\common\services\crypto.service.ts
+  24:46  error  Unsafe return of a value of type `any`    @typescript-eslint/no-unsafe-return
+  24:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\backend\src\common\services\request-context.service.ts
+   9:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:5   error  Unsafe return of a value of type `any`    @typescript-eslint/no-unsafe-return
+
+D:\nap-dms.lcbp3\backend\src\database\seeds\run-seed.ts
+   7:37  error  Unsafe argument of type `any` assigned to a parameter of type `DataSourceOptions`                                                                                   @typescript-eslint/no-unsafe-argument
+   7:55  error  Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  11:5   error  Unexpected console statement                                                                                                                                        no-console
+  16:5   error  Unexpected console statement                                                                                                                                        no-console
+  18:5   error  Unexpected console statement                                                                                                                                        no-console
+  24:1   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+D:\nap-dms.lcbp3\backend\src\database\seeds\user.seed.ts
+   61:7   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  115:13  error  Unsafe assignment of an `any` value                                                                                  @typescript-eslint/no-unsafe-assignment
+  119:11  error  Unsafe assignment of an `any` value                                                                                  @typescript-eslint/no-unsafe-assignment
+
+D:\nap-dms.lcbp3\backend\src\database\seeds\workflow-definitions.seed.ts
+  133:9  error  Unexpected console statement  no-console
+  135:9  error  Unexpected console statement  no-console
+  138:7  error  Unexpected console statement  no-console
+
+D:\nap-dms.lcbp3\backend\src\modules\circulation\circulation-workflow.service.ts
+  89:57  error  Invalid type "unknown" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+D:\nap-dms.lcbp3\backend\src\modules\circulation\circulation.service.ts
+   8:34  error  'Not' is defined but never used              @typescript-eslint/no-unused-vars
+  98:13  error  'search' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\contract\contract.controller.ts
+  16:3  error  'ApiQuery' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\correspondence\correspondence-workflow.service.ts
+  91:55  error  Invalid type "unknown" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+D:\nap-dms.lcbp3\backend\src\modules\correspondence\correspondence.controller.spec.ts
+  82:13  error  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\correspondence\correspondence.service.spec.ts
+   11:10  error  'CorrespondenceRecipient' is defined but never used                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   22:27  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   23:21  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   24:7   error  'dataSource' is assigned a value but never used                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   24:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  133:5   error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  134:5   error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  135:5   error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  144:13  error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  144:69  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  154:13  error  'mockStatus' is assigned a value but never used                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  177:31  error  Unsafe argument of type `any` assigned to a parameter of type `UpdateCorrespondenceDto`                                                                                                                                                                                                                                                     @typescript-eslint/no-unsafe-argument
+  177:44  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  177:49  error  Unsafe argument of type `any` assigned to a parameter of type `User`                                                                                                                                                                                                                                                                        @typescript-eslint/no-unsafe-argument
+  180:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  184:13  error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  184:69  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  208:31  error  Unsafe argument of type `any` assigned to a parameter of type `UpdateCorrespondenceDto`                                                                                                                                                                                                                                                     @typescript-eslint/no-unsafe-argument
+  208:44  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  208:49  error  Unsafe argument of type `any` assigned to a parameter of type `User`                                                                                                                                                                                                                                                                        @typescript-eslint/no-unsafe-argument
+  210:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  213:13  error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  213:69  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  237:31  error  Unsafe argument of type `any` assigned to a parameter of type `UpdateCorrespondenceDto`                                                                                                                                                                                                                                                     @typescript-eslint/no-unsafe-argument
+  237:44  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  237:49  error  Unsafe argument of type `any` assigned to a parameter of type `User`                                                                                                                                                                                                                                                                        @typescript-eslint/no-unsafe-argument
+  239:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  243:13  error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  243:69  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  262:7   error  Unsafe call of a type that could not be resolved                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unsafe-call
+  264:10  error  Unsafe member access .mockResolvedValue on a type that cannot be resolved                                                                                                                                                                                                                                                                   @typescript-eslint/no-unsafe-member-access
+  264:71  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  270:31  error  Unsafe argument of type `any` assigned to a parameter of type `UpdateCorrespondenceDto`                                                                                                                                                                                                                                                     @typescript-eslint/no-unsafe-argument
+  270:44  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  270:49  error  Unsafe argument of type `any` assigned to a parameter of type `User`                                                                                                                                                                                                                                                                        @typescript-eslint/no-unsafe-argument
+  272:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+D:\nap-dms.lcbp3\backend\src\modules\correspondence\dto\create-routing-template.dto.ts
+  9:3  error  'IsEnum' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\correspondence\entities\correspondence-recipient.entity.ts
+  1:18  error  'Column' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\dashboard\dashboard.service.ts
+   66:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+   72:45  error  Unsafe member access [0] on an `any` value                              @typescript-eslint/no-unsafe-member-access
+   75:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+   78:31  error  ❌ parseInt() is forbidden (UUID risk)                                   no-restricted-syntax
+   79:7   error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+   79:31  error  Unsafe member access [0] on an `any` value                              @typescript-eslint/no-unsafe-member-access
+   95:11  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  101:44  error  Unsafe member access [0] on an `any` value                              @typescript-eslint/no-unsafe-member-access
+  174:12  error  Unsafe array destructuring of a tuple element with an `any` value       @typescript-eslint/no-unsafe-assignment
+  174:19  error  Unsafe array destructuring of a tuple element with an `any` value       @typescript-eslint/no-unsafe-assignment
+  207:38  error  Unsafe member access [0] on an `any` value                              @typescript-eslint/no-unsafe-member-access
+  210:7   error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\controllers\document-numbering.controller.ts
+  119:5  error  Unexpected console statement  no-console
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\controllers\numbering-metrics.controller.ts
+   1:27  error  'UseGuards' is defined but never used                @typescript-eslint/no-unused-vars
+  13:3   error  Async method 'getMetrics' has no 'await' expression  @typescript-eslint/require-await
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\document-numbering.service.spec.ts
+  127:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  128:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  145:13  error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  146:18  error  Unsafe member access .findOne on an `any` value                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unsafe-member-access
+  151:18  error  Unsafe member access .save on an `any` value                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unsafe-member-access
+  159:24  error  Unsafe member access .save on an `any` value                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unsafe-member-access
+  163:13  error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  164:18  error  Unsafe member access .findOne on an `any` value                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unsafe-member-access
+  168:18  error  Unsafe member access .save on an `any` value                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unsafe-member-access
+  176:24  error  Unsafe member access .save on an `any` value                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unsafe-member-access
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\entities\document-number-audit.entity.ts
+  28:42  error  'unknown' overrides all other types in this union type  @typescript-eslint/no-redundant-type-constituents
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\document-numbering.service.ts
+    5:3   error  'NotFoundException' is defined but never used                     @typescript-eslint/no-unused-vars
+    8:37  error  'In' is defined but never used                                    @typescript-eslint/no-unused-vars
+  295:17  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  297:49  error  Unsafe member access .message on an `any` value                   @typescript-eslint/no-unsafe-member-access
+  298:11  error  Unsafe member access .stack on an `any` value                     @typescript-eslint/no-unsafe-member-access
+  385:15  error  Unsafe assignment of an `any` value                               @typescript-eslint/no-unsafe-assignment
+  391:11  error  Unsafe assignment of an `any` value                               @typescript-eslint/no-unsafe-assignment
+  391:26  error  Unsafe member access .projectId on an `any` value                 @typescript-eslint/no-unsafe-member-access
+  392:11  error  Unsafe assignment of an `any` value                               @typescript-eslint/no-unsafe-assignment
+  392:23  error  Unsafe member access .correspondenceTypeId on an `any` value      @typescript-eslint/no-unsafe-member-access
+  393:11  error  Unsafe assignment of an `any` value                               @typescript-eslint/no-unsafe-assignment
+  393:26  error  Unsafe member access .subTypeId on an `any` value                 @typescript-eslint/no-unsafe-member-access
+  394:11  error  Unsafe assignment of an `any` value                               @typescript-eslint/no-unsafe-assignment
+  394:26  error  Unsafe member access .rfaTypeId on an `any` value                 @typescript-eslint/no-unsafe-member-access
+  395:11  error  Unsafe assignment of an `any` value                               @typescript-eslint/no-unsafe-assignment
+  395:29  error  Unsafe member access .disciplineId on an `any` value              @typescript-eslint/no-unsafe-member-access
+  396:11  error  Unsafe assignment of an `any` value                               @typescript-eslint/no-unsafe-assignment
+  396:41  error  Unsafe member access .originatorOrganizationId on an `any` value  @typescript-eslint/no-unsafe-member-access
+  397:11  error  Unsafe assignment of an `any` value                               @typescript-eslint/no-unsafe-assignment
+  397:40  error  Unsafe member access .recipientOrganizationId on an `any` value   @typescript-eslint/no-unsafe-member-access
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\format.service.ts
+  54:5  error  Unexpected console statement  no-console
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\manual-override.service.spec.ts
+  56:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  57:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\metrics.service.ts
+  1:22  error  'Logger' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\reservation.service.ts
+  76:11  error  'reservation' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\template.service.ts
+  1:30  error  'NotFoundException' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\json-schema\dto\create-json-schema.dto.ts
+  51:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  65:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\backend\src\modules\json-schema\dto\search-json-schema.dto.ts
+  14:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+
+D:\nap-dms.lcbp3\backend\src\modules\json-schema\json-schema.service.ts
+   92:18  error  '_schema' is defined but never used           @typescript-eslint/no-unused-vars
+   92:35  error  '_data' is defined but never used             @typescript-eslint/no-unused-vars
+  258:5   error  'options' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  265:11  error  Unsafe assignment of an `any` value           @typescript-eslint/no-unsafe-assignment
+
+D:\nap-dms.lcbp3\backend\src\modules\json-schema\services\schema-migration.service.ts
+   62:13  error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+   67:29  error  Unsafe member access .length on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+   73:13  error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+   73:34  error  Unsafe member access [0] on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+   74:13  error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+   74:37  error  Unsafe member access [0] on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+   79:11  error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+   80:11  error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+   86:11  error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+   90:16  error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+   93:11  error  Unsafe argument of type `any` assigned to a parameter of type `number`                                 @typescript-eslint/no-unsafe-argument
+  106:60  error  Unsafe argument of type `any` assigned to a parameter of type `MigrationStep`                          @typescript-eslint/no-unsafe-argument
+  106:66  error  Unsafe argument of type `any` assigned to a parameter of type `Record<string, unknown>`                @typescript-eslint/no-unsafe-argument
+  107:24  error  Unsafe member access .config on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  107:45  error  Unsafe member access .config on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  108:37  error  Unsafe argument of type `any` assigned to a parameter of type `string`                                 @typescript-eslint/no-unsafe-argument
+  108:42  error  Unsafe member access .config on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  108:67  error  Unsafe member access .config on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  118:9   error  Unsafe argument of type `any` assigned to a parameter of type `Record<string, unknown>`                @typescript-eslint/no-unsafe-argument
+  142:9   error  Unsafe assignment of an `any` value                                                                    @typescript-eslint/no-unsafe-assignment
+  161:3   error  Async method 'applyMigrationStep' has no 'await' expression                                            @typescript-eslint/require-await
+  193:35  error  'newData[field]' may use Object's default stringification format ('[object Object]') when stringified  @typescript-eslint/no-base-to-string
+  201:37  error  'newData[field]' may use Object's default stringification format ('[object Object]') when stringified  @typescript-eslint/no-base-to-string
+
+D:\nap-dms.lcbp3\backend\src\modules\json-schema\services\virtual-column.service.ts
+  101:11  error  Unsafe assignment of an `any` value         @typescript-eslint/no-unsafe-assignment
+  106:16  error  Unsafe member access [0] on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+D:\nap-dms.lcbp3\backend\src\modules\master\dto\create-tag.dto.ts
+  1:44  error  'IsInt' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\master\dto\save-number-format.dto.ts
+  1:39  error  'IsOptional' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\master\master.controller.ts
+  7:3  error  'Put' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\migration\migration.controller.spec.ts
+  53:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+D:\nap-dms.lcbp3\backend\src\modules\migration\migration.controller.ts
+  166:3  error  Async method 'getStagingFile' has no 'await' expression  @typescript-eslint/require-await
+
+D:\nap-dms.lcbp3\backend\src\modules\migration\migration.service.ts
+  174:17  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+  179:13  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+  179:35  error  Unsafe member access [0] on an `any` value        @typescript-eslint/no-unsafe-member-access
+  295:15  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+  301:11  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+  301:41  error  Unsafe member access [0] on an `any` value        @typescript-eslint/no-unsafe-member-access
+  332:17  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+  338:32  error  Unsafe member access .length on an `any` value    @typescript-eslint/no-unsafe-member-access
+  339:13  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+  339:28  error  Unsafe member access [0] on an `any` value        @typescript-eslint/no-unsafe-member-access
+  341:19  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+  345:13  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+  345:31  error  Unsafe member access .insertId on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+D:\nap-dms.lcbp3\backend\src\modules\notification\dto\create-notification.dto.ts
+  7:3  error  'IsUrl' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\notification\dto\search-notification.dto.ts
+  20:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+
+D:\nap-dms.lcbp3\backend\src\modules\notification\notification-cleanup.service.ts
+  4:22  error  'LessThan' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\notification\notification.processor.ts
+   50:26  error  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   50:31  error  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   50:54  error  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+   57:38  error  Unsafe argument of type `any` assigned to a parameter of type `NotificationPayload`  @typescript-eslint/no-unsafe-argument
+   61:43  error  Unsafe argument of type `any` assigned to a parameter of type `number`               @typescript-eslint/no-unsafe-argument
+   61:52  error  Unsafe member access .userId on an `any` value                                       @typescript-eslint/no-unsafe-member-access
+   61:60  error  Unsafe argument of type `any` assigned to a parameter of type `"EMAIL" | "LINE"`     @typescript-eslint/no-unsafe-argument
+   61:69  error  Unsafe member access .type on an `any` value                                         @typescript-eslint/no-unsafe-member-access
+  155:11  error  Unsafe assignment of type `any[]` to a variable of type `NotificationPayload[]`      @typescript-eslint/no-unsafe-assignment
+  156:7   error  Unsafe return of a value of type `any`                                               @typescript-eslint/no-unsafe-return
+  209:11  error  Unsafe assignment of an `any` value                                                  @typescript-eslint/no-unsafe-assignment
+  213:24  error  Unsafe argument of type `any` assigned to a parameter of type `string`               @typescript-eslint/no-unsafe-argument
+  226:11  error  Unsafe assignment of an `any` value                                                  @typescript-eslint/no-unsafe-assignment
+  232:24  error  Unsafe argument of type `any` assigned to a parameter of type `string`               @typescript-eslint/no-unsafe-argument
+
+D:\nap-dms.lcbp3\backend\src\modules\notification\notification.service.ts
+  12:10  error  'UserPreference' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\organization\organization.service.ts
+  76:5  error  Unexpected console statement  no-console
+
+D:\nap-dms.lcbp3\backend\src\modules\project\dto\search-project.dto.ts
+  14:5  error  Unsafe return of a value of type `any`  @typescript-eslint/no-unsafe-return
+
+D:\nap-dms.lcbp3\backend\src\modules\project\project.controller.spec.ts
+  49:13  error  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  62:13  error  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\project\project.service.spec.ts
+  64:7   error  Unsafe call of an `any` typed value                      @typescript-eslint/no-unsafe-call
+  66:10  error  Unsafe member access .getManyAndCount on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+D:\nap-dms.lcbp3\backend\src\modules\project\project.service.ts
+  8:22  error  'Like' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\rfa\entities\rfa-workflow-template.entity.ts
+  26:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\backend\src\modules\rfa\entities\rfa-workflow.entity.ts
+  55:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\backend\src\modules\rfa\rfa-workflow.service.ts
+  111:59  error  Invalid type "unknown" of template literal expression                               @typescript-eslint/restrict-template-expressions
+  143:15  error  Unsafe assignment of an `any` value                                                 @typescript-eslint/no-unsafe-assignment
+  144:57  error  Unsafe argument of type `any` assigned to a parameter of type `string | undefined`  @typescript-eslint/no-unsafe-argument
+
+D:\nap-dms.lcbp3\backend\src\modules\search\dto\search-query.dto.ts
+  1:39  error  'IsNotEmpty' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\search\search.service.ts
+   48:11  error  Unsafe assignment of an `any` value       @typescript-eslint/no-unsafe-assignment
+   63:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:11  error  Unsafe assignment of an `any` value       @typescript-eslint/no-unsafe-assignment
+
+D:\nap-dms.lcbp3\backend\src\modules\transmittal\transmittal.controller.ts
+  49:20  error  '_user' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\user\dto\assign-role.dto.ts
+  1:41  error  'ValidateIf' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\user\user.service.ts
+   21:10  error  'Organization' is defined but never used     @typescript-eslint/no-unused-vars
+  245:11  error  Unsafe assignment of an `any` value          @typescript-eslint/no-unsafe-assignment
+  250:11  error  Unsafe assignment of an `any` value          @typescript-eslint/no-unsafe-assignment
+  250:28  error  Unsafe call of an `any` typed value          @typescript-eslint/no-unsafe-call
+  250:40  error  Unsafe member access .map on an `any` value  @typescript-eslint/no-unsafe-member-access
+  257:5   error  Unsafe return of a value of type `any`       @typescript-eslint/no-unsafe-return
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\dsl\parser.service.ts
+   24:13  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+  185:13  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\dto\evaluate-workflow.dto.ts
+  24:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\dto\workflow-transition.dto.ts
+  29:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\entities\workflow-history.entity.ts
+  57:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\entities\workflow-instance.entity.ts
+  73:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-dsl.service.ts
+  258:20  error  Implied eval. Do not use the Function constructor to create functions  @typescript-eslint/no-implied-eval
+  259:16  error  Unsafe call of a `Function` typed value                                @typescript-eslint/no-unsafe-call
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-engine.controller.ts
+   84:5   error  Unsafe return of a value of type `Promise<any>`               @typescript-eslint/no-unsafe-return
+  118:3   error  Async method 'getAvailableActions' has no 'await' expression  @typescript-eslint/require-await
+  118:42  error  'instanceId' is defined but never used                        @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-engine.service.spec.ts
+  121:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  122:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  145:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  188:14  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-engine.service.ts
+  261:29  error  Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  344:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  371:53  error  Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  405:7   error  The case statement does not have a shared enum type with the switch predicate                                                                                       @typescript-eslint/no-unsafe-enum-comparison
+  406:7   error  The case statement does not have a shared enum type with the switch predicate                                                                                       @typescript-eslint/no-unsafe-enum-comparison
+  421:7   error  The case statement does not have a shared enum type with the switch predicate                                                                                       @typescript-eslint/no-unsafe-enum-comparison
+  429:7   error  The case statement does not have a shared enum type with the switch predicate                                                                                       @typescript-eslint/no-unsafe-enum-comparison
+  431:9   error  Unexpected lexical declaration in case block                                                                                                                        no-case-declarations
+
+D:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-event.service.ts
+  28:3   error  Async method 'dispatchEvents' has no 'await' expression                                                                                                             @typescript-eslint/require-await
+  31:29  error  Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+  40:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  73:66  error  Invalid type "unknown" of template literal expression                                                                                                               @typescript-eslint/restrict-template-expressions
+  80:3   error  Async method 'handleNotify' has no 'await' expression                                                                                                               @typescript-eslint/require-await
+  82:5   error  '_context' is defined but never used                                                                                                                                @typescript-eslint/no-unused-vars
+  91:3   error  Async method 'handleWebhook' has no 'await' expression                                                                                                              @typescript-eslint/require-await
+  93:5   error  '_context' is defined but never used                                                                                                                                @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\backend\src\scripts\migrate-storage-v2.ts
+   10:37  error  Unsafe argument of type `any` assigned to a parameter of type `DataSourceOptions`                                                                                   @typescript-eslint/no-unsafe-argument
+   10:47  error  Unexpected any. Specify a different type                                                                                                                            @typescript-eslint/no-explicit-any
+   14:5   error  Unexpected console statement                                                                                                                                        no-console
+   21:5   error  Unexpected console statement                                                                                                                                        no-console
+   33:5   error  Unexpected console statement                                                                                                                                        no-console
+   36:7   error  Unexpected console statement                                                                                                                                        no-console
+   50:9   error  Unexpected console statement                                                                                                                                        no-console
+   57:20  error  Unnecessary escape character: \/                                                                                                                                    no-useless-escape
+   57:78  error  Unnecessary escape character: \/                                                                                                                                    no-useless-escape
+   57:89  error  Unnecessary escape character: \/                                                                                                                                    no-useless-escape
+   68:9   error  Unexpected console statement                                                                                                                                        no-console
+   98:37  error  Unexpected console statement                                                                                                                                        no-console
+  100:9   error  Unexpected console statement                                                                                                                                        no-console
+  108:5   error  Unexpected console statement                                                                                                                                        no-console
+  109:5   error  Unexpected console statement                                                                                                                                        no-console
+  110:5   error  Unexpected console statement                                                                                                                                        no-console
+  111:5   error  Unexpected console statement                                                                                                                                        no-console
+  113:5   error  Unexpected console statement                                                                                                                                        no-console
+  119:1   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+D:\nap-dms.lcbp3\backend\test\phase3-workflow.e2e-spec.ts
+   27:7   error  'adminToken' is assigned a value but never used                      @typescript-eslint/no-unused-vars
+   57:7   error  Unexpected console statement                                         no-console
+   70:36  error  Unsafe argument of type `any` assigned to a parameter of type `App`  @typescript-eslint/no-unsafe-argument
+   83:5   error  Unsafe assignment of an `any` value                                  @typescript-eslint/no-unsafe-assignment
+   83:38  error  Unsafe member access .id on an `any` value                           @typescript-eslint/no-unsafe-member-access
+   84:5   error  Unexpected console statement                                         no-console
+   88:36  error  Unsafe argument of type `any` assigned to a parameter of type `App`  @typescript-eslint/no-unsafe-argument
+   98:5   error  Unsafe assignment of an `any` value                                  @typescript-eslint/no-unsafe-assignment
+   98:40  error  Unsafe member access .instanceId on an `any` value                   @typescript-eslint/no-unsafe-member-access
+   99:5   error  Unexpected console statement                                         no-console
+  100:5   error  Unexpected console statement                                         no-console
+  100:49  error  Unsafe member access .currentState on an `any` value                 @typescript-eslint/no-unsafe-member-access
+  106:7   error  Unexpected console statement                                         no-console
+  110:36  error  Unsafe argument of type `any` assigned to a parameter of type `App`  @typescript-eslint/no-unsafe-argument
+  122:5   error  Unexpected console statement                                         no-console
+
+D:\nap-dms.lcbp3\backend\test\simple.e2e-spec.ts
+  1:8   error  'request' is defined but never used          @typescript-eslint/no-unused-vars
+  3:10  error  'RoutingTemplate' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\access-control\users\page.tsx
+  39:10  error  'Organization' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\contracts\page.tsx
+  52:11  error  'Project' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\numbering\[id]\edit\page.tsx
+  43:16  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  57:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\numbering\new\page.tsx
+  28:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\numbering\page.tsx
+  61:46  error  'isLoadingTemplates' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\reference\correspondence-types\page.tsx
+  8:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\reference\disciplines\page.tsx
+  17:28  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  46:45  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  70:20  error  'id' is defined but never used. Allowed unused args must match /^_/u    @typescript-eslint/no-unused-vars
+  70:24  error  'data' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  84:36  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\reference\drawing-categories\page.tsx
+  8:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\reference\rfa-types\page.tsx
+  17:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  87:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\workflows\[id]\edit\page.tsx
+  72:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\workflows\new\page.tsx
+  34:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\migration\page.tsx
+   35:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  104:14  error    'error' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\migration\review\[id]\page.tsx
+   14:3   error    'FormDescription' is defined but never used. Allowed unused vars must match /^_/u                             @typescript-eslint/no-unused-vars
+   67:6   warning  React Hook useEffect has a missing dependency: 'fetchItem'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   89:14  error    'error' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+  144:14  error    'error' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\monitoring\system-logs\numbering\page.tsx
+  17:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\error.tsx
+  16:5  error  Unexpected console statement  no-console
+
+D:\nap-dms.lcbp3\frontend\app\(auth)\login\page.tsx
+  78:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(dashboard)\circulation\new\page.tsx
+  226:28  error  'field' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(dashboard)\error.tsx
+  16:5  error  Unexpected console statement  no-console
+
+D:\nap-dms.lcbp3\frontend\app\(dashboard)\profile\page.tsx
+  70:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\(dashboard)\projects\new\page.tsx
+  78:27  error  'data' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  92:14  error  'error' is defined but never used                                       @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\app\error.tsx
+  15:5  error  Unexpected console statement  no-console
+
+D:\nap-dms.lcbp3\frontend\app\global-error.tsx
+  15:5  error  Unexpected console statement  no-console
+
+D:\nap-dms.lcbp3\frontend\components\admin\organization-dialog.tsx
+  102:29  error  ❌ parseInt() is forbidden (UUID risk)  no-restricted-syntax
+
+D:\nap-dms.lcbp3\frontend\components\admin\reference\generic-crud-table.tsx
+  96:37  error  'refetch' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\admin\security\rbac-matrix.tsx
+  31:11  error  'RbacMatrixProps' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  95:47  error  ❌ parseInt() is forbidden (UUID risk)                                              no-restricted-syntax
+
+D:\nap-dms.lcbp3\frontend\components\circulation\circulation-list.tsx
+  6:10  error  'StatusBadge' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  8:15  error  'CheckCircle2' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\common\status-badge.tsx
+  19:7  error  'defaultStatus' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\correspondences\correspondences-content.tsx
+  13:16  error  ❌ parseInt() is forbidden (UUID risk)                                              no-restricted-syntax
+  14:9   error  'status' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\correspondences\form.tsx
+   25:10  error  'correspondenceService' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   86:75  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  102:55  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  117:57  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  118:48  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  131:52  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  198:17  error  'err' is defined but never used                                                          @typescript-eslint/no-unused-vars
+  285:62  error  ❌ parseInt() is forbidden (UUID risk)                                                    no-restricted-syntax
+  309:64  error  ❌ parseInt() is forbidden (UUID risk)                                                    no-restricted-syntax
+
+D:\nap-dms.lcbp3\frontend\components\custom\file-upload-zone.tsx
+  35:8  error    ❌ +value is forbidden (UUID risk)                                                                                  no-restricted-syntax
+  88:5  warning  React Hook useCallback has a missing dependency: 'validateFile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\nap-dms.lcbp3\frontend\components\dashboard\pending-tasks.tsx
+  7:10  error  'AlertCircle' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\documents\common\server-data-table.tsx
+  11:3  error  'getPaginationRowModel' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\drawings\revision-history.tsx
+  7:20  error  'FileText' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\drawings\upload-form.tsx
+   37:43  error  ❌ parseInt() is forbidden (UUID risk)  no-restricted-syntax
+  286:50  error  ❌ parseInt() is forbidden (UUID risk)  no-restricted-syntax
+  356:50  error  ❌ parseInt() is forbidden (UUID risk)  no-restricted-syntax
+
+D:\nap-dms.lcbp3\frontend\components\layout\navbar.tsx
+  4:8  error  'Link' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\numbering\audit-logs-table.tsx
+  16:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  26:16  error  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\numbering\bulk-import-form.tsx
+  31:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\numbering\cancel-number-form.tsx
+  46:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\numbering\manual-override-form.tsx
+  58:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\numbering\metrics-dashboard.tsx
+   4:52  error  'CardDescription' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  18:16  error  'error' is defined but never used                                                  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\numbering\template-editor.tsx
+  152:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\frontend\components\numbering\template-tester.tsx
+  76:35  error  ❌ parseInt() is forbidden (UUID risk)     no-restricted-syntax
+  77:27  error  ❌ parseInt() is forbidden (UUID risk)     no-restricted-syntax
+  80:9   error  Unexpected console statement              no-console
+  82:9   error  Unexpected console statement              no-console
+  88:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  89:9   error  Unexpected console statement              no-console
+
+D:\nap-dms.lcbp3\frontend\components\numbering\void-replace-form.tsx
+  54:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\rfas\form.tsx
+  285:17  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\transmittal\transmittal-form.tsx
+  420:48  error  ❌ parseInt() is forbidden (UUID risk)  no-restricted-syntax
+
+D:\nap-dms.lcbp3\frontend\components\ui\calendar.tsx
+  57:25  error  'props' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  58:26  error  'props' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\ui\dropdown-menu.tsx
+  6:10  error  'Check' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  6:31  error  'Circle' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\workflows\dsl-editor.tsx
+  50:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\components\workflows\visual-builder.tsx
+  238:12  error  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\lib\api\client.ts
+  43:16  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\lib\api\drawings.ts
+  38:25  error  'contractId' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\lib\api\numbering.ts
+  133:37  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  141:37  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  160:21  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  171:38  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  193:37  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  203:37  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  213:37  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  227:38  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  238:38  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  249:38  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  260:38  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  285:37  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  301:38  error  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  307:5   error  Unexpected console statement                                               no-console
+  310:5   error  Unexpected console statement                                               no-console
+  320:5   error  Unexpected console statement                                               no-console
+  340:5   error  'context' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\lib\auth.ts
+    9:7   error  'loginSchema' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  106:12  error  'error' is defined but never used                                                       @typescript-eslint/no-unused-vars
+  139:11  error  Unexpected console statement                                                            no-console
+  140:11  error  Unexpected console statement                                                            no-console
+  141:11  error  Unexpected console statement                                                            no-console
+  153:13  error  Unexpected console statement                                                            no-console
+  155:13  error  Unexpected console statement                                                            no-console
+  163:13  error  Unexpected console statement                                                            no-console
+  167:11  error  Unexpected console statement                                                            no-console
+  181:11  error  Unexpected console statement                                                            no-console
+
+D:\nap-dms.lcbp3\frontend\lib\services\dashboard.service.ts
+  18:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  34:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\lib\services\migration.service.ts
+  95:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\frontend\proxy.ts
+  3:15  error  'NextRequest' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\nap-dms.lcbp3\frontend\types\migration.ts
+  14:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\frontend\types\next-auth.d.ts
+  2:8  error  'NextAuth' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 476 problems (473 errors, 3 warnings)
+

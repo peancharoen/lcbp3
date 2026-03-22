@@ -1,16 +1,16 @@
-import js from "@eslint/js";
-import globals from "globals";
-import typescriptParser from "@typescript-eslint/parser";
-import typescriptPlugin from "@typescript-eslint/eslint-plugin";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
+import js from '@eslint/js';
+import globals from 'globals';
+import typescriptParser from '@typescript-eslint/parser';
+import typescriptPlugin from '@typescript-eslint/eslint-plugin';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 const eslintConfig = [
   js.configs.recommended,
   {
-    files: ["**/*.{js,jsx}"],
+    files: ['**/*.{js,jsx}'],
     languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module",
+      ecmaVersion: 'latest',
+      sourceType: 'module',
       globals: {
         ...globals.browser,
         ...globals.node,
@@ -18,17 +18,17 @@ const eslintConfig = [
       },
     },
     rules: {
-      "no-console": "error",
-      "no-unused-vars": "error",
+      'no-console': 'error',
+      'no-unused-vars': 'error',
     },
   },
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
+        ecmaVersion: 'latest',
+        sourceType: 'module',
         ecmaFeatures: {
           jsx: true,
         },
@@ -40,20 +40,24 @@ const eslintConfig = [
       },
     },
     plugins: {
-      "@typescript-eslint": typescriptPlugin,
-      "react-hooks": reactHooksPlugin,
+      '@typescript-eslint': typescriptPlugin,
+      'react-hooks': reactHooksPlugin,
     },
     rules: {
-      "no-console": "error",
-      "no-unused-vars": "off",
-      "no-undef": "off",
-      "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-unused-vars": ["error", {
-        argsIgnorePattern: "^_",
-        varsIgnorePattern: "^_",
-      }],
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      'no-console': 'error',
+      'no-unused-vars': 'off',
+      'no-undef': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'no-restricted-syntax': [
         'error',
         {
@@ -70,14 +74,14 @@ const eslintConfig = [
   // Ignore config files and build outputs
   {
     ignores: [
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "dist/**",
-      "build/**",
-      "*.config.js",
-      "*.config.mjs",
-      "*.config.ts",
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      'dist/**',
+      'build/**',
+      '*.config.js',
+      '*.config.mjs',
+      '*.config.ts',
     ],
   },
 ];

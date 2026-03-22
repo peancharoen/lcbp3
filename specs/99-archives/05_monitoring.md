@@ -7,15 +7,15 @@
 
 Stack สำหรับ Monitoring ประกอบด้วย:
 
-| Service           | Port                         | Purpose                           | Host    |
-| :---------------- | :--------------------------- | :-------------------------------- | :------ |
+| Service           | Port                         | Purpose                            | Host    |
+| :---------------- | :--------------------------- | :--------------------------------- | :------ |
 | **Prometheus**    | 9090                         | เก็บ Metrics และ Time-series data  | ASUSTOR |
-| **Grafana**       | 3000                         | Dashboard สำหรับแสดงผล Metrics      | ASUSTOR |
+| **Grafana**       | 3000                         | Dashboard สำหรับแสดงผล Metrics     | ASUSTOR |
 | **Node Exporter** | 9100                         | เก็บ Metrics ของ Host system       | Both    |
 | **cAdvisor**      | 8080 (ASUSTOR) / 8088 (QNAP) | เก็บ Metrics ของ Docker containers | Both    |
-| **Uptime Kuma**   | 3001                         | Service Availability Monitoring   | ASUSTOR |
-| **Loki**          | 3100                         | Log aggregation                   | ASUSTOR |
-| **Promtail**      | -                            | Log shipper (Sender)              | ASUSTOR |
+| **Uptime Kuma**   | 3001                         | Service Availability Monitoring    | ASUSTOR |
+| **Loki**          | 3100                         | Log aggregation                    | ASUSTOR |
+| **Promtail**      | -                            | Log shipper (Sender)               | ASUSTOR |
 
 ---
 
@@ -148,10 +148,10 @@ x-restart: &restart_policy
 
 x-logging: &default_logging
   logging:
-    driver: "json-file"
+    driver: 'json-file'
     options:
-      max-size: "10m"
-      max-file: "5"
+      max-size: '10m'
+      max-file: '5'
 
 networks:
   lcbp3:
@@ -170,27 +170,27 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
+          cpus: '1.0'
           memory: 1G
         reservations:
-          cpus: "0.25"
+          cpus: '0.25'
           memory: 256M
     environment:
-      TZ: "Asia/Bangkok"
+      TZ: 'Asia/Bangkok'
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=30d'
       - '--web.enable-lifecycle'
     ports:
-      - "9090:9090"
+      - '9090:9090'
     networks:
       - lcbp3
     volumes:
-      - "/volume1/np-dms/monitoring/prometheus/config:/etc/prometheus:ro"
-      - "/volume1/np-dms/monitoring/prometheus/data:/prometheus"
+      - '/volume1/np-dms/monitoring/prometheus/config:/etc/prometheus:ro'
+      - '/volume1/np-dms/monitoring/prometheus/data:/prometheus'
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9090/-/healthy']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -207,27 +207,27 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
+          cpus: '1.0'
           memory: 512M
         reservations:
-          cpus: "0.25"
+          cpus: '0.25'
           memory: 128M
     environment:
-      TZ: "Asia/Bangkok"
+      TZ: 'Asia/Bangkok'
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: "Center#2025"
-      GF_SERVER_ROOT_URL: "https://grafana.np-dms.work"
+      GF_SECURITY_ADMIN_PASSWORD: 'Center#2025'
+      GF_SERVER_ROOT_URL: 'https://grafana.np-dms.work'
       GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-piechart-panel
     ports:
-      - "3000:3000"
+      - '3000:3000'
     networks:
       - lcbp3
     volumes:
-      - "/volume1/np-dms/monitoring/grafana/data:/var/lib/grafana"
+      - '/volume1/np-dms/monitoring/grafana/data:/var/lib/grafana'
     depends_on:
       - prometheus
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
+      test: ['CMD-SHELL', 'wget --spider -q http://localhost:3000/api/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -242,18 +242,18 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 256M
     environment:
-      TZ: "Asia/Bangkok"
+      TZ: 'Asia/Bangkok'
     ports:
-      - "3001:3001"
+      - '3001:3001'
     networks:
       - lcbp3
     volumes:
-      - "/volume1/np-dms/monitoring/uptime-kuma/data:/app/data"
+      - '/volume1/np-dms/monitoring/uptime-kuma/data:/app/data'
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3001/api/entry-page || exit 1"]
+      test: ['CMD-SHELL', 'curl -f http://localhost:3001/api/entry-page || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -268,16 +268,16 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 128M
     environment:
-      TZ: "Asia/Bangkok"
+      TZ: 'Asia/Bangkok'
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "9100:9100"
+      - '9100:9100'
     networks:
       - lcbp3
     volumes:
@@ -285,7 +285,7 @@ services:
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9100/metrics"]
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9100/metrics']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -303,12 +303,12 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 256M
     environment:
-      TZ: "Asia/Bangkok"
+      TZ: 'Asia/Bangkok'
     ports:
-      - "8088:8088"
+      - '8088:8088'
     networks:
       - lcbp3
     volumes:
@@ -318,7 +318,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8080/healthz']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -333,19 +333,19 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 512M
     environment:
-      TZ: "Asia/Bangkok"
+      TZ: 'Asia/Bangkok'
     command: -config.file=/etc/loki/local-config.yaml
     ports:
-      - "3100:3100"
+      - '3100:3100'
     networks:
       - lcbp3
     volumes:
-      - "/volume1/np-dms/monitoring/loki/data:/loki"
+      - '/volume1/np-dms/monitoring/loki/data:/loki'
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3100/ready']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -357,21 +357,21 @@ services:
     <<: [*restart_policy, *default_logging]
     image: grafana/promtail:2.9.0
     container_name: promtail
-    user: "0:0"
+    user: '0:0'
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 256M
     environment:
-      TZ: "Asia/Bangkok"
+      TZ: 'Asia/Bangkok'
     command: -config.file=/etc/promtail/promtail-config.yml
     networks:
       - lcbp3
     volumes:
-      - "/volume1/np-dms/monitoring/promtail/config:/etc/promtail:ro"
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "/var/lib/docker/containers:/var/lib/docker/containers:ro"
+      - '/volume1/np-dms/monitoring/promtail/config:/etc/promtail:ro'
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - '/var/lib/docker/containers:/var/lib/docker/containers:ro'
     depends_on:
       - loki
 ```
@@ -402,7 +402,7 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "9100:9100"
+      - '9100:9100'
     networks:
       - lcbp3
     volumes:
@@ -416,7 +416,7 @@ services:
     restart: unless-stopped
     privileged: true
     ports:
-      - "8088:8080"
+      - '8088:8080'
     networks:
       - lcbp3
     volumes:
@@ -434,11 +434,11 @@ services:
     command:
       - '--config.my-cnf=/etc/mysql/my.cnf'
     ports:
-      - "9104:9104"
+      - '9104:9104'
     networks:
       - lcbp3
     volumes:
-      - "/share/np-dms/monitoring/mysqld-exporter/.my.cnf:/etc/mysql/my.cnf:ro"
+      - '/share/np-dms/monitoring/mysqld-exporter/.my.cnf:/etc/mysql/my.cnf:ro'
 ```
 
 ---
@@ -547,7 +547,6 @@ scrape_configs:
 | 14204        | Elasticsearch                | Elasticsearch view             |
 | 13106        | MySQL/MariaDB Overview       | Detailed MySQL/MariaDB metrics |
 
-
 ### Import Dashboard via Grafana UI
 
 1. Go to **Dashboards → Import**
@@ -561,13 +560,13 @@ scrape_configs:
 
 ### 📋 Prerequisites Checklist
 
-| #    | ขั้นตอน                                                                                              | Status |
-| :--- | :------------------------------------------------------------------------------------------------- | :----- |
-| 1    | SSH เข้า ASUSTOR ได้ (`ssh admin@192.168.10.9`)                                                      | ✅      |
-| 2    | Docker Network `lcbp3` สร้างแล้ว (ดูหัวข้อ [สร้าง Docker Network](#-สร้าง-docker-network-ทำครั้งแรกครั้งเดียว)) | ✅      |
-| 3    | สร้าง Directories และกำหนดสิทธิ์แล้ว (ดูหัวข้อ [กำหนดสิทธิ](#กำหนดสิทธิ-บน-asustor))                              | ✅      |
-| 4    | สร้าง `prometheus.yml` แล้ว (ดูหัวข้อ [Prometheus Configuration](#prometheus-configuration))            | ✅      |
-| 5    | สร้าง `promtail-config.yml` แล้ว (ดูหัวข้อ [Step 1.2](#step-12-สร้าง-promtail-configyml))                | ✅      |
+| #   | ขั้นตอน                                                                                                         | Status |
+| :-- | :-------------------------------------------------------------------------------------------------------------- | :----- |
+| 1   | SSH เข้า ASUSTOR ได้ (`ssh admin@192.168.10.9`)                                                                 | ✅     |
+| 2   | Docker Network `lcbp3` สร้างแล้ว (ดูหัวข้อ [สร้าง Docker Network](#-สร้าง-docker-network-ทำครั้งแรกครั้งเดียว)) | ✅     |
+| 3   | สร้าง Directories และกำหนดสิทธิ์แล้ว (ดูหัวข้อ [กำหนดสิทธิ](#กำหนดสิทธิ-บน-asustor))                            | ✅     |
+| 4   | สร้าง `prometheus.yml` แล้ว (ดูหัวข้อ [Prometheus Configuration](#prometheus-configuration))                    | ✅     |
+| 5   | สร้าง `promtail-config.yml` แล้ว (ดูหัวข้อ [Step 1.2](#step-12-สร้าง-promtail-configyml))                       | ✅     |
 
 ---
 
@@ -628,7 +627,7 @@ cat /volume1/np-dms/monitoring/prometheus/config/prometheus.yml
 
 ต้องสร้าง Config ให้ Promtail อ่าน logs จาก Docker containers และส่งไป Loki:
 
-```bash
+````bash
 # สร้างไฟล์ promtail-config.yml
 cat > /volume1/np-dms/monitoring/promtail/config/promtail-config.yml << 'EOF'
 server:
@@ -662,9 +661,10 @@ EOF
 CREATE USER 'exporter'@'%' IDENTIFIED BY 'Center2025' WITH MAX_USER_CONNECTIONS 3;
 GRANT PROCESS, REPLICATION CLIENT, SELECT, SLAVE MONITOR ON *.* TO 'exporter'@'%';
 FLUSH PRIVILEGES;
-```
+````
 
 ### 2. สร้างไฟล์คอนฟิก .my.cnf บน QNAP
+
 เพื่อให้ `mysqld-exporter` อ่านรหัสผ่านที่มีตัวอักษรพิเศษได้ถูกต้อง:
 
 1. **SSH เข้า QNAP** (หรือใช้ File Station สร้าง Folder):
@@ -678,11 +678,11 @@ FLUSH PRIVILEGES;
 3. **สร้างไฟล์ .my.cnf**:
    ```bash
    cat > /share/np-dms/monitoring/mysqld-exporter/.my.cnf << 'EOF'
-[client]
-user=exporter
-password=Center2025
-host=mariadb
-EOF
+   [client]
+   user=exporter
+   password=Center2025
+   host=mariadb
+   EOF
    ```
 4. **กำหนดสิทธิ์ไฟล์** (เพื่อให้ Container อ่านไฟล์ได้):
    ```bash
@@ -690,8 +690,10 @@ EOF
    ```
 
 # ตรวจสอบ
+
 cat /volume1/np-dms/monitoring/promtail/config/promtail-config.yml
-```
+
+````
 
 ---
 
@@ -722,7 +724,7 @@ docker compose up -d
 
 # ตรวจสอบ container status
 docker compose ps
-```
+````
 
 ---
 
@@ -735,15 +737,15 @@ docker ps --filter "name=prometheus" --filter "name=grafana" \
   --filter "name=cadvisor" --filter "name=loki" --filter "name=promtail"
 ```
 
-| Service           | วิธีตรวจสอบ                                                          | Expected Result                       |
-| :---------------- | :----------------------------------------------------------------- | :------------------------------------ |
-| ✅ **Prometheus**  | `curl http://192.168.10.9:9090/-/healthy`                          | `Prometheus Server is Healthy`        |
-| ✅ **Grafana**     | เปิด `https://grafana.np-dms.work` (หรือ `http://192.168.10.9:3000`) | หน้า Login                             |
-| ✅ **Uptime Kuma** | เปิด `https://uptime.np-dms.work` (หรือ `http://192.168.10.9:3001`)  | หน้า Setup                             |
-| ✅ **Node Exp.**   | `curl http://192.168.10.9:9100/metrics \| head`                    | Metrics output                        |
-| ✅ **cAdvisor**    | `curl http://192.168.10.9:8080/healthz`                            | `ok`                                  |
-| ✅ **Loki**        | `curl http://192.168.10.9:3100/ready`                              | `ready`                               |
-| ✅ **Promtail**    | เช็ค Logs: `docker logs promtail`                                   | ไม่ควรมี Error + เห็น connection success |
+| Service            | วิธีตรวจสอบ                                                          | Expected Result                          |
+| :----------------- | :------------------------------------------------------------------- | :--------------------------------------- |
+| ✅ **Prometheus**  | `curl http://192.168.10.9:9090/-/healthy`                            | `Prometheus Server is Healthy`           |
+| ✅ **Grafana**     | เปิด `https://grafana.np-dms.work` (หรือ `http://192.168.10.9:3000`) | หน้า Login                               |
+| ✅ **Uptime Kuma** | เปิด `https://uptime.np-dms.work` (หรือ `http://192.168.10.9:3001`)  | หน้า Setup                               |
+| ✅ **Node Exp.**   | `curl http://192.168.10.9:9100/metrics \| head`                      | Metrics output                           |
+| ✅ **cAdvisor**    | `curl http://192.168.10.9:8080/healthz`                              | `ok`                                     |
+| ✅ **Loki**        | `curl http://192.168.10.9:3100/ready`                                | `ready`                                  |
+| ✅ **Promtail**    | เช็ค Logs: `docker logs promtail`                                    | ไม่ควรมี Error + เห็น connection success |
 
 ---
 
@@ -797,30 +799,33 @@ curl -s http://localhost:9090/api/v1/targets | grep -E '"qnap-(node|cadvisor)"'
 เพื่อการ Monitor ที่สมบูรณ์ แนะนำให้ Import Dashboards ต่อไปนี้:
 
 #### 6.1 Host Monitoring (Node Exporter)
-*   **Concept:** ดู resource ของเครื่อง Host (CPU, RAM, Disk, Network)
-*   **Dashboard ID:** `1860` (Node Exporter Full)
-*   **วิธี Import:**
-    1. ไปที่ **Dashboards** → **New** → **Import**
-    2. ช่อง **Import via grafana.com** ใส่เลข `1860` กด **Load**
-    3. เลือก Data source: **Prometheus**
-    4. กด **Import**
+
+- **Concept:** ดู resource ของเครื่อง Host (CPU, RAM, Disk, Network)
+- **Dashboard ID:** `1860` (Node Exporter Full)
+- **วิธี Import:**
+  1. ไปที่ **Dashboards** → **New** → **Import**
+  2. ช่อง **Import via grafana.com** ใส่เลข `1860` กด **Load**
+  3. เลือก Data source: **Prometheus**
+  4. กด **Import**
 
 #### 6.2 Container Monitoring (cAdvisor)
-*   **Concept:** ดู resource ของแต่ละ Container (เชื่อม Logs ด้วย)
-*   **Dashboard ID:** `14282` (Cadvisor exporter)
-*   **วิธี Import:**
-    1. ใส่เลข `14282` กด **Load**
-    2. เลือก Data source: **Prometheus**
-    3. กด **Import**
+
+- **Concept:** ดู resource ของแต่ละ Container (เชื่อม Logs ด้วย)
+- **Dashboard ID:** `14282` (Cadvisor exporter)
+- **วิธี Import:**
+  1. ใส่เลข `14282` กด **Load**
+  2. เลือก Data source: **Prometheus**
+  3. กด **Import**
 
 #### 6.3 Logs Monitoring (Loki Integration)
+
 เพื่อให้ Dashboard ของ Container แสดง Logs จาก Loki ได้ด้วย:
 
 1. เปิด Dashboard **Cadvisor exporter** ที่เพิ่ง Import มา
 2. กดปุ่ม **Add visualization** (หรือ Edit dashboard)
 3. เลือก Data source: **Loki**
 4. ในช่อง Query ใส่: `{container="$name"}`
-    *   *(Note: `$name` มาจาก Variable ของ Dashboard 14282)*
+   - _(Note: `$name` มาจาก Variable ของ Dashboard 14282)_
 5. ปรับ Visualization type เป็น **Logs**
 6. ตั้งชื่อ Panel ว่า **"Container Logs"**
 7. กด **Apply** และ **Save Dashboard**
@@ -850,4 +855,3 @@ curl -s http://localhost:9090/api/v1/targets | grep -E '"qnap-(node|cadvisor)"'
 ---
 
 > 📝 **หมายเหตุ**: เอกสารนี้อ้างอิงจาก Architecture Document **v1.8.0** - Monitoring Stack deploy บน ASUSTOR AS5403T
-

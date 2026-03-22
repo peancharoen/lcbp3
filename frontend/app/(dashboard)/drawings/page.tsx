@@ -1,19 +1,13 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DrawingList } from "@/components/drawings/list";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Upload, Loader2 } from "lucide-react";
-import Link from "next/link";
-import { useProjects } from "@/hooks/use-master-data";
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DrawingList } from '@/components/drawings/list';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Upload, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useProjects } from '@/hooks/use-master-data';
 
 export default function DrawingsPage() {
   const [selectedProjectUuid, setSelectedProjectUuid] = useState<string | undefined>(undefined);
@@ -24,9 +18,7 @@ export default function DrawingsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Drawings</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage contract, shop, and as-built drawings
-          </p>
+          <p className="text-muted-foreground mt-1">Manage contract, shop, and as-built drawings</p>
         </div>
         <Link href="/drawings/upload">
           <Button>
@@ -39,10 +31,7 @@ export default function DrawingsPage() {
       {/* Project Selector */}
       <div className="flex items-center gap-4">
         <span className="text-sm font-medium">Project:</span>
-        <Select
-          value={selectedProjectUuid ?? ""}
-          onValueChange={(v) => setSelectedProjectUuid(v || undefined)}
-        >
+        <Select value={selectedProjectUuid ?? ''} onValueChange={(v) => setSelectedProjectUuid(v || undefined)}>
           <SelectTrigger className="w-[300px]">
             {isLoadingProjects ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -72,43 +61,42 @@ export default function DrawingsPage() {
 }
 
 function DrawingTabs({ projectUuid }: { projectUuid: string }) {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   // We can add more specific filters here (e.g. category) later
 
   return (
-        <Tabs defaultValue="contract" className="w-full">
-          <div className="flex justify-between items-center mb-6">
-              <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
-                <TabsTrigger value="contract">Contract</TabsTrigger>
-                <TabsTrigger value="shop">Shop</TabsTrigger>
-                <TabsTrigger value="asbuilt">As Built</TabsTrigger>
-              </TabsList>
+    <Tabs defaultValue="contract" className="w-full">
+      <div className="flex justify-between items-center mb-6">
+        <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
+          <TabsTrigger value="contract">Contract</TabsTrigger>
+          <TabsTrigger value="shop">Shop</TabsTrigger>
+          <TabsTrigger value="asbuilt">As Built</TabsTrigger>
+        </TabsList>
 
-              <div className="flex gap-2">
-                  <div className="relative">
-                       <input
-                          type="text"
-                          placeholder="Search drawings..."
-                          className="h-10 w-[250px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                       />
-                  </div>
-              </div>
+        <div className="flex gap-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search drawings..."
+              className="h-10 w-[250px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
+        </div>
+      </div>
 
-          <TabsContent value="contract" className="mt-0">
-            <DrawingList type="CONTRACT" projectUuid={projectUuid} filters={{ search }} />
-          </TabsContent>
+      <TabsContent value="contract" className="mt-0">
+        <DrawingList type="CONTRACT" projectUuid={projectUuid} filters={{ search }} />
+      </TabsContent>
 
-          <TabsContent value="shop" className="mt-0">
-            <DrawingList type="SHOP" projectUuid={projectUuid} filters={{ search }} />
-          </TabsContent>
+      <TabsContent value="shop" className="mt-0">
+        <DrawingList type="SHOP" projectUuid={projectUuid} filters={{ search }} />
+      </TabsContent>
 
-          <TabsContent value="asbuilt" className="mt-0">
-            <DrawingList type="AS_BUILT" projectUuid={projectUuid} filters={{ search }} />
-          </TabsContent>
-        </Tabs>
-  )
+      <TabsContent value="asbuilt" className="mt-0">
+        <DrawingList type="AS_BUILT" projectUuid={projectUuid} filters={{ search }} />
+      </TabsContent>
+    </Tabs>
+  );
 }
-

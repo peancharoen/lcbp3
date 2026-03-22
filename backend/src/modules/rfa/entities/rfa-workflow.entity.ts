@@ -52,7 +52,7 @@ export class RfaWorkflow {
   completedAt?: Date;
 
   @Column({ type: 'json', nullable: true })
-  stateContext?: Record<string, any>;
+  stateContext?: Record<string, unknown>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

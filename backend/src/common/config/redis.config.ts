@@ -8,8 +8,8 @@ export default registerAs('redis', () => ({
   // ใช้ค่า Default 'cache' ถ้าหาไม่เจอ
   host: process.env.REDIS_HOST || 'cache',
   // ✅ Fix: ใช้ || '6379' เพื่อให้มั่นใจว่าเป็น string ก่อนเข้า parseInt
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  port: Number(process.env.REDIS_PORT || '6379'),
   // ✅ Fix: ใช้ || '3600' เพื่อให้มั่นใจว่าเป็น string
-  ttl: parseInt(process.env.REDIS_TTL || '3600', 10),
+  ttl: Number(process.env.REDIS_TTL || '3600'),
   // password: process.env.REDIS_PASSWORD,
 }));

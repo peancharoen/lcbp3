@@ -196,22 +196,23 @@ CREATE TABLE document_number_audit (
 
 | Token          | Description               | Example Value                  | Database Source                                                       |
 | -------------- | ------------------------- | ------------------------------ | --------------------------------------------------------------------- |
-| `{PROJECT}`    | รหัสโครงการ                | `LCBP3`, `LCBP3-C2`            | `projects.project_code`                                               |
-| `{ORIGINATOR}` | รหัสองค์กรผู้ส่ง               | `คคง.`, `ผรม.1`                | `organizations.organization_code` via `correspondences.originator_id` |
-| `{RECIPIENT}`  | รหัสองค์กรผู้รับหลัก (TO)       | `สคฉ.3`, `กทท.`                | `organizations.organization_code` via `correspondence_recipients`     |
-| `{CORR_TYPE}`  | รหัสประเภทเอกสาร           | `RFA`, `TRANSMITTAL`, `LETTER` | `correspondence_types.type_code`                                      |
-| `{SUB_TYPE}`   | หมายเลขประเภทย่อย          | `11`, `12`, `21`               | `correspondence_sub_types.sub_type_number`                            |
-| `{RFA_TYPE}`   | รหัสประเภท RFA             | `SDW`, `RPT`, `MAT`            | `rfa_types.type_code`                                                 |
-| `{DISCIPLINE}` | รหัสสาขาวิชา                | `STR`, `TER`, `GEO`            | `disciplines.discipline_code`                                         |
+| `{PROJECT}`    | รหัสโครงการ               | `LCBP3`, `LCBP3-C2`            | `projects.project_code`                                               |
+| `{ORIGINATOR}` | รหัสองค์กรผู้ส่ง          | `คคง.`, `ผรม.1`                | `organizations.organization_code` via `correspondences.originator_id` |
+| `{RECIPIENT}`  | รหัสองค์กรผู้รับหลัก (TO) | `สคฉ.3`, `กทท.`                | `organizations.organization_code` via `correspondence_recipients`     |
+| `{CORR_TYPE}`  | รหัสประเภทเอกสาร          | `RFA`, `TRANSMITTAL`, `LETTER` | `correspondence_types.type_code`                                      |
+| `{SUB_TYPE}`   | หมายเลขประเภทย่อย         | `11`, `12`, `21`               | `correspondence_sub_types.sub_type_number`                            |
+| `{RFA_TYPE}`   | รหัสประเภท RFA            | `SDW`, `RPT`, `MAT`            | `rfa_types.type_code`                                                 |
+| `{DISCIPLINE}` | รหัสสาขาวิชา              | `STR`, `TER`, `GEO`            | `disciplines.discipline_code`                                         |
 | `{SEQ:n}`      | Running number (n digits) | `0001`, `0029`, `0985`         | `document_number_counters.last_number + 1`                            |
-| `{YEAR:B.E.}`  | ปี พ.ศ.                    | `2568`                         | `current_year + 543`                                                  |
-| `{YEAR:A.D.}`  | ปี ค.ศ.                    | `2025`                         | `current_year`                                                        |
+| `{YEAR:B.E.}`  | ปี พ.ศ.                   | `2568`                         | `current_year + 543`                                                  |
+| `{YEAR:A.D.}`  | ปี ค.ศ.                   | `2025`                         | `current_year`                                                        |
 | `{REV}`        | Revision Code             | `A`, `B`, `AA`                 | `correspondence_revisions.revision_label`                             |
 
 > [!WARNING]
 > **Deprecated Token Names (DO NOT USE)**
 >
 > The following tokens were used in earlier drafts but are now **deprecated**:
+>
 > - ~~`{ORG}`~~ → Use `{ORIGINATOR}` or `{RECIPIENT}` (explicit roles)
 > - ~~`{TYPE}`~~ → Use `{CORR_TYPE}`, `{SUB_TYPE}`, or `{RFA_TYPE}` (context-specific)
 > - ~~`{CATEGORY}`~~ → Not used in current system
@@ -221,6 +222,7 @@ CREATE TABLE document_number_audit (
 ### Format Resolution Strategy (Fallback Logic)
 
 The system resolves the numbering format using the following priority:
+
 1.  **Specific Format:** Search for a record matching both `project_id` and `correspondence_type_id`.
 2.  **Default Format:** If not found, search for a record with matching `project_id` where `correspondence_type_id` is `NULL`.
 3.  **System Fallback:** If neither exists, use the hardcoded system default: `{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}`.
@@ -267,6 +269,7 @@ Counter Key: (project_id, originator_org_id, recipient_org_id, corr_type_id, sub
 ```
 
 **Token Breakdown:**
+
 - `คคง.` = `{ORIGINATOR}` - ผู้ส่ง
 - `สคฉ.3` = `{RECIPIENT}` - ผู้รับหลัก (TO)
 - `21` = `{SUB_TYPE}` - หมายเลขประเภทย่อย (11=MAT, 12=SHP, 13=DWG, 21=...)
@@ -284,6 +287,7 @@ Counter Key: (project_id, originator_org_id, NULL, corr_type_id, 0, rfa_type_id,
 ```
 
 **Token Breakdown:**
+
 - `LCBP3-C2` = `{PROJECT}` - รหัสโครงการ
 - `RFA` = `{CORR_TYPE}` - ประเภทเอกสาร (**แสดง**ในtemplate สำหรับ RFA เท่านั้น)
 - `TER` = `{DISCIPLINE}` - รหัสสาขา (TER=Terminal, STR=Structure, GEO=Geotechnical)
@@ -340,8 +344,8 @@ export class DocumentNumberingService {
 
   async generateNextNumber(context: NumberingContext): Promise<string> {
     const year = context.year || new Date().getFullYear() + 543; // พ.ศ.
-    const subTypeId = context.subTypeId || 0;  // Fallback for NULL
-    const disciplineId = context.disciplineId || 0;  // Fallback for NULL
+    const subTypeId = context.subTypeId || 0; // Fallback for NULL
+    const disciplineId = context.disciplineId || 0; // Fallback for NULL
 
     // Build Redis lock key
     const lockKey = this.buildLockKey(
@@ -355,14 +359,8 @@ export class DocumentNumberingService {
 
     // Retry with exponential backoff (Scenario 2 & 3)
     return this.retryWithBackoff(
-      async () => await this.generateNumberWithLock(
-        lockKey,
-        context,
-        year,
-        subTypeId,
-        disciplineId
-      ),
-      5,  // Max 5 retries
+      async () => await this.generateNumberWithLock(lockKey, context, year, subTypeId, disciplineId),
+      5, // Max 5 retries
       1000 // Initial delay 1s
     );
   }
@@ -444,12 +442,7 @@ export class DocumentNumberingService {
       }
 
       // Step 4: Generate formatted number
-      const config = await this.getConfig(
-        context.projectId,
-        context.docTypeId,
-        subTypeId,
-        disciplineId
-      );
+      const config = await this.getConfig(context.projectId, context.docTypeId, subTypeId, disciplineId);
 
       const formattedNumber = await this.formatNumber(config.template, {
         ...context,
@@ -471,7 +464,6 @@ export class DocumentNumberingService {
 
       this.logger.log(`Generated: ${formattedNumber} (wait: ${lockWaitMs}ms)`);
       return formattedNumber;
-
     } finally {
       // Step 6: Release Redis lock
       if (lock) {
@@ -506,35 +498,29 @@ export class DocumentNumberingService {
   }
 
   private buildLockKey(...parts: Array<number | string | null | undefined>): string {
-    return `doc_num:${parts.filter(p => p !== null && p !== undefined).join(':')}`;
+    return `doc_num:${parts.filter((p) => p !== null && p !== undefined).join(':')}`;
   }
 
   // Scenario 2: Lock Acquisition Timeout - Exponential Backoff
-  private async retryWithBackoff<T>(
-    fn: () => Promise<T>,
-    maxRetries: number,
-    initialDelay: number
-  ): Promise<T> {
+  private async retryWithBackoff<T>(fn: () => Promise<T>, maxRetries: number, initialDelay: number): Promise<T> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await fn();
       } catch (error) {
         const isRetryable =
           error instanceof ConflictException ||
-          error.code === 'ECONNREFUSED' ||  // Scenario 4
-          error.code === 'ETIMEDOUT';       // Scenario 4
+          error.code === 'ECONNREFUSED' || // Scenario 4
+          error.code === 'ETIMEDOUT'; // Scenario 4
 
         if (!isRetryable || attempt === maxRetries) {
           if (attempt === maxRetries) {
-            throw new ServiceUnavailableException(
-              'ระบบกำลังยุ่ง กรุณาลองใหม่ภายหลัง'
-            );
+            throw new ServiceUnavailableException('ระบบกำลังยุ่ง กรุณาลองใหม่ภายหลัง');
           }
           throw error;
         }
 
         const delay = initialDelay * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         this.logger.warn(`Retry ${attempt + 1}/${maxRetries} after ${delay}ms`);
       }
     }
@@ -721,8 +707,8 @@ sequenceDiagram
 
 ### Alert Conditions
 
-| Severity   | Condition                    | Action             |
-| ---------- | ---------------------------- | ------------------ |
+| Severity    | Condition                    | Action             |
+| ----------- | ---------------------------- | ------------------ |
 | 🔴 Critical | Redis unavailable >1 minute  | Page ops team      |
 | 🔴 Critical | Lock failures >10% in 5 min  | Page ops team      |
 | 🟡 Warning  | Lock failures >5% in 5 min   | Alert ops team     |
@@ -823,7 +809,7 @@ describe('DocumentNumberingService - Concurrent Generation', () => {
     expect(unique.size).toBe(100);
 
     // Check format
-    results.forEach(num => {
+    results.forEach((num) => {
       expect(num).toMatch(/^LCBP3-C2-RFI-STR-\d{4}-A$/);
     });
   });
@@ -874,9 +860,7 @@ describe('DocumentNumberingService - Concurrent Generation', () => {
   it('should throw 503 after max lock acquisition retries', async () => {
     jest.spyOn(redlock, 'acquire').mockRejectedValue(new Error('Lock timeout'));
 
-    await expect(service.generateNextNumber(context))
-      .rejects
-      .toThrow(ServiceUnavailableException);
+    await expect(service.generateNextNumber(context)).rejects.toThrow(ServiceUnavailableException);
   });
 });
 ```
@@ -977,4 +961,4 @@ ensure:
 | 1.0     | 2025-11-30 | Initial decision                                                                                  |
 | 2.0     | 2025-12-02 | Updated with comprehensive error scenarios, monitoring, security, and all token types             |
 | 3.0     | 2025-12-17 | Aligned with Requirements v1.6.2: updated counter schema, token definitions, Number State Machine |
-| 4.0     | 2026-03-21 | Added discipline_id to formats, implemented automated Upsert logic for template management           |
+| 4.0     | 2026-03-21 | Added discipline_id to formats, implemented automated Upsert logic for template management        |

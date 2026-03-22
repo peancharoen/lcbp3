@@ -1,0 +1,20 @@
+
+> lcbp3-frontend@1.8.0 lint D:\nap-dms.lcbp3\frontend
+> eslint . --max-warnings 0
+
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\migration\page.tsx
+  28:6  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\nap-dms.lcbp3\frontend\app\(admin)\admin\migration\review\[id]\page.tsx
+  59:6  warning  React Hook useEffect has a missing dependency: 'fetchItem'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\nap-dms.lcbp3\frontend\components\correspondences\form.tsx
+  125:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\nap-dms.lcbp3\frontend\components\custom\file-upload-zone.tsx
+  88:5  warning  React Hook useCallback has a missing dependency: 'validateFile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 4 problems (1 error, 3 warnings)
+
+ ELIFECYCLE  Command failed with exit code 1.

@@ -253,8 +253,7 @@ export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
       sidebarCollapsed: false,
-      toggleSidebar: () =>
-        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
     }),
     {
       name: 'ui-preferences',
@@ -300,19 +299,16 @@ export function MobileSidebar() {
 ### Manual Testing
 
 1. **Desktop Layout**
-
    - Sidebar visible and functional
    - Toggle sidebar collapse/expand
    - Active route highlighted
 
 2. **Mobile Layout**
-
    - Sidebar hidden by default
    - Hamburger menu opens sidebar
    - Sidebar slides from left
 
 3. **Navigation**
-
    - Click menu items → Navigate correctly
    - Breadcrumbs update on navigation
    - Active state persists on reload

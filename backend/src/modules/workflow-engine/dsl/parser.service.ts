@@ -21,7 +21,7 @@ export class WorkflowDslParser {
   async parse(dslJson: string): Promise<WorkflowDefinition> {
     try {
       // Step 1: Parse JSON
-      const rawDsl = JSON.parse(dslJson);
+      const rawDsl = JSON.parse(dslJson) as unknown;
 
       // Step 2: Validate with Zod schema
       const dsl = WorkflowDslSchema.parse(rawDsl);
@@ -139,7 +139,7 @@ export class WorkflowDslParser {
     const definition = new WorkflowDefinition();
     definition.workflow_code = dsl.name;
     // Map Semver (1.0.0) to version int (1)
-    const majorVersion = parseInt(dsl.version.split('.')[0], 10);
+    const majorVersion = Number(dsl.version.split('.')[0]);
     definition.version = isNaN(majorVersion) ? 1 : majorVersion;
     definition.description = dsl.description;
     definition.dsl = dsl;
@@ -182,7 +182,7 @@ export class WorkflowDslParser {
    */
   validateOnly(dslJson: string): { valid: boolean; errors?: string[] } {
     try {
-      const rawDsl = JSON.parse(dslJson);
+      const rawDsl = JSON.parse(dslJson) as unknown;
       const dsl = WorkflowDslSchema.parse(rawDsl);
       this.validateStateMachine(dsl);
       return { valid: true };

@@ -9,10 +9,10 @@ const API_URL = 'http://localhost:3000/api';
 function signJwt(payload: any) {
   const header = { alg: 'HS256', typ: 'JWT' };
   const encodedHeader = Buffer.from(JSON.stringify(header)).toString(
-    'base64url',
+    'base64url'
   );
   const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
-    'base64url',
+    'base64url'
   );
 
   const signature = crypto
@@ -44,7 +44,7 @@ async function main() {
       console.error(
         'Failed to get permissions:',
         permRes.status,
-        await permRes.text(),
+        await permRes.text()
       );
     }
 
@@ -64,7 +64,7 @@ async function main() {
 
     if (!createRes.ok) {
       throw new Error(
-        `Create failed: ${createRes.status} ${await createRes.text()}`,
+        `Create failed: ${createRes.status} ${await createRes.text()}`
       );
     }
 
@@ -81,7 +81,7 @@ async function main() {
         body: JSON.stringify({
           templateId: 1, // Assuming Template ID 1 exists
         }),
-      },
+      }
     );
 
     if (!submitRes.ok) {
@@ -89,7 +89,7 @@ async function main() {
       console.error(`Submit failed: ${submitRes.status} ${text}`);
       if (text.includes('template')) {
         console.warn(
-          '⚠️ Template ID 1 not found. Please ensure a Routing Template exists.',
+          '⚠️ Template ID 1 not found. Please ensure a Routing Template exists.'
         );
       }
       return;
@@ -108,12 +108,12 @@ async function main() {
           action: 'APPROVE',
           comment: 'Approved via script',
         }),
-      },
+      }
     );
 
     if (!approveRes.ok) {
       throw new Error(
-        `Approve failed: ${approveRes.status} ${await approveRes.text()}`,
+        `Approve failed: ${approveRes.status} ${await approveRes.text()}`
       );
     }
 

@@ -1,74 +1,72 @@
-"use client";
+'use client';
 
-import { useForm, FieldError } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useForm, FieldError } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
+import { useCreateDrawing } from '@/hooks/use-drawing';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { useRouter } from "next/navigation";
-import { useCreateDrawing } from "@/hooks/use-drawing";
-import { useContractDrawingCategories, useShopMainCategories, useShopSubCategories, useProjects } from "@/hooks/use-master-data";
-import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+  useContractDrawingCategories,
+  useShopMainCategories,
+  useShopSubCategories,
+  useProjects,
+} from '@/hooks/use-master-data';
+import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 // Base Schema
 const baseSchema = z.object({
-  drawingType: z.enum(["CONTRACT", "SHOP", "AS_BUILT"]),
-  projectId: z.string().min(1, "Project is required"),
-  file: z.instanceof(File, { message: "File is required" }),
+  drawingType: z.enum(['CONTRACT', 'SHOP', 'AS_BUILT']),
+  projectId: z.string().min(1, 'Project is required'),
+  file: z.instanceof(File, { message: 'File is required' }),
 });
 
 // Contract Schema
 const contractSchema = baseSchema.extend({
-  drawingType: z.literal("CONTRACT"),
-  contractDrawingNo: z.string().min(1, "Drawing Number is required"),
-  title: z.string().min(3, "Title is required"),
+  drawingType: z.literal('CONTRACT'),
+  contractDrawingNo: z.string().min(1, 'Drawing Number is required'),
+  title: z.string().min(3, 'Title is required'),
   volumeId: z.string().optional(), // Select input returns string usually (changed to string for input compatibility)
-  volumePage: z.string().transform(val => parseInt(val, 10)).optional(), // Input type number returns string
-  mapCatId: z.string().min(1, "Category is required"),
+  volumePage: z
+    .string()
+    .transform((val) => Number(val))
+    .optional(), // Input type number returns string
+  mapCatId: z.string().min(1, 'Category is required'),
 });
 
 // Shop Schema
 const shopSchema = baseSchema.extend({
-  drawingType: z.literal("SHOP"),
-  drawingNumber: z.string().min(1, "Drawing Number is required"),
-  mainCategoryId: z.string().min(1, "Main Category is required"),
-  subCategoryId: z.string().min(1, "Sub Category is required"),
+  drawingType: z.literal('SHOP'),
+  drawingNumber: z.string().min(1, 'Drawing Number is required'),
+  mainCategoryId: z.string().min(1, 'Main Category is required'),
+  subCategoryId: z.string().min(1, 'Sub Category is required'),
   // Revision Fields
-  revisionLabel: z.string().default("0"),
-  title: z.string().min(3, "Revision Title is required"),
+  revisionLabel: z.string().default('0'),
+  title: z.string().min(3, 'Revision Title is required'),
   legacyDrawingNumber: z.string().optional(),
   description: z.string().optional(),
 });
 
 // As Built Schema
 const asBuiltSchema = baseSchema.extend({
-  drawingType: z.literal("AS_BUILT"),
-  drawingNumber: z.string().min(1, "Drawing Number is required"),
-  mainCategoryId: z.string().min(1, "Main Category is required"),
-  subCategoryId: z.string().min(1, "Sub Category is required"),
+  drawingType: z.literal('AS_BUILT'),
+  drawingNumber: z.string().min(1, 'Drawing Number is required'),
+  mainCategoryId: z.string().min(1, 'Main Category is required'),
+  subCategoryId: z.string().min(1, 'Sub Category is required'),
   // Revision Fields
-  revisionLabel: z.string().default("0"),
-  title: z.string().min(1, "Title is required"),
+  revisionLabel: z.string().default('0'),
+  title: z.string().min(1, 'Title is required'),
   legacyDrawingNumber: z.string().optional(),
   description: z.string().optional(),
 });
 
-const formSchema = z.discriminatedUnion("drawingType", [
-  contractSchema,
-  shopSchema,
-  asBuiltSchema,
-]);
+const formSchema = z.discriminatedUnion('drawingType', [contractSchema, shopSchema, asBuiltSchema]);
 
 type DrawingFormData = z.infer<typeof formSchema>;
 
@@ -97,15 +95,15 @@ export function DrawingUploadForm() {
   } = useForm<DrawingFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      drawingType: "CONTRACT",
-    } as DrawingFormData
+      drawingType: 'CONTRACT',
+    } as DrawingFormData,
   });
 
   // Type-safe error access for discriminated union fields
   const formErrors = errors as Record<string, FieldError | undefined>;
 
-  const drawingType = watch("drawingType");
-  const watchedProjectId = watch("projectId");
+  const drawingType = watch('drawingType');
+  const watchedProjectId = watch('projectId');
   const createMutation = useCreateDrawing(drawingType);
 
   // When project changes, update selectedProjectId for category hooks
@@ -115,7 +113,9 @@ export function DrawingUploadForm() {
       return;
     }
     // Try to resolve UUID→INT from projects list, or pass UUID directly
-    const project = projects.find((p: { id: string; uuid?: string }) => p.id === watchedProjectId || p.uuid === watchedProjectId) as { id: string; uuid?: string } | undefined;
+    const project = projects.find(
+      (p: { id: string; uuid?: string }) => p.id === watchedProjectId || p.uuid === watchedProjectId
+    ) as { id: string; uuid?: string } | undefined;
     setSelectedProjectId(project?.id ?? watchedProjectId);
   }, [watchedProjectId, projects]);
 
@@ -153,8 +153,8 @@ export function DrawingUploadForm() {
 
     createMutation.mutate(formData, {
       onSuccess: () => {
-        router.push("/drawings");
-      }
+        router.push('/drawings');
+      },
     });
   };
 
@@ -167,9 +167,7 @@ export function DrawingUploadForm() {
           {/* Project Selector */}
           <div>
             <Label>Project *</Label>
-            <Select
-              onValueChange={(v) => setValue("projectId", v)}
-            >
+            <Select onValueChange={(v) => setValue('projectId', v)}>
               <SelectTrigger>
                 {isLoadingProjects ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -185,16 +183,14 @@ export function DrawingUploadForm() {
                 ))}
               </SelectContent>
             </Select>
-            {errors.projectId && (
-              <p className="text-sm text-destructive">{errors.projectId.message}</p>
-            )}
+            {errors.projectId && <p className="text-sm text-destructive">{errors.projectId.message}</p>}
           </div>
 
           <div>
             <Label>Drawing Type *</Label>
             <Select
               onValueChange={(v) => {
-                setValue("drawingType", v as DrawingFormData["drawingType"]);
+                setValue('drawingType', v as DrawingFormData['drawingType']);
                 // Reset errors or fields if needed
               }}
               defaultValue="CONTRACT"
@@ -216,188 +212,204 @@ export function DrawingUploadForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Contract Drawing No *</Label>
-                  <Input {...register("contractDrawingNo")} placeholder="e.g. CD-001" />
+                  <Input {...register('contractDrawingNo')} placeholder="e.g. CD-001" />
                   {formErrors.contractDrawingNo && (
                     <p className="text-sm text-destructive">{formErrors.contractDrawingNo.message}</p>
                   )}
                 </div>
                 <div>
-                   <Label>Title *</Label>
-                   <Input {...register("title")} placeholder="Drawing Title" />
-                   {formErrors.title && (
-                    <p className="text-sm text-destructive">{formErrors.title.message}</p>
-                  )}
+                  <Label>Title *</Label>
+                  <Input {...register('title')} placeholder="Drawing Title" />
+                  {formErrors.title && <p className="text-sm text-destructive">{formErrors.title.message}</p>}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div>
-                    <Label>Category *</Label>
-                    <Select onValueChange={(v) => setValue("mapCatId", v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contractCategories?.map((c: { id: number; catName?: string; catCode?: string; name?: string }) => (
-                           <SelectItem key={c.id} value={String(c.id)}>{c.catName || c.catCode || c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formErrors.mapCatId && (
-                      <p className="text-sm text-destructive">{formErrors.mapCatId.message}</p>
-                    )}
-                 </div>
-                 <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label>Volume ID</Label>
-                      <Input {...register("volumeId")} placeholder="Vol. 1" />
-                    </div>
-                    <div>
-                      <Label>Page No.</Label>
-                      <Input {...register("volumePage")} type="number" placeholder="1" />
-                    </div>
-                 </div>
+                <div>
+                  <Label>Category *</Label>
+                  <Select onValueChange={(v) => setValue('mapCatId', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contractCategories?.map(
+                        (c: { id: number; catName?: string; catCode?: string; name?: string }) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.catName || c.catCode || c.name}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.mapCatId && <p className="text-sm text-destructive">{formErrors.mapCatId.message}</p>}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Volume ID</Label>
+                    <Input {...register('volumeId')} placeholder="Vol. 1" />
+                  </div>
+                  <div>
+                    <Label>Page No.</Label>
+                    <Input {...register('volumePage')} type="number" placeholder="1" />
+                  </div>
+                </div>
               </div>
             </>
           )}
 
           {/* SHOP FIELDS */}
           {drawingType === 'SHOP' && (
-             <>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Shop Drawing No *</Label>
-                    <Input {...register("drawingNumber")} placeholder="e.g. SD-101" />
-                    {formErrors.drawingNumber && (
-                       <p className="text-sm text-destructive">{formErrors.drawingNumber.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Legacy Number</Label>
-                    <Input {...register("legacyDrawingNumber")} placeholder="Legacy No." />
-                  </div>
-               </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Shop Drawing No *</Label>
+                  <Input {...register('drawingNumber')} placeholder="e.g. SD-101" />
+                  {formErrors.drawingNumber && (
+                    <p className="text-sm text-destructive">{formErrors.drawingNumber.message}</p>
+                  )}
+                </div>
+                <div>
+                  <Label>Legacy Number</Label>
+                  <Input {...register('legacyDrawingNumber')} placeholder="Legacy No." />
+                </div>
+              </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Main Category *</Label>
-                    <Select onValueChange={(v) => {
-                       setValue("mainCategoryId", v);
-                      setSelectedShopMainCat(v ? parseInt(v) : undefined);
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Main Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shopMainCats?.map((c: { id: number; mainCategoryName?: string; mainCategoryCode?: string; name?: string }) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.mainCategoryName || c.mainCategoryCode || c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                     {formErrors.mainCategoryId && (
-                       <p className="text-sm text-destructive">{formErrors.mainCategoryId.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Sub Category *</Label>
-                    <Select onValueChange={(v) => setValue("subCategoryId", v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Sub Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shopSubCats?.map((c: { id: number; subCategoryName?: string; subCategoryCode?: string; name?: string }) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.subCategoryName || c.subCategoryCode || c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                     {formErrors.subCategoryId && (
-                       <p className="text-sm text-destructive">{formErrors.subCategoryId.message}</p>
-                    )}
-                  </div>
-               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Main Category *</Label>
+                  <Select
+                    onValueChange={(v) => {
+                      setValue('mainCategoryId', v);
+                      setSelectedShopMainCat(v ? Number(v) : undefined);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Main Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shopMainCats?.map(
+                        (c: { id: number; mainCategoryName?: string; mainCategoryCode?: string; name?: string }) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.mainCategoryName || c.mainCategoryCode || c.name}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.mainCategoryId && (
+                    <p className="text-sm text-destructive">{formErrors.mainCategoryId.message}</p>
+                  )}
+                </div>
+                <div>
+                  <Label>Sub Category *</Label>
+                  <Select onValueChange={(v) => setValue('subCategoryId', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Sub Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shopSubCats?.map(
+                        (c: { id: number; subCategoryName?: string; subCategoryCode?: string; name?: string }) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.subCategoryName || c.subCategoryCode || c.name}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.subCategoryId && (
+                    <p className="text-sm text-destructive">{formErrors.subCategoryId.message}</p>
+                  )}
+                </div>
+              </div>
 
-               <div>
-                 <Label>Revision Title *</Label>
-                 <Input {...register("title")} placeholder="Current Revision Title" />
-                 {formErrors.title && (
-                    <p className="text-sm text-destructive">{formErrors.title.message}</p>
-                 )}
-               </div>
+              <div>
+                <Label>Revision Title *</Label>
+                <Input {...register('title')} placeholder="Current Revision Title" />
+                {formErrors.title && <p className="text-sm text-destructive">{formErrors.title.message}</p>}
+              </div>
 
-               <div>
-                 <Label>Description</Label>
-                 <Textarea {...register("description")} />
-               </div>
-             </>
+              <div>
+                <Label>Description</Label>
+                <Textarea {...register('description')} />
+              </div>
+            </>
           )}
 
           {/* AS BUILT FIELDS */}
           {drawingType === 'AS_BUILT' && (
-             <>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Drawing No *</Label>
-                    <Input {...register("drawingNumber")} placeholder="e.g. AB-101" />
-                    {formErrors.drawingNumber && (
-                       <p className="text-sm text-destructive">{formErrors.drawingNumber.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Legacy Number</Label>
-                    <Input {...register("legacyDrawingNumber")} placeholder="Legacy No." />
-                  </div>
-               </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Drawing No *</Label>
+                  <Input {...register('drawingNumber')} placeholder="e.g. AB-101" />
+                  {formErrors.drawingNumber && (
+                    <p className="text-sm text-destructive">{formErrors.drawingNumber.message}</p>
+                  )}
+                </div>
+                <div>
+                  <Label>Legacy Number</Label>
+                  <Input {...register('legacyDrawingNumber')} placeholder="Legacy No." />
+                </div>
+              </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Main Category *</Label>
-                    <Select onValueChange={(v) => {
-                       setValue("mainCategoryId", v);
-                      setSelectedShopMainCat(v ? parseInt(v) : undefined);
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Main Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shopMainCats?.map((c: { id: number; mainCategoryName?: string; mainCategoryCode?: string; name?: string }) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.mainCategoryName || c.mainCategoryCode || c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                     {formErrors.mainCategoryId && (
-                       <p className="text-sm text-destructive">{formErrors.mainCategoryId.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Sub Category *</Label>
-                    <Select onValueChange={(v) => setValue("subCategoryId", v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Sub Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shopSubCats?.map((c: { id: number; subCategoryName?: string; subCategoryCode?: string; name?: string }) => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.subCategoryName || c.subCategoryCode || c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                     {formErrors.subCategoryId && (
-                       <p className="text-sm text-destructive">{formErrors.subCategoryId.message}</p>
-                    )}
-                  </div>
-               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Main Category *</Label>
+                  <Select
+                    onValueChange={(v) => {
+                      setValue('mainCategoryId', v);
+                      setSelectedShopMainCat(v ? Number(v) : undefined);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Main Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shopMainCats?.map(
+                        (c: { id: number; mainCategoryName?: string; mainCategoryCode?: string; name?: string }) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.mainCategoryName || c.mainCategoryCode || c.name}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.mainCategoryId && (
+                    <p className="text-sm text-destructive">{formErrors.mainCategoryId.message}</p>
+                  )}
+                </div>
+                <div>
+                  <Label>Sub Category *</Label>
+                  <Select onValueChange={(v) => setValue('subCategoryId', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Sub Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shopSubCats?.map(
+                        (c: { id: number; subCategoryName?: string; subCategoryCode?: string; name?: string }) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.subCategoryName || c.subCategoryCode || c.name}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.subCategoryId && (
+                    <p className="text-sm text-destructive">{formErrors.subCategoryId.message}</p>
+                  )}
+                </div>
+              </div>
 
-               <div>
-                 <Label>Title *</Label>
-                 <Input {...register("title")} placeholder="Drawing Title" />
-                 {formErrors.title && (
-                    <p className="text-sm text-destructive">{formErrors.title.message}</p>
-                 )}
-               </div>
-               <div>
-                 <Label>Description</Label>
-                 <Textarea {...register("description")} />
-               </div>
-             </>
+              <div>
+                <Label>Title *</Label>
+                <Input {...register('title')} placeholder="Drawing Title" />
+                {formErrors.title && <p className="text-sm text-destructive">{formErrors.title.message}</p>}
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea {...register('description')} />
+              </div>
+            </>
           )}
 
           <div className="mt-4">
@@ -409,14 +421,11 @@ export function DrawingUploadForm() {
               className="cursor-pointer"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) setValue("file", file);
+                if (file) setValue('file', file);
               }}
             />
-            {errors.file && (
-              <p className="text-sm text-destructive mt-1">{errors.file.message}</p>
-            )}
+            {errors.file && <p className="text-sm text-destructive mt-1">{errors.file.message}</p>}
           </div>
-
         </div>
       </Card>
 

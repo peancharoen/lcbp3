@@ -1,17 +1,20 @@
 // File: lib/auth.ts
-import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import { z } from "zod";
-import type { User } from "next-auth";
-import type { JWT } from "next-auth/jwt";
+import NextAuth from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
+import { z } from 'zod';
+import type { User } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 
 // Schema for input validation
-const loginSchema = z.object({
+const _loginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
 });
 
-const baseUrl = (typeof window === "undefined" ? process.env.INTERNAL_API_URL : null) || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+const baseUrl =
+  (typeof window === 'undefined' ? process.env.INTERNAL_API_URL : null) ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'http://localhost:3001/api';
 
 // Helper to parse JWT expiry
 function getJwtExpiry(token: string): number {
@@ -44,16 +47,16 @@ function unwrapApiResponse(value: unknown): unknown {
   let current = value;
 
   for (let i = 0; i < 5; i += 1) {
-    if (!current || typeof current !== "object") {
+    if (!current || typeof current !== 'object') {
       return current;
     }
 
     const record = current as Record<string, unknown>;
-    if (typeof record.access_token === "string") {
+    if (typeof record.access_token === 'string') {
       return current;
     }
 
-    if (!("data" in record)) {
+    if (!('data' in record)) {
       return current;
     }
 
@@ -64,7 +67,7 @@ function unwrapApiResponse(value: unknown): unknown {
 }
 
 function isTokenPayload(value: unknown): value is TokenPayload {
-  return !!value && typeof value === "object" && typeof (value as Record<string, unknown>).access_token === "string";
+  return !!value && typeof value === 'object' && typeof (value as Record<string, unknown>).access_token === 'string';
 }
 
 function isLoginPayload(value: unknown): value is LoginPayload {
@@ -73,13 +76,13 @@ function isLoginPayload(value: unknown): value is LoginPayload {
   }
 
   const user = (value as unknown as { user?: unknown }).user;
-  return !!user && typeof user === "object" && typeof (user as Record<string, unknown>).username === "string";
+  return !!user && typeof user === 'object' && typeof (user as Record<string, unknown>).username === 'string';
 }
 
 async function refreshAccessToken(token: JWT) {
   try {
     const response = await fetch(`${baseUrl}/auth/refresh`, {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${token.refreshToken}`,
       },
@@ -94,7 +97,7 @@ async function refreshAccessToken(token: JWT) {
     const data = unwrapApiResponse(refreshedTokens);
 
     if (!isTokenPayload(data)) {
-      throw new Error("Invalid refresh response format");
+      throw new Error('Invalid refresh response format');
     }
 
     return {
@@ -103,12 +106,12 @@ async function refreshAccessToken(token: JWT) {
       accessTokenExpires: getJwtExpiry(data.access_token),
       refreshToken: data.refresh_token ?? token.refreshToken,
     };
-  } catch (error) {
+  } catch (_error) {
     // RefreshAccessTokenError - token will be invalidated
 
     return {
       ...token,
-      error: "RefreshAccessTokenError",
+      error: 'RefreshAccessTokenError',
     };
   }
 }
@@ -121,10 +124,10 @@ export const {
 } = NextAuth({
   providers: [
     Credentials({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
-        username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" },
+        username: { label: 'Username', type: 'text' },
+        password: { label: 'Password', type: 'password' },
       },
       authorize: async (credentials) => {
         if (!credentials?.username || !credentials?.password) return null;
@@ -136,23 +139,23 @@ export const {
             password: credentials.password as string,
           };
 
-          console.log(`[AUTH] Attempting login at: ${baseUrl}/auth/login`);
-          console.log(`[AUTH] Current process.env.INTERNAL_API_URL: ${process.env.INTERNAL_API_URL}`);
-          console.log(`[AUTH] Current process.env.NEXT_PUBLIC_API_URL: ${process.env.NEXT_PUBLIC_API_URL}`);
+          // console.log(`[AUTH] Attempting login at: ${baseUrl}/auth/login`); /* TODO: Remove before prod */
+          // console.log(`[AUTH] Current process.env.INTERNAL_API_URL: ${process.env.INTERNAL_API_URL}`); /* TODO: Remove before prod */
+          // console.log(`[AUTH] Current process.env.NEXT_PUBLIC_API_URL: ${process.env.NEXT_PUBLIC_API_URL}`); /* TODO: Remove before prod */
 
           const res = await fetch(`${baseUrl}/auth/login`, {
-            method: "POST",
+            method: 'POST',
             body: JSON.stringify(payload),
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             cache: 'no-store', // Disable caching for auth requests
           });
 
           if (!res.ok) {
-            console.error(`[AUTH] Login Failed: status ${res.status}`);
-            const errorBody = await res.text().catch(() => "No error body");
-            console.error(`[AUTH] Error details: ${errorBody}`);
+            // console.error(`[AUTH] Login Failed: status ${res.status}`); /* TODO: Remove before prod */
+            const _errorBody = await res.text().catch(() => 'No error body');
+            // console.error(`[AUTH] Error details: ${errorBody}`); /* TODO: Remove before prod */
             return null;
           }
 
@@ -160,33 +163,32 @@ export const {
           const backendData = unwrapApiResponse(data);
 
           if (!isLoginPayload(backendData)) {
-            console.error("[AUTH] Login failed: Invalid response format from backend (missing access_token)");
+            // console.error("[AUTH] Login failed: Invalid response format from backend (missing access_token)"); /* TODO: Remove before prod */
             return null;
           }
 
-          console.log(`[AUTH] Login Successful for user: ${backendData.user?.username || 'unknown'}`);
+          // console.log(`[AUTH] Login Successful for user: ${backendData.user?.username || 'unknown'}`); /* TODO: Remove before prod */
 
           return {
             id: backendData.user.user_id.toString(),
-            name: `${backendData.user.firstName ?? ""} ${backendData.user.lastName ?? ""}`.trim(),
+            name: `${backendData.user.firstName ?? ''} ${backendData.user.lastName ?? ''}`.trim(),
             email: backendData.user.email,
             username: backendData.user.username,
-            role: backendData.user.role || "User",
+            role: backendData.user.role || 'User',
             organizationId: backendData.user.primaryOrganizationId,
             accessToken: backendData.access_token,
             refreshToken: backendData.refresh_token,
           } as User;
-
-        } catch (error) {
-          console.error("[AUTH] Network/Fetch Error during authorize:", error);
+        } catch (_error) {
+          // console.error("[AUTH] Network/Fetch Error during authorize:", error); /* TODO: Remove before prod */
           return null;
         }
       },
     }),
   ],
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: '/login',
+    error: '/login',
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -231,9 +233,9 @@ export const {
     },
   },
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
     maxAge: 24 * 60 * 60, // 24 hours
   },
   secret: process.env.AUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
+  debug: process.env.NODE_ENV === 'development',
 });

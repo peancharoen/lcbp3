@@ -10,6 +10,7 @@
 ## 1. Architecture Overview
 
 ### 1.1 Module Structure
+
 ```
 backend/src/modules/document-numbering/
 ├── document-numbering.module.ts
@@ -53,6 +54,7 @@ backend/src/modules/document-numbering/
 ## 2. Core Entities
 
 ### 2.1 Numbering Configuration
+
 ```typescript
 // entities/numbering-config.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
@@ -71,7 +73,7 @@ export class NumberingConfig {
   @Column({
     type: 'enum',
     enum: ['GLOBAL', 'PROJECT', 'CONTRACT', 'YEARLY', 'MONTHLY'],
-    default: 'GLOBAL'
+    default: 'GLOBAL',
   })
   scope: string;
 
@@ -90,16 +92,17 @@ export class NumberingConfig {
   @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP'
+    onUpdate: 'CURRENT_TIMESTAMP',
   })
   updated_at: Date;
 
-  @OneToMany(() => NumberingSequence, sequence => sequence.config)
+  @OneToMany(() => NumberingSequence, (sequence) => sequence.config)
   sequences: NumberingSequence[];
 }
 ```
 
 ### 2.2 Sequence Counter
+
 ```typescript
 // entities/numbering-sequence.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
@@ -134,6 +137,7 @@ export class NumberingSequence {
 ```
 
 ### 2.3 Audit Log
+
 ```typescript
 // entities/numbering-audit-log.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
@@ -184,6 +188,7 @@ export class NumberingAuditLog {
 ## 3. Core Services
 
 ### 3.1 Sequence Service
+
 ```typescript
 // services/sequence.service.ts
 import { Injectable, Logger } from '@nestjs/common';
@@ -206,16 +211,13 @@ export class SequenceService {
 
     private dataSource: DataSource,
     private redlock: Redlock,
-    private formatService: FormatService,
+    private formatService: FormatService
   ) {}
 
   /**
    * Get next sequence number with distributed locking
    */
-  async getNextSequence(
-    documentType: string,
-    scopeValue?: string,
-  ): Promise<string> {
+  async getNextSequence(documentType: string, scopeValue?: string): Promise<string> {
     // 1. Get configuration
     const config = await this.getConfig(documentType);
 
@@ -238,11 +240,7 @@ export class SequenceService {
   /**
    * Get sequence with Redlock + Database pessimistic lock
    */
-  private async getSequenceWithRedlock(
-    config: NumberingConfig,
-    scopeValue: string,
-    lockKey: string,
-  ): Promise<string> {
+  private async getSequenceWithRedlock(config: NumberingConfig, scopeValue: string, lockKey: string): Promise<string> {
     // Acquire distributed lock
     const lock = await this.redlock.acquire([lockKey], 5000, {
       retryCount: 3,
@@ -266,11 +264,7 @@ export class SequenceService {
         }
 
         // Increment sequence
-        const nextValue = await this.incrementSequence(
-          manager,
-          sequence,
-          config,
-        );
+        const nextValue = await this.incrementSequence(manager, sequence, config);
 
         // Format number
         return this.formatService.formatNumber(config.format, nextValue, {
@@ -287,10 +281,7 @@ export class SequenceService {
   /**
    * Fallback: Database-only locking (no Redis)
    */
-  private async getSequenceWithDbLock(
-    config: NumberingConfig,
-    scopeValue: string,
-  ): Promise<string> {
+  private async getSequenceWithDbLock(config: NumberingConfig, scopeValue: string): Promise<string> {
     return await this.dataSource.transaction(async (manager) => {
       let sequence = await manager.findOne(NumberingSequence, {
         where: {
@@ -304,11 +295,7 @@ export class SequenceService {
         sequence = await this.createSequence(manager, config, scopeValue);
       }
 
-      const nextValue = await this.incrementSequence(
-        manager,
-        sequence,
-        config,
-      );
+      const nextValue = await this.incrementSequence(manager, sequence, config);
 
       return this.formatService.formatNumber(config.format, nextValue, {
         documentType: config.document_type,
@@ -323,7 +310,7 @@ export class SequenceService {
   private async incrementSequence(
     manager: EntityManager,
     sequence: NumberingSequence,
-    config: NumberingConfig,
+    config: NumberingConfig
   ): Promise<number> {
     let nextValue = sequence.current_value + 1;
 
@@ -335,9 +322,7 @@ export class SequenceService {
 
     // Check max value
     if (nextValue > config.max_value) {
-      throw new SequenceExhaustedError(
-        `Sequence exhausted for ${config.document_type}. Max: ${config.max_value}`,
-      );
+      throw new SequenceExhaustedError(`Sequence exhausted for ${config.document_type}. Max: ${config.max_value}`);
     }
 
     // Update sequence
@@ -351,11 +336,7 @@ export class SequenceService {
   /**
    * Check if number is cancelled
    */
-  private async isCancelledNumber(
-    manager: EntityManager,
-    config: NumberingConfig,
-    value: number,
-  ): Promise<boolean> {
+  private async isCancelledNumber(manager: EntityManager, config: NumberingConfig, value: number): Promise<boolean> {
     const count = await manager.count(NumberingAuditLog, {
       where: {
         document_type: config.document_type,
@@ -372,7 +353,7 @@ export class SequenceService {
   private async createSequence(
     manager: EntityManager,
     config: NumberingConfig,
-    scopeValue: string,
+    scopeValue: string
   ): Promise<NumberingSequence> {
     const sequence = manager.create(NumberingSequence, {
       config_id: config.id,
@@ -395,8 +376,7 @@ export class SequenceService {
    * Check if error is Redis unavailable
    */
   private isRedisUnavailable(error: any): boolean {
-    return error.message?.includes('Redis') ||
-           error.message?.includes('ECONNREFUSED');
+    return error.message?.includes('Redis') || error.message?.includes('ECONNREFUSED');
   }
 
   /**
@@ -409,9 +389,7 @@ export class SequenceService {
     });
 
     if (!config) {
-      throw new ConfigNotFoundError(
-        `Numbering config not found for ${documentType}`,
-      );
+      throw new ConfigNotFoundError(`Numbering config not found for ${documentType}`);
     }
 
     return config;
@@ -422,6 +400,7 @@ export class SequenceService {
 ---
 
 ### 3.2 Reservation Service
+
 ```typescript
 // services/reservation.service.ts
 import { Injectable, Logger } from '@nestjs/common';
@@ -447,22 +426,15 @@ export class ReservationService {
   constructor(
     private redis: Redis,
     private sequenceService: SequenceService,
-    private auditService: AuditService,
+    private auditService: AuditService
   ) {}
 
   /**
    * Reserve a document number
    */
-  async reserve(
-    documentType: string,
-    scopeValue?: string,
-    metadata?: Record<string, any>,
-  ): Promise<Reservation> {
+  async reserve(documentType: string, scopeValue?: string, metadata?: Record<string, any>): Promise<Reservation> {
     // 1. Generate next number
-    const documentNumber = await this.sequenceService.getNextSequence(
-      documentType,
-      scopeValue,
-    );
+    const documentNumber = await this.sequenceService.getNextSequence(documentType, scopeValue);
 
     // 2. Generate reservation token
     const token = uuidv4();
@@ -480,11 +452,7 @@ export class ReservationService {
       metadata,
     };
 
-    await this.redis.setex(
-      `reservation:${token}`,
-      this.TTL,
-      JSON.stringify(reservation),
-    );
+    await this.redis.setex(`reservation:${token}`, this.TTL, JSON.stringify(reservation));
 
     // 5. Audit log
     await this.auditService.log({
@@ -507,9 +475,7 @@ export class ReservationService {
     const reservation = await this.getReservation(token);
 
     if (!reservation) {
-      throw new ReservationExpiredError(
-        'Reservation not found or expired. Please reserve a new number.',
-      );
+      throw new ReservationExpiredError('Reservation not found or expired. Please reserve a new number.');
     }
 
     // 2. Save to database (via document creation)
@@ -584,6 +550,7 @@ export class ReservationService {
 ---
 
 ### 3.3 Manual Override Service
+
 ```typescript
 // services/manual-override.service.ts
 import { Injectable, Logger } from '@nestjs/common';
@@ -606,7 +573,7 @@ export class ManualOverrideService {
 
     private dataSource: DataSource,
     private formatService: FormatService,
-    private auditService: AuditService,
+    private auditService: AuditService
   ) {}
 
   /**
@@ -617,7 +584,7 @@ export class ManualOverrideService {
     manualNumber: string,
     userId: number,
     reason: string,
-    skipValidation = false,
+    skipValidation = false
   ): Promise<void> {
     // 1. Get configuration
     const config = await this.configRepo.findOne({
@@ -629,9 +596,7 @@ export class ManualOverrideService {
     }
 
     if (!config.allow_manual_override) {
-      throw new ManualOverrideNotAllowedError(
-        `Manual override not allowed for ${documentType}`,
-      );
+      throw new ManualOverrideNotAllowedError(`Manual override not allowed for ${documentType}`);
     }
 
     // 2. Validate
@@ -642,17 +607,11 @@ export class ManualOverrideService {
     // 3. Check duplicate
     const exists = await this.checkDuplicate(manualNumber);
     if (exists) {
-      throw new DuplicateNumberError(
-        `Number ${manualNumber} already exists`,
-      );
+      throw new DuplicateNumberError(`Number ${manualNumber} already exists`);
     }
 
     // 4. Update sequence if higher
-    await this.updateSequenceIfHigher(
-      documentType,
-      manualNumber,
-      config,
-    );
+    await this.updateSequenceIfHigher(documentType, manualNumber, config);
 
     // 5. Audit log
     await this.auditService.log({
@@ -669,19 +628,11 @@ export class ManualOverrideService {
   /**
    * Validate manual number format
    */
-  private async validate(
-    manualNumber: string,
-    config: NumberingConfig,
-  ): Promise<void> {
-    const isValid = this.formatService.matchesFormat(
-      manualNumber,
-      config.format,
-    );
+  private async validate(manualNumber: string, config: NumberingConfig): Promise<void> {
+    const isValid = this.formatService.matchesFormat(manualNumber, config.format);
 
     if (!isValid) {
-      throw new InvalidFormatError(
-        `Number ${manualNumber} does not match format ${config.format}`,
-      );
+      throw new InvalidFormatError(`Number ${manualNumber} does not match format ${config.format}`);
     }
   }
 
@@ -701,7 +652,7 @@ export class ManualOverrideService {
         SELECT document_number FROM drawings WHERE document_number = ?
       ) AS all_docs
       `,
-      [number, number, number],
+      [number, number, number]
     );
 
     return count[0].count > 0;
@@ -713,13 +664,10 @@ export class ManualOverrideService {
   private async updateSequenceIfHigher(
     documentType: string,
     manualNumber: string,
-    config: NumberingConfig,
+    config: NumberingConfig
   ): Promise<void> {
     // Extract sequence value from manual number
-    const sequenceValue = this.formatService.extractSequence(
-      manualNumber,
-      config.format,
-    );
+    const sequenceValue = this.formatService.extractSequence(manualNumber, config.format);
 
     if (!sequenceValue) {
       this.logger.warn(`Could not extract sequence from ${manualNumber}`);
@@ -738,9 +686,7 @@ export class ManualOverrideService {
         sequence.last_used_at = new Date();
         await manager.save(sequence);
 
-        this.logger.log(
-          `Updated sequence for ${documentType} to ${sequenceValue}`,
-        );
+        this.logger.log(`Updated sequence for ${documentType} to ${sequenceValue}`);
       }
     });
   }
@@ -752,12 +698,10 @@ export class ManualOverrideService {
 ## 4. Controllers
 
 ### 4.1 Main Numbering Controller
+
 ```typescript
 // controllers/numbering.controller.ts
-import {
-  Controller, Post, Body, UseGuards,
-  HttpCode, HttpStatus
-} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards';
 import { CurrentUser } from '../../common/decorators';
@@ -769,22 +713,13 @@ import { ReserveNumberDto, ConfirmReservationDto } from '../dto';
 @Controller('document-numbering')
 @UseGuards(JwtAuthGuard)
 export class NumberingController {
-  constructor(
-    private reservationService: ReservationService,
-  ) {}
+  constructor(private reservationService: ReservationService) {}
 
   @Post('reserve')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Reserve a document number' })
-  async reserve(
-    @Body() dto: ReserveNumberDto,
-    @CurrentUser() user: any,
-  ) {
-    const reservation = await this.reservationService.reserve(
-      dto.document_type,
-      dto.scope_value,
-      dto.metadata,
-    );
+  async reserve(@Body() dto: ReserveNumberDto, @CurrentUser() user: any) {
+    const reservation = await this.reservationService.reserve(dto.document_type, dto.scope_value, dto.metadata);
 
     return {
       success: true,
@@ -795,14 +730,8 @@ export class NumberingController {
   @Post('confirm')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirm a reservation' })
-  async confirm(
-    @Body() dto: ConfirmReservationDto,
-    @CurrentUser() user: any,
-  ) {
-    const documentNumber = await this.reservationService.confirm(
-      dto.token,
-      user.id,
-    );
+  async confirm(@Body() dto: ConfirmReservationDto, @CurrentUser() user: any) {
+    const documentNumber = await this.reservationService.confirm(dto.token, user.id);
 
     return {
       success: true,
@@ -813,10 +742,7 @@ export class NumberingController {
   @Post('cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancel a reservation' })
-  async cancel(
-    @Body() dto: ConfirmReservationDto,
-    @CurrentUser() user: any,
-  ) {
+  async cancel(@Body() dto: ConfirmReservationDto, @CurrentUser() user: any) {
     await this.reservationService.cancel(dto.token, user.id);
 
     return {
@@ -832,41 +758,37 @@ export class NumberingController {
 ## 5. Integration with Document Creation
 
 ### 5.1 Correspondence Example
+
 ```typescript
 // modules/correspondence/services/correspondence.service.ts
 @Injectable()
 export class CorrespondenceService {
   constructor(
     private reservationService: ReservationService,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   async create(dto: CreateCorrespondenceDto, userId: number) {
     // Phase 1: Reserve number
-    const { token, document_number } = await this.reservationService.reserve(
-      'COR',
-      dto.project_id.toString(),
-    );
+    const { token, document_number } = await this.reservationService.reserve('COR', dto.project_id.toString());
 
     try {
       // Phase 2: Create document in transaction
-      const correspondence = await this.dataSource.transaction(
-        async (manager) => {
-          // Create correspondence
-          const corr = manager.create(Correspondence, {
-            document_number,
-            ...dto,
-            created_by: userId,
-          });
+      const correspondence = await this.dataSource.transaction(async (manager) => {
+        // Create correspondence
+        const corr = manager.create(Correspondence, {
+          document_number,
+          ...dto,
+          created_by: userId,
+        });
 
-          await manager.save(corr);
+        await manager.save(corr);
 
-          // Confirm reservation
-          await this.reservationService.confirm(token, userId);
+        // Confirm reservation
+        await this.reservationService.confirm(token, userId);
 
-          return corr;
-        },
-      );
+        return corr;
+      });
 
       return correspondence;
     } catch (error) {
@@ -883,6 +805,7 @@ export class CorrespondenceService {
 ## 6. Testing
 
 ### 6.1 Unit Tests
+
 ```typescript
 // tests/unit/sequence.service.spec.ts
 describe('SequenceService', () => {
@@ -927,14 +850,13 @@ describe('SequenceService', () => {
   it('should throw on sequence exhausted', async () => {
     await setSequence('COR', 999999); // Max value
 
-    await expect(
-      service.getNextSequence('COR')
-    ).rejects.toThrow(SequenceExhaustedError);
+    await expect(service.getNextSequence('COR')).rejects.toThrow(SequenceExhaustedError);
   });
 });
 ```
 
 ### 6.2 Integration Tests
+
 ```typescript
 // tests/integration/reservation.spec.ts
 describe('Reservation Flow (Integration)', () => {
@@ -992,27 +914,26 @@ describe('Reservation Flow (Integration)', () => {
 ```
 
 ### 6.3 Load Tests
+
 ```typescript
 // tests/load/concurrency.spec.ts
 describe('Concurrency Test', () => {
   it('should handle 1000 concurrent requests without duplicates', async () => {
     const promises = Array.from({ length: 1000 }, (_, i) =>
-      request(app.getHttpServer())
-        .post('/document-numbering/reserve')
-        .send({ document_type: 'COR' })
+      request(app.getHttpServer()).post('/document-numbering/reserve').send({ document_type: 'COR' })
     );
 
     const results = await Promise.all(promises);
 
     // Extract all document numbers
-    const numbers = results.map(r => r.body.data.document_number);
+    const numbers = results.map((r) => r.body.data.document_number);
 
     // Check for duplicates
     const uniqueNumbers = new Set(numbers);
     expect(uniqueNumbers.size).toBe(1000);
 
     // Verify sequential
-    const sequences = numbers.map(n => extractSeq(n)).sort((a, b) => a - b);
+    const sequences = numbers.map((n) => extractSeq(n)).sort((a, b) => a - b);
     expect(sequences[0]).toBe(1);
     expect(sequences[999]).toBe(1000);
   });
@@ -1024,6 +945,7 @@ describe('Concurrency Test', () => {
 ## 7. Deployment Checklist
 
 ### 7.1 Pre-Deployment
+
 - [ ] Run all tests (unit, integration, E2E)
 - [ ] Load test (1000 req/s for 5 min)
 - [ ] Setup Redis cluster (3 nodes)
@@ -1036,6 +958,7 @@ describe('Concurrency Test', () => {
 - [ ] Document rollback procedure
 
 ### 7.2 Deployment Steps
+
 1. Deploy Redis cluster to staging
 2. Run migrations on staging database
 3. Deploy backend service to staging
@@ -1047,6 +970,7 @@ describe('Concurrency Test', () => {
 9. Gradual rollout (10% → 50% → 100%)
 
 ### 7.3 Post-Deployment
+
 - [ ] Verify all metrics green
 - [ ] Check error rates (<0.1%)
 - [ ] Validate audit logs working
@@ -1060,6 +984,7 @@ describe('Concurrency Test', () => {
 ## 8. Monitoring & Observability
 
 ### 8.1 Prometheus Metrics
+
 ```typescript
 // metrics/numbering.metrics.ts
 import { Injectable } from '@nestjs/common';
@@ -1137,6 +1062,7 @@ export class NumberingMetrics {
 ```
 
 ### 8.2 Grafana Dashboard
+
 ```json
 {
   "dashboard": {
@@ -1181,6 +1107,7 @@ export class NumberingMetrics {
 ```
 
 ### 8.3 Alert Rules
+
 ```yaml
 # alerts/numbering.yml
 groups:
@@ -1194,8 +1121,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Sequence {{ $labels.document_type }} >95% used"
-          description: "Current: {{ $value }}%. Extend max_value immediately."
+          summary: 'Sequence {{ $labels.document_type }} >95% used'
+          description: 'Current: {{ $value }}%. Extend max_value immediately.'
 
       # Warning: Sequence >90% used
       - alert: SequenceWarning
@@ -1204,8 +1131,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Sequence {{ $labels.document_type }} >90% used"
-          description: "Current: {{ $value }}%. Plan to extend max_value."
+          summary: 'Sequence {{ $labels.document_type }} >90% used'
+          description: 'Current: {{ $value }}%. Plan to extend max_value.'
 
       # Critical: High lock wait time
       - alert: HighLockWaitTime
@@ -1214,8 +1141,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Lock wait time >1s (p95)"
-          description: "p95: {{ $value }}s. Check Redis cluster health."
+          summary: 'Lock wait time >1s (p95)'
+          description: 'p95: {{ $value }}s. Check Redis cluster health.'
 
       # Critical: Redis down
       - alert: RedisUnavailable
@@ -1224,8 +1151,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Redis cluster unavailable"
-          description: "Numbering system using DB-only fallback mode."
+          summary: 'Redis cluster unavailable'
+          description: 'Numbering system using DB-only fallback mode.'
 
       # Warning: High error rate
       - alert: HighErrorRate
@@ -1234,8 +1161,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "High error rate in numbering system"
-          description: "{{ $value }} errors/sec. Check logs."
+          summary: 'High error rate in numbering system'
+          description: '{{ $value }} errors/sec. Check logs.'
 ```
 
 ---
@@ -1245,9 +1172,11 @@ groups:
 ### 9.1 Common Issues
 
 #### Issue 1: Duplicate Numbers Generated
+
 **Symptoms**: Same document number appears twice
 
 **Diagnosis**:
+
 ```sql
 -- Find duplicates
 SELECT document_number, COUNT(*) as count
@@ -1263,11 +1192,13 @@ HAVING count > 1;
 ```
 
 **Root Causes**:
+
 - Redis cluster failure during generation
 - Database deadlock
 - Bug in locking logic
 
 **Resolution**:
+
 1. Identify affected documents
 2. Manually reassign one with new number
 3. Update audit log
@@ -1277,9 +1208,11 @@ HAVING count > 1;
 ---
 
 #### Issue 2: Sequence Exhausted
+
 **Symptoms**: Error "Sequence exhausted for COR"
 
 **Diagnosis**:
+
 ```sql
 -- Check current vs max
 SELECT
@@ -1293,6 +1226,7 @@ WHERE s.current_value >= c.max_value * 0.9;
 ```
 
 **Resolution**:
+
 ```sql
 -- Extend max_value
 UPDATE document_numbering_configs
@@ -1312,9 +1246,11 @@ WHERE config_id = (
 ---
 
 #### Issue 3: Lock Timeout
+
 **Symptoms**: "Failed to acquire lock after 3 retries"
 
 **Diagnosis**:
+
 ```bash
 # Check Redis cluster health
 redis-cli --cluster check localhost:7000
@@ -1325,12 +1261,14 @@ redis-cli GET "numbering:COR:project-1"
 ```
 
 **Root Causes**:
+
 - High concurrent load
 - Redis node down
 - Network latency
 - Deadlock in database
 
 **Resolution**:
+
 1. Check Redis cluster health
 2. Increase lock timeout (5s → 10s)
 3. Add more Redis nodes
@@ -1340,9 +1278,11 @@ redis-cli GET "numbering:COR:project-1"
 ---
 
 #### Issue 4: Reservation Expired
+
 **Symptoms**: User gets "Reservation expired" error
 
 **Diagnosis**:
+
 ```bash
 # Check Redis TTL
 redis-cli TTL "reservation:uuid-here"
@@ -1352,11 +1292,13 @@ redis-cli KEYS "reservation:*"
 ```
 
 **Root Causes**:
+
 - User took >5 minutes to complete form
 - Network issue during confirmation
 - Browser closed/refreshed
 
 **Resolution**:
+
 1. Reserve new number
 2. Consider increasing TTL (5 min → 10 min)
 3. Add progress auto-save
@@ -1398,6 +1340,7 @@ npm run cli numbering:check-duplicates
 ## 10. Performance Optimization
 
 ### 10.1 Database Indexes
+
 ```sql
 -- Composite index for faster lookups
 CREATE INDEX idx_sequence_lookup
@@ -1420,6 +1363,7 @@ ON drawings(document_number);
 ```
 
 ### 10.2 Connection Pooling
+
 ```typescript
 // config/database.config.ts
 export default {
@@ -1430,17 +1374,18 @@ export default {
 
   // Connection pool settings
   extra: {
-    connectionLimit: 20,     // Max connections
-    queueLimit: 0,           // Unlimited queue
+    connectionLimit: 20, // Max connections
+    queueLimit: 0, // Unlimited queue
     waitForConnections: true,
-    acquireTimeout: 30000,   // 30s timeout
-    idleTimeout: 10000,      // 10s idle timeout
-    maxIdle: 5,              // Max idle connections
+    acquireTimeout: 30000, // 30s timeout
+    idleTimeout: 10000, // 10s idle timeout
+    maxIdle: 5, // Max idle connections
   },
 };
 ```
 
 ### 10.3 Redis Optimization
+
 ```typescript
 // config/redis.config.ts
 export default {
@@ -1469,6 +1414,7 @@ export default {
 ```
 
 ### 10.4 Caching Strategy
+
 ```typescript
 // Cache configuration
 @Cacheable({
@@ -1499,6 +1445,7 @@ async updateConfig(documentType: string, data: any) {
 ## 11. Security Considerations
 
 ### 11.1 Access Control
+
 ```typescript
 // guards/manual-override.guard.ts
 @Injectable()
@@ -1525,6 +1472,7 @@ async manualOverride(@Body() dto: ManualOverrideDto) {
 ```
 
 ### 11.2 Rate Limiting
+
 ```typescript
 // Apply rate limit to prevent abuse
 @Throttle(100, 60)  // 100 requests per minute
@@ -1535,6 +1483,7 @@ async reserve(@Body() dto: ReserveNumberDto) {
 ```
 
 ### 11.3 Audit Logging
+
 ```typescript
 // decorators/audit-numbering.decorator.ts
 export function AuditNumbering(operation: string) {
@@ -1575,6 +1524,7 @@ async manualOverride(dto: ManualOverrideDto, user: User) {
 ## 12. Migration Scripts
 
 ### 12.1 Import Legacy Documents
+
 ```typescript
 // scripts/import-legacy-numbers.ts
 import { DataSource } from 'typeorm';
@@ -1638,14 +1588,17 @@ async function updateSequenceCounters(dataSource: DataSource) {
 
   const maxSeq = result[0].max_seq;
 
-  await dataSource.query(`
+  await dataSource.query(
+    `
     UPDATE document_numbering_sequences
     SET current_value = ?
     WHERE config_id = (
       SELECT id FROM document_numbering_configs
       WHERE document_type = 'COR'
     )
-  `, [maxSeq]);
+  `,
+    [maxSeq]
+  );
 
   console.log(`Updated COR sequence to ${maxSeq}`);
 }
@@ -1658,6 +1611,7 @@ importLegacyNumbers().catch(console.error);
 ## 13. CLI Tools
 
 ### 13.1 Status Command
+
 ```typescript
 // cli/commands/numbering-status.command.ts
 import { Command, CommandRunner } from 'nest-commander';
@@ -1691,7 +1645,7 @@ export class NumberingStatusCommand extends CommandRunner {
     console.log(`Format:          ${config.format}`);
     console.log(`Current Value:   ${sequence.current_value}`);
     console.log(`Max Value:       ${config.max_value}`);
-    console.log(`Utilization:     ${(sequence.current_value / config.max_value * 100).toFixed(2)}%`);
+    console.log(`Utilization:     ${((sequence.current_value / config.max_value) * 100).toFixed(2)}%`);
     console.log(`Last Used:       ${sequence.last_used_at}`);
     console.log(`Manual Override: ${config.allow_manual_override ? 'Yes' : 'No'}`);
   }
@@ -1705,9 +1659,9 @@ export class NumberingStatusCommand extends CommandRunner {
         Type: c.document_type,
         Current: c.sequence?.current_value || 0,
         Max: c.max_value,
-        'Utilization (%)': ((c.sequence?.current_value || 0) / c.max_value * 100).toFixed(2),
+        'Utilization (%)': (((c.sequence?.current_value || 0) / c.max_value) * 100).toFixed(2),
         'Last Used': c.sequence?.last_used_at || 'Never',
-      })),
+      }))
     );
   }
 }
@@ -1718,6 +1672,7 @@ export class NumberingStatusCommand extends CommandRunner {
 ## 14. Best Practices Summary
 
 ### 14.1 DO's ✅
+
 - ✅ Always use two-phase commit (reserve + confirm)
 - ✅ Implement fallback to DB-only if Redis fails
 - ✅ Log every operation to audit trail
@@ -1730,6 +1685,7 @@ export class NumberingStatusCommand extends CommandRunner {
 - ✅ Implement exponential backoff on retry
 
 ### 14.2 DON'Ts ❌
+
 - ❌ Never skip validation for manual override
 - ❌ Never reuse cancelled numbers
 - ❌ Never trust client-generated numbers
@@ -1746,6 +1702,7 @@ export class NumberingStatusCommand extends CommandRunner {
 ## 15. Appendix
 
 ### 15.1 Error Codes
+
 ```typescript
 export enum NumberingErrorCode {
   CONFIG_NOT_FOUND = 'NB001',
@@ -1760,6 +1717,7 @@ export enum NumberingErrorCode {
 ```
 
 ### 15.2 Environment Variables
+
 ```bash
 # Redis Configuration
 REDIS_HOST=localhost
@@ -1778,6 +1736,7 @@ GRAFANA_PORT=3000
 ```
 
 ### 15.3 Useful Queries
+
 ```sql
 -- Find next available number
 SELECT MAX(CAST(SUBSTRING_INDEX(document_number, '-', -1) AS UNSIGNED)) + 1

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Card } from "@/components/ui/card";
-import { FileText, Clipboard, CheckCircle, Clock } from "lucide-react";
-import { DashboardStats } from "@/types/dashboard";
+import { Card } from '@/components/ui/card';
+import { FileText, Clipboard, CheckCircle, Clock } from 'lucide-react';
+import { DashboardStats } from '@/types/dashboard';
 
 export interface StatsCardsProps {
   stats: DashboardStats | undefined;
@@ -21,32 +21,32 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
   }
   const cards = [
     {
-      title: "Total Correspondences",
+      title: 'Total Correspondences',
       value: stats.totalDocuments,
       icon: FileText,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
     },
     {
-      title: "Active RFAs",
+      title: 'Active RFAs',
       value: stats.totalRfas,
       icon: Clipboard,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
     },
     {
-      title: "Approved Documents",
+      title: 'Approved Documents',
       value: stats.approved,
       icon: CheckCircle,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
     },
     {
-      title: "Pending Approvals",
+      title: 'Pending Approvals',
       value: stats.pendingApprovals,
       icon: Clock,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50',
     },
   ];
 

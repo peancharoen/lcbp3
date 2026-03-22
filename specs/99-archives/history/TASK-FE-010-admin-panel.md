@@ -648,14 +648,12 @@ export function AdminSidebar() {
 ### Test Cases
 
 1. **User Management**
-
    - Create new user
    - Assign multiple roles
    - Deactivate/activate user
    - Delete user
 
 2. **Master Data**
-
    - Create organization
    - Edit organization details
    - Delete organization (check for dependencies)

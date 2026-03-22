@@ -26,34 +26,35 @@ Detect the project's test framework, execute tests, and generate a comprehensive
 ### Execution Steps
 
 1. **Detect Test Framework**:
+
    ```bash
    # Check package.json for test frameworks
    cat package.json 2>/dev/null | grep -E "(jest|vitest|mocha|ava|tap)"
-   
+
    # Check for Python test frameworks
    ls pytest.ini setup.cfg pyproject.toml 2>/dev/null
-   
+
    # Check for Go tests
    find . -name "*_test.go" -maxdepth 3 2>/dev/null | head -1
    ```
 
-   | Indicator | Framework |
-   |-----------|-----------|
-   | `jest` in package.json | Jest |
-   | `vitest` in package.json | Vitest |
-   | `pytest.ini` or `[tool.pytest]` | Pytest |
-   | `*_test.go` files | Go test |
-   | `Cargo.toml` + `#[test]` | Cargo test |
+   | Indicator                       | Framework  |
+   | ------------------------------- | ---------- |
+   | `jest` in package.json          | Jest       |
+   | `vitest` in package.json        | Vitest     |
+   | `pytest.ini` or `[tool.pytest]` | Pytest     |
+   | `*_test.go` files               | Go test    |
+   | `Cargo.toml` + `#[test]`        | Cargo test |
 
 2. **Run Tests with Coverage**:
-   
-   | Framework | Command |
-   |-----------|---------|
-   | Jest | `npx jest --coverage --json --outputFile=coverage/test-results.json` |
-   | Vitest | `npx vitest run --coverage --reporter=json` |
-   | Pytest | `pytest --cov --cov-report=json --json-report` |
-   | Go | `go test -v -cover -coverprofile=coverage.out ./...` |
-   | Cargo | `cargo test -- --test-threads=1` |
+
+   | Framework | Command                                                              |
+   | --------- | -------------------------------------------------------------------- |
+   | Jest      | `npx jest --coverage --json --outputFile=coverage/test-results.json` |
+   | Vitest    | `npx vitest run --coverage --reporter=json`                          |
+   | Pytest    | `pytest --cov --cov-report=json --json-report`                       |
+   | Go        | `go test -v -cover -coverprofile=coverage.out ./...`                 |
+   | Cargo     | `cargo test -- --test-threads=1`                                     |
 
 3. **Parse Test Results**:
    Extract from test output:
@@ -70,39 +71,41 @@ Detect the project's test framework, execute tests, and generate a comprehensive
    - Suggested fix (if pattern is recognizable)
 
 5. **Generate Report**:
+
    ```markdown
    # Test Report
-   
+
    **Date**: [timestamp]
    **Framework**: [detected]
    **Status**: PASS | FAIL
-   
+
    ## Summary
-   
-   | Metric | Value |
-   |--------|-------|
-   | Total Tests | X |
-   | Passed | X |
-   | Failed | X |
-   | Skipped | X |
-   | Duration | X.Xs |
-   | Coverage | X% |
-   
+
+   | Metric      | Value |
+   | ----------- | ----- |
+   | Total Tests | X     |
+   | Passed      | X     |
+   | Failed      | X     |
+   | Skipped     | X     |
+   | Duration    | X.Xs  |
+   | Coverage    | X%    |
+
    ## Failed Tests
-   
+
    ### [test name]
+
    **File**: `path/to/test.ts:42`
    **Error**: Expected X but received Y
    **Suggestion**: Check mock setup for...
-   
+
    ## Coverage by File
-   
-   | File | Lines | Branches | Functions |
-   |------|-------|----------|-----------|
-   | src/auth.ts | 85% | 70% | 90% |
-   
+
+   | File        | Lines | Branches | Functions |
+   | ----------- | ----- | -------- | --------- |
+   | src/auth.ts | 85%   | 70%      | 90%       |
+
    ## Next Actions
-   
+
    1. Fix failing test: [name]
    2. Increase coverage in: [low coverage files]
    ```

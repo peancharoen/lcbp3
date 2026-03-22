@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Repository } from 'typeorm';
 import { DocumentNumberingService } from './services/document-numbering.service';
 import { CounterService } from './services/counter.service';
 import { ReservationService } from './services/reservation.service';
@@ -124,8 +125,8 @@ describe('DocumentNumberingService', () => {
       expect(result).toHaveProperty('number');
       expect(result).toHaveProperty('auditId');
       expect(result.number).toBe('DOC-0001');
-      expect(counterService.incrementCounter).toHaveBeenCalled();
-      expect(formatService.format).toHaveBeenCalled();
+      expect(counterService.incrementCounter as jest.Mock).toHaveBeenCalled();
+      expect(formatService.format as jest.Mock).toHaveBeenCalled();
     });
 
     it('should throw error when increment fails', async () => {
@@ -142,7 +143,9 @@ describe('DocumentNumberingService', () => {
 
   describe('Admin Operations', () => {
     it('voidAndReplace should verify audit log exists', async () => {
-      const auditRepo = module.get(getRepositoryToken(DocumentNumberAudit));
+      const auditRepo = module.get<Repository<DocumentNumberAudit>>(
+        getRepositoryToken(DocumentNumberAudit)
+      );
       (auditRepo.findOne as jest.Mock).mockResolvedValue({
         documentNumber: 'DOC-001',
         counterKey: JSON.stringify({ projectId: 1, correspondenceTypeId: 1 }),
@@ -156,11 +159,13 @@ describe('DocumentNumberingService', () => {
         replace: false,
       });
       expect(result.status).toBe('VOIDED');
-      expect(auditRepo.save).toHaveBeenCalled();
+      expect(auditRepo.save as jest.Mock).toHaveBeenCalled();
     });
 
     it('cancelNumber should log cancellation', async () => {
-      const auditRepo = module.get(getRepositoryToken(DocumentNumberAudit));
+      const auditRepo = module.get<Repository<DocumentNumberAudit>>(
+        getRepositoryToken(DocumentNumberAudit)
+      );
       (auditRepo.findOne as jest.Mock).mockResolvedValue({
         documentNumber: 'DOC-002',
         counterKey: {},
@@ -173,7 +178,7 @@ describe('DocumentNumberingService', () => {
         projectId: 1,
       });
       expect(result.status).toBe('CANCELLED');
-      expect(auditRepo.save).toHaveBeenCalled();
+      expect(auditRepo.save as jest.Mock).toHaveBeenCalled();
     });
   });
 });

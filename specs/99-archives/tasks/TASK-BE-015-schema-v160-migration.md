@@ -158,14 +158,14 @@ rfaRevision: RfaRevision;
 ```typescript
 // correspondence/dto/create-correspondence-revision.dto.ts
 export class CreateCorrespondenceRevisionDto {
-  subject: string;  // was: title
+  subject: string; // was: title
   body?: string;
   remarks?: string;
 }
 
 // rfa/dto/create-rfa-revision.dto.ts
 export class CreateRfaRevisionDto {
-  subject: string;  // was: title
+  subject: string; // was: title
   body?: string;
   remarks?: string;
   dueDate?: Date;
@@ -180,29 +180,29 @@ export class CreateRfaRevisionDto {
 
 | File                                 | Status | Changes                                   |
 | ------------------------------------ | ------ | ----------------------------------------- |
-| `correspondence.entity.ts`           | ✅      | Minor: add recipients relation            |
-| `correspondence-revision.entity.ts`  | ✅      | Rename title→subject, add body/remarks    |
-| `correspondence-recipient.entity.ts` | ✅      | FK change to correspondence               |
-| `rfa.entity.ts`                      | ✅      | Shared PK pattern                         |
-| `rfa-revision.entity.ts`             | ✅      | Remove correspondenceId, add body/remarks |
-| `rfa-item.entity.ts`                 | ✅      | Rename column                             |
+| `correspondence.entity.ts`           | ✅     | Minor: add recipients relation            |
+| `correspondence-revision.entity.ts`  | ✅     | Rename title→subject, add body/remarks    |
+| `correspondence-recipient.entity.ts` | ✅     | FK change to correspondence               |
+| `rfa.entity.ts`                      | ✅     | Shared PK pattern                         |
+| `rfa-revision.entity.ts`             | ✅     | Remove correspondenceId, add body/remarks |
+| `rfa-item.entity.ts`                 | ✅     | Rename column                             |
 
 ### DTOs
 
 | File                                    | Status | Changes                         |
 | --------------------------------------- | ------ | ------------------------------- |
-| `create-correspondence-revision.dto.ts` | ✅      | title→subject, add body/remarks |
-| `update-correspondence-revision.dto.ts` | ✅      | Same                            |
-| `create-rfa-revision.dto.ts`            | ✅      | title→subject, add fields       |
-| `update-rfa-revision.dto.ts`            | ✅      | Same                            |
-| `create-rfa-item.dto.ts`                | ✅      | Column rename                   |
+| `create-correspondence-revision.dto.ts` | ✅     | title→subject, add body/remarks |
+| `update-correspondence-revision.dto.ts` | ✅     | Same                            |
+| `create-rfa-revision.dto.ts`            | ✅     | title→subject, add fields       |
+| `update-rfa-revision.dto.ts`            | ✅     | Same                            |
+| `create-rfa-item.dto.ts`                | ✅     | Column rename                   |
 
 ### Services
 
 | File                        | Status | Changes                          |
 | --------------------------- | ------ | -------------------------------- |
-| `correspondence.service.ts` | ✅      | Update queries for new relations |
-| `rfa.service.ts`            | ✅      | Handle Shared PK creation        |
+| `correspondence.service.ts` | ✅     | Update queries for new relations |
+| `rfa.service.ts`            | ✅     | Handle Shared PK creation        |
 
 ---
 

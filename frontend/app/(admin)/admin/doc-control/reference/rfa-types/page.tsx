@@ -14,7 +14,7 @@ export default function RfaTypesPage() {
   // Ensure we consistently use an array
   const contracts = Array.isArray(contractsData) ? contractsData : [];
 
-  const columns: ColumnDef<any>[] = [
+  const columns: ColumnDef<unknown>[] = [
     {
       accessorKey: 'typeCode',
       header: 'Code',
@@ -47,7 +47,7 @@ export default function RfaTypesPage() {
     },
   ];
 
-  const contractOptions = contracts.map((c: any) => ({
+  const contractOptions = contracts.map((c: unknown) => ({
     label: `${c.contractName} (${c.contractCode})`,
     value: String(c.id),
   }));
@@ -69,7 +69,9 @@ export default function RfaTypesPage() {
             };
           });
         }}
-        createFn={(data) => masterDataService.createRfaType(data as unknown as Parameters<typeof masterDataService.createRfaType>[0])}
+        createFn={(data) =>
+          masterDataService.createRfaType(data as unknown as Parameters<typeof masterDataService.createRfaType>[0])
+        }
         updateFn={(id, data) => masterDataService.updateRfaType(id, data)}
         deleteFn={(id) => masterDataService.deleteRfaType(id)}
         columns={columns}
@@ -84,7 +86,7 @@ export default function RfaTypesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
-                {contracts.map((c: any) => (
+                {contracts.map((c: unknown) => (
                   <SelectItem key={c.id} value={String(c.id)}>
                     {c.contractName} ({c.contractCode})
                   </SelectItem>

@@ -31,7 +31,7 @@ export default function NewWorkflowPage() {
     try {
       await workflowApi.createWorkflow(workflowData);
       router.push('/admin/doc-control/workflows');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to create workflow');
     } finally {
       setSaving(false);

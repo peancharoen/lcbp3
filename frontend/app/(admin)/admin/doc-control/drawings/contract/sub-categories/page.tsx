@@ -50,10 +50,7 @@ export default function ContractSubCategoriesPage() {
   const projectFilter = (
     <div className="flex items-center gap-4">
       <span className="text-sm font-medium">Project:</span>
-      <Select
-        value={selectedProjectId ?? ''}
-        onValueChange={(v) => setSelectedProjectId(v || undefined)}
-      >
+      <Select value={selectedProjectId ?? ''} onValueChange={(v) => setSelectedProjectId(v || undefined)}>
         <SelectTrigger className="w-[300px]">
           {isLoadingProjects ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -99,7 +96,10 @@ export default function ContractSubCategoriesPage() {
           return data;
         }}
         createFn={(data: Record<string, unknown>) =>
-          drawingMasterDataService.createContractSubCategory({ ...(data as unknown as CreateContractSubCategoryDto), projectId: selectedProjectId })
+          drawingMasterDataService.createContractSubCategory({
+            ...(data as unknown as CreateContractSubCategoryDto),
+            projectId: selectedProjectId,
+          })
         }
         updateFn={(id, data) => drawingMasterDataService.updateContractSubCategory(id, data)}
         deleteFn={(id) => drawingMasterDataService.deleteContractSubCategory(id)}

@@ -36,11 +36,7 @@ describe('use-correspondence hooks', () => {
     it('should generate correct cache keys', () => {
       expect(correspondenceKeys.all).toEqual(['correspondences']);
       expect(correspondenceKeys.lists()).toEqual(['correspondences', 'list']);
-      expect(correspondenceKeys.list({ projectId: 1 })).toEqual([
-        'correspondences',
-        'list',
-        { projectId: 1 },
-      ]);
+      expect(correspondenceKeys.list({ projectId: 1 })).toEqual(['correspondences', 'list', { projectId: 1 }]);
       expect(correspondenceKeys.details()).toEqual(['correspondences', 'detail']);
       expect(correspondenceKeys.detail(1)).toEqual(['correspondences', 'detail', 1]);
     });
@@ -123,7 +119,7 @@ describe('use-correspondence hooks', () => {
           projectId: 1,
           typeId: 1,
           originatorId: 1,
-          recipients: []
+          recipients: [],
         });
       });
 
@@ -132,7 +128,7 @@ describe('use-correspondence hooks', () => {
         projectId: 1,
         typeId: 1,
         originatorId: 1,
-        recipients: []
+        recipients: [],
       });
       expect(toast.success).toHaveBeenCalledWith('Correspondence created successfully');
     });
@@ -154,7 +150,7 @@ describe('use-correspondence hooks', () => {
             projectId: 1,
             typeId: 1,
             originatorId: 1,
-            recipients: []
+            recipients: [],
           });
         } catch {
           // Expected to throw

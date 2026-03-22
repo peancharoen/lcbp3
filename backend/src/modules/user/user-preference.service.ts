@@ -11,7 +11,7 @@ import { UpdatePreferenceDto } from './dto/update-preference.dto';
 export class UserPreferenceService {
   constructor(
     @InjectRepository(UserPreference)
-    private prefRepo: Repository<UserPreference>,
+    private prefRepo: Repository<UserPreference>
   ) {}
 
   // ดึง Preference ของ User (ถ้าไม่มีให้สร้าง Default)
@@ -35,7 +35,7 @@ export class UserPreferenceService {
   // อัปเดต Preference
   async update(
     userId: number,
-    dto: UpdatePreferenceDto,
+    dto: UpdatePreferenceDto
   ): Promise<UserPreference> {
     const pref = await this.findByUser(userId);
 

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { RFADetail } from "@/components/rfas/detail";
-import { notFound, useParams } from "next/navigation";
-import { useRFA } from "@/hooks/use-rfa";
-import { Loader2 } from "lucide-react";
+import { RFADetail } from '@/components/rfas/detail';
+import { notFound, useParams } from 'next/navigation';
+import { useRFA } from '@/hooks/use-rfa';
+import { Loader2 } from 'lucide-react';
 
 export default function RFADetailPage() {
   const { uuid } = useParams();
@@ -22,11 +22,7 @@ export default function RFADetailPage() {
 
   if (isError || !rfa) {
     // Check if error is 404
-    return (
-       <div className="text-center py-20 text-red-500">
-         RFA not found or failed to load.
-       </div>
-    );
+    return <div className="text-center py-20 text-red-500">RFA not found or failed to load.</div>;
   }
 
   return <RFADetail data={rfa} />;

@@ -22,14 +22,14 @@ export class MaintenanceModeGuard implements CanActivate {
 
   constructor(
     private reflector: Reflector,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 1. ตรวจสอบว่า Route นี้ได้รับการยกเว้นหรือไม่ (Bypass)
     const isBypassed = this.reflector.getAllAndOverride<boolean>(
       BYPASS_MAINTENANCE_KEY,
-      [context.getHandler(), context.getClass()],
+      [context.getHandler(), context.getClass()]
     );
 
     if (isBypassed) {
@@ -43,12 +43,12 @@ export class MaintenanceModeGuard implements CanActivate {
       // ถ้า Redis มีค่าเป็น true หรือ string "true" ให้ Block
       if (isMaintenanceOn === true || isMaintenanceOn === 'true') {
         // (Optional) 3. ตรวจสอบ Backdoor Header สำหรับ Admin (ถ้าต้องการ Bypass ฉุกเฉิน)
-        const request = context.switchToHttp().getRequest();
+        const request = context.switchToHttp().getRequest<{ url: string }>();
         // const bypassToken = request.headers['x-maintenance-bypass'];
         // if (bypassToken === process.env.ADMIN_SECRET) return true;
 
         this.logger.warn(
-          `Blocked request to ${request.url} due to Maintenance Mode`,
+          `Blocked request to ${request.url} due to Maintenance Mode`
         );
 
         throw new ServiceUnavailableException({

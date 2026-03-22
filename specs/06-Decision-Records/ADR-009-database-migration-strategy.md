@@ -159,16 +159,9 @@ git commit -m "feat: add discipline_id to correspondences"
 
 ```typescript
 // File: backend/src/migrations/1234567890-AddDisciplineIdToCorrespondences.ts
-import {
-  MigrationInterface,
-  QueryRunner,
-  TableColumn,
-  TableForeignKey,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, TableColumn, TableForeignKey } from 'typeorm';
 
-export class AddDisciplineIdToCorrespondences1234567890
-  implements MigrationInterface
-{
+export class AddDisciplineIdToCorrespondences1234567890 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Add column
     await queryRunner.addColumn(
@@ -192,21 +185,15 @@ export class AddDisciplineIdToCorrespondences1234567890
     );
 
     // Add index
-    await queryRunner.query(
-      'CREATE INDEX idx_correspondences_discipline_id ON correspondences(discipline_id)'
-    );
+    await queryRunner.query('CREATE INDEX idx_correspondences_discipline_id ON correspondences(discipline_id)');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Reverse order: index → FK → column
-    await queryRunner.query(
-      'DROP INDEX idx_correspondences_discipline_id ON correspondences'
-    );
+    await queryRunner.query('DROP INDEX idx_correspondences_discipline_id ON correspondences');
 
     const table = await queryRunner.getTable('correspondences');
-    const foreignKey = table.foreignKeys.find(
-      (fk) => fk.columnNames.indexOf('discipline_id') !== -1
-    );
+    const foreignKey = table.foreignKeys.find((fk) => fk.columnNames.indexOf('discipline_id') !== -1);
     await queryRunner.dropForeignKey('correspondences', foreignKey);
 
     await queryRunner.dropColumn('correspondences', 'discipline_id');
@@ -303,9 +290,7 @@ describe('Migrations', () => {
 
     // Verify tables exist
     const tables = await dataSource.query('SHOW TABLES');
-    expect(tables).toContainEqual(
-      expect.objectContaining({ Tables_in_lcbp3: 'correspondences' })
-    );
+    expect(tables).toContainEqual(expect.objectContaining({ Tables_in_lcbp3: 'correspondences' }));
   });
 
   it('should rollback all migrations successfully', async () => {

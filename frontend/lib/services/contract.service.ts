@@ -1,9 +1,5 @@
-import apiClient from "@/lib/api/client";
-import {
-  CreateContractDto,
-  UpdateContractDto,
-  SearchContractDto,
-} from "@/types/dto/contract/contract.dto";
+import apiClient from '@/lib/api/client';
+import { CreateContractDto, UpdateContractDto, SearchContractDto } from '@/types/dto/contract/contract.dto';
 
 export const contractService = {
   /**
@@ -11,7 +7,7 @@ export const contractService = {
    * GET /contracts?projectId=1
    */
   getAll: async (params?: SearchContractDto) => {
-    const response = await apiClient.get("/contracts", { params });
+    const response = await apiClient.get('/contracts', { params });
     if (response.data && Array.isArray(response.data.data)) {
       return response.data.data;
     }
@@ -32,7 +28,7 @@ export const contractService = {
    * POST /contracts
    */
   create: async (data: CreateContractDto) => {
-    const response = await apiClient.post("/contracts", data);
+    const response = await apiClient.post('/contracts', data);
     return response.data;
   },
 

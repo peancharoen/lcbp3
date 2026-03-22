@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CorrespondenceService } from './correspondence.service';
 import { Correspondence } from './entities/correspondence.entity';
 import { CorrespondenceRevision } from './entities/correspondence-revision.entity';
@@ -15,13 +15,15 @@ import { WorkflowEngineService } from '../workflow-engine/workflow-engine.servic
 import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
+import { User } from '../user/entities/user.entity';
 
 describe('CorrespondenceService', () => {
   let service: CorrespondenceService;
   let numberingService: DocumentNumberingService;
-  let correspondenceRepo: any;
-  let revisionRepo: any;
-  let dataSource: any;
+  let correspondenceRepo: Repository<Correspondence>;
+  let revisionRepo: Repository<CorrespondenceRevision>;
+  let _dataSource: DataSource;
 
   const createMockRepository = () => ({
     find: jest.fn(),
@@ -89,6 +91,10 @@ describe('CorrespondenceService', () => {
           useValue: createMockRepository(),
         },
         {
+          provide: getRepositoryToken(CorrespondenceRecipient),
+          useValue: createMockRepository(),
+        },
+        {
           provide: DocumentNumberingService,
           useValue: {
             generateNextNumber: jest.fn(),
@@ -130,9 +136,13 @@ describe('CorrespondenceService', () => {
     numberingService = module.get<DocumentNumberingService>(
       DocumentNumberingService
     );
-    correspondenceRepo = module.get(getRepositoryToken(Correspondence));
-    revisionRepo = module.get(getRepositoryToken(CorrespondenceRevision));
-    dataSource = module.get(DataSource);
+    correspondenceRepo = module.get<Repository<Correspondence>>(
+      getRepositoryToken(Correspondence)
+    );
+    revisionRepo = module.get<Repository<CorrespondenceRevision>>(
+      getRepositoryToken(CorrespondenceRevision)
+    );
+    _dataSource = module.get<DataSource>(DataSource);
   });
 
   it('should be defined', () => {
@@ -141,20 +151,17 @@ describe('CorrespondenceService', () => {
 
   describe('update', () => {
     it('should NOT regenerate number if critical fields unchanged', async () => {
-      const mockUser = { user_id: 1, primaryOrganizationId: 10 } as any;
+      const mockUser = { id: 1, primaryOrganizationId: 10 } as unknown as User;
       const mockRevision = {
         id: 100,
         correspondenceId: 1,
         isCurrent: true,
         statusId: 5,
-      }; // Status 5 = Draft handled by logic?
-      // Mock status repo to return DRAFT
-      // But strict logic: revision.statusId check
-      jest.spyOn(revisionRepo, 'findOne').mockResolvedValue(mockRevision);
-      const mockStatus = { id: 5, statusCode: 'DRAFT' };
-      // Need to set statusRepo mock behavior... simplified here for brevity or assume defaults
-      // Injecting internal access to statusRepo is hard without `module.get` if I didn't save it.
-      // Let's assume it passes check for now.
+      };
+
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
 
       const mockCorr = {
         id: 1,
@@ -165,89 +172,105 @@ describe('CorrespondenceService', () => {
         correspondenceNumber: 'OLD-NUM',
         recipients: [{ recipientType: 'TO', recipientOrganizationId: 99 }],
       };
-      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue(mockCorr);
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValue(mockCorr as unknown as Correspondence);
 
-      // Update DTO with same values
-      const updateDto = {
+      const updateDto: UpdateCorrespondenceDto = {
         projectId: 1,
         disciplineId: 3,
-        // recipients missing -> imply no change
       };
 
-      await service.update(1, updateDto as any, mockUser);
+      await service.update(1, updateDto, mockUser);
 
-      // Check that updateNumberForDraft was NOT called
-      expect(numberingService.updateNumberForDraft).not.toHaveBeenCalled();
+      expect(
+        numberingService.updateNumberForDraft as jest.Mock
+      ).not.toHaveBeenCalled();
     });
 
     it('should regenerate number if Project ID changes', async () => {
-      const mockUser = { user_id: 1, primaryOrganizationId: 10 } as any;
+      const mockUser = { id: 1, primaryOrganizationId: 10 } as unknown as User;
       const mockRevision = {
         id: 100,
         correspondenceId: 1,
         isCurrent: true,
         statusId: 5,
       };
-      jest.spyOn(revisionRepo, 'findOne').mockResolvedValue(mockRevision);
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
 
       const mockCorr = {
         id: 1,
-        projectId: 1, // Old Project
+        projectId: 1,
         correspondenceTypeId: 2,
         disciplineId: 3,
         originatorId: 10,
         correspondenceNumber: 'OLD-NUM',
         recipients: [{ recipientType: 'TO', recipientOrganizationId: 99 }],
       };
-      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue(mockCorr);
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValue(mockCorr as unknown as Correspondence);
 
-      const updateDto = {
-        projectId: 2, // New Project -> Change!
+      const updateDto: UpdateCorrespondenceDto = {
+        projectId: 2,
       };
 
-      await service.update(1, updateDto as any, mockUser);
+      await service.update(1, updateDto, mockUser);
 
-      expect(numberingService.updateNumberForDraft).toHaveBeenCalled();
+      expect(
+        numberingService.updateNumberForDraft as jest.Mock
+      ).toHaveBeenCalled();
     });
+
     it('should regenerate number if Document Type changes', async () => {
-      const mockUser = { user_id: 1, primaryOrganizationId: 10 } as any;
+      const mockUser = { id: 1, primaryOrganizationId: 10 } as unknown as User;
       const mockRevision = {
         id: 100,
         correspondenceId: 1,
         isCurrent: true,
         statusId: 5,
       };
-      jest.spyOn(revisionRepo, 'findOne').mockResolvedValue(mockRevision);
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
 
       const mockCorr = {
         id: 1,
         projectId: 1,
-        correspondenceTypeId: 2, // Old Type
+        correspondenceTypeId: 2,
         disciplineId: 3,
         originatorId: 10,
         correspondenceNumber: 'OLD-NUM',
         recipients: [{ recipientType: 'TO', recipientOrganizationId: 99 }],
       };
-      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue(mockCorr);
+      jest
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValue(mockCorr as unknown as Correspondence);
 
-      const updateDto = {
-        typeId: 999, // New Type
+      const updateDto: UpdateCorrespondenceDto = {
+        typeId: 999,
       };
 
-      await service.update(1, updateDto as any, mockUser);
+      await service.update(1, updateDto, mockUser);
 
-      expect(numberingService.updateNumberForDraft).toHaveBeenCalled();
+      expect(
+        numberingService.updateNumberForDraft as jest.Mock
+      ).toHaveBeenCalled();
     });
 
     it('should regenerate number if Recipient Organization changes', async () => {
-      const mockUser = { user_id: 1, primaryOrganizationId: 10 } as any;
+      const mockUser = { id: 1, primaryOrganizationId: 10 } as unknown as User;
       const mockRevision = {
         id: 100,
         correspondenceId: 1,
         isCurrent: true,
         statusId: 5,
       };
-      jest.spyOn(revisionRepo, 'findOne').mockResolvedValue(mockRevision);
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
 
       const mockCorr = {
         id: 1,
@@ -256,20 +279,30 @@ describe('CorrespondenceService', () => {
         disciplineId: 3,
         originatorId: 10,
         correspondenceNumber: 'OLD-NUM',
-        recipients: [{ recipientType: 'TO', recipientOrganizationId: 99 }], // Old Recipient 99
+        recipients: [{ recipientType: 'TO', recipientOrganizationId: 99 }],
       };
-      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue(mockCorr);
       jest
-        .spyOn(service['orgRepo'], 'findOne')
-        .mockResolvedValue({ id: 88, organizationCode: 'NEW-ORG' } as any);
+        .spyOn(correspondenceRepo, 'findOne')
+        .mockResolvedValue(mockCorr as unknown as Correspondence);
 
-      const updateDto = {
-        recipients: [{ type: 'TO', organizationId: 88 }], // New Recipient 88
+      // Access private property for mocking via casting
+      const internalService = service as unknown as {
+        orgRepo: Repository<Organization>;
+      };
+      jest.spyOn(internalService.orgRepo, 'findOne').mockResolvedValue({
+        id: 88,
+        organizationCode: 'NEW-ORG',
+      } as unknown as Organization);
+
+      const updateDto: UpdateCorrespondenceDto = {
+        recipients: [{ type: 'TO', organizationId: 88 }],
       };
 
-      await service.update(1, updateDto as any, mockUser);
+      await service.update(1, updateDto, mockUser);
 
-      expect(numberingService.updateNumberForDraft).toHaveBeenCalled();
+      expect(
+        numberingService.updateNumberForDraft as jest.Mock
+      ).toHaveBeenCalled();
     });
   });
 });

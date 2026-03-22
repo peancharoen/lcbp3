@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 
 export default function SettingsPage() {
   return (
@@ -32,9 +32,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between space-x-2">
               <div className="flex flex-col space-y-1">
                 <Label htmlFor="audit-logging">Enhanced Audit Logging</Label>
-                <span className="text-sm text-muted-foreground">
-                  Log detailed request/response data for debugging
-                </span>
+                <span className="text-sm text-muted-foreground">Log detailed request/response data for debugging</span>
               </div>
               <Switch id="audit-logging" defaultChecked />
             </div>
@@ -50,9 +48,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between space-x-2">
               <div className="flex flex-col space-y-1">
                 <Label htmlFor="email-notif">Email Notifications</Label>
-                <span className="text-sm text-muted-foreground">
-                  Enable or disable all outbound emails
-                </span>
+                <span className="text-sm text-muted-foreground">Enable or disable all outbound emails</span>
               </div>
               <Switch id="email-notif" defaultChecked />
             </div>

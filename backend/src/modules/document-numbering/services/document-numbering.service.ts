@@ -1,17 +1,6 @@
-import {
-  Injectable,
-  Logger,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
-import {
-  Repository,
-  EntityManager,
-  In,
-  IsNull,
-  Equal,
-} from 'typeorm';
+import { Repository, EntityManager, IsNull, Equal } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 
 import { DocumentNumberFormat } from '../entities/document-number-format.entity';
@@ -127,18 +116,20 @@ export class DocumentNumberingService {
       const sequence = await this.counterService.incrementCounter(key);
 
       // 4. Format Number
-      const { previewNumber: documentNumber } = await this.formatService.format({
-        projectId: ctx.projectId,
-        correspondenceTypeId: ctx.typeId,
-        subTypeId: ctx.subTypeId,
-        rfaTypeId: ctx.rfaTypeId,
-        disciplineId: ctx.disciplineId,
-        sequence: sequence,
-        resetScope: resetScope,
-        year: currentYear,
-        originatorOrganizationId: ctx.originatorOrganizationId,
-        recipientOrganizationId: ctx.recipientOrganizationId,
-      });
+      const { previewNumber: documentNumber } = await this.formatService.format(
+        {
+          projectId: ctx.projectId,
+          correspondenceTypeId: ctx.typeId,
+          subTypeId: ctx.subTypeId,
+          rfaTypeId: ctx.rfaTypeId,
+          disciplineId: ctx.disciplineId,
+          sequence: sequence,
+          resetScope: resetScope,
+          year: currentYear,
+          originatorOrganizationId: ctx.originatorOrganizationId,
+          recipientOrganizationId: ctx.recipientOrganizationId,
+        }
+      );
 
       // 5. Audit Log
       const audit = await this.logAudit({
@@ -197,9 +188,11 @@ export class DocumentNumberingService {
     return this.reservationService.cancel(token, userId);
   }
 
-  async previewNumber(
-    ctx: GenerateNumberContext
-  ): Promise<{ previewNumber: string; nextSequence: number; isDefault: boolean }> {
+  async previewNumber(ctx: GenerateNumberContext): Promise<{
+    previewNumber: string;
+    nextSequence: number;
+    isDefault: boolean;
+  }> {
     const currentYear = new Date().getFullYear();
     const resetScope = `YEAR_${currentYear}`;
 
@@ -247,13 +240,15 @@ export class DocumentNumberingService {
 
   // --- Admin / Legacy ---
 
-  async getTemplates() {
+  async getTemplates(): Promise<DocumentNumberFormat[]> {
     return this.formatRepo.find({
       relations: ['project', 'correspondenceType'],
     });
   }
 
-  async getTemplatesByProject(projectId: number | string) {
+  async getTemplatesByProject(
+    projectId: number | string
+  ): Promise<DocumentNumberFormat[]> {
     const internalId = await this.uuidResolver.resolveProjectId(projectId);
     return this.formatRepo.find({
       where: { projectId: internalId },
@@ -263,10 +258,10 @@ export class DocumentNumberingService {
 
   async saveTemplate(
     dto: Partial<DocumentNumberFormat> & { projectId?: number | string }
-  ) {
+  ): Promise<DocumentNumberFormat> {
     try {
       this.logger.log(`Saving numbering template: ${JSON.stringify(dto)}`);
-      
+
       // Resolve project ID if it's a UUID/String
       if (dto.projectId && typeof dto.projectId === 'string') {
         dto.projectId = await this.uuidResolver.resolveProjectId(dto.projectId);
@@ -277,12 +272,16 @@ export class DocumentNumberingService {
         const existing = await this.formatRepo.findOne({
           where: {
             projectId: Number(dto.projectId),
-            correspondenceTypeId: dto.correspondenceTypeId ? Equal(dto.correspondenceTypeId) : IsNull(),
+            correspondenceTypeId: dto.correspondenceTypeId
+              ? Equal(dto.correspondenceTypeId)
+              : IsNull(),
             disciplineId: dto.disciplineId || 0,
           },
         });
         if (existing) {
-          this.logger.log(`Found existing template ID: ${existing.id} for business key, updating instead of creating.`);
+          this.logger.log(
+            `Found existing template ID: ${existing.id} for business key, updating instead of creating.`
+          );
           dto.id = existing.id;
         }
       }
@@ -290,8 +289,11 @@ export class DocumentNumberingService {
       const result = await this.formatRepo.save(dto);
       this.logger.log(`Successfully saved template ID: ${result.id}`);
       return result;
-    } catch (e: any) {
-      this.logger.error(`Failed to save numbering template: ${e.message}`, e.stack);
+    } catch (e: unknown) {
+      this.logger.error(
+        `Failed to save numbering template: ${e instanceof Error ? e.message : String(e)}`,
+        e instanceof Error ? e.stack : undefined
+      );
       throw e;
     }
   }
@@ -344,7 +346,7 @@ export class DocumentNumberingService {
       // Create a void audit anyway if possible?
       await this.logAudit({
         documentNumber: dto.documentNumber,
-        counterKey: {}, // Unknown
+        counterKey: {},
         templateUsed: 'VOID_UNKNOWN',
         context: { userId: 0, ipAddress: '0.0.0.0' }, // System
         isSuccess: true,
@@ -377,19 +379,20 @@ export class DocumentNumberingService {
       // But we can reconstruct it.
       let context: GenerateNumberContext;
       try {
+        const rawKey = lastAudit.counterKey;
         const key =
-          typeof lastAudit.counterKey === 'string'
-            ? JSON.parse(lastAudit.counterKey)
-            : lastAudit.counterKey;
+          typeof rawKey === 'string'
+            ? (JSON.parse(rawKey) as Record<string, unknown>)
+            : rawKey;
 
         context = {
-          projectId: key.projectId,
-          typeId: key.correspondenceTypeId,
-          subTypeId: key.subTypeId,
-          rfaTypeId: key.rfaTypeId,
-          disciplineId: key.disciplineId,
-          originatorOrganizationId: key.originatorOrganizationId || 0,
-          recipientOrganizationId: key.recipientOrganizationId || 0,
+          projectId: Number(key.projectId),
+          typeId: Number(key.correspondenceTypeId),
+          subTypeId: Number(key.subTypeId),
+          rfaTypeId: Number(key.rfaTypeId),
+          disciplineId: Number(key.disciplineId),
+          originatorOrganizationId: Number(key.originatorOrganizationId) || 0,
+          recipientOrganizationId: Number(key.recipientOrganizationId) || 0,
           userId: 0, // System replacement
         };
 
@@ -527,9 +530,11 @@ export class DocumentNumberingService {
         errorMessage: err.message || 'Unknown Error',
         errorType: this.mapErrorType(err),
         contextData: {
-          ...(typeof ctx === 'object' && ctx !== null ? ctx : {}),
+          ...(typeof ctx === 'object' && ctx !== null
+            ? (ctx as Record<string, unknown>)
+            : {}),
           operation,
-        } as Record<string, unknown>,
+        },
       });
       await this.errorRepo.save(errEntity);
     } catch (e) {

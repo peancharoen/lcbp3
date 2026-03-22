@@ -35,6 +35,6 @@ export interface SearchShopDrawingDto {
   subCategoryId?: number;
   search?: string;
 
-  page?: number;     // Default: 1
-  limit?: number;    // Default: 20
+  page?: number; // Default: 1
+  limit?: number; // Default: 20
 }

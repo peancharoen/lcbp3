@@ -48,11 +48,11 @@ export class CreateJsonSchemaDto {
 
   @IsObject()
   @IsNotEmpty()
-  schemaDefinition!: Record<string, any>;
+  schemaDefinition!: Record<string, unknown>;
 
   @IsObject()
   @IsOptional()
-  uiSchema?: Record<string, any>;
+  uiSchema?: Record<string, unknown>;
 
   @IsArray()
   @IsOptional()
@@ -62,7 +62,7 @@ export class CreateJsonSchemaDto {
 
   @IsObject()
   @IsOptional()
-  migrationScript?: Record<string, any>;
+  migrationScript?: Record<string, unknown>;
 
   @IsBoolean()
   @IsOptional()

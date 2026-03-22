@@ -31,10 +31,11 @@ Analyze an existing codebase and generate speckit artifacts (spec.md, plan.md, t
    - `--depth <n>`: Analysis depth (1=overview, 2=detailed, 3=exhaustive)
 
 2. **Codebase Discovery**:
+
    ```bash
    # Get project structure
    tree -L 3 --dirsfirst -I 'node_modules|.git|dist|build' > /tmp/structure.txt
-   
+
    # Find key files
    find . -name "*.md" -o -name "package.json" -o -name "*.config.*" | head -50
    ```
@@ -47,48 +48,59 @@ Analyze an existing codebase and generate speckit artifacts (spec.md, plan.md, t
    - Map API endpoints (if applicable)
 
 4. **Generate spec.md** (reverse-engineered):
+
    ```markdown
    # [Feature Name] - Specification (Migrated)
-   
+
    > This specification was auto-generated from existing code.
    > Review and refine before using for future development.
-   
+
    ## Overview
+
    [Inferred from README, comments, and code structure]
-   
+
    ## Functional Requirements
+
    [Extracted from existing functionality]
-   
+
    ## Key Entities
+
    [From data models, schemas, types]
    ```
 
 5. **Generate plan.md** (reverse-engineered):
+
    ```markdown
    # [Feature Name] - Technical Plan (Migrated)
-   
+
    ## Current Architecture
+
    [Documented from codebase analysis]
-   
+
    ## Technology Stack
+
    [From package.json, imports, configs]
-   
+
    ## Component Map
+
    [Directory → responsibility mapping]
    ```
 
 6. **Generate tasks.md** (completion status):
+
    ```markdown
    # [Feature Name] - Tasks (Migrated)
-   
+
    All tasks marked [x] represent existing implemented functionality.
    Tasks marked [ ] are inferred gaps or TODOs found in code.
-   
+
    ## Existing Implementation
+
    - [x] [Component A] - Implemented in `src/componentA/`
    - [x] [Component B] - Implemented in `src/componentB/`
-   
+
    ## Identified Gaps
+
    - [ ] [Missing tests for X]
    - [ ] [TODO comment at Y]
    ```

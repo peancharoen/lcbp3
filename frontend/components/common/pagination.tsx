@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 interface PaginationProps {
   currentPage: number;
@@ -10,18 +10,14 @@ interface PaginationProps {
   total: number;
 }
 
-export function Pagination({
-  currentPage,
-  totalPages,
-  total,
-}: PaginationProps) {
+export function Pagination({ currentPage, totalPages, total }: PaginationProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const createPageURL = (pageNumber: number) => {
     const params = new URLSearchParams(searchParams);
-    params.set("page", pageNumber.toString());
+    params.set('page', pageNumber.toString());
     return `${pathname}?${params.toString()}`;
   };
 
@@ -50,7 +46,7 @@ export function Pagination({
           return (
             <Button
               key={pageNum}
-              variant={pageNum === currentPage ? "default" : "outline"}
+              variant={pageNum === currentPage ? 'default' : 'outline'}
               size="sm"
               onClick={() => router.push(createPageURL(pageNum))}
             >

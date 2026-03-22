@@ -1,10 +1,13 @@
 # Database Indexing & Performance Strategy
+
 **Version:** 1.0.0
 **Context:** Production-scale (100k+ documents, High Concurrency)
 **Database:** MySQL 8.x (On-Premise via Docker)
 
 ## 1. Core Principles (หลักการสำคัญ)
+
 ในการออกแบบ Database Index สำหรับระบบ DMS ให้ยึดหลักการตัดสินใจดังนี้:
+
 1. **Data Integrity First:** ใช้ `UNIQUE INDEX` เพื่อเป็นปราการด่านสุดท้ายป้องกันการเกิด Duplicate Document Number และ Revision ซ้ำซ้อน (แม้ Application Layer จะมี Logic ดักไว้แล้วก็ตาม)
 2. **Soft-Delete Awareness:** ทุก Index ที่เกี่ยวข้องกับความถูกต้องของข้อมูล ต้องคำนึงถึงคอลัมน์ `deleted_at` เพื่อไม่ให้เอกสารที่ถูกลบไปแล้ว มาขัดขวางการสร้างเอกสารใหม่ที่ใช้เลขเดิม
 3. **Foreign Key Performance:** สร้าง B-Tree Index ให้กับ Foreign Key (FK) ทุกตัว เพื่อรองรับการ JOIN ข้อมูลที่รวดเร็ว โดยเฉพาะการดึง Workflow และ Routing
@@ -13,12 +16,15 @@
 ---
 
 ## 2. Document Control Indexes (ป้องกัน Duplicate & Conflict)
+
 หัวใจของ DMS คือห้ามมีเอกสารเลขซ้ำในระบบที่ Active อยู่
 
 ### 2.1 Unique Document Number & Revision
+
 เพื่อรองรับระบบ Soft Delete (`deleted_at`) ใน MySQL การตั้ง Unique Index จำเป็นต้องมีเทคนิคเพื่อจัดการกับค่า `NULL` (เนื่องจาก MySQL มองว่า `NULL` ไม่เท่ากับ `NULL` จึงอาจทำให้เกิด Duplicate ได้ถ้าตั้งค่าไม่รัดกุม)
 
 **SQL Recommendation (Functional Index - MySQL 8.0+):**
+
 ```sql
 -- ป้องกันการสร้าง Document No และ Revision ซ้ำ สำหรับเอกสารที่ยังไม่ถูกลบ (Active)
 ALTER TABLE `documents`
@@ -30,7 +36,7 @@ ADD UNIQUE INDEX `idx_unique_active_doc_rev` (
 
 ```
 
-*เหตุผล:* โครงสร้างนี้รับประกันว่าจะมี `document_no` + `revision` ที่ Active ได้เพียง 1 รายการเท่านั้น แต่สามารถมีรายการที่ถูกลบ (`deleted_at` มีค่า) ซ้ำกันได้
+_เหตุผล:_ โครงสร้างนี้รับประกันว่าจะมี `document_no` + `revision` ที่ Active ได้เพียง 1 รายการเท่านั้น แต่สามารถมีรายการที่ถูกลบ (`deleted_at` มีค่า) ซ้ำกันได้
 
 ### 2.2 Current/Superseded Flag Index
 
@@ -75,7 +81,7 @@ ADD FULLTEXT INDEX `ft_idx_doc_title` (`title`, `subject`);
 
 ```
 
-*(หมายเหตุ: หากอนาคตมีระบบ OCR หรือค้นหาในเนื้อหาไฟล์ PDF ให้พิจารณาขยับไปใช้ Elasticsearch แยกต่างหาก ไม่ควรเก็บ Full-Text ขนาดใหญ่ไว้ใน MySQL)*
+_(หมายเหตุ: หากอนาคตมีระบบ OCR หรือค้นหาในเนื้อหาไฟล์ PDF ให้พิจารณาขยับไปใช้ Elasticsearch แยกต่างหาก ไม่ควรเก็บ Full-Text ขนาดใหญ่ไว้ใน MySQL)_
 
 ---
 
@@ -104,10 +110,9 @@ ADD INDEX `idx_audit_user_action` (`user_id`, `action`, `created_at`);
 
 1. **Partitioning:** แนะนำให้ทำ Table Partitioning ตามเดือน (Monthly) หรือปี (Yearly) บนคอลัมน์ `created_at`
 2. **Minimal Indexing:** ห้ามสร้าง Index เยอะเกินความจำเป็นในตารางนี้ แนะนำแค่:
-* `INDEX(document_id, created_at)` สำหรับดู History ของเอกสารนั้นๆ
-* `INDEX(user_id, created_at)` สำหรับตรวจสอบพฤติกรรมผู้ใช้ต้องสงสัย (Security Audit)
 
-
+- `INDEX(document_id, created_at)` สำหรับดู History ของเอกสารนั้นๆ
+- `INDEX(user_id, created_at)` สำหรับตรวจสอบพฤติกรรมผู้ใช้ต้องสงสัย (Security Audit)
 
 ```sql
 -- ตัวอย่างการ Index สำหรับดูกระแสของเอกสาร
@@ -122,10 +127,10 @@ ADD INDEX `idx_entity_history` (`entity_type`, `entity_id`, `created_at` DESC);
 
 เนื่องจากระบบอยู่บน On-Prem NAS (QNAP/ASUSTOR) ทรัพยากร I/O ของดิสก์มีจำกัด (Disk IOPS)
 
-* **Index Defragmentation:** ให้กำหนด Scheduled Task (ผ่าน Cronjob หรือ MySQL Event) มารัน `OPTIMIZE TABLE` ทุกๆ ไตรมาส สำหรับตารางที่มีการ Delete/Update บ่อย (ช่วยคืนพื้นที่ดิสก์และลด I/O)
-* **Slow Query Monitoring:** ใน `04-infrastructure-ops/04-01-docker-compose.md` ต้องเปิดใช้งาน `slow_query_log=1` และตั้ง `long_query_time=2` เพื่อตรวจสอบว่ามี Query ใดทำงานแบบ Full Table Scan (ไม่ใช้ Index) หรือไม่
-
+- **Index Defragmentation:** ให้กำหนด Scheduled Task (ผ่าน Cronjob หรือ MySQL Event) มารัน `OPTIMIZE TABLE` ทุกๆ ไตรมาส สำหรับตารางที่มีการ Delete/Update บ่อย (ช่วยคืนพื้นที่ดิสก์และลด I/O)
+- **Slow Query Monitoring:** ใน `04-infrastructure-ops/04-01-docker-compose.md` ต้องเปิดใช้งาน `slow_query_log=1` และตั้ง `long_query_time=2` เพื่อตรวจสอบว่ามี Query ใดทำงานแบบ Full Table Scan (ไม่ใช้ Index) หรือไม่
 
 ## 💡 คำแนะนำเพิ่มเติมจาก Architect (Architect's Notes):
+
 1. **เรื่อง Soft Delete กับ Unique Constraint:** เป็นจุดที่นักพัฒนาพลาดกันบ่อยที่สุด ถ้าระบบอนุญาตให้ลบ `DOC-001 Rev.0` แล้วสร้าง `DOC-001 Rev.0` ใหม่ได้ การจัดการ Unique Constraint บน MySQL ต้องใช้ Functional Index (ตามตัวอย่างในข้อ 2.1) เพื่อป้องกันการตีกันของค่า `NULL` ในฐานข้อมูล
 2. **ลดภาระ QNAP/ASUSTOR:** อุปกรณ์จำพวก NAS On-Premise มักจะมีปัญหาเรื่อง Random Read/Write Disk I/O การใช้ **Composite Index** แบบครบคลุม (Covering Index) จะช่วยให้ MySQL คืนค่าได้จาก Index Tree โดยตรง ไม่ต้องกระโดดไปอ่าน Data File จริง ซึ่งจะช่วยรีด Performance ของ NAS ได้สูงสุดครับ

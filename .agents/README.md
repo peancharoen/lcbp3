@@ -258,37 +258,37 @@ If you change your mind mid-project:
 
 ### 📊 Current Status: UAT Ready (2026-03-11)
 
-| Area | Status |
-|------|--------|
-| Backend | ✅ 18 Modules, Production Ready |
-| Frontend | ✅ 100% Complete |
-| Database | ✅ Schema v1.8.0 Stable |
-| Documentation | ✅ **10/10 Gaps Closed** |
-| AI Migration | 🔄 Pre-migration Setup (n8n + Ollama) |
-| UAT | 🔄 In Progress |
-| Deployment | 📋 Pending Go-Live |
+| Area          | Status                                |
+| ------------- | ------------------------------------- |
+| Backend       | ✅ 18 Modules, Production Ready       |
+| Frontend      | ✅ 100% Complete                      |
+| Database      | ✅ Schema v1.8.0 Stable               |
+| Documentation | ✅ **10/10 Gaps Closed**              |
+| AI Migration  | 🔄 Pre-migration Setup (n8n + Ollama) |
+| UAT           | 🔄 In Progress                        |
+| Deployment    | 📋 Pending Go-Live                    |
 
 ### 📁 Key Spec Files (Always Check Before Writing Code)
 
-| เอกสาร | Path | ใช้เมื่อ |
-|--------|------|--------|
-| Schema Tables | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` | ก่อนเขียน Query |
-| Data Dictionary | `specs/03-Data-and-Storage/03-01-data-dictionary.md` | ตรวจ Business Rules |
-| Edge Cases | `specs/01-Requirements/01-06-edge-cases-and-rules.md` | 37 Rules |
-| Migration Scope | `specs/03-Data-and-Storage/03-06-migration-business-scope.md` | Migration Bot |
-| Release Policy | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md` | ก่อน Deploy |
-| UAT Criteria | `specs/01-Requirements/01-05-acceptance-criteria.md` | ตรวจ Feature |
+| เอกสาร          | Path                                                             | ใช้เมื่อ            |
+| --------------- | ---------------------------------------------------------------- | ------------------- |
+| Schema Tables   | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`    | ก่อนเขียน Query     |
+| Data Dictionary | `specs/03-Data-and-Storage/03-01-data-dictionary.md`             | ตรวจ Business Rules |
+| Edge Cases      | `specs/01-Requirements/01-06-edge-cases-and-rules.md`            | 37 Rules            |
+| Migration Scope | `specs/03-Data-and-Storage/03-06-migration-business-scope.md`    | Migration Bot       |
+| Release Policy  | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md` | ก่อน Deploy         |
+| UAT Criteria    | `specs/01-Requirements/01-05-acceptance-criteria.md`             | ตรวจ Feature        |
 
 ### ⚡ Project-Specific Workflow Cheatsheet
 
-| Task | Workflow / Command | Notes |
-|------|--------------------|-------|
-| Create Backend Module | `/create-backend-module` | Scaffolds NestJS module |
-| Create Frontend Page | `/create-frontend-page` | Next.js App Router page |
-| Schema Change | `/schema-change` | ADR-009: No migrations |
-| Deploy | `/deploy` | Blue-Green via Gitea CI/CD |
-| UAT Feature Check | `/11-speckit-validate` | vs `01-05-acceptance-criteria.md` |
-| Security Audit | `@speckit-security-audit` | OWASP + CASL + ClamAV |
+| Task                  | Workflow / Command        | Notes                             |
+| --------------------- | ------------------------- | --------------------------------- |
+| Create Backend Module | `/create-backend-module`  | Scaffolds NestJS module           |
+| Create Frontend Page  | `/create-frontend-page`   | Next.js App Router page           |
+| Schema Change         | `/schema-change`          | ADR-009: No migrations            |
+| Deploy                | `/deploy`                 | Blue-Green via Gitea CI/CD        |
+| UAT Feature Check     | `/11-speckit-validate`    | vs `01-05-acceptance-criteria.md` |
+| Security Audit        | `@speckit-security-audit` | OWASP + CASL + ClamAV             |
 
 ### 🚫 Critical Forbidden Actions
 

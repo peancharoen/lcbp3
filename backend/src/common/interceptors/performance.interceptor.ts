@@ -8,7 +8,14 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { Request, Response } from 'express';
 import { MetricsService } from '../../modules/monitoring/services/metrics.service';
+
+interface RequestWithRoute extends Request {
+  route: {
+    path: string;
+  };
+}
 
 @Injectable()
 export class PerformanceInterceptor implements NestInterceptor {
@@ -16,27 +23,28 @@ export class PerformanceInterceptor implements NestInterceptor {
 
   constructor(private readonly metricsService: MetricsService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     // ข้ามการวัดผลสำหรับ Endpoint /metrics และ /health เพื่อลด Noise
-    const req = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<Request>();
     if (req.url === '/metrics' || req.url === '/health') {
       return next.handle();
     }
 
     const method = req.method;
-    const url = req.route ? req.route.path : req.url; // ใช้ Route path แทน Full URL เพื่อลด Cardinality
+    const reqWithRoute = req as RequestWithRoute;
+    const url = reqWithRoute.route ? reqWithRoute.route.path : req.url; // Use Route path if available
     const startTime = process.hrtime();
 
     return next.handle().pipe(
       tap({
-        next: (data) => {
-          this.recordMetrics(context, method, url, startTime, 200); // สมมติ 200 หรือดึงจาก Response จริง
+        next: () => {
+          this.recordMetrics(context, method, url || '', startTime, 200);
         },
-        error: (err) => {
+        error: (err: { status?: number }) => {
           const status = err.status || 500;
           this.recordMetrics(context, method, url, startTime, status);
         },
-      }),
+      })
     );
   }
 
@@ -48,9 +56,9 @@ export class PerformanceInterceptor implements NestInterceptor {
     method: string,
     route: string,
     startTime: [number, number],
-    statusCode: number,
+    statusCode: number
   ) {
-    const res = context.switchToHttp().getResponse();
+    const res = context.switchToHttp().getResponse<Response>();
     const finalStatus = res.statusCode || statusCode;
 
     // คำนวณระยะเวลา (Seconds)
@@ -71,7 +79,7 @@ export class PerformanceInterceptor implements NestInterceptor {
         route,
         status_code: finalStatus.toString(),
       },
-      durationInSeconds,
+      durationInSeconds
     );
 
     // 2. บันทึก Log (Winston JSON) - เฉพาะ Request ที่ช้าเกิน 200ms หรือ Error

@@ -28,7 +28,6 @@
 ## 📝 Acceptance Criteria
 
 1. **Basic Operations:**
-
    - ✅ Create correspondence (auto-generate number)
    - ✅ Create revision
    - ✅ Update correspondence/revision
@@ -37,14 +36,12 @@
    - ✅ Get all revisions history
 
 2. **Attachments:**
-
    - ✅ Upload via two-phase storage
    - ✅ Link attachments to revision
    - ✅ Download attachments
    - ✅ Delete attachments
 
 3. **Workflow:**
-
    - ✅ Submit correspondence → Create workflow instance
    - ✅ Execute workflow transitions
    - ✅ Track workflow status
@@ -172,10 +169,7 @@ export class CorrespondenceService {
     private dataSource: DataSource
   ) {}
 
-  async create(
-    dto: CreateCorrespondenceDto,
-    userId: number
-  ): Promise<Correspondence> {
+  async create(dto: CreateCorrespondenceDto, userId: number): Promise<Correspondence> {
     return this.dataSource.transaction(async (manager) => {
       // 1. Generate document number
       const docNumber = await this.docNumbering.generateNextNumber({
@@ -277,9 +271,7 @@ export class CorrespondenceService {
     });
   }
 
-  async findAll(
-    query: SearchCorrespondenceDto
-  ): Promise<PaginatedResult<Correspondence>> {
+  async findAll(query: SearchCorrespondenceDto): Promise<PaginatedResult<Correspondence>> {
     const queryBuilder = this.corrRepo
       .createQueryBuilder('corr')
       .leftJoinAndSelect('corr.project', 'project')
@@ -299,10 +291,9 @@ export class CorrespondenceService {
     }
 
     if (query.search) {
-      queryBuilder.andWhere(
-        '(corr.title LIKE :search OR corr.correspondence_number LIKE :search)',
-        { search: `%${query.search}%` }
-      );
+      queryBuilder.andWhere('(corr.title LIKE :search OR corr.correspondence_number LIKE :search)', {
+        search: `%${query.search}%`,
+      });
     }
 
     // Pagination
@@ -328,12 +319,7 @@ export class CorrespondenceService {
   async findOne(id: number): Promise<Correspondence> {
     const correspondence = await this.corrRepo.findOne({
       where: { id, deleted_at: IsNull() },
-      relations: [
-        'revisions',
-        'revisions.attachments',
-        'project',
-        'originatorOrganization',
-      ],
+      relations: ['revisions', 'revisions.attachments', 'project', 'originatorOrganization'],
       order: { revisions: { revision_number: 'DESC' } },
     });
 
@@ -352,11 +338,7 @@ export class CorrespondenceService {
     }
 
     // Execute workflow transition
-    await this.workflowEngine.executeTransition(
-      correspondence.id,
-      'SUBMIT',
-      userId
-    );
+    await this.workflowEngine.executeTransition(correspondence.id, 'SUBMIT', userId);
 
     // Update status
     await this.corrRepo.update(id, { status: 'submitted' });
@@ -387,10 +369,7 @@ export class CorrespondenceController {
   @Post()
   @RequirePermission('correspondence.create')
   @UseInterceptors(IdempotencyInterceptor)
-  async create(
-    @Body() dto: CreateCorrespondenceDto,
-    @CurrentUser() user: User
-  ): Promise<Correspondence> {
+  async create(@Body() dto: CreateCorrespondenceDto, @CurrentUser() user: User): Promise<Correspondence> {
     return this.service.create(dto, user.user_id);
   }
 
@@ -418,20 +397,14 @@ export class CorrespondenceController {
 
   @Post(':id/submit')
   @RequirePermission('correspondence.submit')
-  async submit(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: User
-  ): Promise<void> {
+  async submit(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User): Promise<void> {
     return this.service.submitForRouting(id, user.user_id);
   }
 
   @Delete(':id')
   @RequirePermission('correspondence.delete')
   @HttpCode(204)
-  async delete(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: User
-  ): Promise<void> {
+  async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User): Promise<void> {
     return this.service.softDelete(id, user.user_id);
   }
 }

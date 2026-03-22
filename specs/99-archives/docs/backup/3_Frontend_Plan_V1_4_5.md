@@ -206,7 +206,6 @@
 ### **Phase 0: Tasks**
 
 - **[ ] F0.1 Project Setup & Tooling**
-
   - [ ] Initialize Next.js 14+ project with TypeScript
   - [ ] Configure pnpm workspace
   - [ ] Setup ESLint, Prettier, and pre-commit hooks
@@ -217,7 +216,6 @@
   - [ ] **Dependencies:** None
 
 - **[ ] F0.2 Design System & UI Components**
-
   - [ ] Setup color palette and design tokens
   - [ ] Create responsive design breakpoints
   - [ ] Implement core shadcn/ui components:
@@ -233,7 +231,6 @@
   - [ ] **Dependencies:** F0.1
 
 - **[ ] F0.3 API Client & Authentication**
-
   - [ ] Setup Axios client with interceptors:
     - [ ] Idempotency-Key header injection
     - [ ] Authentication token management
@@ -282,7 +279,6 @@
 ### **Phase 1: Tasks**
 
 - **[ ] F1.1 Main Layout & Navigation**
-
   - [ ] Create App Shell layout:
     - [ ] Navbar with user menu and notifications
     - [ ] Collapsible sidebar with navigation
@@ -299,7 +295,6 @@
   - [ ] **Dependencies:** F0.2, F0.3
 
 - **[ ] F1.2 Authentication Pages**
-
   - [ ] Create login page with form validation
   - [ ] Implement forgot password flow
   - [ ] Create registration page (admin-only)
@@ -310,7 +305,6 @@
   - [ ] **Dependencies:** F0.3, F1.1
 
 - **[ ] F1.3 Dashboard & Landing**
-
   - [ ] Create public landing page for non-authenticated users
   - [ ] Implement main dashboard with:
     - [ ] KPI cards (document counts, pending tasks)
@@ -356,7 +350,6 @@
 ### **Phase 2: Tasks**
 
 - **[ ] F2.1 User Profile & Settings**
-
   - [ ] Create user profile page:
     - [ ] Personal information display/edit
     - [ ] Password change functionality
@@ -368,7 +361,6 @@
   - [ ] **Dependencies:** F1.1, F0.4
 
 - **[ ] F2.2 Admin Panel - User Management**
-
   - [ ] Create user list with search and filters
   - [ ] Implement user creation form
   - [ ] Create user edit interface
@@ -379,7 +371,6 @@
   - [ ] **Dependencies:** F1.1, F2.1
 
 - **[ ] F2.3 Admin Panel - Role Management**
-
   - [ ] Create role list and management interface
   - [ ] Implement role creation and editing
   - [ ] Create permission assignment interface
@@ -432,7 +423,6 @@
 ### **Phase 3: Tasks**
 
 - **[ ] F3.1 Project Management UI**
-
   - [ ] Create project list with search and filters
   - [ ] Implement project creation and editing
   - [ ] Create project detail view
@@ -443,7 +433,6 @@
   - [ ] **Dependencies:** F1.1, F2.4
 
 - **[ ] F3.2 Organization Management**
-
   - [ ] Create organization list and management
   - [ ] Implement organization creation and editing
   - [ ] Create organization detail view
@@ -479,7 +468,6 @@
 ### **Phase 4: Tasks**
 
 - **[ ] F4.1 Correspondence List & Search**
-
   - [ ] Create correspondence list with advanced filtering:
     - [ ] Filter by type, status, project, organization
     - [ ] Search by title, document number, content
@@ -494,7 +482,6 @@
   - [ ] **Dependencies:** F1.1, F3.1
 
 - **[ ] F4.2 Correspondence Creation Form**
-
   - [ ] Create dynamic form generator based on JSON schema
   - [ ] Implement form with multiple sections:
     - [ ] Basic information (type, title, recipients)
@@ -512,7 +499,6 @@
   - [ ] **Dependencies:** F0.4, F4.1
 
 - **[ ] F4.3 Correspondence Detail View**
-
   - [ ] Create comprehensive detail page:
     - [ ] Document header with metadata
     - [ ] Content display based on type
@@ -544,7 +530,6 @@
 ### **Phase 4: Testing - Correspondence System**
 
 - **[ ] F4.T1 Correspondence Test Suite**
-
   - [ ] **Unit Tests:** Form validation, file upload components
   - [ ] **Integration Tests:** Complete document lifecycle, file attachment flow
   - [ ] **E2E Tests:** End-to-end correspondence creation and management
@@ -563,7 +548,6 @@
 ### **Phase 5: Tasks**
 
 - **[ ] F5.1 Workflow Visualization Component**
-
   - [ ] Create horizontal workflow progress visualization
   - [ ] Implement step status indicators (pending, active, completed, skipped)
   - [ ] Add due date and assignee information
@@ -574,7 +558,6 @@
   - [ ] **Dependencies:** F4.3
 
 - **[ ] F5.2 Routing Template Management**
-
   - [ ] Create routing template list and editor
   - [ ] Implement drag-and-drop step configuration
   - [ ] Add step configuration (purpose, duration, assignee rules)
@@ -585,7 +568,6 @@
   - [ ] **Dependencies:** F3.1, F4.2
 
 - **[ ] F5.3 Workflow Step Actions**
-
   - [ ] Create step action interface:
     - [ ] Approve, reject, request changes
     - [ ] Add comments and attachments
@@ -623,7 +605,6 @@
 ### **Phase 6: Tasks**
 
 - **[ ] F6.1 Contract Drawings Management**
-
   - [ ] Create contract drawing list with categorization
   - [ ] Implement drawing upload and metadata management
   - [ ] Create drawing preview and viewer
@@ -634,7 +615,6 @@
   - [ ] **Dependencies:** F3.1, F4.4
 
 - **[ ] F6.2 Shop Drawings Management**
-
   - [ ] Create shop drawing list with revision tracking
   - [ ] Implement shop drawing creation and revision system
   - [ ] Create drawing comparison interface
@@ -645,7 +625,6 @@
   - [ ] **Dependencies:** F6.1
 
 - **[ ] F6.3 Drawing Revision System**
-
   - [ ] Create revision history interface
   - [ ] Implement revision comparison functionality
   - [ ] Add revision notes and change tracking
@@ -681,7 +660,6 @@
 ### **Phase 7: Tasks**
 
 - **[ ] F7.1 RFA List & Dashboard**
-
   - [ ] Create RFA dashboard with status overview
   - [ ] Implement advanced RFA filtering and search
   - [ ] Create RFA calendar view for deadlines
@@ -692,7 +670,6 @@
   - [ ] **Dependencies:** F4.1, F5.1
 
 - **[ ] F7.2 RFA Creation with Dynamic Forms**
-
   - [ ] Create RFA type-specific form generator
   - [ ] Implement dynamic form fields based on RFA type:
     - [ ] RFA_DWG: Shop drawing selection
@@ -712,7 +689,6 @@
   - [ ] **Dependencies:** F4.2, F6.2
 
 - **[ ] F7.3 RFA Workflow Integration**
-
   - [ ] Integrate RFA with unified workflow engine
   - [ ] Create RFA-specific workflow steps and actions
   - [ ] Implement RFA approval interface
@@ -748,7 +724,6 @@
 ### **Phase 8: Tasks**
 
 - **[ ] F8.1 Circulation Management**
-
   - [ ] Create circulation list and management interface
   - [ ] Implement circulation creation from correspondence
   - [ ] Create circulation template management
@@ -759,7 +734,6 @@
   - [ ] **Dependencies:** F4.1, F5.2
 
 - **[ ] F8.2 Task Assignment Interface**
-
   - [ ] Create task assignment interface with user selection
   - [ ] Implement task priority and deadline setting
   - [ ] Add task dependency management
@@ -795,7 +769,6 @@
 ### **Phase 9: Tasks**
 
 - **[ ] F9.1 Advanced Search Interface**
-
   - [ ] Create unified search interface across all document types
   - [ ] Implement faceted search with multiple filters
   - [ ] Add search result highlighting and relevance scoring
@@ -806,7 +779,6 @@
   - [ ] **Dependencies:** F4.1, F7.1
 
 - **[ ] F9.2 Notification System**
-
   - [ ] Create notification center with real-time updates
   - [ ] Implement notification preferences management
   - [ ] Add notification grouping and digest views
@@ -817,7 +789,6 @@
   - [ ] **Dependencies:** F1.3, F5.4
 
 - **[ ] F9.3 Reporting & Analytics**
-
   - [ ] Create reporting dashboard with customizable widgets
   - [ ] Implement data visualization components (charts, graphs)
   - [ ] Add report scheduling and export
@@ -853,7 +824,6 @@
 ### **Phase 10: Tasks**
 
 - **[ ] F10.1 Comprehensive Testing**
-
   - [ ] Idempotency Testing: เพิ่มการทดสอบเฉพาะสำหรับ Axios Interceptor เพื่อจำลองการส่ง Request POST/PUT/DELETE ที่มี Idempotency-Key ซ้ำไปยัง Mock API (MSW) เพื่อยืนยันว่า Client-side ไม่ส่ง Key ซ้ำในการทำงานปกติ และไม่เกิด Side Effect จากการ Replay Attack.
   - [ ] Write unit tests for all components and utilities
   - [ ] Create integration tests for critical user flows
@@ -865,7 +835,6 @@
   - [ ] **Dependencies:** All previous phases
 
 - **[ ] F10.2 Performance Optimization**
-
   - [ ] Implement code splitting and lazy loading
   - [ ] Optimize bundle size and asset delivery
   - [ ] Add performance monitoring and metrics
@@ -876,7 +845,6 @@
   - [ ] **Dependencies:** F10.1
 
 - **[ ] F10.3 Security Hardening**
-
   - [ ] Conduct security audit and penetration testing
   - [ ] Implement Content Security Policy (CSP)
   - [ ] Add security headers and protections

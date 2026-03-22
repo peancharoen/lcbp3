@@ -23,6 +23,7 @@ Implement frontend testing infrastructure and unit tests per `specs/03-implement
 | `frontend/package.json`       | Added test scripts: `test`, `test:watch`, `test:coverage` |
 
 **Dependencies Installed:**
+
 - `vitest`
 - `@vitejs/plugin-react`
 - `@testing-library/react`

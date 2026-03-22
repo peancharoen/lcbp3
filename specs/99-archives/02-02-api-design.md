@@ -64,7 +64,6 @@ POST / api / v1 / auth / change - password;
 ### 2.2 Authorization (RBAC)
 
 - **4-Level Permission Hierarchy:**
-
   1. **Global Level:** System-wide permissions (Superadmin)
   2. **Organization Level:** Organization-specific permissions
   3. **Project Level:** Project-specific permissions
@@ -97,32 +96,32 @@ https://backend.np-dms.work/api/v1/{resource}
 
 ### 3.2 HTTP Methods & Usage
 
-| Method   | Usage                        | Idempotent | Example                              |
-| :------- | :--------------------------- | :--------- | :----------------------------------- |
-| `GET`    | ดึงข้อมูล (Read)                | ✅ Yes      | `GET /api/v1/correspondences`        |
-| `POST`   | สร้างข้อมูลใหม่ (Create)         | ❌ No\*     | `POST /api/v1/correspondences`       |
-| `PUT`    | อัปเดตทั้งหมด (Full Update)     | ✅ Yes      | `PUT /api/v1/correspondences/:id`    |
-| `PATCH`  | อัปเดตบางส่วน (Partial Update) | ✅ Yes      | `PATCH /api/v1/correspondences/:id`  |
-| `DELETE` | ลบข้อมูล (Soft Delete)         | ✅ Yes      | `DELETE /api/v1/correspondences/:id` |
+| Method   | Usage                          | Idempotent | Example                              |
+| :------- | :----------------------------- | :--------- | :----------------------------------- |
+| `GET`    | ดึงข้อมูล (Read)               | ✅ Yes     | `GET /api/v1/correspondences`        |
+| `POST`   | สร้างข้อมูลใหม่ (Create)       | ❌ No\*    | `POST /api/v1/correspondences`       |
+| `PUT`    | อัปเดตทั้งหมด (Full Update)    | ✅ Yes     | `PUT /api/v1/correspondences/:id`    |
+| `PATCH`  | อัปเดตบางส่วน (Partial Update) | ✅ Yes     | `PATCH /api/v1/correspondences/:id`  |
+| `DELETE` | ลบข้อมูล (Soft Delete)         | ✅ Yes     | `DELETE /api/v1/correspondences/:id` |
 
 **Note:** `POST` เป็น Idempotent ได้เมื่อใช้ `Idempotency-Key` Header
 
 ### 3.3 HTTP Status Codes
 
-| Status Code                 | Usage                          |
-| :-------------------------- | :----------------------------- |
+| Status Code                 | Usage                            |
+| :-------------------------- | :------------------------------- |
 | `200 OK`                    | Request สำเร็จ (GET, PUT, PATCH) |
-| `201 Created`               | สร้างข้อมูลสำเร็จ (POST)            |
+| `201 Created`               | สร้างข้อมูลสำเร็จ (POST)         |
 | `204 No Content`            | ลบสำเร็จ (DELETE)                |
-| `400 Bad Request`           | ข้อมูล Request ไม่ถูกต้อง           |
-| `401 Unauthorized`          | ไม่มี Token หรือ Token หมดอายุ     |
-| `403 Forbidden`             | ไม่มีสิทธิ์เข้าถึง                    |
-| `404 Not Found`             | ไม่พบข้อมูล                       |
-| `409 Conflict`              | ข้อมูลซ้ำ หรือ State Conflict       |
-| `422 Unprocessable Entity`  | Validation Error               |
-| `429 Too Many Requests`     | Rate Limit Exceeded            |
-| `500 Internal Server Error` | Server Error                   |
-| `503 Service Unavailable`   | Maintenance Mode               |
+| `400 Bad Request`           | ข้อมูล Request ไม่ถูกต้อง        |
+| `401 Unauthorized`          | ไม่มี Token หรือ Token หมดอายุ   |
+| `403 Forbidden`             | ไม่มีสิทธิ์เข้าถึง               |
+| `404 Not Found`             | ไม่พบข้อมูล                      |
+| `409 Conflict`              | ข้อมูลซ้ำ หรือ State Conflict    |
+| `422 Unprocessable Entity`  | Validation Error                 |
+| `429 Too Many Requests`     | Rate Limit Exceeded              |
+| `500 Internal Server Error` | Server Error                     |
+| `503 Service Unavailable`   | Maintenance Mode                 |
 
 ### 3.4 Request & Response Format
 
@@ -304,28 +303,28 @@ POST /api/v1/files/upload
 | Method | Endpoint                           | Permission              | Description           |
 | :----- | :--------------------------------- | :---------------------- | :-------------------- |
 | GET    | `/correspondences`                 | `correspondence.view`   | รายการ Correspondence |
-| GET    | `/correspondences/:id`             | `correspondence.view`   | รายละเอียด             |
-| POST   | `/correspondences`                 | `correspondence.create` | สร้างใหม่               |
-| PUT    | `/correspondences/:id`             | `correspondence.update` | อัปเดตทั้งหมด            |
-| PATCH  | `/correspondences/:id`             | `correspondence.update` | อัปเดตบางส่วน           |
+| GET    | `/correspondences/:id`             | `correspondence.view`   | รายละเอียด            |
+| POST   | `/correspondences`                 | `correspondence.create` | สร้างใหม่             |
+| PUT    | `/correspondences/:id`             | `correspondence.update` | อัปเดตทั้งหมด         |
+| PATCH  | `/correspondences/:id`             | `correspondence.update` | อัปเดตบางส่วน         |
 | DELETE | `/correspondences/:id`             | `correspondence.delete` | ลบ (Soft Delete)      |
-| POST   | `/correspondences/:id/revisions`   | `correspondence.update` | สร้าง Revision ใหม่     |
-| GET    | `/correspondences/:id/revisions`   | `correspondence.view`   | ดู Revisions ทั้งหมด     |
-| POST   | `/correspondences/:id/attachments` | `correspondence.update` | เพิ่มไฟล์แนบ             |
+| POST   | `/correspondences/:id/revisions`   | `correspondence.update` | สร้าง Revision ใหม่   |
+| GET    | `/correspondences/:id/revisions`   | `correspondence.view`   | ดู Revisions ทั้งหมด  |
+| POST   | `/correspondences/:id/attachments` | `correspondence.update` | เพิ่มไฟล์แนบ          |
 
 ### 7.2 RFA Module
 
 **Base Path:** `/api/v1/rfas`
 
-| Method | Endpoint              | Permission     | Description       |
-| :----- | :-------------------- | :------------- | :---------------- |
-| GET    | `/rfas`               | `rfas.view`    | รายการ RFA        |
+| Method | Endpoint              | Permission     | Description        |
+| :----- | :-------------------- | :------------- | :----------------- |
+| GET    | `/rfas`               | `rfas.view`    | รายการ RFA         |
 | GET    | `/rfas/:id`           | `rfas.view`    | รายละเอียด         |
-| POST   | `/rfas`               | `rfas.create`  | สร้างใหม่           |
+| POST   | `/rfas`               | `rfas.create`  | สร้างใหม่          |
 | PUT    | `/rfas/:id`           | `rfas.update`  | อัปเดต             |
-| DELETE | `/rfas/:id`           | `rfas.delete`  | ลบ                |
+| DELETE | `/rfas/:id`           | `rfas.delete`  | ลบ                 |
 | POST   | `/rfas/:id/respond`   | `rfas.respond` | ตอบกลับ RFA        |
-| POST   | `/rfas/:id/approve`   | `rfas.approve` | อนุมัติ RFA          |
+| POST   | `/rfas/:id/approve`   | `rfas.approve` | อนุมัติ RFA        |
 | POST   | `/rfas/:id/revisions` | `rfas.update`  | สร้าง Revision     |
 | GET    | `/rfas/:id/workflow`  | `rfas.view`    | ดู Workflow Status |
 
@@ -338,29 +337,29 @@ POST /api/v1/files/upload
 | Method | Endpoint                       | Permission        | Description         |
 | :----- | :----------------------------- | :---------------- | :------------------ |
 | GET    | `/shop-drawings`               | `drawings.view`   | รายการ Shop Drawing |
-| POST   | `/shop-drawings`               | `drawings.upload` | อัปโหลดใหม่           |
-| GET    | `/shop-drawings/:id/revisions` | `drawings.view`   | ดู Revisions         |
+| POST   | `/shop-drawings`               | `drawings.upload` | อัปโหลดใหม่         |
+| GET    | `/shop-drawings/:id/revisions` | `drawings.view`   | ดู Revisions        |
 
 **Contract Drawings:**
 
 | Method | Endpoint             | Permission        | Description             |
 | :----- | :------------------- | :---------------- | :---------------------- |
 | GET    | `/contract-drawings` | `drawings.view`   | รายการ Contract Drawing |
-| POST   | `/contract-drawings` | `drawings.upload` | อัปโหลดใหม่               |
+| POST   | `/contract-drawings` | `drawings.upload` | อัปโหลดใหม่             |
 
 ### 7.4 Project Module
 
 **Base Path:** `/api/v1/projects`
 
-| Method | Endpoint                  | Permission               | Description       |
-| :----- | :------------------------ | :----------------------- | :---------------- |
-| GET    | `/projects`               | `projects.view`          | รายการโครงการ     |
+| Method | Endpoint                  | Permission               | Description        |
+| :----- | :------------------------ | :----------------------- | :----------------- |
+| GET    | `/projects`               | `projects.view`          | รายการโครงการ      |
 | GET    | `/projects/:id`           | `projects.view`          | รายละเอียด         |
-| POST   | `/projects`               | `projects.create`        | สร้างโครงการใหม่    |
+| POST   | `/projects`               | `projects.create`        | สร้างโครงการใหม่   |
 | PUT    | `/projects/:id`           | `projects.update`        | อัปเดต             |
 | POST   | `/projects/:id/contracts` | `contracts.create`       | สร้าง Contract     |
 | GET    | `/projects/:id/parties`   | `projects.view`          | ดู Project Parties |
-| POST   | `/projects/:id/parties`   | `project_parties.manage` | เพิ่ม Party         |
+| POST   | `/projects/:id/parties`   | `project_parties.manage` | เพิ่ม Party        |
 
 ### 7.5 User & Auth Module
 

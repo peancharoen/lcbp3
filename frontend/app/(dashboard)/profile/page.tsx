@@ -1,29 +1,22 @@
 // File: app/(dashboard)/profile/page.tsx
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useSession } from "next-auth/react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Loader2, User, Shield, Bell } from "lucide-react";
+import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Loader2, User, Shield, Bell } from 'lucide-react';
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import apiClient from "@/lib/api/client";
-import { toast } from "sonner";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
+import apiClient from '@/lib/api/client';
+import { toast } from 'sonner';
 
 // -----------------------------------------------------------------------------
 // Schemas
@@ -31,13 +24,13 @@ import { toast } from "sonner";
 
 const passwordSchema = z
   .object({
-    currentPassword: z.string().min(1, "กรุณาระบุรหัสผ่านปัจจุบัน"),
-    newPassword: z.string().min(8, "รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร"),
-    confirmPassword: z.string().min(1, "กรุณายืนยันรหัสผ่านใหม่"),
+    currentPassword: z.string().min(1, 'กรุณาระบุรหัสผ่านปัจจุบัน'),
+    newPassword: z.string().min(8, 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร'),
+    confirmPassword: z.string().min(1, 'กรุณายืนยันรหัสผ่านใหม่'),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "รหัสผ่านใหม่ไม่ตรงกัน",
-    path: ["confirmPassword"],
+    message: 'รหัสผ่านใหม่ไม่ตรงกัน',
+    path: ['confirmPassword'],
   });
 
 type PasswordValues = z.infer<typeof passwordSchema>;
@@ -60,14 +53,14 @@ export default function ProfilePage() {
     setIsLoading(true);
     try {
       // เรียก API เปลี่ยนรหัสผ่าน
-      await apiClient.put("/users/change-password", {
+      await apiClient.put('/users/change-password', {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
       });
 
       toast.success('เปลี่ยนรหัสผ่านสำเร็จ');
       reset();
-    } catch (error) {
+    } catch (_error) {
       toast.error('ไม่สามารถเปลี่ยนรหัสผ่านได้: รหัสผ่านปัจจุบันไม่ถูกต้อง');
       // Password change failed - toast shown
     } finally {
@@ -82,11 +75,11 @@ export default function ProfilePage() {
   const [digestMode, setDigestMode] = useState(false);
 
   // Helper to get initials
-  const userName = session?.user?.name || "User";
+  const userName = session?.user?.name || 'User';
   const userInitials = userName
-    .split(" ")
+    .split(' ')
     .map((n) => n[0])
-    .join("")
+    .join('')
     .toUpperCase()
     .substring(0, 2);
 
@@ -94,9 +87,7 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium">Profile & Settings</h3>
-        <p className="text-sm text-muted-foreground">
-          จัดการข้อมูลส่วนตัวและการตั้งค่าระบบของคุณ
-        </p>
+        <p className="text-sm text-muted-foreground">จัดการข้อมูลส่วนตัวและการตั้งค่าระบบของคุณ</p>
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
@@ -120,21 +111,19 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle>ข้อมูลทั่วไป</CardTitle>
-              <CardDescription>
-                ข้อมูลพื้นฐานของคุณที่แสดงในระบบ
-              </CardDescription>
+              <CardDescription>ข้อมูลพื้นฐานของคุณที่แสดงในระบบ</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={session?.user?.image || ""} />
+                  <AvatarImage src={session?.user?.image || ''} />
                   <AvatarFallback className="text-lg">{userInitials}</AvatarFallback>
                 </Avatar>
                 <div>
                   <h4 className="text-lg font-semibold">{userName}</h4>
                   <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
                   <div className="mt-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80">
-                    {session?.user?.role || "Member"}
+                    {session?.user?.role || 'Member'}
                   </div>
                 </div>
               </div>
@@ -142,20 +131,20 @@ export default function ProfilePage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>ชื่อจริง</Label>
-                  <Input defaultValue={userName.split(" ")[0]} disabled />
+                  <Input defaultValue={userName.split(' ')[0]} disabled />
                 </div>
                 <div className="space-y-2">
                   <Label>นามสกุล</Label>
-                  <Input defaultValue={userName.split(" ")[1] || ""} disabled />
+                  <Input defaultValue={userName.split(' ')[1] || ''} disabled />
                 </div>
                 <div className="space-y-2">
                   <Label>อีเมล</Label>
-                  <Input defaultValue={session?.user?.email || ""} disabled />
+                  <Input defaultValue={session?.user?.email || ''} disabled />
                 </div>
                 <div className="space-y-2">
                   <Label>หน่วยงาน / องค์กร</Label>
                   {/* ในอนาคตดึงจาก Organization ID */}
-                  <Input defaultValue={`Organization ID: ${session?.user?.organizationId || "-"}`} disabled />
+                  <Input defaultValue={`Organization ID: ${session?.user?.organizationId || '-'}`} disabled />
                 </div>
               </div>
             </CardContent>
@@ -171,41 +160,25 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle>รหัสผ่าน</CardTitle>
-              <CardDescription>
-                เปลี่ยนรหัสผ่านเพื่อความปลอดภัยของบัญชี (ต้องมีอย่างน้อย 8 ตัวอักษร)
-              </CardDescription>
+              <CardDescription>เปลี่ยนรหัสผ่านเพื่อความปลอดภัยของบัญชี (ต้องมีอย่างน้อย 8 ตัวอักษร)</CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit(onPasswordSubmit)}>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">รหัสผ่านปัจจุบัน</Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    {...register("currentPassword")}
-                  />
+                  <Input id="currentPassword" type="password" {...register('currentPassword')} />
                   {errors.currentPassword && (
                     <p className="text-xs text-destructive">{errors.currentPassword.message}</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">รหัสผ่านใหม่</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    {...register("newPassword")}
-                  />
-                  {errors.newPassword && (
-                    <p className="text-xs text-destructive">{errors.newPassword.message}</p>
-                  )}
+                  <Input id="newPassword" type="password" {...register('newPassword')} />
+                  {errors.newPassword && <p className="text-xs text-destructive">{errors.newPassword.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">ยืนยันรหัสผ่านใหม่</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    {...register("confirmPassword")}
-                  />
+                  <Input id="confirmPassword" type="password" {...register('confirmPassword')} />
                   {errors.confirmPassword && (
                     <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
                   )}
@@ -226,9 +199,7 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle>การแจ้งเตือน</CardTitle>
-              <CardDescription>
-                กำหนดช่องทางที่คุณต้องการรับข้อมูลข่าวสารจากระบบ
-              </CardDescription>
+              <CardDescription>กำหนดช่องทางที่คุณต้องการรับข้อมูลข่าวสารจากระบบ</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between space-x-2">
@@ -238,11 +209,7 @@ export default function ProfilePage() {
                     รับแจ้งเตือนงานใหม่และการอนุมัติผ่านทางอีเมล
                   </span>
                 </Label>
-                <Switch
-                  id="notify-email"
-                  checked={notifyEmail}
-                  onCheckedChange={setNotifyEmail}
-                />
+                <Switch id="notify-email" checked={notifyEmail} onCheckedChange={setNotifyEmail} />
               </div>
 
               <div className="flex items-center justify-between space-x-2">
@@ -252,11 +219,7 @@ export default function ProfilePage() {
                     รับแจ้งเตือนด่วนผ่าน LINE Official Account
                   </span>
                 </Label>
-                <Switch
-                  id="notify-line"
-                  checked={notifyLine}
-                  onCheckedChange={setNotifyLine}
-                />
+                <Switch id="notify-line" checked={notifyLine} onCheckedChange={setNotifyLine} />
               </div>
 
               <div className="flex items-center justify-between space-x-2">
@@ -266,11 +229,7 @@ export default function ProfilePage() {
                     รับสรุปแจ้งเตือนวันละครั้ง แทนการแจ้งเตือนทันที (ลด Spam)
                   </span>
                 </Label>
-                <Switch
-                  id="digest-mode"
-                  checked={digestMode}
-                  onCheckedChange={setDigestMode}
-                />
+                <Switch id="digest-mode" checked={digestMode} onCheckedChange={setDigestMode} />
               </div>
             </CardContent>
             <CardFooter>

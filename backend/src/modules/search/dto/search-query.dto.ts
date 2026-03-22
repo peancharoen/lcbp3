@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchQueryDto {

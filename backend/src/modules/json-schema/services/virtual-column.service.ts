@@ -98,12 +98,12 @@ export class VirtualColumnService {
       AND table_name = ?
       AND index_name = ?
     `;
-    const result = await queryRunner.query(checkIndexSql, [
+    const result = (await queryRunner.query(checkIndexSql, [
       tableName,
       indexName,
-    ]);
+    ])) as { count: number }[];
 
-    if (result[0].count == 0) {
+    if (result[0]?.count === 0) {
       const sql = `CREATE ${config.index_type === 'UNIQUE' ? 'UNIQUE' : ''} INDEX ${indexName} ON ${tableName} (${config.column_name})`;
       this.logger.log(`Creating Index: ${sql}`);
       await queryRunner.query(sql);

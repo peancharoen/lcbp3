@@ -1,14 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { createTestQueryClient } from '@/lib/test-utils';
-import {
-  useRFAs,
-  useRFA,
-  useCreateRFA,
-  useUpdateRFA,
-  useProcessRFA,
-  rfaKeys,
-} from '../use-rfa';
+import { useRFAs, useRFA, useCreateRFA, useUpdateRFA, useProcessRFA, rfaKeys } from '../use-rfa';
 import { rfaService } from '@/lib/services/rfa.service';
 import { toast } from 'sonner';
 
@@ -111,7 +104,7 @@ describe('use-rfa hooks', () => {
           projectId: 1,
           subject: 'Test RFA',
           rfaTypeId: 1,
-          toOrganizationId: 1
+          toOrganizationId: 1,
         });
       });
 
@@ -135,7 +128,7 @@ describe('use-rfa hooks', () => {
             projectId: 1,
             subject: '',
             rfaTypeId: 1,
-            toOrganizationId: 1
+            toOrganizationId: 1,
           });
         } catch {
           // Expected

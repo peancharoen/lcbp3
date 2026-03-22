@@ -509,13 +509,11 @@ export function TemplateTester({ open, onOpenChange, template }: any) {
 ## 🧪 Testing
 
 1. **Template Creation**
-
    - Create template → Preview updates
    - Insert variables → Format correct
    - Save template → Persists
 
 2. **Number Generation**
-
    - Test template → Generates number
    - Variables replaced correctly
    - Sequence increments

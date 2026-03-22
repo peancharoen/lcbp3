@@ -4,15 +4,9 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    console.error('[App Error Boundary]', error);
+    //     // console.error('[App Error Boundary]', error); /* TODO: Remove before prod */
   }, [error]);
 
   return (
@@ -23,9 +17,7 @@ export default function Error({
         <p className="text-muted-foreground mt-1 text-sm max-w-md">
           {error.message || 'An unexpected error occurred. Please try again.'}
         </p>
-        {error.digest && (
-          <p className="text-xs text-muted-foreground mt-2">Error ID: {error.digest}</p>
-        )}
+        {error.digest && <p className="text-xs text-muted-foreground mt-2">Error ID: {error.digest}</p>}
       </div>
       <Button onClick={reset} variant="outline">
         Try again

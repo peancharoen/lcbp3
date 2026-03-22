@@ -8,7 +8,6 @@ import {
   Inject,
   Injectable,
   NestInterceptor,
-  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -25,8 +24,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
   async intercept(
     context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<any>> {
+    next: CallHandler
+  ): Promise<Observable<unknown>> {
     const request = context.switchToHttp().getRequest<Request>();
     const method = request.method;
 
@@ -46,24 +45,32 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     if (cachedResponse) {
       this.logger.warn(
-        `Idempotency key detected: ${idempotencyKey}. Returning cached response.`,
+        `Idempotency key detected: ${idempotencyKey}. Returning cached response.`
       );
       return of(cachedResponse);
     }
 
     return next.handle().pipe(
-      tap(async (response) => {
-        try {
-          await this.cacheManager.set(cacheKey, response, 86400 * 1000);
-        } catch (err) {
-          // ✅ Fix: ตรวจสอบว่า err เป็น Error Object หรือไม่ ก่อนเรียก .stack
-          const errorMessage = err instanceof Error ? err.stack : String(err);
-          this.logger.error(
-            `Failed to cache idempotency key ${idempotencyKey}`,
-            errorMessage,
-          );
-        }
-      }),
+      tap((response) => {
+        void this.cacheResponse(cacheKey, response, idempotencyKey);
+      })
     );
+  }
+
+  private async cacheResponse(
+    cacheKey: string,
+    response: unknown,
+    idempotencyKey: string
+  ): Promise<void> {
+    try {
+      await this.cacheManager.set(cacheKey, response, 86400 * 1000);
+    } catch (err) {
+      // ✅ Fix: ตรวจสอบว่า err เป็น Error Object หรือไม่ ก่อนเรียก .stack
+      const errorMessage = err instanceof Error ? err.stack : String(err);
+      this.logger.error(
+        `Failed to cache idempotency key ${idempotencyKey}`,
+        errorMessage
+      );
+    }
   }
 }

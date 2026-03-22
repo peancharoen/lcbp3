@@ -51,9 +51,7 @@ export class UsersService {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        stores: [
-          new KeyvRedis(config.get('REDIS_URL')),
-        ],
+        stores: [new KeyvRedis(config.get('REDIS_URL'))],
         ttl: 60 * 1000, // Default 60s
       }),
     }),
@@ -66,7 +64,7 @@ export class AppModule {}
 export class ProductsService {
   constructor(
     @Inject(CACHE_MANAGER) private cache: Cache,
-    private productsRepo: ProductRepository,
+    private productsRepo: ProductRepository
   ) {}
 
   async getPopular(): Promise<Product[]> {
@@ -117,10 +115,7 @@ export class CacheInvalidationService {
   @OnEvent('product.updated')
   @OnEvent('product.deleted')
   async invalidateProductCaches(event: ProductEvent) {
-    await Promise.all([
-      this.cache.del('products:popular'),
-      this.cache.del(`product:${event.productId}`),
-    ]);
+    await Promise.all([this.cache.del('products:popular'), this.cache.del(`product:${event.productId}`)]);
   }
 }
 ```

@@ -276,7 +276,7 @@ export class MasterService {
       } as Partial<DocumentNumberFormat>);
     }
 
-    return this.formatRepo.save(format!);
+    return this.formatRepo.save(format);
   }
 
   async findAllTags(query?: SearchTagDto) {

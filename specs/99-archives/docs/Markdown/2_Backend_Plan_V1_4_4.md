@@ -353,7 +353,6 @@
 ### **Phase 0: Tasks**
 
 - **[ ] T0.1 Secure Configuration Setup**
-
   - [ ] ปรับปรุง `ConfigModule` ให้รองรับการอ่านค่าจาก Environment Variables
   - [ ] สร้าง Template `docker-compose.override.yml.example` สำหรับ Dev
   - [ ] Validate Config ด้วย Joi/Zod ตอน Start App (Throw error ถ้าขาด Secrets)
@@ -362,7 +361,6 @@
   - [ ] **Dependencies:** None (Task เริ่มต้น)
 
 - **[ ] T0.2 Redis & Queue Infrastructure**
-
   - [ ] Setup Redis Container
   - [ ] Setup BullMQ Module ใน NestJS สำหรับจัดการ Background Jobs
   - [ ] Setup Redis Client สำหรับ Distributed Lock (Redlock)
@@ -371,7 +369,6 @@
   - [ ] **Dependencies:** T0.1
 
 - **[ ] T0.3 Setup Database Connection**
-
   - [ ] Import SQL Schema v1.4.2 เข้า MariaDB
   - [ ] Run Seed Data (organizations, users, roles, permissions)
   - [ ] Configure TypeORM ใน AppModule
@@ -381,7 +378,6 @@
   - [ ] **Dependencies:** T0.1
 
 - **[ ] T0.4 Setup Git Repository**
-
   - [ ] สร้าง Repository ใน Gitea (git.np-dms.work)
   - [ ] Setup .gitignore, README.md, SECURITY.md
   - [ ] Commit Initial Project
@@ -397,7 +393,6 @@
 ### **Phase 1: Tasks**
 
 - **[ ] T1.1 CommonModule - Base Infrastructure**
-
   - [ ] สร้าง Base Entity (id, created_at, updated_at, deleted_at)
   - [ ] สร้าง Global Exception Filter (ไม่เปิดเผย sensitive information)
   - [ ] สร้าง Response Transform Interceptor
@@ -412,7 +407,6 @@
   - [ ] **Dependencies:** T0.2, T0.3
 
 - **[ ] T1.2 AuthModule - JWT Authentication**
-
   - [ ] สร้าง Entity: User
   - [ ] สร้าง AuthService:
     - [ ] login(username, password) → JWT Token
@@ -431,7 +425,6 @@
   - [ ] **Dependencies:** T1.1, T0.3
 
 - **[ ] T1.3 UserModule - User Management**
-
   - [ ] สร้าง Entities: User, Role, Permission, UserRole, UserAssignment, **UserPreference**
   - [ ] สร้าง UserService CRUD (พร้อม soft delete)
   - [ ] สร้าง RoleService CRUD
@@ -452,7 +445,6 @@
   - [ ] **Dependencies:** T1.1, T1.2
 
 - **[ ] T1.4 RBAC Guard - 4-Level Authorization**
-
   - [ ] สร้าง @RequirePermission() Decorator
   - [ ] สร้าง RbacGuard ที่ตรวจสอบ 4 ระดับ:
     - [ ] Global Permissions
@@ -466,7 +458,6 @@
   - [ ] **Dependencies:** T1.1, T1.3
 
 - **[ ] T1.5 ProjectModule - Base Structures**
-
   - [ ] สร้าง Entities:
     - [ ] Organization
     - [ ] Project
@@ -491,7 +482,6 @@
 ### **Phase 2: Tasks**
 
 - **[ ] T2.1 Virtual Columns for JSON**
-
   - [ ] ออกแบบ Migration Script สำหรับตารางที่มี JSON Details
   - [ ] เพิ่ม **Generated Columns (Virtual)** สำหรับฟิลด์ที่ใช้ Search บ่อยๆ (เช่น `project_id`, `type`) พร้อม Index
   - [ ] **Security:** Implement admin-only access สำหรับ master data
@@ -499,7 +489,6 @@
   - [ ] **Dependencies:** T0.3, T1.1, T1.5
 
 - **[ ] T2.2 FileStorageService - Two-Phase Storage**
-
   - [ ] สร้าง Attachment Entity
   - [ ] สร้าง FileStorageService:
     - [ ] **Phase 1 (Upload):** API รับไฟล์ → Scan Virus → Save ลง `temp/` → Return `temp_id`
@@ -517,7 +506,6 @@
   - [ ] **Dependencies:** T1.1, T1.4
 
 - **[ ] T2.3 DocumentNumberingModule - Double-Lock Mechanism**
-
   - [ ] สร้าง Entities:
     - [ ] DocumentNumberFormat
     - [ ] DocumentNumberCounter
@@ -538,7 +526,6 @@
   - [ ] **Deliverable:** Flexible Numbering System
 
 - **[ ] T2.4 SecurityModule - Enhanced Security**
-
   - [ ] สร้าง Input Validation Service:
     - [ ] XSS Prevention
     - [ ] SQL Injection Prevention
@@ -552,7 +539,6 @@
   - [ ] **Dependencies:** T1.1
 
 - **[ ] T2.5 JSON Details & Schema Management**
-
   - [ ] T2.5.1 JsonSchemaModule - Schema Management: สร้าง Service สำหรับ Validate, get, register JSON schemas
   - [ ] T2.5.2 DetailsService - Data Processing: สร้าง Service สำหรับ sanitize, transform, compress/decompress JSON
   - [ ] T2.5.3 JSON Security & Validation: Implement security checks และ validation rules
@@ -654,11 +640,7 @@ export class JsonSchemaService {
     this.registerCustomValidators();
   }
 
-  async validateData(
-    schemaName: string,
-    data: any,
-    options: ValidationOptions = {}
-  ): Promise<ValidationResult> {
+  async validateData(schemaName: string, data: any, options: ValidationOptions = {}): Promise<ValidationResult> {
     const schema = await this.getSchema(schemaName);
     const validate = this.ajv.compile(schema);
 
@@ -682,11 +664,7 @@ export class JsonSchemaService {
     };
   }
 
-  private async sanitizeData(
-    data: any,
-    schema: any,
-    options: ValidationOptions
-  ): Promise<any> {
+  private async sanitizeData(data: any, schema: any, options: ValidationOptions): Promise<any> {
     const sanitized = { ...data };
 
     // Remove unknown properties if not allowed
@@ -745,10 +723,7 @@ export class VirtualColumnService {
     private configService: ConfigService
   ) {}
 
-  async setupVirtualColumns(
-    tableName: string,
-    schemaConfig: VirtualColumnConfig[]
-  ): Promise<void> {
+  async setupVirtualColumns(tableName: string, schemaConfig: VirtualColumnConfig[]): Promise<void> {
     const connection = this.dataSource.manager.connection;
 
     for (const config of schemaConfig) {
@@ -756,10 +731,7 @@ export class VirtualColumnService {
     }
   }
 
-  private async createVirtualColumn(
-    tableName: string,
-    config: VirtualColumnConfig
-  ): Promise<void> {
+  private async createVirtualColumn(tableName: string, config: VirtualColumnConfig): Promise<void> {
     const columnDefinition = this.generateColumnDefinition(config);
 
     const sql = `
@@ -782,10 +754,7 @@ export class VirtualColumnService {
     return `${dataType} GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(details, '${jsonPath}'))) VIRTUAL`;
   }
 
-  private async createIndex(
-    tableName: string,
-    config: VirtualColumnConfig
-  ): Promise<void> {
+  private async createIndex(tableName: string, config: VirtualColumnConfig): Promise<void> {
     const indexName = `idx_${tableName}_${config.column_name}`;
     const sql = `
       CREATE ${config.index_type} INDEX ${indexName}
@@ -902,13 +871,7 @@ const rfaDwgSchema: UiSchema = {
       widget: 'select',
       title: 'Discipline',
       enum: ['CIVIL', 'STRUCTURAL', 'MECHANICAL', 'ELECTRICAL', 'PLUMBING'],
-      enumNames: [
-        'Civil',
-        'Structural',
-        'Mechanical',
-        'Electrical',
-        'Plumbing',
-      ],
+      enumNames: ['Civil', 'Structural', 'Mechanical', 'Electrical', 'Plumbing'],
     },
     drawingReferences: {
       type: 'array',
@@ -941,21 +904,11 @@ const rfaDwgSchema: UiSchema = {
 ```typescript
 @Injectable()
 export class SchemaMigrationService {
-  async migrateData(
-    entityType: string,
-    entityId: string,
-    targetVersion: number
-  ): Promise<MigrationResult> {
+  async migrateData(entityType: string, entityId: string, targetVersion: number): Promise<MigrationResult> {
     const currentData = await this.getCurrentData(entityType, entityId);
-    const currentVersion = await this.getCurrentSchemaVersion(
-      entityType,
-      entityId
-    );
+    const currentVersion = await this.getCurrentSchemaVersion(entityType, entityId);
 
-    const migrationPath = await this.findMigrationPath(
-      currentVersion,
-      targetVersion
-    );
+    const migrationPath = await this.findMigrationPath(currentVersion, targetVersion);
 
     let migratedData = currentData;
 
@@ -964,24 +917,13 @@ export class SchemaMigrationService {
     }
 
     // Validate migrated data against target schema
-    const validationResult = await this.validateAgainstSchema(
-      migratedData,
-      targetVersion
-    );
+    const validationResult = await this.validateAgainstSchema(migratedData, targetVersion);
 
     if (!validationResult.isValid) {
-      throw new MigrationError(
-        'MIGRATION_VALIDATION_FAILED',
-        validationResult.errors
-      );
+      throw new MigrationError('MIGRATION_VALIDATION_FAILED', validationResult.errors);
     }
 
-    await this.saveMigratedData(
-      entityType,
-      entityId,
-      migratedData,
-      targetVersion
-    );
+    await this.saveMigratedData(entityType, entityId, migratedData, targetVersion);
 
     return {
       success: true,
@@ -991,10 +933,7 @@ export class SchemaMigrationService {
     };
   }
 
-  private async applyMigrationStep(
-    step: MigrationStep,
-    data: any
-  ): Promise<any> {
+  private async applyMigrationStep(step: MigrationStep, data: any): Promise<any> {
     switch (step.type) {
       case 'FIELD_RENAME':
         return this.renameField(data, step.config);
@@ -1050,11 +989,7 @@ const migrationSteps = [
 ```typescript
 @Injectable()
 export class JsonSecurityService {
-  async applyFieldLevelSecurity(
-    data: any,
-    schema: any,
-    userContext: UserContext
-  ): Promise<any> {
+  async applyFieldLevelSecurity(data: any, schema: any, userContext: UserContext): Promise<any> {
     const securedData = { ...data };
     const securityRules = await this.getSecurityRules(schema.name);
 
@@ -1081,10 +1016,7 @@ export class JsonSecurityService {
     for (const fieldPath of sensitiveFields) {
       const fieldValue = this.getFieldValue(data, fieldPath);
       if (fieldValue) {
-        const encrypted = await this.cryptoService.encrypt(
-          fieldValue,
-          'field-level'
-        );
+        const encrypted = await this.cryptoService.encrypt(fieldValue, 'field-level');
         this.setFieldValue(encryptedData, fieldPath, encrypted);
       }
     }
@@ -1129,15 +1061,8 @@ export class JsonSecurityService {
 export class JsonSchemaController {
   @Post('validate/:schemaName')
   @RequirePermission('schema.validate')
-  async validateData(
-    @Param('schemaName') schemaName: string,
-    @Body() dto: ValidateDataDto
-  ): Promise<ValidationResult> {
-    return this.jsonSchemaService.validateData(
-      schemaName,
-      dto.data,
-      dto.options
-    );
+  async validateData(@Param('schemaName') schemaName: string, @Body() dto: ValidateDataDto): Promise<ValidationResult> {
+    return this.jsonSchemaService.validateData(schemaName, dto.data, dto.options);
   }
 
   @Post('schemas')
@@ -1153,18 +1078,12 @@ export class JsonSchemaController {
     @Param('entityId') entityId: string,
     @Body() dto: MigrateDataDto
   ): Promise<MigrationResult> {
-    return this.migrationService.migrateData(
-      entityType,
-      entityId,
-      dto.targetVersion
-    );
+    return this.migrationService.migrateData(entityType, entityId, dto.targetVersion);
   }
 
   @Get('ui-schema/:schemaName')
   @RequirePermission('schema.view')
-  async getUiSchema(
-    @Param('schemaName') schemaName: string
-  ): Promise<UiSchema> {
+  async getUiSchema(@Param('schemaName') schemaName: string): Promise<UiSchema> {
     return this.schemaService.getUiSchema(schemaName);
   }
 }
@@ -1186,32 +1105,22 @@ export class CorrespondenceService {
     private detailsService: DetailsService
   ) {}
 
-  async createCorrespondence(
-    dto: CreateCorrespondenceDto
-  ): Promise<Correspondence> {
+  async createCorrespondence(dto: CreateCorrespondenceDto): Promise<Correspondence> {
     // 1. Validate details against schema
-    const validationResult = await this.jsonSchemaService.validateData(
-      `CORRESPONDENCE_${dto.type}`,
-      dto.details
-    );
+    const validationResult = await this.jsonSchemaService.validateData(`CORRESPONDENCE_${dto.type}`, dto.details);
 
     if (!validationResult.isValid) {
       throw new ValidationError('INVALID_DETAILS', validationResult.errors);
     }
 
     // 2. Apply security and sanitization
-    const secureDetails = await this.detailsService.sanitizeDetails(
-      validationResult.sanitizedData,
-      dto.type
-    );
+    const secureDetails = await this.detailsService.sanitizeDetails(validationResult.sanitizedData, dto.type);
 
     // 3. Create correspondence entity
     const correspondence = this.correspondenceRepository.create({
       ...dto,
       details: secureDetails,
-      schema_version: await this.getCurrentSchemaVersion(
-        `CORRESPONDENCE_${dto.type}`
-      ),
+      schema_version: await this.getCurrentSchemaVersion(`CORRESPONDENCE_${dto.type}`),
     });
 
     // 4. Setup virtual columns for performance
@@ -1220,9 +1129,7 @@ export class CorrespondenceService {
     return this.correspondenceRepository.save(correspondence);
   }
 
-  async searchCorrespondences(
-    filters: SearchFilters
-  ): Promise<Correspondence[]> {
+  async searchCorrespondences(filters: SearchFilters): Promise<Correspondence[]> {
     // Use virtual columns for efficient filtering
     const query = this.correspondenceRepository.createQueryBuilder('c');
 
@@ -1343,7 +1250,6 @@ describe('VirtualColumnService', () => {
 ### **Phase 3: Tasks**
 
 - **[ ] T3.1 WorkflowEngineModule (New)**
-
   - [ ] ออกแบบ Generic Schema สำหรับ Workflow State Machine
   - [ ] Implement Service: `initializeWorkflow()`, `processAction()`, `getNextStep()`
   - [ ] รองรับ Logic การ "ข้ามขั้นตอน" และ "ส่งกลับ" ภายใน Engine เดียว
@@ -1418,7 +1324,6 @@ states:
 ```
 
 - **[ ] T3.1.2 Workflow Core Entities & Database Schema**
-
   - [ ] WorkflowDefinition Entity
   - [ ] WorkflowInstance Entity
   - [ ] WorkflowHistory Entity
@@ -1485,7 +1390,6 @@ export class WorkflowInstance {
 ```
 
 - **[ ] T3.1.3 DSL Parser & Compiler Service**
-
   - [ ] YAML Parser สำหรับอ่าน DSL definitions
   - [ ] Syntax Validator สำหรับ compile-time validation
   - [ ] Schema Compiler สำหรับแปลง DSL → Normalized JSON
@@ -1517,9 +1421,7 @@ export class WorkflowDslService {
       // Terminal states ต้องไม่มี transitions
       () => !definition.states.filter((s) => s.terminal).some((s) => s.on),
       // State names must be unique
-      () =>
-        new Set(definition.states.map((s) => s.name)).size ===
-        definition.states.length,
+      () => new Set(definition.states.map((s) => s.name)).size === definition.states.length,
       // Transition targets must exist
       () => this.validateTransitionTargets(definition),
     ];
@@ -1663,11 +1565,7 @@ interface StateWithTimeout {
 ```typescript
 @Injectable()
 export class WorkflowEventService {
-  async executeEvents(
-    events: WorkflowEvent[],
-    instance: WorkflowInstance,
-    context: WorkflowContext
-  ): Promise<void> {
+  async executeEvents(events: WorkflowEvent[], instance: WorkflowInstance, context: WorkflowContext): Promise<void> {
     for (const event of events) {
       switch (event.type) {
         case 'notify':
@@ -1691,16 +1589,8 @@ export class WorkflowEventService {
     instance: WorkflowInstance,
     context: WorkflowContext
   ): Promise<void> {
-    const recipients = await this.resolveRecipients(
-      event.target,
-      instance,
-      context
-    );
-    const message = await this.renderTemplate(
-      event.template,
-      instance,
-      context
-    );
+    const recipients = await this.resolveRecipients(event.target, instance, context);
+    const message = await this.renderTemplate(event.template, instance, context);
 
     await this.notificationService.send({
       type: 'workflow',
@@ -1732,35 +1622,24 @@ export class WorkflowEngineController {
     @Param('id') instanceId: string,
     @Body() dto: WorkflowTransitionDto
   ): Promise<TransitionResult> {
-    return this.workflowEngine.processTransition(
-      instanceId,
-      dto.action,
-      dto.context
-    );
+    return this.workflowEngine.processTransition(instanceId, dto.action, dto.context);
   }
 
   @Get('instances/:id/actions')
   @RequirePermission('workflow.view')
-  async getAvailableActions(
-    @Param('id') instanceId: string,
-    @Query() context: WorkflowContext
-  ): Promise<string[]> {
+  async getAvailableActions(@Param('id') instanceId: string, @Query() context: WorkflowContext): Promise<string[]> {
     return this.workflowEngine.getAvailableActions(instanceId, context);
   }
 
   @Post('definitions')
   @RequirePermission('workflow.manage')
-  async createWorkflowDefinition(
-    @Body() dto: CreateWorkflowDefinitionDto
-  ): Promise<WorkflowDefinition> {
+  async createWorkflowDefinition(@Body() dto: CreateWorkflowDefinitionDto): Promise<WorkflowDefinition> {
     return this.workflowDslService.compileAndSave(dto.dslContent);
   }
 
   @Get('instances/:id/history')
   @RequirePermission('workflow.view')
-  async getWorkflowHistory(
-    @Param('id') instanceId: string
-  ): Promise<WorkflowHistory[]> {
+  async getWorkflowHistory(@Param('id') instanceId: string): Promise<WorkflowHistory[]> {
     return this.workflowHistoryService.getHistory(instanceId);
   }
 }
@@ -1781,13 +1660,8 @@ export class CorrespondenceWorkflowService {
     private correspondenceService: CorrespondenceService
   ) {}
 
-  async submitCorrespondence(
-    correspondenceId: string,
-    userId: string
-  ): Promise<void> {
-    const correspondence = await this.correspondenceService.findById(
-      correspondenceId
-    );
+  async submitCorrespondence(correspondenceId: string, userId: string): Promise<void> {
+    const correspondence = await this.correspondenceService.findById(correspondenceId);
 
     // Create workflow instance
     const instance = await this.workflowEngine.createInstance({
@@ -1824,11 +1698,7 @@ describe('WorkflowEngineService', () => {
       const context = { userId: 'user1', roles: ['APPROVER'] };
 
       // Act
-      const result = await workflowEngine.processTransition(
-        instance.id,
-        'APPROVE',
-        context
-      );
+      const result = await workflowEngine.processTransition(instance.id, 'APPROVE', context);
 
       // Assert
       expect(result.success).toBe(true);
@@ -1841,23 +1711,19 @@ describe('WorkflowEngineService', () => {
       const context = { userId: 'user2', roles: ['VIEWER'] };
 
       // Act & Assert
-      await expect(
-        workflowEngine.processTransition(instance.id, 'APPROVE', context)
-      ).rejects.toThrow(WorkflowError);
+      await expect(workflowEngine.processTransition(instance.id, 'APPROVE', context)).rejects.toThrow(WorkflowError);
     });
   });
 });
 ```
 
 - **🔗 Critical Dependencies of T3.1.1-T3.1.8**
-
   - T1.1 (Common Module) - สำหรับ base entities และ shared services
   - T1.4 (RBAC Guard) - สำหรับ permission checking
   - T2.5 (JSON Schema) - สำหรับ DSL validation
   - T6.2 (Notification) - สำหรับ event handling
 
 - **🎯 Success Metrics**
-
   - ✅ Support ทั้ง Correspondence Routing และ RFA Workflow
   - ✅ DSL ที่ human-readable และ editable โดยไม่ต้องแก้โค้ด
   - ✅ Performance: < 50ms ต่อ state transition
@@ -1865,7 +1731,6 @@ describe('WorkflowEngineService', () => {
   - ✅ Complete audit trail สำหรับทุก workflow instance
 
 - **[ ] T3.2 CorrespondenceModule - Basic CRUD**
-
   - [ ] สร้าง Entities (Correspondence, Revision, Recipient, Tag, Reference, Attachment)
   - [ ] สร้าง CorrespondenceService (Create with Document Numbering, Update with new Revision, Soft Delete)
   - [ ] สร้าง Controllers (POST/GET/PUT/DELETE /correspondences)
@@ -1875,7 +1740,6 @@ describe('WorkflowEngineService', () => {
   - [ ] **Dependencies:** T1.1, T1.2, T1.3, T1.4, T1.5, T2.3, T2.2, T2.5
 
 - **[ ] T3.3 CorrespondenceModule - Advanced Features**
-
   - [ ] Implement Status Transitions (DRAFT → SUBMITTED)
   - [ ] Implement References (Link Documents)
   - [ ] Implement Search (Basic)
@@ -1884,7 +1748,6 @@ describe('WorkflowEngineService', () => {
   - [ ] **Dependencies:** T3.2
 
 - **[ ] T3.4 Correspondence Integration with Workflow**
-
   - [ ] เชื่อมต่อ `CorrespondenceService` เข้ากับ `WorkflowEngineModule`
   - [ ] ย้าย Logic การ Routing เดิมมาใช้ Engine ใหม่
   - [ ] สร้าง API endpoints สำหรับ Frontend (Templates, Pending Tasks, Bulk Action)
@@ -1901,7 +1764,6 @@ describe('WorkflowEngineService', () => {
 ### **Phase 4: Tasks**
 
 - **[ ] T4.1 DrawingModule - Contract Drawings**
-
   - [ ] สร้าง Entities (ContractDrawing, Volume, Category, SubCategory, Attachment)
   - [ ] สร้าง ContractDrawingService CRUD
   - [ ] สร้าง Controllers (GET/POST /drawings/contract)
@@ -1910,7 +1772,6 @@ describe('WorkflowEngineService', () => {
   - [ ] **Dependencies:** T1.1, T1.2, T1.4, T1.5, T2.2
 
 - **[ ] T4.2 DrawingModule - Shop Drawings**
-
   - [ ] สร้าง Entities (ShopDrawing, Revision, Main/SubCategory, ContractRef, RevisionAttachment)
   - [ ] สร้าง ShopDrawingService CRUD (รวมการสร้าง Revision)
   - [ ] สร้าง Controllers (GET/POST /drawings/shop, /drawings/shop/:id/revisions)
@@ -1920,7 +1781,6 @@ describe('WorkflowEngineService', () => {
   - [ ] **Dependencies:** T4.1
 
 - **[ ] T5.1 RfaModule with Unified Workflow**
-
   - [ ] สร้าง Entities (Rfa, RfaRevision, RfaItem, RfaWorkflowTemplate/Step)
   - [ ] สร้าง RfaService (Create RFA, Link Shop Drawings)
   - [ ] Implement RFA Workflow โดยใช้ Configuration ของ `WorkflowEngineModule`
@@ -1938,7 +1798,6 @@ describe('WorkflowEngineService', () => {
 ### **Phase 5: Tasks**
 
 - **[ ] T5.2 CirculationModule - Internal Routing**
-
   - [ ] สร้าง Entities (Circulation, Template, Routing, Attachment)
   - [ ] สร้าง CirculationService (Create 1:1 with Correspondence, Assign User, Complete/Close Step)
   - [ ] สร้าง Controllers (POST/GET /circulations, POST /circulations/:id/steps/...)
@@ -1947,7 +1806,6 @@ describe('WorkflowEngineService', () => {
   - [ ] **Dependencies:** T3.2, T2.5, T6.2
 
 - **[ ] T5.3 TransmittalModule - Document Forwarding**
-
   - [ ] สร้าง Entities (Transmittal, TransmittalItem)
   - [ ] สร้าง TransmittalService (Create Correspondence + Transmittal, Link Multiple Correspondences)
   - [ ] สร้าง Controllers (POST/GET /transmittals)
@@ -1964,7 +1822,6 @@ describe('WorkflowEngineService', () => {
 ### **Phase 6: Tasks**
 
 - **[ ] T6.1 SearchModule - Elasticsearch Integration**
-
   - [ ] Setup Elasticsearch Container
   - [ ] สร้าง SearchService (index/update/delete documents, search)
   - [ ] Index ทุก Document Type
@@ -1974,7 +1831,6 @@ describe('WorkflowEngineService', () => {
   - [ ] **Dependencies:** T3.2, T5.1, T4.2, T5.2, T5.3
 
 - **[ ] T6.2 Notification Queue & Digest**
-
   - [ ] สร้าง NotificationService (sendEmail/Line/System)
   - [ ] **Producer:** Push Event ลง BullMQ Queue
   - [ ] **Consumer:** จัดกลุ่ม Notification (Digest Message) และส่งผ่าน Email/Line
@@ -1985,7 +1841,6 @@ describe('WorkflowEngineService', () => {
   - [ ] **Dependencies:** T1.1, T6.4
 
 - **[ ] T6.3 MonitoringModule - Observability**
-
   - [ ] สร้าง Health Check Controller (GET /health)
   - [ ] สร้าง Metrics Service (API response times, Error rates)
   - [ ] สร้าง Performance Interceptor (Track request duration)
@@ -1994,7 +1849,6 @@ describe('WorkflowEngineService', () => {
   - [ ] **Dependencies:** T1.1
 
 - **[ ] T6.4 ResilienceModule - Circuit Breaker & Retry**
-
   - [ ] สร้าง Circuit Breaker Service (@CircuitBreaker() decorator)
   - [ ] สร้าง Retry Service (@Retry() decorator)
   - [ ] สร้าง Fallback Strategies
@@ -2003,7 +1857,6 @@ describe('WorkflowEngineService', () => {
   - [ ] **Dependencies:** T1.1
 
 - **[ ] T6.5 Data Partitioning Strategy**
-
   - [ ] ออกแบบ Table Partitioning สำหรับ `audit_logs` และ `notifications` (แบ่งตาม Range: Year)
   - [ ] เขียน Raw SQL Migration สำหรับสร้าง Partition Table
   - [ ] **Deliverable:** Database Performance และ Scalability ดีขึ้น
@@ -2018,21 +1871,18 @@ describe('WorkflowEngineService', () => {
 ### **Phase 7: Tasks**
 
 - **[ ] T7.1 Concurrency Testing**
-
   - [ ] เขียน Test Scenarios ยิง Request ขอเลขที่เอกสารพร้อมกัน 100 Request (ต้องไม่ซ้ำและไม่ข้าม)
   - [ ] ทดสอบ Optimistic Lock ทำงานถูกต้องเมื่อ Redis ถูกปิด
   - [ ] ทดสอบ File Upload พร้อมกันหลายไฟล์
   - [ ] **Deliverable:** ระบบทนทานต่อ Concurrency Issues
 
 - **[ ] T7.2 Transaction Integrity Testing**
-
   - [ ] ทดสอบ Upload ไฟล์แล้ว Kill Process ก่อน Commit
   - [ ] ทดสอบ Two-Phase File Storage ทำงานถูกต้อง
   - [ ] ทดสอบ Database Transaction Rollback Scenarios
   - [ ] **Deliverable:** Data Integrity รับประกันได้
 
 - **[ ] T7.3 Security & Idempotency Test**
-
   - [ ] ทดสอบ Replay Attack โดยใช้ `Idempotency-Key` ซ้ำ
   - [ ] ทดสอบ Maintenance Mode Block API ได้จริง
   - [ ] ทดสอบ RBAC 4-Level ทำงานถูกต้อง 100%
@@ -2045,7 +1895,6 @@ describe('WorkflowEngineService', () => {
 - **[ ] T7.6 E2E Testing**
 
 - **[ ] T7.7 Performance Testing**
-
   - [ ] Load Testing: 100 concurrent users
   - [ ] **(สำคัญ)** การจูนและทดสอบ Load Test จะต้องทำในสภาพแวดล้อมที่จำลอง Spec ของ QNAP Server (TS-473A, AMD Ryzen V1500B) เพื่อให้ได้ค่า Response Time และ Connection Pool ที่เที่ยงตรง
   - [ ] Stress Testing
@@ -2053,14 +1902,12 @@ describe('WorkflowEngineService', () => {
   - [ ] **Deliverable:** Performance targets บรรลุ
 
 - **[ ] T7.8 Security Testing**
-
   - [ ] Penetration Testing (OWASP Top 10)
   - [ ] Security Audit (Code review, Dependency scanning)
   - [ ] File Upload Security Testing
   - [ ] **Deliverable:** Security tests ผ่าน
 
 - **[ ] T7.9 Performance Optimization**
-
   - [ ] Implement Caching (Master Data, User Permissions, Search Results)
   - [ ] Database Optimization (Review Indexes, Query Optimization, Pagination)
   - [ ] **Deliverable:** Response Time < 200ms (90th percentile)

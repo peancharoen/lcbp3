@@ -222,20 +222,9 @@ CREATE TABLE workflow_histories (
 ```typescript
 // workflow-engine.module.ts
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      WorkflowDefinition,
-      WorkflowInstance,
-      WorkflowHistory,
-    ]),
-    UserModule,
-  ],
+  imports: [TypeOrmModule.forFeature([WorkflowDefinition, WorkflowInstance, WorkflowHistory]), UserModule],
   controllers: [WorkflowEngineController],
-  providers: [
-    WorkflowEngineService,
-    WorkflowDslService,
-    WorkflowEventService,
-  ],
+  providers: [WorkflowEngineService, WorkflowDslService, WorkflowEventService],
   exports: [WorkflowEngineService],
 })
 export class WorkflowEngineModule {}
@@ -275,12 +264,7 @@ export class WorkflowEngineService {
     payload: Record<string, unknown> = {}
   ) {
     // Evaluation via WorkflowDslService
-    const evaluation = this.dslService.evaluate(
-      compiled,
-      instance.currentState,
-      action,
-      context
-    );
+    const evaluation = this.dslService.evaluate(compiled, instance.currentState, action, context);
 
     // Update state to target State
     instance.currentState = evaluation.nextState;

@@ -2,9 +2,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contractDrawingService } from '@/lib/services/contract-drawing.service';
 import { shopDrawingService } from '@/lib/services/shop-drawing.service';
 import { asBuiltDrawingService } from '@/lib/services/asbuilt-drawing.service';
-import { SearchContractDrawingDto, CreateContractDrawingDto, UpdateContractDrawingDto } from '@/types/dto/drawing/contract-drawing.dto';
-import { SearchShopDrawingDto, CreateShopDrawingDto, CreateShopDrawingRevisionDto } from '@/types/dto/drawing/shop-drawing.dto';
-import { SearchAsBuiltDrawingDto, CreateAsBuiltDrawingDto, CreateAsBuiltDrawingRevisionDto } from '@/types/dto/drawing/asbuilt-drawing.dto';
+import {
+  SearchContractDrawingDto,
+  CreateContractDrawingDto,
+  UpdateContractDrawingDto,
+} from '@/types/dto/drawing/contract-drawing.dto';
+import {
+  SearchShopDrawingDto,
+  CreateShopDrawingDto,
+  CreateShopDrawingRevisionDto,
+} from '@/types/dto/drawing/shop-drawing.dto';
+import {
+  SearchAsBuiltDrawingDto,
+  CreateAsBuiltDrawingDto,
+  CreateAsBuiltDrawingRevisionDto,
+} from '@/types/dto/drawing/asbuilt-drawing.dto';
 import { toast } from 'sonner';
 import { ContractDrawing, ShopDrawing, AsBuiltDrawing } from '@/types/drawing';
 
@@ -23,8 +35,7 @@ export const drawingKeys = {
 // --- Queries ---
 
 export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
-  const shouldEnable =
-    'projectUuid' in params ? Boolean(params.projectUuid) : true;
+  const shouldEnable = 'projectUuid' in params ? Boolean(params.projectUuid) : true;
 
   return useQuery({
     queryKey: drawingKeys.list(type, params),
@@ -147,7 +158,13 @@ export function useUpdateContractDrawing() {
 export function useUploadRevision(type: DrawingType) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ uuid, data }: { uuid: string; data: CreateShopDrawingRevisionDto | CreateAsBuiltDrawingRevisionDto }) => {
+    mutationFn: async ({
+      uuid,
+      data,
+    }: {
+      uuid: string;
+      data: CreateShopDrawingRevisionDto | CreateAsBuiltDrawingRevisionDto;
+    }) => {
       if (type === 'SHOP') {
         return shopDrawingService.createRevision(uuid, data as CreateShopDrawingRevisionDto);
       } else {

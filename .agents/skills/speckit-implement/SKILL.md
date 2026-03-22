@@ -53,7 +53,7 @@ If a file is critical, complex, or has high dependencies (>2 affected files):
 4.  **SWITCH** the imports in the consuming files one by one.
 5.  **ANNOUNCE**: "Applying Strangler Pattern to avoid regression."
 
-*Benefit: If it breaks, we simply revert the import, not the whole logic.*
+_Benefit: If it breaks, we simply revert the import, not the whole logic._
 
 ### Protocol 3: Reproduction Script First (TDD)
 
@@ -136,12 +136,12 @@ At the start of execution and after every 3 modifications:
      git rev-parse --git-dir 2>/dev/null
      ```
 
-   - Check if Dockerfile* exists or Docker in plan.md → create/verify .dockerignore
-   - Check if .eslintrc* exists → create/verify .eslintignore
-   - Check if eslint.config.* exists → ensure the config's `ignores` entries cover required patterns
-   - Check if .prettierrc* exists → create/verify .prettierignore
+   - Check if Dockerfile\* exists or Docker in plan.md → create/verify .dockerignore
+   - Check if .eslintrc\* exists → create/verify .eslintignore
+   - Check if eslint.config.\* exists → ensure the config's `ignores` entries cover required patterns
+   - Check if .prettierrc\* exists → create/verify .prettierignore
    - Check if .npmrc or package.json exists → create/verify .npmignore (if publishing)
-   - Check if terraform files (*.tf) exist → create/verify .terraformignore
+   - Check if terraform files (\*.tf) exist → create/verify .terraformignore
    - Check if .helmignore needed (helm charts present) → create/verify .helmignore
 
    **If ignore file already exists**: Verify it contains essential patterns, append missing critical patterns only
@@ -179,35 +179,35 @@ At the start of execution and after every 3 modifications:
 7. **Execute implementation following the task plan with Ironclad Protocols**:
 
    **For EACH task**, follow this sequence:
-   
+
    a. **Blast Radius Analysis (Protocol 1)**:
-      - Identify all files that will be modified
-      - Run `grep` to find all dependents
-      - Report the blast radius
-   
+   - Identify all files that will be modified
+   - Run `grep` to find all dependents
+   - Report the blast radius
+
    b. **Strategy Decision**:
-      - If LOW risk (≤2 affected files): Proceed with inline modification
-      - If MEDIUM/HIGH risk (>2 files): Apply Strangler Pattern (Protocol 2)
-   
+   - If LOW risk (≤2 affected files): Proceed with inline modification
+   - If MEDIUM/HIGH risk (>2 files): Apply Strangler Pattern (Protocol 2)
+
    c. **Reproduction Script (Protocol 3)**:
-      - Create `repro_task_[ID].ts` that demonstrates expected behavior
-      - Run it to confirm current state (should fail for new features, or fail for bugs)
-   
+   - Create `repro_task_[ID].ts` that demonstrates expected behavior
+   - Run it to confirm current state (should fail for new features, or fail for bugs)
+
    d. **Implementation**:
-      - Execute the task according to plan
-      - **Phase-by-phase execution**: Complete each phase before moving to the next
-      - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together
-      - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
-      - **File-based coordination**: Tasks affecting the same files must run sequentially
-   
+   - Execute the task according to plan
+   - **Phase-by-phase execution**: Complete each phase before moving to the next
+   - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together
+   - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
+   - **File-based coordination**: Tasks affecting the same files must run sequentially
+
    e. **Verification**:
-      - Run the reproduction script again (should now pass)
-      - Run existing tests to ensure no regression
-      - If any test fails: **STOP** and report the regression
-   
+   - Run the reproduction script again (should now pass)
+   - Run existing tests to ensure no regression
+   - If any test fails: **STOP** and report the regression
+
    f. **Cleanup**:
-      - Delete temporary repro scripts OR convert to permanent tests
-      - Mark task as complete `[X]` in tasks.md
+   - Delete temporary repro scripts OR convert to permanent tests
+   - Mark task as complete `[X]` in tasks.md
 
 8. **Progress tracking and error handling**:
    - Report progress after each completed task with this format:

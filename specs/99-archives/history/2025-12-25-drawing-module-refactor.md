@@ -6,6 +6,7 @@
 ---
 
 ## Objective
+
 Refactor Drawing module (backend & frontend) to align with `lcbp3-v1.7.0-schema.sql`, specifically for AS Built Drawings.
 
 ---
@@ -15,12 +16,14 @@ Refactor Drawing module (backend & frontend) to align with `lcbp3-v1.7.0-schema.
 ### Backend
 
 #### Entities Updated
+
 | File                                 | Changes                                             |
 | ------------------------------------ | --------------------------------------------------- |
 | `asbuilt-drawing.entity.ts`          | Added `mainCategoryId`, `subCategoryId` + relations |
 | `asbuilt-drawing-revision.entity.ts` | Added `legacyDrawingNumber`                         |
 
 #### New Files Created
+
 | File                                         | Description                         |
 | -------------------------------------------- | ----------------------------------- |
 | `dto/create-asbuilt-drawing.dto.ts`          | Create AS Built with first revision |
@@ -30,9 +33,11 @@ Refactor Drawing module (backend & frontend) to align with `lcbp3-v1.7.0-schema.
 | `asbuilt-drawing.controller.ts`              | REST controller                     |
 
 #### Module Updated
+
 - `drawing.module.ts` - Registered new entities, service, controller
 
 #### New API Endpoints
+
 | Method | Path                              | Description  |
 | ------ | --------------------------------- | ------------ |
 | POST   | `/drawings/asbuilt`               | Create       |
@@ -46,12 +51,14 @@ Refactor Drawing module (backend & frontend) to align with `lcbp3-v1.7.0-schema.
 ### Frontend
 
 #### Types Updated
+
 | File                                       | Changes                                                             |
 | ------------------------------------------ | ------------------------------------------------------------------- |
 | `types/drawing.ts`                         | `AsBuiltDrawing` interface: added `mainCategoryId`, `subCategoryId` |
 | `types/dto/drawing/asbuilt-drawing.dto.ts` | Added category IDs                                                  |
 
 #### Components Updated
+
 | File                                  | Changes                                                 |
 | ------------------------------------- | ------------------------------------------------------- |
 | `components/drawings/upload-form.tsx` | AS_BUILT form: added category selectors, title required |
@@ -59,6 +66,7 @@ Refactor Drawing module (backend & frontend) to align with `lcbp3-v1.7.0-schema.
 | `app/(dashboard)/drawings/page.tsx`   | Added project selector dropdown                         |
 
 #### Hooks Updated
+
 | File                   | Changes                          |
 | ---------------------- | -------------------------------- |
 | `hooks/use-drawing.ts` | Fixed toast message for AS_BUILT |
@@ -67,14 +75,15 @@ Refactor Drawing module (backend & frontend) to align with `lcbp3-v1.7.0-schema.
 
 ## Verification Results
 
-| Component | Command      | Result    |
-| --------- | ------------ | --------- |
+| Component | Command      | Result     |
+| --------- | ------------ | ---------- |
 | Backend   | `pnpm build` | ✅ Success |
 | Frontend  | `pnpm build` | ✅ Success |
 
 ---
 
 ## Notes
+
 - AS Built Drawings use same category structure as Shop Drawings (`shop_drawing_main_categories`, `shop_drawing_sub_categories`)
 - No existing data in `asbuilt_drawings` table, no migration needed
 - Pre-existing lint warnings (`any` types) in `upload-form.tsx` not addressed in this session

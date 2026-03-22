@@ -31,10 +31,12 @@ Compare two versions of a specification artifact and produce a structured diff r
    - If no arguments: Use `check-prerequisites.sh` to find current feature's spec.md and compare with HEAD
 
 2. **Load Files**:
+
    ```bash
    # For git comparison
    git show HEAD:<relative-path> > /tmp/old_version.md
    ```
+
    - Read both versions into memory
 
 3. **Semantic Diff Analysis**:
@@ -45,26 +47,29 @@ Compare two versions of a specification artifact and produce a structured diff r
    - **Moved**: Reorganized content (same meaning, different location)
 
 4. **Generate Report**:
+
    ```markdown
    # Diff Report: [filename]
-   
+
    **Compared**: [version A] → [version B]
    **Date**: [timestamp]
-   
+
    ## Summary
+
    - X additions, Y removals, Z modifications
-   
+
    ## Changes by Section
-   
+
    ### [Section Name]
-   
-   | Type | Content | Impact |
-   |------|---------|--------|
-   | + Added | [new text] | [what this means] |
-   | - Removed | [old text] | [what this means] |
+
+   | Type       | Content            | Impact            |
+   | ---------- | ------------------ | ----------------- |
+   | + Added    | [new text]         | [what this means] |
+   | - Removed  | [old text]         | [what this means] |
    | ~ Modified | [before] → [after] | [what this means] |
-   
+
    ## Risk Assessment
+
    - Breaking changes: [list any]
    - Scope changes: [list any]
    ```

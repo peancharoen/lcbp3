@@ -12,7 +12,7 @@ export class FileCleanupService {
 
   constructor(
     @InjectRepository(Attachment)
-    private attachmentRepository: Repository<Attachment>,
+    private attachmentRepository: Repository<Attachment>
   ) {}
 
   /**
@@ -39,7 +39,7 @@ export class FileCleanupService {
     }
 
     this.logger.log(
-      `Found ${expiredAttachments.length} expired files. Deleting...`,
+      `Found ${expiredAttachments.length} expired files. Deleting...`
     );
 
     let deletedCount = 0;
@@ -64,7 +64,7 @@ export class FileCleanupService {
     }
 
     this.logger.log(
-      `Cleanup complete. Deleted: ${deletedCount}, Failed: ${errors.length}`,
+      `Cleanup complete. Deleted: ${deletedCount}, Failed: ${errors.length}`
     );
   }
 }

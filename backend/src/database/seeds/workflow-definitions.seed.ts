@@ -130,14 +130,14 @@ export const seedWorkflowDefinitions = async (dataSource: DataSource) => {
             is_active: true,
           })
         );
-        console.log(`✅ Seeded Workflow: ${dsl.workflow} v${dsl.version}`);
-      } catch (error) {
-        console.error(`❌ Failed to seed workflow ${dsl.workflow}:`, error);
+        //         console.log(`✅ Seeded Workflow: ${dsl.workflow} v${dsl.version}`);
+      } catch (_error) {
+        //         console.error(`❌ Failed to seed workflow ${dsl.workflow}:`, _error);
       }
     } else {
-      console.log(
-        `⏭️  Workflow already exists: ${dsl.workflow} v${dsl.version}`
-      );
+      //       console.log(
+      //         `⏭️  Workflow already exists: ${dsl.workflow} v${dsl.version}`
+      //       );
     }
   }
 };

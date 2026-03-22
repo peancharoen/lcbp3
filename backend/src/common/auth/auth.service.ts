@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
   Inject,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -27,6 +28,8 @@ import { RefreshToken } from './entities/refresh-token.entity'; // [P2-2]
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
@@ -40,8 +43,8 @@ export class AuthService {
   ) {}
 
   // 1. ตรวจสอบ Username/Password
-  async validateUser(username: string, pass: string): Promise<any> {
-    console.log(`🔍 Checking login for: ${username}`);
+  async validateUser(username: string, pass: string): Promise<User | null> {
+    this.logger.log(`🔍 Checking login for: ${username}`);
     const user = await this.usersRepository
       .createQueryBuilder('user')
       .addSelect('user.password')
@@ -51,7 +54,7 @@ export class AuthService {
       .getOne();
 
     if (!user) {
-      console.log('❌ User not found in database');
+      this.logger.warn('❌ User not found in database');
       return null;
     }
 
@@ -75,7 +78,6 @@ export class AuthService {
           derivedRole = 'DC';
         }
       }
-
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return { ...result, role: derivedRole };
@@ -121,7 +123,10 @@ export class AuthService {
   }
 
   // [P2-2] Store Refresh Token Logic
-  private async storeRefreshToken(userId: number, token: string) {
+  private async storeRefreshToken(
+    userId: number,
+    token: string
+  ): Promise<void> {
     // Hash token before storing for security
     const hash = crypto.createHash('sha256').update(token).digest('hex');
     const expiresInDays = 7; // Should match JWT_REFRESH_EXPIRATION
@@ -157,7 +162,10 @@ export class AuthService {
   }
 
   // 4. Refresh Token: ตรวจสอบและออก Token ใหม่ (Rotation)
-  async refreshToken(userId: number, refreshToken: string) {
+  async refreshToken(
+    userId: number,
+    refreshToken: string
+  ): Promise<{ access_token: string; refresh_token: string }> {
     // Hash incoming token to match with DB
     const hash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
@@ -171,9 +179,37 @@ export class AuthService {
     }
 
     if (storedToken.isRevoked) {
-      // Possible token theft! Invalidate all user tokens family
-      await this.revokeAllUserTokens(userId);
-      throw new UnauthorizedException('Refresh token revoked - Security alert');
+      // [P2-2.1] Grace period for Token Rotation (30 seconds)
+      // ป้องกัน Race Condition เมื่อ Frontend ส่ง Refresh Request ซ้อนกันในชั่วพริบตา
+      const now = new Date();
+      const revokedAt = new Date(storedToken.updatedAt);
+      const diffMs = now.getTime() - revokedAt.getTime();
+
+      this.logger.debug(`[DEBUG-TOKEN] user=${userId}`);
+      this.logger.debug(`[DEBUG-TOKEN] now=${now.toISOString()}`);
+      this.logger.debug(
+        `[DEBUG-TOKEN] updatedAt=${storedToken.updatedAt ? new Date(storedToken.updatedAt).toISOString() : 'NULL'}`
+      );
+      this.logger.debug(`[DEBUG-TOKEN] diffMs=${diffMs}`);
+      this.logger.debug(
+        `[DEBUG-TOKEN] replacedBy=${storedToken.replacedByToken ? 'YES(HASHED)' : 'NULL'}`
+      );
+
+      if (diffMs <= 30000 && storedToken.replacedByToken) {
+        this.logger.warn(
+          `Refresh token reuse detected within grace period (${diffMs}ms) for user ${userId}. Allowing another rotation.`
+        );
+        // ไม่ต้อง revokeAllUserTokens และอนุญาตให้ทำงานต่อด้านล่างเพื่อออก Token ชุดใหม่
+      } else {
+        // Possible token theft! Invalidate all user tokens family
+        await this.revokeAllUserTokens(userId);
+        this.logger.error(
+          `Refresh token revoked - Security alert for user ${userId}. All tokens invalidated.`
+        );
+        throw new UnauthorizedException(
+          'Refresh token revoked - Security alert'
+        );
+      }
     }
 
     if (storedToken.expiresAt < new Date()) {
@@ -205,8 +241,10 @@ export class AuthService {
       .update(newRefreshToken)
       .digest('hex');
 
+    // [P2-2] Mark old token as revoked and rotated
     storedToken.isRevoked = true;
     storedToken.replacedByToken = newHash;
+    storedToken.updatedAt = new Date(); // Fallback: Manually update instead of relying solely on @UpdateDateColumn
     await this.refreshTokenRepository.save(storedToken);
 
     // Save NEW token
@@ -219,7 +257,7 @@ export class AuthService {
   }
 
   // [P2-2] Helper: Revoke all tokens for a user (Security Measure)
-  private async revokeAllUserTokens(userId: number) {
+  private async revokeAllUserTokens(userId: number): Promise<void> {
     await this.refreshTokenRepository.update(
       { userId, isRevoked: false },
       { isRevoked: true }
@@ -230,7 +268,7 @@ export class AuthService {
   async logout(userId: number, accessToken: string, refreshToken?: string) {
     // Blacklist Access Token
     try {
-      const decoded = this.jwtService.decode(accessToken);
+      const decoded = this.jwtService.decode<{ exp: number }>(accessToken);
       if (decoded && decoded.exp) {
         const ttl = decoded.exp - Math.floor(Date.now() / 1000);
         if (ttl > 0) {
@@ -241,7 +279,7 @@ export class AuthService {
           );
         }
       }
-    } catch (error) {
+    } catch {
       // Ignore decoding error
     }
 

@@ -50,7 +50,9 @@
 ## 📖 คู่มือการพัฒนา (Implementation Guides)
 
 ### 1. [FullStack JS Guidelines](./05-01-fullstack-js-guidelines.md)
+
 **แนวทางการพัฒนาภาพรวมทั้งระบบ (v1.8.1 — includes NestJS 11 Patterns)**
+
 - โครงสร้างโปรเจกต์ (Monorepo-like focus)
 - Naming Conventions & Code Style
 - Secrets & Environment Management
@@ -58,7 +60,9 @@
 - Double-Lock Mechanism for Numbering
 
 ### 2. [Backend Guidelines](./05-02-backend-guidelines.md)
+
 **แนวทางการพัฒนา NestJS 11 Backend**
+
 - Modular Architecture Detail
 - DTO Validation & Transformer
 - TypeORM Best Practices & Optimistic Locking
@@ -66,7 +70,9 @@
 - BullMQ for Background Jobs
 
 ### 3. [Frontend Guidelines](./05-03-frontend-guidelines.md)
+
 **แนวทางการพัฒนา Next.js 16 Frontend**
+
 - App Router Patterns
 - Shadcn/UI & Tailwind Styling
 - TanStack Query for Data Fetching
@@ -74,7 +80,9 @@
 - API Client Interceptors (Auth & Idempotency)
 
 ### 4. [Document Numbering System](../01-Requirements/business-rules/01-02-02-doc-numbering-rules.md)
+
 **รายละเอียดการนำระบบออกเลขที่เอกสารไปใช้งาน**
+
 - Table Schema: Templates, Counters, Audit
 - Double-Lock Strategy (Redis Redlock + Database VersionColumn)
 - Reservation Flow (Phase 1: Reserve, Phase 2: Confirm)
@@ -95,13 +103,13 @@
 
 ## 🛠️ Technology Stack Recap
 
-| Layer        | Primary Technology | Secondary/Supporting |
-| ------------ | ------------------ | -------------------- |
-| **Backend**  | NestJS 11 (Express v5) | TypeORM, BullMQ      |
-| **Frontend** | Next.js 16.2.0 (React 19.2.4)  | Shadcn/UI, Tailwind 4.2.2  |
-| **Database** | MariaDB 11.8       | Redis 7 (Cache/Lock) |
-| **Search**   | Elasticsearch      | -                    |
-| **Testing**  | Jest, Vitest       | Playwright           |
+| Layer        | Primary Technology            | Secondary/Supporting      |
+| ------------ | ----------------------------- | ------------------------- |
+| **Backend**  | NestJS 11 (Express v5)        | TypeORM, BullMQ           |
+| **Frontend** | Next.js 16.2.0 (React 19.2.4) | Shadcn/UI, Tailwind 4.2.2 |
+| **Database** | MariaDB 11.8                  | Redis 7 (Cache/Lock)      |
+| **Search**   | Elasticsearch                 | -                         |
+| **Testing**  | Jest, Vitest                  | Playwright                |
 
 ---
 

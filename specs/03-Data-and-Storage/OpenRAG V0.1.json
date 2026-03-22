@@ -9,16 +9,12 @@
             "dataType": "File",
             "id": "File-5V2fL",
             "name": "dataframe",
-            "output_types": [
-              "DataFrame"
-            ]
+            "output_types": ["DataFrame"]
           },
           "targetHandle": {
             "fieldName": "data",
             "id": "LoopComponent-5vFOr",
-            "inputTypes": [
-              "DataFrame"
-            ],
+            "inputTypes": ["DataFrame"],
             "type": "other"
           }
         },
@@ -37,16 +33,12 @@
             "dataType": "Prompt Template",
             "id": "Prompt Template-dKwcS",
             "name": "prompt",
-            "output_types": [
-              "Message"
-            ]
+            "output_types": ["Message"]
           },
           "targetHandle": {
             "fieldName": "system_message",
             "id": "OllamaModel-xJSnu",
-            "inputTypes": [
-              "Message"
-            ],
+            "inputTypes": ["Message"],
             "type": "str"
           }
         },
@@ -64,17 +56,12 @@
             "dataType": "LoopComponent",
             "id": "LoopComponent-5vFOr",
             "name": "item",
-            "output_types": [
-              "Data"
-            ]
+            "output_types": ["Data"]
           },
           "targetHandle": {
             "fieldName": "input_data",
             "id": "ParserComponent-Xspgr",
-            "inputTypes": [
-              "DataFrame",
-              "Data"
-            ],
+            "inputTypes": ["DataFrame", "Data"],
             "type": "other"
           }
         },
@@ -92,16 +79,12 @@
             "dataType": "ParserComponent",
             "id": "ParserComponent-Xspgr",
             "name": "parsed_text",
-            "output_types": [
-              "Message"
-            ]
+            "output_types": ["Message"]
           },
           "targetHandle": {
             "fieldName": "extracted_text",
             "id": "Prompt Template-dKwcS",
-            "inputTypes": [
-              "Message"
-            ],
+            "inputTypes": ["Message"],
             "type": "str"
           }
         },
@@ -119,18 +102,12 @@
             "dataType": "OllamaModel",
             "id": "OllamaModel-xJSnu",
             "name": "text_output",
-            "output_types": [
-              "Message"
-            ]
+            "output_types": ["Message"]
           },
           "targetHandle": {
             "fieldName": "input",
             "id": "SaveToFile-M0RUY",
-            "inputTypes": [
-              "Data",
-              "DataFrame",
-              "Message"
-            ],
+            "inputTypes": ["Data", "DataFrame", "Message"],
             "type": "other"
           }
         },
@@ -148,18 +125,13 @@
             "dataType": "SaveToFile",
             "id": "SaveToFile-M0RUY",
             "name": "message",
-            "output_types": [
-              "Message"
-            ]
+            "output_types": ["Message"]
           },
           "targetHandle": {
             "dataType": "LoopComponent",
             "id": "LoopComponent-5vFOr",
             "name": "item",
-            "output_types": [
-              "Data",
-              "Message"
-            ]
+            "output_types": ["Data", "Message"]
           }
         },
         "id": "xy-edge__SaveToFile-M0RUY{œdataTypeœ:œSaveToFileœ,œidœ:œSaveToFile-M0RUYœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}-LoopComponent-5vFOr{œdataTypeœ:œLoopComponentœ,œidœ:œLoopComponent-5vFOrœ,œnameœ:œitemœ,œoutput_typesœ:[œDataœ,œMessageœ]}",
@@ -175,9 +147,7 @@
         "data": {
           "id": "File-5V2fL",
           "node": {
-            "base_classes": [
-              "Message"
-            ],
+            "base_classes": ["Message"],
             "beta": false,
             "conditional_paths": [],
             "custom_fields": {},
@@ -258,9 +228,7 @@
                 "required_inputs": null,
                 "selected": "DataFrame",
                 "tool_mode": true,
-                "types": [
-                  "DataFrame"
-                ],
+                "types": ["DataFrame"],
                 "value": "__UNDEFINED__"
               }
             ],
@@ -438,9 +406,7 @@
                 "display_name": "Doc Key",
                 "dynamic": false,
                 "info": "The key to use for the DoclingDocument column.",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -484,10 +450,7 @@
                 "display_name": "Server File Path",
                 "dynamic": false,
                 "info": "Data object with a 'file_path' property pointing to server file or a Message object with a path to the file. Supercedes 'Path' but supports same file types.",
-                "input_types": [
-                  "Data",
-                  "Message"
-                ],
+                "input_types": ["Data", "Message"],
                 "list": true,
                 "list_add_label": "Add More",
                 "name": "file_path",
@@ -635,10 +598,7 @@
                 "external_options": {},
                 "info": "OCR engine to use. Only available when pipeline is set to 'standard'.",
                 "name": "ocr_engine",
-                "options": [
-                  "None",
-                  "easyocr"
-                ],
+                "options": ["None", "easyocr"],
                 "options_metadata": [],
                 "override_skip": false,
                 "placeholder": "",
@@ -772,10 +732,7 @@
                 "external_options": {},
                 "info": "Docling pipeline to use",
                 "name": "pipeline",
-                "options": [
-                  "standard",
-                  "vlm"
-                ],
+                "options": ["standard", "vlm"],
                 "options_metadata": [],
                 "override_skip": false,
                 "placeholder": "",
@@ -956,12 +913,7 @@
         "data": {
           "id": "OllamaModel-xJSnu",
           "node": {
-            "base_classes": [
-              "Data",
-              "DataFrame",
-              "LanguageModel",
-              "Message"
-            ],
+            "base_classes": ["Data", "DataFrame", "LanguageModel", "Message"],
             "beta": false,
             "conditional_paths": [],
             "custom_fields": {},
@@ -1022,12 +974,7 @@
                 ],
                 "total_dependencies": 3
               },
-              "keywords": [
-                "model",
-                "llm",
-                "language model",
-                "large language model"
-              ],
+              "keywords": ["model", "llm", "language model", "large language model"],
               "module": "lfx.components.ollama.ollama.ChatOllamaComponent"
             },
             "minimized": false,
@@ -1045,9 +992,7 @@
                 "required_inputs": null,
                 "selected": "Message",
                 "tool_mode": true,
-                "types": [
-                  "Message"
-                ],
+                "types": ["Message"],
                 "value": "__UNDEFINED__"
               },
               {
@@ -1061,9 +1006,7 @@
                 "options": null,
                 "required_inputs": null,
                 "tool_mode": true,
-                "types": [
-                  "LanguageModel"
-                ],
+                "types": ["LanguageModel"],
                 "value": "__UNDEFINED__"
               },
               {
@@ -1077,9 +1020,7 @@
                 "options": null,
                 "required_inputs": null,
                 "tool_mode": true,
-                "types": [
-                  "Data"
-                ],
+                "types": ["Data"],
                 "value": "__UNDEFINED__"
               },
               {
@@ -1093,9 +1034,7 @@
                 "options": null,
                 "required_inputs": null,
                 "tool_mode": true,
-                "types": [
-                  "DataFrame"
-                ],
+                "types": ["DataFrame"],
                 "value": "__UNDEFINED__"
               }
             ],
@@ -1249,13 +1188,7 @@
                     "edit_mode": "inline",
                     "formatter": "text",
                     "name": "type",
-                    "options": [
-                      "str",
-                      "int",
-                      "float",
-                      "bool",
-                      "dict"
-                    ],
+                    "options": ["str", "int", "float", "bool", "dict"],
                     "type": "str"
                   },
                   {
@@ -1265,10 +1198,7 @@
                     "edit_mode": "inline",
                     "formatter": "text",
                     "name": "multiple",
-                    "options": [
-                      "True",
-                      "False"
-                    ],
+                    "options": ["True", "False"],
                     "type": "boolean"
                   }
                 ],
@@ -1294,9 +1224,7 @@
                 "display_name": "Input",
                 "dynamic": false,
                 "info": "",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -1344,11 +1272,7 @@
                 "external_options": {},
                 "info": "Enable/disable Mirostat sampling for controlling perplexity.",
                 "name": "mirostat",
-                "options": [
-                  "Disabled",
-                  "Mirostat",
-                  "Mirostat 2.0"
-                ],
+                "options": ["Disabled", "Mirostat", "Mirostat 2.0"],
                 "options_metadata": [],
                 "override_skip": false,
                 "placeholder": "",
@@ -1413,10 +1337,7 @@
                 "external_options": {},
                 "info": "Refer to https://ollama.com/library for more models.",
                 "name": "model_name",
-                "options": [
-                  "scb10x/typhoon2.1-gemma3-4b:latest",
-                  "qwen2.5:7b-instruct-q4_K_M"
-                ],
+                "options": ["scb10x/typhoon2.1-gemma3-4b:latest", "qwen2.5:7b-instruct-q4_K_M"],
                 "options_metadata": [],
                 "override_skip": false,
                 "placeholder": "",
@@ -1538,9 +1459,7 @@
                 "display_name": "Stop Tokens",
                 "dynamic": false,
                 "info": "Comma-separated list of tokens to signal the model to stop generating text.",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -1583,9 +1502,7 @@
                 "display_name": "System",
                 "dynamic": false,
                 "info": "System to use for generating text.",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -1610,9 +1527,7 @@
                 "display_name": "System Message",
                 "dynamic": false,
                 "info": "System message to pass to the model.",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -1637,9 +1552,7 @@
                 "display_name": "Tags",
                 "dynamic": false,
                 "info": "Comma-separated list of tags to add to the run trace.",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -1692,9 +1605,7 @@
                 "display_name": "Template",
                 "dynamic": false,
                 "info": "Template to use for generating text.",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -1836,10 +1747,7 @@
         "data": {
           "id": "LoopComponent-5vFOr",
           "node": {
-            "base_classes": [
-              "Data",
-              "DataFrame"
-            ],
+            "base_classes": ["Data", "DataFrame"],
             "beta": false,
             "conditional_paths": [],
             "custom_fields": {},
@@ -1847,9 +1755,7 @@
             "display_name": "Loop",
             "documentation": "https://docs.langflow.org/loop",
             "edited": false,
-            "field_order": [
-              "data"
-            ],
+            "field_order": ["data"],
             "frozen": false,
             "icon": "infinity",
             "legacy": false,
@@ -1874,16 +1780,12 @@
                 "cache": true,
                 "display_name": "Item",
                 "group_outputs": true,
-                "loop_types": [
-                  "Message"
-                ],
+                "loop_types": ["Message"],
                 "method": "item_output",
                 "name": "item",
                 "selected": "Data",
                 "tool_mode": true,
-                "types": [
-                  "Data"
-                ],
+                "types": ["Data"],
                 "value": "__UNDEFINED__"
               },
               {
@@ -1895,9 +1797,7 @@
                 "name": "done",
                 "selected": "DataFrame",
                 "tool_mode": true,
-                "types": [
-                  "DataFrame"
-                ],
+                "types": ["DataFrame"],
                 "value": "__UNDEFINED__"
               }
             ],
@@ -1928,9 +1828,7 @@
                 "display_name": "Inputs",
                 "dynamic": false,
                 "info": "The initial DataFrame to iterate over.",
-                "input_types": [
-                  "DataFrame"
-                ],
+                "input_types": ["DataFrame"],
                 "list": false,
                 "list_add_label": "Add More",
                 "name": "data",
@@ -1967,26 +1865,18 @@
         "data": {
           "id": "Prompt Template-dKwcS",
           "node": {
-            "base_classes": [
-              "Message"
-            ],
+            "base_classes": ["Message"],
             "beta": false,
             "conditional_paths": [],
             "custom_fields": {
-              "template": [
-                "extracted_text"
-              ]
+              "template": ["extracted_text"]
             },
             "description": "Create a prompt template with dynamic variables.",
             "display_name": "Prompt Template",
             "documentation": "https://docs.langflow.org/components-prompts",
             "edited": false,
             "error": null,
-            "field_order": [
-              "template",
-              "use_double_brackets",
-              "tool_placeholder"
-            ],
+            "field_order": ["template", "use_double_brackets", "tool_placeholder"],
             "frozen": false,
             "full_path": null,
             "icon": "prompts",
@@ -2024,9 +1914,7 @@
                 "required_inputs": null,
                 "selected": "Message",
                 "tool_mode": true,
-                "types": [
-                  "Message"
-                ],
+                "types": ["Message"],
                 "value": "__UNDEFINED__"
               }
             ],
@@ -2061,9 +1949,7 @@
                 "fileTypes": [],
                 "file_path": "",
                 "info": "",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "load_from_db": false,
                 "multiline": true,
@@ -2101,9 +1987,7 @@
                 "display_name": "Tool Placeholder",
                 "dynamic": false,
                 "info": "A placeholder input for tool mode.",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -2164,9 +2048,7 @@
         "data": {
           "id": "ParserComponent-Xspgr",
           "node": {
-            "base_classes": [
-              "Message"
-            ],
+            "base_classes": ["Message"],
             "beta": false,
             "conditional_paths": [],
             "custom_fields": {},
@@ -2174,12 +2056,7 @@
             "display_name": "Parser",
             "documentation": "https://docs.langflow.org/parser",
             "edited": false,
-            "field_order": [
-              "input_data",
-              "mode",
-              "pattern",
-              "sep"
-            ],
+            "field_order": ["input_data", "mode", "pattern", "sep"],
             "frozen": false,
             "icon": "braces",
             "last_updated": "2026-03-13T08:19:27.565Z",
@@ -2212,9 +2089,7 @@
                 "required_inputs": null,
                 "selected": "Message",
                 "tool_mode": true,
-                "types": [
-                  "Message"
-                ],
+                "types": ["Message"],
                 "value": "__UNDEFINED__"
               }
             ],
@@ -2271,10 +2146,7 @@
                 "display_name": "Data or DataFrame",
                 "dynamic": false,
                 "info": "Accepts either a DataFrame or a Data object.",
-                "input_types": [
-                  "DataFrame",
-                  "Data"
-                ],
+                "input_types": ["DataFrame", "Data"],
                 "list": false,
                 "list_add_label": "Add More",
                 "name": "input_data",
@@ -2296,10 +2168,7 @@
                 "dynamic": false,
                 "info": "Convert into raw string instead of using a template.",
                 "name": "mode",
-                "options": [
-                  "Parser",
-                  "Stringify"
-                ],
+                "options": ["Parser", "Stringify"],
                 "override_skip": false,
                 "placeholder": "",
                 "real_time_refresh": true,
@@ -2320,9 +2189,7 @@
                 "display_name": "Template",
                 "dynamic": true,
                 "info": "Use variables within curly brackets to extract column values for DataFrames or key values for Data.For example: `Name: {Name}, Age: {Age}, Country: {Country}`",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -2347,9 +2214,7 @@
                 "display_name": "Separator",
                 "dynamic": false,
                 "info": "String used to separate rows/items.",
-                "input_types": [
-                  "Message"
-                ],
+                "input_types": ["Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "load_from_db": false,
@@ -2389,9 +2254,7 @@
         "data": {
           "id": "SaveToFile-M0RUY",
           "node": {
-            "base_classes": [
-              "Message"
-            ],
+            "base_classes": ["Message"],
             "beta": false,
             "conditional_paths": [],
             "custom_fields": {},
@@ -2472,9 +2335,7 @@
                 "required_inputs": null,
                 "selected": "Message",
                 "tool_mode": true,
-                "types": [
-                  "Message"
-                ],
+                "types": ["Message"],
                 "value": "__UNDEFINED__"
               }
             ],
@@ -2695,16 +2556,7 @@
                 "external_options": {},
                 "info": "Select the file format for Google Drive storage.",
                 "name": "gdrive_format",
-                "options": [
-                  "txt",
-                  "json",
-                  "csv",
-                  "xlsx",
-                  "slides",
-                  "docs",
-                  "jpg",
-                  "mp3"
-                ],
+                "options": ["txt", "json", "csv", "xlsx", "slides", "docs", "jpg", "mp3"],
                 "options_metadata": [],
                 "override_skip": false,
                 "placeholder": "",
@@ -2724,11 +2576,7 @@
                 "display_name": "File Content",
                 "dynamic": true,
                 "info": "The input to save.",
-                "input_types": [
-                  "Data",
-                  "DataFrame",
-                  "Message"
-                ],
+                "input_types": ["Data", "DataFrame", "Message"],
                 "list": false,
                 "list_add_label": "Add More",
                 "name": "input",
@@ -2753,13 +2601,7 @@
                 "external_options": {},
                 "info": "Select the file format for local storage.",
                 "name": "local_format",
-                "options": [
-                  "csv",
-                  "excel",
-                  "json",
-                  "markdown",
-                  "txt"
-                ],
+                "options": ["csv", "excel", "json", "markdown", "txt"],
                 "options_metadata": [],
                 "override_skip": false,
                 "placeholder": "",

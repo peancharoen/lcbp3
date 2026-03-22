@@ -10,6 +10,7 @@ Focus on **clarity**, **maintainability**, **consistency**, and **accessibility*
 ## ⚙️ TypeScript General Guidelines
 
 ### Basic Principles
+
 - Use **English** for all code and documentation.
 - Explicitly type all variables, parameters, and return values.
 - Avoid `any`; create custom types or interfaces.
@@ -18,13 +19,14 @@ Focus on **clarity**, **maintainability**, **consistency**, and **accessibility*
 - Avoid blank lines within functions.
 
 ### Naming Conventions
-| Entity | Convention | Example |
-|:--|:--|:--|
-| Classes | PascalCase | `UserService` |
-| Variables & Functions | camelCase | `getUserInfo` |
-| Files & Folders | kebab-case | `user-service.ts` |
-| Environment Variables | UPPERCASE | `DATABASE_URL` |
-| Booleans | Verb + Noun | `isActive`, `canDelete`, `hasPermission` |
+
+| Entity                | Convention  | Example                                  |
+| :-------------------- | :---------- | :--------------------------------------- |
+| Classes               | PascalCase  | `UserService`                            |
+| Variables & Functions | camelCase   | `getUserInfo`                            |
+| Files & Folders       | kebab-case  | `user-service.ts`                        |
+| Environment Variables | UPPERCASE   | `DATABASE_URL`                           |
+| Booleans              | Verb + Noun | `isActive`, `canDelete`, `hasPermission` |
 
 Use full words — no abbreviations — except for standard ones (`API`, `URL`, `req`, `res`, `err`, `ctx`).
 
@@ -82,6 +84,7 @@ Use full words — no abbreviations — except for standard ones (`API`, `URL`, 
 # 🏗️ Backend (NestJS)
 
 ### Principles
+
 - **Modular architecture**:
   - One module per domain.
   - Controller → Service → Model structure.
@@ -91,12 +94,14 @@ Use full words — no abbreviations — except for standard ones (`API`, `URL`, 
   - Configs, decorators, DTOs, guards, interceptors, notifications, shared services, types, validators.
 
 ### Core Functionalities
+
 - Global **filters** for exception handling.
 - **Middlewares** for request handling.
 - **Guards** for permissions and RBAC.
 - **Interceptors** for response transformation and logging.
 
 ### Testing
+
 - Use **Jest** for testing.
 - Test each controller and service.
 - Add `admin/test` endpoint as a smoke test.
@@ -106,10 +111,12 @@ Use full words — no abbreviations — except for standard ones (`API`, `URL`, 
 # 🖥️ Frontend (NextJS / React)
 
 ### Developer Profile
+
 Senior-level TypeScript + React/NextJS engineer.  
 Expert in **TailwindCSS**, **Shadcn/UI**, and **Radix** for UI development.
 
 ### Code Implementation Guidelines
+
 - Use **early returns** for clarity.
 - Always style with **TailwindCSS** classes.
 - Prefer `class:` conditional syntax over ternary operators.
@@ -121,6 +128,7 @@ Expert in **TailwindCSS**, **Shadcn/UI**, and **Radix** for UI development.
 - Always import required modules explicitly.
 
 ### UI/UX with React
+
 - Use **semantic HTML**.
 - Apply **responsive Tailwind** classes.
 - Maintain visual hierarchy with typography and spacing.
@@ -132,37 +140,44 @@ Expert in **TailwindCSS**, **Shadcn/UI**, and **Radix** for UI development.
 # 🎨 UI/UX (Bootstrap Integration)
 
 ### Key Principles
+
 - Use **Bootstrap 5+** for responsive design and consistent UI.
 - Focus on **maintainability**, **readability**, and **accessibility**.
 - Use clear and descriptive class names.
 
 ### Bootstrap Usage
+
 - Structure layout with **container**, **row**, **col**.
 - Use built-in **components** (buttons, modals, alerts, etc.) instead of custom CSS.
 - Apply **utility classes** for quick styling (spacing, colors, text, etc.).
 - Ensure **ARIA compliance** and semantic markup.
 
 ### Form Validation & Errors
+
 - Use Bootstrap’s built-in validation states.
 - Show errors with **alert components**.
 - Include labels, placeholders, and feedback messages.
 
 ### Dependencies
+
 - Bootstrap (latest CSS + JS)
 - Optionally jQuery (for legacy interactive components)
 
 ### Bootstrap-Specific Guidelines
+
 - Customize Bootstrap via **Sass variables** and **mixins**.
 - Use responsive visibility utilities.
 - Avoid overriding Bootstrap; extend it.
 - Follow official documentation for examples.
 
 ### Performance Optimization
+
 - Include only necessary Bootstrap modules.
 - Use CDN for assets and caching.
 - Optimize images and assets for mobile.
 
 ### Key Conventions
+
 1. Follow Bootstrap’s naming and structure.
 2. Prioritize **responsiveness** and **accessibility**.
 3. Keep the file structure organized and modular.
@@ -171,15 +186,15 @@ Expert in **TailwindCSS**, **Shadcn/UI**, and **Radix** for UI development.
 
 # 🔗 Full Stack Integration Guidelines
 
-| Aspect | Backend (NestJS) | Frontend (NextJS) | UI Layer (Bootstrap/Tailwind) |
-|:--|:--|:--|:--|
-| API | REST / GraphQL Controllers | API hooks via fetch/axios | Components consuming data |
-| Validation | `class-validator` DTOs | `zod` / form-level validation | Bootstrap validation feedback |
-| Auth | Guards, JWT | NextAuth / cookies | Auth UI states |
-| Errors | Global filters | Toasts / modals | Alerts / feedback |
-| Testing | Jest (unit/e2e) | Vitest / Playwright | Visual regression |
-| Styles | Scoped modules | Tailwind / Shadcn | Bootstrap utilities |
-| Accessibility | Guards + filters | ARIA attributes | Semantic HTML |
+| Aspect        | Backend (NestJS)           | Frontend (NextJS)             | UI Layer (Bootstrap/Tailwind) |
+| :------------ | :------------------------- | :---------------------------- | :---------------------------- |
+| API           | REST / GraphQL Controllers | API hooks via fetch/axios     | Components consuming data     |
+| Validation    | `class-validator` DTOs     | `zod` / form-level validation | Bootstrap validation feedback |
+| Auth          | Guards, JWT                | NextAuth / cookies            | Auth UI states                |
+| Errors        | Global filters             | Toasts / modals               | Alerts / feedback             |
+| Testing       | Jest (unit/e2e)            | Vitest / Playwright           | Visual regression             |
+| Styles        | Scoped modules             | Tailwind / Shadcn             | Bootstrap utilities           |
+| Accessibility | Guards + filters           | ARIA attributes               | Semantic HTML                 |
 
 ---
 
@@ -190,7 +205,6 @@ Expert in **TailwindCSS**, **Shadcn/UI**, and **Radix** for UI development.
 - Run lint, type-check, and tests before commit.
 - Use **Prettier + ESLint** for consistent formatting.
 - Prefer **clarity over cleverness** — readable code wins.
-
 
 ---
 
@@ -215,12 +229,13 @@ src/
 ```
 
 ### Naming Convention
-| Entity | Example |
-|:--|:--|
-| Table | `rfa_revisions`, `drawing_contracts` |
-| DTO | `CreateRfaDto`, `UpdateContractDto` |
-| Controller | `rfas.controller.ts` |
-| Service | `rfas.service.ts` |
+
+| Entity     | Example                              |
+| :--------- | :----------------------------------- |
+| Table      | `rfa_revisions`, `drawing_contracts` |
+| DTO        | `CreateRfaDto`, `UpdateContractDto`  |
+| Controller | `rfas.controller.ts`                 |
+| Service    | `rfas.service.ts`                    |
 
 ---
 
@@ -237,11 +252,13 @@ updateRFA(@Param('id') id: string) {
 ```
 
 ### Roles
+
 - **Admin**: Full access to all modules.
 - **Editor**: Modify data within assigned modules.
 - **Viewer**: Read‑only access.
 
 ### Permissions
+
 - `rfa.create`, `rfa.update`, `rfa.delete`, `rfa.view`
 - `drawing.upload`, `drawing.map`, `drawing.view`
 - `contract.assign`, `contract.view`
@@ -254,14 +271,14 @@ Seed mapping between roles and permissions via seeder scripts.
 
 Log all CRUD and mapping operations:
 
-| Field | Description |
-|:--|:--|
-| `actor_id` | user performing the action |
-| `module_name` | e.g. `rfa`, `drawing` |
-| `action` | `create`, `update`, `delete`, `map` |
-| `target_id` | primary id of the record |
-| `timestamp` | UTC timestamp |
-| `description` | contextual note |
+| Field         | Description                         |
+| :------------ | :---------------------------------- |
+| `actor_id`    | user performing the action          |
+| `module_name` | e.g. `rfa`, `drawing`               |
+| `action`      | `create`, `update`, `delete`, `map` |
+| `target_id`   | primary id of the record            |
+| `timestamp`   | UTC timestamp                       |
+| `description` | contextual note                     |
 
 Example implementation:
 
@@ -280,6 +297,7 @@ await this.auditLogService.log({
 ## 📂 File Handling
 
 ### File Upload Standard
+
 - Upload path: `/storage/{year}/{month}/`
 - File naming: `{drawing_code}_{revision}_{timestamp}.pdf`
 - Allowed types: `pdf, dwg, docx, xlsx, zip`
@@ -288,19 +306,21 @@ await this.auditLogService.log({
 - Serve via secure endpoint `/files/:id/download`.
 
 ### Access Control
+
 Each file download must verify user permission (`hasPermission('drawing.view')`).
 
 ---
 
 ## 📊 Reporting & Exports
 
-| Report | Description |
-|:--|:--|
-| **Report A** | RFA → Drawings → All Drawing Revisions |
-| **Report B** | RFA Revision Timeline vs Drawing Revision |
+| Report            | Description                                     |
+| :---------------- | :---------------------------------------------- |
+| **Report A**      | RFA → Drawings → All Drawing Revisions          |
+| **Report B**      | RFA Revision Timeline vs Drawing Revision       |
 | **Dashboard KPI** | RFAs, Drawings, Revisions, Transmittals summary |
 
 ### Export Rules
+
 - Export formats: CSV, Excel, PDF.
 - Provide print view.
 - Include source entity link (e.g., `/rfas/:id`).
@@ -310,11 +330,13 @@ Each file download must verify user permission (`hasPermission('drawing.view')`)
 ## 🧮 Frontend: DataTable & Form Patterns
 
 ### DataTable (Server‑Side)
+
 - Endpoint: `/api/{module}?page=1&pageSize=20`
 - Must support: pagination, sorting, search, filters.
 - Always display latest revision inline (for RFA/Drawing).
 
 ### Form Standards
+
 - Dependent dropdowns:
   - Contract → Subcategory
   - RFA → Related Drawing
@@ -326,30 +348,30 @@ Each file download must verify user permission (`hasPermission('drawing.view')`)
 ## 🧭 Dashboard & Activity Feed
 
 ### Dashboard Cards
+
 - Show latest RFA, Drawing, Transmittal, KPI summary.
 - Include quick links to modules.
 
 ### Activity Feed
+
 - Display recent AuditLog actions (10 latest).
 
 ```ts
 // Example response
-[
-  { user: 'admin', action: 'Updated RFA 023-Rev02', time: '2025‑11‑04T09:30Z' }
-]
+[{ user: 'admin', action: 'Updated RFA 023-Rev02', time: '2025‑11‑04T09:30Z' }];
 ```
 
 ---
 
 ## ✅ Integration Summary
 
-| Aspect | Backend | Frontend | Description |
-|:--|:--|:--|
-| **File Handling** | Secure storage, token check | Upload/Preview UI | Consistent standard path |
-| **RBAC** | `RequirePermission` guard | Hide/disable UI actions | Unified permission logic |
-| **AuditLog** | Persist actions | Show in dashboard | Traceable user activity |
-| **Reports** | Aggregation queries | Export + Print | Consistent data pipeline |
-| **DataTables** | Server‑side paging | Filter/Search UI | Scalable dataset management |
+| Aspect            | Backend                     | Frontend                | Description                 |
+| :---------------- | :-------------------------- | :---------------------- | --------------------------- |
+| **File Handling** | Secure storage, token check | Upload/Preview UI       | Consistent standard path    |
+| **RBAC**          | `RequirePermission` guard   | Hide/disable UI actions | Unified permission logic    |
+| **AuditLog**      | Persist actions             | Show in dashboard       | Traceable user activity     |
+| **Reports**       | Aggregation queries         | Export + Print          | Consistent data pipeline    |
+| **DataTables**    | Server‑side paging          | Filter/Search UI        | Scalable dataset management |
 
 ---
 

@@ -70,7 +70,7 @@ export class WorkflowInstance {
   // Context: เก็บตัวแปรที่จำเป็นสำหรับการตัดสินใจใน Workflow
   // เช่น { "amount": 500000, "requester_role": "ENGINEER", "approver_ids": [1, 2] }
   @Column({ type: 'json', nullable: true, comment: 'Runtime Context Data' })
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

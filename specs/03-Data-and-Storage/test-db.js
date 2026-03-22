@@ -6,7 +6,7 @@ async function test() {
     port: 3306,
     user: 'migration_bot',
     password: 'Center2025',
-    database: 'lcbp3'
+    database: 'lcbp3',
   });
 
   try {

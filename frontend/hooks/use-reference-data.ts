@@ -2,7 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { masterDataService } from '@/lib/services/master-data.service';
 import type { CreateDisciplineDto } from '@/types/dto/master/discipline.dto';
 import type { CreateRfaTypeDto, UpdateRfaTypeDto } from '@/types/dto/master/rfa-type.dto';
-import type { CreateCorrespondenceTypeDto, UpdateCorrespondenceTypeDto } from '@/types/dto/master/correspondence-type.dto';
+import type {
+  CreateCorrespondenceTypeDto,
+  UpdateCorrespondenceTypeDto,
+} from '@/types/dto/master/correspondence-type.dto';
 
 export const referenceDataKeys = {
   all: ['reference-data'] as const,
@@ -98,7 +101,8 @@ export const useCreateCorrespondenceType = () => {
 export const useUpdateCorrespondenceType = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateCorrespondenceTypeDto }) => masterDataService.updateCorrespondenceType(id, data),
+    mutationFn: ({ id, data }: { id: number; data: UpdateCorrespondenceTypeDto }) =>
+      masterDataService.updateCorrespondenceType(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reference-data', 'correspondenceTypes'] });
     },

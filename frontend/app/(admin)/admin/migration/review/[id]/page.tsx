@@ -1,34 +1,37 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { migrationService } from "@/lib/services/migration.service";
-import { MigrationReviewQueueItem } from "@/types/migration";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { migrationService } from '@/lib/services/migration.service';
+import { MigrationReviewQueueItem } from '@/types/migration';
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormDescription as _FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import { Card, CardContent } from '@/components/ui/card';
+
+interface MigrationAiIssues {
+  document_date?: string;
+  issued_date?: string;
+  received_date?: string;
+  sender_id?: string | number;
+  discipline_id?: string | number;
+  source_file_path?: string;
+  key_points?: string[];
+  validation_results?: Array<{ message: string; severity: string }>;
+}
 
 const reviewFormSchema = z.object({
-  document_number: z.string().min(1, "Document number is required"),
-  subject: z.string().min(1, "Subject is required"),
-  category: z.string().min(1, "Category is required"),
+  document_number: z.string().min(1, 'Document number is required'),
+  subject: z.string().min(1, 'Subject is required'),
+  category: z.string().min(1, 'Category is required'),
   document_date: z.string().optional(),
   issued_date: z.string().optional(),
   received_date: z.string().optional(),
@@ -50,48 +53,51 @@ export default function MigrationReviewPage() {
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
     defaultValues: {
-      document_number: "",
-      subject: "",
-      category: "",
-      document_date: "",
-      issued_date: "",
-      received_date: "",
-      sender_id: "",
-      discipline_id: "",
+      document_number: '',
+      subject: '',
+      category: '',
+      document_date: '',
+      issued_date: '',
+      received_date: '',
+      sender_id: '',
+      discipline_id: '',
     },
   });
+
+  const fetchItem = useCallback(
+    async (itemId: number) => {
+      try {
+        setLoading(true);
+        const res = await migrationService.getQueueItem(itemId);
+        setItem(res);
+
+        if (res) {
+          // Pre-fill form from database item and aiIssues payload
+          const issues = (res.aiIssues || {}) as MigrationAiIssues;
+          form.reset({
+            document_number: res.documentNumber || '',
+            subject: res.title || res.originalTitle || '',
+            category: res.aiSuggestedCategory || '',
+            document_date: issues.document_date || '',
+            issued_date: issues.issued_date || '',
+            received_date: issues.received_date || '',
+            sender_id: issues.sender_id ? String(issues.sender_id) : '',
+            discipline_id: issues.discipline_id ? String(issues.discipline_id) : '',
+          });
+        }
+      } catch (_error) {
+        toast.error('Failed to load queue item');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [form]
+  );
 
   useEffect(() => {
     if (!id) return;
     fetchItem(id);
-  }, [id]);
-
-  const fetchItem = async (itemId: number) => {
-    try {
-      setLoading(true);
-      const res = await migrationService.getQueueItem(itemId);
-      setItem(res);
-
-      if (res) {
-        // Pre-fill form from database item and aiIssues payload
-        const issues = res.aiIssues || {};
-        form.reset({
-          document_number: res.documentNumber || "",
-          subject: res.title || res.originalTitle || "",
-          category: res.aiSuggestedCategory || "",
-          document_date: issues.document_date || "",
-          issued_date: issues.issued_date || "",
-          received_date: issues.received_date || "",
-          sender_id: issues.sender_id ? String(issues.sender_id) : "",
-          discipline_id: issues.discipline_id ? String(issues.discipline_id) : "",
-        });
-      }
-    } catch (error) {
-      toast.error("Failed to load queue item");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [id, fetchItem]);
 
   const onSubmit = async (values: ReviewFormValues) => {
     if (!item) return;
@@ -104,9 +110,9 @@ export default function MigrationReviewPage() {
         document_number: values.document_number,
         subject: values.subject,
         category: values.category,
-        source_file_path: issues.source_file_path || "",
-        migrated_by: "SYSTEM_IMPORT",
-        batch_id: "MANUAL_REVIEW_BATCH",
+        source_file_path: issues.source_file_path || '',
+        migrated_by: 'SYSTEM_IMPORT',
+        batch_id: 'MANUAL_REVIEW_BATCH',
         project_id: 1, // Assumption or pulled from store
         document_date: values.document_date,
         issued_date: values.issued_date,
@@ -116,33 +122,33 @@ export default function MigrationReviewPage() {
         details: {
           tags: issues.tags || [],
           ai_confidence: item.aiConfidence,
-        }
+        },
       };
 
       // Mock idempotency key based on timestamp to ensure uniqueness per approval retry
       const idempotencyKey = `review-${item.id}-${Date.now()}`;
       await migrationService.approveQueueItem(item.id, payload, idempotencyKey);
 
-      toast.success("Document approved and imported successfully");
-      router.push("/admin/migration");
+      toast.success('Document approved and imported successfully');
+      router.push('/admin/migration');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err?.response?.data?.message || "Failed to approve and import");
+      toast.error(err?.response?.data?.message || 'Failed to approve and import');
     } finally {
       setSubmitting(false);
     }
   };
 
   const onReject = async () => {
-    if (!item || !confirm("Are you sure you want to REJECT this document? It will not be imported.")) return;
+    if (!item || !confirm('Are you sure you want to REJECT this document? It will not be imported.')) return;
 
     try {
       setSubmitting(true);
       await migrationService.rejectQueueItem(item.id);
-      toast.success("Document rejected");
-      router.push("/admin/migration");
-    } catch (error: unknown) {
-      toast.error("Failed to reject document");
+      toast.success('Document rejected');
+      router.push('/admin/migration');
+    } catch (_error: unknown) {
+      toast.error('Failed to reject document');
     } finally {
       setSubmitting(false);
     }
@@ -156,8 +162,8 @@ export default function MigrationReviewPage() {
     return <div className="py-10 text-center text-red-500">Document not found</div>;
   }
 
-  const pdfUrl = item.aiIssues?.source_file_path
-    ? migrationService.getStagingFileUrl(item.aiIssues.source_file_path)
+  const pdfUrl = (item.aiIssues as MigrationAiIssues)?.source_file_path
+    ? migrationService.getStagingFileUrl((item.aiIssues as MigrationAiIssues).source_file_path!)
     : null;
 
   return (
@@ -173,7 +179,10 @@ export default function MigrationReviewPage() {
             <h1 className="text-2xl font-bold tracking-tight">Review Document: {item.documentNumber}</h1>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               Status: <span className="font-semibold text-primary">{item.status}</span>
-              {' | '} Confidence: <span className={item.aiConfidence && item.aiConfidence < 0.8 ? "text-red-500" : "text-green-500"}>{item.aiConfidence ? (item.aiConfidence * 100).toFixed(1) + "%" : "N/A"}</span>
+              {' | '} Confidence:{' '}
+              <span className={item.aiConfidence && item.aiConfidence < 0.8 ? 'text-red-500' : 'text-green-500'}>
+                {item.aiConfidence ? (item.aiConfidence * 100).toFixed(1) + '%' : 'N/A'}
+              </span>
             </p>
           </div>
         </div>
@@ -200,9 +209,7 @@ export default function MigrationReviewPage() {
         {/* Right Side: Form */}
         <Card className="w-full md:w-[450px] lg:w-[500px] flex-shrink-0 flex flex-col overflow-hidden border-2 border-primary/10 shadow-md">
           <div className="p-4 border-b bg-muted/30">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
-              Extracted Information
-            </h2>
+            <h2 className="font-semibold text-lg flex items-center gap-2">Extracted Information</h2>
             {item.reviewReason && (
               <p className="text-sm text-red-500 mt-1 font-medium bg-red-50 p-2 rounded border border-red-100">
                 Reason: {item.reviewReason}
@@ -319,11 +326,11 @@ export default function MigrationReviewPage() {
                   )}
                 />
 
-                {item.aiIssues?.key_points && item.aiIssues.key_points.length > 0 && (
+                {(item.aiIssues as MigrationAiIssues)?.key_points && (item.aiIssues as MigrationAiIssues).key_points!.length > 0 && (
                   <div className="mt-6 border-t pt-4">
                     <h3 className="font-semibold text-sm mb-2 text-muted-foreground">AI Extracted Key Points</h3>
                     <ul className="text-sm space-y-1 list-disc pl-4 text-muted-foreground">
-                      {item.aiIssues.key_points.map((point: string, i: number) => (
+                      {(item.aiIssues as MigrationAiIssues).key_points!.map((point: string, i: number) => (
                         <li key={i}>{point}</li>
                       ))}
                     </ul>
@@ -347,7 +354,7 @@ export default function MigrationReviewPage() {
                     disabled={submitting || item.status !== 'PENDING'}
                   >
                     <CheckCircleIcon className="w-4 h-4 mr-2" />
-                    {submitting ? "Processing..." : "Approve & Import"}
+                    {submitting ? 'Processing...' : 'Approve & Import'}
                   </Button>
                 </div>
               </form>

@@ -54,7 +54,7 @@ export class WorkflowHistory {
     nullable: true,
     comment: 'Snapshot of Context or Metadata',
   })
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

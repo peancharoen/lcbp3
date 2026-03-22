@@ -16,14 +16,16 @@ export interface RetryOptions {
  */
 export function Retry(options: RetryOptions = {}) {
   return function (
-    target: any,
+    target: object,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
-    const originalMethod = descriptor.value;
+    const originalMethod = descriptor.value as (
+      ...args: unknown[]
+    ) => Promise<unknown>;
     const logger = new Logger('RetryDecorator');
 
-    descriptor.value = async function (...args: unknown[]) {
+    descriptor.value = async function (this: unknown, ...args: unknown[]) {
       return retry(
         // ✅ ระบุ Type ให้กับ bail และ attempt เพื่อแก้ Implicit any
         async (bail: (e: Error) => void, attempt: number) => {

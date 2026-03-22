@@ -86,7 +86,7 @@ export class CirculationWorkflowService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to start circulation: ${error}`);
+      this.logger.error(`Failed to start circulation: ${String(error)}`);
       throw error;
     } finally {
       await queryRunner.release();
@@ -114,7 +114,7 @@ export class CirculationWorkflowService {
     const instance = await this.workflowEngine.getInstanceById(instanceId);
     if (instance && instance.entityType === 'circulation') {
       const circulation = await this.circulationRepo.findOne({
-        where: { id: parseInt(instance.entityId) },
+        where: { id: Number(instance.entityId) },
       });
       if (circulation) {
         await this.syncStatus(circulation, result.nextState);

@@ -33,7 +33,7 @@ Review code changes and provide structured feedback with severity levels.
    ```bash
    # Get staged changes
    git diff --cached --name-only
-   
+
    # Get branch changes
    git diff main...HEAD --name-only
    ```
@@ -44,14 +44,14 @@ Review code changes and provide structured feedback with severity levels.
 
 3. **Review Categories**:
 
-   | Category | What to Check |
-   |----------|--------------|
-   | **Correctness** | Logic errors, off-by-one, null handling |
-   | **Security** | SQL injection, XSS, secrets in code |
-   | **Performance** | N+1 queries, unnecessary loops, memory leaks |
-   | **Maintainability** | Complexity, duplication, naming |
-   | **Best Practices** | Error handling, logging, typing |
-   | **Style** | Consistency, formatting (if no linter) |
+   | Category            | What to Check                                |
+   | ------------------- | -------------------------------------------- |
+   | **Correctness**     | Logic errors, off-by-one, null handling      |
+   | **Security**        | SQL injection, XSS, secrets in code          |
+   | **Performance**     | N+1 queries, unnecessary loops, memory leaks |
+   | **Maintainability** | Complexity, duplication, naming              |
+   | **Best Practices**  | Error handling, logging, typing              |
+   | **Style**           | Consistency, formatting (if no linter)       |
 
 4. **Analyze Each File**:
    For each file, check:
@@ -64,63 +64,71 @@ Review code changes and provide structured feedback with severity levels.
 
 5. **Severity Levels**:
 
-   | Level | Meaning | Block Merge? |
-   |-------|---------|--------------|
-   | 🔴 CRITICAL | Security issue, data loss risk | Yes |
-   | 🟠 HIGH | Bug, logic error | Yes |
-   | 🟡 MEDIUM | Code smell, maintainability | Maybe |
-   | 🟢 LOW | Style, minor improvement | No |
-   | 💡 SUGGESTION | Nice-to-have, optional | No |
+   | Level         | Meaning                        | Block Merge? |
+   | ------------- | ------------------------------ | ------------ |
+   | 🔴 CRITICAL   | Security issue, data loss risk | Yes          |
+   | 🟠 HIGH       | Bug, logic error               | Yes          |
+   | 🟡 MEDIUM     | Code smell, maintainability    | Maybe        |
+   | 🟢 LOW        | Style, minor improvement       | No           |
+   | 💡 SUGGESTION | Nice-to-have, optional         | No           |
 
 6. **Generate Review Report**:
-   ```markdown
+
+   ````markdown
    # Code Review Report
-   
+
    **Date**: [timestamp]
    **Scope**: [files reviewed]
    **Overall**: APPROVE | REQUEST CHANGES | NEEDS DISCUSSION
-   
+
    ## Summary
-   
-   | Severity | Count |
-   |----------|-------|
-   | 🔴 Critical | X |
-   | 🟠 High | X |
-   | 🟡 Medium | X |
-   | 🟢 Low | X |
-   | 💡 Suggestions | X |
-   
+
+   | Severity       | Count |
+   | -------------- | ----- |
+   | 🔴 Critical    | X     |
+   | 🟠 High        | X     |
+   | 🟡 Medium      | X     |
+   | 🟢 Low         | X     |
+   | 💡 Suggestions | X     |
+
    ## Findings
-   
+
    ### 🔴 CRITICAL: SQL Injection Risk
+
    **File**: `src/db/queries.ts:45`
    **Code**:
+
    ```typescript
    const query = `SELECT * FROM users WHERE id = ${userId}`;
    ```
+   ````
+
    **Issue**: User input directly concatenated into SQL query
    **Fix**: Use parameterized queries:
+
    ```typescript
    const query = 'SELECT * FROM users WHERE id = $1';
    await db.query(query, [userId]);
    ```
-   
+
    ### 🟡 MEDIUM: Complex Function
+
    **File**: `src/auth/handler.ts:120`
    **Issue**: Function has cyclomatic complexity of 15
    **Suggestion**: Extract into smaller functions
-   
+
    ## What's Good
-   
    - Clear naming conventions
    - Good test coverage
    - Proper TypeScript types
-   
+
    ## Recommended Actions
-   
    1. **Must fix before merge**: [critical/high items]
    2. **Should address**: [medium items]
    3. **Consider for later**: [low/suggestions]
+
+   ```
+
    ```
 
 7. **Output**:

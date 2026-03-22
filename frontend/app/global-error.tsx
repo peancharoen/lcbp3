@@ -4,15 +4,9 @@ import { useEffect } from 'react';
 
 // global-error.tsx catches errors in the root layout.tsx itself.
 // It MUST include its own <html> and <body> tags per Next.js spec.
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    console.error('[Global Error Boundary]', error);
+    //     // console.error('[Global Error Boundary]', error); /* TODO: Remove before prod */
   }, [error]);
 
   return (
@@ -30,17 +24,11 @@ export default function GlobalError({
             padding: '16px',
           }}
         >
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>
-            Application Error
-          </h2>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Application Error</h2>
           <p style={{ color: '#6b7280', fontSize: '0.875rem', maxWidth: '400px' }}>
             {error.message || 'A critical error occurred. Please refresh the page.'}
           </p>
-          {error.digest && (
-            <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-              Error ID: {error.digest}
-            </p>
-          )}
+          {error.digest && <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Error ID: {error.digest}</p>}
           <button
             onClick={reset}
             style={{

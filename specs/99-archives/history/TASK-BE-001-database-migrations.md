@@ -27,14 +27,12 @@
 ## 📝 Acceptance Criteria
 
 1. **Database Schema:**
-
    - ✅ ทุกตารางถูกสร้างตาม Data Dictionary v1.5.1
    - ✅ Foreign Keys ถูกต้องครบถ้วน
    - ✅ Indexes ครบตาม Specification
    - ✅ Virtual Columns สำหรับ JSON fields
 
 2. **Migrations:**
-
    - ✅ Migration files เรียงลำดับถูกต้อง
    - ✅ สามารถ `migrate:up` และ `migrate:down` ได้
    - ✅ ไม่มี Data loss เมื่อ rollback

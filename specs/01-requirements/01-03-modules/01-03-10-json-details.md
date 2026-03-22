@@ -24,7 +24,6 @@ related:
 ## 3.12.2 โครงสร้าง JSON Schema
 
 - ระบบต้องมี predefined JSON schemas สำหรับประเภทเอกสารต่างๆ:
-
   - 3.12.2.1 Correspondence Types
     - GENERIC: ข้อมูลพื้นฐานสำหรับเอกสารทั่วไป
     - RFI: รายละเอียดคำถามและข้อมูลทางเทคนิค
@@ -67,7 +66,6 @@ related:
 ## 3.12.7 JSON Schema Migration Strategy (เพิ่มเติม)
 
 - สำหรับ Schema Breaking Changes:
-
   - Phase 1 - Add New Column
     ALTER TABLE correspondence_revisions
     ADD COLUMN ref_project_id_v2 INT GENERATED ALWAYS AS
@@ -79,7 +77,6 @@ related:
   - Phase 3 - Switch Application Code
     - Deploy code ที่ใช้ path ใหม่
   - Phase 4 - Remove Old Column
-
     - หลังจาก verify แล้วว่าไม่มี error
     - Drop old virtual column
 

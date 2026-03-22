@@ -17,15 +17,15 @@
 
 ### **Technology Stack**
 
--   **Framework:** Next.js 14+ (App Router, React 18, TypeScript)
--   **Styling:** Tailwind CSS + Shadcn/UI
--   **State Management:**
-    -   **Server:** TanStack Query (React Query)
-    -   **Client:** Zustand
-    -   **Form:** React Hook Form + Zod
--   **Workflow Visualization:** ReactFlow (สำหรับ Workflow Builder)
--   **Editor:** Monaco Editor (สำหรับ DSL Editing)
--   **Validation:** Zod + AJV (JSON Schema)
+- **Framework:** Next.js 14+ (App Router, React 18, TypeScript)
+- **Styling:** Tailwind CSS + Shadcn/UI
+- **State Management:**
+  - **Server:** TanStack Query (React Query)
+  - **Client:** Zustand
+  - **Form:** React Hook Form + Zod
+- **Workflow Visualization:** ReactFlow (สำหรับ Workflow Builder)
+- **Editor:** Monaco Editor (สำหรับ DSL Editing)
+- **Validation:** Zod + AJV (JSON Schema)
 
 ### **โครงสร้างโมดูล (Module Structure)**
 
@@ -61,17 +61,19 @@
 **Goal:** เตรียมโครงสร้างโปรเจกต์และ Component พื้นฐาน
 
 #### **[ ] F1.1 Project Setup & Design System**
--   **Tasks:**
-    -   [ ] Setup Next.js 14 + Tailwind + Shadcn/UI
-    -   [ ] Configure Axios with **Idempotency Interceptor**
-    -   [ ] Implement Base Layout (Sidebar, Navbar, Breadcrumbs)
-    -   [ ] Setup **TanStack Query** & **Zustand**
+
+- **Tasks:**
+  - [ ] Setup Next.js 14 + Tailwind + Shadcn/UI
+  - [ ] Configure Axios with **Idempotency Interceptor**
+  - [ ] Implement Base Layout (Sidebar, Navbar, Breadcrumbs)
+  - [ ] Setup **TanStack Query** & **Zustand**
 
 #### **[ ] F1.2 Authentication UI**
--   **Tasks:**
-    -   [ ] Login Page with Form Validation
-    -   [ ] Integrate NextAuth.js with Backend
-    -   [ ] Implement RBAC Guard (Protect Routes based on Permissions)
+
+- **Tasks:**
+  - [ ] Login Page with Form Validation
+  - [ ] Integrate NextAuth.js with Backend
+  - [ ] Implement RBAC Guard (Protect Routes based on Permissions)
 
 ---
 
@@ -80,27 +82,30 @@
 **Goal:** ระบบจัดการผู้ใช้และข้อมูลหลัก (รองรับ v1.5.1 Requirements)
 
 #### **[ ] F2.1 User & Role Management**
--   **Tasks:**
-    -   [ ] User List & CRUD (Admin only)
-    -   [ ] Role Assignment UI
-    -   [ ] Permission Matrix Viewer
+
+- **Tasks:**
+  - [ ] User List & CRUD (Admin only)
+  - [ ] Role Assignment UI
+  - [ ] Permission Matrix Viewer
 
 #### **[ ] F2.2 Enhanced Master Data UI**
--   **Tasks:**
-    -   [ ] **Organization Management:** CRUD + Logo Upload
-    -   [ ] **Project & Contract Management:** CRUD + Relations
-    -   [ ] **[NEW] Discipline Management:** CRUD for `disciplines`
-    -   [ ] **[NEW] Sub-Type Management:** CRUD for `correspondence_sub_types`
+
+- **Tasks:**
+  - [ ] **Organization Management:** CRUD + Logo Upload
+  - [ ] **Project & Contract Management:** CRUD + Relations
+  - [ ] **[NEW] Discipline Management:** CRUD for `disciplines`
+  - [ ] **[NEW] Sub-Type Management:** CRUD for `correspondence_sub_types`
 
 #### **[ ] F2.3 System Configuration**
--   **Tasks:**
-    -   [ ] **[NEW] Document Numbering Config:**
-        -   Template Editor (Monaco/Visual)
-        -   Sequence Viewer
-    -   [ ] **[NEW] Workflow Configuration:**
-        -   Workflow List
-        -   DSL Editor (Monaco)
-        -   Visual Builder (ReactFlow)
+
+- **Tasks:**
+  - [ ] **[NEW] Document Numbering Config:**
+    - Template Editor (Monaco/Visual)
+    - Sequence Viewer
+  - [ ] **[NEW] Workflow Configuration:**
+    - Workflow List
+    - DSL Editor (Monaco)
+    - Visual Builder (ReactFlow)
 
 ---
 
@@ -109,23 +114,25 @@
 **Goal:** โมดูลหลัก Correspondence และ RFA
 
 #### **[ ] F3.1 Correspondence Module**
--   **Tasks:**
-    -   [ ] List View with Advanced Filters
-    -   [ ] **Create/Edit Form:**
-        -   Add **Discipline Selector** (Dynamic based on Contract)
-        -   Add **Sub-Type Selector** (Dynamic based on Type)
-        -   File Upload (Two-Phase)
-    -   [ ] Detail View with History & Comments
+
+- **Tasks:**
+  - [ ] List View with Advanced Filters
+  - [ ] **Create/Edit Form:**
+    - Add **Discipline Selector** (Dynamic based on Contract)
+    - Add **Sub-Type Selector** (Dynamic based on Type)
+    - File Upload (Two-Phase)
+  - [ ] Detail View with History & Comments
 
 #### **[ ] F3.2 RFA Module**
--   **Tasks:**
-    -   [ ] RFA List & Dashboard
-    -   [ ] **Dynamic RFA Form:**
-        -   Fields change based on RFA Type (DWG, MAT, MES)
-        -   Item List Management
-    -   [ ] **Approval Interface:**
-        -   Approve/Reject/Comment Actions
-        -   Workflow Status Visualization
+
+- **Tasks:**
+  - [ ] RFA List & Dashboard
+  - [ ] **Dynamic RFA Form:**
+    - Fields change based on RFA Type (DWG, MAT, MES)
+    - Item List Management
+  - [ ] **Approval Interface:**
+    - Approve/Reject/Comment Actions
+    - Workflow Status Visualization
 
 ---
 
@@ -134,22 +141,25 @@
 **Goal:** โมดูล Drawing, Transmittal และ Circulation
 
 #### **[ ] F4.1 Drawing Module**
--   **Tasks:**
-    -   [ ] Shop Drawing & Contract Drawing Lists
-    -   [ ] Revision Management UI
-    -   [ ] Drawing Viewer (PDF/Image)
+
+- **Tasks:**
+  - [ ] Shop Drawing & Contract Drawing Lists
+  - [ ] Revision Management UI
+  - [ ] Drawing Viewer (PDF/Image)
 
 #### **[ ] F4.2 Transmittal Module**
--   **Tasks:**
-    -   [ ] Transmittal Creation Form (Select Documents to send)
-    -   [ ] Transmittal Letter Preview (PDF Generation)
-    -   [ ] Transmittal History
+
+- **Tasks:**
+  - [ ] Transmittal Creation Form (Select Documents to send)
+  - [ ] Transmittal Letter Preview (PDF Generation)
+  - [ ] Transmittal History
 
 #### **[ ] F4.3 Circulation Module**
--   **Tasks:**
-    -   [ ] Circulation Sheet Creation (Select Assignees)
-    -   [ ] "My Tasks" Dashboard for Circulation
-    -   [ ] Completion & Tracking UI
+
+- **Tasks:**
+  - [ ] Circulation Sheet Creation (Select Assignees)
+  - [ ] "My Tasks" Dashboard for Circulation
+  - [ ] Completion & Tracking UI
 
 ---
 
@@ -158,15 +168,17 @@
 **Goal:** การค้นหาและหน้า Dashboard
 
 #### **[ ] F5.1 Advanced Search**
--   **Tasks:**
-    -   [ ] Unified Search Interface (Elasticsearch)
-    -   [ ] Faceted Filters (Type, Date, Project, Status)
+
+- **Tasks:**
+  - [ ] Unified Search Interface (Elasticsearch)
+  - [ ] Faceted Filters (Type, Date, Project, Status)
 
 #### **[ ] F5.2 Dashboard & Monitoring**
--   **Tasks:**
-    -   [ ] Personal Dashboard (My Tasks, Pending Approvals)
-    -   [ ] Project Dashboard (KPIs, Stats)
-    -   [ ] **Admin Audit Logs Viewer**
+
+- **Tasks:**
+  - [ ] Personal Dashboard (My Tasks, Pending Approvals)
+  - [ ] Project Dashboard (KPIs, Stats)
+  - [ ] **Admin Audit Logs Viewer**
 
 ---
 

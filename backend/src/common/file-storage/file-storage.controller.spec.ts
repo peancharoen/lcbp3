@@ -48,7 +48,7 @@ describe('FileStorageController', () => {
       const mockReq = {
         user: { user_id: 1, username: 'testuser' },
       } as unknown as RequestWithUser;
-      const result = await controller.uploadFile(mockFile, mockReq);
+      const _result = await controller.uploadFile(mockFile, mockReq);
 
       expect(mockFileStorageService.upload).toHaveBeenCalledWith(mockFile, 1);
     });

@@ -1,37 +1,34 @@
-"use client";
+'use client';
 
-import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { transmittalService } from "@/lib/services/transmittal.service";
-import { Transmittal } from "@/types/transmittal";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ArrowLeft, RefreshCw, Printer } from "lucide-react";
-import Link from "next/link";
-import { format } from "date-fns";
-import { toast } from "sonner";
+import { useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { transmittalService } from '@/lib/services/transmittal.service';
+import { Transmittal } from '@/types/transmittal';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ArrowLeft, RefreshCw, Printer } from 'lucide-react';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function TransmittalDetailPage() {
   const params = useParams();
   const uuid = params.uuid as string;
 
-  const { data: transmittal, isLoading, error } = useQuery<Transmittal>({
-    queryKey: ["transmittal", uuid],
+  const {
+    data: transmittal,
+    isLoading,
+    error,
+  } = useQuery<Transmittal>({
+    queryKey: ['transmittal', uuid],
     queryFn: () => transmittalService.getByUuid(uuid),
     enabled: !!uuid,
   });
 
   const handlePrint = () => {
-    toast.info("PDF Export is coming soon...");
+    toast.info('PDF Export is coming soon...');
     // TODO: Implement PDF download
   };
 
@@ -74,7 +71,7 @@ export default function TransmittalDetailPage() {
               {transmittal.correspondence?.correspondenceNumber || transmittal.transmittalNo}
             </h1>
             <p className="text-muted-foreground">
-              {transmittal.correspondence?.revisions?.find(r => r.isCurrent)?.title || transmittal.subject}
+              {transmittal.correspondence?.revisions?.find((r) => r.isCurrent)?.title || transmittal.subject}
             </p>
           </div>
         </div>
@@ -92,12 +89,12 @@ export default function TransmittalDetailPage() {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div>
             <p className="text-sm text-muted-foreground">Purpose</p>
-            <Badge variant="outline">{transmittal.purpose || "OTHER"}</Badge>
+            <Badge variant="outline">{transmittal.purpose || 'OTHER'}</Badge>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Date</p>
             <p className="font-medium">
-              {format(new Date(transmittal.correspondence?.createdAt || transmittal.createdAt), "dd MMM yyyy")}
+              {format(new Date(transmittal.correspondence?.createdAt || transmittal.createdAt), 'dd MMM yyyy')}
             </p>
           </div>
           <div>
@@ -116,9 +113,7 @@ export default function TransmittalDetailPage() {
           {transmittal.remarks && (
             <div className="col-span-2">
               <p className="text-sm text-muted-foreground">Remarks</p>
-              <p className="font-medium whitespace-pre-wrap">
-                {transmittal.remarks}
-              </p>
+              <p className="font-medium whitespace-pre-wrap">{transmittal.remarks}</p>
             </div>
           )}
         </CardContent>
@@ -144,10 +139,8 @@ export default function TransmittalDetailPage() {
                   <TableCell>
                     <Badge variant="secondary">{item.itemType}</Badge>
                   </TableCell>
-                  <TableCell className="font-medium">
-                    {item.documentNumber || `ID: ${item.itemId}`}
-                  </TableCell>
-                  <TableCell>{item.description || "-"}</TableCell>
+                  <TableCell className="font-medium">{item.documentNumber || `ID: ${item.itemId}`}</TableCell>
+                  <TableCell>{item.description || '-'}</TableCell>
                 </TableRow>
               ))}
               {(!transmittal.items || transmittal.items.length === 0) && (

@@ -1,5 +1,5 @@
 // Re-export types from API file to keep single source of truth
-export type { NumberingTemplate, NumberSequence } from "@/lib/api/numbering";
+export type { NumberingTemplate, NumberSequence } from '@/lib/api/numbering';
 
 export interface CreateTemplateDto {
   documentTypeId: string;

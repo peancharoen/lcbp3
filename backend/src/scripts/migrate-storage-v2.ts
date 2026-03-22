@@ -7,22 +7,24 @@ import * as path from 'path';
 async function migrateStorage() {
   // Config override for script execution if needed
   const config = { ...databaseConfig, entities: [Attachment] };
-  const dataSource = new DataSource(config as any);
+  const dataSource = new DataSource(
+    config as import('typeorm').DataSourceOptions
+  );
   await dataSource.initialize();
 
   try {
-    console.log('🚀 Starting Storage Migration v2...');
+    //     console.log('🚀 Starting Storage Migration v2...');
     const attachmentRepo = dataSource.getRepository(Attachment);
 
     // Find all permanent attachments
     const attachments = await attachmentRepo.find({
       where: { isTemporary: false },
     });
-    console.log(`Found ${attachments.length} permanent attachments.`);
+    //     console.log(`Found ${attachments.length} permanent attachments.`);
 
-    let movedCount = 0;
-    let errorCount = 0;
-    let skippedCount = 0;
+    let _movedCount = 0;
+    let _errorCount = 0;
+    let _skippedCount = 0;
 
     // Define base permanent directory
     // Note: Adjust path based on execution context (e.g., from backend root)
@@ -30,33 +32,33 @@ async function migrateStorage() {
       process.env.UPLOAD_PERMANENT_DIR ||
       path.join(process.cwd(), 'uploads', 'permanent');
 
-    console.log(`Target Permanent Directory: ${permanentBaseDir}`);
+    //     console.log(`Target Permanent Directory: ${permanentBaseDir}`);
 
     if (!fs.existsSync(permanentBaseDir)) {
-      console.warn(
-        `Base directory not found: ${permanentBaseDir}. Creating it...`
-      );
+      //       console.warn(
+      //         `Base directory not found: ${permanentBaseDir}. Creating it...`
+      //       );
       await fs.ensureDir(permanentBaseDir);
     }
 
     for (const att of attachments) {
       if (!att.filePath) {
-        skippedCount++;
+        _skippedCount++;
         continue;
       }
 
       const currentPath = att.filePath;
       if (!fs.existsSync(currentPath)) {
-        console.warn(`File not found on disk: ${currentPath} (ID: ${att.id})`);
-        errorCount++;
+        //         console.warn(`File not found on disk: ${currentPath} (ID: ${att.id})`);
+        _errorCount++;
         continue;
       }
 
       // Check if already in new structure (contains /General/YYYY/MM or similar)
       const newStructureRegex =
-        /permanent[\/\\](ContractDrawing|ShopDrawing|AsBuiltDrawing|General)[\/\\]\d{4}[\/\\]\d{2}/;
+        /permanent[/\\](ContractDrawing|ShopDrawing|AsBuiltDrawing|General)[/\\]\d{4}[/\\]\d{2}/;
       if (newStructureRegex.test(currentPath)) {
-        skippedCount++;
+        _skippedCount++;
         continue;
       }
 
@@ -65,8 +67,8 @@ async function migrateStorage() {
         ? new Date(att.referenceDate)
         : new Date(att.createdAt);
       if (isNaN(refDate.getTime())) {
-        console.warn(`Invalid date for ID ${att.id}, skipping.`);
-        errorCount++;
+        //         console.warn(`Invalid date for ID ${att.id}, skipping.`);
+        _errorCount++;
         continue;
       }
 
@@ -80,7 +82,7 @@ async function migrateStorage() {
       const newPath = path.join(newDir, att.storedFilename);
 
       if (path.resolve(currentPath) === path.resolve(newPath)) {
-        skippedCount++;
+        _skippedCount++;
         continue;
       }
 
@@ -94,26 +96,26 @@ async function migrateStorage() {
           att.referenceDate = refDate;
         }
         await attachmentRepo.save(att);
-        movedCount++;
-        if (movedCount % 100 === 0) console.log(`Moved ${movedCount} files...`);
-      } catch (err: unknown) {
-        console.error(
-          `Failed to move file ID ${att.id}:`,
-          (err as Error).message
-        );
-        errorCount++;
+        _movedCount++;
+        //         if (movedCount % 100 === 0) console.log(`Moved ${movedCount} files...`);
+      } catch (_err: unknown) {
+        //         console.error(
+        //           `Failed to move file ID ${att.id}:`,
+        //           (err as Error).message
+        //         );
+        _errorCount++;
       }
     }
 
-    console.log(`Migration completed.`);
-    console.log(`Moved: ${movedCount}`);
-    console.log(`Skipped: ${skippedCount}`);
-    console.log(`Errors: ${errorCount}`);
-  } catch (error) {
-    console.error('Migration failed:', error);
+    //     console.log(`Migration completed.`);
+    //     console.log(`Moved: ${movedCount}`);
+    //     console.log(`Skipped: ${skippedCount}`);
+    //     console.log(`Errors: ${errorCount}`);
+  } catch (_error) {
+    //     console.error('Migration failed:', error);
   } finally {
     await dataSource.destroy();
   }
 }
 
-migrateStorage();
+void migrateStorage();

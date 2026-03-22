@@ -90,6 +90,4 @@ describe('projectService', () => {
       expect(result).toEqual({});
     });
   });
-
-
 });

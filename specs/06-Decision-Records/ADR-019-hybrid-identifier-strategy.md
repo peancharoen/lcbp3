@@ -5,6 +5,7 @@
 **Version:** 1.8.1
 **Decision Makers:** Development Team, Database Architect
 **Related Documents:**
+
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
 - [Database Schema](../03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)
 - [ADR-005: Technology Stack](ADR-005-technology-stack.md)
@@ -41,9 +42,11 @@
 ### Option 1: Replace INT with UUID as Primary Key
 
 **Pros:**
+
 - ✅ Opaque identifier ทุกที่
 
 **Cons:**
+
 - ❌ FK ทั้งหมดต้องเปลี่ยนเป็น BINARY(16) — Migration ซับซ้อนมาก
 - ❌ JOIN Performance แย่ลง (16 bytes vs 4 bytes)
 - ❌ InnoDB Clustered Index ไม่เรียงลำดับตาม INSERT Time (UUIDv4)
@@ -53,9 +56,11 @@
 ### Option 2: UUID as String Column (CHAR(36))
 
 **Pros:**
+
 - ✅ Human-readable
 
 **Cons:**
+
 - ❌ ใช้พื้นที่ 36 bytes ต่อ row (vs 16 bytes สำหรับ BINARY)
 - ❌ Index ใหญ่ ช้ากว่า BINARY(16) อย่างมีนัยสำคัญ
 - ❌ Collation issues กับ case-sensitivity
@@ -63,6 +68,7 @@
 ### Option 3: Hybrid INT + UUID (MariaDB Native) ⭐ (Selected)
 
 **Pros:**
+
 - ✅ INT PK ยังเป็น Internal ID → Performance ไม่เปลี่ยน
 - ✅ UUID เป็น External ID → ปลอดภัย + Space-efficient (BINARY(16) ภายใน)
 - ✅ ไม่ต้อง Migrate FK Relationships
@@ -71,6 +77,7 @@
 - ✅ ไม่กระทบ Migration Tables (Temporary)
 
 **Cons:**
+
 - ❌ ต้องเพิ่ม Column ใหม่ + UNIQUE INDEX ทุก Public-Facing Table
 - ❌ Application Layer ต้อง Generate UUIDv7 ตอน INSERT
 - ❌ API Layer ต้อง Resolve UUID → INT สำหรับ Internal Queries
@@ -89,14 +96,14 @@
 
 ### 1. UUID Format
 
-| Property | Value |
-|----------|-------|
-| **Type** | MariaDB Native `UUID` (available since 10.7) |
-| **Storage** | `BINARY(16)` internally (automatic) |
-| **DB Default** | `UUID()` — generates UUID v1 (time-based, fallback for seed data) |
-| **App Generation** | NestJS `@BeforeInsert()` generates UUIDv7 (RFC 9562) for time-ordering |
-| **Display** | Auto-converts to string format (8-4-4-4-12) — no conversion function needed |
-| **Index** | `UNIQUE INDEX` on `uuid` column |
+| Property           | Value                                                                       |
+| ------------------ | --------------------------------------------------------------------------- |
+| **Type**           | MariaDB Native `UUID` (available since 10.7)                                |
+| **Storage**        | `BINARY(16)` internally (automatic)                                         |
+| **DB Default**     | `UUID()` — generates UUID v1 (time-based, fallback for seed data)           |
+| **App Generation** | NestJS `@BeforeInsert()` generates UUIDv7 (RFC 9562) for time-ordering      |
+| **Display**        | Auto-converts to string format (8-4-4-4-12) — no conversion function needed |
+| **Index**          | `UNIQUE INDEX` on `uuid` column                                             |
 
 ### 2. Column Specification
 
@@ -116,38 +123,38 @@ UNIQUE INDEX idx_{table}_uuid (uuid)
 
 #### Tier 1 — Core Entity Tables (Own UUID Column)
 
-| # | Table Name | Current PK | UUID Column | Notes |
-|---|-----------|-----------|-------------|-------|
-| 1 | `users` | `user_id INT AI` | `uuid UUID` | User profiles |
-| 2 | `organizations` | `id INT AI` | `uuid UUID` | Organization data |
-| 3 | `projects` | `id INT AI` | `uuid UUID` | Project data |
-| 4 | `contracts` | `id INT AI` | `uuid UUID` | Contract data |
-| 5 | `correspondences` | `id INT AI` | `uuid UUID` | Main document entity |
-| 6 | `correspondence_revisions` | `id INT AI` | `uuid UUID` | Document versions |
-| 7 | `circulations` | `id INT AI` | `uuid UUID` | Internal circulations |
-| 8 | `shop_drawings` | `id INT AI` | `uuid UUID` | Shop drawing master |
-| 9 | `shop_drawing_revisions` | `id INT AI` | `uuid UUID` | Shop drawing versions |
-| 10 | `contract_drawings` | `id INT AI` | `uuid UUID` | Contract drawing master |
-| 11 | `asbuilt_drawings` | `id INT AI` | `uuid UUID` | As-built drawing master |
-| 12 | `asbuilt_drawing_revisions` | `id INT AI` | `uuid UUID` | As-built drawing versions |
-| 13 | `attachments` | `id INT AI` | `uuid UUID` | File attachments |
-| 14 | `notifications` | `id INT AI` (partitioned) | `uuid UUID` | User notifications |
+| #   | Table Name                  | Current PK                | UUID Column | Notes                     |
+| --- | --------------------------- | ------------------------- | ----------- | ------------------------- |
+| 1   | `users`                     | `user_id INT AI`          | `uuid UUID` | User profiles             |
+| 2   | `organizations`             | `id INT AI`               | `uuid UUID` | Organization data         |
+| 3   | `projects`                  | `id INT AI`               | `uuid UUID` | Project data              |
+| 4   | `contracts`                 | `id INT AI`               | `uuid UUID` | Contract data             |
+| 5   | `correspondences`           | `id INT AI`               | `uuid UUID` | Main document entity      |
+| 6   | `correspondence_revisions`  | `id INT AI`               | `uuid UUID` | Document versions         |
+| 7   | `circulations`              | `id INT AI`               | `uuid UUID` | Internal circulations     |
+| 8   | `shop_drawings`             | `id INT AI`               | `uuid UUID` | Shop drawing master       |
+| 9   | `shop_drawing_revisions`    | `id INT AI`               | `uuid UUID` | Shop drawing versions     |
+| 10  | `contract_drawings`         | `id INT AI`               | `uuid UUID` | Contract drawing master   |
+| 11  | `asbuilt_drawings`          | `id INT AI`               | `uuid UUID` | As-built drawing master   |
+| 12  | `asbuilt_drawing_revisions` | `id INT AI`               | `uuid UUID` | As-built drawing versions |
+| 13  | `attachments`               | `id INT AI`               | `uuid UUID` | File attachments          |
+| 14  | `notifications`             | `id INT AI` (partitioned) | `uuid UUID` | User notifications        |
 
 #### Tier 2 — Shared-PK Tables (Inherit UUID from Parent)
 
-| # | Table Name | Shared PK Source | UUID Resolution |
-|---|-----------|-----------------|-----------------|
-| 1 | `rfas` | `correspondences.id` | Use `correspondences.uuid` |
-| 2 | `rfa_revisions` | `correspondence_revisions.id` | Use `correspondence_revisions.uuid` |
-| 3 | `transmittals` | `correspondences.id` | Use `correspondences.uuid` |
+| #   | Table Name      | Shared PK Source              | UUID Resolution                     |
+| --- | --------------- | ----------------------------- | ----------------------------------- |
+| 1   | `rfas`          | `correspondences.id`          | Use `correspondences.uuid`          |
+| 2   | `rfa_revisions` | `correspondence_revisions.id` | Use `correspondence_revisions.uuid` |
+| 3   | `transmittals`  | `correspondences.id`          | Use `correspondences.uuid`          |
 
 #### Already Using UUID — No Changes Needed
 
-| Table Name | Current PK |
-|-----------|-----------|
+| Table Name             | Current PK      |
+| ---------------------- | --------------- |
 | `workflow_definitions` | `CHAR(36) UUID` |
-| `workflow_instances` | `CHAR(36) UUID` |
-| `workflow_histories` | `CHAR(36) UUID` |
+| `workflow_instances`   | `CHAR(36) UUID` |
+| `workflow_histories`   | `CHAR(36) UUID` |
 
 #### Excluded Tables (Internal/Master/Junction)
 
@@ -372,14 +379,14 @@ ALTER TABLE notifications DROP INDEX idx_notifications_uuid, DROP COLUMN uuid;
 
 ## Storage Impact Analysis
 
-| Item | Size |
-|------|------|
-| UUID (BINARY(16) internal) per row | 16 bytes |
-| UNIQUE INDEX per row | ~16 bytes (key) + ~6 bytes (pointer) ≈ 22 bytes |
-| **Total per row** | **~38 bytes** |
-| Estimated rows (all 14 tables combined) | ~100,000 (Year 1) |
-| **Total additional storage** | **~3.8 MB** |
-| Impact on QNAP NAS | **Negligible** |
+| Item                                    | Size                                            |
+| --------------------------------------- | ----------------------------------------------- |
+| UUID (BINARY(16) internal) per row      | 16 bytes                                        |
+| UNIQUE INDEX per row                    | ~16 bytes (key) + ~6 bytes (pointer) ≈ 22 bytes |
+| **Total per row**                       | **~38 bytes**                                   |
+| Estimated rows (all 14 tables combined) | ~100,000 (Year 1)                               |
+| **Total additional storage**            | **~3.8 MB**                                     |
+| Impact on QNAP NAS                      | **Negligible**                                  |
 
 ---
 
@@ -387,12 +394,12 @@ ALTER TABLE notifications DROP INDEX idx_notifications_uuid, DROP COLUMN uuid;
 
 ### UUIDv7 vs UUIDv4 for B-tree Index
 
-| Property | UUIDv4 | UUIDv7 |
-|----------|--------|--------|
-| Ordering | Random | Time-ordered |
-| B-tree insert | Random page splits | Sequential append |
-| Index fragmentation | High | Low |
-| Cache efficiency | Poor | Good |
+| Property            | UUIDv4             | UUIDv7            |
+| ------------------- | ------------------ | ----------------- |
+| Ordering            | Random             | Time-ordered      |
+| B-tree insert       | Random page splits | Sequential append |
+| Index fragmentation | High               | Low               |
+| Cache efficiency    | Poor               | Good              |
 
 **UUIDv7 ถูกเลือกเพราะ Time-ordering** ทำให้ INSERT ไม่ทำให้เกิด Random Page Split บน InnoDB B-tree ซึ่งสำคัญมากสำหรับ QNAP NAS ที่มี I/O จำกัด
 
@@ -416,46 +423,50 @@ WHERE c.uuid = '019505a1-7c3e-7000-8000-abc123def456';
 
 ## Security Benefits
 
-| Threat | Before (INT) | After (Hybrid) |
-|--------|-------------|----------------|
-| ID Enumeration | ❌ Vulnerable (`/api/users/1,2,3...`) | ✅ Opaque UUID |
-| Record Count Leak | ❌ `id=500` reveals ~500 records | ✅ UUID reveals nothing |
-| BOLA Attack Surface | ❌ Predictable IDs | ✅ 2^122 possible values |
-| Cross-System Collision | ❌ Possible | ✅ Globally unique |
+| Threat                 | Before (INT)                          | After (Hybrid)           |
+| ---------------------- | ------------------------------------- | ------------------------ |
+| ID Enumeration         | ❌ Vulnerable (`/api/users/1,2,3...`) | ✅ Opaque UUID           |
+| Record Count Leak      | ❌ `id=500` reveals ~500 records      | ✅ UUID reveals nothing  |
+| BOLA Attack Surface    | ❌ Predictable IDs                    | ✅ 2^122 possible values |
+| Cross-System Collision | ❌ Possible                           | ✅ Globally unique       |
 
 ---
 
 ## Compatibility with Existing ADRs
 
-| ADR | Impact | Notes |
-|-----|--------|-------|
-| ADR-002 (Doc Numbering) | ✅ None | Document numbers (VARCHAR) are business identifiers, unaffected |
-| ADR-005 (Tech Stack) | ✅ Compatible | uuid npm package + MariaDB native UUID type |
-| ADR-006 (Redis Caching) | ⚠️ Minor | Cache keys should use UUID instead of INT for public-facing data |
-| ADR-009 (DB Migration) | ✅ Compatible | ADD COLUMN is a safe, non-destructive migration |
-| ADR-016 (Security) | ✅ Enhanced | Strengthens OWASP BOLA defense |
-| ADR-017 (Ollama Migration) | ✅ None | Migration tables are temporary, excluded from UUID scope |
+| ADR                        | Impact        | Notes                                                            |
+| -------------------------- | ------------- | ---------------------------------------------------------------- |
+| ADR-002 (Doc Numbering)    | ✅ None       | Document numbers (VARCHAR) are business identifiers, unaffected  |
+| ADR-005 (Tech Stack)       | ✅ Compatible | uuid npm package + MariaDB native UUID type                      |
+| ADR-006 (Redis Caching)    | ⚠️ Minor      | Cache keys should use UUID instead of INT for public-facing data |
+| ADR-009 (DB Migration)     | ✅ Compatible | ADD COLUMN is a safe, non-destructive migration                  |
+| ADR-016 (Security)         | ✅ Enhanced   | Strengthens OWASP BOLA defense                                   |
+| ADR-017 (Ollama Migration) | ✅ None       | Migration tables are temporary, excluded from UUID scope         |
 
 ---
 
 ## Transition Strategy
 
 ### Phase 1: Database (Schema Change)
+
 - เพิ่ม `uuid UUID` column (MariaDB native type) กับ UNIQUE INDEX ใน 14 ตาราง
 - Existing rows ได้รับ UUID อัตโนมัติจาก DB DEFAULT
 
 ### Phase 2: Backend (Dual-Mode)
+
 - เพิ่ม `uuid` field ใน TypeORM Entities
 - สร้าง `BaseUuidEntity` class
 - API รับได้ทั้ง INT และ UUID ผ่าน `FindByIdOrUuid` pattern
 - API Response รวม UUID เป็น `id` field
 
 ### Phase 3: Frontend (Gradual Migration)
+
 - Frontend เปลี่ยนจากใช้ `id` (INT) เป็น `id` (UUID) ใน API response
 - URL parameters เปลี่ยนเป็น UUID
 - ไม่ต้อง Big-Bang migration — ค่อยๆ เปลี่ยนทีละ Module
 
 ### Phase 4: Cleanup
+
 - ลบ INT ID จาก API Response (DTO)
 - ลบ INT-based route handlers
 - Update API Documentation
@@ -464,15 +475,15 @@ WHERE c.uuid = '019505a1-7c3e-7000-8000-abc123def456';
 
 ## Final Assessment
 
-| Area | Status |
-|------|--------|
-| Security | ✅ Eliminates ID enumeration |
-| Performance | ✅ No impact on internal JOINs |
-| Migration Risk | ✅ Low — ADD COLUMN only |
-| Storage Impact | ✅ Negligible (~3.8 MB) |
-| Backward Compatibility | ✅ Dual-mode transition |
-| ADR Compliance | ✅ Compatible with all existing ADRs |
+| Area                   | Status                               |
+| ---------------------- | ------------------------------------ |
+| Security               | ✅ Eliminates ID enumeration         |
+| Performance            | ✅ No impact on internal JOINs       |
+| Migration Risk         | ✅ Low — ADD COLUMN only             |
+| Storage Impact         | ✅ Negligible (~3.8 MB)              |
+| Backward Compatibility | ✅ Dual-mode transition              |
+| ADR Compliance         | ✅ Compatible with all existing ADRs |
 
 ---
 
-*สำหรับรายละเอียดการ Implement ดูที่ Implementation Plan ใน ADR-019-implementation-plan.md*
+_สำหรับรายละเอียดการ Implement ดูที่ Implementation Plan ใน ADR-019-implementation-plan.md_

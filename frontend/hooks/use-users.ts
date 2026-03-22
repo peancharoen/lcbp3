@@ -29,14 +29,14 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: (data: CreateUserDto) => userService.create(data),
     onSuccess: () => {
-      toast.success("User created successfully");
+      toast.success('User created successfully');
       queryClient.invalidateQueries({ queryKey: userKeys.all });
     },
     onError: (error: unknown) => {
-        toast.error("Failed to create user", {
-            description: getApiErrorMessage(error, "Unknown error")
-        });
-    }
+      toast.error('Failed to create user', {
+        description: getApiErrorMessage(error, 'Unknown error'),
+      });
+    },
   });
 }
 
@@ -45,14 +45,14 @@ export function useUpdateUser() {
   return useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: UpdateUserDto }) => userService.update(uuid, data),
     onSuccess: () => {
-      toast.success("User updated successfully");
+      toast.success('User updated successfully');
       queryClient.invalidateQueries({ queryKey: userKeys.all });
     },
     onError: (error: unknown) => {
-        toast.error("Failed to update user", {
-             description: getApiErrorMessage(error, "Unknown error")
-        });
-    }
+      toast.error('Failed to update user', {
+        description: getApiErrorMessage(error, 'Unknown error'),
+      });
+    },
   });
 }
 
@@ -61,13 +61,13 @@ export function useDeleteUser() {
   return useMutation({
     mutationFn: (uuid: string) => userService.delete(uuid),
     onSuccess: () => {
-      toast.success("User deleted successfully");
+      toast.success('User deleted successfully');
       queryClient.invalidateQueries({ queryKey: userKeys.all });
     },
     onError: (error: unknown) => {
-        toast.error("Failed to delete user", {
-             description: getApiErrorMessage(error, "Unknown error")
-        });
-    }
+      toast.error('Failed to delete user', {
+        description: getApiErrorMessage(error, 'Unknown error'),
+      });
+    },
   });
 }

@@ -1,16 +1,19 @@
 # 🚀 Release Management Policy — LCBP3-DMS v1.8.0
 
 ---
+
 title: 'Release Management Policy, Versioning Strategy, and Deployment Gates'
 version: 1.0.0
 status: DRAFT
 owner: Nattanin Peancharoen (System Architect / Release Manager)
 last_updated: 2026-03-11
 related:
-  - specs/04-Infrastructure-OPS/04-04-deployment-guide.md   ← Blue-Green Deployment Detail
-  - specs/04-Infrastructure-OPS/04-07-incident-response.md
-  - specs/06-Decision-Records/ADR-015-deployment.md
-  - specs/00-Overview/00-04-stakeholder-signoff-and-risk.md
+
+- specs/04-Infrastructure-OPS/04-04-deployment-guide.md ← Blue-Green Deployment Detail
+- specs/04-Infrastructure-OPS/04-07-incident-response.md
+- specs/06-Decision-Records/ADR-015-deployment.md
+- specs/00-Overview/00-04-stakeholder-signoff-and-risk.md
+
 ---
 
 > [!IMPORTANT]
@@ -30,11 +33,11 @@ v1.8.1
 └────── MAJOR: Breaking Changes, Architectural Shift (กำหนดโดย PO)
 ```
 
-| Type | ตัวอย่าง | เมื่อไหร่ |
-|------|---------|---------|
+| Type      | ตัวอย่าง        | เมื่อไหร่                                  |
+| --------- | --------------- | ------------------------------------------ |
 | **MAJOR** | v1.0.0 → v2.0.0 | Breaking Change, Major Architecture Change |
-| **MINOR** | v1.8.0 → v1.9.0 | New Feature หลังจาก Sprint สำเร็จ |
-| **PATCH** | v1.8.0 → v1.8.1 | Bug Fix, Security Patch |
+| **MINOR** | v1.8.0 → v1.9.0 | New Feature หลังจาก Sprint สำเร็จ          |
+| **PATCH** | v1.8.0 → v1.8.1 | Bug Fix, Security Patch                    |
 
 ### Branch Strategy (Git Flow)
 
@@ -69,12 +72,12 @@ lcbp3-backend:v1.8.0-rc.1  ← Release Candidate
 
 ## 2. 📋 Release Types & Cadence
 
-| Release Type | Cadence | Who Approves | Notes |
-|-------------|---------|-------------|-------|
-| **Sprint Release** (Minor) | ทุก 2 สัปดาห์ | PO + Lead Dev | ตามแผน Sprint |
-| **Hotfix** (Patch) | ตามเหตุการณ์ | Lead Dev (P0/P1) → PO Notify | ไม่รอ Sprint |
-| **Emergency Hotfix** | ทันที (P0) | Lead Dev → แจ้ง PO พร้อมกัน | Security, System Down |
-| **Major Release** | กำหนดโดย PO | PO + กทท. Sign-off | Phase Change |
+| Release Type               | Cadence       | Who Approves                 | Notes                 |
+| -------------------------- | ------------- | ---------------------------- | --------------------- |
+| **Sprint Release** (Minor) | ทุก 2 สัปดาห์ | PO + Lead Dev                | ตามแผน Sprint         |
+| **Hotfix** (Patch)         | ตามเหตุการณ์  | Lead Dev (P0/P1) → PO Notify | ไม่รอ Sprint          |
+| **Emergency Hotfix**       | ทันที (P0)    | Lead Dev → แจ้ง PO พร้อมกัน  | Security, System Down |
+| **Major Release**          | กำหนดโดย PO   | PO + กทท. Sign-off           | Phase Change          |
 
 ### Sprint Release Calendar (ตัวอย่าง)
 
@@ -89,6 +92,7 @@ Sprint 2:  15–28 มี.ค. 2569  → Release v1.10.0 (11 เม.ย.)
 ## 3. 🚦 Release Gate Process
 
 ### Gate 1: Code Complete (วันสุดท้ายของ Sprint)
+
 ```
 ✅ Feature Freeze — ไม่รับ Feature ใหม่เข้า Release Branch
 ✅ All PRs Merged to release/vX.Y.Z
@@ -97,15 +101,15 @@ Sprint 2:  15–28 มี.ค. 2569  → Release v1.10.0 (11 เม.ย.)
 
 ### Gate 2: Quality Gate (T-3 วันก่อน Release)
 
-| Checkpoint | Tool | Threshold |
-|-----------|------|----------|
-| **TypeScript Compile** | `tsc --noEmit` | 0 Errors |
-| **Unit Tests Pass** | Jest | ≥ 80% Pass Rate |
-| **E2E Tests (Core Flows)** | Playwright/Cypress | 100% Core Flows ผ่าน |
-| **Security Scan** | `npm audit` | 0 Critical/High Vulnerabilities |
-| **Lint** | ESLint | 0 Errors (Warnings ยอมรับได้) |
-| **Build Success** | Docker Build | Exit 0 |
-| **Image Size** | Docker inspect | < 2GB (Backend), < 1.5GB (Frontend) |
+| Checkpoint                 | Tool               | Threshold                           |
+| -------------------------- | ------------------ | ----------------------------------- |
+| **TypeScript Compile**     | `tsc --noEmit`     | 0 Errors                            |
+| **Unit Tests Pass**        | Jest               | ≥ 80% Pass Rate                     |
+| **E2E Tests (Core Flows)** | Playwright/Cypress | 100% Core Flows ผ่าน                |
+| **Security Scan**          | `npm audit`        | 0 Critical/High Vulnerabilities     |
+| **Lint**                   | ESLint             | 0 Errors (Warnings ยอมรับได้)       |
+| **Build Success**          | Docker Build       | Exit 0                              |
+| **Image Size**             | Docker inspect     | < 2GB (Backend), < 1.5GB (Frontend) |
 
 **Owner:** Lead Dev  
 **Tool:** Gitea CI/CD Pipeline (ADR-015)
@@ -114,13 +118,13 @@ Sprint 2:  15–28 มี.ค. 2569  → Release v1.10.0 (11 เม.ย.)
 
 ### Gate 3: Staging Validation (T-2 วันก่อน Release)
 
-| Checkpoint | ผ่านเมื่อ | Owner |
-|-----------|---------|-------|
-| Deploy to Staging Environment | สำเร็จ, ไม่มี Error | DevOps |
-| Health Check `/health` → 200 | ✅ | Automated |
-| Smoke Test (Manual): Login → Create Correspondence → Submit | ผ่าน | Dev หรือ QA |
-| Migration Script (ถ้ามี Schema Change) | รันสำเร็จบน Staging Schema | DBA / Dev |
-| Rollback Test: Deploy → Rollback → Verify | ระบบ Rollback ได้ใน < 5 นาที | DevOps |
+| Checkpoint                                                  | ผ่านเมื่อ                    | Owner       |
+| ----------------------------------------------------------- | ---------------------------- | ----------- |
+| Deploy to Staging Environment                               | สำเร็จ, ไม่มี Error          | DevOps      |
+| Health Check `/health` → 200                                | ✅                           | Automated   |
+| Smoke Test (Manual): Login → Create Correspondence → Submit | ผ่าน                         | Dev หรือ QA |
+| Migration Script (ถ้ามี Schema Change)                      | รันสำเร็จบน Staging Schema   | DBA / Dev   |
+| Rollback Test: Deploy → Rollback → Verify                   | ระบบ Rollback ได้ใน < 5 นาที | DevOps      |
 
 **Owner:** Nattanin P.
 
@@ -164,12 +168,12 @@ PO Sign-off: ✅ อนุมัติ Release
 
 ### เมื่อไหร่ต้อง Hotfix
 
-| Priority | ตัวอย่าง | SLA Start Hotfix | Deploy Target |
-|---------|---------|-----------------|--------------|
-| **P0 — Critical** | ระบบล่ม, Data Corruption, Security Breach | ทันที (< 30 นาที) | < 4 ชั่วโมง |
-| **P1 — High** | Feature หลักทำงานผิด, Login Fail | < 2 ชั่วโมง | < 24 ชั่วโมง |
-| **P2 — Medium** | Feature รองทำงานผิด | ใน Sprint ถัดไป | Sprint Release |
-| **P3 — Low** | UI Cosmetic, Minor UX | Backlog | Sprint Release |
+| Priority          | ตัวอย่าง                                  | SLA Start Hotfix  | Deploy Target  |
+| ----------------- | ----------------------------------------- | ----------------- | -------------- |
+| **P0 — Critical** | ระบบล่ม, Data Corruption, Security Breach | ทันที (< 30 นาที) | < 4 ชั่วโมง    |
+| **P1 — High**     | Feature หลักทำงานผิด, Login Fail          | < 2 ชั่วโมง       | < 24 ชั่วโมง   |
+| **P2 — Medium**   | Feature รองทำงานผิด                       | ใน Sprint ถัดไป   | Sprint Release |
+| **P3 — Low**      | UI Cosmetic, Minor UX                     | Backlog           | Sprint Release |
 
 ### Hotfix Workflow
 
@@ -211,22 +215,22 @@ cd /volume1/lcbp3/scripts
 
 ### เมื่อไหร่ต้อง Rollback
 
-| Trigger | Threshold | Action |
-|---------|----------|--------|
-| Health Check Fail หลัง Deploy | 3 consecutive failures | Auto-rollback |
-| Error Rate สูง | > 5% ใน 15 นาทีแรก | Manual Rollback (DevOps trigger) |
-| P90 Response Time สูงมาก | > 2000ms ต่อเนื่อง 5 นาที | Manual Rollback |
-| Critical Bug พบใน Production | P0 Bug | Manual Rollback ทันที |
-| Migration Fail | Error Rate > 20% | Manual Rollback + Notify |
+| Trigger                       | Threshold                 | Action                           |
+| ----------------------------- | ------------------------- | -------------------------------- |
+| Health Check Fail หลัง Deploy | 3 consecutive failures    | Auto-rollback                    |
+| Error Rate สูง                | > 5% ใน 15 นาทีแรก        | Manual Rollback (DevOps trigger) |
+| P90 Response Time สูงมาก      | > 2000ms ต่อเนื่อง 5 นาที | Manual Rollback                  |
+| Critical Bug พบใน Production  | P0 Bug                    | Manual Rollback ทันที            |
+| Migration Fail                | Error Rate > 20%          | Manual Rollback + Notify         |
 
 ### Rollback SLA
 
-| Scenario | Target Rollback Time |
-|----------|---------------------|
-| Blue-Green Switch (nginx reload) | < 30 วินาที |
-| Full Container Restart | < 5 นาที |
-| Database Rollback (SQL Revert) | < 30 นาที |
-| Full System Restore (Backup) | < 4 ชั่วโมง (RTO) |
+| Scenario                         | Target Rollback Time |
+| -------------------------------- | -------------------- |
+| Blue-Green Switch (nginx reload) | < 30 วินาที          |
+| Full Container Restart           | < 5 นาที             |
+| Database Rollback (SQL Revert)   | < 30 นาที            |
+| Full System Restore (Backup)     | < 4 ชั่วโมง (RTO)    |
 
 ### Rollback Decision Tree
 
@@ -286,40 +290,48 @@ Security Check:      npm audit (ถ้าเป็น Security Bug)
 
 ```markdown
 # Release Notes — LCBP3-DMS v[X.Y.Z]
+
 **Date:** YYYY-MM-DD | **Type:** Sprint Release / Hotfix
 
 ## 🆕 New Features
+
 - [Feature Name]: [Brief description]
 
 ## 🐛 Bug Fixes
+
 - **[BUG-ID]** [Screen/Module]: [What was wrong → What's fixed]
 
 ## 🔒 Security Updates
+
 - [CVE/Issue]: [Description]
 
 ## ⚠️ Breaking Changes
+
 - [If any — ระบุชัดเจน]
 
 ## 📋 Schema Changes
+
 - [Table]: [Column added/modified/removed]
 - **Action Required:** Admin ต้อง Apply SQL ใน `deltas/XX-description.sql`
 
 ## 🔧 Configuration Changes
+
 - [Env Var]: [Change description]
 
 ## 📊 Performance Impact
+
 - [Module]: [Expected improvement/change]
 ```
 
 ### Communication Channels
 
-| Release Type | Channel | ผู้รับ | Timing |
-|-------------|---------|-------|--------|
-| **Sprint Release** | LINE Group (Support) | Org Admin ทุกองค์กร | T-1 วัน (แจ้งล่วงหน้า) |
-| **Sprint Release** | Email | ผู้บริหาร + PO | หลัง Deploy เสร็จ |
-| **Hotfix (P1)** | LINE Group | Org Admin | พร้อมกับ Deploy |
-| **Hotfix (P0)** | LINE Direct | กทท. IT + NAP On-call | ก่อน Deploy (แจ้งว่ากำลังแก้) |
-| **Maintenance Window** | Email + LINE | ทุก User | T-24 ชั่วโมง |
+| Release Type           | Channel              | ผู้รับ                | Timing                        |
+| ---------------------- | -------------------- | --------------------- | ----------------------------- |
+| **Sprint Release**     | LINE Group (Support) | Org Admin ทุกองค์กร   | T-1 วัน (แจ้งล่วงหน้า)        |
+| **Sprint Release**     | Email                | ผู้บริหาร + PO        | หลัง Deploy เสร็จ             |
+| **Hotfix (P1)**        | LINE Group           | Org Admin             | พร้อมกับ Deploy               |
+| **Hotfix (P0)**        | LINE Direct          | กทท. IT + NAP On-call | ก่อน Deploy (แจ้งว่ากำลังแก้) |
+| **Maintenance Window** | Email + LINE         | ทุก User              | T-24 ชั่วโมง                  |
 
 ### Maintenance Window Policy
 
@@ -337,13 +349,13 @@ Security Check:      npm audit (ถ้าเป็น Security Bug)
 
 ## 8. 📊 Release Metrics & Tracking
 
-| Metric | Target | วิธีวัด |
-|--------|--------|--------|
-| **Deployment Frequency** | 1 ครั้ง/สองสัปดาห์ | Gitea Release History |
-| **Lead Time for Change** | < 3 วัน (code → production) | Commit Date → Deploy Date |
-| **Change Failure Rate** | < 5% (% Release ที่ต้อง Rollback) | Rollback Log |
-| **Mean Time to Restore (MTTR)** | < 4 ชั่วโมง (P0) / < 8 ชั่วโมง (P1) | Incident Log |
-| **Time to Rollback** | < 5 นาที (Blue-Green Switch) | Deploy Log |
+| Metric                          | Target                              | วิธีวัด                   |
+| ------------------------------- | ----------------------------------- | ------------------------- |
+| **Deployment Frequency**        | 1 ครั้ง/สองสัปดาห์                  | Gitea Release History     |
+| **Lead Time for Change**        | < 3 วัน (code → production)         | Commit Date → Deploy Date |
+| **Change Failure Rate**         | < 5% (% Release ที่ต้อง Rollback)   | Rollback Log              |
+| **Mean Time to Restore (MTTR)** | < 4 ชั่วโมง (P0) / < 8 ชั่วโมง (P1) | Incident Log              |
+| **Time to Rollback**            | < 5 นาที (Blue-Green Switch)        | Deploy Log                |
 
 > **หมายเหตุ:** Metrics เหล่านี้คือ **DORA Metrics** (DevOps Research and Assessment)  
 > ติดตามใน Monthly Engineering Review
@@ -434,14 +446,14 @@ STAGING_URL=https://staging.lcbp3-dms.internal
 
 ### สิ่งที่ต้องสร้างทุก Release
 
-| Artifact | Location | Owner | Retention |
-|----------|---------|-------|----------|
-| Release Notes | `specs/99-archives/releases/v{X.Y.Z}.md` | PO | ตลอดไป |
-| Docker Images | Internal Registry (Gitea) | DevOps | ล่าสุด 5 Versions |
-| DB Backup (Pre-deploy) | QNAP `/volume1/lcbp3/shared/backups/` | DevOps | 30 วัน |
-| Delta SQL File | `specs/03-Data-and-Storage/deltas/` | Dev | ตลอดไป (Git) |
-| CHANGELOG.md Update | Root of Repo | Dev | ตลอดไป |
-| Deploy Log | `/volume1/lcbp3/shared/logs/deploy.log` | DevOps (Auto) | 90 วัน |
+| Artifact               | Location                                 | Owner         | Retention         |
+| ---------------------- | ---------------------------------------- | ------------- | ----------------- |
+| Release Notes          | `specs/99-archives/releases/v{X.Y.Z}.md` | PO            | ตลอดไป            |
+| Docker Images          | Internal Registry (Gitea)                | DevOps        | ล่าสุด 5 Versions |
+| DB Backup (Pre-deploy) | QNAP `/volume1/lcbp3/shared/backups/`    | DevOps        | 30 วัน            |
+| Delta SQL File         | `specs/03-Data-and-Storage/deltas/`      | Dev           | ตลอดไป (Git)      |
+| CHANGELOG.md Update    | Root of Repo                             | Dev           | ตลอดไป            |
+| Deploy Log             | `/volume1/lcbp3/shared/logs/deploy.log`  | DevOps (Auto) | 90 วัน            |
 
 ---
 
@@ -450,6 +462,7 @@ STAGING_URL=https://staging.lcbp3-dms.internal
 ### Sprint Release Checklist
 
 **T-3 วัน (Quality Gate)**
+
 - [ ] All Unit Tests pass ≥ 80% coverage
 - [ ] TypeScript 0 Errors
 - [ ] ESLint 0 Errors
@@ -459,14 +472,16 @@ STAGING_URL=https://staging.lcbp3-dms.internal
 - [ ] Delta SQL file ready (ถ้ามี Schema Change)
 
 **T-1 วัน (Staging + Approval)**
+
 - [ ] Deploy to Staging สำเร็จ
 - [ ] Smoke Test on Staging ผ่าน
 - [ ] Schema Migration Test on Staging ผ่าน (ถ้ามี)
 - [ ] PO Review Complete
-- [ ] PO Sign-off: "___ วันที่ ___"
+- [ ] PO Sign-off: "**_ วันที่ _**"
 - [ ] Org Admin Notification ส่งแล้ว (LINE)
 
 **Release Day**
+
 - [ ] DB Backup created + verified
 - [ ] Schema Delta Applied (ถ้ามี) — แจ้ง Admin ทำ Manual
 - [ ] `./deploy.sh` รัน (Blue-Green)

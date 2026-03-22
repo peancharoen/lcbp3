@@ -5,8 +5,8 @@
 
 ## 📊 Overview
 
-| Task ID         | Title                     | Status     | Completion % | Notes                                                               |
-| --------------- | ------------------------- | ---------- | ------------ | ------------------------------------------------------------------- |
+| Task ID         | Title                     | Status      | Completion % | Notes                                                               |
+| --------------- | ------------------------- | ----------- | ------------ | ------------------------------------------------------------------- |
 | **TASK-FE-001** | Frontend Setup            | ✅ **Done** | 100%         | Project structure, Tailwind, Shadcn/UI initialized.                 |
 | **TASK-FE-002** | Auth UI                   | ✅ **Done** | 100%         | Store, RBAC, Login UI, Refresh Token, Session Sync implemented.     |
 | **TASK-FE-003** | Layout & Navigation       | ✅ **Done** | 100%         | Sidebar, Header, Layouts are implemented.                           |

@@ -61,10 +61,7 @@ export default function ShopSubCategoriesPage() {
   const projectFilter = (
     <div className="flex items-center gap-4">
       <span className="text-sm font-medium">Project:</span>
-      <Select
-        value={selectedProjectId ?? ''}
-        onValueChange={(v) => setSelectedProjectId(v || undefined)}
-      >
+      <Select value={selectedProjectId ?? ''} onValueChange={(v) => setSelectedProjectId(v || undefined)}>
         <SelectTrigger className="w-[300px]">
           {isLoadingProjects ? (
             <Loader2 className="h-4 w-4 animate-spin" />

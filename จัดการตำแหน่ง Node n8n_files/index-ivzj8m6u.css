@@ -1,1 +1,9 @@
-.T40Hfq_modelCursor{width:0;height:0;display:inline-block;position:relative}.T40Hfq_modelCursor:after{content:none}
+.T40Hfq_modelCursor {
+  width: 0;
+  height: 0;
+  display: inline-block;
+  position: relative;
+}
+.T40Hfq_modelCursor:after {
+  content: none;
+}

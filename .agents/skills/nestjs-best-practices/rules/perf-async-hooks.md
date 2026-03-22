@@ -64,7 +64,7 @@ export class DatabaseService implements OnModuleInit {
 export class CacheWarmerService implements OnApplicationBootstrap {
   constructor(
     private cache: CacheService,
-    private products: ProductsService,
+    private products: ProductsService
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {

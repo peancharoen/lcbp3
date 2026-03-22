@@ -54,14 +54,14 @@
 
 - ✅ **General Correspondence** (LETTER / MEMO / etc.) → **Project Level Scope**
   - Counter Key: `(project_id, originator_org_id, recipient_org_id, corr_type_id, 0, 0, 0, year)`
-  - *Note*: Templates separate per Project. `{PROJECT}` token is optional in format but counter is partitioned by Project.
+  - _Note_: Templates separate per Project. `{PROJECT}` token is optional in format but counter is partitioned by Project.
 
 - ✅ **Transmittal** → **Project Level Scope** with Sub-Type lookup
   - Counter Key: `(project_id, originator_org_id, recipient_org_id, corr_type_id, sub_type_id, 0, 0, year)`
 
 - ✅ **RFA** → **Contract Level Scope** (Implicit)
   - Counter Key: `(project_id, originator_org_id, NULL, corr_type_id, 0, rfa_type_id, discipline_id, year)`
-  - *Mechanism*: `rfa_type_id` and `discipline_id` are linked to specific Contracts in the DB. Different contracts have different Type IDs, ensuring separate counters.
+  - _Mechanism_: `rfa_type_id` and `discipline_id` are linked to specific Contracts in the DB. Different contracts have different Type IDs, ensuring separate counters.
 
 ### 4. Error Handling
 
@@ -97,38 +97,38 @@ import { CorrespondenceType } from '../../correspondence-type/entities/correspon
 
 @Entity('document_number_formats')
 export class DocumentNumberFormat {
-  @PrimaryGeneratedColumn()
-  id: number;
+@PrimaryGeneratedColumn()
+id: number;
 
-  @Column()
-  project_id: number;
+@Column()
+project_id: number;
 
-  @Column({ name: 'correspondence_type_id' })
-  correspondenceTypeId: number;
+@Column({ name: 'correspondence_type_id' })
+correspondenceTypeId: number;
 
-  // Note: Schema currently only has project_id + correspondence_type_id.
-  // If we need sub_type/discipline specific templates, we might need schema update or use JSON config.
-  // For now, aligning with lcbp3-v1.5.1-schema.sql which has format_template column.
+// Note: Schema currently only has project_id + correspondence_type_id.
+// If we need sub_type/discipline specific templates, we might need schema update or use JSON config.
+// For now, aligning with lcbp3-v1.5.1-schema.sql which has format_template column.
 
-  @Column({ name: 'format_template', length: 255, comment: 'e.g. {PROJECT}-{ORIGINATOR}-{CORR_TYPE}-{SEQ:4}' })
-  formatTemplate: string;
+@Column({ name: 'format_template', length: 255, comment: 'e.g. {PROJECT}-{ORIGINATOR}-{CORR_TYPE}-{SEQ:4}' })
+formatTemplate: string;
 
-  @Column({ type: 'text', nullable: true })
-  description: string;
+@Column({ type: 'text', nullable: true })
+description: string;
 
-  @CreateDateColumn()
-  created_at: Date;
+@CreateDateColumn()
+created_at: Date;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+@UpdateDateColumn()
+updated_at: Date;
 
-  @ManyToOne(() => Project)
-  @JoinColumn({ name: 'project_id' })
-  project: Project;
+@ManyToOne(() => Project)
+@JoinColumn({ name: 'project_id' })
+project: Project;
 
-  @ManyToOne(() => CorrespondenceType)
-  @JoinColumn({ name: 'correspondence_type_id' })
-  correspondenceType: CorrespondenceType;
+@ManyToOne(() => CorrespondenceType)
+@JoinColumn({ name: 'correspondence_type_id' })
+correspondenceType: CorrespondenceType;
 }
 
 #### 1.2 Document Number Counter Entity
@@ -160,16 +160,16 @@ export class DocumentNumberCounter {
   correspondenceTypeId: number;
 
   @PrimaryColumn({ name: 'sub_type_id', default: 0 })
-  subTypeId: number;  // for TRANSMITTAL only
+  subTypeId: number; // for TRANSMITTAL only
 
   @PrimaryColumn({ name: 'rfa_type_id', default: 0 })
-  rfaTypeId: number;  // for RFA only
+  rfaTypeId: number; // for RFA only
 
   @PrimaryColumn({ name: 'discipline_id', default: 0 })
-  disciplineId: number;  // for RFA only
+  disciplineId: number; // for RFA only
 
   @PrimaryColumn({ name: 'current_year' })
-  currentYear: number;  // ปี ค.ศ.
+  currentYear: number; // ปี ค.ศ.
 
   @Column({ name: 'last_number', default: 0 })
   lastNumber: number;
@@ -298,7 +298,14 @@ export class GenerateNumberDto {
 ```typescript
 // File: backend/src/modules/document-numbering/document-numbering.service.ts
 
-import { Injectable, Logger, ConflictException, ServiceUnavailableException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ConflictException,
+  ServiceUnavailableException,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import Redlock from 'redlock';
@@ -323,7 +330,7 @@ export class DocumentNumberingService {
     private dataSource: DataSource,
     private redis: Redis,
     private redlock: Redlock,
-    private metricsService: MetricsService,
+    private metricsService: MetricsService
   ) {}
 
   /**
@@ -337,31 +344,17 @@ export class DocumentNumberingService {
   async generateNextNumber(dto: GenerateNumberDto): Promise<string> {
     const startTime = Date.now();
     const year = dto.year || new Date().getFullYear() + 543; // พ.ศ. by default
-    const subTypeId = dto.subTypeId || 0;  // Fallback for NULL
-    const disciplineId = dto.disciplineId || 0;  // Fallback for NULL
+    const subTypeId = dto.subTypeId || 0; // Fallback for NULL
+    const disciplineId = dto.disciplineId || 0; // Fallback for NULL
 
-    const lockKey = this.buildLockKey(
-      dto.projectId,
-      dto.docTypeId,
-      subTypeId,
-      disciplineId,
-      dto.recipientType,
-      year,
-    );
+    const lockKey = this.buildLockKey(dto.projectId, dto.docTypeId, subTypeId, disciplineId, dto.recipientType, year);
 
     try {
       // Retry with exponential backoff for Scenarios 2, 3, 4
       const result = await this.retryWithBackoff(
-        async () => await this.generateNumberWithLock(
-          lockKey,
-          dto,
-          year,
-          subTypeId,
-          disciplineId,
-          startTime,
-        ),
+        async () => await this.generateNumberWithLock(lockKey, dto, year, subTypeId, disciplineId, startTime),
         5, // Max 5 retries for lock acquisition
-        1000, // Initial delay 1s
+        1000 // Initial delay 1s
       );
 
       // Track metrics
@@ -390,7 +383,7 @@ export class DocumentNumberingService {
     year: number,
     subTypeId: number,
     disciplineId: number,
-    startTime: number,
+    startTime: number
   ): Promise<string> {
     let lock: any;
     const lockStartTime = Date.now();
@@ -491,7 +484,6 @@ export class DocumentNumberingService {
 
       this.logger.log(`Generated: ${formattedNumber} (lock wait: ${lockWaitMs}ms, total: ${Date.now() - startTime}ms)`);
       return formattedNumber;
-
     } finally {
       // Step 6: Release Redis lock
       if (lock) {
@@ -511,7 +503,7 @@ export class DocumentNumberingService {
     dto: GenerateNumberDto,
     year: number,
     subTypeId: number,
-    disciplineId: number,
+    disciplineId: number
   ): Promise<string> {
     return await this.dataSource.transaction(async (manager) => {
       // Pessimistic lock: SELECT ... FOR UPDATE
@@ -532,16 +524,20 @@ export class DocumentNumberingService {
 
       // Update or create counter
       if (counter) {
-        await manager.update(DocumentNumberCounter, {
-          project_id: dto.projectId,
-          doc_type_id: dto.docTypeId,
-          sub_type_id: subTypeId,
-          discipline_id: disciplineId,
-          recipient_type: dto.recipientType || null,
-          year: year,
-        }, {
-          last_number: nextNumber,
-        });
+        await manager.update(
+          DocumentNumberCounter,
+          {
+            project_id: dto.projectId,
+            doc_type_id: dto.docTypeId,
+            sub_type_id: subTypeId,
+            discipline_id: disciplineId,
+            recipient_type: dto.recipientType || null,
+            year: year,
+          },
+          {
+            last_number: nextNumber,
+          }
+        );
       } else {
         await manager.save(DocumentNumberCounter, {
           project_id: dto.projectId,
@@ -616,36 +612,28 @@ export class DocumentNumberingService {
    * Retry with exponential backoff
    * Scenarios 2, 3, 4
    */
-  private async retryWithBackoff<T>(
-    fn: () => Promise<T>,
-    maxRetries: number,
-    initialDelay: number,
-  ): Promise<T> {
+  private async retryWithBackoff<T>(fn: () => Promise<T>, maxRetries: number, initialDelay: number): Promise<T> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await fn();
       } catch (error) {
         const isRetryable =
           error instanceof ConflictException || // Scenario 3
-          error.code === 'ECONNREFUSED' ||      // Scenario 4
-          error.code === 'ETIMEDOUT' ||         // Scenario 4
+          error.code === 'ECONNREFUSED' || // Scenario 4
+          error.code === 'ETIMEDOUT' || // Scenario 4
           error.message?.includes('Lock timeout'); // Scenario 2
 
         if (!isRetryable || attempt === maxRetries) {
           if (attempt === maxRetries) {
             // Scenario 2: Max retries reached
-            throw new ServiceUnavailableException(
-              'ระบบกำลังยุ่ง กรุณาลองใหม่ภายหลัง'
-            );
+            throw new ServiceUnavailableException('ระบบกำลังยุ่ง กรุณาลองใหม่ภายหลัง');
           }
           throw error;
         }
 
         const delay = initialDelay * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        this.logger.warn(
-          `Retry ${attempt + 1}/${maxRetries} after ${delay}ms (${error.message})`
-        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        this.logger.warn(`Retry ${attempt + 1}/${maxRetries} after ${delay}ms (${error.message})`);
         await this.metricsService.incrementCounter('docnum.retry', {
           attempt: attempt + 1,
           reason: error.constructor.name,
@@ -659,10 +647,7 @@ export class DocumentNumberingService {
   /**
    * Get configuration template (Format)
    */
-  private async getConfig(
-    projectId: number,
-    correspondenceTypeId: number,
-  ): Promise<DocumentNumberFormat> {
+  private async getConfig(projectId: number, correspondenceTypeId: number): Promise<DocumentNumberFormat> {
     // Note: Schema currently only separates by project_id and correspondence_type_id
     // If we need sub-type specific templates, we should check if they are supported in the future schema.
     // Converting old logic slightly to match v1.5.1 schema columns.
@@ -720,7 +705,7 @@ export class DocumentNumberingService {
   }
 
   private buildLockKey(...parts: Array<number | string | null | undefined>): string {
-    return `doc_num:${parts.filter(p => p !== null && p !== undefined).join(':')}`;
+    return `doc_num:${parts.filter((p) => p !== null && p !== undefined).join(':')}`;
   }
 }
 ```
@@ -755,10 +740,7 @@ export class DocumentNumberingController {
   @ApiResponse({ status: 201, description: 'Number generated successfully' })
   @ApiResponse({ status: 409, description: 'Version conflict' })
   @ApiResponse({ status: 503, description: 'Service unavailable' })
-  async generateNumber(
-    @Body() dto: GenerateNumberDto,
-    @Req() req: Request,
-  ): Promise<{ documentNumber: string }> {
+  async generateNumber(@Body() dto: GenerateNumberDto, @Req() req: Request): Promise<{ documentNumber: string }> {
     // Add user context from JWT
     const user = req.user as any;
     dto.userId = user.id;
@@ -812,7 +794,7 @@ import Redis from 'ioredis';
 export class RateLimitGuard implements CanActivate {
   constructor(
     private redis: Redis,
-    private reflector: Reflector,
+    private reflector: Reflector
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -830,10 +812,7 @@ export class RateLimitGuard implements CanActivate {
       }
 
       if (userCount > 10) {
-        throw new HttpException(
-          'Rate limit exceeded: 10 requests per minute per user',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
+        throw new HttpException('Rate limit exceeded: 10 requests per minute per user', HttpStatus.TOO_MANY_REQUESTS);
       }
     }
 
@@ -846,10 +825,7 @@ export class RateLimitGuard implements CanActivate {
     }
 
     if (ipCount > 50) {
-      throw new HttpException(
-        'Rate limit exceeded: 50 requests per minute per IP',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+      throw new HttpException('Rate limit exceeded: 50 requests per minute per IP', HttpStatus.TOO_MANY_REQUESTS);
     }
 
     return true;
@@ -876,11 +852,7 @@ import { MetricsModule } from '../metrics/metrics.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      DocumentNumberCounter,
-      DocumentNumberConfig,
-      DocumentNumberAudit,
-    ]),
+    TypeOrmModule.forFeature([DocumentNumberCounter, DocumentNumberConfig, DocumentNumberAudit]),
     RedisModule,
     MetricsModule,
   ],
@@ -934,7 +906,7 @@ describe('DocumentNumberingService - Concurrency', () => {
     expect(unique.size).toBe(100);
 
     // Check format
-    results.forEach(num => {
+    results.forEach((num) => {
       expect(num).toMatch(/^LCBP3-C2-RFI-STR-\d{4}-A$/);
     });
 
@@ -972,9 +944,7 @@ describe('DocumentNumberingService - Error Scenarios', () => {
   it('Scenario 2: Should retry on lock timeout and throw 503 after max retries', async () => {
     jest.spyOn(redlock, 'acquire').mockRejectedValue(new Error('Lock timeout'));
 
-    await expect(service.generateNextNumber(dto))
-      .rejects
-      .toThrow(ServiceUnavailableException);
+    await expect(service.generateNextNumber(dto)).rejects.toThrow(ServiceUnavailableException);
 
     expect(metricsService.incrementCounter).toHaveBeenCalledWith('docnum.retry', expect.any(Object));
   });
@@ -1089,7 +1059,9 @@ describe('DocumentNumberingService - Formats', () => {
 
 describe('RateLimitGuard', () => {
   it('should block after 10 requests per user per minute', async () => {
-    const dto = { /* ... */ };
+    const dto = {
+      /* ... */
+    };
 
     // Make 10 successful requests
     for (let i = 0; i < 10; i++) {
@@ -1097,9 +1069,7 @@ describe('RateLimitGuard', () => {
     }
 
     // 11th request should fail
-    await expect(service.generateNextNumber(dto))
-      .rejects
-      .toThrow('Rate limit exceeded');
+    await expect(service.generateNextNumber(dto)).rejects.toThrow('Rate limit exceeded');
   });
 
   it('should block after 50 requests per IP per minute', async () => {
@@ -1168,10 +1138,10 @@ expect:
   - contentType: json
 
 ensure:
-  p50: 500   # 50th percentile < 500ms
-  p95: 2000  # 95th percentile < 2s
-  p99: 5000  # 99th percentile < 5s
-  maxErrorRate: 0.001  # < 0.1% errors
+  p50: 500 # 50th percentile < 500ms
+  p95: 2000 # 95th percentile < 2s
+  p99: 5000 # 99th percentile < 5s
+  maxErrorRate: 0.001 # < 0.1% errors
 ```
 
 ---

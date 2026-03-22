@@ -17,14 +17,13 @@ jest.mock('bcrypt', () => ({
   genSalt: jest.fn().mockResolvedValue('salt'),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const bcrypt = require('bcrypt');
+import * as bcrypt from 'bcrypt';
 
 describe('AuthService', () => {
   let service: AuthService;
   let userService: UserService;
-  let jwtService: JwtService;
-  let tokenRepo: Repository<RefreshToken>;
+  let _jwtService: JwtService;
+  let _tokenRepo: Repository<RefreshToken>;
 
   const mockUser = {
     user_id: 1,
@@ -53,7 +52,7 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     // Reset bcrypt mocks
-    bcrypt.compare.mockResolvedValue(true);
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -101,8 +100,8 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userService = module.get<UserService>(UserService);
-    jwtService = module.get<JwtService>(JwtService);
-    tokenRepo = module.get(getRepositoryToken(RefreshToken));
+    _jwtService = module.get<JwtService>(JwtService);
+    _tokenRepo = module.get(getRepositoryToken(RefreshToken));
   });
 
   afterEach(() => {
@@ -118,7 +117,7 @@ describe('AuthService', () => {
       const result = await service.validateUser('testuser', 'password');
       expect(result).toBeDefined();
       expect(result).not.toHaveProperty('password');
-      expect(result.username).toBe('testuser');
+      expect(result!.username).toBe('testuser');
     });
 
     it('should return null if user not found', async () => {
@@ -128,7 +127,7 @@ describe('AuthService', () => {
     });
 
     it('should return null if password mismatch', async () => {
-      bcrypt.compare.mockResolvedValueOnce(false);
+      (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
       const result = await service.validateUser('testuser', 'wrongpassword');
       expect(result).toBeNull();
     });
@@ -139,7 +138,7 @@ describe('AuthService', () => {
       mockTokenRepo.create.mockReturnValue({ id: 1 });
       mockTokenRepo.save.mockResolvedValue({ id: 1 });
 
-      const result = await service.login(mockUser);
+      const result = await service.login(mockUser as User);
 
       expect(result).toHaveProperty('access_token');
       expect(result).toHaveProperty('refresh_token');
@@ -161,8 +160,9 @@ describe('AuthService', () => {
       };
 
       const result = await service.register(dto);
+      const createMock = userService.create as jest.Mock;
       expect(result).toBeDefined();
-      expect(userService.create).toHaveBeenCalled();
+      expect(createMock).toHaveBeenCalled();
     });
   });
 
@@ -190,6 +190,44 @@ describe('AuthService', () => {
       const mockStoredToken = {
         tokenHash: 'somehash',
         isRevoked: true,
+        expiresAt: new Date(Date.now() + 10000),
+      };
+      mockTokenRepo.findOne.mockResolvedValue(mockStoredToken);
+
+      await expect(service.refreshToken(1, 'revoked_token')).rejects.toThrow(
+        UnauthorizedException
+      );
+    });
+
+    it('should allow refresh within 30s grace period if already revoked', async () => {
+      const updatedAt = new Date(Date.now() - 5000); // 5 seconds ago
+      const mockStoredToken = {
+        tokenHash: 'somehash',
+        isRevoked: true,
+        updatedAt: updatedAt,
+        replacedByToken: 'new_token_hash',
+        expiresAt: new Date(Date.now() + 10000),
+      };
+      mockTokenRepo.findOne.mockResolvedValue(mockStoredToken);
+      (userService.findOne as jest.Mock).mockResolvedValue(mockUser);
+      mockTokenRepo.create.mockReturnValue({ token_id: 2 });
+      mockTokenRepo.save.mockResolvedValue({ token_id: 2 });
+
+      const result = await service.refreshToken(1, 'valid_refresh_token');
+
+      expect(result.access_token).toBeDefined();
+      expect(result.refresh_token).toBeDefined();
+      // Should not call revokeAllUserTokens
+      expect(mockTokenRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException if token revoked more than 30s ago', async () => {
+      const updatedAt = new Date(Date.now() - 35000); // 35 seconds ago
+      const mockStoredToken = {
+        tokenHash: 'somehash',
+        isRevoked: true,
+        updatedAt: updatedAt,
+        replacedByToken: 'new_token_hash',
         expiresAt: new Date(Date.now() + 10000),
       };
       mockTokenRepo.findOne.mockResolvedValue(mockStoredToken);

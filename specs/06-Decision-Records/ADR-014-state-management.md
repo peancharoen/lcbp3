@@ -219,10 +219,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
 
   addNotification: (notification) =>
     set((state) => ({
-      notifications: [
-        ...state.notifications,
-        { ...notification, id: Math.random().toString() },
-      ],
+      notifications: [...state.notifications, { ...notification, id: Math.random().toString() }],
     })),
 
   removeNotification: (id) =>
@@ -312,8 +309,7 @@ export const useUIStore = create<UIState>()(
       sidebarCollapsed: false,
       theme: 'light',
 
-      toggleSidebar: () =>
-        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 
       setTheme: (theme) => set({ theme }),
     }),

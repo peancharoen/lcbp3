@@ -8,9 +8,10 @@
 **owner:** Nattanin Peancharoen
 **last_updated:** 2026-02-23
 **related:**
-  - specs/02-Architecture/00-01-system-context.md
-  - specs/02-Architecture/02-03-software-architecture.md
-  - specs/03-Implementation/03-01-fullstack-js-v1.7.0.md
+
+- specs/02-Architecture/00-01-system-context.md
+- specs/02-Architecture/02-03-software-architecture.md
+- specs/03-Implementation/03-01-fullstack-js-v1.7.0.md
 
 ---
 
@@ -21,17 +22,20 @@
 ## 2. 🎯 หลักการออกแบบ API (API Design Principles)
 
 ### 2.1 API-First Approach
+
 - **ออกแบบ API ก่อนการ Implement:** ทำการออกแบบ API Endpoint และ Data Contract ให้ชัดเจนก่อนเริ่มเขียนโค้ด
 - **Documentation-Driven:** ใช้ OpenAPI/Swagger เป็นเอกสารอ้างอิงหลัก
 - **Contract Testing:** ทดสอบ API ตาม Contract ที่กำหนดไว้
 
 ### 2.2 RESTful Principles
+
 - ใช้ HTTP Methods อย่างถูกต้อง: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`
 - ใช้ HTTP Status Codes ที่เหมาะสม
 - Resource-Based URL Design
 - Stateless Communication
 
 ### 2.3 Consistency & Predictability
+
 - **Naming Conventions:** ใช้ `kebab-case` สำหรับ URL paths
 - **Property Naming:** ใช้ `camelCase` สำหรับ JSON properties และ query parameters (สอดคล้องกับ TypeScript/JavaScript conventions)
 - **Database Columns:** Database ใช้ `snake_case` (mapped via TypeORM decorators)
@@ -40,6 +44,7 @@
 ## 3. 🔐 Authentication & Authorization
 
 ### 3.1 Authentication
+
 - **JWT-Based Authentication:** ใช้ JSON Web Token สำหรับการยืนยันตัวตน
 - **Token Management:**
   - Access Token Expiration: 8 ชั่วโมง
@@ -48,18 +53,22 @@
   - Token Revocation: บันทึก Revoked Tokens จนกว่าจะหมดอายุ
 
 **Endpoints คอร์:**
+
 ```typescript
-POST /api/v1/auth/login
-POST /api/v1/auth/logout
-POST /api/v1/auth/refresh
-POST /api/v1/auth/change-password
+POST / api / v1 / auth / login;
+POST / api / v1 / auth / logout;
+POST / api / v1 / auth / refresh;
+POST / api / v1 / auth / change - password;
 ```
 
 ### 3.2 Authorization (RBAC) (CASL)
+
 ใช้ระบบ 4-Level Permission Hierarchy (Global, Organization, Project, Contract)
+
 - **Permission Checking:** ใช้ Decorator `@RequirePermission('resource.action')`
 
 **Example:**
+
 ```typescript
 @RequirePermission('correspondence.create')
 @Post('correspondences')
@@ -69,29 +78,34 @@ async createCorrespondence(@Body() dto: CreateCorrespondenceDto) {
 ```
 
 ### 3.3 Token Payload Optimization
+
 - JWT Payload เก็บเฉพาะ `userId` และ `scope` ปัจจุบัน
 - **Permissions Caching:** เก็บ Permission List ใน Redis และดึงมาตรวจสอบเมื่อมี Request
 
 ## 4. 📡 API Conventions
 
 ### 4.1 Base URL Structure
+
 ```
 https://backend.np-dms.work/api/v1/{resource}
 ```
 
 ### 4.2 HTTP Methods & Usage
-| Method   | Usage                        | Idempotent | Example                              |
-| :------- | :--------------------------- | :--------- | :----------------------------------- |
-| `GET`    | ดึงข้อมูล (Read)                | ✅ Yes      | `GET /api/v1/correspondences`        |
-| `POST`   | สร้างข้อมูลใหม่ (Create)         | ❌ No\*     | `POST /api/v1/correspondences`       |
-| `PUT`    | อัปเดตทั้งหมด (Full Update)     | ✅ Yes      | `PUT /api/v1/correspondences/:id`    |
-| `PATCH`  | อัปเดตบางส่วน (Partial Update) | ✅ Yes      | `PATCH /api/v1/correspondences/:id`  |
-| `DELETE` | ลบข้อมูล (Soft Delete)         | ✅ Yes      | `DELETE /api/v1/correspondences/:id` |
 
-* **Note:** `POST` เป็น Idempotent ได้เมื่อใช้ `Idempotency-Key` Header
+| Method   | Usage                          | Idempotent | Example                              |
+| :------- | :----------------------------- | :--------- | :----------------------------------- |
+| `GET`    | ดึงข้อมูล (Read)               | ✅ Yes     | `GET /api/v1/correspondences`        |
+| `POST`   | สร้างข้อมูลใหม่ (Create)       | ❌ No\*    | `POST /api/v1/correspondences`       |
+| `PUT`    | อัปเดตทั้งหมด (Full Update)    | ✅ Yes     | `PUT /api/v1/correspondences/:id`    |
+| `PATCH`  | อัปเดตบางส่วน (Partial Update) | ✅ Yes     | `PATCH /api/v1/correspondences/:id`  |
+| `DELETE` | ลบข้อมูล (Soft Delete)         | ✅ Yes     | `DELETE /api/v1/correspondences/:id` |
+
+- **Note:** `POST` เป็น Idempotent ได้เมื่อใช้ `Idempotency-Key` Header
 
 ### 4.3 Request Format
+
 **Request Headers:**
+
 ```http
 Content-Type: application/json
 Authorization: Bearer <access_token>
@@ -99,6 +113,7 @@ Idempotency-Key: <uuid> # สำหรับ POST/PUT/DELETE
 ```
 
 ### 4.4 HTTP Status Codes
+
 | Status                    | Use Case                                    |
 | ------------------------- | ------------------------------------------- |
 | 200 OK                    | Successful GET, PUT, PATCH                  |
@@ -120,6 +135,7 @@ Idempotency-Key: <uuid> # สำหรับ POST/PUT/DELETE
 ### 5.1 Success Response
 
 **Single Resource:**
+
 ```typescript
 {
   "data": {
@@ -135,6 +151,7 @@ Idempotency-Key: <uuid> # สำหรับ POST/PUT/DELETE
 ```
 
 **Collection (Pagination):**
+
 ```typescript
 {
   "data": [
@@ -154,6 +171,7 @@ Idempotency-Key: <uuid> # สำหรับ POST/PUT/DELETE
 ```
 
 ### 5.2 Error Response Format
+
 ```typescript
 {
   "error": {
@@ -176,6 +194,7 @@ Idempotency-Key: <uuid> # สำหรับ POST/PUT/DELETE
 ## 6. 🛠️ NestJS Implementation Details
 
 ### 6.1 Global Exception Filter
+
 คลาสจัดการ Error หลักที่จะจับและดัดแปลง Error ส่งคืน Client อย่างสม่ำเสมอ
 
 ```typescript
@@ -225,6 +244,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 ```
 
 ### 6.2 Custom Business Exception
+
 สำหรับจัดการข้อผิดพลาดเชิงความสัมพันธ์ หรือเงื่อนไขธุรกิจ เช่น State Conflict.
 
 ```typescript
@@ -242,13 +262,11 @@ export class BusinessException extends HttpException {
 }
 
 // Usage Example:
-throw new BusinessException(
-  'Cannot approve correspondence in current status',
-  'INVALID_WORKFLOW_TRANSITION'
-);
+throw new BusinessException('Cannot approve correspondence in current status', 'INVALID_WORKFLOW_TRANSITION');
 ```
 
 ### 6.3 Validation Pipe Configuration
+
 บังคับ Validation Pipe ก่อนส่งพารามิเตอร์ให้กับ Controller
 
 ```typescript
@@ -297,6 +315,7 @@ app.useGlobalPipes(
 | Authentication      | 10 requests/minute | IP    |
 
 ### 7.2 File Upload Security
+
 - **Virus Scanning:** ใช้ ClamAV scan ทุกไฟล์
 - **File Type Validation:** White-list (PDF, DWG, DOCX, XLSX, ZIP)
 - **File Size Limit:** 50MB per file
@@ -314,21 +333,25 @@ app.useGlobalPipes(
 ## 9. 📈 Optimization & Additional Guidelines
 
 ### 9.1 Caching Strategy
+
 - Master Data: 1 hour
 - User Sessions: 30 minutes
 - Search Results: 15 minutes
 - File Metadata: 1 hour
 
 ### 9.2 API Versioning
+
 - **URL-Based Versioning:** `/api/v1/...`, `/api/v2/...`
 - **Backward Compatibility:** รองรับ API เวอร์ชันเก่าอย่างน้อย 1 เวอร์ชัน
 - ใช้ Deprecation Headers เมื่อมีการยกเลิก Endpoints
 
 ### 9.3 Documentation
+
 - **Swagger/OpenAPI:** Auto-generated จาก NestJS Decorators
 - **URL:** `https://backend.np-dms.work/api/docs`
 
 ## 🎯 สรุป Best Practices
+
 1. **ใช้ DTOs สำหรับ Validation ทุก Request**
 2. **ส่ง Idempotency-Key สำหรับ Critical Operations**
 3. **ใช้ Proper HTTP Status Codes**

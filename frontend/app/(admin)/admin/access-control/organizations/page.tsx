@@ -1,24 +1,21 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/common/data-table";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  useOrganizations,
-  useDeleteOrganization,
-} from "@/hooks/use-master-data";
-import { ColumnDef } from "@tanstack/react-table";
-import { Pencil, Trash, Plus, Search, MoreHorizontal } from "lucide-react";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/common/data-table';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { useOrganizations, useDeleteOrganization } from '@/hooks/use-master-data';
+import { ColumnDef } from '@tanstack/react-table';
+import { Pencil, Trash, Plus, Search, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Organization } from "@/types/organization";
-import { OrganizationDialog } from "@/components/admin/organization-dialog";
+} from '@/components/ui/dropdown-menu';
+import { Organization } from '@/types/organization';
+import { OrganizationDialog } from '@/components/admin/organization-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,20 +25,20 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+} from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Organization role types for display
 const ORGANIZATION_ROLES = [
-  { value: "1", label: "Owner" },
-  { value: "2", label: "Designer" },
-  { value: "3", label: "Consultant" },
-  { value: "4", label: "Contractor" },
-  { value: "5", label: "Third Party" },
+  { value: '1', label: 'Owner' },
+  { value: '2', label: 'Designer' },
+  { value: '3', label: 'Consultant' },
+  { value: '4', label: 'Contractor' },
+  { value: '5', label: 'Third Party' },
 ] as const;
 
 export default function OrganizationsPage() {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const { data: organizations, isLoading } = useOrganizations({
     search: search || undefined,
   });
@@ -49,8 +46,7 @@ export default function OrganizationsPage() {
   const deleteOrg = useDeleteOrganization();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedOrganization, setSelectedOrganization] =
-    useState<Organization | null>(null);
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
 
   // Stats for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -74,44 +70,40 @@ export default function OrganizationsPage() {
 
   const columns: ColumnDef<Organization>[] = [
     {
-      accessorKey: "organizationCode",
-      header: "Code",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.organizationCode}</span>
-      ),
+      accessorKey: 'organizationCode',
+      header: 'Code',
+      cell: ({ row }) => <span className="font-medium">{row.original.organizationCode}</span>,
     },
-    { accessorKey: "organizationName", header: "Name" },
+    { accessorKey: 'organizationName', header: 'Name' },
     {
-      accessorKey: "roleId",
-      header: "Role",
+      accessorKey: 'roleId',
+      header: 'Role',
       cell: ({ row }) => {
-        const roleId = row.getValue("roleId") as number;
-        const role = ORGANIZATION_ROLES.find(
-          (r) => r.value === roleId?.toString()
-        );
-        return role ? role.label : "-";
+        const roleId = row.getValue('roleId') as number;
+        const role = ORGANIZATION_ROLES.find((r) => r.value === roleId?.toString());
+        return role ? role.label : '-';
       },
     },
     {
-      accessorKey: "isActive",
-      header: "Status",
+      accessorKey: 'isActive',
+      header: 'Status',
       cell: ({ row }) => (
-        <Badge variant={row.original.isActive ? "default" : "destructive"}>
-          {row.original.isActive ? "Active" : "Inactive"}
+        <Badge variant={row.original.isActive ? 'default' : 'destructive'}>
+          {row.original.isActive ? 'Active' : 'Inactive'}
         </Badge>
       ),
     },
     {
-      accessorKey: "createdAt",
-      header: "Created At",
+      accessorKey: 'createdAt',
+      header: 'Created At',
       cell: ({ row }) => {
-        if (!row.original.createdAt) return "-";
-        return new Date(row.original.createdAt).toLocaleDateString("en-GB");
+        if (!row.original.createdAt) return '-';
+        return new Date(row.original.createdAt).toLocaleDateString('en-GB');
       },
     },
     {
-      id: "actions",
-      header: "Actions",
+      id: 'actions',
+      header: 'Actions',
       cell: ({ row }) => {
         const org = row.original;
         return (
@@ -131,10 +123,7 @@ export default function OrganizationsPage() {
               >
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-red-600 focus:text-red-600"
-                onClick={() => handleDeleteClick(org)}
-              >
+              <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => handleDeleteClick(org)}>
                 <Trash className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -149,9 +138,7 @@ export default function OrganizationsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Organizations</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage project organizations system-wide
-          </p>
+          <p className="text-muted-foreground mt-1">Manage project organizations system-wide</p>
         </div>
         <Button
           onClick={() => {
@@ -176,22 +163,18 @@ export default function OrganizationsPage() {
       </div>
 
       {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center space-x-4">
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ))}
-          </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center space-x-4">
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ))}
+        </div>
       ) : (
         <DataTable columns={columns} data={organizations || []} />
       )}
 
-      <OrganizationDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        organization={selectedOrganization}
-      />
+      <OrganizationDialog open={dialogOpen} onOpenChange={setDialogOpen} organization={selectedOrganization} />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -205,11 +188,8 @@ export default function OrganizationsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-                onClick={confirmDelete}
-                className="bg-red-600 hover:bg-red-700"
-            >
-                {deleteOrg.isPending ? "Deleting..." : "Delete Organization"}
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              {deleteOrg.isPending ? 'Deleting...' : 'Delete Organization'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

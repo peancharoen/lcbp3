@@ -27,14 +27,12 @@
 ## 📝 Acceptance Criteria
 
 1. **Search Capabilities:**
-
    - [x] Search across multiple document types
    - [x] Full-text search in title, description
    - [x] Filter by project, status, date range
    - [x] Sort results by relevance/date
 
 2. **Indexing:**
-
    - [x] Auto-index on document create/update (Direct Call implemented)
    - [ ] Async indexing (via queue) - **Pending**
    - [ ] Bulk re-indexing command - **Pending**
@@ -227,11 +225,7 @@ export class SearchService {
     };
   }
 
-  async indexDocument(
-    documentType: string,
-    documentId: number,
-    data: any
-  ): Promise<void> {
+  async indexDocument(documentType: string, documentId: number, data: any): Promise<void> {
     await this.elasticsearch.index({
       index: this.INDEX_NAME,
       id: `${documentType}-${documentId}`,
@@ -242,11 +236,7 @@ export class SearchService {
     });
   }
 
-  async updateDocument(
-    documentType: string,
-    documentId: number,
-    data: any
-  ): Promise<void> {
+  async updateDocument(documentType: string, documentId: number, data: any): Promise<void> {
     await this.elasticsearch.update({
       index: this.INDEX_NAME,
       id: `${documentType}-${documentId}`,
@@ -256,10 +246,7 @@ export class SearchService {
     });
   }
 
-  async deleteDocument(
-    documentType: string,
-    documentId: number
-  ): Promise<void> {
+  async deleteDocument(documentType: string, documentId: number): Promise<void> {
     await this.elasticsearch.delete({
       index: this.INDEX_NAME,
       id: `${documentType}-${documentId}`,
@@ -298,22 +285,17 @@ export class SearchIndexer {
 
     const latestRevision = correspondence.revisions[0];
 
-    await this.searchService.indexDocument(
-      'correspondence',
-      correspondence.id,
-      {
-        id: correspondence.id,
-        correspondenceNumber: correspondence.correspondence_number,
-        title: correspondence.title,
-        description: latestRevision?.description,
-        projectId: correspondence.project_id,
-        projectName: correspondence.project.project_name,
-        status: correspondence.status,
-        createdAt: correspondence.createdAt,
-        organizationName:
-          correspondence.originatorOrganization.organization_name,
-      }
-    );
+    await this.searchService.indexDocument('correspondence', correspondence.id, {
+      id: correspondence.id,
+      correspondenceNumber: correspondence.correspondence_number,
+      title: correspondence.title,
+      description: latestRevision?.description,
+      projectId: correspondence.project_id,
+      projectName: correspondence.project.project_name,
+      status: correspondence.status,
+      createdAt: correspondence.createdAt,
+      organizationName: correspondence.originatorOrganization.organization_name,
+    });
   }
 
   @Process('index-rfa')
@@ -375,10 +357,7 @@ export class CorrespondenceService {
     private searchQueue: Queue
   ) {}
 
-  async create(
-    dto: CreateCorrespondenceDto,
-    userId: number
-  ): Promise<Correspondence> {
+  async create(dto: CreateCorrespondenceDto, userId: number): Promise<Correspondence> {
     const correspondence = await this.dataSource.transaction(/* ... */);
 
     // Queue for indexing (async)

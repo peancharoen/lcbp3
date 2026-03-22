@@ -1,36 +1,25 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/common/data-table";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  useProjects,
-  useCreateProject,
-  useUpdateProject,
-  useDeleteProject,
-} from "@/hooks/use-projects";
-import { ColumnDef } from "@tanstack/react-table";
-import { Pencil, Trash, Plus, Folder, Search as SearchIcon } from "lucide-react";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/common/data-table';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
+import { ColumnDef } from '@tanstack/react-table';
+import { Pencil, Trash, Plus, Folder, Search as SearchIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,8 +29,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+} from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Project {
   uuid: string;
@@ -54,15 +43,15 @@ interface Project {
 }
 
 const projectSchema = z.object({
-  projectCode: z.string().min(1, "Project Code is required"),
-  projectName: z.string().min(1, "Project Name is required"),
+  projectCode: z.string().min(1, 'Project Code is required'),
+  projectName: z.string().min(1, 'Project Name is required'),
   isActive: z.boolean().optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
 
 export default function ProjectsPage() {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const { data: projects, isLoading } = useProjects({ search: search || undefined });
 
   const createProject = useCreateProject();
@@ -102,16 +91,16 @@ export default function ProjectsPage() {
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      projectCode: "",
-      projectName: "",
+      projectCode: '',
+      projectName: '',
       isActive: true,
     },
   });
 
   const columns: ColumnDef<Project>[] = [
     {
-      accessorKey: "projectCode",
-      header: "Code",
+      accessorKey: 'projectCode',
+      header: 'Code',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Folder className="h-4 w-4 text-blue-500" />
@@ -119,19 +108,19 @@ export default function ProjectsPage() {
         </div>
       ),
     },
-    { accessorKey: "projectName", header: "Project Name" },
+    { accessorKey: 'projectName', header: 'Project Name' },
     {
-      accessorKey: "isActive",
-      header: "Status",
+      accessorKey: 'isActive',
+      header: 'Status',
       cell: ({ row }) => (
-        <Badge variant={row.original.isActive ? "default" : "secondary"}>
-          {row.original.isActive ? "Active" : "Inactive"}
+        <Badge variant={row.original.isActive ? 'default' : 'secondary'}>
+          {row.original.isActive ? 'Active' : 'Inactive'}
         </Badge>
       ),
     },
     {
-      id: "actions",
-      header: "Actions",
+      id: 'actions',
+      header: 'Actions',
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -169,8 +158,8 @@ export default function ProjectsPage() {
   const handleCreate = () => {
     setEditingUuid(null);
     reset({
-      projectCode: "",
-      projectName: "",
+      projectCode: '',
+      projectName: '',
       isActive: true,
     });
     setDialogOpen(true);
@@ -196,9 +185,7 @@ export default function ProjectsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage construction projects and configurations
-          </p>
+          <p className="text-muted-foreground mt-1">Manage construction projects and configurations</p>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" /> Add Project
@@ -207,81 +194,65 @@ export default function ProjectsPage() {
 
       <div className="flex items-center space-x-2 bg-muted/30 p-4 rounded-lg">
         <div className="relative flex-1 max-w-sm">
-            <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-                placeholder="Search projects by code or name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 bg-background"
-            />
+          <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search projects by code or name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 bg-background"
+          />
         </div>
       </div>
 
       {isLoading ? (
-         <div className="space-y-2">
-           {[1, 2, 3, 4, 5].map((i) => (
-             <div key={i} className="flex items-center space-x-4">
-               <Skeleton className="h-12 w-full" />
-             </div>
-           ))}
-         </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center space-x-4">
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ))}
+        </div>
       ) : (
-         <DataTable columns={columns} data={projects || []} />
+        <DataTable columns={columns} data={projects || []} />
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editingUuid ? "Edit Project" : "New Project"}
-            </DialogTitle>
+            <DialogTitle>{editingUuid ? 'Edit Project' : 'New Project'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label>Project Code *</Label>
               <Input
                 placeholder="e.g. LCBP3"
-                {...register("projectCode")}
+                {...register('projectCode')}
                 disabled={!!editingUuid} // Code is immutable after creation usually
               />
-              {errors.projectCode && (
-                  <p className="text-sm text-red-500">{errors.projectCode.message}</p>
-              )}
+              {errors.projectCode && <p className="text-sm text-red-500">{errors.projectCode.message}</p>}
             </div>
 
             <div className="space-y-2">
               <Label>Project Name *</Label>
-              <Input
-                placeholder="Full project name"
-                {...register("projectName")}
-              />
-              {errors.projectName && (
-                  <p className="text-sm text-red-500">{errors.projectName.message}</p>
-              )}
+              <Input placeholder="Full project name" {...register('projectName')} />
+              {errors.projectName && <p className="text-sm text-red-500">{errors.projectName.message}</p>}
             </div>
 
             <div className="flex items-center space-x-2 pt-2">
               <Switch
                 id="active"
-                checked={watch("isActive")}
-                onCheckedChange={(checked) => setValue("isActive", checked)}
+                checked={watch('isActive')}
+                onCheckedChange={(checked) => setValue('isActive', checked)}
               />
               <Label htmlFor="active">Active Status</Label>
             </div>
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={createProject.isPending || updateProject.isPending}
-              >
-                {editingUuid ? "Save Changes" : "Create Project"}
+              <Button type="submit" disabled={createProject.isPending || updateProject.isPending}>
+                {editingUuid ? 'Save Changes' : 'Create Project'}
               </Button>
             </DialogFooter>
           </form>
@@ -300,11 +271,8 @@ export default function ProjectsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-                onClick={confirmDelete}
-                className="bg-red-600 hover:bg-red-700"
-            >
-                {deleteProject.isPending ? "Deleting..." : "Delete Project"}
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              {deleteProject.isPending ? 'Deleting...' : 'Delete Project'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

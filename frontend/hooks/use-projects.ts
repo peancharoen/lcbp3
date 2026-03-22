@@ -22,14 +22,14 @@ export function useCreateProject() {
   return useMutation({
     mutationFn: (data: CreateProjectDto) => projectService.create(data),
     onSuccess: () => {
-      toast.success("Project created successfully");
+      toast.success('Project created successfully');
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
     onError: (error: unknown) => {
-      toast.error("Failed to create project", {
-        description: getApiErrorMessage(error, "Unknown error")
+      toast.error('Failed to create project', {
+        description: getApiErrorMessage(error, 'Unknown error'),
       });
-    }
+    },
   });
 }
 
@@ -38,14 +38,14 @@ export function useUpdateProject() {
   return useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: UpdateProjectDto }) => projectService.update(uuid, data),
     onSuccess: () => {
-      toast.success("Project updated successfully");
+      toast.success('Project updated successfully');
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
     onError: (error: unknown) => {
-      toast.error("Failed to update project", {
-        description: getApiErrorMessage(error, "Unknown error")
+      toast.error('Failed to update project', {
+        description: getApiErrorMessage(error, 'Unknown error'),
       });
-    }
+    },
   });
 }
 
@@ -54,13 +54,13 @@ export function useDeleteProject() {
   return useMutation({
     mutationFn: (uuid: string) => projectService.delete(uuid),
     onSuccess: () => {
-      toast.success("Project deleted successfully");
+      toast.success('Project deleted successfully');
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
     onError: (error: unknown) => {
-      toast.error("Failed to delete project", {
-        description: getApiErrorMessage(error, "Unknown error")
+      toast.error('Failed to delete project', {
+        description: getApiErrorMessage(error, 'Unknown error'),
       });
-    }
+    },
   });
 }

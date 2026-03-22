@@ -115,7 +115,7 @@ export class WorkflowEngineController {
     summary: 'ดึงรายการปุ่ม Action ที่สามารถกดได้ ณ สถานะปัจจุบัน',
   })
   @RequirePermission('document.view') // ผู้ที่มีสิทธิ์ดูเอกสาร ควรดู Action ได้
-  async getAvailableActions(@Param('id') instanceId: string) {
+  getAvailableActions(@Param('id') _instanceId: string) {
     // Note: Logic การดึง Action ตาม Instance ID จะถูก Implement ใน Task ถัดไป
     return { message: 'Pending implementation in Service layer' };
   }

@@ -60,12 +60,7 @@ This document describes monitoring setup, health checks, and alerting rules for 
 ```typescript
 // File: backend/src/health/health.controller.ts
 import { Controller, Get } from '@nestjs/common';
-import {
-  HealthCheck,
-  HealthCheckService,
-  TypeOrmHealthIndicator,
-  DiskHealthIndicator,
-} from '@nestjs/terminus';
+import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator, DiskHealthIndicator } from '@nestjs/terminus';
 
 @Controller('health')
 export class HealthController {
@@ -190,12 +185,7 @@ done
 
 ```typescript
 // File: backend/src/common/interceptors/performance.interceptor.ts
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { logger } from 'src/config/logger.config';

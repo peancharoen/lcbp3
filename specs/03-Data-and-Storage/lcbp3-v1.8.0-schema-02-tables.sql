@@ -1,4 +1,4 @@
-﻿-- ==========================================================
+-- ==========================================================
 -- DMS v1.8.0 Schema Part 2/3: CREATE TABLE Statements
 -- รัน: mysql < 01-schema-drop.sql แล้วจึงรัน 02-schema-tables.sql
 -- ==========================================================
@@ -105,6 +105,7 @@ CREATE TABLE refresh_tokens (
   expires_at DATETIME NOT NULL COMMENT 'วันหมดอายุ',
   is_revoked TINYINT(1) DEFAULT 0 COMMENT 'สถานะยกเลิก (1=Revoked)',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   replaced_by_token VARCHAR(255) NULL COMMENT 'Token ใหม่ที่มาแทนที่ (Rotation)',
   FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บ Refresh Tokens สำหรับ Authentication';

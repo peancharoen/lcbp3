@@ -10,11 +10,13 @@ related:
 ---
 
 ## Objective
+
 Update backend entities and logic to align with schema v1.7.0 and revised document numbering specifications.
 
 ## Scope of Work
 
 ### 1. Drawing Module
+
 - **Contract Drawings:**
   - Update `ContractDrawing` entity (map_cat_id, volume_page)
   - Create `ContractDrawingSubcatCatMap` entity
@@ -27,11 +29,13 @@ Update backend entities and logic to align with schema v1.7.0 and revised docume
   - Create entities for `asbuilt_drawings` and related tables.
 
 ### 2. Document Numbering Module
+
 - **Counters:**
   - Update `DocumentNumberCounter` entity to match 8-part Composite Key.
   - Ensure strict typing for `reset_scope`.
 
 ## Definition of Done
+
 - [x] All entities match v1.7.0 schema
 - [x] Application compiles without type errors
 - [x] Document Numbering service supports new key structure

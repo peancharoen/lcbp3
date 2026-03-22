@@ -312,6 +312,7 @@ taskkill /PID <PID> /F
 **Problem:** Backend fails to start with "config is not defined" or similar errors.
 
 **Solution:**
+
 ```bash
 # Ensure .env file exists
 ls backend/.env  # Linux/Mac
@@ -330,6 +331,7 @@ docker-compose up -d
 **Problem:** Tables not found or schema mismatch.
 
 **Solution:**
+
 ```bash
 # Check migration status
 docker exec lcbp3-backend npm run migration:show
@@ -349,6 +351,7 @@ docker exec lcbp3-backend npm run migration:revert
 **Problem:** Queue jobs not processing or "ECONNREFUSED" errors.
 
 **Solution:**
+
 ```bash
 # Check if Redis is running
 docker ps | grep redis
@@ -367,6 +370,7 @@ docker logs lcbp3-redis
 **Problem:** Browser blocks API requests with CORS policy errors.
 
 **Solution:**
+
 ```bash
 # Check CORS_ORIGIN in backend/.env
 # Should match frontend URL (e.g., http://localhost:3001)
@@ -383,6 +387,7 @@ docker-compose restart backend
 **Problem:** File uploads return 413 (Payload Too Large) or timeout.
 
 **Solution:**
+
 ```bash
 # Check MAX_FILE_SIZE in .env (default 50MB)
 MAX_FILE_SIZE=52428800
@@ -399,6 +404,7 @@ docker exec lcbp3-backend df -h  # Linux/Mac
 **Problem:** Line ending issues (CRLF vs LF) cause build failures.
 
 **Solution:**
+
 ```bash
 # Configure Git to use LF line endings
 git config --global core.autocrlf input
@@ -415,6 +421,7 @@ git commit -m "Normalize line endings"
 **Problem:** Cannot write files or execute commands inside containers.
 
 **Solution:**
+
 ```bash
 # Windows: Ensure Docker Desktop has access to the drive
 # Settings → Resources → File Sharing
@@ -431,6 +438,7 @@ docker exec lcbp3-backend whoami
 **Problem:** Code changes don't reflect immediately during development.
 
 **Solution:**
+
 ```bash
 # Ensure volumes are mounted correctly in docker-compose.yml
 # Check for:
@@ -453,6 +461,7 @@ docker-compose restart backend
 **Problem:** "Cannot find module" or type errors.
 
 **Solution:**
+
 ```bash
 # Clear build cache
 docker exec lcbp3-backend rm -rf dist
@@ -470,6 +479,7 @@ docker exec lcbp3-backend npm list typescript
 **Problem:** Race condition causes duplicate document numbers.
 
 **Solution:**
+
 ```bash
 # Ensure Redis is running (required for distributed locks)
 docker ps | grep redis
@@ -552,6 +562,7 @@ git push origin feature/my-feature
 - **API Docs:** <http://localhost:3000/api/docs>
 - **Issue Tracker:** [Link to issue tracker]
 - **Slack:** #lcbp3-dms
+
 ### Contact
 
 - **Tech Lead:** peancharoen@gmail.com

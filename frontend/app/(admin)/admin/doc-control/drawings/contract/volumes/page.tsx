@@ -1,19 +1,13 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { GenericCrudTable } from "@/components/admin/reference/generic-crud-table";
-import { ColumnDef } from "@tanstack/react-table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
-import { useProjects } from "@/hooks/use-master-data";
-import { drawingMasterDataService } from "@/lib/services/drawing-master-data.service";
-import { Badge } from "@/components/ui/badge";
+import { useState } from 'react';
+import { GenericCrudTable } from '@/components/admin/reference/generic-crud-table';
+import { ColumnDef } from '@tanstack/react-table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
+import { useProjects } from '@/hooks/use-master-data';
+import { drawingMasterDataService } from '@/lib/services/drawing-master-data.service';
+import { Badge } from '@/components/ui/badge';
 
 interface Volume {
   id: number;
@@ -29,43 +23,34 @@ export default function ContractVolumesPage() {
 
   const columns: ColumnDef<Volume>[] = [
     {
-      accessorKey: "volumeCode",
-      header: "Code",
+      accessorKey: 'volumeCode',
+      header: 'Code',
       cell: ({ row }) => (
         <Badge variant="outline" className="font-mono">
-          {row.getValue("volumeCode")}
+          {row.getValue('volumeCode')}
         </Badge>
       ),
     },
     {
-      accessorKey: "volumeName",
-      header: "Volume Name",
+      accessorKey: 'volumeName',
+      header: 'Volume Name',
     },
     {
-      accessorKey: "description",
-      header: "Description",
-      cell: ({ row }) => (
-        <span className="text-muted-foreground text-sm">
-          {row.getValue("description") || "-"}
-        </span>
-      ),
+      accessorKey: 'description',
+      header: 'Description',
+      cell: ({ row }) => <span className="text-muted-foreground text-sm">{row.getValue('description') || '-'}</span>,
     },
     {
-      accessorKey: "sortOrder",
-      header: "Order",
-      cell: ({ row }) => (
-        <span className="font-mono">{row.getValue("sortOrder")}</span>
-      ),
+      accessorKey: 'sortOrder',
+      header: 'Order',
+      cell: ({ row }) => <span className="font-mono">{row.getValue('sortOrder')}</span>,
     },
   ];
 
   const projectFilter = (
     <div className="flex items-center gap-4">
       <span className="text-sm font-medium">Project:</span>
-      <Select
-        value={selectedProjectId ?? ''}
-        onValueChange={(v) => setSelectedProjectId(v || undefined)}
-      >
+      <Select value={selectedProjectId ?? ''} onValueChange={(v) => setSelectedProjectId(v || undefined)}>
         <SelectTrigger className="w-[300px]">
           {isLoadingProjects ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -89,9 +74,7 @@ export default function ContractVolumesPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Contract Drawing Volumes</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage drawing volumes (เล่ม) for contract drawings
-          </p>
+          <p className="text-muted-foreground mt-1">Manage drawing volumes (เล่ม) for contract drawings</p>
         </div>
         {projectFilter}
         <div className="text-center py-12 text-muted-foreground border rounded-lg border-dashed">
@@ -107,17 +90,22 @@ export default function ContractVolumesPage() {
         entityName="Volume"
         title="Contract Drawing Volumes"
         description="Manage drawing volumes (เล่ม) for contract drawings"
-        queryKey={["contract-drawing-volumes", String(selectedProjectId)]}
+        queryKey={['contract-drawing-volumes', String(selectedProjectId)]}
         fetchFn={() => drawingMasterDataService.getContractVolumes(selectedProjectId)}
-        createFn={(data: Record<string, unknown>) => drawingMasterDataService.createContractVolume({ ...(data as unknown as Parameters<typeof drawingMasterDataService.createContractVolume>[0]), projectId: selectedProjectId })}
+        createFn={(data: Record<string, unknown>) =>
+          drawingMasterDataService.createContractVolume({
+            ...(data as unknown as Parameters<typeof drawingMasterDataService.createContractVolume>[0]),
+            projectId: selectedProjectId,
+          })
+        }
         updateFn={(id, data) => drawingMasterDataService.updateContractVolume(id, data)}
         deleteFn={(id) => drawingMasterDataService.deleteContractVolume(id)}
         columns={columns}
         fields={[
-          { name: "volumeCode", label: "Volume Code", type: "text", required: true },
-          { name: "volumeName", label: "Volume Name", type: "text", required: true },
-          { name: "description", label: "Description", type: "textarea" },
-          { name: "sortOrder", label: "Sort Order", type: "text", required: true },
+          { name: 'volumeCode', label: 'Volume Code', type: 'text', required: true },
+          { name: 'volumeName', label: 'Volume Name', type: 'text', required: true },
+          { name: 'description', label: 'Description', type: 'textarea' },
+          { name: 'sortOrder', label: 'Sort Order', type: 'text', required: true },
         ]}
         filters={projectFilter}
       />

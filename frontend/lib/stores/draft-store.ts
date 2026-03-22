@@ -18,11 +18,12 @@ export const useDraftStore = create<DraftState>()(
       drafts: {},
       saveDraft: (key, data) => set((state) => ({ drafts: { ...state.drafts, [key]: data } })),
       getDraft: (key) => get().drafts[key],
-      clearDraft: (key) => set((state) => {
-        const newDrafts = { ...state.drafts };
-        delete newDrafts[key];
-        return { drafts: newDrafts };
-      }),
+      clearDraft: (key) =>
+        set((state) => {
+          const newDrafts = { ...state.drafts };
+          delete newDrafts[key];
+          return { drafts: newDrafts };
+        }),
     }),
     {
       name: 'lcbp3-form-drafts',

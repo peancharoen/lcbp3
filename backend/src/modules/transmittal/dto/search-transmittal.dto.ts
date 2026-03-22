@@ -1,10 +1,4 @@
-import {
-  IsInt,
-  IsOptional,
-  IsString,
-  IsEnum,
-  IsUUID,
-} from 'class-validator';
+import { IsInt, IsOptional, IsString, IsEnum, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TransmittalPurpose } from './create-transmittal.dto';
 

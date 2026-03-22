@@ -131,8 +131,8 @@ Check LCBP3-DMS-specific file handling per ADR-016:
 
 ## Severity Classification
 
-| Severity       | Description                                           | Response                |
-| -------------- | ----------------------------------------------------- | ----------------------- |
+| Severity        | Description                                           | Response                |
+| --------------- | ----------------------------------------------------- | ----------------------- |
 | 🔴 **Critical** | Exploitable vulnerability, data exposure, auth bypass | Immediate fix required  |
 | 🟠 **High**     | Missing security control, potential escalation path   | Fix before next release |
 | 🟡 **Medium**   | Best practice violation, defense-in-depth gap         | Plan fix in sprint      |
@@ -151,8 +151,8 @@ Generate a structured report:
 
 ## Summary
 
-| Severity   | Count |
-| ---------- | ----- |
+| Severity    | Count |
+| ----------- | ----- |
 | 🔴 Critical | X     |
 | 🟠 High     | X     |
 | 🟡 Medium   | X     |
@@ -179,8 +179,8 @@ Generate a structured report:
 
 | Module | Controller      | Guard? | Policies? | Level        |
 | ------ | --------------- | ------ | --------- | ------------ |
-| auth   | AuthController  | ✅      | ✅         | N/A (public) |
-| users  | UsersController | ✅      | ✅         | L1-L4        |
+| auth   | AuthController  | ✅     | ✅        | N/A (public) |
+| users  | UsersController | ✅     | ✅        | L1-L4        |
 | ...    | ...             | ...    | ...       | ...          |
 
 ## Recommendations Priority

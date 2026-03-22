@@ -542,9 +542,7 @@ PARTITION BY RANGE (YEAR(created_at)) (
 // File: backend/src/migrations/1234567890-AddDisciplineToCorrespondences.ts
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddDisciplineToCorrespondences1234567890
-  implements MigrationInterface
-{
+export class AddDisciplineToCorrespondences1234567890 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE correspondences
@@ -561,12 +559,8 @@ export class AddDisciplineToCorrespondences1234567890
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE correspondences DROP FOREIGN KEY fk_corr_discipline`
-    );
-    await queryRunner.query(
-      `ALTER TABLE correspondences DROP COLUMN discipline_id`
-    );
+    await queryRunner.query(`ALTER TABLE correspondences DROP FOREIGN KEY fk_corr_discipline`);
+    await queryRunner.query(`ALTER TABLE correspondences DROP COLUMN discipline_id`);
   }
 }
 ```

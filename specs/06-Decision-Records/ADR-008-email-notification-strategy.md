@@ -253,10 +253,28 @@ export class EmailProcessor {
 <html>
   <head>
     <style>
-      body { font-family: Arial, sans-serif; } .container { max-width: 600px;
-      margin: 0 auto; padding: 20px; } .header { background: #007bff; color:
-      white; padding: 20px; } .content { padding: 20px; } .button { background:
-      #007bff; color: white; padding: 10px 20px; text-decoration: none; }
+      body {
+        font-family: Arial, sans-serif;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: #007bff;
+        color: white;
+        padding: 20px;
+      }
+      .content {
+        padding: 20px;
+      }
+      .button {
+        background: #007bff;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+      }
     </style>
   </head>
   <body>

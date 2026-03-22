@@ -15,11 +15,15 @@ export interface CircuitBreakerOptions {
  */
 export function UseCircuitBreaker(options: CircuitBreakerOptions = {}) {
   return function (
-    target: any,
+    target: object,
     propertyKey: string,
-    descriptor: PropertyDescriptor
+    descriptor: TypedPropertyDescriptor<
+      (...args: unknown[]) => Promise<unknown>
+    >
   ) {
     const originalMethod = descriptor.value;
+    if (!originalMethod) return;
+
     const logger = new Logger('CircuitBreakerDecorator');
 
     // สร้าง Opossum Circuit Breaker Instance
@@ -39,7 +43,7 @@ export function UseCircuitBreaker(options: CircuitBreakerOptions = {}) {
       breaker.fallback(options.fallback);
     }
 
-    descriptor.value = async function (...args: unknown[]) {
+    descriptor.value = async function (this: unknown, ...args: unknown[]) {
       // ✅ ใช้ .fire โดยส่ง this context ให้ถูกต้อง
       return breaker.fire.apply(breaker, [this, ...args]);
     };

@@ -58,7 +58,7 @@ export default function NumberingPage() {
   const contractId = firstContract?.uuid ?? firstContract?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
 
-  const { data: templateResponse, isLoading: isLoadingTemplates } = useTemplates();
+  const { data: templateResponse, isLoading: _isLoadingTemplates } = useTemplates();
   const saveTemplateMutation = useSaveTemplate();
 
   // Extract templates array from response
@@ -144,7 +144,12 @@ export default function NumberingPage() {
             <div className="lg:col-span-2 space-y-4">
               <div className="grid gap-4">
                 {templates
-                  .filter((t) => !t.projectId || String(t.project?.id ?? t.project?.uuid) === selectedProjectId || t.project?.uuid === selectedProjectId)
+                  .filter(
+                    (t) =>
+                      !t.projectId ||
+                      String(t.project?.id ?? t.project?.uuid) === selectedProjectId ||
+                      t.project?.uuid === selectedProjectId
+                  )
                   .map((template) => (
                     <Card key={template.id} className="p-6 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">

@@ -1,56 +1,49 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { migrationService } from "@/lib/services/migration.service";
-import { MigrationReviewQueueItem, MigrationReviewStatus } from "@/types/migration";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
-import { EyeIcon, FileXIcon, CheckSquareIcon } from "lucide-react";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getApiErrorMessage } from "@/types/api-error";
+import { useEffect, useState, useCallback } from 'react';
+import { migrationService } from '@/lib/services/migration.service';
+import { MigrationReviewQueueItem, MigrationReviewStatus } from '@/types/migration';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+import { EyeIcon, FileXIcon, CheckSquareIcon } from 'lucide-react';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getApiErrorMessage } from '@/types/api-error';
 
 export default function MigrationReviewQueuePage() {
   const [items, setItems] = useState<MigrationReviewQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("PENDING");
+  const [statusFilter, setStatusFilter] = useState<string>('PENDING');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [statusFilter]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage(null);
       const res = await migrationService.getReviewQueue({
-        status: statusFilter === "ALL" ? undefined : (statusFilter as MigrationReviewStatus),
+        status: statusFilter === 'ALL' ? undefined : (statusFilter as MigrationReviewStatus),
         limit: 50,
       });
       setItems(Array.isArray(res.items) ? res.items : []);
       setSelectedIds([]); // reset selection on fetch
     } catch (error: unknown) {
       setItems([]);
-      setErrorMessage(getApiErrorMessage(error, "Failed to load queue"));
+      setErrorMessage(getApiErrorMessage(error, 'Failed to load queue'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleToggleSelectAll = () => {
     if (selectedIds.length === items.length) {
@@ -61,9 +54,7 @@ export default function MigrationReviewQueuePage() {
   };
 
   const handleToggleSelect = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
   };
 
   const handleBatchApprove = async () => {
@@ -89,20 +80,17 @@ export default function MigrationReviewQueuePage() {
             sender_id: item.senderOrganizationId,
             receiver_id: item.receiverOrganizationId,
             details: {
-              tags: item.extractedTags
-            }
-          }
+              tags: item.extractedTags,
+            },
+          },
         }));
 
       const batchId = `BATCH_UI_${Date.now()}`;
-      await migrationService.commitBatch(
-        { items: batchItems, batchId },
-        batchId
-      );
+      await migrationService.commitBatch({ items: batchItems, batchId }, batchId);
 
       fetchData();
-    } catch (error) {
-      toast.error("Batch commit failed.");
+    } catch (_error) {
+      toast.error('Batch commit failed.');
     } finally {
       setSubmitting(false);
     }
@@ -113,19 +101,13 @@ export default function MigrationReviewQueuePage() {
       <div className="flex justify-between flex-wrap gap-4 items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Migration Review Queue</h1>
-          <p className="text-muted-foreground mt-1">
-            Review and correct documents that AI flagged as low confidence.
-          </p>
+          <p className="text-muted-foreground mt-1">Review and correct documents that AI flagged as low confidence.</p>
         </div>
         <div className="flex items-center gap-4">
           {selectedIds.length > 0 && (
-            <Button
-              variant="default"
-              onClick={handleBatchApprove}
-              disabled={submitting}
-            >
+            <Button variant="default" onClick={handleBatchApprove} disabled={submitting}>
               <CheckSquareIcon className="mr-2 h-4 w-4" />
-              {submitting ? "Processing..." : `Batch Approve (${selectedIds.length})`}
+              {submitting ? 'Processing...' : `Batch Approve (${selectedIds.length})`}
             </Button>
           )}
           <Link href="/admin/migration/errors">
@@ -192,28 +174,36 @@ export default function MigrationReviewQueuePage() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{item.documentNumber}</TableCell>
-                      <TableCell>{item.aiSuggestedCategory || "Unknown"}</TableCell>
+                      <TableCell>{item.aiSuggestedCategory || 'Unknown'}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
                             !item.aiConfidence
-                              ? "destructive"
+                              ? 'destructive'
                               : item.aiConfidence > 0.8
-                                ? "default"
+                                ? 'default'
                                 : item.aiConfidence > 0.5
-                                  ? "secondary"
-                                  : "destructive"
+                                  ? 'secondary'
+                                  : 'destructive'
                           }
                         >
-                          {item.aiConfidence ? (item.aiConfidence * 100).toFixed(1) + "%" : "N/A"}
+                          {item.aiConfidence ? (item.aiConfidence * 100).toFixed(1) + '%' : 'N/A'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={item.status === 'PENDING' ? 'outline' : item.status === 'APPROVED' ? 'default' : 'destructive'}>
+                        <Badge
+                          variant={
+                            item.status === 'PENDING'
+                              ? 'outline'
+                              : item.status === 'APPROVED'
+                                ? 'default'
+                                : 'destructive'
+                          }
+                        >
                           {item.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{format(new Date(item.createdAt), "dd MMM yyyy, HH:mm")}</TableCell>
+                      <TableCell>{format(new Date(item.createdAt), 'dd MMM yyyy, HH:mm')}</TableCell>
                       <TableCell className="text-right">
                         <Link href={`/admin/migration/review/${item.id}`}>
                           <Button size="sm" variant="ghost">

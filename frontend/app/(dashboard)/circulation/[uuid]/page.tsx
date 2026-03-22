@@ -1,42 +1,42 @@
-"use client";
+'use client';
 
-import { useParams } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { circulationService } from "@/lib/services/circulation.service";
-import { Circulation, UpdateCirculationRoutingDto } from "@/types/circulation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, RefreshCw, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
-import { format } from "date-fns";
-import { toast } from "sonner";
+import { useParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { circulationService } from '@/lib/services/circulation.service';
+import { Circulation, UpdateCirculationRoutingDto } from '@/types/circulation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 /**
  * Get initials from name
  */
 function getInitials(firstName?: string, lastName?: string): string {
-  const first = firstName?.charAt(0) || "";
-  const last = lastName?.charAt(0) || "";
-  return (first + last).toUpperCase() || "?";
+  const first = firstName?.charAt(0) || '';
+  const last = lastName?.charAt(0) || '';
+  return (first + last).toUpperCase() || '?';
 }
 
 /**
  * Get status badge variant
  */
-function getStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status?.toUpperCase()) {
-    case "PENDING":
-      return "outline";
-    case "IN_PROGRESS":
-      return "default";
-    case "COMPLETED":
-      return "secondary";
-    case "REJECTED":
-      return "destructive";
+    case 'PENDING':
+      return 'outline';
+    case 'IN_PROGRESS':
+      return 'default';
+    case 'COMPLETED':
+      return 'secondary';
+    case 'REJECTED':
+      return 'destructive';
     default:
-      return "outline";
+      return 'outline';
   }
 }
 
@@ -45,8 +45,12 @@ export default function CirculationDetailPage() {
   const queryClient = useQueryClient();
   const uuid = params.uuid as string;
 
-  const { data: circulation, isLoading, error } = useQuery<Circulation>({
-    queryKey: ["circulation", uuid],
+  const {
+    data: circulation,
+    isLoading,
+    error,
+  } = useQuery<Circulation>({
+    queryKey: ['circulation', uuid],
     queryFn: () => circulationService.getByUuid(uuid),
     enabled: !!uuid,
   });
@@ -55,18 +59,18 @@ export default function CirculationDetailPage() {
     mutationFn: ({ routingId, data }: { routingId: number; data: UpdateCirculationRoutingDto }) =>
       circulationService.updateRouting(routingId, data),
     onSuccess: () => {
-      toast.success("Task completed successfully");
-      queryClient.invalidateQueries({ queryKey: ["circulation", uuid] });
+      toast.success('Task completed successfully');
+      queryClient.invalidateQueries({ queryKey: ['circulation', uuid] });
     },
     onError: () => {
-      toast.error("Failed to update task status");
+      toast.error('Failed to update task status');
     },
   });
 
   const handleComplete = (routingId: number) => {
     completeMutation.mutate({
       routingId,
-      data: { status: "COMPLETED", comments: "Completed via UI" },
+      data: { status: 'COMPLETED', comments: 'Completed via UI' },
     });
   };
 
@@ -109,9 +113,7 @@ export default function CirculationDetailPage() {
             <p className="text-muted-foreground">{circulation.subject}</p>
           </div>
         </div>
-        <Badge variant={getStatusVariant(circulation.statusCode)}>
-          {circulation.statusCode}
-        </Badge>
+        <Badge variant={getStatusVariant(circulation.statusCode)}>{circulation.statusCode}</Badge>
       </div>
 
       {/* Info Card */}
@@ -122,24 +124,20 @@ export default function CirculationDetailPage() {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div>
             <p className="text-sm text-muted-foreground">Organization</p>
-            <p className="font-medium">
-              {circulation.organization?.organization_name || "-"}
-            </p>
+            <p className="font-medium">{circulation.organization?.organization_name || '-'}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Created By</p>
             <p className="font-medium">
               {circulation.creator
-                ? `${circulation.creator.first_name || ""} ${circulation.creator.last_name || ""}`.trim() ||
+                ? `${circulation.creator.first_name || ''} ${circulation.creator.last_name || ''}`.trim() ||
                   circulation.creator.username
-                : "-"}
+                : '-'}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Created At</p>
-            <p className="font-medium">
-              {format(new Date(circulation.createdAt), "dd MMM yyyy, HH:mm")}
-            </p>
+            <p className="font-medium">{format(new Date(circulation.createdAt), 'dd MMM yyyy, HH:mm')}</p>
           </div>
           {circulation.correspondence && (
             <div>
@@ -164,25 +162,19 @@ export default function CirculationDetailPage() {
           {circulation.routings && circulation.routings.length > 0 ? (
             <div className="space-y-3">
               {circulation.routings.map((routing) => (
-                <div
-                  key={routing.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
+                <div key={routing.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarFallback>
-                        {getInitials(
-                          routing.assignee?.first_name,
-                          routing.assignee?.last_name
-                        )}
+                        {getInitials(routing.assignee?.first_name, routing.assignee?.last_name)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">
                         {routing.assignee
-                          ? `${routing.assignee.first_name || ""} ${routing.assignee.last_name || ""}`.trim() ||
+                          ? `${routing.assignee.first_name || ''} ${routing.assignee.last_name || ''}`.trim() ||
                             routing.assignee.username
-                          : "Unassigned"}
+                          : 'Unassigned'}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Step {routing.stepNumber}
@@ -191,10 +183,8 @@ export default function CirculationDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={getStatusVariant(routing.status)}>
-                      {routing.status}
-                    </Badge>
-                    {routing.status === "PENDING" && (
+                    <Badge variant={getStatusVariant(routing.status)}>{routing.status}</Badge>
+                    {routing.status === 'PENDING' && (
                       <Button
                         size="sm"
                         onClick={() => handleComplete(routing.id)}

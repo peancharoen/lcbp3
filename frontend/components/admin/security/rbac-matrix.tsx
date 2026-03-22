@@ -1,20 +1,13 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { RefreshCw, Save } from "lucide-react";
-import { toast } from "sonner";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@/lib/api/client";
+import { useState } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Save } from 'lucide-react';
+import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import apiClient from '@/lib/api/client';
 
 interface Role {
   roleId: number;
@@ -28,7 +21,7 @@ interface Permission {
   description: string;
 }
 
-interface RbacMatrixProps {
+interface _RbacMatrixProps {
   roles: Role[];
   permissions: Permission[];
   rolePermissions: Record<number, number[]>; // roleId -> permissionIds[]
@@ -42,7 +35,7 @@ const extractArrayData = <T,>(value: unknown): T[] => {
       return current as T[];
     }
 
-    if (!current || typeof current !== "object" || !("data" in current)) {
+    if (!current || typeof current !== 'object' || !('data' in current)) {
       return [];
     }
 
@@ -54,11 +47,11 @@ const extractArrayData = <T,>(value: unknown): T[] => {
 
 const securityService = {
   getRoles: async (): Promise<Role[]> => {
-    const response = await apiClient.get("/users/roles");
+    const response = await apiClient.get('/users/roles');
     return extractArrayData<Role>(response.data);
   },
   getPermissions: async (): Promise<Permission[]> => {
-    const response = await apiClient.get("/users/permissions");
+    const response = await apiClient.get('/users/permissions');
     return extractArrayData<Permission>(response.data);
   },
   updateRolePermissions: async (roleId: number, permissionIds: number[]) => {
@@ -73,12 +66,12 @@ export function RbacMatrix() {
   const [pendingChanges, setPendingChanges] = useState<Record<number, number[]>>({});
 
   const { data: roles = [], isLoading: rolesLoading } = useQuery<Role[]>({
-    queryKey: ["roles"],
+    queryKey: ['roles'],
     queryFn: securityService.getRoles,
   });
 
   const { data: permissions = [], isLoading: permsLoading } = useQuery<Permission[]>({
-    queryKey: ["permissions"],
+    queryKey: ['permissions'],
     queryFn: securityService.getPermissions,
   });
 
@@ -92,16 +85,16 @@ export function RbacMatrix() {
   const updateMutation = useMutation({
     mutationFn: async (changes: Record<number, number[]>) => {
       const promises = Object.entries(changes).map(([roleId, perms]) =>
-        securityService.updateRolePermissions(parseInt(roleId), perms)
+        securityService.updateRolePermissions(Number(roleId), perms)
       );
       return Promise.all(promises);
     },
     onSuccess: () => {
-      toast.success("Permissions updated successfully");
+      toast.success('Permissions updated successfully');
       setPendingChanges({});
-      queryClient.invalidateQueries({ queryKey: ["roles"] });
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
     },
-    onError: () => toast.error("Failed to update permissions"),
+    onError: () => toast.error('Failed to update permissions'),
   });
 
   const handleToggle = (roleId: number, permId: number, currentPerms: number[]) => {

@@ -1,4 +1,5 @@
 # 04.1 Infrastructure Setup & Docker Compose
+
 **Project:** LCBP3-DMS
 **Version:** 1.8.0
 **Status:** Active
@@ -396,9 +397,7 @@ Backend validates environment variables at startup:
 import * as Joi from 'joi';
 
 export const envValidationSchema = Joi.object({
-  NODE_ENV: Joi.string()
-    .valid('development', 'staging', 'production')
-    .required(),
+  NODE_ENV: Joi.string().valid('development', 'staging', 'production').required(),
   DB_HOST: Joi.string().required(),
   DB_PORT: Joi.number().default(3306),
   DB_USER: Joi.string().required(),
@@ -480,7 +479,6 @@ docker exec lcbp3-backend env | grep NODE_ENV
 **Last Review:** 2025-12-01
 **Next Review:** 2026-03-01
 
-
 ---
 
 # Infrastructure Setup
@@ -502,6 +500,7 @@ docker exec lcbp3-backend env | grep NODE_ENV
 ## 1. Redis Configuration (Standalone + Persistence)
 
 ### 1.1 Docker Compose Setup
+
 ```yaml
 # docker-compose-redis.yml
 version: '3.8'
@@ -530,10 +529,10 @@ networks:
     external: true
 ```
 
-
 ## 2. Database Configuration
 
 ### 2.1 MariaDB Optimization for Numbering
+
 ```sql
 -- /etc/mysql/mariadb.conf.d/50-numbering.cnf
 
@@ -568,6 +567,7 @@ long_query_time = 1
 ```
 
 ### 2.2 Monitoring Locks
+
 ```sql
 -- Check for lock contention
 SELECT
@@ -595,6 +595,7 @@ KILL <thread_id>;
 ### 3.1 Backend Service Deployment
 
 #### Docker Compose
+
 ```yaml
 # docker-compose-backend.yml
 version: '3.8'
@@ -611,7 +612,7 @@ services:
       - NUMBERING_LOCK_TIMEOUT=5000
       - NUMBERING_RESERVATION_TTL=300
     ports:
-      - "3001:3000"
+      - '3001:3000'
     depends_on:
       - mariadb
       - cache
@@ -619,7 +620,7 @@ services:
       - lcbp3
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -633,7 +634,7 @@ services:
       - REDIS_HOST=cache
       - REDIS_PORT=6379
     ports:
-      - "3002:3000"
+      - '3002:3000'
     depends_on:
       - mariadb
       - cache
@@ -647,6 +648,7 @@ networks:
 ```
 
 #### Health Check Endpoint
+
 ```typescript
 // health/numbering.health.ts
 import { Injectable } from '@nestjs/common';
@@ -658,17 +660,13 @@ import { DataSource } from 'typeorm';
 export class NumberingHealthIndicator extends HealthIndicator {
   constructor(
     private redis: Redis,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {
     super();
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
-    const checks = await Promise.all([
-      this.checkRedis(),
-      this.checkDatabase(),
-      this.checkSequenceIntegrity(),
-    ]);
+    const checks = await Promise.all([this.checkRedis(), this.checkDatabase(), this.checkSequenceIntegrity()]);
 
     const isHealthy = checks.every((check) => check.status === 'up');
 
@@ -737,7 +735,7 @@ alerting:
             - alertmanager:9093
 
 rule_files:
-  - "/etc/prometheus/alerts/numbering.yml"
+  - '/etc/prometheus/alerts/numbering.yml'
 
 scrape_configs:
   - job_name: 'backend'
@@ -815,6 +813,7 @@ receivers:
 ### 4.3 Grafana Dashboards
 
 #### Import Dashboard JSON
+
 ```bash
 # Download dashboard template
 curl -o numbering-dashboard.json \
@@ -827,6 +826,7 @@ curl -X POST http://admin:admin@localhost:3000/api/dashboards/db \
 ```
 
 #### Key Panels to Monitor
+
 1. **Numbers Generated per Minute** - Rate of number creation
 2. **Sequence Utilization** - Current usage vs max (alert >90%)
 3. **Lock Wait Time (p95)** - Performance indicator
@@ -841,6 +841,7 @@ curl -X POST http://admin:admin@localhost:3000/api/dashboards/db \
 ### 5.1 Database Backup Strategy
 
 #### Automated Backup Script
+
 ```bash
 #!/bin/bash
 # scripts/backup-numbering-db.sh
@@ -875,6 +876,7 @@ echo "✅ Backup complete: numbering_$DATE.sql.gz"
 ```
 
 #### Cron Schedule
+
 ```cron
 # Run backup daily at 2 AM
 0 2 * * * /opt/lcbp3/scripts/backup-numbering-db.sh >> /var/log/numbering-backup.log 2>&1
@@ -886,6 +888,7 @@ echo "✅ Backup complete: numbering_$DATE.sql.gz"
 ### 5.2 Redis Backup
 
 #### Enable RDB Persistence
+
 ```conf
 # redis.conf
 save 900 1      # Save if 1 key changed after 900 seconds
@@ -902,6 +905,7 @@ appendfsync everysec
 ```
 
 #### Backup Script
+
 ```bash
 #!/bin/bash
 # scripts/backup-redis.sh
@@ -941,6 +945,7 @@ echo "✅ Redis backup complete: redis_${DATE}.tar.gz"
 ### 5.3 Recovery Procedures
 
 #### Scenario 1: Restore from Database Backup
+
 ```bash
 #!/bin/bash
 # scripts/restore-numbering-db.sh
@@ -976,6 +981,7 @@ echo "🔄 Please verify sequence integrity"
 ```
 
 #### Scenario 2: Redis Failure
+
 ```bash
 # Check Redis status
 docker exec cache redis-cli ping
@@ -997,6 +1003,7 @@ docker exec cache redis-cli ping
 ### 6.1 Sequence Adjustment
 
 #### Increase Max Value
+
 ```sql
 -- Check current utilization
 SELECT
@@ -1026,6 +1033,7 @@ INSERT INTO document_numbering_audit_logs (
 ```
 
 #### Reset Yearly Sequence
+
 ```sql
 -- For document types with yearly reset
 -- Run on January 1st
@@ -1091,6 +1099,7 @@ LINES TERMINATED BY '\n';
 ### 6.3 Redis Maintenance
 
 #### Flush Expired Reservations
+
 ```bash
 #!/bin/bash
 # scripts/cleanup-expired-reservations.sh
@@ -1122,6 +1131,7 @@ echo "✅ Cleaned up $COUNT expired reservations"
 ### 7.1 Total System Failure
 
 #### Recovery Steps
+
 ```bash
 #!/bin/bash
 # scripts/disaster-recovery.sh
@@ -1184,7 +1194,9 @@ echo "⚠️  Please verify system functionality manually"
 **Alert**: `SequenceWarning` or `SequenceCritical`
 
 **Steps**:
+
 1. Check current utilization
+
    ```sql
    SELECT document_type, current_value, max_value,
           ROUND((current_value * 100.0 / max_value), 2) as pct
@@ -1199,6 +1211,7 @@ echo "⚠️  Please verify system functionality manually"
    - Days until exhaustion?
 
 3. Take action
+
    ```sql
    -- Option A: Increase max_value
    UPDATE document_numbering_configs
@@ -1219,13 +1232,16 @@ echo "⚠️  Please verify system functionality manually"
 **Alert**: `HighLockWaitTime`
 
 **Steps**:
+
 1. Check Redis cluster health
+
    ```bash
    docker exec lcbp3-redis-1 redis-cli cluster info
    docker exec lcbp3-redis-1 redis-cli cluster nodes
    ```
 
 2. Check database locks
+
    ```sql
    SELECT * FROM information_schema.innodb_lock_waits;
    SELECT * FROM information_schema.innodb_trx
@@ -1251,18 +1267,22 @@ echo "⚠️  Please verify system functionality manually"
 **Alert**: `RedisUnavailable`
 
 **Steps**:
+
 1. Verify Redis is down
+
    ```bash
    docker exec cache redis-cli ping || echo "Redis DOWN"
    ```
 
 2. Check system falls back to DB-only mode
+
    ```bash
    curl http://localhost:3001/health/numbering
    # Should show: fallback_mode: true
    ```
 
 3. Restart Redis container
+
    ```bash
    docker restart cache
    sleep 10
@@ -1270,11 +1290,13 @@ echo "⚠️  Please verify system functionality manually"
    ```
 
 4. If restart fails, restore from backup
+
    ```bash
    ./scripts/restore-redis.sh /backups/redis/latest.tar.gz
    ```
 
 5. Verify numbering system back to normal
+
    ```bash
    curl http://localhost:3001/health/numbering
    # Should show: fallback_mode: false
@@ -1292,6 +1314,7 @@ echo "⚠️  Please verify system functionality manually"
 ### 9.1 Slow Number Generation
 
 **Diagnosis**:
+
 ```sql
 -- Check slow queries
 SELECT * FROM mysql.slow_log
@@ -1306,6 +1329,7 @@ FOR UPDATE;
 ```
 
 **Optimizations**:
+
 ```sql
 -- Add missing indexes
 CREATE INDEX idx_sequence_lookup
@@ -1373,8 +1397,8 @@ networks:
         - subnet: 172.20.0.0/16
     driver_opts:
       com.docker.network.bridge.name: lcbp3-br
-      com.docker.network.bridge.enable_icc: "true"
-      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.enable_icc: 'true'
+      com.docker.network.bridge.enable_ip_masquerade: 'true'
 ```
 
 ---
@@ -1383,7 +1407,7 @@ networks:
 
 ### 11.1 Audit Log Retention
 
-```sql
+````sql
 -- Export audit logs for compliance
 SELECT *
 FROM document_numbering
@@ -1419,7 +1443,7 @@ chmod 755 /share/np-dms/pma/tmp
 # CREATE USER 'exporter'@'%' IDENTIFIED BY '<PASSWORD>' WITH MAX_USER_CONNECTIONS 3;
 # GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'%';
 # FLUSH PRIVILEGES;
-```
+````
 
 ### Add Databases for NPM & Gitea
 
@@ -1444,10 +1468,10 @@ x-restart: &restart_policy
 
 x-logging: &default_logging
   logging:
-    driver: "json-file"
+    driver: 'json-file'
     options:
-      max-size: "10m"
-      max-file: "5"
+      max-size: '10m'
+      max-file: '5'
 
 networks:
   lcbp3:
@@ -1463,27 +1487,27 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"
+          cpus: '2.0'
           memory: 4G
         reservations:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 1G
     environment:
-      MYSQL_ROOT_PASSWORD: "<ROOT_PASSWORD>"
-      MYSQL_DATABASE: "lcbp3"
-      MYSQL_USER: "center"
-      MYSQL_PASSWORD: "<PASSWORD>"
-      TZ: "Asia/Bangkok"
+      MYSQL_ROOT_PASSWORD: '<ROOT_PASSWORD>'
+      MYSQL_DATABASE: 'lcbp3'
+      MYSQL_USER: 'center'
+      MYSQL_PASSWORD: '<PASSWORD>'
+      TZ: 'Asia/Bangkok'
     ports:
-      - "3306:3306"
+      - '3306:3306'
     networks:
       - lcbp3
     volumes:
-      - "/share/np-dms/mariadb/data:/var/lib/mysql"
-      - "/share/np-dms/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf:ro"
-      - "/share/np-dms/mariadb/init:/docker-entrypoint-initdb.d:ro"
+      - '/share/np-dms/mariadb/data:/var/lib/mysql'
+      - '/share/np-dms/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf:ro'
+      - '/share/np-dms/mariadb/init:/docker-entrypoint-initdb.d:ro'
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
       interval: 10s
       timeout: 5s
       retries: 3
@@ -1496,22 +1520,22 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
+          cpus: '0.25'
           memory: 256M
     environment:
-      TZ: "Asia/Bangkok"
-      PMA_HOST: "mariadb"
-      PMA_PORT: "3306"
-      PMA_ABSOLUTE_URI: "https://pma.np-dms.work/"
-      UPLOAD_LIMIT: "1G"
-      MEMORY_LIMIT: "512M"
+      TZ: 'Asia/Bangkok'
+      PMA_HOST: 'mariadb'
+      PMA_PORT: '3306'
+      PMA_ABSOLUTE_URI: 'https://pma.np-dms.work/'
+      UPLOAD_LIMIT: '1G'
+      MEMORY_LIMIT: '512M'
     ports:
-      - "89:80"
+      - '89:80'
     networks:
       - lcbp3
     volumes:
-      - "/share/np-dms/pma/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro"
-      - "/share/np-dms/pma/tmp:/var/lib/phpmyadmin/tmp:rw"
+      - '/share/np-dms/pma/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro'
+      - '/share/np-dms/pma/tmp:/var/lib/phpmyadmin/tmp:rw'
     depends_on:
       mariadb:
         condition: service_healthy
@@ -1546,10 +1570,10 @@ x-restart: &restart_policy
 
 x-logging: &default_logging
   logging:
-    driver: "json-file"
+    driver: 'json-file'
     options:
-      max-size: "10m"
-      max-file: "5"
+      max-size: '10m'
+      max-file: '5'
 
 networks:
   lcbp3:
@@ -1563,21 +1587,21 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
+          cpus: '1.0'
           memory: 2G
         reservations:
-          cpus: "0.25"
+          cpus: '0.25'
           memory: 512M
     environment:
-      TZ: "Asia/Bangkok"
+      TZ: 'Asia/Bangkok'
     ports:
-      - "6379:6379"
+      - '6379:6379'
     networks:
       - lcbp3
     volumes:
-      - "/share/np-dms/services/cache/data:/data"
+      - '/share/np-dms/services/cache/data:/data'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -1589,25 +1613,29 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"
+          cpus: '2.0'
           memory: 4G
         reservations:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 2G
     environment:
-      TZ: "Asia/Bangkok"
-      discovery.type: "single-node"
-      xpack.security.enabled: "false"
+      TZ: 'Asia/Bangkok'
+      discovery.type: 'single-node'
+      xpack.security.enabled: 'false'
       # Heap locked at 1GB per ADR-005
-      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+      ES_JAVA_OPTS: '-Xms1g -Xmx1g'
     ports:
-      - "9200:9200"
+      - '9200:9200'
     networks:
       - lcbp3
     volumes:
-      - "/share/np-dms/services/search/data:/usr/share/elasticsearch/data"
+      - '/share/np-dms/services/search/data:/usr/share/elasticsearch/data'
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      test:
+        [
+          'CMD-SHELL',
+          "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -1622,15 +1650,15 @@ services:
 
 ### NPM Proxy Host Config Reference
 
-| Domain                | Forward Host | Port | Cache | Block Exploits | WebSocket | SSL  |
-| :-------------------- | :----------- | :--- | :---- | :------------- | :-------- | :--- |
-| `backend.np-dms.work` | `backend`    | 3000 | ❌     | ✅              | ❌         | ✅    |
-| `lcbp3.np-dms.work`   | `frontend`   | 3000 | ✅     | ✅              | ✅         | ✅    |
-| `git.np-dms.work`     | `gitea`      | 3000 | ✅     | ✅              | ✅         | ✅    |
-| `n8n.np-dms.work`     | `n8n`        | 5678 | ✅     | ✅              | ✅         | ✅    |
-| `chat.np-dms.work`    | `rocketchat` | 3000 | ✅     | ✅              | ✅         | ✅    |
-| `npm.np-dms.work`     | `npm`        | 81   | ❌     | ✅              | ✅         | ✅    |
-| `pma.np-dms.work`     | `pma`        | 80   | ✅     | ✅              | ❌         | ✅    |
+| Domain                | Forward Host | Port | Cache | Block Exploits | WebSocket | SSL |
+| :-------------------- | :----------- | :--- | :---- | :------------- | :-------- | :-- |
+| `backend.np-dms.work` | `backend`    | 3000 | ❌    | ✅             | ❌        | ✅  |
+| `lcbp3.np-dms.work`   | `frontend`   | 3000 | ✅    | ✅             | ✅        | ✅  |
+| `git.np-dms.work`     | `gitea`      | 3000 | ✅    | ✅             | ✅        | ✅  |
+| `n8n.np-dms.work`     | `n8n`        | 5678 | ✅    | ✅             | ✅        | ✅  |
+| `chat.np-dms.work`    | `rocketchat` | 3000 | ✅    | ✅             | ✅        | ✅  |
+| `npm.np-dms.work`     | `npm`        | 81   | ❌    | ✅             | ✅        | ✅  |
+| `pma.np-dms.work`     | `pma`        | 80   | ✅    | ✅             | ❌        | ✅  |
 
 ```yaml
 # /share/np-dms/npm/docker-compose.yml
@@ -1639,10 +1667,10 @@ x-restart: &restart_policy
 
 x-logging: &default_logging
   logging:
-    driver: "json-file"
+    driver: 'json-file'
     options:
-      max-size: "10m"
-      max-file: "5"
+      max-size: '10m'
+      max-file: '5'
 
 networks:
   lcbp3:
@@ -1659,34 +1687,34 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
+          cpus: '1.0'
           memory: 512M
     ports:
-      - "80:80"
-      - "443:443"
-      - "81:81"
+      - '80:80'
+      - '443:443'
+      - '81:81'
     environment:
-      TZ: "Asia/Bangkok"
-      DB_MYSQL_HOST: "mariadb"
+      TZ: 'Asia/Bangkok'
+      DB_MYSQL_HOST: 'mariadb'
       DB_MYSQL_PORT: 3306
-      DB_MYSQL_USER: "npm"
-      DB_MYSQL_PASSWORD: "npm"
-      DB_MYSQL_NAME: "npm"
-      DISABLE_IPV6: "true"
+      DB_MYSQL_USER: 'npm'
+      DB_MYSQL_PASSWORD: 'npm'
+      DB_MYSQL_NAME: 'npm'
+      DISABLE_IPV6: 'true'
     networks:
       - lcbp3
       - giteanet
     volumes:
-      - "/share/np-dms/npm/data:/data"
-      - "/share/np-dms/npm/letsencrypt:/etc/letsencrypt"
-      - "/share/np-dms/npm/custom:/data/nginx/custom"
+      - '/share/np-dms/npm/data:/data'
+      - '/share/np-dms/npm/letsencrypt:/etc/letsencrypt'
+      - '/share/np-dms/npm/custom:/data/nginx/custom'
 
   landing:
     image: nginx:1.27-alpine
     container_name: landing
     restart: unless-stopped
     volumes:
-      - "/share/np-dms/npm/landing:/usr/share/nginx/html:ro"
+      - '/share/np-dms/npm/landing:/usr/share/nginx/html:ro'
     networks:
       - lcbp3
 ```
@@ -1722,25 +1750,25 @@ services:
     container_name: gitea
     restart: always
     environment:
-      USER_UID: "1000"
-      USER_GID: "1000"
+      USER_UID: '1000'
+      USER_GID: '1000'
       TZ: Asia/Bangkok
       GITEA__server__ROOT_URL: https://git.np-dms.work/
       GITEA__server__DOMAIN: git.np-dms.work
       GITEA__server__SSH_DOMAIN: git.np-dms.work
-      GITEA__server__START_SSH_SERVER: "true"
-      GITEA__server__SSH_PORT: "22"
-      GITEA__server__SSH_LISTEN_PORT: "22"
-      GITEA__server__LFS_START_SERVER: "true"
-      GITEA__server__HTTP_PORT: "3000"
-      GITEA__server__TRUSTED_PROXIES: "127.0.0.1/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+      GITEA__server__START_SSH_SERVER: 'true'
+      GITEA__server__SSH_PORT: '22'
+      GITEA__server__SSH_LISTEN_PORT: '22'
+      GITEA__server__LFS_START_SERVER: 'true'
+      GITEA__server__HTTP_PORT: '3000'
+      GITEA__server__TRUSTED_PROXIES: '127.0.0.1/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
       GITEA__database__DB_TYPE: mysql
       GITEA__database__HOST: mariadb:3306
-      GITEA__database__NAME: "gitea"
-      GITEA__database__USER: "gitea"
-      GITEA__database__PASSWD: "<PASSWORD>"
-      GITEA__packages__ENABLED: "true"
-      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__database__NAME: 'gitea'
+      GITEA__database__USER: 'gitea'
+      GITEA__database__PASSWD: '<PASSWORD>'
+      GITEA__packages__ENABLED: 'true'
+      GITEA__security__INSTALL_LOCK: 'true'
     volumes:
       - /share/np-dms/gitea/backup:/backup
       - /share/np-dms/gitea/etc:/etc/gitea
@@ -1750,8 +1778,8 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - "3003:3000"
-      - "2222:22"
+      - '3003:3000'
+      - '2222:22'
     networks:
       - lcbp3
       - giteanet
@@ -1775,10 +1803,10 @@ x-restart: &restart_policy
 
 x-logging: &default_logging
   logging:
-    driver: "json-file"
+    driver: 'json-file'
     options:
-      max-size: "10m"
-      max-file: "5"
+      max-size: '10m'
+      max-file: '5'
 
 networks:
   lcbp3:
@@ -1792,39 +1820,39 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.5"
+          cpus: '1.5'
           memory: 2G
         reservations:
-          cpus: "0.25"
+          cpus: '0.25'
           memory: 512M
     environment:
-      TZ: "Asia/Bangkok"
-      NODE_ENV: "production"
-      N8N_PUBLIC_URL: "https://n8n.np-dms.work/"
-      WEBHOOK_URL: "https://n8n.np-dms.work/"
-      N8N_HOST: "n8n.np-dms.work"
+      TZ: 'Asia/Bangkok'
+      NODE_ENV: 'production'
+      N8N_PUBLIC_URL: 'https://n8n.np-dms.work/'
+      WEBHOOK_URL: 'https://n8n.np-dms.work/'
+      N8N_HOST: 'n8n.np-dms.work'
       N8N_PORT: 5678
-      N8N_PROTOCOL: "https"
-      N8N_PROXY_HOPS: "1"
+      N8N_PROTOCOL: 'https'
+      N8N_PROXY_HOPS: '1'
       N8N_DIAGNOSTICS_ENABLED: 'false'
       N8N_SECURE_COOKIE: 'true'
       # N8N_ENCRYPTION_KEY should be kept in .env (gitignored)
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
       DB_TYPE: mysqldb
-      DB_MYSQLDB_DATABASE: "n8n"
-      DB_MYSQLDB_USER: "center"
-      DB_MYSQLDB_HOST: "mariadb"
+      DB_MYSQLDB_DATABASE: 'n8n'
+      DB_MYSQLDB_USER: 'center'
+      DB_MYSQLDB_HOST: 'mariadb'
       DB_MYSQLDB_PORT: 3306
     ports:
-      - "5678:5678"
+      - '5678:5678'
     networks:
       lcbp3: {}
     volumes:
-      - "/share/np-dms/n8n:/home/node/.n8n"
-      - "/share/np-dms/n8n/cache:/home/node/.cache"
-      - "/share/np-dms/n8n/scripts:/scripts"
+      - '/share/np-dms/n8n:/home/node/.n8n'
+      - '/share/np-dms/n8n/cache:/home/node/.cache'
+      - '/share/np-dms/n8n/scripts:/scripts'
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5678/"]
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:5678/']
       interval: 15s
       timeout: 5s
       retries: 30
@@ -1839,4 +1867,3 @@ services:
 
 This stack contains `backend` (NestJS) and `frontend` (Next.js).
 Refer to [04-04-deployment-guide.md](./04-04-deployment-guide.md) for full deployment steps and CI/CD pipeline details.
-

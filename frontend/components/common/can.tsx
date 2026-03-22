@@ -16,12 +16,7 @@ interface CanProps {
   // Common use case: <Can permission="x">
 }
 
-export function Can({
-  permission,
-  role,
-  children,
-  fallback = null,
-}: CanProps) {
+export function Can({ permission, role, children, fallback = null }: CanProps) {
   const { hasPermission, hasRole } = useAuthStore();
 
   let allowed = true;

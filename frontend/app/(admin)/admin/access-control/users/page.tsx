@@ -1,29 +1,23 @@
-"use client";
+'use client';
 
-import { useUsers, useDeleteUser } from "@/hooks/use-users";
-import { useOrganizations } from "@/hooks/use-master-data";
-import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/common/data-table";
-import { Plus, MoreHorizontal, Pencil, Trash, Search } from "lucide-react";
-import { useState } from "react";
-import { UserDialog } from "@/components/admin/user-dialog";
+import { useUsers, useDeleteUser } from '@/hooks/use-users';
+import { useOrganizations } from '@/hooks/use-master-data';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/common/data-table';
+import { Plus, MoreHorizontal, Pencil, Trash, Search } from 'lucide-react';
+import { useState } from 'react';
+import { UserDialog } from '@/components/admin/user-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { ColumnDef } from "@tanstack/react-table";
-import { User } from "@/types/user";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { ColumnDef } from '@tanstack/react-table';
+import { User } from '@/types/user';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,17 +27,22 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+} from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
-import { Organization } from "@/types/organization";
-import { getApiErrorMessage } from "@/types/api-error";
+import { _Organization } from '@/types/organization';
+import { getApiErrorMessage } from '@/types/api-error';
 
 export default function UsersPage() {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
-  const { data: users, isLoading, isError, error } = useUsers({
+  const {
+    data: users,
+    isLoading,
+    isError,
+    error,
+  } = useUsers({
     search: search || undefined,
     primaryOrganizationId: selectedOrgId ?? undefined,
   });
@@ -69,45 +68,46 @@ export default function UsersPage() {
     if (userToDelete) {
       deleteMutation.mutate(userToDelete.uuid, {
         onSuccess: () => {
-            setDeleteDialogOpen(false);
-            setUserToDelete(null);
+          setDeleteDialogOpen(false);
+          setUserToDelete(null);
         },
       });
     }
   };
 
-
   const columns: ColumnDef<User>[] = [
     {
-      accessorKey: "username",
-      header: "Username",
-      cell: ({ row }) => <span className="font-semibold">{row.original.username}</span>
+      accessorKey: 'username',
+      header: 'Username',
+      cell: ({ row }) => <span className="font-semibold">{row.original.username}</span>,
     },
     {
-      accessorKey: "email",
-      header: "Email",
+      accessorKey: 'email',
+      header: 'Email',
     },
     {
-      id: "name",
-      header: "Name",
+      id: 'name',
+      header: 'Name',
       cell: ({ row }) => `${row.original.firstName} ${row.original.lastName}`,
     },
     {
-      id: "organization",
-      header: "Organization",
+      id: 'organization',
+      header: 'Organization',
       cell: ({ row }) => {
         const orgId = row.original.primaryOrganizationId;
         if (!orgId) {
-          return "All Organizations";
+          return 'All Organizations';
         }
 
-        const org = organizationList.find((o) => (o.id ?? o.uuid) === orgId?.toString() || o.uuid === orgId?.toString());
-        return org ? org.organizationCode : "All Organizations";
+        const org = organizationList.find(
+          (o) => (o.id ?? o.uuid) === orgId?.toString() || o.uuid === orgId?.toString()
+        );
+        return org ? org.organizationCode : 'All Organizations';
       },
     },
     {
-      id: "roles",
-      header: "Roles",
+      id: 'roles',
+      header: 'Roles',
       cell: ({ row }) => {
         const roles = row.original.roles || [];
         return (
@@ -119,20 +119,20 @@ export default function UsersPage() {
             ))}
           </div>
         );
-      }
+      },
     },
     {
-      accessorKey: "isActive",
-      header: "Status",
+      accessorKey: 'isActive',
+      header: 'Status',
       cell: ({ row }) => (
-        <Badge variant={row.original.isActive ? "default" : "secondary"}>
-          {row.original.isActive ? "Active" : "Inactive"}
+        <Badge variant={row.original.isActive ? 'default' : 'secondary'}>
+          {row.original.isActive ? 'Active' : 'Inactive'}
         </Badge>
       ),
     },
     {
-      id: "actions",
-      header: "Actions",
+      id: 'actions',
+      header: 'Actions',
       cell: ({ row }) => {
         const user = row.original;
         return (
@@ -144,20 +144,22 @@ export default function UsersPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => { setSelectedUser(user); setDialogOpen(true); }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedUser(user);
+                  setDialogOpen(true);
+                }}
+              >
                 <Pencil className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-red-600 focus:text-red-600"
-                onClick={() => handleDeleteClick(user)}
-              >
+              <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => handleDeleteClick(user)}>
                 <Trash className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )
-      }
-    }
+        );
+      },
+    },
   ];
 
   return (
@@ -167,64 +169,62 @@ export default function UsersPage() {
           <h1 className="text-3xl font-bold">User Management</h1>
           <p className="text-muted-foreground mt-1">Manage system users and roles</p>
         </div>
-        <Button onClick={() => { setSelectedUser(null); setDialogOpen(true); }}>
+        <Button
+          onClick={() => {
+            setSelectedUser(null);
+            setDialogOpen(true);
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" /> Add User
         </Button>
       </div>
 
       <div className="flex gap-4 items-center bg-muted/30 p-4 rounded-lg">
-         <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 bg-background"
-            />
-         </div>
-         <div className="w-[250px]">
-            <Select
-              value={selectedOrgId || "all"}
-              onValueChange={(val) => setSelectedOrgId(val === "all" ? null : val)}
-            >
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="All Organizations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Organizations</SelectItem>
-                {organizationList.map((org) => (
-                  <SelectItem key={org.uuid} value={org.uuid}>
-                    {org.organizationCode} - {org.organizationName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-         </div>
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 bg-background"
+          />
+        </div>
+        <div className="w-[250px]">
+          <Select value={selectedOrgId || 'all'} onValueChange={(val) => setSelectedOrgId(val === 'all' ? null : val)}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Organizations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Organizations</SelectItem>
+              {organizationList.map((org) => (
+                <SelectItem key={org.uuid} value={org.uuid}>
+                  {org.organizationCode} - {org.organizationName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {isError && (
         <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {getApiErrorMessage(error, "Failed to load users")}
+          {getApiErrorMessage(error, 'Failed to load users')}
         </div>
       )}
 
       {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center space-x-4">
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ))}
-          </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center space-x-4">
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ))}
+        </div>
       ) : (
-          <DataTable columns={columns} data={userList} />
+        <DataTable columns={columns} data={userList} />
       )}
 
-      <UserDialog
-         open={dialogOpen}
-         onOpenChange={setDialogOpen}
-         user={selectedUser}
-      />
+      <UserDialog open={dialogOpen} onOpenChange={setDialogOpen} user={selectedUser} />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -238,11 +238,8 @@ export default function UsersPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-                onClick={confirmDelete}
-                className="bg-red-600 hover:bg-red-700"
-            >
-                {deleteMutation.isPending ? "Deleting..." : "Delete User"}
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete User'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

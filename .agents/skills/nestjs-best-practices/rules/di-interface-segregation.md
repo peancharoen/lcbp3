@@ -28,14 +28,14 @@ interface NotificationService {
 @Injectable()
 export class OrdersService {
   constructor(
-    private notifications: NotificationService, // Depends on 8 methods, uses 1
+    private notifications: NotificationService // Depends on 8 methods, uses 1
   ) {}
 
   async confirmOrder(order: Order): Promise<void> {
     await this.notifications.sendEmail(
       order.customer.email,
       'Order Confirmed',
-      `Your order ${order.id} has been confirmed.`,
+      `Your order ${order.id} has been confirmed.`
     );
   }
 }
@@ -43,12 +43,12 @@ export class OrdersService {
 // Testing is painful - must mock unused methods
 const mockNotificationService = {
   sendEmail: jest.fn(),
-  sendSms: jest.fn(),           // Never used, but required
-  sendPush: jest.fn(),          // Never used, but required
-  sendSlack: jest.fn(),         // Never used, but required
-  logNotification: jest.fn(),   // Never used, but required
+  sendSms: jest.fn(), // Never used, but required
+  sendPush: jest.fn(), // Never used, but required
+  sendSlack: jest.fn(), // Never used, but required
+  logNotification: jest.fn(), // Never used, but required
   getDeliveryStatus: jest.fn(), // Never used, but required
-  retryFailed: jest.fn(),       // Never used, but required
+  retryFailed: jest.fn(), // Never used, but required
   scheduleNotification: jest.fn(), // Never used, but required
 };
 ```
@@ -105,14 +105,14 @@ export class SendGridEmailService implements EmailSender {
 @Injectable()
 export class OrdersService {
   constructor(
-    @Inject(EMAIL_SENDER) private emailSender: EmailSender, // Minimal dependency
+    @Inject(EMAIL_SENDER) private emailSender: EmailSender // Minimal dependency
   ) {}
 
   async confirmOrder(order: Order): Promise<void> {
     await this.emailSender.sendEmail(
       order.customer.email,
       'Order Confirmed',
-      `Your order ${order.id} has been confirmed.`,
+      `Your order ${order.id} has been confirmed.`
     );
   }
 }
@@ -150,7 +150,7 @@ type MultiChannelSender = EmailSender & SmsSender & PushSender;
 export class AlertService {
   constructor(
     @Inject(MULTI_CHANNEL_SENDER)
-    private sender: EmailSender & SmsSender,
+    private sender: EmailSender & SmsSender
   ) {}
 
   async sendCriticalAlert(user: User, message: string): Promise<void> {

@@ -4,7 +4,7 @@ description: Execute the implementation planning workflow using the plan templat
 version: 1.0.0
 depends-on:
   - speckit-specify
-handoffs: 
+handoffs:
   - label: Create Tasks
     agent: speckit-tasks
     prompt: Break the plan into tasks
@@ -91,7 +91,7 @@ You are the **Antigravity System Architect**. Your role is to bridge the gap bet
    - Add only new technology from current plan
    - Preserve manual additions between markers
 
-**Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file
+**Output**: data-model.md, /contracts/\*, quickstart.md, agent-specific file
 
 ## Key rules
 

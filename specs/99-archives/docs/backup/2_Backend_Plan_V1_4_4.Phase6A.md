@@ -1,4 +1,5 @@
-# “Phase 6A + Technical Design Document : Workflow DSL (Mini-Language)”**
+# “Phase 6A + Technical Design Document : Workflow DSL (Mini-Language)”\*\*
+
 ออกแบบสำหรับระบบ Workflow Engine กลางของโครงการ
 **ไม่มีโค้ดผูกกับ Framework** เพื่อให้สามารถนำไป Implement ใน NestJS หรือ Microservice ใด ๆ ได้
 
@@ -10,20 +11,19 @@
 
 ใน Phase นี้ จะเริ่มสร้าง “Workflow DSL (Domain-Specific Language)” สำหรับนิยามกฎการเดินงาน (Workflow Transition Rules) ให้สามารถ:
 
-* แยก **Business Workflow Logic** ออกจาก Source Code
-* แก้ไขกฎ Workflow ได้โดย **ไม่ต้องแก้โค้ดและไม่ต้อง Deploy ใหม่**
-* รองรับ Document หลายประเภท เช่น
+- แยก **Business Workflow Logic** ออกจาก Source Code
+- แก้ไขกฎ Workflow ได้โดย **ไม่ต้องแก้โค้ดและไม่ต้อง Deploy ใหม่**
+- รองรับ Document หลายประเภท เช่น
+  - Correspondence
+  - RFA
+  - Internal Circulation
+  - Document Transmittal
 
-  * Correspondence
-  * RFA
-  * Internal Circulation
-  * Document Transmittal
-* รองรับ Multi-step routing, skip, reject, rollback, parallel assignments
-* สามารถนำไปใช้งานทั้งใน
-
-  * Backend (NestJS)
-  * Frontend (UI Driven)
-  * External Microservices
+- รองรับ Multi-step routing, skip, reject, rollback, parallel assignments
+- สามารถนำไปใช้งานทั้งใน
+  - Backend (NestJS)
+  - Frontend (UI Driven)
+  - External Microservices
 
 ---
 
@@ -35,12 +35,12 @@
 
 ### 🧩 Output ของ Phase 6A
 
-* DSL Specification (Grammar)
-* JSON Schema for Workflow Definition
-* Workflow Rule Interpreter (Parser + Executor)
-* Validation Engine (Compile-time and Runtime)
-* Storage (DB Table / Registry)
-* Execution API:
+- DSL Specification (Grammar)
+- JSON Schema for Workflow Definition
+- Workflow Rule Interpreter (Parser + Executor)
+- Validation Engine (Compile-time and Runtime)
+- Storage (DB Table / Registry)
+- Execution API:
 
 | Action                           | Description                     |
 | -------------------------------- | ------------------------------- |
@@ -59,22 +59,22 @@
 
 #### Functional Requirements
 
-* นิยาม Workflow เป็นภาษาคล้าย State Machine
-* แต่ละเอกสารมี **State, Actions, Entry/Exit Events**
-* สามารถมี:
-
-  * Required approvals
-  * Conditional transition
-  * Auto-transition
-  * Parallel approval
-  * Return/rollback
+- นิยาม Workflow เป็นภาษาคล้าย State Machine
+- แต่ละเอกสารมี **State, Actions, Entry/Exit Events**
+- สามารถมี:
+  - Required approvals
+  - Conditional transition
+  - Auto-transition
+  - Parallel approval
+  - Return/rollback
 
 ####
-* Running time: < 20ms ต่อคำสั่ง
-* Hot reload ไม่ต้อง Compile ใหม่ทั้ง Backend
-* DSL ต้อง Debug ได้ง่าย
-* ต้อง Versioned
-* ต้องรองรับ Audit 100%
+
+- Running time: < 20ms ต่อคำสั่ง
+- Hot reload ไม่ต้อง Compile ใหม่ทั้ง Backend
+- DSL ต้อง Debug ได้ง่าย
+- ต้อง Versioned
+- ต้องรองรับ Audit 100%
 
 ---
 
@@ -122,12 +122,8 @@ states:
       "transitions": {
         "SUBMIT": {
           "to": "IN_REVIEW",
-          "requirements": [
-            { "role": "ENGINEER" }
-          ],
-          "events": [
-            { "type": "notify", "target": "reviewer" }
-          ]
+          "requirements": [{ "role": "ENGINEER" }],
+          "events": [{ "type": "notify", "target": "reviewer" }]
         }
       }
     },
@@ -136,9 +132,7 @@ states:
         "APPROVE": { "to": "APPROVED" },
         "REJECT": {
           "to": "DRAFT",
-          "events": [
-            { "type": "notify", "target": "creator" }
-          ]
+          "events": [{ "type": "notify", "target": "creator" }]
         }
       }
     },
@@ -162,14 +156,14 @@ version      = "version" ":" number ;
 states       = "states:" state_list ;
 state_list   = { state } ;
 
-state        = "- name:" identifier 
-               [ "initial:" boolean ] 
+state        = "- name:" identifier
+               [ "initial:" boolean ]
                [ "terminal:" boolean ]
                [ "on:" transition_list ] ;
 
 transition_list = { transition } ;
 
-transition   = action ":" 
+transition   = action ":"
                 indent "to:" identifier
                 [ indent "require:" requirements ]
                 [ indent "events:" event_list ] ;
@@ -186,23 +180,23 @@ event        = "- notify:" identifier ;
 
 #### 5.1 State Rules
 
-* ต้องมีอย่างน้อย 1 state ที่ `initial: true`
-* หาก `terminal: true` → ต้องไม่มี transition ต่อไป
+- ต้องมีอย่างน้อย 1 state ที่ `initial: true`
+- หาก `terminal: true` → ต้องไม่มี transition ต่อไป
 
 #### 5.2 Transition Rules
 
 ตรวจสอบว่า:
 
-* `to` ชี้ไปยัง state ที่มีอยู่
-* `require.role` ต้องเป็น role ที่ระบบรู้จัก
-* Action name ต้องเป็น **UPPER_CASE**
+- `to` ชี้ไปยัง state ที่มีอยู่
+- `require.role` ต้องเป็น role ที่ระบบรู้จัก
+- Action name ต้องเป็น **UPPER_CASE**
 
 #### 5.3 Version Safety
 
-* ทุกชุด Workflow DSL ต้องขึ้นกับ version
-* แก้ไขต้องสร้าง version ใหม่
-* ไม่ overwrite version เก่า
-* “Document ที่กำลังอยู่ใน step เดิมยังต้องใช้กฎเดิมได้”
+- ทุกชุด Workflow DSL ต้องขึ้นกับ version
+- แก้ไขต้องสร้าง version ใหม่
+- ไม่ overwrite version เก่า
+- “Document ที่กำลังอยู่ใน step เดิมยังต้องใช้กฎเดิมได้”
 
 ---
 
@@ -240,14 +234,13 @@ interface WorkflowContext {
 
 ```ts
 class WorkflowEngine {
-  
-  load(dsl: string | object): CompiledWorkflow
+  load(dsl: string | object): CompiledWorkflow;
 
-  compile(dsl: string | object): CompiledWorkflow
+  compile(dsl: string | object): CompiledWorkflow;
 
-  evaluate(state: string, action: string, context: WorkflowContext): EvalResult
+  evaluate(state: string, action: string, context: WorkflowContext): EvalResult;
 
-  getAvailableActions(state: string, context: WorkflowContext): string[]
+  getAvailableActions(state: string, context: WorkflowContext): string[];
 }
 ```
 
@@ -328,21 +321,21 @@ flowchart TD
 
 #### Unit Tests
 
-* Parse DSL → JSON
-* Invalid syntax → throw error
-* Invalid transitions → throw error
+- Parse DSL → JSON
+- Invalid syntax → throw error
+- Invalid transitions → throw error
 
 #### Integration Tests
 
-* Evaluate() ผ่าน 20+ cases
-* RFA ย้อนกลับ
-* Approve chain
-* Parallel review
+- Evaluate() ผ่าน 20+ cases
+- RFA ย้อนกลับ
+- Approve chain
+- Parallel review
 
 #### Load Tests
 
-* 1,000 documents running workflow
-* Evaluate < 20ms ต่อ action
+- 1,000 documents running workflow
+- Evaluate < 20ms ต่อ action
 
 ---
 
@@ -350,9 +343,9 @@ flowchart TD
 
 #### Hot Reload Options
 
-* DSL stored in DB
-* Cache in Redis
-* Touched timestamp triggers:
+- DSL stored in DB
+- Cache in Redis
+- Touched timestamp triggers:
 
 ```
 invalidate cache → recompile
@@ -366,9 +359,9 @@ invalidate cache → recompile
 
 DSL Engine แยกเป็น:
 
-* `workflow-engine-core` → Pure JS library
-* `workflow-service` → NestJS module
-* API public:
+- `workflow-engine-core` → Pure JS library
+- `workflow-service` → NestJS module
+- API public:
 
 ```
 POST /workflow/evaluate
@@ -378,9 +371,9 @@ POST /workflow/compile
 
 ภายหลังสามารถนำไปวางบน:
 
-* Kubernetes
-* Worker Node
-* API Gateway
+- Kubernetes
+- Worker Node
+- API Gateway
 
 ---
 
@@ -394,4 +387,3 @@ POST /workflow/compile
 ✔ Execution API สำหรับ Backend และ Frontend
 ✔ รองรับ Business Workflow ซับซ้อนทั้งหมด
 ✔ Ready สำหรับ Microservice model ในอนาคต
-

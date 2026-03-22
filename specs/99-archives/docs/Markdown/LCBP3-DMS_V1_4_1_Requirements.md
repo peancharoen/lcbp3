@@ -1,6 +1,6 @@
 # 📝 **Documents Management System Version 1.4.1: Application Requirements Specification (ปรับปรุงโดย deepseek)**
 
-**ปรับปรุงตามการ review และข้อเสนอแนะล่าสุด*
+\*_ปรับปรุงตามการ review และข้อเสนอแนะล่าสุด_
 
 ## 📌**1. วัตถุประสงค์**
 
@@ -233,21 +233,7 @@
     - รองรับการขยายตัวของระบบโดยไม่ต้องเปลี่ยนแปลง database schema
     - จัดการ metadata และข้อมูลประกอบสำหรับ correspondence, routing, และ workflows
   - **3.11.2 โครงสร้าง JSON Schema**
-ระบบต้องมี predefined JSON schemas สำหรับประเภทเอกสารต่างๆ:
-    - **3.11.2.1 Correspondence Types**
-      - **GENERIC**: ข้อมูลพื้นฐานสำหรับเอกสารทั่วไป
-      - **RFI**: รายละเอียดคำถามและข้อมูลทางเทคนิค
-      - **RFA**: ข้อมูลการขออนุมัติแบบและวัสดุ
-      - **TRANSMITTAL**: รายการเอกสารที่ส่งต่อ
-      - **LETTER**: ข้อมูลจดหมายทางการ
-      - **EMAIL**: ข้อมูลอีเมล
-    - **3.11.2.2 Routing Types**
-      - **ROUTING_TEMPLATE**: กฎและเงื่อนไขการส่งต่อ
-      - **ROUTING_INSTANCE**: สถานะและประวัติการส่งต่อ
-      - **ROUTING_ACTION**: การดำเนินการในแต่ละขั้นตอน
-    - **3.11.2.3 Audit Types**
-      - **AUDIT_LOG**: ข้อมูลการตรวจสอบ
-      - **SECURITY_SCAN**: ผลการตรวจสอบความปลอดภัย
+    ระบบต้องมี predefined JSON schemas สำหรับประเภทเอกสารต่างๆ: - **3.11.2.1 Correspondence Types** - **GENERIC**: ข้อมูลพื้นฐานสำหรับเอกสารทั่วไป - **RFI**: รายละเอียดคำถามและข้อมูลทางเทคนิค - **RFA**: ข้อมูลการขออนุมัติแบบและวัสดุ - **TRANSMITTAL**: รายการเอกสารที่ส่งต่อ - **LETTER**: ข้อมูลจดหมายทางการ - **EMAIL**: ข้อมูลอีเมล - **3.11.2.2 Routing Types** - **ROUTING_TEMPLATE**: กฎและเงื่อนไขการส่งต่อ - **ROUTING_INSTANCE**: สถานะและประวัติการส่งต่อ - **ROUTING_ACTION**: การดำเนินการในแต่ละขั้นตอน - **3.11.2.3 Audit Types** - **AUDIT_LOG**: ข้อมูลการตรวจสอบ - **SECURITY_SCAN**: ผลการตรวจสอบความปลอดภัย
   - **3.11.3 Validation Rules**
     - ต้องมี JSON schema validation สำหรับแต่ละประเภท
     - ต้องรองรับ versioning ของ schema
@@ -367,7 +353,6 @@
 - **6.3. การทำรายงาน (Reporting):** สามารถจัดทำรายงานสรุปแยกประเภทของ Correspondence ประจำวัน, สัปดาห์, เดือน, และปีได้
 
 - **6.4. ประสิทธิภาพ (Performance):** มีการใช้ Caching กับข้อมูลที่เรียกใช้บ่อย และใช้ Pagination ในตารางข้อมูลเพื่อจัดการข้อมูลจำนวนมาก
-
   - **6.4.1 ตัวชี้วัดประสิทธิภาพ:**
     - **API Response Time:** < 200ms (90th percentile) สำหรับ operation ทั่วไป
     - **Search Query Performance:** < 500ms สำหรับการค้นหาขั้นสูง
@@ -661,7 +646,7 @@
 
 ## **Document Control:**
 
-- Document for Application Requirements Specification  DMS v1.4.1
+- Document for Application Requirements Specification DMS v1.4.1
 - Version: 1.4.1
 - Date: 2025-11-16
 - Author: System Architecture Team
@@ -670,4 +655,4 @@
 
 ---
 
-_End of Requirements Specification
+\_End of Requirements Specification

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { Drawing } from "@/types/drawing";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, GitCompare } from "lucide-react";
-import Link from "next/link";
-import { format } from "date-fns";
+import { Drawing } from '@/types/drawing';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { FileText, Download, Eye, GitCompare } from 'lucide-react';
+import Link from 'next/link';
+import { format } from 'date-fns';
 
 export function DrawingCard({ drawing }: { drawing: Drawing }) {
   return (
@@ -21,39 +21,41 @@ export function DrawingCard({ drawing }: { drawing: Drawing }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-2">
             <div>
-              <h3 className="text-lg font-semibold truncate" title={drawing.drawingNumber || "No Number"}>
-                {drawing.drawingNumber || "No Number"}
+              <h3 className="text-lg font-semibold truncate" title={drawing.drawingNumber || 'No Number'}>
+                {drawing.drawingNumber || 'No Number'}
               </h3>
-              <p className="text-sm text-muted-foreground truncate" title={drawing.title || "No Title"}>
-                {drawing.title || "No Title"}
+              <p className="text-sm text-muted-foreground truncate" title={drawing.title || 'No Title'}>
+                {drawing.title || 'No Title'}
               </p>
             </div>
-            <Badge variant="outline">{typeof drawing.discipline === 'object' ? drawing.discipline?.disciplineCode : drawing.discipline}</Badge>
+            <Badge variant="outline">
+              {typeof drawing.discipline === 'object' ? drawing.discipline?.disciplineCode : drawing.discipline}
+            </Badge>
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground mb-3">
             <div>
-              <span className="font-medium text-foreground">Sheet:</span> {drawing.sheetNumber || "-"}
+              <span className="font-medium text-foreground">Sheet:</span> {drawing.sheetNumber || '-'}
             </div>
             <div>
-              <span className="font-medium text-foreground">Rev:</span> {drawing.revision || "0"}
+              <span className="font-medium text-foreground">Rev:</span> {drawing.revision || '0'}
             </div>
             {drawing.legacyDrawingNumber && (
-               <div className="col-span-2">
-                 <span className="font-medium text-foreground">Legacy:</span> {drawing.legacyDrawingNumber}
-               </div>
+              <div className="col-span-2">
+                <span className="font-medium text-foreground">Legacy:</span> {drawing.legacyDrawingNumber}
+              </div>
             )}
             {drawing.volumePage !== undefined && (
-               <div>
-                  <span className="font-medium text-foreground">Page:</span> {drawing.volumePage}
-               </div>
+              <div>
+                <span className="font-medium text-foreground">Page:</span> {drawing.volumePage}
+              </div>
             )}
             <div>
-              <span className="font-medium text-foreground">Scale:</span> {drawing.scale || "N/A"}
+              <span className="font-medium text-foreground">Scale:</span> {drawing.scale || 'N/A'}
             </div>
             <div>
-              <span className="font-medium text-foreground">Date:</span>{" "}
-              {drawing.issueDate && format(new Date(drawing.issueDate), "dd/MM/yyyy")}
+              <span className="font-medium text-foreground">Date:</span>{' '}
+              {drawing.issueDate && format(new Date(drawing.issueDate), 'dd/MM/yyyy')}
             </div>
           </div>
 

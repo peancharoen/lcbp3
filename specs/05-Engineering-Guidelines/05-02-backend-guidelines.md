@@ -361,10 +361,7 @@ describe('DocumentNumberingService', () => {
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
-      providers: [
-        DocumentNumberingService,
-        { provide: RedisLock, useValue: mockRedisLock },
-      ],
+      providers: [DocumentNumberingService, { provide: RedisLock, useValue: mockRedisLock }],
     }).compile();
 
     service = module.get(DocumentNumberingService);
@@ -421,10 +418,7 @@ describe('Correspondence API (e2e)', () => {
 // src/modules/monitoring/logger/winston.config.ts
 export const winstonConfig = {
   level: process.env.NODE_ENV === 'production' ? 'warn' : 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
   transports: [
     new winston.transports.Console(),
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
@@ -463,14 +457,14 @@ async approve(@Param('id') id: string, @CurrentUser() user: User) {
 
 Backend codebase has **zero** `any` types remaining. Key techniques used:
 
-| Pattern | Solution |
-|---------|----------|
-| JWT `expiresIn` branded type | `import type { StringValue } from 'ms'`; cast `as StringValue` |
-| CASL `detectSubjectType` callback | Type param as `object`, internal cast via `Record<string, unknown>` |
-| CASL `ability.can()` params | Export `Actions`/`Subjects` types from `ability.factory.ts`, cast explicitly |
-| TypeORM nullable column clearing | Use `undefined` instead of `null as any` for optional (`?:`) properties |
-| Test mock objects | Use `as unknown as InterfaceType` or `as Partial<Entity> as Entity` |
-| TypeScript legacy decorators | `target: any` is unavoidable — whitelisted per TS spec limitation |
+| Pattern                           | Solution                                                                     |
+| --------------------------------- | ---------------------------------------------------------------------------- |
+| JWT `expiresIn` branded type      | `import type { StringValue } from 'ms'`; cast `as StringValue`               |
+| CASL `detectSubjectType` callback | Type param as `object`, internal cast via `Record<string, unknown>`          |
+| CASL `ability.can()` params       | Export `Actions`/`Subjects` types from `ability.factory.ts`, cast explicitly |
+| TypeORM nullable column clearing  | Use `undefined` instead of `null as any` for optional (`?:`) properties      |
+| Test mock objects                 | Use `as unknown as InterfaceType` or `as Partial<Entity> as Entity`          |
+| TypeScript legacy decorators      | `target: any` is unavoidable — whitelisted per TS spec limitation            |
 
 > **Exceptions:** Only `target: any` in legacy TS decorators (`circuit-breaker.decorator.ts`, `retry.decorator.ts`) remains — this is a TypeScript language constraint, not a code quality issue.
 
@@ -487,7 +481,7 @@ Backend codebase has **zero** `any` types remaining. Key techniques used:
 
 ## 🔄 Update History
 
-| Version | Date       | Changes                            |
-| ------- | ---------- | ---------------------------------- |
-| 1.5.0   | 2025-12-01 | Initial backend guidelines created |
+| Version | Date       | Changes                                                             |
+| ------- | ---------- | ------------------------------------------------------------------- |
+| 1.5.0   | 2025-12-01 | Initial backend guidelines created                                  |
 | 1.8.1   | 2026-03-20 | Added `any` type elimination techniques, enforced 0 remaining `any` |

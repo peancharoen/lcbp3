@@ -20,8 +20,10 @@ export class CryptoService {
     this.key = crypto.scryptSync(secret, 'salt', 32);
   }
 
-  encrypt(text: string | number | boolean): string {
-    if (text === null || text === undefined) return text as any;
+  encrypt(
+    text: string | number | boolean | null | undefined
+  ): string | null | undefined {
+    if (text === null || text === undefined) return text;
 
     try {
       const stringValue = String(text);

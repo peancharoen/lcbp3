@@ -26,5 +26,5 @@ export class WorkflowTransitionDto {
   })
   @IsObject()
   @IsOptional()
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
 }

@@ -666,9 +666,7 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": [
-            "sum"
-          ],
+          "reducer": ["sum"],
           "show": false
         },
         "showHeader": true,
@@ -729,11 +727,7 @@
   ],
   "refresh": "10s",
   "schemaVersion": 38,
-  "tags": [
-    "docker",
-    "monitoring",
-    "lcbp3"
-  ],
+  "tags": ["docker", "monitoring", "lcbp3"],
   "templating": {
     "list": [
       {
@@ -767,12 +761,8 @@
         "allValue": ".+",
         "current": {
           "selected": true,
-          "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
+          "text": ["All"],
+          "value": ["$__all"]
         },
         "datasource": {
           "type": "prometheus",

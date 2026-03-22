@@ -126,15 +126,15 @@ graph TB
 
 ### Phase 1: Foundation (2-3 weeks)
 
-| ID                                             | Task                        | Priority | Effort   | Status        | Dependencies |
-| ---------------------------------------------- | --------------------------- | -------- | -------- | ------------- | ------------ |
+| ID                                             | Task                        | Priority | Effort   | Status         | Dependencies |
+| ---------------------------------------------- | --------------------------- | -------- | -------- | -------------- | ------------ |
 | [BE-001](TASK-BE-015-schema-v160-migration.md) | Database Setup & Migrations | P0       | 2-3 days | 🔴 Not Started | None         |
 | [BE-002](./TASK-BE-002-auth-rbac.md)           | Auth & RBAC Module          | P0       | 5-7 days | 🔴 Not Started | BE-001       |
 
 ### Phase 2: Core Infrastructure (3-4 weeks)
 
-| ID                                                | Task                       | Priority | Effort     | Status        | Dependencies   |
-| ------------------------------------------------- | -------------------------- | -------- | ---------- | ------------- | -------------- |
+| ID                                                | Task                       | Priority | Effort     | Status         | Dependencies   |
+| ------------------------------------------------- | -------------------------- | -------- | ---------- | -------------- | -------------- |
 | [BE-013](./TASK-BE-013-user-management.md)        | User Management            | P1       | 5-7 days   | 🔴 Not Started | BE-001, BE-002 |
 | [BE-012](./TASK-BE-012-master-data-management.md) | Master Data Management     | P1       | 6-8 days   | 🔴 Not Started | BE-001, BE-002 |
 | [BE-003](./TASK-BE-003-file-storage.md)           | File Storage (Two-Phase)   | P1       | 4-5 days   | 🔴 Not Started | BE-001, BE-002 |
@@ -143,23 +143,23 @@ graph TB
 
 ### Phase 3: Business Modules (4-5 weeks)
 
-| ID                                               | Task                  | Priority | Effort    | Status        | Dependencies                       |
-| ------------------------------------------------ | --------------------- | -------- | --------- | ------------- | ---------------------------------- |
+| ID                                               | Task                  | Priority | Effort    | Status         | Dependencies                       |
+| ------------------------------------------------ | --------------------- | -------- | --------- | -------------- | ---------------------------------- |
 | [BE-005](./TASK-BE-005-correspondence-module.md) | Correspondence Module | P1       | 7-10 days | 🔴 Not Started | BE-001~004, BE-006, BE-012, BE-013 |
 | [BE-007](./TASK-BE-007-rfa-module.md)            | RFA Module            | P1       | 8-12 days | 🔴 Not Started | BE-001~004, BE-006, BE-012, BE-013 |
 
 ### Phase 4: Supporting Modules (2-3 weeks)
 
-| ID                                                 | Task                      | Priority | Effort   | Status        | Dependencies               |
-| -------------------------------------------------- | ------------------------- | -------- | -------- | ------------- | -------------------------- |
+| ID                                                 | Task                      | Priority | Effort   | Status         | Dependencies               |
+| -------------------------------------------------- | ------------------------- | -------- | -------- | -------------- | -------------------------- |
 | [BE-008](./TASK-BE-008-drawing-module.md)          | Drawing Module            | P2       | 6-8 days | 🔴 Not Started | BE-001~004, BE-012         |
 | [BE-009](./TASK-BE-009-circulation-transmittal.md) | Circulation & Transmittal | P2       | 5-7 days | 🔴 Not Started | BE-001~003, BE-006, BE-012 |
 | [BE-010](./TASK-BE-010-search-elasticsearch.md)    | Search & Elasticsearch    | P2       | 4-6 days | 🔴 Not Started | BE-001, BE-005, BE-007     |
 
 ### Phase 5: Supporting Services (1 week)
 
-| ID                                            | Task                     | Priority | Effort   | Status        | Dependencies   |
-| --------------------------------------------- | ------------------------ | -------- | -------- | ------------- | -------------- |
+| ID                  | Task                     | Priority | Effort   | Status         | Dependencies   |
+| ------------------- | ------------------------ | -------- | -------- | -------------- | -------------- |
 | [BE-011](README.md) | Notification & Audit Log | P3       | 3-5 days | 🔴 Not Started | BE-001, BE-002 |
 
 ---

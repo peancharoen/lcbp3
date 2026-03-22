@@ -17,6 +17,7 @@
 ## 1. Redis Configuration (Standalone + Persistence)
 
 ### 1.1 Docker Compose Setup
+
 ```yaml
 # docker-compose-redis.yml
 version: '3.8'
@@ -45,10 +46,10 @@ networks:
     external: true
 ```
 
-
 ## 2. Database Configuration
 
 ### 2.1 MariaDB Optimization for Numbering
+
 ```sql
 -- /etc/mysql/mariadb.conf.d/50-numbering.cnf
 
@@ -83,6 +84,7 @@ long_query_time = 1
 ```
 
 ### 2.2 Monitoring Locks
+
 ```sql
 -- Check for lock contention
 SELECT
@@ -110,6 +112,7 @@ KILL <thread_id>;
 ### 3.1 Backend Service Deployment
 
 #### Docker Compose
+
 ```yaml
 # docker-compose-backend.yml
 version: '3.8'
@@ -126,7 +129,7 @@ services:
       - NUMBERING_LOCK_TIMEOUT=5000
       - NUMBERING_RESERVATION_TTL=300
     ports:
-      - "3001:3000"
+      - '3001:3000'
     depends_on:
       - mariadb
       - cache
@@ -134,7 +137,7 @@ services:
       - lcbp3
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -148,7 +151,7 @@ services:
       - REDIS_HOST=cache
       - REDIS_PORT=6379
     ports:
-      - "3002:3000"
+      - '3002:3000'
     depends_on:
       - mariadb
       - cache
@@ -162,6 +165,7 @@ networks:
 ```
 
 #### Health Check Endpoint
+
 ```typescript
 // health/numbering.health.ts
 import { Injectable } from '@nestjs/common';
@@ -173,17 +177,13 @@ import { DataSource } from 'typeorm';
 export class NumberingHealthIndicator extends HealthIndicator {
   constructor(
     private redis: Redis,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {
     super();
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
-    const checks = await Promise.all([
-      this.checkRedis(),
-      this.checkDatabase(),
-      this.checkSequenceIntegrity(),
-    ]);
+    const checks = await Promise.all([this.checkRedis(), this.checkDatabase(), this.checkSequenceIntegrity()]);
 
     const isHealthy = checks.every((check) => check.status === 'up');
 
@@ -252,7 +252,7 @@ alerting:
             - alertmanager:9093
 
 rule_files:
-  - "/etc/prometheus/alerts/numbering.yml"
+  - '/etc/prometheus/alerts/numbering.yml'
 
 scrape_configs:
   - job_name: 'backend'
@@ -330,6 +330,7 @@ receivers:
 ### 4.3 Grafana Dashboards
 
 #### Import Dashboard JSON
+
 ```bash
 # Download dashboard template
 curl -o numbering-dashboard.json \
@@ -342,6 +343,7 @@ curl -X POST http://admin:admin@localhost:3000/api/dashboards/db \
 ```
 
 #### Key Panels to Monitor
+
 1. **Numbers Generated per Minute** - Rate of number creation
 2. **Sequence Utilization** - Current usage vs max (alert >90%)
 3. **Lock Wait Time (p95)** - Performance indicator
@@ -356,6 +358,7 @@ curl -X POST http://admin:admin@localhost:3000/api/dashboards/db \
 ### 5.1 Database Backup Strategy
 
 #### Automated Backup Script
+
 ```bash
 #!/bin/bash
 # scripts/backup-numbering-db.sh
@@ -390,6 +393,7 @@ echo "✅ Backup complete: numbering_$DATE.sql.gz"
 ```
 
 #### Cron Schedule
+
 ```cron
 # Run backup daily at 2 AM
 0 2 * * * /opt/lcbp3/scripts/backup-numbering-db.sh >> /var/log/numbering-backup.log 2>&1
@@ -401,6 +405,7 @@ echo "✅ Backup complete: numbering_$DATE.sql.gz"
 ### 5.2 Redis Backup
 
 #### Enable RDB Persistence
+
 ```conf
 # redis.conf
 save 900 1      # Save if 1 key changed after 900 seconds
@@ -417,6 +422,7 @@ appendfsync everysec
 ```
 
 #### Backup Script
+
 ```bash
 #!/bin/bash
 # scripts/backup-redis.sh
@@ -456,6 +462,7 @@ echo "✅ Redis backup complete: redis_${DATE}.tar.gz"
 ### 5.3 Recovery Procedures
 
 #### Scenario 1: Restore from Database Backup
+
 ```bash
 #!/bin/bash
 # scripts/restore-numbering-db.sh
@@ -491,6 +498,7 @@ echo "🔄 Please verify sequence integrity"
 ```
 
 #### Scenario 2: Redis Failure
+
 ```bash
 # Check Redis status
 docker exec cache redis-cli ping
@@ -512,6 +520,7 @@ docker exec cache redis-cli ping
 ### 6.1 Sequence Adjustment
 
 #### Increase Max Value
+
 ```sql
 -- Check current utilization
 SELECT
@@ -541,6 +550,7 @@ INSERT INTO document_numbering_audit_logs (
 ```
 
 #### Reset Yearly Sequence
+
 ```sql
 -- For document types with yearly reset
 -- Run on January 1st
@@ -606,6 +616,7 @@ LINES TERMINATED BY '\n';
 ### 6.3 Redis Maintenance
 
 #### Flush Expired Reservations
+
 ```bash
 #!/bin/bash
 # scripts/cleanup-expired-reservations.sh
@@ -637,6 +648,7 @@ echo "✅ Cleaned up $COUNT expired reservations"
 ### 7.1 Total System Failure
 
 #### Recovery Steps
+
 ```bash
 #!/bin/bash
 # scripts/disaster-recovery.sh
@@ -699,7 +711,9 @@ echo "⚠️  Please verify system functionality manually"
 **Alert**: `SequenceWarning` or `SequenceCritical`
 
 **Steps**:
+
 1. Check current utilization
+
    ```sql
    SELECT document_type, current_value, max_value,
           ROUND((current_value * 100.0 / max_value), 2) as pct
@@ -714,6 +728,7 @@ echo "⚠️  Please verify system functionality manually"
    - Days until exhaustion?
 
 3. Take action
+
    ```sql
    -- Option A: Increase max_value
    UPDATE document_numbering_configs
@@ -734,13 +749,16 @@ echo "⚠️  Please verify system functionality manually"
 **Alert**: `HighLockWaitTime`
 
 **Steps**:
+
 1. Check Redis cluster health
+
    ```bash
    docker exec lcbp3-redis-1 redis-cli cluster info
    docker exec lcbp3-redis-1 redis-cli cluster nodes
    ```
 
 2. Check database locks
+
    ```sql
    SELECT * FROM information_schema.innodb_lock_waits;
    SELECT * FROM information_schema.innodb_trx
@@ -766,18 +784,22 @@ echo "⚠️  Please verify system functionality manually"
 **Alert**: `RedisUnavailable`
 
 **Steps**:
+
 1. Verify Redis is down
+
    ```bash
    docker exec cache redis-cli ping || echo "Redis DOWN"
    ```
 
 2. Check system falls back to DB-only mode
+
    ```bash
    curl http://localhost:3001/health/numbering
    # Should show: fallback_mode: true
    ```
 
 3. Restart Redis container
+
    ```bash
    docker restart cache
    sleep 10
@@ -785,11 +807,13 @@ echo "⚠️  Please verify system functionality manually"
    ```
 
 4. If restart fails, restore from backup
+
    ```bash
    ./scripts/restore-redis.sh /backups/redis/latest.tar.gz
    ```
 
 5. Verify numbering system back to normal
+
    ```bash
    curl http://localhost:3001/health/numbering
    # Should show: fallback_mode: false
@@ -807,6 +831,7 @@ echo "⚠️  Please verify system functionality manually"
 ### 9.1 Slow Number Generation
 
 **Diagnosis**:
+
 ```sql
 -- Check slow queries
 SELECT * FROM mysql.slow_log
@@ -821,6 +846,7 @@ FOR UPDATE;
 ```
 
 **Optimizations**:
+
 ```sql
 -- Add missing indexes
 CREATE INDEX idx_sequence_lookup
@@ -888,8 +914,8 @@ networks:
         - subnet: 172.20.0.0/16
     driver_opts:
       com.docker.network.bridge.name: lcbp3-br
-      com.docker.network.bridge.enable_icc: "true"
-      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.enable_icc: 'true'
+      com.docker.network.bridge.enable_ip_masquerade: 'true'
 ```
 
 ---
@@ -902,3 +928,4 @@ networks:
 -- Export audit logs for compliance
 SELECT *
 FROM document_numbering
+```

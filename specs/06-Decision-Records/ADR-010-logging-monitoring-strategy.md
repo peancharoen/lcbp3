@@ -131,9 +131,7 @@ export const logger = winston.createLogger({
       format: winston.format.combine(
         winston.format.colorize(),
         winston.format.printf(({ timestamp, level, message, ...meta }) => {
-          return `${timestamp} [${level}]: ${message} ${
-            Object.keys(meta).length ? JSON.stringify(meta) : ''
-          }`;
+          return `${timestamp} [${level}]: ${message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''}`;
         })
       ),
     }),
@@ -240,10 +238,7 @@ export class RequestLoggerMiddleware implements NestMiddleware {
 // File: backend/src/config/database.config.ts
 export default {
   // ...
-  logging:
-    process.env.NODE_ENV === 'development'
-      ? 'all'
-      : ['error', 'warn', 'schema'],
+  logging: process.env.NODE_ENV === 'development' ? 'all' : ['error', 'warn', 'schema'],
   logger: 'advanced-console',
   maxQueryExecutionTime: 1000, // Warn if query > 1s
 };
@@ -299,12 +294,7 @@ logger.verbose('Cache hit', { key, ttl });
 
 ```typescript
 // File: backend/src/common/interceptors/performance.interceptor.ts
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { logger } from 'src/config/logger.config';

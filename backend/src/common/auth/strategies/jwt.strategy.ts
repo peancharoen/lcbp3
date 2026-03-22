@@ -21,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     private userService: UserService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -38,7 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // 2. ตรวจสอบว่า Token นี้อยู่ใน Redis Blacklist หรือไม่
     const isBlacklisted = await this.cacheManager.get(
-      `blacklist:token:${token}`,
+      `blacklist:token:${token}`
     );
     if (isBlacklisted) {
       throw new UnauthorizedException('Token has been revoked (Logged out)');

@@ -1,12 +1,12 @@
-import { Workflow, CreateWorkflowDto, ValidationResult } from "@/types/workflow";
+import { Workflow, CreateWorkflowDto, ValidationResult } from '@/types/workflow';
 
 // Mock Data
 let mockWorkflows: Workflow[] = [
   {
     workflowId: 1,
-    workflowName: "Standard RFA Workflow",
-    description: "Default approval process for RFAs",
-    workflowType: "RFA",
+    workflowName: 'Standard RFA Workflow',
+    description: 'Default approval process for RFAs',
+    workflowType: 'RFA',
     version: 1,
     isActive: true,
     dslDefinition: `name: Standard RFA Workflow
@@ -23,9 +23,9 @@ steps:
   },
   {
     workflowId: 2,
-    workflowName: "Correspondence Review",
-    description: "Incoming correspondence review flow",
-    workflowType: "CORRESPONDENCE",
+    workflowName: 'Correspondence Review',
+    description: 'Incoming correspondence review flow',
+    workflowType: 'CORRESPONDENCE',
     version: 2,
     isActive: true,
     dslDefinition: `name: Correspondence Review
@@ -66,7 +66,7 @@ export const workflowApi = {
   updateWorkflow: async (id: number, data: Partial<CreateWorkflowDto>): Promise<Workflow> => {
     await new Promise((resolve) => setTimeout(resolve, 600));
     const index = mockWorkflows.findIndex((w) => w.workflowId === id);
-    if (index === -1) throw new Error("Workflow not found");
+    if (index === -1) throw new Error('Workflow not found');
 
     const updatedWorkflow = { ...mockWorkflows[index], ...data, updatedAt: new Date().toISOString() };
     mockWorkflows[index] = updatedWorkflow;
@@ -76,7 +76,7 @@ export const workflowApi = {
   validateDSL: async (dsl: string): Promise<ValidationResult> => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     // Simple mock validation
-    if (!dsl.includes("name:") || !dsl.includes("steps:")) {
+    if (!dsl.includes('name:') || !dsl.includes('steps:')) {
       return { valid: false, errors: ["Missing 'name' or 'steps' field"] };
     }
     return { valid: true, errors: [] };

@@ -28,14 +28,12 @@
 ## 📝 Acceptance Criteria
 
 1. **Definition Management:**
-
    - ✅ Create/Update workflow from JSON DSL
    - ✅ Validate DSL syntax และ Logic
    - ✅ Version management
    - ✅ Activate/Deactivate definitions
 
 2. **Instance Management:**
-
    - ✅ Create instance from definition
    - ✅ Execute transitions
    - ✅ Check guards (permissions, validations)
@@ -295,9 +293,7 @@ export class WorkflowEngineService {
     });
 
     if (!definition) {
-      throw new NotFoundException(
-        `Workflow definition not found: ${definitionName}`
-      );
+      throw new NotFoundException(`Workflow definition not found: ${definitionName}`);
     }
 
     // Get initial state
@@ -315,11 +311,7 @@ export class WorkflowEngineService {
     return repo.save(instance);
   }
 
-  async executeTransition(
-    instanceId: number,
-    action: string,
-    actorId: number
-  ): Promise<void> {
+  async executeTransition(instanceId: number, action: string, actorId: number): Promise<void> {
     return this.dataSource.transaction(async (manager) => {
       // 1. Get instance
       const instance = await manager.findOne(WorkflowInstance, {
@@ -328,21 +320,15 @@ export class WorkflowEngineService {
       });
 
       if (!instance) {
-        throw new NotFoundException(
-          `Workflow instance not found: ${instanceId}`
-        );
+        throw new NotFoundException(`Workflow instance not found: ${instanceId}`);
       }
 
       // 2. Find transition
       const dsl = instance.definition.definition;
-      const transition = dsl.transitions.find(
-        (t) => t.action === action && t.from === instance.current_state
-      );
+      const transition = dsl.transitions.find((t) => t.action === action && t.from === instance.current_state);
 
       if (!transition) {
-        throw new BadRequestException(
-          `Invalid transition: ${action} from ${instance.current_state}`
-        );
+        throw new BadRequestException(`Invalid transition: ${action} from ${instance.current_state}`);
       }
 
       // 3. Execute guards
@@ -438,10 +424,7 @@ export class GuardExecutorService {
     }
   }
 
-  private async checkPermission(
-    permission: string,
-    context: any
-  ): Promise<void> {
+  private async checkPermission(permission: string, context: any): Promise<void> {
     const ability = await this.abilityFactory.createForUser({
       user_id: context.actorId,
     });
@@ -473,11 +456,7 @@ export class GuardExecutorService {
 ```typescript
 describe('WorkflowEngineService', () => {
   it('should create instance with initial state', async () => {
-    const instance = await service.createInstance(
-      'CORRESPONDENCE_ROUTING',
-      'correspondence',
-      1
-    );
+    const instance = await service.createInstance('CORRESPONDENCE_ROUTING', 'correspondence', 1);
 
     expect(instance.current_state).toBe('DRAFT');
   });
@@ -490,9 +469,9 @@ describe('WorkflowEngineService', () => {
   });
 
   it('should reject invalid transition', async () => {
-    await expect(
-      service.executeTransition(instance.id, 'INVALID_ACTION', userId)
-    ).rejects.toThrow('Invalid transition');
+    await expect(service.executeTransition(instance.id, 'INVALID_ACTION', userId)).rejects.toThrow(
+      'Invalid transition'
+    );
   });
 });
 ```

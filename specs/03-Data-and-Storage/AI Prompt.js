@@ -4,15 +4,27 @@ const isFallback = fallbackState.is_fallback_active || false;
 const model = isFallback ? config.OLLAMA_MODEL_FALLBACK : config.OLLAMA_MODEL_PRIMARY;
 
 // Read DB Context
-const dbContext = $('Fetch DB Context').all().map(i => i.json);
-const dbProjects = dbContext.filter(d => d.type === 'projects').map(d => ({id: d.id, code: d.text1, name: d.text2}));
-const dbDisciplines = dbContext.filter(d => d.type === 'disciplines').map(d => ({id: d.id, th: d.text1, en: d.text2}));
-const dbOrgs = dbContext.filter(d => d.type === 'organizations').map(d => ({id: d.id, name: d.text1, code: d.text2}));
-const dbTags = dbContext.filter(d => d.type === 'tags').map(d => ({id: d.id, name: d.text1}));
-const dbCorrTypes = dbContext.filter(d => d.type === 'correspondence_types').map(d => ({id: d.id, code: d.text1, name: d.text2}));
+const dbContext = $('Fetch DB Context')
+  .all()
+  .map((i) => i.json);
+const dbProjects = dbContext
+  .filter((d) => d.type === 'projects')
+  .map((d) => ({ id: d.id, code: d.text1, name: d.text2 }));
+const dbDisciplines = dbContext
+  .filter((d) => d.type === 'disciplines')
+  .map((d) => ({ id: d.id, th: d.text1, en: d.text2 }));
+const dbOrgs = dbContext
+  .filter((d) => d.type === 'organizations')
+  .map((d) => ({ id: d.id, name: d.text1, code: d.text2 }));
+const dbTags = dbContext.filter((d) => d.type === 'tags').map((d) => ({ id: d.id, name: d.text1 }));
+const dbCorrTypes = dbContext
+  .filter((d) => d.type === 'correspondence_types')
+  .map((d) => ({ id: d.id, code: d.text1, name: d.text2 }));
 
-let systemCategories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];
-try { systemCategories = $('File Mount Check').first().json.system_categories || systemCategories; } catch (e) {}
+let systemCategories = ['Correspondence', 'RFA', 'Drawing', 'Transmittal', 'Report', 'Other'];
+try {
+  systemCategories = $('File Mount Check').first().json.system_categories || systemCategories;
+} catch (e) {}
 
 const pdfItems = $('Extract PDF Text').all();
 // File Validator passes all original Excel JSON fields through (sender, receiver, project_code, etc.)
@@ -35,13 +47,13 @@ return pdfItems.map((pdfItem, i) => {
   // JavaScript pre-mapping
   const findOrgId = (code) => {
     if (!code) return null;
-    const match = dbOrgs.find(o => o.code === code || o.name === code);
+    const match = dbOrgs.find((o) => o.code === code || o.name === code);
     return match ? match.id : null;
   };
 
   const findProjectId = (code) => {
     if (!code) return config.PROJECT_ID; // Fallback to config
-    const match = dbProjects.find(p => p.code === code || p.name === code);
+    const match = dbProjects.find((p) => p.code === code || p.name === code);
     return match ? match.id : config.PROJECT_ID;
   };
 
@@ -49,8 +61,8 @@ return pdfItems.map((pdfItem, i) => {
   const receiverId = findOrgId(receiverCode);
   const projectId = findProjectId(projectCode);
   // Excel corrType is likely already the ID based on requirements, but fallback matching to ID if needed
-  const corrMatch = dbCorrTypes.find(c => String(c.id) === corrType || c.code === corrType || c.name === corrType);
-  const corrTypeId = corrMatch ? corrMatch.id : (isNaN(parseInt(corrType)) ? null : parseInt(corrType));
+  const corrMatch = dbCorrTypes.find((c) => String(c.id) === corrType || c.code === corrType || c.name === corrType);
+  const corrTypeId = corrMatch ? corrMatch.id : isNaN(parseInt(corrType)) ? null : parseInt(corrType);
 
   const isRFA = docNum.includes('-RFA-') || title.toLowerCase().includes('rfa');
 
@@ -60,7 +72,9 @@ Your task is to classify documents and extract metadata from OCR text.
 Respond ONLY with valid JSON.`;
 
   // Use pdfItem for the OCR extracted data, NOT the metaItem
-  const pdfText = String(pdfItem.json.data || '').substring(0, 3500).replace(/[^a-zA-Z0-9ก-๙\s\.\/\-:\[\]\(\)]/g, ' ');
+  const pdfText = String(pdfItem.json.data || '')
+    .substring(0, 3500)
+    .replace(/[^a-zA-Z0-9ก-๙\s\.\/\-:\[\]\(\)]/g, ' ');
 
   const userPrompt = `Analyze this document:
 [EXCEL METADATA]
@@ -117,15 +131,15 @@ Respond ONLY with this EXACT JSON structure:
         project_id: projectId,
         sender_id: senderId,
         receiver_id: receiverId,
-        correspondence_type_id: corrTypeId
+        correspondence_type_id: corrTypeId,
       },
       _debug_mapping: {
         excel_project_code: projectCode,
         excel_sender: senderCode,
         excel_receiver: receiverCode,
         excel_corr_type: corrType,
-        matched_project: dbProjects.find(p => p.code === projectCode || p.name === projectCode) || null,
-        first_org_sample: dbOrgs[0] || null
+        matched_project: dbProjects.find((p) => p.code === projectCode || p.name === projectCode) || null,
+        first_org_sample: dbOrgs[0] || null,
       },
       ollama_payload: {
         model: model,
@@ -134,9 +148,9 @@ Respond ONLY with this EXACT JSON structure:
         format: 'json',
         options: {
           temperature: 0.1,
-          num_ctx: 8192
-        }
-      }
-    }
+          num_ctx: 8192,
+        },
+      },
+    },
   };
 });

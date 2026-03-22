@@ -34,4 +34,3 @@ export class CreateRfaWorkflowDto {
   @IsOptional()
   comments?: string;
 }
-

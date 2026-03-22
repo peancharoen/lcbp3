@@ -130,18 +130,18 @@ export const numberingApi = {
    * Get all templates
    */
   getTemplates: async (): Promise<NumberingTemplate[]> => {
-    const res = await apiClient.get<any>('/admin/document-numbering/templates');
-    return res.data.data || res.data;
+    const res = await apiClient.get<unknown>('/admin/document-numbering/templates');
+    const data = res.data as { data: NumberingTemplate[] } | NumberingTemplate[];
+    return Array.isArray(data) ? data : (data as { data: NumberingTemplate[] }).data || [];
   },
 
   /**
    * Get templates for a specific project
    */
   getTemplatesByProject: async (projectId: number): Promise<NumberingTemplate[]> => {
-    const res = await apiClient.get<any>(
-      `/admin/document-numbering/templates?projectId=${projectId}`
-    );
-    return res.data.data || res.data;
+    const res = await apiClient.get<unknown>(`/admin/document-numbering/templates?projectId=${projectId}`);
+    const data = res.data as { data: NumberingTemplate[] } | NumberingTemplate[];
+    return Array.isArray(data) ? data : (data as { data: NumberingTemplate[] }).data || [];
   },
 
   /**
@@ -157,7 +157,7 @@ export const numberingApi = {
    */
   saveTemplate: async (dto: SaveTemplateDto): Promise<NumberingTemplate> => {
     // Clean the DTO to avoid sending nested objects that might confuse TypeORM or violate constraints
-    const cleanDto: any = {
+    const cleanDto: Record<string, unknown> = {
       id: dto.id,
       projectId: dto.projectId,
       correspondenceTypeId: dto.correspondenceTypeId,
@@ -168,11 +168,9 @@ export const numberingApi = {
       isActive: dto.isActive ?? 1,
     };
 
-    const res = await apiClient.post<any>(
-      '/admin/document-numbering/templates',
-      cleanDto
-    );
-    return res.data.data || res.data;
+    const res = await apiClient.post<unknown>('/admin/document-numbering/templates', cleanDto);
+    const data = res.data as Record<string, unknown>;
+    return (data.id ? data : data.data) as NumberingTemplate;
   },
 
   /**
@@ -190,30 +188,33 @@ export const numberingApi = {
    * Get audit logs
    */
   getAuditLogs: async (limit = 100): Promise<DocumentNumberAudit[]> => {
-    const res = await apiClient.get<any>(
-      `/document-numbering/logs/audit?limit=${limit}`
-    );
-    return res.data.data || res.data;
+    const res = await apiClient.get<unknown>(`/document-numbering/logs/audit?limit=${limit}`);
+    const data = res.data as { data: DocumentNumberAudit[] } | DocumentNumberAudit[];
+    return Array.isArray(data) ? data : (data as { data: DocumentNumberAudit[] }).data || [];
   },
 
   /**
    * Get error logs
    */
   getErrorLogs: async (limit = 100): Promise<DocumentNumberError[]> => {
-    const res = await apiClient.get<any>(
-      `/document-numbering/logs/errors?limit=${limit}`
-    );
-    return res.data.data || res.data;
+    const res = await apiClient.get<unknown>(`/document-numbering/logs/errors?limit=${limit}`);
+    const data = res.data as { data: DocumentNumberError[] } | DocumentNumberError[];
+    return Array.isArray(data) ? data : (data as { data: DocumentNumberError[] }).data || [];
   },
 
   /**
    * Get metrics (audit + errors combined)
    */
   getMetrics: async (): Promise<{ audit: DocumentNumberAudit[]; errors: DocumentNumberError[] }> => {
-    const res = await apiClient.get<any>(
-      '/admin/document-numbering/metrics'
-    );
-    return res.data.data || res.data;
+    const res = await apiClient.get<unknown>('/admin/document-numbering/metrics');
+    const data = res.data as {
+      data?: { audit: DocumentNumberAudit[]; errors: DocumentNumberError[] };
+      audit?: DocumentNumberAudit[];
+      errors?: DocumentNumberError[];
+    };
+    return 'audit' in data
+      ? (data as { audit: DocumentNumberAudit[]; errors: DocumentNumberError[] })
+      : data.data || { audit: [], errors: [] };
   },
 
   // ----------------------------------------------------------
@@ -224,44 +225,42 @@ export const numberingApi = {
    * Manually override/set a counter value
    */
   manualOverride: async (dto: ManualOverrideDto): Promise<{ success: boolean; message: string }> => {
-    const res = await apiClient.post<any>(
-      '/admin/document-numbering/manual-override',
-      dto
-    );
-    return res.data.data || res.data;
+    const res = await apiClient.post<unknown>('/admin/document-numbering/manual-override', dto);
+    const data = res.data as { data?: { success: boolean; message: string }; success?: boolean; message?: string };
+    return 'success' in data
+      ? (data as { success: boolean; message: string })
+      : data.data || { success: false, message: '' };
   },
 
   /**
    * Void a document number and generate replacement
    */
   voidAndReplace: async (dto: VoidAndReplaceDto): Promise<{ newNumber: string; auditId: number }> => {
-    const res = await apiClient.post<any>(
-      '/admin/document-numbering/void-and-replace',
-      dto
-    );
-    return res.data.data || res.data;
+    const res = await apiClient.post<unknown>('/admin/document-numbering/void-and-replace', dto);
+    const data = res.data as { data?: { newNumber: string; auditId: number }; newNumber?: string; auditId?: number };
+    return 'newNumber' in data
+      ? (data as { newNumber: string; auditId: number })
+      : data.data || { newNumber: '', auditId: 0 };
   },
 
   /**
    * Cancel/skip a document number
    */
   cancelNumber: async (dto: CancelNumberDto): Promise<{ success: boolean }> => {
-    const res = await apiClient.post<any>(
-      '/admin/document-numbering/cancel',
-      dto
-    );
-    return res.data.data || res.data;
+    const res = await apiClient.post<unknown>('/admin/document-numbering/cancel', dto);
+    const data = res.data as { data?: { success: boolean }; success?: boolean };
+    return 'success' in data ? (data as { success: boolean }) : data.data || { success: false };
   },
 
   /**
    * Bulk import counter values
    */
   bulkImport: async (items: BulkImportItem[]): Promise<{ imported: number; errors: string[] }> => {
-    const res = await apiClient.post<any>(
-      '/admin/document-numbering/bulk-import',
-      items
-    );
-    return res.data.data || res.data;
+    const res = await apiClient.post<unknown>('/admin/document-numbering/bulk-import', items);
+    const data = res.data as { data?: { imported: number; errors: string[] }; imported?: number; errors?: string[] };
+    return 'imported' in data
+      ? (data as { imported: number; errors: string[] })
+      : data.data || { imported: 0, errors: [] };
   },
 
   /**
@@ -279,11 +278,10 @@ export const numberingApi = {
    * Get all counter sequences
    */
   getSequences: async (projectId?: number): Promise<NumberSequence[]> => {
-    const url = projectId
-      ? `/document-numbering/sequences?projectId=${projectId}`
-      : '/document-numbering/sequences';
-    const res = await apiClient.get<any>(url);
-    return res.data.data || res.data;
+    const url = projectId ? `/document-numbering/sequences?projectId=${projectId}` : '/document-numbering/sequences';
+    const res = await apiClient.get<unknown>(url);
+    const data = res.data as { data: NumberSequence[] } | NumberSequence[];
+    return Array.isArray(data) ? data : (data as { data: NumberSequence[] }).data || [];
   },
 
   /**
@@ -298,36 +296,37 @@ export const numberingApi = {
     rfaTypeId?: number;
     recipientOrganizationId?: number | string;
   }): Promise<{ previewNumber: string; nextSequence: number; isDefault: boolean }> => {
-    const res = await apiClient.post<any>(
-      '/document-numbering/preview',
-      ctx
-    );
-    
-    // Explicit debug log for frontend developers to see in browser console
-    console.log("[numberingApi.previewNumber] Raw Response Data:", res.data);
+    // Preview what a document number would look like (without generating)
+    const res = await apiClient.post<unknown>('/document-numbering/preview', ctx);
 
-    const body = res.data;
-    console.log("[numberingApi.previewNumber] Full Body:", body);
+    const body = res.data as Record<string, unknown>;
 
     // Drill down to find the actual data object
-    let data = body;
+    let current: Record<string, unknown> = body;
     let depth = 0;
-    while (data && typeof data === 'object' && !data.previewNumber && !data.number && data.data && depth < 3) {
-        data = data.data;
-        depth++;
+    while (
+      current &&
+      typeof current === 'object' &&
+      !current.previewNumber &&
+      !current.number &&
+      current.data &&
+      depth < 3
+    ) {
+      current = current.data as Record<string, unknown>;
+      depth++;
     }
 
-    console.log(`[numberingApi.previewNumber] Unwrapped at depth ${depth}:`, data);
-
     // Final extraction
-    const previewNumber = data?.previewNumber || data?.number || (typeof data === 'string' ? data : '');
-    const nextSequence = data?.nextSequence ?? data?.sequence ?? 0;
-    const isDefault = data?.isDefault === true;
+    const previewData = current;
+    const previewNumber =
+      ((typeof current === 'string' ? current : previewData?.previewNumber || previewData?.number) as string) || '';
+    const nextSequence = (previewData?.nextSequence ?? previewData?.sequence ?? 0) as number;
+    const isDefault = previewData?.isDefault === true;
 
     return {
       previewNumber: previewNumber || JSON.stringify(body), // Fallback to body string if all else fails
       nextSequence: nextSequence,
-      isDefault: isDefault
+      isDefault: isDefault,
     };
   },
 
@@ -337,7 +336,7 @@ export const numberingApi = {
    */
   generateTestNumber: async (
     _templateId: number,
-    context: { organizationId: string; disciplineId: string }
+    _context: { organizationId: string; disciplineId: string }
   ): Promise<{ number: string }> => {
     // Fallback mock for legacy UI - requires proper context for real use
     const mockNumber = `TEST-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;

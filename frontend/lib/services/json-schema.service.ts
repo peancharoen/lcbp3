@@ -1,10 +1,6 @@
 // File: lib/services/json-schema.service.ts
-import apiClient from "@/lib/api/client";
-import {
-  CreateJsonSchemaDto,
-  UpdateJsonSchemaDto,
-  SearchJsonSchemaDto
-} from "@/types/dto/json-schema/json-schema.dto";
+import apiClient from '@/lib/api/client';
+import { CreateJsonSchemaDto, UpdateJsonSchemaDto, SearchJsonSchemaDto } from '@/types/dto/json-schema/json-schema.dto';
 
 export const jsonSchemaService = {
   /**
@@ -12,7 +8,7 @@ export const jsonSchemaService = {
    */
   getAll: async (params?: SearchJsonSchemaDto) => {
     // GET /json-schemas
-    const response = await apiClient.get("/json-schemas", { params });
+    const response = await apiClient.get('/json-schemas', { params });
     return response.data;
   },
 
@@ -39,7 +35,7 @@ export const jsonSchemaService = {
    */
   create: async (data: CreateJsonSchemaDto) => {
     // POST /json-schemas
-    const response = await apiClient.post("/json-schemas", data);
+    const response = await apiClient.post('/json-schemas', data);
     return response.data;
   },
 
@@ -68,8 +64,8 @@ export const jsonSchemaService = {
     // POST /json-schemas/validate
     const response = await apiClient.post(`/json-schemas/validate`, {
       schemaCode: code,
-      data: data
+      data: data,
     });
     return response.data; // { valid: true, errors: [] }
-  }
+  },
 };

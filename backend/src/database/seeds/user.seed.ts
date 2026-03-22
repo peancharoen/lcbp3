@@ -54,12 +54,12 @@ export async function seedUsers(dataSource: DataSource) {
     },
   ];
 
-  const roleMap = new Map();
+  const roleMap = new Map<string, Role | null>();
   for (const r of rolesData) {
     let role = await roleRepo.findOneBy({ roleName: r.roleName });
     if (!role) {
-      // @ts-ignore
-      role = await roleRepo.save(roleRepo.create(r));
+      const roleData = r as unknown as Role;
+      role = await roleRepo.save(roleRepo.create(roleData));
     }
     roleMap.set(r.roleName, role);
   }

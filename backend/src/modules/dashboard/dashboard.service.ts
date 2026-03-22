@@ -63,22 +63,23 @@ export class DashboardService {
 
     // นับ RFA ทั้งหมด (correspondence_type_id = RFA type)
     // ใช้ Raw Query เพราะต้อง JOIN กับ correspondence_types
-    const rfaCountResult = await this.dataSource.query(`
+    const rfaCountResult = await this.dataSource.query<
+      { count: string | number }[]
+    >(`
       SELECT COUNT(*) as count
       FROM correspondences c
       JOIN correspondence_types ct ON c.correspondence_type_id = ct.id
       WHERE ct.type_code = 'RFA'
     `);
-    const totalRfas = parseInt(rfaCountResult[0]?.count || '0', 10);
+    const totalRfas = Number(rfaCountResult[0]?.count || '0');
 
     // นับ Circulation ทั้งหมด
-    const circulationsCountResult = await this.dataSource.query(`
+    const circulationsCountResult = await this.dataSource.query<
+      { count: string | number }[]
+    >(`
       SELECT COUNT(*) as count FROM circulations
     `);
-    const totalCirculations = parseInt(
-      circulationsCountResult[0]?.count || '0',
-      10
-    );
+    const totalCirculations = Number(circulationsCountResult[0]?.count || '0');
 
     // นับเอกสารที่อนุมัติแล้ว (APPROVED)
     // NOTE: อาจจะต้องปรับ logic ตาม Business ว่า "อนุมัติ" หมายถึงอะไร
@@ -92,13 +93,15 @@ export class DashboardService {
     // เพื่อความรวดเร็ว ใช้วิธีนับ Revision ที่ isCurrent = 1 และ statusCode = 'APR' (Approved)
 
     // Check status code 'APR' exists
-    const aprStatusCount = await this.dataSource.query(`
+    const aprStatusCount = await this.dataSource.query<
+      { count: string | number }[]
+    >(`
         SELECT COUNT(r.id) as count
         FROM correspondence_revisions r
         JOIN correspondence_status s ON r.correspondence_status_id = s.id
         WHERE r.is_current = 1 AND s.status_code IN ('APR', 'CMP')
     `);
-    const approved = parseInt(aprStatusCount[0]?.count || '0', 10);
+    const approved = Number(aprStatusCount[0]?.count || '0');
 
     return {
       totalDocuments,
@@ -172,7 +175,7 @@ export class DashboardService {
     const userIdNum = Number(userId);
 
     const [tasks, countResult] = await Promise.all([
-      this.dataSource.query(
+      this.dataSource.query<PendingTaskItemDto[]>(
         `
         SELECT
           instance_id as instanceId,
@@ -192,7 +195,7 @@ export class DashboardService {
       `,
         [userIdNum, userIdNum, limit, offset]
       ),
-      this.dataSource.query(
+      this.dataSource.query<{ total: string | number }[]>(
         `
         SELECT COUNT(*) as total
         FROM v_user_tasks
@@ -204,7 +207,7 @@ export class DashboardService {
       ),
     ]);
 
-    const total = parseInt(countResult[0]?.total || '0', 10);
+    const total = Number(countResult[0]?.total || '0');
 
     return {
       data: tasks,

@@ -1,14 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { createTestQueryClient } from '@/lib/test-utils';
-import {
-  useUsers,
-  useRoles,
-  useCreateUser,
-  useUpdateUser,
-  useDeleteUser,
-  userKeys,
-} from '../use-users';
+import { useUsers, useRoles, useCreateUser, useUpdateUser, useDeleteUser, userKeys } from '../use-users';
 import { userService } from '@/lib/services/user.service';
 import { toast } from 'sonner';
 
@@ -32,11 +25,7 @@ describe('use-users hooks', () => {
   describe('userKeys', () => {
     it('should generate correct cache keys', () => {
       expect(userKeys.all).toEqual(['users']);
-      expect(userKeys.list({ search: 'john' })).toEqual([
-        'users',
-        'list',
-        { search: 'john' },
-      ]);
+      expect(userKeys.list({ search: 'john' })).toEqual(['users', 'list', { search: 'john' }]);
       expect(userKeys.detail(1)).toEqual(['users', 'detail', 1]);
     });
   });

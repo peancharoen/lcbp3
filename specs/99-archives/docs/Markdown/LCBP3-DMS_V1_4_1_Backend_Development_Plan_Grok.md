@@ -2,12 +2,12 @@
 
 ### 1. LCBP3-DMS_V1_4_1_Backend_Development_Plan.md (ปรับแก้หลัก)
 
-```markdown
+````markdown
 # 📋 **แผนการพัฒนา Backend (NestJS) - LCBP3-DMS v1.4.1 (ปรับปรุงล่าสุด 18 พ.ย. 2568)**
 
 **ปรับตาม Review Critical Issues & ข้อเสนอแนะทั้งหมด**
 
---- 
+---
 
 ### Technology Stack (เพิ่มเติม/ปรับปรุง)
 
@@ -50,6 +50,8 @@
   // หรือใน TypeORM
   .createQueryBuilder().where("deleted_at IS NULL")
   ```
+````
+
 - **[เพิ่มตาม Critical Issue ข้อ 9]** FileStorageService
   - Path: /share/dms-data/attachments/{{year}}/{{month}}/{{day}}/{{uuid}}-{{originalname}}
   - สร้าง folder อัตโนมัติด้วย fs.promises.mkdir(..., { recursive: true })
@@ -94,7 +96,7 @@
 - เพิ่ม Security Scheme ตั้งแต่ Phase 1:
   ```ts
   SwaggerModule.setup('api', app, document, {
-    swaggerOptions: { security: [{ bearer: [] }] }
+    swaggerOptions: { security: [{ bearer: [] }] },
   });
   ```
 - ทุก endpoint ใส่ @ApiBearerAuth() + @RequirePermission('permission.name')
@@ -106,7 +108,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: lcbp3-redis
-    ports: ["6379:6379"]
+    ports: ['6379:6379']
     volumes: [redis-data:/data]
 
   clamav:
@@ -115,11 +117,11 @@ services:
 
   prometheus:
     image: prom/prometheus
-    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml"]
+    volumes: ['./prometheus.yml:/etc/prometheus/prometheus.yml']
 
   grafana:
     image: grafana/grafana
-    ports: ["3000:3000"]
+    ports: ['3000:3000']
 ```
 
 (รายละเอียดเต็มแยกไฟล์)
@@ -130,16 +132,20 @@ services:
 
 ```markdown
 ### 2.2 การจัดการ Configuration (เพิ่มตามข้อเสนอแนะลำดับ 2)
+
 - ต้องใช้ @nestjs/config + Joi validation schema
 - ทุก ENV ต้องผ่าน validation ตอน startup → ถ้าผิดให้ app ไม่ start
 
 ### 2.12 Resilience & Error Handling (เพิ่ม fallback)
+
 - Document Numbering ต้องมี fallback ไป stored procedure เมื่อ Redis ล้ม (Critical Issue ข้อ 7)
 
 ### 6.5.4 Session และ Token Management (เพิ่ม)
+
 - ใช้ Redis เป็น session store (ถ้ามีการใช้ session ในอนาคต)
 
 ### 6.8 Monitoring และ Observability (เพิ่มตาม Critical Issue ข้อ 5)
+
 - ต้องมี /health endpoint แยกส่วน (DB, Redis, Elasticsearch, ClamAV)
 - ต้อง expose Prometheus metrics
 - ต้องมี Grafana dashboard พื้นฐาน
@@ -149,20 +155,24 @@ services:
 
 ```markdown
 ### 2.1 หลักการพื้นฐาน (เพิ่ม)
-* ใช้ @nestjs/config + Joi validation ทุก ENV (ข้อเสนอแนะลำดับ 2)
-* RBAC ต้อง query v_user_all_permissions view เป็นหลัก และ cache ผลลัพธ์ใน Redis (Critical Issue ข้อ 6)
+
+- ใช้ @nestjs/config + Joi validation ทุก ENV (ข้อเสนอแนะลำดับ 2)
+- RBAC ต้อง query v_user_all_permissions view เป็นหลัก และ cache ผลลัพธ์ใน Redis (Critical Issue ข้อ 6)
 
 ### 2.3 ฟังก์ชัน (เพิ่ม)
-* งานที่ใช้เวลานาน (notification, reindex, cleanup) ต้องใช้ Background Job (BullMQ) ไม่ใช่ Cron โดยตรง (ข้อเสนอแนะลำดับ 4)
+
+- งานที่ใช้เวลานาน (notification, reindex, cleanup) ต้องใช้ Background Job (BullMQ) ไม่ใช่ Cron โดยตรง (ข้อเสนอแนะลำดับ 4)
 
 ### 3.1 หลักการ (เพิ่ม)
-* Monitoring: ต้อง implement @nestjs/terminus + Prometheus exporter (Critical Issue ข้อ 5)
+
+- Monitoring: ต้อง implement @nestjs/terminus + Prometheus exporter (Critical Issue ข้อ 5)
 ```
 
 ### 4. LCBP3-DMS_V1_4_1_Data_Dictionary.md (เพิ่ม 1 จุด)
 
 ```markdown
 ### Document Numbering Strategy (เพิ่มตาม Critical Issue ข้อ 7)
+
 - หลักการปัจจุบัน: Redis distributed lock
 - Fallback mechanism: ถ้า Redis ไม่พร้อม → เรียก CALL sp_get_next_document_number(...)
 - ต้อง log การ fallback ทุกครั้งใน audit_logs ด้วย action = 'DOCUMENT_NUMBER_FALLBACK'
@@ -182,6 +192,7 @@ services:
 ### 🆕 **เพิ่มใหม่**
 
 #### **T0.2.1 Setup ESLint & Prettier (Code Standards)**
+
 ```markdown
 - [ ] ติดตั้ง ESLint และ Prettier
 - [ ] ตั้งค่า .eslintrc.js และ .prettierrc
@@ -192,6 +203,7 @@ services:
 ```
 
 #### **T0.5 Database Migration Planning**
+
 ```markdown
 - [ ] สร้าง Migration Scripts Structure
 - [ ] วางแผน Database Versioning Strategy
@@ -202,6 +214,7 @@ services:
 ```
 
 #### **T0.6 Environment Management Strategy**
+
 ```markdown
 - [ ] สร้าง Configuration Service
 - [ ] วางแผน Environment Variables Management
@@ -212,6 +225,7 @@ services:
 ```
 
 #### **T1.6 Error Handling Strategy**
+
 ```markdown
 - [ ] สร้าง Global Exception Filter
 - [ ] สร้าง Error Response Standard
@@ -222,6 +236,7 @@ services:
 ```
 
 #### **T6.5 API Versioning Strategy**
+
 ```markdown
 - [ ] สร้าง API Versioning Middleware
 - [ ] วางแผน Versioning Strategy (URI vs Header)
@@ -232,6 +247,7 @@ services:
 ```
 
 #### **T7.7 Load Testing Simulation**
+
 ```markdown
 - [ ] สร้าง Load Testing Scripts
 - [ ] จำลองการใช้งานจริง (100 concurrent users)
@@ -242,6 +258,7 @@ services:
 ```
 
 #### **T8.7 Backup & Recovery Planning**
+
 ```markdown
 - [ ] สร้าง Backup Scripts (Database + Files)
 - [ ] วางแผน Recovery Procedures
@@ -252,6 +269,7 @@ services:
 ```
 
 #### **T8.8 Data Privacy & Compliance Implementation**
+
 ```markdown
 - [ ] สร้าง Data Privacy Policies
 - [ ] Implement Data Retention Rules
@@ -264,6 +282,7 @@ services:
 ### 🔄 **แก้ไข**
 
 #### **T2.5 JSON Details & Schema Management (ปรับปรุง)**
+
 ```markdown
 - **เดิม:** เป็นส่วนแยกที่ดูไม่เชื่อมโยง
 - **ใหม่:** รวมเข้ากับ Phase 2 อย่างเป็นธรรมชาติ
@@ -272,6 +291,7 @@ services:
 ```
 
 #### **T6.4 ResilienceModule (ปรับปรุง)**
+
 ```markdown
 - **เดิม:** ไม่ระบุว่าจะใช้กับ Services ใด
 - **ใหม่:** ระบุชัดเจนว่าจะใช้กับ:
@@ -282,6 +302,7 @@ services:
 ```
 
 #### **T8.1 API Documentation (ปรับปรุง)**
+
 ```markdown
 - **เดิม:** แค่บอกว่าต้องสร้าง Swagger
 - **ใหม่:** เพิ่มรายละเอียด:
@@ -298,6 +319,7 @@ services:
 ### 🆕 **เพิ่มใหม่**
 
 #### **2.13 Database Migration และ Schema Versioning**
+
 ```markdown
 - ต้องมี database migration scripts สำหรับทุก schema change
 - ต้องรองรับ rollback ของ migration ได้
@@ -307,6 +329,7 @@ services:
 ```
 
 #### **2.14 Code Standards และ Quality Assurance**
+
 ```markdown
 - ต้องมี ESLint และ Prettier สำหรับรักษามาตรฐานโค้ด
 - ต้องมี pre-commit hooks สำหรับตรวจสอบโค้ด
@@ -315,6 +338,7 @@ services:
 ```
 
 #### **6.10 API Versioning Strategy**
+
 ```markdown
 - ต้องมี API versioning strategy ที่ชัดเจน
 - รองรับ backward compatibility อย่างน้อย 2 versions
@@ -323,6 +347,7 @@ services:
 ```
 
 #### **6.11 Data Privacy และ Compliance Implementation**
+
 ```markdown
 - ต้องมี data privacy policies ที่ชัดเจน
 - ต้องมี data retention rules ตามกฎหมาย
@@ -333,6 +358,7 @@ services:
 ### 🔄 **แก้ไข**
 
 #### **2.12 กลยุทธ์ความทนทานและการจัดการข้อผิดพลาด**
+
 ```markdown
 - **เพิ่ม:** รายละเอียดเกี่ยวกับ Error Handling Strategy
 - **เพิ่ม:** รายละเอียดเกี่ยวกับ Monitoring Integration
@@ -340,6 +366,7 @@ services:
 ```
 
 #### **3.11 การจัดการ JSON Details**
+
 ```markdown
 - **ปรับ:** ทำให้เป็นส่วนหนึ่งของ Requirements หลัก
 - **เพิ่ม:** รายละเอียดเกี่ยวกับ Schema Versioning
@@ -353,6 +380,7 @@ services:
 ### 🆕 **เพิ่มใหม่**
 
 #### **3.16 Database Migration Strategy**
+
 ```typescript
 // Migration Scripts Structure
 src/
@@ -369,6 +397,7 @@ src/
 ```
 
 #### **3.17 Environment Configuration Management**
+
 ```typescript
 // Configuration Service Example
 @Injectable()
@@ -387,6 +416,7 @@ export class ConfigService {
 ```
 
 #### **3.18 API Versioning Implementation**
+
 ```typescript
 // API Versioning Middleware
 @Controller('api/v1')
@@ -403,6 +433,7 @@ export class CorrespondenceControllerV2 {
 ### 🔄 **แก้ไข**
 
 #### **3.8 Error Handling และ Monitoring**
+
 ```typescript
 // Global Exception Filter
 @Catch()
@@ -416,22 +447,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
 ```
 
 #### **4.5 Frontend Testing Strategy**
+
 ```typescript
 // Testing Stack Configuration
 const testingConfig = {
   unit: {
     framework: 'Vitest',
     library: 'React Testing Library',
-    coverage: '80%'
+    coverage: '80%',
   },
   integration: {
     tool: 'MSW',
-    scenarios: 'API mocking'
+    scenarios: 'API mocking',
   },
   e2e: {
     tool: 'Playwright',
-    scenarios: 'User workflows'
-  }
+    scenarios: 'User workflows',
+  },
 };
 ```
 
@@ -442,6 +474,7 @@ const testingConfig = {
 ### 🆕 **เพิ่มใหม่**
 
 #### **5. JSON Schema Definitions Table**
+
 ```sql
 CREATE TABLE json_schema_definitions (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -456,6 +489,7 @@ CREATE TABLE json_schema_definitions (
 ```
 
 #### **6. Migration History Table**
+
 ```sql
 CREATE TABLE migration_history (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -468,6 +502,7 @@ CREATE TABLE migration_history (
 ```
 
 #### **7. Configuration Management Table**
+
 ```sql
 CREATE TABLE configuration_management (
   id INT PRIMARY KEY AUTO_INCREMENT,
@@ -484,18 +519,20 @@ CREATE TABLE configuration_management (
 ### 🔄 **แก้ไข**
 
 #### **3.9 correspondence_revisions Table**
+
 ```sql
 -- เพิ่ม JSON fields
-ALTER TABLE correspondence_revisions 
+ALTER TABLE correspondence_revisions
 ADD COLUMN details JSON NULL,
 ADD COLUMN schema_version VARCHAR(20) NULL,
 ADD INDEX idx_correspondence_details ((CAST(details AS CHAR(255) ARRAY)));
 ```
 
 #### **4.5 rfa_revisions Table**
+
 ```sql
 -- เพิ่ม JSON fields
-ALTER TABLE rfa_revisions 
+ALTER TABLE rfa_revisions
 ADD COLUMN details JSON NULL,
 ADD COLUMN schema_version VARCHAR(20) NULL,
 ADD INDEX idx_rfa_details ((CAST(details AS CHAR(255) ARRAY)));
@@ -505,13 +542,14 @@ ADD INDEX idx_rfa_details ((CAST(details AS CHAR(255) ARRAY)));
 
 ## 📊 **สรุปการปรับปกป้องทั้งหมด**
 
-| ประเภท         | จำนวนที่ปรับ  | หัวข้อหลักที่ปรับ                                                        |
-| -------------- | --------- | ------------------------------------------------------------------ |
-| เพิ่มใหม่         | 15 รายการ | Migration, Environment, Error Handling, API Versioning, Testing    |
-| แก้ไข           | 8 รายการ  | JSON Integration, Circuit Breaker, Documentation, Testing Strategy |
-| ปรับปรุงโครงสร้าง | 3 ตาราง   | JSON Schema, Migration History, Configuration                      |
+| ประเภท            | จำนวนที่ปรับ | หัวข้อหลักที่ปรับ                                                  |
+| ----------------- | ------------ | ------------------------------------------------------------------ |
+| เพิ่มใหม่         | 15 รายการ    | Migration, Environment, Error Handling, API Versioning, Testing    |
+| แก้ไข             | 8 รายการ     | JSON Integration, Circuit Breaker, Documentation, Testing Strategy |
+| ปรับปรุงโครงสร้าง | 3 ตาราง      | JSON Schema, Migration History, Configuration                      |
 
 ### 🎯 **ผลลัพธ์ที่ได้:**
+
 1. **ความสมบูรณ์ของแผนการพัฒนา** - ครอบคลุมทุกด้านที่จำเป็น
 2. **ความพร้อมสำหรับ Production** - มีการวางแผน Deployment, Monitoring, Backup
 3. **มาตรฐานการพัฒนา** - มี Code Standards, Testing, Documentation

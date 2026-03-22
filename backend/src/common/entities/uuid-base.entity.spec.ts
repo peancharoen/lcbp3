@@ -1,9 +1,7 @@
 // Mock uuid module to avoid ESM import issue with uuid@13
 jest.mock('uuid', () => ({
   validate: (str: string) =>
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      str
-    ),
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str),
   v7: () => '01912345-6789-7abc-8def-0123456789ab',
 }));
 

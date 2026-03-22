@@ -4,21 +4,23 @@ import { seedOrganizations } from './organization.seed';
 import { seedUsers } from './user.seed';
 
 async function runSeeds() {
-  const dataSource = new DataSource(databaseConfig as any);
+  const dataSource = new DataSource(
+    databaseConfig as import('typeorm').DataSourceOptions
+  );
   await dataSource.initialize();
 
   try {
-    console.log('🌱 Seeding database...');
+    //     console.log('🌱 Seeding database...');
 
     await seedOrganizations(dataSource);
     await seedUsers(dataSource);
 
-    console.log('✅ Seeding completed!');
-  } catch (error) {
-    console.error('❌ Seeding failed:', error);
+    //     console.log('✅ Seeding completed!');
+  } catch (_error) {
+    //     console.error('❌ Seeding failed:', _error);
   } finally {
     await dataSource.destroy();
   }
 }
 
-runSeeds();
+void runSeeds();

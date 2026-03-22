@@ -74,7 +74,7 @@ export interface Drawing {
 }
 
 export interface CreateDrawingDto {
-  drawingType: "CONTRACT" | "SHOP";
+  drawingType: 'CONTRACT' | 'SHOP';
   drawingNumber: string;
   title: string;
   disciplineId: number;

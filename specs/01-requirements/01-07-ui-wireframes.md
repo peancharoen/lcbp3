@@ -1,15 +1,18 @@
 # 🖼️ UI/UX Wireframes & Screen Inventory — LCBP3-DMS v1.8.0
 
 ---
+
 title: 'UI/UX Screen Inventory, Navigation Map, and Wireframes'
 version: 1.0.0
 status: DRAFT
 owner: Nattanin Peancharoen (Product Owner)
 last_updated: 2026-03-11
 related:
-  - specs/01-Requirements/01-02-business-rules/01-02-03-ui-ux-rules.md
-  - specs/01-Requirements/01-04-user-stories.md
-  - specs/01-Requirements/01-05-acceptance-criteria.md
+
+- specs/01-Requirements/01-02-business-rules/01-02-03-ui-ux-rules.md
+- specs/01-Requirements/01-04-user-stories.md
+- specs/01-Requirements/01-05-acceptance-criteria.md
+
 ---
 
 > [!NOTE]
@@ -112,34 +115,34 @@ Mobile: Sidebar → Collapsible Hamburger Drawer (ตาม UI-Rule 5.11)
 
 ## 3. 📋 Screen Inventory
 
-| Screen ID | Route | ชื่อหน้า | Primary Role | Priority |
-|-----------|-------|---------|-------------|---------|
-| SCR-001 | `/login` | Login | ทุก Role | 🔴 Must |
-| SCR-002 | `/login/change-password` | Force Password Change | ทุก Role | 🔴 Must |
-| SCR-003 | `/dashboard` | Dashboard | ทุก Role | 🔴 Must |
-| SCR-004 | `/correspondences` | Correspondence List | Doc Control | 🔴 Must |
-| SCR-005 | `/correspondences/new` | Create Correspondence | Doc Control | 🔴 Must |
-| SCR-006 | `/correspondences/:id` | Correspondence Detail + Workflow | ทุก Role | 🔴 Must |
-| SCR-007 | `/rfas` | RFA List | Doc Control | 🔴 Must |
-| SCR-008 | `/rfas/new` | Create RFA | Doc Control | 🔴 Must |
-| SCR-009 | `/rfas/:id` | RFA Detail + Workflow | ทุก Role | 🔴 Must |
-| SCR-010 | `/transmittals` | Transmittal List | Doc Control | 🟠 Should |
-| SCR-011 | `/transmittals/new` | Create Transmittal | Doc Control | 🟠 Should |
-| SCR-012 | `/transmittals/:id` | Transmittal Detail | ทุก Role | 🟠 Should |
-| SCR-013 | `/drawings/contract` | Contract Drawing List | Doc Control | 🟠 Should |
-| SCR-014 | `/drawings/shop` | Shop Drawing List | Doc Control | 🟠 Should |
-| SCR-015 | `/drawings/shop/:id` | Shop Drawing Detail | ทุก Role | 🟠 Should |
-| SCR-016 | `/circulations` | Circulation List | Doc Control | 🟠 Should |
-| SCR-017 | `/circulations/new` | Create Circulation | Doc Control | 🟠 Should |
-| SCR-018 | `/circulations/:id` | Circulation Detail | ทุก Role | 🟠 Should |
-| SCR-019 | `/search` | Search Results | ทุก Role | 🟠 Should |
-| SCR-020 | `/notifications` | Notification Center | ทุก Role | 🟡 Could |
-| SCR-021 | `/profile` | Profile & Settings | ทุก Role | 🟠 Should |
-| SCR-022 | `/admin/users` | User Management | Org Admin+ | 🔴 Must |
-| SCR-023 | `/admin/organizations` | Organization Management | Superadmin | 🔴 Must |
-| SCR-024 | `/admin/projects` | Project & Contract Mgmt | Superadmin | 🔴 Must |
-| SCR-025 | `/admin/doc-numbering` | Document Number Config | Superadmin | 🟠 Should |
-| SCR-026 | `/admin/audit-logs` | Audit Log Viewer | Org Admin+ | 🟠 Should |
+| Screen ID | Route                    | ชื่อหน้า                         | Primary Role | Priority  |
+| --------- | ------------------------ | -------------------------------- | ------------ | --------- |
+| SCR-001   | `/login`                 | Login                            | ทุก Role     | 🔴 Must   |
+| SCR-002   | `/login/change-password` | Force Password Change            | ทุก Role     | 🔴 Must   |
+| SCR-003   | `/dashboard`             | Dashboard                        | ทุก Role     | 🔴 Must   |
+| SCR-004   | `/correspondences`       | Correspondence List              | Doc Control  | 🔴 Must   |
+| SCR-005   | `/correspondences/new`   | Create Correspondence            | Doc Control  | 🔴 Must   |
+| SCR-006   | `/correspondences/:id`   | Correspondence Detail + Workflow | ทุก Role     | 🔴 Must   |
+| SCR-007   | `/rfas`                  | RFA List                         | Doc Control  | 🔴 Must   |
+| SCR-008   | `/rfas/new`              | Create RFA                       | Doc Control  | 🔴 Must   |
+| SCR-009   | `/rfas/:id`              | RFA Detail + Workflow            | ทุก Role     | 🔴 Must   |
+| SCR-010   | `/transmittals`          | Transmittal List                 | Doc Control  | 🟠 Should |
+| SCR-011   | `/transmittals/new`      | Create Transmittal               | Doc Control  | 🟠 Should |
+| SCR-012   | `/transmittals/:id`      | Transmittal Detail               | ทุก Role     | 🟠 Should |
+| SCR-013   | `/drawings/contract`     | Contract Drawing List            | Doc Control  | 🟠 Should |
+| SCR-014   | `/drawings/shop`         | Shop Drawing List                | Doc Control  | 🟠 Should |
+| SCR-015   | `/drawings/shop/:id`     | Shop Drawing Detail              | ทุก Role     | 🟠 Should |
+| SCR-016   | `/circulations`          | Circulation List                 | Doc Control  | 🟠 Should |
+| SCR-017   | `/circulations/new`      | Create Circulation               | Doc Control  | 🟠 Should |
+| SCR-018   | `/circulations/:id`      | Circulation Detail               | ทุก Role     | 🟠 Should |
+| SCR-019   | `/search`                | Search Results                   | ทุก Role     | 🟠 Should |
+| SCR-020   | `/notifications`         | Notification Center              | ทุก Role     | 🟡 Could  |
+| SCR-021   | `/profile`               | Profile & Settings               | ทุก Role     | 🟠 Should |
+| SCR-022   | `/admin/users`           | User Management                  | Org Admin+   | 🔴 Must   |
+| SCR-023   | `/admin/organizations`   | Organization Management          | Superadmin   | 🔴 Must   |
+| SCR-024   | `/admin/projects`        | Project & Contract Mgmt          | Superadmin   | 🔴 Must   |
+| SCR-025   | `/admin/doc-numbering`   | Document Number Config           | Superadmin   | 🟠 Should |
+| SCR-026   | `/admin/audit-logs`      | Audit Log Viewer                 | Org Admin+   | 🟠 Should |
 
 **รวม:** 26 หน้า (9 Must / 13 Should / 1 Could)
 
@@ -536,58 +539,62 @@ User Edit Drawer (Slide in from right):
 ## 5. 🎨 Design System Reference
 
 ### Color Tokens
+
 ```css
 /* Primary — ใช้กับ Action Buttons, Links */
---primary:       hsl(221, 83%, 53%);   /* Blue-600 */
+--primary: hsl(221, 83%, 53%); /* Blue-600 */
 --primary-hover: hsl(221, 83%, 45%);
 
 /* Status Colors */
---status-draft:      hsl(48, 96%, 53%);   /* Yellow */
---status-submitted:  hsl(217, 91%, 60%);  /* Blue */
---status-review:     hsl(24, 95%, 53%);   /* Orange */
---status-approved:   hsl(142, 71%, 45%);  /* Green */
---status-rejected:   hsl(0, 84%, 60%);    /* Red */
---status-cancelled:  hsl(215, 14%, 55%);  /* Gray */
---status-overdue:    hsl(0, 84%, 60%);    /* Red (same as rejected) */
+--status-draft: hsl(48, 96%, 53%); /* Yellow */
+--status-submitted: hsl(217, 91%, 60%); /* Blue */
+--status-review: hsl(24, 95%, 53%); /* Orange */
+--status-approved: hsl(142, 71%, 45%); /* Green */
+--status-rejected: hsl(0, 84%, 60%); /* Red */
+--status-cancelled: hsl(215, 14%, 55%); /* Gray */
+--status-overdue: hsl(0, 84%, 60%); /* Red (same as rejected) */
 
 /* Background */
---bg-base:    hsl(222, 47%, 11%);  /* Dark Navy (dark mode base) */
---bg-surface: hsl(222, 47%, 16%);  /* Card surface */
---bg-muted:   hsl(215, 28%, 17%);  /* Muted sections */
+--bg-base: hsl(222, 47%, 11%); /* Dark Navy (dark mode base) */
+--bg-surface: hsl(222, 47%, 16%); /* Card surface */
+--bg-muted: hsl(215, 28%, 17%); /* Muted sections */
 ```
 
 ### Typography
+
 ```css
 font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 
 /* Scale */
---text-xs:  0.75rem;   /* 12px — Badge, Caption */
---text-sm:  0.875rem;  /* 14px — Table cell, Label */
---text-base:1rem;      /* 16px — Body */
---text-lg:  1.125rem;  /* 18px — Subheading */
---text-xl:  1.25rem;   /* 20px — Page title */
---text-2xl: 1.5rem;    /* 24px — Dashboard KPI */
+--text-xs: 0.75rem; /* 12px — Badge, Caption */
+--text-sm: 0.875rem; /* 14px — Table cell, Label */
+--text-base: 1rem; /* 16px — Body */
+--text-lg: 1.125rem; /* 18px — Subheading */
+--text-xl: 1.25rem; /* 20px — Page title */
+--text-2xl: 1.5rem; /* 24px — Dashboard KPI */
 ```
 
 ### Component States
-| Component | Default | Hover | Active | Disabled | Error |
-|-----------|---------|-------|--------|----------|-------|
-| Button Primary | bg-primary | bg-primary-hover | scale-95 | opacity-50 | — |
-| Input | border-gray-300 | border-primary | border-primary ring | border-gray-200 | border-red-500 |
-| Table Row | bg-surface | bg-muted | — | opacity-60 | bg-red-50 |
-| Badge | per status color | — | — | — | — |
+
+| Component      | Default          | Hover            | Active              | Disabled        | Error          |
+| -------------- | ---------------- | ---------------- | ------------------- | --------------- | -------------- |
+| Button Primary | bg-primary       | bg-primary-hover | scale-95            | opacity-50      | —              |
+| Input          | border-gray-300  | border-primary   | border-primary ring | border-gray-200 | border-red-500 |
+| Table Row      | bg-surface       | bg-muted         | —                   | opacity-60      | bg-red-50      |
+| Badge          | per status color | —                | —                   | —               | —              |
 
 ---
 
 ## 6. 📱 Responsive Breakpoints
 
-| Breakpoint | Width | Behavior |
-|-----------|-------|---------|
-| `sm` | < 640px | Mobile: Sidebar → Drawer, Table → Cards |
-| `md` | 640-1024px | Tablet: Collapsed Sidebar |
-| `lg` | > 1024px | Desktop: Full Sidebar |
+| Breakpoint | Width      | Behavior                                |
+| ---------- | ---------- | --------------------------------------- |
+| `sm`       | < 640px    | Mobile: Sidebar → Drawer, Table → Cards |
+| `md`       | 640-1024px | Tablet: Collapsed Sidebar               |
+| `lg`       | > 1024px   | Desktop: Full Sidebar                   |
 
 **Mobile-specific Rules (UI-Rule 5.11):**
+
 - ตาราง → Card View อัตโนมัติ
 - Sidebar → Collapsible Hamburger Drawer
 - Action Panel → Bottom Sheet แทน Inline Panel
@@ -597,6 +604,7 @@ font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 ## 7. ⚡ Interaction Patterns
 
 ### Optimistic Updates (UI-Rule 5.10)
+
 ```
 User กด "Approve" → UI เปลี่ยนสถานะทันที (ไม่รอ API)
    ↓
@@ -606,12 +614,14 @@ Rollback UI → แสดง Toast Error: "เกิดข้อผิดพล�
 ```
 
 ### Auto-save Draft (UI-Rule 5.12)
+
 ```
 User พิมพ์ใน Form → debounce 2 วินาที → บันทึกลง localStorage
 ปิด Browser → เปิดใหม่ → แสดง Banner: "พบ Draft ที่บันทึกไว้ [กู้คืน] [ทิ้ง]"
 ```
 
 ### File Upload Progress
+
 ```
 เลือกไฟล์ → แสดง Progress Bar → ClamAV Scan → ✅/❌
 ```

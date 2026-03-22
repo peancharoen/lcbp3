@@ -471,23 +471,23 @@ Logging library สำหรับ Node.js
 
 ## 📚 Acronyms Reference (อ้างอิงตัวย่อ)
 
-| Acronym | Full Form                         | Thai                       |
-| ------- | --------------------------------- | -------------------------- |
+| Acronym | Full Form                         | Thai                            |
+| ------- | --------------------------------- | ------------------------------- |
 | ADR     | Architecture Decision Record      | บันทึกการตัดสินใจทางสถาปัตยกรรม |
-| API     | Application Programming Interface | ส่วนต่อประสานโปรแกรม         |
-| CRUD    | Create, Read, Update, Delete      | สร้าง อ่าน แก้ไข ลบ           |
-| DMS     | Document Management System        | ระบบจัดการเอกสาร            |
+| API     | Application Programming Interface | ส่วนต่อประสานโปรแกรม            |
+| CRUD    | Create, Read, Update, Delete      | สร้าง อ่าน แก้ไข ลบ             |
+| DMS     | Document Management System        | ระบบจัดการเอกสาร                |
 | DTO     | Data Transfer Object              | วัตถุถ่ายโอนข้อมูล              |
-| JWT     | JSON Web Token                    | โทเคนเว็บ JSON              |
+| JWT     | JSON Web Token                    | โทเคนเว็บ JSON                  |
 | LCBP3   | Laem Chabang Port Phase 3         | ท่าเรือแหลมฉบังระยะที่ 3        |
-| MVP     | Minimum Viable Product            | ผลิตภัณฑ์ขั้นต่ำที่ใช้งานได้          |
+| MVP     | Minimum Viable Product            | ผลิตภัณฑ์ขั้นต่ำที่ใช้งานได้    |
 | ORM     | Object-Relational Mapping         | การแมปวัตถุกับฐานข้อมูล         |
-| RBAC    | Role-Based Access Control         | การควบคุมการเข้าถึงตามบทบาท   |
-| REST    | Representational State Transfer   | การถ่ายโอนสถานะแบบนำเสนอ     |
-| RFA     | Request for Approval              | เอกสารขออนุมัติ               |
-| RTO     | Recovery Time Objective           | เวลาเป้าหมายในการกู้คืน        |
+| RBAC    | Role-Based Access Control         | การควบคุมการเข้าถึงตามบทบาท     |
+| REST    | Representational State Transfer   | การถ่ายโอนสถานะแบบนำเสนอ        |
+| RFA     | Request for Approval              | เอกสารขออนุมัติ                 |
+| RTO     | Recovery Time Objective           | เวลาเป้าหมายในการกู้คืน         |
 | RPO     | Recovery Point Objective          | จุดเป้าหมายในการกู้คืน          |
-| UAT     | User Acceptance Testing           | การทดสอบการยอมรับของผู้ใช้     |
+| UAT     | User Acceptance Testing           | การทดสอบการยอมรับของผู้ใช้      |
 
 ---
 

@@ -67,9 +67,10 @@ Comprehensive best practices and architecture guide for NestJS applications, des
    - 9.2 [Use Message and Event Patterns Correctly](#92-use-message-and-event-patterns-correctly)
    - 9.3 [Use Message Queues for Background Jobs](#93-use-message-queues-for-background-jobs)
 10. [DevOps & Deployment](#10-devops-deployment) — **LOW-MEDIUM**
-   - 10.1 [Implement Graceful Shutdown](#101-implement-graceful-shutdown)
-   - 10.2 [Use ConfigModule for Environment Configuration](#102-use-configmodule-for-environment-configuration)
-   - 10.3 [Use Structured Logging](#103-use-structured-logging)
+
+- 10.1 [Implement Graceful Shutdown](#101-implement-graceful-shutdown)
+- 10.2 [Use ConfigModule for Environment Configuration](#102-use-configmodule-for-environment-configuration)
+- 10.3 [Use Structured Logging](#103-use-structured-logging)
 
 ---
 
@@ -390,7 +391,7 @@ export class UserAndOrderService {
     private userRepo: UserRepository,
     private orderRepo: OrderRepository,
     private mailer: MailService,
-    private payment: PaymentService,
+    private payment: PaymentService
   ) {}
 
   async createUser(dto: CreateUserDto) {
@@ -461,7 +462,7 @@ export class OrdersController {
   constructor(
     private orders: OrdersService,
     private payment: PaymentService,
-    private notifications: NotificationService,
+    private notifications: NotificationService
   ) {}
 
   @Post()
@@ -495,7 +496,7 @@ export class OrdersService {
     private emailService: EmailService,
     private analyticsService: AnalyticsService,
     private notificationService: NotificationService,
-    private loyaltyService: LoyaltyService,
+    private loyaltyService: LoyaltyService
   ) {}
 
   async createOrder(dto: CreateOrderDto): Promise<Order> {
@@ -526,7 +527,7 @@ export class OrderCreatedEvent {
     public readonly orderId: string,
     public readonly userId: string,
     public readonly items: OrderItem[],
-    public readonly total: number,
+    public readonly total: number
   ) {}
 }
 
@@ -535,17 +536,14 @@ export class OrderCreatedEvent {
 export class OrdersService {
   constructor(
     private eventEmitter: EventEmitter2,
-    private repo: Repository<Order>,
+    private repo: Repository<Order>
   ) {}
 
   async createOrder(dto: CreateOrderDto): Promise<Order> {
     const order = await this.repo.save(dto);
 
     // Emit event - no knowledge of consumers
-    this.eventEmitter.emit(
-      'order.created',
-      new OrderCreatedEvent(order.id, order.userId, order.items, order.total),
-    );
+    this.eventEmitter.emit('order.created', new OrderCreatedEvent(order.id, order.userId, order.items, order.total));
 
     return order;
   }
@@ -596,9 +594,7 @@ Create custom repositories to encapsulate complex queries and database logic. Th
 // Complex queries in services
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectRepository(User) private repo: Repository<User>,
-  ) {}
+  constructor(@InjectRepository(User) private repo: Repository<User>) {}
 
   async findActiveWithOrders(minOrders: number): Promise<User[]> {
     // Complex query logic mixed with business logic
@@ -623,9 +619,7 @@ export class UsersService {
 // Custom repository with encapsulated queries
 @Injectable()
 export class UsersRepository {
-  constructor(
-    @InjectRepository(User) private repo: Repository<User>,
-  ) {}
+  constructor(@InjectRepository(User) private repo: Repository<User>) {}
 
   async findById(id: string): Promise<User | null> {
     return this.repo.findOne({ where: { id } });
@@ -735,7 +729,7 @@ export class OrdersService {
   constructor(
     private usersService: UsersService,
     private inventoryService: InventoryService,
-    private paymentService: PaymentService,
+    private paymentService: PaymentService
   ) {}
 
   async createOrder(dto: CreateOrderDto): Promise<Order> {
@@ -810,14 +804,14 @@ interface NotificationService {
 @Injectable()
 export class OrdersService {
   constructor(
-    private notifications: NotificationService, // Depends on 8 methods, uses 1
+    private notifications: NotificationService // Depends on 8 methods, uses 1
   ) {}
 
   async confirmOrder(order: Order): Promise<void> {
     await this.notifications.sendEmail(
       order.customer.email,
       'Order Confirmed',
-      `Your order ${order.id} has been confirmed.`,
+      `Your order ${order.id} has been confirmed.`
     );
   }
 }
@@ -825,12 +819,12 @@ export class OrdersService {
 // Testing is painful - must mock unused methods
 const mockNotificationService = {
   sendEmail: jest.fn(),
-  sendSms: jest.fn(),           // Never used, but required
-  sendPush: jest.fn(),          // Never used, but required
-  sendSlack: jest.fn(),         // Never used, but required
-  logNotification: jest.fn(),   // Never used, but required
+  sendSms: jest.fn(), // Never used, but required
+  sendPush: jest.fn(), // Never used, but required
+  sendSlack: jest.fn(), // Never used, but required
+  logNotification: jest.fn(), // Never used, but required
   getDeliveryStatus: jest.fn(), // Never used, but required
-  retryFailed: jest.fn(),       // Never used, but required
+  retryFailed: jest.fn(), // Never used, but required
   scheduleNotification: jest.fn(), // Never used, but required
 };
 ```
@@ -887,14 +881,14 @@ export class SendGridEmailService implements EmailSender {
 @Injectable()
 export class OrdersService {
   constructor(
-    @Inject(EMAIL_SENDER) private emailSender: EmailSender, // Minimal dependency
+    @Inject(EMAIL_SENDER) private emailSender: EmailSender // Minimal dependency
   ) {}
 
   async confirmOrder(order: Order): Promise<void> {
     await this.emailSender.sendEmail(
       order.customer.email,
       'Order Confirmed',
-      `Your order ${order.id} has been confirmed.`,
+      `Your order ${order.id} has been confirmed.`
     );
   }
 }
@@ -932,7 +926,7 @@ type MultiChannelSender = EmailSender & SmsSender & PushSender;
 export class AlertService {
   constructor(
     @Inject(MULTI_CHANNEL_SENDER)
-    private sender: EmailSender & SmsSender,
+    private sender: EmailSender & SmsSender
   ) {}
 
   async sendCriticalAlert(user: User, message: string): Promise<void> {
@@ -1123,9 +1117,7 @@ export class OrdersService {
 
 ```typescript
 // Shared test suite that any implementation must pass
-function testPaymentGatewayContract(
-  createGateway: () => PaymentGateway,
-) {
+function testPaymentGatewayContract(createGateway: () => PaymentGateway) {
   describe('PaymentGateway contract', () => {
     let gateway: PaymentGateway;
 
@@ -1142,13 +1134,11 @@ function testPaymentGatewayContract(
     });
 
     it('throws InvalidCurrencyException for unsupported currency', async () => {
-      await expect(gateway.charge(1000, 'INVALID'))
-        .rejects.toThrow(InvalidCurrencyException);
+      await expect(gateway.charge(1000, 'INVALID')).rejects.toThrow(InvalidCurrencyException);
     });
 
     it('throws TransactionNotFoundException for invalid refund', async () => {
-      await expect(gateway.refund('nonexistent'))
-        .rejects.toThrow(TransactionNotFoundException);
+      await expect(gateway.refund('nonexistent')).rejects.toThrow(TransactionNotFoundException);
     });
   });
 }
@@ -1204,7 +1194,7 @@ export class UsersService {
 export class UsersService {
   constructor(
     private readonly userRepo: UserRepository,
-    @Inject('CONFIG') private readonly config: ConfigType,
+    @Inject('CONFIG') private readonly config: ConfigType
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -1359,7 +1349,9 @@ interface PaymentGateway {
 
 @Injectable()
 export class StripeService implements PaymentGateway {
-  charge(amount: number) { /* ... */ }
+  charge(amount: number) {
+    /* ... */
+  }
 }
 
 @Injectable()
@@ -1398,9 +1390,7 @@ export class MockPaymentService implements PaymentGateway {
   providers: [
     {
       provide: PAYMENT_GATEWAY,
-      useClass: process.env.NODE_ENV === 'test'
-        ? MockPaymentService
-        : StripeService,
+      useClass: process.env.NODE_ENV === 'test' ? MockPaymentService : StripeService,
     },
   ],
   exports: [PAYMENT_GATEWAY],
@@ -1410,9 +1400,7 @@ export class PaymentModule {}
 // Injection
 @Injectable()
 export class OrdersService {
-  constructor(
-    @Inject(PAYMENT_GATEWAY) private payment: PaymentGateway,
-  ) {}
+  constructor(@Inject(PAYMENT_GATEWAY) private payment: PaymentGateway) {}
 
   async createOrder(dto: CreateOrderDto) {
     await this.payment.charge(dto.amount);
@@ -1654,7 +1642,7 @@ export class UsersController {
 export class EntityNotFoundException extends Error {
   constructor(
     public readonly entity: string,
-    public readonly id: string,
+    public readonly id: string
   ) {
     super(`${entity} with ID "${id}" not found`);
   }
@@ -1773,20 +1761,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message =
-      exception instanceof HttpException
-        ? exception.message
-        : 'Internal server error';
+    const message = exception instanceof HttpException ? exception.message : 'Internal server error';
 
-    this.logger.error(
-      `${request.method} ${request.url}`,
-      exception instanceof Error ? exception.stack : exception,
-    );
+    this.logger.error(`${request.method} ${request.url}`, exception instanceof Error ? exception.stack : exception);
 
     response.status(status).json({
       statusCode: status,
@@ -1798,10 +1777,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 }
 
 // Register globally in main.ts
-app.useGlobalFilters(
-  new AllExceptionsFilter(app.get(Logger)),
-  new DomainExceptionFilter(),
-);
+app.useGlobalFilters(new AllExceptionsFilter(app.get(Logger)), new DomainExceptionFilter());
 
 // Or via module
 @Module({
@@ -1931,7 +1907,7 @@ export class AuthService {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private config: ConfigService,
-    private usersService: UsersService,
+    private usersService: UsersService
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -2271,15 +2247,12 @@ export class AdminController {
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
-    private reflector: Reflector,
+    private reflector: Reflector
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check for @Public() decorator
-    const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [context.getHandler(), context.getClass()]);
     if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest();
@@ -2309,10 +2282,7 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>('roles', [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>('roles', [context.getHandler(), context.getClass()]);
 
     if (!requiredRoles) return true;
 
@@ -2387,9 +2357,9 @@ export class UsersController {
 
 // DTOs without validation decorators
 export class CreateUserDto {
-  name: string;    // No validation
-  email: string;   // Could be "not-an-email"
-  age: number;     // Could be "abc" or -999
+  name: string; // No validation
+  email: string; // Could be "not-an-email"
+  age: number; // Could be "abc" or -999
 }
 ```
 
@@ -2402,13 +2372,13 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,              // Strip unknown properties
-      forbidNonWhitelisted: true,   // Throw on unknown properties
-      transform: true,              // Auto-transform to DTO types
+      whitelist: true, // Strip unknown properties
+      forbidNonWhitelisted: true, // Throw on unknown properties
+      transform: true, // Auto-transform to DTO types
       transformOptions: {
         enableImplicitConversion: true,
       },
-    }),
+    })
   );
 
   await app.listen(3000);
@@ -2573,7 +2543,7 @@ export class DatabaseService implements OnModuleInit {
 export class CacheWarmerService implements OnApplicationBootstrap {
   constructor(
     private cache: CacheService,
-    private products: ProductsService,
+    private products: ProductsService
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -2697,10 +2667,7 @@ export class ModuleLoaderService {
 
   constructor(private lazyModuleLoader: LazyModuleLoader) {}
 
-  async load<T>(
-    key: string,
-    importFn: () => Promise<{ default: Type<T> } | Type<T>>,
-  ): Promise<ModuleRef> {
+  async load<T>(key: string, importFn: () => Promise<{ default: Type<T> } | Type<T>>): Promise<ModuleRef> {
     if (!this.loadedModules.has(key)) {
       const module = await importFn();
       const moduleType = 'default' in module ? module.default : module;
@@ -2915,9 +2882,7 @@ export class UsersService {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        stores: [
-          new KeyvRedis(config.get('REDIS_URL')),
-        ],
+        stores: [new KeyvRedis(config.get('REDIS_URL'))],
         ttl: 60 * 1000, // Default 60s
       }),
     }),
@@ -2930,7 +2895,7 @@ export class AppModule {}
 export class ProductsService {
   constructor(
     @Inject(CACHE_MANAGER) private cache: Cache,
-    private productsRepo: ProductRepository,
+    private productsRepo: ProductRepository
   ) {}
 
   async getPopular(): Promise<Product[]> {
@@ -2981,10 +2946,7 @@ export class CacheInvalidationService {
   @OnEvent('product.updated')
   @OnEvent('product.deleted')
   async invalidateProductCaches(event: ProductEvent) {
-    await Promise.all([
-      this.cache.del('products:popular'),
-      this.cache.del(`product:${event.productId}`),
-    ]);
+    await Promise.all([this.cache.del('products:popular'), this.cache.del(`product:${event.productId}`)]);
   }
 }
 ```
@@ -3055,7 +3017,7 @@ describe('UsersController (e2e)', () => {
         whitelist: true,
         transform: true,
         forbidNonWhitelisted: true,
-      }),
+      })
     );
 
     await app.init();
@@ -3091,9 +3053,7 @@ describe('UsersController (e2e)', () => {
 
   describe('/users/:id (GET)', () => {
     it('should return 404 for non-existent user', () => {
-      return request(app.getHttpServer())
-        .get('/users/non-existent-id')
-        .expect(404);
+      return request(app.getHttpServer()).get('/users/non-existent-id').expect(404);
     });
   });
 });
@@ -3121,9 +3081,7 @@ describe('Protected Routes (e2e)', () => {
   });
 
   it('should return 401 without token', () => {
-    return request(app.getHttpServer())
-      .get('/users/me')
-      .expect(401);
+    return request(app.getHttpServer()).get('/users/me').expect(401);
   });
 
   it('should return user profile with valid token', () => {
@@ -3254,9 +3212,7 @@ describe('WeatherService', () => {
   });
 
   it('should handle API timeout', async () => {
-    httpService.get.mockReturnValue(
-      throwError(() => new Error('ETIMEDOUT')),
-    );
+    httpService.get.mockReturnValue(throwError(() => new Error('ETIMEDOUT')));
 
     await expect(service.getWeather('NYC')).rejects.toThrow('Weather service unavailable');
   });
@@ -3265,7 +3221,7 @@ describe('WeatherService', () => {
     httpService.get.mockReturnValue(
       throwError(() => ({
         response: { status: 429, data: { message: 'Rate limited' } },
-      })),
+      }))
     );
 
     await expect(service.getWeather('NYC')).rejects.toThrow(TooManyRequestsException);
@@ -3287,10 +3243,7 @@ describe('UsersService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        { provide: getRepositoryToken(User), useValue: mockRepo },
-      ],
+      providers: [UsersService, { provide: getRepositoryToken(User), useValue: mockRepo }],
     }).compile();
 
     service = module.get(UsersService);
@@ -3433,9 +3386,7 @@ describe('UsersService', () => {
     it('should throw on duplicate email', async () => {
       repo.findOne.mockResolvedValue({ id: '1', email: 'test@test.com' });
 
-      await expect(
-        service.create({ name: 'Test', email: 'test@test.com' }),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.create({ name: 'Test', email: 'test@test.com' })).rejects.toThrow(ConflictException);
     });
   });
 
@@ -3813,12 +3764,7 @@ export class OrdersService {
 
       for (const item of items) {
         await manager.save(OrderItem, { orderId: order.id, ...item });
-        await manager.decrement(
-          Inventory,
-          { productId: item.productId },
-          'stock',
-          item.quantity,
-        );
+        await manager.decrement(Inventory, { productId: item.productId }, 'stock', item.quantity);
       }
 
       // If this throws, everything rolls back
@@ -3841,12 +3787,7 @@ export class TransferService {
 
     try {
       // Debit source account
-      await queryRunner.manager.decrement(
-        Account,
-        { id: fromId },
-        'balance',
-        amount,
-      );
+      await queryRunner.manager.decrement(Account, { id: fromId }, 'balance', amount);
 
       // Verify sufficient funds
       const source = await queryRunner.manager.findOne(Account, {
@@ -3857,12 +3798,7 @@ export class TransferService {
       }
 
       // Credit destination account
-      await queryRunner.manager.increment(
-        Account,
-        { id: toId },
-        'balance',
-        amount,
-      );
+      await queryRunner.manager.increment(Account, { id: toId }, 'balance', amount);
 
       // Log the transaction
       await queryRunner.manager.save(TransactionLog, {
@@ -3887,13 +3823,10 @@ export class TransferService {
 export class UsersRepository {
   constructor(
     @InjectRepository(User) private repo: Repository<User>,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
-  async createWithProfile(
-    userData: CreateUserDto,
-    profileData: CreateProfileDto,
-  ): Promise<User> {
+  async createWithProfile(userData: CreateUserDto, profileData: CreateProfileDto): Promise<User> {
     return this.dataSource.transaction(async (manager) => {
       const user = await manager.save(User, userData);
       await manager.save(Profile, { ...profileData, userId: user.id });
@@ -4034,7 +3967,7 @@ export class UsersController {
   @SerializeOptions({ type: UserResponseDto })
   async findAll(): Promise<UserResponseDto[]> {
     const users = await this.usersService.findAll();
-    return users.map(u => plainToInstance(UserResponseDto, u));
+    return users.map((u) => plainToInstance(UserResponseDto, u));
   }
 
   @Get(':id')
@@ -4650,10 +4583,7 @@ export class UsersService {
 @Controller('users')
 export class UsersController {
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @Headers('X-API-Version') version: string = '1',
-  ): Promise<any> {
+  async findOne(@Param('id') id: string, @Headers('X-API-Version') version: string = '1'): Promise<any> {
     return this.usersService.findOne(id, version);
   }
 }
@@ -5137,11 +5067,7 @@ import { BullModule } from '@nestjs/bullmq';
         },
       },
     }),
-    BullModule.registerQueue(
-      { name: 'email' },
-      { name: 'reports' },
-      { name: 'notifications' },
-    ),
+    BullModule.registerQueue({ name: 'email' }, { name: 'reports' }, { name: 'notifications' }),
   ],
 })
 export class QueueModule {}
@@ -5149,9 +5075,7 @@ export class QueueModule {}
 // Producer: Add jobs to queue
 @Injectable()
 export class ReportsService {
-  constructor(
-    @InjectQueue('reports') private reportsQueue: Queue,
-  ) {}
+  constructor(@InjectQueue('reports') private reportsQueue: Queue) {}
 
   async requestReport(dto: GenerateReportDto): Promise<{ jobId: string }> {
     // Return immediately, process in background
@@ -5249,7 +5173,7 @@ export class NotificationService {
       {
         attempts: 5,
         backoff: { type: 'exponential', delay: 5000 },
-      },
+      }
     );
   }
 }
@@ -5267,7 +5191,7 @@ export class ScheduledJobsService implements OnModuleInit {
       {
         repeat: { cron: '0 0 * * *' },
         jobId: 'daily-cleanup', // Prevent duplicates
-      },
+      }
     );
 
     // Send digest every hour
@@ -5277,7 +5201,7 @@ export class ScheduledJobsService implements OnModuleInit {
       {
         repeat: { every: 60 * 60 * 1000 },
         jobId: 'hourly-digest',
-      },
+      }
     );
   }
 }
@@ -5406,9 +5330,7 @@ export class DatabaseService implements OnApplicationShutdown {
     console.log(`Database service shutting down on ${signal}`);
 
     // Close all connections gracefully
-    await Promise.all(
-      this.connections.map((conn) => conn.close()),
-    );
+    await Promise.all(this.connections.map((conn) => conn.close()));
 
     console.log('All database connections closed');
   }
@@ -5477,9 +5399,7 @@ export class HealthController {
       throw new ServiceUnavailableException('Shutting down');
     }
 
-    return this.health.check([
-      () => this.db.pingCheck('database'),
-    ]);
+    return this.health.check([() => this.db.pingCheck('database')]);
   }
 }
 
@@ -5535,10 +5455,7 @@ export class RequestTracker implements NestMiddleware, OnApplicationShutdown {
       });
 
       // Wait with timeout
-      await Promise.race([
-        this.shutdownPromise,
-        new Promise((resolve) => setTimeout(resolve, 30000)),
-      ]);
+      await Promise.race([this.shutdownPromise, new Promise((resolve) => setTimeout(resolve, 30000))]);
     }
 
     console.log('All requests completed');
@@ -5608,9 +5525,7 @@ export const appConfig = registerAs('app', () => ({
 
 // config/validation.schema.ts
 export const validationSchema = Joi.object({
-  NODE_ENV: Joi.string()
-    .valid('development', 'production', 'test')
-    .default('development'),
+  NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
   PORT: Joi.number().default(3000),
   DB_HOST: Joi.string().required(),
   DB_PORT: Joi.number().default(5432),
@@ -5684,7 +5599,7 @@ export class AppService {
 export class DatabaseService {
   constructor(
     @Inject(databaseConfig.KEY)
-    private dbConfig: ConfigType<typeof databaseConfig>,
+    private dbConfig: ConfigType<typeof databaseConfig>
   ) {
     // Full type inference!
     const host = this.dbConfig.host; // string
@@ -5694,12 +5609,7 @@ export class DatabaseService {
 
 // Environment files support
 ConfigModule.forRoot({
-  envFilePath: [
-    `.env.${process.env.NODE_ENV}.local`,
-    `.env.${process.env.NODE_ENV}`,
-    '.env.local',
-    '.env',
-  ],
+  envFilePath: [`.env.${process.env.NODE_ENV}.local`, `.env.${process.env.NODE_ENV}`, '.env.local', '.env'],
 });
 
 // .env.development
@@ -5757,9 +5667,7 @@ logger.log('User ' + userId + ' created at ' + new Date());
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger:
-      process.env.NODE_ENV === 'production'
-        ? ['error', 'warn', 'log']
-        : ['error', 'warn', 'log', 'debug', 'verbose'],
+      process.env.NODE_ENV === 'production' ? ['error', 'warn', 'log'] : ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 }
 
@@ -5794,7 +5702,7 @@ export class JsonLogger implements LoggerService {
         timestamp: new Date().toISOString(),
         message,
         ...context,
-      }),
+      })
     );
   }
 
@@ -5806,7 +5714,7 @@ export class JsonLogger implements LoggerService {
         message,
         trace,
         ...context,
-      }),
+      })
     );
   }
 
@@ -5817,7 +5725,7 @@ export class JsonLogger implements LoggerService {
         timestamp: new Date().toISOString(),
         message,
         ...context,
-      }),
+      })
     );
   }
 
@@ -5828,7 +5736,7 @@ export class JsonLogger implements LoggerService {
         timestamp: new Date().toISOString(),
         message,
         ...context,
-      }),
+      })
     );
   }
 }
@@ -5878,7 +5786,7 @@ export class ContextLogger {
         userId: this.cls.get('userId'),
         message,
         ...data,
-      }),
+      })
     );
   }
 
@@ -5893,7 +5801,7 @@ export class ContextLogger {
         error: error.message,
         stack: error.stack,
         ...data,
-      }),
+      })
     );
   }
 }
@@ -5906,10 +5814,7 @@ import { LoggerModule } from 'nestjs-pino';
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-        transport:
-          process.env.NODE_ENV !== 'production'
-            ? { target: 'pino-pretty' }
-            : undefined,
+        transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
         redact: ['req.headers.authorization', 'req.body.password'],
         serializers: {
           req: (req) => ({
@@ -5955,4 +5860,4 @@ Reference: [NestJS Logger](https://docs.nestjs.com/techniques/logger)
 
 ---
 
-*Generated by build-agents.ts on 2026-01-16*
+_Generated by build-agents.ts on 2026-01-16_

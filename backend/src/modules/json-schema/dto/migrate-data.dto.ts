@@ -16,4 +16,3 @@ export class MigrateDataDto {
   @IsOptional()
   targetVersion?: number;
 }
-

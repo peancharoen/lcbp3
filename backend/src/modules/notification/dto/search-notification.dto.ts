@@ -17,7 +17,7 @@ export class SearchNotificationDto {
   @Transform(({ value }) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
-    return value;
+    return value as boolean | undefined;
   })
   isRead?: boolean; // กรอง: อ่านแล้ว/ยังไม่อ่าน
 }

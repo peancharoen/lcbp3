@@ -26,6 +26,7 @@ Generate a dashboard view of all features and their completion status.
 ### Execution Steps
 
 1. **Discover Features**:
+
    ```bash
    # Find all feature directories
    find .specify/features -maxdepth 1 -type d 2>/dev/null || echo "No features found"
@@ -33,14 +34,15 @@ Generate a dashboard view of all features and their completion status.
 
 2. **For Each Feature, Gather Metrics**:
 
-   | Artifact | Check | Metric |
-   |----------|-------|--------|
-   | spec.md | Exists? | Has [NEEDS CLARIFICATION]? |
-   | plan.md | Exists? | All sections complete? |
-   | tasks.md | Exists? | Count [x] vs [ ] vs [/] |
-   | checklists/*.md | All items checked? | Checklist completion % |
+   | Artifact         | Check              | Metric                     |
+   | ---------------- | ------------------ | -------------------------- |
+   | spec.md          | Exists?            | Has [NEEDS CLARIFICATION]? |
+   | plan.md          | Exists?            | All sections complete?     |
+   | tasks.md         | Exists?            | Count [x] vs [ ] vs [/]    |
+   | checklists/\*.md | All items checked? | Checklist completion %     |
 
 3. **Calculate Completion**:
+
    ```
    Phase 1 (Specify): spec.md exists & no clarifications needed
    Phase 2 (Plan): plan.md exists & complete
@@ -56,40 +58,42 @@ Generate a dashboard view of all features and their completion status.
    - Missing dependencies
 
 5. **Generate Dashboard**:
+
    ```markdown
    # Speckit Status Dashboard
-   
+
    **Generated**: [timestamp]
    **Total Features**: X
-   
+
    ## Overview
-   
-   | Feature | Phase | Progress | Blockers | Next Action |
-   |---------|-------|----------|----------|-------------|
-   | auth-system | Implement | 75% | 0 | Complete remaining tasks |
-   | payment-flow | Plan | 40% | 2 | Resolve clarifications |
-   
+
+   | Feature      | Phase     | Progress | Blockers | Next Action              |
+   | ------------ | --------- | -------- | -------- | ------------------------ |
+   | auth-system  | Implement | 75%      | 0        | Complete remaining tasks |
+   | payment-flow | Plan      | 40%      | 2        | Resolve clarifications   |
+
    ## Feature Details
-   
+
    ### [Feature Name]
-   
    ```
-   Spec:  ████████░░ 80%
-   Plan:  ██████████ 100%
+
+   Spec: ████████░░ 80%
+   Plan: ██████████ 100%
    Tasks: ██████░░░░ 60%
+
    ```
-   
+
    **Blockers**:
    - [ ] Clarification needed: "What payment providers?"
-   
+
    **Recent Activity**:
    - Last modified: [date]
    - Files changed: [list]
-   
+
    ---
-   
+
    ## Summary
-   
+
    - Features Ready for Implementation: X
    - Features Blocked: Y
    - Overall Project Completion: Z%

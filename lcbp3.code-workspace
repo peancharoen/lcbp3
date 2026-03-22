@@ -668,7 +668,7 @@
     "liveServer.settings.multiRootWorkspaceName": "🎯 Root",
     "vitest.commandLine": "npm run test --",
     "vitest.enable": true,
-    "yaml.maxItemsComputed": 6000,
+    "yaml.maxItemsComputed": 10000,
     "powershell.cwd": "🎯 Root",
     "files.autoSave": "onFocusChange",
     "diffEditor.codeLens": false,

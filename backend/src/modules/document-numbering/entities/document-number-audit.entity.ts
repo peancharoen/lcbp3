@@ -25,7 +25,7 @@ export class DocumentNumberAudit {
   documentNumber!: string;
 
   @Column({ name: 'counter_key', type: 'json' })
-  counterKey!: Record<string, unknown> | unknown;
+  counterKey!: Record<string, unknown>;
 
   @Column({ name: 'template_used', length: 200 })
   templateUsed!: string;

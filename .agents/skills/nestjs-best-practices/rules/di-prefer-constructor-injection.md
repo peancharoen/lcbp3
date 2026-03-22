@@ -40,7 +40,7 @@ export class UsersService {
 export class UsersService {
   constructor(
     private readonly userRepo: UserRepository,
-    @Inject('CONFIG') private readonly config: ConfigType,
+    @Inject('CONFIG') private readonly config: ConfigType
   ) {}
 
   async findAll(): Promise<User[]> {

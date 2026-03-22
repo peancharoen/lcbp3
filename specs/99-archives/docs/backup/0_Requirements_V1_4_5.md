@@ -50,14 +50,12 @@
 ### **2.3 Core Services:**
 
 - **Code Hosting:** Gitea (Self-hosted on QNAP)
-
   - Application name: git
   - Service name: gitea
   - Domain: `git.np-dms.work`
   - หน้าที่: เป็นศูนย์กลางในการเก็บและจัดการเวอร์ชันของโค้ด (Source Code) สำหรับทุกส่วน
 
 - **Backend / Data Platform:** NestJS
-
   - Application name: lcbp3-backend
   - Service name: backend
   - Domain: `backend.np-dms.work`
@@ -65,7 +63,6 @@
   - หน้าที่: จัดการโครงสร้างข้อมูล (Data Models), สร้าง API, จัดการสิทธิ์ผู้ใช้ (Roles & Permissions), และสร้าง Workflow ทั้งหมดของระบบ
 
 - **Database:** MariaDB 10.11
-
   - Application name: lcbp3-db
   - Service name: mariadb
   - Domain: `db.np-dms.work`
@@ -73,7 +70,6 @@
   - Tooling: DBeaver (Community Edition), phpmyadmin สำหรับการออกแบบและจัดการฐานข้อมูล
 
 - **Database Management:** phpMyAdmin
-
   - Application name: lcbp3-db
   - Service: phpmyadmin:5-apache
   - Service name: pma
@@ -81,7 +77,6 @@
   - หน้าที่: จัดการฐานข้อมูล mariadb ผ่าน Web UI
 
 - **Frontend:** Next.js
-
   - Application name: lcbp3-frontend
   - Service name: frontend
   - Domain: `lcbp3.np-dms.work`
@@ -91,7 +86,6 @@
   - หน้าที่: สร้างหน้าตาเว็บแอปพลิเคชันสำหรับให้ผู้ใช้งานเข้ามาดู Dashboard, จัดการเอกสาร, และติดตามงาน โดยจะสื่อสารกับ Backend ผ่าน API
 
 - **Workflow Automation:** n8n
-
   - Application name: lcbp3-n8n
   - Service: n8nio/n8n:latest
   - Service name: n8n
@@ -99,7 +93,6 @@
   - หน้าที่: จัดการ workflow ระหว่าง Backend และ Line
 
 - **Reverse Proxy:** Nginx Proxy Manager
-
   - Application name: lcbp3-npm
   - Service: Nginx Proxy Manager (nginx-proxy-manage: latest)
   - Service name: npm
@@ -112,20 +105,16 @@
 ### **2.4 Business Logic & Consistency (ปรับปรุง):**
 
 - **2.4.1 Unified Workflow Engine (หลัก):**
-
   - ระบบการเดินเอกสารทั้งหมด (Correspondence, RFA, Circulation) ต้อง ใช้ Engine กลางเดียวกัน โดยกำหนด Logic ผ่าน Workflow DSL (JSON Configuration) แทนการเขียน Hard-coded ลงในตาราง
   - Workflow Versioning (เพิ่ม): ระบบต้องรองรับการกำหนด Version ของ Workflow Definition โดยเอกสารที่เริ่มกระบวนการไปแล้ว (In-progress instances) จะต้องใช้ Workflow Version เดิม จนกว่าจะสิ้นสุดกระบวนการ หรือได้รับคำสั่ง Migrate จาก Admin เพื่อป้องกันความขัดแย้งของ State
 
 - **2.4.2 Separation of Concerns:**
-
   - Module ต่างๆ (Correspondence, RFA, Circulation) จะเก็บเฉพาะข้อมูลของเอกสาร (Data) ส่วนสถานะและการเปลี่ยนสถานะ (State Transition) จะถูกจัดการโดย Workflow Engine
 
 - **2.4.3 Idempotency & Locking:**
-
   - ใช้กลไกเดิมในการป้องกันการทำรายการซ้ำ
 
 - **2.4.4 Optimistic Locking (ใหม่):**
-
   - ใช้ Version Column ใน Database ควบคู่กับ Redis Lock สำหรับการสร้างเลขที่เอกสาร เพื่อเป็น Safety Net ชั้นสุดท้าย
 
 - **2.4.5** **จะไม่มีการใช้ SQL Triggers**
@@ -207,27 +196,22 @@
 ### **3.6. การจัดการ Workflow (Unified Workflow)**
 
 - 3.6.1 Workflow Definition:
-
   - Admin ต้องสามารถสร้าง/แก้ไข Workflow Rule ได้ผ่านหน้าจอ UI (DSL Editor)
   - รองรับการกำหนด State, Transition, Required Role, Condition (JS Expression)
 
 - 3.6.2 Workflow Execution:
-
   - ระบบต้องรองรับการสร้าง Instance ของ Workflow ผูกกับเอกสาร (Polymorphic)
   - รองรับการเปลี่ยนสถานะ (Action) เช่น Approve, Reject, Comment, Return
   - Auto-Action: รองรับการเปลี่ยนสถานะอัตโนมัติเมื่อครบเงื่อนไข (เช่น Review ครบทุกคน)
 
 - 3.6.3 Flexibility:
-
   - รองรับ Parallel Review (ส่งให้หลายคนตรวจพร้อมกัน)
   - รองรับ Conditional Flow (เช่น ถ้ายอดเงิน > X ให้เพิ่มผู้อนุมัติ)
 
 - 3.6.4 Workflow การอนุมัติ:
-
   - รองรับกระบวนการอนุมัติที่ซับซ้อนและเป็นลำดับ เช่น ส่งจาก Originator -> Organization 1 -> Organization 2 -> Organization 3 แล้วส่งผลกลับตามลำดับเดิม (โดยถ้า องกรณ์ใดใน Workflow ให้ส่งกลับ ก็สามารถส่งผลกลับตามลำดับเดิมโดยไม่ต้องรอให้ถึง องกรณืในลำดับถัดไป)
 
 - 3.6.5 การจัดการ:
-
   - สามารถกำหนดวันแล้วเสร็จ (Deadline) สำหรับผู้รับผิดชอบของ องกรณ์ ที่อยู่ใน Workflow ได้
   - มีระบบแจ้งเตือน ให้ผู้รับผิดชอบของ องกรณ์ ที่อยู่ใน Workflow ทราบ เมื่อมี RFA ใหม่ หรือมีการเปลี่ยนสถานะ
   - สามารถข้ามขั้นตอนได้ในกรณีพิเศษ (โดยผู้มีสิทธิ์)
@@ -259,13 +243,11 @@
 ### **3.10. การจัดเก็บไฟล์ (File Handling - ปรับปรุงใหญ่)**
 
 - **3.10.1 Two-Phase Storage Strategy:**
-
   1. **Phase 1 (Upload):** ไฟล์ถูกอัปโหลดเข้าโฟลเดอร์ `temp/` และได้รับ `temp_id`
   2. **Phase 2 (Commit):** เมื่อ User กด Submit ฟอร์มสำเร็จ ระบบจะย้ายไฟล์จาก `temp/` ไปยัง `permanent/{YYYY}/{MM}/` และบันทึกลง Database ภายใน Transaction เดียวกัน
   3. **Cleanup:** มี Cron Job ลบไฟล์ใน `temp/` ที่ค้างเกิน 24 ชม. (Orphan Files)
 
 - **3.10.2 Security:**
-
   - Virus Scan (ClamAV) ก่อนย้ายเข้า Permanent
   - Whitelist File Types: PDF, DWG, DOCX, XLSX, ZIP
   - Max Size: 50MB
@@ -313,14 +295,12 @@
 ### **3.12. การจัดการ JSON Details (JSON & Performance - ปรับปรุง)**
 
 - **3.12.1 วัตถุประสงค์**
-
   - จัดเก็บข้อมูลแบบไดนามิกที่เฉพาะเจาะจงกับแต่ละประเภทของเอกสาร
   - รองรับการขยายตัวของระบบโดยไม่ต้องเปลี่ยนแปลง database schema
   - จัดการ metadata และข้อมูลประกอบสำหรับ correspondence, routing, และ workflows
 
 - **3.12.2 โครงสร้าง JSON Schema**
   ระบบต้องมี predefined JSON schemas สำหรับประเภทเอกสารต่างๆ:
-
   - 3.12.2.1 Correspondence Types
     - GENERIC: ข้อมูลพื้นฐานสำหรับเอกสารทั่วไป
     - RFI: รายละเอียดคำถามและข้อมูลทางเทคนิค
@@ -337,32 +317,27 @@
     - SECURITY_SCAN: ผลการตรวจสอบความปลอดภัย
 
 - **3.12.3 Virtual Columns (ปรับปรุง):**
-
   - สำหรับ Field ใน JSON ที่ต้องใช้ในการค้นหา (Search) หรือจัดเรียง (Sort) บ่อยๆ ต้องสร้าง Generated Column (Virtual Column) ใน Database และทำ Index ไว้ เพื่อประสิทธิภาพสูงสุด
   - Schema Consistency: Field ที่ถูกกำหนดเป็น Virtual Column ห้าม เปลี่ยนแปลง Key Name หรือ Data Type ใน JSON Schema Version ถัดไป หากจำเป็นต้องเปลี่ยน ต้องมีแผนการ Re-index หรือ Migration ข้อมูลเดิมที่ชัดเจน
 
 - **3.12.4 Validation Rules**
-
   - ต้องมี JSON schema validation สำหรับแต่ละประเภท
   - ต้องรองรับ versioning ของ schema
   - ต้องมี default values สำหรับ field ที่ไม่บังคับ
   - ต้องตรวจสอบ data types และ format ให้ถูกต้อง
 
 - **3.12.5 Performance Requirements**
-
   - JSON field ต้องมีขนาดไม่เกิน 50KB
   - ต้องรองรับ indexing สำหรับ field ที่ใช้ค้นหาบ่อย
   - ต้องมี compression สำหรับ JSON ขนาดใหญ่
 
 - **3.12.6 Security Requirements**
-
   - ต้อง sanitize JSON input เพื่อป้องกัน injection attacks
   - ต้อง validate JSON structure ก่อนบันทึก
   - ต้อง encrypt sensitive data ใน JSON fields
 
 - 3.12.7 JSON Schema Migration Strategy (เพิ่มเติม)
   สำหรับ Schema Breaking Changes:
-
   - Phase 1 - Add New Column
     ALTER TABLE correspondence_revisions
     ADD COLUMN ref_project_id_v2 INT GENERATED ALWAYS AS
@@ -374,7 +349,6 @@
   - Phase 3 - Switch Application Code
     - Deploy code ที่ใช้ path ใหม่
   - Phase 4 - Remove Old Column
-
     - หลังจาก verify แล้วว่าไม่มี error
     - Drop old virtual column
 
@@ -537,9 +511,7 @@
 ### 6.1. การบันทึกการกระทำ (Audit Log)
 
 - ทุกการกระทำที่สำคัญของผู้ใช้ (สร้าง, แก้ไข, ลบ, ส่ง) จะถูกบันทึกไว้ใน audit_logs เพื่อการตรวจสอบย้อนหลัง
-
   - 6.1.1 ขอบเขตการบันทึก Audit Log:
-
     - ทุกการสร้าง/แก้ไข/ลบ ข้อมูลสำคัญ (correspondences, RFAs, drawings, users, permissions)
     - ทุกการเข้าถึงข้อมูล sensitive (user data, financial information)
     - ทุกการเปลี่ยนสถานะ workflow (status transitions)

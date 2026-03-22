@@ -1,5 +1,5 @@
-import apiClient from "@/lib/api/client";
-import { CreateUserDto, UpdateUserDto, SearchUserDto, User, Role } from "@/types/user";
+import apiClient from '@/lib/api/client';
+import { CreateUserDto, UpdateUserDto, SearchUserDto, User, Role } from '@/types/user';
 
 /** Raw API user shape (before transform) */
 interface RawUser {
@@ -9,7 +9,7 @@ interface RawUser {
   [key: string]: unknown;
 }
 
-const extractArrayData = <T,>(value: unknown): T[] => {
+const extractArrayData = <T>(value: unknown): T[] => {
   let current: unknown = value;
 
   for (let i = 0; i < 5; i += 1) {
@@ -17,7 +17,7 @@ const extractArrayData = <T,>(value: unknown): T[] => {
       return current as T[];
     }
 
-    if (!current || typeof current !== "object" || !("data" in current)) {
+    if (!current || typeof current !== 'object' || !('data' in current)) {
       return [];
     }
 
@@ -41,12 +41,12 @@ type UserListResponse = User[] | { data: User[] | { data: User[] } };
 
 export const userService = {
   getAll: async (params?: SearchUserDto) => {
-    const response = await apiClient.get<UserListResponse>("/users", { params });
+    const response = await apiClient.get<UserListResponse>('/users', { params });
     return extractArrayData<RawUser>(response.data).map(transformUser);
   },
 
   getRoles: async (): Promise<Role[]> => {
-    const response = await apiClient.get<{ data: unknown } | unknown>("/users/roles");
+    const response = await apiClient.get<{ data: unknown } | unknown>('/users/roles');
     return extractArrayData<Role>(response.data);
   },
 
@@ -56,7 +56,7 @@ export const userService = {
   },
 
   create: async (data: CreateUserDto) => {
-    const response = await apiClient.post<RawUser>("/users", data);
+    const response = await apiClient.post<RawUser>('/users', data);
     return transformUser(response.data);
   },
 

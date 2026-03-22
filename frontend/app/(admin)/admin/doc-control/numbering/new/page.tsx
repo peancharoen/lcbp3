@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { TemplateEditor } from "@/components/numbering/template-editor";
-import { numberingApi, NumberingTemplate } from "@/lib/api/numbering";
-import { useRouter } from "next/navigation";
-import { useCorrespondenceTypes, useContracts, useDisciplines } from "@/hooks/use-master-data";
-import { useProjects } from "@/hooks/use-projects";
+import { TemplateEditor } from '@/components/numbering/template-editor';
+import { numberingApi, NumberingTemplate } from '@/lib/api/numbering';
+import { useRouter } from 'next/navigation';
+import { useCorrespondenceTypes, useContracts, useDisciplines } from '@/hooks/use-master-data';
+import { useProjects } from '@/hooks/use-projects';
 import { toast } from 'sonner';
 
 export default function NewTemplatePage() {
@@ -24,8 +24,8 @@ export default function NewTemplatePage() {
   const handleSave = async (data: Partial<NumberingTemplate>) => {
     try {
       await numberingApi.saveTemplate(data);
-      router.push("/admin/numbering");
-    } catch (error) {
+      router.push('/admin/numbering');
+    } catch (_error) {
       toast.error('Failed to create template');
     }
   };

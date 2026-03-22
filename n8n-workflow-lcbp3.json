@@ -42,10 +42,7 @@
       "name": "Form Trigger",
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
-      "position": [
-        3952,
-        -26304
-      ],
+      "position": [3952, -26304],
       "webhookId": "8c87176d-fa61-4a82-ab2a-1c14615e720c",
       "notes": "เปิด URL เพื่อเลือก Model ก่อนรัน"
     },
@@ -57,10 +54,7 @@
       "name": "Set Configuration",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        4112,
-        -26304
-      ],
+      "position": [4112, -26304],
       "notes": "กำหนดค่า Configuration ทั้งหมด - แก้ไขที่นี่ก่อนรัน"
     },
     {
@@ -83,10 +77,7 @@
       "name": "Fetch Categories",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        4000,
-        -26128
-      ],
+      "position": [4000, -26128],
       "notes": "ดึง Categories จาก Backend"
     },
     {
@@ -109,10 +100,7 @@
       "name": "Fetch Tags",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        4144,
-        -26128
-      ],
+      "position": [4144, -26128],
       "notes": "ดึง Tags ที่มีอยู่แล้วจาก Backend"
     },
     {
@@ -123,10 +111,7 @@
       "name": "File Mount Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        4288,
-        -26128
-      ],
+      "position": [4288, -26128],
       "notes": "ตรวจสอบ File System มีไฟล์ Excel และ Folder ตามตั้งค่า"
     },
     {
@@ -139,10 +124,7 @@
       "name": "Read Checkpoint",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        4320,
-        -25936
-      ],
+      "position": [4320, -25936],
       "alwaysOutputData": true,
       "credentials": {
         "mySql": {
@@ -162,10 +144,7 @@
       "name": "Read Excel Binary",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [
-        4000,
-        -25936
-      ],
+      "position": [4000, -25936],
       "notes": "ดึงไฟล์ Excel ขึ้นมาไว้ในหน่วยความจำ"
     },
     {
@@ -176,10 +155,7 @@
       "name": "Read Excel",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
-      "position": [
-        4160,
-        -25936
-      ],
+      "position": [4160, -25936],
       "notes": "แปลงข้อมูล Excel เป็น JSON Data"
     },
     {
@@ -190,10 +166,7 @@
       "name": "Process Batch + Encoding",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        4560,
-        -25952
-      ],
+      "position": [4560, -25952],
       "alwaysOutputData": true,
       "notes": "ตัด Batch + Normalize UTF-8"
     },
@@ -205,10 +178,7 @@
       "name": "File Validator",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        4704,
-        -25952
-      ],
+      "position": [4704, -25952],
       "notes": "ตรวจสอบไฟล์ PDF ตัวชี้ใน Directory จาก Config"
     },
     {
@@ -221,10 +191,7 @@
       "name": "Check Fallback State",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        5056,
-        -26336
-      ],
+      "position": [5056, -26336],
       "alwaysOutputData": true,
       "credentials": {
         "mySql": {
@@ -243,10 +210,7 @@
       "name": "Build AI Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        4736,
-        -26144
-      ],
+      "position": [4736, -26144],
       "notes": "สร้าง Prompt โดยใช้ Categories จาก System"
     },
     {
@@ -264,10 +228,7 @@
       "name": "Ollama AI Analysis",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        4912,
-        -26144
-      ],
+      "position": [4912, -26144],
       "notes": "เรียก Ollama วิเคราะห์เอกสาร"
     },
     {
@@ -278,10 +239,7 @@
       "name": "Parse & Validate AI Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        5104,
-        -26144
-      ],
+      "position": [5104, -26144],
       "notes": "Parse JSON + Validate Schema + Enum Check"
     },
     {
@@ -294,10 +252,7 @@
       "name": "Update Fallback State",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        4928,
-        -25952
-      ],
+      "position": [4928, -25952],
       "credentials": {
         "mySql": {
           "id": "CHHfbKhMacNo03V4",
@@ -314,10 +269,7 @@
       "name": "Confidence Router",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        5312,
-        -26304
-      ],
+      "position": [5312, -26304],
       "notes": "แยกตาม Confidence: Auto(≥0.85) / Review(≥0.60) / Reject(<0.60)"
     },
     {
@@ -328,10 +280,7 @@
       "name": "Log Reject to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        5680,
-        -25920
-      ],
+      "position": [5680, -25920],
       "notes": "บันทึกรายการที่ถูกปฏิเสธลง CSV"
     },
     {
@@ -342,10 +291,7 @@
       "name": "Log Error to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        5488,
-        -25856
-      ],
+      "position": [5488, -25856],
       "notes": "บันทึก Error ลง CSV (จาก File Validator)"
     },
     {
@@ -372,10 +318,7 @@
       "name": "Log Error to DB",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        5872,
-        -25856
-      ],
+      "position": [5872, -25856],
       "onError": "continueErrorOutput",
       "notes": "บันทึก Error ผ่าน Backend API (ป้องกัน SQL Injection)"
     },
@@ -388,10 +331,7 @@
       "name": "Delay",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
-      "position": [
-        6096,
-        -25920
-      ],
+      "position": [6096, -25920],
       "webhookId": "38e97a99-4dcc-4b63-977a-a02945a1c369",
       "notes": "หน่วงเวลาระหว่าง Batches"
     },
@@ -503,10 +443,7 @@
       "name": "Route by Confidence",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [
-        5328,
-        -26144
-      ]
+      "position": [5328, -26144]
     },
     {
       "parameters": {
@@ -517,10 +454,7 @@
       "name": "Read PDF File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [
-        4560,
-        -26304
-      ],
+      "position": [4560, -26304],
       "onError": "continueErrorOutput"
     },
     {
@@ -555,10 +489,7 @@
       "name": "Upload to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        5712,
-        -26336
-      ],
+      "position": [5712, -26336],
       "notes": "Upload PDF to Backend Temp Storage"
     },
     {
@@ -569,10 +500,7 @@
       "name": "Restore Binary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        5536,
-        -26336
-      ],
+      "position": [5536, -26336],
       "notes": "Re-attach PDF binary จาก Read PDF File เพื่อส่ง Upload (หลัง AI ตรวจแล้ว)"
     },
     {
@@ -616,10 +544,7 @@
       "name": "Extract PDF Text",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        4848,
-        -26320
-      ],
+      "position": [4848, -26320],
       "onError": "continueErrorOutput"
     },
     {
@@ -632,10 +557,7 @@
       "name": "Fetch DB Context",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        4576,
-        -26144
-      ],
+      "position": [4576, -26144],
       "alwaysOutputData": true,
       "credentials": {
         "mySql": {
@@ -653,10 +575,7 @@
       "name": "Build Enqueue Payload",
       "typeVersion": 2,
       "type": "n8n-nodes-base.code",
-      "position": [
-        5888,
-        -26336
-      ],
+      "position": [5888, -26336],
       "notes": "สร้าง payload สำหรับ Enqueue Migration"
     },
     {
@@ -683,10 +602,7 @@
       "name": "Enqueue to Review Queue",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        5600,
-        -26144
-      ],
+      "position": [5600, -26144],
       "notes": "ส่งข้อมูลเข้า Staging Queue"
     },
     {
@@ -699,10 +615,7 @@
       "name": "Save Checkpoint",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        5792,
-        -26144
-      ],
+      "position": [5792, -26144],
       "credentials": {
         "mySql": {
           "id": "CHHfbKhMacNo03V4",
@@ -719,10 +632,7 @@
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        3936,
-        -26352
-      ],
+      "position": [3936, -26352],
       "typeVersion": 1,
       "id": "9eb3cfbd-2fe4-4237-a7ee-9387aa909efb",
       "name": "Sticky Note"
@@ -738,10 +648,7 @@
       "name": "Check Backend Health",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        4288,
-        -26304
-      ],
+      "position": [4288, -26304],
       "onError": "continueErrorOutput",
       "notes": "ตรวจสอบ Backend พร้อมใช้งาน"
     },
@@ -753,10 +660,7 @@
         "color": 5
       },
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        3936,
-        -25968
-      ],
+      "position": [3936, -25968],
       "typeVersion": 1,
       "id": "f2daf117-9cf2-477e-9c69-56a92503c783",
       "name": "Sticky Note1"
@@ -769,10 +673,7 @@
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        4496,
-        -26352
-      ],
+      "position": [4496, -26352],
       "typeVersion": 1,
       "id": "0b628ba8-de1a-40c6-8722-fc0e2411d666",
       "name": "Sticky Note2"
@@ -785,10 +686,7 @@
         "color": 3
       },
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        5264,
-        -25936
-      ],
+      "position": [5264, -25936],
       "typeVersion": 1,
       "id": "fee4de9d-be2f-4e92-aea6-2a11ee89af8c",
       "name": "Sticky Note3"
@@ -801,10 +699,7 @@
         "color": 2
       },
       "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        5264,
-        -26352
-      ],
+      "position": [5264, -26352],
       "typeVersion": 1,
       "id": "23619681-d936-4608-92ba-bfb10c062789",
       "name": "Sticky Note4"

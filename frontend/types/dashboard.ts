@@ -26,5 +26,5 @@ export interface PendingTask {
   description: string;
   daysOverdue: number;
   url: string;
-  priority: "HIGH" | "MEDIUM" | "LOW";
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
 }

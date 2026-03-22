@@ -1,5 +1,4 @@
-สรุป Patch 1.8.1
----
+## สรุป Patch 1.8.1
 
 # 📘 1) Formal Spec — Version 1.8.1
 
@@ -14,9 +13,9 @@
 
 Spec 1.8.1 แก้ความไม่สอดคล้องระหว่าง:
 
-* 03-04-legacy-data-migration.md
-* 03-05-n8n-migration-setup-guide.md
-* ADR-017-ollama-data-migration.md
+- 03-04-legacy-data-migration.md
+- 03-05-n8n-migration-setup-guide.md
+- ADR-017-ollama-data-migration.md
 
 และกำหนด Production Boundary ที่ชัดเจน
 
@@ -26,33 +25,33 @@ Spec 1.8.1 แก้ความไม่สอดคล้องระหว่
 
 ### Infrastructure Layout
 
-| Component          | Host          | Responsibility |
-| ------------------ | ------------- | -------------- |
-| DMS Frontend       | QNAP          | Production UI |
-| DMS Backend        | QNAP          | Core API |
-| MariaDB            | QNAP          | Authoritative DB |
-| Redis              | QNAP          | Cache / BullMQ |
-| Elasticsearch      | QNAP          | Full-text Search |
-| Nginx Proxy Manager| QNAP          | Public ingress / SSL |
-| n8n + n8n-db       | QNAP          | Automation engine |
-| Tika               | QNAP          | OCR / PDF extraction |
-| Gitea              | QNAP          | Git + CI/CD |
-| RocketChat         | QNAP          | Team communication |
-| Grafana            | ASUSTOR       | Metrics dashboard |
-| Prometheus         | ASUSTOR       | Metrics collection |
-| Loki               | ASUSTOR       | Log aggregation |
-| Promtail           | ASUSTOR       | Log shipper |
-| uptime-kuma        | ASUSTOR       | Service availability |
-| Gitea Runner       | ASUSTOR       | CI/CD build agent |
-| Docker Registry    | ASUSTOR       | Image storage |
-| Cloudflared        | ASUSTOR       | Tunnel / remote access |
-| Ollama             | Admin Desktop | AI processing only (i9-9900K, RTX 2060 SUPER 8GB) |
+| Component           | Host          | Responsibility                                    |
+| ------------------- | ------------- | ------------------------------------------------- |
+| DMS Frontend        | QNAP          | Production UI                                     |
+| DMS Backend         | QNAP          | Core API                                          |
+| MariaDB             | QNAP          | Authoritative DB                                  |
+| Redis               | QNAP          | Cache / BullMQ                                    |
+| Elasticsearch       | QNAP          | Full-text Search                                  |
+| Nginx Proxy Manager | QNAP          | Public ingress / SSL                              |
+| n8n + n8n-db        | QNAP          | Automation engine                                 |
+| Tika                | QNAP          | OCR / PDF extraction                              |
+| Gitea               | QNAP          | Git + CI/CD                                       |
+| RocketChat          | QNAP          | Team communication                                |
+| Grafana             | ASUSTOR       | Metrics dashboard                                 |
+| Prometheus          | ASUSTOR       | Metrics collection                                |
+| Loki                | ASUSTOR       | Log aggregation                                   |
+| Promtail            | ASUSTOR       | Log shipper                                       |
+| uptime-kuma         | ASUSTOR       | Service availability                              |
+| Gitea Runner        | ASUSTOR       | CI/CD build agent                                 |
+| Docker Registry     | ASUSTOR       | Image storage                                     |
+| Cloudflared         | ASUSTOR       | Tunnel / remote access                            |
+| Ollama              | Admin Desktop | AI processing only (i9-9900K, RTX 2060 SUPER 8GB) |
 
 **Constraints:**
 
-* Ollama MUST NOT run on QNAP (production server)
-* AI containers MUST NOT access production DB directly
-* n8n calls Ollama via internal VLAN HTTP only
+- Ollama MUST NOT run on QNAP (production server)
+- AI containers MUST NOT access production DB directly
+- n8n calls Ollama via internal VLAN HTTP only
 
 ---
 
@@ -88,10 +87,10 @@ Migration MUST fail if required fields invalid.
 
 Automation must:
 
-* Check existence by rfa_number
-* Validate file hash
-* UPDATE instead of INSERT if exists
-* Prevent duplicate revision chain
+- Check existence by rfa_number
+- Validate file hash
+- UPDATE instead of INSERT if exists
+- Prevent duplicate revision chain
 
 ---
 
@@ -171,10 +170,10 @@ No DB commit until validation approved.
 
 AI-based migration using Ollama introduces:
 
-* DB corruption risk
-* Hallucinated metadata
-* Unauthorized modification
-* Privilege escalation risk
+- DB corruption risk
+- Hallucinated metadata
+- Unauthorized modification
+- Privilege escalation risk
 
 Production DMS must remain authoritative.
 
@@ -186,11 +185,11 @@ Production DMS must remain authoritative.
 
 Ollama must:
 
-* Run on **Admin Desktop only** (NOT on QNAP)
-* Have NO DB credentials
-* Have NO write access to uploads
-* Access only `/staging_ai`
-* Output JSON only
+- Run on **Admin Desktop only** (NOT on QNAP)
+- Have NO DB credentials
+- Have NO write access to uploads
+- Access only `/staging_ai`
+- Output JSON only
 
 ---
 
@@ -212,9 +211,9 @@ AI never writes directly.
 
 All writes must go through:
 
-* Authenticated DMS API
-* RBAC enforced
-* Audit log recorded
+- Authenticated DMS API
+- RBAC enforced
+- Audit log recorded
 
 ---
 
@@ -222,10 +221,10 @@ All writes must go through:
 
 AI output must:
 
-* Match schema
-* Pass validation script
-* Fail on missing required fields
-* Reject unknown users
+- Match schema
+- Pass validation script
+- Fail on missing required fields
+- Reject unknown users
 
 ---
 
@@ -244,14 +243,14 @@ AI output must:
 
 Pros:
 
-* Production safe
-* Predictable migration
-* Audit trail preserved
+- Production safe
+- Predictable migration
+- Audit trail preserved
 
 Cons:
 
-* Slightly slower pipeline
-* Requires validation layer
+- Slightly slower pipeline
+- Requires validation layer
 
 ---
 
@@ -288,7 +287,7 @@ Cons:
 
 Batch size recommendation:
 
-* 20–50 RFAs per batch
+- 20–50 RFAs per batch
 
 Process:
 
@@ -330,11 +329,11 @@ When all batches pass:
 
 Monitor:
 
-* DB errors
-* Duplicate insert
-* Missing files
-* AI extraction errors
-* API error rate
+- DB errors
+- Duplicate insert
+- Missing files
+- AI extraction errors
+- API error rate
 
 If anomaly >5% → trigger rollback plan.
 
@@ -368,11 +367,11 @@ Target RTO: < 2 hours
 
 System may go live only if:
 
-* All dry-run tests pass
-* 100% required fields valid
-* 0 duplicate RFA
-* Sample QA pass >95%
-* Backup verified
+- All dry-run tests pass
+- 100% required fields valid
+- 0 duplicate RFA
+- Sample QA pass >95%
+- Backup verified
 
 ---
 

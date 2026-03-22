@@ -46,7 +46,7 @@ describe('ProjectController', () => {
       const mockResult = { data: [], meta: {} };
       (mockProjectService.findAll as jest.Mock).mockResolvedValue(mockResult);
 
-      const result = await controller.findAll({ page: 1, limit: 10 });
+      const _result = await controller.findAll({ page: 1, limit: 10 });
 
       expect(mockProjectService.findAll).toHaveBeenCalled();
     });
@@ -59,7 +59,7 @@ describe('ProjectController', () => {
         mockOrgs
       );
 
-      const result = await controller.findAllOrgs();
+      const _result = await controller.findAllOrgs();
 
       expect(mockProjectService.findAllOrganizations).toHaveBeenCalled();
     });

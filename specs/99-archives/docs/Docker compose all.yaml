@@ -8,12 +8,12 @@ volumes:
   backend_node_modules:
 
   # (ที่เพิ่มใหม่)
-  db_data:            # 2.4. Database
-  npm_data:           # 2.8. Reverse Proxy
-  npm_letsencrypt:    # 2.8. SSL Certs
-  es_data:            # 6.2. Elasticsearch
-  n8n_data:           # 2.7. n8n
-  gitea_data:         # 2.2. Gitea
+  db_data: # 2.4. Database
+  npm_data: # 2.8. Reverse Proxy
+  npm_letsencrypt: # 2.8. SSL Certs
+  es_data: # 6.2. Elasticsearch
+  n8n_data: # 2.7. n8n
+  gitea_data: # 2.2. Gitea
 
 # ==========================================================
 # Services (บริการทั้งหมดของระบบ)
@@ -27,9 +27,9 @@ services:
     container_name: npm
     restart: unless-stopped
     ports:
-      - '80:80'    # HTTP
-      - '443:443'  # HTTPS
-      - '81:81'    # Admin UI
+      - '80:80' # HTTP
+      - '443:443' # HTTPS
+      - '81:81' # Admin UI
     volumes:
       - npm_data:/data
       - npm_letsencrypt:/etc/letsencrypt
@@ -44,7 +44,7 @@ services:
     container_name: mariadb
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - '3306:3306'
     volumes:
       - db_data:/var/lib/mysql
     environment:
@@ -64,7 +64,7 @@ services:
     container_name: pma
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - '8080:80'
     environment:
       - PMA_HOST=mariadb
       - PMA_PORT=3306
@@ -89,7 +89,7 @@ services:
     networks:
       - lcbp3
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       # --- Database Connection (จากไฟล์เดิม) ---
       - DB_HOST=mariadb
@@ -123,7 +123,7 @@ services:
     restart: unless-stopped
     command: npm run dev
     ports:
-      - "3001:3000" # (ใช้ Host Port 3001)
+      - '3001:3000' # (ใช้ Host Port 3001)
     networks:
       - lcbp3
     volumes:
@@ -143,7 +143,7 @@ services:
     container_name: elasticsearch
     restart: unless-stopped
     ports:
-      - "9200:9200"
+      - '9200:9200'
     volumes:
       - es_data:/usr/share/elasticsearch/data
     environment:
@@ -161,7 +161,7 @@ services:
     container_name: n8n
     restart: unless-stopped
     ports:
-      - "5678:5678"
+      - '5678:5678'
     volumes:
       - n8n_data:/home/node/.n8n
     environment:
@@ -177,8 +177,8 @@ services:
     container_name: gitea
     restart: unless-stopped
     ports:
-      - "3002:3000" # (ใช้ Host Port 3002)
-      - "2222:22"   # (ใช้ Host Port 2222 สำหรับ SSH)
+      - '3002:3000' # (ใช้ Host Port 3002)
+      - '2222:22' # (ใช้ Host Port 2222 สำหรับ SSH)
     volumes:
       - gitea_data:/data
     networks:

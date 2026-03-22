@@ -24,22 +24,22 @@ This document outlines the step-by-step implementation plan to integrate UUIDv7 
 
 ### Affected Tables (14)
 
-| # | Table | PK Column | UUID Index |
-|---|-------|-----------|------------|
-| 1 | organizations | id | idx_organizations_uuid |
-| 2 | projects | id | idx_projects_uuid |
-| 3 | contracts | id | idx_contracts_uuid |
-| 4 | users | user_id | idx_users_uuid |
-| 5 | correspondences | id | idx_correspondences_uuid |
-| 6 | correspondence_revisions | id | idx_correspondence_revisions_uuid |
-| 7 | circulations | id | idx_circulations_uuid |
-| 8 | shop_drawings | id | idx_shop_drawings_uuid |
-| 9 | shop_drawing_revisions | id | idx_shop_drawing_revisions_uuid |
-| 10 | contract_drawings | id | idx_contract_drawings_uuid |
-| 11 | asbuilt_drawings | id | idx_asbuilt_drawings_uuid |
-| 12 | asbuilt_drawing_revisions | id | idx_asbuilt_drawing_revisions_uuid |
-| 13 | attachments | id | idx_attachments_uuid |
-| 14 | notifications | id | idx_notifications_uuid |
+| #   | Table                     | PK Column | UUID Index                         |
+| --- | ------------------------- | --------- | ---------------------------------- |
+| 1   | organizations             | id        | idx_organizations_uuid             |
+| 2   | projects                  | id        | idx_projects_uuid                  |
+| 3   | contracts                 | id        | idx_contracts_uuid                 |
+| 4   | users                     | user_id   | idx_users_uuid                     |
+| 5   | correspondences           | id        | idx_correspondences_uuid           |
+| 6   | correspondence_revisions  | id        | idx_correspondence_revisions_uuid  |
+| 7   | circulations              | id        | idx_circulations_uuid              |
+| 8   | shop_drawings             | id        | idx_shop_drawings_uuid             |
+| 9   | shop_drawing_revisions    | id        | idx_shop_drawing_revisions_uuid    |
+| 10  | contract_drawings         | id        | idx_contract_drawings_uuid         |
+| 11  | asbuilt_drawings          | id        | idx_asbuilt_drawings_uuid          |
+| 12  | asbuilt_drawing_revisions | id        | idx_asbuilt_drawing_revisions_uuid |
+| 13  | attachments               | id        | idx_attachments_uuid               |
+| 14  | notifications             | id        | idx_notifications_uuid             |
 
 ### Excluded Tables (Shared-PK / Junction — inherit UUID from parent)
 
@@ -116,22 +116,22 @@ export class Correspondence extends UuidBaseEntity {
 
 ### Entities to Update
 
-| Entity File | Table |
-|-------------|-------|
-| `organization.entity.ts` | organizations |
-| `project.entity.ts` | projects |
-| `contract.entity.ts` | contracts |
-| `user.entity.ts` | users |
-| `correspondence.entity.ts` | correspondences |
-| `correspondence-revision.entity.ts` | correspondence_revisions |
-| `circulation.entity.ts` | circulations |
-| `shop-drawing.entity.ts` | shop_drawings |
-| `shop-drawing-revision.entity.ts` | shop_drawing_revisions |
-| `contract-drawing.entity.ts` | contract_drawings |
-| `asbuilt-drawing.entity.ts` | asbuilt_drawings |
+| Entity File                          | Table                     |
+| ------------------------------------ | ------------------------- |
+| `organization.entity.ts`             | organizations             |
+| `project.entity.ts`                  | projects                  |
+| `contract.entity.ts`                 | contracts                 |
+| `user.entity.ts`                     | users                     |
+| `correspondence.entity.ts`           | correspondences           |
+| `correspondence-revision.entity.ts`  | correspondence_revisions  |
+| `circulation.entity.ts`              | circulations              |
+| `shop-drawing.entity.ts`             | shop_drawings             |
+| `shop-drawing-revision.entity.ts`    | shop_drawing_revisions    |
+| `contract-drawing.entity.ts`         | contract_drawings         |
+| `asbuilt-drawing.entity.ts`          | asbuilt_drawings          |
 | `asbuilt-drawing-revision.entity.ts` | asbuilt_drawing_revisions |
-| `attachment.entity.ts` | attachments |
-| `notification.entity.ts` | notifications |
+| `attachment.entity.ts`               | attachments               |
+| `notification.entity.ts`             | notifications             |
 
 ---
 
@@ -186,7 +186,7 @@ async findByUuid(uuid: string): Promise<CorrespondenceDto> {
 ```typescript
 // Response DTO exposes uuid, hides id
 export class CorrespondenceResponseDto {
-  uuid: string;              // ✅ Public identifier
+  uuid: string; // ✅ Public identifier
   correspondenceNumber: string;
   // id: number;             // ❌ Never expose INT id
 }
@@ -249,19 +249,20 @@ async findByUuidOrId(identifier: string): Promise<Entity> {
 
 #### Remaining Issues
 
-| File | Field | Entity | Issue |
-|------|-------|--------|-------|
-| `correspondences/form.tsx:212` | `projectId` | Project | `parseInt(p.id)` where `p.id` = UUID string (garbled number) |
-| `correspondences/form.tsx:326` | `fromOrganizationId` | Organization | `parseInt(String(org.id))` where `org.id` = undefined (NaN) |
-| `correspondences/form.tsx:349` | `toOrganizationId` | Organization | Same as above |
-| `admin/users/page.tsx:47` | `primaryOrganizationId` (filter) | Organization | `parseInt(selectedOrgId)` where value = UUID string |
-| `admin/user-dialog.tsx:226` | `primaryOrganizationId` | Organization | `parseInt(val)` where `org.id` = undefined → `"0"` fallback |
-| `numbering/template-tester.tsx:71-74` | `originatorOrganizationId`, `recipientOrganizationId` | Organization | `parseInt` on org UUID |
-| `rfas/page.tsx:17` | `projectId` (URL param) | Project | `parseInt(searchParams.get('projectId'))` — UUID if from URL |
+| File                                  | Field                                                 | Entity       | Issue                                                        |
+| ------------------------------------- | ----------------------------------------------------- | ------------ | ------------------------------------------------------------ |
+| `correspondences/form.tsx:212`        | `projectId`                                           | Project      | `parseInt(p.id)` where `p.id` = UUID string (garbled number) |
+| `correspondences/form.tsx:326`        | `fromOrganizationId`                                  | Organization | `parseInt(String(org.id))` where `org.id` = undefined (NaN)  |
+| `correspondences/form.tsx:349`        | `toOrganizationId`                                    | Organization | Same as above                                                |
+| `admin/users/page.tsx:47`             | `primaryOrganizationId` (filter)                      | Organization | `parseInt(selectedOrgId)` where value = UUID string          |
+| `admin/user-dialog.tsx:226`           | `primaryOrganizationId`                               | Organization | `parseInt(val)` where `org.id` = undefined → `"0"` fallback  |
+| `numbering/template-tester.tsx:71-74` | `originatorOrganizationId`, `recipientOrganizationId` | Organization | `parseInt` on org UUID                                       |
+| `rfas/page.tsx:17`                    | `projectId` (URL param)                               | Project      | `parseInt(searchParams.get('projectId'))` — UUID if from URL |
 
 #### Fix Strategy (same pattern as Drawing Search fix)
 
 For each affected backend DTO:
+
 1. Add `projectUuid?: string` / `organizationUuid?: string` field
 2. Controller resolves UUID → INT id via respective service's `findOneByUuid()`
 3. Frontend sends UUID string directly (remove `parseInt`)
@@ -296,19 +297,19 @@ For each affected backend DTO:
 
 ## Implementation Order (Priority)
 
-| Order | Task | Effort | Status |
-|-------|------|--------|--------|
-| 1 | UuidBaseEntity (no transformer needed — MariaDB native UUID) | S | ✅ Done |
-| 2 | Install `uuid` package | XS | ✅ Done |
-| 3 | Update 14 entity files with uuid column | M | ✅ Done |
-| 4 | Create ParseUuidPipe | S | ✅ Done |
-| 5 | Update controllers to use UUID params | L | ✅ Done |
-| 6 | Update services with findByUuid methods | L | ✅ Done |
-| 7 | Update DTOs to expose uuid, hide id | M | ✅ Done |
-| 8 | Update frontend API calls & routes | L | ✅ Done |
-| 9 | Drawing search: projectUuid migration | S | ✅ Done (2026-03-18) |
-| 10 | FK reference UUID migration (Correspondence, User, Numbering) | M | ❌ Pending (see Phase 5.4) |
-| 11 | Write unit + integration tests | M | ❌ Pending |
+| Order | Task                                                          | Effort | Status                     |
+| ----- | ------------------------------------------------------------- | ------ | -------------------------- |
+| 1     | UuidBaseEntity (no transformer needed — MariaDB native UUID)  | S      | ✅ Done                    |
+| 2     | Install `uuid` package                                        | XS     | ✅ Done                    |
+| 3     | Update 14 entity files with uuid column                       | M      | ✅ Done                    |
+| 4     | Create ParseUuidPipe                                          | S      | ✅ Done                    |
+| 5     | Update controllers to use UUID params                         | L      | ✅ Done                    |
+| 6     | Update services with findByUuid methods                       | L      | ✅ Done                    |
+| 7     | Update DTOs to expose uuid, hide id                           | M      | ✅ Done                    |
+| 8     | Update frontend API calls & routes                            | L      | ✅ Done                    |
+| 9     | Drawing search: projectUuid migration                         | S      | ✅ Done (2026-03-18)       |
+| 10    | FK reference UUID migration (Correspondence, User, Numbering) | M      | ❌ Pending (see Phase 5.4) |
+| 11    | Write unit + integration tests                                | M      | ❌ Pending                 |
 
 **Estimated Remaining Effort:** ~2-3 days for FK migration + ~2 days for tests
 

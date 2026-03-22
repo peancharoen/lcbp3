@@ -24,7 +24,7 @@ describe('Phase 3 Workflow (E2E)', () => {
   const adminUser = { user_id: 2, username: 'admin', organization_id: 1 };
 
   let editorToken: string;
-  let adminToken: string;
+  let _adminToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -42,7 +42,7 @@ describe('Phase 3 Workflow (E2E)', () => {
       username: editorUser.username,
       sub: editorUser.user_id,
     });
-    adminToken = jwtService.sign({
+    _adminToken = jwtService.sign({
       username: adminUser.username,
       sub: adminUser.user_id,
     });
@@ -54,9 +54,9 @@ describe('Phase 3 Workflow (E2E)', () => {
     });
 
     if (!existing) {
-      console.warn(
-        'WorkflowDefinition CORRESPONDENCE_FLOW_V1 not found. Tests may fail.'
-      );
+      //       console.warn(
+      //         'WorkflowDefinition CORRESPONDENCE_FLOW_V1 not found. Tests may fail.'
+      //       );
     }
   });
 
@@ -67,7 +67,7 @@ describe('Phase 3 Workflow (E2E)', () => {
   });
 
   it('/correspondences (POST) - Create Document', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(app.getHttpServer() as import('http').Server)
       .post('/correspondences')
       .set('Authorization', `Bearer ${editorToken}`)
       .send({
@@ -78,14 +78,15 @@ describe('Phase 3 Workflow (E2E)', () => {
       })
       .expect(201);
 
-    expect(response.body).toHaveProperty('id');
-    expect(response.body).toHaveProperty('correspondenceNumber');
-    correspondenceId = response.body.id;
-    console.log('Created Correspondence ID:', correspondenceId);
+    const body = response.body as { id: number; correspondenceNumber: string };
+    expect(body).toHaveProperty('id');
+    expect(body).toHaveProperty('correspondenceNumber');
+    correspondenceId = body.id;
+    //     console.log('Created Correspondence ID:', correspondenceId);
   });
 
   it('/correspondences/:id/submit (POST) - Submit to Workflow', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(app.getHttpServer() as import('http').Server)
       .post(`/correspondences/${correspondenceId}/submit`)
       .set('Authorization', `Bearer ${editorToken}`)
       .send({
@@ -93,21 +94,22 @@ describe('Phase 3 Workflow (E2E)', () => {
       })
       .expect(201);
 
-    expect(response.body).toHaveProperty('instanceId');
-    expect(response.body).toHaveProperty('currentState');
-    workflowInstanceId = response.body.instanceId;
-    console.log('Workflow Instance ID:', workflowInstanceId);
-    console.log('Current State:', response.body.currentState);
+    const body = response.body as { instanceId: string; currentState: string };
+    expect(body).toHaveProperty('instanceId');
+    expect(body).toHaveProperty('currentState');
+    workflowInstanceId = body.instanceId;
+    //     console.log('Workflow Instance ID:', workflowInstanceId);
+    //     console.log('Current State:', response.body.currentState);
   });
 
   it('/correspondences/:id/workflow/action (POST) - Process Action', async () => {
     // Skip if submit failed to get instanceId
     if (!workflowInstanceId) {
-      console.warn('Skipping action test - no instanceId from submit');
+      //       console.warn('Skipping action test - no instanceId from submit');
       return;
     }
 
-    const response = await request(app.getHttpServer())
+    const response = await request(app.getHttpServer() as import('http').Server)
       .post(`/correspondences/${correspondenceId}/workflow/action`)
       .set('Authorization', `Bearer ${editorToken}`) // Use editor - has workflow.action_review permission
       .send({
@@ -119,6 +121,6 @@ describe('Phase 3 Workflow (E2E)', () => {
 
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('nextState');
-    console.log('Action Result:', response.body);
+    //     console.log('Action Result:', response.body);
   });
 });

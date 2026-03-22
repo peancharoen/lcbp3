@@ -16,23 +16,23 @@ This directory contains operational documentation for deploying, maintaining, an
 
 ### Deployment & Infrastructure
 
-| Document                                       | Description                                            | Status     |
-| ---------------------------------------------- | ------------------------------------------------------ | ---------- |
+| Document                                           | Description                                            | Status      |
+| -------------------------------------------------- | ------------------------------------------------------ | ----------- |
 | [deployment-guide.md](04-01-deployment-guide.md)   | Docker deployment procedures on QNAP Container Station | ✅ Complete |
 | [environment-setup.md](04-02-environment-setup.md) | Environment variables and configuration management     | ✅ Complete |
 
 ### Monitoring & Maintenance
 
-| Document                                                 | Description                                         | Status     |
-| -------------------------------------------------------- | --------------------------------------------------- | ---------- |
+| Document                                                     | Description                                         | Status      |
+| ------------------------------------------------------------ | --------------------------------------------------- | ----------- |
 | [monitoring-alerting.md](04-03-monitoring-alerting.md)       | Monitoring setup, health checks, and alerting rules | ✅ Complete |
 | [backup-recovery.md](04-04-backup-recovery.md)               | Backup strategies and disaster recovery procedures  | ✅ Complete |
 | [maintenance-procedures.md](04-05-maintenance-procedures.md) | Routine maintenance and update procedures           | ✅ Complete |
 
 ### Security & Compliance
 
-| Document                                           | Description                                    | Status     |
-| -------------------------------------------------- | ---------------------------------------------- | ---------- |
+| Document                                               | Description                                    | Status      |
+| ------------------------------------------------------ | ---------------------------------------------- | ----------- |
 | [security-operations.md](04-06-security-operations.md) | Security monitoring and incident response      | ✅ Complete |
 | [incident-response.md](04-07-incident-response.md)     | Incident classification and response playbooks | ✅ Complete |
 

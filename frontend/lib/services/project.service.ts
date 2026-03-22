@@ -1,10 +1,6 @@
 // File: lib/services/project.service.ts
-import apiClient from "@/lib/api/client";
-import {
-  CreateProjectDto,
-  UpdateProjectDto,
-  SearchProjectDto
-} from "@/types/dto/project/project.dto";
+import apiClient from '@/lib/api/client';
+import { CreateProjectDto, UpdateProjectDto, SearchProjectDto } from '@/types/dto/project/project.dto';
 
 export const projectService = {
   // --- Basic CRUD ---
@@ -15,10 +11,10 @@ export const projectService = {
    */
   getAll: async (params?: SearchProjectDto) => {
     // GET /projects
-    const response = await apiClient.get("/projects", { params });
+    const response = await apiClient.get('/projects', { params });
     // Handle paginated response
     if (response.data && Array.isArray(response.data.data)) {
-        return response.data.data;
+      return response.data.data;
     }
     return response.data;
   },
@@ -31,7 +27,7 @@ export const projectService = {
 
   /** สร้างโครงการใหม่ (Admin) */
   create: async (data: CreateProjectDto) => {
-    const response = await apiClient.post("/projects", data);
+    const response = await apiClient.post('/projects', data);
     return response.data;
   },
 

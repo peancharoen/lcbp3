@@ -1,42 +1,36 @@
-"use client";
+'use client';
 
-import { useForm, type SubmitErrorHandler } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useRouter } from "next/navigation";
-import { useCreateRFA } from "@/hooks/use-rfa";
-import { useDrawings } from "@/hooks/use-drawing";
-import { useDisciplines, useContracts, useOrganizations } from "@/hooks/use-master-data";
-import { useCorrespondenceTypes, useRfaTypes } from "@/hooks/use-reference-data";
-import { useProjects } from "@/hooks/use-projects";
-import { CreateRfaDto } from "@/types/dto/rfa/rfa.dto";
-import { useState, useEffect, type FormEvent } from "react";
-import { correspondenceService } from "@/lib/services/correspondence.service";
+import { useForm, type SubmitErrorHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRouter } from 'next/navigation';
+import { useCreateRFA } from '@/hooks/use-rfa';
+import { useDrawings } from '@/hooks/use-drawing';
+import { useDisciplines, useContracts, useOrganizations } from '@/hooks/use-master-data';
+import { useCorrespondenceTypes, useRfaTypes } from '@/hooks/use-reference-data';
+import { useProjects } from '@/hooks/use-projects';
+import { CreateRfaDto } from '@/types/dto/rfa/rfa.dto';
+import { useState, useEffect, type FormEvent } from 'react';
+import { correspondenceService } from '@/lib/services/correspondence.service';
 
 const rfaSchema = z.object({
-  projectId: z.string().min(1, "Project is required"), // ADR-019: UUID
-  contractId: z.string().min(1, "Contract is required"),
-  disciplineId: z.number().min(1, "Discipline is required"),
-  rfaTypeId: z.number().min(1, "Type is required"),
-  subject: z.string().min(5, "Subject must be at least 5 characters"),
+  projectId: z.string().min(1, 'Project is required'), // ADR-019: UUID
+  contractId: z.string().min(1, 'Contract is required'),
+  disciplineId: z.number().min(1, 'Discipline is required'),
+  rfaTypeId: z.number().min(1, 'Type is required'),
+  subject: z.string().min(5, 'Subject must be at least 5 characters'),
   description: z.string().optional(),
   body: z.string().optional(),
   remarks: z.string().optional(),
-  toOrganizationId: z.string().min(1, "Please select To Organization"),
+  toOrganizationId: z.string().min(1, 'Please select To Organization'),
   dueDate: z.string().optional(),
   shopDrawingRevisionIds: z.array(z.string()).optional(),
   asBuiltDrawingRevisionIds: z.array(z.string()).optional(),
@@ -110,7 +104,7 @@ const extractArrayData = <T,>(value: unknown): T[] => {
       return current as T[];
     }
 
-    if (!current || typeof current !== "object" || !("data" in current)) {
+    if (!current || typeof current !== 'object' || !('data' in current)) {
       return [];
     }
 
@@ -126,7 +120,7 @@ const dedupeByKey = <T,>(items: T[], getKey: (item: T) => string | number | unde
   return items.filter((item) => {
     const key = getKey(item);
 
-    if (key === undefined || key === "" || seen.has(key)) {
+    if (key === undefined || key === '' || seen.has(key)) {
       return false;
     }
 
@@ -136,7 +130,7 @@ const dedupeByKey = <T,>(items: T[], getKey: (item: T) => string | number | unde
 };
 
 const getOptionValue = (value?: string | number): string | undefined => {
-  if (value === undefined || value === null || value === "") {
+  if (value === undefined || value === null || value === '') {
     return undefined;
   }
 
@@ -148,10 +142,7 @@ export function RFAForm() {
   const createMutation = useCreateRFA();
 
   const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
-  const projects = dedupeByKey(
-    extractArrayData<ProjectOption>(projectsData),
-    (project) => project.uuid ?? project.id
-  );
+  const projects = dedupeByKey(extractArrayData<ProjectOption>(projectsData), (project) => project.uuid ?? project.id);
   const { data: organizationsData, isLoading: isLoadingOrganizations } = useOrganizations({ isActive: true });
   const organizations = dedupeByKey(
     extractArrayData<OrganizationOption>(organizationsData),
@@ -159,9 +150,7 @@ export function RFAForm() {
   );
   const { data: correspondenceTypesData } = useCorrespondenceTypes();
   const correspondenceTypes = extractArrayData<CorrespondenceTypeOption>(correspondenceTypesData);
-  const rfaCorrespondenceType = correspondenceTypes.find(
-    (type) => type.typeCode?.toUpperCase() === "RFA"
-  );
+  const rfaCorrespondenceType = correspondenceTypes.find((type) => type.typeCode?.toUpperCase() === 'RFA');
 
   const {
     register,
@@ -174,37 +163,37 @@ export function RFAForm() {
   } = useForm<RFAFormData>({
     resolver: zodResolver(rfaSchema),
     defaultValues: {
-      projectId: "",
-      contractId: "",
+      projectId: '',
+      contractId: '',
       disciplineId: 0,
       rfaTypeId: 0,
-      subject: "",
-      description: "",
-      body: "",
-      remarks: "",
-      toOrganizationId: "",
-      dueDate: "",
+      subject: '',
+      description: '',
+      body: '',
+      remarks: '',
+      toOrganizationId: '',
+      dueDate: '',
       shopDrawingRevisionIds: [],
       asBuiltDrawingRevisionIds: [],
     },
   });
 
-  const selectedProjectId = watch("projectId");
+  const selectedProjectId = watch('projectId');
   const { data: contractsData, isLoading: isLoadingContracts } = useContracts(selectedProjectId);
   const contracts = dedupeByKey(
     extractArrayData<ContractOption>(contractsData),
     (contract) => contract.uuid ?? contract.id
   );
 
-  const selectedContractId = watch("contractId");
+  const selectedContractId = watch('contractId');
   const { data: disciplinesData, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
   const disciplines = dedupeByKey(extractArrayData<DisciplineOption>(disciplinesData), (discipline) => discipline.id);
   const { data: rfaTypesData, isLoading: isLoadingRfaTypes } = useRfaTypes(selectedContractId);
   const rfaTypes = dedupeByKey(extractArrayData<RfaTypeOption>(rfaTypesData), (rfaType) => rfaType.id);
-  const [shopDrawingSearch, setShopDrawingSearch] = useState("");
+  const [shopDrawingSearch, setShopDrawingSearch] = useState('');
   const [shopDrawingPage, setShopDrawingPage] = useState(1);
-  const { data: shopDrawingsData, isLoading: isLoadingShopDrawings } = useDrawings("SHOP", {
-    projectUuid: selectedProjectId || "",
+  const { data: shopDrawingsData, isLoading: isLoadingShopDrawings } = useDrawings('SHOP', {
+    projectUuid: selectedProjectId || '',
     search: shopDrawingSearch,
     page: shopDrawingPage,
     limit: 10,
@@ -214,10 +203,10 @@ export function RFAForm() {
     (drawing) => drawing.currentRevisionUuid ?? drawing.currentRevision?.uuid ?? drawing.uuid
   );
 
-  const [asBuiltDrawingSearch, setAsBuiltDrawingSearch] = useState("");
+  const [asBuiltDrawingSearch, setAsBuiltDrawingSearch] = useState('');
   const [asBuiltDrawingPage, setAsBuiltDrawingPage] = useState(1);
-  const { data: asBuiltDrawingsData, isLoading: isLoadingAsBuiltDrawings } = useDrawings("AS_BUILT", {
-    projectUuid: selectedProjectId || "",
+  const { data: asBuiltDrawingsData, isLoading: isLoadingAsBuiltDrawings } = useDrawings('AS_BUILT', {
+    projectUuid: selectedProjectId || '',
     search: asBuiltDrawingSearch,
     page: asBuiltDrawingPage,
     limit: 10,
@@ -226,41 +215,41 @@ export function RFAForm() {
     extractArrayData<SelectableDrawingOption>(asBuiltDrawingsData),
     (drawing) => drawing.currentRevisionUuid ?? drawing.currentRevision?.uuid ?? drawing.uuid
   );
-  const selectedDisciplineId = watch("disciplineId");
+  const selectedDisciplineId = watch('disciplineId');
 
-  const rfaTypeId = watch("rfaTypeId");
-  const disciplineId = watch("disciplineId");
-  const toOrganizationId = watch("toOrganizationId");
-  const selectedShopDrawingRevisionIds = watch("shopDrawingRevisionIds") ?? [];
-  const selectedAsBuiltDrawingRevisionIds = watch("asBuiltDrawingRevisionIds") ?? [];
+  const rfaTypeId = watch('rfaTypeId');
+  const disciplineId = watch('disciplineId');
+  const toOrganizationId = watch('toOrganizationId');
+  const selectedShopDrawingRevisionIds = watch('shopDrawingRevisionIds') ?? [];
+  const selectedAsBuiltDrawingRevisionIds = watch('asBuiltDrawingRevisionIds') ?? [];
   const selectedRfaType = rfaTypes.find((rfaType) => rfaType.id === rfaTypeId);
   const selectedRfaTypeCode = selectedRfaType?.typeCode?.toUpperCase();
-  const requiresShopDrawings = selectedRfaTypeCode === "DDW" || selectedRfaTypeCode === "SDW";
-  const requiresAsBuiltDrawings = selectedRfaTypeCode === "ADW";
+  const requiresShopDrawings = selectedRfaTypeCode === 'DDW' || selectedRfaTypeCode === 'SDW';
+  const requiresAsBuiltDrawings = selectedRfaTypeCode === 'ADW';
 
   useEffect(() => {
     // Reset page and search when project changes
     setShopDrawingPage(1);
-    setShopDrawingSearch("");
+    setShopDrawingSearch('');
     setAsBuiltDrawingPage(1);
-    setAsBuiltDrawingSearch("");
+    setAsBuiltDrawingSearch('');
 
     if (requiresShopDrawings) {
-      setValue("asBuiltDrawingRevisionIds", []);
-      clearErrors("asBuiltDrawingRevisionIds");
+      setValue('asBuiltDrawingRevisionIds', []);
+      clearErrors('asBuiltDrawingRevisionIds');
       return;
     }
 
     if (requiresAsBuiltDrawings) {
-      setValue("shopDrawingRevisionIds", []);
-      clearErrors("shopDrawingRevisionIds");
+      setValue('shopDrawingRevisionIds', []);
+      clearErrors('shopDrawingRevisionIds');
       return;
     }
 
-    setValue("shopDrawingRevisionIds", []);
-    setValue("asBuiltDrawingRevisionIds", []);
-    clearErrors("shopDrawingRevisionIds");
-    clearErrors("asBuiltDrawingRevisionIds");
+    setValue('shopDrawingRevisionIds', []);
+    setValue('asBuiltDrawingRevisionIds', []);
+    clearErrors('shopDrawingRevisionIds');
+    clearErrors('asBuiltDrawingRevisionIds');
   }, [requiresShopDrawings, requiresAsBuiltDrawings, selectedProjectId, setValue, clearErrors]);
 
   // -- Preview Logic --
@@ -268,23 +257,23 @@ export function RFAForm() {
 
   useEffect(() => {
     if (!selectedProjectId || !rfaCorrespondenceType?.id || !rfaTypeId || !disciplineId || !toOrganizationId) {
-       setPreview(null);
-       return;
+      setPreview(null);
+      return;
     }
 
     const fetchPreview = async () => {
-       try {
-         const res = await correspondenceService.previewNumber({
-             projectId: selectedProjectId,
-             typeId: rfaCorrespondenceType.id,
-             disciplineId,
-             recipients: [{ organizationId: toOrganizationId, type: 'TO' }],
-             subject: watch("subject") || "Preview Subject"
-         });
-         setPreview(res);
-       } catch (err) {
-         setPreview(null);
-       }
+      try {
+        const res = await correspondenceService.previewNumber({
+          projectId: selectedProjectId,
+          typeId: rfaCorrespondenceType.id,
+          disciplineId,
+          recipients: [{ organizationId: toOrganizationId, type: 'TO' }],
+          subject: watch('subject') || 'Preview Subject',
+        });
+        setPreview(res);
+      } catch (_err) {
+        setPreview(null);
+      }
     };
 
     const timer = setTimeout(fetchPreview, 500);
@@ -293,23 +282,23 @@ export function RFAForm() {
 
   const onSubmit = (data: RFAFormData) => {
     if (requiresShopDrawings && data.shopDrawingRevisionIds?.length === 0) {
-      setError("shopDrawingRevisionIds", {
-        type: "manual",
-        message: "Please select at least one Shop Drawing Revision",
+      setError('shopDrawingRevisionIds', {
+        type: 'manual',
+        message: 'Please select at least one Shop Drawing Revision',
       });
       return;
     }
 
     if (requiresAsBuiltDrawings && data.asBuiltDrawingRevisionIds?.length === 0) {
-      setError("asBuiltDrawingRevisionIds", {
-        type: "manual",
-        message: "Please select at least one As-Built Drawing Revision",
+      setError('asBuiltDrawingRevisionIds', {
+        type: 'manual',
+        message: 'Please select at least one As-Built Drawing Revision',
       });
       return;
     }
 
-    clearErrors("shopDrawingRevisionIds");
-    clearErrors("asBuiltDrawingRevisionIds");
+    clearErrors('shopDrawingRevisionIds');
+    clearErrors('asBuiltDrawingRevisionIds');
 
     const payload: CreateRfaDto = {
       ...data,
@@ -318,7 +307,7 @@ export function RFAForm() {
     };
     createMutation.mutate(payload, {
       onSuccess: () => {
-        router.push("/rfas");
+        router.push('/rfas');
       },
     });
   };
@@ -333,15 +322,15 @@ export function RFAForm() {
     <form onSubmit={handleFormSubmit} className="max-w-4xl space-y-6">
       {preview && (
         <Card className="p-4 bg-muted border-l-4 border-l-primary">
-           <p className="text-sm text-muted-foreground mb-1">Document Number Preview</p>
-           <div className="flex items-center gap-3">
-             <span className="text-xl font-bold font-mono text-primary tracking-wide">{preview.number}</span>
-             {preview.isDefaultTemplate && (
-                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
-                   Default Template
-                </span>
-             )}
-           </div>
+          <p className="text-sm text-muted-foreground mb-1">Document Number Preview</p>
+          <div className="flex items-center gap-3">
+            <span className="text-xl font-bold font-mono text-primary tracking-wide">{preview.number}</span>
+            {preview.isDefaultTemplate && (
+              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                Default Template
+              </span>
+            )}
+          </div>
         </Card>
       )}
 
@@ -351,27 +340,23 @@ export function RFAForm() {
         <div className="space-y-4">
           <div>
             <Label htmlFor="subject">Subject *</Label>
-            <Input id="subject" {...register("subject")} placeholder="Enter subject" />
-            {errors.subject && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.subject.message}
-              </p>
-            )}
+            <Input id="subject" {...register('subject')} placeholder="Enter subject" />
+            {errors.subject && <p className="text-sm text-destructive mt-1">{errors.subject.message}</p>}
           </div>
 
           <div>
-             <Label htmlFor="body">Body (Content)</Label>
-             <Textarea id="body" {...register("body")} rows={4} placeholder="Enter content..." />
+            <Label htmlFor="body">Body (Content)</Label>
+            <Textarea id="body" {...register('body')} rows={4} placeholder="Enter content..." />
           </div>
 
-           <div>
-             <Label htmlFor="remarks">Remarks</Label>
-             <Input id="remarks" {...register("remarks")} placeholder="Optional remarks" />
+          <div>
+            <Label htmlFor="remarks">Remarks</Label>
+            <Input id="remarks" {...register('remarks')} placeholder="Optional remarks" />
           </div>
 
           <div>
             <Label htmlFor="description">Description</Label>
-            <Input id="description" {...register("description")} placeholder="Enter key description" />
+            <Input id="description" {...register('description')} placeholder="Enter key description" />
           </div>
 
           <div>
@@ -379,17 +364,17 @@ export function RFAForm() {
             <Select
               value={selectedProjectId || undefined}
               onValueChange={(val) => {
-                setValue("projectId", val);
-                setValue("contractId", "");
-                setValue("disciplineId", 0);
-                setValue("rfaTypeId", 0);
-                setValue("shopDrawingRevisionIds", []);
-                setValue("asBuiltDrawingRevisionIds", []);
+                setValue('projectId', val);
+                setValue('contractId', '');
+                setValue('disciplineId', 0);
+                setValue('rfaTypeId', 0);
+                setValue('shopDrawingRevisionIds', []);
+                setValue('asBuiltDrawingRevisionIds', []);
               }}
               disabled={isLoadingProjects}
             >
               <SelectTrigger>
-                <SelectValue placeholder={isLoadingProjects ? "Loading..." : "Select Project"} />
+                <SelectValue placeholder={isLoadingProjects ? 'Loading...' : 'Select Project'} />
               </SelectTrigger>
               <SelectContent>
                 {projects.map((p) => {
@@ -400,16 +385,14 @@ export function RFAForm() {
                   }
 
                   return (
-                  <SelectItem key={projectValue} value={projectValue}>
-                    {p.projectName || p.projectCode}
-                  </SelectItem>
+                    <SelectItem key={projectValue} value={projectValue}>
+                      {p.projectName || p.projectCode}
+                    </SelectItem>
                   );
                 })}
               </SelectContent>
             </Select>
-            {errors.projectId && (
-              <p className="text-sm text-destructive mt-1">{errors.projectId.message}</p>
-            )}
+            {errors.projectId && <p className="text-sm text-destructive mt-1">{errors.projectId.message}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -418,16 +401,16 @@ export function RFAForm() {
               <Select
                 value={selectedContractId || undefined}
                 onValueChange={(val) => {
-                  setValue("contractId", val);
-                  setValue("disciplineId", 0);
-                  setValue("rfaTypeId", 0);
-                  setValue("shopDrawingRevisionIds", []);
-                  setValue("asBuiltDrawingRevisionIds", []);
+                  setValue('contractId', val);
+                  setValue('disciplineId', 0);
+                  setValue('rfaTypeId', 0);
+                  setValue('shopDrawingRevisionIds', []);
+                  setValue('asBuiltDrawingRevisionIds', []);
                 }}
                 disabled={!selectedProjectId || isLoadingContracts}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={isLoadingContracts ? "Loading..." : "Select Contract"} />
+                  <SelectValue placeholder={isLoadingContracts ? 'Loading...' : 'Select Contract'} />
                 </SelectTrigger>
                 <SelectContent>
                   {contracts.map((c) => {
@@ -438,27 +421,25 @@ export function RFAForm() {
                     }
 
                     return (
-                    <SelectItem key={contractValue} value={contractValue}>
-                      {c.contractName || c.name || c.contractCode}
-                    </SelectItem>
+                      <SelectItem key={contractValue} value={contractValue}>
+                        {c.contractName || c.name || c.contractCode}
+                      </SelectItem>
                     );
                   })}
                 </SelectContent>
               </Select>
-              {errors.contractId && (
-                <p className="text-sm text-destructive mt-1">{errors.contractId.message}</p>
-              )}
+              {errors.contractId && <p className="text-sm text-destructive mt-1">{errors.contractId.message}</p>}
             </div>
 
             <div>
               <Label>Discipline *</Label>
               <Select
                 value={selectedDisciplineId > 0 ? String(selectedDisciplineId) : undefined}
-                onValueChange={(val) => setValue("disciplineId", Number(val))}
+                onValueChange={(val) => setValue('disciplineId', Number(val))}
                 disabled={!selectedContractId || isLoadingDisciplines}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={isLoadingDisciplines ? "Loading..." : "Select Discipline"} />
+                  <SelectValue placeholder={isLoadingDisciplines ? 'Loading...' : 'Select Discipline'} />
                 </SelectTrigger>
                 <SelectContent>
                   {disciplines.map((d) => (
@@ -467,13 +448,13 @@ export function RFAForm() {
                     </SelectItem>
                   ))}
                   {!isLoadingDisciplines && disciplines.length === 0 && (
-                     <SelectItem value="0" disabled>No disciplines found</SelectItem>
+                    <SelectItem value="0" disabled>
+                      No disciplines found
+                    </SelectItem>
                   )}
                 </SelectContent>
               </Select>
-              {errors.disciplineId && (
-                <p className="text-sm text-destructive mt-1">{errors.disciplineId.message}</p>
-              )}
+              {errors.disciplineId && <p className="text-sm text-destructive mt-1">{errors.disciplineId.message}</p>}
             </div>
           </div>
 
@@ -483,37 +464,35 @@ export function RFAForm() {
               <Select
                 value={rfaTypeId > 0 ? String(rfaTypeId) : undefined}
                 onValueChange={(val) => {
-                  setValue("rfaTypeId", Number(val));
-                  setValue("shopDrawingRevisionIds", []);
-                  setValue("asBuiltDrawingRevisionIds", []);
+                  setValue('rfaTypeId', Number(val));
+                  setValue('shopDrawingRevisionIds', []);
+                  setValue('asBuiltDrawingRevisionIds', []);
                 }}
                 disabled={!selectedContractId || isLoadingRfaTypes}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={isLoadingRfaTypes ? "Loading..." : "Select RFA Type"} />
+                  <SelectValue placeholder={isLoadingRfaTypes ? 'Loading...' : 'Select RFA Type'} />
                 </SelectTrigger>
                 <SelectContent>
                   {rfaTypes.map((rfaType) => (
                     <SelectItem key={rfaType.id} value={String(rfaType.id)}>
-                      {`${rfaType.typeCode || "RFA"} - ${rfaType.typeName || rfaType.typeNameEn || rfaType.typeNameTh || "Unnamed Type"}`}
+                      {`${rfaType.typeCode || 'RFA'} - ${rfaType.typeName || rfaType.typeNameEn || rfaType.typeNameTh || 'Unnamed Type'}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {errors.rfaTypeId && (
-                <p className="text-sm text-destructive mt-1">{errors.rfaTypeId.message}</p>
-              )}
+              {errors.rfaTypeId && <p className="text-sm text-destructive mt-1">{errors.rfaTypeId.message}</p>}
             </div>
 
             <div>
               <Label>To Organization *</Label>
               <Select
                 value={toOrganizationId || undefined}
-                onValueChange={(val) => setValue("toOrganizationId", val)}
+                onValueChange={(val) => setValue('toOrganizationId', val)}
                 disabled={isLoadingOrganizations}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={isLoadingOrganizations ? "Loading..." : "Select To Organization"} />
+                  <SelectValue placeholder={isLoadingOrganizations ? 'Loading...' : 'Select To Organization'} />
                 </SelectTrigger>
                 <SelectContent>
                   {organizations.map((organization) => {
@@ -524,9 +503,9 @@ export function RFAForm() {
                     }
 
                     return (
-                    <SelectItem key={organizationValue} value={organizationValue}>
-                      {`${organization.organizationCode || "ORG"} - ${organization.organizationName || "Unnamed Organization"}`}
-                    </SelectItem>
+                      <SelectItem key={organizationValue} value={organizationValue}>
+                        {`${organization.organizationCode || 'ORG'} - ${organization.organizationName || 'Unnamed Organization'}`}
+                      </SelectItem>
                     );
                   })}
                 </SelectContent>
@@ -545,8 +524,8 @@ export function RFAForm() {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               {requiresShopDrawings
-                ? "RFA Type นี้ต้องอ้างอิง Shop Drawing Revision อย่างน้อย 1 รายการ"
-                : "RFA Type นี้ต้องอ้างอิง As-Built Drawing Revision อย่างน้อย 1 รายการ"}
+                ? 'RFA Type นี้ต้องอ้างอิง Shop Drawing Revision อย่างน้อย 1 รายการ'
+                : 'RFA Type นี้ต้องอ้างอิง As-Built Drawing Revision อย่างน้อย 1 รายการ'}
             </p>
 
             {requiresShopDrawings && (
@@ -563,9 +542,7 @@ export function RFAForm() {
                   />
                 </div>
 
-                {isLoadingShopDrawings && (
-                  <p className="text-sm text-muted-foreground">Loading Shop Drawings...</p>
-                )}
+                {isLoadingShopDrawings && <p className="text-sm text-muted-foreground">Loading Shop Drawings...</p>}
                 {!isLoadingShopDrawings && shopDrawings.length === 0 && (
                   <p className="text-sm text-muted-foreground">No Shop Drawings found for the selected project.</p>
                 )}
@@ -585,19 +562,25 @@ export function RFAForm() {
                         <Checkbox
                           checked={selectedShopDrawingRevisionIds.includes(revisionUuid)}
                           onCheckedChange={(checked) => {
-                            const nextValues = checked === true
-                              ? [...selectedShopDrawingRevisionIds, revisionUuid]
-                              : selectedShopDrawingRevisionIds.filter((value) => value !== revisionUuid);
-                            setValue("shopDrawingRevisionIds", nextValues, { shouldDirty: true, shouldValidate: true });
-                            clearErrors("shopDrawingRevisionIds");
+                            const nextValues =
+                              checked === true
+                                ? [...selectedShopDrawingRevisionIds, revisionUuid]
+                                : selectedShopDrawingRevisionIds.filter((value) => value !== revisionUuid);
+                            setValue('shopDrawingRevisionIds', nextValues, { shouldDirty: true, shouldValidate: true });
+                            clearErrors('shopDrawingRevisionIds');
                           }}
                         />
                         <div className="space-y-1">
-                          <p className="font-medium">{drawing.drawingNumber || "Unnamed Shop Drawing"}</p>
-                          <p className="text-sm text-muted-foreground">{drawing.currentRevision?.title || drawing.title || "Untitled Revision"}</p>
+                          <p className="font-medium">{drawing.drawingNumber || 'Unnamed Shop Drawing'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {drawing.currentRevision?.title || drawing.title || 'Untitled Revision'}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            Revision {drawing.currentRevision?.revisionLabel || drawing.currentRevision?.revisionNumber || "-"}
-                            {drawing.currentRevision?.legacyDrawingNumber ? ` • Legacy ${drawing.currentRevision.legacyDrawingNumber}` : ""}
+                            Revision{' '}
+                            {drawing.currentRevision?.revisionLabel || drawing.currentRevision?.revisionNumber || '-'}
+                            {drawing.currentRevision?.legacyDrawingNumber
+                              ? ` • Legacy ${drawing.currentRevision.legacyDrawingNumber}`
+                              : ''}
                           </p>
                         </div>
                       </label>
@@ -675,19 +658,28 @@ export function RFAForm() {
                         <Checkbox
                           checked={selectedAsBuiltDrawingRevisionIds.includes(revisionUuid)}
                           onCheckedChange={(checked) => {
-                            const nextValues = checked === true
-                              ? [...selectedAsBuiltDrawingRevisionIds, revisionUuid]
-                              : selectedAsBuiltDrawingRevisionIds.filter((value) => value !== revisionUuid);
-                            setValue("asBuiltDrawingRevisionIds", nextValues, { shouldDirty: true, shouldValidate: true });
-                            clearErrors("asBuiltDrawingRevisionIds");
+                            const nextValues =
+                              checked === true
+                                ? [...selectedAsBuiltDrawingRevisionIds, revisionUuid]
+                                : selectedAsBuiltDrawingRevisionIds.filter((value) => value !== revisionUuid);
+                            setValue('asBuiltDrawingRevisionIds', nextValues, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            });
+                            clearErrors('asBuiltDrawingRevisionIds');
                           }}
                         />
                         <div className="space-y-1">
-                          <p className="font-medium">{drawing.drawingNumber || "Unnamed As-Built Drawing"}</p>
-                          <p className="text-sm text-muted-foreground">{drawing.currentRevision?.title || drawing.title || "Untitled Revision"}</p>
+                          <p className="font-medium">{drawing.drawingNumber || 'Unnamed As-Built Drawing'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {drawing.currentRevision?.title || drawing.title || 'Untitled Revision'}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            Revision {drawing.currentRevision?.revisionLabel || drawing.currentRevision?.revisionNumber || "-"}
-                            {drawing.currentRevision?.legacyDrawingNumber ? ` • Legacy ${drawing.currentRevision.legacyDrawingNumber}` : ""}
+                            Revision{' '}
+                            {drawing.currentRevision?.revisionLabel || drawing.currentRevision?.revisionNumber || '-'}
+                            {drawing.currentRevision?.legacyDrawingNumber
+                              ? ` • Legacy ${drawing.currentRevision.legacyDrawingNumber}`
+                              : ''}
                           </p>
                         </div>
                       </label>

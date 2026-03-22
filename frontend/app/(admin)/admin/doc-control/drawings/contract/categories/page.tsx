@@ -58,10 +58,7 @@ export default function ContractCategoriesPage() {
   const projectFilter = (
     <div className="flex items-center gap-4">
       <span className="text-sm font-medium">Project:</span>
-      <Select
-        value={selectedProjectId ?? ''}
-        onValueChange={(v) => setSelectedProjectId(v || undefined)}
-      >
+      <Select value={selectedProjectId ?? ''} onValueChange={(v) => setSelectedProjectId(v || undefined)}>
         <SelectTrigger className="w-[300px]">
           {isLoadingProjects ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -106,7 +103,12 @@ export default function ContractCategoriesPage() {
           const data = await drawingMasterDataService.getContractCategories(selectedProjectId);
           return data;
         }}
-        createFn={(data: Record<string, unknown>) => drawingMasterDataService.createContractCategory({ ...(data as unknown as CreateContractCategoryDto), projectId: selectedProjectId })}
+        createFn={(data: Record<string, unknown>) =>
+          drawingMasterDataService.createContractCategory({
+            ...(data as unknown as CreateContractCategoryDto),
+            projectId: selectedProjectId,
+          })
+        }
         updateFn={(id, data) => drawingMasterDataService.updateContractCategory(id, data)}
         deleteFn={(id) => drawingMasterDataService.deleteContractCategory(id)}
         columns={columns}
@@ -198,7 +200,7 @@ function ManageMappings({ projectId }: { projectId: string }) {
   const { data: rawMappings, isLoading: isLoadingMappings } = useQuery({
     queryKey: ['contract-mappings', String(projectId), selectedCat],
     queryFn: () =>
-      drawingMasterDataService.getContractMappings(projectId, selectedCat ? parseInt(selectedCat) : undefined),
+      drawingMasterDataService.getContractMappings(projectId, selectedCat ? Number(selectedCat) : undefined),
     enabled: !!selectedCat,
   });
 
@@ -231,8 +233,8 @@ function ManageMappings({ projectId }: { projectId: string }) {
     if (!selectedCat || !selectedSubCat) return;
     createMutation.mutate({
       projectId,
-      categoryId: parseInt(selectedCat),
-      subCategoryId: parseInt(selectedSubCat),
+      categoryId: Number(selectedCat),
+      subCategoryId: Number(selectedSubCat),
     });
   };
 

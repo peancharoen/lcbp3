@@ -5,10 +5,10 @@ x-restart: &restart_policy
 
 x-logging: &default_logging
   logging:
-    driver: "json-file"
+    driver: 'json-file'
     options:
-      max-size: "10m"
-      max-file: "5"
+      max-size: '10m'
+      max-file: '5'
 services:
   n8n-db:
     <<: [*restart_policy, *default_logging]
@@ -19,7 +19,7 @@ services:
       - POSTGRES_PASSWORD=Np721220$
       - POSTGRES_DB=n8n
     volumes:
-      - "/share/np-dms/n8n/postgres-data:/var/lib/postgresql/data"
+      - '/share/np-dms/n8n/postgres-data:/var/lib/postgresql/data'
     networks:
       lcbp3: {}
     healthcheck:
@@ -32,7 +32,7 @@ services:
     <<: [*restart_policy, *default_logging]
     image: apache/tika:latest-full
     container_name: tika
-    user: "root"
+    user: 'root'
     environment:
       - TESSDATA_PREFIX=/tessdata
     volumes:
@@ -40,7 +40,7 @@ services:
     networks:
       lcbp3: {}
     expose:
-      - "9998"
+      - '9998'
 
   n8n:
     <<: [*restart_policy, *default_logging]
@@ -56,33 +56,33 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.5"
+          cpus: '1.5'
           memory: 3G
         reservations:
-          cpus: "0.25"
+          cpus: '0.25'
           memory: 512M
     environment:
-      TZ: "Asia/Bangkok"
-      NODE_ENV: "production"
+      TZ: 'Asia/Bangkok'
+      NODE_ENV: 'production'
       # N8N_PATH: "/n8n/"
-      N8N_PUBLIC_URL: "https://n8n.np-dms.work/"
-      WEBHOOK_URL: "https://n8n.np-dms.work/"
-      N8N_EDITOR_BASE_URL: "https://n8n.np-dms.work/"
-      N8N_PROTOCOL: "https"
-      N8N_HOST: "n8n.np-dms.work"
+      N8N_PUBLIC_URL: 'https://n8n.np-dms.work/'
+      WEBHOOK_URL: 'https://n8n.np-dms.work/'
+      N8N_EDITOR_BASE_URL: 'https://n8n.np-dms.work/'
+      N8N_PROTOCOL: 'https'
+      N8N_HOST: 'n8n.np-dms.work'
       N8N_PORT: 5678
-      N8N_PROXY_HOPS: "1"
+      N8N_PROXY_HOPS: '1'
       N8N_DIAGNOSTICS_ENABLED: 'false'
       N8N_SECURE_COOKIE: 'true'
-      N8N_ENCRYPTION_KEY: "9AAIB7Da9DW1qAhJE5/Bz4SnbQjeAngI"
+      N8N_ENCRYPTION_KEY: '9AAIB7Da9DW1qAhJE5/Bz4SnbQjeAngI'
       # File access control for "Read/Write Files from Disk" nodes
       # Ref: https://github.com/n8n-io/n8n/blob/master/packages/@n8n/config/src/configs/security.config.ts
       # Default is "~/.n8n-files". Separate multiple dirs with semicolon (;)
-      N8N_RESTRICT_FILE_ACCESS_TO: "/home/node/.n8n-files"
-      N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: "false"
-      GENERIC_TIMEZONE: "Asia/Bangkok"
-      NODE_FUNCTION_ALLOW_BUILTIN: "*"
-      NODES_EXCLUDE: "[]"
+      N8N_RESTRICT_FILE_ACCESS_TO: '/home/node/.n8n-files'
+      N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: 'false'
+      GENERIC_TIMEZONE: 'Asia/Bangkok'
+      NODE_FUNCTION_ALLOW_BUILTIN: '*'
+      NODES_EXCLUDE: '[]'
       # DB Setup
       DB_TYPE: postgresdb
       DB_POSTGRESDB_DATABASE: n8n
@@ -96,22 +96,22 @@ services:
       # EXECUTIONS_DATA_PRUNE_TIMEOUT: 60
 
     ports:
-      - "5678:5678"
+      - '5678:5678'
     networks:
       lcbp3: {}
     volumes:
-      - "/share/np-dms/n8n:/home/node/.n8n"
-      - "/share/np-dms/n8n/cache:/home/node/.cache"
-      - "/share/np-dms/n8n/scripts:/scripts"
-      - "/share/np-dms/n8n/data:/data"
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      - '/share/np-dms/n8n:/home/node/.n8n'
+      - '/share/np-dms/n8n/cache:/home/node/.cache'
+      - '/share/np-dms/n8n/scripts:/scripts'
+      - '/share/np-dms/n8n/data:/data'
+      - '/var/run/docker.sock:/var/run/docker.sock'
       # read-only: อ่านไฟล์ PDF ต้นฉบับเท่านั้น
-      - "/share/np-dms-as/Legacy:/home/node/.n8n-files/staging_ai:ro" # Add alias for np-dms-as to match the node setting
+      - '/share/np-dms-as/Legacy:/home/node/.n8n-files/staging_ai:ro' # Add alias for np-dms-as to match the node setting
       # read-write: เขียน Log และ CSV ทั้งหมด
-      - "/share/np-dms/n8n/migration_logs:/home/node/.n8n-files/migration_logs:rw"
+      - '/share/np-dms/n8n/migration_logs:/home/node/.n8n-files/migration_logs:rw'
 
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5678/healthz || exit 1"]
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5678/healthz || exit 1']
       interval: 30s
       timeout: 10s
       start_period: 60s
@@ -120,7 +120,6 @@ services:
 networks:
   lcbp3:
     external: true
-
 # สำหรับ n8n volumes
 # chown -R 1000:1000 /share/np-dms/n8n
 # chmod -R 755 /share/np-dms/n8n3

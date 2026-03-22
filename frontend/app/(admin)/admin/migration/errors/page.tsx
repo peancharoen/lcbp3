@@ -1,23 +1,16 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { migrationService } from "@/lib/services/migration.service";
-import { MigrationErrorItem } from "@/types/migration";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { ArrowLeftIcon } from "lucide-react";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getApiErrorMessage } from "@/types/api-error";
+import { useEffect, useState } from 'react';
+import { migrationService } from '@/lib/services/migration.service';
+import { MigrationErrorItem } from '@/types/migration';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import { ArrowLeftIcon } from 'lucide-react';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getApiErrorMessage } from '@/types/api-error';
 
 export default function MigrationErrorsPage() {
   const [items, setItems] = useState<MigrationErrorItem[]>([]);
@@ -36,7 +29,7 @@ export default function MigrationErrorsPage() {
       setItems(Array.isArray(res.items) ? res.items : []);
     } catch (error: unknown) {
       setItems([]);
-      setErrorMessage(getApiErrorMessage(error, "Failed to load errors"));
+      setErrorMessage(getApiErrorMessage(error, 'Failed to load errors'));
     } finally {
       setLoading(false);
     }
@@ -87,17 +80,17 @@ export default function MigrationErrorsPage() {
                 <TableBody>
                   {items.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-mono text-sm">{item.batchId || "-"}</TableCell>
-                      <TableCell className="font-medium">{item.documentNumber || "-"}</TableCell>
+                      <TableCell className="font-mono text-sm">{item.batchId || '-'}</TableCell>
+                      <TableCell className="font-medium">{item.documentNumber || '-'}</TableCell>
                       <TableCell>
-                        <Badge variant="destructive">{item.errorType || "UNKNOWN"}</Badge>
+                        <Badge variant="destructive">{item.errorType || 'UNKNOWN'}</Badge>
                       </TableCell>
                       <TableCell className="max-w-md break-words">
                         <span className="text-sm text-muted-foreground line-clamp-2" title={item.errorMessage}>
-                          {item.errorMessage || "-"}
+                          {item.errorMessage || '-'}
                         </span>
                       </TableCell>
-                      <TableCell>{format(new Date(item.createdAt), "dd MMM yyyy, HH:mm")}</TableCell>
+                      <TableCell>{format(new Date(item.createdAt), 'dd MMM yyyy, HH:mm')}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

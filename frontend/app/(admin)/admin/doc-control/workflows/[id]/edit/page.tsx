@@ -21,7 +21,7 @@ import Link from 'next/link';
 export default function WorkflowEditPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params?.id === 'new' ? null : params?.id as string;
+  const id = params?.id === 'new' ? null : (params?.id as string);
 
   const [workflowData, setWorkflowData] = useState<Partial<Workflow>>({
     workflowName: '',
@@ -69,7 +69,7 @@ export default function WorkflowEditPage() {
         toast.success('Workflow created successfully');
         router.push('/admin/doc-control/workflows');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to save workflow');
     }
   };

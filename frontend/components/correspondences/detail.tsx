@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { Correspondence } from "@/types/correspondence";
-import { StatusBadge } from "@/components/common/status-badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
-import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit } from "lucide-react";
-import Link from "next/link";
-import { useSubmitCorrespondence, useProcessWorkflow } from "@/hooks/use-correspondence";
-import { useState } from "react";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Correspondence } from '@/types/correspondence';
+import { StatusBadge } from '@/components/common/status-badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { format } from 'date-fns';
+import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit } from 'lucide-react';
+import Link from 'next/link';
+import { useSubmitCorrespondence, useProcessWorkflow } from '@/hooks/use-correspondence';
+import { useState } from 'react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface CorrespondenceDetailProps {
   data: Correspondence;
@@ -19,26 +19,26 @@ interface CorrespondenceDetailProps {
 export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
   const submitMutation = useSubmitCorrespondence();
   const processMutation = useProcessWorkflow();
-  const [actionState, setActionState] = useState<"approve" | "reject" | null>(null);
-  const [comments, setComments] = useState("");
+  const [actionState, setActionState] = useState<'approve' | 'reject' | null>(null);
+  const [comments, setComments] = useState('');
 
   if (!data) return <div>No data found</div>;
 
   // Derive Current Revision Data
-  const currentRevision = data.revisions?.find(r => r.isCurrent) || data.revisions?.[0];
-  const subject = currentRevision?.subject || "-";
-  const description = currentRevision?.description || "-";
-  const status = currentRevision?.status?.statusCode || "UNKNOWN"; // e.g. DRAFT
+  const currentRevision = data.revisions?.find((r) => r.isCurrent) || data.revisions?.[0];
+  const subject = currentRevision?.subject || '-';
+  const description = currentRevision?.description || '-';
+  const status = currentRevision?.status?.statusCode || 'UNKNOWN'; // e.g. DRAFT
   const attachments = currentRevision?.attachments || [];
 
   // Note: Importance might be in details
-  const importance = currentRevision?.details?.importance || "NORMAL";
+  const importance = currentRevision?.details?.importance || 'NORMAL';
 
   const handleSubmit = () => {
-    if (confirm("Are you sure you want to submit this correspondence?")) {
+    if (confirm('Are you sure you want to submit this correspondence?')) {
       submitMutation.mutate({
         uuid: data.uuid,
-        data: {}
+        data: {},
       });
     }
   };
@@ -46,19 +46,22 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
   const handleProcess = () => {
     if (!actionState) return;
 
-    const action = actionState === "approve" ? "APPROVE" : "REJECT";
-    processMutation.mutate({
-      uuid: data.uuid,
-      data: {
-        action,
-        comments
+    const action = actionState === 'approve' ? 'APPROVE' : 'REJECT';
+    processMutation.mutate(
+      {
+        uuid: data.uuid,
+        data: {
+          action,
+          comments,
+        },
+      },
+      {
+        onSuccess: () => {
+          setActionState(null);
+          setComments('');
+        },
       }
-    }, {
-      onSuccess: () => {
-        setActionState(null);
-        setComments("");
-      }
-    });
+    );
   };
 
   return (
@@ -74,40 +77,38 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
           <div>
             <h1 className="text-2xl font-bold">{data.correspondenceNumber}</h1>
             <p className="text-muted-foreground">
-              Created on {data.createdAt ? format(new Date(data.createdAt), "dd MMM yyyy HH:mm") : '-'}
+              Created on {data.createdAt ? format(new Date(data.createdAt), 'dd MMM yyyy HH:mm') : '-'}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-           {/* EDIT BUTTON LOGIC: Show if DRAFT */}
-          {status === "DRAFT" && (
-             <Link href={`/correspondences/${data.uuid}/edit`}>
-                <Button variant="outline">
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-             </Link>
+          {/* EDIT BUTTON LOGIC: Show if DRAFT */}
+          {status === 'DRAFT' && (
+            <Link href={`/correspondences/${data.uuid}/edit`}>
+              <Button variant="outline">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            </Link>
           )}
 
-          {status === "DRAFT" && (
+          {status === 'DRAFT' && (
             <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
-              {submitMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {submitMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
               Submit for Review
             </Button>
           )}
-          {status === "IN_REVIEW" && (
+          {status === 'IN_REVIEW' && (
             <>
-              <Button
-                variant="destructive"
-                onClick={() => setActionState("reject")}
-              >
+              <Button variant="destructive" onClick={() => setActionState('reject')}>
                 <XCircle className="mr-2 h-4 w-4" />
                 Reject
               </Button>
-              <Button
-                className="bg-green-600 hover:bg-green-700"
-                onClick={() => setActionState("approve")}
-              >
+              <Button className="bg-green-600 hover:bg-green-700" onClick={() => setActionState('approve')}>
                 <CheckCircle className="mr-2 h-4 w-4" />
                 Approve
               </Button>
@@ -120,31 +121,33 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
       {actionState && (
         <Card className="border-primary">
           <CardHeader>
-             <CardTitle className="text-lg">
-               {actionState === "approve" ? "Confirm Approval" : "Confirm Rejection"}
-             </CardTitle>
+            <CardTitle className="text-lg">
+              {actionState === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-             <div className="space-y-2">
-               <Label>Comments</Label>
-               <Textarea
-                 value={comments}
-                 onChange={(e) => setComments(e.target.value)}
-                 placeholder="Enter comments..."
-               />
-             </div>
-             <div className="flex justify-end gap-2">
-               <Button variant="ghost" onClick={() => setActionState(null)}>Cancel</Button>
-               <Button
-                 variant={actionState === "approve" ? "default" : "destructive"}
-                 onClick={handleProcess}
-                 disabled={processMutation.isPending}
-                 className={actionState === "approve" ? "bg-green-600 hover:bg-green-700" : ""}
-               >
-                 {processMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                 Confirm {actionState === "approve" ? "Approve" : "Reject"}
-               </Button>
-             </div>
+            <div className="space-y-2">
+              <Label>Comments</Label>
+              <Textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                placeholder="Enter comments..."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setActionState(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant={actionState === 'approve' ? 'default' : 'destructive'}
+                onClick={handleProcess}
+                disabled={processMutation.isPending}
+                className={actionState === 'approve' ? 'bg-green-600 hover:bg-green-700' : ''}
+              >
+                {processMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirm {actionState === 'approve' ? 'Approve' : 'Reject'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -162,9 +165,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
             <CardContent className="space-y-6">
               <div>
                 <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">
-                  {description}
-                </p>
+                <p className="text-gray-700 whitespace-pre-wrap">{description}</p>
               </div>
 
               {currentRevision?.body && (
@@ -179,9 +180,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
               {currentRevision?.remarks && (
                 <div>
                   <h3 className="font-semibold mb-2">Remarks</h3>
-                  <p className="text-gray-600 italic">
-                    {currentRevision.remarks}
-                  </p>
+                  <p className="text-gray-600 italic">{currentRevision.remarks}</p>
                 </div>
               )}
 
@@ -226,10 +225,16 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Importance</p>
                 <div className="mt-1">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${importance === 'URGENT' ? 'bg-red-100 text-red-800' :
-                      importance === 'HIGH' ? 'bg-orange-100 text-orange-800' :
-                      'bg-blue-100 text-blue-800'}`}>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    ${
+                      importance === 'URGENT'
+                        ? 'bg-red-100 text-red-800'
+                        : importance === 'HIGH'
+                          ? 'bg-orange-100 text-orange-800'
+                          : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
                     {String(importance)}
                   </span>
                 </div>
@@ -243,7 +248,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
                 <p className="text-xs text-muted-foreground">{data.originator?.organizationCode || '-'}</p>
               </div>
 
-               <div>
+              <div>
                 <p className="text-sm font-medium text-muted-foreground">Project</p>
                 <p className="font-medium mt-1">{data.project?.projectName || '-'}</p>
                 <p className="text-xs text-muted-foreground">{data.project?.projectCode || '-'}</p>

@@ -1,36 +1,30 @@
-"use client";
+'use client';
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { FileUploadZone } from "@/components/custom/file-upload-zone";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { useCreateCorrespondence, useUpdateCorrespondence } from "@/hooks/use-correspondence";
-import { Organization } from "@/types/organization";
-import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines } from "@/hooks/use-master-data";
-import { CreateCorrespondenceDto } from "@/types/dto/correspondence/create-correspondence.dto";
-import { useState, useEffect } from "react";
-import { correspondenceService } from "@/lib/services/correspondence.service";
-import { numberingApi } from "@/lib/api/numbering";
+import { useForm, Resolver } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FileUploadZone } from '@/components/custom/file-upload-zone';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
+import { useCreateCorrespondence, useUpdateCorrespondence } from '@/hooks/use-correspondence';
+import { Organization } from '@/types/organization';
+import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines } from '@/hooks/use-master-data';
+import { CreateCorrespondenceDto } from '@/types/dto/correspondence/create-correspondence.dto';
+import { useState, useEffect } from 'react';
+import { correspondenceService as _correspondenceService } from '@/lib/services/correspondence.service';
+import { numberingApi } from '@/lib/api/numbering';
 
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
-  projectId: z.string().min(1, "Please select a Project"),
-  documentTypeId: z.number().min(1, "Please select a Document Type"),
+  projectId: z.string().min(1, 'Please select a Project'),
+  documentTypeId: z.number().min(1, 'Please select a Document Type'),
   disciplineId: z.number().optional(),
-  subject: z.string().min(5, "Subject must be at least 5 characters"),
+  subject: z.string().min(5, 'Subject must be at least 5 characters'),
   description: z.string().optional(),
   body: z.string().optional(),
   remarks: z.string().optional(),
@@ -38,9 +32,9 @@ const correspondenceSchema = z.object({
   documentDate: z.string().optional(),
   issuedDate: z.string().optional(),
   receivedDate: z.string().optional(),
-  fromOrganizationId: z.string().min(1, "Please select From Organization"),
-  toOrganizationId: z.string().min(1, "Please select To Organization"),
-  importance: z.enum(["NORMAL", "HIGH", "URGENT"]),
+  fromOrganizationId: z.string().min(1, 'Please select From Organization'),
+  toOrganizationId: z.string().min(1, 'Please select To Organization'),
+  importance: z.enum(['NORMAL', 'HIGH', 'URGENT']),
   attachments: z.array(z.instanceof(File)).optional(),
 });
 
@@ -59,11 +53,37 @@ type CorrespondenceTypeOption = {
   typeCode: string;
 };
 
-type DisciplineOption = {
+interface DisciplineOption {
   id: number;
   disciplineCode: string;
   codeNameEn?: string;
-};
+}
+
+interface InitialCorrespondenceData {
+  projectId?: number | string;
+  project?: { uuid?: string };
+  correspondenceTypeId?: number;
+  disciplineId?: number;
+  revisions?: Array<{
+    isCurrent?: boolean;
+    subject?: string;
+    title?: string;
+    description?: string;
+    body?: string;
+    remarks?: string;
+    dueDate?: string;
+    documentDate?: string;
+    issuedDate?: string;
+    receivedDate?: string;
+    details?: { importance: 'NORMAL' | 'HIGH' | 'URGENT' };
+  }>;
+  originatorId?: number;
+  recipients?: Array<{
+    recipientType: string;
+    recipientOrganizationId: number;
+  }>;
+  correspondenceNumber?: string;
+}
 
 const extractArrayData = <T,>(value: unknown): T[] => {
   let current: unknown = value;
@@ -73,7 +93,7 @@ const extractArrayData = <T,>(value: unknown): T[] => {
       return current as T[];
     }
 
-    if (!current || typeof current !== "object" || !("data" in current)) {
+    if (!current || typeof current !== 'object' || !('data' in current)) {
       return [];
     }
 
@@ -83,7 +103,7 @@ const extractArrayData = <T,>(value: unknown): T[] => {
   return Array.isArray(current) ? (current as T[]) : [];
 };
 
-export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, uuid?: string }) {
+export function CorrespondenceForm({ initialData, uuid }: { initialData?: InitialCorrespondenceData; uuid?: string }) {
   const router = useRouter();
   const createMutation = useCreateCorrespondence();
   const updateMutation = useUpdateCorrespondence();
@@ -99,26 +119,26 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
   const disciplines = extractArrayData<DisciplineOption>(disciplinesData);
 
   // Extract initial values if editing
-  const currentRev = initialData?.revisions?.find((r: any) => r.isCurrent) || initialData?.revisions?.[0];
+  const currentRev = initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
   const defaultValues: Partial<FormData> = {
     projectId: initialData?.project?.uuid || (initialData?.projectId ? String(initialData.projectId) : undefined),
     documentTypeId: initialData?.correspondenceTypeId || undefined,
     disciplineId: initialData?.disciplineId || undefined,
-    subject: currentRev?.subject || currentRev?.title || "",
-    description: currentRev?.description || "",
-    body: currentRev?.body || "",
-    remarks: currentRev?.remarks || "",
+    subject: currentRev?.subject || currentRev?.title || '',
+    description: currentRev?.description || '',
+    body: currentRev?.body || '',
+    remarks: currentRev?.remarks || '',
     dueDate: currentRev?.dueDate ? new Date(currentRev.dueDate).toISOString().split('T')[0] : undefined,
     documentDate: currentRev?.documentDate ? new Date(currentRev.documentDate).toISOString().split('T')[0] : undefined,
     issuedDate: currentRev?.issuedDate ? new Date(currentRev.issuedDate).toISOString().split('T')[0] : undefined,
     receivedDate: currentRev?.receivedDate ? new Date(currentRev.receivedDate).toISOString().split('T')[0] : undefined,
     fromOrganizationId: initialData?.originatorId ? String(initialData.originatorId) : undefined,
     // Map initial recipient (TO) - Simplified for now
-    toOrganizationId: initialData?.recipients?.find((r: any) => r.recipientType === 'TO')?.recipientOrganizationId
-      ? String(initialData.recipients.find((r: any) => r.recipientType === 'TO').recipientOrganizationId)
+    toOrganizationId: initialData?.recipients?.find((r) => r.recipientType === 'TO')?.recipientOrganizationId
+      ? String(initialData.recipients.find((r) => r.recipientType === 'TO')?.recipientOrganizationId)
       : undefined,
-    importance: currentRev?.details?.importance || "NORMAL",
-  };
+    importance: currentRev?.details?.importance || 'NORMAL',
+  } as Partial<FormData>;
 
   const {
     register,
@@ -127,17 +147,17 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
     watch,
     formState: { errors },
   } = useForm<FormData>({
-    // @ts-ignore: Zod version mismatch in monorepo
-    resolver: zodResolver(correspondenceSchema) as any,
+    // @ts-ignore: Zod version mismatch
+    resolver: zodResolver(correspondenceSchema) as unknown as Resolver<FormData>,
     defaultValues: defaultValues as FormData,
   });
 
   // Watch for controlled inputs
-  const projectId = watch("projectId");
-  const documentTypeId = watch("documentTypeId");
-  const disciplineId = watch("disciplineId");
-  const fromOrgId = watch("fromOrganizationId");
-  const toOrgId = watch("toOrganizationId");
+  const projectId = watch('projectId');
+  const documentTypeId = watch('documentTypeId');
+  const disciplineId = watch('disciplineId');
+  const fromOrgId = watch('fromOrganizationId');
+  const toOrgId = watch('toOrganizationId');
 
   const onSubmit = (data: FormData) => {
     const payload: CreateCorrespondenceDto = {
@@ -153,24 +173,25 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
       issuedDate: data.issuedDate ? new Date(data.issuedDate).toISOString() : undefined,
       receivedDate: data.receivedDate ? new Date(data.receivedDate).toISOString() : undefined,
       originatorId: data.fromOrganizationId,
-      recipients: [
-        { organizationId: data.toOrganizationId, type: 'TO' }
-      ],
+      recipients: [{ organizationId: data.toOrganizationId, type: 'TO' }],
       details: {
-        importance: data.importance
+        importance: data.importance,
       },
     };
 
     if (uuid && initialData) {
-       // UPDATE Mode
-       updateMutation.mutate({ uuid, data: payload }, {
-         onSuccess: () => router.push(`/correspondences/${uuid}`)
-       });
+      // UPDATE Mode
+      updateMutation.mutate(
+        { uuid, data: payload },
+        {
+          onSuccess: () => router.push(`/correspondences/${uuid}`),
+        }
+      );
     } else {
-       // CREATE Mode
-       createMutation.mutate(payload, {
-         onSuccess: () => router.push("/correspondences"),
-       });
+      // CREATE Mode
+      createMutation.mutate(payload, {
+        onSuccess: () => router.push('/correspondences'),
+      });
     }
   };
 
@@ -181,30 +202,28 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
 
   useEffect(() => {
     if (!projectId || !documentTypeId || !fromOrgId || !toOrgId) {
-       setPreview(null);
-       return;
+      setPreview(null);
+      return;
     }
 
     const fetchPreview = async () => {
-       try {
-         const res = await numberingApi.previewNumber({
-             projectId,
-             correspondenceTypeId: documentTypeId,
-             disciplineId,
-             originatorOrganizationId: fromOrgId,
-             recipientOrganizationId: toOrgId
-         });
-         setPreview({ number: res.previewNumber, isDefaultTemplate: res.isDefault });
-       } catch (err) {
-         setPreview(null);
-       }
+      try {
+        const res = await numberingApi.previewNumber({
+          projectId,
+          correspondenceTypeId: documentTypeId,
+          disciplineId,
+          originatorOrganizationId: fromOrgId,
+          recipientOrganizationId: toOrgId,
+        });
+        setPreview({ number: res.previewNumber, isDefaultTemplate: res.isDefault });
+      } catch (_err) {
+        setPreview(null);
+      }
     };
 
     const timer = setTimeout(fetchPreview, 500);
     return () => clearTimeout(timer);
   }, [projectId, documentTypeId, disciplineId, fromOrgId, toOrgId]);
-
-
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl space-y-6">
@@ -213,42 +232,49 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         <div className="space-y-2">
           <Label>Current Document Number</Label>
           <div className="flex items-center gap-2">
-             <Input value={initialData.correspondenceNumber} disabled readOnly className="bg-muted font-mono font-bold text-lg w-full" />
-             {preview && preview.number !== initialData.correspondenceNumber && (
-                 <span className="text-xs text-amber-600 font-semibold whitespace-nowrap px-2">
-                    Start Change Detected
-                 </span>
-             )}
+            <Input
+              value={initialData.correspondenceNumber}
+              disabled
+              readOnly
+              className="bg-muted font-mono font-bold text-lg w-full"
+            />
+            {preview && preview.number !== initialData.correspondenceNumber && (
+              <span className="text-xs text-amber-600 font-semibold whitespace-nowrap px-2">Start Change Detected</span>
+            )}
           </div>
         </div>
       )}
 
       {/* Preview Section */}
       {preview && (
-        <div className={`p-4 rounded-md border ${preview.number !== initialData?.correspondenceNumber ? 'bg-amber-50 border-amber-200' : 'bg-muted border-border'}`}>
-           <p className="text-sm font-semibold mb-1 flex items-center gap-2">
-              {initialData?.correspondenceNumber ? "New Document Number (Preview)" : "Document Number Preview"}
-              {preview.number !== initialData?.correspondenceNumber && initialData?.correspondenceNumber && (
-                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-                      Will Update
-                  </span>
-              )}
-           </p>
-           <div className="flex items-center gap-3">
-             <span className={`text-xl font-bold font-mono tracking-wide ${preview.number !== initialData?.correspondenceNumber ? 'text-amber-700' : 'text-primary'}`}>
-                {preview.number}
-             </span>
-             {preview.isDefaultTemplate && (
-                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
-                   Default Template
-                </span>
-             )}
-           </div>
-           {preview.number !== initialData?.correspondenceNumber && initialData?.correspondenceNumber && (
-              <p className="text-xs text-muted-foreground mt-2">
-                 * The document number will be regenerated because critical fields were changed.
-              </p>
-           )}
+        <div
+          className={`p-4 rounded-md border ${preview.number !== initialData?.correspondenceNumber ? 'bg-amber-50 border-amber-200' : 'bg-muted border-border'}`}
+        >
+          <p className="text-sm font-semibold mb-1 flex items-center gap-2">
+            {initialData?.correspondenceNumber ? 'New Document Number (Preview)' : 'Document Number Preview'}
+            {preview.number !== initialData?.correspondenceNumber && initialData?.correspondenceNumber && (
+              <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+                Will Update
+              </span>
+            )}
+          </p>
+          <div className="flex items-center gap-3">
+            <span
+              className={`text-xl font-bold font-mono tracking-wide ${preview.number !== initialData?.correspondenceNumber ? 'text-amber-700' : 'text-primary'}`}
+            >
+              {preview.number}
+            </span>
+            {preview.isDefaultTemplate && (
+              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                Default Template
+              </span>
+            )}
+          </div>
+          {preview.number !== initialData?.correspondenceNumber && initialData?.correspondenceNumber && (
+            <p className="text-xs text-muted-foreground mt-2">
+              * The document number will be regenerated because critical fields were changed.
+            </p>
+          )}
         </div>
       )}
 
@@ -258,12 +284,12 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         <div className="space-y-2">
           <Label>Project *</Label>
           <Select
-            onValueChange={(v) => setValue("projectId", v)}
+            onValueChange={(v) => setValue('projectId', v)}
             value={projectId || undefined}
             disabled={isLoadingProjects}
           >
             <SelectTrigger>
-              <SelectValue placeholder={isLoadingProjects ? "Loading..." : "Select Project"} />
+              <SelectValue placeholder={isLoadingProjects ? 'Loading...' : 'Select Project'} />
             </SelectTrigger>
             <SelectContent>
               {projects.map((p) => (
@@ -273,21 +299,19 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
               ))}
             </SelectContent>
           </Select>
-          {errors.projectId && (
-            <p className="text-sm text-destructive">{errors.projectId.message}</p>
-          )}
+          {errors.projectId && <p className="text-sm text-destructive">{errors.projectId.message}</p>}
         </div>
 
         {/* Document Type Dropdown */}
         <div className="space-y-2">
           <Label>Document Type *</Label>
           <Select
-            onValueChange={(v) => setValue("documentTypeId", parseInt(v))}
+            onValueChange={(v) => setValue('documentTypeId', Number(v))}
             value={documentTypeId ? String(documentTypeId) : undefined}
             disabled={isLoadingTypes}
           >
             <SelectTrigger>
-              <SelectValue placeholder={isLoadingTypes ? "Loading..." : "Select Type"} />
+              <SelectValue placeholder={isLoadingTypes ? 'Loading...' : 'Select Type'} />
             </SelectTrigger>
             <SelectContent>
               {correspondenceTypes.map((t) => (
@@ -297,21 +321,19 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
               ))}
             </SelectContent>
           </Select>
-          {errors.documentTypeId && (
-            <p className="text-sm text-destructive">{errors.documentTypeId.message}</p>
-          )}
+          {errors.documentTypeId && <p className="text-sm text-destructive">{errors.documentTypeId.message}</p>}
         </div>
 
         {/* Discipline Dropdown (Optional) */}
         <div className="space-y-2">
           <Label>Discipline</Label>
           <Select
-            onValueChange={(v) => setValue("disciplineId", v ? parseInt(v) : undefined)}
+            onValueChange={(v) => setValue('disciplineId', v ? Number(v) : undefined)}
             value={disciplineId ? String(disciplineId) : undefined}
             disabled={isLoadingDisciplines}
           >
             <SelectTrigger>
-              <SelectValue placeholder={isLoadingDisciplines ? "Loading..." : "Select Discipline (Optional)"} />
+              <SelectValue placeholder={isLoadingDisciplines ? 'Loading...' : 'Select Discipline (Optional)'} />
             </SelectTrigger>
             <SelectContent>
               {disciplines.map((d) => (
@@ -327,88 +349,76 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
       {/* Subject */}
       <div className="space-y-2">
         <Label htmlFor="subject">Subject *</Label>
-        <Input id="subject" {...register("subject")} placeholder="Enter subject" />
-        {errors.subject && (
-          <p className="text-sm text-destructive">{errors.subject.message}</p>
-        )}
+        <Input id="subject" {...register('subject')} placeholder="Enter subject" />
+        {errors.subject && <p className="text-sm text-destructive">{errors.subject.message}</p>}
       </div>
 
-       {/* Body */}
-       <div className="space-y-2">
+      {/* Body */}
+      <div className="space-y-2">
         <Label htmlFor="body">Body (Content)</Label>
-        <Textarea
-          id="body"
-          {...register("body")}
-          rows={6}
-          placeholder="Enter letter content..."
-        />
+        <Textarea id="body" {...register('body')} rows={6} placeholder="Enter letter content..." />
       </div>
 
       {/* Date Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="documentDate">Document Date</Label>
-            <Input 
-               id="documentDate" 
-               type="date" 
-               {...register("documentDate")} 
-               onChange={(e) => {
-                 const val = e.target.value;
-                 setValue("documentDate", val, { shouldValidate: true, shouldDirty: true });
-                 if (val) {
-                   setValue("issuedDate", val, { shouldValidate: true, shouldDirty: true });
-                   setValue("receivedDate", val, { shouldValidate: true, shouldDirty: true });
-                   const d = new Date(val);
-                   d.setDate(d.getDate() + 7);
-                   setValue("dueDate", d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
-                 }
-               }}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="issuedDate">Issued Date</Label>
-            <Input id="issuedDate" type="date" {...register("issuedDate")} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="receivedDate">Received Date</Label>
-            <Input 
-               id="receivedDate" 
-               type="date" 
-               {...register("receivedDate")} 
-               onChange={(e) => {
-                 const val = e.target.value;
-                 setValue("receivedDate", val, { shouldValidate: true, shouldDirty: true });
-                 if (val) {
-                   const d = new Date(val);
-                   d.setDate(d.getDate() + 7);
-                   setValue("dueDate", d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
-                 }
-               }}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="dueDate">Due Date</Label>
-            <Input id="dueDate" type="date" {...register("dueDate")} />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="documentDate">Document Date</Label>
+          <Input
+            id="documentDate"
+            type="date"
+            {...register('documentDate')}
+            onChange={(e) => {
+              const val = e.target.value;
+              setValue('documentDate', val, { shouldValidate: true, shouldDirty: true });
+              if (val) {
+                setValue('issuedDate', val, { shouldValidate: true, shouldDirty: true });
+                setValue('receivedDate', val, { shouldValidate: true, shouldDirty: true });
+                const d = new Date(val);
+                d.setDate(d.getDate() + 7);
+                setValue('dueDate', d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
+              }
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="issuedDate">Issued Date</Label>
+          <Input id="issuedDate" type="date" {...register('issuedDate')} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="receivedDate">Received Date</Label>
+          <Input
+            id="receivedDate"
+            type="date"
+            {...register('receivedDate')}
+            onChange={(e) => {
+              const val = e.target.value;
+              setValue('receivedDate', val, { shouldValidate: true, shouldDirty: true });
+              if (val) {
+                const d = new Date(val);
+                d.setDate(d.getDate() + 7);
+                setValue('dueDate', d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
+              }
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dueDate">Due Date</Label>
+          <Input id="dueDate" type="date" {...register('dueDate')} />
+        </div>
       </div>
 
       {/* Remarks */}
       <div className="grid grid-cols-1 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="remarks">Remarks</Label>
-            <Input id="remarks" {...register("remarks")} placeholder="Optional remarks" />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="remarks">Remarks</Label>
+          <Input id="remarks" {...register('remarks')} placeholder="Optional remarks" />
+        </div>
       </div>
 
       {/* Description */}
       <div className="space-y-2">
         <Label htmlFor="description">Description (Internal Note)</Label>
-        <Textarea
-          id="description"
-          {...register("description")}
-          rows={2}
-          placeholder="Enter description..."
-        />
+        <Textarea id="description" {...register('description')} rows={2} placeholder="Enter description..." />
       </div>
 
       {/* Organizations */}
@@ -416,12 +426,12 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         <div className="space-y-2">
           <Label>From Organization *</Label>
           <Select
-            onValueChange={(v) => setValue("fromOrganizationId", v)}
+            onValueChange={(v) => setValue('fromOrganizationId', v)}
             value={fromOrgId || undefined}
             disabled={isLoadingOrgs}
           >
             <SelectTrigger>
-              <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
+              <SelectValue placeholder={isLoadingOrgs ? 'Loading...' : 'Select Organization'} />
             </SelectTrigger>
             <SelectContent>
               {organizationOptions.map((org) => (
@@ -431,20 +441,18 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
               ))}
             </SelectContent>
           </Select>
-          {errors.fromOrganizationId && (
-            <p className="text-sm text-destructive">{errors.fromOrganizationId.message}</p>
-          )}
+          {errors.fromOrganizationId && <p className="text-sm text-destructive">{errors.fromOrganizationId.message}</p>}
         </div>
 
         <div className="space-y-2">
           <Label>To Organization *</Label>
           <Select
-            onValueChange={(v) => setValue("toOrganizationId", v)}
+            onValueChange={(v) => setValue('toOrganizationId', v)}
             value={toOrgId || undefined}
             disabled={isLoadingOrgs}
           >
             <SelectTrigger>
-              <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
+              <SelectValue placeholder={isLoadingOrgs ? 'Loading...' : 'Select Organization'} />
             </SelectTrigger>
             <SelectContent>
               {organizationOptions.map((org) => (
@@ -454,9 +462,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
               ))}
             </SelectContent>
           </Select>
-          {errors.toOrganizationId && (
-            <p className="text-sm text-destructive">{errors.toOrganizationId.message}</p>
-          )}
+          {errors.toOrganizationId && <p className="text-sm text-destructive">{errors.toOrganizationId.message}</p>}
         </div>
       </div>
 
@@ -465,30 +471,15 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         <Label>Importance</Label>
         <div className="flex gap-6 mt-2">
           <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="radio"
-              value="NORMAL"
-              {...register("importance")}
-              className="accent-primary"
-            />
+            <input type="radio" value="NORMAL" {...register('importance')} className="accent-primary" />
             <span>Normal</span>
           </label>
           <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="radio"
-              value="HIGH"
-              {...register("importance")}
-              className="accent-primary"
-            />
+            <input type="radio" value="HIGH" {...register('importance')} className="accent-primary" />
             <span>High</span>
           </label>
           <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="radio"
-              value="URGENT"
-              {...register("importance")}
-              className="accent-primary"
-            />
+            <input type="radio" value="URGENT" {...register('importance')} className="accent-primary" />
             <span>Urgent</span>
           </label>
         </div>
@@ -499,9 +490,9 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         <div className="space-y-2">
           <Label>Attachments</Label>
           <FileUploadZone
-            onFilesChanged={(files) => setValue("attachments", files)}
+            onFilesChanged={(files) => setValue('attachments', files)}
             multiple
-            accept={[".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".png"]}
+            accept={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.png']}
           />
         </div>
       )}
@@ -513,7 +504,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: any, u
         </Button>
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {uuid ? "Update Correspondence" : "Create Correspondence"}
+          {uuid ? 'Update Correspondence' : 'Create Correspondence'}
         </Button>
       </div>
     </form>

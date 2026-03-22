@@ -9,13 +9,13 @@
 
 ## ⚠️ ความแตกต่างจากเวอร์ชัน Enterprise
 
-| ฟีเจอร์                 | Enterprise              | Free Plan (นี้)                  |
-| --------------------- | ----------------------- | ------------------------------ |
-| Environment Variables | ✅ ใช้ `$env`             | ❌ ใช้ `Set Node` + `staticData` |
-| External Secrets      | ✅ Vault/Secrets Manager | ❌ Hardcode ใน Set Node         |
-| Multiple Workflows    | ✅ Unlimited             | ⚠️ รวมเป็น Workflow เดียว         |
-| Error Handling        | ✅ Advanced              | ⚠️ Manual Retry                 |
-| Webhook Triggers      | ✅                       | ✅ ใช้ได้                         |
+| ฟีเจอร์               | Enterprise               | Free Plan (นี้)                  |
+| --------------------- | ------------------------ | -------------------------------- |
+| Environment Variables | ✅ ใช้ `$env`            | ❌ ใช้ `Set Node` + `staticData` |
+| External Secrets      | ✅ Vault/Secrets Manager | ❌ Hardcode ใน Set Node          |
+| Multiple Workflows    | ✅ Unlimited             | ⚠️ รวมเป็น Workflow เดียว        |
+| Error Handling        | ✅ Advanced              | ⚠️ Manual Retry                  |
+| Webhook Triggers      | ✅                       | ✅ ใช้ได้                        |
 
 ---
 
@@ -75,7 +75,7 @@
 
 **สิ่งสำคัญ:**
 
-| Item         | ค่า Production                                                                                   |
+| Item         | ค่า Production                                                                                  |
 | ------------ | ----------------------------------------------------------------------------------------------- |
 | Image        | `n8nio/n8n:latest`                                                                              |
 | Container    | `n8n`                                                                                           |
@@ -134,7 +134,7 @@ const CONFIG = {
 
   // Thresholds
   CONFIDENCE_HIGH: 0.85,
-  CONFIDENCE_LOW: 0.60,
+  CONFIDENCE_LOW: 0.6,
   MAX_RETRY: 3,
   FALLBACK_THRESHOLD: 5,
 
@@ -147,14 +147,14 @@ const CONFIG = {
   DB_PORT: 3306,
   DB_NAME: 'lcbp3_production',
   DB_USER: 'migration_bot',
-  DB_PASSWORD: 'YOUR_DB_PASSWORD_HERE' // 🔴 เปลี่ยน
+  DB_PASSWORD: 'YOUR_DB_PASSWORD_HERE', // 🔴 เปลี่ยน
 };
 
 // อย่าแก้โค้ดด้านล่างนี้
 $workflow.staticData = $workflow.staticData || {};
 $workflow.staticData.config = CONFIG;
 
-return [{ json: { config_loaded: true, timestamp: new Date().toISOString() }}];
+return [{ json: { config_loaded: true, timestamp: new Date().toISOString() } }];
 ```
 
 ### ขั้นตอนที่ 2: ตั้งค่า Credentials ใน n8n UI
@@ -166,7 +166,6 @@ return [{ json: { config_loaded: true, timestamp: new Date().toISOString() }}];
 3. **Rotate Token ทันทีหลัง Migration เสร็จ**
 4. **💡 หมายเหตุ:** Backend ระบบ DMS ได้ถูกตั้งค่าให้สร้าง Token แบบไม่มีวันหมดอายุ (100 ปี) สำหรับ User ชื่อ `migration_bot` โดยเฉพาะ เพื่อป้องกันปัญหา Token หมดอายุระหว่างที่ Workflow กำลังทำงานข้ามวัน
 
-
 **Credentials (ถ้าใช้):**
 
 | Credential | Type | ใช้ใน Node |
@@ -175,7 +174,6 @@ return [{ json: { config_loaded: true, timestamp: new Date().toISOString() }}];
 | LCBP3 Backend | HTTP Request | Import to Backend, Fetch Categories |
 | MariaDB | MySQL | ทุก Database Node |
 
-
 ### ขั้นตอนที่ 3: วิธีการรับ MIGRATION_TOKEN
 
 เนื่องจากหน้าเว็บ DMS ใช้ระบบ Session Cookies (Auth.js) จึงไม่สามารถคัดลอก JWT Token จาก Network Tab ในเบราว์เซอร์ได้โดยตรง
@@ -183,6 +181,7 @@ return [{ json: { config_loaded: true, timestamp: new Date().toISOString() }}];
 ให้ใช้วิธี **เรียก API ตรงไปที่ Backend** ด้วยเครื่องมืออย่าง Postman, cURL หรือ Thunder Client แทน:
 
 **ตัวอย่างคำสั่ง cURL:**
+
 ```bash
 curl -X POST https://api.np-dms.work/api/auth/login \
   -H "Content-Type: application/json" \
@@ -190,6 +189,7 @@ curl -X POST https://api.np-dms.work/api/auth/login \
 ```
 
 **การนำไปใช้งาน:**
+
 1. เปลี่ยน URL ให้ตรงกับ Backend ของคุณ (เช่น `http://localhost:3001/api/auth/login` สำหรับ Local)
 2. นำรหัสผ่านของบัญชี `migration_bot` มาใส่แทนที่ `YOUR_PASSWORD`
 3. ในผลลัพธ์ที่ได้ ให้คัดลอกเฉพาะค่าจากฟิลด์ `access_token` (ข้อความยาวๆ)
@@ -211,59 +211,67 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 **ตารางที่สร้าง (6 ตาราง ชั่วคราว — ลบได้หลัง Migration เสร็จ):**
 
 | ตาราง                      | วัตถุประสงค์                       |
-| -------------------------- | ------------------------------- |
+| -------------------------- | ---------------------------------- |
 | `migration_progress`       | Checkpoint ติดตามความคืบหน้า Batch |
 | `migration_review_queue`   | รายการที่ต้องตรวจสอบโดยคน          |
-| `migration_errors`         | Error Log                       |
-| `migration_fallback_state` | สถานะ AI Model Fallback         |
-| `import_transactions`      | Idempotency ป้องกัน Import ซ้ำ      |
-| `migration_daily_summary`  | สรุปผลรายวัน                      |
+| `migration_errors`         | Error Log                          |
+| `migration_fallback_state` | สถานะ AI Model Fallback            |
+| `import_transactions`      | Idempotency ป้องกัน Import ซ้ำ     |
+| `migration_daily_summary`  | สรุปผลรายวัน                       |
 
 ---
 
 ## 📌 ส่วนที่ 4: การทำงานของแต่ละ Node
 
 ### Node 0: Set Configuration
+
 - เก็บค่า Config ทั้งหมดใน `$workflow.staticData.config`
 - อ่านผ่าน `$workflow.staticData.config.KEY` ใน Node อื่น
 
 ### Node 1: Pre-flight Checks & Data Reader
+
 - ตรวจสอบ Backend Health และ Ollama Ping
 - อ่าน Checkpoint (`last_processed_index`) จาก `migration_progress`
 - Batch ข้อมูลจาก Excel ตามตาราง `BATCH_SIZE` ปกติ (50-100)
 - Normalize ข้อมูล UTF-8 (NFC) และสร้าง `original_index`
 
 ### Node 2: DB Lookup & Categories Fetch
+
 - ดึง Categories จาก `/api/meta/categories` เพื่อเตรียม Prompt
 - Query ทะลวง DB: แปลงรหัสใน Excel (`project_code`, `sender`, `receiver`) ให้เป็น IDs จาก MariaDB
 - Query ดึง Master Tags ของโปรเจ็กต์: `SELECT tag_name, description FROM tags WHERE project_id = ...`
 - Output: แปลง ID เรียบร้อยและเตรียม `existing_tags_json` ให้ Ollama
 
 ### Node 3: Text Extraction & Temp Upload
+
 - ใช้ **Apache Tika** (ผ่าน `Extract PDF Text` node หรือ HTTP Request) สกัดข้อความ (OCR/Text) ออกจาก PDF ใน staging
 - แนบไฟล์ไปยัง Backend: ยิง HTTP Request **`POST /api/storage/upload`** ของ Backend
 - รอรับผลลัพธ์เป็น `temp_attachment_id` (หมายความว่าไฟล์นี้เข้าข่าย Temporary ถูกเก็บจัดการใน NAS เรียบร้อยแล้ว)
 - Output: ไฟล์พร้อมใช้งาน, ได้เนื้อหา Text มาเตรียม prompt
 
 ### Node 4: AI Analysis
+
 - วาง System Prompt บังคับ Output JSON
 - โยน Metadata (Title, Date, DB Lookups) พร้อม Extracted PDF Text คุยกับ **Ollama `llama3.2:3b`**
-- ให้ AI วิเคราะห์ และสรุปเป็น `ai_summary` 
+- ให้ AI วิเคราะห์ และสรุปเป็น `ai_summary`
 - ให้ AI แนะนำ Tags ใหม่หรือเลือก Tags เดิมจาก `existing_tags_json`
 
 ### Node 5: Parse & Validate
+
 - Schema Validation (ดูให้แน่ใจว่า AI ตอบ `is_valid`, `confidence`, `summary`, `suggested_tags`)
 - Normalizing categories, trimming tags (`is_new: true / false` flag สำคัญมาก)
 - จัดชุดค่า Status ใหม่
 
 ### Node 6: Confidence Router & Staging Ingest
+
 **แยกสาย 4 สาย:**
-1. **PENDING (Auto Ready):** (`confidence ≥ 0.85` && `is_valid = true`) → INSERT เข้า `migration_review_queue` 
+
+1. **PENDING (Auto Ready):** (`confidence ≥ 0.85` && `is_valid = true`) → INSERT เข้า `migration_review_queue`
 2. **PENDING (Flagged):** (`confidence 0.60 - 0.84`) → INSERT เข้า `migration_review_queue` พร้อม Highlight/Remarks ให้ Admin ดูละเอียด
 3. **REJECTED:** (`confidence < 0.60` หรือ `is_valid = false`) → INSERT เข้า `migration_review_queue` สถานะรอแก้แบบ Manual
 4. **Error/Parse Fail:** ไปลง CSV Reject Log + DB `migration_errors`
 
-**สำคัญมาก:** *n8n จะทำหน้าที่สูบข้อมูลและจัดเตรียมเข้า `migration_review_queue` เท่านั้น จะไม่มีการข้ามขั้นตอนไป Import ลงตารางหลัก `correspondences` อัตโนมัติ (Final Commit ต้องทำบน Frontend UI)*
+**สำคัญมาก:** _n8n จะทำหน้าที่สูบข้อมูลและจัดเตรียมเข้า `migration_review_queue` เท่านั้น จะไม่มีการข้ามขั้นตอนไป Import ลงตารางหลัก `correspondences` อัตโนมัติ (Final Commit ต้องทำบน Frontend UI)_
 
 ---
 
@@ -306,6 +314,7 @@ DELETE FROM migration_fallback_state WHERE batch_id = '<BATCH_ID>';
 ```
 
 **Confirmation Guard:**
+
 ```javascript
 if ($input.first().json.confirmation !== 'CONFIRM_ROLLBACK') {
   throw new Error('Rollback cancelled: type "CONFIRM_ROLLBACK" to proceed.');
@@ -317,13 +326,13 @@ return $input.all();
 
 ## 📌 ส่วนที่ 6: Daily Operation
 
-| เวลา  | กิจกรรม                         | ผู้รับผิดชอบ            |
+| เวลา  | กิจกรรม                        | ผู้รับผิดชอบ        |
 | ----- | ------------------------------ | ------------------- |
 | 08:00 | ตรวจสอบ Night Summary Email    | Admin               |
 | 09:00 | Approve/Reject ใน Review Queue | Document Controller |
 | 17:00 | ตรวจ Disk Space + GPU Temp     | DevOps              |
-| 22:00 | Workflow เริ่มรันอัตโนมัติ           | System              |
-| 06:30 | Night Summary Report ส่ง Email  | System              |
+| 22:00 | Workflow เริ่มรันอัตโนมัติ     | System              |
+| 06:30 | Night Summary Report ส่ง Email | System              |
 
 ### Emergency Stop
 
@@ -349,16 +358,19 @@ mysql -h <DB_IP> -u root -p \
 ## 🚨 ข้อควรระวังสำหรับ Free Plan
 
 ### 1. Security
+
 - **อย่า Commit ไฟล์นี้เข้า Git** ถ้ามี Password/Token
 - ใช้ `.gitignore` สำหรับไฟล์ JSON ที่มี Config
 - Rotate Token ทันทีหลังใช้งาน
 
 ### 2. Limitations
+
 - **Execution Timeout**: ตรวจสอบ n8n execution timeout (default 5 นาที)
 - **Memory**: จำกัดที่ 2GB (ตาม Docker Compose)
 - **Concurrent**: รัน Batch ต่อเนื่อง ไม่ parallel
 
 ### 3. Backup
+
 - สำรอง PostgreSQL data ที่ `/share/np-dms/n8n/postgres-data`
 - สำรอง n8n data ที่ `/share/np-dms/n8n`
 - สำรอง Logs ที่ `/share/np-dms/n8n/migration_logs`
@@ -367,67 +379,82 @@ mysql -h <DB_IP> -u root -p \
 
 ## ✅ Pre-Production Checklist (Free Plan)
 
-| ลำดับ | รายการ                 | วิธีตรวจสอบ                                                         |
-| --- | ---------------------- | ----------------------------------------------------------------- |
-| 1   | Config ถูกต้อง           | รัน Test Execution ดูผลลัพธ์ Node 0                                   |
-| 2   | Database Connect ได้    | Test Step ใน Node Read Checkpoint                                 |
-| 3   | Ollama พร้อม            | `curl http://<OLLAMA_HOST>/api/tags`                              |
-| 4   | Backend Token ใช้ได้     | Test Step ใน Node Fetch Categories                                |
-| 5   | File Mount RO ถูกต้อง    | `docker exec n8n ls /home/node/.n8n-files/staging_ai`             |
-| 6   | Log Mount RW ถูกต้อง     | `docker exec n8n touch /home/node/.n8n-files/migration_logs/test` |
-| 7   | Categories ไม่ hardcode | ดูผลลัพธ์ Node Fetch Categories                                      |
-| 8   | Tags โหลดถูกต้อง        | ดูผลลัพธ์ Node Fetch Tags (ควรแสดงรายการ Tags ที่มีอยู่)             |
-| 9   | AI Tag Extraction ทำงาน | ตรวจ `suggested_tags` ใน Response จาก Parse & Validate Node       |
-| 10  | Idempotency Key ถูกต้อง  | ตรวจ Header ใน Node Import                                        |
-| 11  | Checkpoint บันทึก        | ตรวจสอบ `migration_progress` หลังรัน                                |
-| 12  | Error Log สร้างไฟล์      | ตรวจสอบ `error_log.csv`                                           |
+| ลำดับ | รายการ                  | วิธีตรวจสอบ                                                       |
+| ----- | ----------------------- | ----------------------------------------------------------------- |
+| 1     | Config ถูกต้อง          | รัน Test Execution ดูผลลัพธ์ Node 0                               |
+| 2     | Database Connect ได้    | Test Step ใน Node Read Checkpoint                                 |
+| 3     | Ollama พร้อม            | `curl http://<OLLAMA_HOST>/api/tags`                              |
+| 4     | Backend Token ใช้ได้    | Test Step ใน Node Fetch Categories                                |
+| 5     | File Mount RO ถูกต้อง   | `docker exec n8n ls /home/node/.n8n-files/staging_ai`             |
+| 6     | Log Mount RW ถูกต้อง    | `docker exec n8n touch /home/node/.n8n-files/migration_logs/test` |
+| 7     | Categories ไม่ hardcode | ดูผลลัพธ์ Node Fetch Categories                                   |
+| 8     | Tags โหลดถูกต้อง        | ดูผลลัพธ์ Node Fetch Tags (ควรแสดงรายการ Tags ที่มีอยู่)          |
+| 9     | AI Tag Extraction ทำงาน | ตรวจ `suggested_tags` ใน Response จาก Parse & Validate Node       |
+| 10    | Idempotency Key ถูกต้อง | ตรวจ Header ใน Node Import                                        |
+| 11    | Checkpoint บันทึก       | ตรวจสอบ `migration_progress` หลังรัน                              |
+| 12    | Error Log สร้างไฟล์     | ตรวจสอบ `error_log.csv`                                           |
 
 ---
 
 ## 🔧 การแก้ไขปัญหาเฉพาะหน้า
 
 ### ปัญหา: Config ไม่ถูกต้อง
+
 **แก้ไข:** แก้ที่ Node "Set Configuration" แล้ว Save → Execute Workflow ใหม่
 
 ### ปัญหา: Database Connection Error
+
 **ตรวจสอบ:**
+
 ```javascript
 // ใส่ใน Code Node ชั่วคราวเพื่อ Debug
 const config = $workflow.staticData.config;
-return [{ json: {
-  host: config.DB_HOST,
-  port: config.DB_PORT,
-  // อย่าแสดง password ใน Production!
-  test: 'Config loaded: ' + (config ? 'YES' : 'NO')
-}}];
+return [
+  {
+    json: {
+      host: config.DB_HOST,
+      port: config.DB_PORT,
+      // อย่าแสดง password ใน Production!
+      test: 'Config loaded: ' + (config ? 'YES' : 'NO'),
+    },
+  },
+];
 ```
 
 ### ปัญหา: AI Tag Extraction ไม่ทำงาน
+
 **ตรวจสอบ:**
+
 1. ดู Response ใน Node "Parse & Validate" ว่ามี field `suggested_tags` หรือไม่
 2. ถ้าไม่มี → ตรวจสอบ Prompt ใน "Build AI Prompt" ว่ารวม Tag Extraction Instructions แล้ว
 3. ถ้า AI ตอบแต่ Tags ไม่ถูกต้อง → ปรับ Threshold หรือส่งไป Review Queue
 
 ```javascript
 // Debug Code Node ชั่วคราว
-return [{
-  json: {
-    has_suggested_tags: !!$json.ai_result?.suggested_tags,
-    tag_count: $json.ai_result?.suggested_tags?.length || 0,
-    suggested_tags: $json.ai_result?.suggested_tags,
-    tag_confidence: $json.ai_result?.tag_confidence
-  }
-}];
+return [
+  {
+    json: {
+      has_suggested_tags: !!$json.ai_result?.suggested_tags,
+      tag_count: $json.ai_result?.suggested_tags?.length || 0,
+      suggested_tags: $json.ai_result?.suggested_tags,
+      tag_confidence: $json.ai_result?.tag_confidence,
+    },
+  },
+];
 ```
 
 ### ปัญหา: Tags ซ้ำหรือผิดพลาด
+
 **แก้ไข:**
+
 - ใช้ SQL ตรวจสอบ Tags ที่ซ้ำ:
+
 ```sql
 SELECT tag_name, COUNT(*) as cnt FROM tags
 WHERE created_by = (SELECT user_id FROM users WHERE username = 'migration_bot')
 GROUP BY tag_name HAVING cnt > 1;
 ```
+
 - ถ้าพบซ้ำ → ใช้ Node Normalize ก่อนบันทึก (มีแล้วใน Parse & Validate)
 
 ---
@@ -468,7 +495,7 @@ mysql -h <DB_HOST> -u migration_bot -p -e "SELECT COUNT(DISTINCT ct.corresponden
 
 ## 📞 การติดต่อสนับสนุน
 
-| ปัญหา            | ช่องทางติดต่อ                                  |
+| ปัญหา           | ช่องทางติดต่อ                               |
 | --------------- | ------------------------------------------- |
 | Technical Issue | DevOps Team (Slack: #migration-support)     |
 | Data Issue      | Document Controller (Email: dc@lcbp3.local) |

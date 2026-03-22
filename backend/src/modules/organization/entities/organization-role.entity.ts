@@ -17,7 +17,7 @@ export class OrganizationRole extends BaseEntity {
     name: 'role_name',
     length: 20,
     unique: true,
-    comment: 'Role name (OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD_PARTY)'
+    comment: 'Role name (OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD_PARTY)',
   })
   roleName!: string;
 }

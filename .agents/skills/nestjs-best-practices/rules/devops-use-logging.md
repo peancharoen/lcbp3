@@ -45,9 +45,7 @@ logger.log('User ' + userId + ' created at ' + new Date());
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger:
-      process.env.NODE_ENV === 'production'
-        ? ['error', 'warn', 'log']
-        : ['error', 'warn', 'log', 'debug', 'verbose'],
+      process.env.NODE_ENV === 'production' ? ['error', 'warn', 'log'] : ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 }
 
@@ -82,7 +80,7 @@ export class JsonLogger implements LoggerService {
         timestamp: new Date().toISOString(),
         message,
         ...context,
-      }),
+      })
     );
   }
 
@@ -94,7 +92,7 @@ export class JsonLogger implements LoggerService {
         message,
         trace,
         ...context,
-      }),
+      })
     );
   }
 
@@ -105,7 +103,7 @@ export class JsonLogger implements LoggerService {
         timestamp: new Date().toISOString(),
         message,
         ...context,
-      }),
+      })
     );
   }
 
@@ -116,7 +114,7 @@ export class JsonLogger implements LoggerService {
         timestamp: new Date().toISOString(),
         message,
         ...context,
-      }),
+      })
     );
   }
 }
@@ -166,7 +164,7 @@ export class ContextLogger {
         userId: this.cls.get('userId'),
         message,
         ...data,
-      }),
+      })
     );
   }
 
@@ -181,7 +179,7 @@ export class ContextLogger {
         error: error.message,
         stack: error.stack,
         ...data,
-      }),
+      })
     );
   }
 }
@@ -194,10 +192,7 @@ import { LoggerModule } from 'nestjs-pino';
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-        transport:
-          process.env.NODE_ENV !== 'production'
-            ? { target: 'pino-pretty' }
-            : undefined,
+        transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
         redact: ['req.headers.authorization', 'req.body.password'],
         serializers: {
           req: (req) => ({

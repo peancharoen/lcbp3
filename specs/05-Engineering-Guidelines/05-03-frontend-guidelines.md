@@ -144,9 +144,7 @@ export function ResponsiveTable({ data }: { data: Correspondence[] }) {
           <Card key={item.id}>
             <CardContent className="pt-6">
               <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">
-                  เลขที่เอกสาร
-                </div>
+                <div className="text-sm text-muted-foreground">เลขที่เอกสาร</div>
                 <div className="font-medium">{item.doc_number}</div>
                 <div className="text-sm text-muted-foreground">เรื่อง</div>
                 <div>{item.title}</div>
@@ -367,11 +365,7 @@ export default apiClient;
 ```typescript
 // lib/services/correspondence.service.ts
 import apiClient from '@/lib/api/client';
-import type {
-  Correspondence,
-  CreateCorrespondenceDto,
-  SearchCorrespondenceDto,
-} from '@/types/dto/correspondence';
+import type { Correspondence, CreateCorrespondenceDto, SearchCorrespondenceDto } from '@/types/dto/correspondence';
 
 export const correspondenceService = {
   async getAll(params: SearchCorrespondenceDto): Promise<Correspondence[]> {
@@ -389,10 +383,7 @@ export const correspondenceService = {
     return data;
   },
 
-  async update(
-    id: string,
-    dto: Partial<CreateCorrespondenceDto>
-  ): Promise<Correspondence> {
+  async update(id: string, dto: Partial<CreateCorrespondenceDto>): Promise<Correspondence> {
     const { data } = await apiClient.put(`/correspondences/${id}`, dto);
     return data;
   },
@@ -441,24 +432,20 @@ export function DynamicForm({ schemaName, onSubmit }: DynamicFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {Object.entries(schema.schema_definition.properties).map(
-          ([key, prop]: [string, Record<string, unknown>]) => (
-            <FormField
-              key={key}
-              control={form.control}
-              name={key}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{prop.title || key}</FormLabel>
-                  <FormControl>
-                    {renderFieldByType(prop.type, field)}
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )
-        )}
+        {Object.entries(schema.schema_definition.properties).map(([key, prop]: [string, Record<string, unknown>]) => (
+          <FormField
+            key={key}
+            control={form.control}
+            name={key}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{prop.title || key}</FormLabel>
+                <FormControl>{renderFieldByType(prop.type, field)}</FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
         <Button type="submit">บันทึก</Button>
       </form>
     </Form>
@@ -525,24 +512,17 @@ export function FileUploadZone({
       className={`
         border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
         transition-colors
-        ${
-          isDragActive
-            ? 'border-primary bg-primary/5'
-            : 'border-muted-foreground/25'
-        }
+        ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
         hover:border-primary hover:bg-primary/5
       `}
     >
       <input {...getInputProps()} />
       <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
       <p className="mt-2 text-sm text-muted-foreground">
-        {isDragActive
-          ? 'วางไฟล์ที่นี่...'
-          : 'ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์'}
+        {isDragActive ? 'วางไฟล์ที่นี่...' : 'ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์'}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        รองรับ: {acceptedTypes.join(', ')} (สูงสุด {maxFiles} ไฟล์,{' '}
-        {maxSize / 1024 / 1024}MB/ไฟล์)
+        รองรับ: {acceptedTypes.join(', ')} (สูงสุด {maxFiles} ไฟล์, {maxSize / 1024 / 1024}MB/ไฟล์)
       </p>
     </div>
   );
@@ -583,9 +563,7 @@ describe('CorrespondenceForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Test Correspondence' })
-      );
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ title: 'Test Correspondence' }));
     });
   });
 });

@@ -22,6 +22,7 @@
 ## 1. 🎯 Architecture Principles
 
 ### 1.1 Component Overview
+
 ```
 ┌──────────────────────────────────────────────────────┐
 │                  Load Balancer                        │
@@ -49,6 +50,7 @@
     │Replicas │
     └─────────┘
 ```
+
 ### 1.2 Component Responsibilities
 
 | Component       | Purpose                           | Critical? |
@@ -121,14 +123,12 @@ graph TB
 **Configuration Strategy:**
 
 1. **Production/Staging:**
-
    - ใช้ `docker-compose.yml` สำหรับกำหนด Environment Variables
    - ห้ามระบุ Sensitive Secrets (Password, Keys) ใน `docker-compose.yml` หลัก
    - ใช้ `docker-compose.override.yml` (gitignored) สำหรับ Secrets
    - พิจารณาใช้ Docker Secrets หรือ Hashicorp Vault
 
 2. **Development:**
-
    - ใช้ `docker-compose.override.yml` สำหรับ Local Secrets
    - ไฟล์หลักใส่ค่า Dummy/Placeholder
 
@@ -658,12 +658,10 @@ graph TB
 **File Upload Validation:**
 
 1. **File Type Validation:**
-
    - White-list: PDF, DWG, DOCX, XLSX, ZIP
    - Magic Number Verification (ไม่ใช่แค่ extension)
 
 2. **File Size Validation:**
-
    - Maximum: 50MB per file
 
 3. **Virus Scanning:**
@@ -889,18 +887,15 @@ GET /health/live     # Liveness probe
 **Recovery Procedures:**
 
 1. **Database Restoration:**
-
    - Restore latest full backup
    - Apply transaction logs to point-in-time
    - Verify data integrity
 
 2. **File Storage Restoration:**
-
    - Restore from QNAP snapshot
    - Verify file permissions
 
 3. **Application Redeployment:**
-
    - Deploy from known-good Docker images
    - Verify health checks
 

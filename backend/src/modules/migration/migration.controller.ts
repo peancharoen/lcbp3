@@ -163,7 +163,7 @@ export class MigrationController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Stream a file from staging' })
   @ApiQuery({ name: 'path', required: true, type: String })
-  async getStagingFile(@Query('path') filePath: string, @Res() res: Response) {
+  getStagingFile(@Query('path') filePath: string, @Res() res: Response) {
     const stream = this.migrationService.getStagingFileStream(filePath);
     res.set({
       'Content-Type': 'application/pdf',

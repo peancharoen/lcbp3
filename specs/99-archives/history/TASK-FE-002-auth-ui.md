@@ -384,28 +384,23 @@ export function UserMenu() {
 ### Test Cases
 
 1. **Login Success**
-
    - Enter valid credentials
    - User redirected to dashboard
    - Token stored
 
 2. **Login Failure**
-
    - Enter invalid credentials
    - Error message displayed
    - User stays on login page
 
 3. **Protected Routes**
-
    - Access protected route without login → Redirect to login
    - Login → Access protected route successfully
 
 4. **Session Persistence**
-
    - Login → Refresh page → Still logged in
 
 5. **Logout**
-
    - Click logout → Token cleared → Redirected to login
 
 6. **Permission-Based UI**

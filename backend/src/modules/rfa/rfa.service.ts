@@ -388,7 +388,7 @@ export class RfaService {
             initiatorId: user.user_id,
           }
         );
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.warn(
           `Workflow not started for ${docNumber.number}: ${(error as Error).message}`
         );
@@ -402,19 +402,21 @@ export class RfaService {
           type: 'rfa',
           docNumber: docNumber.number,
           title: createDto.subject,
-          description: createDto.description,
+          description: createDto.description ?? '',
           status: 'DRAFT',
           projectId: internalProjectId,
           createdAt: new Date(),
         })
-        .catch((err) => this.logger.error(`Indexing failed: ${err}`));
+        .catch((err: unknown) =>
+          this.logger.error(`Indexing failed: ${(err as Error).message}`)
+        );
 
       return {
         ...savedRfa,
         correspondenceNumber: docNumber,
         currentRevision: savedRevision,
       };
-    } catch (err) {
+    } catch (err: unknown) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Failed to create RFA: ${(err as Error).message}`);
       throw err;
@@ -490,7 +492,7 @@ export class RfaService {
     );
 
     // Map `revisions` property back to the expected payload for the frontend
-    const mappedItems: RfaMapped[] = items.map((rfa) => {
+    const mappedItems: RfaMapped[] = items.map((rfa: Rfa) => {
       const revisions =
         (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
       return {

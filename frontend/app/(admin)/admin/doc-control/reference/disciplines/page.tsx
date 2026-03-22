@@ -14,7 +14,7 @@ export default function DisciplinesPage() {
   // Ensure we consistently use an array
   const contracts = Array.isArray(contractsData) ? contractsData : [];
 
-  const columns: ColumnDef<any>[] = [
+  const columns: ColumnDef<unknown>[] = [
     {
       accessorKey: 'disciplineCode',
       header: 'Code',
@@ -43,7 +43,7 @@ export default function DisciplinesPage() {
     },
   ];
 
-  const contractOptions = contracts.map((c: any) => ({
+  const contractOptions = contracts.map((c: unknown) => ({
     label: `${c.contractName} (${c.contractCode})`,
     value: String(c.id),
   }));
@@ -66,8 +66,12 @@ export default function DisciplinesPage() {
             };
           });
         }}
-        createFn={(data) => masterDataService.createDiscipline(data as unknown as Parameters<typeof masterDataService.createDiscipline>[0])}
-        updateFn={(id, data) => Promise.reject('Not implemented yet')}
+        createFn={(data) =>
+          masterDataService.createDiscipline(
+            data as unknown as Parameters<typeof masterDataService.createDiscipline>[0]
+          )
+        }
+        updateFn={(_id, _data) => Promise.reject('Not implemented yet')}
         deleteFn={(id) => masterDataService.deleteDiscipline(id)}
         columns={columns}
         filters={
@@ -81,7 +85,7 @@ export default function DisciplinesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
-                {contracts.map((c: any) => (
+                {contracts.map((c: unknown) => (
                   <SelectItem key={c.id} value={String(c.id)}>
                     {c.contractName} ({c.contractCode})
                   </SelectItem>

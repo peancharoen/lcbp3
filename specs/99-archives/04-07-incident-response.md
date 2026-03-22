@@ -401,22 +401,18 @@ Database connection pool was exhausted due to slow queries not releasing connect
 ### PIR Meeting Agenda
 
 1. **Timeline Review** (10 min)
-
    - What happened and when?
    - What was the impact?
 
 2. **Root Cause Analysis** (15 min)
-
    - Why did it happen?
    - What were the contributing factors?
 
 3. **What Went Well** (10 min)
-
    - What did we do right?
    - What helped us resolve quickly?
 
 4. **What Went Wrong** (15 min)
-
    - What could we have done better?
    - What slowed us down?
 

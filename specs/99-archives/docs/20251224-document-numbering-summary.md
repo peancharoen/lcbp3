@@ -36,6 +36,7 @@ flowchart TB
 ## 📁 Backend Structure
 
 ### Module Location
+
 `backend/src/modules/document-numbering/`
 
 | Directory      | Files | Description                                                                         |
@@ -87,6 +88,7 @@ flowchart TB
 | `audit-logs-table.tsx`     | Audit logs table            |
 
 ### Admin Pages
+
 - `app/(admin)/admin/numbering/` - Template management
 - `app/(admin)/admin/system-logs/numbering/` - System logs
 
@@ -96,13 +98,13 @@ flowchart TB
 
 ### 5 Tables
 
-| Table                          | Purpose                   | Key Feature                                 |
-| ------------------------------ | ------------------------- | ------------------------------------------- |
-| `document_number_formats`      | Template รูปแบบเลขที่เอกสาร  | Unique per (project, correspondence_type)   |
-| `document_number_counters`     | Running Number Counter    | **8-Column Composite PK** + Optimistic Lock |
-| `document_number_audit`        | Audit Trail สำหรับทุกการสร้าง | เก็บ ≥ 7 ปี                                   |
-| `document_number_errors`       | Error Log                 | 5 Error Types                               |
-| `document_number_reservations` | **Two-Phase Commit**      | Reserve → Confirm Pattern                   |
+| Table                          | Purpose                       | Key Feature                                 |
+| ------------------------------ | ----------------------------- | ------------------------------------------- |
+| `document_number_formats`      | Template รูปแบบเลขที่เอกสาร   | Unique per (project, correspondence_type)   |
+| `document_number_counters`     | Running Number Counter        | **8-Column Composite PK** + Optimistic Lock |
+| `document_number_audit`        | Audit Trail สำหรับทุกการสร้าง | เก็บ ≥ 7 ปี                                 |
+| `document_number_errors`       | Error Log                     | 5 Error Types                               |
+| `document_number_reservations` | **Two-Phase Commit**          | Reserve → Confirm Pattern                   |
 
 ---
 
@@ -123,12 +125,12 @@ PRIMARY KEY (
 
 ### Reset Scope Values
 
-| Value           | Description                      |
-| --------------- | -------------------------------- |
+| Value           | Description                         |
+| --------------- | ----------------------------------- |
 | `YEAR_XXXX`     | Reset ทุกปี เช่น `YEAR_2024`        |
 | `MONTH_XXXX_XX` | Reset ทุกเดือน เช่น `MONTH_2024_01` |
-| `CONTRACT_XXXX` | Reset ต่อสัญญา                     |
-| `NONE`          | ไม่ Reset                         |
+| `CONTRACT_XXXX` | Reset ต่อสัญญา                      |
+| `NONE`          | ไม่ Reset                           |
 
 ### Constraints
 
@@ -150,11 +152,11 @@ CONSTRAINT chk_reset_scope_format CHECK (
 
 | Rule                          | Description                                          |
 | ----------------------------- | ---------------------------------------------------- |
-| **Uniqueness**                | เลขที่เอกสารห้ามซ้ำกันภายใน Project                        |
-| **Sequence Reset**            | Reset ตาม `reset_scope` (ปกติ Reset ต่อปี)              |
-| **Idempotency**               | ใช้ `Idempotency-Key` header ป้องกันการสร้างซ้ำ            |
+| **Uniqueness**                | เลขที่เอกสารห้ามซ้ำกันภายใน Project                  |
+| **Sequence Reset**            | Reset ตาม `reset_scope` (ปกติ Reset ต่อปี)           |
+| **Idempotency**               | ใช้ `Idempotency-Key` header ป้องกันการสร้างซ้ำ      |
 | **Race Condition Prevention** | Redis Lock (Primary) + DB Optimistic Lock (Fallback) |
-| **Format Fallback**           | ใช้ Default Format ถ้าไม่มี Specific Format              |
+| **Format Fallback**           | ใช้ Default Format ถ้าไม่มี Specific Format          |
 
 ### 2️⃣ Two-Phase Commit (Reserve → Confirm)
 
@@ -168,12 +170,12 @@ stateDiagram-v2
     CANCELLED --> [*]
 ```
 
-| Status      | Description                         |
-| ----------- | ----------------------------------- |
+| Status      | Description                            |
+| ----------- | -------------------------------------- |
 | `RESERVED`  | จองแล้ว รอ Confirm (หมดอายุใน 15 นาที) |
-| `CONFIRMED` | ยืนยันแล้ว ใช้งานจริง                    |
-| `CANCELLED` | ยกเลิก (User/System/Timeout)         |
-| `VOID`      | Admin Void (ยกเลิกเลขที่หลัง Confirm)   |
+| `CONFIRMED` | ยืนยันแล้ว ใช้งานจริง                  |
+| `CANCELLED` | ยกเลิก (User/System/Timeout)           |
+| `VOID`      | Admin Void (ยกเลิกเลขที่หลัง Confirm)  |
 
 ### 3️⃣ Format Template Tokens
 
@@ -265,26 +267,26 @@ sequenceDiagram
 
 ### Public (`/document-numbering`)
 
-| Method | Endpoint        | Permission               | Description                 |
-| ------ | --------------- | ------------------------ | --------------------------- |
+| Method | Endpoint        | Permission               | Description                    |
+| ------ | --------------- | ------------------------ | ------------------------------ |
 | POST   | `/preview`      | `correspondence.read`    | Preview เลขที่ (ไม่ increment) |
 | GET    | `/sequences`    | `correspondence.read`    | ดู Counter ทั้งหมด             |
-| GET    | `/logs/audit`   | `system.view_logs`       | Audit Logs                  |
-| GET    | `/logs/errors`  | `system.view_logs`       | Error Logs                  |
-| PATCH  | `/counters/:id` | `system.manage_settings` | Update Counter (Deprecated) |
+| GET    | `/logs/audit`   | `system.view_logs`       | Audit Logs                     |
+| GET    | `/logs/errors`  | `system.view_logs`       | Error Logs                     |
+| PATCH  | `/counters/:id` | `system.manage_settings` | Update Counter (Deprecated)    |
 
 ### Admin (`/admin/document-numbering`)
 
 | Method | Endpoint                 | Description                 |
 | ------ | ------------------------ | --------------------------- |
-| GET    | `/templates`             | ดู Templates ทั้งหมด           |
-| GET    | `/templates?projectId=X` | ดู Templates ตาม Project     |
-| POST   | `/templates`             | สร้าง/แก้ไข Template          |
+| GET    | `/templates`             | ดู Templates ทั้งหมด        |
+| GET    | `/templates?projectId=X` | ดู Templates ตาม Project    |
+| POST   | `/templates`             | สร้าง/แก้ไข Template        |
 | DELETE | `/templates/:id`         | ลบ Template                 |
 | GET    | `/metrics`               | Audit + Error Logs combined |
 | POST   | `/manual-override`       | Override Counter Value      |
-| POST   | `/void-and-replace`      | Void + สร้างเลขใหม่           |
-| POST   | `/cancel`                | ยกเลิกเลขที่                   |
+| POST   | `/void-and-replace`      | Void + สร้างเลขใหม่         |
+| POST   | `/cancel`                | ยกเลิกเลขที่                |
 | POST   | `/bulk-import`           | Import Counters จาก Legacy  |
 
 ---
@@ -293,26 +295,26 @@ sequenceDiagram
 
 ### Audit Log Operations
 
-| Operation         | Description        |
-| ----------------- | ------------------ |
-| `RESERVE`         | จองเลขที่            |
-| `CONFIRM`         | ยืนยันการใช้เลขที่      |
+| Operation         | Description         |
+| ----------------- | ------------------- |
+| `RESERVE`         | จองเลขที่           |
+| `CONFIRM`         | ยืนยันการใช้เลขที่  |
 | `MANUAL_OVERRIDE` | Admin แก้ไข Counter |
-| `VOID_REPLACE`    | Void และสร้างใหม่    |
-| `CANCEL`          | ยกเลิกเลขที่          |
+| `VOID_REPLACE`    | Void และสร้างใหม่   |
+| `CANCEL`          | ยกเลิกเลขที่        |
 
 ### Audit Log Fields
 
-| Field               | Description                   |
-| ------------------- | ----------------------------- |
-| `counter_key`       | JSON 8 fields (Composite Key) |
-| `reservation_token` | UUID v4 สำหรับ Reserve-Confirm  |
-| `idempotency_key`   | Request Idempotency Key       |
-| `template_used`     | Format Template ที่ใช้           |
-| `retry_count`       | จำนวนครั้งที่ retry                |
-| `lock_wait_ms`      | เวลารอ Redis lock (ms)        |
-| `total_duration_ms` | เวลารวมทั้งหมด (ms)             |
-| `fallback_used`     | NONE / DB_LOCK / RETRY        |
+| Field               | Description                    |
+| ------------------- | ------------------------------ |
+| `counter_key`       | JSON 8 fields (Composite Key)  |
+| `reservation_token` | UUID v4 สำหรับ Reserve-Confirm |
+| `idempotency_key`   | Request Idempotency Key        |
+| `template_used`     | Format Template ที่ใช้         |
+| `retry_count`       | จำนวนครั้งที่ retry            |
+| `lock_wait_ms`      | เวลารอ Redis lock (ms)         |
+| `total_duration_ms` | เวลารวมทั้งหมด (ms)            |
+| `fallback_used`     | NONE / DB_LOCK / RETRY         |
 
 ### Error Types
 
@@ -383,6 +385,7 @@ sequenceDiagram
 ## 📝 Changelog
 
 ### v1.7.0
+
 - Changed `document_number_counters` PK from 5 to **8 columns**
 - Added `document_number_reservations` table for Two-Phase Commit
 - Added `reset_scope` field (replaces `current_year`)
@@ -390,6 +393,7 @@ sequenceDiagram
 - Added `idempotency_key` support
 
 ### v1.5.1
+
 - Initial implementation
 - Basic format templating
 - Counter management

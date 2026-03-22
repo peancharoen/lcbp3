@@ -6,6 +6,7 @@
 ## 1. Summary of Changes
 
 ### Frontend Refactoring
+
 - **`DrawingUploadForm` Refactor:**
   - Implemented dynamic validation validation schemas using Zod discriminated unions.
   - Added support for Contract Drawing fields: `mapCatId`, `volumePage`.
@@ -24,15 +25,18 @@
 ## 2. Issues Encountered & Status
 
 ### Resolved
+
 - Fixed `Unexpected any` lint errors in `DrawingUploadForm` (mostly).
 - Resolved type mismatches in state identifiers.
 
 ### Known Issues (Pending Fix)
+
 - **Build Failure**: `pnpm build` failed in `frontend/app/(admin)/admin/numbering/[id]/page.tsx`.
   - **Error**: `Object literal may only specify known properties, and 'templateId' does not exist in type 'Partial<NumberingTemplate>'.`
   - **Location**: `numberingApi.saveTemplate({ ...data, templateId: parseInt(params.id) });`
   - **Cause**: The `saveTemplate` method likely expects a specific DTO that conflicts with the spread `...data` or the explicit `templateId` property assignment. This needs to be addressed in the next session.
 
 ## 3. Next Steps
+
 - Fix the build error in `admin/numbering/[id]/page.tsx`.
 - Proceed with full end-to-end testing of the drawing upload flows.

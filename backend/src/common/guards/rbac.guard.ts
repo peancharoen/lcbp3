@@ -7,6 +7,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/require-permission.decorator';
 import { UserService } from '../../modules/user/user.service';
+import { User } from '../../modules/user/entities/user.entity';
+
+interface RequestWithUser {
+  user?: User;
+}
 
 @Injectable()
 export class RbacGuard implements CanActivate {
@@ -28,7 +33,8 @@ export class RbacGuard implements CanActivate {
     }
 
     // 2. ดึง User จาก Request (ที่ JwtAuthGuard แปะไว้ให้)
-    const { user } = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const user = request.user;
     if (!user) {
       throw new ForbiddenException('User not found in request');
     }

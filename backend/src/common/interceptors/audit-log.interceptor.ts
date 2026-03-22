@@ -51,11 +51,12 @@ export class AuditLogInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const request = context.switchToHttp().getRequest<Request>();
-    const user = (request as Request & { user?: User }).user;
-    const rawIp: string | string[] | undefined =
-      request.ip ?? request.socket.remoteAddress;
-    const ip: string | undefined = Array.isArray(rawIp) ? rawIp[0] : rawIp;
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: User }>();
+    const user = request.user;
+    const rawIp = request.ip ?? request.socket.remoteAddress;
+    const ip = (Array.isArray(rawIp) ? rawIp[0] : rawIp) as string | undefined;
     const userAgent = request.get('user-agent');
 
     return next.handle().pipe(

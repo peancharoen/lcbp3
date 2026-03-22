@@ -79,7 +79,7 @@ describe('CorrespondenceController', () => {
         subject: 'Test Subject',
       };
 
-      const result = await controller.create(
+      const _result = await controller.create(
         createDto as Parameters<typeof controller.create>[0],
         mockReq as Parameters<typeof controller.create>[1]
       );

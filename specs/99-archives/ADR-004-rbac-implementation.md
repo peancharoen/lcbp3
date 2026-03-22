@@ -229,10 +229,7 @@ export class PermissionGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Get required permission from decorator
-    const permission = this.reflector.get<string>(
-      'permission',
-      context.getHandler()
-    );
+    const permission = this.reflector.get<string>('permission', context.getHandler());
 
     if (!permission) return true;
 

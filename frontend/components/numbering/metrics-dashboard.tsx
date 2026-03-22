@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { documentNumberingService } from "@/lib/services/document-numbering.service";
-import { NumberingMetrics } from "@/types/dto/numbering.dto";
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, _CardDescription } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { documentNumberingService } from '@/lib/services/document-numbering.service';
+import { NumberingMetrics } from '@/types/dto/numbering.dto';
 
 export function MetricsDashboard() {
   const [metrics, setMetrics] = useState<Partial<NumberingMetrics>>({});
@@ -15,7 +15,7 @@ export function MetricsDashboard() {
       try {
         const data = await documentNumberingService.getMetrics();
         setMetrics(data);
-      } catch (error) {
+      } catch (_error) {
         // Failed to fetch metrics - handled by loading state
       } finally {
         setLoading(false);
@@ -48,12 +48,12 @@ export function MetricsDashboard() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-           <CardTitle className="text-sm font-medium">Sequence Utilization</CardTitle>
+          <CardTitle className="text-sm font-medium">Sequence Utilization</CardTitle>
         </CardHeader>
         <CardContent>
-           <div className="text-2xl font-bold">{utilization}%</div>
-           <Progress value={utilization} className="mt-2" />
-           <p className="text-xs text-muted-foreground mt-1">Average capacity used</p>
+          <div className="text-2xl font-bold">{utilization}%</div>
+          <Progress value={utilization} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-1">Average capacity used</p>
         </CardContent>
       </Card>
 
@@ -68,13 +68,13 @@ export function MetricsDashboard() {
       </Card>
 
       <Card>
-         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-           <CardTitle className="text-sm font-medium">Recent Errors</CardTitle>
-         </CardHeader>
-         <CardContent>
-           <div className="text-2xl font-bold">{metrics.errors?.length || 0}</div>
-           <p className="text-xs text-muted-foreground">In the last 24 hours</p>
-         </CardContent>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Recent Errors</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{metrics.errors?.length || 0}</div>
+          <p className="text-xs text-muted-foreground">In the last 24 hours</p>
+        </CardContent>
       </Card>
     </div>
   );

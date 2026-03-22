@@ -1,6 +1,6 @@
 export interface RFAItem {
   id?: number;
-  itemType: "SHOP" | "AS_BUILT";
+  itemType: 'SHOP' | 'AS_BUILT';
   shopDrawingRevision?: {
     uuid?: string;
     revisionLabel?: string;

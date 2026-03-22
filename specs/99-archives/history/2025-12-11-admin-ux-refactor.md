@@ -1,11 +1,13 @@
 # Admin Panel UX Refactoring (2025-12-11)
 
 **Objectives:**
+
 - Standardize UX across Admin modules (Loading Skeletons, Alert Dialogs).
 - Fix specific display bugs in Reference Data.
 - Improve Admin Dashboard.
 
 **Achievements:**
+
 1.  **Dashboard Upgrade:**
     - Replaced `/admin` redirect with a proper Dashboard page showing stats and quick links.
     - Added `Skeleton` loading for stats.
@@ -13,9 +15,9 @@
 2.  **Consistency Improvements:**
     - **Modules:** Organizations, Users, Projects, Contracts.
     - **Changes:**
-        - Replaced "Loading..." text with `Skeleton` rows.
-        - Replaced `window.confirm()` with `AlertDialog` (Shadcn UI).
-        - Fixed `any` type violations in Users, Projects, Contracts.
+      - Replaced "Loading..." text with `Skeleton` rows.
+      - Replaced `window.confirm()` with `AlertDialog` (Shadcn UI).
+      - Fixed `any` type violations in Users, Projects, Contracts.
 
 3.  **Reference Data Overhaul:**
     - Refactored `GenericCrudTable` to include Skeleton loading and AlertDialogs natively.
@@ -24,6 +26,7 @@
     - **Fixed Bug:** "Drawing Categories" page displaying incorrect columns (fixed DTO matching).
 
 **Modified Files:**
+
 - `frontend/app/(admin)/admin/page.tsx`
 - `frontend/app/(admin)/admin/organizations/page.tsx`
 - `frontend/app/(admin)/admin/users/page.tsx`

@@ -23,7 +23,7 @@ export class RfaWorkflowTemplate {
   isActive!: boolean;
 
   @Column({ type: 'json', nullable: true })
-  workflowConfig?: Record<string, any>; // Configuration เพิ่มเติม
+  workflowConfig?: Record<string, unknown>; // Configuration เพิ่มเติม
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

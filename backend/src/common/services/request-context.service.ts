@@ -6,7 +6,7 @@ import { AsyncLocalStorage } from 'async_hooks';
 
 @Injectable({ scope: Scope.DEFAULT })
 export class RequestContextService {
-  private static readonly cls = new AsyncLocalStorage<Map<string, any>>();
+  private static readonly cls = new AsyncLocalStorage<Map<string, unknown>>();
 
   static run(fn: () => void) {
     this.cls.run(new Map(), fn);
@@ -21,7 +21,7 @@ export class RequestContextService {
 
   static get<T>(key: string): T | undefined {
     const store = this.cls.getStore();
-    return store?.get(key);
+    return store?.get(key) as T | undefined;
   }
 
   // Helper methods

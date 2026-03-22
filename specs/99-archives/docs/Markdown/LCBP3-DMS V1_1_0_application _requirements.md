@@ -1,82 +1,84 @@
 # 📝 Documents Management Sytem Version 1.1.0: Application Requirements Specification
+
 ## 📌 1. วัตถุประสงค์
-สร้างเว็บแอปพลิเคชั่นสำหรับระบบบริหารจัดการเอกสารโครงการ (Document Management System) ที่สามารถจัดการและควบคุม การสื่อสารด้วยเอกสารที่ซับซ้อน อย่างมีประสิทธิภาพ 
-* มีฟังก์ชันหลักในการอัปโหลด จัดเก็บ ค้นหา แชร์ และควบคุมสิทธิ์การเข้าถึงเอกสาร
-* ช่วยลดการใช้เอกสารกระดาษ เพิ่มความปลอดภัยในการจัดเก็บข้อมูล
-* เพิ่มความสะดวกในการทำงานร่วมกันระหว่างองกรณ์
 
-## 🛠️  2. สถาปัตยกรรมและเทคโนโลยี (System Architecture & Technology Stack)
+สร้างเว็บแอปพลิเคชั่นสำหรับระบบบริหารจัดการเอกสารโครงการ (Document Management System) ที่สามารถจัดการและควบคุม การสื่อสารด้วยเอกสารที่ซับซ้อน อย่างมีประสิทธิภาพ
 
-ใช้สถาปัตยกรรมแบบ Headless/API-First ที่ทันสมัย ทำงานทั้งหมดบน QNAP Server ผ่าน Container Station เพื่อความสะดวกในการจัดการและบำรุงรักษา,  Domain: np-dms.work, มี fix ip, รัน docker command ใน application ของ Container Station ได้โดยตรง, ประกอบด้วย
+- มีฟังก์ชันหลักในการอัปโหลด จัดเก็บ ค้นหา แชร์ และควบคุมสิทธิ์การเข้าถึงเอกสาร
+- ช่วยลดการใช้เอกสารกระดาษ เพิ่มความปลอดภัยในการจัดเก็บข้อมูล
+- เพิ่มความสะดวกในการทำงานร่วมกันระหว่างองกรณ์
 
-* 2.1. Infrastructure & Environment:
-    - Server: QNAP (Model: TS-473A, RAM: 32GB, CPU: AMD Ryzen V1500B)
-    - Containerization: Container Station (Docker & Docker Compose) ใช้ UI ของ Container Station เป็นหลัก ในการ configuration และการรัน docker command
-    - Development Environment: VS Code on Windows 11
-    - Domain: np-dms.work, www.np-dms.work
-    - ip: 159.192.126.103
-    - Docker Network: ทุก Service จะเชื่อมต่อผ่านเครือข่ายกลางชื่อ lcbp3 เพื่อให้สามารถสื่อสารกันได้
-    - Data Storage: /share/dms-data บน QNAP
-    - ข้อจำกัด: ไม่สามารถใช้ .env ในการกำหนดตัวแปรภายนอกได้ ต้องกำหนดใน docker-compose.yml เท่านั้น
-* 2.2. Code Hosting:
-    - Application name: git
-    - Service: Gitea (Self-hosted on QNAP)
-    - Service name: gitea
-    - Domain: git.np-dms.work
-    - หน้าที่: เป็นศูนย์กลางในการเก็บและจัดการเวอร์ชันของโค้ด (Source Code) สำหรับทุกส่วน
-* 2.3. Backend / Data Platform:
-    - Application name: lcbp3-backend
-    - Service: NestJS
-    - Service name: backend
-    - Domain: backend.np-dms.work
-    - Framework: NestJS (Node.js, TypeScript, ESM)
-    - หน้าที่: จัดการโครงสร้างข้อมูล (Data Models), สร้าง API, จัดการสิทธิ์ผู้ใช้ (Roles & Permissions), และสร้าง Workflow ทั้งหมดของระบบ
-* 2.4. Database:
-    - Application name: lcbp3-db
-    - Service: mariadb:10.11
-    - Service name: mariadb
-    - Domain: db.np-dms.work
-    - หน้าที่: ฐานข้อมูลหลักสำหรับเก็บข้อมูลทั้งหมด
-    - Tooling: DBeaver (Community Edition), phpmyadmin สำหรับการออกแบบและจัดการฐานข้อมูล
-* 2.5. Database management:
-    - Application name: lcbp3-db
-    - Service: phpmyadmin:5-apache    
-    - Service name: pma
-    - Domain: pma.np-dms.work
-    - หน้าที่: จัดการฐานข้อมูล mariadb ผ่าน Web UI
-* 2.6. Frontend:
-    - Application name: lcbp3-frontend
-    - Service: next.js
-    - Service name: frontend
-    - Domain: lcbp3.np-dms.work
-    - Framework: Next.js (App Router, React, TypeScript, ESM)
-    - Styling: Tailwind CSS + PostCSS
-    - Component Library: shadcn/ui
-    - หน้าที่: สร้างหน้าตาเว็บแอปพลิเคชันสำหรับให้ผู้ใช้งานเข้ามาดู Dashboard, จัดการเอกสาร, และติดตามงาน โดยจะสื่อสารกับ Backend ผ่าน API
-* 2.7. Workflow automation:
-    - Application name: lcbp3-n8n
-    - Service: n8nio/n8n:latest
-    - Service name: n8n
-    - Domain: n8n.np-dms.work
-    - หน้าที่: จัดการ workflow ระหว่าง Backend และ Line
-* 2.8. Reverse Proxy:
-    - Application name: lcbp3-npm
-    - Service: Nginx Proxy Manager (nginx-proxy-manage: latest)
-    - Service name: npm
-    - Domain: npm.np-dms.work
-    - หน้าที่: เป็นด่านหน้าในการรับ-ส่งข้อมูล จัดการโดเมนทั้งหมด, ทำหน้าที่เป็น Proxy ชี้ไปยัง Service ที่ถูกต้อง, และจัดการ SSL Certificate (HTTPS) ให้อัตโนมัติ
+## 🛠️ 2. สถาปัตยกรรมและเทคโนโลยี (System Architecture & Technology Stack)
 
+ใช้สถาปัตยกรรมแบบ Headless/API-First ที่ทันสมัย ทำงานทั้งหมดบน QNAP Server ผ่าน Container Station เพื่อความสะดวกในการจัดการและบำรุงรักษา, Domain: np-dms.work, มี fix ip, รัน docker command ใน application ของ Container Station ได้โดยตรง, ประกอบด้วย
+
+- 2.1. Infrastructure & Environment:
+  - Server: QNAP (Model: TS-473A, RAM: 32GB, CPU: AMD Ryzen V1500B)
+  - Containerization: Container Station (Docker & Docker Compose) ใช้ UI ของ Container Station เป็นหลัก ในการ configuration และการรัน docker command
+  - Development Environment: VS Code on Windows 11
+  - Domain: np-dms.work, www.np-dms.work
+  - ip: 159.192.126.103
+  - Docker Network: ทุก Service จะเชื่อมต่อผ่านเครือข่ายกลางชื่อ lcbp3 เพื่อให้สามารถสื่อสารกันได้
+  - Data Storage: /share/dms-data บน QNAP
+  - ข้อจำกัด: ไม่สามารถใช้ .env ในการกำหนดตัวแปรภายนอกได้ ต้องกำหนดใน docker-compose.yml เท่านั้น
+- 2.2. Code Hosting:
+  - Application name: git
+  - Service: Gitea (Self-hosted on QNAP)
+  - Service name: gitea
+  - Domain: git.np-dms.work
+  - หน้าที่: เป็นศูนย์กลางในการเก็บและจัดการเวอร์ชันของโค้ด (Source Code) สำหรับทุกส่วน
+- 2.3. Backend / Data Platform:
+  - Application name: lcbp3-backend
+  - Service: NestJS
+  - Service name: backend
+  - Domain: backend.np-dms.work
+  - Framework: NestJS (Node.js, TypeScript, ESM)
+  - หน้าที่: จัดการโครงสร้างข้อมูล (Data Models), สร้าง API, จัดการสิทธิ์ผู้ใช้ (Roles & Permissions), และสร้าง Workflow ทั้งหมดของระบบ
+- 2.4. Database:
+  - Application name: lcbp3-db
+  - Service: mariadb:10.11
+  - Service name: mariadb
+  - Domain: db.np-dms.work
+  - หน้าที่: ฐานข้อมูลหลักสำหรับเก็บข้อมูลทั้งหมด
+  - Tooling: DBeaver (Community Edition), phpmyadmin สำหรับการออกแบบและจัดการฐานข้อมูล
+- 2.5. Database management:
+  - Application name: lcbp3-db
+  - Service: phpmyadmin:5-apache
+  - Service name: pma
+  - Domain: pma.np-dms.work
+  - หน้าที่: จัดการฐานข้อมูล mariadb ผ่าน Web UI
+- 2.6. Frontend:
+  - Application name: lcbp3-frontend
+  - Service: next.js
+  - Service name: frontend
+  - Domain: lcbp3.np-dms.work
+  - Framework: Next.js (App Router, React, TypeScript, ESM)
+  - Styling: Tailwind CSS + PostCSS
+  - Component Library: shadcn/ui
+  - หน้าที่: สร้างหน้าตาเว็บแอปพลิเคชันสำหรับให้ผู้ใช้งานเข้ามาดู Dashboard, จัดการเอกสาร, และติดตามงาน โดยจะสื่อสารกับ Backend ผ่าน API
+- 2.7. Workflow automation:
+  - Application name: lcbp3-n8n
+  - Service: n8nio/n8n:latest
+  - Service name: n8n
+  - Domain: n8n.np-dms.work
+  - หน้าที่: จัดการ workflow ระหว่าง Backend และ Line
+- 2.8. Reverse Proxy:
+  - Application name: lcbp3-npm
+  - Service: Nginx Proxy Manager (nginx-proxy-manage: latest)
+  - Service name: npm
+  - Domain: npm.np-dms.work
+  - หน้าที่: เป็นด่านหน้าในการรับ-ส่งข้อมูล จัดการโดเมนทั้งหมด, ทำหน้าที่เป็น Proxy ชี้ไปยัง Service ที่ถูกต้อง, และจัดการ SSL Certificate (HTTPS) ให้อัตโนมัติ
 
 ## 📦 3. ข้อกำหนดด้านฟังก์ชันการทำงาน (Functional Requirements)
 
-* 3.1. การจัดการโครงสร้างโครงการและองค์กร
+- 3.1. การจัดการโครงสร้างโครงการและองค์กร
   - 3.1.1. โครงการ (Projects): ระบบต้องสามารถจัดการเอกสารภายในหลายโครงการได้ (ปัจจุบันมี 4 โครงการ และจะเพิ่มขึ้นในอนาคต)
   - 3.1.2. สัญญา (Contracts): ระบบต้องสามารถจัดการเอกสารภายในแต่ละสัญญาได้ ในแต่ละโครงการ มีได้หลายสัญญา หรืออย่างน้อย 1 สัญญา
   - 3.1.3. องค์กร (Organizations):
     - มีหลายองค์กรในโครงการ องค์กรณ์ที่เป็น Owner, Designer และ Consultant สามารถอยู่ในหลายโครงการและหลายสัญญาได้
     - Contractor จะถือ 1 สัญญา และอยู่ใน 1 โครงการเท่านั้น
 
-* 3.2. การจัดการเอกสารโต้ตอบ (Correspondence Management)
+- 3.2. การจัดการเอกสารโต้ตอบ (Correspondence Management)
   - 3.2.1. วัตถุประสงค์: เอกสารโต้ตอบ (correspondences) ระหว่างองกรณื-องกรณ์ ภายใน โครงการ (Projects) และระหว่าง องค์กร-องค์กร ภายนอก โครงการ (Projects)
   - 3.2.2. ประเภทเอกสาร: ระบบต้องรองรับเอกสารรูปแบบ ไฟล์ PDF หลายประเภท (Types) เช่น จดหมาย (Letter), อีเมล์ (Email), Request for Information (RFI), และสามารถเพิ่มประเภทใหม่ได้ในภายหลัง
   - 3.2.3. การสร้างเอกสาร (Correspondence):
@@ -86,22 +88,21 @@
     - เอกสารสามารถอ้างถึง (Reference) เอกสารฉบับก่อนหน้าได้หลายฉบับ
     - สามารถกำหนด Tag ได้หลาย Tag เพื่อจัดกลุ่มและใช้ในการค้นหาขั้นสูง
   - 3.2.5. การจัดการ: มีการจัดการอย่างน้อยดังนี้
-0   - สามารถกำหนดวันแล้วเสร็จ (Deadline) สำหรับผู้รับผิดชอบของ องกรณ์ ที่อเป็นผู้รับ ได้
-    - มีระบบแจ้งเตือน ให้ผู้รับผิดชอบขององกรณ์ที่เป็น ผู้รับ/ผู้ส่ง ทราบ เมื่อมีเอกสารใหม่ หรือมีการเปลี่ยนสถานะ
+    0 - สามารถกำหนดวันแล้วเสร็จ (Deadline) สำหรับผู้รับผิดชอบของ องกรณ์ ที่อเป็นผู้รับ ได้ - มีระบบแจ้งเตือน ให้ผู้รับผิดชอบขององกรณ์ที่เป็น ผู้รับ/ผู้ส่ง ทราบ เมื่อมีเอกสารใหม่ หรือมีการเปลี่ยนสถานะ
 
-* 3.3. การจัดกาแบบคู่สัญญา (Contract Drawing)
+- 3.3. การจัดกาแบบคู่สัญญา (Contract Drawing)
   - 3.3.1. วัตถุประสงค์: แบบคู่สัญญา (Contract Drawing) ใช้เพื่ออ้างอิงและใช้ในการตรวจสอบ
   - 3.3.2. ประเภทเอกสาร: ไฟล์ PDF
   - 3.3.3. การสร้างเอกสาร: ผู้ใช้ที่มีสิทธิ์ สามารถสร้างและแก้ไขได้
-  - 3.3.4. การอ้างอิงและจัดกลุ่ม: ใช้สำหรับอ้างอิง ใน Shop Drawings, มีการจัดหมวดหมู่ของ Contract Drawing 
+  - 3.3.4. การอ้างอิงและจัดกลุ่ม: ใช้สำหรับอ้างอิง ใน Shop Drawings, มีการจัดหมวดหมู่ของ Contract Drawing
 
-* 3.4. การจัดกาแบบก่อสร้าง (Shop Drawing) 
+- 3.4. การจัดกาแบบก่อสร้าง (Shop Drawing)
   - 3.4.1. วัตถุประสงค์: แบบก่อสร้าง (Shop Drawing) ใช้เในการตรวจสอบ โดยจัดส่งด้วย Request for Approval (RFA)
   - 3.4.2. ประเภทเอกสาร: ไฟล์ PDF
   - 3.4.3. การสร้างเอกสาร: ผู้ใช้ที่มีสิทธิ์ สามารถสร้างและแก้ไขได้
-  - 3.4.4. การอ้างอิงและจัดกลุ่ม: ช้สำหรับอ้างอิง ใน Shop Drawings, มีการจัดหมวดหมู่ของ Shop Drawings 
+  - 3.4.4. การอ้างอิงและจัดกลุ่ม: ช้สำหรับอ้างอิง ใน Shop Drawings, มีการจัดหมวดหมู่ของ Shop Drawings
 
-* 3.5. การจัดการเอกสารขออนุมัติ (Request for Approval & Workflow)
+- 3.5. การจัดการเอกสารขออนุมัติ (Request for Approval & Workflow)
   - 3.5.1. วัตถุประสงค์: เอกสารขออนุมัติ (Request for Approval) ใช้ในการส่งเอกสารเพิอขออนุมัติ
   - 3.5.2. ประเภทเอกสาร: Request for Approval (RFA) เป็นชนิดหนึ่งของ Correspondence ที่มีลักษณะเฉพาะที่ต้องได้รับการอนุมัติ มีประเภทดังนี้:
     - Request for Drawing Approval (RFA_DWG)
@@ -113,19 +114,18 @@
     - เอกสาร RFA_DWG จะประกอบไปด้วย Shop Drawing (shop_drawings) หลายแผ่น ซึ่งแต่ละแผ่นมี Revision ของตัวเอง
     - Shop Drawing แต่ละ Revision สามารถอ้างอิงถึง Contract Drawing (Ccontract_drawings) หลายแผ่น หรือไม่อ้างถึงก็ได้
     - ระบบต้องมีส่วนสำหรับจัดการข้อมูล Master Data ของทั้ง Shop Drawing และ Contract Drawing แยกจากกัน
-  - 3.6.5. Workflow การอนุมัติ: ต้องรองรับกระบวนการอนุมัติที่ซับซ้อนและเป็นลำดับ เช่น 
-    -  ส่งจาก Originator -> Organization 1 -> Organization 2 -> Organization 3 แล้วส่งผลกลับตามลำดับเดิม (โดยถ้า องกรณ์ใดใน Workflow ให้ส่งกลับ ก็สามารถส่งผลกลับตามลำดับเดิมโดยไม่ต้องรอให้ถึง องกรณืในลำดับถัดไป)
+  - 3.6.5. Workflow การอนุมัติ: ต้องรองรับกระบวนการอนุมัติที่ซับซ้อนและเป็นลำดับ เช่น
+    - ส่งจาก Originator -> Organization 1 -> Organization 2 -> Organization 3 แล้วส่งผลกลับตามลำดับเดิม (โดยถ้า องกรณ์ใดใน Workflow ให้ส่งกลับ ก็สามารถส่งผลกลับตามลำดับเดิมโดยไม่ต้องรอให้ถึง องกรณืในลำดับถัดไป)
   - 3.6.6. การจัดการ: มีการจัดการอย่างน้อยดังนี้
-0   - สามารถกำหนดวันแล้วเสร็จ (Deadline) สำหรับผู้รับผิดชอบของ องกรณ์ ที่อยู่ใน Workflow ได้
-    - มีระบบแจ้งเตือน ให้ผู้รับผิดชอบของ องกรณ์ ที่อยู่ใน Workflow ทราบ เมื่อมี RFA ใหม่ หรือมีการเปลี่ยนสถานะ
+    0 - สามารถกำหนดวันแล้วเสร็จ (Deadline) สำหรับผู้รับผิดชอบของ องกรณ์ ที่อยู่ใน Workflow ได้ - มีระบบแจ้งเตือน ให้ผู้รับผิดชอบของ องกรณ์ ที่อยู่ใน Workflow ทราบ เมื่อมี RFA ใหม่ หรือมีการเปลี่ยนสถานะ
 
-* 3.6.การจัดการเอกสารนำส่ง (Transmittals) 
+- 3.6.การจัดการเอกสารนำส่ง (Transmittals)
   - 3.6.1. วัตถุประสงค์: เอกสารนำส่ง ใช้สำหรับ นำส่ง Request for Approval (RFAS) หลายฉบับ ไปยังองค์กรอื่น
   - 3.6.2. ประเภทเอกสาร: ไฟล์ PDF
   - 3.6.3. การสร้างเอกสาร: ผู้ใช้ที่มีสิทธิ์ สามารถสร้างและแก้ไขได้
   - 3.6.4. การอ้างอิงและจัดกลุ่ม: เอกสารนำส่ง เป็นส่วนหนึ่งใน Correspondence
 
-* 3.7. ใบเวียนเอกสารภายใน (Internal Circulation Sheet)
+- 3.7. ใบเวียนเอกสารภายใน (Internal Circulation Sheet)
   - 3.7.1. วัตถุประสงค์: การสื่อสาร เอกสาร (Correspondence) ทุกฉบับ จะมีใบเวียนเอกสารเพื่อควบคุมและมอบหมายงานภายในองค์กร (สามารถดูและแก้ไขได้เฉพาะคนในองค์กร)
   - 3.7.2. ประเภทเอกสาร: ไฟล์ PDF
   - 3.7.3. การสร้างเอกสาร: ผู้ใช้ที่มีสิทธิ์ในองค์กรนั้น สามารถสร้างและแก้ไขได้
@@ -138,60 +138,59 @@
     - มีระบบแจ้งเตือนเมื่อมี Circulation ใหม่ และแจ้งเตือนล่วงหน้าก่อนถึงวันแล้วเสร็จ
     - สามารถปิด Circulation ได้เมื่อดำเนินการตอบกลับไปยังองค์กรผู้ส่ง (Originator) แล้ว หรือ รับทราบแล้ว (For Information)
 
-* 3.8. ประวัติการแก้ไข (Revisions): ระบบจะเก็บประวัติการสร้างและแก้ไข เอกสารทั้งหมด
+- 3.8. ประวัติการแก้ไข (Revisions): ระบบจะเก็บประวัติการสร้างและแก้ไข เอกสารทั้งหมด
 
-* 3.9. การจัดเก็บ: เอกสารและไฟล์แนบจะถูกจัดเก็บในโฟลเดอร์บน Server (/share/dms-data/) โดยมีการอ้างอิงข้อมูล (Metadata) ในฐานข้อมูล และสามารถจัดเรียงตามวันที่ในเอกสาร (Document Date) ได้ ตัวอย่างเช่น 
+- 3.9. การจัดเก็บ: เอกสารและไฟล์แนบจะถูกจัดเก็บในโฟลเดอร์บน Server (/share/dms-data/) โดยมีการอ้างอิงข้อมูล (Metadata) ในฐานข้อมูล และสามารถจัดเรียงตามวันที่ในเอกสาร (Document Date) ได้ ตัวอย่างเช่น
   - Correspondence จัดเก็บใน /share/dms-data/correspondences/YYMMDD/ชื่อไฟล์.pdf
   - Request for Approval จัดเก็บใน /share/dms-data/rfas/YYMMDD/ชื่อไฟล์.pdf
   - Shop Drawings จัดเก็บใน /share/dms-data/shop_drawings/YYMMDD/ชื่อไฟล์.pdf
 
 ## 🔐 4. ข้อกำหนดด้านสิทธิ์และการเข้าถึง (Access Control Requirements)
 
-* 4.1. ภาพรวม: ผู้ใช้และองค์กรสามารถดูและแก้ไขเอกสารได้ตามสิทธิ์ที่ได้รับ โดยระบบสิทธิ์จะเป็นแบบ Role-Based Access Control (RBAC)
-* 4.2. ระดับของสิทธิ์:
+- 4.1. ภาพรวม: ผู้ใช้และองค์กรสามารถดูและแก้ไขเอกสารได้ตามสิทธิ์ที่ได้รับ โดยระบบสิทธิ์จะเป็นแบบ Role-Based Access Control (RBAC)
+- 4.2. ระดับของสิทธิ์:
   - Global Roles: สิทธิ์ในภาพรวมของระบบ
   - Project-Specific Roles: สิทธิ์ที่ถูกกำหนดให้ผู้ใช้สำหรับโครงการนั้นๆ โดยเฉพาะ (เช่น เป็น Editor ในโครงการ A แต่เป็น Viewer ในโครงการ B)
   - Contract-Specific Roles: สิทธิ์ที่ถูกกำหนดให้โครงการสำหรับสัญญานั้นๆ (เช่น เป็น Admin ในสัญญา 1 จะเป็น Admin ใน โครงการ A และ ฺB ที่อยู่ในสัญญา 1)
-* 4.3. บทบาท (Roles) พื้นฐาน:
+- 4.3. บทบาท (Roles) พื้นฐาน:
   - Superadmin: ไม่มีข้อจำกัดใดๆ สามารถจัดการได้ทุกอย่างข้ามองค์กร
   - Admin: มีสิทธิ์เต็มที่ แต่จำกัดเฉพาะในองค์กรที่ตัวเองสังกัด สามารถจัดการผู้ใช้ในองค์กรได้ สามารถสร้าง Role ใหม่และกำหนดสิทธิ์ (Permissions) เพิ่มเติมได้ในภายหลังผ่านหน้า Admin
   - Document Control สามารถ เพิ่ม/แก้ไข/ลบ เอกสาร เฉพาะในองค์กรที่ตัวเองสังกัด ไม่สามารถจัดการผู้ใช้ได้
   - Editor: สามารถ เพิ่ม/แก้ไข เอกสารที่กำหนดไว้ เฉพาะในองค์กรที่ตัวเองสังกัด
   - Viewer: สามารถดู เอกสาร เฉพาะในองค์กรที่ตัวเองสังกัด
 
-* 4.4. การบังคับใช้สิทธิ์: สิทธิ์ขององค์กรจะครอบคลุมสิทธิ์ของผู้ใช้ และการเข้าถึงข้อมูลที่เกี่ยวข้องกับโครงการ (เช่น การแก้ไขเอกสาร) จะถูกตรวจสอบเทียบกับสิทธิ์ที่ผู้ใช้มีในโครงการนั้นๆ โดยเฉพาะ
+- 4.4. การบังคับใช้สิทธิ์: สิทธิ์ขององค์กรจะครอบคลุมสิทธิ์ของผู้ใช้ และการเข้าถึงข้อมูลที่เกี่ยวข้องกับโครงการ (เช่น การแก้ไขเอกสาร) จะถูกตรวจสอบเทียบกับสิทธิ์ที่ผู้ใช้มีในโครงการนั้นๆ โดยเฉพาะ
 
 ## 👥 5. ข้อกำหนดด้านผู้ใช้งาน (User Interface & Experience)
 
-* 5.1. Layout หลัก: หน้าเว็บใช้รูปแบบ App Shell ที่ประกอบด้วย:
+- 5.1. Layout หลัก: หน้าเว็บใช้รูปแบบ App Shell ที่ประกอบด้วย:
   - Navbar (ส่วนบน): แสดงชื่อระบบ, เมนูผู้ใช้ (Profile), เมนูสำหรับ Admin/Superadmin (จัดการผู้ใช้, จัดการสิทธิ์), และปุ่ม Login/Logout
   - Sidebar (ด้านข้าง): เป็นเมนูหลักสำหรับเข้าถึงส่วนที่เกี่ยวกับเอกสารทั้งหมด เช่น Dashboard, Correspondences, RFA, Drawings
   - Main Content Area: พื้นที่สำหรับแสดงเนื้อหาหลักของหน้าที่เลือก
-* 5.2. หน้า Landing Page: เป็นหน้าแรกที่แสดงข้อมูลบางส่วนของโครงการสำหรับผู้ใช้ที่ยังไม่ได้ล็อกอิน
-* 5.3. หน้า Dashboard: เป็นหน้าแรกหลังจากล็อกอิน ประกอบด้วย:
+- 5.2. หน้า Landing Page: เป็นหน้าแรกที่แสดงข้อมูลบางส่วนของโครงการสำหรับผู้ใช้ที่ยังไม่ได้ล็อกอิน
+- 5.3. หน้า Dashboard: เป็นหน้าแรกหลังจากล็อกอิน ประกอบด้วย:
   - การ์ดสรุปภาพรวม (KPI Cards): แสดงข้อมูลสรุปที่สำคัญขององค์กร เช่น จำนวนเอกสาร, งานที่เกินกำหนด
   - ตาราง "งานของฉัน" (My Tasks Table): แสดงรายการงานทั้งหมดจาก Circulation ที่ผู้ใช้ต้องดำเนินการ
-* 5.4. การติดตามสถานะ: องค์กรสามารถติดตามสถานะเอกสารทั้งของตนเอง (Originator) และสถานะเอกสารที่ส่งมาถึงตนเอง (Recipient)
-* 5.5. การจัดการข้อมูลส่วนตัว (Profile Page): ผู้ใช้สามารถจัดการข้อมูลส่วนตัวและเปลี่ยนรหัสผ่านของตนเองได้
-* 5.6. การจัดการเอกสารทางเทคนิค (Technical Documents & Workflow): ผู้ใช้สามารถดู Technical Document ในรูปแบบ Workflow ทั้งหมดได้ในหน้าเดียว, ขั้นตอนที่ยังไม่ถึงหรือผ่านไปแล้วจะเป็นรูปแบบ diable, สามารถดำเนินการได้เฉพาะในขั้นตอนที่ได้รับมอบหมายงาน (active) เช่น ตรวจสอบแล้ว เพื่อไปยังขั้นตอนต่อไป, สิทธิ์ admin ขึ้นไป สามรถกด ไปยังขั้นตอนต่อไป ได้ทุกขั้นตอน, การย้อนกลับ ไปขั้นตอนก่อนหน้า สามารถทำได้โดย สิทธิ์ admin ขึ้นไป
+- 5.4. การติดตามสถานะ: องค์กรสามารถติดตามสถานะเอกสารทั้งของตนเอง (Originator) และสถานะเอกสารที่ส่งมาถึงตนเอง (Recipient)
+- 5.5. การจัดการข้อมูลส่วนตัว (Profile Page): ผู้ใช้สามารถจัดการข้อมูลส่วนตัวและเปลี่ยนรหัสผ่านของตนเองได้
+- 5.6. การจัดการเอกสารทางเทคนิค (Technical Documents & Workflow): ผู้ใช้สามารถดู Technical Document ในรูปแบบ Workflow ทั้งหมดได้ในหน้าเดียว, ขั้นตอนที่ยังไม่ถึงหรือผ่านไปแล้วจะเป็นรูปแบบ diable, สามารถดำเนินการได้เฉพาะในขั้นตอนที่ได้รับมอบหมายงาน (active) เช่น ตรวจสอบแล้ว เพื่อไปยังขั้นตอนต่อไป, สิทธิ์ admin ขึ้นไป สามรถกด ไปยังขั้นตอนต่อไป ได้ทุกขั้นตอน, การย้อนกลับ ไปขั้นตอนก่อนหน้า สามารถทำได้โดย สิทธิ์ admin ขึ้นไป
 
 ## 6. ข้อกำหนดที่ไม่ใช่ฟังก์ชันการทำงาน (Non-Functional Requirements)
 
-* 6.1. การบันทึกการกระทำ (Audit Log): ทุกการกระทำที่สำคัญของผู้ใช้ (สร้าง, แก้ไข, ลบ, ส่ง) จะถูกบันทึกไว้ใน audit_logs เพื่อการตรวจสอบย้อนหลัง
-* 6.2. การค้นหา (Search): ระบบต้องมีฟังก์ชันการค้นหาขั้นสูง ที่สามารถค้นหาเอกสารจากหลายเงื่อนไขพร้อมกันได้ เช่น ค้นหาจากชื่อเรื่อง, ประเภท, วันที่, และ Tag
-* 6.3. การทำรายงาน (Reporting): สามารถจัดทำรายงานสรุปแยกประเภทของ Correspondence ประจำวัน, สัปดาห์, เดือน, และปีได้
-* 6.4. ประสิทธิภาพ (Performance): มีการใช้ Caching กับข้อมูลที่เรียกใช้บ่อย และใช้ Pagination ในตารางข้อมูลเพื่อจัดการข้อมูลจำนวนมาก
-* 6.5. ความปลอดภัย (Security):
+- 6.1. การบันทึกการกระทำ (Audit Log): ทุกการกระทำที่สำคัญของผู้ใช้ (สร้าง, แก้ไข, ลบ, ส่ง) จะถูกบันทึกไว้ใน audit_logs เพื่อการตรวจสอบย้อนหลัง
+- 6.2. การค้นหา (Search): ระบบต้องมีฟังก์ชันการค้นหาขั้นสูง ที่สามารถค้นหาเอกสารจากหลายเงื่อนไขพร้อมกันได้ เช่น ค้นหาจากชื่อเรื่อง, ประเภท, วันที่, และ Tag
+- 6.3. การทำรายงาน (Reporting): สามารถจัดทำรายงานสรุปแยกประเภทของ Correspondence ประจำวัน, สัปดาห์, เดือน, และปีได้
+- 6.4. ประสิทธิภาพ (Performance): มีการใช้ Caching กับข้อมูลที่เรียกใช้บ่อย และใช้ Pagination ในตารางข้อมูลเพื่อจัดการข้อมูลจำนวนมาก
+- 6.5. ความปลอดภัย (Security):
   - มีระบบ Rate Limiting เพื่อป้องกันการโจมตีแบบ Brute-force
   - การจัดการ Secret (เช่น รหัสผ่าน DB, JWT Secret) จะต้องทำผ่าน Environment Variable ของ Docker เพื่อความปลอดภัยสูงสุด
 
-## 📈 7. 
+## 📈 7.
 
 ## 🧩 8.
+
 🎯
 📤
 📊
 ✅
 🔄
-
-

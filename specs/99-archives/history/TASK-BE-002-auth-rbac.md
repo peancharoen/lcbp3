@@ -28,14 +28,12 @@
 ## 📝 Acceptance Criteria
 
 1. **Authentication:**
-
    - ✅ Login with username/password returns JWT
    - ✅ Token refresh mechanism works
    - ✅ Token revocation supported
    - ✅ Password hashing with bcrypt
 
 2. **Authorization:**
-
    - ✅ RBAC Guards ตรวจสอบ 4 levels (Global/Org/Project/Contract)
    - ✅ Permission cache ใน Redis (TTL: 30min)
    - ✅ CASL Ability Factory working
@@ -100,12 +98,7 @@ export class AuthService {
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
     // Store refresh token in Redis
-    await this.redis.set(
-      `refresh_token:${user.user_id}`,
-      refreshToken,
-      'EX',
-      7 * 24 * 3600
-    );
+    await this.redis.set(`refresh_token:${user.user_id}`, refreshToken, 'EX', 7 * 24 * 3600);
 
     return {
       access_token: accessToken,
@@ -158,10 +151,7 @@ export class PermissionGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const permission = this.reflector.get<string>(
-      'permission',
-      context.getHandler()
-    );
+    const permission = this.reflector.get<string>('permission', context.getHandler());
 
     if (!permission) {
       return true; // No permission required
@@ -206,8 +196,7 @@ export class PermissionGuard implements CanActivate {
 // File: backend/src/common/decorators/require-permission.decorator.ts
 import { SetMetadata } from '@nestjs/common';
 
-export const RequirePermission = (permission: string) =>
-  SetMetadata('permission', permission);
+export const RequirePermission = (permission: string) => SetMetadata('permission', permission);
 
 // Usage:
 // @RequirePermission('correspondence.create')
@@ -217,12 +206,10 @@ export const RequirePermission = (permission: string) =>
 // File: backend/src/common/decorators/current-user.decorator.ts
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
-export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
-    return request.user;
-  }
-);
+export const CurrentUser = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
+  const request = ctx.switchToHttp().getRequest();
+  return request.user;
+});
 
 // Usage:
 // async create(@CurrentUser() user: User) {}

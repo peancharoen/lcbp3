@@ -75,7 +75,8 @@ export const useCancelNumbering = () => {
 export const useBulkImportNumbering = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: FormData | { documentNumber: string; projectId: number; sequenceNumber: number }[]) => documentNumberingService.bulkImport(data),
+    mutationFn: (data: FormData | { documentNumber: string; projectId: number; sequenceNumber: number }[]) =>
+      documentNumberingService.bulkImport(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: numberingKeys.all });
     },

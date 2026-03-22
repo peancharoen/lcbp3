@@ -27,7 +27,6 @@
 ## 📝 Acceptance Criteria
 
 1. **Notifications:**
-
    - ✅ Send email via queue
    - ✅ Send LINE Notify
    - ✅ Store in-app notifications
@@ -127,11 +126,7 @@ export class NotificationService {
     });
   }
 
-  async notifyWorkflowTransition(
-    workflowId: number,
-    action: string,
-    actorId: number
-  ): Promise<void> {
+  async notifyWorkflowTransition(workflowId: number, action: string, actorId: number): Promise<void> {
     // Get relevant users to notify
     const users = await this.getRelevantUsers(workflowId);
 
@@ -165,10 +160,7 @@ export class NotificationService {
     }
   }
 
-  async getUserNotifications(
-    userId: number,
-    unreadOnly: boolean = false
-  ): Promise<Notification[]> {
+  async getUserNotifications(userId: number, unreadOnly: boolean = false): Promise<Notification[]> {
     const query: any = { user_id: userId };
     if (unreadOnly) {
       query.is_read = false;
@@ -182,17 +174,11 @@ export class NotificationService {
   }
 
   async markAsRead(notificationId: number, userId: number): Promise<void> {
-    await this.notificationRepo.update(
-      { id: notificationId, user_id: userId },
-      { is_read: true, read_at: new Date() }
-    );
+    await this.notificationRepo.update({ id: notificationId, user_id: userId }, { is_read: true, read_at: new Date() });
   }
 
   async markAllAsRead(userId: number): Promise<void> {
-    await this.notificationRepo.update(
-      { user_id: userId, is_read: false },
-      { is_read: true, read_at: new Date() }
-    );
+    await this.notificationRepo.update({ user_id: userId, is_read: false }, { is_read: true, read_at: new Date() });
   }
 }
 ```
@@ -253,16 +239,12 @@ export class LineNotifyProcessor {
   async sendLineNotify(job: Job<any>) {
     const { token, message } = job.data;
 
-    await axios.post(
-      'https://notify-api.line.me/api/notify',
-      `message=${encodeURIComponent(message)}`,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    await axios.post('https://notify-api.line.me/api/notify', `message=${encodeURIComponent(message)}`, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 }
 ```
@@ -292,10 +274,7 @@ export class AuditService {
     await this.auditRepo.save(auditLog);
   }
 
-  async findByEntity(
-    entityType: string,
-    entityId: number
-  ): Promise<AuditLog[]> {
+  async findByEntity(entityType: string, entityId: number): Promise<AuditLog[]> {
     return this.auditRepo.find({
       where: { entity_type: entityType, entity_id: entityId },
       relations: ['user'],
@@ -321,14 +300,7 @@ export class AuditService {
     // Generate CSV
     const csv = logs
       .map((log) =>
-        [
-          log.created_at,
-          log.user.username,
-          log.action,
-          log.entity_type,
-          log.entity_id,
-          log.ip_address,
-        ].join(',')
+        [log.created_at, log.user.username, log.action, log.entity_type, log.entity_id, log.ip_address].join(',')
       )
       .join('\n');
 
@@ -387,18 +359,12 @@ export class NotificationController {
   constructor(private service: NotificationService) {}
 
   @Get('my')
-  async getMyNotifications(
-    @CurrentUser() user: User,
-    @Query('unread_only') unreadOnly: boolean
-  ) {
+  async getMyNotifications(@CurrentUser() user: User, @Query('unread_only') unreadOnly: boolean) {
     return this.service.getUserNotifications(user.user_id, unreadOnly);
   }
 
   @Post(':id/read')
-  async markAsRead(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: User
-  ) {
+  async markAsRead(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
     return this.service.markAsRead(id, user.user_id);
   }
 
@@ -418,10 +384,7 @@ export class AuditController {
 
   @Get('entity/:type/:id')
   @RequirePermission('audit.view')
-  async getEntityAuditLogs(
-    @Param('type') type: string,
-    @Param('id', ParseIntPipe) id: number
-  ) {
+  async getEntityAuditLogs(@Param('type') type: string, @Param('id', ParseIntPipe) id: number) {
     return this.service.findByEntity(type, id);
   }
 

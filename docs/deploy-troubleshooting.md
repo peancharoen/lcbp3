@@ -7,6 +7,7 @@
 **Error**: `failed to remove container: Error response from daemon: removal of container xxx is already in progress`
 
 **Causes**:
+
 - Container is still running processes
 - QNAP Container Station interference
 - Docker daemon issues
@@ -14,6 +15,7 @@
 **Solutions**:
 
 #### 1. **Manual Cleanup (SSH to QNAP)**
+
 ```bash
 # SSH to QNAP
 ssh admin@your-qnap-ip
@@ -36,12 +38,14 @@ docker system df
 ```
 
 #### 2. **Container Station GUI Fix**
+
 1. Open QNAP Container Station
 2. Stop all containers manually
 3. Delete containers manually
 4. Try deploy again
 
 #### 3. **Docker Daemon Restart**
+
 ```bash
 # Restart Docker service (QNAP specific)
 /etc/init.d/container-station.sh restart
@@ -56,12 +60,14 @@ reboot
 **Solutions**:
 
 #### 1. **Increase Timeouts** (Updated in deploy.yaml)
+
 ```yaml
 timeout: 1200s # 20 minutes total
 command_timeout: 900s # 15 minutes per command
 ```
 
 #### 2. **Check Network**
+
 ```bash
 # Test SSH connectivity
 ssh -o ConnectTimeout=30 admin@your-qnap-ip "echo 'SSH OK'"
@@ -73,6 +79,7 @@ ssh admin@your-qnap-ip "docker --version"
 ### ⚠️ Build Failures
 
 **Frontend Build Issues**:
+
 ```bash
 # Check Node.js version
 node --version  # Should be v18+
@@ -86,6 +93,7 @@ pnpm run build
 ```
 
 **Backend Build Issues**:
+
 ```bash
 # Check dependencies
 cd /share/np-dms/app/source/lcbp3/backend
@@ -96,6 +104,7 @@ pnpm run build
 ### ⚠️ Health Check Failures
 
 **Backend not healthy**:
+
 ```bash
 # Check container logs
 docker logs backend
@@ -111,6 +120,7 @@ curl -f http://localhost:3001/health || echo "Health check failed"
 ## 🚀 Quick Deploy Commands
 
 ### Manual Deploy (SSH to QNAP)
+
 ```bash
 # 1. Update code
 cd /share/np-dms/app/source/lcbp3
@@ -129,6 +139,7 @@ docker compose -f docker-compose-app.yml up -d
 ```
 
 ### Rollback Commands
+
 ```bash
 # Stop current
 cd /share/np-dms/app
@@ -147,6 +158,7 @@ git checkout <previous-commit-hash>
 ## 📊 Monitoring Deploy Status
 
 ### Check Services
+
 ```bash
 # Container status
 docker ps -a
@@ -161,6 +173,7 @@ docker logs frontend --tail 50
 ```
 
 ### System Resources
+
 ```bash
 # Docker system info
 docker system df
@@ -175,6 +188,7 @@ df -h
 ## 🆘 Emergency Procedures
 
 ### Full Reset
+
 ```bash
 # Stop everything
 docker stop $(docker ps -q) 2>/dev/null || true
@@ -196,6 +210,7 @@ docker compose -f docker-compose-app.yml up -d
 ```
 
 ### Contact Support
+
 - Check logs: `docker logs backend`, `docker logs frontend`
 - System status: `docker ps -a`, `docker system df`
 - Network: `curl -I` test URLs

@@ -46,37 +46,38 @@ Post-implementation validation that compares code against spec requirements.
 
 4. **Validation Checks**:
 
-   | Check | Method |
-   |-------|--------|
+   | Check                | Method                                           |
+   | -------------------- | ------------------------------------------------ |
    | Requirement Coverage | Each requirement has ≥1 implementation reference |
-   | Acceptance Criteria | Each criterion is testable in code |
-   | Edge Case Handling | Each edge case has explicit handling code |
-   | Test Coverage | Each requirement has ≥1 test |
+   | Acceptance Criteria  | Each criterion is testable in code               |
+   | Edge Case Handling   | Each edge case has explicit handling code        |
+   | Test Coverage        | Each requirement has ≥1 test                     |
 
 5. **Generate Validation Report**:
+
    ```markdown
    # Validation Report: [Feature Name]
-   
+
    **Date**: [timestamp]
    **Status**: PASS | PARTIAL | FAIL
-   
+
    ## Coverage Summary
-   
-   | Metric | Count | Percentage |
-   |--------|-------|------------|
-   | Requirements Covered | X/Y | Z% |
-   | Acceptance Criteria Met | X/Y | Z% |
-   | Edge Cases Handled | X/Y | Z% |
-   | Tests Present | X/Y | Z% |
-   
+
+   | Metric                  | Count | Percentage |
+   | ----------------------- | ----- | ---------- |
+   | Requirements Covered    | X/Y   | Z%         |
+   | Acceptance Criteria Met | X/Y   | Z%         |
+   | Edge Cases Handled      | X/Y   | Z%         |
+   | Tests Present           | X/Y   | Z%         |
+
    ## Uncovered Requirements
-   
-   | Requirement | Status | Notes |
-   |-------------|--------|-------|
-   | [REQ-001] | Missing | No implementation found |
-   
+
+   | Requirement | Status  | Notes                   |
+   | ----------- | ------- | ----------------------- |
+   | [REQ-001]   | Missing | No implementation found |
+
    ## Recommendations
-   
+
    1. [Action item for gaps]
    ```
 

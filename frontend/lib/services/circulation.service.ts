@@ -1,10 +1,10 @@
 // File: lib/services/circulation.service.ts
-import apiClient from "@/lib/api/client";
+import apiClient from '@/lib/api/client';
 
 // Import DTO ที่สร้างไว้
-import { CreateCirculationDto } from "@/types/dto/circulation/create-circulation.dto";
-import { SearchCirculationDto } from "@/types/dto/circulation/search-circulation.dto";
-import { UpdateCirculationRoutingDto } from "@/types/dto/circulation/update-circulation-routing.dto";
+import { CreateCirculationDto } from '@/types/dto/circulation/create-circulation.dto';
+import { SearchCirculationDto } from '@/types/dto/circulation/search-circulation.dto';
+import { UpdateCirculationRoutingDto } from '@/types/dto/circulation/update-circulation-routing.dto';
 
 export const circulationService = {
   /**
@@ -12,7 +12,7 @@ export const circulationService = {
    */
   getAll: async (params?: SearchCirculationDto) => {
     // GET /circulations
-    const response = await apiClient.get("/circulations", { params });
+    const response = await apiClient.get('/circulations', { params });
     return response.data;
   },
 
@@ -30,7 +30,7 @@ export const circulationService = {
    */
   create: async (data: CreateCirculationDto) => {
     // POST /circulations
-    const response = await apiClient.post("/circulations", data);
+    const response = await apiClient.post('/circulations', data);
     return response.data;
   },
 
@@ -50,5 +50,5 @@ export const circulationService = {
   delete: async (uuid: string) => {
     const response = await apiClient.delete(`/circulations/${uuid}`);
     return response.data;
-  }
+  },
 };

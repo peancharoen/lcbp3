@@ -54,7 +54,6 @@ related:
 - มีการใช้ Caching กับข้อมูลที่เรียกใช้บ่อย และใช้ Pagination ในตารางข้อมูลเพื่อจัดการข้อมูลจำนวนมาก
 
 - ตัวชี้วัดประสิทธิภาพ:
-
   - **API Response Time:** < 200ms (90th percentile) สำหรับ operation ทั่วไป
   - **Search Query Performance:** < 500ms สำหรับการค้นหาขั้นสูง
   - **File Upload Performance:** < 30 seconds สำหรับไฟล์ขนาด 50MB
@@ -64,7 +63,6 @@ related:
   - **Application Startup Time:** < 30 seconds
 
 - Caching Strategy:
-
   - **Master Data Cache:** Roles, Permissions, Organizations, Project metadata (TTL: 1 hour)
   - **User Session Cache:** User permissions และ profile data (TTL: 30 minutes)
   - **Search Result Cache:** Frequently searched queries (TTL: 15 minutes)

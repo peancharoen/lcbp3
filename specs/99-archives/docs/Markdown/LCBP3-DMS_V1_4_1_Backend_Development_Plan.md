@@ -1,7 +1,7 @@
 # 📋 **แผนการพัฒนา Backend (NestJS) - LCBP3-DMS v1.4.1 (ปรับปรุงโดย deepseek)**
 
-**ปรับปรุงตาม Requirements v1.4.0 ที่อัปเดตแล้ว*
-**Routing และ รูปแบบ JSON details**
+**ปรับปรุงตาม Requirements v1.4.0 ที่อัปเดตแล้ว\*
+**Routing และ รูปแบบ JSON details\*\*
 
 ---
 
@@ -67,164 +67,164 @@ src/
 
 ### **Dependency Diagram (ภาพรวม)**
 
-  ```mermaid
-    %% Phase 0: Infrastructure
-    subgraph Phase 0 [Phase 0: Infrastructure Setup]
-        T0_1[T0.1: Setup QNAP Container Station]
-        T0_2[T0.2: Initialize NestJS Project]
-        T0_3[T0.3: Setup Database Connection]
-        T0_4[T0.4: Setup Git Repository]
-    end
+```mermaid
+  %% Phase 0: Infrastructure
+  subgraph Phase 0 [Phase 0: Infrastructure Setup]
+      T0_1[T0.1: Setup QNAP Container Station]
+      T0_2[T0.2: Initialize NestJS Project]
+      T0_3[T0.3: Setup Database Connection]
+      T0_4[T0.4: Setup Git Repository]
+  end
 
-    %% Phase 1: Core Foundation
-    subgraph Phase 1 [Phase 1: Core Foundation & Security]
-        T1_1[T1.1: CommonModule - Base Infrastructure]
-        T1_2[T1.2: AuthModule - JWT Authentication]
-        T1_3[T1.3: UserModule - User Management]
-        T1_4[T1.4: RBAC Guard - 4-Level Authorization]
-        T1_5[T1.5: ProjectModule - Base Structures]
-    end
+  %% Phase 1: Core Foundation
+  subgraph Phase 1 [Phase 1: Core Foundation & Security]
+      T1_1[T1.1: CommonModule - Base Infrastructure]
+      T1_2[T1.2: AuthModule - JWT Authentication]
+      T1_3[T1.3: UserModule - User Management]
+      T1_4[T1.4: RBAC Guard - 4-Level Authorization]
+      T1_5[T1.5: ProjectModule - Base Structures]
+  end
 
-    %% Phase 2: Security & File Management
-    subgraph Phase 2 [Phase 2: Security & File Management]
-        T2_1[T2.1: MasterModule - Master Data Management]
-        T2_2[T2.2: FileStorageService - Secure File Management]
-        T2_3[T2.3: DocumentNumberingModule - App-Level Locking]
-        T2_4[T2.4: SecurityModule - Enhanced Security]
-        T2_5[T2.5: JSON Details & Schema Management]
-    end
+  %% Phase 2: Security & File Management
+  subgraph Phase 2 [Phase 2: Security & File Management]
+      T2_1[T2.1: MasterModule - Master Data Management]
+      T2_2[T2.2: FileStorageService - Secure File Management]
+      T2_3[T2.3: DocumentNumberingModule - App-Level Locking]
+      T2_4[T2.4: SecurityModule - Enhanced Security]
+      T2_5[T2.5: JSON Details & Schema Management]
+  end
 
-    %% Phase 3: Correspondence & RFA Core
-    subgraph Phase 3 [Phase 3: Correspondence & RFA Core]
-        T3_1[T3.1: CorrespondenceModule - Basic CRUD]
-        T3_2[T3.2: CorrespondenceModule - Advanced Features]
-        T3_3[T3.3: RfaModule - Basic CRUD]
-        T3_4[T3.4: Correspondence Routing]
-    end
+  %% Phase 3: Correspondence & RFA Core
+  subgraph Phase 3 [Phase 3: Correspondence & RFA Core]
+      T3_1[T3.1: CorrespondenceModule - Basic CRUD]
+      T3_2[T3.2: CorrespondenceModule - Advanced Features]
+      T3_3[T3.3: RfaModule - Basic CRUD]
+      T3_4[T3.4: Correspondence Routing]
+  end
 
-    %% Phase 4: Drawing Management
-    subgraph Phase 4 [Phase 4: Drawing Management]
-        T4_1[T4.1: DrawingModule - Contract Drawings]
-        T4_2[T4.2: DrawingModule - Shop Drawings]
-    end
+  %% Phase 4: Drawing Management
+  subgraph Phase 4 [Phase 4: Drawing Management]
+      T4_1[T4.1: DrawingModule - Contract Drawings]
+      T4_2[T4.2: DrawingModule - Shop Drawings]
+  end
 
-    %% Phase 5: Workflow Systems & Resilience
-    subgraph Phase 5 [Phase 5: Workflow Systems & Resilience]
-        T5_1[T5.1: RfaModule - Workflow Implementation]
-        T5_2[T5.2: CirculationModule - Internal Routing]
-        T5_3[T5.3: TransmittalModule - Document Forwarding]
-    end
+  %% Phase 5: Workflow Systems & Resilience
+  subgraph Phase 5 [Phase 5: Workflow Systems & Resilience]
+      T5_1[T5.1: RfaModule - Workflow Implementation]
+      T5_2[T5.2: CirculationModule - Internal Routing]
+      T5_3[T5.3: TransmittalModule - Document Forwarding]
+  end
 
-    %% Phase 6: Advanced Features & Monitoring
-    subgraph Phase 6 [Phase 6: Advanced Features & Monitoring]
-        T6_1[T6.1: SearchModule - Elasticsearch Integration]
-        T6_2[T6.2: NotificationModule - Email & Line]
-        T6_3[T6.3: MonitoringModule - Observability]
-        T6_4[T6.4: ResilienceModule - Circuit Breaker & Retry]
-    end
+  %% Phase 6: Advanced Features & Monitoring
+  subgraph Phase 6 [Phase 6: Advanced Features & Monitoring]
+      T6_1[T6.1: SearchModule - Elasticsearch Integration]
+      T6_2[T6.2: NotificationModule - Email & Line]
+      T6_3[T6.3: MonitoringModule - Observability]
+      T6_4[T6.4: ResilienceModule - Circuit Breaker & Retry]
+  end
 
-    %% Phase 7: Testing & Optimization
-    subgraph Phase 7 [Phase 7: Testing & Optimization]
-        T7_1[T7.1: Unit Testing]
-        T7_2[T7.2: Integration Testing]
-        T7_3[T7.3: E2E Testing]
-        T7_4[T7.4: Performance Testing]
-        T7_5[T7.5: Security Testing]
-        T7_6[T7.6: Performance Optimization]
-    end
+  %% Phase 7: Testing & Optimization
+  subgraph Phase 7 [Phase 7: Testing & Optimization]
+      T7_1[T7.1: Unit Testing]
+      T7_2[T7.2: Integration Testing]
+      T7_3[T7.3: E2E Testing]
+      T7_4[T7.4: Performance Testing]
+      T7_5[T7.5: Security Testing]
+      T7_6[T7.6: Performance Optimization]
+  end
 
-    %% Phase 8: Documentation & Deployment
-    subgraph Phase 8 [Phase 8: Documentation & Deployment]
-        T8_1[T8.1: API Documentation]
-        T8_2[T8.2: Technical Documentation]
-        T8_3[T8.3: Security Hardening]
-        T8_4[T8.4: Deployment Preparation]
-        T8_5[T8.5: Production Deployment]
-        T8_6[T8.6: Handover to Frontend Team]
-    end
+  %% Phase 8: Documentation & Deployment
+  subgraph Phase 8 [Phase 8: Documentation & Deployment]
+      T8_1[T8.1: API Documentation]
+      T8_2[T8.2: Technical Documentation]
+      T8_3[T8.3: Security Hardening]
+      T8_4[T8.4: Deployment Preparation]
+      T8_5[T8.5: Production Deployment]
+      T8_6[T8.6: Handover to Frontend Team]
+  end
 
-    %% Dependencies
-    T0_1 --> T0_2
-    T0_2 --> T0_3
-    T0_3 --> T0_4
+  %% Dependencies
+  T0_1 --> T0_2
+  T0_2 --> T0_3
+  T0_3 --> T0_4
 
-    T0_2 --> T1_1
-    T0_3 --> T1_1
-    T1_1 --> T1_2
-    T1_1 --> T1_3
-    T1_1 --> T1_4
-    T1_1 --> T1_5
-    T1_2 --> T1_3
-    T1_3 --> T1_4
+  T0_2 --> T1_1
+  T0_3 --> T1_1
+  T1_1 --> T1_2
+  T1_1 --> T1_3
+  T1_1 --> T1_4
+  T1_1 --> T1_5
+  T1_2 --> T1_3
+  T1_3 --> T1_4
 
-    T0_3 --> T2_1
-    T1_1 --> T2_1
-    T1_5 --> T2_1
-    T1_1 --> T2_2
-    T1_4 --> T2_2
-    T1_1 --> T2_3
-    T1_1 --> T2_4
-    T1_1 --> T2_5
+  T0_3 --> T2_1
+  T1_1 --> T2_1
+  T1_5 --> T2_1
+  T1_1 --> T2_2
+  T1_4 --> T2_2
+  T1_1 --> T2_3
+  T1_1 --> T2_4
+  T1_1 --> T2_5
 
-    T1_1 --> T3_1
-    T1_2 --> T3_1
-    T1_3 --> T3_1
-    T1_4 --> T3_1
-    T1_5 --> T3_1
-    T2_3 --> T3_1
-    T2_2 --> T3_1
-    T2_5 --> T3_1
-    T3_1 --> T3_2
-    T3_1 --> T3_3
-    T1_5 --> T3_3
-    T3_1 --> T3_4
-    T2_5 --> T3_4
+  T1_1 --> T3_1
+  T1_2 --> T3_1
+  T1_3 --> T3_1
+  T1_4 --> T3_1
+  T1_5 --> T3_1
+  T2_3 --> T3_1
+  T2_2 --> T3_1
+  T2_5 --> T3_1
+  T3_1 --> T3_2
+  T3_1 --> T3_3
+  T1_5 --> T3_3
+  T3_1 --> T3_4
+  T2_5 --> T3_4
 
-    T1_1 --> T4_1
-    T1_2 --> T4_1
-    T1_4 --> T4_1
-    T1_5 --> T4_1
-    T2_2 --> T4_1
-    T4_1 --> T4_2
+  T1_1 --> T4_1
+  T1_2 --> T4_1
+  T1_4 --> T4_1
+  T1_5 --> T4_1
+  T2_2 --> T4_1
+  T4_1 --> T4_2
 
-    T3_3 --> T5_1
-    T4_2 --> T5_1
-    T2_5 --> T5_1
-    T3_1 --> T5_2
-    T2_5 --> T5_2
-    T3_1 --> T5_3
+  T3_3 --> T5_1
+  T4_2 --> T5_1
+  T2_5 --> T5_1
+  T3_1 --> T5_2
+  T2_5 --> T5_2
+  T3_1 --> T5_3
 
-    T3_1 --> T6_1
-    T3_3 --> T6_1
-    T4_2 --> T6_1
-    T5_2 --> T6_1
-    T5_3 --> T6_1
-    T1_1 --> T6_2
-    T6_4 --> T6_2
-    T1_1 --> T6_3
-    T1_1 --> T6_4
+  T3_1 --> T6_1
+  T3_3 --> T6_1
+  T4_2 --> T6_1
+  T5_2 --> T6_1
+  T5_3 --> T6_1
+  T1_1 --> T6_2
+  T6_4 --> T6_2
+  T1_1 --> T6_3
+  T1_1 --> T6_4
 
-    %% All development phases must be complete before testing
-    T1_5 --> T7_1
-    T2_5 --> T7_1
-    T3_4 --> T7_1
-    T4_2 --> T7_1
-    T5_3 --> T7_1
-    T6_4 --> T7_1
-    T7_1 --> T7_2
-    T7_2 --> T7_3
-    T7_3 --> T7_4
-    T7_4 --> T7_5
-    T7_5 --> T7_6
+  %% All development phases must be complete before testing
+  T1_5 --> T7_1
+  T2_5 --> T7_1
+  T3_4 --> T7_1
+  T4_2 --> T7_1
+  T5_3 --> T7_1
+  T6_4 --> T7_1
+  T7_1 --> T7_2
+  T7_2 --> T7_3
+  T7_3 --> T7_4
+  T7_4 --> T7_5
+  T7_5 --> T7_6
 
-    %% Testing must be complete before deployment
-    T7_6 --> T8_1
-    T8_1 --> T8_2
-    T8_2 --> T8_3
-    T8_3 --> T8_4
-    T8_4 --> T8_5
-    T8_5 --> T8_6
-  ```
+  %% Testing must be complete before deployment
+  T7_6 --> T8_1
+  T8_1 --> T8_2
+  T8_2 --> T8_3
+  T8_3 --> T8_4
+  T8_4 --> T8_5
+  T8_5 --> T8_6
+```
 
 ## **Phase 0: Infrastructure Setup (สัปดาห์ที่ 1)**
 
@@ -289,7 +289,6 @@ src/
   - **Dependencies:** T0.1 (ต้องมี Docker Network และ Environment พร้อมก่อนสร้าง Project)
 
 - **[✅] T0.3 Setup Database Connection**
-
   - Import SQL Schema v1.4.0 เข้า MariaDB
   - Run Seed Data (organizations, users, roles, permissions)
   - Configure TypeORM ใน AppModule
@@ -774,7 +773,7 @@ src/
     - [ ] POST /correspondences/:id/routing/start → Start routing
     - [ ] POST /routing/:id/process → Process routing step
     - [ ] GET /correspondences/:id/routing → Get routing status
-    - [ ]  ตัวอย่าง Implementation Details
+    - [ ] ตัวอย่าง Implementation Details
 
 - **[ ] T3.4.3 WorkflowEngineModule - State Management**
   - [ ] สร้าง WorkflowEngineService:
@@ -845,7 +844,7 @@ src/
   - [ ] Schema version upgrades
   - [ ] Data transformation scenarios
   - [ ] Backward compatibility
-民主- **Exit Criteria:** JSON details integrated across all modules
+        民主- **Exit Criteria:** JSON details integrated across all modules
 
 ---
 
@@ -1069,7 +1068,7 @@ quality_gates:
     required: true
   integration_tests:
     scenarios: all_core
-    required: true 
+    required: true
   security_tests:
     vulnerabilities: 0
     required: true
@@ -1156,7 +1155,7 @@ quality_gates:
 
 ### 📊 **Testing Metrics & Exit Criteria**
 
- **แต่ละ Phase ต้องผ่าน Metrics เหล่านี้:**
+**แต่ละ Phase ต้องผ่าน Metrics เหล่านี้:**
 
 #### **Phase Completion Metrics**
 
@@ -1261,8 +1260,8 @@ quality_gates:
 
 ## 📊 **สรุป Timeline**
 
-| Phase   | ระยะเวลา     | จำนวนงาน      | Output หลัก                           |
-| ------- | ------------ | ------------ | ------------------------------------ |
+| Phase   | ระยะเวลา       | จำนวนงาน     | Output หลัก                          |
+| ------- | -------------- | ------------ | ------------------------------------ |
 | Phase 0 | 1 สัปดาห์      | 4            | Infrastructure Ready + Security Base |
 | Phase 1 | 2 สัปดาห์      | 5            | Auth & User Management + RBAC        |
 | Phase 2 | 1 สัปดาห์      | 4            | Security & File Management           |

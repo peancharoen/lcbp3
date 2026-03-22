@@ -47,7 +47,7 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false }: DSL
     try {
       const result = await workflowApi.validateDSL(dsl);
       setValidationResult(result);
-    } catch (error) {
+    } catch (_error) {
       // Validation failed - error state shown in UI
       setValidationResult({ valid: false, errors: ['Validation failed due to server error'] });
     } finally {
@@ -67,13 +67,13 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false }: DSL
     setIsTesting(true);
     setTestResult(null);
     try {
-        // Mock test execution
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setTestResult({ success: true, message: "Workflow simulation completed successfully." });
+      // Mock test execution
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setTestResult({ success: true, message: 'Workflow simulation completed successfully.' });
     } catch {
-        setTestResult({ success: false, message: "Workflow simulation failed." });
+      setTestResult({ success: false, message: 'Workflow simulation failed.' });
     } finally {
-        setIsTesting(false);
+      setIsTesting(false);
     }
   };
 
@@ -82,24 +82,16 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false }: DSL
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Workflow DSL</h3>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={validateDSL}
-            disabled={isValidating || readOnly}
-          >
+          <Button variant="outline" onClick={validateDSL} disabled={isValidating || readOnly}>
             {isValidating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-                <CheckCircle className="mr-2 h-4 w-4" />
+              <CheckCircle className="mr-2 h-4 w-4" />
             )}
             Validate
           </Button>
           <Button variant="outline" onClick={testWorkflow} disabled={isTesting || readOnly}>
-             {isTesting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-                <Play className="mr-2 h-4 w-4" />
-            )}
+            {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
             Test
           </Button>
         </div>
@@ -127,12 +119,11 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false }: DSL
       </Card>
 
       {validationResult && (
-        <Alert variant={validationResult.valid ? 'default' : 'destructive'} className={validationResult.valid ? "border-green-500 text-green-700 dark:text-green-400" : ""}>
-          {validationResult.valid ? (
-            <CheckCircle className="h-4 w-4" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
-          )}
+        <Alert
+          variant={validationResult.valid ? 'default' : 'destructive'}
+          className={validationResult.valid ? 'border-green-500 text-green-700 dark:text-green-400' : ''}
+        >
+          {validationResult.valid ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <AlertDescription>
             {validationResult.valid ? (
               <span className="font-semibold">DSL is valid and ready to deploy.</span>
@@ -152,12 +143,13 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false }: DSL
         </Alert>
       )}
 
-       {testResult && (
-        <Alert variant={testResult.success ? 'default' : 'destructive'}  className={testResult.success ? "border-blue-500 text-blue-700 dark:text-blue-400" : ""}>
-             {testResult.success ? <CheckCircle className="h-4 w-4"/> : <AlertCircle className="h-4 w-4"/>}
-            <AlertDescription>
-                {testResult.message}
-            </AlertDescription>
+      {testResult && (
+        <Alert
+          variant={testResult.success ? 'default' : 'destructive'}
+          className={testResult.success ? 'border-blue-500 text-blue-700 dark:text-blue-400' : ''}
+        >
+          {testResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          <AlertDescription>{testResult.message}</AlertDescription>
         </Alert>
       )}
     </div>

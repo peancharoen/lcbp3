@@ -39,10 +39,11 @@ import { UuidResolverService } from '../../common/services/uuid-resolver.service
 
 /**
  * CorrespondenceService - Document management (CRUD)
- *
- * NOTE: Workflow operations (submit, processAction) have been moved to
- * CorrespondenceWorkflowService which uses the Unified Workflow Engine.
  */
+interface ResolvedRecipient {
+  organizationId: number;
+  type: 'TO' | 'CC';
+}
 @Injectable()
 export class CorrespondenceService {
   private readonly logger = new Logger(CorrespondenceService.name);
@@ -78,12 +79,14 @@ export class CorrespondenceService {
       : undefined;
     const resolvedRecipients = createDto.recipients
       ? await Promise.all(
-          createDto.recipients.map(async (r) => ({
-            organizationId: await this.uuidResolver.resolveOrganizationId(
-              r.organizationId
-            ),
-            type: r.type,
-          }))
+          createDto.recipients.map(
+            async (r): Promise<ResolvedRecipient> => ({
+              organizationId: await this.uuidResolver.resolveOrganizationId(
+                r.organizationId
+              ),
+              type: r.type,
+            })
+          )
         )
       : undefined;
     const type = await this.typeRepo.findOne({
@@ -257,9 +260,9 @@ export class CorrespondenceService {
             originatorId: userOrgId,
             disciplineId: createDto.disciplineId,
             initiatorId: user.user_id,
-          }
+          } as Record<string, unknown>
         );
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.warn(
           `Workflow not started for ${docNumber.number} (Code: CORRESPONDENCE_${type.typeCode}): ${(error as Error).message}`
         );
@@ -491,12 +494,14 @@ export class CorrespondenceService {
       : undefined;
     const updResolvedRecipients = updateDto.recipients
       ? await Promise.all(
-          updateDto.recipients.map(async (r) => ({
-            organizationId: await this.uuidResolver.resolveOrganizationId(
-              r.organizationId
-            ),
-            type: r.type,
-          }))
+          updateDto.recipients.map(
+            async (r): Promise<ResolvedRecipient> => ({
+              organizationId: await this.uuidResolver.resolveOrganizationId(
+                r.organizationId
+              ),
+              type: r.type,
+            })
+          )
         )
       : undefined;
 
@@ -699,12 +704,14 @@ export class CorrespondenceService {
       : undefined;
     const previewRecipients = createDto.recipients
       ? await Promise.all(
-          createDto.recipients.map(async (r) => ({
-            organizationId: await this.uuidResolver.resolveOrganizationId(
-              r.organizationId
-            ),
-            type: r.type,
-          }))
+          createDto.recipients.map(
+            async (r): Promise<ResolvedRecipient> => ({
+              organizationId: await this.uuidResolver.resolveOrganizationId(
+                r.organizationId
+              ),
+              type: r.type,
+            })
+          )
         )
       : undefined;
 

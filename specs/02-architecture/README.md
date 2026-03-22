@@ -194,17 +194,17 @@ Layer 6: File Security (Virus Scanning, Access Control)
 
 ### Frontend Stack
 
-| Component            | Technology                       | Purpose                      |
-| -------------------- | -------------------------------- | ---------------------------- |
-| **Framework**        | Next.js 14+ (App Router)         | React Framework with SSR     |
-| **Language**         | TypeScript (ESM)                 | Type-safe JavaScript         |
-| **Styling**          | Tailwind CSS + PostCSS           | Utility-first CSS            |
-| **Components**       | shadcn/ui                        | Accessible Component Library |
-| **Server State**     | TanStack Query                   | Server State Management      |
-| **Client State**     | Zustand                          | Client State Management      |
-| **Form State**       | React Hook Form + Zod            | Form State Management        |
-| **Validation**       | Zod                              | Schema Validation            |
-| **Testing**          | Vitest + Playwright              | Unit + E2E Testing           |
+| Component        | Technology               | Purpose                      |
+| ---------------- | ------------------------ | ---------------------------- |
+| **Framework**    | Next.js 14+ (App Router) | React Framework with SSR     |
+| **Language**     | TypeScript (ESM)         | Type-safe JavaScript         |
+| **Styling**      | Tailwind CSS + PostCSS   | Utility-first CSS            |
+| **Components**   | shadcn/ui                | Accessible Component Library |
+| **Server State** | TanStack Query           | Server State Management      |
+| **Client State** | Zustand                  | Client State Management      |
+| **Form State**   | React Hook Form + Zod    | Form State Management        |
+| **Validation**   | Zod                      | Schema Validation            |
+| **Testing**      | Vitest + Playwright      | Unit + E2E Testing           |
 
 ### Backend Stack
 
@@ -274,6 +274,7 @@ Layer 6: File Security (Virus Scanning, Access Control)
 - **Counter Key:** Composite PK (8 columns)
 
 **Documentation:**
+
 - 📋 [Requirements](../01-requirements/01-03.11-document-numbering.md)
 - 📘 [Implementation Guide](../03-implementation/03-04-document-numbering.md)
 - 📗 [Operations Guide](../04-operations/04-08-document-numbering-operations.md)

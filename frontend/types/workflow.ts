@@ -1,9 +1,9 @@
-export type WorkflowType = "CORRESPONDENCE" | "RFA" | "DRAWING";
+export type WorkflowType = 'CORRESPONDENCE' | 'RFA' | 'DRAWING';
 
 export interface WorkflowStep {
   stepId?: string;
   stepName: string;
-  stepType: "APPROVAL" | "REVIEW" | "ENDORSEMENT";
+  stepType: 'APPROVAL' | 'REVIEW' | 'ENDORSEMENT';
   approverRoleId?: number;
   approverRoleName?: string;
   nextStepSuccess?: string;

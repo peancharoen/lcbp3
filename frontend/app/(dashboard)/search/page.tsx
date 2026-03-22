@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { SearchFilters } from "@/components/search/filters";
-import { SearchResults } from "@/components/search/results";
-import { SearchFilters as FilterType } from "@/types/search";
-import { useSearch } from "@/hooks/use-search";
-import { Loader2 } from "lucide-react";
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { SearchFilters } from '@/components/search/filters';
+import { SearchResults } from '@/components/search/results';
+import { SearchFilters as FilterType } from '@/types/search';
+import { useSearch } from '@/hooks/use-search';
+import { Loader2 } from 'lucide-react';
 
 function SearchContent() {
   const searchParams = useSearchParams();
 
   // URL Params state
-  const query = searchParams.get("q") || "";
-  const typeParam = searchParams.get("type");
-  const statusParam = searchParams.get("status");
+  const query = searchParams.get('q') || '';
+  const typeParam = searchParams.get('type');
+  const statusParam = searchParams.get('status');
 
   // Local Filter State (synced with URL initially, but can be independent before apply)
   // For simplicity, we'll keep filters in sync with valid search params or local state that pushes to URL
@@ -43,9 +43,8 @@ function SearchContent() {
         <h1 className="text-3xl font-bold">Search Results</h1>
         <p className="text-muted-foreground mt-1">
           {isLoading
-            ? "Searching..."
-            : `Found ${results?.meta?.total ?? results?.data?.length ?? 0} results for "${query}"`
-          }
+            ? 'Searching...'
+            : `Found ${results?.meta?.total ?? results?.data?.length ?? 0} results for "${query}"`}
         </p>
       </div>
 
@@ -69,11 +68,13 @@ function SearchContent() {
 export default function SearchPage() {
   return (
     <div className="space-y-6">
-      <Suspense fallback={
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      }>
+      <Suspense
+        fallback={
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        }
+      >
         <SearchContent />
       </Suspense>
     </div>

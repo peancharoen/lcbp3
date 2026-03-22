@@ -34,7 +34,7 @@ interface BackendWorkflowShape {
   updated_at?: string;
 }
 
-const extractArrayData = <T,>(value: unknown): T[] => {
+const extractArrayData = <T>(value: unknown): T[] => {
   let current: unknown = value;
 
   for (let i = 0; i < 5; i += 1) {
@@ -52,7 +52,7 @@ const extractArrayData = <T,>(value: unknown): T[] => {
   return Array.isArray(current) ? (current as T[]) : [];
 };
 
-const extractNestedData = <T,>(value: unknown): T => {
+const extractNestedData = <T>(value: unknown): T => {
   let current: unknown = value;
 
   for (let i = 0; i < 5; i += 1) {
@@ -106,9 +106,7 @@ const mapWorkflow = (backendObj: BackendWorkflowShape): Workflow => {
       backendObj.workflow_code ||
       '',
     description:
-      backendObj.description ||
-      (typeof backendObj.dsl === 'object' ? backendObj.dsl?.description : undefined) ||
-      '',
+      backendObj.description || (typeof backendObj.dsl === 'object' ? backendObj.dsl?.description : undefined) || '',
     workflowType: normalizeWorkflowType(backendObj.workflow_code),
     version: backendObj.version || 1,
     isActive: backendObj.is_active ?? false,

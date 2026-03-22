@@ -110,8 +110,8 @@ git pull --rebase
 git log
 ```
 
-
 ---
+
 ## 🧩 SECTION 3 – ทำงานกับ Branch
 
 ### ดู branch ทั้งหมด
@@ -229,5 +229,7 @@ git clone ssh://git@git.np-dms.work:2222/np-dms/lcbp3.git
 ---
 
 ## 📌 END
+
+```
 
 ```

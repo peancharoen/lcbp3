@@ -27,14 +27,12 @@
 ## 📝 Acceptance Criteria
 
 1. **Phase 1 - Temp Upload:**
-
    - ✅ Upload file → Scan virus → Save to temp/
    - ✅ Generate temp_id and return to client
    - ✅ Set expiration (24 hours)
    - ✅ Calculate SHA-256 checksum
 
 2. **Phase 2 - Commit:**
-
    - ✅ Move temp file → permanent/{YYYY}/{MM}/
    - ✅ Update attachment record (is_temporary=false)
    - ✅ Link to parent entity (correspondence, rfa, etc.)
@@ -76,10 +74,7 @@ export class FileStorageService {
     this.ensureDirectories();
   }
 
-  async uploadToTemp(
-    file: Express.Multer.File,
-    userId: number
-  ): Promise<UploadResult> {
+  async uploadToTemp(file: Express.Multer.File, userId: number): Promise<UploadResult> {
     // 1. Validate file
     this.validateFile(file);
 
@@ -91,9 +86,7 @@ export class FileStorageService {
 
     // 3. Generate identifiers
     const tempId = uuidv4();
-    const storedFilename = `${tempId}_${this.sanitizeFilename(
-      file.originalname
-    )}`;
+    const storedFilename = `${tempId}_${this.sanitizeFilename(file.originalname)}`;
     const tempPath = path.join(this.TEMP_DIR, storedFilename);
 
     // 4. Calculate checksum
@@ -154,9 +147,7 @@ export class FileStorageService {
       const permanentDir = path.join(this.PERMANENT_DIR, year, month);
       await fs.ensureDir(permanentDir);
 
-      const permanentFilename = `${uuidv4()}_${
-        tempAttachment.original_filename
-      }`;
+      const permanentFilename = `${uuidv4()}_${tempAttachment.original_filename}`;
       const permanentPath = path.join(permanentDir, permanentFilename);
 
       // 3. Move file (atomic operation)
@@ -335,10 +326,7 @@ export class FileStorageController {
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async upload(
-    @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user: User
-  ): Promise<UploadResult> {
+  async upload(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: User): Promise<UploadResult> {
     return this.fileStorage.uploadToTemp(file, user.user_id);
   }
 
@@ -386,20 +374,13 @@ describe('FileStorageService', () => {
 
     const mockFile = createMockFile('virus.exe', 'application/octet-stream');
 
-    await expect(service.uploadToTemp(mockFile, 1)).rejects.toThrow(
-      'Virus detected'
-    );
+    await expect(service.uploadToTemp(mockFile, 1)).rejects.toThrow('Virus detected');
   });
 
   it('should commit temp files to permanent', async () => {
     const tempIds = ['temp-id-1', 'temp-id-2'];
 
-    const committed = await service.commitFiles(
-      tempIds,
-      1,
-      'correspondence',
-      manager
-    );
+    const committed = await service.commitFiles(tempIds, 1, 'correspondence', manager);
 
     expect(committed).toHaveLength(2);
     expect(committed[0].is_temporary).toBe(false);

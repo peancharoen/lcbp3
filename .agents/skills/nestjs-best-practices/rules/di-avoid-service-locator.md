@@ -55,7 +55,7 @@ export class OrdersService {
   constructor(
     private usersService: UsersService,
     private inventoryService: InventoryService,
-    private paymentService: PaymentService,
+    private paymentService: PaymentService
   ) {}
 
   async createOrder(dto: CreateOrderDto): Promise<Order> {

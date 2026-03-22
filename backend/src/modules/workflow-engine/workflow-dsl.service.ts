@@ -255,7 +255,9 @@ export class WorkflowDslService {
 
       // Create a function that returns the expression result
       // "context" is available inside the expression
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
       const func = new Function('context', `return ${expression};`);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       return !!func(context);
     } catch (error: unknown) {
       this.logger.error(

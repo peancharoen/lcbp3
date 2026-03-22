@@ -1,7 +1,7 @@
 export interface SearchResult {
   uuid: string;
   id?: number; // Excluded from API responses (ADR-019)
-  type: "correspondence" | "rfa" | "drawing";
+  type: 'correspondence' | 'rfa' | 'drawing';
   title: string;
   description?: string;
   status: string;

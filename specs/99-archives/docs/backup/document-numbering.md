@@ -1,6 +1,7 @@
 # Document Numbering Implementation Guide
 
 ---
+
 title: 'Implementation Guide: Document Numbering System'
 version: 1.6.1
 status: implemented
@@ -171,45 +172,52 @@ src/modules/document-numbering/
 ### 2.2. Number Generation Process
 
 #### 2.2.1. Resolve Format Template:
-  * Query document_number_formats by project_id + type_id.
-  * If no result, query by project_id + NULL (Default Project Format).
-  * If still no result, apply System Default Template: `{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}`.
-  * Determine resetSequenceYearly flag from the found format (default: true)
+
+- Query document_number_formats by project_id + type_id.
+- If no result, query by project_id + NULL (Default Project Format).
+- If still no result, apply System Default Template: `{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}`.
+- Determine resetSequenceYearly flag from the found format (default: true)
 
 #### 2.2.2. Determine Counter Key:
-  * If resetSequenceYearly is True: Use Current Year (e.g., 2025).
-  * If resetSequenceYearly is False: Use 0 (Continuous).
-  * Use type_id from the resolved format (Specific ID or NULL).
+
+- If resetSequenceYearly is True: Use Current Year (e.g., 2025).
+- If resetSequenceYearly is False: Use 0 (Continuous).
+- Use type_id from the resolved format (Specific ID or NULL).
 
 #### 2.2.3. Generate Number:
-  * Use format template to generate number.
-  * Replace tokens with actual values:
-    * {PROJECT} -> Project Code
-    * {ORG} -> Originator Organization Code
-    * {RECIPIENT} -> Recipient Organization Code
-    * {TYPE} -> Type Code
-    * {YEAR} -> Current Year
-    * {SEQ} -> Sequence Number
-    * {REV} -> Revision Number
+
+- Use format template to generate number.
+- Replace tokens with actual values:
+  - {PROJECT} -> Project Code
+  - {ORG} -> Originator Organization Code
+  - {RECIPIENT} -> Recipient Organization Code
+  - {TYPE} -> Type Code
+  - {YEAR} -> Current Year
+  - {SEQ} -> Sequence Number
+  - {REV} -> Revision Number
 
 #### 2.2.4. Validate Number:
-  * Check if generated number is unique.
-  * If not unique, increment sequence and retry.
+
+- Check if generated number is unique.
+- If not unique, increment sequence and retry.
 
 #### 2.2.5. Update Counter:
-  * Update document_number_counters with new sequence.
+
+- Update document_number_counters with new sequence.
 
 #### 2.2.6. Generate Audit Record:
-  * Create audit record with:
-    * Generated number
-    * Counter key used
-    * Template used
-    * User ID
-    * IP Address
-    * User Agent
+
+- Create audit record with:
+  - Generated number
+  - Counter key used
+  - Template used
+  - User ID
+  - IP Address
+  - User Agent
 
 #### 2.2.7. Return Generated Number:
-  * Return generated number to caller.
+
+- Return generated number to caller.
 
 ### 2.3. TypeORM Entity
 
@@ -309,9 +317,11 @@ export class DocumentNumberingLockService {
   }
 
   private buildLockKey(key: CounterKey): string {
-    return `lock:docnum:${key.projectId}:${key.originatorOrgId}:` +
-           `${key.recipientOrgId ?? 0}:${key.correspondenceTypeId}:` +
-           `${key.subTypeId}:${key.rfaTypeId}:${key.disciplineId}:${key.year}`;
+    return (
+      `lock:docnum:${key.projectId}:${key.originatorOrgId}:` +
+      `${key.recipientOrgId ?? 0}:${key.correspondenceTypeId}:` +
+      `${key.subTypeId}:${key.rfaTypeId}:${key.disciplineId}:${key.year}`
+    );
   }
 }
 ```
@@ -333,7 +343,7 @@ export class CounterService {
   constructor(
     @InjectRepository(DocumentNumberCounter)
     private counterRepo: Repository<DocumentNumberCounter>,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   async incrementCounter(counterKey: CounterKey): Promise<number> {
@@ -364,9 +374,7 @@ export class CounterService {
         });
       } catch (error) {
         if (error instanceof OptimisticLockVersionMismatchError) {
-          this.logger.warn(
-            `Version conflict, retry ${attempt + 1}/${MAX_RETRIES}`,
-          );
+          this.logger.warn(`Version conflict, retry ${attempt + 1}/${MAX_RETRIES}`);
           if (attempt === MAX_RETRIES - 1) {
             throw new ConflictException('เลขที่เอกสารถูกเปลี่ยน กรุณาลองใหม่');
           }
@@ -409,7 +417,7 @@ export class DocumentNumberingService {
   constructor(
     private lockService: DocumentNumberingLockService,
     private counterService: CounterService,
-    private auditService: AuditService,
+    private auditService: AuditService
   ) {}
 
   async generateDocumentNumber(dto: GenerateNumberDto): Promise<string> {
@@ -464,7 +472,7 @@ export class DocumentNumberingService {
     return template
       .replace('{SEQ:4}', seq.toString().padStart(4, '0'))
       .replace('{YEAR:B.E.}', (key.year + 543).toString());
-      // ... more replacements
+    // ... more replacements
   }
 }
 ```
@@ -483,8 +491,16 @@ interface ValidationResult {
 @Injectable()
 export class TemplateValidator {
   private readonly ALLOWED_TOKENS = [
-    'PROJECT', 'ORIGINATOR', 'RECIPIENT', 'CORR_TYPE',
-    'SUB_TYPE', 'RFA_TYPE', 'DISCIPLINE', 'SEQ', 'YEAR', 'REV',
+    'PROJECT',
+    'ORIGINATOR',
+    'RECIPIENT',
+    'CORR_TYPE',
+    'SUB_TYPE',
+    'RFA_TYPE',
+    'DISCIPLINE',
+    'SEQ',
+    'YEAR',
+    'REV',
   ];
 
   validate(template: string, correspondenceType: string): ValidationResult {
@@ -574,10 +590,7 @@ export class CounterResetJob extends WorkerHost {
 
 ```typescript
 // File: src/modules/document-numbering/document-numbering.controller.ts
-import {
-  Controller, Get, Post, Patch,
-  Body, Param, Query, UseGuards, ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
@@ -613,10 +626,7 @@ export class DocumentNumberingController {
 
   @Patch('counters/:id')
   @RequirePermission('system.manage_settings')
-  async updateCounter(
-    @Param('id', ParseIntPipe) id: number,
-    @Body('sequence') sequence: number
-  ) {
+  async updateCounter(@Param('id', ParseIntPipe) id: number, @Body('sequence') sequence: number) {
     return this.numberingService.setCounterValue(id, sequence);
   }
 
@@ -634,10 +644,7 @@ export class DocumentNumberingController {
 
 ```typescript
 // File: src/modules/document-numbering/document-numbering-admin.controller.ts
-import {
-  Controller, Get, Post, Delete, Body, Param, Query,
-  UseGuards, ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
@@ -686,30 +693,21 @@ export class DocumentNumberingAdminController {
 
   @Post('manual-override')
   @RequirePermission('system.manage_settings')
-  async manualOverride(@Body() dto: {
-    projectId: number;
-    correspondenceTypeId: number | null;
-    year: number;
-    newValue: number;
-  }) {
+  async manualOverride(
+    @Body() dto: { projectId: number; correspondenceTypeId: number | null; year: number; newValue: number }
+  ) {
     return this.service.manualOverride(dto);
   }
 
   @Post('void-and-replace')
   @RequirePermission('system.manage_settings')
-  async voidAndReplace(@Body() dto: {
-    documentId: number;
-    reason: string;
-  }) {
+  async voidAndReplace(@Body() dto: { documentId: number; reason: string }) {
     return this.service.voidAndReplace(dto);
   }
 
   @Post('cancel')
   @RequirePermission('system.manage_settings')
-  async cancelNumber(@Body() dto: {
-    documentNumber: string;
-    reason: string;
-  }) {
+  async cancelNumber(@Body() dto: { documentNumber: string; reason: string }) {
     return this.service.cancelNumber(dto);
   }
 
@@ -760,11 +758,7 @@ import { DocumentNumberingController } from './controllers/document-numbering.co
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      DocumentNumberCounter,
-      DocumentNumberAudit,
-      DocumentNumberError,
-    ]),
+    TypeOrmModule.forFeature([DocumentNumberCounter, DocumentNumberAudit, DocumentNumberError]),
     BullModule.registerQueue({
       name: 'document-numbering',
     }),

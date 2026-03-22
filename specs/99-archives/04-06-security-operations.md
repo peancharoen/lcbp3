@@ -313,7 +313,6 @@ FLUSH PRIVILEGES;
    ```
 
 3. **Notify stakeholders**
-
    - Security officer
    - Management
    - Affected users (if applicable)

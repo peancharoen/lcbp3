@@ -476,13 +476,11 @@ export default function WorkflowEditPage() {
 ## 🧪 Testing
 
 1. **DSL Editor**
-
    - Write valid DSL → Validates successfully
    - Write invalid DSL → Shows errors
    - Save workflow → DSL persists
 
 2. **Visual Builder**
-
    - Add nodes → Nodes appear
    - Connect nodes → Edges created
    - Generate DSL → Valid DSL output

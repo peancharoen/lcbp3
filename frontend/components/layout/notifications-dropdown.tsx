@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Bell, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bell, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,12 +9,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { useNotifications, useMarkNotificationRead } from "@/hooks/use-notification";
-import { formatDistanceToNow } from "date-fns";
-import { useRouter } from "next/navigation";
-import type { Notification } from "@/types/notification";
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { useNotifications, useMarkNotificationRead } from '@/hooks/use-notification';
+import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import type { Notification } from '@/types/notification';
 
 export function NotificationsDropdown() {
   const router = useRouter();
@@ -54,30 +54,24 @@ export function NotificationsDropdown() {
         <DropdownMenuSeparator />
 
         {isLoading ? (
-             <div className="flex justify-center p-4">
-                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-             </div>
-        ) : notifications.length === 0 ? (
-          <div className="p-4 text-center text-sm text-muted-foreground">
-            No new notifications
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
+        ) : notifications.length === 0 ? (
+          <div className="p-4 text-center text-sm text-muted-foreground">No new notifications</div>
         ) : (
           <div className="max-h-96 overflow-y-auto">
             {notifications.slice(0, 5).map((notification: Notification) => (
               <DropdownMenuItem
                 key={notification.notificationId}
-                className={`flex flex-col items-start p-3 cursor-pointer ${
-                    !notification.isRead ? 'bg-muted/30' : ''
-                }`}
+                className={`flex flex-col items-start p-3 cursor-pointer ${!notification.isRead ? 'bg-muted/30' : ''}`}
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex justify-between w-full">
-                     <span className="font-medium text-sm">{notification.title}</span>
-                     {!notification.isRead && <span className="h-2 w-2 rounded-full bg-blue-500 mt-1" />}
+                  <span className="font-medium text-sm">{notification.title}</span>
+                  {!notification.isRead && <span className="h-2 w-2 rounded-full bg-blue-500 mt-1" />}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {notification.message}
-                </div>
+                <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.message}</div>
                 <div className="text-[10px] text-muted-foreground mt-1 self-end">
                   {formatDistanceToNow(new Date(notification.createdAt), {
                     addSuffix: true,

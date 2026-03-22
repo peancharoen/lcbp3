@@ -52,11 +52,11 @@ related:
 
 ### Test Distribution
 
-| Level       | Coverage | Speed      | Purpose                      |
-| ----------- | -------- | ---------- | ---------------------------- |
-| Unit        | 60%      | Fast (ms)  | ทดสอบตรรกะแต่ละ Function      |
+| Level       | Coverage | Speed      | Purpose                         |
+| ----------- | -------- | ---------- | ------------------------------- |
+| Unit        | 60%      | Fast (ms)  | ทดสอบตรรกะแต่ละ Function        |
 | Integration | 30%      | Medium (s) | ทดสอบการทำงานร่วมกันของ Modules |
-| E2E         | 10%      | Slow (m)   | ทดสอบ User Journey ทั้งหมด     |
+| E2E         | 10%      | Slow (m)   | ทดสอบ User Journey ทั้งหมด      |
 
 ---
 
@@ -94,9 +94,7 @@ describe('CorrespondenceService', () => {
     }).compile();
 
     service = module.get<CorrespondenceService>(CorrespondenceService);
-    repository = module.get<Repository<Correspondence>>(
-      getRepositoryToken(Correspondence)
-    );
+    repository = module.get<Repository<Correspondence>>(getRepositoryToken(Correspondence));
   });
 
   describe('findAll', () => {
@@ -106,9 +104,7 @@ describe('CorrespondenceService', () => {
         { id: '2', title: 'Test 2' },
       ];
 
-      jest
-        .spyOn(repository, 'find')
-        .mockResolvedValue(mockCorrespondences as any);
+      jest.spyOn(repository, 'find').mockResolvedValue(mockCorrespondences as any);
 
       const result = await service.findAll();
       expect(result).toEqual(mockCorrespondences);
@@ -570,9 +566,7 @@ describe('CorrespondenceForm', () => {
     vi.advanceTimersByTime(30000);
 
     await waitFor(() => {
-      expect(saveDraft).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Draft Test' })
-      );
+      expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ title: 'Draft Test' }));
     });
 
     vi.useRealTimers();
@@ -620,9 +614,7 @@ describe('useCorrespondences', () => {
   });
 
   it('should handle error state', async () => {
-    vi.mocked(correspondenceService.getAll).mockRejectedValue(
-      new Error('API Error')
-    );
+    vi.mocked(correspondenceService.getAll).mockRejectedValue(new Error('API Error'));
 
     const { result } = renderHook(() => useCorrespondences('project-1'), {
       wrapper,
@@ -792,9 +784,7 @@ describe('Security - SQL Injection', () => {
       .expect(200);
 
     // Should not execute malicious SQL
-    const tableExists = await repository.query(
-      `SHOW TABLES LIKE 'correspondences'`
-    );
+    const tableExists = await repository.query(`SHOW TABLES LIKE 'correspondences'`);
     expect(tableExists).toHaveLength(1);
   });
 });
@@ -908,26 +898,22 @@ describe('Security - Authentication', () => {
 ### Critical Paths (Must have 100% coverage)
 
 1. **Authentication & Authorization**
-
    - Login/Logout flow
    - Token refresh
    - RBAC permission checks
 
 2. **Document Numbering**
-
    - Concurrent number generation
    - Format validation
    - Counter increment logic
 
 3. **File Upload**
-
    - Two-phase upload
    - Virus scanning
    - File type validation
    - Orphan cleanup
 
 4. **Workflow Engine**
-
    - State transitions
    - Permission checks at each step
    - Notification triggers
@@ -1118,10 +1104,7 @@ export class CorrespondenceFactory {
     };
   }
 
-  static createMany(
-    count: number,
-    overrides?: Partial<Correspondence>
-  ): Correspondence[] {
+  static createMany(count: number, overrides?: Partial<Correspondence>): Correspondence[] {
     return Array(count)
       .fill(null)
       .map(() => this.create(overrides));
@@ -1206,18 +1189,15 @@ describe('[ClassName/FeatureName]', () => {
 ### Key Metrics
 
 1. **Coverage Percentage**
-
    - Track via CodeCov/Coveralls
    - Enforce minimum thresholds in CI
 
 2. **Test Execution Time**
-
    - Unit tests: < 5 seconds
    - Integration tests: < 30 seconds
    - E2E tests: < 5 minutes
 
 3. **Flaky Test Rate**
-
    - Target: < 1% flaky tests
    - Track and fix flaky tests immediately
 

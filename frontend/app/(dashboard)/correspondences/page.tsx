@@ -1,10 +1,10 @@
-import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Plus, Loader2 } from "lucide-react";
-import { CorrespondencesContent } from "@/components/correspondences/correspondences-content";
+import { Suspense } from 'react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Plus, Loader2 } from 'lucide-react';
+import { CorrespondencesContent } from '@/components/correspondences/correspondences-content';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export default function CorrespondencesPage() {
   return (
@@ -12,9 +12,7 @@ export default function CorrespondencesPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Correspondences</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage official letters and communications
-          </p>
+          <p className="text-muted-foreground mt-1">Manage official letters and communications</p>
         </div>
         <Link href="/correspondences/new">
           <Button>
@@ -24,7 +22,13 @@ export default function CorrespondencesPage() {
         </Link>
       </div>
 
-      <Suspense fallback={<div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <Suspense
+        fallback={
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        }
+      >
         <CorrespondencesContent />
       </Suspense>
     </div>

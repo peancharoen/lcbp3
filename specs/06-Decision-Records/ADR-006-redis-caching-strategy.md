@@ -125,12 +125,7 @@ try {
 // Key: user:{user_id}:permissions
 // Value: JSON array of CASL rules
 // TTL: 30 minutes
-await redis.set(
-  `user:${userId}:permissions`,
-  JSON.stringify(abilityRules),
-  'EX',
-  1800
-);
+await redis.set(`user:${userId}:permissions`, JSON.stringify(abilityRules), 'EX', 1800);
 ```
 
 **Invalidation Strategy:**

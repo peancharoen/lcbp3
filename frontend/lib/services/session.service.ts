@@ -14,7 +14,7 @@ export interface Session {
   isCurrent: boolean;
 }
 
-const extractArrayData = <T,>(value: unknown): T[] => {
+const extractArrayData = <T>(value: unknown): T[] => {
   let current: unknown = value;
 
   for (let i = 0; i < 5; i += 1) {
@@ -39,8 +39,12 @@ const transformSession = (session: Session | (Omit<Session, 'id'> & { id: string
 
 export const sessionService = {
   getActiveSessions: async (): Promise<Session[]> => {
-    const response = await apiClient.get<Session[] | { data: Session[] } | { data: { data: Session[] } }>('/auth/sessions');
-    return extractArrayData<Session | (Omit<Session, 'id'> & { id: string | number })>(response.data).map(transformSession);
+    const response = await apiClient.get<Session[] | { data: Session[] } | { data: { data: Session[] } }>(
+      '/auth/sessions'
+    );
+    return extractArrayData<Session | (Omit<Session, 'id'> & { id: string | number })>(response.data).map(
+      transformSession
+    );
   },
 
   revokeSession: async (sessionId: number) => {

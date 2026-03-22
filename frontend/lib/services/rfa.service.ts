@@ -1,10 +1,6 @@
 // File: lib/services/rfa.service.ts
-import apiClient from "@/lib/api/client";
-import {
-  CreateRfaDto,
-  UpdateRfaDto,
-  SearchRfaDto
-} from "@/types/dto/rfa/rfa.dto";
+import apiClient from '@/lib/api/client';
+import { CreateRfaDto, UpdateRfaDto, SearchRfaDto } from '@/types/dto/rfa/rfa.dto';
 
 // DTO สำหรับการอนุมัติ (อาจจะย้ายไปไว้ใน folder dto/rfa/ ก็ได้ในอนาคต)
 export interface WorkflowActionDto {
@@ -19,7 +15,7 @@ export const rfaService = {
    */
   getAll: async (params: SearchRfaDto) => {
     // GET /rfas
-    const response = await apiClient.get("/rfas", { params });
+    const response = await apiClient.get('/rfas', { params });
     return response.data;
   },
 
@@ -37,7 +33,7 @@ export const rfaService = {
    */
   create: async (data: CreateRfaDto) => {
     // POST /rfas
-    const response = await apiClient.post("/rfas", data);
+    const response = await apiClient.post('/rfas', data);
     return response.data;
   },
 
@@ -66,5 +62,5 @@ export const rfaService = {
     // DELETE /rfas/:uuid (ADR-019)
     const response = await apiClient.delete(`/rfas/${uuid}`);
     return response.data;
-  }
+  },
 };

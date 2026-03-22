@@ -52,7 +52,7 @@ export const useAuthStore = create<AuthState>()(
       hasRole: (requiredRole: string) => {
         const { user } = get();
         return user?.role === requiredRole;
-      }
+      },
     }),
     {
       name: 'auth-storage',

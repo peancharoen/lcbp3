@@ -108,7 +108,9 @@ export class RfaWorkflowService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to submit RFA workflow: ${error}`);
+      this.logger.error(
+        `Failed to submit RFA workflow: ${error instanceof Error ? error.message : String(error)}`
+      );
       throw error;
     } finally {
       await queryRunner.release();
@@ -136,11 +138,11 @@ export class RfaWorkflowService {
     const instance = await this.workflowEngine.getInstanceById(instanceId);
     if (instance && instance.entityType === 'rfa_revision') {
       const rfaRev = await this.revisionRepo.findOne({
-        where: { id: parseInt(instance.entityId) },
+        where: { id: Number(instance.entityId) },
       });
       if (rfaRev) {
         // เช็คว่า Action นี้มีการระบุ Approve Code มาใน Payload หรือไม่ (เช่น '1A', '3R')
-        const approveCodeStr = dto.payload?.approveCode;
+        const approveCodeStr = dto.payload?.approveCode as string | undefined;
         await this.syncStatus(rfaRev, result.nextState, approveCodeStr);
       }
     }

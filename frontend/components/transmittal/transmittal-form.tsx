@@ -1,59 +1,35 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
-import { transmittalService } from "@/lib/services/transmittal.service";
-import { correspondenceService } from "@/lib/services/correspondence.service";
-import { projectService } from "@/lib/services/project.service";
-import { organizationService } from "@/lib/services/organization.service";
-import { CreateTransmittalDto } from "@/types/dto/transmittal/transmittal.dto";
+import { transmittalService } from '@/lib/services/transmittal.service';
+import { correspondenceService } from '@/lib/services/correspondence.service';
+import { projectService } from '@/lib/services/project.service';
+import { organizationService } from '@/lib/services/organization.service';
+import { CreateTransmittalDto } from '@/types/dto/transmittal/transmittal.dto';
 
 // UI Components
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Trash2, Plus, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown, Trash2, Plus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 // Schema for items
 const itemSchema = z.object({
-  itemType: z.enum(["DRAWING", "RFA", "CORRESPONDENCE"]),
-  itemId: z.coerce.number().min(1, "Document ID is required"),
+  itemType: z.enum(['DRAWING', 'RFA', 'CORRESPONDENCE']),
+  itemId: z.coerce.number().min(1, 'Document ID is required'),
   description: z.string().optional(),
   // Virtual fields for UI display
   documentNumber: z.string().optional(),
@@ -61,13 +37,13 @@ const itemSchema = z.object({
 
 // Main form schema
 const formSchema = z.object({
-  projectId: z.string().min(1, "Project is required"), // ADR-019: UUID
-  recipientOrganizationId: z.string().min(1, "Recipient is required"), // ADR-019: UUID
-  correspondenceId: z.string().min(1, "Correspondence is required"), // ADR-019: UUID string
-  subject: z.string().min(1, "Subject is required"),
-  purpose: z.enum(["FOR_APPROVAL", "FOR_INFORMATION", "FOR_REVIEW", "OTHER"]),
+  projectId: z.string().min(1, 'Project is required'), // ADR-019: UUID
+  recipientOrganizationId: z.string().min(1, 'Recipient is required'), // ADR-019: UUID
+  correspondenceId: z.string().min(1, 'Correspondence is required'), // ADR-019: UUID string
+  subject: z.string().min(1, 'Subject is required'),
+  purpose: z.enum(['FOR_APPROVAL', 'FOR_INFORMATION', 'FOR_REVIEW', 'OTHER']),
   remarks: z.string().optional(),
-  items: z.array(itemSchema).min(1, "At least one item is required"),
+  items: z.array(itemSchema).min(1, 'At least one item is required'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -79,78 +55,74 @@ export function TransmittalForm() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any -- zod 4 + @hookform/resolvers compat
     defaultValues: {
-      projectId: "",
-      recipientOrganizationId: "",
-      correspondenceId: "",
-      subject: "",
-      purpose: "FOR_APPROVAL",
-      remarks: "",
-      items: [
-        { itemType: "DRAWING", itemId: 0, description: "" },
-      ],
+      projectId: '',
+      recipientOrganizationId: '',
+      correspondenceId: '',
+      subject: '',
+      purpose: 'FOR_APPROVAL',
+      remarks: '',
+      items: [{ itemType: 'DRAWING', itemId: 0, description: '' }],
     },
   });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "items",
+    name: 'items',
   });
 
   // ADR-019: Fetch projects and organizations for UUID-based selectors
   const { data: projectsData, isLoading: isLoadingProjects } = useQuery({
-    queryKey: ["projects-dropdown"],
+    queryKey: ['projects-dropdown'],
     queryFn: () => projectService.getAll(),
   });
   const projectsList = projectsData?.data || projectsData || [];
 
   const { data: orgsData, isLoading: isLoadingOrgs } = useQuery({
-    queryKey: ["organizations-dropdown"],
+    queryKey: ['organizations-dropdown'],
     queryFn: () => organizationService.getAll(),
   });
   const orgsList = orgsData?.data || orgsData || [];
 
   // Fetch correspondences (for header linkage)
   const { data: correspondences } = useQuery({
-    queryKey: ["correspondences-dropdown"],
+    queryKey: ['correspondences-dropdown'],
     queryFn: () => correspondenceService.getAll({ limit: 50 }),
   });
 
   const createMutation = useMutation({
     mutationFn: (data: CreateTransmittalDto) => transmittalService.create(data),
     onSuccess: (result) => {
-      toast.success("Transmittal created successfully");
+      toast.success('Transmittal created successfully');
       // ADR-019: Navigate using UUID from correspondence
       router.push(`/transmittals/${result.correspondence?.uuid || result.uuid}`);
     },
     onError: () => {
-      toast.error("Failed to create transmittal");
+      toast.error('Failed to create transmittal');
     },
   });
 
   const onSubmit = (data: FormData) => {
     // ADR-019: All IDs are now UUID strings from the form
     const cleanPayload: CreateTransmittalDto = {
-        projectId: data.projectId,
-        recipientOrganizationId: data.recipientOrganizationId,
-        correspondenceId: data.correspondenceId,
-        subject: data.subject,
-        purpose: data.purpose as string,
-        remarks: data.remarks,
-        items: data.items.map(item => ({
-             itemType: item.itemType,
-             itemId: item.itemId,
-             description: item.description
-        }))
+      projectId: data.projectId,
+      recipientOrganizationId: data.recipientOrganizationId,
+      correspondenceId: data.correspondenceId,
+      subject: data.subject,
+      purpose: data.purpose as string,
+      remarks: data.remarks,
+      items: data.items.map((item) => ({
+        itemType: item.itemType,
+        itemId: item.itemId,
+        description: item.description,
+      })),
     };
 
     createMutation.mutate(cleanPayload);
   };
 
-  const selectedDocId = form.watch("correspondenceId");
+  const selectedDocId = form.watch('correspondenceId');
   const correspondenceList = correspondences?.data || [];
-  const selectedDoc = correspondenceList.find(
-    (c: { uuid: string }) => c.uuid === selectedDocId
-  );
+  const selectedDoc = correspondenceList.find((c: { uuid: string }) => c.uuid === selectedDocId);
 
   return (
     <Form {...form}>
@@ -172,15 +144,17 @@ export function TransmittalForm() {
                     <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingProjects}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={isLoadingProjects ? "Loading..." : "Select Project"} />
+                          <SelectValue placeholder={isLoadingProjects ? 'Loading...' : 'Select Project'} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {(Array.isArray(projectsList) ? projectsList : []).map((p: { uuid: string; projectName?: string; projectCode?: string }) => (
-                          <SelectItem key={p.uuid} value={p.uuid}>
-                            {p.projectName || p.projectCode}
-                          </SelectItem>
-                        ))}
+                        {(Array.isArray(projectsList) ? projectsList : []).map(
+                          (p: { uuid: string; projectName?: string; projectCode?: string }) => (
+                            <SelectItem key={p.uuid} value={p.uuid}>
+                              {p.projectName || p.projectCode}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -197,15 +171,17 @@ export function TransmittalForm() {
                     <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingOrgs}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={isLoadingOrgs ? "Loading..." : "Select Organization"} />
+                          <SelectValue placeholder={isLoadingOrgs ? 'Loading...' : 'Select Organization'} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {(Array.isArray(orgsList) ? orgsList : []).map((o: { uuid: string; organizationName?: string; organizationCode?: string }) => (
-                          <SelectItem key={o.uuid} value={o.uuid}>
-                            {o.organizationName || o.organizationCode}
-                          </SelectItem>
-                        ))}
+                        {(Array.isArray(orgsList) ? orgsList : []).map(
+                          (o: { uuid: string; organizationName?: string; organizationCode?: string }) => (
+                            <SelectItem key={o.uuid} value={o.uuid}>
+                              {o.organizationName || o.organizationCode}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -228,14 +204,11 @@ export function TransmittalForm() {
                           <Button
                             variant="outline"
                             role="combobox"
-                            className={cn(
-                              "justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
+                            className={cn('justify-between', !field.value && 'text-muted-foreground')}
                           >
                             {selectedDoc
                               ? (selectedDoc as { correspondenceNumber?: string }).correspondenceNumber || 'Selected'
-                              : "Select reference..."}
+                              : 'Select reference...'}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
@@ -246,28 +219,24 @@ export function TransmittalForm() {
                           <CommandList>
                             <CommandEmpty>No document found.</CommandEmpty>
                             <CommandGroup>
-                              {correspondenceList.map(
-                                (doc: { uuid: string; correspondenceNumber?: string }) => (
-                                  <CommandItem
-                                    key={doc.uuid}
-                                    value={doc.correspondenceNumber || doc.uuid}
-                                    onSelect={() => {
-                                      form.setValue("correspondenceId", doc.uuid);
-                                      setDocOpen(false);
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        doc.uuid === field.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                    {doc.correspondenceNumber || doc.uuid}
-                                  </CommandItem>
-                                )
-                              )}
+                              {correspondenceList.map((doc: { uuid: string; correspondenceNumber?: string }) => (
+                                <CommandItem
+                                  key={doc.uuid}
+                                  value={doc.correspondenceNumber || doc.uuid}
+                                  onSelect={() => {
+                                    form.setValue('correspondenceId', doc.uuid);
+                                    setDocOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      doc.uuid === field.value ? 'opacity-100' : 'opacity-0'
+                                    )}
+                                  />
+                                  {doc.correspondenceNumber || doc.uuid}
+                                </CommandItem>
+                              ))}
                             </CommandGroup>
                           </CommandList>
                         </Command>
@@ -285,10 +254,7 @@ export function TransmittalForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Purpose</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select purpose" />
@@ -296,9 +262,7 @@ export function TransmittalForm() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="FOR_APPROVAL">For Approval</SelectItem>
-                        <SelectItem value="FOR_INFORMATION">
-                          For Information
-                        </SelectItem>
+                        <SelectItem value="FOR_INFORMATION">For Information</SelectItem>
                         <SelectItem value="FOR_REVIEW">For Review</SelectItem>
                         <SelectItem value="OTHER">Other</SelectItem>
                       </SelectContent>
@@ -332,11 +296,7 @@ export function TransmittalForm() {
                 <FormItem>
                   <FormLabel>Remarks (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Additional notes..."
-                      className="resize-none"
-                      {...field}
-                    />
+                    <Textarea placeholder="Additional notes..." className="resize-none" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -354,12 +314,15 @@ export function TransmittalForm() {
               variant="outline"
               size="sm"
               onClick={() =>
-                append({
-                  itemType: "DRAWING",
-                  itemId: 0,
-                  description: "",
-                  documentNumber: "",
-                }, { focusIndex: fields.length })
+                append(
+                  {
+                    itemType: 'DRAWING',
+                    itemId: 0,
+                    description: '',
+                    documentNumber: '',
+                  },
+                  { focusIndex: fields.length }
+                )
               }
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -369,10 +332,7 @@ export function TransmittalForm() {
           <CardContent>
             <div className="space-y-4">
               {fields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="grid grid-cols-12 gap-4 items-end border p-4 rounded-lg bg-muted/20"
-                >
+                <div key={field.id} className="grid grid-cols-12 gap-4 items-end border p-4 rounded-lg bg-muted/20">
                   {/* Item Type */}
                   <div className="col-span-3">
                     <FormField
@@ -381,10 +341,7 @@ export function TransmittalForm() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-xs">Type</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue />
@@ -393,9 +350,7 @@ export function TransmittalForm() {
                             <SelectContent>
                               <SelectItem value="DRAWING">Drawing</SelectItem>
                               <SelectItem value="RFA">RFA</SelectItem>
-                              <SelectItem value="CORRESPONDENCE">
-                                Correspondence
-                              </SelectItem>
+                              <SelectItem value="CORRESPONDENCE">Correspondence</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormItem>
@@ -416,9 +371,7 @@ export function TransmittalForm() {
                               type="number"
                               placeholder="ID"
                               {...field}
-                              onChange={(e) =>
-                                field.onChange(parseInt(e.target.value))
-                              }
+                              onChange={(e) => field.onChange(Number(e.target.value))}
                             />
                           </FormControl>
                           {/* In real app, this would be another AsyncSelect/Combobox */}
@@ -458,25 +411,17 @@ export function TransmittalForm() {
                 </div>
               ))}
             </div>
-            <FormMessage>
-              {form.formState.errors.items?.root?.message}
-            </FormMessage>
+            <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
           </CardContent>
         </Card>
 
         {/* Form Actions */}
         <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-          >
+          <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
           <Button type="submit" disabled={createMutation.isPending}>
-            {createMutation.isPending && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
+            {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Transmittal
           </Button>
         </div>

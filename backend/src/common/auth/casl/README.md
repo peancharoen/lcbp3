@@ -17,7 +17,6 @@ import { RequirePermission } from '../common/decorators/require-permission.decor
 @Controller('correspondences')
 @UseGuards(JwtAuthGuard) // Step 1: Authenticate user
 export class CorrespondenceController {
-
   // ตัวอย่าง 1: Single Permission
   @Post()
   @UseGuards(PermissionsGuard) // Step 2: Check permissions
@@ -63,7 +62,6 @@ Permissions guard จะ extract scope จาก request params/body/query:
 @Controller('projects/:projectId/correspondences')
 @UseGuards(JwtAuthGuard)
 export class ProjectCorrespondenceController {
-
   @Post()
   @UseGuards(PermissionsGuard)
   @RequirePermission('correspondence.create')
@@ -99,6 +97,7 @@ export class ProjectCorrespondenceController {
 Permission ใน database ต้องเป็นรูปแบบ: `{subject}.{action}`
 
 ตัวอย่าง:
+
 - `correspondence.create`
 - `correspondence.view`
 - `correspondence.edit`
@@ -110,11 +109,13 @@ Permission ใน database ต้องเป็นรูปแบบ: `{subject
 ## Testing
 
 Run unit tests:
+
 ```bash
 npm run test -- ability.factory.spec
 ```
 
 Expected output:
+
 ```
 ✓ should grant all permissions for global admin
 ✓ should grant permissions for matching organization

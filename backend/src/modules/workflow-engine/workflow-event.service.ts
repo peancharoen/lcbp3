@@ -25,10 +25,10 @@ export class WorkflowEventService {
   /**
    * ประมวลผลรายการ Events ที่เกิดจากการเปลี่ยนสถานะ
    */
-  async dispatchEvents(
+  dispatchEvents(
     instanceId: string,
     events: RawEvent[],
-    context: Record<string, any>
+    context: Record<string, unknown>
   ) {
     if (!events || events.length === 0) return;
 
@@ -37,13 +37,15 @@ export class WorkflowEventService {
     );
 
     // ทำแบบ Async ไม่รอผล (Fire-and-forget) เพื่อไม่ให้กระทบ Response Time ของ User
-    Promise.allSettled(
+    void Promise.allSettled(
       events.map((event) => this.processSingleEvent(instanceId, event, context))
     ).then((results) => {
       // Log errors if any
       results.forEach((res, idx) => {
         if (res.status === 'rejected') {
-          this.logger.error(`Failed to process event [${idx}]: ${res.reason}`);
+          this.logger.error(
+            `Failed to process event [${idx}]: ${String(res.reason)}`
+          );
         }
       });
     });
@@ -54,13 +56,14 @@ export class WorkflowEventService {
     event: RawEvent,
     context: Record<string, unknown>
   ) {
+    await Promise.resolve();
     try {
       switch (event.type) {
         case 'notify':
-          await this.handleNotify(event, context);
+          this.handleNotify(event, context);
           break;
         case 'webhook':
-          await this.handleWebhook(event, context);
+          this.handleWebhook(event, context);
           break;
         case 'auto_action':
           // Logic สำหรับ Auto Transition (เช่น ถ้าผ่านเงื่อนไข ให้ไปต่อเลย)
@@ -70,17 +73,16 @@ export class WorkflowEventService {
           this.logger.warn(`Unknown event type: ${event.type}`);
       }
     } catch (error) {
-      this.logger.error(`Error processing event ${event.type}: ${error}`);
+      this.logger.error(
+        `Error processing event ${event.type}: ${String(error)}`
+      );
       throw error;
     }
   }
 
   // --- Handlers ---
 
-  private async handleNotify(
-    event: RawEvent,
-    _context: Record<string, unknown>
-  ) {
+  private handleNotify(event: RawEvent, _context: Record<string, unknown>) {
     // Mockup: ในของจริงจะเรียก NotificationService.send()
     // const recipients = this.resolveRecipients(event.target, context);
     this.logger.log(
@@ -88,10 +90,7 @@ export class WorkflowEventService {
     );
   }
 
-  private async handleWebhook(
-    event: RawEvent,
-    _context: Record<string, unknown>
-  ) {
+  private handleWebhook(event: RawEvent, _context: Record<string, unknown>) {
     // Mockup: เรียก HttpService.post()
     this.logger.log(
       `[EVENT] Webhook to: "${event.target}" | Payload: ${JSON.stringify(event.payload)}`

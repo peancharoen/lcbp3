@@ -11,13 +11,14 @@ services:
     restart: always
     command: redis-server --save 60 1 --loglevel warning --requirepass "${REDIS_PASSWORD:-redis_password}"
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     networks:
       - lcbp3_net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password}", "ping"]
+      test:
+        ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-redis_password}', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,7 +36,7 @@ services:
       - cluster.name=lcbp3_es_cluster
       - discovery.type=single-node # รันแบบ Node เดียวสำหรับ Dev/Phase 0
       - bootstrap.memory_lock=true # ล็อคหน่วยความจำเพื่อประสิทธิภาพ
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # กำหนด Heap Size (ปรับเพิ่มได้ตาม Resource เครื่อง)
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m' # กำหนด Heap Size (ปรับเพิ่มได้ตาม Resource เครื่อง)
       - xpack.security.enabled=false # ปิด Security ชั่วคราวสำหรับ Phase 0 (ควรเปิดใน Production)
       - xpack.security.http.ssl.enabled=false
     ulimits:
@@ -45,11 +46,12 @@ services:
     volumes:
       - es_data:/usr/share/elasticsearch/data
     ports:
-      - "9200:9200"
+      - '9200:9200'
     networks:
       - lcbp3_net
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test:
+        ['CMD-SHELL', 'curl -f http://localhost:9200/_cluster/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 5

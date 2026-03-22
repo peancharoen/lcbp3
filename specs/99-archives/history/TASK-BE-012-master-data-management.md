@@ -28,28 +28,24 @@
 ## 📝 Acceptance Criteria
 
 1. **Organization Management:**
-
    - ✅ Create/Update/Delete organizations
    - ✅ Active/Inactive toggle
    - ✅ Organization hierarchy (if needed)
    - ✅ Unique organization codes
 
 2. **Project & Contract Management:**
-
    - ✅ Create/Update/Delete projects
    - ✅ Link projects to organizations
    - ✅ Create/Update/Delete contracts
    - ✅ Link contracts to projects
 
 3. **Type Management:**
-
    - ✅ Correspondence Types CRUD
    - ✅ RFA Types CRUD
    - ✅ Drawing Categories CRUD
    - ✅ Correspondence Sub Types CRUD
 
 4. **Discipline Management:**
-
    - ✅ Create/Update disciplines
    - ✅ Discipline codes (GEN, STR, ARC, etc.)
    - ✅ Active/Inactive status
@@ -100,10 +96,7 @@ export class OrganizationService {
     const organization = await this.findOne(id);
 
     // Check unique code if changed
-    if (
-      dto.organization_code &&
-      dto.organization_code !== organization.organization_code
-    ) {
+    if (dto.organization_code && dto.organization_code !== organization.organization_code) {
       const existing = await this.orgRepo.findOne({
         where: { organization_code: dto.organization_code },
       });
@@ -149,9 +142,7 @@ export class OrganizationService {
     // Check if organization has any related data
     const hasProjects = await this.hasRelatedProjects(id);
     if (hasProjects) {
-      throw new BadRequestException(
-        'Cannot delete organization with related projects'
-      );
+      throw new BadRequestException('Cannot delete organization with related projects');
     }
 
     await this.orgRepo.softDelete(id);
@@ -160,11 +151,7 @@ export class OrganizationService {
   private async hasRelatedProjects(organizationId: number): Promise<boolean> {
     const count = await this.orgRepo
       .createQueryBuilder('org')
-      .leftJoin(
-        'projects',
-        'p',
-        'p.client_organization_id = org.id OR p.consultant_organization_id = org.id'
-      )
+      .leftJoin('projects', 'p', 'p.client_organization_id = org.id OR p.consultant_organization_id = org.id')
       .where('org.id = :id', { id: organizationId })
       .getCount();
 
@@ -261,9 +248,7 @@ export class TypeService {
   ) {}
 
   // Correspondence Types
-  async createCorrespondenceType(
-    dto: CreateTypeDto
-  ): Promise<CorrespondenceType> {
+  async createCorrespondenceType(dto: CreateTypeDto): Promise<CorrespondenceType> {
     const type = this.corrTypeRepo.create({
       type_code: dto.type_code,
       type_name: dto.type_name,
@@ -317,9 +302,7 @@ export class TypeService {
   }
 
   // Correspondence Sub Types
-  async createCorrespondenceSubType(
-    dto: CreateSubTypeDto
-  ): Promise<CorrespondenceSubType> {
+  async createCorrespondenceSubType(dto: CreateSubTypeDto): Promise<CorrespondenceSubType> {
     const subType = this.corrSubTypeRepo.create({
       correspondence_type_id: dto.correspondence_type_id,
       sub_type_code: dto.sub_type_code,
@@ -330,9 +313,7 @@ export class TypeService {
     return this.corrSubTypeRepo.save(subType);
   }
 
-  async findCorrespondenceSubTypes(
-    typeId: number
-  ): Promise<CorrespondenceSubType[]> {
+  async findCorrespondenceSubTypes(typeId: number): Promise<CorrespondenceSubType[]> {
     return this.corrSubTypeRepo.find({
       where: { correspondence_type_id: typeId, is_active: true },
       order: { sub_type_code: 'ASC' },
@@ -401,9 +382,7 @@ export class CodeService {
     private rfaApproveCodeRepo: Repository<RfaApproveCode>
   ) {}
 
-  async createRfaApproveCode(
-    dto: CreateApproveCodeDto
-  ): Promise<RfaApproveCode> {
+  async createRfaApproveCode(dto: CreateApproveCodeDto): Promise<RfaApproveCode> {
     const code = this.rfaApproveCodeRepo.create({
       code: dto.code,
       description: dto.description,
@@ -452,10 +431,7 @@ export class MasterDataController {
 
   @Put('organizations/:id')
   @RequirePermission('master_data.manage')
-  async updateOrganization(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateOrganizationDto
-  ) {
+  async updateOrganization(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateOrganizationDto) {
     return this.organizationService.update(id, dto);
   }
 
@@ -473,9 +449,7 @@ export class MasterDataController {
 
   // Contracts
   @Get('projects/:projectId/contracts')
-  async getProjectContracts(
-    @Param('projectId', ParseIntPipe) projectId: number
-  ) {
+  async getProjectContracts(@Param('projectId', ParseIntPipe) projectId: number) {
     return this.projectService.findProjectContracts(projectId);
   }
 

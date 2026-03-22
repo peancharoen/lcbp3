@@ -42,10 +42,7 @@
       "name": "Form Trigger",
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
-      "position": [
-        31024,
-        13504
-      ],
+      "position": [31024, 13504],
       "webhookId": "e164a362-0c6b-4243-a5ad-b325aa943f4f",
       "notes": "เปิด URL เพื่อเลือก Model ก่อนรัน"
     },
@@ -57,10 +54,7 @@
       "name": "Set Configuration",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        31216,
-        13504
-      ],
+      "position": [31216, 13504],
       "notes": "กำหนดค่า Configuration ทั้งหมด - แก้ไขที่นี่ก่อนรัน"
     },
     {
@@ -83,10 +77,7 @@
       "name": "Fetch Categories",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        31216,
-        13696
-      ],
+      "position": [31216, 13696],
       "notes": "ดึง Categories จาก Backend"
     },
     {
@@ -109,10 +100,7 @@
       "name": "Fetch Tags",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        31392,
-        13696
-      ],
+      "position": [31392, 13696],
       "notes": "ดึง Tags ที่มีอยู่แล้วจาก Backend"
     },
     {
@@ -126,10 +114,7 @@
       "name": "Check Backend Health",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        31392,
-        13504
-      ],
+      "position": [31392, 13504],
       "onError": "continueErrorOutput",
       "notes": "ตรวจสอบ Backend พร้อมใช้งาน"
     },
@@ -141,10 +126,7 @@
       "name": "File Mount Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        31216,
-        13904
-      ],
+      "position": [31216, 13904],
       "notes": "ตรวจสอบ File System มีไฟล์ Excel และ Folder ตามตั้งค่า"
     },
     {
@@ -157,10 +139,7 @@
       "name": "Read Checkpoint",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        31632,
-        13744
-      ],
+      "position": [31632, 13744],
       "alwaysOutputData": true,
       "credentials": {
         "mySql": {
@@ -180,10 +159,7 @@
       "name": "Read Excel Binary",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [
-        31392,
-        13904
-      ],
+      "position": [31392, 13904],
       "notes": "ดึงไฟล์ Excel ขึ้นมาไว้ในหน่วยความจำ"
     },
     {
@@ -194,10 +170,7 @@
       "name": "Read Excel",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
-      "position": [
-        31392,
-        14112
-      ],
+      "position": [31392, 14112],
       "notes": "แปลงข้อมูล Excel เป็น JSON Data"
     },
     {
@@ -208,10 +181,7 @@
       "name": "Process Batch + Encoding",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        31808,
-        13488
-      ],
+      "position": [31808, 13488],
       "alwaysOutputData": true,
       "notes": "ตัด Batch + Normalize UTF-8"
     },
@@ -223,10 +193,7 @@
       "name": "File Validator",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        31984,
-        13488
-      ],
+      "position": [31984, 13488],
       "notes": "ตรวจสอบไฟล์ PDF ตัวชี้ใน Directory จาก Config"
     },
     {
@@ -239,10 +206,7 @@
       "name": "Check Fallback State",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        31792,
-        13888
-      ],
+      "position": [31792, 13888],
       "alwaysOutputData": true,
       "credentials": {
         "mySql": {
@@ -261,10 +225,7 @@
       "name": "Build AI Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        32144,
-        13872
-      ],
+      "position": [32144, 13872],
       "notes": "สร้าง Prompt โดยใช้ Categories จาก System"
     },
     {
@@ -282,10 +243,7 @@
       "name": "Ollama AI Analysis",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        31792,
-        14096
-      ],
+      "position": [31792, 14096],
       "notes": "เรียก Ollama วิเคราะห์เอกสาร"
     },
     {
@@ -296,10 +254,7 @@
       "name": "Parse & Validate AI Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        32000,
-        14096
-      ],
+      "position": [32000, 14096],
       "notes": "Parse JSON + Validate Schema + Enum Check"
     },
     {
@@ -312,10 +267,7 @@
       "name": "Update Fallback State",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        32464,
-        13472
-      ],
+      "position": [32464, 13472],
       "credentials": {
         "mySql": {
           "id": "CHHfbKhMacNo03V4",
@@ -332,10 +284,7 @@
       "name": "Confidence Router",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        32160,
-        14096
-      ],
+      "position": [32160, 14096],
       "notes": "แยกตาม Confidence: Auto(≥0.85) / Review(≥0.60) / Reject(<0.60)"
     },
     {
@@ -366,10 +315,7 @@
       "name": "Import to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [
-        32704,
-        13664
-      ],
+      "position": [32704, 13664],
       "notes": "ส่งข้อมูลเข้า LCBP3 Backend พร้อม Idempotency-Key"
     },
     {
@@ -380,10 +326,7 @@
       "name": "Flag Checkpoint",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        32880,
-        13664
-      ],
+      "position": [32880, 13664],
       "notes": "กำหนดว่าจะบันทึก Checkpoint หรือไม่ (ทุก 10 records)"
     },
     {
@@ -396,10 +339,7 @@
       "name": "Save Checkpoint",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        32928,
-        13856
-      ],
+      "position": [32928, 13856],
       "credentials": {
         "mySql": {
           "id": "CHHfbKhMacNo03V4",
@@ -418,10 +358,7 @@
       "name": "Insert Review Queue",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        32896,
-        14016
-      ],
+      "position": [32896, 14016],
       "credentials": {
         "mySql": {
           "id": "CHHfbKhMacNo03V4",
@@ -438,10 +375,7 @@
       "name": "Log Reject to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        32624,
-        14032
-      ],
+      "position": [32624, 14032],
       "notes": "บันทึกรายการที่ถูกปฏิเสธลง CSV"
     },
     {
@@ -452,10 +386,7 @@
       "name": "Log Error to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        32448,
-        14128
-      ],
+      "position": [32448, 14128],
       "notes": "บันทึก Error ลง CSV (จาก File Validator)"
     },
     {
@@ -468,10 +399,7 @@
       "name": "Log Error to DB",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        32752,
-        14128
-      ],
+      "position": [32752, 14128],
       "credentials": {
         "mySql": {
           "id": "CHHfbKhMacNo03V4",
@@ -489,10 +417,7 @@
       "name": "Delay",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
-      "position": [
-        33104,
-        14080
-      ],
+      "position": [33104, 14080],
       "webhookId": "38e97a99-4dcc-4b63-977a-a02945a1c369",
       "notes": "หน่วงเวลาระหว่าง Batches"
     },
@@ -604,10 +529,7 @@
       "name": "Route by Confidence",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [
-        32336,
-        13744
-      ]
+      "position": [32336, 13744]
     },
     {
       "parameters": {
@@ -618,10 +540,7 @@
       "name": "Read PDF File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [
-        31824,
-        13680
-      ],
+      "position": [31824, 13680],
       "onError": "continueErrorOutput"
     },
     {
@@ -665,10 +584,7 @@
       "name": "Extract PDF Text",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        32096,
-        13664
-      ],
+      "position": [32096, 13664],
       "onError": "continueErrorOutput"
     },
     {
@@ -681,10 +597,7 @@
       "name": "Fetch DB Context",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
-      "position": [
-        32000,
-        13872
-      ],
+      "position": [32000, 13872],
       "alwaysOutputData": true,
       "credentials": {
         "mySql": {
@@ -702,10 +615,7 @@
       "name": "Build Import Payload",
       "typeVersion": 2,
       "type": "n8n-nodes-base.code",
-      "position": [
-        32544,
-        13664
-      ],
+      "position": [32544, 13664],
       "notes": "สร้าง payload สำหรับ Import to Backend"
     },
     {
@@ -716,10 +626,7 @@
       "name": "Upsert Tags",
       "typeVersion": 2,
       "type": "n8n-nodes-base.code",
-      "position": [
-        32592,
-        13856
-      ],
+      "position": [32592, 13856],
       "notes": "Upsert tags หลัง import สำเร็จ"
     },
     {
@@ -732,10 +639,7 @@
       "name": "Link Tags to Correspondence",
       "typeVersion": 2.4,
       "type": "n8n-nodes-base.mySql",
-      "position": [
-        32768,
-        13856
-      ],
+      "position": [32768, 13856],
       "credentials": {
         "mySql": {
           "id": "CHHfbKhMacNo03V4",

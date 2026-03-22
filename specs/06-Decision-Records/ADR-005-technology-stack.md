@@ -89,31 +89,31 @@ LCBP3-DMS ต้องเลือก Technology Stack สำหรับพั�
 
 #### Backend Stack
 
-| Component          | Technology      | Rationale                                                                  |
-| :----------------- | :-------------- | :------------------------------------------------------------------------- |
-| **Runtime**        | Node.js 20 LTS  | Stable, modern features, long-term support                                 |
-| **Framework**      | NestJS 11       | Modular, TypeScript-first, Express v5 support                              |
-| **HTTP Engine**    | Express 5       | Path param changes, improved error handling                                |
-| **Language**       | TypeScript 5.x  | Type safety, better DX                                                     |
-| **ORM**            | TypeORM         | TypeScript support, migrations, repositories                               |
-| **Database**       | MariaDB 11.8    | JSON support, virtual columns, QNAP compatible                             |
-| **Validation**     | class-validator | Decorator-based, integrates with NestJS                                    |
-| **Authentication** | Passport + JWT  | Standard, well-supported                                                   |
+| Component          | Technology      | Rationale                                                                   |
+| :----------------- | :-------------- | :-------------------------------------------------------------------------- |
+| **Runtime**        | Node.js 20 LTS  | Stable, modern features, long-term support                                  |
+| **Framework**      | NestJS 11       | Modular, TypeScript-first, Express v5 support                               |
+| **HTTP Engine**    | Express 5       | Path param changes, improved error handling                                 |
+| **Language**       | TypeScript 5.x  | Type safety, better DX                                                      |
+| **ORM**            | TypeORM         | TypeScript support, migrations, repositories                                |
+| **Database**       | MariaDB 11.8    | JSON support, virtual columns, QNAP compatible                              |
+| **Validation**     | class-validator | Decorator-based, integrates with NestJS                                     |
+| **Authentication** | Passport + JWT  | Standard, well-supported                                                    |
 | **Authorization**  | CASL **6.7.5+** | Flexible RBAC implementation ⚠️ Patched CVE-2026-1774 (Prototype Pollution) |
-| **Documentation**  | Swagger/OpenAPI | Auto-generated from decorators                                             |
-| **Testing**        | Jest            | Built-in with NestJS                                                       |
+| **Documentation**  | Swagger/OpenAPI | Auto-generated from decorators                                              |
+| **Testing**        | Jest            | Built-in with NestJS                                                        |
 
 #### Frontend Stack
 
-| Component             | Technology          | Rationale                              |
-| :-------------------- | :------------------ | :------------------------------------- |
-| **Framework**         | Next.js 16.2.0      | App Router, SSR/SSG, React integration |
-| **UI Library**        | React 19.2.4        | Industry standard, large ecosystem     |
-| **Language**          | TypeScript 5.x      | Consistency with backend               |
-| **Styling**           | Tailwind CSS 4.2.2  | Utility-first, fast development        |
-| **Component Library** | shadcn/ui           | Accessible, customizable, TypeScript   |
-| **State Management**  | TanStack Query      | Server state management                |
-| **Form Handling**     | React Hook Form 7.71.2 | Performance, ต้ validation with Zod     |
+| Component             | Technology                | Rationale                              |
+| :-------------------- | :------------------------ | :------------------------------------- |
+| **Framework**         | Next.js 16.2.0            | App Router, SSR/SSG, React integration |
+| **UI Library**        | React 19.2.4              | Industry standard, large ecosystem     |
+| **Language**          | TypeScript 5.x            | Consistency with backend               |
+| **Styling**           | Tailwind CSS 4.2.2        | Utility-first, fast development        |
+| **Component Library** | shadcn/ui                 | Accessible, customizable, TypeScript   |
+| **State Management**  | TanStack Query            | Server state management                |
+| **Form Handling**     | React Hook Form 7.71.2    | Performance, ต้ validation with Zod    |
 | **Testing**           | Vitest 4.1.0 + Playwright | Fast unit tests, reliable E2E          |
 
 #### Infrastructure

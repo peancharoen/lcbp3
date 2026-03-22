@@ -68,24 +68,24 @@ interface ParsedDslShape {
 
 // Define custom node styles (simplified for now)
 const nodeStyle = {
-    padding: '10px 20px',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    fontSize: '14px',
-    fontWeight: 500,
-    background: 'white',
-    color: '#333',
-    width: 180, // Increased width for role display
-    textAlign: 'center' as const,
-    whiteSpace: 'pre-wrap' as const, // Allow multiline
+  padding: '10px 20px',
+  borderRadius: '8px',
+  border: '1px solid #ddd',
+  fontSize: '14px',
+  fontWeight: 500,
+  background: 'white',
+  color: '#333',
+  width: 180, // Increased width for role display
+  textAlign: 'center' as const,
+  whiteSpace: 'pre-wrap' as const, // Allow multiline
 };
 
 const conditionNodeStyle = {
-    ...nodeStyle,
-    background: '#fef3c7', // Amber-100
-    borderColor: '#d97706', // Amber-600
-    borderStyle: 'dashed',
-    borderRadius: '24px', // More rounded
+  ...nodeStyle,
+  background: '#fef3c7', // Amber-100
+  borderColor: '#d97706', // Amber-600
+  borderStyle: 'dashed',
+  borderRadius: '24px', // More rounded
 };
 
 const initialNodes: Node[] = [
@@ -99,11 +99,11 @@ const initialNodes: Node[] = [
 ];
 
 interface VisualWorkflowBuilderProps {
-    initialNodes?: Node[];
-    initialEdges?: Edge[];
-    dslString?: string;
-    onSave?: (nodes: Node[], edges: Edge[]) => void;
-    onDslChange?: (dsl: string) => void;
+  initialNodes?: Node[];
+  initialEdges?: Edge[];
+  dslString?: string;
+  onSave?: (nodes: Node[], edges: Edge[]) => void;
+  onDslChange?: (dsl: string) => void;
 }
 
 const createNode = (
@@ -141,10 +141,10 @@ const createNode = (
       label: isStart || isEnd ? name : `${name}\n(${options?.role || 'No Role'})`,
       name,
       role: options?.role,
-      type: options?.type || (isStart ? 'START' : isEnd ? 'END' : 'TASK')
+      type: options?.type || (isStart ? 'START' : isEnd ? 'END' : 'TASK'),
     },
     position: { x: 250, y: yOffset },
-    style
+    style,
   };
 };
 
@@ -153,10 +153,10 @@ const createEdge = (source: string, target: string, label: string): Edge => ({
   source,
   target,
   label,
-  markerEnd: { type: MarkerType.ArrowClosed }
+  markerEnd: { type: MarkerType.ArrowClosed },
 });
 
-function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
+function parseDSL(dsl: string): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   let yOffset = 50;
@@ -186,7 +186,7 @@ function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
             isStart,
             isEnd,
             role,
-            type: state.type
+            type: state.type,
           })
         );
 
@@ -219,7 +219,7 @@ function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
           createNode(stateName, yOffset, {
             isStart,
             isEnd,
-            role: roles.join(', ')
+            role: roles.join(', '),
           })
         );
 
@@ -235,26 +235,32 @@ function parseDSL(dsl: string): { nodes: Node[], edges: Edge[] } {
         yOffset += 120;
       });
     }
-  } catch (e) {
+  } catch (_e) {
     // Failed to parse DSL as JSON - nodes/edges remain empty
   }
 
   return { nodes, edges };
 }
 
-function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: propEdges, dslString, onSave, onDslChange }: VisualWorkflowBuilderProps) {
+function VisualWorkflowBuilderContent({
+  initialNodes: propNodes,
+  initialEdges: propEdges,
+  dslString,
+  onSave,
+  onDslChange,
+}: VisualWorkflowBuilderProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(propNodes || initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(propEdges || []);
   const { fitView } = useReactFlow();
 
   // Sync DSL to nodes when dslString changes
   useEffect(() => {
-      if (dslString) {
-          const { nodes: newNodes, edges: newEdges } = parseDSL(dslString);
-          setNodes(newNodes.length > 0 ? newNodes : propNodes || initialNodes);
-          setEdges(newNodes.length > 0 ? newEdges : propEdges || []);
-          setTimeout(() => fitView(), 100);
-      }
+    if (dslString) {
+      const { nodes: newNodes, edges: newEdges } = parseDSL(dslString);
+      setNodes(newNodes.length > 0 ? newNodes : propNodes || initialNodes);
+      setEdges(newNodes.length > 0 ? newEdges : propEdges || []);
+      setTimeout(() => fitView(), 100);
+    }
   }, [dslString, fitView, propEdges, propNodes, setEdges, setNodes]);
 
   const onConnect = useCallback(
@@ -274,72 +280,79 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
     };
 
     if (type === 'end') {
-        newNode.style = { ...nodeStyle, background: '#ef4444', color: 'white', border: 'none' };
-        newNode.type = 'output';
+      newNode.style = { ...nodeStyle, background: '#ef4444', color: 'white', border: 'none' };
+      newNode.type = 'output';
     } else if (type === 'start') {
-         newNode.style = { ...nodeStyle, background: '#10b981', color: 'white', border: 'none' };
-         newNode.type = 'input';
+      newNode.style = { ...nodeStyle, background: '#10b981', color: 'white', border: 'none' };
+      newNode.type = 'input';
     } else if (type === 'condition') {
-         newNode.style = conditionNodeStyle;
+      newNode.style = conditionNodeStyle;
     }
 
     setNodes((nds) => nds.concat(newNode));
   };
 
   const handleSave = () => {
-      onSave?.(nodes, edges);
+    onSave?.(nodes, edges);
   };
 
   // Generate JSON DSL
   const generateDSL = () => {
-    const states = nodes.map(n => {
-        const outgoingEdges = edges.filter(e => e.source === n.id);
-        const onConfig: Record<string, { to: string }> = {};
+    const states = nodes.map((n) => {
+      const outgoingEdges = edges.filter((e) => e.source === n.id);
+      const onConfig: Record<string, { to: string }> = {};
 
-        outgoingEdges.forEach(e => {
-            const eventName = e.label || 'PROCEED';
-            onConfig[eventName as string] = { to: e.target };
-        });
+      outgoingEdges.forEach((e) => {
+        const eventName = e.label || 'PROCEED';
+        onConfig[eventName as string] = { to: e.target };
+      });
 
-        const isStartNode = n.type === 'input';
-        const isEndNode = n.type === 'output';
-        const nodeData = n.data as WorkflowStateNodeData;
+      const isStartNode = n.type === 'input';
+      const isEndNode = n.type === 'output';
+      const nodeData = n.data as WorkflowStateNodeData;
 
-        const stateObj: { name: string; type?: string; role?: string; initial?: boolean; terminal?: boolean; on?: Record<string, { to: string }> } = {
-            name: nodeData.name || nodeData.label?.split('\n')[0] || n.id,
-        };
+      const stateObj: {
+        name: string;
+        type?: string;
+        role?: string;
+        initial?: boolean;
+        terminal?: boolean;
+        on?: Record<string, { to: string }>;
+      } = {
+        name: nodeData.name || nodeData.label?.split('\n')[0] || n.id,
+      };
 
-        if (nodeData.type && nodeData.type !== 'START' && nodeData.type !== 'END' && nodeData.type !== 'TASK') {
-            stateObj.type = nodeData.type;
-        }
+      if (nodeData.type && nodeData.type !== 'START' && nodeData.type !== 'END' && nodeData.type !== 'TASK') {
+        stateObj.type = nodeData.type;
+      }
 
-        if (nodeData.role && !isStartNode && !isEndNode) {
-            stateObj.role = nodeData.role;
-        }
+      if (nodeData.role && !isStartNode && !isEndNode) {
+        stateObj.role = nodeData.role;
+      }
 
-        if (isStartNode) {
-            stateObj.initial = true;
-        }
-        if (isEndNode) {
-            stateObj.terminal = true;
-        }
-        if (Object.keys(onConfig).length > 0) {
-            stateObj.on = onConfig;
-        }
+      if (isStartNode) {
+        stateObj.initial = true;
+      }
+      if (isEndNode) {
+        stateObj.terminal = true;
+      }
+      if (Object.keys(onConfig).length > 0) {
+        stateObj.on = onConfig;
+      }
 
-        return stateObj;
+      return stateObj;
     });
 
     const dslObj = {
-        workflow: "VISUAL_WORKFLOW",
-        version: 1,
-        states
+      workflow: 'VISUAL_WORKFLOW',
+      version: 1,
+      states,
     };
     const dsl = JSON.stringify(dslObj, null, 2);
 
     // DSL generated from visual builder
     onDslChange?.(dsl);
-    alert("DSL Updated from Visual Builder!");
+    alert('DSL Updated from Visual Builder!');
   };
 
   return (
@@ -357,29 +370,32 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
           <Controls />
           <Background color="#aaa" gap={16} />
 
-          <Panel position="top-right" className="flex gap-2 p-2 bg-white/80 dark:bg-black/50 rounded-lg backdrop-blur-sm border shadow-sm">
-             <Button size="sm" variant="secondary" onClick={() => addNode('step', 'New Step')}>
-                <Plus className="mr-2 h-4 w-4" /> Add Step
-             </Button>
-             <Button size="sm" variant="secondary" onClick={() => addNode('condition', 'Condition')}>
-                <Layout className="mr-2 h-4 w-4" /> Condition
-             </Button>
-             <Button size="sm" variant="secondary" onClick={() => addNode('end', 'End')}>
-                <Plus className="mr-2 h-4 w-4" /> Add End
-             </Button>
+          <Panel
+            position="top-right"
+            className="flex gap-2 p-2 bg-white/80 dark:bg-black/50 rounded-lg backdrop-blur-sm border shadow-sm"
+          >
+            <Button size="sm" variant="secondary" onClick={() => addNode('step', 'New Step')}>
+              <Plus className="mr-2 h-4 w-4" /> Add Step
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => addNode('condition', 'Condition')}>
+              <Layout className="mr-2 h-4 w-4" /> Condition
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => addNode('end', 'End')}>
+              <Plus className="mr-2 h-4 w-4" /> Add End
+            </Button>
           </Panel>
 
-           <Panel position="bottom-left" className="flex gap-2">
-             <Button size="sm" onClick={handleSave}>
-                <Save className="mr-2 h-4 w-4" /> Save Visual State
-             </Button>
-             <Button size="sm" variant="outline" onClick={generateDSL}>
-                <Download className="mr-2 h-4 w-4" /> Generate DSL
-             </Button>
-           </Panel>
+          <Panel position="bottom-left" className="flex gap-2">
+            <Button size="sm" onClick={handleSave}>
+              <Save className="mr-2 h-4 w-4" /> Save Visual State
+            </Button>
+            <Button size="sm" variant="outline" onClick={generateDSL}>
+              <Download className="mr-2 h-4 w-4" /> Generate DSL
+            </Button>
+          </Panel>
         </ReactFlow>
       </div>
-       <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-muted-foreground">
         <p>Tip: Drag to connect nodes. Use backspace to delete selected nodes.</p>
       </div>
     </div>
@@ -387,9 +403,9 @@ function VisualWorkflowBuilderContent({ initialNodes: propNodes, initialEdges: p
 }
 
 export function VisualWorkflowBuilder(props: VisualWorkflowBuilderProps) {
-    return (
-        <ReactFlowProvider>
-            <VisualWorkflowBuilderContent {...props} />
-        </ReactFlowProvider>
-    )
+  return (
+    <ReactFlowProvider>
+      <VisualWorkflowBuilderContent {...props} />
+    </ReactFlowProvider>
+  );
 }

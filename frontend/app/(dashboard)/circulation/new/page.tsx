@@ -1,47 +1,29 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
-import { circulationService } from "@/lib/services/circulation.service";
-import { userService } from "@/lib/services/user.service";
-import { correspondenceService } from "@/lib/services/correspondence.service";
-import { CreateCirculationDto } from "@/types/circulation";
+import { circulationService } from '@/lib/services/circulation.service';
+import { userService } from '@/lib/services/user.service';
+import { correspondenceService } from '@/lib/services/correspondence.service';
+import { CreateCirculationDto } from '@/types/circulation';
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Check, ChevronsUpDown, X } from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Check, ChevronsUpDown, X } from 'lucide-react';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 // Force dynamic rendering to prevent build-time prerendering issues
 export const dynamic = 'force-dynamic';
@@ -51,9 +33,9 @@ export const fetchCache = 'force-no-store';
 
 // Form validation schema
 const formSchema = z.object({
-  correspondenceId: z.string().min(1, "Please select a document"),
-  subject: z.string().min(1, "Subject is required"),
-  assigneeIds: z.array(z.string()).min(1, "At least one assignee is required"),
+  correspondenceId: z.string().min(1, 'Please select a document'),
+  subject: z.string().min(1, 'Subject is required'),
+  assigneeIds: z.array(z.string()).min(1, 'At least one assignee is required'),
   remarks: z.string().optional(),
 });
 
@@ -67,32 +49,32 @@ export default function CreateCirculationPage() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      subject: "",
+      subject: '',
       assigneeIds: [],
-      remarks: "",
+      remarks: '',
     },
   });
 
   // Fetch users for assignee selection
   const { data: users = [] } = useQuery({
-    queryKey: ["users"],
+    queryKey: ['users'],
     queryFn: () => userService.getAll(),
   });
 
   // Fetch correspondences for document selection
   const { data: correspondences } = useQuery({
-    queryKey: ["correspondences-dropdown"],
+    queryKey: ['correspondences-dropdown'],
     queryFn: () => correspondenceService.getAll({ limit: 100 }),
   });
 
   const createMutation = useMutation({
     mutationFn: (data: CreateCirculationDto) => circulationService.create(data),
     onSuccess: (result) => {
-      toast.success("Circulation created successfully");
+      toast.success('Circulation created successfully');
       router.push(`/circulation/${result.uuid}`);
     },
     onError: () => {
-      toast.error("Failed to create circulation");
+      toast.error('Failed to create circulation');
     },
   });
 
@@ -100,22 +82,20 @@ export default function CreateCirculationPage() {
     createMutation.mutate(data);
   };
 
-  const selectedAssignees = form.watch("assigneeIds");
-  const selectedDocId = form.watch("correspondenceId");
+  const selectedAssignees = form.watch('assigneeIds');
+  const selectedDocId = form.watch('correspondenceId');
 
-  const selectedDoc = correspondences?.data?.find(
-    (c: { uuid: string }) => c.uuid === selectedDocId
-  );
+  const selectedDoc = correspondences?.data?.find((c: { uuid: string }) => c.uuid === selectedDocId);
 
   const toggleAssignee = (userUuid: string) => {
-    const current = form.getValues("assigneeIds");
+    const current = form.getValues('assigneeIds');
     if (current.includes(userUuid)) {
       form.setValue(
-        "assigneeIds",
+        'assigneeIds',
         current.filter((id) => id !== userUuid)
       );
     } else {
-      form.setValue("assigneeIds", [...current, userUuid]);
+      form.setValue('assigneeIds', [...current, userUuid]);
     }
   };
 
@@ -130,9 +110,7 @@ export default function CreateCirculationPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold">Create Circulation</h1>
-          <p className="text-muted-foreground">
-            Create a new internal document circulation
-          </p>
+          <p className="text-muted-foreground">Create a new internal document circulation</p>
         </div>
       </div>
 
@@ -156,14 +134,9 @@ export default function CreateCirculationPage() {
                           <Button
                             variant="outline"
                             role="combobox"
-                            className={cn(
-                              "justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
+                            className={cn('justify-between', !field.value && 'text-muted-foreground')}
                           >
-                            {selectedDoc
-                              ? selectedDoc.correspondenceNumber
-                              : "Select document..."}
+                            {selectedDoc ? selectedDoc.correspondenceNumber : 'Select document...'}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
@@ -179,16 +152,14 @@ export default function CreateCirculationPage() {
                                   key={doc.uuid}
                                   value={doc.correspondenceNumber}
                                   onSelect={() => {
-                                    form.setValue("correspondenceId", doc.uuid);
+                                    form.setValue('correspondenceId', doc.uuid);
                                     setDocOpen(false);
                                   }}
                                 >
                                   <Check
                                     className={cn(
-                                      "mr-2 h-4 w-4",
-                                      doc.uuid === field.value
-                                        ? "opacity-100"
-                                        : "opacity-0"
+                                      'mr-2 h-4 w-4',
+                                      doc.uuid === field.value ? 'opacity-100' : 'opacity-0'
                                     )}
                                   />
                                   {doc.correspondenceNumber}
@@ -223,29 +194,19 @@ export default function CreateCirculationPage() {
               <FormField
                 control={form.control}
                 name="assigneeIds"
-                render={({ field }) => (
+                render={({ _field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Assignees</FormLabel>
                     <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="justify-between h-auto min-h-10"
-                          >
+                          <Button variant="outline" role="combobox" className="justify-between h-auto min-h-10">
                             {selectedAssignees.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
                                 {selectedAssignees.map((userUuid) => {
-                                  const user = users.find(
-                                    (u) => u.uuid === userUuid
-                                  );
+                                  const user = users.find((u) => u.uuid === userUuid);
                                   return user ? (
-                                    <Badge
-                                      key={userUuid}
-                                      variant="secondary"
-                                      className="mr-1"
-                                    >
+                                    <Badge key={userUuid} variant="secondary" className="mr-1">
                                       {user.firstName || user.username}
                                       <X
                                         className="ml-1 h-3 w-3 cursor-pointer"
@@ -259,9 +220,7 @@ export default function CreateCirculationPage() {
                                 })}
                               </div>
                             ) : (
-                              <span className="text-muted-foreground">
-                                Select assignees...
-                              </span>
+                              <span className="text-muted-foreground">Select assignees...</span>
                             )}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -281,10 +240,8 @@ export default function CreateCirculationPage() {
                                 >
                                   <Check
                                     className={cn(
-                                      "mr-2 h-4 w-4",
-                                      selectedAssignees.includes(user.uuid)
-                                        ? "opacity-100"
-                                        : "opacity-0"
+                                      'mr-2 h-4 w-4',
+                                      selectedAssignees.includes(user.uuid) ? 'opacity-100' : 'opacity-0'
                                     )}
                                   />
                                   {user.firstName && user.lastName
@@ -310,11 +267,7 @@ export default function CreateCirculationPage() {
                   <FormItem>
                     <FormLabel>Remarks (Optional)</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Additional notes..."
-                        className="resize-none"
-                        {...field}
-                      />
+                      <Textarea placeholder="Additional notes..." className="resize-none" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -329,7 +282,7 @@ export default function CreateCirculationPage() {
                   </Button>
                 </Link>
                 <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creating..." : "Create Circulation"}
+                  {createMutation.isPending ? 'Creating...' : 'Create Circulation'}
                 </Button>
               </div>
             </form>

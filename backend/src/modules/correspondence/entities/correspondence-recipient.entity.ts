@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, _Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Correspondence } from './correspondence.entity';
 import { Organization } from '../../organization/entities/organization.entity';
 

@@ -1,6 +1,6 @@
 // File: proxy.ts
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { _NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 
 // รายการ Route ที่ไม่ต้อง Login ก็เข้าได้ (Public Routes)

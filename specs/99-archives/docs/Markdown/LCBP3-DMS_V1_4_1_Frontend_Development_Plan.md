@@ -35,72 +35,72 @@
 
 ### **โครงสร้างโปรเจกต์**
 
-  ```tree
-  app/
-  ├── (public)/              # Public routes (Landing, Login)
-  │   ├── page.tsx          # Landing Page
-  │   └── login/            # Login Page
-  ├── (protected)/          # Protected routes
-  │   ├── layout.tsx        # App Shell (Navbar + Sidebar)
-  │   ├── dashboard/        # Dashboard
-  │   ├── correspondences/  # Correspondence Management
-  │   ├── rfas/            # RFA Management
-  │   ├── drawings/        # Drawing Management
-  │   ├── circulations/    # Circulation Management
-  │   ├── transmittals/    # Transmittal Management
-  │   ├── search/          # Advanced Search
-  │   ├── reports/         # Reports
-  │   ├── admin/           # Admin Panel
-  │   └── profile/         # User Profile
-  ├── api/                 # API Routes (if needed)
-  components/
-  ├── ui/                  # shadcn/ui components
-  ├── features/            # Feature-specific components
-  │   ├── auth/
-  │   ├── correspondence/
-  │   ├── rfa/
-  │   ├── drawing/
-  │   ├── circulation/
-  │   ├── common/
-  │   ├── security/           # NEW: Security components
-  │   │   ├── file-upload-security.tsx
-  │   │   ├── virus-scan-status.tsx
-  │   │   └── security-audit-log.tsx
-  │   ├── json-details/       # NEW: JSON Details management
-  │   │   ├── json-details-form.tsx
-  │   │   ├── schema-validator.tsx
-  │   │   └── dynamic-form-generator.tsx
-  │   ├── routing/            # NEW: Correspondence routing
-  │   │   ├── routing-template-manager.tsx
-  │   │   ├── routing-workflow-visualizer.tsx
-  │   └── pending-routings-list.tsx
-  │   └── monitoring/         # NEW: Performance monitoring
-  │       ├── performance-metrics.tsx
-  │       ├── real-time-monitor.tsx
-  │       └── cache-status.tsx
-  └── layouts/             # Layout components
-  lib/
-  ├── api/                 # API client & hooks
-  ├── stores/              # Zustand stores
-  ├── utils/               # Utility functions
-  ├── hooks/               # Custom hooks
-  ├── types/               # TypeScript types
-  ├── security/              # NEW: Security utilities
-  │   ├── file-scanner.ts
-  │   ├── virus-scan-client.ts
-  │   └── security-headers.ts
-  ├── json-schemas/          # NEW: JSON schema management
-  │   ├── schemas/
-  │   ├── validators/
-  │   └── transformers/
-  └── monitoring/            # NEW: Monitoring utilities
-  │   ├── performance.ts
-  │   ├── error-tracking.ts
-  │   └── metrics-collector.ts
-  public/
-  ├── images/
-  └── fonts/
-  ```
+```tree
+app/
+├── (public)/              # Public routes (Landing, Login)
+│   ├── page.tsx          # Landing Page
+│   └── login/            # Login Page
+├── (protected)/          # Protected routes
+│   ├── layout.tsx        # App Shell (Navbar + Sidebar)
+│   ├── dashboard/        # Dashboard
+│   ├── correspondences/  # Correspondence Management
+│   ├── rfas/            # RFA Management
+│   ├── drawings/        # Drawing Management
+│   ├── circulations/    # Circulation Management
+│   ├── transmittals/    # Transmittal Management
+│   ├── search/          # Advanced Search
+│   ├── reports/         # Reports
+│   ├── admin/           # Admin Panel
+│   └── profile/         # User Profile
+├── api/                 # API Routes (if needed)
+components/
+├── ui/                  # shadcn/ui components
+├── features/            # Feature-specific components
+│   ├── auth/
+│   ├── correspondence/
+│   ├── rfa/
+│   ├── drawing/
+│   ├── circulation/
+│   ├── common/
+│   ├── security/           # NEW: Security components
+│   │   ├── file-upload-security.tsx
+│   │   ├── virus-scan-status.tsx
+│   │   └── security-audit-log.tsx
+│   ├── json-details/       # NEW: JSON Details management
+│   │   ├── json-details-form.tsx
+│   │   ├── schema-validator.tsx
+│   │   └── dynamic-form-generator.tsx
+│   ├── routing/            # NEW: Correspondence routing
+│   │   ├── routing-template-manager.tsx
+│   │   ├── routing-workflow-visualizer.tsx
+│   └── pending-routings-list.tsx
+│   └── monitoring/         # NEW: Performance monitoring
+│       ├── performance-metrics.tsx
+│       ├── real-time-monitor.tsx
+│       └── cache-status.tsx
+└── layouts/             # Layout components
+lib/
+├── api/                 # API client & hooks
+├── stores/              # Zustand stores
+├── utils/               # Utility functions
+├── hooks/               # Custom hooks
+├── types/               # TypeScript types
+├── security/              # NEW: Security utilities
+│   ├── file-scanner.ts
+│   ├── virus-scan-client.ts
+│   └── security-headers.ts
+├── json-schemas/          # NEW: JSON schema management
+│   ├── schemas/
+│   ├── validators/
+│   └── transformers/
+└── monitoring/            # NEW: Monitoring utilities
+│   ├── performance.ts
+│   ├── error-tracking.ts
+│   └── metrics-collector.ts
+public/
+├── images/
+└── fonts/
+```
 
 ---
 
@@ -111,7 +111,6 @@
 **Milestone:** สร้างโครงสร้างพื้นฐานและ Development Environment
 
 - **T0.1 Initialize Next.js Project**
-
   - สร้างโปรเจกต์ด้วย create-next-app:
 
   ```bash
@@ -123,56 +122,56 @@
     - ✅ ESLint
     - ✅ Tailwind CSS
     - ✅ App Router
-    - ✅ Import alias (@/*)
+    - ✅ Import alias (@/\*)
   - Setup .gitignore, README.md
   - Deliverable: ✅ โปรเจกต์เริ่มต้นพร้อม
 
 - **T0.2 Install Core Dependencies**
 
-    ```bash
-    # State Management & Data Fetching
-    npm install @tanstack/react-query zustand
-    npm install axios
-    npm install react-hook-form @hookform/resolvers zod
+  ```bash
+  # State Management & Data Fetching
+  npm install @tanstack/react-query zustand
+  npm install axios
+  npm install react-hook-form @hookform/resolvers zod
 
-    # UI Components & Styling
-    npm install clsx tailwind-merge
-    npm install lucide-react
-    npm install date-fns
+  # UI Components & Styling
+  npm install clsx tailwind-merge
+  npm install lucide-react
+  npm install date-fns
 
-    # File Upload
-    npm install react-dropzone
+  # File Upload
+  npm install react-dropzone
 
-    # Authentication
-    npm install next-auth
+  # Authentication
+  npm install next-auth
 
-    # Development Tools
-    npm install -D @types/node
+  # Development Tools
+  npm install -D @types/node
 
-    # Security & File Processing
-    npm install clamscan js-file-download
-    npm install dompurify @types/dompurify
+  # Security & File Processing
+  npm install clamscan js-file-download
+  npm install dompurify @types/dompurify
 
-    # JSON Schema & Validation
-    npm install ajv ajv-formats
-    npm install jsonpath json-schema-ref-parser
+  # JSON Schema & Validation
+  npm install ajv ajv-formats
+  npm install jsonpath json-schema-ref-parser
 
-    # Performance Monitoring
-    npm install web-vitals
-    npm install @axe-core/react
+  # Performance Monitoring
+  npm install web-vitals
+  npm install @axe-core/react
 
-    # Advanced UI Components
-    npm install react-json-view-lite
-    npm install react-window # สำหรับ Virtual Scrolling
-    ```
+  # Advanced UI Components
+  npm install react-json-view-lite
+  npm install react-window # สำหรับ Virtual Scrolling
+  ```
 
   - Deliverable: ✅ Dependencies ติดตั้งสมบูรณ์
 
 - **T0.3 Setup shadcn/ui**
 
-    ```bash
-    npx shadcn-ui@latest init
-    ```
+  ```bash
+  npx shadcn-ui@latest init
+  ```
 
   - เลือก Style: Default
   - เลือก Base Color: Slate
@@ -278,7 +277,7 @@
   'use client';
   import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
   import { useState } from 'react';
-  
+
   export function Providers({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(() => new QueryClient({
       defaultOptions: {
@@ -288,7 +287,7 @@
         },
       },
     }));
-  
+
     return (
       <QueryClientProvider client={queryClient}>
         {children}
@@ -307,7 +306,7 @@
   ```typescript
   import { create } from 'zustand';
   import { persist } from 'zustand/middleware';
-  
+
   interface User {
     user_id: number;
     username: string;
@@ -317,7 +316,7 @@
     primary_organization_id: number;
     permissions: string[];
   }
-  
+
   interface AuthStore {
     user: User | null;
     token: string | null;
@@ -325,7 +324,7 @@
     clearAuth: () => void;
     hasPermission: (permission: string) => boolean;
   }
-  
+
   export const useAuthStore = create<AuthStore>()(
     persist(
       (set, get) => ({
@@ -367,19 +366,19 @@
   import { useRouter } from 'next/navigation';
   import { useAuthStore } from '@/lib/stores/auth-store';
   import { apiClient } from '@/lib/api/client';
-  
+
   const loginSchema = z.object({
     username: z.string().min(1, 'กรุณากรอกชื่อผู้ใช้'),
     password: z.string().min(1, 'กรุณากรอกรหัสผ่าน'),
   });
-  
+
   export default function LoginPage() {
     const router = useRouter();
     const setAuth = useAuthStore((state) => state.setAuth);
     const form = useForm({
       resolver: zodResolver(loginSchema),
     });
-  
+
     const handleLogin = async (data: z.infer<typeof loginSchema>) => {
       try {
         const response = await apiClient.post('/auth/login', data);
@@ -391,7 +390,7 @@
         // แสดง Toast Error
       }
     };
-  
+
     return (
       <div className="flex min-h-screen items-center justify-center">
         <form onSubmit={form.handleSubmit(handleLogin)} className="w-96">
@@ -424,19 +423,19 @@
   import { useAuthStore } from '@/lib/stores/auth-store';
   import Navbar from '@/components/layouts/navbar';
   import Sidebar from '@/components/layouts/sidebar';
-  
+
   export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const user = useAuthStore((state) => state.user);
-  
+
     useEffect(() => {
       if (!user) {
         router.push('/login');
       }
     }, [user, router]);
-  
+
     if (!user) return null;
-  
+
     return (
       <div className="flex h-screen">
         <Sidebar />
@@ -490,62 +489,66 @@
 
   ```typescript
 
+  ```
+
 // สร้าง lib/error-handling/global-error-handler.ts
 export class GlobalErrorHandler {
-  static setup() {
-    // API Error Interceptors
-    apiClient.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        this.handleApiError(error);
-        return Promise.reject(error);
-      }
-    );
+static setup() {
+// API Error Interceptors
+apiClient.interceptors.response.use(
+(response) => response,
+(error) => {
+this.handleApiError(error);
+return Promise.reject(error);
+}
+);
 
     // Frontend Error Boundary
     window.addEventListener('error', this.handleWindowError);
     window.addEventListener('unhandledrejection', this.handlePromiseRejection);
-  }
-  
-  static handleApiError(error: any) {
-    // Circuit Breaker Pattern
-    if (error.response?.status >= 500) {
-      this.circuitBreaker.recordFailure();
-    }
+
+}
+
+static handleApiError(error: any) {
+// Circuit Breaker Pattern
+if (error.response?.status >= 500) {
+this.circuitBreaker.recordFailure();
+}
 
     // User-friendly Error Messages
     const userMessage = this.getUserFriendlyMessage(error);
     this.showErrorToast(userMessage);
-    
+
     // Error Reporting
     this.reportErrorToService(error);
-  }
+
+}
 }
 
-  ```
+````
 
 T1.10 Setup Security Foundation
 
-  ```typescript
+```typescript
 // สร้าง lib/security/security-config.ts
 export const SecurityConfig = {
-  fileUpload: {
-    allowedTypes: ['pdf', 'dwg', 'docx', 'xlsx', 'zip'],
-    maxSize: 50 * 1024 * 1024, // 50MB
-    virusScanRequired: true,
-    scanTimeout: 30000 // 30 seconds
-  },
-  rateLimiting: {
-    maxRequests: {
-      anonymous: 100,
-      viewer: 500,
-      editor: 1000,
-      documentControl: 2000,
-      admin: 5000
-    }
+fileUpload: {
+  allowedTypes: ['pdf', 'dwg', 'docx', 'xlsx', 'zip'],
+  maxSize: 50 * 1024 * 1024, // 50MB
+  virusScanRequired: true,
+  scanTimeout: 30000 // 30 seconds
+},
+rateLimiting: {
+  maxRequests: {
+    anonymous: 100,
+    viewer: 500,
+    editor: 1000,
+    documentControl: 2000,
+    admin: 5000
   }
+}
 };
-  ```
+````
 
 ---
 
@@ -596,7 +599,7 @@ export const SecurityConfig = {
   ```typescript
   import { useQuery } from '@tanstack/react-query';
   import { apiClient } from '../client';
-  
+
   export function useMyTasks() {
     return useQuery({
       queryKey: ['my-tasks'],
@@ -783,16 +786,16 @@ export const SecurityConfig = {
   ```typescript
   import { useMutation, useQueryClient } from '@tanstack/react-query';
   import { apiClient } from '../client';
-  
+
   export function useCompleteWorkflowStep() {
     const queryClient = useQueryClient();
-    
+
     return useMutation({
       mutationFn: async ({ rfaId, stepNumber, action, comments }) => {
-        const response = await apiClient.post(
-          `/rfas/${rfaId}/workflow/steps/${stepNumber}/complete`,
-          { action, comments }
-        );
+        const response = await apiClient.post(`/rfas/${rfaId}/workflow/steps/${stepNumber}/complete`, {
+          action,
+          comments,
+        });
         return response.data;
       },
       onSuccess: (_, variables) => {
@@ -1051,7 +1054,7 @@ export const SecurityConfig = {
   ```typescript
   import { useQuery } from '@tanstack/react-query';
   import { apiClient } from '../client';
-  
+
   interface SearchFilters {
     q?: string;
     types?: string[];
@@ -1063,7 +1066,7 @@ export const SecurityConfig = {
     page?: number;
     pageSize?: number;
   }
-  
+
   export function useSearch(filters: SearchFilters) {
     return useQuery({
       queryKey: ['search', filters],
@@ -1422,6 +1425,7 @@ npm install recharts
 
   - ลบ Dependencies ที่ไม่ใช้
   - Tree Shaking
+
 - Deliverable: ✅ Performance Metrics ดีขึ้น
 
 - **T10.6 Accessibility (a11y) Testing**
@@ -1545,6 +1549,7 @@ npm install recharts
 
   - ตรวจสอบ Build Output
   - แก้ไข Build Errors/Warnings
+
 - **Environment Variables**:
   - สร้างไฟล์ `.env.production`
   - กำหนดค่าใน docker-compose.yml:
@@ -1564,6 +1569,7 @@ npm install recharts
     ```
 
   - Test Image Locally
+
 - Deliverable: ✅ Production Build พร้อม
 
 - **T11.5 Deploy to QNAP**
@@ -1577,6 +1583,7 @@ npm install recharts
 
   - Upload ผ่าน QNAP File Station
   - Import ใน Container Station
+
 - **Update docker-compose.yml** บน QNAP:
 
   ```yaml
@@ -1664,8 +1671,8 @@ npm install recharts
 
 ## 📊 สรุป Timeline
 
-| Phase    | ระยะเวลา     | จำนวนงาน      | Output หลัก                    |
-| -------- | ------------ | ------------ | ----------------------------- |
+| Phase    | ระยะเวลา       | จำนวนงาน     | Output หลัก                   |
+| -------- | -------------- | ------------ | ----------------------------- |
 | Phase 0  | 1 สัปดาห์      | 6            | Infrastructure Ready          |
 | Phase 1  | 2 สัปดาห์      | 8            | Auth & App Shell              |
 | Phase 2  | 1 สัปดาห์      | 3            | Dashboard & Components        |
@@ -1850,11 +1857,11 @@ Unit Tests (60%)     <- Vitest
 
 ```typescript
 const breakpoints = {
-  sm: '640px',   // Mobile Landscape
-  md: '768px',   // Tablet Portrait
-  lg: '1024px',  // Tablet Landscape / Desktop
-  xl: '1280px',  // Desktop
-  '2xl': '1536px' // Large Desktop
+  sm: '640px', // Mobile Landscape
+  md: '768px', // Tablet Portrait
+  lg: '1024px', // Tablet Landscape / Desktop
+  xl: '1280px', // Desktop
+  '2xl': '1536px', // Large Desktop
 };
 ```
 
@@ -1866,16 +1873,14 @@ const breakpoints = {
 // Desktop: Fixed Sidebar
 // Mobile: Collapsible (Hamburger Menu)
 
-<aside className="hidden lg:block w-64 bg-gray-50">
-  {/* Sidebar Content */}
-</aside>
+<aside className="hidden lg:block w-64 bg-gray-50">{/* Sidebar Content */}</aside>;
 
-{/* Mobile Sidebar (Sheet) */}
+{
+  /* Mobile Sidebar (Sheet) */
+}
 <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-  <SheetContent side="left">
-    {/* Sidebar Content */}
-  </SheetContent>
-</Sheet>
+  <SheetContent side="left">{/* Sidebar Content */}</SheetContent>
+</Sheet>;
 ```
 
 **DataTable:**
@@ -1949,13 +1954,13 @@ module.exports = {
 
 ```typescript
 const typography = {
-  h1: 'text-4xl font-bold',      // Headings
+  h1: 'text-4xl font-bold', // Headings
   h2: 'text-3xl font-bold',
   h3: 'text-2xl font-semibold',
   h4: 'text-xl font-semibold',
-  body: 'text-base',             // Body Text
-  small: 'text-sm',              // Helper Text
-  xs: 'text-xs',                 // Captions
+  body: 'text-base', // Body Text
+  small: 'text-sm', // Helper Text
+  xs: 'text-xs', // Captions
 };
 ```
 
@@ -2076,13 +2081,10 @@ const formSchema = z.object({
 // ✅ Dynamic Import สำหรับ Heavy Components
 import dynamic from 'next/dynamic';
 
-const WorkflowVisualizer = dynamic(
-  () => import('@/components/features/rfa/workflow-visualizer'),
-  { 
-    loading: () => <Skeleton className="h-96" />,
-    ssr: false // ถ้าไม่ต้องการ SSR
-  }
-);
+const WorkflowVisualizer = dynamic(() => import('@/components/features/rfa/workflow-visualizer'), {
+  loading: () => <Skeleton className="h-96" />,
+  ssr: false, // ถ้าไม่ต้องการ SSR
+});
 ```
 
 ### 2. Image Optimization
@@ -2097,7 +2099,7 @@ import Image from 'next/image';
   width={200}
   height={50}
   priority // สำหรับรูปสำคัญ (Above the fold)
-/>
+/>;
 ```
 
 ### 3. Data Fetching Optimization
@@ -2151,7 +2153,7 @@ const virtualizer = useVirtualizer({
       </div>
     ))}
   </div>
-</div>
+</div>;
 ```
 
 ---
@@ -2234,16 +2236,16 @@ const nextConfig = {
   output: 'standalone', // สำหรับ Docker
   reactStrictMode: true,
   swcMinify: true, // ใช้ SWC แทน Terser (เร็วกว่า)
-  
+
   // Image Optimization
   images: {
     domains: ['backend.np-dms.work'], // ถ้ามี Image จาก Backend
     formats: ['image/webp'],
   },
-  
+
   // Compression
   compress: true,
-  
+
   // Security Headers
   async headers() {
     return [
@@ -2284,14 +2286,14 @@ services:
     environment:
       # Public (ถูก Replace ตอน Build)
       - NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api
-      
+
       # Server-side Only
       - NEXTAUTH_URL=https://lcbp3.np-dms.work
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - DATABASE_URL=mysql://user:pass@mariadb:3306/dms_db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/api/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -2420,13 +2422,13 @@ export function setupErrorTracking() {
 
 ### User Metrics
 
-| Metric               | Target             | Measurement  |
-| -------------------- | ------------------ | ------------ |
+| Metric               | Target              | Measurement  |
+| -------------------- | ------------------- | ------------ |
 | User Adoption        | 90% (ภายใน 3 เดือน) | Analytics    |
-| Daily Active Users   | 50+                | Analytics    |
-| Task Completion Rate | > 85%              | User Testing |
-| User Satisfaction    | > 4.0/5.0          | Survey       |
-| Support Tickets      | < 10/week          | Helpdesk     |
+| Daily Active Users   | 50+                 | Analytics    |
+| Task Completion Rate | > 85%               | User Testing |
+| User Satisfaction    | > 4.0/5.0           | Survey       |
+| Support Tickets      | < 10/week           | Helpdesk     |
 
 ---
 

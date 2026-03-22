@@ -11,7 +11,7 @@ export interface MigrationReviewQueueItem {
   originalTitle?: string;
   aiSuggestedCategory?: string;
   aiConfidence?: number;
-  aiIssues?: any;
+  aiIssues?: Record<string, unknown>;
   reviewReason?: string;
   status: MigrationReviewStatus;
   reviewedBy?: string;
@@ -24,13 +24,13 @@ export interface MigrationReviewQueueItem {
   issuedDate?: string;
   remarks?: string;
   aiSummary?: string;
-  extractedTags?: any;
+  extractedTags?: Record<string, unknown>;
   tempAttachmentId?: number;
 }
 
 export interface CommitBatchItemDto {
   queueId: number;
-  dto: Record<string, any>;
+  dto: Record<string, unknown>;
 }
 
 export interface CommitBatchDto {

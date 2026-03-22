@@ -12,15 +12,15 @@
 
 Act as a **Senior Full Stack Developer** specialized in:
 
-* NestJS, Next.js, TypeScript
-* Document Management Systems (DMS)
+- NestJS, Next.js, TypeScript
+- Document Management Systems (DMS)
 
 Focus:
 
-* Data Integrity
-* Security
-* Maintainability
-* Performance
+- Data Integrity
+- Security
+- Maintainability
+- Performance
 
 ---
 
@@ -30,29 +30,29 @@ Focus:
 
 Must be enforced automatically (CI/CD + runtime):
 
-* Security (Auth, RBAC, Validation)
-* UUID Strategy (ADR-019)
-* Database correctness
-* File upload security
-* AI validation boundary
-* Forbidden patterns (any, console.log, UUID misuse)
+- Security (Auth, RBAC, Validation)
+- UUID Strategy (ADR-019)
+- Database correctness
+- File upload security
+- AI validation boundary
+- Forbidden patterns (any, console.log, UUID misuse)
 
 ---
 
 ## 🟡 Tier 2 — IMPORTANT (CODE REVIEW)
 
-* Architecture patterns
-* Testing coverage
-* Caching
-* Naming conventions
+- Architecture patterns
+- Testing coverage
+- Caching
+- Naming conventions
 
 ---
 
 ## 🟢 Tier 3 — GUIDELINES
 
-* Code style
-* Comments language
-* Minor optimizations
+- Code style
+- Comments language
+- Minor optimizations
 
 ---
 
@@ -60,29 +60,29 @@ Must be enforced automatically (CI/CD + runtime):
 
 ## Rules
 
-* DB Primary Key: INT (internal only)
-* Public API: UUIDv7 (string)
+- DB Primary Key: INT (internal only)
+- Public API: UUIDv7 (string)
 
 ## ❌ Forbidden
 
-* parseInt(uuid)
-* Number(uuid)
-* +uuid
+- parseInt(uuid)
+- Number(uuid)
+- +uuid
 
 ## ✅ Validation
 
 Backend:
 
-* @IsUUID()
+- @IsUUID()
 
 Frontend:
 
-* z.string().uuid()
+- z.string().uuid()
 
 ## 🔴 CI Enforcement
 
-* grep: `parseInt\(.*uuid`
-* fail build if found
+- grep: `parseInt\(.*uuid`
+- fail build if found
 
 ---
 
@@ -90,9 +90,9 @@ Frontend:
 
 ## 🔴 Validation (MANDATORY)
 
-* Backend: class-validator
-* Frontend: Zod
-* Reject ALL invalid input
+- Backend: class-validator
+- Frontend: Zod
+- Reject ALL invalid input
 
 ---
 
@@ -100,24 +100,24 @@ Frontend:
 
 Apply ONLY to:
 
-* Document creation
-* File upload commit
-* Numbering system
+- Document creation
+- File upload commit
+- Numbering system
 
 ---
 
 ## 🔴 File Upload Policy
 
-* Allowed: PDF, DWG, DOCX, XLSX, ZIP
-* Max: 50MB
-* ClamAV scan REQUIRED
+- Allowed: PDF, DWG, DOCX, XLSX, ZIP
+- Max: 50MB
+- ClamAV scan REQUIRED
 
 ---
 
 ## 🔴 Auth & RBAC
 
-* JWT + CASL
-* All protected routes MUST use guards
+- JWT + CASL
+- All protected routes MUST use guards
 
 ---
 
@@ -135,29 +135,29 @@ Example:
 
 ```ts
 const parsed = schema.safeParse(aiOutput);
-if (!parsed.success) throw new Error("Invalid AI output");
+if (!parsed.success) throw new Error('Invalid AI output');
 ```
 
 4. Log input/output (Audit)
 
 ## ❌ Forbidden
 
-* AI direct DB access
-* AI writing to storage
+- AI direct DB access
+- AI writing to storage
 
 ---
 
 # 🧱 Database Rules (ADR-009)
 
-* NO TypeORM migrations
-* Modify SQL schema directly
-* NEVER invent tables/columns
+- NO TypeORM migrations
+- Modify SQL schema directly
+- NEVER invent tables/columns
 
 ## 🔴 Performance Rules
 
-* All FK columns MUST be indexed
-* UUID columns MUST be indexed
-* Use pagination (take/skip)
+- All FK columns MUST be indexed
+- UUID columns MUST be indexed
+- Use pagination (take/skip)
 
 ---
 
@@ -165,19 +165,19 @@ if (!parsed.success) throw new Error("Invalid AI output");
 
 ## Backend (NestJS)
 
-* Modular structure
-* Business logic ONLY in services
-* Controllers = thin layer
-* Use transactions for multi-step operations
+- Modular structure
+- Business logic ONLY in services
+- Controllers = thin layer
+- Use transactions for multi-step operations
 
 ---
 
 ## Frontend (Next.js)
 
-* App Router
-* TanStack Query = server state
-* Zustand = client state
-* React Hook Form + Zod = forms
+- App Router
+- TanStack Query = server state
+- Zustand = client state
+- React Hook Form + Zod = forms
 
 ---
 
@@ -195,15 +195,15 @@ MUST:
 
 ## 🟡 Normal Work (UI / feature)
 
-* Follow existing patterns
-* No full spec reading required
+- Follow existing patterns
+- No full spec reading required
 
 ---
 
 ## 🟢 Quick Fix
 
-* Fix directly
-* Add minimal test if needed
+- Fix directly
+- Add minimal test if needed
 
 ---
 
@@ -211,20 +211,20 @@ MUST:
 
 ## 🔴 MUST
 
-* Critical modules: 80%
-* API: happy path + 1 edge case
+- Critical modules: 80%
+- API: happy path + 1 edge case
 
 ---
 
 ## 🟡 SHOULD
 
-* Other modules: 60–70%
+- Other modules: 60–70%
 
 ---
 
 ## 🟢 OPTIONAL
 
-* UI components
+- UI components
 
 ---
 
@@ -232,39 +232,39 @@ MUST:
 
 ## CI Checks (MANDATORY)
 
-* ESLint (no any, no console.log)
-* UUID misuse detection
-* Build must pass
-* Coverage threshold
+- ESLint (no any, no console.log)
+- UUID misuse detection
+- Build must pass
+- Coverage threshold
 
 ---
 
 ## Pre-commit Hooks
 
-* Prettier format
-* Lint fix
-* Block console.log
+- Prettier format
+- Lint fix
+- Block console.log
 
 ---
 
 ## Static Scan (grep)
 
-* parseInt(uuid)
-* req: any
-* console.log
+- parseInt(uuid)
+- req: any
+- console.log
 
 ---
 
 # 🚫 Forbidden Actions
 
-* SQL triggers for business logic
-* TypeORM migrations
-* Exposing INT IDs in API
-* any type
-* console.log
-* UUID misuse
-* Direct DB access from AI
-* Inline notifications (use queue)
+- SQL triggers for business logic
+- TypeORM migrations
+- Exposing INT IDs in API
+- any type
+- console.log
+- UUID misuse
+- Direct DB access from AI
+- Inline notifications (use queue)
 
 ---
 
@@ -286,18 +286,18 @@ Use `deleted_at` for business data
 
 # ⚡ Performance Guidelines
 
-* Use Redis cache (cache-aside)
-* Invalidate cache on update
-* Avoid N+1 queries
-* Use select fields only
+- Use Redis cache (cache-aside)
+- Invalidate cache on update
+- Avoid N+1 queries
+- Use select fields only
 
 ---
 
 # 🌐 i18n Rules
 
-* No hardcoded text
-* Use i18n keys
-* Support Thai (primary)
+- No hardcoded text
+- Use i18n keys
+- Support Thai (primary)
 
 ---
 
@@ -310,23 +310,23 @@ fix(scope): description
 
 ## Branch Naming
 
-feature/*
-fix/*
-refactor/*
+feature/_
+fix/_
+refactor/\*
 
 ---
 
 # ✅ Quick Checklist (Before Commit)
 
-* [ ] No UUID misuse
-* [ ] No any types
-* [ ] No console.log
-* [ ] Validation implemented
-* [ ] Tests pass
-* [ ] Build passes
-* [ ] Security rules checked
-* [ ] Transactions used (if needed)
-* [ ] Audit log added
+- [ ] No UUID misuse
+- [ ] No any types
+- [ ] No console.log
+- [ ] Validation implemented
+- [ ] Tests pass
+- [ ] Build passes
+- [ ] Security rules checked
+- [ ] Transactions used (if needed)
+- [ ] Audit log added
 
 ---
 
@@ -334,16 +334,16 @@ refactor/*
 
 This version is:
 
-* ✅ Enforceable (CI-driven)
-* ✅ Developer-friendly
-* ✅ Production-ready
-* ✅ Scalable
+- ✅ Enforceable (CI-driven)
+- ✅ Developer-friendly
+- ✅ Production-ready
+- ✅ Scalable
 
 ---
 
 # Version History
 
-* v2.0.0 — Production optimized (reduced friction, added enforcement)
+- v2.0.0 — Production optimized (reduced friction, added enforcement)
 
 ---
 
@@ -351,10 +351,10 @@ This version is:
 
 ### ✅ ดีขึ้นทันที
 
-* Dev เร็วขึ้น ~30–50%
-* Bug critical (UUID) แทบหาย
-* Review ง่ายขึ้น
-* Enforce ได้จริง (ไม่ใช่แค่ guideline)
+- Dev เร็วขึ้น ~30–50%
+- Bug critical (UUID) แทบหาย
+- Review ง่ายขึ้น
+- Enforce ได้จริง (ไม่ใช่แค่ guideline)
 
 ---
 
@@ -364,17 +364,17 @@ This version is:
 
 ## 1. ESLint Rule จริง (ผมเขียนให้ได้)
 
-* detect UUID misuse
-* block `any`
-* block `console.log`
+- detect UUID misuse
+- block `any`
+- block `console.log`
 
 ## 2. Git Hook
 
-* pre-commit auto check
+- pre-commit auto check
 
 ## 3. CI Pipeline
 
-* fail ทันทีถ้าผิด rules
+- fail ทันทีถ้าผิด rules
 
 ---
 
@@ -382,8 +382,8 @@ This version is:
 
 พิมพ์มา:
 
-* `eslint config` → ผมจัด config production ให้
-* `pre-commit hook` → ผมทำ hook script ให้
-* `ci pipeline` → ผมออกแบบ pipeline (Gitea Actions)
+- `eslint config` → ผมจัด config production ให้
+- `pre-commit hook` → ผมทำ hook script ให้
+- `ci pipeline` → ผมออกแบบ pipeline (Gitea Actions)
 
 เอาให้ระบบคุณ “ระดับบริษัทใหญ่จริง” ได้เลย 👍

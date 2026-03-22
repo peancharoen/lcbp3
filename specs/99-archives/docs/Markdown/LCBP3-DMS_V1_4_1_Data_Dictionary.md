@@ -617,15 +617,15 @@
 
 **Purpose**: เก็บข้อมูลแม่แบบ (Template) ของสายงานการส่งต่อเอกสารเพื่อขออนุมัติ ทำให้ไม่ต้องกำหนดขั้นตอนซ้ำทุกครั้ง สามารถสร้างเป็นแม่แบบทั่วไป หรือเฉพาะสำหรับโครงการใดโครงการหนึ่งได้
 
-| Column Name   | Data Type    | Constraints                                                     | Description                                                                                |
-| ------------- | ------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| id            | INT          | PRIMARY KEY, AUTO_INCREMENT                                     | ID หลัก (Primary Key) ของแม่แบบ รันค่าอัตโนมัติ                                                   |
-| template_name | VARCHAR(255) | NOT NULL                                                        | ชื่อของแม่แบบ เช่น "เสนอโครงการ", "ขออนุมัติจัดซื้อ"                                                 |
-| description   | TEXT         | NULL                                                            | คำอธิบายรายละเอียดเกี่ยวกับแม่แบบนี้                                                                |
+| Column Name   | Data Type    | Constraints                                                     | Description                                                                                                       |
+| ------------- | ------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| id            | INT          | PRIMARY KEY, AUTO_INCREMENT                                     | ID หลัก (Primary Key) ของแม่แบบ รันค่าอัตโนมัติ                                                                   |
+| template_name | VARCHAR(255) | NOT NULL                                                        | ชื่อของแม่แบบ เช่น "เสนอโครงการ", "ขออนุมัติจัดซื้อ"                                                              |
+| description   | TEXT         | NULL                                                            | คำอธิบายรายละเอียดเกี่ยวกับแม่แบบนี้                                                                              |
 | project_id    | INT          | NULL                                                            | ID ของโครงการที่แม่แบบนี้สังกัดอยู่ (ถ้ามี) **ค่า NULL หมายถึง** เป็น "แม่แบบทั่วไป" ที่สามารถใช้กับทุกโครงการได้ |
-| created_at    | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP                             | วันที่และเวลาที่สร้างแม่แบบนี้                                                                      |
-| updated_at    | TIMESTAMP    | NOT NULL,`DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | วันที่และเวลาที่แก้ไขข้อมูลในแม่แบบนี้ล่าสุด                                                            |
-| is_active     | BOOLEAN      | DEFAULT TRUE                                                    | สถานะใช้งาน                                                                                 |
+| created_at    | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP                             | วันที่และเวลาที่สร้างแม่แบบนี้                                                                                    |
+| updated_at    | TIMESTAMP    | NOT NULL,`DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | วันที่และเวลาที่แก้ไขข้อมูลในแม่แบบนี้ล่าสุด                                                                      |
+| is_active     | BOOLEAN      | DEFAULT TRUE                                                    | สถานะใช้งาน                                                                                                       |
 
 **Indexes**:
 
@@ -642,14 +642,14 @@
 
 **Purpose**: เก็บรายละเอียดของแต่ละขั้นตอน (Steps) ภายในแม่แบบสายงาน (correspondence_routing_templates) กำหนดว่าจะส่งไปที่องค์กรไหน ลำดับเป็นเท่าไร และเพื่อวัตถุประสงค์อะไร
 
-| Column Name        | Data Type | Constraints                 | Description                                                                                                                  |
-| :----------------- | --------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| id                 | INT       | PRIMARY KEY, AUTO_INCREMENT | ID หลักของขั้นตอน                                                                                                               |
-| template_id        | INT       | NOT NULL                    | ID ของแม่แบบที่ขั้นตอนนี้สังกัดอยู่                                                                                                     |
-| sequence           | INT       | NOT NULL                    | ลำดับของขั้นตอน (1, 2, 3, ...)                                                                                                   |
-| to_organization_id | INT       | NOT NULL                    | ID ขององค์กรที่เป็นผู้รับในขั้นตอนนี้                                                                                                   |
+| Column Name        | Data Type | Constraints                 | Description                                                                                                                                          |
+| :----------------- | --------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                 | INT       | PRIMARY KEY, AUTO_INCREMENT | ID หลักของขั้นตอน                                                                                                                                    |
+| template_id        | INT       | NOT NULL                    | ID ของแม่แบบที่ขั้นตอนนี้สังกัดอยู่                                                                                                                  |
+| sequence           | INT       | NOT NULL                    | ลำดับของขั้นตอน (1, 2, 3, ...)                                                                                                                       |
+| to_organization_id | INT       | NOT NULL                    | ID ขององค์กรที่เป็นผู้รับในขั้นตอนนี้                                                                                                                |
 | step_purpose       | ENUM      | NOT NULL,DEFAULT FOR_REVIEW | วัตถุประสงค์ของการส่งต่อในขั้นตอนนี้ **ค่าที่เป็นไปได้:** [FOR_APPROVAL: เพื่ออนุมัติ, FOR_REVIEW: เพื่อตรวจสอบ/พิจารณา, FOR_INFORMATION: เพื่อทราบ] |
-| expected_days      | INT       | NULL                        | วันที่คาดหวัง                                                                                                                    |
+| expected_days      | INT       | NULL                        | วันที่คาดหวัง                                                                                                                                        |
 
 **Indexes**:
 
@@ -668,21 +668,21 @@
 
 **Purpose**: เป็นตารางที่เก็บข้อมูลการส่งต่อเอกสารจริง (Instance/Run-time) ติดตามประวัติการเคลื่อนย้ายของแต่ละเอกสาร ว่าผ่านใครมาบ้าง อยู่ที่ใคร และสถานะปัจจุบันคืออะไร
 
-| Column Name          | Data Type | Constraints                         | Description                                                                                                                                              |
-| -------------------- | --------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| id                   | INT       | PRIMARY KEY, AUTO_INCREMENT         | ID หลักของรายการส่งต่อ                                                                                                                                      |
-| correspondence_id    | INT       | NOT NUL                             | ID ของเอกสาร (FK ไปยัง correspondence_revisions)                                                                                                          |
-| template_id          | INT       | NULL                                | ID ของแม่แบบที่ใช้สร้างสายงานนี้ (เก็บไว้เป็นข้อมูลอ้างอิง)                                                                                                            |
-| sequence             | INT       | NOT NULL                            | ลำดับของขั้นตอนการส่งต่อจริง                                                                                                                                    |
-| from_organization_id | INT       | NOT NULL                            | ID ขององค์กรผู้ส่ง                                                                                                                                           |
-| to_organization_id   | INT       | NOT NULL                            | ID ขององค์กรผู้รับ                                                                                                                                           |
-| step_purpose         | ENUM      | NOT NULL, DEFAULT FOR_REVIEW        | วัตถุประสงค์ของการส่งต่อในขั้นตอนนี้จริง  **ค่าที่เป็นไปได้:** [FOR_APPROVAL: เพื่ออนุมัติ, FOR_REVIEW: เพื่อตรวจสอบ/พิจารณา, FOR_INFORMATION: เพื่อทราบ, FOR_ACTION: เพื่อดำเนินการ] |
-| status               | ENUM      | NOT NULL, DEFAULT SENT              | [ACTIONED: ดำเนินการแล้ว, FORWARDED: ส่งต่อแล้ว, REPLIE: ตอบกลับแล้ว]                                                                                            |
-| comments             | TEXT      | NULL                                | หมายเหตุหรือความคิดเห็นในการส่งต่อ                                                                                                                             |
-| due_date             | DATETIME  | NULL                                | วันที่ครบกำหนดที่ต้องดำเนินการในขั้นตอนนี้                                                                                                                            |
-| processed_by_user_id | INT       | NULL                                | ID ของผู้ใช้ที่ดำเนินการในขั้นตอนนี้จริงๆ                                                                                                                            |
-| processed_at         | TIMESTAMP | NULL                                | เวลาที่ผู้ใช้ดำเนินการเสร็จสิ้น                                                                                                                                    |
-| created_at           | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | เวลาที่สร้างรายการส่งต่อนี้                                                                                                                                     |
+| Column Name          | Data Type | Constraints                         | Description                                                                                                                                                                          |
+| -------------------- | --------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| id                   | INT       | PRIMARY KEY, AUTO_INCREMENT         | ID หลักของรายการส่งต่อ                                                                                                                                                               |
+| correspondence_id    | INT       | NOT NUL                             | ID ของเอกสาร (FK ไปยัง correspondence_revisions)                                                                                                                                     |
+| template_id          | INT       | NULL                                | ID ของแม่แบบที่ใช้สร้างสายงานนี้ (เก็บไว้เป็นข้อมูลอ้างอิง)                                                                                                                          |
+| sequence             | INT       | NOT NULL                            | ลำดับของขั้นตอนการส่งต่อจริง                                                                                                                                                         |
+| from_organization_id | INT       | NOT NULL                            | ID ขององค์กรผู้ส่ง                                                                                                                                                                   |
+| to_organization_id   | INT       | NOT NULL                            | ID ขององค์กรผู้รับ                                                                                                                                                                   |
+| step_purpose         | ENUM      | NOT NULL, DEFAULT FOR_REVIEW        | วัตถุประสงค์ของการส่งต่อในขั้นตอนนี้จริง **ค่าที่เป็นไปได้:** [FOR_APPROVAL: เพื่ออนุมัติ, FOR_REVIEW: เพื่อตรวจสอบ/พิจารณา, FOR_INFORMATION: เพื่อทราบ, FOR_ACTION: เพื่อดำเนินการ] |
+| status               | ENUM      | NOT NULL, DEFAULT SENT              | [ACTIONED: ดำเนินการแล้ว, FORWARDED: ส่งต่อแล้ว, REPLIE: ตอบกลับแล้ว]                                                                                                                |
+| comments             | TEXT      | NULL                                | หมายเหตุหรือความคิดเห็นในการส่งต่อ                                                                                                                                                   |
+| due_date             | DATETIME  | NULL                                | วันที่ครบกำหนดที่ต้องดำเนินการในขั้นตอนนี้                                                                                                                                           |
+| processed_by_user_id | INT       | NULL                                | ID ของผู้ใช้ที่ดำเนินการในขั้นตอนนี้จริงๆ                                                                                                                                            |
+| processed_at         | TIMESTAMP | NULL                                | เวลาที่ผู้ใช้ดำเนินการเสร็จสิ้น                                                                                                                                                      |
+| created_at           | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | เวลาที่สร้างรายการส่งต่อนี้                                                                                                                                                          |
 
 **Indexes**:
 
@@ -707,11 +707,11 @@
 
 **Purpose**: ตารางนี้ใช้กำหนดกฎ (State Machine) ว่าสถานะใดสามารถเปลี่ยนไปเป็นสถานะใดได้บ้าง โดยขึ้นอยู่กับประเภทของหนังสือ เพื่อควบคุมการไหลของสถานะให้ถูกต้องตามข้อบังคับ
 
-| Column Name    | Data Type | Constraints | Description                                     |
-| -------------- | --------- | ----------- | ----------------------------------------------- |
+| Column Name    | Data Type | Constraints | Description                                            |
+| -------------- | --------- | ----------- | ------------------------------------------------------ |
 | type_id        | INT       | PRIMARY KEY | ID ของประเภทหนังสือ (เช่น หนังสือภายใน, หนังสือภายนอก) |
-| from_status_id | INT       | PRIMARY KEY | ID ของสถานะต้นทาง (เช่น ร่าง)                      |
-| to_status_id   | INT       | PRIMARY KEY | ID ของสถานะปลายทาง (เช่น รออนุมัติ)                 |
+| from_status_id | INT       | PRIMARY KEY | ID ของสถานะต้นทาง (เช่น ร่าง)                          |
+| to_status_id   | INT       | PRIMARY KEY | ID ของสถานะปลายทาง (เช่น รออนุมัติ)                    |
 
 **คีย์หลัก (Primary Key):**
 
@@ -2320,28 +2320,23 @@ CALL sp_get_next_document_number(
 **Additional Performance Indexes**:
 
 1. **Correspondence Tables**:
-
    - `idx_correspondences_type_project` on (correspondence_type_id, project_id)
    - `idx_corr_revisions_current_status` on (is_current, correspondence_status_id)
    - `idx_corr_revisions_correspondence_current` on (correspondence_id, is_current)
    - `idx_correspondences_project_type` on (project_id, correspondence_type_id)
 
 2. **RFA Tables**:
-
    - `idx_rfa_revisions_current_status` on (is_current, rfa_status_code_id)
    - `idx_rfa_revisions_rfa_current` on (rfa_id, is_current)
 
 3. **Circulation Tables**:
-
    - `idx_circulation_routings_status_assigned` on (status, assigned_to)
    - `idx_circulation_routings_circulation_status` on (circulation_id, status)
 
 4. **Document Numbering**:
-
    - `idx_doc_counter_composite` on (project_id, originator_organization_id, correspondence_type_id, current_year)
 
 5. **Audit & Notifications**:
-
    - `idx_audit_logs_reporting` on (created_at, entity_type, action)
    - `idx_notifications_user_unread` on (user_id, is_read, created_at)
 
@@ -2369,12 +2364,10 @@ CALL sp_get_next_document_number(
 ### Unique Constraints
 
 1. **Globally Unique**:
-
    - usernames, emails
    - shop_drawing.drawing_number
 
 2. **Unique Within Scope**:
-
    - (project_id, correspondence_number)
    - (project_id, condwg_no)
    - (correspondence_id, revision_number)
@@ -2393,13 +2386,11 @@ CALL sp_get_next_document_number(
 ### Business Rule Constraints
 
 1. **Soft Delete Pattern**:
-
    - deleted_at timestamp instead of hard delete
    - Preserves audit trail and relationships
    - Applied to: correspondences, rfas, shop_drawings, contract_drawings
 
 2. **Current Revision Pattern**:
-
    - is_current flag with UNIQUE constraint
    - Ensures only one current revision per document
 
@@ -2584,13 +2575,11 @@ ANALYZE TABLE correspondences;
 ### Business Logic Validation
 
 1. **Document Workflow**:
-
    - Cannot edit submitted documents (unless Document Control)
    - Cannot skip workflow steps (unless forced)
    - Must provide approval comments
 
 2. **User Management**:
-
    - Cannot delete users with active assignments
    - Cannot deactivate own account
    - Must have valid organization for non-Global roles
@@ -2706,19 +2695,16 @@ ANALYZE TABLE correspondences;
 ### Integration Points
 
 1. **Document Numbering**:
-
    - Call sp_get_next_document_number
    - Format with template from document_number_formats
    - Store in correspondences.correspondence_number
 
 2. **File Upload**:
-
    - Upload to QNAP /share/dms-data/
    - Create attachment record
    - Link via junction table
 
 3. **Workflow Execution**:
-
    - Check rfa_workflow_templates
    - Create rfa_workflows records
    - Update status as steps complete
@@ -2830,4 +2816,4 @@ SELECT * FROM information_schema.INNODB_LOCK_WAITS;
 
 ---
 
-_End of Data Dictionary
+\_End of Data Dictionary

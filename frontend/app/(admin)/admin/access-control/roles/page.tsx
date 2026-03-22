@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { RbacMatrix } from "@/components/admin/security/rbac-matrix";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RbacMatrix } from '@/components/admin/security/rbac-matrix';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function RolesPage() {
   return (
@@ -9,9 +9,7 @@ export default function RolesPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Roles & Permissions</h1>
-          <p className="text-muted-foreground">
-            Manage system roles and their assigned permissions
-          </p>
+          <p className="text-muted-foreground">Manage system roles and their assigned permissions</p>
         </div>
       </div>
 

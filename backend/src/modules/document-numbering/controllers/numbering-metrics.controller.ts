@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { MetricsService } from '../services/metrics.service';
 // import { PermissionGuard } from '../../auth/guards/permission.guard';
 // import { Permissions } from '../../auth/decorators/permissions.decorator';
@@ -10,7 +10,7 @@ export class NumberingMetricsController {
 
   @Get()
   // @Permissions('system.view_logs')
-  async getMetrics() {
+  getMetrics() {
     // Determine how to return metrics.
     // Standard Prometheus metrics are usually exposed via a separate /metrics endpoint processing all metrics.
     // If the frontend needs JSON data, we might need to query the current values from the registry or metrics service.

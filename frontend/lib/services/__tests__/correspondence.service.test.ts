@@ -135,10 +135,7 @@ describe('correspondenceService', () => {
 
       const result = await correspondenceService.addReference(1, referenceDto);
 
-      expect(apiClient.post).toHaveBeenCalledWith(
-        '/correspondences/1/references',
-        referenceDto
-      );
+      expect(apiClient.post).toHaveBeenCalledWith('/correspondences/1/references', referenceDto);
       expect(result).toEqual(mockResponse);
     });
   });

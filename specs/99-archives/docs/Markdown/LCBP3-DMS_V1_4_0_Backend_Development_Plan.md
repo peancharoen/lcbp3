@@ -60,7 +60,6 @@ Milestone: สร้างโครงสร้างพื้นฐานแล
 ### Phase 0: Tasks
 
 - **[✅]T0.1 Setup QNAP Container Station**
-
   - สร้าง Docker Network: `lcbp3`
   - Setup docker-compose.yml สำหรับ:
     - MariaDB (db.np-dms.work)
@@ -71,7 +70,6 @@ Milestone: สร้างโครงสร้างพื้นฐานแล
   - Deliverable: Services ทั้งหมดรันได้และเชื่อมต่อกันผ่าน Network
 
 - **[✅]T0.2 Initialize NestJS Project**
-
   - สร้างโปรเจกต์ใหม่ด้วย Nest CLI
   - ติดตั้ง Dependencies:
 
@@ -219,7 +217,6 @@ Milestone: Master Data และระบบจัดการไฟล์
 ### Phase 2: Tasks
 
 - **[ ] T2.1 MasterModule - Master Data Management**
-
   - [ ] สร้าง Entities:
     - [ ] CorrespondenceType
     - [ ] CorrespondenceStatus
@@ -235,7 +232,6 @@ Milestone: Master Data และระบบจัดการไฟล์
   - [ ] Deliverable: Admin จัดการ Master Data ได้
 
 - **[ ] T2.2 FileStorageService - Central File Management**
-
   - [ ] สร้าง Attachment Entity
   - [ ] สร้าง FileStorageService: (การจัดเก็บไฟล์ในรูปแบบ centralized storage, ครอบคลุมการจัดการไฟล์แนบทั้งหมด, Security Measures)
     - [ ] `uploadFile(file: Express.Multer.File)` → Attachment
@@ -268,7 +264,6 @@ Milestone: ระบบเอกสารโต้ตอบและ RFA
 ### Phase 3: Tasks
 
 - **[ ] T3.1 CorrespondenceModule - Basic CRUD**
-
   - [ ] สร้าง Entities:
     - [ ] Correspondence
     - [ ] CorrespondenceRevision
@@ -297,7 +292,6 @@ Milestone: ระบบเอกสารโต้ตอบและ RFA
   - [ ] Deliverable: สร้าง/แก้ไข/ดูเอกสารได้
 
 - **[ ] T3.2 CorrespondenceModule - Advanced Features**
-
   - [ ] Implement Status Transitions:
     - [ ] `DRAFT` → `SUBMITTED` (Document Control)
     - [ ] `SUBMITTED` → `CLOSED` (Admin)
@@ -334,7 +328,6 @@ Milestone: ระบบจัดการแบบ
 ### Phase 4: Tasks
 
 - **[ ] T4.1 DrawingModule - Contract Drawings**
-
   - [ ] สร้าง Entities:
     - [ ] ContractDrawing
     - [ ] ContractDrawingVolume
@@ -375,7 +368,6 @@ Milestone: ระบบ Workflow ทั้งหมด
 ### Phase 5: Tasks
 
 - **[ ] T5.1 RfaModule - Workflow Implementation**
-
   - [ ] สร้าง Entities:
     - [ ] RfaWorkflowTemplate
     - [ ] RfaWorkflowTemplateStep
@@ -398,7 +390,6 @@ Milestone: ระบบ Workflow ทั้งหมด
   - [ ] Deliverable: RFA Workflow ทำงานได้
 
 - **[ ] T5.2 CirculationModule - Internal Routing**
-
   - [ ] สร้าง Entities:
     - [ ] Circulation
     - [ ] CirculationTemplate
@@ -442,7 +433,6 @@ Milestone: ฟีเจอร์ขั้นสูง
 ### Phase 6: Tasks
 
 - **[ ] T6.1 SearchModule - Elasticsearch Integration**
-
   - [ ] Setup Elasticsearch Container ใน docker-compose.yml
   - [ ] สร้าง SearchService:
     - [ ] `indexDocument(entity)` → void
@@ -461,7 +451,6 @@ Milestone: ฟีเจอร์ขั้นสูง
   - [ ] Deliverable: ค้นหาขั้นสูงทำงานได้
 
 - **[ ] T6.2 NotificationModule - Email & Line**
-
   - [ ] สร้าง NotificationService:
     - [ ] `sendEmail(to, subject, body)` → void (Nodemailer)
     - [ ] `sendLine(userId, message)` → void (ผ่าน n8n Webhook)
@@ -477,7 +466,6 @@ Milestone: ฟีเจอร์ขั้นสูง
   - [ ] Deliverable: ระบบแจ้งเตือนทำงานได้
 
 - **[ ] T6.3 Reporting & Analytics**
-
   - [ ] สร้าง ReportService:
     - [ ] `getCorrespondenceSummary(projectId, from, to)` → Report
     - [ ] `getRfaSummary(projectId, from, to)` → Report
@@ -512,7 +500,6 @@ Milestone: ทดสอบและปรับปรุงประสิทธ
 ### Phase 7: Tasks
 
 - **[ ] T7.1 Unit Testing**
-
   - [ ] เขียน Unit Tests สำหรับ Services สำคัญ:
     - [ ] AuthService (login, validateUser)
     - [ ] RbacGuard (permission checks)
@@ -523,7 +510,6 @@ Milestone: ทดสอบและปรับปรุงประสิทธ
   - [ ] Deliverable: Unit Tests ผ่านทั้งหมด
 
 - **[ ] T7.2 Integration Testing**
-
   - [ ] เขียน Integration Tests:
     - [ ] Authentication Flow (login → access protected route)
     - [ ] Document Creation Flow (create correspondence → attach files)
@@ -534,7 +520,6 @@ Milestone: ทดสอบและปรับปรุงประสิทธ
   - [ ] Deliverable: Integration Tests ผ่าน
 
 - **[ ] T7.3 E2E Testing**
-
   - [ ] เขียน E2E Tests:
     - [ ] User Registration & Login
     - [ ] Create Correspondence (Full Flow)
@@ -544,7 +529,6 @@ Milestone: ทดสอบและปรับปรุงประสิทธ
   - [ ] Deliverable: E2E Tests ผ่าน
 
 - **[ ] T7.4 Performance Optimization**
-
   - [ ] Implement Caching:
     - [ ] Cache Master Data (Roles, Permissions)
     - [ ] Cache User Permissions (ใช้ @nestjs/cache-manager)
@@ -570,7 +554,6 @@ Milestone: เอกสารและ Deploy สู่ Production
 ### Phase 8: Tasks
 
 - **[ ] T8.1 API Documentation**
-
   - [ ] ครบทุก Endpoint ใน Swagger:
     - [ ] ใส่ Description, Example Request/Response
     - [ ] ระบุ Required Permissions
@@ -579,7 +562,6 @@ Milestone: เอกสารและ Deploy สู่ Production
   - [ ] Deliverable: Swagger Docs สมบูรณ์
 
 - **[ ] T8.2 Technical Documentation**
-
   - [ ] เขียนเอกสาร:
     - [ ] Architecture Overview
     - [ ] Module Structure
@@ -589,7 +571,6 @@ Milestone: เอกสารและ Deploy สู่ Production
   - [ ] Deliverable: Technical Docs พร้อม
 
 - **[ ] T8.3 Deployment Preparation**
-
   - [ ] สร้าง Production docker-compose.yml
   - [ ] Setup Environment Variables ใน QNAP
   - [ ] Setup Nginx Proxy Manager (SSL Certificate)
@@ -597,7 +578,6 @@ Milestone: เอกสารและ Deploy สู่ Production
   - [ ] Deliverable: Deployment Guide พร้อม
 
 - **[ ] T8.4 Production Deployment**
-
   - [ ] Deploy Backend ไปยัง backend.np-dms.work
   - [ ] ทดสอบ API ผ่าน Postman
   - [ ] Monitor Logs (Winston)

@@ -2409,28 +2409,23 @@ WHERE user_id = ?
 **Additional Performance Indexes**:
 
 1. **Correspondence Tables**:
-
    - `idx_correspondences_type_project` on (correspondence_type_id, project_id)
    - `idx_corr_revisions_current_status` on (is_current, correspondence_status_id)
    - `idx_corr_revisions_correspondence_current` on (correspondence_id, is_current)
    - `idx_correspondences_project_type` on (project_id, correspondence_type_id)
 
 2. **RFA Tables**:
-
    - `idx_rfa_revisions_current_status` on (is_current, rfa_status_code_id)
    - `idx_rfa_revisions_rfa_current` on (rfa_id, is_current)
 
 3. **Circulation Tables**:
-
    - `idx_circulation_routings_status_assigned` on (status, assigned_to)
    - `idx_circulation_routings_circulation_status` on (circulation_id, status)
 
 4. **Document Numbering**:
-
    - `idx_doc_counter_composite` on (project_id, originator_organization_id, correspondence_type_id, current_year)
 
 5. **Audit & Notifications**:
-
    - `idx_audit_logs_reporting` on (created_at, entity_type, action)
    - `idx_notifications_user_unread` on (user_id, is_read, created_at)
 
@@ -2458,12 +2453,10 @@ WHERE user_id = ?
 ### Unique Constraints
 
 1. **Globally Unique**:
-
    - usernames, emails
    - shop_drawing.drawing_number
 
 2. **Unique Within Scope**:
-
    - (project_id, correspondence_number)
    - (project_id, condwg_no)
    - (correspondence_id, revision_number)
@@ -2482,13 +2475,11 @@ WHERE user_id = ?
 ### Business Rule Constraints
 
 1. **Soft Delete Pattern**:
-
    - deleted_at timestamp instead of hard delete
    - Preserves audit trail and relationships
    - Applied to: correspondences, rfas, shop_drawings, contract_drawings
 
 2. **Current Revision Pattern**:
-
    - is_current flag with UNIQUE constraint
    - Ensures only one current revision per document
 
@@ -2673,13 +2664,11 @@ ANALYZE TABLE correspondences;
 ### Business Logic Validation
 
 1. **Document Workflow**:
-
    - Cannot edit submitted documents (unless Document Control)
    - Cannot skip workflow steps (unless forced)
    - Must provide approval comments
 
 2. **User Management**:
-
    - Cannot delete users with active assignments
    - Cannot deactivate own account
    - Must have valid organization for non-Global roles
@@ -2795,19 +2784,16 @@ ANALYZE TABLE correspondences;
 ### Integration Points
 
 1. **Document Numbering**:
-
    - Call DocumentNumberingService.generateNextNumber() (NestJS) which handles Redis locking and retry logic
    - Format with template from document_number_formats
    - Store in correspondences.correspondence_number
 
 2. **File Upload**:
-
    - Upload to QNAP /share/dms-data/
    - Create attachment record
    - Link via junction table
 
 3. **Workflow Execution**:
-
    - Check rfa_workflow_templates
    - Create rfa_workflows records
    - Update status as steps complete

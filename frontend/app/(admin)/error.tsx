@@ -5,15 +5,9 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
-export default function AdminError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function AdminError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    console.error('[Admin Error Boundary]', error);
+    //     // console.error('[Admin Error Boundary]', error); /* TODO: Remove before prod */
   }, [error]);
 
   return (
@@ -24,9 +18,7 @@ export default function AdminError({
         <p className="text-muted-foreground mt-1 text-sm max-w-md">
           {error.message || 'An error occurred in the admin panel.'}
         </p>
-        {error.digest && (
-          <p className="text-xs text-muted-foreground mt-2">Error ID: {error.digest}</p>
-        )}
+        {error.digest && <p className="text-xs text-muted-foreground mt-2">Error ID: {error.digest}</p>}
       </div>
       <div className="flex gap-3">
         <Button onClick={reset} variant="outline" size="sm">

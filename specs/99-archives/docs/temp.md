@@ -153,7 +153,6 @@ the unified workflow engine.
 
 - **Module:** `RfaModule` [Section 3.9.7]
 - **Files to modify:**
-
   - [ ] `src/modules/rfa/rfa.controller.ts`
   - [ ] `src/modules/rfa/rfa.service.ts`
   - [ ] `src/modules/rfa/dto/create-rfa.dto.ts`
@@ -178,7 +177,6 @@ the unified workflow engine.
 ### Frontend (Next.js)
 
 - **Pages/Components:**
-
   - [ ] `app/rfas/new/page.tsx`
   - [ ] `components/rfa/rfa-form.tsx`
   - [ ] `components/rfa/revision-manager.tsx`
@@ -201,7 +199,6 @@ the unified workflow engine.
 ### Database
 
 - **Tables affected:**
-
   - `rfas` - main table
   - `rfa_revisions` - revision history
   - `rfa_items` - related items
@@ -363,7 +360,6 @@ the unified workflow engine.
 **Implementation Guidelines:**
 
 1. **File Storage:** Use Two-Phase Storage Strategy [FullStackJS 3.3]
-
    - Phase 1: Upload to `temp/` with virus scan
    - Phase 2: Move to `permanent/{YYYY}/{MM}/` on commit
 
@@ -375,7 +371,6 @@ the unified workflow engine.
    ```
 
 3. **Document Numbering:** [FullStackJS 3.9.12]
-
    - Inject `DocumentNumberingService`
    - Use Redis distributed lock for counter
    - Format: `{ORG}-RFA-{DISCIPLINE}-{SEQ:4}-{REV}`
@@ -576,13 +571,11 @@ test('Complete RFA creation flow', async ({ page }) => {
 ## ðŸ"— Related Issues
 
 - **Depends on:**
-
   - #<issue> FileStorageService implementation
   - #<issue> WorkflowEngine implementation
   - #<issue> DocumentNumberingService implementation
 
 - **Blocks:**
-
   - #<issue> RFA Response/Approval workflow
   - #<issue> RFA Reports and Analytics
 
@@ -595,13 +588,11 @@ test('Complete RFA creation flow', async ({ page }) => {
 ### Design Decisions
 
 1. **Why Two-Phase Storage?**
-
    - Prevents orphan files if transaction fails
    - Allows virus scanning before commitment
    - Reference: FullStackJS Section 3.3
 
 2. **Why Application-level Locking?**
-
    - More portable than database stored procedures
    - Better observability with Redis
    - Reference: FullStackJS Section 3.9.12

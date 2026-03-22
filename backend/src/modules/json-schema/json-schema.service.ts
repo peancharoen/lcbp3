@@ -117,7 +117,7 @@ export class JsonSchemaService implements OnModuleInit {
       // ถ้าไม่ส่งมา ให้สร้าง UI Schema พื้นฐานให้อัตโนมัติ
       createDto.uiSchema = this.uiSchemaService.generateDefaultUiSchema(
         createDto.schemaDefinition
-      );
+      ) as unknown as Record<string, unknown>;
     }
 
     // 3. จัดการ Versioning อัตโนมัติ (Auto-increment)
@@ -255,16 +255,17 @@ export class JsonSchemaService implements OnModuleInit {
   async validateData(
     schemaCode: string,
     data: Record<string, unknown>,
-    options: ValidationOptions = {}
+    _options: ValidationOptions = {}
   ): Promise<ValidationResult> {
     // 1. ดึงและ Compile Validator
     const validate = await this.getValidator(schemaCode);
     const schema = await this.findLatestByCode(schemaCode); // ดึง Full Schema เพื่อใช้ Config อื่นๆ
 
     // 2. สำเนาข้อมูลเพื่อป้องกัน Side Effect และเตรียมสำหรับ AJV Mutation (Sanitization)
-    const dataToValidate: Record<string, unknown> = JSON.parse(
-      JSON.stringify(data)
-    );
+    const dataToValidate = JSON.parse(JSON.stringify(data)) as Record<
+      string,
+      unknown
+    >;
 
     // 3. เริ่มการตรวจสอบ (AJV จะทำการ Coerce Type และ Remove Additional Properties ให้ด้วย)
     const valid = validate(dataToValidate);

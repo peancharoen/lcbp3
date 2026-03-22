@@ -61,9 +61,10 @@ describe('ProjectService', () => {
           project_name: 'Test Project',
         },
       ];
-      mockProjectRepository
-        .createQueryBuilder()
-        .getManyAndCount.mockResolvedValue([mockProjects, 1]);
+      const qb = mockProjectRepository.createQueryBuilder() as unknown as {
+        getManyAndCount: jest.Mock;
+      };
+      qb.getManyAndCount.mockResolvedValue([mockProjects, 1]);
 
       const result = await service.findAll({ page: 1, limit: 10 });
 

@@ -17,15 +17,15 @@
 
 ### 1. Backend Entity Updates (Drawing Revision Schema)
 
-| File                                 | Changes                                                   |
-| ------------------------------------ | --------------------------------------------------------- |
+| File                                 | Changes                                                     |
+| ------------------------------------ | ----------------------------------------------------------- |
 | `shop-drawing-revision.entity.ts`    | เพิ่ม `isCurrent`, `createdBy`, `updatedBy`, User relations |
 | `asbuilt-drawing-revision.entity.ts` | เพิ่ม `isCurrent`, `createdBy`, `updatedBy`, User relations |
 
 ### 2. Frontend Type Updates
 
-| File                        | Changes                                                                   |
-| --------------------------- | ------------------------------------------------------------------------- |
+| File                        | Changes                                                                     |
+| --------------------------- | --------------------------------------------------------------------------- |
 | `frontend/types/drawing.ts` | `DrawingRevision` - เพิ่ม `createdBy`, `updatedBy`, update `isCurrent` type |
 
 ### 3. Admin Panel Frontend (6 pages)
@@ -63,12 +63,14 @@
 ## 📁 ไฟล์ที่แก้ไข/สร้างใหม่
 
 ### Backend
+
 - `backend/src/modules/drawing/entities/shop-drawing-revision.entity.ts` - Modified
 - `backend/src/modules/drawing/entities/asbuilt-drawing-revision.entity.ts` - Modified
 - `backend/src/modules/drawing/drawing-master-data.controller.ts` - Rewritten
 - `backend/src/modules/drawing/drawing-master-data.service.ts` - Rewritten
 
 ### Frontend
+
 - `frontend/types/drawing.ts` - Modified
 - `frontend/lib/services/drawing-master-data.service.ts` - **NEW**
 - `frontend/app/(admin)/admin/drawings/page.tsx` - **NEW**
@@ -80,14 +82,15 @@
 - `frontend/app/(admin)/admin/page.tsx` - Modified
 
 ### Specs
+
 - `specs/09-history/2025-12-25-drawing-revision-schema-update.md` - Updated (marked complete)
 
 ---
 
 ## 🔧 Build Status
 
-| Component | Status   |
-| --------- | -------- |
+| Component | Status    |
+| --------- | --------- |
 | Backend   | ✅ Passed |
 | Frontend  | ✅ Passed |
 

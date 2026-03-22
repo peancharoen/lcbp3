@@ -88,7 +88,7 @@ export class UsersController {
 export class EntityNotFoundException extends Error {
   constructor(
     public readonly entity: string,
-    public readonly id: string,
+    public readonly id: string
   ) {
     super(`${entity} with ID "${id}" not found`);
   }

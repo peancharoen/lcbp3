@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Not } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 
 import { Circulation } from './entities/circulation.entity';
 import { CirculationRouting } from './entities/circulation-routing.entity';
@@ -95,7 +95,7 @@ export class CirculationService {
   }
 
   async findAll(searchDto: SearchCirculationDto, user: User) {
-    const { search, status, page = 1, limit = 20 } = searchDto;
+    const { status, page = 1, limit = 20 } = searchDto;
     const query = this.circulationRepo
       .createQueryBuilder('c')
       .leftJoinAndSelect('c.creator', 'creator')

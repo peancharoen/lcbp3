@@ -5,21 +5,11 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { NumberingTemplate } from '@/lib/api/numbering';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 
 // Aligned with Backend replacement logic
 const VARIABLES = [
@@ -36,13 +26,13 @@ const VARIABLES = [
 ];
 
 export interface TemplateEditorProps {
-    template?: NumberingTemplate;
-    projectId: number | string;
-    projectName: string;
-    correspondenceTypes: unknown[];
-    disciplines: unknown[];
-    onSave: (data: Partial<NumberingTemplate>) => void;
-    onCancel: () => void;
+  template?: NumberingTemplate;
+  projectId: number | string;
+  projectName: string;
+  correspondenceTypes: unknown[];
+  disciplines: unknown[];
+  onSave: (data: Partial<NumberingTemplate>) => void;
+  onCancel: () => void;
 }
 
 export function TemplateEditor({
@@ -52,7 +42,7 @@ export function TemplateEditor({
   correspondenceTypes,
   disciplines,
   onSave,
-  onCancel
+  onCancel,
 }: TemplateEditorProps) {
   const [format, setFormat] = useState(template?.formatTemplate || '');
   const [typeId, setTypeId] = useState<string>(template?.correspondenceTypeId?.toString() || '');
@@ -65,18 +55,20 @@ export function TemplateEditor({
     // Generate preview
     let previewText = format || '';
     VARIABLES.forEach((v) => {
-        // Simple mock replacement for preview
-        let replacement = v.example;
-        if (v.key === '{YEAR:BE}') replacement = (new Date().getFullYear() + 543).toString();
-        if (v.key === '{YEAR:CE}') replacement = new Date().getFullYear().toString();
+      // Simple mock replacement for preview
+      let replacement = v.example;
+      if (v.key === '{YEAR:BE}') replacement = (new Date().getFullYear() + 543).toString();
+      if (v.key === '{YEAR:CE}') replacement = new Date().getFullYear().toString();
 
-        // Dynamic context based on selection (optional visual enhancement)
-        if (v.key === '{TYPE}' && typeId) {
-             const t = (correspondenceTypes as { id: number; typeCode: string; typeName: string }[]).find((ct) => ct.id?.toString() === typeId);
-             if (t) replacement = t.typeCode;
-        }
+      // Dynamic context based on selection (optional visual enhancement)
+      if (v.key === '{TYPE}' && typeId) {
+        const t = (correspondenceTypes as { id: number; typeCode: string; typeName: string }[]).find(
+          (ct) => ct.id?.toString() === typeId
+        );
+        if (t) replacement = t.typeCode;
+      }
 
-        previewText = previewText.replace(new RegExp(v.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacement);
+      previewText = previewText.replace(new RegExp(v.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacement);
     });
     setPreview(previewText);
   }, [format, typeId, correspondenceTypes]);
@@ -86,14 +78,14 @@ export function TemplateEditor({
   };
 
   const handleSave = () => {
-      onSave({
-          ...template,
-          projectId: projectId,
-          correspondenceTypeId: typeId && typeId !== '__default__' ? Number(typeId) : null,
-          disciplineId: Number(disciplineId),
-          formatTemplate: format,
-          resetSequenceYearly: reset,
-      });
+    onSave({
+      ...template,
+      projectId: projectId,
+      correspondenceTypeId: typeId && typeId !== '__default__' ? Number(typeId) : null,
+      disciplineId: Number(disciplineId),
+      formatTemplate: format,
+      resetSequenceYearly: reset,
+    });
   };
 
   const isValid = format.length > 0; // typeId is optional (null = default for all types)
@@ -102,121 +94,125 @@ export function TemplateEditor({
     <Card className="p-6 space-y-6">
       <div className="flex justify-between items-start">
         <div>
-           <div className="flex items-center gap-2 mb-1">
-             <h3 className="text-lg font-semibold">{template ? 'Edit Template' : 'New Template'}</h3>
-           </div>
-           <p className="text-sm text-muted-foreground">Define how document numbers are generated for this project.</p>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-lg font-semibold">{template ? 'Edit Template' : 'New Template'}</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">Define how document numbers are generated for this project.</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-             <Badge variant="outline" className="text-base px-3 py-1 bg-slate-50">
-                Project: {projectName}
-            </Badge>
+          <Badge variant="outline" className="text-base px-3 py-1 bg-slate-50">
+            Project: {projectName}
+          </Badge>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Configuration Column */}
-          <div className="space-y-4">
-             <div>
-                <Label>Document Type (Optional)</Label>
-                <Select value={typeId} onValueChange={setTypeId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Default (All Types)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__default__">Default (All Types)</SelectItem>
-                    {correspondenceTypes.map((type: unknown) => {
-                      const typedType = type as { id: number; typeCode: string; typeName: string };
-                      return (
-                        <SelectItem key={typedType.id} value={typedType.id.toString()}>
-                          {typedType.typeCode} - {typedType.typeName}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                   Leave empty to create a default template for this project.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <Label>Discipline (Optional)</Label>
-                    <Select value={disciplineId} onValueChange={setDisciplineId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Disciplines" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">All Disciplines</SelectItem>
-                        {disciplines.map((d: any) => (
-                          <SelectItem key={d.id} value={d.id.toString()}>
-                            {d.disciplineCode} - {d.codeNameEn || d.codeNameTh}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                </div>
-                <div>
-                   <Label>Reset Rule</Label>
-                   <div className="flex items-center h-10">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <Checkbox checked={reset} onCheckedChange={(c) => setReset(!!c)} />
-                        <span className="text-sm">Reset Annually</span>
-                      </label>
-                   </div>
-                </div>
-              </div>
+        {/* Configuration Column */}
+        <div className="space-y-4">
+          <div>
+            <Label>Document Type (Optional)</Label>
+            <Select value={typeId} onValueChange={setTypeId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Default (All Types)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default__">Default (All Types)</SelectItem>
+                {correspondenceTypes.map((type: unknown) => {
+                  const typedType = type as { id: number; typeCode: string; typeName: string };
+                  return (
+                    <SelectItem key={typedType.id} value={typedType.id.toString()}>
+                      {typedType.typeCode} - {typedType.typeName}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Leave empty to create a default template for this project.
+            </p>
           </div>
 
-          {/* Format Column */}
-          <div className="space-y-4">
-              <div>
-                <Label>Template Format *</Label>
-                <Input
-                  value={format}
-                  onChange={(e) => setFormat(e.target.value)}
-                  placeholder="{ORG}-{TYPE}-{SEQ:4}"
-                  className="font-mono text-base mb-2"
-                />
-                 <div className="flex flex-wrap gap-2">
-                    {VARIABLES.map((v) => (
-                      <HoverCard key={v.key}>
-                        <HoverCardTrigger asChild>
-                           <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => insertVariable(v.key)}
-                            type="button"
-                            className="font-mono text-xs bg-slate-50 hover:bg-slate-100"
-                          >
-                            {v.key}
-                          </Button>
-                        </HoverCardTrigger>
-                        <HoverCardContent className="w-60 p-3">
-                           <p className="font-semibold text-sm">{v.name}</p>
-                           <p className="text-xs text-muted-foreground mt-1">Example: <span className="font-mono">{v.example}</span></p>
-                        </HoverCardContent>
-                      </HoverCard>
-                    ))}
-                  </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Discipline (Optional)</Label>
+              <Select value={disciplineId} onValueChange={setDisciplineId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Disciplines" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">All Disciplines</SelectItem>
+                  {disciplines.map((d: unknown) => (
+                    <SelectItem key={d.id} value={d.id.toString()}>
+                      {d.disciplineCode} - {d.codeNameEn || d.codeNameTh}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Reset Rule</Label>
+              <div className="flex items-center h-10">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox checked={reset} onCheckedChange={(c) => setReset(!!c)} />
+                  <span className="text-sm">Reset Annually</span>
+                </label>
               </div>
-
-              <div className="bg-green-50/50 border border-green-200 rounded-lg p-4">
-                  <p className="text-xs uppercase tracking-wide text-green-700 font-semibold mb-2">Preview Output</p>
-                  <p className="text-2xl font-mono font-bold text-green-800 tracking-tight">
-                    {preview || '...'}
-                  </p>
-                  <p className="text-xs text-green-600 mt-2">
-                     * This is an approximation. Actual numbers depend on runtime context.
-                  </p>
-              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Format Column */}
+        <div className="space-y-4">
+          <div>
+            <Label>Template Format *</Label>
+            <Input
+              value={format}
+              onChange={(e) => setFormat(e.target.value)}
+              placeholder="{ORG}-{TYPE}-{SEQ:4}"
+              className="font-mono text-base mb-2"
+            />
+            <div className="flex flex-wrap gap-2">
+              {VARIABLES.map((v) => (
+                <HoverCard key={v.key}>
+                  <HoverCardTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => insertVariable(v.key)}
+                      type="button"
+                      className="font-mono text-xs bg-slate-50 hover:bg-slate-100"
+                    >
+                      {v.key}
+                    </Button>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-60 p-3">
+                    <p className="font-semibold text-sm">{v.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Example: <span className="font-mono">{v.example}</span>
+                    </p>
+                  </HoverCardContent>
+                </HoverCard>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-green-50/50 border border-green-200 rounded-lg p-4">
+            <p className="text-xs uppercase tracking-wide text-green-700 font-semibold mb-2">Preview Output</p>
+            <p className="text-2xl font-mono font-bold text-green-800 tracking-tight">{preview || '...'}</p>
+            <p className="text-xs text-green-600 mt-2">
+              * This is an approximation. Actual numbers depend on runtime context.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-4 border-t">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={handleSave} disabled={!isValid}>Save Template</Button>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} disabled={!isValid}>
+          Save Template
+        </Button>
       </div>
     </Card>
   );

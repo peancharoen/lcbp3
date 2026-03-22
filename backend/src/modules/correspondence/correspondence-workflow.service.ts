@@ -88,7 +88,7 @@ export class CorrespondenceWorkflowService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to submit workflow: ${error}`);
+      this.logger.error(`Failed to submit workflow: ${String(error)}`);
       throw error;
     } finally {
       await queryRunner.release();
@@ -113,7 +113,7 @@ export class CorrespondenceWorkflowService {
 
     if (instance && instance.entityType === 'correspondence_revision') {
       const revision = await this.revisionRepo.findOne({
-        where: { id: parseInt(instance.entityId) },
+        where: { id: Number(instance.entityId) },
       });
       if (revision) {
         await this.syncStatus(revision, result.nextState);

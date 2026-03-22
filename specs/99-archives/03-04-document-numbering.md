@@ -1,20 +1,24 @@
 # Document Numbering Implementation Guide (Combined)
 
 ---
+
 title: 'Implementation Guide: Document Numbering System'
 version: 1.6.2
 status: APPROVED
 owner: Development Team
 last_updated: 2025-12-17
 related:
-  - specs/01-requirements/03.11-document-numbering.md
-  - specs/04-operations/document-numbering-operations.md
-  - specs/05-decisions/ADR-002-document-numbering-strategy.md
+
+- specs/01-requirements/03.11-document-numbering.md
+- specs/04-operations/document-numbering-operations.md
+- specs/05-decisions/ADR-002-document-numbering-strategy.md
+
 ---
 
 ## Overview
 
 เอกสารนี้รวบรวม implementation details สำหรับระบบ Document Numbering โดยผนวกข้อมูลจาก:
+
 - `document-numbering.md` - Core implementation และ database schema
 - `document-numbering-add.md` - Extended features (Reservation, Manual Override, Monitoring)
 
@@ -219,6 +223,7 @@ CREATE TABLE document_number_errors (
   INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB COMMENT='Document Numbering Error Log';
 ```
+
 ### 2.5 Reservation Table
 
 ```sql
@@ -268,6 +273,7 @@ CREATE TABLE document_number_reservations (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Document Number Reservations - Two-Phase Commit';
 ```
+
 ---
 
 ## 3. Core Services
@@ -336,7 +342,7 @@ export class CounterService {
   constructor(
     @InjectRepository(DocumentNumberCounter)
     private counterRepo: Repository<DocumentNumberCounter>,
-    private dataSource: DataSource,
+    private dataSource: DataSource
   ) {}
 
   async incrementCounter(counterKey: CounterKey): Promise<number> {
@@ -420,9 +426,11 @@ export class DocumentNumberingLockService {
   }
 
   private buildLockKey(key: CounterKey): string {
-    return `lock:docnum:${key.projectId}:${key.originatorOrgId}:` +
-           `${key.recipientOrgId ?? 0}:${key.correspondenceTypeId}:` +
-           `${key.subTypeId}:${key.rfaTypeId}:${key.disciplineId}:${key.year}`;
+    return (
+      `lock:docnum:${key.projectId}:${key.originatorOrgId}:` +
+      `${key.recipientOrgId ?? 0}:${key.correspondenceTypeId}:` +
+      `${key.subTypeId}:${key.rfaTypeId}:${key.disciplineId}:${key.year}`
+    );
   }
 }
 ```
@@ -438,19 +446,12 @@ export class ReservationService {
   constructor(
     private redis: Redis,
     private sequenceService: SequenceService,
-    private auditService: AuditService,
+    private auditService: AuditService
   ) {}
 
-  async reserve(
-    documentType: string,
-    scopeValue?: string,
-    metadata?: Record<string, any>,
-  ): Promise<Reservation> {
+  async reserve(documentType: string, scopeValue?: string, metadata?: Record<string, any>): Promise<Reservation> {
     // 1. Generate next number
-    const documentNumber = await this.sequenceService.getNextSequence(
-      documentType,
-      scopeValue,
-    );
+    const documentNumber = await this.sequenceService.getNextSequence(documentType, scopeValue);
 
     // 2. Generate reservation token
     const token = uuidv4();
@@ -466,11 +467,7 @@ export class ReservationService {
       metadata,
     };
 
-    await this.redis.setex(
-      `reservation:${token}`,
-      this.TTL,
-      JSON.stringify(reservation),
-    );
+    await this.redis.setex(`reservation:${token}`, this.TTL, JSON.stringify(reservation));
 
     // 4. Audit log
     await this.auditService.log({
@@ -487,9 +484,7 @@ export class ReservationService {
     const reservation = await this.getReservation(token);
 
     if (!reservation) {
-      throw new ReservationExpiredError(
-        'Reservation not found or expired. Please reserve a new number.',
-      );
+      throw new ReservationExpiredError('Reservation not found or expired. Please reserve a new number.');
     }
 
     await this.redis.del(`reservation:${token}`);
@@ -561,8 +556,16 @@ export class ReservationService {
 @Injectable()
 export class TemplateValidator {
   private readonly ALLOWED_TOKENS = [
-    'PROJECT', 'ORIGINATOR', 'RECIPIENT', 'CORR_TYPE',
-    'SUB_TYPE', 'RFA_TYPE', 'DISCIPLINE', 'SEQ', 'YEAR', 'REV',
+    'PROJECT',
+    'ORIGINATOR',
+    'RECIPIENT',
+    'CORR_TYPE',
+    'SUB_TYPE',
+    'RFA_TYPE',
+    'DISCIPLINE',
+    'SEQ',
+    'YEAR',
+    'REV',
   ];
 
   validate(template: string, correspondenceType: string): ValidationResult {
@@ -722,29 +725,30 @@ flowchart TD
 ## 8. Testing
 
 ### 8.1 Unit Tests
+
 ```bash
 # Run unit tests
 pnpm test:watch -- --testPathPattern=document-numbering
 ```
 
 ### 8.2 Integration Tests
+
 ```bash
 # Run integration tests
 pnpm test:e2e -- --testPathPattern=numbering
 ```
 
 ### 8.3 Concurrency Test
+
 ```typescript
 // tests/load/concurrency.spec.ts
 it('should handle 1000 concurrent requests without duplicates', async () => {
   const promises = Array.from({ length: 1000 }, () =>
-    request(app.getHttpServer())
-      .post('/document-numbering/reserve')
-      .send({ document_type: 'COR' })
+    request(app.getHttpServer()).post('/document-numbering/reserve').send({ document_type: 'COR' })
   );
 
   const results = await Promise.all(promises);
-  const numbers = results.map(r => r.body.data.document_number);
+  const numbers = results.map((r) => r.body.data.document_number);
   const uniqueNumbers = new Set(numbers);
 
   expect(uniqueNumbers.size).toBe(1000);
@@ -756,6 +760,7 @@ it('should handle 1000 concurrent requests without duplicates', async () => {
 ## 9. Best Practices
 
 ### 9.1 DO's ✅
+
 - ✅ Always use two-phase commit (reserve + confirm)
 - ✅ Implement fallback to DB-only if Redis fails
 - ✅ Log every operation to audit trail
@@ -767,6 +772,7 @@ it('should handle 1000 concurrent requests without duplicates', async () => {
 - ✅ Skip cancelled numbers (never reuse)
 
 ### 9.2 DON'Ts ❌
+
 - ❌ Never skip validation for manual override
 - ❌ Never reuse cancelled numbers
 - ❌ Never trust client-generated numbers

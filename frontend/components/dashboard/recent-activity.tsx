@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
-import { ActivityLog } from "@/types/dashboard";
-import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
+import { ActivityLog } from '@/types/dashboard';
+import Link from 'next/link';
 
 interface RecentActivityProps {
   activities: ActivityLog[] | undefined;
@@ -14,29 +14,31 @@ interface RecentActivityProps {
 
 export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
   if (isLoading) {
-     return (
-        <Card className="h-full">
-            <CardHeader><CardTitle className="text-lg">Recent Activity</CardTitle></CardHeader>
-            <CardContent>
-                <div className="space-y-6">
-                    {[...Array(3)].map((_, i) => (
-                         <div key={i} className="h-16 bg-muted animate-pulse rounded-md" />
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
-     )
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-16 bg-muted animate-pulse rounded-md" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!activities || activities.length === 0) {
-      return (
-        <Card className="h-full">
-          <CardHeader><CardTitle className="text-lg">Recent Activity</CardTitle></CardHeader>
-           <CardContent className="text-muted-foreground text-sm text-center py-8">
-               No recent activity.
-           </CardContent>
-        </Card>
-      );
+    return (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent className="text-muted-foreground text-sm text-center py-8">No recent activity.</CardContent>
+      </Card>
+    );
   }
   return (
     <Card className="h-full">
@@ -46,10 +48,7 @@ export function RecentActivity({ activities, isLoading }: RecentActivityProps) {
       <CardContent>
         <div className="space-y-6">
           {activities.map((activity) => (
-            <div
-              key={activity.id}
-              className="flex gap-4 pb-4 border-b last:border-0 last:pb-0"
-            >
+            <div key={activity.id} className="flex gap-4 pb-4 border-b last:border-0 last:pb-0">
               <Avatar className="h-10 w-10 border">
                 <AvatarFallback className="bg-primary/10 text-primary font-medium">
                   {activity.user.initials}

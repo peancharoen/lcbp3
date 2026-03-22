@@ -18,7 +18,6 @@ import { Permission } from './entities/permission.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SearchUserDto } from './dto/search-user.dto';
-import { Organization } from '../organization/entities/organization.entity';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @Injectable()
@@ -242,14 +241,13 @@ export class UserService {
     }
 
     // 2. ถ้าไม่มีใน Cache ให้ Query จาก DB (View: v_user_all_permissions)
-    const permissions = await this.usersRepository.query(
-      `SELECT permission_name FROM v_user_all_permissions WHERE user_id = ?`,
-      [userId]
-    );
+    const permissions = await this.usersRepository.query<
+      { permission_name: string }[]
+    >(`SELECT permission_name FROM v_user_all_permissions WHERE user_id = ?`, [
+      userId,
+    ]);
 
-    const permissionList = permissions.map(
-      (row: { permission_name: string }) => row.permission_name
-    );
+    const permissionList = permissions.map((row) => row.permission_name);
 
     // 3. บันทึกลง Cache (TTL 1800 วินาที = 30 นาที)
     await this.cacheManager.set(cacheKey, permissionList, 1800 * 1000);

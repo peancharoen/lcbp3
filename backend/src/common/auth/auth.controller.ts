@@ -27,7 +27,10 @@ import {
   ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
-import type { RequestWithUser, RequestWithRefreshUser } from '../interfaces/request-with-user.interface';
+import type {
+  RequestWithUser,
+  RequestWithRefreshUser,
+} from '../interfaces/request-with-user.interface';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -143,6 +146,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Revoke session' })
   @ApiResponse({ status: 200, description: 'Session revoked' })
   async revokeSession(@Param('id') id: string) {
-    return this.authService.revokeSession(parseInt(id));
+    return this.authService.revokeSession(Number(id));
   }
 }

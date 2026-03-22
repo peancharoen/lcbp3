@@ -119,10 +119,7 @@ export const correspondenceSchema = z.object({
     .min(5, 'Subject must be at least 5 characters')
     .max(255, 'Subject must not exceed 255 characters'),
 
-  description: z
-    .string()
-    .min(10, 'Description must be at least 10 characters')
-    .optional(),
+  description: z.string().min(10, 'Description must be at least 10 characters').optional(),
 
   document_type_id: z.number({
     required_error: 'Document type is required',
@@ -402,16 +399,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', issues: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Validation failed', issues: error.errors }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 ```

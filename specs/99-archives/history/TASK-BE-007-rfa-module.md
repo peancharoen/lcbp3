@@ -28,14 +28,12 @@
 ## 📝 Acceptance Criteria
 
 1. **Basic Operations:**
-
    - ✅ Create RFA with auto-generated number
    - ✅ Add/Update/Delete RFA items
    - ✅ Create revision
    - ✅ Get RFA with all items and attachments
 
 2. **Approval Workflow:**
-
    - ✅ Submit RFA → Start approval workflow
    - ✅ Review RFA (Approve/Reject/Revise)
    - ✅ Respond to RFA
@@ -256,23 +254,13 @@ export class RfaService {
 
       // 5. Commit temp files
       if (dto.temp_file_ids?.length > 0) {
-        const attachments = await this.fileStorage.commitFiles(
-          dto.temp_file_ids,
-          rfa.id,
-          'rfa',
-          manager
-        );
+        const attachments = await this.fileStorage.commitFiles(dto.temp_file_ids, rfa.id, 'rfa', manager);
         revision.attachments = attachments;
         await manager.save(revision);
       }
 
       // 6. Create workflow instance
-      await this.workflowEngine.createInstance(
-        'RFA_APPROVAL',
-        'rfa',
-        rfa.id,
-        manager
-      );
+      await this.workflowEngine.createInstance('RFA_APPROVAL', 'rfa', rfa.id, manager);
 
       return rfa;
     });
@@ -315,12 +303,7 @@ export class RfaService {
 
     // Update RFA status and approval code
     const updates: any = {
-      status:
-        action === 'approve'
-          ? 'approved'
-          : action === 'reject'
-          ? 'rejected'
-          : 'revising',
+      status: action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'revising',
     };
 
     if (action === 'approve' && dto.approve_code_id) {
@@ -330,11 +313,7 @@ export class RfaService {
     await this.rfaRepo.update(id, updates);
   }
 
-  async respondToRfa(
-    id: number,
-    dto: RespondRfaDto,
-    userId: number
-  ): Promise<void> {
+  async respondToRfa(id: number, dto: RespondRfaDto, userId: number): Promise<void> {
     return this.dataSource.transaction(async (manager) => {
       const rfa = await this.findOne(id);
 
@@ -360,12 +339,7 @@ export class RfaService {
 
       // Commit response files
       if (dto.temp_file_ids?.length > 0) {
-        const attachments = await this.fileStorage.commitFiles(
-          dto.temp_file_ids,
-          id,
-          'rfa',
-          manager
-        );
+        const attachments = await this.fileStorage.commitFiles(dto.temp_file_ids, id, 'rfa', manager);
         responseRevision.attachments = attachments;
         await manager.save(responseRevision);
       }
@@ -398,10 +372,9 @@ export class RfaService {
     }
 
     if (query.search) {
-      queryBuilder.andWhere(
-        '(rfa.subject LIKE :search OR rfa.rfa_number LIKE :search)',
-        { search: `%${query.search}%` }
-      );
+      queryBuilder.andWhere('(rfa.subject LIKE :search OR rfa.rfa_number LIKE :search)', {
+        search: `%${query.search}%`,
+      });
     }
 
     // Pagination
@@ -421,14 +394,7 @@ export class RfaService {
   async findOne(id: number): Promise<Rfa> {
     const rfa = await this.rfaRepo.findOne({
       where: { id, deleted_at: IsNull() },
-      relations: [
-        'revisions',
-        'revisions.attachments',
-        'items',
-        'items.drawing',
-        'project',
-        'approvedCode',
-      ],
+      relations: ['revisions', 'revisions.attachments', 'items', 'items.drawing', 'project', 'approvedCode'],
       order: { revisions: { revision_number: 'DESC' } },
     });
 
@@ -454,39 +420,25 @@ export class RfaController {
   @Post()
   @RequirePermission('rfa.create')
   @UseInterceptors(IdempotencyInterceptor)
-  async create(
-    @Body() dto: CreateRfaDto,
-    @CurrentUser() user: User
-  ): Promise<Rfa> {
+  async create(@Body() dto: CreateRfaDto, @CurrentUser() user: User): Promise<Rfa> {
     return this.service.create(dto, user.user_id);
   }
 
   @Post(':id/submit')
   @RequirePermission('rfa.submit')
-  async submit(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: User
-  ) {
+  async submit(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
     return this.service.submitForApproval(id, user.user_id);
   }
 
   @Post(':id/review')
   @RequirePermission('rfa.review')
-  async review(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: ReviewRfaDto,
-    @CurrentUser() user: User
-  ) {
+  async review(@Param('id', ParseIntPipe) id: number, @Body() dto: ReviewRfaDto, @CurrentUser() user: User) {
     return this.service.reviewRfa(id, dto.action, dto, user.user_id);
   }
 
   @Post(':id/respond')
   @RequirePermission('rfa.respond')
-  async respond(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: RespondRfaDto,
-    @CurrentUser() user: User
-  ) {
+  async respond(@Param('id', ParseIntPipe) id: number, @Body() dto: RespondRfaDto, @CurrentUser() user: User) {
     return this.service.respondToRfa(id, dto, user.user_id);
   }
 
@@ -533,12 +485,7 @@ describe('RfaService', () => {
 
   it('should execute approval workflow', async () => {
     await service.submitForApproval(rfa.id, userId);
-    await service.reviewRfa(
-      rfa.id,
-      'approve',
-      { approve_code_id: 1 },
-      reviewerId
-    );
+    await service.reviewRfa(rfa.id, 'approve', { approve_code_id: 1 }, reviewerId);
 
     const updated = await service.findOne(rfa.id);
     expect(updated.status).toBe('approved');

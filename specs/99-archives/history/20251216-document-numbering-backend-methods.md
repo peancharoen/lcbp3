@@ -39,6 +39,7 @@ Implemented missing backend methods for Document Numbering module and fixed fron
 ### API Response Handling
 
 Fixed wrapped response `{ data: [...] }` issue:
+
 - `components/numbering/sequence-viewer.tsx`
 - `app/(admin)/admin/numbering/page.tsx`
 

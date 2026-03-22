@@ -1,0 +1,573 @@
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\common\auth\auth.controller.spec.ts[24m[0m
+[0m  [2m81:13[22m  [31merror[39m  'result' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\common\auth\auth.service.spec.ts[24m[0m
+[0m   [2m21:7[22m   [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m   [2m26:7[22m   [31merror[39m  'jwtService' is assigned a value but never used                                                                                                                                                                                                                                                                                             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m27:7[22m   [31merror[39m  'tokenRepo' is assigned a value but never used                                                                                                                                                                                                                                                                                              [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m56:5[22m   [31merror[39m  Unsafe call of an `any` typed value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-call[22m[0m
+[0m   [2m56:12[22m  [31merror[39m  Unsafe member access .compare on an `any` value                                                                                                                                                                                                                                                                                             [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m  [2m131:7[22m   [31merror[39m  Unsafe call of an `any` typed value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-call[22m[0m
+[0m  [2m131:14[22m  [31merror[39m  Unsafe member access .compare on an `any` value                                                                                                                                                                                                                                                                                             [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m  [2m165:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\common\auth\strategies\jwt-refresh.strategy.ts[24m[0m
+[0m  [2m27:3[22m  [31merror[39m  Async method 'validate' has no 'await' expression  [2m@typescript-eslint/require-await[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\common\file-storage\file-storage.controller.spec.ts[24m[0m
+[0m  [2m51:13[22m  [31merror[39m  'result' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\common\file-storage\file-storage.service.spec.ts[24m[0m
+[0m   [2m88:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m   [2m89:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m121:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m139:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\database\seeds\run-seed.ts[24m[0m
+[0m   [2m7:37[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `DataSourceOptions`                                                                                   [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m   [2m7:55[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                            [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m11:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m16:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m18:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m24:1[22m   [31merror[39m  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  [2m@typescript-eslint/no-floating-promises[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\database\seeds\user.seed.ts[24m[0m
+[0m   [2m61:7[22m   [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m115:13[22m  [31merror[39m  Unsafe assignment of an `any` value                                                                                  [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m119:11[22m  [31merror[39m  Unsafe assignment of an `any` value                                                                                  [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\database\seeds\workflow-definitions.seed.ts[24m[0m
+[0m  [2m133:9[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m  [2m135:9[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m  [2m138:7[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\circulation\circulation-workflow.service.ts[24m[0m
+[0m  [2m89:57[22m  [31merror[39m  Invalid type "unknown" of template literal expression  [2m@typescript-eslint/restrict-template-expressions[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\circulation\circulation.service.ts[24m[0m
+[0m   [2m8:34[22m  [31merror[39m  'Not' is defined but never used              [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m98:13[22m  [31merror[39m  'search' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\contract\contract.controller.ts[24m[0m
+[0m  [2m16:3[22m  [31merror[39m  'ApiQuery' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\correspondence\correspondence-workflow.service.ts[24m[0m
+[0m  [2m91:55[22m  [31merror[39m  Invalid type "unknown" of template literal expression  [2m@typescript-eslint/restrict-template-expressions[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\correspondence\correspondence.controller.spec.ts[24m[0m
+[0m  [2m82:13[22m  [31merror[39m  'result' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\correspondence\correspondence.service.spec.ts[24m[0m
+[0m   [2m11:10[22m  [31merror[39m  'CorrespondenceRecipient' is defined but never used                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m22:27[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m23:21[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m24:7[22m   [31merror[39m  'dataSource' is assigned a value but never used                                                                                                                                                                                                                                                                                             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m24:19[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m133:5[22m   [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m134:5[22m   [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m135:5[22m   [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m144:13[22m  [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m144:69[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m154:13[22m  [31merror[39m  'mockStatus' is assigned a value but never used                                                                                                                                                                                                                                                                                             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m177:31[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `UpdateCorrespondenceDto`                                                                                                                                                                                                                                                     [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m  [2m177:44[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m177:49[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `User`                                                                                                                                                                                                                                                                        [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m  [2m180:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m184:13[22m  [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m184:69[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m208:31[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `UpdateCorrespondenceDto`                                                                                                                                                                                                                                                     [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m  [2m208:44[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m208:49[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `User`                                                                                                                                                                                                                                                                        [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m  [2m210:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m213:13[22m  [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m213:69[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m237:31[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `UpdateCorrespondenceDto`                                                                                                                                                                                                                                                     [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m  [2m237:44[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m237:49[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `User`                                                                                                                                                                                                                                                                        [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m  [2m239:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m243:13[22m  [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m243:69[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m262:7[22m   [31merror[39m  Unsafe call of a type that could not be resolved                                                                                                                                                                                                                                                                                            [2m@typescript-eslint/no-unsafe-call[22m[0m
+[0m  [2m264:10[22m  [31merror[39m  Unsafe member access .mockResolvedValue on a type that cannot be resolved                                                                                                                                                                                                                                                                   [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m  [2m264:71[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m270:31[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `UpdateCorrespondenceDto`                                                                                                                                                                                                                                                     [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m  [2m270:44[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m270:49[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `User`                                                                                                                                                                                                                                                                        [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m  [2m272:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\correspondence\dto\create-routing-template.dto.ts[24m[0m
+[0m  [2m9:3[22m  [31merror[39m  'IsEnum' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\correspondence\entities\correspondence-recipient.entity.ts[24m[0m
+[0m  [2m1:18[22m  [31merror[39m  'Column' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\document-numbering\controllers\document-numbering.controller.ts[24m[0m
+[0m  [2m119:5[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\document-numbering\controllers\numbering-metrics.controller.ts[24m[0m
+[0m   [2m1:27[22m  [31merror[39m  'UseGuards' is defined but never used                [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m13:3[22m   [31merror[39m  Async method 'getMetrics' has no 'await' expression  [2m@typescript-eslint/require-await[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\document-numbering\document-numbering.service.spec.ts[24m[0m
+[0m  [2m127:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m128:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m145:13[22m  [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m146:18[22m  [31merror[39m  Unsafe member access .findOne on an `any` value                                                                                                                                                                                                                                                                                             [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m  [2m151:18[22m  [31merror[39m  Unsafe member access .save on an `any` value                                                                                                                                                                                                                                                                                                [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m  [2m159:24[22m  [31merror[39m  Unsafe member access .save on an `any` value                                                                                                                                                                                                                                                                                                [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m  [2m163:13[22m  [31merror[39m  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m164:18[22m  [31merror[39m  Unsafe member access .findOne on an `any` value                                                                                                                                                                                                                                                                                             [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m  [2m168:18[22m  [31merror[39m  Unsafe member access .save on an `any` value                                                                                                                                                                                                                                                                                                [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m  [2m176:24[22m  [31merror[39m  Unsafe member access .save on an `any` value                                                                                                                                                                                                                                                                                                [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\document-numbering\entities\document-number-audit.entity.ts[24m[0m
+[0m  [2m28:42[22m  [31merror[39m  'unknown' overrides all other types in this union type  [2m@typescript-eslint/no-redundant-type-constituents[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\format.service.ts[24m[0m
+[0m  [2m54:5[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\manual-override.service.spec.ts[24m[0m
+[0m  [2m56:12[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m57:12[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\metrics.service.ts[24m[0m
+[0m  [2m1:22[22m  [31merror[39m  'Logger' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\reservation.service.ts[24m[0m
+[0m  [2m76:11[22m  [31merror[39m  'reservation' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\document-numbering\services\template.service.ts[24m[0m
+[0m  [2m1:30[22m  [31merror[39m  'NotFoundException' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\json-schema\dto\create-json-schema.dto.ts[24m[0m
+[0m  [2m51:37[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m55:29[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m65:36[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\json-schema\dto\search-json-schema.dto.ts[24m[0m
+[0m  [2m14:5[22m  [31merror[39m  Unsafe return of a value of type `any`  [2m@typescript-eslint/no-unsafe-return[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\json-schema\json-schema.service.ts[24m[0m
+[0m   [2m92:18[22m  [31merror[39m  '_schema' is defined but never used           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m92:35[22m  [31merror[39m  '_data' is defined but never used             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m258:5[22m   [31merror[39m  'options' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m265:11[22m  [31merror[39m  Unsafe assignment of an `any` value           [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\json-schema\services\virtual-column.service.ts[24m[0m
+[0m  [2m101:11[22m  [31merror[39m  Unsafe assignment of an `any` value         [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m106:16[22m  [31merror[39m  Unsafe member access [0] on an `any` value  [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\master\dto\create-tag.dto.ts[24m[0m
+[0m  [2m1:44[22m  [31merror[39m  'IsInt' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\master\dto\save-number-format.dto.ts[24m[0m
+[0m  [2m1:39[22m  [31merror[39m  'IsOptional' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\master\master.controller.ts[24m[0m
+[0m  [2m7:3[22m  [31merror[39m  'Put' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\migration\migration.controller.spec.ts[24m[0m
+[0m  [2m53:12[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\migration\migration.controller.ts[24m[0m
+[0m  [2m166:3[22m  [31merror[39m  Async method 'getStagingFile' has no 'await' expression  [2m@typescript-eslint/require-await[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\notification\dto\create-notification.dto.ts[24m[0m
+[0m  [2m7:3[22m  [31merror[39m  'IsUrl' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\notification\dto\search-notification.dto.ts[24m[0m
+[0m  [2m20:5[22m  [31merror[39m  Unsafe return of a value of type `any`  [2m@typescript-eslint/no-unsafe-return[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\notification\notification-cleanup.service.ts[24m[0m
+[0m  [2m4:22[22m  [31merror[39m  'LessThan' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\notification\notification.service.ts[24m[0m
+[0m  [2m12:10[22m  [31merror[39m  'UserPreference' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\organization\organization.service.ts[24m[0m
+[0m  [2m76:5[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\project\dto\search-project.dto.ts[24m[0m
+[0m  [2m14:5[22m  [31merror[39m  Unsafe return of a value of type `any`  [2m@typescript-eslint/no-unsafe-return[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\project\project.controller.spec.ts[24m[0m
+[0m  [2m49:13[22m  [31merror[39m  'result' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m62:13[22m  [31merror[39m  'result' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\project\project.service.spec.ts[24m[0m
+[0m  [2m64:7[22m   [31merror[39m  Unsafe call of an `any` typed value                      [2m@typescript-eslint/no-unsafe-call[22m[0m
+[0m  [2m66:10[22m  [31merror[39m  Unsafe member access .getManyAndCount on an `any` value  [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\project\project.service.ts[24m[0m
+[0m  [2m8:22[22m  [31merror[39m  'Like' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\rfa\entities\rfa-workflow-template.entity.ts[24m[0m
+[0m  [2m26:35[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\rfa\entities\rfa-workflow.entity.ts[24m[0m
+[0m  [2m55:33[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\search\dto\search-query.dto.ts[24m[0m
+[0m  [2m1:39[22m  [31merror[39m  'IsNotEmpty' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\transmittal\transmittal.controller.ts[24m[0m
+[0m  [2m49:20[22m  [31merror[39m  '_user' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\user\dto\assign-role.dto.ts[24m[0m
+[0m  [2m1:41[22m  [31merror[39m  'ValidateIf' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\workflow-engine\dsl\parser.service.ts[24m[0m
+[0m   [2m24:13[22m  [31merror[39m  Unsafe assignment of an `any` value  [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m  [2m185:13[22m  [31merror[39m  Unsafe assignment of an `any` value  [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\workflow-engine\dto\evaluate-workflow.dto.ts[24m[0m
+[0m  [2m24:28[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\workflow-engine\entities\workflow-history.entity.ts[24m[0m
+[0m  [2m57:29[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\workflow-engine\entities\workflow-instance.entity.ts[24m[0m
+[0m  [2m73:28[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-dsl.service.ts[24m[0m
+[0m  [2m258:20[22m  [31merror[39m  Implied eval. Do not use the Function constructor to create functions  [2m@typescript-eslint/no-implied-eval[22m[0m
+[0m  [2m259:16[22m  [31merror[39m  Unsafe call of a `Function` typed value                                [2m@typescript-eslint/no-unsafe-call[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-engine.controller.ts[24m[0m
+[0m  [2m118:3[22m   [31merror[39m  Async method 'getAvailableActions' has no 'await' expression  [2m@typescript-eslint/require-await[22m[0m
+[0m  [2m118:42[22m  [31merror[39m  'instanceId' is defined but never used                        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-engine.service.spec.ts[24m[0m
+[0m  [2m121:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m122:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m145:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m  [2m188:14[22m  [31merror[39m  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.[0m
+[0mConsider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. [0m
+[0mIf a function does not access `this`, it can be annotated with `this: void`  [2m@typescript-eslint/unbound-method[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\modules\workflow-engine\workflow-event.service.ts[24m[0m
+[0m  [2m28:3[22m   [31merror[39m  Async method 'dispatchEvents' has no 'await' expression                                                                                                             [2m@typescript-eslint/require-await[22m[0m
+[0m  [2m31:29[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                            [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m40:5[22m   [31merror[39m  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  [2m@typescript-eslint/no-floating-promises[22m[0m
+[0m  [2m73:66[22m  [31merror[39m  Invalid type "unknown" of template literal expression                                                                                                               [2m@typescript-eslint/restrict-template-expressions[22m[0m
+[0m  [2m80:3[22m   [31merror[39m  Async method 'handleNotify' has no 'await' expression                                                                                                               [2m@typescript-eslint/require-await[22m[0m
+[0m  [2m82:5[22m   [31merror[39m  '_context' is defined but never used                                                                                                                                [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m91:3[22m   [31merror[39m  Async method 'handleWebhook' has no 'await' expression                                                                                                              [2m@typescript-eslint/require-await[22m[0m
+[0m  [2m93:5[22m   [31merror[39m  '_context' is defined but never used                                                                                                                                [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\src\scripts\migrate-storage-v2.ts[24m[0m
+[0m   [2m10:37[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `DataSourceOptions`                                                                                   [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m   [2m10:47[22m  [31merror[39m  Unexpected any. Specify a different type                                                                                                                            [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m14:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m   [2m21:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m   [2m33:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m   [2m36:7[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m   [2m50:9[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m   [2m57:20[22m  [31merror[39m  Unnecessary escape character: \/                                                                                                                                    [2mno-useless-escape[22m[0m
+[0m   [2m57:78[22m  [31merror[39m  Unnecessary escape character: \/                                                                                                                                    [2mno-useless-escape[22m[0m
+[0m   [2m57:89[22m  [31merror[39m  Unnecessary escape character: \/                                                                                                                                    [2mno-useless-escape[22m[0m
+[0m   [2m68:9[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m   [2m98:37[22m  [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m100:9[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m108:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m109:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m110:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m111:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m113:5[22m   [31merror[39m  Unexpected console statement                                                                                                                                        [2mno-console[22m[0m
+[0m  [2m119:1[22m   [31merror[39m  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  [2m@typescript-eslint/no-floating-promises[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\test\phase3-workflow.e2e-spec.ts[24m[0m
+[0m   [2m27:7[22m   [31merror[39m  'adminToken' is assigned a value but never used                      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m57:7[22m   [31merror[39m  Unexpected console statement                                         [2mno-console[22m[0m
+[0m   [2m70:36[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `App`  [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m   [2m83:5[22m   [31merror[39m  Unsafe assignment of an `any` value                                  [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m   [2m83:38[22m  [31merror[39m  Unsafe member access .id on an `any` value                           [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m   [2m84:5[22m   [31merror[39m  Unexpected console statement                                         [2mno-console[22m[0m
+[0m   [2m88:36[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `App`  [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m   [2m98:5[22m   [31merror[39m  Unsafe assignment of an `any` value                                  [2m@typescript-eslint/no-unsafe-assignment[22m[0m
+[0m   [2m98:40[22m  [31merror[39m  Unsafe member access .instanceId on an `any` value                   [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m   [2m99:5[22m   [31merror[39m  Unexpected console statement                                         [2mno-console[22m[0m
+[0m  [2m100:5[22m   [31merror[39m  Unexpected console statement                                         [2mno-console[22m[0m
+[0m  [2m100:49[22m  [31merror[39m  Unsafe member access .currentState on an `any` value                 [2m@typescript-eslint/no-unsafe-member-access[22m[0m
+[0m  [2m106:7[22m   [31merror[39m  Unexpected console statement                                         [2mno-console[22m[0m
+[0m  [2m110:36[22m  [31merror[39m  Unsafe argument of type `any` assigned to a parameter of type `App`  [2m@typescript-eslint/no-unsafe-argument[22m[0m
+[0m  [2m122:5[22m   [31merror[39m  Unexpected console statement                                         [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\backend\test\simple.e2e-spec.ts[24m[0m
+[0m  [2m1:8[22m   [31merror[39m  'request' is defined but never used          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m3:10[22m  [31merror[39m  'RoutingTemplate' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\access-control\users\page.tsx[24m[0m
+[0m  [2m39:10[22m  [31merror[39m  'Organization' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\contracts\page.tsx[24m[0m
+[0m  [2m52:11[22m  [31merror[39m  'Project' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\numbering\[id]\edit\page.tsx[24m[0m
+[0m  [2m43:16[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m57:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\numbering\new\page.tsx[24m[0m
+[0m  [2m28:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\numbering\page.tsx[24m[0m
+[0m  [2m61:46[22m  [31merror[39m  'isLoadingTemplates' is assigned a value but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\reference\correspondence-types\page.tsx[24m[0m
+[0m  [2m8:28[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\reference\disciplines\page.tsx[24m[0m
+[0m  [2m17:28[22m  [31merror[39m  Unexpected any. Specify a different type                                [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m46:45[22m  [31merror[39m  Unexpected any. Specify a different type                                [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m70:20[22m  [31merror[39m  'id' is defined but never used. Allowed unused args must match /^_/u    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m70:24[22m  [31merror[39m  'data' is defined but never used. Allowed unused args must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m84:36[22m  [31merror[39m  Unexpected any. Specify a different type                                [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\reference\drawing-categories\page.tsx[24m[0m
+[0m  [2m8:28[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\reference\rfa-types\page.tsx[24m[0m
+[0m  [2m17:28[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m50:45[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m87:36[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\workflows\[id]\edit\page.tsx[24m[0m
+[0m  [2m72:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\doc-control\workflows\new\page.tsx[24m[0m
+[0m  [2m34:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\migration\page.tsx[24m[0m
+[0m   [2m35:6[22m   [33mwarning[39m  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  [2mreact-hooks/exhaustive-deps[22m[0m
+[0m  [2m104:14[22m  [31merror[39m    'error' is defined but never used                                                                             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\migration\review\[id]\page.tsx[24m[0m
+[0m   [2m14:3[22m   [31merror[39m    'FormDescription' is defined but never used. Allowed unused vars must match /^_/u                             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m67:6[22m   [33mwarning[39m  React Hook useEffect has a missing dependency: 'fetchItem'. Either include it or remove the dependency array  [2mreact-hooks/exhaustive-deps[22m[0m
+[0m   [2m89:14[22m  [31merror[39m    'error' is defined but never used                                                                             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m144:14[22m  [31merror[39m    'error' is defined but never used                                                                             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\admin\monitoring\system-logs\numbering\page.tsx[24m[0m
+[0m  [2m17:13[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(admin)\error.tsx[24m[0m
+[0m  [2m16:5[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(auth)\login\page.tsx[24m[0m
+[0m  [2m78:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(dashboard)\circulation\new\page.tsx[24m[0m
+[0m  [2m226:28[22m  [31merror[39m  'field' is defined but never used. Allowed unused args must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(dashboard)\error.tsx[24m[0m
+[0m  [2m16:5[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(dashboard)\profile\page.tsx[24m[0m
+[0m  [2m70:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\(dashboard)\projects\new\page.tsx[24m[0m
+[0m  [2m78:27[22m  [31merror[39m  'data' is defined but never used. Allowed unused args must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m92:14[22m  [31merror[39m  'error' is defined but never used                                       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\error.tsx[24m[0m
+[0m  [2m15:5[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\app\global-error.tsx[24m[0m
+[0m  [2m15:5[22m  [31merror[39m  Unexpected console statement  [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\admin\organization-dialog.tsx[24m[0m
+[0m  [2m102:29[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\admin\reference\generic-crud-table.tsx[24m[0m
+[0m  [2m96:37[22m  [31merror[39m  'refetch' is assigned a value but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\admin\security\rbac-matrix.tsx[24m[0m
+[0m  [2m31:11[22m  [31merror[39m  'RbacMatrixProps' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m95:47[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)                                              [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\circulation\circulation-list.tsx[24m[0m
+[0m  [2m6:10[22m  [31merror[39m  'StatusBadge' is defined but never used. Allowed unused vars must match /^_/u   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m8:15[22m  [31merror[39m  'CheckCircle2' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\common\status-badge.tsx[24m[0m
+[0m  [2m19:7[22m  [31merror[39m  'defaultStatus' is assigned a value but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\correspondences\correspondences-content.tsx[24m[0m
+[0m  [2m13:16[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)                                              [2mno-restricted-syntax[22m[0m
+[0m  [2m14:9[22m   [31merror[39m  'status' is assigned a value but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\correspondences\form.tsx[24m[0m
+[0m   [2m25:10[22m  [31merror[39m  'correspondenceService' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m86:75[22m  [31merror[39m  Unexpected any. Specify a different type                                                 [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m102:55[22m  [31merror[39m  Unexpected any. Specify a different type                                                 [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m117:57[22m  [31merror[39m  Unexpected any. Specify a different type                                                 [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m118:48[22m  [31merror[39m  Unexpected any. Specify a different type                                                 [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m131:52[22m  [31merror[39m  Unexpected any. Specify a different type                                                 [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m198:17[22m  [31merror[39m  'err' is defined but never used                                                          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m285:62[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)                                                    [2mno-restricted-syntax[22m[0m
+[0m  [2m309:64[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)                                                    [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\custom\file-upload-zone.tsx[24m[0m
+[0m  [2m35:8[22m  [31merror[39m    ❌ +value is forbidden (UUID risk)                                                                                  [2mno-restricted-syntax[22m[0m
+[0m  [2m88:5[22m  [33mwarning[39m  React Hook useCallback has a missing dependency: 'validateFile'. Either include it or remove the dependency array  [2mreact-hooks/exhaustive-deps[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\dashboard\pending-tasks.tsx[24m[0m
+[0m  [2m7:10[22m  [31merror[39m  'AlertCircle' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\documents\common\server-data-table.tsx[24m[0m
+[0m  [2m11:3[22m  [31merror[39m  'getPaginationRowModel' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\drawings\revision-history.tsx[24m[0m
+[0m  [2m7:20[22m  [31merror[39m  'FileText' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\drawings\upload-form.tsx[24m[0m
+[0m   [2m37:43[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)  [2mno-restricted-syntax[22m[0m
+[0m  [2m286:50[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)  [2mno-restricted-syntax[22m[0m
+[0m  [2m356:50[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\layout\navbar.tsx[24m[0m
+[0m  [2m4:8[22m  [31merror[39m  'Link' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\numbering\audit-logs-table.tsx[24m[0m
+[0m  [2m16:36[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m26:16[22m  [31merror[39m  'error' is defined but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\numbering\bulk-import-form.tsx[24m[0m
+[0m  [2m31:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\numbering\cancel-number-form.tsx[24m[0m
+[0m  [2m46:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\numbering\manual-override-form.tsx[24m[0m
+[0m  [2m58:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\numbering\metrics-dashboard.tsx[24m[0m
+[0m   [2m4:52[22m  [31merror[39m  'CardDescription' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m18:16[22m  [31merror[39m  'error' is defined but never used                                                  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\numbering\template-editor.tsx[24m[0m
+[0m  [2m152:46[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\numbering\template-tester.tsx[24m[0m
+[0m  [2m76:35[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)     [2mno-restricted-syntax[22m[0m
+[0m  [2m77:27[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)     [2mno-restricted-syntax[22m[0m
+[0m  [2m80:9[22m   [31merror[39m  Unexpected console statement              [2mno-console[22m[0m
+[0m  [2m82:9[22m   [31merror[39m  Unexpected console statement              [2mno-console[22m[0m
+[0m  [2m88:21[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m89:9[22m   [31merror[39m  Unexpected console statement              [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\numbering\void-replace-form.tsx[24m[0m
+[0m  [2m54:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\rfas\form.tsx[24m[0m
+[0m  [2m285:17[22m  [31merror[39m  'err' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\transmittal\transmittal-form.tsx[24m[0m
+[0m  [2m420:48[22m  [31merror[39m  ❌ parseInt() is forbidden (UUID risk)  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\ui\calendar.tsx[24m[0m
+[0m  [2m57:25[22m  [31merror[39m  'props' is defined but never used. Allowed unused args must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m58:26[22m  [31merror[39m  'props' is defined but never used. Allowed unused args must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\ui\dropdown-menu.tsx[24m[0m
+[0m  [2m6:10[22m  [31merror[39m  'Check' is defined but never used. Allowed unused vars must match /^_/u   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m6:31[22m  [31merror[39m  'Circle' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\workflows\dsl-editor.tsx[24m[0m
+[0m  [2m50:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\components\workflows\visual-builder.tsx[24m[0m
+[0m  [2m238:12[22m  [31merror[39m  'e' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\lib\api\client.ts[24m[0m
+[0m  [2m43:16[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\lib\api\drawings.ts[24m[0m
+[0m  [2m38:25[22m  [31merror[39m  'contractId' is defined but never used. Allowed unused args must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\lib\api\numbering.ts[24m[0m
+[0m  [2m133:37[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m141:37[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m160:21[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m171:38[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m193:37[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m203:37[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m213:37[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m227:38[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m238:38[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m249:38[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m260:38[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m285:37[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m301:38[22m  [31merror[39m  Unexpected any. Specify a different type                                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m307:5[22m   [31merror[39m  Unexpected console statement                                               [2mno-console[22m[0m
+[0m  [2m310:5[22m   [31merror[39m  Unexpected console statement                                               [2mno-console[22m[0m
+[0m  [2m320:5[22m   [31merror[39m  Unexpected console statement                                               [2mno-console[22m[0m
+[0m  [2m340:5[22m   [31merror[39m  'context' is defined but never used. Allowed unused args must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\lib\auth.ts[24m[0m
+[0m    [2m9:7[22m   [31merror[39m  'loginSchema' is assigned a value but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m106:12[22m  [31merror[39m  'error' is defined but never used                                                       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m139:11[22m  [31merror[39m  Unexpected console statement                                                            [2mno-console[22m[0m
+[0m  [2m140:11[22m  [31merror[39m  Unexpected console statement                                                            [2mno-console[22m[0m
+[0m  [2m141:11[22m  [31merror[39m  Unexpected console statement                                                            [2mno-console[22m[0m
+[0m  [2m153:13[22m  [31merror[39m  Unexpected console statement                                                            [2mno-console[22m[0m
+[0m  [2m155:13[22m  [31merror[39m  Unexpected console statement                                                            [2mno-console[22m[0m
+[0m  [2m163:13[22m  [31merror[39m  Unexpected console statement                                                            [2mno-console[22m[0m
+[0m  [2m167:11[22m  [31merror[39m  Unexpected console statement                                                            [2mno-console[22m[0m
+[0m  [2m181:11[22m  [31merror[39m  Unexpected console statement                                                            [2mno-console[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\lib\services\dashboard.service.ts[24m[0m
+[0m  [2m18:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m34:14[22m  [31merror[39m  'error' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\lib\services\migration.service.ts[24m[0m
+[0m  [2m95:49[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\proxy.ts[24m[0m
+[0m  [2m3:15[22m  [31merror[39m  'NextRequest' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\types\migration.ts[24m[0m
+[0m  [2m14:14[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m27:19[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m33:23[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\nap-dms.lcbp3\frontend\types\next-auth.d.ts[24m[0m
+[0m  [2m2:8[22m  [31merror[39m  'NextAuth' is defined but never used. Allowed unused vars must match /^_/u  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[31m[1m✖ 300 problems (297 errors, 3 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[0m

@@ -1,6 +1,5 @@
-// File: src/common/decorators/current-user.decorator.ts
-
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { User } from '../../modules/user/entities/user.entity';
 
 /**
  * Decorator สำหรับดึงข้อมูล User ปัจจุบันจาก Request Object
@@ -12,8 +11,8 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
  */
 export const CurrentUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
+    const request = ctx.switchToHttp().getRequest<{ user?: User }>();
     // request.user ถูก set โดย Passport/JwtStrategy
     return request.user;
-  },
+  }
 );

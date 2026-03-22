@@ -1,18 +1,12 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Search, FileText, Clipboard, Image, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Command, CommandGroup, CommandItem, CommandList,
- } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useSearchSuggestions } from "@/hooks/use-search";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Search, FileText, Clipboard, Image, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useSearchSuggestions } from '@/hooks/use-search';
 
 /** Search suggestion item returned from the API */
 interface SearchSuggestion {
@@ -39,7 +33,7 @@ function useDebounceValue<T>(value: T, delay: number): T {
 export function GlobalSearch() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
 
   const debouncedQuery = useDebounceValue(query, 300);
 
@@ -62,10 +56,14 @@ export function GlobalSearch() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case "correspondence": return <FileText className="mr-2 h-4 w-4" />;
-      case "rfa": return <Clipboard className="mr-2 h-4 w-4" />;
-      case "drawing": return <Image className="mr-2 h-4 w-4" />;
-      default: return <Search className="mr-2 h-4 w-4" />;
+      case 'correspondence':
+        return <FileText className="mr-2 h-4 w-4" />;
+      case 'rfa':
+        return <Clipboard className="mr-2 h-4 w-4" />;
+      case 'drawing':
+        return <Image className="mr-2 h-4 w-4" />;
+      default:
+        return <Search className="mr-2 h-4 w-4" />;
     }
   };
 
@@ -81,17 +79,19 @@ export function GlobalSearch() {
               className="pl-8 w-full bg-background"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               onFocus={() => {
                 if (suggestions && suggestions.length > 0) setOpen(true);
               }}
             />
-            {isLoading && (
-              <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-            )}
+            {isLoading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <PopoverContent
+          className="p-0 w-[var(--radix-popover-trigger-width)]"
+          align="start"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <Command>
             <CommandList>
               {suggestions && suggestions.length > 0 && (
@@ -114,9 +114,7 @@ export function GlobalSearch() {
                 </CommandGroup>
               )}
               {(!suggestions || suggestions.length === 0) && !isLoading && (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    No suggestions found.
-                  </div>
+                <div className="py-6 text-center text-sm text-muted-foreground">No suggestions found.</div>
               )}
             </CommandList>
           </Command>

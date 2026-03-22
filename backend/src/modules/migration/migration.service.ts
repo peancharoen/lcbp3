@@ -27,6 +27,9 @@ import { MigrationQueueQueryDto } from './dto/migration-queue-query.dto';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { createReadStream, existsSync } from 'fs';
 import * as path from 'path';
+import { Rfa } from '../rfa/entities/rfa.entity';
+import { RfaRevision } from '../rfa/entities/rfa-revision.entity';
+
 @Injectable()
 export class MigrationService {
   private readonly logger = new Logger(MigrationService.name);
@@ -171,15 +174,15 @@ export class MigrationService {
         // --- CTI: insert RFA class ---
         if (isRFA) {
           // Default RFA type generic mapping
-          const rfaTypeRes = await queryRunner.manager.query(
+          const rfaTypeRes = await queryRunner.manager.query<{ id: number }[]>(
             "SELECT id FROM rfa_types WHERE type_code = 'GEN' LIMIT 1"
           );
-          const rfa = queryRunner.manager.create('Rfa', {
+          const rfa = queryRunner.manager.create(Rfa, {
             id: correspondence.id,
             rfaTypeId: rfaTypeRes[0]?.id || 1, // fallback to id 1
             createdBy: userId,
           });
-          await queryRunner.manager.save('Rfa', rfa);
+          await queryRunner.manager.save(Rfa, rfa);
         }
       } else {
         // Update values if missing
@@ -292,11 +295,11 @@ export class MigrationService {
       // --- CTI: insert RfaRevision ---
       if (isRFA) {
         // Map Status code to RFA Equivalent 'APP' (Approved) if exist, or id 3 (typically Approved)
-        const rfaStatusRes = await queryRunner.manager.query(
+        const rfaStatusRes = await queryRunner.manager.query<{ id: number }[]>(
           "SELECT id FROM rfa_status_codes WHERE status_code = 'APP' LIMIT 1"
         );
 
-        const rfaRev = queryRunner.manager.create('RfaRevision', {
+        const rfaRev = queryRunner.manager.create(RfaRevision, {
           id: revision.id,
           rfaStatusCodeId: rfaStatusRes[0]?.id || 3, // Fallback to 3 if APP not found
           details: {
@@ -305,7 +308,7 @@ export class MigrationService {
           },
           schemaVersion: 1,
         });
-        await queryRunner.manager.save('RfaRevision', rfaRev);
+        await queryRunner.manager.save(RfaRevision, rfaRev);
       }
 
       // 5.5 Handle Tags
@@ -329,7 +332,7 @@ export class MigrationService {
           if (!tagName) continue;
 
           // Find or create Tag
-          const tagRes = await queryRunner.manager.query(
+          const tagRes = await queryRunner.manager.query<{ id: number }[]>(
             'SELECT id FROM tags WHERE project_id = ? AND tag_name = ? LIMIT 1',
             [project.id, tagName]
           );
@@ -338,7 +341,9 @@ export class MigrationService {
           if (tagRes && tagRes.length > 0) {
             tagId = tagRes[0].id;
           } else {
-            const insertRes = await queryRunner.manager.query(
+            const insertRes = await queryRunner.manager.query<{
+              insertId: number;
+            }>(
               "INSERT INTO tags (project_id, tag_name, color_code, created_by) VALUES (?, ?, 'default', ?)",
               [project.id, tagName, userId]
             );

@@ -68,9 +68,7 @@ export const columns: ColumnDef<Drawing>[] = [
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/drawings/${drawing.uuid}`}>
-                View Details
-              </Link>
+              <Link href={`/drawings/${drawing.uuid}`}>View Details</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href={`/drawings/${drawing.uuid}?edit=true`}>

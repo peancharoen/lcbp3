@@ -1,16 +1,19 @@
 # Document Numbering Operations Guide
 
 ---
+
 title: 'Document Numbering Operations Guide'
 version: 1.7.0
 status: APPROVED
 owner: Operations Team
 last_updated: 2025-12-18
 related:
-  - specs/01-requirements/03.11-document-numbering.md
-  - specs/03-implementation/03-08-document-numbering.md
-  - specs/04-operations/04-08-monitoring-alerting.md
-  - specs/05-decisions/ADR-002-document-numbering-strategy.md
+
+- specs/01-requirements/03.11-document-numbering.md
+- specs/03-implementation/03-08-document-numbering.md
+- specs/04-operations/04-08-monitoring-alerting.md
+- specs/05-decisions/ADR-002-document-numbering-strategy.md
+
 ---
 
 ## Overview
@@ -21,18 +24,18 @@ related:
 
 ### 1.1. Response Time Targets
 
-| Metric           | Target   | Measurement              |
-| ---------------- | -------- | ------------------------ |
+| Metric           | Target     | Measurement                  |
+| ---------------- | ---------- | ---------------------------- |
 | 95th percentile  | ≤ 2 วินาที | ตั้งแต่ request ถึง response |
 | 99th percentile  | ≤ 5 วินาที | ตั้งแต่ request ถึง response |
-| Normal operation | ≤ 500ms  | ไม่มี retry                |
+| Normal operation | ≤ 500ms    | ไม่มี retry                  |
 
 ### 1.2. Throughput Targets
 
 | Load Level     | Target      | Notes                    |
 | -------------- | ----------- | ------------------------ |
-| Normal load    | ≥ 50 req/s  | ใช้งานปกติ                 |
-| Peak load      | ≥ 100 req/s | ช่วงเร่งงาน                |
+| Normal load    | ≥ 50 req/s  | ใช้งานปกติ               |
+| Peak load      | ≥ 100 req/s | ช่วงเร่งงาน              |
 | Burst capacity | ≥ 200 req/s | Short duration (< 1 min) |
 
 ### 1.3. Availability SLA
@@ -280,9 +283,9 @@ groups:
           severity: critical
           component: document-numbering
         annotations:
-          summary: "Redis is unavailable for document numbering"
-          description: "System is falling back to DB-only locking. Performance degraded by 30-50%."
-          runbook_url: "https://wiki.lcbp3/runbooks/redis-unavailable"
+          summary: 'Redis is unavailable for document numbering'
+          description: 'System is falling back to DB-only locking. Performance degraded by 30-50%.'
+          runbook_url: 'https://wiki.lcbp3/runbooks/redis-unavailable'
 
       # CRITICAL: High lock failure rate
       - alert: HighLockFailureRate
@@ -293,9 +296,9 @@ groups:
           severity: critical
           component: document-numbering
         annotations:
-          summary: "Lock acquisition failure rate > 10%"
-          description: "Check Redis and database performance immediately"
-          runbook_url: "https://wiki.lcbp3/runbooks/high-lock-failure"
+          summary: 'Lock acquisition failure rate > 10%'
+          description: 'Check Redis and database performance immediately'
+          runbook_url: 'https://wiki.lcbp3/runbooks/high-lock-failure'
 
       # WARNING: Elevated lock failure rate
       - alert: ElevatedLockFailureRate
@@ -306,8 +309,8 @@ groups:
           severity: warning
           component: document-numbering
         annotations:
-          summary: "Lock acquisition failure rate > 5%"
-          description: "Monitor closely. May escalate to critical soon."
+          summary: 'Lock acquisition failure rate > 5%'
+          description: 'Monitor closely. May escalate to critical soon.'
 
       # WARNING: Slow lock acquisition
       - alert: SlowLockAcquisition
@@ -320,8 +323,8 @@ groups:
           severity: warning
           component: document-numbering
         annotations:
-          summary: "P95 lock acquisition time > 1 second"
-          description: "Lock acquisition is slower than expected. Check Redis latency."
+          summary: 'P95 lock acquisition time > 1 second'
+          description: 'Lock acquisition is slower than expected. Check Redis latency.'
 
       # WARNING: High retry count
       - alert: HighRetryCount
@@ -334,8 +337,8 @@ groups:
           severity: warning
           component: document-numbering
         annotations:
-          summary: "Retry count > 100 per hour in project {{ $labels.project }}"
-          description: "High contention detected. Consider scaling."
+          summary: 'Retry count > 100 per hour in project {{ $labels.project }}'
+          description: 'High contention detected. Consider scaling.'
 
       # WARNING: Slow generation
       - alert: SlowDocumentNumberGeneration
@@ -348,8 +351,8 @@ groups:
           severity: warning
           component: document-numbering
         annotations:
-          summary: "P95 generation time > 2 seconds"
-          description: "Document number generation is slower than SLA target"
+          summary: 'P95 generation time > 2 seconds'
+          description: 'Document number generation is slower than SLA target'
 ```
 
 ### 3.3. AlertManager Configuration
@@ -450,6 +453,7 @@ Dashboard panels ที่สำคัญ:
 ### 4.1. Scenario: Redis Unavailable
 
 **Symptoms:**
+
 - Alert: `RedisUnavailable`
 - System falls back to DB-only locking
 - Performance degraded 30-50%
@@ -457,22 +461,26 @@ Dashboard panels ที่สำคัญ:
 **Action Steps:**
 
 1. **Check Redis status:**
+
    ```bash
    docker exec lcbp3-redis redis-cli ping
    # Expected: PONG
    ```
 
 2. **Check Redis logs:**
+
    ```bash
    docker logs lcbp3-redis --tail=100
    ```
 
 3. **Restart Redis (if needed):**
+
    ```bash
    docker restart lcbp3-redis
    ```
 
 4. **Verify failover (if using Sentinel):**
+
    ```bash
    docker exec lcbp3-redis-sentinel redis-cli -p 26379 SENTINEL masters
    ```
@@ -484,29 +492,34 @@ Dashboard panels ที่สำคัญ:
 ### 4.2. Scenario: High Lock Failure Rate
 
 **Symptoms:**
+
 - Alert: `HighLockFailureRate` (> 10%)
 - Users report "ระบบกำลังยุ่ง" errors
 
 **Action Steps:**
 
 1. **Check concurrent load:**
+
    ```bash
    # Check current request rate
    curl http://prometheus:9090/api/v1/query?query=rate(docnum_generation_duration_ms_count[1m])
    ```
 
 2. **Check database connections:**
+
    ```sql
    SHOW PROCESSLIST;
    -- Look for waiting/locked queries
    ```
 
 3. **Check Redis memory:**
+
    ```bash
    docker exec lcbp3-redis redis-cli INFO memory
    ```
 
 4. **Scale up if needed:**
+
    ```bash
    # Increase backend replicas
    docker-compose up -d --scale backend=5
@@ -521,12 +534,14 @@ Dashboard panels ที่สำคัญ:
 ### 4.3. Scenario: Slow Performance
 
 **Symptoms:**
+
 - Alert: `SlowDocumentNumberGeneration`
 - P95 > 2 seconds
 
 **Action Steps:**
 
 1. **Check database query performance:**
+
    ```sql
    SELECT * FROM document_number_counters USE INDEX (idx_counter_lookup)
    WHERE project_id = 2 AND correspondence_type_id = 6 AND current_year = 2025;
@@ -536,16 +551,19 @@ Dashboard panels ที่สำคัญ:
    ```
 
 2. **Check for missing indexes:**
+
    ```sql
    SHOW INDEX FROM document_number_counters;
    ```
 
 3. **Check Redis latency:**
+
    ```bash
    docker exec lcbp3-redis redis-cli --latency
    ```
 
 4. **Check network latency:**
+
    ```bash
    ping mariadb-master
    ping redis-master
@@ -559,12 +577,14 @@ Dashboard panels ที่สำคัญ:
 ### 4.4. Scenario: Version Conflicts
 
 **Symptoms:**
+
 - High retry count
 - Users report "เลขที่เอกสารถูกเปลี่ยน" errors
 
 **Action Steps:**
 
 1. **Check concurrent requests to same counter:**
+
    ```sql
    SELECT
      project_id,
@@ -578,6 +598,7 @@ Dashboard panels ที่สำคัญ:
    ```
 
 2. **Investigate specific counter:**
+
    ```sql
    SELECT * FROM document_number_counters
    WHERE project_id = X AND correspondence_type_id = Y;
@@ -606,6 +627,7 @@ Dashboard panels ที่สำคัญ:
 **Steps:**
 
 1. **Request approval via API:**
+
    ```bash
    POST /api/v1/document-numbering/configs/{configId}/reset-counter
    {
@@ -633,6 +655,7 @@ Dashboard panels ที่สำคัญ:
 4. Template changes do NOT affect existing documents
 
 **API Call:**
+
 ```bash
 PUT /api/v1/document-numbering/configs/{configId}
 {
@@ -644,6 +667,7 @@ PUT /api/v1/document-numbering/configs/{configId}
 ### 5.3. Database Maintenance
 
 **Weekly Tasks:**
+
 - Check slow query log
 - Optimize tables if needed:
   ```sql
@@ -652,6 +676,7 @@ PUT /api/v1/document-numbering/configs/{configId}
   ```
 
 **Monthly Tasks:**
+
 - Review and archive old audit logs (> 2 years)
 - Check index usage:
   ```sql
@@ -664,11 +689,13 @@ PUT /api/v1/document-numbering/configs/{configId}
 ### 6.1. Backup Strategy
 
 **Database:**
+
 - Full backup: Daily at 02:00 AM
 - Incremental backup: Every 4 hours
 - Retention: 30 days
 
 **Redis:**
+
 - AOF (Append-Only File) enabled
 - Snapshot every 1 hour
 - Retention: 7 days

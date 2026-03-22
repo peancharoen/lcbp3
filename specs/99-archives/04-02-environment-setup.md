@@ -378,9 +378,7 @@ Backend validates environment variables at startup:
 import * as Joi from 'joi';
 
 export const envValidationSchema = Joi.object({
-  NODE_ENV: Joi.string()
-    .valid('development', 'staging', 'production')
-    .required(),
+  NODE_ENV: Joi.string().valid('development', 'staging', 'production').required(),
   DB_HOST: Joi.string().required(),
   DB_PORT: Joi.number().default(3306),
   DB_USER: Joi.string().required(),

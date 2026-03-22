@@ -35,7 +35,7 @@ export function AuthSync() {
           firstName: user.firstName || '',
           lastName: user.lastName || '',
           role: user.role || 'User',
-          permissions: user.permissions
+          permissions: user.permissions,
         },
         (session as { accessToken?: string }).accessToken || ''
       );

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import { FileText, Clipboard, Image, Loader2 } from "lucide-react";
-import { SearchResult } from "@/types/search";
-import { format } from "date-fns";
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { FileText, Clipboard, Image, Loader2 } from 'lucide-react';
+import { SearchResult } from '@/types/search';
+import { format } from 'date-fns';
 
 interface SearchResultsProps {
   results: SearchResult[];
@@ -25,18 +25,18 @@ export function SearchResults({ results, query, loading }: SearchResultsProps) {
   if (results.length === 0) {
     return (
       <Card className="p-12 text-center text-muted-foreground">
-        {query ? `No results found for "${query}"` : "Enter a search term to start"}
+        {query ? `No results found for "${query}"` : 'Enter a search term to start'}
       </Card>
     );
   }
 
   const getIcon = (type: string) => {
     switch (type) {
-      case "correspondence":
+      case 'correspondence':
         return FileText;
-      case "rfa":
+      case 'rfa':
         return Clipboard;
-      case "drawing":
+      case 'drawing':
         return Image;
       default:
         return FileText;
@@ -53,10 +53,7 @@ export function SearchResults({ results, query, loading }: SearchResultsProps) {
         const Icon = getIcon(result.type);
 
         return (
-          <Card
-            key={`${result.type}-${result.uuid}-${index}`}
-            className="p-6 hover:shadow-md transition-shadow group"
-          >
+          <Card key={`${result.type}-${result.uuid}-${index}`} className="p-6 hover:shadow-md transition-shadow group">
             <Link href={getLink(result)}>
               <div className="flex gap-4">
                 <div className="flex-shrink-0 mt-1">
@@ -68,23 +65,21 @@ export function SearchResults({ results, query, loading }: SearchResultsProps) {
                     <h3
                       className="text-lg font-semibold group-hover:text-primary transition-colors"
                       dangerouslySetInnerHTML={{
-                        __html: result.highlight || result.title
+                        __html: result.highlight || result.title,
                       }}
                     />
-                    <Badge variant="secondary" className="capitalize">{result.type}</Badge>
+                    <Badge variant="secondary" className="capitalize">
+                      {result.type}
+                    </Badge>
                     <Badge variant="outline">{result.status}</Badge>
                   </div>
 
-                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                    {result.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{result.description}</p>
 
                   <div className="flex gap-4 text-xs text-muted-foreground">
                     <span className="font-medium">{result.documentNumber}</span>
                     <span>•</span>
-                    <span>
-                      {format(new Date(result.createdAt), "dd MMM yyyy")}
-                    </span>
+                    <span>{format(new Date(result.createdAt), 'dd MMM yyyy')}</span>
                   </div>
                 </div>
               </div>

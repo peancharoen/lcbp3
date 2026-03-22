@@ -536,11 +536,11 @@ graph LR
 
 **Document History**:
 
-| Version | Date       | Author     | Changes                                |
-| ------- | ---------- | ---------- | -------------------------------------- |
-| 1.0.0   | 2025-01-15 | John Doe   | Initial version                        |
-| 1.1.0   | 2025-02-20 | Jane Smith | Add CC support                         |
-| 1.2.0   | 2025-03-10 | John Doe   | Update workflow                        |
+| Version | Date       | Author     | Changes                                                 |
+| ------- | ---------- | ---------- | ------------------------------------------------------- |
+| 1.0.0   | 2025-01-15 | John Doe   | Initial version                                         |
+| 1.1.0   | 2025-02-20 | Jane Smith | Add CC support                                          |
+| 1.2.0   | 2025-03-10 | John Doe   | Update workflow                                         |
 | 1.8.1   | 2026-03-21 | Tech Lead  | Security hardening, numbering fixes, dependency updates |
 
 **Current Version**: 1.8.1

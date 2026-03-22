@@ -83,7 +83,7 @@ export class UiSchemaService {
         title: (value.title as string) || this.humanize(key),
         description: value.description as string | undefined,
         required: ((dataSchema.required as string[]) || []).includes(key),
-        widget: this.guessWidget(value) as WidgetType,
+        widget: this.guessWidget(value),
         colSpan: 12, // Default full width
       };
     }

@@ -28,7 +28,6 @@
 ## 📝 Acceptance Criteria
 
 1. **User Management:**
-
    - ✅ Create user with default password
    - ✅ Update user information
    - ✅ Activate/Deactivate users
@@ -36,14 +35,12 @@
    - ✅ Search users by name/email/username
 
 2. **Profile Management:**
-
    - ✅ User can view own profile
    - ✅ User can update own profile
    - ✅ Upload avatar/profile picture
    - ✅ Change display name
 
 3. **Password Management:**
-
    - ✅ Change password (authenticated)
    - ✅ Reset password (forgot password flow)
    - ✅ Password strength validation
@@ -228,10 +225,7 @@ export class UserService {
   }
 
   private generateRandomPassword(): string {
-    return (
-      Math.random().toString(36).slice(-8) +
-      Math.random().toString(36).slice(-8)
-    );
+    return Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
   }
 
   private async createDefaultPreferences(userId: number): Promise<void> {
@@ -311,10 +305,7 @@ export class ProfileService {
     return this.userRepo.save(user);
   }
 
-  async uploadAvatar(
-    userId: number,
-    file: Express.Multer.File
-  ): Promise<string> {
+  async uploadAvatar(userId: number, file: Express.Multer.File): Promise<string> {
     // Upload to temp storage
     const uploadResult = await this.fileStorage.uploadToTemp(file, userId);
 
@@ -334,10 +325,7 @@ export class ProfileService {
     return avatarUrl;
   }
 
-  async updatePreferences(
-    userId: number,
-    dto: UpdatePreferencesDto
-  ): Promise<UserPreference> {
+  async updatePreferences(userId: number, dto: UpdatePreferencesDto): Promise<UserPreference> {
     let preferences = await this.preferenceRepo.findOne({
       where: { user_id: userId },
     });
@@ -375,10 +363,7 @@ export class PasswordService {
     }
 
     // Verify current password
-    const isValid = await bcrypt.compare(
-      dto.current_password,
-      user.password_hash
-    );
+    const isValid = await bcrypt.compare(dto.current_password, user.password_hash);
 
     if (!isValid) {
       throw new BadRequestException('Current password is incorrect');
@@ -422,12 +407,7 @@ export class PasswordService {
     const resetTokenHash = await bcrypt.hash(resetToken, 10);
 
     // Store token in Redis (expires in 1 hour)
-    await this.redis.set(
-      `password_reset:${user.user_id}`,
-      resetTokenHash,
-      'EX',
-      3600
-    );
+    await this.redis.set(`password_reset:${user.user_id}`, resetTokenHash, 'EX', 3600);
 
     // Send reset email
     await this.emailQueue.add('send-password-reset', {
@@ -447,9 +427,7 @@ export class PasswordService {
     }
 
     // Verify reset token
-    const storedTokenHash = await this.redis.get(
-      `password_reset:${user.user_id}`
-    );
+    const storedTokenHash = await this.redis.get(`password_reset:${user.user_id}`);
 
     if (!storedTokenHash) {
       throw new BadRequestException('Reset token expired');
@@ -488,16 +466,11 @@ export class PasswordService {
     const hasNumber = /[0-9]/.test(password);
 
     if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-      throw new BadRequestException(
-        'Password must contain uppercase, lowercase, and numbers'
-      );
+      throw new BadRequestException('Password must contain uppercase, lowercase, and numbers');
     }
   }
 
-  private async checkPasswordHistory(
-    userId: number,
-    newPassword: string
-  ): Promise<void> {
+  private async checkPasswordHistory(userId: number, newPassword: string): Promise<void> {
     const history = await this.passwordHistoryRepo.find({
       where: { user_id: userId },
       order: { changed_at: 'DESC' },
@@ -513,10 +486,7 @@ export class PasswordService {
   }
 
   private generateResetToken(): string {
-    return (
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15)
-    );
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 
   private async invalidateUserSessions(userId: number): Promise<void> {
@@ -555,10 +525,7 @@ export class UserController {
 
   @Put(':id')
   @RequirePermission('user.update')
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateUserDto
-  ) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
     return this.userService.update(id, dto);
   }
 
@@ -582,36 +549,24 @@ export class UserController {
   }
 
   @Put('me/profile')
-  async updateMyProfile(
-    @CurrentUser() user: User,
-    @Body() dto: UpdateProfileDto
-  ) {
+  async updateMyProfile(@CurrentUser() user: User, @Body() dto: UpdateProfileDto) {
     return this.profileService.updateProfile(user.user_id, dto);
   }
 
   @Post('me/avatar')
   @UseInterceptors(FileInterceptor('avatar'))
-  async uploadAvatar(
-    @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File
-  ) {
+  async uploadAvatar(@CurrentUser() user: User, @UploadedFile() file: Express.Multer.File) {
     return this.profileService.uploadAvatar(user.user_id, file);
   }
 
   @Put('me/preferences')
-  async updatePreferences(
-    @CurrentUser() user: User,
-    @Body() dto: UpdatePreferencesDto
-  ) {
+  async updatePreferences(@CurrentUser() user: User, @Body() dto: UpdatePreferencesDto) {
     return this.profileService.updatePreferences(user.user_id, dto);
   }
 
   // Password Management
   @Post('me/change-password')
-  async changePassword(
-    @CurrentUser() user: User,
-    @Body() dto: ChangePasswordDto
-  ) {
+  async changePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
     return this.passwordService.changePassword(user.user_id, dto);
   }
 
@@ -654,9 +609,7 @@ describe('UserService', () => {
   });
 
   it('should prevent duplicate username', async () => {
-    await expect(
-      service.create({ username: 'admin', email: 'new@example.com' })
-    ).rejects.toThrow(ConflictException);
+    await expect(service.create({ username: 'admin', email: 'new@example.com' })).rejects.toThrow(ConflictException);
   });
 });
 

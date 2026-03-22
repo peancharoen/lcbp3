@@ -84,9 +84,9 @@ describe('FileStorageService', () => {
     it('should save file to temp and create DB record', async () => {
       const result = await service.upload(mockFile, 1);
 
-      expect(fs.writeFile).toHaveBeenCalled();
-      expect(attachmentRepo.create).toHaveBeenCalled();
-      expect(attachmentRepo.save).toHaveBeenCalled();
+      expect(fs.writeFile as unknown as jest.Mock).toHaveBeenCalled();
+      expect(attachmentRepo.create as jest.Mock).toHaveBeenCalled();
+      expect(attachmentRepo.save as jest.Mock).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -116,9 +116,9 @@ describe('FileStorageService', () => {
 
       await service.commit(tempIds);
 
-      expect(fs.ensureDir).toHaveBeenCalled();
-      expect(fs.move).toHaveBeenCalled();
-      expect(attachmentRepo.save).toHaveBeenCalled();
+      expect(fs.ensureDir as unknown as jest.Mock).toHaveBeenCalled();
+      expect(fs.move as unknown as jest.Mock).toHaveBeenCalled();
+      expect(attachmentRepo.save as jest.Mock).toHaveBeenCalled();
     });
 
     it('should show warning if file counts mismatch', async () => {
@@ -135,8 +135,8 @@ describe('FileStorageService', () => {
 
       await service.delete(1, 1);
 
-      expect(fs.remove).toHaveBeenCalled();
-      expect(attachmentRepo.remove).toHaveBeenCalled();
+      expect(fs.remove as unknown as jest.Mock).toHaveBeenCalled();
+      expect(attachmentRepo.remove as jest.Mock).toHaveBeenCalled();
     });
 
     it('should throw ForbiddenException if user does not own file', async () => {

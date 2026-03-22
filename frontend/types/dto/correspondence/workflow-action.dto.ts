@@ -4,12 +4,12 @@ export type WorkflowAction = 'APPROVE' | 'REJECT' | 'RETURN' | 'ACKNOWLEDGE' | '
 
 export interface WorkflowActionDto {
   /** การกระทำ (Approve, Reject, etc.) */
-  action: WorkflowAction; 
+  action: WorkflowAction;
 
   /** ความคิดเห็นเพิ่มเติม */
   comments?: string;
 
-  /** * ลำดับที่ต้องการส่งกลับ (ใช้กรณี action = RETURN) 
+  /** * ลำดับที่ต้องการส่งกลับ (ใช้กรณี action = RETURN)
    * เช่น ส่งกลับไป step 1
    */
   returnToSequence?: number;

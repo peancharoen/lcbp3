@@ -32,7 +32,7 @@ export class MonitoringService {
       await this.redis.set(this.MAINTENANCE_KEY, 'true');
       // เก็บเหตุผลไว้ใน Key อื่นก็ได้ถ้าต้องการ แต่เบื้องต้น Guard เช็คแค่ Key นี้
       this.logger.warn(
-        `⚠️ SYSTEM ENTERED MAINTENANCE MODE: ${dto.reason || 'No reason provided'}`,
+        `⚠️ SYSTEM ENTERED MAINTENANCE MODE: ${dto.reason || 'No reason provided'}`
       );
     } else {
       await this.redis.del(this.MAINTENANCE_KEY);

@@ -1,7 +1,7 @@
 ---
 title: Single Responsibility for Services
 impact: CRITICAL
-impactDescription: "40%+ improvement in testability"
+impactDescription: '40%+ improvement in testability'
 tags: architecture, services, single-responsibility
 ---
 
@@ -19,7 +19,7 @@ export class UserAndOrderService {
     private userRepo: UserRepository,
     private orderRepo: OrderRepository,
     private mailer: MailService,
-    private payment: PaymentService,
+    private payment: PaymentService
   ) {}
 
   async createUser(dto: CreateUserDto) {
@@ -90,7 +90,7 @@ export class OrdersController {
   constructor(
     private orders: OrdersService,
     private payment: PaymentService,
-    private notifications: NotificationService,
+    private notifications: NotificationService
   ) {}
 
   @Post()

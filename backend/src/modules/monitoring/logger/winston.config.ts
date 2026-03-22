@@ -22,7 +22,7 @@ export const winstonConfig: WinstonModuleOptions = {
           : nestWinstonUtilities.format.nestLike('LCBP3-DMS', {
               prettyPrint: true,
               colors: true,
-            }),
+            })
       ),
     }),
     // สามารถเพิ่ม File Transport หรือ HTTP Transport ไปยัง Log Server ได้ที่นี่

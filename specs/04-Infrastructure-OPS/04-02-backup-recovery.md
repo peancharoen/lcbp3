@@ -1,4 +1,5 @@
 # 04.2 Backup & Disaster Recovery
+
 **Project:** LCBP3-DMS
 **Version:** 1.8.0
 **Status:** Active
@@ -391,7 +392,6 @@ WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 YEAR);
 **Last Review:** 2025-12-01
 **Next Review:** 2026-03-01
 
-
 ---
 
 # Backup Strategy สำหรับ LCBP3-DMS
@@ -641,7 +641,6 @@ restic -r /volume1/backup/restic-repo snapshots --latest 5
 ---
 
 > 📝 **หมายเหตุ**: เอกสารนี้อ้างอิงจาก Architecture Document **v1.8.0**
-
 
 ---
 

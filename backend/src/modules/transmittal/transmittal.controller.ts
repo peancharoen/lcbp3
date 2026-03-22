@@ -15,7 +15,12 @@ import { RbacGuard } from '../../common/guards/rbac.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { User } from '../user/entities/user.entity';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { ProjectService } from '../project/project.service';
 
@@ -55,7 +60,10 @@ export class TransmittalController {
 
   @Get(':uuid')
   @ApiOperation({ summary: 'Get Transmittal details' })
-  @ApiParam({ name: 'uuid', description: 'Transmittal UUID (from correspondences.uuid)' })
+  @ApiParam({
+    name: 'uuid',
+    description: 'Transmittal UUID (from correspondences.uuid)',
+  })
   @RequirePermission('document.view')
   findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
     return this.transmittalService.findOneByUuid(uuid);

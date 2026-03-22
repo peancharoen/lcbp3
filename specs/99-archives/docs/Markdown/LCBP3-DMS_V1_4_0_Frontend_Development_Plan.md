@@ -191,18 +191,18 @@ npx shadcn-ui@latest init
 - สร้าง `lib/api/client.ts`:
 
   ```typescript
-  import axios from "axios";
+  import axios from 'axios';
 
   export const apiClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL,
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
 
   // Request Interceptor (Add JWT Token)
   apiClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -215,7 +215,7 @@ npx shadcn-ui@latest init
     (error) => {
       if (error.response?.status === 401) {
         // Redirect to login
-        window.location.href = "/login";
+        window.location.href = '/login';
       }
       return Promise.reject(error);
     }
@@ -260,8 +260,8 @@ npx shadcn-ui@latest init
 - สร้าง `lib/stores/auth-store.ts`:
 
   ```typescript
-  import { create } from "zustand";
-  import { persist } from "zustand/middleware";
+  import { create } from 'zustand';
+  import { persist } from 'zustand/middleware';
 
   interface User {
     user_id: number;
@@ -288,11 +288,11 @@ npx shadcn-ui@latest init
         token: null,
         setAuth: (user, token) => {
           set({ user, token });
-          localStorage.setItem("access_token", token);
+          localStorage.setItem('access_token', token);
         },
         clearAuth: () => {
           set({ user: null, token: null });
-          localStorage.removeItem("access_token");
+          localStorage.removeItem('access_token');
         },
         hasPermission: (permission) => {
           const user = get().user;
@@ -300,7 +300,7 @@ npx shadcn-ui@latest init
         },
       }),
       {
-        name: "auth-storage",
+        name: 'auth-storage',
       }
     )
   );
@@ -491,14 +491,14 @@ npx shadcn-ui@latest init
 - สร้าง `lib/api/hooks/use-my-tasks.ts`:
 
   ```typescript
-  import { useQuery } from "@tanstack/react-query";
-  import { apiClient } from "../client";
+  import { useQuery } from '@tanstack/react-query';
+  import { apiClient } from '../client';
 
   export function useMyTasks() {
     return useQuery({
-      queryKey: ["my-tasks"],
+      queryKey: ['my-tasks'],
       queryFn: async () => {
-        const response = await apiClient.get("/circulations/my-tasks");
+        const response = await apiClient.get('/circulations/my-tasks');
         return response.data;
       },
     });
@@ -682,23 +682,23 @@ npx shadcn-ui@latest init
 - สร้าง `lib/api/hooks/use-rfa-workflow.ts`:
 
   ```typescript
-  import { useMutation, useQueryClient } from "@tanstack/react-query";
-  import { apiClient } from "../client";
+  import { useMutation, useQueryClient } from '@tanstack/react-query';
+  import { apiClient } from '../client';
 
   export function useCompleteWorkflowStep() {
     const queryClient = useQueryClient();
 
     return useMutation({
       mutationFn: async ({ rfaId, stepNumber, action, comments }) => {
-        const response = await apiClient.post(
-          `/rfas/${rfaId}/workflow/steps/${stepNumber}/complete`,
-          { action, comments }
-        );
+        const response = await apiClient.post(`/rfas/${rfaId}/workflow/steps/${stepNumber}/complete`, {
+          action,
+          comments,
+        });
         return response.data;
       },
       onSuccess: (_, variables) => {
-        queryClient.invalidateQueries(["rfa", variables.rfaId]);
-        queryClient.invalidateQueries(["my-tasks"]);
+        queryClient.invalidateQueries(['rfa', variables.rfaId]);
+        queryClient.invalidateQueries(['my-tasks']);
       },
     });
   }

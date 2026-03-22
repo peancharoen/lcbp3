@@ -1,10 +1,10 @@
 // File: lib/services/transmittal.service.ts
-import apiClient from "@/lib/api/client";
+import apiClient from '@/lib/api/client';
 import {
   CreateTransmittalDto,
   UpdateTransmittalDto,
-  SearchTransmittalDto
-} from "@/types/dto/transmittal/transmittal.dto";
+  SearchTransmittalDto,
+} from '@/types/dto/transmittal/transmittal.dto';
 
 export const transmittalService = {
   /**
@@ -12,7 +12,7 @@ export const transmittalService = {
    */
   getAll: async (params: SearchTransmittalDto) => {
     // GET /transmittals
-    const response = await apiClient.get("/transmittals", { params });
+    const response = await apiClient.get('/transmittals', { params });
     return response.data;
   },
 
@@ -30,7 +30,7 @@ export const transmittalService = {
    */
   create: async (data: CreateTransmittalDto) => {
     // POST /transmittals
-    const response = await apiClient.post("/transmittals", data);
+    const response = await apiClient.post('/transmittals', data);
     return response.data;
   },
 
@@ -50,5 +50,5 @@ export const transmittalService = {
     // DELETE /transmittals/:uuid (ADR-019)
     const response = await apiClient.delete(`/transmittals/${uuid}`);
     return response.data;
-  }
+  },
 };

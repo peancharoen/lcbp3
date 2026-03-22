@@ -12,9 +12,11 @@ related:
 # 1. Data Model Architecture Overview
 
 ## 📋 1.1 Overview
+
 เอกสารนี้อธิบายสถาปัตยกรรมของ Data Model สำหรับระบบ LCBP3-DMS โดยครอบคลุมโครงสร้างฐานข้อมูล, ความสัมพันธ์ระหว่างตาราง, และหลักการออกแบบที่สำคัญ
 
 ## 🎯 1.2 Design Principles
+
 ### 1. Separation of Concerns
 
 - **Master-Revision Pattern**: แยกข้อมูลที่ไม่เปลี่ยนแปลง (Master) จากข้อมูลที่มีการแก้ไข (Revisions)
@@ -41,6 +43,7 @@ related:
 - **Two-Phase File Upload**: ป้องกันไฟล์ขยะด้วย Temporary Storage
 
 # 2. Database Schema Overview (ERD)
+
 ### Entity Relationship Diagram
 
 ```mermaid
@@ -89,157 +92,147 @@ erDiagram
 
 ### 1.1 organization_roles
 
-* * Purpose **: MASTER TABLE FOR organization role TYPES IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ----------- | ----------- | --------------------------- | ---------------------------------------------------------------- |
-| id | INT | PRIMARY KEY,
-AUTO_INCREMENT | UNIQUE identifier FOR organization role | | role_name | VARCHAR(20) | NOT NULL,
-UNIQUE | Role name (
-  CONTRACTOR,
-  THIRD PARTY
-) |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
-| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
-| deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (role_name) ** Business Rules **: - Predefined system roles FOR organization TYPES - Cannot be deleted IF referenced by organizations ---
+- - Purpose **: MASTER TABLE FOR organization role TYPES IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ----------- | ----------- | --------------------------- | ---------------------------------------------------------------- |
+    | id | INT | PRIMARY KEY,
+    AUTO_INCREMENT | UNIQUE identifier FOR organization role | | role_name | VARCHAR(20) | NOT NULL,
+    UNIQUE | Role name (
+    CONTRACTOR,
+    THIRD PARTY
+    ) |
+    | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
+    | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
+    | deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (role_name) ** Business Rules \*\*: - Predefined system roles FOR organization TYPES - Cannot be deleted IF referenced by organizations ---
 
 ### 1.2 organizations
 
-* * Purpose **: MASTER TABLE storing ALL organizations involved IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ----------------- | ------------ | ----------------------------------- | ---------------------------------------- |
-| id | INT | PRIMARY KEY,
-AUTO_INCREMENT | UNIQUE identifier FOR organization | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | organization_code | VARCHAR(20) | NOT NULL,
-UNIQUE | Organization code (e.g., 'กทท.', 'TEAM') | | organization_name | VARCHAR(255) | NOT NULL | FULL organization name | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS (1 = active, 0 = inactive) | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
-UPDATE timestamp |
-| deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (organization_code) - INDEX (is_active) ** Relationships **: - Referenced by: users,
-  project_organizations,
-  contract_organizations,
-  correspondences,
-  circulations ---
+- - Purpose **: MASTER TABLE storing ALL organizations involved IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ----------------- | ------------ | ----------------------------------- | ---------------------------------------- |
+    | id | INT | PRIMARY KEY,
+    AUTO_INCREMENT | UNIQUE identifier FOR organization | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | organization_code | VARCHAR(20) | NOT NULL,
+    UNIQUE | Organization code (e.g., 'กทท.', 'TEAM') | | organization_name | VARCHAR(255) | NOT NULL | FULL organization name | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS (1 = active, 0 = inactive) | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
+    UPDATE timestamp |
+    | deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (organization_code) - INDEX (is_active) ** Relationships \*\*: - Referenced by: users,
+    project_organizations,
+    contract_organizations,
+    correspondences,
+    circulations ---
 
-  ### 1.3 projects
+    ### 1.3 projects
+    - - Purpose **: MASTER TABLE FOR ALL projects IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ------------ | ------------ | --------------------------- | ----------------------------- |
+        | id | INT | PRIMARY KEY,
+        AUTO_INCREMENT | UNIQUE identifier FOR project | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | project_code | VARCHAR(50) | NOT NULL,
+        UNIQUE | Project code (e.g., 'LCBP3') | | project_name | VARCHAR(255) | NOT NULL | FULL project name | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
+        | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
+        | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
+        | deleted_at | DATETIME | NULL | Soft delete timestamp |
+        ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (project_code) - INDEX (is_active) ** Relationships \*\*: - Referenced by: contracts,
+        correspondences,
+        document_number_formats,
+        drawings ---
 
-  * * Purpose **: MASTER TABLE FOR ALL projects IN the system | COLUMN Name | Data TYPE | Constraints | Description | | ------------ | ------------ | --------------------------- | ----------------------------- |
-  | id | INT | PRIMARY KEY,
-  AUTO_INCREMENT | UNIQUE identifier FOR project | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | project_code | VARCHAR(50) | NOT NULL,
-  UNIQUE | Project code (e.g., 'LCBP3') | | project_name | VARCHAR(255) | NOT NULL | FULL project name | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
-| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
-| deleted_at | DATETIME | NULL | Soft delete timestamp |
-** INDEXES **: - PRIMARY KEY (id) - UNIQUE (project_code) - INDEX (is_active) ** Relationships **: - Referenced by: contracts,
-  correspondences,
-  document_number_formats,
-  drawings ---
+    ### 1.4 contracts
+    - - Purpose **: MASTER TABLE FOR contracts within projects | COLUMN Name | Data TYPE | Constraints | Description | | ------------- | ------------ | ----------------------------------- | ------------------------------ |
+        | id | INT | PRIMARY KEY,
+        AUTO_INCREMENT | UNIQUE identifier FOR contract | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | project_id | INT | NOT NULL,
+        FK | Reference TO projects TABLE | | contract_code | VARCHAR(50) | NOT NULL,
+        UNIQUE | Contract code | | contract_name | VARCHAR(255) | NOT NULL | FULL contract name | | description | TEXT | NULL | Contract description | | start_date | DATE | NULL | Contract START date | | end_date | DATE | NULL | Contract
+        END date | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
+        UPDATE timestamp |
+        | deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (contract_code) - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - INDEX (project_id, is_active) ** Relationships \*\*: - Parent: projects - Referenced by: contract_organizations,
+        user_assignments ---
 
-  ### 1.4 contracts
+    ### 1.5 disciplines (NEW v1.5.1)
+    - - Purpose **: เก็บข้อมูลสาขางาน (Disciplines) แยกตามสัญญา (Req 6B) | COLUMN Name | Data TYPE | Constraints | Description | |: -------------- | :----------- | :----------- | :--------------------- |
+        | id | INT | PK,
+        AI | UNIQUE identifier | | contract_id | INT | FK,
+        NOT NULL | ผูกกับสัญญา | | discipline_code | VARCHAR(10) | NOT NULL | รหัสสาขา (เช่น GEN, STR) | | code_name_th | VARCHAR(255) | NULL | ชื่อไทย | | code_name_en | VARCHAR(255) | NULL | ชื่ออังกฤษ | | is_active | TINYINT(1) | DEFAULT 1 | สถานะการใช้งาน | ** INDEXES \*\*: - UNIQUE (contract_id, discipline_code) ---
 
-  * * Purpose **: MASTER TABLE FOR contracts within projects | COLUMN Name | Data TYPE | Constraints | Description | | ------------- | ------------ | ----------------------------------- | ------------------------------ |
-  | id | INT | PRIMARY KEY,
-  AUTO_INCREMENT | UNIQUE identifier FOR contract | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | project_id | INT | NOT NULL,
-  FK | Reference TO projects TABLE | | contract_code | VARCHAR(50) | NOT NULL,
-  UNIQUE | Contract code | | contract_name | VARCHAR(255) | NOT NULL | FULL contract name | | description | TEXT | NULL | Contract description | | start_date | DATE | NULL | Contract START date | | end_date | DATE | NULL | Contract
-END date | | is_active | BOOLEAN | DEFAULT TRUE | Active STATUS | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
-UPDATE timestamp |
-| deleted_at | DATETIME | NULL | Soft delete timestamp | ** INDEXES **: - PRIMARY KEY (id) - UNIQUE (contract_code) - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - INDEX (project_id, is_active) ** Relationships **: - Parent: projects - Referenced by: contract_organizations,
-  user_assignments ---
+    ## **2. 👥 Users & RBAC Tables (ผู้ใช้, สิทธิ์, บทบาท)**
 
-  ### 1.5 disciplines (NEW v1.5.1)
+    ### 2.1 users
+    - - Purpose **: MASTER TABLE storing ALL system users | COLUMN Name | Data TYPE | Constraints | Description | | ----------------------- | ------------ | ----------------------------------- | -------------------------------- |
+        | user_id | INT | PRIMARY KEY,
+        AUTO_INCREMENT | UNIQUE identifier FOR user | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | username | VARCHAR(50) | NOT NULL,
+        UNIQUE | Login username | | password_hash | VARCHAR(255) | NOT NULL | Hashed PASSWORD (bcrypt) | | first_name | VARCHAR(50) | NULL | User 's first name |
+        | last_name | VARCHAR(50) | NULL | User' s last name | | email | VARCHAR(100) | NOT NULL,
+        UNIQUE | Email address | | line_id | VARCHAR(100) | NULL | LINE messenger ID | | primary_organization_id | INT | NULL,
+        FK | PRIMARY organization affiliation | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS | | failed_attempts | INT | DEFAULT 0 | Failed login attempts counter | | locked_until | DATETIME | NULL | Account LOCK expiration time | | last_login_at | TIMESTAMP | NULL | Last successful login timestamp | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
+        UPDATE timestamp | | deleted_at | DATETIME | NULL | Deleted at | ** INDEXES **: - PRIMARY KEY (user_id) - UNIQUE (username) - UNIQUE (email) - FOREIGN KEY (primary_organization_id) REFERENCES organizations(id) ON DELETE
+        SET NULL - INDEX (is_active) - INDEX (email) ** Relationships \*\*: - Parent: organizations (primary_organization_id) - Referenced by: user_assignments,
+        audit_logs,
+        notifications,
+        circulation_routings ---
 
-  * * Purpose **: เก็บข้อมูลสาขางาน (Disciplines) แยกตามสัญญา (Req 6B) | COLUMN Name | Data TYPE | Constraints | Description | |: -------------- | :----------- | :----------- | :--------------------- |
-  | id | INT | PK,
-  AI | UNIQUE identifier | | contract_id | INT | FK,
-  NOT NULL | ผูกกับสัญญา | | discipline_code | VARCHAR(10) | NOT NULL | รหัสสาขา (เช่น GEN, STR) | | code_name_th | VARCHAR(255) | NULL | ชื่อไทย | | code_name_en | VARCHAR(255) | NULL | ชื่ออังกฤษ | | is_active | TINYINT(1) | DEFAULT 1 | สถานะการใช้งาน | ** INDEXES **: - UNIQUE (contract_id, discipline_code) ---
+    ### 2.2 roles
+    - - Purpose **: MASTER TABLE defining system roles WITH scope levels | COLUMN Name | Data TYPE | Constraints | Description | | ----------- | ------------ | --------------------------- | ---------------------------------------------------- |
+        | role_id | INT | PRIMARY KEY,
+        AUTO_INCREMENT | UNIQUE identifier FOR role | | role_name | VARCHAR(100) | NOT NULL | Role name (e.g., 'Superadmin', 'Document Control') | | scope | ENUM | NOT NULL | Scope LEVEL: GLOBAL,
+        Organization,
+        Project,
+        Contract | | description | TEXT | NULL | Role description | | is_system | BOOLEAN | DEFAULT FALSE | System role flag (cannot be deleted) |
+        | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
+        | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
+        | deleted_at | DATETIME | NULL | Soft delete timestamp |
+        ** INDEXES **: - PRIMARY KEY (role_id) - INDEX (scope) ** Relationships \*\*: - Referenced by: role_permissions,
+        user_assignments ---
 
-  ## **2. 👥 Users & RBAC Tables (ผู้ใช้, สิทธิ์, บทบาท)**
+    ### 2.3 permissions
+    - - Purpose **: MASTER TABLE defining ALL system permissions | COLUMN Name | Data TYPE | Constraints | Description | | --------------- | ------------ | --------------------------- | ------------------------------------------------------ |
+        | permission_id | INT | PRIMARY KEY,
+        AUTO_INCREMENT | UNIQUE identifier FOR permission | | permission_name | VARCHAR(100) | NOT NULL,
+        UNIQUE | Permission code (e.g., 'rfas.create', 'document.view') | | description | TEXT | NULL | Permission description | | module | VARCHAR(50) | NULL | Related module name | | scope_level | ENUM | NULL | Scope: GLOBAL,
+        ORG,
+        PROJECT | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
+        | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
+        | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
+        | deleted_at | DATETIME | NULL | Soft delete timestamp |
+        ** INDEXES **: - PRIMARY KEY (permission_id) - UNIQUE (permission_name) - INDEX (module) - INDEX (scope_level) - INDEX (is_active) ** Relationships \*\*: - Referenced by: role_permissions ---
 
-  ### 2.1 users
+    ### 2.4 role_permissions
+    - - Purpose **: Junction TABLE mapping roles TO permissions (M :N) | COLUMN Name | Data TYPE | Constraints | Description | | ------------- | --------- | --------------- | ------------------------------ |
+        | role_id | INT | PRIMARY KEY,
+        FK | Reference TO roles TABLE | | permission_id | INT | PRIMARY KEY,
+        FK | Reference TO permissions TABLE | ** INDEXES **: - PRIMARY KEY (role_id, permission_id) - FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE - FOREIGN KEY (permission_id) REFERENCES permissions(permission_id) ON DELETE CASCADE - INDEX (permission_id) ** Relationships \*\*: - Parent: roles,
+        permissions ---
 
-  * * Purpose **: MASTER TABLE storing ALL system users | COLUMN Name | Data TYPE | Constraints | Description | | ----------------------- | ------------ | ----------------------------------- | -------------------------------- |
-  | user_id | INT | PRIMARY KEY,
-  AUTO_INCREMENT | UNIQUE identifier FOR user | | uuid | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) | | username | VARCHAR(50) | NOT NULL,
-  UNIQUE | Login username | | password_hash | VARCHAR(255) | NOT NULL | Hashed PASSWORD (bcrypt) | | first_name | VARCHAR(50) | NULL | User 's first name                |
-| last_name               | VARCHAR(50)  | NULL                                | User' s last name | | email | VARCHAR(100) | NOT NULL,
-  UNIQUE | Email address | | line_id | VARCHAR(100) | NULL | LINE messenger ID | | primary_organization_id | INT | NULL,
-  FK | PRIMARY organization affiliation | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS | | failed_attempts | INT | DEFAULT 0 | Failed login attempts counter | | locked_until | DATETIME | NULL | Account LOCK expiration time | | last_login_at | TIMESTAMP | NULL | Last successful login timestamp | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last
-UPDATE timestamp | | deleted_at | DATETIME | NULL | Deleted at | ** INDEXES **: - PRIMARY KEY (user_id) - UNIQUE (username) - UNIQUE (email) - FOREIGN KEY (primary_organization_id) REFERENCES organizations(id) ON DELETE
-SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: organizations (primary_organization_id) - Referenced by: user_assignments,
-  audit_logs,
-  notifications,
-  circulation_routings ---
+    ### 2.5 user_assignments
+    - - Purpose **: Junction TABLE assigning users TO roles WITH scope context | COLUMN Name | Data TYPE | Constraints | Description | | ------------------- | --------- | --------------------------- | ---------------------------------- |
+        | id | INT | PRIMARY KEY,
+        AUTO_INCREMENT | UNIQUE identifier | | user_id | INT | NOT NULL,
+        FK | Reference TO users TABLE | | role_id | INT | NOT NULL,
+        FK | Reference TO roles TABLE | | organization_id | INT | NULL,
+        FK | Organization scope (IF applicable) | | project_id | INT | NULL,
+        FK | Project scope (IF applicable) | | contract_id | INT | NULL,
+        FK | Contract scope (IF applicable) | | assigned_by_user_id | INT | NULL,
+        FK | User who made the assignment | | assigned_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Assignment timestamp | ** INDEXES **: - PRIMARY KEY (id) - FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE - FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE - FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE - FOREIGN KEY (assigned_by_user_id) REFERENCES users(user_id) - INDEX (user_id, role_id) - INDEX (organization_id) - INDEX (project_id) - INDEX (contract_id) ** Relationships \*\*: - Parent: users,
+        roles,
+        organizations,
+        projects,
+        contracts ---
 
-  ### 2.2 roles
+    ### 2.6 project_organizations
+    - - Purpose **: Junction TABLE linking projects TO participating organizations (M :N) | COLUMN Name | Data TYPE | Constraints | Description | | --------------- | --------- | --------------- | -------------------------------- |
+        | project_id | INT | PRIMARY KEY,
+        FK | Reference TO projects TABLE | | organization_id | INT | PRIMARY KEY,
+        FK | Reference TO organizations TABLE | ** INDEXES **: - PRIMARY KEY (project_id, organization_id) - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE - INDEX (organization_id) ** Relationships \*\*: - Parent: projects,
+        organizations ---
 
-  * * Purpose **: MASTER TABLE defining system roles WITH scope levels | COLUMN Name | Data TYPE | Constraints | Description | | ----------- | ------------ | --------------------------- | ---------------------------------------------------- |
-  | role_id | INT | PRIMARY KEY,
-  AUTO_INCREMENT | UNIQUE identifier FOR role | | role_name | VARCHAR(100) | NOT NULL | Role name (e.g., 'Superadmin', 'Document Control') | | scope | ENUM | NOT NULL | Scope LEVEL: GLOBAL,
-  Organization,
-  Project,
-  Contract | | description | TEXT | NULL | Role description | | is_system | BOOLEAN | DEFAULT FALSE | System role flag (cannot be deleted) |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
-| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
-| deleted_at | DATETIME | NULL | Soft delete timestamp |
-** INDEXES **: - PRIMARY KEY (role_id) - INDEX (scope) ** Relationships **: - Referenced by: role_permissions,
-  user_assignments ---
-
-  ### 2.3 permissions
-
-  * * Purpose **: MASTER TABLE defining ALL system permissions | COLUMN Name | Data TYPE | Constraints | Description | | --------------- | ------------ | --------------------------- | ------------------------------------------------------ |
-  | permission_id | INT | PRIMARY KEY,
-  AUTO_INCREMENT | UNIQUE identifier FOR permission | | permission_name | VARCHAR(100) | NOT NULL,
-  UNIQUE | Permission code (e.g., 'rfas.create', 'document.view') | | description | TEXT | NULL | Permission description | | module | VARCHAR(50) | NULL | Related module name | | scope_level | ENUM | NULL | Scope: GLOBAL,
-  ORG,
-  PROJECT | | is_active | TINYINT(1) | DEFAULT 1 | Active STATUS |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
-| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
-| deleted_at | DATETIME | NULL | Soft delete timestamp |
-** INDEXES **: - PRIMARY KEY (permission_id) - UNIQUE (permission_name) - INDEX (module) - INDEX (scope_level) - INDEX (is_active) ** Relationships **: - Referenced by: role_permissions ---
-
-  ### 2.4 role_permissions
-
-  * * Purpose **: Junction TABLE mapping roles TO permissions (M :N) | COLUMN Name | Data TYPE | Constraints | Description | | ------------- | --------- | --------------- | ------------------------------ |
-  | role_id | INT | PRIMARY KEY,
-  FK | Reference TO roles TABLE | | permission_id | INT | PRIMARY KEY,
-  FK | Reference TO permissions TABLE | ** INDEXES **: - PRIMARY KEY (role_id, permission_id) - FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE - FOREIGN KEY (permission_id) REFERENCES permissions(permission_id) ON DELETE CASCADE - INDEX (permission_id) ** Relationships **: - Parent: roles,
-  permissions ---
-
-  ### 2.5 user_assignments
-
-  * * Purpose **: Junction TABLE assigning users TO roles WITH scope context | COLUMN Name | Data TYPE | Constraints | Description | | ------------------- | --------- | --------------------------- | ---------------------------------- |
-  | id | INT | PRIMARY KEY,
-  AUTO_INCREMENT | UNIQUE identifier | | user_id | INT | NOT NULL,
-  FK | Reference TO users TABLE | | role_id | INT | NOT NULL,
-  FK | Reference TO roles TABLE | | organization_id | INT | NULL,
-  FK | Organization scope (IF applicable) | | project_id | INT | NULL,
-  FK | Project scope (IF applicable) | | contract_id | INT | NULL,
-  FK | Contract scope (IF applicable) | | assigned_by_user_id | INT | NULL,
-  FK | User who made the assignment | | assigned_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Assignment timestamp | ** INDEXES **: - PRIMARY KEY (id) - FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE - FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE - FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE - FOREIGN KEY (assigned_by_user_id) REFERENCES users(user_id) - INDEX (user_id, role_id) - INDEX (organization_id) - INDEX (project_id) - INDEX (contract_id) ** Relationships **: - Parent: users,
-  roles,
-  organizations,
-  projects,
-  contracts ---
-
-  ### 2.6 project_organizations
-
-  * * Purpose **: Junction TABLE linking projects TO participating organizations (M :N) | COLUMN Name | Data TYPE | Constraints | Description | | --------------- | --------- | --------------- | -------------------------------- |
-  | project_id | INT | PRIMARY KEY,
-  FK | Reference TO projects TABLE | | organization_id | INT | PRIMARY KEY,
-  FK | Reference TO organizations TABLE | ** INDEXES **: - PRIMARY KEY (project_id, organization_id) - FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE - FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE - INDEX (organization_id) ** Relationships **: - Parent: projects,
-  organizations ---
-
-  ### 2.7 contract_organizations
-
-  * * Purpose **: Junction TABLE linking contracts TO participating organizations WITH roles (M :N) | COLUMN Name | Data TYPE | Constraints | Description | | ---------------- | ------------ | --------------- | ------------------------------------------------------------------------- |
-  | contract_id | INT | PRIMARY KEY,
-  FK | Reference TO contracts TABLE | | organization_id | INT | PRIMARY KEY,
-  FK | Reference TO organizations TABLE | | role_in_contract | VARCHAR(100) | NULL | Organization 's role in contract (Owner, Designer, Consultant, Contractor) |
+    ### 2.7 contract_organizations
+    - - Purpose \*\*: Junction TABLE linking contracts TO participating organizations WITH roles (M :N) | COLUMN Name | Data TYPE | Constraints | Description | | ---------------- | ------------ | --------------- | ------------------------------------------------------------------------- |
+        | contract_id | INT | PRIMARY KEY,
+        FK | Reference TO contracts TABLE | | organization_id | INT | PRIMARY KEY,
+        FK | Reference TO organizations TABLE | | role_in_contract | VARCHAR(100) | NULL | Organization 's role in contract (Owner, Designer, Consultant, Contractor) |
 
 **Indexes**:
 
-* PRIMARY KEY (contract_id, organization_id)
-* FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
-* FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
-* INDEX (organization_id)
-* INDEX (role_in_contract)
+- PRIMARY KEY (contract_id, organization_id)
+- FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+- FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+- INDEX (organization_id)
+- INDEX (role_in_contract)
 
 **Relationships**:
 
-* Parent: contracts, organizations
+- Parent: contracts, organizations
 
 ---
 
@@ -247,39 +240,40 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: เก็บการตั้งค่าส่วนตัวของผู้ใช้ (Req 5.5, 6.8.3)
 
-| Column Name  | Data Type   | Constraints       | Description     |
-| :----------- | :---------- | :---------------- | :-------------- |
-| user_id      | INT         | PK, FK            | User ID         |
-| notify_email | BOOLEAN     | DEFAULT TRUE      | รับอีเมลแจ้งเตือน   |
-| notify_line  | BOOLEAN     | DEFAULT TRUE      | รับไลน์แจ้งเตือน    |
+| Column Name  | Data Type   | Constraints       | Description        |
+| :----------- | :---------- | :---------------- | :----------------- |
+| user_id      | INT         | PK, FK            | User ID            |
+| notify_email | BOOLEAN     | DEFAULT TRUE      | รับอีเมลแจ้งเตือน  |
+| notify_line  | BOOLEAN     | DEFAULT TRUE      | รับไลน์แจ้งเตือน   |
 | digest_mode  | BOOLEAN     | DEFAULT FALSE     | รับแจ้งเตือนแบบรวม |
-| ui_theme     | VARCHAR(20) | DEFAULT ' light ' | UI Theme        |
+| ui_theme     | VARCHAR(20) | DEFAULT ' light ' | UI Theme           |
 
 ---
 
-### 2.9 refresh_tokens (NEW v1.5.1)
+### 2.9 refresh_tokens (UPDATE v1.8.1)
 
-**Purpose**: เก็บ Refresh Tokens สำหรับการทำ Authentication และ Token Rotation
+**Purpose**: เก็บ Refresh Tokens สำหรับการทำ Authentication และ Token Rotation (รองรับ Grace Period)
 
-| Column Name       | Data Type    | Constraints               | Description                           |
-| :---------------- | :----------- | :------------------------ | :------------------------------------ |
-| token_id          | INT          | PK, AI                    | Unique Token ID                       |
-| user_id           | INT          | FK, NOT NULL              | เจ้าของ Token                          |
-| token_hash        | VARCHAR(255) | NOT NULL                  | Hash ของ Refresh Token (Security)     |
-| expires_at        | DATETIME     | NOT NULL                  | วันหมดอายุของ Token                     |
-| is_revoked        | BOOLEAN      | DEFAULT FALSE             | สถานะถูกยกเลิก (True = ใช้งานไม่ได้)       |
-| created_at        | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP | เวลาที่สร้าง                             |
-| replaced_by_token | VARCHAR(255) | NULL                      | Token ใหม่ที่มาแทนที่ (กรณี Token Rotation) |
+| Column Name       | Data Type    | Constraints               | Description                                                |
+| :---------------- | :----------- | :------------------------ | :--------------------------------------------------------- |
+| token_id          | INT          | PK, AI                    | Unique Token ID                                            |
+| user_id           | INT          | FK, NOT NULL              | เจ้าของ Token                                              |
+| token_hash        | VARCHAR(255) | NOT NULL                  | Hash ของ Refresh Token (Security)                          |
+| expires_at        | DATETIME     | NOT NULL                  | วันหมดอายุของ Token                                        |
+| is_revoked        | BOOLEAN      | DEFAULT FALSE             | สถานะถูกยกเลิก (True = ใช้งานไม่ได้)                       |
+| created_at        | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP | เวลาที่สร้าง                                               |
+| updated_at        | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP | เวลาที่แก้ไขล่าสุด (ใช้ตรวจสอบ Grace Period ขณะหมุน Token) |
+| replaced_by_token | VARCHAR(255) | NULL                      | Token ใหม่ที่มาแทนที่ (กรณี Token Rotation)                |
 
 **Indexes**:
 
-* PRIMARY KEY (token_id)
-* FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-* INDEX (user_id)
+- PRIMARY KEY (token_id)
+- FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+- INDEX (user_id)
 
 **Relationships**:
 
-* Parent: users
+- Parent: users
 
 ---
 
@@ -302,14 +296,14 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* UNIQUE (type_code)
-* INDEX (is_active)
-* INDEX (sort_order)
+- PRIMARY KEY (id)
+- UNIQUE (type_code)
+- INDEX (is_active)
+- INDEX (sort_order)
 
 **Relationships**:
 
-* Referenced by: correspondences, document_number_formats, document_number_counters
+- Referenced by: correspondences, document_number_formats, document_number_counters
 
 ---
 
@@ -317,13 +311,13 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: เก็บประเภทหนังสือย่อย (Sub Types) สำหรับ Mapping เลขรหัส (Req 6B)
 
-| Column Name            | Data Type    | Constraints  | Description               |
-| :--------------------- | :----------- | :----------- | :------------------------ |
-| id                     | INT          | PK, AI       | Unique identifier         |
+| Column Name            | Data Type    | Constraints  | Description                  |
+| :--------------------- | :----------- | :----------- | :--------------------------- |
+| id                     | INT          | PK, AI       | Unique identifier            |
 | contract_id            | INT          | FK, NOT NULL | ผูกกับสัญญา                  |
 | correspondence_type_id | INT          | FK, NOT NULL | ผูกกับประเภทเอกสารหลัก       |
 | sub_type_code          | VARCHAR(20)  | NOT NULL     | รหัสย่อย (เช่น MAT, SHP)     |
-| sub_type_name          | VARCHAR(255) | NULL         | ชื่อประเภทหนังสือย่อย          |
+| sub_type_name          | VARCHAR(255) | NULL         | ชื่อประเภทหนังสือย่อย        |
 | sub_type_number        | VARCHAR(10)  | NULL         | เลขรหัสสำหรับ Running Number |
 
 ---
@@ -335,10 +329,10 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name               | Data Type    | Constraints                 | Description                                |
 | ------------------------- | ------------ | --------------------------- | ------------------------------------------ |
 | id                        | INT          | PRIMARY KEY, AUTO_INCREMENT | Master correspondence ID                   |
-| uuid                      | UUID   | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)         |
+| uuid                      | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)           |
 | correspondence_number     | VARCHAR(100) | NOT NULL                    | Document number (from numbering system)    |
 | correspondence_type_id    | INT          | NOT NULL, FK                | Reference to correspondence_types          |
-| **discipline_id**         | **INT**      | **NULL, FK**                | **[NEW] สาขางาน (ถ้ามี)**                    |
+| **discipline_id**         | **INT**      | **NULL, FK**                | **[NEW] สาขางาน (ถ้ามี)**                  |
 | is_internal_communication | TINYINT(1)   | DEFAULT 0                   | Internal (1) or external (0) communication |
 | project_id                | INT          | NOT NULL, FK                | Reference to projects table                |
 | originator_id             | INT          | NULL, FK                    | Originating organization                   |
@@ -348,22 +342,22 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE RESTRICT
-* **FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE SET NULL**
-* FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-* FOREIGN KEY (originator_id) REFERENCES organizations(id) ON DELETE SET NULL
-* FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
-* UNIQUE KEY (project_id, correspondence_number)
-* UNIQUE INDEX idx_correspondences_uuid (uuid)
-* INDEX (correspondence_type_id)
-* INDEX (originator_id)
-* INDEX (deleted_at)
+- PRIMARY KEY (id)
+- FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE RESTRICT
+- **FOREIGN KEY (discipline_id) REFERENCES disciplines(id) ON DELETE SET NULL**
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- FOREIGN KEY (originator_id) REFERENCES organizations(id) ON DELETE SET NULL
+- FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+- UNIQUE KEY (project_id, correspondence_number)
+- UNIQUE INDEX idx_correspondences_uuid (uuid)
+- INDEX (correspondence_type_id)
+- INDEX (originator_id)
+- INDEX (deleted_at)
 
 **Relationships**:
 
-* Parent: correspondence_types, **disciplines**, projects, organizations, users
-* Children: correspondence_revisions, correspondence_recipients, correspondence_tags, correspondence_references, correspondence_attachments, circulations, transmittals
+- Parent: correspondence_types, **disciplines**, projects, organizations, users
+- Children: correspondence_revisions, correspondence_recipients, correspondence_tags, correspondence_references, correspondence_attachments, circulations, transmittals
 
 ---
 
@@ -371,45 +365,45 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Child table storing revision history of correspondences (1:N)
 
-| Column Name              | Data Type    | Constraints                       | Description                                              |
-| ------------------------ | ------------ | --------------------------------- | -------------------------------------------------------- |
-| id                       | INT          | PRIMARY KEY, AUTO_INCREMENT       | Unique revision ID                                       |
-| uuid                     | UUID   | NOT NULL, UNIQUE, DEFAULT         | UUID Public Identifier (ADR-019)                       |
-| correspondence_id        | INT          | NOT NULL, FK                      | Master correspondence ID                                 |
-| revision_number          | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                           |
-| revision_label           | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                          |
-| is_current               | BOOLEAN      | DEFAULT FALSE                     | Current revision flag                                    |
-| correspondence_status_id | INT          | NOT NULL, FK                      | Current status of this revision                          |
-| title                    | VARCHAR(255) | NOT NULL                          | Document title                                           |
-| document_date            | DATE         | NULL                              | Document date                                            |
-| issued_date              | DATETIME     | NULL                              | Issue date                                               |
-| received_date            | DATETIME     | NULL                              | Received date                                            |
-| due_date                 | DATETIME     | NULL                              | Due date for response                                    |
-| description              | TEXT         | NULL                              | Revision description                                     |
-| details                  | JSON         | NULL                              | Type-specific details (e.g., RFI questions)              |
-| created_at               | DATETIME     | DEFAULT CURRENT_TIMESTAMP         | Revision creation timestamp                              |
-| created_by               | INT          | NULL, FK                          | User who created revision                                |
-| updated_by               | INT          | NULL, FK                          | User who last updated                                    |
+| Column Name              | Data Type    | Constraints                       | Description                                                  |
+| ------------------------ | ------------ | --------------------------------- | ------------------------------------------------------------ |
+| id                       | INT          | PRIMARY KEY, AUTO_INCREMENT       | Unique revision ID                                           |
+| uuid                     | UUID         | NOT NULL, UNIQUE, DEFAULT         | UUID Public Identifier (ADR-019)                             |
+| correspondence_id        | INT          | NOT NULL, FK                      | Master correspondence ID                                     |
+| revision_number          | INT          | NOT NULL                          | Revision sequence (0, 1, 2...)                               |
+| revision_label           | VARCHAR(10)  | NULL                              | Display revision (A, B, 1.1...)                              |
+| is_current               | BOOLEAN      | DEFAULT FALSE                     | Current revision flag                                        |
+| correspondence_status_id | INT          | NOT NULL, FK                      | Current status of this revision                              |
+| title                    | VARCHAR(255) | NOT NULL                          | Document title                                               |
+| document_date            | DATE         | NULL                              | Document date                                                |
+| issued_date              | DATETIME     | NULL                              | Issue date                                                   |
+| received_date            | DATETIME     | NULL                              | Received date                                                |
+| due_date                 | DATETIME     | NULL                              | Due date for response                                        |
+| description              | TEXT         | NULL                              | Revision description                                         |
+| details                  | JSON         | NULL                              | Type-specific details (e.g., RFI questions)                  |
+| created_at               | DATETIME     | DEFAULT CURRENT_TIMESTAMP         | Revision creation timestamp                                  |
+| created_by               | INT          | NULL, FK                          | User who created revision                                    |
+| updated_by               | INT          | NULL, FK                          | User who last updated                                        |
 | v_ref_project_id         | INT          | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Project ID จาก JSON details เพื่อทำ Index |
 
-| v_doc_subtype            | VARCHAR(50)  | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Type จาก JSON details                  |
-| schema_version           | INT          | DEFAULT 1                         | Version of the schema used with this details             |
+| v_doc_subtype | VARCHAR(50) | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Type จาก JSON details |
+| schema_version | INT | DEFAULT 1 | Version of the schema used with this details |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
-* FOREIGN KEY (correspondence_status_id) REFERENCES correspondence_status(id) ON DELETE RESTRICT
-* FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
-* FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
-* UNIQUE KEY (correspondence_id, revision_number)
-* UNIQUE KEY (correspondence_id, is_current)
-* INDEX (correspondence_status_id)
-* INDEX (is_current)
-* INDEX (document_date)
-* INDEX (issued_date)
-* INDEX (v_ref_project_id)
-* INDEX (v_doc_subtype)
+- PRIMARY KEY (id)
+- FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
+- FOREIGN KEY (correspondence_status_id) REFERENCES correspondence_status(id) ON DELETE RESTRICT
+- FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+- FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
+- UNIQUE KEY (correspondence_id, revision_number)
+- UNIQUE KEY (correspondence_id, is_current)
+- INDEX (correspondence_status_id)
+- INDEX (is_current)
+- INDEX (document_date)
+- INDEX (issued_date)
+- INDEX (v_ref_project_id)
+- INDEX (v_doc_subtype)
 
 ---
 
@@ -425,15 +419,15 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (correspondence_id, recipient_organization_id, recipient_type)
-* FOREIGN KEY (correspondence_id) REFERENCES correspondence_revisions(correspondence_id) ON DELETE CASCADE
-* FOREIGN KEY (recipient_organization_id) REFERENCES organizations(id) ON DELETE RESTRICT
-* INDEX (recipient_organization_id)
-* INDEX (recipient_type)
+- PRIMARY KEY (correspondence_id, recipient_organization_id, recipient_type)
+- FOREIGN KEY (correspondence_id) REFERENCES correspondence_revisions(correspondence_id) ON DELETE CASCADE
+- FOREIGN KEY (recipient_organization_id) REFERENCES organizations(id) ON DELETE RESTRICT
+- INDEX (recipient_organization_id)
+- INDEX (recipient_type)
 
 **Relationships**:
 
-* Parent: correspondences, organizations
+- Parent: correspondences, organizations
 
 ---
 
@@ -455,16 +449,16 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* **FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE**
-* **FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL**
-* **UNIQUE KEY (project_id, tag_name)**
-* INDEX (deleted_at)
+- PRIMARY KEY (id)
+- **FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE**
+- **FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL**
+- **UNIQUE KEY (project_id, tag_name)**
+- INDEX (deleted_at)
 
 **Relationships**:
 
-* Parent: projects, users
-* Referenced by: correspondence_tags
+- Parent: projects, users
+- Referenced by: correspondence_tags
 
 ---
 
@@ -479,14 +473,14 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (correspondence_id, tag_id)
-* FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
-* FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-* **INDEX idx_tag_lookup (tag_id) - For reverse lookup (Find documents by tag)**
+- PRIMARY KEY (correspondence_id, tag_id)
+- FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
+- FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+- **INDEX idx_tag_lookup (tag_id) - For reverse lookup (Find documents by tag)**
 
 **Relationships**:
 
-* Parent: correspondences, tags
+- Parent: correspondences, tags
 
 ---
 
@@ -501,14 +495,14 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (src_correspondence_id, tgt_correspondence_id)
-* FOREIGN KEY (src_correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
-* FOREIGN KEY (tgt_correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
-* INDEX (tgt_correspondence_id)
+- PRIMARY KEY (src_correspondence_id, tgt_correspondence_id)
+- FOREIGN KEY (src_correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
+- FOREIGN KEY (tgt_correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
+- INDEX (tgt_correspondence_id)
 
 **Relationships**:
 
-* Parent: correspondences (both sides)
+- Parent: correspondences (both sides)
 
 ---
 
@@ -518,26 +512,26 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Master table for RFA (Request for Approval) types
 
-| Column Name  | Data Type    | Constraints                 | Description                     |
-| :----------- | :----------- | :-------------------------- | :------------------------------ |
-| id           | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique identifier               |
-| contract_id  | INT          | NOT NULL, FK                | Contract reference              |
+| Column Name  | Data Type    | Constraints                 | Description                               |
+| :----------- | :----------- | :-------------------------- | :---------------------------------------- |
+| id           | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique identifier                         |
+| contract_id  | INT          | NOT NULL, FK                | Contract reference                        |
 | type_code    | VARCHAR(20)  | NOT NULL                    | Type code (DDW, SDW, ADW, DOC, MAT, etc.) |
-| type_name_th | VARCHAR(100) | NOT NULL                    | Full type name (TH)             |
-| type_name_en | VARCHAR(100) | NOT NULL                    | Full type name (EN)             |
-| remark       | TEXT         | NULL                        | Remark                          |
-| is_active    | TINYINT(1)   | DEFAULT 1                   | Active status                   |
+| type_name_th | VARCHAR(100) | NOT NULL                    | Full type name (TH)                       |
+| type_name_en | VARCHAR(100) | NOT NULL                    | Full type name (EN)                       |
+| remark       | TEXT         | NULL                        | Remark                                    |
+| is_active    | TINYINT(1)   | DEFAULT 1                   | Active status                             |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* UNIQUE (contract_id, type_code)
-* FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
-* INDEX (is_active)
+- PRIMARY KEY (id)
+- UNIQUE (contract_id, type_code)
+- FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+- INDEX (is_active)
 
 **Relationships**:
 
-* Referenced by: rfas
+- Referenced by: rfas
 
 ---
 
@@ -556,14 +550,14 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* UNIQUE (status_code)
-* INDEX (is_active)
-* INDEX (sort_order)
+- PRIMARY KEY (id)
+- UNIQUE (status_code)
+- INDEX (is_active)
+- INDEX (sort_order)
 
 **Relationships**:
 
-* Referenced by: rfa_revisions
+- Referenced by: rfa_revisions
 
 ---
 
@@ -582,14 +576,14 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* UNIQUE (approve_code)
-* INDEX (is_active)
-* INDEX (sort_order)
+- PRIMARY KEY (id)
+- UNIQUE (approve_code)
+- INDEX (is_active)
+- INDEX (sort_order)
 
 **Relationships**:
 
-* Referenced by: rfa_revisions
+- Referenced by: rfa_revisions
 
 ---
 
@@ -607,17 +601,17 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (id) REFERENCES correspondences(id) ON DELETE CASCADE
-* FOREIGN KEY (rfa_type_id) REFERENCES rfa_types(id)
-* FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
-* INDEX (rfa_type_id)
-* INDEX (deleted_at)
+- PRIMARY KEY (id)
+- FOREIGN KEY (id) REFERENCES correspondences(id) ON DELETE CASCADE
+- FOREIGN KEY (rfa_type_id) REFERENCES rfa_types(id)
+- FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+- INDEX (rfa_type_id)
+- INDEX (deleted_at)
 
 **Relationships**:
 
-* Parent: correspondences, rfa_types, users
-* Children: rfa_revisions
+- Parent: correspondences, rfa_types, users
+- Children: rfa_revisions
 
 ---
 
@@ -625,29 +619,29 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Child table storing revision history of RFAs (1:N)
 
-| Column Name         | Data Type | Constraints                       | Description                                                 |
-| ------------------- | --------- | --------------------------------- | ----------------------------------------------------------- |
-| id                  | INT       | PK, FK                            | Master Revision ID (Shared with correspondence_revisions)   |
-| rfa_status_code_id  | INT       | NOT NULL, FK                      | Current RFA status                                          |
-| rfa_approve_code_id | INT       | NULL, FK                          | Approval result code                                        |
-| details             | JSON      | NULL                              | Type-specific details (e.g., RFI questions)                 |
+| Column Name         | Data Type | Constraints                       | Description                                                     |
+| ------------------- | --------- | --------------------------------- | --------------------------------------------------------------- |
+| id                  | INT       | PK, FK                            | Master Revision ID (Shared with correspondence_revisions)       |
+| rfa_status_code_id  | INT       | NOT NULL, FK                      | Current RFA status                                              |
+| rfa_approve_code_id | INT       | NULL, FK                          | Approval result code                                            |
+| details             | JSON      | NULL                              | Type-specific details (e.g., RFI questions)                     |
 | v_ref_drawing_count | INT       | GENERATED ALWAYS AS (...) VIRTUAL | Virtual Column ดึง Drawing Count จาก JSON details เพื่อทำ Index |
-| schema_version      | INT       | DEFAULT 1                         | Version of the schema used with this details                |
+| schema_version      | INT       | DEFAULT 1                         | Version of the schema used with this details                    |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (id) REFERENCES correspondence_revisions(id) ON DELETE CASCADE
-* FOREIGN KEY (rfa_status_code_id) REFERENCES rfa_status_codes(id)
-* FOREIGN KEY (rfa_approve_code_id) REFERENCES rfa_approve_codes(id) ON DELETE SET NULL
-* INDEX (rfa_status_code_id)
-* INDEX (rfa_approve_code_id)
-* INDEX (v_ref_drawing_count): ตัวอย่างการ Index ข้อมูลตัวเลขใน JSON
+- PRIMARY KEY (id)
+- FOREIGN KEY (id) REFERENCES correspondence_revisions(id) ON DELETE CASCADE
+- FOREIGN KEY (rfa_status_code_id) REFERENCES rfa_status_codes(id)
+- FOREIGN KEY (rfa_approve_code_id) REFERENCES rfa_approve_codes(id) ON DELETE SET NULL
+- INDEX (rfa_status_code_id)
+- INDEX (rfa_approve_code_id)
+- INDEX (v_ref_drawing_count): ตัวอย่างการ Index ข้อมูลตัวเลขใน JSON
 
 **Relationships**:
 
-* Parent: correspondence_revisions, rfas, rfa_status_codes, rfa_approve_codes
-* Children: rfa_items
+- Parent: correspondence_revisions, rfas, rfa_status_codes, rfa_approve_codes
+- Children: rfa_items
 
 ---
 
@@ -655,42 +649,41 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Child table linking RFA revisions to drawing revisions that require approval
 
-| Column Name                | Data Type                | Constraints          | Description                        |
-| :------------------------- | :----------------------- | :------------------- | :--------------------------------- |
-| id                         | INT                      | PRIMARY KEY, AI      | Unique identifier                  |
-| rfa_revision_id            | INT                      | NOT NULL, FK         | RFA Revision ID                    |
-| item_type                  | ENUM('SHOP','AS_BUILT')  | NOT NULL             | Drawing reference type             |
-| shop_drawing_revision_id   | INT                      | NULL, FK             | Shop drawing revision ID           |
-| asbuilt_drawing_revision_id| INT                      | NULL, FK             | As-Built drawing revision ID       |
+| Column Name                 | Data Type               | Constraints     | Description                  |
+| :-------------------------- | :---------------------- | :-------------- | :--------------------------- |
+| id                          | INT                     | PRIMARY KEY, AI | Unique identifier            |
+| rfa_revision_id             | INT                     | NOT NULL, FK    | RFA Revision ID              |
+| item_type                   | ENUM('SHOP','AS_BUILT') | NOT NULL        | Drawing reference type       |
+| shop_drawing_revision_id    | INT                     | NULL, FK        | Shop drawing revision ID     |
+| asbuilt_drawing_revision_id | INT                     | NULL, FK        | As-Built drawing revision ID |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (rfa_revision_id) REFERENCES rfa_revisions(id) ON DELETE CASCADE
-* FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
-* FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions(id) ON DELETE CASCADE
-* UNIQUE KEY (rfa_revision_id, shop_drawing_revision_id)
-* UNIQUE KEY (rfa_revision_id, asbuilt_drawing_revision_id)
-* INDEX (item_type)
-* INDEX (shop_drawing_revision_id)
-* INDEX (asbuilt_drawing_revision_id)
+- PRIMARY KEY (id)
+- FOREIGN KEY (rfa_revision_id) REFERENCES rfa_revisions(id) ON DELETE CASCADE
+- FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
+- FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions(id) ON DELETE CASCADE
+- UNIQUE KEY (rfa_revision_id, shop_drawing_revision_id)
+- UNIQUE KEY (rfa_revision_id, asbuilt_drawing_revision_id)
+- INDEX (item_type)
+- INDEX (shop_drawing_revision_id)
+- INDEX (asbuilt_drawing_revision_id)
 
 **Relationships**:
 
-* Parent: rfa_revisions, shop_drawing_revisions, asbuilt_drawing_revisions
+- Parent: rfa_revisions, shop_drawing_revisions, asbuilt_drawing_revisions
 
 **Business Rules**:
 
-* `correspondences.correspondence_type_id` for an RFA must always point to `correspondence_types.type_code = 'RFA'`
-* `rfas.rfa_type_id` stores the selected RFA subtype
-* `DDW` and `SDW` RFA types must reference `shop_drawing_revisions`
-* `ADW` RFA types must reference `asbuilt_drawing_revisions`
-* Each `rfa_items` row must reference exactly one drawing revision target according to `item_type`
-* One RFA can contain multiple drawing references
-* One drawing revision can be referenced by multiple RFAs
+- `correspondences.correspondence_type_id` for an RFA must always point to `correspondence_types.type_code = 'RFA'`
+- `rfas.rfa_type_id` stores the selected RFA subtype
+- `DDW` and `SDW` RFA types must reference `shop_drawing_revisions`
+- `ADW` RFA types must reference `asbuilt_drawing_revisions`
+- Each `rfa_items` row must reference exactly one drawing revision target according to `item_type`
+- One RFA can contain multiple drawing references
+- One drawing revision can be referenced by multiple RFAs
 
 ---
-
 
 ---
 
@@ -713,20 +706,20 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-* UNIQUE KEY (project_id, volume_code)
-* INDEX (sort_order)
+- PRIMARY KEY (id)
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- UNIQUE KEY (project_id, volume_code)
+- INDEX (sort_order)
 
 **Relationships**:
 
-* Parent: projects
-* Referenced by: contract_drawings
+- Parent: projects
+- Referenced by: contract_drawings
 
 **Business Rules**:
 
-* Volume codes must be unique within a project
-* Used for organizing large sets of contract drawings
+- Volume codes must be unique within a project
+- Used for organizing large sets of contract drawings
 
 ---
 
@@ -747,20 +740,20 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-* UNIQUE KEY (project_id, cat_code)
-* INDEX (sort_order)
+- PRIMARY KEY (id)
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- UNIQUE KEY (project_id, cat_code)
+- INDEX (sort_order)
 
 **Relationships**:
 
-* Parent: projects
-* Referenced by: contract_drawing_subcat_cat_maps
+- Parent: projects
+- Referenced by: contract_drawing_subcat_cat_maps
 
 **Business Rules**:
 
-* Category codes must be unique within a project
-* Hierarchical relationship with sub-categories via mapping table
+- Category codes must be unique within a project
+- Hierarchical relationship with sub-categories via mapping table
 
 ---
 
@@ -781,20 +774,20 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-* UNIQUE KEY (project_id, sub_cat_code)
-* INDEX (sort_order)
+- PRIMARY KEY (id)
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- UNIQUE KEY (project_id, sub_cat_code)
+- INDEX (sort_order)
 
 **Relationships**:
 
-* Parent: projects
-* Referenced by: contract_drawings, contract_drawing_subcat_cat_maps
+- Parent: projects
+- Referenced by: contract_drawings, contract_drawing_subcat_cat_maps
 
 **Business Rules**:
 
-* Sub-category codes must be unique within a project
-* Can be mapped to multiple main categories via mapping table
+- Sub-category codes must be unique within a project
+- Can be mapped to multiple main categories via mapping table
 
 ---
 
@@ -811,24 +804,24 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* **UNIQUE KEY (project_id, sub_cat_id, cat_id)**
-* FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-* FOREIGN KEY (sub_cat_id) REFERENCES contract_drawing_sub_cats(id) ON DELETE CASCADE
-* FOREIGN KEY (cat_id) REFERENCES contract_drawing_cats(id) ON DELETE CASCADE
-* INDEX (sub_cat_id)
-* INDEX (cat_id)
+- PRIMARY KEY (id)
+- **UNIQUE KEY (project_id, sub_cat_id, cat_id)**
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- FOREIGN KEY (sub_cat_id) REFERENCES contract_drawing_sub_cats(id) ON DELETE CASCADE
+- FOREIGN KEY (cat_id) REFERENCES contract_drawing_cats(id) ON DELETE CASCADE
+- INDEX (sub_cat_id)
+- INDEX (cat_id)
 
 **Relationships**:
 
-* Parent: projects, contract_drawing_sub_cats, contract_drawing_cats
-* Referenced by: contract_drawings
+- Parent: projects, contract_drawing_sub_cats, contract_drawing_cats
+- Referenced by: contract_drawings
 
 **Business Rules**:
 
-* Allows flexible categorization
-* One sub-category can belong to multiple main categories
-* Composite uniqueness enforced via UNIQUE constraint
+- Allows flexible categorization
+- One sub-category can belong to multiple main categories
+- Composite uniqueness enforced via UNIQUE constraint
 
 ---
 
@@ -839,7 +832,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name     | Data Type    | Constraints                         | Description                              |
 | --------------- | ------------ | ----------------------------------- | ---------------------------------------- |
 | id              | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                        |
-| uuid            | UUID   | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019)       |
+| uuid            | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019)         |
 | project_id      | INT          | NOT NULL, FK                        | Reference to projects                    |
 | condwg_no       | VARCHAR(255) | NOT NULL                            | Contract drawing number                  |
 | title           | VARCHAR(255) | NOT NULL                            | Drawing title                            |
@@ -853,29 +846,29 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-* **FOREIGN KEY (map_cat_id) REFERENCES contract_drawing_subcat_cat_maps(id) ON DELETE RESTRICT**
-* FOREIGN KEY (volume_id) REFERENCES contract_drawing_volumes(id) ON DELETE RESTRICT
-* FOREIGN KEY (updated_by) REFERENCES users(user_id)
-* UNIQUE KEY (project_id, condwg_no)
-* UNIQUE INDEX idx_contract_drawings_uuid (uuid)
-* INDEX (map_cat_id)
-* INDEX (volume_id)
-* INDEX (deleted_at)
+- PRIMARY KEY (id)
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- **FOREIGN KEY (map_cat_id) REFERENCES contract_drawing_subcat_cat_maps(id) ON DELETE RESTRICT**
+- FOREIGN KEY (volume_id) REFERENCES contract_drawing_volumes(id) ON DELETE RESTRICT
+- FOREIGN KEY (updated_by) REFERENCES users(user_id)
+- UNIQUE KEY (project_id, condwg_no)
+- UNIQUE INDEX idx_contract_drawings_uuid (uuid)
+- INDEX (map_cat_id)
+- INDEX (volume_id)
+- INDEX (deleted_at)
 
 **Relationships**:
 
-* Parent: projects, contract_drawing_subcat_cat_maps, contract_drawing_volumes, users
-* Referenced by: shop_drawing_revision_contract_refs, contract_drawing_attachments
+- Parent: projects, contract_drawing_subcat_cat_maps, contract_drawing_volumes, users
+- Referenced by: shop_drawing_revision_contract_refs, contract_drawing_attachments
 
 **Business Rules**:
 
-* Drawing numbers must be unique within a project
-* Represents baseline/contract drawings
-* Referenced by shop drawings for compliance tracking
-* Soft delete preserves history
-* **map_cat_id references the mapping table for flexible categorization**
+- Drawing numbers must be unique within a project
+- Represents baseline/contract drawings
+- Referenced by shop drawings for compliance tracking
+- Soft delete preserves history
+- **map_cat_id references the mapping table for flexible categorization**
 
 ---
 
@@ -897,21 +890,21 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* **FOREIGN KEY (project_id) REFERENCES projects(id)**
-* UNIQUE (main_category_code)
-* INDEX (is_active)
-* INDEX (sort_order)
+- PRIMARY KEY (id)
+- **FOREIGN KEY (project_id) REFERENCES projects(id)**
+- UNIQUE (main_category_code)
+- INDEX (is_active)
+- INDEX (sort_order)
 
 **Relationships**:
 
-* **Parent: projects**
-* Referenced by: shop_drawings, asbuilt_drawings
+- **Parent: projects**
+- Referenced by: shop_drawings, asbuilt_drawings
 
 **Business Rules**:
 
-* **[CHANGED] Project-specific categories (was global)**
-* Typically represents engineering disciplines
+- **[CHANGED] Project-specific categories (was global)**
+- Typically represents engineering disciplines
 
 ---
 
@@ -933,22 +926,22 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* **FOREIGN KEY (project_id) REFERENCES projects(id)**
-* UNIQUE (sub_category_code)
-* INDEX (is_active)
-* INDEX (sort_order)
+- PRIMARY KEY (id)
+- **FOREIGN KEY (project_id) REFERENCES projects(id)**
+- UNIQUE (sub_category_code)
+- INDEX (is_active)
+- INDEX (sort_order)
 
 **Relationships**:
 
-* **Parent: projects**
-* Referenced by: shop_drawings, asbuilt_drawings
+- **Parent: projects**
+- Referenced by: shop_drawings, asbuilt_drawings
 
 **Business Rules**:
 
-* **[CHANGED] Project-specific sub-categories (was global)**
-* **[REMOVED] No longer hierarchical under main categories**
-* Represents specific drawing types or components
+- **[CHANGED] Project-specific sub-categories (was global)**
+- **[REMOVED] No longer hierarchical under main categories**
+- Represents specific drawing types or components
 
 ---
 
@@ -956,45 +949,45 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Master table for shop drawings (contractor-submitted)
 
-| Column Name      | Data Type    | Constraints                         | Description                |
-| ---------------- | ------------ | ----------------------------------- | -------------------------- |
-| id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID          |
-| uuid             | UUID   | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019) |
-| project_id       | INT          | NOT NULL, FK                        | Reference to projects      |
-| drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | Shop drawing number        |
-| main_category_id | INT          | NOT NULL, FK                        | Reference to main category |
-| sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category  |
-| created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp  |
-| updated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp      |
-| deleted_at       | DATETIME     | NULL                                | Soft delete timestamp      |
-| updated_by       | INT          | NULL, FK                            | User who last updated      |
+| Column Name      | Data Type    | Constraints                         | Description                      |
+| ---------------- | ------------ | ----------------------------------- | -------------------------------- |
+| id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                |
+| uuid             | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019) |
+| project_id       | INT          | NOT NULL, FK                        | Reference to projects            |
+| drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | Shop drawing number              |
+| main_category_id | INT          | NOT NULL, FK                        | Reference to main category       |
+| sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category        |
+| created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp        |
+| updated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp            |
+| deleted_at       | DATETIME     | NULL                                | Soft delete timestamp            |
+| updated_by       | INT          | NULL, FK                            | User who last updated            |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* UNIQUE (drawing_number)
-* UNIQUE INDEX idx_shop_drawings_uuid (uuid)
-* FOREIGN KEY (project_id) REFERENCES projects(id)
-* FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories(id)
-* FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories(id)
-* FOREIGN KEY (updated_by) REFERENCES users(user_id)
-* INDEX (project_id)
-* INDEX (main_category_id)
-* INDEX (sub_category_id)
-* INDEX (deleted_at)
+- PRIMARY KEY (id)
+- UNIQUE (drawing_number)
+- UNIQUE INDEX idx_shop_drawings_uuid (uuid)
+- FOREIGN KEY (project_id) REFERENCES projects(id)
+- FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories(id)
+- FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories(id)
+- FOREIGN KEY (updated_by) REFERENCES users(user_id)
+- INDEX (project_id)
+- INDEX (main_category_id)
+- INDEX (sub_category_id)
+- INDEX (deleted_at)
 
 **Relationships**:
 
-* Parent: projects, shop_drawing_main_categories, shop_drawing_sub_categories, users
-* Children: shop_drawing_revisions
+- Parent: projects, shop_drawing_main_categories, shop_drawing_sub_categories, users
+- Children: shop_drawing_revisions
 
 **Business Rules**:
 
-* Drawing numbers are globally unique across all projects
-* Represents contractor shop drawings
-* Can have multiple revisions
-* Soft delete preserves history
-* **[CHANGED] Title moved to shop_drawing_revisions table**
+- Drawing numbers are globally unique across all projects
+- Represents contractor shop drawings
+- Can have multiple revisions
+- Soft delete preserves history
+- **[CHANGED] Title moved to shop_drawing_revisions table**
 
 ---
 
@@ -1005,7 +998,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name               | Data Type        | Constraints                 | Description                              |
 | ------------------------- | ---------------- | --------------------------- | ---------------------------------------- |
 | id                        | INT              | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID                       |
-| uuid                      | UUID       | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)       |
+| uuid                      | UUID             | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)         |
 | shop_drawing_id           | INT              | NOT NULL, FK                | Master shop drawing ID                   |
 | revision_number           | INT              | NOT NULL                    | Revision sequence (0, 1, 2...)           |
 | revision_label            | VARCHAR(10)      | NULL                        | Display revision (A, B, C...)            |
@@ -1017,25 +1010,25 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (shop_drawing_id) REFERENCES shop_drawings(id) ON DELETE CASCADE
-* UNIQUE KEY (shop_drawing_id, revision_number)
-* UNIQUE INDEX idx_shop_drawing_revisions_uuid (uuid)
-* INDEX (revision_date)
+- PRIMARY KEY (id)
+- FOREIGN KEY (shop_drawing_id) REFERENCES shop_drawings(id) ON DELETE CASCADE
+- UNIQUE KEY (shop_drawing_id, revision_number)
+- UNIQUE INDEX idx_shop_drawing_revisions_uuid (uuid)
+- INDEX (revision_date)
 
 **Relationships**:
 
-* Parent: shop_drawings
-* Referenced by: rfa_items, shop_drawing_revision_contract_refs, shop_drawing_revision_attachments, asbuilt_revision_shop_revisions_refs
+- Parent: shop_drawings
+- Referenced by: rfa_items, shop_drawing_revision_contract_refs, shop_drawing_revision_attachments, asbuilt_revision_shop_revisions_refs
 
 **Business Rules**:
 
-* Revision numbers are sequential starting from 0
-* Each revision can reference multiple contract drawings
-* Each revision can have multiple file attachments
-* Linked to RFAs for approval tracking
-* **[NEW] Title stored at revision level for version-specific naming**
-* **[NEW] legacy_drawing_number supports data migration from old systems**
+- Revision numbers are sequential starting from 0
+- Each revision can reference multiple contract drawings
+- Each revision can have multiple file attachments
+- Linked to RFAs for approval tracking
+- **[NEW] Title stored at revision level for version-specific naming**
+- **[NEW] legacy_drawing_number supports data migration from old systems**
 
 ---
 
@@ -1050,20 +1043,20 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (shop_drawing_revision_id, contract_drawing_id)
-* FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
-* FOREIGN KEY (contract_drawing_id) REFERENCES contract_drawings(id) ON DELETE CASCADE
-* INDEX (contract_drawing_id)
+- PRIMARY KEY (shop_drawing_revision_id, contract_drawing_id)
+- FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
+- FOREIGN KEY (contract_drawing_id) REFERENCES contract_drawings(id) ON DELETE CASCADE
+- INDEX (contract_drawing_id)
 
 **Relationships**:
 
-* Parent: shop_drawing_revisions, contract_drawings
+- Parent: shop_drawing_revisions, contract_drawings
 
 **Business Rules**:
 
-* Tracks which contract drawings each shop drawing revision is based on
-* Ensures compliance with contract specifications
-* One shop drawing revision can reference multiple contract drawings
+- Tracks which contract drawings each shop drawing revision is based on
+- Ensures compliance with contract specifications
+- One shop drawing revision can reference multiple contract drawings
 
 ---
 
@@ -1071,45 +1064,45 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Master table for AS Built drawings (final construction records)
 
-| Column Name      | Data Type    | Constraints                         | Description                |
-| ---------------- | ------------ | ----------------------------------- | -------------------------- |
-| id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID          |
-| uuid             | UUID   | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019) |
-| project_id       | INT          | NOT NULL, FK                        | Reference to projects      |
-| drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | AS Built drawing number    |
-| main_category_id | INT          | NOT NULL, FK                        | Reference to main category |
-| sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category  |
-| created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp  |
-| updated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp      |
-| deleted_at       | DATETIME     | NULL                                | Soft delete timestamp      |
-| updated_by       | INT          | NULL, FK                            | User who last updated      |
+| Column Name      | Data Type    | Constraints                         | Description                      |
+| ---------------- | ------------ | ----------------------------------- | -------------------------------- |
+| id               | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique drawing ID                |
+| uuid             | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019) |
+| project_id       | INT          | NOT NULL, FK                        | Reference to projects            |
+| drawing_number   | VARCHAR(100) | NOT NULL, UNIQUE                    | AS Built drawing number          |
+| main_category_id | INT          | NOT NULL, FK                        | Reference to main category       |
+| sub_category_id  | INT          | NOT NULL, FK                        | Reference to sub-category        |
+| created_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP           | Record creation timestamp        |
+| updated_at       | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp            |
+| deleted_at       | DATETIME     | NULL                                | Soft delete timestamp            |
+| updated_by       | INT          | NULL, FK                            | User who last updated            |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* UNIQUE (drawing_number)
-* UNIQUE INDEX idx_asbuilt_drawings_uuid (uuid)
-* FOREIGN KEY (project_id) REFERENCES projects(id)
-* FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories(id)
-* FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories(id)
-* FOREIGN KEY (updated_by) REFERENCES users(user_id)
-* INDEX (project_id)
-* INDEX (main_category_id)
-* INDEX (sub_category_id)
-* INDEX (deleted_at)
+- PRIMARY KEY (id)
+- UNIQUE (drawing_number)
+- UNIQUE INDEX idx_asbuilt_drawings_uuid (uuid)
+- FOREIGN KEY (project_id) REFERENCES projects(id)
+- FOREIGN KEY (main_category_id) REFERENCES shop_drawing_main_categories(id)
+- FOREIGN KEY (sub_category_id) REFERENCES shop_drawing_sub_categories(id)
+- FOREIGN KEY (updated_by) REFERENCES users(user_id)
+- INDEX (project_id)
+- INDEX (main_category_id)
+- INDEX (sub_category_id)
+- INDEX (deleted_at)
 
 **Relationships**:
 
-* Parent: projects, shop_drawing_main_categories, shop_drawing_sub_categories, users
-* Children: asbuilt_drawing_revisions
+- Parent: projects, shop_drawing_main_categories, shop_drawing_sub_categories, users
+- Children: asbuilt_drawing_revisions
 
 **Business Rules**:
 
-* Drawing numbers are globally unique across all projects
-* Represents final as-built construction drawings
-* Can have multiple revisions
-* Soft delete preserves history
-* Uses same category structure as shop drawings
+- Drawing numbers are globally unique across all projects
+- Represents final as-built construction drawings
+- Can have multiple revisions
+- Soft delete preserves history
+- Uses same category structure as shop drawings
 
 ---
 
@@ -1117,39 +1110,39 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Child table storing revision history of AS Built drawings (1:N)
 
-| Column Name           | Data Type    | Constraints                 | Description                    |
-| --------------------- | ------------ | --------------------------- | ------------------------------ |
-| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID             |
-| uuid                  | UUID   | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019) |
-| asbuilt_drawing_id    | INT          | NOT NULL, FK                | Master AS Built drawing ID     |
-| revision_number       | INT          | NOT NULL                    | Revision sequence (0, 1, 2...) |
-| revision_label        | VARCHAR(10)  | NULL                        | Display revision (A, B, C...)  |
-| revision_date         | DATE         | NULL                        | Revision date                  |
-| title                 | VARCHAR(500) | NOT NULL                    | Drawing title                  |
-| description           | TEXT         | NULL                        | Revision description/changes   |
-| legacy_drawing_number | VARCHAR(100) | NULL                        | Original/legacy drawing number |
-| created_at            | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp    |
+| Column Name           | Data Type    | Constraints                 | Description                      |
+| --------------------- | ------------ | --------------------------- | -------------------------------- |
+| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique revision ID               |
+| uuid                  | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019) |
+| asbuilt_drawing_id    | INT          | NOT NULL, FK                | Master AS Built drawing ID       |
+| revision_number       | INT          | NOT NULL                    | Revision sequence (0, 1, 2...)   |
+| revision_label        | VARCHAR(10)  | NULL                        | Display revision (A, B, C...)    |
+| revision_date         | DATE         | NULL                        | Revision date                    |
+| title                 | VARCHAR(500) | NOT NULL                    | Drawing title                    |
+| description           | TEXT         | NULL                        | Revision description/changes     |
+| legacy_drawing_number | VARCHAR(100) | NULL                        | Original/legacy drawing number   |
+| created_at            | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Revision creation timestamp      |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (asbuilt_drawing_id) REFERENCES asbuilt_drawings(id) ON DELETE CASCADE
-* UNIQUE KEY (asbuilt_drawing_id, revision_number)
-* UNIQUE INDEX idx_asbuilt_drawing_revisions_uuid (uuid)
-* INDEX (revision_date)
+- PRIMARY KEY (id)
+- FOREIGN KEY (asbuilt_drawing_id) REFERENCES asbuilt_drawings(id) ON DELETE CASCADE
+- UNIQUE KEY (asbuilt_drawing_id, revision_number)
+- UNIQUE INDEX idx_asbuilt_drawing_revisions_uuid (uuid)
+- INDEX (revision_date)
 
 **Relationships**:
 
-* Parent: asbuilt_drawings
-* Referenced by: asbuilt_revision_shop_revisions_refs, asbuilt_drawing_revision_attachments
+- Parent: asbuilt_drawings
+- Referenced by: asbuilt_revision_shop_revisions_refs, asbuilt_drawing_revision_attachments
 
 **Business Rules**:
 
-* Revision numbers are sequential starting from 0
-* Each revision can reference multiple shop drawing revisions
-* Each revision can have multiple file attachments
-* Title stored at revision level for version-specific naming
-* legacy_drawing_number supports data migration from old systems
+- Revision numbers are sequential starting from 0
+- Each revision can reference multiple shop drawing revisions
+- Each revision can have multiple file attachments
+- Title stored at revision level for version-specific naming
+- legacy_drawing_number supports data migration from old systems
 
 ---
 
@@ -1164,21 +1157,21 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (asbuilt_drawing_revision_id, shop_drawing_revision_id)
-* FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions(id) ON DELETE CASCADE
-* FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
-* INDEX (shop_drawing_revision_id)
+- PRIMARY KEY (asbuilt_drawing_revision_id, shop_drawing_revision_id)
+- FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions(id) ON DELETE CASCADE
+- FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
+- INDEX (shop_drawing_revision_id)
 
 **Relationships**:
 
-* Parent: asbuilt_drawing_revisions, shop_drawing_revisions
+- Parent: asbuilt_drawing_revisions, shop_drawing_revisions
 
 **Business Rules**:
 
-* Tracks which shop drawings each AS Built drawing revision is based on
-* Maintains construction document lineage
-* One AS Built revision can reference multiple shop drawing revisions
-* Supports traceability from final construction to approved shop drawings
+- Tracks which shop drawings each AS Built drawing revision is based on
+- Maintains construction document lineage
+- One AS Built revision can reference multiple shop drawing revisions
+- Supports traceability from final construction to approved shop drawings
 
 ---
 
@@ -1195,21 +1188,21 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (asbuilt_drawing_revision_id, attachment_id)
-* FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions(id) ON DELETE CASCADE
-* FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
-* INDEX (attachment_id)
+- PRIMARY KEY (asbuilt_drawing_revision_id, attachment_id)
+- FOREIGN KEY (asbuilt_drawing_revision_id) REFERENCES asbuilt_drawing_revisions(id) ON DELETE CASCADE
+- FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
+- INDEX (attachment_id)
 
 **Relationships**:
 
-* Parent: asbuilt_drawing_revisions, attachments
+- Parent: asbuilt_drawing_revisions, attachments
 
 **Business Rules**:
 
-* Each AS Built revision can have multiple file attachments
-* File types: PDF (documents), DWG (CAD files), SOURCE (source files), OTHER (miscellaneous)
-* One attachment can be marked as main document per revision
-* Cascade delete when revision is deleted
+- Each AS Built revision can have multiple file attachments
+- File types: PDF (documents), DWG (CAD files), SOURCE (source files), OTHER (miscellaneous)
+- One attachment can be marked as main document per revision
+- Cascade delete when revision is deleted
 
 ---
 
@@ -1229,21 +1222,21 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* UNIQUE (code)
-* INDEX (is_active)
-* INDEX (sort_order)
+- PRIMARY KEY (id)
+- UNIQUE (code)
+- INDEX (is_active)
+- INDEX (sort_order)
 
 **Relationships**:
 
-* Referenced by: circulations
+- Referenced by: circulations
 
 **Seed Data**: 4 status codes
 
-* OPEN: Initial status when created
-* IN_REVIEW: Under review by recipients
-* COMPLETED: All recipients have responded
-* CANCELLED: Withdrawn/cancelled
+- OPEN: Initial status when created
+- IN_REVIEW: Under review by recipients
+- COMPLETED: All recipients have responded
+- CANCELLED: Withdrawn/cancelled
 
 ---
 
@@ -1254,7 +1247,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name             | Data Type    | Constraints                         | Description                               |
 | ----------------------- | ------------ | ----------------------------------- | ----------------------------------------- |
 | id                      | INT          | PRIMARY KEY, AUTO_INCREMENT         | Unique circulation ID                     |
-| uuid                    | UUID   | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019)        |
+| uuid                    | UUID         | NOT NULL, UNIQUE, DEFAULT           | UUID Public Identifier (ADR-019)          |
 | correspondence_id       | INT          | UNIQUE, FK                          | Link to correspondence (1:1 relationship) |
 | organization_id         | INT          | NOT NULL, FK                        | Organization that owns this circulation   |
 | circulation_no          | VARCHAR(100) | NOT NULL                            | Circulation sheet number                  |
@@ -1268,28 +1261,28 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* UNIQUE (correspondence_id)
-* FOREIGN KEY (correspondence_id) REFERENCES correspondences(id)
-* FOREIGN KEY (organization_id) REFERENCES organizations(id)
-* FOREIGN KEY (circulation_status_code) REFERENCES circulation_status_codes(code)
-* FOREIGN KEY (created_by_user_id) REFERENCES users(user_id)
-* INDEX (organization_id)
-* UNIQUE INDEX idx_circulations_uuid (uuid)
-* INDEX (circulation_status_code)
-* INDEX (created_by_user_id)
+- PRIMARY KEY (id)
+- UNIQUE (correspondence_id)
+- FOREIGN KEY (correspondence_id) REFERENCES correspondences(id)
+- FOREIGN KEY (organization_id) REFERENCES organizations(id)
+- FOREIGN KEY (circulation_status_code) REFERENCES circulation_status_codes(code)
+- FOREIGN KEY (created_by_user_id) REFERENCES users(user_id)
+- INDEX (organization_id)
+- UNIQUE INDEX idx_circulations_uuid (uuid)
+- INDEX (circulation_status_code)
+- INDEX (created_by_user_id)
 
 **Relationships**:
 
-* Parent: correspondences, organizations, circulation_status_codes, users
-* Children: circulation_routings, circulation_attachments
+- Parent: correspondences, organizations, circulation_status_codes, users
+- Children: circulation_routings, circulation_attachments
 
 **Business Rules**:
 
-* Internal document routing within organization
-* One-to-one relationship with correspondences
-* Tracks document review/approval workflow
-* Status progression: OPEN → IN_REVIEW → COMPLETED/CANCELLED
+- Internal document routing within organization
+- One-to-one relationship with correspondences
+- Tracks document review/approval workflow
+- Status progression: OPEN → IN_REVIEW → COMPLETED/CANCELLED
 
 ---
 
@@ -1307,20 +1300,20 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (correspondence_id)
-* FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
-* INDEX (purpose)
+- PRIMARY KEY (correspondence_id)
+- FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
+- INDEX (purpose)
 
 **Relationships**:
 
-* Parent: correspondences
-* Children: transmittal_items
+- Parent: correspondences
+- Children: transmittal_items
 
 **Business Rules**:
 
-* One-to-one relationship with correspondences
-* Transmittal is a correspondence type for forwarding documents
-* Contains metadata about the transmission
+- One-to-one relationship with correspondences
+- Transmittal is a correspondence type for forwarding documents
+- Contains metadata about the transmission
 
 ---
 
@@ -1338,21 +1331,21 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (transmittal_id) REFERENCES transmittals(correspondence_id) ON DELETE CASCADE
-* FOREIGN KEY (item_correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
-* UNIQUE KEY (transmittal_id, item_correspondence_id)
-* INDEX (item_correspondence_id)
+- PRIMARY KEY (id)
+- FOREIGN KEY (transmittal_id) REFERENCES transmittals(correspondence_id) ON DELETE CASCADE
+- FOREIGN KEY (item_correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
+- UNIQUE KEY (transmittal_id, item_correspondence_id)
+- INDEX (item_correspondence_id)
 
 **Relationships**:
 
-* Parent: transmittals, correspondences
+- Parent: transmittals, correspondences
 
 **Business Rules**:
 
-* One transmittal can contain multiple documents
-* Tracks quantity of physical copies (if applicable)
-* Links to any type of correspondence document
+- One transmittal can contain multiple documents
+- Tracks quantity of physical copies (if applicable)
+- Links to any type of correspondence document
 
 ---
 
@@ -1362,46 +1355,46 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Central repository for all file attachments in the system
 
-| Column Name         | Data Type    | Constraints                 | Description                                                              |
-| ------------------- | ------------ | --------------------------- | ------------------------------------------------------------------------ |
-| id                  | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique attachment ID                                                     |
-| uuid                | UUID   | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)                                       |
-| original_filename   | VARCHAR(255) | NOT NULL                    | Original filename from upload                                            |
-| stored_filename     | VARCHAR(255) | NOT NULL                    | System-generated unique filename                                         |
-| file_path           | VARCHAR(500) | NOT NULL                    | Full file path on server (/share/dms-data/)                              |
-| mime_type           | VARCHAR(100) | NOT NULL                    | MIME type (application/pdf, image/jpeg, etc.)                            |
-| file_size           | INT          | NOT NULL                    | File size in bytes                                                       |
-| uploaded_by_user_id | INT          | NOT NULL, FK                | User who uploaded file                                                   |
-| created_at          | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Upload timestamp                                                         |
-| is_temporary        | BOOLEAN      | DEFAULT TRUE                | ระบุว่าเป็นไฟล์ชั่วคราว (ยังไม่ได้ Commit)                                        |
-| temp_id\*           | VARCHAR(100) | NULL                        | ID ชั่วคราวสำหรับอ้างอิงตอน Upload Phase 1 (อาจใช้ร่วมกับ id หรือแยกก็ได้)           |
-| expires_at          | DATETIME     | NULL                        | เวลาหมดอายุของไฟล์ Temp (เพื่อให้ Cron Job ลบออก)                             |
+| Column Name         | Data Type    | Constraints                 | Description                                                                |
+| ------------------- | ------------ | --------------------------- | -------------------------------------------------------------------------- |
+| id                  | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique attachment ID                                                       |
+| uuid                | UUID         | NOT NULL, UNIQUE, DEFAULT   | UUID Public Identifier (ADR-019)                                           |
+| original_filename   | VARCHAR(255) | NOT NULL                    | Original filename from upload                                              |
+| stored_filename     | VARCHAR(255) | NOT NULL                    | System-generated unique filename                                           |
+| file_path           | VARCHAR(500) | NOT NULL                    | Full file path on server (/share/dms-data/)                                |
+| mime_type           | VARCHAR(100) | NOT NULL                    | MIME type (application/pdf, image/jpeg, etc.)                              |
+| file_size           | INT          | NOT NULL                    | File size in bytes                                                         |
+| uploaded_by_user_id | INT          | NOT NULL, FK                | User who uploaded file                                                     |
+| created_at          | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | Upload timestamp                                                           |
+| is_temporary        | BOOLEAN      | DEFAULT TRUE                | ระบุว่าเป็นไฟล์ชั่วคราว (ยังไม่ได้ Commit)                                 |
+| temp_id\*           | VARCHAR(100) | NULL                        | ID ชั่วคราวสำหรับอ้างอิงตอน Upload Phase 1 (อาจใช้ร่วมกับ id หรือแยกก็ได้) |
+| expires_at          | DATETIME     | NULL                        | เวลาหมดอายุของไฟล์ Temp (เพื่อให้ Cron Job ลบออก)                          |
 | checksum            | VARCHAR(64)  | NULL                        | SHA-256 Checksum สำหรับ Verify File Integrity [Req 3.9.3]                  |
-| reference_date      | DATE         | NULL                        | Date used for folder structure (e.g. Issue Date) to prevent broken paths |
+| reference_date      | DATE         | NULL                        | Date used for folder structure (e.g. Issue Date) to prevent broken paths   |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (uploaded_by_user_id) REFERENCES users(user_id) ON DELETE CASCADE
-* INDEX (stored_filename)
-* INDEX (mime_type)
-* INDEX (uploaded_by_user_id)
-* UNIQUE INDEX idx_attachments_uuid (uuid)
-* INDEX (created_at)
-* INDEX (reference_date)
+- PRIMARY KEY (id)
+- FOREIGN KEY (uploaded_by_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+- INDEX (stored_filename)
+- INDEX (mime_type)
+- INDEX (uploaded_by_user_id)
+- UNIQUE INDEX idx_attachments_uuid (uuid)
+- INDEX (created_at)
+- INDEX (reference_date)
 
 **Relationships**:
 
-* Parent: users
-* Referenced by: correspondence_attachments, circulation_attachments, shop_drawing_revision_attachments, contract_drawing_attachments
+- Parent: users
+- Referenced by: correspondence_attachments, circulation_attachments, shop_drawing_revision_attachments, contract_drawing_attachments
 
 **Business Rules**:
 
-* Central storage prevents file duplication
-* Stored filename prevents naming conflicts
-* File path points to QNAP NAS storage
-* Original filename preserved for download
-* One file record can be linked to multiple documents
+- Central storage prevents file duplication
+- Stored filename prevents naming conflicts
+- File path points to QNAP NAS storage
+- Original filename preserved for download
+- One file record can be linked to multiple documents
 
 ---
 
@@ -1417,21 +1410,21 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (correspondence_id, attachment_id)
-* FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
-* FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
-* INDEX (attachment_id)
-* INDEX (is_main_document)
+- PRIMARY KEY (correspondence_id, attachment_id)
+- FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
+- FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
+- INDEX (attachment_id)
+- INDEX (is_main_document)
 
 **Relationships**:
 
-* Parent: correspondences, attachments
+- Parent: correspondences, attachments
 
 **Business Rules**:
 
-* One correspondence can have multiple attachments
-* One attachment can be linked to multiple correspondences
-* is_main_document identifies primary file (typically PDF)
+- One correspondence can have multiple attachments
+- One attachment can be linked to multiple correspondences
+- is_main_document identifies primary file (typically PDF)
 
 ---
 
@@ -1447,15 +1440,15 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (circulation_id, attachment_id)
-* FOREIGN KEY (circulation_id) REFERENCES circulations(id) ON DELETE CASCADE
-* FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
-* INDEX (attachment_id)
-* INDEX (is_main_document)
+- PRIMARY KEY (circulation_id, attachment_id)
+- FOREIGN KEY (circulation_id) REFERENCES circulations(id) ON DELETE CASCADE
+- FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
+- INDEX (attachment_id)
+- INDEX (is_main_document)
 
 **Relationships**:
 
-* Parent: circulations, attachments
+- Parent: circulations, attachments
 
 ---
 
@@ -1472,22 +1465,22 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (shop_drawing_revision_id, attachment_id)
-* FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
-* FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
-* INDEX (attachment_id)
-* INDEX (file_type)
-* INDEX (is_main_document)
+- PRIMARY KEY (shop_drawing_revision_id, attachment_id)
+- FOREIGN KEY (shop_drawing_revision_id) REFERENCES shop_drawing_revisions(id) ON DELETE CASCADE
+- FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
+- INDEX (attachment_id)
+- INDEX (file_type)
+- INDEX (is_main_document)
 
 **Relationships**:
 
-* Parent: shop_drawing_revisions, attachments
+- Parent: shop_drawing_revisions, attachments
 
 **Business Rules**:
 
-* file_type categorizes drawing file formats
-* Typically includes PDF for viewing and DWG for editing
-* SOURCE may include native CAD files
+- file_type categorizes drawing file formats
+- Typically includes PDF for viewing and DWG for editing
+- SOURCE may include native CAD files
 
 ---
 
@@ -1504,16 +1497,16 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (contract_drawing_id, attachment_id)
-* FOREIGN KEY (contract_drawing_id) REFERENCES contract_drawings(id) ON DELETE CASCADE
-* FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
-* INDEX (attachment_id)
-* INDEX (file_type)
-* INDEX (is_main_document)
+- PRIMARY KEY (contract_drawing_id, attachment_id)
+- FOREIGN KEY (contract_drawing_id) REFERENCES contract_drawings(id) ON DELETE CASCADE
+- FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
+- INDEX (attachment_id)
+- INDEX (file_type)
+- INDEX (is_main_document)
 
 **Relationships**:
 
-* Parent: contract_drawings, attachments
+- Parent: contract_drawings, attachments
 
 ---
 
@@ -1527,7 +1520,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | ---------------------- | ------------ | --------------------------- | -------------------------------------------- |
 | id                     | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique format ID                             |
 | project_id             | INT          | NOT NULL, FK                | Reference to projects                        |
-| correspondence_type_id | INT          | NULL, FK                   | Reference to correspondence_types           |
+| correspondence_type_id | INT          | NULL, FK                    | Reference to correspondence_types            |
 | discipline_id          | INT          | DEFAULT 0, FK               | Reference to disciplines (0 = all)           |
 | format_string          | VARCHAR(100) | NOT NULL                    | Format pattern (e.g., {ORG}-{TYPE}-{YYYY}-#) |
 | description            | TEXT         | NULL                        | Format description                           |
@@ -1536,20 +1529,20 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-* FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE
-* UNIQUE KEY (project_id, correspondence_type_id, discipline_id)
-* INDEX (is_active)
+- PRIMARY KEY (id)
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE
+- UNIQUE KEY (project_id, correspondence_type_id, discipline_id)
+- INDEX (is_active)
 
 **Relationships**:
 
-* Parent: projects, correspondence_types
+- Parent: projects, correspondence_types
 
 **Business Rules**:
 
-* Defines how document numbers are constructed
-* Supports placeholders: {PROJ}, {ORG}, {TYPE}, {YYYY}, {MM}, {#}
+- Defines how document numbers are constructed
+- Supports placeholders: {PROJ}, {ORG}, {TYPE}, {YYYY}, {MM}, {#}
 
 ---
 
@@ -1560,28 +1553,28 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name                | Data Type   | Constraints   | Description                                     |
 | -------------------------- | ----------- | ------------- | ----------------------------------------------- |
 | project_id                 | INT         | PK, NOT NULL  | โครงการ                                         |
-| originator_organization_id | INT         | PK, NOT NULL  | องค์กรผู้ส่ง                                        |
-| recipient_organization_id  | INT         | PK, NOT NULL  | องค์กรผู้รับ (0 = no recipient / RFA)               |
+| originator_organization_id | INT         | PK, NOT NULL  | องค์กรผู้ส่ง                                    |
+| recipient_organization_id  | INT         | PK, NOT NULL  | องค์กรผู้รับ (0 = no recipient / RFA)           |
 | correspondence_type_id     | INT         | PK, NULL      | ประเภทเอกสาร (NULL = default)                   |
-| sub_type_id                | INT         | PK, DEFAULT 0 | ประเภทย่อย สำหรับ TRANSMITTAL (0 = ไม่ระบุ)          |
-| rfa_type_id                | INT         | PK, DEFAULT 0 | ประเภท RFA (0 = ไม่ใช่ RFA)                       |
-| discipline_id              | INT         | PK, DEFAULT 0 | สาขางาน (0 = ไม่ระบุ)                             |
+| sub_type_id                | INT         | PK, DEFAULT 0 | ประเภทย่อย สำหรับ TRANSMITTAL (0 = ไม่ระบุ)     |
+| rfa_type_id                | INT         | PK, DEFAULT 0 | ประเภท RFA (0 = ไม่ใช่ RFA)                     |
+| discipline_id              | INT         | PK, DEFAULT 0 | สาขางาน (0 = ไม่ระบุ)                           |
 | reset_scope                | VARCHAR(20) | PK, NOT NULL  | Scope of reset (YEAR_2024, MONTH_2024_01, NONE) |
-| last_number                | INT         | DEFAULT 0     | เลขล่าสุดที่ถูกใช้งานไปแล้ว                            |
+| last_number                | INT         | DEFAULT 0     | เลขล่าสุดที่ถูกใช้งานไปแล้ว                     |
 | version                    | INT         | DEFAULT 0     | Optimistic Lock Version                         |
-| updated_at                 | DATETIME(6) | ON UPDATE     | เวลาที่อัปเดตล่าสุด                                  |
+| updated_at                 | DATETIME(6) | ON UPDATE     | เวลาที่อัปเดตล่าสุด                             |
 
 **Indexes**:
 
-* **PRIMARY KEY (project_id, originator_organization_id, recipient_organization_id, correspondence_type_id, sub_type_id, rfa_type_id, discipline_id, reset_scope)**
-* INDEX idx_counter_lookup (project_id, correspondence_type_id, reset_scope)
-* INDEX idx_counter_org (originator_organization_id, reset_scope)
+- **PRIMARY KEY (project_id, originator_organization_id, recipient_organization_id, correspondence_type_id, sub_type_id, rfa_type_id, discipline_id, reset_scope)**
+- INDEX idx_counter_lookup (project_id, correspondence_type_id, reset_scope)
+- INDEX idx_counter_org (originator_organization_id, reset_scope)
 
 **Business Rules**:
 
-* **Composite Primary Key 8 Columns**: เพื่อรองรับการรันเลขที่ซับซ้อนและ Reset Scope ที่หลากหลาย
-* **Concurrency Control**: ใช้ Redis Lock หรือ Optimistic Locking (version)
-* **Reset Scope**: ใช้ Field `reset_scope` ควบคุมการ Reset แทน `current_year` แบบเดิม
+- **Composite Primary Key 8 Columns**: เพื่อรองรับการรันเลขที่ซับซ้อนและ Reset Scope ที่หลากหลาย
+- **Concurrency Control**: ใช้ Redis Lock หรือ Optimistic Locking (version)
+- **Reset Scope**: ใช้ Field `reset_scope` ควบคุมการ Reset แทน `current_year` แบบเดิม
 
 ---
 
@@ -1589,39 +1582,39 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: Audit log for document number generation (Debugging & Tracking)
 
-| Column Name                | Data Type    | Constraints        | Description                             |
-| :------------------------- | :----------- | :----------------- | :-------------------------------------- |
-| id                         | INT          | PK, AI             | ID ของ audit record                     |
-| document_id                | INT          | NULL, FK           | ID ของเอกสารที่สร้างเลขที่ (NULL if failed)  |
-| document_type              | VARCHAR(50)  | NULL               | ประเภทเอกสาร                            |
-| document_number            | VARCHAR(100) | NOT NULL           | เลขที่เอกสารที่สร้าง (ผลลัพธ์)                 |
-| operation                  | ENUM         | DEFAULT 'CONFIRM'  | RESERVE, CONFIRM, MANUAL_OVERRIDE, etc. |
-| status                     | ENUM         | DEFAULT 'RESERVED' | RESERVED, CONFIRMED, CANCELLED, VOID    |
-| counter_key                | JSON         | NOT NULL           | Counter key ที่ใช้ (JSON 8 fields)         |
-| reservation_token          | VARCHAR(36)  | NULL               | Token การจอง                            |
-| idempotency_key            | VARCHAR(128) | NULL               | Idempotency Key from request            |
+| Column Name                | Data Type    | Constraints        | Description                                 |
+| :------------------------- | :----------- | :----------------- | :------------------------------------------ |
+| id                         | INT          | PK, AI             | ID ของ audit record                         |
+| document_id                | INT          | NULL, FK           | ID ของเอกสารที่สร้างเลขที่ (NULL if failed) |
+| document_type              | VARCHAR(50)  | NULL               | ประเภทเอกสาร                                |
+| document_number            | VARCHAR(100) | NOT NULL           | เลขที่เอกสารที่สร้าง (ผลลัพธ์)              |
+| operation                  | ENUM         | DEFAULT 'CONFIRM'  | RESERVE, CONFIRM, MANUAL_OVERRIDE, etc.     |
+| status                     | ENUM         | DEFAULT 'RESERVED' | RESERVED, CONFIRMED, CANCELLED, VOID        |
+| counter_key                | JSON         | NOT NULL           | Counter key ที่ใช้ (JSON 8 fields)          |
+| reservation_token          | VARCHAR(36)  | NULL               | Token การจอง                                |
+| idempotency_key            | VARCHAR(128) | NULL               | Idempotency Key from request                |
 | originator_organization_id | INT          | NULL               | องค์กรผู้ส่ง                                |
 | recipient_organization_id  | INT          | NULL               | องค์กรผู้รับ                                |
 | template_used              | VARCHAR(200) | NOT NULL           | Template ที่ใช้ในการสร้าง                   |
-| old_value                  | TEXT         | NULL               | Previous value                          |
-| new_value                  | TEXT         | NULL               | New value                               |
-| user_id                    | INT          | NULL, FK           | ผู้ขอสร้างเลขที่                             |
-| is_success                 | BOOLEAN      | DEFAULT TRUE       | สถานะความสำเร็จ                           |
-| created_at                 | TIMESTAMP    | DEFAULT NOW        | วันที่/เวลาที่สร้าง                           |
-| total_duration_ms          | INT          | NULL               | เวลารวมทั้งหมดในการสร้าง (ms)              |
+| old_value                  | TEXT         | NULL               | Previous value                              |
+| new_value                  | TEXT         | NULL               | New value                                   |
+| user_id                    | INT          | NULL, FK           | ผู้ขอสร้างเลขที่                            |
+| is_success                 | BOOLEAN      | DEFAULT TRUE       | สถานะความสำเร็จ                             |
+| created_at                 | TIMESTAMP    | DEFAULT NOW        | วันที่/เวลาที่สร้าง                         |
+| total_duration_ms          | INT          | NULL               | เวลารวมทั้งหมดในการสร้าง (ms)               |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (document_id) REFERENCES correspondences(id) ON DELETE CASCADE
-* FOREIGN KEY (user_id) REFERENCES users(user_id)
-* INDEX (document_id)
-* INDEX (user_id)
-* INDEX (status)
-* INDEX (operation)
-* INDEX (document_number)
-* INDEX (reservation_token)
-* INDEX (created_at)
+- PRIMARY KEY (id)
+- FOREIGN KEY (document_id) REFERENCES correspondences(id) ON DELETE CASCADE
+- FOREIGN KEY (user_id) REFERENCES users(user_id)
+- INDEX (document_id)
+- INDEX (user_id)
+- INDEX (status)
+- INDEX (operation)
+- INDEX (document_number)
+- INDEX (reservation_token)
+- INDEX (created_at)
 
 ---
 
@@ -1633,20 +1626,20 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | :------------ | :-------- | :---------- | :--------------------------------------------- |
 | id            | INT       | PK, AI      | ID ของ error record                            |
 | error_type    | ENUM      | NOT NULL    | LOCK_TIMEOUT, VERSION_CONFLICT, DB_ERROR, etc. |
-| error_message | TEXT      | NULL        | ข้อความ error                                   |
-| stack_trace   | TEXT      | NULL        | Stack trace สำหรับ debugging                     |
+| error_message | TEXT      | NULL        | ข้อความ error                                  |
+| stack_trace   | TEXT      | NULL        | Stack trace สำหรับ debugging                   |
 | context_data  | JSON      | NULL        | Context ของ request                            |
-| user_id       | INT       | NULL        | ผู้ที่เกิด error                                    |
-| created_at    | TIMESTAMP | DEFAULT NOW | วันที่เกิด error                                   |
-| resolved_at   | TIMESTAMP | NULL        | วันที่แก้ไขแล้ว                                     |
+| user_id       | INT       | NULL        | ผู้ที่เกิด error                               |
+| created_at    | TIMESTAMP | DEFAULT NOW | วันที่เกิด error                               |
+| resolved_at   | TIMESTAMP | NULL        | วันที่แก้ไขแล้ว                                |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* INDEX (error_type)
-* INDEX (created_at)
-* INDEX (user_id)
-* INDEX (resolved_at)
+- PRIMARY KEY (id)
+- INDEX (error_type)
+- INDEX (created_at)
+- INDEX (user_id)
+- INDEX (resolved_at)
 
 ---
 
@@ -1658,26 +1651,26 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | :--------------------- | :----------- | :--------------- | :----------------------------------- |
 | id                     | INT          | PK, AI           | Unique ID                            |
 | token                  | VARCHAR(36)  | UNIQUE, NOT NULL | UUID v4 Reservation Token            |
-| document_number        | VARCHAR(100) | UNIQUE, NOT NULL | เลขที่เอกสารที่จอง                       |
+| document_number        | VARCHAR(100) | UNIQUE, NOT NULL | เลขที่เอกสารที่จอง                   |
 | document_number_status | ENUM         | DEFAULT RESERVED | RESERVED, CONFIRMED, CANCELLED, VOID |
-| document_id            | INT          | NULL, FK         | ID ของเอกสาร (เมื่อ Confirm แล้ว)       |
-| expires_at             | DATETIME(6)  | NOT NULL         | เวลาหมดอายุการจอง                     |
+| document_id            | INT          | NULL, FK         | ID ของเอกสาร (เมื่อ Confirm แล้ว)    |
+| expires_at             | DATETIME(6)  | NOT NULL         | เวลาหมดอายุการจอง                    |
 | project_id             | INT          | NOT NULL, FK     | Project Context                      |
 | user_id                | INT          | NOT NULL, FK     | User Context                         |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (document_id) REFERENCES correspondence_revisions(id) ON DELETE SET NULL
-* FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-* FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE
-* FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-* INDEX idx_token (token)
-* INDEX idx_status (document_number_status)
-* INDEX idx_status_expires (document_number_status, expires_at)
-* INDEX idx_document_id (document_id)
-* INDEX idx_user_id (user_id)
-* INDEX idx_reserved_at (reserved_at)
+- PRIMARY KEY (id)
+- FOREIGN KEY (document_id) REFERENCES correspondence_revisions(id) ON DELETE SET NULL
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+- FOREIGN KEY (correspondence_type_id) REFERENCES correspondence_types(id) ON DELETE CASCADE
+- FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+- INDEX idx_token (token)
+- INDEX idx_status (document_number_status)
+- INDEX idx_status_expires (document_number_status, expires_at)
+- INDEX idx_document_id (document_id)
+- INDEX idx_user_id (user_id)
+- INDEX idx_reserved_at (reserved_at)
 
 ---
 
@@ -1687,23 +1680,23 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: เก็บแม่แบบ (Template) ของ Workflow (Definition / DSL)
 
-| Column Name   | Data Type   | Constraints  | Description                            |
-| :------------ | :---------- | :----------- | :------------------------------------- |
-| id            | CHAR(36)    | PK, UUID     | Unique Workflow Definition ID          |
-| workflow_code | VARCHAR(50) | NOT NULL     | รหัส Workflow (เช่น RFA_FLOW_V1)         |
-| version       | INT         | DEFAULT 1    | หมายเลข Version                        |
-| description   | TEXT        | NULL         | คำอธิบาย Workflow                        |
+| Column Name   | Data Type   | Constraints  | Description                               |
+| :------------ | :---------- | :----------- | :---------------------------------------- |
+| id            | CHAR(36)    | PK, UUID     | Unique Workflow Definition ID             |
+| workflow_code | VARCHAR(50) | NOT NULL     | รหัส Workflow (เช่น RFA_FLOW_V1)          |
+| version       | INT         | DEFAULT 1    | หมายเลข Version                           |
+| description   | TEXT        | NULL         | คำอธิบาย Workflow                         |
 | dsl           | JSON        | NOT NULL     | นิยาม Workflow ต้นฉบับ (YAML/JSON Format) |
-| compiled      | JSON        | NOT NULL     | โครงสร้าง Execution Tree ที่ Compile แล้ว  |
-| is_active     | BOOLEAN     | DEFAULT TRUE | สถานะการใช้งาน                          |
-| created_at    | TIMESTAMP   | DEFAULT NOW  | วันที่สร้าง                                |
-| updated_at    | TIMESTAMP   | ON UPDATE    | วันที่แก้ไขล่าสุด                            |
+| compiled      | JSON        | NOT NULL     | โครงสร้าง Execution Tree ที่ Compile แล้ว |
+| is_active     | BOOLEAN     | DEFAULT TRUE | สถานะการใช้งาน                            |
+| created_at    | TIMESTAMP   | DEFAULT NOW  | วันที่สร้าง                               |
+| updated_at    | TIMESTAMP   | ON UPDATE    | วันที่แก้ไขล่าสุด                         |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* UNIQUE KEY (workflow_code, version)
-* INDEX (is_active)
+- PRIMARY KEY (id)
+- UNIQUE KEY (workflow_code, version)
+- INDEX (is_active)
 
 ---
 
@@ -1714,21 +1707,21 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 | Column Name   | Data Type   | Constraints      | Description                                    |
 | :------------ | :---------- | :--------------- | :--------------------------------------------- |
 | id            | CHAR(36)    | PK, UUID         | Unique Instance ID                             |
-| definition_id | CHAR(36)    | FK, NOT NULL     | อ้างอิง Definition ที่ใช้                           |
+| definition_id | CHAR(36)    | FK, NOT NULL     | อ้างอิง Definition ที่ใช้                      |
 | entity_type   | VARCHAR(50) | NOT NULL         | ประเภทเอกสาร (rfa_revision, correspondence...) |
 | entity_id     | VARCHAR(50) | NOT NULL         | ID ของเอกสาร                                   |
-| current_state | VARCHAR(50) | NOT NULL         | สถานะปัจจุบัน                                     |
+| current_state | VARCHAR(50) | NOT NULL         | สถานะปัจจุบัน                                  |
 | status        | ENUM        | DEFAULT 'ACTIVE' | ACTIVE, COMPLETED, CANCELLED, TERMINATED       |
-| context       | JSON        | NULL             | ตัวแปร Context สำหรับตัดสินใจ                       |
-| created_at    | TIMESTAMP   | DEFAULT NOW      | เวลาที่สร้าง                                      |
-| updated_at    | TIMESTAMP   | ON UPDATE        | เวลาที่อัปเดตล่าสุด                                 |
+| context       | JSON        | NULL             | ตัวแปร Context สำหรับตัดสินใจ                  |
+| created_at    | TIMESTAMP   | DEFAULT NOW      | เวลาที่สร้าง                                   |
+| updated_at    | TIMESTAMP   | ON UPDATE        | เวลาที่อัปเดตล่าสุด                            |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (definition_id) REFERENCES workflow_definitions(id) ON DELETE CASCADE
-* INDEX (entity_type, entity_id)
-* INDEX (current_state)
+- PRIMARY KEY (id)
+- FOREIGN KEY (definition_id) REFERENCES workflow_definitions(id) ON DELETE CASCADE
+- INDEX (entity_type, entity_id)
+- INDEX (current_state)
 
 ---
 
@@ -1736,30 +1729,31 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: เก็บประวัติการดำเนินการในแต่ละ Step (Audit Trail)
 
-| Column Name       | Data Type   | Constraints  | Description           |
-| :---------------- | :---------- | :----------- | :-------------------- |
-| id                | CHAR(36)    | PK, UUID     | Unique ID             |
-| instance_id       | CHAR(36)    | FK, NOT NULL | อ้างอิง Instance        |
-| from_state        | VARCHAR(50) | NOT NULL     | สถานะต้นทาง            |
-| to_state          | VARCHAR(50) | NOT NULL     | สถานะปลายทาง          |
-| action            | VARCHAR(50) | NOT NULL     | Action ที่กระทำ          |
-| action_by_user_id | INT         | FK, NULL     | User ID ผู้กระทำ         |
-| comment           | TEXT        | NULL         | ความเห็น               |
+| Column Name       | Data Type   | Constraints  | Description               |
+| :---------------- | :---------- | :----------- | :------------------------ |
+| id                | CHAR(36)    | PK, UUID     | Unique ID                 |
+| instance_id       | CHAR(36)    | FK, NOT NULL | อ้างอิง Instance          |
+| from_state        | VARCHAR(50) | NOT NULL     | สถานะต้นทาง               |
+| to_state          | VARCHAR(50) | NOT NULL     | สถานะปลายทาง              |
+| action            | VARCHAR(50) | NOT NULL     | Action ที่กระทำ           |
+| action_by_user_id | INT         | FK, NULL     | User ID ผู้กระทำ          |
+| comment           | TEXT        | NULL         | ความเห็น                  |
 | metadata          | JSON        | NULL         | Snapshot ข้อมูล ณ ขณะนั้น |
-| created_at        | TIMESTAMP   | DEFAULT NOW  | เวลาที่กระทำ             |
+| created_at        | TIMESTAMP   | DEFAULT NOW  | เวลาที่กระทำ              |
 
 **Indexes**:
 
-* PRIMARY KEY (id)
-* FOREIGN KEY (instance_id) REFERENCES workflow_instances(id) ON DELETE CASCADE
-* INDEX (instance_id)
-* INDEX (action_by_user_id)
+- PRIMARY KEY (id)
+- FOREIGN KEY (instance_id) REFERENCES workflow_instances(id) ON DELETE CASCADE
+- INDEX (instance_id)
+- INDEX (action_by_user_id)
 
 ---
 
 ## **11. 🖥️ System & Logs Tables (ระบบ, บันทึก)**
 
 > **Audit Logging Architecture:**
+
 ### 1. Audit Logging
 
 **Table: `audit_logs`**
@@ -1792,23 +1786,21 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 ---
 
-
 ### 11.1 json_schemas (UPDATE v1.7.0)
 
 **Purpose**: เก็บ Schema สำหรับ Validate JSON Columns (Req 3.12)
 
-| Column Name       | Data Type    | Constraints  | Description                      |
-| :---------------- | :----------- | :----------- | :------------------------------- |
-| id                | INT          | PK, AI       | Unique ID                        |
-| schema_code       | VARCHAR(100) | NOT NULL     | รหัส Schema (เช่น RFA_DWG)         |
-| version           | INT          | DEFAULT 1    | เวอร์ชันของ Schema                 |
+| Column Name       | Data Type    | Constraints  | Description                         |
+| :---------------- | :----------- | :----------- | :---------------------------------- |
+| id                | INT          | PK, AI       | Unique ID                           |
+| schema_code       | VARCHAR(100) | NOT NULL     | รหัส Schema (เช่น RFA_DWG)          |
+| version           | INT          | DEFAULT 1    | เวอร์ชันของ Schema                  |
 | table_name        | VARCHAR(100) | NOT NULL     | ชื่อตารางเป้าหมาย                   |
-| schema_definition | JSON         | NOT NULL     | JSON Schema Definition           |
+| schema_definition | JSON         | NOT NULL     | JSON Schema Definition              |
 | ui_schema         | JSON         | NULL         | โครงสร้าง UI Schema สำหรับ Frontend |
 | virtual_columns   | JSON         | NULL         | Config สำหรับสร้าง Virtual Columns  |
-| migration_script  | JSON         | NULL         | Script สำหรับแปลงข้อมูล              |
-| is_active         | BOOLEAN      | DEFAULT TRUE | สถานะการใช้งาน                    |
-
+| migration_script  | JSON         | NULL         | Script สำหรับแปลงข้อมูล             |
+| is_active         | BOOLEAN      | DEFAULT TRUE | สถานะการใช้งาน                      |
 
 ---
 
@@ -1832,14 +1824,15 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Indexes**:
 
-* PRIMARY KEY (audit_id, created_at) -- **Partition Key**
-* INDEX idx_audit_user (user_id)
-* INDEX idx_audit_action (action)
-* INDEX idx_audit_entity (entity_type, entity_id)
-* INDEX idx_audit_created (created_at)
+- PRIMARY KEY (audit_id, created_at) -- **Partition Key**
+- INDEX idx_audit_user (user_id)
+- INDEX idx_audit_action (action)
+- INDEX idx_audit_entity (entity_type, entity_id)
+- INDEX idx_audit_created (created_at)
 
 **Partitioning**:
-* **PARTITION BY RANGE (YEAR(created_at))**: แบ่ง Partition รายปี เพื่อประสิทธิภาพในการเก็บข้อมูลระยะยาว
+
+- **PARTITION BY RANGE (YEAR(created_at))**: แบ่ง Partition รายปี เพื่อประสิทธิภาพในการเก็บข้อมูลระยะยาว
 
 ---
 
@@ -1847,30 +1840,31 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 
 **Purpose**: System notifications for users
 
-| Column Name       | Data Type    | Constraints                 | Description               |
-| :---------------- | :----------- | :-------------------------- | :------------------------ |
-| id                | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique notification ID    |
-| uuid              | UUID   | NOT NULL, DEFAULT           | UUID Public Identifier (ADR-019) |
-| user_id           | INT          | NOT NULL, FK                | Recipient user ID         |
-| title             | VARCHAR(255) | NOT NULL                    | Notification title        |
-| message           | TEXT         | NOT NULL                    | Notification body         |
-| notification_type | ENUM         | NOT NULL                    | Type: EMAIL, LINE, SYSTEM |
-| is_read           | BOOLEAN      | DEFAULT FALSE               | Read status               |
-| entity_type       | VARCHAR(50)  | NULL                        | Related Entity Type       |
-| entity_id         | INT          | NULL                        | Related Entity ID         |
-| created_at        | DATETIME     | DEFAULT CURRENT_TIMESTAMP   | Notification timestamp    |
+| Column Name       | Data Type    | Constraints                 | Description                      |
+| :---------------- | :----------- | :-------------------------- | :------------------------------- |
+| id                | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique notification ID           |
+| uuid              | UUID         | NOT NULL, DEFAULT           | UUID Public Identifier (ADR-019) |
+| user_id           | INT          | NOT NULL, FK                | Recipient user ID                |
+| title             | VARCHAR(255) | NOT NULL                    | Notification title               |
+| message           | TEXT         | NOT NULL                    | Notification body                |
+| notification_type | ENUM         | NOT NULL                    | Type: EMAIL, LINE, SYSTEM        |
+| is_read           | BOOLEAN      | DEFAULT FALSE               | Read status                      |
+| entity_type       | VARCHAR(50)  | NULL                        | Related Entity Type              |
+| entity_id         | INT          | NULL                        | Related Entity ID                |
+| created_at        | DATETIME     | DEFAULT CURRENT_TIMESTAMP   | Notification timestamp           |
 
 **Indexes**:
 
-* PRIMARY KEY (id, created_at) -- **Partition Key**
-* INDEX idx_notif_user (user_id)
-* INDEX idx_notif_type (notification_type)
-* INDEX idx_notif_read (is_read)
-* INDEX idx_notif_created (created_at)
-* INDEX idx_notifications_uuid (uuid)
+- PRIMARY KEY (id, created_at) -- **Partition Key**
+- INDEX idx_notif_user (user_id)
+- INDEX idx_notif_type (notification_type)
+- INDEX idx_notif_read (is_read)
+- INDEX idx_notif_created (created_at)
+- INDEX idx_notifications_uuid (uuid)
 
 **Partitioning**:
-* **PARTITION BY RANGE (YEAR(created_at))**: แบ่ง Partition รายปี
+
+- **PARTITION BY RANGE (YEAR(created_at))**: แบ่ง Partition รายปี
 
 ---
 
@@ -1909,6 +1903,7 @@ SET NULL - INDEX (is_active) - INDEX (email) ** Relationships **: - Parent: orga
 ## **13. 📊 Index Summaries (สรุป Index)**
 
 > **Performance Optimization Strategy:**
+
 ### 1. Indexing Strategy
 
 **Primary Indexes:**
@@ -1958,7 +1953,6 @@ PARTITION BY RANGE (YEAR(created_at)) (
 
 ---
 
-
 ### 13.1 Performance Indexes
 
 | Table Name               | Index Columns                                     | Purpose                        |
@@ -1997,26 +1991,26 @@ PARTITION BY RANGE (YEAR(created_at)) (
 
 ### 14.1 Soft Delete Policy
 
-* **Tables with `deleted_at`**:
-  * users
-  * organizations
-  * projects
-  * contracts
-  * correspondences
-  * rfas
-  * shop_drawings
-  * contract_drawings
-* **Rule**: Records are never physically deleted. `deleted_at` is set to timestamp.
-* **Query Rule**: All standard queries MUST include `WHERE deleted_at IS NULL`.
+- **Tables with `deleted_at`**:
+  - users
+  - organizations
+  - projects
+  - contracts
+  - correspondences
+  - rfas
+  - shop_drawings
+  - contract_drawings
+- **Rule**: Records are never physically deleted. `deleted_at` is set to timestamp.
+- **Query Rule**: All standard queries MUST include `WHERE deleted_at IS NULL`.
 
 ### 14.2 Foreign Key Cascades
 
-* **ON DELETE CASCADE**:
-  * Used for child tables that cannot exist without parent (e.g., `correspondence_revisions`, `rfa_revisions`, `correspondence_attachments`).
-* **ON DELETE RESTRICT**:
-  * Used for master data references to prevent accidental deletion of used data (e.g., `correspondence_types`, `organizations`).
-* **ON DELETE SET NULL**:
-  * Used for optional references (e.g., `created_by`, `originator_id`).
+- **ON DELETE CASCADE**:
+  - Used for child tables that cannot exist without parent (e.g., `correspondence_revisions`, `rfa_revisions`, `correspondence_attachments`).
+- **ON DELETE RESTRICT**:
+  - Used for master data references to prevent accidental deletion of used data (e.g., `correspondence_types`, `organizations`).
+- **ON DELETE SET NULL**:
+  - Used for optional references (e.g., `created_by`, `originator_id`).
 
 ---
 
@@ -2024,15 +2018,15 @@ PARTITION BY RANGE (YEAR(created_at)) (
 
 ### 15.1 Row-Level Security (RLS) Logic
 
-* **Organization Scope**: Users can only see documents where `originator_id` OR `recipient_organization_id` matches their organization.
-* **Project Scope**: Users can only see documents within projects they are assigned to.
-* **Confidentiality**: Documents marked `is_confidential` are visible ONLY to specific roles or users.
+- **Organization Scope**: Users can only see documents where `originator_id` OR `recipient_organization_id` matches their organization.
+- **Project Scope**: Users can only see documents within projects they are assigned to.
+- **Confidentiality**: Documents marked `is_confidential` are visible ONLY to specific roles or users.
 
 ### 15.2 Role-Based Access Control (RBAC)
 
-* **Permissions** are granular (e.g., `correspondence.view`, `correspondence.create`).
-* **Roles** aggregate permissions (e.g., `Document Controller` = `view` + `create` + `edit`).
-* **Assignments** link Users to Roles within a Context (Global, Project, or Organization).
+- **Permissions** are granular (e.g., `correspondence.view`, `correspondence.create`).
+- **Roles** aggregate permissions (e.g., `Document Controller` = `view` + `create` + `edit`).
+- **Assignments** link Users to Roles within a Context (Global, Project, or Organization).
 
 ---
 
@@ -2041,131 +2035,138 @@ PARTITION BY RANGE (YEAR(created_at)) (
 ### 16.1 Initial Seeding (V1.7.0)
 
 1. **Master Data**:
-    * `organizations`: Owner, Consultant, Contractor
-    * `projects`: LCBP3
-    * `correspondence_types`: LETTER, MEMO, TRANSMITTAL, RFA
-    * `rfa_types`: DWG, MAT, DOC, RFI
-    * `rfa_status_codes`: DFT, PEND, APPR, REJ
-    * `disciplines`: GEN, STR, ARC, MEP
+   - `organizations`: Owner, Consultant, Contractor
+   - `projects`: LCBP3
+   - `correspondence_types`: LETTER, MEMO, TRANSMITTAL, RFA
+   - `rfa_types`: DWG, MAT, DOC, RFI
+   - `rfa_status_codes`: DFT, PEND, APPR, REJ
+   - `disciplines`: GEN, STR, ARC, MEP
 2. **System Users**:
-    * `admin`: Super Admin
-    * `system`: System Bot for automated tasks
+   - `admin`: Super Admin
+   - `system`: System Bot for automated tasks
 
 ### 16.2 Migration Strategy
 
-* **Schema Migration**: Use TypeORM Migrations or raw SQL scripts (versioned).
-* **Data Migration**:
-  * **V1.6.0 -> V1.7.0**:
-    * Run SQL script `9_lcbp3_v1_7_0.sql`
-    * Migrate `document_number_counters` to 8-col composite PK.
-    * Initialize `document_number_reservations`.
-    * Update `json_schemas` with new columns.
+- **Schema Migration**: Use TypeORM Migrations or raw SQL scripts (versioned).
+- **Data Migration**:
+  - **V1.6.0 -> V1.7.0**:
+    - Run SQL script `9_lcbp3_v1_7_0.sql`
+    - Migrate `document_number_counters` to 8-col composite PK.
+    - Initialize `document_number_reservations`.
+    - Update `json_schemas` with new columns.
 
 ---
-
 
 ### 16.3 Temporary Migration Tracking Tables (V1.8.0 n8n Migration)
 
 ตารางเหล่านี้ถูกใช้ชั่วคราวระหว่างกระบวนการ Migrate เอกสาร PDF 20,000 ฉบับด้วย n8n (ดูรายละเอียดใน  3-05-n8n-migration-setup-guide.md) และไม่ใช่ตาราง Business หลักของระบบ
 
 #### 16.3.1 migration_progress
+
 **Purpose**: เก็บ Checkpoint สถานะการ Migrate
 
 | Column Name          | Data Type   | Constraints                         | Description                        |
 | :------------------- | :---------- | :---------------------------------- | :--------------------------------- |
-| batch_id             | VARCHAR(50) | PRIMARY KEY                         | รหัสชุดการ Migrate                   |
-| last_processed_index | INT         | DEFAULT 0                           | ลำดับล่าสุดที่ประมวลผลผ่าน                |
+| batch_id             | VARCHAR(50) | PRIMARY KEY                         | รหัสชุดการ Migrate                 |
+| last_processed_index | INT         | DEFAULT 0                           | ลำดับล่าสุดที่ประมวลผลผ่าน         |
 | status               | ENUM        | DEFAULT 'RUNNING'                   | สถานะ (RUNNING, COMPLETED, FAILED) |
-| updated_at           | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP ON UPDATE | เวลาอัปเดตล่าสุด                      |
+| updated_at           | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP ON UPDATE | เวลาอัปเดตล่าสุด                   |
 
 #### 16.3.2 migration_review_queue
-**Purpose**: คิวเอกสารที่ต้องการให้เจ้าหน้าที่ตรวจสอบ (Confidence ต่ำกว่าเกณฑ์)
-*หมายเหตุ: เมื่อตรวจสอบผ่านและสร้าง Correspondence จริงแล้ว ข้อมูลในนี้อาจถูกลบหรือเก็บเป็น Log ได้*
 
-| Column Name           | Data Type    | Constraints                 | Description                         |
-| :-------------------- | :----------- | :-------------------------- | :---------------------------------- |
-| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique ID                           |
-| document_number       | VARCHAR(100) | NOT NULL, UNIQUE            | เลขที่เอกสาร (จาก OCR)                |
-| title                 | TEXT         |                             | ชื่อเรื่อง                              |
+**Purpose**: คิวเอกสารที่ต้องการให้เจ้าหน้าที่ตรวจสอบ (Confidence ต่ำกว่าเกณฑ์)
+_หมายเหตุ: เมื่อตรวจสอบผ่านและสร้าง Correspondence จริงแล้ว ข้อมูลในนี้อาจถูกลบหรือเก็บเป็น Log ได้_
+
+| Column Name           | Data Type    | Constraints                 | Description                                |
+| :-------------------- | :----------- | :-------------------------- | :----------------------------------------- |
+| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique ID                                  |
+| document_number       | VARCHAR(100) | NOT NULL, UNIQUE            | เลขที่เอกสาร (จาก OCR)                     |
+| title                 | TEXT         |                             | ชื่อเรื่อง                                 |
 | original_title        | TEXT         |                             | ชื่อเรื่องต้นฉบับก่อนตรวจสอบ               |
-| ai_suggested_category | VARCHAR(50)  |                             | หมวดหมู่ที่ AI แนะนำ                     |
-| ai_confidence         | DECIMAL(4,3) |                             | ค่าความมั่นใจของ AI (0.000 - 1.000)    |
-| ai_issues             | JSON         |                             | รายละเอียดปัญหาที่ AI พบ                |
+| ai_suggested_category | VARCHAR(50)  |                             | หมวดหมู่ที่ AI แนะนำ                       |
+| ai_confidence         | DECIMAL(4,3) |                             | ค่าความมั่นใจของ AI (0.000 - 1.000)        |
+| ai_issues             | JSON         |                             | รายละเอียดปัญหาที่ AI พบ                   |
 | review_reason         | VARCHAR(255) |                             | เหตุผลที่ต้องตรวจสอบ (เช่น Confidence ต่ำ) |
-| status                | ENUM         | DEFAULT 'PENDING'           | PENDING, APPROVED, REJECTED         |
-| reviewed_by           | VARCHAR(100) |                             | ผู้ตรวจสอบ                            |
-| reviewed_at           | TIMESTAMP    | NULL                        | เวลาที่ตรวจสอบ                        |
+| status                | ENUM         | DEFAULT 'PENDING'           | PENDING, APPROVED, REJECTED                |
+| reviewed_by           | VARCHAR(100) |                             | ผู้ตรวจสอบ                                 |
+| reviewed_at           | TIMESTAMP    | NULL                        | เวลาที่ตรวจสอบ                             |
 | created_at            | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | วันที่บันทึกเข้าคิว                        |
 
 #### 16.3.3 migration_errors
+
 **Purpose**: บันทึกข้อผิดพลาด (Errors) ระหว่างการทำงานของ n8n workflow
 
 | Column Name     | Data Type    | Constraints                 | Description                                         |
 | :-------------- | :----------- | :-------------------------- | :-------------------------------------------------- |
 | id              | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique ID                                           |
-| batch_id        | VARCHAR(50)  | INDEX                       | รหัสชุดการ Migrate                                    |
-| document_number | VARCHAR(100) |                             | เลขที่เอกสาร                                          |
+| batch_id        | VARCHAR(50)  | INDEX                       | รหัสชุดการ Migrate                                  |
+| document_number | VARCHAR(100) |                             | เลขที่เอกสาร                                        |
 | error_type      | ENUM         | INDEX                       | ประเภท Error (FILE_NOT_FOUND, AI_PARSE_ERROR, etc.) |
-| error_message   | TEXT         |                             | รายละเอียด Error                                     |
-| raw_ai_response | TEXT         |                             | Raw response จาก AI กรณีแปลผลไม่ได้                    |
-| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | วันที่บันทึก                                             |
+| error_message   | TEXT         |                             | รายละเอียด Error                                    |
+| raw_ai_response | TEXT         |                             | Raw response จาก AI กรณีแปลผลไม่ได้                 |
+| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | วันที่บันทึก                                        |
 
 #### 16.3.4 migration_fallback_state
+
 **Purpose**: ติดตามสถานะ Fallback ของ AI (เช่น เปลี่ยน Model เมื่อ Error ถี่)
 
-| Column Name        | Data Type   | Constraints                         | Description                  |
-| :----------------- | :---------- | :---------------------------------- | :--------------------------- |
-| id                 | INT         | PRIMARY KEY, AUTO_INCREMENT         | Unique ID                    |
-| batch_id           | VARCHAR(50) | UNIQUE                              | รหัสชุดการ Migrate             |
-| recent_error_count | INT         | DEFAULT 0                           | จำนวน Error รวดล่าสุด           |
+| Column Name        | Data Type   | Constraints                         | Description                   |
+| :----------------- | :---------- | :---------------------------------- | :---------------------------- |
+| id                 | INT         | PRIMARY KEY, AUTO_INCREMENT         | Unique ID                     |
+| batch_id           | VARCHAR(50) | UNIQUE                              | รหัสชุดการ Migrate            |
+| recent_error_count | INT         | DEFAULT 0                           | จำนวน Error รวดล่าสุด         |
 | is_fallback_active | BOOLEAN     | DEFAULT FALSE                       | สถานะการใช้งาน Fallback Model |
-| updated_at         | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP ON UPDATE | เวลาอัปเดตล่าสุด                |
+| updated_at         | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP ON UPDATE | เวลาอัปเดตล่าสุด              |
 
 #### 16.3.5 import_transactions
+
 **Purpose**: ป้องกันข้อมูลซ้ำ (Idempotency) ระหว่างการ Patch ข้อมูล
 
 | Column Name     | Data Type    | Constraints                 | Description               |
 | :-------------- | :----------- | :-------------------------- | :------------------------ |
 | id              | INT          | PRIMARY KEY, AUTO_INCREMENT | Unique ID                 |
-| idempotency_key | VARCHAR(255) | UNIQUE, NOT NULL            | Key สำหรับเช็คซ้ำ              |
-| document_number | VARCHAR(100) |                             | เลขที่เอกสาร                |
-| batch_id        | VARCHAR(100) |                             | รหัสชุดการ Migrate          |
+| idempotency_key | VARCHAR(255) | UNIQUE, NOT NULL            | Key สำหรับเช็คซ้ำ         |
+| document_number | VARCHAR(100) |                             | เลขที่เอกสาร              |
+| batch_id        | VARCHAR(100) |                             | รหัสชุดการ Migrate        |
 | status_code     | INT          | DEFAULT 201                 | HTTP Status ของการ Import |
-| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | วันที่บันทึก                   |
+| created_at      | TIMESTAMP    | DEFAULT CURRENT_TIMESTAMP   | วันที่บันทึก              |
 
 #### 16.3.6 migration_daily_summary
+
 **Purpose**: สรุปยอดการทำงานรายวันแยกตาม Batch
 
-| Column Name     | Data Type   | Constraints                 | Description       |
-| :-------------- | :---------- | :-------------------------- | :---------------- |
-| id              | INT         | PRIMARY KEY, AUTO_INCREMENT | Unique ID         |
-| batch_id        | VARCHAR(50) | UNIQUE KEY PART 1           | รหัสชุดการ Migrate  |
-| summary_date    | DATE        | UNIQUE KEY PART 2           | วันที่สรุป            |
-| total_processed | INT         | DEFAULT 0                   | จำนวนที่ประมวลผลรวม  |
+| Column Name     | Data Type   | Constraints                 | Description               |
+| :-------------- | :---------- | :-------------------------- | :------------------------ |
+| id              | INT         | PRIMARY KEY, AUTO_INCREMENT | Unique ID                 |
+| batch_id        | VARCHAR(50) | UNIQUE KEY PART 1           | รหัสชุดการ Migrate        |
+| summary_date    | DATE        | UNIQUE KEY PART 2           | วันที่สรุป                |
+| total_processed | INT         | DEFAULT 0                   | จำนวนที่ประมวลผลรวม       |
 | auto_ingested   | INT         | DEFAULT 0                   | จำนวนที่เข้าสู่ระบบสำเร็จ |
-| sent_to_review  | INT         | DEFAULT 0                   | จำนวนที่ส่งคิวตรวจสอบ  |
-| rejected        | INT         | DEFAULT 0                   | จำนวนที่ถูกปฏิเสธ      |
-| errors          | INT         | DEFAULT 0                   | จำนวนที่เกิด Error    |
-| created_at      | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP   | วันที่บันทึก           |
+| sent_to_review  | INT         | DEFAULT 0                   | จำนวนที่ส่งคิวตรวจสอบ     |
+| rejected        | INT         | DEFAULT 0                   | จำนวนที่ถูกปฏิเสธ         |
+| errors          | INT         | DEFAULT 0                   | จำนวนที่เกิด Error        |
+| created_at      | TIMESTAMP   | DEFAULT CURRENT_TIMESTAMP   | วันที่บันทึก              |
 
 ---
+
 ## **17. 📈 Monitoring & Maintenance (การดูแลรักษา)**
 
 ### 17.1 Database Maintenance
 
-* **Daily**: Incremental Backup.
-* **Weekly**: Full Backup + `OPTIMIZE TABLE` for heavy tables (`audit_logs`, `notifications`).
-* **Monthly**: Archive old `audit_logs` partitions to cold storage.
+- **Daily**: Incremental Backup.
+- **Weekly**: Full Backup + `OPTIMIZE TABLE` for heavy tables (`audit_logs`, `notifications`).
+- **Monthly**: Archive old `audit_logs` partitions to cold storage.
 
 ### 17.2 Health Checks
 
-* Monitor `document_number_errors` for numbering failures.
-* Monitor `workflow_instances` for stuck workflows (`status = ' IN_PROGRESS '` > 7 days).
-* Check `document_number_counters` for gaps or resets.
+- Monitor `document_number_errors` for numbering failures.
+- Monitor `workflow_instances` for stuck workflows (`status = ' IN_PROGRESS '` > 7 days).
+- Check `document_number_counters` for gaps or resets.
 
 ---
 
 ## **18. 📚 Best Practices**
+
 ### 1. Naming Conventions
 
 - **Tables**: `snake_case`, plural (e.g., `correspondences`, `users`)
@@ -2205,17 +2206,16 @@ SELECT * FROM correspondences WHERE deleted_at IS NULL;
 
 ## **19. 📖 Glossary (คำศัพท์)**
 
-* **RFA**: Request for Approval (เอกสารขออนุมัติ)
-* **Transmittal**: Document Transmittal Sheet (ใบนำส่งเอกสาร)
-* **Shop Drawing**: แบบก่อสร้างที่ผู้รับเหมาจัดทำ
-* **Contract Drawing**: แบบสัญญา (แบบตั้งต้น)
-* **Revision**: ฉบับแก้ไข (0, 1, 2, A, B, C)
-* **Originator**: ผู้จัดทำ/ผู้ส่งเอกสาร
-* **Recipient**: ผู้รับเอกสาร
-* **Workflow**: กระบวนการทำงาน/อนุมัติ
-* **Discipline**: สาขางาน (เช่น โยธา, สถาปัตย์, ไฟฟ้า)
+- **RFA**: Request for Approval (เอกสารขออนุมัติ)
+- **Transmittal**: Document Transmittal Sheet (ใบนำส่งเอกสาร)
+- **Shop Drawing**: แบบก่อสร้างที่ผู้รับเหมาจัดทำ
+- **Contract Drawing**: แบบสัญญา (แบบตั้งต้น)
+- **Revision**: ฉบับแก้ไข (0, 1, 2, A, B, C)
+- **Originator**: ผู้จัดทำ/ผู้ส่งเอกสาร
+- **Recipient**: ผู้รับเอกสาร
+- **Workflow**: กระบวนการทำงาน/อนุมัติ
+- **Discipline**: สาขางาน (เช่น โยธา, สถาปัตย์, ไฟฟ้า)
 
 ---
 
 **End of Data Dictionary V1.8.0**
-

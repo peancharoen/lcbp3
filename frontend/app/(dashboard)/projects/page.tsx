@@ -1,22 +1,15 @@
 // File: app/(dashboard)/projects/page.tsx
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Plus, Search, MoreHorizontal, Folder, Calendar, BarChart3 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import { Plus, Search, MoreHorizontal, Folder, Calendar, BarChart3 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,22 +17,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
+} from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 
 // Type สำหรับข้อมูล Project (Mockup ตาม Data Dictionary)
 interface Project {
   id: number;
   projectCode: string;
   projectName: string;
-  status: "Active" | "Completed" | "On Hold";
+  status: 'Active' | 'Completed' | 'On Hold';
   progress: number;
   startDate: string;
   endDate: string;
@@ -50,56 +36,61 @@ interface Project {
 const mockProjects: Project[] = [
   {
     id: 1,
-    projectCode: "LCBP3",
-    projectName: "โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)",
-    status: "Active",
+    projectCode: 'LCBP3',
+    projectName: 'โครงการพัฒนาท่าเรือแหลมฉบัง ระยะที่ 3 (ส่วนที่ 1-4)',
+    status: 'Active',
     progress: 45,
-    startDate: "2021-01-01",
-    endDate: "2025-12-31",
-    contractorName: "Multiple Contractors",
+    startDate: '2021-01-01',
+    endDate: '2025-12-31',
+    contractorName: 'Multiple Contractors',
   },
   {
     id: 2,
-    projectCode: "LCBP3-C1",
-    projectName: "งานก่อสร้างงานทางทะเล (ส่วนที่ 1)",
-    status: "Active",
+    projectCode: 'LCBP3-C1',
+    projectName: 'งานก่อสร้างงานทางทะเล (ส่วนที่ 1)',
+    status: 'Active',
     progress: 70,
-    startDate: "2021-06-01",
-    endDate: "2024-06-01",
-    contractorName: "CNNC",
+    startDate: '2021-06-01',
+    endDate: '2024-06-01',
+    contractorName: 'CNNC',
   },
   {
     id: 3,
-    projectCode: "LCBP3-C2",
-    projectName: "งานก่อสร้างอาคาร ท่าเทียบเรือ (ส่วนที่ 2)",
-    status: "Active",
+    projectCode: 'LCBP3-C2',
+    projectName: 'งานก่อสร้างอาคาร ท่าเทียบเรือ (ส่วนที่ 2)',
+    status: 'Active',
     progress: 15,
-    startDate: "2023-01-01",
-    endDate: "2026-01-01",
-    contractorName: "ITD-NWR Joint Venture",
+    startDate: '2023-01-01',
+    endDate: '2026-01-01',
+    contractorName: 'ITD-NWR Joint Venture',
   },
 ];
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredProjects = mockProjects.filter((project) =>
-    project.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.projectCode.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProjects = mockProjects.filter(
+    (project) =>
+      project.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.projectCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case "Active": return "success"; // ใช้ variant ที่เรา custom ไว้ใน badge.tsx
-      case "Completed": return "default";
-      case "On Hold": return "warning";
-      default: return "secondary";
+      case 'Active':
+        return 'success'; // ใช้ variant ที่เรา custom ไว้ใน badge.tsx
+      case 'Completed':
+        return 'default';
+      case 'On Hold':
+        return 'warning';
+      default:
+        return 'secondary';
     }
   };
 
   const handleCreateProject = () => {
-    router.push("/projects/new"); // อัปเดตเป็นลิงก์จริง
+    router.push('/projects/new'); // อัปเดตเป็นลิงก์จริง
   };
 
   const handleViewDetails = (id: number) => {
@@ -112,9 +103,7 @@ export default function ProjectsPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Projects</h2>
-          <p className="text-muted-foreground">
-            จัดการโครงการ สัญญา และความคืบหน้า
-          </p>
+          <p className="text-muted-foreground">จัดการโครงการ สัญญา และความคืบหน้า</p>
         </div>
         <Button onClick={handleCreateProject} className="w-full md:w-auto">
           <Plus className="mr-2 h-4 w-4" /> New Project
@@ -149,7 +138,11 @@ export default function ProjectsPage() {
           </TableHeader>
           <TableBody>
             {filteredProjects.map((project) => (
-              <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewDetails(project.id)}>
+              <TableRow
+                key={project.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => handleViewDetails(project.id)}
+              >
                 <TableCell className="font-medium">{project.projectCode}</TableCell>
                 <TableCell>
                   <div className="flex flex-col">
@@ -161,16 +154,12 @@ export default function ProjectsPage() {
                 </TableCell>
                 <TableCell>{project.contractorName}</TableCell>
                 <TableCell>
-                  <Badge variant={getStatusVariant(project.status)}>
-                    {project.status}
-                  </Badge>
+                  <Badge variant={getStatusVariant(project.status)}>{project.status}</Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Progress value={project.progress} className="h-2" />
-                    <span className="text-xs text-muted-foreground w-[30px] text-right">
-                      {project.progress}%
-                    </span>
+                    <span className="text-xs text-muted-foreground w-[30px] text-right">{project.progress}%</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -183,14 +172,29 @@ export default function ProjectsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(project.id); }}>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewDetails(project.id);
+                        }}
+                      >
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); alert(`Manage Contracts for ${project.projectCode}`); }}>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alert(`Manage Contracts for ${project.projectCode}`);
+                        }}
+                      >
                         Manage Contracts
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); alert(`Edit ${project.projectCode}`); }}>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alert(`Edit ${project.projectCode}`);
+                        }}
+                      >
                         Edit Project
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -205,14 +209,16 @@ export default function ProjectsPage() {
       {/* Mobile View: Cards */}
       <div className="grid gap-4 md:hidden">
         {filteredProjects.map((project) => (
-          <Card key={project.id} onClick={() => handleViewDetails(project.id)} className="cursor-pointer active:bg-muted/50">
+          <Card
+            key={project.id}
+            onClick={() => handleViewDetails(project.id)}
+            className="cursor-pointer active:bg-muted/50"
+          >
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-base font-bold">{project.projectCode}</CardTitle>
-                  <CardDescription className="mt-1 line-clamp-2">
-                    {project.projectName}
-                  </CardDescription>
+                  <CardDescription className="mt-1 line-clamp-2">{project.projectName}</CardDescription>
                 </div>
                 <Badge variant={getStatusVariant(project.status)} className="shrink-0">
                   {project.status}
@@ -226,7 +232,9 @@ export default function ProjectsPage() {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                <span>{project.startDate} - {project.endDate}</span>
+                <span>
+                  {project.startDate} - {project.endDate}
+                </span>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">

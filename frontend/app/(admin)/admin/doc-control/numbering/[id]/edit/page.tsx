@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { TemplateEditor } from '@/components/numbering/template-editor';
 import { SequenceViewer } from '@/components/numbering/sequence-viewer';
-import { numberingApi } from '@/lib/api/numbering';
+import { numberingApi, SaveTemplateDto } from '@/lib/api/numbering';
 import { NumberingTemplate } from '@/lib/api/numbering';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
@@ -29,18 +29,18 @@ export default function EditTemplatePage() {
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const selectedProjectName =
-    projects.find((p: { id?: number; uuid?: string; projectCode: string; projectName: string }) => p.id === projectId)?.projectName ||
-    'LCBP3';
+    projects.find((p: { id?: number; uuid?: string; projectCode: string; projectName: string }) => p.id === projectId)
+      ?.projectName || 'LCBP3';
 
   useEffect(() => {
     const fetchTemplate = async () => {
       setLoading(true);
       try {
-        const data = await numberingApi.getTemplate(parseInt(id));
+        const data = await numberingApi.getTemplate(Number(id));
         if (data) {
           setTemplate(data);
         }
-      } catch (error) {
+      } catch {
         toast.error('Failed to load template');
       } finally {
         setLoading(false);
@@ -51,16 +51,28 @@ export default function EditTemplatePage() {
   }, [id]);
 
   const handleSave = async (data: Partial<NumberingTemplate>) => {
+    if (!template) return;
     try {
-      await numberingApi.saveTemplate({ ...data, id: parseInt(id) });
+      // Map to SaveTemplateDto ensuring all required fields are present
+      const payload: SaveTemplateDto = {
+        id: Number(id),
+        projectId: data.projectId ?? template.projectId,
+        correspondenceTypeId: data.correspondenceTypeId ?? template.correspondenceTypeId,
+        formatTemplate: data.formatTemplate ?? template.formatTemplate,
+        disciplineId: data.disciplineId ?? template.disciplineId,
+        description: data.description ?? template.description,
+        resetSequenceYearly: data.resetSequenceYearly ?? template.resetSequenceYearly,
+        isActive: data.isActive ?? template.isActive,
+      };
+      await numberingApi.saveTemplate(payload);
       router.push('/admin/doc-control/numbering');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update template');
     }
   };
 
   const handleCancel = () => {
-    router.push("/admin/numbering");
+    router.push('/admin/doc-control/numbering');
   };
 
   if (loading) {

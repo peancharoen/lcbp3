@@ -1,9 +1,9 @@
-import apiClient from "@/lib/api/client";
-import { NotificationResponse } from "@/types/notification";
+import apiClient from '@/lib/api/client';
+import { NotificationResponse } from '@/types/notification';
 
 export const notificationService = {
   getUnread: async (): Promise<NotificationResponse> => {
-    const response = await apiClient.get("/notifications/unread");
+    const response = await apiClient.get('/notifications/unread');
     // Backend should return { items: [], unreadCount: number }
     // Or just items and we count on frontend, but typically backend gives count.
     return response.data;
@@ -17,5 +17,5 @@ export const notificationService = {
   markAllAsRead: async () => {
     const response = await apiClient.patch(`/notifications/read-all`);
     return response.data;
-  }
+  },
 };

@@ -21,5 +21,5 @@ export class EvaluateWorkflowDto {
   @ApiProperty({ description: 'Context', example: { userId: 1 } })
   @IsObject()
   @IsOptional()
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }

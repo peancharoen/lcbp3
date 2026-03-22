@@ -90,9 +90,9 @@ export class WorkflowEngineService {
 
     const saved = await this.workflowDefRepo.save(entity);
     this.logger.log(
-      `Created Workflow Definition: ${(saved as WorkflowDefinition).workflow_code} v${(saved as WorkflowDefinition).version}`
+      `Created Workflow Definition: ${saved.workflow_code} v${saved.version}`
     );
-    return saved as WorkflowDefinition;
+    return saved;
   }
 
   /**
@@ -258,7 +258,7 @@ export class WorkflowEngineService {
     action: string,
     userId: number,
     comment?: string,
-    payload: Record<string, any> = {}
+    payload: Record<string, unknown> = {}
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -341,7 +341,7 @@ export class WorkflowEngineService {
 
       // [NEW] Dispatch Events (Async) ผ่าน WorkflowEventService
       if (eventsToDispatch && eventsToDispatch.length > 0) {
-        this.eventService.dispatchEvents(
+        void this.eventService.dispatchEvents(
           instance.id,
           eventsToDispatch,
           updatedContext
@@ -368,7 +368,7 @@ export class WorkflowEngineService {
   /**
    * (Utility) Evaluate แบบไม่บันทึกผล (Dry Run) สำหรับ Test หรือ Preview
    */
-  async evaluate(dto: EvaluateWorkflowDto): Promise<any> {
+  async evaluate(dto: EvaluateWorkflowDto): Promise<unknown> {
     const definition = await this.workflowDefRepo.findOne({
       where: { workflow_code: dto.workflow_code, is_active: true },
       order: { version: 'DESC' },
@@ -401,9 +401,8 @@ export class WorkflowEngineService {
     action: string,
     returnToSequence?: number
   ): TransitionResult {
-    switch (action) {
-      case WorkflowAction.APPROVE:
-      case WorkflowAction.ACKNOWLEDGE:
+    const act = action.toUpperCase();
+    switch (act) {
       case 'APPROVE':
       case 'ACKNOWLEDGE':
         if (currentSequence >= totalSteps) {
@@ -418,7 +417,6 @@ export class WorkflowEngineService {
           shouldUpdateStatus: false,
         };
 
-      case WorkflowAction.REJECT:
       case 'REJECT':
         return {
           nextStepSequence: null,
@@ -426,8 +424,7 @@ export class WorkflowEngineService {
           documentStatus: 'REJECTED',
         };
 
-      case WorkflowAction.RETURN:
-      case 'RETURN':
+      case 'RETURN': {
         const targetStep = returnToSequence || currentSequence - 1;
         if (targetStep < 1) {
           throw new BadRequestException('Cannot return beyond the first step');
@@ -437,6 +434,7 @@ export class WorkflowEngineService {
           shouldUpdateStatus: true,
           documentStatus: 'REVISE_REQUIRED',
         };
+      }
 
       default:
         this.logger.warn(

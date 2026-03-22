@@ -1,13 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { createTestQueryClient } from '@/lib/test-utils';
-import {
-  useProjects,
-  useCreateProject,
-  useUpdateProject,
-  useDeleteProject,
-  projectKeys,
-} from '../use-projects';
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject, projectKeys } from '../use-projects';
 import { projectService } from '@/lib/services/project.service';
 import { toast } from 'sonner';
 
@@ -30,11 +24,7 @@ describe('use-projects hooks', () => {
   describe('projectKeys', () => {
     it('should generate correct cache keys', () => {
       expect(projectKeys.all).toEqual(['projects']);
-      expect(projectKeys.list({ search: 'test' })).toEqual([
-        'projects',
-        'list',
-        { search: 'test' },
-      ]);
+      expect(projectKeys.list({ search: 'test' })).toEqual(['projects', 'list', { search: 'test' }]);
       expect(projectKeys.detail(1)).toEqual(['projects', 'detail', 1]);
     });
   });

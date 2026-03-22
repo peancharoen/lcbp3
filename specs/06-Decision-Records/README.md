@@ -28,42 +28,42 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 ### Core Architecture Decisions
 
-| ADR                                                 | Title                       | Status     | Date       | Summary                                                                   |
-| --------------------------------------------------- | --------------------------- | ---------- | ---------- | ------------------------------------------------------------------------- |
+| ADR                                                 | Title                       | Status      | Date       | Summary                                                                      |
+| --------------------------------------------------- | --------------------------- | ----------- | ---------- | ---------------------------------------------------------------------------- |
 | [ADR-001](./ADR-001-unified-workflow-engine.md)     | Unified Workflow Engine     | ✅ Accepted | 2026-02-24 | ใช้ DSL-based Workflow Engine สำหรับ Correspondences, RFAs, และ Circulations |
-| [ADR-002](./ADR-002-document-numbering-strategy.md) | Document Numbering Strategy | ✅ Accepted | 2026-02-24 | Double-lock mechanism (Redis + DB Optimistic Lock) สำหรับเลขที่เอกสาร         |
+| [ADR-002](./ADR-002-document-numbering-strategy.md) | Document Numbering Strategy | ✅ Accepted | 2026-02-24 | Double-lock mechanism (Redis + DB Optimistic Lock) สำหรับเลขที่เอกสาร        |
 
 ### Security & Access Control
 
-| ADR                                             | Title                              | Status     | Date       | Summary                                      |
-| ----------------------------------------------- | ---------------------------------- | ---------- | ---------- | -------------------------------------------- |
+| ADR                                             | Title                              | Status      | Date       | Summary                                      |
+| ----------------------------------------------- | ---------------------------------- | ----------- | ---------- | -------------------------------------------- |
 | [ADR-016](./ADR-016-security-authentication.md) | Security & Authentication Strategy | ✅ Accepted | 2026-02-24 | JWT + bcrypt + OWASP Security Best Practices |
 
 ### Technology & Infrastructure
 
-| ADR                                                 | Title                                | Status               | Date       | Summary                                                      |
-| --------------------------------------------------- | ------------------------------------ | -------------------- | ---------- | ------------------------------------------------------------ |
+| ADR                                                 | Title                                | Status                | Date       | Summary                                                         |
+| --------------------------------------------------- | ------------------------------------ | --------------------- | ---------- | --------------------------------------------------------------- |
 | [ADR-005](./ADR-005-technology-stack.md)            | Technology Stack Selection           | ✅ Accepted           | 2026-02-24 | Full Stack TypeScript: NestJS 11 + Next.js 16 + MariaDB + Redis |
-| [ADR-006](./ADR-006-redis-caching-strategy.md)      | Redis Usage & Caching Strategy       | ✅ Accepted           | 2026-02-24 | Redis สำหรับ Distributed Lock, Cache, Queue, และ Rate Limiting |
-| [ADR-009](./ADR-009-database-migration-strategy.md) | Database Migration & Deployment      | ✅ Accepted (Pending) | 2026-02-24 | TypeORM Migrations พร้อม Blue-Green Deployment                |
-| [ADR-015](./ADR-015-deployment-infrastructure.md)   | Deployment & Infrastructure Strategy | ✅ Accepted           | 2026-02-24 | Docker Compose with Blue-Green Deployment on QNAP            |
+| [ADR-006](./ADR-006-redis-caching-strategy.md)      | Redis Usage & Caching Strategy       | ✅ Accepted           | 2026-02-24 | Redis สำหรับ Distributed Lock, Cache, Queue, และ Rate Limiting  |
+| [ADR-009](./ADR-009-database-migration-strategy.md) | Database Migration & Deployment      | ✅ Accepted (Pending) | 2026-02-24 | TypeORM Migrations พร้อม Blue-Green Deployment                  |
+| [ADR-015](./ADR-015-deployment-infrastructure.md)   | Deployment & Infrastructure Strategy | ✅ Accepted           | 2026-02-24 | Docker Compose with Blue-Green Deployment on QNAP               |
 
 ### API & Integration
 
-| ADR                                                 | Title                         | Status                      | Date       | Summary                                                                     |
-| --------------------------------------------------- | ----------------------------- | --------------------------- | ---------- | --------------------------------------------------------------------------- |
+| ADR                                                 | Title                         | Status                       | Date       | Summary                                                                       |
+| --------------------------------------------------- | ----------------------------- | ---------------------------- | ---------- | ----------------------------------------------------------------------------- |
 | [ADR-008](./ADR-008-email-notification-strategy.md) | Email & Notification Strategy | ✅ Accepted (Pending Review) | 2026-02-24 | BullMQ + Redis Queue สำหรับ Multi-channel Notifications (Email, LINE, In-app) |
 
 ### Observability
 
-| ADR                                                 | Title                         | Status               | Date       | Summary                                                      |
-| --------------------------------------------------- | ----------------------------- | -------------------- | ---------- | ------------------------------------------------------------ |
+| ADR                                                 | Title                         | Status                | Date       | Summary                                                       |
+| --------------------------------------------------- | ----------------------------- | --------------------- | ---------- | ------------------------------------------------------------- |
 | [ADR-010](./ADR-010-logging-monitoring-strategy.md) | Logging & Monitoring Strategy | ✅ Accepted (Pending) | 2026-02-24 | Winston Structured Logging พร้อม Future ELK Stack Integration |
 
 ### Frontend Architecture
 
-| ADR                                              | Title                            | Status     | Date       | Summary                                               |
-| ------------------------------------------------ | -------------------------------- | ---------- | ---------- | ----------------------------------------------------- |
+| ADR                                              | Title                            | Status      | Date       | Summary                                               |
+| ------------------------------------------------ | -------------------------------- | ----------- | ---------- | ----------------------------------------------------- |
 | [ADR-011](./ADR-011-nextjs-app-router.md)        | Next.js App Router & Routing     | ✅ Accepted | 2025-12-01 | App Router with Server Components and Nested Layouts  |
 | [ADR-012](./ADR-012-ui-component-library.md)     | UI Component Library (Shadcn/UI) | ✅ Accepted | 2026-02-24 | Shadcn/UI + Tailwind CSS for Full Component Ownership |
 | [ADR-013](./ADR-013-form-handling-validation.md) | Form Handling & Validation       | ✅ Accepted | 2026-02-24 | React Hook Form + Zod for Type-Safe Forms             |
@@ -71,9 +71,9 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 ### Data & Identity
 
-| ADR                                                          | Title                        | Status     | Date       | Summary                                                  |
-| ------------------------------------------------------------ | ---------------------------- | ---------- | ---------- | -------------------------------------------------------- |
-| [ADR-019](./ADR-019-hybrid-identifier-strategy.md)           | Hybrid Identifier Strategy   | ✅ Accepted | 2026-03-11 | INT PK (internal) + UUIDv7 (public API) on 14 tables     |
+| ADR                                                | Title                      | Status      | Date       | Summary                                              |
+| -------------------------------------------------- | -------------------------- | ----------- | ---------- | ---------------------------------------------------- |
+| [ADR-019](./ADR-019-hybrid-identifier-strategy.md) | Hybrid Identifier Strategy | ✅ Accepted | 2026-03-11 | INT PK (internal) + UUIDv7 (public API) on 14 tables |
 
 ---
 

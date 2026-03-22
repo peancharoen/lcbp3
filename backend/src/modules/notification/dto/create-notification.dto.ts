@@ -4,7 +4,7 @@ import {
   IsOptional,
   IsEnum,
   IsNotEmpty,
-  IsUrl,
+  _IsUrl,
 } from 'class-validator';
 import { NotificationType } from '../entities/notification.entity';
 

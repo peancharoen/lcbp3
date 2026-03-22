@@ -201,13 +201,7 @@
 
 ```typescript
 // File: backend/src/common/filters/global-exception.filter.ts
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -268,10 +262,7 @@ export class BusinessException extends HttpException {
 }
 
 // Usage
-throw new BusinessException(
-  'Cannot approve correspondence in current status',
-  'INVALID_WORKFLOW_TRANSITION'
-);
+throw new BusinessException('Cannot approve correspondence in current status', 'INVALID_WORKFLOW_TRANSITION');
 ```
 
 ### 6. Validation Pipe Configuration

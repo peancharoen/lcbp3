@@ -41,7 +41,10 @@ export class TransmittalService {
     private uuidResolver: UuidResolverService
   ) {}
 
-  async create(createDto: CreateTransmittalDto, user: User) {
+  async create(
+    createDto: CreateTransmittalDto,
+    user: User
+  ): Promise<Transmittal & { correspondence: Correspondence }> {
     // 1. Get Transmittal Type (Assuming Code '901' or 'TRN')
     const type = await this.typeRepo.findOne({
       where: { typeCode: 'TRN' }, // Adjust code as per Master Data
@@ -144,7 +147,7 @@ export class TransmittalService {
         ...savedTransmittal,
         correspondence: savedCorr,
       };
-    } catch (err) {
+    } catch (err: unknown) {
       await queryRunner.rollbackTransaction();
       this.logger.error(
         `Failed to create transmittal: ${(err as Error).message}`
@@ -159,7 +162,7 @@ export class TransmittalService {
    * ADR-019: Find Transmittal by parent Correspondence UUID (public identifier).
    * Resolves correspondence.uuid → internal correspondenceId (INT)
    */
-  async findOneByUuid(uuid: string) {
+  async findOneByUuid(uuid: string): Promise<Transmittal> {
     const correspondence = await this.dataSource.manager.findOne(
       Correspondence,
       { where: { uuid }, select: ['id'] }
@@ -167,9 +170,10 @@ export class TransmittalService {
     if (!correspondence) {
       throw new NotFoundException(`Transmittal with UUID ${uuid} not found`);
     }
+    return this.findOne(correspondence.id);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<Transmittal> {
     const transmittal = await this.transmittalRepo.findOne({
       where: { correspondenceId: id },
       relations: ['correspondence', 'correspondence.revisions', 'items'],

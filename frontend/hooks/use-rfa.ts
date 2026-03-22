@@ -55,8 +55,7 @@ export function useUpdateRFA() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: UpdateRfaDto }) =>
-      rfaService.update(uuid, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: UpdateRfaDto }) => rfaService.update(uuid, data),
     onSuccess: (_, { uuid }) => {
       toast.success('RFA updated successfully');
       queryClient.invalidateQueries({ queryKey: rfaKeys.detail(uuid) });
@@ -74,8 +73,7 @@ export function useProcessRFA() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ uuid, data }: { uuid: string; data: WorkflowActionDto }) =>
-      rfaService.processWorkflow(uuid, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: WorkflowActionDto }) => rfaService.processWorkflow(uuid, data),
     onSuccess: (_, { uuid }) => {
       toast.success('Workflow status updated successfully');
       queryClient.invalidateQueries({ queryKey: rfaKeys.detail(uuid) });

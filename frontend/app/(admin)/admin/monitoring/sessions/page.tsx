@@ -50,7 +50,11 @@ export default function SessionManagementPage() {
   }
 
   if (error) {
-    return <div className="p-8 text-center text-red-500">{getApiErrorMessage(error, 'Failed to load sessions. Please try again.')}</div>;
+    return (
+      <div className="p-8 text-center text-red-500">
+        {getApiErrorMessage(error, 'Failed to load sessions. Please try again.')}
+      </div>
+    );
   }
 
   return (

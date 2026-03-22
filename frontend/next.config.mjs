@@ -14,8 +14,8 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "**", // อนุญาตทุก Domain สำหรับ Avatar (ในการใช้งานจริงควรระบุ Domain เฉพาะ เช่น googleusercontent.com)
+        protocol: 'https',
+        hostname: '**', // อนุญาตทุก Domain สำหรับ Avatar (ในการใช้งานจริงควรระบุ Domain เฉพาะ เช่น googleusercontent.com)
       },
     ],
     // ลดขนาดไฟล์รูปภาพที่จะถูก optimize
@@ -64,20 +64,20 @@ const nextConfig = {
         headers: [
           {
             key: 'X-DNS-Prefetch-Control',
-            value: 'on'
+            value: 'on',
           },
           {
             key: 'X-XSS-Protection',
-            value: '1; mode=block'
+            value: '1; mode=block',
           },
           {
             key: 'X-Frame-Options',
-            value: 'SAMEORIGIN' // ป้องกันการถูก Embedding ใน Iframe (Clickjacking)
+            value: 'SAMEORIGIN', // ป้องกันการถูก Embedding ใน Iframe (Clickjacking)
           },
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          }
+            value: 'nosniff',
+          },
         ],
       },
     ];

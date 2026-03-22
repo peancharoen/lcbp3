@@ -27,7 +27,6 @@
 ## 📝 Acceptance Criteria
 
 1. **Circulation:**
-
    - ✅ Create circulation sheet
    - ✅ Add assignees (multiple users)
    - ✅ Link documents (correspondences, RFAs)
@@ -213,10 +212,7 @@ export class CirculationService {
     private dataSource: DataSource
   ) {}
 
-  async create(
-    dto: CreateCirculationDto,
-    userId: number
-  ): Promise<Circulation> {
+  async create(dto: CreateCirculationDto, userId: number): Promise<Circulation> {
     return this.dataSource.transaction(async (manager) => {
       // Generate circulation number
       const circulationNumber = await this.docNumbering.generateNextNumber({
@@ -251,21 +247,13 @@ export class CirculationService {
 
       // Link correspondences
       if (dto.correspondence_ids?.length > 0) {
-        const correspondences = await manager.findByIds(
-          Correspondence,
-          dto.correspondence_ids
-        );
+        const correspondences = await manager.findByIds(Correspondence, dto.correspondence_ids);
         circulation.correspondences = correspondences;
         await manager.save(circulation);
       }
 
       // Create workflow instance
-      await this.workflowEngine.createInstance(
-        'CIRCULATION_INTERNAL',
-        'circulation',
-        circulation.id,
-        manager
-      );
+      await this.workflowEngine.createInstance('CIRCULATION_INTERNAL', 'circulation', circulation.id, manager);
 
       return circulation;
     });
@@ -300,11 +288,7 @@ export class CirculationService {
 
     if (allCompleted) {
       await this.circulationRepo.update(circulationId, { status: 'completed' });
-      await this.workflowEngine.executeTransition(
-        circulationId,
-        'COMPLETE',
-        userId
-      );
+      await this.workflowEngine.executeTransition(circulationId, 'COMPLETE', userId);
     }
   }
 }
@@ -327,10 +311,7 @@ export class TransmittalService {
     private dataSource: DataSource
   ) {}
 
-  async create(
-    dto: CreateTransmittalDto,
-    userId: number
-  ): Promise<Transmittal> {
+  async create(dto: CreateTransmittalDto, userId: number): Promise<Transmittal> {
     return this.dataSource.transaction(async (manager) => {
       // Generate transmittal number
       const transmittalNumber = await this.docNumbering.generateNextNumber({
@@ -356,11 +337,7 @@ export class TransmittalService {
       if (dto.items?.length > 0) {
         for (const itemDto of dto.items) {
           // Fetch document details
-          const docDetails = await this.getDocumentDetails(
-            itemDto.document_type,
-            itemDto.document_id,
-            manager
-          );
+          const docDetails = await this.getDocumentDetails(itemDto.document_type, itemDto.document_id, manager);
 
           const item = manager.create(TransmittalItem, {
             transmittal_id: transmittal.id,
@@ -445,12 +422,7 @@ export class CirculationController {
     @Body() dto: CompleteAssignmentDto,
     @CurrentUser() user: User
   ) {
-    return this.service.completeAssignment(
-      circulationId,
-      assigneeId,
-      dto,
-      user.user_id
-    );
+    return this.service.completeAssignment(circulationId, assigneeId, dto, user.user_id);
   }
 }
 ```
@@ -477,17 +449,11 @@ export class TransmittalController {
 
   @Get(':id/pdf')
   @RequirePermission('transmittal.view')
-  async downloadPDF(
-    @Param('id', ParseIntPipe) id: number,
-    @Res() res: Response
-  ) {
+  async downloadPDF(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     const pdf = await this.service.generatePDF(id);
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=transmittal-${id}.pdf`
-    );
+    res.setHeader('Content-Disposition', `attachment; filename=transmittal-${id}.pdf`);
     res.send(pdf);
   }
 }

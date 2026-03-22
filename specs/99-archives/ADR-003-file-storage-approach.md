@@ -280,16 +280,10 @@ export class FileStorageService {
       const now = new Date();
       const year = now.getFullYear();
       const month = (now.getMonth() + 1).toString().padStart(2, '0');
-      const permanentDir = path.join(
-        this.PERMANENT_DIR,
-        year.toString(),
-        month
-      );
+      const permanentDir = path.join(this.PERMANENT_DIR, year.toString(), month);
       await fs.ensureDir(permanentDir);
 
-      const permanentFilename = `${uuidv4()}_${
-        tempAttachment.original_filename
-      }`;
+      const permanentFilename = `${uuidv4()}_${tempAttachment.original_filename}`;
       const permanentPath = path.join(permanentDir, permanentFilename);
 
       // 4. Move file
@@ -348,10 +342,7 @@ export class FileStorageService {
   }
 
   private validateFile(file: Express.Multer.File): void {
-    const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     const maxSize = 50 * 1024 * 1024; // 50MB
 
     if (!allowedTypes.includes(file.mimetype)) {
@@ -397,12 +388,7 @@ export class CorrespondenceController {
 
       // 2. Commit files (within transaction)
       if (dto.temp_file_ids?.length > 0) {
-        await this.fileStorage.commitFiles(
-          dto.temp_file_ids,
-          correspondence.id,
-          'correspondence',
-          manager
-        );
+        await this.fileStorage.commitFiles(dto.temp_file_ids, correspondence.id, 'correspondence', manager);
       }
 
       return correspondence;
@@ -445,17 +431,14 @@ export class CorrespondenceController {
 ### File Validation
 
 1. **Type Validation:**
-
    - Check MIME type
    - Verify Magic Numbers (ไม่ใช่แค่ extension)
 
 2. **Size Validation:**
-
    - Max 50MB per file
    - Total max 500MB per form submission
 
 3. **Virus Scanning:**
-
    - ClamAV integration
    - Scan before saving to temp
 

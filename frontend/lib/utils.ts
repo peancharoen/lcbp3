@@ -1,6 +1,6 @@
 // File: lib/utils.ts
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 /**
  * ฟังก์ชันสำหรับรวม ClassNames โดยใช้ clsx และ tailwind-merge

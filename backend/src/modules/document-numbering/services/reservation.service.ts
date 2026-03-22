@@ -73,7 +73,7 @@ export class ReservationService {
       Date.now() + this.RESERVATION_TTL_MINUTES * 60 * 1000
     );
 
-    const reservation = await this.reservationRepo.save({
+    const _reservation = await this.reservationRepo.save({
       token,
       documentNumber,
       status: ReservationStatus.RESERVED,

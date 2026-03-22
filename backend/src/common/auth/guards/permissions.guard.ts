@@ -12,6 +12,14 @@ import {
   Subjects,
 } from '../casl/ability.factory';
 import { PERMISSIONS_KEY } from '../../decorators/require-permission.decorator';
+import { User } from '../../../modules/user/entities/user.entity';
+
+interface RequestWithUser {
+  user?: User;
+  params: Record<string, string>;
+  body: Record<string, unknown>;
+  query: Record<string, unknown>;
+}
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -20,7 +28,7 @@ export class PermissionsGuard implements CanActivate {
     private abilityFactory: AbilityFactory
   ) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     // Get required permissions from decorator metadata
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
@@ -32,7 +40,7 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
 
     if (!user) {

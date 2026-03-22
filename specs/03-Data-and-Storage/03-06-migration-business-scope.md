@@ -1,17 +1,20 @@
 # 📦 Legacy Data Migration — Business Scope & Governance
 
 ---
+
 title: 'Migration Business Scope, Data Governance, and Go/No-Go Gates'
 version: 1.0.0
 status: DRAFT — Awaiting Stakeholder Confirmation
 owner: Nattanin Peancharoen (PO + Migration Lead)
 last_updated: 2026-03-11
 related:
-  - specs/03-Data-and-Storage/03-04-legacy-data-migration.md   ← Technical Implementation
-  - specs/03-Data-and-Storage/03-05-n8n-migration-setup-guide.md
-  - specs/06-Decision-Records/ADR-017-ollama-data-migration.md
-  - specs/06-Decision-Records/ADR-018-ai-boundary.md
-  - specs/00-Overview/00-04-stakeholder-signoff-and-risk.md     ← Risk Register (RISK-002)
+
+- specs/03-Data-and-Storage/03-04-legacy-data-migration.md ← Technical Implementation
+- specs/03-Data-and-Storage/03-05-n8n-migration-setup-guide.md
+- specs/06-Decision-Records/ADR-017-ollama-data-migration.md
+- specs/06-Decision-Records/ADR-018-ai-boundary.md
+- specs/00-Overview/00-04-stakeholder-signoff-and-risk.md ← Risk Register (RISK-002)
+
 ---
 
 > [!IMPORTANT]
@@ -26,12 +29,12 @@ related:
 
 ## 1. 🎯 Migration Objective
 
-| วัตถุประสงค์ | รายละเอียด |
-|------------|-----------|
-| **Continuity** | ผู้ใช้สามารถค้นหาและอ้างอิงเอกสารเก่าในระบบใหม่ได้ทันที |
-| **Traceability** | Workflow ใหม่สามารถ Link กลับไปยัง Correspondence เก่าได้ |
+| วัตถุประสงค์      | รายละเอียด                                                    |
+| ----------------- | ------------------------------------------------------------- |
+| **Continuity**    | ผู้ใช้สามารถค้นหาและอ้างอิงเอกสารเก่าในระบบใหม่ได้ทันที       |
+| **Traceability**  | Workflow ใหม่สามารถ Link กลับไปยัง Correspondence เก่าได้     |
 | **Searchability** | เอกสารเก่าถูก Index ใน Elasticsearch — ค้นหาได้ด้วย Full-text |
-| **Compliance** | Audit Trail ครบ: รู้ว่าใครนำเข้า เมื่อไหร่ จาก Batch ไหน |
+| **Compliance**    | Audit Trail ครบ: รู้ว่าใครนำเข้า เมื่อไหร่ จาก Batch ไหน      |
 
 ---
 
@@ -39,19 +42,21 @@ related:
 
 ### 2.1 ✅ IN SCOPE — นำเข้าระบบใหม่
 
-| ประเภทเอกสาร | Subdirectory | Volume (ประมาณ) | Priority |
-|-------------|-------------|----------------|---------|
-| **Correspondence** (Letters, RFI) | `CORR/` | ~8,000 ไฟล์ | 🔴 High |
-| **RFA + Shop Drawings** | `RFA/` | ~5,000 ไฟล์ | 🔴 High |
-| **Contract Drawings** | `CD/` | ~3,000 ไฟล์ | 🟠 Medium |
-| **Transmittals** | `TRM/` | ~2,000 ไฟล์ | 🟠 Medium |
-| **Reports & Minutes** | `RPT/` | ~2,000 ไฟล์ | 🟡 Low |
+| ประเภทเอกสาร                      | Subdirectory | Volume (ประมาณ) | Priority  |
+| --------------------------------- | ------------ | --------------- | --------- |
+| **Correspondence** (Letters, RFI) | `CORR/`      | ~8,000 ไฟล์     | 🔴 High   |
+| **RFA + Shop Drawings**           | `RFA/`       | ~5,000 ไฟล์     | 🔴 High   |
+| **Contract Drawings**             | `CD/`        | ~3,000 ไฟล์     | 🟠 Medium |
+| **Transmittals**                  | `TRM/`       | ~2,000 ไฟล์     | 🟠 Medium |
+| **Reports & Minutes**             | `RPT/`       | ~2,000 ไฟล์     | 🟡 Low    |
 
 **ช่วงเวลาที่ Include:**
+
 - **เริ่มต้น:** 1 มกราคม 2564 (โครงการเริ่ม)
 - **สิ้นสุด:** วันก่อน Go-Live — 1 วัน (เอกสารหลังจากนั้นใช้ระบบใหม่)
 
 **เงื่อนไข Include:**
+
 - ไฟล์ต้องเป็น PDF (หรือ DWG สำหรับ Drawing)
 - ไฟล์ต้อง Readable โดย Tika/Ollama (ไม่ Corrupted)
 - มี Row ใน Excel Metadata ที่ตรงกัน (document_number ไม่ว่าง)
@@ -60,16 +65,16 @@ related:
 
 ### 2.2 ❌ OUT OF SCOPE — ไม่นำเข้า
 
-| รายการ | เหตุผล |
-|--------|-------|
-| **เอกสารก่อนปี 2564** | ก่อนเริ่มโครงการ LCBP3 Phase 3 |
-| **Email Body / Attachments ที่ไม่ใช่ PDF** | Format ไม่รองรับ |
-| **Draft ที่ไม่เคย Submit** | ไม่มีเลขเอกสารทางการ |
-| **ไฟล์ที่ Corrupted หรืออ่านไม่ได้** | ไปที่ Reject Log |
-| **ข้อมูล Financial / Cost Records** | ไม่อยู่ใน DMS Scope |
-| **Personal Communication (ไม่มีเลขทางการ)** | ไม่ใช่เอกสารทางการ |
-| **วิดีโอ / รูปภาพ Standalone** | ไม่ใช่ Document |
-| **ไฟล์ DWG ที่ไม่มี PDF คู่** | ออก PDF ก่อนนำเข้า (Admin Task) |
+| รายการ                                      | เหตุผล                          |
+| ------------------------------------------- | ------------------------------- |
+| **เอกสารก่อนปี 2564**                       | ก่อนเริ่มโครงการ LCBP3 Phase 3  |
+| **Email Body / Attachments ที่ไม่ใช่ PDF**  | Format ไม่รองรับ                |
+| **Draft ที่ไม่เคย Submit**                  | ไม่มีเลขเอกสารทางการ            |
+| **ไฟล์ที่ Corrupted หรืออ่านไม่ได้**        | ไปที่ Reject Log                |
+| **ข้อมูล Financial / Cost Records**         | ไม่อยู่ใน DMS Scope             |
+| **Personal Communication (ไม่มีเลขทางการ)** | ไม่ใช่เอกสารทางการ              |
+| **วิดีโอ / รูปภาพ Standalone**              | ไม่ใช่ Document                 |
+| **ไฟล์ DWG ที่ไม่มี PDF คู่**               | ออก PDF ก่อนนำเข้า (Admin Task) |
 
 ---
 
@@ -107,31 +112,31 @@ Tier 3 — นำเข้าภายใน 1 เดือนหลัง Go-Li
 
 ### 3.1 Excel Metadata Schema (Legacy)
 
-| Column | Field ใหม่ | บังคับ | หมายเหตุ |
-|--------|----------|-------|---------|
-| `DOC_NO` | `document_number` | ✅ | ใช้เป็น Idempotency Key |
-| `TITLE` | `title` | ✅ | AI จะ Suggest แก้ไขถ้าผิด Format |
-| `DATE` | `reference_date` | ✅ | วันที่เอกสาร (ไม่ใช่วันนำเข้า) |
-| `FROM_ORG` | `sender_org_id` | ✅ | Map ด้วย org_code lookup table |
-| `TO_ORG` | `receiver_org_id` | ✅ | Map ด้วย org_code lookup table |
-| `TYPE` | `category` | ✅ | AI ตรวจสอบ Enum ที่ถูกต้อง |
-| `DISCIPLINE` | `discipline` | ❌ | Optional — AI Extract จาก Title |
-| `CONTRACT_NO` | `contract_id` | ❌ | Map ด้วย contract lookup table |
-| `PROJECT_NO` | `project_id` | ✅ | ต้องมี (ทุกเอกสาร) |
-| `FILE_PATH` | `source_file_path` | ✅ | Path ใน NAS staging folder |
-| `REVISION` | `revision` | ❌ | Detect จากเลขเอกสาร |
+| Column        | Field ใหม่         | บังคับ | หมายเหตุ                         |
+| ------------- | ------------------ | ------ | -------------------------------- |
+| `DOC_NO`      | `document_number`  | ✅     | ใช้เป็น Idempotency Key          |
+| `TITLE`       | `title`            | ✅     | AI จะ Suggest แก้ไขถ้าผิด Format |
+| `DATE`        | `reference_date`   | ✅     | วันที่เอกสาร (ไม่ใช่วันนำเข้า)   |
+| `FROM_ORG`    | `sender_org_id`    | ✅     | Map ด้วย org_code lookup table   |
+| `TO_ORG`      | `receiver_org_id`  | ✅     | Map ด้วย org_code lookup table   |
+| `TYPE`        | `category`         | ✅     | AI ตรวจสอบ Enum ที่ถูกต้อง       |
+| `DISCIPLINE`  | `discipline`       | ❌     | Optional — AI Extract จาก Title  |
+| `CONTRACT_NO` | `contract_id`      | ❌     | Map ด้วย contract lookup table   |
+| `PROJECT_NO`  | `project_id`       | ✅     | ต้องมี (ทุกเอกสาร)               |
+| `FILE_PATH`   | `source_file_path` | ✅     | Path ใน NAS staging folder       |
+| `REVISION`    | `revision`         | ❌     | Detect จากเลขเอกสาร              |
 
 ### 3.2 Organization Code Mapping
 
 > ต้องสร้าง Lookup Table ก่อนเริ่ม Migration — Superadmin ทำใน Pre-migration Setup
 
-| Legacy Code (Excel) | Organization ใหม่ | org_id (System) |
-|--------------------|-----------------|----------------|
-| กทท. | การท่าเรือแห่งประเทศไทย | TBD (ดูจาก DB) |
-| สค. | สำนักงานโครงการ | TBD |
-| TEAM | TEAM | TBD |
-| คคง. | คณะกรรมการตรวจงาน | TBD |
-| ผรม. | ผู้รับจ้างหลัก | TBD |
+| Legacy Code (Excel) | Organization ใหม่       | org_id (System) |
+| ------------------- | ----------------------- | --------------- |
+| กทท.                | การท่าเรือแห่งประเทศไทย | TBD (ดูจาก DB)  |
+| สค.                 | สำนักงานโครงการ         | TBD             |
+| TEAM                | TEAM                    | TBD             |
+| คคง.                | คณะกรรมการตรวจงาน       | TBD             |
+| ผรม.                | ผู้รับจ้างหลัก          | TBD             |
 
 > **Action Item:** Superadmin ต้อง Fill in `org_id` ก่อน Migration เริ่ม
 
@@ -183,15 +188,15 @@ T+1 เดือน:
 
 ### Gate #1: Before Production Migration Starts (T-3 สัปดาห์)
 
-| เกณฑ์ | ต้องผ่าน | วิธีวัด |
-|-------|---------|--------|
-| Dry Run 2 JSON Parse Success | ≥ 95% | n8n Execution Log |
-| Dry Run 2 AI Category Accuracy | ≥ 90% (Manual Spot-check 50 docs) | Human Review |
-| Idempotency Test: รัน Batch ซ้ำ | 0 Duplicate Records | SQL Count |
-| Organization Mapping ครบ | 100% | Lookup Table review |
-| Frontend Review UI พร้อมใช้งาน | ✅ | UAT Passed สำหรับหน้าจออนุมัติ |
-| Migration Bot Token Active + Whitelisted | ✅ | API Test |
-| Staging NAS Space: ≥ 500GB free | ✅ | QNAP Dashboard |
+| เกณฑ์                                    | ต้องผ่าน                          | วิธีวัด                        |
+| ---------------------------------------- | --------------------------------- | ------------------------------ |
+| Dry Run 2 JSON Parse Success             | ≥ 95%                             | n8n Execution Log              |
+| Dry Run 2 AI Category Accuracy           | ≥ 90% (Manual Spot-check 50 docs) | Human Review                   |
+| Idempotency Test: รัน Batch ซ้ำ          | 0 Duplicate Records               | SQL Count                      |
+| Organization Mapping ครบ                 | 100%                              | Lookup Table review            |
+| Frontend Review UI พร้อมใช้งาน           | ✅                                | UAT Passed สำหรับหน้าจออนุมัติ |
+| Migration Bot Token Active + Whitelisted | ✅                                | API Test                       |
+| Staging NAS Space: ≥ 500GB free          | ✅                                | QNAP Dashboard                 |
 
 **Owner:** Nattanin P. | **Approver:** Org Admin ทุกองค์กร
 
@@ -199,40 +204,40 @@ T+1 เดือน:
 
 ### Gate #2: Before Go-Live (T-1 วัน)
 
-| เกณฑ์ | ต้องผ่าน |
-|-------|---------|
-| Tier 1 Migration: 100% เสร็จ + Verified | ✅ |
-| Tier 2 Migration: ≥ 90% เสร็จ + Verified | ✅ |
-| Review Queue (รวมการพิจารณา AI New Tags): ≤ 5% ค้างอยู่ (Critical Tier 1 = 0%) | ✅ |
-| Migration Bot Token: REVOKED | ✅ |
-| Integrity Queries ผ่านทั้งหมด | ✅ |
-| Legacy System ยังเข้าถึงได้ (Read-only Fallback) | ✅ |
+| เกณฑ์                                                                          | ต้องผ่าน |
+| ------------------------------------------------------------------------------ | -------- |
+| Tier 1 Migration: 100% เสร็จ + Verified                                        | ✅       |
+| Tier 2 Migration: ≥ 90% เสร็จ + Verified                                       | ✅       |
+| Review Queue (รวมการพิจารณา AI New Tags): ≤ 5% ค้างอยู่ (Critical Tier 1 = 0%) | ✅       |
+| Migration Bot Token: REVOKED                                                   | ✅       |
+| Integrity Queries ผ่านทั้งหมด                                                  | ✅       |
+| Legacy System ยังเข้าถึงได้ (Read-only Fallback)                               | ✅       |
 
 ---
 
 ### Gate #3: Post Go-Live (T+30 วัน)
 
-| เกณฑ์ | ต้องผ่าน |
-|-------|---------|
-| Tier 3 Migration: 100% เสร็จ | ✅ |
-| User Search Test: สามารถค้นหา Legacy Doc ใน ES | ✅ |
-| Zero Orphan Files ใน Staging | ✅ |
-| Legacy System Archive เสร็จ (Compress + Store) | ✅ |
+| เกณฑ์                                          | ต้องผ่าน |
+| ---------------------------------------------- | -------- |
+| Tier 3 Migration: 100% เสร็จ                   | ✅       |
+| User Search Test: สามารถค้นหา Legacy Doc ใน ES | ✅       |
+| Zero Orphan Files ใน Staging                   | ✅       |
+| Legacy System Archive เสร็จ (Compress + Store) | ✅       |
 
 ---
 
 ## 6. 🧑‍💼 Data Ownership & Responsibility
 
-| Responsibility | Owner | Action |
-|---------------|-------|--------|
-| **Excel Metadata Quality** | Document Control (สค.) | ทำความสะอาดก่อน T-6 |
-| **File Organization บน NAS** | Nattanin P. + IT | จัด Folder structure |
-| **Organization Lookup Table** | Superadmin (NAP) | สร้างก่อน T-6 |
-| **Tier 1 Document List** | Document Control ทุก Org | ยืนยัน T-5 |
-| **Daily Monitoring (n8n Runs)** | Nattanin P. | T-3 ถึง Go-Live |
-| **Admin Review Queue & AI Tag Approval** | Document Control (สค.) | ทุกเช้าวันทำงาน (บังคับตรวจสอบ New Tags) |
-| **Post-migration Verification** | Nattanin P. | After each Gate |
-| **Legacy System Archival** | กทท. IT + NAP | T+30 |
+| Responsibility                           | Owner                    | Action                                   |
+| ---------------------------------------- | ------------------------ | ---------------------------------------- |
+| **Excel Metadata Quality**               | Document Control (สค.)   | ทำความสะอาดก่อน T-6                      |
+| **File Organization บน NAS**             | Nattanin P. + IT         | จัด Folder structure                     |
+| **Organization Lookup Table**            | Superadmin (NAP)         | สร้างก่อน T-6                            |
+| **Tier 1 Document List**                 | Document Control ทุก Org | ยืนยัน T-5                               |
+| **Daily Monitoring (n8n Runs)**          | Nattanin P.              | T-3 ถึง Go-Live                          |
+| **Admin Review Queue & AI Tag Approval** | Document Control (สค.)   | ทุกเช้าวันทำงาน (บังคับตรวจสอบ New Tags) |
+| **Post-migration Verification**          | Nattanin P.              | After each Gate                          |
+| **Legacy System Archival**               | กทท. IT + NAP            | T+30                                     |
 
 ---
 
@@ -255,6 +260,7 @@ T+1 เดือน:
    - Output ของ AI ต้องผ่าน Backend Validation ก่อน Write
 
 4. **Audit Log**: ทุก Record ที่ Import มี:
+
    ```json
    { "created_by": "SYSTEM_IMPORT", "batch_id": "migration_YYYYMMDD", "action": "IMPORT" }
    ```
@@ -281,6 +287,7 @@ T+1 เดือน:
 ### กรณี Go-Live โดย Tier 2 ไม่เสร็จ (Emergency)
 
 **เปิดใช้ Parallel Operation:**
+
 - ระบบใหม่: เอกสาร Tier 1 + เอกสารใหม่หลัง Go-Live
 - Legacy System: เปิด Read-only สำหรับเอกสาร Tier 2/3 ยังไม่ Migrate
 - Timeline Extension: Tier 2 ต้องเสร็จภายใน T+7 (ไม่เกิน 1 สัปดาห์หลัง Go-Live)
@@ -289,15 +296,15 @@ T+1 เดือน:
 
 ## 9. 📊 Migration Success Metrics
 
-| Metric | Target | วิธีวัด |
-|--------|--------|--------|
-| Total Records Imported | ≥ 95% ของ In-Scope | SQL COUNT vs Excel Row Count |
-| Auto-import Rate (confidence ≥ 0.85) | ≥ 70% | n8n Execution Report |
-| Review Queue Clearance | ≥ 95% ก่อน Go-Live | Review Queue Table |
-| Reject Rate (Corrupted/Unreadable) | < 5% | Reject Log |
-| Duplicate Records | 0 | SQL HAVING COUNT > 1 |
-| Tag Extraction Rate | ≥ 80% ของ Auto-imported docs มี ≥ 1 Tag | SQL |
-| Post-migration Search Hit Rate | ≥ 90% ของ Legacy doc numbers ค้นหาเจอ | Manual Test 100 samples |
+| Metric                               | Target                                  | วิธีวัด                      |
+| ------------------------------------ | --------------------------------------- | ---------------------------- |
+| Total Records Imported               | ≥ 95% ของ In-Scope                      | SQL COUNT vs Excel Row Count |
+| Auto-import Rate (confidence ≥ 0.85) | ≥ 70%                                   | n8n Execution Report         |
+| Review Queue Clearance               | ≥ 95% ก่อน Go-Live                      | Review Queue Table           |
+| Reject Rate (Corrupted/Unreadable)   | < 5%                                    | Reject Log                   |
+| Duplicate Records                    | 0                                       | SQL HAVING COUNT > 1         |
+| Tag Extraction Rate                  | ≥ 80% ของ Auto-imported docs มี ≥ 1 Tag | SQL                          |
+| Post-migration Search Hit Rate       | ≥ 90% ของ Legacy doc numbers ค้นหาเจอ   | Manual Test 100 samples      |
 
 ---
 

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { CorrespondenceRevision } from "@/types/correspondence";
-import { DataTable } from "@/components/common/data-table";
-import { ColumnDef } from "@tanstack/react-table";
-import { StatusBadge } from "@/components/common/status-badge";
-import { Button } from "@/components/ui/button";
-import { Eye, Edit, FileText } from "lucide-react";
-import Link from "next/link";
-import { format } from "date-fns";
+import { CorrespondenceRevision } from '@/types/correspondence';
+import { DataTable } from '@/components/common/data-table';
+import { ColumnDef } from '@tanstack/react-table';
+import { StatusBadge } from '@/components/common/status-badge';
+import { Button } from '@/components/ui/button';
+import { Eye, Edit, FileText } from 'lucide-react';
+import Link from 'next/link';
+import { format } from 'date-fns';
 
 interface CorrespondenceListProps {
   data: CorrespondenceRevision[];
@@ -16,22 +16,20 @@ interface CorrespondenceListProps {
 export function CorrespondenceList({ data }: CorrespondenceListProps) {
   const columns: ColumnDef<CorrespondenceRevision>[] = [
     {
-      accessorKey: "correspondence.correspondenceNumber",
-      header: "Document No.",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.correspondence?.correspondenceNumber}</span>
-      ),
+      accessorKey: 'correspondence.correspondenceNumber',
+      header: 'Document No.',
+      cell: ({ row }) => <span className="font-medium">{row.original.correspondence?.correspondenceNumber}</span>,
     },
     {
-      accessorKey: "revisionLabel",
-      header: "Rev",
+      accessorKey: 'revisionLabel',
+      header: 'Rev',
       cell: ({ row }) => (
         <span className="font-medium">{row.original.revisionLabel || row.original.revisionNumber}</span>
       ),
     },
     {
-      accessorKey: "subject",
-      header: "Subject",
+      accessorKey: 'subject',
+      header: 'Subject',
       cell: ({ row }) => (
         <div className="max-w-[300px] truncate" title={row.original.subject}>
           {row.original.subject}
@@ -39,24 +37,24 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
       ),
     },
     {
-      accessorKey: "correspondence.originator.organizationCode",
-      header: "From",
+      accessorKey: 'correspondence.originator.organizationCode',
+      header: 'From',
       cell: ({ row }) => (
         <span className="font-medium">{row.original.correspondence?.originator?.organizationCode || '-'}</span>
       ),
     },
     {
-      accessorKey: "createdAt",
-      header: "Created",
-      cell: ({ row }) => format(new Date(row.getValue("createdAt")), "dd MMM yyyy"),
+      accessorKey: 'createdAt',
+      header: 'Created',
+      cell: ({ row }) => format(new Date(row.getValue('createdAt')), 'dd MMM yyyy'),
     },
     {
-      accessorKey: "status.statusName",
-      header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status?.statusCode || "UNKNOWN"} />,
+      accessorKey: 'status.statusName',
+      header: 'Status',
+      cell: ({ row }) => <StatusBadge status={row.original.status?.statusCode || 'UNKNOWN'} />,
     },
     {
-      id: "actions",
+      id: 'actions',
       cell: ({ row }) => {
         const item = row.original;
         // Edit/View link goes to the DOCUMENT detail (correspondence.uuid)
@@ -72,23 +70,28 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
                 <Eye className="h-4 w-4" />
               </Button>
             </Link>
-             <Button variant="ghost" size="icon" title="View File" onClick={() => {
+            <Button
+              variant="ghost"
+              size="icon"
+              title="View File"
+              onClick={() => {
                 const attachments = item.attachments; // Now we are on Revision, so attachments might be here if joined
                 if (attachments && attachments.length > 0 && attachments[0].url) {
-                   window.open(attachments[0].url, '_blank');
+                  window.open(attachments[0].url, '_blank');
                 } else {
-                   // Fallback check if attachments are on details json inside revision
-                   // or if we simply didn't join them yet.
-                   // Current Backend join: leftJoinAndSelect('rev.status', 'status') doesn't join attachments explicitly but maybe relation exists?
-                   // Wait, checking Entity... CorrespondenceRevision does NOT have attachments relation in code snippet provided earlier.
-                   // It might be in 'details' JSON or implied.
-                   // Just Alert for now as per previous logic.
-                   alert("ไม่พบไฟล์แนบ (No file attached)");
+                  // Fallback check if attachments are on details json inside revision
+                  // or if we simply didn't join them yet.
+                  // Current Backend join: leftJoinAndSelect('rev.status', 'status') doesn't join attachments explicitly but maybe relation exists?
+                  // Wait, checking Entity... CorrespondenceRevision does NOT have attachments relation in code snippet provided earlier.
+                  // It might be in 'details' JSON or implied.
+                  // Just Alert for now as per previous logic.
+                  alert('ไม่พบไฟล์แนบ (No file attached)');
                 }
-             }}>
-                <FileText className="h-4 w-4" />
-              </Button>
-            {statusCode === "DRAFT" && (
+              }}
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+            {statusCode === 'DRAFT' && (
               <Link href={`/correspondences/${docUuid}/edit`}>
                 <Button variant="ghost" size="icon" title="Edit">
                   <Edit className="h-4 w-4" />

@@ -18,7 +18,7 @@ export function SequenceViewer() {
     try {
       const response = await numberingApi.getSequences();
       // Handle wrapped response { data: [...] } or direct array
-      const data = Array.isArray(response) ? response : (response as { data?: NumberSequence[] })?.data ?? [];
+      const data = Array.isArray(response) ? response : ((response as { data?: NumberSequence[] })?.data ?? []);
       setSequences(data);
     } catch {
       // Failed to fetch sequences - show empty state
@@ -43,12 +43,7 @@ export function SequenceViewer() {
     <Card className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Number Counters</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchSequences}
-          disabled={loading}
-        >
+        <Button variant="outline" size="sm" onClick={fetchSequences} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
@@ -64,9 +59,7 @@ export function SequenceViewer() {
 
       <div className="space-y-2">
         {filteredSequences.length === 0 && (
-          <div className="text-center text-muted-foreground py-4">
-            No sequences found
-          </div>
+          <div className="text-center text-muted-foreground py-4">No sequences found</div>
         )}
         {filteredSequences.map((seq, index) => (
           <div
@@ -78,15 +71,11 @@ export function SequenceViewer() {
                 <span className="font-medium">Year {seq.year}</span>
                 <Badge variant="outline">Project: {seq.projectId}</Badge>
                 <Badge>Type: {seq.typeId}</Badge>
-                {seq.disciplineId > 0 && (
-                  <Badge variant="secondary">Disc: {seq.disciplineId}</Badge>
-                )}
+                {seq.disciplineId > 0 && <Badge variant="secondary">Disc: {seq.disciplineId}</Badge>}
               </div>
               <div className="text-sm text-muted-foreground">
-                <span className="text-foreground font-medium">
-                  Counter: {seq.lastNumber}
-                </span>{' '}
-                | Originator: {seq.originatorId} | Recipient:{' '}
+                <span className="text-foreground font-medium">Counter: {seq.lastNumber}</span> | Originator:{' '}
+                {seq.originatorId} | Recipient:{' '}
                 {seq.recipientOrganizationId === -1 ? 'All' : seq.recipientOrganizationId}
               </div>
             </div>

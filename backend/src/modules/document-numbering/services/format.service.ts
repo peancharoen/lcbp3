@@ -39,13 +39,21 @@ export class FormatService {
     private disciplineRepo: Repository<Discipline>
   ) {}
 
-  async format(options: FormatOptions): Promise<{ previewNumber: string; isDefault: boolean }> {
+  async format(
+    options: FormatOptions
+  ): Promise<{ previewNumber: string; isDefault: boolean }> {
     const { template, isDefault } = await this.resolveFormatAndScope(options);
     const currentYear = options.year || new Date().getFullYear();
     const tokens = await this.resolveTokens(options, currentYear);
 
-    const previewNumber = this.replaceTokens(template, tokens, options.sequence);
-    console.log(`[FormatService] Generated: "${previewNumber}" | Template: "${template}" | isDefault: ${isDefault}`);
+    const previewNumber = this.replaceTokens(
+      template,
+      tokens,
+      options.sequence
+    );
+    //     console.log(
+    //       `[FormatService] Generated: "${previewNumber}" | Template: "${template}" | isDefault: ${isDefault}`
+    //     );
     return { previewNumber, isDefault };
   }
 
@@ -134,7 +142,7 @@ export class FormatService {
     }
     const seqMatch = result.match(/{SEQ:(\d+)}/);
     if (seqMatch) {
-      const padding = parseInt(seqMatch[1], 10);
+      const padding = Number(seqMatch[1]);
       result = result.replace(
         seqMatch[0],
         sequence.toString().padStart(padding, '0')

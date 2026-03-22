@@ -1,34 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  ColumnDef,
-} from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { useForm } from "react-hook-form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useState } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { flexRender, getCoreRowModel, useReactTable, ColumnDef } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
+import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useForm } from 'react-hook-form';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,21 +20,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Field {
   name: string;
   label: string;
-  type: "text" | "number" | "checkbox" | "select" | "textarea";
+  type: 'text' | 'number' | 'checkbox' | 'select' | 'textarea';
   required?: boolean;
   options?: { label: string; value: string | number }[];
 }
@@ -93,7 +69,11 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
   const [editingItem, setEditingId] = useState<number | null>(null);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 
-  const { data: rawData, isLoading, refetch } = useQuery({
+  const {
+    data: rawData,
+    isLoading,
+    _refetch,
+  } = useQuery({
     queryKey,
     queryFn: fetchFn,
   });
@@ -154,14 +134,10 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
     columns: [
       ...columns,
       {
-        id: "actions",
+        id: 'actions',
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleEdit(row.original)}
-            >
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(row.original)}>
               <Pencil className="h-4 w-4" />
             </Button>
             <Button
@@ -183,7 +159,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
     setEditingId(null);
     reset();
     fields.forEach((f) => {
-      if (f.type === "checkbox") setValue(f.name, true);
+      if (f.type === 'checkbox') setValue(f.name, true);
     });
     setIsDialogOpen(true);
   };
@@ -192,11 +168,11 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
     setEditingId(item.id as number);
     reset(item as Record<string, unknown>);
     // Ensure select values are strings for Shadcn Select
-    fields.forEach(f => {
-        const record = item as Record<string, unknown>;
-        if (f.type === 'select' && record[f.name]) {
-            setValue(f.name, String(record[f.name]));
-        }
+    fields.forEach((f) => {
+      const record = item as Record<string, unknown>;
+      if (f.type === 'select' && record[f.name]) {
+        setValue(f.name, String(record[f.name]));
+      }
     });
     setIsDialogOpen(true);
   };
@@ -214,9 +190,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-          {description && (
-            <p className="text-muted-foreground">{description}</p>
-          )}
+          {description && <p className="text-muted-foreground">{description}</p>}
         </div>
         <Button onClick={handleAdd}>
           <Plus className="h-4 w-4 mr-2" /> Add {entityName}
@@ -232,12 +206,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -246,10 +215,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length + 1}
-                  className="h-24 text-center"
-                >
+                <TableCell colSpan={columns.length + 1} className="h-24 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading...
@@ -258,10 +224,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
               </TableRow>
             ) : data.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length + 1}
-                  className="h-24 text-center text-muted-foreground"
-                >
+                <TableCell colSpan={columns.length + 1} className="h-24 text-center text-muted-foreground">
                   No data found.
                 </TableCell>
               </TableRow>
@@ -269,12 +232,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))
@@ -286,17 +244,15 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingItem ? `Edit ${entityName}` : `Add New ${entityName}`}
-            </DialogTitle>
+            <DialogTitle>{editingItem ? `Edit ${entityName}` : `Add New ${entityName}`}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
             {fields.map((field) => (
               <div key={field.name} className="space-y-2">
                 <Label htmlFor={field.name}>
-                  {field.label} {field.required && "*"}
+                  {field.label} {field.required && '*'}
                 </Label>
-                {field.type === "checkbox" ? (
+                {field.type === 'checkbox' ? (
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id={field.name}
@@ -310,11 +266,8 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
                       Active
                     </label>
                   </div>
-                ) : field.type === "select" ? (
-                  <Select
-                    value={String(watch(field.name) || "")}
-                    onValueChange={(val) => setValue(field.name, val)}
-                  >
+                ) : field.type === 'select' ? (
+                  <Select value={String(watch(field.name) || '')} onValueChange={(val) => setValue(field.name, val)}>
                     <SelectTrigger>
                       <SelectValue placeholder={`Select ${field.label}...`} />
                     </SelectTrigger>
@@ -326,57 +279,43 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
                       ))}
                     </SelectContent>
                   </Select>
-                ) : field.type === "textarea" ? (
-                  <Textarea
-                    id={field.name}
-                    {...register(field.name, { required: field.required })}
-                  />
+                ) : field.type === 'textarea' ? (
+                  <Textarea id={field.name} {...register(field.name, { required: field.required })} />
                 ) : (
                   <Input
                     id={field.name}
                     type={field.type}
                     {...register(field.name, {
                       required: field.required,
-                      valueAsNumber: field.type === "number",
+                      valueAsNumber: field.type === 'number',
                     })}
                   />
                 )}
-                {errors[field.name] && (
-                  <p className="text-xs text-red-500 font-medium">
-                    {field.label} is required
-                  </p>
-                )}
+                {errors[field.name] && <p className="text-xs text-red-500 font-medium">{field.label} is required</p>}
               </div>
             ))}
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                 {(createMutation.isPending || updateMutation.isPending) && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                {editingItem ? "Save Changes" : `Add ${entityName}`}
+                {editingItem ? 'Save Changes' : `Add ${entityName}`}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
-        open={itemToDelete !== null}
-        onOpenChange={(open) => !open && setItemToDelete(null)}
-      >
+      <AlertDialog open={itemToDelete !== null} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this{" "}
-              {entityName.toLowerCase()} and remove its data from our servers.
+              This action cannot be undone. This will permanently delete this {entityName.toLowerCase()} and remove its
+              data from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -385,7 +324,7 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
               onClick={() => itemToDelete && deleteMutation.mutate(itemToDelete)}
               className="bg-red-600 hover:bg-red-700"
             >
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

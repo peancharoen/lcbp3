@@ -382,10 +382,7 @@ docker exec lcbp3-redis redis-cli FLUSHDB
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger:
-      process.env.NODE_ENV === 'production'
-        ? ['error', 'warn']
-        : ['log', 'error', 'warn', 'debug'],
+    logger: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['log', 'error', 'warn', 'debug'],
   });
 
   // Enable compression
@@ -465,18 +462,15 @@ echo "Security maintenance completed: $(date)"
 ### Unplanned Maintenance Procedures
 
 1. **Assess Urgency**
-
    - Can it wait for scheduled maintenance?
    - Is it causing active issues?
 
 2. **Communicate Impact**
-
    - Notify stakeholders immediately
    - Estimate downtime
    - Provide updates every 30 minutes
 
 3. **Execute Carefully**
-
    - Always backup first
    - Have rollback plan ready
    - Test in staging if possible

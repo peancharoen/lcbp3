@@ -94,18 +94,18 @@ specs/
 
 ## 📋 Document Index: 10 Documentation Gaps (v1.8.1)
 
-| Gap | เอกสาร | ไฟล์ | สถานะ |
-|-----|--------|------|-------|
-| **1** | Product Vision Statement | `00-Overview/00-03-product-vision.md` | ✅ |
-| **2** | User Stories (27 Stories, 8 Epics) | `01-Requirements/01-04-user-stories.md` | ✅ |
-| **3** | Acceptance Criteria & UAT Plan | `01-Requirements/01-05-acceptance-criteria.md` | ✅ |
-| **4** | UI/UX Wireframes (26 Screens) | `01-Requirements/01-07-ui-wireframes.md` | ✅ |
-| **5** | Stakeholder Sign-off & Risk Register | `00-Overview/00-04-stakeholder-signoff-and-risk.md` | ✅ |
-| **6** | KPI Baseline Data (14 KPIs) | `00-Overview/00-05-kpi-baseline.md` | ✅ |
-| **7** | Migration Business Scope (~20K Docs) | `03-Data-and-Storage/03-06-migration-business-scope.md` | ✅ |
-| **8** | Release Management Policy | `04-Infrastructure-OPS/04-08-release-management-policy.md` | ✅ |
-| **9** | Training Plan (per Role, 4 Phases) | `00-Overview/00-06-training-plan.md` | ✅ |
-| **10** | Edge Cases & Business Rules (37 rules) | `01-Requirements/01-06-edge-cases-and-rules.md` | ✅ |
+| Gap    | เอกสาร                                 | ไฟล์                                                       | สถานะ |
+| ------ | -------------------------------------- | ---------------------------------------------------------- | ----- |
+| **1**  | Product Vision Statement               | `00-Overview/00-03-product-vision.md`                      | ✅    |
+| **2**  | User Stories (27 Stories, 8 Epics)     | `01-Requirements/01-04-user-stories.md`                    | ✅    |
+| **3**  | Acceptance Criteria & UAT Plan         | `01-Requirements/01-05-acceptance-criteria.md`             | ✅    |
+| **4**  | UI/UX Wireframes (26 Screens)          | `01-Requirements/01-07-ui-wireframes.md`                   | ✅    |
+| **5**  | Stakeholder Sign-off & Risk Register   | `00-Overview/00-04-stakeholder-signoff-and-risk.md`        | ✅    |
+| **6**  | KPI Baseline Data (14 KPIs)            | `00-Overview/00-05-kpi-baseline.md`                        | ✅    |
+| **7**  | Migration Business Scope (~20K Docs)   | `03-Data-and-Storage/03-06-migration-business-scope.md`    | ✅    |
+| **8**  | Release Management Policy              | `04-Infrastructure-OPS/04-08-release-management-policy.md` | ✅    |
+| **9**  | Training Plan (per Role, 4 Phases)     | `00-Overview/00-06-training-plan.md`                       | ✅    |
+| **10** | Edge Cases & Business Rules (37 rules) | `01-Requirements/01-06-edge-cases-and-rules.md`            | ✅    |
 
 ---
 
@@ -113,18 +113,18 @@ specs/
 
 > Before writing ANY code, verify these files first.
 
-| เอกสาร | Path | ใช้เมื่อ |
-|--------|------|---------|
-| **Schema Tables** | `03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` | ก่อนเขียน Query ทุกครั้ง |
-| **Data Dictionary** | `03-Data-and-Storage/03-01-data-dictionary.md` | ตรวจ Field Meaning + Business Rules |
-| **Seed Permissions** | `03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` | ตรวจ CASL Permission Matrix |
-| **Edge Cases** | `01-Requirements/01-06-edge-cases-and-rules.md` | 37 Rules ป้องกัน Bug |
-| **Migration Scope** | `03-Data-and-Storage/03-06-migration-business-scope.md` | งาน Migration Bot |
-| **Release Policy** | `04-Infrastructure-OPS/04-08-release-management-policy.md` | ก่อน Deploy / Hotfix |
-| **UAT Criteria** | `01-Requirements/01-05-acceptance-criteria.md` | ตรวจความสมบูรณ์ Feature |
-| **ADR-009** | `06-Decision-Records/ADR-009-db-strategy.md` | Schema Change Process |
-| **ADR-018** | `06-Decision-Records/ADR-018-ai-boundary.md` | AI/Ollama Integration Rules |
-| **ADR-019** | `06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | Hybrid ID Strategy (INT + UUIDv7) |
+| เอกสาร               | Path                                                        | ใช้เมื่อ                            |
+| -------------------- | ----------------------------------------------------------- | ----------------------------------- |
+| **Schema Tables**    | `03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`     | ก่อนเขียน Query ทุกครั้ง            |
+| **Data Dictionary**  | `03-Data-and-Storage/03-01-data-dictionary.md`              | ตรวจ Field Meaning + Business Rules |
+| **Seed Permissions** | `03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql`     | ตรวจ CASL Permission Matrix         |
+| **Edge Cases**       | `01-Requirements/01-06-edge-cases-and-rules.md`             | 37 Rules ป้องกัน Bug                |
+| **Migration Scope**  | `03-Data-and-Storage/03-06-migration-business-scope.md`     | งาน Migration Bot                   |
+| **Release Policy**   | `04-Infrastructure-OPS/04-08-release-management-policy.md`  | ก่อน Deploy / Hotfix                |
+| **UAT Criteria**     | `01-Requirements/01-05-acceptance-criteria.md`              | ตรวจความสมบูรณ์ Feature             |
+| **ADR-009**          | `06-Decision-Records/ADR-009-db-strategy.md`                | Schema Change Process               |
+| **ADR-018**          | `06-Decision-Records/ADR-018-ai-boundary.md`                | AI/Ollama Integration Rules         |
+| **ADR-019**          | `06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | Hybrid ID Strategy (INT + UUIDv7)   |
 
 ---
 
@@ -150,23 +150,23 @@ specs/
 
 ## 🏛️ ADR Reference (All 17 + Patch + ADR-019)
 
-| ADR | Topic | Key Decision |
-|-----|-------|-------------|
-| ADR-001 | Workflow Engine | Unified state machine for document workflows |
-| ADR-002 | Doc Numbering | Redis Redlock + DB optimistic locking |
-| ADR-005 | Technology Stack | NestJS 11 + Next.js 16.2.0 + MariaDB + Redis |
-| ADR-006 | Redis Caching | Cache strategy and invalidation patterns |
-| ADR-008 | Email Notification | BullMQ queue-based email/LINE/in-app |
-| ADR-009 | DB Strategy | No TypeORM migrations — modify schema SQL directly |
-| ADR-010 | Logging/Monitoring | Prometheus + Loki + Grafana stack |
-| ADR-011 | App Router | Next.js 16.2.0 App Router with RSC patterns |
-| ADR-012 | UI Components | Shadcn/UI component library |
-| ADR-013 | Form Handling | React Hook Form + Zod validation |
-| ADR-014 | State Management | TanStack Query (server) + Zustand (client) |
-| ADR-015 | Deployment | Docker Compose + Gitea CI/CD |
-| ADR-016 | Security | JWT + CASL RBAC + Helmet.js + ClamAV |
-| ADR-017 | Ollama Migration | Local AI + n8n for legacy data import |
-| ADR-018 ★ | AI Boundary (Patch 1.8.1) | AI isolation — no direct DB/storage access |
-| ADR-019 ★ | Hybrid Identifier Strategy | INT PK (internal) + UUIDv7 (public API) |
+| ADR       | Topic                      | Key Decision                                       |
+| --------- | -------------------------- | -------------------------------------------------- |
+| ADR-001   | Workflow Engine            | Unified state machine for document workflows       |
+| ADR-002   | Doc Numbering              | Redis Redlock + DB optimistic locking              |
+| ADR-005   | Technology Stack           | NestJS 11 + Next.js 16.2.0 + MariaDB + Redis       |
+| ADR-006   | Redis Caching              | Cache strategy and invalidation patterns           |
+| ADR-008   | Email Notification         | BullMQ queue-based email/LINE/in-app               |
+| ADR-009   | DB Strategy                | No TypeORM migrations — modify schema SQL directly |
+| ADR-010   | Logging/Monitoring         | Prometheus + Loki + Grafana stack                  |
+| ADR-011   | App Router                 | Next.js 16.2.0 App Router with RSC patterns        |
+| ADR-012   | UI Components              | Shadcn/UI component library                        |
+| ADR-013   | Form Handling              | React Hook Form + Zod validation                   |
+| ADR-014   | State Management           | TanStack Query (server) + Zustand (client)         |
+| ADR-015   | Deployment                 | Docker Compose + Gitea CI/CD                       |
+| ADR-016   | Security                   | JWT + CASL RBAC + Helmet.js + ClamAV               |
+| ADR-017   | Ollama Migration           | Local AI + n8n for legacy data import              |
+| ADR-018 ★ | AI Boundary (Patch 1.8.1)  | AI isolation — no direct DB/storage access         |
+| ADR-019 ★ | Hybrid Identifier Strategy | INT PK (internal) + UUIDv7 (public API)            |
 
 > **Priority:** `06-Decision-Records` > `05-Engineering-Guidelines` > others

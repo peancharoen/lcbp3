@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { TransmittalForm } from "@/components/transmittal/transmittal-form";
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { TransmittalForm } from '@/components/transmittal/transmittal-form';
 
 // Force dynamic rendering to prevent build-time prerendering issues
 export const dynamic = 'force-dynamic';
@@ -23,9 +23,7 @@ export default function CreateTransmittalPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold">Create Transmittal</h1>
-          <p className="text-muted-foreground">
-            Prepare a new document transmittal slip
-          </p>
+          <p className="text-muted-foreground">Prepare a new document transmittal slip</p>
         </div>
       </div>
 

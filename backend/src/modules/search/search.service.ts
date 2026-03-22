@@ -60,7 +60,7 @@ export class SearchService implements OnModuleInit {
                 tags: { type: 'text' },
               },
             },
-          } as any,
+          } as unknown as Record<string, unknown>,
         });
         this.logger.log(`Elasticsearch index '${this.indexName}' created.`);
       }
@@ -149,7 +149,7 @@ export class SearchService implements OnModuleInit {
             filter: filterQueries,
           },
         },
-        sort: [{ createdAt: { order: 'desc' } }],
+        sort: [{ createdAt: { order: 'desc' as const } }],
       });
 
       // 3. Format Result
@@ -174,7 +174,7 @@ export class SearchService implements OnModuleInit {
       this.logger.debug(
         `Search query context: ${JSON.stringify({
           query: queryDto,
-          esNode: this.configService.get('ELASTICSEARCH_NODE'),
+          esNode: String(this.configService.get('ELASTICSEARCH_NODE') ?? ''),
         })}`
       );
       return { data: [], meta: { total: 0, page, limit, took: 0 } };

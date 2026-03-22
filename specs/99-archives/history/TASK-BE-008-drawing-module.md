@@ -28,14 +28,12 @@
 ## 📝 Acceptance Criteria
 
 1. **Contract Drawings:**
-
    - ✅ Upload contract drawings
    - ✅ Categorize by discipline
    - ✅ Link to project/contract
    - ✅ Search by drawing number
 
 2. **Shop Drawings:**
-
    - ✅ Create shop drawing with auto-number
    - ✅ Create revisions
    - ✅ Link to contract drawings
@@ -219,18 +217,10 @@ export class DrawingService {
   ) {}
 
   // Contract Drawing Methods
-  async createContractDrawing(
-    dto: CreateContractDrawingDto,
-    userId: number
-  ): Promise<ContractDrawing> {
+  async createContractDrawing(dto: CreateContractDrawingDto, userId: number): Promise<ContractDrawing> {
     return this.dataSource.transaction(async (manager) => {
       // Commit drawing file
-      const attachments = await this.fileStorage.commitFiles(
-        [dto.temp_file_id],
-        null,
-        'contract_drawing',
-        manager
-      );
+      const attachments = await this.fileStorage.commitFiles([dto.temp_file_id], null, 'contract_drawing', manager);
 
       const contractDrawing = manager.create(ContractDrawing, {
         drawing_number: dto.drawing_number,
@@ -247,9 +237,7 @@ export class DrawingService {
     });
   }
 
-  async findAllContractDrawings(
-    query: SearchDrawingDto
-  ): Promise<PaginatedResult<ContractDrawing>> {
+  async findAllContractDrawings(query: SearchDrawingDto): Promise<PaginatedResult<ContractDrawing>> {
     const queryBuilder = this.contractDrawingRepo
       .createQueryBuilder('cd')
       .leftJoinAndSelect('cd.contract', 'contract')
@@ -270,10 +258,9 @@ export class DrawingService {
     }
 
     if (query.search) {
-      queryBuilder.andWhere(
-        '(cd.drawing_number LIKE :search OR cd.drawing_title LIKE :search)',
-        { search: `%${query.search}%` }
-      );
+      queryBuilder.andWhere('(cd.drawing_number LIKE :search OR cd.drawing_title LIKE :search)', {
+        search: `%${query.search}%`,
+      });
     }
 
     const page = query.page || 1;
@@ -290,10 +277,7 @@ export class DrawingService {
   }
 
   // Shop Drawing Methods
-  async createShopDrawing(
-    dto: CreateShopDrawingDto,
-    userId: number
-  ): Promise<ShopDrawing> {
+  async createShopDrawing(dto: CreateShopDrawingDto, userId: number): Promise<ShopDrawing> {
     return this.dataSource.transaction(async (manager) => {
       // Generate drawing number
       const drawingNumber = await this.docNumbering.generateNextNumber({
@@ -341,10 +325,7 @@ export class DrawingService {
 
       // Link contract drawing references
       if (dto.contract_drawing_ids?.length > 0) {
-        const contractDrawings = await manager.findByIds(
-          ContractDrawing,
-          dto.contract_drawing_ids
-        );
+        const contractDrawings = await manager.findByIds(ContractDrawing, dto.contract_drawing_ids);
         shopDrawing.contractDrawingReferences = contractDrawings;
         await manager.save(shopDrawing);
       }
@@ -392,9 +373,7 @@ export class DrawingService {
     });
   }
 
-  async findAllShopDrawings(
-    query: SearchDrawingDto
-  ): Promise<PaginatedResult<ShopDrawing>> {
+  async findAllShopDrawings(query: SearchDrawingDto): Promise<PaginatedResult<ShopDrawing>> {
     const queryBuilder = this.shopDrawingRepo
       .createQueryBuilder('sd')
       .leftJoinAndSelect('sd.project', 'project')
@@ -409,21 +388,16 @@ export class DrawingService {
     }
 
     if (query.search) {
-      queryBuilder.andWhere(
-        '(sd.drawing_number LIKE :search OR sd.drawing_title LIKE :search)',
-        { search: `%${query.search}%` }
-      );
+      queryBuilder.andWhere('(sd.drawing_number LIKE :search OR sd.drawing_title LIKE :search)', {
+        search: `%${query.search}%`,
+      });
     }
 
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
-    const [items, total] = await queryBuilder
-      .orderBy('sd.created_at', 'DESC')
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
+    const [items, total] = await queryBuilder.orderBy('sd.created_at', 'DESC').skip(skip).take(limit).getManyAndCount();
 
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
@@ -431,12 +405,7 @@ export class DrawingService {
   async findOneShopDrawing(id: number): Promise<ShopDrawing> {
     const shopDrawing = await this.shopDrawingRepo.findOne({
       where: { id, deleted_at: IsNull() },
-      relations: [
-        'revisions',
-        'revisions.attachments',
-        'contractDrawingReferences',
-        'project',
-      ],
+      relations: ['revisions', 'revisions.attachments', 'contractDrawingReferences', 'project'],
       order: { revisions: { revision_number: 'DESC' } },
     });
 
@@ -462,10 +431,7 @@ export class DrawingController {
   // Contract Drawings
   @Post('contract')
   @RequirePermission('drawing.create')
-  async createContractDrawing(
-    @Body() dto: CreateContractDrawingDto,
-    @CurrentUser() user: User
-  ) {
+  async createContractDrawing(@Body() dto: CreateContractDrawingDto, @CurrentUser() user: User) {
     return this.service.createContractDrawing(dto, user.user_id);
   }
 
@@ -479,10 +445,7 @@ export class DrawingController {
   @Post('shop')
   @RequirePermission('drawing.create')
   @UseInterceptors(IdempotencyInterceptor)
-  async createShopDrawing(
-    @Body() dto: CreateShopDrawingDto,
-    @CurrentUser() user: User
-  ) {
+  async createShopDrawing(@Body() dto: CreateShopDrawingDto, @CurrentUser() user: User) {
     return this.service.createShopDrawing(dto, user.user_id);
   }
 

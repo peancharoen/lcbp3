@@ -1,9 +1,9 @@
-import apiClient from "@/lib/api/client";
+import apiClient from '@/lib/api/client';
 import {
   CreateOrganizationDto,
   UpdateOrganizationDto,
   SearchOrganizationDto,
-} from "@/types/dto/organization/organization.dto";
+} from '@/types/dto/organization/organization.dto';
 
 export const organizationService = {
   /**
@@ -11,7 +11,7 @@ export const organizationService = {
    * GET /organizations?projectId=1
    */
   getAll: async (params?: SearchOrganizationDto) => {
-    const response = await apiClient.get("/organizations", { params });
+    const response = await apiClient.get('/organizations', { params });
     // Normalize response if wrapped in data.data or direct data
     if (response.data && Array.isArray(response.data.data)) {
       return response.data.data;
@@ -33,7 +33,7 @@ export const organizationService = {
    * POST /organizations
    */
   create: async (data: CreateOrganizationDto) => {
-    const response = await apiClient.post("/organizations", data);
+    const response = await apiClient.post('/organizations', data);
     return response.data;
   },
 

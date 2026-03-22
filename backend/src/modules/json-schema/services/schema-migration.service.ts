@@ -59,19 +59,21 @@ export class SchemaMigrationService {
       // 2. Fetch Entity Data & Current Version
       // Note: This assumes the entity table has 'details' (json) and 'schema_version' (int) columns
       // If schema_version is not present, we assume version 1
-      const entity = await queryRunner.manager.query(
-        `SELECT details, schema_version FROM ${entityType} WHERE id = ?`,
-        [entityId]
-      );
+      const entities = await queryRunner.manager.query<
+        { details: Record<string, unknown>; schema_version: number }[]
+      >(`SELECT details, schema_version FROM ${entityType} WHERE id = ?`, [
+        entityId,
+      ]);
 
-      if (!entity || entity.length === 0) {
+      if (!entities || entities.length === 0) {
         throw new BadRequestException(
           `Entity ${entityType} with ID ${entityId} not found.`
         );
       }
 
-      const currentData = entity[0].details || {};
-      const currentVersion = entity[0].schema_version || 1;
+      const entity = entities[0];
+      const currentData = entity.details || {};
+      const currentVersion = entity.schema_version || 1;
 
       if (currentVersion >= targetSchema.version) {
         return {
@@ -83,7 +85,10 @@ export class SchemaMigrationService {
       }
 
       // 3. Find Migration Path (Iterative Upgrade)
-      let migratedData = JSON.parse(JSON.stringify(currentData));
+      let migratedData = JSON.parse(JSON.stringify(currentData)) as Record<
+        string,
+        unknown
+      >;
       const migratedFields: string[] = [];
 
       // Loop from current version up to target version
@@ -102,10 +107,11 @@ export class SchemaMigrationService {
 
           // Apply steps defined in migrationScript
           if (Array.isArray(script.steps)) {
-            for (const step of script.steps) {
-              migratedData = await this.applyMigrationStep(step, migratedData);
-              if (step.config.field || step.config.new_field) {
-                migratedFields.push(step.config.new_field || step.config.field);
+            for (const step of script.steps as MigrationStep[]) {
+              migratedData = this.applyMigrationStep(step, migratedData);
+              const config = step.config as Record<string, string>;
+              if (config.field || config.new_field) {
+                migratedFields.push(config.new_field || config.field);
               }
             }
           }
@@ -158,10 +164,10 @@ export class SchemaMigrationService {
   /**
    * Apply a single migration step
    */
-  private async applyMigrationStep(
+  private applyMigrationStep(
     step: MigrationStep,
     data: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
+  ): Record<string, unknown> {
     const newData = { ...data };
 
     const field = step.config.field as string;
@@ -190,7 +196,11 @@ export class SchemaMigrationService {
         if (newData[field] !== undefined) {
           // Simple transform logic (e.g., map values)
           if (step.config.transform === 'MAP_VALUES' && step.config.mapping) {
-            const oldVal = String(newData[field]);
+            const val = newData[field];
+            const oldVal =
+              typeof val === 'string' || typeof val === 'number'
+                ? String(val)
+                : JSON.stringify(val);
             const mapping = step.config.mapping as Record<string, unknown>;
             newData[field] = mapping[oldVal] || newData[field];
           }
@@ -198,7 +208,11 @@ export class SchemaMigrationService {
           else if (step.config.transform === 'TO_NUMBER') {
             newData[field] = Number(newData[field]);
           } else if (step.config.transform === 'TO_STRING') {
-            newData[field] = String(newData[field]);
+            const val = newData[field];
+            newData[field] =
+              typeof val === 'string' || typeof val === 'number'
+                ? String(val)
+                : JSON.stringify(val);
           }
         }
         break;

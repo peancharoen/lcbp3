@@ -20,6 +20,10 @@ interface NotificationPayload {
   type: 'EMAIL' | 'LINE' | 'SYSTEM';
 }
 
+type NotificationJobData =
+  | NotificationPayload
+  | { userId: number; type: 'EMAIL' | 'LINE' };
+
 @Processor('notifications')
 export class NotificationProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationProcessor.name);
@@ -37,28 +41,30 @@ export class NotificationProcessor extends WorkerHost {
     super();
     // Setup Nodemailer
     this.mailerTransport = nodemailer.createTransport({
-      host: this.configService.get('SMTP_HOST'),
-      port: Number(this.configService.get('SMTP_PORT')),
-      secure: this.configService.get('SMTP_SECURE') === 'true',
+      host: this.configService.get<string>('SMTP_HOST'),
+      port: Number(this.configService.get<number>('SMTP_PORT')),
+      secure: this.configService.get<string>('SMTP_SECURE') === 'true',
       auth: {
-        user: this.configService.get('SMTP_USER'),
-        pass: this.configService.get('SMTP_PASS'),
+        user: this.configService.get<string>('SMTP_USER'),
+        pass: this.configService.get<string>('SMTP_PASS'),
       },
     });
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
+  async process(
+    job: Job<NotificationJobData, unknown, string>
+  ): Promise<unknown> {
     this.logger.debug(`Processing job ${job.name} (ID: ${job.id})`);
 
     try {
       switch (job.name) {
         case 'dispatch-notification':
-          // Job หลัก: ตัดสินใจว่าจะส่งเลย หรือจะเข้า Digest Queue
-          return this.handleDispatch(job.data);
+          return this.handleDispatch(job.data as NotificationPayload);
 
-        case 'process-digest':
-          // Job รอง: ทำงานเมื่อครบเวลา Delay เพื่อส่งแบบรวม
-          return this.handleProcessDigest(job.data.userId, job.data.type);
+        case 'process-digest': {
+          const data = job.data as { userId: number; type: 'EMAIL' | 'LINE' };
+          return this.handleProcessDigest(data.userId, data.type);
+        }
 
         default:
           throw new Error(`Unknown job name: ${job.name}`);
@@ -152,8 +158,8 @@ export class NotificationProcessor extends WorkerHost {
 
     if (!messagesRaw || messagesRaw.length === 0) return;
 
-    const messages: NotificationPayload[] = messagesRaw.map((m) =>
-      JSON.parse(m)
+    const messages: NotificationPayload[] = messagesRaw.map(
+      (m) => JSON.parse(m) as NotificationPayload
     );
     const user = await this.userService.findOne(userId);
 
@@ -206,7 +212,9 @@ export class NotificationProcessor extends WorkerHost {
   }
 
   private async sendLineImmediate(user: User, data: NotificationPayload) {
-    const n8nWebhookUrl = this.configService.get('N8N_LINE_WEBHOOK_URL');
+    const n8nWebhookUrl = this.configService.get<string>(
+      'N8N_LINE_WEBHOOK_URL'
+    );
     if (!n8nWebhookUrl) return;
 
     try {
@@ -223,7 +231,9 @@ export class NotificationProcessor extends WorkerHost {
   }
 
   private async sendLineDigest(user: User, messages: NotificationPayload[]) {
-    const n8nWebhookUrl = this.configService.get('N8N_LINE_WEBHOOK_URL');
+    const n8nWebhookUrl = this.configService.get<string>(
+      'N8N_LINE_WEBHOOK_URL'
+    );
     if (!n8nWebhookUrl) return;
 
     const summary = messages.map((m, i) => `${i + 1}. ${m.title}`).join('\n');

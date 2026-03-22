@@ -11,7 +11,7 @@ interface WrappedData {
   data?: unknown;
 }
 
-const extractNestedData = <T,>(value: unknown): T => {
+const extractNestedData = <T>(value: unknown): T => {
   let current: unknown = value;
 
   for (let i = 0; i < 5; i += 1) {
@@ -25,7 +25,7 @@ const extractNestedData = <T,>(value: unknown): T => {
   return current as T;
 };
 
-const normalizePaginatedResponse = <T,>(value: unknown): PaginatedResponse<T> => {
+const normalizePaginatedResponse = <T>(value: unknown): PaginatedResponse<T> => {
   const extracted = extractNestedData<unknown>(value);
 
   if (!extracted || typeof extracted !== 'object') {
@@ -84,15 +84,12 @@ export const migrationService = {
     return extractNestedData<MigrationReviewQueueItem>(data);
   },
 
-  getErrors: async (params: {
-    page?: number;
-    limit?: number;
-  }): Promise<PaginatedResponse<MigrationErrorItem>> => {
+  getErrors: async (params: { page?: number; limit?: number }): Promise<PaginatedResponse<MigrationErrorItem>> => {
     const { data } = await api.get('/migration/errors', { params });
     return normalizePaginatedResponse<MigrationErrorItem>(data);
   },
 
-  approveQueueItem: async (id: number, payload: any, idempotencyKey: string) => {
+  approveQueueItem: async (id: number, payload: Record<string, unknown>, idempotencyKey: string) => {
     const { data } = await api.post(`/migration/queue/${id}/approve`, payload, {
       headers: {
         'idempotency-key': idempotencyKey,
