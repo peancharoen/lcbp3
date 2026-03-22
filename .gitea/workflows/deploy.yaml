@@ -32,7 +32,8 @@ jobs:
             # 1. Update Code
             echo "📂 Pulling latest code..."
             cd /share/np-dms/app/source/lcbp3
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
 
             # 2. Build Backend
             echo "🏗️ Building Backend..."
