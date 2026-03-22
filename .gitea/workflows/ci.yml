@@ -1,0 +1,62 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install pnpm
+        run: npm install -g pnpm
+
+      - name: 📦 Install deps
+        run: pnpm install
+
+      # 🔴 LINT
+      - name: 🧹 Lint
+        run: pnpm lint
+
+      # 🔴 UUID CHECK
+      - name: 🔍 UUID misuse check
+        run: |
+          if grep -r --include="*.ts" --include="*.tsx" "parseInt(.*uuid" .; then
+            echo "❌ UUID misuse detected"
+            exit 1
+          fi
+
+      # 🔴 console.log CHECK
+      - name: 🔍 console.log check
+        run: |
+          if grep -r --include="*.ts" --include="*.tsx" "console.log" .; then
+            echo "❌ console.log detected"
+            exit 1
+          fi
+
+      # 🧪 TEST (Need to make sure tests run in root or individually)
+      - name: 🧪 Run Backend Tests
+        run: cd backend && pnpm test
+
+      - name: 🧪 Run Frontend Tests
+        run: cd frontend && pnpm test
+
+      # 🏗️ BUILD
+      - name: 🏗️ Build Backend
+        run: cd backend && pnpm build
+
+      - name: 🏗️ Build Frontend
+        run: cd frontend && pnpm build
+
+      - name: ✅ Done
+        run: echo "CI Passed"

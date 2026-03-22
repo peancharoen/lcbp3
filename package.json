@@ -10,7 +10,10 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start:mcp": "node ./scripts/start-mcp.js"
+    "start:mcp": "node ./scripts/start-mcp.js",
+    "prepare": "husky",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -20,6 +23,15 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js}": [
+      "eslint --fix"
+    ]
+  },
   "pnpm": {
     "overrides": {
       "fast-xml-parser": "^5.3.5",
@@ -43,8 +55,8 @@
       "minimatch@<3.1.4": ">=3.1.4",
       "multer@<2.1.0": ">=2.1.0",
       "serialize-javascript@<=7.0.2": ">=7.0.3",
-      "ajv@<6.14.0": ">=6.14.0",
       "ajv@>=7.0.0-alpha.0 <8.18.0": ">=8.18.0",
+      "eslint>ajv": "6.14.0",
       "qs@<6.14.1": ">=6.14.1",
       "multer@<2.1.1": ">=2.1.1",
       "dompurify@>=3.1.3 <=3.3.1": ">=3.3.2",

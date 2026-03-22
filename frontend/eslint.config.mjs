@@ -18,8 +18,8 @@ const eslintConfig = [
       },
     },
     rules: {
-      "no-console": "warn",
-      "no-unused-vars": "warn",
+      "no-console": "error",
+      "no-unused-vars": "error",
     },
   },
   {
@@ -44,16 +44,27 @@ const eslintConfig = [
       "react-hooks": reactHooksPlugin,
     },
     rules: {
-      "no-console": "warn",
+      "no-console": "error",
       "no-unused-vars": "off",
       "no-undef": "off",
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": ["warn", {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": ["error", {
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_",
       }],
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='parseInt']",
+          message: '❌ parseInt() is forbidden (UUID risk)',
+        },
+        {
+          selector: "UnaryExpression[operator='+']",
+          message: '❌ +value is forbidden (UUID risk)',
+        },
+      ],
     },
   },
   // Ignore config files and build outputs

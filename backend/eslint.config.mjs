@@ -26,10 +26,22 @@ export default tseslint.config(
   },
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      'no-console': 'error',
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='parseInt']",
+          message: '❌ parseInt() is forbidden (UUID risk)',
+        },
+        {
+          selector: "UnaryExpression[operator='+']",
+          message: '❌ +value is forbidden (UUID risk)',
+        },
+      ],
     },
   },
 );
