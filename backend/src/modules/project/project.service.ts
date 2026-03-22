@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, _Like } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 
 // Entities
 import { Project } from './entities/project.entity';

@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsOptional, _ValidateIf } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, ValidateIf } from 'class-validator';
 
 export class AssignRoleDto {
   @IsInt()

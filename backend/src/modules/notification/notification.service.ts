@@ -9,7 +9,7 @@ import { Repository } from 'typeorm';
 // Entities
 import { Notification, NotificationType } from './entities/notification.entity';
 import { User } from '../user/entities/user.entity';
-import { _UserPreference } from '../user/entities/user-preference.entity';
+import { UserPreference } from '../user/entities/user-preference.entity';
 
 // Gateway
 import { NotificationGateway } from './notification.gateway';

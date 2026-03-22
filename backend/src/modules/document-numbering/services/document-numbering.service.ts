@@ -490,7 +490,7 @@ export class DocumentNumberingService {
   }): Promise<DocumentNumberAudit> {
     const audit = this.auditRepo.create({
       documentNumber: data.documentNumber,
-      counterKey: data.counterKey,
+      counterKey: data.counterKey as Record<string, unknown>,
       templateUsed: data.templateUsed,
       isSuccess: data.isSuccess,
       operation: data.operation,

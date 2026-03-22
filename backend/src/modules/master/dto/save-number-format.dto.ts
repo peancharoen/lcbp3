@@ -1,4 +1,4 @@
-import { IsInt, IsString, IsNotEmpty, _IsOptional } from 'class-validator';
+import { IsInt, IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class SaveNumberFormatDto {
   @IsInt()

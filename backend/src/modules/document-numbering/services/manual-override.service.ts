@@ -26,7 +26,7 @@ export class ManualOverrideService {
       documentNumber: `OVERRIDE-TO-${dto.newLastNumber}`,
       operation: 'MANUAL_OVERRIDE',
       status: 'MANUAL',
-      counterKey: dto, // CounterKeyDto part of ManualOverrideDto
+      counterKey: dto as unknown as Record<string, unknown>, // CounterKeyDto part of ManualOverrideDto
       templateUsed: 'MANUAL_OVERRIDE',
       userId: userId,
       isSuccess: true,
