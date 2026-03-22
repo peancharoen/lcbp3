@@ -13,6 +13,7 @@ async function runSeeds() {
     await seedOrganizations(dataSource);
     await seedUsers(dataSource);
   } catch (_error) {
+    // Ignore error as logs are removed
   } finally {
     await dataSource.destroy();
   }

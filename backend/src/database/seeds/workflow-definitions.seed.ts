@@ -131,8 +131,8 @@ export const seedWorkflowDefinitions = async (dataSource: DataSource) => {
           })
         );
       } catch (_error) {
+        // Ignore error as logs are removed
       }
-    } else {
     }
   }
 };
