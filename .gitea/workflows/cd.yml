@@ -1,0 +1,129 @@
+name: CI / CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # ============================================================
+  # JOB 1 : CI & Quality Gate
+  # ============================================================
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install pnpm
+        run: npm install -g pnpm
+
+      - name: 📦 Install deps
+        run: pnpm install
+
+      - name: 🧹 Lint
+        run: pnpm lint
+
+      - name: 🔍 Security & quality checks
+        run: |
+          # UUID misuse check (ADR-019)
+          if grep -r --include="*.ts" --include="*.tsx" "parseInt(.*uuid" .; then
+            echo "❌ UUID misuse detected"
+            exit 1
+          fi
+          # console.log check (Clean Code)
+          if grep -r --include="*.ts" --include="*.tsx" "console.log" .; then
+            echo "❌ console.log detected"
+            exit 1
+          fi
+
+      - name: 🧪 Run Tests
+        run: |
+          cd backend && pnpm test --watchAll=false
+          cd ../frontend && pnpm test run
+
+      - name: 🏗️ Verify Build
+        run: |
+          cd backend && pnpm build
+          cd ../frontend && pnpm build
+
+  # ============================================================
+  # JOB 2 : Build & Push Image (Release Stage)
+  # ============================================================
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🏷️ Get Version
+        id: pkg-version
+        run: |
+          VERSION=$(node -p "require('./backend/package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing version: $VERSION"
+
+      - name: 🐋 Login to Internal Registry
+        run: |
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ secrets.REGISTRY_URL }} -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
+
+      - name: 🏗️ Build & Push Backend
+        run: |
+          docker build -f backend/Dockerfile \
+            -t ${{ secrets.REGISTRY_URL }}/lcbp3-backend:${{ steps.pkg-version.outputs.VERSION }} \
+            -t ${{ secrets.REGISTRY_URL }}/lcbp3-backend:latest .
+          docker push ${{ secrets.REGISTRY_URL }}/lcbp3-backend:${{ steps.pkg-version.outputs.VERSION }}
+          docker push ${{ secrets.REGISTRY_URL }}/lcbp3-backend:latest
+
+      - name: 🏗️ Build & Push Frontend
+        run: |
+          docker build -f frontend/Dockerfile \
+            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            -t ${{ secrets.REGISTRY_URL }}/lcbp3-frontend:${{ steps.pkg-version.outputs.VERSION }} \
+            -t ${{ secrets.REGISTRY_URL }}/lcbp3-frontend:latest .
+          docker push ${{ secrets.REGISTRY_URL }}/lcbp3-frontend:${{ steps.pkg-version.outputs.VERSION }}
+          docker push ${{ secrets.REGISTRY_URL }}/lcbp3-frontend:latest
+
+  # ============================================================
+  # JOB 3 : Deploy — Trigger Blue-Green on QNAP
+  # ============================================================
+  deploy:
+    needs: release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚀 Trigger Deployment on QNAP
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          timeout: 1200s
+          command_timeout: 900s
+          script_stop_signal: true
+          script: |
+            set -e
+            export PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+            
+            # Sync scripts first
+            echo "📂 Syncing deployment scripts..."
+            cd /share/np-dms/app/source/lcbp3
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # Ensure scripts are executable
+            chmod +x scripts/deploy.sh scripts/rollback.sh
+            
+            echo "🚀 Executing Blue-Green deployment..."
+            # Pass registry credentials if needed by the pull command in deploy.sh
+            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            ./scripts/deploy.sh

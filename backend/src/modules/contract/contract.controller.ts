@@ -13,7 +13,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { ContractService } from './contract.service.js';
 import { CreateContractDto } from './dto/create-contract.dto.js';

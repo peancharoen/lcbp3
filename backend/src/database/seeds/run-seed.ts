@@ -10,14 +10,9 @@ async function runSeeds() {
   await dataSource.initialize();
 
   try {
-    //     console.log('🌱 Seeding database...');
-
     await seedOrganizations(dataSource);
     await seedUsers(dataSource);
-
-    //     console.log('✅ Seeding completed!');
   } catch (_error) {
-    //     console.error('❌ Seeding failed:', _error);
   } finally {
     await dataSource.destroy();
   }

@@ -139,10 +139,6 @@ export const {
             password: credentials.password as string,
           };
 
-          // console.log(`[AUTH] Attempting login at: ${baseUrl}/auth/login`); /* TODO: Remove before prod */
-          // console.log(`[AUTH] Current process.env.INTERNAL_API_URL: ${process.env.INTERNAL_API_URL}`); /* TODO: Remove before prod */
-          // console.log(`[AUTH] Current process.env.NEXT_PUBLIC_API_URL: ${process.env.NEXT_PUBLIC_API_URL}`); /* TODO: Remove before prod */
-
           const res = await fetch(`${baseUrl}/auth/login`, {
             method: 'POST',
             body: JSON.stringify(payload),
@@ -153,9 +149,7 @@ export const {
           });
 
           if (!res.ok) {
-            // console.error(`[AUTH] Login Failed: status ${res.status}`); /* TODO: Remove before prod */
             const _errorBody = await res.text().catch(() => 'No error body');
-            // console.error(`[AUTH] Error details: ${errorBody}`); /* TODO: Remove before prod */
             return null;
           }
 
@@ -163,11 +157,8 @@ export const {
           const backendData = unwrapApiResponse(data);
 
           if (!isLoginPayload(backendData)) {
-            // console.error("[AUTH] Login failed: Invalid response format from backend (missing access_token)"); /* TODO: Remove before prod */
             return null;
           }
-
-          // console.log(`[AUTH] Login Successful for user: ${backendData.user?.username || 'unknown'}`); /* TODO: Remove before prod */
 
           return {
             id: backendData.user.user_id.toString(),
@@ -180,7 +171,6 @@ export const {
             refreshToken: backendData.refresh_token,
           } as User;
         } catch (_error) {
-          // console.error("[AUTH] Network/Fetch Error during authorize:", error); /* TODO: Remove before prod */
           return null;
         }
       },

@@ -65,16 +65,13 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
         disciplineId: Number(testData.disciplineId || '0'),
         year: testData.year,
       };
-      // console.log("TemplateTester: Sending payload:", payload); /* TODO: Remove before prod */
       const result = await numberingApi.previewNumber(payload);
-      // console.log("TemplateTester: Received result:", result); /* TODO: Remove before prod */
 
       setTestResult({
         number: result.previewNumber,
         isDefault: result.isDefault,
       });
     } catch (error: unknown) {
-      // console.error("Test Preview Error:", error); /* TODO: Remove before prod */
       const errMsg = error?.response?.data?.message || error?.message || 'Unknown error';
       setTestResult({ number: `Error: ${errMsg}`, isDefault: false });
     } finally {

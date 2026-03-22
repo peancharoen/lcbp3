@@ -4,7 +4,6 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Body,
   Patch,
   Param,

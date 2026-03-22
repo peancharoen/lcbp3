@@ -78,7 +78,7 @@ export class AuthService {
           derivedRole = 'DC';
         }
       }
-      const { password, ...result } = user;
+      const { password: _password, ...result } = user;
       return { ...result, role: derivedRole } as User & { role: string };
     }
     return null;

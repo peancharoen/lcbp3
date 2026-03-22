@@ -116,10 +116,6 @@ export class DocumentNumberingController {
       year: dto.year,
       customTokens: dto.customTokens,
     });
-    //     console.log(
-    //       '[DocumentNumberingController] Preview result:',
-    //       JSON.stringify(result)
-    //     );
     return result;
   }
 }

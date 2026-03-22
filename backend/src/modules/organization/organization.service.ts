@@ -72,9 +72,6 @@ export class OrganizationService {
 
     const [data, total] = await queryBuilder.getManyAndCount();
 
-    // Debug logging
-    //     console.log(`[OrganizationService] Found ${total} organizations`);
-
     return {
       data,
       meta: {

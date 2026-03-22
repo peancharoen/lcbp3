@@ -51,9 +51,6 @@ export class FormatService {
       tokens,
       options.sequence
     );
-    //     console.log(
-    //       `[FormatService] Generated: "${previewNumber}" | Template: "${template}" | isDefault: ${isDefault}`
-    //     );
     return { previewNumber, isDefault };
   }
 

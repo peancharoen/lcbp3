@@ -26,7 +26,6 @@ import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
 import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
 import { AddReferenceDto } from './dto/add-reference.dto';
 import { SearchCorrespondenceDto } from './dto/search-correspondence.dto';
-import { DeepPartial } from 'typeorm';
 
 // Services
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
@@ -506,7 +505,7 @@ export class CorrespondenceService {
       : undefined;
 
     // 3. Update Correspondence Entity if needed
-    const correspondenceUpdate: any = {};
+    const correspondenceUpdate: Record<string, unknown> = {};
     if (updateDto.disciplineId)
       correspondenceUpdate.disciplineId = updateDto.disciplineId;
     if (updResolvedProjectId)
@@ -519,7 +518,7 @@ export class CorrespondenceService {
     }
 
     // 4. Update Revision Entity
-    const revisionUpdate: any = {};
+    const revisionUpdate: Record<string, unknown> = {};
     if (updateDto.subject) revisionUpdate.subject = updateDto.subject;
     if (updateDto.body) revisionUpdate.body = updateDto.body;
     if (updateDto.remarks) revisionUpdate.remarks = updateDto.remarks;
