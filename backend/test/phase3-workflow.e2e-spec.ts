@@ -52,12 +52,6 @@ describe('Phase 3 Workflow (E2E)', () => {
     const existing = await defRepo.findOne({
       where: { workflow_code: 'CORRESPONDENCE_FLOW_V1', is_active: true },
     });
-
-    if (!existing) {
-      //       console.warn(
-      //         'WorkflowDefinition CORRESPONDENCE_FLOW_V1 not found. Tests may fail.'
-      //       );
-    }
   });
 
   afterAll(async () => {
@@ -82,7 +76,6 @@ describe('Phase 3 Workflow (E2E)', () => {
     expect(body).toHaveProperty('id');
     expect(body).toHaveProperty('correspondenceNumber');
     correspondenceId = body.id;
-    //     console.log('Created Correspondence ID:', correspondenceId);
   });
 
   it('/correspondences/:id/submit (POST) - Submit to Workflow', async () => {
@@ -98,14 +91,11 @@ describe('Phase 3 Workflow (E2E)', () => {
     expect(body).toHaveProperty('instanceId');
     expect(body).toHaveProperty('currentState');
     workflowInstanceId = body.instanceId;
-    //     console.log('Workflow Instance ID:', workflowInstanceId);
-    //     console.log('Current State:', response.body.currentState);
   });
 
   it('/correspondences/:id/workflow/action (POST) - Process Action', async () => {
     // Skip if submit failed to get instanceId
     if (!workflowInstanceId) {
-      //       console.warn('Skipping action test - no instanceId from submit');
       return;
     }
 
@@ -121,6 +111,5 @@ describe('Phase 3 Workflow (E2E)', () => {
 
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('nextState');
-    //     console.log('Action Result:', response.body);
   });
 });

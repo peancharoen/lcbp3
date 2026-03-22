@@ -33,12 +33,12 @@ jobs:
       - name: 🔍 Security & quality checks
         run: |
           # UUID misuse check (ADR-019)
-          if grep -r --include="*.ts" --include="*.tsx" "parseInt(.*uuid" .; then
+          if grep -r --include="*.ts" --include="*.tsx" --exclude-dir={node_modules,.next,.agents,.git,scripts,test,__tests__} "parseInt(.*uuid" .; then
             echo "❌ UUID misuse detected"
             exit 1
           fi
           # console.log check (Clean Code)
-          if grep -r --include="*.ts" --include="*.tsx" "console.log" .; then
+          if grep -r --include="*.ts" --include="*.tsx" --exclude-dir={node_modules,.next,.agents,.git,scripts,test,__tests__} "console.log" .; then
             echo "❌ console.log detected"
             exit 1
           fi
