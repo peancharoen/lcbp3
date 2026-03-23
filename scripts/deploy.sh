@@ -43,21 +43,27 @@ docker exec lcbp3-mariadb mysqldump -u root -p"${DB_PASSWORD}" lcbp3_dms > "$BAC
 gzip "$BACKUP_FILE"
 echo "✓ Backup created: $BACKUP_FILE.gz"
 
-# Step 2: Pull latest images from registry
-echo "[2/9] Pulling latest Docker images from internal registry..."
-cd "$LCBP3_DIR/$TARGET"
+# Step 2: Build latest images directly on QNAP
+echo "[2/9] Building latest Docker images from source..."
+cd "/share/np-dms/app/source/lcbp3"
 
-if [ -n "$REGISTRY_TOKEN" ] && [ -n "$REGISTRY_USER" ]; then
-    echo "Logging into Gitea Container Registry..."
-    echo "$REGISTRY_TOKEN" | docker login git.np-dms.work -u "$REGISTRY_USER" --password-stdin
-    
-    echo "Updating docker-compose.yml to use Gitea registry images..."
-    sed -i -E "s|image: (git\.np-dms\.work/[^/]+/)?lcbp3-backend|image: git.np-dms.work/$REGISTRY_USER/lcbp3-backend|g" docker-compose.yml
-    sed -i -E "s|image: (git\.np-dms\.work/[^/]+/)?lcbp3-frontend|image: git.np-dms.work/$REGISTRY_USER/lcbp3-frontend|g" docker-compose.yml
+# Extract API_URL for Frontend Build Argument
+API_URL="https://lcbp3-dms.example.com/api"
+if [ -f "$LCBP3_DIR/$TARGET/.env.production" ]; then
+    ENV_URL=$(grep NEXT_PUBLIC_API_URL "$LCBP3_DIR/$TARGET/.env.production" | cut -d '=' -f2)
+    [ -n "$ENV_URL" ] && API_URL="$ENV_URL"
 fi
 
-docker-compose pull
-echo "✓ Images pulled"
+echo "Building backend..."
+docker build -f backend/Dockerfile -t lcbp3-backend:latest .
+
+echo "Building frontend with API URL: $API_URL..."
+docker build -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_URL="$API_URL" -t lcbp3-frontend:latest .
+
+echo "✓ Images built successfully"
+
+# Move correctly to target directory for docker-compose up
+cd "$LCBP3_DIR/$TARGET"
 
 # Step 3: Update configuration
 echo "[3/9] Updating configuration..."

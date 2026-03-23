@@ -54,53 +54,10 @@ jobs:
           cd ../frontend && pnpm build
 
   # ============================================================
-  # JOB 2 : Build & Push Image (Release Stage)
-  # ============================================================
-  release:
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    container: catthehacker/ubuntu:act-latest
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@v4
-
-      - name: 🏷️ Get Version
-        id: pkg-version
-        run: |
-          VERSION=$(node -p "require('./backend/package.json').version")
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Releasing version: $VERSION"
-
-      - name: 🐋 Login to Gitea Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: git.np-dms.work
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🏗️ Build & Push Backend
-        run: |
-          docker build -f backend/Dockerfile \
-            -t git.np-dms.work/${{ github.repository_owner }}/lcbp3-backend:${{ steps.pkg-version.outputs.VERSION }} \
-            -t git.np-dms.work/${{ github.repository_owner }}/lcbp3-backend:latest .
-          docker push git.np-dms.work/${{ github.repository_owner }}/lcbp3-backend:${{ steps.pkg-version.outputs.VERSION }}
-          docker push git.np-dms.work/${{ github.repository_owner }}/lcbp3-backend:latest
-
-      - name: 🏗️ Build & Push Frontend
-        run: |
-          docker build -f frontend/Dockerfile \
-            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
-            -t git.np-dms.work/${{ github.repository_owner }}/lcbp3-frontend:${{ steps.pkg-version.outputs.VERSION }} \
-            -t git.np-dms.work/${{ github.repository_owner }}/lcbp3-frontend:latest .
-          docker push git.np-dms.work/${{ github.repository_owner }}/lcbp3-frontend:${{ steps.pkg-version.outputs.VERSION }}
-          docker push git.np-dms.work/${{ github.repository_owner }}/lcbp3-frontend:latest
-
-  # ============================================================
-  # JOB 3 : Deploy — Trigger Blue-Green on QNAP
+  # JOB 2 : Deploy — Trigger Blue-Green on QNAP
   # ============================================================
   deploy:
-    needs: release
+    needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -130,6 +87,4 @@ jobs:
             echo "🚀 Executing Blue-Green deployment..."
             # Pass registry credentials if needed by the pull command in deploy.sh
             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            export REGISTRY_USER="${{ github.repository_owner }}"
-            export REGISTRY_TOKEN="${{ secrets.GITHUB_TOKEN }}"
             ./scripts/deploy.sh
