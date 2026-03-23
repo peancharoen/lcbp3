@@ -23,7 +23,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # Note: cache: 'pnpm' requires additional setup action, using npm cache for basic caching or skipping, but we can just use simple setup
 
       - name: 📦 Install deps
         run: pnpm install --frozen-lockfile
