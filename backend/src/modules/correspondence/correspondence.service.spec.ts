@@ -15,6 +15,7 @@ import { WorkflowEngineService } from '../workflow-engine/workflow-engine.servic
 import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
 import { User } from '../user/entities/user.entity';
 
@@ -23,6 +24,7 @@ describe('CorrespondenceService', () => {
   let numberingService: DocumentNumberingService;
   let correspondenceRepo: Repository<Correspondence>;
   let revisionRepo: Repository<CorrespondenceRevision>;
+  let testingModule: TestingModule;
   let _dataSource: DataSource;
 
   const createMockRepository = () => ({
@@ -60,10 +62,13 @@ describe('CorrespondenceService', () => {
       },
     })),
     getRepository: jest.fn(() => createMockRepository()),
+    manager: {
+      findOne: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    testingModule = await Test.createTestingModule({
       providers: [
         CorrespondenceService,
         {
@@ -129,20 +134,27 @@ describe('CorrespondenceService', () => {
           provide: FileStorageService,
           useValue: { commit: jest.fn().mockResolvedValue([]) },
         },
+        {
+          provide: UuidResolverService,
+          useValue: {
+            resolveProjectId: jest.fn().mockResolvedValue(1),
+            resolveOrganizationId: jest.fn().mockResolvedValue(1),
+          },
+        },
       ],
     }).compile();
 
-    service = module.get<CorrespondenceService>(CorrespondenceService);
-    numberingService = module.get<DocumentNumberingService>(
+    service = testingModule.get<CorrespondenceService>(CorrespondenceService);
+    numberingService = testingModule.get<DocumentNumberingService>(
       DocumentNumberingService
     );
-    correspondenceRepo = module.get<Repository<Correspondence>>(
+    correspondenceRepo = testingModule.get<Repository<Correspondence>>(
       getRepositoryToken(Correspondence)
     );
-    revisionRepo = module.get<Repository<CorrespondenceRevision>>(
+    revisionRepo = testingModule.get<Repository<CorrespondenceRevision>>(
       getRepositoryToken(CorrespondenceRevision)
     );
-    _dataSource = module.get<DataSource>(DataSource);
+    _dataSource = testingModule.get<DataSource>(DataSource);
   });
 
   it('should be defined', () => {
@@ -217,6 +229,10 @@ describe('CorrespondenceService', () => {
         projectId: 2,
       };
 
+      const uuidResolver =
+        testingModule.get<UuidResolverService>(UuidResolverService);
+      (uuidResolver.resolveProjectId as jest.Mock).mockResolvedValue(2);
+
       await service.update(1, updateDto, mockUser);
 
       expect(
@@ -253,6 +269,14 @@ describe('CorrespondenceService', () => {
         typeId: 999,
       };
 
+      const typeRepo = testingModule.get<Repository<CorrespondenceType>>(
+        getRepositoryToken(CorrespondenceType)
+      );
+      (typeRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 999,
+        typeCode: 'NEW-TYPE',
+      });
+
       await service.update(1, updateDto, mockUser);
 
       expect(
@@ -285,11 +309,8 @@ describe('CorrespondenceService', () => {
         .spyOn(correspondenceRepo, 'findOne')
         .mockResolvedValue(mockCorr as unknown as Correspondence);
 
-      // Access private property for mocking via casting
-      const internalService = service as unknown as {
-        orgRepo: Repository<Organization>;
-      };
-      jest.spyOn(internalService.orgRepo, 'findOne').mockResolvedValue({
+      // Access DataSource manager for mocking
+      mockDataSource.manager.findOne.mockResolvedValue({
         id: 88,
         organizationCode: 'NEW-ORG',
       } as unknown as Organization);

@@ -18,6 +18,7 @@ describe('CorrespondenceController', () => {
       getReferences: jest.fn(),
       addReference: jest.fn(),
       removeReference: jest.fn(),
+      findOneByUuid: jest.fn(),
     };
 
     mockWorkflowService = {
@@ -98,7 +99,11 @@ describe('CorrespondenceController', () => {
         mockResult
       );
 
-      const mockReq = { user: { user_id: 1 } };
+      const mockReq = { user: { user_id: 1, roles: [] } };
+      (mockCorrespondenceService.findOneByUuid as jest.Mock).mockResolvedValue({
+        id: 1,
+        uuid: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      });
       const result = await controller.submit(
         'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         { note: 'Test note' },

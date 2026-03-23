@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { DocumentNumberingService } from './services/document-numbering.service';
 import { CounterService } from './services/counter.service';
 import { ReservationService } from './services/reservation.service';
@@ -13,6 +13,7 @@ import { DocumentNumberError } from './entities/document-number-error.entity';
 import { DocumentNumberingLockService } from './services/document-numbering-lock.service';
 import { ManualOverrideService } from './services/manual-override.service';
 import { MetricsService } from './services/metrics.service';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 describe('DocumentNumberingService', () => {
   let service: DocumentNumberingService;
@@ -58,7 +59,9 @@ describe('DocumentNumberingService', () => {
         {
           provide: FormatService,
           useValue: {
-            format: jest.fn().mockResolvedValue('0001'),
+            format: jest
+              .fn()
+              .mockResolvedValue({ previewNumber: '0001', isDefault: false }),
           },
         },
         {
@@ -98,6 +101,17 @@ describe('DocumentNumberingService', () => {
             save: jest.fn().mockResolvedValue({}),
           },
         },
+        {
+          provide: EntityManager,
+          useValue: { transaction: jest.fn() },
+        },
+        {
+          provide: UuidResolverService,
+          useValue: {
+            resolveProjectId: jest.fn().mockResolvedValue(1),
+            resolveOrganizationId: jest.fn().mockResolvedValue(1),
+          },
+        },
       ],
     }).compile();
 
@@ -117,7 +131,10 @@ describe('DocumentNumberingService', () => {
   describe('generateNextNumber', () => {
     it('should generate a new number successfully', async () => {
       (counterService.incrementCounter as jest.Mock).mockResolvedValue(1);
-      (formatService.format as jest.Mock).mockResolvedValue('DOC-0001');
+      (formatService.format as jest.Mock).mockResolvedValue({
+        previewNumber: 'DOC-0001',
+        isDefault: false,
+      });
 
       const result = await service.generateNextNumber(mockContext);
 

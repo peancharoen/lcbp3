@@ -1,4 +1,0 @@
-
-> backend@1.8.0 lint D:\nap-dms.lcbp3\backend
-> eslint "{src,apps,libs,test}/**/*.ts" --fix
-

@@ -6,6 +6,9 @@ import { CorrespondenceType } from '../correspondence/entities/correspondence-ty
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { Project } from '../project/entities/project.entity';
 import { DataSource } from 'typeorm';
+import { MigrationReviewQueue } from './entities/migration-review-queue.entity';
+import { MigrationError } from './entities/migration-error.entity';
+import { FileStorageService } from '../../common/file-storage/file-storage.service';
 
 describe('MigrationService', () => {
   let service: MigrationService;
@@ -70,6 +73,18 @@ describe('MigrationService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: getRepositoryToken(MigrationReviewQueue),
+          useValue: { findOne: jest.fn(), create: jest.fn(), save: jest.fn() },
+        },
+        {
+          provide: getRepositoryToken(MigrationError),
+          useValue: { create: jest.fn(), save: jest.fn() },
+        },
+        {
+          provide: FileStorageService,
+          useValue: { importStagingFile: jest.fn() },
         },
       ],
     }).compile();

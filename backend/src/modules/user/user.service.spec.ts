@@ -6,6 +6,7 @@ import { UserService } from './user.service';
 import { User } from './entities/user.entity';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 // Mock Repository
 const mockUserRepository = {
@@ -55,6 +56,13 @@ describe('UserService', () => {
         {
           provide: getRepositoryToken(Permission),
           useValue: mockUserRepository, // Reuse generic mock
+        },
+        {
+          provide: UuidResolverService,
+          useValue: {
+            resolveOrganizationId: jest.fn().mockResolvedValue(1),
+            resolveProjectId: jest.fn().mockResolvedValue(1),
+          },
         },
       ],
     }).compile();

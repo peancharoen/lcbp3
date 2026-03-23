@@ -18,6 +18,7 @@ export default [
       'backend/documentation/**',
       'backend/scripts/**',
       'frontend/public/**',
+      '**/test/**',
     ],
   },
   ...backendConfig.map((config) => ({
