@@ -37,7 +37,12 @@ const nextConfig = {
   },
   */
 
-  // 5. Webpack config (fallback for Turbopack)
+  // 5. Turbopack config for Next.js 16
+  turbopack: {
+    // Empty config to silence Turbopack warnings
+  },
+
+  // 5.1. Webpack config (fallback for Turbopack)
   webpack: (config, { dev, isServer }) => {
     if (!dev && !isServer) {
       config.stats = {

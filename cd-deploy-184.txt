@@ -1,0 +1,511 @@
+2026-03-23T07:52:09.6729022Z asustor-runner(version:v0.2.13) received task 184 of job deploy, be triggered by event: push
+2026-03-23T07:52:09.6734932Z workflow prepared
+2026-03-23T07:52:09.6735943Z evaluating expression 'success()'
+2026-03-23T07:52:09.6737120Z expression 'success()' evaluated to 'true'
+2026-03-23T07:52:09.6737308Z 'runs-on' key not defined in CI / CD Pipeline/build
+2026-03-23T07:52:09.6737475Z No steps found
+2026-03-23T07:52:09.6738309Z evaluating expression 'github.ref == 'refs/heads/main''
+2026-03-23T07:52:09.6739020Z expression 'github.ref == 'refs/heads/main'' evaluated to 'true'
+2026-03-23T07:52:09.6739342Z 🚀  Start image=node:18-bullseye
+2026-03-23T07:52:09.6888454Z   🐳  docker pull image=node:18-bullseye platform= username= forcePull=false
+2026-03-23T07:52:09.6888929Z   🐳  docker pull node:18-bullseye
+2026-03-23T07:52:09.6917647Z Image exists? true
+2026-03-23T07:52:09.7015548Z Cleaning up network for job deploy, and network name is: GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy-deploy-network
+2026-03-23T07:52:10.0769502Z   🐳  docker create image=node:18-bullseye platform= entrypoint=["/bin/sleep" "10800"] cmd=[] network="GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy-deploy-network"
+2026-03-23T07:52:15.2994950Z Created container name=GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy id=d1f9cc6073a553d2494abc612d9c1e872e757a40ea8a6ffbae034e715b6650b1 from image node:18-bullseye (platform: )
+2026-03-23T07:52:15.2995575Z ENV ==> [RUNNER_TOOL_CACHE=/opt/hostedtoolcache RUNNER_OS=Linux RUNNER_ARCH=X64 RUNNER_TEMP=/tmp LANG=C.UTF-8]
+2026-03-23T07:52:15.2995938Z   🐳  docker run image=node:18-bullseye platform= entrypoint=["/bin/sleep" "10800"] cmd=[] network="GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy-deploy-network"
+2026-03-23T07:52:15.2996259Z Starting container: d1f9cc6073a553d2494abc612d9c1e872e757a40ea8a6ffbae034e715b6650b1
+2026-03-23T07:52:17.1165681Z Started container: d1f9cc6073a553d2494abc612d9c1e872e757a40ea8a6ffbae034e715b6650b1
+2026-03-23T07:52:17.2844781Z Writing entry to tarball workflow/event.json len:4629
+2026-03-23T07:52:17.2845445Z Writing entry to tarball workflow/envs.txt len:0
+2026-03-23T07:52:17.2845808Z Extracting content to '/var/run/act/'
+2026-03-23T07:52:17.3125114Z   ☁  git clone 'https://github.com/appleboy/ssh-action' # ref=v1.0.3
+2026-03-23T07:52:17.3125696Z   cloning https://github.com/appleboy/ssh-action to /root/.cache/act/dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d
+2026-03-23T07:52:18.0550957Z Cloned https://github.com/appleboy/ssh-action to /root/.cache/act/dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d
+2026-03-23T07:52:18.0767672Z Checked out v1.0.3
+2026-03-23T07:52:18.0995025Z expression '${{ secrets.PASSWORD }}' rewritten to 'format('{0}', secrets.PASSWORD)'
+2026-03-23T07:52:18.0995592Z evaluating expression 'format('{0}', secrets.PASSWORD)'
+2026-03-23T07:52:18.0996115Z expression 'format('{0}', secrets.PASSWORD)' evaluated to '%!t(string=***)'
+2026-03-23T07:52:18.0996472Z expression '${{ secrets.USERNAME }}' rewritten to 'format('{0}', secrets.USERNAME)'
+2026-03-23T07:52:18.0996679Z evaluating expression 'format('{0}', secrets.USERNAME)'
+2026-03-23T07:52:18.0997058Z expression 'format('{0}', secrets.USERNAME)' evaluated to '%!t(string=***)'
+2026-03-23T07:52:18.0997397Z expression '${{ secrets.HOST }}' rewritten to 'format('{0}', secrets.HOST)'
+2026-03-23T07:52:18.0997621Z evaluating expression 'format('{0}', secrets.HOST)'
+2026-03-23T07:52:18.0997966Z expression 'format('{0}', secrets.HOST)' evaluated to '%!t(string=***)'
+2026-03-23T07:52:18.0998281Z expression '${{ secrets.PORT }}' rewritten to 'format('{0}', secrets.PORT)'
+2026-03-23T07:52:18.0998481Z evaluating expression 'format('{0}', secrets.PORT)'
+2026-03-23T07:52:18.0998827Z expression 'format('{0}', secrets.PORT)' evaluated to '%!t(string=***)'
+2026-03-23T07:52:18.0999240Z expression 'set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD="${{ secrets.DB_PASSWORD }}"\n./scripts/deploy.sh\n' rewritten to 'format('set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD="{0}"\n./scripts/deploy.sh\n', secrets.DB_PASSWORD)'
+2026-03-23T07:52:18.1000215Z evaluating expression 'format('set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD="{0}"\n./scripts/deploy.sh\n', secrets.DB_PASSWORD)'
+2026-03-23T07:52:18.1001873Z expression 'format('set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD="{0}"\n./scripts/deploy.sh\n', secrets.DB_PASSWORD)' evaluated to '%!t(string=set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD=""\n./scripts/deploy.sh\n)'
+2026-03-23T07:52:18.1111383Z evaluating expression ''
+2026-03-23T07:52:18.1112688Z expression '' evaluated to 'true'
+2026-03-23T07:52:18.1112946Z ⭐ Run Main 🚀 Trigger Deployment on QNAP
+2026-03-23T07:52:18.1113325Z Writing entry to tarball workflow/outputcmd.txt len:0
+2026-03-23T07:52:18.1113625Z Writing entry to tarball workflow/statecmd.txt len:0
+2026-03-23T07:52:18.1113854Z Writing entry to tarball workflow/pathcmd.txt len:0
+2026-03-23T07:52:18.1114123Z Writing entry to tarball workflow/envs.txt len:0
+2026-03-23T07:52:18.1114361Z Writing entry to tarball workflow/SUMMARY.md len:0
+2026-03-23T07:52:18.1114588Z Extracting content to '/var/run/act'
+2026-03-23T07:52:18.1254953Z type=remote-action actionDir=/root/.cache/act/dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d actionPath= workdir=/workspace/np-dms/lcbp3 actionCacheDir=/root/.cache/act actionName=dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d containerActionDir=/var/run/act/actions/dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d
+2026-03-23T07:52:18.1324367Z image 'act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest' for architecture '' already exists
+2026-03-23T07:52:18.1568914Z expression '${{ secrets.HOST }}' rewritten to 'format('{0}', secrets.HOST)'
+2026-03-23T07:52:18.1569426Z evaluating expression 'format('{0}', secrets.HOST)'
+2026-03-23T07:52:18.1570773Z expression 'format('{0}', secrets.HOST)' evaluated to '%!t(string=***)'
+2026-03-23T07:52:18.1571181Z expression '${{ secrets.PASSWORD }}' rewritten to 'format('{0}', secrets.PASSWORD)'
+2026-03-23T07:52:18.1571391Z evaluating expression 'format('{0}', secrets.PASSWORD)'
+2026-03-23T07:52:18.1571722Z expression 'format('{0}', secrets.PASSWORD)' evaluated to '%!t(string=***)'
+2026-03-23T07:52:18.1572109Z expression '${{ secrets.PORT }}' rewritten to 'format('{0}', secrets.PORT)'
+2026-03-23T07:52:18.1572303Z evaluating expression 'format('{0}', secrets.PORT)'
+2026-03-23T07:52:18.1572620Z expression 'format('{0}', secrets.PORT)' evaluated to '%!t(string=***)'
+2026-03-23T07:52:18.1572985Z expression 'set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD="${{ secrets.DB_PASSWORD }}"\n./scripts/deploy.sh\n' rewritten to 'format('set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD="{0}"\n./scripts/deploy.sh\n', secrets.DB_PASSWORD)'
+2026-03-23T07:52:18.1573749Z evaluating expression 'format('set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD="{0}"\n./scripts/deploy.sh\n', secrets.DB_PASSWORD)'
+2026-03-23T07:52:18.1575342Z expression 'format('set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD="{0}"\n./scripts/deploy.sh\n', secrets.DB_PASSWORD)' evaluated to '%!t(string=set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD=""\n./scripts/deploy.sh\n)'
+2026-03-23T07:52:18.1576006Z expression '${{ secrets.USERNAME }}' rewritten to 'format('{0}', secrets.USERNAME)'
+2026-03-23T07:52:18.1576201Z evaluating expression 'format('{0}', secrets.USERNAME)'
+2026-03-23T07:52:18.1576570Z expression 'format('{0}', secrets.USERNAME)' evaluated to '%!t(string=***)'
+2026-03-23T07:52:18.1904147Z   🐳  docker pull image=act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest platform= username= forcePull=false
+2026-03-23T07:52:18.1904744Z   🐳  docker pull act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest
+2026-03-23T07:52:18.1927087Z Image exists? true
+2026-03-23T07:52:18.1981477Z   🐳  docker create image=act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest platform= entrypoint=[] cmd=[] network="container:GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy"
+2026-03-23T07:52:19.9166772Z Created container name=GITEA-ACTIONS-TASK-184-WORKFLOW-CI-CD-Pipeline-JOB-deploy_STEP-0 id=e18712f813a56b2e2d4b147cb74c1c45195a7abba29b3494ce30f36bfa33ab3c from image act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest (platform: )
+2026-03-23T07:52:19.9168161Z ENV ==> [GITHUB_PATH=/var/run/act/workflow/pathcmd.txt GITEA_STATE=/var/run/act/workflow/statecmd.txt INPUT_PROXY_USE_INSECURE_CIPHER= INPUT_PROXY_PORT=*** proxy_password= key= debug= RUNNER_TRACKING_ID= INPUT_COMMAND_TIMEOUT=900s INPUT_PROXY_KEY= proxy_fingerprint= INPUT_SCRIPT=set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD=""\n./scripts/deploy.sh\n INPUT_SCRIPT_STOP_SIGNAL=true GITHUB_STATE=/var/run/act/workflow/statecmd.txt INPUT_ENVS= proxy_passphrase= use_insecure_cipher= username=*** proxy_key= ACTIONS_RUNTIME_URL=https://git.np-dms.work/api/actions_pipeline/ ACTIONS_CACHE_URL=http://172.19.0.2:33669/ GITHUB_ACTION=0 GITHUB_ENV=/var/run/act/workflow/envs.txt script=set -e\nexport PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"\n\n# Sync scripts first\necho "📂 Syncing deployment scripts..."\ncd /share/np-dms/app/source/lcbp3\ngit fetch origin main\ngit reset --hard origin/main\n\n# Ensure scripts are executable\nchmod +x scripts/deploy.sh scripts/rollback.sh\n\necho "🚀 Executing Blue-Green deployment..."\n# Pass registry credentials if needed by the pull command in deploy.sh\nexport DB_PASSWORD=""\n./scripts/deploy.sh\n script_stop= envs= command_timeout=900s GITHUB_REF_TYPE=branch ImageOS=ubuntu20 GITHUB_STEP_SUMMARY=/var/run/act/workflow/SUMMARY.md INPUT_KEY= INPUT_USE_INSECURE_CIPHER= allenvs= RUNNER_PERFLOG=/dev/null INPUT_USERNAME=*** GITEA_STEP_SUMMARY=/var/run/act/workflow/SUMMARY.md INPUT_PROXY_PASSWORD= proxy_username= port=*** GITHUB_BASE_REF= GITHUB_API_URL=https://git.np-dms.work/api/v1 envs_format= request_pty= host=*** proxy_host= key_path= script_stop_signal=true GITHUB_ACTOR=*** INPUT_HOST=*** INPUT_PORT=*** GITHUB_OUTPUT=/var/run/act/workflow/outputcmd.txt INPUT_ALLENVS= INPUT_PROXY_PASSPHRASE= INPUT_PASSPHRASE= proxy_timeout=30s GITHUB_WORKSPACE=/workspace/np-dms/lcbp3 INPUT_ENVS_FORMAT= password=*** ACTIONS_RESULTS_URL=https://git.np-dms.work GITEA_ACTIONS=true GITHUB_REF_NAME=main GITHUB_GRAPHQL_URL= GITEA_OUTPUT=/var/run/act/workflow/outputcmd.txt INPUT_PROXY_HOST= INPUT_KEY_PATH= proxy_port=*** GITHUB_RUN_ID=210 GITHUB_JOB=deploy cipher= sync= proxy_use_insecure_cipher= fingerprint= proxy_cipher= GITHUB_EVENT_PATH=/var/run/act/workflow/event.json GITHUB_HEAD_REF= GITHUB_SERVER_URL=https://git.np-dms.work GITEA_PATH=/var/run/act/workflow/pathcmd.txt GITEA_ENV=/var/run/act/workflow/envs.txt INPUT_PROXY_USERNAME= INPUT_PROXY_KEY_PATH= ACT=true GITHUB_REF=refs/heads/main INPUT_PASSWORD=*** timeout=1200s proxy_key_path= passphrase= CI=true GITHUB_WORKFLOW=CI / CD Pipeline GITHUB_ACTION_REPOSITORY=appleboy/ssh-action GITHUB_REPOSITORY_OWNER=np-dms INPUT_PROXY_TIMEOUT=30s INPUT_FINGERPRINT= INPUT_PROXY_FINGERPRINT= INPUT_SYNC= ACTIONS_RUNTIME_TOKEN=*** JOB_CONTAINER_NAME=GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy GITHUB_REPOSITORY=np-dms/lcbp3 GITHUB_RETENTION_DAYS= INPUT_CIPHER= INPUT_SCRIPT_STOP= INPUT_REQUEST_PTY= INPUT_DEBUG= GITEA_ACTIONS_RUNNER_VERSION=v0.2.13 GITHUB_RUN_NUMBER=210 GITHUB_ACTION_REF=v1.0.3 GITHUB_ACTIONS=true GITHUB_EVENT_NAME=push GITHUB_SHA=8548de9a94ecd486ada4589cdc58c94aabf21f3c INPUT_TIMEOUT=1200s INPUT_PROXY_CIPHER= GITHUB_ACTION_PATH= RUNNER_TOOL_CACHE=/opt/hostedtoolcache RUNNER_OS=Linux RUNNER_ARCH=X64 RUNNER_TEMP=/tmp]
+2026-03-23T07:52:19.9169975Z   🐳  docker run image=act-dff214aaee240b4d48725836d98fb9f1de8c99b36f2a9ba82946d844ba27a96d-dockeraction:latest platform= entrypoint=[] cmd=[] network="container:GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy"
+2026-03-23T07:52:19.9179104Z Starting container: e18712f813a56b2e2d4b147cb74c1c45195a7abba29b3494ce30f36bfa33ab3c
+2026-03-23T07:52:20.4354704Z ======CMD======
+2026-03-23T07:52:20.4359483Z set -e
+2026-03-23T07:52:20.4359827Z export PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+2026-03-23T07:52:20.4360331Z 
+2026-03-23T07:52:20.4360586Z # Sync scripts first
+2026-03-23T07:52:20.4360837Z echo "📂 Syncing deployment scripts..."
+2026-03-23T07:52:20.4361089Z cd /share/np-dms/app/source/lcbp3
+2026-03-23T07:52:20.4362198Z git fetch origin main
+2026-03-23T07:52:20.4362462Z git reset --hard origin/main
+2026-03-23T07:52:20.4362689Z 
+2026-03-23T07:52:20.4362958Z # Ensure scripts are executable
+2026-03-23T07:52:20.4363180Z chmod +x scripts/deploy.sh scripts/rollback.sh
+2026-03-23T07:52:20.4363401Z 
+2026-03-23T07:52:20.4363618Z echo "🚀 Executing Blue-Green deployment..."
+2026-03-23T07:52:20.4364215Z # Pass registry credentials if needed by the pull command in deploy.sh
+2026-03-23T07:52:20.4364481Z export DB_PASSWORD=""
+2026-03-23T07:52:20.4364698Z ./scripts/deploy.sh
+2026-03-23T07:52:20.4364917Z 
+2026-03-23T07:52:20.4365176Z ======END======
+2026-03-23T07:52:20.7093819Z out: 📂 Syncing deployment scripts...
+2026-03-23T07:52:20.9359634Z err: From https://git.np-dms.work/np-dms/lcbp3
+2026-03-23T07:52:20.9360470Z err:  * branch            main       -> FETCH_HEAD
+2026-03-23T07:52:20.9375389Z err:    d20eb94..8548de9  main       -> origin/main
+2026-03-23T07:52:20.9550387Z out: HEAD is now at 8548de9 260323:1443 fix CI : Deploy : Turbopack Build Error #01
+2026-03-23T07:52:20.9565919Z out: 🚀 Executing Blue-Green deployment...
+2026-03-23T07:52:20.9599820Z out: =========================================
+2026-03-23T07:52:20.9600641Z out: LCBP3-DMS Blue-Green Deployment (v1.8.1)
+2026-03-23T07:52:20.9601017Z out: =========================================
+2026-03-23T07:52:20.9601262Z out: Current environment: blue
+2026-03-23T07:52:20.9601688Z out: Target environment:  green
+2026-03-23T07:52:20.9601940Z out: =========================================
+2026-03-23T07:52:20.9602170Z out: [1/9] Creating database backup...
+2026-03-23T07:52:20.9621334Z out: Warning: DB_PASSWORD not found in environment. Attempting to source from .env...
+2026-03-23T07:52:21.2103749Z out: ⚠️ Database backup failed or mariadb container not running. Skipping backup for this deployment...
+2026-03-23T07:52:21.2113556Z out: [2/9] Building latest Docker images from source...
+2026-03-23T07:52:21.2113952Z out: Building backend...
+2026-03-23T07:52:21.6716961Z err: #0 building with "default" instance using docker driver
+2026-03-23T07:52:21.6717690Z err: #1 [internal] load build definition from Dockerfile
+2026-03-23T07:52:21.6717974Z err: #1 transferring dockerfile: 3.28kB done
+2026-03-23T07:52:21.8344715Z err: #1 DONE 0.3s
+2026-03-23T07:52:22.0316002Z err: #2 [internal] load metadata for docker.io/library/node:***-alpine
+2026-03-23T07:52:23.7177441Z err: #2 DONE 1.8s
+2026-03-23T07:52:23.9307422Z err: #3 [internal] load .dockerignore
+2026-03-23T07:52:23.9308340Z err: #3 transferring context: 1.09kB 0.0s done
+2026-03-23T07:52:23.9308656Z err: #3 DONE 0.2s
+2026-03-23T07:52:24.0588905Z err: #4 [deps 1/6] FROM docker.io/library/node:***-alpine@sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53***9a2ec13ee***a00
+2026-03-23T07:52:24.0589849Z err: #4 DONE 0.0s
+2026-03-23T07:52:24.0591129Z err: #5 [internal] load build context
+2026-03-23T07:52:25.4424469Z err: #5 transferring context: 1.65MB 1.4s done
+2026-03-23T07:52:25.7194383Z err: #5 DONE 1.7s
+2026-03-23T07:52:25.8312808Z err: #6 [build  9/10] RUN PNPM_IGNORE_SCRIPTS=none     pnpm --filter backend deploy --prod --shamefully-hoist --legacy --no-optional /app/backend-prod
+2026-03-23T07:52:25.8313586Z err: #6 CACHED
+2026-03-23T07:52:25.8314039Z err: #7 [deps 6/6] RUN pnpm install --frozen-lockfile --filter backend...
+2026-03-23T07:52:25.8314368Z err: #7 CACHED
+2026-03-23T07:52:25.8314609Z err: #8 [production 3/8] WORKDIR /app
+2026-03-23T07:52:25.8314866Z err: #8 CACHED
+2026-03-23T07:52:25.8315075Z err: #9 [production 5/8] COPY --from=build --chown=nestjs:nestjs /app/backend/dist ./dist
+2026-03-23T07:52:25.8315502Z err: #9 CACHED
+2026-03-23T07:52:25.8315730Z err: #10 [build  6/10] COPY --from=deps /app/backend/node_modules ./backend/node_modules
+2026-03-23T07:52:25.8316058Z err: #10 CACHED
+2026-03-23T07:52:25.8316280Z err: #11 [deps 4/6] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-03-23T07:52:25.8316503Z err: #11 CACHED
+2026-03-23T07:52:25.8316795Z err: #12 [deps 5/6] COPY backend/package.json ./backend/
+2026-03-23T07:52:25.8317043Z err: #12 CACHED
+2026-03-23T07:52:25.8317459Z err: #13 [build  8/10] RUN cd backend &&     NODE_OPTIONS="--max-old-space-size=4096"     pnpm run build
+2026-03-23T07:52:25.8317786Z err: #13 CACHED
+2026-03-23T07:52:25.8318057Z err: #14 [build  7/10] COPY backend/ ./backend/
+2026-03-23T07:52:25.8318279Z err: #14 CACHED
+2026-03-23T07:52:25.8318496Z err: #15 [build 10/10] RUN find /app/backend-prod/node_modules -name "*.md" -delete     && find /app/backend-prod/node_modules -name "*.txt" -delete     && find /app/backend-prod/node_modules -name "LICENSE*" -delete     && find /app/backend-prod/node_modules -name "README*" -delete     && find /app/backend-prod/node_modules -name "CHANGELOG*" -delete
+2026-03-23T07:52:25.8318948Z err: #15 CACHED
+2026-03-23T07:52:25.8319171Z err: #16 [production 6/8] COPY --from=build --chown=nestjs:nestjs /app/backend-prod/package.json ./
+2026-03-23T07:52:25.8319795Z err: #16 CACHED
+2026-03-23T07:52:25.8320265Z err: #17 [deps 3/6] WORKDIR /app
+2026-03-23T07:52:25.8320538Z err: #17 CACHED
+2026-03-23T07:52:25.8320765Z err: #18 [production 7/8] COPY --from=build --chown=nestjs:nestjs /app/backend-prod/node_modules ./node_modules
+2026-03-23T07:52:25.8321175Z err: #18 CACHED
+2026-03-23T07:52:25.8321476Z err: #19 [build  5/10] COPY --from=deps /app/node_modules ./node_modules
+2026-03-23T07:52:25.8321698Z err: #19 CACHED
+2026-03-23T07:52:25.8321965Z err: #20 [production 2/8] RUN apk add --no-cache curl
+2026-03-23T07:52:25.8322336Z err: #20 CACHED
+2026-03-23T07:52:25.8322622Z err: #21 [production 4/8] RUN addgroup -g 1001 -S nestjs &&     adduser -S nestjs -u 1001
+2026-03-23T07:52:25.8322865Z err: #21 CACHED
+2026-03-23T07:52:25.8323058Z err: #*** [deps 2/6] RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+2026-03-23T07:52:25.8323411Z err: #*** CACHED
+2026-03-23T07:52:25.8323693Z err: #23 [production 8/8] RUN mkdir -p /app/uploads/temp /app/uploads/permanent &&     chown -R nestjs:nestjs /app/uploads
+2026-03-23T07:52:25.8324008Z err: #23 CACHED
+2026-03-23T07:52:28.0249549Z err: #24 exporting to image
+2026-03-23T07:52:28.0250314Z err: #24 exporting layers done
+2026-03-23T07:52:28.1761989Z err: #24 writing image sha256:adf35841baf536912418f54f86d91ab72bcdb1bcf90c46e35c1ffe33df34c125
+2026-03-23T07:52:28.7726399Z err: #24 writing image sha256:adf35841baf536912418f54f86d91ab72bcdb1bcf90c46e35c1ffe33df34c125 0.7s done
+2026-03-23T07:52:28.7727253Z err: #24 naming to docker.io/library/lcbp3-backend:latest
+2026-03-23T07:52:29.1238899Z err: #24 naming to docker.io/library/lcbp3-backend:latest 0.4s done
+2026-03-23T07:52:29.6263967Z err: #24 DONE 1.6s
+2026-03-23T07:52:30.5392182Z out: Building frontend with API URL: https://lcbp3-dms.example.com/api...
+2026-03-23T07:52:31.2442694Z err: #0 building with "default" instance using docker driver
+2026-03-23T07:52:31.2443387Z err: #1 [internal] load build definition from Dockerfile
+2026-03-23T07:52:31.2443694Z err: #1 transferring dockerfile: 4.21kB done
+2026-03-23T07:52:31.2443915Z err: #1 DONE 0.2s
+2026-03-23T07:52:31.4585187Z err: #2 [internal] load metadata for docker.io/library/node:***-slim
+2026-03-23T07:52:35.5855206Z err: #2 DONE 4.3s
+2026-03-23T07:52:35.7875990Z err: #3 [internal] load .dockerignore
+2026-03-23T07:52:35.7876665Z err: #3 transferring context: 1.09kB done
+2026-03-23T07:52:35.9718162Z err: #3 DONE 0.4s
+2026-03-23T07:52:36.1711275Z err: #4 [internal] load build context
+2026-03-23T07:52:36.1712144Z err: #4 DONE 0.0s
+2026-03-23T07:52:36.1712371Z err: #5 [deps 1/6] FROM docker.io/library/node:***-slim@sha256:4f77a690f2f8946ab16fe1e791a3ac0667ae1c3575c3e4d0d4589e9ed5bfaf3d
+2026-03-23T07:52:36.1712791Z err: #5 resolve docker.io/library/node:***-slim@sha256:4f77a690f2f8946ab16fe1e791a3ac0667ae1c3575c3e4d0d4589e9ed5bfaf3d
+2026-03-23T07:52:36.1762999Z err: #5 resolve docker.io/library/node:***-slim@sha256:4f77a690f2f8946ab16fe1e791a3ac0667ae1c3575c3e4d0d4589e9ed5bfaf3d 0.2s done
+2026-03-23T07:52:36.3427274Z err: #5 sha256:c7d2ba7d15bc2d***b819c4a9bac6b760113ddff2c8450109b06150106bd483e4 6.88kB / 6.88kB done
+2026-03-23T07:52:36.4452055Z err: #5 sha256:4f77a690f2f8946ab16fe1e791a3ac0667ae1c3575c3e4d0d4589e9ed5bfaf3d 6.49kB / 6.49kB done
+2026-03-23T07:52:36.4452828Z err: #5 sha256:af5818e10f6294a719b4314f34ec03d8e8ad8f571a8d23742418790e6ebb5c90 1.93kB / 1.93kB done
+2026-03-23T07:52:36.4453110Z err: #5 sha256:6db0909c4473287ed4d1f950d26b8bc5b7b4206d365a0e7740cb89e46979153e 0B / 28.24MB 0.1s
+2026-03-23T07:52:36.6429504Z err: #5 sha256:e260c4bd6721aa9cf70355d170f8cad17e2194840a***c0bc9afae1789fb6a731 0B / 3.31kB 0.3s
+2026-03-23T07:52:37.1427613Z err: #5 ...
+2026-03-23T07:52:37.1428404Z err: #4 [internal] load build context
+2026-03-23T07:52:37.1428661Z err: #4 transferring context: 1.10MB 0.2s done
+2026-03-23T07:52:37.1428911Z err: #4 DONE 0.8s
+2026-03-23T07:52:37.1429178Z err: #5 [deps 1/6] FROM docker.io/library/node:***-slim@sha256:4f77a690f2f8946ab16fe1e791a3ac0667ae1c3575c3e4d0d4589e9ed5bfaf3d
+2026-03-23T07:52:37.1429529Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 0B / 49.95MB 0.8s
+2026-03-23T07:52:37.2433534Z err: #5 sha256:6db0909c4473287ed4d1f950d26b8bc5b7b4206d365a0e7740cb89e46979153e 8.39MB / 28.24MB 0.9s
+2026-03-23T07:52:37.4427966Z err: #5 sha256:6db0909c4473287ed4d1f950d26b8bc5b7b4206d365a0e7740cb89e46979153e 18.87MB / 28.24MB 1.1s
+2026-03-23T07:52:37.5432284Z err: #5 sha256:6db0909c4473287ed4d1f950d26b8bc5b7b4206d365a0e7740cb89e46979153e 26.21MB / 28.24MB 1.2s
+2026-03-23T07:52:37.5433465Z err: #5 sha256:e260c4bd6721aa9cf70355d170f8cad17e2194840a***c0bc9afae1789fb6a731 3.31kB / 3.31kB 1.2s
+2026-03-23T07:52:37.6432906Z err: #5 sha256:6db0909c4473287ed4d1f950d26b8bc5b7b4206d365a0e7740cb89e46979153e 28.24MB / 28.24MB 1.3s
+2026-03-23T07:52:37.7434065Z err: #5 sha256:e260c4bd6721aa9cf70355d170f8cad17e2194840a***c0bc9afae1789fb6a731 3.31kB / 3.31kB 1.4s done
+2026-03-23T07:52:38.5424787Z err: #5 sha256:6db0909c4473287ed4d1f950d26b8bc5b7b4206d365a0e7740cb89e46979153e 28.24MB / 28.24MB 2.0s done
+2026-03-23T07:52:38.9430576Z err: #5 extracting sha256:6db0909c4473287ed4d1f950d26b8bc5b7b4206d365a0e7740cb89e46979153e
+2026-03-23T07:52:38.9431350Z err: #5 sha256:5b656***f4612343e8373dca1cc9358d43b393ded920a92da897b8a82b5d51139 0B / 1.71MB 2.6s
+2026-03-23T07:52:39.3442635Z err: #5 sha256:1f07293921e5871b5544e13097dc0c65d28920dc8a5f94216e2af10843f7986e 0B / 447B 3.0s
+2026-03-23T07:52:39.5941495Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 3.15MB / 49.95MB 3.2s
+2026-03-23T07:52:40.0401721Z err: #5 sha256:5b656***f4612343e8373dca1cc9358d43b393ded920a92da897b8a82b5d51139 1.05MB / 1.71MB 3.6s
+2026-03-23T07:52:40.1427343Z err: #5 sha256:5b656***f4612343e8373dca1cc9358d43b393ded920a92da897b8a82b5d51139 1.71MB / 1.71MB 3.8s
+2026-03-23T07:52:40.2546240Z err: #5 sha256:5b656***f4612343e8373dca1cc9358d43b393ded920a92da897b8a82b5d51139 1.71MB / 1.71MB 3.9s done
+2026-03-23T07:52:40.4780655Z err: #5 sha256:1f07293921e5871b5544e13097dc0c65d28920dc8a5f94216e2af10843f7986e 447B / 447B 4.1s
+2026-03-23T07:52:40.6427445Z err: #5 sha256:1f07293921e5871b5544e13097dc0c65d28920dc8a5f94216e2af10843f7986e 447B / 447B 4.2s done
+2026-03-23T07:52:41.3423114Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 6.29MB / 49.95MB 5.0s
+2026-03-23T07:52:41.4427613Z err: #5 extracting sha256:6db0909c4473287ed4d1f950d26b8bc5b7b4206d365a0e7740cb89e46979153e 2.5s done
+2026-03-23T07:52:41.8046613Z err: #5 extracting sha256:e260c4bd6721aa9cf70355d170f8cad17e2194840a***c0bc9afae1789fb6a731
+2026-03-23T07:52:41.9428906Z err: #5 extracting sha256:e260c4bd6721aa9cf70355d170f8cad17e2194840a***c0bc9afae1789fb6a731 0.1s done
+2026-03-23T07:52:43.1428942Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 9.44MB / 49.95MB 6.8s
+2026-03-23T07:52:45.3428178Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 12.58MB / 49.95MB 9.0s
+2026-03-23T07:52:46.6425378Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 15.73MB / 49.95MB 10.3s
+2026-03-23T07:52:48.4435358Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 18.87MB / 49.95MB 12.1s
+2026-03-23T07:52:50.2427153Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 ***.02MB / 49.95MB 13.9s
+2026-03-23T07:52:52.0430776Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 25.17MB / 49.95MB 15.7s
+2026-03-23T07:52:53.9429951Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 28.31MB / 49.95MB 17.6s
+2026-03-23T07:52:55.6431846Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 31.46MB / 49.95MB 19.3s
+2026-03-23T07:52:57.4428476Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 34.60MB / 49.95MB 21.1s
+2026-03-23T07:52:59.2430909Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 37.75MB / 49.95MB ***.9s
+2026-03-23T07:53:00.9431366Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 40.89MB / 49.95MB 24.6s
+2026-03-23T07:53:02.7425997Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 44.04MB / 49.95MB 26.4s
+2026-03-23T07:53:04.6432281Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 47.19MB / 49.95MB 28.3s
+2026-03-23T07:53:06.5432220Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 49.95MB / 49.95MB 30.2s
+2026-03-23T07:53:07.3432172Z err: #5 sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 49.95MB / 49.95MB 31.0s done
+2026-03-23T07:53:07.4766405Z err: #5 extracting sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40
+2026-03-23T07:53:12.3014005Z err: #5 extracting sha256:1cb89e70384b59a4860d1f1c56f6f91043d2f8e1394bd9799d7d576f1199fd40 4.7s done
+2026-03-23T07:53:15.8076175Z err: #5 extracting sha256:5b656***f4612343e8373dca1cc9358d43b393ded920a92da897b8a82b5d51139
+2026-03-23T07:53:16.2072298Z err: #5 extracting sha256:5b656***f4612343e8373dca1cc9358d43b393ded920a92da897b8a82b5d51139 0.2s done
+2026-03-23T07:53:17.0965903Z err: #5 extracting sha256:1f07293921e5871b5544e13097dc0c65d28920dc8a5f94216e2af10843f7986e
+2026-03-23T07:53:17.3281393Z err: #5 extracting sha256:1f07293921e5871b5544e13097dc0c65d28920dc8a5f94216e2af10843f7986e 0.1s done
+2026-03-23T07:53:20.8814691Z err: #5 DONE 44.9s
+2026-03-23T07:53:20.9825388Z err: #6 [production 2/9] WORKDIR /app
+2026-03-23T07:53:25.0243412Z err: #6 DONE 4.0s
+2026-03-23T07:53:25.0244057Z err: #7 [deps 2/6] RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+2026-03-23T07:53:27.1527098Z err: #7 6.170 Preparing pnpm@10.32.1 for immediate activation...
+2026-03-23T07:53:35.1404004Z err: #7 DONE 14.2s
+2026-03-23T07:53:35.1404711Z err: #8 [production 3/9] RUN groupadd -g 1001 nextjs &&     useradd -u 1001 -g 1001 -m -s /bin/bash nextjs
+2026-03-23T07:53:35.2562853Z err: #8 ...
+2026-03-23T07:53:35.2563501Z err: #9 [deps 3/6] WORKDIR /w
+2026-03-23T07:53:38.2800254Z err: #9 DONE 3.0s
+2026-03-23T07:53:38.2800933Z err: #8 [production 3/9] RUN groupadd -g 1001 nextjs &&     useradd -u 1001 -g 1001 -m -s /bin/bash nextjs
+2026-03-23T07:53:38.5061789Z err: #8 ...
+2026-03-23T07:53:38.5062493Z err: #10 [deps 4/6] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-03-23T07:53:40.5572314Z err: #10 ...
+2026-03-23T07:53:40.5573057Z err: #8 [production 3/9] RUN groupadd -g 1001 nextjs &&     useradd -u 1001 -g 1001 -m -s /bin/bash nextjs
+2026-03-23T07:53:40.5573370Z err: #8 DONE 15.3s
+2026-03-23T07:53:40.7077197Z err: #10 [deps 4/6] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-03-23T07:53:42.8104215Z err: #10 DONE 4.5s
+2026-03-23T07:53:42.8104905Z err: #11 [production 4/9] RUN apt-get update && apt-get install -y --no-install-recommends curl &&     rm -rf /var/lib/apt/lists/*
+2026-03-23T07:53:46.4172359Z err: #11 5.566 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+2026-03-23T07:53:46.5204565Z err: #11 5.669 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+2026-03-23T07:53:46.7084911Z err: #11 5.707 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+2026-03-23T07:53:46.7645089Z err: #11 5.913 Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8792 kB]
+2026-03-23T07:53:46.8894358Z err: #11 ...
+2026-03-23T07:53:46.8895087Z err: #12 [deps 5/6] COPY frontend/package.json ./frontend/
+2026-03-23T07:53:46.8895332Z err: #12 DONE 4.0s
+2026-03-23T07:53:47.1005017Z err: #13 [deps 6/6] RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
+2026-03-23T07:53:50.2891986Z err: #13 3.339 Lockfile is up to date, resolution step is skipped
+2026-03-23T07:53:50.4654885Z err: #13 3.515 Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-03-23T07:53:50.7333802Z err: #13 3.782 .                                        | +701 ++++++++++++++++++++++++++++++++
+2026-03-23T07:53:51.4694257Z err: #13 4.519 Progress: resolved 701, reused 0, downloaded 7, added 0
+2026-03-23T07:53:52.4693291Z err: #13 5.519 Progress: resolved 701, reused 0, downloaded 16, added 9
+2026-03-23T07:53:52.8436829Z err: #13 ...
+2026-03-23T07:53:52.8437539Z err: #11 [production 4/9] RUN apt-get update && apt-get install -y --no-install-recommends curl &&     rm -rf /var/lib/apt/lists/*
+2026-03-23T07:53:52.8437861Z err: #11 11.99 Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
+2026-03-23T07:53:53.0760483Z err: #11 12.*** Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [294 kB]
+2026-03-23T07:53:58.8167570Z err: #11 17.97 Fetched 9347 kB in 12s (807 kB/s)
+2026-03-23T07:53:59.8573978Z err: #11 17.97 Reading package lists...
+2026-03-23T07:53:59.8574749Z err: #11 ...
+2026-03-23T07:53:59.8575014Z err: #13 [deps 6/6] RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
+2026-03-23T07:53:59.8575287Z err: #13 6.531 Progress: resolved 701, reused 0, downloaded 56, added 26
+2026-03-23T07:53:59.8575526Z err: #13 7.533 Progress: resolved 701, reused 0, downloaded 82, added 51
+2026-03-23T07:53:59.8575937Z err: #13 8.533 Progress: resolved 701, reused 0, downloaded 99, added 57
+2026-03-23T07:53:59.8576192Z err: #13 9.534 Progress: resolved 701, reused 0, downloaded 101, added 59
+2026-03-23T07:53:59.8576417Z err: #13 10.53 Progress: resolved 701, reused 0, downloaded 104, added 61
+2026-03-23T07:53:59.8576633Z err: #13 11.61 Progress: resolved 701, reused 0, downloaded 105, added 61
+2026-03-23T07:53:59.8576865Z err: #13 12.61 Progress: resolved 701, reused 0, downloaded 113, added 61
+2026-03-23T07:54:00.5569265Z err: #13 13.61 Progress: resolved 701, reused 0, downloaded 129, added 65
+2026-03-23T07:54:01.2287845Z err: #13 ...
+2026-03-23T07:54:01.2288691Z err: #11 [production 4/9] RUN apt-get update && apt-get install -y --no-install-recommends curl &&     rm -rf /var/lib/apt/lists/*
+2026-03-23T07:54:01.2289015Z err: #11 17.97 Reading package lists...
+2026-03-23T07:54:02.7198116Z err: #11 20.44 Reading package lists...
+2026-03-23T07:54:03.1209344Z err: #11 21.93 Building dependency tree...
+2026-03-23T07:54:03.2731105Z err: #11 ***.27 Reading state information...
+2026-03-23T07:54:03.7312507Z err: #11 ***.72 The following additional packages will be installed:
+2026-03-23T07:54:03.7313239Z err: #11 ***.72   libbrotli1 libcurl4 libgssapi-krb5-2 libk5crypto3 libkeyutils1 libkrb5-3
+2026-03-23T07:54:03.7313491Z err: #11 ***.73   libkrb5support0 libldap-2.5-0 libnghttp2-14 libpsl5 librtmp1 libsasl2-2
+2026-03-23T07:54:03.7313773Z err: #11 ***.73   libsasl2-modules-db libssh2-1 libssl3
+2026-03-23T07:54:03.7314068Z err: #11 ***.73 Suggested packages:
+2026-03-23T07:54:03.7314284Z err: #11 ***.73   krb5-doc krb5-user
+2026-03-23T07:54:03.7314491Z err: #11 ***.73 Recommended packages:
+2026-03-23T07:54:03.7314710Z err: #11 ***.73   ca-certificates krb5-locales libldap-common publicsuffix libsasl2-modules
+2026-03-23T07:54:03.8627259Z err: #11 23.01 The following NEW packages will be installed:
+2026-03-23T07:54:03.9772984Z err: #11 23.01   curl libbrotli1 libcurl4 libgssapi-krb5-2 libk5crypto3 libkeyutils1
+2026-03-23T07:54:03.9773855Z err: #11 23.01   libkrb5-3 libkrb5support0 libldap-2.5-0 libnghttp2-14 libpsl5 librtmp1
+2026-03-23T07:54:03.9774112Z err: #11 23.02   libsasl2-2 libsasl2-modules-db libssh2-1 libssl3
+2026-03-23T07:54:03.9774338Z err: #11 23.13 0 upgraded, 16 newly installed, 0 to remove and 0 not upgraded.
+2026-03-23T07:54:03.9774639Z err: #11 23.13 Need to get 4237 kB of archives.
+2026-03-23T07:54:03.9774885Z err: #11 23.13 After this operation, 12.0 MB of additional disk space will be used.
+2026-03-23T07:54:03.9775127Z err: #11 23.13 Get:1 http://deb.debian.org/debian bookworm/main amd64 libbrotli1 amd64 1.0.9-2+b6 [275 kB]
+2026-03-23T07:54:04.1172041Z err: #11 23.15 Get:2 http://deb.debian.org/debian bookworm/main amd64 libkrb5support0 amd64 1.20.1-2+deb12u4 [33.2 kB]
+2026-03-23T07:54:04.1172815Z err: #11 23.16 Get:3 http://deb.debian.org/debian bookworm/main amd64 libk5crypto3 amd64 1.20.1-2+deb12u4 [79.8 kB]
+2026-03-23T07:54:04.1173096Z err: #11 23.16 Get:4 http://deb.debian.org/debian bookworm/main amd64 libkeyutils1 amd64 1.6.3-2 [8808 B]
+2026-03-23T07:54:04.1173451Z err: #11 23.17 Get:5 http://deb.debian.org/debian-security bookworm-security/main amd64 libssl3 amd64 3.0.18-1~deb12u2 [2030 kB]
+2026-03-23T07:54:04.1173709Z err: #11 23.27 Get:6 http://deb.debian.org/debian bookworm/main amd64 libkrb5-3 amd64 1.20.1-2+deb12u4 [334 kB]
+2026-03-23T07:54:04.2197925Z err: #11 23.35 Get:7 http://deb.debian.org/debian bookworm/main amd64 libgssapi-krb5-2 amd64 1.20.1-2+deb12u4 [135 kB]
+2026-03-23T07:54:04.2198717Z err: #11 23.35 Get:8 http://deb.debian.org/debian bookworm/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg-10 [20.3 kB]
+2026-03-23T07:54:04.2198994Z err: #11 23.35 Get:9 http://deb.debian.org/debian bookworm/main amd64 libsasl2-2 amd64 2.1.28+dfsg-10 [59.7 kB]
+2026-03-23T07:54:04.2199347Z err: #11 23.35 Get:10 http://deb.debian.org/debian bookworm/main amd64 libldap-2.5-0 amd64 2.5.13+dfsg-5 [183 kB]
+2026-03-23T07:54:04.2199597Z err: #11 23.36 Get:11 http://deb.debian.org/debian bookworm/main amd64 libnghttp2-14 amd64 1.52.0-1+deb12u2 [73.0 kB]
+2026-03-23T07:54:04.2199832Z err: #11 23.36 Get:12 http://deb.debian.org/debian bookworm/main amd64 libpsl5 amd64 0.21.2-1 [58.7 kB]
+2026-03-23T07:54:04.2200284Z err: #11 23.36 Get:13 http://deb.debian.org/debian bookworm/main amd64 librtmp1 amd64 2.4+20151***3.gitfa8646d.1-2+b2 [60.8 kB]
+2026-03-23T07:54:04.2200600Z err: #11 23.37 Get:14 http://deb.debian.org/debian bookworm/main amd64 libssh2-1 amd64 1.10.0-3+b1 [179 kB]
+2026-03-23T07:54:04.3995592Z err: #11 23.38 Get:15 http://deb.debian.org/debian bookworm/main amd64 libcurl4 amd64 7.88.1-10+deb12u14 [392 kB]
+2026-03-23T07:54:04.3996301Z err: #11 23.40 Get:16 http://deb.debian.org/debian bookworm/main amd64 curl amd64 7.88.1-10+deb12u14 [316 kB]
+2026-03-23T07:54:07.9976184Z err: #11 26.99 debconf: delaying package configuration, since apt-utils is not installed
+2026-03-23T07:54:09.4164446Z err: #11 28.56 Fetched 4237 kB in 0s (12.6 MB/s)
+2026-03-23T07:54:10.2268382Z err: #11 29.38 Selecting previously unselected package libbrotli1:amd64.
+2026-03-23T07:54:10.5757574Z err: #11 29.38 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
+2026-03-23T07:54:10.5758677Z err: #11 29.57 Preparing to unpack .../00-libbrotli1_1.0.9-2+b6_amd64.deb ...
+2026-03-23T07:54:10.6722645Z err: #11 29.82 Unpacking libbrotli1:amd64 (1.0.9-2+b6) ...
+2026-03-23T07:54:11.3979588Z err: #11 30.55 Selecting previously unselected package libkrb5support0:amd64.
+2026-03-23T07:54:11.4998923Z err: #11 30.56 Preparing to unpack .../01-libkrb5support0_1.20.1-2+deb12u4_amd64.deb ...
+2026-03-23T07:54:11.6556715Z err: #11 30.65 Unpacking libkrb5support0:amd64 (1.20.1-2+deb12u4) ...
+2026-03-23T07:54:11.6557401Z err: #11 ...
+2026-03-23T07:54:11.6557663Z err: #13 [deps 6/6] RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
+2026-03-23T07:54:11.6557962Z err: #13 14.61 Progress: resolved 701, reused 0, downloaded 146, added 73
+2026-03-23T07:54:11.6558201Z err: #13 15.61 Progress: resolved 701, reused 0, downloaded 149, added 73
+2026-03-23T07:54:11.6558421Z err: #13 16.61 Progress: resolved 701, reused 0, downloaded 154, added 77
+2026-03-23T07:54:11.6558670Z err: #13 17.61 Progress: resolved 701, reused 0, downloaded 156, added 77
+2026-03-23T07:54:11.6558908Z err: #13 18.61 Progress: resolved 701, reused 0, downloaded 166, added 81
+2026-03-23T07:54:11.6559145Z err: #13 19.61 Progress: resolved 701, reused 0, downloaded 170, added 82
+2026-03-23T07:54:11.6559359Z err: #13 20.87 Progress: resolved 701, reused 0, downloaded 171, added 82
+2026-03-23T07:54:11.6559653Z err: #13 21.87 Progress: resolved 701, reused 0, downloaded 189, added 90
+2026-03-23T07:54:11.6559884Z err: #13 ***.87 Progress: resolved 701, reused 0, downloaded ***4, added 107
+2026-03-23T07:54:11.6560265Z err: #13 23.87 Progress: resolved 701, reused 0, downloaded 252, added 118
+2026-03-23T07:54:11.8250329Z err: #13 24.87 Progress: resolved 701, reused 0, downloaded 274, added 130
+2026-03-23T07:54:12.8248042Z err: #13 25.87 Progress: resolved 701, reused 0, downloaded 292, added 138
+2026-03-23T07:54:13.8248071Z err: #13 26.87 Progress: resolved 701, reused 0, downloaded 317, added 151
+2026-03-23T07:54:14.8272774Z err: #13 27.87 Progress: resolved 701, reused 0, downloaded 326, added 155
+2026-03-23T07:54:15.8255822Z err: #13 28.88 Progress: resolved 701, reused 0, downloaded 340, added 160
+2026-03-23T07:54:16.8263185Z err: #13 29.88 Progress: resolved 701, reused 0, downloaded 367, added 172
+2026-03-23T07:54:16.9659888Z err: #13 ...
+2026-03-23T07:54:16.9660789Z err: #11 [production 4/9] RUN apt-get update && apt-get install -y --no-install-recommends curl &&     rm -rf /var/lib/apt/lists/*
+2026-03-23T07:54:16.9661088Z err: #11 36.02 Selecting previously unselected package libk5crypto3:amd64.
+2026-03-23T07:54:16.9661415Z err: #11 36.02 Preparing to unpack .../02-libk5crypto3_1.20.1-2+deb12u4_amd64.deb ...
+2026-03-23T07:54:17.1173170Z err: #11 36.11 Unpacking libk5crypto3:amd64 (1.20.1-2+deb12u4) ...
+2026-03-23T07:54:22.0727545Z err: #11 41.07 Selecting previously unselected package libkeyutils1:amd64.
+2026-03-23T07:54:22.0728264Z err: #11 41.07 Preparing to unpack .../03-libkeyutils1_1.6.3-2_amd64.deb ...
+2026-03-23T07:54:23.9994884Z err: #11 43.15 Unpacking libkeyutils1:amd64 (1.6.3-2) ...
+2026-03-23T07:54:25.9869216Z err: #11 ...
+2026-03-23T07:54:25.9869953Z err: #13 [deps 6/6] RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
+2026-03-23T07:54:25.9870408Z err: #13 30.88 Progress: resolved 701, reused 0, downloaded 432, added 204
+2026-03-23T07:54:25.9870672Z err: #13 31.88 Progress: resolved 701, reused 0, downloaded 493, added 275
+2026-03-23T07:54:25.9870957Z err: #13 32.88 Progress: resolved 701, reused 0, downloaded 525, added 298
+2026-03-23T07:54:25.9871182Z err: #13 33.88 Progress: resolved 701, reused 0, downloaded 527, added 298
+2026-03-23T07:54:25.9871422Z err: #13 34.88 Progress: resolved 701, reused 0, downloaded 578, added 3***
+2026-03-23T07:54:25.9871664Z err: #13 35.88 Progress: resolved 701, reused 0, downloaded 593, added 331
+2026-03-23T07:54:25.9871893Z err: #13 36.88 Progress: resolved 701, reused 0, downloaded 613, added 336
+2026-03-23T07:54:25.9872121Z err: #13 37.89 Progress: resolved 701, reused 0, downloaded 696, added 426
+2026-03-23T07:54:25.9872342Z err: #13 38.89 Progress: resolved 701, reused 0, downloaded 700, added 667
+2026-03-23T07:54:26.8364634Z err: #13 39.89 Progress: resolved 701, reused 0, downloaded 700, added 699
+2026-03-23T07:54:27.4467036Z err: #13 ...
+2026-03-23T07:54:27.4467671Z err: #11 [production 4/9] RUN apt-get update && apt-get install -y --no-install-recommends curl &&     rm -rf /var/lib/apt/lists/*
+2026-03-23T07:54:27.4467998Z err: #11 46.59 Selecting previously unselected package libssl3:amd64.
+2026-03-23T07:54:27.6638514Z err: #11 46.60 Preparing to unpack .../04-libssl3_3.0.18-1~deb12u2_amd64.deb ...
+2026-03-23T07:54:27.6639283Z err: #11 46.66 Unpacking libssl3:amd64 (3.0.18-1~deb12u2) ...
+2026-03-23T07:54:28.3270460Z err: #11 47.48 Selecting previously unselected package libkrb5-3:amd64.
+2026-03-23T07:54:28.5214698Z err: #11 47.48 Preparing to unpack .../05-libkrb5-3_1.20.1-2+deb12u4_amd64.deb ...
+2026-03-23T07:54:28.5215405Z err: #11 47.52 Unpacking libkrb5-3:amd64 (1.20.1-2+deb12u4) ...
+2026-03-23T07:54:29.2897393Z err: #11 48.44 Selecting previously unselected package libgssapi-krb5-2:amd64.
+2026-03-23T07:54:29.4936917Z err: #11 48.44 Preparing to unpack .../06-libgssapi-krb5-2_1.20.1-2+deb12u4_amd64.deb ...
+2026-03-23T07:54:29.4937698Z err: #11 48.49 Unpacking libgssapi-krb5-2:amd64 (1.20.1-2+deb12u4) ...
+2026-03-23T07:54:29.6412523Z err: #11 48.79 Selecting previously unselected package libsasl2-modules-db:amd64.
+2026-03-23T07:54:29.8471233Z err: #11 48.79 Preparing to unpack .../07-libsasl2-modules-db_2.1.28+dfsg-10_amd64.deb ...
+2026-03-23T07:54:29.8472024Z err: #11 48.84 Unpacking libsasl2-modules-db:amd64 (2.1.28+dfsg-10) ...
+2026-03-23T07:54:30.0606075Z err: #11 49.21 Selecting previously unselected package libsasl2-2:amd64.
+2026-03-23T07:54:30.2577204Z err: #11 49.21 Preparing to unpack .../08-libsasl2-2_2.1.28+dfsg-10_amd64.deb ...
+2026-03-23T07:54:30.2577938Z err: #11 49.25 Unpacking libsasl2-2:amd64 (2.1.28+dfsg-10) ...
+2026-03-23T07:54:34.4729199Z err: #11 53.62 Selecting previously unselected package libldap-2.5-0:amd64.
+2026-03-23T07:54:34.6709403Z err: #11 53.62 Preparing to unpack .../09-libldap-2.5-0_2.5.13+dfsg-5_amd64.deb ...
+2026-03-23T07:54:34.6710313Z err: #11 53.67 Unpacking libldap-2.5-0:amd64 (2.5.13+dfsg-5) ...
+2026-03-23T07:54:35.0041285Z err: #11 54.15 Selecting previously unselected package libnghttp2-14:amd64.
+2026-03-23T07:54:35.2104004Z err: #11 54.15 Preparing to unpack .../10-libnghttp2-14_1.52.0-1+deb12u2_amd64.deb ...
+2026-03-23T07:54:35.2104729Z err: #11 54.21 Unpacking libnghttp2-14:amd64 (1.52.0-1+deb12u2) ...
+2026-03-23T07:54:35.5294772Z err: #11 54.68 Selecting previously unselected package libpsl5:amd64.
+2026-03-23T07:54:35.7357167Z err: #11 54.68 Preparing to unpack .../11-libpsl5_0.21.2-1_amd64.deb ...
+2026-03-23T07:54:35.7357946Z err: #11 54.73 Unpacking libpsl5:amd64 (0.21.2-1) ...
+2026-03-23T07:54:35.9566000Z err: #11 55.10 Selecting previously unselected package librtmp1:amd64.
+2026-03-23T07:54:35.9568220Z err: #11 55.10 Preparing to unpack .../12-librtmp1_2.4+20151***3.gitfa8646d.1-2+b2_amd64.deb ...
+2026-03-23T07:54:36.1771841Z err: #11 55.17 Unpacking librtmp1:amd64 (2.4+20151***3.gitfa8646d.1-2+b2) ...
+2026-03-23T07:54:36.9536027Z err: #11 56.10 Selecting previously unselected package libssh2-1:amd64.
+2026-03-23T07:54:37.1823811Z err: #11 56.10 Preparing to unpack .../13-libssh2-1_1.10.0-3+b1_amd64.deb ...
+2026-03-23T07:54:37.1824633Z err: #11 56.18 Unpacking libssh2-1:amd64 (1.10.0-3+b1) ...
+2026-03-23T07:54:37.3960297Z err: #11 56.54 Selecting previously unselected package libcurl4:amd64.
+2026-03-23T07:54:37.5485283Z err: #11 56.55 Preparing to unpack .../14-libcurl4_7.88.1-10+deb12u14_amd64.deb ...
+2026-03-23T07:54:37.8489880Z err: #11 ...
+2026-03-23T07:54:37.8491059Z err: #13 [deps 6/6] RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
+2026-03-23T07:54:37.8491408Z err: #13 40.89 Progress: resolved 701, reused 0, downloaded 700, added 700
+2026-03-23T07:54:38.1262616Z err: #13 ...
+2026-03-23T07:54:38.1263280Z err: #11 [production 4/9] RUN apt-get update && apt-get install -y --no-install-recommends curl &&     rm -rf /var/lib/apt/lists/*
+2026-03-23T07:54:38.1263607Z err: #11 57.27 Unpacking libcurl4:amd64 (7.88.1-10+deb12u14) ...
+2026-03-23T07:54:39.3096834Z err: #11 58.46 Selecting previously unselected package curl.
+2026-03-23T07:54:39.4793539Z err: #11 58.46 Preparing to unpack .../15-curl_7.88.1-10+deb12u14_amd64.deb ...
+2026-03-23T07:54:39.4794264Z err: #11 58.52 Unpacking curl (7.88.1-10+deb12u14) ...
+2026-03-23T07:54:40.3273137Z err: #11 59.32 Setting up libkeyutils1:amd64 (1.6.3-2) ...
+2026-03-23T07:54:40.4986241Z err: #11 59.63 Setting up libpsl5:amd64 (0.21.2-1) ...
+2026-03-23T07:54:40.6711191Z err: #11 59.82 Setting up libbrotli1:amd64 (1.0.9-2+b6) ...
+2026-03-23T07:54:44.7541852Z err: #11 63.90 Setting up libssl3:amd64 (3.0.18-1~deb12u2) ...
+2026-03-23T07:54:44.9223303Z err: #11 ...
+2026-03-23T07:54:44.9224039Z err: #13 [deps 6/6] RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
+2026-03-23T07:54:44.9224330Z err: #13 51.74 Progress: resolved 701, reused 0, downloaded 701, added 700
+2026-03-23T07:54:44.9224593Z err: #13 51.75 Progress: resolved 701, reused 0, downloaded 701, added 701, done
+2026-03-23T07:54:44.9224827Z err: #13 52.53 .../sharp@0.34.5/node_modules/sharp install$ node install/check.js || npm run build
+2026-03-23T07:54:44.9225072Z err: #13 52.81 .../sharp@0.34.5/node_modules/sharp install: Done
+2026-03-23T07:54:44.9225316Z err: #13 53.44 . prepare$ husky
+2026-03-23T07:54:44.9225515Z err: #13 53.55 . prepare: .git can't be found
+2026-03-23T07:54:44.9225725Z err: #13 53.55 . prepare: Done
+2026-03-23T07:54:44.9226017Z err: #13 53.62 Done in 51.3s using pnpm v10.32.1
+2026-03-23T07:54:44.9226248Z err: #13 DONE 57.8s
+2026-03-23T07:54:45.0727266Z err: #11 [production 4/9] RUN apt-get update && apt-get install -y --no-install-recommends curl &&     rm -rf /var/lib/apt/lists/*
+2026-03-23T07:54:45.7816406Z err: #11 64.93 Setting up libnghttp2-14:amd64 (1.52.0-1+deb12u2) ...
+2026-03-23T07:54:45.9935814Z err: #11 65.14 Setting up libkrb5support0:amd64 (1.20.1-2+deb12u4) ...
+2026-03-23T07:54:46.2271583Z err: #11 65.38 Setting up libsasl2-modules-db:amd64 (2.1.28+dfsg-10) ...
+2026-03-23T07:54:46.6074491Z err: #11 65.76 Setting up librtmp1:amd64 (2.4+20151***3.gitfa8646d.1-2+b2) ...
+2026-03-23T07:54:46.8555570Z err: #11 66.00 Setting up libk5crypto3:amd64 (1.20.1-2+deb12u4) ...
+2026-03-23T07:54:47.0844164Z err: #11 66.23 Setting up libsasl2-2:amd64 (2.1.28+dfsg-10) ...
+2026-03-23T07:54:47.2172680Z err: #11 66.36 Setting up libssh2-1:amd64 (1.10.0-3+b1) ...
+2026-03-23T07:54:47.3616642Z err: #11 66.51 Setting up libkrb5-3:amd64 (1.20.1-2+deb12u4) ...
+2026-03-23T07:54:47.5509772Z err: #11 66.70 Setting up libldap-2.5-0:amd64 (2.5.13+dfsg-5) ...
+2026-03-23T07:54:47.7476690Z err: #11 66.90 Setting up libgssapi-krb5-2:amd64 (1.20.1-2+deb12u4) ...
+2026-03-23T07:54:47.9126096Z err: #11 67.06 Setting up libcurl4:amd64 (7.88.1-10+deb12u14) ...
+2026-03-23T07:54:48.0913315Z err: #11 67.24 Setting up curl (7.88.1-10+deb12u14) ...
+2026-03-23T07:54:48.2703906Z err: #11 67.42 Processing triggers for libc-bin (2.36-9+deb12u13) ...
+2026-03-23T07:54:51.2439468Z err: #11 DONE 70.4s
+2026-03-23T07:55:03.9621255Z err: #14 [build  5/12] COPY --from=deps /w/node_modules ./node_modules
+2026-03-23T07:55:29.4724877Z err: #14 DONE 25.5s
+2026-03-23T07:55:29.7022256Z err: #15 [build  6/12] WORKDIR /w/frontend
+2026-03-23T07:55:32.4635845Z err: #15 DONE 2.9s
+2026-03-23T07:55:32.6757702Z err: #16 [build  7/12] COPY --from=deps /w/frontend/node_modules ./node_modules
+2026-03-23T07:55:35.5043584Z err: #16 DONE 3.0s
+2026-03-23T07:55:35.7176857Z err: #17 [build  8/12] COPY frontend/ ./
+2026-03-23T07:55:38.0422339Z err: #17 DONE 2.5s
+2026-03-23T07:55:38.2657517Z err: #18 [build  9/12] RUN mkdir /n && ln -s /n .next &&     pnpm run build &&     rm .next && mv /n .next
+2026-03-23T07:55:41.0698137Z err: #18 2.954 
+2026-03-23T07:55:41.0698854Z err: #18 2.954 > lcbp3-frontend@1.8.1 build /w/frontend
+2026-03-23T07:55:41.0699130Z err: #18 2.954 > next build
+2026-03-23T07:55:41.0699347Z err: #18 2.954 
+2026-03-23T07:55:41.9633573Z err: #18 3.848 ▲ Next.js 16.2.0 (Turbopack)
+2026-03-23T07:55:42.1953798Z err: #18 3.849 
+2026-03-23T07:55:42.1954493Z err: #18 3.930   Creating an optimized production build ...
+2026-03-23T07:55:42.5316152Z err: #18 4.416 ⨯ ERROR: This build is using Turbopack, with a `webpack` config and no `turbopack` config.
+2026-03-23T07:55:42.5316943Z err: #18 4.416    This may be a mistake.
+2026-03-23T07:55:42.5317202Z err: #18 4.416 
+2026-03-23T07:55:42.5317444Z err: #18 4.416    As of Next.js 16 Turbopack is enabled by default and
+2026-03-23T07:55:42.5317859Z err: #18 4.416    custom webpack configurations may need to be migrated to Turbopack.
+2026-03-23T07:55:42.5318142Z err: #18 4.416 
+2026-03-23T07:55:42.5318348Z err: #18 4.416    NOTE: your `webpack` config may have been added by a configuration plugin.
+2026-03-23T07:55:42.5318612Z err: #18 4.416 
+2026-03-23T07:55:42.5318815Z err: #18 4.416    To configure Turbopack, see https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+2026-03-23T07:55:42.5319089Z err: #18 4.416 
+2026-03-23T07:55:42.5319285Z err: #18 4.416    TIP: Many applications work fine under Turbopack with no configuration,
+2026-03-23T07:55:42.5319524Z err: #18 4.416    if that is the case for you, you can silence this error by passing the
+2026-03-23T07:55:42.5319747Z err: #18 4.416    `--turbopack` or `--webpack` flag explicitly or simply setting an 
+2026-03-23T07:55:42.5319965Z err: #18 4.416    empty turbopack config in your Next config file (e.g. `turbopack: {}`).
+2026-03-23T07:55:42.6389576Z err: #18 4.433 
+2026-03-23T07:55:42.6390359Z err: #18 4.434 > Build error occurred
+2026-03-23T07:55:42.6390639Z err: #18 4.439 Error: Call retries were exceeded
+2026-03-23T07:55:42.6390891Z err: #18 4.439     at ignore-listed frames {
+2026-03-23T07:55:42.6391160Z err: #18 4.439   type: 'WorkerError'
+2026-03-23T07:55:42.6391370Z err: #18 4.439 }
+2026-03-23T07:55:42.6391571Z err: #18 4.524  ELIFECYCLE  Command failed with exit code 1.
+2026-03-23T07:55:45.3266484Z err: #18 ERROR: process "/bin/sh -c mkdir /n && ln -s /n .next &&     pnpm run build &&     rm .next && mv /n .next" did not complete successfully: exit code: 1
+2026-03-23T07:55:46.4920777Z err: ------
+2026-03-23T07:55:46.4921485Z err:  > [build  9/12] RUN mkdir /n && ln -s /n .next &&     pnpm run build &&     rm .next && mv /n .next:
+2026-03-23T07:55:46.4921878Z err: 4.416    if that is the case for you, you can silence this error by passing the
+2026-03-23T07:55:46.4922180Z err: 4.416    `--turbopack` or `--webpack` flag explicitly or simply setting an 
+2026-03-23T07:55:46.4922406Z err: 4.416    empty turbopack config in your Next config file (e.g. `turbopack: {}`).
+2026-03-23T07:55:46.4922699Z err: 4.433 
+2026-03-23T07:55:46.4922897Z err: 4.434 > Build error occurred
+2026-03-23T07:55:46.4923089Z err: 4.439 Error: Call retries were exceeded
+2026-03-23T07:55:46.4923325Z err: 4.439     at ignore-listed frames {
+2026-03-23T07:55:46.4923539Z err: 4.439   type: 'WorkerError'
+2026-03-23T07:55:46.4923793Z err: 4.439 }
+2026-03-23T07:55:46.4924011Z err: 4.524  ELIFECYCLE  Command failed with exit code 1.
+2026-03-23T07:55:46.4924241Z err: ------
+2026-03-23T07:55:46.4933022Z err: Dockerfile:63
+2026-03-23T07:55:46.4933355Z err: --------------------
+2026-03-23T07:55:46.4933582Z err:   62 |     # to minimise overlay nesting depth, then move back after build completes.
+2026-03-23T07:55:46.4933869Z err:   63 | >>> RUN mkdir /n && ln -s /n .next && \
+2026-03-23T07:55:46.4934128Z err:   64 | >>>     pnpm run build && \
+2026-03-23T07:55:46.4934345Z err:   65 | >>>     rm .next && mv /n .next
+2026-03-23T07:55:46.4934612Z err:   66 |     
+2026-03-23T07:55:46.4934818Z err: --------------------
+2026-03-23T07:55:46.4935013Z err: ERROR: failed to solve: process "/bin/sh -c mkdir /n && ln -s /n .next &&     pnpm run build &&     rm .next && mv /n .next" did not complete successfully: exit code: 1
+2026-03-23T07:55:46.4997329Z 2026/03/23 07:55:46 Process exited with status 1
+2026-03-23T07:55:47.8315806Z failed to remove container: Error response from daemon: removal of container e18712f813a56b2e2d4b147cb74c1c45195a7abba29b3494ce30f36bfa33ab3c is already in progress
+2026-03-23T07:55:47.8317237Z   ❌  Failure - Main 🚀 Trigger Deployment on QNAP
+2026-03-23T07:55:47.8511365Z exit with `FAILURE`: 1
+2026-03-23T07:55:47.8512161Z Cleaning up container for job deploy
+2026-03-23T07:55:50.3552837Z Removed container: d1f9cc6073a553d2494abc612d9c1e872e757a40ea8a6ffbae034e715b6650b1
+2026-03-23T07:55:50.3568627Z   🐳  docker volume rm GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy
+2026-03-23T07:55:50.4262867Z   🐳  docker volume rm GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy-env
+2026-03-23T07:55:50.5070696Z Cleaning up network for job deploy, and network name is: GITEA-ACTIONS-TASK-184_WORKFLOW-CI-CD-Pipeline_JOB-deploy-deploy-network
+2026-03-23T07:55:50.8990673Z 🏁  Job failed
+2026-03-23T07:55:50.9101902Z Job 'deploy' failed

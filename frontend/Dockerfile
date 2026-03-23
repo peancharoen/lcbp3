@@ -15,7 +15,7 @@
 # =========================
 # Stage 1: Install Dependencies
 # =========================
-FROM node:22-slim AS deps
+FROM node:22-alpine AS deps
 
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
@@ -31,7 +31,7 @@ RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
 # =========================
 # Stage 2: Build Application
 # =========================
-FROM node:22-slim AS build
+FROM node:22-alpine AS build
 
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
@@ -76,7 +76,7 @@ RUN pnpm --filter lcbp3-frontend deploy /deploy --prod --legacy
 # =========================
 # Stage 3: Production Runtime
 # =========================
-FROM node:22-slim AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
@@ -85,13 +85,12 @@ ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 
-# Create non-root user (Debian version)
-RUN groupadd -g 1001 nextjs && \
-    useradd -u 1001 -g 1001 -m -s /bin/bash nextjs
+# Create non-root user
+RUN addgroup -g 1001 -S nextjs && \
+    adduser -S nextjs -u 1001
 
-# Install curl for healthcheck (Debian version)
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+# Install curl for healthcheck
+RUN apk add --no-cache curl
 
 # Copy flat node_modules from pnpm deploy (no symlinks, Docker-safe)
 COPY --from=build --chown=nextjs:nextjs /deploy/node_modules ./node_modules
