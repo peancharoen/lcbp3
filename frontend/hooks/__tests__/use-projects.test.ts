@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 vi.mock('@/lib/services/project.service', () => ({
   projectService: {
     getAll: vi.fn(),
-    getById: vi.fn(),
+    getByUuid: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -25,7 +25,7 @@ describe('use-projects hooks', () => {
     it('should generate correct cache keys', () => {
       expect(projectKeys.all).toEqual(['projects']);
       expect(projectKeys.list({ search: 'test' })).toEqual(['projects', 'list', { search: 'test' }]);
-      expect(projectKeys.detail(1)).toEqual(['projects', 'detail', 1]);
+      expect(projectKeys.detail('uuid-1')).toEqual(['projects', 'detail', 'uuid-1']);
     });
   });
 
@@ -136,12 +136,12 @@ describe('use-projects hooks', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          id: 1,
+          uuid: 'uuid-1',
           data: { name: 'Updated Project' },
         });
       });
 
-      expect(projectService.update).toHaveBeenCalledWith(1, { name: 'Updated Project' });
+      expect(projectService.update).toHaveBeenCalledWith('uuid-1', { name: 'Updated Project' });
       expect(toast.success).toHaveBeenCalledWith('Project updated successfully');
     });
 
@@ -158,7 +158,7 @@ describe('use-projects hooks', () => {
       await act(async () => {
         try {
           await result.current.mutateAsync({
-            id: 999,
+            uuid: 'uuid-999',
             data: { name: 'Test' },
           });
         } catch {
@@ -180,10 +180,10 @@ describe('use-projects hooks', () => {
       const { result } = renderHook(() => useDeleteProject(), { wrapper });
 
       await act(async () => {
-        await result.current.mutateAsync(1);
+        await result.current.mutateAsync('uuid-1');
       });
 
-      expect(projectService.delete).toHaveBeenCalledWith(1);
+      expect(projectService.delete).toHaveBeenCalledWith('uuid-1');
       expect(toast.success).toHaveBeenCalledWith('Project deleted successfully');
     });
 
@@ -199,7 +199,7 @@ describe('use-projects hooks', () => {
 
       await act(async () => {
         try {
-          await result.current.mutateAsync(1);
+          await result.current.mutateAsync('uuid-1');
         } catch {
           // Expected
         }

@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 vi.mock('@/lib/services/correspondence.service', () => ({
   correspondenceService: {
     getAll: vi.fn(),
-    getById: vi.fn(),
+    getByUuid: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -38,7 +38,7 @@ describe('use-correspondence hooks', () => {
       expect(correspondenceKeys.lists()).toEqual(['correspondences', 'list']);
       expect(correspondenceKeys.list({ projectId: 1 })).toEqual(['correspondences', 'list', { projectId: 1 }]);
       expect(correspondenceKeys.details()).toEqual(['correspondences', 'detail']);
-      expect(correspondenceKeys.detail(1)).toEqual(['correspondences', 'detail', 1]);
+      expect(correspondenceKeys.detail('uuid-1')).toEqual(['correspondences', 'detail', 'uuid-1']);
     });
   });
 
@@ -81,27 +81,27 @@ describe('use-correspondence hooks', () => {
   });
 
   describe('useCorrespondence', () => {
-    it('should fetch single correspondence by id', async () => {
-      const mockData = { id: 1, title: 'Test Correspondence' };
-      vi.mocked(correspondenceService.getById).mockResolvedValue(mockData);
+    it('should fetch single correspondence by uuid', async () => {
+      const mockData = { id: 1, uuid: 'uuid-1', title: 'Test Correspondence' };
+      vi.mocked(correspondenceService.getByUuid).mockResolvedValue(mockData);
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(() => useCorrespondence(1), { wrapper });
+      const { result } = renderHook(() => useCorrespondence('uuid-1'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
       expect(result.current.data).toEqual(mockData);
-      expect(correspondenceService.getById).toHaveBeenCalledWith(1);
+      expect(correspondenceService.getByUuid).toHaveBeenCalledWith('uuid-1');
     });
 
-    it('should not fetch when id is falsy', () => {
+    it('should not fetch when uuid is falsy', () => {
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(() => useCorrespondence(0), { wrapper });
+      const { result } = renderHook(() => useCorrespondence(''), { wrapper });
 
       expect(result.current.isFetching).toBe(false);
-      expect(correspondenceService.getById).not.toHaveBeenCalled();
+      expect(correspondenceService.getByUuid).not.toHaveBeenCalled();
     });
   });
 
@@ -173,12 +173,12 @@ describe('use-correspondence hooks', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          id: 1,
+          uuid: 'uuid-1',
           data: { subject: 'Updated Correspondence' },
         });
       });
 
-      expect(correspondenceService.update).toHaveBeenCalledWith(1, {
+      expect(correspondenceService.update).toHaveBeenCalledWith('uuid-1', {
         subject: 'Updated Correspondence',
       });
       expect(toast.success).toHaveBeenCalledWith('Correspondence updated successfully');
@@ -193,10 +193,10 @@ describe('use-correspondence hooks', () => {
       const { result } = renderHook(() => useDeleteCorrespondence(), { wrapper });
 
       await act(async () => {
-        await result.current.mutateAsync(1);
+        await result.current.mutateAsync('uuid-1');
       });
 
-      expect(correspondenceService.delete).toHaveBeenCalledWith(1);
+      expect(correspondenceService.delete).toHaveBeenCalledWith('uuid-1');
       expect(toast.success).toHaveBeenCalledWith('Correspondence deleted successfully');
     });
   });
@@ -211,12 +211,12 @@ describe('use-correspondence hooks', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          id: 1,
+          uuid: 'uuid-1',
           data: { note: 'Ready for review' },
         });
       });
 
-      expect(correspondenceService.submit).toHaveBeenCalledWith(1, { note: 'Ready for review' });
+      expect(correspondenceService.submit).toHaveBeenCalledWith('uuid-1', { note: 'Ready for review' });
       expect(toast.success).toHaveBeenCalledWith('Correspondence submitted successfully');
     });
   });
@@ -231,12 +231,12 @@ describe('use-correspondence hooks', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          id: 1,
+          uuid: 'uuid-1',
           data: { action: 'APPROVE', comments: 'LGTM' },
         });
       });
 
-      expect(correspondenceService.processWorkflow).toHaveBeenCalledWith(1, {
+      expect(correspondenceService.processWorkflow).toHaveBeenCalledWith('uuid-1', {
         action: 'APPROVE',
         comments: 'LGTM',
       });
@@ -256,7 +256,7 @@ describe('use-correspondence hooks', () => {
       await act(async () => {
         try {
           await result.current.mutateAsync({
-            id: 1,
+            uuid: 'uuid-1',
             data: { action: 'APPROVE' },
           });
         } catch {

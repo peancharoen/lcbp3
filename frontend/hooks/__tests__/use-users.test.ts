@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 vi.mock('@/lib/services/user.service', () => ({
   userService: {
     getAll: vi.fn(),
-    getById: vi.fn(),
+    getByUuid: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -26,7 +26,7 @@ describe('use-users hooks', () => {
     it('should generate correct cache keys', () => {
       expect(userKeys.all).toEqual(['users']);
       expect(userKeys.list({ search: 'john' })).toEqual(['users', 'list', { search: 'john' }]);
-      expect(userKeys.detail(1)).toEqual(['users', 'detail', 1]);
+      expect(userKeys.detail('uuid-1')).toEqual(['users', 'detail', 'uuid-1']);
     });
   });
 
@@ -146,12 +146,12 @@ describe('use-users hooks', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          id: 1,
+          uuid: 'uuid-1',
           data: { email: 'updated@example.com' },
         });
       });
 
-      expect(userService.update).toHaveBeenCalledWith(1, { email: 'updated@example.com' });
+      expect(userService.update).toHaveBeenCalledWith('uuid-1', { email: 'updated@example.com' });
       expect(toast.success).toHaveBeenCalledWith('User updated successfully');
     });
 
@@ -168,7 +168,7 @@ describe('use-users hooks', () => {
       await act(async () => {
         try {
           await result.current.mutateAsync({
-            id: 999,
+            uuid: 'uuid-999',
             data: { email: 'test@example.com' },
           });
         } catch {
@@ -190,10 +190,10 @@ describe('use-users hooks', () => {
       const { result } = renderHook(() => useDeleteUser(), { wrapper });
 
       await act(async () => {
-        await result.current.mutateAsync(1);
+        await result.current.mutateAsync('uuid-1');
       });
 
-      expect(userService.delete).toHaveBeenCalledWith(1);
+      expect(userService.delete).toHaveBeenCalledWith('uuid-1');
       expect(toast.success).toHaveBeenCalledWith('User deleted successfully');
     });
 
@@ -209,7 +209,7 @@ describe('use-users hooks', () => {
 
       await act(async () => {
         try {
-          await result.current.mutateAsync(1);
+          await result.current.mutateAsync('uuid-1');
         } catch {
           // Expected
         }

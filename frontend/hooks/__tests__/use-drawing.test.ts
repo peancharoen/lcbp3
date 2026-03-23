@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 vi.mock('@/lib/services/contract-drawing.service', () => ({
   contractDrawingService: {
     getAll: vi.fn(),
-    getById: vi.fn(),
+    getByUuid: vi.fn(),
     create: vi.fn(),
   },
 }));
@@ -18,7 +18,7 @@ vi.mock('@/lib/services/contract-drawing.service', () => ({
 vi.mock('@/lib/services/shop-drawing.service', () => ({
   shopDrawingService: {
     getAll: vi.fn(),
-    getById: vi.fn(),
+    getByUuid: vi.fn(),
     create: vi.fn(),
   },
 }));
@@ -38,7 +38,7 @@ describe('use-drawing hooks', () => {
         'CONTRACT',
         { projectId: 1 },
       ]);
-      expect(drawingKeys.detail('SHOP', 1)).toEqual(['drawings', 'detail', 'SHOP', 1]);
+      expect(drawingKeys.detail('SHOP', 'uuid-1')).toEqual(['drawings', 'detail', 'SHOP', 'uuid-1']);
     });
   });
 
@@ -46,8 +46,8 @@ describe('use-drawing hooks', () => {
     it('should fetch CONTRACT drawings successfully', async () => {
       const mockData = {
         data: [
-          { id: 1, drawingNumber: 'CD-001' },
-          { id: 2, drawingNumber: 'CD-002' },
+          { id: 1, uuid: 'uuid-1', contractDrawingNo: 'CD-001' },
+          { id: 2, uuid: 'uuid-2', contractDrawingNo: 'CD-002' },
         ],
         meta: { total: 2, page: 1, limit: 10 },
       };
@@ -61,14 +61,18 @@ describe('use-drawing hooks', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data).toEqual(mockData);
+      expect(result.current.data.data[0]).toMatchObject({
+        uuid: 'uuid-1',
+        drawingNumber: 'CD-001',
+        type: 'CONTRACT',
+      });
       expect(contractDrawingService.getAll).toHaveBeenCalledWith({ projectId: 1 });
       expect(shopDrawingService.getAll).not.toHaveBeenCalled();
     });
 
     it('should fetch SHOP drawings successfully', async () => {
       const mockData = {
-        data: [{ id: 1, drawingNumber: 'SD-001' }],
+        data: [{ id: 1, uuid: 'uuid-1' }],
         meta: { total: 1, page: 1, limit: 10 },
       };
 
@@ -81,7 +85,11 @@ describe('use-drawing hooks', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data).toEqual(mockData);
+      expect(result.current.data.data[0]).toMatchObject({
+        uuid: 'uuid-1',
+        type: 'SHOP',
+        title: 'Untitled',
+      });
       expect(shopDrawingService.getAll).toHaveBeenCalledWith({ projectId: 1 });
       expect(contractDrawingService.getAll).not.toHaveBeenCalled();
     });
@@ -100,42 +108,42 @@ describe('use-drawing hooks', () => {
   });
 
   describe('useDrawing', () => {
-    it('should fetch single CONTRACT drawing by id', async () => {
-      const mockData = { id: 1, drawingNumber: 'CD-001' };
-      vi.mocked(contractDrawingService.getById).mockResolvedValue(mockData);
+    it('should fetch single CONTRACT drawing by uuid', async () => {
+      const mockData = { id: 1, uuid: 'uuid-1', contractDrawingNo: 'CD-001' };
+      vi.mocked(contractDrawingService.getByUuid).mockResolvedValue(mockData);
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(() => useDrawing('CONTRACT', 1), { wrapper });
+      const { result } = renderHook(() => useDrawing('CONTRACT', 'uuid-1'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
       expect(result.current.data).toEqual(mockData);
-      expect(contractDrawingService.getById).toHaveBeenCalledWith(1);
+      expect(contractDrawingService.getByUuid).toHaveBeenCalledWith('uuid-1');
     });
 
-    it('should fetch single SHOP drawing by id', async () => {
-      const mockData = { id: 1, drawingNumber: 'SD-001' };
-      vi.mocked(shopDrawingService.getById).mockResolvedValue(mockData);
+    it('should fetch single SHOP drawing by uuid', async () => {
+      const mockData = { id: 1, uuid: 'uuid-1', title: 'SD-001' };
+      vi.mocked(shopDrawingService.getByUuid).mockResolvedValue(mockData);
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(() => useDrawing('SHOP', 1), { wrapper });
+      const { result } = renderHook(() => useDrawing('SHOP', 'uuid-1'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
       expect(result.current.data).toEqual(mockData);
-      expect(shopDrawingService.getById).toHaveBeenCalledWith(1);
+      expect(shopDrawingService.getByUuid).toHaveBeenCalledWith('uuid-1');
     });
 
-    it('should not fetch when id is falsy', () => {
+    it('should not fetch when uuid is falsy', () => {
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(() => useDrawing('CONTRACT', 0), { wrapper });
+      const { result } = renderHook(() => useDrawing('CONTRACT', ''), { wrapper });
 
       expect(result.current.isFetching).toBe(false);
-      expect(contractDrawingService.getById).not.toHaveBeenCalled();
+      expect(contractDrawingService.getByUuid).not.toHaveBeenCalled();
     });
   });
 

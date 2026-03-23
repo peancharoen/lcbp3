@@ -38,25 +38,16 @@ describe('correspondenceService', () => {
     });
   });
 
-  describe('getById', () => {
-    it('should call GET /correspondences/:id', async () => {
-      const mockData = { id: 1, subject: 'Test' };
+  describe('getByUuid', () => {
+    it('should call GET /correspondences/:uuid', async () => {
+      const mockData = { id: 1, uuid: 'uuid-1', subject: 'Test' };
       // Service expects response.data.data (NestJS interceptor wrapper)
       vi.mocked(apiClient.get).mockResolvedValue({ data: { data: mockData } });
 
-      const result = await correspondenceService.getById(1);
+      const result = await correspondenceService.getByUuid('uuid-1');
 
-      expect(apiClient.get).toHaveBeenCalledWith('/correspondences/1');
+      expect(apiClient.get).toHaveBeenCalledWith('/correspondences/uuid-1');
       expect(result).toEqual(mockData);
-    });
-
-    it('should work with string id', async () => {
-      const mockData = { id: 1 };
-      vi.mocked(apiClient.get).mockResolvedValue({ data: { data: mockData } });
-
-      await correspondenceService.getById('123');
-
-      expect(apiClient.get).toHaveBeenCalledWith('/correspondences/123');
     });
   });
 
@@ -78,76 +69,76 @@ describe('correspondenceService', () => {
   });
 
   describe('update', () => {
-    it('should call PUT /correspondences/:id with data', async () => {
+    it('should call PUT /correspondences/:uuid with data', async () => {
       const updateData = { subject: 'Updated Title' };
-      const mockResponse = { id: 1, subject: 'Updated Title' };
+      const mockResponse = { id: 1, uuid: 'uuid-1', subject: 'Updated Title' };
       vi.mocked(apiClient.put).mockResolvedValue({ data: mockResponse });
 
-      const result = await correspondenceService.update(1, updateData);
+      const result = await correspondenceService.update('uuid-1', updateData);
 
-      expect(apiClient.put).toHaveBeenCalledWith('/correspondences/1', updateData);
+      expect(apiClient.put).toHaveBeenCalledWith('/correspondences/uuid-1', updateData);
       expect(result).toEqual(mockResponse);
     });
   });
 
   describe('delete', () => {
-    it('should call DELETE /correspondences/:id', async () => {
+    it('should call DELETE /correspondences/:uuid', async () => {
       vi.mocked(apiClient.delete).mockResolvedValue({ data: {} });
 
-      const result = await correspondenceService.delete(1);
+      const result = await correspondenceService.delete('uuid-1');
 
-      expect(apiClient.delete).toHaveBeenCalledWith('/correspondences/1');
+      expect(apiClient.delete).toHaveBeenCalledWith('/correspondences/uuid-1');
       expect(result).toEqual({});
     });
   });
 
   describe('submit', () => {
-    it('should call POST /correspondences/:id/submit', async () => {
+    it('should call POST /correspondences/:uuid/submit', async () => {
       const submitDto = { note: 'Ready for review' };
-      const mockResponse = { id: 1, status: 'submitted' };
+      const mockResponse = { id: 1, uuid: 'uuid-1', status: 'submitted' };
       vi.mocked(apiClient.post).mockResolvedValue({ data: mockResponse });
 
-      const result = await correspondenceService.submit(1, submitDto);
+      const result = await correspondenceService.submit('uuid-1', submitDto);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/correspondences/1/submit', submitDto);
+      expect(apiClient.post).toHaveBeenCalledWith('/correspondences/uuid-1/submit', submitDto);
       expect(result).toEqual(mockResponse);
     });
   });
 
   describe('processWorkflow', () => {
-    it('should call POST /correspondences/:id/workflow', async () => {
+    it('should call POST /correspondences/:uuid/workflow', async () => {
       const workflowDto: WorkflowActionDto = { action: 'APPROVE', comments: 'LGTM' };
-      const mockResponse = { id: 1, status: 'approved' };
+      const mockResponse = { id: 1, uuid: 'uuid-1', status: 'approved' };
       vi.mocked(apiClient.post).mockResolvedValue({ data: mockResponse });
 
-      const result = await correspondenceService.processWorkflow(1, workflowDto);
+      const result = await correspondenceService.processWorkflow('uuid-1', workflowDto);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/correspondences/1/workflow', workflowDto);
+      expect(apiClient.post).toHaveBeenCalledWith('/correspondences/uuid-1/workflow', workflowDto);
       expect(result).toEqual(mockResponse);
     });
   });
 
   describe('addReference', () => {
-    it('should call POST /correspondences/:id/references', async () => {
+    it('should call POST /correspondences/:uuid/references', async () => {
       const referenceDto = { targetId: 2, referenceType: 'reply_to' };
-      const mockResponse = { id: 1 };
+      const mockResponse = { id: 1, uuid: 'uuid-1' };
       vi.mocked(apiClient.post).mockResolvedValue({ data: mockResponse });
 
-      const result = await correspondenceService.addReference(1, referenceDto);
+      const result = await correspondenceService.addReference('uuid-1', referenceDto);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/correspondences/1/references', referenceDto);
+      expect(apiClient.post).toHaveBeenCalledWith('/correspondences/uuid-1/references', referenceDto);
       expect(result).toEqual(mockResponse);
     });
   });
 
   describe('removeReference', () => {
-    it('should call DELETE /correspondences/:id/references with body', async () => {
+    it('should call DELETE /correspondences/:uuid/references with body', async () => {
       const referenceDto = { targetId: 2 };
       vi.mocked(apiClient.delete).mockResolvedValue({ data: {} });
 
-      const result = await correspondenceService.removeReference(1, referenceDto);
+      const result = await correspondenceService.removeReference('uuid-1', referenceDto);
 
-      expect(apiClient.delete).toHaveBeenCalledWith('/correspondences/1/references', {
+      expect(apiClient.delete).toHaveBeenCalledWith('/correspondences/uuid-1/references', {
         data: referenceDto,
       });
       expect(result).toEqual({});

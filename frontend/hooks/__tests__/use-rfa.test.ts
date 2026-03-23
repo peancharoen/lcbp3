@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 vi.mock('@/lib/services/rfa.service', () => ({
   rfaService: {
     getAll: vi.fn(),
-    getById: vi.fn(),
+    getByUuid: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     processWorkflow: vi.fn(),
@@ -27,7 +27,7 @@ describe('use-rfa hooks', () => {
       expect(rfaKeys.lists()).toEqual(['rfas', 'list']);
       expect(rfaKeys.list({ projectId: 1 })).toEqual(['rfas', 'list', { projectId: 1 }]);
       expect(rfaKeys.details()).toEqual(['rfas', 'detail']);
-      expect(rfaKeys.detail(1)).toEqual(['rfas', 'detail', 1]);
+      expect(rfaKeys.detail('uuid-1')).toEqual(['rfas', 'detail', 'uuid-1']);
     });
   });
 
@@ -67,27 +67,27 @@ describe('use-rfa hooks', () => {
   });
 
   describe('useRFA', () => {
-    it('should fetch single RFA by id', async () => {
-      const mockData = { id: 1, rfaNumber: 'RFA-001', status: 'pending' };
-      vi.mocked(rfaService.getById).mockResolvedValue(mockData);
+    it('should fetch single RFA by uuid', async () => {
+      const mockData = { id: 1, uuid: 'uuid-1', rfaNumber: 'RFA-001', status: 'pending' };
+      vi.mocked(rfaService.getByUuid).mockResolvedValue(mockData);
 
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(() => useRFA(1), { wrapper });
+      const { result } = renderHook(() => useRFA('uuid-1'), { wrapper });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
       expect(result.current.data).toEqual(mockData);
-      expect(rfaService.getById).toHaveBeenCalledWith(1);
+      expect(rfaService.getByUuid).toHaveBeenCalledWith('uuid-1');
     });
 
-    it('should not fetch when id is falsy', () => {
+    it('should not fetch when uuid is falsy', () => {
       const { wrapper } = createTestQueryClient();
-      const { result } = renderHook(() => useRFA(0), { wrapper });
+      const { result } = renderHook(() => useRFA(''), { wrapper });
 
       expect(result.current.isFetching).toBe(false);
-      expect(rfaService.getById).not.toHaveBeenCalled();
+      expect(rfaService.getByUuid).not.toHaveBeenCalled();
     });
   });
 
@@ -151,12 +151,12 @@ describe('use-rfa hooks', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          id: 1,
+          uuid: 'uuid-1',
           data: { subject: 'Updated RFA' },
         });
       });
 
-      expect(rfaService.update).toHaveBeenCalledWith(1, { subject: 'Updated RFA' });
+      expect(rfaService.update).toHaveBeenCalledWith('uuid-1', { subject: 'Updated RFA' });
       expect(toast.success).toHaveBeenCalledWith('RFA updated successfully');
     });
   });
@@ -171,12 +171,12 @@ describe('use-rfa hooks', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          id: 1,
+          uuid: 'uuid-1',
           data: { action: 'APPROVE', comments: 'Approved' },
         });
       });
 
-      expect(rfaService.processWorkflow).toHaveBeenCalledWith(1, {
+      expect(rfaService.processWorkflow).toHaveBeenCalledWith('uuid-1', {
         action: 'APPROVE',
         comments: 'Approved',
       });

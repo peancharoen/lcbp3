@@ -34,23 +34,15 @@ describe('projectService', () => {
     });
   });
 
-  describe('getById', () => {
-    it('should call GET /projects/:id', async () => {
-      const mockResponse = { id: 1, name: 'Project Alpha', code: 'P-001' };
+  describe('getByUuid', () => {
+    it('should call GET /projects/:uuid', async () => {
+      const mockResponse = { id: 1, uuid: 'uuid-1', name: 'Project Alpha', code: 'P-001' };
       vi.mocked(apiClient.get).mockResolvedValue({ data: mockResponse });
 
-      const result = await projectService.getById(1);
+      const result = await projectService.getByUuid('uuid-1');
 
-      expect(apiClient.get).toHaveBeenCalledWith('/projects/1');
+      expect(apiClient.get).toHaveBeenCalledWith('/projects/uuid-1');
       expect(result).toEqual(mockResponse);
-    });
-
-    it('should work with string id', async () => {
-      vi.mocked(apiClient.get).mockResolvedValue({ data: {} });
-
-      await projectService.getById('123');
-
-      expect(apiClient.get).toHaveBeenCalledWith('/projects/123');
     });
   });
 
@@ -68,25 +60,25 @@ describe('projectService', () => {
   });
 
   describe('update', () => {
-    it('should call PUT /projects/:id with data', async () => {
+    it('should call PUT /projects/:uuid with data', async () => {
       const updateData = { projectName: 'Updated Project' };
-      const mockResponse = { id: 1, projectName: 'Updated Project' };
+      const mockResponse = { id: 1, uuid: 'uuid-1', projectName: 'Updated Project' };
       vi.mocked(apiClient.put).mockResolvedValue({ data: mockResponse });
 
-      const result = await projectService.update(1, updateData);
+      const result = await projectService.update('uuid-1', updateData);
 
-      expect(apiClient.put).toHaveBeenCalledWith('/projects/1', updateData);
+      expect(apiClient.put).toHaveBeenCalledWith('/projects/uuid-1', updateData);
       expect(result).toEqual(mockResponse);
     });
   });
 
   describe('delete', () => {
-    it('should call DELETE /projects/:id', async () => {
+    it('should call DELETE /projects/:uuid', async () => {
       vi.mocked(apiClient.delete).mockResolvedValue({ data: {} });
 
-      const result = await projectService.delete(1);
+      const result = await projectService.delete('uuid-1');
 
-      expect(apiClient.delete).toHaveBeenCalledWith('/projects/1');
+      expect(apiClient.delete).toHaveBeenCalledWith('/projects/uuid-1');
       expect(result).toEqual({});
     });
   });
