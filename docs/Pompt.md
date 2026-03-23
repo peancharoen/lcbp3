@@ -1,7 +1,8 @@
-# 🚀 Web Developer Prompt Library (Comprehensive Edition)
-คลังคำสั่ง AI สำหรับการพัฒนา Software ตั้งแต่เริ่มต้นวางกลยุทธ์จนถึงการส่งมอบงาน โดยแบ่งตามบทบาทหน้าที่ในทีมพัฒนา
+
+**คลังคำสั่ง AI สำหรับการพัฒนา Software ตั้งแต่เริ่มต้นวางกลยุทธ์จนถึงการส่งมอบงาน โดยแบ่งตามบทบาทหน้าที่ในทีมพัฒนา**
 
 ---
+# 🚀 Web Developer Prompt Library (Comprehensive Edition)
 
 ## 🏗️ 1. กลุ่มการวางแผนและวิเคราะห์ (Planning & Analysis)
 *เหมาะสำหรับช่วงเริ่มโปรเจกต์ หรือต้องการสรุปภาพรวมระบบก่อนลงมือทำ*
@@ -143,7 +144,7 @@ AI Search / Tagging
 
 ---
 
-# 🧭 1. Document Classification (AI Tagging)
+## 🧭 1. Document Classification (AI Tagging)
 
 ## ⭐ Prompt: Intelligent Document Classification
 
@@ -224,7 +225,7 @@ Input คือ text ที่ extract จาก OCR:
 
 ---
 
-# 📄 2. Drawing Metadata Extraction
+## 📄 2. Drawing Metadata Extraction
 
 ## ⭐ Prompt: Drawing Parser
 
@@ -280,7 +281,7 @@ status
 
 ---
 
-# 📑 3. RFA Analysis
+## 📑 3. RFA Analysis
 
 ## ⭐ Prompt: RFA Intelligence
 
@@ -334,7 +335,7 @@ RFA content:
 
 ---
 
-# 🔗 4. Document Linking (AI)
+## 🔗 4. Document Linking (AI)
 
 ## ⭐ Prompt: Smart Document Linking
 
@@ -381,7 +382,7 @@ AI Knowledge Graph Engineer
 
 ---
 
-# 📚 5. RAG for DMS
+## 📚 5. RAG for DMS
 
 ## ⭐ Prompt: DMS RAG Design
 
@@ -439,7 +440,7 @@ retrieval ranking
 
 ---
 
-# 🤖 6. AI Search Query Understanding
+## 🤖 6. AI Search Query Understanding
 
 ## ⭐ Prompt: Query Understanding
 
@@ -480,7 +481,7 @@ User query:
 
 ---
 
-# 🔄 7. n8n Workflow Design
+## 🔄 7. n8n Workflow Design
 
 ## ⭐ Prompt: Automation Workflow
 
@@ -521,9 +522,9 @@ Upload → OCR → AI → Save DB → Notify
 
 ---
 
-# 🧾 8. OCR Pipeline Optimization
+## 🧾 8. OCR Pipeline Optimization
 
-## ⭐ Prompt: OCR Pipeline
+### ⭐ Prompt: OCR Pipeline
 
 **Role**
 Document AI Engineer
@@ -550,7 +551,7 @@ post-processing
 
 **Output Format**
 
-### Problems
+#### Problems
 
 ---
 
@@ -558,9 +559,9 @@ post-processing
 
 ---
 
-# 🏗️ 9. DMS Database Design
+## 🏗️ 9. DMS Database Design
 
-## ⭐ Prompt: DMS Schema
+### ⭐ Prompt: DMS Schema
 
 **Role**
 Senior Database Architect
@@ -589,7 +590,7 @@ Senior Database Architect
 
 ---
 
-# ⚙️ 10. File Storage Strategy
+## ⚙️ 10. File Storage Strategy
 
 ## ⭐ Prompt: File Storage Design
 
@@ -618,7 +619,7 @@ Cloud Storage Architect
 
 ---
 
-# 🛡️ 11. Document Security
+## 🛡️ 11. Document Security
 
 ## ⭐ Prompt: DMS Security
 
@@ -643,7 +644,7 @@ Security Engineer
 
 ---
 
-# 📊 12. Audit & Version Control
+## 📊 12. Audit & Version Control
 
 ## ⭐ Prompt: Audit Log Design
 
@@ -668,9 +669,9 @@ System Architect
 
 ---
 
-# 📈 13. AI Tag Quality Improvement
+## 📈 13. AI Tag Quality Improvement
 
-## ⭐ Prompt: Tag Optimization
+### ⭐ Prompt: Tag Optimization
 
 **Role**
 ML Engineer
@@ -693,7 +694,7 @@ ML Engineer
 
 ---
 
-# ⭐ Master Prompt (DMS AI System)
+### ⭐ Master Prompt (DMS AI System)
 
 **Prompt**
 
@@ -728,56 +729,5 @@ AI-powered Document Management System
 
 ---
 
-# 📊 สรุป
 
-Library นี้คือ
-
-```
-AI + Automation Prompt Playbook
-```
-
-ใช้ได้กับ:
-
-```
-DMS
-Construction projects
-OCR pipeline
-AI search
-n8n automation
-```
-
----
-
-# 🔥 จุดเด่น (สำคัญมาก)
-
-นี่ไม่ใช่ prompt ธรรมดา แต่เป็น
-
-```
-Production Prompt System
-```
-
-ที่:
-
-* ลด hallucination
-* บังคับ output เป็น JSON/structure
-* ใช้ต่อใน code ได้
-* ใช้กับ pipeline จริงได้
-
----
-
-💡 ถ้าคุณอยากไปสุดจริง ผมสามารถต่อยอดให้เป็น
-
-```
-AI DMS System Blueprint
-```
-
-ที่รวม
-
-* DB schema (ตรงกับ prompt)
-* API design
-* n8n workflow JSON
-* Docker setup
-* RAG implementation
-
-ซึ่งจะกลายเป็น **ระบบที่ build ได้จริงทั้งก้อน** 🚀
 

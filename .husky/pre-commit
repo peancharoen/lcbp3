@@ -1,27 +1,22 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
 echo "🔍 Running pre-commit checks..."
 
 # 1. Run lint-staged (Fast, only staged files)
+# Note: lint-staged returns 0 if no files match patterns by default
 pnpm lint-staged
-if [ $? -ne 0 ]; then
-  echo "❌ Lint failed"
-  exit 1
-fi
 
 # 2. Additional Global Safety Checks (Per t2.md) - Optimized for staged files
-staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$')
+# Use || true to prevent script exit if grep finds nothing for the file list
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$') || true
 
 if [ -n "$staged_files" ]; then
     # UUID misuse check
-    grep "parseInt(.*uuid" $staged_files && {
+    grep -l "parseInt(.*uuid" $staged_files && {
       echo "❌ UUID misuse detected (parseInt) in staged files"
       exit 1
     }
 
     # console.log check
-    grep "console.log" $staged_files && {
+    grep -l "console.log" $staged_files && {
       echo "❌ console.log is not allowed in staged files"
       exit 1
     }
