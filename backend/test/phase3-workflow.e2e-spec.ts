@@ -52,6 +52,7 @@ describe('Phase 3 Workflow (E2E)', () => {
     const existing = await defRepo.findOne({
       where: { workflow_code: 'CORRESPONDENCE_FLOW_V1', is_active: true },
     });
+    expect(existing).toBeDefined();
   });
 
   afterAll(async () => {
