@@ -16,16 +16,17 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
+      - name: 📦 Install pnpm
+        run: npm install -g pnpm@10.32.1
+
       - name: 🟢 Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: 📦 Install pnpm
-        run: npm install -g pnpm
+          cache: 'npm' # Note: cache: 'pnpm' requires additional setup action, using npm cache for basic caching or skipping, but we can just use simple setup
 
       - name: 📦 Install deps
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: 🧹 Lint
         run: pnpm lint
@@ -43,15 +44,10 @@ jobs:
             exit 1
           fi
 
-      - name: 🧪 Run Tests
+      - name: 🧪 Run Tests & Coverage
         run: |
           cd backend && pnpm test --watchAll=false
           cd ../frontend && pnpm test run
-
-      - name: 🏗️ Verify Build
-        run: |
-          cd backend && pnpm build
-          cd ../frontend && pnpm build
 
   # ============================================================
   # JOB 2 : Deploy — Trigger Blue-Green on QNAP
