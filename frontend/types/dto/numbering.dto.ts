@@ -1,4 +1,4 @@
-import type { AuditLog } from '@/lib/services/audit-log.service';
+
 
 export interface AuditErrorRecord {
   code: string;
@@ -7,8 +7,17 @@ export interface AuditErrorRecord {
   context?: Record<string, unknown>;
 }
 
+export interface NumberingAuditLog {
+  id: number;
+  documentNumber: string;
+  operation: string;
+  status: string;
+  createdAt: string;
+  createdBy?: string;
+}
+
 export interface NumberingMetrics {
-  audit: AuditLog[];
+  audit: NumberingAuditLog[];
   errors: AuditErrorRecord[];
 }
 

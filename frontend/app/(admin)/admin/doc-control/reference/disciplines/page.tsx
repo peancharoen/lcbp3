@@ -4,6 +4,7 @@ import { GenericCrudTable } from '@/components/admin/reference/generic-crud-tabl
 import { masterDataService } from '@/lib/services/master-data.service';
 import { useContracts } from '@/hooks/use-master-data';
 import { ColumnDef } from '@tanstack/react-table';
+import { Discipline } from '@/types/master-data';
 import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -14,36 +15,36 @@ export default function DisciplinesPage() {
   // Ensure we consistently use an array
   const contracts = Array.isArray(contractsData) ? contractsData : [];
 
-  const columns: ColumnDef<unknown>[] = [
+  const columns: ColumnDef<Discipline>[] = [
     {
-      accessorKey: 'disciplineCode',
+      accessorKey: 'discipline_code',
       header: 'Code',
-      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('disciplineCode')}</span>,
+      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('discipline_code')}</span>,
     },
     {
-      accessorKey: 'codeNameTh',
+      accessorKey: 'code_name_th',
       header: 'Name (TH)',
     },
     {
-      accessorKey: 'codeNameEn',
+      accessorKey: 'code_name_en',
       header: 'Name (EN)',
     },
     {
-      accessorKey: 'isActive',
+      accessorKey: 'is_active',
       header: 'Status',
       cell: ({ row }) => (
         <span
           className={`px-2 py-1 rounded-full text-xs ${
-            row.getValue('isActive') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            row.getValue('is_active') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
-          {row.getValue('isActive') ? 'Active' : 'Inactive'}
+          {row.getValue('is_active') ? 'Active' : 'Inactive'}
         </span>
       ),
     },
   ];
 
-  const contractOptions = contracts.map((c: unknown) => ({
+  const contractOptions = contracts.map((c: { id: number; contractCode: string; contractName: string }) => ({
     label: `${c.contractName} (${c.contractCode})`,
     value: String(c.id),
   }));
@@ -58,12 +59,12 @@ export default function DisciplinesPage() {
         fetchFn={async () => {
           const items = await masterDataService.getDisciplines(selectedContractId ? selectedContractId : undefined);
           // ADR-019: Map contractId INT → contract UUID for edit mode select matching
-          return (items as Record<string, unknown>[]).map((item) => {
-            const rec = item as { contract?: { id?: number; uuid?: string }; contractId?: number };
+          return items.map((item) => {
+            const rec = item as Discipline & { contract?: { id?: number; uuid?: string }; contractId?: number | string };
             return {
               ...item,
               contractId: rec.contract?.id || rec.contract?.uuid || String(rec.contractId),
-            };
+            } as Discipline;
           });
         }}
         createFn={(data) =>
@@ -85,7 +86,7 @@ export default function DisciplinesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
-                {contracts.map((c: unknown) => (
+                {contracts.map((c: { id: number; contractCode: string; contractName: string }) => (
                   <SelectItem key={c.id} value={String(c.id)}>
                     {c.contractName} ({c.contractCode})
                   </SelectItem>
@@ -103,19 +104,19 @@ export default function DisciplinesPage() {
             options: contractOptions,
           },
           {
-            name: 'disciplineCode',
+            name: 'discipline_code',
             label: 'Code',
             type: 'text',
             required: true,
           },
           {
-            name: 'codeNameTh',
+            name: 'code_name_th',
             label: 'Name (TH)',
             type: 'text',
             required: true,
           },
-          { name: 'codeNameEn', label: 'Name (EN)', type: 'text' },
-          { name: 'isActive', label: 'Active', type: 'checkbox' },
+          { name: 'code_name_en', label: 'Name (EN)', type: 'text' },
+          { name: 'is_active', label: 'Active', type: 'checkbox' },
         ]}
       />
     </div>

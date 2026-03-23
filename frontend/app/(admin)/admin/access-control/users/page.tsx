@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { _Organization } from '@/types/organization';
+import { Organization } from '@/types/organization';
 import { getApiErrorMessage } from '@/types/api-error';
 
 export default function UsersPage() {
@@ -49,7 +49,7 @@ export default function UsersPage() {
 
   const { data: organizations = [] } = useOrganizations();
   const userList = Array.isArray(users) ? users : [];
-  const organizationList = Array.isArray(organizations) ? organizations : [];
+  const organizationList: Organization[] = Array.isArray(organizations) ? organizations : [];
 
   const deleteMutation = useDeleteUser();
   const [dialogOpen, setDialogOpen] = useState(false);

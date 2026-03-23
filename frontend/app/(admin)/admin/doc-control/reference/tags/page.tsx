@@ -6,6 +6,7 @@ import { projectService } from '@/lib/services/project.service';
 import { CreateTagDto } from '@/types/dto/master/tag.dto';
 import { ColumnDef } from '@tanstack/react-table';
 import { useQuery } from '@tanstack/react-query';
+import { Tag } from '@/types/master-data';
 
 export default function TagsPage() {
   const { data: projectsData } = useQuery({
@@ -15,19 +16,19 @@ export default function TagsPage() {
 
   const projectOptions = [
     { label: 'Global (All Projects)', value: '__none__' },
-    ...(projectsData || []).map((p: Record<string, unknown>) => ({
-      label: (p.projectName || p.projectCode || p.project_name || p.project_code || `Project ${p.id}`) as string,
+    ...(projectsData || []).map((p: { id: number | string; projectName?: string; projectCode?: string }) => ({
+      label: (p.projectName || p.projectCode || `Project ${p.id}`) as string,
       value: String(p.id), // p.id = UUID string via serialization
     })),
   ];
 
-  const columns: ColumnDef<Record<string, unknown>>[] = [
+  const columns: ColumnDef<Tag>[] = [
     {
       accessorKey: 'project_id',
       header: 'Project',
       cell: ({ row }) => {
-        const item = row.original as Record<string, unknown>;
-        const project = item.project as Record<string, unknown> | null;
+        const item = row.original as Tag & { project?: { id?: number | string; projectName?: string; projectCode?: string } };
+        const project = item.project;
         if (!project) return <span className="text-muted-foreground italic">Global</span>;
         return (project.projectName || project.projectCode || `Project ${project.id}`) as React.ReactNode;
       },
@@ -73,12 +74,12 @@ export default function TagsPage() {
       fetchFn={async () => {
         const items = await masterDataService.getTags();
         // ADR-019: Map project_id INT → project UUID for edit mode select matching
-        return (items as Record<string, unknown>[]).map((item) => {
-          const rec = item as { project?: { id?: number; uuid?: string }; project_id?: number };
+        return items.map((item) => {
+          const rec = item as Tag & { project?: { id?: number | string; uuid?: string }; project_id?: number | string };
           return {
             ...item,
             project_id: rec.project?.id || rec.project?.uuid || (rec.project_id ? String(rec.project_id) : null),
-          };
+          } as Tag;
         });
       }}
       createFn={(data: Record<string, unknown>) =>

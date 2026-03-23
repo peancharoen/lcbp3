@@ -3,32 +3,33 @@
 import { GenericCrudTable } from '@/components/admin/reference/generic-crud-table';
 import { masterDataService } from '@/lib/services/master-data.service';
 import { ColumnDef } from '@tanstack/react-table';
+import { CorrespondenceType } from '@/types/master-data';
 
 export default function CorrespondenceTypesPage() {
-  const columns: ColumnDef<unknown>[] = [
+  const columns: ColumnDef<CorrespondenceType>[] = [
     {
-      accessorKey: 'typeCode',
+      accessorKey: 'type_code',
       header: 'Code',
-      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('typeCode')}</span>,
+      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('type_code')}</span>,
     },
     {
-      accessorKey: 'typeName',
+      accessorKey: 'type_name',
       header: 'Name',
     },
     {
-      accessorKey: 'sortOrder',
+      accessorKey: 'sort_order',
       header: 'Sort Order',
     },
     {
-      accessorKey: 'isActive',
+      accessorKey: 'is_active',
       header: 'Status',
       cell: ({ row }) => (
         <span
           className={`px-2 py-1 rounded-full text-xs ${
-            row.getValue('isActive') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            row.getValue('is_active') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
-          {row.getValue('isActive') ? 'Active' : 'Inactive'}
+          {row.getValue('is_active') ? 'Active' : 'Inactive'}
         </span>
       ),
     },
@@ -51,10 +52,10 @@ export default function CorrespondenceTypesPage() {
         deleteFn={(id) => masterDataService.deleteCorrespondenceType(id)}
         columns={columns}
         fields={[
-          { name: 'typeCode', label: 'Code', type: 'text', required: true },
-          { name: 'typeName', label: 'Name', type: 'text', required: true },
-          { name: 'sortOrder', label: 'Sort Order', type: 'text' },
-          { name: 'isActive', label: 'Active', type: 'checkbox' },
+          { name: 'type_code', label: 'Code', type: 'text', required: true },
+          { name: 'type_name', label: 'Name', type: 'text', required: true },
+          { name: 'sort_order', label: 'Sort Order', type: 'text' },
+          { name: 'is_active', label: 'Active', type: 'checkbox' },
         ]}
       />
     </div>

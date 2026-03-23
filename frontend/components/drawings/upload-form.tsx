@@ -16,6 +16,11 @@ import {
   useShopSubCategories,
   useProjects,
 } from '@/hooks/use-master-data';
+import {
+  ShopMainCategory,
+  ShopSubCategory,
+  ContractDrawingCategory,
+} from '@/types/master-data';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -232,13 +237,11 @@ export function DrawingUploadForm() {
                       <SelectValue placeholder="Select Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {contractCategories?.map(
-                        (c: { id: number; catName?: string; catCode?: string; name?: string }) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.catName || c.catCode || c.name}
-                          </SelectItem>
-                        )
-                      )}
+                      {contractCategories?.map((c: ContractDrawingCategory) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.catName || c.catCode || c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {formErrors.mapCatId && <p className="text-sm text-destructive">{formErrors.mapCatId.message}</p>}
@@ -287,13 +290,11 @@ export function DrawingUploadForm() {
                       <SelectValue placeholder="Select Main Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {shopMainCats?.map(
-                        (c: { id: number; mainCategoryName?: string; mainCategoryCode?: string; name?: string }) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.mainCategoryName || c.mainCategoryCode || c.name}
-                          </SelectItem>
-                        )
-                      )}
+                      {shopMainCats?.map((c: ShopMainCategory) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.mainCategoryName || c.mainCategoryCode || c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {formErrors.mainCategoryId && (
@@ -307,13 +308,11 @@ export function DrawingUploadForm() {
                       <SelectValue placeholder="Select Sub Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {shopSubCats?.map(
-                        (c: { id: number; subCategoryName?: string; subCategoryCode?: string; name?: string }) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.subCategoryName || c.subCategoryCode || c.name}
-                          </SelectItem>
-                        )
-                      )}
+                      {shopSubCats?.map((c: ShopSubCategory) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.subCategoryName || c.subCategoryCode || c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {formErrors.subCategoryId && (
@@ -365,13 +364,11 @@ export function DrawingUploadForm() {
                       <SelectValue placeholder="Select Main Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {shopMainCats?.map(
-                        (c: { id: number; mainCategoryName?: string; mainCategoryCode?: string; name?: string }) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.mainCategoryName || c.mainCategoryCode || c.name}
-                          </SelectItem>
-                        )
-                      )}
+                      {shopMainCats?.map((c: ShopMainCategory) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.mainCategoryName || c.mainCategoryCode || c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {formErrors.mainCategoryId && (
@@ -385,13 +382,11 @@ export function DrawingUploadForm() {
                       <SelectValue placeholder="Select Sub Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {shopSubCats?.map(
-                        (c: { id: number; subCategoryName?: string; subCategoryCode?: string; name?: string }) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.subCategoryName || c.subCategoryCode || c.name}
-                          </SelectItem>
-                        )
-                      )}
+                      {shopSubCats?.map((c: ShopSubCategory) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.subCategoryName || c.subCategoryCode || c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {formErrors.subCategoryId && (

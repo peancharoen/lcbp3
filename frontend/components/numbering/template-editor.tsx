@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { NumberingTemplate } from '@/lib/api/numbering';
+import { NumberingTemplate, SaveTemplateDto } from '@/lib/api/numbering';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { CorrespondenceType, Discipline } from '@/types/master-data';
 
 // Aligned with Backend replacement logic
 const VARIABLES = [
@@ -29,9 +30,9 @@ export interface TemplateEditorProps {
   template?: NumberingTemplate;
   projectId: number | string;
   projectName: string;
-  correspondenceTypes: unknown[];
-  disciplines: unknown[];
-  onSave: (data: Partial<NumberingTemplate>) => void;
+  correspondenceTypes: CorrespondenceType[];
+  disciplines: Discipline[];
+  onSave: (data: SaveTemplateDto) => void;
   onCancel: () => void;
 }
 
@@ -62,7 +63,7 @@ export function TemplateEditor({
 
       // Dynamic context based on selection (optional visual enhancement)
       if (v.key === '{TYPE}' && typeId) {
-        const t = (correspondenceTypes as { id: number; typeCode: string; typeName: string }[]).find(
+        const t = correspondenceTypes.find(
           (ct) => ct.id?.toString() === typeId
         );
         if (t) replacement = t.typeCode;
@@ -117,11 +118,10 @@ export function TemplateEditor({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__default__">Default (All Types)</SelectItem>
-                {correspondenceTypes.map((type: unknown) => {
-                  const typedType = type as { id: number; typeCode: string; typeName: string };
+                {correspondenceTypes.map((type) => {
                   return (
-                    <SelectItem key={typedType.id} value={typedType.id.toString()}>
-                      {typedType.typeCode} - {typedType.typeName}
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      {type.typeCode} - {type.typeName}
                     </SelectItem>
                   );
                 })}
@@ -141,7 +141,7 @@ export function TemplateEditor({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">All Disciplines</SelectItem>
-                  {disciplines.map((d: unknown) => (
+                  {disciplines.map((d) => (
                     <SelectItem key={d.id} value={d.id.toString()}>
                       {d.disciplineCode} - {d.codeNameEn || d.codeNameTh}
                     </SelectItem>

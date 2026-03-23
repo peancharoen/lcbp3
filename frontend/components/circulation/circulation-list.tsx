@@ -3,9 +3,8 @@
 import { Circulation, CirculationListResponse } from '@/types/circulation';
 import { DataTable } from '@/components/common/data-table';
 import { ColumnDef } from '@tanstack/react-table';
-import { _StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
-import { Eye, _CheckCircle2 } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';

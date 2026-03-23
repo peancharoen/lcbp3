@@ -14,7 +14,11 @@ interface NumberingError {
   errorMessage: string;
   stackTrace?: string;
   createdAt: string;
-  context?: unknown;
+  context?: {
+    projectId?: number | string;
+    contractId?: number | string;
+    [key: string]: unknown;
+  };
 }
 
 const logService = {

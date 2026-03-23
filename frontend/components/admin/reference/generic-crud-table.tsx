@@ -72,7 +72,6 @@ export function GenericCrudTable<T extends { id?: number; uuid?: string }>({
   const {
     data: rawData,
     isLoading,
-    _refetch,
   } = useQuery({
     queryKey,
     queryFn: fetchFn,

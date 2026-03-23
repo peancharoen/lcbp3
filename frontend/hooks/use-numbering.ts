@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentNumberingService } from '@/lib/services/document-numbering.service';
-import { numberingApi, NumberingTemplate } from '@/lib/api/numbering';
+import { numberingApi, SaveTemplateDto } from '@/lib/api/numbering';
 import { ManualOverrideDto, VoidReplaceDto, CancelNumberDto, AuditQueryParams } from '@/types/dto/numbering.dto';
 
 export const numberingKeys = {
@@ -20,7 +20,7 @@ export const useTemplates = () => {
 export const useSaveTemplate = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<NumberingTemplate>) => numberingApi.saveTemplate(data),
+    mutationFn: (data: SaveTemplateDto) => numberingApi.saveTemplate(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: numberingKeys.templates() });
     },

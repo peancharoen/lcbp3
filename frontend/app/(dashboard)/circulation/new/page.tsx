@@ -194,7 +194,7 @@ export default function CreateCirculationPage() {
               <FormField
                 control={form.control}
                 name="assigneeIds"
-                render={({ _field }) => (
+                render={({ field: _field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Assignees</FormLabel>
                     <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>

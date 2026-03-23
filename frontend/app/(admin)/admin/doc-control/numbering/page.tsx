@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Play } from 'lucide-react';
-import { NumberingTemplate } from '@/lib/api/numbering';
+import { NumberingTemplate, SaveTemplateDto } from '@/lib/api/numbering';
 import { useTemplates, useSaveTemplate } from '@/hooks/use-numbering';
 import { TemplateEditor } from '@/components/numbering/template-editor';
 import { SequenceViewer } from '@/components/numbering/sequence-viewer';
@@ -71,7 +71,7 @@ export default function NumberingPage() {
     setIsEditing(true);
   };
 
-  const handleSave = async (data: Partial<NumberingTemplate>) => {
+  const handleSave = async (data: SaveTemplateDto) => {
     try {
       await saveTemplateMutation.mutateAsync(data);
       toast.success(data.id ? 'Template updated' : 'Template created');

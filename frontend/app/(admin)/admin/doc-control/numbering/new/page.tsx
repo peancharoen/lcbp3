@@ -23,8 +23,17 @@ export default function NewTemplatePage() {
 
   const handleSave = async (data: Partial<NumberingTemplate>) => {
     try {
-      await numberingApi.saveTemplate(data);
-      router.push('/admin/numbering');
+      // Correcting type mismatch by ensuring all required fields for SaveTemplateDto are present
+      await numberingApi.saveTemplate({
+        projectId: data.projectId!,
+        correspondenceTypeId: data.correspondenceTypeId ?? null,
+        formatTemplate: data.formatTemplate!,
+        disciplineId: data.disciplineId,
+        description: data.description,
+        resetSequenceYearly: data.resetSequenceYearly,
+        isActive: data.isActive,
+      });
+      router.push('/admin/doc-control/numbering');
     } catch (_error) {
       toast.error('Failed to create template');
     }

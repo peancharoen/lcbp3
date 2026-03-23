@@ -14,6 +14,16 @@ import {
   UpdateOrganizationDto,
   SearchOrganizationDto,
 } from '@/types/dto/organization/organization.dto';
+import {
+  CorrespondenceType,
+  Discipline,
+  RfaType,
+  Tag,
+  DrawingCategory,
+  ShopMainCategory,
+  ShopSubCategory,
+  ContractDrawingCategory,
+} from '@/types/master-data';
 
 const extractArrayData = <T>(value: unknown): T[] => {
   let current: unknown = value;
@@ -37,10 +47,10 @@ export const masterDataService = {
   // --- Tags Management ---
 
   /** ดึงรายการ Tags ทั้งหมด (Search & Pagination) */
-  getTags: async (params?: SearchTagDto) => {
+  getTags: async (params?: SearchTagDto): Promise<Tag[]> => {
     const response = await apiClient.get('/master/tags', { params });
     // Support both wrapped and unwrapped scenarios
-    return response.data.data || response.data;
+    return extractArrayData<Tag>(response.data);
   },
 
   /** สร้าง Tag ใหม่ */
@@ -112,11 +122,11 @@ export const masterDataService = {
   // --- Disciplines Management (Admin / Req 6B) ---
 
   /** ดึงรายชื่อสาขางาน (มักจะกรองตาม Contract ID) */
-  getDisciplines: async (contractId?: number | string) => {
+  getDisciplines: async (contractId?: number | string): Promise<Discipline[]> => {
     const response = await apiClient.get('/master/disciplines', {
       params: { contractId },
     });
-    return extractArrayData(response.data);
+    return extractArrayData<Discipline>(response.data);
   },
 
   /** สร้างสาขางานใหม่ */
@@ -134,11 +144,11 @@ export const masterDataService = {
   // --- Sub-Types Management (Admin / Req 6B) ---
 
   /** ดึงรายชื่อประเภทย่อย (กรองตาม Contract และ Type) */
-  getSubTypes: async (contractId?: number | string, typeId?: number) => {
+  getSubTypes: async (contractId?: number | string, typeId?: number): Promise<DrawingCategory[]> => {
     const response = await apiClient.get('/master/sub-types', {
       params: { contractId, correspondenceTypeId: typeId },
     });
-    return extractArrayData(response.data);
+    return extractArrayData<DrawingCategory>(response.data);
   },
 
   /** สร้างประเภทย่อยใหม่ */
@@ -150,11 +160,11 @@ export const masterDataService = {
   // --- RFA Types Management (Admin) ---
 
   /** ดึงประเภท RFA ทั้งหมด */
-  getRfaTypes: async (contractId?: number | string) => {
+  getRfaTypes: async (contractId?: number | string): Promise<RfaType[]> => {
     const response = await apiClient.get('/master/rfa-types', {
       params: { contractId },
     });
-    return extractArrayData(response.data);
+    return extractArrayData<RfaType>(response.data);
   },
 
   /** สร้างประเภท RFA ใหม่ */
@@ -173,9 +183,9 @@ export const masterDataService = {
   // --- Document Numbering Format (Admin Config) ---
 
   // --- Correspondence Types Management ---
-  getCorrespondenceTypes: async () => {
+  getCorrespondenceTypes: async (): Promise<CorrespondenceType[]> => {
     const response = await apiClient.get('/master/correspondence-types');
-    return extractArrayData(response.data);
+    return extractArrayData<CorrespondenceType>(response.data);
   },
 
   createCorrespondenceType: async (data: CreateCorrespondenceTypeDto) => {
@@ -206,22 +216,22 @@ export const masterDataService = {
 
   // --- Drawing Categories ---
 
-  getContractDrawingCategories: async (projectId?: number | string) => {
+  getContractDrawingCategories: async (projectId?: number | string): Promise<ContractDrawingCategory[]> => {
     const response = await apiClient.get('/drawings/contract/categories', {
       params: { projectId },
     });
-    return extractArrayData(response.data);
+    return extractArrayData<ContractDrawingCategory>(response.data);
   },
 
-  getShopMainCategories: async (projectId: number) => {
+  getShopMainCategories: async (projectId: number): Promise<ShopMainCategory[]> => {
     const response = await apiClient.get('/drawings/shop/main-categories', { params: { projectId } });
-    return extractArrayData(response.data);
+    return extractArrayData<ShopMainCategory>(response.data);
   },
 
-  getShopSubCategories: async (projectId: number, mainCategoryId?: number) => {
+  getShopSubCategories: async (projectId: number, mainCategoryId?: number): Promise<ShopSubCategory[]> => {
     const response = await apiClient.get('/drawings/shop/sub-categories', {
       params: { projectId, mainCategoryId },
     });
-    return extractArrayData(response.data);
+    return extractArrayData<ShopSubCategory>(response.data);
   },
 };

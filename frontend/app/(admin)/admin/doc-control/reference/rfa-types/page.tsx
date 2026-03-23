@@ -5,6 +5,7 @@ import { masterDataService } from '@/lib/services/master-data.service';
 import { useContracts } from '@/hooks/use-master-data';
 import { ColumnDef } from '@tanstack/react-table';
 import { useState } from 'react';
+import { RfaType } from '@/types/master-data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function RfaTypesPage() {
@@ -14,18 +15,18 @@ export default function RfaTypesPage() {
   // Ensure we consistently use an array
   const contracts = Array.isArray(contractsData) ? contractsData : [];
 
-  const columns: ColumnDef<unknown>[] = [
+  const columns: ColumnDef<RfaType>[] = [
     {
-      accessorKey: 'typeCode',
+      accessorKey: 'type_code',
       header: 'Code',
-      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('typeCode')}</span>,
+      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('type_code')}</span>,
     },
     {
-      accessorKey: 'typeNameTh',
+      accessorKey: 'type_name_th',
       header: 'Name (TH)',
     },
     {
-      accessorKey: 'typeNameEn',
+      accessorKey: 'type_name_en',
       header: 'Name (EN)',
     },
     {
@@ -33,22 +34,22 @@ export default function RfaTypesPage() {
       header: 'Remark',
     },
     {
-      accessorKey: 'isActive',
+      accessorKey: 'is_active',
       header: 'Status',
       cell: ({ row }) => (
         <span
           className={`px-2 py-1 rounded-full text-xs ${
-            row.getValue('isActive') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            row.getValue('is_active') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
-          {row.getValue('isActive') ? 'Active' : 'Inactive'}
+          {row.getValue('is_active') ? 'Active' : 'Inactive'}
         </span>
       ),
     },
   ];
 
-  const contractOptions = contracts.map((c: unknown) => ({
-    label: `${c.contractName} (${c.contractCode})`,
+  const contractOptions = contracts.map((c: { id: number | string; contract_name?: string; contract_code?: string; contractName?: string; contractCode?: string }) => ({
+    label: `${c.contractName || c.contract_name} (${c.contractCode || c.contract_code})`,
     value: String(c.id),
   }));
 
@@ -61,12 +62,12 @@ export default function RfaTypesPage() {
         fetchFn={async () => {
           const items = await masterDataService.getRfaTypes(selectedContractId ? selectedContractId : undefined);
           // ADR-019: Map contractId INT → contract UUID for edit mode select matching
-          return (items as Record<string, unknown>[]).map((item) => {
-            const rec = item as { contract?: { id?: number; uuid?: string }; contractId?: number };
+          return items.map((item) => {
+            const rec = item as RfaType & { contract?: { id?: number | string; uuid?: string }; contract_id?: number | string };
             return {
               ...item,
-              contractId: rec.contract?.id || rec.contract?.uuid || String(rec.contractId),
-            };
+              contractId: rec.contract?.id || rec.contract?.uuid || (rec.contract_id ? String(rec.contract_id) : null),
+            } as RfaType;
           });
         }}
         createFn={(data) =>
@@ -86,9 +87,9 @@ export default function RfaTypesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
-                {contracts.map((c: unknown) => (
+                {contracts.map((c: { id: number | string; contract_name?: string; contract_code?: string; contractName?: string; contractCode?: string }) => (
                   <SelectItem key={c.id} value={String(c.id)}>
-                    {c.contractName} ({c.contractCode})
+                    {c.contractName || c.contract_name} ({c.contractCode || c.contract_code})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -103,11 +104,11 @@ export default function RfaTypesPage() {
             required: true,
             options: contractOptions,
           },
-          { name: 'typeCode', label: 'Code', type: 'text', required: true },
-          { name: 'typeNameTh', label: 'Name (TH)', type: 'text', required: true },
-          { name: 'typeNameEn', label: 'Name (EN)', type: 'text' },
+          { name: 'type_code', label: 'Code', type: 'text', required: true },
+          { name: 'type_name_th', label: 'Name (TH)', type: 'text', required: true },
+          { name: 'type_name_en', label: 'Name (EN)', type: 'text' },
           { name: 'remark', label: 'Remark', type: 'textarea' },
-          { name: 'isActive', label: 'Active', type: 'checkbox' },
+          { name: 'is_active', label: 'Active', type: 'checkbox' },
         ]}
       />
     </div>

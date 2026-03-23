@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import axios from 'axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import { Button } from '@/components/ui/button';
@@ -72,7 +73,12 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
         isDefault: result.isDefault,
       });
     } catch (error: unknown) {
-      const errMsg = error?.response?.data?.message || error?.message || 'Unknown error';
+      let errMsg = 'Unknown error';
+      if (axios.isAxiosError(error)) {
+        errMsg = error.response?.data?.message || error.message;
+      } else if (error instanceof Error) {
+        errMsg = error.message;
+      }
       setTestResult({ number: `Error: ${errMsg}`, isDefault: false });
     } finally {
       setLoading(false);

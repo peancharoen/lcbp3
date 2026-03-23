@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { documentNumberingService } from '@/lib/services/document-numbering.service';
 import { format } from 'date-fns';
+import { NumberingAuditLog } from '@/types/dto/numbering.dto';
 
 export function AuditLogsTable() {
-  const [logs, setLogs] = useState<unknown[]>([]); // Replace with AuditLog type
+  const [logs, setLogs] = useState<NumberingAuditLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export function AuditLogsTable() {
               <TableRow key={log.id}>
                 <TableCell>{format(new Date(log.createdAt), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
                 <TableCell>{log.operation}</TableCell>
-                <TableCell>{log.generatedNumber}</TableCell>
+                <TableCell>{log.documentNumber}</TableCell>
                 <TableCell>{log.createdBy || 'System'}</TableCell>
                 <TableCell>{log.status}</TableCell>
               </TableRow>

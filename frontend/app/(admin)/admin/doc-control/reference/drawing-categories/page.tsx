@@ -3,22 +3,23 @@
 import { GenericCrudTable } from '@/components/admin/reference/generic-crud-table';
 import { masterDataService } from '@/lib/services/master-data.service';
 import { ColumnDef } from '@tanstack/react-table';
+import { DrawingCategory } from '@/types/master-data';
 
 export default function DrawingCategoriesPage() {
-  const columns: ColumnDef<unknown>[] = [
+  const columns: ColumnDef<DrawingCategory>[] = [
     {
-      accessorKey: 'subTypeCode',
+      accessorKey: 'sub_type_code',
       header: 'Code',
-      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('subTypeCode')}</span>,
+      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('sub_type_code')}</span>,
     },
     {
-      accessorKey: 'subTypeName',
+      accessorKey: 'sub_type_name',
       header: 'Name',
     },
     {
-      accessorKey: 'subTypeNumber',
+      accessorKey: 'sub_type_number',
       header: 'Running Code',
-      cell: ({ row }) => <span className="font-mono">{row.getValue('subTypeNumber') || '-'}</span>,
+      cell: ({ row }) => <span className="font-mono">{row.getValue('sub_type_number') || '-'}</span>,
     },
   ];
 
@@ -29,21 +30,25 @@ export default function DrawingCategoriesPage() {
         title="Drawing Categories Management"
         description="Manage drawing sub-types and categories"
         queryKey={['drawing-categories']}
-        fetchFn={() => masterDataService.getSubTypes(1)} // Default contract ID 1
+        fetchFn={async () => {
+          const data = await masterDataService.getSubTypes(1);
+          return data as (DrawingCategory & { uuid?: string })[];
+        }}
         createFn={(data: Record<string, unknown>) =>
           masterDataService.createSubType({
             ...(data as unknown as Parameters<typeof masterDataService.createSubType>[0]),
             contractId: 1,
             correspondenceTypeId: 3,
           })
-        } // Assuming 3 is Drawings, hardcoded for now to prevent error
-        updateFn={() => Promise.reject('Not implemented yet')}
-        deleteFn={() => Promise.reject('Not implemented yet')} // Delete might be restricted
-        columns={columns}
+        }
+        updateFn={(id, data) => masterDataService.updateRfaType(id, data as Parameters<typeof masterDataService.updateRfaType>[1])}
+        deleteFn={(id) => masterDataService.deleteRfaType(id)}
+        columns={columns as unknown as ColumnDef<{ id?: number; uuid?: string }>[]}
         fields={[
-          { name: 'subTypeCode', label: 'Code', type: 'text', required: true },
-          { name: 'subTypeName', label: 'Name', type: 'text', required: true },
-          { name: 'subTypeNumber', label: 'Running Code', type: 'text' },
+          { name: 'sub_type_code', label: 'Code', type: 'text', required: true },
+          { name: 'sub_type_name', label: 'Name', type: 'text', required: true },
+          { name: 'sub_type_number', label: 'Running Code', type: 'text' },
+          { name: 'is_active', label: 'Active', type: 'checkbox' },
         ]}
       />
     </div>

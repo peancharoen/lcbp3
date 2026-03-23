@@ -4,7 +4,7 @@ import { DrawingRevision } from '@/types/drawing';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, _FileText } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function RevisionHistory({ revisions }: { revisions: DrawingRevision[] }) {
