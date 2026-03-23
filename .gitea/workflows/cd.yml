@@ -72,29 +72,29 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Releasing version: $VERSION"
 
-      - name: 🐋 Login to Internal Registry
+      - name: 🐋 Login to Gitea Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          registry: git.np-dms.work
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🏗️ Build & Push Backend
         run: |
           docker build -f backend/Dockerfile \
-            -t ${{ secrets.REGISTRY_URL }}/lcbp3-backend:${{ steps.pkg-version.outputs.VERSION }} \
-            -t ${{ secrets.REGISTRY_URL }}/lcbp3-backend:latest .
-          docker push ${{ secrets.REGISTRY_URL }}/lcbp3-backend:${{ steps.pkg-version.outputs.VERSION }}
-          docker push ${{ secrets.REGISTRY_URL }}/lcbp3-backend:latest
+            -t git.np-dms.work/${{ github.repository_owner }}/lcbp3-backend:${{ steps.pkg-version.outputs.VERSION }} \
+            -t git.np-dms.work/${{ github.repository_owner }}/lcbp3-backend:latest .
+          docker push git.np-dms.work/${{ github.repository_owner }}/lcbp3-backend:${{ steps.pkg-version.outputs.VERSION }}
+          docker push git.np-dms.work/${{ github.repository_owner }}/lcbp3-backend:latest
 
       - name: 🏗️ Build & Push Frontend
         run: |
           docker build -f frontend/Dockerfile \
             --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
-            -t ${{ secrets.REGISTRY_URL }}/lcbp3-frontend:${{ steps.pkg-version.outputs.VERSION }} \
-            -t ${{ secrets.REGISTRY_URL }}/lcbp3-frontend:latest .
-          docker push ${{ secrets.REGISTRY_URL }}/lcbp3-frontend:${{ steps.pkg-version.outputs.VERSION }}
-          docker push ${{ secrets.REGISTRY_URL }}/lcbp3-frontend:latest
+            -t git.np-dms.work/${{ github.repository_owner }}/lcbp3-frontend:${{ steps.pkg-version.outputs.VERSION }} \
+            -t git.np-dms.work/${{ github.repository_owner }}/lcbp3-frontend:latest .
+          docker push git.np-dms.work/${{ github.repository_owner }}/lcbp3-frontend:${{ steps.pkg-version.outputs.VERSION }}
+          docker push git.np-dms.work/${{ github.repository_owner }}/lcbp3-frontend:latest
 
   # ============================================================
   # JOB 3 : Deploy — Trigger Blue-Green on QNAP
@@ -130,4 +130,6 @@ jobs:
             echo "🚀 Executing Blue-Green deployment..."
             # Pass registry credentials if needed by the pull command in deploy.sh
             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            export REGISTRY_USER="${{ github.repository_owner }}"
+            export REGISTRY_TOKEN="${{ secrets.GITHUB_TOKEN }}"
             ./scripts/deploy.sh

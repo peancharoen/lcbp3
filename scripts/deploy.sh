@@ -46,6 +46,16 @@ echo "✓ Backup created: $BACKUP_FILE.gz"
 # Step 2: Pull latest images from registry
 echo "[2/9] Pulling latest Docker images from internal registry..."
 cd "$LCBP3_DIR/$TARGET"
+
+if [ -n "$REGISTRY_TOKEN" ] && [ -n "$REGISTRY_USER" ]; then
+    echo "Logging into Gitea Container Registry..."
+    echo "$REGISTRY_TOKEN" | docker login git.np-dms.work -u "$REGISTRY_USER" --password-stdin
+    
+    echo "Updating docker-compose.yml to use Gitea registry images..."
+    sed -i -E "s|image: (git\.np-dms\.work/[^/]+/)?lcbp3-backend|image: git.np-dms.work/$REGISTRY_USER/lcbp3-backend|g" docker-compose.yml
+    sed -i -E "s|image: (git\.np-dms\.work/[^/]+/)?lcbp3-frontend|image: git.np-dms.work/$REGISTRY_USER/lcbp3-frontend|g" docker-compose.yml
+fi
+
 docker-compose pull
 echo "✓ Images pulled"
 
