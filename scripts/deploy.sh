@@ -7,8 +7,11 @@
 set -e  # Exit on error
 
 # Configuration
-LCBP3_DIR="/volume1/lcbp3"
+LCBP3_DIR="/share/np-dms/app"
 CURRENT_FILE="$LCBP3_DIR/current"
+
+# Ensure base directory exists (QNAP path fix)
+mkdir -p "$LCBP3_DIR"
 
 # Ensure current file exists
 if [ ! -f "$CURRENT_FILE" ]; then
