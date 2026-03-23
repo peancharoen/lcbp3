@@ -40,11 +40,19 @@ if [ -z "$DB_PASSWORD" ]; then
     if [ -f "$LCBP3_DIR/$CURRENT/.env.production" ]; then
         export $(grep DB_PASSWORD "$LCBP3_DIR/$CURRENT/.env.production" | xargs)
     fi
+    # Fallback to default if still empty
+    if [ -z "$DB_PASSWORD" ]; then
+        DB_PASSWORD="Center#2025"
+    fi
 fi
 
-docker exec lcbp3-mariadb mysqldump -u root -p"${DB_PASSWORD}" lcbp3_dms > "$BACKUP_FILE"
-gzip "$BACKUP_FILE"
-echo "✓ Backup created: $BACKUP_FILE.gz"
+if docker exec mariadb mysqldump -u root -p"${DB_PASSWORD}" lcbp3 > "$BACKUP_FILE"; then
+    gzip "$BACKUP_FILE"
+    echo "✓ Backup created: $BACKUP_FILE.gz"
+else
+    echo "⚠️ Database backup failed or mariadb container not running. Skipping backup for this deployment..."
+    rm -f "$BACKUP_FILE"
+fi
 
 # Step 2: Build latest images directly on QNAP
 echo "[2/9] Building latest Docker images from source..."
