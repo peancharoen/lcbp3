@@ -56,8 +56,11 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: 🚀 Trigger Deployment on QNAP
-        uses: appleboy/ssh-action@v1.0.3
+      - name: � Checkout
+        uses: actions/checkout@v4
+
+      - name: �🚀 Trigger Deployment on QNAP
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
@@ -65,21 +68,48 @@ jobs:
           port: ${{ secrets.PORT }}
           timeout: 1200s
           command_timeout: 900s
-          script_stop_signal: true
+          script_stop: true
+          debug: true
           script: |
             set -e
             export PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
-            
+
+            echo "=========================================="
+            echo "Starting QNAP Deployment Process"
+            echo "=========================================="
+
+            # Verify Docker is accessible
+            if ! docker version > /dev/null 2>&1; then
+              echo "✗ Docker not accessible. Check Container Station."
+              exit 1
+            fi
+            echo "✓ Docker accessible"
+
             # Sync scripts first
             echo "📂 Syncing deployment scripts..."
             cd /share/np-dms/app/source/lcbp3
+
+            # Check if directory exists
+            if [ ! -d ".git" ]; then
+              echo "✗ Git repository not found at expected path"
+              exit 1
+            fi
+
             git fetch origin main
             git reset --hard origin/main
-            
+            echo "✓ Code synced"
+
             # Ensure scripts are executable
-            chmod +x scripts/deploy.sh scripts/rollback.sh
-            
+            chmod +x scripts/deploy.sh scripts/rollback.sh 2>/dev/null || true
+
             echo "🚀 Executing Blue-Green deployment..."
-            # Pass registry credentials if needed by the pull command in deploy.sh
-            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            ./scripts/deploy.sh
+            # Execute deployment with proper logging
+            ./scripts/deploy.sh 2>&1 | tee /share/np-dms/app/logs/deploy-$(date +%Y%m%d-%H%M%S).log
+
+            DEPLOY_STATUS=${PIPESTATUS[0]}
+            if [ $DEPLOY_STATUS -ne 0 ]; then
+              echo "✗ Deployment failed with status $DEPLOY_STATUS"
+              exit 1
+            fi
+
+            echo "✓ Deployment completed successfully"
