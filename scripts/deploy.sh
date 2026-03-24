@@ -81,7 +81,7 @@ fi
 
 # Step 4: Start target environment
 echo "[4/9] Starting $TARGET environment..."
-docker-compose up -d
+docker compose up -d
 echo "✓ $TARGET environment started"
 
 # Step 5: Wait for services to be ready
@@ -98,7 +98,7 @@ for i in {1..30}; do
     fi
     if [ $i -eq 30 ]; then
         echo "✗ Backend health check failed!"
-        docker-compose logs backend
+        docker compose logs backend
         exit 1
     fi
     echo "  Waiting for backend... ($i/30)"
@@ -182,7 +182,7 @@ fi
 # Step 9: Stop old environment
 echo "[9/9] Stopping $CURRENT environment..."
 cd "$LCBP3_DIR/$CURRENT"
-docker-compose down || echo "⚠️ Could not stop $CURRENT (may already be stopped)"
+docker compose down || echo "⚠️ Could not stop $CURRENT (may already be stopped)"
 echo "✓ $CURRENT environment stopped"
 
 # Update current pointer
