@@ -1,24 +1,26 @@
-# 🛡️ Module Edge Cases & Business Rules — LCBP3-DMS v1.8.0
+# 🛡️ Module Edge Cases & Business Rules — LCBP3-DMS v1.8.1
 
 ---
 
 title: 'Edge Cases, Business Rules, and Anti-Bug Specifications'
-version: 1.0.0
-status: DRAFT
+version: 1.8.1
+status: updated
 owner: Nattanin Peancharoen (Product Owner / System Architect)
-last_updated: 2026-03-11
+last_updated: 2026-03-24
 related:
 
+- specs/01-Requirements/01-04-user-stories.md
 - specs/01-Requirements/01-05-acceptance-criteria.md
 - specs/01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md
 - specs/06-Decision-Records/ADR-001-unified-workflow-engine.md
 - specs/06-Decision-Records/ADR-016-security-authentication.md
+- specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md
 - specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql
 
 ---
 
 > [!IMPORTANT]
-> เอกสารนี้ระบุ **Edge Cases ที่ต้อง Implement และ Test อย่างชัดเจน** เพื่อป้องกัน Bug ในระบบ Prod  
+> เอกสารนี้ระบุ **Edge Cases ที่ต้อง Implement และ Test อย่างชัดเจน** เพื่อป้องกัน Bug ในระบบ Prod
 > ทุก Edge Case มี **Expected Behavior** ที่ Developer และ QA ต้องยึดถือ
 
 ---
@@ -147,7 +149,7 @@ WHERE status = 'RESERVED' AND expires_at < NOW();
 
 **Severity:** 🔴 Critical | **Type:** Concurrency, Business Rule
 
-**Scenario:** Workflow มี Parallel Approval (Engineer A **และ** Engineer B ต้อง Approve พร้อมกัน)  
+**Scenario:** Workflow มี Parallel Approval (Engineer A **และ** Engineer B ต้อง Approve พร้อมกัน)
 Engineer A Approve พร้อมกับ Engineer B Approve ใน millisecond เดียวกัน
 
 **Expected Behavior:**
@@ -170,7 +172,7 @@ Engineer A Approve พร้อมกับ Engineer B Approve ใน millisecon
 
 **Severity:** 🔴 Critical | **Type:** Security, Business Rule
 
-**Scenario A:** Reviewer พยายาม Approve เอกสารที่ถูก Cancel แล้ว  
+**Scenario A:** Reviewer พยายาม Approve เอกสารที่ถูก Cancel แล้ว
 **Scenario B:** Reviewer Approve เอกสารที่ Approve ไปแล้ว (Double-click)
 
 **Expected Behavior (A):**
@@ -389,6 +391,62 @@ XLSX: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 
 ---
 
+### EC-RFA-005 — Edit Draft RFA Validation
+
+**Severity:** 🔴 Critical | **Type:** Business Rule, Data Integrity
+
+**Scenario:** User พยายามแก้ไข RFA ที่ไม่ใช่สถานะ DRAFT หรือพยายามแก้ไข Shop Drawing Revision
+
+**Expected Behavior:**
+
+- ถ้าสถานะ ≠ DRAFT → 403 Forbidden: "สามารถแก้ไขได้เฉพาะในสถานะ Draft"
+- ถ้าสถานะ = DRAFT → อนุญาตแก้ไข Subject, Body, Remarks, Description, Due Date
+- Shop Drawing Revision ที่ผูกอยู่ **ไม่สามารถเปลี่ยนได้** (EC-RFA-001 enforced)
+- Audit Log บันทึก UPDATE + user + timestamp ทุกครั้ง
+- Details JSON schema_version คงที่ (ไม่อนุญาตเปลี่ยน version)
+
+**Reference:** US-012a, AC-RFA-007
+
+---
+
+### EC-RFA-006 — Cancel Draft RFA Cascade Effects
+
+**Severity:** 🔴 Critical | **Type:** Business Rule, Data Integrity
+
+**Scenario:** User ยกเลิก RFA ที่อยู่ในสถานะ DRAFT หรือพยายามยกเลิกที่ไม่ใช่ DRAFT
+
+**Expected Behavior:**
+
+- ถ้าสถานะ ≠ DRAFT → 403 Forbidden: "สามารถยกเลิกได้เฉพาะในสถานะ Draft"
+- ถ้าสถานะ = DRAFT → RFA status เปลี่ยนเป็น CANCELLED
+- Shop Drawing Revision ถูกปลดผูก (available = true) ทันที
+- Audit Log บันทึก CANCELLED + reason + user + timestamp
+- ไม่สามารถ Undo การ Cancel ได้ (ต้องสร้าง RFA ใหม่)
+
+**Reference:** US-012b, AC-RFA-008
+
+---
+
+### EC-RFA-007 — Search Results RBAC Filtering
+
+**Severity:** 🔴 Critical | **Type:** Security, Business Rule
+
+**Scenario:** Contractor A ค้นหา RFA แต่พยายามเห็น RFA ของ Contractor B โดยใช้ Advanced Filter
+
+**Expected Behavior:**
+
+- RFA ในสถานะ DRAFT → เห็นเฉพาะ originator organization (เจ้าของ RFA)
+- RFA ในสถานะอื่น (SUBMITTED, FAP, APPROVED, REJECTED) → เห็นตามสิทธิ์ปกติ (project/contract scope)
+- Elasticsearch query filter ด้วย `visible_to_organizations` array field
+- Frontend ไม่แสดงผลลัพธ์ที่ไม่มีสิทธิ์ (return empty ไม่ใช่ error)
+- API Response ไม่เปิดเผย entity_uuid ของเอกสารที่ไม่มีสิทธิ์
+
+**Implementation:** Backend filter ใน service layer + Elasticsearch query filter
+
+**Reference:** US-012c, AC-RFA-009, ADR-019
+
+---
+
 ## Module 5: Authentication & Session Edge Cases
 
 ### EC-AUTH-001 — Token Refresh Race Condition
@@ -469,14 +527,17 @@ if (isBlacklisted) throw new UnauthorizedException('Account deactivated');
 
 **Severity:** 🔴 Critical | **Type:** Security
 
-**Scenario:** User A รู้ ID ของเอกสาร User B (เช่น `/correspondences/12345`) แล้วเรียกตรงๆ
+**Scenario:** User A รู้ UUID ของเอกสาร User B (เช่น `/correspondences/550e8400-e29b-41d4-a716-446655440000`) แล้วเรียกตรงๆ
 
 **Expected Behavior:**
 
-- CASL AbilityGuard ตรวจสอบทั้ง Action และ Resource Owner
+- CASL AbilityGuard ตรวจสอบทั้ง Action และ Resource Owner (ADR-019)
 - ถ้าไม่มีสิทธิ์ → **403 Forbidden** (ไม่ใช่ 404 — เพราะ 404 บอกว่ามีอยู่แต่หาไม่เจอ)
 - **Exception:** ถ้าต้องการซ่อน Existence ของ Document → Return 404
 - ทุก API ต้องผ่าน Permission Check โดยไม่มีข้อยกเว้น
+- ParseUuidPipe ตรวจสอบ UUID format ก่อน query database
+
+**Implementation:** UUID-based routing + CASL permissions
 
 ---
 
@@ -681,14 +742,14 @@ if (isBlacklisted) throw new UnauthorizedException('Account deactivated');
 | Document Numbering | 2        | 2     | 1      | 5      |
 | Workflow Engine    | 2        | 1     | 2      | 5      |
 | File Storage       | 2        | 2     | 1      | 5      |
-| RFA & Drawing      | 1        | 2     | 1      | 4      |
+| RFA & Drawing      | 4        | 2     | 1      | 7      |
 | Auth & Session     | 3        | 0     | 1      | 4      |
 | Permission & RBAC  | 2        | 0     | 1      | 3      |
 | Correspondence     | 1        | 0     | 2      | 3      |
 | Circulation        | 0        | 1     | 2      | 3      |
 | Search             | 1        | 0     | 2      | 3      |
 | Notifications      | 0        | 1     | 1      | 2      |
-| **รวม**            | **14**   | **9** | **14** | **37** |
+| **รวม**            | **17**   | **9** | **14** | **40** |
 
 ---
 
@@ -697,6 +758,21 @@ if (isBlacklisted) throw new UnauthorizedException('Account deactivated');
 ### สำหรับ Unit Tests (Backend)
 
 ```typescript
+// ตัวอย่าง: EC-RFA-005 — Edit Draft RFA Validation
+describe('RFAService - Edit Draft Validation', () => {
+  it('should allow edit when status is DRAFT', async () => {
+    const rfa = await service.createRFA({ status: 'DRAFT' });
+    const updated = await service.updateRFA(rfa.uuid, { subject: 'Updated' });
+    expect(updated.subject).toBe('Updated');
+  });
+
+  it('should reject edit when status is not DRAFT', async () => {
+    const rfa = await service.createRFA({ status: 'SUBMITTED' });
+    await expect(service.updateRFA(rfa.uuid, { subject: 'Updated' }))
+      .rejects.toThrow('403');
+  });
+});
+
 // ตัวอย่าง: EC-DN-001 — Concurrent Number Generation
 describe('DocumentNumberingService - Concurrency', () => {
   it('should generate unique numbers for concurrent requests', async () => {
@@ -713,19 +789,23 @@ describe('DocumentNumberingService - Concurrency', () => {
 
 - EC-DN-001: k6 Load Test Script (50 VUs, `/document-numbering/reserve`)
 - EC-AUTH-001: Cypress Multi-tab Token Refresh Test
-- EC-PERM-001: API Test Suite — Direct Object Reference สำหรับทุก Resource
+- EC-PERM-001: API Test Suite — Direct Object Reference สำหรับทุก Resource (UUID-based)
+- EC-RFA-005~007: RFA CRUD operations test with different user roles
 
 ### สำหรับ Manual UAT
 
 - EC-WF-001: Test Parallel Approval ด้วย 2 Browser Session พร้อมกัน
 - EC-STOR-002: Upload EICAR Test File (ClamAV Test Virus)
 - EC-RFA-001: สร้าง RFA สำหรับ Revision เดิมที่มี Active RFA → Assert Block
+- EC-RFA-006: Cancel Draft RFA → Verify Shop Drawing Revision ถูกปลดผูก
+- EC-RFA-007: Contractor A ค้นหา → Assert ไม่เห็น RFA ของ Contractor B
 
 ---
 
 ## 📝 Document Control
 
-- **Version:** 1.0.0 | **Status:** DRAFT
-- **Created:** 2026-03-11 | **Owner:** Nattanin Peancharoen
+- **Version:** 1.8.1 | **Status:** updated
+- **Created:** 2026-03-11 | **Updated:** 2026-03-24 | **Owner:** Nattanin Peancharoen
+- **Changes:** Added EC-RFA-005~007 (Edit/Cancel/Search RFA), Updated UUID references (ADR-019), Sync with US-012a~012c and AC-RFA-007~009
 - **Next Review:** Pre-UAT (T-2 สัปดาห์ก่อน Go-Live)
 - **Classification:** Internal Use Only — Developer & QA Reference

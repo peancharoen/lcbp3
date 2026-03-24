@@ -1,16 +1,17 @@
-# ✅ Acceptance Criteria — LCBP3-DMS MVP (UAT)
+# ✅ Acceptance Criteria — LCBP3-DMS MVP (UAT) v1.8.1
 
 ---
 
 title: 'Acceptance Criteria & UAT Test Scenarios'
-version: 1.8.0
-status: DRAFT — Pending Stakeholder Sign-off
+version: 1.8.1
+status: updated
 owner: Nattanin Peancharoen (Product Owner)
-last_updated: 2026-03-11
+last_updated: 2026-03-24
 related:
 
 - specs/01-Requirements/01-01-objectives.md
-- specs/01-Requirements/01-03-modules/
+- specs/01-Requirements/01-04-user-stories.md
+- specs/01-Requirements/01-06-edge-cases-and-rules.md
 - specs/01-Requirements/01-02-business-rules/01-02-01-rbac-matrix.md
 - specs/01-Requirements/01-02-business-rules/01-02-04-non-functional-rules.md
 - specs/06-Decision-Records/ADR-001-unified-workflow-engine.md
@@ -245,7 +246,7 @@ related:
 | **When**  | กด Submit                                                      |
 | **Then**  | ✅ เลขที่ RFA ถูกออกอัตโนมัติตาม Format (`LCBP3-RFA-STR-0001`) |
 |           | ✅ เลขไม่ reset ตามปี (RFA = No reset policy)                  |
-|           | ✅ สถานะ = `SUBMITTED`                                         |
+|           | ✅ สถานะ = `SUBMITTED` → สร้าง Transmittal อัตโนมัติ         |
 |           | ✅ Workflow Routing เริ่มทำงาน (ส่งไปยัง Reviewer)             |
 
 ### AC-RFA-003 — Review RFA (Approved)
@@ -256,7 +257,7 @@ related:
 | --------- | ---------------------------------------------------- |
 | **Given** | RFA อยู่ในสถานะรอ Review ที่องค์กรเรา                |
 | **When**  | Engineer คลิก "Approved"                             |
-| **Then**  | ✅ สถานะ RFA เปลี่ยนเป็น `APPROVED`                  |
+| **Then**  | ✅ สถานะ RFA เปลี่ยนเป็น `APPROVED` (1A)              |
 |           | ✅ Originator (Contractor) ได้รับแจ้งเตือน           |
 |           | ✅ Workflow History บันทึก Action + Timestamp + User |
 
@@ -268,7 +269,7 @@ related:
 | --------- | ----------------------------------------------------- |
 | **Given** | RFA อยู่ในสถานะรอ Review                              |
 | **When**  | Engineer คลิก "Approved with Comments" + กรอก Comment |
-| **Then**  | ✅ สถานะ = `APPROVED_WITH_COMMENTS`                   |
+| **Then**  | ✅ สถานะ = `APPROVED_WITH_COMMENTS` (1B)             |
 |           | ✅ Comment ถูกบันทึกใน Workflow History               |
 |           | ✅ Originator เห็น Comment ได้                        |
 
@@ -280,7 +281,7 @@ related:
 | --------- | --------------------------------------------- |
 | **Given** | RFA อยู่ในสถานะรอ Review                      |
 | **When**  | Engineer คลิก "Rejected" + ระบุเหตุผล         |
-| **Then**  | ✅ สถานะ = `REJECTED`                         |
+| **Then**  | ✅ สถานะ = `REJECTED` (4X)                     |
 |           | ✅ เหตุผลการ Reject บันทึกครบถ้วน             |
 |           | ✅ Contractor สามารถยื่น RFA Revision ใหม่ได้ |
 
@@ -295,6 +296,45 @@ related:
 | **Then**  | ✅ Rev.B ผูกกับ shop_drawing revision ใหม่              |
 |           | ✅ เลขที่เอกสารเดิม — Revision Code เปลี่ยน (เช่น `-B`) |
 |           | ✅ Rev.A ยังอ่านได้ (ไม่ถูกลบ)                          |
+
+### AC-RFA-007 — Edit Draft RFA
+
+**Priority:** 🔴 Blocker | **Role:** Document Control (Contractor)
+
+|           | Description                                    |
+| --------- | ---------------------------------------------- |
+| **Given** | RFA อยู่ในสถานะ DRAFT (EC-RFA-001 enforced)      |
+| **When**  | Document Control แก้ไข Subject/Body/Remarks    |
+| **Then**  | ✅ RFA ถูกอัปเดตในสถานะ DRAFT                 |
+|           | ✅ หากสถานะไม่ใช่ DFT → 403 Forbidden          |
+|           | ✅ Audit Log บันทึก UPDATE + user + timestamp   |
+|           | ✅ 1 Shop Drawing Revision = 1 RFA เท่านั้น     |
+
+### AC-RFA-008 — Cancel Draft RFA
+
+**Priority:** 🟠 Critical | **Role:** Document Control (Contractor)
+
+|           | Description                                    |
+| --------- | ---------------------------------------------- |
+| **Given** | RFA อยู่ในสถานะ DRAFT                          |
+| **When**  | กด Cancel                                      |
+| **Then**  | ✅ สถานะเปลี่ยนเป็น CANCELLED                  |
+|           | ✅ Shop Drawing Revision ถูกปลดผูก (available) |
+|           | ✅ Audit Log บันทึก CANCELLED + reason         |
+|           | ✅ ไม่สามารถกด Cancel ได้ถ้าสถานะไม่ใช่ DFT  |
+
+### AC-RFA-009 — Search/Filter RFA
+
+**Priority:** 🔴 Blocker | **Role:** Document Control/Engineer
+
+|           | Description                                          |
+| --------- | ---------------------------------------------------- |
+| **Given** | มี RFA ในระบบหลายฉบับ                              |
+| **When**  | Filter ด้วย Project/Status หรือค้นหา Keyword         |
+| **Then**  | ✅ ผลลัพธ์ถูกต้องตาม Filter                        |
+|           | ✅ DFT → เห็นเฉพาะ originator org (RBAC)           |
+|           | ✅ Pagination ทำงาน (20 items/page)                 |
+|           | ✅ ค้นหาจากเลขเอกสาร/Subject ได้                |
 
 ---
 
@@ -642,10 +682,10 @@ related:
 
 |           | Description                                                                 |
 | --------- | --------------------------------------------------------------------------- |
-| **Given** | ดำเนินการ Action ต่างๆ ในระบบ (Create, Update, Submit, Approve)             |
+| **Given** | ดำเนินการ Action ต่างๆ ในระบบ (Create, Update, Submit, Approve, Cancel)             |
 | **When**  | ตรวจสอบ Audit Log                                                           |
-| **Then**  | ✅ ทุก Action มีบันทึกใน `audit_logs`                                       |
-|           | ✅ บันทึกมี: user_id, action, entity_type, entity_id, ip_address, timestamp |
+| **Then**  | ✅ ทุก Action มีบันทึกใน `audit_logs` (severity INFO/WARN/ERROR/CRITICAL)               |
+|           | ✅ บันทึกมี: user_id, action, entity_type, entity_uuid, details_json, ip_address, timestamp |
 |           | ✅ ไม่สามารถแก้ไขหรือลบ Audit Log ได้ (Read-only)                           |
 
 ---
@@ -678,10 +718,10 @@ related:
 
 **Priority:** 🔴 Blocker | **Role:** QA (Security Test)
 
-|           | Description                                               |
-| --------- | --------------------------------------------------------- |
-| **Given** | User A รู้ Document ID ของ User B                         |
-| **When**  | User A เรียก `GET /correspondences/:id` ของ User B โดยตรง |
+|           | Description                                                    |
+| --------- | -------------------------------------------------------------- |
+| **Given** | User A รู้ Document UUID ของ User B (ADR-019)                   |
+| **When**  | User A เรียก `GET /correspondences/:uuid` ของ User B โดยตรง |
 | **Then**  | ✅ ได้รับ 403 Forbidden (ไม่ใช่ 404)                      |
 |           | ✅ ข้อมูลของ User B ไม่ถูกเปิดเผย                         |
 
@@ -724,7 +764,7 @@ related:
 |                    | ✅ P90 Search Query < 500ms                         |
 |                    | ✅ File Upload 50MB < 30 seconds                    |
 
-> **Test Tool:** k6 หรือ Apache JMeter  
+> **Test Tool:** k6 หรือ Apache JMeter
 > **Test Script:** `specs/05-Engineering-Guidelines/performance-test-script.js` (TODO: สร้าง)
 
 ### AC-PERF-002 — Concurrent Users
@@ -793,7 +833,7 @@ related:
 | 1   | AC-AUTH-001 ~ AC-AUTH-005 ผ่านทั้งหมด             | ⬜     |
 | 2   | AC-ADMIN-001 ~ AC-ADMIN-005 ผ่านทั้งหมด           | ⬜     |
 | 3   | AC-CORR-001 ~ AC-CORR-002 (Happy Path) ผ่าน       | ⬜     |
-| 4   | AC-RFA-001 ~ AC-RFA-003 (Submit + Approve) ผ่าน   | ⬜     |
+| 4   | AC-RFA-001 ~ AC-RFA-003, AC-RFA-007 ~ AC-RFA-009 (RFA Core) ผ่าน   | ⬜     |
 | 5   | AC-WF-001 ~ AC-WF-003 (Workflow Engine Core) ผ่าน | ⬜     |
 | 6   | AC-DN-001 (Concurrent Number) ผ่าน                | ⬜     |
 | 7   | AC-STOR-001 (Two-Phase Storage + ClamAV) ผ่าน     | ⬜     |
@@ -818,15 +858,16 @@ related:
 
 ## 📝 Document Control
 
-- **Version:** 1.0.0
-- **Status:** DRAFT — Pending Stakeholder Sign-off
-- **Created:** 2026-03-11
+- **Version:** 1.8.1
+- **Status:** updated
+- **Created:** 2026-03-11 | **Updated:** 2026-03-24
 - **Owner:** Nattanin Peancharoen (Product Owner / System Architect)
+- **Changes:** Added AC-RFA-007~009 (Edit/Cancel/Search RFA), Updated status codes, Added UUID references (ADR-019), Linked edge cases
 - **Next Review:** Prior to UAT Start
 - **Classification:** Internal Use Only
 
 ---
 
 > [!NOTE]
-> เอกสารนี้ต้องได้รับการ Sign-off จาก Stakeholder ทุกฝ่ายก่อนเริ่ม UAT  
+> เอกสารนี้ต้องได้รับการ Sign-off จาก Stakeholder ทุกฝ่ายก่อนเริ่ม UAT
 > ดู Gap 5 (Stakeholder Sign-off) ใน `po-analysis.md` สำหรับ Process การอนุมัติ

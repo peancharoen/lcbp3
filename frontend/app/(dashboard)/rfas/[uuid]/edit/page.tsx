@@ -34,7 +34,7 @@ export default function RFAEditPage() {
   const updateMutation = useUpdateRFA();
 
   const currentRevision =
-    rfa?.revisions?.find((r) => r.isCurrent) ?? rfa?.revisions?.[0];
+    rfa?.revisions?.find((r: { isCurrent: boolean }) => r.isCurrent) ?? rfa?.revisions?.[0];
 
   const form = useForm<EditRfaFormValues>({
     resolver: zodResolver(editRfaSchema),
