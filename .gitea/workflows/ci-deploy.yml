@@ -102,14 +102,9 @@ jobs:
             # Ensure scripts are executable
             chmod +x scripts/deploy.sh scripts/rollback.sh 2>/dev/null || true
 
-            echo "🚀 Executing Blue-Green deployment..."
-            # Execute deployment with proper logging
-            ./scripts/deploy.sh 2>&1 | tee /share/np-dms/app/logs/deploy-$(date +%Y%m%d-%H%M%S).log
+            mkdir -p /share/np-dms/app/logs
 
-            DEPLOY_STATUS=${PIPESTATUS[0]}
-            if [ $DEPLOY_STATUS -ne 0 ]; then
-              echo "✗ Deployment failed with status $DEPLOY_STATUS"
-              exit 1
-            fi
+            echo "🚀 Executing deployment..."
+            ./scripts/deploy.sh
 
             echo "✓ Deployment completed successfully"
