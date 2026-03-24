@@ -65,6 +65,9 @@ docker build -f frontend/Dockerfile \
 
 echo "✓ Images built successfully"
 
+# Ensure target environment directory exists
+mkdir -p "$LCBP3_DIR/$TARGET"
+
 # Move correctly to target directory for docker-compose up
 cd "$LCBP3_DIR/$TARGET"
 

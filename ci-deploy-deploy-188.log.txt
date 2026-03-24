@@ -1,0 +1,398 @@
+2026-03-24T02:30:14.4865530Z ==========================================
+2026-03-24T02:30:14.4866239Z Starting QNAP Deployment Process
+2026-03-24T02:30:14.4866552Z ==========================================
+2026-03-24T02:30:14.6896843Z ✓ Docker accessible
+2026-03-24T02:30:14.6897503Z 📂 Syncing deployment scripts...
+2026-03-24T02:30:15.2645399Z From https://git.np-dms.work/np-dms/lcbp3
+2026-03-24T02:30:15.2647563Z  * branch            main       -> FETCH_HEAD
+2026-03-24T02:30:15.2647867Z    fab2f43..837bea4  main       -> origin/main
+2026-03-24T02:30:15.2953638Z HEAD is now at 837bea4 260324:0918 fix ci-deploy : optimize #01
+2026-03-24T02:30:15.2960215Z ✓ Code synced
+2026-03-24T02:30:15.2972226Z 🚀 Executing Blue-Green deployment...
+2026-03-24T02:30:15.2996833Z tee: /share/np-dms/app/logs/deploy-20260324-093013.log: No such file or directory
+2026-03-24T02:30:15.3019774Z =========================================
+2026-03-24T02:30:15.3020591Z LCBP3-DMS Blue-Green Deployment (v1.8.2)
+2026-03-24T02:30:15.3020857Z Current environment: blue
+2026-03-24T02:30:15.3021154Z Target environment:  green
+2026-03-24T02:30:15.3021357Z =========================================
+2026-03-24T02:30:15.3021560Z [1/9] Database backup skipped (not required)
+2026-03-24T02:30:15.3021774Z [2/9] Building latest Docker images from source...
+2026-03-24T02:30:15.3584663Z Building backend...
+2026-03-24T02:30:20.5507768Z #0 building with "default" instance using docker driver
+2026-03-24T02:30:20.5508478Z #1 [internal] load build definition from Dockerfile
+2026-03-24T02:30:20.8593654Z #1 transferring dockerfile:
+2026-03-24T02:30:21.0294305Z #1 transferring dockerfile: 3.28kB 0.0s done
+2026-03-24T02:30:21.3835884Z #1 DONE 1.0s
+2026-03-24T02:30:21.6306770Z #2 [internal] load metadata for docker.io/library/node:***-alpine
+2026-03-24T02:30:23.7307078Z #2 DONE 2.2s
+2026-03-24T02:30:23.8491657Z #3 [internal] load .dockerignore
+2026-03-24T02:30:23.8492388Z #3 transferring context:
+2026-03-24T02:30:23.9698747Z #3 transferring context: 1.09kB 0.0s done
+2026-03-24T02:30:23.9699398Z #3 DONE 0.2s
+2026-03-24T02:30:24.1081070Z #4 [deps 1/6] FROM docker.io/library/node:***-alpine@sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53***9a2ec13ee***a00
+2026-03-24T02:30:24.1081877Z #4 DONE 0.0s
+2026-03-24T02:30:24.1082134Z #5 [internal] load build context
+2026-03-24T02:30:24.6190688Z #5 transferring context: 1.65MB 0.2s done
+2026-03-24T02:30:24.7992782Z #5 DONE 0.7s
+2026-03-24T02:30:24.9209058Z #6 [build 10/10] RUN find /app/backend-prod/node_modules -name "*.md" -delete     && find /app/backend-prod/node_modules -name "*.txt" -delete     && find /app/backend-prod/node_modules -name "LICENSE*" -delete     && find /app/backend-prod/node_modules -name "README*" -delete     && find /app/backend-prod/node_modules -name "CHANGELOG*" -delete
+2026-03-24T02:30:24.9209881Z #6 CACHED
+2026-03-24T02:30:24.9210249Z #7 [production 4/8] RUN addgroup -g 1001 -S nestjs &&     adduser -S nestjs -u 1001
+2026-03-24T02:30:24.9210507Z #7 CACHED
+2026-03-24T02:30:24.9210719Z #8 [production 3/8] WORKDIR /app
+2026-03-24T02:30:24.9210954Z #8 CACHED
+2026-03-24T02:30:24.9211239Z #9 [build  6/10] COPY --from=deps /app/backend/node_modules ./backend/node_modules
+2026-03-24T02:30:24.9211494Z #9 CACHED
+2026-03-24T02:30:24.9211718Z #10 [deps 6/6] RUN pnpm install --frozen-lockfile --filter backend...
+2026-03-24T02:30:24.9211951Z #10 CACHED
+2026-03-24T02:30:24.9212176Z #11 [deps 2/6] RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+2026-03-24T02:30:24.9212408Z #11 CACHED
+2026-03-24T02:30:24.9212641Z #12 [build  8/10] RUN cd backend &&     NODE_OPTIONS="--max-old-space-size=4096"     pnpm run build
+2026-03-24T02:30:24.9212890Z #12 CACHED
+2026-03-24T02:30:24.9213118Z #13 [production 7/8] COPY --from=build --chown=nestjs:nestjs /app/backend-prod/node_modules ./node_modules
+2026-03-24T02:30:24.9213360Z #13 CACHED
+2026-03-24T02:30:24.9213569Z #14 [production 6/8] COPY --from=build --chown=nestjs:nestjs /app/backend-prod/package.json ./
+2026-03-24T02:30:24.9215301Z #14 CACHED
+2026-03-24T02:30:24.9215634Z #15 [build  7/10] COPY backend/ ./backend/
+2026-03-24T02:30:24.9215948Z #15 CACHED
+2026-03-24T02:30:24.9216165Z #16 [deps 4/6] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-03-24T02:30:24.9216410Z #16 CACHED
+2026-03-24T02:30:24.9216643Z #17 [production 2/8] RUN apk add --no-cache curl
+2026-03-24T02:30:24.9216918Z #17 CACHED
+2026-03-24T02:30:24.9217150Z #18 [build  9/10] RUN PNPM_IGNORE_SCRIPTS=none     pnpm --filter backend deploy --prod --shamefully-hoist --legacy --no-optional /app/backend-prod
+2026-03-24T02:30:24.9217420Z #18 CACHED
+2026-03-24T02:30:24.9217640Z #19 [build  5/10] COPY --from=deps /app/node_modules ./node_modules
+2026-03-24T02:30:24.9217905Z #19 CACHED
+2026-03-24T02:30:24.9218163Z #20 [production 5/8] COPY --from=build --chown=nestjs:nestjs /app/backend/dist ./dist
+2026-03-24T02:30:24.9218398Z #20 CACHED
+2026-03-24T02:30:24.9218599Z #21 [deps 3/6] WORKDIR /app
+2026-03-24T02:30:24.9218805Z #21 CACHED
+2026-03-24T02:30:24.9219005Z #*** [deps 5/6] COPY backend/package.json ./backend/
+2026-03-24T02:30:24.9219258Z #*** CACHED
+2026-03-24T02:30:24.9219508Z #23 [production 8/8] RUN mkdir -p /app/uploads/temp /app/uploads/permanent &&     chown -R nestjs:nestjs /app/uploads
+2026-03-24T02:30:24.9219758Z #23 CACHED
+2026-03-24T02:30:24.9219965Z #24 exporting to image
+2026-03-24T02:30:24.9220252Z #24 exporting layers done
+2026-03-24T02:30:25.0255383Z #24 writing image sha256:adf35841baf536912418f54f86d91ab72bcdb1bcf90c46e35c1ffe33df34c125 0.1s done
+2026-03-24T02:30:25.0256137Z #24 naming to docker.io/library/lcbp3-backend:latest 0.0s done
+2026-03-24T02:30:25.2243124Z #24 DONE 0.2s
+2026-03-24T02:30:26.3902278Z Building frontend with API URL: https://backend.np-dms.work/api, AUTH_URL: https://lcbp3.np-dms.work...
+2026-03-24T02:30:27.0081714Z #0 building with "default" instance using docker driver
+2026-03-24T02:30:27.0082491Z #1 [internal] load build definition from Dockerfile
+2026-03-24T02:30:27.0082730Z #1 transferring dockerfile: 4.09kB done
+2026-03-24T02:30:27.0082943Z #1 DONE 0.2s
+2026-03-24T02:30:27.1973859Z #2 [internal] load metadata for docker.io/library/node:***-alpine
+2026-03-24T02:30:27.8111236Z #2 DONE 0.8s
+2026-03-24T02:30:28.0188401Z #3 [internal] load .dockerignore
+2026-03-24T02:30:28.0189098Z #3 transferring context: 1.09kB done
+2026-03-24T02:30:28.0212935Z #3 DONE 0.2s
+2026-03-24T02:30:28.1387449Z #4 [deps 1/6] FROM docker.io/library/node:***-alpine@sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53***9a2ec13ee***a00
+2026-03-24T02:30:28.1388270Z #4 DONE 0.0s
+2026-03-24T02:30:28.1388598Z #5 [internal] load build context
+2026-03-24T02:30:28.8678203Z #5 transferring context: 1.10MB 0.6s done
+2026-03-24T02:30:28.9431594Z #5 DONE 0.9s
+2026-03-24T02:30:29.1846439Z #6 [deps 5/6] COPY frontend/package.json ./frontend/
+2026-03-24T02:30:29.1847125Z #6 CACHED
+2026-03-24T02:30:29.1847339Z #7 [build  5/12] COPY --from=deps /w/node_modules ./node_modules
+2026-03-24T02:30:29.1847577Z #7 CACHED
+2026-03-24T02:30:29.1847776Z #8 [build  7/12] COPY --from=deps /w/frontend/node_modules ./node_modules
+2026-03-24T02:30:29.1848037Z #8 CACHED
+2026-03-24T02:30:29.1848237Z #9 [deps 2/6] RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+2026-03-24T02:30:29.1848500Z #9 CACHED
+2026-03-24T02:30:29.1848759Z #10 [deps 3/6] WORKDIR /w
+2026-03-24T02:30:29.1849002Z #10 CACHED
+2026-03-24T02:30:29.1849266Z #11 [build  6/12] WORKDIR /w/frontend
+2026-03-24T02:30:29.1849474Z #11 CACHED
+2026-03-24T02:30:29.1849665Z #12 [deps 4/6] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+2026-03-24T02:30:29.1849876Z #12 CACHED
+2026-03-24T02:30:29.1850216Z #13 [deps 6/6] RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
+2026-03-24T02:30:29.1850478Z #13 CACHED
+2026-03-24T02:30:29.1850676Z #14 [build  8/12] COPY frontend/ ./
+2026-03-24T02:30:29.1851035Z #14 CACHED
+2026-03-24T02:30:29.1851236Z #15 [build  9/12] RUN mkdir /n && ln -s /n .next &&     pnpm run build &&     rm .next && mv /n .next
+2026-03-24T02:30:35.9557226Z #15 6.921
+2026-03-24T02:30:35.9557873Z #15 6.921 > lcbp3-frontend@1.8.1 build /w/frontend
+2026-03-24T02:30:35.9558110Z #15 6.921 > next build
+2026-03-24T02:30:35.9558389Z #15 6.921
+2026-03-24T02:30:39.1219014Z #15 10.09 ▲ Next.js 16.2.0 (Turbopack)
+2026-03-24T02:30:39.2368047Z #15 10.09
+2026-03-24T02:30:39.2369058Z #15 10.20   Creating an optimized production build ...
+2026-03-24T02:31:03.3618972Z #15 34.33 ✓ Compiled successfully in 23.4s
+2026-03-24T02:31:03.5238963Z #15 34.34   Running TypeScript ...
+2026-03-24T02:31:29.0641655Z #15 60.03   Finished TypeScript in 25.7s ...
+2026-03-24T02:31:29.2199607Z #15 60.03   Collecting page data using 7 workers ...
+2026-03-24T02:31:31.1684993Z #15 62.13   Generating static pages using 7 workers (0/39) ...
+2026-03-24T02:31:31.7549278Z #15 62.72   Generating static pages using 7 workers (9/39)
+2026-03-24T02:31:31.9010780Z #15 62.87   Generating static pages using 7 workers (19/39)
+2026-03-24T02:31:32.0238323Z #15 62.99   Generating static pages using 7 workers (29/39)
+2026-03-24T02:31:32.1535897Z #15 63.12 ✓ Generating static pages using 7 workers (39/39) in 985ms
+2026-03-24T02:31:32.3733664Z #15 63.15   Finalizing page optimization ...
+2026-03-24T02:31:32.3734634Z #15 63.18
+2026-03-24T02:31:32.3735053Z #15 63.19 Route (app)
+2026-03-24T02:31:32.3735433Z #15 63.19 ┌ ○ /
+2026-03-24T02:31:32.3735715Z #15 63.19 ├ ○ /_not-found
+2026-03-24T02:31:32.3735936Z #15 63.19 ├ ƒ /***
+2026-03-24T02:31:32.3736281Z #15 63.19 ├ ƒ /***/access-control/organizations
+2026-03-24T02:31:32.3736509Z #15 63.19 ├ ƒ /***/access-control/roles
+2026-03-24T02:31:32.3736869Z #15 63.19 ├ ƒ /***/access-control/users
+2026-03-24T02:31:32.3737131Z #15 63.19 ├ ƒ /***/audit-logs
+2026-03-24T02:31:32.3737478Z #15 63.19 ├ ƒ /***/doc-control/contracts
+2026-03-24T02:31:32.3737718Z #15 63.19 ├ ƒ /***/doc-control/drawings
+2026-03-24T02:31:32.3737961Z #15 63.19 ├ ƒ /***/doc-control/drawings/contract/categories
+2026-03-24T02:31:32.3738270Z #15 63.19 ├ ƒ /***/doc-control/drawings/contract/sub-categories
+2026-03-24T02:31:32.3738579Z #15 63.19 ├ ƒ /***/doc-control/drawings/contract/volumes
+2026-03-24T02:31:32.3738895Z #15 63.19 ├ ƒ /***/doc-control/drawings/shop/main-categories
+2026-03-24T02:31:32.3739140Z #15 63.19 ├ ƒ /***/doc-control/drawings/shop/sub-categories
+2026-03-24T02:31:32.3739419Z #15 63.19 ├ ƒ /***/doc-control/numbering
+2026-03-24T02:31:32.3739665Z #15 63.19 ├ ƒ /***/doc-control/numbering/[id]/edit
+2026-03-24T02:31:32.3739915Z #15 63.19 ├ ƒ /***/doc-control/numbering/new
+2026-03-24T02:31:32.3740451Z #15 63.19 ├ ƒ /***/doc-control/projects
+2026-03-24T02:31:32.3740691Z #15 63.19 ├ ƒ /***/doc-control/reference
+2026-03-24T02:31:32.3741003Z #15 63.19 ├ ƒ /***/doc-control/reference/correspondence-types
+2026-03-24T02:31:32.3741250Z #15 63.19 ├ ƒ /***/doc-control/reference/disciplines
+2026-03-24T02:31:32.3741571Z #15 63.19 ├ ƒ /***/doc-control/reference/drawing-categories
+2026-03-24T02:31:32.3741813Z #15 63.19 ├ ƒ /***/doc-control/reference/rfa-types
+2026-03-24T02:31:32.3742037Z #15 63.19 ├ ƒ /***/doc-control/reference/tags
+2026-03-24T02:31:32.3742366Z #15 63.19 ├ ƒ /***/doc-control/workflows
+2026-03-24T02:31:32.3742608Z #15 63.19 ├ ƒ /***/doc-control/workflows/[id]/edit
+2026-03-24T02:31:32.3742907Z #15 63.19 ├ ƒ /***/doc-control/workflows/new
+2026-03-24T02:31:32.3743268Z #15 63.19 ├ ƒ /***/migration
+2026-03-24T02:31:32.3743544Z #15 63.19 ├ ƒ /***/migration/errors
+2026-03-24T02:31:32.3743781Z #15 63.19 ├ ƒ /***/migration/review/[id]
+2026-03-24T02:31:32.3744005Z #15 63.19 ├ ƒ /***/monitoring/audit-logs
+2026-03-24T02:31:32.3744320Z #15 63.19 ├ ƒ /***/monitoring/sessions
+2026-03-24T02:31:32.3744565Z #15 63.19 ├ ƒ /***/monitoring/system-logs/numbering
+2026-03-24T02:31:32.3744849Z #15 63.19 ├ ƒ /***/numbering
+2026-03-24T02:31:32.3745064Z #15 63.19 ├ ƒ /***/numbering/[id]/edit
+2026-03-24T02:31:32.3745354Z #15 63.19 ├ ƒ /***/numbering/new
+2026-03-24T02:31:32.3745582Z #15 63.19 ├ ƒ /***/organizations
+2026-03-24T02:31:32.3745792Z #15 63.19 ├ ƒ /***/settings
+2026-03-24T02:31:32.3746085Z #15 63.19 ├ ƒ /***/users
+2026-03-24T02:31:32.3746297Z #15 63.19 ├ ƒ /***/workflows
+2026-03-24T02:31:32.3746586Z #15 63.19 ├ ƒ /***/workflows/[id]/edit
+2026-03-24T02:31:32.3746811Z #15 63.19 ├ ƒ /***/workflows/new
+2026-03-24T02:31:32.3747072Z #15 63.19 ├ ƒ /api/auth/[...nextauth]
+2026-03-24T02:31:32.3747297Z #15 63.19 ├ ƒ /circulation
+2026-03-24T02:31:32.3747516Z #15 63.19 ├ ƒ /circulation/[uuid]
+2026-03-24T02:31:32.3747812Z #15 63.19 ├ ƒ /circulation/new
+2026-03-24T02:31:32.3748015Z #15 63.19 ├ ƒ /correspondences
+2026-03-24T02:31:32.3748333Z #15 63.19 ├ ƒ /correspondences/[uuid]
+2026-03-24T02:31:32.3748558Z #15 63.19 ├ ƒ /correspondences/new
+2026-03-24T02:31:32.3748834Z #15 63.19 ├ ƒ /dashboard
+2026-03-24T02:31:32.3749061Z #15 63.19 ├ ƒ /drawings
+2026-03-24T02:31:32.3749262Z #15 63.19 ├ ƒ /drawings/[uuid]
+2026-03-24T02:31:32.3749553Z #15 63.19 ├ ƒ /drawings/upload
+2026-03-24T02:31:32.3749756Z #15 63.19 ├ ƒ /login
+2026-03-24T02:31:32.3750169Z #15 63.19 ├ ƒ /profile
+2026-03-24T02:31:32.3750534Z #15 63.19 ├ ƒ /projects
+2026-03-24T02:31:32.3750795Z #15 63.19 ├ ƒ /projects/new
+2026-03-24T02:31:32.3751019Z #15 63.19 ├ ƒ /rfas
+2026-03-24T02:31:32.3751252Z #15 63.19 ├ ƒ /rfas/[uuid]
+2026-03-24T02:31:32.3751573Z #15 63.19 ├ ƒ /rfas/new
+2026-03-24T02:31:32.3751778Z #15 63.19 ├ ƒ /search
+2026-03-24T02:31:32.3752042Z #15 63.19 ├ ƒ /transmittals
+2026-03-24T02:31:32.3752262Z #15 63.19 ├ ƒ /transmittals/[uuid]
+2026-03-24T02:31:32.3752647Z #15 63.19 └ ƒ /transmittals/new
+2026-03-24T02:31:32.3752865Z #15 63.19
+2026-03-24T02:31:32.3753178Z #15 63.19
+2026-03-24T02:31:32.3753442Z #15 63.19 ƒ Proxy (Middleware)
+2026-03-24T02:31:32.3753647Z #15 63.19
+2026-03-24T02:31:32.3753960Z #15 63.19 ○  (Static)   prerendered as static content
+2026-03-24T02:31:32.3754182Z #15 63.19 ƒ  (Dynamic)  server-rendered on demand
+2026-03-24T02:31:32.3754452Z #15 63.19
+2026-03-24T02:31:34.2484205Z #15 DONE 65.2s
+2026-03-24T02:31:34.3997518Z #16 [build 10/12] RUN ls -la /w/frontend/.next/ || (echo "ERROR: Build not found!" && exit 1)
+2026-03-24T02:31:35.6189085Z #16 1.219 total 284
+2026-03-24T02:31:35.7696163Z #16 1.219 drwxr-xr-x    8 root     root          4096 Mar 24 02:31 .
+2026-03-24T02:31:35.7697165Z #16 1.219 drwxr-xr-x    1 root     root          4096 Mar 24 02:31 ..
+2026-03-24T02:31:35.7697459Z #16 1.219 -rw-r--r--    1 root     root            21 Mar 24 02:31 BUILD_ID
+2026-03-24T02:31:35.7697822Z #16 1.219 -rw-r--r--    1 root     root          4620 Mar 24 02:31 app-path-routes-manifest.json
+2026-03-24T02:31:35.7698225Z #16 1.219 drwxr-xr-x    3 root     root          4096 Mar 24 02:30 build
+2026-03-24T02:31:35.7698512Z #16 1.219 -rw-r--r--    1 root     root           541 Mar 24 02:31 build-manifest.json
+2026-03-24T02:31:35.7698761Z #16 1.219 drwxr-xr-x    2 root     root          4096 Mar 24 02:31 cache
+2026-03-24T02:31:35.7699099Z #16 1.219 drwxr-xr-x    2 root     root          4096 Mar 24 02:31 diagnostics
+2026-03-24T02:31:35.7699474Z #16 1.219 -rw-r--r--    1 root     root           111 Mar 24 02:31 export-marker.json
+2026-03-24T02:31:35.7699950Z #16 1.219 -rw-r--r--    1 root     root           299 Mar 24 02:31 fallback-build-manifest.json
+2026-03-24T02:31:35.7700514Z #16 1.219 -rw-r--r--    1 root     root          1415 Mar 24 02:31 images-manifest.json
+2026-03-24T02:31:35.7700779Z #16 1.219 -rw-rw-r--    1 root     root         20753 Mar 24 02:31 next-minimal-server.js.nft.json
+2026-03-24T02:31:35.7701019Z #16 1.219 -rw-rw-r--    1 root     root        119164 Mar 24 02:31 next-server.js.nft.json
+2026-03-24T02:31:35.7701433Z #16 1.219 -rw-r--r--    1 root     root            20 Mar 24 02:30 package.json
+2026-03-24T02:31:35.7701681Z #16 1.219 -rw-r--r--    1 root     root          3062 Mar 24 02:31 prerender-manifest.json
+2026-03-24T02:31:35.7702081Z #16 1.***0 -rw-r--r--    1 root     root          9252 Mar 24 02:31 required-server-files.js
+2026-03-24T02:31:35.7702388Z #16 1.***0 -rw-r--r--    1 root     root          9***3 Mar 24 02:31 required-server-files.json
+2026-03-24T02:31:35.7702705Z #16 1.***0 -rw-r--r--    1 root     root         14330 Mar 24 02:31 routes-manifest.json
+2026-03-24T02:31:35.7703003Z #16 1.***0 drwxr-xr-x    6 root     root          4096 Mar 24 02:31 server
+2026-03-24T02:31:35.7703234Z #16 1.***0 drwxr-xr-x    5 root     root          4096 Mar 24 02:31 static
+2026-03-24T02:31:35.7703597Z #16 1.***0 -rw-r--r--    1 root     root         27185 Mar 24 02:31 trace
+2026-03-24T02:31:35.7703851Z #16 1.***0 -rw-r--r--    1 root     root          1213 Mar 24 02:31 trace-build
+2026-03-24T02:31:35.7704179Z #16 1.***0 -rw-r--r--    1 root     root             0 Mar 24 02:30 turbopack
+2026-03-24T02:31:35.7704412Z #16 1.***0 drwxr-xr-x    2 root     root          4096 Mar 24 02:30 types
+2026-03-24T02:31:37.1281584Z #16 DONE 2.7s
+2026-03-24T02:31:37.3603129Z #17 [build 11/12] WORKDIR /w
+2026-03-24T02:31:38.8172646Z #17 DONE 1.6s
+2026-03-24T02:31:39.0348507Z #18 [build 12/12] RUN pnpm --filter lcbp3-frontend deploy /deploy --prod --legacy
+2026-03-24T02:31:41.8909247Z #18 3.013  WARN  Shared workspace lockfile detected but configuration forces legacy deploy implementation.
+2026-03-24T02:31:42.2580566Z #18 3.380 Packages are copied from the content-addressable store to the virtual store.
+2026-03-24T02:31:42.2581539Z #18 3.380   Content-addressable store is at: /root/.local/share/pnpm/store/v10
+2026-03-24T02:31:42.2581803Z #18 3.380   Virtual store is at:             ../deploy/node_modules/.pnpm
+2026-03-24T02:31:42.8619501Z #18 3.984 Progress: resolved 0, reused 0, downloaded 1, added 0
+2026-03-24T02:31:43.8642738Z #18 4.986 Progress: resolved 29, reused 0, downloaded 29, added 0
+2026-03-24T02:31:44.8641602Z #18 5.986 Progress: resolved 46, reused 0, downloaded 46, added 0
+2026-03-24T02:31:45.8772328Z #18 6.999 Progress: resolved 63, reused 0, downloaded 63, added 0
+2026-03-24T02:31:46.8776675Z #18 7.999 Progress: resolved 64, reused 0, downloaded 64, added 0
+2026-03-24T02:31:50.2303216Z #18 11.35 Progress: resolved 64, reused 0, downloaded 65, added 0
+2026-03-24T02:31:51.2679576Z #18 12.39 Progress: resolved 89, reused 0, downloaded 85, added 0
+2026-03-24T02:31:52.2828564Z #18 13.40 Progress: resolved 141, reused 0, downloaded 133, added 0
+2026-03-24T02:31:53.2830632Z #18 14.40 Progress: resolved 213, reused 0, downloaded 204, added 0
+2026-03-24T02:31:54.2892655Z #18 15.40 Progress: resolved 242, reused 0, downloaded 233, added 0
+2026-03-24T02:31:55.2838910Z #18 16.41 Progress: resolved 284, reused 0, downloaded 275, added 0
+2026-03-24T02:31:56.2856398Z #18 17.41 Progress: resolved 403, reused 0, downloaded 375, added 0
+2026-03-24T02:31:57.3174923Z #18 18.44 Progress: resolved 595, reused 0, downloaded 562, added 0
+2026-03-24T02:31:58.3169862Z #18 19.44 Progress: resolved 702, reused 0, downloaded 652, added 0
+2026-03-24T02:31:59.3178127Z #18 20.44 Progress: resolved 708, reused 0, downloaded 657, added 0
+2026-03-24T02:32:00.3179433Z #18 21.44 Progress: resolved 711, reused 0, downloaded 660, added 0
+2026-03-24T02:32:01.3738842Z #18 ***.50 Progress: resolved 719, reused 0, downloaded 666, added 0
+2026-03-24T02:32:02.3740518Z #18 23.50 Progress: resolved 776, reused 0, downloaded 666, added 0
+2026-03-24T02:32:03.3743284Z #18 24.50 Progress: resolved 782, reused 0, downloaded 681, added 0
+2026-03-24T02:32:04.3749361Z #18 25.50 Progress: resolved 805, reused 0, downloaded 691, added 0
+2026-03-24T02:32:05.3759447Z #18 26.50 Progress: resolved 813, reused 0, downloaded 704, added 0
+2026-03-24T02:32:05.7045917Z #18 26.83 .                                        | +313 +++++++++++++++++++++++++++++++
+2026-03-24T02:32:06.3758484Z #18 27.50 Progress: resolved 813, reused 0, downloaded 705, added 145
+2026-03-24T02:32:07.3759395Z #18 28.50 Progress: resolved 813, reused 0, downloaded 705, added 312
+2026-03-24T02:32:26.7258642Z #18 47.85 Progress: resolved 813, reused 0, downloaded 706, added 312
+2026-03-24T02:32:26.8774922Z #18 47.85 Progress: resolved 813, reused 0, downloaded 706, added 313, done
+2026-03-24T02:32:26.9111285Z #18 48.03 .../sharp@0.34.5/node_modules/sharp install$ node install/check.js || npm run build
+2026-03-24T02:32:27.1009580Z #18 48.*** .../sharp@0.34.5/node_modules/sharp install: Done
+2026-03-24T02:32:27.2106105Z #18 48.30  WARN  Failed to create bin at /deploy/node_modules/.pnpm/tailwindcss-animate@1.0.7_tailwindcss@3.4.3_ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3__/node_modules/tailwindcss-animate/node_modules/.bin/tailwind. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/tailwindcss@3.4.3_ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3_/node_modules/tailwindcss/lib/cli.js'
+2026-03-24T02:32:27.2106987Z #18 48.30  WARN  Failed to create bin at /deploy/node_modules/.pnpm/tailwindcss-animate@1.0.7_tailwindcss@3.4.3_ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3__/node_modules/tailwindcss-animate/node_modules/.bin/tailwindcss. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/tailwindcss@3.4.3_ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3_/node_modules/tailwindcss/lib/cli.js'
+2026-03-24T02:32:27.2107474Z #18 48.30  WARN  Failed to create bin at /deploy/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/node_modules/.bin/tsc. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc'
+2026-03-24T02:32:27.2107810Z #18 48.30  WARN  Failed to create bin at /deploy/node_modules/.pnpm/ts-node@10.9.2_@types+node@25.5.0_typescript@5.9.3/node_modules/ts-node/node_modules/.bin/tsserver. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsserver'
+2026-03-24T02:32:27.2108165Z #18 48.33  WARN  Failed to create bin at /w/deploy/node_modules/.bin/acorn. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/acorn@8.15.0/node_modules/acorn/bin/acorn'
+2026-03-24T02:32:27.3621892Z #18 48.33  WARN  Failed to create bin at /w/deploy/node_modules/.bin/vite. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/vite@7.2.7_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.44.1_yaml@2.8.2/node_modules/vite/bin/vite.js'
+2026-03-24T02:32:27.3622666Z #18 48.33  WARN  Failed to create bin at /w/deploy/node_modules/.bin/terser. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/terser@5.44.1/node_modules/terser/bin/terser'
+2026-03-24T02:32:27.3623042Z #18 48.33  WARN  Failed to create bin at /w/deploy/node_modules/.bin/jiti. ENOENT: no such file or directory, open '/deploy/node_modules/.pnpm/jiti@2.6.1/node_modules/jiti/lib/jiti-cli.mjs'
+2026-03-24T02:32:27.8836746Z #18 49.00 . prepare$ husky
+2026-03-24T02:32:28.1314156Z #18 49.25 . prepare: .git can't be found
+2026-03-24T02:32:28.2828273Z #18 49.25 . prepare: Done
+2026-03-24T02:32:31.0629205Z #18 DONE 52.2s
+2026-03-24T02:32:38.8097181Z #19 [production 2/9] WORKDIR /app
+2026-03-24T02:32:38.8097904Z #19 CACHED
+2026-03-24T02:32:38.8098208Z #20 [production 3/9] RUN addgroup -g 1001 -S nextjs &&     adduser -S nextjs -u 1001
+2026-03-24T02:32:38.8098548Z #20 CACHED
+2026-03-24T02:32:38.8100321Z #21 [production 4/9] RUN apk add --no-cache curl
+2026-03-24T02:32:38.9604341Z #21 CACHED
+2026-03-24T02:32:38.9605090Z #*** [production 5/9] COPY --from=build --chown=nextjs:nextjs /deploy/node_modules ./node_modules
+2026-03-24T02:32:54.1674178Z #*** DONE 15.4s
+2026-03-24T02:32:54.3575218Z #23 [production 6/9] COPY --from=build --chown=nextjs:nextjs /w/frontend/.next ./.next
+2026-03-24T02:32:57.7532874Z #23 DONE 3.5s
+2026-03-24T02:32:57.9866489Z #24 [production 7/9] COPY --from=build --chown=nextjs:nextjs /w/frontend/public ./public
+2026-03-24T02:32:59.5391581Z #24 DONE 1.7s
+2026-03-24T02:32:59.7202684Z #25 [production 8/9] COPY --from=build --chown=nextjs:nextjs /w/frontend/package.json ./
+2026-03-24T02:33:01.1172596Z #25 DONE 1.5s
+2026-03-24T02:33:01.2992380Z #26 [production 9/9] RUN ls -la ./node_modules/next/dist/bin/next && ls -la ./.next/ || (echo "ERROR: Required files not found!" && exit 1)
+2026-03-24T02:33:02.3949225Z #26 1.246 -rwxr-xr-x    1 nextjs   nextjs       16635 Mar 24 02:31 ./node_modules/next/dist/bin/next
+2026-03-24T02:33:02.5471911Z #26 1.247 total 284
+2026-03-24T02:33:02.5472711Z #26 1.248 drwxr-xr-x    8 nextjs   nextjs        4096 Mar 24 02:31 .
+2026-03-24T02:33:02.5472986Z #26 1.248 drwxr-xr-x    1 root     root          4096 Mar 24 02:32 ..
+2026-03-24T02:33:02.5473279Z #26 1.248 -rw-r--r--    1 nextjs   nextjs          21 Mar 24 02:31 BUILD_ID
+2026-03-24T02:33:02.5473572Z #26 1.248 -rw-r--r--    1 nextjs   nextjs        4620 Mar 24 02:31 app-path-routes-manifest.json
+2026-03-24T02:33:02.5473886Z #26 1.248 drwxr-xr-x    3 nextjs   nextjs        4096 Mar 24 02:30 build
+2026-03-24T02:33:02.5474172Z #26 1.248 -rw-r--r--    1 nextjs   nextjs         541 Mar 24 02:31 build-manifest.json
+2026-03-24T02:33:02.5474406Z #26 1.248 drwxr-xr-x    2 nextjs   nextjs        4096 Mar 24 02:31 cache
+2026-03-24T02:33:02.5474642Z #26 1.248 drwxr-xr-x    2 nextjs   nextjs        4096 Mar 24 02:31 diagnostics
+2026-03-24T02:33:02.5474884Z #26 1.248 -rw-r--r--    1 nextjs   nextjs         111 Mar 24 02:31 export-marker.json
+2026-03-24T02:33:02.5475463Z #26 1.248 -rw-r--r--    1 nextjs   nextjs         299 Mar 24 02:31 fallback-build-manifest.json
+2026-03-24T02:33:02.5475711Z #26 1.248 -rw-r--r--    1 nextjs   nextjs        1415 Mar 24 02:31 images-manifest.json
+2026-03-24T02:33:02.5475942Z #26 1.248 -rw-rw-r--    1 nextjs   nextjs       20753 Mar 24 02:31 next-minimal-server.js.nft.json
+2026-03-24T02:33:02.5476170Z #26 1.248 -rw-rw-r--    1 nextjs   nextjs      119164 Mar 24 02:31 next-server.js.nft.json
+2026-03-24T02:33:02.5476480Z #26 1.248 -rw-r--r--    1 nextjs   nextjs          20 Mar 24 02:30 package.json
+2026-03-24T02:33:02.5476703Z #26 1.248 -rw-r--r--    1 nextjs   nextjs        3062 Mar 24 02:31 prerender-manifest.json
+2026-03-24T02:33:02.5476972Z #26 1.248 -rw-r--r--    1 nextjs   nextjs        9252 Mar 24 02:31 required-server-files.js
+2026-03-24T02:33:02.5477268Z #26 1.248 -rw-r--r--    1 nextjs   nextjs        9***3 Mar 24 02:31 required-server-files.json
+2026-03-24T02:33:02.5477510Z #26 1.248 -rw-r--r--    1 nextjs   nextjs       14330 Mar 24 02:31 routes-manifest.json
+2026-03-24T02:33:02.5477754Z #26 1.248 drwxr-xr-x    6 nextjs   nextjs        4096 Mar 24 02:31 server
+2026-03-24T02:33:02.5477972Z #26 1.248 drwxr-xr-x    5 nextjs   nextjs        4096 Mar 24 02:31 static
+2026-03-24T02:33:02.5478237Z #26 1.248 -rw-r--r--    1 nextjs   nextjs       27185 Mar 24 02:31 trace
+2026-03-24T02:33:02.5478541Z #26 1.248 -rw-r--r--    1 nextjs   nextjs        1213 Mar 24 02:31 trace-build
+2026-03-24T02:33:02.5478783Z #26 1.248 -rw-r--r--    1 nextjs   nextjs           0 Mar 24 02:30 turbopack
+2026-03-24T02:33:02.5479095Z #26 1.248 drwxr-xr-x    2 nextjs   nextjs        4096 Mar 24 02:30 types
+2026-03-24T02:33:03.7557917Z #26 DONE 2.6s
+2026-03-24T02:33:04.0472725Z #27 exporting to image
+2026-03-24T02:33:04.0473396Z #27 exporting layers
+2026-03-24T02:33:16.2768655Z #27 exporting layers 12.2s done
+2026-03-24T02:33:16.5206511Z #27 writing image sha256:b7c1cfc46828cc4c045449a331866fcfe6fc5abfac7bffd399ac4073fdc34732 0.0s done
+2026-03-24T02:33:16.5207546Z #27 naming to docker.io/library/lcbp3-frontend:latest 0.1s done
+2026-03-24T02:33:16.5552094Z #27 DONE 12.5s
+2026-03-24T02:33:17.4427725Z  [33m2 warnings found (use docker --debug to expand):
+2026-03-24T02:33:17.4428501Z [0m - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "AUTH_URL") (line 53)
+2026-03-24T02:33:17.4428897Z  - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ENV "AUTH_URL") (line 54)
+2026-03-24T02:33:17.4500022Z ✓ Images built successfully
+2026-03-24T02:33:17.4500664Z ./scripts/deploy.sh: line 69: cd: /share/np-dms/app/green: No such file or directory
+2026-03-24T02:33:17.4513382Z 2026/03/24 02:33:17 Process exited with status 1
+2026-03-24T02:33:17.4553572Z   ❌  Failure - Main Run entrypoint.sh
+2026-03-24T02:33:17.4672543Z exitcode '1': failure
+2026-03-24T02:33:17.4775976Z   ❌  Failure - Main �🚀 Trigger Deployment on QNAP
+2026-03-24T02:33:17.4893385Z exitcode '1': failure
+2026-03-24T02:33:17.5100817Z expression '${{ secrets.PASSWORD }}' rewritten to 'format('{0}', secrets.PASSWORD)'
+2026-03-24T02:33:17.5101350Z evaluating expression 'format('{0}', secrets.PASSWORD)'
+2026-03-24T02:33:17.5101854Z expression 'format('{0}', secrets.PASSWORD)' evaluated to '%!t(string=***)'
+2026-03-24T02:33:17.5102225Z expression '${{ secrets.PORT }}' rewritten to 'format('{0}', secrets.PORT)'
+2026-03-24T02:33:17.5102423Z evaluating expression 'format('{0}', secrets.PORT)'
+2026-03-24T02:33:17.5102739Z expression 'format('{0}', secrets.PORT)' evaluated to '%!t(string=***)'
+2026-03-24T02:33:17.5103107Z expression '${{ secrets.HOST }}' rewritten to 'format('{0}', secrets.HOST)'
+2026-03-24T02:33:17.5103298Z evaluating expression 'format('{0}', secrets.HOST)'
+2026-03-24T02:33:17.5103625Z expression 'format('{0}', secrets.HOST)' evaluated to '%!t(string=***)'
+2026-03-24T02:33:17.5103948Z expression '${{ secrets.USERNAME }}' rewritten to 'format('{0}', secrets.USERNAME)'
+2026-03-24T02:33:17.5104152Z evaluating expression 'format('{0}', secrets.USERNAME)'
+2026-03-24T02:33:17.5104471Z expression 'format('{0}', secrets.USERNAME)' evaluated to '%!t(string=***)'
+2026-03-24T02:33:17.5208528Z evaluating expression 'always()'
+2026-03-24T02:33:17.5209403Z expression 'always()' evaluated to 'true'
+2026-03-24T02:33:17.5209687Z ⭐ Run Post �🚀 Trigger Deployment on QNAP
+2026-03-24T02:33:17.5210148Z Writing entry to tarball workflow/outputcmd.txt len:0
+2026-03-24T02:33:17.5210480Z Writing entry to tarball workflow/statecmd.txt len:0
+2026-03-24T02:33:17.5210725Z Writing entry to tarball workflow/pathcmd.txt len:0
+2026-03-24T02:33:17.5210962Z Writing entry to tarball workflow/envs.txt len:0
+2026-03-24T02:33:17.5211204Z Writing entry to tarball workflow/SUMMARY.md len:0
+2026-03-24T02:33:17.5211472Z Extracting content to '/var/run/act'
+2026-03-24T02:33:17.5247903Z run post step for '�🚀 Trigger Deployment on QNAP'
+2026-03-24T02:33:17.5249169Z /var/run/act/actions/58fcaeeced48ce6ec851e046234ca5e37b4e693817c69e144f6e88c9b9f38b47
+2026-03-24T02:33:17.5249647Z   🐳  docker cp src=/root/.cache/act/58fcaeeced48ce6ec851e046234ca5e37b4e693817c69e144f6e88c9b9f38b47/ dst=/var/run/act/actions/58fcaeeced48ce6ec851e046234ca5e37b4e693817c69e144f6e88c9b9f38b47/
+2026-03-24T02:33:17.5251497Z Writing tarball /tmp/act2182406799 from /root/.cache/act/58fcaeeced48ce6ec851e046234ca5e37b4e693817c69e144f6e88c9b9f38b47/
+2026-03-24T02:33:17.5251812Z Stripping prefix:/root/.cache/act/58fcaeeced48ce6ec851e046234ca5e37b4e693817c69e144f6e88c9b9f38b47/ src:/root/.cache/act/58fcaeeced48ce6ec851e046234ca5e37b4e693817c69e144f6e88c9b9f38b47/
+2026-03-24T02:33:17.5538444Z Extracting content from '/tmp/act2182406799' to '/var/run/act/actions/58fcaeeced48ce6ec851e046234ca5e37b4e693817c69e144f6e88c9b9f38b47/'
+2026-03-24T02:33:17.6044714Z   ✅  Success - Post �🚀 Trigger Deployment on QNAP
+2026-03-24T02:33:17.6524474Z evaluating expression 'always()'
+2026-03-24T02:33:17.6525876Z expression 'always()' evaluated to 'true'
+2026-03-24T02:33:17.6526139Z ⭐ Run Post � Checkout
+2026-03-24T02:33:17.6526558Z Writing entry to tarball workflow/outputcmd.txt len:0
+2026-03-24T02:33:17.6526880Z Writing entry to tarball workflow/statecmd.txt len:0
+2026-03-24T02:33:17.6527161Z Writing entry to tarball workflow/pathcmd.txt len:0
+2026-03-24T02:33:17.6527396Z Writing entry to tarball workflow/envs.txt len:0
+2026-03-24T02:33:17.6527606Z Writing entry to tarball workflow/SUMMARY.md len:0
+2026-03-24T02:33:17.6527917Z Extracting content to '/var/run/act'
+2026-03-24T02:33:17.6565210Z run post step for '� Checkout'
+2026-03-24T02:33:17.6566515Z executing remote job container: [node /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/index.js]
+2026-03-24T02:33:17.6581551Z   🐳  docker exec cmd=[node /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/index.js] user= workdir=
+2026-03-24T02:33:17.6581912Z Exec command '[node /var/run/act/actions/c3fe249fe73091a17d6638fe1341e7bd0bcc3466ce52323c0688e83e2463a4ab/dist/index.js]'
+2026-03-24T02:33:17.6582815Z Working directory '/workspace/np-dms/lcbp3'
+2026-03-24T02:33:17.9624841Z [command]/usr/bin/git version
+2026-03-24T02:33:17.9698253Z git version 2.30.2
+2026-03-24T02:33:17.9755376Z ***
+2026-03-24T02:33:17.9789420Z Temporarily overriding HOME='/tmp/8d478e52-9c3e-465b-a3c5-c96b76280fae' before making global git config changes
+2026-03-24T02:33:17.9790336Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-24T02:33:17.9801557Z [command]/usr/bin/git config --global --add safe.directory /workspace/np-dms/lcbp3
+2026-03-24T02:33:17.9877107Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-24T02:33:17.9942663Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-24T02:33:18.0506656Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/git\.np\-dms\.work\/\.extraheader
+2026-03-24T02:33:18.0557143Z http.https://git.np-dms.work/.extraheader
+2026-03-24T02:33:18.0578388Z [command]/usr/bin/git config --local --unset-all http.https://git.np-dms.work/.extraheader
+2026-03-24T02:33:18.0657353Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/git\.np\-dms\.work\/\.extraheader' && git config --local --unset-all 'http.https://git.np-dms.work/.extraheader' || :"
+2026-03-24T02:33:18.1204029Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-24T02:33:18.1279165Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-24T02:33:18.1970499Z   ✅  Success - Post � Checkout
+2026-03-24T02:33:18.2086848Z Cleaning up container for job deploy
+2026-03-24T02:33:19.9252866Z Removed container: 4923f9ac3d6bdb058c0400d6908c2bb8d8eadb4a8f63b245d3cc25eddad2fdd8
+2026-03-24T02:33:19.9268730Z   🐳  docker volume rm GITEA-ACTIONS-TASK-188_WORKFLOW-CI-CD-Pipeline_JOB-deploy
+2026-03-24T02:33:20.1590743Z   🐳  docker volume rm GITEA-ACTIONS-TASK-188_WORKFLOW-CI-CD-Pipeline_JOB-deploy-env
+2026-03-24T02:33:20.4200039Z Cleaning up network for job deploy, and network name is: GITEA-ACTIONS-TASK-188_WORKFLOW-CI-CD-Pipeline_JOB-deploy-deploy-network
+2026-03-24T02:33:20.8435474Z 🏁  Job failed
+2026-03-24T02:33:20.8543065Z Job 'deploy' failed
