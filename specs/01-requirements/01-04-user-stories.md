@@ -3,15 +3,16 @@
 ---
 
 title: 'User Stories — All Modules'
-version: 1.0.0
-status: DRAFT
+version: 1.8.1
+status: updated
 owner: Nattanin Peancharoen (Product Owner)
-last_updated: 2026-03-11
+last_updated: 2026-03-24
 related:
 
 - specs/01-Requirements/01-01-objectives.md
 - specs/01-Requirements/01-05-acceptance-criteria.md
 - specs/01-Requirements/01-03-modules/
+- specs/01-Requirements/01-06-edge-cases-and-rules.md
 
 ---
 
@@ -238,8 +239,65 @@ So that ยื่นขออนุมัติแบบก่อสร้าง
 **Done When:**
 
 - Form: RFA Type, Discipline, Shop Drawing (PDF/DWG/ZIP)
-- 1 Shop Drawing Revision = 1 RFA เท่านั้น
-- ClamAV Scan | Draft (ไม่เห็นข้ามองค์กร)
+- 1 Shop Drawing Revision = 1 RFA เท่านั้น (EC-RFA-001 enforced)
+- ClamAV Scan | Draft ไม่เห็นข้ามองค์กร (เฉพาะ originator)
+- Project/Contract/Dicipline Selector แบบ dynamic (ไม่ hardcoded)
+
+---
+
+### US-012a — แก้ไข Draft RFA (Edit)
+
+**Priority:** 🔴 M | **SP:** 3 | **AC:** AC-RFA-007
+
+```
+As a Document Control ของ Contractor
+I want to แก้ไขข้อมูล RFA ในสถานะ Draft
+So that แก้ไขข้อผิดพลาดก่อน Submit ได้
+```
+
+**Done When:**
+
+- แก้ไขได้: Subject, Body, Remarks, Description, Due Date
+- แก้ไขได้: Details JSON (schema_version คงที่)
+- ห้ามแก้ไขหากสถานะไม่ใช่ DFT → Error 403
+
+---
+
+### US-012b — ยกเลิก Draft RFA (Cancel)
+
+**Priority:** 🟠 S | **SP:** 2 | **AC:** AC-RFA-008
+
+```
+As a Document Control ของ Contractor
+I want to ยกเลิก RFA ที่ยังไม่ Submit (สถานะ Draft)
+So that ลบรายการที่สร้างผิดออกจากระบบ
+```
+
+**Done When:**
+
+- ยกเลิกได้เฉพาะสถานะ DFT
+- เปลี่ยนสถานะเป็น CC (Cancelled)
+- บันทึก Audit Log: CANCELLED + user + timestamp
+- Shop Drawing Revision ที่ถูกผูก → ปลดผูก (available สำหรับ RFA ใหม่)
+
+---
+
+### US-012c — ค้นหาและกรองรายการ RFA
+
+**Priority:** 🔴 M | **SP:** 5 | **AC:** AC-RFA-009
+
+```
+As a Document Control / Engineer
+I want to ค้นหา RFA ด้วย Project, Status, Keyword
+So that หาเอกสารที่ต้องการได้รวดเร็ว
+```
+
+**Done When:**
+
+- Filter: Project (จาก Project Selector), Status Code (DFT/FAP/1A/4X/CC), Revision Status (CURRENT/OLD/ALL)
+- Search: เลขเอกสาร, Subject
+- RBAC: DFT → เห็นเฉพาะ originator org | สถานะอื่น → เห็นตามสิทธิ์ปกติ
+- Pagination: 20 items/page, แสดง total count
 
 ---
 
