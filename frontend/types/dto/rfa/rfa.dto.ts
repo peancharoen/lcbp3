@@ -56,6 +56,9 @@ export interface SearchRfaDto {
   /** กรองตามสถานะ (เช่น Draft, For Approve) */
   statusId?: number;
 
+  /** กรองตามสถานะ code โดยตรง (เช่น 'DFT', 'FAP', 'FRE') */
+  statusCode?: string;
+
   /** ค้นหาจาก เลขที่เอกสาร หรือ หัวข้อเรื่อง */
   search?: string;
 

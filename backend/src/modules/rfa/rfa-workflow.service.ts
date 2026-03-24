@@ -1,4 +1,14 @@
 // File: src/modules/rfa/rfa-workflow.service.ts
+//
+// NOTE (Phase 4.1 Refactor):
+// This service was written as an alternative workflow integration layer using the
+// Unified WorkflowEngineService (ADR-001). It is currently NOT called by RfaController.
+// Active workflow logic lives in RfaService.submit() / RfaService.processAction().
+//
+// Reserved for Phase 3: When the Unified Workflow Engine is fully wired to RFA,
+// RfaService workflow methods should be migrated here and RfaController updated
+// to delegate to RfaWorkflowService.
+//
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';

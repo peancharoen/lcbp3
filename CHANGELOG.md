@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### CI/CD & Deployment Simplification (2026-03-24)
+
+#### 🚀 **deploy.sh v2.0 — Rewrote deployment script**
+
+- **Changed**: Replaced 9-step blue-green deployment with 3-step direct deploy
+- **Step 1**: Build Docker images (backend + frontend) from source
+- **Step 2**: `docker compose -f [compose_file] up -d --force-recreate`
+- **Step 3**: Health check on `backend` container
+- **Removed**: Blue/green directory switching, NGINX switching, `current` file tracking
+- **Reason**: QNAP setup uses a single stack — simultaneous blue/green was not viable with shared container names
+
+#### ⚙️ **ci-deploy.yml — CI pipeline improvements**
+
+- **Added**: `pnpm/action-setup@v4` + `cache: 'pnpm'` for faster installs
+- **Fixed**: `--watchAll=false` removed from backend test command (not a valid Jest flag)
+- **Fixed**: `mkdir -p /share/np-dms/app/logs` before deploy to prevent `tee` error
+- **Simplified**: Removed `tee` + `PIPESTATUS` — `set -e` handles errors
+
 ### Document Numbering System Fixes (2026-03-21)
 
 #### 🔢 **Template Management Hardening**

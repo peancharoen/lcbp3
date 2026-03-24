@@ -5,21 +5,23 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { ArrowLeft, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Loader2, Send, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useProcessRFA } from '@/hooks/use-rfa';
+import { useProcessRFA, useSubmitRFA } from '@/hooks/use-rfa';
 
 interface RFADetailProps {
   data: RFA;
 }
 
 export function RFADetail({ data }: RFADetailProps) {
-  const [actionState, setActionState] = useState<'approve' | 'reject' | null>(null);
+  const [actionState, setActionState] = useState<'approve' | 'reject' | 'submit' | null>(null);
   const [comments, setComments] = useState('');
+  const [templateId, setTemplateId] = useState<number>(1);
   const processMutation = useProcessRFA();
+  const submitMutation = useSubmitRFA();
   const currentRevision = data.revisions.find((revision) => revision.isCurrent) ?? data.revisions[0];
   const currentItems = currentRevision?.items ?? [];
   const currentStatus = currentRevision?.statusCode?.statusName || currentRevision?.statusCode?.statusCode || 'Unknown';
@@ -54,7 +56,7 @@ export function RFADetail({ data }: RFADetailProps) {
     item.shopDrawingRevision?.title || item.asBuiltDrawingRevision?.title || '-';
 
   const handleProcess = () => {
-    if (!actionState) return;
+    if (!actionState || actionState === 'submit') return;
 
     const apiAction = actionState === 'approve' ? 'APPROVE' : 'REJECT';
 
@@ -70,7 +72,17 @@ export function RFADetail({ data }: RFADetailProps) {
         onSuccess: () => {
           setActionState(null);
           setComments('');
-          // Query invalidation handled in hook
+        },
+      }
+    );
+  };
+
+  const handleSubmit = () => {
+    submitMutation.mutate(
+      { uuid: data.uuid, templateId },
+      {
+        onSuccess: () => {
+          setActionState(null);
         },
       }
     );
@@ -94,7 +106,23 @@ export function RFADetail({ data }: RFADetailProps) {
           </div>
         </div>
 
-        {currentStatus === 'PENDING' && (
+        <div className="flex gap-2">
+          {currentRevision?.statusCode?.statusCode === 'DFT' && (
+            <>
+              <Link href={`/rfas/${data.uuid}/edit`}>
+                <Button variant="outline">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              </Link>
+              <Button onClick={() => setActionState('submit')}>
+                <Send className="mr-2 h-4 w-4" />
+                Submit RFA
+              </Button>
+            </>
+          )}
+        </div>
+        {['FAP', 'FRE'].includes(currentRevision?.statusCode?.statusCode ?? '') && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -112,8 +140,38 @@ export function RFADetail({ data }: RFADetailProps) {
         )}
       </div>
 
+      {/* Submit RFA Dialog */}
+      {actionState === 'submit' && (
+        <Card className="border-primary">
+          <CardHeader>
+            <CardTitle className="text-lg">Submit RFA to Workflow</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="templateId">Routing Template ID</Label>
+              <input
+                id="templateId"
+                type="number"
+                min={1}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={templateId}
+                onChange={(e) => setTemplateId(Number(e.target.value))}
+              />
+              <p className="text-xs text-muted-foreground">Enter the routing template ID for this submission.</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setActionState(null)}>Cancel</Button>
+              <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
+                {submitMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirm Submit
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Action Input Area */}
-      {actionState && (
+      {actionState && actionState !== 'submit' && (
         <Card className="border-primary">
           <CardHeader>
             <CardTitle className="text-lg">
@@ -216,7 +274,12 @@ export function RFADetail({ data }: RFADetailProps) {
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Discipline</p>
-                <p className="font-medium mt-1">{data.discipline?.name || data.discipline?.code || '-'}</p>
+                <p className="font-medium mt-1">
+                  {data.correspondence?.discipline?.codeNameEn ||
+                    data.correspondence?.discipline?.codeNameTh ||
+                    data.correspondence?.discipline?.disciplineCode ||
+                    '-'}
+                </p>
               </div>
             </CardContent>
           </Card>

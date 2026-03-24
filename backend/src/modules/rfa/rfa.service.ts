@@ -23,6 +23,7 @@ import { RoutingTemplateStep } from '../correspondence/entities/routing-template
 import { AsBuiltDrawingRevision } from '../drawing/entities/asbuilt-drawing-revision.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
 import { Discipline } from '../master/entities/discipline.entity';
+import { Organization } from '../organization/entities/organization.entity';
 import { User } from '../user/entities/user.entity';
 import { RfaApproveCode } from './entities/rfa-approve-code.entity';
 import { RfaItem } from './entities/rfa-item.entity';
@@ -35,6 +36,7 @@ import { Rfa } from './entities/rfa.entity';
 import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto';
 import { CreateRfaDto } from './dto/create-rfa.dto';
 import { SearchRfaDto } from './dto/search-rfa.dto';
+import { UpdateRfaDto } from './dto/update-rfa.dto';
 
 // ------- Local type helpers (no-any ADR-019) -------
 /** CorrespondenceRevision with the rfaRevision relation loaded at runtime */
@@ -94,6 +96,8 @@ export class RfaService {
     private templateRepo: Repository<RoutingTemplate>,
     @InjectRepository(RoutingTemplateStep)
     private templateStepRepo: Repository<RoutingTemplateStep>,
+    @InjectRepository(Organization)
+    private orgRepo: Repository<Organization>,
 
     private numberingService: DocumentNumberingService,
     private userService: UserService,
@@ -232,13 +236,40 @@ export class RfaService {
       throw new BadRequestException('User must belong to an organization');
     }
 
+    // EC-RFA-001: Check for existing active RFA per Shop Drawing Revision
+    if (shopDrawingRevisionIds.length > 0) {
+      const conflictingItems = await this.rfaItemRepo
+        .createQueryBuilder('item')
+        .innerJoin('item.rfaRevision', 'rfaRev')
+        .innerJoin('rfaRev.statusCode', 'status')
+        .where('item.shopDrawingRevisionId IN (:...ids)', {
+          ids: shopDrawingRevisionIds,
+        })
+        .andWhere('status.statusCode NOT IN (:...codes)', {
+          codes: ['CC', 'OBS'],
+        })
+        .getMany();
+
+      if (conflictingItems.length > 0) {
+        throw new BadRequestException(
+          '[EC-RFA-001] One or more selected Shop Drawing Revisions already have an active RFA. ' +
+            'A Shop Drawing Revision can only be referenced by one active RFA at a time.'
+        );
+      }
+    }
+
+    // Fetch real Organization Code for document numbering
+    const userOrg = await this.orgRepo.findOne({
+      where: { id: userOrgId },
+      select: ['organizationCode'],
+    });
+    const orgCode = userOrg?.organizationCode ?? 'ORG';
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const orgCode = 'ORG'; // TODO: Fetch real ORG Code from Org Service if needed
-
       // [UPDATED] Generate Document Number with Discipline
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: internalProjectId,
@@ -427,7 +458,7 @@ export class RfaService {
 
   // ... (ส่วน findOne, submit, processAction คงเดิมจากไฟล์ที่แนบมา แค่ปรับปรุงเล็กน้อยตาม Context) ...
 
-  async findAll(query: SearchRfaDto) {
+  async findAll(query: SearchRfaDto, _user?: User) {
     const {
       page = 1,
       limit = 20,
@@ -481,14 +512,22 @@ export class RfaService {
       );
     }
 
+    // RBAC: DFT documents are visible only to the originator org (spec §3.3.10)
+    if (_user?.primaryOrganizationId) {
+      queryBuilder.andWhere(
+        '(rfaRev.id IS NULL OR status.statusCode != :dftCode OR corr.originatorId = :userOrgId)',
+        { dftCode: 'DFT', userOrgId: _user.primaryOrganizationId }
+      );
+    }
+
     const [items, total] = await queryBuilder
       .orderBy('corr.createdAt', 'DESC')
       .skip(skip)
       .take(limit)
       .getManyAndCount();
 
-    this.logger.log(
-      `[DEBUG] RFA findAll: Found ${total} items. Query: ${JSON.stringify(query)}`
+    this.logger.debug(
+      `RFA findAll: Found ${total} items. Query: ${JSON.stringify(query)}`
     );
 
     // Map `revisions` property back to the expected payload for the frontend
@@ -801,5 +840,84 @@ export class RfaService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * Update a Draft RFA's revision fields (subject, body, remarks, description, dueDate).
+   * EC-RFA-002: Only allowed when current revision is in DFT status.
+   */
+  async update(uuid: string, dto: UpdateRfaDto, _user: User) {
+    const rfa = await this.findOneByUuidRaw(uuid);
+    const corrRevisions =
+      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
+    const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
+    if (!currentCorrRev || !currentCorrRev.rfaRevision)
+      throw new NotFoundException('Current revision not found');
+
+    const currentRfaRev = currentCorrRev.rfaRevision;
+
+    if (currentRfaRev.statusCode.statusCode !== 'DFT') {
+      throw new BadRequestException(
+        'Only DRAFT documents can be edited. Submit a new revision for non-draft documents.'
+      );
+    }
+
+    const updatedFields: Partial<CorrespondenceRevision> = {};
+    if (dto.subject !== undefined) updatedFields.subject = dto.subject;
+    if (dto.body !== undefined) updatedFields.body = dto.body;
+    if (dto.remarks !== undefined) updatedFields.remarks = dto.remarks;
+    if (dto.description !== undefined)
+      updatedFields.description = dto.description;
+    if (dto.dueDate !== undefined)
+      updatedFields.dueDate = new Date(dto.dueDate);
+
+    Object.assign(currentCorrRev, updatedFields);
+
+    await this.corrRevRepo.save(currentCorrRev);
+
+    if (dto.details !== undefined) {
+      currentRfaRev.details = dto.details;
+      await this.rfaRevisionRepo.save(currentRfaRev);
+    }
+
+    return this.findOneByUuid(uuid);
+  }
+
+  /**
+   * Cancel (soft-delete) a Draft RFA by setting its status to CC.
+   * EC-RFA-002: Only allowed when current revision is in DFT status.
+   */
+  async cancel(uuid: string, user: User) {
+    const rfa = await this.findOneByUuidRaw(uuid);
+    const corrRevisions =
+      (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
+    const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
+    if (!currentCorrRev || !currentCorrRev.rfaRevision)
+      throw new NotFoundException('Current revision not found');
+
+    const currentRfaRev = currentCorrRev.rfaRevision;
+
+    if (currentRfaRev.statusCode.statusCode !== 'DFT') {
+      throw new BadRequestException(
+        'Only DRAFT documents can be cancelled. Contact an Org Admin to cancel submitted documents.'
+      );
+    }
+
+    const statusCC = await this.rfaStatusRepo.findOne({
+      where: { statusCode: 'CC' },
+    });
+    if (!statusCC)
+      throw new InternalServerErrorException(
+        'Status CC (Cancelled) not found in Master Data'
+      );
+
+    currentRfaRev.rfaStatusCodeId = statusCC.id;
+    await this.rfaRevisionRepo.save(currentRfaRev);
+
+    this.logger.log(
+      `RFA ${rfa.correspondence?.correspondenceNumber} cancelled by user ${user.user_id}`
+    );
+
+    return { message: 'RFA cancelled successfully' };
   }
 }

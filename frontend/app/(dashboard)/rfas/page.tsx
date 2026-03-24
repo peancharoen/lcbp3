@@ -2,38 +2,101 @@
 
 import { RFAList } from '@/components/rfas/list';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import Link from 'next/link';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Search } from 'lucide-react';
 import { useRFAs } from '@/hooks/use-rfa';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Pagination } from '@/components/common/pagination';
-import { Suspense } from 'react';
+import { Suspense, useCallback } from 'react';
+
+const RFA_STATUS_OPTIONS = [
+  { value: 'ALL', label: 'All Statuses' },
+  { value: 'DFT', label: 'Draft' },
+  { value: 'FAP', label: 'For Approve' },
+  { value: 'FRE', label: 'For Review' },
+  { value: 'FCO', label: 'For Comment Only' },
+  { value: 'CC', label: 'Cancelled' },
+];
 
 function RFAsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const page = Number(searchParams.get('page') || '1');
-  const statusId = searchParams.get('status') ? Number(searchParams.get('status')!) : undefined;
+  const statusCode = searchParams.get('statusCode') || undefined;
   const search = searchParams.get('search') || undefined;
-  const projectId = searchParams.get('projectId') || undefined; // ADR-019: Pass UUID string directly
-
+  const projectId = searchParams.get('projectId') || undefined;
   const revisionStatus = (searchParams.get('revisionStatus') as 'CURRENT' | 'ALL' | 'OLD') || 'CURRENT';
 
-  const { data, isLoading, isError } = useRFAs({ page, statusId, search, projectId, revisionStatus });
+  const { data, isLoading, isError } = useRFAs({ page, statusCode, search, projectId, revisionStatus });
+
+  const updateParam = useCallback(
+    (key: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value && value !== 'ALL') {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+      params.set('page', '1');
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [searchParams, router, pathname]
+  );
 
   return (
     <>
-      <div className="mb-4 flex gap-2">
-        {/* Simple Filter Buttons using standard Buttons for now, or use a Select if imported */}
+      <div className="mb-4 flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search RFA number or subject..."
+            defaultValue={search ?? ''}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                updateParam('search', (e.target as HTMLInputElement).value);
+              }
+            }}
+            onBlur={(e) => updateParam('search', e.target.value)}
+          />
+        </div>
+
+        <Select
+          value={statusCode ?? 'ALL'}
+          onValueChange={(val) => updateParam('statusCode', val)}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {RFA_STATUS_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <div className="flex gap-1 bg-muted p-1 rounded-md">
-          {['ALL', 'CURRENT', 'OLD'].map((status) => (
-            <Link
-              key={status}
-              href={`?${new URLSearchParams({ ...Object.fromEntries(searchParams.entries()), revisionStatus: status, page: '1' }).toString()}`}
+          {(['ALL', 'CURRENT', 'OLD'] as const).map((s) => (
+            <Button
+              key={s}
+              variant={revisionStatus === s ? 'default' : 'ghost'}
+              size="sm"
+              className="text-xs px-3"
+              onClick={() => updateParam('revisionStatus', s)}
             >
-              <Button variant={revisionStatus === status ? 'default' : 'ghost'} size="sm" className="text-xs px-3">
-                {status === 'CURRENT' ? 'Latest' : status === 'OLD' ? 'Previous' : 'All'}
-              </Button>
-            </Link>
+              {s === 'CURRENT' ? 'Latest' : s === 'OLD' ? 'Previous' : 'All Revisions'}
+            </Button>
           ))}
         </div>
       </div>

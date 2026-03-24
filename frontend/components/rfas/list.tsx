@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Eye, Edit, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface RFAListProps {
   data: RFA[];
@@ -37,8 +38,8 @@ export function RFAList({ data }: RFAListProps) {
       },
     },
     {
-      accessorKey: 'contract_name', // AccessorKey can be anything if we provide cell
-      header: 'Contract',
+      accessorKey: 'project_name',
+      header: 'Project',
       cell: ({ row }) => {
         return <span>{row.original.correspondence?.project?.projectName || '-'}</span>;
       },
@@ -85,7 +86,7 @@ export function RFAList({ data }: RFAListProps) {
             // But rfa.service.ts in use-rfa.ts uses 'sonner', so 'sonner' is likely available.
             // I will try to use toast from 'sonner' if I import it, or just window.alert for safety.
             // User said "หน้าต่างแจ้งเตือน" -> Alert window.
-            alert('ไม่พบไฟล์แนบ (No file attached)');
+            toast.error('ไม่พบไฟล์แนบ (No file attached)');
           }
         };
 

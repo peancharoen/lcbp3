@@ -34,6 +34,25 @@ export function useRFA(uuid: string) {
 
 // --- Mutations ---
 
+export function useSubmitRFA() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ uuid, templateId }: { uuid: string; templateId: number }) =>
+      rfaService.submit(uuid, templateId),
+    onSuccess: (_, { uuid }) => {
+      toast.success('RFA submitted successfully');
+      queryClient.invalidateQueries({ queryKey: rfaKeys.detail(uuid) });
+      queryClient.invalidateQueries({ queryKey: rfaKeys.lists() });
+    },
+    onError: (error: unknown) => {
+      toast.error('Failed to submit RFA', {
+        description: getApiErrorMessage(error, 'Something went wrong'),
+      });
+    },
+  });
+}
+
 export function useCreateRFA() {
   const queryClient = useQueryClient();
 

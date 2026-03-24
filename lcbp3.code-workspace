@@ -27,7 +27,7 @@
     "editor.lineHeight": 1.6,
     "editor.rulers": [80, 120],
     "editor.minimap.enabled": true,
-    "editor.minimap.sectionHeaderFontSize": 14,
+    "editor.minimap.sectionHeaderFontSize": 12,
     "editor.renderWhitespace": "selection",
     // "editor.renderWhitespace": "boundary",
     "editor.renderControlCharacters": true,
@@ -47,7 +47,7 @@
     // DEFAULT FORMATTER
     // ========================================
 
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
 
     "[javascript]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -675,6 +675,7 @@
     "workbench.colorTheme": "Default Dark Modern",
     "workbench.preferredDarkColorTheme": "Default Dark Modern",
     "scm.alwaysShowActions": false,
+    "workbench.settings.alwaysShowAdvancedSettings": true,
   },
   // ========================================
   // LAUNCH CONFIGURATIONS

@@ -11,6 +11,7 @@ import { CorrespondenceType } from '../correspondence/entities/correspondence-ty
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
 import { RoutingTemplate } from '../correspondence/entities/routing-template.entity';
 import { RoutingTemplateStep } from '../correspondence/entities/routing-template-step.entity';
+import { Organization } from '../organization/entities/organization.entity';
 import { AsBuiltDrawingRevision } from '../drawing/entities/asbuilt-drawing-revision.entity';
 import { ShopDrawingRevision } from '../drawing/entities/shop-drawing-revision.entity';
 import { Discipline } from '../master/entities/discipline.entity';
@@ -60,6 +61,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
       RoutingTemplate,
       RoutingTemplateStep,
       CorrespondenceRecipient,
+      Organization,
     ]),
     DocumentNumberingModule,
     UserModule,

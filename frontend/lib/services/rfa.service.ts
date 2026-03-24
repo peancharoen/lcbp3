@@ -38,6 +38,15 @@ export const rfaService = {
   },
 
   /**
+   * Submit a Draft RFA to workflow
+   */
+  submit: async (uuid: string, templateId: number) => {
+    // POST /rfas/:uuid/submit (ADR-019)
+    const response = await apiClient.post(`/rfas/${uuid}/submit`, { templateId });
+    return response.data;
+  },
+
+  /**
    * แก้ไข RFA (เฉพาะสถานะ Draft)
    */
   update: async (uuid: string, data: UpdateRfaDto) => {
@@ -50,8 +59,8 @@ export const rfaService = {
    * ดำเนินการ Workflow (อนุมัติ / ตีกลับ / ส่งต่อ)
    */
   processWorkflow: async (uuid: string, actionData: WorkflowActionDto) => {
-    // POST /rfas/:uuid/workflow (ADR-019)
-    const response = await apiClient.post(`/rfas/${uuid}/workflow`, actionData);
+    // POST /rfas/:uuid/action (ADR-019)
+    const response = await apiClient.post(`/rfas/${uuid}/action`, actionData);
     return response.data;
   },
 

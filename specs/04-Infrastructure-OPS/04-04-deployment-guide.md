@@ -3,8 +3,8 @@
 ---
 
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
-**Version:** 1.8.0
-**Last Updated:** 2025-12-02
+**Version:** 1.8.4
+**Last Updated:** 2026-03-24
 **Owner:** Operations Team
 **Status:** Active
 
@@ -12,15 +12,15 @@
 
 ## 📋 Overview
 
-This guide provides step-by-step instructions for deploying the LCBP3-DMS system on QNAP Container Station using Docker Compose with Blue-Green deployment strategy.
+This guide provides step-by-step instructions for deploying the LCBP3-DMS system on QNAP Container Station using Docker Compose.
 
 ### Deployment Strategy
 
 - **Platform:** QNAP TS-473A with Container Station
 - **Orchestration:** Docker Compose
-- **Deployment Method:** Blue-Green Deployment
-- **Zero Downtime:** Yes
-- **Rollback Capability:** Instant rollback via NGINX switch
+- **Deployment Method:** Direct deploy with `--force-recreate` (replaces previous blue-green approach)
+- **Automation:** Gitea Actions → `appleboy/ssh-action` → `scripts/deploy.sh`
+- **Rollback:** Re-trigger previous commit via Gitea Actions
 
 ---
 
@@ -67,17 +67,14 @@ Create the following directory structure on QNAP:
 # SSH into QNAP
 ssh admin@qnap-ip
 
-# Create base directory
-mkdir -p /volume1/lcbp3
+# Create base directories
+mkdir -p /share/np-dms/app/logs
+mkdir -p /share/np-dms/app/uploads
 
-# Create blue-green environments
-mkdir -p /volume1/lcbp3/blue
-mkdir -p /volume1/lcbp3/green
-
-# Create shared directories
-mkdir -p /volume1/lcbp3/shared/uploads
-mkdir -p /volume1/lcbp3/shared/logs
-mkdir -p /volume1/lcbp3/shared/backups
+# Clone source repository (first time only)
+mkdir -p /share/np-dms/app/source
+cd /share/np-dms/app/source
+git clone https://git.np-dms.work/np-dms/lcbp3.git
 
 # Create persistent volumes
 mkdir -p /volume1/lcbp3/volumes/mariadb-data
@@ -92,43 +89,23 @@ chmod -R 755 /volume1/lcbp3
 chown -R admin:administrators /volume1/lcbp3
 ```
 
-**Final Structure:**
+**Directory Structure:**
 
 ```
-/volume1/lcbp3/
-├── blue/                    # Blue environment
-│   ├── docker-compose.yml
-│   ├── .env.production
-│   └── nginx.conf
+/share/np-dms/app/
+├── source/
+│   └── lcbp3/               # Git repository (auto-synced by CI)
+│       ├── backend/
+│       ├── frontend/
+│       ├── scripts/
+│       │   ├── deploy.sh    # Deployment script v2.0
+│       │   └── rollback.sh
+│       └── specs/04-Infrastructure-OPS/04-00-docker-compose/
+│           └── docker-compose-app.yml  # Compose file used for deployment
 │
-├── green/                   # Green environment
-│   ├── docker-compose.yml
-│   ├── .env.production
-│   └── nginx.conf
-│
-├── nginx-proxy/             # Main reverse proxy
-│   ├── docker-compose.yml
-│   ├── nginx.conf
-│   └── ssl/
-│       ├── cert.pem
-│       └── key.pem
-│
-├── shared/                  # Shared across blue/green
-│   ├── uploads/
-│   ├── logs/
-│   └── backups/
-│
-├── volumes/                 # Persistent data
-│   ├── mariadb-data/
-│   ├── redis-data/
-│   └── elastic-data/
-│
-├── scripts/                 # Deployment scripts
-│   ├── deploy.sh
-│   ├── rollback.sh
-│   └── health-check.sh
-│
-└── current                  # File containing "blue" or "green"
+├── .env                     # Single environment config file
+├── logs/                    # Deployment logs
+└── uploads/                 # Persistent file uploads
 ```
 
 ### 2. SSL Certificate Setup
@@ -160,10 +137,10 @@ cp /etc/letsencrypt/live/lcbp3-dms.example.com/privkey.pem \
 
 ### 1. Environment Variables (.env.production)
 
-Create `.env.production` in both `blue/` and `green/` directories:
+Create `.env` at `/share/np-dms/app/.env`:
 
 ```bash
-# File: /volume1/lcbp3/blue/.env.production
+# File: /share/np-dms/app/.env
 # DO NOT commit this file to Git!
 
 # Application

@@ -8,6 +8,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Min,
 } from 'class-validator';
 
 export class CreateRfaDto {
@@ -30,12 +31,14 @@ export class CreateRfaDto {
   rfaTypeId!: number;
 
   @ApiProperty({
-    description: 'ID ของสาขางาน (Discipline) ตาม Req 6B',
+    description:
+      'ID ของสาขางาน (Discipline) ตาม Req 6B — Required per spec §3.3.4',
     example: 1,
   })
   @IsInt()
-  @IsOptional() // Optional ไว้ก่อนเผื่อบางโครงการไม่บังคับ
-  disciplineId?: number;
+  @Min(1)
+  @IsNotEmpty()
+  disciplineId!: number;
 
   @ApiProperty({
     description: 'หัวข้อเอกสาร',

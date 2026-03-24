@@ -36,11 +36,17 @@ export interface RFA {
   revisions: {
     id: number;
     revisionNumber: number;
+    revisionLabel?: string;
     subject: string;
     description?: string;
+    body?: string;
+    remarks?: string;
+    dueDate?: string;
     isCurrent: boolean;
     createdAt?: string;
     statusCode?: { statusCode: string; statusName: string };
+    approveCode?: { approveCode: string; approveCodeName: string };
+    approvedDate?: string;
     items?: RFAItem[];
   }[];
   discipline?: {
@@ -60,6 +66,11 @@ export interface RFA {
       uuid: string;
       projectName: string;
       projectCode: string;
+    };
+    discipline?: {
+      disciplineCode: string;
+      codeNameEn?: string;
+      codeNameTh?: string;
     };
   };
 

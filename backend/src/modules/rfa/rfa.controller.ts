@@ -2,9 +2,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -20,6 +24,7 @@ import {
 import { WorkflowActionDto } from '../correspondence/dto/workflow-action.dto';
 import { User } from '../user/entities/user.entity';
 import { CreateRfaDto } from './dto/create-rfa.dto';
+import { UpdateRfaDto } from './dto/update-rfa.dto';
 import { SubmitRfaDto } from './dto/submit-rfa.dto';
 import { SearchRfaDto } from './dto/search-rfa.dto';
 import { RfaService } from './rfa.service';
@@ -31,6 +36,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { ProjectService } from '../project/project.service';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @ApiTags('RFA (Request for Approval)')
 @ApiBearerAuth()
@@ -39,7 +45,8 @@ import { ProjectService } from '../project/project.service';
 export class RfaController {
   constructor(
     private readonly rfaService: RfaService,
-    private readonly projectService: ProjectService
+    private readonly projectService: ProjectService,
+    private readonly uuidResolver: UuidResolverService
   ) {}
 
   @Post()
@@ -99,17 +106,14 @@ export class RfaController {
   @ApiOperation({ summary: 'List all RFAs with pagination' })
   @ApiResponse({ status: 200, description: 'List of RFAs' })
   @RequirePermission('document.view')
-  async findAll(@Query() query: SearchRfaDto) {
+  async findAll(@Query() query: SearchRfaDto, @CurrentUser() user: User) {
     // ADR-019: resolve projectId UUID→INT if provided
     if (query.projectId) {
-      const pid = query.projectId;
-      const num = Number(pid);
-      if (typeof pid === 'string' && isNaN(num)) {
-        const project = await this.projectService.findOneByUuid(pid);
-        query.projectId = project.id;
-      }
+      query.projectId = await this.uuidResolver.resolveProjectId(
+        query.projectId
+      );
     }
-    return this.rfaService.findAll(query);
+    return this.rfaService.findAll(query, user);
   }
 
   @Get(':uuid')
@@ -122,5 +126,34 @@ export class RfaController {
   @RequirePermission('document.view')
   findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
     return this.rfaService.findOneByUuid(uuid);
+  }
+
+  @Put(':uuid')
+  @ApiOperation({ summary: 'Update Draft RFA fields (EC-RFA-002: DFT only)' })
+  @ApiParam({ name: 'uuid', description: 'RFA UUID' })
+  @ApiBody({ type: UpdateRfaDto })
+  @ApiResponse({ status: 200, description: 'RFA updated successfully' })
+  @RequirePermission('rfa.create')
+  @Audit('rfa.update', 'rfa')
+  async update(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Body() updateDto: UpdateRfaDto,
+    @CurrentUser() user: User
+  ) {
+    return this.rfaService.update(uuid, updateDto, user);
+  }
+
+  @Delete(':uuid')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel Draft RFA (sets status to CC)' })
+  @ApiParam({ name: 'uuid', description: 'RFA UUID' })
+  @ApiResponse({ status: 200, description: 'RFA cancelled successfully' })
+  @RequirePermission('rfa.create')
+  @Audit('rfa.cancel', 'rfa')
+  async cancel(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @CurrentUser() user: User
+  ) {
+    return this.rfaService.cancel(uuid, user);
   }
 }

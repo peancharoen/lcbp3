@@ -24,7 +24,7 @@ import { correspondenceService } from '@/lib/services/correspondence.service';
 const rfaSchema = z.object({
   projectId: z.string().min(1, 'Project is required'), // ADR-019: UUID
   contractId: z.string().min(1, 'Contract is required'),
-  disciplineId: z.number().min(1, 'Discipline is required'),
+  disciplineId: z.number({ required_error: 'Discipline is required' }).min(1, 'Discipline is required'),
   rfaTypeId: z.number().min(1, 'Type is required'),
   subject: z.string().min(5, 'Subject must be at least 5 characters'),
   description: z.string().optional(),
