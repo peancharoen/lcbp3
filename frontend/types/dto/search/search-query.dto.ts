@@ -7,6 +7,9 @@ export interface SearchQueryDto {
   /** กรองประเภท: 'rfa', 'correspondence', 'drawing' */
   type?: string;
 
+  /** กรองสถานะเอกสาร */
+  status?: string;
+
   /** ID ของโครงการ */
   projectId?: number;
 

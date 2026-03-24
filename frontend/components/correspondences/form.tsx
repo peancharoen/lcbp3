@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FileUploadZone } from '@/components/custom/file-upload-zone';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
@@ -18,6 +19,7 @@ import { CreateCorrespondenceDto } from '@/types/dto/correspondence/create-corre
 import { useState, useEffect } from 'react';
 import { correspondenceService as _correspondenceService } from '@/lib/services/correspondence.service';
 import { numberingApi } from '@/lib/api/numbering';
+import { filesApi } from '@/lib/api/files';
 
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
@@ -34,6 +36,7 @@ const correspondenceSchema = z.object({
   receivedDate: z.string().optional(),
   fromOrganizationId: z.string().min(1, 'Please select From Organization'),
   toOrganizationId: z.string().min(1, 'Please select To Organization'),
+  ccOrganizationIds: z.array(z.string()).optional(), // CC organizations support
   importance: z.enum(['NORMAL', 'HIGH', 'URGENT']),
   attachments: z.array(z.instanceof(File)).optional(),
 });
@@ -159,7 +162,30 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
   const fromOrgId = watch('fromOrganizationId');
   const toOrgId = watch('toOrganizationId');
 
-  const onSubmit = (data: FormData) => {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const onSubmit = async (data: FormData) => {
+    // Build recipients array with TO and CC
+    const recipients = [
+      { organizationId: data.toOrganizationId, type: 'TO' as const },
+      ...(data.ccOrganizationIds?.map(orgId => ({ organizationId: orgId, type: 'CC' as const })) || [])
+    ];
+
+    // Phase 1: Upload attachments to temp storage
+    let attachmentTempIds: string[] | undefined;
+    const validFiles = (data.attachments || []).filter((f): f is File => f instanceof File && !('validationError' in f && (f as { validationError?: string }).validationError));
+    if (validFiles.length > 0) {
+      setIsUploading(true);
+      try {
+        const uploaded = await filesApi.uploadMany(validFiles);
+        attachmentTempIds = uploaded.map((u) => u.tempId);
+      } catch (_err) {
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
+
     const payload: CreateCorrespondenceDto = {
       projectId: data.projectId,
       typeId: data.documentTypeId,
@@ -173,29 +199,26 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
       issuedDate: data.issuedDate ? new Date(data.issuedDate).toISOString() : undefined,
       receivedDate: data.receivedDate ? new Date(data.receivedDate).toISOString() : undefined,
       originatorId: data.fromOrganizationId,
-      recipients: [{ organizationId: data.toOrganizationId, type: 'TO' }],
+      attachmentTempIds,
+      recipients,
       details: {
         importance: data.importance,
       },
     };
 
     if (uuid && initialData) {
-      // UPDATE Mode
       updateMutation.mutate(
         { uuid, data: payload },
-        {
-          onSuccess: () => router.push(`/correspondences/${uuid}`),
-        }
+        { onSuccess: () => router.push(`/correspondences/${uuid}`) }
       );
     } else {
-      // CREATE Mode
       createMutation.mutate(payload, {
         onSuccess: () => router.push('/correspondences'),
       });
     }
   };
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending = createMutation.isPending || updateMutation.isPending || isUploading;
 
   // -- Preview Logic --
   const [preview, setPreview] = useState<{ number: string; isDefaultTemplate: boolean } | null>(null);
@@ -464,6 +487,36 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
           </Select>
           {errors.toOrganizationId && <p className="text-sm text-destructive">{errors.toOrganizationId.message}</p>}
         </div>
+
+        <div className="space-y-2">
+          <Label>CC Organizations (Optional)</Label>
+          <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-3">
+            {organizationOptions
+              .filter(org => org.uuid !== toOrgId) // Exclude TO organization
+              .map((org) => (
+                <div key={org.uuid} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`cc-${org.uuid}`}
+                    checked={watch('ccOrganizationIds')?.includes(org.uuid) || false}
+                    onCheckedChange={(checked) => {
+                      const currentCC = watch('ccOrganizationIds') || [];
+                      if (checked) {
+                        setValue('ccOrganizationIds', [...currentCC, org.uuid]);
+                      } else {
+                        setValue('ccOrganizationIds', currentCC.filter(id => id !== org.uuid));
+                      }
+                    }}
+                  />
+                  <Label htmlFor={`cc-${org.uuid}`} className="text-sm">
+                    {org.organizationName} ({org.organizationCode})
+                  </Label>
+                </div>
+              ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Select organizations to receive a copy of this correspondence
+          </p>
+        </div>
       </div>
 
       {/* Importance */}
@@ -504,7 +557,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
         </Button>
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {uuid ? 'Update Correspondence' : 'Create Correspondence'}
+          {isUploading ? 'Uploading files...' : uuid ? 'Update Correspondence' : 'Create Correspondence'}
         </Button>
       </div>
     </form>

@@ -3,8 +3,8 @@
 ---
 
 title: 'Functional Requirements: Correspondence Management'
-version: 1.8.1
-status: updated
+version: 1.8.2
+status: implemented
 owner: Nattanin Peancharoen
 last_updated: 2026-03-24
 related:
@@ -168,3 +168,24 @@ Correspondence ใช้ Unified Workflow Engine — ดูรายละเอ
 | **EC-CORR-003** | Originator และ Recipient เป็นองค์กรเดียวกัน → Block (ใช้ Circulation แทน) | 🟡 Medium |
 
 ดูรายละเอียดครบที่ `01-06-edge-cases-and-rules.md` หมวด "Module 7: Correspondence Edge Cases"
+
+---
+
+## 3.2.11. Implementation Status (v1.8.2)
+
+| Feature | Status | หมายเหตุ |
+|---|---|---|
+| Create/Update/List/Detail Correspondence | ✅ Done | Phase 1 |
+| File Attachments (two-phase upload) | ✅ Done | Phase 2 |
+| Recipients (TO/CC), Submit Workflow | ✅ Done | Phase 3 |
+| Elasticsearch Indexing | ✅ Done | Phase 4 |
+| Cancel + In-App Notifications (cancel/submit) | ✅ Done | Phase 4 |
+| Reference Selector (outgoing/incoming) | ✅ Done | Phase 5 |
+| Tag Manager (assign/remove tags) | ✅ Done | Phase 5–6 |
+| Search `/search` — status filter + pagination | ✅ Done | Phase 6.1 |
+| Circulation Status Card in detail sidebar | ✅ Done | Phase 6.2 |
+| Revision History UI (timeline) | ✅ Done | Phase 6.3 |
+| Due Date Reminder (`@Cron` daily at 08:00) | ✅ Done | Phase 6.4 |
+| Email notification via Nodemailer/BullMQ | ✅ Done | Phase 7.1 — type `'EMAIL'` → NotificationProcessor sends Nodemailer |
+| Unit tests (service layer ≥ 80%) | ✅ Done | Phase 7.2 — 8 backend + 5 frontend tests |
+| Bulk operations (bulk cancel/export) | ✅ Done | Phase 7.3 — `POST /bulk-cancel`, `GET /export-csv`, CSV button |

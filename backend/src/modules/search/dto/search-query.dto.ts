@@ -10,6 +10,10 @@ export class SearchQueryDto {
   @IsOptional()
   type?: string; // กรองประเภท: 'rfa', 'correspondence', 'drawing'
 
+  @IsString()
+  @IsOptional()
+  status?: string; // กรองสถานะ: 'DRAFT', 'SUBOWN', 'CLBOWN', 'CANCELLED', ...
+
   @IsInt()
   @Type(() => Number)
   @IsOptional()

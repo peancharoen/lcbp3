@@ -48,6 +48,9 @@ export interface CreateCorrespondenceDto {
    */
   originatorId?: number | string;
 
+  /** Temp IDs from two-phase file upload (POST /files/upload → tempId) */
+  attachmentTempIds?: string[];
+
   /** รายชื่อผู้รับ */
   recipients?: { organizationId: number | string; type: 'TO' | 'CC' }[];
 }

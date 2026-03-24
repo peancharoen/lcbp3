@@ -8,6 +8,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { WinstonModule } from 'nest-winston';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -148,6 +149,9 @@ import { MigrationModule } from './modules/migration/migration.module';
       }),
       inject: [ConfigService],
     }),
+
+    // ⏰ Scheduler (Cron Jobs)
+    ScheduleModule.forRoot(),
 
     // 📊 Monitoring & Resilience
     MonitoringModule,

@@ -108,7 +108,7 @@ export class SearchService implements OnModuleInit {
    * ค้นหาเอกสาร (Full-text Search)
    */
   async search(queryDto: SearchQueryDto) {
-    const { q, type, projectId, page = 1, limit = 20 } = queryDto;
+    const { q, type, status, projectId, page = 1, limit = 20 } = queryDto;
     const from = (page - 1) * limit;
 
     // Early fallback if Elasticsearch is not available
@@ -135,6 +135,7 @@ export class SearchService implements OnModuleInit {
     // 2. Filter logic
     const filterQueries: Record<string, unknown>[] = [];
     if (type) filterQueries.push({ term: { type } });
+    if (status) filterQueries.push({ term: { status } });
     if (projectId) filterQueries.push({ term: { projectId } });
 
     try {

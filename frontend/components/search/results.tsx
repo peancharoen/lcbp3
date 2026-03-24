@@ -13,6 +13,33 @@ interface SearchResultsProps {
   loading: boolean;
 }
 
+const TYPE_META: Record<string, { icon: React.ElementType; label: string; color: string }> = {
+  correspondence: { icon: FileText, label: 'Correspondence', color: 'text-blue-600' },
+  rfa: { icon: Clipboard, label: 'RFA', color: 'text-purple-600' },
+  drawing: { icon: Image, label: 'Drawing', color: 'text-green-600' },
+};
+
+const STATUS_VARIANT: Record<string, string> = {
+  DRAFT: 'bg-gray-100 text-gray-700',
+  SUBOWN: 'bg-yellow-100 text-yellow-700',
+  CLBOWN: 'bg-green-100 text-green-700',
+  CCBOWN: 'bg-red-100 text-red-700',
+  CANCELLED: 'bg-slate-100 text-slate-500 line-through',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  DRAFT: 'Draft',
+  SUBOWN: 'Submitted',
+  CLBOWN: 'Approved',
+  CCBOWN: 'Rejected',
+  CANCELLED: 'Cancelled',
+};
+
+function getLink(result: SearchResult): string {
+  if (result.type === 'drawing') return `/drawings/${result.uuid}`;
+  return `/${result.type}s/${result.uuid}`;
+}
+
 export function SearchResults({ results, query, loading }: SearchResultsProps) {
   if (loading) {
     return (
@@ -30,57 +57,55 @@ export function SearchResults({ results, query, loading }: SearchResultsProps) {
     );
   }
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'correspondence':
-        return FileText;
-      case 'rfa':
-        return Clipboard;
-      case 'drawing':
-        return Image;
-      default:
-        return FileText;
-    }
-  };
-
-  const getLink = (result: SearchResult) => {
-    return `/${result.type}s/${result.uuid}`; // ADR-019: Use UUID for public routes
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {results.map((result, index) => {
-        const Icon = getIcon(result.type);
+        const meta = TYPE_META[result.type] ?? TYPE_META.correspondence;
+        const Icon = meta.icon;
+        const statusClass = STATUS_VARIANT[result.status] ?? 'bg-gray-100 text-gray-700';
+        const statusLabel = STATUS_LABEL[result.status] ?? result.status;
 
         return (
-          <Card key={`${result.type}-${result.uuid}-${index}`} className="p-6 hover:shadow-md transition-shadow group">
+          <Card
+            key={`${result.type}-${result.uuid ?? index}`}
+            className="px-5 py-4 hover:shadow-md transition-shadow group"
+          >
             <Link href={getLink(result)}>
               <div className="flex gap-4">
-                <div className="flex-shrink-0 mt-1">
-                  <Icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                <div className={`flex-shrink-0 mt-0.5 ${meta.color}`}>
+                  <Icon className="h-5 w-5" />
                 </div>
 
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3
-                      className="text-lg font-semibold group-hover:text-primary transition-colors"
-                      dangerouslySetInnerHTML={{
-                        __html: result.highlight || result.title,
-                      }}
-                    />
-                    <Badge variant="secondary" className="capitalize">
-                      {result.type}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-2 flex-wrap mb-1">
+                    <span className="text-xs font-mono text-muted-foreground shrink-0">
+                      {result.documentNumber}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className={`text-xs px-1.5 py-0 shrink-0 ${statusClass}`}
+                    >
+                      {statusLabel}
                     </Badge>
-                    <Badge variant="outline">{result.status}</Badge>
+                    <Badge variant="outline" className="text-xs px-1.5 py-0 shrink-0">
+                      {meta.label}
+                    </Badge>
                   </div>
 
-                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{result.description}</p>
+                  <h3
+                    className="text-sm font-semibold group-hover:text-primary transition-colors line-clamp-1"
+                    dangerouslySetInnerHTML={{ __html: result.highlight || result.title }}
+                  />
 
-                  <div className="flex gap-4 text-xs text-muted-foreground">
-                    <span className="font-medium">{result.documentNumber}</span>
-                    <span>•</span>
-                    <span>{format(new Date(result.createdAt), 'dd MMM yyyy')}</span>
-                  </div>
+                  {result.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                      {result.description}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {format(new Date(result.createdAt), 'dd MMM yyyy')}
+                  </p>
                 </div>
               </div>
             </Link>

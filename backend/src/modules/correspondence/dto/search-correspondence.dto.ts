@@ -29,6 +29,14 @@ export class SearchCorrespondenceDto {
   statusId?: number;
 
   @ApiPropertyOptional({
+    description:
+      'Filter by Status code (e.g. DRAFT, IN_REVIEW, APPROVED, CANCELLED)',
+  })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({
     description: 'Revision Filter: CURRENT (default), ALL, OLD',
   })
   @IsOptional()

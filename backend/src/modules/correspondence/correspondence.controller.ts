@@ -9,7 +9,11 @@ import {
   Query,
   Delete,
   Put,
+  ParseIntPipe,
+  Res,
+  HttpCode,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -24,6 +28,8 @@ import { SubmitCorrespondenceDto } from './dto/submit-correspondence.dto';
 import { WorkflowActionDto } from './dto/workflow-action.dto';
 import { AddReferenceDto } from './dto/add-reference.dto';
 import { SearchCorrespondenceDto } from './dto/search-correspondence.dto';
+import { CancelCorrespondenceDto } from './dto/cancel-correspondence.dto';
+import { BulkCancelDto } from './dto/bulk-cancel.dto';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
@@ -198,5 +204,81 @@ export class CorrespondenceController {
     const corr = await this.correspondenceService.findOneByUuid(uuid);
     const target = await this.correspondenceService.findOneByUuid(targetUuid);
     return this.correspondenceService.removeReference(corr.id, target.id);
+  }
+
+  @Get(':uuid/tags')
+  @ApiOperation({ summary: 'Get tags for a correspondence' })
+  @RequirePermission('document.view')
+  async getTags(@Param('uuid', ParseUuidPipe) uuid: string) {
+    const corr = await this.correspondenceService.findOneByUuid(uuid);
+    return this.correspondenceService.getTags(corr.id);
+  }
+
+  @Post(':uuid/tags/:tagId')
+  @ApiOperation({ summary: 'Add tag to a correspondence' })
+  @RequirePermission('document.edit')
+  async addTag(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Param('tagId', ParseIntPipe) tagId: number
+  ) {
+    const corr = await this.correspondenceService.findOneByUuid(uuid);
+    return this.correspondenceService.addTag(corr.id, tagId);
+  }
+
+  @Delete(':uuid/tags/:tagId')
+  @ApiOperation({ summary: 'Remove tag from a correspondence' })
+  @RequirePermission('document.edit')
+  async removeTag(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Param('tagId', ParseIntPipe) tagId: number
+  ) {
+    const corr = await this.correspondenceService.findOneByUuid(uuid);
+    return this.correspondenceService.removeTag(corr.id, tagId);
+  }
+
+  @Post('bulk-cancel')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Bulk cancel correspondences (Org Admin+)' })
+  @RequirePermission('correspondence.cancel')
+  @Audit('correspondence.bulk_cancel', 'correspondence')
+  async bulkCancel(
+    @Body() dto: BulkCancelDto,
+    @Request() req: RequestWithUser
+  ) {
+    return this.correspondenceService.bulkCancel(
+      dto.uuids,
+      dto.reason,
+      req.user
+    );
+  }
+
+  @Get('export-csv')
+  @ApiOperation({ summary: 'Export correspondence list as CSV' })
+  @RequirePermission('document.view')
+  async exportCsv(
+    @Query() searchDto: SearchCorrespondenceDto,
+    @Res() res: Response
+  ) {
+    const csv = await this.correspondenceService.exportCsv(searchDto);
+    const filename = `correspondences-${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  }
+
+  @Delete(':uuid')
+  @ApiOperation({ summary: 'Cancel correspondence (Admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Correspondence cancelled successfully.',
+  })
+  @RequirePermission('correspondence.cancel')
+  @Audit('correspondence.cancel', 'correspondence')
+  async cancel(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Body() cancelDto: CancelCorrespondenceDto,
+    @Request() req: RequestWithUser
+  ) {
+    return this.correspondenceService.cancel(uuid, cancelDto.reason, req.user);
   }
 }

@@ -18,6 +18,8 @@ import { CorrespondenceType } from './entities/correspondence-type.entity';
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { CorrespondenceReference } from './entities/correspondence-reference.entity';
 import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
+import { CorrespondenceTag } from './entities/correspondence-tag.entity';
+import { Tag } from '../master/entities/tag.entity';
 import { User } from '../user/entities/user.entity';
 import { Organization } from '../organization/entities/organization.entity';
 
@@ -35,6 +37,7 @@ import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
+import { NotificationService } from '../notification/notification.service';
 
 /**
  * CorrespondenceService - Document management (CRUD)
@@ -58,6 +61,8 @@ export class CorrespondenceService {
     private statusRepo: Repository<CorrespondenceStatus>,
     @InjectRepository(CorrespondenceReference)
     private referenceRepo: Repository<CorrespondenceReference>,
+    @InjectRepository(CorrespondenceTag)
+    private tagRepo: Repository<CorrespondenceTag>,
     private numberingService: DocumentNumberingService,
     private jsonSchemaService: JsonSchemaService,
     private workflowEngine: WorkflowEngineService,
@@ -65,10 +70,79 @@ export class CorrespondenceService {
     private dataSource: DataSource,
     private searchService: SearchService,
     private fileStorageService: FileStorageService,
-    private uuidResolver: UuidResolverService
+    private uuidResolver: UuidResolverService,
+    private notificationService: NotificationService
   ) {}
 
+  /**
+   * Business Rule Validation: EC-CORR-003 - Correspondence to Self
+   * Prevent external correspondence to same organization
+   */
+  private async validateCorrespondenceRecipients(
+    createDto: CreateCorrespondenceDto,
+    user: User
+  ): Promise<void> {
+    // Get user's organization
+    let userOrgId = user.primaryOrganizationId;
+    if (!userOrgId) {
+      const fullUser = await this.userService.findOne(user.user_id);
+      if (fullUser) {
+        userOrgId = fullUser.primaryOrganizationId;
+      }
+    }
+
+    if (!userOrgId) {
+      throw new BadRequestException(
+        'User must belong to an organization to create documents'
+      );
+    }
+
+    // For impersonation, use the specified originator
+    const originatorOrgId = createDto.originatorId
+      ? await this.uuidResolver.resolveOrganizationId(createDto.originatorId)
+      : userOrgId;
+
+    // Check if it's internal communication
+    if (createDto.isInternal) {
+      // Internal communications should use Circulation instead
+      throw new BadRequestException(
+        'Internal communications should use Circulation Sheet instead of Correspondence'
+      );
+    }
+
+    // Validate recipients
+    if (!createDto.recipients || createDto.recipients.length === 0) {
+      throw new BadRequestException(
+        'At least one recipient (TO or CC) is required'
+      );
+    }
+
+    const toRecipients = createDto.recipients.filter((r) => r.type === 'TO');
+    const ccRecipients = createDto.recipients.filter((r) => r.type === 'CC');
+
+    if (toRecipients.length === 0 && ccRecipients.length === 0) {
+      throw new BadRequestException(
+        'At least one TO or CC recipient is required'
+      );
+    }
+
+    // Check for same organization correspondence
+    for (const recipient of createDto.recipients) {
+      const recipientOrgId = await this.uuidResolver.resolveOrganizationId(
+        recipient.organizationId
+      );
+
+      if (recipientOrgId === originatorOrgId) {
+        throw new BadRequestException(
+          'Cannot send correspondence to your own organization. Use Circulation Sheet for internal communication.'
+        );
+      }
+    }
+  }
+
   async create(createDto: CreateCorrespondenceDto, user: User) {
+    // Business Rule Validation: EC-CORR-003 - Correspondence to Self
+    await this.validateCorrespondenceRecipients(createDto, user);
     // ADR-019: Resolve UUID references to internal INT IDs
     const resolvedProjectId = await this.uuidResolver.resolveProjectId(
       createDto.projectId
@@ -270,6 +344,7 @@ export class CorrespondenceService {
       // Fire-and-forget search indexing (non-blocking, void intentional)
       void this.searchService.indexDocument({
         id: savedCorr.id,
+        uuid: savedCorr.uuid,
         type: 'correspondence',
         docNumber: docNumber.number,
         title: createDto.subject,
@@ -300,6 +375,7 @@ export class CorrespondenceService {
       typeId,
       projectId,
       statusId,
+      status,
       page = 1,
       limit = 10,
     } = searchDto;
@@ -334,6 +410,10 @@ export class CorrespondenceService {
 
     if (statusId) {
       query.andWhere('rev.statusId = :statusId', { statusId });
+    }
+
+    if (status) {
+      query.andWhere('status.statusCode = :status', { status });
     }
 
     if (search) {
@@ -441,6 +521,45 @@ export class CorrespondenceService {
 
     if (result.affected === 0) {
       throw new NotFoundException('Reference not found');
+    }
+  }
+
+  async getTags(id: number) {
+    const rows = await this.tagRepo.find({
+      where: { correspondenceId: id },
+      relations: ['tag'],
+    });
+    return rows.map((r) => r.tag).filter(Boolean);
+  }
+
+  async addTag(id: number, tagId: number) {
+    const correspondence = await this.correspondenceRepo.findOne({
+      where: { id },
+    });
+    if (!correspondence) {
+      throw new NotFoundException(`Correspondence ${id} not found`);
+    }
+
+    const tag = await this.dataSource.manager.findOne(Tag, {
+      where: { id: tagId },
+    });
+    if (!tag) {
+      throw new NotFoundException(`Tag ${tagId} not found`);
+    }
+
+    const exists = await this.tagRepo.findOne({
+      where: { correspondenceId: id, tagId },
+    });
+    if (exists) return exists;
+
+    const row = this.tagRepo.create({ correspondenceId: id, tagId });
+    return this.tagRepo.save(row);
+  }
+
+  async removeTag(id: number, tagId: number) {
+    const result = await this.tagRepo.delete({ correspondenceId: id, tagId });
+    if (result.affected === 0) {
+      throw new NotFoundException('Tag assignment not found');
     }
   }
 
@@ -690,7 +809,22 @@ export class CorrespondenceService {
       }
     }
 
-    return this.findOne(id);
+    const updated = await this.findOne(id);
+
+    // Re-index updated document in Elasticsearch (fire-and-forget)
+    void this.searchService.indexDocument({
+      id: updated.id,
+      uuid: updated.uuid,
+      type: 'correspondence',
+      docNumber: updated.correspondenceNumber,
+      title: updateDto.subject ?? updated.revisions?.[0]?.subject,
+      description: updateDto.description ?? updated.revisions?.[0]?.description,
+      status: 'DRAFT',
+      projectId: updated.projectId,
+      createdAt: updated.createdAt,
+    });
+
+    return updated;
   }
 
   async previewDocumentNumber(createDto: CreateCorrespondenceDto, user: User) {
@@ -756,5 +890,202 @@ export class CorrespondenceService {
         REC_CODE: recipientCode,
       },
     });
+  }
+
+  /**
+   * Business Rule Implementation: EC-CORR-001 - Cancel Correspondence with Downstream Circulation
+   * Cancel correspondence and handle related circulations
+   */
+  async cancel(uuid: string, reason: string, user: User) {
+    const correspondence = await this.findOneByUuid(uuid);
+
+    // Check if user has permission to cancel (Org Admin or Superadmin only)
+    const permissions = await this.userService.getUserPermissions(user.user_id);
+    const canCancel =
+      permissions.includes('correspondence.cancel') ||
+      permissions.includes('system.manage_all');
+
+    if (!canCancel) {
+      throw new ForbiddenException(
+        'Only administrators can cancel correspondences'
+      );
+    }
+
+    // Check if there are any active circulations
+    const circulationRepo = this.dataSource.getRepository('Circulation');
+    const activeCirculations = await circulationRepo.find({
+      where: {
+        correspondenceId: correspondence.id,
+        status: 'OPEN',
+      },
+    });
+
+    const warningMessage =
+      activeCirculations.length > 0
+        ? `There are ${activeCirculations.length} active circulation(s) for this correspondence. Canceling will force close all related circulations.`
+        : '';
+
+    // Get the current revision to update status
+    const currentRevision = await this.revisionRepo.findOne({
+      where: {
+        correspondenceId: correspondence.id,
+        isCurrent: true,
+      },
+    });
+
+    if (!currentRevision) {
+      throw new NotFoundException('Current revision not found');
+    }
+
+    // Get cancelled status
+    const cancelledStatus = await this.statusRepo.findOne({
+      where: { statusCode: 'CANCELLED' },
+    });
+
+    if (!cancelledStatus) {
+      throw new InternalServerErrorException('CANCELLED status not found');
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Update correspondence revision status to CANCELLED
+      await queryRunner.manager.update(
+        CorrespondenceRevision,
+        currentRevision.id,
+        {
+          statusId: cancelledStatus.id,
+          remarks: `Cancelled: ${reason}`,
+        }
+      );
+
+      // Force close all active circulations
+      if (activeCirculations.length > 0) {
+        await queryRunner.manager.update(
+          'Circulation',
+          {
+            correspondenceId: correspondence.id,
+            status: 'OPEN',
+          },
+          {
+            status: 'FORCE_CLOSED',
+            closedAt: new Date(),
+            closedBy: user.user_id,
+            closeReason: `Correspondence cancelled: ${reason}`,
+          }
+        );
+      }
+
+      await queryRunner.commitTransaction();
+
+      // Re-index cancelled status in Elasticsearch (fire-and-forget)
+      void this.searchService.indexDocument({
+        id: correspondence.id,
+        uuid: correspondence.uuid,
+        type: 'correspondence',
+        docNumber: correspondence.correspondenceNumber,
+        title: currentRevision.subject,
+        status: 'CANCELLED',
+        projectId: correspondence.projectId,
+        createdAt: correspondence.createdAt,
+      });
+
+      // Notify originator's doc-control user about cancellation (fire-and-forget)
+      if (correspondence.originatorId) {
+        void this.userService
+          .findDocControlIdByOrg(correspondence.originatorId)
+          .then((targetUserId) => {
+            if (targetUserId) {
+              void this.notificationService.send({
+                userId: targetUserId,
+                title: 'Correspondence Cancelled',
+                message: `${correspondence.correspondenceNumber} — ${currentRevision.subject} has been cancelled. Reason: ${reason}`,
+                type: 'EMAIL',
+                entityType: 'correspondence',
+                entityId: correspondence.id,
+                link: `/correspondences/${correspondence.uuid}`,
+              });
+            }
+          })
+          .catch((err: Error) =>
+            this.logger.warn(`Cancel notification failed: ${err.message}`)
+          );
+      }
+
+      return {
+        success: true,
+        message: warningMessage || 'Correspondence cancelled successfully',
+        activeCirculationsCount: activeCirculations.length,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(
+        `Failed to cancel correspondence: ${(error as Error).message}`
+      );
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async bulkCancel(
+    uuids: string[],
+    reason: string,
+    user: User
+  ): Promise<{ succeeded: string[]; failed: string[] }> {
+    const succeeded: string[] = [];
+    const failed: string[] = [];
+
+    for (const uuid of uuids) {
+      try {
+        await this.cancel(uuid, reason, user);
+        succeeded.push(uuid);
+      } catch {
+        failed.push(uuid);
+      }
+    }
+
+    return { succeeded, failed };
+  }
+
+  async exportCsv(searchDto: SearchCorrespondenceDto): Promise<string> {
+    const { data } = await this.findAll(searchDto);
+
+    const header = [
+      'Document No.',
+      'Rev',
+      'Subject',
+      'Type',
+      'Status',
+      'Project',
+      'From',
+      'Due Date',
+      'Created At',
+    ];
+    const rows = data.map((rev) => {
+      const corr = rev.correspondence ?? (rev as unknown as Correspondence);
+      return [
+        this.escapeCsv(corr.correspondenceNumber ?? ''),
+        this.escapeCsv(rev.revisionLabel ?? String(rev.revisionNumber ?? 0)),
+        this.escapeCsv(rev.subject ?? ''),
+        this.escapeCsv(corr.type?.typeCode ?? ''),
+        this.escapeCsv(rev.status?.statusCode ?? ''),
+        this.escapeCsv(corr.project?.projectCode ?? ''),
+        this.escapeCsv(corr.originator?.organizationCode ?? ''),
+        rev.dueDate ? new Date(rev.dueDate).toISOString().split('T')[0] : '',
+        new Date(rev.createdAt).toISOString().split('T')[0],
+      ].join(',');
+    });
+
+    return [header.join(','), ...rows].join('\n');
+  }
+
+  private escapeCsv(value: string): string {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
   }
 }

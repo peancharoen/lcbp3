@@ -5,7 +5,7 @@ import { CreateCorrespondenceDto } from '@/types/dto/correspondence/create-corre
 // Import DTO ใหม่
 import { SubmitCorrespondenceDto } from '@/types/dto/correspondence/submit-correspondence.dto';
 import { WorkflowActionDto } from '@/types/dto/correspondence/workflow-action.dto';
-import { AddReferenceDto, RemoveReferenceDto } from '@/types/dto/correspondence/add-reference.dto';
+import { AddReferenceDto } from '@/types/dto/correspondence/add-reference.dto';
 
 export const correspondenceService = {
   // ... (getAll, getById, create, update, delete เดิมคงไว้) ...
@@ -35,6 +35,13 @@ export const correspondenceService = {
     return response.data;
   },
 
+  cancel: async (uuid: string, reason: string) => {
+    const response = await apiClient.delete(`/correspondences/${uuid}`, {
+      data: { reason },
+    });
+    return response.data;
+  },
+
   // --- 🔥 New Methods ---
 
   /**
@@ -54,6 +61,14 @@ export const correspondenceService = {
   },
 
   /**
+   * ดึงรายการเอกสารอ้างอิง
+   */
+  getReferences: async (uuid: string) => {
+    const response = await apiClient.get(`/correspondences/${uuid}/references`);
+    return response.data;
+  },
+
+  /**
    * เพิ่มเอกสารอ้างอิง
    */
   addReference: async (uuid: string, data: AddReferenceDto) => {
@@ -62,15 +77,36 @@ export const correspondenceService = {
   },
 
   /**
-   * ลบเอกสารอ้างอิง
+   * ลบเอกสารอ้างอิง (ใช้ path param ตาม backend: DELETE /:uuid/references/:targetUuid)
    */
-  removeReference: async (uuid: string, data: RemoveReferenceDto) => {
-    // ใช้ DELETE method โดยส่ง body ไปด้วย (axios รองรับผ่าน config.data)
-    const response = await apiClient.delete(`/correspondences/${uuid}/references`, {
-      data: data,
-    });
+  removeReference: async (uuid: string, targetUuid: string) => {
+    const response = await apiClient.delete(`/correspondences/${uuid}/references/${targetUuid}`);
     return response.data;
   },
+  /**
+   * ดึง Tags ของ correspondence
+   */
+  getTags: async (uuid: string) => {
+    const response = await apiClient.get(`/correspondences/${uuid}/tags`);
+    return response.data;
+  },
+
+  /**
+   * เพิ่ม Tag ให้ correspondence
+   */
+  addTag: async (uuid: string, tagId: number) => {
+    const response = await apiClient.post(`/correspondences/${uuid}/tags/${tagId}`);
+    return response.data;
+  },
+
+  /**
+   * ลบ Tag ออกจาก correspondence
+   */
+  removeTag: async (uuid: string, tagId: number) => {
+    const response = await apiClient.delete(`/correspondences/${uuid}/tags/${tagId}`);
+    return response.data;
+  },
+
   /**
    * Preview Document Number
    */

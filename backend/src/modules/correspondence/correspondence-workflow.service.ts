@@ -9,6 +9,9 @@ import { WorkflowEngineService } from '../workflow-engine/workflow-engine.servic
 import { CorrespondenceRevision } from './entities/correspondence-revision.entity';
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { Correspondence } from './entities/correspondence.entity';
+import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
+import { NotificationService } from '../notification/notification.service';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class CorrespondenceWorkflowService {
@@ -23,7 +26,11 @@ export class CorrespondenceWorkflowService {
     private readonly revisionRepo: Repository<CorrespondenceRevision>,
     @InjectRepository(CorrespondenceStatus)
     private readonly statusRepo: Repository<CorrespondenceStatus>,
-    private readonly dataSource: DataSource
+    @InjectRepository(CorrespondenceRecipient)
+    private readonly recipientRepo: Repository<CorrespondenceRecipient>,
+    private readonly dataSource: DataSource,
+    private readonly notificationService: NotificationService,
+    private readonly userService: UserService
   ) {}
 
   async submitWorkflow(
@@ -81,6 +88,39 @@ export class CorrespondenceWorkflowService {
       await this.syncStatus(revision, transitionResult.nextState, queryRunner);
 
       await queryRunner.commitTransaction();
+
+      // Notify TO recipient org users (fire-and-forget)
+      const corrForNotify = revision.correspondence;
+      if (corrForNotify) {
+        void this.recipientRepo
+          .find({
+            where: {
+              correspondenceId: corrForNotify.id,
+              recipientType: 'TO',
+            },
+          })
+          .then(async (recipients) => {
+            for (const r of recipients) {
+              const targetUserId = await this.userService.findDocControlIdByOrg(
+                r.recipientOrganizationId
+              );
+              if (targetUserId) {
+                await this.notificationService.send({
+                  userId: targetUserId,
+                  title: 'New Correspondence Received',
+                  message: `${corrForNotify.correspondenceNumber} has been submitted to your organization.`,
+                  type: 'EMAIL',
+                  entityType: 'correspondence',
+                  entityId: revision.correspondenceId,
+                  link: `/correspondences/${corrForNotify.uuid}`,
+                });
+              }
+            }
+          })
+          .catch((err: Error) =>
+            this.logger.warn(`Submit notification failed: ${err.message}`)
+          );
+      }
 
       return {
         instanceId: instance.id,

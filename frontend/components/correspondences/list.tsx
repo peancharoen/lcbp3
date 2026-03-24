@@ -5,7 +5,7 @@ import { DataTable } from '@/components/common/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Edit, FileText } from 'lucide-react';
+import { Eye, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
@@ -37,11 +37,41 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
       ),
     },
     {
+      accessorKey: 'correspondence.type.typeCode',
+      header: 'Type',
+      cell: ({ row }) => (
+        <span className="text-xs font-medium bg-muted px-1.5 py-0.5 rounded">
+          {row.original.correspondence?.type?.typeCode || '-'}
+        </span>
+      ),
+    },
+    {
       accessorKey: 'correspondence.originator.organizationCode',
       header: 'From',
       cell: ({ row }) => (
         <span className="font-medium">{row.original.correspondence?.originator?.organizationCode || '-'}</span>
       ),
+    },
+    {
+      accessorKey: 'correspondence.project.projectCode',
+      header: 'Project',
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.correspondence?.project?.projectCode || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'dueDate',
+      header: 'Due Date',
+      cell: ({ row }) => {
+        const due = row.original.dueDate;
+        if (!due) return <span className="text-muted-foreground">-</span>;
+        const isOverdue = new Date(due) < new Date() && row.original.status?.statusCode !== 'CANCELLED';
+        return (
+          <span className={isOverdue ? 'text-destructive font-medium' : ''}>
+            {format(new Date(due), 'dd MMM yyyy')}
+          </span>
+        );
+      },
     },
     {
       accessorKey: 'createdAt',
@@ -70,27 +100,6 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
                 <Eye className="h-4 w-4" />
               </Button>
             </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              title="View File"
-              onClick={() => {
-                const attachments = item.attachments; // Now we are on Revision, so attachments might be here if joined
-                if (attachments && attachments.length > 0 && attachments[0].url) {
-                  window.open(attachments[0].url, '_blank');
-                } else {
-                  // Fallback check if attachments are on details json inside revision
-                  // or if we simply didn't join them yet.
-                  // Current Backend join: leftJoinAndSelect('rev.status', 'status') doesn't join attachments explicitly but maybe relation exists?
-                  // Wait, checking Entity... CorrespondenceRevision does NOT have attachments relation in code snippet provided earlier.
-                  // It might be in 'details' JSON or implied.
-                  // Just Alert for now as per previous logic.
-                  alert('ไม่พบไฟล์แนบ (No file attached)');
-                }
-              }}
-            >
-              <FileText className="h-4 w-4" />
-            </Button>
             {statusCode === 'DRAFT' && (
               <Link href={`/correspondences/${docUuid}/edit`}>
                 <Button variant="ghost" size="icon" title="Edit">

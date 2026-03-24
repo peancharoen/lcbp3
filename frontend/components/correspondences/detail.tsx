@@ -5,12 +5,18 @@ import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Loader2, Send, CheckCircle, XCircle, Edit, Ban, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { useSubmitCorrespondence, useProcessWorkflow } from '@/hooks/use-correspondence';
+import { useSubmitCorrespondence, useProcessWorkflow, useCancelCorrespondence } from '@/hooks/use-correspondence';
+import { ReferenceSelector } from '@/components/correspondences/reference-selector';
+import { TagManager } from '@/components/correspondences/tag-manager';
+import { CirculationStatusCard } from '@/components/correspondences/circulation-status-card';
+import { RevisionHistory } from '@/components/correspondences/revision-history';
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 interface CorrespondenceDetailProps {
   data: Correspondence;
@@ -19,53 +25,61 @@ interface CorrespondenceDetailProps {
 export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
   const submitMutation = useSubmitCorrespondence();
   const processMutation = useProcessWorkflow();
-  const [actionState, setActionState] = useState<'approve' | 'reject' | null>(null);
+  const cancelMutation = useCancelCorrespondence();
+  const [actionState, setActionState] = useState<'approve' | 'reject' | 'cancel' | null>(null);
   const [comments, setComments] = useState('');
+  const [cancelReason, setCancelReason] = useState('');
 
   if (!data) return <div>No data found</div>;
 
-  // Derive Current Revision Data
   const currentRevision = data.revisions?.find((r) => r.isCurrent) || data.revisions?.[0];
   const subject = currentRevision?.subject || '-';
   const description = currentRevision?.description || '-';
-  const status = currentRevision?.status?.statusCode || 'UNKNOWN'; // e.g. DRAFT
+  const status = currentRevision?.status?.statusCode || 'UNKNOWN';
   const attachments = currentRevision?.attachments || [];
+  const importance = (currentRevision?.details?.importance as string) || 'NORMAL';
 
-  // Note: Importance might be in details
-  const importance = currentRevision?.details?.importance || 'NORMAL';
+  const toRecipients = data.recipients?.filter((r) => r.recipientType === 'TO') || [];
+  const ccRecipients = data.recipients?.filter((r) => r.recipientType === 'CC') || [];
 
   const handleSubmit = () => {
     if (confirm('Are you sure you want to submit this correspondence?')) {
-      submitMutation.mutate({
-        uuid: data.uuid,
-        data: {},
-      });
+      submitMutation.mutate({ uuid: data.uuid, data: {} });
     }
   };
 
   const handleProcess = () => {
-    if (!actionState) return;
-
+    if (!actionState || actionState === 'cancel') return;
     const action = actionState === 'approve' ? 'APPROVE' : 'REJECT';
     processMutation.mutate(
-      {
-        uuid: data.uuid,
-        data: {
-          action,
-          comments,
-        },
-      },
-      {
-        onSuccess: () => {
-          setActionState(null);
-          setComments('');
-        },
-      }
+      { uuid: data.uuid, data: { action, comments } },
+      { onSuccess: () => { setActionState(null); setComments(''); } }
+    );
+  };
+
+  const handleCancel = () => {
+    if (!cancelReason.trim()) return;
+    cancelMutation.mutate(
+      { uuid: data.uuid, reason: cancelReason },
+      { onSuccess: () => { setActionState(null); setCancelReason(''); } }
     );
   };
 
   return (
     <div className="space-y-6">
+      {/* EC-CORR-002 Warning: Replying to cancelled document */}
+      {status === 'CANCELLED' && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-md">
+          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold text-amber-800">This correspondence has been cancelled</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              You can still create a new correspondence referencing this document to acknowledge the cancellation.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header / Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -82,7 +96,6 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          {/* EDIT BUTTON LOGIC: Show if DRAFT */}
           {status === 'DRAFT' && (
             <Link href={`/correspondences/${data.uuid}/edit`}>
               <Button variant="outline">
@@ -91,7 +104,6 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
               </Button>
             </Link>
           )}
-
           {status === 'DRAFT' && (
             <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
               {submitMutation.isPending ? (
@@ -114,11 +126,21 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
               </Button>
             </>
           )}
+          {status !== 'CANCELLED' && (
+            <Button
+              variant="outline"
+              className="text-destructive border-destructive hover:bg-destructive/10"
+              onClick={() => setActionState('cancel')}
+            >
+              <Ban className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Action Input Area */}
-      {actionState && (
+      {/* Approve / Reject Input Area */}
+      {(actionState === 'approve' || actionState === 'reject') && (
         <Card className="border-primary">
           <CardHeader>
             <CardTitle className="text-lg">
@@ -136,7 +158,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setActionState(null)}>
-                Cancel
+                Back
               </Button>
               <Button
                 variant={actionState === 'approve' ? 'default' : 'destructive'}
@@ -146,6 +168,48 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
               >
                 {processMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirm {actionState === 'approve' ? 'Approve' : 'Reject'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Cancel Confirmation (EC-CORR-001) */}
+      {actionState === 'cancel' && (
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-lg text-destructive flex items-center gap-2">
+              <Ban className="h-5 w-5" />
+              Cancel Correspondence
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm">
+              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-amber-800">
+                Cancelling will permanently change this document&apos;s status and force-close any active circulations
+                linked to it. This action cannot be undone.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Reason for Cancellation <span className="text-destructive">*</span></Label>
+              <Input
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Enter reason for cancellation..."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => { setActionState(null); setCancelReason(''); }}>
+                Back
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCancel}
+                disabled={cancelMutation.isPending || !cancelReason.trim()}
+              >
+                {cancelMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirm Cancellation
               </Button>
             </div>
           </CardContent>
@@ -163,11 +227,12 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{description}</p>
-              </div>
-
+              {description && description !== '-' && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-gray-700 whitespace-pre-wrap">{description}</p>
+                </div>
+              )}
               {currentRevision?.body && (
                 <div>
                   <h3 className="font-semibold mb-2">Content</h3>
@@ -176,7 +241,6 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
                   </div>
                 </div>
               )}
-
               {currentRevision?.remarks && (
                 <div>
                   <h3 className="font-semibold mb-2">Remarks</h3>
@@ -188,11 +252,11 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
               <div>
                 <h3 className="font-semibold mb-3">Attachments</h3>
-                {attachments && attachments.length > 0 ? (
+                {attachments.length > 0 ? (
                   <div className="grid gap-2">
                     {attachments.map((file, index) => (
                       <div
-                        key={file.id || index}
+                        key={file.uuid || index}
                         className="flex items-center justify-between p-3 border rounded-lg bg-muted/20"
                       >
                         <div className="flex items-center gap-3">
@@ -215,46 +279,121 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
           </Card>
         </div>
 
-        {/* Sidebar Info */}
+        {/* Sidebar */}
         <div className="space-y-6">
+          {/* Core Info */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 text-sm">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Importance</p>
-                <div className="mt-1">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${
-                      importance === 'URGENT'
-                        ? 'bg-red-100 text-red-800'
-                        : importance === 'HIGH'
-                          ? 'bg-orange-100 text-orange-800'
-                          : 'bg-blue-100 text-blue-800'
-                    }`}
-                  >
-                    {String(importance)}
-                  </span>
+                <p className="font-medium text-muted-foreground">Importance</p>
+                <span
+                  className={`inline-flex items-center mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium
+                    ${importance === 'URGENT' ? 'bg-red-100 text-red-800'
+                      : importance === 'HIGH' ? 'bg-orange-100 text-orange-800'
+                      : 'bg-blue-100 text-blue-800'}`}
+                >
+                  {String(importance)}
+                </span>
+              </div>
+
+              <div>
+                <p className="font-medium text-muted-foreground">Document Type</p>
+                <p className="mt-1">{data.type?.typeName || '-'} <span className="text-xs text-muted-foreground">({data.type?.typeCode || '-'})</span></p>
+              </div>
+
+              <hr />
+
+              <div>
+                <p className="font-medium text-muted-foreground">Originator (From)</p>
+                <p className="font-semibold mt-1">{data.originator?.organizationName || '-'}</p>
+                <p className="text-xs text-muted-foreground">{data.originator?.organizationCode}</p>
+              </div>
+
+              <div>
+                <p className="font-medium text-muted-foreground">To</p>
+                {toRecipients.length > 0 ? (
+                  <div className="mt-1 space-y-1">
+                    {toRecipients.map((r) => (
+                      <div key={r.recipientOrganizationId}>
+                        <p className="font-semibold">{r.recipientOrganization?.organizationName || '-'}</p>
+                        <p className="text-xs text-muted-foreground">{r.recipientOrganization?.organizationCode}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-muted-foreground">-</p>
+                )}
+              </div>
+
+              {ccRecipients.length > 0 && (
+                <div>
+                  <p className="font-medium text-muted-foreground">CC</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {ccRecipients.map((r) => (
+                      <Badge key={r.recipientOrganizationId} variant="secondary" className="text-xs">
+                        {r.recipientOrganization?.organizationCode || '-'}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <hr className="my-4 border-t" />
-
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Originator</p>
-                <p className="font-medium mt-1">{data.originator?.organizationName || '-'}</p>
-                <p className="text-xs text-muted-foreground">{data.originator?.organizationCode || '-'}</p>
-              </div>
+              <hr />
 
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Project</p>
-                <p className="font-medium mt-1">{data.project?.projectName || '-'}</p>
-                <p className="text-xs text-muted-foreground">{data.project?.projectCode || '-'}</p>
+                <p className="font-medium text-muted-foreground">Project</p>
+                <p className="font-semibold mt-1">{data.project?.projectName || '-'}</p>
+                <p className="text-xs text-muted-foreground">{data.project?.projectCode}</p>
               </div>
             </CardContent>
           </Card>
+
+          {/* Dates */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Dates</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {(
+                [
+                  { label: 'Document Date', value: currentRevision?.documentDate },
+                  { label: 'Issued Date', value: currentRevision?.issuedDate },
+                  { label: 'Received Date', value: currentRevision?.receivedDate },
+                  { label: 'Due Date', value: currentRevision?.dueDate },
+                ] as { label: string; value?: string }[]
+              ).map(({ label, value }) => (
+                <div key={label} className="flex justify-between">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className={`font-medium ${label === 'Due Date' && value && new Date(value) < new Date() && status !== 'CANCELLED' ? 'text-destructive' : ''}`}>
+                    {value ? format(new Date(value), 'dd MMM yyyy') : '-'}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Circulations */}
+          <CirculationStatusCard correspondenceUuid={data.uuid} />
+
+          {/* Tags */}
+          <TagManager
+            uuid={data.uuid}
+            canEdit={status !== 'CANCELLED'}
+          />
+
+          {/* References */}
+          <ReferenceSelector
+            uuid={data.uuid}
+            canEdit={status !== 'CANCELLED'}
+          />
+
+          {/* Revision History */}
+          {data.revisions && data.revisions.length > 0 && (
+            <RevisionHistory revisions={data.revisions} />
+          )}
         </div>
       </div>
     </div>

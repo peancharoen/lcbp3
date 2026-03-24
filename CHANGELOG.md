@@ -2,6 +2,63 @@
 
 ## [Unreleased]
 
+### Correspondence Module — Phase 7 Complete (2026-03-24)
+
+#### 📧 **Email Notification Wiring** (Phase 7.1)
+
+- **Changed**: Notification `type` on correspondence events: `'SYSTEM'` → `'EMAIL'` in 3 places
+  - `correspondence.service.ts` — cancel event
+  - `correspondence-workflow.service.ts` — submit event (recipient orgs)
+  - `due-date-reminder.service.ts` — due date cron
+- **Effect**: `NotificationProcessor` now also dispatches Nodemailer email (immediate or digest per user preference) alongside in-app + WebSocket push
+
+#### 🧪 **Unit Tests** (Phase 7.2)
+
+- **Backend** (`due-date-reminder.service.spec.ts` — 8 tests):
+  - No revisions → no notifications
+  - Skip: no correspondence, CANCELLED, CLBOWN, no doc-control user found
+  - Happy path: correct `userId`, `type: 'EMAIL'`, `link`, `entityId`
+  - Error isolation: one failed revision doesn't stop others
+  - `daysLeft` message format validation
+- **Frontend** (`hooks/__tests__/use-circulation.test.ts` — 5 tests):
+  - Cache key generation for `circulationKeys.byCorrespondence()`
+  - Successful fetch, disabled when UUID empty, error handling, query key assertion
+
+#### 📦 **Bulk Operations** (Phase 7.3)
+
+- **Backend**: `BulkCancelDto` (`uuids[]` + `reason`) → `POST /correspondences/bulk-cancel` (returns `{ succeeded[], failed[] }`)
+- **Backend**: `GET /correspondences/export-csv` — streams UTF-8 BOM CSV with all filtered correspondence data
+- **Frontend**: **Export CSV** button in `/correspondences` filter bar — respects active search/status/revision filters, triggers browser download
+
+### Correspondence Module — Phase 6 Complete (2026-03-24)
+
+#### 🔖 **Tag Manager** (Phase 5 → 6 bridge)
+
+- **New Entity**: `CorrespondenceTag` (`correspondence_tags` junction table) — composite PK, eager-loads `Tag`
+- **Backend**: `getTags()`, `addTag()`, `removeTag()` in `CorrespondenceService`; `GET/POST/DELETE /:uuid/tags` endpoints
+- **Frontend**: `correspondenceService.getTags/addTag/removeTag` → `useCorrespondenceTags`, `useAddTag`, `useRemoveTag` hooks → `TagManager` component in detail sidebar
+
+#### 🔍 **Search Enhancement** (Phase 6.1)
+
+- **Backend**: Added `status` filter to `SearchQueryDto` and `SearchService.search()` ES query
+- **Frontend**: `SearchFilters` now controlled (accepts `filters` prop), proper status codes (`SUBOWN`, `CLBOWN`, `CCBOWN`), active filter badge count
+- **Frontend**: Added pagination (Prev/Next) to `/search` page with `PAGE_SIZE = 20`
+- **Frontend**: Improved result cards — type-colored icons, color-coded status badges, doc number prominence, correct drawing links
+
+#### 🔄 **Circulation Status Card** (Phase 6.2)
+
+- **Backend**: Added `correspondenceUuid` filter to `SearchCirculationDto`; `findAll` now joins correspondence + routings when filtering by UUID
+- **Frontend**: `circulationService.getByCorrespondenceUuid()` → `useCirculationsByCorrespondence` hook → `CirculationStatusCard` component showing per-circulation status + routing assignees in correspondence detail sidebar
+
+#### 📜 **Revision History UI** (Phase 6.3)
+
+- **Frontend**: `RevisionHistory` component — vertical timeline showing all revisions sorted desc, active revision marker, color-coded status, date + remarks; rendered from existing `data.revisions` (no new endpoint needed)
+
+#### ⏰ **Due Date Reminder Cron** (Phase 6.4)
+
+- **Backend**: Registered `ScheduleModule.forRoot()` in `AppModule`
+- **Backend**: `DueDateReminderService` — `@Cron(EVERY_DAY_AT_8AM)` queries revisions where `dueDate` between now and +3 days, skips CANCELLED/CLBOWN, sends in-app notification via `NotificationService` with link to correspondence
+
 ### CI/CD & Deployment Simplification (2026-03-24)
 
 #### 🚀 **deploy.sh v2.0 — Rewrote deployment script**

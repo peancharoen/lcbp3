@@ -5,6 +5,7 @@ export interface SearchCorrespondenceDto {
   typeId?: number; // กรองตามประเภทเอกสาร
   projectId?: number; // กรองตามโครงการ
   statusId?: number; // กรองตามสถานะ (จาก Revision ปัจจุบัน)
+  status?: string; // กรองตามสถานะ code string (เช่น DRAFT, IN_REVIEW)
   revisionStatus?: 'CURRENT' | 'ALL' | 'OLD'; // กรองตามสถานะ Revision
 
   // เพิ่มเติมสำหรับการแบ่งหน้า (Pagination)

@@ -25,6 +25,9 @@ export interface CorrespondenceRevision {
   body?: string;
   remarks?: string;
   dueDate?: string;
+  documentDate?: string;
+  issuedDate?: string;
+  receivedDate?: string;
   schemaVersion?: number;
   description?: string;
   isCurrent: boolean;

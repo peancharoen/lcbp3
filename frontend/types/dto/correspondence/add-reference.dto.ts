@@ -1,11 +1,11 @@
 // File: src/types/dto/correspondence/add-reference.dto.ts
 
 export interface AddReferenceDto {
-  /** ID ของเอกสารที่ต้องการอ้างอิงถึง */
-  targetId: number;
+  /** UUID ของเอกสารที่ต้องการอ้างอิงถึง (ADR-019) */
+  targetUuid: string;
 }
 
 export interface RemoveReferenceDto {
-  /** ID ของเอกสารที่ต้องการลบการอ้างอิง */
-  targetId: number;
+  /** UUID ของเอกสารที่ต้องการลบการอ้างอิง (ADR-019) */
+  targetUuid: string;
 }

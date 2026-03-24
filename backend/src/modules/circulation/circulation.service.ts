@@ -95,13 +95,23 @@ export class CirculationService {
   }
 
   async findAll(searchDto: SearchCirculationDto, user: User) {
-    const { status, page = 1, limit = 20 } = searchDto;
+    const { status, correspondenceUuid, page = 1, limit = 20 } = searchDto;
     const query = this.circulationRepo
       .createQueryBuilder('c')
       .leftJoinAndSelect('c.creator', 'creator')
-      .where('c.organizationId = :orgId', {
+      .leftJoinAndSelect('c.routings', 'routings')
+      .leftJoinAndSelect('routings.assignee', 'assignee')
+      .leftJoinAndSelect('c.correspondence', 'correspondence');
+
+    if (correspondenceUuid) {
+      query.where('correspondence.uuid = :corrUuid', {
+        corrUuid: correspondenceUuid,
+      });
+    } else {
+      query.where('c.organizationId = :orgId', {
         orgId: user.primaryOrganizationId,
       });
+    }
 
     if (status) {
       query.andWhere('c.statusCode = :status', { status });

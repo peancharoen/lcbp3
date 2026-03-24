@@ -91,6 +91,25 @@ export function useDeleteCorrespondence() {
   });
 }
 
+export function useCancelCorrespondence() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ uuid, reason }: { uuid: string; reason: string }) =>
+      correspondenceService.cancel(uuid, reason),
+    onSuccess: (_, { uuid }) => {
+      toast.success('Correspondence cancelled successfully');
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.detail(uuid) });
+      queryClient.invalidateQueries({ queryKey: correspondenceKeys.lists() });
+    },
+    onError: (error: ApiError) => {
+      toast.error('Failed to cancel correspondence', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
 export function useSubmitCorrespondence() {
   const queryClient = useQueryClient();
 
@@ -104,6 +123,94 @@ export function useSubmitCorrespondence() {
     },
     onError: (error: ApiError) => {
       toast.error('Failed to submit correspondence', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
+export function useCorrespondenceTags(uuid: string) {
+  return useQuery({
+    queryKey: [...correspondenceKeys.detail(uuid), 'tags'] as const,
+    queryFn: () => correspondenceService.getTags(uuid),
+    enabled: !!uuid,
+  });
+}
+
+export function useAddTag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ uuid, tagId }: { uuid: string; tagId: number }) =>
+      correspondenceService.addTag(uuid, tagId),
+    onSuccess: (_, { uuid }) => {
+      toast.success('Tag added');
+      queryClient.invalidateQueries({ queryKey: [...correspondenceKeys.detail(uuid), 'tags'] });
+    },
+    onError: (error: ApiError) => {
+      toast.error('Failed to add tag', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
+export function useRemoveTag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ uuid, tagId }: { uuid: string; tagId: number }) =>
+      correspondenceService.removeTag(uuid, tagId),
+    onSuccess: (_, { uuid }) => {
+      toast.success('Tag removed');
+      queryClient.invalidateQueries({ queryKey: [...correspondenceKeys.detail(uuid), 'tags'] });
+    },
+    onError: (error: ApiError) => {
+      toast.error('Failed to remove tag', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
+export function useReferences(uuid: string) {
+  return useQuery({
+    queryKey: [...correspondenceKeys.detail(uuid), 'references'] as const,
+    queryFn: () => correspondenceService.getReferences(uuid),
+    enabled: !!uuid,
+  });
+}
+
+export function useAddReference() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ uuid, targetUuid }: { uuid: string; targetUuid: string }) =>
+      correspondenceService.addReference(uuid, { targetUuid }),
+    onSuccess: (_, { uuid }) => {
+      toast.success('Reference added successfully');
+      queryClient.invalidateQueries({ queryKey: [...correspondenceKeys.detail(uuid), 'references'] });
+    },
+    onError: (error: ApiError) => {
+      toast.error('Failed to add reference', {
+        description: error.response?.data?.message || 'Something went wrong',
+      });
+    },
+  });
+}
+
+export function useRemoveReference() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ uuid, targetUuid }: { uuid: string; targetUuid: string }) =>
+      correspondenceService.removeReference(uuid, targetUuid),
+    onSuccess: (_, { uuid }) => {
+      toast.success('Reference removed');
+      queryClient.invalidateQueries({ queryKey: [...correspondenceKeys.detail(uuid), 'references'] });
+    },
+    onError: (error: ApiError) => {
+      toast.error('Failed to remove reference', {
         description: error.response?.data?.message || 'Something went wrong',
       });
     },
