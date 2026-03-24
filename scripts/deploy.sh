@@ -68,6 +68,18 @@ echo "✓ Images built successfully"
 # Ensure target environment directory exists
 mkdir -p "$LCBP3_DIR/$TARGET"
 
+# Copy compose file from source to target directory
+SOURCE_COMPOSE="/share/np-dms/app/source/lcbp3/specs/04-Infrastructure-OPS/04-00-docker-compose/docker-compose-app.yml"
+TARGET_COMPOSE="$LCBP3_DIR/$TARGET/docker-compose.yml"
+
+if [ -f "$SOURCE_COMPOSE" ]; then
+    cp "$SOURCE_COMPOSE" "$TARGET_COMPOSE"
+    echo "✓ Compose file copied to $TARGET environment"
+else
+    echo "✗ Source compose file not found at $SOURCE_COMPOSE"
+    exit 1
+fi
+
 # Move correctly to target directory for docker-compose up
 cd "$LCBP3_DIR/$TARGET"
 
@@ -89,7 +101,7 @@ echo "[5/9] Waiting for services to be healthy..."
 sleep 15
 
 # Check backend health with proper container name
-BACKEND_CONTAINER="lcbp3-${TARGET}-backend"
+BACKEND_CONTAINER="backend"
 for i in {1..30}; do
     if docker exec "$BACKEND_CONTAINER" curl -f http://localhost:3000/health > /dev/null 2>&1 || \
        docker exec "$BACKEND_CONTAINER" curl -f http://localhost:3000/ping > /dev/null 2>&1; then
@@ -154,8 +166,8 @@ sleep 5
 VERIFY_SUCCESS=false
 
 # Method 1: Via NGINX container internal check
-if docker exec "$NGINX_CONTAINER" curl -f -k http://lcbp3-${TARGET}-backend:3000/health > /dev/null 2>&1 || \
-   docker exec "$NGINX_CONTAINER" curl -f -k http://lcbp3-${TARGET}-backend:3000/ping > /dev/null 2>&1; then
+if docker exec "$NGINX_CONTAINER" curl -f -k http://backend:3000/health > /dev/null 2>&1 || \
+   docker exec "$NGINX_CONTAINER" curl -f -k http://backend:3000/ping > /dev/null 2>&1; then
     echo "✓ New environment is responding via internal network"
     VERIFY_SUCCESS=true
 fi
