@@ -132,15 +132,13 @@ describe('correspondenceService', () => {
   });
 
   describe('removeReference', () => {
-    it('should call DELETE /correspondences/:uuid/references with body', async () => {
-      const referenceDto = { targetId: 2 };
+    it('should call DELETE /correspondences/:uuid/references/:targetUuid', async () => {
+      const targetUuid = 'target-uuid-2';
       vi.mocked(apiClient.delete).mockResolvedValue({ data: {} });
 
-      const result = await correspondenceService.removeReference('uuid-1', referenceDto);
+      const result = await correspondenceService.removeReference('uuid-1', targetUuid);
 
-      expect(apiClient.delete).toHaveBeenCalledWith('/correspondences/uuid-1/references', {
-        data: referenceDto,
-      });
+      expect(apiClient.delete).toHaveBeenCalledWith('/correspondences/uuid-1/references/target-uuid-2');
       expect(result).toEqual({});
     });
   });
