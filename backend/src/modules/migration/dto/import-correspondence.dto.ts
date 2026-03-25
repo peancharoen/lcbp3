@@ -9,7 +9,7 @@ import {
 export class ImportCorrespondenceDto {
   @IsString()
   @IsNotEmpty()
-  document_number!: string;
+  documentNumber!: string;
 
   @IsString()
   @IsNotEmpty()
@@ -21,26 +21,26 @@ export class ImportCorrespondenceDto {
 
   @IsString()
   @IsOptional()
-  source_file_path?: string;
+  sourceFilePath?: string;
 
   @IsNumber()
   @IsOptional()
-  temp_attachment_id?: number;
+  tempAttachmentId?: number;
 
   @IsNumber()
   @IsOptional()
-  ai_confidence?: number;
+  aiConfidence?: number;
 
   @IsOptional()
-  ai_issues?: Record<string, unknown>[];
+  aiIssues?: Record<string, unknown>[];
 
   @IsString()
   @IsNotEmpty()
-  migrated_by!: string; // "SYSTEM_IMPORT"
+  migratedBy!: string; // "SYSTEM_IMPORT"
 
   @IsString()
   @IsNotEmpty()
-  batch_id!: string;
+  batchId!: string;
 
   @IsObject()
   @IsOptional()
@@ -48,31 +48,31 @@ export class ImportCorrespondenceDto {
 
   @IsNumber()
   @IsNotEmpty()
-  project_id!: number;
+  projectId!: number;
 
   @IsString()
   @IsOptional()
-  issued_date?: string;
+  issuedDate?: string;
 
   @IsString()
   @IsOptional()
-  received_date?: string;
+  receivedDate?: string;
 
   @IsString()
   @IsOptional()
-  document_date?: string;
+  documentDate?: string;
 
   @IsNumber()
   @IsOptional()
-  discipline_id?: number;
+  disciplineId?: number;
 
   @IsNumber()
   @IsOptional()
-  sender_id?: number;
+  senderId?: number;
 
   @IsNumber()
   @IsOptional()
-  receiver_id?: number;
+  receiverId?: number;
 
   @IsString()
   @IsOptional()

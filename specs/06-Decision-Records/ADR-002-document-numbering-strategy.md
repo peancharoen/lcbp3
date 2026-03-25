@@ -225,13 +225,13 @@ The system resolves the numbering format using the following priority:
 
 1.  **Specific Format:** Search for a record matching both `project_id` and `correspondence_type_id`.
 2.  **Default Format:** If not found, search for a record with matching `project_id` where `correspondence_type_id` is `NULL`.
-3.  **System Fallback:** If neither exists, use the hardcoded system default: `{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}`.
+3.  **System Fallback:** If neither exists, use the hardcoded system default: `{ORG}-{RECIPIENT}-{SEQ:4}/{YEAR:BE}`.
 
 | Priority | Scenario              | Template Source                                     | Counter Scope (Key)           | Reset Behavior                      |
 | -------- | --------------------- | --------------------------------------------------- | ----------------------------- | ----------------------------------- |
 | 1        | Specific Format Found | Database (project_id, type_id)                      | Specific Type (type_id)       | Based on reset_sequence_yearly flag |
 | 2        | Default Format Found  | Database (project_id, type_id=NULL)                 | Shared Counter (type_id=NULL) | Based on reset_sequence_yearly flag |
-| 3        | Fallback (No Config)  | System Default: {ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE} | Shared Counter (type_id=NULL) | Reset Yearly (Default: True)        |
+| 3        | Fallback (No Config)  | System Default: {ORG}-{RECIPIENT}-{SEQ:4}/{YEAR:BE} | Shared Counter (type_id=NULL) | Reset Yearly (Default: True)        |
 
 ### Format Examples by Document Type
 

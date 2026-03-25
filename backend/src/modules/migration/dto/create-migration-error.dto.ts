@@ -4,22 +4,22 @@ import { MigrationErrorType } from '../entities/migration-error.entity';
 export class CreateMigrationErrorDto {
   @IsString()
   @IsOptional()
-  batch_id?: string;
+  batchId?: string;
 
   @IsString()
   @IsOptional()
-  document_number?: string;
+  documentNumber?: string;
 
   @IsString()
   @IsOptional()
   @IsEnum(MigrationErrorType)
-  error_type?: MigrationErrorType;
+  errorType?: MigrationErrorType;
 
   @IsString()
   @IsOptional()
-  error_message?: string;
+  errorMessage?: string;
 
   @IsString()
   @IsOptional()
-  raw_ai_response?: string;
+  rawAiResponse?: string;
 }

@@ -88,7 +88,7 @@ export class FormatService {
 
     // 3. Fallback
     return {
-      template: '{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}',
+      template: '{ORG}-{RECIPIENT}-{SEQ:4}/{YEAR:BE}',
       resetSequenceYearly: true,
       isDefault: true,
     };

@@ -10,7 +10,7 @@ import {
 export class EnqueueMigrationDto {
   @IsString()
   @IsNotEmpty()
-  document_number!: string;
+  documentNumber!: string;
 
   @IsString()
   @IsOptional()
@@ -18,7 +18,7 @@ export class EnqueueMigrationDto {
 
   @IsString()
   @IsOptional()
-  original_subject?: string;
+  originalSubject?: string;
 
   @IsString()
   @IsOptional()
@@ -30,27 +30,27 @@ export class EnqueueMigrationDto {
 
   @IsString()
   @IsOptional()
-  ai_summary?: string;
+  aiSummary?: string;
 
   @IsNumber()
   @IsOptional()
-  project_id?: number;
+  projectId?: number;
 
   @IsNumber()
   @IsOptional()
-  sender_org_id?: number;
+  senderOrgId?: number;
 
   @IsNumber()
   @IsOptional()
-  receiver_org_id?: number;
+  receiverOrgId?: number;
 
   @IsString()
   @IsOptional()
-  issued_date?: string;
+  issuedDate?: string;
 
   @IsString()
   @IsOptional()
-  received_date?: string;
+  receivedDate?: string;
 
   @IsString()
   @IsOptional()
@@ -58,18 +58,18 @@ export class EnqueueMigrationDto {
 
   @IsArray()
   @IsOptional()
-  extracted_tags?: Record<string, string>[];
+  extractedTags?: Record<string, string>[];
 
   @IsOptional()
   details?: Record<string, unknown>;
 
   @IsNumber()
   @IsOptional()
-  temp_attachment_id?: number;
+  tempAttachmentId?: number;
 
   @IsBoolean()
   @IsOptional()
-  is_valid?: boolean;
+  isValid?: boolean;
 
   @IsNumber()
   @IsOptional()
@@ -77,5 +77,5 @@ export class EnqueueMigrationDto {
 
   @IsArray()
   @IsOptional()
-  ai_issues?: Record<string, unknown>[];
+  aiIssues?: Record<string, unknown>[];
 }

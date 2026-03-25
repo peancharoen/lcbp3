@@ -676,6 +676,7 @@
     "workbench.preferredDarkColorTheme": "Default Dark Modern",
     "scm.alwaysShowActions": false,
     "workbench.settings.alwaysShowAdvancedSettings": true,
+    "npm.packageManager": "pnpm",
   },
   // ========================================
   // LAUNCH CONFIGURATIONS

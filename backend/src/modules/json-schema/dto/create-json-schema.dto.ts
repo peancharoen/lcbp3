@@ -14,23 +14,23 @@ import { Type } from 'class-transformer';
 export class VirtualColumnConfigDto {
   @IsString()
   @IsNotEmpty()
-  json_path!: string;
+  jsonPath!: string;
 
   @IsString()
   @IsNotEmpty()
-  column_name!: string;
+  columnName!: string;
 
   @IsString()
   @IsNotEmpty()
-  data_type!: 'INT' | 'VARCHAR' | 'BOOLEAN' | 'DATE' | 'DECIMAL' | 'DATETIME';
+  dataType!: 'INT' | 'VARCHAR' | 'BOOLEAN' | 'DATE' | 'DECIMAL' | 'DATETIME';
 
   @IsString()
   @IsOptional()
-  index_type?: 'INDEX' | 'UNIQUE' | 'FULLTEXT';
+  indexType?: 'INDEX' | 'UNIQUE' | 'FULLTEXT';
 
   @IsBoolean()
   @IsOptional()
-  is_required?: boolean;
+  isRequired?: boolean;
 }
 
 export class CreateJsonSchemaDto {

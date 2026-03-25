@@ -29,8 +29,8 @@ export interface RfaType {
 
 export interface Tag {
   id: number;
-  tag_name: string;
-  color_code?: string;
+  tagName: string;
+  colorCode?: string;
   description?: string;
 }
 

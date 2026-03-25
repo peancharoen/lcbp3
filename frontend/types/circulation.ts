@@ -22,15 +22,15 @@ export interface CirculationRouting {
   updatedAt: string;
   // Joined relations from API
   assignee?: {
-    user_id: number;
+    userId: number;
     username: string;
-    first_name?: string;
-    last_name?: string;
+    firstName?: string;
+    lastName?: string;
   };
   organization?: {
     id: number;
-    organization_code: string;
-    organization_name: string;
+    organizationCode: string;
+    organizationName: string;
   };
 }
 
@@ -55,20 +55,20 @@ export interface Circulation {
   correspondence?: {
     uuid: string;
     id?: number;
-    correspondence_number: string;
+    correspondenceNumber: string;
   };
   organization?: {
     uuid: string;
     id?: number;
-    organization_code: string;
-    organization_name: string;
+    organizationCode: string;
+    organizationName: string;
   };
   creator?: {
     uuid: string;
-    user_id?: number;
+    userId?: number;
     username: string;
-    first_name?: string;
-    last_name?: string;
+    firstName?: string;
+    lastName?: string;
   };
 }
 

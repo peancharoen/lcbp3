@@ -2,13 +2,13 @@
 
 export interface CreateTagDto {
   /** ID โครงการ (NULL = Global) */
-  project_id?: number | null;
+  projectId?: number | null;
 
   /** ชื่อ Tag (เช่น 'URGENT') */
-  tag_name: string;
+  tagName: string;
 
   /** รหัสสี หรือชื่อคลาสสำหรับ UI */
-  color_code?: string;
+  colorCode?: string;
 
   /** คำอธิบาย */
   description?: string;
@@ -18,7 +18,7 @@ export type UpdateTagDto = Partial<CreateTagDto>;
 
 export interface SearchTagDto {
   /** ID โครงการ (ใช้กรอง Tag ของแต่ละโปรเจกต์) */
-  project_id?: number;
+  projectId?: number;
 
   /** คำค้นหา (ชื่อ Tag หรือ คำอธิบาย) */
   search?: string;

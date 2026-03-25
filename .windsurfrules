@@ -282,11 +282,69 @@ onValueChange={(v) => setValue("projectId", parseInt(v))}
 - **Strict Mode** — all strict checks enforced.
 - **ZERO `any` types** — use proper types, generics, or `unknown` + type narrowing.
 - **ZERO `console.log`** — NestJS `Logger` service (backend); remove before commit (frontend).
-- Backend DTOs: fully typed with `class-validator` decorators.
-- Frontend forms: fully typed with `Zod` schemas.
-- Prefer `readonly` for immutable properties.
-- Use `satisfies` operator for type-checked object literals.
-- Use `RequestWithUser` typed interface in controllers — NEVER `req: any`.
+
+### 🟡 Tier 2 — IMPORTANT (CODE REVIEW)
+
+ตรวจใน PR review — ไม่ block build แต่ต้องแก้ก่อน merge:
+
+- Architecture patterns (thin controller, business logic ใน service)
+- Test coverage (80%+ business logic, 70%+ backend overall)
+- Cache invalidation
+- **Naming conventions** — ดูรายละเอียดที่ "🚨 Naming Conventions Pain Point" ด้านล่าง
+
+### 🟢 Tier 3 — GUIDELINES
+
+Best practice — ทำตามถ้าทำได้ ไม่ block:
+
+- Code style / formatting (Prettier จัดให้)
+- Comment completeness
+- Minor optimizations
+
+---
+
+## 🚨 Naming Conventions Pain Point (เรื่องที่ผิดบ่อยที่สุด)
+
+**สถานะ:** พบ violations จำนวนมากใน codebase — ต้อง fix ก่อน merge เสมอ
+
+**ข้อตกลงหลัก:**
+
+| Target              | Convention  | Example                     |
+| ------------------- | ----------- | --------------------------- |
+| **Files/Folders**   | kebab-case  | `user-service.ts`           |
+| **Classes**         | PascalCase  | `UserService`               |
+| **Variables/Functions** | camelCase   | `firstName`, `getUserInfo`  |
+| **DB Columns**      | snake_case  | `user_id`, `created_at`     |
+| **Boolean vars**    | verb + noun | `isActive`, `hasPermission` |
+| **Code**            | English     | All identifiers in English  |
+| **Comments/Docs**   | Thai        | ความคิดเห็นและเอกสารใช้ภาษาไทย |
+
+**❌ Common Violations พบบ่อย:**
+
+```typescript
+// ไฟล์: ใช้ PascalCase (ผิด) แทน kebab-case (ถูก)
+// ❌ 1701676800000-V1_5_1_Schema_Update.ts
+// ✅ 1701676800000-v1-5-1-schema-update.ts
+
+// DTOs/Entities: ใช้ snake_case (ผิด) แทน camelCase (ถูก)
+// ❌ document_number!: string;
+// ✅ documentNumber!: string;
+
+// ❌ temp_attachment_id?: number;
+// ✅ tempAttachmentId?: number;
+
+// ❌ project_id!: number;
+// ✅ projectId!: number;
+
+// Interface properties ต้อง camelCase เสมอ
+// ❌ workflow_code: string;
+// ✅ workflowCode: string;
+```
+
+**⚠️ ข้อควรระวัง:**
+- **DB Columns** ใช้ snake_case แต่ต้องอยู่ใน `@Column({ name: 'snake_case' })` decorator เท่านั้น
+- **Property names ใน TypeScript** ต้อง camelCase เสมอ — ไม่ว่าจะเป็น DTO, Entity, หรือ Interface
+- **Form field names** ใน React Hook Form + Zod ต้อง camelCase
+- **Type definitions** ทั้งหมดต้อง camelCase — ไม่มีข้อยกเว้น
 
 ---
 
@@ -771,45 +829,6 @@ async update(uuid: string, dto: UpdateDto) {
 - [ ] ใช้ `relations: [...]` แทน JOIN ซับซ้อนเมื่อไม่จำเป็น
 - [ ] ตรวจสอบ N+1 problem ด้วย `@UseInterceptors(LoggingInterceptor)`
 - [ ] ใช้ `take/skip` สำหรับ pagination เสมอ
-
----
-
-## 💬 Prompt Templates สำหรับถาม Windsurf
-
-### เมื่อต้องการสร้างฟีเจอร์ใหม่
-
-```
-[NEW FEATURE]
-Module: <module-name>
-Requirement: <อ้างอิง user story จาก 01-02-business-rules/>
-Steps:
-1. ตรวจสอบ glossary และ edge cases
-2. ออกแบบ DTO + Schema ตาม ADR-019
-3. สร้าง Service + Controller พร้อม CASL guard
-4. เขียน unit test สำหรับ business logic
-5. อัพเดท API docs (Swagger)
-Output: Code + Test + Spec reference
-```
-
-### เมื่อต้องการ debug
-
-```
-[DEBUG]
-Issue: <อธิบายปัญหา>
-File: <path/to/file>
-Error: <error message/log>
-Steps taken: <สิ่งที่ลองแก้ไขแล้ว>
-Request: วิเคราะห์ตาม spec + แนะนำวิธีแก้ที่สอดคล้องกับ ADRs
-```
-
-### เมื่อต้องการ review code
-
-```
-[CODE REVIEW]
-File: <path/to/file>
-Focus: <security/performance/uuid/i18n>
-Request: ตรวจสอบตาม spec + ADRs + Forbidden Actions table
-```
 
 ---
 

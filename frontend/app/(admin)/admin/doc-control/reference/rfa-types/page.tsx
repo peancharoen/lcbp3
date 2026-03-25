@@ -17,16 +17,16 @@ export default function RfaTypesPage() {
 
   const columns: ColumnDef<RfaType>[] = [
     {
-      accessorKey: 'type_code',
+      accessorKey: 'typeCode',
       header: 'Code',
-      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('type_code')}</span>,
+      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('typeCode')}</span>,
     },
     {
-      accessorKey: 'type_name_th',
+      accessorKey: 'typeNameTh',
       header: 'Name (TH)',
     },
     {
-      accessorKey: 'type_name_en',
+      accessorKey: 'typeNameEn',
       header: 'Name (EN)',
     },
     {
@@ -34,15 +34,15 @@ export default function RfaTypesPage() {
       header: 'Remark',
     },
     {
-      accessorKey: 'is_active',
+      accessorKey: 'isActive',
       header: 'Status',
       cell: ({ row }) => (
         <span
           className={`px-2 py-1 rounded-full text-xs ${
-            row.getValue('is_active') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            row.getValue('isActive') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
-          {row.getValue('is_active') ? 'Active' : 'Inactive'}
+          {row.getValue('isActive') ? 'Active' : 'Inactive'}
         </span>
       ),
     },

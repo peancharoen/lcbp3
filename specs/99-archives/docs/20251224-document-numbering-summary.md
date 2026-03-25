@@ -202,7 +202,7 @@ Result:   NAP-PAT-LET-67-0001
 
 1. **Specific Format**: project_id + correspondence_type_id
 2. **Default Format**: project_id + correspondence_type_id = NULL
-3. **Fallback**: `{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}`
+3. **Fallback**: `{ORG}-{RECIPIENT}-{SEQ:4}/{YEAR:BE}`
 
 ---
 

@@ -3,8 +3,8 @@ trigger: always_on
 ---
 # NAP-DMS Project Context & Rules
  - For: Gemeni CLI and Gemini.
- - Version: 1.8.3 (Enforcement Tiers Added) | Last synced from repo: 2026-03-21
- - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
+- Version: 1.8.4 (Accuracy Pass) | Last synced from repo: 2026-03-24
+- Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 
 ---
 
@@ -67,16 +67,16 @@ Best practice — ทำตามถ้าทำได้ ไม่ block:
 **LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)**
 ระบบบริหารจัดการเอกสารโครงการก่อสร้างท่าเรือแหลมฉบังระยะที่ 3
 **Version:** 1.8.3 (Enforcement Tiers Added) | **Status:** UAT In Progress, Security Hardened (2026-03-19)
-| Area          | Status                 | Notes                                                  |
+| Area | Status | Notes |
 | ------------- | ---------------------- | ------------------------------------------------------ |
-| Backend       | ✅ Production Ready     | NestJS 11, Express v5, 0 Vulnerabilities               |
-| Frontend      | ✅ Quality Hardened     | Next.js 16.2.0, React 19.2.4, 0 `any`, 0 `console.log` |
-| Database      | ✅ Schema v1.8.0 Stable | MariaDB 11.8, No-migration (ADR-009)                   |
-| Documentation | ✅ 10/10 Gaps Closed    | Product Vision → Release Policy                        |
-| AI Migration  | 🔄 Pre-migration Setup  | n8n + Ollama (ADR-017/018)                             |
-| Testing       | 🔄 UAT In Progress      | Per `01-05-acceptance-criteria.md`                     |
-| Deployment    | 📋 Pending Go-Live Gate | Blue-Green, QNAP Container Station                     |
-| ADR-019 UUID  | 🔄 Phase 5.4 Pending    | 4 frontend files still use `parseInt()` on UUID        |
+| Backend | ✅ Production Ready | NestJS 11, Express v5, 0 Vulnerabilities |
+| Frontend | ✅ Quality Hardened | Next.js 16.2.0, React 19.2.4, 0 `any`, 0 `console.log` |
+| Database | ✅ Schema v1.8.0 Stable | MariaDB 11.8, No-migration (ADR-009) |
+| Documentation | ✅ 10/10 Gaps Closed | Product Vision → Release Policy |
+| AI Migration | 🔄 Pre-migration Setup | n8n + Ollama (ADR-017/018) |
+| Testing | 🔄 UAT In Progress | Per `01-05-acceptance-criteria.md` |
+| Deployment | 📋 Pending Go-Live Gate | Blue-Green, QNAP Container Station |
+| ADR-019 UUID | ✅ All Phases Complete | Phase 5.4 done — all UUID FK issues resolved |
 **Domain:** `np-dms.work`
 
 ---
@@ -99,7 +99,7 @@ Best practice — ทำตามถ้าทำได้ ไม่ block:
 ### Frontend
 
 - **Next.js 16.2.0** (App Router + `proxy.ts`) + **React 19.2.4**
-- **Tailwind CSS 4.2.2** + **Shadcn/UI**
+- **Tailwind CSS 3.4.3** + **Shadcn/UI**
 - **TanStack Query** — **Server State only**
 - **Zustand** — **Client State only**
 - **React Hook Form 7.71.2** + **Zod 4.3.6** + **@hookform/resolvers 3.9.0** — **Form State only**
@@ -125,7 +125,7 @@ Best practice — ทำตามถ้าทำได้ ไม่ block:
 
 ### Security Overrides (pnpm overrides active in root `package.json`)
 
-- `uuid@11.0.0`, `multer@>=2.1.1`, `undici@>=7.24.0`, `axios@>=1.13.5` — patched
+- 30+ security overrides active (`multer@>=2.1.1`, `undici@>=7.24.0`, `axios@>=1.13.5`, etc.)
 - All 52 vulnerabilities resolved as of 2026-03-19 (27 high + 20 moderate + 5 low)
 
 ---
@@ -133,23 +133,23 @@ Best practice — ทำตามถ้าทำได้ ไม่ block:
 ## 🗂️ Key Spec Files (Always Check Before Writing Code)
 
 Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
-| เอกสาร                    | Path (relative to `specs/`)                                          | ใช้เมื่อ                               |
+| เอกสาร | Path (relative to `specs/`) | ใช้เมื่อ |
 | ------------------------- | -------------------------------------------------------------------- | ----------------------------------- |
-| **Glossary**              | `00-Overview/00-02-glossary.md`                                      | ตรวจคำศัพท์ Domain ก่อนเขียนเสมอ         |
-| **Schema Tables**         | `03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`              | ก่อนเขียน Query ทุกครั้ง                 |
-| **Data Dictionary**       | `03-Data-and-Storage/03-01-data-dictionary.md`                       | ตรวจ Field Meaning + Business Rules |
-| **Seed Permissions**      | `03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql`              | ตรวจ CASL Permission Matrix         |
-| **Edge Cases (37 rules)** | `01-Requirements/01-06-edge-cases-and-rules.md`                      | ป้องกัน Bug ทุก Flow                   |
-| **Migration Scope**       | `03-Data-and-Storage/03-06-migration-business-scope.md`              | งาน Migration Bot (20K docs)        |
-| **Release Policy**        | `04-Infrastructure-OPS/04-08-release-management-policy.md`           | ก่อน Deploy / Hotfix                 |
-| **UAT Criteria**          | `01-Requirements/01-05-acceptance-criteria.md`                       | ตรวจความสมบูรณ์ Feature               |
-| **UUID Implementation**   | `05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` | ADR-019 UUID Migration (Phase 1–6)  |
-| **Backend Guidelines**    | `05-Engineering-Guidelines/05-02-backend-guidelines.md`              | NestJS patterns & best practices    |
-| **Frontend Guidelines**   | `05-Engineering-Guidelines/05-03-frontend-guidelines.md`             | Next.js patterns & best practices   |
-| **Testing Strategy**      | `05-Engineering-Guidelines/05-04-testing-strategy.md`                | Coverage goals & test patterns      |
-| **ADR-009 DB Strategy**   | `06-Decision-Records/ADR-009-db-strategy.md`                         | Schema Change Process               |
-| **ADR-018 AI Boundary**   | `06-Decision-Records/ADR-018-ai-boundary.md`                         | AI/Ollama Integration Rules         |
-| **ADR-019 Hybrid ID**     | `06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`          | Hybrid ID Strategy (INT + UUIDv7)   |
+| **Glossary** | `00-Overview/00-02-glossary.md` | ตรวจคำศัพท์ Domain ก่อนเขียนเสมอ |
+| **Schema Tables** | `03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` | ก่อนเขียน Query ทุกครั้ง |
+| **Data Dictionary** | `03-Data-and-Storage/03-01-data-dictionary.md` | ตรวจ Field Meaning + Business Rules |
+| **Seed Permissions** | `03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` | ตรวจ CASL Permission Matrix |
+| **Edge Cases (37 rules)** | `01-Requirements/01-06-edge-cases-and-rules.md` | ป้องกัน Bug ทุก Flow |
+| **Migration Scope** | `03-Data-and-Storage/03-06-migration-business-scope.md` | งาน Migration Bot (20K docs) |
+| **Release Policy** | `04-Infrastructure-OPS/04-08-release-management-policy.md` | ก่อน Deploy / Hotfix |
+| **UAT Criteria** | `01-Requirements/01-05-acceptance-criteria.md` | ตรวจความสมบูรณ์ Feature |
+| **UUID Implementation** | `05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` | ADR-019 UUID Migration (Phase 1–6) |
+| **Backend Guidelines** | `05-Engineering-Guidelines/05-02-backend-guidelines.md` | NestJS patterns & best practices |
+| **Frontend Guidelines** | `05-Engineering-Guidelines/05-03-frontend-guidelines.md` | Next.js patterns & best practices |
+| **Testing Strategy** | `05-Engineering-Guidelines/05-04-testing-strategy.md` | Coverage goals & test patterns |
+| **ADR-009 DB Strategy** | `06-Decision-Records/ADR-009-db-strategy.md` | Schema Change Process |
+| **ADR-018 AI Boundary** | `06-Decision-Records/ADR-018-ai-boundary.md` | AI/Ollama Integration Rules |
+| **ADR-019 Hybrid ID** | `06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | Hybrid ID Strategy (INT + UUIDv7) |
 
 ### Specs Directory Structure (Brief)
 
@@ -163,7 +163,7 @@ specs/
 ├── 03-Data-and-Storage/  # Schema v1.8.0 (3 files), Seed Data, Data Dictionary, Migration Scope
 ├── 04-Infrastructure-OPS/# Docker, Monitoring, Deployment, Incident Response, Release Policy
 ├── 05-Engineering-Guidelines/ # Fullstack, Backend, Frontend, Testing, UUID Implementation
-├── 06-Decision-Records/  # 19 ADRs (ADR-001 to ADR-019)
+├── 06-Decision-Records/  # 16 ADRs defined (15 with file, ADR-003/004/007 not created)
 └── 99-archives/          # ประวัติ tasks เก่า
 ```
 
@@ -173,28 +173,30 @@ Schema is split — modify the correct file:
 - `lcbp3-v1.8.0-schema-02-tables.sql` ← **primary reference for all queries**
 - `lcbp3-v1.8.0-schema-03-views-indexes.sql`
 
+> **UUID Storage (MariaDB-specific):** Column type is `uuid UUID NOT NULL DEFAULT UUID()` — MariaDB native UUID, NOT MySQL's `BINARY(16)` + `UUID_TO_BIN()`/`BIN_TO_UUID()`. No transformer needed. `x.uuid` in Views directly (no conversion function).
+
 ---
 
-## 📐 ADR Reference (19 total)
+## 📐 ADR Reference (16 defined)
 
-| ADR     | Topic                      | Key Decision                                       |
-| ------- | -------------------------- | -------------------------------------------------- |
-| ADR-001 | Workflow Engine            | Unified state machine for document workflows       |
-| ADR-002 | Doc Numbering              | Redis Redlock + DB optimistic locking              |
-| ADR-005 | Technology Stack           | NestJS + Next.js + MariaDB + Redis                 |
-| ADR-006 | Redis Caching              | Cache strategy and invalidation patterns           |
-| ADR-008 | Email Notification         | BullMQ queue-based email/LINE/in-app               |
-| ADR-009 | DB Strategy                | No TypeORM migrations — modify schema SQL directly |
-| ADR-010 | Logging/Monitoring         | Prometheus + Loki + Grafana stack                  |
-| ADR-011 | App Router                 | Next.js App Router with RSC patterns               |
-| ADR-012 | UI Components              | Shadcn/UI component library                        |
-| ADR-013 | Form Handling              | React Hook Form + Zod validation                   |
-| ADR-014 | State Management           | TanStack Query (server) + Zustand (client)         |
-| ADR-015 | Deployment                 | Docker Compose + Gitea CI/CD                       |
-| ADR-016 | Security                   | JWT + CASL RBAC + Helmet.js + ClamAV               |
-| ADR-017 | Ollama Migration           | Local AI + n8n for legacy data import (~20K docs)  |
-| ADR-018 | AI Boundary (Patch 1.8.1)  | AI isolation — no direct DB/storage access         |
-| ADR-019 | Hybrid Identifier Strategy | INT PK (internal) + UUIDv7 BINARY(16) (public API) |
+| ADR     | Topic                      | Key Decision                                                |
+| ------- | -------------------------- | ----------------------------------------------------------- |
+| ADR-001 | Workflow Engine            | Unified state machine for document workflows                |
+| ADR-002 | Doc Numbering              | Redis Redlock + DB optimistic locking                       |
+| ADR-005 | Technology Stack           | NestJS + Next.js + MariaDB + Redis                          |
+| ADR-006 | Redis Caching              | Cache strategy and invalidation patterns                    |
+| ADR-008 | Email Notification         | BullMQ queue-based email/LINE/in-app                        |
+| ADR-009 | DB Strategy                | No TypeORM migrations — modify schema SQL directly          |
+| ADR-010 | Logging/Monitoring         | Prometheus + Loki + Grafana stack                           |
+| ADR-011 | App Router                 | Next.js App Router with RSC patterns                        |
+| ADR-012 | UI Components              | Shadcn/UI component library                                 |
+| ADR-013 | Form Handling              | React Hook Form + Zod validation                            |
+| ADR-014 | State Management           | TanStack Query (server) + Zustand (client)                  |
+| ADR-015 | Deployment                 | Docker Compose + Gitea CI/CD                                |
+| ADR-016 | Security                   | JWT + CASL RBAC + Helmet.js + ClamAV                        |
+| ADR-017 | Ollama Migration           | Local AI + n8n for legacy data import (~20K docs)           |
+| ADR-018 | AI Boundary (Patch 1.8.1)  | AI isolation — no direct DB/storage access                  |
+| ADR-019 | Hybrid Identifier Strategy | INT PK (internal) + UUIDv7 MariaDB native UUID (public API) |
 
 ---
 
@@ -203,26 +205,26 @@ Schema is split — modify the correct file:
 ### Rule Summary
 
 - **Internal / DB FK:** `INT AUTO_INCREMENT` (Primary Key) — never exposed
-- **Public API / URL:** `UUIDv7` stored as `BINARY(16)`
+- **Public API / URL:** `UUIDv7` stored as MariaDB native `UUID` type (auto-stored as BINARY(16), no transformer needed)
 - Read `05-07-hybrid-uuid-implementation-plan.md` before any UUID-related work.
 
-### ⚠️ Phase 5.4 — Pending Fix (as of 2026-03-20)
+### ✅ Phase 5.4 — COMPLETED (2026-03-21)
 
-These files still call `parseInt()` on UUID values — **fix when touching these files**:
+All UUID FK issues resolved — no more `parseInt()` on UUID values:
 
-- `frontend/components/correspondences/form.tsx`
-- `frontend/components/user-dialog.tsx`
-- `frontend/components/numbering/template-tester.tsx`
-- `frontend/app/(dashboard)/rfas/page.tsx`
+- `frontend/components/correspondences/form.tsx` ✅ fixed
+- `frontend/components/admin/user-dialog.tsx` ✅ fixed
+- `frontend/components/numbering/template-tester.tsx` ✅ fixed
+- `frontend/app/(dashboard)/rfas/page.tsx` ✅ fixed
 
 ### UUID Serialization Behavior (TransformInterceptor)
 
 `TransformInterceptor` uses `instanceToPlain()` — `@Exclude()` and `@Expose()` decorators are active on all responses.
-| Entity Type        | Behavior                                                               |
+| Entity Type | Behavior |
 | ------------------ | ---------------------------------------------------------------------- |
-| All entities       | INT `id` has `@Exclude()` → **never appears in API response**          |
+| All entities | INT `id` has `@Exclude()` → **never appears in API response** |
 | Project / Contract | `uuid` has `@Expose({ name: 'id' })` → response has `id` = UUID string |
-| Other entities     | Separate `uuid` field → response has `uuid`, no `id`                   |
+| Other entities | Separate `uuid` field → response has `uuid`, no `id` |
 
 ### UUID Patterns (Backend Controller)
 
@@ -283,42 +285,87 @@ onValueChange={(v) => setValue("projectId", parseInt(v))}
 - **Strict Mode** — all strict checks enforced.
 - **ZERO `any` types** — use proper types, generics, or `unknown` + type narrowing.
 - **ZERO `console.log`** — NestJS `Logger` service (backend); remove before commit (frontend).
-- Backend DTOs: fully typed with `class-validator` decorators.
-- Frontend forms: fully typed with `Zod` schemas.
-- Prefer `readonly` for immutable properties.
-- Use `satisfies` operator for type-checked object literals.
-- Use `RequestWithUser` typed interface in controllers — NEVER `req: any`.
+
+### 🟡 Tier 2 — IMPORTANT (CODE REVIEW)
+
+ตรวจใน PR review — ไม่ block build แต่ต้องแก้ก่อน merge:
+
+- Architecture patterns (thin controller, business logic ใน service)
+- Test coverage (80%+ business logic, 70%+ backend overall)
+- Cache invalidation
+- **Naming conventions** — ดูรายละเอียดที่ "🚨 Naming Conventions Pain Point" ด้านล่าง
+
+### 🟢 Tier 3 — GUIDELINES
+
+Best practice — ทำตามถ้าทำได้ ไม่ block:
+
+- Code style / formatting (Prettier จัดให้)
+- Comment completeness
+- Minor optimizations
 
 ---
 
-## 📝 Naming Conventions
+## � Naming Conventions Pain Point (เรื่องที่ผิดบ่อยที่สุด)
 
-| Target              | Convention  | Example                     |
-| ------------------- | ----------- | --------------------------- |
-| Files               | kebab-case  | `user-service.ts`           |
-| Classes             | PascalCase  | `UserService`               |
-| Variables           | camelCase   | `firstName`                 |
-| DB Properties       | snake_case  | `user_id`, `created_at`     |
-| Boolean vars        | verb + noun | `isActive`, `hasPermission` |
-| **Code**            | English     | All identifiers in English  |
-| **Comments / Docs** | Thai        | ความคิดเห็นและเอกสารใช้ภาษาไทย |
+**สถานะ:** พบ violations จำนวนมากใน codebase — ต้อง fix ก่อน merge เสมอ
+
+**ข้อตกลงหลัก:**
+
+| Target                  | Convention  | Example                        |
+| ----------------------- | ----------- | ------------------------------ |
+| **Files/Folders**       | kebab-case  | `user-service.ts`              |
+| **Classes**             | PascalCase  | `UserService`                  |
+| **Variables/Functions** | camelCase   | `firstName`, `getUserInfo`     |
+| **DB Columns**          | snake_case  | `user_id`, `created_at`        |
+| **Boolean vars**        | verb + noun | `isActive`, `hasPermission`    |
+| **Code**                | English     | All identifiers in English     |
+| **Comments/Docs**       | Thai        | ความคิดเห็นและเอกสารใช้ภาษาไทย |
+
+**❌ Common Violations พบบ่อย:**
+
+```typescript
+// ไฟล์: ใช้ PascalCase (ผิด) แทน kebab-case (ถูก)
+// ❌ 1701676800000-V1_5_1_Schema_Update.ts
+// ✅ 1701676800000-v1-5-1-schema-update.ts
+
+// DTOs/Entities: ใช้ snake_case (ผิด) แทน camelCase (ถูก)
+// ❌ document_number!: string;
+// ✅ documentNumber!: string;
+
+// ❌ temp_attachment_id?: number;
+// ✅ tempAttachmentId?: number;
+
+// ❌ project_id!: number;
+// ✅ projectId!: number;
+
+// Interface properties ต้อง camelCase เสมอ
+// ❌ workflow_code: string;
+// ✅ workflowCode: string;
+```
+
+**⚠️ ข้อควรระวัง:**
+
+- **DB Columns** ใช้ snake_case แต่ต้องอยู่ใน `@Column({ name: 'snake_case' })` decorator เท่านั้น
+- **Property names ใน TypeScript** ต้อง camelCase เสมอ — ไม่ว่าจะเป็น DTO, Entity, หรือ Interface
+- **Form field names** ใน React Hook Form + Zod ต้อง camelCase
+- **Type definitions** ทั้งหมดต้อง camelCase — ไม่มีข้อยกเว้น
 
 ---
 
 ## 🏷️ Domain Terminology (Glossary)
 
 อ้างอิง `specs/00-Overview/00-02-glossary.md` เสมอ — ใช้ term ผิดจะทำให้ spec ไม่ตรง
-| ✅ ใช้ (Correct)     | ❌ ห้ามใช้ (Wrong)                             |
+| ✅ ใช้ (Correct) | ❌ ห้ามใช้ (Wrong) |
 | ------------------ | ------------------------------------------- |
-| Correspondence     | Letter, Communication, Document (generic)   |
-| RFA                | Approval Request, Submit for Approval       |
-| Transmittal        | Delivery Note, Cover Letter                 |
-| Circulation        | Distribution, Routing                       |
-| Shop Drawing       | Construction Drawing (generic)              |
-| Contract Drawing   | Design Drawing, Blueprint                   |
-| Workflow Engine    | Approval Flow, Process Engine               |
-| Document Numbering | Document ID, Auto Number                    |
-| RBAC               | Permission System, Access Control (generic) |
+| Correspondence | Letter, Communication, Document (generic) |
+| RFA | Approval Request, Submit for Approval |
+| Transmittal | Delivery Note, Cover Letter |
+| Circulation | Distribution, Routing |
+| Shop Drawing | Construction Drawing (generic) |
+| Contract Drawing | Design Drawing, Blueprint |
+| Workflow Engine | Approval Flow, Process Engine |
+| Document Numbering | Document ID, Auto Number |
+| RBAC | Permission System, Access Control (generic) |
 
 ---
 
@@ -446,15 +493,15 @@ pnpm --filter frontend test:e2e     # E2E tests (Playwright)
 ```
 
 | Type       | ใช้เมื่อ                                 |
-| ---------- | ------------------------------------- |
-| `feat`     | เพิ่มฟีเจอร์ใหม่                           |
-| `fix`      | แก้ bug                                |
-| `refactor` | ปรับโครงสร้างโค้ด ไม่เปลี่ยน behavior       |
-| `docs`     | แก้ไขเอกสาร                            |
+| ---------- | ---------------------------------------- |
+| `feat`     | เพิ่มฟีเจอร์ใหม่                         |
+| `fix`      | แก้ bug                                  |
+| `refactor` | ปรับโครงสร้างโค้ด ไม่เปลี่ยน behavior    |
+| `docs`     | แก้ไขเอกสาร                              |
 | `test`     | เพิ่ม/แก้ test                           |
-| `chore`    | งาน infra, config, dependency updates |
+| `chore`    | งาน infra, config, dependency updates    |
 | `style`    | Formatting, linting (ไม่เปลี่ยน logic)   |
-| `spec`     | แก้ไข specs/ documents                 |
+| `spec`     | แก้ไข specs/ documents                   |
 | `adr`      | เพิ่ม/แก้ไข Architecture Decision Record |
 
 **ตัวอย่าง:**
@@ -491,12 +538,17 @@ adr/019-uuid-serialization-behavior
 
 `.windsurf/workflows/` — ใช้สำหรับ repeatable / complex tasks เช่น:
 
-- UUID migration fixes (Phase 5.4)
+- ADR-019 UUID pattern verification
 - Spec review & gap analysis
 - Security audit checklist
 - Release gate verification
-  เมื่อ task ซับซ้อนและทำซ้ำได้ ให้ดู `.windsurf/workflows/` ก่อนเขียน code ใหม่
-  ---## 🚀 Deployment Rules (ADR-015)
+
+เมื่อ task ซับซ้อนและทำซ้ำได้ ให้ดู `.windsurf/workflows/` ก่อนเขียน code ใหม่
+
+---
+
+## 🚀 Deployment Rules (ADR-015)
+
 - Docker Compose on **QNAP Container Station** (production).
 - **NO `.env` files in production** — secrets in `docker-compose.yml` environment section directly.
 - Blue-Green deployment strategy.
@@ -507,7 +559,7 @@ adr/019-uuid-serialization-behavior
 
 ## 🚫 Forbidden Actions
 
-| ❌ Forbidden                                     | ✅ Correct Approach                                        |
+| ❌ Forbidden                                    | ✅ Correct Approach                                       |
 | ----------------------------------------------- | --------------------------------------------------------- |
 | SQL Triggers for business logic                 | NestJS Service methods                                    |
 | `.env` files in production                      | `docker-compose.yml` environment section                  |
@@ -524,7 +576,7 @@ adr/019-uuid-serialization-behavior
 | Generic domain terms (Letter, Blueprint, etc.)  | Correct term from Glossary (`00-02-glossary.md`)          |
 | Deploying without Release Gates                 | Complete `04-08-release-management-policy.md` gates       |
 | Starting migration without Go/No-Go Gate #1     | Gate approval first (`03-06-migration-business-scope.md`) |
-| Closing UAT without all Acceptance Criteria ✅   | Full sign-off per `01-05-acceptance-criteria.md`          |
+| Closing UAT without all Acceptance Criteria ✅  | Full sign-off per `01-05-acceptance-criteria.md`          |
 | Modifying Migration Bot token scope             | IP Whitelist + 7-day expiry only                          |
 | OWASP Top 10 violations                         | Security checklist before every PR                        |
 
@@ -563,16 +615,16 @@ adr/019-uuid-serialization-behavior
 ## 🎯 Windsurf Context-Aware Triggers
 
 เมื่อผู้ใช้ถามเกี่ยวกับ... ให้ตรวจสอบไฟล์เหล่านี้ก่อนตอบ
-| คำถาม/คำสั่ง             | ไฟล์ที่ต้องตรวจสอบก่อน                                       | คำตอบที่คาดหวัง                                       |
-| -------------------- | ------------------------------------------------------- | ------------------------------------------------- |
-| "สร้าง API ใหม่"       | `05-02-backend-guidelines.md`, `schema-02-tables.sql`   | NestJS Controller + Service + DTO + CASL Guard    |
-| "แก้ฟอร์ม frontend"    | `05-03-frontend-guidelines.md`, `01-06-edge-cases.md`   | RHF+Zod + TanStack Query + Thai comments          |
-| "เพิ่ม field ใหม่"      | `ADR-009`, `data-dictionary.md`, `schema-02-tables.sql` | แก้ SQL โดยตรง + อัพเดท Data Dictionary + Entity    |
-| "ตรวจสอบ UUID"       | `ADR-019`, `05-07-hybrid-uuid-implementation-plan.md`   | UUIDv7 BINARY(16) + TransformInterceptor behavior |
-| "สร้าง migration"     | `ADR-009`, `03-06-migration-business-scope.md`          | แก้ SQL schema โดยตรง + n8n workflow               |
-| "ตรวจสอบ permission" | `seed-permissions.sql`, `ADR-016`                       | CASL 4-Level RBAC matrix                          |
-| "deploy production"  | `04-08-release-management-policy.md`, `ADR-015`         | Release Gates + Blue-Green strategy               |
-| "เพิ่ม test"           | `05-04-testing-strategy.md`                             | Coverage goals + test patterns                    |
+| คำถาม/คำสั่ง | ไฟล์ที่ต้องตรวจสอบก่อน | คำตอบที่คาดหวัง |
+| -------------------- | ------------------------------------------------------- | ---------------------------------------------------------- |
+| "สร้าง API ใหม่" | `05-02-backend-guidelines.md`, `schema-02-tables.sql` | NestJS Controller + Service + DTO + CASL Guard |
+| "แก้ฟอร์ม frontend" | `05-03-frontend-guidelines.md`, `01-06-edge-cases.md` | RHF+Zod + TanStack Query + Thai comments |
+| "เพิ่ม field ใหม่" | `ADR-009`, `data-dictionary.md`, `schema-02-tables.sql` | แก้ SQL โดยตรง + อัพเดท Data Dictionary + Entity |
+| "ตรวจสอบ UUID" | `ADR-019`, `05-07-hybrid-uuid-implementation-plan.md` | UUIDv7 MariaDB native UUID + TransformInterceptor behavior |
+| "สร้าง migration" | `ADR-009`, `03-06-migration-business-scope.md` | แก้ SQL schema โดยตรง + n8n workflow |
+| "ตรวจสอบ permission" | `seed-permissions.sql`, `ADR-016` | CASL 4-Level RBAC matrix |
+| "deploy production" | `04-08-release-management-policy.md`, `ADR-015` | Release Gates + Blue-Green strategy |
+| "เพิ่ม test" | `05-04-testing-strategy.md` | Coverage goals + test patterns |
 
 ---
 
@@ -630,15 +682,13 @@ if (!entity) {
 ### Frontend Query Pattern
 
 ```typescript
-// [frontend-query] → TanStack Query มาตรฐาน
+// [frontend-query] → TanStack Query v5 มาตรฐาน
 const { data, error, isLoading } = useQuery({
   queryKey: ['correspondence', uuid],
   queryFn: () => api.get(`/correspondences/${uuid}`),
-  onError: (err) => {
-    toast.error('ไม่สามารถโหลดข้อมูลได้');
-    logger.error('Failed to load correspondence', { uuid, err });
-  },
 });
+// v5: onError ถูกลบออกจาก useQuery — จัดการ error ผ่าน return value
+if (error) toast.error('ไม่สามารถโหลดข้อมูลได้');
 ```
 
 ### Redis Cache Pattern
@@ -675,16 +725,16 @@ return null; // ❌ ทำให้ caller ต้องเช็คเอง
 ### Frontend (Next.js)
 
 ```typescript
-// ✅ ถูกต้อง — ใช้ TanStack Query error handling
+// ✅ ถูกต้อง — ใช้ TanStack Query v5 error handling
 const { data, error, isLoading } = useQuery({
   queryKey: ['correspondence', uuid],
   queryFn: () => api.get(`/correspondences/${uuid}`),
-  onError: (err) => {
-    // แสดง toast + log + fallback UI
-    toast.error('ไม่สามารถโหลดข้อมูลได้');
-    logger.error('Failed to load correspondence', { uuid, err });
-  },
 });
+// v5: onError removed from useQuery — handle via error return value
+if (error) {
+  // แสดง toast + fallback UI
+  toast.error('ไม่สามารถโหลดข้อมูลได้');
+}
 ```
 
 ### Error Response Standard (Backend)
@@ -773,45 +823,6 @@ async update(uuid: string, dto: UpdateDto) {
 
 ---
 
-## 💬 Prompt Templates สำหรับถาม Windsurf
-
-### เมื่อต้องการสร้างฟีเจอร์ใหม่
-
-```
-[NEW FEATURE]
-Module: <module-name>
-Requirement: <อ้างอิง user story จาก 01-02-business-rules/>
-Steps:
-1. ตรวจสอบ glossary และ edge cases
-2. ออกแบบ DTO + Schema ตาม ADR-019
-3. สร้าง Service + Controller พร้อม CASL guard
-4. เขียน unit test สำหรับ business logic
-5. อัพเดท API docs (Swagger)
-Output: Code + Test + Spec reference
-```
-
-### เมื่อต้องการ debug
-
-```
-[DEBUG]
-Issue: <อธิบายปัญหา>
-File: <path/to/file>
-Error: <error message/log>
-Steps taken: <สิ่งที่ลองแก้ไขแล้ว>
-Request: วิเคราะห์ตาม spec + แนะนำวิธีแก้ที่สอดคล้องกับ ADRs
-```
-
-### เมื่อต้องการ review code
-
-```
-[CODE REVIEW]
-File: <path/to/file>
-Focus: <security/performance/uuid/i18n>
-Request: ตรวจสอบตาม spec + ADRs + Forbidden Actions table
-```
-
----
-
 ## 📦 Infrastructure Quick Reference
 
 ### QNAP NAS (Container Station) — Production
@@ -859,7 +870,8 @@ Request: ตรวจสอบตาม spec + ADRs + Forbidden Actions table
 
 | Version | Date       | Changes                                                                                                               | Updated By     |
 | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                                                             | Human Dev + AI |
+| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note, TanStack v5 patterns, formatting fix             | Windsurf AI    |
+| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                                                          | Human Dev + AI |
 | 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n, + Performance, + Testing Checklist, + Prompt Templates | Human Dev + AI |
 | 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                                                                    | Claude Sonnet  |
 | 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                                                                        | Human Dev      |
@@ -870,7 +882,7 @@ Request: ตรวจสอบตาม spec + ADRs + Forbidden Actions table
 1. แก้ไขในส่วนที่เกี่ยวข้อง
 2. อัพเดทตาราง Change Log ด้านบน
 3. เพิ่ม version number ใน header
-4. Commit ด้วย message: `spec(windsurfrules): bump to v1.8.3 - <brief description>`
+4. Commit ด้วย message: `spec(windsurfrules): bump to v1.8.4 - <brief description>`
 
 ---
 

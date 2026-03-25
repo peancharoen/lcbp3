@@ -17,28 +17,28 @@ export default function DisciplinesPage() {
 
   const columns: ColumnDef<Discipline>[] = [
     {
-      accessorKey: 'discipline_code',
+      accessorKey: 'disciplineCode',
       header: 'Code',
-      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('discipline_code')}</span>,
+      cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('disciplineCode')}</span>,
     },
     {
-      accessorKey: 'code_name_th',
+      accessorKey: 'codeNameTh',
       header: 'Name (TH)',
     },
     {
-      accessorKey: 'code_name_en',
+      accessorKey: 'codeNameEn',
       header: 'Name (EN)',
     },
     {
-      accessorKey: 'is_active',
+      accessorKey: 'isActive',
       header: 'Status',
       cell: ({ row }) => (
         <span
           className={`px-2 py-1 rounded-full text-xs ${
-            row.getValue('is_active') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            row.getValue('isActive') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
-          {row.getValue('is_active') ? 'Active' : 'Inactive'}
+          {row.getValue('isActive') ? 'Active' : 'Inactive'}
         </span>
       ),
     },

@@ -175,7 +175,7 @@ src/modules/document-numbering/
 
 - Query document_number_formats by project_id + type_id.
 - If no result, query by project_id + NULL (Default Project Format).
-- If still no result, apply System Default Template: `{ORG}-{RECIPIENT}-{SEQ:4}-{YEAR:BE}`.
+- If still no result, apply System Default Template: `{ORG}-{RECIPIENT}-{SEQ:4}/{YEAR:BE}`.
 - Determine resetSequenceYearly flag from the found format (default: true)
 
 #### 2.2.2. Determine Counter Key:

@@ -18,25 +18,25 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface MigrationAiIssues {
-  document_date?: string;
-  issued_date?: string;
-  received_date?: string;
-  sender_id?: string | number;
-  discipline_id?: string | number;
-  source_file_path?: string;
-  key_points?: string[];
-  validation_results?: Array<{ message: string; severity: string }>;
+  documentDate?: string;
+  issuedDate?: string;
+  receivedDate?: string;
+  senderId?: string | number;
+  disciplineId?: string | number;
+  sourceFilePath?: string;
+  keyPoints?: string[];
+  validationResults?: Array<{ message: string; severity: string }>;
 }
 
 const reviewFormSchema = z.object({
-  document_number: z.string().min(1, 'Document number is required'),
+  documentNumber: z.string().min(1, 'Document number is required'),
   subject: z.string().min(1, 'Subject is required'),
   category: z.string().min(1, 'Category is required'),
-  document_date: z.string().optional(),
-  issued_date: z.string().optional(),
-  received_date: z.string().optional(),
-  sender_id: z.string().optional(),
-  discipline_id: z.string().optional(),
+  documentDate: z.string().optional(),
+  issuedDate: z.string().optional(),
+  receivedDate: z.string().optional(),
+  senderId: z.string().optional(),
+  disciplineId: z.string().optional(),
 });
 
 type ReviewFormValues = z.infer<typeof reviewFormSchema>;
@@ -53,14 +53,14 @@ export default function MigrationReviewPage() {
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
     defaultValues: {
-      document_number: '',
+      documentNumber: '',
       subject: '',
       category: '',
-      document_date: '',
-      issued_date: '',
-      received_date: '',
-      sender_id: '',
-      discipline_id: '',
+      documentDate: '',
+      issuedDate: '',
+      receivedDate: '',
+      senderId: '',
+      disciplineId: '',
     },
   });
 
@@ -75,14 +75,14 @@ export default function MigrationReviewPage() {
           // Pre-fill form from database item and aiIssues payload
           const issues = (res.aiIssues || {}) as MigrationAiIssues;
           form.reset({
-            document_number: res.documentNumber || '',
+            documentNumber: res.documentNumber || '',
             subject: res.title || res.originalTitle || '',
             category: res.aiSuggestedCategory || '',
-            document_date: issues.document_date || '',
-            issued_date: issues.issued_date || '',
-            received_date: issues.received_date || '',
-            sender_id: issues.sender_id ? String(issues.sender_id) : '',
-            discipline_id: issues.discipline_id ? String(issues.discipline_id) : '',
+            documentDate: issues.documentDate || '',
+            issuedDate: issues.issuedDate || '',
+            receivedDate: issues.receivedDate || '',
+            senderId: issues.senderId ? String(issues.senderId) : '',
+            disciplineId: issues.disciplineId ? String(issues.disciplineId) : '',
           });
         }
       } catch (_error) {
@@ -107,21 +107,21 @@ export default function MigrationReviewPage() {
       const issues = item.aiIssues || {};
 
       const payload = {
-        document_number: values.document_number,
+        documentNumber: values.documentNumber,
         subject: values.subject,
         category: values.category,
-        source_file_path: issues.source_file_path || '',
-        migrated_by: 'SYSTEM_IMPORT',
-        batch_id: 'MANUAL_REVIEW_BATCH',
-        project_id: 1, // Assumption or pulled from store
-        document_date: values.document_date,
-        issued_date: values.issued_date,
-        received_date: values.received_date,
-        sender_id: values.sender_id ? Number(values.sender_id) : undefined,
-        discipline_id: values.discipline_id ? Number(values.discipline_id) : undefined,
+        sourceFilePath: issues.sourceFilePath || '',
+        migratedBy: 'SYSTEM_IMPORT',
+        batchId: 'MANUAL_REVIEW_BATCH',
+        projectId: 1, // Assumption or pulled from store
+        documentDate: values.documentDate,
+        issuedDate: values.issuedDate,
+        receivedDate: values.receivedDate,
+        senderId: values.senderId ? Number(values.senderId) : undefined,
+        disciplineId: values.disciplineId ? Number(values.disciplineId) : undefined,
         details: {
           tags: issues.tags || [],
-          ai_confidence: item.aiConfidence,
+          aiConfidence: item.aiConfidence,
         },
       };
 
@@ -162,8 +162,8 @@ export default function MigrationReviewPage() {
     return <div className="py-10 text-center text-red-500">Document not found</div>;
   }
 
-  const pdfUrl = (item.aiIssues as MigrationAiIssues)?.source_file_path
-    ? migrationService.getStagingFileUrl((item.aiIssues as MigrationAiIssues).source_file_path!)
+  const pdfUrl = (item.aiIssues as MigrationAiIssues)?.sourceFilePath
+    ? migrationService.getStagingFileUrl((item.aiIssues as MigrationAiIssues).sourceFilePath!)
     : null;
 
   return (
@@ -221,7 +221,7 @@ export default function MigrationReviewPage() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="document_number"
+                  name="documentNumber"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Document Number</FormLabel>
@@ -272,7 +272,7 @@ export default function MigrationReviewPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="discipline_id"
+                    name="disciplineId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Discipline ID</FormLabel>
@@ -288,7 +288,7 @@ export default function MigrationReviewPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="document_date"
+                    name="documentDate"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Doc Date</FormLabel>
@@ -300,7 +300,7 @@ export default function MigrationReviewPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="issued_date"
+                    name="issuedDate"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Issued Date</FormLabel>
@@ -314,7 +314,7 @@ export default function MigrationReviewPage() {
 
                 <FormField
                   control={form.control}
-                  name="sender_id"
+                  name="senderId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Sender Org ID</FormLabel>
@@ -326,11 +326,11 @@ export default function MigrationReviewPage() {
                   )}
                 />
 
-                {(item.aiIssues as MigrationAiIssues)?.key_points && (item.aiIssues as MigrationAiIssues).key_points!.length > 0 && (
+                {(item.aiIssues as MigrationAiIssues)?.keyPoints && (item.aiIssues as MigrationAiIssues).keyPoints!.length > 0 && (
                   <div className="mt-6 border-t pt-4">
                     <h3 className="font-semibold text-sm mb-2 text-muted-foreground">AI Extracted Key Points</h3>
                     <ul className="text-sm space-y-1 list-disc pl-4 text-muted-foreground">
-                      {(item.aiIssues as MigrationAiIssues).key_points!.map((point: string, i: number) => (
+                      {(item.aiIssues as MigrationAiIssues).keyPoints!.map((point: string, i: number) => (
                         <li key={i}>{point}</li>
                       ))}
                     </ul>

@@ -803,7 +803,7 @@ services:
 ```bash
 PUT /api/v1/document-numbering/configs/{configId}
 {
-  "template": "{ORIGINATOR}-{RECIPIENT}-{SEQ:4}-{YEAR:B.E.}",
+  "template": "{ORIGINATOR}-{RECIPIENT}-{SEQ:4}/{YEAR:B.E.}",
   "change_reason": "เหตุผลในการเปลี่ยนแปลง"
 }
 ```

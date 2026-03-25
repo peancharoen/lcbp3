@@ -7,13 +7,13 @@ export interface WorkflowDsl {
   /** Allow extra properties for different DSL formats */
   [key: string]: unknown;
   states?: Record<string, WorkflowState>;
-  initial_state?: string;
+  initialState?: string;
 }
 
 export interface WorkflowState {
   transitions?: WorkflowTransition[];
-  on_enter?: string[];
-  on_exit?: string[];
+  onEnter?: string[];
+  onExit?: string[];
 }
 
 export interface WorkflowTransition {
@@ -26,13 +26,13 @@ export interface WorkflowTransition {
 // --- Create Definition ---
 export interface CreateWorkflowDefinitionDto {
   /** รหัสของ Workflow (เช่น 'RFA', 'CORRESPONDENCE') */
-  workflow_code: string;
+  workflowCode: string;
 
   /** นิยาม Workflow (DSL JSON Object) */
   dsl: WorkflowDsl;
 
   /** เปิดใช้งานทันทีหรือไม่ (Default: true) */
-  is_active?: boolean;
+  isActive?: boolean;
 }
 
 // --- Update Definition ---
@@ -41,10 +41,10 @@ export type UpdateWorkflowDefinitionDto = Partial<CreateWorkflowDefinitionDto>;
 // --- Evaluate (ประมวลผล/ตรวจสอบ State) ---
 export interface EvaluateWorkflowDto {
   /** รหัส Workflow */
-  workflow_code: string;
+  workflowCode: string;
 
   /** สถานะปัจจุบัน */
-  current_state: string;
+  currentState: string;
 
   /** Action ที่ต้องการทำ (เช่น 'SUBMIT', 'APPROVE') */
   action: string;
@@ -56,8 +56,8 @@ export interface EvaluateWorkflowDto {
 // --- Get Available Actions ---
 export interface GetAvailableActionsDto {
   /** รหัส Workflow */
-  workflow_code: string;
+  workflowCode: string;
 
   /** สถานะปัจจุบัน */
-  current_state: string;
+  currentState: string;
 }

@@ -726,6 +726,42 @@ AI-powered Document Management System
 6 Automation workflow
 7 Security
 ```
+## 💬 Prompt Templates สำหรับถาม Windsurf
+
+### เมื่อต้องการสร้างฟีเจอร์ใหม่
+
+```
+[NEW FEATURE]
+Module: <module-name>
+Requirement: <อ้างอิง user story จาก 01-02-business-rules/>
+Steps:
+1. ตรวจสอบ glossary และ edge cases
+2. ออกแบบ DTO + Schema ตาม ADR-019
+3. สร้าง Service + Controller พร้อม CASL guard
+4. เขียน unit test สำหรับ business logic
+5. อัพเดท API docs (Swagger)
+Output: Code + Test + Spec reference
+```
+
+### เมื่อต้องการ debug
+
+```
+[DEBUG]
+Issue: <อธิบายปัญหา>
+File: <path/to/file>
+Error: <error message/log>
+Steps taken: <สิ่งที่ลองแก้ไขแล้ว>
+Request: วิเคราะห์ตาม spec + แนะนำวิธีแก้ที่สอดคล้องกับ ADRs
+```
+
+### เมื่อต้องการ review code
+
+```
+[CODE REVIEW]
+File: <path/to/file>
+Focus: <security/performance/uuid/i18n>
+Request: ตรวจสอบตาม spec + ADRs + Forbidden Actions table
+```
 
 ---
 

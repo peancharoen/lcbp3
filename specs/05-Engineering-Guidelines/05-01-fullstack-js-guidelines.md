@@ -48,14 +48,15 @@
 
 ### **2.4 ข้อตกลงในการตั้งชื่อ (Naming Conventions)**
 
-| Entity (สิ่งที่ตั้งชื่อ) | Convention (รูปแบบ) | Example (ตัวอย่าง)                 |
-| :----------------------- | :------------------ | :--------------------------------- |
-| Classes                  | PascalCase          | UserService                        |
-| Property                 | snake_case          | user_id                            |
-| Variables & Functions    | camelCase           | getUserInfo                        |
-| Files & Folders          | kebab-case          | user-service.ts                    |
-| Environment Variables    | UPPERCASE           | DATABASE_URL                       |
-| Booleans                 | Verb + Noun         | isActive, canDelete, hasPermission |
+| Entity (สิ่งที่ตั้งชื่อ) | Convention (รูปแบบ) | Example (ตัวอย่าง)                 | Note                               |
+| :----------------------- | :------------------ | :--------------------------------- | :--------------------------------- |
+| Classes                  | PascalCase          | UserService                        |                                    |
+| Property (Code)          | camelCase           | userId, typeCode, isActive         | Backend Entity, DTO, Frontend      |
+| Database Column          | snake_case          | user_id, type_code, is_active      | MariaDB column names               |
+| Variables & Functions    | camelCase           | getUserInfo                        |                                    |
+| Files & Folders          | kebab-case          | user-service.ts                    |                                    |
+| Environment Variables    | UPPERCASE           | DATABASE_URL                       |                                    |
+| Booleans                 | Verb + Noun         | isActive, canDelete, hasPermission |                                    |
 
 ใช้คำเต็ม — ไม่ใช้อักษรย่อ — ยกเว้นคำมาตรฐาน (เช่น API, URL, req, res, err, ctx)
 

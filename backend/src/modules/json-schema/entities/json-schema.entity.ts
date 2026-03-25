@@ -9,11 +9,11 @@ import {
 } from 'typeorm';
 
 export interface VirtualColumnConfig {
-  json_path: string;
-  column_name: string;
-  data_type: 'INT' | 'VARCHAR' | 'BOOLEAN' | 'DATE' | 'DECIMAL' | 'DATETIME';
-  index_type?: 'INDEX' | 'UNIQUE' | 'FULLTEXT';
-  is_required: boolean;
+  jsonPath: string;
+  columnName: string;
+  dataType: 'INT' | 'VARCHAR' | 'BOOLEAN' | 'DATE' | 'DECIMAL' | 'DATETIME';
+  indexType?: 'INDEX' | 'UNIQUE' | 'FULLTEXT';
+  isRequired: boolean;
 }
 
 @Entity('json_schemas')
