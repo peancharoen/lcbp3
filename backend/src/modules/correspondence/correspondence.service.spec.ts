@@ -7,6 +7,7 @@ import { CorrespondenceRevision } from './entities/correspondence-revision.entit
 import { CorrespondenceType } from './entities/correspondence-type.entity';
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { CorrespondenceReference } from './entities/correspondence-reference.entity';
+import { CorrespondenceTag } from './entities/correspondence-tag.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
@@ -16,6 +17,7 @@ import { UserService } from '../user/user.service';
 import { SearchService } from '../search/search.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
+import { NotificationService } from '../notification/notification.service';
 import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
 import { User } from '../user/entities/user.entity';
 
@@ -92,6 +94,10 @@ describe('CorrespondenceService', () => {
           useValue: createMockRepository(),
         },
         {
+          provide: getRepositoryToken(CorrespondenceTag),
+          useValue: createMockRepository(),
+        },
+        {
           provide: getRepositoryToken(Organization),
           useValue: createMockRepository(),
         },
@@ -140,6 +146,10 @@ describe('CorrespondenceService', () => {
             resolveProjectId: jest.fn().mockResolvedValue(1),
             resolveOrganizationId: jest.fn().mockResolvedValue(1),
           },
+        },
+        {
+          provide: NotificationService,
+          useValue: { send: jest.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();
