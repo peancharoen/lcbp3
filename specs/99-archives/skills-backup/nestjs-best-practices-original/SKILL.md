@@ -86,10 +86,9 @@ Reference these guidelines when:
 
 ### 7. Database & ORM (MEDIUM-HIGH)
 
-- `db-hybrid-identifier` - **CRITICAL** ADR-019: INT PK + UUID public API
-- `db-avoid-n-plus-one` - HIGH N+1 query prevention
-- `db-use-transactions` - HIGH Transaction management
-- `db-use-migrations` - N/A **ADR-009**: No TypeORM migrations - use SQL files
+- `db-use-transactions` - Transaction management
+- `db-avoid-n-plus-one` - Avoid N+1 query problems
+- `db-use-migrations` - Use migrations for schema changes
 
 ### 8. API Design (MEDIUM)
 

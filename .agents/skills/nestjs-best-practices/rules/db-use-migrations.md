@@ -1,129 +1,128 @@
 ---
-title: Use Database Migrations
+title: No TypeORM Migrations (ADR-009)
 impact: HIGH
-impactDescription: Enables safe, repeatable database schema changes
-tags: database, migrations, typeorm, schema
+impactDescription: Use direct SQL schema files instead of TypeORM migrations per project ADR
+tags: database, schema, typeorm, migrations, adr-009
 ---
 
-## Use Database Migrations
+## No TypeORM Migrations (ADR-009)
 
-Never use `synchronize: true` in production. Use migrations for all schema changes. Migrations provide version control for your database, enable safe rollbacks, and ensure consistency across all environments.
+**This project follows ADR-009: Direct SQL Schema Management**
 
-**Incorrect (using synchronize or manual SQL):**
+Unlike standard NestJS/TypeORM practices, this project does **NOT** use TypeORM migrations. Instead, we manage database schema through direct SQL files.
 
-```typescript
-// Use synchronize in production
-TypeOrmModule.forRoot({
-  type: 'postgres',
-  synchronize: true, // DANGEROUS in production!
-  // Can drop columns, tables, or data
-});
+### Why No Migrations?
 
-// Manual SQL in production
-@Injectable()
-export class DatabaseService {
-  async addColumn(): Promise<void> {
-    await this.dataSource.query('ALTER TABLE users ADD COLUMN age INT');
-    // No version control, no rollback, inconsistent across envs
-  }
-}
+- **ADR-009 Decision**: Explicit schema control over auto-generated migrations
+- **MariaDB-specific features**: Native UUID type, virtual columns, custom indexing
+- **Team workflow**: Schema changes reviewed as SQL, not TypeORM migration classes
+- **Audit trail**: Single source of truth in `specs/03-Data-and-Storage/`
 
-// Modify entities without migration
-@Entity()
-export class User {
-  @Column()
-  email: string;
+### Schema File Locations
 
-  @Column() // Added without migration
-  newField: string; // Will crash in production if synchronize is false
-}
+```
+specs/03-Data-and-Storage/
+├── lcbp3-v1.8.0-schema-01-drop.sql      # Drop statements (dev only)
+├── lcbp3-v1.8.0-schema-02-tables.sql   # CREATE TABLE statements
+├── lcbp3-v1.8.0-schema-03-views-indexes.sql  # Views, indexes, constraints
+└── deltas/                              # Incremental changes
+    ├── 01-add-reference-date.sql
+    ├── 02-add-rbac-bulk-permission.sql
+    └── 03-fix-numbering-enums.sql
 ```
 
-**Correct (use migrations for all schema changes):**
+### Correct: Using SQL Schema Files
 
 ```typescript
-// Configure TypeORM for migrations
-// data-source.ts
-export const dataSource = new DataSource({
-  type: 'postgres',
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  username: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  entities: ['dist/**/*.entity.js'],
-  migrations: ['dist/migrations/*.js'],
-  synchronize: false, // Always false in production
-  migrationsRun: true, // Run migrations on startup
-});
-
-// app.module.ts
+// TypeORM configuration - NO migrationsRun
 TypeOrmModule.forRootAsync({
   inject: [ConfigService],
   useFactory: (config: ConfigService) => ({
-    type: 'postgres',
+    type: 'mariadb',
     host: config.get('DB_HOST'),
-    synchronize: config.get('NODE_ENV') === 'development', // Only in dev
-    migrations: ['dist/migrations/*.js'],
-    migrationsRun: true,
+    port: config.get('DB_PORT'),
+    username: config.get('DB_USERNAME'),
+    password: config.get('DB_PASSWORD'),
+    database: config.get('DB_NAME'),
+    entities: ['dist/**/*.entity.js'],
+    synchronize: false, // NEVER true, even in development
+    migrationsRun: false, // Disabled per ADR-009
+    // Migrations are managed via SQL files, not TypeORM
   }),
 });
+```
 
-// migrations/1705312800000-AddUserAge.ts
-import { MigrationInterface, QueryRunner } from 'typeorm';
+### Schema Change Process (ADR-009)
 
-export class AddUserAge1705312800000 implements MigrationInterface {
-  name = 'AddUserAge1705312800000';
+1. **Modify SQL file directly**:
 
-  public async up(queryRunner: QueryRunner): Promise<void> {
-    // Add column with default to handle existing rows
-    await queryRunner.query(`
-      ALTER TABLE "users" ADD "age" integer DEFAULT 0
-    `);
+   ```sql
+   -- specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql
+   ALTER TABLE correspondences
+   ADD COLUMN priority VARCHAR(20) DEFAULT 'normal';
+   ```
 
-    // Add index for frequently queried columns
-    await queryRunner.query(`
-      CREATE INDEX "IDX_users_age" ON "users" ("age")
-    `);
-  }
+2. **Create delta for existing databases**:
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    // Always implement down for rollback
-    await queryRunner.query(`DROP INDEX "IDX_users_age"`);
-    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "age"`);
-  }
-}
+   ```sql
+   -- specs/03-Data-and-Storage/deltas/04-add-priority-column.sql
+   ALTER TABLE correspondences
+   ADD COLUMN priority VARCHAR(20) DEFAULT 'normal';
+   ```
 
-// Safe column rename (two-step)
-export class RenameNameToFullName1705312900000 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<void> {
-    // Step 1: Add new column
-    await queryRunner.query(`
-      ALTER TABLE "users" ADD "full_name" varchar(255)
-    `);
+3. **Apply to database manually or via deployment script**:
+   ```bash
+   mysql -u root -p lcbp3 < specs/03-Data-and-Storage/deltas/04-add-priority-column.sql
+   ```
 
-    // Step 2: Copy data
-    await queryRunner.query(`
-      UPDATE "users" SET "full_name" = "name"
-    `);
+### Entity Definition (No Migration Needed)
 
-    // Step 3: Add NOT NULL constraint
-    await queryRunner.query(`
-      ALTER TABLE "users" ALTER COLUMN "full_name" SET NOT NULL
-    `);
+```typescript
+@Entity('correspondences')
+export class Correspondence {
+  @PrimaryGeneratedColumn()
+  id: number; // Internal INT PK
 
-    // Step 4: Drop old column (after verifying app works)
-    await queryRunner.query(`
-      ALTER TABLE "users" DROP COLUMN "name"
-    `);
-  }
+  @Column({ type: 'uuid' })
+  uuid: string; // Public UUID
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "users" ADD "name" varchar(255)`);
-    await queryRunner.query(`UPDATE "users" SET "name" = "full_name"`);
-    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "full_name"`);
-  }
+  @Column({ name: 'priority', default: 'normal' })
+  priority: string;
+
+  // No migration class needed - schema managed via SQL
 }
 ```
 
-Reference: [TypeORM Migrations](https://typeorm.io/migrations)
+### Anti-Pattern: TypeORM Migrations (Do NOT Use)
+
+```typescript
+// ❌ WRONG - Do not create migration files
+// migrations/1705312800000-AddUserAge.ts
+export class AddUserAge1705312800000 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`ALTER TABLE "users" ADD "age" integer`);
+  }
+}
+
+// ❌ WRONG - Do not enable migrationsRun
+TypeOrmModule.forRoot({
+  migrationsRun: true, // Disabled per ADR-009
+  migrations: ['dist/migrations/*.js'],
+});
+```
+
+### When You Need Schema Changes
+
+1. Check `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
+2. Add your DDL to the appropriate SQL file
+3. Create delta file in `deltas/` directory
+4. Apply SQL to your database
+5. Update corresponding Entity class
+
+### Reference
+
+- [ADR-009 Database Strategy](../../../../specs/06-Decision-Records/ADR-009-db-strategy.md)
+- [Schema SQL Files](../../../../specs/03-Data-and-Storage/)
+- [Data Dictionary](../../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
+
+> **Warning**: Attempting to use TypeORM migrations in this project violates ADR-009 and will be rejected in code review.

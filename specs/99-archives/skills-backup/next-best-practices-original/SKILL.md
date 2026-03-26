@@ -70,8 +70,6 @@ See [error-handling.md](./error-handling.md) for:
 
 ## Data Patterns
 
-Project-specific: See [uuid-handling.md](./uuid-handling.md) for ADR-019 UUID handling patterns.
-
 See [data-patterns.md](./data-patterns.md) for:
 
 - Server Components vs Server Actions vs Route Handlers

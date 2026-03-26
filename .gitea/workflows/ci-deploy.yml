@@ -66,61 +66,84 @@ jobs:
   deploy:
     needs: build
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: � Checkout
         uses: actions/checkout@v4
 
-      - name: �🚀 Trigger Deployment on QNAP
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
-          port: ${{ secrets.PORT }}
-          timeout: 1200s
-          command_timeout: 900s
-          script_stop: true
-          debug: true
-          script: |
-            set -e
-            export PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+      - name: � Setup SSH and Deploy to QNAP
+        run: |
+          # Ensure sshpass is available (install if needed)
+          if ! command -v sshpass &> /dev/null; then
+            apt-get update -qq && apt-get install -y -qq sshpass
+          fi
 
-            echo "=========================================="
-            echo "Starting QNAP Deployment Process"
-            echo "=========================================="
+          # Retry logic for SSH connection
+          max_attempts=3
+          attempt=1
 
-            # Verify Docker is accessible
-            if ! docker version > /dev/null 2>&1; then
-              echo "✗ Docker not accessible. Check Container Station."
-              exit 1
+          while [ $attempt -le $max_attempts ]; do
+            echo "🚀 Deployment attempt $attempt/$max_attempts..."
+
+            if sshpass -p "${{ secrets.PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+                -o ConnectTimeout=30 \
+                -o ServerAliveInterval=60 \
+                -p ${{ secrets.PORT }} ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'REMOTE_SCRIPT'
+              set -e
+              export PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+              echo "=========================================="
+              echo "Starting QNAP Deployment Process"
+              echo "=========================================="
+
+              # Verify Docker is accessible
+              if ! docker version > /dev/null 2>&1; then
+                echo "✗ Docker not accessible. Check Container Station."
+                exit 1
+              fi
+              echo "✓ Docker accessible"
+
+              # Sync scripts first
+              echo "📂 Syncing deployment scripts..."
+              cd /share/np-dms/app/source/lcbp3
+
+              # Check if directory exists
+              if [ ! -d ".git" ]; then
+                echo "✗ Git repository not found at expected path"
+                exit 1
+              fi
+
+              git fetch origin main
+              git reset --hard origin/main
+              echo "✓ Code synced"
+
+              # Ensure scripts are executable
+              chmod +x scripts/deploy.sh scripts/rollback.sh 2>/dev/null || true
+
+              mkdir -p /share/np-dms/app/logs
+
+              # Clear Docker build cache to ensure fresh builds
+              echo "🧹 Clearing Docker build cache..."
+              docker builder prune -f || true
+
+              echo "🚀 Executing deployment..."
+              ./scripts/deploy.sh
+
+              echo "✓ Deployment completed successfully"
+            REMOTE_SCRIPT; then
+              echo "✅ Deployment successful!"
+              exit 0
+            else
+              echo "⚠️ Attempt $attempt failed"
+              if [ $attempt -lt $max_attempts ]; then
+                echo "⏳ Retrying in 10 seconds..."
+                sleep 10
+              fi
             fi
-            echo "✓ Docker accessible"
 
-            # Sync scripts first
-            echo "📂 Syncing deployment scripts..."
-            cd /share/np-dms/app/source/lcbp3
+            attempt=$((attempt + 1))
+          done
 
-            # Check if directory exists
-            if [ ! -d ".git" ]; then
-              echo "✗ Git repository not found at expected path"
-              exit 1
-            fi
-
-            git fetch origin main
-            git reset --hard origin/main
-            echo "✓ Code synced"
-
-            # Ensure scripts are executable
-            chmod +x scripts/deploy.sh scripts/rollback.sh 2>/dev/null || true
-
-            mkdir -p /share/np-dms/app/logs
-
-            # Clear Docker build cache to ensure fresh builds
-            echo "🧹 Clearing Docker build cache..."
-            docker builder prune -f || true
-
-            echo "🚀 Executing deployment..."
-            ./scripts/deploy.sh
-
-            echo "✓ Deployment completed successfully"
+          echo "❌ All deployment attempts failed"
+          exit 1
+        timeout-minutes: 20
