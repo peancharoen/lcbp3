@@ -36,7 +36,7 @@ export class VirtualColumnService {
       for (const config of configs) {
         await this.ensureVirtualColumn(queryRunner, tableName, config);
 
-        if (config.index_type) {
+        if (config.indexType) {
           await this.ensureIndex(queryRunner, tableName, config);
         }
       }

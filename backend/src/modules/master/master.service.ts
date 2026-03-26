@@ -328,8 +328,8 @@ export class MasterService {
       : null;
     const tag = this.tagRepo.create({
       ...dto,
-      project_id: internalProjectId,
-      created_by: userId,
+      projectId: internalProjectId,
+      createdBy: userId,
     });
     return this.tagRepo.save(tag);
   }
