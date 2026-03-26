@@ -54,7 +54,7 @@ export function RevisionHistory({ revisions }: RevisionHistoryProps) {
               const isCurrent = rev.isCurrent;
 
               return (
-                <div key={rev.uuid ?? rev.revisionNumber} className="flex gap-3 pl-7 relative">
+                <div key={rev.publicId ?? rev.revisionNumber} className="flex gap-3 pl-7 relative">
                   <div
                     className={`absolute left-1.5 top-1 w-3 h-3 rounded-full border-2 ${
                       isCurrent

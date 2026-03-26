@@ -153,7 +153,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
     }
 
     if (user) {
-      updateUser.mutate({ uuid: user.uuid, data: payload }, { onSuccess: () => onOpenChange(false) });
+      updateUser.mutate({ uuid: user.publicId, data: payload }, { onSuccess: () => onOpenChange(false) });
     } else {
       // Create req: Password mandatory
       if (!payload.password) return; // Should allow Zod to catch or show error
@@ -231,8 +231,8 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                 <SelectContent>
                   <SelectItem value={ALL_ORGANIZATIONS_VALUE}>All Organizations</SelectItem>
                   {Array.isArray(organizations) &&
-                    organizations.map((org: { uuid: string; organizationCode: string; organizationName: string }) => (
-                      <SelectItem key={org.uuid} value={org.uuid}>
+                    organizations.map((org: { publicId: string; organizationCode: string; organizationName: string }) => (
+                      <SelectItem key={org.publicId} value={org.publicId}>
                         {org.organizationCode} - {org.organizationName}
                       </SelectItem>
                     ))}

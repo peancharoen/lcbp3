@@ -47,7 +47,7 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         if (response && response.data) {
           const mappedData = response.data.map((d: ContractDrawing) => ({
             ...d,
-            uuid: d.uuid || (d as unknown as { id: string }).id,
+            publicId: d.publicId || (d as unknown as { id: string }).id,
             drawingNumber: d.contractDrawingNo,
             type: 'CONTRACT',
           }));
@@ -60,11 +60,11 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         if (response && response.data) {
           const mappedData = response.data.map((d: ShopDrawing) => ({
             ...d,
-            uuid: d.uuid || (d as unknown as { id: string }).id,
+            publicId: d.publicId || (d as unknown as { id: string }).id,
             type: 'SHOP',
             title: d.currentRevision?.title || 'Untitled',
             revision: d.currentRevision?.revisionNumber,
-            currentRevisionUuid: d.currentRevision?.uuid,
+            currentRevisionPublicId: d.currentRevision?.publicId,
             legacyDrawingNumber: d.currentRevision?.legacyDrawingNumber,
           }));
           // Re-wrap to preserve meta
@@ -76,11 +76,11 @@ export function useDrawings(type: DrawingType, params: DrawingSearchParams) {
         if (response && response.data) {
           const mappedData = response.data.map((d: AsBuiltDrawing) => ({
             ...d,
-            uuid: d.uuid || (d as unknown as { id: string }).id,
+            publicId: d.publicId || (d as unknown as { id: string }).id,
             type: 'AS_BUILT',
             title: d.currentRevision?.title || 'Untitled',
             revision: d.currentRevision?.revisionNumber,
-            currentRevisionUuid: d.currentRevision?.uuid,
+            currentRevisionPublicId: d.currentRevision?.publicId,
           }));
           // Re-wrap to preserve meta
           response = { ...response, data: mappedData };

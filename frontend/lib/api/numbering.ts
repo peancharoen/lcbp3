@@ -21,7 +21,7 @@ export interface NumberingTemplate {
     id: number | string;
     projectCode: string;
     projectName: string;
-    uuid?: string;
+    publicId?: string; // ADR-019: exposed as 'id' in API responses
   };
   formatTemplate: string;
   disciplineId: number;

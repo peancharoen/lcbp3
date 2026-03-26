@@ -458,7 +458,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
             </SelectTrigger>
             <SelectContent>
               {organizationOptions.map((org) => (
-                <SelectItem key={org.uuid} value={org.uuid}>
+                <SelectItem key={org.publicId} value={org.publicId}>
                   {org.organizationName} ({org.organizationCode})
                 </SelectItem>
               ))}
@@ -479,7 +479,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
             </SelectTrigger>
             <SelectContent>
               {organizationOptions.map((org) => (
-                <SelectItem key={org.uuid} value={org.uuid}>
+                <SelectItem key={org.publicId} value={org.publicId}>
                   {org.organizationName} ({org.organizationCode})
                 </SelectItem>
               ))}
@@ -492,22 +492,22 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
           <Label>CC Organizations (Optional)</Label>
           <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-3">
             {organizationOptions
-              .filter(org => org.uuid !== toOrgId) // Exclude TO organization
+              .filter(org => org.publicId !== toOrgId) // Exclude TO organization
               .map((org) => (
-                <div key={org.uuid} className="flex items-center space-x-2">
+                <div key={org.publicId} className="flex items-center space-x-2">
                   <Checkbox
-                    id={`cc-${org.uuid}`}
-                    checked={watch('ccOrganizationIds')?.includes(org.uuid) || false}
+                    id={`cc-${org.publicId}`}
+                    checked={watch('ccOrganizationIds')?.includes(org.publicId) || false}
                     onCheckedChange={(checked) => {
                       const currentCC = watch('ccOrganizationIds') || [];
                       if (checked) {
-                        setValue('ccOrganizationIds', [...currentCC, org.uuid]);
+                        setValue('ccOrganizationIds', [...currentCC, org.publicId]);
                       } else {
-                        setValue('ccOrganizationIds', currentCC.filter(id => id !== org.uuid));
+                        setValue('ccOrganizationIds', currentCC.filter(id => id !== org.publicId));
                       }
                     }}
                   />
-                  <Label htmlFor={`cc-${org.uuid}`} className="text-sm">
+                  <Label htmlFor={`cc-${org.publicId}`} className="text-sm">
                     {org.organizationName} ({org.organizationCode})
                   </Label>
                 </div>

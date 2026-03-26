@@ -84,7 +84,7 @@ export function OrganizationDialog({ open, onOpenChange, organization }: Organiz
     };
 
     if (organization) {
-      updateOrg.mutate({ uuid: organization.uuid, data: submitData }, { onSuccess: () => onOpenChange(false) });
+      updateOrg.mutate({ uuid: organization.publicId, data: submitData }, { onSuccess: () => onOpenChange(false) });
     } else {
       createOrg.mutate(submitData, {
         onSuccess: () => onOpenChange(false),

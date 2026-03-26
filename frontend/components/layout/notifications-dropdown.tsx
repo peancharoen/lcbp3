@@ -26,7 +26,7 @@ export function NotificationsDropdown() {
 
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
-      markAsRead.mutate(notification.uuid);
+      markAsRead.mutate(notification.publicId);
     }
     if (notification.link) {
       router.push(notification.link);

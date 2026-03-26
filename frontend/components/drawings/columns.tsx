@@ -68,16 +68,16 @@ export const columns: ColumnDef<Drawing>[] = [
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/drawings/${drawing.uuid}`}>View Details</Link>
+              <Link href={`/drawings/${drawing.publicId}`}>View Details</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href={`/drawings/${drawing.uuid}?edit=true`}>
+              <Link href={`/drawings/${drawing.publicId}?edit=true`}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit Detail
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href={`/drawings/${drawing.uuid}?upload=true`}>
+              <Link href={`/drawings/${drawing.publicId}?upload=true`}>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Revision
               </Link>

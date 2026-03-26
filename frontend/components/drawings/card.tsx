@@ -60,7 +60,7 @@ export function DrawingCard({ drawing }: { drawing: Drawing }) {
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            <Link href={`/drawings/${drawing.uuid}`}>
+            <Link href={`/drawings/${drawing.publicId}`}>
               <Button variant="outline" size="sm">
                 <Eye className="mr-2 h-4 w-4" />
                 View

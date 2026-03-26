@@ -17,7 +17,7 @@ import { useProjects, useCorrespondenceTypes, useContracts, useDisciplines } fro
 
 interface ProjectItem {
   id: number | string;
-  uuid?: string;
+  publicId?: string; // ADR-019: exposed as 'id' in API responses
   projectName: string;
   projectCode: string;
 }
@@ -54,7 +54,7 @@ export default function NumberingPage() {
   // Master Data
   const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
   const { data: contracts = [] } = useContracts(selectedProjectId);
-  const firstContract = contracts[0] as { id?: number; uuid?: string } | undefined;
+  const firstContract = contracts[0] as { id?: number; publicId?: string } | undefined;
   const contractId = firstContract?.publicId ?? firstContract?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
 

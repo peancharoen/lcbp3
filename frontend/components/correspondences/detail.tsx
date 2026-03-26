@@ -44,7 +44,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
 
   const handleSubmit = () => {
     if (confirm('Are you sure you want to submit this correspondence?')) {
-      submitMutation.mutate({ uuid: data.uuid, data: {} });
+      submitMutation.mutate({ uuid: data.publicId, data: {} });
     }
   };
 
@@ -52,7 +52,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
     if (!actionState || actionState === 'cancel') return;
     const action = actionState === 'approve' ? 'APPROVE' : 'REJECT';
     processMutation.mutate(
-      { uuid: data.uuid, data: { action, comments } },
+      { uuid: data.publicId, data: { action, comments } },
       { onSuccess: () => { setActionState(null); setComments(''); } }
     );
   };
@@ -60,7 +60,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
   const handleCancel = () => {
     if (!cancelReason.trim()) return;
     cancelMutation.mutate(
-      { uuid: data.uuid, reason: cancelReason },
+      { uuid: data.publicId, reason: cancelReason },
       { onSuccess: () => { setActionState(null); setCancelReason(''); } }
     );
   };
@@ -97,7 +97,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
         </div>
         <div className="flex gap-2">
           {status === 'DRAFT' && (
-            <Link href={`/correspondences/${data.uuid}/edit`}>
+            <Link href={`/correspondences/${data.publicId}/edit`}>
               <Button variant="outline">
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
@@ -256,7 +256,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
                   <div className="grid gap-2">
                     {attachments.map((file, index) => (
                       <div
-                        key={file.uuid || index}
+                        key={file.publicId || index}
                         className="flex items-center justify-between p-3 border rounded-lg bg-muted/20"
                       >
                         <div className="flex items-center gap-3">
@@ -376,17 +376,17 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
           </Card>
 
           {/* Circulations */}
-          <CirculationStatusCard correspondenceUuid={data.uuid} />
+          <CirculationStatusCard correspondenceUuid={data.publicId} />
 
           {/* Tags */}
           <TagManager
-            uuid={data.uuid}
+            uuid={data.publicId}
             canEdit={status !== 'CANCELLED'}
           />
 
           {/* References */}
           <ReferenceSelector
-            uuid={data.uuid}
+            uuid={data.publicId}
             canEdit={status !== 'CANCELLED'}
           />
 

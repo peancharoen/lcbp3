@@ -23,7 +23,7 @@ type DrawingType = 'CONTRACT' | 'SHOP' | 'AS_BUILT';
 
 interface FetchedDrawing {
   _type: DrawingType;
-  uuid: string;
+  publicId: string;
   contractDrawingNo?: string;
   drawingNumber?: string;
   title?: string;
@@ -33,7 +33,7 @@ interface FetchedDrawing {
   currentRevision?: { title?: string; revisionNumber?: string; legacyDrawingNumber?: string };
   revisions?: {
     revisionId?: number;
-    uuid: string;
+    publicId: string;
     revisionNumber: string;
     title?: string;
     legacyDrawingNumber?: string;
@@ -109,7 +109,7 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
           <h1 className="text-2xl font-bold">Drawing Not Found</h1>
         </div>
         <p className="text-muted-foreground">
-          The drawing with UUID <code>{uuid}</code> could not be found.
+          The drawing with ID <code>{uuid}</code> could not be found.
         </p>
       </div>
     );

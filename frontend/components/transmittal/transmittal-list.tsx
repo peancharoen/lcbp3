@@ -65,7 +65,7 @@ export function TransmittalList({ data }: TransmittalListProps) {
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <Link href={`/transmittals/${item.uuid}`}>
+          <Link href={`/transmittals/${item.publicId}`}>
             <Button variant="ghost" size="icon" title="View Details">
               <Eye className="h-4 w-4" />
             </Button>

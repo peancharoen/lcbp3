@@ -116,6 +116,10 @@ jobs:
 
             mkdir -p /share/np-dms/app/logs
 
+            # Clear Docker build cache to ensure fresh builds
+            echo "🧹 Clearing Docker build cache..."
+            docker builder prune -f || true
+
             echo "🚀 Executing deployment..."
             ./scripts/deploy.sh
 

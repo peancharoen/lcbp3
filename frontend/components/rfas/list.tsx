@@ -92,7 +92,7 @@ export function RFAList({ data }: RFAListProps) {
 
         return (
           <div className="flex gap-2">
-            <Link href={`/rfas/${row.original.uuid}`}>
+            <Link href={`/rfas/${row.original.publicId}`}>
               <Button variant="ghost" size="icon" title="View Details">
                 <Eye className="h-4 w-4" />
               </Button>
@@ -100,7 +100,7 @@ export function RFAList({ data }: RFAListProps) {
             <Button variant="ghost" size="icon" title="View File" onClick={handleViewFile}>
               <FileText className="h-4 w-4" />
             </Button>
-            <Link href={`/rfas/${row.original.uuid}/edit`}>
+            <Link href={`/rfas/${row.original.publicId}/edit`}>
               <Button variant="ghost" size="icon" title="Edit">
                 <Edit className="h-4 w-4" />
               </Button>

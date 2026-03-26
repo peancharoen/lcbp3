@@ -30,7 +30,7 @@ const extractArrayData = <T>(value: unknown): T[] => {
 const transformUser = (user: RawUser): User => {
   return {
     ...(user as unknown as User),
-    uuid: (user.uuid as string) ?? '',
+    publicId: (user.publicId as string) ?? '',
     userId: (user.user_id ?? user.userId) as number | undefined,
     roles: (user.assignments?.map((a) => a.role) ?? []) as User['roles'],
   };

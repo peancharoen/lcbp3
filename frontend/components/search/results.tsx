@@ -36,8 +36,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function getLink(result: SearchResult): string {
-  if (result.type === 'drawing') return `/drawings/${result.uuid}`;
-  return `/${result.type}s/${result.uuid}`;
+  if (result.type === 'drawing') return `/drawings/${result.publicId}`;
+  return `/${result.type}s/${result.publicId}`;
 }
 
 export function SearchResults({ results, query, loading }: SearchResultsProps) {
@@ -67,7 +67,7 @@ export function SearchResults({ results, query, loading }: SearchResultsProps) {
 
         return (
           <Card
-            key={`${result.type}-${result.uuid ?? index}`}
+            key={`${result.type}-${result.publicId ?? index}`}
             className="px-5 py-4 hover:shadow-md transition-shadow group"
           >
             <Link href={getLink(result)}>

@@ -101,7 +101,7 @@ export default function TransmittalDetailPage() {
             <p className="text-sm text-muted-foreground">Generated From</p>
             {transmittal.correspondence ? (
               <Link
-                href={`/correspondences/${transmittal.correspondence.uuid}`}
+                href={`/correspondences/${transmittal.correspondence.publicId}`}
                 className="font-medium text-primary hover:underline"
               >
                 {transmittal.correspondence.correspondenceNumber}

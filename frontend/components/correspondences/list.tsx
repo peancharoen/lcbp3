@@ -87,10 +87,10 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
       id: 'actions',
       cell: ({ row }) => {
         const item = row.original;
-        // Edit/View link goes to the DOCUMENT detail (correspondence.uuid)
-        // Ideally we might pass ?revId=item.uuid to view specific revision, but detail page defaults to latest.
+        // Edit/View link goes to the DOCUMENT detail (correspondence.publicId)
+        // Ideally we might pass ?revId=item.publicId to view specific revision, but detail page defaults to latest.
         // For editing, we edit the document.
-        const docUuid = item.correspondence.uuid;
+        const docUuid = item.correspondence.publicId;
         const statusCode = item.status?.statusCode;
 
         return (

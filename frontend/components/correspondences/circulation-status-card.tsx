@@ -76,7 +76,7 @@ function CirculationItem({ circ }: { circ: Circulation }) {
         </div>
       )}
 
-      <Link href={`/circulation/${circ.uuid}`}>
+      <Link href={`/circulation/${circ.publicId}`}>
         <Button variant="ghost" size="sm" className="w-full h-7 text-xs mt-1">
           View Details
           <ChevronRight className="h-3 w-3 ml-1" />
@@ -118,7 +118,7 @@ export function CirculationStatusCard({ correspondenceUuid }: CirculationStatusC
           <p className="text-sm text-muted-foreground">No circulations yet</p>
         ) : (
           circulations.map((circ) => (
-            <CirculationItem key={circ.uuid} circ={circ} />
+            <CirculationItem key={circ.publicId} circ={circ} />
           ))
         )}
 

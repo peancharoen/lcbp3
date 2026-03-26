@@ -62,7 +62,7 @@ export function RFADetail({ data }: RFADetailProps) {
 
     processMutation.mutate(
       {
-        uuid: data.uuid,
+        uuid: data.publicId,
         data: {
           action: apiAction,
           comments: comments,
@@ -79,7 +79,7 @@ export function RFADetail({ data }: RFADetailProps) {
 
   const handleSubmit = () => {
     submitMutation.mutate(
-      { uuid: data.uuid, templateId },
+      { uuid: data.publicId, templateId },
       {
         onSuccess: () => {
           setActionState(null);
@@ -109,7 +109,7 @@ export function RFADetail({ data }: RFADetailProps) {
         <div className="flex gap-2">
           {currentRevision?.statusCode?.statusCode === 'DFT' && (
             <>
-              <Link href={`/rfas/${data.uuid}/edit`}>
+              <Link href={`/rfas/${data.publicId}/edit`}>
                 <Button variant="outline">
                   <Edit className="mr-2 h-4 w-4" />
                   Edit

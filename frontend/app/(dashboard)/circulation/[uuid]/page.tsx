@@ -143,7 +143,7 @@ export default function CirculationDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Linked Document</p>
               <Link
-                href={`/correspondences/${circulation.correspondence.uuid}`}
+                href={`/correspondences/${circulation.correspondence.publicId}`}
                 className="font-medium text-primary hover:underline"
               >
                 {circulation.correspondence.correspondenceNumber}
