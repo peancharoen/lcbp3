@@ -63,10 +63,7 @@ export class VirtualColumnService {
     tableName: string,
     config: VirtualColumnConfig
   ) {
-    const hasColumn = await queryRunner.hasColumn(
-      tableName,
-      config.column_name
-    );
+    const hasColumn = await queryRunner.hasColumn(tableName, config.columnName);
 
     if (!hasColumn) {
       const sql = this.generateAddColumnSql(tableName, config);
@@ -75,7 +72,7 @@ export class VirtualColumnService {
     } else {
       // TODO: (Advance) ถ้ามี Column แล้ว แต่ Definition เปลี่ยน อาจต้อง ALTER MODIFY
       this.logger.debug(
-        `Column '${config.column_name}' already exists in '${tableName}'.`
+        `Column '${config.columnName}' already exists in '${tableName}'.`
       );
     }
   }
@@ -88,7 +85,7 @@ export class VirtualColumnService {
     tableName: string,
     config: VirtualColumnConfig
   ) {
-    const indexName = `idx_${tableName}_${config.column_name}`;
+    const indexName = `idx_${tableName}_${config.columnName}`;
 
     // ตรวจสอบว่า Index มีอยู่จริงไหม (Query จาก information_schema เพื่อความชัวร์)
     const checkIndexSql = `
@@ -104,7 +101,7 @@ export class VirtualColumnService {
     ])) as { count: number }[];
 
     if (result[0]?.count === 0) {
-      const sql = `CREATE ${config.index_type === 'UNIQUE' ? 'UNIQUE' : ''} INDEX ${indexName} ON ${tableName} (${config.column_name})`;
+      const sql = `CREATE ${config.indexType === 'UNIQUE' ? 'UNIQUE' : ''} INDEX ${indexName} ON ${tableName} (${config.columnName})`;
       this.logger.log(`Creating Index: ${sql}`);
       await queryRunner.query(sql);
     }
@@ -118,16 +115,16 @@ export class VirtualColumnService {
     tableName: string,
     config: VirtualColumnConfig
   ): string {
-    const dbType = this.mapDataTypeToSql(config.data_type);
+    const dbType = this.mapDataTypeToSql(config.dataType);
     // JSON_UNQUOTE(JSON_EXTRACT(details, '$.path'))
     // ใช้ 'details' เป็นชื่อ column JSON หลัก (ต้องตรงกับ Database Schema ที่ออกแบบไว้)
-    const expression = `JSON_UNQUOTE(JSON_EXTRACT(details, '${config.json_path}'))`;
+    const expression = `JSON_UNQUOTE(JSON_EXTRACT(details, '${config.jsonPath}'))`;
 
     // Handle Type Casting inside expression if needed,
     // but usually MariaDB handles string return from JSON_EXTRACT.
     // For INT/DATE, virtual column type definition enforces it.
 
-    return `ALTER TABLE ${tableName} ADD COLUMN ${config.column_name} ${dbType} GENERATED ALWAYS AS (${expression}) VIRTUAL`;
+    return `ALTER TABLE ${tableName} ADD COLUMN ${config.columnName} ${dbType} GENERATED ALWAYS AS (${expression}) VIRTUAL`;
   }
 
   private mapDataTypeToSql(type: string): string {

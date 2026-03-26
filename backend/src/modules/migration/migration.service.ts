@@ -136,11 +136,11 @@ export class MigrationService {
 
     // We now use project_id from n8n (instead of hardcoding LCBP3)
     const project = await this.projectRepo.findOne({
-      where: { id: dto.project_id },
+      where: { id: dto.projectId },
     });
     if (!project) {
       throw new BadRequestException(
-        `Project ID ${dto.project_id} not found in database`
+        `Project ID ${dto.projectId} not found in database`
       );
     }
 
@@ -154,18 +154,18 @@ export class MigrationService {
       // 3. Find or Create Correspondence
       let correspondence = await queryRunner.manager.findOne(Correspondence, {
         where: {
-          correspondenceNumber: dto.document_number,
+          correspondenceNumber: dto.documentNumber,
           projectId: project.id,
         },
       });
 
       if (!correspondence) {
         correspondence = queryRunner.manager.create(Correspondence, {
-          correspondenceNumber: dto.document_number,
+          correspondenceNumber: dto.documentNumber,
           correspondenceTypeId: typeId,
           projectId: project.id,
-          disciplineId: dto.discipline_id || undefined,
-          originatorId: dto.sender_id || undefined, // Set explicitly from DTO
+          disciplineId: dto.disciplineId || undefined,
+          originatorId: dto.senderId || undefined, // Set explicitly from DTO
           isInternal: false,
           createdBy: userId,
         });
@@ -187,12 +187,12 @@ export class MigrationService {
       } else {
         // Update values if missing
         let hasChanges = false;
-        if (dto.discipline_id && !correspondence.disciplineId) {
-          correspondence.disciplineId = dto.discipline_id;
+        if (dto.disciplineId && !correspondence.disciplineId) {
+          correspondence.disciplineId = dto.disciplineId;
           hasChanges = true;
         }
-        if (dto.sender_id && !correspondence.originatorId) {
-          correspondence.originatorId = dto.sender_id;
+        if (dto.senderId && !correspondence.originatorId) {
+          correspondence.originatorId = dto.senderId;
           hasChanges = true;
         }
         if (hasChanges) {
@@ -202,8 +202,8 @@ export class MigrationService {
 
       // 4. File Handling
       let attachmentId: number | null = null;
-      if (dto.temp_attachment_id) {
-        attachmentId = dto.temp_attachment_id;
+      if (dto.tempAttachmentId) {
+        attachmentId = dto.tempAttachmentId;
         try {
           // Mark attachment as permanent
           await queryRunner.manager.update(
@@ -218,10 +218,10 @@ export class MigrationService {
             `Failed to update temp_file [id:${attachmentId}]: ${errMsg}`
           );
         }
-      } else if (dto.source_file_path) {
+      } else if (dto.sourceFilePath) {
         try {
           const attachment = await this.fileStorageService.importStagingFile(
-            dto.source_file_path,
+            dto.sourceFilePath,
             userId,
             { documentType: dto.category }
           );
@@ -231,7 +231,7 @@ export class MigrationService {
             fileError instanceof Error ? fileError.message : String(fileError);
 
           this.logger.warn(
-            `Failed to import file for [${dto.document_number}], continuing without attachment: ${errMsg}`
+            `Failed to import file for [${dto.documentNumber}], continuing without attachment: ${errMsg}`
           );
         }
       }
@@ -268,14 +268,14 @@ export class MigrationService {
         subject: dto.subject,
         description: 'Migrated from legacy system via Auto Ingest',
         body: dto.body || undefined,
-        documentDate: parseDateStr(dto.document_date || dto.issued_date),
-        issuedDate: parseDateStr(dto.issued_date),
-        receivedDate: parseDateStr(dto.received_date),
+        documentDate: parseDateStr(dto.documentDate || dto.issuedDate),
+        issuedDate: parseDateStr(dto.issuedDate),
+        receivedDate: parseDateStr(dto.receivedDate),
         details: {
           ...dto.details,
-          ai_confidence: dto.ai_confidence,
-          ai_issues: dto.ai_issues as unknown,
-          source_file_path: dto.source_file_path,
+          ai_confidence: dto.aiConfidence,
+          ai_issues: dto.aiIssues as unknown,
+          source_file_path: dto.sourceFilePath,
           attachment_id: attachmentId,
         },
         schemaVersion: 1,
@@ -323,9 +323,9 @@ export class MigrationService {
           if (typeof tagItem === 'string') {
             tagName = tagItem;
           } else if (tagItem && typeof tagItem === 'object') {
-            const tObj = tagItem as { tag_name?: unknown };
-            if (typeof tObj.tag_name === 'string') {
-              tagName = tObj.tag_name;
+            const tObj = tagItem as { tagName?: unknown };
+            if (typeof tObj.tagName === 'string') {
+              tagName = tObj.tagName;
             }
           }
 
@@ -360,8 +360,8 @@ export class MigrationService {
       // 6. Track Transaction
       const transaction = queryRunner.manager.create(ImportTransaction, {
         idempotencyKey,
-        documentNumber: dto.document_number,
-        batchId: dto.batch_id,
+        documentNumber: dto.documentNumber,
+        batchId: dto.batchId,
         statusCode: 201,
       });
       await queryRunner.manager.save(transaction);
@@ -369,7 +369,7 @@ export class MigrationService {
       await queryRunner.commitTransaction();
 
       this.logger.log(
-        `Ingested document [${dto.document_number}] successfully (Batch: ${dto.batch_id})`
+        `Ingested document [${dto.documentNumber}] successfully (Batch: ${dto.batchId})`
       );
 
       return {
@@ -385,14 +385,14 @@ export class MigrationService {
       const errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(
-        `Import failed for document [${dto.document_number}]: ${errorMessage}`,
+        `Import failed for document [${dto.documentNumber}]: ${errorMessage}`,
         errorStack
       );
 
       const failedTransaction = this.importTransactionRepo.create({
         idempotencyKey,
-        documentNumber: dto.document_number,
-        batchId: dto.batch_id,
+        documentNumber: dto.documentNumber,
+        batchId: dto.batchId,
         statusCode: 500,
       });
       await this.importTransactionRepo.save(failedTransaction).catch(() => {});
@@ -406,14 +406,14 @@ export class MigrationService {
   }
 
   async enqueueRecord(dto: EnqueueMigrationDto) {
-    if (!dto.document_number) {
-      throw new BadRequestException('document_number is required');
+    if (!dto.documentNumber) {
+      throw new BadRequestException('documentNumber is required');
     }
 
     // Determine status based on confidence policy in ADR-017
     let autoStatus = MigrationReviewStatus.PENDING;
     if (
-      dto.is_valid === false ||
+      dto.isValid === false ||
       (dto.confidence != null && dto.confidence < 0.6)
     ) {
       autoStatus = MigrationReviewStatus.REJECTED;
@@ -421,43 +421,42 @@ export class MigrationService {
 
     // Upsert or create new queue item
     let queueItem = await this.reviewQueueRepo.findOne({
-      where: { documentNumber: dto.document_number },
+      where: { documentNumber: dto.documentNumber },
     });
 
     if (!queueItem) {
       queueItem = this.reviewQueueRepo.create({
-        documentNumber: dto.document_number,
+        documentNumber: dto.documentNumber,
       });
     }
 
     queueItem.subject = dto.subject;
-    queueItem.originalSubject = dto.original_subject;
+    queueItem.originalSubject = dto.originalSubject;
     queueItem.body = dto.body;
     queueItem.aiSuggestedCategory = dto.category;
-    queueItem.aiConfidence = dto.confidence;
-    queueItem.aiIssues = dto.ai_issues;
-    queueItem.projectId = dto.project_id;
-    queueItem.senderOrganizationId = dto.sender_org_id;
-    queueItem.receiverOrganizationId = dto.receiver_org_id;
+    queueItem.aiIssues = dto.aiIssues;
+    queueItem.projectId = dto.projectId;
+    queueItem.senderOrganizationId = dto.senderOrgId;
+    queueItem.receiverOrganizationId = dto.receiverOrgId;
     queueItem.remarks = dto.remarks;
-    queueItem.aiSummary = dto.ai_summary;
-    queueItem.extractedTags = dto.extracted_tags;
-    queueItem.tempAttachmentId = dto.temp_attachment_id;
+    queueItem.aiSummary = dto.aiSummary;
+    queueItem.extractedTags = dto.extractedTags;
+    queueItem.tempAttachmentId = dto.tempAttachmentId;
     queueItem.status = autoStatus;
 
-    if (dto.issued_date) {
-      const parsed = new Date(dto.issued_date);
+    if (dto.issuedDate) {
+      const parsed = new Date(dto.issuedDate);
       if (!isNaN(parsed.getTime())) queueItem.issuedDate = parsed;
     }
-    if (dto.received_date) {
-      const parsed = new Date(dto.received_date);
+    if (dto.receivedDate) {
+      const parsed = new Date(dto.receivedDate);
       if (!isNaN(parsed.getTime())) queueItem.receivedDate = parsed;
     }
 
     await this.reviewQueueRepo.save(queueItem);
 
     this.logger.log(
-      `Enqueued document [${dto.document_number}] to staging queue with status [${autoStatus}]`
+      `Enqueued document [${dto.documentNumber}] to staging queue with status [${autoStatus}]`
     );
 
     return {
@@ -500,15 +499,15 @@ export class MigrationService {
 
   async createError(dto: CreateMigrationErrorDto) {
     const error = this.errorRepo.create({
-      batchId: dto.batch_id,
-      documentNumber: dto.document_number,
-      errorType: dto.error_type,
-      errorMessage: dto.error_message,
-      rawAiResponse: dto.raw_ai_response,
+      batchId: dto.batchId,
+      documentNumber: dto.documentNumber,
+      errorType: dto.errorType,
+      errorMessage: dto.errorMessage,
+      rawAiResponse: dto.rawAiResponse,
     });
     const saved = await this.errorRepo.save(error);
     this.logger.warn(
-      `Migration error logged [${dto.error_type}] for doc [${dto.document_number}] batch [${dto.batch_id}]`
+      `Migration error logged [${dto.errorType}] for doc [${dto.documentNumber}] batch [${dto.batchId}]`
     );
     return { message: 'Error logged', id: saved.id };
   }
@@ -581,7 +580,7 @@ export class MigrationService {
       const subKey = `${idempotencyKey}_${item.queueId}`;
 
       // Force batchId on the item dto
-      item.dto.batch_id = dto.batchId;
+      item.dto.batchId = dto.batchId;
 
       try {
         const result = await this.approveQueueItem(
