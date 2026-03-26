@@ -80,7 +80,7 @@ describe('DueDateReminderService', () => {
         {
           correspondence: {
             id: 1,
-            uuid: 'uuid-1',
+            publicId: 'uuid-1',
             correspondenceNumber: 'LC-001',
             originatorId: 10,
           },
@@ -100,7 +100,7 @@ describe('DueDateReminderService', () => {
         {
           correspondence: {
             id: 1,
-            uuid: 'uuid-1',
+            publicId: 'uuid-1',
             correspondenceNumber: 'LC-001',
             originatorId: 10,
           },
@@ -120,7 +120,7 @@ describe('DueDateReminderService', () => {
         {
           correspondence: {
             id: 1,
-            uuid: 'uuid-1',
+            publicId: 'uuid-1',
             correspondenceNumber: 'LC-001',
             originatorId: 10,
           },
@@ -142,7 +142,7 @@ describe('DueDateReminderService', () => {
         {
           correspondence: {
             id: 5,
-            uuid: 'corr-uuid-1',
+            publicId: 'corr-uuid-1',
             correspondenceNumber: 'LC-TEST-001',
             originatorId: 10,
           },
@@ -174,7 +174,7 @@ describe('DueDateReminderService', () => {
         {
           correspondence: {
             id: 1,
-            uuid: 'uuid-1',
+            publicId: 'uuid-1',
             correspondenceNumber: 'LC-001',
             originatorId: 10,
           },
@@ -185,7 +185,7 @@ describe('DueDateReminderService', () => {
         {
           correspondence: {
             id: 2,
-            uuid: 'uuid-2',
+            publicId: 'uuid-2',
             correspondenceNumber: 'LC-002',
             originatorId: 20,
           },
@@ -209,7 +209,7 @@ describe('DueDateReminderService', () => {
         {
           correspondence: {
             id: 3,
-            uuid: 'uuid-3',
+            publicId: 'uuid-3',
             correspondenceNumber: 'LC-003',
             originatorId: 5,
           },
