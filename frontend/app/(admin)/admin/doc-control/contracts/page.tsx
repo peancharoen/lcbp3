@@ -38,7 +38,7 @@ import { SearchContractDto, CreateContractDto, UpdateContractDto } from '@/types
 import { AxiosError } from 'axios';
 
 interface _Project {
-  id: string; // ADR-019: uuid exposed as 'id'
+  id: string; // ADR-019: uuid exposed as 'id' (string)
   projectCode: string;
   projectName: string;
 }
@@ -86,7 +86,7 @@ const useProjectsList = () => {
 export default function ContractsPage() {
   const [search, setSearch] = useState('');
   const { data: contracts, isLoading } = useContracts({ search: search || undefined });
-  const { data: projects } = useProjectsList();
+  const { data: projects } = useProjectsList() as { data: _Project[] | undefined };
 
   const queryClient = useQueryClient();
 
@@ -286,7 +286,9 @@ export default function ContractsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingUuid ? 'Edit Contract' : 'New Contract'}</DialogTitle>
+            <DialogTitle>
+              {editingUuid ? `Edit Contract: ${watch('contractCode') || '...'}` : 'New Contract'}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
@@ -296,13 +298,12 @@ export default function ContractsPage() {
                   <SelectValue placeholder="Select Project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(projects as { id?: number; uuid?: string; projectCode: string; projectName: string }[])?.map(
-                    (p) => (
-                      <SelectItem key={p.uuid || p.id} value={String(p.id || p.uuid)}>
-                        {p.projectCode} - {p.projectName}
-                      </SelectItem>
-                    )
-                  )}
+                  {projects?.map((p) => (
+                    // ADR-019: Project exposes UUID as 'id' (string)
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.projectCode} - {p.projectName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.projectId && <p className="text-sm text-red-500">{errors.projectId.message}</p>}

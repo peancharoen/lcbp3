@@ -22,6 +22,18 @@ export default function RfaTypesPage() {
       cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('typeCode')}</span>,
     },
     {
+      accessorKey: 'contract',
+      header: 'Contract',
+      cell: ({ row }) => {
+        const contract = row.original.contract;
+        return contract ? (
+          <span className="text-sm">{contract.contractName} ({contract.contractCode})</span>
+        ) : (
+          <span className="text-muted-foreground text-sm">-</span>
+        );
+      },
+    },
+    {
       accessorKey: 'typeNameTh',
       header: 'Name (TH)',
     },
@@ -48,9 +60,9 @@ export default function RfaTypesPage() {
     },
   ];
 
-  const contractOptions = contracts.map((c: { id: number | string; contract_name?: string; contract_code?: string; contractName?: string; contractCode?: string }) => ({
+  const contractOptions = contracts.map((c: { id?: number; publicId?: string; contract_name?: string; contract_code?: string; contractName?: string; contractCode?: string }) => ({
     label: `${c.contractName || c.contract_name} (${c.contractCode || c.contract_code})`,
-    value: String(c.id),
+    value: String(c.publicId ?? c.id ?? ''),
   }));
 
   return (
@@ -87,8 +99,8 @@ export default function RfaTypesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
-                {contracts.map((c: { id: number | string; contract_name?: string; contract_code?: string; contractName?: string; contractCode?: string }) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
+                {contracts.map((c: { id?: number; publicId?: string; contract_name?: string; contract_code?: string; contractName?: string; contractCode?: string }) => (
+                  <SelectItem key={String(c.publicId ?? c.id ?? '')} value={String(c.publicId ?? c.id ?? '')}>
                     {c.contractName || c.contract_name} ({c.contractCode || c.contract_code})
                   </SelectItem>
                 ))}
@@ -104,11 +116,11 @@ export default function RfaTypesPage() {
             required: true,
             options: contractOptions,
           },
-          { name: 'type_code', label: 'Code', type: 'text', required: true },
-          { name: 'type_name_th', label: 'Name (TH)', type: 'text', required: true },
-          { name: 'type_name_en', label: 'Name (EN)', type: 'text' },
+          { name: 'typeCode', label: 'Code', type: 'text', required: true },
+          { name: 'typeNameTh', label: 'Name (TH)', type: 'text', required: true },
+          { name: 'typeNameEn', label: 'Name (EN)', type: 'text' },
           { name: 'remark', label: 'Remark', type: 'textarea' },
-          { name: 'is_active', label: 'Active', type: 'checkbox' },
+          { name: 'isActive', label: 'Active', type: 'checkbox' },
         ]}
       />
     </div>

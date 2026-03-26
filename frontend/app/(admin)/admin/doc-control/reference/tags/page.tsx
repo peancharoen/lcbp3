@@ -16,9 +16,9 @@ export default function TagsPage() {
 
   const projectOptions = [
     { label: 'Global (All Projects)', value: '__none__' },
-    ...(projectsData || []).map((p: { id: number | string; projectName?: string; projectCode?: string }) => ({
-      label: (p.projectName || p.projectCode || `Project ${p.id}`) as string,
-      value: String(p.id), // p.id = UUID string via serialization
+    ...(projectsData || []).map((p: { id?: number; publicId?: string; projectName?: string; projectCode?: string }) => ({
+      label: (p.projectName || p.projectCode || `Project ${p.publicId || p.id}`) as string,
+      value: String(p.publicId ?? p.id ?? ''), // ADR-019: publicId is the UUID exposed in API
     })),
   ];
 

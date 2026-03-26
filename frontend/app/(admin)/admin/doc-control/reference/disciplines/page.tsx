@@ -22,6 +22,18 @@ export default function DisciplinesPage() {
       cell: ({ row }) => <span className="font-mono font-bold">{row.getValue('disciplineCode')}</span>,
     },
     {
+      accessorKey: 'contract',
+      header: 'Contract',
+      cell: ({ row }) => {
+        const contract = row.original.contract;
+        return contract ? (
+          <span className="text-sm">{contract.contractName} ({contract.contractCode})</span>
+        ) : (
+          <span className="text-muted-foreground text-sm">-</span>
+        );
+      },
+    },
+    {
       accessorKey: 'codeNameTh',
       header: 'Name (TH)',
     },
@@ -44,9 +56,9 @@ export default function DisciplinesPage() {
     },
   ];
 
-  const contractOptions = contracts.map((c: { id: number; contractCode: string; contractName: string }) => ({
+  const contractOptions = contracts.map((c: { id?: number; publicId?: string; contractCode: string; contractName: string }) => ({
     label: `${c.contractName} (${c.contractCode})`,
-    value: String(c.id),
+    value: String(c.publicId ?? c.id ?? ''),
   }));
 
   return (
@@ -86,8 +98,8 @@ export default function DisciplinesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
-                {contracts.map((c: { id: number; contractCode: string; contractName: string }) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
+                {contracts.map((c: { id?: number; publicId?: string; contractCode: string; contractName: string }) => (
+                  <SelectItem key={String(c.publicId ?? c.id ?? '')} value={String(c.publicId ?? c.id ?? '')}>
                     {c.contractName} ({c.contractCode})
                   </SelectItem>
                 ))}

@@ -16,6 +16,13 @@ export interface Discipline {
   codeNameEn: string;
   codeNameTh?: string;
   isActive: boolean;
+  contract?: {
+    id?: number;
+    publicId?: string;
+    contractCode: string;
+    contractName: string;
+  };
+  contractId?: number | string;
 }
 
 export interface RfaType {
@@ -25,6 +32,13 @@ export interface RfaType {
   typeNameEn?: string;
   remark?: string;
   isActive: boolean;
+  contract?: {
+    id?: number;
+    publicId?: string;
+    contractCode: string;
+    contractName: string;
+  };
+  contractId?: number | string;
 }
 
 export interface Tag {

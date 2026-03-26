@@ -16,10 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useProjects, useCorrespondenceTypes, useContracts, useDisciplines } from '@/hooks/use-master-data';
 
 interface ProjectItem {
-  id: number | string;
-  publicId?: string; // ADR-019: exposed as 'id' in API responses
+  publicId: string; // ADR-019: UUID from API
   projectName: string;
   projectCode: string;
+  isActive?: boolean;
 }
 
 import { ManualOverrideForm } from '@/components/numbering/manual-override-form';
@@ -38,7 +38,7 @@ export default function NumberingPage() {
   useEffect(() => {
     if (projects.length > 0 && !selectedProjectId) {
       const first = projects[0] as ProjectItem;
-      setSelectedProjectId(String(first.publicId ?? first.id));
+      setSelectedProjectId(String(first.publicId));
     }
   }, [projects, selectedProjectId]);
 
@@ -48,7 +48,7 @@ export default function NumberingPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState<NumberingTemplate | null>(null);
 
-  const selectedProject = (projects as ProjectItem[]).find((p) => String(p.publicId ?? p.id) === selectedProjectId);
+  const selectedProject = (projects as ProjectItem[]).find((p) => String(p.publicId) === selectedProjectId);
   const selectedProjectName = selectedProject?.projectName || 'Unknown Project';
 
   // Master Data
@@ -116,7 +116,7 @@ export default function NumberingPage() {
             </SelectTrigger>
             <SelectContent>
               {(projects as ProjectItem[]).map((project) => (
-                <SelectItem key={String(project.publicId ?? project.id)} value={String(project.publicId ?? project.id)}>
+                <SelectItem key={project.publicId} value={project.publicId}>
                   {project.projectCode} - {project.projectName}
                 </SelectItem>
               ))}
