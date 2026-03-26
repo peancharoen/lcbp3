@@ -84,6 +84,7 @@ export class UserService {
       .leftJoinAndSelect('user.preference', 'preference') // Optional
       .leftJoinAndSelect('user.assignments', 'assignments')
       .leftJoinAndSelect('assignments.role', 'role')
+      .leftJoinAndSelect('user.organization', 'organization') // [FIX] Required for primaryOrganizationPublicId getter (ADR-019)
       .select([
         'user.user_id',
         'user.publicId',
@@ -92,13 +93,13 @@ export class UserService {
         'user.firstName',
         'user.lastName',
         'user.lineId',
-        'user.primaryOrganizationId',
         'user.isActive',
         'user.createdAt',
         'user.updatedAt',
         'assignments.id',
         'role.roleId',
         'role.roleName',
+        'organization.publicId', // [FIX] Expose org UUID for getter (ADR-019)
       ]);
 
     // Apply Filters
@@ -146,6 +147,7 @@ export class UserService {
         'assignments',
         'assignments.role',
         'assignments.role.permissions', // [FIX] Required for RBAC AbilityFactory
+        'organization', // [FIX] Required for primaryOrganizationPublicId getter (ADR-019)
       ],
     });
 
@@ -164,6 +166,7 @@ export class UserService {
         'assignments',
         'assignments.role',
         'assignments.role.permissions',
+        'organization', // [FIX] Required for primaryOrganizationPublicId getter (ADR-019)
       ],
     });
 

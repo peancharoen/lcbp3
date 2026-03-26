@@ -38,7 +38,7 @@ import { SearchContractDto, CreateContractDto, UpdateContractDto } from '@/types
 import { AxiosError } from 'axios';
 
 interface _Project {
-  id: string; // ADR-019: uuid exposed as 'id' (string)
+  publicId: string; // ADR-019: uuid exposed as 'publicId' (string)
   projectCode: string;
   projectName: string;
 }
@@ -206,8 +206,8 @@ export default function ContractsPage() {
 
   const handleEdit = (contract: Contract) => {
     setEditingUuid(contract.id);
-    // ADR-019: project.id is the project's UUID (exposed via @Expose)
-    const pId = contract.project?.id || '';
+    // ADR-019: project.publicId is the project's UUID
+    const pId = contract.project?.publicId || '';
     reset({
       contractCode: contract.contractCode,
       contractName: contract.contractName,
@@ -299,8 +299,8 @@ export default function ContractsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {projects?.map((p) => (
-                    // ADR-019: Project exposes UUID as 'id' (string)
-                    <SelectItem key={p.id} value={p.id}>
+                    // ADR-019: Project exposes UUID as 'publicId'
+                    <SelectItem key={p.publicId} value={p.publicId}>
                       {p.projectCode} - {p.projectName}
                     </SelectItem>
                   ))}

@@ -70,8 +70,8 @@ export default function ShopSubCategoriesPage() {
           )}
         </SelectTrigger>
         <SelectContent>
-          {(projects as { id?: number; uuid?: string; projectCode: string; projectName: string }[]).map((project) => (
-            <SelectItem key={project.uuid || project.id} value={String(project.id || project.uuid)}>
+          {(projects as { id?: number; publicId?: string; projectCode: string; projectName: string }[]).map((project) => (
+            <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
               {project.projectCode} - {project.projectName}
             </SelectItem>
           ))}

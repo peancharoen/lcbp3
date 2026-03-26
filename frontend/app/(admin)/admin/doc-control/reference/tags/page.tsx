@@ -27,10 +27,10 @@ export default function TagsPage() {
       accessorKey: 'project_id',
       header: 'Project',
       cell: ({ row }) => {
-        const item = row.original as Tag & { project?: { id?: number | string; projectName?: string; projectCode?: string } };
+        const item = row.original as Tag & { project?: { id?: number | string; publicId?: string; projectName?: string; projectCode?: string } };
         const project = item.project;
         if (!project) return <span className="text-muted-foreground italic">Global</span>;
-        return (project.projectName || project.projectCode || `Project ${project.id}`) as React.ReactNode;
+        return (project.projectName || project.projectCode || `Project ${project.publicId || project.id}`) as React.ReactNode;
       },
     },
     {
@@ -75,10 +75,10 @@ export default function TagsPage() {
         const items = await masterDataService.getTags();
         // ADR-019: Map project_id INT → project UUID for edit mode select matching
         return items.map((item) => {
-          const rec = item as Tag & { project?: { id?: number | string; uuid?: string }; project_id?: number | string };
+          const rec = item as Tag & { project?: { id?: number | string; publicId?: string }; project_id?: number | string };
           return {
             ...item,
-            project_id: rec.project?.id || rec.project?.uuid || (rec.project_id ? String(rec.project_id) : null),
+            project_id: rec.project?.publicId || rec.project?.id || (rec.project_id ? String(rec.project_id) : null),
           } as Tag;
         });
       }}

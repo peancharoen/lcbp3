@@ -24,12 +24,15 @@ export default function EditTemplatePage() {
   const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
   const { data: projects = [] } = useProjects();
   const projectId = template?.projectId || 1;
-  const { data: contracts = [] } = useContracts(projectId);
-  const contractId = contracts[0]?.id;
+  const { data: contractsData } = useContracts(projectId);
+  const contracts = Array.isArray(contractsData) ? contractsData : [];
+  const firstContract = contracts[0] as { id?: number; publicId?: string } | undefined;
+  const contractId = firstContract?.publicId ?? firstContract?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const selectedProjectName =
-    projects.find((p: { id?: number; uuid?: string; projectCode: string; projectName: string }) => p.id === projectId)
+    projects.find((p: { id?: number; publicId?: string; projectCode: string; projectName: string }) =>
+      String(p.publicId ?? p.id) === String(projectId))
       ?.projectName || 'LCBP3';
 
   useEffect(() => {

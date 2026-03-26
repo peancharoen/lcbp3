@@ -17,7 +17,7 @@ import { Organization } from '../../organization/entities/organization.entity'; 
 import { UserAssignment } from './user-assignment.entity';
 import { UserPreference } from './user-preference.entity';
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
-import { Exclude } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 
 @Entity('users')
 export class User extends UuidBaseEntity {
@@ -57,11 +57,18 @@ export class User extends UuidBaseEntity {
 
   // Relation กับ Organization (สังกัดหลัก)
   @Column({ name: 'primary_organization_id', nullable: true })
+  @Exclude() // INT ID - never expose, use primaryOrganizationPublicId instead (ADR-019)
   primaryOrganizationId?: number;
 
   @ManyToOne(() => Organization, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'primary_organization_id' })
   organization?: Organization;
+
+  // ADR-019: Expose UUID instead of INT ID
+  @Expose({ name: 'primaryOrganizationId' })
+  get primaryOrganizationPublicId(): string | undefined {
+    return this.organization?.publicId;
+  }
 
   // Relation กับ Assignments (RBAC)
   @OneToMany(() => UserAssignment, (assignment) => assignment.user)

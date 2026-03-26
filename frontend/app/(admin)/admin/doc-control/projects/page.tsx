@@ -33,7 +33,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Project {
-  id: string; // ADR-019: uuid exposed as 'id'
+  publicId: string; // ADR-019: uuid exposed as 'publicId'
   projectCode: string;
   projectName: string;
   isActive: boolean;
@@ -71,7 +71,7 @@ export default function ProjectsPage() {
 
   const confirmDelete = () => {
     if (projectToDelete) {
-      deleteProject.mutate(projectToDelete.id, {
+      deleteProject.mutate(projectToDelete.publicId, {
         onSuccess: () => {
           setDeleteDialogOpen(false);
           setProjectToDelete(null);
@@ -145,7 +145,7 @@ export default function ProjectsPage() {
   ];
 
   const handleEdit = (project: Project) => {
-    setEditingUuid(project.id);
+    setEditingUuid(project.publicId);
     reset({
       projectCode: project.projectCode,
       projectName: project.projectName,

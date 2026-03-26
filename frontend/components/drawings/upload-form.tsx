@@ -25,6 +25,16 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
+// Helper to extract array data from various API response formats
+const extractArrayData = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === 'object' && 'data' in value) {
+    const data = (value as { data?: unknown }).data;
+    if (Array.isArray(data)) return data as T[];
+  }
+  return [];
+};
+
 // Base Schema
 const baseSchema = z.object({
   drawingType: z.enum(['CONTRACT', 'SHOP', 'AS_BUILT']),
@@ -79,7 +89,8 @@ export function DrawingUploadForm() {
   const router = useRouter();
 
   // Project list
-  const { data: projects = [], isLoading: isLoadingProjects } = useProjects();
+  const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
+  const projects = extractArrayData<{ id?: number; publicId?: string; projectName: string; projectCode: string }>(projectsData);
 
   // Selected project for category fetching
   const [selectedProjectId, setSelectedProjectId] = useState<number | string | undefined>(undefined);
@@ -119,9 +130,9 @@ export function DrawingUploadForm() {
     }
     // Try to resolve UUID→INT from projects list, or pass UUID directly
     const project = projects.find(
-      (p: { id: string; uuid?: string }) => p.id === watchedProjectId || p.uuid === watchedProjectId
-    ) as { id: string; uuid?: string } | undefined;
-    setSelectedProjectId(project?.id ?? watchedProjectId);
+      (p: { id?: number; publicId?: string }) => String(p.publicId ?? p.id) === watchedProjectId
+    ) as { id?: number; publicId?: string } | undefined;
+    setSelectedProjectId(project?.publicId ?? project?.id ?? watchedProjectId);
   }, [watchedProjectId, projects]);
 
   const onSubmit = (data: DrawingFormData) => {
@@ -181,11 +192,14 @@ export function DrawingUploadForm() {
                 )}
               </SelectTrigger>
               <SelectContent>
-                {projects.map((project: { id: string; projectName: string; projectCode: string }) => (
-                  <SelectItem key={project.id} value={project.id}>
+                {projects.map((project) => {
+                const projectValue = String(project.publicId ?? project.id ?? '');
+                return (
+                  <SelectItem key={projectValue} value={projectValue}>
                     {project.projectCode} - {project.projectName}
                   </SelectItem>
-                ))}
+                );
+              })}
               </SelectContent>
             </Select>
             {errors.projectId && <p className="text-sm text-destructive">{errors.projectId.message}</p>}

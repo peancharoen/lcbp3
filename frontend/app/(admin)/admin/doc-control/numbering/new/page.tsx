@@ -14,12 +14,15 @@ export default function NewTemplatePage() {
   const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
   const { data: projects = [] } = useProjects();
   const projectId = 1; // Default or sync with selection
-  const { data: contracts = [] } = useContracts(projectId);
-  const contractId = contracts[0]?.id;
+  const { data: contractsData } = useContracts(projectId);
+  const contracts = Array.isArray(contractsData) ? contractsData : [];
+  const firstContract = contracts[0] as { id?: number; publicId?: string } | undefined;
+  const contractId = firstContract?.publicId ?? firstContract?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const selectedProjectName =
-    projects.find((p: { id: number; projectName: string }) => p.id === projectId)?.projectName || 'LCBP3';
+    projects.find((p: { id?: number; publicId?: string; projectName: string }) =>
+      String(p.publicId ?? p.id) === String(projectId))?.projectName || 'LCBP3';
 
   const handleSave = async (data: Partial<NumberingTemplate>) => {
     try {

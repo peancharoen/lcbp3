@@ -53,7 +53,8 @@ export default function NumberingPage() {
 
   // Master Data
   const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
-  const { data: contracts = [] } = useContracts(selectedProjectId);
+  const { data: contractsData } = useContracts(selectedProjectId);
+  const contracts = Array.isArray(contractsData) ? contractsData : [];
   const firstContract = contracts[0] as { id?: number; publicId?: string } | undefined;
   const contractId = firstContract?.publicId ?? firstContract?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
@@ -147,8 +148,7 @@ export default function NumberingPage() {
                   .filter(
                     (t) =>
                       !t.projectId ||
-                      String(t.project?.id ?? t.project?.publicId) === selectedProjectId ||
-                      t.project?.publicId === selectedProjectId
+                      String(t.project?.publicId) === selectedProjectId
                   )
                   .map((template) => (
                     <Card key={template.id} className="p-6 hover:shadow-md transition-shadow">
