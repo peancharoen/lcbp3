@@ -155,7 +155,7 @@ export class NotificationService {
 
   async markAsReadByUuid(uuid: string, userId: number): Promise<void> {
     const notification = await this.notificationRepo.findOne({
-      where: { uuid, userId },
+      where: { publicId: uuid, userId },
     });
 
     if (!notification) {

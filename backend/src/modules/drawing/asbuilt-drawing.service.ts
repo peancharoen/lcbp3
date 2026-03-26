@@ -304,7 +304,7 @@ export class AsBuiltDrawingService {
 
   async findOneByUuid(uuid: string) {
     const asBuiltDrawing = await this.asBuiltDrawingRepo.findOne({
-      where: { uuid },
+      where: { publicId: uuid },
       relations: [
         'mainCategory',
         'subCategory',

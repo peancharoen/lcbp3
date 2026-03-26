@@ -298,7 +298,7 @@ export class ShopDrawingService {
 
   async findOneByUuid(uuid: string) {
     const shopDrawing = await this.shopDrawingRepo.findOne({
-      where: { uuid },
+      where: { publicId: uuid },
       relations: [
         'mainCategory',
         'subCategory',

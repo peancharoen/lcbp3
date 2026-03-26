@@ -205,7 +205,7 @@ export class ContractDrawingService {
 
   async findOneByUuid(uuid: string) {
     const drawing = await this.drawingRepo.findOne({
-      where: { uuid },
+      where: { publicId: uuid },
       relations: ['attachments'],
     });
 
