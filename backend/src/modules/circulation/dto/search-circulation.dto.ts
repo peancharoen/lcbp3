@@ -8,7 +8,7 @@ export class SearchCirculationDto {
 
   @IsOptional()
   @IsUUID('all')
-  correspondenceUuid?: string; // กรองตาม correspondence UUID (ADR-019)
+  correspondencePublicId?: string; // กรองตาม correspondence publicId (ADR-019)
 
   @IsOptional()
   @IsString()

@@ -89,10 +89,12 @@ export class OrganizationService {
     return org;
   }
 
-  async findOneByUuid(uuid: string) {
-    const org = await this.orgRepo.findOne({ where: { uuid } });
+  async findOneByUuid(publicId: string) {
+    const org = await this.orgRepo.findOne({ where: { publicId } });
     if (!org)
-      throw new NotFoundException(`Organization UUID ${uuid} not found`);
+      throw new NotFoundException(
+        `Organization publicId ${publicId} not found`
+      );
     return org;
   }
 

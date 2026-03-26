@@ -44,7 +44,7 @@ type CorrRevWithRfa = CorrespondenceRevision & { rfaRevision?: RfaRevision };
 
 /** RFA entity + a flat `revisions` convenience array for the frontend */
 export interface RfaMapped extends Rfa {
-  uuid?: string; // ADR-019: top-level UUID from correspondence
+  publicId?: string; // ADR-019: top-level publicId from correspondence
   revisions: CorrRevWithRfa[];
 }
 
@@ -429,7 +429,7 @@ export class RfaService {
       this.searchService
         .indexDocument({
           id: savedCorr.id,
-          uuid: savedCorr.uuid, // ADR-019: index UUID for search
+          publicId: savedCorr.publicId, // ADR-019: index publicId for search
           type: 'rfa',
           docNumber: docNumber.number,
           title: createDto.subject,
@@ -536,7 +536,7 @@ export class RfaService {
         (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
       return {
         ...rfa,
-        uuid: rfa.correspondence?.uuid, // ADR-019: expose UUID at top level
+        publicId: rfa.correspondence?.publicId, // ADR-019: expose publicId at top level
         revisions: revisions.map((cr) => ({
           ...cr,
           ...(cr.rfaRevision ?? {}),
@@ -557,27 +557,27 @@ export class RfaService {
   }
 
   /**
-   * ADR-019: Find RFA by the parent Correspondence UUID (public identifier).
-   * Resolves correspondence.uuid → internal rfa.id
+   * ADR-019: Find RFA by the parent Correspondence publicId (public identifier).
+   * Resolves correspondence.publicId → internal rfa.id
    */
-  async findOneByUuid(uuid: string) {
+  async findOneByUuid(publicId: string) {
     const correspondence = await this.correspondenceRepo.findOne({
-      where: { uuid },
+      where: { publicId },
       select: ['id'],
     });
     if (!correspondence) {
-      throw new NotFoundException(`RFA with UUID ${uuid} not found`);
+      throw new NotFoundException(`RFA with publicId ${publicId} not found`);
     }
     return this.findOne(correspondence.id);
   }
 
-  async findOneByUuidRaw(uuid: string) {
+  async findOneByUuidRaw(publicId: string) {
     const correspondence = await this.correspondenceRepo.findOne({
-      where: { uuid },
+      where: { publicId },
       select: ['id'],
     });
     if (!correspondence) {
-      throw new NotFoundException(`RFA with UUID ${uuid} not found`);
+      throw new NotFoundException(`RFA with publicId ${publicId} not found`);
     }
     return this.findOne(correspondence.id, true);
   }
@@ -618,7 +618,7 @@ export class RfaService {
       (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
     const mappedRfa: RfaMapped = {
       ...rfa,
-      uuid: rfa.correspondence?.uuid, // ADR-019: expose UUID at top level
+      publicId: rfa.correspondence?.publicId, // ADR-019: expose publicId at top level
       revisions: revisions.map((cr) => ({
         ...cr,
         ...(cr.rfaRevision ?? {}),
@@ -846,8 +846,8 @@ export class RfaService {
    * Update a Draft RFA's revision fields (subject, body, remarks, description, dueDate).
    * EC-RFA-002: Only allowed when current revision is in DFT status.
    */
-  async update(uuid: string, dto: UpdateRfaDto, _user: User) {
-    const rfa = await this.findOneByUuidRaw(uuid);
+  async update(publicId: string, dto: UpdateRfaDto, _user: User) {
+    const rfa = await this.findOneByUuidRaw(publicId);
     const corrRevisions =
       (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
     const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
@@ -880,15 +880,15 @@ export class RfaService {
       await this.rfaRevisionRepo.save(currentRfaRev);
     }
 
-    return this.findOneByUuid(uuid);
+    return this.findOneByUuid(publicId);
   }
 
   /**
    * Cancel (soft-delete) a Draft RFA by setting its status to CC.
    * EC-RFA-002: Only allowed when current revision is in DFT status.
    */
-  async cancel(uuid: string, user: User) {
-    const rfa = await this.findOneByUuidRaw(uuid);
+  async cancel(publicId: string, user: User) {
+    const rfa = await this.findOneByUuidRaw(publicId);
     const corrRevisions =
       (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
     const currentCorrRev = corrRevisions.find((r) => r.isCurrent);

@@ -124,13 +124,13 @@ export default function CirculationDetailPage() {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div>
             <p className="text-sm text-muted-foreground">Organization</p>
-            <p className="font-medium">{circulation.organization?.organization_name || '-'}</p>
+            <p className="font-medium">{circulation.organization?.organizationName || '-'}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Created By</p>
             <p className="font-medium">
               {circulation.creator
-                ? `${circulation.creator.first_name || ''} ${circulation.creator.last_name || ''}`.trim() ||
+                ? `${circulation.creator.firstName || ''} ${circulation.creator.lastName || ''}`.trim() ||
                   circulation.creator.username
                 : '-'}
             </p>
@@ -146,7 +146,7 @@ export default function CirculationDetailPage() {
                 href={`/correspondences/${circulation.correspondence.uuid}`}
                 className="font-medium text-primary hover:underline"
               >
-                {circulation.correspondence.correspondence_number}
+                {circulation.correspondence.correspondenceNumber}
               </Link>
             </div>
           )}
@@ -166,13 +166,13 @@ export default function CirculationDetailPage() {
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarFallback>
-                        {getInitials(routing.assignee?.first_name, routing.assignee?.last_name)}
+                        {getInitials(routing.assignee?.firstName, routing.assignee?.lastName)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">
                         {routing.assignee
-                          ? `${routing.assignee.first_name || ''} ${routing.assignee.last_name || ''}`.trim() ||
+                          ? `${routing.assignee.firstName || ''} ${routing.assignee.lastName || ''}`.trim() ||
                             routing.assignee.username
                           : 'Unassigned'}
                       </p>

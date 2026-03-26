@@ -1,6 +1,6 @@
 // Entity Interfaces
 export interface DrawingRevision {
-  uuid: string;
+  publicId: string; // ADR-019: exposed as 'id' in API responses
   revisionId?: number; // Excluded from API responses (ADR-019)
   revisionNumber: string;
   title?: string; // Added
@@ -15,7 +15,7 @@ export interface DrawingRevision {
 }
 
 export interface ContractDrawing {
-  uuid: string;
+  publicId: string; // ADR-019: exposed as 'id' in API responses
   id?: number; // Excluded from API responses (ADR-019)
   contractDrawingNo: string;
   title: string;
@@ -28,7 +28,7 @@ export interface ContractDrawing {
 }
 
 export interface ShopDrawing {
-  uuid: string;
+  publicId: string; // ADR-019: exposed as 'id' in API responses
   id?: number; // Excluded from API responses (ADR-019)
   drawingNumber: string;
   projectId: number;
@@ -41,7 +41,7 @@ export interface ShopDrawing {
 }
 
 export interface AsBuiltDrawing {
-  uuid: string;
+  publicId: string; // ADR-019: exposed as 'id' in API responses
   id?: number; // Excluded from API responses (ADR-019)
   drawingNumber: string;
   projectId: number;
@@ -54,7 +54,7 @@ export interface AsBuiltDrawing {
 
 // Unified Type for List
 export interface Drawing {
-  uuid?: string;
+  publicId?: string; // ADR-019: exposed as 'id' in API responses
   drawingId?: number; // Excluded from API responses (ADR-019)
   drawingNumber: string;
   title: string; // Display title (from current revision for Shop/AsBuilt)

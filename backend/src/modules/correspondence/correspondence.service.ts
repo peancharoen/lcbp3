@@ -344,7 +344,7 @@ export class CorrespondenceService {
       // Fire-and-forget search indexing (non-blocking, void intentional)
       void this.searchService.indexDocument({
         id: savedCorr.id,
-        uuid: savedCorr.uuid,
+        publicId: savedCorr.publicId,
         type: 'correspondence',
         docNumber: docNumber.number,
         title: createDto.subject,
@@ -459,9 +459,9 @@ export class CorrespondenceService {
     return correspondence;
   }
 
-  async findOneByUuid(uuid: string) {
+  async findOneByUuid(publicId: string) {
     const correspondence = await this.correspondenceRepo.findOne({
-      where: { uuid },
+      where: { publicId },
       relations: [
         'revisions',
         'revisions.status',
@@ -474,16 +474,18 @@ export class CorrespondenceService {
     });
 
     if (!correspondence) {
-      throw new NotFoundException(`Correspondence with UUID ${uuid} not found`);
+      throw new NotFoundException(
+        `Correspondence with UUID ${publicId} not found`
+      );
     }
     return correspondence;
   }
 
   async addReference(id: number, dto: AddReferenceDto) {
     const source = await this.correspondenceRepo.findOne({ where: { id } });
-    // ADR-019: Resolve target UUID → internal INT id
+    // ADR-019: Resolve target publicId → internal INT id
     const target = await this.correspondenceRepo.findOne({
-      where: { uuid: dto.targetUuid },
+      where: { publicId: dto.targetUuid },
     });
 
     if (!source || !target) {
@@ -814,7 +816,7 @@ export class CorrespondenceService {
     // Re-index updated document in Elasticsearch (fire-and-forget)
     void this.searchService.indexDocument({
       id: updated.id,
-      uuid: updated.uuid,
+      publicId: updated.publicId,
       type: 'correspondence',
       docNumber: updated.correspondenceNumber,
       title: updateDto.subject ?? updated.revisions?.[0]?.subject,
@@ -896,8 +898,8 @@ export class CorrespondenceService {
    * Business Rule Implementation: EC-CORR-001 - Cancel Correspondence with Downstream Circulation
    * Cancel correspondence and handle related circulations
    */
-  async cancel(uuid: string, reason: string, user: User) {
-    const correspondence = await this.findOneByUuid(uuid);
+  async cancel(publicId: string, reason: string, user: User) {
+    const correspondence = await this.findOneByUuid(publicId);
 
     // Check if user has permission to cancel (Org Admin or Superadmin only)
     const permissions = await this.userService.getUserPermissions(user.user_id);
@@ -983,7 +985,7 @@ export class CorrespondenceService {
       // Re-index cancelled status in Elasticsearch (fire-and-forget)
       void this.searchService.indexDocument({
         id: correspondence.id,
-        uuid: correspondence.uuid,
+        publicId: correspondence.publicId,
         type: 'correspondence',
         docNumber: correspondence.correspondenceNumber,
         title: currentRevision.subject,
@@ -1005,7 +1007,7 @@ export class CorrespondenceService {
                 type: 'EMAIL',
                 entityType: 'correspondence',
                 entityId: correspondence.id,
-                link: `/correspondences/${correspondence.uuid}`,
+                link: `/correspondences/${correspondence.publicId}`,
               });
             }
           })
@@ -1031,19 +1033,19 @@ export class CorrespondenceService {
   }
 
   async bulkCancel(
-    uuids: string[],
+    publicIds: string[],
     reason: string,
     user: User
   ): Promise<{ succeeded: string[]; failed: string[] }> {
     const succeeded: string[] = [];
     const failed: string[] = [];
 
-    for (const uuid of uuids) {
+    for (const publicId of publicIds) {
       try {
-        await this.cancel(uuid, reason, user);
-        succeeded.push(uuid);
+        await this.cancel(publicId, reason, user);
+        succeeded.push(publicId);
       } catch {
-        failed.push(uuid);
+        failed.push(publicId);
       }
     }
 

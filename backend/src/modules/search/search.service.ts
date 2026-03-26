@@ -73,12 +73,18 @@ export class SearchService implements OnModuleInit {
    * Index เอกสาร (Create/Update)
    */
   async indexDocument(
-    doc: Record<string, unknown> & { type: string; id?: number; uuid?: string }
+    doc: Record<string, unknown> & {
+      type: string;
+      id?: number;
+      publicId?: string;
+    }
   ) {
     try {
       return await this.esService.index({
         index: this.indexName,
-        id: doc.uuid ? `${doc.type}_${doc.uuid}` : `${doc.type}_${doc.id}`, // ADR-019: prefer UUID key
+        id: doc.publicId
+          ? `${doc.type}_${doc.publicId}`
+          : `${doc.type}_${doc.id}`, // ADR-019: prefer publicId key
         document: doc, // ✅ Library รุ่นใหม่ใช้ 'document' แทน 'body' ในบางเวอร์ชัน
       });
     } catch (error) {

@@ -86,7 +86,7 @@ export class UserService {
       .leftJoinAndSelect('assignments.role', 'role')
       .select([
         'user.user_id',
-        'user.uuid',
+        'user.publicId',
         'user.username',
         'user.email',
         'user.firstName',
@@ -156,9 +156,9 @@ export class UserService {
     return user;
   }
 
-  async findOneByUuid(uuid: string): Promise<User> {
+  async findOneByUuid(publicId: string): Promise<User> {
     const user = await this.usersRepository.findOne({
-      where: { uuid },
+      where: { publicId },
       relations: [
         'preference',
         'assignments',
@@ -168,7 +168,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User with UUID ${uuid} not found`);
+      throw new NotFoundException(`User with publicId ${publicId} not found`);
     }
 
     return user;

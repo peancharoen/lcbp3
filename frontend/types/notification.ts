@@ -1,5 +1,5 @@
 export interface Notification {
-  uuid: string;
+  publicId: string; // ADR-019: exposed as 'id' in API responses
   notificationId?: number; // Excluded from API responses (ADR-019)
   title: string;
   message: string;

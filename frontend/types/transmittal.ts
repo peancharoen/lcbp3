@@ -28,7 +28,7 @@ export interface TransmittalItem {
  * Main Transmittal entity
  */
 export interface Transmittal {
-  uuid: string; // ADR-019: from correspondence.uuid
+  publicId: string; // ADR-019: from correspondence.publicId
   id?: number; // Excluded from API responses (ADR-019)
   correspondenceId?: number | string;
   transmittalNo: string;
@@ -39,7 +39,7 @@ export interface Transmittal {
   // Joined relations from API
   items?: TransmittalItem[];
   correspondence?: {
-    uuid: string;
+    publicId: string;
     id?: number;
     correspondenceNumber: string;
     projectId: number;

@@ -112,7 +112,7 @@ export class CorrespondenceWorkflowService {
                   type: 'EMAIL',
                   entityType: 'correspondence',
                   entityId: revision.correspondenceId,
-                  link: `/correspondences/${corrForNotify.uuid}`,
+                  link: `/correspondences/${corrForNotify.publicId}`,
                 });
               }
             }

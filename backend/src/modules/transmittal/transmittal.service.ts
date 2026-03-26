@@ -159,16 +159,18 @@ export class TransmittalService {
   }
 
   /**
-   * ADR-019: Find Transmittal by parent Correspondence UUID (public identifier).
-   * Resolves correspondence.uuid → internal correspondenceId (INT)
+   * ADR-019: Find Transmittal by parent Correspondence publicId (public identifier).
+   * Resolves correspondence.publicId → internal correspondenceId (INT)
    */
-  async findOneByUuid(uuid: string): Promise<Transmittal> {
+  async findOneByUuid(publicId: string): Promise<Transmittal> {
     const correspondence = await this.dataSource.manager.findOne(
       Correspondence,
-      { where: { uuid }, select: ['id'] }
+      { where: { publicId }, select: ['id'] }
     );
     if (!correspondence) {
-      throw new NotFoundException(`Transmittal with UUID ${uuid} not found`);
+      throw new NotFoundException(
+        `Transmittal with publicId ${publicId} not found`
+      );
     }
     return this.findOne(correspondence.id);
   }
@@ -218,10 +220,10 @@ export class TransmittalService {
       .take(limit)
       .getManyAndCount();
 
-    // ADR-019: Map correspondence.uuid to top level for frontend convenience
+    // ADR-019: Map correspondence.publicId to top level for frontend convenience
     const mappedItems = items.map((t) => ({
       ...t,
-      uuid: t.correspondence?.uuid,
+      publicId: t.correspondence?.publicId,
     }));
 
     return {

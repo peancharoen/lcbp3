@@ -37,7 +37,7 @@ export default function TagsPage() {
       accessorKey: 'tag_name',
       header: 'Tag Name',
       cell: ({ row }) => {
-        const color = String(row.original.color_code || 'default');
+        const color = String(row.original.colorCode || 'default');
         const isHex = color.startsWith('#');
         return (
           <div className="flex items-center gap-2">
@@ -45,7 +45,7 @@ export default function TagsPage() {
               className="w-3 h-3 rounded-full border border-border"
               style={{ backgroundColor: isHex ? color : color === 'default' ? '#e2e8f0' : color }}
             />
-            {String(row.original.tag_name)}
+            {String(row.original.tagName)}
           </div>
         );
       },
@@ -97,13 +97,13 @@ export default function TagsPage() {
           required: false,
         },
         {
-          name: 'tag_name',
+          name: 'tagName',
           label: 'Tag Name',
           type: 'text',
           required: true,
         },
         {
-          name: 'color_code',
+          name: 'colorCode',
           label: 'Color Code (Hex or Name)',
           type: 'text',
           required: false,

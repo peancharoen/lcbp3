@@ -2,33 +2,33 @@ export interface RFAItem {
   id?: number;
   itemType: 'SHOP' | 'AS_BUILT';
   shopDrawingRevision?: {
-    uuid?: string;
+    publicId?: string;
     revisionLabel?: string;
     revisionNumber?: number;
     title?: string;
     legacyDrawingNumber?: string;
     attachments?: { id?: number; url?: string; name?: string }[];
     shopDrawing?: {
-      uuid?: string;
+      publicId?: string;
       drawingNumber?: string;
     };
   };
   asBuiltDrawingRevision?: {
-    uuid?: string;
+    publicId?: string;
     revisionLabel?: string;
     revisionNumber?: number;
     title?: string;
     legacyDrawingNumber?: string;
     attachments?: { id?: number; url?: string; name?: string }[];
     asBuiltDrawing?: {
-      uuid?: string;
+      publicId?: string;
       drawingNumber?: string;
     };
   };
 }
 
 export interface RFA {
-  uuid: string; // ADR-019: from correspondence.uuid
+  publicId: string; // ADR-019: from correspondence.publicId
   id?: number; // Excluded from API responses (ADR-019)
   rfaTypeId: number;
   createdBy: number;
@@ -56,14 +56,14 @@ export interface RFA {
   };
   // Shared Correspondence Relation
   correspondence?: {
-    uuid: string;
+    publicId: string;
     id?: number; // Excluded from API responses (ADR-019)
     correspondenceNumber: string;
     projectId: number;
     originatorId?: number;
     createdAt?: string;
     project?: {
-      uuid: string;
+      publicId: string;
       projectName: string;
       projectCode: string;
     };

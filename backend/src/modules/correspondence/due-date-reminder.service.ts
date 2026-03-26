@@ -63,7 +63,7 @@ export class DueDateReminderService {
           type: 'EMAIL',
           entityType: 'correspondence',
           entityId: corr.id,
-          link: `/correspondences/${corr.uuid}`,
+          link: `/correspondences/${corr.publicId}`,
         });
       } catch (err) {
         this.logger.warn(

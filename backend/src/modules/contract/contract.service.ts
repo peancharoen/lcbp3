@@ -100,18 +100,20 @@ export class ContractService {
     return contract;
   }
 
-  async findOneByUuid(uuid: string) {
+  async findOneByPublicId(publicId: string) {
     const contract = await this.contractRepo.findOne({
-      where: { uuid },
+      where: { publicId },
       relations: ['project'],
     });
     if (!contract)
-      throw new NotFoundException(`Contract UUID ${uuid} not found`);
+      throw new NotFoundException(
+        `Contract with publicId ${publicId} not found`
+      );
     return contract;
   }
 
-  async update(uuid: string, dto: UpdateContractDto) {
-    const contract = await this.findOneByUuid(uuid);
+  async update(publicId: string, dto: UpdateContractDto) {
+    const contract = await this.findOneByPublicId(publicId);
     if (dto.projectId) {
       dto.projectId = await this.uuidResolver.resolveProjectId(dto.projectId);
     }
@@ -119,8 +121,8 @@ export class ContractService {
     return this.contractRepo.save(contract);
   }
 
-  async remove(uuid: string) {
-    const contract = await this.findOneByUuid(uuid);
+  async remove(publicId: string) {
+    const contract = await this.findOneByPublicId(publicId);
     return this.contractRepo.remove(contract);
   }
 }

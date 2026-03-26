@@ -63,7 +63,7 @@ export function CirculationList({ data }: CirculationListProps) {
       header: 'Organization',
       cell: ({ row }) => {
         const org = row.original.organization;
-        return org?.organization_name || '-';
+        return org?.organizationName || '-';
       },
     },
     {

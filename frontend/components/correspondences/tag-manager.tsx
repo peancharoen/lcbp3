@@ -74,16 +74,16 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
                 key={tag.id}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border"
                 style={{
-                  backgroundColor: `${getTagColor(tag.color_code)}22`,
-                  borderColor: `${getTagColor(tag.color_code)}66`,
-                  color: getTagColor(tag.color_code) === '#e2e8f0' ? 'inherit' : getTagColor(tag.color_code),
+                  backgroundColor: `${getTagColor(tag.colorCode)}22`,
+                  borderColor: `${getTagColor(tag.colorCode)}66`,
+                  color: getTagColor(tag.colorCode) === '#e2e8f0' ? 'inherit' : getTagColor(tag.colorCode),
                 }}
               >
                 <span
                   className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: getTagColor(tag.color_code) }}
+                  style={{ backgroundColor: getTagColor(tag.colorCode) }}
                 />
-                {tag.tag_name}
+                {tag.tagName}
                 {canEdit && (
                   <button
                     onClick={() => handleRemove(tag.id)}
@@ -117,9 +117,9 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
                       >
                         <span
                           className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: getTagColor(tag.color_code) }}
+                          style={{ backgroundColor: getTagColor(tag.colorCode) }}
                         />
-                        {tag.tag_name}
+                        {tag.tagName}
                       </button>
                     ))
                   )}

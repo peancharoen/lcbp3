@@ -52,13 +52,13 @@ export default function WorkflowEditPage() {
 
     try {
       const dto: CreateWorkflowDefinitionDto = {
-        workflow_code: workflowData.workflowType || 'CORRESPONDENCE',
+        workflowCode: workflowData.workflowType || 'CORRESPONDENCE',
         dsl: {
           workflowName: workflowData.workflowName,
           description: workflowData.description,
           dslDefinition: workflowData.dslDefinition,
         },
-        is_active: workflowData.isActive,
+        isActive: workflowData.isActive,
       };
 
       if (id) {

@@ -12,7 +12,7 @@ export interface UserOrganization {
 }
 
 export interface User {
-  uuid: string;
+  publicId: string; // ADR-019: exposed as 'id' in API responses
   userId?: number; // Excluded from API responses (ADR-019)
   username: string;
   email: string;

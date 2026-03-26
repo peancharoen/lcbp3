@@ -61,8 +61,8 @@ export class TransmittalController {
   @Get(':uuid')
   @ApiOperation({ summary: 'Get Transmittal details' })
   @ApiParam({
-    name: 'uuid',
-    description: 'Transmittal UUID (from correspondences.uuid)',
+    name: 'publicId',
+    description: 'Transmittal publicId (from correspondences.publicId)',
   })
   @RequirePermission('document.view')
   findOne(@Param('uuid', ParseUuidPipe) uuid: string) {

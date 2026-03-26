@@ -14,45 +14,45 @@ class TestEntity extends UuidBaseEntity {
 
 describe('UuidBaseEntity', () => {
   // ==========================================================
-  // generateUuid() — @BeforeInsert hook
+  // generatePublicId() — @BeforeInsert hook
   // ==========================================================
 
-  describe('generateUuid()', () => {
-    it('should generate a UUIDv7 when uuid is not set', () => {
+  describe('generatePublicId()', () => {
+    it('should generate a UUIDv7 when publicId is not set', () => {
       const entity = new TestEntity();
-      expect(entity.uuid).toBeUndefined();
+      expect(entity.publicId).toBeUndefined();
 
-      entity.generateUuid();
+      entity.generatePublicId();
 
-      expect(entity.uuid).toBe('01912345-6789-7abc-8def-0123456789ab');
+      expect(entity.publicId).toBe('01912345-6789-7abc-8def-0123456789ab');
     });
 
-    it('should not overwrite an existing uuid', () => {
+    it('should not overwrite an existing publicId', () => {
       const entity = new TestEntity();
-      entity.uuid = 'existing-uuid-value-should-be-kept';
+      entity.publicId = 'existing-publicId-value-should-be-kept';
 
-      entity.generateUuid();
+      entity.generatePublicId();
 
-      expect(entity.uuid).toBe('existing-uuid-value-should-be-kept');
+      expect(entity.publicId).toBe('existing-publicId-value-should-be-kept');
     });
 
     it('should not overwrite a pre-set UUIDv1 from DB default', () => {
       const entity = new TestEntity();
-      entity.uuid = '550e8400-e29b-11d4-a716-446655440000';
+      entity.publicId = '550e8400-e29b-11d4-a716-446655440000';
 
-      entity.generateUuid();
+      entity.generatePublicId();
 
-      expect(entity.uuid).toBe('550e8400-e29b-11d4-a716-446655440000');
+      expect(entity.publicId).toBe('550e8400-e29b-11d4-a716-446655440000');
     });
 
-    it('should generate uuid when uuid is empty string', () => {
+    it('should generate publicId when publicId is empty string', () => {
       const entity = new TestEntity();
-      entity.uuid = '';
+      entity.publicId = '';
 
-      entity.generateUuid();
+      entity.generatePublicId();
 
-      // Empty string is falsy, so generateUuid should assign a new value
-      expect(entity.uuid).toBe('01912345-6789-7abc-8def-0123456789ab');
+      // Empty string is falsy, so generatePublicId should assign a new value
+      expect(entity.publicId).toBe('01912345-6789-7abc-8def-0123456789ab');
     });
   });
 
@@ -66,12 +66,12 @@ describe('UuidBaseEntity', () => {
       expect(entity).toBeInstanceOf(UuidBaseEntity);
     });
 
-    it('should have uuid property accessible from subclass', () => {
+    it('should have publicId property accessible from subclass', () => {
       const entity = new TestEntity();
-      entity.uuid = 'test-uuid';
+      entity.publicId = 'test-publicId';
       entity.id = 42;
 
-      expect(entity.uuid).toBe('test-uuid');
+      expect(entity.publicId).toBe('test-publicId');
       expect(entity.id).toBe(42);
     });
   });

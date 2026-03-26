@@ -179,19 +179,30 @@ UNIQUE INDEX idx_{table}_uuid (uuid)
 import { Column, BeforeInsert } from 'typeorm';
 import { v7 as uuidv7 } from 'uuid';
 
-export abstract class BaseUuidEntity {
+/**
+ * Abstract base entity providing a UUID public identifier.
+ *
+ * Naming Convention:
+ * - TypeScript Property: `publicId` — semantic name indicating this is the public-facing identifier
+ * - Database Column: `uuid` — MariaDB native UUID type (stored as BINARY(16))
+ *
+ * This avoids confusion between the property name and the DB data type,
+ * while clearly indicating this is the ID exposed via API (not internal INT PK).
+ */
+export abstract class UuidBaseEntity {
   @Column({
     type: 'uuid',
+    name: 'uuid',           // DB column name (MariaDB native UUID type)
     unique: true,
     nullable: false,
     comment: 'UUID Public Identifier (ADR-019)',
   })
-  uuid!: string;
+  publicId!: string;        // TypeScript property name — semantic, avoids type confusion
 
   @BeforeInsert()
   generateUuid(): void {
-    if (!this.uuid) {
-      this.uuid = uuidv7();
+    if (!this.publicId) {
+      this.publicId = uuidv7();
     }
   }
 }
@@ -209,7 +220,10 @@ import { BaseUuidEntity } from '../../common/entities/base-uuid.entity';
 @Entity('correspondences')
 export class Correspondence extends BaseUuidEntity {
   @PrimaryGeneratedColumn()
-  id!: number;
+  id!: number;              // Internal INT PK — never exposed via API
+
+  // publicId (from BaseUuidEntity) is the UUID exposed via API
+  // DB Column: uuid (MariaDB native UUID type)
 
   // ... existing columns
 }
@@ -243,9 +257,9 @@ async findOne(@Param('uuid', ParseUUIDPipe) uuid: string) {
 ### Service Pattern
 
 ```typescript
-async findByUuid(uuid: string): Promise<CorrespondenceDto> {
+async findByUuid(publicId: string): Promise<CorrespondenceDto> {
   const entity = await this.repository.findOne({
-    where: { uuid },
+    where: { publicId },   // Use publicId property (DB column is 'uuid')
   });
   if (!entity) throw new NotFoundException();
   return this.toDto(entity);
@@ -256,17 +270,17 @@ async findByUuid(uuid: string): Promise<CorrespondenceDto> {
 
 ```typescript
 export class CorrespondenceResponseDto {
-  // ✅ Expose UUID as 'id' in API response
+  // ✅ Expose publicId as 'id' in API response
   @Expose({ name: 'id' })
-  uuid!: string;
+  publicId!: string;
 
   // ❌ Never expose internal INT id
   // id: number; — REMOVED from response
 
   // ... other fields
-  // For FK references, also use UUID
+  // For FK references, also use publicId
   @Expose({ name: 'project_id' })
-  projectUuid!: string;
+  projectPublicId!: string;
 }
 ```
 
@@ -454,10 +468,10 @@ WHERE c.uuid = '019505a1-7c3e-7000-8000-abc123def456';
 
 ### Phase 2: Backend (Dual-Mode)
 
-- เพิ่ม `uuid` field ใน TypeORM Entities
-- สร้าง `BaseUuidEntity` class
+- เพิ่ม `publicId` field ใน TypeORM Entities (DB column ยังชื่อ `uuid`)
+- สร้าง `BaseUuidEntity` class ด้วย `publicId` property
 - API รับได้ทั้ง INT และ UUID ผ่าน `FindByIdOrUuid` pattern
-- API Response รวม UUID เป็น `id` field
+- API Response รวม UUID เป็น `id` field (via @Expose)
 
 ### Phase 3: Frontend (Gradual Migration)
 
@@ -486,4 +500,4 @@ WHERE c.uuid = '019505a1-7c3e-7000-8000-abc123def456';
 
 ---
 
-_สำหรับรายละเอียดการ Implement ดูที่ Implementation Plan ใน ADR-019-implementation-plan.md_
+_สำหรับรายละเอียดการ Implement ดูที่ Implementation Plan ใน `05-07-hybrid-uuid-implementation-plan.md`_

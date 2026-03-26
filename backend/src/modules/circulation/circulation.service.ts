@@ -95,7 +95,7 @@ export class CirculationService {
   }
 
   async findAll(searchDto: SearchCirculationDto, user: User) {
-    const { status, correspondenceUuid, page = 1, limit = 20 } = searchDto;
+    const { status, correspondencePublicId, page = 1, limit = 20 } = searchDto;
     const query = this.circulationRepo
       .createQueryBuilder('c')
       .leftJoinAndSelect('c.creator', 'creator')
@@ -103,9 +103,9 @@ export class CirculationService {
       .leftJoinAndSelect('routings.assignee', 'assignee')
       .leftJoinAndSelect('c.correspondence', 'correspondence');
 
-    if (correspondenceUuid) {
-      query.where('correspondence.uuid = :corrUuid', {
-        corrUuid: correspondenceUuid,
+    if (correspondencePublicId) {
+      query.where('correspondence.publicId = :corrPublicId', {
+        corrPublicId: correspondencePublicId,
       });
     } else {
       query.where('c.organizationId = :orgId', {
@@ -136,14 +136,14 @@ export class CirculationService {
     return circulation;
   }
 
-  async findOneByUuid(uuid: string) {
+  async findOneByUuid(publicId: string) {
     const circulation = await this.circulationRepo.findOne({
-      where: { uuid },
+      where: { publicId },
       relations: ['routings', 'routings.assignee', 'correspondence', 'creator'],
       order: { routings: { stepNumber: 'ASC' } },
     });
     if (!circulation)
-      throw new NotFoundException(`Circulation UUID ${uuid} not found`);
+      throw new NotFoundException(`Circulation publicId ${publicId} not found`);
     return circulation;
   }
 

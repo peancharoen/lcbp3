@@ -30,7 +30,7 @@ function RoutingStep({ routing }: { routing: CirculationRouting }) {
   const meta = ROUTING_STATUS_META[routing.status] ?? ROUTING_STATUS_META.PENDING;
   const Icon = meta.icon;
   const assigneeName = routing.assignee
-    ? `${routing.assignee.first_name ?? ''} ${routing.assignee.last_name ?? ''}`.trim() ||
+    ? `${routing.assignee.firstName ?? ''} ${routing.assignee.lastName ?? ''}`.trim() ||
       routing.assignee.username
     : '—';
 

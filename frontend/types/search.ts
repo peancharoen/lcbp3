@@ -1,5 +1,5 @@
 export interface SearchResult {
-  uuid: string;
+  publicId: string; // ADR-019: exposed as 'id' in API responses
   id?: number; // Excluded from API responses (ADR-019)
   type: 'correspondence' | 'rfa' | 'drawing';
   title: string;

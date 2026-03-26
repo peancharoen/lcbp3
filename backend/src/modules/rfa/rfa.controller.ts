@@ -63,7 +63,7 @@ export class RfaController {
   @ApiOperation({ summary: 'Submit RFA to Workflow' })
   @ApiParam({
     name: 'uuid',
-    description: 'RFA UUID (from correspondences.uuid)',
+    description: 'RFA publicId (from correspondences.publicId)',
   })
   @ApiBody({ type: SubmitRfaDto })
   @ApiResponse({ status: 200, description: 'RFA submitted successfully' })
@@ -83,7 +83,7 @@ export class RfaController {
   @ApiOperation({ summary: 'Process Workflow Action (Approve/Reject)' })
   @ApiParam({
     name: 'uuid',
-    description: 'RFA UUID (from correspondences.uuid)',
+    description: 'RFA publicId (from correspondences.publicId)',
   })
   @ApiBody({ type: WorkflowActionDto })
   @ApiResponse({
@@ -120,7 +120,7 @@ export class RfaController {
   @ApiOperation({ summary: 'Get RFA details with revisions and items' })
   @ApiParam({
     name: 'uuid',
-    description: 'RFA UUID (from correspondences.uuid)',
+    description: 'RFA publicId (from correspondences.publicId)',
   })
   @ApiResponse({ status: 200, description: 'RFA details' })
   @RequirePermission('document.view')
@@ -130,7 +130,7 @@ export class RfaController {
 
   @Put(':uuid')
   @ApiOperation({ summary: 'Update Draft RFA fields (EC-RFA-002: DFT only)' })
-  @ApiParam({ name: 'uuid', description: 'RFA UUID' })
+  @ApiParam({ name: 'uuid', description: 'RFA publicId' })
   @ApiBody({ type: UpdateRfaDto })
   @ApiResponse({ status: 200, description: 'RFA updated successfully' })
   @RequirePermission('rfa.create')
@@ -146,7 +146,7 @@ export class RfaController {
   @Delete(':uuid')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancel Draft RFA (sets status to CC)' })
-  @ApiParam({ name: 'uuid', description: 'RFA UUID' })
+  @ApiParam({ name: 'uuid', description: 'RFA publicId' })
   @ApiResponse({ status: 200, description: 'RFA cancelled successfully' })
   @RequirePermission('rfa.create')
   @Audit('rfa.cancel', 'rfa')

@@ -38,7 +38,7 @@ export interface CirculationRouting {
  * Main Circulation entity
  */
 export interface Circulation {
-  uuid: string;
+  publicId: string; // ADR-019: exposed as 'id' in API responses
   id?: number; // Excluded from API responses (ADR-019)
   correspondenceId?: number;
   organizationId: number;
@@ -53,18 +53,18 @@ export interface Circulation {
   // Joined relations from API
   routings?: CirculationRouting[];
   correspondence?: {
-    uuid: string;
+    publicId: string;
     id?: number;
     correspondenceNumber: string;
   };
   organization?: {
-    uuid: string;
+    publicId: string;
     id?: number;
     organizationCode: string;
     organizationName: string;
   };
   creator?: {
-    uuid: string;
+    publicId: string;
     userId?: number;
     username: string;
     firstName?: string;

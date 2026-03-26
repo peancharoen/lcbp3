@@ -4,34 +4,18 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
-  BeforeInsert,
 } from 'typeorm';
-import { v7 as uuidv7 } from 'uuid';
-import { Exclude, Expose } from 'class-transformer';
-import { BaseEntity } from '../../../common/entities/base.entity';
+import { Exclude } from 'class-transformer';
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
 import { Project } from '../../project/entities/project.entity';
 
 @Entity('contracts')
-export class Contract extends BaseEntity {
+export class Contract extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
   @Exclude()
   id!: number;
 
-  @Expose({ name: 'id' })
-  @Column({
-    type: 'uuid',
-    unique: true,
-    nullable: false,
-    comment: 'UUID Public Identifier (ADR-019)',
-  })
-  uuid!: string;
-
-  @BeforeInsert()
-  generateUuid(): void {
-    if (!this.uuid) {
-      this.uuid = uuidv7();
-    }
-  }
+  // publicId inherited from UuidBaseEntity (DB column: uuid)
 
   @Column({ name: 'project_id' })
   projectId!: number;
