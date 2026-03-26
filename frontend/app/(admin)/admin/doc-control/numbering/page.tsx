@@ -38,7 +38,7 @@ export default function NumberingPage() {
   useEffect(() => {
     if (projects.length > 0 && !selectedProjectId) {
       const first = projects[0] as ProjectItem;
-      setSelectedProjectId(String(first.uuid ?? first.id));
+      setSelectedProjectId(String(first.publicId ?? first.id));
     }
   }, [projects, selectedProjectId]);
 
@@ -48,14 +48,14 @@ export default function NumberingPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState<NumberingTemplate | null>(null);
 
-  const selectedProject = (projects as ProjectItem[]).find((p) => String(p.uuid ?? p.id) === selectedProjectId);
+  const selectedProject = (projects as ProjectItem[]).find((p) => String(p.publicId ?? p.id) === selectedProjectId);
   const selectedProjectName = selectedProject?.projectName || 'Unknown Project';
 
   // Master Data
   const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
   const { data: contracts = [] } = useContracts(selectedProjectId);
   const firstContract = contracts[0] as { id?: number; uuid?: string } | undefined;
-  const contractId = firstContract?.uuid ?? firstContract?.id;
+  const contractId = firstContract?.publicId ?? firstContract?.id;
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const { data: templateResponse, isLoading: _isLoadingTemplates } = useTemplates();
@@ -116,7 +116,7 @@ export default function NumberingPage() {
             </SelectTrigger>
             <SelectContent>
               {(projects as ProjectItem[]).map((project) => (
-                <SelectItem key={String(project.uuid ?? project.id)} value={String(project.uuid ?? project.id)}>
+                <SelectItem key={String(project.publicId ?? project.id)} value={String(project.publicId ?? project.id)}>
                   {project.projectCode} - {project.projectName}
                 </SelectItem>
               ))}
@@ -147,8 +147,8 @@ export default function NumberingPage() {
                   .filter(
                     (t) =>
                       !t.projectId ||
-                      String(t.project?.id ?? t.project?.uuid) === selectedProjectId ||
-                      t.project?.uuid === selectedProjectId
+                      String(t.project?.id ?? t.project?.publicId) === selectedProjectId ||
+                      t.project?.publicId === selectedProjectId
                   )
                   .map((template) => (
                     <Card key={template.id} className="p-6 hover:shadow-md transition-shadow">

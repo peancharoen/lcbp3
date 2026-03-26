@@ -66,7 +66,7 @@ export default function UsersPage() {
 
   const confirmDelete = () => {
     if (userToDelete) {
-      deleteMutation.mutate(userToDelete.uuid, {
+      deleteMutation.mutate(userToDelete.publicId, {
         onSuccess: () => {
           setDeleteDialogOpen(false);
           setUserToDelete(null);
@@ -100,7 +100,7 @@ export default function UsersPage() {
         }
 
         const org = organizationList.find(
-          (o) => (o.id ?? o.uuid) === orgId?.toString() || o.uuid === orgId?.toString()
+          (o) => (o.id ?? o.publicId) === orgId?.toString() || o.publicId === orgId?.toString()
         );
         return org ? org.organizationCode : 'All Organizations';
       },
@@ -197,7 +197,7 @@ export default function UsersPage() {
             <SelectContent>
               <SelectItem value="all">All Organizations</SelectItem>
               {organizationList.map((org) => (
-                <SelectItem key={org.uuid} value={org.uuid}>
+                <SelectItem key={org.publicId} value={org.publicId}>
                   {org.organizationCode} - {org.organizationName}
                 </SelectItem>
               ))}

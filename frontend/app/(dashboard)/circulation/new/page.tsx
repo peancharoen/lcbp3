@@ -71,7 +71,7 @@ export default function CreateCirculationPage() {
     mutationFn: (data: CreateCirculationDto) => circulationService.create(data),
     onSuccess: (result) => {
       toast.success('Circulation created successfully');
-      router.push(`/circulation/${result.uuid}`);
+      router.push(`/circulation/${result.publicId}`);
     },
     onError: () => {
       toast.error('Failed to create circulation');
@@ -85,7 +85,7 @@ export default function CreateCirculationPage() {
   const selectedAssignees = form.watch('assigneeIds');
   const selectedDocId = form.watch('correspondenceId');
 
-  const selectedDoc = correspondences?.data?.find((c: { uuid: string }) => c.uuid === selectedDocId);
+  const selectedDoc = correspondences?.data?.find((c: { publicId: string }) => c.publicId === selectedDocId);
 
   const toggleAssignee = (userUuid: string) => {
     const current = form.getValues('assigneeIds');
@@ -147,19 +147,19 @@ export default function CreateCirculationPage() {
                           <CommandList>
                             <CommandEmpty>No document found.</CommandEmpty>
                             <CommandGroup>
-                              {correspondences?.data?.map((doc: { uuid: string; correspondenceNumber: string }) => (
+                              {correspondences?.data?.map((doc: { publicId: string; correspondenceNumber: string }) => (
                                 <CommandItem
-                                  key={doc.uuid}
+                                  key={doc.publicId}
                                   value={doc.correspondenceNumber}
                                   onSelect={() => {
-                                    form.setValue('correspondenceId', doc.uuid);
+                                    form.setValue('correspondenceId', doc.publicId);
                                     setDocOpen(false);
                                   }}
                                 >
                                   <Check
                                     className={cn(
                                       'mr-2 h-4 w-4',
-                                      doc.uuid === field.value ? 'opacity-100' : 'opacity-0'
+                                      doc.publicId === field.value ? 'opacity-100' : 'opacity-0'
                                     )}
                                   />
                                   {doc.correspondenceNumber}
@@ -204,7 +204,7 @@ export default function CreateCirculationPage() {
                             {selectedAssignees.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
                                 {selectedAssignees.map((userUuid) => {
-                                  const user = users.find((u) => u.uuid === userUuid);
+                                  const user = users.find((u) => u.publicId === userUuid);
                                   return user ? (
                                     <Badge key={userUuid} variant="secondary" className="mr-1">
                                       {user.firstName || user.username}
@@ -234,14 +234,14 @@ export default function CreateCirculationPage() {
                             <CommandGroup>
                               {users.map((user) => (
                                 <CommandItem
-                                  key={user.uuid}
+                                  key={user.publicId}
                                   value={user.username}
-                                  onSelect={() => toggleAssignee(user.uuid)}
+                                  onSelect={() => toggleAssignee(user.publicId)}
                                 >
                                   <Check
                                     className={cn(
                                       'mr-2 h-4 w-4',
-                                      selectedAssignees.includes(user.uuid) ? 'opacity-100' : 'opacity-0'
+                                      selectedAssignees.includes(user.publicId) ? 'opacity-100' : 'opacity-0'
                                     )}
                                   />
                                   {user.firstName && user.lastName

@@ -59,7 +59,7 @@ export default function OrganizationsPage() {
 
   const confirmDelete = () => {
     if (orgToDelete) {
-      deleteOrg.mutate(orgToDelete.uuid, {
+      deleteOrg.mutate(orgToDelete.publicId, {
         onSuccess: () => {
           setDeleteDialogOpen(false);
           setOrgToDelete(null);
