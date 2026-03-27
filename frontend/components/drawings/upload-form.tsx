@@ -88,9 +88,9 @@ type DrawingFormData = z.infer<typeof formSchema>;
 export function DrawingUploadForm() {
   const router = useRouter();
 
-  // Project list
+  // Project list - ADR-019: useProjects returns array directly now
   const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
-  const projects = extractArrayData<{ id?: number; publicId?: string; projectName: string; projectCode: string }>(projectsData);
+  const projects = (projectsData ?? []) as { id?: number; publicId?: string; projectName: string; projectCode: string }[];
 
   // Selected project for category fetching
   const [selectedProjectId, setSelectedProjectId] = useState<number | string | undefined>(undefined);

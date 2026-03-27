@@ -44,6 +44,7 @@ const correspondenceSchema = z.object({
 type FormData = z.infer<typeof correspondenceSchema>;
 
 type ProjectOption = {
+  publicId?: string;
   uuid?: string;
   id?: number;
   projectName: string;
@@ -116,7 +117,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
   const { data: organizations, isLoading: isLoadingOrgs } = useOrganizations();
   const { data: correspondenceTypesData, isLoading: isLoadingTypes } = useCorrespondenceTypes();
   const { data: disciplinesData, isLoading: isLoadingDisciplines } = useDisciplines();
-  const projects = extractArrayData<ProjectOption>(projectsData);
+  const projects = (projectsData as ProjectOption[]) ?? [];
   const organizationOptions = extractArrayData<Organization>(organizations);
   const correspondenceTypes = extractArrayData<CorrespondenceTypeOption>(correspondenceTypesData);
   const disciplines = extractArrayData<DisciplineOption>(disciplinesData);
@@ -316,7 +317,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
             </SelectTrigger>
             <SelectContent>
               {projects.map((p) => (
-                <SelectItem key={p.uuid || String(p.id)} value={p.uuid || String(p.id)}>
+                <SelectItem key={p.publicId || String(p.id)} value={p.publicId || String(p.id)}>
                   {p.projectName} ({p.projectCode})
                 </SelectItem>
               ))}
