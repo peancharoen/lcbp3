@@ -206,8 +206,8 @@ export default function ContractsPage() {
 
   const handleEdit = (contract: Contract) => {
     setEditingUuid(contract.id);
-    // ADR-019: project.publicId is the project's UUID
-    const pId = contract.project?.publicId || '';
+    // ADR-019: nested project exposes UUID as 'id'
+    const pId = contract.project?.id || '';
     reset({
       contractCode: contract.contractCode,
       contractName: contract.contractName,
