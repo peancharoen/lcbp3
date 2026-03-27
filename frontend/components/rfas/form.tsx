@@ -39,7 +39,8 @@ const rfaSchema = z.object({
 type RFAFormData = z.infer<typeof rfaSchema>;
 
 type ProjectOption = {
-  uuid?: string;
+  publicId?: string;
+  uuid?: string; // Legacy alias for publicId
   id?: number;
   projectName?: string;
   projectCode?: string;
@@ -142,7 +143,7 @@ export function RFAForm() {
   const createMutation = useCreateRFA();
 
   const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
-  const projects = dedupeByKey(extractArrayData<ProjectOption>(projectsData), (project) => project.uuid ?? project.id);
+  const projects = dedupeByKey(extractArrayData<ProjectOption>(projectsData), (project) => project.publicId ?? project.uuid ?? project.id);
   const { data: organizationsData, isLoading: isLoadingOrganizations } = useOrganizations({ isActive: true });
   const organizations = dedupeByKey(
     extractArrayData<OrganizationOption>(organizationsData),
@@ -378,7 +379,7 @@ export function RFAForm() {
               </SelectTrigger>
               <SelectContent>
                 {projects.map((p) => {
-                  const projectValue = getOptionValue(p.uuid ?? p.id);
+                  const projectValue = getOptionValue(p.publicId ?? p.uuid ?? p.id);
 
                   if (!projectValue) {
                     return null;
