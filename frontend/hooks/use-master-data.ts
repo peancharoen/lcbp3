@@ -12,16 +12,6 @@ import { projectService } from '@/lib/services/project.service';
 import { contractService } from '@/lib/services/contract.service';
 import { Contract } from '@/types/contract';
 
-// Helper to extract array data from various API response formats (paginated vs direct)
-const extractArrayData = <T,>(value: unknown): T[] => {
-  if (Array.isArray(value)) return value as T[];
-  if (value && typeof value === 'object' && 'data' in value) {
-    const data = (value as { data?: unknown }).data;
-    if (Array.isArray(data)) return data as T[];
-  }
-  return [];
-};
-
 export const masterDataKeys = {
   all: ['masterData'] as const,
   organizations: () => [...masterDataKeys.all, 'organizations'] as const,
