@@ -96,9 +96,8 @@ export function useProjects(isActive: boolean = true) {
   return useQuery({
     queryKey: ['projects', { isActive }],
     queryFn: async () => {
-      const response = await projectService.getAll({ isActive });
-      // ADR-019: Handle paginated response { data: Project[], meta: {...} }
-      return extractArrayData(response);
+      // ADR-019: projectService.getAll() returns Project[] directly
+      return await projectService.getAll({ isActive });
     },
   });
 }

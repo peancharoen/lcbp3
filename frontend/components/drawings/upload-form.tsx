@@ -21,19 +21,9 @@ import {
   ShopSubCategory,
   ContractDrawingCategory,
 } from '@/types/master-data';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-
-// Helper to extract array data from various API response formats
-const extractArrayData = <T,>(value: unknown): T[] => {
-  if (Array.isArray(value)) return value as T[];
-  if (value && typeof value === 'object' && 'data' in value) {
-    const data = (value as { data?: unknown }).data;
-    if (Array.isArray(data)) return data as T[];
-  }
-  return [];
-};
 
 // Base Schema
 const baseSchema = z.object({
@@ -90,7 +80,10 @@ export function DrawingUploadForm() {
 
   // Project list - ADR-019: useProjects returns array directly now
   const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
-  const projects = (projectsData ?? []) as { id?: number; publicId?: string; projectName: string; projectCode: string }[];
+  const projects = useMemo(
+    () => (projectsData ?? []) as { id?: number; publicId?: string; projectName: string; projectCode: string }[],
+    [projectsData]
+  );
 
   // Selected project for category fetching
   const [selectedProjectId, setSelectedProjectId] = useState<number | string | undefined>(undefined);
@@ -192,7 +185,7 @@ export function DrawingUploadForm() {
                 )}
               </SelectTrigger>
               <SelectContent>
-                {projects.map((project) => {
+                {projects.map((project: { publicId?: string; id?: number; projectCode: string; projectName: string }) => {
                 const projectValue = String(project.publicId ?? project.id ?? '');
                 return (
                   <SelectItem key={projectValue} value={projectValue}>
