@@ -1,5 +1,30 @@
 import apiClient from '@/lib/api/client';
 import { CreateContractDto, UpdateContractDto, SearchContractDto } from '@/types/dto/contract/contract.dto';
+import { Contract } from '@/types/contract';
+
+const normalizeContract = (record: Contract): Contract => {
+  const publicId = record.publicId ?? record.id;
+  const project = record.project
+    ? {
+        ...record.project,
+        publicId: record.project.publicId ?? record.project.id,
+      }
+    : undefined;
+
+  return {
+    ...record,
+    publicId,
+    project,
+  };
+};
+
+const extractContractArray = (payload: unknown): Contract[] => {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+
+  return payload.map((item) => normalizeContract(item as Contract));
+};
 
 export const contractService = {
   /**
@@ -8,10 +33,7 @@ export const contractService = {
    */
   getAll: async (params?: SearchContractDto) => {
     const response = await apiClient.get('/contracts', { params });
-    if (response.data && Array.isArray(response.data.data)) {
-      return response.data.data;
-    }
-    return response.data.data || response.data;
+    return extractContractArray(response.data?.data ?? response.data);
   },
 
   /**
@@ -20,7 +42,8 @@ export const contractService = {
    */
   getByUuid: async (uuid: string) => {
     const response = await apiClient.get(`/contracts/${uuid}`);
-    return response.data;
+    const payload = response.data?.data ?? response.data;
+    return normalizeContract(payload as Contract);
   },
 
   /**

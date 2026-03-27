@@ -7,13 +7,14 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Discipline } from '@/types/master-data';
 import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Contract, getContractPublicId } from '@/types/contract';
 
 export default function DisciplinesPage() {
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
 
   const { data: contractsData = [] } = useContracts();
   // Ensure we consistently use an array
-  const contracts = Array.isArray(contractsData) ? contractsData : [];
+  const contracts = (Array.isArray(contractsData) ? contractsData : []) as Contract[];
 
   const columns: ColumnDef<Discipline>[] = [
     {
@@ -56,10 +57,20 @@ export default function DisciplinesPage() {
     },
   ];
 
-  const contractOptions = contracts.map((c: { id?: number; publicId?: string; contractCode: string; contractName: string }) => ({
-    label: `${c.contractName} (${c.contractCode})`,
-    value: String(c.publicId ?? c.id ?? ''),
-  }));
+  const contractOptions = contracts
+    .map((c) => {
+      const contractUuid = getContractPublicId(c);
+
+      if (!contractUuid) {
+        return null;
+      }
+
+      return {
+        label: `${c.contractName} (${c.contractCode})`,
+        value: contractUuid,
+      };
+    })
+    .filter((option): option is { label: string; value: string } => option !== null);
 
   return (
     <div className="p-6">
@@ -84,7 +95,7 @@ export default function DisciplinesPage() {
             data as unknown as Parameters<typeof masterDataService.createDiscipline>[0]
           )
         }
-        updateFn={(_id, _data) => Promise.reject('Not implemented yet')}
+        updateFn={(id, data) => masterDataService.updateDiscipline(id, data)}
         deleteFn={(id) => masterDataService.deleteDiscipline(id)}
         columns={columns}
         filters={
@@ -98,11 +109,19 @@ export default function DisciplinesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
-                {contracts.map((c: { id?: number; publicId?: string; contractCode: string; contractName: string }) => (
-                  <SelectItem key={String(c.publicId ?? c.id ?? '')} value={String(c.publicId ?? c.id ?? '')}>
-                    {c.contractName} ({c.contractCode})
-                  </SelectItem>
-                ))}
+                {contracts.map((c) => {
+                  const contractUuid = getContractPublicId(c);
+
+                  if (!contractUuid) {
+                    return null;
+                  }
+
+                  return (
+                    <SelectItem key={contractUuid} value={contractUuid}>
+                      {c.contractName} ({c.contractCode})
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -116,19 +135,19 @@ export default function DisciplinesPage() {
             options: contractOptions,
           },
           {
-            name: 'discipline_code',
+            name: 'disciplineCode',
             label: 'Code',
             type: 'text',
             required: true,
           },
           {
-            name: 'code_name_th',
+            name: 'codeNameTh',
             label: 'Name (TH)',
             type: 'text',
             required: true,
           },
-          { name: 'code_name_en', label: 'Name (EN)', type: 'text' },
-          { name: 'is_active', label: 'Active', type: 'checkbox' },
+          { name: 'codeNameEn', label: 'Name (EN)', type: 'text' },
+          { name: 'isActive', label: 'Active', type: 'checkbox' },
         ]}
       />
     </div>

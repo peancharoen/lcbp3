@@ -10,6 +10,17 @@ import { AxiosError } from 'axios';
 import { organizationService } from '@/lib/services/organization.service';
 import { projectService } from '@/lib/services/project.service';
 import { contractService } from '@/lib/services/contract.service';
+import { Contract } from '@/types/contract';
+
+// Helper to extract array data from various API response formats (paginated vs direct)
+const extractArrayData = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === 'object' && 'data' in value) {
+    const data = (value as { data?: unknown }).data;
+    if (Array.isArray(data)) return data as T[];
+  }
+  return [];
+};
 
 export const masterDataKeys = {
   all: ['masterData'] as const,
@@ -84,12 +95,16 @@ export function useDisciplines(contractId?: number | string) {
 export function useProjects(isActive: boolean = true) {
   return useQuery({
     queryKey: ['projects', { isActive }],
-    queryFn: () => projectService.getAll({ isActive }),
+    queryFn: async () => {
+      const response = await projectService.getAll({ isActive });
+      // ADR-019: Handle paginated response { data: Project[], meta: {...} }
+      return extractArrayData(response);
+    },
   });
 }
 
 export function useContracts(projectId?: number | string) {
-  return useQuery({
+  return useQuery<Contract[]>({
     queryKey: ['contracts', projectId ?? 'all'],
     queryFn: () => contractService.getAll(projectId ? { projectId } : undefined),
   });

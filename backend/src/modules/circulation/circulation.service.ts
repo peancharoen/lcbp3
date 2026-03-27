@@ -96,6 +96,12 @@ export class CirculationService {
 
   async findAll(searchDto: SearchCirculationDto, user: User) {
     const { status, correspondencePublicId, page = 1, limit = 20 } = searchDto;
+
+    // Handle users without primary organization gracefully
+    if (!user.primaryOrganizationId && !correspondencePublicId) {
+      return { data: [], meta: { total: 0, page, limit } };
+    }
+
     const query = this.circulationRepo
       .createQueryBuilder('c')
       .leftJoinAndSelect('c.creator', 'creator')

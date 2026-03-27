@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useOrganizations, useCorrespondenceTypes, useDisciplines, useContracts } from '@/hooks/use-master-data';
 import { Organization } from '@/types/organization';
+import { Contract, getContractPublicId } from '@/types/contract';
 
 // Local interfaces for Master Data since centralized ones are missing/fragmented
 interface CorrespondenceType {
@@ -47,10 +48,11 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
   const projectId = templateWithProject?.project?.id ?? templateWithProject?.project?.uuid ?? template?.projectId ?? 1;
   const { data: organizations } = useOrganizations({ isActive: true });
   const { data: correspondenceTypes } = useCorrespondenceTypes();
-  const { data: contracts } = useContracts(projectId);
+  const { data: contractsData } = useContracts(projectId);
+  const contracts = (Array.isArray(contractsData) ? contractsData : []) as Contract[];
 
   // Use first contract ID for disciplines, fallback to 1 or undefined
-  const contractId = contracts?.[0]?.id;
+  const contractId = getContractPublicId(contracts[0]);
   const { data: disciplines } = useDisciplines(contractId);
 
   const handleGenerate = async () => {

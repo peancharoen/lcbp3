@@ -20,6 +20,7 @@ import { useProjects } from '@/hooks/use-projects';
 import { CreateRfaDto } from '@/types/dto/rfa/rfa.dto';
 import { useState, useEffect, type FormEvent } from 'react';
 import { correspondenceService } from '@/lib/services/correspondence.service';
+import { Contract, getContractPublicId } from '@/types/contract';
 
 const rfaSchema = z.object({
   projectId: z.string().min(1, 'Project is required'), // ADR-019: UUID
@@ -47,8 +48,9 @@ type ProjectOption = {
 };
 
 type ContractOption = {
+  publicId?: string;
   uuid?: string;
-  id?: number;
+  id?: string;
   contractName?: string;
   name?: string;
   contractCode?: string;
@@ -182,8 +184,8 @@ export function RFAForm() {
   const selectedProjectId = watch('projectId');
   const { data: contractsData, isLoading: isLoadingContracts } = useContracts(selectedProjectId);
   const contracts = dedupeByKey(
-    extractArrayData<ContractOption>(contractsData),
-    (contract) => contract.uuid ?? contract.id
+    extractArrayData<ContractOption & Contract>(contractsData),
+    (contract) => contract.publicId ?? contract.uuid ?? contract.id
   );
 
   const selectedContractId = watch('contractId');
@@ -415,7 +417,7 @@ export function RFAForm() {
                 </SelectTrigger>
                 <SelectContent>
                   {contracts.map((c) => {
-                    const contractValue = getOptionValue(c.uuid ?? c.id);
+                    const contractValue = getOptionValue(getContractPublicId(c) || c.uuid);
 
                     if (!contractValue) {
                       return null;

@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCorrespondenceTypes, useContracts, useDisciplines } from '@/hooks/use-master-data';
 import { useProjects } from '@/hooks/use-projects';
 import { toast } from 'sonner';
+import { Contract, getContractPublicId } from '@/types/contract';
 
 export default function EditTemplatePage() {
   const params = useParams();
@@ -25,9 +26,9 @@ export default function EditTemplatePage() {
   const { data: projects = [] } = useProjects();
   const projectId = template?.projectId || 1;
   const { data: contractsData } = useContracts(projectId);
-  const contracts = Array.isArray(contractsData) ? contractsData : [];
-  const firstContract = contracts[0] as { id?: number; publicId?: string } | undefined;
-  const contractId = firstContract?.publicId ?? firstContract?.id;
+  const contracts = (Array.isArray(contractsData) ? contractsData : []) as Contract[];
+  const firstContract = contracts[0];
+  const contractId = getContractPublicId(firstContract);
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const selectedProjectName =

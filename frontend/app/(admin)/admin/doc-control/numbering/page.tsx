@@ -28,6 +28,7 @@ import { AuditLogsTable } from '@/components/numbering/audit-logs-table';
 import { VoidReplaceForm } from '@/components/numbering/void-replace-form';
 import { CancelNumberForm } from '@/components/numbering/cancel-number-form';
 import { BulkImportForm } from '@/components/numbering/bulk-import-form';
+import { Contract, getContractPublicId } from '@/types/contract';
 
 export default function NumberingPage() {
   const { data: projects = [] } = useProjects();
@@ -54,9 +55,9 @@ export default function NumberingPage() {
   // Master Data
   const { data: correspondenceTypes = [] } = useCorrespondenceTypes();
   const { data: contractsData } = useContracts(selectedProjectId);
-  const contracts = Array.isArray(contractsData) ? contractsData : [];
-  const firstContract = contracts[0] as { id?: number; publicId?: string } | undefined;
-  const contractId = firstContract?.publicId ?? firstContract?.id;
+  const contracts = (Array.isArray(contractsData) ? contractsData : []) as Contract[];
+  const firstContract = contracts[0];
+  const contractId = getContractPublicId(firstContract);
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const { data: templateResponse, isLoading: _isLoadingTemplates } = useTemplates();

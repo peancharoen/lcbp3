@@ -141,6 +141,12 @@ export const masterDataService = {
     return response.data;
   },
 
+  /** แก้ไขสาขางาน */
+  updateDiscipline: async (id: number, data: Partial<CreateDisciplineDto>) => {
+    const response = await apiClient.patch(`/master/disciplines/${id}`, data);
+    return response.data;
+  },
+
   // --- Sub-Types Management (Admin / Req 6B) ---
 
   /** ดึงรายชื่อประเภทย่อย (กรองตาม Contract และ Type) */

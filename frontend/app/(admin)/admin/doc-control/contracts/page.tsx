@@ -36,26 +36,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { SearchContractDto, CreateContractDto, UpdateContractDto } from '@/types/dto/contract/contract.dto';
 import { AxiosError } from 'axios';
+import { Contract, getContractPublicId, getProjectPublicId } from '@/types/contract';
 
 interface _Project {
   publicId: string; // ADR-019: uuid exposed as 'publicId' (string)
   projectCode: string;
   projectName: string;
-}
-
-interface Contract {
-  id: string; // ADR-019: uuid exposed as 'id'
-  contractCode: string;
-  contractName: string;
-  projectId: number;
-  description?: string;
-  startDate?: string;
-  endDate?: string;
-  project?: {
-    id: string; // ADR-019: project uuid exposed as 'id'
-    projectCode: string;
-    projectName: string;
-  };
 }
 
 const contractSchema = z.object({
@@ -125,6 +111,7 @@ export default function ContractsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUuid, setEditingUuid] = useState<string | null>(null);
+  const [editingContract, setEditingContract] = useState<Contract | null>(null);
 
   // Stats for Delete Dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -137,7 +124,14 @@ export default function ContractsPage() {
 
   const confirmDelete = () => {
     if (contractToDelete) {
-      deleteContract.mutate(contractToDelete.id, {
+      const contractUuid = getContractPublicId(contractToDelete);
+
+      if (!contractUuid) {
+        toast.error('Invalid contract UUID');
+        return;
+      }
+
+      deleteContract.mutate(contractUuid, {
         onSuccess: () => {
           setDeleteDialogOpen(false);
           setContractToDelete(null);
@@ -205,9 +199,11 @@ export default function ContractsPage() {
   ];
 
   const handleEdit = (contract: Contract) => {
-    setEditingUuid(contract.id);
-    // ADR-019: nested project exposes UUID as 'id'
-    const pId = contract.project?.id || '';
+    const contractUuid = getContractPublicId(contract);
+    setEditingUuid(contractUuid || null);
+    setEditingContract(contract); // Store contract for caption display
+    // ADR-019: resolve nested project UUID from canonical field
+    const pId = getProjectPublicId(contract.project);
     reset({
       contractCode: contract.contractCode,
       contractName: contract.contractName,
@@ -221,6 +217,7 @@ export default function ContractsPage() {
 
   const handleCreate = () => {
     setEditingUuid(null);
+    setEditingContract(null); // Clear editing contract
     reset({
       contractCode: '',
       contractName: '',
@@ -287,7 +284,7 @@ export default function ContractsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingUuid ? `Edit Contract: ${watch('contractCode') || '...'}` : 'New Contract'}
+              {editingUuid ? `Edit Contract: ${editingContract?.contractCode || '...'}` : 'New Contract'}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

@@ -7,13 +7,14 @@ import { ColumnDef } from '@tanstack/react-table';
 import { useState } from 'react';
 import { RfaType } from '@/types/master-data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Contract, getContractPublicId } from '@/types/contract';
 
 export default function RfaTypesPage() {
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
 
   const { data: contractsData = [] } = useContracts();
   // Ensure we consistently use an array
-  const contracts = Array.isArray(contractsData) ? contractsData : [];
+  const contracts = (Array.isArray(contractsData) ? contractsData : []) as Contract[];
 
   const columns: ColumnDef<RfaType>[] = [
     {
@@ -60,10 +61,20 @@ export default function RfaTypesPage() {
     },
   ];
 
-  const contractOptions = contracts.map((c: { id?: number; publicId?: string; contract_name?: string; contract_code?: string; contractName?: string; contractCode?: string }) => ({
-    label: `${c.contractName || c.contract_name} (${c.contractCode || c.contract_code})`,
-    value: String(c.publicId ?? c.id ?? ''),
-  }));
+  const contractOptions = contracts
+    .map((c) => {
+      const contractUuid = getContractPublicId(c);
+
+      if (!contractUuid) {
+        return null;
+      }
+
+      return {
+        label: `${c.contractName} (${c.contractCode})`,
+        value: contractUuid,
+      };
+    })
+    .filter((option): option is { label: string; value: string } => option !== null);
 
   return (
     <div className="p-6">
@@ -99,11 +110,19 @@ export default function RfaTypesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Contracts</SelectItem>
-                {contracts.map((c: { id?: number; publicId?: string; contract_name?: string; contract_code?: string; contractName?: string; contractCode?: string }) => (
-                  <SelectItem key={String(c.publicId ?? c.id ?? '')} value={String(c.publicId ?? c.id ?? '')}>
-                    {c.contractName || c.contract_name} ({c.contractCode || c.contract_code})
-                  </SelectItem>
-                ))}
+                {contracts.map((c) => {
+                  const contractUuid = getContractPublicId(c);
+
+                  if (!contractUuid) {
+                    return null;
+                  }
+
+                  return (
+                    <SelectItem key={contractUuid} value={contractUuid}>
+                      {c.contractName} ({c.contractCode})
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
