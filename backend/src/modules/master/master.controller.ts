@@ -93,6 +93,16 @@ export class MasterController {
     return this.masterService.deleteDiscipline(id);
   }
 
+  @Patch('disciplines/:id')
+  @RequirePermission('master_data.manage')
+  @ApiOperation({ summary: 'Update a discipline' })
+  updateDiscipline(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: Partial<CreateDisciplineDto> & { contractId?: number | string }
+  ) {
+    return this.masterService.updateDiscipline(id, dto);
+  }
+
   // --- Sub Types ---
   @Get('sub-types')
   @ApiOperation({ summary: 'Get all sub-types' })

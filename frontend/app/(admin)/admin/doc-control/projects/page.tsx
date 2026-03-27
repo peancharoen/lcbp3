@@ -33,12 +33,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Project {
-  publicId: string; // ADR-019: uuid exposed as 'publicId'
+  publicId: string;
   projectCode: string;
   projectName: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const projectSchema = z.object({

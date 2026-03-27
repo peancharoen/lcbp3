@@ -206,6 +206,25 @@ export class MasterService {
     return { deleted: true };
   }
 
+  async updateDiscipline(
+    id: number,
+    dto: Partial<CreateDisciplineDto> & { contractId?: number | string }
+  ) {
+    const discipline = await this.disciplineRepo.findOne({ where: { id } });
+    if (!discipline)
+      throw new NotFoundException(`Discipline ID ${id} not found`);
+
+    // Resolve contractId if provided
+    if (dto.contractId) {
+      dto.contractId = await this.uuidResolver.resolveContractId(
+        dto.contractId
+      );
+    }
+
+    Object.assign(discipline, dto);
+    return this.disciplineRepo.save(discipline);
+  }
+
   // =================================================================
   // 📑 Sub-Types Logic
   // =================================================================

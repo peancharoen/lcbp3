@@ -4,6 +4,15 @@ import { CreateProjectDto, UpdateProjectDto, SearchProjectDto } from '@/types/dt
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/types/api-error';
 
+export interface Project {
+  publicId: string;
+  projectCode: string;
+  projectName: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export const projectKeys = {
   all: ['projects'] as const,
   list: (params: SearchProjectDto) => [...projectKeys.all, 'list', params] as const,
@@ -11,7 +20,7 @@ export const projectKeys = {
 };
 
 export function useProjects(params?: SearchProjectDto) {
-  return useQuery({
+  return useQuery<Project[]>({
     queryKey: projectKeys.list(params || {}),
     queryFn: () => projectService.getAll(params),
   });

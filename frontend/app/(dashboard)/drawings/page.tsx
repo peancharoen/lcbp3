@@ -40,7 +40,7 @@ export default function DrawingsPage() {
             )}
           </SelectTrigger>
           <SelectContent>
-            {projects.map((project: { id?: number; publicId?: string; projectName: string; projectCode: string }) => (
+            {(projects as Array<{ id?: number; publicId?: string; projectName: string; projectCode: string }>).map((project) => (
               <SelectItem key={project.publicId || project.id} value={String(project.publicId || project.id)}>
                 {project.projectCode} - {project.projectName}
               </SelectItem>

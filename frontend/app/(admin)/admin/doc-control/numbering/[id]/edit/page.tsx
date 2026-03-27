@@ -32,7 +32,7 @@ export default function EditTemplatePage() {
   const { data: disciplines = [] } = useDisciplines(contractId);
 
   const selectedProjectName =
-    projects.find((p: { id?: number; publicId?: string; projectCode: string; projectName: string }) =>
+    (projects as Array<{ id?: number; publicId?: string; projectCode: string; projectName: string }>).find((p) =>
       String(p.publicId ?? p.id) === String(projectId))
       ?.projectName || 'LCBP3';
 
