@@ -125,6 +125,10 @@ export default function MigrationReviewPage() {
         },
       };
 
+      if (!item?.id) {
+        toast.error('Invalid item ID');
+        return;
+      }
       // Mock idempotency key based on timestamp to ensure uniqueness per approval retry
       const idempotencyKey = `review-${item.id}-${Date.now()}`;
       await migrationService.approveQueueItem(item.id, payload, idempotencyKey);
@@ -140,7 +144,7 @@ export default function MigrationReviewPage() {
   };
 
   const onReject = async () => {
-    if (!item || !confirm('Are you sure you want to REJECT this document? It will not be imported.')) return;
+    if (!item || !item.id || !confirm('Are you sure you want to REJECT this document? It will not be imported.')) return;
 
     try {
       setSubmitting(true);

@@ -3,11 +3,11 @@ import { CreateContractDto, UpdateContractDto, SearchContractDto } from '@/types
 import { Contract } from '@/types/contract';
 
 const normalizeContract = (record: Contract): Contract => {
-  const publicId = record.publicId ?? record.id;
+  const publicId = record.publicId;
   const project = record.project
     ? {
         ...record.project,
-        publicId: record.project.publicId ?? record.project.id,
+        publicId: record.project.publicId,
       }
     : undefined;
 

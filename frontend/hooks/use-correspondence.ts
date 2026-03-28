@@ -142,7 +142,7 @@ export function useAddTag() {
 
   return useMutation({
     mutationFn: ({ uuid, tagId }: { uuid: string; tagId: number | string }) =>
-      correspondenceService.addTag(uuid, tagId),
+      correspondenceService.addTag(uuid, Number(tagId)),
     onSuccess: (_, { uuid }) => {
       toast.success('Tag added');
       queryClient.invalidateQueries({ queryKey: [...correspondenceKeys.detail(uuid), 'tags'] });
@@ -160,7 +160,7 @@ export function useRemoveTag() {
 
   return useMutation({
     mutationFn: ({ uuid, tagId }: { uuid: string; tagId: number | string }) =>
-      correspondenceService.removeTag(uuid, tagId),
+      correspondenceService.removeTag(uuid, Number(tagId)),
     onSuccess: (_, { uuid }) => {
       toast.success('Tag removed');
       queryClient.invalidateQueries({ queryKey: [...correspondenceKeys.detail(uuid), 'tags'] });

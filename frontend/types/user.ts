@@ -1,5 +1,6 @@
 export interface Role {
-  roleId: number;
+  publicId?: string; // ADR-019: public identifier
+  roleId?: number;   // Internal INT
   roleName: string;
   description: string;
 }

@@ -99,6 +99,7 @@ const normalizeWorkflowType = (workflowCode?: string): WorkflowType => {
 const mapWorkflow = (backendObj: BackendWorkflowShape): Workflow => {
   if (!backendObj) throw new Error('Workflow not found');
   return {
+    publicId: String(backendObj.id ?? ''),
     workflowId: backendObj.id ?? backendObj.workflow_code ?? '',
     workflowName:
       (typeof backendObj.dsl === 'object' ? backendObj.dsl?.workflowName : undefined) ||

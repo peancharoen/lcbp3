@@ -3,6 +3,7 @@ import { Workflow, CreateWorkflowDto, ValidationResult } from '@/types/workflow'
 // Mock Data
 let mockWorkflows: Workflow[] = [
   {
+    publicId: 'wf-001',
     workflowId: 1,
     workflowName: 'Standard RFA Workflow',
     description: 'Default approval process for RFAs',
@@ -22,6 +23,7 @@ steps:
     updatedAt: new Date().toISOString(),
   },
   {
+    publicId: 'wf-002',
     workflowId: 2,
     workflowName: 'Correspondence Review',
     description: 'Incoming correspondence review flow',
@@ -44,15 +46,17 @@ export const workflowApi = {
     return [...mockWorkflows];
   },
 
-  getWorkflow: async (id: number): Promise<Workflow | undefined> => {
+  getWorkflow: async (id: string): Promise<Workflow | undefined> => {
     await new Promise((resolve) => setTimeout(resolve, 300));
-    return mockWorkflows.find((w) => w.workflowId === id);
+    return mockWorkflows.find((w) => w.publicId === id);
   },
 
   createWorkflow: async (data: CreateWorkflowDto): Promise<Workflow> => {
     await new Promise((resolve) => setTimeout(resolve, 800));
+    const maxId = mockWorkflows.length > 0 ? Math.max(...mockWorkflows.map((w) => Number(w.workflowId ?? 0))) : 0;
     const newWorkflow: Workflow = {
-      workflowId: Math.max(...mockWorkflows.map((w) => Number(w.workflowId))) + 1,
+      publicId: `wf-${String(maxId + 1).padStart(3, '0')}`,
+      workflowId: maxId + 1,
       ...data,
       version: 1,
       isActive: true,
@@ -63,9 +67,9 @@ export const workflowApi = {
     return newWorkflow;
   },
 
-  updateWorkflow: async (id: number, data: Partial<CreateWorkflowDto>): Promise<Workflow> => {
+  updateWorkflow: async (id: string, data: Partial<CreateWorkflowDto>): Promise<Workflow> => {
     await new Promise((resolve) => setTimeout(resolve, 600));
-    const index = mockWorkflows.findIndex((w) => w.workflowId === id);
+    const index = mockWorkflows.findIndex((w) => w.publicId === id);
     if (index === -1) throw new Error('Workflow not found');
 
     const updatedWorkflow = { ...mockWorkflows[index], ...data, updatedAt: new Date().toISOString() };

@@ -403,7 +403,7 @@ export function RFAForm() {
                 onValueChange={(val) => {
                   setValue('contractId', val);
                   setValue('disciplineId', 0);
-                  setValue('rfaTypeId', 0);
+                  setValue('rfaTypeId', '');
                   setValue('shopDrawingRevisionIds', []);
                   setValue('asBuiltDrawingRevisionIds', []);
                 }}

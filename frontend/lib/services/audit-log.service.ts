@@ -2,6 +2,7 @@ import apiClient from '@/lib/api/client';
 import { AuditQueryParams } from '@/types/dto/numbering.dto';
 
 export interface AuditLog {
+  publicId?: string; // ADR-019: public identifier
   auditId: string;
   userId?: number | null;
   user?: {

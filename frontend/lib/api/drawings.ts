@@ -3,7 +3,7 @@ import { Drawing } from '@/types/drawing';
 // Mock Data
 const mockDrawings: Drawing[] = [
   {
-    drawingId: 1,
+    publicId: 'dwg-001',
     drawingNumber: 'S-201-A',
     title: 'Structural Foundation Plan',
     discipline: 'Structural',
@@ -13,7 +13,7 @@ const mockDrawings: Drawing[] = [
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
   },
   {
-    drawingId: 2,
+    publicId: 'dwg-002',
     drawingNumber: 'A-101-B',
     title: 'Architectural Floor Plan - Level 1',
     discipline: 'Architectural',
@@ -30,12 +30,12 @@ export const drawingApi = {
     return { data: mockDrawings, meta: { total: mockDrawings.length } };
   },
 
-  getById: async (id: number): Promise<Drawing | undefined> => {
+  getById: async (_id: string): Promise<Drawing | undefined> => {
     await new Promise((resolve) => setTimeout(resolve, 300));
-    return mockDrawings.find((d) => d.drawingId === id);
+    return mockDrawings.find((d) => d.publicId === _id);
   },
 
-  getByContract: async (_contractId: number): Promise<{ data: Drawing[] }> => {
+  getByContract: async (_contractId: string): Promise<{ data: Drawing[] }> => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     // Mock: return all drawings for any contract
     return { data: mockDrawings };

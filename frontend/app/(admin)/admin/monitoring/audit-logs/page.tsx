@@ -31,7 +31,7 @@ export default function AuditLogsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="font-medium text-sm">
-                        {log.user?.fullName || log.user?.username || `User #${log.user?.userId || 'System'}`}
+                        {log.user?.fullName || log.user?.username || `User #${log.userId || 'System'}`}
                       </span>
                       <Badge
                         variant={log.severity === 'ERROR' ? 'destructive' : 'outline'}

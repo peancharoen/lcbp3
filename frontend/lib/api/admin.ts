@@ -3,27 +3,30 @@ import { User, CreateUserDto, Organization, AuditLog } from '@/types/admin';
 // Mock Data
 const mockUsers: User[] = [
   {
+    publicId: 'user-001',
     userId: 1,
     username: 'admin',
     email: 'admin@example.com',
     firstName: 'System',
     lastName: 'Admin',
     isActive: true,
-    roles: [{ roleId: 1, roleName: 'ADMIN', description: 'Administrator' }],
+    roles: [{ publicId: 'role-001', roleId: 1, roleName: 'ADMIN', description: 'Administrator' }],
   },
   {
+    publicId: 'user-002',
     userId: 2,
     username: 'jdoe',
     email: 'john.doe@example.com',
     firstName: 'John',
     lastName: 'Doe',
     isActive: true,
-    roles: [{ roleId: 2, roleName: 'USER', description: 'Regular User' }],
+    roles: [{ publicId: 'role-002', roleId: 2, roleName: 'USER', description: 'Regular User' }],
   },
 ];
 
 const mockOrgs: Organization[] = [
   {
+    publicId: 'org-001',
     orgId: 1,
     orgCode: 'PAT',
     orgName: 'Port Authority of Thailand',
@@ -31,6 +34,7 @@ const mockOrgs: Organization[] = [
     description: 'Owner',
   },
   {
+    publicId: 'org-002',
     orgId: 2,
     orgCode: 'CNPC',
     orgName: 'CNPC Consortium',
@@ -40,6 +44,7 @@ const mockOrgs: Organization[] = [
 
 const mockLogs: AuditLog[] = [
   {
+    publicId: 'log-001',
     auditLogId: 1,
     userName: 'admin',
     action: 'CREATE',
@@ -49,6 +54,7 @@ const mockLogs: AuditLog[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
   },
   {
+    publicId: 'log-002',
     auditLogId: 2,
     userName: 'jdoe',
     action: 'UPDATE',
@@ -67,14 +73,17 @@ export const adminApi = {
 
   createUser: async (data: CreateUserDto): Promise<User> => {
     await new Promise((resolve) => setTimeout(resolve, 800));
+    const maxId = mockUsers.length > 0 ? Math.max(...mockUsers.map((u) => u.userId ?? 0)) : 0;
     const newUser: User = {
-      userId: Math.max(...mockUsers.map((u) => u.userId)) + 1,
+      publicId: `user-${String(maxId + 1).padStart(3, '0')}`,
+      userId: maxId + 1,
       username: data.username,
       email: data.email,
       firstName: data.firstName,
       lastName: data.lastName,
       isActive: data.isActive,
       roles: data.roles.map((id) => ({
+        publicId: `role-${String(id).padStart(3, '0')}`,
         roleId: id,
         roleName: id === 1 ? 'ADMIN' : 'USER',
         description: '',
@@ -91,7 +100,8 @@ export const adminApi = {
 
   createOrganization: async (data: Omit<Organization, 'orgId'>): Promise<Organization> => {
     await new Promise((resolve) => setTimeout(resolve, 600));
-    const newOrg = { ...data, orgId: Math.max(...mockOrgs.map((o) => o.orgId)) + 1 };
+    const maxId = mockOrgs.length > 0 ? Math.max(...mockOrgs.map((o) => o.orgId ?? 0)) : 0;
+    const newOrg: Organization = { ...data, publicId: data.publicId || `org-${String(maxId + 1).padStart(3, '0')}`, orgId: maxId + 1 };
     mockOrgs.push(newOrg);
     return newOrg;
   },

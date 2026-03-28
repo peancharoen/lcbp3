@@ -49,7 +49,7 @@ export default function MigrationReviewQueuePage() {
     if (selectedIds.length === items.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(items.map((i) => i.id));
+      setSelectedIds(items.map((i) => i.id).filter((id): id is number => id !== undefined));
     }
   };
 
@@ -63,6 +63,7 @@ export default function MigrationReviewQueuePage() {
       setSubmitting(true);
 
       const batchItems = items
+        .filter((i): i is typeof i & { id: number } => i.id !== undefined)
         .filter((i) => selectedIds.includes(i.id))
         .map((item) => ({
           queueId: item.id,
@@ -165,12 +166,12 @@ export default function MigrationReviewQueuePage() {
                 </TableHeader>
                 <TableBody>
                   {items.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id || item.publicId}>
                       <TableCell>
                         <Checkbox
-                          checked={selectedIds.includes(item.id)}
-                          onCheckedChange={() => handleToggleSelect(item.id)}
-                          aria-label={`Select item ${item.id}`}
+                          checked={item.id !== undefined && selectedIds.includes(item.id)}
+                          onCheckedChange={() => item.id !== undefined && handleToggleSelect(item.id)}
+                          aria-label={`Select item ${item.id || item.publicId}`}
                         />
                       </TableCell>
                       <TableCell className="font-medium">{item.documentNumber}</TableCell>
@@ -205,7 +206,7 @@ export default function MigrationReviewQueuePage() {
                       </TableCell>
                       <TableCell>{format(new Date(item.createdAt), 'dd MMM yyyy, HH:mm')}</TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/admin/migration/review/${item.id}`}>
+                        <Link href={`/admin/migration/review/${item.id || item.publicId}`}>
                           <Button size="sm" variant="ghost">
                             <EyeIcon className="h-4 w-4 mr-2" /> Review
                           </Button>

@@ -10,7 +10,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/lib/api/client';
 
 interface Role {
-  roleId: number;
+  publicId?: string; // ADR-019: public identifier
+  roleId?: number;   // Internal INT
   roleName: string;
   permissions?: Permission[];
 }
@@ -151,16 +152,17 @@ export function RbacMatrix() {
                   <div className="text-xs text-muted-foreground">{perm.description}</div>
                 </TableCell>
                 {roleList.map((role) => {
+                  const roleId = role.roleId ?? 0;
                   // Assume role.permissions is populated
                   const currentRolePerms = role.permissions?.map((p) => p.permissionId) || [];
-                  const activePerms = pendingChanges[role.publicId] || currentRolePerms;
+                  const activePerms = pendingChanges[roleId] || currentRolePerms;
                   const isChecked = activePerms.includes(perm.permissionId);
 
                   return (
-                    <TableCell key={`${role.publicId}-${perm.permissionId}`} className="text-center">
+                    <TableCell key={`${roleId}-${perm.permissionId}`} className="text-center">
                       <Checkbox
                         checked={isChecked}
-                        onCheckedChange={() => handleToggle(role.publicId, perm.permissionId, currentRolePerms)}
+                        onCheckedChange={() => handleToggle(roleId, perm.permissionId, currentRolePerms)}
                       />
                     </TableCell>
                   );

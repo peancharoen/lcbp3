@@ -108,7 +108,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
         isActive: user.isActive,
         lineId: user.lineId || '',
         primaryOrganizationId: user.primaryOrganizationId?.toString() || ALL_ORGANIZATIONS_VALUE,
-        roleIds: user.roles?.map((r: { publicId: string }) => r.publicId) || [],
+        roleIds: user.roles?.map((r: { roleId?: number }) => r.roleId).filter((id): id is number => id !== undefined) || [],
         password: '',
         confirmPassword: '',
       });
@@ -297,23 +297,26 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                 <p className="text-sm text-muted-foreground">Loading roles...</p>
               )}
               {Array.isArray(roles) &&
-                roles.map((role: { publicId: string; roleName: string; description?: string }) => (
-                  <div key={role.publicId} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={`role-${role.publicId}`}
-                      checked={selectedRoleIds.includes(role.publicId)}
-                      onCheckedChange={(checked) => {
-                        const current = selectedRoleIds;
-                        if (checked) {
-                          setValue('roleIds', [...current, role.publicId]);
-                        } else {
-                          setValue(
-                            'roleIds',
-                            current.filter((id) => id !== role.publicId)
-                          );
-                        }
-                      }}
-                    />
+                roles.map((role: { publicId?: string; roleId?: number; roleName: string; description?: string }) => {
+                  const roleId = role.roleId;
+                  if (roleId === undefined) return null;
+                  return (
+                    <div key={role.publicId ?? roleId} className="flex items-start space-x-2">
+                      <Checkbox
+                        id={`role-${role.publicId ?? roleId}`}
+                        checked={selectedRoleIds.includes(roleId)}
+                        onCheckedChange={(checked) => {
+                          const current = selectedRoleIds;
+                          if (checked) {
+                            setValue('roleIds', [...current, roleId]);
+                          } else {
+                            setValue(
+                              'roleIds',
+                              current.filter((id) => id !== roleId)
+                            );
+                          }
+                        }}
+                      />
                     <div className="grid gap-1.5 leading-none">
                       <label
                         htmlFor={`role-${role.publicId}`}
@@ -323,8 +326,9 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                       </label>
                       <p className="text-xs text-muted-foreground">{role.description}</p>
                     </div>
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
             </div>
           </div>
 
