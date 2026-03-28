@@ -11,11 +11,20 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     include: ['hooks/**/*.test.{ts,tsx}', 'lib/**/*.test.{ts,tsx}', 'components/**/*.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/.ignored_node_modules/**', '**/.next/**', '**/dist/**'],
+    testTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['hooks/**/*.ts', 'lib/**/*.ts', 'components/**/*.tsx'],
-      exclude: ['**/*.d.ts', '**/__tests__/**', '**/types/**'],
+      exclude: ['**/*.d.ts', '**/__tests__/**', '**/types/**', '**/*.test.{ts,tsx}'],
+      thresholds: {
+        global: {
+          branches: 70,
+          functions: 70,
+          lines: 70,
+          statements: 70,
+        },
+      },
     },
   },
   resolve: {

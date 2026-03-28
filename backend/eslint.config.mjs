@@ -19,7 +19,9 @@ export default tseslint.config(
       },
       sourceType: 'commonjs',
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['jest.config.js', '*.config.mjs'],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -53,10 +55,16 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.spec.ts', '**/*.e2e-spec.ts'],
+    files: [
+      '**/*.spec.ts',
+      '**/*.e2e-spec.ts',
+      'test/jest.setup.ts',
+      'test/jest-e2e.setup.ts',
+    ],
     rules: {
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
+      'no-console': 'off',
     },
   }
 );
