@@ -266,12 +266,11 @@ async findByUuid(publicId: string): Promise<CorrespondenceDto> {
 }
 ```
 
-### DTO Pattern — Never Expose INT ID
+### DTO Pattern — Expose publicId Directly
 
 ```typescript
 export class CorrespondenceResponseDto {
-  // ✅ Expose publicId as 'id' in API response
-  @Expose({ name: 'id' })
+  // ✅ Expose publicId directly in API response
   publicId!: string;
 
   // ❌ Never expose internal INT id
@@ -279,10 +278,11 @@ export class CorrespondenceResponseDto {
 
   // ... other fields
   // For FK references, also use publicId
-  @Expose({ name: 'project_id' })
   projectPublicId!: string;
 }
 ```
+
+> **Note:** We use `publicId` directly in API responses (not transformed to `id`) to maintain naming consistency between Backend Entity property and Frontend Type property. This prevents confusion when mapping data.
 
 ---
 
@@ -473,11 +473,29 @@ WHERE c.uuid = '019505a1-7c3e-7000-8000-abc123def456';
 - API รับได้ทั้ง INT และ UUID ผ่าน `FindByIdOrUuid` pattern
 - API Response รวม UUID เป็น `id` field (via @Expose)
 
-### Phase 3: Frontend (Gradual Migration)
+### Phase 3: Frontend (Consistent publicId Usage)
 
-- Frontend เปลี่ยนจากใช้ `id` (INT) เป็น `id` (UUID) ใน API response
-- URL parameters เปลี่ยนเป็น UUID
-- ไม่ต้อง Big-Bang migration — ค่อยๆ เปลี่ยนทีละ Module
+- Frontend ใช้ `publicId` เป็น Standard ทุก Type (ไม่ใช้ `uuid` หรือ `id` ที่เป็น number)
+- URL parameters ใช้ `publicId` (UUID string)
+- ทุก Type Definition ใช้ `publicId?: string` อย่างเดียว — ไม่มี fallback เป็น `uuid` หรือ `id`
+
+**Example:**
+```typescript
+// ✅ Correct — Consistent publicId usage
+type ProjectOption = {
+  publicId?: string;
+  projectName?: string;
+  projectCode?: string;
+};
+
+// ❌ Wrong — Multiple identifier fields cause confusion
+type ProjectOption = {
+  publicId?: string;
+  uuid?: string;  // Don't do this
+  id?: number;    // Don't do this
+  projectName?: string;
+};
+```
 
 ### Phase 4: Cleanup
 
@@ -492,11 +510,23 @@ WHERE c.uuid = '019505a1-7c3e-7000-8000-abc123def456';
 | Area                   | Status                               |
 | ---------------------- | ------------------------------------ |
 | Security               | ✅ Eliminates ID enumeration         |
-| Performance            | ✅ No impact on internal JOINs       |
+| Performance            | ✅ No impact on internal JOINs         |
 | Migration Risk         | ✅ Low — ADD COLUMN only             |
 | Storage Impact         | ✅ Negligible (~3.8 MB)              |
 | Backward Compatibility | ✅ Dual-mode transition              |
 | ADR Compliance         | ✅ Compatible with all existing ADRs |
+
+---
+
+## Naming Convention Summary
+
+| Context | Backend (TypeORM) | Frontend (TypeScript) | API Response |
+|---------|-------------------|----------------------|--------------|
+| **Entity Property** | `publicId: string` | `publicId?: string` | `publicId: string` |
+| **DB Column** | `uuid UUID` | — | — |
+| **Internal PK** | `id: number` (excluded) | — | — |
+
+**Rule:** ใช้ `publicId` เป็น Identifier เดียวใน API — ไม่มีการ Transform เป็น `id` เพื่อป้องกัน confusion ระหว่าง Backend ↔ Frontend
 
 ---
 

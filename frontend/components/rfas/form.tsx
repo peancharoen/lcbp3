@@ -20,7 +20,7 @@ import { useProjects } from '@/hooks/use-projects';
 import { CreateRfaDto } from '@/types/dto/rfa/rfa.dto';
 import { useState, useEffect, type FormEvent } from 'react';
 import { correspondenceService } from '@/lib/services/correspondence.service';
-import { Contract, getContractPublicId } from '@/types/contract';
+import { Contract } from '@/types/contract';
 
 const rfaSchema = z.object({
   projectId: z.string().min(1, 'Project is required'), // ADR-019: UUID
@@ -41,16 +41,12 @@ type RFAFormData = z.infer<typeof rfaSchema>;
 
 type ProjectOption = {
   publicId?: string;
-  uuid?: string; // Legacy alias for publicId
-  id?: number;
   projectName?: string;
   projectCode?: string;
 };
 
 type ContractOption = {
   publicId?: string;
-  uuid?: string;
-  id?: string;
   contractName?: string;
   name?: string;
   contractCode?: string;
@@ -78,20 +74,19 @@ type CorrespondenceTypeOption = {
 };
 
 type OrganizationOption = {
-  uuid?: string;
-  id?: number;
+  publicId?: string;
   organizationCode?: string;
   organizationName?: string;
 };
 
 type SelectableDrawingOption = {
-  uuid?: string;
+  publicId?: string;
   drawingNumber?: string;
   title?: string;
   legacyDrawingNumber?: string;
-  currentRevisionUuid?: string;
+  currentRevisionPublicId?: string;
   currentRevision?: {
-    uuid?: string;
+    publicId?: string;
     revisionLabel?: string;
     revisionNumber?: number | string;
     title?: string;
@@ -145,11 +140,11 @@ export function RFAForm() {
   const createMutation = useCreateRFA();
 
   const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
-  const projects = dedupeByKey(extractArrayData<ProjectOption>(projectsData), (project) => project.publicId ?? project.uuid ?? project.id);
+  const projects = dedupeByKey(extractArrayData<ProjectOption>(projectsData), (project) => project.publicId);
   const { data: organizationsData, isLoading: isLoadingOrganizations } = useOrganizations({ isActive: true });
   const organizations = dedupeByKey(
     extractArrayData<OrganizationOption>(organizationsData),
-    (organization) => organization.uuid ?? organization.id
+    (organization) => organization.publicId
   );
   const { data: correspondenceTypesData } = useCorrespondenceTypes();
   const correspondenceTypes = extractArrayData<CorrespondenceTypeOption>(correspondenceTypesData);
@@ -185,7 +180,7 @@ export function RFAForm() {
   const { data: contractsData, isLoading: isLoadingContracts } = useContracts(selectedProjectId);
   const contracts = dedupeByKey(
     extractArrayData<ContractOption & Contract>(contractsData),
-    (contract) => contract.publicId ?? contract.uuid ?? contract.id
+    (contract) => contract.publicId
   );
 
   const selectedContractId = watch('contractId');
@@ -196,27 +191,27 @@ export function RFAForm() {
   const [shopDrawingSearch, setShopDrawingSearch] = useState('');
   const [shopDrawingPage, setShopDrawingPage] = useState(1);
   const { data: shopDrawingsData, isLoading: isLoadingShopDrawings } = useDrawings('SHOP', {
-    projectUuid: selectedProjectId || '',
+    projectPublicId: selectedProjectId || '',
     search: shopDrawingSearch,
     page: shopDrawingPage,
     limit: 10,
   });
   const shopDrawings = dedupeByKey(
     extractArrayData<SelectableDrawingOption>(shopDrawingsData),
-    (drawing) => drawing.currentRevisionUuid ?? drawing.currentRevision?.uuid ?? drawing.uuid
+    (drawing) => drawing.currentRevisionPublicId ?? drawing.currentRevision?.publicId ?? drawing.publicId
   );
 
   const [asBuiltDrawingSearch, setAsBuiltDrawingSearch] = useState('');
   const [asBuiltDrawingPage, setAsBuiltDrawingPage] = useState(1);
   const { data: asBuiltDrawingsData, isLoading: isLoadingAsBuiltDrawings } = useDrawings('AS_BUILT', {
-    projectUuid: selectedProjectId || '',
+    projectPublicId: selectedProjectId || '',
     search: asBuiltDrawingSearch,
     page: asBuiltDrawingPage,
     limit: 10,
   });
   const asBuiltDrawings = dedupeByKey(
     extractArrayData<SelectableDrawingOption>(asBuiltDrawingsData),
-    (drawing) => drawing.currentRevisionUuid ?? drawing.currentRevision?.uuid ?? drawing.uuid
+    (drawing) => drawing.currentRevisionPublicId ?? drawing.currentRevision?.publicId ?? drawing.publicId
   );
   const selectedDisciplineId = watch('disciplineId');
 
@@ -381,7 +376,7 @@ export function RFAForm() {
               </SelectTrigger>
               <SelectContent>
                 {projects.map((p) => {
-                  const projectValue = getOptionValue(p.publicId ?? p.uuid ?? p.id);
+                  const projectValue = getOptionValue(p.publicId);
 
                   if (!projectValue) {
                     return null;
@@ -417,7 +412,7 @@ export function RFAForm() {
                 </SelectTrigger>
                 <SelectContent>
                   {contracts.map((c) => {
-                    const contractValue = getOptionValue(getContractPublicId(c) || c.uuid);
+                    const contractValue = getOptionValue(c.publicId);
 
                     if (!contractValue) {
                       return null;
@@ -499,7 +494,7 @@ export function RFAForm() {
                 </SelectTrigger>
                 <SelectContent>
                   {organizations.map((organization) => {
-                    const organizationValue = getOptionValue(organization.uuid ?? organization.id);
+                    const organizationValue = getOptionValue(organization.publicId);
 
                     if (!organizationValue) {
                       return null;
@@ -551,24 +546,24 @@ export function RFAForm() {
                 )}
                 <div className="grid grid-cols-1 gap-3">
                   {shopDrawings.map((drawing) => {
-                    const revisionUuid = drawing.currentRevisionUuid ?? drawing.currentRevision?.uuid;
+                    const revisionPublicId = drawing.currentRevisionPublicId ?? drawing.currentRevision?.publicId;
 
-                    if (!revisionUuid) {
+                    if (!revisionPublicId) {
                       return null;
                     }
 
                     return (
                       <label
-                        key={revisionUuid}
+                        key={revisionPublicId}
                         className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
                       >
                         <Checkbox
-                          checked={selectedShopDrawingRevisionIds.includes(revisionUuid)}
+                          checked={selectedShopDrawingRevisionIds.includes(revisionPublicId)}
                           onCheckedChange={(checked) => {
                             const nextValues =
                               checked === true
-                                ? [...selectedShopDrawingRevisionIds, revisionUuid]
-                                : selectedShopDrawingRevisionIds.filter((value) => value !== revisionUuid);
+                                ? [...selectedShopDrawingRevisionIds, revisionPublicId]
+                                : selectedShopDrawingRevisionIds.filter((value) => value !== revisionPublicId);
                             setValue('shopDrawingRevisionIds', nextValues, { shouldDirty: true, shouldValidate: true });
                             clearErrors('shopDrawingRevisionIds');
                           }}
@@ -647,24 +642,24 @@ export function RFAForm() {
                 )}
                 <div className="grid grid-cols-1 gap-3">
                   {asBuiltDrawings.map((drawing) => {
-                    const revisionUuid = drawing.currentRevisionUuid ?? drawing.currentRevision?.uuid;
+                    const revisionPublicId = drawing.currentRevisionPublicId ?? drawing.currentRevision?.publicId;
 
-                    if (!revisionUuid) {
+                    if (!revisionPublicId) {
                       return null;
                     }
 
                     return (
                       <label
-                        key={revisionUuid}
+                        key={revisionPublicId}
                         className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
                       >
                         <Checkbox
-                          checked={selectedAsBuiltDrawingRevisionIds.includes(revisionUuid)}
+                          checked={selectedAsBuiltDrawingRevisionIds.includes(revisionPublicId)}
                           onCheckedChange={(checked) => {
                             const nextValues =
                               checked === true
-                                ? [...selectedAsBuiltDrawingRevisionIds, revisionUuid]
-                                : selectedAsBuiltDrawingRevisionIds.filter((value) => value !== revisionUuid);
+                                ? [...selectedAsBuiltDrawingRevisionIds, revisionPublicId]
+                                : selectedAsBuiltDrawingRevisionIds.filter((value) => value !== revisionPublicId);
                             setValue('asBuiltDrawingRevisionIds', nextValues, {
                               shouldDirty: true,
                               shouldValidate: true,

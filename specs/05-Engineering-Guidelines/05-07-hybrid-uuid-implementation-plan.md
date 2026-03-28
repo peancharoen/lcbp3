@@ -243,21 +243,31 @@ async findByUuidOrId(identifier: string): Promise<Entity> {
 
 #### Pattern: Drawing Search (✅ FIXED — reference implementation)
 
-- Backend DTO accepts `projectUuid: string` instead of `projectId: number`
-- Controller resolves: `projectService.findOneByUuid(dto.projectUuid)` → `dto.projectId = project.id`
+- Backend DTO accepts `projectPublicId: string` instead of `projectId: number`
+- Controller resolves: `projectService.findOneByUuid(dto.projectPublicId)` → `dto.projectId = project.id`
 - Frontend sends UUID string directly (no `parseInt`)
+- Frontend Type uses `publicId` only:
+  ```typescript
+  type ProjectOption = {
+    publicId?: string;
+    projectName?: string;
+  };
+  ```
 
-#### Remaining Issues
+#### Remaining Issues (Updated Naming Convention)
 
 | File                                  | Field                                                 | Entity       | Issue                                                        |
 | ------------------------------------- | ----------------------------------------------------- | ------------ | ------------------------------------------------------------ |
-| `correspondences/form.tsx:212`        | `projectId`                                           | Project      | `parseInt(p.id)` where `p.id` = UUID string (garbled number) |
-| `correspondences/form.tsx:326`        | `fromOrganizationId`                                  | Organization | `parseInt(String(org.id))` where `org.id` = undefined (NaN)  |
-| `correspondences/form.tsx:349`        | `toOrganizationId`                                    | Organization | Same as above                                                |
-| `admin/users/page.tsx:47`             | `primaryOrganizationId` (filter)                      | Organization | `parseInt(selectedOrgId)` where value = UUID string          |
-| `admin/user-dialog.tsx:226`           | `primaryOrganizationId`                               | Organization | `parseInt(val)` where `org.id` = undefined → `"0"` fallback  |
-| `numbering/template-tester.tsx:71-74` | `originatorOrganizationId`, `recipientOrganizationId` | Organization | `parseInt` on org UUID                                       |
-| `rfas/page.tsx:17`                    | `projectId` (URL param)                               | Project      | `parseInt(searchParams.get('projectId'))` — UUID if from URL |
+| `correspondences/form.tsx`            | `projectPublicId`                                     | Project      | Type uses `id` instead of `publicId`                         |
+| `correspondences/form.tsx`            | `fromOrganizationPublicId`                            | Organization | Type uses `uuid/id` instead of `publicId`                    |
+| `correspondences/form.tsx`            | `toOrganizationPublicId`                              | Organization | Type uses `uuid/id` instead of `publicId`                    |
+| `admin/users/page.tsx`                | `primaryOrganizationPublicId` (filter)                | Organization | Type uses `id` instead of `publicId`                         |
+| `admin/user-dialog.tsx`              | `primaryOrganizationPublicId`                         | Organization | Type uses `id` instead of `publicId`                         |
+| `numbering/template-tester.tsx`      | `originatorOrganizationPublicId` / `recipientOrganizationPublicId` | Organization | Type uses `id` instead of `publicId`              |
+| `rfas/page.tsx`                       | `projectPublicId` (URL param)                         | Project      | Type uses `id` instead of `publicId`                       |
+| `rfas/form.tsx`                       | `projectPublicId`, `contractPublicId`, `toOrganizationPublicId` | Multiple | ✅ FIXED — Now uses `publicId` exclusively |
+
+> **Fix Applied:** `rfas/form.tsx` standardized to use `publicId` only (2026-03-28)
 
 #### Fix Strategy (same pattern as Drawing Search fix)
 
@@ -300,16 +310,6 @@ For each affected backend DTO:
 | Order | Task                                                          | Effort | Status                     |
 | ----- | ------------------------------------------------------------- | ------ | -------------------------- |
 | 1     | UuidBaseEntity (no transformer needed — MariaDB native UUID)  | S      | ✅ Done                    |
-| 2     | Install `uuid` package                                        | XS     | ✅ Done                    |
-| 3     | Update 14 entity files with uuid column                       | M      | ✅ Done                    |
-| 4     | Create ParseUuidPipe                                          | S      | ✅ Done                    |
-| 5     | Update controllers to use UUID params                         | L      | ✅ Done                    |
-| 6     | Update services with findByUuid methods                       | L      | ✅ Done                    |
-| 7     | Update DTOs to expose uuid, hide id                           | M      | ✅ Done                    |
-| 8     | Update frontend API calls & routes                            | L      | ✅ Done                    |
-| 9     | Drawing search: projectUuid migration                         | S      | ✅ Done (2026-03-18)       |
-| 10    | FK reference UUID migration (Correspondence, User, Numbering) | M      | ❌ Pending (see Phase 5.4) |
-| 11    | Write unit + integration tests                                | M      | ❌ Pending                 |
 
 **Estimated Remaining Effort:** ~2-3 days for FK migration + ~2 days for tests
 

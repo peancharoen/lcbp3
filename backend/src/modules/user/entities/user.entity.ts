@@ -17,7 +17,7 @@ import { Organization } from '../../organization/entities/organization.entity'; 
 import { UserAssignment } from './user-assignment.entity';
 import { UserPreference } from './user-preference.entity';
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude } from 'class-transformer';
 
 @Entity('users')
 export class User extends UuidBaseEntity {
@@ -65,7 +65,6 @@ export class User extends UuidBaseEntity {
   organization?: Organization;
 
   // ADR-019: Expose UUID instead of INT ID
-  @Expose({ name: 'primaryOrganizationId' })
   get primaryOrganizationPublicId(): string | undefined {
     return this.organization?.publicId;
   }

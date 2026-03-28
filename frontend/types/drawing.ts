@@ -1,7 +1,6 @@
 // Entity Interfaces
 export interface DrawingRevision {
-  publicId: string; // ADR-019: exposed as 'id' in API responses
-  revisionId?: number; // Excluded from API responses (ADR-019)
+  publicId: string; // ADR-019: public identifier
   revisionNumber: string;
   title?: string; // Added
   legacyDrawingNumber?: string; // Added
@@ -15,8 +14,7 @@ export interface DrawingRevision {
 }
 
 export interface ContractDrawing {
-  publicId: string; // ADR-019: exposed as 'id' in API responses
-  id?: number; // Excluded from API responses (ADR-019)
+  publicId: string; // ADR-019: public identifier
   contractDrawingNo: string;
   title: string;
   projectId: number;
@@ -28,8 +26,7 @@ export interface ContractDrawing {
 }
 
 export interface ShopDrawing {
-  publicId: string; // ADR-019: exposed as 'id' in API responses
-  id?: number; // Excluded from API responses (ADR-019)
+  publicId: string; // ADR-019: public identifier
   drawingNumber: string;
   projectId: number;
   mainCategoryId: number;
@@ -41,8 +38,7 @@ export interface ShopDrawing {
 }
 
 export interface AsBuiltDrawing {
-  publicId: string; // ADR-019: exposed as 'id' in API responses
-  id?: number; // Excluded from API responses (ADR-019)
+  publicId: string; // ADR-019: public identifier
   drawingNumber: string;
   projectId: number;
   mainCategoryId: number;
@@ -54,8 +50,7 @@ export interface AsBuiltDrawing {
 
 // Unified Type for List
 export interface Drawing {
-  publicId?: string; // ADR-019: exposed as 'id' in API responses
-  drawingId?: number; // Excluded from API responses (ADR-019)
+  publicId?: string; // ADR-019: public identifier
   drawingNumber: string;
   title: string; // Display title (from current revision for Shop/AsBuilt)
   discipline?: string | { disciplineCode: string; disciplineName: string };

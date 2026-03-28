@@ -17,7 +17,6 @@ export interface Discipline {
   codeNameTh?: string;
   isActive: boolean;
   contract?: {
-    id?: number;
     publicId?: string;
     contractCode: string;
     contractName: string;
@@ -33,7 +32,6 @@ export interface RfaType {
   remark?: string;
   isActive: boolean;
   contract?: {
-    id?: number;
     publicId?: string;
     contractCode: string;
     contractName: string;

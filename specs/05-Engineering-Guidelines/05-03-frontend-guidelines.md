@@ -610,63 +610,80 @@ test.describe('Correspondence Workflow', () => {
 
 **Backend ใช้ Hybrid ID Strategy:** INT PK (internal) + UUID (public API)
 - **Database:** `id` = INT AI (Primary Key), `uuid` = UUID (MariaDB native type)
-- **Backend Entity:** `id` = INT (@Exclude), `publicId` = UUID (exposed as `id` in API via @Expose)
-- **API Response:** ส่ง `id` (ซึ่งจริงๆ คือ `publicId` UUID string) ไม่มี INT id
+- **Backend Entity:** `id` = INT (@Exclude), `publicId` = UUID (exposed directly in API)
+- **API Response:** ส่ง `publicId` (UUID string) โดยตรง — ไม่มีการ Transform เป็น `id`
+
+### ✅ Updated Pattern (March 2026)
+
+ใช้ `publicId` เป็น Standard อย่างเดียว — ไม่มี fallback เป็น `uuid` หรือ `id`:
+
+```typescript
+// ✅ CORRECT — Use publicId only
+type ProjectOption = {
+  publicId?: string;
+  projectName?: string;
+  projectCode?: string;
+};
+
+// ใช้ใน dropdown
+projects.map((p) => ({
+  label: p.projectName,
+  value: p.publicId,  // ไม่ต้อง fallback
+}));
+```
 
 ### ⚠️ Common Pitfalls (และวิธีแก้)
 
 #### 1. ใช้ `.id` กับ Entity ที่ควรใช้ `.publicId`
 ```tsx
-// ❌ WRONG - entity.id อาจเป็น undefined หรือ INT ที่ถูก @Exclude
+// ❌ WRONG - entity.id ถูก @Exclude จาก API response
 contracts.map((c) => <SelectItem key={c.id} value={String(c.id)}>)
 
-// ✅ CORRECT - ใช้ publicId (UUID) ที่ API ส่งมา
+// ✅ CORRECT - ใช้ publicId ที่ API ส่งมาโดยตรง
 contracts.map((c) => <SelectItem key={c.publicId} value={c.publicId}>)
-// หรือ fallback สำหรับ backward compatibility
-contracts.map((c) => <SelectItem key={c.publicId ?? c.id} value={String(c.publicId ?? c.id)}>)
 ```
 
-#### 2. parseInt() บน UUID string
+#### 2. Fallback หลายชั้น (uuid ?? id ?? '')
+```tsx
+// ❌ WRONG - สับสน ไม่ maintainable
+value: String(c.publicId ?? c.uuid ?? c.id ?? '')
+
+// ✅ CORRECT - publicId อย่างเดียว
+value: c.publicId
+```
+
+#### 3. parseInt() บน UUID string
 ```tsx
 // ❌ WRONG - parseInt บน UUID จะได้ค่า garbage
 const id = parseInt(projectId); // "0195..." → 19 (wrong!)
 
 // ✅ CORRECT - ส่ง UUID string ตรงๆ ไป backend
 const id = projectId; // "019505a1-7c3e-7000-8000-abc123def456"
-
-// ✅ CORRECT - ถ้าต้องการ INT ให้ backend resolve เองผ่าน UuidResolver
-// Backend DTO รับ `projectUuid: string` แล้ว resolve เป็น `projectId: number` เอง
 ```
 
-#### 3. Field Name Mismatch (snake_case vs camelCase)
+#### 4. Select Option ไม่มีข้อมูล (Type Mismatch)
 ```tsx
-// ❌ WRONG - ใช้ชื่อ field ไม่ตรงกับ TypeScript interface
-fields={[{ name: 'type_code', label: 'Code' }]}
-// interface มี typeCode (camelCase) แต่ form ส่ง type_code (snake_case)
+// ❌ WRONG - สมมติว่า API ส่ง { uuid: string } แต่จริงๆ ส่ง { publicId: string }
+type OrganizationOption = {
+  uuid?: string;  // ผิด!
+  organizationName?: string;
+};
+const value = org.uuid ?? org.id;  // undefined → dropdown ว่าง
 
-// ✅ CORRECT - ใช้ชื่อ field ตรงกับ interface
-fields={[{ name: 'typeCode', label: 'Code' }]}
+// ✅ CORRECT - Type ต้องตรงกับ API Response
+ type OrganizationOption = {
+  publicId?: string;  // ตรงกับ API
+  organizationName?: string;
+};
+const value = org.publicId;  // ได้ค่าถูกต้อง
 ```
 
-#### 4. Contract/Project Select ไม่มีข้อมูล
-```tsx
-// ❌ WRONG - สมมติว่า API ส่ง { id: number }
-const options = contracts.map((c) => ({ value: String(c.id), label: c.contractName }))
-
-// ✅ CORRECT - API ส่ง { publicId: string } ตาม ADR-019
-const options = contracts.map((c) => ({
-  value: String(c.publicId ?? c.id ?? ''), // fallback รองรับทั้ง 2 กรณี
-  label: c.contractName
-}))
-```
-
-### 📝 Pattern: Contract/Project Select Options
+### 📝 Pattern: Select Options with publicId
 
 ```typescript
 // types/master-data.ts - Entity interfaces
 export interface Contract {
-  id?: number;           // Internal INT (อาจถูก @Exclude)
-  publicId?: string;     // UUID ที่ API ส่ง (ต้องใช้ตัวนี้)
+  publicId?: string;     // UUID ที่ API ส่ง — ใช้ตัวนี้
   contractCode: string;
   contractName: string;
 }
@@ -674,17 +691,17 @@ export interface Contract {
 // page.tsx - Select options
 const contractOptions = contracts.map((c) => ({
   label: `${c.contractName} (${c.contractCode})`,
-  value: String(c.publicId ?? c.id ?? ''), // ADR-019: publicId เป็น UUID
+  value: c.publicId,  // publicId only — no fallback
 }));
 
 // GenericCrudTable fields
 fields={[
   {
-    name: 'contractId',
+    name: 'contractPublicId',  // DTO field name
     label: 'Contract',
     type: 'select',
     required: true,
-    options: contractOptions, // ใช้ UUID string เป็น value
+    options: contractOptions,
   },
 ]}
 ```
@@ -716,11 +733,11 @@ const columns: ColumnDef<Discipline>[] = [
 
 ### ✅ Checklist ก่อน Commit
 
-- [ ] ใช้ `publicId ?? id` pattern สำหรับ entity identifiers
+- [ ] ใช้ `publicId` อย่างเดียว (ไม่มี `uuid` หรือ `id` fallback)
 - [ ] ไม่ใช้ `parseInt()` บน UUID values
-- [ ] Field names ตรงกับ TypeScript interfaces (camelCase)
-- [ ] Select options ใช้ UUID string เป็น value
-- [ ] แสดง relation columns (Contract/Project) ในตาราง
+- [ ] Type Definition ตรงกับ API Response field names
+- [ ] Select options ใช้ `publicId` เป็น value
+- [ ] DTO field names ใช้ `publicId` suffix (e.g., `projectPublicId`)
 
 ---
 

@@ -88,8 +88,29 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | ---------------- | ------------------------- | ------------------------------------------- |
 | Internal / DB FK | `INT AUTO_INCREMENT`      | Never exposed in API                        |
 | Public API / URL | `UUIDv7` (MariaDB native) | Stored as BINARY(16), no transformer needed |
-| Entity Property  | `publicId: string`        | Exposed via `@Expose({ name: 'id' })`       |
-| API Response     | `id: string` (UUID)       | INT `id` has `@Exclude()` — never appears   |
+| Entity Property  | `publicId: string`        | Exposed directly in API (no transformation) |
+| API Response     | `publicId: string` (UUID) | INT `id` has `@Exclude()` — never appears   |
+
+### ✅ Updated Pattern (March 2026)
+
+**Backend:** `UuidBaseEntity` exposes `publicId` directly — no `@Expose({ name: 'id' })` transformation
+
+**Frontend:** Use `publicId` only — no `uuid` or `id` fallbacks:
+
+```typescript
+// ✅ CORRECT — Use publicId only
+type ProjectOption = {
+  publicId?: string; // No uuid, no id fallback
+  projectName?: string;
+};
+
+// ❌ WRONG — Multiple identifiers cause confusion
+type ProjectOption = {
+  publicId?: string;
+  uuid?: string; // Don't do this
+  id?: number; // Don't do this
+};
+```
 
 ### ❌ Forbidden UUID Patterns
 
@@ -97,8 +118,11 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 // ❌ NEVER use parseInt on UUID
 parseInt(projectId); // "0195..." → 19 (WRONG!)
 
-// ✅ CORRECT — Use UUID string directly
-const id = projectId; // "019505a1-7c3e-7000-8000-abc123def456"
+// ❌ NEVER use id ?? '' fallback
+const value = c.publicId ?? c.id ?? ''; // Wrong!
+
+// ✅ CORRECT — Use publicId only
+const value = c.publicId; // "019505a1-7c3e-7000-8000-abc123def456"
 ```
 
 Read `specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` before any UUID-related work.

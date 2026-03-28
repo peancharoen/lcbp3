@@ -28,8 +28,7 @@ export interface RFAItem {
 }
 
 export interface RFA {
-  publicId: string; // ADR-019: from correspondence.publicId
-  id?: number; // Excluded from API responses (ADR-019)
+  publicId: string; // ADR-019: public identifier (from correspondence.publicId)
   rfaTypeId: number;
   createdBy: number;
   disciplineId?: number;
@@ -56,8 +55,7 @@ export interface RFA {
   };
   // Shared Correspondence Relation
   correspondence?: {
-    publicId: string;
-    id?: number; // Excluded from API responses (ADR-019)
+    publicId: string; // ADR-019: public identifier
     correspondenceNumber: string;
     projectId: number;
     originatorId?: number;

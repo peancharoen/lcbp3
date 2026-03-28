@@ -89,7 +89,7 @@ Reference these guidelines when:
 - `db-hybrid-identifier` - **CRITICAL** ADR-019: INT PK + UUID public API
 - `db-avoid-n-plus-one` - HIGH N+1 query prevention
 - `db-use-transactions` - HIGH Transaction management
-- `db-use-migrations` - N/A **ADR-009**: No TypeORM migrations - use SQL files
+- `db-no-typeorm-migrations` - **CRITICAL** ADR-009: No TypeORM migrations - use SQL files
 
 ### 8. API Design (MEDIUM)
 
@@ -110,7 +110,86 @@ Reference these guidelines when:
 - `devops-use-logging` - Structured logging
 - `devops-graceful-shutdown` - Zero-downtime deployments
 
-## How to Use
+## NAP-DMS Project-Specific Rules (MUST FOLLOW)
+
+These rules override general NestJS best practices for the NAP-DMS project:
+
+### ADR-009: No TypeORM Migrations
+
+- **ห้ามสร้างไฟล์ migration ของ TypeORM**
+- แก้ไข schema โดยตรงที่: `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
+- ใช้ n8n workflow สำหรับ data migration ถ้าจำเป็น
+
+### ADR-019: Hybrid Identifier Strategy (CRITICAL)
+
+```typescript
+@Entity()
+export class Project {
+  @PrimaryGeneratedColumn()
+  @Exclude() // ห้ามส่งออกทาง API
+  id: number; // INT AUTO_INCREMENT - internal only
+
+  @Column({ type: 'uuid' })
+  @Expose({ name: 'id' }) // ส่งออกเป็น 'id' ทาง API
+  publicId: string; // UUIDv7 - public API identifier
+}
+```
+
+### Two-Phase File Upload
+
+```typescript
+// Phase 1: Upload to temp
+@Post('upload')
+async uploadFile(@UploadedFile() file: Express.Multer.File) {
+  await this.virusScan(file);
+  const tempId = await this.fileStorage.saveToTemp(file);
+  return { temp_id: tempId, expires_at: addHours(new Date(), 24) };
+}
+
+// Phase 2: Commit in transaction
+async createEntity(dto: CreateDto, tempIds: string[]) {
+  return this.dataSource.transaction(async (manager) => {
+    const entity = await manager.save(Entity, dto);
+    await this.fileStorage.commitFiles(tempIds, entity.id, manager);
+    return entity;
+  });
+}
+```
+
+### Idempotency Requirement
+
+- ทุก POST/PUT/PATCH ที่สำคัญต้องมี `Idempotency-Key` header
+- ใช้ `IdempotencyInterceptor` ที่มีอยู่แล้ว
+
+### Document Numbering (Double-Lock)
+
+```typescript
+async generateNextNumber(context: NumberingContext): Promise<string> {
+  const lockKey = `doc_num:${context.projectId}:${context.typeId}`;
+  const lock = await this.redisLock.acquire(lockKey, 3000);
+
+  try {
+    const counter = await this.counterRepo.findOne({
+      where: context,
+      lock: { mode: 'optimistic' },
+    });
+    counter.last_number++;
+    return this.formatNumber(await this.counterRepo.save(counter));
+  } finally {
+    await lock.release();
+  }
+}
+```
+
+### Anti-Patterns (ห้ามทำ)
+
+- ❌ ใช้ SQL Triggers สำหรับ business logic
+- ❌ ใช้ `.env` ใน production (ใช้ Docker ENV)
+- ❌ ใช้ `any` type (strict mode enforced)
+- ❌ ใช้ `console.log` (ใช้ NestJS Logger)
+- ❌ สร้างตาราง routing แยก (ใช้ Workflow Engine)
+
+---
 
 Read individual rule files for detailed explanations and code examples:
 

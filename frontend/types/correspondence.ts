@@ -1,13 +1,11 @@
 export interface Organization {
-  publicId: string; // ADR-019: exposed as 'id' in API responses
-  id?: number; // Excluded from API responses (ADR-019)
+  publicId: string; // ADR-019: public identifier
   organizationName: string;
   organizationCode: string;
 }
 
 export interface Attachment {
-  publicId: string; // ADR-019: exposed as 'id' in API responses
-  id?: number; // Excluded from API responses (ADR-019)
+  publicId: string; // ADR-019: public identifier
   name: string;
   url: string;
   size?: number;
@@ -17,8 +15,7 @@ export interface Attachment {
 
 // Used in List View mainly
 export interface CorrespondenceRevision {
-  publicId: string; // ADR-019: exposed as 'id' in API responses
-  id?: number; // Excluded from API responses (ADR-019)
+  publicId: string; // ADR-019: public identifier
   revisionNumber: number;
   revisionLabel?: string; // e.g. "A", "00"
   subject: string;
@@ -42,22 +39,20 @@ export interface CorrespondenceRevision {
 
   // Nested Relation from Backend Refactor
   correspondence: {
-    publicId: string;
-    id?: number; // Excluded from API responses (ADR-019)
+    publicId: string; // ADR-019: public identifier
     correspondenceNumber: string;
     projectId: number;
     originatorId?: number;
     isInternal: boolean;
     originator?: Organization;
-    project?: { publicId: string; id?: number; projectName: string; projectCode: string };
+    project?: { publicId: string; projectName: string; projectCode: string };
     type?: { id: number; typeName: string; typeCode: string };
   };
 }
 
 // Keep explicit Correspondence for Detail View if needed, or merge concepts
 export interface Correspondence {
-  publicId: string; // ADR-019: exposed as 'id' in API responses
-  id?: number; // Excluded from API responses (ADR-019)
+  publicId: string; // ADR-019: public identifier
   correspondenceNumber: string;
   projectId: number;
   originatorId?: number;
@@ -67,7 +62,7 @@ export interface Correspondence {
 
   // Relations
   originator?: Organization;
-  project?: { publicId: string; id?: number; projectName: string; projectCode: string };
+  project?: { publicId: string; projectName: string; projectCode: string };
   type?: { id: number; typeName: string; typeCode: string };
   revisions?: CorrespondenceRevision[]; // Nested revisions
   recipients?: {

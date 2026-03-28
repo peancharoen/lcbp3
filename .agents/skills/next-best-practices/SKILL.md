@@ -165,7 +165,162 @@ See [self-hosting.md](./self-hosting.md) for:
 - Cache handlers for multi-instance ISR
 - What works vs needs extra setup
 
-## Debug Tricks
+## NAP-DMS Project-Specific Rules (MUST FOLLOW)
+
+These rules are mandatory for the NAP-DMS LCBP3 frontend project:
+
+### State Management (บังคับใช้)
+
+**Server State - TanStack Query (React Query)**
+
+```tsx
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+// ❌ ห้ามใช้ useEffect โดยตรง
+// ✅ ใช้ TanStack Query
+export function useCorrespondences(projectId: string) {
+  return useQuery({
+    queryKey: ['correspondences', projectId],
+    queryFn: () => correspondenceService.getAll(projectId),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+```
+
+**Form State - React Hook Form + Zod**
+
+```tsx
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const schema = z.object({
+  title: z.string().min(1, 'กรุณาระบุหัวเรื่อง'),
+  projectUuid: z.string().uuid('กรุณาเลือกโปรเจกต์'),
+});
+
+const form = useForm({
+  resolver: zodResolver(schema),
+});
+```
+
+### ADR-019 UUID Handling (CRITICAL)
+
+```tsx
+// Interface ต้องมีทั้ง id และ publicId
+interface Contract {
+  id?: number; // Internal (อาจ undefined)
+  publicId?: string; // UUID - ใช้ตัวนี้
+  contractCode: string;
+}
+
+// Select options - ใช้ pattern นี้เสมอ
+const options = contracts.map((c) => ({
+  label: `${c.contractName} (${c.contractCode})`,
+  value: String(c.publicId ?? c.id ?? ''), // fallback pattern
+  key: String(c.publicId ?? c.id ?? ''),
+}));
+
+// ❌ ห้ามใช้ parseInt บน UUID
+// const id = parseInt(projectId); // WRONG!
+
+// ✅ ส่ง UUID string ตรงๆ
+apiClient.get(`/projects/${projectId}`); // projectId is UUID string
+```
+
+### Naming Conventions
+
+**Code Identifiers - ภาษาอังกฤษ**
+
+```tsx
+// ✅ Correct
+interface Correspondence {
+  documentNumber: string;
+  createdAt: string;
+}
+
+// ❌ Wrong
+interface เอกสาร {
+  เลขที่: string;
+}
+```
+
+**Comments - ภาษาไทย**
+
+```tsx
+// ✅ Correct - อธิบาย logic เป็นภาษาไทย
+// ตรวจสอบว่ามีการระบุ projectUuid หรือไม่
+if (!data.projectUuid) {
+  throw new Error('กรุณาเลือกโปรเจกต์');
+}
+
+// ❌ Wrong - ห้ามใช้ภาษาอังกฤษใน comments
+// Check if projectUuid is provided
+```
+
+### UI Components
+
+**บังคับใช้ shadcn/ui**
+
+```tsx
+// ✅ Correct
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+// ❌ Wrong - ไม่สร้าง component เองถ้ามีใน shadcn
+const MyButton = () => <button className="...">Click</button>;
+```
+
+### File Upload Pattern
+
+```tsx
+import { useDropzone } from 'react-dropzone';
+
+// Two-phase upload
+const onDrop = useCallback(async (files: File[]) => {
+  // Phase 1: Upload to temp
+  const tempFiles = await Promise.all(files.map((file) => uploadService.uploadTemp(file)));
+  setTempIds(tempFiles.map((f) => f.tempId));
+}, []);
+
+// Phase 2: Commit on form submit
+const onSubmit = async (data: FormData) => {
+  await correspondenceService.create({
+    ...data,
+    tempFileIds,
+  });
+};
+```
+
+### API Client Setup
+
+```typescript
+// lib/api/client.ts
+const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  timeout: 30000,
+});
+
+// Auto-add Idempotency-Key
+apiClient.interceptors.request.use((config) => {
+  if (['post', 'put', 'patch'].includes(config.method?.toLowerCase() || '')) {
+    config.headers['Idempotency-Key'] = uuidv4();
+  }
+  return config;
+});
+```
+
+### Anti-Patterns (ห้ามทำ)
+
+- ❌ Fetch data ใน useEffect โดยตรง
+- ❌ Props drilling ลึกเกิน 3 levels
+- ❌ Inline styles (ใช้ Tailwind)
+- ❌ console.log ใน production
+- ❌ parseInt() บน UUID values
+- ❌ ใช้ index เป็น key ใน list
+- ❌ Snake_case ใน form field names (ใช้ camelCase)
+
+---
 
 See [debug-tricks.md](./debug-tricks.md) for:
 

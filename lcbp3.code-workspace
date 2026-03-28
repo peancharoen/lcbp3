@@ -22,7 +22,7 @@
     // EDITOR SETTINGS
     // ========================================
 
-    "editor.fontSize": 20,
+    "editor.fontSize": 16,
     "editor.tabSize": 2,
     "editor.lineHeight": 1.6,
     "editor.rulers": [80, 120],
