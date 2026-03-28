@@ -113,7 +113,7 @@ export default function UsersPage() {
         return (
           <div className="flex flex-wrap gap-1">
             {roles.map((r) => (
-              <Badge key={r.roleId} variant="outline" className="text-xs">
+              <Badge key={r.publicId} variant="outline" className="text-xs">
                 {r.roleName}
               </Badge>
             ))}

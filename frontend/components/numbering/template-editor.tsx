@@ -120,7 +120,7 @@ export function TemplateEditor({
                 <SelectItem value="__default__">Default (All Types)</SelectItem>
                 {correspondenceTypes.map((type) => {
                   return (
-                    <SelectItem key={type.id} value={type.id.toString()}>
+                    <SelectItem key={type.publicId} value={type.publicId.toString()}>
                       {type.typeCode} - {type.typeName}
                     </SelectItem>
                   );
@@ -142,7 +142,7 @@ export function TemplateEditor({
                 <SelectContent>
                   <SelectItem value="0">All Disciplines</SelectItem>
                   {disciplines.map((d) => (
-                    <SelectItem key={d.id} value={d.id.toString()}>
+                    <SelectItem key={d.publicId} value={d.publicId.toString()}>
                       {d.disciplineCode} - {d.codeNameEn || d.codeNameTh}
                     </SelectItem>
                   ))}

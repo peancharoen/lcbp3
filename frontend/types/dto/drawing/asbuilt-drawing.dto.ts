@@ -2,10 +2,10 @@
 
 // --- Create New As Built Drawing ---
 export interface CreateAsBuiltDrawingDto {
-  projectId: number;
+  projectId: number | string; // ADR-019: Accept UUID
   drawingNumber: string;
-  mainCategoryId: number;
-  subCategoryId: number;
+  mainCategoryId: number | string; // ADR-019: Accept UUID
+  subCategoryId: number | string; // ADR-019: Accept UUID
 
   // First Revision Data
   revisionLabel?: string;
@@ -14,8 +14,8 @@ export interface CreateAsBuiltDrawingDto {
   revisionDate?: string; // ISO Date String
   description?: string;
 
-  shopDrawingRevisionIds?: number[]; // Reference to Shop Drawing Revisions
-  attachmentIds?: number[];
+  shopDrawingRevisionIds?: (number | string)[]; // ADR-019: Accept UUID - Reference to Shop Drawing Revisions
+  attachmentIds?: (number | string)[]; // ADR-019: Accept UUID
 }
 
 // --- Create New Revision ---
@@ -26,8 +26,8 @@ export interface CreateAsBuiltDrawingRevisionDto {
   revisionDate?: string;
   description?: string;
 
-  shopDrawingRevisionIds?: number[];
-  attachmentIds?: number[];
+  shopDrawingRevisionIds?: (number | string)[]; // ADR-019: Accept UUID
+  attachmentIds?: (number | string)[]; // ADR-019: Accept UUID
 }
 
 // --- Search ---

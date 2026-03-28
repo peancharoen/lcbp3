@@ -20,7 +20,7 @@ export interface CreateTransmittalDto {
 
 export interface CreateTransmittalItemDto {
   itemType: string;
-  itemId: number;
+  itemId: number | string; // ADR-019: Accept UUID
   description?: string;
 }
 

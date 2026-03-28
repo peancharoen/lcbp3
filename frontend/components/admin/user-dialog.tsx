@@ -108,7 +108,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
         isActive: user.isActive,
         lineId: user.lineId || '',
         primaryOrganizationId: user.primaryOrganizationId?.toString() || ALL_ORGANIZATIONS_VALUE,
-        roleIds: user.roles?.map((r: { roleId: number }) => r.roleId) || [],
+        roleIds: user.roles?.map((r: { publicId: string }) => r.publicId) || [],
         password: '',
         confirmPassword: '',
       });
@@ -297,26 +297,26 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                 <p className="text-sm text-muted-foreground">Loading roles...</p>
               )}
               {Array.isArray(roles) &&
-                roles.map((role: { roleId: number; roleName: string; description?: string }) => (
-                  <div key={role.roleId} className="flex items-start space-x-2">
+                roles.map((role: { publicId: string; roleName: string; description?: string }) => (
+                  <div key={role.publicId} className="flex items-start space-x-2">
                     <Checkbox
-                      id={`role-${role.roleId}`}
-                      checked={selectedRoleIds.includes(role.roleId)}
+                      id={`role-${role.publicId}`}
+                      checked={selectedRoleIds.includes(role.publicId)}
                       onCheckedChange={(checked) => {
                         const current = selectedRoleIds;
                         if (checked) {
-                          setValue('roleIds', [...current, role.roleId]);
+                          setValue('roleIds', [...current, role.publicId]);
                         } else {
                           setValue(
                             'roleIds',
-                            current.filter((id) => id !== role.roleId)
+                            current.filter((id) => id !== role.publicId)
                           );
                         }
                       }}
                     />
                     <div className="grid gap-1.5 leading-none">
                       <label
-                        htmlFor={`role-${role.roleId}`}
+                        htmlFor={`role-${role.publicId}`}
                         className="text-sm font-medium leading-none cursor-pointer"
                       >
                         {role.roleName}

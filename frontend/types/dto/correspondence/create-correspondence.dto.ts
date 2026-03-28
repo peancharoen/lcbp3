@@ -4,14 +4,14 @@ export interface CreateCorrespondenceDto {
   /** ID or UUID ของโครงการ */
   projectId: number | string;
 
-  /** ID ของประเภทเอกสาร (เช่น RFA, LETTER) */
-  typeId: number;
+  /** ID ของประเภทเอกสาร (เช่น RFA, LETTER) - ADR-019: Accept UUID */
+  typeId: number | string;
 
-  /** [Req 6B] สาขางาน (เช่น GEN, STR) */
-  disciplineId?: number;
+  /** [Req 6B] สาขางาน (เช่น GEN, STR) - ADR-019: Accept UUID */
+  disciplineId?: number | string;
 
-  /** [Req 6B] ประเภทย่อย (เช่น MAT, SHP สำหรับ Transmittal/RFA) */
-  subTypeId?: number;
+  /** [Req 6B] ประเภทย่อย (เช่น MAT, SHP สำหรับ Transmittal/RFA) - ADR-019: Accept UUID */
+  subTypeId?: number | string;
 
   /** หัวข้อเอกสาร */
   subject: string;

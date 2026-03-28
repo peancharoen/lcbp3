@@ -1,7 +1,8 @@
 export type WorkflowType = 'CORRESPONDENCE' | 'RFA' | 'DRAWING';
 
 export interface WorkflowStep {
-  stepId?: string;
+  publicId: string; // ADR-019: public identifier
+  stepId?: string; // Internal ID (excluded from API)
   stepName: string;
   stepType: 'APPROVAL' | 'REVIEW' | 'ENDORSEMENT';
   approverRoleId?: number;
@@ -11,7 +12,8 @@ export interface WorkflowStep {
 }
 
 export interface Workflow {
-  workflowId: string | number;
+  publicId: string; // ADR-019: public identifier
+  workflowId?: string | number; // Internal ID (excluded from API)
   workflowName: string;
   description: string;
   workflowType: WorkflowType;

@@ -26,7 +26,7 @@ const rfaSchema = z.object({
   projectId: z.string().min(1, 'Project is required'), // ADR-019: UUID
   contractId: z.string().min(1, 'Contract is required'),
   disciplineId: z.number({ message: 'Discipline is required' }).min(1, 'Discipline is required'),
-  rfaTypeId: z.number().min(1, 'Type is required'),
+  rfaTypeId: z.string().min(1, 'Type is required'), // ADR-019: UUID
   subject: z.string().min(5, 'Subject must be at least 5 characters'),
   description: z.string().optional(),
   body: z.string().optional(),
@@ -53,14 +53,16 @@ type ContractOption = {
 };
 
 type DisciplineOption = {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT
   disciplineCode: string;
   codeNameEn?: string;
   codeNameTh?: string;
 };
 
 type RfaTypeOption = {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT
   typeCode?: string;
   typeName?: string;
   typeNameEn?: string;
@@ -68,7 +70,7 @@ type RfaTypeOption = {
 };
 
 type CorrespondenceTypeOption = {
-  id: number;
+  publicId: string; // ADR-019: public identifier
   typeCode?: string;
   typeName?: string;
 };
@@ -164,7 +166,7 @@ export function RFAForm() {
       projectId: '',
       contractId: '',
       disciplineId: 0,
-      rfaTypeId: 0,
+      rfaTypeId: '',
       subject: '',
       description: '',
       body: '',
@@ -185,13 +187,13 @@ export function RFAForm() {
 
   const selectedContractId = watch('contractId');
   const { data: disciplinesData, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
-  const disciplines = dedupeByKey(extractArrayData<DisciplineOption>(disciplinesData), (discipline) => discipline.id);
+  const disciplines = dedupeByKey(extractArrayData<DisciplineOption>(disciplinesData), (discipline) => discipline.publicId);
   const { data: rfaTypesData, isLoading: isLoadingRfaTypes } = useRfaTypes(selectedContractId);
-  const rfaTypes = dedupeByKey(extractArrayData<RfaTypeOption>(rfaTypesData), (rfaType) => rfaType.id);
+  const rfaTypes = dedupeByKey(extractArrayData<RfaTypeOption>(rfaTypesData), (rfaType) => rfaType.publicId);
   const [shopDrawingSearch, setShopDrawingSearch] = useState('');
   const [shopDrawingPage, setShopDrawingPage] = useState(1);
   const { data: shopDrawingsData, isLoading: isLoadingShopDrawings } = useDrawings('SHOP', {
-    projectPublicId: selectedProjectId || '',
+    projectUuid: selectedProjectId || '',
     search: shopDrawingSearch,
     page: shopDrawingPage,
     limit: 10,
@@ -204,7 +206,7 @@ export function RFAForm() {
   const [asBuiltDrawingSearch, setAsBuiltDrawingSearch] = useState('');
   const [asBuiltDrawingPage, setAsBuiltDrawingPage] = useState(1);
   const { data: asBuiltDrawingsData, isLoading: isLoadingAsBuiltDrawings } = useDrawings('AS_BUILT', {
-    projectPublicId: selectedProjectId || '',
+    projectUuid: selectedProjectId || '',
     search: asBuiltDrawingSearch,
     page: asBuiltDrawingPage,
     limit: 10,
@@ -220,7 +222,7 @@ export function RFAForm() {
   const toOrganizationId = watch('toOrganizationId');
   const selectedShopDrawingRevisionIds = watch('shopDrawingRevisionIds') ?? [];
   const selectedAsBuiltDrawingRevisionIds = watch('asBuiltDrawingRevisionIds') ?? [];
-  const selectedRfaType = rfaTypes.find((rfaType) => rfaType.id === rfaTypeId);
+  const selectedRfaType = rfaTypes.find((rfaType) => rfaType.publicId === rfaTypeId);
   const selectedRfaTypeCode = selectedRfaType?.typeCode?.toUpperCase();
   const requiresShopDrawings = selectedRfaTypeCode === 'DDW' || selectedRfaTypeCode === 'SDW';
   const requiresAsBuiltDrawings = selectedRfaTypeCode === 'ADW';
@@ -254,7 +256,7 @@ export function RFAForm() {
   const [preview, setPreview] = useState<{ number: string; isDefaultTemplate: boolean } | null>(null);
 
   useEffect(() => {
-    if (!selectedProjectId || !rfaCorrespondenceType?.id || !rfaTypeId || !disciplineId || !toOrganizationId) {
+    if (!selectedProjectId || !rfaCorrespondenceType?.publicId || !rfaTypeId || !disciplineId || !toOrganizationId) {
       setPreview(null);
       return;
     }
@@ -263,7 +265,7 @@ export function RFAForm() {
       try {
         const res = await correspondenceService.previewNumber({
           projectId: selectedProjectId,
-          typeId: rfaCorrespondenceType.id,
+          typeId: rfaCorrespondenceType.publicId,
           disciplineId,
           recipients: [{ organizationId: toOrganizationId, type: 'TO' }],
           subject: watch('subject') || 'Preview Subject',
@@ -276,7 +278,7 @@ export function RFAForm() {
 
     const timer = setTimeout(fetchPreview, 500);
     return () => clearTimeout(timer);
-  }, [rfaTypeId, disciplineId, toOrganizationId, selectedProjectId, rfaCorrespondenceType?.id, watch]);
+  }, [rfaTypeId, disciplineId, toOrganizationId, selectedProjectId, rfaCorrespondenceType?.publicId, watch]);
 
   const onSubmit = (data: RFAFormData) => {
     if (requiresShopDrawings && data.shopDrawingRevisionIds?.length === 0) {
@@ -365,7 +367,7 @@ export function RFAForm() {
                 setValue('projectId', val);
                 setValue('contractId', '');
                 setValue('disciplineId', 0);
-                setValue('rfaTypeId', 0);
+                setValue('rfaTypeId', '');
                 setValue('shopDrawingRevisionIds', []);
                 setValue('asBuiltDrawingRevisionIds', []);
               }}
@@ -441,7 +443,7 @@ export function RFAForm() {
                 </SelectTrigger>
                 <SelectContent>
                   {disciplines.map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)}>
+                    <SelectItem key={d.publicId} value={String(d.publicId)}>
                       {`${d.codeNameEn || d.codeNameTh || d.disciplineCode} (${d.disciplineCode})`}
                     </SelectItem>
                   ))}
@@ -460,9 +462,9 @@ export function RFAForm() {
             <div>
               <Label>RFA Type *</Label>
               <Select
-                value={rfaTypeId > 0 ? String(rfaTypeId) : undefined}
+                value={rfaTypeId || undefined}
                 onValueChange={(val) => {
-                  setValue('rfaTypeId', Number(val));
+                  setValue('rfaTypeId', val);
                   setValue('shopDrawingRevisionIds', []);
                   setValue('asBuiltDrawingRevisionIds', []);
                 }}
@@ -473,7 +475,7 @@ export function RFAForm() {
                 </SelectTrigger>
                 <SelectContent>
                   {rfaTypes.map((rfaType) => (
-                    <SelectItem key={rfaType.id} value={String(rfaType.id)}>
+                    <SelectItem key={rfaType.publicId} value={String(rfaType.publicId)}>
                       {`${rfaType.typeCode || 'RFA'} - ${rfaType.typeName || rfaType.typeNameEn || rfaType.typeNameTh || 'Unnamed Type'}`}
                     </SelectItem>
                   ))}

@@ -137,7 +137,7 @@ export function RbacMatrix() {
             <TableRow>
               <TableHead className="w-[300px]">Permission</TableHead>
               {roleList.map((role) => (
-                <TableHead key={role.roleId} className="text-center min-w-[100px]">
+                <TableHead key={role.publicId} className="text-center min-w-[100px]">
                   {role.roleName}
                 </TableHead>
               ))}
@@ -153,14 +153,14 @@ export function RbacMatrix() {
                 {roleList.map((role) => {
                   // Assume role.permissions is populated
                   const currentRolePerms = role.permissions?.map((p) => p.permissionId) || [];
-                  const activePerms = pendingChanges[role.roleId] || currentRolePerms;
+                  const activePerms = pendingChanges[role.publicId] || currentRolePerms;
                   const isChecked = activePerms.includes(perm.permissionId);
 
                   return (
-                    <TableCell key={`${role.roleId}-${perm.permissionId}`} className="text-center">
+                    <TableCell key={`${role.publicId}-${perm.permissionId}`} className="text-center">
                       <Checkbox
                         checked={isChecked}
-                        onCheckedChange={() => handleToggle(role.roleId, perm.permissionId, currentRolePerms)}
+                        onCheckedChange={() => handleToggle(role.publicId, perm.permissionId, currentRolePerms)}
                       />
                     </TableCell>
                   );

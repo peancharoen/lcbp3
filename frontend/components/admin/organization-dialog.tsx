@@ -64,7 +64,7 @@ export function OrganizationDialog({ open, onOpenChange, organization }: Organiz
       reset({
         organizationCode: organization.organizationCode,
         organizationName: organization.organizationName,
-        roleId: organization.roleId?.toString() || '',
+        roleId: organization.publicId?.toString() || '',
         isActive: organization.isActive,
       });
     } else {
@@ -80,7 +80,7 @@ export function OrganizationDialog({ open, onOpenChange, organization }: Organiz
   const onSubmit = (data: OrganizationFormData) => {
     const submitData = {
       ...data,
-      roleId: data.roleId ? Number(data.roleId) : undefined,
+      roleId: data.roleId ? String(data.roleId) : undefined,
     };
 
     if (organization) {

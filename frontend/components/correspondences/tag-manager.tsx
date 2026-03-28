@@ -30,14 +30,14 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
 
   const assigned: Tag[] = Array.isArray(assignedRaw) ? (assignedRaw as Tag[]) : [];
   const allTags: Tag[] = Array.isArray(allTagsRaw) ? (allTagsRaw as Tag[]) : [];
-  const assignedIds = new Set(assigned.map((t) => t.id));
-  const available = allTags.filter((t) => !assignedIds.has(t.id));
+  const assignedIds = new Set(assigned.map((t) => t.publicId));
+  const available = allTags.filter((t) => !assignedIds.has(t.publicId));
 
-  const handleAdd = (tagId: number) => {
+  const handleAdd = (tagId: number | string) => {
     addMutation.mutate({ uuid, tagId });
   };
 
-  const handleRemove = (tagId: number) => {
+  const handleRemove = (tagId: number | string) => {
     removeMutation.mutate({ uuid, tagId });
   };
 
@@ -71,7 +71,7 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
           <div className="flex flex-wrap gap-1.5">
             {assigned.map((tag) => (
               <span
-                key={tag.id}
+                key={tag.publicId}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border"
                 style={{
                   backgroundColor: `${getTagColor(tag.colorCode)}22`,
@@ -86,7 +86,7 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
                 {tag.tagName}
                 {canEdit && (
                   <button
-                    onClick={() => handleRemove(tag.id)}
+                    onClick={() => handleRemove(tag.publicId)}
                     disabled={removeMutation.isPending}
                     className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
                   >
@@ -110,9 +110,9 @@ export function TagManager({ uuid, canEdit }: TagManagerProps) {
                   ) : (
                     available.map((tag) => (
                       <button
-                        key={tag.id}
+                        key={tag.publicId}
                         className="w-full flex items-center gap-2 p-2 text-xs hover:bg-muted/60 transition-colors text-left"
-                        onClick={() => { handleAdd(tag.id); setIsOpen(false); }}
+                        onClick={() => { handleAdd(tag.publicId); setIsOpen(false); }}
                         disabled={addMutation.isPending}
                       >
                         <span

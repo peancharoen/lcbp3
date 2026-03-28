@@ -17,13 +17,13 @@ export type UpdateUserDto = Partial<CreateUserDto>;
 
 // --- Assign Role ---
 export interface AssignRoleDto {
-  userId: number;
-  roleId: number;
+  userId: number | string; // ADR-019: Accept UUID
+  roleId: number | string; // ADR-019: Accept UUID
 
-  // Scope (Optional)
-  organizationId?: number;
-  projectId?: number;
-  contractId?: number;
+  // Scope (Optional) - ADR-019: Accept UUID
+  organizationId?: number | string;
+  projectId?: number | string;
+  contractId?: number | string;
 }
 
 // --- Update Preferences ---

@@ -5,11 +5,11 @@ export interface CreateRfaDto {
   /** ID or UUID ของโครงการ */
   projectId: number | string; // ADR-019: Accept UUID
 
-  /** ประเภท RFA (เช่น DWG, MAT) */
-  rfaTypeId: number;
+  /** ประเภท RFA (เช่น DWG, MAT) - ADR-019: Accept UUID */
+  rfaTypeId: number | string;
 
-  /** [Req 6B] สาขางาน (จำเป็นสำหรับการรันเลข RFA) */
-  disciplineId?: number;
+  /** [Req 6B] สาขางาน (จำเป็นสำหรับการรันเลข RFA) - ADR-019: Accept UUID */
+  disciplineId?: number | string;
 
   /** หัวข้อเรื่อง */
   subject: string;
@@ -50,11 +50,11 @@ export interface SearchRfaDto {
   /** Filter by Project ID or UUID (optional to allow cross-project search) */
   projectId?: number | string; // ADR-019: Accept UUID
 
-  /** กรองตามประเภท RFA */
-  rfaTypeId?: number;
+  /** กรองตามประเภท RFA - ADR-019: Accept UUID */
+  rfaTypeId?: number | string;
 
-  /** กรองตามสถานะ (เช่น Draft, For Approve) */
-  statusId?: number;
+  /** กรองตามสถานะ (เช่น Draft, For Approve) - ADR-019: Accept UUID */
+  statusId?: number | string;
 
   /** กรองตามสถานะ code โดยตรง (เช่น 'DFT', 'FAP', 'FRE') */
   statusCode?: string;

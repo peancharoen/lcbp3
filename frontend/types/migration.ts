@@ -5,7 +5,8 @@ export enum MigrationReviewStatus {
 }
 
 export interface MigrationReviewQueueItem {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   documentNumber: string;
   title?: string;
   originalTitle?: string;
@@ -17,15 +18,15 @@ export interface MigrationReviewQueueItem {
   reviewedBy?: string;
   reviewedAt?: string;
   createdAt: string;
-  projectId?: number;
-  senderOrganizationId?: number;
-  receiverOrganizationId?: number;
+  projectId?: number | string; // ADR-019: Accept UUID
+  senderOrganizationId?: number | string; // ADR-019: Accept UUID
+  receiverOrganizationId?: number | string; // ADR-019: Accept UUID
   receivedDate?: string;
   issuedDate?: string;
   remarks?: string;
   aiSummary?: string;
   extractedTags?: Record<string, unknown>;
-  tempAttachmentId?: number;
+  tempAttachmentId?: number | string; // ADR-019: Accept UUID
 }
 
 export interface CommitBatchItemDto {
@@ -48,7 +49,8 @@ export enum MigrationErrorType {
 }
 
 export interface MigrationErrorItem {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   batchId?: string;
   documentNumber?: string;
   errorType?: MigrationErrorType;

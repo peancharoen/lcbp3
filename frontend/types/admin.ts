@@ -1,11 +1,13 @@
 export interface Role {
-  roleId: number;
+  publicId: string; // ADR-019: public identifier
+  roleId?: number; // Internal INT (excluded from API)
   roleName: string;
   description: string;
 }
 
 export interface User {
-  userId: number;
+  publicId: string; // ADR-019: public identifier
+  userId?: number; // Internal INT (excluded from API)
   username: string;
   email: string;
   firstName: string;
@@ -25,7 +27,8 @@ export interface CreateUserDto {
 }
 
 export interface Organization {
-  orgId: number;
+  publicId: string; // ADR-019: public identifier
+  orgId?: number; // Internal INT (excluded from API)
   orgCode: string;
   orgName: string;
   orgNameTh?: string;
@@ -33,7 +36,8 @@ export interface Organization {
 }
 
 export interface AuditLog {
-  auditLogId: number;
+  publicId: string; // ADR-019: public identifier
+  auditLogId?: number; // Internal INT (excluded from API)
   userName: string;
   action: string;
   entityType: string;

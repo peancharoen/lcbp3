@@ -26,12 +26,12 @@ export default function AuditLogsPage() {
             <div className="text-center text-muted-foreground py-10">No logs found</div>
           ) : (
             logs.map((log: import('@/lib/services/audit-log.service').AuditLog) => (
-              <Card key={log.auditId} className="p-4">
+              <Card key={log.publicId} className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="font-medium text-sm">
-                        {log.user?.fullName || log.user?.username || `User #${log.userId || 'System'}`}
+                        {log.user?.fullName || log.user?.username || `User #${log.user?.userId || 'System'}`}
                       </span>
                       <Badge
                         variant={log.severity === 'ERROR' ? 'destructive' : 'outline'}

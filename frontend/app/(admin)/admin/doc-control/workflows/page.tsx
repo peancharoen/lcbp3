@@ -42,7 +42,7 @@ export default function WorkflowsPage() {
       ) : (
         <div className="grid gap-4">
           {workflowList.map((workflow: Workflow) => (
-            <Card key={workflow.workflowId} className="p-6">
+            <Card key={workflow.publicId} className="p-6">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -64,7 +64,7 @@ export default function WorkflowsPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Link href={`/admin/doc-control/workflows/${workflow.workflowId}/edit`}>
+                  <Link href={`/admin/doc-control/workflows/${workflow.publicId}/edit`}>
                     <Button variant="outline" size="sm">
                       <Edit className="mr-2 h-4 w-4" />
                       Edit

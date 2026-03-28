@@ -14,7 +14,7 @@ export function RevisionHistory({ revisions }: { revisions: DrawingRevision[] })
 
       <div className="space-y-3">
         {revisions.map((rev) => (
-          <div key={rev.revisionId} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+          <div key={rev.publicId} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1">
                 <Badge variant={rev.isCurrent ? 'default' : 'outline'}>Rev. {rev.revisionNumber}</Badge>

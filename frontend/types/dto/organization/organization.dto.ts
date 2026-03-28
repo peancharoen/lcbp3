@@ -4,20 +4,20 @@
 export interface CreateOrganizationDto {
   organizationCode: string;
   organizationName: string;
-  roleId?: number;
+  roleId?: number | string; // ADR-019: Accept UUID
   isActive?: boolean;
 }
 
 export interface UpdateOrganizationDto {
   organizationCode?: string;
   organizationName?: string;
-  roleId?: number;
+  roleId?: number | string; // ADR-019: Accept UUID
   isActive?: boolean;
 }
 
 export interface SearchOrganizationDto {
   search?: string;
-  projectId?: number;
+  projectId?: number | string; // ADR-019: Accept UUID
   page?: number;
   limit?: number;
   isActive?: boolean;

@@ -158,7 +158,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
                       <SelectContent>
                         <SelectItem value="0">Default (All Types)</SelectItem>
                         {(correspondenceTypes as CorrespondenceType[])?.map((type) => (
-                          <SelectItem key={type.id} value={type.id.toString()}>
+                          <SelectItem key={type.publicId} value={type.publicId.toString()}>
                             {type.typeCode} - {type.typeName}
                           </SelectItem>
                         ))}
@@ -179,7 +179,7 @@ export function TemplateTester({ open, onOpenChange, template }: TemplateTesterP
                       <SelectContent>
                         <SelectItem value="0">None</SelectItem>
                         {(disciplines as Discipline[])?.map((disc) => (
-                          <SelectItem key={disc.id} value={disc.id.toString()}>
+                          <SelectItem key={disc.publicId} value={disc.publicId.toString()}>
                             {disc.disciplineCode}
                           </SelectItem>
                         ))}

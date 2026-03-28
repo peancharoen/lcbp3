@@ -3,7 +3,8 @@
  */
 
 export interface CorrespondenceType {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   typeCode: string;
   typeName: string;
   isActive: boolean;
@@ -11,7 +12,8 @@ export interface CorrespondenceType {
 }
 
 export interface Discipline {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   disciplineCode: string;
   codeNameEn: string;
   codeNameTh?: string;
@@ -21,11 +23,12 @@ export interface Discipline {
     contractCode: string;
     contractName: string;
   };
-  contractId?: number | string;
+  contractId?: number | string; // ADR-019: Accept UUID
 }
 
 export interface RfaType {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   typeCode: string;
   typeNameTh: string;
   typeNameEn?: string;
@@ -36,25 +39,28 @@ export interface RfaType {
     contractCode: string;
     contractName: string;
   };
-  contractId?: number | string;
+  contractId?: number | string; // ADR-019: Accept UUID
 }
 
 export interface Tag {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   tagName: string;
   colorCode?: string;
   description?: string;
 }
 
 export interface DrawingCategory {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   subTypeCode: string;
   subTypeName: string;
   subTypeNumber?: string;
 }
 
 export interface ShopMainCategory {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   mainCategoryCode: string;
   mainCategoryName: string;
   name?: string; // Fallback for legacy data
@@ -62,7 +68,8 @@ export interface ShopMainCategory {
 }
 
 export interface ShopSubCategory {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   subCategoryCode: string;
   subCategoryName: string;
   name?: string; // Fallback for legacy data
@@ -70,7 +77,8 @@ export interface ShopSubCategory {
 }
 
 export interface ContractDrawingCategory {
-  id: number;
+  publicId: string; // ADR-019: public identifier
+  id?: number; // Internal INT (excluded from API)
   catCode: string;
   catName: string;
   name?: string; // Fallback for legacy data
