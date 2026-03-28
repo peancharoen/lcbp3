@@ -47,8 +47,12 @@ module.exports = {
   // Global setup after env
   setupFilesAfterEnv: ['../test/jest.setup.ts'],
 
-  // Transform ignore patterns (ให้ Jest ประมวลผล uuid)
-  transformIgnorePatterns: ['node_modules/(?!uuid/)'],
+  // Transform ignore patterns (ให้ Jest ประมวลผล ESM modules)
+  // รองรับ uuid และ @nestjs/elasticsearch ที่เป็น ESM
+  // ใช้ .* เพื่อ match path ย่อยใน pnpm structure
+  transformIgnorePatterns: [
+    'node_modules/(?!.*(uuid|@nestjs[\\+]elasticsearch).*/)',
+  ],
 
   // Coverage thresholds ตาม Testing Strategy spec
   coverageThreshold: {
