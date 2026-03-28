@@ -116,17 +116,21 @@
     "typescript-eslint": "^8.57.1"
   },
   "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "transformIgnorePatterns": [
-      "node_modules/(?!uuid/)"
-    ]
+    "testEnvironment": "node"
   },
   "main": "index.js",
   "directories": {
