@@ -1,0 +1,94 @@
+0f6fe59500ac84a292035fcde16087ad
+'use strict';
+var Buffer = require('safe-buffer').Buffer;
+var isArray = require('isarray');
+var typedArrayBuffer = require('typed-array-buffer');
+var isView = ArrayBuffer.isView || function isView(obj) {
+    try {
+        typedArrayBuffer(obj);
+        return true;
+    }
+    catch (e) {
+        return false;
+    }
+};
+var useUint8Array = typeof Uint8Array !== 'undefined';
+var useArrayBuffer = typeof ArrayBuffer !== 'undefined'
+    && typeof Uint8Array !== 'undefined';
+var useFromArrayBuffer = useArrayBuffer && (Buffer.prototype instanceof Uint8Array || Buffer.TYPED_ARRAY_SUPPORT);
+module.exports = function toBuffer(data, encoding) {
+    if (Buffer.isBuffer(data)) {
+        if (data.constructor && !('isBuffer' in data)) {
+            // probably a SlowBuffer
+            return Buffer.from(data);
+        }
+        return data;
+    }
+    if (typeof data === 'string') {
+        return Buffer.from(data, encoding);
+    }
+    /*
+     * Wrap any TypedArray instances and DataViews
+     * Makes sense only on engines with full TypedArray support -- let Buffer detect that
+     */
+    if (useArrayBuffer && isView(data)) {
+        // Bug in Node.js <6.3.1, which treats this as out-of-bounds
+        if (data.byteLength === 0) {
+            return Buffer.alloc(0);
+        }
+        // When Buffer is based on Uint8Array, we can just construct it from ArrayBuffer
+        if (useFromArrayBuffer) {
+            var res = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+            /*
+             * Recheck result size, as offset/length doesn't work on Node.js <5.10
+             * We just go to Uint8Array case if this fails
+             */
+            if (res.byteLength === data.byteLength) {
+                return res;
+            }
+        }
+        // Convert to Uint8Array bytes and then to Buffer
+        var uint8 = data instanceof Uint8Array ? data : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+        var result = Buffer.from(uint8);
+        /*
+         * Let's recheck that conversion succeeded
+         * We have .length but not .byteLength when useFromArrayBuffer is false
+         */
+        if (result.length === data.byteLength) {
+            return result;
+        }
+    }
+    /*
+     * Uint8Array in engines where Buffer.from might not work with ArrayBuffer, just copy over
+     * Doesn't make sense with other TypedArray instances
+     */
+    if (useUint8Array && data instanceof Uint8Array) {
+        return Buffer.from(data);
+    }
+    var isArr = isArray(data);
+    if (isArr) {
+        for (var i = 0; i < data.length; i += 1) {
+            var x = data[i];
+            if (typeof x !== 'number'
+                || x < 0
+                || x > 255
+                || ~~x !== x // NaN and integer check
+            ) {
+                throw new RangeError('Array items must be numbers in the range 0-255.');
+            }
+        }
+    }
+    /*
+     * Old Buffer polyfill on an engine that doesn't have TypedArray support
+     * Also, this is from a different Buffer polyfill implementation then we have, as instanceof check failed
+     * Convert to our current Buffer implementation
+     */
+    if (isArr || (Buffer.isBuffer(data)
+        && data.constructor
+        && typeof data.constructor.isBuffer === 'function'
+        && data.constructor.isBuffer(data))) {
+        return Buffer.from(data);
+    }
+    throw new TypeError('The "data" argument must be a string, an Array, a Buffer, a Uint8Array, or a DataView.');
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHRvLWJ1ZmZlckAxLjIuMlxcbm9kZV9tb2R1bGVzXFx0by1idWZmZXJcXGluZGV4LmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUViLElBQUksTUFBTSxHQUFHLE9BQU8sQ0FBQyxhQUFhLENBQUMsQ0FBQyxNQUFNLENBQUM7QUFDM0MsSUFBSSxPQUFPLEdBQUcsT0FBTyxDQUFDLFNBQVMsQ0FBQyxDQUFDO0FBQ2pDLElBQUksZ0JBQWdCLEdBQUcsT0FBTyxDQUFDLG9CQUFvQixDQUFDLENBQUM7QUFFckQsSUFBSSxNQUFNLEdBQUcsV0FBVyxDQUFDLE1BQU0sSUFBSSxTQUFTLE1BQU0sQ0FBQyxHQUFHO0lBQ3JELElBQUksQ0FBQztRQUNKLGdCQUFnQixDQUFDLEdBQUcsQ0FBQyxDQUFDO1FBQ3RCLE9BQU8sSUFBSSxDQUFDO0lBQ2IsQ0FBQztJQUFDLE9BQU8sQ0FBQyxFQUFFLENBQUM7UUFDWixPQUFPLEtBQUssQ0FBQztJQUNkLENBQUM7QUFDRixDQUFDLENBQUM7QUFFRixJQUFJLGFBQWEsR0FBRyxPQUFPLFVBQVUsS0FBSyxXQUFXLENBQUM7QUFDdEQsSUFBSSxjQUFjLEdBQUcsT0FBTyxXQUFXLEtBQUssV0FBVztPQUNuRCxPQUFPLFVBQVUsS0FBSyxXQUFXLENBQUM7QUFDdEMsSUFBSSxrQkFBa0IsR0FBRyxjQUFjLElBQUksQ0FBQyxNQUFNLENBQUMsU0FBUyxZQUFZLFVBQVUsSUFBSSxNQUFNLENBQUMsbUJBQW1CLENBQUMsQ0FBQztBQUVsSCxNQUFNLENBQUMsT0FBTyxHQUFHLFNBQVMsUUFBUSxDQUFDLElBQUksRUFBRSxRQUFRO0lBQ2hELElBQUksTUFBTSxDQUFDLFFBQVEsQ0FBQyxJQUFJLENBQUMsRUFBRSxDQUFDO1FBQzNCLElBQUksSUFBSSxDQUFDLFdBQVcsSUFBSSxDQUFDLENBQUMsVUFBVSxJQUFJLElBQUksQ0FBQyxFQUFFLENBQUM7WUFDL0Msd0JBQXdCO1lBQ3hCLE9B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ZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHRvLWJ1ZmZlckAxLjIuMlxcbm9kZV9tb2R1bGVzXFx0by1idWZmZXJcXGluZGV4LmpzIl0sInNvdXJjZXNDb250ZW50IjpbIid1c2Ugc3RyaWN0JztcblxudmFyIEJ1ZmZlciA9IHJlcXVpcmUoJ3NhZmUtYnVmZmVyJykuQnVmZmVyO1xudmFyIGlzQXJyYXkgPSByZXF1aXJlKCdpc2FycmF5Jyk7XG52YXIgdHlwZWRBcnJheUJ1ZmZlciA9IHJlcXVpcmUoJ3R5cGVkLWFycmF5LWJ1ZmZlcicpO1xuXG52YXIgaXNWaWV3ID0gQXJyYXlCdWZmZXIuaXNWaWV3IHx8IGZ1bmN0aW9uIGlzVmlldyhvYmopIHtcblx0dHJ5IHtcblx0XHR0eXBlZEFycmF5QnVmZmVyKG9iaik7XG5cdFx0cmV0dXJuIHRydWU7XG5cdH0gY2F0Y2ggKGUpIHtcblx0XHRyZXR1cm4gZmFsc2U7XG5cdH1cbn07XG5cbnZhciB1c2VVaW50OEFycmF5ID0gdHlwZW9mIFVpbnQ4QXJyYXkgIT09ICd1bmRlZmluZWQnO1xudmFyIHVzZUFycmF5QnVmZmVyID0gdHlwZW9mIEFycmF5QnVmZmVyICE9PSAndW5kZWZpbmVkJ1xuXHQmJiB0eXBlb2YgVWludDhBcnJheSAhPT0gJ3VuZGVmaW5lZCc7XG52YXIgdXNlRnJvbUFycmF5QnVmZmVyID0gdXNlQXJyYXlCdWZmZXIgJiYgKEJ1ZmZlci5wcm90b3R5cGUgaW5zdGFuY2VvZiBVaW50OEFycmF5IHx8IEJ1ZmZlci5UWVBFRF9BUlJBWV9TVVBQT1JUKTtcblxubW9kdWxlLmV4cG9ydHMgPSBmdW5jdGlvbiB0b0J1ZmZlcihkYXRhLCBlbmNvZGluZykge1xuXHRpZiAoQnVmZmVyLmlzQnVmZmVyKGRhdGEpKSB7XG5cdFx0aWYgKGRhdGEuY29uc3RydWN0b3IgJiYgISgnaXNCdWZmZXInIGluIGRhdGEpKSB7XG5cdFx0XHQvLyBwcm9iYWJseSBhIFNsb3dCdWZmZXJcblx0XHRcdHJldHVybiBCdWZmZXIuZnJvbShkYXRhKTtcblx0XHR9XG5cdFx0cmV0dXJuIGRhdGE7XG5cdH1cblxuXHRpZiAodHlwZW9mIGRhdGEgPT09ICdzdHJpbmcnKSB7XG5cdFx0cmV0dXJuIEJ1ZmZlci5mcm9tKGRhdGEsIGVuY29kaW5nKTtcblx0fVxuXG5cdC8qXG5cdCAqIFdyYXAgYW55IFR5cGVkQXJyYXkgaW5zdGFuY2VzIGFuZCBEYXRhVmlld3Ncblx0ICogTWFrZXMgc2Vuc2Ugb25seSBvbiBlbmdpbmVzIHdpdGggZnVsbCBUeXBlZEFycmF5IHN1cHBvcnQgLS0gbGV0IEJ1ZmZlciBkZXRlY3QgdGhhdFxuXHQgKi9cblx0aWYgKHVzZUFycmF5QnVmZmVyICYmIGlzVmlldyhkYXRhKSkge1xuXHRcdC8vIEJ1ZyBpbiBOb2RlLmpzIDw2LjMuMSwgd2hpY2ggdHJlYXRzIHRoaXMgYXMgb3V0LW9mLWJvdW5kc1xuXHRcdGlmIChkYXRhLmJ5dGVMZW5ndGggPT09IDApIHtcblx0XHRcdHJldHVybiBCdWZmZXIuYWxsb2MoMCk7XG5cdFx0fVxuXG5cdFx0Ly8gV2hlbiBCdWZmZXIgaXMgYmFzZWQgb24gVWludDhBcnJheSwgd2UgY2FuIGp1c3QgY29uc3RydWN0IGl0IGZyb20gQXJyYXlCdWZmZXJcblx0XHRpZiAodXNlRnJvbUFycmF5QnVmZmVyKSB7XG5cdFx0XHR2YXIgcmVzID0gQnVmZmVyLmZyb20oZGF0YS5idWZmZXIsIGRhdGEuYnl0ZU9mZnNldCwgZGF0YS5ieXRlTGVuZ3RoKTtcblx0XHRcdC8qXG5cdFx0XHQgKiBSZWNoZWNrIHJlc3VsdCBzaXplLCBhcyBvZmZzZXQvbGVuZ3RoIGRvZXNuJ3Qgd29yayBvbiBOb2RlLmpzIDw1LjEwXG5cdFx0XHQgKiBXZSBqdXN0IGdvIHRvIFVpbnQ4QXJyYXkgY2FzZSBpZiB0aGlzIGZhaWxzXG5cdFx0XHQgKi9cblx0XHRcdGlmIChyZXMuYnl0ZUxlbmd0aCA9PT0gZGF0YS5ieXRlTGVuZ3RoKSB7XG5cdFx0XHRcdHJldHVybiByZXM7XG5cdFx0XHR9XG5cdFx0fVxuXG5cdFx0Ly8gQ29udmVydCB0byBVaW50OEFycmF5IGJ5dGVzIGFuZCB0aGVuIHRvIEJ1ZmZlclxuXHRcdHZhciB1aW50OCA9IGRhdGEgaW5zdGFuY2VvZiBVaW50OEFycmF5ID8gZGF0YSA6IG5ldyBVaW50OEFycmF5KGRhdGEuYnVmZmVyLCBkYXRhLmJ5dGVPZmZzZXQsIGRhdGEuYnl0ZUxlbmd0aCk7XG5cdFx0dmFyIHJlc3VsdCA9IEJ1ZmZlci5mcm9tKHVpbnQ4KTtcblxuXHRcdC8qXG5cdFx0ICogTGV0J3MgcmVjaGVjayB0aGF0IGNvbnZlcnNpb24gc3VjY2VlZGVkXG5cdFx0ICogV2UgaGF2ZSAubGVuZ3RoIGJ1dCBub3QgLmJ5dGVMZW5ndGggd2hlbiB1c2VGcm9tQXJyYXlCdWZmZXIgaXMgZmFsc2Vcblx0XHQgKi9cblx0XHRpZiAocmVzdWx0Lmxlbmd0aCA9PT0gZGF0YS5ieXRlTGVuZ3RoKSB7XG5cdFx0XHRyZXR1cm4gcmVzdWx0O1xuXHRcdH1cblx0fVxuXG5cdC8qXG5cdCAqIFVpbnQ4QXJyYXkgaW4gZW5naW5lcyB3aGVyZSBCdWZmZXIuZnJvbSBtaWdodCBub3Qgd29yayB3aXRoIEFycmF5QnVmZmVyLCBqdXN0IGNvcHkgb3ZlclxuXHQgKiBEb2Vzbid0IG1ha2Ugc2Vuc2Ugd2l0aCBvdGhlciBUeXBlZEFycmF5IGluc3RhbmNlc1xuXHQgKi9cblx0aWYgKHVzZVVpbnQ4QXJyYXkgJiYgZGF0YSBpbnN0YW5jZW9mIFVpbnQ4QXJyYXkpIHtcblx0XHRyZXR1cm4gQnVmZmVyLmZyb20oZGF0YSk7XG5cdH1cblxuXHR2YXIgaXNBcnIgPSBpc0FycmF5KGRhdGEpO1xuXHRpZiAoaXNBcnIpIHtcblx0XHRmb3IgKHZhciBpID0gMDsgaSA8IGRhdGEubGVuZ3RoOyBpICs9IDEpIHtcblx0XHRcdHZhciB4ID0gZGF0YVtpXTtcblx0XHRcdGlmIChcblx0XHRcdFx0dHlwZW9mIHggIT09ICdudW1iZXInXG5cdFx0XHRcdHx8IHggPCAwXG5cdFx0XHRcdHx8IHggPiAyNTVcblx0XHRcdFx0fHwgfn54ICE9PSB4IC8vIE5hTiBhbmQgaW50ZWdlciBjaGVja1xuXHRcdFx0KSB7XG5cdFx0XHRcdHRocm93IG5ldyBSYW5nZUVycm9yKCdBcnJheSBpdGVtcyBtdXN0IGJlIG51bWJlcnMgaW4gdGhlIHJhbmdlIDAtMjU1LicpO1xuXHRcdFx0fVxuXHRcdH1cblx0fVxuXG5cdC8qXG5cdCAqIE9sZCBCdWZmZXIgcG9seWZpbGwgb24gYW4gZW5naW5lIHRoYXQgZG9lc24ndCBoYXZlIFR5cGVkQXJyYXkgc3VwcG9ydFxuXHQgKiBBbHNvLCB0aGlzIGlzIGZyb20gYSBkaWZmZXJlbnQgQnVmZmVyIHBvbHlmaWxsIGltcGxlbWVudGF0aW9uIHRoZW4gd2UgaGF2ZSwgYXMgaW5zdGFuY2VvZiBjaGVjayBmYWlsZWRcblx0ICogQ29udmVydCB0byBvdXIgY3VycmVudCBCdWZmZXIgaW1wbGVtZW50YXRpb25cblx0ICovXG5cdGlmIChcblx0XHRpc0FyciB8fCAoXG5cdFx0XHRCdWZmZXIuaXNCdWZmZXIoZGF0YSlcblx0XHRcdCYmIGRhdGEuY29uc3RydWN0b3Jcblx0XHRcdCYmIHR5cGVvZiBkYXRhLmNvbnN0cnVjdG9yLmlzQnVmZmVyID09PSAnZnVuY3Rpb24nXG5cdFx0XHQmJiBkYXRhLmNvbnN0cnVjdG9yLmlzQnVmZmVyKGRhdGEpXG5cdFx0KVxuXHQpIHtcblx0XHRyZXR1cm4gQnVmZmVyLmZyb20oZGF0YSk7XG5cdH1cblxuXHR0aHJvdyBuZXcgVHlwZUVycm9yKCdUaGUgXCJkYXRhXCIgYXJndW1lbnQgbXVzdCBiZSBhIHN0cmluZywgYW4gQXJyYXksIGEgQnVmZmVyLCBhIFVpbnQ4QXJyYXksIG9yIGEgRGF0YVZpZXcuJyk7XG59O1xuIl0sInZlcnNpb24iOjN9

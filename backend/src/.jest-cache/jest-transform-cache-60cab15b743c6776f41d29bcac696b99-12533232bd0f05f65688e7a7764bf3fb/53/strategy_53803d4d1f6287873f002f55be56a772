@@ -1,0 +1,28 @@
+e03191f0ba53486e211f339ba5471eb0
+"use strict";
+/**
+ * Creates an instance of `Strategy`.
+ *
+ * @constructor
+ * @api public
+ */
+function Strategy() {
+}
+/**
+ * Authenticate request.
+ *
+ * This function must be overridden by subclasses.  In abstract form, it always
+ * throws an exception.
+ *
+ * @param {Object} req The request to authenticate.
+ * @param {Object} [options] Strategy-specific options.
+ * @api public
+ */
+Strategy.prototype.authenticate = function (req, options) {
+    throw new Error('Strategy#authenticate must be overridden by subclass');
+};
+/**
+ * Expose `Strategy`.
+ */
+module.exports = Strategy;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHBhc3Nwb3J0LXN0cmF0ZWd5QDEuMC4wXFxub2RlX21vZHVsZXNcXHBhc3Nwb3J0LXN0cmF0ZWd5XFxsaWJcXHN0cmF0ZWd5LmpzIiwibWFwcGluZ3MiOiI7QUFBQTs7Ozs7R0FLRztBQUNILFNBQVMsUUFBUTtBQUNqQixDQUFDO0FBRUQ7Ozs7Ozs7OztHQVNHO0FBQ0gsUUFBUSxDQUFDLFNBQVMsQ0FBQyxZQUFZLEdBQUcsVUFBUyxHQUFHLEVBQUUsT0FBTztJQUNyRCxNQUFNLElBQUksS0FBSyxDQUFDLHNEQUFzRCxDQUFDLENBQUM7QUFDMUUsQ0FBQyxDQUFDO0FBR0Y7O0dBRUc7QUFDSCxNQUFNLENBQUMsT0FBTyxHQUFHLFFBQVEsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxccGFzc3BvcnQtc3RyYXRlZ3lAMS4wLjBcXG5vZGVfbW9kdWxlc1xccGFzc3BvcnQtc3RyYXRlZ3lcXGxpYlxcc3RyYXRlZ3kuanMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBDcmVhdGVzIGFuIGluc3RhbmNlIG9mIGBTdHJhdGVneWAuXG4gKlxuICogQGNvbnN0cnVjdG9yXG4gKiBAYXBpIHB1YmxpY1xuICovXG5mdW5jdGlvbiBTdHJhdGVneSgpIHtcbn1cblxuLyoqXG4gKiBBdXRoZW50aWNhdGUgcmVxdWVzdC5cbiAqXG4gKiBUaGlzIGZ1bmN0aW9uIG11c3QgYmUgb3ZlcnJpZGRlbiBieSBzdWJjbGFzc2VzLiAgSW4gYWJzdHJhY3QgZm9ybSwgaXQgYWx3YXlzXG4gKiB0aHJvd3MgYW4gZXhjZXB0aW9uLlxuICpcbiAqIEBwYXJhbSB7T2JqZWN0fSByZXEgVGhlIHJlcXVlc3QgdG8gYXV0aGVudGljYXRlLlxuICogQHBhcmFtIHtPYmplY3R9IFtvcHRpb25zXSBTdHJhdGVneS1zcGVjaWZpYyBvcHRpb25zLlxuICogQGFwaSBwdWJsaWNcbiAqL1xuU3RyYXRlZ3kucHJvdG90eXBlLmF1dGhlbnRpY2F0ZSA9IGZ1bmN0aW9uKHJlcSwgb3B0aW9ucykge1xuICB0aHJvdyBuZXcgRXJyb3IoJ1N0cmF0ZWd5I2F1dGhlbnRpY2F0ZSBtdXN0IGJlIG92ZXJyaWRkZW4gYnkgc3ViY2xhc3MnKTtcbn07XG5cblxuLyoqXG4gKiBFeHBvc2UgYFN0cmF0ZWd5YC5cbiAqL1xubW9kdWxlLmV4cG9ydHMgPSBTdHJhdGVneTtcbiJdLCJ2ZXJzaW9uIjozfQ==

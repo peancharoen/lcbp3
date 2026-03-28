@@ -1,0 +1,60 @@
+eeca0e0c249d1d400730583eedf43cf2
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.useContainer = useContainer;
+exports.getFromContainer = getFromContainer;
+/**
+ * Container to be used by this library for inversion control. If container was not implicitly set then by default
+ * container simply creates a new instance of the given class.
+ *
+ * @deprecated
+ */
+const defaultContainer = new (class {
+    constructor() {
+        this.instances = [];
+    }
+    get(someClass) {
+        let instance = this.instances.find((i) => i.type === someClass);
+        if (!instance) {
+            instance = {
+                type: someClass,
+                object: new someClass(),
+            };
+            this.instances.push(instance);
+        }
+        return instance.object;
+    }
+})();
+let userContainer;
+let userContainerOptions;
+/**
+ * Sets container to be used by this library.
+ *
+ * @deprecated
+ */
+function useContainer(iocContainer, options) {
+    userContainer = iocContainer;
+    userContainerOptions = options;
+}
+/**
+ * Gets the IOC container used by this library.
+ *
+ * @deprecated
+ */
+function getFromContainer(someClass) {
+    if (userContainer) {
+        try {
+            const instance = userContainer.get(someClass);
+            if (instance)
+                return instance;
+            if (!userContainerOptions || !userContainerOptions.fallback)
+                return instance;
+        }
+        catch (error) {
+            if (!userContainerOptions || !userContainerOptions.fallbackOnErrors)
+                throw error;
+        }
+    }
+    return defaultContainer.get(someClass);
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxjb250YWluZXIuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2IsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLFlBQVksR0FBRyxZQUFZLENBQUM7QUFDcEMsT0FBTyxDQUFDLGdCQUFnQixHQUFHLGdCQUFnQixDQUFDO0FBQzVDOzs7OztHQUtHO0FBQ0gsTUFBTSxnQkFBZ0IsR0FBRyxJQUFJLENBQUM7SUFDMUI7UUFDSSxJQUFJLENBQUMsU0FBUyxHQUFHLEVBQUUsQ0FBQztJQUN4QixDQUFDO0lBQ0QsR0FBRyxDQUFDLFNBQVM7UUFDVCxJQUFJLFFBQVEsR0FBRyxJQUFJLENBQUMsU0FBUyxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUMsRUFBRSxFQUFFLENBQUMsQ0FBQyxDQUFDLElBQUksS0FBSyxTQUFTLENBQUMsQ0FBQztRQUNoRSxJQUFJLENBQUMsUUFBUSxFQUFFLENBQUM7WUFDWixRQUFRLEdBQUc7Z0JBQ1AsSUFBSSxFQUFFLFNBQVM7Z0JBQ2YsTUFBTSxFQUFFLElBQUksU0FBUyxFQUFFO2FBQzFCLENBQUM7WUFDRixJQUFJLENBQUMsU0FBUyxDQUFDLElBQUksQ0FBQyxRQUFRLENBQUMsQ0FBQztRQUNsQyxDQUFDO1FBQ0QsT0FBTyxRQUFRLENBQUMsTUFBTSxDQUFDO0lBQzNCLENBQUM7Q0FDSixDQUFDLEVBQUUsQ0FBQztBQUNMLElBQUksYUFBYSxDQUFDO0FBQ2xCLElBQUksb0JBQW9CLENBQUM7QUFDekI7Ozs7R0FJRztBQUNILFNBQVMsWUFBWSxDQUFDLFlBQVksRUFBRSxPQUFPO0lBQ3ZDLGFBQWEsR0FBRyxZQUFZLENBQUM7SUFDN0Isb0JBQW9CLEdBQUcsT0FBTyxDQUFDO0FBQ25DLENBQUM7QUFDRDs7OztHQUlHO0FBQ0gsU0FBUyxnQkFBZ0IsQ0FBQyxTQUFTO0lBQy9CLElBQUksYUFBYSxFQUFFLENBQUM7UUFDaEIsSUFBSSxDQUFDO1lBQ0QsTUFBTSxRQUFRLEdBQUcsYUFBYSxDQUFDLEdBQUcsQ0FBQyxTQUFTLENBQUMsQ0FBQztZQUM5QyxJQUFJLFFBQVE7Z0JBQ1IsT0FBTyxRQUFRLENBQUM7WUFDcEIsSUFBSSxDQUFDLG9CQUFvQixJQUFJLENBQUMsb0JBQW9CLENBQUMsUUFBUTtnQkFDdkQsT0FBTyxRQUFRLENBQUM7UUFDeEIsQ0FBQztRQUNELE9BQU8sS0FBSyxFQUFFLENBQUM7WUFDWCxJQUFJLENBQUMsb0JBQW9CLElBQUksQ0FBQyxvQkFBb0IsQ0FBQyxnQkFBZ0I7Z0JBQy9ELE1BQU0sS0FBSyxDQUFDO1FBQ3BCLENBQUM7SUFDTCxDQUFDO0lBQ0QsT0FBTyxnQkFBZ0IsQ0FBQyxHQUFHLENBQUMsU0FBUyxDQUFDLENBQUM7QUFDM0MsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcdHlwZW9ybUAwLjMuMjdfaW9yZWRpc0A1LjguX2EyZGM1Yjc3YzcxM2ZhYjQ1NWYxYTI5N2Q1MWVkNTk1XFxub2RlX21vZHVsZXNcXHR5cGVvcm1cXGNvbnRhaW5lci5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBzdHJpY3RcIjtcbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMudXNlQ29udGFpbmVyID0gdXNlQ29udGFpbmVyO1xuZXhwb3J0cy5nZXRGcm9tQ29udGFpbmVyID0gZ2V0RnJvbUNvbnRhaW5lcjtcbi8qKlxuICogQ29udGFpbmVyIHRvIGJlIHVzZWQgYnkgdGhpcyBsaWJyYXJ5IGZvciBpbnZlcnNpb24gY29udHJvbC4gSWYgY29udGFpbmVyIHdhcyBub3QgaW1wbGljaXRseSBzZXQgdGhlbiBieSBkZWZhdWx0XG4gKiBjb250YWluZXIgc2ltcGx5IGNyZWF0ZXMgYSBuZXcgaW5zdGFuY2Ugb2YgdGhlIGdpdmVuIGNsYXNzLlxuICpcbiAqIEBkZXByZWNhdGVkXG4gKi9cbmNvbnN0IGRlZmF1bHRDb250YWluZXIgPSBuZXcgKGNsYXNzIHtcbiAgICBjb25zdHJ1Y3RvcigpIHtcbiAgICAgICAgdGhpcy5pbnN0YW5jZXMgPSBbXTtcbiAgICB9XG4gICAgZ2V0KHNvbWVDbGFzcykge1xuICAgICAgICBsZXQgaW5zdGFuY2UgPSB0aGlzLmluc3RhbmNlcy5maW5kKChpKSA9PiBpLnR5cGUgPT09IHNvbWVDbGFzcyk7XG4gICAgICAgIGlmICghaW5zdGFuY2UpIHtcbiAgICAgICAgICAgIGluc3RhbmNlID0ge1xuICAgICAgICAgICAgICAgIHR5cGU6IHNvbWVDbGFzcyxcbiAgICAgICAgICAgICAgICBvYmplY3Q6IG5ldyBzb21lQ2xhc3MoKSxcbiAgICAgICAgICAgIH07XG4gICAgICAgICAgICB0aGlzLmluc3RhbmNlcy5wdXNoKGluc3RhbmNlKTtcbiAgICAgICAgfVxuICAgICAgICByZXR1cm4gaW5zdGFuY2Uub2JqZWN0O1xuICAgIH1cbn0pKCk7XG5sZXQgdXNlckNvbnRhaW5lcjtcbmxldCB1c2VyQ29udGFpbmVyT3B0aW9ucztcbi8qKlxuICogU2V0cyBjb250YWluZXIgdG8gYmUgdXNlZCBieSB0aGlzIGxpYnJhcnkuXG4gKlxuICogQGRlcHJlY2F0ZWRcbiAqL1xuZnVuY3Rpb24gdXNlQ29udGFpbmVyKGlvY0NvbnRhaW5lciwgb3B0aW9ucykge1xuICAgIHVzZXJDb250YWluZXIgPSBpb2NDb250YWluZXI7XG4gICAgdXNlckNvbnRhaW5lck9wdGlvbnMgPSBvcHRpb25zO1xufVxuLyoqXG4gKiBHZXRzIHRoZSBJT0MgY29udGFpbmVyIHVzZWQgYnkgdGhpcyBsaWJyYXJ5LlxuICpcbiAqIEBkZXByZWNhdGVkXG4gKi9cbmZ1bmN0aW9uIGdldEZyb21Db250YWluZXIoc29tZUNsYXNzKSB7XG4gICAgaWYgKHVzZXJDb250YWluZXIpIHtcbiAgICAgICAgdHJ5IHtcbiAgICAgICAgICAgIGNvbnN0IGluc3RhbmNlID0gdXNlckNvbnRhaW5lci5nZXQoc29tZUNsYXNzKTtcbiAgICAgICAgICAgIGlmIChpbnN0YW5jZSlcbiAgICAgICAgICAgICAgICByZXR1cm4gaW5zdGFuY2U7XG4gICAgICAgICAgICBpZiAoIXVzZXJDb250YWluZXJPcHRpb25zIHx8ICF1c2VyQ29udGFpbmVyT3B0aW9ucy5mYWxsYmFjaylcbiAgICAgICAgICAgICAgICByZXR1cm4gaW5zdGFuY2U7XG4gICAgICAgIH1cbiAgICAgICAgY2F0Y2ggKGVycm9yKSB7XG4gICAgICAgICAgICBpZiAoIXVzZXJDb250YWluZXJPcHRpb25zIHx8ICF1c2VyQ29udGFpbmVyT3B0aW9ucy5mYWxsYmFja09uRXJyb3JzKVxuICAgICAgICAgICAgICAgIHRocm93IGVycm9yO1xuICAgICAgICB9XG4gICAgfVxuICAgIHJldHVybiBkZWZhdWx0Q29udGFpbmVyLmdldChzb21lQ2xhc3MpO1xufVxuXG4vLyMgc291cmNlTWFwcGluZ1VSTD1jb250YWluZXIuanMubWFwXG4iXSwidmVyc2lvbiI6M30=

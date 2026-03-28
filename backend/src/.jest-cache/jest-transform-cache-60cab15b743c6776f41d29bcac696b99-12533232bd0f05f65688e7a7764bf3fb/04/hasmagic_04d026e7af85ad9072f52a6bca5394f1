@@ -1,0 +1,28 @@
+42d478fc5ccacb0f52a84c68c51ec4f1
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.hasMagic = void 0;
+const minimatch_1 = require("minimatch");
+/**
+ * Return true if the patterns provided contain any magic glob characters,
+ * given the options provided.
+ *
+ * Brace expansion is not considered "magic" unless the `magicalBraces` option
+ * is set, as brace expansion just turns one string into an array of strings.
+ * So a pattern like `'x{a,b}y'` would return `false`, because `'xay'` and
+ * `'xby'` both do not contain any magic glob characters, and it's treated the
+ * same as if you had called it on `['xay', 'xby']`. When `magicalBraces:true`
+ * is in the options, brace expansion _is_ treated as a pattern having magic.
+ */
+const hasMagic = (pattern, options = {}) => {
+    if (!Array.isArray(pattern)) {
+        pattern = [pattern];
+    }
+    for (const p of pattern) {
+        if (new minimatch_1.Minimatch(p, options).hasMagic())
+            return true;
+    }
+    return false;
+};
+exports.hasMagic = hasMagic;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGdsb2JAMTAuNS4wXFxub2RlX21vZHVsZXNcXGdsb2JcXGRpc3RcXGNvbW1vbmpzXFxoYXMtbWFnaWMuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2IsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLFFBQVEsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUMxQixNQUFNLFdBQVcsR0FBRyxPQUFPLENBQUMsV0FBVyxDQUFDLENBQUM7QUFDekM7Ozs7Ozs7Ozs7R0FVRztBQUNILE1BQU0sUUFBUSxHQUFHLENBQUMsT0FBTyxFQUFFLE9BQU8sR0FBRyxFQUFFLEVBQUUsRUFBRTtJQUN2QyxJQUFJLENBQUMsS0FBSyxDQUFDLE9BQU8sQ0FBQyxPQUFPLENBQUMsRUFBRSxDQUFDO1FBQzFCLE9BQU8sR0FBRyxDQUFDLE9BQU8sQ0FBQyxDQUFDO0lBQ3hCLENBQUM7SUFDRCxLQUFLLE1BQU0sQ0FBQyxJQUFJLE9BQU8sRUFBRSxDQUFDO1FBQ3RCLElBQUksSUFBSSxXQUFXLENBQUMsU0FBUyxDQUFDLENBQUMsRUFBRSxPQUFPLENBQUMsQ0FBQyxRQUFRLEVBQUU7WUFDaEQsT0FBTyxJQUFJLENBQUM7SUFDcEIsQ0FBQztJQUNELE9BQU8sS0FBSyxDQUFDO0FBQ2pCLENBQUMsQ0FBQztBQUNGLE9BQU8sQ0FBQyxRQUFRLEdBQUcsUUFBUSxDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxnbG9iQDEwLjUuMFxcbm9kZV9tb2R1bGVzXFxnbG9iXFxkaXN0XFxjb21tb25qc1xcaGFzLW1hZ2ljLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5oYXNNYWdpYyA9IHZvaWQgMDtcbmNvbnN0IG1pbmltYXRjaF8xID0gcmVxdWlyZShcIm1pbmltYXRjaFwiKTtcbi8qKlxuICogUmV0dXJuIHRydWUgaWYgdGhlIHBhdHRlcm5zIHByb3ZpZGVkIGNvbnRhaW4gYW55IG1hZ2ljIGdsb2IgY2hhcmFjdGVycyxcbiAqIGdpdmVuIHRoZSBvcHRpb25zIHByb3ZpZGVkLlxuICpcbiAqIEJyYWNlIGV4cGFuc2lvbiBpcyBub3QgY29uc2lkZXJlZCBcIm1hZ2ljXCIgdW5sZXNzIHRoZSBgbWFnaWNhbEJyYWNlc2Agb3B0aW9uXG4gKiBpcyBzZXQsIGFzIGJyYWNlIGV4cGFuc2lvbiBqdXN0IHR1cm5zIG9uZSBzdHJpbmcgaW50byBhbiBhcnJheSBvZiBzdHJpbmdzLlxuICogU28gYSBwYXR0ZXJuIGxpa2UgYCd4e2EsYn15J2Agd291bGQgcmV0dXJuIGBmYWxzZWAsIGJlY2F1c2UgYCd4YXknYCBhbmRcbiAqIGAneGJ5J2AgYm90aCBkbyBub3QgY29udGFpbiBhbnkgbWFnaWMgZ2xvYiBjaGFyYWN0ZXJzLCBhbmQgaXQncyB0cmVhdGVkIHRoZVxuICogc2FtZSBhcyBpZiB5b3UgaGFkIGNhbGxlZCBpdCBvbiBgWyd4YXknLCAneGJ5J11gLiBXaGVuIGBtYWdpY2FsQnJhY2VzOnRydWVgXG4gKiBpcyBpbiB0aGUgb3B0aW9ucywgYnJhY2UgZXhwYW5zaW9uIF9pc18gdHJlYXRlZCBhcyBhIHBhdHRlcm4gaGF2aW5nIG1hZ2ljLlxuICovXG5jb25zdCBoYXNNYWdpYyA9IChwYXR0ZXJuLCBvcHRpb25zID0ge30pID0+IHtcbiAgICBpZiAoIUFycmF5LmlzQXJyYXkocGF0dGVybikpIHtcbiAgICAgICAgcGF0dGVybiA9IFtwYXR0ZXJuXTtcbiAgICB9XG4gICAgZm9yIChjb25zdCBwIG9mIHBhdHRlcm4pIHtcbiAgICAgICAgaWYgKG5ldyBtaW5pbWF0Y2hfMS5NaW5pbWF0Y2gocCwgb3B0aW9ucykuaGFzTWFnaWMoKSlcbiAgICAgICAgICAgIHJldHVybiB0cnVlO1xuICAgIH1cbiAgICByZXR1cm4gZmFsc2U7XG59O1xuZXhwb3J0cy5oYXNNYWdpYyA9IGhhc01hZ2ljO1xuLy8jIHNvdXJjZU1hcHBpbmdVUkw9aGFzLW1hZ2ljLmpzLm1hcCJdLCJ2ZXJzaW9uIjozfQ==

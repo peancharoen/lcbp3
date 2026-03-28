@@ -1,0 +1,34 @@
+e15b9eb19ce23a0ee825f3ae6faa56ee
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.addLog = void 0;
+const content = `--[[
+  Add job log
+  Input:
+    KEYS[1] job id key
+    KEYS[2] job logs key
+    ARGV[1] id
+    ARGV[2] log
+    ARGV[3] keepLogs
+  Output:
+    -1 - Missing job.
+]]
+local rcall = redis.call
+if rcall("EXISTS", KEYS[1]) == 1 then -- // Make sure job exists
+  local logCount = rcall("RPUSH", KEYS[2], ARGV[2])
+  if ARGV[3] ~= '' then
+    local keepLogs = tonumber(ARGV[3])
+    rcall("LTRIM", KEYS[2], -keepLogs, -1)
+    return math.min(keepLogs, logCount)
+  end
+  return logCount
+else
+  return -1
+end
+`;
+exports.addLog = {
+    name: 'addLog',
+    content,
+    keys: 2,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGFkZExvZy0yLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxNQUFNLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDeEIsTUFBTSxPQUFPLEdBQUc7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0NBdUJmLENBQUM7QUFDRixPQUFPLENBQUMsTUFBTSxHQUFHO0lBQ2IsSUFBSSxFQUFFLFFBQVE7SUFDZCxPQUFPO0lBQ1AsSUFBSSxFQUFFLENBQUM7Q0FDVixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxidWxsbXFANS42NS4wXFxub2RlX21vZHVsZXNcXGJ1bGxtcVxcZGlzdFxcY2pzXFxzY3JpcHRzXFxhZGRMb2ctMi5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBzdHJpY3RcIjtcbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMuYWRkTG9nID0gdm9pZCAwO1xuY29uc3QgY29udGVudCA9IGAtLVtbXG4gIEFkZCBqb2IgbG9nXG4gIElucHV0OlxuICAgIEtFWVNbMV0gam9iIGlkIGtleVxuICAgIEtFWVNbMl0gam9iIGxvZ3Mga2V5XG4gICAgQVJHVlsxXSBpZFxuICAgIEFSR1ZbMl0gbG9nXG4gICAgQVJHVlszXSBrZWVwTG9nc1xuICBPdXRwdXQ6XG4gICAgLTEgLSBNaXNzaW5nIGpvYi5cbl1dXG5sb2NhbCByY2FsbCA9IHJlZGlzLmNhbGxcbmlmIHJjYWxsKFwiRVhJU1RTXCIsIEtFWVNbMV0pID09IDEgdGhlbiAtLSAvLyBNYWtlIHN1cmUgam9iIGV4aXN0c1xuICBsb2NhbCBsb2dDb3VudCA9IHJjYWxsKFwiUlBVU0hcIiwgS0VZU1syXSwgQVJHVlsyXSlcbiAgaWYgQVJHVlszXSB+PSAnJyB0aGVuXG4gICAgbG9jYWwga2VlcExvZ3MgPSB0b251bWJlcihBUkdWWzNdKVxuICAgIHJjYWxsKFwiTFRSSU1cIiwgS0VZU1syXSwgLWtlZXBMb2dzLCAtMSlcbiAgICByZXR1cm4gbWF0aC5taW4oa2VlcExvZ3MsIGxvZ0NvdW50KVxuICBlbmRcbiAgcmV0dXJuIGxvZ0NvdW50XG5lbHNlXG4gIHJldHVybiAtMVxuZW5kXG5gO1xuZXhwb3J0cy5hZGRMb2cgPSB7XG4gICAgbmFtZTogJ2FkZExvZycsXG4gICAgY29udGVudCxcbiAgICBrZXlzOiAyLFxufTtcbi8vIyBzb3VyY2VNYXBwaW5nVVJMPWFkZExvZy0yLmpzLm1hcCJdLCJ2ZXJzaW9uIjozfQ==

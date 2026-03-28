@@ -1,0 +1,45 @@
+99c952ed005922d874d364916463a14c
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getRateLimitTtl = void 0;
+const content = `--[[
+  Get rate limit ttl
+    Input:
+      KEYS[1] 'limiter'
+      KEYS[2] 'meta'
+      ARGV[1] maxJobs
+]]
+local rcall = redis.call
+-- Includes
+--[[
+  Function to get current rate limit ttl.
+]]
+local function getRateLimitTTL(maxJobs, rateLimiterKey)
+  if maxJobs and maxJobs <= tonumber(rcall("GET", rateLimiterKey) or 0) then
+    local pttl = rcall("PTTL", rateLimiterKey)
+    if pttl == 0 then
+      rcall("DEL", rateLimiterKey)
+    end
+    if pttl > 0 then
+      return pttl
+    end
+  end
+  return 0
+end
+local rateLimiterKey = KEYS[1]
+if ARGV[1] ~= "0" then
+  return getRateLimitTTL(tonumber(ARGV[1]), rateLimiterKey)
+else
+  local rateLimitMax = rcall("HGET", KEYS[2], "max")
+  if rateLimitMax then
+    return getRateLimitTTL(tonumber(rateLimitMax), rateLimiterKey)
+  end
+  return rcall("PTTL", rateLimiterKey)
+end
+`;
+exports.getRateLimitTtl = {
+    name: 'getRateLimitTtl',
+    content,
+    keys: 2,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGdldFJhdGVMaW1pdFR0bC0yLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxlQUFlLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDakMsTUFBTSxPQUFPLEdBQUc7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Q0FrQ2YsQ0FBQztBQUNGLE9BQU8sQ0FBQyxlQUFlLEdBQUc7SUFDdEIsSUFBSSxFQUFFLGlCQUFpQjtJQUN2QixPQUFPO0lBQ1AsSUFBSSxFQUFFLENBQUM7Q0FDVixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxidWxsbXFANS42NS4wXFxub2RlX21vZHVsZXNcXGJ1bGxtcVxcZGlzdFxcY2pzXFxzY3JpcHRzXFxnZXRSYXRlTGltaXRUdGwtMi5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBzdHJpY3RcIjtcbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMuZ2V0UmF0ZUxpbWl0VHRsID0gdm9pZCAwO1xuY29uc3QgY29udGVudCA9IGAtLVtbXG4gIEdldCByYXRlIGxpbWl0IHR0bFxuICAgIElucHV0OlxuICAgICAgS0VZU1sxXSAnbGltaXRlcidcbiAgICAgIEtFWVNbMl0gJ21ldGEnXG4gICAgICBBUkdWWzFdIG1heEpvYnNcbl1dXG5sb2NhbCByY2FsbCA9IHJlZGlzLmNhbGxcbi0tIEluY2x1ZGVzXG4tLVtbXG4gIEZ1bmN0aW9uIHRvIGdldCBjdXJyZW50IHJhdGUgbGltaXQgdHRsLlxuXV1cbmxvY2FsIGZ1bmN0aW9uIGdldFJhdGVMaW1pdFRUTChtYXhKb2JzLCByYXRlTGltaXRlcktleSlcbiAgaWYgbWF4Sm9icyBhbmQgbWF4Sm9icyA8PSB0b251bWJlcihyY2FsbChcIkdFVFwiLCByYXRlTGltaXRlcktleSkgb3IgMCkgdGhlblxuICAgIGxvY2FsIHB0dGwgPSByY2FsbChcIlBUVExcIiwgcmF0ZUxpbWl0ZXJLZXkpXG4gICAgaWYgcHR0bCA9PSAwIHRoZW5cbiAgICAgIHJjYWxsKFwiREVMXCIsIHJhdGVMaW1pdGVyS2V5KVxuICAgIGVuZFxuICAgIGlmIHB0dGwgPiAwIHRoZW5cbiAgICAgIHJldHVybiBwdHRsXG4gICAgZW5kXG4gIGVuZFxuICByZXR1cm4gMFxuZW5kXG5sb2NhbCByYXRlTGltaXRlcktleSA9IEtFWVNbMV1cbmlmIEFSR1ZbMV0gfj0gXCIwXCIgdGhlblxuICByZXR1cm4gZ2V0UmF0ZUxpbWl0VFRMKHRvbnVtYmVyKEFSR1ZbMV0pLCByYXRlTGltaXRlcktleSlcbmVsc2VcbiAgbG9jYWwgcmF0ZUxpbWl0TWF4ID0gcmNhbGwoXCJIR0VUXCIsIEtFWVNbMl0sIFwibWF4XCIpXG4gIGlmIHJhdGVMaW1pdE1heCB0aGVuXG4gICAgcmV0dXJuIGdldFJhdGVMaW1pdFRUTCh0b251bWJlcihyYXRlTGltaXRNYXgpLCByYXRlTGltaXRlcktleSlcbiAgZW5kXG4gIHJldHVybiByY2FsbChcIlBUVExcIiwgcmF0ZUxpbWl0ZXJLZXkpXG5lbmRcbmA7XG5leHBvcnRzLmdldFJhdGVMaW1pdFR0bCA9IHtcbiAgICBuYW1lOiAnZ2V0UmF0ZUxpbWl0VHRsJyxcbiAgICBjb250ZW50LFxuICAgIGtleXM6IDIsXG59O1xuLy8jIHNvdXJjZU1hcHBpbmdVUkw9Z2V0UmF0ZUxpbWl0VHRsLTIuanMubWFwIl0sInZlcnNpb24iOjN9

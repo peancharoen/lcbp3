@@ -1,0 +1,34 @@
+acc3a4b32405083e71c6c5a0370d9d35
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.updateRepeatableJobMillis = void 0;
+const content = `--[[
+  Adds a repeatable job
+    Input:
+      KEYS[1] 'repeat' key
+      ARGV[1] next milliseconds
+      ARGV[2] custom key
+      ARGV[3] legacy custom key TODO: remove this logic in next breaking change
+      Output:
+        repeatableKey  - OK
+]]
+local rcall = redis.call
+local repeatKey = KEYS[1]
+local nextMillis = ARGV[1]
+local customKey = ARGV[2]
+local legacyCustomKey = ARGV[3]
+if rcall("ZSCORE", repeatKey, customKey) then
+    rcall("ZADD", repeatKey, nextMillis, customKey)
+    return customKey
+elseif rcall("ZSCORE", repeatKey, legacyCustomKey) ~= false then
+    rcall("ZADD", repeatKey, nextMillis, legacyCustomKey)
+    return legacyCustomKey
+end
+return ''
+`;
+exports.updateRepeatableJobMillis = {
+    name: 'updateRepeatableJobMillis',
+    content,
+    keys: 1,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHVwZGF0ZVJlcGVhdGFibGVKb2JNaWxsaXMtMS5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFDYixNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMseUJBQXlCLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDM0MsTUFBTSxPQUFPLEdBQUc7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0NBdUJmLENBQUM7QUFDRixPQUFPLENBQUMseUJBQXlCLEdBQUc7SUFDaEMsSUFBSSxFQUFFLDJCQUEyQjtJQUNqQyxPQUFPO0lBQ1AsSUFBSSxFQUFFLENBQUM7Q0FDVixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxidWxsbXFANS42NS4wXFxub2RlX21vZHVsZXNcXGJ1bGxtcVxcZGlzdFxcY2pzXFxzY3JpcHRzXFx1cGRhdGVSZXBlYXRhYmxlSm9iTWlsbGlzLTEuanMiXSwic291cmNlc0NvbnRlbnQiOlsiXCJ1c2Ugc3RyaWN0XCI7XG5PYmplY3QuZGVmaW5lUHJvcGVydHkoZXhwb3J0cywgXCJfX2VzTW9kdWxlXCIsIHsgdmFsdWU6IHRydWUgfSk7XG5leHBvcnRzLnVwZGF0ZVJlcGVhdGFibGVKb2JNaWxsaXMgPSB2b2lkIDA7XG5jb25zdCBjb250ZW50ID0gYC0tW1tcbiAgQWRkcyBhIHJlcGVhdGFibGUgam9iXG4gICAgSW5wdXQ6XG4gICAgICBLRVlTWzFdICdyZXBlYXQnIGtleVxuICAgICAgQVJHVlsxXSBuZXh0IG1pbGxpc2Vjb25kc1xuICAgICAgQVJHVlsyXSBjdXN0b20ga2V5XG4gICAgICBBUkdWWzNdIGxlZ2FjeSBjdXN0b20ga2V5IFRPRE86IHJlbW92ZSB0aGlzIGxvZ2ljIGluIG5leHQgYnJlYWtpbmcgY2hhbmdlXG4gICAgICBPdXRwdXQ6XG4gICAgICAgIHJlcGVhdGFibGVLZXkgIC0gT0tcbl1dXG5sb2NhbCByY2FsbCA9IHJlZGlzLmNhbGxcbmxvY2FsIHJlcGVhdEtleSA9IEtFWVNbMV1cbmxvY2FsIG5leHRNaWxsaXMgPSBBUkdWWzFdXG5sb2NhbCBjdXN0b21LZXkgPSBBUkdWWzJdXG5sb2NhbCBsZWdhY3lDdXN0b21LZXkgPSBBUkdWWzNdXG5pZiByY2FsbChcIlpTQ09SRVwiLCByZXBlYXRLZXksIGN1c3RvbUtleSkgdGhlblxuICAgIHJjYWxsKFwiWkFERFwiLCByZXBlYXRLZXksIG5leHRNaWxsaXMsIGN1c3RvbUtleSlcbiAgICByZXR1cm4gY3VzdG9tS2V5XG5lbHNlaWYgcmNhbGwoXCJaU0NPUkVcIiwgcmVwZWF0S2V5LCBsZWdhY3lDdXN0b21LZXkpIH49IGZhbHNlIHRoZW5cbiAgICByY2FsbChcIlpBRERcIiwgcmVwZWF0S2V5LCBuZXh0TWlsbGlzLCBsZWdhY3lDdXN0b21LZXkpXG4gICAgcmV0dXJuIGxlZ2FjeUN1c3RvbUtleVxuZW5kXG5yZXR1cm4gJydcbmA7XG5leHBvcnRzLnVwZGF0ZVJlcGVhdGFibGVKb2JNaWxsaXMgPSB7XG4gICAgbmFtZTogJ3VwZGF0ZVJlcGVhdGFibGVKb2JNaWxsaXMnLFxuICAgIGNvbnRlbnQsXG4gICAga2V5czogMSxcbn07XG4vLyMgc291cmNlTWFwcGluZ1VSTD11cGRhdGVSZXBlYXRhYmxlSm9iTWlsbGlzLTEuanMubWFwIl0sInZlcnNpb24iOjN9

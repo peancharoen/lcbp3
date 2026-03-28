@@ -1,0 +1,47 @@
+b9126933dc6e57b212ae49f99aed5f05
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SpanKind = void 0;
+/*
+ * Copyright The OpenTelemetry Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var SpanKind;
+(function (SpanKind) {
+    /** Default value. Indicates that the span is used internally. */
+    SpanKind[SpanKind["INTERNAL"] = 0] = "INTERNAL";
+    /**
+     * Indicates that the span covers server-side handling of an RPC or other
+     * remote request.
+     */
+    SpanKind[SpanKind["SERVER"] = 1] = "SERVER";
+    /**
+     * Indicates that the span covers the client-side wrapper around an RPC or
+     * other remote request.
+     */
+    SpanKind[SpanKind["CLIENT"] = 2] = "CLIENT";
+    /**
+     * Indicates that the span describes producer sending a message to a
+     * broker. Unlike client and server, there is no direct critical path latency
+     * relationship between producer and consumer spans.
+     */
+    SpanKind[SpanKind["PRODUCER"] = 3] = "PRODUCER";
+    /**
+     * Indicates that the span describes consumer receiving a message from a
+     * broker. Unlike client and server, there is no direct critical path latency
+     * relationship between producer and consumer spans.
+     */
+    SpanKind[SpanKind["CONSUMER"] = 4] = "CONSUMER";
+})(SpanKind = exports.SpanKind || (exports.SpanKind = {}));
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBvcGVudGVsZW1ldHJ5K2FwaUAxLjkuMFxcbm9kZV9tb2R1bGVzXFxAb3BlbnRlbGVtZXRyeVxcYXBpXFxidWlsZFxcc3JjXFx0cmFjZVxcc3Bhbl9raW5kLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxRQUFRLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDMUI7Ozs7Ozs7Ozs7Ozs7O0dBY0c7QUFDSCxJQUFJLFFBQVEsQ0FBQztBQUNiLENBQUMsVUFBVSxRQUFRO0lBQ2YsaUVBQWlFO0lBQ2pFLFFBQVEsQ0FBQyxRQUFRLENBQUMsVUFBVSxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsVUFBVSxDQUFDO0lBQ2hEOzs7T0FHRztJQUNILFFBQVEsQ0FBQyxRQUFRLENBQUMsUUFBUSxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsUUFBUSxDQUFDO0lBQzVDOzs7T0FHRztJQUNILFFBQVEsQ0FBQyxRQUFRLENBQUMsUUFBUSxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsUUFBUSxDQUFDO0lBQzVDOzs7O09BSUc7SUFDSCxRQUFRLENBQUMsUUFBUSxDQUFDLFVBQVUsQ0FBQyxHQUFHLENBQUMsQ0FBQyxHQUFHLFVBQVUsQ0FBQztJQUNoRDs7OztPQUlHO0lBQ0gsUUFBUSxDQUFDLFFBQVEsQ0FBQyxVQUFVLENBQUMsR0FBRyxDQUFDLENBQUMsR0FBRyxVQUFVLENBQUM7QUFDcEQsQ0FBQyxDQUFDLENBQUMsUUFBUSxHQUFHLE9BQU8sQ0FBQyxRQUFRLElBQUksQ0FBQyxPQUFPLENBQUMsUUFBUSxHQUFHLEVBQUUsQ0FBQyxDQUFDLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBvcGVudGVsZW1ldHJ5K2FwaUAxLjkuMFxcbm9kZV9tb2R1bGVzXFxAb3BlbnRlbGVtZXRyeVxcYXBpXFxidWlsZFxcc3JjXFx0cmFjZVxcc3Bhbl9raW5kLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5TcGFuS2luZCA9IHZvaWQgMDtcbi8qXG4gKiBDb3B5cmlnaHQgVGhlIE9wZW5UZWxlbWV0cnkgQXV0aG9yc1xuICpcbiAqIExpY2Vuc2VkIHVuZGVyIHRoZSBBcGFjaGUgTGljZW5zZSwgVmVyc2lvbiAyLjAgKHRoZSBcIkxpY2Vuc2VcIik7XG4gKiB5b3UgbWF5IG5vdCB1c2UgdGhpcyBmaWxlIGV4Y2VwdCBpbiBjb21wbGlhbmNlIHdpdGggdGhlIExpY2Vuc2UuXG4gKiBZb3UgbWF5IG9idGFpbiBhIGNvcHkgb2YgdGhlIExpY2Vuc2UgYXRcbiAqXG4gKiAgICAgIGh0dHBzOi8vd3d3LmFwYWNoZS5vcmcvbGljZW5zZXMvTElDRU5TRS0yLjBcbiAqXG4gKiBVbmxlc3MgcmVxdWlyZWQgYnkgYXBwbGljYWJsZSBsYXcgb3IgYWdyZWVkIHRvIGluIHdyaXRpbmcsIHNvZnR3YXJlXG4gKiBkaXN0cmlidXRlZCB1bmRlciB0aGUgTGljZW5zZSBpcyBkaXN0cmlidXRlZCBvbiBhbiBcIkFTIElTXCIgQkFTSVMsXG4gKiBXSVRIT1VUIFdBUlJBTlRJRVMgT1IgQ09ORElUSU9OUyBPRiBBTlkgS0lORCwgZWl0aGVyIGV4cHJlc3Mgb3IgaW1wbGllZC5cbiAqIFNlZSB0aGUgTGljZW5zZSBmb3IgdGhlIHNwZWNpZmljIGxhbmd1YWdlIGdvdmVybmluZyBwZXJtaXNzaW9ucyBhbmRcbiAqIGxpbWl0YXRpb25zIHVuZGVyIHRoZSBMaWNlbnNlLlxuICovXG52YXIgU3BhbktpbmQ7XG4oZnVuY3Rpb24gKFNwYW5LaW5kKSB7XG4gICAgLyoqIERlZmF1bHQgdmFsdWUuIEluZGljYXRlcyB0aGF0IHRoZSBzcGFuIGlzIHVzZWQgaW50ZXJuYWxseS4gKi9cbiAgICBTcGFuS2luZFtTcGFuS2luZFtcIklOVEVSTkFMXCJdID0gMF0gPSBcIklOVEVSTkFMXCI7XG4gICAgLyoqXG4gICAgICogSW5kaWNhdGVzIHRoYXQgdGhlIHNwYW4gY292ZXJzIHNlcnZlci1zaWRlIGhhbmRsaW5nIG9mIGFuIFJQQyBvciBvdGhlclxuICAgICAqIHJlbW90ZSByZXF1ZXN0LlxuICAgICAqL1xuICAgIFNwYW5LaW5kW1NwYW5LaW5kW1wiU0VSVkVSXCJdID0gMV0gPSBcIlNFUlZFUlwiO1xuICAgIC8qKlxuICAgICAqIEluZGljYXRlcyB0aGF0IHRoZSBzcGFuIGNvdmVycyB0aGUgY2xpZW50LXNpZGUgd3JhcHBlciBhcm91bmQgYW4gUlBDIG9yXG4gICAgICogb3RoZXIgcmVtb3RlIHJlcXVlc3QuXG4gICAgICovXG4gICAgU3BhbktpbmRbU3BhbktpbmRbXCJDTElFTlRcIl0gPSAyXSA9IFwiQ0xJRU5UXCI7XG4gICAgLyoqXG4gICAgICogSW5kaWNhdGVzIHRoYXQgdGhlIHNwYW4gZGVzY3JpYmVzIHByb2R1Y2VyIHNlbmRpbmcgYSBtZXNzYWdlIHRvIGFcbiAgICAgKiBicm9rZXIuIFVubGlrZSBjbGllbnQgYW5kIHNlcnZlciwgdGhlcmUgaXMgbm8gZGlyZWN0IGNyaXRpY2FsIHBhdGggbGF0ZW5jeVxuICAgICAqIHJlbGF0aW9uc2hpcCBiZXR3ZWVuIHByb2R1Y2VyIGFuZCBjb25zdW1lciBzcGFucy5cbiAgICAgKi9cbiAgICBTcGFuS2luZFtTcGFuS2luZFtcIlBST0RVQ0VSXCJdID0gM10gPSBcIlBST0RVQ0VSXCI7XG4gICAgLyoqXG4gICAgICogSW5kaWNhdGVzIHRoYXQgdGhlIHNwYW4gZGVzY3JpYmVzIGNvbnN1bWVyIHJlY2VpdmluZyBhIG1lc3NhZ2UgZnJvbSBhXG4gICAgICogYnJva2VyLiBVbmxpa2UgY2xpZW50IGFuZCBzZXJ2ZXIsIHRoZXJlIGlzIG5vIGRpcmVjdCBjcml0aWNhbCBwYXRoIGxhdGVuY3lcbiAgICAgKiByZWxhdGlvbnNoaXAgYmV0d2VlbiBwcm9kdWNlciBhbmQgY29uc3VtZXIgc3BhbnMuXG4gICAgICovXG4gICAgU3BhbktpbmRbU3BhbktpbmRbXCJDT05TVU1FUlwiXSA9IDRdID0gXCJDT05TVU1FUlwiO1xufSkoU3BhbktpbmQgPSBleHBvcnRzLlNwYW5LaW5kIHx8IChleHBvcnRzLlNwYW5LaW5kID0ge30pKTtcbi8vIyBzb3VyY2VNYXBwaW5nVVJMPXNwYW5fa2luZC5qcy5tYXAiXSwidmVyc2lvbiI6M30=

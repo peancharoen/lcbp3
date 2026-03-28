@@ -1,0 +1,44 @@
+9f89951480488d0d2539bde0cde0260a
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SqljsEntityManager = void 0;
+const EntityManager_1 = require("./EntityManager");
+/**
+ * A special EntityManager that includes import/export and load/save function
+ * that are unique to Sql.js.
+ */
+class SqljsEntityManager extends EntityManager_1.EntityManager {
+    // -------------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------------
+    constructor(connection, queryRunner) {
+        super(connection, queryRunner);
+        this["@instanceof"] = Symbol.for("SqljsEntityManager");
+        this.driver = connection.driver;
+    }
+    // -------------------------------------------------------------------------
+    // Public Methods
+    // -------------------------------------------------------------------------
+    /**
+     * Loads either the definition from a file (Node.js) or localstorage (browser)
+     * or uses the given definition to open a new database.
+     */
+    async loadDatabase(fileNameOrLocalStorageOrData) {
+        await this.driver.load(fileNameOrLocalStorageOrData);
+    }
+    /**
+     * Saves the current database to a file (Node.js) or localstorage (browser)
+     * if fileNameOrLocalStorage is not set options.location is used.
+     */
+    async saveDatabase(fileNameOrLocalStorage) {
+        await this.driver.save(fileNameOrLocalStorage);
+    }
+    /**
+     * Returns the current database definition.
+     */
+    exportDatabase() {
+        return this.driver.export();
+    }
+}
+exports.SqljsEntityManager = SqljsEntityManager;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxlbnRpdHktbWFuYWdlclxcU3FsanNFbnRpdHlNYW5hZ2VyLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxrQkFBa0IsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUNwQyxNQUFNLGVBQWUsR0FBRyxPQUFPLENBQUMsaUJBQWlCLENBQUMsQ0FBQztBQUNuRDs7O0dBR0c7QUFDSCxNQUFNLGtCQUFtQixTQUFRLGVBQWUsQ0FBQyxhQUFhO0lBQzFELDRFQUE0RTtJQUM1RSxjQUFjO0lBQ2QsNEVBQTRFO0lBQzVFLFlBQVksVUFBVSxFQUFFLFdBQVc7UUFDL0IsS0FBSyxDQUFDLFVBQVUsRUFBRSxXQUFXLENBQUMsQ0FBQztRQUMvQixJQUFJLENBQUMsYUFBYSxDQUFDLEdBQUcsTUFBTSxDQUFDLEdBQUcsQ0FBQyxvQkFBb0IsQ0FBQyxDQUFDO1FBQ3ZELElBQUksQ0FBQyxNQUFNLEdBQUcsVUFBVSxDQUFDLE1BQU0sQ0FBQztJQUNwQyxDQUFDO0lBQ0QsNEVBQTRFO0lBQzVFLGlCQUFpQjtJQUNqQiw0RUFBNEU7SUFDNUU7OztPQUdHO0lBQ0gsS0FBSyxDQUFDLFlBQVksQ0FBQyw0QkFBNEI7UUFDM0MsTUFBTSxJQUFJLENBQUMsTUFBTSxDQUFDLElBQUksQ0FBQyw0QkFBNEIsQ0FBQyxDQUFDO0lBQ3pELENBQUM7SUFDRDs7O09BR0c7SUFDSCxLQUFLLENBQUMsWUFBWSxDQUFDLHNCQUFzQjtRQUNyQyxNQUFNLElBQUksQ0FBQyxNQUFNLENBQUMsSUFBSSxDQUFDLHNCQUFzQixDQUFDLENBQUM7SUFDbkQsQ0FBQztJQUNEOztPQUVHO0lBQ0gsY0FBYztRQUNWLE9BQU8sSUFBSSxDQUFDLE1BQU0sQ0FBQyxNQUFNLEVBQUUsQ0FBQztJQUNoQyxDQUFDO0NBQ0o7QUFDRCxPQUFPLENBQUMsa0JBQWtCLEdBQUcsa0JBQWtCLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxlbnRpdHktbWFuYWdlclxcU3FsanNFbnRpdHlNYW5hZ2VyLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5TcWxqc0VudGl0eU1hbmFnZXIgPSB2b2lkIDA7XG5jb25zdCBFbnRpdHlNYW5hZ2VyXzEgPSByZXF1aXJlKFwiLi9FbnRpdHlNYW5hZ2VyXCIpO1xuLyoqXG4gKiBBIHNwZWNpYWwgRW50aXR5TWFuYWdlciB0aGF0IGluY2x1ZGVzIGltcG9ydC9leHBvcnQgYW5kIGxvYWQvc2F2ZSBmdW5jdGlvblxuICogdGhhdCBhcmUgdW5pcXVlIHRvIFNxbC5qcy5cbiAqL1xuY2xhc3MgU3FsanNFbnRpdHlNYW5hZ2VyIGV4dGVuZHMgRW50aXR5TWFuYWdlcl8xLkVudGl0eU1hbmFnZXIge1xuICAgIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAgICAvLyBDb25zdHJ1Y3RvclxuICAgIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAgICBjb25zdHJ1Y3Rvcihjb25uZWN0aW9uLCBxdWVyeVJ1bm5lcikge1xuICAgICAgICBzdXBlcihjb25uZWN0aW9uLCBxdWVyeVJ1bm5lcik7XG4gICAgICAgIHRoaXNbXCJAaW5zdGFuY2VvZlwiXSA9IFN5bWJvbC5mb3IoXCJTcWxqc0VudGl0eU1hbmFnZXJcIik7XG4gICAgICAgIHRoaXMuZHJpdmVyID0gY29ubmVjdGlvbi5kcml2ZXI7XG4gICAgfVxuICAgIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAgICAvLyBQdWJsaWMgTWV0aG9kc1xuICAgIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAgICAvKipcbiAgICAgKiBMb2FkcyBlaXRoZXIgdGhlIGRlZmluaXRpb24gZnJvbSBhIGZpbGUgKE5vZGUuanMpIG9yIGxvY2Fsc3RvcmFnZSAoYnJvd3NlcilcbiAgICAgKiBvciB1c2VzIHRoZSBnaXZlbiBkZWZpbml0aW9uIHRvIG9wZW4gYSBuZXcgZGF0YWJhc2UuXG4gICAgICovXG4gICAgYXN5bmMgbG9hZERhdGFiYXNlKGZpbGVOYW1lT3JMb2NhbFN0b3JhZ2VPckRhdGEpIHtcbiAgICAgICAgYXdhaXQgdGhpcy5kcml2ZXIubG9hZChmaWxlTmFtZU9yTG9jYWxTdG9yYWdlT3JEYXRhKTtcbiAgICB9XG4gICAgLyoqXG4gICAgICogU2F2ZXMgdGhlIGN1cnJlbnQgZGF0YWJhc2UgdG8gYSBmaWxlIChOb2RlLmpzKSBvciBsb2NhbHN0b3JhZ2UgKGJyb3dzZXIpXG4gICAgICogaWYgZmlsZU5hbWVPckxvY2FsU3RvcmFnZSBpcyBub3Qgc2V0IG9wdGlvbnMubG9jYXRpb24gaXMgdXNlZC5cbiAgICAgKi9cbiAgICBhc3luYyBzYXZlRGF0YWJhc2UoZmlsZU5hbWVPckxvY2FsU3RvcmFnZSkge1xuICAgICAgICBhd2FpdCB0aGlzLmRyaXZlci5zYXZlKGZpbGVOYW1lT3JMb2NhbFN0b3JhZ2UpO1xuICAgIH1cbiAgICAvKipcbiAgICAgKiBSZXR1cm5zIHRoZSBjdXJyZW50IGRhdGFiYXNlIGRlZmluaXRpb24uXG4gICAgICovXG4gICAgZXhwb3J0RGF0YWJhc2UoKSB7XG4gICAgICAgIHJldHVybiB0aGlzLmRyaXZlci5leHBvcnQoKTtcbiAgICB9XG59XG5leHBvcnRzLlNxbGpzRW50aXR5TWFuYWdlciA9IFNxbGpzRW50aXR5TWFuYWdlcjtcblxuLy8jIHNvdXJjZU1hcHBpbmdVUkw9U3FsanNFbnRpdHlNYW5hZ2VyLmpzLm1hcFxuIl0sInZlcnNpb24iOjN9

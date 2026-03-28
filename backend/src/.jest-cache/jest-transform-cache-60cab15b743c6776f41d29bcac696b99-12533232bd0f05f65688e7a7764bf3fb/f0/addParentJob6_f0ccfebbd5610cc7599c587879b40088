@@ -1,0 +1,442 @@
+8d5ab5e116979f740c77319b575c34eb
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.addParentJob = void 0;
+const content = `--[[
+  Adds a parent job to the queue by doing the following:
+    - Increases the job counter if needed.
+    - Creates a new job key with the job data.
+    - adds the job to the waiting-children zset
+    Input:
+      KEYS[1] 'meta'
+      KEYS[2] 'id'
+      KEYS[3] 'delayed'
+      KEYS[4] 'waiting-children'
+      KEYS[5] 'completed'
+      KEYS[6] events stream key
+      ARGV[1] msgpacked arguments array
+            [1]  key prefix,
+            [2]  custom id (will not generate one automatically)
+            [3]  name
+            [4]  timestamp
+            [5]  parentKey?
+            [6]  parent dependencies key.
+            [7]  parent? {id, queueKey}
+            [8]  repeat job key
+            [9] deduplication key
+      ARGV[2] Json stringified job data
+      ARGV[3] msgpacked options
+      Output:
+        jobId  - OK
+        -5     - Missing parent key
+]]
+local metaKey = KEYS[1]
+local idKey = KEYS[2]
+local completedKey = KEYS[5]
+local eventsKey = KEYS[6]
+local jobId
+local jobIdKey
+local rcall = redis.call
+local args = cmsgpack.unpack(ARGV[1])
+local data = ARGV[2]
+local opts = cmsgpack.unpack(ARGV[3])
+local parentKey = args[5]
+local parent = args[7]
+local repeatJobKey = args[8]
+local deduplicationKey = args[9]
+local parentData
+-- Includes
+--[[
+  Function to debounce a job.
+]]
+-- Includes
+--[[
+  Function to remove job keys.
+]]
+local function removeJobKeys(jobKey)
+  return rcall("DEL", jobKey, jobKey .. ':logs', jobKey .. ':dependencies',
+    jobKey .. ':processed', jobKey .. ':failed', jobKey .. ':unsuccessful')
+end
+local function removeDelayedJob(delayedKey, deduplicationKey, eventsKey, maxEvents, currentDeduplicatedJobId,
+    jobId, deduplicationId, prefix)
+    if rcall("ZREM", delayedKey, currentDeduplicatedJobId) > 0 then
+        removeJobKeys(prefix .. currentDeduplicatedJobId)
+        rcall("XADD", eventsKey, "*", "event", "removed", "jobId", currentDeduplicatedJobId,
+            "prev", "delayed")
+        -- TODO remove debounced event in next breaking change
+        rcall("XADD", eventsKey, "MAXLEN", "~", maxEvents, "*", "event", "debounced", "jobId",
+            jobId, "debounceId", deduplicationId)
+        rcall("XADD", eventsKey, "MAXLEN", "~", maxEvents, "*", "event", "deduplicated", "jobId",
+            jobId, "deduplicationId", deduplicationId, "deduplicatedJobId", currentDeduplicatedJobId)
+        return true
+    end
+    return false
+end
+local function deduplicateJob(deduplicationOpts, jobId, delayedKey, deduplicationKey, eventsKey, maxEvents,
+    prefix)
+    local deduplicationId = deduplicationOpts and deduplicationOpts['id']
+    if deduplicationId then
+        local ttl = deduplicationOpts['ttl']
+        if deduplicationOpts['replace'] then
+            if ttl and ttl > 0 then
+                local currentDebounceJobId = rcall('GET', deduplicationKey)
+                if currentDebounceJobId then
+                    local isRemoved = removeDelayedJob(delayedKey, deduplicationKey, eventsKey, maxEvents,
+                        currentDebounceJobId, jobId, deduplicationId, prefix)
+                    if isRemoved then
+                        if deduplicationOpts['extend'] then
+                            rcall('SET', deduplicationKey, jobId, 'PX', ttl)
+                        else
+                            rcall('SET', deduplicationKey, jobId, 'KEEPTTL')
+                        end
+                        return
+                    else
+                        return currentDebounceJobId
+                    end
+                else
+                    rcall('SET', deduplicationKey, jobId, 'PX', ttl)
+                    return
+                end
+            else
+                local currentDebounceJobId = rcall('GET', deduplicationKey)
+                if currentDebounceJobId then
+                    local isRemoved = removeDelayedJob(delayedKey, deduplicationKey, eventsKey, maxEvents,
+                        currentDebounceJobId, jobId, deduplicationId, prefix)
+                    if isRemoved then
+                        rcall('SET', deduplicationKey, jobId)
+                        return
+                    else
+                        return currentDebounceJobId
+                    end
+                else
+                    rcall('SET', deduplicationKey, jobId)
+                    return
+                end
+            end
+        else
+            local deduplicationKeyExists
+            if ttl and ttl > 0 then
+                if deduplicationOpts['extend'] then
+                    local currentDebounceJobId = rcall('GET', deduplicationKey)
+                    if currentDebounceJobId then
+                        rcall('SET', deduplicationKey, currentDebounceJobId, 'PX', ttl)
+                        rcall("XADD", eventsKey, "MAXLEN", "~", maxEvents, "*", "event", "debounced",
+                            "jobId", currentDebounceJobId, "debounceId", deduplicationId)
+                        rcall("XADD", eventsKey, "MAXLEN", "~", maxEvents, "*", "event", "deduplicated", "jobId",
+                            currentDebounceJobId, "deduplicationId", deduplicationId, "deduplicatedJobId", jobId)
+                        return currentDebounceJobId
+                    else
+                        rcall('SET', deduplicationKey, jobId, 'PX', ttl)
+                        return
+                    end
+                else
+                    deduplicationKeyExists = not rcall('SET', deduplicationKey, jobId, 'PX', ttl, 'NX')
+                end
+            else
+                deduplicationKeyExists = not rcall('SET', deduplicationKey, jobId, 'NX')
+            end
+            if deduplicationKeyExists then
+                local currentDebounceJobId = rcall('GET', deduplicationKey)
+                -- TODO remove debounced event in next breaking change
+                rcall("XADD", eventsKey, "MAXLEN", "~", maxEvents, "*", "event", "debounced", "jobId",
+                    currentDebounceJobId, "debounceId", deduplicationId)
+                rcall("XADD", eventsKey, "MAXLEN", "~", maxEvents, "*", "event", "deduplicated", "jobId",
+                    currentDebounceJobId, "deduplicationId", deduplicationId, "deduplicatedJobId", jobId)
+                return currentDebounceJobId
+            end
+        end
+    end
+end
+--[[
+  Function to get max events value or set by default 10000.
+]]
+local function getOrSetMaxEvents(metaKey)
+  local maxEvents = rcall("HGET", metaKey, "opts.maxLenEvents")
+  if not maxEvents then
+    maxEvents = 10000
+    rcall("HSET", metaKey, "opts.maxLenEvents", maxEvents)
+  end
+  return maxEvents
+end
+--[[
+  Function to handle the case when job is duplicated.
+]]
+-- Includes
+--[[
+    This function is used to update the parent's dependencies if the job
+    is already completed and about to be ignored. The parent must get its
+    dependencies updated to avoid the parent job being stuck forever in 
+    the waiting-children state.
+]]
+-- Includes
+--[[
+  Validate and move or add dependencies to parent.
+]]
+-- Includes
+--[[
+  Validate and move parent to a wait status (waiting, delayed or prioritized)
+  if no pending dependencies.
+]]
+-- Includes
+--[[
+  Validate and move parent to a wait status (waiting, delayed or prioritized) if needed.
+]]
+-- Includes
+--[[
+  Move parent to a wait status (wait, prioritized or delayed)
+]]
+-- Includes
+--[[
+  Add delay marker if needed.
+]]
+-- Includes
+--[[
+  Function to return the next delayed job timestamp.
+]]
+local function getNextDelayedTimestamp(delayedKey)
+  local result = rcall("ZRANGE", delayedKey, 0, 0, "WITHSCORES")
+  if #result then
+    local nextTimestamp = tonumber(result[2])
+    if nextTimestamp ~= nil then
+      return nextTimestamp / 0x1000
+    end
+  end
+end
+local function addDelayMarkerIfNeeded(markerKey, delayedKey)
+  local nextTimestamp = getNextDelayedTimestamp(delayedKey)
+  if nextTimestamp ~= nil then
+    -- Replace the score of the marker with the newest known
+    -- next timestamp.
+    rcall("ZADD", markerKey, nextTimestamp, "1")
+  end
+end
+--[[
+  Function to add job in target list and add marker if needed.
+]]
+-- Includes
+--[[
+  Add marker if needed when a job is available.
+]]
+local function addBaseMarkerIfNeeded(markerKey, isPausedOrMaxed)
+  if not isPausedOrMaxed then
+    rcall("ZADD", markerKey, 0, "0")
+  end  
+end
+local function addJobInTargetList(targetKey, markerKey, pushCmd, isPausedOrMaxed, jobId)
+  rcall(pushCmd, targetKey, jobId)
+  addBaseMarkerIfNeeded(markerKey, isPausedOrMaxed)
+end
+--[[
+  Function to add job considering priority.
+]]
+-- Includes
+--[[
+  Function to get priority score.
+]]
+local function getPriorityScore(priority, priorityCounterKey)
+  local prioCounter = rcall("INCR", priorityCounterKey)
+  return priority * 0x100000000 + prioCounter % 0x100000000
+end
+local function addJobWithPriority(markerKey, prioritizedKey, priority, jobId, priorityCounterKey,
+  isPausedOrMaxed)
+  local score = getPriorityScore(priority, priorityCounterKey)
+  rcall("ZADD", prioritizedKey, score, jobId)
+  addBaseMarkerIfNeeded(markerKey, isPausedOrMaxed)
+end
+--[[
+  Function to check if queue is paused or maxed
+  (since an empty list and !EXISTS are not really the same).
+]]
+local function isQueuePausedOrMaxed(queueMetaKey, activeKey)
+  local queueAttributes = rcall("HMGET", queueMetaKey, "paused", "concurrency")
+  if queueAttributes[1] then
+    return true
+  else
+    if queueAttributes[2] then
+      local activeCount = rcall("LLEN", activeKey)
+      return activeCount >= tonumber(queueAttributes[2])
+    end
+  end
+  return false
+end
+--[[
+  Function to check for the meta.paused key to decide if we are paused or not
+  (since an empty list and !EXISTS are not really the same).
+]]
+local function getTargetQueueList(queueMetaKey, activeKey, waitKey, pausedKey)
+  local queueAttributes = rcall("HMGET", queueMetaKey, "paused", "concurrency", "max", "duration")
+  if queueAttributes[1] then
+    return pausedKey, true, queueAttributes[3], queueAttributes[4]
+  else
+    if queueAttributes[2] then
+      local activeCount = rcall("LLEN", activeKey)
+      if activeCount >= tonumber(queueAttributes[2]) then
+        return waitKey, true, queueAttributes[3], queueAttributes[4]
+      else
+        return waitKey, false, queueAttributes[3], queueAttributes[4]
+      end
+    end
+  end
+  return waitKey, false, queueAttributes[3], queueAttributes[4]
+end
+local function moveParentToWait(parentQueueKey, parentKey, parentId, timestamp)
+    local parentWaitKey = parentQueueKey .. ":wait"
+    local parentPausedKey = parentQueueKey .. ":paused"
+    local parentActiveKey = parentQueueKey .. ":active"
+    local parentMetaKey = parentQueueKey .. ":meta"
+    local parentMarkerKey = parentQueueKey .. ":marker"
+    local jobAttributes = rcall("HMGET", parentKey, "priority", "delay")
+    local priority = tonumber(jobAttributes[1]) or 0
+    local delay = tonumber(jobAttributes[2]) or 0
+    if delay > 0 then
+        local delayedTimestamp = tonumber(timestamp) + delay
+        local score = delayedTimestamp * 0x1000
+        local parentDelayedKey = parentQueueKey .. ":delayed"
+        rcall("ZADD", parentDelayedKey, score, parentId)
+        rcall("XADD", parentQueueKey .. ":events", "*", "event", "delayed", "jobId", parentId, "delay",
+            delayedTimestamp)
+        addDelayMarkerIfNeeded(parentMarkerKey, parentDelayedKey)
+    else
+        if priority == 0 then
+            local parentTarget, isParentPausedOrMaxed = getTargetQueueList(parentMetaKey, parentActiveKey,
+                parentWaitKey, parentPausedKey)
+            addJobInTargetList(parentTarget, parentMarkerKey, "RPUSH", isParentPausedOrMaxed, parentId)
+        else
+            local isPausedOrMaxed = isQueuePausedOrMaxed(parentMetaKey, parentActiveKey)
+            addJobWithPriority(parentMarkerKey, parentQueueKey .. ":prioritized", priority, parentId,
+                parentQueueKey .. ":pc", isPausedOrMaxed)
+        end
+        rcall("XADD", parentQueueKey .. ":events", "*", "event", "waiting", "jobId", parentId, "prev",
+            "waiting-children")
+    end
+end
+local function moveParentToWaitIfNeeded(parentQueueKey, parentKey, parentId, timestamp)
+  if rcall("EXISTS", parentKey) == 1 then
+    local parentWaitingChildrenKey = parentQueueKey .. ":waiting-children"
+    if rcall("ZSCORE", parentWaitingChildrenKey, parentId) then    
+      rcall("ZREM", parentWaitingChildrenKey, parentId)
+      moveParentToWait(parentQueueKey, parentKey, parentId, timestamp)
+    end
+  end
+end
+local function moveParentToWaitIfNoPendingDependencies(parentQueueKey, parentDependenciesKey, parentKey,
+  parentId, timestamp)
+  local doNotHavePendingDependencies = rcall("SCARD", parentDependenciesKey) == 0
+  if doNotHavePendingDependencies then
+    moveParentToWaitIfNeeded(parentQueueKey, parentKey, parentId, timestamp)
+  end
+end
+local function updateParentDepsIfNeeded(parentKey, parentQueueKey, parentDependenciesKey,
+  parentId, jobIdKey, returnvalue, timestamp )
+  local processedSet = parentKey .. ":processed"
+  rcall("HSET", processedSet, jobIdKey, returnvalue)
+  moveParentToWaitIfNoPendingDependencies(parentQueueKey, parentDependenciesKey, parentKey, parentId, timestamp)
+end
+local function updateExistingJobsParent(parentKey, parent, parentData,
+                                        parentDependenciesKey, completedKey,
+                                        jobIdKey, jobId, timestamp)
+    if parentKey ~= nil then
+        if rcall("ZSCORE", completedKey, jobId) then
+            local returnvalue = rcall("HGET", jobIdKey, "returnvalue")
+            updateParentDepsIfNeeded(parentKey, parent['queueKey'],
+                                     parentDependenciesKey, parent['id'],
+                                     jobIdKey, returnvalue, timestamp)
+        else
+            if parentDependenciesKey ~= nil then
+                rcall("SADD", parentDependenciesKey, jobIdKey)
+            end
+        end
+        rcall("HMSET", jobIdKey, "parentKey", parentKey, "parent", parentData)
+    end
+end
+local function handleDuplicatedJob(jobKey, jobId, currentParentKey, currentParent,
+  parentData, parentDependenciesKey, completedKey, eventsKey, maxEvents, timestamp)
+  local existedParentKey = rcall("HGET", jobKey, "parentKey")
+  if not existedParentKey or existedParentKey == currentParentKey then
+    updateExistingJobsParent(currentParentKey, currentParent, parentData,
+      parentDependenciesKey, completedKey, jobKey,
+      jobId, timestamp)
+  else
+    if currentParentKey ~= nil and currentParentKey ~= existedParentKey
+      and (rcall("EXISTS", existedParentKey) == 1) then
+      return -7
+    end
+  end
+  rcall("XADD", eventsKey, "MAXLEN", "~", maxEvents, "*", "event",
+    "duplicated", "jobId", jobId)
+  return jobId .. "" -- convert to string
+end
+--[[
+  Function to store a job
+]]
+local function storeJob(eventsKey, jobIdKey, jobId, name, data, opts, timestamp,
+                        parentKey, parentData, repeatJobKey)
+    local jsonOpts = cjson.encode(opts)
+    local delay = opts['delay'] or 0
+    local priority = opts['priority'] or 0
+    local debounceId = opts['de'] and opts['de']['id']
+    local optionalValues = {}
+    if parentKey ~= nil then
+        table.insert(optionalValues, "parentKey")
+        table.insert(optionalValues, parentKey)
+        table.insert(optionalValues, "parent")
+        table.insert(optionalValues, parentData)
+    end
+    if repeatJobKey then
+        table.insert(optionalValues, "rjk")
+        table.insert(optionalValues, repeatJobKey)
+    end
+    if debounceId then
+        table.insert(optionalValues, "deid")
+        table.insert(optionalValues, debounceId)
+    end
+    rcall("HMSET", jobIdKey, "name", name, "data", data, "opts", jsonOpts,
+          "timestamp", timestamp, "delay", delay, "priority", priority,
+          unpack(optionalValues))
+    rcall("XADD", eventsKey, "*", "event", "added", "jobId", jobId, "name", name)
+    return delay, priority
+end
+if parentKey ~= nil then
+    if rcall("EXISTS", parentKey) ~= 1 then return -5 end
+    parentData = cjson.encode(parent)
+end
+local jobCounter = rcall("INCR", idKey)
+local maxEvents = getOrSetMaxEvents(metaKey)
+local parentDependenciesKey = args[6]
+local timestamp = args[4]
+if args[2] == "" then
+    jobId = jobCounter
+    jobIdKey = args[1] .. jobId
+else
+    jobId = args[2]
+    jobIdKey = args[1] .. jobId
+    if rcall("EXISTS", jobIdKey) == 1 then
+        return handleDuplicatedJob(jobIdKey, jobId, parentKey, parent,
+            parentData, parentDependenciesKey, completedKey, eventsKey,
+            maxEvents, timestamp)
+    end
+end
+local deduplicationJobId = deduplicateJob(opts['de'], jobId, KEYS[3],
+  deduplicationKey, eventsKey, maxEvents, args[1])
+if deduplicationJobId then
+  return deduplicationJobId
+end
+-- Store the job.
+storeJob(eventsKey, jobIdKey, jobId, args[3], ARGV[2], opts, timestamp,
+         parentKey, parentData, repeatJobKey)
+local waitChildrenKey = KEYS[4]
+rcall("ZADD", waitChildrenKey, timestamp, jobId)
+rcall("XADD", eventsKey, "MAXLEN", "~", maxEvents, "*", "event",
+      "waiting-children", "jobId", jobId)
+-- Check if this job is a child of another job, if so add it to the parents dependencies
+if parentDependenciesKey ~= nil then
+    rcall("SADD", parentDependenciesKey, jobIdKey)
+end
+return jobId .. "" -- convert to string
+`;
+exports.addParentJob = {
+    name: 'addParentJob',
+    content,
+    keys: 6,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGFkZFBhcmVudEpvYi02LmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxZQUFZLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDOUIsTUFBTSxPQUFPLEdBQUc7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0NBK2FmLENBQUM7QUFDRixPQUFPLENBQUMsWUFBWSxHQUFHO0lBQ25CLElBQUksRUFBRSxjQUFjO0lBQ3BCLE9BQU87SUFDUCxJQUFJLEVBQUUsQ0FBQztDQUNWLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGFkZFBhcmVudEpvYi02LmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5hZGRQYXJlbnRKb2IgPSB2b2lkIDA7XG5jb25zdCBjb250ZW50ID0gYC0tW1tcbiAgQWRkcyBhIHBhcmVudCBqb2IgdG8gdGhlIHF1ZXVlIGJ5IGRvaW5nIHRoZSBmb2xsb3dpbmc6XG4gICAgLSBJbmNyZWFzZXMgdGhlIGpvYiBjb3VudGVyIGlmIG5lZWRlZC5cbiAgICAtIENyZWF0ZXMgYSBuZXcgam9iIGtleSB3aXRoIHRoZSBqb2IgZGF0YS5cbiAgICAtIGFkZHMgdGhlIGpvYiB0byB0aGUgd2FpdGluZy1jaGlsZHJlbiB6c2V0XG4gICAgSW5wdXQ6XG4gICAgICBLRVlTWzFdICdtZXRhJ1xuICAgICAgS0VZU1syXSAnaWQnXG4gICAgICBLRVlTWzNdICdkZWxheWVkJ1xuICAgICAgS0VZU1s0XSAnd2FpdGluZy1jaGlsZHJlbidcbiAgICAgIEtFWVNbNV0gJ2NvbXBsZXRlZCdcbiAgICAgIEtFWVNbNl0gZXZlbnRzIHN0cmVhbSBrZXlcbiAgICAgIEFSR1ZbMV0gbXNncGFja2VkIGFyZ3VtZW50cyBhcnJheVxuICAgICAgICAgICAgWzFdICBrZXkgcHJlZml4LFxuICAgICAgICAgICAgWzJdICBjdXN0b20gaWQgKHdpbGwgbm90IGdlbmVyYXRlIG9uZSBhdXRvbWF0aWNhbGx5KVxuICAgICAgICAgICAgWzNdICBuYW1lXG4gICAgICAgICAgICBbNF0gIHRpbWVzdGFtcFxuICAgICAgICAgICAgWzVdICBwYXJlbnRLZXk/XG4gICAgICAgICAgICBbNl0gIHBhcmVudCBkZXBlbmRlbmNpZXMga2V5LlxuICAgICAgICAgICAgWzddICBwYXJlbnQ/IHtpZCwgcXVldWVLZXl9XG4gICAgICAgICAgICBbOF0gIHJlcGVhdCBqb2Iga2V5XG4gICAgICAgICAgICBbOV0gZGVkdXBsaWNhdGlvbiBrZXlcbiAgICAgIEFSR1ZbMl0gSnNvbiBzdHJpbmdpZmllZCBqb2IgZGF0YVxuICAgICAgQVJHVlszXSBtc2dwYWNrZWQgb3B0aW9uc1xuICAgICAgT3V0cHV0OlxuICAgICAgICBqb2JJZCAgLSBPS1xuICAgICAgICAtNSAgICAgLSBNaXNzaW5nIHBhcmVudCBrZXlcbl1dXG5sb2NhbCBtZXRhS2V5ID0gS0VZU1sxXVxubG9jYWwgaWRLZXkgPSBLRVlTWzJdXG5sb2NhbCBjb21wbGV0ZWRLZXkgPSBLRVlTWzVdXG5sb2NhbCBldmVudHNLZXkgPSBLRVlTWzZdXG5sb2NhbCBqb2JJZFxubG9jYWwgam9iSWRLZXlcbmxvY2FsIHJjYWxsID0gcmVkaXMuY2FsbFxubG9jYWwgYXJncyA9IGNtc2dwYWNrLnVucGFjayhBUkdWWzFdKVxubG9jYWwgZGF0YSA9IEFSR1ZbMl1cbmxvY2FsIG9wdHMgPSBjbXNncGFjay51bnBhY2soQVJHVlszXSlcbmxvY2FsIHBhcmVudEtleSA9IGFyZ3NbNV1cbmxvY2FsIHBhcmVudCA9IGFyZ3NbN11cbmxvY2FsIHJlcGVhdEpvYktleSA9IGFyZ3NbOF1cbmxvY2FsIGRlZHVwbGljYXRpb25LZXkgPSBhcmdzWzldXG5sb2NhbCBwYXJlbnREYXRhXG4tLSBJbmNsdWRlc1xuLS1bW1xuICBGdW5jdGlvbiB0byBkZWJvdW5jZSBhIGpvYi5cbl1dXG4tLSBJbmNsdWRlc1xuLS1bW1xuICBGdW5jdGlvbiB0byByZW1vdmUgam9iIGtleXMuXG5dXVxubG9jYWwgZnVuY3Rpb24gcmVtb3ZlSm9iS2V5cyhqb2JLZXkpXG4gIHJldHVybiByY2FsbChcIkRFTFwiLCBqb2JLZXksIGpvYktleSAuLiAnOmxvZ3MnLCBqb2JLZXkgLi4gJzpkZXBlbmRlbmNpZXMnLFxuICAgIGpvYktleSAuLiAnOnByb2Nlc3NlZCcsIGpvYktleSAuLiAnOmZhaWxlZCcsIGpvYktleSAuLiAnOnVuc3VjY2Vzc2Z1bCcpXG5lbmRcbmxvY2FsIGZ1bmN0aW9uIHJlbW92ZURlbGF5ZWRKb2IoZGVsYXllZEtleSwgZGVkdXBsaWNhdGlvbktleSwgZXZlbnRzS2V5LCBtYXhFdmVudHMsIGN1cnJlbnREZWR1cGxpY2F0ZWRKb2JJZCxcbiAgICBqb2JJZCwgZGVkdXBsaWNhdGlvbklkLCBwcmVmaXgpXG4gICAgaWYgcmNhbGwoXCJaUkVNXCIsIGRlbGF5ZWRLZXksIGN1cnJlbnREZWR1cGxpY2F0ZWRKb2JJZCkgPiAwIHRoZW5cbiAgICAgICAgcmVtb3ZlSm9iS2V5cyhwcmVmaXggLi4gY3VycmVudERlZHVwbGljYXRlZEpvYklkKVxuICAgICAgICByY2FsbChcIlhBRERcIiwgZXZlbnRzS2V5LCBcIipcIiwgXCJldmVudFwiLCBcInJlbW92ZWRcIiwgXCJqb2JJZFwiLCBjdXJyZW50RGVkdXBsaWNhdGVkSm9iSWQsXG4gICAgICAgICAgICBcInByZXZcIiwgXCJkZWxheWVkXCIpXG4gICAgICAgIC0tIFRPRE8gcmVtb3ZlIGRlYm91bmNlZCBldmVudCBpbiBuZXh0IGJyZWFraW5nIGNoYW5nZVxuICAgICAgICByY2FsbChcIlhBRERcIiwgZXZlbnRzS2V5LCBcIk1BWExFTlwiLCBcIn5cIiwgbWF4RXZlbnRzLCBcIipcIiwgXCJldmVudFwiLCBcImRlYm91bmNlZFwiLCBcImpvYklkXCIsXG4gICAgICAgICAgICBqb2JJZCwgXCJkZWJvdW5jZUlkXCIsIGRlZHVwbGljYXRpb25JZClcbiAgICAgICAgcmNhbGwoXCJYQUREXCIsIGV2ZW50c0tleSwgXCJNQVhMRU5cIiwgXCJ+XCIsIG1heEV2ZW50cywgXCIqXCIsIFwiZXZlbnRcIiwgXCJkZWR1cGxpY2F0ZWRcIiwgXCJqb2JJZFwiLFxuICAgICAgICAgICAgam9iSWQsIFwiZGVkdXBsaWNhdGlvbklkXCIsIGRlZHVwbGljYXRpb25JZCwgXCJkZWR1cGxpY2F0ZWRKb2JJZFwiLCBjdXJyZW50RGVkdXBsaWNhdGVkSm9iSWQpXG4gICAgICAgIHJldHVybiB0cnVlXG4gICAgZW5kXG4gICAgcmV0dXJuIGZhbHNlXG5lbmRcbmxvY2FsIGZ1bmN0aW9uIGRlZHVwbGljYXRlSm9iKGRlZHVwbGljYXRpb25PcHRzLCBqb2JJZCwgZGVsYXllZEtleSwgZGVkdXBsaWNhdGlvbktleSwgZXZlbnRzS2V5LCBtYXhFdmVudHMsXG4gICAgcHJlZml4KVxuICAgIGxvY2FsIGRlZHVwbGljYXRpb25JZCA9IGRlZHVwbGljYXRpb25PcHRzIGFuZCBkZWR1cGxpY2F0aW9uT3B0c1snaWQnXVxuICAgIGlmIGRlZHVwbGljYXRpb25JZCB0aGVuXG4gICAgICAgIGxvY2FsIHR0bCA9IGRlZHVwbGljYXRpb25PcHRzWyd0dGwnXVxuICAgICAgICBpZiBkZWR1cGxpY2F0aW9uT3B0c1sncmVwbGFjZSddIHRoZW5cbiAgICAgICAgICAgIGlmIHR0bCBhbmQgdHRsID4gMCB0aGVuXG4gICAgICAgICAgICAgICAgbG9jYWwgY3VycmVudERlYm91bmNlSm9iSWQgPSByY2FsbCgnR0VUJywgZGVkdXBsaWNhdGlvbktleSlcbiAgICAgICAgICAgICAgICBpZiBjdXJyZW50RGVib3VuY2VKb2JJZCB0aGVuXG4gICAgICAgICAgICAgICAgICAgIGxvY2FsIGlzUmVtb3ZlZCA9IHJlbW92ZURlbGF5ZWRKb2IoZGVsYXllZEtleSwgZGVkdXBsaWNhdGlvbktleSwgZXZlbnRzS2V5LCBtYXhFdmVudHMsXG4gICAgICAgICAgICAgICAgICAgICAgICBjdXJyZW50RGVib3VuY2VKb2JJZCwgam9iSWQsIGRlZHVwbGljYXRpb25JZCwgcHJlZml4KVxuICAgICAgICAgICAgICAgICAgICBpZiBpc1JlbW92ZWQgdGhlblxuICAgICAgICAgICAgICAgICAgICAgICAgaWYgZGVkdXBsaWNhdGlvbk9wdHNbJ2V4dGVuZCddIHRoZW5cbiAgICAgICAgICAgICAgICAgICAgICAgICAgICByY2FsbCgnU0VUJywgZGVkdXBsaWNhdGlvbktleSwgam9iSWQsICdQWCcsIHR0bClcbiAgICAgICAgICAgICAgICAgICAgICAgIGVsc2VcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICByY2FsbCgnU0VUJywgZGVkdXBsaWNhdGlvbktleSwgam9iSWQsICdLRUVQVFRMJylcbiAgICAgICAgICAgICAgICAgICAgICAgIGVuZFxuICAgICAgICAgICAgICAgICAgICAgICAgcmV0dXJuXG4gICAgICAgICAgICAgICAgICAgIGVsc2VcbiAgICAgICAgICAgICAgICAgICAgICAgIHJldHVybiBjdXJyZW50RGVib3VuY2VKb2JJZFxuICAgICAgICAgICAgICAgICAgICBlbmRcbiAgICAgICAgICAgICAgICBlbHNlXG4gICAgICAgICAgICAgICAgICAgIHJjYWxsKCdTRVQnLCBkZWR1cGxpY2F0aW9uS2V5LCBqb2JJZCwgJ1BYJywgdHRsKVxuICAgICAgICAgICAgICAgICAgICByZXR1cm5cbiAgICAgICAgICAgICAgICBlbmRcbiAgICAgICAgICAgIGVsc2VcbiAgICAgICAgICAgICAgICBsb2NhbCBjdXJyZW50RGVib3VuY2VKb2JJZCA9IHJjYWxsKCdHRVQnLCBkZWR1cGxpY2F0aW9uS2V5KVxuICAgICAgICAgICAgICAgIGlmIGN1cnJlbnREZWJvdW5jZUpvYklkIHRoZW5cbiAgICAgICAgICAgICAgICAgICAgbG9jYWwgaXNSZW1vdmVkID0gcmVtb3ZlRGVsYXllZEpvYihkZWxheWVkS2V5LCBkZWR1cGxpY2F0aW9uS2V5LCBldmVudHNLZXksIG1heEV2ZW50cyxcbiAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnREZWJvdW5jZUpvYklkLCBqb2JJZCwgZGVkdXBsaWNhdGlvbklkLCBwcmVmaXgpXG4gICAgICAgICAgICAgICAgICAgIGlmIGlzUmVtb3ZlZCB0aGVuXG4gICAgICAgICAgICAgICAgICAgICAgICByY2FsbCgnU0VUJywgZGVkdXBsaWNhdGlvbktleSwgam9iSWQpXG4gICAgICAgICAgICAgICAgICAgICAgICByZXR1cm5cbiAgICAgICAgICAgICAgICAgICAgZWxzZVxuICAgICAgICAgICAgICAgICAgICAgICAgcmV0dXJuIGN1cnJlbnREZWJvdW5jZUpvYklkXG4gICAgICAgICAgICAgICAgICAgIGVuZFxuICAgICAgICAgICAgICAgIGVsc2VcbiAgICAgICAgICAgICAgICAgICAgcmNhbGwoJ1NFVCcsIGRlZHVwbGljYXRpb25LZXksIGpvYklkKVxuICAgICAgICAgICAgICAgICAgICByZXR1cm5cbiAgICAgICAgICAgICAgICBlbmRcbiAgICAgICAgICAgIGVuZFxuICAgICAgICBlbHNlXG4gICAgICAgICAgICBsb2NhbCBkZWR1cGxpY2F0aW9uS2V5RXhpc3RzXG4gICAgICAgICAgICBpZiB0dGwgYW5kIHR0bCA+IDAgdGhlblxuICAgICAgICAgICAgICAgIGlmIGRlZHVwbGljYXRpb25PcHRzWydleHRlbmQnXSB0aGVuXG4gICAgICAgICAgICAgICAgICAgIGxvY2FsIGN1cnJlbnREZWJvdW5jZUpvYklkID0gcmNhbGwoJ0dFVCcsIGRlZHVwbGljYXRpb25LZXkpXG4gICAgICAgICAgICAgICAgICAgIGlmIGN1cnJlbnREZWJvdW5jZUpvYklkIHRoZW5cbiAgICAgICAgICAgICAgICAgICAgICAgIHJjYWxsKCdTRVQnLCBkZWR1cGxpY2F0aW9uS2V5LCBjdXJyZW50RGVib3VuY2VKb2JJZCwgJ1BYJywgdHRsKVxuICAgICAgICAgICAgICAgICAgICAgICAgcmNhbGwoXCJYQUREXCIsIGV2ZW50c0tleSwgXCJNQVhMRU5cIiwgXCJ+XCIsIG1heEV2ZW50cywgXCIqXCIsIFwiZXZlbnRcIiwgXCJkZWJvdW5jZWRcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcImpvYklkXCIsIGN1cnJlbnREZWJvdW5jZUpvYklkLCBcImRlYm91bmNlSWRcIiwgZGVkdXBsaWNhdGlvbklkKVxuICAgICAgICAgICAgICAgICAgICAgICAgcmNhbGwoXCJYQUREXCIsIGV2ZW50c0tleSwgXCJNQVhMRU5cIiwgXCJ+XCIsIG1heEV2ZW50cywgXCIqXCIsIFwiZXZlbnRcIiwgXCJkZWR1cGxpY2F0ZWRcIiwgXCJqb2JJZFwiLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIGN1cnJlbnREZWJvdW5jZUpvYklkLCBcImRlZHVwbGljYXRpb25JZFwiLCBkZWR1cGxpY2F0aW9uSWQsIFwiZGVkdXBsaWNhdGVkSm9iSWRcIiwgam9iSWQpXG4gICAgICAgICAgICAgICAgICAgICAgICByZXR1cm4gY3VycmVudERlYm91bmNlSm9iSWRcbiAgICAgICAgICAgICAgICAgICAgZWxzZVxuICAgICAgICAgICAgICAgICAgICAgICAgcmNhbGwoJ1NFVCcsIGRlZHVwbGljYXRpb25LZXksIGpvYklkLCAnUFgnLCB0dGwpXG4gICAgICAgICAgICAgICAgICAgICAgICByZXR1cm5cbiAgICAgICAgICAgICAgICAgICAgZW5kXG4gICAgICAgICAgICAgICAgZWxzZVxuICAgICAgICAgICAgICAgICAgICBkZWR1cGxpY2F0aW9uS2V5RXhpc3RzID0gbm90IHJjYWxsKCdTRVQnLCBkZWR1cGxpY2F0aW9uS2V5LCBqb2JJZCwgJ1BYJywgdHRsLCAnTlgnKVxuICAgICAgICAgICAgICAgIGVuZFxuICAgICAgICAgICAgZWxzZVxuICAgICAgICAgICAgICAgIGRlZHVwbGljYXRpb25LZXlFeGlzdHMgPSBub3QgcmNhbGwoJ1NFVCcsIGRlZHVwbGljYXRpb25LZXksIGpvYklkLCAnTlgnKVxuICAgICAgICAgICAgZW5kXG4gICAgICAgICAgICBpZiBkZWR1cGxpY2F0aW9uS2V5RXhpc3RzIHRoZW5cbiAgICAgICAgICAgICAgICBsb2NhbCBjdXJyZW50RGVib3VuY2VKb2JJZCA9IHJjYWxsKCdHRVQnLCBkZWR1cGxpY2F0aW9uS2V5KVxuICAgICAgICAgICAgICAgIC0tIFRPRE8gcmVtb3ZlIGRlYm91bmNlZCBldmVudCBpbiBuZXh0IGJyZWFraW5nIGNoYW5nZVxuICAgICAgICAgICAgICAgIHJjYWxsKFwiWEFERFwiLCBldmVudHNLZXksIFwiTUFYTEVOXCIsIFwiflwiLCBtYXhFdmVudHMsIFwiKlwiLCBcImV2ZW50XCIsIFwiZGVib3VuY2VkXCIsIFwiam9iSWRcIixcbiAgICAgICAgICAgICAgICAgICAgY3VycmVudERlYm91bmNlSm9iSWQsIFwiZGVib3VuY2VJZFwiLCBkZWR1cGxpY2F0aW9uSWQpXG4gICAgICAgICAgICAgICAgcmNhbGwoXCJYQUREXCIsIGV2ZW50c0tleSwgXCJNQVhMRU5cIiwgXCJ+XCIsIG1heEV2ZW50cywgXCIqXCIsIFwiZXZlbnRcIiwgXCJkZWR1cGxpY2F0ZWRcIiwgXCJqb2JJZFwiLFxuICAgICAgICAgICAgICAgICAgICBjdXJyZW50RGVib3VuY2VKb2JJZCwgXCJkZWR1cGxpY2F0aW9uSWRcIiwgZGVkdXBsaWNhdGlvbklkLCBcImRlZHVwbGljYXRlZEpvYklkXCIsIGpvYklkKVxuICAgICAgICAgICAgICAgIHJldHVybiBjdXJyZW50RGVib3VuY2VKb2JJZFxuICAgICAgICAgICAgZW5kXG4gICAgICAgIGVuZFxuICAgIGVuZFxuZW5kXG4tLVtbXG4gIEZ1bmN0aW9uIHRvIGdldCBtYXggZXZlbnRzIHZhbHVlIG9yIHNldCBieSBkZWZhdWx0IDEwMDAwLlxuXV1cbmxvY2FsIGZ1bmN0aW9uIGdldE9yU2V0TWF4RXZlbnRzKG1ldGFLZXkpXG4gIGxvY2FsIG1heEV2ZW50cyA9IHJjYWxsKFwiSEdFVFwiLCBtZXRhS2V5LCBcIm9wdHMubWF4TGVuRXZlbnRzXCIpXG4gIGlmIG5vdCBtYXhFdmVudHMgdGhlblxuICAgIG1heEV2ZW50cyA9IDEwMDAwXG4gICAgcmNhbGwoXCJIU0VUXCIsIG1ldGFLZXksIFwib3B0cy5tYXhMZW5FdmVudHNcIiwgbWF4RXZlbnRzKVxuICBlbmRcbiAgcmV0dXJuIG1heEV2ZW50c1xuZW5kXG4tLVtbXG4gIEZ1bmN0aW9uIHRvIGhhbmRsZSB0aGUgY2FzZSB3aGVuIGpvYiBpcyBkdXBsaWNhdGVkLlxuXV1cbi0tIEluY2x1ZGVzXG4tLVtbXG4gICAgVGhpcyBmdW5jdGlvbiBpcyB1c2VkIHRvIHVwZGF0ZSB0aGUgcGFyZW50J3MgZGVwZW5kZW5jaWVzIGlmIHRoZSBqb2JcbiAgICBpcyBhbHJlYWR5IGNvbXBsZXRlZCBhbmQgYWJvdXQgdG8gYmUgaWdub3JlZC4gVGhlIHBhcmVudCBtdXN0IGdldCBpdHNcbiAgICBkZXBlbmRlbmNpZXMgdXBkYXRlZCB0byBhdm9pZCB0aGUgcGFyZW50IGpvYiBiZWluZyBzdHVjayBmb3JldmVyIGluIFxuICAgIHRoZSB3YWl0aW5nLWNoaWxkcmVuIHN0YXRlLlxuXV1cbi0tIEluY2x1ZGVzXG4tLVtbXG4gIFZhbGlkYXRlIGFuZCBtb3ZlIG9yIGFkZCBkZXBlbmRlbmNpZXMgdG8gcGFyZW50LlxuXV1cbi0tIEluY2x1ZGVzXG4tLVtbXG4gIFZhbGlkYXRlIGFuZCBtb3ZlIHBhcmVudCB0byBhIHdhaXQgc3RhdHVzICh3YWl0aW5nLCBkZWxheWVkIG9yIHByaW9yaXRpemVkKVxuICBpZiBubyBwZW5kaW5nIGRlcGVuZGVuY2llcy5cbl1dXG4tLSBJbmNsdWRlc1xuLS1bW1xuICBWYWxpZGF0ZSBhbmQgbW92ZSBwYXJlbnQgdG8gYSB3YWl0IHN0YXR1cyAod2FpdGluZywgZGVsYXllZCBvciBwcmlvcml0aXplZCkgaWYgbmVlZGVkLlxuXV1cbi0tIEluY2x1ZGVzXG4tLVtbXG4gIE1vdmUgcGFyZW50IHRvIGEgd2FpdCBzdGF0dXMgKHdhaXQsIHByaW9yaXRpemVkIG9yIGRlbGF5ZWQpXG5dXVxuLS0gSW5jbHVkZXNcbi0tW1tcbiAgQWRkIGRlbGF5IG1hcmtlciBpZiBuZWVkZWQuXG5dXVxuLS0gSW5jbHVkZXNcbi0tW1tcbiAgRnVuY3Rpb24gdG8gcmV0dXJuIHRoZSBuZXh0IGRlbGF5ZWQgam9iIHRpbWVzdGFtcC5cbl1dXG5sb2NhbCBmdW5jdGlvbiBnZXROZXh0RGVsYXllZFRpbWVzdGFtcChkZWxheWVkS2V5KVxuICBsb2NhbCByZXN1bHQgPSByY2FsbChcIlpSQU5HRVwiLCBkZWxheWVkS2V5LCAwLCAwLCBcIldJVEhTQ09SRVNcIilcbiAgaWYgI3Jlc3VsdCB0aGVuXG4gICAgbG9jYWwgbmV4dFRpbWVzdGFtcCA9IHRvbnVtYmVyKHJlc3VsdFsyXSlcbiAgICBpZiBuZXh0VGltZXN0YW1wIH49IG5pbCB0aGVuXG4gICAgICByZXR1cm4gbmV4dFRpbWVzdGFtcCAvIDB4MTAwMFxuICAgIGVuZFxuICBlbmRcbmVuZFxubG9jYWwgZnVuY3Rpb24gYWRkRGVsYXlNYXJrZXJJZk5lZWRlZChtYXJrZXJLZXksIGRlbGF5ZWRLZXkpXG4gIGxvY2FsIG5leHRUaW1lc3RhbXAgPSBnZXROZXh0RGVsYXllZFRpbWVzdGFtcChkZWxheWVkS2V5KVxuICBpZiBuZXh0VGltZXN0YW1wIH49IG5pbCB0aGVuXG4gICAgLS0gUmVwbGFjZSB0aGUgc2NvcmUgb2YgdGhlIG1hcmtlciB3aXRoIHRoZSBuZXdlc3Qga25vd25cbiAgICAtLSBuZXh0IHRpbWVzdGFtcC5cbiAgICByY2FsbChcIlpBRERcIiwgbWFya2VyS2V5LCBuZXh0VGltZXN0YW1wLCBcIjFcIilcbiAgZW5kXG5lbmRcbi0tW1tcbiAgRnVuY3Rpb24gdG8gYWRkIGpvYiBpbiB0YXJnZXQgbGlzdCBhbmQgYWRkIG1hcmtlciBpZiBuZWVkZWQuXG5dXVxuLS0gSW5jbHVkZXNcbi0tW1tcbiAgQWRkIG1hcmtlciBpZiBuZWVkZWQgd2hlbiBhIGpvYiBpcyBhdmFpbGFibGUuXG5dXVxubG9jYWwgZnVuY3Rpb24gYWRkQmFzZU1hcmtlcklmTmVlZGVkKG1hcmtlcktleSwgaXNQYXVzZWRPck1heGVkKVxuICBpZiBub3QgaXNQYXVzZWRPck1heGVkIHRoZW5cbiAgICByY2FsbChcIlpBRERcIiwgbWFya2VyS2V5LCAwLCBcIjBcIilcbiAgZW5kICBcbmVuZFxubG9jYWwgZnVuY3Rpb24gYWRkSm9iSW5UYXJnZXRMaXN0KHRhcmdldEtleSwgbWFya2VyS2V5LCBwdXNoQ21kLCBpc1BhdXNlZE9yTWF4ZWQsIGpvYklkKVxuICByY2FsbChwdXNoQ21kLCB0YXJnZXRLZXksIGpvYklkKVxuICBhZGRCYXNlTWFya2VySWZOZWVkZWQobWFya2VyS2V5LCBpc1BhdXNlZE9yTWF4ZWQpXG5lbmRcbi0tW1tcbiAgRnVuY3Rpb24gdG8gYWRkIGpvYiBjb25zaWRlcmluZyBwcmlvcml0eS5cbl1dXG4tLSBJbmNsdWRlc1xuLS1bW1xuICBGdW5jdGlvbiB0byBnZXQgcHJpb3JpdHkgc2NvcmUuXG5dXVxubG9jYWwgZnVuY3Rpb24gZ2V0UHJpb3JpdHlTY29yZShwcmlvcml0eSwgcHJpb3JpdHlDb3VudGVyS2V5KVxuICBsb2NhbCBwcmlvQ291bnRlciA9IHJjYWxsKFwiSU5DUlwiLCBwcmlvcml0eUNvdW50ZXJLZXkpXG4gIHJldHVybiBwcmlvcml0eSAqIDB4MTAwMDAwMDAwICsgcHJpb0NvdW50ZXIgJSAweDEwMDAwMDAwMFxuZW5kXG5sb2NhbCBmdW5jdGlvbiBhZGRKb2JXaXRoUHJpb3JpdHkobWFya2VyS2V5LCBwcmlvcml0aXplZEtleSwgcHJpb3JpdHksIGpvYklkLCBwcmlvcml0eUNvdW50ZXJLZXksXG4gIGlzUGF1c2VkT3JNYXhlZClcbiAgbG9jYWwgc2NvcmUgPSBnZXRQcmlvcml0eVNjb3JlKHByaW9yaXR5LCBwcmlvcml0eUNvdW50ZXJLZXkpXG4gIHJjYWxsKFwiWkFERFwiLCBwcmlvcml0aXplZEtleSwgc2NvcmUsIGpvYklkKVxuICBhZGRCYXNlTWFya2VySWZOZWVkZWQobWFya2VyS2V5LCBpc1BhdXNlZE9yTWF4ZWQpXG5lbmRcbi0tW1tcbiAgRnVuY3Rpb24gdG8gY2hlY2sgaWYgcXVldWUgaXMgcGF1c2VkIG9yIG1heGVkXG4gIChzaW5jZSBhbiBlbXB0eSBsaXN0IGFuZCAhRVhJU1RTIGFyZSBub3QgcmVhbGx5IHRoZSBzYW1lKS5cbl1dXG5sb2NhbCBmdW5jdGlvbiBpc1F1ZXVlUGF1c2VkT3JNYXhlZChxdWV1ZU1ldGFLZXksIGFjdGl2ZUtleSlcbiAgbG9jYWwgcXVldWVBdHRyaWJ1dGVzID0gcmNhbGwoXCJITUdFVFwiLCBxdWV1ZU1ldGFLZXksIFwicGF1c2VkXCIsIFwiY29uY3VycmVuY3lcIilcbiAgaWYgcXVldWVBdHRyaWJ1dGVzWzFdIHRoZW5cbiAgICByZXR1cm4gdHJ1ZVxuICBlbHNlXG4gICAgaWYgcXVldWVBdHRyaWJ1dGVzWzJdIHRoZW5cbiAgICAgIGxvY2FsIGFjdGl2ZUNvdW50ID0gcmNhbGwoXCJMTEVOXCIsIGFjdGl2ZUtleSlcbiAgICAgIHJldHVybiBhY3RpdmVDb3VudCA+PSB0b251bWJlcihxdWV1ZUF0dHJpYnV0ZXNbMl0pXG4gICAgZW5kXG4gIGVuZFxuICByZXR1cm4gZmFsc2VcbmVuZFxuLS1bW1xuICBGdW5jdGlvbiB0byBjaGVjayBmb3IgdGhlIG1ldGEucGF1c2VkIGtleSB0byBkZWNpZGUgaWYgd2UgYXJlIHBhdXNlZCBvciBub3RcbiAgKHNpbmNlIGFuIGVtcHR5IGxpc3QgYW5kICFFWElTVFMgYXJlIG5vdCByZWFsbHkgdGhlIHNhbWUpLlxuXV1cbmxvY2FsIGZ1bmN0aW9uIGdldFRhcmdldFF1ZXVlTGlzdChxdWV1ZU1ldGFLZXksIGFjdGl2ZUtleSwgd2FpdEtleSwgcGF1c2VkS2V5KVxuICBsb2NhbCBxdWV1ZUF0dHJpYnV0ZXMgPSByY2FsbChcIkhNR0VUXCIsIHF1ZXVlTWV0YUtleSwgXCJwYXVzZWRcIiwgXCJjb25jdXJyZW5jeVwiLCBcIm1heFwiLCBcImR1cmF0aW9uXCIpXG4gIGlmIHF1ZXVlQXR0cmlidXRlc1sxXSB0aGVuXG4gICAgcmV0dXJuIHBhdXNlZEtleSwgdHJ1ZSwgcXVldWVBdHRyaWJ1dGVzWzNdLCBxdWV1ZUF0dHJpYnV0ZXNbNF1cbiAgZWxzZVxuICAgIGlmIHF1ZXVlQXR0cmlidXRlc1syXSB0aGVuXG4gICAgICBsb2NhbCBhY3RpdmVDb3VudCA9IHJjYWxsKFwiTExFTlwiLCBhY3RpdmVLZXkpXG4gICAgICBpZiBhY3RpdmVDb3VudCA+PSB0b251bWJlcihxdWV1ZUF0dHJpYnV0ZXNbMl0pIHRoZW5cbiAgICAgICAgcmV0dXJuIHdhaXRLZXksIHRydWUsIHF1ZXVlQXR0cmlidXRlc1szXSwgcXVldWVBdHRyaWJ1dGVzWzRdXG4gICAgICBlbHNlXG4gICAgICAgIHJldHVybiB3YWl0S2V5LCBmYWxzZSwgcXVldWVBdHRyaWJ1dGVzWzNdLCBxdWV1ZUF0dHJpYnV0ZXNbNF1cbiAgICAgIGVuZFxuICAgIGVuZFxuICBlbmRcbiAgcmV0dXJuIHdhaXRLZXksIGZhbHNlLCBxdWV1ZUF0dHJpYnV0ZXNbM10sIHF1ZXVlQXR0cmlidXRlc1s0XVxuZW5kXG5sb2NhbCBmdW5jdGlvbiBtb3ZlUGFyZW50VG9XYWl0KHBhcmVudFF1ZXVlS2V5LCBwYXJlbnRLZXksIHBhcmVudElkLCB0aW1lc3RhbXApXG4gICAgbG9jYWwgcGFyZW50V2FpdEtleSA9IHBhcmVudFF1ZXVlS2V5IC4uIFwiOndhaXRcIlxuICAgIGxvY2FsIHBhcmVudFBhdXNlZEtleSA9IHBhcmVudFF1ZXVlS2V5IC4uIFwiOnBhdXNlZFwiXG4gICAgbG9jYWwgcGFyZW50QWN0aXZlS2V5ID0gcGFyZW50UXVldWVLZXkgLi4gXCI6YWN0aXZlXCJcbiAgICBsb2NhbCBwYXJlbnRNZXRhS2V5ID0gcGFyZW50UXVldWVLZXkgLi4gXCI6bWV0YVwiXG4gICAgbG9jYWwgcGFyZW50TWFya2VyS2V5ID0gcGFyZW50UXVldWVLZXkgLi4gXCI6bWFya2VyXCJcbiAgICBsb2NhbCBqb2JBdHRyaWJ1dGVzID0gcmNhbGwoXCJITUdFVFwiLCBwYXJlbnRLZXksIFwicHJpb3JpdHlcIiwgXCJkZWxheVwiKVxuICAgIGxvY2FsIHByaW9yaXR5ID0gdG9udW1iZXIoam9iQXR0cmlidXRlc1sxXSkgb3IgMFxuICAgIGxvY2FsIGRlbGF5ID0gdG9udW1iZXIoam9iQXR0cmlidXRlc1syXSkgb3IgMFxuICAgIGlmIGRlbGF5ID4gMCB0aGVuXG4gICAgICAgIGxvY2FsIGRlbGF5ZWRUaW1lc3RhbXAgPSB0b251bWJlcih0aW1lc3RhbXApICsgZGVsYXlcbiAgICAgICAgbG9jYWwgc2NvcmUgPSBkZWxheWVkVGltZXN0YW1wICogMHgxMDAwXG4gICAgICAgIGxvY2FsIHBhcmVudERlbGF5ZWRLZXkgPSBwYXJlbnRRdWV1ZUtleSAuLiBcIjpkZWxheWVkXCJcbiAgICAgICAgcmNhbGwoXCJaQUREXCIsIHBhcmVudERlbGF5ZWRLZXksIHNjb3JlLCBwYXJlbnRJZClcbiAgICAgICAgcmNhbGwoXCJYQUREXCIsIHBhcmVudFF1ZXVlS2V5IC4uIFwiOmV2ZW50c1wiLCBcIipcIiwgXCJldmVudFwiLCBcImRlbGF5ZWRcIiwgXCJqb2JJZFwiLCBwYXJlbnRJZCwgXCJkZWxheVwiLFxuICAgICAgICAgICAgZGVsYXllZFRpbWVzdGFtcClcbiAgICAgICAgYWRkRGVsYXlNYXJrZXJJZk5lZWRlZChwYXJlbnRNYXJrZXJLZXksIHBhcmVudERlbGF5ZWRLZXkpXG4gICAgZWxzZVxuICAgICAgICBpZiBwcmlvcml0eSA9PSAwIHRoZW5cbiAgICAgICAgICAgIGxvY2FsIHBhcmVudFRhcmdldCwgaXNQYXJlbnRQYXVzZWRPck1heGVkID0gZ2V0VGFyZ2V0UXVldWVMaXN0KHBhcmVudE1ldGFLZXksIHBhcmVudEFjdGl2ZUtleSxcbiAgICAgICAgICAgICAgICBwYXJlbnRXYWl0S2V5LCBwYXJlbnRQYXVzZWRLZXkpXG4gICAgICAgICAgICBhZGRKb2JJblRhcmdldExpc3QocGFyZW50VGFyZ2V0LCBwYXJlbnRNYXJrZXJLZXksIFwiUlBVU0hcIiwgaXNQYXJlbnRQYXVzZWRPck1heGVkLCBwYXJlbnRJZClcbiAgICAgICAgZWxzZVxuICAgICAgICAgICAgbG9jYWwgaXNQYXVzZWRPck1heGVkID0gaXNRdWV1ZVBhdXNlZE9yTWF4ZWQocGFyZW50TWV0YUtleSwgcGFyZW50QWN0aXZlS2V5KVxuICAgICAgICAgICAgYWRkSm9iV2l0aFByaW9yaXR5KHBhcmVudE1hcmtlcktleSwgcGFyZW50UXVldWVLZXkgLi4gXCI6cHJpb3JpdGl6ZWRcIiwgcHJpb3JpdHksIHBhcmVudElkLFxuICAgICAgICAgICAgICAgIHBhcmVudFF1ZXVlS2V5IC4uIFwiOnBjXCIsIGlzUGF1c2VkT3JNYXhlZClcbiAgICAgICAgZW5kXG4gICAgICAgIHJjYWxsKFwiWEFERFwiLCBwYXJlbnRRdWV1ZUtleSAuLiBcIjpldmVudHNcIiwgXCIqXCIsIFwiZXZlbnRcIiwgXCJ3YWl0aW5nXCIsIFwiam9iSWRcIiwgcGFyZW50SWQsIFwicHJldlwiLFxuICAgICAgICAgICAgXCJ3YWl0aW5nLWNoaWxkcmVuXCIpXG4gICAgZW5kXG5lbmRcbmxvY2FsIGZ1bmN0aW9uIG1vdmVQYXJlbnRUb1dhaXRJZk5lZWRlZChwYXJlbnRRdWV1ZUtleSwgcGFyZW50S2V5LCBwYXJlbnRJZCwgdGltZXN0YW1wKVxuICBpZiByY2FsbChcIkVYSVNUU1wiLCBwYXJlbnRLZXkpID09IDEgdGhlblxuICAgIGxvY2FsIHBhcmVudFdhaXRpbmdDaGlsZHJlbktleSA9IHBhcmVudFF1ZXVlS2V5IC4uIFwiOndhaXRpbmctY2hpbGRyZW5cIlxuICAgIGlmIHJjYWxsKFwiWlNDT1JFXCIsIHBhcmVudFdhaXRpbmdDaGlsZHJlbktleSwgcGFyZW50SWQpIHRoZW4gICAgXG4gICAgICByY2FsbChcIlpSRU1cIiwgcGFyZW50V2FpdGluZ0NoaWxkcmVuS2V5LCBwYXJlbnRJZClcbiAgICAgIG1vdmVQYXJlbnRUb1dhaXQocGFyZW50UXVldWVLZXksIHBhcmVudEtleSwgcGFyZW50SWQsIHRpbWVzdGFtcClcbiAgICBlbmRcbiAgZW5kXG5lbmRcbmxvY2FsIGZ1bmN0aW9uIG1vdmVQYXJlbnRUb1dhaXRJZk5vUGVuZGluZ0RlcGVuZGVuY2llcyhwYXJlbnRRdWV1ZUtleSwgcGFyZW50RGVwZW5kZW5jaWVzS2V5LCBwYXJlbnRLZXksXG4gIHBhcmVudElkLCB0aW1lc3RhbXApXG4gIGxvY2FsIGRvTm90SGF2ZVBlbmRpbmdEZXBlbmRlbmNpZXMgPSByY2FsbChcIlNDQVJEXCIsIHBhcmVudERlcGVuZGVuY2llc0tleSkgPT0gMFxuICBpZiBkb05vdEhhdmVQZW5kaW5nRGVwZW5kZW5jaWVzIHRoZW5cbiAgICBtb3ZlUGFyZW50VG9XYWl0SWZOZWVkZWQocGFyZW50UXVldWVLZXksIHBhcmVudEtleSwgcGFyZW50SWQsIHRpbWVzdGFtcClcbiAgZW5kXG5lbmRcbmxvY2FsIGZ1bmN0aW9uIHVwZGF0ZVBhcmVudERlcHNJZk5lZWRlZChwYXJlbnRLZXksIHBhcmVudFF1ZXVlS2V5LCBwYXJlbnREZXBlbmRlbmNpZXNLZXksXG4gIHBhcmVudElkLCBqb2JJZEtleSwgcmV0dXJudmFsdWUsIHRpbWVzdGFtcCApXG4gIGxvY2FsIHByb2Nlc3NlZFNldCA9IHBhcmVudEtleSAuLiBcIjpwcm9jZXNzZWRcIlxuICByY2FsbChcIkhTRVRcIiwgcHJvY2Vzc2VkU2V0LCBqb2JJZEtleSwgcmV0dXJudmFsdWUpXG4gIG1vdmVQYXJlbnRUb1dhaXRJZk5vUGVuZGluZ0RlcGVuZGVuY2llcyhwYXJlbnRRdWV1ZUtleSwgcGFyZW50RGVwZW5kZW5jaWVzS2V5LCBwYXJlbnRLZXksIHBhcmVudElkLCB0aW1lc3RhbXApXG5lbmRcbmxvY2FsIGZ1bmN0aW9uIHVwZGF0ZUV4aXN0aW5nSm9ic1BhcmVudChwYXJlbnRLZXksIHBhcmVudCwgcGFyZW50RGF0YSxcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwYXJlbnREZXBlbmRlbmNpZXNLZXksIGNvbXBsZXRlZEtleSxcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBqb2JJZEtleSwgam9iSWQsIHRpbWVzdGFtcClcbiAgICBpZiBwYXJlbnRLZXkgfj0gbmlsIHRoZW5cbiAgICAgICAgaWYgcmNhbGwoXCJaU0NPUkVcIiwgY29tcGxldGVkS2V5LCBqb2JJZCkgdGhlblxuICAgICAgICAgICAgbG9jYWwgcmV0dXJudmFsdWUgPSByY2FsbChcIkhHRVRcIiwgam9iSWRLZXksIFwicmV0dXJudmFsdWVcIilcbiAgICAgICAgICAgIHVwZGF0ZVBhcmVudERlcHNJZk5lZWRlZChwYXJlbnRLZXksIHBhcmVudFsncXVldWVLZXknXSxcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBwYXJlbnREZXBlbmRlbmNpZXNLZXksIHBhcmVudFsnaWQnXSxcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBqb2JJZEtleSwgcmV0dXJudmFsdWUsIHRpbWVzdGFtcClcbiAgICAgICAgZWxzZVxuICAgICAgICAgICAgaWYgcGFyZW50RGVwZW5kZW5jaWVzS2V5IH49IG5pbCB0aGVuXG4gICAgICAgICAgICAgICAgcmNhbGwoXCJTQUREXCIsIHBhcmVudERlcGVuZGVuY2llc0tleSwgam9iSWRLZXkpXG4gICAgICAgICAgICBlbmRcbiAgICAgICAgZW5kXG4gICAgICAgIHJjYWxsKFwiSE1TRVRcIiwgam9iSWRLZXksIFwicGFyZW50S2V5XCIsIHBhcmVudEtleSwgXCJwYXJlbnRcIiwgcGFyZW50RGF0YSlcbiAgICBlbmRcbmVuZFxubG9jYWwgZnVuY3Rpb24gaGFuZGxlRHVwbGljYXRlZEpvYihqb2JLZXksIGpvYklkLCBjdXJyZW50UGFyZW50S2V5LCBjdXJyZW50UGFyZW50LFxuICBwYXJlbnREYXRhLCBwYXJlbnREZXBlbmRlbmNpZXNLZXksIGNvbXBsZXRlZEtleSwgZXZlbnRzS2V5LCBtYXhFdmVudHMsIHRpbWVzdGFtcClcbiAgbG9jYWwgZXhpc3RlZFBhcmVudEtleSA9IHJjYWxsKFwiSEdFVFwiLCBqb2JLZXksIFwicGFyZW50S2V5XCIpXG4gIGlmIG5vdCBleGlzdGVkUGFyZW50S2V5IG9yIGV4aXN0ZWRQYXJlbnRLZXkgPT0gY3VycmVudFBhcmVudEtleSB0aGVuXG4gICAgdXBkYXRlRXhpc3RpbmdKb2JzUGFyZW50KGN1cnJlbnRQYXJlbnRLZXksIGN1cnJlbnRQYXJlbnQsIHBhcmVudERhdGEsXG4gICAgICBwYXJlbnREZXBlbmRlbmNpZXNLZXksIGNvbXBsZXRlZEtleSwgam9iS2V5LFxuICAgICAgam9iSWQsIHRpbWVzdGFtcClcbiAgZWxzZVxuICAgIGlmIGN1cnJlbnRQYXJlbnRLZXkgfj0gbmlsIGFuZCBjdXJyZW50UGFyZW50S2V5IH49IGV4aXN0ZWRQYXJlbnRLZXlcbiAgICAgIGFuZCAocmNhbGwoXCJFWElTVFNcIiwgZXhpc3RlZFBhcmVudEtleSkgPT0gMSkgdGhlblxuICAgICAgcmV0dXJuIC03XG4gICAgZW5kXG4gIGVuZFxuICByY2FsbChcIlhBRERcIiwgZXZlbnRzS2V5LCBcIk1BWExFTlwiLCBcIn5cIiwgbWF4RXZlbnRzLCBcIipcIiwgXCJldmVudFwiLFxuICAgIFwiZHVwbGljYXRlZFwiLCBcImpvYklkXCIsIGpvYklkKVxuICByZXR1cm4gam9iSWQgLi4gXCJcIiAtLSBjb252ZXJ0IHRvIHN0cmluZ1xuZW5kXG4tLVtbXG4gIEZ1bmN0aW9uIHRvIHN0b3JlIGEgam9iXG5dXVxubG9jYWwgZnVuY3Rpb24gc3RvcmVKb2IoZXZlbnRzS2V5LCBqb2JJZEtleSwgam9iSWQsIG5hbWUsIGRhdGEsIG9wdHMsIHRpbWVzdGFtcCxcbiAgICAgICAgICAgICAgICAgICAgICAgIHBhcmVudEtleSwgcGFyZW50RGF0YSwgcmVwZWF0Sm9iS2V5KVxuICAgIGxvY2FsIGpzb25PcHRzID0gY2pzb24uZW5jb2RlKG9wdHMpXG4gICAgbG9jYWwgZGVsYXkgPSBvcHRzWydkZWxheSddIG9yIDBcbiAgICBsb2NhbCBwcmlvcml0eSA9IG9wdHNbJ3ByaW9yaXR5J10gb3IgMFxuICAgIGxvY2FsIGRlYm91bmNlSWQgPSBvcHRzWydkZSddIGFuZCBvcHRzWydkZSddWydpZCddXG4gICAgbG9jYWwgb3B0aW9uYWxWYWx1ZXMgPSB7fVxuICAgIGlmIHBhcmVudEtleSB+PSBuaWwgdGhlblxuICAgICAgICB0YWJsZS5pbnNlcnQob3B0aW9uYWxWYWx1ZXMsIFwicGFyZW50S2V5XCIpXG4gICAgICAgIHRhYmxlLmluc2VydChvcHRpb25hbFZhbHVlcywgcGFyZW50S2V5KVxuICAgICAgICB0YWJsZS5pbnNlcnQob3B0aW9uYWxWYWx1ZXMsIFwicGFyZW50XCIpXG4gICAgICAgIHRhYmxlLmluc2VydChvcHRpb25hbFZhbHVlcywgcGFyZW50RGF0YSlcbiAgICBlbmRcbiAgICBpZiByZXBlYXRKb2JLZXkgdGhlblxuICAgICAgICB0YWJsZS5pbnNlcnQob3B0aW9uYWxWYWx1ZXMsIFwicmprXCIpXG4gICAgICAgIHRhYmxlLmluc2VydChvcHRpb25hbFZhbHVlcywgcmVwZWF0Sm9iS2V5KVxuICAgIGVuZFxuICAgIGlmIGRlYm91bmNlSWQgdGhlblxuICAgICAgICB0YWJsZS5pbnNlcnQob3B0aW9uYWxWYWx1ZXMsIFwiZGVpZFwiKVxuICAgICAgICB0YWJsZS5pbnNlcnQob3B0aW9uYWxWYWx1ZXMsIGRlYm91bmNlSWQpXG4gICAgZW5kXG4gICAgcmNhbGwoXCJITVNFVFwiLCBqb2JJZEtleSwgXCJuYW1lXCIsIG5hbWUsIFwiZGF0YVwiLCBkYXRhLCBcIm9wdHNcIiwganNvbk9wdHMsXG4gICAgICAgICAgXCJ0aW1lc3RhbXBcIiwgdGltZXN0YW1wLCBcImRlbGF5XCIsIGRlbGF5LCBcInByaW9yaXR5XCIsIHByaW9yaXR5LFxuICAgICAgICAgIHVucGFjayhvcHRpb25hbFZhbHVlcykpXG4gICAgcmNhbGwoXCJYQUREXCIsIGV2ZW50c0tleSwgXCIqXCIsIFwiZXZlbnRcIiwgXCJhZGRlZFwiLCBcImpvYklkXCIsIGpvYklkLCBcIm5hbWVcIiwgbmFtZSlcbiAgICByZXR1cm4gZGVsYXksIHByaW9yaXR5XG5lbmRcbmlmIHBhcmVudEtleSB+PSBuaWwgdGhlblxuICAgIGlmIHJjYWxsKFwiRVhJU1RTXCIsIHBhcmVudEtleSkgfj0gMSB0aGVuIHJldHVybiAtNSBlbmRcbiAgICBwYXJlbnREYXRhID0gY2pzb24uZW5jb2RlKHBhcmVudClcbmVuZFxubG9jYWwgam9iQ291bnRlciA9IHJjYWxsKFwiSU5DUlwiLCBpZEtleSlcbmxvY2FsIG1heEV2ZW50cyA9IGdldE9yU2V0TWF4RXZlbnRzKG1ldGFLZXkpXG5sb2NhbCBwYXJlbnREZXBlbmRlbmNpZXNLZXkgPSBhcmdzWzZdXG5sb2NhbCB0aW1lc3RhbXAgPSBhcmdzWzRdXG5pZiBhcmdzWzJdID09IFwiXCIgdGhlblxuICAgIGpvYklkID0gam9iQ291bnRlclxuICAgIGpvYklkS2V5ID0gYXJnc1sxXSAuLiBqb2JJZFxuZWxzZVxuICAgIGpvYklkID0gYXJnc1syXVxuICAgIGpvYklkS2V5ID0gYXJnc1sxXSAuLiBqb2JJZFxuICAgIGlmIHJjYWxsKFwiRVhJU1RTXCIsIGpvYklkS2V5KSA9PSAxIHRoZW5cbiAgICAgICAgcmV0dXJuIGhhbmRsZUR1cGxpY2F0ZWRKb2Ioam9iSWRLZXksIGpvYklkLCBwYXJlbnRLZXksIHBhcmVudCxcbiAgICAgICAgICAgIHBhcmVudERhdGEsIHBhcmVudERlcGVuZGVuY2llc0tleSwgY29tcGxldGVkS2V5LCBldmVudHNLZXksXG4gICAgICAgICAgICBtYXhFdmVudHMsIHRpbWVzdGFtcClcbiAgICBlbmRcbmVuZFxubG9jYWwgZGVkdXBsaWNhdGlvbkpvYklkID0gZGVkdXBsaWNhdGVKb2Iob3B0c1snZGUnXSwgam9iSWQsIEtFWVNbM10sXG4gIGRlZHVwbGljYXRpb25LZXksIGV2ZW50c0tleSwgbWF4RXZlbnRzLCBhcmdzWzFdKVxuaWYgZGVkdXBsaWNhdGlvbkpvYklkIHRoZW5cbiAgcmV0dXJuIGRlZHVwbGljYXRpb25Kb2JJZFxuZW5kXG4tLSBTdG9yZSB0aGUgam9iLlxuc3RvcmVKb2IoZXZlbnRzS2V5LCBqb2JJZEtleSwgam9iSWQsIGFyZ3NbM10sIEFSR1ZbMl0sIG9wdHMsIHRpbWVzdGFtcCxcbiAgICAgICAgIHBhcmVudEtleSwgcGFyZW50RGF0YSwgcmVwZWF0Sm9iS2V5KVxubG9jYWwgd2FpdENoaWxkcmVuS2V5ID0gS0VZU1s0XVxucmNhbGwoXCJaQUREXCIsIHdhaXRDaGlsZHJlbktleSwgdGltZXN0YW1wLCBqb2JJZClcbnJjYWxsKFwiWEFERFwiLCBldmVudHNLZXksIFwiTUFYTEVOXCIsIFwiflwiLCBtYXhFdmVudHMsIFwiKlwiLCBcImV2ZW50XCIsXG4gICAgICBcIndhaXRpbmctY2hpbGRyZW5cIiwgXCJqb2JJZFwiLCBqb2JJZClcbi0tIENoZWNrIGlmIHRoaXMgam9iIGlzIGEgY2hpbGQgb2YgYW5vdGhlciBqb2IsIGlmIHNvIGFkZCBpdCB0byB0aGUgcGFyZW50cyBkZXBlbmRlbmNpZXNcbmlmIHBhcmVudERlcGVuZGVuY2llc0tleSB+PSBuaWwgdGhlblxuICAgIHJjYWxsKFwiU0FERFwiLCBwYXJlbnREZXBlbmRlbmNpZXNLZXksIGpvYklkS2V5KVxuZW5kXG5yZXR1cm4gam9iSWQgLi4gXCJcIiAtLSBjb252ZXJ0IHRvIHN0cmluZ1xuYDtcbmV4cG9ydHMuYWRkUGFyZW50Sm9iID0ge1xuICAgIG5hbWU6ICdhZGRQYXJlbnRKb2InLFxuICAgIGNvbnRlbnQsXG4gICAga2V5czogNixcbn07XG4vLyMgc291cmNlTWFwcGluZ1VSTD1hZGRQYXJlbnRKb2ItNi5qcy5tYXAiXSwidmVyc2lvbiI6M30=

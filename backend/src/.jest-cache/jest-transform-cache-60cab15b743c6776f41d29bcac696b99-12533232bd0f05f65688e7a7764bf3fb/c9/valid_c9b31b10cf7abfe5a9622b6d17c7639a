@@ -1,0 +1,15 @@
+ed61fff0d95ea1504d852751f9c35b17
+'use strict';
+const Range = require('../classes/range');
+const validRange = (range, options) => {
+    try {
+        // Return '*' instead of '' so that truthiness works.
+        // This will throw if it's invalid anyway
+        return new Range(range, options).range || '*';
+    }
+    catch (er) {
+        return null;
+    }
+};
+module.exports = validRange;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHNlbXZlckA3LjcuM1xcbm9kZV9tb2R1bGVzXFxzZW12ZXJcXHJhbmdlc1xcdmFsaWQuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFBO0FBRVosTUFBTSxLQUFLLEdBQUcsT0FBTyxDQUFDLGtCQUFrQixDQUFDLENBQUE7QUFDekMsTUFBTSxVQUFVLEdBQUcsQ0FBQyxLQUFLLEVBQUUsT0FBTyxFQUFFLEVBQUU7SUFDcEMsSUFBSSxDQUFDO1FBQ0gscURBQXFEO1FBQ3JELHlDQUF5QztRQUN6QyxPQUFPLElBQUksS0FBSyxDQUFDLEtBQUssRUFBRSxPQUFPLENBQUMsQ0FBQyxLQUFLLElBQUksR0FBRyxDQUFBO0lBQy9DLENBQUM7SUFBQyxPQUFPLEVBQUUsRUFBRSxDQUFDO1FBQ1osT0FBTyxJQUFJLENBQUE7SUFDYixDQUFDO0FBQ0gsQ0FBQyxDQUFBO0FBQ0QsTUFBTSxDQUFDLE9BQU8sR0FBRyxVQUFVLENBQUEiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHNlbXZlckA3LjcuM1xcbm9kZV9tb2R1bGVzXFxzZW12ZXJcXHJhbmdlc1xcdmFsaWQuanMiXSwic291cmNlc0NvbnRlbnQiOlsiJ3VzZSBzdHJpY3QnXG5cbmNvbnN0IFJhbmdlID0gcmVxdWlyZSgnLi4vY2xhc3Nlcy9yYW5nZScpXG5jb25zdCB2YWxpZFJhbmdlID0gKHJhbmdlLCBvcHRpb25zKSA9PiB7XG4gIHRyeSB7XG4gICAgLy8gUmV0dXJuICcqJyBpbnN0ZWFkIG9mICcnIHNvIHRoYXQgdHJ1dGhpbmVzcyB3b3Jrcy5cbiAgICAvLyBUaGlzIHdpbGwgdGhyb3cgaWYgaXQncyBpbnZhbGlkIGFueXdheVxuICAgIHJldHVybiBuZXcgUmFuZ2UocmFuZ2UsIG9wdGlvbnMpLnJhbmdlIHx8ICcqJ1xuICB9IGNhdGNoIChlcikge1xuICAgIHJldHVybiBudWxsXG4gIH1cbn1cbm1vZHVsZS5leHBvcnRzID0gdmFsaWRSYW5nZVxuIl0sInZlcnNpb24iOjN9

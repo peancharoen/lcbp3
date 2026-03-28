@@ -1,0 +1,68 @@
+7c4ce8c39046254f61048d835ecdb8f7
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.pause = void 0;
+const content = `--[[
+  Pauses or resumes a queue globably.
+  Input:
+    KEYS[1] 'wait' or 'paused''
+    KEYS[2] 'paused' or 'wait'
+    KEYS[3] 'meta'
+    KEYS[4] 'prioritized'
+    KEYS[5] events stream key
+    KEYS[6] 'delayed'
+    KEYS|7] 'marker'
+    ARGV[1] 'paused' or 'resumed'
+  Event:
+    publish paused or resumed event.
+]]
+local rcall = redis.call
+-- Includes
+--[[
+  Add delay marker if needed.
+]]
+-- Includes
+--[[
+  Function to return the next delayed job timestamp.
+]]
+local function getNextDelayedTimestamp(delayedKey)
+  local result = rcall("ZRANGE", delayedKey, 0, 0, "WITHSCORES")
+  if #result then
+    local nextTimestamp = tonumber(result[2])
+    if nextTimestamp ~= nil then
+      return nextTimestamp / 0x1000
+    end
+  end
+end
+local function addDelayMarkerIfNeeded(markerKey, delayedKey)
+  local nextTimestamp = getNextDelayedTimestamp(delayedKey)
+  if nextTimestamp ~= nil then
+    -- Replace the score of the marker with the newest known
+    -- next timestamp.
+    rcall("ZADD", markerKey, nextTimestamp, "1")
+  end
+end
+local markerKey = KEYS[7]
+local hasJobs = rcall("EXISTS", KEYS[1]) == 1
+--TODO: check this logic to be reused when changing a delay
+if hasJobs then rcall("RENAME", KEYS[1], KEYS[2]) end
+if ARGV[1] == "paused" then
+    rcall("HSET", KEYS[3], "paused", 1)
+    rcall("DEL", markerKey)
+else
+    rcall("HDEL", KEYS[3], "paused")
+    if hasJobs or rcall("ZCARD", KEYS[4]) > 0 then
+        -- Add marker if there are waiting or priority jobs
+        rcall("ZADD", markerKey, 0, "0")
+    else
+        addDelayMarkerIfNeeded(markerKey, KEYS[6])
+    end
+end
+rcall("XADD", KEYS[5], "*", "event", ARGV[1]);
+`;
+exports.pause = {
+    name: 'pause',
+    content,
+    keys: 7,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHBhdXNlLTcuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2IsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLEtBQUssR0FBRyxLQUFLLENBQUMsQ0FBQztBQUN2QixNQUFNLE9BQU8sR0FBRzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0NBeURmLENBQUM7QUFDRixPQUFPLENBQUMsS0FBSyxHQUFHO0lBQ1osSUFBSSxFQUFFLE9BQU87SUFDYixPQUFPO0lBQ1AsSUFBSSxFQUFFLENBQUM7Q0FDVixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxidWxsbXFANS42NS4wXFxub2RlX21vZHVsZXNcXGJ1bGxtcVxcZGlzdFxcY2pzXFxzY3JpcHRzXFxwYXVzZS03LmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5wYXVzZSA9IHZvaWQgMDtcbmNvbnN0IGNvbnRlbnQgPSBgLS1bW1xuICBQYXVzZXMgb3IgcmVzdW1lcyBhIHF1ZXVlIGdsb2JhYmx5LlxuICBJbnB1dDpcbiAgICBLRVlTWzFdICd3YWl0JyBvciAncGF1c2VkJydcbiAgICBLRVlTWzJdICdwYXVzZWQnIG9yICd3YWl0J1xuICAgIEtFWVNbM10gJ21ldGEnXG4gICAgS0VZU1s0XSAncHJpb3JpdGl6ZWQnXG4gICAgS0VZU1s1XSBldmVudHMgc3RyZWFtIGtleVxuICAgIEtFWVNbNl0gJ2RlbGF5ZWQnXG4gICAgS0VZU3w3XSAnbWFya2VyJ1xuICAgIEFSR1ZbMV0gJ3BhdXNlZCcgb3IgJ3Jlc3VtZWQnXG4gIEV2ZW50OlxuICAgIHB1Ymxpc2ggcGF1c2VkIG9yIHJlc3VtZWQgZXZlbnQuXG5dXVxubG9jYWwgcmNhbGwgPSByZWRpcy5jYWxsXG4tLSBJbmNsdWRlc1xuLS1bW1xuICBBZGQgZGVsYXkgbWFya2VyIGlmIG5lZWRlZC5cbl1dXG4tLSBJbmNsdWRlc1xuLS1bW1xuICBGdW5jdGlvbiB0byByZXR1cm4gdGhlIG5leHQgZGVsYXllZCBqb2IgdGltZXN0YW1wLlxuXV1cbmxvY2FsIGZ1bmN0aW9uIGdldE5leHREZWxheWVkVGltZXN0YW1wKGRlbGF5ZWRLZXkpXG4gIGxvY2FsIHJlc3VsdCA9IHJjYWxsKFwiWlJBTkdFXCIsIGRlbGF5ZWRLZXksIDAsIDAsIFwiV0lUSFNDT1JFU1wiKVxuICBpZiAjcmVzdWx0IHRoZW5cbiAgICBsb2NhbCBuZXh0VGltZXN0YW1wID0gdG9udW1iZXIocmVzdWx0WzJdKVxuICAgIGlmIG5leHRUaW1lc3RhbXAgfj0gbmlsIHRoZW5cbiAgICAgIHJldHVybiBuZXh0VGltZXN0YW1wIC8gMHgxMDAwXG4gICAgZW5kXG4gIGVuZFxuZW5kXG5sb2NhbCBmdW5jdGlvbiBhZGREZWxheU1hcmtlcklmTmVlZGVkKG1hcmtlcktleSwgZGVsYXllZEtleSlcbiAgbG9jYWwgbmV4dFRpbWVzdGFtcCA9IGdldE5leHREZWxheWVkVGltZXN0YW1wKGRlbGF5ZWRLZXkpXG4gIGlmIG5leHRUaW1lc3RhbXAgfj0gbmlsIHRoZW5cbiAgICAtLSBSZXBsYWNlIHRoZSBzY29yZSBvZiB0aGUgbWFya2VyIHdpdGggdGhlIG5ld2VzdCBrbm93blxuICAgIC0tIG5leHQgdGltZXN0YW1wLlxuICAgIHJjYWxsKFwiWkFERFwiLCBtYXJrZXJLZXksIG5leHRUaW1lc3RhbXAsIFwiMVwiKVxuICBlbmRcbmVuZFxubG9jYWwgbWFya2VyS2V5ID0gS0VZU1s3XVxubG9jYWwgaGFzSm9icyA9IHJjYWxsKFwiRVhJU1RTXCIsIEtFWVNbMV0pID09IDFcbi0tVE9ETzogY2hlY2sgdGhpcyBsb2dpYyB0byBiZSByZXVzZWQgd2hlbiBjaGFuZ2luZyBhIGRlbGF5XG5pZiBoYXNKb2JzIHRoZW4gcmNhbGwoXCJSRU5BTUVcIiwgS0VZU1sxXSwgS0VZU1syXSkgZW5kXG5pZiBBUkdWWzFdID09IFwicGF1c2VkXCIgdGhlblxuICAgIHJjYWxsKFwiSFNFVFwiLCBLRVlTWzNdLCBcInBhdXNlZFwiLCAxKVxuICAgIHJjYWxsKFwiREVMXCIsIG1hcmtlcktleSlcbmVsc2VcbiAgICByY2FsbChcIkhERUxcIiwgS0VZU1szXSwgXCJwYXVzZWRcIilcbiAgICBpZiBoYXNKb2JzIG9yIHJjYWxsKFwiWkNBUkRcIiwgS0VZU1s0XSkgPiAwIHRoZW5cbiAgICAgICAgLS0gQWRkIG1hcmtlciBpZiB0aGVyZSBhcmUgd2FpdGluZyBvciBwcmlvcml0eSBqb2JzXG4gICAgICAgIHJjYWxsKFwiWkFERFwiLCBtYXJrZXJLZXksIDAsIFwiMFwiKVxuICAgIGVsc2VcbiAgICAgICAgYWRkRGVsYXlNYXJrZXJJZk5lZWRlZChtYXJrZXJLZXksIEtFWVNbNl0pXG4gICAgZW5kXG5lbmRcbnJjYWxsKFwiWEFERFwiLCBLRVlTWzVdLCBcIipcIiwgXCJldmVudFwiLCBBUkdWWzFdKTtcbmA7XG5leHBvcnRzLnBhdXNlID0ge1xuICAgIG5hbWU6ICdwYXVzZScsXG4gICAgY29udGVudCxcbiAgICBrZXlzOiA3LFxufTtcbi8vIyBzb3VyY2VNYXBwaW5nVVJMPXBhdXNlLTcuanMubWFwIl0sInZlcnNpb24iOjN9

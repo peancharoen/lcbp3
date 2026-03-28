@@ -1,0 +1,127 @@
+d70af9177c8efcdb11bac459bcd7eea7
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d, _e;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ShopDrawingRevision = void 0;
+const typeorm_1 = require("typeorm");
+const shop_drawing_entity_1 = require("./shop-drawing.entity");
+const contract_drawing_entity_1 = require("./contract-drawing.entity");
+const attachment_entity_1 = require("../../../common/file-storage/entities/attachment.entity");
+const user_entity_1 = require("../../user/entities/user.entity");
+const uuid_base_entity_1 = require("../../../common/entities/uuid-base.entity");
+const class_transformer_1 = require("class-transformer");
+let ShopDrawingRevision = class ShopDrawingRevision extends uuid_base_entity_1.UuidBaseEntity {
+};
+exports.ShopDrawingRevision = ShopDrawingRevision;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    (0, class_transformer_1.Exclude)(),
+    __metadata("design:type", Number)
+], ShopDrawingRevision.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'shop_drawing_id' }),
+    __metadata("design:type", Number)
+], ShopDrawingRevision.prototype, "shopDrawingId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'revision_number' }),
+    __metadata("design:type", Number)
+], ShopDrawingRevision.prototype, "revisionNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'title', length: 255 }),
+    __metadata("design:type", String)
+], ShopDrawingRevision.prototype, "title", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'legacy_drawing_number', length: 100, nullable: true }),
+    __metadata("design:type", String)
+], ShopDrawingRevision.prototype, "legacyDrawingNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'revision_label', length: 10, nullable: true }),
+    __metadata("design:type", String)
+], ShopDrawingRevision.prototype, "revisionLabel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'revision_date', type: 'date', nullable: true }),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], ShopDrawingRevision.prototype, "revisionDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], ShopDrawingRevision.prototype, "description", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], ShopDrawingRevision.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'is_current',
+        type: 'boolean',
+        nullable: true,
+        default: null,
+    }),
+    __metadata("design:type", Object)
+], ShopDrawingRevision.prototype, "isCurrent", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'created_by', nullable: true }),
+    __metadata("design:type", Number)
+], ShopDrawingRevision.prototype, "createdBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'updated_by', nullable: true }),
+    __metadata("design:type", Number)
+], ShopDrawingRevision.prototype, "updatedBy", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => shop_drawing_entity_1.ShopDrawing, (shopDrawing) => shopDrawing.revisions, {
+        onDelete: 'CASCADE',
+    }),
+    (0, typeorm_1.JoinColumn)({ name: 'shop_drawing_id' }),
+    __metadata("design:type", typeof (_c = typeof shop_drawing_entity_1.ShopDrawing !== "undefined" && shop_drawing_entity_1.ShopDrawing) === "function" ? _c : Object)
+], ShopDrawingRevision.prototype, "shopDrawing", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User),
+    (0, typeorm_1.JoinColumn)({ name: 'created_by' }),
+    __metadata("design:type", typeof (_d = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _d : Object)
+], ShopDrawingRevision.prototype, "creator", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User),
+    (0, typeorm_1.JoinColumn)({ name: 'updated_by' }),
+    __metadata("design:type", typeof (_e = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _e : Object)
+], ShopDrawingRevision.prototype, "updater", void 0);
+__decorate([
+    (0, typeorm_1.ManyToMany)(() => contract_drawing_entity_1.ContractDrawing),
+    (0, typeorm_1.JoinTable)({
+        name: 'shop_drawing_revision_contract_refs',
+        joinColumn: {
+            name: 'shop_drawing_revision_id',
+            referencedColumnName: 'id',
+        },
+        inverseJoinColumn: {
+            name: 'contract_drawing_id',
+            referencedColumnName: 'id',
+        },
+    }),
+    __metadata("design:type", Array)
+], ShopDrawingRevision.prototype, "contractDrawings", void 0);
+__decorate([
+    (0, typeorm_1.ManyToMany)(() => attachment_entity_1.Attachment),
+    (0, typeorm_1.JoinTable)({
+        name: 'shop_drawing_revision_attachments',
+        joinColumn: {
+            name: 'shop_drawing_revision_id',
+            referencedColumnName: 'id',
+        },
+        inverseJoinColumn: { name: 'attachment_id', referencedColumnName: 'id' },
+    }),
+    __metadata("design:type", Array)
+], ShopDrawingRevision.prototype, "attachments", void 0);
+exports.ShopDrawingRevision = ShopDrawingRevision = __decorate([
+    (0, typeorm_1.Entity)('shop_drawing_revisions'),
+    (0, typeorm_1.Unique)(['shopDrawingId', 'isCurrent'])
+], ShopDrawingRevision);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcZHJhd2luZ1xcZW50aXRpZXNcXHNob3AtZHJhd2luZy1yZXZpc2lvbi5lbnRpdHkudHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQUFBLHFDQVVpQjtBQUNqQiwrREFBb0Q7QUFDcEQsdUVBQTREO0FBQzVELCtGQUFxRjtBQUNyRixpRUFBdUQ7QUFDdkQsZ0ZBQTJFO0FBQzNFLHlEQUE0QztBQUlyQyxJQUFNLG1CQUFtQixHQUF6QixNQUFNLG1CQUFvQixTQUFRLGlDQUFjO0NBb0Z0RCxDQUFBO0FBcEZZLGtEQUFtQjtBQUc5QjtJQUZDLElBQUEsZ0NBQXNCLEdBQUU7SUFDeEIsSUFBQSwyQkFBTyxHQUFFOzsrQ0FDRTtBQUdaO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGlCQUFpQixFQUFFLENBQUM7OzBEQUNiO0FBR3ZCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGlCQUFpQixFQUFFLENBQUM7OzJEQUNaO0FBR3hCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLE9BQU8sRUFBRSxNQUFNLEVBQUUsR0FBRyxFQUFFLENBQUM7O2tEQUN4QjtBQUdmO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLHVCQUF1QixFQUFFLE1BQU0sRUFBRSxHQUFHLEVBQUUsUUFBUSxFQUFFLElBQUksRUFBRSxDQUFDOztnRUFDMUM7QUFHN0I7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsZ0JBQWdCLEVBQUUsTUFBTSxFQUFFLEVBQUUsRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7OzBEQUN4QztBQUd2QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxlQUFlLEVBQUUsSUFBSSxFQUFFLE1BQU0sRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7a0RBQ2pELElBQUksb0JBQUosSUFBSTt5REFBQztBQUdwQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxNQUFNLEVBQUUsUUFBUSxFQUFFLElBQUksRUFBRSxDQUFDOzt3REFDcEI7QUFHckI7SUFEQyxJQUFBLDBCQUFnQixFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUM3QixJQUFJLG9CQUFKLElBQUk7c0RBQUM7QUFRakI7SUFOQyxJQUFBLGdCQUFNLEVBQUM7UUFDTixJQUFJLEVBQUUsWUFBWTtRQUNsQixJQUFJLEVBQUUsU0FBUztRQUNmLFFBQVEsRUFBRSxJQUFJO1FBQ2QsT0FBTyxFQUFFLElBQUk7S0FDZCxDQUFDOztzREFDeUI7QUFHM0I7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLFFBQVEsRUFBRSxJQUFJLEVBQUUsQ0FBQzs7c0RBQzVCO0FBR25CO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7O3NEQUM1QjtBQU9uQjtJQUpDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQyxpQ0FBVyxFQUFFLENBQUMsV0FBVyxFQUFFLEVBQUUsQ0FBQyxXQUFXLENBQUMsU0FBUyxFQUFFO1FBQ3BFLFFBQVEsRUFBRSxTQUFTO0tBQ3BCLENBQUM7SUFDRCxJQUFBLG9CQUFVLEVBQUMsRUFBRSxJQUFJLEVBQUUsaUJBQWlCLEVBQUUsQ0FBQztrREFDMUIsaUNBQVcsb0JBQVgsaUNBQVc7d0RBQUM7QUFJMUI7SUFGQyxJQUFBLG1CQUFTLEVBQUMsR0FBRyxFQUFFLENBQUMsa0JBQUksQ0FBQztJQUNyQixJQUFBLG9CQUFVLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQ3pCLGtCQUFJLG9CQUFKLGtCQUFJO29EQUFDO0FBSWY7SUFGQyxJQUFBLG1CQUFTLEVBQUMsR0FBRyxFQUFFLENBQUMsa0JBQUksQ0FBQztJQUNyQixJQUFBLG9CQUFVLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQ3pCLGtCQUFJLG9CQUFKLGtCQUFJO29EQUFDO0FBZWY7SUFaQyxJQUFBLG9CQUFVLEVBQUMsR0FBRyxFQUFFLENBQUMseUNBQWUsQ0FBQztJQUNqQyxJQUFBLG1CQUFTLEVBQUM7UUFDVCxJQUFJLEVBQUUscUNBQXFDO1FBQzNDLFVBQVUsRUFBRTtZQUNWLElBQUksRUFBRSwwQkFBMEI7WUFDaEMsb0JBQW9CLEVBQUUsSUFBSTtTQUMzQjtRQUNELGlCQUFpQixFQUFFO1lBQ2pCLElBQUksRUFBRSxxQkFBcUI7WUFDM0Isb0JBQW9CLEVBQUUsSUFBSTtTQUMzQjtLQUNGLENBQUM7OzZEQUNtQztBQVlyQztJQVRDLElBQUEsb0JBQVUsRUFBQyxHQUFHLEVBQUUsQ0FBQyw4QkFBVSxDQUFDO0lBQzVCLElBQUEsbUJBQVMsRUFBQztRQUNULElBQUksRUFBRSxtQ0FBbUM7UUFDekMsVUFBVSxFQUFFO1lBQ1YsSUFBSSxFQUFFLDBCQUEwQjtZQUNoQyxvQkFBb0IsRUFBRSxJQUFJO1NBQzNCO1FBQ0QsaUJBQWlCLEVBQUUsRUFBRSxJQUFJLEVBQUUsZUFBZSxFQUFFLG9CQUFvQixFQUFFLElBQUksRUFBRTtLQUN6RSxDQUFDOzt3REFDeUI7OEJBbkZoQixtQkFBbUI7SUFGL0IsSUFBQSxnQkFBTSxFQUFDLHdCQUF3QixDQUFDO0lBQ2hDLElBQUEsZ0JBQU0sRUFBQyxDQUFDLGVBQWUsRUFBRSxXQUFXLENBQUMsQ0FBQztHQUMxQixtQkFBbUIsQ0FvRi9CIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXGRyYXdpbmdcXGVudGl0aWVzXFxzaG9wLWRyYXdpbmctcmV2aXNpb24uZW50aXR5LnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7XHJcbiAgRW50aXR5LFxyXG4gIFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4sXHJcbiAgQ29sdW1uLFxyXG4gIENyZWF0ZURhdGVDb2x1bW4sXHJcbiAgTWFueVRvT25lLFxyXG4gIEpvaW5Db2x1bW4sXHJcbiAgTWFueVRvTWFueSxcclxuICBKb2luVGFibGUsXHJcbiAgVW5pcXVlLFxyXG59IGZyb20gJ3R5cGVvcm0nO1xyXG5pbXBvcnQgeyBTaG9wRHJhd2luZyB9IGZyb20gJy4vc2hvcC1kcmF3aW5nLmVudGl0eSc7XHJcbmltcG9ydCB7IENvbnRyYWN0RHJhd2luZyB9IGZyb20gJy4vY29udHJhY3QtZHJhd2luZy5lbnRpdHknO1xyXG5pbXBvcnQgeyBBdHRhY2htZW50IH0gZnJvbSAnLi4vLi4vLi4vY29tbW9uL2ZpbGUtc3RvcmFnZS9lbnRpdGllcy9hdHRhY2htZW50LmVudGl0eSc7XHJcbmltcG9ydCB7IFVzZXIgfSBmcm9tICcuLi8uLi91c2VyL2VudGl0aWVzL3VzZXIuZW50aXR5JztcclxuaW1wb3J0IHsgVXVpZEJhc2VFbnRpdHkgfSBmcm9tICcuLi8uLi8uLi9jb21tb24vZW50aXRpZXMvdXVpZC1iYXNlLmVudGl0eSc7XHJcbmltcG9ydCB7IEV4Y2x1ZGUgfSBmcm9tICdjbGFzcy10cmFuc2Zvcm1lcic7XHJcblxyXG5ARW50aXR5KCdzaG9wX2RyYXdpbmdfcmV2aXNpb25zJylcclxuQFVuaXF1ZShbJ3Nob3BEcmF3aW5nSWQnLCAnaXNDdXJyZW50J10pXHJcbmV4cG9ydCBjbGFzcyBTaG9wRHJhd2luZ1JldmlzaW9uIGV4dGVuZHMgVXVpZEJhc2VFbnRpdHkge1xyXG4gIEBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uKClcclxuICBARXhjbHVkZSgpXHJcbiAgaWQhOiBudW1iZXI7IC8vIOC5gOC4leC4tOC4oSAhXHJcblxyXG4gIEBDb2x1bW4oeyBuYW1lOiAnc2hvcF9kcmF3aW5nX2lkJyB9KVxyXG4gIHNob3BEcmF3aW5nSWQhOiBudW1iZXI7IC8vIOC5gOC4leC4tOC4oSAhXHJcblxyXG4gIEBDb2x1bW4oeyBuYW1lOiAncmV2aXNpb25fbnVtYmVyJyB9KVxyXG4gIHJldmlzaW9uTnVtYmVyITogbnVtYmVyOyAvLyDguYDguJXguLTguKEgIVxyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3RpdGxlJywgbGVuZ3RoOiAyNTUgfSlcclxuICB0aXRsZSE6IHN0cmluZzsgLy8g4LmA4LiV4Li04LihICFcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdsZWdhY3lfZHJhd2luZ19udW1iZXInLCBsZW5ndGg6IDEwMCwgbnVsbGFibGU6IHRydWUgfSlcclxuICBsZWdhY3lEcmF3aW5nTnVtYmVyPzogc3RyaW5nO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3JldmlzaW9uX2xhYmVsJywgbGVuZ3RoOiAxMCwgbnVsbGFibGU6IHRydWUgfSlcclxuICByZXZpc2lvbkxhYmVsPzogc3RyaW5nOyAvLyBudWxsYWJsZSDguYPguIrguYkgP1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3JldmlzaW9uX2RhdGUnLCB0eXBlOiAnZGF0ZScsIG51bGxhYmxlOiB0cnVlIH0pXHJcbiAgcmV2aXNpb25EYXRlPzogRGF0ZTsgLy8gbnVsbGFibGUg4LmD4LiK4LmJID9cclxuXHJcbiAgQENvbHVtbih7IHR5cGU6ICd0ZXh0JywgbnVsbGFibGU6IHRydWUgfSlcclxuICBkZXNjcmlwdGlvbj86IHN0cmluZzsgLy8gbnVsbGFibGUg4LmD4LiK4LmJID9cclxuXHJcbiAgQENyZWF0ZURhdGVDb2x1bW4oeyBuYW1lOiAnY3JlYXRlZF9hdCcgfSlcclxuICBjcmVhdGVkQXQhOiBEYXRlOyAvLyDguYDguJXguLTguKEgIVxyXG5cclxuICBAQ29sdW1uKHtcclxuICAgIG5hbWU6ICdpc19jdXJyZW50JyxcclxuICAgIHR5cGU6ICdib29sZWFuJyxcclxuICAgIG51bGxhYmxlOiB0cnVlLFxyXG4gICAgZGVmYXVsdDogbnVsbCxcclxuICB9KVxyXG4gIGlzQ3VycmVudD86IGJvb2xlYW4gfCBudWxsO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ2NyZWF0ZWRfYnknLCBudWxsYWJsZTogdHJ1ZSB9KVxyXG4gIGNyZWF0ZWRCeT86IG51bWJlcjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICd1cGRhdGVkX2J5JywgbnVsbGFibGU6IHRydWUgfSlcclxuICB1cGRhdGVkQnk/OiBudW1iZXI7XHJcblxyXG4gIC8vIFJlbGF0aW9uc1xyXG4gIEBNYW55VG9PbmUoKCkgPT4gU2hvcERyYXdpbmcsIChzaG9wRHJhd2luZykgPT4gc2hvcERyYXdpbmcucmV2aXNpb25zLCB7XHJcbiAgICBvbkRlbGV0ZTogJ0NBU0NBREUnLFxyXG4gIH0pXHJcbiAgQEpvaW5Db2x1bW4oeyBuYW1lOiAnc2hvcF9kcmF3aW5nX2lkJyB9KVxyXG4gIHNob3BEcmF3aW5nITogU2hvcERyYXdpbmc7IC8vIOC5gOC4leC4tOC4oSAhXHJcblxyXG4gIEBNYW55VG9PbmUoKCkgPT4gVXNlcilcclxuICBASm9pbkNvbHVtbih7IG5hbWU6ICdjcmVhdGVkX2J5JyB9KVxyXG4gIGNyZWF0b3I/OiBVc2VyO1xyXG5cclxuICBATWFueVRvT25lKCgpID0+IFVzZXIpXHJcbiAgQEpvaW5Db2x1bW4oeyBuYW1lOiAndXBkYXRlZF9ieScgfSlcclxuICB1cGRhdGVyPzogVXNlcjtcclxuXHJcbiAgLy8gUmVmZXJlbmNlcyB0byBDb250cmFjdCBEcmF3aW5ncyAoTTpOKVxyXG4gIEBNYW55VG9NYW55KCgpID0+IENvbnRyYWN0RHJhd2luZylcclxuICBASm9pblRhYmxlKHtcclxuICAgIG5hbWU6ICdzaG9wX2RyYXdpbmdfcmV2aXNpb25fY29udHJhY3RfcmVmcycsXHJcbiAgICBqb2luQ29sdW1uOiB7XHJcbiAgICAgIG5hbWU6ICdzaG9wX2RyYXdpbmdfcmV2aXNpb25faWQnLFxyXG4gICAgICByZWZlcmVuY2VkQ29sdW1uTmFtZTogJ2lkJyxcclxuICAgIH0sXHJcbiAgICBpbnZlcnNlSm9pbkNvbHVtbjoge1xyXG4gICAgICBuYW1lOiAnY29udHJhY3RfZHJhd2luZ19pZCcsXHJcbiAgICAgIHJlZmVyZW5jZWRDb2x1bW5OYW1lOiAnaWQnLFxyXG4gICAgfSxcclxuICB9KVxyXG4gIGNvbnRyYWN0RHJhd2luZ3MhOiBDb250cmFjdERyYXdpbmdbXTsgLy8g4LmA4LiV4Li04LihICFcclxuXHJcbiAgLy8gQXR0YWNobWVudHMgKE06TilcclxuICBATWFueVRvTWFueSgoKSA9PiBBdHRhY2htZW50KVxyXG4gIEBKb2luVGFibGUoe1xyXG4gICAgbmFtZTogJ3Nob3BfZHJhd2luZ19yZXZpc2lvbl9hdHRhY2htZW50cycsXHJcbiAgICBqb2luQ29sdW1uOiB7XHJcbiAgICAgIG5hbWU6ICdzaG9wX2RyYXdpbmdfcmV2aXNpb25faWQnLFxyXG4gICAgICByZWZlcmVuY2VkQ29sdW1uTmFtZTogJ2lkJyxcclxuICAgIH0sXHJcbiAgICBpbnZlcnNlSm9pbkNvbHVtbjogeyBuYW1lOiAnYXR0YWNobWVudF9pZCcsIHJlZmVyZW5jZWRDb2x1bW5OYW1lOiAnaWQnIH0sXHJcbiAgfSlcclxuICBhdHRhY2htZW50cyE6IEF0dGFjaG1lbnRbXTsgLy8g4LmA4LiV4Li04LihICEgKOC4leC4seC4p+C4l+C4teC5iCBlcnJvcilcclxufVxyXG4iXSwidmVyc2lvbiI6M30=

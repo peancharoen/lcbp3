@@ -1,0 +1,26 @@
+ca072c8f472e6e9dbbecd928d5e62d72
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.releaseLock = void 0;
+const content = `--[[
+  Release lock
+    Input:
+      KEYS[1] 'lock',
+      ARGV[1]  token
+      ARGV[2]  lock duration in milliseconds
+    Output:
+      "OK" if lock extented succesfully.
+]]
+local rcall = redis.call
+if rcall("GET", KEYS[1]) == ARGV[1] then
+  return rcall("DEL", KEYS[1])
+else
+  return 0
+end
+`;
+exports.releaseLock = {
+    name: 'releaseLock',
+    content,
+    keys: 1,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHJlbGVhc2VMb2NrLTEuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2IsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLFdBQVcsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUM3QixNQUFNLE9BQU8sR0FBRzs7Ozs7Ozs7Ozs7Ozs7O0NBZWYsQ0FBQztBQUNGLE9BQU8sQ0FBQyxXQUFXLEdBQUc7SUFDbEIsSUFBSSxFQUFFLGFBQWE7SUFDbkIsT0FBTztJQUNQLElBQUksRUFBRSxDQUFDO0NBQ1YsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcYnVsbG1xQDUuNjUuMFxcbm9kZV9tb2R1bGVzXFxidWxsbXFcXGRpc3RcXGNqc1xcc2NyaXB0c1xccmVsZWFzZUxvY2stMS5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBzdHJpY3RcIjtcbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMucmVsZWFzZUxvY2sgPSB2b2lkIDA7XG5jb25zdCBjb250ZW50ID0gYC0tW1tcbiAgUmVsZWFzZSBsb2NrXG4gICAgSW5wdXQ6XG4gICAgICBLRVlTWzFdICdsb2NrJyxcbiAgICAgIEFSR1ZbMV0gIHRva2VuXG4gICAgICBBUkdWWzJdICBsb2NrIGR1cmF0aW9uIGluIG1pbGxpc2Vjb25kc1xuICAgIE91dHB1dDpcbiAgICAgIFwiT0tcIiBpZiBsb2NrIGV4dGVudGVkIHN1Y2Nlc2Z1bGx5LlxuXV1cbmxvY2FsIHJjYWxsID0gcmVkaXMuY2FsbFxuaWYgcmNhbGwoXCJHRVRcIiwgS0VZU1sxXSkgPT0gQVJHVlsxXSB0aGVuXG4gIHJldHVybiByY2FsbChcIkRFTFwiLCBLRVlTWzFdKVxuZWxzZVxuICByZXR1cm4gMFxuZW5kXG5gO1xuZXhwb3J0cy5yZWxlYXNlTG9jayA9IHtcbiAgICBuYW1lOiAncmVsZWFzZUxvY2snLFxuICAgIGNvbnRlbnQsXG4gICAga2V5czogMSxcbn07XG4vLyMgc291cmNlTWFwcGluZ1VSTD1yZWxlYXNlTG9jay0xLmpzLm1hcCJdLCJ2ZXJzaW9uIjozfQ==

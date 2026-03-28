@@ -1,0 +1,382 @@
+92733273b735920438b4b7f5955516ad
+'use strict';
+var _a;
+/**
+ * This module offers an optimized timer implementation designed for scenarios
+ * where high precision is not critical.
+ *
+ * The timer achieves faster performance by using a low-resolution approach,
+ * with an accuracy target of within 500ms. This makes it particularly useful
+ * for timers with delays of 1 second or more, where exact timing is less
+ * crucial.
+ *
+ * It's important to note that Node.js timers are inherently imprecise, as
+ * delays can occur due to the event loop being blocked by other operations.
+ * Consequently, timers may trigger later than their scheduled time.
+ */
+/**
+ * The fastNow variable contains the internal fast timer clock value.
+ *
+ * @type {number}
+ */
+let fastNow = 0;
+/**
+ * RESOLUTION_MS represents the target resolution time in milliseconds.
+ *
+ * @type {number}
+ * @default 1000
+ */
+const RESOLUTION_MS = 1e3;
+/**
+ * TICK_MS defines the desired interval in milliseconds between each tick.
+ * The target value is set to half the resolution time, minus 1 ms, to account
+ * for potential event loop overhead.
+ *
+ * @type {number}
+ * @default 499
+ */
+const TICK_MS = (RESOLUTION_MS >> 1) - 1;
+/**
+ * fastNowTimeout is a Node.js timer used to manage and process
+ * the FastTimers stored in the `fastTimers` array.
+ *
+ * @type {NodeJS.Timeout}
+ */
+let fastNowTimeout;
+/**
+ * The kFastTimer symbol is used to identify FastTimer instances.
+ *
+ * @type {Symbol}
+ */
+const kFastTimer = Symbol('kFastTimer');
+/**
+ * The fastTimers array contains all active FastTimers.
+ *
+ * @type {FastTimer[]}
+ */
+const fastTimers = [];
+/**
+ * These constants represent the various states of a FastTimer.
+ */
+/**
+ * The `NOT_IN_LIST` constant indicates that the FastTimer is not included
+ * in the `fastTimers` array. Timers with this status will not be processed
+ * during the next tick by the `onTick` function.
+ *
+ * A FastTimer can be re-added to the `fastTimers` array by invoking the
+ * `refresh` method on the FastTimer instance.
+ *
+ * @type {-2}
+ */
+const NOT_IN_LIST = -2;
+/**
+ * The `TO_BE_CLEARED` constant indicates that the FastTimer is scheduled
+ * for removal from the `fastTimers` array. A FastTimer in this state will
+ * be removed in the next tick by the `onTick` function and will no longer
+ * be processed.
+ *
+ * This status is also set when the `clear` method is called on the FastTimer instance.
+ *
+ * @type {-1}
+ */
+const TO_BE_CLEARED = -1;
+/**
+ * The `PENDING` constant signifies that the FastTimer is awaiting processing
+ * in the next tick by the `onTick` function. Timers with this status will have
+ * their `_idleStart` value set and their status updated to `ACTIVE` in the next tick.
+ *
+ * @type {0}
+ */
+const PENDING = 0;
+/**
+ * The `ACTIVE` constant indicates that the FastTimer is active and waiting
+ * for its timer to expire. During the next tick, the `onTick` function will
+ * check if the timer has expired, and if so, it will execute the associated callback.
+ *
+ * @type {1}
+ */
+const ACTIVE = 1;
+/**
+ * The onTick function processes the fastTimers array.
+ *
+ * @returns {void}
+ */
+function onTick() {
+    /**
+     * Increment the fastNow value by the TICK_MS value, despite the actual time
+     * that has passed since the last tick. This approach ensures independence
+     * from the system clock and delays caused by a blocked event loop.
+     *
+     * @type {number}
+     */
+    fastNow += TICK_MS;
+    /**
+     * The `idx` variable is used to iterate over the `fastTimers` array.
+     * Expired timers are removed by replacing them with the last element in the array.
+     * Consequently, `idx` is only incremented when the current element is not removed.
+     *
+     * @type {number}
+     */
+    let idx = 0;
+    /**
+     * The len variable will contain the length of the fastTimers array
+     * and will be decremented when a FastTimer should be removed from the
+     * fastTimers array.
+     *
+     * @type {number}
+     */
+    let len = fastTimers.length;
+    while (idx < len) {
+        /**
+         * @type {FastTimer}
+         */
+        const timer = fastTimers[idx];
+        // If the timer is in the ACTIVE state and the timer has expired, it will
+        // be processed in the next tick.
+        if (timer._state === PENDING) {
+            // Set the _idleStart value to the fastNow value minus the TICK_MS value
+            // to account for the time the timer was in the PENDING state.
+            timer._idleStart = fastNow - TICK_MS;
+            timer._state = ACTIVE;
+        }
+        else if (timer._state === ACTIVE &&
+            fastNow >= timer._idleStart + timer._idleTimeout) {
+            timer._state = TO_BE_CLEARED;
+            timer._idleStart = -1;
+            timer._onTimeout(timer._timerArg);
+        }
+        if (timer._state === TO_BE_CLEARED) {
+            timer._state = NOT_IN_LIST;
+            // Move the last element to the current index and decrement len if it is
+            // not the only element in the array.
+            if (--len !== 0) {
+                fastTimers[idx] = fastTimers[len];
+            }
+        }
+        else {
+            ++idx;
+        }
+    }
+    // Set the length of the fastTimers array to the new length and thus
+    // removing the excess FastTimers elements from the array.
+    fastTimers.length = len;
+    // If there are still active FastTimers in the array, refresh the Timer.
+    // If there are no active FastTimers, the timer will be refreshed again
+    // when a new FastTimer is instantiated.
+    if (fastTimers.length !== 0) {
+        refreshTimeout();
+    }
+}
+function refreshTimeout() {
+    // If the fastNowTimeout is already set and the Timer has the refresh()-
+    // method available, call it to refresh the timer.
+    // Some timer objects returned by setTimeout may not have a .refresh()
+    // method (e.g. mocked timers in tests).
+    if (fastNowTimeout?.refresh) {
+        fastNowTimeout.refresh();
+        // fastNowTimeout is not instantiated yet or refresh is not availabe,
+        // create a new Timer.
+    }
+    else {
+        clearTimeout(fastNowTimeout);
+        fastNowTimeout = setTimeout(onTick, TICK_MS);
+        // If the Timer has an unref method, call it to allow the process to exit,
+        // if there are no other active handles. When using fake timers or mocked
+        // environments (like Jest), .unref() may not be defined,
+        fastNowTimeout?.unref();
+    }
+}
+/**
+ * The `FastTimer` class is a data structure designed to store and manage
+ * timer information.
+ */
+class FastTimer {
+    /**
+     * @constructor
+     * @param {Function} callback A function to be executed after the timer
+     * expires.
+     * @param {number} delay The time, in milliseconds that the timer should wait
+     * before the specified function or code is executed.
+     * @param {*} arg
+     */
+    constructor(callback, delay, arg) {
+        this[_a] = true;
+        /**
+         * The state of the timer, which can be one of the following:
+         * - NOT_IN_LIST (-2)
+         * - TO_BE_CLEARED (-1)
+         * - PENDING (0)
+         * - ACTIVE (1)
+         *
+         * @type {-2|-1|0|1}
+         * @private
+         */
+        this._state = NOT_IN_LIST;
+        /**
+         * The number of milliseconds to wait before calling the callback.
+         *
+         * @type {number}
+         * @private
+         */
+        this._idleTimeout = -1;
+        /**
+         * The time in milliseconds when the timer was started. This value is used to
+         * calculate when the timer should expire.
+         *
+         * @type {number}
+         * @default -1
+         * @private
+         */
+        this._idleStart = -1;
+        this._onTimeout = callback;
+        this._idleTimeout = delay;
+        this._timerArg = arg;
+        this.refresh();
+    }
+    /**
+     * Sets the timer's start time to the current time, and reschedules the timer
+     * to call its callback at the previously specified duration adjusted to the
+     * current time.
+     * Using this on a timer that has already called its callback will reactivate
+     * the timer.
+     *
+     * @returns {void}
+     */
+    refresh() {
+        // In the special case that the timer is not in the list of active timers,
+        // add it back to the array to be processed in the next tick by the onTick
+        // function.
+        if (this._state === NOT_IN_LIST) {
+            fastTimers.push(this);
+        }
+        // If the timer is the only active timer, refresh the fastNowTimeout for
+        // better resolution.
+        if (!fastNowTimeout || fastTimers.length === 1) {
+            refreshTimeout();
+        }
+        // Setting the state to PENDING will cause the timer to be reset in the
+        // next tick by the onTick function.
+        this._state = PENDING;
+    }
+    /**
+     * The `clear` method cancels the timer, preventing it from executing.
+     *
+     * @returns {void}
+     * @private
+     */
+    clear() {
+        // Set the state to TO_BE_CLEARED to mark the timer for removal in the next
+        // tick by the onTick function.
+        this._state = TO_BE_CLEARED;
+        // Reset the _idleStart value to -1 to indicate that the timer is no longer
+        // active.
+        this._idleStart = -1;
+    }
+}
+_a = kFastTimer;
+/**
+ * This module exports a setTimeout and clearTimeout function that can be
+ * used as a drop-in replacement for the native functions.
+ */
+module.exports = {
+    /**
+     * The setTimeout() method sets a timer which executes a function once the
+     * timer expires.
+     * @param {Function} callback A function to be executed after the timer
+     * expires.
+     * @param {number} delay The time, in milliseconds that the timer should
+     * wait before the specified function or code is executed.
+     * @param {*} [arg] An optional argument to be passed to the callback function
+     * when the timer expires.
+     * @returns {NodeJS.Timeout|FastTimer}
+     */
+    setTimeout(callback, delay, arg) {
+        // If the delay is less than or equal to the RESOLUTION_MS value return a
+        // native Node.js Timer instance.
+        return delay <= RESOLUTION_MS
+            ? setTimeout(callback, delay, arg)
+            : new FastTimer(callback, delay, arg);
+    },
+    /**
+     * The clearTimeout method cancels an instantiated Timer previously created
+     * by calling setTimeout.
+     *
+     * @param {NodeJS.Timeout|FastTimer} timeout
+     */
+    clearTimeout(timeout) {
+        // If the timeout is a FastTimer, call its own clear method.
+        if (timeout[kFastTimer]) {
+            /**
+             * @type {FastTimer}
+             */
+            timeout.clear();
+            // Otherwise it is an instance of a native NodeJS.Timeout, so call the
+            // Node.js native clearTimeout function.
+        }
+        else {
+            clearTimeout(timeout);
+        }
+    },
+    /**
+     * The setFastTimeout() method sets a fastTimer which executes a function once
+     * the timer expires.
+     * @param {Function} callback A function to be executed after the timer
+     * expires.
+     * @param {number} delay The time, in milliseconds that the timer should
+     * wait before the specified function or code is executed.
+     * @param {*} [arg] An optional argument to be passed to the callback function
+     * when the timer expires.
+     * @returns {FastTimer}
+     */
+    setFastTimeout(callback, delay, arg) {
+        return new FastTimer(callback, delay, arg);
+    },
+    /**
+     * The clearTimeout method cancels an instantiated FastTimer previously
+     * created by calling setFastTimeout.
+     *
+     * @param {FastTimer} timeout
+     */
+    clearFastTimeout(timeout) {
+        timeout.clear();
+    },
+    /**
+     * The now method returns the value of the internal fast timer clock.
+     *
+     * @returns {number}
+     */
+    now() {
+        return fastNow;
+    },
+    /**
+     * Trigger the onTick function to process the fastTimers array.
+     * Exported for testing purposes only.
+     * Marking as deprecated to discourage any use outside of testing.
+     * @deprecated
+     * @param {number} [delay=0] The delay in milliseconds to add to the now value.
+     */
+    tick(delay = 0) {
+        fastNow += delay - RESOLUTION_MS + 1;
+        onTick();
+        onTick();
+    },
+    /**
+     * Reset FastTimers.
+     * Exported for testing purposes only.
+     * Marking as deprecated to discourage any use outside of testing.
+     * @deprecated
+     */
+    reset() {
+        fastNow = 0;
+        fastTimers.length = 0;
+        clearTimeout(fastNowTimeout);
+        fastNowTimeout = null;
+    },
+    /**
+     * Exporting for testing purposes only.
+     * Marking as deprecated to discourage any use outside of testing.
+     * @deprecated
+     */
+    kFastTimer
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHVuZGljaUA3LjI0LjRcXG5vZGVfbW9kdWxlc1xcdW5kaWNpXFxsaWJcXHV0aWxcXHRpbWVycy5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUE7O0FBRVo7Ozs7Ozs7Ozs7OztHQVlHO0FBRUg7Ozs7R0FJRztBQUNILElBQUksT0FBTyxHQUFHLENBQUMsQ0FBQTtBQUVmOzs7OztHQUtHO0FBQ0gsTUFBTSxhQUFhLEdBQUcsR0FBRyxDQUFBO0FBRXpCOzs7Ozs7O0dBT0c7QUFDSCxNQUFNLE9BQU8sR0FBRyxDQUFDLGFBQWEsSUFBSSxDQUFDLENBQUMsR0FBRyxDQUFDLENBQUE7QUFFeEM7Ozs7O0dBS0c7QUFDSCxJQUFJLGNBQWMsQ0FBQTtBQUVsQjs7OztHQUlHO0FBQ0gsTUFBTSxVQUFVLEdBQUcsTUFBTSxDQUFDLFlBQVksQ0FBQyxDQUFBO0FBRXZDOzs7O0dBSUc7QUFDSCxNQUFNLFVBQVUsR0FBRyxFQUFFLENBQUE7QUFFckI7O0dBRUc7QUFFSDs7Ozs7Ozs7O0dBU0c7QUFDSCxNQUFNLFdBQVcsR0FBRyxDQUFDLENBQUMsQ0FBQTtBQUV0Qjs7Ozs7Ozs7O0dBU0c7QUFDSCxNQUFNLGFBQWEsR0FBRyxDQUFDLENBQUMsQ0FBQTtBQUV4Qjs7Ozs7O0dBTUc7QUFDSCxNQUFNLE9BQU8sR0FBRyxDQUFDLENBQUE7QUFFakI7Ozs7OztHQU1HO0FBQ0gsTUFBTSxNQUFNLEdBQUcsQ0FBQyxDQUFBO0FBRWhCOzs7O0dBSUc7QUFDSCxTQUFTLE1BQU07SUFDYjs7Ozs7O09BTUc7SUFDSCxPQUFPLElBQUksT0FBTyxDQUFBO0lBRWxCOzs7Ozs7T0FNRztJQUNILElBQUksR0FBRyxHQUFHLENBQUMsQ0FBQTtJQUVYOzs7Ozs7T0FNRztJQUNILElBQUksR0FBRyxHQUFHLFVBQVUsQ0FBQyxNQUFNLENBQUE7SUFFM0IsT0FBTyxHQUFHLEdBQUcsR0FBRyxFQUFFLENBQUM7UUFDakI7O1dBRUc7UUFDSCxNQUFNLEtB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QUFDO0lBQ0Q7Ozs7Ozs7Ozs7T0FVRztJQUNILGNBQWMsQ0FBRSxRQUFRLEVBQUUsS0FBSyxFQUFFLEdBQUc7UUFDbEMsT0FBTyxJQUFJLFNBQVMsQ0FBQyxRQUFRLEVBQUUsS0FBSyxFQUFFLEdBQUcsQ0FBQyxDQUFBO0lBQzVDLENBQUM7SUFDRDs7Ozs7T0FLRztJQUNILGdCQUFnQixDQUFFLE9BQU87UUFDdkIsT0FBTyxDQUFDLEtBQUssRUFBRSxDQUFBO0lBQ2pCLENBQUM7SUFDRDs7OztPQUlHO0lBQ0gsR0FBRztRQUNELE9BQU8sT0FBTyxDQUFBO0lBQ2hCLENBQUM7SUFDRDs7Ozs7O09BTUc7SUFDSCxJQUFJLENBQUUsS0FBSyxHQUFHLENBQUM7UUFDYixPQUFPLElBQUksS0FBSyxHQUFHLGFBQWEsR0FBRyxDQUFDLENBQUE7UUFDcEMsTUFBTSxFQUFFLENBQUE7UUFDUixNQUFNLEVBQUUsQ0FBQTtJQUNWLENBQUM7SUFDRDs7Ozs7T0FLRztJQUNILEtBQUs7UUFDSCxPQUFPLEdBQUcsQ0FBQyxDQUFBO1FBQ1gsVUFBVSxDQUFDLE1BQU0sR0FBRyxDQUFDLENBQUE7UUFDckIsWUFBWSxDQUFDLGNBQWMsQ0FBQyxDQUFBO1FBQzVCLGNBQWMsR0FBRyxJQUFJLENBQUE7SUFDdkIsQ0FBQztJQUNEOzs7O09BSUc7SUFDSCxVQUFVO0NBQ1gsQ0FBQSIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcdW5kaWNpQDcuMjQuNFxcbm9kZV9tb2R1bGVzXFx1bmRpY2lcXGxpYlxcdXRpbFxcdGltZXJzLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIid1c2Ugc3RyaWN0J1xuXG4vKipcbiAqIFRoaXMgbW9kdWxlIG9mZmVycyBhbiBvcHRpbWl6ZWQgdGltZXIgaW1wbGVtZW50YXRpb24gZGVzaWduZWQgZm9yIHNjZW5hcmlvc1xuICogd2hlcmUgaGlnaCBwcmVjaXNpb24gaXMgbm90IGNyaXRpY2FsLlxuICpcbiAqIFRoZSB0aW1lciBhY2hpZXZlcyBmYXN0ZXIgcGVyZm9ybWFuY2UgYnkgdXNpbmcgYSBsb3ctcmVzb2x1dGlvbiBhcHByb2FjaCxcbiAqIHdpdGggYW4gYWNjdXJhY3kgdGFyZ2V0IG9mIHdpdGhpbiA1MDBtcy4gVGhpcyBtYWtlcyBpdCBwYXJ0aWN1bGFybHkgdXNlZnVsXG4gKiBmb3IgdGltZXJzIHdpdGggZGVsYXlzIG9mIDEgc2Vjb25kIG9yIG1vcmUsIHdoZXJlIGV4YWN0IHRpbWluZyBpcyBsZXNzXG4gKiBjcnVjaWFsLlxuICpcbiAqIEl0J3MgaW1wb3J0YW50IHRvIG5vdGUgdGhhdCBOb2RlLmpzIHRpbWVycyBhcmUgaW5oZXJlbnRseSBpbXByZWNpc2UsIGFzXG4gKiBkZWxheXMgY2FuIG9jY3VyIGR1ZSB0byB0aGUgZXZlbnQgbG9vcCBiZWluZyBibG9ja2VkIGJ5IG90aGVyIG9wZXJhdGlvbnMuXG4gKiBDb25zZXF1ZW50bHksIHRpbWVycyBtYXkgdHJpZ2dlciBsYXRlciB0aGFuIHRoZWlyIHNjaGVkdWxlZCB0aW1lLlxuICovXG5cbi8qKlxuICogVGhlIGZhc3ROb3cgdmFyaWFibGUgY29udGFpbnMgdGhlIGludGVybmFsIGZhc3QgdGltZXIgY2xvY2sgdmFsdWUuXG4gKlxuICogQHR5cGUge251bWJlcn1cbiAqL1xubGV0IGZhc3ROb3cgPSAwXG5cbi8qKlxuICogUkVTT0xVVElPTl9NUyByZXByZXNlbnRzIHRoZSB0YXJnZXQgcmVzb2x1dGlvbiB0aW1lIGluIG1pbGxpc2Vjb25kcy5cbiAqXG4gKiBAdHlwZSB7bnVtYmVyfVxuICogQGRlZmF1bHQgMTAwMFxuICovXG5jb25zdCBSRVNPTFVUSU9OX01TID0gMWUzXG5cbi8qKlxuICogVElDS19NUyBkZWZpbmVzIHRoZSBkZXNpcmVkIGludGVydmFsIGluIG1pbGxpc2Vjb25kcyBiZXR3ZWVuIGVhY2ggdGljay5cbiAqIFRoZSB0YXJnZXQgdmFsdWUgaXMgc2V0IHRvIGhhbGYgdGhlIHJlc29sdXRpb24gdGltZSwgbWludXMgMSBtcywgdG8gYWNjb3VudFxuICogZm9yIHBvdGVudGlhbCBldmVudCBsb29wIG92ZXJoZWFkLlxuICpcbiAqIEB0eXBlIHtudW1iZXJ9XG4gKiBAZGVmYXVsdCA0OTlcbiAqL1xuY29uc3QgVElDS19NUyA9IChSRVNPTFVUSU9OX01TID4+IDEpIC0gMVxuXG4vKipcbiAqIGZhc3ROb3dUaW1lb3V0IGlzIGEgTm9kZS5qcyB0aW1lciB1c2VkIHRvIG1hbmFnZSBhbmQgcHJvY2Vzc1xuICogdGhlIEZhc3RUaW1lcnMgc3RvcmVkIGluIHRoZSBgZmFzdFRpbWVyc2AgYXJyYXkuXG4gKlxuICogQHR5cGUge05vZGVKUy5UaW1lb3V0fVxuICovXG5sZXQgZmFzdE5vd1RpbWVvdXRcblxuLyoqXG4gKiBUaGUga0Zhc3RUaW1lciBzeW1ib2wgaXMgdXNlZCB0byBpZGVudGlmeSBGYXN0VGltZXIgaW5zdGFuY2VzLlxuICpcbiAqIEB0eXBlIHtTeW1ib2x9XG4gKi9cbmNvbnN0IGtGYXN0VGltZXIgPSBTeW1ib2woJ2tGYXN0VGltZXInKVxuXG4vKipcbiAqIFRoZSBmYXN0VGltZXJzIGFycmF5IGNvbnRhaW5zIGFsbCBhY3RpdmUgRmFzdFRpbWVycy5cbiAqXG4gKiBAdHlwZSB7RmFzdFRpbWVyW119XG4gKi9cbmNvbnN0IGZhc3RUaW1lcnMgPSBbXVxuXG4vKipcbiAqIFRoZXNlIGNvbnN0YW50cyByZXByZXNlbnQgdGhlIHZhcmlvdXMgc3RhdGVzIG9mIGEgRmFzdFRpbWVyLlxuICovXG5cbi8qKlxuICogVGhlIGBOT1RfSU5fTElTVGAgY29uc3RhbnQgaW5kaWNhdGVzIHRoYXQgdGhlIEZhc3RUaW1lciBpcyBub3QgaW5jbHVkZWRcbiAqIGluIHRoZSBgZmFzdFRpbWVyc2AgYXJyYXkuIFRpbWVycyB3aXRoIHRoaXMgc3RhdHVzIHdpbGwgbm90IGJlIHByb2Nlc3NlZFxuICogZHVyaW5nIHRoZSBuZXh0IHRpY2sgYnkgdGhlIGBvblRpY2tgIGZ1bmN0aW9uLlxuICpcbiAqIEEgRmFzdFRpbWVyIGNhbiBiZSByZS1hZGRlZCB0byB0aGUgYGZhc3RUaW1lcnNgIGFycmF5IGJ5IGludm9raW5nIHRoZVxuICogYHJlZnJlc2hgIG1ldGhvZCBvbiB0aGUgRmFzdFRpbWVyIGluc3RhbmNlLlxuICpcbiAqIEB0eXBlIHstMn1cbiAqL1xuY29uc3QgTk9UX0lOX0xJU1QgPSAtMlxuXG4vKipcbiAqIFRoZSBgVE9fQkVfQ0xFQVJFRGAgY29uc3RhbnQgaW5kaWNhdGVzIHRoYXQgdGhlIEZhc3RUaW1lciBpcyBzY2hlZHVsZWRcbiAqIGZvciByZW1vdmFsIGZyb20gdGhlIGBmYXN0VGltZXJzYCBhcnJheS4gQSBGYXN0VGltZXIgaW4gdGhpcyBzdGF0ZSB3aWxsXG4gKiBiZSByZW1vdmVkIGluIHRoZSBuZXh0IHRpY2sgYnkgdGhlIGBvblRpY2tgIGZ1bmN0aW9uIGFuZCB3aWxsIG5vIGxvbmdlclxuICogYmUgcHJvY2Vzc2VkLlxuICpcbiAqIFRoaXMgc3RhdHVzIGlzIGFsc28gc2V0IHdoZW4gdGhlIGBjbGVhcmAgbWV0aG9kIGlzIGNhbGxlZCBvbiB0aGUgRmFzdFRpbWVyIGluc3RhbmNlLlxuICpcbiAqIEB0eXBlIHstMX1cbiAqL1xuY29uc3QgVE9fQkVfQ0xFQVJFRCA9IC0xXG5cbi8qKlxuICogVGhlIGBQRU5ESU5HYCBjb25zdGFudCBzaWduaWZpZXMgdGhhdCB0aGUgRmFzdFRpbWVyIGlzIGF3YWl0aW5nIHByb2Nlc3NpbmdcbiAqIGluIHRoZSBuZXh0IHRpY2sgYnkgdGhlIGBvblRpY2tgIGZ1bmN0aW9uLiBUaW1lcnMgd2l0aCB0aGlzIHN0YXR1cyB3aWxsIGhhdmVcbiAqIHRoZWlyIGBfaWRsZVN0YXJ0YCB2YWx1ZSBzZXQgYW5kIHRoZWlyIHN0YXR1cyB1cGRhdGVkIHRvIGBBQ1RJVkVgIGluIHRoZSBuZXh0IHRpY2suXG4gKlxuICogQHR5cGUgezB9XG4gKi9cbmNvbnN0IFBFTkRJTkcgPSAwXG5cbi8qKlxuICogVGhlIGBBQ1RJVkVgIGNvbnN0YW50IGluZGljYXRlcyB0aGF0IHRoZSBGYXN0VGltZXIgaXMgYWN0aXZlIGFuZCB3YWl0aW5nXG4gKiBmb3IgaXRzIHRpbWVyIHRvIGV4cGlyZS4gRHVyaW5nIHRoZSBuZXh0IHRpY2ssIHRoZSBgb25UaWNrYCBmdW5jdGlvbiB3aWxsXG4gKiBjaGVjayBpZiB0aGUgdGltZXIgaGFzIGV4cGlyZWQsIGFuZCBpZiBzbywgaXQgd2lsbCBleGVjdXRlIHRoZSBhc3NvY2lhdGVkIGNhbGxiYWNrLlxuICpcbiAqIEB0eXBlIHsxfVxuICovXG5jb25zdCBBQ1RJVkUgPSAxXG5cbi8qKlxuICogVGhlIG9uVGljayBmdW5jdGlvbiBwcm9jZXNzZXMgdGhlIGZhc3RUaW1lcnMgYXJyYXkuXG4gKlxuICogQHJldHVybnMge3ZvaWR9XG4gKi9cbmZ1bmN0aW9uIG9uVGljayAoKSB7XG4gIC8qKlxuICAgKiBJbmNyZW1lbnQgdGhlIGZhc3ROb3cgdmFsdWUgYnkgdGhlIFRJQ0tfTVMgdmFsdWUsIGRlc3BpdGUgdGhlIGFjdHVhbCB0aW1lXG4gICAqIHRoYXQgaGFzIHBhc3NlZCBzaW5jZSB0aGUgbGFzdCB0aWNrLiBUaGlzIGFwcHJvYWNoIGVuc3VyZXMgaW5kZXBlbmRlbmNlXG4gICAqIGZyb20gdGhlIHN5c3RlbSBjbG9jayBhbmQgZGVsYXlzIGNhdXNlZCBieSBhIGJsb2NrZWQgZXZlbnQgbG9vcC5cbiAgICpcbiAgICogQHR5cGUge251bWJlcn1cbiAgICovXG4gIGZhc3ROb3cgKz0gVElDS19NU1xuXG4gIC8qKlxuICAgKiBUaGUgYGlkeGAgdmFyaWFibGUgaXMgdXNlZCB0byBpdGVyYXRlIG92ZXIgdGhlIGBmYXN0VGltZXJzYCBhcnJheS5cbiAgICogRXhwaXJlZCB0aW1lcnMgYXJlIHJlbW92ZWQgYnkgcmVwbGFjaW5nIHRoZW0gd2l0aCB0aGUgbGFzdCBlbGVtZW50IGluIHRoZSBhcnJheS5cbiAgICogQ29uc2VxdWVudGx5LCBgaWR4YCBpcyBvbmx5IGluY3JlbWVudGVkIHdoZW4gdGhlIGN1cnJlbnQgZWxlbWVudCBpcyBub3QgcmVtb3ZlZC5cbiAgICpcbiAgICogQHR5cGUge251bWJlcn1cbiAgICovXG4gIGxldCBpZHggPSAwXG5cbiAgLyoqXG4gICAqIFRoZSBsZW4gdmFyaWFibGUgd2lsbCBjb250YWluIHRoZSBsZW5ndGggb2YgdGhlIGZhc3RUaW1lcnMgYXJyYXlcbiAgICogYW5kIHdpbGwgYmUgZGVjcmVtZW50ZWQgd2hlbiBhIEZhc3RUaW1lciBzaG91bGQgYmUgcmVtb3ZlZCBmcm9tIHRoZVxuICAgKiBmYXN0VGltZXJzIGFycmF5LlxuICAgKlxuICAgKiBAdHlwZSB7bnVtYmVyfVxuICAgKi9cbiAgbGV0IGxlbiA9IGZhc3RUaW1lcnMubGVuZ3RoXG5cbiAgd2hpbGUgKGlkeCA8IGxlbikge1xuICAgIC8qKlxuICAgICAqIEB0eXBlIHtGYXN0VGltZXJ9XG4gICAgICovXG4gICAgY29uc3QgdGltZXIgPSBmYXN0VGltZXJzW2lkeF1cblxuICAgIC8vIElmIHRoZSB0aW1lciBpcyBpbiB0aGUgQUNUSVZFIHN0YXRlIGFuZCB0aGUgdGltZXIgaGFzIGV4cGlyZWQsIGl0IHdpbGxcbiAgICAvLyBiZSBwcm9jZXNzZWQgaW4gdGhlIG5leHQgdGljay5cbiAgICBpZiAodGltZXIuX3N0YXRlID09PSBQRU5ESU5HKSB7XG4gICAgICAvLyBTZXQgdGhlIF9pZGxlU3RhcnQgdmFsdWUgdG8gdGhlIGZhc3ROb3cgdmFsdWUgbWludXMgdGhlIFRJQ0tfTVMgdmFsdWVcbiAgICAgIC8vIHRvIGFjY291bnQgZm9yIHRoZSB0aW1lIHRoZSB0aW1lciB3YXMgaW4gdGhlIFBFTkRJTkcgc3RhdGUuXG4gICAgICB0aW1lci5faWRsZVN0YXJ0ID0gZmFzdE5vdyAtIFRJQ0tfTVNcbiAgICAgIHRpbWVyLl9zdGF0ZSA9IEFDVElWRVxuICAgIH0gZWxzZSBpZiAoXG4gICAgICB0aW1lci5fc3RhdGUgPT09IEFDVElWRSAmJlxuICAgICAgZmFzdE5vdyA+PSB0aW1lci5faWRsZVN0YXJ0ICsgdGltZXIuX2lkbGVUaW1lb3V0XG4gICAgKSB7XG4gICAgICB0aW1lci5fc3RhdGUgPSBUT19CRV9DTEVBUkVEXG4gICAgICB0aW1lci5faWRsZVN0YXJ0ID0gLTFcbiAgICAgIHRpbWVyLl9vblRpbWVvdXQodGltZXIuX3RpbWVyQXJnKVxuICAgIH1cblxuICAgIGlmICh0aW1lci5fc3RhdGUgPT09IFRPX0JFX0NMRUFSRUQpIHtcbiAgICAgIHRpbWVyLl9zdGF0ZSA9IE5PVF9JTl9MSVNUXG5cbiAgICAgIC8vIE1vdmUgdGhlIGxhc3QgZWxlbWVudCB0byB0aGUgY3VycmVudCBpbmRleCBhbmQgZGVjcmVtZW50IGxlbiBpZiBpdCBpc1xuICAgICAgLy8gbm90IHRoZSBvbmx5IGVsZW1lbnQgaW4gdGhlIGFycmF5LlxuICAgICAgaWYgKC0tbGVuICE9PSAwKSB7XG4gICAgICAgIGZhc3RUaW1lcnNbaWR4XSA9IGZhc3RUaW1lcnNbbGVuXVxuICAgICAgfVxuICAgIH0gZWxzZSB7XG4gICAgICArK2lkeFxuICAgIH1cbiAgfVxuXG4gIC8vIFNldCB0aGUgbGVuZ3RoIG9mIHRoZSBmYXN0VGltZXJzIGFycmF5IHRvIHRoZSBuZXcgbGVuZ3RoIGFuZCB0aHVzXG4gIC8vIHJlbW92aW5nIHRoZSBleGNlc3MgRmFzdFRpbWVycyBlbGVtZW50cyBmcm9tIHRoZSBhcnJheS5cbiAgZmFzdFRpbWVycy5sZW5ndGggPSBsZW5cblxuICAvLyBJZiB0aGVyZSBhcmUgc3RpbGwgYWN0aXZlIEZhc3RUaW1lcnMgaW4gdGhlIGFycmF5LCByZWZyZXNoIHRoZSBUaW1lci5cbiAgLy8gSWYgdGhlcmUgYXJlIG5vIGFjdGl2ZSBGYXN0VGltZXJzLCB0aGUgdGltZXIgd2lsbCBiZSByZWZyZXNoZWQgYWdhaW5cbiAgLy8gd2hlbiBhIG5ldyBGYXN0VGltZXIgaXMgaW5zdGFudGlhdGVkLlxuICBpZiAoZmFzdFRpbWVycy5sZW5ndGggIT09IDApIHtcbiAgICByZWZyZXNoVGltZW91dCgpXG4gIH1cbn1cblxuZnVuY3Rpb24gcmVmcmVzaFRpbWVvdXQgKCkge1xuICAvLyBJZiB0aGUgZmFzdE5vd1RpbWVvdXQgaXMgYWxyZWFkeSBzZXQgYW5kIHRoZSBUaW1lciBoYXMgdGhlIHJlZnJlc2goKS1cbiAgLy8gbWV0aG9kIGF2YWlsYWJsZSwgY2FsbCBpdCB0byByZWZyZXNoIHRoZSB0aW1lci5cbiAgLy8gU29tZSB0aW1lciBvYmplY3RzIHJldHVybmVkIGJ5IHNldFRpbWVvdXQgbWF5IG5vdCBoYXZlIGEgLnJlZnJlc2goKVxuICAvLyBtZXRob2QgKGUuZy4gbW9ja2VkIHRpbWVycyBpbiB0ZXN0cykuXG4gIGlmIChmYXN0Tm93VGltZW91dD8ucmVmcmVzaCkge1xuICAgIGZhc3ROb3dUaW1lb3V0LnJlZnJlc2goKVxuICAgIC8vIGZhc3ROb3dUaW1lb3V0IGlzIG5vdCBpbnN0YW50aWF0ZWQgeWV0IG9yIHJlZnJlc2ggaXMgbm90IGF2YWlsYWJlLFxuICAgIC8vIGNyZWF0ZSBhIG5ldyBUaW1lci5cbiAgfSBlbHNlIHtcbiAgICBjbGVhclRpbWVvdXQoZmFzdE5vd1RpbWVvdXQpXG4gICAgZmFzdE5vd1RpbWVvdXQgPSBzZXRUaW1lb3V0KG9uVGljaywgVElDS19NUylcbiAgICAvLyBJZiB0aGUgVGltZXIgaGFzIGFuIHVucmVmIG1ldGhvZCwgY2FsbCBpdCB0byBhbGxvdyB0aGUgcHJvY2VzcyB0byBleGl0LFxuICAgIC8vIGlmIHRoZXJlIGFyZSBubyBvdGhlciBhY3RpdmUgaGFuZGxlcy4gV2hlbiB1c2luZyBmYWtlIHRpbWVycyBvciBtb2NrZWRcbiAgICAvLyBlbnZpcm9ubWVudHMgKGxpa2UgSmVzdCksIC51bnJlZigpIG1heSBub3QgYmUgZGVmaW5lZCxcbiAgICBmYXN0Tm93VGltZW91dD8udW5yZWYoKVxuICB9XG59XG5cbi8qKlxuICogVGhlIGBGYXN0VGltZXJgIGNsYXNzIGlzIGEgZGF0YSBzdHJ1Y3R1cmUgZGVzaWduZWQgdG8gc3RvcmUgYW5kIG1hbmFnZVxuICogdGltZXIgaW5mb3JtYXRpb24uXG4gKi9cbmNsYXNzIEZhc3RUaW1lciB7XG4gIFtrRmFzdFRpbWVyXSA9IHRydWVcblxuICAvKipcbiAgICogVGhlIHN0YXRlIG9mIHRoZSB0aW1lciwgd2hpY2ggY2FuIGJlIG9uZSBvZiB0aGUgZm9sbG93aW5nOlxuICAgKiAtIE5PVF9JTl9MSVNUICgtMilcbiAgICogLSBUT19CRV9DTEVBUkVEICgtMSlcbiAgICogLSBQRU5ESU5HICgwKVxuICAgKiAtIEFDVElWRSAoMSlcbiAgICpcbiAgICogQHR5cGUgey0yfC0xfDB8MX1cbiAgICogQHByaXZhdGVcbiAgICovXG4gIF9zdGF0ZSA9IE5PVF9JTl9MSVNUXG5cbiAgLyoqXG4gICAqIFRoZSBudW1iZXIgb2YgbWlsbGlzZWNvbmRzIHRvIHdhaXQgYmVmb3JlIGNhbGxpbmcgdGhlIGNhbGxiYWNrLlxuICAgKlxuICAgKiBAdHlwZSB7bnVtYmVyfVxuICAgKiBAcHJpdmF0ZVxuICAgKi9cbiAgX2lkbGVUaW1lb3V0ID0gLTFcblxuICAvKipcbiAgICogVGhlIHRpbWUgaW4gbWlsbGlzZWNvbmRzIHdoZW4gdGhlIHRpbWVyIHdhcyBzdGFydGVkLiBUaGlzIHZhbHVlIGlzIHVzZWQgdG9cbiAgICogY2FsY3VsYXRlIHdoZW4gdGhlIHRpbWVyIHNob3VsZCBleHBpcmUuXG4gICAqXG4gICAqIEB0eXBlIHtudW1iZXJ9XG4gICAqIEBkZWZhdWx0IC0xXG4gICAqIEBwcml2YXRlXG4gICAqL1xuICBfaWRsZVN0YXJ0ID0gLTFcblxuICAvKipcbiAgICogVGhlIGZ1bmN0aW9uIHRvIGJlIGV4ZWN1dGVkIHdoZW4gdGhlIHRpbWVyIGV4cGlyZXMuXG4gICAqIEB0eXBlIHtGdW5jdGlvbn1cbiAgICogQHByaXZhdGVcbiAgICovXG4gIF9vblRpbWVvdXRcblxuICAvKipcbiAgICogVGhlIGFyZ3VtZW50IHRvIGJlIHBhc3NlZCB0byB0aGUgY2FsbGJhY2sgd2hlbiB0aGUgdGltZXIgZXhwaXJlcy5cbiAgICpcbiAgICogQHR5cGUgeyp9XG4gICAqIEBwcml2YXRlXG4gICAqL1xuICBfdGltZXJBcmdcblxuICAvKipcbiAgICogQGNvbnN0cnVjdG9yXG4gICAqIEBwYXJhbSB7RnVuY3Rpb259IGNhbGxiYWNrIEEgZnVuY3Rpb24gdG8gYmUgZXhlY3V0ZWQgYWZ0ZXIgdGhlIHRpbWVyXG4gICAqIGV4cGlyZXMuXG4gICAqIEBwYXJhbSB7bnVtYmVyfSBkZWxheSBUaGUgdGltZSwgaW4gbWlsbGlzZWNvbmRzIHRoYXQgdGhlIHRpbWVyIHNob3VsZCB3YWl0XG4gICAqIGJlZm9yZSB0aGUgc3BlY2lmaWVkIGZ1bmN0aW9uIG9yIGNvZGUgaXMgZXhlY3V0ZWQuXG4gICAqIEBwYXJhbSB7Kn0gYXJnXG4gICAqL1xuICBjb25zdHJ1Y3RvciAoY2FsbGJhY2ssIGRlbGF5LCBhcmcpIHtcbiAgICB0aGlzLl9vblRpbWVvdXQgPSBjYWxsYmFja1xuICAgIHRoaXMuX2lkbGVUaW1lb3V0ID0gZGVsYXlcbiAgICB0aGlzLl90aW1lckFyZyA9IGFyZ1xuXG4gICAgdGhpcy5yZWZyZXNoKClcbiAgfVxuXG4gIC8qKlxuICAgKiBTZXRzIHRoZSB0aW1lcidzIHN0YXJ0IHRpbWUgdG8gdGhlIGN1cnJlbnQgdGltZSwgYW5kIHJlc2NoZWR1bGVzIHRoZSB0aW1lclxuICAgKiB0byBjYWxsIGl0cyBjYWxsYmFjayBhdCB0aGUgcHJldmlvdXNseSBzcGVjaWZpZWQgZHVyYXRpb24gYWRqdXN0ZWQgdG8gdGhlXG4gICAqIGN1cnJlbnQgdGltZS5cbiAgICogVXNpbmcgdGhpcyBvbiBhIHRpbWVyIHRoYXQgaGFzIGFscmVhZHkgY2FsbGVkIGl0cyBjYWxsYmFjayB3aWxsIHJlYWN0aXZhdGVcbiAgICogdGhlIHRpbWVyLlxuICAgKlxuICAgKiBAcmV0dXJucyB7dm9pZH1cbiAgICovXG4gIHJlZnJlc2ggKCkge1xuICAgIC8vIEluIHRoZSBzcGVjaWFsIGNhc2UgdGhhdCB0aGUgdGltZXIgaXMgbm90IGluIHRoZSBsaXN0IG9mIGFjdGl2ZSB0aW1lcnMsXG4gICAgLy8gYWRkIGl0IGJhY2sgdG8gdGhlIGFycmF5IHRvIGJlIHByb2Nlc3NlZCBpbiB0aGUgbmV4dCB0aWNrIGJ5IHRoZSBvblRpY2tcbiAgICAvLyBmdW5jdGlvbi5cbiAgICBpZiAodGhpcy5fc3RhdGUgPT09IE5PVF9JTl9MSVNUKSB7XG4gICAgICBmYXN0VGltZXJzLnB1c2godGhpcylcbiAgICB9XG5cbiAgICAvLyBJZiB0aGUgdGltZXIgaXMgdGhlIG9ubHkgYWN0aXZlIHRpbWVyLCByZWZyZXNoIHRoZSBmYXN0Tm93VGltZW91dCBmb3JcbiAgICAvLyBiZXR0ZXIgcmVzb2x1dGlvbi5cbiAgICBpZiAoIWZhc3ROb3dUaW1lb3V0IHx8IGZhc3RUaW1lcnMubGVuZ3RoID09PSAxKSB7XG4gICAgICByZWZyZXNoVGltZW91dCgpXG4gICAgfVxuXG4gICAgLy8gU2V0dGluZyB0aGUgc3RhdGUgdG8gUEVORElORyB3aWxsIGNhdXNlIHRoZSB0aW1lciB0byBiZSByZXNldCBpbiB0aGVcbiAgICAvLyBuZXh0IHRpY2sgYnkgdGhlIG9uVGljayBmdW5jdGlvbi5cbiAgICB0aGlzLl9zdGF0ZSA9IFBFTkRJTkdcbiAgfVxuXG4gIC8qKlxuICAgKiBUaGUgYGNsZWFyYCBtZXRob2QgY2FuY2VscyB0aGUgdGltZXIsIHByZXZlbnRpbmcgaXQgZnJvbSBleGVjdXRpbmcuXG4gICAqXG4gICAqIEByZXR1cm5zIHt2b2lkfVxuICAgKiBAcHJpdmF0ZVxuICAgKi9cbiAgY2xlYXIgKCkge1xuICAgIC8vIFNldCB0aGUgc3RhdGUgdG8gVE9fQkVfQ0xFQVJFRCB0byBtYXJrIHRoZSB0aW1lciBmb3IgcmVtb3ZhbCBpbiB0aGUgbmV4dFxuICAgIC8vIHRpY2sgYnkgdGhlIG9uVGljayBmdW5jdGlvbi5cbiAgICB0aGlzLl9zdGF0ZSA9IFRPX0JFX0NMRUFSRURcblxuICAgIC8vIFJlc2V0IHRoZSBfaWRsZVN0YXJ0IHZhbHVlIHRvIC0xIHRvIGluZGljYXRlIHRoYXQgdGhlIHRpbWVyIGlzIG5vIGxvbmdlclxuICAgIC8vIGFjdGl2ZS5cbiAgICB0aGlzLl9pZGxlU3RhcnQgPSAtMVxuICB9XG59XG5cbi8qKlxuICogVGhpcyBtb2R1bGUgZXhwb3J0cyBhIHNldFRpbWVvdXQgYW5kIGNsZWFyVGltZW91dCBmdW5jdGlvbiB0aGF0IGNhbiBiZVxuICogdXNlZCBhcyBhIGRyb3AtaW4gcmVwbGFjZW1lbnQgZm9yIHRoZSBuYXRpdmUgZnVuY3Rpb25zLlxuICovXG5tb2R1bGUuZXhwb3J0cyA9IHtcbiAgLyoqXG4gICAqIFRoZSBzZXRUaW1lb3V0KCkgbWV0aG9kIHNldHMgYSB0aW1lciB3aGljaCBleGVjdXRlcyBhIGZ1bmN0aW9uIG9uY2UgdGhlXG4gICAqIHRpbWVyIGV4cGlyZXMuXG4gICAqIEBwYXJhbSB7RnVuY3Rpb259IGNhbGxiYWNrIEEgZnVuY3Rpb24gdG8gYmUgZXhlY3V0ZWQgYWZ0ZXIgdGhlIHRpbWVyXG4gICAqIGV4cGlyZXMuXG4gICAqIEBwYXJhbSB7bnVtYmVyfSBkZWxheSBUaGUgdGltZSwgaW4gbWlsbGlzZWNvbmRzIHRoYXQgdGhlIHRpbWVyIHNob3VsZFxuICAgKiB3YWl0IGJlZm9yZSB0aGUgc3BlY2lmaWVkIGZ1bmN0aW9uIG9yIGNvZGUgaXMgZXhlY3V0ZWQuXG4gICAqIEBwYXJhbSB7Kn0gW2FyZ10gQW4gb3B0aW9uYWwgYXJndW1lbnQgdG8gYmUgcGFzc2VkIHRvIHRoZSBjYWxsYmFjayBmdW5jdGlvblxuICAgKiB3aGVuIHRoZSB0aW1lciBleHBpcmVzLlxuICAgKiBAcmV0dXJucyB7Tm9kZUpTLlRpbWVvdXR8RmFzdFRpbWVyfVxuICAgKi9cbiAgc2V0VGltZW91dCAoY2FsbGJhY2ssIGRlbGF5LCBhcmcpIHtcbiAgICAvLyBJZiB0aGUgZGVsYXkgaXMgbGVzcyB0aGFuIG9yIGVxdWFsIHRvIHRoZSBSRVNPTFVUSU9OX01TIHZhbHVlIHJldHVybiBhXG4gICAgLy8gbmF0aXZlIE5vZGUuanMgVGltZXIgaW5zdGFuY2UuXG4gICAgcmV0dXJuIGRlbGF5IDw9IFJFU09MVVRJT05fTVNcbiAgICAgID8gc2V0VGltZW91dChjYWxsYmFjaywgZGVsYXksIGFyZylcbiAgICAgIDogbmV3IEZhc3RUaW1lcihjYWxsYmFjaywgZGVsYXksIGFyZylcbiAgfSxcbiAgLyoqXG4gICAqIFRoZSBjbGVhclRpbWVvdXQgbWV0aG9kIGNhbmNlbHMgYW4gaW5zdGFudGlhdGVkIFRpbWVyIHByZXZpb3VzbHkgY3JlYXRlZFxuICAgKiBieSBjYWxsaW5nIHNldFRpbWVvdXQuXG4gICAqXG4gICAqIEBwYXJhbSB7Tm9kZUpTLlRpbWVvdXR8RmFzdFRpbWVyfSB0aW1lb3V0XG4gICAqL1xuICBjbGVhclRpbWVvdXQgKHRpbWVvdXQpIHtcbiAgICAvLyBJZiB0aGUgdGltZW91dCBpcyBhIEZhc3RUaW1lciwgY2FsbCBpdHMgb3duIGNsZWFyIG1ldGhvZC5cbiAgICBpZiAodGltZW91dFtrRmFzdFRpbWVyXSkge1xuICAgICAgLyoqXG4gICAgICAgKiBAdHlwZSB7RmFzdFRpbWVyfVxuICAgICAgICovXG4gICAgICB0aW1lb3V0LmNsZWFyKClcbiAgICAgIC8vIE90aGVyd2lzZSBpdCBpcyBhbiBpbnN0YW5jZSBvZiBhIG5hdGl2ZSBOb2RlSlMuVGltZW91dCwgc28gY2FsbCB0aGVcbiAgICAgIC8vIE5vZGUuanMgbmF0aXZlIGNsZWFyVGltZW91dCBmdW5jdGlvbi5cbiAgICB9IGVsc2Uge1xuICAgICAgY2xlYXJUaW1lb3V0KHRpbWVvdXQpXG4gICAgfVxuICB9LFxuICAvKipcbiAgICogVGhlIHNldEZhc3RUaW1lb3V0KCkgbWV0aG9kIHNldHMgYSBmYXN0VGltZXIgd2hpY2ggZXhlY3V0ZXMgYSBmdW5jdGlvbiBvbmNlXG4gICAqIHRoZSB0aW1lciBleHBpcmVzLlxuICAgKiBAcGFyYW0ge0Z1bmN0aW9ufSBjYWxsYmFjayBBIGZ1bmN0aW9uIHRvIGJlIGV4ZWN1dGVkIGFmdGVyIHRoZSB0aW1lclxuICAgKiBleHBpcmVzLlxuICAgKiBAcGFyYW0ge251bWJlcn0gZGVsYXkgVGhlIHRpbWUsIGluIG1pbGxpc2Vjb25kcyB0aGF0IHRoZSB0aW1lciBzaG91bGRcbiAgICogd2FpdCBiZWZvcmUgdGhlIHNwZWNpZmllZCBmdW5jdGlvbiBvciBjb2RlIGlzIGV4ZWN1dGVkLlxuICAgKiBAcGFyYW0geyp9IFthcmddIEFuIG9wdGlvbmFsIGFyZ3VtZW50IHRvIGJlIHBhc3NlZCB0byB0aGUgY2FsbGJhY2sgZnVuY3Rpb25cbiAgICogd2hlbiB0aGUgdGltZXIgZXhwaXJlcy5cbiAgICogQHJldHVybnMge0Zhc3RUaW1lcn1cbiAgICovXG4gIHNldEZhc3RUaW1lb3V0IChjYWxsYmFjaywgZGVsYXksIGFyZykge1xuICAgIHJldHVybiBuZXcgRmFzdFRpbWVyKGNhbGxiYWNrLCBkZWxheSwgYXJnKVxuICB9LFxuICAvKipcbiAgICogVGhlIGNsZWFyVGltZW91dCBtZXRob2QgY2FuY2VscyBhbiBpbnN0YW50aWF0ZWQgRmFzdFRpbWVyIHByZXZpb3VzbHlcbiAgICogY3JlYXRlZCBieSBjYWxsaW5nIHNldEZhc3RUaW1lb3V0LlxuICAgKlxuICAgKiBAcGFyYW0ge0Zhc3RUaW1lcn0gdGltZW91dFxuICAgKi9cbiAgY2xlYXJGYXN0VGltZW91dCAodGltZW91dCkge1xuICAgIHRpbWVvdXQuY2xlYXIoKVxuICB9LFxuICAvKipcbiAgICogVGhlIG5vdyBtZXRob2QgcmV0dXJucyB0aGUgdmFsdWUgb2YgdGhlIGludGVybmFsIGZhc3QgdGltZXIgY2xvY2suXG4gICAqXG4gICAqIEByZXR1cm5zIHtudW1iZXJ9XG4gICAqL1xuICBub3cgKCkge1xuICAgIHJldHVybiBmYXN0Tm93XG4gIH0sXG4gIC8qKlxuICAgKiBUcmlnZ2VyIHRoZSBvblRpY2sgZnVuY3Rpb24gdG8gcHJvY2VzcyB0aGUgZmFzdFRpbWVycyBhcnJheS5cbiAgICogRXhwb3J0ZWQgZm9yIHRlc3RpbmcgcHVycG9zZXMgb25seS5cbiAgICogTWFya2luZyBhcyBkZXByZWNhdGVkIHRvIGRpc2NvdXJhZ2UgYW55IHVzZSBvdXRzaWRlIG9mIHRlc3RpbmcuXG4gICAqIEBkZXByZWNhdGVkXG4gICAqIEBwYXJhbSB7bnVtYmVyfSBbZGVsYXk9MF0gVGhlIGRlbGF5IGluIG1pbGxpc2Vjb25kcyB0byBhZGQgdG8gdGhlIG5vdyB2YWx1ZS5cbiAgICovXG4gIHRpY2sgKGRlbGF5ID0gMCkge1xuICAgIGZhc3ROb3cgKz0gZGVsYXkgLSBSRVNPTFVUSU9OX01TICsgMVxuICAgIG9uVGljaygpXG4gICAgb25UaWNrKClcbiAgfSxcbiAgLyoqXG4gICAqIFJlc2V0IEZhc3RUaW1lcnMuXG4gICAqIEV4cG9ydGVkIGZvciB0ZXN0aW5nIHB1cnBvc2VzIG9ubHkuXG4gICAqIE1hcmtpbmcgYXMgZGVwcmVjYXRlZCB0byBkaXNjb3VyYWdlIGFueSB1c2Ugb3V0c2lkZSBvZiB0ZXN0aW5nLlxuICAgKiBAZGVwcmVjYXRlZFxuICAgKi9cbiAgcmVzZXQgKCkge1xuICAgIGZhc3ROb3cgPSAwXG4gICAgZmFzdFRpbWVycy5sZW5ndGggPSAwXG4gICAgY2xlYXJUaW1lb3V0KGZhc3ROb3dUaW1lb3V0KVxuICAgIGZhc3ROb3dUaW1lb3V0ID0gbnVsbFxuICB9LFxuICAvKipcbiAgICogRXhwb3J0aW5nIGZvciB0ZXN0aW5nIHB1cnBvc2VzIG9ubHkuXG4gICAqIE1hcmtpbmcgYXMgZGVwcmVjYXRlZCB0byBkaXNjb3VyYWdlIGFueSB1c2Ugb3V0c2lkZSBvZiB0ZXN0aW5nLlxuICAgKiBAZGVwcmVjYXRlZFxuICAgKi9cbiAga0Zhc3RUaW1lclxufVxuIl0sInZlcnNpb24iOjN9

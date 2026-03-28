@@ -1,0 +1,54 @@
+cf8c593b5dd3265ccf2ecc47f667da3f
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RbacGuard = void 0;
+const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
+const require_permission_decorator_1 = require("../decorators/require-permission.decorator");
+const user_service_1 = require("../../modules/user/user.service");
+let RbacGuard = class RbacGuard {
+    constructor(reflector, userService) {
+        this.reflector = reflector;
+        this.userService = userService;
+    }
+    async canActivate(context) {
+        // 1. ดูว่า Controller นี้ต้องการสิทธิ์อะไร?
+        const requiredPermissions = this.reflector.getAllAndOverride(require_permission_decorator_1.PERMISSIONS_KEY, [context.getHandler(), context.getClass()]);
+        // ถ้าไม่ต้องการสิทธิ์อะไรเลย ก็ปล่อยผ่าน
+        if (!requiredPermissions || requiredPermissions.length === 0) {
+            return true;
+        }
+        // 2. ดึง User จาก Request (ที่ JwtAuthGuard แปะไว้ให้)
+        const request = context.switchToHttp().getRequest();
+        const user = request.user;
+        if (!user) {
+            throw new common_1.ForbiddenException('User not found in request');
+        }
+        // 3. (สำคัญ) ดึงสิทธิ์ทั้งหมดของ User คนนี้จาก Database
+        const userPermissions = await this.userService.getUserPermissions(user.user_id // ✅ FIX: ใช้ user_id ตาม Entity field name
+        );
+        // 4. ตรวจสอบว่ามีสิทธิ์ที่ต้องการไหม? (User ต้องมีครบทุกสิทธิ์)
+        const hasPermission = requiredPermissions.every((req) => userPermissions.some((p) => p === req || p === 'system.manage_all' // Superadmin ทะลุทุกสิทธิ์
+        ));
+        if (!hasPermission) {
+            throw new common_1.ForbiddenException(`You do not have permission: ${requiredPermissions.join(', ')}`);
+        }
+        return true;
+    }
+};
+exports.RbacGuard = RbacGuard;
+exports.RbacGuard = RbacGuard = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof core_1.Reflector !== "undefined" && core_1.Reflector) === "function" ? _a : Object, typeof (_b = typeof user_service_1.UserService !== "undefined" && user_service_1.UserService) === "function" ? _b : Object])
+], RbacGuard);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcY29tbW9uXFxndWFyZHNcXHJiYWMuZ3VhcmQudHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQUFBLDJDQUt3QjtBQUN4Qix1Q0FBeUM7QUFDekMsNkZBQTZFO0FBQzdFLGtFQUE4RDtBQVF2RCxJQUFNLFNBQVMsR0FBZixNQUFNLFNBQVM7SUFDcEIsWUFDVSxTQUFvQixFQUNwQixXQUF3QjtRQUR4QixjQUFTLEdBQVQsU0FBUyxDQUFXO1FBQ3BCLGdCQUFXLEdBQVgsV0FBVyxDQUFhO0lBQy9CLENBQUM7SUFFSixLQUFLLENBQUMsV0FBVyxDQUFDLE9BQXlCO1FBQ3pDLDRDQUE0QztRQUM1QyxNQUFNLG1CQUFtQixHQUFHLElBQUksQ0FBQyxTQUFTLENBQUMsaUJBQWlCLENBQzFELDhDQUFlLEVBQ2YsQ0FBQyxPQUFPLENBQUMsVUFBVSxFQUFFLEVBQUUsT0FBTyxDQUFDLFFBQVEsRUFBRSxDQUFDLENBQzNDLENBQUM7UUFFRix5Q0FBeUM7UUFDekMsSUFBSSxDQUFDLG1CQUFtQixJQUFJLG1CQUFtQixDQUFDLE1BQU0sS0FBSyxDQUFDLEVBQUUsQ0FBQztZQUM3RCxPQUFPLElBQUksQ0FBQztRQUNkLENBQUM7UUFFRCx1REFBdUQ7UUFDdkQsTUFBTSxPQUFPLEdBQUcsT0FBTyxDQUFDLFlBQVksRUFBRSxDQUFDLFVBQVUsRUFBbUIsQ0FBQztRQUNyRSxNQUFNLElBQUksR0FBRyxPQUFPLENBQUMsSUFBSSxDQUFDO1FBQzFCLElBQUksQ0FBQyxJQUFJLEVBQUUsQ0FBQztZQUNWLE1BQU0sSUFBSSwyQkFBa0IsQ0FBQywyQkFBMkIsQ0FBQyxDQUFDO1FBQzVELENBQUM7UUFFRCx3REFBd0Q7UUFDeEQsTUFBTSxlQUFlLEdBQUcsTUFBTSxJQUFJLENBQUMsV0FBVyxDQUFDLGtCQUFrQixDQUMvRCxJQUFJLENBQUMsT0FBTyxDQUFDLDJDQUEyQztTQUN6RCxDQUFDO1FBRUYsZ0VBQWdFO1FBQ2hFLE1BQU0sYUFBYSxHQUFHLG1CQUFtQixDQUFDLEtBQUssQ0FBQyxDQUFDLEdBQUcsRUFBRSxFQUFFLENBQ3RELGVBQWUsQ0FBQyxJQUFJLENBQ2xCLENBQUMsQ0FBQyxFQUFFLEVBQUUsQ0FBQyxDQUFDLEtBQUssR0FBRyxJQUFJLENBQUMsS0FBSyxtQkFBbUIsQ0FBQywyQkFBMkI7U0FDMUUsQ0FDRixDQUFDO1FBRUYsSUFBSSxDQUFDLGFBQWEsRUFBRSxDQUFDO1lBQ25CLE1BQU0sSUFBSSwyQkFBa0IsQ0FDMUIsK0JBQStCLG1CQUFtQixDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsRUFBRSxDQUNoRSxDQUFDO1FBQ0osQ0FBQztRQUVELE9BQU8sSUFBSSxDQUFDO0lBQ2QsQ0FBQztDQUNGLENBQUE7QUE3Q1ksOEJBQVM7b0JBQVQsU0FBUztJQURyQixJQUFBLG1CQUFVLEdBQUU7eURBR1UsZ0JBQVMsb0JBQVQsZ0JBQVMsb0RBQ1AsMEJBQVcsb0JBQVgsMEJBQVc7R0FIdkIsU0FBUyxDQTZDckIiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcY29tbW9uXFxndWFyZHNcXHJiYWMuZ3VhcmQudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtcclxuICBDYW5BY3RpdmF0ZSxcclxuICBFeGVjdXRpb25Db250ZXh0LFxyXG4gIEluamVjdGFibGUsXHJcbiAgRm9yYmlkZGVuRXhjZXB0aW9uLFxyXG59IGZyb20gJ0BuZXN0anMvY29tbW9uJztcclxuaW1wb3J0IHsgUmVmbGVjdG9yIH0gZnJvbSAnQG5lc3Rqcy9jb3JlJztcclxuaW1wb3J0IHsgUEVSTUlTU0lPTlNfS0VZIH0gZnJvbSAnLi4vZGVjb3JhdG9ycy9yZXF1aXJlLXBlcm1pc3Npb24uZGVjb3JhdG9yJztcclxuaW1wb3J0IHsgVXNlclNlcnZpY2UgfSBmcm9tICcuLi8uLi9tb2R1bGVzL3VzZXIvdXNlci5zZXJ2aWNlJztcclxuaW1wb3J0IHsgVXNlciB9IGZyb20gJy4uLy4uL21vZHVsZXMvdXNlci9lbnRpdGllcy91c2VyLmVudGl0eSc7XHJcblxyXG5pbnRlcmZhY2UgUmVxdWVzdFdpdGhVc2VyIHtcclxuICB1c2VyPzogVXNlcjtcclxufVxyXG5cclxuQEluamVjdGFibGUoKVxyXG5leHBvcnQgY2xhc3MgUmJhY0d1YXJkIGltcGxlbWVudHMgQ2FuQWN0aXZhdGUge1xyXG4gIGNvbnN0cnVjdG9yKFxyXG4gICAgcHJpdmF0ZSByZWZsZWN0b3I6IFJlZmxlY3RvcixcclxuICAgIHByaXZhdGUgdXNlclNlcnZpY2U6IFVzZXJTZXJ2aWNlXHJcbiAgKSB7fVxyXG5cclxuICBhc3luYyBjYW5BY3RpdmF0ZShjb250ZXh0OiBFeGVjdXRpb25Db250ZXh0KTogUHJvbWlzZTxib29sZWFuPiB7XHJcbiAgICAvLyAxLiDguJTguLnguKfguYjguLIgQ29udHJvbGxlciDguJnguLXguYnguJXguYnguK3guIfguIHguLLguKPguKrguLTguJfguJjguLTguYzguK3guLDguYTguKM/XHJcbiAgICBjb25zdCByZXF1aXJlZFBlcm1pc3Npb25zID0gdGhpcy5yZWZsZWN0b3IuZ2V0QWxsQW5kT3ZlcnJpZGU8c3RyaW5nW10+KFxyXG4gICAgICBQRVJNSVNTSU9OU19LRVksXHJcbiAgICAgIFtjb250ZXh0LmdldEhhbmRsZXIoKSwgY29udGV4dC5nZXRDbGFzcygpXVxyXG4gICAgKTtcclxuXHJcbiAgICAvLyDguJbguYnguLLguYTguKHguYjguJXguYnguK3guIfguIHguLLguKPguKrguLTguJfguJjguLTguYzguK3guLDguYTguKPguYDguKXguKIg4LiB4LmH4Lib4Lil4LmI4Lit4Lii4Lic4LmI4Liy4LiZXHJcbiAgICBpZiAoIXJlcXVpcmVkUGVybWlzc2lvbnMgfHwgcmVxdWlyZWRQZXJtaXNzaW9ucy5sZW5ndGggPT09IDApIHtcclxuICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICB9XHJcblxyXG4gICAgLy8gMi4g4LiU4Li24LiHIFVzZXIg4LiI4Liy4LiBIFJlcXVlc3QgKOC4l+C4teC5iCBKd3RBdXRoR3VhcmQg4LmB4Lib4Liw4LmE4Lin4LmJ4LmD4Lir4LmJKVxyXG4gICAgY29uc3QgcmVxdWVzdCA9IGNvbnRleHQuc3dpdGNoVG9IdHRwKCkuZ2V0UmVxdWVzdDxSZXF1ZXN0V2l0aFVzZXI+KCk7XHJcbiAgICBjb25zdCB1c2VyID0gcmVxdWVzdC51c2VyO1xyXG4gICAgaWYgKCF1c2VyKSB7XHJcbiAgICAgIHRocm93IG5ldyBGb3JiaWRkZW5FeGNlcHRpb24oJ1VzZXIgbm90IGZvdW5kIGluIHJlcXVlc3QnKTtcclxuICAgIH1cclxuXHJcbiAgICAvLyAzLiAo4Liq4Liz4LiE4Lix4LiNKSDguJTguLbguIfguKrguLTguJfguJjguLTguYzguJfguLHguYnguIfguKvguKHguJTguILguK3guIcgVXNlciDguITguJnguJnguLXguYnguIjguLLguIEgRGF0YWJhc2VcclxuICAgIGNvbnN0IHVzZXJQZXJtaXNzaW9ucyA9IGF3YWl0IHRoaXMudXNlclNlcnZpY2UuZ2V0VXNlclBlcm1pc3Npb25zKFxyXG4gICAgICB1c2VyLnVzZXJfaWQgLy8g4pyFIEZJWDog4LmD4LiK4LmJIHVzZXJfaWQg4LiV4Liy4LihIEVudGl0eSBmaWVsZCBuYW1lXHJcbiAgICApO1xyXG5cclxuICAgIC8vIDQuIOC4leC4o+C4p+C4iOC4quC4reC4muC4p+C5iOC4suC4oeC4teC4quC4tOC4l+C4mOC4tOC5jOC4l+C4teC5iOC4leC5ieC4reC4h+C4geC4suC4o+C5hOC4q+C4oT8gKFVzZXIg4LiV4LmJ4Lit4LiH4Lih4Li14LiE4Lij4Lia4LiX4Li44LiB4Liq4Li04LiX4LiY4Li04LmMKVxyXG4gICAgY29uc3QgaGFzUGVybWlzc2lvbiA9IHJlcXVpcmVkUGVybWlzc2lvbnMuZXZlcnkoKHJlcSkgPT5cclxuICAgICAgdXNlclBlcm1pc3Npb25zLnNvbWUoXHJcbiAgICAgICAgKHApID0+IHAgPT09IHJlcSB8fCBwID09PSAnc3lzdGVtLm1hbmFnZV9hbGwnIC8vIFN1cGVyYWRtaW4g4LiX4Liw4Lil4Li44LiX4Li44LiB4Liq4Li04LiX4LiY4Li04LmMXHJcbiAgICAgIClcclxuICAgICk7XHJcblxyXG4gICAgaWYgKCFoYXNQZXJtaXNzaW9uKSB7XHJcbiAgICAgIHRocm93IG5ldyBGb3JiaWRkZW5FeGNlcHRpb24oXHJcbiAgICAgICAgYFlvdSBkbyBub3QgaGF2ZSBwZXJtaXNzaW9uOiAke3JlcXVpcmVkUGVybWlzc2lvbnMuam9pbignLCAnKX1gXHJcbiAgICAgICk7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHRydWU7XHJcbiAgfVxyXG59XHJcbiJdLCJ2ZXJzaW9uIjozfQ==

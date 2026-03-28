@@ -1,0 +1,204 @@
+0d1208f6ac88613b2d01aee2b98d6668
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.JsonSchemaController = void 0;
+// File: src/modules/json-schema/json-schema.controller.ts
+const common_1 = require("@nestjs/common");
+const swagger_1 = require("@nestjs/swagger");
+const json_schema_service_1 = require("./json-schema.service");
+const schema_migration_service_1 = require("./services/schema-migration.service");
+const create_json_schema_dto_1 = require("./dto/create-json-schema.dto");
+const migrate_data_dto_1 = require("./dto/migrate-data.dto");
+const search_json_schema_dto_1 = require("./dto/search-json-schema.dto");
+const update_json_schema_dto_1 = require("./dto/update-json-schema.dto");
+const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
+const require_permission_decorator_1 = require("../../common/decorators/require-permission.decorator");
+const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const rbac_guard_1 = require("../../common/guards/rbac.guard");
+const user_entity_1 = require("../user/entities/user.entity");
+let JsonSchemaController = class JsonSchemaController {
+    constructor(jsonSchemaService, migrationService) {
+        this.jsonSchemaService = jsonSchemaService;
+        this.migrationService = migrationService;
+    }
+    // ----------------------------------------------------------------------
+    // Schema Management (CRUD)
+    // ----------------------------------------------------------------------
+    create(createDto) {
+        return this.jsonSchemaService.create(createDto);
+    }
+    findAll(searchDto) {
+        return this.jsonSchemaService.findAll(searchDto);
+    }
+    findOne(id) {
+        return this.jsonSchemaService.findOne(id);
+    }
+    findLatest(code) {
+        return this.jsonSchemaService.findLatestByCode(code);
+    }
+    update(id, updateDto) {
+        return this.jsonSchemaService.update(id, updateDto);
+    }
+    remove(id) {
+        return this.jsonSchemaService.remove(id);
+    }
+    // ----------------------------------------------------------------------
+    // Validation & Security
+    // ----------------------------------------------------------------------
+    async validate(code, data) {
+        // Note: Validation API นี้ใช้สำหรับ Test หรือ Pre-check เท่านั้น
+        // การ Save จริงจะเรียกผ่าน Service ภายใน
+        return this.jsonSchemaService.validateData(code, data);
+    }
+    async processReadData(code, data, user) {
+        // แปลง User Entity เป็น Security Context
+        // roles มักจะถูก inject เข้ามาใน request.user โดย Strategy หรือ Guard แม้จะไม่มีใน Entity หลัก
+        const userWithRoles = user;
+        const userRoles = userWithRoles.roles
+            ? userWithRoles.roles.map((r) => (typeof r === 'string' ? r : r.roleName)) // รองรับทั้ง Object Role และ String Role
+            : [];
+        return this.jsonSchemaService.processReadData(code, data, { userRoles });
+    }
+    // ----------------------------------------------------------------------
+    // Data Migration
+    // ----------------------------------------------------------------------
+    async migrateData(tableName, id, dto) {
+        return this.migrationService.migrateData(tableName, id, dto.targetSchemaCode, dto.targetVersion);
+    }
+};
+exports.JsonSchemaController = JsonSchemaController;
+__decorate([
+    (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Create a new schema or new version of existing schema',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'The schema has been successfully created.',
+    }),
+    (0, require_permission_decorator_1.RequirePermission)('system.manage_all') // Admin Only
+    ,
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_c = typeof create_json_schema_dto_1.CreateJsonSchemaDto !== "undefined" && create_json_schema_dto_1.CreateJsonSchemaDto) === "function" ? _c : Object]),
+    __metadata("design:returntype", void 0)
+], JsonSchemaController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'List all schemas with pagination and filtering' }),
+    (0, require_permission_decorator_1.RequirePermission)('document.view') // Viewer+ can see schemas
+    ,
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_d = typeof search_json_schema_dto_1.SearchJsonSchemaDto !== "undefined" && search_json_schema_dto_1.SearchJsonSchemaDto) === "function" ? _d : Object]),
+    __metadata("design:returntype", void 0)
+], JsonSchemaController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get a specific schema version by ID' }),
+    (0, require_permission_decorator_1.RequirePermission)('document.view'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], JsonSchemaController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Get)('latest/:code'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get the latest active version of a schema by code',
+    }),
+    (0, swagger_1.ApiParam)({ name: 'code', description: 'Schema Code (e.g., RFA_DWG)' }),
+    (0, require_permission_decorator_1.RequirePermission)('document.view'),
+    __param(0, (0, common_1.Param)('code')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], JsonSchemaController.prototype, "findLatest", null);
+__decorate([
+    (0, common_1.Patch)(':id'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Update a specific schema (Not recommended for active schemas)',
+    }),
+    (0, require_permission_decorator_1.RequirePermission)('system.manage_all'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, typeof (_e = typeof update_json_schema_dto_1.UpdateJsonSchemaDto !== "undefined" && update_json_schema_dto_1.UpdateJsonSchemaDto) === "function" ? _e : Object]),
+    __metadata("design:returntype", void 0)
+], JsonSchemaController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete a schema version (Hard Delete)' }),
+    (0, require_permission_decorator_1.RequirePermission)('system.manage_all'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], JsonSchemaController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Post)('validate/:code'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Validate data against the latest schema version' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Validation result including errors and sanitized data',
+    }),
+    (0, require_permission_decorator_1.RequirePermission)('document.view'),
+    __param(0, (0, common_1.Param)('code')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, typeof (_f = typeof Record !== "undefined" && Record) === "function" ? _f : Object]),
+    __metadata("design:returntype", Promise)
+], JsonSchemaController.prototype, "validate", null);
+__decorate([
+    (0, common_1.Post)('read/:code'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Process read data (Decrypt & Filter) based on user roles',
+    }),
+    (0, require_permission_decorator_1.RequirePermission)('document.view'),
+    __param(0, (0, common_1.Param)('code')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, typeof (_g = typeof Record !== "undefined" && Record) === "function" ? _g : Object, typeof (_h = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _h : Object]),
+    __metadata("design:returntype", Promise)
+], JsonSchemaController.prototype, "processReadData", null);
+__decorate([
+    (0, common_1.Post)('migrate/:table/:id'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Migrate specific entity data to target schema version',
+    }),
+    (0, swagger_1.ApiParam)({ name: 'table', description: 'Table Name (e.g. rfa_revisions)' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Entity ID' }),
+    (0, require_permission_decorator_1.RequirePermission)('system.manage_all') // Dangerous Op -> Admin Only
+    ,
+    __param(0, (0, common_1.Param)('table')),
+    __param(1, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Number, typeof (_j = typeof migrate_data_dto_1.MigrateDataDto !== "undefined" && migrate_data_dto_1.MigrateDataDto) === "function" ? _j : Object]),
+    __metadata("design:returntype", Promise)
+], JsonSchemaController.prototype, "migrateData", null);
+exports.JsonSchemaController = JsonSchemaController = __decorate([
+    (0, swagger_1.ApiTags)('JSON Schemas Management'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, rbac_guard_1.RbacGuard),
+    (0, common_1.Controller)('json-schemas'),
+    __metadata("design:paramtypes", [typeof (_a = typeof json_schema_service_1.JsonSchemaService !== "undefined" && json_schema_service_1.JsonSchemaService) === "function" ? _a : Object, typeof (_b = typeof schema_migration_service_1.SchemaMigrationService !== "undefined" && schema_migration_service_1.SchemaMigrationService) === "function" ? _b : Object])
+], JsonSchemaController);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcanNvbi1zY2hlbWFcXGpzb24tc2NoZW1hLmNvbnRyb2xsZXIudHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7OztBQUFBLDBEQUEwRDtBQUMxRCwyQ0Fhd0I7QUFDeEIsNkNBTXlCO0FBRXpCLCtEQUEwRDtBQUMxRCxrRkFBNkU7QUFFN0UseUVBQW1FO0FBQ25FLDZEQUF3RDtBQUN4RCx5RUFBbUU7QUFDbkUseUVBQW1FO0FBRW5FLDJGQUE2RTtBQUM3RSx1R0FBeUY7QUFDekYsdUVBQWtFO0FBQ2xFLCtEQUEyRDtBQUMzRCw4REFBb0Q7QUFNN0MsSUFBTSxvQkFBb0IsR0FBMUIsTUFBTSxvQkFBb0I7SUFDL0IsWUFDbUIsaUJBQW9DLEVBQ3BDLGdCQUF3QztRQUR4QyxzQkFBaUIsR0FBakIsaUJBQWlCLENBQW1CO1FBQ3BDLHFCQUFnQixHQUFoQixnQkFBZ0IsQ0FBd0I7SUFDeEQsQ0FBQztJQUVKLHlFQUF5RTtJQUN6RSwyQkFBMkI7SUFDM0IseUVBQXlFO0lBV3pFLE1BQU0sQ0FBUyxTQUE4QjtRQUMzQyxPQUFPLElBQUksQ0FBQyxpQkFBaUIsQ0FBQyxNQUFNLENBQUMsU0FBUyxDQUFDLENBQUM7SUFDbEQsQ0FBQztJQUtELE9BQU8sQ0FBVSxTQUE4QjtRQUM3QyxPQUFPLElBQUksQ0FBQyxpQkFBaUIsQ0FBQyxPQUFPLENBQUMsU0FBUyxDQUFDLENBQUM7SUFDbkQsQ0FBQztJQUtELE9BQU8sQ0FBNEIsRUFBVTtRQUMzQyxPQUFPLElBQUksQ0FBQyxpQkFBaUIsQ0FBQyxPQUFPLENBQUMsRUFBRSxDQUFDLENBQUM7SUFDNUMsQ0FBQztJQVFELFVBQVUsQ0FBZ0IsSUFBWTtRQUNwQyxPQUFPLElBQUksQ0FBQyxpQkFBaUIsQ0FBQyxnQkFBZ0IsQ0FBQyxJQUFJLENBQUMsQ0FBQztJQUN2RCxDQUFDO0lBT0QsTUFBTSxDQUN1QixFQUFVLEVBQzdCLFNBQThCO1FBRXRDLE9BQU8sSUFBSSxDQUFDLGlC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SUFDbEMsSUFBQSxtQkFBVSxFQUFDLGNBQWMsQ0FBQzt5REFHYSx1Q0FBaUIsb0JBQWpCLHVDQUFpQixvREFDbEIsaURBQXNCLG9CQUF0QixpREFBc0I7R0FIaEQsb0JBQW9CLENBc0loQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFxqc29uLXNjaGVtYVxcanNvbi1zY2hlbWEuY29udHJvbGxlci50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvLyBGaWxlOiBzcmMvbW9kdWxlcy9qc29uLXNjaGVtYS9qc29uLXNjaGVtYS5jb250cm9sbGVyLnRzXHJcbmltcG9ydCB7XHJcbiAgQm9keSxcclxuICBDb250cm9sbGVyLFxyXG4gIERlbGV0ZSxcclxuICBHZXQsXHJcbiAgSHR0cENvZGUsXHJcbiAgSHR0cFN0YXR1cyxcclxuICBQYXJhbSxcclxuICBQYXJzZUludFBpcGUsXHJcbiAgUGF0Y2gsXHJcbiAgUG9zdCxcclxuICBRdWVyeSxcclxuICBVc2VHdWFyZHMsXHJcbn0gZnJvbSAnQG5lc3Rqcy9jb21tb24nO1xyXG5pbXBvcnQge1xyXG4gIEFwaUJlYXJlckF1dGgsXHJcbiAgQXBpT3BlcmF0aW9uLFxyXG4gIEFwaVBhcmFtLFxyXG4gIEFwaVJlc3BvbnNlLFxyXG4gIEFwaVRhZ3MsXHJcbn0gZnJvbSAnQG5lc3Rqcy9zd2FnZ2VyJztcclxuXHJcbmltcG9ydCB7IEpzb25TY2hlbWFTZXJ2aWNlIH0gZnJvbSAnLi9qc29uLXNjaGVtYS5zZXJ2aWNlJztcclxuaW1wb3J0IHsgU2NoZW1hTWlncmF0aW9uU2VydmljZSB9IGZyb20gJy4vc2VydmljZXMvc2NoZW1hLW1pZ3JhdGlvbi5zZXJ2aWNlJztcclxuXHJcbmltcG9ydCB7IENyZWF0ZUpzb25TY2hlbWFEdG8gfSBmcm9tICcuL2R0by9jcmVhdGUtanNvbi1zY2hlbWEuZHRvJztcclxuaW1wb3J0IHsgTWlncmF0ZURhdGFEdG8gfSBmcm9tICcuL2R0by9taWdyYXRlLWRhdGEuZHRvJztcclxuaW1wb3J0IHsgU2VhcmNoSnNvblNjaGVtYUR0byB9IGZyb20gJy4vZHRvL3NlYXJjaC1qc29uLXNjaGVtYS5kdG8nO1xyXG5pbXBvcnQgeyBVcGRhdGVKc29uU2NoZW1hRHRvIH0gZnJvbSAnLi9kdG8vdXBkYXRlLWpzb24tc2NoZW1hLmR0byc7XHJcblxyXG5pbXBvcnQgeyBDdXJyZW50VXNlciB9IGZyb20gJy4uLy4uL2NvbW1vbi9kZWNvcmF0b3JzL2N1cnJlbnQtdXNlci5kZWNvcmF0b3InO1xyXG5pbXBvcnQgeyBSZXF1aXJlUGVybWlzc2lvbiB9IGZyb20gJy4uLy4uL2NvbW1vbi9kZWNvcmF0b3JzL3JlcXVpcmUtcGVybWlzc2lvbi5kZWNvcmF0b3InO1xyXG5pbXBvcnQgeyBKd3RBdXRoR3VhcmQgfSBmcm9tICcuLi8uLi9jb21tb24vZ3VhcmRzL2p3dC1hdXRoLmd1YXJkJztcclxuaW1wb3J0IHsgUmJhY0d1YXJkIH0gZnJvbSAnLi4vLi4vY29tbW9uL2d1YXJkcy9yYmFjLmd1YXJkJztcclxuaW1wb3J0IHsgVXNlciB9IGZyb20gJy4uL3VzZXIvZW50aXRpZXMvdXNlci5lbnRpdHknO1xyXG5cclxuQEFwaVRhZ3MoJ0pTT04gU2NoZW1hcyBNYW5hZ2VtZW50JylcclxuQEFwaUJlYXJlckF1dGgoKVxyXG5AVXNlR3VhcmRzKEp3dEF1dGhHdWFyZCwgUmJhY0d1YXJkKVxyXG5AQ29udHJvbGxlcignanNvbi1zY2hlbWFzJylcclxuZXhwb3J0IGNsYXNzIEpzb25TY2hlbWFDb250cm9sbGVyIHtcclxuICBjb25zdHJ1Y3RvcihcclxuICAgIHByaXZhdGUgcmVhZG9ubHkganNvblNjaGVtYVNlcnZpY2U6IEpzb25TY2hlbWFTZXJ2aWNlLFxyXG4gICAgcHJpdmF0ZSByZWFkb25seSBtaWdyYXRpb25TZXJ2aWNlOiBTY2hlbWFNaWdyYXRpb25TZXJ2aWNlXHJcbiAgKSB7fVxyXG5cclxuICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXHJcbiAgLy8gU2NoZW1hIE1hbmFnZW1lbnQgKENSVUQpXHJcbiAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxyXG5cclxuICBAUG9zdCgpXHJcbiAgQEFwaU9wZXJhdGlvbih7XHJcbiAgICBzdW1tYXJ5OiAnQ3JlYXRlIGEgbmV3IHNjaGVtYSBvciBuZXcgdmVyc2lvbiBvZiBleGlzdGluZyBzY2hlbWEnLFxyXG4gIH0pXHJcbiAgQEFwaVJlc3BvbnNlKHtcclxuICAgIHN0YXR1czogMjAxLFxyXG4gICAgZGVzY3JpcHRpb246ICdUaGUgc2NoZW1hIGhhcyBiZWVuIHN1Y2Nlc3NmdWxseSBjcmVhdGVkLicsXHJcbiAgfSlcclxuICBAUmVxdWlyZVBlcm1pc3Npb24oJ3N5c3RlbS5tYW5hZ2VfYWxsJykgLy8gQWRtaW4gT25seVxyXG4gIGNyZWF0ZShAQm9keSgpIGNyZWF0ZUR0bzogQ3JlYXRlSnNvblNjaGVtYUR0bykge1xyXG4gICAgcmV0dXJuIHRoaXMuanNvblNjaGVtYVNlcnZpY2UuY3JlYXRlKGNyZWF0ZUR0byk7XHJcbiAgfVxyXG5cclxuICBAR2V0KClcclxuICBAQXBpT3BlcmF0aW9uKHsgc3VtbWFyeTogJ0xpc3QgYWxsIHNjaGVtYXMgd2l0aCBwYWdpbmF0aW9uIGFuZCBmaWx0ZXJpbmcnIH0pXHJcbiAgQFJlcXVpcmVQZXJtaXNzaW9uKCdkb2N1bWVudC52aWV3JykgLy8gVmlld2VyKyBjYW4gc2VlIHNjaGVtYXNcclxuICBmaW5kQWxsKEBRdWVyeSgpIHNlYXJjaER0bzogU2VhcmNoSnNvblNjaGVtYUR0bykge1xyXG4gICAgcmV0dXJuIHRoaXMuanNvblNjaGVtYVNlcnZpY2UuZmluZEFsbChzZWFyY2hEdG8pO1xyXG4gIH1cclxuXHJcbiAgQEdldCgnOmlkJylcclxuICBAQXBpT3BlcmF0aW9uKHsgc3VtbWFyeTogJ0dldCBhIHNwZWNpZmljIHNjaGVtYSB2ZXJzaW9uIGJ5IElEJyB9KVxyXG4gIEBSZXF1aXJlUGVybWlzc2lvbignZG9jdW1lbnQudmlldycpXHJcbiAgZmluZE9uZShAUGFyYW0oJ2lkJywgUGFyc2VJbnRQaXBlKSBpZDogbnVtYmVyKSB7XHJcbiAgICByZXR1cm4gdGhpcy5qc29uU2NoZW1hU2VydmljZS5maW5kT25lKGlkKTtcclxuICB9XHJcblxyXG4gIEBHZXQoJ2xhdGVzdC86Y29kZScpXHJcbiAgQEFwaU9wZXJhdGlvbih7XHJcbiAgICBzdW1tYXJ5OiAnR2V0IHRoZSBsYXRlc3QgYWN0aXZlIHZlcnNpb24gb2YgYSBzY2hlbWEgYnkgY29kZScsXHJcbiAgfSlcclxuICBAQXBpUGFyYW0oeyBuYW1lOiAnY29kZScsIGRlc2NyaXB0aW9uOiAnU2NoZW1hIENvZGUgKGUuZy4sIFJGQV9EV0cpJyB9KVxyXG4gIEBSZXF1aXJlUGVybWlzc2lvbignZG9jdW1lbnQudmlldycpXHJcbiAgZmluZExhdGVzdChAUGFyYW0oJ2NvZGUnKSBjb2RlOiBzdHJpbmcpIHtcclxuICAgIHJldHVybiB0aGlzLmpzb25TY2hlbWFTZXJ2aWNlLmZpbmRMYXRlc3RCeUNvZGUoY29kZSk7XHJcbiAgfVxyXG5cclxuICBAUGF0Y2goJzppZCcpXHJcbiAgQEFwaU9wZXJhdGlvbih7XHJcbiAgICBzdW1tYXJ5OiAnVXBkYXRlIGEgc3BlY2lmaWMgc2NoZW1hIChOb3QgcmVjb21tZW5kZWQgZm9yIGFjdGl2ZSBzY2hlbWFzKScsXHJcbiAgfSlcclxuICBAUmVxdWlyZVBlcm1pc3Npb24oJ3N5c3RlbS5tYW5hZ2VfYWxsJylcclxuICB1cGRhdGUoXHJcbiAgICBAUGFyYW0oJ2lkJywgUGFyc2VJbnRQaXBlKSBpZDogbnVtYmVyLFxyXG4gICAgQEJvZHkoKSB1cGRhdGVEdG86IFVwZGF0ZUpzb25TY2hlbWFEdG9cclxuICApIHtcclxuICAgIHJldHVybiB0aGlzLmpzb25TY2hlbWFTZXJ2aWNlLnVwZGF0ZShpZCwgdXBkYXRlRHRvKTtcclxuICB9XHJcblxyXG4gIEBEZWxldGUoJzppZCcpXHJcbiAgQEFwaU9wZXJhdGlvbih7IHN1bW1hcnk6ICdEZWxldGUgYSBzY2hlbWEgdmVyc2lvbiAoSGFyZCBEZWxldGUpJyB9KVxyXG4gIEBSZXF1aXJlUGVybWlzc2lvbignc3lzdGVtLm1hbmFnZV9hbGwnKVxyXG4gIHJlbW92ZShAUGFyYW0oJ2lkJywgUGFyc2VJbnRQaXBlKSBpZDogbnVtYmVyKSB7XHJcbiAgICByZXR1cm4gdGhpcy5qc29uU2NoZW1hU2VydmljZS5yZW1vdmUoaWQpO1xyXG4gIH1cclxuXHJcbiAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxyXG4gIC8vIFZhbGlkYXRpb24gJiBTZWN1cml0eVxyXG4gIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cclxuXHJcbiAgQFBvc3QoJ3ZhbGlkYXRlLzpjb2RlJylcclxuICBASHR0cENvZGUoSHR0cFN0YXR1cy5PSylcclxuICBAQXBpT3BlcmF0aW9uKHsgc3VtbWFyeTogJ1ZhbGlkYXRlIGRhdGEgYWdhaW5zdCB0aGUgbGF0ZXN0IHNjaGVtYSB2ZXJzaW9uJyB9KVxyXG4gIEBBcGlSZXNwb25zZSh7XHJcbiAgICBzdGF0dXM6IDIwMCxcclxuICAgIGRlc2NyaXB0aW9uOiAnVmFsaWRhdGlvbiByZXN1bHQgaW5jbHVkaW5nIGVycm9ycyBhbmQgc2FuaXRpemVkIGRhdGEnLFxyXG4gIH0pXHJcbiAgQFJlcXVpcmVQZXJtaXNzaW9uKCdkb2N1bWVudC52aWV3JylcclxuICBhc3luYyB2YWxpZGF0ZShcclxuICAgIEBQYXJhbSgnY29kZScpIGNvZGU6IHN0cmluZyxcclxuICAgIEBCb2R5KCkgZGF0YTogUmVjb3JkPHN0cmluZywgdW5rbm93bj5cclxuICApIHtcclxuICAgIC8vIE5vdGU6IFZhbGlkYXRpb24gQVBJIOC4meC4teC5ieC5g+C4iuC5ieC4quC4s+C4q+C4o+C4seC4miBUZXN0IOC4q+C4o+C4t+C4rSBQcmUtY2hlY2sg4LmA4LiX4LmI4Liy4LiZ4Lix4LmJ4LiZXHJcbiAgICAvLyDguIHguLLguKMgU2F2ZSDguIjguKPguLTguIfguIjguLDguYDguKPguLXguKLguIHguJzguYjguLLguJkgU2VydmljZSDguKDguLLguKLguYPguJlcclxuICAgIHJldHVybiB0aGlzLmpzb25TY2hlbWFTZXJ2aWNlLnZhbGlkYXRlRGF0YShjb2RlLCBkYXRhKTtcclxuICB9XHJcblxyXG4gIEBQb3N0KCdyZWFkLzpjb2RlJylcclxuICBASHR0cENvZGUoSHR0cFN0YXR1cy5PSylcclxuICBAQXBpT3BlcmF0aW9uKHtcclxuICAgIHN1bW1hcnk6ICdQcm9jZXNzIHJlYWQgZGF0YSAoRGVjcnlwdCAmIEZpbHRlcikgYmFzZWQgb24gdXNlciByb2xlcycsXHJcbiAgfSlcclxuICBAUmVxdWlyZVBlcm1pc3Npb24oJ2RvY3VtZW50LnZpZXcnKVxyXG4gIGFzeW5jIHByb2Nlc3NSZWFkRGF0YShcclxuICAgIEBQYXJhbSgnY29kZScpIGNvZGU6IHN0cmluZyxcclxuICAgIEBCb2R5KCkgZGF0YTogUmVjb3JkPHN0cmluZywgdW5rbm93bj4sXHJcbiAgICBAQ3VycmVudFVzZXIoKSB1c2VyOiBVc2VyXHJcbiAgKSB7XHJcbiAgICAvLyDguYHguJvguKXguIcgVXNlciBFbnRpdHkg4LmA4Lib4LmH4LiZIFNlY3VyaXR5IENvbnRleHRcclxuICAgIC8vIHJvbGVzIOC4oeC4seC4geC4iOC4sOC4luC4ueC4gSBpbmplY3Qg4LmA4LiC4LmJ4Liy4Lih4Liy4LmD4LiZIHJlcXVlc3QudXNlciDguYLguJTguKIgU3RyYXRlZ3kg4Lir4Lij4Li34LitIEd1YXJkIOC5geC4oeC5ieC4iOC4sOC5hOC4oeC5iOC4oeC4teC5g+C4mSBFbnRpdHkg4Lir4Lil4Lix4LiBXHJcbiAgICBjb25zdCB1c2VyV2l0aFJvbGVzID0gdXNlciBhcyBVc2VyICYge1xyXG4gICAgICByb2xlcz86IEFycmF5PHsgcm9sZU5hbWU6IHN0cmluZyB9IHwgc3RyaW5nPjtcclxuICAgIH07XHJcbiAgICBjb25zdCB1c2VyUm9sZXMgPSB1c2VyV2l0aFJvbGVzLnJvbGVzXHJcbiAgICAgID8gdXNlcldpdGhSb2xlcy5yb2xlcy5tYXAoKHIpID0+ICh0eXBlb2YgciA9PT0gJ3N0cmluZycgPyByIDogci5yb2xlTmFtZSkpIC8vIOC4o+C4reC4h+C4o+C4seC4muC4l+C4seC5ieC4hyBPYmplY3QgUm9sZSDguYHguKXguLAgU3RyaW5nIFJvbGVcclxuICAgICAgOiBbXTtcclxuXHJcbiAgICByZXR1cm4gdGhpcy5qc29uU2NoZW1hU2VydmljZS5wcm9jZXNzUmVhZERhdGEoY29kZSwgZGF0YSwgeyB1c2VyUm9sZXMgfSk7XHJcbiAgfVxyXG5cclxuICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXHJcbiAgLy8gRGF0YSBNaWdyYXRpb25cclxuICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXHJcblxyXG4gIEBQb3N0KCdtaWdyYXRlLzp0YWJsZS86aWQnKVxyXG4gIEBIdHRwQ29kZShIdHRwU3RhdHVzLk9LKVxyXG4gIEBBcGlPcGVyYXRpb24oe1xyXG4gICAgc3VtbWFyeTogJ01pZ3JhdGUgc3BlY2lmaWMgZW50aXR5IGRhdGEgdG8gdGFyZ2V0IHNjaGVtYSB2ZXJzaW9uJyxcclxuICB9KVxyXG4gIEBBcGlQYXJhbSh7IG5hbWU6ICd0YWJsZScsIGRlc2NyaXB0aW9uOiAnVGFibGUgTmFtZSAoZS5nLiByZmFfcmV2aXNpb25zKScgfSlcclxuICBAQXBpUGFyYW0oeyBuYW1lOiAnaWQnLCBkZXNjcmlwdGlvbjogJ0VudGl0eSBJRCcgfSlcclxuICBAUmVxdWlyZVBlcm1pc3Npb24oJ3N5c3RlbS5tYW5hZ2VfYWxsJykgLy8gRGFuZ2Vyb3VzIE9wIC0+IEFkbWluIE9ubHlcclxuICBhc3luYyBtaWdyYXRlRGF0YShcclxuICAgIEBQYXJhbSgndGFibGUnKSB0YWJsZU5hbWU6IHN0cmluZyxcclxuICAgIEBQYXJhbSgnaWQnLCBQYXJzZUludFBpcGUpIGlkOiBudW1iZXIsXHJcbiAgICBAQm9keSgpIGR0bzogTWlncmF0ZURhdGFEdG9cclxuICApIHtcclxuICAgIHJldHVybiB0aGlzLm1pZ3JhdGlvblNlcnZpY2UubWlncmF0ZURhdGEoXHJcbiAgICAgIHRhYmxlTmFtZSxcclxuICAgICAgaWQsXHJcbiAgICAgIGR0by50YXJnZXRTY2hlbWFDb2RlLFxyXG4gICAgICBkdG8udGFyZ2V0VmVyc2lvblxyXG4gICAgKTtcclxuICB9XHJcbn1cclxuIl0sInZlcnNpb24iOjN9

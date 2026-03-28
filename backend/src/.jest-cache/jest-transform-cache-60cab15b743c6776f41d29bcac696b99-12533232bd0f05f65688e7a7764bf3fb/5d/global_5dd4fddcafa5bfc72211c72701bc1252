@@ -1,0 +1,44 @@
+d99344075164bb11a0e63f67cfbb882d
+'use strict';
+// We include a version number for the Dispatcher API. In case of breaking changes,
+// this version number must be increased to avoid conflicts.
+const globalDispatcher = Symbol.for('undici.globalDispatcher.1');
+const { InvalidArgumentError } = require('./core/errors');
+const Agent = require('./dispatcher/agent');
+if (getGlobalDispatcher() === undefined) {
+    setGlobalDispatcher(new Agent());
+}
+function setGlobalDispatcher(agent) {
+    if (!agent || typeof agent.dispatch !== 'function') {
+        throw new InvalidArgumentError('Argument agent must implement Agent');
+    }
+    Object.defineProperty(globalThis, globalDispatcher, {
+        value: agent,
+        writable: true,
+        enumerable: false,
+        configurable: false
+    });
+}
+function getGlobalDispatcher() {
+    return globalThis[globalDispatcher];
+}
+// These are the globals that can be installed by undici.install().
+// Not exported by index.js to avoid use outside of this module.
+const installedExports = /** @type {const} */ ([
+    'fetch',
+    'Headers',
+    'Response',
+    'Request',
+    'FormData',
+    'WebSocket',
+    'CloseEvent',
+    'ErrorEvent',
+    'MessageEvent',
+    'EventSource'
+]);
+module.exports = {
+    setGlobalDispatcher,
+    getGlobalDispatcher,
+    installedExports
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHVuZGljaUA3LjI0LjRcXG5vZGVfbW9kdWxlc1xcdW5kaWNpXFxsaWJcXGdsb2JhbC5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUE7QUFFWixtRkFBbUY7QUFDbkYsNERBQTREO0FBQzVELE1BQU0sZ0JBQWdCLEdBQUcsTUFBTSxDQUFDLEdBQUcsQ0FBQywyQkFBMkIsQ0FBQyxDQUFBO0FBQ2hFLE1BQU0sRUFBRSxvQkFBb0IsRUFBRSxHQUFHLE9BQU8sQ0FBQyxlQUFlLENBQUMsQ0FBQTtBQUN6RCxNQUFNLEtBQUssR0FBRyxPQUFPLENBQUMsb0JBQW9CLENBQUMsQ0FBQTtBQUUzQyxJQUFJLG1CQUFtQixFQUFFLEtBQUssU0FBUyxFQUFFLENBQUM7SUFDeEMsbUJBQW1CLENBQUMsSUFBSSxLQUFLLEVBQUUsQ0FBQyxDQUFBO0FBQ2xDLENBQUM7QUFFRCxTQUFTLG1CQUFtQixDQUFFLEtBQUs7SUFDakMsSUFBSSxDQUFDLEtBQUssSUFBSSxPQUFPLEtBQUssQ0FBQyxRQUFRLEtBQUssVUFBVSxFQUFFLENBQUM7UUFDbkQsTUFBTSxJQUFJLG9CQUFvQixDQUFDLHFDQUFxQyxDQUFDLENBQUE7SUFDdkUsQ0FBQztJQUNELE1BQU0sQ0FBQyxjQUFjLENBQUMsVUFBVSxFQUFFLGdCQUFnQixFQUFFO1FBQ2xELEtBQUssRUFBRSxLQUFLO1FBQ1osUUFBUSxFQUFFLElBQUk7UUFDZCxVQUFVLEVBQUUsS0FBSztRQUNqQixZQUFZLEVBQUUsS0FBSztLQUNwQixDQUFDLENBQUE7QUFDSixDQUFDO0FBRUQsU0FBUyxtQkFBbUI7SUFDMUIsT0FBTyxVQUFVLENBQUMsZ0JBQWdCLENBQUMsQ0FBQTtBQUNyQyxDQUFDO0FBRUQsbUVBQW1FO0FBQ25FLGdFQUFnRTtBQUNoRSxNQUFNLGdCQUFnQixHQUFHLG9CQUFvQixDQUFDLENBQzVDO0lBQ0UsT0FBTztJQUNQLFNBQVM7SUFDVCxVQUFVO0lBQ1YsU0FBUztJQUNULFVBQVU7SUFDVixXQUFXO0lBQ1gsWUFBWTtJQUNaLFlBQVk7SUFDWixjQUFjO0lBQ2QsYUFBYTtDQUNkLENBQ0YsQ0FBQTtBQUVELE1BQU0sQ0FBQyxPQUFPLEdBQUc7SUFDZixtQkFBbUI7SUFDbkIsbUJBQW1CO0lBQ25CLGdCQUFnQjtDQUNqQixDQUFBIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFx1bmRpY2lANy4yNC40XFxub2RlX21vZHVsZXNcXHVuZGljaVxcbGliXFxnbG9iYWwuanMiXSwic291cmNlc0NvbnRlbnQiOlsiJ3VzZSBzdHJpY3QnXG5cbi8vIFdlIGluY2x1ZGUgYSB2ZXJzaW9uIG51bWJlciBmb3IgdGhlIERpc3BhdGNoZXIgQVBJLiBJbiBjYXNlIG9mIGJyZWFraW5nIGNoYW5nZXMsXG4vLyB0aGlzIHZlcnNpb24gbnVtYmVyIG11c3QgYmUgaW5jcmVhc2VkIHRvIGF2b2lkIGNvbmZsaWN0cy5cbmNvbnN0IGdsb2JhbERpc3BhdGNoZXIgPSBTeW1ib2wuZm9yKCd1bmRpY2kuZ2xvYmFsRGlzcGF0Y2hlci4xJylcbmNvbnN0IHsgSW52YWxpZEFyZ3VtZW50RXJyb3IgfSA9IHJlcXVpcmUoJy4vY29yZS9lcnJvcnMnKVxuY29uc3QgQWdlbnQgPSByZXF1aXJlKCcuL2Rpc3BhdGNoZXIvYWdlbnQnKVxuXG5pZiAoZ2V0R2xvYmFsRGlzcGF0Y2hlcigpID09PSB1bmRlZmluZWQpIHtcbiAgc2V0R2xvYmFsRGlzcGF0Y2hlcihuZXcgQWdlbnQoKSlcbn1cblxuZnVuY3Rpb24gc2V0R2xvYmFsRGlzcGF0Y2hlciAoYWdlbnQpIHtcbiAgaWYgKCFhZ2VudCB8fCB0eXBlb2YgYWdlbnQuZGlzcGF0Y2ggIT09ICdmdW5jdGlvbicpIHtcbiAgICB0aHJvdyBuZXcgSW52YWxpZEFyZ3VtZW50RXJyb3IoJ0FyZ3VtZW50IGFnZW50IG11c3QgaW1wbGVtZW50IEFnZW50JylcbiAgfVxuICBPYmplY3QuZGVmaW5lUHJvcGVydHkoZ2xvYmFsVGhpcywgZ2xvYmFsRGlzcGF0Y2hlciwge1xuICAgIHZhbHVlOiBhZ2VudCxcbiAgICB3cml0YWJsZTogdHJ1ZSxcbiAgICBlbnVtZXJhYmxlOiBmYWxzZSxcbiAgICBjb25maWd1cmFibGU6IGZhbHNlXG4gIH0pXG59XG5cbmZ1bmN0aW9uIGdldEdsb2JhbERpc3BhdGNoZXIgKCkge1xuICByZXR1cm4gZ2xvYmFsVGhpc1tnbG9iYWxEaXNwYXRjaGVyXVxufVxuXG4vLyBUaGVzZSBhcmUgdGhlIGdsb2JhbHMgdGhhdCBjYW4gYmUgaW5zdGFsbGVkIGJ5IHVuZGljaS5pbnN0YWxsKCkuXG4vLyBOb3QgZXhwb3J0ZWQgYnkgaW5kZXguanMgdG8gYXZvaWQgdXNlIG91dHNpZGUgb2YgdGhpcyBtb2R1bGUuXG5jb25zdCBpbnN0YWxsZWRFeHBvcnRzID0gLyoqIEB0eXBlIHtjb25zdH0gKi8gKFxuICBbXG4gICAgJ2ZldGNoJyxcbiAgICAnSGVhZGVycycsXG4gICAgJ1Jlc3BvbnNlJyxcbiAgICAnUmVxdWVzdCcsXG4gICAgJ0Zvcm1EYXRhJyxcbiAgICAnV2ViU29ja2V0JyxcbiAgICAnQ2xvc2VFdmVudCcsXG4gICAgJ0Vycm9yRXZlbnQnLFxuICAgICdNZXNzYWdlRXZlbnQnLFxuICAgICdFdmVudFNvdXJjZSdcbiAgXVxuKVxuXG5tb2R1bGUuZXhwb3J0cyA9IHtcbiAgc2V0R2xvYmFsRGlzcGF0Y2hlcixcbiAgZ2V0R2xvYmFsRGlzcGF0Y2hlcixcbiAgaW5zdGFsbGVkRXhwb3J0c1xufVxuIl0sInZlcnNpb24iOjN9

@@ -1,0 +1,33 @@
+f1c8d95263a95d3f1b08d64be3be1f2d
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.isJobInList = void 0;
+const content = `--[[
+  Checks if job is in a given list.
+  Input:
+    KEYS[1]
+    ARGV[1]
+  Output:
+    1 if element found in the list.
+]]
+-- Includes
+--[[
+  Functions to check if a item belongs to a list.
+]]
+local function checkItemInList(list, item)
+  for _, v in pairs(list) do
+    if v == item then
+      return 1
+    end
+  end
+  return nil
+end
+local items = redis.call("LRANGE", KEYS[1] , 0, -1)
+return checkItemInList(items, ARGV[1])
+`;
+exports.isJobInList = {
+    name: 'isJobInList',
+    content,
+    keys: 1,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGlzSm9iSW5MaXN0LTEuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2IsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLFdBQVcsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUM3QixNQUFNLE9BQU8sR0FBRzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztDQXNCZixDQUFDO0FBQ0YsT0FBTyxDQUFDLFdBQVcsR0FBRztJQUNsQixJQUFJLEVBQUUsYUFBYTtJQUNuQixPQUFPO0lBQ1AsSUFBSSxFQUFFLENBQUM7Q0FDVixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxidWxsbXFANS42NS4wXFxub2RlX21vZHVsZXNcXGJ1bGxtcVxcZGlzdFxcY2pzXFxzY3JpcHRzXFxpc0pvYkluTGlzdC0xLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5pc0pvYkluTGlzdCA9IHZvaWQgMDtcbmNvbnN0IGNvbnRlbnQgPSBgLS1bW1xuICBDaGVja3MgaWYgam9iIGlzIGluIGEgZ2l2ZW4gbGlzdC5cbiAgSW5wdXQ6XG4gICAgS0VZU1sxXVxuICAgIEFSR1ZbMV1cbiAgT3V0cHV0OlxuICAgIDEgaWYgZWxlbWVudCBmb3VuZCBpbiB0aGUgbGlzdC5cbl1dXG4tLSBJbmNsdWRlc1xuLS1bW1xuICBGdW5jdGlvbnMgdG8gY2hlY2sgaWYgYSBpdGVtIGJlbG9uZ3MgdG8gYSBsaXN0LlxuXV1cbmxvY2FsIGZ1bmN0aW9uIGNoZWNrSXRlbUluTGlzdChsaXN0LCBpdGVtKVxuICBmb3IgXywgdiBpbiBwYWlycyhsaXN0KSBkb1xuICAgIGlmIHYgPT0gaXRlbSB0aGVuXG4gICAgICByZXR1cm4gMVxuICAgIGVuZFxuICBlbmRcbiAgcmV0dXJuIG5pbFxuZW5kXG5sb2NhbCBpdGVtcyA9IHJlZGlzLmNhbGwoXCJMUkFOR0VcIiwgS0VZU1sxXSAsIDAsIC0xKVxucmV0dXJuIGNoZWNrSXRlbUluTGlzdChpdGVtcywgQVJHVlsxXSlcbmA7XG5leHBvcnRzLmlzSm9iSW5MaXN0ID0ge1xuICAgIG5hbWU6ICdpc0pvYkluTGlzdCcsXG4gICAgY29udGVudCxcbiAgICBrZXlzOiAxLFxufTtcbi8vIyBzb3VyY2VNYXBwaW5nVVJMPWlzSm9iSW5MaXN0LTEuanMubWFwIl0sInZlcnNpb24iOjN9

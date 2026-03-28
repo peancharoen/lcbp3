@@ -1,0 +1,50 @@
+3d09bc01d8247e5980c2a8c890ac25ce
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TableUnique = void 0;
+/**
+ * Database's table unique constraint stored in this class.
+ */
+class TableUnique {
+    // -------------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------------
+    constructor(options) {
+        this["@instanceof"] = Symbol.for("TableUnique");
+        /**
+         * Columns that contains this constraint.
+         */
+        this.columnNames = [];
+        this.name = options.name;
+        this.columnNames = options.columnNames;
+        this.deferrable = options.deferrable;
+    }
+    // -------------------------------------------------------------------------
+    // Public Methods
+    // -------------------------------------------------------------------------
+    /**
+     * Creates a new copy of this constraint with exactly same properties.
+     */
+    clone() {
+        return new TableUnique({
+            name: this.name,
+            columnNames: [...this.columnNames],
+            deferrable: this.deferrable,
+        });
+    }
+    // -------------------------------------------------------------------------
+    // Static Methods
+    // -------------------------------------------------------------------------
+    /**
+     * Creates unique from the unique metadata object.
+     */
+    static create(uniqueMetadata) {
+        return new TableUnique({
+            name: uniqueMetadata.name,
+            columnNames: uniqueMetadata.columns.map((column) => column.databaseName),
+            deferrable: uniqueMetadata.deferrable,
+        });
+    }
+}
+exports.TableUnique = TableUnique;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxzY2hlbWEtYnVpbGRlclxcdGFibGVcXFRhYmxlVW5pcXVlLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxXQUFXLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDN0I7O0dBRUc7QUFDSCxNQUFNLFdBQVc7SUFDYiw0RUFBNEU7SUFDNUUsY0FBYztJQUNkLDRFQUE0RTtJQUM1RSxZQUFZLE9BQU87UUFDZixJQUFJLENBQUMsYUFBYSxDQUFDLEdBQUcsTUFBTSxDQUFDLEdBQUcsQ0FBQyxhQUFhLENBQUMsQ0FBQztRQUNoRDs7V0FFRztRQUNILElBQUksQ0FBQyxXQUFXLEdBQUcsRUFBRSxDQUFDO1FBQ3RCLElBQUksQ0FBQyxJQUFJLEdBQUcsT0FBTyxDQUFDLElBQUksQ0FBQztRQUN6QixJQUFJLENBQUMsV0FBVyxHQUFHLE9BQU8sQ0FBQyxXQUFXLENBQUM7UUFDdkMsSUFBSSxDQUFDLFVBQVUsR0FBRyxPQUFPLENBQUMsVUFBVSxDQUFDO0lBQ3pDLENBQUM7SUFDRCw0RUFBNEU7SUFDNUUsaUJBQWlCO0lBQ2pCLDRFQUE0RTtJQUM1RTs7T0FFRztJQUNILEtBQUs7UUFDRCxPQUFPLElBQUksV0FBVyxDQUFDO1lBQ25CLElBQUksRUFBRSxJQUFJLENBQUMsSUFBSTtZQUNmLFdBQVcsRUFBRSxDQUFDLEdBQUcsSUFBSSxDQUFDLFdBQVcsQ0FBQztZQUNsQyxVQUFVLEVBQUUsSUFBSSxDQUFDLFVBQVU7U0FDOUIsQ0FBQyxDQUFDO0lBQ1AsQ0FBQztJQUNELDRFQUE0RTtJQUM1RSxpQkFBaUI7SUFDakIsNEVBQTRFO0lBQzVFOztPQUVHO0lBQ0gsTUFBTSxDQUFDLE1BQU0sQ0FBQyxjQUFjO1FBQ3hCLE9BQU8sSUFBSSxXQUFXLENBQUM7WUFDbkIsSUFBSSxFQUFFLGNBQWMsQ0FBQyxJQUFJO1lBQ3pCLFdBQVcsRUFBRSxjQUFjLENBQUMsT0FBTyxDQUFDLEdBQUcsQ0FBQyxDQUFDLE1BQU0sRUFBRSxFQUFFLENBQUMsTUFBTSxDQUFDLFlBQVksQ0FBQztZQUN4RSxVQUFVLEVBQUUsY0FBYyxDQUFDLFVBQVU7U0FDeEMsQ0FBQyxDQUFDO0lBQ1AsQ0FBQztDQUNKO0FBQ0QsT0FBTyxDQUFDLFdBQVcsR0FBRyxXQUFXLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxzY2hlbWEtYnVpbGRlclxcdGFibGVcXFRhYmxlVW5pcXVlLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5UYWJsZVVuaXF1ZSA9IHZvaWQgMDtcbi8qKlxuICogRGF0YWJhc2UncyB0YWJsZSB1bmlxdWUgY29uc3RyYWludCBzdG9yZWQgaW4gdGhpcyBjbGFzcy5cbiAqL1xuY2xhc3MgVGFibGVVbmlxdWUge1xuICAgIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAgICAvLyBDb25zdHJ1Y3RvclxuICAgIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAgICBjb25zdHJ1Y3RvcihvcHRpb25zKSB7XG4gICAgICAgIHRoaXNbXCJAaW5zdGFuY2VvZlwiXSA9IFN5bWJvbC5mb3IoXCJUYWJsZVVuaXF1ZVwiKTtcbiAgICAgICAgLyoqXG4gICAgICAgICAqIENvbHVtbnMgdGhhdCBjb250YWlucyB0aGlzIGNvbnN0cmFpbnQuXG4gICAgICAgICAqL1xuICAgICAgICB0aGlzLmNvbHVtbk5hbWVzID0gW107XG4gICAgICAgIHRoaXMubmFtZSA9IG9wdGlvbnMubmFtZTtcbiAgICAgICAgdGhpcy5jb2x1bW5OYW1lcyA9IG9wdGlvbnMuY29sdW1uTmFtZXM7XG4gICAgICAgIHRoaXMuZGVmZXJyYWJsZSA9IG9wdGlvbnMuZGVmZXJyYWJsZTtcbiAgICB9XG4gICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIC8vIFB1YmxpYyBNZXRob2RzXG4gICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIC8qKlxuICAgICAqIENyZWF0ZXMgYSBuZXcgY29weSBvZiB0aGlzIGNvbnN0cmFpbnQgd2l0aCBleGFjdGx5IHNhbWUgcHJvcGVydGllcy5cbiAgICAgKi9cbiAgICBjbG9uZSgpIHtcbiAgICAgICAgcmV0dXJuIG5ldyBUYWJsZVVuaXF1ZSh7XG4gICAgICAgICAgICBuYW1lOiB0aGlzLm5hbWUsXG4gICAgICAgICAgICBjb2x1bW5OYW1lczogWy4uLnRoaXMuY29sdW1uTmFtZXNdLFxuICAgICAgICAgICAgZGVmZXJyYWJsZTogdGhpcy5kZWZlcnJhYmxlLFxuICAgICAgICB9KTtcbiAgICB9XG4gICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIC8vIFN0YXRpYyBNZXRob2RzXG4gICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIC8qKlxuICAgICAqIENyZWF0ZXMgdW5pcXVlIGZyb20gdGhlIHVuaXF1ZSBtZXRhZGF0YSBvYmplY3QuXG4gICAgICovXG4gICAgc3RhdGljIGNyZWF0ZSh1bmlxdWVNZXRhZGF0YSkge1xuICAgICAgICByZXR1cm4gbmV3IFRhYmxlVW5pcXVlKHtcbiAgICAgICAgICAgIG5hbWU6IHVuaXF1ZU1ldGFkYXRhLm5hbWUsXG4gICAgICAgICAgICBjb2x1bW5OYW1lczogdW5pcXVlTWV0YWRhdGEuY29sdW1ucy5tYXAoKGNvbHVtbikgPT4gY29sdW1uLmRhdGFiYXNlTmFtZSksXG4gICAgICAgICAgICBkZWZlcnJhYmxlOiB1bmlxdWVNZXRhZGF0YS5kZWZlcnJhYmxlLFxuICAgICAgICB9KTtcbiAgICB9XG59XG5leHBvcnRzLlRhYmxlVW5pcXVlID0gVGFibGVVbmlxdWU7XG5cbi8vIyBzb3VyY2VNYXBwaW5nVVJMPVRhYmxlVW5pcXVlLmpzLm1hcFxuIl0sInZlcnNpb24iOjN9

@@ -1,0 +1,75 @@
+6ef808031cabd5bb0500eaf9a7643fea
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ExpoLegacyDriver = void 0;
+const AbstractSqliteDriver_1 = require("../../sqlite-abstract/AbstractSqliteDriver");
+const ExpoLegacyQueryRunner_1 = require("./ExpoLegacyQueryRunner");
+class ExpoLegacyDriver extends AbstractSqliteDriver_1.AbstractSqliteDriver {
+    // -------------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------------
+    constructor(connection) {
+        super(connection);
+        this.database = this.options.database;
+        // load sqlite package
+        this.sqlite = this.options.driver;
+    }
+    // -------------------------------------------------------------------------
+    // Public Methods
+    // -------------------------------------------------------------------------
+    /**
+     * Closes connection with database.
+     */
+    async disconnect() {
+        return new Promise((ok, fail) => {
+            try {
+                this.queryRunner = undefined;
+                this.databaseConnection._db.close();
+                this.databaseConnection = undefined;
+                ok();
+            }
+            catch (error) {
+                fail(error);
+            }
+        });
+    }
+    /**
+     * Creates a query runner used to execute database queries.
+     */
+    createQueryRunner(mode) {
+        if (!this.queryRunner)
+            this.queryRunner = new ExpoLegacyQueryRunner_1.ExpoLegacyQueryRunner(this);
+        return this.queryRunner;
+    }
+    // -------------------------------------------------------------------------
+    // Protected Methods
+    // -------------------------------------------------------------------------
+    /**
+     * Creates connection with the database.
+     */
+    createDatabaseConnection() {
+        return new Promise((ok, fail) => {
+            try {
+                const databaseConnection = this.sqlite.openDatabase(this.options.database);
+                /*
+                // we need to enable foreign keys in sqlite to make sure all foreign key related features
+                // working properly. this also makes onDelete work with sqlite.
+                */
+                databaseConnection.transaction((tsx) => {
+                    tsx.executeSql(`PRAGMA foreign_keys = ON`, [], (t, result) => {
+                        ok(databaseConnection);
+                    }, (t, err) => {
+                        fail({ transaction: t, error: err });
+                    });
+                }, (err) => {
+                    fail(err);
+                });
+            }
+            catch (error) {
+                fail(error);
+            }
+        });
+    }
+}
+exports.ExpoLegacyDriver = ExpoLegacyDriver;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxkcml2ZXJcXGV4cG9cXGxlZ2FjeVxcRXhwb0xlZ2FjeURyaXZlci5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFDYixNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMsZ0JBQWdCLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDbEMsTUFBTSxzQkFBc0IsR0FBRyxPQUFPLENBQUMsNENBQTRDLENBQUMsQ0FBQztBQUNyRixNQUFNLHVCQUF1QixHQUFHLE9BQU8sQ0FBQyx5QkFBeUIsQ0FBQyxDQUFDO0FBQ25FLE1BQU0sZ0JBQWlCLFNBQVEsc0JBQXNCLENBQUMsb0JBQW9CO0lBQ3RFLDRFQUE0RTtJQUM1RSxjQUFjO0lBQ2QsNEVBQTRFO0lBQzVFLFlBQVksVUFBVTtRQUNsQixLQUFLLENBQUMsVUFBVSxDQUFDLENBQUM7UUFDbEIsSUFBSSxDQUFDLFFBQVEsR0FBRyxJQUFJLENBQUMsT0FBTyxDQUFDLFFBQVEsQ0FBQztRQUN0QyxzQkFBc0I7UUFDdEIsSUFBSSxDQUFDLE1BQU0sR0FBRyxJQUFJLENBQUMsT0FBTyxDQUFDLE1BQU0sQ0FBQztJQUN0QyxDQUFDO0lBQ0QsNEVBQTRFO0lBQzVFLGlCQUFpQjtJQUNqQiw0RUFBNEU7SUFDNUU7O09BRUc7SUFDSCxLQUFLLENBQUMsVUFBVTtRQUNaLE9BQU8sSUFBSSxPQUFPLENBQUMsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLEVBQUU7WUFDNUIsSUFBSSxDQUFDO2dCQUNELElBQUksQ0FBQyxXQUFXLEdBQUcsU0FBUyxDQUFDO2dCQUM3QixJQUFJLENBQUMsa0JBQWtCLENBQUMsR0FBRyxDQUFDLEtBQUssRUFBRSxDQUFDO2dCQUNwQyxJQUFJLENBQUMsa0JBQWtCLEdBQUcsU0FBUyxDQUFDO2dCQUNwQyxFQUFFLEVBQUUsQ0FBQztZQUNULENBQUM7WUFDRCxPQUFPLEtBQUssRUFBRSxDQUFDO2dCQUNYLElBQUksQ0FBQyxLQUFLLENBQUMsQ0FBQztZQUNoQixDQUFDO1FBQ0wsQ0FBQyxDQUFDLENBQUM7SUFDUCxDQUFDO0lBQ0Q7O09BRUc7SUFDSCxpQkFBaUIsQ0FBQyxJQUFJO1FBQ2xCLElBQUksQ0FBQyxJQUFJLENBQUMsV0FBVztZQUNqQixJQUFJLENBQUMsV0FBVyxHQUFHLElBQUksdUJBQXVCLENBQUMscUJBQXFCLENBQUMsSUFBSSxDQUFDLENBQUM7UUFDL0UsT0FBTyxJQUFJLENBQUMsV0FBVyxDQUFDO0lBQzVCLENBQUM7SUFDRCw0RUFBNEU7SUFDNUUsb0JBQW9CO0lBQ3BCLDRFQUE0RTtJQUM1RTs7T0FFRztJQUNILHdCQUF3QjtRQUNwQixPQUFPLElBQUksT0FBTyxDQUFDLENBQUMsRUFBRSxFQUFFLElBQUksRUFBRSxFQUFFO1lBQzVCLElBQUksQ0FBQztnQkFDRCxNQUFNLGtCQUFrQixHQUFHLElBQUksQ0FBQyxNQUFNLENBQUMsWUFBWSxDQUFDLElBQUksQ0FBQyxPQUFPLENBQUMsUUFBUSxDQUFDLENBQUM7Z0JBQzNFOzs7a0JBR0U7Z0JBQ0Ysa0JBQWtCLENBQUMsV0FBVyxDQUFDLENBQUMsR0FBRyxFQUFFLEVBQUU7b0JBQ25DLEdBQUcsQ0FBQyxVQUFVLENBQUMsMEJBQTBCLEVBQUUsRUFBRSxFQUFFLENBQUMsQ0FBQyxFQUFFLE1BQU0sRUFBRSxFQUFFO3dCQUN6RCxFQUFFLENBQUMsa0JBQWtCLENBQUMsQ0FBQztvQkFDM0IsQ0FBQyxFQUFFLENBQUMsQ0FBQyxFQUFFLEdBQUcsRUFBRSxFQUFFO3dCQUNWLElBQUksQ0FBQyxFQUFFLFdBQVcsRUFBRSxDQUFDLEVBQUUsS0FBSyxFQUFFLEdBQUcsRUFBRSxDQUFDLENBQUM7b0JBQ3pDLENBQUMsQ0FBQyxDQUFDO2dCQUNQLENBQUMsRUFBRSxDQUFDLEdBQUcsRUFBRSxFQUFFO29CQUNQLElBQUksQ0FBQyxHQUFHLENBQUMsQ0FBQztnQkFDZCxDQUFDLENBQUMsQ0FBQztZQUNQLENBQUM7WUFDRCxPQUFPLEtBQUssRUFBRSxDQUFDO2dCQUNYLElBQUksQ0FBQyxLQUFLLENBQUMsQ0FBQztZQUNoQixDQUFDO1FBQ0wsQ0FBQyxDQUFDLENBQUM7SUFDUCxDQUFDO0NBQ0o7QUFDRCxPQUFPLENBQUMsZ0JBQWdCLEdBQUcsZ0JBQWdCLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxkcml2ZXJcXGV4cG9cXGxlZ2FjeVxcRXhwb0xlZ2FjeURyaXZlci5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBzdHJpY3RcIjtcbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMuRXhwb0xlZ2FjeURyaXZlciA9IHZvaWQgMDtcbmNvbnN0IEFic3RyYWN0U3FsaXRlRHJpdmVyXzEgPSByZXF1aXJlKFwiLi4vLi4vc3FsaXRlLWFic3RyYWN0L0Fic3RyYWN0U3FsaXRlRHJpdmVyXCIpO1xuY29uc3QgRXhwb0xlZ2FjeVF1ZXJ5UnVubmVyXzEgPSByZXF1aXJlKFwiLi9FeHBvTGVnYWN5UXVlcnlSdW5uZXJcIik7XG5jbGFzcyBFeHBvTGVnYWN5RHJpdmVyIGV4dGVuZHMgQWJzdHJhY3RTcWxpdGVEcml2ZXJfMS5BYnN0cmFjdFNxbGl0ZURyaXZlciB7XG4gICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIC8vIENvbnN0cnVjdG9yXG4gICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIGNvbnN0cnVjdG9yKGNvbm5lY3Rpb24pIHtcbiAgICAgICAgc3VwZXIoY29ubmVjdGlvbik7XG4gICAgICAgIHRoaXMuZGF0YWJhc2UgPSB0aGlzLm9wdGlvbnMuZGF0YWJhc2U7XG4gICAgICAgIC8vIGxvYWQgc3FsaXRlIHBhY2thZ2VcbiAgICAgICAgdGhpcy5zcWxpdGUgPSB0aGlzLm9wdGlvbnMuZHJpdmVyO1xuICAgIH1cbiAgICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXG4gICAgLy8gUHVibGljIE1ldGhvZHNcbiAgICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXG4gICAgLyoqXG4gICAgICogQ2xvc2VzIGNvbm5lY3Rpb24gd2l0aCBkYXRhYmFzZS5cbiAgICAgKi9cbiAgICBhc3luYyBkaXNjb25uZWN0KCkge1xuICAgICAgICByZXR1cm4gbmV3IFByb21pc2UoKG9rLCBmYWlsKSA9PiB7XG4gICAgICAgICAgICB0cnkge1xuICAgICAgICAgICAgICAgIHRoaXMucXVlcnlSdW5uZXIgPSB1bmRlZmluZWQ7XG4gICAgICAgICAgICAgICAgdGhpcy5kYXRhYmFzZUNvbm5lY3Rpb24uX2RiLmNsb3NlKCk7XG4gICAgICAgICAgICAgICAgdGhpcy5kYXRhYmFzZUNvbm5lY3Rpb24gPSB1bmRlZmluZWQ7XG4gICAgICAgICAgICAgICAgb2soKTtcbiAgICAgICAgICAgIH1cbiAgICAgICAgICAgIGNhdGNoIChlcnJvcikge1xuICAgICAgICAgICAgICAgIGZhaWwoZXJyb3IpO1xuICAgICAgICAgICAgfVxuICAgICAgICB9KTtcbiAgICB9XG4gICAgLyoqXG4gICAgICogQ3JlYXRlcyBhIHF1ZXJ5IHJ1bm5lciB1c2VkIHRvIGV4ZWN1dGUgZGF0YWJhc2UgcXVlcmllcy5cbiAgICAgKi9cbiAgICBjcmVhdGVRdWVyeVJ1bm5lcihtb2RlKSB7XG4gICAgICAgIGlmICghdGhpcy5xdWVyeVJ1bm5lcilcbiAgICAgICAgICAgIHRoaXMucXVlcnlSdW5uZXIgPSBuZXcgRXhwb0xlZ2FjeVF1ZXJ5UnVubmVyXzEuRXhwb0xlZ2FjeVF1ZXJ5UnVubmVyKHRoaXMpO1xuICAgICAgICByZXR1cm4gdGhpcy5xdWVyeVJ1bm5lcjtcbiAgICB9XG4gICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIC8vIFByb3RlY3RlZCBNZXRob2RzXG4gICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIC8qKlxuICAgICAqIENyZWF0ZXMgY29ubmVjdGlvbiB3aXRoIHRoZSBkYXRhYmFzZS5cbiAgICAgKi9cbiAgICBjcmVhdGVEYXRhYmFzZUNvbm5lY3Rpb24oKSB7XG4gICAgICAgIHJldHVybiBuZXcgUHJvbWlzZSgob2ssIGZhaWwpID0+IHtcbiAgICAgICAgICAgIHRyeSB7XG4gICAgICAgICAgICAgICAgY29uc3QgZGF0YWJhc2VDb25uZWN0aW9uID0gdGhpcy5zcWxpdGUub3BlbkRhdGFiYXNlKHRoaXMub3B0aW9ucy5kYXRhYmFzZSk7XG4gICAgICAgICAgICAgICAgLypcbiAgICAgICAgICAgICAgICAvLyB3ZSBuZWVkIHRvIGVuYWJsZSBmb3JlaWduIGtleXMgaW4gc3FsaXRlIHRvIG1ha2Ugc3VyZSBhbGwgZm9yZWlnbiBrZXkgcmVsYXRlZCBmZWF0dXJlc1xuICAgICAgICAgICAgICAgIC8vIHdvcmtpbmcgcHJvcGVybHkuIHRoaXMgYWxzbyBtYWtlcyBvbkRlbGV0ZSB3b3JrIHdpdGggc3FsaXRlLlxuICAgICAgICAgICAgICAgICovXG4gICAgICAgICAgICAgICAgZGF0YWJhc2VDb25uZWN0aW9uLnRyYW5zYWN0aW9uKCh0c3gpID0+IHtcbiAgICAgICAgICAgICAgICAgICAgdHN4LmV4ZWN1dGVTcWwoYFBSQUdNQSBmb3JlaWduX2tleXMgPSBPTmAsIFtdLCAodCwgcmVzdWx0KSA9PiB7XG4gICAgICAgICAgICAgICAgICAgICAgICBvayhkYXRhYmFzZUNvbm5lY3Rpb24pO1xuICAgICAgICAgICAgICAgICAgICB9LCAodCwgZXJyKSA9PiB7XG4gICAgICAgICAgICAgICAgICAgICAgICBmYWlsKHsgdHJhbnNhY3Rpb246IHQsIGVycm9yOiBlcnIgfSk7XG4gICAgICAgICAgICAgICAgICAgIH0pO1xuICAgICAgICAgICAgICAgIH0sIChlcnIpID0+IHtcbiAgICAgICAgICAgICAgICAgICAgZmFpbChlcnIpO1xuICAgICAgICAgICAgICAgIH0pO1xuICAgICAgICAgICAgfVxuICAgICAgICAgICAgY2F0Y2ggKGVycm9yKSB7XG4gICAgICAgICAgICAgICAgZmFpbChlcnJvcik7XG4gICAgICAgICAgICB9XG4gICAgICAgIH0pO1xuICAgIH1cbn1cbmV4cG9ydHMuRXhwb0xlZ2FjeURyaXZlciA9IEV4cG9MZWdhY3lEcml2ZXI7XG5cbi8vIyBzb3VyY2VNYXBwaW5nVVJMPUV4cG9MZWdhY3lEcml2ZXIuanMubWFwXG4iXSwidmVyc2lvbiI6M30=

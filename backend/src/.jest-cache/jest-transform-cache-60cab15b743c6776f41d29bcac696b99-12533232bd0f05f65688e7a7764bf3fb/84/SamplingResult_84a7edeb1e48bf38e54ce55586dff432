@@ -1,0 +1,43 @@
+a9ba0bbfd806621720b0a4db79612280
+"use strict";
+/*
+ * Copyright The OpenTelemetry Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SamplingDecision = void 0;
+/**
+ * @deprecated use the one declared in @opentelemetry/sdk-trace-base instead.
+ * A sampling decision that determines how a {@link Span} will be recorded
+ * and collected.
+ */
+var SamplingDecision;
+(function (SamplingDecision) {
+    /**
+     * `Span.isRecording() === false`, span will not be recorded and all events
+     * and attributes will be dropped.
+     */
+    SamplingDecision[SamplingDecision["NOT_RECORD"] = 0] = "NOT_RECORD";
+    /**
+     * `Span.isRecording() === true`, but `Sampled` flag in {@link TraceFlags}
+     * MUST NOT be set.
+     */
+    SamplingDecision[SamplingDecision["RECORD"] = 1] = "RECORD";
+    /**
+     * `Span.isRecording() === true` AND `Sampled` flag in {@link TraceFlags}
+     * MUST be set.
+     */
+    SamplingDecision[SamplingDecision["RECORD_AND_SAMPLED"] = 2] = "RECORD_AND_SAMPLED";
+})(SamplingDecision = exports.SamplingDecision || (exports.SamplingDecision = {}));
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBvcGVudGVsZW1ldHJ5K2FwaUAxLjkuMFxcbm9kZV9tb2R1bGVzXFxAb3BlbnRlbGVtZXRyeVxcYXBpXFxidWlsZFxcc3JjXFx0cmFjZVxcU2FtcGxpbmdSZXN1bHQuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2I7Ozs7Ozs7Ozs7Ozs7O0dBY0c7QUFDSCxNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMsZ0JBQWdCLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDbEM7Ozs7R0FJRztBQUNILElBQUksZ0JBQWdCLENBQUM7QUFDckIsQ0FBQyxVQUFVLGdCQUFnQjtJQUN2Qjs7O09BR0c7SUFDSCxnQkFBZ0IsQ0FBQyxnQkFBZ0IsQ0FBQyxZQUFZLENBQUMsR0FBRyxDQUFDLENBQUMsR0FBRyxZQUFZLENBQUM7SUFDcEU7OztPQUdHO0lBQ0gsZ0JBQWdCLENBQUMsZ0JBQWdCLENBQUMsUUFBUSxDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsUUFBUSxDQUFDO0lBQzVEOzs7T0FHRztJQUNILGdCQUFnQixDQUFDLGdCQUFnQixDQUFDLG9CQUFvQixDQUFDLEdBQUcsQ0FBQyxDQUFDLEdBQUcsb0JBQW9CLENBQUM7QUFDeEYsQ0FBQyxDQUFDLENBQUMsZ0JBQWdCLEdBQUcsT0FBTyxDQUFDLGdCQUFnQixJQUFJLENBQUMsT0FBTyxDQUFDLGdCQUFnQixHQUFHLEVBQUUsQ0FBQyxDQUFDLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBvcGVudGVsZW1ldHJ5K2FwaUAxLjkuMFxcbm9kZV9tb2R1bGVzXFxAb3BlbnRlbGVtZXRyeVxcYXBpXFxidWlsZFxcc3JjXFx0cmFjZVxcU2FtcGxpbmdSZXN1bHQuanMiXSwic291cmNlc0NvbnRlbnQiOlsiXCJ1c2Ugc3RyaWN0XCI7XG4vKlxuICogQ29weXJpZ2h0IFRoZSBPcGVuVGVsZW1ldHJ5IEF1dGhvcnNcbiAqXG4gKiBMaWNlbnNlZCB1bmRlciB0aGUgQXBhY2hlIExpY2Vuc2UsIFZlcnNpb24gMi4wICh0aGUgXCJMaWNlbnNlXCIpO1xuICogeW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLlxuICogWW91IG1heSBvYnRhaW4gYSBjb3B5IG9mIHRoZSBMaWNlbnNlIGF0XG4gKlxuICogICAgICBodHRwczovL3d3dy5hcGFjaGUub3JnL2xpY2Vuc2VzL0xJQ0VOU0UtMi4wXG4gKlxuICogVW5sZXNzIHJlcXVpcmVkIGJ5IGFwcGxpY2FibGUgbGF3IG9yIGFncmVlZCB0byBpbiB3cml0aW5nLCBzb2Z0d2FyZVxuICogZGlzdHJpYnV0ZWQgdW5kZXIgdGhlIExpY2Vuc2UgaXMgZGlzdHJpYnV0ZWQgb24gYW4gXCJBUyBJU1wiIEJBU0lTLFxuICogV0lUSE9VVCBXQVJSQU5USUVTIE9SIENPTkRJVElPTlMgT0YgQU5ZIEtJTkQsIGVpdGhlciBleHByZXNzIG9yIGltcGxpZWQuXG4gKiBTZWUgdGhlIExpY2Vuc2UgZm9yIHRoZSBzcGVjaWZpYyBsYW5ndWFnZSBnb3Zlcm5pbmcgcGVybWlzc2lvbnMgYW5kXG4gKiBsaW1pdGF0aW9ucyB1bmRlciB0aGUgTGljZW5zZS5cbiAqL1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5TYW1wbGluZ0RlY2lzaW9uID0gdm9pZCAwO1xuLyoqXG4gKiBAZGVwcmVjYXRlZCB1c2UgdGhlIG9uZSBkZWNsYXJlZCBpbiBAb3BlbnRlbGVtZXRyeS9zZGstdHJhY2UtYmFzZSBpbnN0ZWFkLlxuICogQSBzYW1wbGluZyBkZWNpc2lvbiB0aGF0IGRldGVybWluZXMgaG93IGEge0BsaW5rIFNwYW59IHdpbGwgYmUgcmVjb3JkZWRcbiAqIGFuZCBjb2xsZWN0ZWQuXG4gKi9cbnZhciBTYW1wbGluZ0RlY2lzaW9uO1xuKGZ1bmN0aW9uIChTYW1wbGluZ0RlY2lzaW9uKSB7XG4gICAgLyoqXG4gICAgICogYFNwYW4uaXNSZWNvcmRpbmcoKSA9PT0gZmFsc2VgLCBzcGFuIHdpbGwgbm90IGJlIHJlY29yZGVkIGFuZCBhbGwgZXZlbnRzXG4gICAgICogYW5kIGF0dHJpYnV0ZXMgd2lsbCBiZSBkcm9wcGVkLlxuICAgICAqL1xuICAgIFNhbXBsaW5nRGVjaXNpb25bU2FtcGxpbmdEZWNpc2lvbltcIk5PVF9SRUNPUkRcIl0gPSAwXSA9IFwiTk9UX1JFQ09SRFwiO1xuICAgIC8qKlxuICAgICAqIGBTcGFuLmlzUmVjb3JkaW5nKCkgPT09IHRydWVgLCBidXQgYFNhbXBsZWRgIGZsYWcgaW4ge0BsaW5rIFRyYWNlRmxhZ3N9XG4gICAgICogTVVTVCBOT1QgYmUgc2V0LlxuICAgICAqL1xuICAgIFNhbXBsaW5nRGVjaXNpb25bU2FtcGxpbmdEZWNpc2lvbltcIlJFQ09SRFwiXSA9IDFdID0gXCJSRUNPUkRcIjtcbiAgICAvKipcbiAgICAgKiBgU3Bhbi5pc1JlY29yZGluZygpID09PSB0cnVlYCBBTkQgYFNhbXBsZWRgIGZsYWcgaW4ge0BsaW5rIFRyYWNlRmxhZ3N9XG4gICAgICogTVVTVCBiZSBzZXQuXG4gICAgICovXG4gICAgU2FtcGxpbmdEZWNpc2lvbltTYW1wbGluZ0RlY2lzaW9uW1wiUkVDT1JEX0FORF9TQU1QTEVEXCJdID0gMl0gPSBcIlJFQ09SRF9BTkRfU0FNUExFRFwiO1xufSkoU2FtcGxpbmdEZWNpc2lvbiA9IGV4cG9ydHMuU2FtcGxpbmdEZWNpc2lvbiB8fCAoZXhwb3J0cy5TYW1wbGluZ0RlY2lzaW9uID0ge30pKTtcbi8vIyBzb3VyY2VNYXBwaW5nVVJMPVNhbXBsaW5nUmVzdWx0LmpzLm1hcCJdLCJ2ZXJzaW9uIjozfQ==

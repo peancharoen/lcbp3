@@ -1,0 +1,105 @@
+73b4d83b46d9a882ec2311b6ddcf4a5e
+"use strict";
+/*
+ * Copyright The OpenTelemetry Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getStringListFromEnv = exports.getBooleanFromEnv = exports.getStringFromEnv = exports.getNumberFromEnv = void 0;
+const api_1 = require("@opentelemetry/api");
+const util_1 = require("util");
+/**
+ * Retrieves a number from an environment variable.
+ * - Returns `undefined` if the environment variable is empty, unset, contains only whitespace, or is not a number.
+ * - Returns a number in all other cases.
+ *
+ * @param {string} key - The name of the environment variable to retrieve.
+ * @returns {number | undefined} - The number value or `undefined`.
+ */
+function getNumberFromEnv(key) {
+    const raw = process.env[key];
+    if (raw == null || raw.trim() === '') {
+        return undefined;
+    }
+    const value = Number(raw);
+    if (isNaN(value)) {
+        api_1.diag.warn(`Unknown value ${(0, util_1.inspect)(raw)} for ${key}, expected a number, using defaults`);
+        return undefined;
+    }
+    return value;
+}
+exports.getNumberFromEnv = getNumberFromEnv;
+/**
+ * Retrieves a string from an environment variable.
+ * - Returns `undefined` if the environment variable is empty, unset, or contains only whitespace.
+ *
+ * @param {string} key - The name of the environment variable to retrieve.
+ * @returns {string | undefined} - The string value or `undefined`.
+ */
+function getStringFromEnv(key) {
+    const raw = process.env[key];
+    if (raw == null || raw.trim() === '') {
+        return undefined;
+    }
+    return raw;
+}
+exports.getStringFromEnv = getStringFromEnv;
+/**
+ * Retrieves a boolean value from an environment variable.
+ * - Trims leading and trailing whitespace and ignores casing.
+ * - Returns `false` if the environment variable is empty, unset, or contains only whitespace.
+ * - Returns `false` for strings that cannot be mapped to a boolean.
+ *
+ * @param {string} key - The name of the environment variable to retrieve.
+ * @returns {boolean} - The boolean value or `false` if the environment variable is unset empty, unset, or contains only whitespace.
+ */
+function getBooleanFromEnv(key) {
+    const raw = process.env[key]?.trim().toLowerCase();
+    if (raw == null || raw === '') {
+        // NOTE: falling back to `false` instead of `undefined` as required by the specification.
+        // If you have a use-case that requires `undefined`, consider using `getStringFromEnv()` and applying the necessary
+        // normalizations in the consuming code.
+        return false;
+    }
+    if (raw === 'true') {
+        return true;
+    }
+    else if (raw === 'false') {
+        return false;
+    }
+    else {
+        api_1.diag.warn(`Unknown value ${(0, util_1.inspect)(raw)} for ${key}, expected 'true' or 'false', falling back to 'false' (default)`);
+        return false;
+    }
+}
+exports.getBooleanFromEnv = getBooleanFromEnv;
+/**
+ * Retrieves a list of strings from an environment variable.
+ * - Uses ',' as the delimiter.
+ * - Trims leading and trailing whitespace from each entry.
+ * - Excludes empty entries.
+ * - Returns `undefined` if the environment variable is empty or contains only whitespace.
+ * - Returns an empty array if all entries are empty or whitespace.
+ *
+ * @param {string} key - The name of the environment variable to retrieve.
+ * @returns {string[] | undefined} - The list of strings or `undefined`.
+ */
+function getStringListFromEnv(key) {
+    return getStringFromEnv(key)
+        ?.split(',')
+        .map(v => v.trim())
+        .filter(s => s !== '');
+}
+exports.getStringListFromEnv = getStringListFromEnv;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBvcGVudGVsZW1ldHJ5K2NvcmVAMi4yLjBfQG9wZW50ZWxlbWV0cnkrYXBpQDEuOS4wXFxub2RlX21vZHVsZXNcXEBvcGVudGVsZW1ldHJ5XFxjb3JlXFxidWlsZFxcc3JjXFxwbGF0Zm9ybVxcbm9kZVxcZW52aXJvbm1lbnQuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2I7Ozs7Ozs7Ozs7Ozs7O0dBY0c7QUFDSCxNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMsb0JBQW9CLEdBQUcsT0FBTyxDQUFDLGlCQUFpQixHQUFHLE9BQU8sQ0FBQyxnQkFBZ0IsR0FBRyxPQUFPLENBQUMsZ0JBQWdCLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDeEgsTUFBTSxLQUFLLEdBQUcsT0FBTyxDQUFDLG9CQUFvQixDQUFDLENBQUM7QUFDNUMsTUFBTSxNQUFNLEdBQUcsT0FBTyxDQUFDLE1BQU0sQ0FBQyxDQUFDO0FBQy9COzs7Ozs7O0dBT0c7QUFDSCxTQUFTLGdCQUFnQixDQUFDLEdBQUc7SUFDekIsTUFBTSxHQUFHLEdBQUcsT0FBTyxDQUFDLEdBQUcsQ0FBQyxHQUFHLENBQUMsQ0FBQztJQUM3QixJQUFJLEdBQUcsSUFBSSxJQUFJLElBQUksR0FBRyxDQUFDLElBQUksRUFBRSxLQUFLLEVBQUUsRUFBRSxDQUFDO1FBQ25DLE9BQU8sU0FBUyxDQUFDO0lBQ3JCLENBQUM7SUFDRCxNQUFNLEtBQUssR0FBRyxNQUFNLENBQUMsR0FBRyxDQUFDLENBQUM7SUFDMUIsSUFBSSxLQUFLLENBQUMsS0FBSyxDQUFDLEVBQUUsQ0FBQztRQUNmLEtBQUssQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLGlCQUFpQixDQUFDLENBQUMsRUFBRSxNQUFNLENBQUMsT0FBTyxDQUFDLENBQUMsR0FBRyxDQUFDLFFBQVEsR0FBRyxxQ0FBcUMsQ0FBQyxDQUFDO1FBQzNHLE9BQU8sU0FBUyxDQUFDO0lBQ3JCLENBQUM7SUFDRCxPQUFPLEtBQUssQ0FBQztBQUNqQixDQUFDO0FBQ0QsT0FBTyxDQUFDLGdCQUFnQixHQUFHLGdCQUFnQixDQUFDO0FBQzVDOzs7Ozs7R0FNRztBQUNILFNBQVMsZ0JBQWdCLENBQUMsR0FBRztJQUN6QixNQUFNLEdBQUcsR0FBRyxPQUFPLENBQUMsR0FBRyxDQUFDLEdBQUcsQ0FBQyxDQUFDO0lBQzdCLElBQUksR0FBRyxJQUFJLElBQUksSUFBSSxHQUFHLENBQUMsSUFBSSxFQUFFLEtBQUssRUFBRSxFQUFFLENBQUM7UUFDbkMsT0FBTyxTQUFTLENBQUM7SUFDckIsQ0FBQztJQUNELE9BQU8sR0FBRyxDQUFDO0FBQ2YsQ0FBQztBQUNELE9BQU8sQ0FBQyxnQkFBZ0IsR0FBRyxnQkFBZ0IsQ0FBQztBQUM1Qzs7Ozs7Ozs7R0FRRztBQUNILFNBQVMsaUJBQWlCLENBQUMsR0FBRztJQUMxQixNQUFNLEdBQUcsR0FBRyxPQUFPLENBQUMsR0FBRyxDQUFDLEdBQUcsQ0FBQyxFQUFFLElBQUksRUFBRSxDQUFDLFdBQVcsRUFBRSxDQUFDO0lBQ25ELElBQUksR0FBRyxJQUFJLElBQUksSUFBSSxHQUFHLEtBQUssRUFBRSxFQUFFLENBQUM7UUFDNUIseUZBQXlGO1FBQ3pGLG1IQUFtSDtRQUNuSCx3Q0FBd0M7UUFDeEMsT0FBTyxLQUFLLENBQUM7SUFDakIsQ0FBQztJQUNELElBQUksR0FBRyxLQUFLLE1BQU0sRUFBRSxDQUFDO1FBQ2pCLE9BQU8sSUFBSSxDQUFDO0lBQ2hCLENBQUM7U0FDSSxJQUFJLEdBQUcsS0FBSyxPQUFPLEVBQUUsQ0FBQztRQUN2QixPQUFPLEtBQUssQ0FBQztJQUNqQixDQUFDO1NBQ0ksQ0FBQztRQUNGLEtBQUssQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLGlCQUFpQixDQUFDLENBQUMsRUFBRSxNQUFNLENBQUMsT0FBTyxDQUFDLENBQUMsR0FBRyxDQUFDLFFBQVEsR0FBRyxpRUFBaUUsQ0FBQyxDQUFDO1FBQ3ZJLE9BQU8sS0FBSyxDQUFDO0lBQ2pCLENBQUM7QUFDTCxDQUFDO0FBQ0QsT0FBTyxDQUFDLGlCQUFpQixHQUFHLGlCQUFpQixDQUFDO0FBQzlDOzs7Ozs7Ozs7O0dBVUc7QUFDSCxTQUFTLG9CQUFvQixDQUFDLEdBQUc7SUFDN0IsT0FBTyxnQkFBZ0IsQ0FBQyxHQUFHLENBQUM7UUFDeEIsRUFBRSxLQUFLLENBQUMsR0FBRyxDQUFDO1NBQ1gsR0FBRyxDQUFDLENBQUMsQ0FBQyxFQUFFLENBQUMsQ0FBQyxDQUFDLElBQUksRUFBRSxDQUFDO1NBQ2xCLE1BQU0sQ0FBQyxDQUFDLENBQUMsRUFBRSxDQUFDLENBQUMsS0FBSyxFQUFFLENBQUMsQ0FBQztBQUMvQixDQUFDO0FBQ0QsT0FBTyxDQUFDLG9CQUFvQixHQUFHLG9CQUFvQixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxAb3BlbnRlbGVtZXRyeStjb3JlQDIuMi4wX0BvcGVudGVsZW1ldHJ5K2FwaUAxLjkuMFxcbm9kZV9tb2R1bGVzXFxAb3BlbnRlbGVtZXRyeVxcY29yZVxcYnVpbGRcXHNyY1xccGxhdGZvcm1cXG5vZGVcXGVudmlyb25tZW50LmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuLypcbiAqIENvcHlyaWdodCBUaGUgT3BlblRlbGVtZXRyeSBBdXRob3JzXG4gKlxuICogTGljZW5zZWQgdW5kZXIgdGhlIEFwYWNoZSBMaWNlbnNlLCBWZXJzaW9uIDIuMCAodGhlIFwiTGljZW5zZVwiKTtcbiAqIHlvdSBtYXkgbm90IHVzZSB0aGlzIGZpbGUgZXhjZXB0IGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgTGljZW5zZS5cbiAqIFlvdSBtYXkgb2J0YWluIGEgY29weSBvZiB0aGUgTGljZW5zZSBhdFxuICpcbiAqICAgICAgaHR0cHM6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxuICpcbiAqIFVubGVzcyByZXF1aXJlZCBieSBhcHBsaWNhYmxlIGxhdyBvciBhZ3JlZWQgdG8gaW4gd3JpdGluZywgc29mdHdhcmVcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxuICogU2VlIHRoZSBMaWNlbnNlIGZvciB0aGUgc3BlY2lmaWMgbGFuZ3VhZ2UgZ292ZXJuaW5nIHBlcm1pc3Npb25zIGFuZFxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXG4gKi9cbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMuZ2V0U3RyaW5nTGlzdEZyb21FbnYgPSBleHBvcnRzLmdldEJvb2xlYW5Gcm9tRW52ID0gZXhwb3J0cy5nZXRTdHJpbmdGcm9tRW52ID0gZXhwb3J0cy5nZXROdW1iZXJGcm9tRW52ID0gdm9pZCAwO1xuY29uc3QgYXBpXzEgPSByZXF1aXJlKFwiQG9wZW50ZWxlbWV0cnkvYXBpXCIpO1xuY29uc3QgdXRpbF8xID0gcmVxdWlyZShcInV0aWxcIik7XG4vKipcbiAqIFJldHJpZXZlcyBhIG51bWJlciBmcm9tIGFuIGVudmlyb25tZW50IHZhcmlhYmxlLlxuICogLSBSZXR1cm5zIGB1bmRlZmluZWRgIGlmIHRoZSBlbnZpcm9ubWVudCB2YXJpYWJsZSBpcyBlbXB0eSwgdW5zZXQsIGNvbnRhaW5zIG9ubHkgd2hpdGVzcGFjZSwgb3IgaXMgbm90IGEgbnVtYmVyLlxuICogLSBSZXR1cm5zIGEgbnVtYmVyIGluIGFsbCBvdGhlciBjYXNlcy5cbiAqXG4gKiBAcGFyYW0ge3N0cmluZ30ga2V5IC0gVGhlIG5hbWUgb2YgdGhlIGVudmlyb25tZW50IHZhcmlhYmxlIHRvIHJldHJpZXZlLlxuICogQHJldHVybnMge251bWJlciB8IHVuZGVmaW5lZH0gLSBUaGUgbnVtYmVyIHZhbHVlIG9yIGB1bmRlZmluZWRgLlxuICovXG5mdW5jdGlvbiBnZXROdW1iZXJGcm9tRW52KGtleSkge1xuICAgIGNvbnN0IHJhdyA9IHByb2Nlc3MuZW52W2tleV07XG4gICAgaWYgKHJhdyA9PSBudWxsIHx8IHJhdy50cmltKCkgPT09ICcnKSB7XG4gICAgICAgIHJldHVybiB1bmRlZmluZWQ7XG4gICAgfVxuICAgIGNvbnN0IHZhbHVlID0gTnVtYmVyKHJhdyk7XG4gICAgaWYgKGlzTmFOKHZhbHVlKSkge1xuICAgICAgICBhcGlfMS5kaWFnLndhcm4oYFVua25vd24gdmFsdWUgJHsoMCwgdXRpbF8xLmluc3BlY3QpKHJhdyl9IGZvciAke2tleX0sIGV4cGVjdGVkIGEgbnVtYmVyLCB1c2luZyBkZWZhdWx0c2ApO1xuICAgICAgICByZXR1cm4gdW5kZWZpbmVkO1xuICAgIH1cbiAgICByZXR1cm4gdmFsdWU7XG59XG5leHBvcnRzLmdldE51bWJlckZyb21FbnYgPSBnZXROdW1iZXJGcm9tRW52O1xuLyoqXG4gKiBSZXRyaWV2ZXMgYSBzdHJpbmcgZnJvbSBhbiBlbnZpcm9ubWVudCB2YXJpYWJsZS5cbiAqIC0gUmV0dXJucyBgdW5kZWZpbmVkYCBpZiB0aGUgZW52aXJvbm1lbnQgdmFyaWFibGUgaXMgZW1wdHksIHVuc2V0LCBvciBjb250YWlucyBvbmx5IHdoaXRlc3BhY2UuXG4gKlxuICogQHBhcmFtIHtzdHJpbmd9IGtleSAtIFRoZSBuYW1lIG9mIHRoZSBlbnZpcm9ubWVudCB2YXJpYWJsZSB0byByZXRyaWV2ZS5cbiAqIEByZXR1cm5zIHtzdHJpbmcgfCB1bmRlZmluZWR9IC0gVGhlIHN0cmluZyB2YWx1ZSBvciBgdW5kZWZpbmVkYC5cbiAqL1xuZnVuY3Rpb24gZ2V0U3RyaW5nRnJvbUVudihrZXkpIHtcbiAgICBjb25zdCByYXcgPSBwcm9jZXNzLmVudltrZXldO1xuICAgIGlmIChyYXcgPT0gbnVsbCB8fCByYXcudHJpbSgpID09PSAnJykge1xuICAgICAgICByZXR1cm4gdW5kZWZpbmVkO1xuICAgIH1cbiAgICByZXR1cm4gcmF3O1xufVxuZXhwb3J0cy5nZXRTdHJpbmdGcm9tRW52ID0gZ2V0U3RyaW5nRnJvbUVudjtcbi8qKlxuICogUmV0cmlldmVzIGEgYm9vbGVhbiB2YWx1ZSBmcm9tIGFuIGVudmlyb25tZW50IHZhcmlhYmxlLlxuICogLSBUcmltcyBsZWFkaW5nIGFuZCB0cmFpbGluZyB3aGl0ZXNwYWNlIGFuZCBpZ25vcmVzIGNhc2luZy5cbiAqIC0gUmV0dXJucyBgZmFsc2VgIGlmIHRoZSBlbnZpcm9ubWVudCB2YXJpYWJsZSBpcyBlbXB0eSwgdW5zZXQsIG9yIGNvbnRhaW5zIG9ubHkgd2hpdGVzcGFjZS5cbiAqIC0gUmV0dXJucyBgZmFsc2VgIGZvciBzdHJpbmdzIHRoYXQgY2Fubm90IGJlIG1hcHBlZCB0byBhIGJvb2xlYW4uXG4gKlxuICogQHBhcmFtIHtzdHJpbmd9IGtleSAtIFRoZSBuYW1lIG9mIHRoZSBlbnZpcm9ubWVudCB2YXJpYWJsZSB0byByZXRyaWV2ZS5cbiAqIEByZXR1cm5zIHtib29sZWFufSAtIFRoZSBib29sZWFuIHZhbHVlIG9yIGBmYWxzZWAgaWYgdGhlIGVudmlyb25tZW50IHZhcmlhYmxlIGlzIHVuc2V0IGVtcHR5LCB1bnNldCwgb3IgY29udGFpbnMgb25seSB3aGl0ZXNwYWNlLlxuICovXG5mdW5jdGlvbiBnZXRCb29sZWFuRnJvbUVudihrZXkpIHtcbiAgICBjb25zdCByYXcgPSBwcm9jZXNzLmVudltrZXldPy50cmltKCkudG9Mb3dlckNhc2UoKTtcbiAgICBpZiAocmF3ID09IG51bGwgfHwgcmF3ID09PSAnJykge1xuICAgICAgICAvLyBOT1RFOiBmYWxsaW5nIGJhY2sgdG8gYGZhbHNlYCBpbnN0ZWFkIG9mIGB1bmRlZmluZWRgIGFzIHJlcXVpcmVkIGJ5IHRoZSBzcGVjaWZpY2F0aW9uLlxuICAgICAgICAvLyBJZiB5b3UgaGF2ZSBhIHVzZS1jYXNlIHRoYXQgcmVxdWlyZXMgYHVuZGVmaW5lZGAsIGNvbnNpZGVyIHVzaW5nIGBnZXRTdHJpbmdGcm9tRW52KClgIGFuZCBhcHBseWluZyB0aGUgbmVjZXNzYXJ5XG4gICAgICAgIC8vIG5vcm1hbGl6YXRpb25zIGluIHRoZSBjb25zdW1pbmcgY29kZS5cbiAgICAgICAgcmV0dXJuIGZhbHNlO1xuICAgIH1cbiAgICBpZiAocmF3ID09PSAndHJ1ZScpIHtcbiAgICAgICAgcmV0dXJuIHRydWU7XG4gICAgfVxuICAgIGVsc2UgaWYgKHJhdyA9PT0gJ2ZhbHNlJykge1xuICAgICAgICByZXR1cm4gZmFsc2U7XG4gICAgfVxuICAgIGVsc2Uge1xuICAgICAgICBhcGlfMS5kaWFnLndhcm4oYFVua25vd24gdmFsdWUgJHsoMCwgdXRpbF8xLmluc3BlY3QpKHJhdyl9IGZvciAke2tleX0sIGV4cGVjdGVkICd0cnVlJyBvciAnZmFsc2UnLCBmYWxsaW5nIGJhY2sgdG8gJ2ZhbHNlJyAoZGVmYXVsdClgKTtcbiAgICAgICAgcmV0dXJuIGZhbHNlO1xuICAgIH1cbn1cbmV4cG9ydHMuZ2V0Qm9vbGVhbkZyb21FbnYgPSBnZXRCb29sZWFuRnJvbUVudjtcbi8qKlxuICogUmV0cmlldmVzIGEgbGlzdCBvZiBzdHJpbmdzIGZyb20gYW4gZW52aXJvbm1lbnQgdmFyaWFibGUuXG4gKiAtIFVzZXMgJywnIGFzIHRoZSBkZWxpbWl0ZXIuXG4gKiAtIFRyaW1zIGxlYWRpbmcgYW5kIHRyYWlsaW5nIHdoaXRlc3BhY2UgZnJvbSBlYWNoIGVudHJ5LlxuICogLSBFeGNsdWRlcyBlbXB0eSBlbnRyaWVzLlxuICogLSBSZXR1cm5zIGB1bmRlZmluZWRgIGlmIHRoZSBlbnZpcm9ubWVudCB2YXJpYWJsZSBpcyBlbXB0eSBvciBjb250YWlucyBvbmx5IHdoaXRlc3BhY2UuXG4gKiAtIFJldHVybnMgYW4gZW1wdHkgYXJyYXkgaWYgYWxsIGVudHJpZXMgYXJlIGVtcHR5IG9yIHdoaXRlc3BhY2UuXG4gKlxuICogQHBhcmFtIHtzdHJpbmd9IGtleSAtIFRoZSBuYW1lIG9mIHRoZSBlbnZpcm9ubWVudCB2YXJpYWJsZSB0byByZXRyaWV2ZS5cbiAqIEByZXR1cm5zIHtzdHJpbmdbXSB8IHVuZGVmaW5lZH0gLSBUaGUgbGlzdCBvZiBzdHJpbmdzIG9yIGB1bmRlZmluZWRgLlxuICovXG5mdW5jdGlvbiBnZXRTdHJpbmdMaXN0RnJvbUVudihrZXkpIHtcbiAgICByZXR1cm4gZ2V0U3RyaW5nRnJvbUVudihrZXkpXG4gICAgICAgID8uc3BsaXQoJywnKVxuICAgICAgICAubWFwKHYgPT4gdi50cmltKCkpXG4gICAgICAgIC5maWx0ZXIocyA9PiBzICE9PSAnJyk7XG59XG5leHBvcnRzLmdldFN0cmluZ0xpc3RGcm9tRW52ID0gZ2V0U3RyaW5nTGlzdEZyb21FbnY7XG4vLyMgc291cmNlTWFwcGluZ1VSTD1lbnZpcm9ubWVudC5qcy5tYXAiXSwidmVyc2lvbiI6M30=

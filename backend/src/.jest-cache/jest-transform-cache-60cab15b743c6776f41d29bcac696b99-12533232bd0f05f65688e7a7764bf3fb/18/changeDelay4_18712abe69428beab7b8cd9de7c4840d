@@ -1,0 +1,108 @@
+11acad95f3ffbaa74ca7570a69e9ec2e
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.changeDelay = void 0;
+const content = `--[[
+  Change job delay when it is in delayed set.
+  Input:
+    KEYS[1] delayed key
+    KEYS[2] meta key
+    KEYS[3] marker key
+    KEYS[4] events stream
+    ARGV[1] delay
+    ARGV[2] timestamp
+    ARGV[3] the id of the job
+    ARGV[4] job key
+  Output:
+    0 - OK
+   -1 - Missing job.
+   -3 - Job not in delayed set.
+  Events:
+    - delayed key.
+]]
+local rcall = redis.call
+-- Includes
+--[[
+  Add delay marker if needed.
+]]
+-- Includes
+--[[
+  Function to return the next delayed job timestamp.
+]]
+local function getNextDelayedTimestamp(delayedKey)
+  local result = rcall("ZRANGE", delayedKey, 0, 0, "WITHSCORES")
+  if #result then
+    local nextTimestamp = tonumber(result[2])
+    if nextTimestamp ~= nil then
+      return nextTimestamp / 0x1000
+    end
+  end
+end
+local function addDelayMarkerIfNeeded(markerKey, delayedKey)
+  local nextTimestamp = getNextDelayedTimestamp(delayedKey)
+  if nextTimestamp ~= nil then
+    -- Replace the score of the marker with the newest known
+    -- next timestamp.
+    rcall("ZADD", markerKey, nextTimestamp, "1")
+  end
+end
+--[[
+  Bake in the job id first 12 bits into the timestamp
+  to guarantee correct execution order of delayed jobs
+  (up to 4096 jobs per given timestamp or 4096 jobs apart per timestamp)
+  WARNING: Jobs that are so far apart that they wrap around will cause FIFO to fail
+]]
+local function getDelayedScore(delayedKey, timestamp, delay)
+  local delayedTimestamp = (delay > 0 and (tonumber(timestamp) + delay)) or tonumber(timestamp)
+  local minScore = delayedTimestamp * 0x1000
+  local maxScore = (delayedTimestamp + 1 ) * 0x1000 - 1
+  local result = rcall("ZREVRANGEBYSCORE", delayedKey, maxScore,
+    minScore, "WITHSCORES","LIMIT", 0, 1)
+  if #result then
+    local currentMaxScore = tonumber(result[2])
+    if currentMaxScore ~= nil then
+      if currentMaxScore >= maxScore then
+        return maxScore, delayedTimestamp
+      else
+        return currentMaxScore + 1, delayedTimestamp
+      end
+    end
+  end
+  return minScore, delayedTimestamp
+end
+--[[
+  Function to get max events value or set by default 10000.
+]]
+local function getOrSetMaxEvents(metaKey)
+  local maxEvents = rcall("HGET", metaKey, "opts.maxLenEvents")
+  if not maxEvents then
+    maxEvents = 10000
+    rcall("HSET", metaKey, "opts.maxLenEvents", maxEvents)
+  end
+  return maxEvents
+end
+if rcall("EXISTS", ARGV[4]) == 1 then
+  local jobId = ARGV[3]
+  local delay = tonumber(ARGV[1])
+  local score, delayedTimestamp = getDelayedScore(KEYS[1], ARGV[2], delay)
+  local numRemovedElements = rcall("ZREM", KEYS[1], jobId)
+  if numRemovedElements < 1 then
+    return -3
+  end
+  rcall("HSET", ARGV[4], "delay", delay)
+  rcall("ZADD", KEYS[1], score, jobId)
+  local maxEvents = getOrSetMaxEvents(KEYS[2])
+  rcall("XADD", KEYS[4], "MAXLEN", "~", maxEvents, "*", "event", "delayed",
+    "jobId", jobId, "delay", delayedTimestamp)
+  -- mark that a delayed job is available
+  addDelayMarkerIfNeeded(KEYS[3], KEYS[1])
+  return 0
+else
+  return -1
+end`;
+exports.changeDelay = {
+    name: 'changeDelay',
+    content,
+    keys: 4,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGNoYW5nZURlbGF5LTQuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2IsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLFdBQVcsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUM3QixNQUFNLE9BQU8sR0FBRzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztJQWlHWixDQUFDO0FBQ0wsT0FBTyxDQUFDLFdBQVcsR0FBRztJQUNsQixJQUFJLEVBQUUsYUFBYTtJQUNuQixPQUFPO0lBQ1AsSUFBSSxFQUFFLENBQUM7Q0FDVixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxidWxsbXFANS42NS4wXFxub2RlX21vZHVsZXNcXGJ1bGxtcVxcZGlzdFxcY2pzXFxzY3JpcHRzXFxjaGFuZ2VEZWxheS00LmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5jaGFuZ2VEZWxheSA9IHZvaWQgMDtcbmNvbnN0IGNvbnRlbnQgPSBgLS1bW1xuICBDaGFuZ2Ugam9iIGRlbGF5IHdoZW4gaXQgaXMgaW4gZGVsYXllZCBzZXQuXG4gIElucHV0OlxuICAgIEtFWVNbMV0gZGVsYXllZCBrZXlcbiAgICBLRVlTWzJdIG1ldGEga2V5XG4gICAgS0VZU1szXSBtYXJrZXIga2V5XG4gICAgS0VZU1s0XSBldmVudHMgc3RyZWFtXG4gICAgQVJHVlsxXSBkZWxheVxuICAgIEFSR1ZbMl0gdGltZXN0YW1wXG4gICAgQVJHVlszXSB0aGUgaWQgb2YgdGhlIGpvYlxuICAgIEFSR1ZbNF0gam9iIGtleVxuICBPdXRwdXQ6XG4gICAgMCAtIE9LXG4gICAtMSAtIE1pc3Npbmcgam9iLlxuICAgLTMgLSBKb2Igbm90IGluIGRlbGF5ZWQgc2V0LlxuICBFdmVudHM6XG4gICAgLSBkZWxheWVkIGtleS5cbl1dXG5sb2NhbCByY2FsbCA9IHJlZGlzLmNhbGxcbi0tIEluY2x1ZGVzXG4tLVtbXG4gIEFkZCBkZWxheSBtYXJrZXIgaWYgbmVlZGVkLlxuXV1cbi0tIEluY2x1ZGVzXG4tLVtbXG4gIEZ1bmN0aW9uIHRvIHJldHVybiB0aGUgbmV4dCBkZWxheWVkIGpvYiB0aW1lc3RhbXAuXG5dXVxubG9jYWwgZnVuY3Rpb24gZ2V0TmV4dERlbGF5ZWRUaW1lc3RhbXAoZGVsYXllZEtleSlcbiAgbG9jYWwgcmVzdWx0ID0gcmNhbGwoXCJaUkFOR0VcIiwgZGVsYXllZEtleSwgMCwgMCwgXCJXSVRIU0NPUkVTXCIpXG4gIGlmICNyZXN1bHQgdGhlblxuICAgIGxvY2FsIG5leHRUaW1lc3RhbXAgPSB0b251bWJlcihyZXN1bHRbMl0pXG4gICAgaWYgbmV4dFRpbWVzdGFtcCB+PSBuaWwgdGhlblxuICAgICAgcmV0dXJuIG5leHRUaW1lc3RhbXAgLyAweDEwMDBcbiAgICBlbmRcbiAgZW5kXG5lbmRcbmxvY2FsIGZ1bmN0aW9uIGFkZERlbGF5TWFya2VySWZOZWVkZWQobWFya2VyS2V5LCBkZWxheWVkS2V5KVxuICBsb2NhbCBuZXh0VGltZXN0YW1wID0gZ2V0TmV4dERlbGF5ZWRUaW1lc3RhbXAoZGVsYXllZEtleSlcbiAgaWYgbmV4dFRpbWVzdGFtcCB+PSBuaWwgdGhlblxuICAgIC0tIFJlcGxhY2UgdGhlIHNjb3JlIG9mIHRoZSBtYXJrZXIgd2l0aCB0aGUgbmV3ZXN0IGtub3duXG4gICAgLS0gbmV4dCB0aW1lc3RhbXAuXG4gICAgcmNhbGwoXCJaQUREXCIsIG1hcmtlcktleSwgbmV4dFRpbWVzdGFtcCwgXCIxXCIpXG4gIGVuZFxuZW5kXG4tLVtbXG4gIEJha2UgaW4gdGhlIGpvYiBpZCBmaXJzdCAxMiBiaXRzIGludG8gdGhlIHRpbWVzdGFtcFxuICB0byBndWFyYW50ZWUgY29ycmVjdCBleGVjdXRpb24gb3JkZXIgb2YgZGVsYXllZCBqb2JzXG4gICh1cCB0byA0MDk2IGpvYnMgcGVyIGdpdmVuIHRpbWVzdGFtcCBvciA0MDk2IGpvYnMgYXBhcnQgcGVyIHRpbWVzdGFtcClcbiAgV0FSTklORzogSm9icyB0aGF0IGFyZSBzbyBmYXIgYXBhcnQgdGhhdCB0aGV5IHdyYXAgYXJvdW5kIHdpbGwgY2F1c2UgRklGTyB0byBmYWlsXG5dXVxubG9jYWwgZnVuY3Rpb24gZ2V0RGVsYXllZFNjb3JlKGRlbGF5ZWRLZXksIHRpbWVzdGFtcCwgZGVsYXkpXG4gIGxvY2FsIGRlbGF5ZWRUaW1lc3RhbXAgPSAoZGVsYXkgPiAwIGFuZCAodG9udW1iZXIodGltZXN0YW1wKSArIGRlbGF5KSkgb3IgdG9udW1iZXIodGltZXN0YW1wKVxuICBsb2NhbCBtaW5TY29yZSA9IGRlbGF5ZWRUaW1lc3RhbXAgKiAweDEwMDBcbiAgbG9jYWwgbWF4U2NvcmUgPSAoZGVsYXllZFRpbWVzdGFtcCArIDEgKSAqIDB4MTAwMCAtIDFcbiAgbG9jYWwgcmVzdWx0ID0gcmNhbGwoXCJaUkVWUkFOR0VCWVNDT1JFXCIsIGRlbGF5ZWRLZXksIG1heFNjb3JlLFxuICAgIG1pblNjb3JlLCBcIldJVEhTQ09SRVNcIixcIkxJTUlUXCIsIDAsIDEpXG4gIGlmICNyZXN1bHQgdGhlblxuICAgIGxvY2FsIGN1cnJlbnRNYXhTY29yZSA9IHRvbnVtYmVyKHJlc3VsdFsyXSlcbiAgICBpZiBjdXJyZW50TWF4U2NvcmUgfj0gbmlsIHRoZW5cbiAgICAgIGlmIGN1cnJlbnRNYXhTY29yZSA+PSBtYXhTY29yZSB0aGVuXG4gICAgICAgIHJldHVybiBtYXhTY29yZSwgZGVsYXllZFRpbWVzdGFtcFxuICAgICAgZWxzZVxuICAgICAgICByZXR1cm4gY3VycmVudE1heFNjb3JlICsgMSwgZGVsYXllZFRpbWVzdGFtcFxuICAgICAgZW5kXG4gICAgZW5kXG4gIGVuZFxuICByZXR1cm4gbWluU2NvcmUsIGRlbGF5ZWRUaW1lc3RhbXBcbmVuZFxuLS1bW1xuICBGdW5jdGlvbiB0byBnZXQgbWF4IGV2ZW50cyB2YWx1ZSBvciBzZXQgYnkgZGVmYXVsdCAxMDAwMC5cbl1dXG5sb2NhbCBmdW5jdGlvbiBnZXRPclNldE1heEV2ZW50cyhtZXRhS2V5KVxuICBsb2NhbCBtYXhFdmVudHMgPSByY2FsbChcIkhHRVRcIiwgbWV0YUtleSwgXCJvcHRzLm1heExlbkV2ZW50c1wiKVxuICBpZiBub3QgbWF4RXZlbnRzIHRoZW5cbiAgICBtYXhFdmVudHMgPSAxMDAwMFxuICAgIHJjYWxsKFwiSFNFVFwiLCBtZXRhS2V5LCBcIm9wdHMubWF4TGVuRXZlbnRzXCIsIG1heEV2ZW50cylcbiAgZW5kXG4gIHJldHVybiBtYXhFdmVudHNcbmVuZFxuaWYgcmNhbGwoXCJFWElTVFNcIiwgQVJHVls0XSkgPT0gMSB0aGVuXG4gIGxvY2FsIGpvYklkID0gQVJHVlszXVxuICBsb2NhbCBkZWxheSA9IHRvbnVtYmVyKEFSR1ZbMV0pXG4gIGxvY2FsIHNjb3JlLCBkZWxheWVkVGltZXN0YW1wID0gZ2V0RGVsYXllZFNjb3JlKEtFWVNbMV0sIEFSR1ZbMl0sIGRlbGF5KVxuICBsb2NhbCBudW1SZW1vdmVkRWxlbWVudHMgPSByY2FsbChcIlpSRU1cIiwgS0VZU1sxXSwgam9iSWQpXG4gIGlmIG51bVJlbW92ZWRFbGVtZW50cyA8IDEgdGhlblxuICAgIHJldHVybiAtM1xuICBlbmRcbiAgcmNhbGwoXCJIU0VUXCIsIEFSR1ZbNF0sIFwiZGVsYXlcIiwgZGVsYXkpXG4gIHJjYWxsKFwiWkFERFwiLCBLRVlTWzFdLCBzY29yZSwgam9iSWQpXG4gIGxvY2FsIG1heEV2ZW50cyA9IGdldE9yU2V0TWF4RXZlbnRzKEtFWVNbMl0pXG4gIHJjYWxsKFwiWEFERFwiLCBLRVlTWzRdLCBcIk1BWExFTlwiLCBcIn5cIiwgbWF4RXZlbnRzLCBcIipcIiwgXCJldmVudFwiLCBcImRlbGF5ZWRcIixcbiAgICBcImpvYklkXCIsIGpvYklkLCBcImRlbGF5XCIsIGRlbGF5ZWRUaW1lc3RhbXApXG4gIC0tIG1hcmsgdGhhdCBhIGRlbGF5ZWQgam9iIGlzIGF2YWlsYWJsZVxuICBhZGREZWxheU1hcmtlcklmTmVlZGVkKEtFWVNbM10sIEtFWVNbMV0pXG4gIHJldHVybiAwXG5lbHNlXG4gIHJldHVybiAtMVxuZW5kYDtcbmV4cG9ydHMuY2hhbmdlRGVsYXkgPSB7XG4gICAgbmFtZTogJ2NoYW5nZURlbGF5JyxcbiAgICBjb250ZW50LFxuICAgIGtleXM6IDQsXG59O1xuLy8jIHNvdXJjZU1hcHBpbmdVUkw9Y2hhbmdlRGVsYXktNC5qcy5tYXAiXSwidmVyc2lvbiI6M30=

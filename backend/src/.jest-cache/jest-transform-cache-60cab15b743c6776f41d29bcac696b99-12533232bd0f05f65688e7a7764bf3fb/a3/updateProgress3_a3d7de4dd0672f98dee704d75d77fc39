@@ -1,0 +1,47 @@
+5bc6c620870e2d199285767555caa19a
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.updateProgress = void 0;
+const content = `--[[
+  Update job progress
+  Input:
+    KEYS[1] Job id key
+    KEYS[2] event stream key
+    KEYS[3] meta key
+    ARGV[1] id
+    ARGV[2] progress
+  Output:
+     0 - OK
+    -1 - Missing job.
+  Event:
+    progress(jobId, progress)
+]]
+local rcall = redis.call
+-- Includes
+--[[
+  Function to get max events value or set by default 10000.
+]]
+local function getOrSetMaxEvents(metaKey)
+  local maxEvents = rcall("HGET", metaKey, "opts.maxLenEvents")
+  if not maxEvents then
+    maxEvents = 10000
+    rcall("HSET", metaKey, "opts.maxLenEvents", maxEvents)
+  end
+  return maxEvents
+end
+if rcall("EXISTS", KEYS[1]) == 1 then -- // Make sure job exists
+    local maxEvents = getOrSetMaxEvents(KEYS[3])
+    rcall("HSET", KEYS[1], "progress", ARGV[2])
+    rcall("XADD", KEYS[2], "MAXLEN", "~", maxEvents, "*", "event", "progress",
+          "jobId", ARGV[1], "data", ARGV[2]);
+    return 0
+else
+    return -1
+end
+`;
+exports.updateProgress = {
+    name: 'updateProgress',
+    content,
+    keys: 3,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHVwZGF0ZVByb2dyZXNzLTMuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2IsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLGNBQWMsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUNoQyxNQUFNLE9BQU8sR0FBRzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0NBb0NmLENBQUM7QUFDRixPQUFPLENBQUMsY0FBYyxHQUFHO0lBQ3JCLElBQUksRUFBRSxnQkFBZ0I7SUFDdEIsT0FBTztJQUNQLElBQUksRUFBRSxDQUFDO0NBQ1YsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcYnVsbG1xQDUuNjUuMFxcbm9kZV9tb2R1bGVzXFxidWxsbXFcXGRpc3RcXGNqc1xcc2NyaXB0c1xcdXBkYXRlUHJvZ3Jlc3MtMy5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBzdHJpY3RcIjtcbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMudXBkYXRlUHJvZ3Jlc3MgPSB2b2lkIDA7XG5jb25zdCBjb250ZW50ID0gYC0tW1tcbiAgVXBkYXRlIGpvYiBwcm9ncmVzc1xuICBJbnB1dDpcbiAgICBLRVlTWzFdIEpvYiBpZCBrZXlcbiAgICBLRVlTWzJdIGV2ZW50IHN0cmVhbSBrZXlcbiAgICBLRVlTWzNdIG1ldGEga2V5XG4gICAgQVJHVlsxXSBpZFxuICAgIEFSR1ZbMl0gcHJvZ3Jlc3NcbiAgT3V0cHV0OlxuICAgICAwIC0gT0tcbiAgICAtMSAtIE1pc3Npbmcgam9iLlxuICBFdmVudDpcbiAgICBwcm9ncmVzcyhqb2JJZCwgcHJvZ3Jlc3MpXG5dXVxubG9jYWwgcmNhbGwgPSByZWRpcy5jYWxsXG4tLSBJbmNsdWRlc1xuLS1bW1xuICBGdW5jdGlvbiB0byBnZXQgbWF4IGV2ZW50cyB2YWx1ZSBvciBzZXQgYnkgZGVmYXVsdCAxMDAwMC5cbl1dXG5sb2NhbCBmdW5jdGlvbiBnZXRPclNldE1heEV2ZW50cyhtZXRhS2V5KVxuICBsb2NhbCBtYXhFdmVudHMgPSByY2FsbChcIkhHRVRcIiwgbWV0YUtleSwgXCJvcHRzLm1heExlbkV2ZW50c1wiKVxuICBpZiBub3QgbWF4RXZlbnRzIHRoZW5cbiAgICBtYXhFdmVudHMgPSAxMDAwMFxuICAgIHJjYWxsKFwiSFNFVFwiLCBtZXRhS2V5LCBcIm9wdHMubWF4TGVuRXZlbnRzXCIsIG1heEV2ZW50cylcbiAgZW5kXG4gIHJldHVybiBtYXhFdmVudHNcbmVuZFxuaWYgcmNhbGwoXCJFWElTVFNcIiwgS0VZU1sxXSkgPT0gMSB0aGVuIC0tIC8vIE1ha2Ugc3VyZSBqb2IgZXhpc3RzXG4gICAgbG9jYWwgbWF4RXZlbnRzID0gZ2V0T3JTZXRNYXhFdmVudHMoS0VZU1szXSlcbiAgICByY2FsbChcIkhTRVRcIiwgS0VZU1sxXSwgXCJwcm9ncmVzc1wiLCBBUkdWWzJdKVxuICAgIHJjYWxsKFwiWEFERFwiLCBLRVlTWzJdLCBcIk1BWExFTlwiLCBcIn5cIiwgbWF4RXZlbnRzLCBcIipcIiwgXCJldmVudFwiLCBcInByb2dyZXNzXCIsXG4gICAgICAgICAgXCJqb2JJZFwiLCBBUkdWWzFdLCBcImRhdGFcIiwgQVJHVlsyXSk7XG4gICAgcmV0dXJuIDBcbmVsc2VcbiAgICByZXR1cm4gLTFcbmVuZFxuYDtcbmV4cG9ydHMudXBkYXRlUHJvZ3Jlc3MgPSB7XG4gICAgbmFtZTogJ3VwZGF0ZVByb2dyZXNzJyxcbiAgICBjb250ZW50LFxuICAgIGtleXM6IDMsXG59O1xuLy8jIHNvdXJjZU1hcHBpbmdVUkw9dXBkYXRlUHJvZ3Jlc3MtMy5qcy5tYXAiXSwidmVyc2lvbiI6M30=

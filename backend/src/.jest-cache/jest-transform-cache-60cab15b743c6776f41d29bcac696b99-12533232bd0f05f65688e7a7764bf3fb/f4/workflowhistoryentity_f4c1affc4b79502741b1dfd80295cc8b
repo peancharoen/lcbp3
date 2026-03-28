@@ -1,0 +1,80 @@
+ac7b4165b751b4e58b609906736b8dfe
+"use strict";
+// File: src/modules/workflow-engine/entities/workflow-history.entity.ts
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WorkflowHistory = void 0;
+const typeorm_1 = require("typeorm");
+const workflow_instance_entity_1 = require("./workflow-instance.entity");
+/**
+ * เก็บประวัติการเปลี่ยนสถานะ (Audit Trail)
+ * สำคัญมากสำหรับการตรวจสอบย้อนหลัง (Who did What, When)
+ */
+let WorkflowHistory = class WorkflowHistory {
+};
+exports.WorkflowHistory = WorkflowHistory;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
+    __metadata("design:type", String)
+], WorkflowHistory.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => workflow_instance_entity_1.WorkflowInstance, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'instance_id' }),
+    __metadata("design:type", typeof (_a = typeof workflow_instance_entity_1.WorkflowInstance !== "undefined" && workflow_instance_entity_1.WorkflowInstance) === "function" ? _a : Object)
+], WorkflowHistory.prototype, "instance", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'instance_id' }),
+    __metadata("design:type", String)
+], WorkflowHistory.prototype, "instanceId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'from_state', length: 50, comment: 'สถานะต้นทาง' }),
+    __metadata("design:type", String)
+], WorkflowHistory.prototype, "fromState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'to_state', length: 50, comment: 'สถานะปลายทาง' }),
+    __metadata("design:type", String)
+], WorkflowHistory.prototype, "toState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 50, comment: 'Action ที่ User กด (เช่น APPROVE, REJECT)' }),
+    __metadata("design:type", String)
+], WorkflowHistory.prototype, "action", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'action_by_user_id',
+        nullable: true,
+        comment: 'User ID ผู้ดำเนินการ (Nullable กรณี System Auto)',
+    }),
+    __metadata("design:type", Number)
+], WorkflowHistory.prototype, "actionByUserId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true, comment: 'ความเห็นประกอบการอนุมัติ' }),
+    __metadata("design:type", String)
+], WorkflowHistory.prototype, "comment", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'json',
+        nullable: true,
+        comment: 'Snapshot of Context or Metadata',
+    }),
+    __metadata("design:type", typeof (_b = typeof Record !== "undefined" && Record) === "function" ? _b : Object)
+], WorkflowHistory.prototype, "metadata", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], WorkflowHistory.prototype, "createdAt", void 0);
+exports.WorkflowHistory = WorkflowHistory = __decorate([
+    (0, typeorm_1.Entity)('workflow_histories'),
+    (0, typeorm_1.Index)(['instanceId']) // ค้นหาประวัติของ Instance นี้
+    ,
+    (0, typeorm_1.Index)(['actionByUserId']) // ค้นหาว่า User คนนี้ทำอะไรไปบ้าง
+], WorkflowHistory);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcd29ya2Zsb3ctZW5naW5lXFxlbnRpdGllc1xcd29ya2Zsb3ctaGlzdG9yeS5lbnRpdHkudHMiLCJtYXBwaW5ncyI6IjtBQUFBLHdFQUF3RTs7Ozs7Ozs7Ozs7OztBQUV4RSxxQ0FRaUI7QUFDakIseUVBQThEO0FBRTlEOzs7R0FHRztBQUlJLElBQU0sZUFBZSxHQUFyQixNQUFNLGVBQWU7Q0F3QzNCLENBQUE7QUF4Q1ksMENBQWU7QUFFMUI7SUFEQyxJQUFBLGdDQUFzQixFQUFDLE1BQU0sQ0FBQzs7MkNBQ25CO0FBSVo7SUFGQyxJQUFBLG1CQUFTLEVBQUMsR0FBRyxFQUFFLENBQUMsMkNBQWdCLEVBQUUsRUFBRSxRQUFRLEVBQUUsU0FBUyxFQUFFLENBQUM7SUFDMUQsSUFBQSxvQkFBVSxFQUFDLEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxDQUFDO2tEQUN6QiwyQ0FBZ0Isb0JBQWhCLDJDQUFnQjtpREFBQztBQUc1QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxhQUFhLEVBQUUsQ0FBQzs7bURBQ1o7QUFHcEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLE1BQU0sRUFBRSxFQUFFLEVBQUUsT0FBTyxFQUFFLGFBQWEsRUFBRSxDQUFDOztrREFDaEQ7QUFHbkI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsVUFBVSxFQUFFLE1BQU0sRUFBRSxFQUFFLEVBQUUsT0FBTyxFQUFFLGNBQWMsRUFBRSxDQUFDOztnREFDakQ7QUFHakI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxNQUFNLEVBQUUsRUFBRSxFQUFFLE9BQU8sRUFBRSwyQ0FBMkMsRUFBRSxDQUFDOzsrQ0FDN0Q7QUFPaEI7SUFMQyxJQUFBLGdCQUFNLEVBQUM7UUFDTixJQUFJLEVBQUUsbUJBQW1CO1FBQ3pCLFFBQVEsRUFBRSxJQUFJO1FBQ2QsT0FBTyxFQUFFLGtEQUFrRDtLQUM1RCxDQUFDOzt1REFDc0I7QUFHeEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsTUFBTSxFQUFFLFFBQVEsRUFBRSxJQUFJLEVBQUUsT0FBTyxFQUFFLDBCQUEwQixFQUFFLENBQUM7O2dEQUM3RDtBQVFqQjtJQUxDLElBQUEsZ0JBQU0sRUFBQztRQUNOLElBQUksRUFBRSxNQUFNO1FBQ1osUUFBUSxFQUFFLElBQUk7UUFDZCxPQUFPLEVBQUUsaUNBQWlDO0tBQzNDLENBQUM7a0RBQ1MsTUFBTSxvQkFBTixNQUFNO2lEQUFrQjtBQUduQztJQURDLElBQUEsMEJBQWdCLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQzdCLElBQUksb0JBQUosSUFBSTtrREFBQzswQkF2Q04sZUFBZTtJQUgzQixJQUFBLGdCQUFNLEVBQUMsb0JBQW9CLENBQUM7SUFDNUIsSUFBQSxlQUFLLEVBQUMsQ0FBQyxZQUFZLENBQUMsQ0FBQyxDQUFDLCtCQUErQjs7SUFDckQsSUFBQSxlQUFLLEVBQUMsQ0FBQyxnQkFBZ0IsQ0FBQyxDQUFDLENBQUMsa0NBQWtDO0dBQ2hELGVBQWUsQ0F3QzNCIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXHdvcmtmbG93LWVuZ2luZVxcZW50aXRpZXNcXHdvcmtmbG93LWhpc3RvcnkuZW50aXR5LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8vIEZpbGU6IHNyYy9tb2R1bGVzL3dvcmtmbG93LWVuZ2luZS9lbnRpdGllcy93b3JrZmxvdy1oaXN0b3J5LmVudGl0eS50c1xyXG5cclxuaW1wb3J0IHtcclxuICBDb2x1bW4sXHJcbiAgQ3JlYXRlRGF0ZUNvbHVtbixcclxuICBFbnRpdHksXHJcbiAgSW5kZXgsXHJcbiAgSm9pbkNvbHVtbixcclxuICBNYW55VG9PbmUsXHJcbiAgUHJpbWFyeUdlbmVyYXRlZENvbHVtbixcclxufSBmcm9tICd0eXBlb3JtJztcclxuaW1wb3J0IHsgV29ya2Zsb3dJbnN0YW5jZSB9IGZyb20gJy4vd29ya2Zsb3ctaW5zdGFuY2UuZW50aXR5JztcclxuXHJcbi8qKlxyXG4gKiDguYDguIHguYfguJrguJvguKPguLDguKfguLHguJXguLTguIHguLLguKPguYDguJvguKXguLXguYjguKLguJnguKrguJbguLLguJnguLAgKEF1ZGl0IFRyYWlsKVxyXG4gKiDguKrguLPguITguLHguI3guKHguLLguIHguKrguLPguKvguKPguLHguJrguIHguLLguKPguJXguKPguKfguIjguKrguK3guJrguKLguYnguK3guJnguKvguKXguLHguIcgKFdobyBkaWQgV2hhdCwgV2hlbilcclxuICovXHJcbkBFbnRpdHkoJ3dvcmtmbG93X2hpc3RvcmllcycpXHJcbkBJbmRleChbJ2luc3RhbmNlSWQnXSkgLy8g4LiE4LmJ4LiZ4Lir4Liy4Lib4Lij4Liw4Lin4Lix4LiV4Li04LiC4Lit4LiHIEluc3RhbmNlIOC4meC4teC5iVxyXG5ASW5kZXgoWydhY3Rpb25CeVVzZXJJZCddKSAvLyDguITguYnguJnguKvguLLguKfguYjguLIgVXNlciDguITguJnguJnguLXguYnguJfguLPguK3guLDguYTguKPguYTguJvguJrguYnguLLguIdcclxuZXhwb3J0IGNsYXNzIFdvcmtmbG93SGlzdG9yeSB7XHJcbiAgQFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4oJ3V1aWQnKVxyXG4gIGlkITogc3RyaW5nO1xyXG5cclxuICBATWFueVRvT25lKCgpID0+IFdvcmtmbG93SW5zdGFuY2UsIHsgb25EZWxldGU6ICdDQVNDQURFJyB9KVxyXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ2luc3RhbmNlX2lkJyB9KVxyXG4gIGluc3RhbmNlITogV29ya2Zsb3dJbnN0YW5jZTtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdpbnN0YW5jZV9pZCcgfSlcclxuICBpbnN0YW5jZUlkITogc3RyaW5nO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ2Zyb21fc3RhdGUnLCBsZW5ndGg6IDUwLCBjb21tZW50OiAn4Liq4LiW4Liy4LiZ4Liw4LiV4LmJ4LiZ4LiX4Liy4LiHJyB9KVxyXG4gIGZyb21TdGF0ZSE6IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICd0b19zdGF0ZScsIGxlbmd0aDogNTAsIGNvbW1lbnQ6ICfguKrguJbguLLguJnguLDguJvguKXguLLguKLguJfguLLguIcnIH0pXHJcbiAgdG9TdGF0ZSE6IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7IGxlbmd0aDogNTAsIGNvbW1lbnQ6ICdBY3Rpb24g4LiX4Li14LmIIFVzZXIg4LiB4LiUICjguYDguIrguYjguJkgQVBQUk9WRSwgUkVKRUNUKScgfSlcclxuICBhY3Rpb24hOiBzdHJpbmc7XHJcblxyXG4gIEBDb2x1bW4oe1xyXG4gICAgbmFtZTogJ2FjdGlvbl9ieV91c2VyX2lkJyxcclxuICAgIG51bGxhYmxlOiB0cnVlLFxyXG4gICAgY29tbWVudDogJ1VzZXIgSUQg4Lic4Li54LmJ4LiU4Liz4LmA4LiZ4Li04LiZ4LiB4Liy4LijIChOdWxsYWJsZSDguIHguKPguJPguLUgU3lzdGVtIEF1dG8pJyxcclxuICB9KVxyXG4gIGFjdGlvbkJ5VXNlcklkPzogbnVtYmVyO1xyXG5cclxuICBAQ29sdW1uKHsgdHlwZTogJ3RleHQnLCBudWxsYWJsZTogdHJ1ZSwgY29tbWVudDogJ+C4hOC4p+C4suC4oeC5gOC4q+C5h+C4meC4m+C4o+C4sOC4geC4reC4muC4geC4suC4o+C4reC4meC4uOC4oeC4seC4leC4tCcgfSlcclxuICBjb21tZW50Pzogc3RyaW5nO1xyXG5cclxuICAvLyBTbmFwc2hvdCDguILguYnguK3guKHguLnguKUg4LiTIOC5gOC4p+C4peC4suC4l+C4teC5iOC5gOC4m+C4peC4teC5iOC4ouC4meC4quC4luC4suC4meC4sCDguYDguJ7guLfguYjguK3guYDguJvguYfguJnguKvguKXguLHguIHguJDguLLguJnguKvguLLguIEgQ29udGV4dCDguYDguJvguKXguLXguYjguKLguJnguYPguJnguK3guJnguLLguITguJVcclxuICBAQ29sdW1uKHtcclxuICAgIHR5cGU6ICdqc29uJyxcclxuICAgIG51bGxhYmxlOiB0cnVlLFxyXG4gICAgY29tbWVudDogJ1NuYXBzaG90IG9mIENvbnRleHQgb3IgTWV0YWRhdGEnLFxyXG4gIH0pXHJcbiAgbWV0YWRhdGE/OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjtcclxuXHJcbiAgQENyZWF0ZURhdGVDb2x1bW4oeyBuYW1lOiAnY3JlYXRlZF9hdCcgfSlcclxuICBjcmVhdGVkQXQhOiBEYXRlO1xyXG59XHJcbiJdLCJ2ZXJzaW9uIjozfQ==

@@ -1,0 +1,86 @@
+3610fb2177c919e955d4834f6c8c1c5f
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RfaWorkflowTemplateStep = exports.RfaActionType = void 0;
+const typeorm_1 = require("typeorm");
+const rfa_workflow_template_entity_1 = require("./rfa-workflow-template.entity");
+const organization_entity_1 = require("../../organization/entities/organization.entity");
+const role_entity_1 = require("../../user/entities/role.entity");
+// ✅ 1. สร้าง Enum เพื่อให้ Type Safe
+var RfaActionType;
+(function (RfaActionType) {
+    RfaActionType["REVIEW"] = "REVIEW";
+    RfaActionType["APPROVE"] = "APPROVE";
+    RfaActionType["ACKNOWLEDGE"] = "ACKNOWLEDGE";
+})(RfaActionType || (exports.RfaActionType = RfaActionType = {}));
+let RfaWorkflowTemplateStep = class RfaWorkflowTemplateStep {
+};
+exports.RfaWorkflowTemplateStep = RfaWorkflowTemplateStep;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], RfaWorkflowTemplateStep.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'template_id' }),
+    __metadata("design:type", Number)
+], RfaWorkflowTemplateStep.prototype, "templateId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'step_number' }),
+    __metadata("design:type", Number)
+], RfaWorkflowTemplateStep.prototype, "stepNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'organization_id' }),
+    __metadata("design:type", Number)
+], RfaWorkflowTemplateStep.prototype, "organizationId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'role_id', nullable: true }),
+    __metadata("design:type", Number)
+], RfaWorkflowTemplateStep.prototype, "roleId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'action_type',
+        type: 'enum',
+        enum: RfaActionType, // ✅ 2. ใช้ Enum ตรงนี้
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], RfaWorkflowTemplateStep.prototype, "actionType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'duration_days', nullable: true }),
+    __metadata("design:type", Number)
+], RfaWorkflowTemplateStep.prototype, "durationDays", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_optional', default: false }),
+    __metadata("design:type", Boolean)
+], RfaWorkflowTemplateStep.prototype, "isOptional", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => rfa_workflow_template_entity_1.RfaWorkflowTemplate, (template) => template.steps, {
+        onDelete: 'CASCADE',
+    }),
+    (0, typeorm_1.JoinColumn)({ name: 'template_id' }),
+    __metadata("design:type", typeof (_a = typeof rfa_workflow_template_entity_1.RfaWorkflowTemplate !== "undefined" && rfa_workflow_template_entity_1.RfaWorkflowTemplate) === "function" ? _a : Object)
+], RfaWorkflowTemplateStep.prototype, "template", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => organization_entity_1.Organization),
+    (0, typeorm_1.JoinColumn)({ name: 'organization_id' }),
+    __metadata("design:type", typeof (_b = typeof organization_entity_1.Organization !== "undefined" && organization_entity_1.Organization) === "function" ? _b : Object)
+], RfaWorkflowTemplateStep.prototype, "organization", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => role_entity_1.Role),
+    (0, typeorm_1.JoinColumn)({ name: 'role_id' }),
+    __metadata("design:type", typeof (_c = typeof role_entity_1.Role !== "undefined" && role_entity_1.Role) === "function" ? _c : Object)
+], RfaWorkflowTemplateStep.prototype, "role", void 0);
+exports.RfaWorkflowTemplateStep = RfaWorkflowTemplateStep = __decorate([
+    (0, typeorm_1.Entity)('rfa_workflow_template_steps')
+], RfaWorkflowTemplateStep);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xccmZhXFxlbnRpdGllc1xccmZhLXdvcmtmbG93LXRlbXBsYXRlLXN0ZXAuZW50aXR5LnRzIiwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7QUFBQSxxQ0FNaUI7QUFDakIsaUZBQXFFO0FBQ3JFLHlGQUErRTtBQUMvRSxpRUFBdUQ7QUFFdkQscUNBQXFDO0FBQ3JDLElBQVksYUFJWDtBQUpELFdBQVksYUFBYTtJQUN2QixrQ0FBaUIsQ0FBQTtJQUNqQixvQ0FBbUIsQ0FBQTtJQUNuQiw0Q0FBMkIsQ0FBQTtBQUM3QixDQUFDLEVBSlcsYUFBYSw2QkFBYixhQUFhLFFBSXhCO0FBR00sSUFBTSx1QkFBdUIsR0FBN0IsTUFBTSx1QkFBdUI7Q0E0Q25DLENBQUE7QUE1Q1ksMERBQXVCO0FBRWxDO0lBREMsSUFBQSxnQ0FBc0IsR0FBRTs7bURBQ2I7QUFHWjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxhQUFhLEVBQUUsQ0FBQzs7MkRBQ1o7QUFHcEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsYUFBYSxFQUFFLENBQUM7OzJEQUNaO0FBR3BCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGlCQUFpQixFQUFFLENBQUM7OytEQUNaO0FBR3hCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFNBQVMsRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7O3VEQUM1QjtBQVFoQjtJQU5DLElBQUEsZ0JBQU0sRUFBQztRQUNOLElBQUksRUFBRSxhQUFhO1FBQ25CLElBQUksRUFBRSxNQUFNO1FBQ1osSUFBSSxFQUFFLGFBQWEsRUFBRSx1QkFBdUI7UUFDNUMsUUFBUSxFQUFFLElBQUk7S0FDZixDQUFDOzsyREFDeUI7QUFHM0I7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsZUFBZSxFQUFFLFFBQVEsRUFBRSxJQUFJLEVBQUUsQ0FBQzs7NkRBQzVCO0FBR3RCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxPQUFPLEVBQUUsS0FBSyxFQUFFLENBQUM7OzJEQUMzQjtBQU9yQjtJQUpDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQyxrREFBbUIsRUFBRSxDQUFDLFFBQVEsRUFBRSxFQUFFLENBQUMsUUFBUSxDQUFDLEtBQUssRUFBRTtRQUNsRSxRQUFRLEVBQUUsU0FBUztLQUNwQixDQUFDO0lBQ0QsSUFBQSxvQkFBVSxFQUFDLEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxDQUFDO2tEQUN6QixrREFBbUIsb0JBQW5CLGtEQUFtQjt5REFBQztBQUkvQjtJQUZDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQyxrQ0FBWSxDQUFDO0lBQzdCLElBQUEsb0JBQVUsRUFBQyxFQUFFLElBQUksRUFBRSxpQkFBaUIsRUFBRSxDQUFDO2tEQUN6QixrQ0FBWSxvQkFBWixrQ0FBWTs2REFBQztBQUk1QjtJQUZDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQyxrQkFBSSxDQUFDO0lBQ3JCLElBQUEsb0JBQVUsRUFBQyxFQUFFLElBQUksRUFBRSxTQUFTLEVBQUUsQ0FBQztrREFDekIsa0JBQUksb0JBQUosa0JBQUk7cURBQUM7a0NBM0NELHVCQUF1QjtJQURuQyxJQUFBLGdCQUFNLEVBQUMsNkJBQTZCLENBQUM7R0FDekIsdUJBQXVCLENBNENuQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFxyZmFcXGVudGl0aWVzXFxyZmEtd29ya2Zsb3ctdGVtcGxhdGUtc3RlcC5lbnRpdHkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtcclxuICBFbnRpdHksXHJcbiAgUHJpbWFyeUdlbmVyYXRlZENvbHVtbixcclxuICBDb2x1bW4sXHJcbiAgTWFueVRvT25lLFxyXG4gIEpvaW5Db2x1bW4sXHJcbn0gZnJvbSAndHlwZW9ybSc7XHJcbmltcG9ydCB7IFJmYVdvcmtmbG93VGVtcGxhdGUgfSBmcm9tICcuL3JmYS13b3JrZmxvdy10ZW1wbGF0ZS5lbnRpdHknO1xyXG5pbXBvcnQgeyBPcmdhbml6YXRpb24gfSBmcm9tICcuLi8uLi9vcmdhbml6YXRpb24vZW50aXRpZXMvb3JnYW5pemF0aW9uLmVudGl0eSc7XHJcbmltcG9ydCB7IFJvbGUgfSBmcm9tICcuLi8uLi91c2VyL2VudGl0aWVzL3JvbGUuZW50aXR5JztcclxuXHJcbi8vIOKchSAxLiDguKrguKPguYnguLLguIcgRW51bSDguYDguJ7guLfguYjguK3guYPguKvguYkgVHlwZSBTYWZlXHJcbmV4cG9ydCBlbnVtIFJmYUFjdGlvblR5cGUge1xyXG4gIFJFVklFVyA9ICdSRVZJRVcnLFxyXG4gIEFQUFJPVkUgPSAnQVBQUk9WRScsXHJcbiAgQUNLTk9XTEVER0UgPSAnQUNLTk9XTEVER0UnLFxyXG59XHJcblxyXG5ARW50aXR5KCdyZmFfd29ya2Zsb3dfdGVtcGxhdGVfc3RlcHMnKVxyXG5leHBvcnQgY2xhc3MgUmZhV29ya2Zsb3dUZW1wbGF0ZVN0ZXAge1xyXG4gIEBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uKClcclxuICBpZCE6IG51bWJlcjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICd0ZW1wbGF0ZV9pZCcgfSlcclxuICB0ZW1wbGF0ZUlkITogbnVtYmVyO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3N0ZXBfbnVtYmVyJyB9KVxyXG4gIHN0ZXBOdW1iZXIhOiBudW1iZXI7XHJcblxyXG4gIEBDb2x1bW4oeyBuYW1lOiAnb3JnYW5pemF0aW9uX2lkJyB9KVxyXG4gIG9yZ2FuaXphdGlvbklkITogbnVtYmVyO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3JvbGVfaWQnLCBudWxsYWJsZTogdHJ1ZSB9KVxyXG4gIHJvbGVJZD86IG51bWJlcjtcclxuXHJcbiAgQENvbHVtbih7XHJcbiAgICBuYW1lOiAnYWN0aW9uX3R5cGUnLFxyXG4gICAgdHlwZTogJ2VudW0nLFxyXG4gICAgZW51bTogUmZhQWN0aW9uVHlwZSwgLy8g4pyFIDIuIOC5g+C4iuC5iSBFbnVtIOC4leC4o+C4h+C4meC4teC5iVxyXG4gICAgbnVsbGFibGU6IHRydWUsXHJcbiAgfSlcclxuICBhY3Rpb25UeXBlPzogUmZhQWN0aW9uVHlwZTsgLy8g4pyFIDMuIOC5gOC4m+C4peC4teC5iOC4ouC4mSB0eXBlIOC4iOC4suC4gSBzdHJpbmcg4LmA4Lib4LmH4LiZIEVudW1cclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdkdXJhdGlvbl9kYXlzJywgbnVsbGFibGU6IHRydWUgfSlcclxuICBkdXJhdGlvbkRheXM/OiBudW1iZXI7XHJcblxyXG4gIEBDb2x1bW4oeyBuYW1lOiAnaXNfb3B0aW9uYWwnLCBkZWZhdWx0OiBmYWxzZSB9KVxyXG4gIGlzT3B0aW9uYWwhOiBib29sZWFuO1xyXG5cclxuICAvLyBSZWxhdGlvbnNcclxuICBATWFueVRvT25lKCgpID0+IFJmYVdvcmtmbG93VGVtcGxhdGUsICh0ZW1wbGF0ZSkgPT4gdGVtcGxhdGUuc3RlcHMsIHtcclxuICAgIG9uRGVsZXRlOiAnQ0FTQ0FERScsXHJcbiAgfSlcclxuICBASm9pbkNvbHVtbih7IG5hbWU6ICd0ZW1wbGF0ZV9pZCcgfSlcclxuICB0ZW1wbGF0ZSE6IFJmYVdvcmtmbG93VGVtcGxhdGU7XHJcblxyXG4gIEBNYW55VG9PbmUoKCkgPT4gT3JnYW5pemF0aW9uKVxyXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ29yZ2FuaXphdGlvbl9pZCcgfSlcclxuICBvcmdhbml6YXRpb24hOiBPcmdhbml6YXRpb247XHJcblxyXG4gIEBNYW55VG9PbmUoKCkgPT4gUm9sZSlcclxuICBASm9pbkNvbHVtbih7IG5hbWU6ICdyb2xlX2lkJyB9KVxyXG4gIHJvbGU/OiBSb2xlO1xyXG59XHJcbiJdLCJ2ZXJzaW9uIjozfQ==

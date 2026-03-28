@@ -1,0 +1,52 @@
+52d79155056d94cdcc503ba00d284e47
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SearchJsonSchemaDto = void 0;
+const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
+class SearchJsonSchemaDto {
+    constructor() {
+        this.page = 1;
+        this.limit = 20;
+    }
+}
+exports.SearchJsonSchemaDto = SearchJsonSchemaDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], SearchJsonSchemaDto.prototype, "search", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => {
+        if (value === 'true')
+            return true;
+        if (value === 'false')
+            return false;
+        return value;
+    }),
+    __metadata("design:type", Boolean)
+], SearchJsonSchemaDto.prototype, "isActive", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Number)
+], SearchJsonSchemaDto.prototype, "page", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Number)
+], SearchJsonSchemaDto.prototype, "limit", void 0);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcanNvbi1zY2hlbWFcXGR0b1xcc2VhcmNoLWpzb24tc2NoZW1hLmR0by50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7QUFBQSxxREFBeUU7QUFDekUseURBQW9EO0FBRXBELE1BQWEsbUJBQW1CO0lBQWhDO1FBaUJFLFNBQUksR0FBVyxDQUFDLENBQUM7UUFLakIsVUFBSyxHQUFXLEVBQUUsQ0FBQztJQUNyQixDQUFDO0NBQUE7QUF2QkQsa0RBdUJDO0FBcEJDO0lBRkMsSUFBQSwwQkFBUSxHQUFFO0lBQ1YsSUFBQSw0QkFBVSxHQUFFOzttREFDRztBQVNoQjtJQVBDLElBQUEsMkJBQVMsR0FBRTtJQUNYLElBQUEsNEJBQVUsR0FBRTtJQUNaLElBQUEsNkJBQVMsRUFBQyxDQUFDLEVBQUUsS0FBSyxFQUFFLEVBQUUsRUFBRTtRQUN2QixJQUFJLEtBQUssS0FBSyxNQUFNO1lBQUUsT0FBTyxJQUFJLENBQUM7UUFDbEMsSUFBSSxLQUFLLEtBQUssT0FBTztZQUFFLE9BQU8sS0FBSyxDQUFDO1FBQ3BDLE9BQU8sS0FBNEIsQ0FBQztJQUN0QyxDQUFDLENBQUM7O3FEQUNpQjtBQUtuQjtJQUhDLElBQUEsNEJBQVUsR0FBRTtJQUNaLElBQUEsdUJBQUssR0FBRTtJQUNQLElBQUEsd0JBQUksRUFBQyxHQUFHLEVBQUUsQ0FBQyxNQUFNLENBQUM7O2lEQUNGO0FBS2pCO0lBSEMsSUFBQSw0QkFBVSxHQUFFO0lBQ1osSUFBQSx1QkFBSyxHQUFFO0lBQ1AsSUFBQSx3QkFBSSxFQUFDLEdBQUcsRUFBRSxDQUFDLE1BQU0sQ0FBQzs7a0RBQ0EiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcanNvbi1zY2hlbWFcXGR0b1xcc2VhcmNoLWpzb24tc2NoZW1hLmR0by50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBJc1N0cmluZywgSXNPcHRpb25hbCwgSXNCb29sZWFuLCBJc0ludCB9IGZyb20gJ2NsYXNzLXZhbGlkYXRvcic7XHJcbmltcG9ydCB7IFR5cGUsIFRyYW5zZm9ybSB9IGZyb20gJ2NsYXNzLXRyYW5zZm9ybWVyJztcclxuXHJcbmV4cG9ydCBjbGFzcyBTZWFyY2hKc29uU2NoZW1hRHRvIHtcclxuICBASXNTdHJpbmcoKVxyXG4gIEBJc09wdGlvbmFsKClcclxuICBzZWFyY2g/OiBzdHJpbmc7IC8vIOC4hOC5ieC4meC4q+C4suC4iOC4suC4gSBzY2hlbWFDb2RlXHJcblxyXG4gIEBJc0Jvb2xlYW4oKVxyXG4gIEBJc09wdGlvbmFsKClcclxuICBAVHJhbnNmb3JtKCh7IHZhbHVlIH0pID0+IHtcclxuICAgIGlmICh2YWx1ZSA9PT0gJ3RydWUnKSByZXR1cm4gdHJ1ZTtcclxuICAgIGlmICh2YWx1ZSA9PT0gJ2ZhbHNlJykgcmV0dXJuIGZhbHNlO1xyXG4gICAgcmV0dXJuIHZhbHVlIGFzIGJvb2xlYW4gfCB1bmRlZmluZWQ7XHJcbiAgfSlcclxuICBpc0FjdGl2ZT86IGJvb2xlYW47XHJcblxyXG4gIEBJc09wdGlvbmFsKClcclxuICBASXNJbnQoKVxyXG4gIEBUeXBlKCgpID0+IE51bWJlcilcclxuICBwYWdlOiBudW1iZXIgPSAxO1xyXG5cclxuICBASXNPcHRpb25hbCgpXHJcbiAgQElzSW50KClcclxuICBAVHlwZSgoKSA9PiBOdW1iZXIpXHJcbiAgbGltaXQ6IG51bWJlciA9IDIwO1xyXG59XHJcbiJdLCJ2ZXJzaW9uIjozfQ==

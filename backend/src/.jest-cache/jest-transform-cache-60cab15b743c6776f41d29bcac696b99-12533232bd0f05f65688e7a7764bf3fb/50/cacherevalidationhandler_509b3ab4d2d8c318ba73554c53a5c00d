@@ -1,0 +1,112 @@
+5c50a60bbc024e41e45ad4905d516819
+'use strict';
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _CacheRevalidationHandler_successful, _CacheRevalidationHandler_callback, _CacheRevalidationHandler_handler, _CacheRevalidationHandler_context, _CacheRevalidationHandler_allowErrorStatusCodes;
+const assert = require('node:assert');
+/**
+ * This takes care of revalidation requests we send to the origin. If we get
+ *  a response indicating that what we have is cached (via a HTTP 304), we can
+ *  continue using the cached value. Otherwise, we'll receive the new response
+ *  here, which we then just pass on to the next handler (most likely a
+ *  CacheHandler). Note that this assumes the proper headers were already
+ *  included in the request to tell the origin that we want to revalidate the
+ *  response (i.e. if-modified-since or if-none-match).
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc9111.html#name-validation
+ *
+ * @implements {import('../../types/dispatcher.d.ts').default.DispatchHandler}
+ */
+class CacheRevalidationHandler {
+    /**
+     * @param {(boolean) => void} callback Function to call if the cached value is valid
+     * @param {import('../../types/dispatcher.d.ts').default.DispatchHandlers} handler
+     * @param {boolean} allowErrorStatusCodes
+     */
+    constructor(callback, handler, allowErrorStatusCodes) {
+        _CacheRevalidationHandler_successful.set(this, false
+        /**
+         * @type {((boolean, any) => void) | null}
+         */
+        );
+        /**
+         * @type {((boolean, any) => void) | null}
+         */
+        _CacheRevalidationHandler_callback.set(this, void 0);
+        /**
+         * @type {(import('../../types/dispatcher.d.ts').default.DispatchHandler)}
+         */
+        _CacheRevalidationHandler_handler.set(this, void 0);
+        _CacheRevalidationHandler_context.set(this, void 0);
+        /**
+         * @type {boolean}
+         */
+        _CacheRevalidationHandler_allowErrorStatusCodes.set(this, void 0);
+        if (typeof callback !== 'function') {
+            throw new TypeError('callback must be a function');
+        }
+        __classPrivateFieldSet(this, _CacheRevalidationHandler_callback, callback, "f");
+        __classPrivateFieldSet(this, _CacheRevalidationHandler_handler, handler, "f");
+        __classPrivateFieldSet(this, _CacheRevalidationHandler_allowErrorStatusCodes, allowErrorStatusCodes, "f");
+    }
+    onRequestStart(_, context) {
+        __classPrivateFieldSet(this, _CacheRevalidationHandler_successful, false, "f");
+        __classPrivateFieldSet(this, _CacheRevalidationHandler_context, context, "f");
+    }
+    onRequestUpgrade(controller, statusCode, headers, socket) {
+        __classPrivateFieldGet(this, _CacheRevalidationHandler_handler, "f").onRequestUpgrade?.(controller, statusCode, headers, socket);
+    }
+    onResponseStart(controller, statusCode, headers, statusMessage) {
+        assert(__classPrivateFieldGet(this, _CacheRevalidationHandler_callback, "f") != null);
+        // https://www.rfc-editor.org/rfc/rfc9111.html#name-handling-a-validation-respo
+        // https://datatracker.ietf.org/doc/html/rfc5861#section-4
+        __classPrivateFieldSet(this, _CacheRevalidationHandler_successful, statusCode === 304 ||
+            (__classPrivateFieldGet(this, _CacheRevalidationHandler_allowErrorStatusCodes, "f") && statusCode >= 500 && statusCode <= 504), "f");
+        __classPrivateFieldGet(this, _CacheRevalidationHandler_callback, "f").call(this, __classPrivateFieldGet(this, _CacheRevalidationHandler_successful, "f"), __classPrivateFieldGet(this, _CacheRevalidationHandler_context, "f"));
+        __classPrivateFieldSet(this, _CacheRevalidationHandler_callback, null, "f");
+        if (__classPrivateFieldGet(this, _CacheRevalidationHandler_successful, "f")) {
+            return true;
+        }
+        __classPrivateFieldGet(this, _CacheRevalidationHandler_handler, "f").onRequestStart?.(controller, __classPrivateFieldGet(this, _CacheRevalidationHandler_context, "f"));
+        __classPrivateFieldGet(this, _CacheRevalidationHandler_handler, "f").onResponseStart?.(controller, statusCode, headers, statusMessage);
+    }
+    onResponseData(controller, chunk) {
+        if (__classPrivateFieldGet(this, _CacheRevalidationHandler_successful, "f")) {
+            return;
+        }
+        return __classPrivateFieldGet(this, _CacheRevalidationHandler_handler, "f").onResponseData?.(controller, chunk);
+    }
+    onResponseEnd(controller, trailers) {
+        if (__classPrivateFieldGet(this, _CacheRevalidationHandler_successful, "f")) {
+            return;
+        }
+        __classPrivateFieldGet(this, _CacheRevalidationHandler_handler, "f").onResponseEnd?.(controller, trailers);
+    }
+    onResponseError(controller, err) {
+        if (__classPrivateFieldGet(this, _CacheRevalidationHandler_successful, "f")) {
+            return;
+        }
+        if (__classPrivateFieldGet(this, _CacheRevalidationHandler_callback, "f")) {
+            __classPrivateFieldGet(this, _CacheRevalidationHandler_callback, "f").call(this, false);
+            __classPrivateFieldSet(this, _CacheRevalidationHandler_callback, null, "f");
+        }
+        if (typeof __classPrivateFieldGet(this, _CacheRevalidationHandler_handler, "f").onResponseError === 'function') {
+            __classPrivateFieldGet(this, _CacheRevalidationHandler_handler, "f").onResponseError(controller, err);
+        }
+        else {
+            throw err;
+        }
+    }
+}
+_CacheRevalidationHandler_successful = new WeakMap(), _CacheRevalidationHandler_callback = new WeakMap(), _CacheRevalidationHandler_handler = new WeakMap(), _CacheRevalidationHandler_context = new WeakMap(), _CacheRevalidationHandler_allowErrorStatusCodes = new WeakMap();
+module.exports = CacheRevalidationHandler;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHVuZGljaUA3LjI0LjRcXG5vZGVfbW9kdWxlc1xcdW5kaWNpXFxsaWJcXGhhbmRsZXJcXGNhY2hlLXJldmFsaWRhdGlvbi1oYW5kbGVyLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQTs7Ozs7Ozs7Ozs7OztBQUVaLE1BQU0sTUFBTSxHQUFHLE9BQU8sQ0FBQyxhQUFhLENBQUMsQ0FBQTtBQUVyQzs7Ozs7Ozs7Ozs7O0dBWUc7QUFDSCxNQUFNLHdCQUF3QjtJQW9CNUI7Ozs7T0FJRztJQUNILFlBQWEsUUFBUSxFQUFFLE9BQU8sRUFBRSxxQkFBcUI7UUF4QnJELCtDQUFjLEtBQUs7UUFFbkI7O1dBRUc7VUFKZ0I7UUFFbkI7O1dBRUc7UUFDSCxxREFBUztRQUVUOztXQUVHO1FBQ0gsb0RBQVE7UUFFUixvREFBUTtRQUVSOztXQUVHO1FBQ0gsa0VBQXNCO1FBUXBCLElBQUksT0FBTyxRQUFRLEtBQUssVUFBVSxFQUFFLENBQUM7WUFDbkMsTUFBTSxJQUFJLFNBQVMsQ0FBQyw2QkFBNkIsQ0FBQyxDQUFBO1FBQ3BELENBQUM7UUFFRCx1QkFBQSxJQUFJLHNDQUFhLFFBQVEsTUFBQSxDQUFBO1FBQ3pCLHVCQUFBLElBQUkscUNBQVksT0FBTyxNQUFBLENBQUE7UUFDdkIsdUJBQUEsSUFBSSxtREFBMEIscUJBQXFCLE1BQUEsQ0FBQTtJQUNyRCxDQUFDO0lBRUQsY0FBYyxDQUFFLENBQUMsRUFBRSxPQUFPO1FBQ3hCLHVCQUFBLElBQUksd0NBQWUsS0FBSyxNQUFBLENBQUE7UUFDeEIsdUJBQUEsSUFBSSxxQ0FBWSxPQUFPLE1BQUEsQ0FBQTtJQUN6QixDQUFDO0lBRUQsZ0JBQWdCLENBQUUsVUFBVSxFQUFFLFVBQVUsRUFBRSxPQUFPLEVBQUUsTUFBTTtRQUN2RCx1QkFBQSxJQUFJLHlDQUFTLENBQUMsZ0JBQWdCLEVBQUUsQ0FBQyxVQUFVLEVBQUUsVUFBVSxFQUFFLE9BQU8sRUFBRSxNQUFNLENBQUMsQ0FBQTtJQUMzRSxDQUFDO0lBRUQsZUFBZSxDQUNiLFVBQVUsRUFDVixVQUFVLEVBQ1YsT0FBTyxFQUNQLGFBQWE7UUFFYixNQUFNLENBQUMsdUJBQUEsSUFBSSwwQ0FBVSxJQUFJLElBQUksQ0FBQyxDQUFBO1FBRTlCLCtFQUErRTtRQUMvRSwwREFBMEQ7UUFDMUQsdUJBQUEsSUFBSSx3Q0FBZSxVQUFVLEtBQUssR0FBRztZQUNuQyxDQUFDLHVCQUFBLElBQUksdURBQXVCLElBQUksVUFBVSxJQUFJLEdBQUcsSUFBSSxVQUFVLElBQUksR0FBRyxDQUFDLE1BQUEsQ0FBQTtRQUN6RSx1QkFBQSxJQUFJLDBDQUFVLE1BQWQsSUFBSSxFQUFXLHVCQUFBLElBQUksNENBQVksRUFBRSx1QkFBQSxJQUFJLHlDQUFTLENBQUMsQ0FBQTtRQUMvQyx1QkFBQSxJQUFJLHNDQUFhLElBQUksTUFBQSxDQUFBO1FBRXJCLElBQUksdUJBQUEsSUFBSSw0Q0FBWSxFQUFFLENBQUM7WUFDckIsT0FBTyxJQUFJLENBQUE7UUFDYixDQUFDO1FBRUQsdUJBQUEsSUFBSSx5Q0FBUyxDQUFDLGNBQWMsRUFBRSxDQUFDLFVBQVUsRUFBRSx1QkFBQSxJQUFJLHlDQUFTLENBQUMsQ0FBQTtRQUN6RCx1QkFBQSxJQUFJLHlDQUFTLENBQUMsZUFBZSxFQUFFLENBQzdCLFVBQVUsRUFDVixVQUFVLEVBQ1YsT0FBTyxFQUNQLGFBQWEsQ0FDZCxDQUFBO0lBQ0gsQ0FBQztJQUVELGNBQWMsQ0FBRSxVQUFVLEVBQUUsS0FBSztRQUMvQixJQUFJLHVCQUFBLElBQUksNENBQVksRUFBRSxDQUFDO1lBQ3JCLE9BQU07UUFDUixDQUFDO1FBRUQsT0FBTyx1QkFBQSxJQUFJLHlDQUFTLENBQUMsY0FBYyxFQUFFLENBQUMsVUFBVSxFQUFFLEtBQUssQ0FBQyxDQUFBO0lBQzFELENBQUM7SUFFRCxhQUFhLENBQUUsVUFBVSxFQUFFLFFBQVE7UUFDakMsSUFBSSx1QkFBQSxJQUFJLDRDQUFZLEVBQUUsQ0FBQztZQUNyQixPQUFNO1FBQ1IsQ0FBQztRQUVELHVCQUFBLElBQUkseUNBQVMsQ0FBQyxhQUFhLEVBQUUsQ0FBQyxVQUFVLEVBQUUsUUFBUSxDQUFDLENBQUE7SUFDckQsQ0FBQztJQUVELGVBQWUsQ0FBRSxVQUFVLEVBQUUsR0FBRztRQUM5QixJQUFJLHVCQUFBLElBQUksNENBQVksRUFBRSxDQUFDO1lBQ3JCLE9BQU07UUFDUixDQUFDO1FBRUQsSUFBSSx1QkFBQSxJQUFJLDBDQUFVLEVBQUUsQ0FBQztZQUNuQix1QkFBQSxJQUFJLDBDQUFVLE1BQWQsSUFBSSxFQUFXLEtBQUssQ0FBQyxDQUFBO1lBQ3JCLHVCQUFBLElBQUksc0NBQWEsSUFBSSxNQUFBLENBQUE7UUFDdkIsQ0FBQztRQUVELElBQUksT0FBTyx1QkFBQSxJQUFJLHlDQUFTLENBQUMsZUFBZSxLQUFLLFVBQVUsRUFBRSxDQUFDO1lBQ3hELHVCQUFBLElBQUkseUNBQVMsQ0FBQyxlQUFlLENBQUMsVUFBVSxFQUFFLEdBQUcsQ0FBQyxDQUFBO1FBQ2hELENBQUM7YUFBTSxDQUFDO1lBQ04sTUFBTSxHQUFHLENBQUE7UUFDWCxDQUFDO0lBQ0gsQ0FBQztDQUNGOztBQUVELE1BQU0sQ0FBQyxPQUFPLEdBQUcsd0JBQXdCLENBQUEiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHVuZGljaUA3LjI0LjRcXG5vZGVfbW9kdWxlc1xcdW5kaWNpXFxsaWJcXGhhbmRsZXJcXGNhY2hlLXJldmFsaWRhdGlvbi1oYW5kbGVyLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIid1c2Ugc3RyaWN0J1xuXG5jb25zdCBhc3NlcnQgPSByZXF1aXJlKCdub2RlOmFzc2VydCcpXG5cbi8qKlxuICogVGhpcyB0YWtlcyBjYXJlIG9mIHJldmFsaWRhdGlvbiByZXF1ZXN0cyB3ZSBzZW5kIHRvIHRoZSBvcmlnaW4uIElmIHdlIGdldFxuICogIGEgcmVzcG9uc2UgaW5kaWNhdGluZyB0aGF0IHdoYXQgd2UgaGF2ZSBpcyBjYWNoZWQgKHZpYSBhIEhUVFAgMzA0KSwgd2UgY2FuXG4gKiAgY29udGludWUgdXNpbmcgdGhlIGNhY2hlZCB2YWx1ZS4gT3RoZXJ3aXNlLCB3ZSdsbCByZWNlaXZlIHRoZSBuZXcgcmVzcG9uc2VcbiAqICBoZXJlLCB3aGljaCB3ZSB0aGVuIGp1c3QgcGFzcyBvbiB0byB0aGUgbmV4dCBoYW5kbGVyIChtb3N0IGxpa2VseSBhXG4gKiAgQ2FjaGVIYW5kbGVyKS4gTm90ZSB0aGF0IHRoaXMgYXNzdW1lcyB0aGUgcHJvcGVyIGhlYWRlcnMgd2VyZSBhbHJlYWR5XG4gKiAgaW5jbHVkZWQgaW4gdGhlIHJlcXVlc3QgdG8gdGVsbCB0aGUgb3JpZ2luIHRoYXQgd2Ugd2FudCB0byByZXZhbGlkYXRlIHRoZVxuICogIHJlc3BvbnNlIChpLmUuIGlmLW1vZGlmaWVkLXNpbmNlIG9yIGlmLW5vbmUtbWF0Y2gpLlxuICpcbiAqIEBzZWUgaHR0cHM6Ly93d3cucmZjLWVkaXRvci5vcmcvcmZjL3JmYzkxMTEuaHRtbCNuYW1lLXZhbGlkYXRpb25cbiAqXG4gKiBAaW1wbGVtZW50cyB7aW1wb3J0KCcuLi8uLi90eXBlcy9kaXNwYXRjaGVyLmQudHMnKS5kZWZhdWx0LkRpc3BhdGNoSGFuZGxlcn1cbiAqL1xuY2xhc3MgQ2FjaGVSZXZhbGlkYXRpb25IYW5kbGVyIHtcbiAgI3N1Y2Nlc3NmdWwgPSBmYWxzZVxuXG4gIC8qKlxuICAgKiBAdHlwZSB7KChib29sZWFuLCBhbnkpID0+IHZvaWQpIHwgbnVsbH1cbiAgICovXG4gICNjYWxsYmFja1xuXG4gIC8qKlxuICAgKiBAdHlwZSB7KGltcG9ydCgnLi4vLi4vdHlwZXMvZGlzcGF0Y2hlci5kLnRzJykuZGVmYXVsdC5EaXNwYXRjaEhhbmRsZXIpfVxuICAgKi9cbiAgI2hhbmRsZXJcblxuICAjY29udGV4dFxuXG4gIC8qKlxuICAgKiBAdHlwZSB7Ym9vbGVhbn1cbiAgICovXG4gICNhbGxvd0Vycm9yU3RhdHVzQ29kZXNcblxuICAvKipcbiAgICogQHBhcmFtIHsoYm9vbGVhbikgPT4gdm9pZH0gY2FsbGJhY2sgRnVuY3Rpb24gdG8gY2FsbCBpZiB0aGUgY2FjaGVkIHZhbHVlIGlzIHZhbGlkXG4gICAqIEBwYXJhbSB7aW1wb3J0KCcuLi8uLi90eXBlcy9kaXNwYXRjaGVyLmQudHMnKS5kZWZhdWx0LkRpc3BhdGNoSGFuZGxlcnN9IGhhbmRsZXJcbiAgICogQHBhcmFtIHtib29sZWFufSBhbGxvd0Vycm9yU3RhdHVzQ29kZXNcbiAgICovXG4gIGNvbnN0cnVjdG9yIChjYWxsYmFjaywgaGFuZGxlciwgYWxsb3dFcnJvclN0YXR1c0NvZGVzKSB7XG4gICAgaWYgKHR5cGVvZiBjYWxsYmFjayAhPT0gJ2Z1bmN0aW9uJykge1xuICAgICAgdGhyb3cgbmV3IFR5cGVFcnJvcignY2FsbGJhY2sgbXVzdCBiZSBhIGZ1bmN0aW9uJylcbiAgICB9XG5cbiAgICB0aGlzLiNjYWxsYmFjayA9IGNhbGxiYWNrXG4gICAgdGhpcy4jaGFuZGxlciA9IGhhbmRsZXJcbiAgICB0aGlzLiNhbGxvd0Vycm9yU3RhdHVzQ29kZXMgPSBhbGxvd0Vycm9yU3RhdHVzQ29kZXNcbiAgfVxuXG4gIG9uUmVxdWVzdFN0YXJ0IChfLCBjb250ZXh0KSB7XG4gICAgdGhpcy4jc3VjY2Vzc2Z1bCA9IGZhbHNlXG4gICAgdGhpcy4jY29udGV4dCA9IGNvbnRleHRcbiAgfVxuXG4gIG9uUmVxdWVzdFVwZ3JhZGUgKGNvbnRyb2xsZXIsIHN0YXR1c0NvZGUsIGhlYWRlcnMsIHNvY2tldCkge1xuICAgIHRoaXMuI2hhbmRsZXIub25SZXF1ZXN0VXBncmFkZT8uKGNvbnRyb2xsZXIsIHN0YXR1c0NvZGUsIGhlYWRlcnMsIHNvY2tldClcbiAgfVxuXG4gIG9uUmVzcG9uc2VTdGFydCAoXG4gICAgY29udHJvbGxlcixcbiAgICBzdGF0dXNDb2RlLFxuICAgIGhlYWRlcnMsXG4gICAgc3RhdHVzTWVzc2FnZVxuICApIHtcbiAgICBhc3NlcnQodGhpcy4jY2FsbGJhY2sgIT0gbnVsbClcblxuICAgIC8vIGh0dHBzOi8vd3d3LnJmYy1lZGl0b3Iub3JnL3JmYy9yZmM5MTExLmh0bWwjbmFtZS1oYW5kbGluZy1hLXZhbGlkYXRpb24tcmVzcG9cbiAgICAvLyBodHRwczovL2RhdGF0cmFja2VyLmlldGYub3JnL2RvYy9odG1sL3JmYzU4NjEjc2VjdGlvbi00XG4gICAgdGhpcy4jc3VjY2Vzc2Z1bCA9IHN0YXR1c0NvZGUgPT09IDMwNCB8fFxuICAgICAgKHRoaXMuI2FsbG93RXJyb3JTdGF0dXNDb2RlcyAmJiBzdGF0dXNDb2RlID49IDUwMCAmJiBzdGF0dXNDb2RlIDw9IDUwNClcbiAgICB0aGlzLiNjYWxsYmFjayh0aGlzLiNzdWNjZXNzZnVsLCB0aGlzLiNjb250ZXh0KVxuICAgIHRoaXMuI2NhbGxiYWNrID0gbnVsbFxuXG4gICAgaWYgKHRoaXMuI3N1Y2Nlc3NmdWwpIHtcbiAgICAgIHJldHVybiB0cnVlXG4gICAgfVxuXG4gICAgdGhpcy4jaGFuZGxlci5vblJlcXVlc3RTdGFydD8uKGNvbnRyb2xsZXIsIHRoaXMuI2NvbnRleHQpXG4gICAgdGhpcy4jaGFuZGxlci5vblJlc3BvbnNlU3RhcnQ/LihcbiAgICAgIGNvbnRyb2xsZXIsXG4gICAgICBzdGF0dXNDb2RlLFxuICAgICAgaGVhZGVycyxcbiAgICAgIHN0YXR1c01lc3NhZ2VcbiAgICApXG4gIH1cblxuICBvblJlc3BvbnNlRGF0YSAoY29udHJvbGxlciwgY2h1bmspIHtcbiAgICBpZiAodGhpcy4jc3VjY2Vzc2Z1bCkge1xuICAgICAgcmV0dXJuXG4gICAgfVxuXG4gICAgcmV0dXJuIHRoaXMuI2hhbmRsZXIub25SZXNwb25zZURhdGE/Lihjb250cm9sbGVyLCBjaHVuaylcbiAgfVxuXG4gIG9uUmVzcG9uc2VFbmQgKGNvbnRyb2xsZXIsIHRyYWlsZXJzKSB7XG4gICAgaWYgKHRoaXMuI3N1Y2Nlc3NmdWwpIHtcbiAgICAgIHJldHVyblxuICAgIH1cblxuICAgIHRoaXMuI2hhbmRsZXIub25SZXNwb25zZUVuZD8uKGNvbnRyb2xsZXIsIHRyYWlsZXJzKVxuICB9XG5cbiAgb25SZXNwb25zZUVycm9yIChjb250cm9sbGVyLCBlcnIpIHtcbiAgICBpZiAodGhpcy4jc3VjY2Vzc2Z1bCkge1xuICAgICAgcmV0dXJuXG4gICAgfVxuXG4gICAgaWYgKHRoaXMuI2NhbGxiYWNrKSB7XG4gICAgICB0aGlzLiNjYWxsYmFjayhmYWxzZSlcbiAgICAgIHRoaXMuI2NhbGxiYWNrID0gbnVsbFxuICAgIH1cblxuICAgIGlmICh0eXBlb2YgdGhpcy4jaGFuZGxlci5vblJlc3BvbnNlRXJyb3IgPT09ICdmdW5jdGlvbicpIHtcbiAgICAgIHRoaXMuI2hhbmRsZXIub25SZXNwb25zZUVycm9yKGNvbnRyb2xsZXIsIGVycilcbiAgICB9IGVsc2Uge1xuICAgICAgdGhyb3cgZXJyXG4gICAgfVxuICB9XG59XG5cbm1vZHVsZS5leHBvcnRzID0gQ2FjaGVSZXZhbGlkYXRpb25IYW5kbGVyXG4iXSwidmVyc2lvbiI6M30=

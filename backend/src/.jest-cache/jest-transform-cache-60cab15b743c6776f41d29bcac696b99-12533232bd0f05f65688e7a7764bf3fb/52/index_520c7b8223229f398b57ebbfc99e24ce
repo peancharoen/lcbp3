@@ -1,0 +1,17 @@
+40c24030c4efdb437646ca5a979f710a
+'use strict';
+module.exports = {
+    // Export promiseified graceful-fs:
+    ...require('./fs'),
+    // Export extra methods:
+    ...require('./copy'),
+    ...require('./empty'),
+    ...require('./ensure'),
+    ...require('./json'),
+    ...require('./mkdirs'),
+    ...require('./move'),
+    ...require('./output-file'),
+    ...require('./path-exists'),
+    ...require('./remove')
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGZzLWV4dHJhQDExLjMuMlxcbm9kZV9tb2R1bGVzXFxmcy1leHRyYVxcbGliXFxpbmRleC5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUE7QUFFWixNQUFNLENBQUMsT0FBTyxHQUFHO0lBQ2YsbUNBQW1DO0lBQ25DLEdBQUcsT0FBTyxDQUFDLE1BQU0sQ0FBQztJQUNsQix3QkFBd0I7SUFDeEIsR0FBRyxPQUFPLENBQUMsUUFBUSxDQUFDO0lBQ3BCLEdBQUcsT0FBTyxDQUFDLFNBQVMsQ0FBQztJQUNyQixHQUFHLE9BQU8sQ0FBQyxVQUFVLENBQUM7SUFDdEIsR0FBRyxPQUFPLENBQUMsUUFBUSxDQUFDO0lBQ3BCLEdBQUcsT0FBTyxDQUFDLFVBQVUsQ0FBQztJQUN0QixHQUFHLE9BQU8sQ0FBQyxRQUFRLENBQUM7SUFDcEIsR0FBRyxPQUFPLENBQUMsZUFBZSxDQUFDO0lBQzNCLEdBQUcsT0FBTyxDQUFDLGVBQWUsQ0FBQztJQUMzQixHQUFHLE9BQU8sQ0FBQyxVQUFVLENBQUM7Q0FDdkIsQ0FBQSIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcZnMtZXh0cmFAMTEuMy4yXFxub2RlX21vZHVsZXNcXGZzLWV4dHJhXFxsaWJcXGluZGV4LmpzIl0sInNvdXJjZXNDb250ZW50IjpbIid1c2Ugc3RyaWN0J1xuXG5tb2R1bGUuZXhwb3J0cyA9IHtcbiAgLy8gRXhwb3J0IHByb21pc2VpZmllZCBncmFjZWZ1bC1mczpcbiAgLi4ucmVxdWlyZSgnLi9mcycpLFxuICAvLyBFeHBvcnQgZXh0cmEgbWV0aG9kczpcbiAgLi4ucmVxdWlyZSgnLi9jb3B5JyksXG4gIC4uLnJlcXVpcmUoJy4vZW1wdHknKSxcbiAgLi4ucmVxdWlyZSgnLi9lbnN1cmUnKSxcbiAgLi4ucmVxdWlyZSgnLi9qc29uJyksXG4gIC4uLnJlcXVpcmUoJy4vbWtkaXJzJyksXG4gIC4uLnJlcXVpcmUoJy4vbW92ZScpLFxuICAuLi5yZXF1aXJlKCcuL291dHB1dC1maWxlJyksXG4gIC4uLnJlcXVpcmUoJy4vcGF0aC1leGlzdHMnKSxcbiAgLi4ucmVxdWlyZSgnLi9yZW1vdmUnKVxufVxuIl0sInZlcnNpb24iOjN9

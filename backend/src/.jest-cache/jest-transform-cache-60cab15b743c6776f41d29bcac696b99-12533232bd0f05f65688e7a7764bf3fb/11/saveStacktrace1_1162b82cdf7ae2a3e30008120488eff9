@@ -1,0 +1,28 @@
+f05529c16133195ae821fa4a5e8d1a16
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.saveStacktrace = void 0;
+const content = `--[[
+  Save stacktrace and failedReason.
+  Input:
+    KEYS[1] job key
+    ARGV[1]  stacktrace
+    ARGV[2]  failedReason
+  Output:
+     0 - OK
+    -1 - Missing key
+]]
+local rcall = redis.call
+if rcall("EXISTS", KEYS[1]) == 1 then
+  rcall("HMSET", KEYS[1], "stacktrace", ARGV[1], "failedReason", ARGV[2])
+  return 0
+else
+  return -1
+end
+`;
+exports.saveStacktrace = {
+    name: 'saveStacktrace',
+    content,
+    keys: 1,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHNhdmVTdGFja3RyYWNlLTEuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2IsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLGNBQWMsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUNoQyxNQUFNLE9BQU8sR0FBRzs7Ozs7Ozs7Ozs7Ozs7Ozs7Q0FpQmYsQ0FBQztBQUNGLE9BQU8sQ0FBQyxjQUFjLEdBQUc7SUFDckIsSUFBSSxFQUFFLGdCQUFnQjtJQUN0QixPQUFPO0lBQ1AsSUFBSSxFQUFFLENBQUM7Q0FDVixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxidWxsbXFANS42NS4wXFxub2RlX21vZHVsZXNcXGJ1bGxtcVxcZGlzdFxcY2pzXFxzY3JpcHRzXFxzYXZlU3RhY2t0cmFjZS0xLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5zYXZlU3RhY2t0cmFjZSA9IHZvaWQgMDtcbmNvbnN0IGNvbnRlbnQgPSBgLS1bW1xuICBTYXZlIHN0YWNrdHJhY2UgYW5kIGZhaWxlZFJlYXNvbi5cbiAgSW5wdXQ6XG4gICAgS0VZU1sxXSBqb2Iga2V5XG4gICAgQVJHVlsxXSAgc3RhY2t0cmFjZVxuICAgIEFSR1ZbMl0gIGZhaWxlZFJlYXNvblxuICBPdXRwdXQ6XG4gICAgIDAgLSBPS1xuICAgIC0xIC0gTWlzc2luZyBrZXlcbl1dXG5sb2NhbCByY2FsbCA9IHJlZGlzLmNhbGxcbmlmIHJjYWxsKFwiRVhJU1RTXCIsIEtFWVNbMV0pID09IDEgdGhlblxuICByY2FsbChcIkhNU0VUXCIsIEtFWVNbMV0sIFwic3RhY2t0cmFjZVwiLCBBUkdWWzFdLCBcImZhaWxlZFJlYXNvblwiLCBBUkdWWzJdKVxuICByZXR1cm4gMFxuZWxzZVxuICByZXR1cm4gLTFcbmVuZFxuYDtcbmV4cG9ydHMuc2F2ZVN0YWNrdHJhY2UgPSB7XG4gICAgbmFtZTogJ3NhdmVTdGFja3RyYWNlJyxcbiAgICBjb250ZW50LFxuICAgIGtleXM6IDEsXG59O1xuLy8jIHNvdXJjZU1hcHBpbmdVUkw9c2F2ZVN0YWNrdHJhY2UtMS5qcy5tYXAiXSwidmVyc2lvbiI6M30=

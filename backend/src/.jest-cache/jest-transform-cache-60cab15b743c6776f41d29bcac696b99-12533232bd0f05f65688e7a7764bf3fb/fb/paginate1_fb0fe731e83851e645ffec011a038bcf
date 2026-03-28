@@ -1,0 +1,111 @@
+5721043ea61e5bd448bf18393d5c0e54
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.paginate = void 0;
+const content = `--[[
+    Paginate a set or hash
+    Input:
+      KEYS[1] key pointing to the set or hash to be paginated.
+      ARGV[1]  page start offset
+      ARGV[2]  page end offset (-1 for all the elements)
+      ARGV[3]  cursor
+      ARGV[4]  offset
+      ARGV[5]  max iterations
+      ARGV[6]  fetch jobs?
+    Output:
+      [cursor, offset, items, numItems]
+]]
+local rcall = redis.call
+-- Includes
+--[[
+  Function to achieve pagination for a set or hash.
+  This function simulates pagination in the most efficient way possible
+  for a set using sscan or hscan.
+  The main limitation is that sets are not order preserving, so the
+  pagination is not stable. This means that if the set is modified
+  between pages, the same element may appear in different pages.
+]] -- Maximum number of elements to be returned by sscan per iteration.
+local maxCount = 100
+-- Finds the cursor, and returns the first elements available for the requested page.
+local function findPage(key, command, pageStart, pageSize, cursor, offset,
+                        maxIterations, fetchJobs)
+    local items = {}
+    local jobs = {}
+    local iterations = 0
+    repeat
+        -- Iterate over the set using sscan/hscan.
+        local result = rcall(command, key, cursor, "COUNT", maxCount)
+        cursor = result[1]
+        local members = result[2]
+        local step = 1
+        if command == "HSCAN" then
+            step = 2
+        end
+        if #members == 0 then
+            -- If the result is empty, we can return the result.
+            return cursor, offset, items, jobs
+        end
+        local chunkStart = offset
+        local chunkEnd = offset + #members / step
+        local pageEnd = pageStart + pageSize
+        if chunkEnd < pageStart then
+            -- If the chunk is before the page, we can skip it.
+            offset = chunkEnd
+        elseif chunkStart > pageEnd then
+            -- If the chunk is after the page, we can return the result.
+            return cursor, offset, items, jobs
+        else
+            -- If the chunk is overlapping the page, we need to add the elements to the result.
+            for i = 1, #members, step do
+                if offset >= pageEnd then
+                    return cursor, offset, items, jobs
+                end
+                if offset >= pageStart then
+                    local index = #items + 1
+                    if fetchJobs ~= nil then
+                        jobs[#jobs+1] = rcall("HGETALL", members[i])
+                    end
+                    if step == 2 then
+                        items[index] = {members[i], members[i + 1]}
+                    else
+                        items[index] = members[i]
+                    end
+                end
+                offset = offset + 1
+            end
+        end
+        iterations = iterations + 1
+    until cursor == "0" or iterations >= maxIterations
+    return cursor, offset, items, jobs
+end
+local key = KEYS[1]
+local scanCommand = "SSCAN"
+local countCommand = "SCARD"
+local type = rcall("TYPE", key)["ok"]
+if type == "none" then
+    return {0, 0, {}, 0}
+elseif type == "hash" then
+    scanCommand = "HSCAN"
+    countCommand = "HLEN"
+elseif type ~= "set" then
+    return
+        redis.error_reply("Pagination is only supported for sets and hashes.")
+end
+local numItems = rcall(countCommand, key)
+local startOffset = tonumber(ARGV[1])
+local endOffset = tonumber(ARGV[2])
+if endOffset == -1 then 
+  endOffset = numItems
+end
+local pageSize = (endOffset - startOffset) + 1
+local cursor, offset, items, jobs = findPage(key, scanCommand, startOffset,
+                                       pageSize, ARGV[3], tonumber(ARGV[4]),
+                                       tonumber(ARGV[5]), ARGV[6])
+return {cursor, offset, items, numItems, jobs}
+`;
+exports.paginate = {
+    name: 'paginate',
+    content,
+    keys: 1,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHBhZ2luYXRlLTEuanMiLCJtYXBwaW5ncyI6IkFBQUEsWUFBWSxDQUFDO0FBQ2IsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLFFBQVEsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUMxQixNQUFNLE9BQU8sR0FBRzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztDQW9HZixDQUFDO0FBQ0YsT0FBTyxDQUFDLFFBQVEsR0FBRztJQUNmLElBQUksRUFBRSxVQUFVO0lBQ2hCLE9BQU87SUFDUCxJQUFJLEVBQUUsQ0FBQztDQUNWLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHBhZ2luYXRlLTEuanMiXSwic291cmNlc0NvbnRlbnQiOlsiXCJ1c2Ugc3RyaWN0XCI7XG5PYmplY3QuZGVmaW5lUHJvcGVydHkoZXhwb3J0cywgXCJfX2VzTW9kdWxlXCIsIHsgdmFsdWU6IHRydWUgfSk7XG5leHBvcnRzLnBhZ2luYXRlID0gdm9pZCAwO1xuY29uc3QgY29udGVudCA9IGAtLVtbXG4gICAgUGFnaW5hdGUgYSBzZXQgb3IgaGFzaFxuICAgIElucHV0OlxuICAgICAgS0VZU1sxXSBrZXkgcG9pbnRpbmcgdG8gdGhlIHNldCBvciBoYXNoIHRvIGJlIHBhZ2luYXRlZC5cbiAgICAgIEFSR1ZbMV0gIHBhZ2Ugc3RhcnQgb2Zmc2V0XG4gICAgICBBUkdWWzJdICBwYWdlIGVuZCBvZmZzZXQgKC0xIGZvciBhbGwgdGhlIGVsZW1lbnRzKVxuICAgICAgQVJHVlszXSAgY3Vyc29yXG4gICAgICBBUkdWWzRdICBvZmZzZXRcbiAgICAgIEFSR1ZbNV0gIG1heCBpdGVyYXRpb25zXG4gICAgICBBUkdWWzZdICBmZXRjaCBqb2JzP1xuICAgIE91dHB1dDpcbiAgICAgIFtjdXJzb3IsIG9mZnNldCwgaXRlbXMsIG51bUl0ZW1zXVxuXV1cbmxvY2FsIHJjYWxsID0gcmVkaXMuY2FsbFxuLS0gSW5jbHVkZXNcbi0tW1tcbiAgRnVuY3Rpb24gdG8gYWNoaWV2ZSBwYWdpbmF0aW9uIGZvciBhIHNldCBvciBoYXNoLlxuICBUaGlzIGZ1bmN0aW9uIHNpbXVsYXRlcyBwYWdpbmF0aW9uIGluIHRoZSBtb3N0IGVmZmljaWVudCB3YXkgcG9zc2libGVcbiAgZm9yIGEgc2V0IHVzaW5nIHNzY2FuIG9yIGhzY2FuLlxuICBUaGUgbWFpbiBsaW1pdGF0aW9uIGlzIHRoYXQgc2V0cyBhcmUgbm90IG9yZGVyIHByZXNlcnZpbmcsIHNvIHRoZVxuICBwYWdpbmF0aW9uIGlzIG5vdCBzdGFibGUuIFRoaXMgbWVhbnMgdGhhdCBpZiB0aGUgc2V0IGlzIG1vZGlmaWVkXG4gIGJldHdlZW4gcGFnZXMsIHRoZSBzYW1lIGVsZW1lbnQgbWF5IGFwcGVhciBpbiBkaWZmZXJlbnQgcGFnZXMuXG5dXSAtLSBNYXhpbXVtIG51bWJlciBvZiBlbGVtZW50cyB0byBiZSByZXR1cm5lZCBieSBzc2NhbiBwZXIgaXRlcmF0aW9uLlxubG9jYWwgbWF4Q291bnQgPSAxMDBcbi0tIEZpbmRzIHRoZSBjdXJzb3IsIGFuZCByZXR1cm5zIHRoZSBmaXJzdCBlbGVtZW50cyBhdmFpbGFibGUgZm9yIHRoZSByZXF1ZXN0ZWQgcGFnZS5cbmxvY2FsIGZ1bmN0aW9uIGZpbmRQYWdlKGtleSwgY29tbWFuZCwgcGFnZVN0YXJ0LCBwYWdlU2l6ZSwgY3Vyc29yLCBvZmZzZXQsXG4gICAgICAgICAgICAgICAgICAgICAgICBtYXhJdGVyYXRpb25zLCBmZXRjaEpvYnMpXG4gICAgbG9jYWwgaXRlbXMgPSB7fVxuICAgIGxvY2FsIGpvYnMgPSB7fVxuICAgIGxvY2FsIGl0ZXJhdGlvbnMgPSAwXG4gICAgcmVwZWF0XG4gICAgICAgIC0tIEl0ZXJhdGUgb3ZlciB0aGUgc2V0IHVzaW5nIHNzY2FuL2hzY2FuLlxuICAgICAgICBsb2NhbCByZXN1bHQgPSByY2FsbChjb21tYW5kLCBrZXksIGN1cnNvciwgXCJDT1VOVFwiLCBtYXhDb3VudClcbiAgICAgICAgY3Vyc29yID0gcmVzdWx0WzFdXG4gICAgICAgIGxvY2FsIG1lbWJlcnMgPSByZXN1bHRbMl1cbiAgICAgICAgbG9jYWwgc3RlcCA9IDFcbiAgICAgICAgaWYgY29tbWFuZCA9PSBcIkhTQ0FOXCIgdGhlblxuICAgICAgICAgICAgc3RlcCA9IDJcbiAgICAgICAgZW5kXG4gICAgICAgIGlmICNtZW1iZXJzID09IDAgdGhlblxuICAgICAgICAgICAgLS0gSWYgdGhlIHJlc3VsdCBpcyBlbXB0eSwgd2UgY2FuIHJldHVybiB0aGUgcmVzdWx0LlxuICAgICAgICAgICAgcmV0dXJuIGN1cnNvciwgb2Zmc2V0LCBpdGVtcywgam9ic1xuICAgICAgICBlbmRcbiAgICAgICAgbG9jYWwgY2h1bmtTdGFydCA9IG9mZnNldFxuICAgICAgICBsb2NhbCBjaHVua0VuZCA9IG9mZnNldCArICNtZW1iZXJzIC8gc3RlcFxuICAgICAgICBsb2NhbCBwYWdlRW5kID0gcGFnZVN0YXJ0ICsgcGFnZVNpemVcbiAgICAgICAgaWYgY2h1bmtFbmQgPCBwYWdlU3RhcnQgdGhlblxuICAgICAgICAgICAgLS0gSWYgdGhlIGNodW5rIGlzIGJlZm9yZSB0aGUgcGFnZSwgd2UgY2FuIHNraXAgaXQuXG4gICAgICAgICAgICBvZmZzZXQgPSBjaHVua0VuZFxuICAgICAgICBlbHNlaWYgY2h1bmtTdGFydCA+IHBhZ2VFbmQgdGhlblxuICAgICAgICAgICAgLS0gSWYgdGhlIGNodW5rIGlzIGFmdGVyIHRoZSBwYWdlLCB3ZSBjYW4gcmV0dXJuIHRoZSByZXN1bHQuXG4gICAgICAgICAgICByZXR1cm4gY3Vyc29yLCBvZmZzZXQsIGl0ZW1zLCBqb2JzXG4gICAgICAgIGVsc2VcbiAgICAgICAgICAgIC0tIElmIHRoZSBjaHVuayBpcyBvdmVybGFwcGluZyB0aGUgcGFnZSwgd2UgbmVlZCB0byBhZGQgdGhlIGVsZW1lbnRzIHRvIHRoZSByZXN1bHQuXG4gICAgICAgICAgICBmb3IgaSA9IDEsICNtZW1iZXJzLCBzdGVwIGRvXG4gICAgICAgICAgICAgICAgaWYgb2Zmc2V0ID49IHBhZ2VFbmQgdGhlblxuICAgICAgICAgICAgICAgICAgICByZXR1cm4gY3Vyc29yLCBvZmZzZXQsIGl0ZW1zLCBqb2JzXG4gICAgICAgICAgICAgICAgZW5kXG4gICAgICAgICAgICAgICAgaWYgb2Zmc2V0ID49IHBhZ2VTdGFydCB0aGVuXG4gICAgICAgICAgICAgICAgICAgIGxvY2FsIGluZGV4ID0gI2l0ZW1zICsgMVxuICAgICAgICAgICAgICAgICAgICBpZiBmZXRjaEpvYnMgfj0gbmlsIHRoZW5cbiAgICAgICAgICAgICAgICAgICAgICAgIGpvYnNbI2pvYnMrMV0gPSByY2FsbChcIkhHRVRBTExcIiwgbWVtYmVyc1tpXSlcbiAgICAgICAgICAgICAgICAgICAgZW5kXG4gICAgICAgICAgICAgICAgICAgIGlmIHN0ZXAgPT0gMiB0aGVuXG4gICAgICAgICAgICAgICAgICAgICAgICBpdGVtc1tpbmRleF0gPSB7bWVtYmVyc1tpXSwgbWVtYmVyc1tpICsgMV19XG4gICAgICAgICAgICAgICAgICAgIGVsc2VcbiAgICAgICAgICAgICAgICAgICAgICAgIGl0ZW1zW2luZGV4XSA9IG1lbWJlcnNbaV1cbiAgICAgICAgICAgICAgICAgICAgZW5kXG4gICAgICAgICAgICAgICAgZW5kXG4gICAgICAgICAgICAgICAgb2Zmc2V0ID0gb2Zmc2V0ICsgMVxuICAgICAgICAgICAgZW5kXG4gICAgICAgIGVuZFxuICAgICAgICBpdGVyYXRpb25zID0gaXRlcmF0aW9ucyArIDFcbiAgICB1bnRpbCBjdXJzb3IgPT0gXCIwXCIgb3IgaXRlcmF0aW9ucyA+PSBtYXhJdGVyYXRpb25zXG4gICAgcmV0dXJuIGN1cnNvciwgb2Zmc2V0LCBpdGVtcywgam9ic1xuZW5kXG5sb2NhbCBrZXkgPSBLRVlTWzFdXG5sb2NhbCBzY2FuQ29tbWFuZCA9IFwiU1NDQU5cIlxubG9jYWwgY291bnRDb21tYW5kID0gXCJTQ0FSRFwiXG5sb2NhbCB0eXBlID0gcmNhbGwoXCJUWVBFXCIsIGtleSlbXCJva1wiXVxuaWYgdHlwZSA9PSBcIm5vbmVcIiB0aGVuXG4gICAgcmV0dXJuIHswLCAwLCB7fSwgMH1cbmVsc2VpZiB0eXBlID09IFwiaGFzaFwiIHRoZW5cbiAgICBzY2FuQ29tbWFuZCA9IFwiSFNDQU5cIlxuICAgIGNvdW50Q29tbWFuZCA9IFwiSExFTlwiXG5lbHNlaWYgdHlwZSB+PSBcInNldFwiIHRoZW5cbiAgICByZXR1cm5cbiAgICAgICAgcmVkaXMuZXJyb3JfcmVwbHkoXCJQYWdpbmF0aW9uIGlzIG9ubHkgc3VwcG9ydGVkIGZvciBzZXRzIGFuZCBoYXNoZXMuXCIpXG5lbmRcbmxvY2FsIG51bUl0ZW1zID0gcmNhbGwoY291bnRDb21tYW5kLCBrZXkpXG5sb2NhbCBzdGFydE9mZnNldCA9IHRvbnVtYmVyKEFSR1ZbMV0pXG5sb2NhbCBlbmRPZmZzZXQgPSB0b251bWJlcihBUkdWWzJdKVxuaWYgZW5kT2Zmc2V0ID09IC0xIHRoZW4gXG4gIGVuZE9mZnNldCA9IG51bUl0ZW1zXG5lbmRcbmxvY2FsIHBhZ2VTaXplID0gKGVuZE9mZnNldCAtIHN0YXJ0T2Zmc2V0KSArIDFcbmxvY2FsIGN1cnNvciwgb2Zmc2V0LCBpdGVtcywgam9icyA9IGZpbmRQYWdlKGtleSwgc2NhbkNvbW1hbmQsIHN0YXJ0T2Zmc2V0LFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcGFnZVNpemUsIEFSR1ZbM10sIHRvbnVtYmVyKEFSR1ZbNF0pLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgdG9udW1iZXIoQVJHVls1XSksIEFSR1ZbNl0pXG5yZXR1cm4ge2N1cnNvciwgb2Zmc2V0LCBpdGVtcywgbnVtSXRlbXMsIGpvYnN9XG5gO1xuZXhwb3J0cy5wYWdpbmF0ZSA9IHtcbiAgICBuYW1lOiAncGFnaW5hdGUnLFxuICAgIGNvbnRlbnQsXG4gICAga2V5czogMSxcbn07XG4vLyMgc291cmNlTWFwcGluZ1VSTD1wYWdpbmF0ZS0xLmpzLm1hcCJdLCJ2ZXJzaW9uIjozfQ==
