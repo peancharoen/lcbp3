@@ -46,8 +46,8 @@ export function TemplateEditor({
   onCancel,
 }: TemplateEditorProps) {
   const [format, setFormat] = useState(template?.formatTemplate || '');
-  const [typeId, setTypeId] = useState<string>(template?.correspondenceTypeId?.toString() || '');
-  const [disciplineId, setDisciplineId] = useState<string>(template?.disciplineId?.toString() || '0');
+  const [typeId, setTypeId] = useState<string>(template?.correspondenceTypeId ? String(template.correspondenceTypeId) : '');
+  const [disciplineId, setDisciplineId] = useState<string>(template?.disciplineId ? String(template.disciplineId) : '0');
   const [reset, setReset] = useState(template?.resetSequenceYearly ?? true);
 
   const [preview, setPreview] = useState('');
@@ -64,7 +64,7 @@ export function TemplateEditor({
       // Dynamic context based on selection (optional visual enhancement)
       if (v.key === '{TYPE}' && typeId) {
         const t = correspondenceTypes.find(
-          (ct) => ct.id?.toString() === typeId
+          (ct) => String(ct.publicId) === typeId
         );
         if (t) replacement = t.typeCode;
       }
@@ -120,7 +120,7 @@ export function TemplateEditor({
                 <SelectItem value="__default__">Default (All Types)</SelectItem>
                 {correspondenceTypes.map((type) => {
                   return (
-                    <SelectItem key={type.publicId} value={type.publicId.toString()}>
+                    <SelectItem key={type.publicId} value={String(type.publicId)}>
                       {type.typeCode} - {type.typeName}
                     </SelectItem>
                   );
@@ -142,7 +142,7 @@ export function TemplateEditor({
                 <SelectContent>
                   <SelectItem value="0">All Disciplines</SelectItem>
                   {disciplines.map((d) => (
-                    <SelectItem key={d.publicId} value={d.publicId.toString()}>
+                    <SelectItem key={d.publicId} value={String(d.publicId)}>
                       {d.disciplineCode} - {d.codeNameEn || d.codeNameTh}
                     </SelectItem>
                   ))}

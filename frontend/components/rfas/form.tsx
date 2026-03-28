@@ -25,7 +25,7 @@ import { Contract } from '@/types/contract';
 const rfaSchema = z.object({
   projectId: z.string().min(1, 'Project is required'), // ADR-019: UUID
   contractId: z.string().min(1, 'Contract is required'),
-  disciplineId: z.number({ message: 'Discipline is required' }).min(1, 'Discipline is required'),
+  disciplineId: z.union([z.string().min(1, 'Discipline is required'), z.number().min(1, 'Discipline is required')]),
   rfaTypeId: z.string().min(1, 'Type is required'), // ADR-019: UUID
   subject: z.string().min(5, 'Subject must be at least 5 characters'),
   description: z.string().optional(),
@@ -165,7 +165,7 @@ export function RFAForm() {
     defaultValues: {
       projectId: '',
       contractId: '',
-      disciplineId: 0,
+      disciplineId: '',
       rfaTypeId: '',
       subject: '',
       description: '',
@@ -366,7 +366,7 @@ export function RFAForm() {
               onValueChange={(val) => {
                 setValue('projectId', val);
                 setValue('contractId', '');
-                setValue('disciplineId', 0);
+                setValue('disciplineId', '');
                 setValue('rfaTypeId', '');
                 setValue('shopDrawingRevisionIds', []);
                 setValue('asBuiltDrawingRevisionIds', []);
@@ -402,7 +402,7 @@ export function RFAForm() {
                 value={selectedContractId || undefined}
                 onValueChange={(val) => {
                   setValue('contractId', val);
-                  setValue('disciplineId', 0);
+                  setValue('disciplineId', '');
                   setValue('rfaTypeId', '');
                   setValue('shopDrawingRevisionIds', []);
                   setValue('asBuiltDrawingRevisionIds', []);
@@ -434,8 +434,8 @@ export function RFAForm() {
             <div>
               <Label>Discipline *</Label>
               <Select
-                value={selectedDisciplineId > 0 ? String(selectedDisciplineId) : undefined}
-                onValueChange={(val) => setValue('disciplineId', Number(val))}
+                value={selectedDisciplineId ? String(selectedDisciplineId) : undefined}
+                onValueChange={(val) => setValue('disciplineId', val)}
                 disabled={!selectedContractId || isLoadingDisciplines}
               >
                 <SelectTrigger>

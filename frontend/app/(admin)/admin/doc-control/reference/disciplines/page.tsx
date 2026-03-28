@@ -81,12 +81,12 @@ export default function DisciplinesPage() {
         queryKey={['disciplines', selectedContractId ?? 'all']}
         fetchFn={async () => {
           const items = await masterDataService.getDisciplines(selectedContractId ? selectedContractId : undefined);
-          // ADR-019: Map contractId INT → contract UUID for edit mode select matching
+          // ADR-019: Map contract.publicId UUID for edit mode select matching
           return items.map((item) => {
-            const rec = item as Discipline & { contract?: { id?: number; uuid?: string }; contractId?: number | string };
+            const rec = item as Discipline & { contract?: { publicId?: string }; contractId?: number | string };
             return {
               ...item,
-              contractId: rec.contract?.id || rec.contract?.uuid || String(rec.contractId),
+              contractId: rec.contract?.publicId || (rec.contractId ? String(rec.contractId) : null),
             } as Discipline;
           });
         }}

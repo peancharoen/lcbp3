@@ -84,12 +84,12 @@ export default function RfaTypesPage() {
         queryKey={['rfa-types', selectedContractId ?? 'all']}
         fetchFn={async () => {
           const items = await masterDataService.getRfaTypes(selectedContractId ? selectedContractId : undefined);
-          // ADR-019: Map contractId INT → contract UUID for edit mode select matching
+          // ADR-019: Map contract.publicId UUID for edit mode select matching
           return items.map((item) => {
-            const rec = item as RfaType & { contract?: { id?: number | string; uuid?: string }; contract_id?: number | string };
+            const rec = item as RfaType & { contract?: { publicId?: string }; contractId?: number | string };
             return {
               ...item,
-              contractId: rec.contract?.id || rec.contract?.uuid || (rec.contract_id ? String(rec.contract_id) : null),
+              contractId: rec.contract?.publicId || (rec.contractId ? String(rec.contractId) : null),
             } as RfaType;
           });
         }}
