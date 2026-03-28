@@ -1,0 +1,5 @@
+b47206cfa89c6fd6361623e2aee1ff92
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHV1aWRAMTMuMC4wXFxub2RlX21vZHVsZXNcXHV1aWRcXGRpc3Qtbm9kZVxccmVnZXguanMiLCJtYXBwaW5ncyI6Ijs7QUFBQSxrQkFBZSwwSkFBMEosQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcdXVpZEAxMy4wLjBcXG5vZGVfbW9kdWxlc1xcdXVpZFxcZGlzdC1ub2RlXFxyZWdleC5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJleHBvcnQgZGVmYXVsdCAvXig/OlswLTlhLWZdezh9LVswLTlhLWZdezR9LVsxLThdWzAtOWEtZl17M30tWzg5YWJdWzAtOWEtZl17M30tWzAtOWEtZl17MTJ9fDAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMHxmZmZmZmZmZi1mZmZmLWZmZmYtZmZmZi1mZmZmZmZmZmZmZmYpJC9pO1xuIl0sInZlcnNpb24iOjN9

@@ -1,0 +1,37 @@
+91660d8cf9a11e5a9873e309c9c374bd
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.OneToMany = OneToMany;
+const globals_1 = require("../../globals");
+/**
+ * A one-to-many relation allows creating the type of relation where Entity1 can have multiple instances of Entity2,
+ * but Entity2 has only one Entity1. Entity2 is the owner of the relationship, and stores the id of Entity1 on its
+ * side of the relation.
+ */
+function OneToMany(typeFunctionOrTarget, inverseSide, options) {
+    return function (object, propertyName) {
+        if (!options)
+            options = {};
+        // Now try to determine if it is a lazy relation.
+        let isLazy = options && options.lazy === true;
+        if (!isLazy && Reflect && Reflect.getMetadata) {
+            // automatic determination
+            const reflectedType = Reflect.getMetadata("design:type", object, propertyName);
+            if (reflectedType &&
+                typeof reflectedType.name === "string" &&
+                reflectedType.name.toLowerCase() === "promise")
+                isLazy = true;
+        }
+        (0, globals_1.getMetadataArgsStorage)().relations.push({
+            target: object.constructor,
+            propertyName: propertyName,
+            // propertyType: reflectedType,
+            isLazy: isLazy,
+            relationType: "one-to-many",
+            type: typeFunctionOrTarget,
+            inverseSideProperty: inverseSide,
+            options: options,
+        });
+    };
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxkZWNvcmF0b3JcXHJlbGF0aW9uc1xcT25lVG9NYW55LmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxTQUFTLEdBQUcsU0FBUyxDQUFDO0FBQzlCLE1BQU0sU0FBUyxHQUFHLE9BQU8sQ0FBQyxlQUFlLENBQUMsQ0FBQztBQUMzQzs7OztHQUlHO0FBQ0gsU0FBUyxTQUFTLENBQUMsb0JBQW9CLEVBQUUsV0FBVyxFQUFFLE9BQU87SUFDekQsT0FBTyxVQUFVLE1BQU0sRUFBRSxZQUFZO1FBQ2pDLElBQUksQ0FBQyxPQUFPO1lBQ1IsT0FBTyxHQUFHLEVBQUUsQ0FBQztRQUNqQixpREFBaUQ7UUFDakQsSUFBSSxNQUFNLEdBQUcsT0FBTyxJQUFJLE9BQU8sQ0FBQyxJQUFJLEtBQUssSUFBSSxDQUFDO1FBQzlDLElBQUksQ0FBQyxNQUFNLElBQUksT0FBTyxJQUFJLE9BQU8sQ0FBQyxXQUFXLEVBQUUsQ0FBQztZQUM1QywwQkFBMEI7WUFDMUIsTUFBTSxhQUFhLEdBQUcsT0FBTyxDQUFDLFdBQVcsQ0FBQyxhQUFhLEVBQUUsTUFBTSxFQUFFLFlBQVksQ0FBQyxDQUFDO1lBQy9FLElBQUksYUFBYTtnQkFDYixPQUFPLGFBQWEsQ0FBQyxJQUFJLEtBQUssUUFBUTtnQkFDdEMsYUFBYSxDQUFDLElBQUksQ0FBQyxXQUFXLEVBQUUsS0FBSyxTQUFTO2dCQUM5QyxNQUFNLEdBQUcsSUFBSSxDQUFDO1FBQ3RCLENBQUM7UUFDRCxDQUFDLENBQUMsRUFBRSxTQUFTLENBQUMsc0JBQXNCLENBQUMsRUFBRSxDQUFDLFNBQVMsQ0FBQyxJQUFJLENBQUM7WUFDbkQsTUFBTSxFQUFFLE1BQU0sQ0FBQyxXQUFXO1lBQzFCLFlBQVksRUFBRSxZQUFZO1lBQzFCLCtCQUErQjtZQUMvQixNQUFNLEVBQUUsTUFBTTtZQUNkLFlBQVksRUFBRSxhQUFhO1lBQzNCLElBQUksRUFBRSxvQkFBb0I7WUFDMUIsbUJBQW1CLEVBQUUsV0FBVztZQUNoQyxPQUFPLEVBQUUsT0FBTztTQUNuQixDQUFDLENBQUM7SUFDUCxDQUFDLENBQUM7QUFDTixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFx0eXBlb3JtQDAuMy4yN19pb3JlZGlzQDUuOC5fYTJkYzViNzdjNzEzZmFiNDU1ZjFhMjk3ZDUxZWQ1OTVcXG5vZGVfbW9kdWxlc1xcdHlwZW9ybVxcZGVjb3JhdG9yXFxyZWxhdGlvbnNcXE9uZVRvTWFueS5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBzdHJpY3RcIjtcbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMuT25lVG9NYW55ID0gT25lVG9NYW55O1xuY29uc3QgZ2xvYmFsc18xID0gcmVxdWlyZShcIi4uLy4uL2dsb2JhbHNcIik7XG4vKipcbiAqIEEgb25lLXRvLW1hbnkgcmVsYXRpb24gYWxsb3dzIGNyZWF0aW5nIHRoZSB0eXBlIG9mIHJlbGF0aW9uIHdoZXJlIEVudGl0eTEgY2FuIGhhdmUgbXVsdGlwbGUgaW5zdGFuY2VzIG9mIEVudGl0eTIsXG4gKiBidXQgRW50aXR5MiBoYXMgb25seSBvbmUgRW50aXR5MS4gRW50aXR5MiBpcyB0aGUgb3duZXIgb2YgdGhlIHJlbGF0aW9uc2hpcCwgYW5kIHN0b3JlcyB0aGUgaWQgb2YgRW50aXR5MSBvbiBpdHNcbiAqIHNpZGUgb2YgdGhlIHJlbGF0aW9uLlxuICovXG5mdW5jdGlvbiBPbmVUb01hbnkodHlwZUZ1bmN0aW9uT3JUYXJnZXQsIGludmVyc2VTaWRlLCBvcHRpb25zKSB7XG4gICAgcmV0dXJuIGZ1bmN0aW9uIChvYmplY3QsIHByb3BlcnR5TmFtZSkge1xuICAgICAgICBpZiAoIW9wdGlvbnMpXG4gICAgICAgICAgICBvcHRpb25zID0ge307XG4gICAgICAgIC8vIE5vdyB0cnkgdG8gZGV0ZXJtaW5lIGlmIGl0IGlzIGEgbGF6eSByZWxhdGlvbi5cbiAgICAgICAgbGV0IGlzTGF6eSA9IG9wdGlvbnMgJiYgb3B0aW9ucy5sYXp5ID09PSB0cnVlO1xuICAgICAgICBpZiAoIWlzTGF6eSAmJiBSZWZsZWN0ICYmIFJlZmxlY3QuZ2V0TWV0YWRhdGEpIHtcbiAgICAgICAgICAgIC8vIGF1dG9tYXRpYyBkZXRlcm1pbmF0aW9uXG4gICAgICAgICAgICBjb25zdCByZWZsZWN0ZWRUeXBlID0gUmVmbGVjdC5nZXRNZXRhZGF0YShcImRlc2lnbjp0eXBlXCIsIG9iamVjdCwgcHJvcGVydHlOYW1lKTtcbiAgICAgICAgICAgIGlmIChyZWZsZWN0ZWRUeXBlICYmXG4gICAgICAgICAgICAgICAgdHlwZW9mIHJlZmxlY3RlZFR5cGUubmFtZSA9PT0gXCJzdHJpbmdcIiAmJlxuICAgICAgICAgICAgICAgIHJlZmxlY3RlZFR5cGUubmFtZS50b0xvd2VyQ2FzZSgpID09PSBcInByb21pc2VcIilcbiAgICAgICAgICAgICAgICBpc0xhenkgPSB0cnVlO1xuICAgICAgICB9XG4gICAgICAgICgwLCBnbG9iYWxzXzEuZ2V0TWV0YWRhdGFBcmdzU3RvcmFnZSkoKS5yZWxhdGlvbnMucHVzaCh7XG4gICAgICAgICAgICB0YXJnZXQ6IG9iamVjdC5jb25zdHJ1Y3RvcixcbiAgICAgICAgICAgIHByb3BlcnR5TmFtZTogcHJvcGVydHlOYW1lLFxuICAgICAgICAgICAgLy8gcHJvcGVydHlUeXBlOiByZWZsZWN0ZWRUeXBlLFxuICAgICAgICAgICAgaXNMYXp5OiBpc0xhenksXG4gICAgICAgICAgICByZWxhdGlvblR5cGU6IFwib25lLXRvLW1hbnlcIixcbiAgICAgICAgICAgIHR5cGU6IHR5cGVGdW5jdGlvbk9yVGFyZ2V0LFxuICAgICAgICAgICAgaW52ZXJzZVNpZGVQcm9wZXJ0eTogaW52ZXJzZVNpZGUsXG4gICAgICAgICAgICBvcHRpb25zOiBvcHRpb25zLFxuICAgICAgICB9KTtcbiAgICB9O1xufVxuXG4vLyMgc291cmNlTWFwcGluZ1VSTD1PbmVUb01hbnkuanMubWFwXG4iXSwidmVyc2lvbiI6M30=

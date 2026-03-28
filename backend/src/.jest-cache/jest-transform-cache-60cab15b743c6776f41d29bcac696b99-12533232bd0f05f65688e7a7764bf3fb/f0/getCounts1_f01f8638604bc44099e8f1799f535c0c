@@ -1,0 +1,43 @@
+4b5c36e8df7c961304807ed9b605e1f1
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getCounts = void 0;
+const content = `--[[
+  Get counts per provided states
+    Input:
+      KEYS[1]    'prefix'
+      ARGV[1...] types
+]]
+local rcall = redis.call;
+local prefix = KEYS[1]
+local results = {}
+for i = 1, #ARGV do
+  local stateKey = prefix .. ARGV[i]
+  if ARGV[i] == "wait" or ARGV[i] == "paused" then
+    -- Markers in waitlist DEPRECATED in v5: Remove in v6.
+    local marker = rcall("LINDEX", stateKey, -1)
+    if marker and string.sub(marker, 1, 2) == "0:" then
+      local count = rcall("LLEN", stateKey)
+      if count > 1 then
+        rcall("RPOP", stateKey)
+        results[#results+1] = count-1
+      else
+        results[#results+1] = 0
+      end
+    else
+      results[#results+1] = rcall("LLEN", stateKey)
+    end
+  elseif ARGV[i] == "active" then
+    results[#results+1] = rcall("LLEN", stateKey)
+  else
+    results[#results+1] = rcall("ZCARD", stateKey)
+  end
+end
+return results
+`;
+exports.getCounts = {
+    name: 'getCounts',
+    content,
+    keys: 1,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGdldENvdW50cy0xLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxTQUFTLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDM0IsTUFBTSxPQUFPLEdBQUc7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0NBZ0NmLENBQUM7QUFDRixPQUFPLENBQUMsU0FBUyxHQUFHO0lBQ2hCLElBQUksRUFBRSxXQUFXO0lBQ2pCLE9BQU87SUFDUCxJQUFJLEVBQUUsQ0FBQztDQUNWLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGdldENvdW50cy0xLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5nZXRDb3VudHMgPSB2b2lkIDA7XG5jb25zdCBjb250ZW50ID0gYC0tW1tcbiAgR2V0IGNvdW50cyBwZXIgcHJvdmlkZWQgc3RhdGVzXG4gICAgSW5wdXQ6XG4gICAgICBLRVlTWzFdICAgICdwcmVmaXgnXG4gICAgICBBUkdWWzEuLi5dIHR5cGVzXG5dXVxubG9jYWwgcmNhbGwgPSByZWRpcy5jYWxsO1xubG9jYWwgcHJlZml4ID0gS0VZU1sxXVxubG9jYWwgcmVzdWx0cyA9IHt9XG5mb3IgaSA9IDEsICNBUkdWIGRvXG4gIGxvY2FsIHN0YXRlS2V5ID0gcHJlZml4IC4uIEFSR1ZbaV1cbiAgaWYgQVJHVltpXSA9PSBcIndhaXRcIiBvciBBUkdWW2ldID09IFwicGF1c2VkXCIgdGhlblxuICAgIC0tIE1hcmtlcnMgaW4gd2FpdGxpc3QgREVQUkVDQVRFRCBpbiB2NTogUmVtb3ZlIGluIHY2LlxuICAgIGxvY2FsIG1hcmtlciA9IHJjYWxsKFwiTElOREVYXCIsIHN0YXRlS2V5LCAtMSlcbiAgICBpZiBtYXJrZXIgYW5kIHN0cmluZy5zdWIobWFya2VyLCAxLCAyKSA9PSBcIjA6XCIgdGhlblxuICAgICAgbG9jYWwgY291bnQgPSByY2FsbChcIkxMRU5cIiwgc3RhdGVLZXkpXG4gICAgICBpZiBjb3VudCA+IDEgdGhlblxuICAgICAgICByY2FsbChcIlJQT1BcIiwgc3RhdGVLZXkpXG4gICAgICAgIHJlc3VsdHNbI3Jlc3VsdHMrMV0gPSBjb3VudC0xXG4gICAgICBlbHNlXG4gICAgICAgIHJlc3VsdHNbI3Jlc3VsdHMrMV0gPSAwXG4gICAgICBlbmRcbiAgICBlbHNlXG4gICAgICByZXN1bHRzWyNyZXN1bHRzKzFdID0gcmNhbGwoXCJMTEVOXCIsIHN0YXRlS2V5KVxuICAgIGVuZFxuICBlbHNlaWYgQVJHVltpXSA9PSBcImFjdGl2ZVwiIHRoZW5cbiAgICByZXN1bHRzWyNyZXN1bHRzKzFdID0gcmNhbGwoXCJMTEVOXCIsIHN0YXRlS2V5KVxuICBlbHNlXG4gICAgcmVzdWx0c1sjcmVzdWx0cysxXSA9IHJjYWxsKFwiWkNBUkRcIiwgc3RhdGVLZXkpXG4gIGVuZFxuZW5kXG5yZXR1cm4gcmVzdWx0c1xuYDtcbmV4cG9ydHMuZ2V0Q291bnRzID0ge1xuICAgIG5hbWU6ICdnZXRDb3VudHMnLFxuICAgIGNvbnRlbnQsXG4gICAga2V5czogMSxcbn07XG4vLyMgc291cmNlTWFwcGluZ1VSTD1nZXRDb3VudHMtMS5qcy5tYXAiXSwidmVyc2lvbiI6M30=

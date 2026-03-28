@@ -1,0 +1,67 @@
+f6fdfd4b7d6fea2e463517ee3faba90d
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RfaType = void 0;
+const typeorm_1 = require("typeorm");
+const contract_entity_1 = require("../../contract/entities/contract.entity");
+let RfaType = class RfaType {
+    populateVirtualFields() {
+        this.typeName = this.typeNameEn;
+        // Map remark to description if needed, or just let description be undefined
+        // this['description'] = this.remark;
+    }
+};
+exports.RfaType = RfaType;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], RfaType.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'contract_id' }),
+    __metadata("design:type", Number)
+], RfaType.prototype, "contractId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'type_code', length: 20 }),
+    __metadata("design:type", String)
+], RfaType.prototype, "typeCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'type_name_th', length: 100 }),
+    __metadata("design:type", String)
+], RfaType.prototype, "typeNameTh", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'type_name_en', length: 100 }),
+    __metadata("design:type", String)
+], RfaType.prototype, "typeNameEn", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], RfaType.prototype, "remark", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_active', default: true }),
+    __metadata("design:type", Boolean)
+], RfaType.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => contract_entity_1.Contract),
+    (0, typeorm_1.JoinColumn)({ name: 'contract_id' }),
+    __metadata("design:type", typeof (_a = typeof contract_entity_1.Contract !== "undefined" && contract_entity_1.Contract) === "function" ? _a : Object)
+], RfaType.prototype, "contract", void 0);
+__decorate([
+    (0, typeorm_1.AfterLoad)(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], RfaType.prototype, "populateVirtualFields", null);
+exports.RfaType = RfaType = __decorate([
+    (0, typeorm_1.Entity)('rfa_types')
+], RfaType);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xccmZhXFxlbnRpdGllc1xccmZhLXR5cGUuZW50aXR5LnRzIiwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7QUFBQSxxQ0FPaUI7QUFDakIsNkVBQW1FO0FBRzVELElBQU0sT0FBTyxHQUFiLE1BQU0sT0FBTztJQStCbEIscUJBQXFCO1FBQ25CLElBQUksQ0FBQyxRQUFRLEdBQUcsSUFBSSxDQUFDLFVBQVUsQ0FBQztRQUNoQyw0RUFBNEU7UUFDNUUscUNBQXFDO0lBQ3ZDLENBQUM7Q0FDRixDQUFBO0FBcENZLDBCQUFPO0FBRWxCO0lBREMsSUFBQSxnQ0FBc0IsR0FBRTs7bUNBQ2I7QUFHWjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxhQUFhLEVBQUUsQ0FBQzs7MkNBQ1o7QUFHcEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLE1BQU0sRUFBRSxFQUFFLEVBQUUsQ0FBQzs7eUNBQ3hCO0FBR2xCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGNBQWMsRUFBRSxNQUFNLEVBQUUsR0FBRyxFQUFFLENBQUM7OzJDQUMxQjtBQUdwQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxjQUFjLEVBQUUsTUFBTSxFQUFFLEdBQUcsRUFBRSxDQUFDOzsyQ0FDMUI7QUFHcEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsTUFBTSxFQUFFLFFBQVEsRUFBRSxJQUFJLEVBQUUsQ0FBQzs7dUNBQ3pCO0FBR2hCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxPQUFPLEVBQUUsSUFBSSxFQUFFLENBQUM7O3lDQUMxQjtBQUtuQjtJQUZDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQywwQkFBUSxDQUFDO0lBQ3pCLElBQUEsb0JBQVUsRUFBQyxFQUFFLElBQUksRUFBRSxhQUFhLEVBQUUsQ0FBQztrREFDekIsMEJBQVEsb0JBQVIsMEJBQVE7eUNBQUM7QUFNcEI7SUFEQyxJQUFBLG1CQUFTLEdBQUU7Ozs7b0RBS1g7a0JBbkNVLE9BQU87SUFEbkIsSUFBQSxnQkFBTSxFQUFDLFdBQVcsQ0FBQztHQUNQLE9BQU8sQ0FvQ25CIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXHJmYVxcZW50aXRpZXNcXHJmYS10eXBlLmVudGl0eS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge1xyXG4gIEVudGl0eSxcclxuICBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uLFxyXG4gIENvbHVtbixcclxuICBBZnRlckxvYWQsXHJcbiAgTWFueVRvT25lLFxyXG4gIEpvaW5Db2x1bW4sXHJcbn0gZnJvbSAndHlwZW9ybSc7XHJcbmltcG9ydCB7IENvbnRyYWN0IH0gZnJvbSAnLi4vLi4vY29udHJhY3QvZW50aXRpZXMvY29udHJhY3QuZW50aXR5JztcclxuXHJcbkBFbnRpdHkoJ3JmYV90eXBlcycpXHJcbmV4cG9ydCBjbGFzcyBSZmFUeXBlIHtcclxuICBAUHJpbWFyeUdlbmVyYXRlZENvbHVtbigpXHJcbiAgaWQhOiBudW1iZXI7XHJcblxyXG4gIEBDb2x1bW4oeyBuYW1lOiAnY29udHJhY3RfaWQnIH0pXHJcbiAgY29udHJhY3RJZCE6IG51bWJlcjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICd0eXBlX2NvZGUnLCBsZW5ndGg6IDIwIH0pXHJcbiAgdHlwZUNvZGUhOiBzdHJpbmc7XHJcblxyXG4gIEBDb2x1bW4oeyBuYW1lOiAndHlwZV9uYW1lX3RoJywgbGVuZ3RoOiAxMDAgfSlcclxuICB0eXBlTmFtZVRoITogc3RyaW5nO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3R5cGVfbmFtZV9lbicsIGxlbmd0aDogMTAwIH0pXHJcbiAgdHlwZU5hbWVFbiE6IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7IHR5cGU6ICd0ZXh0JywgbnVsbGFibGU6IHRydWUgfSlcclxuICByZW1hcms/OiBzdHJpbmc7XHJcblxyXG4gIEBDb2x1bW4oeyBuYW1lOiAnaXNfYWN0aXZlJywgZGVmYXVsdDogdHJ1ZSB9KVxyXG4gIGlzQWN0aXZlITogYm9vbGVhbjtcclxuXHJcbiAgLy8gUmVsYXRpb25zXHJcbiAgQE1hbnlUb09uZSgoKSA9PiBDb250cmFjdClcclxuICBASm9pbkNvbHVtbih7IG5hbWU6ICdjb250cmFjdF9pZCcgfSlcclxuICBjb250cmFjdD86IENvbnRyYWN0O1xyXG5cclxuICAvLyBWaXJ0dWFsIHByb3BlcnR5IGZvciBiYWNrd2FyZCBjb21wYXRpYmlsaXR5XHJcbiAgdHlwZU5hbWUhOiBzdHJpbmc7XHJcblxyXG4gIEBBZnRlckxvYWQoKVxyXG4gIHBvcHVsYXRlVmlydHVhbEZpZWxkcygpIHtcclxuICAgIHRoaXMudHlwZU5hbWUgPSB0aGlzLnR5cGVOYW1lRW47XHJcbiAgICAvLyBNYXAgcmVtYXJrIHRvIGRlc2NyaXB0aW9uIGlmIG5lZWRlZCwgb3IganVzdCBsZXQgZGVzY3JpcHRpb24gYmUgdW5kZWZpbmVkXHJcbiAgICAvLyB0aGlzWydkZXNjcmlwdGlvbiddID0gdGhpcy5yZW1hcms7XHJcbiAgfVxyXG59XHJcbiJdLCJ2ZXJzaW9uIjozfQ==

@@ -1,0 +1,38 @@
+6e0806176512a6cdf1983cd1c191bb5c
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getDependencyCounts = void 0;
+const content = `--[[
+  Get counts per child states
+    Input:
+      KEYS[1]    processed key
+      KEYS[2]    unprocessed key
+      KEYS[3]    ignored key
+      KEYS[4]    failed key
+      ARGV[1...] types
+]]
+local rcall = redis.call;
+local processedKey = KEYS[1]
+local unprocessedKey = KEYS[2]
+local ignoredKey = KEYS[3]
+local failedKey = KEYS[4]
+local results = {}
+for i = 1, #ARGV do
+  if ARGV[i] == "processed" then
+    results[#results+1] = rcall("HLEN", processedKey)
+  elseif ARGV[i] == "unprocessed" then
+    results[#results+1] = rcall("SCARD", unprocessedKey)
+  elseif ARGV[i] == "ignored" then
+    results[#results+1] = rcall("HLEN", ignoredKey)
+  else
+    results[#results+1] = rcall("ZCARD", failedKey)
+  end
+end
+return results
+`;
+exports.getDependencyCounts = {
+    name: 'getDependencyCounts',
+    content,
+    keys: 4,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGdldERlcGVuZGVuY3lDb3VudHMtNC5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFDYixNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMsbUJBQW1CLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDckMsTUFBTSxPQUFPLEdBQUc7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztDQTJCZixDQUFDO0FBQ0YsT0FBTyxDQUFDLG1CQUFtQixHQUFHO0lBQzFCLElBQUksRUFBRSxxQkFBcUI7SUFDM0IsT0FBTztJQUNQLElBQUksRUFBRSxDQUFDO0NBQ1YsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcYnVsbG1xQDUuNjUuMFxcbm9kZV9tb2R1bGVzXFxidWxsbXFcXGRpc3RcXGNqc1xcc2NyaXB0c1xcZ2V0RGVwZW5kZW5jeUNvdW50cy00LmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5nZXREZXBlbmRlbmN5Q291bnRzID0gdm9pZCAwO1xuY29uc3QgY29udGVudCA9IGAtLVtbXG4gIEdldCBjb3VudHMgcGVyIGNoaWxkIHN0YXRlc1xuICAgIElucHV0OlxuICAgICAgS0VZU1sxXSAgICBwcm9jZXNzZWQga2V5XG4gICAgICBLRVlTWzJdICAgIHVucHJvY2Vzc2VkIGtleVxuICAgICAgS0VZU1szXSAgICBpZ25vcmVkIGtleVxuICAgICAgS0VZU1s0XSAgICBmYWlsZWQga2V5XG4gICAgICBBUkdWWzEuLi5dIHR5cGVzXG5dXVxubG9jYWwgcmNhbGwgPSByZWRpcy5jYWxsO1xubG9jYWwgcHJvY2Vzc2VkS2V5ID0gS0VZU1sxXVxubG9jYWwgdW5wcm9jZXNzZWRLZXkgPSBLRVlTWzJdXG5sb2NhbCBpZ25vcmVkS2V5ID0gS0VZU1szXVxubG9jYWwgZmFpbGVkS2V5ID0gS0VZU1s0XVxubG9jYWwgcmVzdWx0cyA9IHt9XG5mb3IgaSA9IDEsICNBUkdWIGRvXG4gIGlmIEFSR1ZbaV0gPT0gXCJwcm9jZXNzZWRcIiB0aGVuXG4gICAgcmVzdWx0c1sjcmVzdWx0cysxXSA9IHJjYWxsKFwiSExFTlwiLCBwcm9jZXNzZWRLZXkpXG4gIGVsc2VpZiBBUkdWW2ldID09IFwidW5wcm9jZXNzZWRcIiB0aGVuXG4gICAgcmVzdWx0c1sjcmVzdWx0cysxXSA9IHJjYWxsKFwiU0NBUkRcIiwgdW5wcm9jZXNzZWRLZXkpXG4gIGVsc2VpZiBBUkdWW2ldID09IFwiaWdub3JlZFwiIHRoZW5cbiAgICByZXN1bHRzWyNyZXN1bHRzKzFdID0gcmNhbGwoXCJITEVOXCIsIGlnbm9yZWRLZXkpXG4gIGVsc2VcbiAgICByZXN1bHRzWyNyZXN1bHRzKzFdID0gcmNhbGwoXCJaQ0FSRFwiLCBmYWlsZWRLZXkpXG4gIGVuZFxuZW5kXG5yZXR1cm4gcmVzdWx0c1xuYDtcbmV4cG9ydHMuZ2V0RGVwZW5kZW5jeUNvdW50cyA9IHtcbiAgICBuYW1lOiAnZ2V0RGVwZW5kZW5jeUNvdW50cycsXG4gICAgY29udGVudCxcbiAgICBrZXlzOiA0LFxufTtcbi8vIyBzb3VyY2VNYXBwaW5nVVJMPWdldERlcGVuZGVuY3lDb3VudHMtNC5qcy5tYXAiXSwidmVyc2lvbiI6M30=

@@ -1,0 +1,27 @@
+46cbac0d85df6af194d38db50773657c
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.updateData = void 0;
+const content = `--[[
+  Update job data
+  Input:
+    KEYS[1] Job id key
+    ARGV[1] data
+  Output:
+    0 - OK
+   -1 - Missing job.
+]]
+local rcall = redis.call
+if rcall("EXISTS",KEYS[1]) == 1 then -- // Make sure job exists
+  rcall("HSET", KEYS[1], "data", ARGV[1])
+  return 0
+else
+  return -1
+end
+`;
+exports.updateData = {
+    name: 'updateData',
+    content,
+    keys: 1,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHVwZGF0ZURhdGEtMS5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFDYixNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMsVUFBVSxHQUFHLEtBQUssQ0FBQyxDQUFDO0FBQzVCLE1BQU0sT0FBTyxHQUFHOzs7Ozs7Ozs7Ozs7Ozs7O0NBZ0JmLENBQUM7QUFDRixPQUFPLENBQUMsVUFBVSxHQUFHO0lBQ2pCLElBQUksRUFBRSxZQUFZO0lBQ2xCLE9BQU87SUFDUCxJQUFJLEVBQUUsQ0FBQztDQUNWLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHVwZGF0ZURhdGEtMS5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBzdHJpY3RcIjtcbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMudXBkYXRlRGF0YSA9IHZvaWQgMDtcbmNvbnN0IGNvbnRlbnQgPSBgLS1bW1xuICBVcGRhdGUgam9iIGRhdGFcbiAgSW5wdXQ6XG4gICAgS0VZU1sxXSBKb2IgaWQga2V5XG4gICAgQVJHVlsxXSBkYXRhXG4gIE91dHB1dDpcbiAgICAwIC0gT0tcbiAgIC0xIC0gTWlzc2luZyBqb2IuXG5dXVxubG9jYWwgcmNhbGwgPSByZWRpcy5jYWxsXG5pZiByY2FsbChcIkVYSVNUU1wiLEtFWVNbMV0pID09IDEgdGhlbiAtLSAvLyBNYWtlIHN1cmUgam9iIGV4aXN0c1xuICByY2FsbChcIkhTRVRcIiwgS0VZU1sxXSwgXCJkYXRhXCIsIEFSR1ZbMV0pXG4gIHJldHVybiAwXG5lbHNlXG4gIHJldHVybiAtMVxuZW5kXG5gO1xuZXhwb3J0cy51cGRhdGVEYXRhID0ge1xuICAgIG5hbWU6ICd1cGRhdGVEYXRhJyxcbiAgICBjb250ZW50LFxuICAgIGtleXM6IDEsXG59O1xuLy8jIHNvdXJjZU1hcHBpbmdVUkw9dXBkYXRlRGF0YS0xLmpzLm1hcCJdLCJ2ZXJzaW9uIjozfQ==

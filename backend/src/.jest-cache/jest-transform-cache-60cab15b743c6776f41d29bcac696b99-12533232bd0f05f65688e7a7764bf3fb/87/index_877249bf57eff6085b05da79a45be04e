@@ -1,0 +1,44 @@
+bc80298f79343d9756cfe028f9ce2995
+"use strict";
+/**
+ * Module dependencies.
+ */
+var crypto = require('crypto');
+/**
+ * Sign the given `val` with `secret`.
+ *
+ * @param {String} val
+ * @param {String|NodeJS.ArrayBufferView|crypto.KeyObject} secret
+ * @return {String}
+ * @api private
+ */
+exports.sign = function (val, secret) {
+    if ('string' != typeof val)
+        throw new TypeError("Cookie value must be provided as a string.");
+    if (null == secret)
+        throw new TypeError("Secret key must be provided.");
+    return val + '.' + crypto
+        .createHmac('sha256', secret)
+        .update(val)
+        .digest('base64')
+        .replace(/\=+$/, '');
+};
+/**
+ * Unsign and decode the given `input` with `secret`,
+ * returning `false` if the signature is invalid.
+ *
+ * @param {String} input
+ * @param {String|NodeJS.ArrayBufferView|crypto.KeyObject} secret
+ * @return {String|Boolean}
+ * @api private
+ */
+exports.unsign = function (input, secret) {
+    if ('string' != typeof input)
+        throw new TypeError("Signed cookie string must be provided.");
+    if (null == secret)
+        throw new TypeError("Secret key must be provided.");
+    var tentativeValue = input.slice(0, input.lastIndexOf('.')), expectedInput = exports.sign(tentativeValue, secret), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
+    return (expectedBuffer.length === inputBuffer.length &&
+        crypto.timingSafeEqual(expectedBuffer, inputBuffer)) ? tentativeValue : false;
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGNvb2tpZS1zaWduYXR1cmVAMS4yLjJcXG5vZGVfbW9kdWxlc1xcY29va2llLXNpZ25hdHVyZVxcaW5kZXguanMiLCJtYXBwaW5ncyI6IjtBQUFBOztHQUVHO0FBRUgsSUFBSSxNQUFNLEdBQUcsT0FBTyxDQUFDLFFBQVEsQ0FBQyxDQUFDO0FBRS9COzs7Ozs7O0dBT0c7QUFFSCxPQUFPLENBQUMsSUFBSSxHQUFHLFVBQVMsR0FBRyxFQUFFLE1BQU07SUFDakMsSUFBSSxRQUFRLElBQUksT0FBTyxHQUFHO1FBQUUsTUFBTSxJQUFJLFNBQVMsQ0FBQyw0Q0FBNEMsQ0FBQyxDQUFDO0lBQzlGLElBQUksSUFBSSxJQUFJLE1BQU07UUFBRSxNQUFNLElBQUksU0FBUyxDQUFDLDhCQUE4QixDQUFDLENBQUM7SUFDeEUsT0FBTyxHQUFHLEdBQUcsR0FBRyxHQUFHLE1BQU07U0FDdEIsVUFBVSxDQUFDLFFBQVEsRUFBRSxNQUFNLENBQUM7U0FDNUIsTUFBTSxDQUFDLEdBQUcsQ0FBQztTQUNYLE1BQU0sQ0FBQyxRQUFRLENBQUM7U0FDaEIsT0FBTyxDQUFDLE1BQU0sRUFBRSxFQUFFLENBQUMsQ0FBQztBQUN6QixDQUFDLENBQUM7QUFFRjs7Ozs7Ozs7R0FRRztBQUVILE9BQU8sQ0FBQyxNQUFNLEdBQUcsVUFBUyxLQUFLLEVBQUUsTUFBTTtJQUNyQyxJQUFJLFFBQVEsSUFBSSxPQUFPLEtBQUs7UUFBRSxNQUFNLElBQUksU0FBUyxDQUFDLHdDQUF3QyxDQUFDLENBQUM7SUFDNUYsSUFBSSxJQUFJLElBQUksTUFBTTtRQUFFLE1BQU0sSUFBSSxTQUFTLENBQUMsOEJBQThCLENBQUMsQ0FBQztJQUN4RSxJQUFJLGNBQWMsR0FBRyxLQUFLLENBQUMsS0FBSyxDQUFDLENBQUMsRUFBRSxLQUFLLENBQUMsV0FBVyxDQUFDLEdBQUcsQ0FBQyxDQUFDLEVBQ3ZELGFBQWEsR0FBRyxPQUFPLENBQUMsSUFBSSxDQUFDLGNBQWMsRUFBRSxNQUFNLENBQUMsRUFDcEQsY0FBYyxHQUFHLE1BQU0sQ0FBQyxJQUFJLENBQUMsYUFBYSxDQUFDLEVBQzNDLFdBQVcsR0FBRyxNQUFNLENBQUMsSUFBSSxDQUFDLEtBQUssQ0FBQyxDQUFDO0lBQ3JDLE9BQU8sQ0FDTCxjQUFjLENBQUMsTUFBTSxLQUFLLFdBQVcsQ0FBQyxNQUFNO1FBQzVDLE1BQU0sQ0FBQyxlQUFlLENBQUMsY0FBYyxFQUFFLFdBQVcsQ0FBQyxDQUNuRCxDQUFDLENBQUMsQ0FBQyxjQUFjLENBQUMsQ0FBQyxDQUFDLEtBQUssQ0FBQztBQUM5QixDQUFDLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGNvb2tpZS1zaWduYXR1cmVAMS4yLjJcXG5vZGVfbW9kdWxlc1xcY29va2llLXNpZ25hdHVyZVxcaW5kZXguanMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBNb2R1bGUgZGVwZW5kZW5jaWVzLlxuICovXG5cbnZhciBjcnlwdG8gPSByZXF1aXJlKCdjcnlwdG8nKTtcblxuLyoqXG4gKiBTaWduIHRoZSBnaXZlbiBgdmFsYCB3aXRoIGBzZWNyZXRgLlxuICpcbiAqIEBwYXJhbSB7U3RyaW5nfSB2YWxcbiAqIEBwYXJhbSB7U3RyaW5nfE5vZGVKUy5BcnJheUJ1ZmZlclZpZXd8Y3J5cHRvLktleU9iamVjdH0gc2VjcmV0XG4gKiBAcmV0dXJuIHtTdHJpbmd9XG4gKiBAYXBpIHByaXZhdGVcbiAqL1xuXG5leHBvcnRzLnNpZ24gPSBmdW5jdGlvbih2YWwsIHNlY3JldCl7XG4gIGlmICgnc3RyaW5nJyAhPSB0eXBlb2YgdmFsKSB0aHJvdyBuZXcgVHlwZUVycm9yKFwiQ29va2llIHZhbHVlIG11c3QgYmUgcHJvdmlkZWQgYXMgYSBzdHJpbmcuXCIpO1xuICBpZiAobnVsbCA9PSBzZWNyZXQpIHRocm93IG5ldyBUeXBlRXJyb3IoXCJTZWNyZXQga2V5IG11c3QgYmUgcHJvdmlkZWQuXCIpO1xuICByZXR1cm4gdmFsICsgJy4nICsgY3J5cHRvXG4gICAgLmNyZWF0ZUhtYWMoJ3NoYTI1NicsIHNlY3JldClcbiAgICAudXBkYXRlKHZhbClcbiAgICAuZGlnZXN0KCdiYXNlNjQnKVxuICAgIC5yZXBsYWNlKC9cXD0rJC8sICcnKTtcbn07XG5cbi8qKlxuICogVW5zaWduIGFuZCBkZWNvZGUgdGhlIGdpdmVuIGBpbnB1dGAgd2l0aCBgc2VjcmV0YCxcbiAqIHJldHVybmluZyBgZmFsc2VgIGlmIHRoZSBzaWduYXR1cmUgaXMgaW52YWxpZC5cbiAqXG4gKiBAcGFyYW0ge1N0cmluZ30gaW5wdXRcbiAqIEBwYXJhbSB7U3RyaW5nfE5vZGVKUy5BcnJheUJ1ZmZlclZpZXd8Y3J5cHRvLktleU9iamVjdH0gc2VjcmV0XG4gKiBAcmV0dXJuIHtTdHJpbmd8Qm9vbGVhbn1cbiAqIEBhcGkgcHJpdmF0ZVxuICovXG5cbmV4cG9ydHMudW5zaWduID0gZnVuY3Rpb24oaW5wdXQsIHNlY3JldCl7XG4gIGlmICgnc3RyaW5nJyAhPSB0eXBlb2YgaW5wdXQpIHRocm93IG5ldyBUeXBlRXJyb3IoXCJTaWduZWQgY29va2llIHN0cmluZyBtdXN0IGJlIHByb3ZpZGVkLlwiKTtcbiAgaWYgKG51bGwgPT0gc2VjcmV0KSB0aHJvdyBuZXcgVHlwZUVycm9yKFwiU2VjcmV0IGtleSBtdXN0IGJlIHByb3ZpZGVkLlwiKTtcbiAgdmFyIHRlbnRhdGl2ZVZhbHVlID0gaW5wdXQuc2xpY2UoMCwgaW5wdXQubGFzdEluZGV4T2YoJy4nKSksXG4gICAgICBleHBlY3RlZElucHV0ID0gZXhwb3J0cy5zaWduKHRlbnRhdGl2ZVZhbHVlLCBzZWNyZXQpLFxuICAgICAgZXhwZWN0ZWRCdWZmZXIgPSBCdWZmZXIuZnJvbShleHBlY3RlZElucHV0KSxcbiAgICAgIGlucHV0QnVmZmVyID0gQnVmZmVyLmZyb20oaW5wdXQpO1xuICByZXR1cm4gKFxuICAgIGV4cGVjdGVkQnVmZmVyLmxlbmd0aCA9PT0gaW5wdXRCdWZmZXIubGVuZ3RoICYmXG4gICAgY3J5cHRvLnRpbWluZ1NhZmVFcXVhbChleHBlY3RlZEJ1ZmZlciwgaW5wdXRCdWZmZXIpXG4gICApID8gdGVudGF0aXZlVmFsdWUgOiBmYWxzZTtcbn07XG4iXSwidmVyc2lvbiI6M30=

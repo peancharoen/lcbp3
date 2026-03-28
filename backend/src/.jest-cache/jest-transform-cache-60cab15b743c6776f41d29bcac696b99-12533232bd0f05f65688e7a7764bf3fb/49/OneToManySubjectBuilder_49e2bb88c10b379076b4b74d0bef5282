@@ -1,0 +1,181 @@
+881806a9b225b58d7df77b600c04e07f
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.OneToManySubjectBuilder = void 0;
+const Subject_1 = require("../Subject");
+const OrmUtils_1 = require("../../util/OrmUtils");
+const EntityMetadata_1 = require("../../metadata/EntityMetadata");
+/**
+ * Builds operations needs to be executed for one-to-many relations of the given subjects.
+ *
+ * by example: post contains one-to-many relation with category in the property called "categories", e.g.
+ *             @OneToMany(type => Category, category => category.post) categories: Category[]
+ *             If user adds categories into the post and saves post we need to bind them.
+ *             This operation requires updation of category table since its owner of the relation and contains a join column.
+ *
+ * note: this class shares lot of things with OneToOneInverseSideOperationBuilder, so when you change this class
+ *       make sure to reflect changes there as well.
+ */
+class OneToManySubjectBuilder {
+    // ---------------------------------------------------------------------
+    // Constructor
+    // ---------------------------------------------------------------------
+    constructor(subjects) {
+        this.subjects = subjects;
+    }
+    // ---------------------------------------------------------------------
+    // Public Methods
+    // ---------------------------------------------------------------------
+    /**
+     * Builds all required operations.
+     */
+    build() {
+        this.subjects.forEach((subject) => {
+            subject.metadata.oneToManyRelations.forEach((relation) => {
+                // skip relations for which persistence is disabled
+                if (relation.persistenceEnabled === false)
+                    return;
+                this.buildForSubjectRelation(subject, relation);
+            });
+        });
+    }
+    // ---------------------------------------------------------------------
+    // Protected Methods
+    // ---------------------------------------------------------------------
+    /**
+     * Builds operations for a given subject and relation.
+     *
+     * by example: subject is "post" entity we are saving here and relation is "categories" inside it here.
+     */
+    buildForSubjectRelation(subject, relation) {
+        // prepare objects (relation id maps) for the database entity
+        // by example: since subject is a post, we are expecting to get all post's categories saved in the database here,
+        //             particularly their relation ids, e.g. category ids stored in the database
+        // in most cases relatedEntityDatabaseValues will contain only the entity key properties.
+        // this is because subject.databaseEntity contains relations with loaded relation ids only.
+        // however if the entity uses the afterLoad hook to calculate any properties, the fetched "key object" might include ADDITIONAL properties.
+        // to handle such situations, we pass the data to relation.inverseEntityMetadata.getEntityIdMap to extract the key without any other properties.
+        let relatedEntityDatabaseRelationIds = [];
+        if (subject.databaseEntity) {
+            // related entities in the database can exist only if this entity (post) is saved
+            const relatedEntityDatabaseRelation = relation.getEntityValue(subject.databaseEntity);
+            if (relatedEntityDatabaseRelation) {
+                relatedEntityDatabaseRelationIds =
+                    relatedEntityDatabaseRelation.map((entity) => relation.inverseEntityMetadata.getEntityIdMap(entity));
+            }
+        }
+        // get related entities of persisted entity
+        // by example: get categories from the passed to persist post entity
+        let relatedEntities = relation.getEntityValue(subject.entity);
+        if (relatedEntities === null)
+            // we treat relations set to null as removed, so we don't skip it
+            relatedEntities = [];
+        if (relatedEntities === undefined)
+            // if relation is undefined then nothing to update
+            return;
+        // extract only relation ids from the related entities, since we only need them for comparison
+        // by example: extract from categories only relation ids (category id, or let's say category title, depend on join column options)
+        const relatedPersistedEntityRelationIds = [];
+        relatedEntities.forEach((relatedEntity) => {
+            // by example: relatedEntity is a category here
+            let relationIdMap = relation.inverseEntityMetadata.getEntityIdMap(relatedEntity); // by example: relationIdMap is category.id map here, e.g. { id: ... }
+            // try to find a subject of this related entity, maybe it was loaded or was marked for persistence
+            let relatedEntitySubject = this.subjects.find((subject) => {
+                return subject.entity === relatedEntity;
+            });
+            // if subject with entity was found take subject identifier as relation id map since it may contain extra properties resolved
+            if (relatedEntitySubject)
+                relationIdMap = relatedEntitySubject.identifier;
+            // if relationIdMap is undefined then it means user binds object which is not saved in the database yet
+            // by example: if post contains categories which does not have ids yet (because they are new)
+            //             it means they are always newly inserted and relation update operation always must be created for them
+            //             it does not make sense to perform difference operation for them for both add and remove actions
+            if (!relationIdMap) {
+                // we decided to remove this error because it brings complications when saving object with non-saved entities
+                // if (!relatedEntitySubject)
+                //     throw new TypeORMError(`One-to-many relation "${relation.entityMetadata.name}.${relation.propertyPath}" contains ` +
+                //         `entities which do not exist in the database yet, thus they cannot be bind in the database. ` +
+                //         `Please setup cascade insertion or save entities before binding it.`);
+                if (!relatedEntitySubject)
+                    return;
+                // okay, so related subject exist and its marked for insertion, then add a new change map
+                // by example: this will tell category to insert into its post relation our post we are working with
+                //             relatedEntitySubject is newly inserted CategorySubject
+                //             relation.inverseRelation is ManyToOne relation inside Category
+                //             subject is Post needs to be inserted into Category
+                relatedEntitySubject.changeMaps.push({
+                    relation: relation.inverseRelation,
+                    value: subject,
+                });
+                return;
+            }
+            // check if this binding really exist in the database
+            // by example: find our category if its already bind in the database
+            const relationIdInDatabaseSubjectRelation = relatedEntityDatabaseRelationIds.find((relatedDatabaseEntityRelationId) => {
+                return OrmUtils_1.OrmUtils.compareIds(relationIdMap, relatedDatabaseEntityRelationId);
+            });
+            // if relationIdMap DOES NOT exist in the subject's relation in the database it means its a new relation and we need to "bind" them
+            // by example: this will tell category to insert into its post relation our post we are working with
+            //             relatedEntitySubject is newly inserted CategorySubject
+            //             relation.inverseRelation is ManyToOne relation inside Category
+            //             subject is Post needs to be inserted into Category
+            if (!relationIdInDatabaseSubjectRelation) {
+                // if there is no relatedEntitySubject then it means "category" wasn't persisted,
+                // but since we are going to update "category" table (since its an owning side of relation with join column)
+                // we create a new subject here:
+                if (!relatedEntitySubject) {
+                    relatedEntitySubject = new Subject_1.Subject({
+                        metadata: relation.inverseEntityMetadata,
+                        parentSubject: subject,
+                        canBeUpdated: true,
+                        identifier: relationIdMap,
+                    });
+                    this.subjects.push(relatedEntitySubject);
+                }
+                relatedEntitySubject.changeMaps.push({
+                    relation: relation.inverseRelation,
+                    value: subject,
+                });
+            }
+            // if related entity has relation id then we add it to the list of relation ids
+            // this list will be used later to compare with database relation ids to find a difference
+            // what exist in this array and does not exist in the database are newly inserted relations
+            // what does not exist in this array, but exist in the database are removed relations
+            // removed relations are set to null from inverse side of relation
+            relatedPersistedEntityRelationIds.push(relationIdMap);
+        });
+        // find what related entities were added and what were removed based on difference between what we save and what database has
+        if (relation.inverseRelation?.orphanedRowAction !== "disable") {
+            EntityMetadata_1.EntityMetadata.difference(relatedEntityDatabaseRelationIds, relatedPersistedEntityRelationIds).forEach((removedRelatedEntityRelationId) => {
+                // by example: removedRelatedEntityRelationId is category that was bind in the database before, but now its unbind
+                // todo: probably we can improve this in the future by finding entity with column those values,
+                // todo: maybe it was already in persistence process. This is possible due to unique requirements of join columns
+                // we create a new subject which operations will be executed in subject operation executor
+                const removedRelatedEntitySubject = new Subject_1.Subject({
+                    metadata: relation.inverseEntityMetadata,
+                    parentSubject: subject,
+                    identifier: removedRelatedEntityRelationId,
+                });
+                if (!relation.inverseRelation ||
+                    relation.inverseRelation.orphanedRowAction === "nullify") {
+                    removedRelatedEntitySubject.canBeUpdated = true;
+                    removedRelatedEntitySubject.changeMaps = [
+                        {
+                            relation: relation.inverseRelation,
+                            value: null,
+                        },
+                    ];
+                }
+                else if (relation.inverseRelation.orphanedRowAction === "delete") {
+                    removedRelatedEntitySubject.mustBeRemoved = true;
+                }
+                else if (relation.inverseRelation.orphanedRowAction === "soft-delete") {
+                    removedRelatedEntitySubject.canBeSoftRemoved = true;
+                }
+                this.subjects.push(removedRelatedEntitySubject);
+            });
+        }
+    }
+}
+exports.OneToManySubjectBuilder = OneToManySubjectBuilder;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxwZXJzaXN0ZW5jZVxcc3ViamVjdC1idWlsZGVyXFxPbmVUb01hbnlTdWJqZWN0QnVpbGRlci5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFDYixNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMsdUJBQXVCLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDekMsTUFBTSxTQUFTLEdBQUcsT0FBTyxDQUFDLFlBQVksQ0FBQyxDQUFDO0FBQ3hDLE1BQU0sVUFBVSxHQUFHLE9BQU8sQ0FBQyxxQkFBcUIsQ0FBQyxDQUFDO0FBQ2xELE1BQU0sZ0JBQWdCLEdBQUcsT0FBTyxDQUFDLCtCQUErQixDQUFDLENBQUM7QUFDbEU7Ozs7Ozs7Ozs7R0FVRztBQUNILE1BQU0sdUJBQXVCO0lBQ3pCLHdFQUF3RTtJQUN4RSxjQUFjO0lBQ2Qsd0VBQXdFO0lBQ3hFLFlBQVksUUFBUTtRQUNoQixJQUFJLENBQUMsUUFBUSxHQUFHLFFBQVEsQ0FBQztJQUM3QixDQUFDO0lBQ0Qsd0VBQXdFO0lBQ3hFLGlCQUFpQjtJQUNqQix3RUFBd0U7SUFDeEU7O09BRUc7SUFDSCxLQUFLO1FBQ0QsSUFBSSxDQUFDLFFBQVEsQ0FBQyxPQUFPLENBQUMsQ0FBQyxPQUFPLEVBQUUsRUFBRTtZQUM5QixPQUFPLENBQUMsUUFBUSxDQUFDLGtCQUFrQixDQUFDLE9BQU8sQ0FBQyxDQUFDLFFBQVEsRUFBRSxFQUFFO2dCQUNyRCxtREFBbUQ7Z0JBQ25ELElBQUksUUFBUSxDQUFDLGtCQUFrQixLQUFLLEtBQUs7b0JBQ3JDLE9BQU87Z0JBQ1gsSUFBSSxDQUFDLHVCQUF1QixDQUFDLE9B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USxDQUFDLHFCQUFxQjtvQkFDeEMsYUFBYSxFQUFFLE9BQU87b0JBQ3RCLFVBQVUsRUFBRSw4QkFBOEI7aUJBQzdDLENBQUMsQ0FBQztnQkFDSCxJQUFJLENBQUMsUUFBUSxDQUFDLGVBQWU7b0JBQ3pCLFFBQVEsQ0FBQyxlQUFlLENBQUMsaUJBQWlCLEtBQUssU0FBUyxFQUFFLENBQUM7b0JBQzNELDJCQUEyQixDQUFDLFlBQVksR0FBRyxJQUFJLENBQUM7b0JBQ2hELDJCQUEyQixDQUFDLFVBQVUsR0FBRzt3QkFDckM7NEJBQ0ksUUFBUSxFQUFFLFFBQVEsQ0FBQyxlQUFlOzRCQUNsQyxLQUFLLEVBQUUsSUFBSTt5QkFDZDtxQkFDSixDQUFDO2dCQUNOLENBQUM7cUJBQ0ksSUFBSSxRQUFRLENBQUMsZUFBZSxDQUFDLGlCQUFpQixLQUFLLFFBQVEsRUFBRSxDQUFDO29CQUMvRCwyQkFBMkIsQ0FBQyxhQUFhLEdBQUcsSUFBSSxDQUFDO2dCQUNyRCxDQUFDO3FCQUNJLElBQUksUUFBUSxDQUFDLGVBQWUsQ0FBQyxpQkFBaUIsS0FBSyxhQUFhLEVBQUUsQ0FBQztvQkFDcEUsMkJBQTJCLENBQUMsZ0JBQWdCLEdBQUcsSUFBSSxDQUFDO2dCQUN4RCxDQUFDO2dCQUNELElBQUksQ0FBQyxRQUFRLENBQUMsSUFBSSxDQUFDLDJCQUEyQixDQUFDLENBQUM7WUFDcEQsQ0FBQyxDQUFDLENBQUM7UUFDUCxDQUFDO0lBQ0wsQ0FBQztDQUNKO0FBQ0QsT0FBTyxDQUFDLHVCQUF1QixHQUFHLHVCQUF1QixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFx0eXBlb3JtQDAuMy4yN19pb3JlZGlzQDUuOC5fYTJkYzViNzdjNzEzZmFiNDU1ZjFhMjk3ZDUxZWQ1OTVcXG5vZGVfbW9kdWxlc1xcdHlwZW9ybVxccGVyc2lzdGVuY2VcXHN1YmplY3QtYnVpbGRlclxcT25lVG9NYW55U3ViamVjdEJ1aWxkZXIuanMiXSwic291cmNlc0NvbnRlbnQiOlsiXCJ1c2Ugc3RyaWN0XCI7XG5PYmplY3QuZGVmaW5lUHJvcGVydHkoZXhwb3J0cywgXCJfX2VzTW9kdWxlXCIsIHsgdmFsdWU6IHRydWUgfSk7XG5leHBvcnRzLk9uZVRvTWFueVN1YmplY3RCdWlsZGVyID0gdm9pZCAwO1xuY29uc3QgU3ViamVjdF8xID0gcmVxdWlyZShcIi4uL1N1YmplY3RcIik7XG5jb25zdCBPcm1VdGlsc18xID0gcmVxdWlyZShcIi4uLy4uL3V0aWwvT3JtVXRpbHNcIik7XG5jb25zdCBFbnRpdHlNZXRhZGF0YV8xID0gcmVxdWlyZShcIi4uLy4uL21ldGFkYXRhL0VudGl0eU1ldGFkYXRhXCIpO1xuLyoqXG4gKiBCdWlsZHMgb3BlcmF0aW9ucyBuZWVkcyB0byBiZSBleGVjdXRlZCBmb3Igb25lLXRvLW1hbnkgcmVsYXRpb25zIG9mIHRoZSBnaXZlbiBzdWJqZWN0cy5cbiAqXG4gKiBieSBleGFtcGxlOiBwb3N0IGNvbnRhaW5zIG9uZS10by1tYW55IHJlbGF0aW9uIHdpdGggY2F0ZWdvcnkgaW4gdGhlIHByb3BlcnR5IGNhbGxlZCBcImNhdGVnb3JpZXNcIiwgZS5nLlxuICogICAgICAgICAgICAgQE9uZVRvTWFueSh0eXBlID0+IENhdGVnb3J5LCBjYXRlZ29yeSA9PiBjYXRlZ29yeS5wb3N0KSBjYXRlZ29yaWVzOiBDYXRlZ29yeVtdXG4gKiAgICAgICAgICAgICBJZiB1c2VyIGFkZHMgY2F0ZWdvcmllcyBpbnRvIHRoZSBwb3N0IGFuZCBzYXZlcyBwb3N0IHdlIG5lZWQgdG8gYmluZCB0aGVtLlxuICogICAgICAgICAgICAgVGhpcyBvcGVyYXRpb24gcmVxdWlyZXMgdXBkYXRpb24gb2YgY2F0ZWdvcnkgdGFibGUgc2luY2UgaXRzIG93bmVyIG9mIHRoZSByZWxhdGlvbiBhbmQgY29udGFpbnMgYSBqb2luIGNvbHVtbi5cbiAqXG4gKiBub3RlOiB0aGlzIGNsYXNzIHNoYXJlcyBsb3Qgb2YgdGhpbmdzIHdpdGggT25lVG9PbmVJbnZlcnNlU2lkZU9wZXJhdGlvbkJ1aWxkZXIsIHNvIHdoZW4geW91IGNoYW5nZSB0aGlzIGNsYXNzXG4gKiAgICAgICBtYWtlIHN1cmUgdG8gcmVmbGVjdCBjaGFuZ2VzIHRoZXJlIGFzIHdlbGwuXG4gKi9cbmNsYXNzIE9uZVRvTWFueVN1YmplY3RCdWlsZGVyIHtcbiAgICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAgICAvLyBDb25zdHJ1Y3RvclxuICAgIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIGNvbnN0cnVjdG9yKHN1YmplY3RzKSB7XG4gICAgICAgIHRoaXMuc3ViamVjdHMgPSBzdWJqZWN0cztcbiAgICB9XG4gICAgLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXG4gICAgLy8gUHVibGljIE1ldGhvZHNcbiAgICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAgICAvKipcbiAgICAgKiBCdWlsZHMgYWxsIHJlcXVpcmVkIG9wZXJhdGlvbnMuXG4gICAgICovXG4gICAgYnVpbGQoKSB7XG4gICAgICAgIHRoaXMuc3ViamVjdHMuZm9yRWFjaCgoc3ViamVjdCkgPT4ge1xuICAgICAgICAgICAgc3ViamVjdC5tZXRhZGF0YS5vbmVUb01hbnlSZWxhdGlvbnMuZm9yRWFjaCgocmVsYXRpb24pID0+IHtcbiAgICAgICAgICAgICAgICAvLyBza2lwIHJlbGF0aW9ucyBmb3Igd2hpY2ggcGVyc2lzdGVuY2UgaXMgZGlzYWJsZWRcbiAgICAgICAgICAgICAgICBpZiAocmVsYXRpb24ucGVyc2lzdGVuY2VFbmFibGVkID09PSBmYWxzZSlcbiAgICAgICAgICAgICAgICAgICAgcmV0dXJuO1xuICAgICAgICAgICAgICAgIHRoaXMuYnVpbGRGb3JTdWJqZWN0UmVsYXRpb24oc3ViamVjdCwgcmVsYXRpb24pO1xuICAgICAgICAgICAgfSk7XG4gICAgICAgIH0pO1xuICAgIH1cbiAgICAvLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAgICAvLyBQcm90ZWN0ZWQgTWV0aG9kc1xuICAgIC8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICAgIC8qKlxuICAgICAqIEJ1aWxkcyBvcGVyYXRpb25zIGZvciBhIGdpdmVuIHN1YmplY3QgYW5kIHJlbGF0aW9uLlxuICAgICAqXG4gICAgICogYnkgZXhhbXBsZTogc3ViamVjdCBpcyBcInBvc3RcIiBlbnRpdHkgd2UgYXJlIHNhdmluZyBoZXJlIGFuZCByZWxhdGlvbiBpcyBcImNhdGVnb3JpZXNcIiBpbnNpZGUgaXQgaGVyZS5cbiAgICAgKi9cbiAgICBidWlsZEZvclN1YmplY3RSZWxhdGlvbihzdWJqZWN0LCByZWxhdGlvbikge1xuICAgICAgICAvLyBwcmVwYXJlIG9iamVjdHMgKHJlbGF0aW9uIGlkIG1hcHMpIGZvciB0aGUgZGF0YWJhc2UgZW50aXR5XG4gICAgICAgIC8vIGJ5IGV4YW1wbGU6IHNpbmNlIHN1YmplY3QgaXMgYSBwb3N0LCB3ZSBhcmUgZXhwZWN0aW5nIHRvIGdldCBhbGwgcG9zdCdzIGNhdGVnb3JpZXMgc2F2ZWQgaW4gdGhlIGRhdGFiYXNlIGhlcmUsXG4gICAgICAgIC8vICAgICAgICAgICAgIHBhcnRpY3VsYXJseSB0aGVpciByZWxhdGlvbiBpZHMsIGUuZy4gY2F0ZWdvcnkgaWRzIHN0b3JlZCBpbiB0aGUgZGF0YWJhc2VcbiAgICAgICAgLy8gaW4gbW9zdCBjYXNlcyByZWxhdGVkRW50aXR5RGF0YWJhc2VWYWx1ZXMgd2lsbCBjb250YWluIG9ubHkgdGhlIGVudGl0eSBrZXkgcHJvcGVydGllcy5cbiAgICAgICAgLy8gdGhpcyBpcyBiZWNhdXNlIHN1YmplY3QuZGF0YWJhc2VFbnRpdHkgY29udGFpbnMgcmVsYXRpb25zIHdpdGggbG9hZGVkIHJlbGF0aW9uIGlkcyBvbmx5LlxuICAgICAgICAvLyBob3dldmVyIGlmIHRoZSBlbnRpdHkgdXNlcyB0aGUgYWZ0ZXJMb2FkIGhvb2sgdG8gY2FsY3VsYXRlIGFueSBwcm9wZXJ0aWVzLCB0aGUgZmV0Y2hlZCBcImtleSBvYmplY3RcIiBtaWdodCBpbmNsdWRlIEFERElUSU9OQUwgcHJvcGVydGllcy5cbiAgICAgICAgLy8gdG8gaGFuZGxlIHN1Y2ggc2l0dWF0aW9ucywgd2UgcGFzcyB0aGUgZGF0YSB0byByZWxhdGlvbi5pbnZlcnNlRW50aXR5TWV0YWRhdGEuZ2V0RW50aXR5SWRNYXAgdG8gZXh0cmFjdCB0aGUga2V5IHdpdGhvdXQgYW55IG90aGVyIHByb3BlcnRpZXMuXG4gICAgICAgIGxldCByZWxhdGVkRW50aXR5RGF0YWJhc2VSZWxhdGlvbklkcyA9IFtdO1xuICAgICAgICBpZiAoc3ViamVjdC5kYXRhYmFzZUVudGl0eSkge1xuICAgICAgICAgICAgLy8gcmVsYXRlZCBlbnRpdGllcyBpbiB0aGUgZGF0YWJhc2UgY2FuIGV4aXN0IG9ubHkgaWYgdGhpcyBlbnRpdHkgKHBvc3QpIGlzIHNhdmVkXG4gICAgICAgICAgICBjb25zdCByZWxhdGVkRW50aXR5RGF0YWJhc2VSZWxhdGlvbiA9IHJlbGF0aW9uLmdldEVudGl0eVZhbHVlKHN1YmplY3QuZGF0YWJhc2VFbnRpdHkpO1xuICAgICAgICAgICAgaWYgKHJlbGF0ZWRFbnRpdHlEYXRhYmFzZVJlbGF0aW9uKSB7XG4gICAgICAgICAgICAgICAgcmVsYXRlZEVudGl0eURhdGFiYXNlUmVsYXRpb25JZHMgPVxuICAgICAgICAgICAgICAgICAgICByZWxhdGVkRW50aXR5RGF0YWJhc2VSZWxhdGlvbi5tYXAoKGVudGl0eSkgPT4gcmVsYXRpb24uaW52ZXJzZUVudGl0eU1ldGFkYXRhLmdldEVudGl0eUlkTWFwKGVudGl0eSkpO1xuICAgICAgICAgICAgfVxuICAgICAgICB9XG4gICAgICAgIC8vIGdldCByZWxhdGVkIGVudGl0aWVzIG9mIHBlcnNpc3RlZCBlbnRpdHlcbiAgICAgICAgLy8gYnkgZXhhbXBsZTogZ2V0IGNhdGVnb3JpZXMgZnJvbSB0aGUgcGFzc2VkIHRvIHBlcnNpc3QgcG9zdCBlbnRpdHlcbiAgICAgICAgbGV0IHJlbGF0ZWRFbnRpdGllcyA9IHJlbGF0aW9uLmdldEVudGl0eVZhbHVlKHN1YmplY3QuZW50aXR5KTtcbiAgICAgICAgaWYgKHJlbGF0ZWRFbnRpdGllcyA9PT0gbnVsbClcbiAgICAgICAgICAgIC8vIHdlIHRyZWF0IHJlbGF0aW9ucyBzZXQgdG8gbnVsbCBhcyByZW1vdmVkLCBzbyB3ZSBkb24ndCBza2lwIGl0XG4gICAgICAgICAgICByZWxhdGVkRW50aXRpZXMgPSBbXTtcbiAgICAgICAgaWYgKHJlbGF0ZWRFbnRpdGllcyA9PT0gdW5kZWZpbmVkKVxuICAgICAgICAgICAgLy8gaWYgcmVsYXRpb24gaXMgdW5kZWZpbmVkIHRoZW4gbm90aGluZyB0byB1cGRhdGVcbiAgICAgICAgICAgIHJldHVybjtcbiAgICAgICAgLy8gZXh0cmFjdCBvbmx5IHJlbGF0aW9uIGlkcyBmcm9tIHRoZSByZWxhdGVkIGVudGl0aWVzLCBzaW5jZSB3ZSBvbmx5IG5lZWQgdGhlbSBmb3IgY29tcGFyaXNvblxuICAgICAgICAvLyBieSBleGFtcGxlOiBleHRyYWN0IGZyb20gY2F0ZWdvcmllcyBvbmx5IHJlbGF0aW9uIGlkcyAoY2F0ZWdvcnkgaWQsIG9yIGxldCdzIHNheSBjYXRlZ29yeSB0aXRsZSwgZGVwZW5kIG9uIGpvaW4gY29sdW1uIG9wdGlvbnMpXG4gICAgICAgIGNvbnN0IHJlbGF0ZWRQZXJzaXN0ZWRFbnRpdHlSZWxhdGlvbklkcyA9IFtdO1xuICAgICAgICByZWxhdGVkRW50aXRpZXMuZm9yRWFjaCgocmVsYXRlZEVudGl0eSkgPT4ge1xuICAgICAgICAgICAgLy8gYnkgZXhhbXBsZTogcmVsYXRlZEVudGl0eSBpcyBhIGNhdGVnb3J5IGhlcmVcbiAgICAgICAgICAgIGxldCByZWxhdGlvbklkTWFwID0gcmVsYXRpb24uaW52ZXJzZUVudGl0eU1ldGFkYXRhLmdldEVudGl0eUlkTWFwKHJlbGF0ZWRFbnRpdHkpOyAvLyBieSBleGFtcGxlOiByZWxhdGlvbklkTWFwIGlzIGNhdGVnb3J5LmlkIG1hcCBoZXJlLCBlLmcuIHsgaWQ6IC4uLiB9XG4gICAgICAgICAgICAvLyB0cnkgdG8gZmluZCBhIHN1YmplY3Qgb2YgdGhpcyByZWxhdGVkIGVudGl0eSwgbWF5YmUgaXQgd2FzIGxvYWRlZCBvciB3YXMgbWFya2VkIGZvciBwZXJzaXN0ZW5jZVxuICAgICAgICAgICAgbGV0IHJlbGF0ZWRFbnRpdHlTdWJqZWN0ID0gdGhpcy5zdWJqZWN0cy5maW5kKChzdWJqZWN0KSA9PiB7XG4gICAgICAgICAgICAgICAgcmV0dXJuIHN1YmplY3QuZW50aXR5ID09PSByZWxhdGVkRW50aXR5O1xuICAgICAgICAgICAgfSk7XG4gICAgICAgICAgICAvLyBpZiBzdWJqZWN0IHdpdGggZW50aXR5IHdhcyBmb3VuZCB0YWtlIHN1YmplY3QgaWRlbnRpZmllciBhcyByZWxhdGlvbiBpZCBtYXAgc2luY2UgaXQgbWF5IGNvbnRhaW4gZXh0cmEgcHJvcGVydGllcyByZXNvbHZlZFxuICAgICAgICAgICAgaWYgKHJlbGF0ZWRFbnRpdHlTdWJqZWN0KVxuICAgICAgICAgICAgICAgIHJlbGF0aW9uSWRNYXAgPSByZWxhdGVkRW50aXR5U3ViamVjdC5pZGVudGlmaWVyO1xuICAgICAgICAgICAgLy8gaWYgcmVsYXRpb25JZE1hcCBpcyB1bmRlZmluZWQgdGhlbiBpdCBtZWFucyB1c2VyIGJpbmRzIG9iamVjdCB3aGljaCBpcyBub3Qgc2F2ZWQgaW4gdGhlIGRhdGFiYXNlIHlldFxuICAgICAgICAgICAgLy8gYnkgZXhhbXBsZTogaWYgcG9zdCBjb250YWlucyBjYXRlZ29yaWVzIHdoaWNoIGRvZXMgbm90IGhhdmUgaWRzIHlldCAoYmVjYXVzZSB0aGV5IGFyZSBuZXcpXG4gICAgICAgICAgICAvLyAgICAgICAgICAgICBpdCBtZWFucyB0aGV5IGFyZSBhbHdheXMgbmV3bHkgaW5zZXJ0ZWQgYW5kIHJlbGF0aW9uIHVwZGF0ZSBvcGVyYXRpb24gYWx3YXlzIG11c3QgYmUgY3JlYXRlZCBmb3IgdGhlbVxuICAgICAgICAgICAgLy8gICAgICAgICAgICAgaXQgZG9lcyBub3QgbWFrZSBzZW5zZSB0byBwZXJmb3JtIGRpZmZlcmVuY2Ugb3BlcmF0aW9uIGZvciB0aGVtIGZvciBib3RoIGFkZCBhbmQgcmVtb3ZlIGFjdGlvbnNcbiAgICAgICAgICAgIGlmICghcmVsYXRpb25JZE1hcCkge1xuICAgICAgICAgICAgICAgIC8vIHdlIGRlY2lkZWQgdG8gcmVtb3ZlIHRoaXMgZXJyb3IgYmVjYXVzZSBpdCBicmluZ3MgY29tcGxpY2F0aW9ucyB3aGVuIHNhdmluZyBvYmplY3Qgd2l0aCBub24tc2F2ZWQgZW50aXRpZXNcbiAgICAgICAgICAgICAgICAvLyBpZiAoIXJlbGF0ZWRFbnRpdHlTdWJqZWN0KVxuICAgICAgICAgICAgICAgIC8vICAgICB0aHJvdyBuZXcgVHlwZU9STUVycm9yKGBPbmUtdG8tbWFueSByZWxhdGlvbiBcIiR7cmVsYXRpb24uZW50aXR5TWV0YWRhdGEubmFtZX0uJHtyZWxhdGlvbi5wcm9wZXJ0eVBhdGh9XCIgY29udGFpbnMgYCArXG4gICAgICAgICAgICAgICAgLy8gICAgICAgICBgZW50aXRpZXMgd2hpY2ggZG8gbm90IGV4aXN0IGluIHRoZSBkYXRhYmFzZSB5ZXQsIHRodXMgdGhleSBjYW5ub3QgYmUgYmluZCBpbiB0aGUgZGF0YWJhc2UuIGAgK1xuICAgICAgICAgICAgICAgIC8vICAgICAgICAgYFBsZWFzZSBzZXR1cCBjYXNjYWRlIGluc2VydGlvbiBvciBzYXZlIGVudGl0aWVzIGJlZm9yZSBiaW5kaW5nIGl0LmApO1xuICAgICAgICAgICAgICAgIGlmICghcmVsYXRlZEVudGl0eVN1YmplY3QpXG4gICAgICAgICAgICAgICAgICAgIHJldHVybjtcbiAgICAgICAgICAgICAgICAvLyBva2F5LCBzbyByZWxhdGVkIHN1YmplY3QgZXhpc3QgYW5kIGl0cyBtYXJrZWQgZm9yIGluc2VydGlvbiwgdGhlbiBhZGQgYSBuZXcgY2hhbmdlIG1hcFxuICAgICAgICAgICAgICAgIC8vIGJ5IGV4YW1wbGU6IHRoaXMgd2lsbCB0ZWxsIGNhdGVnb3J5IHRvIGluc2VydCBpbnRvIGl0cyBwb3N0IHJlbGF0aW9uIG91ciBwb3N0IHdlIGFyZSB3b3JraW5nIHdpdGhcbiAgICAgICAgICAgICAgICAvLyAgICAgICAgICAgICByZWxhdGVkRW50aXR5U3ViamVjdCBpcyBuZXdseSBpbnNlcnRlZCBDYXRlZ29yeVN1YmplY3RcbiAgICAgICAgICAgICAgICAvLyAgICAgICAgICAgICByZWxhdGlvbi5pbnZlcnNlUmVsYXRpb24gaXMgTWFueVRvT25lIHJlbGF0aW9uIGluc2lkZSBDYXRlZ29yeVxuICAgICAgICAgICAgICAgIC8vICAgICAgICAgICAgIHN1YmplY3QgaXMgUG9zdCBuZWVkcyB0byBiZSBpbnNlcnRlZCBpbnRvIENhdGVnb3J5XG4gICAgICAgICAgICAgICAgcmVsYXRlZEVudGl0eVN1YmplY3QuY2hhbmdlTWFwcy5wdXNoKHtcbiAgICAgICAgICAgICAgICAgICAgcmVsYXRpb246IHJlbGF0aW9uLmludmVyc2VSZWxhdGlvbixcbiAgICAgICAgICAgICAgICAgICAgdmFsdWU6IHN1YmplY3QsXG4gICAgICAgICAgICAgICAgfSk7XG4gICAgICAgICAgICAgICAgcmV0dXJuO1xuICAgICAgICAgICAgfVxuICAgICAgICAgICAgLy8gY2hlY2sgaWYgdGhpcyBiaW5kaW5nIHJlYWxseSBleGlzdCBpbiB0aGUgZGF0YWJhc2VcbiAgICAgICAgICAgIC8vIGJ5IGV4YW1wbGU6IGZpbmQgb3VyIGNhdGVnb3J5IGlmIGl0cyBhbHJlYWR5IGJpbmQgaW4gdGhlIGRhdGFiYXNlXG4gICAgICAgICAgICBjb25zdCByZWxhdGlvbklkSW5EYXRhYmFzZVN1YmplY3RSZWxhdGlvbiA9IHJlbGF0ZWRFbnRpdHlEYXRhYmFzZVJlbGF0aW9uSWRzLmZpbmQoKHJlbGF0ZWREYXRhYmFzZUVudGl0eVJlbGF0aW9uSWQpID0+IHtcbiAgICAgICAgICAgICAgICByZXR1cm4gT3JtVXRpbHNfMS5Pcm1VdGlscy5jb21wYXJlSWRzKHJlbGF0aW9uSWRNYXAsIHJlbGF0ZWREYXRhYmFzZUVudGl0eVJlbGF0aW9uSWQpO1xuICAgICAgICAgICAgfSk7XG4gICAgICAgICAgICAvLyBpZiByZWxhdGlvbklkTWFwIERPRVMgTk9UIGV4aXN0IGluIHRoZSBzdWJqZWN0J3MgcmVsYXRpb24gaW4gdGhlIGRhdGFiYXNlIGl0IG1lYW5zIGl0cyBhIG5ldyByZWxhdGlvbiBhbmQgd2UgbmVlZCB0byBcImJpbmRcIiB0aGVtXG4gICAgICAgICAgICAvLyBieSBleGFtcGxlOiB0aGlzIHdpbGwgdGVsbCBjYXRlZ29yeSB0byBpbnNlcnQgaW50byBpdHMgcG9zdCByZWxhdGlvbiBvdXIgcG9zdCB3ZSBhcmUgd29ya2luZyB3aXRoXG4gICAgICAgICAgICAvLyAgICAgICAgICAgICByZWxhdGVkRW50aXR5U3ViamVjdCBpcyBuZXdseSBpbnNlcnRlZCBDYXRlZ29yeVN1YmplY3RcbiAgICAgICAgICAgIC8vICAgICAgICAgICAgIHJlbGF0aW9uLmludmVyc2VSZWxhdGlvbiBpcyBNYW55VG9PbmUgcmVsYXRpb24gaW5zaWRlIENhdGVnb3J5XG4gICAgICAgICAgICAvLyAgICAgICAgICAgICBzdWJqZWN0IGlzIFBvc3QgbmVlZHMgdG8gYmUgaW5zZXJ0ZWQgaW50byBDYXRlZ29yeVxuICAgICAgICAgICAgaWYgKCFyZWxhdGlvbklkSW5EYXRhYmFzZVN1YmplY3RSZWxhdGlvbikge1xuICAgICAgICAgICAgICAgIC8vIGlmIHRoZXJlIGlzIG5vIHJlbGF0ZWRFbnRpdHlTdWJqZWN0IHRoZW4gaXQgbWVhbnMgXCJjYXRlZ29yeVwiIHdhc24ndCBwZXJzaXN0ZWQsXG4gICAgICAgICAgICAgICAgLy8gYnV0IHNpbmNlIHdlIGFyZSBnb2luZyB0byB1cGRhdGUgXCJjYXRlZ29yeVwiIHRhYmxlIChzaW5jZSBpdHMgYW4gb3duaW5nIHNpZGUgb2YgcmVsYXRpb24gd2l0aCBqb2luIGNvbHVtbilcbiAgICAgICAgICAgICAgICAvLyB3ZSBjcmVhdGUgYSBuZXcgc3ViamVjdCBoZXJlOlxuICAgICAgICAgICAgICAgIGlmICghcmVsYXRlZEVudGl0eVN1YmplY3QpIHtcbiAgICAgICAgICAgICAgICAgICAgcmVsYXRlZEVudGl0eVN1YmplY3QgPSBuZXcgU3ViamVjdF8xLlN1YmplY3Qoe1xuICAgICAgICAgICAgICAgICAgICAgICAgbWV0YWRhdGE6IHJlbGF0aW9uLmludmVyc2VFbnRpdHlNZXRhZGF0YSxcbiAgICAgICAgICAgICAgICAgICAgICAgIHBhcmVudFN1YmplY3Q6IHN1YmplY3QsXG4gICAgICAgICAgICAgICAgICAgICAgICBjYW5CZVVwZGF0ZWQ6IHRydWUsXG4gICAgICAgICAgICAgICAgICAgICAgICBpZGVudGlmaWVyOiByZWxhdGlvbklkTWFwLFxuICAgICAgICAgICAgICAgICAgICB9KTtcbiAgICAgICAgICAgICAgICAgICAgdGhpcy5zdWJqZWN0cy5wdXNoKHJlbGF0ZWRFbnRpdHlTdWJqZWN0KTtcbiAgICAgICAgICAgICAgICB9XG4gICAgICAgICAgICAgICAgcmVsYXRlZEVudGl0eVN1YmplY3QuY2hhbmdlTWFwcy5wdXNoKHtcbiAgICAgICAgICAgICAgICAgICAgcmVsYXRpb246IHJlbGF0aW9uLmludmVyc2VSZWxhdGlvbixcbiAgICAgICAgICAgICAgICAgICAgdmFsdWU6IHN1YmplY3QsXG4gICAgICAgICAgICAgICAgfSk7XG4gICAgICAgICAgICB9XG4gICAgICAgICAgICAvLyBpZiByZWxhdGVkIGVudGl0eSBoYXMgcmVsYXRpb24gaWQgdGhlbiB3ZSBhZGQgaXQgdG8gdGhlIGxpc3Qgb2YgcmVsYXRpb24gaWRzXG4gICAgICAgICAgICAvLyB0aGlzIGxpc3Qgd2lsbCBiZSB1c2VkIGxhdGVyIHRvIGNvbXBhcmUgd2l0aCBkYXRhYmFzZSByZWxhdGlvbiBpZHMgdG8gZmluZCBhIGRpZmZlcmVuY2VcbiAgICAgICAgICAgIC8vIHdoYXQgZXhpc3QgaW4gdGhpcyBhcnJheSBhbmQgZG9lcyBub3QgZXhpc3QgaW4gdGhlIGRhdGFiYXNlIGFyZSBuZXdseSBpbnNlcnRlZCByZWxhdGlvbnNcbiAgICAgICAgICAgIC8vIHdoYXQgZG9lcyBub3QgZXhpc3QgaW4gdGhpcyBhcnJheSwgYnV0IGV4aXN0IGluIHRoZSBkYXRhYmFzZSBhcmUgcmVtb3ZlZCByZWxhdGlvbnNcbiAgICAgICAgICAgIC8vIHJlbW92ZWQgcmVsYXRpb25zIGFyZSBzZXQgdG8gbnVsbCBmcm9tIGludmVyc2Ugc2lkZSBvZiByZWxhdGlvblxuICAgICAgICAgICAgcmVsYXRlZFBlcnNpc3RlZEVudGl0eVJlbGF0aW9uSWRzLnB1c2gocmVsYXRpb25JZE1hcCk7XG4gICAgICAgIH0pO1xuICAgICAgICAvLyBmaW5kIHdoYXQgcmVsYXRlZCBlbnRpdGllcyB3ZXJlIGFkZGVkIGFuZCB3aGF0IHdlcmUgcmVtb3ZlZCBiYXNlZCBvbiBkaWZmZXJlbmNlIGJldHdlZW4gd2hhdCB3ZSBzYXZlIGFuZCB3aGF0IGRhdGFiYXNlIGhhc1xuICAgICAgICBpZiAocmVsYXRpb24uaW52ZXJzZVJlbGF0aW9uPy5vcnBoYW5lZFJvd0FjdGlvbiAhPT0gXCJkaXNhYmxlXCIpIHtcbiAgICAgICAgICAgIEVudGl0eU1ldGFkYXRhXzEuRW50aXR5TWV0YWRhdGEuZGlmZmVyZW5jZShyZWxhdGVkRW50aXR5RGF0YWJhc2VSZWxhdGlvbklkcywgcmVsYXRlZFBlcnNpc3RlZEVudGl0eVJlbGF0aW9uSWRzKS5mb3JFYWNoKChyZW1vdmVkUmVsYXRlZEVudGl0eVJlbGF0aW9uSWQpID0+IHtcbiAgICAgICAgICAgICAgICAvLyBieSBleGFtcGxlOiByZW1vdmVkUmVsYXRlZEVudGl0eVJlbGF0aW9uSWQgaXMgY2F0ZWdvcnkgdGhhdCB3YXMgYmluZCBpbiB0aGUgZGF0YWJhc2UgYmVmb3JlLCBidXQgbm93IGl0cyB1bmJpbmRcbiAgICAgICAgICAgICAgICAvLyB0b2RvOiBwcm9iYWJseSB3ZSBjYW4gaW1wcm92ZSB0aGlzIGluIHRoZSBmdXR1cmUgYnkgZmluZGluZyBlbnRpdHkgd2l0aCBjb2x1bW4gdGhvc2UgdmFsdWVzLFxuICAgICAgICAgICAgICAgIC8vIHRvZG86IG1heWJlIGl0IHdhcyBhbHJlYWR5IGluIHBlcnNpc3RlbmNlIHByb2Nlc3MuIFRoaXMgaXMgcG9zc2libGUgZHVlIHRvIHVuaXF1ZSByZXF1aXJlbWVudHMgb2Ygam9pbiBjb2x1bW5zXG4gICAgICAgICAgICAgICAgLy8gd2UgY3JlYXRlIGEgbmV3IHN1YmplY3Qgd2hpY2ggb3BlcmF0aW9ucyB3aWxsIGJlIGV4ZWN1dGVkIGluIHN1YmplY3Qgb3BlcmF0aW9uIGV4ZWN1dG9yXG4gICAgICAgICAgICAgICAgY29uc3QgcmVtb3ZlZFJlbGF0ZWRFbnRpdHlTdWJqZWN0ID0gbmV3IFN1YmplY3RfMS5TdWJqZWN0KHtcbiAgICAgICAgICAgICAgICAgICAgbWV0YWRhdGE6IHJlbGF0aW9uLmludmVyc2VFbnRpdHlNZXRhZGF0YSxcbiAgICAgICAgICAgICAgICAgICAgcGFyZW50U3ViamVjdDogc3ViamVjdCxcbiAgICAgICAgICAgICAgICAgICAgaWRlbnRpZmllcjogcmVtb3ZlZFJlbGF0ZWRFbnRpdHlSZWxhdGlvbklkLFxuICAgICAgICAgICAgICAgIH0pO1xuICAgICAgICAgICAgICAgIGlmICghcmVsYXRpb24uaW52ZXJzZVJlbGF0aW9uIHx8XG4gICAgICAgICAgICAgICAgICAgIHJlbGF0aW9uLmludmVyc2VSZWxhdGlvbi5vcnBoYW5lZFJvd0FjdGlvbiA9PT0gXCJudWxsaWZ5XCIpIHtcbiAgICAgICAgICAgICAgICAgICAgcmVtb3ZlZFJlbGF0ZWRFbnRpdHlTdWJqZWN0LmNhbkJlVXBkYXRlZCA9IHRydWU7XG4gICAgICAgICAgICAgICAgICAgIHJlbW92ZWRSZWxhdGVkRW50aXR5U3ViamVjdC5jaGFuZ2VNYXBzID0gW1xuICAgICAgICAgICAgICAgICAgICAgICAge1xuICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJlbGF0aW9uOiByZWxhdGlvbi5pbnZlcnNlUmVsYXRpb24sXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgdmFsdWU6IG51bGwsXG4gICAgICAgICAgICAgICAgICAgICAgICB9LFxuICAgICAgICAgICAgICAgICAgICBdO1xuICAgICAgICAgICAgICAgIH1cbiAgICAgICAgICAgICAgICBlbHNlIGlmIChyZWxhdGlvbi5pbnZlcnNlUmVsYXRpb24ub3JwaGFuZWRSb3dBY3Rpb24gPT09IFwiZGVsZXRlXCIpIHtcbiAgICAgICAgICAgICAgICAgICAgcmVtb3ZlZFJlbGF0ZWRFbnRpdHlTdWJqZWN0Lm11c3RCZVJlbW92ZWQgPSB0cnVlO1xuICAgICAgICAgICAgICAgIH1cbiAgICAgICAgICAgICAgICBlbHNlIGlmIChyZWxhdGlvbi5pbnZlcnNlUmVsYXRpb24ub3JwaGFuZWRSb3dBY3Rpb24gPT09IFwic29mdC1kZWxldGVcIikge1xuICAgICAgICAgICAgICAgICAgICByZW1vdmVkUmVsYXRlZEVudGl0eVN1YmplY3QuY2FuQmVTb2Z0UmVtb3ZlZCA9IHRydWU7XG4gICAgICAgICAgICAgICAgfVxuICAgICAgICAgICAgICAgIHRoaXMuc3ViamVjdHMucHVzaChyZW1vdmVkUmVsYXRlZEVudGl0eVN1YmplY3QpO1xuICAgICAgICAgICAgfSk7XG4gICAgICAgIH1cbiAgICB9XG59XG5leHBvcnRzLk9uZVRvTWFueVN1YmplY3RCdWlsZGVyID0gT25lVG9NYW55U3ViamVjdEJ1aWxkZXI7XG5cbi8vIyBzb3VyY2VNYXBwaW5nVVJMPU9uZVRvTWFueVN1YmplY3RCdWlsZGVyLmpzLm1hcFxuIl0sInZlcnNpb24iOjN9

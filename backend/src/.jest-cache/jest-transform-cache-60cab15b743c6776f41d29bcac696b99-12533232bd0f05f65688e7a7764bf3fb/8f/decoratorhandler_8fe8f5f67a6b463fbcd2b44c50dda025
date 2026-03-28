@@ -1,0 +1,71 @@
+52ac1ffbc91a28cb23dff2632c89d3b0
+'use strict';
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _DecoratorHandler_handler, _DecoratorHandler_onCompleteCalled, _DecoratorHandler_onErrorCalled, _DecoratorHandler_onResponseStartCalled, _a;
+const assert = require('node:assert');
+const WrapHandler = require('./wrap-handler');
+/**
+ * @deprecated
+ */
+module.exports = (_a = class DecoratorHandler {
+        constructor(handler) {
+            _DecoratorHandler_handler.set(this, void 0);
+            _DecoratorHandler_onCompleteCalled.set(this, false);
+            _DecoratorHandler_onErrorCalled.set(this, false);
+            _DecoratorHandler_onResponseStartCalled.set(this, false);
+            if (typeof handler !== 'object' || handler === null) {
+                throw new TypeError('handler must be an object');
+            }
+            __classPrivateFieldSet(this, _DecoratorHandler_handler, WrapHandler.wrap(handler), "f");
+        }
+        onRequestStart(...args) {
+            __classPrivateFieldGet(this, _DecoratorHandler_handler, "f").onRequestStart?.(...args);
+        }
+        onRequestUpgrade(...args) {
+            assert(!__classPrivateFieldGet(this, _DecoratorHandler_onCompleteCalled, "f"));
+            assert(!__classPrivateFieldGet(this, _DecoratorHandler_onErrorCalled, "f"));
+            return __classPrivateFieldGet(this, _DecoratorHandler_handler, "f").onRequestUpgrade?.(...args);
+        }
+        onResponseStart(...args) {
+            assert(!__classPrivateFieldGet(this, _DecoratorHandler_onCompleteCalled, "f"));
+            assert(!__classPrivateFieldGet(this, _DecoratorHandler_onErrorCalled, "f"));
+            assert(!__classPrivateFieldGet(this, _DecoratorHandler_onResponseStartCalled, "f"));
+            __classPrivateFieldSet(this, _DecoratorHandler_onResponseStartCalled, true, "f");
+            return __classPrivateFieldGet(this, _DecoratorHandler_handler, "f").onResponseStart?.(...args);
+        }
+        onResponseData(...args) {
+            assert(!__classPrivateFieldGet(this, _DecoratorHandler_onCompleteCalled, "f"));
+            assert(!__classPrivateFieldGet(this, _DecoratorHandler_onErrorCalled, "f"));
+            return __classPrivateFieldGet(this, _DecoratorHandler_handler, "f").onResponseData?.(...args);
+        }
+        onResponseEnd(...args) {
+            assert(!__classPrivateFieldGet(this, _DecoratorHandler_onCompleteCalled, "f"));
+            assert(!__classPrivateFieldGet(this, _DecoratorHandler_onErrorCalled, "f"));
+            __classPrivateFieldSet(this, _DecoratorHandler_onCompleteCalled, true, "f");
+            return __classPrivateFieldGet(this, _DecoratorHandler_handler, "f").onResponseEnd?.(...args);
+        }
+        onResponseError(...args) {
+            __classPrivateFieldSet(this, _DecoratorHandler_onErrorCalled, true, "f");
+            return __classPrivateFieldGet(this, _DecoratorHandler_handler, "f").onResponseError?.(...args);
+        }
+        /**
+         * @deprecated
+         */
+        onBodySent() { }
+    },
+    _DecoratorHandler_handler = new WeakMap(),
+    _DecoratorHandler_onCompleteCalled = new WeakMap(),
+    _DecoratorHandler_onErrorCalled = new WeakMap(),
+    _DecoratorHandler_onResponseStartCalled = new WeakMap(),
+    _a);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHVuZGljaUA3LjI0LjRcXG5vZGVfbW9kdWxlc1xcdW5kaWNpXFxsaWJcXGhhbmRsZXJcXGRlY29yYXRvci1oYW5kbGVyLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQTs7Ozs7Ozs7Ozs7OztBQUVaLE1BQU0sTUFBTSxHQUFHLE9BQU8sQ0FBQyxhQUFhLENBQUMsQ0FBQTtBQUNyQyxNQUFNLFdBQVcsR0FBRyxPQUFPLENBQUMsZ0JBQWdCLENBQUMsQ0FBQTtBQUU3Qzs7R0FFRztBQUNILE1BQU0sQ0FBQyxPQUFPLFNBQUcsTUFBTSxnQkFBZ0I7UUFNckMsWUFBYSxPQUFPO1lBTHBCLDRDQUFRO1lBQ1IsNkNBQW9CLEtBQUssRUFBQTtZQUN6QiwwQ0FBaUIsS0FBSyxFQUFBO1lBQ3RCLGtEQUF5QixLQUFLLEVBQUE7WUFHNUIsSUFBSSxPQUFPLE9BQU8sS0FBSyxRQUFRLElBQUksT0FBTyxLQUFLLElBQUksRUFBRSxDQUFDO2dCQUNwRCxNQUFNLElBQUksU0FBUyxDQUFDLDJCQUEyQixDQUFDLENBQUE7WUFDbEQsQ0FBQztZQUNELHVCQUFBLElBQUksNkJBQVksV0FBVyxDQUFDLElBQUksQ0FBQyxPQUFPLENBQUMsTUFBQSxDQUFBO1FBQzNDLENBQUM7UUFFRCxjQUFjLENBQUUsR0FBRyxJQUFJO1lBQ3JCLHVCQUFBLElBQUksaUNBQVMsQ0FBQyxjQUFjLEVBQUUsQ0FBQyxHQUFHLElBQUksQ0FBQyxDQUFBO1FBQ3pDLENBQUM7UUFFRCxnQkFBZ0IsQ0FBRSxHQUFHLElBQUk7WUFDdkIsTUFBTSxDQUFDLENBQUMsdUJBQUEsSUFBSSwwQ0FBa0IsQ0FBQyxDQUFBO1lBQy9CLE1BQU0sQ0FBQyxDQUFDLHVCQUFBLElBQUksdUNBQWUsQ0FBQyxDQUFBO1lBRTVCLE9BQU8sdUJBQUEsSUFBSSxpQ0FBUyxDQUFDLGdCQUFnQixFQUFFLENBQUMsR0FBRyxJQUFJLENBQUMsQ0FBQTtRQUNsRCxDQUFDO1FBRUQsZUFBZSxDQUFFLEdBQUcsSUFBSTtZQUN0QixNQUFNLENBQUMsQ0FBQyx1QkFBQSxJQUFJLDBDQUFrQixDQUFDLENBQUE7WUFDL0IsTUFBTSxDQUFDLENBQUMsdUJBQUEsSUFBSSx1Q0FBZSxDQUFDLENBQUE7WUFDNUIsTUFBTSxDQUFDLENBQUMsdUJBQUEsSUFBSSwrQ0FBdUIsQ0FBQyxDQUFBO1lBRXBDLHVCQUFBLElBQUksMkNBQTBCLElBQUksTUFBQSxDQUFBO1lBRWxDLE9BQU8sdUJBQUEsSUFBSSxpQ0FBUyxDQUFDLGVBQWUsRUFBRSxDQUFDLEdBQUcsSUFBSSxDQUFDLENBQUE7UUFDakQsQ0FBQztRQUVELGNBQWMsQ0FBRSxHQUFHLElBQUk7WUFDckIsTUFBTSxDQUFDLENBQUMsdUJBQUEsSUFBSSwwQ0FBa0IsQ0FBQyxDQUFBO1lBQy9CLE1BQU0sQ0FBQyxDQUFDLHVCQUFBLElBQUksdUNBQWUsQ0FBQyxDQUFBO1lBRTVCLE9BQU8sdUJBQUEsSUFBSSxpQ0FBUyxDQUFDLGNBQWMsRUFBRSxDQUFDLEdBQUcsSUFBSSxDQUFDLENBQUE7UUFDaEQsQ0FBQztRQUVELGFBQWEsQ0FBRSxHQUFHLElBQUk7WUFDcEIsTUFBTSxDQUFDLENBQUMsdUJBQUEsSUFBSSwwQ0FBa0IsQ0FBQyxDQUFBO1lBQy9CLE1BQU0sQ0FBQyxDQUFDLHVCQUFBLElBQUksdUNBQWUsQ0FBQyxDQUFBO1lBRTVCLHVCQUFBLElBQUksc0NBQXFCLElBQUksTUFBQSxDQUFBO1lBQzdCLE9BQU8sdUJBQUEsSUFBSSxpQ0FBUyxDQUFDLGFBQWEsRUFBRSxDQUFDLEdBQUcsSUFBSSxDQUFDLENBQUE7UUFDL0MsQ0FBQztRQUVELGVBQWUsQ0FBRSxHQUFHLElBQUk7WUFDdEIsdUJBQUEsSUFBSSxtQ0FBa0IsSUFBSSxNQUFBLENBQUE7WUFDMUIsT0FBTyx1QkFBQSxJQUFJLGlDQUFTLENBQUMsZUFBZSxFQUFFLENBQUMsR0FBRyxJQUFJLENBQUMsQ0FBQTtRQUNqRCxDQUFDO1FBRUQ7O1dBRUc7UUFDSCxVQUFVLEtBQUssQ0FBQztLQUNqQjs7Ozs7T0FBQSxDQUFBIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFx1bmRpY2lANy4yNC40XFxub2RlX21vZHVsZXNcXHVuZGljaVxcbGliXFxoYW5kbGVyXFxkZWNvcmF0b3ItaGFuZGxlci5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyIndXNlIHN0cmljdCdcblxuY29uc3QgYXNzZXJ0ID0gcmVxdWlyZSgnbm9kZTphc3NlcnQnKVxuY29uc3QgV3JhcEhhbmRsZXIgPSByZXF1aXJlKCcuL3dyYXAtaGFuZGxlcicpXG5cbi8qKlxuICogQGRlcHJlY2F0ZWRcbiAqL1xubW9kdWxlLmV4cG9ydHMgPSBjbGFzcyBEZWNvcmF0b3JIYW5kbGVyIHtcbiAgI2hhbmRsZXJcbiAgI29uQ29tcGxldGVDYWxsZWQgPSBmYWxzZVxuICAjb25FcnJvckNhbGxlZCA9IGZhbHNlXG4gICNvblJlc3BvbnNlU3RhcnRDYWxsZWQgPSBmYWxzZVxuXG4gIGNvbnN0cnVjdG9yIChoYW5kbGVyKSB7XG4gICAgaWYgKHR5cGVvZiBoYW5kbGVyICE9PSAnb2JqZWN0JyB8fCBoYW5kbGVyID09PSBudWxsKSB7XG4gICAgICB0aHJvdyBuZXcgVHlwZUVycm9yKCdoYW5kbGVyIG11c3QgYmUgYW4gb2JqZWN0JylcbiAgICB9XG4gICAgdGhpcy4jaGFuZGxlciA9IFdyYXBIYW5kbGVyLndyYXAoaGFuZGxlcilcbiAgfVxuXG4gIG9uUmVxdWVzdFN0YXJ0ICguLi5hcmdzKSB7XG4gICAgdGhpcy4jaGFuZGxlci5vblJlcXVlc3RTdGFydD8uKC4uLmFyZ3MpXG4gIH1cblxuICBvblJlcXVlc3RVcGdyYWRlICguLi5hcmdzKSB7XG4gICAgYXNzZXJ0KCF0aGlzLiNvbkNvbXBsZXRlQ2FsbGVkKVxuICAgIGFzc2VydCghdGhpcy4jb25FcnJvckNhbGxlZClcblxuICAgIHJldHVybiB0aGlzLiNoYW5kbGVyLm9uUmVxdWVzdFVwZ3JhZGU/LiguLi5hcmdzKVxuICB9XG5cbiAgb25SZXNwb25zZVN0YXJ0ICguLi5hcmdzKSB7XG4gICAgYXNzZXJ0KCF0aGlzLiNvbkNvbXBsZXRlQ2FsbGVkKVxuICAgIGFzc2VydCghdGhpcy4jb25FcnJvckNhbGxlZClcbiAgICBhc3NlcnQoIXRoaXMuI29uUmVzcG9uc2VTdGFydENhbGxlZClcblxuICAgIHRoaXMuI29uUmVzcG9uc2VTdGFydENhbGxlZCA9IHRydWVcblxuICAgIHJldHVybiB0aGlzLiNoYW5kbGVyLm9uUmVzcG9uc2VTdGFydD8uKC4uLmFyZ3MpXG4gIH1cblxuICBvblJlc3BvbnNlRGF0YSAoLi4uYXJncykge1xuICAgIGFzc2VydCghdGhpcy4jb25Db21wbGV0ZUNhbGxlZClcbiAgICBhc3NlcnQoIXRoaXMuI29uRXJyb3JDYWxsZWQpXG5cbiAgICByZXR1cm4gdGhpcy4jaGFuZGxlci5vblJlc3BvbnNlRGF0YT8uKC4uLmFyZ3MpXG4gIH1cblxuICBvblJlc3BvbnNlRW5kICguLi5hcmdzKSB7XG4gICAgYXNzZXJ0KCF0aGlzLiNvbkNvbXBsZXRlQ2FsbGVkKVxuICAgIGFzc2VydCghdGhpcy4jb25FcnJvckNhbGxlZClcblxuICAgIHRoaXMuI29uQ29tcGxldGVDYWxsZWQgPSB0cnVlXG4gICAgcmV0dXJuIHRoaXMuI2hhbmRsZXIub25SZXNwb25zZUVuZD8uKC4uLmFyZ3MpXG4gIH1cblxuICBvblJlc3BvbnNlRXJyb3IgKC4uLmFyZ3MpIHtcbiAgICB0aGlzLiNvbkVycm9yQ2FsbGVkID0gdHJ1ZVxuICAgIHJldHVybiB0aGlzLiNoYW5kbGVyLm9uUmVzcG9uc2VFcnJvcj8uKC4uLmFyZ3MpXG4gIH1cblxuICAvKipcbiAgICogQGRlcHJlY2F0ZWRcbiAgICovXG4gIG9uQm9keVNlbnQgKCkge31cbn1cbiJdLCJ2ZXJzaW9uIjozfQ==

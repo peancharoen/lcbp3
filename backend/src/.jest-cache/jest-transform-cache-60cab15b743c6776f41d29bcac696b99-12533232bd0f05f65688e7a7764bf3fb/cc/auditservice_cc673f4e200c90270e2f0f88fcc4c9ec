@@ -1,0 +1,47 @@
+f640053f1a8d12cf8d3df7fc07031126
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var AuditService_1;
+var _a;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuditService = void 0;
+const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const document_number_audit_entity_1 = require("../entities/document-number-audit.entity");
+let AuditService = AuditService_1 = class AuditService {
+    constructor(auditRepo) {
+        this.auditRepo = auditRepo;
+        this.logger = new common_1.Logger(AuditService_1.name);
+    }
+    async log(entry) {
+        try {
+            // Async save - do not await strictly if we want fire-and-forget, but for data integrity await is safer in critical flows
+            // For performance, we might offload to a queue, but direct save is safer for now.
+            const logEntry = this.auditRepo.create(entry);
+            await this.auditRepo.save(logEntry);
+        }
+        catch (error) {
+            this.logger.error('Failed to write audit log', error);
+            // Fail silent or throw? -> Fail silent to not crash the main flow, assuming log is secondary
+        }
+    }
+};
+exports.AuditService = AuditService;
+exports.AuditService = AuditService = AuditService_1 = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, typeorm_1.InjectRepository)(document_number_audit_entity_1.DocumentNumberAudit)),
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object])
+], AuditService);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcZG9jdW1lbnQtbnVtYmVyaW5nXFxzZXJ2aWNlc1xcYXVkaXQuc2VydmljZS50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7OztBQUFBLDJDQUFvRDtBQUNwRCw2Q0FBbUQ7QUFDbkQscUNBQXFDO0FBQ3JDLDJGQUErRTtBQUd4RSxJQUFNLFlBQVksb0JBQWxCLE1BQU0sWUFBWTtJQUd2QixZQUVFLFNBQTJEO1FBQTFDLGNBQVMsR0FBVCxTQUFTLENBQWlDO1FBSjVDLFdBQU0sR0FBRyxJQUFJLGVBQU0sQ0FBQyxjQUFZLENBQUMsSUFBSSxDQUFDLENBQUM7SUFLckQsQ0FBQztJQUVKLEtBQUssQ0FBQyxHQUFHLENBQUMsS0FBbUM7UUFDM0MsSUFBSSxDQUFDO1lBQ0gseUhBQXlIO1lBQ3pILGtGQUFrRjtZQUNsRixNQUFNLFFBQVEsR0FBRyxJQUFJLENBQUMsU0FBUyxDQUFDLE1BQU0sQ0FBQyxLQUFLLENBQUMsQ0FBQztZQUM5QyxNQUFNLElBQUksQ0FBQyxTQUFTLENBQUMsSUFBSSxDQUFDLFFBQVEsQ0FBQyxDQUFDO1FBQ3RDLENBQUM7UUFBQyxPQUFPLEtBQUssRUFBRSxDQUFDO1lBQ2YsSUFBSSxDQUFDLE1BQU0sQ0FBQyxLQUFLLENBQUMsMkJBQTJCLEVBQUUsS0FBSyxDQUFDLENBQUM7WUFDdEQsNkZBQTZGO1FBQy9GLENBQUM7SUFDSCxDQUFDO0NBQ0YsQ0FBQTtBQW5CWSxvQ0FBWTt1QkFBWixZQUFZO0lBRHhCLElBQUEsbUJBQVUsR0FBRTtJQUtSLFdBQUEsSUFBQSwwQkFBZ0IsRUFBQyxrREFBbUIsQ0FBQyxDQUFBO3lEQUNWLG9CQUFVLG9CQUFWLG9CQUFVO0dBTDdCLFlBQVksQ0FtQnhCIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXGRvY3VtZW50LW51bWJlcmluZ1xcc2VydmljZXNcXGF1ZGl0LnNlcnZpY2UudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgSW5qZWN0YWJsZSwgTG9nZ2VyIH0gZnJvbSAnQG5lc3Rqcy9jb21tb24nO1xyXG5pbXBvcnQgeyBJbmplY3RSZXBvc2l0b3J5IH0gZnJvbSAnQG5lc3Rqcy90eXBlb3JtJztcclxuaW1wb3J0IHsgUmVwb3NpdG9yeSB9IGZyb20gJ3R5cGVvcm0nO1xyXG5pbXBvcnQgeyBEb2N1bWVudE51bWJlckF1ZGl0IH0gZnJvbSAnLi4vZW50aXRpZXMvZG9jdW1lbnQtbnVtYmVyLWF1ZGl0LmVudGl0eSc7XHJcblxyXG5ASW5qZWN0YWJsZSgpXHJcbmV4cG9ydCBjbGFzcyBBdWRpdFNlcnZpY2Uge1xyXG4gIHByaXZhdGUgcmVhZG9ubHkgbG9nZ2VyID0gbmV3IExvZ2dlcihBdWRpdFNlcnZpY2UubmFtZSk7XHJcblxyXG4gIGNvbnN0cnVjdG9yKFxyXG4gICAgQEluamVjdFJlcG9zaXRvcnkoRG9jdW1lbnROdW1iZXJBdWRpdClcclxuICAgIHByaXZhdGUgcmVhZG9ubHkgYXVkaXRSZXBvOiBSZXBvc2l0b3J5PERvY3VtZW50TnVtYmVyQXVkaXQ+XHJcbiAgKSB7fVxyXG5cclxuICBhc3luYyBsb2coZW50cnk6IFBhcnRpYWw8RG9jdW1lbnROdW1iZXJBdWRpdD4pOiBQcm9taXNlPHZvaWQ+IHtcclxuICAgIHRyeSB7XHJcbiAgICAgIC8vIEFzeW5jIHNhdmUgLSBkbyBub3QgYXdhaXQgc3RyaWN0bHkgaWYgd2Ugd2FudCBmaXJlLWFuZC1mb3JnZXQsIGJ1dCBmb3IgZGF0YSBpbnRlZ3JpdHkgYXdhaXQgaXMgc2FmZXIgaW4gY3JpdGljYWwgZmxvd3NcclxuICAgICAgLy8gRm9yIHBlcmZvcm1hbmNlLCB3ZSBtaWdodCBvZmZsb2FkIHRvIGEgcXVldWUsIGJ1dCBkaXJlY3Qgc2F2ZSBpcyBzYWZlciBmb3Igbm93LlxyXG4gICAgICBjb25zdCBsb2dFbnRyeSA9IHRoaXMuYXVkaXRSZXBvLmNyZWF0ZShlbnRyeSk7XHJcbiAgICAgIGF3YWl0IHRoaXMuYXVkaXRSZXBvLnNhdmUobG9nRW50cnkpO1xyXG4gICAgfSBjYXRjaCAoZXJyb3IpIHtcclxuICAgICAgdGhpcy5sb2dnZXIuZXJyb3IoJ0ZhaWxlZCB0byB3cml0ZSBhdWRpdCBsb2cnLCBlcnJvcik7XHJcbiAgICAgIC8vIEZhaWwgc2lsZW50IG9yIHRocm93PyAtPiBGYWlsIHNpbGVudCB0byBub3QgY3Jhc2ggdGhlIG1haW4gZmxvdywgYXNzdW1pbmcgbG9nIGlzIHNlY29uZGFyeVxyXG4gICAgfVxyXG4gIH1cclxufVxyXG4iXSwidmVyc2lvbiI6M30=

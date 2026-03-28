@@ -1,0 +1,80 @@
+c675a18a2f48ffbcf93b3354c2429a5e
+"use strict";
+/*
+ * Copyright The OpenTelemetry Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CompositePropagator = void 0;
+const api_1 = require("@opentelemetry/api");
+/** Combines multiple propagators into a single propagator. */
+class CompositePropagator {
+    /**
+     * Construct a composite propagator from a list of propagators.
+     *
+     * @param [config] Configuration object for composite propagator
+     */
+    constructor(config = {}) {
+        this._propagators = config.propagators ?? [];
+        this._fields = Array.from(new Set(this._propagators
+            // older propagators may not have fields function, null check to be sure
+            .map(p => (typeof p.fields === 'function' ? p.fields() : []))
+            .reduce((x, y) => x.concat(y), [])));
+    }
+    /**
+     * Run each of the configured propagators with the given context and carrier.
+     * Propagators are run in the order they are configured, so if multiple
+     * propagators write the same carrier key, the propagator later in the list
+     * will "win".
+     *
+     * @param context Context to inject
+     * @param carrier Carrier into which context will be injected
+     */
+    inject(context, carrier, setter) {
+        for (const propagator of this._propagators) {
+            try {
+                propagator.inject(context, carrier, setter);
+            }
+            catch (err) {
+                api_1.diag.warn(`Failed to inject with ${propagator.constructor.name}. Err: ${err.message}`);
+            }
+        }
+    }
+    /**
+     * Run each of the configured propagators with the given context and carrier.
+     * Propagators are run in the order they are configured, so if multiple
+     * propagators write the same context key, the propagator later in the list
+     * will "win".
+     *
+     * @param context Context to add values to
+     * @param carrier Carrier from which to extract context
+     */
+    extract(context, carrier, getter) {
+        return this._propagators.reduce((ctx, propagator) => {
+            try {
+                return propagator.extract(ctx, carrier, getter);
+            }
+            catch (err) {
+                api_1.diag.warn(`Failed to extract with ${propagator.constructor.name}. Err: ${err.message}`);
+            }
+            return ctx;
+        }, context);
+    }
+    fields() {
+        // return a new array so our fields cannot be modified
+        return this._fields.slice();
+    }
+}
+exports.CompositePropagator = CompositePropagator;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBvcGVudGVsZW1ldHJ5K2NvcmVAMi4yLjBfQG9wZW50ZWxlbWV0cnkrYXBpQDEuOS4wXFxub2RlX21vZHVsZXNcXEBvcGVudGVsZW1ldHJ5XFxjb3JlXFxidWlsZFxcc3JjXFxwcm9wYWdhdGlvblxcY29tcG9zaXRlLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiOzs7Ozs7Ozs7Ozs7OztHQWNHO0FBQ0gsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLG1CQUFtQixHQUFHLEtBQUssQ0FBQyxDQUFDO0FBQ3JDLE1BQU0sS0FBSyxHQUFHLE9BQU8sQ0FBQyxvQkFBb0IsQ0FBQyxDQUFDO0FBQzVDLDhEQUE4RDtBQUM5RCxNQUFNLG1CQUFtQjtJQUdyQjs7OztPQUlHO0lBQ0gsWUFBWSxNQUFNLEdBQUcsRUFBRTtRQUNuQixJQUFJLENBQUMsWUFBWSxHQUFHLE1BQU0sQ0FBQyxXQUFXLElBQUksRUFBRSxDQUFDO1FBQzdDLElBQUksQ0FBQyxPQUFPLEdBQUcsS0FBSyxDQUFDLElBQUksQ0FBQyxJQUFJLEdBQUcsQ0FBQyxJQUFJLENBQUMsWUFBWTtZQUMvQyx3RUFBd0U7YUFDdkUsR0FBRyxDQUFDLENBQUMsQ0FBQyxFQUFFLENBQUMsQ0FBQyxPQUFPLENBQUMsQ0FBQyxNQUFNLEtBQUssVUFBVSxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUMsTUFBTSxFQUFFLENBQUMsQ0FBQyxDQUFDLEVBQUUsQ0FBQyxDQUFDO2FBQzVELE1BQU0sQ0FBQyxDQUFDLENBQUMsRUFBRSxDQUFDLEVBQUUsRUFBRSxDQUFDLENBQUMsQ0FBQyxNQUFNLENBQUMsQ0FBQyxDQUFDLEVBQUUsRUFBRSxDQUFDLENBQUMsQ0FBQyxDQUFDO0lBQzdDLENBQUM7SUFDRDs7Ozs7Ozs7T0FRRztJQUNILE1BQU0sQ0FBQyxPQUFPLEVBQUUsT0FBTyxFQUFFLE1BQU07UUFDM0IsS0FBSyxNQUFNLFVBQVUsSUFBSSxJQUFJLENBQUMsWUFBWSxFQUFFLENBQUM7WUFDekMsSUFBSSxDQUFDO2dCQUNELFVBQVUsQ0FBQyxNQUFNLENBQUMsT0FBTyxFQUFFLE9BQU8sRUFBRSxNQUFNLENBQUMsQ0FBQztZQUNoRCxDQUFDO1lBQ0QsT0FBTyxHQUFHLEVBQUUsQ0FBQztnQkFDVCxLQUFLLENBQUMsSUFBSSxDQUFDLElBQUksQ0FBQyx5QkFBeUIsVUFBVSxDQUFDLFdBQVcsQ0FBQyxJQUFJLFVBQVUsR0FBRyxDQUFDLE9BQU8sRUFBRSxDQUFDLENBQUM7WUFDakcsQ0FBQztRQUNMLENBQUM7SUFDTCxDQUFDO0lBQ0Q7Ozs7Ozs7O09BUUc7SUFDSCxPQUFPLENBQUMsT0FBTyxFQUFFLE9BQU8sRUFBRSxNQUFNO1FBQzVCLE9BQU8sSUFBSSxDQUFDLFlBQVksQ0FBQyxNQUFNLENBQUMsQ0FBQyxHQUFHLEVBQUUsVUFBVSxFQUFFLEVBQUU7WUFDaEQsSUFBSSxDQUFDO2dCQUNELE9BQU8sVUFBVSxDQUFDLE9BQU8sQ0FBQyxHQUFHLEVBQUUsT0FBTyxFQUFFLE1BQU0sQ0FBQyxDQUFDO1lBQ3BELENBQUM7WUFDRCxPQUFPLEdBQUcsRUFBRSxDQUFDO2dCQUNULEtBQUssQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLDBCQUEwQixVQUFVLENBQUMsV0FBVyxDQUFDLElBQUksVUFBVSxHQUFHLENBQUMsT0FBTyxFQUFFLENBQUMsQ0FBQztZQUNsRyxDQUFDO1lBQ0QsT0FBTyxHQUFHLENBQUM7UUFDZixDQUFDLEVBQUUsT0FBTyxDQUFDLENBQUM7SUFDaEIsQ0FBQztJQUNELE1BQU07UUFDRixzREFBc0Q7UUFDdEQsT0FBTyxJQUFJLENBQUMsT0FBTyxDQUFDLEtBQUssRUFBRSxDQUFDO0lBQ2hDLENBQUM7Q0FDSjtBQUNELE9BQU8sQ0FBQyxtQkFBbUIsR0FBRyxtQkFBbUIsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcQG9wZW50ZWxlbWV0cnkrY29yZUAyLjIuMF9Ab3BlbnRlbGVtZXRyeSthcGlAMS45LjBcXG5vZGVfbW9kdWxlc1xcQG9wZW50ZWxlbWV0cnlcXGNvcmVcXGJ1aWxkXFxzcmNcXHByb3BhZ2F0aW9uXFxjb21wb3NpdGUuanMiXSwic291cmNlc0NvbnRlbnQiOlsiXCJ1c2Ugc3RyaWN0XCI7XG4vKlxuICogQ29weXJpZ2h0IFRoZSBPcGVuVGVsZW1ldHJ5IEF1dGhvcnNcbiAqXG4gKiBMaWNlbnNlZCB1bmRlciB0aGUgQXBhY2hlIExpY2Vuc2UsIFZlcnNpb24gMi4wICh0aGUgXCJMaWNlbnNlXCIpO1xuICogeW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLlxuICogWW91IG1heSBvYnRhaW4gYSBjb3B5IG9mIHRoZSBMaWNlbnNlIGF0XG4gKlxuICogICAgICBodHRwczovL3d3dy5hcGFjaGUub3JnL2xpY2Vuc2VzL0xJQ0VOU0UtMi4wXG4gKlxuICogVW5sZXNzIHJlcXVpcmVkIGJ5IGFwcGxpY2FibGUgbGF3IG9yIGFncmVlZCB0byBpbiB3cml0aW5nLCBzb2Z0d2FyZVxuICogZGlzdHJpYnV0ZWQgdW5kZXIgdGhlIExpY2Vuc2UgaXMgZGlzdHJpYnV0ZWQgb24gYW4gXCJBUyBJU1wiIEJBU0lTLFxuICogV0lUSE9VVCBXQVJSQU5USUVTIE9SIENPTkRJVElPTlMgT0YgQU5ZIEtJTkQsIGVpdGhlciBleHByZXNzIG9yIGltcGxpZWQuXG4gKiBTZWUgdGhlIExpY2Vuc2UgZm9yIHRoZSBzcGVjaWZpYyBsYW5ndWFnZSBnb3Zlcm5pbmcgcGVybWlzc2lvbnMgYW5kXG4gKiBsaW1pdGF0aW9ucyB1bmRlciB0aGUgTGljZW5zZS5cbiAqL1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5Db21wb3NpdGVQcm9wYWdhdG9yID0gdm9pZCAwO1xuY29uc3QgYXBpXzEgPSByZXF1aXJlKFwiQG9wZW50ZWxlbWV0cnkvYXBpXCIpO1xuLyoqIENvbWJpbmVzIG11bHRpcGxlIHByb3BhZ2F0b3JzIGludG8gYSBzaW5nbGUgcHJvcGFnYXRvci4gKi9cbmNsYXNzIENvbXBvc2l0ZVByb3BhZ2F0b3Ige1xuICAgIF9wcm9wYWdhdG9ycztcbiAgICBfZmllbGRzO1xuICAgIC8qKlxuICAgICAqIENvbnN0cnVjdCBhIGNvbXBvc2l0ZSBwcm9wYWdhdG9yIGZyb20gYSBsaXN0IG9mIHByb3BhZ2F0b3JzLlxuICAgICAqXG4gICAgICogQHBhcmFtIFtjb25maWddIENvbmZpZ3VyYXRpb24gb2JqZWN0IGZvciBjb21wb3NpdGUgcHJvcGFnYXRvclxuICAgICAqL1xuICAgIGNvbnN0cnVjdG9yKGNvbmZpZyA9IHt9KSB7XG4gICAgICAgIHRoaXMuX3Byb3BhZ2F0b3JzID0gY29uZmlnLnByb3BhZ2F0b3JzID8/IFtdO1xuICAgICAgICB0aGlzLl9maWVsZHMgPSBBcnJheS5mcm9tKG5ldyBTZXQodGhpcy5fcHJvcGFnYXRvcnNcbiAgICAgICAgICAgIC8vIG9sZGVyIHByb3BhZ2F0b3JzIG1heSBub3QgaGF2ZSBmaWVsZHMgZnVuY3Rpb24sIG51bGwgY2hlY2sgdG8gYmUgc3VyZVxuICAgICAgICAgICAgLm1hcChwID0+ICh0eXBlb2YgcC5maWVsZHMgPT09ICdmdW5jdGlvbicgPyBwLmZpZWxkcygpIDogW10pKVxuICAgICAgICAgICAgLnJlZHVjZSgoeCwgeSkgPT4geC5jb25jYXQoeSksIFtdKSkpO1xuICAgIH1cbiAgICAvKipcbiAgICAgKiBSdW4gZWFjaCBvZiB0aGUgY29uZmlndXJlZCBwcm9wYWdhdG9ycyB3aXRoIHRoZSBnaXZlbiBjb250ZXh0IGFuZCBjYXJyaWVyLlxuICAgICAqIFByb3BhZ2F0b3JzIGFyZSBydW4gaW4gdGhlIG9yZGVyIHRoZXkgYXJlIGNvbmZpZ3VyZWQsIHNvIGlmIG11bHRpcGxlXG4gICAgICogcHJvcGFnYXRvcnMgd3JpdGUgdGhlIHNhbWUgY2FycmllciBrZXksIHRoZSBwcm9wYWdhdG9yIGxhdGVyIGluIHRoZSBsaXN0XG4gICAgICogd2lsbCBcIndpblwiLlxuICAgICAqXG4gICAgICogQHBhcmFtIGNvbnRleHQgQ29udGV4dCB0byBpbmplY3RcbiAgICAgKiBAcGFyYW0gY2FycmllciBDYXJyaWVyIGludG8gd2hpY2ggY29udGV4dCB3aWxsIGJlIGluamVjdGVkXG4gICAgICovXG4gICAgaW5qZWN0KGNvbnRleHQsIGNhcnJpZXIsIHNldHRlcikge1xuICAgICAgICBmb3IgKGNvbnN0IHByb3BhZ2F0b3Igb2YgdGhpcy5fcHJvcGFnYXRvcnMpIHtcbiAgICAgICAgICAgIHRyeSB7XG4gICAgICAgICAgICAgICAgcHJvcGFnYXRvci5pbmplY3QoY29udGV4dCwgY2Fycmllciwgc2V0dGVyKTtcbiAgICAgICAgICAgIH1cbiAgICAgICAgICAgIGNhdGNoIChlcnIpIHtcbiAgICAgICAgICAgICAgICBhcGlfMS5kaWFnLndhcm4oYEZhaWxlZCB0byBpbmplY3Qgd2l0aCAke3Byb3BhZ2F0b3IuY29uc3RydWN0b3IubmFtZX0uIEVycjogJHtlcnIubWVzc2FnZX1gKTtcbiAgICAgICAgICAgIH1cbiAgICAgICAgfVxuICAgIH1cbiAgICAvKipcbiAgICAgKiBSdW4gZWFjaCBvZiB0aGUgY29uZmlndXJlZCBwcm9wYWdhdG9ycyB3aXRoIHRoZSBnaXZlbiBjb250ZXh0IGFuZCBjYXJyaWVyLlxuICAgICAqIFByb3BhZ2F0b3JzIGFyZSBydW4gaW4gdGhlIG9yZGVyIHRoZXkgYXJlIGNvbmZpZ3VyZWQsIHNvIGlmIG11bHRpcGxlXG4gICAgICogcHJvcGFnYXRvcnMgd3JpdGUgdGhlIHNhbWUgY29udGV4dCBrZXksIHRoZSBwcm9wYWdhdG9yIGxhdGVyIGluIHRoZSBsaXN0XG4gICAgICogd2lsbCBcIndpblwiLlxuICAgICAqXG4gICAgICogQHBhcmFtIGNvbnRleHQgQ29udGV4dCB0byBhZGQgdmFsdWVzIHRvXG4gICAgICogQHBhcmFtIGNhcnJpZXIgQ2FycmllciBmcm9tIHdoaWNoIHRvIGV4dHJhY3QgY29udGV4dFxuICAgICAqL1xuICAgIGV4dHJhY3QoY29udGV4dCwgY2FycmllciwgZ2V0dGVyKSB7XG4gICAgICAgIHJldHVybiB0aGlzLl9wcm9wYWdhdG9ycy5yZWR1Y2UoKGN0eCwgcHJvcGFnYXRvcikgPT4ge1xuICAgICAgICAgICAgdHJ5IHtcbiAgICAgICAgICAgICAgICByZXR1cm4gcHJvcGFnYXRvci5leHRyYWN0KGN0eCwgY2FycmllciwgZ2V0dGVyKTtcbiAgICAgICAgICAgIH1cbiAgICAgICAgICAgIGNhdGNoIChlcnIpIHtcbiAgICAgICAgICAgICAgICBhcGlfMS5kaWFnLndhcm4oYEZhaWxlZCB0byBleHRyYWN0IHdpdGggJHtwcm9wYWdhdG9yLmNvbnN0cnVjdG9yLm5hbWV9LiBFcnI6ICR7ZXJyLm1lc3NhZ2V9YCk7XG4gICAgICAgICAgICB9XG4gICAgICAgICAgICByZXR1cm4gY3R4O1xuICAgICAgICB9LCBjb250ZXh0KTtcbiAgICB9XG4gICAgZmllbGRzKCkge1xuICAgICAgICAvLyByZXR1cm4gYSBuZXcgYXJyYXkgc28gb3VyIGZpZWxkcyBjYW5ub3QgYmUgbW9kaWZpZWRcbiAgICAgICAgcmV0dXJuIHRoaXMuX2ZpZWxkcy5zbGljZSgpO1xuICAgIH1cbn1cbmV4cG9ydHMuQ29tcG9zaXRlUHJvcGFnYXRvciA9IENvbXBvc2l0ZVByb3BhZ2F0b3I7XG4vLyMgc291cmNlTWFwcGluZ1VSTD1jb21wb3NpdGUuanMubWFwIl0sInZlcnNpb24iOjN9

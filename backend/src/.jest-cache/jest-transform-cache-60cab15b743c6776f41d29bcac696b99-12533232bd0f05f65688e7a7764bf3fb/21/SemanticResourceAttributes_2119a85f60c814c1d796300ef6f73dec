@@ -1,0 +1,1267 @@
+87304b439a713e9adb803175c473402d
+"use strict";
+/*
+ * Copyright The OpenTelemetry Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SEMRESATTRS_K8S_STATEFULSET_NAME = exports.SEMRESATTRS_K8S_STATEFULSET_UID = exports.SEMRESATTRS_K8S_DEPLOYMENT_NAME = exports.SEMRESATTRS_K8S_DEPLOYMENT_UID = exports.SEMRESATTRS_K8S_REPLICASET_NAME = exports.SEMRESATTRS_K8S_REPLICASET_UID = exports.SEMRESATTRS_K8S_CONTAINER_NAME = exports.SEMRESATTRS_K8S_POD_NAME = exports.SEMRESATTRS_K8S_POD_UID = exports.SEMRESATTRS_K8S_NAMESPACE_NAME = exports.SEMRESATTRS_K8S_NODE_UID = exports.SEMRESATTRS_K8S_NODE_NAME = exports.SEMRESATTRS_K8S_CLUSTER_NAME = exports.SEMRESATTRS_HOST_IMAGE_VERSION = exports.SEMRESATTRS_HOST_IMAGE_ID = exports.SEMRESATTRS_HOST_IMAGE_NAME = exports.SEMRESATTRS_HOST_ARCH = exports.SEMRESATTRS_HOST_TYPE = exports.SEMRESATTRS_HOST_NAME = exports.SEMRESATTRS_HOST_ID = exports.SEMRESATTRS_FAAS_MAX_MEMORY = exports.SEMRESATTRS_FAAS_INSTANCE = exports.SEMRESATTRS_FAAS_VERSION = exports.SEMRESATTRS_FAAS_ID = exports.SEMRESATTRS_FAAS_NAME = exports.SEMRESATTRS_DEVICE_MODEL_NAME = exports.SEMRESATTRS_DEVICE_MODEL_IDENTIFIER = exports.SEMRESATTRS_DEVICE_ID = exports.SEMRESATTRS_DEPLOYMENT_ENVIRONMENT = exports.SEMRESATTRS_CONTAINER_IMAGE_TAG = exports.SEMRESATTRS_CONTAINER_IMAGE_NAME = exports.SEMRESATTRS_CONTAINER_RUNTIME = exports.SEMRESATTRS_CONTAINER_ID = exports.SEMRESATTRS_CONTAINER_NAME = exports.SEMRESATTRS_AWS_LOG_STREAM_ARNS = exports.SEMRESATTRS_AWS_LOG_STREAM_NAMES = exports.SEMRESATTRS_AWS_LOG_GROUP_ARNS = exports.SEMRESATTRS_AWS_LOG_GROUP_NAMES = exports.SEMRESATTRS_AWS_EKS_CLUSTER_ARN = exports.SEMRESATTRS_AWS_ECS_TASK_REVISION = exports.SEMRESATTRS_AWS_ECS_TASK_FAMILY = exports.SEMRESATTRS_AWS_ECS_TASK_ARN = exports.SEMRESATTRS_AWS_ECS_LAUNCHTYPE = exports.SEMRESATTRS_AWS_ECS_CLUSTER_ARN = exports.SEMRESATTRS_AWS_ECS_CONTAINER_ARN = exports.SEMRESATTRS_CLOUD_PLATFORM = exports.SEMRESATTRS_CLOUD_AVAILABILITY_ZONE = exports.SEMRESATTRS_CLOUD_REGION = exports.SEMRESATTRS_CLOUD_ACCOUNT_ID = exports.SEMRESATTRS_CLOUD_PROVIDER = void 0;
+exports.CLOUDPLATFORMVALUES_GCP_COMPUTE_ENGINE = exports.CLOUDPLATFORMVALUES_AZURE_APP_SERVICE = exports.CLOUDPLATFORMVALUES_AZURE_FUNCTIONS = exports.CLOUDPLATFORMVALUES_AZURE_AKS = exports.CLOUDPLATFORMVALUES_AZURE_CONTAINER_INSTANCES = exports.CLOUDPLATFORMVALUES_AZURE_VM = exports.CLOUDPLATFORMVALUES_AWS_ELASTIC_BEANSTALK = exports.CLOUDPLATFORMVALUES_AWS_LAMBDA = exports.CLOUDPLATFORMVALUES_AWS_EKS = exports.CLOUDPLATFORMVALUES_AWS_ECS = exports.CLOUDPLATFORMVALUES_AWS_EC2 = exports.CLOUDPLATFORMVALUES_ALIBABA_CLOUD_FC = exports.CLOUDPLATFORMVALUES_ALIBABA_CLOUD_ECS = exports.CloudProviderValues = exports.CLOUDPROVIDERVALUES_GCP = exports.CLOUDPROVIDERVALUES_AZURE = exports.CLOUDPROVIDERVALUES_AWS = exports.CLOUDPROVIDERVALUES_ALIBABA_CLOUD = exports.SemanticResourceAttributes = exports.SEMRESATTRS_WEBENGINE_DESCRIPTION = exports.SEMRESATTRS_WEBENGINE_VERSION = exports.SEMRESATTRS_WEBENGINE_NAME = exports.SEMRESATTRS_TELEMETRY_AUTO_VERSION = exports.SEMRESATTRS_TELEMETRY_SDK_VERSION = exports.SEMRESATTRS_TELEMETRY_SDK_LANGUAGE = exports.SEMRESATTRS_TELEMETRY_SDK_NAME = exports.SEMRESATTRS_SERVICE_VERSION = exports.SEMRESATTRS_SERVICE_INSTANCE_ID = exports.SEMRESATTRS_SERVICE_NAMESPACE = exports.SEMRESATTRS_SERVICE_NAME = exports.SEMRESATTRS_PROCESS_RUNTIME_DESCRIPTION = exports.SEMRESATTRS_PROCESS_RUNTIME_VERSION = exports.SEMRESATTRS_PROCESS_RUNTIME_NAME = exports.SEMRESATTRS_PROCESS_OWNER = exports.SEMRESATTRS_PROCESS_COMMAND_ARGS = exports.SEMRESATTRS_PROCESS_COMMAND_LINE = exports.SEMRESATTRS_PROCESS_COMMAND = exports.SEMRESATTRS_PROCESS_EXECUTABLE_PATH = exports.SEMRESATTRS_PROCESS_EXECUTABLE_NAME = exports.SEMRESATTRS_PROCESS_PID = exports.SEMRESATTRS_OS_VERSION = exports.SEMRESATTRS_OS_NAME = exports.SEMRESATTRS_OS_DESCRIPTION = exports.SEMRESATTRS_OS_TYPE = exports.SEMRESATTRS_K8S_CRONJOB_NAME = exports.SEMRESATTRS_K8S_CRONJOB_UID = exports.SEMRESATTRS_K8S_JOB_NAME = exports.SEMRESATTRS_K8S_JOB_UID = exports.SEMRESATTRS_K8S_DAEMONSET_NAME = exports.SEMRESATTRS_K8S_DAEMONSET_UID = void 0;
+exports.TelemetrySdkLanguageValues = exports.TELEMETRYSDKLANGUAGEVALUES_WEBJS = exports.TELEMETRYSDKLANGUAGEVALUES_RUBY = exports.TELEMETRYSDKLANGUAGEVALUES_PYTHON = exports.TELEMETRYSDKLANGUAGEVALUES_PHP = exports.TELEMETRYSDKLANGUAGEVALUES_NODEJS = exports.TELEMETRYSDKLANGUAGEVALUES_JAVA = exports.TELEMETRYSDKLANGUAGEVALUES_GO = exports.TELEMETRYSDKLANGUAGEVALUES_ERLANG = exports.TELEMETRYSDKLANGUAGEVALUES_DOTNET = exports.TELEMETRYSDKLANGUAGEVALUES_CPP = exports.OsTypeValues = exports.OSTYPEVALUES_Z_OS = exports.OSTYPEVALUES_SOLARIS = exports.OSTYPEVALUES_AIX = exports.OSTYPEVALUES_HPUX = exports.OSTYPEVALUES_DRAGONFLYBSD = exports.OSTYPEVALUES_OPENBSD = exports.OSTYPEVALUES_NETBSD = exports.OSTYPEVALUES_FREEBSD = exports.OSTYPEVALUES_DARWIN = exports.OSTYPEVALUES_LINUX = exports.OSTYPEVALUES_WINDOWS = exports.HostArchValues = exports.HOSTARCHVALUES_X86 = exports.HOSTARCHVALUES_PPC64 = exports.HOSTARCHVALUES_PPC32 = exports.HOSTARCHVALUES_IA64 = exports.HOSTARCHVALUES_ARM64 = exports.HOSTARCHVALUES_ARM32 = exports.HOSTARCHVALUES_AMD64 = exports.AwsEcsLaunchtypeValues = exports.AWSECSLAUNCHTYPEVALUES_FARGATE = exports.AWSECSLAUNCHTYPEVALUES_EC2 = exports.CloudPlatformValues = exports.CLOUDPLATFORMVALUES_GCP_APP_ENGINE = exports.CLOUDPLATFORMVALUES_GCP_CLOUD_FUNCTIONS = exports.CLOUDPLATFORMVALUES_GCP_KUBERNETES_ENGINE = exports.CLOUDPLATFORMVALUES_GCP_CLOUD_RUN = void 0;
+const utils_1 = require("../internal/utils");
+//----------------------------------------------------------------------------------------------------------
+// DO NOT EDIT, this is an Auto-generated file from scripts/semconv/templates//templates/SemanticAttributes.ts.j2
+//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------
+// Constant values for SemanticResourceAttributes
+//----------------------------------------------------------------------------------------------------------
+// Temporary local constants to assign to the individual exports and the namespaced version
+// Required to avoid the namespace exports using the unminifiable export names for some package types
+const TMP_CLOUD_PROVIDER = 'cloud.provider';
+const TMP_CLOUD_ACCOUNT_ID = 'cloud.account.id';
+const TMP_CLOUD_REGION = 'cloud.region';
+const TMP_CLOUD_AVAILABILITY_ZONE = 'cloud.availability_zone';
+const TMP_CLOUD_PLATFORM = 'cloud.platform';
+const TMP_AWS_ECS_CONTAINER_ARN = 'aws.ecs.container.arn';
+const TMP_AWS_ECS_CLUSTER_ARN = 'aws.ecs.cluster.arn';
+const TMP_AWS_ECS_LAUNCHTYPE = 'aws.ecs.launchtype';
+const TMP_AWS_ECS_TASK_ARN = 'aws.ecs.task.arn';
+const TMP_AWS_ECS_TASK_FAMILY = 'aws.ecs.task.family';
+const TMP_AWS_ECS_TASK_REVISION = 'aws.ecs.task.revision';
+const TMP_AWS_EKS_CLUSTER_ARN = 'aws.eks.cluster.arn';
+const TMP_AWS_LOG_GROUP_NAMES = 'aws.log.group.names';
+const TMP_AWS_LOG_GROUP_ARNS = 'aws.log.group.arns';
+const TMP_AWS_LOG_STREAM_NAMES = 'aws.log.stream.names';
+const TMP_AWS_LOG_STREAM_ARNS = 'aws.log.stream.arns';
+const TMP_CONTAINER_NAME = 'container.name';
+const TMP_CONTAINER_ID = 'container.id';
+const TMP_CONTAINER_RUNTIME = 'container.runtime';
+const TMP_CONTAINER_IMAGE_NAME = 'container.image.name';
+const TMP_CONTAINER_IMAGE_TAG = 'container.image.tag';
+const TMP_DEPLOYMENT_ENVIRONMENT = 'deployment.environment';
+const TMP_DEVICE_ID = 'device.id';
+const TMP_DEVICE_MODEL_IDENTIFIER = 'device.model.identifier';
+const TMP_DEVICE_MODEL_NAME = 'device.model.name';
+const TMP_FAAS_NAME = 'faas.name';
+const TMP_FAAS_ID = 'faas.id';
+const TMP_FAAS_VERSION = 'faas.version';
+const TMP_FAAS_INSTANCE = 'faas.instance';
+const TMP_FAAS_MAX_MEMORY = 'faas.max_memory';
+const TMP_HOST_ID = 'host.id';
+const TMP_HOST_NAME = 'host.name';
+const TMP_HOST_TYPE = 'host.type';
+const TMP_HOST_ARCH = 'host.arch';
+const TMP_HOST_IMAGE_NAME = 'host.image.name';
+const TMP_HOST_IMAGE_ID = 'host.image.id';
+const TMP_HOST_IMAGE_VERSION = 'host.image.version';
+const TMP_K8S_CLUSTER_NAME = 'k8s.cluster.name';
+const TMP_K8S_NODE_NAME = 'k8s.node.name';
+const TMP_K8S_NODE_UID = 'k8s.node.uid';
+const TMP_K8S_NAMESPACE_NAME = 'k8s.namespace.name';
+const TMP_K8S_POD_UID = 'k8s.pod.uid';
+const TMP_K8S_POD_NAME = 'k8s.pod.name';
+const TMP_K8S_CONTAINER_NAME = 'k8s.container.name';
+const TMP_K8S_REPLICASET_UID = 'k8s.replicaset.uid';
+const TMP_K8S_REPLICASET_NAME = 'k8s.replicaset.name';
+const TMP_K8S_DEPLOYMENT_UID = 'k8s.deployment.uid';
+const TMP_K8S_DEPLOYMENT_NAME = 'k8s.deployment.name';
+const TMP_K8S_STATEFULSET_UID = 'k8s.statefulset.uid';
+const TMP_K8S_STATEFULSET_NAME = 'k8s.statefulset.name';
+const TMP_K8S_DAEMONSET_UID = 'k8s.daemonset.uid';
+const TMP_K8S_DAEMONSET_NAME = 'k8s.daemonset.name';
+const TMP_K8S_JOB_UID = 'k8s.job.uid';
+const TMP_K8S_JOB_NAME = 'k8s.job.name';
+const TMP_K8S_CRONJOB_UID = 'k8s.cronjob.uid';
+const TMP_K8S_CRONJOB_NAME = 'k8s.cronjob.name';
+const TMP_OS_TYPE = 'os.type';
+const TMP_OS_DESCRIPTION = 'os.description';
+const TMP_OS_NAME = 'os.name';
+const TMP_OS_VERSION = 'os.version';
+const TMP_PROCESS_PID = 'process.pid';
+const TMP_PROCESS_EXECUTABLE_NAME = 'process.executable.name';
+const TMP_PROCESS_EXECUTABLE_PATH = 'process.executable.path';
+const TMP_PROCESS_COMMAND = 'process.command';
+const TMP_PROCESS_COMMAND_LINE = 'process.command_line';
+const TMP_PROCESS_COMMAND_ARGS = 'process.command_args';
+const TMP_PROCESS_OWNER = 'process.owner';
+const TMP_PROCESS_RUNTIME_NAME = 'process.runtime.name';
+const TMP_PROCESS_RUNTIME_VERSION = 'process.runtime.version';
+const TMP_PROCESS_RUNTIME_DESCRIPTION = 'process.runtime.description';
+const TMP_SERVICE_NAME = 'service.name';
+const TMP_SERVICE_NAMESPACE = 'service.namespace';
+const TMP_SERVICE_INSTANCE_ID = 'service.instance.id';
+const TMP_SERVICE_VERSION = 'service.version';
+const TMP_TELEMETRY_SDK_NAME = 'telemetry.sdk.name';
+const TMP_TELEMETRY_SDK_LANGUAGE = 'telemetry.sdk.language';
+const TMP_TELEMETRY_SDK_VERSION = 'telemetry.sdk.version';
+const TMP_TELEMETRY_AUTO_VERSION = 'telemetry.auto.version';
+const TMP_WEBENGINE_NAME = 'webengine.name';
+const TMP_WEBENGINE_VERSION = 'webengine.version';
+const TMP_WEBENGINE_DESCRIPTION = 'webengine.description';
+/**
+ * Name of the cloud provider.
+ *
+ * @deprecated Use ATTR_CLOUD_PROVIDER in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CLOUD_PROVIDER = TMP_CLOUD_PROVIDER;
+/**
+ * The cloud account ID the resource is assigned to.
+ *
+ * @deprecated Use ATTR_CLOUD_ACCOUNT_ID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CLOUD_ACCOUNT_ID = TMP_CLOUD_ACCOUNT_ID;
+/**
+ * The geographical region the resource is running. Refer to your provider&#39;s docs to see the available regions, for example [Alibaba Cloud regions](https://www.alibabacloud.com/help/doc-detail/40654.htm), [AWS regions](https://aws.amazon.com/about-aws/global-infrastructure/regions_az/), [Azure regions](https://azure.microsoft.com/en-us/global-infrastructure/geographies/), or [Google Cloud regions](https://cloud.google.com/about/locations).
+ *
+ * @deprecated Use ATTR_CLOUD_REGION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CLOUD_REGION = TMP_CLOUD_REGION;
+/**
+ * Cloud regions often have multiple, isolated locations known as zones to increase availability. Availability zone represents the zone where the resource is running.
+ *
+ * Note: Availability zones are called &#34;zones&#34; on Alibaba Cloud and Google Cloud.
+ *
+ * @deprecated Use ATTR_CLOUD_AVAILABILITY_ZONE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CLOUD_AVAILABILITY_ZONE = TMP_CLOUD_AVAILABILITY_ZONE;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use ATTR_CLOUD_PLATFORM in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CLOUD_PLATFORM = TMP_CLOUD_PLATFORM;
+/**
+ * The Amazon Resource Name (ARN) of an [ECS container instance](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_instances.html).
+ *
+ * @deprecated Use ATTR_AWS_ECS_CONTAINER_ARN in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_ECS_CONTAINER_ARN = TMP_AWS_ECS_CONTAINER_ARN;
+/**
+ * The ARN of an [ECS cluster](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html).
+ *
+ * @deprecated Use ATTR_AWS_ECS_CLUSTER_ARN in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_ECS_CLUSTER_ARN = TMP_AWS_ECS_CLUSTER_ARN;
+/**
+ * The [launch type](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html) for an ECS task.
+ *
+ * @deprecated Use ATTR_AWS_ECS_LAUNCHTYPE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_ECS_LAUNCHTYPE = TMP_AWS_ECS_LAUNCHTYPE;
+/**
+ * The ARN of an [ECS task definition](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html).
+ *
+ * @deprecated Use ATTR_AWS_ECS_TASK_ARN in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_ECS_TASK_ARN = TMP_AWS_ECS_TASK_ARN;
+/**
+ * The task definition family this task definition is a member of.
+ *
+ * @deprecated Use ATTR_AWS_ECS_TASK_FAMILY in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_ECS_TASK_FAMILY = TMP_AWS_ECS_TASK_FAMILY;
+/**
+ * The revision for this task definition.
+ *
+ * @deprecated Use ATTR_AWS_ECS_TASK_REVISION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_ECS_TASK_REVISION = TMP_AWS_ECS_TASK_REVISION;
+/**
+ * The ARN of an EKS cluster.
+ *
+ * @deprecated Use ATTR_AWS_EKS_CLUSTER_ARN in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_EKS_CLUSTER_ARN = TMP_AWS_EKS_CLUSTER_ARN;
+/**
+ * The name(s) of the AWS log group(s) an application is writing to.
+ *
+ * Note: Multiple log groups must be supported for cases like multi-container applications, where a single application has sidecar containers, and each write to their own log group.
+ *
+ * @deprecated Use ATTR_AWS_LOG_GROUP_NAMES in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_LOG_GROUP_NAMES = TMP_AWS_LOG_GROUP_NAMES;
+/**
+ * The Amazon Resource Name(s) (ARN) of the AWS log group(s).
+ *
+ * Note: See the [log group ARN format documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-access-control-overview-cwl.html#CWL_ARN_Format).
+ *
+ * @deprecated Use ATTR_AWS_LOG_GROUP_ARNS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_LOG_GROUP_ARNS = TMP_AWS_LOG_GROUP_ARNS;
+/**
+ * The name(s) of the AWS log stream(s) an application is writing to.
+ *
+ * @deprecated Use ATTR_AWS_LOG_STREAM_NAMES in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_LOG_STREAM_NAMES = TMP_AWS_LOG_STREAM_NAMES;
+/**
+ * The ARN(s) of the AWS log stream(s).
+ *
+ * Note: See the [log stream ARN format documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/iam-access-control-overview-cwl.html#CWL_ARN_Format). One log group can contain several log streams, so these ARNs necessarily identify both a log group and a log stream.
+ *
+ * @deprecated Use ATTR_AWS_LOG_STREAM_ARNS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_AWS_LOG_STREAM_ARNS = TMP_AWS_LOG_STREAM_ARNS;
+/**
+ * Container name.
+ *
+ * @deprecated Use ATTR_CONTAINER_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CONTAINER_NAME = TMP_CONTAINER_NAME;
+/**
+ * Container ID. Usually a UUID, as for example used to [identify Docker containers](https://docs.docker.com/engine/reference/run/#container-identification). The UUID might be abbreviated.
+ *
+ * @deprecated Use ATTR_CONTAINER_ID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CONTAINER_ID = TMP_CONTAINER_ID;
+/**
+ * The container runtime managing this container.
+ *
+ * @deprecated Use ATTR_CONTAINER_RUNTIME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CONTAINER_RUNTIME = TMP_CONTAINER_RUNTIME;
+/**
+ * Name of the image the container was built on.
+ *
+ * @deprecated Use ATTR_CONTAINER_IMAGE_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CONTAINER_IMAGE_NAME = TMP_CONTAINER_IMAGE_NAME;
+/**
+ * Container image tag.
+ *
+ * @deprecated Use ATTR_CONTAINER_IMAGE_TAGS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_CONTAINER_IMAGE_TAG = TMP_CONTAINER_IMAGE_TAG;
+/**
+ * Name of the [deployment environment](https://en.wikipedia.org/wiki/Deployment_environment) (aka deployment tier).
+ *
+ * @deprecated Use ATTR_DEPLOYMENT_ENVIRONMENT in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_DEPLOYMENT_ENVIRONMENT = TMP_DEPLOYMENT_ENVIRONMENT;
+/**
+ * A unique identifier representing the device.
+ *
+ * Note: The device identifier MUST only be defined using the values outlined below. This value is not an advertising identifier and MUST NOT be used as such. On iOS (Swift or Objective-C), this value MUST be equal to the [vendor identifier](https://developer.apple.com/documentation/uikit/uidevice/1620059-identifierforvendor). On Android (Java or Kotlin), this value MUST be equal to the Firebase Installation ID or a globally unique UUID which is persisted across sessions in your application. More information can be found [here](https://developer.android.com/training/articles/user-data-ids) on best practices and exact implementation details. Caution should be taken when storing personal data or anything which can identify a user. GDPR and data protection laws may apply, ensure you do your own due diligence.
+ *
+ * @deprecated Use ATTR_DEVICE_ID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_DEVICE_ID = TMP_DEVICE_ID;
+/**
+ * The model identifier for the device.
+ *
+ * Note: It&#39;s recommended this value represents a machine readable version of the model identifier rather than the market or consumer-friendly name of the device.
+ *
+ * @deprecated Use ATTR_DEVICE_MODEL_IDENTIFIER in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_DEVICE_MODEL_IDENTIFIER = TMP_DEVICE_MODEL_IDENTIFIER;
+/**
+ * The marketing name for the device model.
+ *
+ * Note: It&#39;s recommended this value represents a human readable version of the device model rather than a machine readable alternative.
+ *
+ * @deprecated Use ATTR_DEVICE_MODEL_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_DEVICE_MODEL_NAME = TMP_DEVICE_MODEL_NAME;
+/**
+ * The name of the single function that this runtime instance executes.
+ *
+ * Note: This is the name of the function as configured/deployed on the FaaS platform and is usually different from the name of the callback function (which may be stored in the [`code.namespace`/`code.function`](../../trace/semantic_conventions/span-general.md#source-code-attributes) span attributes).
+ *
+ * @deprecated Use ATTR_FAAS_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_FAAS_NAME = TMP_FAAS_NAME;
+/**
+* The unique ID of the single function that this runtime instance executes.
+*
+* Note: Depending on the cloud provider, use:
+
+* **AWS Lambda:** The function [ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html).
+Take care not to use the &#34;invoked ARN&#34; directly but replace any
+[alias suffix](https://docs.aws.amazon.com/lambda/latest/dg/configuration-aliases.html) with the resolved function version, as the same runtime instance may be invokable with multiple
+different aliases.
+* **GCP:** The [URI of the resource](https://cloud.google.com/iam/docs/full-resource-names)
+* **Azure:** The [Fully Qualified Resource ID](https://docs.microsoft.com/en-us/rest/api/resources/resources/get-by-id).
+
+On some providers, it may not be possible to determine the full ID at startup,
+which is why this field cannot be made required. For example, on AWS the account ID
+part of the ARN is not available without calling another AWS API
+which may be deemed too slow for a short-running lambda function.
+As an alternative, consider setting `faas.id` as a span attribute instead.
+*
+* @deprecated Use ATTR_CLOUD_RESOURCE_ID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+*/
+exports.SEMRESATTRS_FAAS_ID = TMP_FAAS_ID;
+/**
+* The immutable version of the function being executed.
+*
+* Note: Depending on the cloud provider and platform, use:
+
+* **AWS Lambda:** The [function version](https://docs.aws.amazon.com/lambda/latest/dg/configuration-versions.html)
+  (an integer represented as a decimal string).
+* **Google Cloud Run:** The [revision](https://cloud.google.com/run/docs/managing/revisions)
+  (i.e., the function name plus the revision suffix).
+* **Google Cloud Functions:** The value of the
+  [`K_REVISION` environment variable](https://cloud.google.com/functions/docs/env-var#runtime_environment_variables_set_automatically).
+* **Azure Functions:** Not applicable. Do not set this attribute.
+*
+* @deprecated Use ATTR_FAAS_VERSION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+*/
+exports.SEMRESATTRS_FAAS_VERSION = TMP_FAAS_VERSION;
+/**
+ * The execution environment ID as a string, that will be potentially reused for other invocations to the same function/function version.
+ *
+ * Note: * **AWS Lambda:** Use the (full) log stream name.
+ *
+ * @deprecated Use ATTR_FAAS_INSTANCE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_FAAS_INSTANCE = TMP_FAAS_INSTANCE;
+/**
+ * The amount of memory available to the serverless function in MiB.
+ *
+ * Note: It&#39;s recommended to set this attribute since e.g. too little memory can easily stop a Java AWS Lambda function from working correctly. On AWS Lambda, the environment variable `AWS_LAMBDA_FUNCTION_MEMORY_SIZE` provides this information.
+ *
+ * @deprecated Use ATTR_FAAS_MAX_MEMORY in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_FAAS_MAX_MEMORY = TMP_FAAS_MAX_MEMORY;
+/**
+ * Unique host ID. For Cloud, this must be the instance_id assigned by the cloud provider.
+ *
+ * @deprecated Use ATTR_HOST_ID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_HOST_ID = TMP_HOST_ID;
+/**
+ * Name of the host. On Unix systems, it may contain what the hostname command returns, or the fully qualified hostname, or another name specified by the user.
+ *
+ * @deprecated Use ATTR_HOST_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_HOST_NAME = TMP_HOST_NAME;
+/**
+ * Type of host. For Cloud, this must be the machine type.
+ *
+ * @deprecated Use ATTR_HOST_TYPE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_HOST_TYPE = TMP_HOST_TYPE;
+/**
+ * The CPU architecture the host system is running on.
+ *
+ * @deprecated Use ATTR_HOST_ARCH in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_HOST_ARCH = TMP_HOST_ARCH;
+/**
+ * Name of the VM image or OS install the host was instantiated from.
+ *
+ * @deprecated Use ATTR_HOST_IMAGE_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_HOST_IMAGE_NAME = TMP_HOST_IMAGE_NAME;
+/**
+ * VM image ID. For Cloud, this value is from the provider.
+ *
+ * @deprecated Use ATTR_HOST_IMAGE_ID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_HOST_IMAGE_ID = TMP_HOST_IMAGE_ID;
+/**
+ * The version string of the VM image as defined in [Version Attributes](README.md#version-attributes).
+ *
+ * @deprecated Use ATTR_HOST_IMAGE_VERSION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_HOST_IMAGE_VERSION = TMP_HOST_IMAGE_VERSION;
+/**
+ * The name of the cluster.
+ *
+ * @deprecated Use ATTR_K8S_CLUSTER_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_CLUSTER_NAME = TMP_K8S_CLUSTER_NAME;
+/**
+ * The name of the Node.
+ *
+ * @deprecated Use ATTR_K8S_NODE_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_NODE_NAME = TMP_K8S_NODE_NAME;
+/**
+ * The UID of the Node.
+ *
+ * @deprecated Use ATTR_K8S_NODE_UID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_NODE_UID = TMP_K8S_NODE_UID;
+/**
+ * The name of the namespace that the pod is running in.
+ *
+ * @deprecated Use ATTR_K8S_NAMESPACE_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_NAMESPACE_NAME = TMP_K8S_NAMESPACE_NAME;
+/**
+ * The UID of the Pod.
+ *
+ * @deprecated Use ATTR_K8S_POD_UID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_POD_UID = TMP_K8S_POD_UID;
+/**
+ * The name of the Pod.
+ *
+ * @deprecated Use ATTR_K8S_POD_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_POD_NAME = TMP_K8S_POD_NAME;
+/**
+ * The name of the Container in a Pod template.
+ *
+ * @deprecated Use ATTR_K8S_CONTAINER_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_CONTAINER_NAME = TMP_K8S_CONTAINER_NAME;
+/**
+ * The UID of the ReplicaSet.
+ *
+ * @deprecated Use ATTR_K8S_REPLICASET_UID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_REPLICASET_UID = TMP_K8S_REPLICASET_UID;
+/**
+ * The name of the ReplicaSet.
+ *
+ * @deprecated Use ATTR_K8S_REPLICASET_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_REPLICASET_NAME = TMP_K8S_REPLICASET_NAME;
+/**
+ * The UID of the Deployment.
+ *
+ * @deprecated Use ATTR_K8S_DEPLOYMENT_UID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_DEPLOYMENT_UID = TMP_K8S_DEPLOYMENT_UID;
+/**
+ * The name of the Deployment.
+ *
+ * @deprecated Use ATTR_K8S_DEPLOYMENT_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_DEPLOYMENT_NAME = TMP_K8S_DEPLOYMENT_NAME;
+/**
+ * The UID of the StatefulSet.
+ *
+ * @deprecated Use ATTR_K8S_STATEFULSET_UID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_STATEFULSET_UID = TMP_K8S_STATEFULSET_UID;
+/**
+ * The name of the StatefulSet.
+ *
+ * @deprecated Use ATTR_K8S_STATEFULSET_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_STATEFULSET_NAME = TMP_K8S_STATEFULSET_NAME;
+/**
+ * The UID of the DaemonSet.
+ *
+ * @deprecated Use ATTR_K8S_DAEMONSET_UID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_DAEMONSET_UID = TMP_K8S_DAEMONSET_UID;
+/**
+ * The name of the DaemonSet.
+ *
+ * @deprecated Use ATTR_K8S_DAEMONSET_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_DAEMONSET_NAME = TMP_K8S_DAEMONSET_NAME;
+/**
+ * The UID of the Job.
+ *
+ * @deprecated Use ATTR_K8S_JOB_UID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_JOB_UID = TMP_K8S_JOB_UID;
+/**
+ * The name of the Job.
+ *
+ * @deprecated Use ATTR_K8S_JOB_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_JOB_NAME = TMP_K8S_JOB_NAME;
+/**
+ * The UID of the CronJob.
+ *
+ * @deprecated Use ATTR_K8S_CRONJOB_UID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_CRONJOB_UID = TMP_K8S_CRONJOB_UID;
+/**
+ * The name of the CronJob.
+ *
+ * @deprecated Use ATTR_K8S_CRONJOB_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_K8S_CRONJOB_NAME = TMP_K8S_CRONJOB_NAME;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use ATTR_OS_TYPE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_OS_TYPE = TMP_OS_TYPE;
+/**
+ * Human readable (not intended to be parsed) OS version information, like e.g. reported by `ver` or `lsb_release -a` commands.
+ *
+ * @deprecated Use ATTR_OS_DESCRIPTION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_OS_DESCRIPTION = TMP_OS_DESCRIPTION;
+/**
+ * Human readable operating system name.
+ *
+ * @deprecated Use ATTR_OS_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_OS_NAME = TMP_OS_NAME;
+/**
+ * The version string of the operating system as defined in [Version Attributes](../../resource/semantic_conventions/README.md#version-attributes).
+ *
+ * @deprecated Use ATTR_OS_VERSION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_OS_VERSION = TMP_OS_VERSION;
+/**
+ * Process identifier (PID).
+ *
+ * @deprecated Use ATTR_PROCESS_PID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_PID = TMP_PROCESS_PID;
+/**
+ * The name of the process executable. On Linux based systems, can be set to the `Name` in `proc/[pid]/status`. On Windows, can be set to the base name of `GetProcessImageFileNameW`.
+ *
+ * @deprecated Use ATTR_PROCESS_EXECUTABLE_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_EXECUTABLE_NAME = TMP_PROCESS_EXECUTABLE_NAME;
+/**
+ * The full path to the process executable. On Linux based systems, can be set to the target of `proc/[pid]/exe`. On Windows, can be set to the result of `GetProcessImageFileNameW`.
+ *
+ * @deprecated Use ATTR_PROCESS_EXECUTABLE_PATH in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_EXECUTABLE_PATH = TMP_PROCESS_EXECUTABLE_PATH;
+/**
+ * The command used to launch the process (i.e. the command name). On Linux based systems, can be set to the zeroth string in `proc/[pid]/cmdline`. On Windows, can be set to the first parameter extracted from `GetCommandLineW`.
+ *
+ * @deprecated Use ATTR_PROCESS_COMMAND in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_COMMAND = TMP_PROCESS_COMMAND;
+/**
+ * The full command used to launch the process as a single string representing the full command. On Windows, can be set to the result of `GetCommandLineW`. Do not set this if you have to assemble it just for monitoring; use `process.command_args` instead.
+ *
+ * @deprecated Use ATTR_PROCESS_COMMAND_LINE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_COMMAND_LINE = TMP_PROCESS_COMMAND_LINE;
+/**
+ * All the command arguments (including the command/executable itself) as received by the process. On Linux-based systems (and some other Unixoid systems supporting procfs), can be set according to the list of null-delimited strings extracted from `proc/[pid]/cmdline`. For libc-based executables, this would be the full argv vector passed to `main`.
+ *
+ * @deprecated Use ATTR_PROCESS_COMMAND_ARGS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_COMMAND_ARGS = TMP_PROCESS_COMMAND_ARGS;
+/**
+ * The username of the user that owns the process.
+ *
+ * @deprecated Use ATTR_PROCESS_OWNER in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_OWNER = TMP_PROCESS_OWNER;
+/**
+ * The name of the runtime of this process. For compiled native binaries, this SHOULD be the name of the compiler.
+ *
+ * @deprecated Use ATTR_PROCESS_RUNTIME_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_RUNTIME_NAME = TMP_PROCESS_RUNTIME_NAME;
+/**
+ * The version of the runtime of this process, as returned by the runtime without modification.
+ *
+ * @deprecated Use ATTR_PROCESS_RUNTIME_VERSION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_RUNTIME_VERSION = TMP_PROCESS_RUNTIME_VERSION;
+/**
+ * An additional description about the runtime of the process, for example a specific vendor customization of the runtime environment.
+ *
+ * @deprecated Use ATTR_PROCESS_RUNTIME_DESCRIPTION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_PROCESS_RUNTIME_DESCRIPTION = TMP_PROCESS_RUNTIME_DESCRIPTION;
+/**
+ * Logical name of the service.
+ *
+ * Note: MUST be the same for all instances of horizontally scaled services. If the value was not specified, SDKs MUST fallback to `unknown_service:` concatenated with [`process.executable.name`](process.md#process), e.g. `unknown_service:bash`. If `process.executable.name` is not available, the value MUST be set to `unknown_service`.
+ *
+ * @deprecated Use ATTR_SERVICE_NAME.
+ */
+exports.SEMRESATTRS_SERVICE_NAME = TMP_SERVICE_NAME;
+/**
+ * A namespace for `service.name`.
+ *
+ * Note: A string value having a meaning that helps to distinguish a group of services, for example the team name that owns a group of services. `service.name` is expected to be unique within the same namespace. If `service.namespace` is not specified in the Resource then `service.name` is expected to be unique for all services that have no explicit namespace defined (so the empty/unspecified namespace is simply one more valid namespace). Zero-length namespace string is assumed equal to unspecified namespace.
+ *
+ * @deprecated Use ATTR_SERVICE_NAMESPACE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_SERVICE_NAMESPACE = TMP_SERVICE_NAMESPACE;
+/**
+ * The string ID of the service instance.
+ *
+ * Note: MUST be unique for each instance of the same `service.namespace,service.name` pair (in other words `service.namespace,service.name,service.instance.id` triplet MUST be globally unique). The ID helps to distinguish instances of the same service that exist at the same time (e.g. instances of a horizontally scaled service). It is preferable for the ID to be persistent and stay the same for the lifetime of the service instance, however it is acceptable that the ID is ephemeral and changes during important lifetime events for the service (e.g. service restarts). If the service has no inherent unique ID that can be used as the value of this attribute it is recommended to generate a random Version 1 or Version 4 RFC 4122 UUID (services aiming for reproducible UUIDs may also use Version 5, see RFC 4122 for more recommendations).
+ *
+ * @deprecated Use ATTR_SERVICE_INSTANCE_ID in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_SERVICE_INSTANCE_ID = TMP_SERVICE_INSTANCE_ID;
+/**
+ * The version string of the service API or implementation.
+ *
+ * @deprecated Use ATTR_SERVICE_VERSION.
+ */
+exports.SEMRESATTRS_SERVICE_VERSION = TMP_SERVICE_VERSION;
+/**
+ * The name of the telemetry SDK as defined above.
+ *
+ * @deprecated Use ATTR_TELEMETRY_SDK_NAME.
+ */
+exports.SEMRESATTRS_TELEMETRY_SDK_NAME = TMP_TELEMETRY_SDK_NAME;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use ATTR_TELEMETRY_SDK_LANGUAGE.
+ */
+exports.SEMRESATTRS_TELEMETRY_SDK_LANGUAGE = TMP_TELEMETRY_SDK_LANGUAGE;
+/**
+ * The version string of the telemetry SDK.
+ *
+ * @deprecated Use ATTR_TELEMETRY_SDK_VERSION.
+ */
+exports.SEMRESATTRS_TELEMETRY_SDK_VERSION = TMP_TELEMETRY_SDK_VERSION;
+/**
+ * The version string of the auto instrumentation agent, if used.
+ *
+ * @deprecated Use ATTR_TELEMETRY_DISTRO_VERSION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_TELEMETRY_AUTO_VERSION = TMP_TELEMETRY_AUTO_VERSION;
+/**
+ * The name of the web engine.
+ *
+ * @deprecated Use ATTR_WEBENGINE_NAME in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_WEBENGINE_NAME = TMP_WEBENGINE_NAME;
+/**
+ * The version of the web engine.
+ *
+ * @deprecated Use ATTR_WEBENGINE_VERSION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_WEBENGINE_VERSION = TMP_WEBENGINE_VERSION;
+/**
+ * Additional description of the web engine (e.g. detailed version and edition information).
+ *
+ * @deprecated Use ATTR_WEBENGINE_DESCRIPTION in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.SEMRESATTRS_WEBENGINE_DESCRIPTION = TMP_WEBENGINE_DESCRIPTION;
+/**
+ * Create exported Value Map for SemanticResourceAttributes values
+ * @deprecated Use the SEMRESATTRS_XXXXX constants rather than the SemanticResourceAttributes.XXXXX for bundle minification
+ */
+exports.SemanticResourceAttributes =
+    /*#__PURE__*/ (0, utils_1.createConstMap)([
+        TMP_CLOUD_PROVIDER,
+        TMP_CLOUD_ACCOUNT_ID,
+        TMP_CLOUD_REGION,
+        TMP_CLOUD_AVAILABILITY_ZONE,
+        TMP_CLOUD_PLATFORM,
+        TMP_AWS_ECS_CONTAINER_ARN,
+        TMP_AWS_ECS_CLUSTER_ARN,
+        TMP_AWS_ECS_LAUNCHTYPE,
+        TMP_AWS_ECS_TASK_ARN,
+        TMP_AWS_ECS_TASK_FAMILY,
+        TMP_AWS_ECS_TASK_REVISION,
+        TMP_AWS_EKS_CLUSTER_ARN,
+        TMP_AWS_LOG_GROUP_NAMES,
+        TMP_AWS_LOG_GROUP_ARNS,
+        TMP_AWS_LOG_STREAM_NAMES,
+        TMP_AWS_LOG_STREAM_ARNS,
+        TMP_CONTAINER_NAME,
+        TMP_CONTAINER_ID,
+        TMP_CONTAINER_RUNTIME,
+        TMP_CONTAINER_IMAGE_NAME,
+        TMP_CONTAINER_IMAGE_TAG,
+        TMP_DEPLOYMENT_ENVIRONMENT,
+        TMP_DEVICE_ID,
+        TMP_DEVICE_MODEL_IDENTIFIER,
+        TMP_DEVICE_MODEL_NAME,
+        TMP_FAAS_NAME,
+        TMP_FAAS_ID,
+        TMP_FAAS_VERSION,
+        TMP_FAAS_INSTANCE,
+        TMP_FAAS_MAX_MEMORY,
+        TMP_HOST_ID,
+        TMP_HOST_NAME,
+        TMP_HOST_TYPE,
+        TMP_HOST_ARCH,
+        TMP_HOST_IMAGE_NAME,
+        TMP_HOST_IMAGE_ID,
+        TMP_HOST_IMAGE_VERSION,
+        TMP_K8S_CLUSTER_NAME,
+        TMP_K8S_NODE_NAME,
+        TMP_K8S_NODE_UID,
+        TMP_K8S_NAMESPACE_NAME,
+        TMP_K8S_POD_UID,
+        TMP_K8S_POD_NAME,
+        TMP_K8S_CONTAINER_NAME,
+        TMP_K8S_REPLICASET_UID,
+        TMP_K8S_REPLICASET_NAME,
+        TMP_K8S_DEPLOYMENT_UID,
+        TMP_K8S_DEPLOYMENT_NAME,
+        TMP_K8S_STATEFULSET_UID,
+        TMP_K8S_STATEFULSET_NAME,
+        TMP_K8S_DAEMONSET_UID,
+        TMP_K8S_DAEMONSET_NAME,
+        TMP_K8S_JOB_UID,
+        TMP_K8S_JOB_NAME,
+        TMP_K8S_CRONJOB_UID,
+        TMP_K8S_CRONJOB_NAME,
+        TMP_OS_TYPE,
+        TMP_OS_DESCRIPTION,
+        TMP_OS_NAME,
+        TMP_OS_VERSION,
+        TMP_PROCESS_PID,
+        TMP_PROCESS_EXECUTABLE_NAME,
+        TMP_PROCESS_EXECUTABLE_PATH,
+        TMP_PROCESS_COMMAND,
+        TMP_PROCESS_COMMAND_LINE,
+        TMP_PROCESS_COMMAND_ARGS,
+        TMP_PROCESS_OWNER,
+        TMP_PROCESS_RUNTIME_NAME,
+        TMP_PROCESS_RUNTIME_VERSION,
+        TMP_PROCESS_RUNTIME_DESCRIPTION,
+        TMP_SERVICE_NAME,
+        TMP_SERVICE_NAMESPACE,
+        TMP_SERVICE_INSTANCE_ID,
+        TMP_SERVICE_VERSION,
+        TMP_TELEMETRY_SDK_NAME,
+        TMP_TELEMETRY_SDK_LANGUAGE,
+        TMP_TELEMETRY_SDK_VERSION,
+        TMP_TELEMETRY_AUTO_VERSION,
+        TMP_WEBENGINE_NAME,
+        TMP_WEBENGINE_VERSION,
+        TMP_WEBENGINE_DESCRIPTION,
+    ]);
+/* ----------------------------------------------------------------------------------------------------------
+ * Constant values for CloudProviderValues enum definition
+ *
+ * Name of the cloud provider.
+ * ---------------------------------------------------------------------------------------------------------- */
+// Temporary local constants to assign to the individual exports and the namespaced version
+// Required to avoid the namespace exports using the unminifiable export names for some package types
+const TMP_CLOUDPROVIDERVALUES_ALIBABA_CLOUD = 'alibaba_cloud';
+const TMP_CLOUDPROVIDERVALUES_AWS = 'aws';
+const TMP_CLOUDPROVIDERVALUES_AZURE = 'azure';
+const TMP_CLOUDPROVIDERVALUES_GCP = 'gcp';
+/**
+ * Name of the cloud provider.
+ *
+ * @deprecated Use CLOUD_PROVIDER_VALUE_ALIBABA_CLOUD in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPROVIDERVALUES_ALIBABA_CLOUD = TMP_CLOUDPROVIDERVALUES_ALIBABA_CLOUD;
+/**
+ * Name of the cloud provider.
+ *
+ * @deprecated Use CLOUD_PROVIDER_VALUE_AWS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPROVIDERVALUES_AWS = TMP_CLOUDPROVIDERVALUES_AWS;
+/**
+ * Name of the cloud provider.
+ *
+ * @deprecated Use CLOUD_PROVIDER_VALUE_AZURE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPROVIDERVALUES_AZURE = TMP_CLOUDPROVIDERVALUES_AZURE;
+/**
+ * Name of the cloud provider.
+ *
+ * @deprecated Use CLOUD_PROVIDER_VALUE_GCP in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPROVIDERVALUES_GCP = TMP_CLOUDPROVIDERVALUES_GCP;
+/**
+ * The constant map of values for CloudProviderValues.
+ * @deprecated Use the CLOUDPROVIDERVALUES_XXXXX constants rather than the CloudProviderValues.XXXXX for bundle minification.
+ */
+exports.CloudProviderValues =
+    /*#__PURE__*/ (0, utils_1.createConstMap)([
+        TMP_CLOUDPROVIDERVALUES_ALIBABA_CLOUD,
+        TMP_CLOUDPROVIDERVALUES_AWS,
+        TMP_CLOUDPROVIDERVALUES_AZURE,
+        TMP_CLOUDPROVIDERVALUES_GCP,
+    ]);
+/* ----------------------------------------------------------------------------------------------------------
+ * Constant values for CloudPlatformValues enum definition
+ *
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ * ---------------------------------------------------------------------------------------------------------- */
+// Temporary local constants to assign to the individual exports and the namespaced version
+// Required to avoid the namespace exports using the unminifiable export names for some package types
+const TMP_CLOUDPLATFORMVALUES_ALIBABA_CLOUD_ECS = 'alibaba_cloud_ecs';
+const TMP_CLOUDPLATFORMVALUES_ALIBABA_CLOUD_FC = 'alibaba_cloud_fc';
+const TMP_CLOUDPLATFORMVALUES_AWS_EC2 = 'aws_ec2';
+const TMP_CLOUDPLATFORMVALUES_AWS_ECS = 'aws_ecs';
+const TMP_CLOUDPLATFORMVALUES_AWS_EKS = 'aws_eks';
+const TMP_CLOUDPLATFORMVALUES_AWS_LAMBDA = 'aws_lambda';
+const TMP_CLOUDPLATFORMVALUES_AWS_ELASTIC_BEANSTALK = 'aws_elastic_beanstalk';
+const TMP_CLOUDPLATFORMVALUES_AZURE_VM = 'azure_vm';
+const TMP_CLOUDPLATFORMVALUES_AZURE_CONTAINER_INSTANCES = 'azure_container_instances';
+const TMP_CLOUDPLATFORMVALUES_AZURE_AKS = 'azure_aks';
+const TMP_CLOUDPLATFORMVALUES_AZURE_FUNCTIONS = 'azure_functions';
+const TMP_CLOUDPLATFORMVALUES_AZURE_APP_SERVICE = 'azure_app_service';
+const TMP_CLOUDPLATFORMVALUES_GCP_COMPUTE_ENGINE = 'gcp_compute_engine';
+const TMP_CLOUDPLATFORMVALUES_GCP_CLOUD_RUN = 'gcp_cloud_run';
+const TMP_CLOUDPLATFORMVALUES_GCP_KUBERNETES_ENGINE = 'gcp_kubernetes_engine';
+const TMP_CLOUDPLATFORMVALUES_GCP_CLOUD_FUNCTIONS = 'gcp_cloud_functions';
+const TMP_CLOUDPLATFORMVALUES_GCP_APP_ENGINE = 'gcp_app_engine';
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_ALIBABA_CLOUD_ECS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_ALIBABA_CLOUD_ECS = TMP_CLOUDPLATFORMVALUES_ALIBABA_CLOUD_ECS;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_ALIBABA_CLOUD_FC in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_ALIBABA_CLOUD_FC = TMP_CLOUDPLATFORMVALUES_ALIBABA_CLOUD_FC;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AWS_EC2 in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AWS_EC2 = TMP_CLOUDPLATFORMVALUES_AWS_EC2;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AWS_ECS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AWS_ECS = TMP_CLOUDPLATFORMVALUES_AWS_ECS;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AWS_EKS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AWS_EKS = TMP_CLOUDPLATFORMVALUES_AWS_EKS;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AWS_LAMBDA in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AWS_LAMBDA = TMP_CLOUDPLATFORMVALUES_AWS_LAMBDA;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AWS_ELASTIC_BEANSTALK in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AWS_ELASTIC_BEANSTALK = TMP_CLOUDPLATFORMVALUES_AWS_ELASTIC_BEANSTALK;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AZURE_VM in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AZURE_VM = TMP_CLOUDPLATFORMVALUES_AZURE_VM;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AZURE_CONTAINER_INSTANCES in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AZURE_CONTAINER_INSTANCES = TMP_CLOUDPLATFORMVALUES_AZURE_CONTAINER_INSTANCES;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AZURE_AKS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AZURE_AKS = TMP_CLOUDPLATFORMVALUES_AZURE_AKS;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AZURE_FUNCTIONS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AZURE_FUNCTIONS = TMP_CLOUDPLATFORMVALUES_AZURE_FUNCTIONS;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_AZURE_APP_SERVICE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_AZURE_APP_SERVICE = TMP_CLOUDPLATFORMVALUES_AZURE_APP_SERVICE;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_GCP_COMPUTE_ENGINE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_GCP_COMPUTE_ENGINE = TMP_CLOUDPLATFORMVALUES_GCP_COMPUTE_ENGINE;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_GCP_CLOUD_RUN in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_GCP_CLOUD_RUN = TMP_CLOUDPLATFORMVALUES_GCP_CLOUD_RUN;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_GCP_KUBERNETES_ENGINE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_GCP_KUBERNETES_ENGINE = TMP_CLOUDPLATFORMVALUES_GCP_KUBERNETES_ENGINE;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_GCP_CLOUD_FUNCTIONS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_GCP_CLOUD_FUNCTIONS = TMP_CLOUDPLATFORMVALUES_GCP_CLOUD_FUNCTIONS;
+/**
+ * The cloud platform in use.
+ *
+ * Note: The prefix of the service SHOULD match the one specified in `cloud.provider`.
+ *
+ * @deprecated Use CLOUD_PLATFORM_VALUE_GCP_APP_ENGINE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.CLOUDPLATFORMVALUES_GCP_APP_ENGINE = TMP_CLOUDPLATFORMVALUES_GCP_APP_ENGINE;
+/**
+ * The constant map of values for CloudPlatformValues.
+ * @deprecated Use the CLOUDPLATFORMVALUES_XXXXX constants rather than the CloudPlatformValues.XXXXX for bundle minification.
+ */
+exports.CloudPlatformValues =
+    /*#__PURE__*/ (0, utils_1.createConstMap)([
+        TMP_CLOUDPLATFORMVALUES_ALIBABA_CLOUD_ECS,
+        TMP_CLOUDPLATFORMVALUES_ALIBABA_CLOUD_FC,
+        TMP_CLOUDPLATFORMVALUES_AWS_EC2,
+        TMP_CLOUDPLATFORMVALUES_AWS_ECS,
+        TMP_CLOUDPLATFORMVALUES_AWS_EKS,
+        TMP_CLOUDPLATFORMVALUES_AWS_LAMBDA,
+        TMP_CLOUDPLATFORMVALUES_AWS_ELASTIC_BEANSTALK,
+        TMP_CLOUDPLATFORMVALUES_AZURE_VM,
+        TMP_CLOUDPLATFORMVALUES_AZURE_CONTAINER_INSTANCES,
+        TMP_CLOUDPLATFORMVALUES_AZURE_AKS,
+        TMP_CLOUDPLATFORMVALUES_AZURE_FUNCTIONS,
+        TMP_CLOUDPLATFORMVALUES_AZURE_APP_SERVICE,
+        TMP_CLOUDPLATFORMVALUES_GCP_COMPUTE_ENGINE,
+        TMP_CLOUDPLATFORMVALUES_GCP_CLOUD_RUN,
+        TMP_CLOUDPLATFORMVALUES_GCP_KUBERNETES_ENGINE,
+        TMP_CLOUDPLATFORMVALUES_GCP_CLOUD_FUNCTIONS,
+        TMP_CLOUDPLATFORMVALUES_GCP_APP_ENGINE,
+    ]);
+/* ----------------------------------------------------------------------------------------------------------
+ * Constant values for AwsEcsLaunchtypeValues enum definition
+ *
+ * The [launch type](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html) for an ECS task.
+ * ---------------------------------------------------------------------------------------------------------- */
+// Temporary local constants to assign to the individual exports and the namespaced version
+// Required to avoid the namespace exports using the unminifiable export names for some package types
+const TMP_AWSECSLAUNCHTYPEVALUES_EC2 = 'ec2';
+const TMP_AWSECSLAUNCHTYPEVALUES_FARGATE = 'fargate';
+/**
+ * The [launch type](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html) for an ECS task.
+ *
+ * @deprecated Use AWS_ECS_LAUNCHTYPE_VALUE_EC2 in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.AWSECSLAUNCHTYPEVALUES_EC2 = TMP_AWSECSLAUNCHTYPEVALUES_EC2;
+/**
+ * The [launch type](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html) for an ECS task.
+ *
+ * @deprecated Use AWS_ECS_LAUNCHTYPE_VALUE_FARGATE in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.AWSECSLAUNCHTYPEVALUES_FARGATE = TMP_AWSECSLAUNCHTYPEVALUES_FARGATE;
+/**
+ * The constant map of values for AwsEcsLaunchtypeValues.
+ * @deprecated Use the AWSECSLAUNCHTYPEVALUES_XXXXX constants rather than the AwsEcsLaunchtypeValues.XXXXX for bundle minification.
+ */
+exports.AwsEcsLaunchtypeValues =
+    /*#__PURE__*/ (0, utils_1.createConstMap)([
+        TMP_AWSECSLAUNCHTYPEVALUES_EC2,
+        TMP_AWSECSLAUNCHTYPEVALUES_FARGATE,
+    ]);
+/* ----------------------------------------------------------------------------------------------------------
+ * Constant values for HostArchValues enum definition
+ *
+ * The CPU architecture the host system is running on.
+ * ---------------------------------------------------------------------------------------------------------- */
+// Temporary local constants to assign to the individual exports and the namespaced version
+// Required to avoid the namespace exports using the unminifiable export names for some package types
+const TMP_HOSTARCHVALUES_AMD64 = 'amd64';
+const TMP_HOSTARCHVALUES_ARM32 = 'arm32';
+const TMP_HOSTARCHVALUES_ARM64 = 'arm64';
+const TMP_HOSTARCHVALUES_IA64 = 'ia64';
+const TMP_HOSTARCHVALUES_PPC32 = 'ppc32';
+const TMP_HOSTARCHVALUES_PPC64 = 'ppc64';
+const TMP_HOSTARCHVALUES_X86 = 'x86';
+/**
+ * The CPU architecture the host system is running on.
+ *
+ * @deprecated Use HOST_ARCH_VALUE_AMD64 in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.HOSTARCHVALUES_AMD64 = TMP_HOSTARCHVALUES_AMD64;
+/**
+ * The CPU architecture the host system is running on.
+ *
+ * @deprecated Use HOST_ARCH_VALUE_ARM32 in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.HOSTARCHVALUES_ARM32 = TMP_HOSTARCHVALUES_ARM32;
+/**
+ * The CPU architecture the host system is running on.
+ *
+ * @deprecated Use HOST_ARCH_VALUE_ARM64 in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.HOSTARCHVALUES_ARM64 = TMP_HOSTARCHVALUES_ARM64;
+/**
+ * The CPU architecture the host system is running on.
+ *
+ * @deprecated Use HOST_ARCH_VALUE_IA64 in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.HOSTARCHVALUES_IA64 = TMP_HOSTARCHVALUES_IA64;
+/**
+ * The CPU architecture the host system is running on.
+ *
+ * @deprecated Use HOST_ARCH_VALUE_PPC32 in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.HOSTARCHVALUES_PPC32 = TMP_HOSTARCHVALUES_PPC32;
+/**
+ * The CPU architecture the host system is running on.
+ *
+ * @deprecated Use HOST_ARCH_VALUE_PPC64 in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.HOSTARCHVALUES_PPC64 = TMP_HOSTARCHVALUES_PPC64;
+/**
+ * The CPU architecture the host system is running on.
+ *
+ * @deprecated Use HOST_ARCH_VALUE_X86 in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.HOSTARCHVALUES_X86 = TMP_HOSTARCHVALUES_X86;
+/**
+ * The constant map of values for HostArchValues.
+ * @deprecated Use the HOSTARCHVALUES_XXXXX constants rather than the HostArchValues.XXXXX for bundle minification.
+ */
+exports.HostArchValues =
+    /*#__PURE__*/ (0, utils_1.createConstMap)([
+        TMP_HOSTARCHVALUES_AMD64,
+        TMP_HOSTARCHVALUES_ARM32,
+        TMP_HOSTARCHVALUES_ARM64,
+        TMP_HOSTARCHVALUES_IA64,
+        TMP_HOSTARCHVALUES_PPC32,
+        TMP_HOSTARCHVALUES_PPC64,
+        TMP_HOSTARCHVALUES_X86,
+    ]);
+/* ----------------------------------------------------------------------------------------------------------
+ * Constant values for OsTypeValues enum definition
+ *
+ * The operating system type.
+ * ---------------------------------------------------------------------------------------------------------- */
+// Temporary local constants to assign to the individual exports and the namespaced version
+// Required to avoid the namespace exports using the unminifiable export names for some package types
+const TMP_OSTYPEVALUES_WINDOWS = 'windows';
+const TMP_OSTYPEVALUES_LINUX = 'linux';
+const TMP_OSTYPEVALUES_DARWIN = 'darwin';
+const TMP_OSTYPEVALUES_FREEBSD = 'freebsd';
+const TMP_OSTYPEVALUES_NETBSD = 'netbsd';
+const TMP_OSTYPEVALUES_OPENBSD = 'openbsd';
+const TMP_OSTYPEVALUES_DRAGONFLYBSD = 'dragonflybsd';
+const TMP_OSTYPEVALUES_HPUX = 'hpux';
+const TMP_OSTYPEVALUES_AIX = 'aix';
+const TMP_OSTYPEVALUES_SOLARIS = 'solaris';
+const TMP_OSTYPEVALUES_Z_OS = 'z_os';
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_WINDOWS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_WINDOWS = TMP_OSTYPEVALUES_WINDOWS;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_LINUX in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_LINUX = TMP_OSTYPEVALUES_LINUX;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_DARWIN in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_DARWIN = TMP_OSTYPEVALUES_DARWIN;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_FREEBSD in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_FREEBSD = TMP_OSTYPEVALUES_FREEBSD;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_NETBSD in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_NETBSD = TMP_OSTYPEVALUES_NETBSD;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_OPENBSD in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_OPENBSD = TMP_OSTYPEVALUES_OPENBSD;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_DRAGONFLYBSD in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_DRAGONFLYBSD = TMP_OSTYPEVALUES_DRAGONFLYBSD;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_HPUX in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_HPUX = TMP_OSTYPEVALUES_HPUX;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_AIX in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_AIX = TMP_OSTYPEVALUES_AIX;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_SOLARIS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_SOLARIS = TMP_OSTYPEVALUES_SOLARIS;
+/**
+ * The operating system type.
+ *
+ * @deprecated Use OS_TYPE_VALUE_Z_OS in [incubating entry-point]({@link https://github.com/open-telemetry/opentelemetry-js/blob/main/semantic-conventions/README.md#unstable-semconv}).
+ */
+exports.OSTYPEVALUES_Z_OS = TMP_OSTYPEVALUES_Z_OS;
+/**
+ * The constant map of values for OsTypeValues.
+ * @deprecated Use the OSTYPEVALUES_XXXXX constants rather than the OsTypeValues.XXXXX for bundle minification.
+ */
+exports.OsTypeValues =
+    /*#__PURE__*/ (0, utils_1.createConstMap)([
+        TMP_OSTYPEVALUES_WINDOWS,
+        TMP_OSTYPEVALUES_LINUX,
+        TMP_OSTYPEVALUES_DARWIN,
+        TMP_OSTYPEVALUES_FREEBSD,
+        TMP_OSTYPEVALUES_NETBSD,
+        TMP_OSTYPEVALUES_OPENBSD,
+        TMP_OSTYPEVALUES_DRAGONFLYBSD,
+        TMP_OSTYPEVALUES_HPUX,
+        TMP_OSTYPEVALUES_AIX,
+        TMP_OSTYPEVALUES_SOLARIS,
+        TMP_OSTYPEVALUES_Z_OS,
+    ]);
+/* ----------------------------------------------------------------------------------------------------------
+ * Constant values for TelemetrySdkLanguageValues enum definition
+ *
+ * The language of the telemetry SDK.
+ * ---------------------------------------------------------------------------------------------------------- */
+// Temporary local constants to assign to the individual exports and the namespaced version
+// Required to avoid the namespace exports using the unminifiable export names for some package types
+const TMP_TELEMETRYSDKLANGUAGEVALUES_CPP = 'cpp';
+const TMP_TELEMETRYSDKLANGUAGEVALUES_DOTNET = 'dotnet';
+const TMP_TELEMETRYSDKLANGUAGEVALUES_ERLANG = 'erlang';
+const TMP_TELEMETRYSDKLANGUAGEVALUES_GO = 'go';
+const TMP_TELEMETRYSDKLANGUAGEVALUES_JAVA = 'java';
+const TMP_TELEMETRYSDKLANGUAGEVALUES_NODEJS = 'nodejs';
+const TMP_TELEMETRYSDKLANGUAGEVALUES_PHP = 'php';
+const TMP_TELEMETRYSDKLANGUAGEVALUES_PYTHON = 'python';
+const TMP_TELEMETRYSDKLANGUAGEVALUES_RUBY = 'ruby';
+const TMP_TELEMETRYSDKLANGUAGEVALUES_WEBJS = 'webjs';
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_CPP.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_CPP = TMP_TELEMETRYSDKLANGUAGEVALUES_CPP;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_DOTNET.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_DOTNET = TMP_TELEMETRYSDKLANGUAGEVALUES_DOTNET;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_ERLANG.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_ERLANG = TMP_TELEMETRYSDKLANGUAGEVALUES_ERLANG;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_GO.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_GO = TMP_TELEMETRYSDKLANGUAGEVALUES_GO;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_JAVA.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_JAVA = TMP_TELEMETRYSDKLANGUAGEVALUES_JAVA;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_NODEJS.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_NODEJS = TMP_TELEMETRYSDKLANGUAGEVALUES_NODEJS;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_PHP.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_PHP = TMP_TELEMETRYSDKLANGUAGEVALUES_PHP;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_PYTHON.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_PYTHON = TMP_TELEMETRYSDKLANGUAGEVALUES_PYTHON;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_RUBY.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_RUBY = TMP_TELEMETRYSDKLANGUAGEVALUES_RUBY;
+/**
+ * The language of the telemetry SDK.
+ *
+ * @deprecated Use TELEMETRY_SDK_LANGUAGE_VALUE_WEBJS.
+ */
+exports.TELEMETRYSDKLANGUAGEVALUES_WEBJS = TMP_TELEMETRYSDKLANGUAGEVALUES_WEBJS;
+/**
+ * The constant map of values for TelemetrySdkLanguageValues.
+ * @deprecated Use the TELEMETRYSDKLANGUAGEVALUES_XXXXX constants rather than the TelemetrySdkLanguageValues.XXXXX for bundle minification.
+ */
+exports.TelemetrySdkLanguageValues =
+    /*#__PURE__*/ (0, utils_1.createConstMap)([
+        TMP_TELEMETRYSDKLANGUAGEVALUES_CPP,
+        TMP_TELEMETRYSDKLANGUAGEVALUES_DOTNET,
+        TMP_TELEMETRYSDKLANGUAGEVALUES_ERLANG,
+        TMP_TELEMETRYSDKLANGUAGEVALUES_GO,
+        TMP_TELEMETRYSDKLANGUAGEVALUES_JAVA,
+        TMP_TELEMETRYSDKLANGUAGEVALUES_NODEJS,
+        TMP_TELEMETRYSDKLANGUAGEVALUES_PHP,
+        TMP_TELEMETRYSDKLANGUAGEVALUES_PYTHON,
+        TMP_TELEMETRYSDKLANGUAGEVALUES_RUBY,
+        TMP_TELEMETRYSDKLANGUAGEVALUES_WEBJS,
+    ]);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBvcGVudGVsZW1ldHJ5K3NlbWFudGljLWNvbnZlbnRpb25zQDEuMzguMFxcbm9kZV9tb2R1bGVzXFxAb3BlbnRlbGVtZXRyeVxcc2VtYW50aWMtY29udmVudGlvbnNcXGJ1aWxkXFxzcmNcXHJlc291cmNlXFxTZW1hbnRpY1Jlc291cmNlQXR0cmlidXRlcy5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFDYjs7Ozs7Ozs7Ozs7Ozs7R0FjRztBQUNILE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxnQ0FBZ0MsR0FBRyxPQUFPLENBQUMsK0JBQStCLEdBQUcsT0FBTyxDQUFDLCtCQUErQixHQUFHLE9BQU8sQ0FBQyw4QkFBOEIsR0FBRyxPQUFPLENBQUMsK0JBQStCLEdBQUcsT0FBTyxDQUFDLDhCQUE4QixHQUFHLE9BQU8sQ0FBQyw4QkFBOEIsR0FBRyxPQUFPLENBQUMsd0JBQXdCLEdBQUcsT0FBTyxDQUFDLHVCQUF1QixHQUFHLE9BQU8sQ0FBQyw4QkFBOEIsR0FBRyxPQUFPLENBQUMsd0JBQXdCLEdBQUcsT0FBTyxDQUFDLHlCQUF5QixHQUFHLE9BQU8sQ0FBQyw0QkFBNEIsR0FBRyxPQUFPLENBQUMsOEJBQThCLEdBQUcsT0FBTyxDQUFDLHlCQUF5QixHQUFHLE9BQU8sQ0FBQywyQkFBMkIsR0FBRyxPQUFPLENBQUMscUJBQXFCLEdBQUcsT0FBTyxDQUFDLHFCQUFxQixHQUFHLE9BQU8sQ0FBQyxxQkFBcUIsR0FBRyxPQUFPLENBQUMsbUJBQW1CLEdBQUcsT0FBTyxDQUFDLDJCQUEyQixHQUFHLE9BQU8sQ0FBQyx5QkFBeUIsR0FBRyxPQUFPLENBQUMsd0JBQXdCLEdBQUcsT0FBTyxDQUFDLG1CQUFtQixHQUFHLE9BQU8sQ0FBQyxxQkFBcUIsR0FBRyxPQUFPLENBQUMsNkJBQTZC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TyxDQUFDLGlDQUFpQyxHQUFHLHFDQUFxQyxDQUFDO0FBQ2xGOzs7O0dBSUc7QUFDSCxPQUFPLENBQUMsaUNBQWlDLEdBQUcscUNBQXFDLENBQUM7QUFDbEY7Ozs7R0FJRztBQUNILE9BQU8sQ0FBQyw2QkFBNkIsR0FBRyxpQ0FBaUMsQ0FBQztBQUMxRTs7OztHQUlHO0FBQ0gsT0FBTyxDQUFDLCtCQUErQixHQUFHLG1DQUFtQyxDQUFDO0FBQzlFOzs7O0dBSUc7QUFDSCxPQUFPLENBQUMsaUNBQWlDLEdBQUcscUNBQXFDLENBQUM7QUFDbEY7Ozs7R0FJRztBQUNILE9BQU8sQ0FBQyw4QkFBOEIsR0FBRyxrQ0FBa0MsQ0FBQztBQUM1RTs7OztHQUlHO0FBQ0gsT0FBTyxDQUFDLGlDQUFpQyxHQUFHLHFDQUFxQyxDQUFDO0FBQ2xGOzs7O0dBSUc7QUFDSCxPQUFPLENBQUMsK0JBQStCLEdBQUcsbUNBQW1DLENBQUM7QUFDOUU7Ozs7R0FJRztBQUNILE9BQU8sQ0FBQyxnQ0FBZ0MsR0FBRyxvQ0FBb0MsQ0FBQztBQUNoRjs7O0dBR0c7QUFDSCxPQUFPLENBQUMsMEJBQTBCO0lBQ2xDLGFBQWEsQ0FBQyxDQUFDLENBQUMsRUFBRSxPQUFPLENBQUMsY0FBYyxDQUFDLENBQUM7UUFDdEMsa0NBQWtDO1FBQ2xDLHFDQUFxQztRQUNyQyxxQ0FBcUM7UUFDckMsaUNBQWlDO1FBQ2pDLG1DQUFtQztRQUNuQyxxQ0FBcUM7UUFDckMsa0NBQWtDO1FBQ2xDLHFDQUFxQztRQUNyQyxtQ0FBbUM7UUFDbkMsb0NBQW9DO0tBQ3ZDLENBQUMsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcQG9wZW50ZWxlbWV0cnkrc2VtYW50aWMtY29udmVudGlvbnNAMS4zOC4wXFxub2RlX21vZHVsZXNcXEBvcGVudGVsZW1ldHJ5XFxzZW1hbnRpYy1jb252ZW50aW9uc1xcYnVpbGRcXHNyY1xccmVzb3VyY2VcXFNlbWFudGljUmVzb3VyY2VBdHRyaWJ1dGVzLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuLypcbiAqIENvcHlyaWdodCBUaGUgT3BlblRlbGVtZXRyeSBBdXRob3JzXG4gKlxuICogTGljZW5zZWQgdW5kZXIgdGhlIEFwYWNoZSBMaWNlbnNlLCBWZXJzaW9uIDIuMCAodGhlIFwiTGljZW5zZVwiKTtcbiAqIHlvdSBtYXkgbm90IHVzZSB0aGlzIGZpbGUgZXhjZXB0IGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgTGljZW5zZS5cbiAqIFlvdSBtYXkgb2J0YWluIGEgY29weSBvZiB0aGUgTGljZW5zZSBhdFxuICpcbiAqICAgICAgaHR0cHM6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxuICpcbiAqIFVubGVzcyByZXF1aXJlZCBieSBhcHBsaWNhYmxlIGxhdyBvciBhZ3JlZWQgdG8gaW4gd3JpdGluZywgc29mdHdhcmVcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxuICogU2VlIHRoZSBMaWNlbnNlIGZvciB0aGUgc3BlY2lmaWMgbGFuZ3VhZ2UgZ292ZXJuaW5nIHBlcm1pc3Npb25zIGFuZFxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXG4gKi9cbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMuU0VNUkVTQVRUUlNfSzhTX1NUQVRFRlVMU0VUX05BTUUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0s4U19TVEFURUZVTFNFVF9VSUQgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0s4U19ERVBMT1lNRU5UX05BTUUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0s4U19ERVBMT1lNRU5UX1VJRCA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfSzhTX1JFUExJQ0FTRVRfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfSzhTX1JFUExJQ0FTRVRfVUlEID0gZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfQ09OVEFJTkVSX05BTUUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0s4U19QT0RfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfSzhTX1BPRF9VSUQgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0s4U19OQU1FU1BBQ0VfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfSzhTX05PREVfVUlEID0gZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfTk9ERV9OQU1FID0gZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfQ0xVU1RFUl9OQU1FID0gZXhwb3J0cy5TRU1SRVNBVFRSU19IT1NUX0lNQUdFX1ZFUlNJT04gPSBleHBvcnRzLlNFTVJFU0FUVFJTX0hPU1RfSU1BR0VfSUQgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0hPU1RfSU1BR0VfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfSE9TVF9BUkNIID0gZXhwb3J0cy5TRU1SRVNBVFRSU19IT1NUX1RZUEUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0hPU1RfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfSE9TVF9JRCA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfRkFBU19NQVhfTUVNT1JZID0gZXhwb3J0cy5TRU1SRVNBVFRSU19GQUFTX0lOU1RBTkNFID0gZXhwb3J0cy5TRU1SRVNBVFRSU19GQUFTX1ZFUlNJT04gPSBleHBvcnRzLlNFTVJFU0FUVFJTX0ZBQVNfSUQgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0ZBQVNfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfREVWSUNFX01PREVMX05BTUUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0RFVklDRV9NT0RFTF9JREVOVElGSUVSID0gZXhwb3J0cy5TRU1SRVNBVFRSU19ERVZJQ0VfSUQgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0RFUExPWU1FTlRfRU5WSVJPTk1FTlQgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0NPTlRBSU5FUl9JTUFHRV9UQUcgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0NPTlRBSU5FUl9JTUFHRV9OQU1FID0gZXhwb3J0cy5TRU1SRVNBVFRSU19DT05UQUlORVJfUlVOVElNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfQ09OVEFJTkVSX0lEID0gZXhwb3J0cy5TRU1SRVNBVFRSU19DT05UQUlORVJfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfQVdTX0xPR19TVFJFQU1fQVJOUyA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfQVdTX0xPR19TVFJFQU1fTkFNRVMgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0FXU19MT0dfR1JPVVBfQVJOUyA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfQVdTX0xPR19HUk9VUF9OQU1FUyA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfQVdTX0VLU19DTFVTVEVSX0FSTiA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfQVdTX0VDU19UQVNLX1JFVklTSU9OID0gZXhwb3J0cy5TRU1SRVNBVFRSU19BV1NfRUNTX1RBU0tfRkFNSUxZID0gZXhwb3J0cy5TRU1SRVNBVFRSU19BV1NfRUNTX1RBU0tfQVJOID0gZXhwb3J0cy5TRU1SRVNBVFRSU19BV1NfRUNTX0xBVU5DSFRZUEUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0FXU19FQ1NfQ0xVU1RFUl9BUk4gPSBleHBvcnRzLlNFTVJFU0FUVFJTX0FXU19FQ1NfQ09OVEFJTkVSX0FSTiA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfQ0xPVURfUExBVEZPUk0gPSBleHBvcnRzLlNFTVJFU0FUVFJTX0NMT1VEX0FWQUlMQUJJTElUWV9aT05FID0gZXhwb3J0cy5TRU1SRVNBVFRSU19DTE9VRF9SRUdJT04gPSBleHBvcnRzLlNFTVJFU0FUVFJTX0NMT1VEX0FDQ09VTlRfSUQgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0NMT1VEX1BST1ZJREVSID0gdm9pZCAwO1xuZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9DT01QVVRFX0VOR0lORSA9IGV4cG9ydHMuQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9BUFBfU0VSVklDRSA9IGV4cG9ydHMuQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9GVU5DVElPTlMgPSBleHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQVpVUkVfQUtTID0gZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0FaVVJFX0NPTlRBSU5FUl9JTlNUQU5DRVMgPSBleHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQVpVUkVfVk0gPSBleHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQVdTX0VMQVNUSUNfQkVBTlNUQUxLID0gZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19MQU1CREEgPSBleHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQVdTX0VLUyA9IGV4cG9ydHMuQ0xPVURQTEFURk9STVZBTFVFU19BV1NfRUNTID0gZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19FQzIgPSBleHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQUxJQkFCQV9DTE9VRF9GQyA9IGV4cG9ydHMuQ0xPVURQTEFURk9STVZBTFVFU19BTElCQUJBX0NMT1VEX0VDUyA9IGV4cG9ydHMuQ2xvdWRQcm92aWRlclZhbHVlcyA9IGV4cG9ydHMuQ0xPVURQUk9WSURFUlZBTFVFU19HQ1AgPSBleHBvcnRzLkNMT1VEUFJPVklERVJWQUxVRVNfQVpVUkUgPSBleHBvcnRzLkNMT1VEUFJPVklERVJWQUxVRVNfQVdTID0gZXhwb3J0cy5DTE9VRFBST1ZJREVSVkFMVUVTX0FMSUJBQkFfQ0xPVUQgPSBleHBvcnRzLlNlbWFudGljUmVzb3VyY2VBdHRyaWJ1dGVzID0gZXhwb3J0cy5TRU1SRVNBVFRSU19XRUJFTkdJTkVfREVTQ1JJUFRJT04gPSBleHBvcnRzLlNFTVJFU0FUVFJTX1dFQkVOR0lORV9WRVJTSU9OID0gZXhwb3J0cy5TRU1SRVNBVFRSU19XRUJFTkdJTkVfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfVEVMRU1FVFJZX0FVVE9fVkVSU0lPTiA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfVEVMRU1FVFJZX1NES19WRVJTSU9OID0gZXhwb3J0cy5TRU1SRVNBVFRSU19URUxFTUVUUllfU0RLX0xBTkdVQUdFID0gZXhwb3J0cy5TRU1SRVNBVFRSU19URUxFTUVUUllfU0RLX05BTUUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX1NFUlZJQ0VfVkVSU0lPTiA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfU0VSVklDRV9JTlNUQU5DRV9JRCA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfU0VSVklDRV9OQU1FU1BBQ0UgPSBleHBvcnRzLlNFTVJFU0FUVFJTX1NFUlZJQ0VfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfUFJPQ0VTU19SVU5USU1FX0RFU0NSSVBUSU9OID0gZXhwb3J0cy5TRU1SRVNBVFRSU19QUk9DRVNTX1JVTlRJTUVfVkVSU0lPTiA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfUFJPQ0VTU19SVU5USU1FX05BTUUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX1BST0NFU1NfT1dORVIgPSBleHBvcnRzLlNFTVJFU0FUVFJTX1BST0NFU1NfQ09NTUFORF9BUkdTID0gZXhwb3J0cy5TRU1SRVNBVFRSU19QUk9DRVNTX0NPTU1BTkRfTElORSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfUFJPQ0VTU19DT01NQU5EID0gZXhwb3J0cy5TRU1SRVNBVFRSU19QUk9DRVNTX0VYRUNVVEFCTEVfUEFUSCA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfUFJPQ0VTU19FWEVDVVRBQkxFX05BTUUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX1BST0NFU1NfUElEID0gZXhwb3J0cy5TRU1SRVNBVFRSU19PU19WRVJTSU9OID0gZXhwb3J0cy5TRU1SRVNBVFRSU19PU19OQU1FID0gZXhwb3J0cy5TRU1SRVNBVFRSU19PU19ERVNDUklQVElPTiA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfT1NfVFlQRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfSzhTX0NST05KT0JfTkFNRSA9IGV4cG9ydHMuU0VNUkVTQVRUUlNfSzhTX0NST05KT0JfVUlEID0gZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfSk9CX05BTUUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0s4U19KT0JfVUlEID0gZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfREFFTU9OU0VUX05BTUUgPSBleHBvcnRzLlNFTVJFU0FUVFJTX0s4U19EQUVNT05TRVRfVUlEID0gdm9pZCAwO1xuZXhwb3J0cy5UZWxlbWV0cnlTZGtMYW5ndWFnZVZhbHVlcyA9IGV4cG9ydHMuVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfV0VCSlMgPSBleHBvcnRzLlRFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX1JVQlkgPSBleHBvcnRzLlRFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX1BZVEhPTiA9IGV4cG9ydHMuVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfUEhQID0gZXhwb3J0cy5URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19OT0RFSlMgPSBleHBvcnRzLlRFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX0pBVkEgPSBleHBvcnRzLlRFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX0dPID0gZXhwb3J0cy5URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19FUkxBTkcgPSBleHBvcnRzLlRFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX0RPVE5FVCA9IGV4cG9ydHMuVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfQ1BQID0gZXhwb3J0cy5Pc1R5cGVWYWx1ZXMgPSBleHBvcnRzLk9TVFlQRVZBTFVFU19aX09TID0gZXhwb3J0cy5PU1RZUEVWQUxVRVNfU09MQVJJUyA9IGV4cG9ydHMuT1NUWVBFVkFMVUVTX0FJWCA9IGV4cG9ydHMuT1NUWVBFVkFMVUVTX0hQVVggPSBleHBvcnRzLk9TVFlQRVZBTFVFU19EUkFHT05GTFlCU0QgPSBleHBvcnRzLk9TVFlQRVZBTFVFU19PUEVOQlNEID0gZXhwb3J0cy5PU1RZUEVWQUxVRVNfTkVUQlNEID0gZXhwb3J0cy5PU1RZUEVWQUxVRVNfRlJFRUJTRCA9IGV4cG9ydHMuT1NUWVBFVkFMVUVTX0RBUldJTiA9IGV4cG9ydHMuT1NUWVBFVkFMVUVTX0xJTlVYID0gZXhwb3J0cy5PU1RZUEVWQUxVRVNfV0lORE9XUyA9IGV4cG9ydHMuSG9zdEFyY2hWYWx1ZXMgPSBleHBvcnRzLkhPU1RBUkNIVkFMVUVTX1g4NiA9IGV4cG9ydHMuSE9TVEFSQ0hWQUxVRVNfUFBDNjQgPSBleHBvcnRzLkhPU1RBUkNIVkFMVUVTX1BQQzMyID0gZXhwb3J0cy5IT1NUQVJDSFZBTFVFU19JQTY0ID0gZXhwb3J0cy5IT1NUQVJDSFZBTFVFU19BUk02NCA9IGV4cG9ydHMuSE9TVEFSQ0hWQUxVRVNfQVJNMzIgPSBleHBvcnRzLkhPU1RBUkNIVkFMVUVTX0FNRDY0ID0gZXhwb3J0cy5Bd3NFY3NMYXVuY2h0eXBlVmFsdWVzID0gZXhwb3J0cy5BV1NFQ1NMQVVOQ0hUWVBFVkFMVUVTX0ZBUkdBVEUgPSBleHBvcnRzLkFXU0VDU0xBVU5DSFRZUEVWQUxVRVNfRUMyID0gZXhwb3J0cy5DbG91ZFBsYXRmb3JtVmFsdWVzID0gZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9BUFBfRU5HSU5FID0gZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9DTE9VRF9GVU5DVElPTlMgPSBleHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfR0NQX0tVQkVSTkVURVNfRU5HSU5FID0gZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9DTE9VRF9SVU4gPSB2b2lkIDA7XG5jb25zdCB1dGlsc18xID0gcmVxdWlyZShcIi4uL2ludGVybmFsL3V0aWxzXCIpO1xuLy8tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXG4vLyBETyBOT1QgRURJVCwgdGhpcyBpcyBhbiBBdXRvLWdlbmVyYXRlZCBmaWxlIGZyb20gc2NyaXB0cy9zZW1jb252L3RlbXBsYXRlcy8vdGVtcGxhdGVzL1NlbWFudGljQXR0cmlidXRlcy50cy5qMlxuLy8tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXG4vLy0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbi8vIENvbnN0YW50IHZhbHVlcyBmb3IgU2VtYW50aWNSZXNvdXJjZUF0dHJpYnV0ZXNcbi8vLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuLy8gVGVtcG9yYXJ5IGxvY2FsIGNvbnN0YW50cyB0byBhc3NpZ24gdG8gdGhlIGluZGl2aWR1YWwgZXhwb3J0cyBhbmQgdGhlIG5hbWVzcGFjZWQgdmVyc2lvblxuLy8gUmVxdWlyZWQgdG8gYXZvaWQgdGhlIG5hbWVzcGFjZSBleHBvcnRzIHVzaW5nIHRoZSB1bm1pbmlmaWFibGUgZXhwb3J0IG5hbWVzIGZvciBzb21lIHBhY2thZ2UgdHlwZXNcbmNvbnN0IFRNUF9DTE9VRF9QUk9WSURFUiA9ICdjbG91ZC5wcm92aWRlcic7XG5jb25zdCBUTVBfQ0xPVURfQUNDT1VOVF9JRCA9ICdjbG91ZC5hY2NvdW50LmlkJztcbmNvbnN0IFRNUF9DTE9VRF9SRUdJT04gPSAnY2xvdWQucmVnaW9uJztcbmNvbnN0IFRNUF9DTE9VRF9BVkFJTEFCSUxJVFlfWk9ORSA9ICdjbG91ZC5hdmFpbGFiaWxpdHlfem9uZSc7XG5jb25zdCBUTVBfQ0xPVURfUExBVEZPUk0gPSAnY2xvdWQucGxhdGZvcm0nO1xuY29uc3QgVE1QX0FXU19FQ1NfQ09OVEFJTkVSX0FSTiA9ICdhd3MuZWNzLmNvbnRhaW5lci5hcm4nO1xuY29uc3QgVE1QX0FXU19FQ1NfQ0xVU1RFUl9BUk4gPSAnYXdzLmVjcy5jbHVzdGVyLmFybic7XG5jb25zdCBUTVBfQVdTX0VDU19MQVVOQ0hUWVBFID0gJ2F3cy5lY3MubGF1bmNodHlwZSc7XG5jb25zdCBUTVBfQVdTX0VDU19UQVNLX0FSTiA9ICdhd3MuZWNzLnRhc2suYXJuJztcbmNvbnN0IFRNUF9BV1NfRUNTX1RBU0tfRkFNSUxZID0gJ2F3cy5lY3MudGFzay5mYW1pbHknO1xuY29uc3QgVE1QX0FXU19FQ1NfVEFTS19SRVZJU0lPTiA9ICdhd3MuZWNzLnRhc2sucmV2aXNpb24nO1xuY29uc3QgVE1QX0FXU19FS1NfQ0xVU1RFUl9BUk4gPSAnYXdzLmVrcy5jbHVzdGVyLmFybic7XG5jb25zdCBUTVBfQVdTX0xPR19HUk9VUF9OQU1FUyA9ICdhd3MubG9nLmdyb3VwLm5hbWVzJztcbmNvbnN0IFRNUF9BV1NfTE9HX0dST1VQX0FSTlMgPSAnYXdzLmxvZy5ncm91cC5hcm5zJztcbmNvbnN0IFRNUF9BV1NfTE9HX1NUUkVBTV9OQU1FUyA9ICdhd3MubG9nLnN0cmVhbS5uYW1lcyc7XG5jb25zdCBUTVBfQVdTX0xPR19TVFJFQU1fQVJOUyA9ICdhd3MubG9nLnN0cmVhbS5hcm5zJztcbmNvbnN0IFRNUF9DT05UQUlORVJfTkFNRSA9ICdjb250YWluZXIubmFtZSc7XG5jb25zdCBUTVBfQ09OVEFJTkVSX0lEID0gJ2NvbnRhaW5lci5pZCc7XG5jb25zdCBUTVBfQ09OVEFJTkVSX1JVTlRJTUUgPSAnY29udGFpbmVyLnJ1bnRpbWUnO1xuY29uc3QgVE1QX0NPTlRBSU5FUl9JTUFHRV9OQU1FID0gJ2NvbnRhaW5lci5pbWFnZS5uYW1lJztcbmNvbnN0IFRNUF9DT05UQUlORVJfSU1BR0VfVEFHID0gJ2NvbnRhaW5lci5pbWFnZS50YWcnO1xuY29uc3QgVE1QX0RFUExPWU1FTlRfRU5WSVJPTk1FTlQgPSAnZGVwbG95bWVudC5lbnZpcm9ubWVudCc7XG5jb25zdCBUTVBfREVWSUNFX0lEID0gJ2RldmljZS5pZCc7XG5jb25zdCBUTVBfREVWSUNFX01PREVMX0lERU5USUZJRVIgPSAnZGV2aWNlLm1vZGVsLmlkZW50aWZpZXInO1xuY29uc3QgVE1QX0RFVklDRV9NT0RFTF9OQU1FID0gJ2RldmljZS5tb2RlbC5uYW1lJztcbmNvbnN0IFRNUF9GQUFTX05BTUUgPSAnZmFhcy5uYW1lJztcbmNvbnN0IFRNUF9GQUFTX0lEID0gJ2ZhYXMuaWQnO1xuY29uc3QgVE1QX0ZBQVNfVkVSU0lPTiA9ICdmYWFzLnZlcnNpb24nO1xuY29uc3QgVE1QX0ZBQVNfSU5TVEFOQ0UgPSAnZmFhcy5pbnN0YW5jZSc7XG5jb25zdCBUTVBfRkFBU19NQVhfTUVNT1JZID0gJ2ZhYXMubWF4X21lbW9yeSc7XG5jb25zdCBUTVBfSE9TVF9JRCA9ICdob3N0LmlkJztcbmNvbnN0IFRNUF9IT1NUX05BTUUgPSAnaG9zdC5uYW1lJztcbmNvbnN0IFRNUF9IT1NUX1RZUEUgPSAnaG9zdC50eXBlJztcbmNvbnN0IFRNUF9IT1NUX0FSQ0ggPSAnaG9zdC5hcmNoJztcbmNvbnN0IFRNUF9IT1NUX0lNQUdFX05BTUUgPSAnaG9zdC5pbWFnZS5uYW1lJztcbmNvbnN0IFRNUF9IT1NUX0lNQUdFX0lEID0gJ2hvc3QuaW1hZ2UuaWQnO1xuY29uc3QgVE1QX0hPU1RfSU1BR0VfVkVSU0lPTiA9ICdob3N0LmltYWdlLnZlcnNpb24nO1xuY29uc3QgVE1QX0s4U19DTFVTVEVSX05BTUUgPSAnazhzLmNsdXN0ZXIubmFtZSc7XG5jb25zdCBUTVBfSzhTX05PREVfTkFNRSA9ICdrOHMubm9kZS5uYW1lJztcbmNvbnN0IFRNUF9LOFNfTk9ERV9VSUQgPSAnazhzLm5vZGUudWlkJztcbmNvbnN0IFRNUF9LOFNfTkFNRVNQQUNFX05BTUUgPSAnazhzLm5hbWVzcGFjZS5uYW1lJztcbmNvbnN0IFRNUF9LOFNfUE9EX1VJRCA9ICdrOHMucG9kLnVpZCc7XG5jb25zdCBUTVBfSzhTX1BPRF9OQU1FID0gJ2s4cy5wb2QubmFtZSc7XG5jb25zdCBUTVBfSzhTX0NPTlRBSU5FUl9OQU1FID0gJ2s4cy5jb250YWluZXIubmFtZSc7XG5jb25zdCBUTVBfSzhTX1JFUExJQ0FTRVRfVUlEID0gJ2s4cy5yZXBsaWNhc2V0LnVpZCc7XG5jb25zdCBUTVBfSzhTX1JFUExJQ0FTRVRfTkFNRSA9ICdrOHMucmVwbGljYXNldC5uYW1lJztcbmNvbnN0IFRNUF9LOFNfREVQTE9ZTUVOVF9VSUQgPSAnazhzLmRlcGxveW1lbnQudWlkJztcbmNvbnN0IFRNUF9LOFNfREVQTE9ZTUVOVF9OQU1FID0gJ2s4cy5kZXBsb3ltZW50Lm5hbWUnO1xuY29uc3QgVE1QX0s4U19TVEFURUZVTFNFVF9VSUQgPSAnazhzLnN0YXRlZnVsc2V0LnVpZCc7XG5jb25zdCBUTVBfSzhTX1NUQVRFRlVMU0VUX05BTUUgPSAnazhzLnN0YXRlZnVsc2V0Lm5hbWUnO1xuY29uc3QgVE1QX0s4U19EQUVNT05TRVRfVUlEID0gJ2s4cy5kYWVtb25zZXQudWlkJztcbmNvbnN0IFRNUF9LOFNfREFFTU9OU0VUX05BTUUgPSAnazhzLmRhZW1vbnNldC5uYW1lJztcbmNvbnN0IFRNUF9LOFNfSk9CX1VJRCA9ICdrOHMuam9iLnVpZCc7XG5jb25zdCBUTVBfSzhTX0pPQl9OQU1FID0gJ2s4cy5qb2IubmFtZSc7XG5jb25zdCBUTVBfSzhTX0NST05KT0JfVUlEID0gJ2s4cy5jcm9uam9iLnVpZCc7XG5jb25zdCBUTVBfSzhTX0NST05KT0JfTkFNRSA9ICdrOHMuY3JvbmpvYi5uYW1lJztcbmNvbnN0IFRNUF9PU19UWVBFID0gJ29zLnR5cGUnO1xuY29uc3QgVE1QX09TX0RFU0NSSVBUSU9OID0gJ29zLmRlc2NyaXB0aW9uJztcbmNvbnN0IFRNUF9PU19OQU1FID0gJ29zLm5hbWUnO1xuY29uc3QgVE1QX09TX1ZFUlNJT04gPSAnb3MudmVyc2lvbic7XG5jb25zdCBUTVBfUFJPQ0VTU19QSUQgPSAncHJvY2Vzcy5waWQnO1xuY29uc3QgVE1QX1BST0NFU1NfRVhFQ1VUQUJMRV9OQU1FID0gJ3Byb2Nlc3MuZXhlY3V0YWJsZS5uYW1lJztcbmNvbnN0IFRNUF9QUk9DRVNTX0VYRUNVVEFCTEVfUEFUSCA9ICdwcm9jZXNzLmV4ZWN1dGFibGUucGF0aCc7XG5jb25zdCBUTVBfUFJPQ0VTU19DT01NQU5EID0gJ3Byb2Nlc3MuY29tbWFuZCc7XG5jb25zdCBUTVBfUFJPQ0VTU19DT01NQU5EX0xJTkUgPSAncHJvY2Vzcy5jb21tYW5kX2xpbmUnO1xuY29uc3QgVE1QX1BST0NFU1NfQ09NTUFORF9BUkdTID0gJ3Byb2Nlc3MuY29tbWFuZF9hcmdzJztcbmNvbnN0IFRNUF9QUk9DRVNTX09XTkVSID0gJ3Byb2Nlc3Mub3duZXInO1xuY29uc3QgVE1QX1BST0NFU1NfUlVOVElNRV9OQU1FID0gJ3Byb2Nlc3MucnVudGltZS5uYW1lJztcbmNvbnN0IFRNUF9QUk9DRVNTX1JVTlRJTUVfVkVSU0lPTiA9ICdwcm9jZXNzLnJ1bnRpbWUudmVyc2lvbic7XG5jb25zdCBUTVBfUFJPQ0VTU19SVU5USU1FX0RFU0NSSVBUSU9OID0gJ3Byb2Nlc3MucnVudGltZS5kZXNjcmlwdGlvbic7XG5jb25zdCBUTVBfU0VSVklDRV9OQU1FID0gJ3NlcnZpY2UubmFtZSc7XG5jb25zdCBUTVBfU0VSVklDRV9OQU1FU1BBQ0UgPSAnc2VydmljZS5uYW1lc3BhY2UnO1xuY29uc3QgVE1QX1NFUlZJQ0VfSU5TVEFOQ0VfSUQgPSAnc2VydmljZS5pbnN0YW5jZS5pZCc7XG5jb25zdCBUTVBfU0VSVklDRV9WRVJTSU9OID0gJ3NlcnZpY2UudmVyc2lvbic7XG5jb25zdCBUTVBfVEVMRU1FVFJZX1NES19OQU1FID0gJ3RlbGVtZXRyeS5zZGsubmFtZSc7XG5jb25zdCBUTVBfVEVMRU1FVFJZX1NES19MQU5HVUFHRSA9ICd0ZWxlbWV0cnkuc2RrLmxhbmd1YWdlJztcbmNvbnN0IFRNUF9URUxFTUVUUllfU0RLX1ZFUlNJT04gPSAndGVsZW1ldHJ5LnNkay52ZXJzaW9uJztcbmNvbnN0IFRNUF9URUxFTUVUUllfQVVUT19WRVJTSU9OID0gJ3RlbGVtZXRyeS5hdXRvLnZlcnNpb24nO1xuY29uc3QgVE1QX1dFQkVOR0lORV9OQU1FID0gJ3dlYmVuZ2luZS5uYW1lJztcbmNvbnN0IFRNUF9XRUJFTkdJTkVfVkVSU0lPTiA9ICd3ZWJlbmdpbmUudmVyc2lvbic7XG5jb25zdCBUTVBfV0VCRU5HSU5FX0RFU0NSSVBUSU9OID0gJ3dlYmVuZ2luZS5kZXNjcmlwdGlvbic7XG4vKipcbiAqIE5hbWUgb2YgdGhlIGNsb3VkIHByb3ZpZGVyLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0NMT1VEX1BST1ZJREVSIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfQ0xPVURfUFJPVklERVIgPSBUTVBfQ0xPVURfUFJPVklERVI7XG4vKipcbiAqIFRoZSBjbG91ZCBhY2NvdW50IElEIHRoZSByZXNvdXJjZSBpcyBhc3NpZ25lZCB0by5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9DTE9VRF9BQ0NPVU5UX0lEIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfQ0xPVURfQUNDT1VOVF9JRCA9IFRNUF9DTE9VRF9BQ0NPVU5UX0lEO1xuLyoqXG4gKiBUaGUgZ2VvZ3JhcGhpY2FsIHJlZ2lvbiB0aGUgcmVzb3VyY2UgaXMgcnVubmluZy4gUmVmZXIgdG8geW91ciBwcm92aWRlciYjMzk7cyBkb2NzIHRvIHNlZSB0aGUgYXZhaWxhYmxlIHJlZ2lvbnMsIGZvciBleGFtcGxlIFtBbGliYWJhIENsb3VkIHJlZ2lvbnNdKGh0dHBzOi8vd3d3LmFsaWJhYmFjbG91ZC5jb20vaGVscC9kb2MtZGV0YWlsLzQwNjU0Lmh0bSksIFtBV1MgcmVnaW9uc10oaHR0cHM6Ly9hd3MuYW1hem9uLmNvbS9hYm91dC1hd3MvZ2xvYmFsLWluZnJhc3RydWN0dXJlL3JlZ2lvbnNfYXovKSwgW0F6dXJlIHJlZ2lvbnNdKGh0dHBzOi8vYXp1cmUubWljcm9zb2Z0LmNvbS9lbi11cy9nbG9iYWwtaW5mcmFzdHJ1Y3R1cmUvZ2VvZ3JhcGhpZXMvKSwgb3IgW0dvb2dsZSBDbG91ZCByZWdpb25zXShodHRwczovL2Nsb3VkLmdvb2dsZS5jb20vYWJvdXQvbG9jYXRpb25zKS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9DTE9VRF9SRUdJT04gaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19DTE9VRF9SRUdJT04gPSBUTVBfQ0xPVURfUkVHSU9OO1xuLyoqXG4gKiBDbG91ZCByZWdpb25zIG9mdGVuIGhhdmUgbXVsdGlwbGUsIGlzb2xhdGVkIGxvY2F0aW9ucyBrbm93biBhcyB6b25lcyB0byBpbmNyZWFzZSBhdmFpbGFiaWxpdHkuIEF2YWlsYWJpbGl0eSB6b25lIHJlcHJlc2VudHMgdGhlIHpvbmUgd2hlcmUgdGhlIHJlc291cmNlIGlzIHJ1bm5pbmcuXG4gKlxuICogTm90ZTogQXZhaWxhYmlsaXR5IHpvbmVzIGFyZSBjYWxsZWQgJiMzNDt6b25lcyYjMzQ7IG9uIEFsaWJhYmEgQ2xvdWQgYW5kIEdvb2dsZSBDbG91ZC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9DTE9VRF9BVkFJTEFCSUxJVFlfWk9ORSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0NMT1VEX0FWQUlMQUJJTElUWV9aT05FID0gVE1QX0NMT1VEX0FWQUlMQUJJTElUWV9aT05FO1xuLyoqXG4gKiBUaGUgY2xvdWQgcGxhdGZvcm0gaW4gdXNlLlxuICpcbiAqIE5vdGU6IFRoZSBwcmVmaXggb2YgdGhlIHNlcnZpY2UgU0hPVUxEIG1hdGNoIHRoZSBvbmUgc3BlY2lmaWVkIGluIGBjbG91ZC5wcm92aWRlcmAuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfQ0xPVURfUExBVEZPUk0gaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19DTE9VRF9QTEFURk9STSA9IFRNUF9DTE9VRF9QTEFURk9STTtcbi8qKlxuICogVGhlIEFtYXpvbiBSZXNvdXJjZSBOYW1lIChBUk4pIG9mIGFuIFtFQ1MgY29udGFpbmVyIGluc3RhbmNlXShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vQW1hem9uRUNTL2xhdGVzdC9kZXZlbG9wZXJndWlkZS9FQ1NfaW5zdGFuY2VzLmh0bWwpLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0FXU19FQ1NfQ09OVEFJTkVSX0FSTiBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0FXU19FQ1NfQ09OVEFJTkVSX0FSTiA9IFRNUF9BV1NfRUNTX0NPTlRBSU5FUl9BUk47XG4vKipcbiAqIFRoZSBBUk4gb2YgYW4gW0VDUyBjbHVzdGVyXShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vQW1hem9uRUNTL2xhdGVzdC9kZXZlbG9wZXJndWlkZS9jbHVzdGVycy5odG1sKS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9BV1NfRUNTX0NMVVNURVJfQVJOIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfQVdTX0VDU19DTFVTVEVSX0FSTiA9IFRNUF9BV1NfRUNTX0NMVVNURVJfQVJOO1xuLyoqXG4gKiBUaGUgW2xhdW5jaCB0eXBlXShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vQW1hem9uRUNTL2xhdGVzdC9kZXZlbG9wZXJndWlkZS9sYXVuY2hfdHlwZXMuaHRtbCkgZm9yIGFuIEVDUyB0YXNrLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0FXU19FQ1NfTEFVTkNIVFlQRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0FXU19FQ1NfTEFVTkNIVFlQRSA9IFRNUF9BV1NfRUNTX0xBVU5DSFRZUEU7XG4vKipcbiAqIFRoZSBBUk4gb2YgYW4gW0VDUyB0YXNrIGRlZmluaXRpb25dKGh0dHBzOi8vZG9jcy5hd3MuYW1hem9uLmNvbS9BbWF6b25FQ1MvbGF0ZXN0L2RldmVsb3Blcmd1aWRlL3Rhc2tfZGVmaW5pdGlvbnMuaHRtbCkuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfQVdTX0VDU19UQVNLX0FSTiBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0FXU19FQ1NfVEFTS19BUk4gPSBUTVBfQVdTX0VDU19UQVNLX0FSTjtcbi8qKlxuICogVGhlIHRhc2sgZGVmaW5pdGlvbiBmYW1pbHkgdGhpcyB0YXNrIGRlZmluaXRpb24gaXMgYSBtZW1iZXIgb2YuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfQVdTX0VDU19UQVNLX0ZBTUlMWSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0FXU19FQ1NfVEFTS19GQU1JTFkgPSBUTVBfQVdTX0VDU19UQVNLX0ZBTUlMWTtcbi8qKlxuICogVGhlIHJldmlzaW9uIGZvciB0aGlzIHRhc2sgZGVmaW5pdGlvbi5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9BV1NfRUNTX1RBU0tfUkVWSVNJT04gaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19BV1NfRUNTX1RBU0tfUkVWSVNJT04gPSBUTVBfQVdTX0VDU19UQVNLX1JFVklTSU9OO1xuLyoqXG4gKiBUaGUgQVJOIG9mIGFuIEVLUyBjbHVzdGVyLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0FXU19FS1NfQ0xVU1RFUl9BUk4gaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19BV1NfRUtTX0NMVVNURVJfQVJOID0gVE1QX0FXU19FS1NfQ0xVU1RFUl9BUk47XG4vKipcbiAqIFRoZSBuYW1lKHMpIG9mIHRoZSBBV1MgbG9nIGdyb3VwKHMpIGFuIGFwcGxpY2F0aW9uIGlzIHdyaXRpbmcgdG8uXG4gKlxuICogTm90ZTogTXVsdGlwbGUgbG9nIGdyb3VwcyBtdXN0IGJlIHN1cHBvcnRlZCBmb3IgY2FzZXMgbGlrZSBtdWx0aS1jb250YWluZXIgYXBwbGljYXRpb25zLCB3aGVyZSBhIHNpbmdsZSBhcHBsaWNhdGlvbiBoYXMgc2lkZWNhciBjb250YWluZXJzLCBhbmQgZWFjaCB3cml0ZSB0byB0aGVpciBvd24gbG9nIGdyb3VwLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0FXU19MT0dfR1JPVVBfTkFNRVMgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19BV1NfTE9HX0dST1VQX05BTUVTID0gVE1QX0FXU19MT0dfR1JPVVBfTkFNRVM7XG4vKipcbiAqIFRoZSBBbWF6b24gUmVzb3VyY2UgTmFtZShzKSAoQVJOKSBvZiB0aGUgQVdTIGxvZyBncm91cChzKS5cbiAqXG4gKiBOb3RlOiBTZWUgdGhlIFtsb2cgZ3JvdXAgQVJOIGZvcm1hdCBkb2N1bWVudGF0aW9uXShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vQW1hem9uQ2xvdWRXYXRjaC9sYXRlc3QvbG9ncy9pYW0tYWNjZXNzLWNvbnRyb2wtb3ZlcnZpZXctY3dsLmh0bWwjQ1dMX0FSTl9Gb3JtYXQpLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0FXU19MT0dfR1JPVVBfQVJOUyBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0FXU19MT0dfR1JPVVBfQVJOUyA9IFRNUF9BV1NfTE9HX0dST1VQX0FSTlM7XG4vKipcbiAqIFRoZSBuYW1lKHMpIG9mIHRoZSBBV1MgbG9nIHN0cmVhbShzKSBhbiBhcHBsaWNhdGlvbiBpcyB3cml0aW5nIHRvLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0FXU19MT0dfU1RSRUFNX05BTUVTIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfQVdTX0xPR19TVFJFQU1fTkFNRVMgPSBUTVBfQVdTX0xPR19TVFJFQU1fTkFNRVM7XG4vKipcbiAqIFRoZSBBUk4ocykgb2YgdGhlIEFXUyBsb2cgc3RyZWFtKHMpLlxuICpcbiAqIE5vdGU6IFNlZSB0aGUgW2xvZyBzdHJlYW0gQVJOIGZvcm1hdCBkb2N1bWVudGF0aW9uXShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vQW1hem9uQ2xvdWRXYXRjaC9sYXRlc3QvbG9ncy9pYW0tYWNjZXNzLWNvbnRyb2wtb3ZlcnZpZXctY3dsLmh0bWwjQ1dMX0FSTl9Gb3JtYXQpLiBPbmUgbG9nIGdyb3VwIGNhbiBjb250YWluIHNldmVyYWwgbG9nIHN0cmVhbXMsIHNvIHRoZXNlIEFSTnMgbmVjZXNzYXJpbHkgaWRlbnRpZnkgYm90aCBhIGxvZyBncm91cCBhbmQgYSBsb2cgc3RyZWFtLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0FXU19MT0dfU1RSRUFNX0FSTlMgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19BV1NfTE9HX1NUUkVBTV9BUk5TID0gVE1QX0FXU19MT0dfU1RSRUFNX0FSTlM7XG4vKipcbiAqIENvbnRhaW5lciBuYW1lLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0NPTlRBSU5FUl9OQU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfQ09OVEFJTkVSX05BTUUgPSBUTVBfQ09OVEFJTkVSX05BTUU7XG4vKipcbiAqIENvbnRhaW5lciBJRC4gVXN1YWxseSBhIFVVSUQsIGFzIGZvciBleGFtcGxlIHVzZWQgdG8gW2lkZW50aWZ5IERvY2tlciBjb250YWluZXJzXShodHRwczovL2RvY3MuZG9ja2VyLmNvbS9lbmdpbmUvcmVmZXJlbmNlL3J1bi8jY29udGFpbmVyLWlkZW50aWZpY2F0aW9uKS4gVGhlIFVVSUQgbWlnaHQgYmUgYWJicmV2aWF0ZWQuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfQ09OVEFJTkVSX0lEIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfQ09OVEFJTkVSX0lEID0gVE1QX0NPTlRBSU5FUl9JRDtcbi8qKlxuICogVGhlIGNvbnRhaW5lciBydW50aW1lIG1hbmFnaW5nIHRoaXMgY29udGFpbmVyLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0NPTlRBSU5FUl9SVU5USU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfQ09OVEFJTkVSX1JVTlRJTUUgPSBUTVBfQ09OVEFJTkVSX1JVTlRJTUU7XG4vKipcbiAqIE5hbWUgb2YgdGhlIGltYWdlIHRoZSBjb250YWluZXIgd2FzIGJ1aWx0IG9uLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0NPTlRBSU5FUl9JTUFHRV9OQU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfQ09OVEFJTkVSX0lNQUdFX05BTUUgPSBUTVBfQ09OVEFJTkVSX0lNQUdFX05BTUU7XG4vKipcbiAqIENvbnRhaW5lciBpbWFnZSB0YWcuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfQ09OVEFJTkVSX0lNQUdFX1RBR1MgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19DT05UQUlORVJfSU1BR0VfVEFHID0gVE1QX0NPTlRBSU5FUl9JTUFHRV9UQUc7XG4vKipcbiAqIE5hbWUgb2YgdGhlIFtkZXBsb3ltZW50IGVudmlyb25tZW50XShodHRwczovL2VuLndpa2lwZWRpYS5vcmcvd2lraS9EZXBsb3ltZW50X2Vudmlyb25tZW50KSAoYWthIGRlcGxveW1lbnQgdGllcikuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfREVQTE9ZTUVOVF9FTlZJUk9OTUVOVCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0RFUExPWU1FTlRfRU5WSVJPTk1FTlQgPSBUTVBfREVQTE9ZTUVOVF9FTlZJUk9OTUVOVDtcbi8qKlxuICogQSB1bmlxdWUgaWRlbnRpZmllciByZXByZXNlbnRpbmcgdGhlIGRldmljZS5cbiAqXG4gKiBOb3RlOiBUaGUgZGV2aWNlIGlkZW50aWZpZXIgTVVTVCBvbmx5IGJlIGRlZmluZWQgdXNpbmcgdGhlIHZhbHVlcyBvdXRsaW5lZCBiZWxvdy4gVGhpcyB2YWx1ZSBpcyBub3QgYW4gYWR2ZXJ0aXNpbmcgaWRlbnRpZmllciBhbmQgTVVTVCBOT1QgYmUgdXNlZCBhcyBzdWNoLiBPbiBpT1MgKFN3aWZ0IG9yIE9iamVjdGl2ZS1DKSwgdGhpcyB2YWx1ZSBNVVNUIGJlIGVxdWFsIHRvIHRoZSBbdmVuZG9yIGlkZW50aWZpZXJdKGh0dHBzOi8vZGV2ZWxvcGVyLmFwcGxlLmNvbS9kb2N1bWVudGF0aW9uL3Vpa2l0L3VpZGV2aWNlLzE2MjAwNTktaWRlbnRpZmllcmZvcnZlbmRvcikuIE9uIEFuZHJvaWQgKEphdmEgb3IgS290bGluKSwgdGhpcyB2YWx1ZSBNVVNUIGJlIGVxdWFsIHRvIHRoZSBGaXJlYmFzZSBJbnN0YWxsYXRpb24gSUQgb3IgYSBnbG9iYWxseSB1bmlxdWUgVVVJRCB3aGljaCBpcyBwZXJzaXN0ZWQgYWNyb3NzIHNlc3Npb25zIGluIHlvdXIgYXBwbGljYXRpb24uIE1vcmUgaW5mb3JtYXRpb24gY2FuIGJlIGZvdW5kIFtoZXJlXShodHRwczovL2RldmVsb3Blci5hbmRyb2lkLmNvbS90cmFpbmluZy9hcnRpY2xlcy91c2VyLWRhdGEtaWRzKSBvbiBiZXN0IHByYWN0aWNlcyBhbmQgZXhhY3QgaW1wbGVtZW50YXRpb24gZGV0YWlscy4gQ2F1dGlvbiBzaG91bGQgYmUgdGFrZW4gd2hlbiBzdG9yaW5nIHBlcnNvbmFsIGRhdGEgb3IgYW55dGhpbmcgd2hpY2ggY2FuIGlkZW50aWZ5IGEgdXNlci4gR0RQUiBhbmQgZGF0YSBwcm90ZWN0aW9uIGxhd3MgbWF5IGFwcGx5LCBlbnN1cmUgeW91IGRvIHlvdXIgb3duIGR1ZSBkaWxpZ2VuY2UuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfREVWSUNFX0lEIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfREVWSUNFX0lEID0gVE1QX0RFVklDRV9JRDtcbi8qKlxuICogVGhlIG1vZGVsIGlkZW50aWZpZXIgZm9yIHRoZSBkZXZpY2UuXG4gKlxuICogTm90ZTogSXQmIzM5O3MgcmVjb21tZW5kZWQgdGhpcyB2YWx1ZSByZXByZXNlbnRzIGEgbWFjaGluZSByZWFkYWJsZSB2ZXJzaW9uIG9mIHRoZSBtb2RlbCBpZGVudGlmaWVyIHJhdGhlciB0aGFuIHRoZSBtYXJrZXQgb3IgY29uc3VtZXItZnJpZW5kbHkgbmFtZSBvZiB0aGUgZGV2aWNlLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0RFVklDRV9NT0RFTF9JREVOVElGSUVSIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfREVWSUNFX01PREVMX0lERU5USUZJRVIgPSBUTVBfREVWSUNFX01PREVMX0lERU5USUZJRVI7XG4vKipcbiAqIFRoZSBtYXJrZXRpbmcgbmFtZSBmb3IgdGhlIGRldmljZSBtb2RlbC5cbiAqXG4gKiBOb3RlOiBJdCYjMzk7cyByZWNvbW1lbmRlZCB0aGlzIHZhbHVlIHJlcHJlc2VudHMgYSBodW1hbiByZWFkYWJsZSB2ZXJzaW9uIG9mIHRoZSBkZXZpY2UgbW9kZWwgcmF0aGVyIHRoYW4gYSBtYWNoaW5lIHJlYWRhYmxlIGFsdGVybmF0aXZlLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0RFVklDRV9NT0RFTF9OQU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfREVWSUNFX01PREVMX05BTUUgPSBUTVBfREVWSUNFX01PREVMX05BTUU7XG4vKipcbiAqIFRoZSBuYW1lIG9mIHRoZSBzaW5nbGUgZnVuY3Rpb24gdGhhdCB0aGlzIHJ1bnRpbWUgaW5zdGFuY2UgZXhlY3V0ZXMuXG4gKlxuICogTm90ZTogVGhpcyBpcyB0aGUgbmFtZSBvZiB0aGUgZnVuY3Rpb24gYXMgY29uZmlndXJlZC9kZXBsb3llZCBvbiB0aGUgRmFhUyBwbGF0Zm9ybSBhbmQgaXMgdXN1YWxseSBkaWZmZXJlbnQgZnJvbSB0aGUgbmFtZSBvZiB0aGUgY2FsbGJhY2sgZnVuY3Rpb24gKHdoaWNoIG1heSBiZSBzdG9yZWQgaW4gdGhlIFtgY29kZS5uYW1lc3BhY2VgL2Bjb2RlLmZ1bmN0aW9uYF0oLi4vLi4vdHJhY2Uvc2VtYW50aWNfY29udmVudGlvbnMvc3Bhbi1nZW5lcmFsLm1kI3NvdXJjZS1jb2RlLWF0dHJpYnV0ZXMpIHNwYW4gYXR0cmlidXRlcykuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfRkFBU19OQU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfRkFBU19OQU1FID0gVE1QX0ZBQVNfTkFNRTtcbi8qKlxuKiBUaGUgdW5pcXVlIElEIG9mIHRoZSBzaW5nbGUgZnVuY3Rpb24gdGhhdCB0aGlzIHJ1bnRpbWUgaW5zdGFuY2UgZXhlY3V0ZXMuXG4qXG4qIE5vdGU6IERlcGVuZGluZyBvbiB0aGUgY2xvdWQgcHJvdmlkZXIsIHVzZTpcblxuKiAqKkFXUyBMYW1iZGE6KiogVGhlIGZ1bmN0aW9uIFtBUk5dKGh0dHBzOi8vZG9jcy5hd3MuYW1hem9uLmNvbS9nZW5lcmFsL2xhdGVzdC9nci9hd3MtYXJucy1hbmQtbmFtZXNwYWNlcy5odG1sKS5cblRha2UgY2FyZSBub3QgdG8gdXNlIHRoZSAmIzM0O2ludm9rZWQgQVJOJiMzNDsgZGlyZWN0bHkgYnV0IHJlcGxhY2UgYW55XG5bYWxpYXMgc3VmZml4XShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vbGFtYmRhL2xhdGVzdC9kZy9jb25maWd1cmF0aW9uLWFsaWFzZXMuaHRtbCkgd2l0aCB0aGUgcmVzb2x2ZWQgZnVuY3Rpb24gdmVyc2lvbiwgYXMgdGhlIHNhbWUgcnVudGltZSBpbnN0YW5jZSBtYXkgYmUgaW52b2thYmxlIHdpdGggbXVsdGlwbGVcbmRpZmZlcmVudCBhbGlhc2VzLlxuKiAqKkdDUDoqKiBUaGUgW1VSSSBvZiB0aGUgcmVzb3VyY2VdKGh0dHBzOi8vY2xvdWQuZ29vZ2xlLmNvbS9pYW0vZG9jcy9mdWxsLXJlc291cmNlLW5hbWVzKVxuKiAqKkF6dXJlOioqIFRoZSBbRnVsbHkgUXVhbGlmaWVkIFJlc291cmNlIElEXShodHRwczovL2RvY3MubWljcm9zb2Z0LmNvbS9lbi11cy9yZXN0L2FwaS9yZXNvdXJjZXMvcmVzb3VyY2VzL2dldC1ieS1pZCkuXG5cbk9uIHNvbWUgcHJvdmlkZXJzLCBpdCBtYXkgbm90IGJlIHBvc3NpYmxlIHRvIGRldGVybWluZSB0aGUgZnVsbCBJRCBhdCBzdGFydHVwLFxud2hpY2ggaXMgd2h5IHRoaXMgZmllbGQgY2Fubm90IGJlIG1hZGUgcmVxdWlyZWQuIEZvciBleGFtcGxlLCBvbiBBV1MgdGhlIGFjY291bnQgSURcbnBhcnQgb2YgdGhlIEFSTiBpcyBub3QgYXZhaWxhYmxlIHdpdGhvdXQgY2FsbGluZyBhbm90aGVyIEFXUyBBUElcbndoaWNoIG1heSBiZSBkZWVtZWQgdG9vIHNsb3cgZm9yIGEgc2hvcnQtcnVubmluZyBsYW1iZGEgZnVuY3Rpb24uXG5BcyBhbiBhbHRlcm5hdGl2ZSwgY29uc2lkZXIgc2V0dGluZyBgZmFhcy5pZGAgYXMgYSBzcGFuIGF0dHJpYnV0ZSBpbnN0ZWFkLlxuKlxuKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9DTE9VRF9SRVNPVVJDRV9JRCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfRkFBU19JRCA9IFRNUF9GQUFTX0lEO1xuLyoqXG4qIFRoZSBpbW11dGFibGUgdmVyc2lvbiBvZiB0aGUgZnVuY3Rpb24gYmVpbmcgZXhlY3V0ZWQuXG4qXG4qIE5vdGU6IERlcGVuZGluZyBvbiB0aGUgY2xvdWQgcHJvdmlkZXIgYW5kIHBsYXRmb3JtLCB1c2U6XG5cbiogKipBV1MgTGFtYmRhOioqIFRoZSBbZnVuY3Rpb24gdmVyc2lvbl0oaHR0cHM6Ly9kb2NzLmF3cy5hbWF6b24uY29tL2xhbWJkYS9sYXRlc3QvZGcvY29uZmlndXJhdGlvbi12ZXJzaW9ucy5odG1sKVxuICAoYW4gaW50ZWdlciByZXByZXNlbnRlZCBhcyBhIGRlY2ltYWwgc3RyaW5nKS5cbiogKipHb29nbGUgQ2xvdWQgUnVuOioqIFRoZSBbcmV2aXNpb25dKGh0dHBzOi8vY2xvdWQuZ29vZ2xlLmNvbS9ydW4vZG9jcy9tYW5hZ2luZy9yZXZpc2lvbnMpXG4gIChpLmUuLCB0aGUgZnVuY3Rpb24gbmFtZSBwbHVzIHRoZSByZXZpc2lvbiBzdWZmaXgpLlxuKiAqKkdvb2dsZSBDbG91ZCBGdW5jdGlvbnM6KiogVGhlIHZhbHVlIG9mIHRoZVxuICBbYEtfUkVWSVNJT05gIGVudmlyb25tZW50IHZhcmlhYmxlXShodHRwczovL2Nsb3VkLmdvb2dsZS5jb20vZnVuY3Rpb25zL2RvY3MvZW52LXZhciNydW50aW1lX2Vudmlyb25tZW50X3ZhcmlhYmxlc19zZXRfYXV0b21hdGljYWxseSkuXG4qICoqQXp1cmUgRnVuY3Rpb25zOioqIE5vdCBhcHBsaWNhYmxlLiBEbyBub3Qgc2V0IHRoaXMgYXR0cmlidXRlLlxuKlxuKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9GQUFTX1ZFUlNJT04gaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0ZBQVNfVkVSU0lPTiA9IFRNUF9GQUFTX1ZFUlNJT047XG4vKipcbiAqIFRoZSBleGVjdXRpb24gZW52aXJvbm1lbnQgSUQgYXMgYSBzdHJpbmcsIHRoYXQgd2lsbCBiZSBwb3RlbnRpYWxseSByZXVzZWQgZm9yIG90aGVyIGludm9jYXRpb25zIHRvIHRoZSBzYW1lIGZ1bmN0aW9uL2Z1bmN0aW9uIHZlcnNpb24uXG4gKlxuICogTm90ZTogKiAqKkFXUyBMYW1iZGE6KiogVXNlIHRoZSAoZnVsbCkgbG9nIHN0cmVhbSBuYW1lLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0ZBQVNfSU5TVEFOQ0UgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19GQUFTX0lOU1RBTkNFID0gVE1QX0ZBQVNfSU5TVEFOQ0U7XG4vKipcbiAqIFRoZSBhbW91bnQgb2YgbWVtb3J5IGF2YWlsYWJsZSB0byB0aGUgc2VydmVybGVzcyBmdW5jdGlvbiBpbiBNaUIuXG4gKlxuICogTm90ZTogSXQmIzM5O3MgcmVjb21tZW5kZWQgdG8gc2V0IHRoaXMgYXR0cmlidXRlIHNpbmNlIGUuZy4gdG9vIGxpdHRsZSBtZW1vcnkgY2FuIGVhc2lseSBzdG9wIGEgSmF2YSBBV1MgTGFtYmRhIGZ1bmN0aW9uIGZyb20gd29ya2luZyBjb3JyZWN0bHkuIE9uIEFXUyBMYW1iZGEsIHRoZSBlbnZpcm9ubWVudCB2YXJpYWJsZSBgQVdTX0xBTUJEQV9GVU5DVElPTl9NRU1PUllfU0laRWAgcHJvdmlkZXMgdGhpcyBpbmZvcm1hdGlvbi5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9GQUFTX01BWF9NRU1PUlkgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19GQUFTX01BWF9NRU1PUlkgPSBUTVBfRkFBU19NQVhfTUVNT1JZO1xuLyoqXG4gKiBVbmlxdWUgaG9zdCBJRC4gRm9yIENsb3VkLCB0aGlzIG11c3QgYmUgdGhlIGluc3RhbmNlX2lkIGFzc2lnbmVkIGJ5IHRoZSBjbG91ZCBwcm92aWRlci5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9IT1NUX0lEIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfSE9TVF9JRCA9IFRNUF9IT1NUX0lEO1xuLyoqXG4gKiBOYW1lIG9mIHRoZSBob3N0LiBPbiBVbml4IHN5c3RlbXMsIGl0IG1heSBjb250YWluIHdoYXQgdGhlIGhvc3RuYW1lIGNvbW1hbmQgcmV0dXJucywgb3IgdGhlIGZ1bGx5IHF1YWxpZmllZCBob3N0bmFtZSwgb3IgYW5vdGhlciBuYW1lIHNwZWNpZmllZCBieSB0aGUgdXNlci5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9IT1NUX05BTUUgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19IT1NUX05BTUUgPSBUTVBfSE9TVF9OQU1FO1xuLyoqXG4gKiBUeXBlIG9mIGhvc3QuIEZvciBDbG91ZCwgdGhpcyBtdXN0IGJlIHRoZSBtYWNoaW5lIHR5cGUuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfSE9TVF9UWVBFIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfSE9TVF9UWVBFID0gVE1QX0hPU1RfVFlQRTtcbi8qKlxuICogVGhlIENQVSBhcmNoaXRlY3R1cmUgdGhlIGhvc3Qgc3lzdGVtIGlzIHJ1bm5pbmcgb24uXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfSE9TVF9BUkNIIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfSE9TVF9BUkNIID0gVE1QX0hPU1RfQVJDSDtcbi8qKlxuICogTmFtZSBvZiB0aGUgVk0gaW1hZ2Ugb3IgT1MgaW5zdGFsbCB0aGUgaG9zdCB3YXMgaW5zdGFudGlhdGVkIGZyb20uXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfSE9TVF9JTUFHRV9OQU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfSE9TVF9JTUFHRV9OQU1FID0gVE1QX0hPU1RfSU1BR0VfTkFNRTtcbi8qKlxuICogVk0gaW1hZ2UgSUQuIEZvciBDbG91ZCwgdGhpcyB2YWx1ZSBpcyBmcm9tIHRoZSBwcm92aWRlci5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9IT1NUX0lNQUdFX0lEIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfSE9TVF9JTUFHRV9JRCA9IFRNUF9IT1NUX0lNQUdFX0lEO1xuLyoqXG4gKiBUaGUgdmVyc2lvbiBzdHJpbmcgb2YgdGhlIFZNIGltYWdlIGFzIGRlZmluZWQgaW4gW1ZlcnNpb24gQXR0cmlidXRlc10oUkVBRE1FLm1kI3ZlcnNpb24tYXR0cmlidXRlcykuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfSE9TVF9JTUFHRV9WRVJTSU9OIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfSE9TVF9JTUFHRV9WRVJTSU9OID0gVE1QX0hPU1RfSU1BR0VfVkVSU0lPTjtcbi8qKlxuICogVGhlIG5hbWUgb2YgdGhlIGNsdXN0ZXIuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfSzhTX0NMVVNURVJfTkFNRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0s4U19DTFVTVEVSX05BTUUgPSBUTVBfSzhTX0NMVVNURVJfTkFNRTtcbi8qKlxuICogVGhlIG5hbWUgb2YgdGhlIE5vZGUuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfSzhTX05PREVfTkFNRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0s4U19OT0RFX05BTUUgPSBUTVBfSzhTX05PREVfTkFNRTtcbi8qKlxuICogVGhlIFVJRCBvZiB0aGUgTm9kZS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9LOFNfTk9ERV9VSUQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfTk9ERV9VSUQgPSBUTVBfSzhTX05PREVfVUlEO1xuLyoqXG4gKiBUaGUgbmFtZSBvZiB0aGUgbmFtZXNwYWNlIHRoYXQgdGhlIHBvZCBpcyBydW5uaW5nIGluLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0s4U19OQU1FU1BBQ0VfTkFNRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0s4U19OQU1FU1BBQ0VfTkFNRSA9IFRNUF9LOFNfTkFNRVNQQUNFX05BTUU7XG4vKipcbiAqIFRoZSBVSUQgb2YgdGhlIFBvZC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9LOFNfUE9EX1VJRCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0s4U19QT0RfVUlEID0gVE1QX0s4U19QT0RfVUlEO1xuLyoqXG4gKiBUaGUgbmFtZSBvZiB0aGUgUG9kLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0s4U19QT0RfTkFNRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0s4U19QT0RfTkFNRSA9IFRNUF9LOFNfUE9EX05BTUU7XG4vKipcbiAqIFRoZSBuYW1lIG9mIHRoZSBDb250YWluZXIgaW4gYSBQb2QgdGVtcGxhdGUuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfSzhTX0NPTlRBSU5FUl9OQU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfSzhTX0NPTlRBSU5FUl9OQU1FID0gVE1QX0s4U19DT05UQUlORVJfTkFNRTtcbi8qKlxuICogVGhlIFVJRCBvZiB0aGUgUmVwbGljYVNldC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9LOFNfUkVQTElDQVNFVF9VSUQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfUkVQTElDQVNFVF9VSUQgPSBUTVBfSzhTX1JFUExJQ0FTRVRfVUlEO1xuLyoqXG4gKiBUaGUgbmFtZSBvZiB0aGUgUmVwbGljYVNldC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9LOFNfUkVQTElDQVNFVF9OQU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfSzhTX1JFUExJQ0FTRVRfTkFNRSA9IFRNUF9LOFNfUkVQTElDQVNFVF9OQU1FO1xuLyoqXG4gKiBUaGUgVUlEIG9mIHRoZSBEZXBsb3ltZW50LlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0s4U19ERVBMT1lNRU5UX1VJRCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0s4U19ERVBMT1lNRU5UX1VJRCA9IFRNUF9LOFNfREVQTE9ZTUVOVF9VSUQ7XG4vKipcbiAqIFRoZSBuYW1lIG9mIHRoZSBEZXBsb3ltZW50LlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0s4U19ERVBMT1lNRU5UX05BTUUgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfREVQTE9ZTUVOVF9OQU1FID0gVE1QX0s4U19ERVBMT1lNRU5UX05BTUU7XG4vKipcbiAqIFRoZSBVSUQgb2YgdGhlIFN0YXRlZnVsU2V0LlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0s4U19TVEFURUZVTFNFVF9VSUQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfU1RBVEVGVUxTRVRfVUlEID0gVE1QX0s4U19TVEFURUZVTFNFVF9VSUQ7XG4vKipcbiAqIFRoZSBuYW1lIG9mIHRoZSBTdGF0ZWZ1bFNldC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9LOFNfU1RBVEVGVUxTRVRfTkFNRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0s4U19TVEFURUZVTFNFVF9OQU1FID0gVE1QX0s4U19TVEFURUZVTFNFVF9OQU1FO1xuLyoqXG4gKiBUaGUgVUlEIG9mIHRoZSBEYWVtb25TZXQuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfSzhTX0RBRU1PTlNFVF9VSUQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfREFFTU9OU0VUX1VJRCA9IFRNUF9LOFNfREFFTU9OU0VUX1VJRDtcbi8qKlxuICogVGhlIG5hbWUgb2YgdGhlIERhZW1vblNldC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9LOFNfREFFTU9OU0VUX05BTUUgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfREFFTU9OU0VUX05BTUUgPSBUTVBfSzhTX0RBRU1PTlNFVF9OQU1FO1xuLyoqXG4gKiBUaGUgVUlEIG9mIHRoZSBKb2IuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfSzhTX0pPQl9VSUQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfSk9CX1VJRCA9IFRNUF9LOFNfSk9CX1VJRDtcbi8qKlxuICogVGhlIG5hbWUgb2YgdGhlIEpvYi5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9LOFNfSk9CX05BTUUgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfSk9CX05BTUUgPSBUTVBfSzhTX0pPQl9OQU1FO1xuLyoqXG4gKiBUaGUgVUlEIG9mIHRoZSBDcm9uSm9iLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0s4U19DUk9OSk9CX1VJRCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX0s4U19DUk9OSk9CX1VJRCA9IFRNUF9LOFNfQ1JPTkpPQl9VSUQ7XG4vKipcbiAqIFRoZSBuYW1lIG9mIHRoZSBDcm9uSm9iLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX0s4U19DUk9OSk9CX05BTUUgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19LOFNfQ1JPTkpPQl9OQU1FID0gVE1QX0s4U19DUk9OSk9CX05BTUU7XG4vKipcbiAqIFRoZSBvcGVyYXRpbmcgc3lzdGVtIHR5cGUuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfT1NfVFlQRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX09TX1RZUEUgPSBUTVBfT1NfVFlQRTtcbi8qKlxuICogSHVtYW4gcmVhZGFibGUgKG5vdCBpbnRlbmRlZCB0byBiZSBwYXJzZWQpIE9TIHZlcnNpb24gaW5mb3JtYXRpb24sIGxpa2UgZS5nLiByZXBvcnRlZCBieSBgdmVyYCBvciBgbHNiX3JlbGVhc2UgLWFgIGNvbW1hbmRzLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX09TX0RFU0NSSVBUSU9OIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfT1NfREVTQ1JJUFRJT04gPSBUTVBfT1NfREVTQ1JJUFRJT047XG4vKipcbiAqIEh1bWFuIHJlYWRhYmxlIG9wZXJhdGluZyBzeXN0ZW0gbmFtZS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9PU19OQU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfT1NfTkFNRSA9IFRNUF9PU19OQU1FO1xuLyoqXG4gKiBUaGUgdmVyc2lvbiBzdHJpbmcgb2YgdGhlIG9wZXJhdGluZyBzeXN0ZW0gYXMgZGVmaW5lZCBpbiBbVmVyc2lvbiBBdHRyaWJ1dGVzXSguLi8uLi9yZXNvdXJjZS9zZW1hbnRpY19jb252ZW50aW9ucy9SRUFETUUubWQjdmVyc2lvbi1hdHRyaWJ1dGVzKS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9PU19WRVJTSU9OIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfT1NfVkVSU0lPTiA9IFRNUF9PU19WRVJTSU9OO1xuLyoqXG4gKiBQcm9jZXNzIGlkZW50aWZpZXIgKFBJRCkuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfUFJPQ0VTU19QSUQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19QUk9DRVNTX1BJRCA9IFRNUF9QUk9DRVNTX1BJRDtcbi8qKlxuICogVGhlIG5hbWUgb2YgdGhlIHByb2Nlc3MgZXhlY3V0YWJsZS4gT24gTGludXggYmFzZWQgc3lzdGVtcywgY2FuIGJlIHNldCB0byB0aGUgYE5hbWVgIGluIGBwcm9jL1twaWRdL3N0YXR1c2AuIE9uIFdpbmRvd3MsIGNhbiBiZSBzZXQgdG8gdGhlIGJhc2UgbmFtZSBvZiBgR2V0UHJvY2Vzc0ltYWdlRmlsZU5hbWVXYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9QUk9DRVNTX0VYRUNVVEFCTEVfTkFNRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX1BST0NFU1NfRVhFQ1VUQUJMRV9OQU1FID0gVE1QX1BST0NFU1NfRVhFQ1VUQUJMRV9OQU1FO1xuLyoqXG4gKiBUaGUgZnVsbCBwYXRoIHRvIHRoZSBwcm9jZXNzIGV4ZWN1dGFibGUuIE9uIExpbnV4IGJhc2VkIHN5c3RlbXMsIGNhbiBiZSBzZXQgdG8gdGhlIHRhcmdldCBvZiBgcHJvYy9bcGlkXS9leGVgLiBPbiBXaW5kb3dzLCBjYW4gYmUgc2V0IHRvIHRoZSByZXN1bHQgb2YgYEdldFByb2Nlc3NJbWFnZUZpbGVOYW1lV2AuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfUFJPQ0VTU19FWEVDVVRBQkxFX1BBVEggaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19QUk9DRVNTX0VYRUNVVEFCTEVfUEFUSCA9IFRNUF9QUk9DRVNTX0VYRUNVVEFCTEVfUEFUSDtcbi8qKlxuICogVGhlIGNvbW1hbmQgdXNlZCB0byBsYXVuY2ggdGhlIHByb2Nlc3MgKGkuZS4gdGhlIGNvbW1hbmQgbmFtZSkuIE9uIExpbnV4IGJhc2VkIHN5c3RlbXMsIGNhbiBiZSBzZXQgdG8gdGhlIHplcm90aCBzdHJpbmcgaW4gYHByb2MvW3BpZF0vY21kbGluZWAuIE9uIFdpbmRvd3MsIGNhbiBiZSBzZXQgdG8gdGhlIGZpcnN0IHBhcmFtZXRlciBleHRyYWN0ZWQgZnJvbSBgR2V0Q29tbWFuZExpbmVXYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9QUk9DRVNTX0NPTU1BTkQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19QUk9DRVNTX0NPTU1BTkQgPSBUTVBfUFJPQ0VTU19DT01NQU5EO1xuLyoqXG4gKiBUaGUgZnVsbCBjb21tYW5kIHVzZWQgdG8gbGF1bmNoIHRoZSBwcm9jZXNzIGFzIGEgc2luZ2xlIHN0cmluZyByZXByZXNlbnRpbmcgdGhlIGZ1bGwgY29tbWFuZC4gT24gV2luZG93cywgY2FuIGJlIHNldCB0byB0aGUgcmVzdWx0IG9mIGBHZXRDb21tYW5kTGluZVdgLiBEbyBub3Qgc2V0IHRoaXMgaWYgeW91IGhhdmUgdG8gYXNzZW1ibGUgaXQganVzdCBmb3IgbW9uaXRvcmluZzsgdXNlIGBwcm9jZXNzLmNvbW1hbmRfYXJnc2AgaW5zdGVhZC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9QUk9DRVNTX0NPTU1BTkRfTElORSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX1BST0NFU1NfQ09NTUFORF9MSU5FID0gVE1QX1BST0NFU1NfQ09NTUFORF9MSU5FO1xuLyoqXG4gKiBBbGwgdGhlIGNvbW1hbmQgYXJndW1lbnRzIChpbmNsdWRpbmcgdGhlIGNvbW1hbmQvZXhlY3V0YWJsZSBpdHNlbGYpIGFzIHJlY2VpdmVkIGJ5IHRoZSBwcm9jZXNzLiBPbiBMaW51eC1iYXNlZCBzeXN0ZW1zIChhbmQgc29tZSBvdGhlciBVbml4b2lkIHN5c3RlbXMgc3VwcG9ydGluZyBwcm9jZnMpLCBjYW4gYmUgc2V0IGFjY29yZGluZyB0byB0aGUgbGlzdCBvZiBudWxsLWRlbGltaXRlZCBzdHJpbmdzIGV4dHJhY3RlZCBmcm9tIGBwcm9jL1twaWRdL2NtZGxpbmVgLiBGb3IgbGliYy1iYXNlZCBleGVjdXRhYmxlcywgdGhpcyB3b3VsZCBiZSB0aGUgZnVsbCBhcmd2IHZlY3RvciBwYXNzZWQgdG8gYG1haW5gLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX1BST0NFU1NfQ09NTUFORF9BUkdTIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfUFJPQ0VTU19DT01NQU5EX0FSR1MgPSBUTVBfUFJPQ0VTU19DT01NQU5EX0FSR1M7XG4vKipcbiAqIFRoZSB1c2VybmFtZSBvZiB0aGUgdXNlciB0aGF0IG93bnMgdGhlIHByb2Nlc3MuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfUFJPQ0VTU19PV05FUiBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX1BST0NFU1NfT1dORVIgPSBUTVBfUFJPQ0VTU19PV05FUjtcbi8qKlxuICogVGhlIG5hbWUgb2YgdGhlIHJ1bnRpbWUgb2YgdGhpcyBwcm9jZXNzLiBGb3IgY29tcGlsZWQgbmF0aXZlIGJpbmFyaWVzLCB0aGlzIFNIT1VMRCBiZSB0aGUgbmFtZSBvZiB0aGUgY29tcGlsZXIuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfUFJPQ0VTU19SVU5USU1FX05BTUUgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19QUk9DRVNTX1JVTlRJTUVfTkFNRSA9IFRNUF9QUk9DRVNTX1JVTlRJTUVfTkFNRTtcbi8qKlxuICogVGhlIHZlcnNpb24gb2YgdGhlIHJ1bnRpbWUgb2YgdGhpcyBwcm9jZXNzLCBhcyByZXR1cm5lZCBieSB0aGUgcnVudGltZSB3aXRob3V0IG1vZGlmaWNhdGlvbi5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9QUk9DRVNTX1JVTlRJTUVfVkVSU0lPTiBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX1BST0NFU1NfUlVOVElNRV9WRVJTSU9OID0gVE1QX1BST0NFU1NfUlVOVElNRV9WRVJTSU9OO1xuLyoqXG4gKiBBbiBhZGRpdGlvbmFsIGRlc2NyaXB0aW9uIGFib3V0IHRoZSBydW50aW1lIG9mIHRoZSBwcm9jZXNzLCBmb3IgZXhhbXBsZSBhIHNwZWNpZmljIHZlbmRvciBjdXN0b21pemF0aW9uIG9mIHRoZSBydW50aW1lIGVudmlyb25tZW50LlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX1BST0NFU1NfUlVOVElNRV9ERVNDUklQVElPTiBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX1BST0NFU1NfUlVOVElNRV9ERVNDUklQVElPTiA9IFRNUF9QUk9DRVNTX1JVTlRJTUVfREVTQ1JJUFRJT047XG4vKipcbiAqIExvZ2ljYWwgbmFtZSBvZiB0aGUgc2VydmljZS5cbiAqXG4gKiBOb3RlOiBNVVNUIGJlIHRoZSBzYW1lIGZvciBhbGwgaW5zdGFuY2VzIG9mIGhvcml6b250YWxseSBzY2FsZWQgc2VydmljZXMuIElmIHRoZSB2YWx1ZSB3YXMgbm90IHNwZWNpZmllZCwgU0RLcyBNVVNUIGZhbGxiYWNrIHRvIGB1bmtub3duX3NlcnZpY2U6YCBjb25jYXRlbmF0ZWQgd2l0aCBbYHByb2Nlc3MuZXhlY3V0YWJsZS5uYW1lYF0ocHJvY2Vzcy5tZCNwcm9jZXNzKSwgZS5nLiBgdW5rbm93bl9zZXJ2aWNlOmJhc2hgLiBJZiBgcHJvY2Vzcy5leGVjdXRhYmxlLm5hbWVgIGlzIG5vdCBhdmFpbGFibGUsIHRoZSB2YWx1ZSBNVVNUIGJlIHNldCB0byBgdW5rbm93bl9zZXJ2aWNlYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9TRVJWSUNFX05BTUUuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfU0VSVklDRV9OQU1FID0gVE1QX1NFUlZJQ0VfTkFNRTtcbi8qKlxuICogQSBuYW1lc3BhY2UgZm9yIGBzZXJ2aWNlLm5hbWVgLlxuICpcbiAqIE5vdGU6IEEgc3RyaW5nIHZhbHVlIGhhdmluZyBhIG1lYW5pbmcgdGhhdCBoZWxwcyB0byBkaXN0aW5ndWlzaCBhIGdyb3VwIG9mIHNlcnZpY2VzLCBmb3IgZXhhbXBsZSB0aGUgdGVhbSBuYW1lIHRoYXQgb3ducyBhIGdyb3VwIG9mIHNlcnZpY2VzLiBgc2VydmljZS5uYW1lYCBpcyBleHBlY3RlZCB0byBiZSB1bmlxdWUgd2l0aGluIHRoZSBzYW1lIG5hbWVzcGFjZS4gSWYgYHNlcnZpY2UubmFtZXNwYWNlYCBpcyBub3Qgc3BlY2lmaWVkIGluIHRoZSBSZXNvdXJjZSB0aGVuIGBzZXJ2aWNlLm5hbWVgIGlzIGV4cGVjdGVkIHRvIGJlIHVuaXF1ZSBmb3IgYWxsIHNlcnZpY2VzIHRoYXQgaGF2ZSBubyBleHBsaWNpdCBuYW1lc3BhY2UgZGVmaW5lZCAoc28gdGhlIGVtcHR5L3Vuc3BlY2lmaWVkIG5hbWVzcGFjZSBpcyBzaW1wbHkgb25lIG1vcmUgdmFsaWQgbmFtZXNwYWNlKS4gWmVyby1sZW5ndGggbmFtZXNwYWNlIHN0cmluZyBpcyBhc3N1bWVkIGVxdWFsIHRvIHVuc3BlY2lmaWVkIG5hbWVzcGFjZS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9TRVJWSUNFX05BTUVTUEFDRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLlNFTVJFU0FUVFJTX1NFUlZJQ0VfTkFNRVNQQUNFID0gVE1QX1NFUlZJQ0VfTkFNRVNQQUNFO1xuLyoqXG4gKiBUaGUgc3RyaW5nIElEIG9mIHRoZSBzZXJ2aWNlIGluc3RhbmNlLlxuICpcbiAqIE5vdGU6IE1VU1QgYmUgdW5pcXVlIGZvciBlYWNoIGluc3RhbmNlIG9mIHRoZSBzYW1lIGBzZXJ2aWNlLm5hbWVzcGFjZSxzZXJ2aWNlLm5hbWVgIHBhaXIgKGluIG90aGVyIHdvcmRzIGBzZXJ2aWNlLm5hbWVzcGFjZSxzZXJ2aWNlLm5hbWUsc2VydmljZS5pbnN0YW5jZS5pZGAgdHJpcGxldCBNVVNUIGJlIGdsb2JhbGx5IHVuaXF1ZSkuIFRoZSBJRCBoZWxwcyB0byBkaXN0aW5ndWlzaCBpbnN0YW5jZXMgb2YgdGhlIHNhbWUgc2VydmljZSB0aGF0IGV4aXN0IGF0IHRoZSBzYW1lIHRpbWUgKGUuZy4gaW5zdGFuY2VzIG9mIGEgaG9yaXpvbnRhbGx5IHNjYWxlZCBzZXJ2aWNlKS4gSXQgaXMgcHJlZmVyYWJsZSBmb3IgdGhlIElEIHRvIGJlIHBlcnNpc3RlbnQgYW5kIHN0YXkgdGhlIHNhbWUgZm9yIHRoZSBsaWZldGltZSBvZiB0aGUgc2VydmljZSBpbnN0YW5jZSwgaG93ZXZlciBpdCBpcyBhY2NlcHRhYmxlIHRoYXQgdGhlIElEIGlzIGVwaGVtZXJhbCBhbmQgY2hhbmdlcyBkdXJpbmcgaW1wb3J0YW50IGxpZmV0aW1lIGV2ZW50cyBmb3IgdGhlIHNlcnZpY2UgKGUuZy4gc2VydmljZSByZXN0YXJ0cykuIElmIHRoZSBzZXJ2aWNlIGhhcyBubyBpbmhlcmVudCB1bmlxdWUgSUQgdGhhdCBjYW4gYmUgdXNlZCBhcyB0aGUgdmFsdWUgb2YgdGhpcyBhdHRyaWJ1dGUgaXQgaXMgcmVjb21tZW5kZWQgdG8gZ2VuZXJhdGUgYSByYW5kb20gVmVyc2lvbiAxIG9yIFZlcnNpb24gNCBSRkMgNDEyMiBVVUlEIChzZXJ2aWNlcyBhaW1pbmcgZm9yIHJlcHJvZHVjaWJsZSBVVUlEcyBtYXkgYWxzbyB1c2UgVmVyc2lvbiA1LCBzZWUgUkZDIDQxMjIgZm9yIG1vcmUgcmVjb21tZW5kYXRpb25zKS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9TRVJWSUNFX0lOU1RBTkNFX0lEIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfU0VSVklDRV9JTlNUQU5DRV9JRCA9IFRNUF9TRVJWSUNFX0lOU1RBTkNFX0lEO1xuLyoqXG4gKiBUaGUgdmVyc2lvbiBzdHJpbmcgb2YgdGhlIHNlcnZpY2UgQVBJIG9yIGltcGxlbWVudGF0aW9uLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX1NFUlZJQ0VfVkVSU0lPTi5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19TRVJWSUNFX1ZFUlNJT04gPSBUTVBfU0VSVklDRV9WRVJTSU9OO1xuLyoqXG4gKiBUaGUgbmFtZSBvZiB0aGUgdGVsZW1ldHJ5IFNESyBhcyBkZWZpbmVkIGFib3ZlLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX1RFTEVNRVRSWV9TREtfTkFNRS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19URUxFTUVUUllfU0RLX05BTUUgPSBUTVBfVEVMRU1FVFJZX1NES19OQU1FO1xuLyoqXG4gKiBUaGUgbGFuZ3VhZ2Ugb2YgdGhlIHRlbGVtZXRyeSBTREsuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfVEVMRU1FVFJZX1NES19MQU5HVUFHRS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19URUxFTUVUUllfU0RLX0xBTkdVQUdFID0gVE1QX1RFTEVNRVRSWV9TREtfTEFOR1VBR0U7XG4vKipcbiAqIFRoZSB2ZXJzaW9uIHN0cmluZyBvZiB0aGUgdGVsZW1ldHJ5IFNESy5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9URUxFTUVUUllfU0RLX1ZFUlNJT04uXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfVEVMRU1FVFJZX1NES19WRVJTSU9OID0gVE1QX1RFTEVNRVRSWV9TREtfVkVSU0lPTjtcbi8qKlxuICogVGhlIHZlcnNpb24gc3RyaW5nIG9mIHRoZSBhdXRvIGluc3RydW1lbnRhdGlvbiBhZ2VudCwgaWYgdXNlZC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVRUUl9URUxFTUVUUllfRElTVFJPX1ZFUlNJT04gaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5TRU1SRVNBVFRSU19URUxFTUVUUllfQVVUT19WRVJTSU9OID0gVE1QX1RFTEVNRVRSWV9BVVRPX1ZFUlNJT047XG4vKipcbiAqIFRoZSBuYW1lIG9mIHRoZSB3ZWIgZW5naW5lLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX1dFQkVOR0lORV9OQU1FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfV0VCRU5HSU5FX05BTUUgPSBUTVBfV0VCRU5HSU5FX05BTUU7XG4vKipcbiAqIFRoZSB2ZXJzaW9uIG9mIHRoZSB3ZWIgZW5naW5lLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBVFRSX1dFQkVOR0lORV9WRVJTSU9OIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfV0VCRU5HSU5FX1ZFUlNJT04gPSBUTVBfV0VCRU5HSU5FX1ZFUlNJT047XG4vKipcbiAqIEFkZGl0aW9uYWwgZGVzY3JpcHRpb24gb2YgdGhlIHdlYiBlbmdpbmUgKGUuZy4gZGV0YWlsZWQgdmVyc2lvbiBhbmQgZWRpdGlvbiBpbmZvcm1hdGlvbikuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEFUVFJfV0VCRU5HSU5FX0RFU0NSSVBUSU9OIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuU0VNUkVTQVRUUlNfV0VCRU5HSU5FX0RFU0NSSVBUSU9OID0gVE1QX1dFQkVOR0lORV9ERVNDUklQVElPTjtcbi8qKlxuICogQ3JlYXRlIGV4cG9ydGVkIFZhbHVlIE1hcCBmb3IgU2VtYW50aWNSZXNvdXJjZUF0dHJpYnV0ZXMgdmFsdWVzXG4gKiBAZGVwcmVjYXRlZCBVc2UgdGhlIFNFTVJFU0FUVFJTX1hYWFhYIGNvbnN0YW50cyByYXRoZXIgdGhhbiB0aGUgU2VtYW50aWNSZXNvdXJjZUF0dHJpYnV0ZXMuWFhYWFggZm9yIGJ1bmRsZSBtaW5pZmljYXRpb25cbiAqL1xuZXhwb3J0cy5TZW1hbnRpY1Jlc291cmNlQXR0cmlidXRlcyA9IFxuLyojX19QVVJFX18qLyAoMCwgdXRpbHNfMS5jcmVhdGVDb25zdE1hcCkoW1xuICAgIFRNUF9DTE9VRF9QUk9WSURFUixcbiAgICBUTVBfQ0xPVURfQUNDT1VOVF9JRCxcbiAgICBUTVBfQ0xPVURfUkVHSU9OLFxuICAgIFRNUF9DTE9VRF9BVkFJTEFCSUxJVFlfWk9ORSxcbiAgICBUTVBfQ0xPVURfUExBVEZPUk0sXG4gICAgVE1QX0FXU19FQ1NfQ09OVEFJTkVSX0FSTixcbiAgICBUTVBfQVdTX0VDU19DTFVTVEVSX0FSTixcbiAgICBUTVBfQVdTX0VDU19MQVVOQ0hUWVBFLFxuICAgIFRNUF9BV1NfRUNTX1RBU0tfQVJOLFxuICAgIFRNUF9BV1NfRUNTX1RBU0tfRkFNSUxZLFxuICAgIFRNUF9BV1NfRUNTX1RBU0tfUkVWSVNJT04sXG4gICAgVE1QX0FXU19FS1NfQ0xVU1RFUl9BUk4sXG4gICAgVE1QX0FXU19MT0dfR1JPVVBfTkFNRVMsXG4gICAgVE1QX0FXU19MT0dfR1JPVVBfQVJOUyxcbiAgICBUTVBfQVdTX0xPR19TVFJFQU1fTkFNRVMsXG4gICAgVE1QX0FXU19MT0dfU1RSRUFNX0FSTlMsXG4gICAgVE1QX0NPTlRBSU5FUl9OQU1FLFxuICAgIFRNUF9DT05UQUlORVJfSUQsXG4gICAgVE1QX0NPTlRBSU5FUl9SVU5USU1FLFxuICAgIFRNUF9DT05UQUlORVJfSU1BR0VfTkFNRSxcbiAgICBUTVBfQ09OVEFJTkVSX0lNQUdFX1RBRyxcbiAgICBUTVBfREVQTE9ZTUVOVF9FTlZJUk9OTUVOVCxcbiAgICBUTVBfREVWSUNFX0lELFxuICAgIFRNUF9ERVZJQ0VfTU9ERUxfSURFTlRJRklFUixcbiAgICBUTVBfREVWSUNFX01PREVMX05BTUUsXG4gICAgVE1QX0ZBQVNfTkFNRSxcbiAgICBUTVBfRkFBU19JRCxcbiAgICBUTVBfRkFBU19WRVJTSU9OLFxuICAgIFRNUF9GQUFTX0lOU1RBTkNFLFxuICAgIFRNUF9GQUFTX01BWF9NRU1PUlksXG4gICAgVE1QX0hPU1RfSUQsXG4gICAgVE1QX0hPU1RfTkFNRSxcbiAgICBUTVBfSE9TVF9UWVBFLFxuICAgIFRNUF9IT1NUX0FSQ0gsXG4gICAgVE1QX0hPU1RfSU1BR0VfTkFNRSxcbiAgICBUTVBfSE9TVF9JTUFHRV9JRCxcbiAgICBUTVBfSE9TVF9JTUFHRV9WRVJTSU9OLFxuICAgIFRNUF9LOFNfQ0xVU1RFUl9OQU1FLFxuICAgIFRNUF9LOFNfTk9ERV9OQU1FLFxuICAgIFRNUF9LOFNfTk9ERV9VSUQsXG4gICAgVE1QX0s4U19OQU1FU1BBQ0VfTkFNRSxcbiAgICBUTVBfSzhTX1BPRF9VSUQsXG4gICAgVE1QX0s4U19QT0RfTkFNRSxcbiAgICBUTVBfSzhTX0NPTlRBSU5FUl9OQU1FLFxuICAgIFRNUF9LOFNfUkVQTElDQVNFVF9VSUQsXG4gICAgVE1QX0s4U19SRVBMSUNBU0VUX05BTUUsXG4gICAgVE1QX0s4U19ERVBMT1lNRU5UX1VJRCxcbiAgICBUTVBfSzhTX0RFUExPWU1FTlRfTkFNRSxcbiAgICBUTVBfSzhTX1NUQVRFRlVMU0VUX1VJRCxcbiAgICBUTVBfSzhTX1NUQVRFRlVMU0VUX05BTUUsXG4gICAgVE1QX0s4U19EQUVNT05TRVRfVUlELFxuICAgIFRNUF9LOFNfREFFTU9OU0VUX05BTUUsXG4gICAgVE1QX0s4U19KT0JfVUlELFxuICAgIFRNUF9LOFNfSk9CX05BTUUsXG4gICAgVE1QX0s4U19DUk9OSk9CX1VJRCxcbiAgICBUTVBfSzhTX0NST05KT0JfTkFNRSxcbiAgICBUTVBfT1NfVFlQRSxcbiAgICBUTVBfT1NfREVTQ1JJUFRJT04sXG4gICAgVE1QX09TX05BTUUsXG4gICAgVE1QX09TX1ZFUlNJT04sXG4gICAgVE1QX1BST0NFU1NfUElELFxuICAgIFRNUF9QUk9DRVNTX0VYRUNVVEFCTEVfTkFNRSxcbiAgICBUTVBfUFJPQ0VTU19FWEVDVVRBQkxFX1BBVEgsXG4gICAgVE1QX1BST0NFU1NfQ09NTUFORCxcbiAgICBUTVBfUFJPQ0VTU19DT01NQU5EX0xJTkUsXG4gICAgVE1QX1BST0NFU1NfQ09NTUFORF9BUkdTLFxuICAgIFRNUF9QUk9DRVNTX09XTkVSLFxuICAgIFRNUF9QUk9DRVNTX1JVTlRJTUVfTkFNRSxcbiAgICBUTVBfUFJPQ0VTU19SVU5USU1FX1ZFUlNJT04sXG4gICAgVE1QX1BST0NFU1NfUlVOVElNRV9ERVNDUklQVElPTixcbiAgICBUTVBfU0VSVklDRV9OQU1FLFxuICAgIFRNUF9TRVJWSUNFX05BTUVTUEFDRSxcbiAgICBUTVBfU0VSVklDRV9JTlNUQU5DRV9JRCxcbiAgICBUTVBfU0VSVklDRV9WRVJTSU9OLFxuICAgIFRNUF9URUxFTUVUUllfU0RLX05BTUUsXG4gICAgVE1QX1RFTEVNRVRSWV9TREtfTEFOR1VBR0UsXG4gICAgVE1QX1RFTEVNRVRSWV9TREtfVkVSU0lPTixcbiAgICBUTVBfVEVMRU1FVFJZX0FVVE9fVkVSU0lPTixcbiAgICBUTVBfV0VCRU5HSU5FX05BTUUsXG4gICAgVE1QX1dFQkVOR0lORV9WRVJTSU9OLFxuICAgIFRNUF9XRUJFTkdJTkVfREVTQ1JJUFRJT04sXG5dKTtcbi8qIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAqIENvbnN0YW50IHZhbHVlcyBmb3IgQ2xvdWRQcm92aWRlclZhbHVlcyBlbnVtIGRlZmluaXRpb25cbiAqXG4gKiBOYW1lIG9mIHRoZSBjbG91ZCBwcm92aWRlci5cbiAqIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0gKi9cbi8vIFRlbXBvcmFyeSBsb2NhbCBjb25zdGFudHMgdG8gYXNzaWduIHRvIHRoZSBpbmRpdmlkdWFsIGV4cG9ydHMgYW5kIHRoZSBuYW1lc3BhY2VkIHZlcnNpb25cbi8vIFJlcXVpcmVkIHRvIGF2b2lkIHRoZSBuYW1lc3BhY2UgZXhwb3J0cyB1c2luZyB0aGUgdW5taW5pZmlhYmxlIGV4cG9ydCBuYW1lcyBmb3Igc29tZSBwYWNrYWdlIHR5cGVzXG5jb25zdCBUTVBfQ0xPVURQUk9WSURFUlZBTFVFU19BTElCQUJBX0NMT1VEID0gJ2FsaWJhYmFfY2xvdWQnO1xuY29uc3QgVE1QX0NMT1VEUFJPVklERVJWQUxVRVNfQVdTID0gJ2F3cyc7XG5jb25zdCBUTVBfQ0xPVURQUk9WSURFUlZBTFVFU19BWlVSRSA9ICdhenVyZSc7XG5jb25zdCBUTVBfQ0xPVURQUk9WSURFUlZBTFVFU19HQ1AgPSAnZ2NwJztcbi8qKlxuICogTmFtZSBvZiB0aGUgY2xvdWQgcHJvdmlkZXIuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIENMT1VEX1BST1ZJREVSX1ZBTFVFX0FMSUJBQkFfQ0xPVUQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5DTE9VRFBST1ZJREVSVkFMVUVTX0FMSUJBQkFfQ0xPVUQgPSBUTVBfQ0xPVURQUk9WSURFUlZBTFVFU19BTElCQUJBX0NMT1VEO1xuLyoqXG4gKiBOYW1lIG9mIHRoZSBjbG91ZCBwcm92aWRlci5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUFJPVklERVJfVkFMVUVfQVdTIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuQ0xPVURQUk9WSURFUlZBTFVFU19BV1MgPSBUTVBfQ0xPVURQUk9WSURFUlZBTFVFU19BV1M7XG4vKipcbiAqIE5hbWUgb2YgdGhlIGNsb3VkIHByb3ZpZGVyLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBDTE9VRF9QUk9WSURFUl9WQUxVRV9BWlVSRSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUFJPVklERVJWQUxVRVNfQVpVUkUgPSBUTVBfQ0xPVURQUk9WSURFUlZBTFVFU19BWlVSRTtcbi8qKlxuICogTmFtZSBvZiB0aGUgY2xvdWQgcHJvdmlkZXIuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIENMT1VEX1BST1ZJREVSX1ZBTFVFX0dDUCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUFJPVklERVJWQUxVRVNfR0NQID0gVE1QX0NMT1VEUFJPVklERVJWQUxVRVNfR0NQO1xuLyoqXG4gKiBUaGUgY29uc3RhbnQgbWFwIG9mIHZhbHVlcyBmb3IgQ2xvdWRQcm92aWRlclZhbHVlcy5cbiAqIEBkZXByZWNhdGVkIFVzZSB0aGUgQ0xPVURQUk9WSURFUlZBTFVFU19YWFhYWCBjb25zdGFudHMgcmF0aGVyIHRoYW4gdGhlIENsb3VkUHJvdmlkZXJWYWx1ZXMuWFhYWFggZm9yIGJ1bmRsZSBtaW5pZmljYXRpb24uXG4gKi9cbmV4cG9ydHMuQ2xvdWRQcm92aWRlclZhbHVlcyA9IFxuLyojX19QVVJFX18qLyAoMCwgdXRpbHNfMS5jcmVhdGVDb25zdE1hcCkoW1xuICAgIFRNUF9DTE9VRFBST1ZJREVSVkFMVUVTX0FMSUJBQkFfQ0xPVUQsXG4gICAgVE1QX0NMT1VEUFJPVklERVJWQUxVRVNfQVdTLFxuICAgIFRNUF9DTE9VRFBST1ZJREVSVkFMVUVTX0FaVVJFLFxuICAgIFRNUF9DTE9VRFBST1ZJREVSVkFMVUVTX0dDUCxcbl0pO1xuLyogLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuICogQ29uc3RhbnQgdmFsdWVzIGZvciBDbG91ZFBsYXRmb3JtVmFsdWVzIGVudW0gZGVmaW5pdGlvblxuICpcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0gKi9cbi8vIFRlbXBvcmFyeSBsb2NhbCBjb25zdGFudHMgdG8gYXNzaWduIHRvIHRoZSBpbmRpdmlkdWFsIGV4cG9ydHMgYW5kIHRoZSBuYW1lc3BhY2VkIHZlcnNpb25cbi8vIFJlcXVpcmVkIHRvIGF2b2lkIHRoZSBuYW1lc3BhY2UgZXhwb3J0cyB1c2luZyB0aGUgdW5taW5pZmlhYmxlIGV4cG9ydCBuYW1lcyBmb3Igc29tZSBwYWNrYWdlIHR5cGVzXG5jb25zdCBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BTElCQUJBX0NMT1VEX0VDUyA9ICdhbGliYWJhX2Nsb3VkX2Vjcyc7XG5jb25zdCBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BTElCQUJBX0NMT1VEX0ZDID0gJ2FsaWJhYmFfY2xvdWRfZmMnO1xuY29uc3QgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQVdTX0VDMiA9ICdhd3NfZWMyJztcbmNvbnN0IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19FQ1MgPSAnYXdzX2Vjcyc7XG5jb25zdCBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BV1NfRUtTID0gJ2F3c19la3MnO1xuY29uc3QgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQVdTX0xBTUJEQSA9ICdhd3NfbGFtYmRhJztcbmNvbnN0IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19FTEFTVElDX0JFQU5TVEFMSyA9ICdhd3NfZWxhc3RpY19iZWFuc3RhbGsnO1xuY29uc3QgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQVpVUkVfVk0gPSAnYXp1cmVfdm0nO1xuY29uc3QgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQVpVUkVfQ09OVEFJTkVSX0lOU1RBTkNFUyA9ICdhenVyZV9jb250YWluZXJfaW5zdGFuY2VzJztcbmNvbnN0IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FaVVJFX0FLUyA9ICdhenVyZV9ha3MnO1xuY29uc3QgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQVpVUkVfRlVOQ1RJT05TID0gJ2F6dXJlX2Z1bmN0aW9ucyc7XG5jb25zdCBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9BUFBfU0VSVklDRSA9ICdhenVyZV9hcHBfc2VydmljZSc7XG5jb25zdCBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19HQ1BfQ09NUFVURV9FTkdJTkUgPSAnZ2NwX2NvbXB1dGVfZW5naW5lJztcbmNvbnN0IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9DTE9VRF9SVU4gPSAnZ2NwX2Nsb3VkX3J1bic7XG5jb25zdCBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19HQ1BfS1VCRVJORVRFU19FTkdJTkUgPSAnZ2NwX2t1YmVybmV0ZXNfZW5naW5lJztcbmNvbnN0IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9DTE9VRF9GVU5DVElPTlMgPSAnZ2NwX2Nsb3VkX2Z1bmN0aW9ucyc7XG5jb25zdCBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19HQ1BfQVBQX0VOR0lORSA9ICdnY3BfYXBwX2VuZ2luZSc7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQUxJQkFCQV9DTE9VRF9FQ1MgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0FMSUJBQkFfQ0xPVURfRUNTID0gVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQUxJQkFCQV9DTE9VRF9FQ1M7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQUxJQkFCQV9DTE9VRF9GQyBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQUxJQkFCQV9DTE9VRF9GQyA9IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FMSUJBQkFfQ0xPVURfRkM7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVdTX0VDMiBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQVdTX0VDMiA9IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19FQzI7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVdTX0VDUyBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQVdTX0VDUyA9IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19FQ1M7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVdTX0VLUyBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQVdTX0VLUyA9IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19FS1M7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVdTX0xBTUJEQSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQVdTX0xBTUJEQSA9IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19MQU1CREE7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVdTX0VMQVNUSUNfQkVBTlNUQUxLIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuQ0xPVURQTEFURk9STVZBTFVFU19BV1NfRUxBU1RJQ19CRUFOU1RBTEsgPSBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BV1NfRUxBU1RJQ19CRUFOU1RBTEs7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVpVUkVfVk0gaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0FaVVJFX1ZNID0gVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQVpVUkVfVk07XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVpVUkVfQ09OVEFJTkVSX0lOU1RBTkNFUyBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfQVpVUkVfQ09OVEFJTkVSX0lOU1RBTkNFUyA9IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FaVVJFX0NPTlRBSU5FUl9JTlNUQU5DRVM7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVpVUkVfQUtTIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9BS1MgPSBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9BS1M7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVpVUkVfRlVOQ1RJT05TIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9GVU5DVElPTlMgPSBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9GVU5DVElPTlM7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfQVpVUkVfQVBQX1NFUlZJQ0UgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0FaVVJFX0FQUF9TRVJWSUNFID0gVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQVpVUkVfQVBQX1NFUlZJQ0U7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfR0NQX0NPTVBVVEVfRU5HSU5FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuQ0xPVURQTEFURk9STVZBTFVFU19HQ1BfQ09NUFVURV9FTkdJTkUgPSBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19HQ1BfQ09NUFVURV9FTkdJTkU7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfR0NQX0NMT1VEX1JVTiBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfR0NQX0NMT1VEX1JVTiA9IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9DTE9VRF9SVU47XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfR0NQX0tVQkVSTkVURVNfRU5HSU5FIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuQ0xPVURQTEFURk9STVZBTFVFU19HQ1BfS1VCRVJORVRFU19FTkdJTkUgPSBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19HQ1BfS1VCRVJORVRFU19FTkdJTkU7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfR0NQX0NMT1VEX0ZVTkNUSU9OUyBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkNMT1VEUExBVEZPUk1WQUxVRVNfR0NQX0NMT1VEX0ZVTkNUSU9OUyA9IFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9DTE9VRF9GVU5DVElPTlM7XG4vKipcbiAqIFRoZSBjbG91ZCBwbGF0Zm9ybSBpbiB1c2UuXG4gKlxuICogTm90ZTogVGhlIHByZWZpeCBvZiB0aGUgc2VydmljZSBTSE9VTEQgbWF0Y2ggdGhlIG9uZSBzcGVjaWZpZWQgaW4gYGNsb3VkLnByb3ZpZGVyYC5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQ0xPVURfUExBVEZPUk1fVkFMVUVfR0NQX0FQUF9FTkdJTkUgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9BUFBfRU5HSU5FID0gVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfR0NQX0FQUF9FTkdJTkU7XG4vKipcbiAqIFRoZSBjb25zdGFudCBtYXAgb2YgdmFsdWVzIGZvciBDbG91ZFBsYXRmb3JtVmFsdWVzLlxuICogQGRlcHJlY2F0ZWQgVXNlIHRoZSBDTE9VRFBMQVRGT1JNVkFMVUVTX1hYWFhYIGNvbnN0YW50cyByYXRoZXIgdGhhbiB0aGUgQ2xvdWRQbGF0Zm9ybVZhbHVlcy5YWFhYWCBmb3IgYnVuZGxlIG1pbmlmaWNhdGlvbi5cbiAqL1xuZXhwb3J0cy5DbG91ZFBsYXRmb3JtVmFsdWVzID0gXG4vKiNfX1BVUkVfXyovICgwLCB1dGlsc18xLmNyZWF0ZUNvbnN0TWFwKShbXG4gICAgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQUxJQkFCQV9DTE9VRF9FQ1MsXG4gICAgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQUxJQkFCQV9DTE9VRF9GQyxcbiAgICBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BV1NfRUMyLFxuICAgIFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19FQ1MsXG4gICAgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQVdTX0VLUyxcbiAgICBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BV1NfTEFNQkRBLFxuICAgIFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FXU19FTEFTVElDX0JFQU5TVEFMSyxcbiAgICBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9WTSxcbiAgICBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9DT05UQUlORVJfSU5TVEFOQ0VTLFxuICAgIFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0FaVVJFX0FLUyxcbiAgICBUTVBfQ0xPVURQTEFURk9STVZBTFVFU19BWlVSRV9GVU5DVElPTlMsXG4gICAgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfQVpVUkVfQVBQX1NFUlZJQ0UsXG4gICAgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfR0NQX0NPTVBVVEVfRU5HSU5FLFxuICAgIFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9DTE9VRF9SVU4sXG4gICAgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfR0NQX0tVQkVSTkVURVNfRU5HSU5FLFxuICAgIFRNUF9DTE9VRFBMQVRGT1JNVkFMVUVTX0dDUF9DTE9VRF9GVU5DVElPTlMsXG4gICAgVE1QX0NMT1VEUExBVEZPUk1WQUxVRVNfR0NQX0FQUF9FTkdJTkUsXG5dKTtcbi8qIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAqIENvbnN0YW50IHZhbHVlcyBmb3IgQXdzRWNzTGF1bmNodHlwZVZhbHVlcyBlbnVtIGRlZmluaXRpb25cbiAqXG4gKiBUaGUgW2xhdW5jaCB0eXBlXShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vQW1hem9uRUNTL2xhdGVzdC9kZXZlbG9wZXJndWlkZS9sYXVuY2hfdHlwZXMuaHRtbCkgZm9yIGFuIEVDUyB0YXNrLlxuICogLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSAqL1xuLy8gVGVtcG9yYXJ5IGxvY2FsIGNvbnN0YW50cyB0byBhc3NpZ24gdG8gdGhlIGluZGl2aWR1YWwgZXhwb3J0cyBhbmQgdGhlIG5hbWVzcGFjZWQgdmVyc2lvblxuLy8gUmVxdWlyZWQgdG8gYXZvaWQgdGhlIG5hbWVzcGFjZSBleHBvcnRzIHVzaW5nIHRoZSB1bm1pbmlmaWFibGUgZXhwb3J0IG5hbWVzIGZvciBzb21lIHBhY2thZ2UgdHlwZXNcbmNvbnN0IFRNUF9BV1NFQ1NMQVVOQ0hUWVBFVkFMVUVTX0VDMiA9ICdlYzInO1xuY29uc3QgVE1QX0FXU0VDU0xBVU5DSFRZUEVWQUxVRVNfRkFSR0FURSA9ICdmYXJnYXRlJztcbi8qKlxuICogVGhlIFtsYXVuY2ggdHlwZV0oaHR0cHM6Ly9kb2NzLmF3cy5hbWF6b24uY29tL0FtYXpvbkVDUy9sYXRlc3QvZGV2ZWxvcGVyZ3VpZGUvbGF1bmNoX3R5cGVzLmh0bWwpIGZvciBhbiBFQ1MgdGFzay5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgQVdTX0VDU19MQVVOQ0hUWVBFX1ZBTFVFX0VDMiBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkFXU0VDU0xBVU5DSFRZUEVWQUxVRVNfRUMyID0gVE1QX0FXU0VDU0xBVU5DSFRZUEVWQUxVRVNfRUMyO1xuLyoqXG4gKiBUaGUgW2xhdW5jaCB0eXBlXShodHRwczovL2RvY3MuYXdzLmFtYXpvbi5jb20vQW1hem9uRUNTL2xhdGVzdC9kZXZlbG9wZXJndWlkZS9sYXVuY2hfdHlwZXMuaHRtbCkgZm9yIGFuIEVDUyB0YXNrLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBBV1NfRUNTX0xBVU5DSFRZUEVfVkFMVUVfRkFSR0FURSBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkFXU0VDU0xBVU5DSFRZUEVWQUxVRVNfRkFSR0FURSA9IFRNUF9BV1NFQ1NMQVVOQ0hUWVBFVkFMVUVTX0ZBUkdBVEU7XG4vKipcbiAqIFRoZSBjb25zdGFudCBtYXAgb2YgdmFsdWVzIGZvciBBd3NFY3NMYXVuY2h0eXBlVmFsdWVzLlxuICogQGRlcHJlY2F0ZWQgVXNlIHRoZSBBV1NFQ1NMQVVOQ0hUWVBFVkFMVUVTX1hYWFhYIGNvbnN0YW50cyByYXRoZXIgdGhhbiB0aGUgQXdzRWNzTGF1bmNodHlwZVZhbHVlcy5YWFhYWCBmb3IgYnVuZGxlIG1pbmlmaWNhdGlvbi5cbiAqL1xuZXhwb3J0cy5Bd3NFY3NMYXVuY2h0eXBlVmFsdWVzID0gXG4vKiNfX1BVUkVfXyovICgwLCB1dGlsc18xLmNyZWF0ZUNvbnN0TWFwKShbXG4gICAgVE1QX0FXU0VDU0xBVU5DSFRZUEVWQUxVRVNfRUMyLFxuICAgIFRNUF9BV1NFQ1NMQVVOQ0hUWVBFVkFMVUVTX0ZBUkdBVEUsXG5dKTtcbi8qIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAqIENvbnN0YW50IHZhbHVlcyBmb3IgSG9zdEFyY2hWYWx1ZXMgZW51bSBkZWZpbml0aW9uXG4gKlxuICogVGhlIENQVSBhcmNoaXRlY3R1cmUgdGhlIGhvc3Qgc3lzdGVtIGlzIHJ1bm5pbmcgb24uXG4gKiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tICovXG4vLyBUZW1wb3JhcnkgbG9jYWwgY29uc3RhbnRzIHRvIGFzc2lnbiB0byB0aGUgaW5kaXZpZHVhbCBleHBvcnRzIGFuZCB0aGUgbmFtZXNwYWNlZCB2ZXJzaW9uXG4vLyBSZXF1aXJlZCB0byBhdm9pZCB0aGUgbmFtZXNwYWNlIGV4cG9ydHMgdXNpbmcgdGhlIHVubWluaWZpYWJsZSBleHBvcnQgbmFtZXMgZm9yIHNvbWUgcGFja2FnZSB0eXBlc1xuY29uc3QgVE1QX0hPU1RBUkNIVkFMVUVTX0FNRDY0ID0gJ2FtZDY0JztcbmNvbnN0IFRNUF9IT1NUQVJDSFZBTFVFU19BUk0zMiA9ICdhcm0zMic7XG5jb25zdCBUTVBfSE9TVEFSQ0hWQUxVRVNfQVJNNjQgPSAnYXJtNjQnO1xuY29uc3QgVE1QX0hPU1RBUkNIVkFMVUVTX0lBNjQgPSAnaWE2NCc7XG5jb25zdCBUTVBfSE9TVEFSQ0hWQUxVRVNfUFBDMzIgPSAncHBjMzInO1xuY29uc3QgVE1QX0hPU1RBUkNIVkFMVUVTX1BQQzY0ID0gJ3BwYzY0JztcbmNvbnN0IFRNUF9IT1NUQVJDSFZBTFVFU19YODYgPSAneDg2Jztcbi8qKlxuICogVGhlIENQVSBhcmNoaXRlY3R1cmUgdGhlIGhvc3Qgc3lzdGVtIGlzIHJ1bm5pbmcgb24uXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEhPU1RfQVJDSF9WQUxVRV9BTUQ2NCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLkhPU1RBUkNIVkFMVUVTX0FNRDY0ID0gVE1QX0hPU1RBUkNIVkFMVUVTX0FNRDY0O1xuLyoqXG4gKiBUaGUgQ1BVIGFyY2hpdGVjdHVyZSB0aGUgaG9zdCBzeXN0ZW0gaXMgcnVubmluZyBvbi5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgSE9TVF9BUkNIX1ZBTFVFX0FSTTMyIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuSE9TVEFSQ0hWQUxVRVNfQVJNMzIgPSBUTVBfSE9TVEFSQ0hWQUxVRVNfQVJNMzI7XG4vKipcbiAqIFRoZSBDUFUgYXJjaGl0ZWN0dXJlIHRoZSBob3N0IHN5c3RlbSBpcyBydW5uaW5nIG9uLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBIT1NUX0FSQ0hfVkFMVUVfQVJNNjQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5IT1NUQVJDSFZBTFVFU19BUk02NCA9IFRNUF9IT1NUQVJDSFZBTFVFU19BUk02NDtcbi8qKlxuICogVGhlIENQVSBhcmNoaXRlY3R1cmUgdGhlIGhvc3Qgc3lzdGVtIGlzIHJ1bm5pbmcgb24uXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEhPU1RfQVJDSF9WQUxVRV9JQTY0IGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuSE9TVEFSQ0hWQUxVRVNfSUE2NCA9IFRNUF9IT1NUQVJDSFZBTFVFU19JQTY0O1xuLyoqXG4gKiBUaGUgQ1BVIGFyY2hpdGVjdHVyZSB0aGUgaG9zdCBzeXN0ZW0gaXMgcnVubmluZyBvbi5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgSE9TVF9BUkNIX1ZBTFVFX1BQQzMyIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuSE9TVEFSQ0hWQUxVRVNfUFBDMzIgPSBUTVBfSE9TVEFSQ0hWQUxVRVNfUFBDMzI7XG4vKipcbiAqIFRoZSBDUFUgYXJjaGl0ZWN0dXJlIHRoZSBob3N0IHN5c3RlbSBpcyBydW5uaW5nIG9uLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBIT1NUX0FSQ0hfVkFMVUVfUFBDNjQgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5IT1NUQVJDSFZBTFVFU19QUEM2NCA9IFRNUF9IT1NUQVJDSFZBTFVFU19QUEM2NDtcbi8qKlxuICogVGhlIENQVSBhcmNoaXRlY3R1cmUgdGhlIGhvc3Qgc3lzdGVtIGlzIHJ1bm5pbmcgb24uXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIEhPU1RfQVJDSF9WQUxVRV9YODYgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5IT1NUQVJDSFZBTFVFU19YODYgPSBUTVBfSE9TVEFSQ0hWQUxVRVNfWDg2O1xuLyoqXG4gKiBUaGUgY29uc3RhbnQgbWFwIG9mIHZhbHVlcyBmb3IgSG9zdEFyY2hWYWx1ZXMuXG4gKiBAZGVwcmVjYXRlZCBVc2UgdGhlIEhPU1RBUkNIVkFMVUVTX1hYWFhYIGNvbnN0YW50cyByYXRoZXIgdGhhbiB0aGUgSG9zdEFyY2hWYWx1ZXMuWFhYWFggZm9yIGJ1bmRsZSBtaW5pZmljYXRpb24uXG4gKi9cbmV4cG9ydHMuSG9zdEFyY2hWYWx1ZXMgPSBcbi8qI19fUFVSRV9fKi8gKDAsIHV0aWxzXzEuY3JlYXRlQ29uc3RNYXApKFtcbiAgICBUTVBfSE9TVEFSQ0hWQUxVRVNfQU1ENjQsXG4gICAgVE1QX0hPU1RBUkNIVkFMVUVTX0FSTTMyLFxuICAgIFRNUF9IT1NUQVJDSFZBTFVFU19BUk02NCxcbiAgICBUTVBfSE9TVEFSQ0hWQUxVRVNfSUE2NCxcbiAgICBUTVBfSE9TVEFSQ0hWQUxVRVNfUFBDMzIsXG4gICAgVE1QX0hPU1RBUkNIVkFMVUVTX1BQQzY0LFxuICAgIFRNUF9IT1NUQVJDSFZBTFVFU19YODYsXG5dKTtcbi8qIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiAqIENvbnN0YW50IHZhbHVlcyBmb3IgT3NUeXBlVmFsdWVzIGVudW0gZGVmaW5pdGlvblxuICpcbiAqIFRoZSBvcGVyYXRpbmcgc3lzdGVtIHR5cGUuXG4gKiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tICovXG4vLyBUZW1wb3JhcnkgbG9jYWwgY29uc3RhbnRzIHRvIGFzc2lnbiB0byB0aGUgaW5kaXZpZHVhbCBleHBvcnRzIGFuZCB0aGUgbmFtZXNwYWNlZCB2ZXJzaW9uXG4vLyBSZXF1aXJlZCB0byBhdm9pZCB0aGUgbmFtZXNwYWNlIGV4cG9ydHMgdXNpbmcgdGhlIHVubWluaWZpYWJsZSBleHBvcnQgbmFtZXMgZm9yIHNvbWUgcGFja2FnZSB0eXBlc1xuY29uc3QgVE1QX09TVFlQRVZBTFVFU19XSU5ET1dTID0gJ3dpbmRvd3MnO1xuY29uc3QgVE1QX09TVFlQRVZBTFVFU19MSU5VWCA9ICdsaW51eCc7XG5jb25zdCBUTVBfT1NUWVBFVkFMVUVTX0RBUldJTiA9ICdkYXJ3aW4nO1xuY29uc3QgVE1QX09TVFlQRVZBTFVFU19GUkVFQlNEID0gJ2ZyZWVic2QnO1xuY29uc3QgVE1QX09TVFlQRVZBTFVFU19ORVRCU0QgPSAnbmV0YnNkJztcbmNvbnN0IFRNUF9PU1RZUEVWQUxVRVNfT1BFTkJTRCA9ICdvcGVuYnNkJztcbmNvbnN0IFRNUF9PU1RZUEVWQUxVRVNfRFJBR09ORkxZQlNEID0gJ2RyYWdvbmZseWJzZCc7XG5jb25zdCBUTVBfT1NUWVBFVkFMVUVTX0hQVVggPSAnaHB1eCc7XG5jb25zdCBUTVBfT1NUWVBFVkFMVUVTX0FJWCA9ICdhaXgnO1xuY29uc3QgVE1QX09TVFlQRVZBTFVFU19TT0xBUklTID0gJ3NvbGFyaXMnO1xuY29uc3QgVE1QX09TVFlQRVZBTFVFU19aX09TID0gJ3pfb3MnO1xuLyoqXG4gKiBUaGUgb3BlcmF0aW5nIHN5c3RlbSB0eXBlLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBPU19UWVBFX1ZBTFVFX1dJTkRPV1MgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5PU1RZUEVWQUxVRVNfV0lORE9XUyA9IFRNUF9PU1RZUEVWQUxVRVNfV0lORE9XUztcbi8qKlxuICogVGhlIG9wZXJhdGluZyBzeXN0ZW0gdHlwZS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgT1NfVFlQRV9WQUxVRV9MSU5VWCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLk9TVFlQRVZBTFVFU19MSU5VWCA9IFRNUF9PU1RZUEVWQUxVRVNfTElOVVg7XG4vKipcbiAqIFRoZSBvcGVyYXRpbmcgc3lzdGVtIHR5cGUuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIE9TX1RZUEVfVkFMVUVfREFSV0lOIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuT1NUWVBFVkFMVUVTX0RBUldJTiA9IFRNUF9PU1RZUEVWQUxVRVNfREFSV0lOO1xuLyoqXG4gKiBUaGUgb3BlcmF0aW5nIHN5c3RlbSB0eXBlLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBPU19UWVBFX1ZBTFVFX0ZSRUVCU0QgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5PU1RZUEVWQUxVRVNfRlJFRUJTRCA9IFRNUF9PU1RZUEVWQUxVRVNfRlJFRUJTRDtcbi8qKlxuICogVGhlIG9wZXJhdGluZyBzeXN0ZW0gdHlwZS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgT1NfVFlQRV9WQUxVRV9ORVRCU0QgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5PU1RZUEVWQUxVRVNfTkVUQlNEID0gVE1QX09TVFlQRVZBTFVFU19ORVRCU0Q7XG4vKipcbiAqIFRoZSBvcGVyYXRpbmcgc3lzdGVtIHR5cGUuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIE9TX1RZUEVfVkFMVUVfT1BFTkJTRCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLk9TVFlQRVZBTFVFU19PUEVOQlNEID0gVE1QX09TVFlQRVZBTFVFU19PUEVOQlNEO1xuLyoqXG4gKiBUaGUgb3BlcmF0aW5nIHN5c3RlbSB0eXBlLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBPU19UWVBFX1ZBTFVFX0RSQUdPTkZMWUJTRCBpbiBbaW5jdWJhdGluZyBlbnRyeS1wb2ludF0oe0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9vcGVuLXRlbGVtZXRyeS9vcGVudGVsZW1ldHJ5LWpzL2Jsb2IvbWFpbi9zZW1hbnRpYy1jb252ZW50aW9ucy9SRUFETUUubWQjdW5zdGFibGUtc2VtY29udn0pLlxuICovXG5leHBvcnRzLk9TVFlQRVZBTFVFU19EUkFHT05GTFlCU0QgPSBUTVBfT1NUWVBFVkFMVUVTX0RSQUdPTkZMWUJTRDtcbi8qKlxuICogVGhlIG9wZXJhdGluZyBzeXN0ZW0gdHlwZS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgT1NfVFlQRV9WQUxVRV9IUFVYIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuT1NUWVBFVkFMVUVTX0hQVVggPSBUTVBfT1NUWVBFVkFMVUVTX0hQVVg7XG4vKipcbiAqIFRoZSBvcGVyYXRpbmcgc3lzdGVtIHR5cGUuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIE9TX1RZUEVfVkFMVUVfQUlYIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuT1NUWVBFVkFMVUVTX0FJWCA9IFRNUF9PU1RZUEVWQUxVRVNfQUlYO1xuLyoqXG4gKiBUaGUgb3BlcmF0aW5nIHN5c3RlbSB0eXBlLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBPU19UWVBFX1ZBTFVFX1NPTEFSSVMgaW4gW2luY3ViYXRpbmcgZW50cnktcG9pbnRdKHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vb3Blbi10ZWxlbWV0cnkvb3BlbnRlbGVtZXRyeS1qcy9ibG9iL21haW4vc2VtYW50aWMtY29udmVudGlvbnMvUkVBRE1FLm1kI3Vuc3RhYmxlLXNlbWNvbnZ9KS5cbiAqL1xuZXhwb3J0cy5PU1RZUEVWQUxVRVNfU09MQVJJUyA9IFRNUF9PU1RZUEVWQUxVRVNfU09MQVJJUztcbi8qKlxuICogVGhlIG9wZXJhdGluZyBzeXN0ZW0gdHlwZS5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgT1NfVFlQRV9WQUxVRV9aX09TIGluIFtpbmN1YmF0aW5nIGVudHJ5LXBvaW50XSh7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL29wZW4tdGVsZW1ldHJ5L29wZW50ZWxlbWV0cnktanMvYmxvYi9tYWluL3NlbWFudGljLWNvbnZlbnRpb25zL1JFQURNRS5tZCN1bnN0YWJsZS1zZW1jb252fSkuXG4gKi9cbmV4cG9ydHMuT1NUWVBFVkFMVUVTX1pfT1MgPSBUTVBfT1NUWVBFVkFMVUVTX1pfT1M7XG4vKipcbiAqIFRoZSBjb25zdGFudCBtYXAgb2YgdmFsdWVzIGZvciBPc1R5cGVWYWx1ZXMuXG4gKiBAZGVwcmVjYXRlZCBVc2UgdGhlIE9TVFlQRVZBTFVFU19YWFhYWCBjb25zdGFudHMgcmF0aGVyIHRoYW4gdGhlIE9zVHlwZVZhbHVlcy5YWFhYWCBmb3IgYnVuZGxlIG1pbmlmaWNhdGlvbi5cbiAqL1xuZXhwb3J0cy5Pc1R5cGVWYWx1ZXMgPSBcbi8qI19fUFVSRV9fKi8gKDAsIHV0aWxzXzEuY3JlYXRlQ29uc3RNYXApKFtcbiAgICBUTVBfT1NUWVBFVkFMVUVTX1dJTkRPV1MsXG4gICAgVE1QX09TVFlQRVZBTFVFU19MSU5VWCxcbiAgICBUTVBfT1NUWVBFVkFMVUVTX0RBUldJTixcbiAgICBUTVBfT1NUWVBFVkFMVUVTX0ZSRUVCU0QsXG4gICAgVE1QX09TVFlQRVZBTFVFU19ORVRCU0QsXG4gICAgVE1QX09TVFlQRVZBTFVFU19PUEVOQlNELFxuICAgIFRNUF9PU1RZUEVWQUxVRVNfRFJBR09ORkxZQlNELFxuICAgIFRNUF9PU1RZUEVWQUxVRVNfSFBVWCxcbiAgICBUTVBfT1NUWVBFVkFMVUVTX0FJWCxcbiAgICBUTVBfT1NUWVBFVkFMVUVTX1NPTEFSSVMsXG4gICAgVE1QX09TVFlQRVZBTFVFU19aX09TLFxuXSk7XG4vKiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXG4gKiBDb25zdGFudCB2YWx1ZXMgZm9yIFRlbGVtZXRyeVNka0xhbmd1YWdlVmFsdWVzIGVudW0gZGVmaW5pdGlvblxuICpcbiAqIFRoZSBsYW5ndWFnZSBvZiB0aGUgdGVsZW1ldHJ5IFNESy5cbiAqIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0gKi9cbi8vIFRlbXBvcmFyeSBsb2NhbCBjb25zdGFudHMgdG8gYXNzaWduIHRvIHRoZSBpbmRpdmlkdWFsIGV4cG9ydHMgYW5kIHRoZSBuYW1lc3BhY2VkIHZlcnNpb25cbi8vIFJlcXVpcmVkIHRvIGF2b2lkIHRoZSBuYW1lc3BhY2UgZXhwb3J0cyB1c2luZyB0aGUgdW5taW5pZmlhYmxlIGV4cG9ydCBuYW1lcyBmb3Igc29tZSBwYWNrYWdlIHR5cGVzXG5jb25zdCBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfQ1BQID0gJ2NwcCc7XG5jb25zdCBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfRE9UTkVUID0gJ2RvdG5ldCc7XG5jb25zdCBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfRVJMQU5HID0gJ2VybGFuZyc7XG5jb25zdCBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfR08gPSAnZ28nO1xuY29uc3QgVE1QX1RFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX0pBVkEgPSAnamF2YSc7XG5jb25zdCBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfTk9ERUpTID0gJ25vZGVqcyc7XG5jb25zdCBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfUEhQID0gJ3BocCc7XG5jb25zdCBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfUFlUSE9OID0gJ3B5dGhvbic7XG5jb25zdCBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfUlVCWSA9ICdydWJ5JztcbmNvbnN0IFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19XRUJKUyA9ICd3ZWJqcyc7XG4vKipcbiAqIFRoZSBsYW5ndWFnZSBvZiB0aGUgdGVsZW1ldHJ5IFNESy5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgVEVMRU1FVFJZX1NES19MQU5HVUFHRV9WQUxVRV9DUFAuXG4gKi9cbmV4cG9ydHMuVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfQ1BQID0gVE1QX1RFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX0NQUDtcbi8qKlxuICogVGhlIGxhbmd1YWdlIG9mIHRoZSB0ZWxlbWV0cnkgU0RLLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBURUxFTUVUUllfU0RLX0xBTkdVQUdFX1ZBTFVFX0RPVE5FVC5cbiAqL1xuZXhwb3J0cy5URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19ET1RORVQgPSBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfRE9UTkVUO1xuLyoqXG4gKiBUaGUgbGFuZ3VhZ2Ugb2YgdGhlIHRlbGVtZXRyeSBTREsuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIFRFTEVNRVRSWV9TREtfTEFOR1VBR0VfVkFMVUVfRVJMQU5HLlxuICovXG5leHBvcnRzLlRFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX0VSTEFORyA9IFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19FUkxBTkc7XG4vKipcbiAqIFRoZSBsYW5ndWFnZSBvZiB0aGUgdGVsZW1ldHJ5IFNESy5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgVEVMRU1FVFJZX1NES19MQU5HVUFHRV9WQUxVRV9HTy5cbiAqL1xuZXhwb3J0cy5URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19HTyA9IFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19HTztcbi8qKlxuICogVGhlIGxhbmd1YWdlIG9mIHRoZSB0ZWxlbWV0cnkgU0RLLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBURUxFTUVUUllfU0RLX0xBTkdVQUdFX1ZBTFVFX0pBVkEuXG4gKi9cbmV4cG9ydHMuVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfSkFWQSA9IFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19KQVZBO1xuLyoqXG4gKiBUaGUgbGFuZ3VhZ2Ugb2YgdGhlIHRlbGVtZXRyeSBTREsuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIFRFTEVNRVRSWV9TREtfTEFOR1VBR0VfVkFMVUVfTk9ERUpTLlxuICovXG5leHBvcnRzLlRFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX05PREVKUyA9IFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19OT0RFSlM7XG4vKipcbiAqIFRoZSBsYW5ndWFnZSBvZiB0aGUgdGVsZW1ldHJ5IFNESy5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgVEVMRU1FVFJZX1NES19MQU5HVUFHRV9WQUxVRV9QSFAuXG4gKi9cbmV4cG9ydHMuVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfUEhQID0gVE1QX1RFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX1BIUDtcbi8qKlxuICogVGhlIGxhbmd1YWdlIG9mIHRoZSB0ZWxlbWV0cnkgU0RLLlxuICpcbiAqIEBkZXByZWNhdGVkIFVzZSBURUxFTUVUUllfU0RLX0xBTkdVQUdFX1ZBTFVFX1BZVEhPTi5cbiAqL1xuZXhwb3J0cy5URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19QWVRIT04gPSBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfUFlUSE9OO1xuLyoqXG4gKiBUaGUgbGFuZ3VhZ2Ugb2YgdGhlIHRlbGVtZXRyeSBTREsuXG4gKlxuICogQGRlcHJlY2F0ZWQgVXNlIFRFTEVNRVRSWV9TREtfTEFOR1VBR0VfVkFMVUVfUlVCWS5cbiAqL1xuZXhwb3J0cy5URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19SVUJZID0gVE1QX1RFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX1JVQlk7XG4vKipcbiAqIFRoZSBsYW5ndWFnZSBvZiB0aGUgdGVsZW1ldHJ5IFNESy5cbiAqXG4gKiBAZGVwcmVjYXRlZCBVc2UgVEVMRU1FVFJZX1NES19MQU5HVUFHRV9WQUxVRV9XRUJKUy5cbiAqL1xuZXhwb3J0cy5URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19XRUJKUyA9IFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19XRUJKUztcbi8qKlxuICogVGhlIGNvbnN0YW50IG1hcCBvZiB2YWx1ZXMgZm9yIFRlbGVtZXRyeVNka0xhbmd1YWdlVmFsdWVzLlxuICogQGRlcHJlY2F0ZWQgVXNlIHRoZSBURUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19YWFhYWCBjb25zdGFudHMgcmF0aGVyIHRoYW4gdGhlIFRlbGVtZXRyeVNka0xhbmd1YWdlVmFsdWVzLlhYWFhYIGZvciBidW5kbGUgbWluaWZpY2F0aW9uLlxuICovXG5leHBvcnRzLlRlbGVtZXRyeVNka0xhbmd1YWdlVmFsdWVzID0gXG4vKiNfX1BVUkVfXyovICgwLCB1dGlsc18xLmNyZWF0ZUNvbnN0TWFwKShbXG4gICAgVE1QX1RFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX0NQUCxcbiAgICBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfRE9UTkVULFxuICAgIFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19FUkxBTkcsXG4gICAgVE1QX1RFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX0dPLFxuICAgIFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19KQVZBLFxuICAgIFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19OT0RFSlMsXG4gICAgVE1QX1RFTEVNRVRSWVNES0xBTkdVQUdFVkFMVUVTX1BIUCxcbiAgICBUTVBfVEVMRU1FVFJZU0RLTEFOR1VBR0VWQUxVRVNfUFlUSE9OLFxuICAgIFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19SVUJZLFxuICAgIFRNUF9URUxFTUVUUllTREtMQU5HVUFHRVZBTFVFU19XRUJKUyxcbl0pO1xuLy8jIHNvdXJjZU1hcHBpbmdVUkw9U2VtYW50aWNSZXNvdXJjZUF0dHJpYnV0ZXMuanMubWFwIl0sInZlcnNpb24iOjN9

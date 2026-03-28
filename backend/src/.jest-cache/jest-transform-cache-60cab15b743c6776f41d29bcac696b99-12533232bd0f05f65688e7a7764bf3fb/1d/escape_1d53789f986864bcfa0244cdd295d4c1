@@ -1,0 +1,31 @@
+44c5d4d86dff91308b08e9a389edecaa
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.escape = void 0;
+/**
+ * Escape all magic characters in a glob pattern.
+ *
+ * If the {@link MinimatchOptions.windowsPathsNoEscape}
+ * option is used, then characters are escaped by wrapping in `[]`, because
+ * a magic character wrapped in a character class can only be satisfied by
+ * that exact character.  In this mode, `\` is _not_ escaped, because it is
+ * not interpreted as a magic character, but instead as a path separator.
+ *
+ * If the {@link MinimatchOptions.magicalBraces} option is used,
+ * then braces (`{` and `}`) will be escaped.
+ */
+const escape = (s, { windowsPathsNoEscape = false, magicalBraces = false, } = {}) => {
+    // don't need to escape +@! because we escape the parens
+    // that make those magic, and escaping ! as [!] isn't valid,
+    // because [!]] is a valid glob class meaning not ']'.
+    if (magicalBraces) {
+        return windowsPathsNoEscape ?
+            s.replace(/[?*()[\]{}]/g, '[$&]')
+            : s.replace(/[?*()[\]\\{}]/g, '\\$&');
+    }
+    return windowsPathsNoEscape ?
+        s.replace(/[?*()[\]]/g, '[$&]')
+        : s.replace(/[?*()[\]\\]/g, '\\$&');
+};
+exports.escape = escape;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXG1pbmltYXRjaEAxMC4yLjRcXG5vZGVfbW9kdWxlc1xcbWluaW1hdGNoXFxkaXN0XFxjb21tb25qc1xcZXNjYXBlLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxNQUFNLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDeEI7Ozs7Ozs7Ozs7O0dBV0c7QUFDSCxNQUFNLE1BQU0sR0FBRyxDQUFDLENBQUMsRUFBRSxFQUFFLG9CQUFvQixHQUFHLEtBQUssRUFBRSxhQUFhLEdBQUcsS0FBSyxHQUFHLEdBQUcsRUFBRSxFQUFFLEVBQUU7SUFDaEYsd0RBQXdEO0lBQ3hELDREQUE0RDtJQUM1RCxzREFBc0Q7SUFDdEQsSUFBSSxhQUFhLEVBQUUsQ0FBQztRQUNoQixPQUFPLG9CQUFvQixDQUFDLENBQUM7WUFDekIsQ0FBQyxDQUFDLE9BQU8sQ0FBQyxjQUFjLEVBQUUsTUFBTSxDQUFDO1lBQ2pDLENBQUMsQ0FBQyxDQUFDLENBQUMsT0FBTyxDQUFDLGdCQUFnQixFQUFFLE1BQU0sQ0FBQyxDQUFDO0lBQzlDLENBQUM7SUFDRCxPQUFPLG9CQUFvQixDQUFDLENBQUM7UUFDekIsQ0FBQyxDQUFDLE9BQU8sQ0FBQyxZQUFZLEVBQUUsTUFBTSxDQUFDO1FBQy9CLENBQUMsQ0FBQyxDQUFDLENBQUMsT0FBTyxDQUFDLGNBQWMsRUFBRSxNQUFNLENBQUMsQ0FBQztBQUM1QyxDQUFDLENBQUM7QUFDRixPQUFPLENBQUMsTUFBTSxHQUFHLE1BQU0sQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcbm9kZV9tb2R1bGVzXFwucG5wbVxcbWluaW1hdGNoQDEwLjIuNFxcbm9kZV9tb2R1bGVzXFxtaW5pbWF0Y2hcXGRpc3RcXGNvbW1vbmpzXFxlc2NhcGUuanMiXSwic291cmNlc0NvbnRlbnQiOlsiXCJ1c2Ugc3RyaWN0XCI7XG5PYmplY3QuZGVmaW5lUHJvcGVydHkoZXhwb3J0cywgXCJfX2VzTW9kdWxlXCIsIHsgdmFsdWU6IHRydWUgfSk7XG5leHBvcnRzLmVzY2FwZSA9IHZvaWQgMDtcbi8qKlxuICogRXNjYXBlIGFsbCBtYWdpYyBjaGFyYWN0ZXJzIGluIGEgZ2xvYiBwYXR0ZXJuLlxuICpcbiAqIElmIHRoZSB7QGxpbmsgTWluaW1hdGNoT3B0aW9ucy53aW5kb3dzUGF0aHNOb0VzY2FwZX1cbiAqIG9wdGlvbiBpcyB1c2VkLCB0aGVuIGNoYXJhY3RlcnMgYXJlIGVzY2FwZWQgYnkgd3JhcHBpbmcgaW4gYFtdYCwgYmVjYXVzZVxuICogYSBtYWdpYyBjaGFyYWN0ZXIgd3JhcHBlZCBpbiBhIGNoYXJhY3RlciBjbGFzcyBjYW4gb25seSBiZSBzYXRpc2ZpZWQgYnlcbiAqIHRoYXQgZXhhY3QgY2hhcmFjdGVyLiAgSW4gdGhpcyBtb2RlLCBgXFxgIGlzIF9ub3RfIGVzY2FwZWQsIGJlY2F1c2UgaXQgaXNcbiAqIG5vdCBpbnRlcnByZXRlZCBhcyBhIG1hZ2ljIGNoYXJhY3RlciwgYnV0IGluc3RlYWQgYXMgYSBwYXRoIHNlcGFyYXRvci5cbiAqXG4gKiBJZiB0aGUge0BsaW5rIE1pbmltYXRjaE9wdGlvbnMubWFnaWNhbEJyYWNlc30gb3B0aW9uIGlzIHVzZWQsXG4gKiB0aGVuIGJyYWNlcyAoYHtgIGFuZCBgfWApIHdpbGwgYmUgZXNjYXBlZC5cbiAqL1xuY29uc3QgZXNjYXBlID0gKHMsIHsgd2luZG93c1BhdGhzTm9Fc2NhcGUgPSBmYWxzZSwgbWFnaWNhbEJyYWNlcyA9IGZhbHNlLCB9ID0ge30pID0+IHtcbiAgICAvLyBkb24ndCBuZWVkIHRvIGVzY2FwZSArQCEgYmVjYXVzZSB3ZSBlc2NhcGUgdGhlIHBhcmVuc1xuICAgIC8vIHRoYXQgbWFrZSB0aG9zZSBtYWdpYywgYW5kIGVzY2FwaW5nICEgYXMgWyFdIGlzbid0IHZhbGlkLFxuICAgIC8vIGJlY2F1c2UgWyFdXSBpcyBhIHZhbGlkIGdsb2IgY2xhc3MgbWVhbmluZyBub3QgJ10nLlxuICAgIGlmIChtYWdpY2FsQnJhY2VzKSB7XG4gICAgICAgIHJldHVybiB3aW5kb3dzUGF0aHNOb0VzY2FwZSA/XG4gICAgICAgICAgICBzLnJlcGxhY2UoL1s/KigpW1xcXXt9XS9nLCAnWyQmXScpXG4gICAgICAgICAgICA6IHMucmVwbGFjZSgvWz8qKClbXFxdXFxcXHt9XS9nLCAnXFxcXCQmJyk7XG4gICAgfVxuICAgIHJldHVybiB3aW5kb3dzUGF0aHNOb0VzY2FwZSA/XG4gICAgICAgIHMucmVwbGFjZSgvWz8qKClbXFxdXS9nLCAnWyQmXScpXG4gICAgICAgIDogcy5yZXBsYWNlKC9bPyooKVtcXF1cXFxcXS9nLCAnXFxcXCQmJyk7XG59O1xuZXhwb3J0cy5lc2NhcGUgPSBlc2NhcGU7XG4vLyMgc291cmNlTWFwcGluZ1VSTD1lc2NhcGUuanMubWFwIl0sInZlcnNpb24iOjN9

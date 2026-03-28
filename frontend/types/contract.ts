@@ -14,3 +14,21 @@ export interface Contract {
   endDate?: string;
   project?: ContractProjectReference;
 }
+
+/**
+ * Safely extract publicId from a Contract object (ADR-019)
+ * @param contract - Contract object or null/undefined
+ * @returns publicId string or undefined
+ */
+export function getContractPublicId(contract: Contract | null | undefined): string | undefined {
+  return contract?.publicId;
+}
+
+/**
+ * Safely extract publicId from a Project reference object (ADR-019)
+ * @param project - Project reference object or null/undefined
+ * @returns publicId string or undefined
+ */
+export function getProjectPublicId(project: ContractProjectReference | null | undefined): string | undefined {
+  return project?.publicId;
+}

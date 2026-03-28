@@ -1,0 +1,45 @@
+a7874fec9849dbb2f762614c3d81eb8d
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.HealthIndicator = void 0;
+/**
+ * @deprecated
+ * **This class has been deprecated and will be removed in the next major release.**
+ * Instead utilise the `HealthIndicatorService` to indicate the health of your health indicator.
+ *
+ * @see {@link https://docs.nestjs.com/migration-guide#terminus-module|Migration Guide}
+ *
+ * @description
+ * Represents an abstract health indicator
+ * with common functionalities
+ *
+ * A custom HealthIndicator should inherit the `HealthIndicator` class.
+ *
+ * @example
+ * ```typescript
+ * class MyHealthIndicator extends HealthIndicator {
+ *   public check(key: string) {
+ *     // Replace with the actual check
+ *     const isHealthy = true;
+ *     // Returns { [key]: { status: 'up', message: 'Up and running' } }
+ *     return super.getStatus(key, isHealthy, { message: 'Up and running' });
+ *   }
+ * }
+ * ```
+ * @publicApi
+ */
+class HealthIndicator {
+    /**
+     * Generates the health indicator result object
+     * @param key The key which will be used as key for the result object
+     * @param isHealthy Whether the health indicator is healthy
+     * @param data Additional data which will get appended to the result object
+     */
+    getStatus(key, isHealthy, data) {
+        return {
+            [key]: Object.assign({ status: isHealthy ? 'up' : 'down' }, data),
+        };
+    }
+}
+exports.HealthIndicator = HealthIndicator;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBuZXN0anMrdGVybWludXNAMTEuMC4wX0BuZV9lN2Y2ZTQ3ZTY0NjI2MTMxYzI2ZDVhMjQ3YTU3MzBmY1xcbm9kZV9tb2R1bGVzXFxAbmVzdGpzXFx0ZXJtaW51c1xcZGlzdFxcaGVhbHRoLWluZGljYXRvclxcaGVhbHRoLWluZGljYXRvci5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFDYixNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMsZUFBZSxHQUFHLEtBQUssQ0FBQyxDQUFDO0FBQ2pDOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0dBeUJHO0FBQ0gsTUFBTSxlQUFlO0lBQ2pCOzs7OztPQUtHO0lBQ0gsU0FBUyxDQUFDLEdBQUcsRUFBRSxTQUFTLEVBQUUsSUFBSTtRQUMxQixPQUFPO1lBQ0gsQ0FBQyxHQUFHLENBQUMsRUFBRSxNQUFNLENBQUMsTUFBTSxDQUFDLEVBQUUsTUFBTSxFQUFFLFNBQVMsQ0FBQyxDQUFDLENBQUMsSUFBSSxDQUFDLENBQUMsQ0FBQyxNQUFNLEVBQUUsRUFBRSxJQUFJLENBQUM7U0FDcEUsQ0FBQztJQUNOLENBQUM7Q0FDSjtBQUNELE9BQU8sQ0FBQyxlQUFlLEdBQUcsZUFBZSxDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxAbmVzdGpzK3Rlcm1pbnVzQDExLjAuMF9AbmVfZTdmNmU0N2U2NDYyNjEzMWMyNmQ1YTI0N2E1NzMwZmNcXG5vZGVfbW9kdWxlc1xcQG5lc3Rqc1xcdGVybWludXNcXGRpc3RcXGhlYWx0aC1pbmRpY2F0b3JcXGhlYWx0aC1pbmRpY2F0b3IuanMiXSwic291cmNlc0NvbnRlbnQiOlsiXCJ1c2Ugc3RyaWN0XCI7XG5PYmplY3QuZGVmaW5lUHJvcGVydHkoZXhwb3J0cywgXCJfX2VzTW9kdWxlXCIsIHsgdmFsdWU6IHRydWUgfSk7XG5leHBvcnRzLkhlYWx0aEluZGljYXRvciA9IHZvaWQgMDtcbi8qKlxuICogQGRlcHJlY2F0ZWRcbiAqICoqVGhpcyBjbGFzcyBoYXMgYmVlbiBkZXByZWNhdGVkIGFuZCB3aWxsIGJlIHJlbW92ZWQgaW4gdGhlIG5leHQgbWFqb3IgcmVsZWFzZS4qKlxuICogSW5zdGVhZCB1dGlsaXNlIHRoZSBgSGVhbHRoSW5kaWNhdG9yU2VydmljZWAgdG8gaW5kaWNhdGUgdGhlIGhlYWx0aCBvZiB5b3VyIGhlYWx0aCBpbmRpY2F0b3IuXG4gKlxuICogQHNlZSB7QGxpbmsgaHR0cHM6Ly9kb2NzLm5lc3Rqcy5jb20vbWlncmF0aW9uLWd1aWRlI3Rlcm1pbnVzLW1vZHVsZXxNaWdyYXRpb24gR3VpZGV9XG4gKlxuICogQGRlc2NyaXB0aW9uXG4gKiBSZXByZXNlbnRzIGFuIGFic3RyYWN0IGhlYWx0aCBpbmRpY2F0b3JcbiAqIHdpdGggY29tbW9uIGZ1bmN0aW9uYWxpdGllc1xuICpcbiAqIEEgY3VzdG9tIEhlYWx0aEluZGljYXRvciBzaG91bGQgaW5oZXJpdCB0aGUgYEhlYWx0aEluZGljYXRvcmAgY2xhc3MuXG4gKlxuICogQGV4YW1wbGVcbiAqIGBgYHR5cGVzY3JpcHRcbiAqIGNsYXNzIE15SGVhbHRoSW5kaWNhdG9yIGV4dGVuZHMgSGVhbHRoSW5kaWNhdG9yIHtcbiAqICAgcHVibGljIGNoZWNrKGtleTogc3RyaW5nKSB7XG4gKiAgICAgLy8gUmVwbGFjZSB3aXRoIHRoZSBhY3R1YWwgY2hlY2tcbiAqICAgICBjb25zdCBpc0hlYWx0aHkgPSB0cnVlO1xuICogICAgIC8vIFJldHVybnMgeyBba2V5XTogeyBzdGF0dXM6ICd1cCcsIG1lc3NhZ2U6ICdVcCBhbmQgcnVubmluZycgfSB9XG4gKiAgICAgcmV0dXJuIHN1cGVyLmdldFN0YXR1cyhrZXksIGlzSGVhbHRoeSwgeyBtZXNzYWdlOiAnVXAgYW5kIHJ1bm5pbmcnIH0pO1xuICogICB9XG4gKiB9XG4gKiBgYGBcbiAqIEBwdWJsaWNBcGlcbiAqL1xuY2xhc3MgSGVhbHRoSW5kaWNhdG9yIHtcbiAgICAvKipcbiAgICAgKiBHZW5lcmF0ZXMgdGhlIGhlYWx0aCBpbmRpY2F0b3IgcmVzdWx0IG9iamVjdFxuICAgICAqIEBwYXJhbSBrZXkgVGhlIGtleSB3aGljaCB3aWxsIGJlIHVzZWQgYXMga2V5IGZvciB0aGUgcmVzdWx0IG9iamVjdFxuICAgICAqIEBwYXJhbSBpc0hlYWx0aHkgV2hldGhlciB0aGUgaGVhbHRoIGluZGljYXRvciBpcyBoZWFsdGh5XG4gICAgICogQHBhcmFtIGRhdGEgQWRkaXRpb25hbCBkYXRhIHdoaWNoIHdpbGwgZ2V0IGFwcGVuZGVkIHRvIHRoZSByZXN1bHQgb2JqZWN0XG4gICAgICovXG4gICAgZ2V0U3RhdHVzKGtleSwgaXNIZWFsdGh5LCBkYXRhKSB7XG4gICAgICAgIHJldHVybiB7XG4gICAgICAgICAgICBba2V5XTogT2JqZWN0LmFzc2lnbih7IHN0YXR1czogaXNIZWFsdGh5ID8gJ3VwJyA6ICdkb3duJyB9LCBkYXRhKSxcbiAgICAgICAgfTtcbiAgICB9XG59XG5leHBvcnRzLkhlYWx0aEluZGljYXRvciA9IEhlYWx0aEluZGljYXRvcjtcbi8vIyBzb3VyY2VNYXBwaW5nVVJMPWhlYWx0aC1pbmRpY2F0b3IuanMubWFwIl0sInZlcnNpb24iOjN9

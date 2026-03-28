@@ -1,0 +1,57 @@
+22c755da03e8e6abdd8406634d3a8e9c
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RfaWorkflowTemplate = void 0;
+const typeorm_1 = require("typeorm");
+const rfa_workflow_template_step_entity_1 = require("./rfa-workflow-template-step.entity");
+let RfaWorkflowTemplate = class RfaWorkflowTemplate {
+};
+exports.RfaWorkflowTemplate = RfaWorkflowTemplate;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], RfaWorkflowTemplate.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'template_name', length: 100 }),
+    __metadata("design:type", String)
+], RfaWorkflowTemplate.prototype, "templateName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], RfaWorkflowTemplate.prototype, "description", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_active', default: true }),
+    __metadata("design:type", Boolean)
+], RfaWorkflowTemplate.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'json', nullable: true }),
+    __metadata("design:type", typeof (_a = typeof Record !== "undefined" && Record) === "function" ? _a : Object)
+], RfaWorkflowTemplate.prototype, "workflowConfig", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], RfaWorkflowTemplate.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], RfaWorkflowTemplate.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => rfa_workflow_template_step_entity_1.RfaWorkflowTemplateStep, (step) => step.template, {
+        cascade: true,
+    }),
+    __metadata("design:type", Array)
+], RfaWorkflowTemplate.prototype, "steps", void 0);
+exports.RfaWorkflowTemplate = RfaWorkflowTemplate = __decorate([
+    (0, typeorm_1.Entity)('rfa_workflow_templates')
+], RfaWorkflowTemplate);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xccmZhXFxlbnRpdGllc1xccmZhLXdvcmtmbG93LXRlbXBsYXRlLmVudGl0eS50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBQUEscUNBT2lCO0FBQ2pCLDJGQUE4RTtBQUd2RSxJQUFNLG1CQUFtQixHQUF6QixNQUFNLG1CQUFtQjtDQTJCL0IsQ0FBQTtBQTNCWSxrREFBbUI7QUFFOUI7SUFEQyxJQUFBLGdDQUFzQixHQUFFOzsrQ0FDYjtBQUdaO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGVBQWUsRUFBRSxNQUFNLEVBQUUsR0FBRyxFQUFFLENBQUM7O3lEQUN6QjtBQUd0QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxNQUFNLEVBQUUsUUFBUSxFQUFFLElBQUksRUFBRSxDQUFDOzt3REFDcEI7QUFHckI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLE9BQU8sRUFBRSxJQUFJLEVBQUUsQ0FBQzs7cURBQzFCO0FBR25CO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLE1BQU0sRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7a0RBQ3hCLE1BQU0sb0JBQU4sTUFBTTsyREFBa0I7QUFHekM7SUFEQyxJQUFBLDBCQUFnQixFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUM3QixJQUFJLG9CQUFKLElBQUk7c0RBQUM7QUFHakI7SUFEQyxJQUFBLDBCQUFnQixFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUM3QixJQUFJLG9CQUFKLElBQUk7c0RBQUM7QUFNakI7SUFIQyxJQUFBLG1CQUFTLEVBQUMsR0FBRyxFQUFFLENBQUMsMkRBQXVCLEVBQUUsQ0FBQyxJQUFJLEVBQUUsRUFBRSxDQUFDLElBQUksQ0FBQyxRQUFRLEVBQUU7UUFDakUsT0FBTyxFQUFFLElBQUk7S0FDZCxDQUFDOztrREFDZ0M7OEJBMUJ2QixtQkFBbUI7SUFEL0IsSUFBQSxnQkFBTSxFQUFDLHdCQUF3QixDQUFDO0dBQ3BCLG1CQUFtQixDQTJCL0IiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xccmZhXFxlbnRpdGllc1xccmZhLXdvcmtmbG93LXRlbXBsYXRlLmVudGl0eS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge1xyXG4gIEVudGl0eSxcclxuICBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uLFxyXG4gIENvbHVtbixcclxuICBDcmVhdGVEYXRlQ29sdW1uLFxyXG4gIFVwZGF0ZURhdGVDb2x1bW4sXHJcbiAgT25lVG9NYW55LFxyXG59IGZyb20gJ3R5cGVvcm0nO1xyXG5pbXBvcnQgeyBSZmFXb3JrZmxvd1RlbXBsYXRlU3RlcCB9IGZyb20gJy4vcmZhLXdvcmtmbG93LXRlbXBsYXRlLXN0ZXAuZW50aXR5JztcclxuXHJcbkBFbnRpdHkoJ3JmYV93b3JrZmxvd190ZW1wbGF0ZXMnKVxyXG5leHBvcnQgY2xhc3MgUmZhV29ya2Zsb3dUZW1wbGF0ZSB7XHJcbiAgQFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4oKVxyXG4gIGlkITogbnVtYmVyO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3RlbXBsYXRlX25hbWUnLCBsZW5ndGg6IDEwMCB9KVxyXG4gIHRlbXBsYXRlTmFtZSE6IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7IHR5cGU6ICd0ZXh0JywgbnVsbGFibGU6IHRydWUgfSlcclxuICBkZXNjcmlwdGlvbj86IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdpc19hY3RpdmUnLCBkZWZhdWx0OiB0cnVlIH0pXHJcbiAgaXNBY3RpdmUhOiBib29sZWFuO1xyXG5cclxuICBAQ29sdW1uKHsgdHlwZTogJ2pzb24nLCBudWxsYWJsZTogdHJ1ZSB9KVxyXG4gIHdvcmtmbG93Q29uZmlnPzogUmVjb3JkPHN0cmluZywgdW5rbm93bj47IC8vIENvbmZpZ3VyYXRpb24g4LmA4Lie4Li04LmI4Lih4LmA4LiV4Li04LihXHJcblxyXG4gIEBDcmVhdGVEYXRlQ29sdW1uKHsgbmFtZTogJ2NyZWF0ZWRfYXQnIH0pXHJcbiAgY3JlYXRlZEF0ITogRGF0ZTtcclxuXHJcbiAgQFVwZGF0ZURhdGVDb2x1bW4oeyBuYW1lOiAndXBkYXRlZF9hdCcgfSlcclxuICB1cGRhdGVkQXQhOiBEYXRlO1xyXG5cclxuICAvLyBSZWxhdGlvbnNcclxuICBAT25lVG9NYW55KCgpID0+IFJmYVdvcmtmbG93VGVtcGxhdGVTdGVwLCAoc3RlcCkgPT4gc3RlcC50ZW1wbGF0ZSwge1xyXG4gICAgY2FzY2FkZTogdHJ1ZSxcclxuICB9KVxyXG4gIHN0ZXBzITogUmZhV29ya2Zsb3dUZW1wbGF0ZVN0ZXBbXTtcclxufVxyXG4iXSwidmVyc2lvbiI6M30=

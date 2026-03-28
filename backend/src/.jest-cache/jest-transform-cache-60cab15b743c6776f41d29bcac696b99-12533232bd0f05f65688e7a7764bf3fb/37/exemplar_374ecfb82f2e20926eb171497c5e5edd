@@ -1,0 +1,34 @@
+f203bf7631acec27ae90998080bb5c58
+'use strict';
+/**
+ * Class representing an OpenMetrics exemplar.
+ *
+ * @property {object} labelSet
+ * @property {number} value
+ * @property {number} [timestamp]
+ * */
+class Exemplar {
+    constructor(labelSet = {}, value = null) {
+        this.labelSet = labelSet;
+        this.value = value;
+    }
+    /**
+     * Validation for the label set format.
+     * https://github.com/OpenObservability/OpenMetrics/blob/d99b705f611b75fec8f450b05e344e02eea6921d/specification/OpenMetrics.md#exemplars
+     *
+     * @param {object} labelSet - Exemplar labels.
+     * @throws {RangeError}
+     * @return {void}
+     */
+    validateExemplarLabelSet(labelSet) {
+        let res = '';
+        for (const [labelName, labelValue] of Object.entries(labelSet)) {
+            res += `${labelName}${labelValue}`;
+        }
+        if (res.length > 128) {
+            throw new RangeError('Label set size must be smaller than 128 UTF-8 chars');
+        }
+    }
+}
+module.exports = Exemplar;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHByb20tY2xpZW50QDE1LjEuM1xcbm9kZV9tb2R1bGVzXFxwcm9tLWNsaWVudFxcbGliXFxleGVtcGxhci5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFFYjs7Ozs7O0tBTUs7QUFDTCxNQUFNLFFBQVE7SUFDYixZQUFZLFFBQVEsR0FBRyxFQUFFLEVBQUUsS0FBSyxHQUFHLElBQUk7UUFDdEMsSUFBSSxDQUFDLFFBQVEsR0FBRyxRQUFRLENBQUM7UUFDekIsSUFBSSxDQUFDLEtBQUssR0FBRyxLQUFLLENBQUM7SUFDcEIsQ0FBQztJQUVEOzs7Ozs7O09BT0c7SUFDSCx3QkFBd0IsQ0FBQyxRQUFRO1FBQ2hDLElBQUksR0FBRyxHQUFHLEVBQUUsQ0FBQztRQUNiLEtBQUssTUFBTSxDQUFDLFNBQVMsRUFBRSxVQUFVLENBQUMsSUFBSSxNQUFNLENBQUMsT0FBTyxDQUFDLFFBQVEsQ0FBQyxFQUFFLENBQUM7WUFDaEUsR0FBRyxJQUFJLEdBQUcsU0FBUyxHQUFHLFVBQVUsRUFBRSxDQUFDO1FBQ3BDLENBQUM7UUFDRCxJQUFJLEdBQUcsQ0FBQyxNQUFNLEdBQUcsR0FBRyxFQUFFLENBQUM7WUFDdEIsTUFBTSxJQUFJLFVBQVUsQ0FDbkIscURBQXFELENBQ3JELENBQUM7UUFDSCxDQUFDO0lBQ0YsQ0FBQztDQUNEO0FBRUQsTUFBTSxDQUFDLE9BQU8sR0FBRyxRQUFRLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHByb20tY2xpZW50QDE1LjEuM1xcbm9kZV9tb2R1bGVzXFxwcm9tLWNsaWVudFxcbGliXFxleGVtcGxhci5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyIndXNlIHN0cmljdCc7XG5cbi8qKlxuICogQ2xhc3MgcmVwcmVzZW50aW5nIGFuIE9wZW5NZXRyaWNzIGV4ZW1wbGFyLlxuICpcbiAqIEBwcm9wZXJ0eSB7b2JqZWN0fSBsYWJlbFNldFxuICogQHByb3BlcnR5IHtudW1iZXJ9IHZhbHVlXG4gKiBAcHJvcGVydHkge251bWJlcn0gW3RpbWVzdGFtcF1cbiAqICovXG5jbGFzcyBFeGVtcGxhciB7XG5cdGNvbnN0cnVjdG9yKGxhYmVsU2V0ID0ge30sIHZhbHVlID0gbnVsbCkge1xuXHRcdHRoaXMubGFiZWxTZXQgPSBsYWJlbFNldDtcblx0XHR0aGlzLnZhbHVlID0gdmFsdWU7XG5cdH1cblxuXHQvKipcblx0ICogVmFsaWRhdGlvbiBmb3IgdGhlIGxhYmVsIHNldCBmb3JtYXQuXG5cdCAqIGh0dHBzOi8vZ2l0aHViLmNvbS9PcGVuT2JzZXJ2YWJpbGl0eS9PcGVuTWV0cmljcy9ibG9iL2Q5OWI3MDVmNjExYjc1ZmVjOGY0NTBiMDVlMzQ0ZTAyZWVhNjkyMWQvc3BlY2lmaWNhdGlvbi9PcGVuTWV0cmljcy5tZCNleGVtcGxhcnNcblx0ICpcblx0ICogQHBhcmFtIHtvYmplY3R9IGxhYmVsU2V0IC0gRXhlbXBsYXIgbGFiZWxzLlxuXHQgKiBAdGhyb3dzIHtSYW5nZUVycm9yfVxuXHQgKiBAcmV0dXJuIHt2b2lkfVxuXHQgKi9cblx0dmFsaWRhdGVFeGVtcGxhckxhYmVsU2V0KGxhYmVsU2V0KSB7XG5cdFx0bGV0IHJlcyA9ICcnO1xuXHRcdGZvciAoY29uc3QgW2xhYmVsTmFtZSwgbGFiZWxWYWx1ZV0gb2YgT2JqZWN0LmVudHJpZXMobGFiZWxTZXQpKSB7XG5cdFx0XHRyZXMgKz0gYCR7bGFiZWxOYW1lfSR7bGFiZWxWYWx1ZX1gO1xuXHRcdH1cblx0XHRpZiAocmVzLmxlbmd0aCA+IDEyOCkge1xuXHRcdFx0dGhyb3cgbmV3IFJhbmdlRXJyb3IoXG5cdFx0XHRcdCdMYWJlbCBzZXQgc2l6ZSBtdXN0IGJlIHNtYWxsZXIgdGhhbiAxMjggVVRGLTggY2hhcnMnLFxuXHRcdFx0KTtcblx0XHR9XG5cdH1cbn1cblxubW9kdWxlLmV4cG9ydHMgPSBFeGVtcGxhcjtcbiJdLCJ2ZXJzaW9uIjozfQ==

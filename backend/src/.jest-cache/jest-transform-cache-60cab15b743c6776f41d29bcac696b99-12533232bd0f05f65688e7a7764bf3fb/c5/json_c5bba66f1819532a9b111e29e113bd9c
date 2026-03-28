@@ -1,0 +1,17 @@
+90cf55e6ba80d44f306ce8c1548dccba
+// Standard YAML's JSON schema.
+// http://www.yaml.org/spec/1.2/spec.html#id2803231
+//
+// NOTE: JS-YAML does not support schema-specific tag resolution restrictions.
+// So, this schema is not such strict as defined in the YAML specification.
+// It allows numbers in binary notaion, use `Null` and `NULL` as `null`, etc.
+'use strict';
+module.exports = require('./failsafe').extend({
+    implicit: [
+        require('../type/null'),
+        require('../type/bool'),
+        require('../type/int'),
+        require('../type/float')
+    ]
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGpzLXlhbWxANC4xLjFcXG5vZGVfbW9kdWxlc1xcanMteWFtbFxcbGliXFxzY2hlbWFcXGpzb24uanMiLCJtYXBwaW5ncyI6IkFBQUEsK0JBQStCO0FBQy9CLG1EQUFtRDtBQUNuRCxFQUFFO0FBQ0YsOEVBQThFO0FBQzlFLDJFQUEyRTtBQUMzRSw2RUFBNkU7QUFHN0UsWUFBWSxDQUFDO0FBR2IsTUFBTSxDQUFDLE9BQU8sR0FBRyxPQUFPLENBQUMsWUFBWSxDQUFDLENBQUMsTUFBTSxDQUFDO0lBQzVDLFFBQVEsRUFBRTtRQUNSLE9BQU8sQ0FBQyxjQUFjLENBQUM7UUFDdkIsT0FBTyxDQUFDLGNBQWMsQ0FBQztRQUN2QixPQUFPLENBQUMsYUFBYSxDQUFDO1FBQ3RCLE9BQU8sQ0FBQyxlQUFlLENBQUM7S0FDekI7Q0FDRixDQUFDLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGpzLXlhbWxANC4xLjFcXG5vZGVfbW9kdWxlc1xcanMteWFtbFxcbGliXFxzY2hlbWFcXGpzb24uanMiXSwic291cmNlc0NvbnRlbnQiOlsiLy8gU3RhbmRhcmQgWUFNTCdzIEpTT04gc2NoZW1hLlxuLy8gaHR0cDovL3d3dy55YW1sLm9yZy9zcGVjLzEuMi9zcGVjLmh0bWwjaWQyODAzMjMxXG4vL1xuLy8gTk9URTogSlMtWUFNTCBkb2VzIG5vdCBzdXBwb3J0IHNjaGVtYS1zcGVjaWZpYyB0YWcgcmVzb2x1dGlvbiByZXN0cmljdGlvbnMuXG4vLyBTbywgdGhpcyBzY2hlbWEgaXMgbm90IHN1Y2ggc3RyaWN0IGFzIGRlZmluZWQgaW4gdGhlIFlBTUwgc3BlY2lmaWNhdGlvbi5cbi8vIEl0IGFsbG93cyBudW1iZXJzIGluIGJpbmFyeSBub3RhaW9uLCB1c2UgYE51bGxgIGFuZCBgTlVMTGAgYXMgYG51bGxgLCBldGMuXG5cblxuJ3VzZSBzdHJpY3QnO1xuXG5cbm1vZHVsZS5leHBvcnRzID0gcmVxdWlyZSgnLi9mYWlsc2FmZScpLmV4dGVuZCh7XG4gIGltcGxpY2l0OiBbXG4gICAgcmVxdWlyZSgnLi4vdHlwZS9udWxsJyksXG4gICAgcmVxdWlyZSgnLi4vdHlwZS9ib29sJyksXG4gICAgcmVxdWlyZSgnLi4vdHlwZS9pbnQnKSxcbiAgICByZXF1aXJlKCcuLi90eXBlL2Zsb2F0JylcbiAgXVxufSk7XG4iXSwidmVyc2lvbiI6M30=

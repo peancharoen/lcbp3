@@ -1,0 +1,23 @@
+d5a444efb73888f217a42fde84a7566e
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MissingJoinTableError = void 0;
+const TypeORMError_1 = require("./TypeORMError");
+class MissingJoinTableError extends TypeORMError_1.TypeORMError {
+    constructor(entityMetadata, relation) {
+        super();
+        if (relation.inverseRelation) {
+            this.message =
+                `JoinTable is missing on both sides of ${entityMetadata.name}#${relation.propertyName} and ` +
+                    `${relation.inverseEntityMetadata.name}#${relation.inverseRelation.propertyName} many-to-many relationship. ` +
+                    `You need to put decorator decorator on one of the sides.`;
+        }
+        else {
+            this.message =
+                `JoinTable is missing on ${entityMetadata.name}#${relation.propertyName} many-to-many relationship. ` +
+                    `You need to put JoinTable decorator on it.`;
+        }
+    }
+}
+exports.MissingJoinTableError = MissingJoinTableError;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxlcnJvclxcTWlzc2luZ0pvaW5UYWJsZUVycm9yLmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiLE1BQU0sQ0FBQyxjQUFjLENBQUMsT0FBTyxFQUFFLFlBQVksRUFBRSxFQUFFLEtBQUssRUFBRSxJQUFJLEVBQUUsQ0FBQyxDQUFDO0FBQzlELE9BQU8sQ0FBQyxxQkFBcUIsR0FBRyxLQUFLLENBQUMsQ0FBQztBQUN2QyxNQUFNLGNBQWMsR0FBRyxPQUFPLENBQUMsZ0JBQWdCLENBQUMsQ0FBQztBQUNqRCxNQUFNLHFCQUFzQixTQUFRLGNBQWMsQ0FBQyxZQUFZO0lBQzNELFlBQVksY0FBYyxFQUFFLFFBQVE7UUFDaEMsS0FBSyxFQUFFLENBQUM7UUFDUixJQUFJLFFBQVEsQ0FBQyxlQUFlLEVBQUUsQ0FBQztZQUMzQixJQUFJLENBQUMsT0FBTztnQkFDUix5Q0FBeUMsY0FBYyxDQUFDLElBQUksSUFBSSxRQUFRLENBQUMsWUFBWSxPQUFPO29CQUN4RixHQUFHLFFBQVEsQ0FBQyxxQkFBcUIsQ0FBQyxJQUFJLElBQUksUUFBUSxDQUFDLGVBQWUsQ0FBQyxZQUFZLDhCQUE4QjtvQkFDN0csMERBQTBELENBQUM7UUFDdkUsQ0FBQzthQUNJLENBQUM7WUFDRixJQUFJLENBQUMsT0FBTztnQkFDUiwyQkFBMkIsY0FBYyxDQUFDLElBQUksSUFBSSxRQUFRLENBQUMsWUFBWSw4QkFBOEI7b0JBQ2pHLDRDQUE0QyxDQUFDO1FBQ3pELENBQUM7SUFDTCxDQUFDO0NBQ0o7QUFDRCxPQUFPLENBQUMscUJBQXFCLEdBQUcscUJBQXFCLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXHR5cGVvcm1AMC4zLjI3X2lvcmVkaXNANS44Ll9hMmRjNWI3N2M3MTNmYWI0NTVmMWEyOTdkNTFlZDU5NVxcbm9kZV9tb2R1bGVzXFx0eXBlb3JtXFxlcnJvclxcTWlzc2luZ0pvaW5UYWJsZUVycm9yLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsIFwiX19lc01vZHVsZVwiLCB7IHZhbHVlOiB0cnVlIH0pO1xuZXhwb3J0cy5NaXNzaW5nSm9pblRhYmxlRXJyb3IgPSB2b2lkIDA7XG5jb25zdCBUeXBlT1JNRXJyb3JfMSA9IHJlcXVpcmUoXCIuL1R5cGVPUk1FcnJvclwiKTtcbmNsYXNzIE1pc3NpbmdKb2luVGFibGVFcnJvciBleHRlbmRzIFR5cGVPUk1FcnJvcl8xLlR5cGVPUk1FcnJvciB7XG4gICAgY29uc3RydWN0b3IoZW50aXR5TWV0YWRhdGEsIHJlbGF0aW9uKSB7XG4gICAgICAgIHN1cGVyKCk7XG4gICAgICAgIGlmIChyZWxhdGlvbi5pbnZlcnNlUmVsYXRpb24pIHtcbiAgICAgICAgICAgIHRoaXMubWVzc2FnZSA9XG4gICAgICAgICAgICAgICAgYEpvaW5UYWJsZSBpcyBtaXNzaW5nIG9uIGJvdGggc2lkZXMgb2YgJHtlbnRpdHlNZXRhZGF0YS5uYW1lfSMke3JlbGF0aW9uLnByb3BlcnR5TmFtZX0gYW5kIGAgK1xuICAgICAgICAgICAgICAgICAgICBgJHtyZWxhdGlvbi5pbnZlcnNlRW50aXR5TWV0YWRhdGEubmFtZX0jJHtyZWxhdGlvbi5pbnZlcnNlUmVsYXRpb24ucHJvcGVydHlOYW1lfSBtYW55LXRvLW1hbnkgcmVsYXRpb25zaGlwLiBgICtcbiAgICAgICAgICAgICAgICAgICAgYFlvdSBuZWVkIHRvIHB1dCBkZWNvcmF0b3IgZGVjb3JhdG9yIG9uIG9uZSBvZiB0aGUgc2lkZXMuYDtcbiAgICAgICAgfVxuICAgICAgICBlbHNlIHtcbiAgICAgICAgICAgIHRoaXMubWVzc2FnZSA9XG4gICAgICAgICAgICAgICAgYEpvaW5UYWJsZSBpcyBtaXNzaW5nIG9uICR7ZW50aXR5TWV0YWRhdGEubmFtZX0jJHtyZWxhdGlvbi5wcm9wZXJ0eU5hbWV9IG1hbnktdG8tbWFueSByZWxhdGlvbnNoaXAuIGAgK1xuICAgICAgICAgICAgICAgICAgICBgWW91IG5lZWQgdG8gcHV0IEpvaW5UYWJsZSBkZWNvcmF0b3Igb24gaXQuYDtcbiAgICAgICAgfVxuICAgIH1cbn1cbmV4cG9ydHMuTWlzc2luZ0pvaW5UYWJsZUVycm9yID0gTWlzc2luZ0pvaW5UYWJsZUVycm9yO1xuXG4vLyMgc291cmNlTWFwcGluZ1VSTD1NaXNzaW5nSm9pblRhYmxlRXJyb3IuanMubWFwXG4iXSwidmVyc2lvbiI6M30=

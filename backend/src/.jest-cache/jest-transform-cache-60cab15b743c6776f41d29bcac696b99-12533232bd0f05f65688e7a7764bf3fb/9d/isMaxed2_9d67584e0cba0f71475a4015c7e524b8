@@ -1,0 +1,35 @@
+69ac0456b2c5028685d7d62168d42d15
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.isMaxed = void 0;
+const content = `--[[
+  Checks if queue is maxed.
+  Input:
+    KEYS[1] meta key
+    KEYS[2] active key
+  Output:
+    1 if element found in the list.
+]]
+local rcall = redis.call
+-- Includes
+--[[
+  Function to check if queue is maxed or not.
+]]
+local function isQueueMaxed(queueMetaKey, activeKey)
+  local maxConcurrency = rcall("HGET", queueMetaKey, "concurrency")
+  if maxConcurrency then
+    local activeCount = rcall("LLEN", activeKey)
+    if activeCount >= tonumber(maxConcurrency) then
+      return true
+    end
+  end
+  return false
+end
+return isQueueMaxed(KEYS[1], KEYS[2])
+`;
+exports.isMaxed = {
+    name: 'isMaxed',
+    content,
+    keys: 2,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGlzTWF4ZWQtMi5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFDYixNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMsT0FBTyxHQUFHLEtBQUssQ0FBQyxDQUFDO0FBQ3pCLE1BQU0sT0FBTyxHQUFHOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Q0F3QmYsQ0FBQztBQUNGLE9BQU8sQ0FBQyxPQUFPLEdBQUc7SUFDZCxJQUFJLEVBQUUsU0FBUztJQUNmLE9BQU87SUFDUCxJQUFJLEVBQUUsQ0FBQztDQUNWLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXGlzTWF4ZWQtMi5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInVzZSBzdHJpY3RcIjtcbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMuaXNNYXhlZCA9IHZvaWQgMDtcbmNvbnN0IGNvbnRlbnQgPSBgLS1bW1xuICBDaGVja3MgaWYgcXVldWUgaXMgbWF4ZWQuXG4gIElucHV0OlxuICAgIEtFWVNbMV0gbWV0YSBrZXlcbiAgICBLRVlTWzJdIGFjdGl2ZSBrZXlcbiAgT3V0cHV0OlxuICAgIDEgaWYgZWxlbWVudCBmb3VuZCBpbiB0aGUgbGlzdC5cbl1dXG5sb2NhbCByY2FsbCA9IHJlZGlzLmNhbGxcbi0tIEluY2x1ZGVzXG4tLVtbXG4gIEZ1bmN0aW9uIHRvIGNoZWNrIGlmIHF1ZXVlIGlzIG1heGVkIG9yIG5vdC5cbl1dXG5sb2NhbCBmdW5jdGlvbiBpc1F1ZXVlTWF4ZWQocXVldWVNZXRhS2V5LCBhY3RpdmVLZXkpXG4gIGxvY2FsIG1heENvbmN1cnJlbmN5ID0gcmNhbGwoXCJIR0VUXCIsIHF1ZXVlTWV0YUtleSwgXCJjb25jdXJyZW5jeVwiKVxuICBpZiBtYXhDb25jdXJyZW5jeSB0aGVuXG4gICAgbG9jYWwgYWN0aXZlQ291bnQgPSByY2FsbChcIkxMRU5cIiwgYWN0aXZlS2V5KVxuICAgIGlmIGFjdGl2ZUNvdW50ID49IHRvbnVtYmVyKG1heENvbmN1cnJlbmN5KSB0aGVuXG4gICAgICByZXR1cm4gdHJ1ZVxuICAgIGVuZFxuICBlbmRcbiAgcmV0dXJuIGZhbHNlXG5lbmRcbnJldHVybiBpc1F1ZXVlTWF4ZWQoS0VZU1sxXSwgS0VZU1syXSlcbmA7XG5leHBvcnRzLmlzTWF4ZWQgPSB7XG4gICAgbmFtZTogJ2lzTWF4ZWQnLFxuICAgIGNvbnRlbnQsXG4gICAga2V5czogMixcbn07XG4vLyMgc291cmNlTWFwcGluZ1VSTD1pc01heGVkLTIuanMubWFwIl0sInZlcnNpb24iOjN9

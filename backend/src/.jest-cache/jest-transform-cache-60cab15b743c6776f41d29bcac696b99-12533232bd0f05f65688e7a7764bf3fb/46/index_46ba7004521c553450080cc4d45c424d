@@ -1,0 +1,68 @@
+166d6eed02f5dc84f3614e42ee569e80
+/*!
+ * body-parser
+ * Copyright(c) 2014-2015 Douglas Christopher Wilson
+ * MIT Licensed
+ */
+'use strict';
+/**
+ * @typedef Parsers
+ * @type {function}
+ * @property {function} json
+ * @property {function} raw
+ * @property {function} text
+ * @property {function} urlencoded
+ */
+/**
+ * Module exports.
+ * @type {Parsers}
+ */
+exports = module.exports = bodyParser;
+/**
+ * JSON parser.
+ * @public
+ */
+Object.defineProperty(exports, 'json', {
+    configurable: true,
+    enumerable: true,
+    get: () => require('./lib/types/json')
+});
+/**
+ * Raw parser.
+ * @public
+ */
+Object.defineProperty(exports, 'raw', {
+    configurable: true,
+    enumerable: true,
+    get: () => require('./lib/types/raw')
+});
+/**
+ * Text parser.
+ * @public
+ */
+Object.defineProperty(exports, 'text', {
+    configurable: true,
+    enumerable: true,
+    get: () => require('./lib/types/text')
+});
+/**
+ * URL-encoded parser.
+ * @public
+ */
+Object.defineProperty(exports, 'urlencoded', {
+    configurable: true,
+    enumerable: true,
+    get: () => require('./lib/types/urlencoded')
+});
+/**
+ * Create a middleware to parse json and urlencoded bodies.
+ *
+ * @param {object} [options]
+ * @return {function}
+ * @deprecated
+ * @public
+ */
+function bodyParser() {
+    throw new Error('The bodyParser() generic has been split into individual middleware to use instead.');
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJvZHktcGFyc2VyQDIuMi4xXFxub2RlX21vZHVsZXNcXGJvZHktcGFyc2VyXFxpbmRleC5qcyIsIm1hcHBpbmdzIjoiQUFBQTs7OztHQUlHO0FBRUgsWUFBWSxDQUFBO0FBRVo7Ozs7Ozs7R0FPRztBQUVIOzs7R0FHRztBQUVILE9BQU8sR0FBRyxNQUFNLENBQUMsT0FBTyxHQUFHLFVBQVUsQ0FBQTtBQUVyQzs7O0dBR0c7QUFFSCxNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxNQUFNLEVBQUU7SUFDckMsWUFBWSxFQUFFLElBQUk7SUFDbEIsVUFBVSxFQUFFLElBQUk7SUFDaEIsR0FBRyxFQUFFLEdBQUcsRUFBRSxDQUFDLE9BQU8sQ0FBQyxrQkFBa0IsQ0FBQztDQUN2QyxDQUFDLENBQUE7QUFFRjs7O0dBR0c7QUFFSCxNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxLQUFLLEVBQUU7SUFDcEMsWUFBWSxFQUFFLElBQUk7SUFDbEIsVUFBVSxFQUFFLElBQUk7SUFDaEIsR0FBRyxFQUFFLEdBQUcsRUFBRSxDQUFDLE9BQU8sQ0FBQyxpQkFBaUIsQ0FBQztDQUN0QyxDQUFDLENBQUE7QUFFRjs7O0dBR0c7QUFFSCxNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxNQUFNLEVBQUU7SUFDckMsWUFBWSxFQUFFLElBQUk7SUFDbEIsVUFBVSxFQUFFLElBQUk7SUFDaEIsR0FBRyxFQUFFLEdBQUcsRUFBRSxDQUFDLE9BQU8sQ0FBQyxrQkFBa0IsQ0FBQztDQUN2QyxDQUFDLENBQUE7QUFFRjs7O0dBR0c7QUFFSCxNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUU7SUFDM0MsWUFBWSxFQUFFLElBQUk7SUFDbEIsVUFBVSxFQUFFLElBQUk7SUFDaEIsR0FBRyxFQUFFLEdBQUcsRUFBRSxDQUFDLE9BQU8sQ0FBQyx3QkFBd0IsQ0FBQztDQUM3QyxDQUFDLENBQUE7QUFFRjs7Ozs7OztHQU9HO0FBRUgsU0FBUyxVQUFVO0lBQ2pCLE1BQU0sSUFBSSxLQUFLLENBQUMsb0ZBQW9GLENBQUMsQ0FBQTtBQUN2RyxDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxib2R5LXBhcnNlckAyLjIuMVxcbm9kZV9tb2R1bGVzXFxib2R5LXBhcnNlclxcaW5kZXguanMiXSwic291cmNlc0NvbnRlbnQiOlsiLyohXG4gKiBib2R5LXBhcnNlclxuICogQ29weXJpZ2h0KGMpIDIwMTQtMjAxNSBEb3VnbGFzIENocmlzdG9waGVyIFdpbHNvblxuICogTUlUIExpY2Vuc2VkXG4gKi9cblxuJ3VzZSBzdHJpY3QnXG5cbi8qKlxuICogQHR5cGVkZWYgUGFyc2Vyc1xuICogQHR5cGUge2Z1bmN0aW9ufVxuICogQHByb3BlcnR5IHtmdW5jdGlvbn0ganNvblxuICogQHByb3BlcnR5IHtmdW5jdGlvbn0gcmF3XG4gKiBAcHJvcGVydHkge2Z1bmN0aW9ufSB0ZXh0XG4gKiBAcHJvcGVydHkge2Z1bmN0aW9ufSB1cmxlbmNvZGVkXG4gKi9cblxuLyoqXG4gKiBNb2R1bGUgZXhwb3J0cy5cbiAqIEB0eXBlIHtQYXJzZXJzfVxuICovXG5cbmV4cG9ydHMgPSBtb2R1bGUuZXhwb3J0cyA9IGJvZHlQYXJzZXJcblxuLyoqXG4gKiBKU09OIHBhcnNlci5cbiAqIEBwdWJsaWNcbiAqL1xuXG5PYmplY3QuZGVmaW5lUHJvcGVydHkoZXhwb3J0cywgJ2pzb24nLCB7XG4gIGNvbmZpZ3VyYWJsZTogdHJ1ZSxcbiAgZW51bWVyYWJsZTogdHJ1ZSxcbiAgZ2V0OiAoKSA9PiByZXF1aXJlKCcuL2xpYi90eXBlcy9qc29uJylcbn0pXG5cbi8qKlxuICogUmF3IHBhcnNlci5cbiAqIEBwdWJsaWNcbiAqL1xuXG5PYmplY3QuZGVmaW5lUHJvcGVydHkoZXhwb3J0cywgJ3JhdycsIHtcbiAgY29uZmlndXJhYmxlOiB0cnVlLFxuICBlbnVtZXJhYmxlOiB0cnVlLFxuICBnZXQ6ICgpID0+IHJlcXVpcmUoJy4vbGliL3R5cGVzL3JhdycpXG59KVxuXG4vKipcbiAqIFRleHQgcGFyc2VyLlxuICogQHB1YmxpY1xuICovXG5cbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCAndGV4dCcsIHtcbiAgY29uZmlndXJhYmxlOiB0cnVlLFxuICBlbnVtZXJhYmxlOiB0cnVlLFxuICBnZXQ6ICgpID0+IHJlcXVpcmUoJy4vbGliL3R5cGVzL3RleHQnKVxufSlcblxuLyoqXG4gKiBVUkwtZW5jb2RlZCBwYXJzZXIuXG4gKiBAcHVibGljXG4gKi9cblxuT2JqZWN0LmRlZmluZVByb3BlcnR5KGV4cG9ydHMsICd1cmxlbmNvZGVkJywge1xuICBjb25maWd1cmFibGU6IHRydWUsXG4gIGVudW1lcmFibGU6IHRydWUsXG4gIGdldDogKCkgPT4gcmVxdWlyZSgnLi9saWIvdHlwZXMvdXJsZW5jb2RlZCcpXG59KVxuXG4vKipcbiAqIENyZWF0ZSBhIG1pZGRsZXdhcmUgdG8gcGFyc2UganNvbiBhbmQgdXJsZW5jb2RlZCBib2RpZXMuXG4gKlxuICogQHBhcmFtIHtvYmplY3R9IFtvcHRpb25zXVxuICogQHJldHVybiB7ZnVuY3Rpb259XG4gKiBAZGVwcmVjYXRlZFxuICogQHB1YmxpY1xuICovXG5cbmZ1bmN0aW9uIGJvZHlQYXJzZXIgKCkge1xuICB0aHJvdyBuZXcgRXJyb3IoJ1RoZSBib2R5UGFyc2VyKCkgZ2VuZXJpYyBoYXMgYmVlbiBzcGxpdCBpbnRvIGluZGl2aWR1YWwgbWlkZGxld2FyZSB0byB1c2UgaW5zdGVhZC4nKVxufVxuIl0sInZlcnNpb24iOjN9

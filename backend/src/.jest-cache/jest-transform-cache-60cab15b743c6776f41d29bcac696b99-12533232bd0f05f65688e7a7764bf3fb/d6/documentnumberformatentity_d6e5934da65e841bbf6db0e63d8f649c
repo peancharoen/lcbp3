@@ -1,0 +1,76 @@
+5b02f882b26455c3817188cc021ba0de
+"use strict";
+// backend/src/modules/document-numbering/entities/document-number-format.entity.ts
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DocumentNumberFormat = void 0;
+const typeorm_1 = require("typeorm");
+const project_entity_1 = require("../../project/entities/project.entity");
+const correspondence_type_entity_1 = require("../../correspondence/entities/correspondence-type.entity");
+let DocumentNumberFormat = class DocumentNumberFormat {
+};
+exports.DocumentNumberFormat = DocumentNumberFormat;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], DocumentNumberFormat.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'project_id' }),
+    __metadata("design:type", Number)
+], DocumentNumberFormat.prototype, "projectId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'correspondence_type_id', nullable: true }),
+    __metadata("design:type", Number)
+], DocumentNumberFormat.prototype, "correspondenceTypeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'discipline_id', default: 0 }),
+    __metadata("design:type", Number)
+], DocumentNumberFormat.prototype, "disciplineId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'format_string', length: 100 }),
+    __metadata("design:type", String)
+], DocumentNumberFormat.prototype, "formatTemplate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'description', nullable: true }),
+    __metadata("design:type", String)
+], DocumentNumberFormat.prototype, "description", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'reset_annually', default: true }),
+    __metadata("design:type", Boolean)
+], DocumentNumberFormat.prototype, "resetSequenceYearly", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_active', default: 1 }),
+    __metadata("design:type", Number)
+], DocumentNumberFormat.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], DocumentNumberFormat.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], DocumentNumberFormat.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => project_entity_1.Project),
+    (0, typeorm_1.JoinColumn)({ name: 'project_id' }),
+    __metadata("design:type", typeof (_c = typeof project_entity_1.Project !== "undefined" && project_entity_1.Project) === "function" ? _c : Object)
+], DocumentNumberFormat.prototype, "project", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => correspondence_type_entity_1.CorrespondenceType),
+    (0, typeorm_1.JoinColumn)({ name: 'correspondence_type_id' }),
+    __metadata("design:type", typeof (_d = typeof correspondence_type_entity_1.CorrespondenceType !== "undefined" && correspondence_type_entity_1.CorrespondenceType) === "function" ? _d : Object)
+], DocumentNumberFormat.prototype, "correspondenceType", void 0);
+exports.DocumentNumberFormat = DocumentNumberFormat = __decorate([
+    (0, typeorm_1.Entity)('document_number_formats'),
+    (0, typeorm_1.Unique)(['projectId', 'correspondenceTypeId', 'disciplineId'])
+], DocumentNumberFormat);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcZG9jdW1lbnQtbnVtYmVyaW5nXFxlbnRpdGllc1xcZG9jdW1lbnQtbnVtYmVyLWZvcm1hdC5lbnRpdHkudHMiLCJtYXBwaW5ncyI6IjtBQUFBLG1GQUFtRjs7Ozs7Ozs7Ozs7OztBQUVuRixxQ0FTaUI7QUFDakIsMEVBQWdFO0FBQ2hFLHlHQUE4RjtBQUl2RixJQUFNLG9CQUFvQixHQUExQixNQUFNLG9CQUFvQjtDQXdDaEMsQ0FBQTtBQXhDWSxvREFBb0I7QUFFL0I7SUFEQyxJQUFBLGdDQUFzQixHQUFFOztnREFDYjtBQUdaO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDOzt1REFDWjtBQUduQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSx3QkFBd0IsRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7O2tFQUM3QjtBQUc5QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxlQUFlLEVBQUUsT0FBTyxFQUFFLENBQUMsRUFBRSxDQUFDOzswREFDeEI7QUFHdEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsZUFBZSxFQUFFLE1BQU0sRUFBRSxHQUFHLEVBQUUsQ0FBQzs7NERBQ3ZCO0FBR3hCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7O3lEQUMzQjtBQUlyQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxnQkFBZ0IsRUFBRSxPQUFPLEVBQUUsSUFBSSxFQUFFLENBQUM7O2lFQUNwQjtBQUc5QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxXQUFXLEVBQUUsT0FBTyxFQUFFLENBQUMsRUFBRSxDQUFDOztzREFDeEI7QUFHbEI7SUFEQyxJQUFBLDBCQUFnQixFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUM3QixJQUFJLG9CQUFKLElBQUk7dURBQUM7QUFHakI7SUFEQyxJQUFBLDBCQUFnQixFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUM3QixJQUFJLG9CQUFKLElBQUk7dURBQUM7QUFLakI7SUFGQyxJQUFBLG1CQUFTLEVBQUMsR0FBRyxFQUFFLENBQUMsd0JBQU8sQ0FBQztJQUN4QixJQUFBLG9CQUFVLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQ3pCLHdCQUFPLG9CQUFQLHdCQUFPO3FEQUFDO0FBSWxCO0lBRkMsSUFBQSxtQkFBUyxFQUFDLEdBQUcsRUFBRSxDQUFDLCtDQUFrQixDQUFDO0lBQ25DLElBQUEsb0JBQVUsRUFBQyxFQUFFLElBQUksRUFBRSx3QkFBd0IsRUFBRSxDQUFDO2tEQUMxQiwrQ0FBa0Isb0JBQWxCLCtDQUFrQjtnRUFBQzsrQkF2QzdCLG9CQUFvQjtJQUZoQyxJQUFBLGdCQUFNLEVBQUMseUJBQXlCLENBQUM7SUFDakMsSUFBQSxnQkFBTSxFQUFDLENBQUMsV0FBVyxFQUFFLHNCQUFzQixFQUFFLGNBQWMsQ0FBQyxDQUFDO0dBQ2pELG9CQUFvQixDQXdDaEMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcZG9jdW1lbnQtbnVtYmVyaW5nXFxlbnRpdGllc1xcZG9jdW1lbnQtbnVtYmVyLWZvcm1hdC5lbnRpdHkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLy8gYmFja2VuZC9zcmMvbW9kdWxlcy9kb2N1bWVudC1udW1iZXJpbmcvZW50aXRpZXMvZG9jdW1lbnQtbnVtYmVyLWZvcm1hdC5lbnRpdHkudHNcclxuXHJcbmltcG9ydCB7XHJcbiAgRW50aXR5LFxyXG4gIENvbHVtbixcclxuICBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uLFxyXG4gIE1hbnlUb09uZSxcclxuICBKb2luQ29sdW1uLFxyXG4gIFVuaXF1ZSxcclxuICBDcmVhdGVEYXRlQ29sdW1uLFxyXG4gIFVwZGF0ZURhdGVDb2x1bW4sXHJcbn0gZnJvbSAndHlwZW9ybSc7XHJcbmltcG9ydCB7IFByb2plY3QgfSBmcm9tICcuLi8uLi9wcm9qZWN0L2VudGl0aWVzL3Byb2plY3QuZW50aXR5JztcclxuaW1wb3J0IHsgQ29ycmVzcG9uZGVuY2VUeXBlIH0gZnJvbSAnLi4vLi4vY29ycmVzcG9uZGVuY2UvZW50aXRpZXMvY29ycmVzcG9uZGVuY2UtdHlwZS5lbnRpdHknO1xyXG5cclxuQEVudGl0eSgnZG9jdW1lbnRfbnVtYmVyX2Zvcm1hdHMnKVxyXG5AVW5pcXVlKFsncHJvamVjdElkJywgJ2NvcnJlc3BvbmRlbmNlVHlwZUlkJywgJ2Rpc2NpcGxpbmVJZCddKVxyXG5leHBvcnQgY2xhc3MgRG9jdW1lbnROdW1iZXJGb3JtYXQge1xyXG4gIEBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uKClcclxuICBpZCE6IG51bWJlcjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdwcm9qZWN0X2lkJyB9KVxyXG4gIHByb2plY3RJZCE6IG51bWJlcjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdjb3JyZXNwb25kZW5jZV90eXBlX2lkJywgbnVsbGFibGU6IHRydWUgfSlcclxuICBjb3JyZXNwb25kZW5jZVR5cGVJZD86IG51bWJlcjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdkaXNjaXBsaW5lX2lkJywgZGVmYXVsdDogMCB9KVxyXG4gIGRpc2NpcGxpbmVJZCE6IG51bWJlcjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdmb3JtYXRfc3RyaW5nJywgbGVuZ3RoOiAxMDAgfSlcclxuICBmb3JtYXRUZW1wbGF0ZSE6IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdkZXNjcmlwdGlvbicsIG51bGxhYmxlOiB0cnVlIH0pXHJcbiAgZGVzY3JpcHRpb24/OiBzdHJpbmc7XHJcblxyXG4gIC8vIFtORVddIENvbnRyb2wgeWVhcmx5IHJlc2V0IGJlaGF2aW9yXHJcbiAgQENvbHVtbih7IG5hbWU6ICdyZXNldF9hbm51YWxseScsIGRlZmF1bHQ6IHRydWUgfSlcclxuICByZXNldFNlcXVlbmNlWWVhcmx5ITogYm9vbGVhbjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdpc19hY3RpdmUnLCBkZWZhdWx0OiAxIH0pXHJcbiAgaXNBY3RpdmUhOiBudW1iZXI7XHJcblxyXG4gIEBDcmVhdGVEYXRlQ29sdW1uKHsgbmFtZTogJ2NyZWF0ZWRfYXQnIH0pXHJcbiAgY3JlYXRlZEF0ITogRGF0ZTtcclxuXHJcbiAgQFVwZGF0ZURhdGVDb2x1bW4oeyBuYW1lOiAndXBkYXRlZF9hdCcgfSlcclxuICB1cGRhdGVkQXQhOiBEYXRlO1xyXG5cclxuICAvLyBSZWxhdGlvbnNcclxuICBATWFueVRvT25lKCgpID0+IFByb2plY3QpXHJcbiAgQEpvaW5Db2x1bW4oeyBuYW1lOiAncHJvamVjdF9pZCcgfSlcclxuICBwcm9qZWN0ITogUHJvamVjdDtcclxuXHJcbiAgQE1hbnlUb09uZSgoKSA9PiBDb3JyZXNwb25kZW5jZVR5cGUpXHJcbiAgQEpvaW5Db2x1bW4oeyBuYW1lOiAnY29ycmVzcG9uZGVuY2VfdHlwZV9pZCcgfSlcclxuICBjb3JyZXNwb25kZW5jZVR5cGU/OiBDb3JyZXNwb25kZW5jZVR5cGU7XHJcbn1cclxuIl0sInZlcnNpb24iOjN9

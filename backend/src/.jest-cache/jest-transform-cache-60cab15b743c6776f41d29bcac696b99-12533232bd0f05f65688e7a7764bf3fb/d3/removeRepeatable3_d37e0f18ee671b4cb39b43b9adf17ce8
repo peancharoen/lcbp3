@@ -1,0 +1,64 @@
+587e16c10939f844f5a2ab0d276faecc
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.removeRepeatable = void 0;
+const content = `--[[
+  Removes a repeatable job
+  Input:
+    KEYS[1] repeat jobs key
+    KEYS[2] delayed jobs key
+    KEYS[3] events key
+    ARGV[1] old repeat job id
+    ARGV[2] options concat
+    ARGV[3] repeat job key
+    ARGV[4] prefix key
+  Output:
+    0 - OK
+    1 - Missing repeat job
+  Events:
+    'removed'
+]]
+local rcall = redis.call
+local millis = rcall("ZSCORE", KEYS[1], ARGV[2])
+-- Includes
+--[[
+  Function to remove job keys.
+]]
+local function removeJobKeys(jobKey)
+  return rcall("DEL", jobKey, jobKey .. ':logs', jobKey .. ':dependencies',
+    jobKey .. ':processed', jobKey .. ':failed', jobKey .. ':unsuccessful')
+end
+-- legacy removal TODO: remove in next breaking change
+if millis then
+  -- Delete next programmed job.
+  local repeatJobId = ARGV[1] .. millis
+  if(rcall("ZREM", KEYS[2], repeatJobId) == 1) then
+    removeJobKeys(ARGV[4] .. repeatJobId)
+    rcall("XADD", KEYS[3], "*", "event", "removed", "jobId", repeatJobId, "prev", "delayed");
+  end
+end
+if(rcall("ZREM", KEYS[1], ARGV[2]) == 1) then
+  return 0
+end
+-- new removal
+millis = rcall("ZSCORE", KEYS[1], ARGV[3])
+if millis then
+  -- Delete next programmed job.
+  local repeatJobId = "repeat:" .. ARGV[3] .. ":" .. millis
+  if(rcall("ZREM", KEYS[2], repeatJobId) == 1) then
+    removeJobKeys(ARGV[4] .. repeatJobId)
+    rcall("XADD", KEYS[3], "*", "event", "removed", "jobId", repeatJobId, "prev", "delayed")
+  end
+end
+if(rcall("ZREM", KEYS[1], ARGV[3]) == 1) then
+  rcall("DEL", KEYS[1] .. ":" .. ARGV[3])
+  return 0
+end
+return 1
+`;
+exports.removeRepeatable = {
+    name: 'removeRepeatable',
+    content,
+    keys: 3,
+};
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXGJ1bGxtcUA1LjY1LjBcXG5vZGVfbW9kdWxlc1xcYnVsbG1xXFxkaXN0XFxjanNcXHNjcmlwdHNcXHJlbW92ZVJlcGVhdGFibGUtMy5qcyIsIm1hcHBpbmdzIjoiQUFBQSxZQUFZLENBQUM7QUFDYixNQUFNLENBQUMsY0FBYyxDQUFDLE9BQU8sRUFBRSxZQUFZLEVBQUUsRUFBRSxLQUFLLEVBQUUsSUFBSSxFQUFFLENBQUMsQ0FBQztBQUM5RCxPQUFPLENBQUMsZ0JBQWdCLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDbEMsTUFBTSxPQUFPLEdBQUc7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0NBcURmLENBQUM7QUFDRixPQUFPLENBQUMsZ0JBQWdCLEdBQUc7SUFDdkIsSUFBSSxFQUFFLGtCQUFrQjtJQUN4QixPQUFPO0lBQ1AsSUFBSSxFQUFFLENBQUM7Q0FDVixDQUFDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxub2RlX21vZHVsZXNcXC5wbnBtXFxidWxsbXFANS42NS4wXFxub2RlX21vZHVsZXNcXGJ1bGxtcVxcZGlzdFxcY2pzXFxzY3JpcHRzXFxyZW1vdmVSZXBlYXRhYmxlLTMuanMiXSwic291cmNlc0NvbnRlbnQiOlsiXCJ1c2Ugc3RyaWN0XCI7XG5PYmplY3QuZGVmaW5lUHJvcGVydHkoZXhwb3J0cywgXCJfX2VzTW9kdWxlXCIsIHsgdmFsdWU6IHRydWUgfSk7XG5leHBvcnRzLnJlbW92ZVJlcGVhdGFibGUgPSB2b2lkIDA7XG5jb25zdCBjb250ZW50ID0gYC0tW1tcbiAgUmVtb3ZlcyBhIHJlcGVhdGFibGUgam9iXG4gIElucHV0OlxuICAgIEtFWVNbMV0gcmVwZWF0IGpvYnMga2V5XG4gICAgS0VZU1syXSBkZWxheWVkIGpvYnMga2V5XG4gICAgS0VZU1szXSBldmVudHMga2V5XG4gICAgQVJHVlsxXSBvbGQgcmVwZWF0IGpvYiBpZFxuICAgIEFSR1ZbMl0gb3B0aW9ucyBjb25jYXRcbiAgICBBUkdWWzNdIHJlcGVhdCBqb2Iga2V5XG4gICAgQVJHVls0XSBwcmVmaXgga2V5XG4gIE91dHB1dDpcbiAgICAwIC0gT0tcbiAgICAxIC0gTWlzc2luZyByZXBlYXQgam9iXG4gIEV2ZW50czpcbiAgICAncmVtb3ZlZCdcbl1dXG5sb2NhbCByY2FsbCA9IHJlZGlzLmNhbGxcbmxvY2FsIG1pbGxpcyA9IHJjYWxsKFwiWlNDT1JFXCIsIEtFWVNbMV0sIEFSR1ZbMl0pXG4tLSBJbmNsdWRlc1xuLS1bW1xuICBGdW5jdGlvbiB0byByZW1vdmUgam9iIGtleXMuXG5dXVxubG9jYWwgZnVuY3Rpb24gcmVtb3ZlSm9iS2V5cyhqb2JLZXkpXG4gIHJldHVybiByY2FsbChcIkRFTFwiLCBqb2JLZXksIGpvYktleSAuLiAnOmxvZ3MnLCBqb2JLZXkgLi4gJzpkZXBlbmRlbmNpZXMnLFxuICAgIGpvYktleSAuLiAnOnByb2Nlc3NlZCcsIGpvYktleSAuLiAnOmZhaWxlZCcsIGpvYktleSAuLiAnOnVuc3VjY2Vzc2Z1bCcpXG5lbmRcbi0tIGxlZ2FjeSByZW1vdmFsIFRPRE86IHJlbW92ZSBpbiBuZXh0IGJyZWFraW5nIGNoYW5nZVxuaWYgbWlsbGlzIHRoZW5cbiAgLS0gRGVsZXRlIG5leHQgcHJvZ3JhbW1lZCBqb2IuXG4gIGxvY2FsIHJlcGVhdEpvYklkID0gQVJHVlsxXSAuLiBtaWxsaXNcbiAgaWYocmNhbGwoXCJaUkVNXCIsIEtFWVNbMl0sIHJlcGVhdEpvYklkKSA9PSAxKSB0aGVuXG4gICAgcmVtb3ZlSm9iS2V5cyhBUkdWWzRdIC4uIHJlcGVhdEpvYklkKVxuICAgIHJjYWxsKFwiWEFERFwiLCBLRVlTWzNdLCBcIipcIiwgXCJldmVudFwiLCBcInJlbW92ZWRcIiwgXCJqb2JJZFwiLCByZXBlYXRKb2JJZCwgXCJwcmV2XCIsIFwiZGVsYXllZFwiKTtcbiAgZW5kXG5lbmRcbmlmKHJjYWxsKFwiWlJFTVwiLCBLRVlTWzFdLCBBUkdWWzJdKSA9PSAxKSB0aGVuXG4gIHJldHVybiAwXG5lbmRcbi0tIG5ldyByZW1vdmFsXG5taWxsaXMgPSByY2FsbChcIlpTQ09SRVwiLCBLRVlTWzFdLCBBUkdWWzNdKVxuaWYgbWlsbGlzIHRoZW5cbiAgLS0gRGVsZXRlIG5leHQgcHJvZ3JhbW1lZCBqb2IuXG4gIGxvY2FsIHJlcGVhdEpvYklkID0gXCJyZXBlYXQ6XCIgLi4gQVJHVlszXSAuLiBcIjpcIiAuLiBtaWxsaXNcbiAgaWYocmNhbGwoXCJaUkVNXCIsIEtFWVNbMl0sIHJlcGVhdEpvYklkKSA9PSAxKSB0aGVuXG4gICAgcmVtb3ZlSm9iS2V5cyhBUkdWWzRdIC4uIHJlcGVhdEpvYklkKVxuICAgIHJjYWxsKFwiWEFERFwiLCBLRVlTWzNdLCBcIipcIiwgXCJldmVudFwiLCBcInJlbW92ZWRcIiwgXCJqb2JJZFwiLCByZXBlYXRKb2JJZCwgXCJwcmV2XCIsIFwiZGVsYXllZFwiKVxuICBlbmRcbmVuZFxuaWYocmNhbGwoXCJaUkVNXCIsIEtFWVNbMV0sIEFSR1ZbM10pID09IDEpIHRoZW5cbiAgcmNhbGwoXCJERUxcIiwgS0VZU1sxXSAuLiBcIjpcIiAuLiBBUkdWWzNdKVxuICByZXR1cm4gMFxuZW5kXG5yZXR1cm4gMVxuYDtcbmV4cG9ydHMucmVtb3ZlUmVwZWF0YWJsZSA9IHtcbiAgICBuYW1lOiAncmVtb3ZlUmVwZWF0YWJsZScsXG4gICAgY29udGVudCxcbiAgICBrZXlzOiAzLFxufTtcbi8vIyBzb3VyY2VNYXBwaW5nVVJMPXJlbW92ZVJlcGVhdGFibGUtMy5qcy5tYXAiXSwidmVyc2lvbiI6M30=

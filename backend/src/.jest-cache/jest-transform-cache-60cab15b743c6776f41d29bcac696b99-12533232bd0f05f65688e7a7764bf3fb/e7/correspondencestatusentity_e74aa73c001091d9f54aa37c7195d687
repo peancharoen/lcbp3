@@ -1,0 +1,41 @@
+bb47a033477de60ddb73db379f65e35b
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CorrespondenceStatus = void 0;
+const typeorm_1 = require("typeorm");
+let CorrespondenceStatus = class CorrespondenceStatus {
+};
+exports.CorrespondenceStatus = CorrespondenceStatus;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], CorrespondenceStatus.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'status_code', unique: true, length: 50 }),
+    __metadata("design:type", String)
+], CorrespondenceStatus.prototype, "statusCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'status_name', length: 255 }),
+    __metadata("design:type", String)
+], CorrespondenceStatus.prototype, "statusName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'sort_order', default: 0 }),
+    __metadata("design:type", Number)
+], CorrespondenceStatus.prototype, "sortOrder", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_active', default: true, type: 'tinyint' }),
+    __metadata("design:type", Boolean)
+], CorrespondenceStatus.prototype, "isActive", void 0);
+exports.CorrespondenceStatus = CorrespondenceStatus = __decorate([
+    (0, typeorm_1.Entity)('correspondence_status')
+], CorrespondenceStatus);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcY29ycmVzcG9uZGVuY2VcXGVudGl0aWVzXFxjb3JyZXNwb25kZW5jZS1zdGF0dXMuZW50aXR5LnRzIiwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7OztBQUFBLHFDQUFpRTtBQUcxRCxJQUFNLG9CQUFvQixHQUExQixNQUFNLG9CQUFvQjtDQWVoQyxDQUFBO0FBZlksb0RBQW9CO0FBRS9CO0lBREMsSUFBQSxnQ0FBc0IsR0FBRTs7Z0RBQ2I7QUFHWjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxhQUFhLEVBQUUsTUFBTSxFQUFFLElBQUksRUFBRSxNQUFNLEVBQUUsRUFBRSxFQUFFLENBQUM7O3dEQUN0QztBQUdwQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxhQUFhLEVBQUUsTUFBTSxFQUFFLEdBQUcsRUFBRSxDQUFDOzt3REFDekI7QUFHcEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLE9BQU8sRUFBRSxDQUFDLEVBQUUsQ0FBQzs7dURBQ3hCO0FBR25CO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxPQUFPLEVBQUUsSUFBSSxFQUFFLElBQUksRUFBRSxTQUFTLEVBQUUsQ0FBQzs7c0RBQzNDOytCQWRSLG9CQUFvQjtJQURoQyxJQUFBLGdCQUFNLEVBQUMsdUJBQXVCLENBQUM7R0FDbkIsb0JBQW9CLENBZWhDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXGNvcnJlc3BvbmRlbmNlXFxlbnRpdGllc1xcY29ycmVzcG9uZGVuY2Utc3RhdHVzLmVudGl0eS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBFbnRpdHksIENvbHVtbiwgUHJpbWFyeUdlbmVyYXRlZENvbHVtbiB9IGZyb20gJ3R5cGVvcm0nO1xyXG5cclxuQEVudGl0eSgnY29ycmVzcG9uZGVuY2Vfc3RhdHVzJylcclxuZXhwb3J0IGNsYXNzIENvcnJlc3BvbmRlbmNlU3RhdHVzIHtcclxuICBAUHJpbWFyeUdlbmVyYXRlZENvbHVtbigpXHJcbiAgaWQhOiBudW1iZXI7XHJcblxyXG4gIEBDb2x1bW4oeyBuYW1lOiAnc3RhdHVzX2NvZGUnLCB1bmlxdWU6IHRydWUsIGxlbmd0aDogNTAgfSlcclxuICBzdGF0dXNDb2RlITogc3RyaW5nOyAvLyDguYDguIrguYjguJkgRFJBRlQsIFNVQk9XTlxyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3N0YXR1c19uYW1lJywgbGVuZ3RoOiAyNTUgfSlcclxuICBzdGF0dXNOYW1lITogc3RyaW5nO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3NvcnRfb3JkZXInLCBkZWZhdWx0OiAwIH0pXHJcbiAgc29ydE9yZGVyITogbnVtYmVyO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ2lzX2FjdGl2ZScsIGRlZmF1bHQ6IHRydWUsIHR5cGU6ICd0aW55aW50JyB9KVxyXG4gIGlzQWN0aXZlITogYm9vbGVhbjtcclxufVxyXG4iXSwidmVyc2lvbiI6M30=

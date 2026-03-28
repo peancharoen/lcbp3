@@ -1,0 +1,45 @@
+f09a8e2e0eadea77efcdcb964d1b00b3
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RfaStatusCode = void 0;
+const typeorm_1 = require("typeorm");
+let RfaStatusCode = class RfaStatusCode {
+};
+exports.RfaStatusCode = RfaStatusCode;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], RfaStatusCode.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'status_code', length: 20, unique: true }),
+    __metadata("design:type", String)
+], RfaStatusCode.prototype, "statusCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'status_name', length: 100 }),
+    __metadata("design:type", String)
+], RfaStatusCode.prototype, "statusName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], RfaStatusCode.prototype, "description", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'sort_order', default: 0 }),
+    __metadata("design:type", Number)
+], RfaStatusCode.prototype, "sortOrder", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_active', default: true }),
+    __metadata("design:type", Boolean)
+], RfaStatusCode.prototype, "isActive", void 0);
+exports.RfaStatusCode = RfaStatusCode = __decorate([
+    (0, typeorm_1.Entity)('rfa_status_codes')
+], RfaStatusCode);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xccmZhXFxlbnRpdGllc1xccmZhLXN0YXR1cy1jb2RlLmVudGl0eS50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7QUFBQSxxQ0FBaUU7QUFHMUQsSUFBTSxhQUFhLEdBQW5CLE1BQU0sYUFBYTtDQWtCekIsQ0FBQTtBQWxCWSxzQ0FBYTtBQUV4QjtJQURDLElBQUEsZ0NBQXNCLEdBQUU7O3lDQUNiO0FBR1o7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsYUFBYSxFQUFFLE1BQU0sRUFBRSxFQUFFLEVBQUUsTUFBTSxFQUFFLElBQUksRUFBRSxDQUFDOztpREFDdEM7QUFHcEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsYUFBYSxFQUFFLE1BQU0sRUFBRSxHQUFHLEVBQUUsQ0FBQzs7aURBQ3pCO0FBR3BCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLE1BQU0sRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7O2tEQUNwQjtBQUdyQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsT0FBTyxFQUFFLENBQUMsRUFBRSxDQUFDOztnREFDeEI7QUFHbkI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLE9BQU8sRUFBRSxJQUFJLEVBQUUsQ0FBQzs7K0NBQzFCO3dCQWpCUixhQUFhO0lBRHpCLElBQUEsZ0JBQU0sRUFBQyxrQkFBa0IsQ0FBQztHQUNkLGFBQWEsQ0FrQnpCIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkU6XFxucC1kbXNcXGxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXHJmYVxcZW50aXRpZXNcXHJmYS1zdGF0dXMtY29kZS5lbnRpdHkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgRW50aXR5LCBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uLCBDb2x1bW4gfSBmcm9tICd0eXBlb3JtJztcclxuXHJcbkBFbnRpdHkoJ3JmYV9zdGF0dXNfY29kZXMnKVxyXG5leHBvcnQgY2xhc3MgUmZhU3RhdHVzQ29kZSB7XHJcbiAgQFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4oKVxyXG4gIGlkITogbnVtYmVyO1xyXG5cclxuICBAQ29sdW1uKHsgbmFtZTogJ3N0YXR1c19jb2RlJywgbGVuZ3RoOiAyMCwgdW5pcXVlOiB0cnVlIH0pXHJcbiAgc3RhdHVzQ29kZSE6IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdzdGF0dXNfbmFtZScsIGxlbmd0aDogMTAwIH0pXHJcbiAgc3RhdHVzTmFtZSE6IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7IHR5cGU6ICd0ZXh0JywgbnVsbGFibGU6IHRydWUgfSlcclxuICBkZXNjcmlwdGlvbj86IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdzb3J0X29yZGVyJywgZGVmYXVsdDogMCB9KVxyXG4gIHNvcnRPcmRlciE6IG51bWJlcjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdpc19hY3RpdmUnLCBkZWZhdWx0OiB0cnVlIH0pXHJcbiAgaXNBY3RpdmUhOiBib29sZWFuO1xyXG59XHJcbiJdLCJ2ZXJzaW9uIjozfQ==

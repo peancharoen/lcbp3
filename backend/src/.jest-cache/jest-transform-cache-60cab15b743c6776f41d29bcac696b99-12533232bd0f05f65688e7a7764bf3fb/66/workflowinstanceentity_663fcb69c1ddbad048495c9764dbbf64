@@ -1,0 +1,95 @@
+a2e55aef4e0edc10880191f576ab620b
+"use strict";
+// File: src/modules/workflow-engine/entities/workflow-instance.entity.ts
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WorkflowInstance = exports.WorkflowStatus = void 0;
+const typeorm_1 = require("typeorm");
+const workflow_definition_entity_1 = require("./workflow-definition.entity");
+var WorkflowStatus;
+(function (WorkflowStatus) {
+    WorkflowStatus["ACTIVE"] = "ACTIVE";
+    WorkflowStatus["COMPLETED"] = "COMPLETED";
+    WorkflowStatus["CANCELLED"] = "CANCELLED";
+    WorkflowStatus["TERMINATED"] = "TERMINATED";
+})(WorkflowStatus || (exports.WorkflowStatus = WorkflowStatus = {}));
+/**
+ * เก็บสถานะการเดินเรื่องของเอกสารแต่ละใบ (Runtime State)
+ */
+let WorkflowInstance = class WorkflowInstance {
+};
+exports.WorkflowInstance = WorkflowInstance;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
+    __metadata("design:type", String)
+], WorkflowInstance.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => workflow_definition_entity_1.WorkflowDefinition),
+    (0, typeorm_1.JoinColumn)({ name: 'definition_id' }),
+    __metadata("design:type", typeof (_a = typeof workflow_definition_entity_1.WorkflowDefinition !== "undefined" && workflow_definition_entity_1.WorkflowDefinition) === "function" ? _a : Object)
+], WorkflowInstance.prototype, "definition", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'definition_id' }),
+    __metadata("design:type", String)
+], WorkflowInstance.prototype, "definitionId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'entity_type',
+        length: 50,
+        comment: 'ประเภทเอกสาร เช่น rfa, correspondence',
+    }),
+    __metadata("design:type", String)
+], WorkflowInstance.prototype, "entityType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'entity_id',
+        length: 50,
+        comment: 'ID ของเอกสาร (String/UUID)',
+    }),
+    __metadata("design:type", String)
+], WorkflowInstance.prototype, "entityId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'current_state',
+        length: 50,
+        comment: 'ชื่อ State ปัจจุบัน เช่น DRAFT, IN_REVIEW',
+    }),
+    __metadata("design:type", String)
+], WorkflowInstance.prototype, "currentState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: WorkflowStatus,
+        default: WorkflowStatus.ACTIVE,
+        comment: 'สถานะภาพรวมของ Instance',
+    }),
+    __metadata("design:type", String)
+], WorkflowInstance.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'json', nullable: true, comment: 'Runtime Context Data' }),
+    __metadata("design:type", typeof (_b = typeof Record !== "undefined" && Record) === "function" ? _b : Object)
+], WorkflowInstance.prototype, "context", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], WorkflowInstance.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
+    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
+], WorkflowInstance.prototype, "updatedAt", void 0);
+exports.WorkflowInstance = WorkflowInstance = __decorate([
+    (0, typeorm_1.Entity)('workflow_instances'),
+    (0, typeorm_1.Index)(['entityType', 'entityId']) // เพื่อค้นหาว่าเอกสารนี้ (เช่น RFA-001) อยู่ขั้นตอนไหน
+    ,
+    (0, typeorm_1.Index)(['currentState']) // เพื่อ Dashboard: "มีงานค้างที่ขั้นตอนไหนบ้าง"
+], WorkflowInstance);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcd29ya2Zsb3ctZW5naW5lXFxlbnRpdGllc1xcd29ya2Zsb3ctaW5zdGFuY2UuZW50aXR5LnRzIiwibWFwcGluZ3MiOiI7QUFBQSx5RUFBeUU7Ozs7Ozs7Ozs7Ozs7QUFFekUscUNBU2lCO0FBQ2pCLDZFQUFrRTtBQUVsRSxJQUFZLGNBS1g7QUFMRCxXQUFZLGNBQWM7SUFDeEIsbUNBQWlCLENBQUE7SUFDakIseUNBQXVCLENBQUE7SUFDdkIseUNBQXVCLENBQUE7SUFDdkIsMkNBQXlCLENBQUE7QUFDM0IsQ0FBQyxFQUxXLGNBQWMsOEJBQWQsY0FBYyxRQUt6QjtBQUVEOztHQUVHO0FBSUksSUFBTSxnQkFBZ0IsR0FBdEIsTUFBTSxnQkFBZ0I7Q0FvRDVCLENBQUE7QUFwRFksNENBQWdCO0FBRTNCO0lBREMsSUFBQSxnQ0FBc0IsRUFBQyxNQUFNLENBQUM7OzRDQUNuQjtBQUtaO0lBRkMsSUFBQSxtQkFBUyxFQUFDLEdBQUcsRUFBRSxDQUFDLCtDQUFrQixDQUFDO0lBQ25DLElBQUEsb0JBQVUsRUFBQyxFQUFFLElBQUksRUFBRSxlQUFlLEVBQUUsQ0FBQztrREFDekIsK0NBQWtCLG9CQUFsQiwrQ0FBa0I7b0RBQUM7QUFHaEM7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsZUFBZSxFQUFFLENBQUM7O3NEQUNaO0FBUXRCO0lBTEMsSUFBQSxnQkFBTSxFQUFDO1FBQ04sSUFBSSxFQUFFLGFBQWE7UUFDbkIsTUFBTSxFQUFFLEVBQUU7UUFDVixPQUFPLEVBQUUsdUNBQXVDO0tBQ2pELENBQUM7O29EQUNrQjtBQU9wQjtJQUxDLElBQUEsZ0JBQU0sRUFBQztRQUNOLElBQUksRUFBRSxXQUFXO1FBQ2pCLE1BQU0sRUFBRSxFQUFFO1FBQ1YsT0FBTyxFQUFFLDRCQUE0QjtLQUN0QyxDQUFDOztrREFDZ0I7QUFPbEI7SUFMQyxJQUFBLGdCQUFNLEVBQUM7UUFDTixJQUFJLEVBQUUsZUFBZTtRQUNyQixNQUFNLEVBQUUsRUFBRTtRQUNWLE9BQU8sRUFBRSwyQ0FBMkM7S0FDckQsQ0FBQzs7c0RBQ29CO0FBUXRCO0lBTkMsSUFBQSxnQkFBTSxFQUFDO1FBQ04sSUFBSSxFQUFFLE1BQU07UUFDWixJQUFJLEVBQUUsY0FBYztRQUNwQixPQUFPLEVBQUUsY0FBYyxDQUFDLE1BQU07UUFDOUIsT0FBTyxFQUFFLHlCQUF5QjtLQUNuQyxDQUFDOztnREFDc0I7QUFLeEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsTUFBTSxFQUFFLFFBQVEsRUFBRSxJQUFJLEVBQUUsT0FBTyxFQUFFLHNCQUFzQixFQUFFLENBQUM7a0RBQ2hFLE1BQU0sb0JBQU4sTUFBTTtpREFBa0I7QUFHbEM7SUFEQyxJQUFBLDBCQUFnQixFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUM3QixJQUFJLG9CQUFKLElBQUk7bURBQUM7QUFHakI7SUFEQyxJQUFBLDBCQUFnQixFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUM3QixJQUFJLG9CQUFKLElBQUk7bURBQUM7MkJBbkROLGdCQUFnQjtJQUg1QixJQUFBLGdCQUFNLEVBQUMsb0JBQW9CLENBQUM7SUFDNUIsSUFBQSxlQUFLLEVBQUMsQ0FBQyxZQUFZLEVBQUUsVUFBVSxDQUFDLENBQUMsQ0FBQyx1REFBdUQ7O0lBQ3pGLElBQUEsZUFBSyxFQUFDLENBQUMsY0FBYyxDQUFDLENBQUMsQ0FBQyxnREFBZ0Q7R0FDNUQsZ0JBQWdCLENBb0Q1QiIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJFOlxcbnAtZG1zXFxsY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFx3b3JrZmxvdy1lbmdpbmVcXGVudGl0aWVzXFx3b3JrZmxvdy1pbnN0YW5jZS5lbnRpdHkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLy8gRmlsZTogc3JjL21vZHVsZXMvd29ya2Zsb3ctZW5naW5lL2VudGl0aWVzL3dvcmtmbG93LWluc3RhbmNlLmVudGl0eS50c1xyXG5cclxuaW1wb3J0IHtcclxuICBDb2x1bW4sXHJcbiAgQ3JlYXRlRGF0ZUNvbHVtbixcclxuICBFbnRpdHksXHJcbiAgSW5kZXgsXHJcbiAgSm9pbkNvbHVtbixcclxuICBNYW55VG9PbmUsXHJcbiAgUHJpbWFyeUdlbmVyYXRlZENvbHVtbixcclxuICBVcGRhdGVEYXRlQ29sdW1uLFxyXG59IGZyb20gJ3R5cGVvcm0nO1xyXG5pbXBvcnQgeyBXb3JrZmxvd0RlZmluaXRpb24gfSBmcm9tICcuL3dvcmtmbG93LWRlZmluaXRpb24uZW50aXR5JztcclxuXHJcbmV4cG9ydCBlbnVtIFdvcmtmbG93U3RhdHVzIHtcclxuICBBQ1RJVkUgPSAnQUNUSVZFJywgLy8g4LiB4Liz4Lil4Lix4LiH4LiU4Liz4LmA4LiZ4Li04LiZ4LiB4Liy4LijXHJcbiAgQ09NUExFVEVEID0gJ0NPTVBMRVRFRCcsIC8vIOC4iOC4muC4geC4o+C4sOC4muC4p+C4meC4geC4suC4oyAo4LiW4Li24LiHIFRlcm1pbmFsIFN0YXRlKVxyXG4gIENBTkNFTExFRCA9ICdDQU5DRUxMRUQnLCAvLyDguJbguLnguIHguKLguIHguYDguKXguLTguIHguIHguKXguLLguIfguITguLHguJlcclxuICBURVJNSU5BVEVEID0gJ1RFUk1JTkFURUQnLCAvLyDguJbguLnguIHguJrguLHguIfguITguLHguJrguIjguJrguYLguJTguKLguKPguLDguJrguJog4Lir4Lij4Li34LitIEVycm9yXHJcbn1cclxuXHJcbi8qKlxyXG4gKiDguYDguIHguYfguJrguKrguJbguLLguJnguLDguIHguLLguKPguYDguJTguLTguJnguYDguKPguLfguYjguK3guIfguILguK3guIfguYDguK3guIHguKrguLLguKPguYHguJXguYjguKXguLDguYPguJogKFJ1bnRpbWUgU3RhdGUpXHJcbiAqL1xyXG5ARW50aXR5KCd3b3JrZmxvd19pbnN0YW5jZXMnKVxyXG5ASW5kZXgoWydlbnRpdHlUeXBlJywgJ2VudGl0eUlkJ10pIC8vIOC5gOC4nuC4t+C5iOC4reC4hOC5ieC4meC4q+C4suC4p+C5iOC4suC5gOC4reC4geC4quC4suC4o+C4meC4teC5iSAo4LmA4LiK4LmI4LiZIFJGQS0wMDEpIOC4reC4ouC4ueC5iOC4guC4seC5ieC4meC4leC4reC4meC5hOC4q+C4mVxyXG5ASW5kZXgoWydjdXJyZW50U3RhdGUnXSkgLy8g4LmA4Lie4Li34LmI4LitIERhc2hib2FyZDogXCLguKHguLXguIfguLLguJnguITguYnguLLguIfguJfguLXguYjguILguLHguYnguJnguJXguK3guJnguYTguKvguJnguJrguYnguLLguIdcIlxyXG5leHBvcnQgY2xhc3MgV29ya2Zsb3dJbnN0YW5jZSB7XHJcbiAgQFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4oJ3V1aWQnKVxyXG4gIGlkITogc3RyaW5nO1xyXG5cclxuICAvLyDguJzguLnguIHguIHguLHguJogRGVmaW5pdGlvbiDguYDguJ7guLfguYjguK3guKPguLnguYnguKfguYjguLLguYPguIrguYnguIHguI7guIrguLjguJTguYTguKvguJkgKFZlcnNpb24g4LmE4Lir4LiZKVxyXG4gIEBNYW55VG9PbmUoKCkgPT4gV29ya2Zsb3dEZWZpbml0aW9uKVxyXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ2RlZmluaXRpb25faWQnIH0pXHJcbiAgZGVmaW5pdGlvbiE6IFdvcmtmbG93RGVmaW5pdGlvbjtcclxuXHJcbiAgQENvbHVtbih7IG5hbWU6ICdkZWZpbml0aW9uX2lkJyB9KVxyXG4gIGRlZmluaXRpb25JZCE6IHN0cmluZztcclxuXHJcbiAgLy8gUG9seW1vcnBoaWMgUmVsYXRpb246IOC5gOC4iuC4t+C5iOC4reC4oeC4geC4seC4muC5gOC4reC4geC4quC4suC4o+C5hOC4lOC5ieC4q+C4peC4suC4ouC4m+C4o+C4sOC5gOC4oOC4lyAoUkZBLCBDT1JSLCBldGMuKSDguYLguJTguKLguYTguKHguYjguJXguYnguK3guIcgRm9yZWlnbiBLZXkg4LiI4Lij4Li04LiHXHJcbiAgQENvbHVtbih7XHJcbiAgICBuYW1lOiAnZW50aXR5X3R5cGUnLFxyXG4gICAgbGVuZ3RoOiA1MCxcclxuICAgIGNvbW1lbnQ6ICfguJvguKPguLDguYDguKDguJfguYDguK3guIHguKrguLLguKMg4LmA4LiK4LmI4LiZIHJmYSwgY29ycmVzcG9uZGVuY2UnLFxyXG4gIH0pXHJcbiAgZW50aXR5VHlwZSE6IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7XHJcbiAgICBuYW1lOiAnZW50aXR5X2lkJyxcclxuICAgIGxlbmd0aDogNTAsXHJcbiAgICBjb21tZW50OiAnSUQg4LiC4Lit4LiH4LmA4Lit4LiB4Liq4Liy4LijIChTdHJpbmcvVVVJRCknLFxyXG4gIH0pXHJcbiAgZW50aXR5SWQhOiBzdHJpbmc7XHJcblxyXG4gIEBDb2x1bW4oe1xyXG4gICAgbmFtZTogJ2N1cnJlbnRfc3RhdGUnLFxyXG4gICAgbGVuZ3RoOiA1MCxcclxuICAgIGNvbW1lbnQ6ICfguIrguLfguYjguK0gU3RhdGUg4Lib4Lix4LiI4LiI4Li44Lia4Lix4LiZIOC5gOC4iuC5iOC4mSBEUkFGVCwgSU5fUkVWSUVXJyxcclxuICB9KVxyXG4gIGN1cnJlbnRTdGF0ZSE6IHN0cmluZztcclxuXHJcbiAgQENvbHVtbih7XHJcbiAgICB0eXBlOiAnZW51bScsXHJcbiAgICBlbnVtOiBXb3JrZmxvd1N0YXR1cyxcclxuICAgIGRlZmF1bHQ6IFdvcmtmbG93U3RhdHVzLkFDVElWRSxcclxuICAgIGNvbW1lbnQ6ICfguKrguJbguLLguJnguLDguKDguLLguJ7guKPguKfguKHguILguK3guIcgSW5zdGFuY2UnLFxyXG4gIH0pXHJcbiAgc3RhdHVzITogV29ya2Zsb3dTdGF0dXM7XHJcblxyXG4gIC8vIENvbnRleHQ6IOC5gOC4geC5h+C4muC4leC4seC4p+C5geC4m+C4o+C4l+C4teC5iOC4iOC4s+C5gOC4m+C5h+C4meC4quC4s+C4q+C4o+C4seC4muC4geC4suC4o+C4leC4seC4lOC4quC4tOC4meC5g+C4iOC5g+C4mSBXb3JrZmxvd1xyXG4gIC8vIOC5gOC4iuC5iOC4mSB7IFwiYW1vdW50XCI6IDUwMDAwMCwgXCJyZXF1ZXN0ZXJfcm9sZVwiOiBcIkVOR0lORUVSXCIsIFwiYXBwcm92ZXJfaWRzXCI6IFsxLCAyXSB9XHJcbiAgQENvbHVtbih7IHR5cGU6ICdqc29uJywgbnVsbGFibGU6IHRydWUsIGNvbW1lbnQ6ICdSdW50aW1lIENvbnRleHQgRGF0YScgfSlcclxuICBjb250ZXh0PzogUmVjb3JkPHN0cmluZywgdW5rbm93bj47XHJcblxyXG4gIEBDcmVhdGVEYXRlQ29sdW1uKHsgbmFtZTogJ2NyZWF0ZWRfYXQnIH0pXHJcbiAgY3JlYXRlZEF0ITogRGF0ZTtcclxuXHJcbiAgQFVwZGF0ZURhdGVDb2x1bW4oeyBuYW1lOiAndXBkYXRlZF9hdCcgfSlcclxuICB1cGRhdGVkQXQhOiBEYXRlO1xyXG59XHJcbiJdLCJ2ZXJzaW9uIjozfQ==

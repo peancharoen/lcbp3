@@ -1,0 +1,56 @@
+87b5f59b33095c0a5a24524abb3071fa
+"use strict";
+/*
+ * Copyright The OpenTelemetry Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ROOT_CONTEXT = exports.createContextKey = void 0;
+/** Get a key to uniquely identify a context value */
+function createContextKey(description) {
+    // The specification states that for the same input, multiple calls should
+    // return different keys. Due to the nature of the JS dependency management
+    // system, this creates problems where multiple versions of some package
+    // could hold different keys for the same property.
+    //
+    // Therefore, we use Symbol.for which returns the same key for the same input.
+    return Symbol.for(description);
+}
+exports.createContextKey = createContextKey;
+class BaseContext {
+    /**
+     * Construct a new context which inherits values from an optional parent context.
+     *
+     * @param parentContext a context from which to inherit values
+     */
+    constructor(parentContext) {
+        // for minification
+        const self = this;
+        self._currentContext = parentContext ? new Map(parentContext) : new Map();
+        self.getValue = (key) => self._currentContext.get(key);
+        self.setValue = (key, value) => {
+            const context = new BaseContext(self._currentContext);
+            context._currentContext.set(key, value);
+            return context;
+        };
+        self.deleteValue = (key) => {
+            const context = new BaseContext(self._currentContext);
+            context._currentContext.delete(key);
+            return context;
+        };
+    }
+}
+/** The root context is used as the default parent context when there is no active context */
+exports.ROOT_CONTEXT = new BaseContext();
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBvcGVudGVsZW1ldHJ5K2FwaUAxLjkuMFxcbm9kZV9tb2R1bGVzXFxAb3BlbnRlbGVtZXRyeVxcYXBpXFxidWlsZFxcc3JjXFxjb250ZXh0XFxjb250ZXh0LmpzIiwibWFwcGluZ3MiOiJBQUFBLFlBQVksQ0FBQztBQUNiOzs7Ozs7Ozs7Ozs7OztHQWNHO0FBQ0gsTUFBTSxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsWUFBWSxFQUFFLEVBQUUsS0FBSyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUM7QUFDOUQsT0FBTyxDQUFDLFlBQVksR0FBRyxPQUFPLENBQUMsZ0JBQWdCLEdBQUcsS0FBSyxDQUFDLENBQUM7QUFDekQscURBQXFEO0FBQ3JELFNBQVMsZ0JBQWdCLENBQUMsV0FBVztJQUNqQywwRUFBMEU7SUFDMUUsMkVBQTJFO0lBQzNFLHdFQUF3RTtJQUN4RSxtREFBbUQ7SUFDbkQsRUFBRTtJQUNGLDhFQUE4RTtJQUM5RSxPQUFPLE1BQU0sQ0FBQyxHQUFHLENBQUMsV0FBVyxDQUFDLENBQUM7QUFDbkMsQ0FBQztBQUNELE9BQU8sQ0FBQyxnQkFBZ0IsR0FBRyxnQkFBZ0IsQ0FBQztBQUM1QyxNQUFNLFdBQVc7SUFDYjs7OztPQUlHO0lBQ0gsWUFBWSxhQUFhO1FBQ3JCLG1CQUFtQjtRQUNuQixNQUFNLElBQUksR0FBRyxJQUFJLENBQUM7UUFDbEIsSUFBSSxDQUFDLGVBQWUsR0FBRyxhQUFhLENBQUMsQ0FBQyxDQUFDLElBQUksR0FBRyxDQUFDLGFBQWEsQ0FBQyxDQUFDLENBQUMsQ0FBQyxJQUFJLEdBQUcsRUFBRSxDQUFDO1FBQzFFLElBQUksQ0FBQyxRQUFRLEdBQUcsQ0FBQyxHQUFHLEVBQUUsRUFBRSxDQUFDLElBQUksQ0FBQyxlQUFlLENBQUMsR0FBRyxDQUFDLEdBQUcsQ0FBQyxDQUFDO1FBQ3ZELElBQUksQ0FBQyxRQUFRLEdBQUcsQ0FBQyxHQUFHLEVBQUUsS0FBSyxFQUFFLEVBQUU7WUFDM0IsTUFBTSxPQUFPLEdBQUcsSUFBSSxXQUFXLENBQUMsSUFBSSxDQUFDLGVBQWUsQ0FBQyxDQUFDO1lBQ3RELE9BQU8sQ0FBQyxlQUFlLENBQUMsR0FBRyxDQUFDLEdBQUcsRUFBRSxLQUFLLENBQUMsQ0FBQztZQUN4QyxPQUFPLE9BQU8sQ0FBQztRQUNuQixDQUFDLENBQUM7UUFDRixJQUFJLENBQUMsV0FBVyxHQUFHLENBQUMsR0FBRyxFQUFFLEVBQUU7WUFDdkIsTUFBTSxPQUFPLEdBQUcsSUFBSSxXQUFXLENBQUMsSUFBSSxDQUFDLGVBQWUsQ0FBQyxDQUFDO1lBQ3RELE9BQU8sQ0FBQyxlQUFlLENBQUMsTUFBTSxDQUFDLEdBQUcsQ0FBQyxDQUFDO1lBQ3BDLE9BQU8sT0FBTyxDQUFDO1FBQ25CLENBQUMsQ0FBQztJQUNOLENBQUM7Q0FDSjtBQUNELDZGQUE2RjtBQUM3RixPQUFPLENBQUMsWUFBWSxHQUFHLElBQUksV0FBVyxFQUFFLENBQUMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRTpcXG5wLWRtc1xcbGNicDNcXG5vZGVfbW9kdWxlc1xcLnBucG1cXEBvcGVudGVsZW1ldHJ5K2FwaUAxLjkuMFxcbm9kZV9tb2R1bGVzXFxAb3BlbnRlbGVtZXRyeVxcYXBpXFxidWlsZFxcc3JjXFxjb250ZXh0XFxjb250ZXh0LmpzIl0sInNvdXJjZXNDb250ZW50IjpbIlwidXNlIHN0cmljdFwiO1xuLypcbiAqIENvcHlyaWdodCBUaGUgT3BlblRlbGVtZXRyeSBBdXRob3JzXG4gKlxuICogTGljZW5zZWQgdW5kZXIgdGhlIEFwYWNoZSBMaWNlbnNlLCBWZXJzaW9uIDIuMCAodGhlIFwiTGljZW5zZVwiKTtcbiAqIHlvdSBtYXkgbm90IHVzZSB0aGlzIGZpbGUgZXhjZXB0IGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgTGljZW5zZS5cbiAqIFlvdSBtYXkgb2J0YWluIGEgY29weSBvZiB0aGUgTGljZW5zZSBhdFxuICpcbiAqICAgICAgaHR0cHM6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxuICpcbiAqIFVubGVzcyByZXF1aXJlZCBieSBhcHBsaWNhYmxlIGxhdyBvciBhZ3JlZWQgdG8gaW4gd3JpdGluZywgc29mdHdhcmVcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxuICogU2VlIHRoZSBMaWNlbnNlIGZvciB0aGUgc3BlY2lmaWMgbGFuZ3VhZ2UgZ292ZXJuaW5nIHBlcm1pc3Npb25zIGFuZFxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXG4gKi9cbk9iamVjdC5kZWZpbmVQcm9wZXJ0eShleHBvcnRzLCBcIl9fZXNNb2R1bGVcIiwgeyB2YWx1ZTogdHJ1ZSB9KTtcbmV4cG9ydHMuUk9PVF9DT05URVhUID0gZXhwb3J0cy5jcmVhdGVDb250ZXh0S2V5ID0gdm9pZCAwO1xuLyoqIEdldCBhIGtleSB0byB1bmlxdWVseSBpZGVudGlmeSBhIGNvbnRleHQgdmFsdWUgKi9cbmZ1bmN0aW9uIGNyZWF0ZUNvbnRleHRLZXkoZGVzY3JpcHRpb24pIHtcbiAgICAvLyBUaGUgc3BlY2lmaWNhdGlvbiBzdGF0ZXMgdGhhdCBmb3IgdGhlIHNhbWUgaW5wdXQsIG11bHRpcGxlIGNhbGxzIHNob3VsZFxuICAgIC8vIHJldHVybiBkaWZmZXJlbnQga2V5cy4gRHVlIHRvIHRoZSBuYXR1cmUgb2YgdGhlIEpTIGRlcGVuZGVuY3kgbWFuYWdlbWVudFxuICAgIC8vIHN5c3RlbSwgdGhpcyBjcmVhdGVzIHByb2JsZW1zIHdoZXJlIG11bHRpcGxlIHZlcnNpb25zIG9mIHNvbWUgcGFja2FnZVxuICAgIC8vIGNvdWxkIGhvbGQgZGlmZmVyZW50IGtleXMgZm9yIHRoZSBzYW1lIHByb3BlcnR5LlxuICAgIC8vXG4gICAgLy8gVGhlcmVmb3JlLCB3ZSB1c2UgU3ltYm9sLmZvciB3aGljaCByZXR1cm5zIHRoZSBzYW1lIGtleSBmb3IgdGhlIHNhbWUgaW5wdXQuXG4gICAgcmV0dXJuIFN5bWJvbC5mb3IoZGVzY3JpcHRpb24pO1xufVxuZXhwb3J0cy5jcmVhdGVDb250ZXh0S2V5ID0gY3JlYXRlQ29udGV4dEtleTtcbmNsYXNzIEJhc2VDb250ZXh0IHtcbiAgICAvKipcbiAgICAgKiBDb25zdHJ1Y3QgYSBuZXcgY29udGV4dCB3aGljaCBpbmhlcml0cyB2YWx1ZXMgZnJvbSBhbiBvcHRpb25hbCBwYXJlbnQgY29udGV4dC5cbiAgICAgKlxuICAgICAqIEBwYXJhbSBwYXJlbnRDb250ZXh0IGEgY29udGV4dCBmcm9tIHdoaWNoIHRvIGluaGVyaXQgdmFsdWVzXG4gICAgICovXG4gICAgY29uc3RydWN0b3IocGFyZW50Q29udGV4dCkge1xuICAgICAgICAvLyBmb3IgbWluaWZpY2F0aW9uXG4gICAgICAgIGNvbnN0IHNlbGYgPSB0aGlzO1xuICAgICAgICBzZWxmLl9jdXJyZW50Q29udGV4dCA9IHBhcmVudENvbnRleHQgPyBuZXcgTWFwKHBhcmVudENvbnRleHQpIDogbmV3IE1hcCgpO1xuICAgICAgICBzZWxmLmdldFZhbHVlID0gKGtleSkgPT4gc2VsZi5fY3VycmVudENvbnRleHQuZ2V0KGtleSk7XG4gICAgICAgIHNlbGYuc2V0VmFsdWUgPSAoa2V5LCB2YWx1ZSkgPT4ge1xuICAgICAgICAgICAgY29uc3QgY29udGV4dCA9IG5ldyBCYXNlQ29udGV4dChzZWxmLl9jdXJyZW50Q29udGV4dCk7XG4gICAgICAgICAgICBjb250ZXh0Ll9jdXJyZW50Q29udGV4dC5zZXQoa2V5LCB2YWx1ZSk7XG4gICAgICAgICAgICByZXR1cm4gY29udGV4dDtcbiAgICAgICAgfTtcbiAgICAgICAgc2VsZi5kZWxldGVWYWx1ZSA9IChrZXkpID0+IHtcbiAgICAgICAgICAgIGNvbnN0IGNvbnRleHQgPSBuZXcgQmFzZUNvbnRleHQoc2VsZi5fY3VycmVudENvbnRleHQpO1xuICAgICAgICAgICAgY29udGV4dC5fY3VycmVudENvbnRleHQuZGVsZXRlKGtleSk7XG4gICAgICAgICAgICByZXR1cm4gY29udGV4dDtcbiAgICAgICAgfTtcbiAgICB9XG59XG4vKiogVGhlIHJvb3QgY29udGV4dCBpcyB1c2VkIGFzIHRoZSBkZWZhdWx0IHBhcmVudCBjb250ZXh0IHdoZW4gdGhlcmUgaXMgbm8gYWN0aXZlIGNvbnRleHQgKi9cbmV4cG9ydHMuUk9PVF9DT05URVhUID0gbmV3IEJhc2VDb250ZXh0KCk7XG4vLyMgc291cmNlTWFwcGluZ1VSTD1jb250ZXh0LmpzLm1hcCJdLCJ2ZXJzaW9uIjozfQ==
