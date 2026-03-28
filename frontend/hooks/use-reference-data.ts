@@ -10,7 +10,7 @@ import type {
 export const referenceDataKeys = {
   all: ['reference-data'] as const,
   rfaTypes: (contractId?: number | string) => [...referenceDataKeys.all, 'rfaTypes', contractId] as const,
-  disciplines: (contractId?: number) => [...referenceDataKeys.all, 'disciplines', contractId] as const,
+  disciplines: (contractId?: number | string) => [...referenceDataKeys.all, 'disciplines', contractId] as const,
   correspondenceTypes: () => [...referenceDataKeys.all, 'correspondenceTypes'] as const,
 };
 
@@ -53,7 +53,7 @@ export const useDeleteRfaType = () => {
 };
 
 // --- Disciplines ---
-export const useDisciplines = (contractId?: number) => {
+export const useDisciplines = (contractId?: number | string) => {
   return useQuery({
     queryKey: referenceDataKeys.disciplines(contractId),
     queryFn: () => masterDataService.getDisciplines(contractId),
