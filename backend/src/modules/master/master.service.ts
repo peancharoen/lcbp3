@@ -320,7 +320,7 @@ export class MasterService {
         }
       );
     }
-    qb.orderBy('tag.tag_name', 'ASC');
+    qb.orderBy('tag.tagName', 'ASC');
     if (query?.page && query?.limit) {
       const page = query.page;
       const limit = query.limit;
