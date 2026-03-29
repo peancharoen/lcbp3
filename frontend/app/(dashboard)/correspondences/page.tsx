@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Plus, Loader2 } from 'lucide-react';
 import { CorrespondencesContent } from '@/components/correspondences/correspondences-content';
+import { Can } from '@/components/common/can';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,12 +15,14 @@ export default function CorrespondencesPage() {
           <h1 className="text-3xl font-bold">Correspondences</h1>
           <p className="text-muted-foreground mt-1">Manage official letters and communications</p>
         </div>
-        <Link href="/correspondences/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Correspondence
-          </Button>
-        </Link>
+        <Can permission="correspondence.create">
+          <Link href="/correspondences/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New Correspondence
+            </Button>
+          </Link>
+        </Can>
       </div>
 
       <Suspense

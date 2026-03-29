@@ -16,10 +16,10 @@ import { useCreateCorrespondence, useUpdateCorrespondence } from '@/hooks/use-co
 import { Organization } from '@/types/organization';
 import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines, useContracts } from '@/hooks/use-master-data';
 import { CreateCorrespondenceDto } from '@/types/dto/correspondence/create-correspondence.dto';
-import { useState, useEffect } from 'react';
-import { correspondenceService as _correspondenceService } from '@/lib/services/correspondence.service';
+import { useState, useEffect, useRef } from 'react';
 import { numberingApi } from '@/lib/api/numbering';
 import { filesApi } from '@/lib/api/files';
+import { toast } from 'sonner';
 
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
@@ -45,9 +45,7 @@ const correspondenceSchema = z.object({
 type FormData = z.infer<typeof correspondenceSchema>;
 
 type ProjectOption = {
-  publicId?: string;
-  uuid?: string;
-  id?: number;
+  publicId: string;
   projectName: string;
   projectCode: string;
 };
@@ -72,7 +70,8 @@ interface DisciplineOption {
 
 interface InitialCorrespondenceData {
   projectId?: number | string;
-  project?: { uuid?: string };
+  project?: { publicId?: string };
+  contract?: { publicId?: string };
   correspondenceTypeId?: number;
   disciplineId?: number;
   revisions?: Array<{
@@ -89,9 +88,11 @@ interface InitialCorrespondenceData {
     details?: { importance: 'NORMAL' | 'HIGH' | 'URGENT' };
   }>;
   originatorId?: number;
+  originator?: { publicId?: string };
   recipients?: Array<{
     recipientType: string;
     recipientOrganizationId: number;
+    recipientOrganization?: { publicId?: string };
   }>;
   correspondenceNumber?: string;
 }
@@ -114,6 +115,15 @@ const extractArrayData = <T,>(value: unknown): T[] => {
   return Array.isArray(current) ? (current as T[]) : [];
 };
 
+const normalizePublicId = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
 export function CorrespondenceForm({ initialData, uuid }: { initialData?: InitialCorrespondenceData; uuid?: string }) {
   const router = useRouter();
   const createMutation = useCreateCorrespondence();
@@ -129,8 +139,18 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
 
   // Extract initial values if editing
   const currentRev = initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
+  const initialToRecipient = initialData?.recipients?.find((r) => r.recipientType === 'TO');
+  const initialCcRecipientIds =
+    initialData?.recipients
+      ?.filter((r) => r.recipientType === 'CC')
+      .map((r) => normalizePublicId(r.recipientOrganization?.publicId))
+      .filter((value): value is string => Boolean(value)) ?? [];
+
   const defaultValues: Partial<FormData> = {
-    projectId: initialData?.project?.uuid || (initialData?.projectId ? String(initialData.projectId) : undefined),
+    projectId:
+      normalizePublicId(initialData?.project?.publicId) ??
+      normalizePublicId(initialData?.projectId),
+    contractId: normalizePublicId(initialData?.contract?.publicId),
     documentTypeId: initialData?.correspondenceTypeId || undefined,
     disciplineId: initialData?.disciplineId || undefined,
     subject: currentRev?.subject || currentRev?.title || '',
@@ -141,11 +161,10 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
     documentDate: currentRev?.documentDate ? new Date(currentRev.documentDate).toISOString().split('T')[0] : undefined,
     issuedDate: currentRev?.issuedDate ? new Date(currentRev.issuedDate).toISOString().split('T')[0] : undefined,
     receivedDate: currentRev?.receivedDate ? new Date(currentRev.receivedDate).toISOString().split('T')[0] : undefined,
-    fromOrganizationId: initialData?.originatorId ? String(initialData.originatorId) : undefined,
-    // Map initial recipient (TO) - Simplified for now
-    toOrganizationId: initialData?.recipients?.find((r) => r.recipientType === 'TO')?.recipientOrganizationId
-      ? String(initialData.recipients.find((r) => r.recipientType === 'TO')?.recipientOrganizationId)
-      : undefined,
+    fromOrganizationId:
+      normalizePublicId(initialData?.originator?.publicId) ?? normalizePublicId(initialData?.originatorId),
+    toOrganizationId: normalizePublicId(initialToRecipient?.recipientOrganization?.publicId),
+    ccOrganizationIds: initialCcRecipientIds,
     importance: currentRev?.details?.importance || 'NORMAL',
   } as Partial<FormData>;
 
@@ -156,8 +175,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
     watch,
     formState: { errors },
   } = useForm<FormData>({
-    // @ts-ignore: Zod version mismatch
-    resolver: zodResolver(correspondenceSchema) as unknown as Resolver<FormData>,
+    resolver: zodResolver(correspondenceSchema) as Resolver<FormData>,
     defaultValues: defaultValues as FormData,
   });
 
@@ -177,8 +195,16 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
   const { data: disciplinesData, isLoading: isLoadingDisciplines } = useDisciplines(contractId);
   const disciplines = extractArrayData<DisciplineOption>(disciplinesData);
 
+  const didInitProjectReset = useRef(false);
+  const didInitContractReset = useRef(false);
+
   // Reset dependent fields when project changes
   useEffect(() => {
+    if (!didInitProjectReset.current) {
+      didInitProjectReset.current = true;
+      return;
+    }
+
     if (projectId) {
       setValue('contractId', '');
       setValue('disciplineId', undefined);
@@ -187,6 +213,11 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
 
   // Reset discipline when contract changes
   useEffect(() => {
+    if (!didInitContractReset.current) {
+      didInitContractReset.current = true;
+      return;
+    }
+
     if (contractId) {
       setValue('disciplineId', undefined);
     }
@@ -209,7 +240,11 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
       try {
         const uploaded = await filesApi.uploadMany(validFiles);
         attachmentTempIds = uploaded.map((u) => u.tempId);
-      } catch (_err) {
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to upload attachments';
+        toast.error('Attachment upload failed', {
+          description: message,
+        });
         setIsUploading(false);
         return;
       }
@@ -346,7 +381,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
             </SelectTrigger>
             <SelectContent>
               {projects.map((p) => (
-                <SelectItem key={p.publicId || String(p.id)} value={p.publicId || String(p.id)}>
+                <SelectItem key={p.publicId} value={p.publicId}>
                   {p.projectName} ({p.projectCode})
                 </SelectItem>
               ))}
@@ -615,7 +650,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
           <FileUploadZone
             onFilesChanged={(files) => setValue('attachments', files)}
             multiple
-            accept={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.png']}
+            accept={['.pdf', '.dwg', '.docx', '.xlsx', '.zip']}
           />
         </div>
       )}

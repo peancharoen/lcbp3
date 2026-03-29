@@ -12,6 +12,8 @@ import { ReferenceSelector } from '@/components/correspondences/reference-select
 import { TagManager } from '@/components/correspondences/tag-manager';
 import { CirculationStatusCard } from '@/components/correspondences/circulation-status-card';
 import { RevisionHistory } from '@/components/correspondences/revision-history';
+import { Can } from '@/components/common/can';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,6 +28,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
   const submitMutation = useSubmitCorrespondence();
   const processMutation = useProcessWorkflow();
   const cancelMutation = useCancelCorrespondence();
+  const { hasPermission } = useAuthStore();
   const [actionState, setActionState] = useState<'approve' | 'reject' | 'cancel' | null>(null);
   const [comments, setComments] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -38,6 +41,7 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
   const status = currentRevision?.status?.statusCode || 'UNKNOWN';
   const attachments = currentRevision?.attachments || [];
   const importance = (currentRevision?.details?.importance as string) || 'NORMAL';
+  const canEditMetadata = hasPermission('correspondence.edit');
 
   const toRecipients = data.recipients?.filter((r) => r.recipientType === 'TO') || [];
   const ccRecipients = data.recipients?.filter((r) => r.recipientType === 'CC') || [];
@@ -97,44 +101,52 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
         </div>
         <div className="flex gap-2">
           {status === 'DRAFT' && (
-            <Link href={`/correspondences/${data.publicId}/edit`}>
-              <Button variant="outline">
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-            </Link>
+            <Can permission="correspondence.edit">
+              <Link href={`/correspondences/${data.publicId}/edit`}>
+                <Button variant="outline">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              </Link>
+            </Can>
           )}
           {status === 'DRAFT' && (
-            <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
-              {submitMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-2 h-4 w-4" />
-              )}
-              Submit for Review
-            </Button>
+            <Can permission="correspondence.submit">
+              <Button onClick={handleSubmit} disabled={submitMutation.isPending}>
+                {submitMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                Submit for Review
+              </Button>
+            </Can>
           )}
           {status === 'IN_REVIEW' && (
-            <>
-              <Button variant="destructive" onClick={() => setActionState('reject')}>
-                <XCircle className="mr-2 h-4 w-4" />
-                Reject
-              </Button>
-              <Button className="bg-green-600 hover:bg-green-700" onClick={() => setActionState('approve')}>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Approve
-              </Button>
-            </>
+            <Can permission="workflow.action_review">
+              <>
+                <Button variant="destructive" onClick={() => setActionState('reject')}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Reject
+                </Button>
+                <Button className="bg-green-600 hover:bg-green-700" onClick={() => setActionState('approve')}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Approve
+                </Button>
+              </>
+            </Can>
           )}
           {status !== 'CANCELLED' && (
-            <Button
-              variant="outline"
-              className="text-destructive border-destructive hover:bg-destructive/10"
-              onClick={() => setActionState('cancel')}
-            >
-              <Ban className="mr-2 h-4 w-4" />
-              Cancel
-            </Button>
+            <Can permission="correspondence.delete">
+              <Button
+                variant="outline"
+                className="text-destructive border-destructive hover:bg-destructive/10"
+                onClick={() => setActionState('cancel')}
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+            </Can>
           )}
         </div>
       </div>
@@ -381,13 +393,13 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
           {/* Tags */}
           <TagManager
             uuid={data.publicId}
-            canEdit={status !== 'CANCELLED'}
+            canEdit={status !== 'CANCELLED' && canEditMetadata}
           />
 
           {/* References */}
           <ReferenceSelector
             uuid={data.publicId}
-            canEdit={status !== 'CANCELLED'}
+            canEdit={status !== 'CANCELLED' && canEditMetadata}
           />
 
           {/* Revision History */}
