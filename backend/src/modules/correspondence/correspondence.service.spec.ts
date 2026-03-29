@@ -643,11 +643,11 @@ describe('CorrespondenceService', () => {
 
       expect(queryRunner.manager.create).toHaveBeenCalledWith(
         CorrespondenceRevision,
-        expect.objectContaining({ revisionLabel: null })
+        expect.objectContaining({ revisionLabel: undefined })
       );
     });
 
-    it('should set revisionLabel to null for MEMO type', async () => {
+    it('should set revisionLabel to undefined for MEMO type', async () => {
       const mockUser = {
         user_id: 1,
         primaryOrganizationId: 10,
@@ -716,7 +716,7 @@ describe('CorrespondenceService', () => {
 
       expect(queryRunner.manager.create).toHaveBeenCalledWith(
         CorrespondenceRevision,
-        expect.objectContaining({ revisionLabel: null })
+        expect.objectContaining({ revisionLabel: undefined })
       );
     });
   });
