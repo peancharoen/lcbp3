@@ -307,20 +307,20 @@ export class MasterService {
       const internalId = await this.uuidResolver.resolveProjectId(
         query.projectId
       );
-      qb.andWhere('tag.projectId = :projectId', {
+      qb.andWhere('tag.project_id = :projectId', {
         projectId: internalId,
       });
     }
 
     if (query?.search) {
       qb.andWhere(
-        '(tag.tagName LIKE :search OR tag.description LIKE :search)',
+        '(tag.tag_name LIKE :search OR tag.description LIKE :search)',
         {
           search: `%${query.search}%`,
         }
       );
     }
-    qb.orderBy('tag.tagName', 'ASC');
+    qb.orderBy('tag.tag_name', 'ASC');
     if (query?.page && query?.limit) {
       const page = query.page;
       const limit = query.limit;
