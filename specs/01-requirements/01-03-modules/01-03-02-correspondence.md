@@ -146,8 +146,14 @@ related:
 
 - 1 Correspondence Master → หลาย Revision (1:N)
 - `is_current = TRUE` มีได้เพียง 1 แถวต่อ correspondence (UNIQUE constraint)
-- `revision_label`: A, B, C, ... (หรือ 1.1, 1.2 แล้วแต่ type)
 - `revision_number`: 0-based integer สำหรับ sorting
+- `revision_label`: กำหนดตามประเภทเอกสารดังนี้:
+  | Type | Initial Label | ลำดับถัดไป | Format |
+  |------|--------------|------------|--------|
+  | **RFA, RFI** | `A` | B, C, D... | Alphabet |
+  | **LETTER, MEMO, TRANSMITTAL, EMAIL, INSTRUCTION, NOTICE, MOM, OTHER** | `null` | 1, 2, 3... | Numeric |
+
+**หมายเหตุ:** Shop Drawing และ As-Built Drawing ใช้ revision label แยกตามกฎของ Drawing Module (numeric '0', '1', '2'... หรือ user กำหนดเอง)
 
 ---
 

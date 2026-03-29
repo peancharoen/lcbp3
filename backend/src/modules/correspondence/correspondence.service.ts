@@ -55,6 +55,19 @@ export class CorrespondenceService {
     return permissions.includes('system.manage_all');
   }
 
+  /**
+   * Business Rule: Revision Label Strategy
+   * - RFA, RFI: Use alphabet starting with 'A' (A, B, C...)
+   * - Other types (LETTER, MEMO, etc.): Use numeric (null for first, then 1, 2, 3...)
+   */
+  private getInitialRevisionLabel(typeCode: string): string | null {
+    const alphabetTypes = ['RFA', 'RFI'];
+    if (alphabetTypes.includes(typeCode.toUpperCase())) {
+      return 'A'; // Alphabet for RFA, RFI
+    }
+    return null; // Numeric (null for revision 0)
+  }
+
   constructor(
     @InjectRepository(Correspondence)
     private correspondenceRepo: Repository<Correspondence>,
@@ -288,7 +301,7 @@ export class CorrespondenceService {
       const revision = queryRunner.manager.create(CorrespondenceRevision, {
         correspondenceId: savedCorr.id,
         revisionNumber: 0,
-        revisionLabel: 'A',
+        revisionLabel: this.getInitialRevisionLabel(type.typeCode),
         isCurrent: true,
         statusId: statusDraft.id,
         subject: createDto.subject,
