@@ -303,25 +303,24 @@ export class MasterService {
       .createQueryBuilder('tag')
       .leftJoinAndSelect('tag.project', 'project');
 
-    if (query?.project_id) {
-      // In Tags, we use project_id (INT) directly or resolve if UUID passed via query
+    if (query?.projectId) {
       const internalId = await this.uuidResolver.resolveProjectId(
-        query.project_id
+        query.projectId
       );
-      qb.andWhere('tag.project_id = :projectId', {
+      qb.andWhere('tag.projectId = :projectId', {
         projectId: internalId,
       });
     }
 
     if (query?.search) {
       qb.andWhere(
-        '(tag.tag_name LIKE :search OR tag.description LIKE :search)',
+        '(tag.tagName LIKE :search OR tag.description LIKE :search)',
         {
           search: `%${query.search}%`,
         }
       );
     }
-    qb.orderBy('tag.tag_name', 'ASC');
+    qb.orderBy('tag.tagName', 'ASC');
     if (query?.page && query?.limit) {
       const page = query.page;
       const limit = query.limit;
@@ -342,11 +341,13 @@ export class MasterService {
   }
 
   async createTag(dto: CreateTagDto, userId: number) {
-    const internalProjectId = dto.project_id
-      ? await this.uuidResolver.resolveProjectId(dto.project_id)
+    const internalProjectId = dto.projectId
+      ? await this.uuidResolver.resolveProjectId(dto.projectId)
       : null;
     const tag = this.tagRepo.create({
-      ...dto,
+      tagName: dto.tagName,
+      colorCode: dto.colorCode,
+      description: dto.description,
       projectId: internalProjectId,
       createdBy: userId,
     });
@@ -355,10 +356,18 @@ export class MasterService {
 
   async updateTag(id: number, dto: UpdateTagDto) {
     const tag = await this.findOneTag(id);
-    if (dto.project_id) {
-      dto.project_id = await this.uuidResolver.resolveProjectId(dto.project_id);
+    let internalProjectId = dto.projectId;
+    if (dto.projectId) {
+      internalProjectId = await this.uuidResolver.resolveProjectId(
+        dto.projectId
+      );
     }
-    Object.assign(tag, dto);
+    Object.assign(tag, {
+      tagName: dto.tagName,
+      colorCode: dto.colorCode,
+      description: dto.description,
+      projectId: internalProjectId,
+    });
     return this.tagRepo.save(tag);
   }
 

@@ -24,7 +24,7 @@ export default function TagsPage() {
 
   const columns: ColumnDef<Tag>[] = [
     {
-      accessorKey: 'project_id',
+      accessorKey: 'projectId',
       header: 'Project',
       cell: ({ row }) => {
         const item = row.original as Tag & { project?: { id?: number | string; publicId?: string; projectName?: string; projectCode?: string } };
@@ -34,7 +34,7 @@ export default function TagsPage() {
       },
     },
     {
-      accessorKey: 'tag_name',
+      accessorKey: 'tagName',
       header: 'Tag Name',
       cell: ({ row }) => {
         const color = String(row.original.colorCode || 'default');
@@ -58,9 +58,9 @@ export default function TagsPage() {
 
   const formatPayload = (data: Record<string, unknown>) => {
     const payload = { ...data };
-    // ADR-019: project_id is now a UUID string or '__none__' for global
-    if (!payload.project_id || payload.project_id === '__none__') {
-      payload.project_id = null;
+    // ADR-019: projectId is now a UUID string or '__none__' for global
+    if (!payload.projectId || payload.projectId === '__none__') {
+      payload.projectId = null;
     }
     return payload;
   };
@@ -73,12 +73,12 @@ export default function TagsPage() {
       queryKey={['tags']}
       fetchFn={async () => {
         const items = await masterDataService.getTags();
-        // ADR-019: Map project_id INT → project UUID for edit mode select matching
+        // ADR-019: Map projectId INT → project UUID for edit mode select matching
         return items.map((item) => {
-          const rec = item as Tag & { project?: { id?: number | string; publicId?: string }; project_id?: number | string };
+          const rec = item as Tag & { project?: { id?: number | string; publicId?: string }; projectId?: number | string };
           return {
             ...item,
-            project_id: rec.project?.publicId || rec.project?.id || (rec.project_id ? String(rec.project_id) : null),
+            projectId: rec.project?.publicId || rec.project?.id || (rec.projectId ? String(rec.projectId) : null),
           } as Tag;
         });
       }}
@@ -90,7 +90,7 @@ export default function TagsPage() {
       columns={columns}
       fields={[
         {
-          name: 'project_id',
+          name: 'projectId',
           label: 'Project Scope',
           type: 'select',
           options: projectOptions,

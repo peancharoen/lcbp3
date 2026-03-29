@@ -5,7 +5,7 @@ export class CreateTagDto {
   @ApiProperty({ example: 'URGENT', description: 'ชื่อ Tag' })
   @IsString()
   @IsNotEmpty()
-  tag_name!: string; // เพิ่ม !
+  tagName!: string;
 
   @ApiProperty({ example: 'คำอธิบาย', description: 'คำอธิบาย' })
   @IsString()
@@ -19,7 +19,7 @@ export class CreateTagDto {
   })
   @IsString()
   @IsOptional()
-  color_code?: string;
+  colorCode?: string;
 
   @ApiProperty({
     example: 1,
@@ -27,5 +27,5 @@ export class CreateTagDto {
     required: false,
   })
   @IsOptional()
-  project_id?: number | string;
+  projectId?: number | string;
 }

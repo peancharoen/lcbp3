@@ -2,16 +2,17 @@
 
 import { IsString, IsOptional, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 export class SearchTagDto {
-  @ApiPropertyOptional({
-    description: 'ID โครงการ (ใช้กรอง Tag ของแต่ละโปรเจกต์)',
+  @ApiProperty({
+    example: 1,
+    description:
+      'Project ID or UUID (ใช้กรอง Tag ของแต่ละโปรเจกต์) - ADR-019: Accept UUID',
+    required: false,
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  project_id?: number;
+  projectId?: number | string;
 
   @ApiPropertyOptional({ description: 'คำค้นหา (ชื่อ Tag หรือ คำอธิบาย)' })
   @IsOptional()

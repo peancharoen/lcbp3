@@ -345,28 +345,7 @@ export function RFAForm() {
         <h3 className="text-lg font-semibold mb-4">RFA Information</h3>
 
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="subject">Subject *</Label>
-            <Input id="subject" {...register('subject')} placeholder="Enter subject" />
-            {errors.subject && <p className="text-sm text-destructive mt-1">{errors.subject.message}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="body">Body (Content)</Label>
-            <Textarea id="body" {...register('body')} rows={4} placeholder="Enter content..." />
-          </div>
-
-          <div>
-            <Label htmlFor="remarks">Remarks</Label>
-            <Input id="remarks" {...register('remarks')} placeholder="Optional remarks" />
-          </div>
-
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Input id="description" {...register('description')} placeholder="Enter key description" />
-          </div>
-
-          <div>
+                    <div>
             <Label>Project *</Label>
             <Select
               value={selectedProjectId || undefined}
@@ -540,6 +519,28 @@ export function RFAForm() {
               )}
             </div>
           </div>
+          <div>
+            <Label htmlFor="subject">Subject *</Label>
+            <Input id="subject" {...register('subject')} placeholder="Enter subject" />
+            {errors.subject && <p className="text-sm text-destructive mt-1">{errors.subject.message}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="body">Body (Content)</Label>
+            <Textarea id="body" {...register('body')} rows={4} placeholder="Enter content..." />
+          </div>
+
+          <div>
+            <Label htmlFor="remarks">Remarks</Label>
+            <Input id="remarks" {...register('remarks')} placeholder="Optional remarks" />
+          </div>
+
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Input id="description" {...register('description')} placeholder="Enter key description" />
+          </div>
+
+
         </div>
       </Card>
 

@@ -439,81 +439,6 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
         </div>
       </div>
 
-      {/* Subject */}
-      <div className="space-y-2">
-        <Label htmlFor="subject">Subject *</Label>
-        <Input id="subject" {...register('subject')} placeholder="Enter subject" />
-        {errors.subject && <p className="text-sm text-destructive">{errors.subject.message}</p>}
-      </div>
-
-      {/* Body */}
-      <div className="space-y-2">
-        <Label htmlFor="body">Body (Content)</Label>
-        <Textarea id="body" {...register('body')} rows={6} placeholder="Enter letter content..." />
-      </div>
-
-      {/* Date Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="documentDate">Document Date</Label>
-          <Input
-            id="documentDate"
-            type="date"
-            {...register('documentDate')}
-            onChange={(e) => {
-              const val = e.target.value;
-              setValue('documentDate', val, { shouldValidate: true, shouldDirty: true });
-              if (val) {
-                setValue('issuedDate', val, { shouldValidate: true, shouldDirty: true });
-                setValue('receivedDate', val, { shouldValidate: true, shouldDirty: true });
-                const d = new Date(val);
-                d.setDate(d.getDate() + 7);
-                setValue('dueDate', d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
-              }
-            }}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="issuedDate">Issued Date</Label>
-          <Input id="issuedDate" type="date" {...register('issuedDate')} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="receivedDate">Received Date</Label>
-          <Input
-            id="receivedDate"
-            type="date"
-            {...register('receivedDate')}
-            onChange={(e) => {
-              const val = e.target.value;
-              setValue('receivedDate', val, { shouldValidate: true, shouldDirty: true });
-              if (val) {
-                const d = new Date(val);
-                d.setDate(d.getDate() + 7);
-                setValue('dueDate', d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
-              }
-            }}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="dueDate">Due Date</Label>
-          <Input id="dueDate" type="date" {...register('dueDate')} />
-        </div>
-      </div>
-
-      {/* Remarks */}
-      <div className="grid grid-cols-1 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="remarks">Remarks</Label>
-          <Input id="remarks" {...register('remarks')} placeholder="Optional remarks" />
-        </div>
-      </div>
-
-      {/* Description */}
-      <div className="space-y-2">
-        <Label htmlFor="description">Description (Internal Note)</Label>
-        <Textarea id="description" {...register('description')} rows={2} placeholder="Enter description..." />
-      </div>
-
       {/* Organizations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
@@ -587,6 +512,81 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
             Select organizations to receive a copy of this correspondence
           </p>
         </div>
+      </div>
+
+      {/* Subject */}
+      <div className="space-y-2">
+        <Label htmlFor="subject">Subject *</Label>
+        <Input id="subject" {...register('subject')} placeholder="Enter subject" />
+        {errors.subject && <p className="text-sm text-destructive">{errors.subject.message}</p>}
+      </div>
+
+      {/* Body */}
+      <div className="space-y-2">
+        <Label htmlFor="body">Body (Content)</Label>
+        <Textarea id="body" {...register('body')} rows={6} placeholder="Enter letter content..." />
+      </div>
+
+      {/* Date Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="documentDate">Document Date</Label>
+          <Input
+            id="documentDate"
+            type="date"
+            {...register('documentDate')}
+            onChange={(e) => {
+              const val = e.target.value;
+              setValue('documentDate', val, { shouldValidate: true, shouldDirty: true });
+              if (val) {
+                setValue('issuedDate', val, { shouldValidate: true, shouldDirty: true });
+                setValue('receivedDate', val, { shouldValidate: true, shouldDirty: true });
+                const d = new Date(val);
+                d.setDate(d.getDate() + 7);
+                setValue('dueDate', d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
+              }
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="issuedDate">Issued Date</Label>
+          <Input id="issuedDate" type="date" {...register('issuedDate')} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="receivedDate">Received Date</Label>
+          <Input
+            id="receivedDate"
+            type="date"
+            {...register('receivedDate')}
+            onChange={(e) => {
+              const val = e.target.value;
+              setValue('receivedDate', val, { shouldValidate: true, shouldDirty: true });
+              if (val) {
+                const d = new Date(val);
+                d.setDate(d.getDate() + 7);
+                setValue('dueDate', d.toISOString().split('T')[0], { shouldValidate: true, shouldDirty: true });
+              }
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dueDate">Due Date</Label>
+          <Input id="dueDate" type="date" {...register('dueDate')} />
+        </div>
+      </div>
+
+      {/* Remarks */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="remarks">Remarks</Label>
+          <Input id="remarks" {...register('remarks')} placeholder="Optional remarks" />
+        </div>
+      </div>
+
+      {/* Description */}
+      <div className="space-y-2">
+        <Label htmlFor="description">Description (Internal Note)</Label>
+        <Textarea id="description" {...register('description')} rows={2} placeholder="Enter description..." />
       </div>
 
       {/* Importance */}
