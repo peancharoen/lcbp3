@@ -50,6 +50,11 @@ interface ResolvedRecipient {
 export class CorrespondenceService {
   private readonly logger = new Logger(CorrespondenceService.name);
 
+  private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
+    const permissions = await this.userService.getUserPermissions(userId);
+    return permissions.includes('system.manage_all');
+  }
+
   constructor(
     @InjectRepository(Correspondence)
     private correspondenceRepo: Repository<Correspondence>,
@@ -92,9 +97,22 @@ export class CorrespondenceService {
     }
 
     if (!userOrgId) {
-      throw new BadRequestException(
-        'User must belong to an organization to create documents'
-      );
+      if (createDto.originatorId) {
+        const canManageAll = await this.hasSystemManageAllPermission(
+          user.user_id
+        );
+        if (canManageAll) {
+          userOrgId = await this.uuidResolver.resolveOrganizationId(
+            createDto.originatorId
+          );
+        }
+      }
+
+      if (!userOrgId) {
+        throw new BadRequestException(
+          'User must belong to an organization to create documents'
+        );
+      }
     }
 
     // For impersonation, use the specified originator
@@ -187,10 +205,10 @@ export class CorrespondenceService {
 
     // Impersonation Logic
     if (resolvedOriginatorId && resolvedOriginatorId !== userOrgId) {
-      const permissions = await this.userService.getUserPermissions(
+      const canManageAll = await this.hasSystemManageAllPermission(
         user.user_id
       );
-      if (!permissions.includes('system.manage_all')) {
+      if (!canManageAll) {
         throw new ForbiddenException(
           'You do not have permission to create documents on behalf of other organizations.'
         );

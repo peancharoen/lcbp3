@@ -4,6 +4,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -22,10 +23,16 @@ import { CorrespondenceType } from '../correspondence/entities/correspondence-ty
 import { CorrespondenceStatus } from '../correspondence/entities/correspondence-status.entity';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class TransmittalService {
   private readonly logger = new Logger(TransmittalService.name);
+
+  private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
+    const permissions = await this.userService.getUserPermissions(userId);
+    return permissions.includes('system.manage_all');
+  }
 
   constructor(
     @InjectRepository(Transmittal)
@@ -38,7 +45,8 @@ export class TransmittalService {
     private statusRepo: Repository<CorrespondenceStatus>,
     private numberingService: DocumentNumberingService,
     private dataSource: DataSource,
-    private uuidResolver: UuidResolverService
+    private uuidResolver: UuidResolverService,
+    private userService: UserService
   ) {}
 
   async create(
@@ -61,7 +69,31 @@ export class TransmittalService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    if (!user.primaryOrganizationId) {
+    let userOrgId = user.primaryOrganizationId;
+    if (!userOrgId) {
+      const fullUser = await this.userService.findOne(user.user_id);
+      if (fullUser) {
+        userOrgId = fullUser.primaryOrganizationId;
+      }
+    }
+
+    const resolvedOriginatorId = createDto.originatorId
+      ? await this.uuidResolver.resolveOrganizationId(createDto.originatorId)
+      : undefined;
+
+    if (resolvedOriginatorId && resolvedOriginatorId !== userOrgId) {
+      const canManageAll = await this.hasSystemManageAllPermission(
+        user.user_id
+      );
+      if (!canManageAll) {
+        throw new ForbiddenException(
+          'You do not have permission to create documents on behalf of other organizations.'
+        );
+      }
+      userOrgId = resolvedOriginatorId;
+    }
+
+    if (!userOrgId) {
       throw new BadRequestException(
         'User must belong to an organization to create a transmittal'
       );
@@ -76,7 +108,7 @@ export class TransmittalService {
       // 2. Generate Number
       const docNumber = await this.numberingService.generateNextNumber({
         projectId: internalProjectId,
-        originatorOrganizationId: user.primaryOrganizationId,
+        originatorOrganizationId: userOrgId,
         typeId: type.id,
         year: new Date().getFullYear(),
         customTokens: {
@@ -90,7 +122,7 @@ export class TransmittalService {
         correspondenceNumber: docNumber.number,
         correspondenceTypeId: type.id,
         projectId: internalProjectId,
-        originatorId: user.primaryOrganizationId,
+        originatorId: userOrgId,
         isInternal: false,
         createdBy: user.user_id,
       });

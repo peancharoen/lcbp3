@@ -63,6 +63,11 @@ import { UuidResolverService } from '../../common/services/uuid-resolver.service
 export class RfaService {
   private readonly logger = new Logger(RfaService.name);
 
+  private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
+    const permissions = await this.userService.getUserPermissions(userId);
+    return permissions.includes('system.manage_all');
+  }
+
   constructor(
     @InjectRepository(Rfa)
     private rfaRepo: Repository<Rfa>,
@@ -226,12 +231,29 @@ export class RfaService {
       );
     }
 
+    const resolvedOriginatorId = createDto.originatorId
+      ? await this.uuidResolver.resolveOrganizationId(createDto.originatorId)
+      : undefined;
+
     // Determine User Organization
     let userOrgId = user.primaryOrganizationId;
     if (!userOrgId) {
       const fullUser = await this.userService.findOne(user.user_id);
       if (fullUser) userOrgId = fullUser.primaryOrganizationId;
     }
+
+    if (resolvedOriginatorId && resolvedOriginatorId !== userOrgId) {
+      const canManageAll = await this.hasSystemManageAllPermission(
+        user.user_id
+      );
+      if (!canManageAll) {
+        throw new ForbiddenException(
+          'You do not have permission to create documents on behalf of other organizations.'
+        );
+      }
+      userOrgId = resolvedOriginatorId;
+    }
+
     if (!userOrgId) {
       throw new BadRequestException('User must belong to an organization');
     }

@@ -13,6 +13,9 @@ export class CreateCirculationDto {
   @IsOptional()
   projectId?: number | string; // Project ID or UUID for Numbering
 
+  @IsOptional()
+  originatorId?: number | string; // ระบุองค์กรเจ้าของเอกสาร (ต้องใช้ร่วมกับสิทธิ system.manage_all)
+
   @IsString()
   @IsNotEmpty()
   subject!: string; // หัวข้อเรื่อง (Subject)

@@ -25,6 +25,14 @@ export class CreateRfaDto {
   @IsNotEmpty()
   toOrganizationId!: number | string;
 
+  @ApiProperty({
+    description:
+      'Originator Organization ID or UUID (for users with system.manage_all)',
+    required: false,
+  })
+  @IsOptional()
+  originatorId?: number | string;
+
   @ApiProperty({ description: 'ID ของประเภท RFA', example: 1 })
   @IsInt()
   @IsNotEmpty()

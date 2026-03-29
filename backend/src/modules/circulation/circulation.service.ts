@@ -15,9 +15,15 @@ import { UpdateCirculationRoutingDto } from './dto/update-circulation-routing.dt
 import { SearchCirculationDto } from './dto/search-circulation.dto';
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class CirculationService {
+  private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
+    const permissions = await this.userService.getUserPermissions(userId);
+    return permissions.includes('system.manage_all');
+  }
+
   constructor(
     @InjectRepository(Circulation)
     private circulationRepo: Repository<Circulation>,
@@ -25,11 +31,36 @@ export class CirculationService {
     private routingRepo: Repository<CirculationRouting>,
     private numberingService: DocumentNumberingService,
     private dataSource: DataSource,
-    private uuidResolver: UuidResolverService
+    private uuidResolver: UuidResolverService,
+    private userService: UserService
   ) {}
 
   async create(createDto: CreateCirculationDto, user: User) {
-    if (!user.primaryOrganizationId) {
+    let userOrgId = user.primaryOrganizationId;
+    if (!userOrgId) {
+      const fullUser = await this.userService.findOne(user.user_id);
+      if (fullUser) {
+        userOrgId = fullUser.primaryOrganizationId;
+      }
+    }
+
+    const resolvedOriginatorId = createDto.originatorId
+      ? await this.uuidResolver.resolveOrganizationId(createDto.originatorId)
+      : undefined;
+
+    if (resolvedOriginatorId && resolvedOriginatorId !== userOrgId) {
+      const canManageAll = await this.hasSystemManageAllPermission(
+        user.user_id
+      );
+      if (!canManageAll) {
+        throw new ForbiddenException(
+          'You do not have permission to create documents on behalf of other organizations.'
+        );
+      }
+      userOrgId = resolvedOriginatorId;
+    }
+
+    if (!userOrgId) {
       throw new BadRequestException('User must belong to an organization');
     }
 
@@ -52,7 +83,7 @@ export class CirculationService {
       // Generate No. using DocumentNumberingService (Type 900 - Circulation)
       const result = await this.numberingService.generateNextNumber({
         projectId: resolvedProjectId,
-        originatorOrganizationId: user.primaryOrganizationId,
+        originatorOrganizationId: userOrgId,
         typeId: 900, // Fixed Type ID for Circulation
         year: new Date().getFullYear(),
         customTokens: {
@@ -62,7 +93,7 @@ export class CirculationService {
       });
 
       const circulation = queryRunner.manager.create(Circulation, {
-        organizationId: user.primaryOrganizationId,
+        organizationId: userOrgId,
         correspondenceId: resolvedCorrId,
         circulationNo: result.number,
         subject: createDto.subject,
@@ -76,7 +107,7 @@ export class CirculationService {
           queryRunner.manager.create(CirculationRouting, {
             circulationId: savedCirculation.id,
             stepNumber: index + 1,
-            organizationId: user.primaryOrganizationId,
+            organizationId: userOrgId,
             assignedTo: assigneeId,
             status: 'PENDING',
           })

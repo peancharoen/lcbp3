@@ -55,6 +55,14 @@ export class CreateTransmittalDto {
   recipientOrganizationId!: number | string;
 
   @ApiProperty({
+    description:
+      'ผู้ส่ง Organization ID หรือ UUID (สำหรับผู้ใช้ที่มีสิทธิ system.manage_all)',
+    required: false,
+  })
+  @IsOptional()
+  originatorId?: number | string;
+
+  @ApiProperty({
     description: 'Correspondence ID หรือ UUID (ADR-019)',
     required: false,
   })

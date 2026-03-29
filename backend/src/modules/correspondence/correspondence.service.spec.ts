@@ -19,6 +19,7 @@ import { FileStorageService } from '../../common/file-storage/file-storage.servi
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { NotificationService } from '../notification/notification.service';
 import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
+import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
 import { User } from '../user/entities/user.entity';
 
 describe('CorrespondenceService', () => {
@@ -334,6 +335,97 @@ describe('CorrespondenceService', () => {
       expect(
         numberingService.updateNumberForDraft as jest.Mock
       ).toHaveBeenCalled();
+    });
+  });
+
+  describe('create', () => {
+    it('should allow system.manage_all user without primaryOrganizationId when originatorId is provided', async () => {
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: null,
+      } as unknown as User;
+
+      const createDto: CreateCorrespondenceDto = {
+        projectId: 'project-uuid',
+        typeId: 1,
+        subject: 'Test Subject',
+        originatorId: 'originator-uuid',
+        recipients: [{ organizationId: 'recipient-uuid', type: 'TO' }],
+      };
+
+      const userService = testingModule.get<UserService>(UserService);
+      const typeRepo = testingModule.get<Repository<CorrespondenceType>>(
+        getRepositoryToken(CorrespondenceType)
+      );
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      const uuidResolver =
+        testingModule.get<UuidResolverService>(UuidResolverService);
+
+      (userService.findOne as jest.Mock).mockResolvedValue({
+        user_id: 1,
+        primaryOrganizationId: null,
+      });
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'system.manage_all',
+      ]);
+
+      (uuidResolver.resolveProjectId as jest.Mock).mockResolvedValue(100);
+      (uuidResolver.resolveOrganizationId as jest.Mock).mockImplementation(
+        (value: number | string) => {
+          if (value === 'originator-uuid') return 10;
+          if (value === 'recipient-uuid') return 20;
+          return 0;
+        }
+      );
+
+      (typeRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 1,
+        typeCode: 'LTR',
+      });
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 1,
+        statusCode: 'DRAFT',
+      });
+
+      (numberingService.generateNextNumber as jest.Mock).mockResolvedValue({
+        number: 'DOC-001',
+      });
+
+      mockDataSource.manager.findOne
+        .mockResolvedValueOnce({ id: 10, organizationCode: 'ORG' })
+        .mockResolvedValueOnce({ id: 20, organizationCode: 'REC' });
+
+      const queryRunner = {
+        connect: jest.fn(),
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        rollbackTransaction: jest.fn(),
+        release: jest.fn(),
+        manager: {
+          create: jest.fn(
+            (_entity: unknown, payload: Record<string, unknown>) => payload
+          ),
+          save: jest
+            .fn()
+            .mockResolvedValueOnce({ id: 999, publicId: 'corr-uuid' })
+            .mockResolvedValueOnce({ id: 1000 })
+            .mockResolvedValueOnce([]),
+          findOne: jest.fn(),
+        },
+      };
+
+      (mockDataSource.createQueryRunner as jest.Mock).mockReturnValue(
+        queryRunner
+      );
+
+      await service.create(createDto, mockUser);
+
+      expect(queryRunner.manager.create).toHaveBeenCalledWith(
+        Correspondence,
+        expect.objectContaining({ originatorId: 10 })
+      );
     });
   });
 });
