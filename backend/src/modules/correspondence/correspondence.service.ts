@@ -60,12 +60,12 @@ export class CorrespondenceService {
    * - RFA, RFI: Use alphabet starting with 'A' (A, B, C...)
    * - Other types (LETTER, MEMO, etc.): Use numeric (null for first, then 1, 2, 3...)
    */
-  private getInitialRevisionLabel(typeCode: string): string | null {
+  private getInitialRevisionLabel(typeCode: string): string | undefined {
     const alphabetTypes = ['RFA', 'RFI'];
     if (alphabetTypes.includes(typeCode.toUpperCase())) {
       return 'A'; // Alphabet for RFA, RFI
     }
-    return null; // Numeric (null for revision 0)
+    return undefined; // Numeric (no label for revision 0)
   }
 
   constructor(
