@@ -367,13 +367,21 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
               <SelectValue placeholder={isLoadingContracts ? 'Loading...' : 'Select Contract'} />
             </SelectTrigger>
             <SelectContent>
-              {contracts.map((c) => (
-                <SelectItem key={c.publicId} value={c.publicId || ''}>
-                  {c.contractName || c.contractCode}
-                </SelectItem>
-              ))}
+              {contracts.map((c) => {
+                const contractValue = c.publicId;
+
+                if (!contractValue) {
+                  return null;
+                }
+
+                return (
+                  <SelectItem key={contractValue} value={contractValue}>
+                    {c.contractName || c.contractCode}
+                  </SelectItem>
+                );
+              })}
               {!isLoadingContracts && contracts.length === 0 && (
-                <SelectItem value="" disabled>
+                <SelectItem value="__no_contract_available__" disabled>
                   No contracts found for this project
                 </SelectItem>
               )}
@@ -422,7 +430,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
                 </SelectItem>
               ))}
               {!isLoadingDisciplines && disciplines.length === 0 && (
-                <SelectItem value="" disabled>
+                <SelectItem value="__no_discipline_available__" disabled>
                   No disciplines found for this contract
                 </SelectItem>
               )}

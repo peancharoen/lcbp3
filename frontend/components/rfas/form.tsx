@@ -53,7 +53,7 @@ type ContractOption = {
 };
 
 type DisciplineOption = {
-  publicId: string; // ADR-019: public identifier
+  publicId?: string; // ADR-019: public identifier
   id?: number; // Internal INT
   disciplineCode: string;
   codeNameEn?: string;
@@ -61,7 +61,7 @@ type DisciplineOption = {
 };
 
 type RfaTypeOption = {
-  publicId: string; // ADR-019: public identifier
+  publicId?: string; // ADR-019: public identifier
   id?: number; // Internal INT
   typeCode?: string;
   typeName?: string;
@@ -137,6 +137,10 @@ const getOptionValue = (value?: string | number): string | undefined => {
   return String(value);
 };
 
+const getMasterOptionValue = (option: { publicId?: string; id?: number }): string | undefined => {
+  return getOptionValue(option.publicId ?? option.id);
+};
+
 export function RFAForm() {
   const router = useRouter();
   const createMutation = useCreateRFA();
@@ -187,9 +191,12 @@ export function RFAForm() {
 
   const selectedContractId = watch('contractId');
   const { data: disciplinesData, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
-  const disciplines = dedupeByKey(extractArrayData<DisciplineOption>(disciplinesData), (discipline) => discipline.publicId);
+  const disciplines = dedupeByKey(
+    extractArrayData<DisciplineOption>(disciplinesData),
+    (discipline) => getMasterOptionValue(discipline)
+  );
   const { data: rfaTypesData, isLoading: isLoadingRfaTypes } = useRfaTypes(selectedContractId);
-  const rfaTypes = dedupeByKey(extractArrayData<RfaTypeOption>(rfaTypesData), (rfaType) => rfaType.publicId);
+  const rfaTypes = dedupeByKey(extractArrayData<RfaTypeOption>(rfaTypesData), (rfaType) => getMasterOptionValue(rfaType));
   const [shopDrawingSearch, setShopDrawingSearch] = useState('');
   const [shopDrawingPage, setShopDrawingPage] = useState(1);
   const { data: shopDrawingsData, isLoading: isLoadingShopDrawings } = useDrawings('SHOP', {
@@ -222,7 +229,7 @@ export function RFAForm() {
   const toOrganizationId = watch('toOrganizationId');
   const selectedShopDrawingRevisionIds = watch('shopDrawingRevisionIds') ?? [];
   const selectedAsBuiltDrawingRevisionIds = watch('asBuiltDrawingRevisionIds') ?? [];
-  const selectedRfaType = rfaTypes.find((rfaType) => rfaType.publicId === rfaTypeId);
+  const selectedRfaType = rfaTypes.find((rfaType) => getMasterOptionValue(rfaType) === rfaTypeId);
   const selectedRfaTypeCode = selectedRfaType?.typeCode?.toUpperCase();
   const requiresShopDrawings = selectedRfaTypeCode === 'DDW' || selectedRfaTypeCode === 'SDW';
   const requiresAsBuiltDrawings = selectedRfaTypeCode === 'ADW';
@@ -443,9 +450,19 @@ export function RFAForm() {
                 </SelectTrigger>
                 <SelectContent>
                   {disciplines.map((d) => (
-                    <SelectItem key={d.publicId} value={String(d.publicId)}>
-                      {`${d.codeNameEn || d.codeNameTh || d.disciplineCode} (${d.disciplineCode})`}
-                    </SelectItem>
+                    (() => {
+                      const disciplineValue = getMasterOptionValue(d);
+
+                      if (!disciplineValue) {
+                        return null;
+                      }
+
+                      return (
+                        <SelectItem key={disciplineValue} value={disciplineValue}>
+                          {`${d.codeNameEn || d.codeNameTh || d.disciplineCode} (${d.disciplineCode})`}
+                        </SelectItem>
+                      );
+                    })()
                   ))}
                   {!isLoadingDisciplines && disciplines.length === 0 && (
                     <SelectItem value="0" disabled>
@@ -474,11 +491,19 @@ export function RFAForm() {
                   <SelectValue placeholder={isLoadingRfaTypes ? 'Loading...' : 'Select RFA Type'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {rfaTypes.map((rfaType) => (
-                    <SelectItem key={rfaType.publicId} value={String(rfaType.publicId)}>
-                      {`${rfaType.typeCode || 'RFA'} - ${rfaType.typeName || rfaType.typeNameEn || rfaType.typeNameTh || 'Unnamed Type'}`}
-                    </SelectItem>
-                  ))}
+                  {rfaTypes.map((rfaType) => {
+                    const rfaTypeValue = getMasterOptionValue(rfaType);
+
+                    if (!rfaTypeValue) {
+                      return null;
+                    }
+
+                    return (
+                      <SelectItem key={rfaTypeValue} value={rfaTypeValue}>
+                        {`${rfaType.typeCode || 'RFA'} - ${rfaType.typeName || rfaType.typeNameEn || rfaType.typeNameTh || 'Unnamed Type'}`}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
               {errors.rfaTypeId && <p className="text-sm text-destructive mt-1">{errors.rfaTypeId.message}</p>}
