@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useCreateCorrespondence, useUpdateCorrespondence } from '@/hooks/use-correspondence';
 import { Organization } from '@/types/organization';
-import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines } from '@/hooks/use-master-data';
+import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines, useContracts } from '@/hooks/use-master-data';
 import { CreateCorrespondenceDto } from '@/types/dto/correspondence/create-correspondence.dto';
 import { useState, useEffect } from 'react';
 import { correspondenceService as _correspondenceService } from '@/lib/services/correspondence.service';
@@ -24,6 +24,7 @@ import { filesApi } from '@/lib/api/files';
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
   projectId: z.string().min(1, 'Please select a Project'),
+  contractId: z.string().min(1, 'Please select a Contract'),
   documentTypeId: z.number().min(1, 'Please select a Document Type'),
   disciplineId: z.number().optional(),
   subject: z.string().min(5, 'Subject must be at least 5 characters'),
@@ -49,6 +50,12 @@ type ProjectOption = {
   id?: number;
   projectName: string;
   projectCode: string;
+};
+
+type ContractOption = {
+  publicId?: string;
+  contractName?: string;
+  contractCode?: string;
 };
 
 type CorrespondenceTypeOption = {
@@ -116,11 +123,9 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
   const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
   const { data: organizations, isLoading: isLoadingOrgs } = useOrganizations();
   const { data: correspondenceTypesData, isLoading: isLoadingTypes } = useCorrespondenceTypes();
-  const { data: disciplinesData, isLoading: isLoadingDisciplines } = useDisciplines();
   const projects = (projectsData as ProjectOption[]) ?? [];
   const organizationOptions = extractArrayData<Organization>(organizations);
   const correspondenceTypes = extractArrayData<CorrespondenceTypeOption>(correspondenceTypesData);
-  const disciplines = extractArrayData<DisciplineOption>(disciplinesData);
 
   // Extract initial values if editing
   const currentRev = initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
@@ -158,10 +163,34 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
 
   // Watch for controlled inputs
   const projectId = watch('projectId');
+  const contractId = watch('contractId');
   const documentTypeId = watch('documentTypeId');
   const disciplineId = watch('disciplineId');
   const fromOrgId = watch('fromOrganizationId');
   const toOrgId = watch('toOrganizationId');
+
+  // Fetch contracts based on selected project
+  const { data: contractsData, isLoading: isLoadingContracts } = useContracts(projectId);
+  const contracts = extractArrayData<ContractOption>(contractsData);
+
+  // Fetch disciplines based on selected contract
+  const { data: disciplinesData, isLoading: isLoadingDisciplines } = useDisciplines(contractId);
+  const disciplines = extractArrayData<DisciplineOption>(disciplinesData);
+
+  // Reset dependent fields when project changes
+  useEffect(() => {
+    if (projectId) {
+      setValue('contractId', '');
+      setValue('disciplineId', undefined);
+    }
+  }, [projectId, setValue]);
+
+  // Reset discipline when contract changes
+  useEffect(() => {
+    if (contractId) {
+      setValue('disciplineId', undefined);
+    }
+  }, [contractId, setValue]);
 
   const [isUploading, setIsUploading] = useState(false);
 
@@ -303,7 +332,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
       )}
 
       {/* Document Metadata Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Project Dropdown */}
         <div className="space-y-2">
           <Label>Project *</Label>
@@ -324,6 +353,33 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
             </SelectContent>
           </Select>
           {errors.projectId && <p className="text-sm text-destructive">{errors.projectId.message}</p>}
+        </div>
+
+        {/* Contract Dropdown */}
+        <div className="space-y-2">
+          <Label>Contract *</Label>
+          <Select
+            onValueChange={(v) => setValue('contractId', v)}
+            value={contractId || undefined}
+            disabled={!projectId || isLoadingContracts}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={isLoadingContracts ? 'Loading...' : 'Select Contract'} />
+            </SelectTrigger>
+            <SelectContent>
+              {contracts.map((c) => (
+                <SelectItem key={c.publicId} value={c.publicId || ''}>
+                  {c.contractName || c.contractCode}
+                </SelectItem>
+              ))}
+              {!isLoadingContracts && contracts.length === 0 && (
+                <SelectItem value="" disabled>
+                  No contracts found for this project
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          {errors.contractId && <p className="text-sm text-destructive">{errors.contractId.message}</p>}
         </div>
 
         {/* Document Type Dropdown */}
@@ -354,7 +410,7 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
           <Select
             onValueChange={(v) => setValue('disciplineId', v ? Number(v) : undefined)}
             value={disciplineId ? String(disciplineId) : undefined}
-            disabled={isLoadingDisciplines}
+            disabled={!contractId || isLoadingDisciplines}
           >
             <SelectTrigger>
               <SelectValue placeholder={isLoadingDisciplines ? 'Loading...' : 'Select Discipline (Optional)'} />
@@ -365,6 +421,11 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
                   {d.codeNameEn || d.disciplineCode}
                 </SelectItem>
               ))}
+              {!isLoadingDisciplines && disciplines.length === 0 && (
+                <SelectItem value="" disabled>
+                  No disciplines found for this contract
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>

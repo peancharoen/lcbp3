@@ -79,6 +79,7 @@ export function useDisciplines(contractId?: number | string) {
   return useQuery({
     queryKey: masterDataKeys.disciplines(contractId),
     queryFn: () => masterDataService.getDisciplines(contractId),
+    enabled: !!contractId && contractId !== '',
   });
 }
 

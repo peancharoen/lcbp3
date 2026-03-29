@@ -19,6 +19,7 @@ export const useRfaTypes = (contractId?: number | string) => {
   return useQuery({
     queryKey: referenceDataKeys.rfaTypes(contractId),
     queryFn: () => masterDataService.getRfaTypes(contractId),
+    enabled: !!contractId && contractId !== '',
   });
 };
 
