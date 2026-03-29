@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { ForbiddenException } from '@nestjs/common';
 import { CorrespondenceService } from './correspondence.service';
 import { Correspondence } from './entities/correspondence.entity';
 import { CorrespondenceRevision } from './entities/correspondence-revision.entity';
@@ -173,6 +174,83 @@ describe('CorrespondenceService', () => {
   });
 
   describe('update', () => {
+    it('should allow non-draft update for org-admin+ permissions', async () => {
+      const mockUser = {
+        user_id: 1,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+      const mockRevision = {
+        id: 100,
+        correspondenceId: 1,
+        isCurrent: true,
+        statusId: 23,
+      };
+
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
+
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 23,
+        statusCode: 'SUBOWN',
+      });
+
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'correspondence.cancel',
+      ]);
+
+      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue({
+        id: 1,
+        publicId: 'corr-uuid-1',
+        correspondenceNumber: 'CORR-001',
+        projectId: 1,
+        createdAt: new Date(),
+        revisions: [],
+      } as unknown as Correspondence);
+
+      await expect(
+        service.update(1, { subject: 'Updated Subject' }, mockUser)
+      ).resolves.toBeDefined();
+    });
+
+    it('should reject non-draft update for non-admin permissions', async () => {
+      const mockUser = {
+        user_id: 2,
+        primaryOrganizationId: 10,
+      } as unknown as User;
+      const mockRevision = {
+        id: 101,
+        correspondenceId: 2,
+        isCurrent: true,
+        statusId: 23,
+      };
+
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
+
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 23,
+        statusCode: 'SUBOWN',
+      });
+
+      const userService = testingModule.get<UserService>(UserService);
+      (userService.getUserPermissions as jest.Mock).mockResolvedValue([
+        'correspondence.edit',
+      ]);
+
+      await expect(
+        service.update(2, { subject: 'Should Fail' }, mockUser)
+      ).rejects.toThrow(ForbiddenException);
+    });
+
     it('should NOT regenerate number if critical fields unchanged', async () => {
       const mockUser = { id: 1, primaryOrganizationId: 10 } as unknown as User;
       const mockRevision = {

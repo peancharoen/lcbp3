@@ -22,26 +22,39 @@ import { Badge } from '@/components/ui/badge';
 
 interface CorrespondenceDetailProps {
   data: Correspondence;
+  selectedRevisionId?: string;
 }
 
-export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
+export function CorrespondenceDetail({ data, selectedRevisionId }: CorrespondenceDetailProps) {
   const submitMutation = useSubmitCorrespondence();
   const processMutation = useProcessWorkflow();
   const cancelMutation = useCancelCorrespondence();
-  const { hasPermission } = useAuthStore();
+  const { user, hasPermission } = useAuthStore();
   const [actionState, setActionState] = useState<'approve' | 'reject' | 'cancel' | null>(null);
   const [comments, setComments] = useState('');
   const [cancelReason, setCancelReason] = useState('');
 
   if (!data) return <div>No data found</div>;
 
-  const currentRevision = data.revisions?.find((r) => r.isCurrent) || data.revisions?.[0];
+  const selectedRevision = selectedRevisionId
+    ? data.revisions?.find((r) => r.publicId === selectedRevisionId)
+    : undefined;
+  const currentRevision = selectedRevision || data.revisions?.find((r) => r.isCurrent) || data.revisions?.[0];
   const subject = currentRevision?.subject || '-';
   const description = currentRevision?.description || '-';
   const status = currentRevision?.status?.statusCode || 'UNKNOWN';
   const attachments = currentRevision?.attachments || [];
   const importance = (currentRevision?.details?.importance as string) || 'NORMAL';
   const canEditMetadata = hasPermission('correspondence.edit');
+  const privilegedEditableStatuses = ['SUBCSC', 'SUBOWN', 'IN_REVIEW_CSC'];
+  const normalizedRole = (user?.role || '').toUpperCase().replace(/\s+/g, '_');
+  const isPrivilegedEditRole = ['SUPERADMIN', 'SUPER_ADMIN', 'ADMIN', 'DC', 'DOCUMENT_CONTROL'].includes(
+    normalizedRole
+  );
+  const canEditInStatus =
+    status === 'DRAFT' ||
+    (privilegedEditableStatuses.includes(status) && isPrivilegedEditRole);
+  const canEditDocument = canEditInStatus && (hasPermission('correspondence.edit') || isPrivilegedEditRole);
 
   const toRecipients = data.recipients?.filter((r) => r.recipientType === 'TO') || [];
   const ccRecipients = data.recipients?.filter((r) => r.recipientType === 'CC') || [];
@@ -100,15 +113,13 @@ export function CorrespondenceDetail({ data }: CorrespondenceDetailProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          {status === 'DRAFT' && (
-            <Can permission="correspondence.edit">
-              <Link href={`/correspondences/${data.publicId}/edit`}>
-                <Button variant="outline">
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-              </Link>
-            </Can>
+          {canEditDocument && (
+            <Link href={`/correspondences/${data.publicId}/edit${selectedRevisionId ? `?revId=${selectedRevisionId}` : ''}`}>
+              <Button variant="outline">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            </Link>
           )}
           {status === 'DRAFT' && (
             <Can permission="correspondence.submit">

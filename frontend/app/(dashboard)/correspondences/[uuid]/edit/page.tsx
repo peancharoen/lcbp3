@@ -3,11 +3,13 @@
 import { CorrespondenceForm } from '@/components/correspondences/form';
 import { useCorrespondence } from '@/hooks/use-correspondence';
 import { Loader2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 export default function EditCorrespondencePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const uuid = (params?.uuid as string) ?? '';
+  const selectedRevisionId = searchParams.get('revId') ?? undefined;
 
   const { data: correspondence, isLoading, isError } = useCorrespondence(uuid);
 
@@ -46,7 +48,7 @@ export default function EditCorrespondencePage() {
       </div>
 
       <div className="bg-card border rounded-lg p-6 shadow-sm">
-        <CorrespondenceForm initialData={correspondence} uuid={uuid} />
+        <CorrespondenceForm initialData={correspondence} uuid={uuid} selectedRevisionId={selectedRevisionId} />
       </div>
     </div>
   );

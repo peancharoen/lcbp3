@@ -3,11 +3,13 @@
 import { CorrespondenceDetail } from '@/components/correspondences/detail';
 import { useCorrespondence } from '@/hooks/use-correspondence';
 import { Loader2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 export default function CorrespondenceDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const uuid = (params?.uuid as string) ?? '';
+  const selectedRevisionId = searchParams.get('revId') ?? undefined;
 
   const { data: correspondence, isLoading, isError } = useCorrespondence(uuid);
 
@@ -36,5 +38,5 @@ export default function CorrespondenceDetailPage() {
     );
   }
 
-  return <CorrespondenceDetail data={correspondence} />;
+  return <CorrespondenceDetail data={correspondence} selectedRevisionId={selectedRevisionId} />;
 }

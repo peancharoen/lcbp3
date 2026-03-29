@@ -75,6 +75,7 @@ interface InitialCorrespondenceData {
   correspondenceTypeId?: number;
   disciplineId?: number;
   revisions?: Array<{
+    publicId?: string;
     isCurrent?: boolean;
     subject?: string;
     title?: string;
@@ -124,7 +125,15 @@ const normalizePublicId = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-export function CorrespondenceForm({ initialData, uuid }: { initialData?: InitialCorrespondenceData; uuid?: string }) {
+export function CorrespondenceForm({
+  initialData,
+  uuid,
+  selectedRevisionId,
+}: {
+  initialData?: InitialCorrespondenceData;
+  uuid?: string;
+  selectedRevisionId?: string;
+}) {
   const router = useRouter();
   const createMutation = useCreateCorrespondence();
   const updateMutation = useUpdateCorrespondence();
@@ -138,7 +147,10 @@ export function CorrespondenceForm({ initialData, uuid }: { initialData?: Initia
   const correspondenceTypes = extractArrayData<CorrespondenceTypeOption>(correspondenceTypesData);
 
   // Extract initial values if editing
-  const currentRev = initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
+  const selectedRevision = selectedRevisionId
+    ? initialData?.revisions?.find((r) => normalizePublicId(r.publicId) === selectedRevisionId)
+    : undefined;
+  const currentRev = selectedRevision || initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
   const initialToRecipient = initialData?.recipients?.find((r) => r.recipientType === 'TO');
   const initialCcRecipientIds =
     initialData?.recipients

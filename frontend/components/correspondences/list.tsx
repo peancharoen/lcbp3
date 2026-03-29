@@ -8,12 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Eye, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 interface CorrespondenceListProps {
   data: CorrespondenceRevision[];
 }
 
 export function CorrespondenceList({ data }: CorrespondenceListProps) {
+  const { user, hasPermission } = useAuthStore();
+  const privilegedEditableStatuses = ['SUBCSC', 'SUBOWN', 'IN_REVIEW_CSC'];
+
   const columns: ColumnDef<CorrespondenceRevision>[] = [
     {
       accessorKey: 'correspondence.correspondenceNumber',
@@ -90,18 +94,33 @@ export function CorrespondenceList({ data }: CorrespondenceListProps) {
         // Edit/View link goes to the DOCUMENT detail (correspondence.publicId)
         // Ideally we might pass ?revId=item.publicId to view specific revision, but detail page defaults to latest.
         // For editing, we edit the document.
-        const docUuid = item.correspondence.publicId;
+        const docUuid = item.correspondence?.publicId;
+        const revId = item.publicId;
         const statusCode = item.status?.statusCode;
+        const normalizedRole = (user?.role || '').toUpperCase().replace(/\s+/g, '_');
+        const isPrivilegedEditRole = ['SUPERADMIN', 'SUPER_ADMIN', 'ADMIN', 'DC', 'DOCUMENT_CONTROL'].includes(
+          normalizedRole
+        );
+        const canEditInStatus =
+          statusCode === 'DRAFT' ||
+          (typeof statusCode === 'string' &&
+            privilegedEditableStatuses.includes(statusCode) &&
+            isPrivilegedEditRole);
+        const canEdit = canEditInStatus && (hasPermission('correspondence.edit') || isPrivilegedEditRole);
+
+        if (!docUuid) {
+          return null;
+        }
 
         return (
           <div className="flex gap-2">
-            <Link href={`/correspondences/${docUuid}`}>
+            <Link href={`/correspondences/${docUuid}?revId=${revId}`}>
               <Button variant="ghost" size="icon" title="View Details">
                 <Eye className="h-4 w-4" />
               </Button>
             </Link>
-            {statusCode === 'DRAFT' && (
-              <Link href={`/correspondences/${docUuid}/edit`}>
+            {canEdit && (
+              <Link href={`/correspondences/${docUuid}/edit?revId=${revId}`}>
                 <Button variant="ghost" size="icon" title="Edit">
                   <Edit className="h-4 w-4" />
                 </Button>

@@ -631,8 +631,20 @@ export class CorrespondenceService {
       const status = await this.statusRepo.findOne({
         where: { id: revision.statusId },
       });
+
       if (status && status.statusCode !== 'DRAFT') {
-        throw new BadRequestException('Only DRAFT documents can be updated');
+        const permissions = await this.userService.getUserPermissions(
+          user.user_id
+        );
+        const canEditSubmittedOrLater =
+          permissions.includes('correspondence.cancel') ||
+          permissions.includes('system.manage_all');
+
+        if (!canEditSubmittedOrLater) {
+          throw new ForbiddenException(
+            'Only Org Admin or Superadmin can edit non-draft correspondences'
+          );
+        }
       }
     }
 
