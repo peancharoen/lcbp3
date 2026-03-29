@@ -17,13 +17,13 @@ export class Tag {
   @PrimaryGeneratedColumn()
   id!: number; // เพิ่ม !
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ name: 'project_id', type: 'int', nullable: true })
   projectId!: number | null; // เพิ่ม !
 
-  @Column({ length: 100 })
+  @Column({ name: 'tag_name', length: 100 })
   tagName!: string; // เพิ่ม !
 
-  @Column({ length: 30, default: 'default' })
+  @Column({ name: 'color_code', length: 30, default: 'default' })
   colorCode!: string; // เพิ่ม !
 
   @Column({ type: 'text', nullable: true })
@@ -34,15 +34,15 @@ export class Tag {
   @JoinColumn({ name: 'project_id' })
   project?: Project;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date; // เพิ่ม !
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date; // เพิ่ม !
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ name: 'created_by', type: 'int', nullable: true })
   createdBy!: number | null; // เพิ่ม !
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt!: Date | null; // เพิ่ม !
 }
