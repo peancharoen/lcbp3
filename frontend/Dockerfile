@@ -57,6 +57,9 @@ ENV AUTH_URL=${AUTH_URL}
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Disable Turbopack to avoid "No child process" panic in Docker container
+ENV NEXT_TURBOPACK=0
+
 # WORKAROUND: QNAP overlayfs fails with "Unknown system error -10" on deeply
 # nested App Router paths. Redirect .next output to ultra-short root path /n
 # to minimise overlay nesting depth, then move back after build completes.

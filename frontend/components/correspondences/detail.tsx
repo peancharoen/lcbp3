@@ -25,6 +25,15 @@ interface CorrespondenceDetailProps {
   selectedRevisionId?: string;
 }
 
+const normalizeUuid = (value?: string): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : undefined;
+};
+
 export function CorrespondenceDetail({ data, selectedRevisionId }: CorrespondenceDetailProps) {
   const submitMutation = useSubmitCorrespondence();
   const processMutation = useProcessWorkflow();
@@ -36,8 +45,9 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
 
   if (!data) return <div>No data found</div>;
 
-  const selectedRevision = selectedRevisionId
-    ? data.revisions?.find((r) => r.publicId === selectedRevisionId)
+  const normalizedSelectedRevisionId = normalizeUuid(selectedRevisionId);
+  const selectedRevision = normalizedSelectedRevisionId
+    ? data.revisions?.find((r) => normalizeUuid(r.publicId) === normalizedSelectedRevisionId)
     : undefined;
   const currentRevision = selectedRevision || data.revisions?.find((r) => r.isCurrent) || data.revisions?.[0];
   const subject = currentRevision?.subject || '-';

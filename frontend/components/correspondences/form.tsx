@@ -125,6 +125,11 @@ const normalizePublicId = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const normalizeUuid = (value: unknown): string | undefined => {
+  const normalized = normalizePublicId(value);
+  return normalized ? normalized.toLowerCase() : undefined;
+};
+
 export function CorrespondenceForm({
   initialData,
   uuid,
@@ -147,8 +152,9 @@ export function CorrespondenceForm({
   const correspondenceTypes = extractArrayData<CorrespondenceTypeOption>(correspondenceTypesData);
 
   // Extract initial values if editing
-  const selectedRevision = selectedRevisionId
-    ? initialData?.revisions?.find((r) => normalizePublicId(r.publicId) === selectedRevisionId)
+  const normalizedSelectedRevisionId = normalizeUuid(selectedRevisionId);
+  const selectedRevision = normalizedSelectedRevisionId
+    ? initialData?.revisions?.find((r) => normalizeUuid(r.publicId) === normalizedSelectedRevisionId)
     : undefined;
   const currentRev = selectedRevision || initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
   const initialToRecipient = initialData?.recipients?.find((r) => r.recipientType === 'TO');
