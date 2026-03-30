@@ -6,11 +6,18 @@ export interface Organization {
 
 export interface Attachment {
   publicId: string; // ADR-019: public identifier
-  name: string;
-  url: string;
-  size?: number;
-  type?: string;
+  originalFilename: string;
+  storedFilename?: string;
+  fileSize?: number;
+  mimeType?: string;
+  filePath?: string;
   createdAt?: string;
+}
+
+// [FIX v1.8.1] ประเภทข้อมูล junction table correspondence_revision_attachments
+export interface AttachmentLink {
+  isMainDocument: boolean;
+  attachment: Attachment;
 }
 
 // Used in List View mainly
@@ -34,7 +41,8 @@ export interface CorrespondenceRevision {
     statusName: string;
   };
   details?: Record<string, unknown> | null;
-  attachments?: Attachment[];
+  // [FIX v1.8.1] ไฟล์แนบผ่าน junction table (correspondence_revision_attachments)
+  attachmentLinks?: AttachmentLink[];
   createdAt: string;
 
   // Nested Relation from Backend Refactor

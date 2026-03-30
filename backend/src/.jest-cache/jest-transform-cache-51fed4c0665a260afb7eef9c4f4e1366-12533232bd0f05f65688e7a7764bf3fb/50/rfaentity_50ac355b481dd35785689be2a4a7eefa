@@ -1,0 +1,60 @@
+ea64f2030d4f43110ef5aff050dfe2ca
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d, _e;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Rfa = void 0;
+const typeorm_1 = require("typeorm");
+const user_entity_1 = require("../../user/entities/user.entity");
+const correspondence_entity_1 = require("../../correspondence/entities/correspondence.entity"); // Import
+const rfa_type_entity_1 = require("./rfa-type.entity");
+let Rfa = class Rfa {
+};
+exports.Rfa = Rfa;
+__decorate([
+    (0, typeorm_1.PrimaryColumn)(),
+    __metadata("design:type", Number)
+], Rfa.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => correspondence_entity_1.Correspondence, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'id' }),
+    __metadata("design:type", typeof (_a = typeof correspondence_entity_1.Correspondence !== "undefined" && correspondence_entity_1.Correspondence) === "function" ? _a : Object)
+], Rfa.prototype, "correspondence", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'rfa_type_id' }),
+    __metadata("design:type", Number)
+], Rfa.prototype, "rfaTypeId", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], Rfa.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'created_by', nullable: true }),
+    __metadata("design:type", Number)
+], Rfa.prototype, "createdBy", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)({ name: 'deleted_at' }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], Rfa.prototype, "deletedAt", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => rfa_type_entity_1.RfaType),
+    (0, typeorm_1.JoinColumn)({ name: 'rfa_type_id' }),
+    __metadata("design:type", typeof (_d = typeof rfa_type_entity_1.RfaType !== "undefined" && rfa_type_entity_1.RfaType) === "function" ? _d : Object)
+], Rfa.prototype, "rfaType", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User),
+    (0, typeorm_1.JoinColumn)({ name: 'created_by' }),
+    __metadata("design:type", typeof (_e = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _e : Object)
+], Rfa.prototype, "creator", void 0);
+exports.Rfa = Rfa = __decorate([
+    (0, typeorm_1.Entity)('rfas')
+], Rfa);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xccmZhXFxlbnRpdGllc1xccmZhLmVudGl0eS50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBQUEscUNBU2lCO0FBRWpCLGlFQUF1RDtBQUN2RCwrRkFBcUYsQ0FBQyxTQUFTO0FBQy9GLHVEQUE0QztBQUdyQyxJQUFNLEdBQUcsR0FBVCxNQUFNLEdBQUc7Q0E4QmYsQ0FBQTtBQTlCWSxrQkFBRztBQUVkO0lBREMsSUFBQSx1QkFBYSxHQUFFOzsrQkFDSjtBQUlaO0lBRkMsSUFBQSxrQkFBUSxFQUFDLEdBQUcsRUFBRSxDQUFDLHNDQUFjLEVBQUUsRUFBRSxRQUFRLEVBQUUsU0FBUyxFQUFFLENBQUM7SUFDdkQsSUFBQSxvQkFBVSxFQUFDLEVBQUUsSUFBSSxFQUFFLElBQUksRUFBRSxDQUFDO2tEQUNWLHNDQUFjLG9CQUFkLHNDQUFjOzJDQUFDO0FBR2hDO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxDQUFDOztzQ0FDYjtBQUduQjtJQURDLElBQUEsMEJBQWdCLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQzdCLElBQUksb0JBQUosSUFBSTtzQ0FBQztBQUdqQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsUUFBUSxFQUFFLElBQUksRUFBRSxDQUFDOztzQ0FDNUI7QUFHbkI7SUFEQyxJQUFBLDBCQUFnQixFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUM3QixJQUFJLG9CQUFKLElBQUk7c0NBQUM7QUFLakI7SUFGQyxJQUFBLG1CQUFTLEVBQUMsR0FBRyxFQUFFLENBQUMseUJBQU8sQ0FBQztJQUN4QixJQUFBLG9CQUFVLEVBQUMsRUFBRSxJQUFJLEVBQUUsYUFBYSxFQUFFLENBQUM7a0RBQzFCLHlCQUFPLG9CQUFQLHlCQUFPO29DQUFDO0FBSWxCO0lBRkMsSUFBQSxtQkFBUyxFQUFDLEdBQUcsRUFBRSxDQUFDLGtCQUFJLENBQUM7SUFDckIsSUFBQSxvQkFBVSxFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUN6QixrQkFBSSxvQkFBSixrQkFBSTtvQ0FBQztjQTNCSixHQUFHO0lBRGYsSUFBQSxnQkFBTSxFQUFDLE1BQU0sQ0FBQztHQUNGLEdBQUcsQ0E4QmYiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xccmZhXFxlbnRpdGllc1xccmZhLmVudGl0eS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge1xuICBDb2x1bW4sXG4gIENyZWF0ZURhdGVDb2x1bW4sXG4gIERlbGV0ZURhdGVDb2x1bW4sXG4gIEVudGl0eSxcbiAgSm9pbkNvbHVtbixcbiAgTWFueVRvT25lLFxuICBQcmltYXJ5Q29sdW1uLFxuICBPbmVUb09uZSxcbn0gZnJvbSAndHlwZW9ybSc7XG5cbmltcG9ydCB7IFVzZXIgfSBmcm9tICcuLi8uLi91c2VyL2VudGl0aWVzL3VzZXIuZW50aXR5JztcbmltcG9ydCB7IENvcnJlc3BvbmRlbmNlIH0gZnJvbSAnLi4vLi4vY29ycmVzcG9uZGVuY2UvZW50aXRpZXMvY29ycmVzcG9uZGVuY2UuZW50aXR5JzsgLy8gSW1wb3J0XG5pbXBvcnQgeyBSZmFUeXBlIH0gZnJvbSAnLi9yZmEtdHlwZS5lbnRpdHknO1xuXG5ARW50aXR5KCdyZmFzJylcbmV4cG9ydCBjbGFzcyBSZmEge1xuICBAUHJpbWFyeUNvbHVtbigpXG4gIGlkITogbnVtYmVyO1xuXG4gIEBPbmVUb09uZSgoKSA9PiBDb3JyZXNwb25kZW5jZSwgeyBvbkRlbGV0ZTogJ0NBU0NBREUnIH0pXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ2lkJyB9KVxuICBjb3JyZXNwb25kZW5jZSE6IENvcnJlc3BvbmRlbmNlO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAncmZhX3R5cGVfaWQnIH0pXG4gIHJmYVR5cGVJZCE6IG51bWJlcjtcblxuICBAQ3JlYXRlRGF0ZUNvbHVtbih7IG5hbWU6ICdjcmVhdGVkX2F0JyB9KVxuICBjcmVhdGVkQXQhOiBEYXRlO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAnY3JlYXRlZF9ieScsIG51bGxhYmxlOiB0cnVlIH0pXG4gIGNyZWF0ZWRCeT86IG51bWJlcjtcblxuICBARGVsZXRlRGF0ZUNvbHVtbih7IG5hbWU6ICdkZWxldGVkX2F0JyB9KVxuICBkZWxldGVkQXQ/OiBEYXRlO1xuXG4gIC8vIFJlbGF0aW9uc1xuICBATWFueVRvT25lKCgpID0+IFJmYVR5cGUpXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ3JmYV90eXBlX2lkJyB9KVxuICByZmFUeXBlITogUmZhVHlwZTtcblxuICBATWFueVRvT25lKCgpID0+IFVzZXIpXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ2NyZWF0ZWRfYnknIH0pXG4gIGNyZWF0b3I/OiBVc2VyO1xuXG4gIC8vIFJldmlzaW9ucyBhcmUgYWNjZXNzZWQgdmlhIGNvcnJlc3BvbmRlbmNlLnJldmlzaW9ucyAtPiByZmFSZXZpc2lvblxufVxuIl0sInZlcnNpb24iOjN9

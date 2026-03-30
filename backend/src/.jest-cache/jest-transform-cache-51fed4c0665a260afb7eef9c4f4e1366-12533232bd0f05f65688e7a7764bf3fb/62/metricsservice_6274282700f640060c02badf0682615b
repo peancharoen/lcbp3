@@ -1,0 +1,38 @@
+1e43b13634c8db19e29ee03167c1f1a1
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MetricsService = void 0;
+const common_1 = require("@nestjs/common");
+const prom_client_1 = require("prom-client");
+const nestjs_prometheus_1 = require("@willsoto/nestjs-prometheus");
+let MetricsService = class MetricsService {
+    constructor(numbersGenerated, sequenceUtilization, lockWaitTime, lockFailures) {
+        this.numbersGenerated = numbersGenerated;
+        this.sequenceUtilization = sequenceUtilization;
+        this.lockWaitTime = lockWaitTime;
+        this.lockFailures = lockFailures;
+    }
+};
+exports.MetricsService = MetricsService;
+exports.MetricsService = MetricsService = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, nestjs_prometheus_1.InjectMetric)('numbering_sequences_total')),
+    __param(1, (0, nestjs_prometheus_1.InjectMetric)('numbering_sequence_utilization')),
+    __param(2, (0, nestjs_prometheus_1.InjectMetric)('numbering_lock_wait_seconds')),
+    __param(3, (0, nestjs_prometheus_1.InjectMetric)('numbering_lock_failures_total')),
+    __metadata("design:paramtypes", [typeof (_a = typeof prom_client_1.Counter !== "undefined" && prom_client_1.Counter) === "function" ? _a : Object, typeof (_b = typeof prom_client_1.Gauge !== "undefined" && prom_client_1.Gauge) === "function" ? _b : Object, typeof (_c = typeof prom_client_1.Histogram !== "undefined" && prom_client_1.Histogram) === "function" ? _c : Object, typeof (_d = typeof prom_client_1.Counter !== "undefined" && prom_client_1.Counter) === "function" ? _d : Object])
+], MetricsService);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcZG9jdW1lbnQtbnVtYmVyaW5nXFxzZXJ2aWNlc1xcbWV0cmljcy5zZXJ2aWNlLnRzIiwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7QUFBQSwyQ0FBNEM7QUFDNUMsNkNBQXdEO0FBQ3hELG1FQUEyRDtBQUdwRCxJQUFNLGNBQWMsR0FBcEIsTUFBTSxjQUFjO0lBQ3pCLFlBRVMsZ0JBQWlDLEVBRWpDLG1CQUFrQyxFQUVsQyxZQUErQixFQUUvQixZQUE2QjtRQU43QixxQkFBZ0IsR0FBaEIsZ0JBQWdCLENBQWlCO1FBRWpDLHdCQUFtQixHQUFuQixtQkFBbUIsQ0FBZTtRQUVsQyxpQkFBWSxHQUFaLFlBQVksQ0FBbUI7UUFFL0IsaUJBQVksR0FBWixZQUFZLENBQWlCO0lBQ25DLENBQUM7Q0FDTCxDQUFBO0FBWFksd0NBQWM7eUJBQWQsY0FBYztJQUQxQixJQUFBLG1CQUFVLEdBQUU7SUFHUixXQUFBLElBQUEsZ0NBQVksRUFBQywyQkFBMkIsQ0FBQyxDQUFBO0lBRXpDLFdBQUEsSUFBQSxnQ0FBWSxFQUFDLGdDQUFnQyxDQUFDLENBQUE7SUFFOUMsV0FBQSxJQUFBLGdDQUFZLEVBQUMsNkJBQTZCLENBQUMsQ0FBQTtJQUUzQyxXQUFBLElBQUEsZ0NBQVksRUFBQywrQkFBK0IsQ0FBQyxDQUFBO3lEQUxyQixxQkFBTyxvQkFBUCxxQkFBTyxvREFFSixtQkFBSyxvQkFBTCxtQkFBSyxvREFFWix1QkFBUyxvQkFBVCx1QkFBUyxvREFFVCxxQkFBTyxvQkFBUCxxQkFBTztHQVRuQixjQUFjLENBVzFCIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxuYXAtZG1zLmxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXGRvY3VtZW50LW51bWJlcmluZ1xcc2VydmljZXNcXG1ldHJpY3Muc2VydmljZS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBJbmplY3RhYmxlIH0gZnJvbSAnQG5lc3Rqcy9jb21tb24nO1xyXG5pbXBvcnQgeyBDb3VudGVyLCBHYXVnZSwgSGlzdG9ncmFtIH0gZnJvbSAncHJvbS1jbGllbnQnO1xyXG5pbXBvcnQgeyBJbmplY3RNZXRyaWMgfSBmcm9tICdAd2lsbHNvdG8vbmVzdGpzLXByb21ldGhldXMnO1xyXG5cclxuQEluamVjdGFibGUoKVxyXG5leHBvcnQgY2xhc3MgTWV0cmljc1NlcnZpY2Uge1xyXG4gIGNvbnN0cnVjdG9yKFxyXG4gICAgQEluamVjdE1ldHJpYygnbnVtYmVyaW5nX3NlcXVlbmNlc190b3RhbCcpXHJcbiAgICBwdWJsaWMgbnVtYmVyc0dlbmVyYXRlZDogQ291bnRlcjxzdHJpbmc+LFxyXG4gICAgQEluamVjdE1ldHJpYygnbnVtYmVyaW5nX3NlcXVlbmNlX3V0aWxpemF0aW9uJylcclxuICAgIHB1YmxpYyBzZXF1ZW5jZVV0aWxpemF0aW9uOiBHYXVnZTxzdHJpbmc+LFxyXG4gICAgQEluamVjdE1ldHJpYygnbnVtYmVyaW5nX2xvY2tfd2FpdF9zZWNvbmRzJylcclxuICAgIHB1YmxpYyBsb2NrV2FpdFRpbWU6IEhpc3RvZ3JhbTxzdHJpbmc+LFxyXG4gICAgQEluamVjdE1ldHJpYygnbnVtYmVyaW5nX2xvY2tfZmFpbHVyZXNfdG90YWwnKVxyXG4gICAgcHVibGljIGxvY2tGYWlsdXJlczogQ291bnRlcjxzdHJpbmc+XHJcbiAgKSB7fVxyXG59XHJcbiJdLCJ2ZXJzaW9uIjozfQ==

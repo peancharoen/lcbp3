@@ -1,0 +1,83 @@
+b3e8d734de8ac3b4c98f29fc8f434bc9
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Attachment = void 0;
+const typeorm_1 = require("typeorm");
+const user_entity_1 = require("../../../modules/user/entities/user.entity");
+const uuid_base_entity_1 = require("../../entities/uuid-base.entity");
+const class_transformer_1 = require("class-transformer");
+let Attachment = class Attachment extends uuid_base_entity_1.UuidBaseEntity {
+};
+exports.Attachment = Attachment;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    (0, class_transformer_1.Exclude)(),
+    __metadata("design:type", Number)
+], Attachment.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'original_filename', length: 255 }),
+    __metadata("design:type", String)
+], Attachment.prototype, "originalFilename", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'stored_filename', length: 255 }),
+    __metadata("design:type", String)
+], Attachment.prototype, "storedFilename", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'file_path', length: 500 }),
+    __metadata("design:type", String)
+], Attachment.prototype, "filePath", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'mime_type', length: 100 }),
+    __metadata("design:type", String)
+], Attachment.prototype, "mimeType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'file_size' }),
+    __metadata("design:type", Number)
+], Attachment.prototype, "fileSize", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_temporary', default: true }),
+    __metadata("design:type", Boolean)
+], Attachment.prototype, "isTemporary", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'temp_id', length: 100, nullable: true }),
+    __metadata("design:type", String)
+], Attachment.prototype, "tempId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'expires_at', type: 'datetime', nullable: true }),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], Attachment.prototype, "expiresAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 64, nullable: true }),
+    __metadata("design:type", String)
+], Attachment.prototype, "checksum", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'reference_date', type: 'date', nullable: true }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], Attachment.prototype, "referenceDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'uploaded_by_user_id' }),
+    __metadata("design:type", Number)
+], Attachment.prototype, "uploadedByUserId", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], Attachment.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User),
+    (0, typeorm_1.JoinColumn)({ name: 'uploaded_by_user_id' }),
+    __metadata("design:type", typeof (_d = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _d : Object)
+], Attachment.prototype, "uploadedBy", void 0);
+exports.Attachment = Attachment = __decorate([
+    (0, typeorm_1.Entity)('attachments')
+], Attachment);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcY29tbW9uXFxmaWxlLXN0b3JhZ2VcXGVudGl0aWVzXFxhdHRhY2htZW50LmVudGl0eS50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBQUEscUNBT2lCO0FBQ2pCLDRFQUFrRTtBQUNsRSxzRUFBaUU7QUFDakUseURBQTRDO0FBR3JDLElBQU0sVUFBVSxHQUFoQixNQUFNLFVBQVcsU0FBUSxpQ0FBYztDQTZDN0MsQ0FBQTtBQTdDWSxnQ0FBVTtBQUdyQjtJQUZDLElBQUEsZ0NBQXNCLEdBQUU7SUFDeEIsSUFBQSwyQkFBTyxHQUFFOztzQ0FDRTtBQUdaO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLG1CQUFtQixFQUFFLE1BQU0sRUFBRSxHQUFHLEVBQUUsQ0FBQzs7b0RBQ3pCO0FBRzFCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGlCQUFpQixFQUFFLE1BQU0sRUFBRSxHQUFHLEVBQUUsQ0FBQzs7a0RBQ3pCO0FBR3hCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxNQUFNLEVBQUUsR0FBRyxFQUFFLENBQUM7OzRDQUN6QjtBQUdsQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxXQUFXLEVBQUUsTUFBTSxFQUFFLEdBQUcsRUFBRSxDQUFDOzs0Q0FDekI7QUFHbEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLENBQUM7OzRDQUNaO0FBR2xCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGNBQWMsRUFBRSxPQUFPLEVBQUUsSUFBSSxFQUFFLENBQUM7OytDQUMxQjtBQUd0QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxTQUFTLEVBQUUsTUFBTSxFQUFFLEdBQUcsRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7OzBDQUN6QztBQUdoQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsSUFBSSxFQUFFLFVBQVUsRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7a0RBQ3JELElBQUksb0JBQUosSUFBSTs2Q0FBQztBQUdqQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLE1BQU0sRUFBRSxFQUFFLEVBQUUsUUFBUSxFQUFFLElBQUksRUFBRSxDQUFDOzs0Q0FDckI7QUFHbEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsZ0JBQWdCLEVBQUUsSUFBSSxFQUFFLE1BQU0sRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7a0RBQ2pELElBQUksb0JBQUosSUFBSTtpREFBQztBQUdyQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxxQkFBcUIsRUFBRSxDQUFDOztvREFDZDtBQUcxQjtJQURDLElBQUEsMEJBQWdCLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQzdCLElBQUksb0JBQUosSUFBSTs2Q0FBQztBQUtqQjtJQUZDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQyxrQkFBSSxDQUFDO0lBQ3JCLElBQUEsb0JBQVUsRUFBQyxFQUFFLElBQUksRUFBRSxxQkFBcUIsRUFBRSxDQUFDO2tEQUMvQixrQkFBSSxvQkFBSixrQkFBSTs4Q0FBQztxQkE1Q1AsVUFBVTtJQUR0QixJQUFBLGdCQUFNLEVBQUMsYUFBYSxDQUFDO0dBQ1QsVUFBVSxDQTZDdEIiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcY29tbW9uXFxmaWxlLXN0b3JhZ2VcXGVudGl0aWVzXFxhdHRhY2htZW50LmVudGl0eS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge1xuICBFbnRpdHksXG4gIENvbHVtbixcbiAgUHJpbWFyeUdlbmVyYXRlZENvbHVtbixcbiAgQ3JlYXRlRGF0ZUNvbHVtbixcbiAgTWFueVRvT25lLFxuICBKb2luQ29sdW1uLFxufSBmcm9tICd0eXBlb3JtJztcbmltcG9ydCB7IFVzZXIgfSBmcm9tICcuLi8uLi8uLi9tb2R1bGVzL3VzZXIvZW50aXRpZXMvdXNlci5lbnRpdHknO1xuaW1wb3J0IHsgVXVpZEJhc2VFbnRpdHkgfSBmcm9tICcuLi8uLi9lbnRpdGllcy91dWlkLWJhc2UuZW50aXR5JztcbmltcG9ydCB7IEV4Y2x1ZGUgfSBmcm9tICdjbGFzcy10cmFuc2Zvcm1lcic7XG5cbkBFbnRpdHkoJ2F0dGFjaG1lbnRzJylcbmV4cG9ydCBjbGFzcyBBdHRhY2htZW50IGV4dGVuZHMgVXVpZEJhc2VFbnRpdHkge1xuICBAUHJpbWFyeUdlbmVyYXRlZENvbHVtbigpXG4gIEBFeGNsdWRlKClcbiAgaWQhOiBudW1iZXI7XG5cbiAgQENvbHVtbih7IG5hbWU6ICdvcmlnaW5hbF9maWxlbmFtZScsIGxlbmd0aDogMjU1IH0pXG4gIG9yaWdpbmFsRmlsZW5hbWUhOiBzdHJpbmc7XG5cbiAgQENvbHVtbih7IG5hbWU6ICdzdG9yZWRfZmlsZW5hbWUnLCBsZW5ndGg6IDI1NSB9KVxuICBzdG9yZWRGaWxlbmFtZSE6IHN0cmluZztcblxuICBAQ29sdW1uKHsgbmFtZTogJ2ZpbGVfcGF0aCcsIGxlbmd0aDogNTAwIH0pXG4gIGZpbGVQYXRoITogc3RyaW5nO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAnbWltZV90eXBlJywgbGVuZ3RoOiAxMDAgfSlcbiAgbWltZVR5cGUhOiBzdHJpbmc7XG5cbiAgQENvbHVtbih7IG5hbWU6ICdmaWxlX3NpemUnIH0pXG4gIGZpbGVTaXplITogbnVtYmVyO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAnaXNfdGVtcG9yYXJ5JywgZGVmYXVsdDogdHJ1ZSB9KVxuICBpc1RlbXBvcmFyeSE6IGJvb2xlYW47XG5cbiAgQENvbHVtbih7IG5hbWU6ICd0ZW1wX2lkJywgbGVuZ3RoOiAxMDAsIG51bGxhYmxlOiB0cnVlIH0pXG4gIHRlbXBJZD86IHN0cmluZztcblxuICBAQ29sdW1uKHsgbmFtZTogJ2V4cGlyZXNfYXQnLCB0eXBlOiAnZGF0ZXRpbWUnLCBudWxsYWJsZTogdHJ1ZSB9KVxuICBleHBpcmVzQXQ/OiBEYXRlO1xuXG4gIEBDb2x1bW4oeyBsZW5ndGg6IDY0LCBudWxsYWJsZTogdHJ1ZSB9KVxuICBjaGVja3N1bT86IHN0cmluZztcblxuICBAQ29sdW1uKHsgbmFtZTogJ3JlZmVyZW5jZV9kYXRlJywgdHlwZTogJ2RhdGUnLCBudWxsYWJsZTogdHJ1ZSB9KVxuICByZWZlcmVuY2VEYXRlPzogRGF0ZTtcblxuICBAQ29sdW1uKHsgbmFtZTogJ3VwbG9hZGVkX2J5X3VzZXJfaWQnIH0pXG4gIHVwbG9hZGVkQnlVc2VySWQhOiBudW1iZXI7XG5cbiAgQENyZWF0ZURhdGVDb2x1bW4oeyBuYW1lOiAnY3JlYXRlZF9hdCcgfSlcbiAgY3JlYXRlZEF0ITogRGF0ZTtcblxuICAvLyBSZWxhdGlvbiDguIHguLHguJogVXNlciAo4LiE4LiZ4Lit4Lix4Lib4LmC4Lir4Lil4LiUKVxuICBATWFueVRvT25lKCgpID0+IFVzZXIpXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ3VwbG9hZGVkX2J5X3VzZXJfaWQnIH0pXG4gIHVwbG9hZGVkQnk/OiBVc2VyO1xufVxuIl0sInZlcnNpb24iOjN9

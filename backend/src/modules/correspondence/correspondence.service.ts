@@ -22,6 +22,7 @@ import { CorrespondenceTag } from './entities/correspondence-tag.entity';
 import { Tag } from '../master/entities/tag.entity';
 import { User } from '../user/entities/user.entity';
 import { Organization } from '../organization/entities/organization.entity';
+import { CorrespondenceRevisionAttachment } from './entities/correspondence-revision-attachment.entity';
 
 // DTOs
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
@@ -89,7 +90,9 @@ export class CorrespondenceService {
     private searchService: SearchService,
     private fileStorageService: FileStorageService,
     private uuidResolver: UuidResolverService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    @InjectRepository(CorrespondenceRevisionAttachment)
+    private revAttachRepo: Repository<CorrespondenceRevisionAttachment>
   ) {}
 
   /**
@@ -344,10 +347,25 @@ export class CorrespondenceService {
             ? new Date(createDto.documentDate)
             : undefined;
 
-        await this.fileStorageService.commit(createDto.attachmentTempIds, {
-          issueDate,
-          documentType: 'Correspondence',
-        });
+        // [FIX v1.8.1] commit ได้ Attachment records กลับมา → บันทึก junction
+        const committed = await this.fileStorageService.commit(
+          createDto.attachmentTempIds,
+          { issueDate, documentType: 'Correspondence' }
+        );
+
+        if (committed.length > 0) {
+          const links = committed.map((att, idx) =>
+            queryRunner.manager.create(CorrespondenceRevisionAttachment, {
+              correspondenceRevisionId: revision.id,
+              attachmentId: att.id,
+              isMainDocument: idx === 0, // ไฟล์แรกเป็น main document
+            })
+          );
+          await queryRunner.manager.save(
+            CorrespondenceRevisionAttachment,
+            links
+          );
+        }
       }
 
       await queryRunner.commitTransaction();
@@ -496,6 +514,8 @@ export class CorrespondenceService {
       relations: [
         'revisions',
         'revisions.status',
+        'revisions.attachmentLinks', // [FIX v1.8.1] โหลด junction
+        'revisions.attachmentLinks.attachment', // [FIX v1.8.1] โหลด attachment จริง
         'type',
         'project',
         'originator',
@@ -710,10 +730,25 @@ export class CorrespondenceService {
           ? new Date(updateDto.documentDate)
           : revision.issuedDate || revision.documentDate || undefined;
 
-      await this.fileStorageService.commit(updateDto.attachmentTempIds, {
-        issueDate: issueDate ? new Date(issueDate) : undefined,
-        documentType: 'Correspondence',
-      });
+      // [FIX v1.8.1] commit ได้ Attachment records กลับมา → บันทึก junction
+      const committed = await this.fileStorageService.commit(
+        updateDto.attachmentTempIds,
+        {
+          issueDate: issueDate ? new Date(issueDate) : undefined,
+          documentType: 'Correspondence',
+        }
+      );
+
+      if (committed.length > 0) {
+        const links = committed.map((att) =>
+          this.revAttachRepo.create({
+            correspondenceRevisionId: revision.id,
+            attachmentId: att.id,
+            isMainDocument: false, // ไฟล์ที่ upload เพิ่มเติมไม่ใช่ main
+          })
+        );
+        await this.revAttachRepo.save(links);
+      }
     }
 
     // 5. Update Recipients if provided

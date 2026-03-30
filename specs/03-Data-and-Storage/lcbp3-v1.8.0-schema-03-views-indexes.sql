@@ -1,4 +1,4 @@
-﻿-- ==========================================================
+-- ==========================================================
 -- DMS v1.8.0 Schema Part 3/3: Views, Indexes, Partitioning
 -- รัน: หลังจาก 02-schema-tables.sql เสร็จ
 -- ==========================================================
@@ -397,16 +397,20 @@ SELECT 'CORRESPONDENCE' AS document_type,
   p.uuid AS project_uuid,
   p.project_code,
   p.project_name,
-  COUNT(ca.attachment_id) AS attachment_count,
+  COUNT(cra.attachment_id) AS attachment_count,
   MAX(a.created_at) AS latest_attachment_date
 FROM correspondences c
-  INNER JOIN projects p ON c.project_id = p.id
-  LEFT JOIN correspondence_attachments ca ON c.id = ca.correspondence_id
-  LEFT JOIN attachments a ON ca.attachment_id = a.id
+  INNER JOIN projects p ON c.project_id = p.id -- [FIX] JOIN ผ่าน correspondence_revisions เพราะไฟล์ผูกกับ revision ไม่ใช่ correspondence master
+  LEFT JOIN correspondence_revisions cr ON c.id = cr.correspondence_id
+  AND cr.is_current = TRUE
+  LEFT JOIN correspondence_revision_attachments cra ON cr.id = cra.correspondence_revision_id
+  LEFT JOIN attachments a ON cra.attachment_id = a.id
 WHERE c.deleted_at IS NULL
 GROUP BY c.id,
+  c.uuid,
   c.correspondence_number,
   c.project_id,
+  p.uuid,
   p.project_code,
   p.project_name
 UNION ALL

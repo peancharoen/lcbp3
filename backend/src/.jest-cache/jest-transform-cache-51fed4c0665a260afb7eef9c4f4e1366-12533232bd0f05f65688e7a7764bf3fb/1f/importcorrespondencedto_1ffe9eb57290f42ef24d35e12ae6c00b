@@ -1,0 +1,108 @@
+a58e113d51c4a144640cb12a81ce0c6f
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ImportCorrespondenceDto = void 0;
+const class_validator_1 = require("class-validator");
+class ImportCorrespondenceDto {
+}
+exports.ImportCorrespondenceDto = ImportCorrespondenceDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "documentNumber", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "subject", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "category", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "sourceFilePath", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], ImportCorrespondenceDto.prototype, "tempAttachmentId", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], ImportCorrespondenceDto.prototype, "aiConfidence", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Array)
+], ImportCorrespondenceDto.prototype, "aiIssues", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "migratedBy", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "batchId", void 0);
+__decorate([
+    (0, class_validator_1.IsObject)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_a = typeof Record !== "undefined" && Record) === "function" ? _a : Object)
+], ImportCorrespondenceDto.prototype, "details", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", Number)
+], ImportCorrespondenceDto.prototype, "projectId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "issuedDate", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "receivedDate", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "documentDate", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], ImportCorrespondenceDto.prototype, "disciplineId", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], ImportCorrespondenceDto.prototype, "senderId", void 0);
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], ImportCorrespondenceDto.prototype, "receiverId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ImportCorrespondenceDto.prototype, "body", void 0);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcbWlncmF0aW9uXFxkdG9cXGltcG9ydC1jb3JyZXNwb25kZW5jZS5kdG8udHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQUFBLHFEQU15QjtBQUV6QixNQUFhLHVCQUF1QjtDQXVFbkM7QUF2RUQsMERBdUVDO0FBcEVDO0lBRkMsSUFBQSwwQkFBUSxHQUFFO0lBQ1YsSUFBQSw0QkFBVSxHQUFFOzsrREFDVztBQUl4QjtJQUZDLElBQUEsMEJBQVEsR0FBRTtJQUNWLElBQUEsNEJBQVUsR0FBRTs7d0RBQ0k7QUFJakI7SUFGQyxJQUFBLDBCQUFRLEdBQUU7SUFDVixJQUFBLDRCQUFVLEdBQUU7O3lEQUNLO0FBSWxCO0lBRkMsSUFBQSwwQkFBUSxHQUFFO0lBQ1YsSUFBQSw0QkFBVSxHQUFFOzsrREFDVztBQUl4QjtJQUZDLElBQUEsMEJBQVEsR0FBRTtJQUNWLElBQUEsNEJBQVUsR0FBRTs7aUVBQ2E7QUFJMUI7SUFGQyxJQUFBLDBCQUFRLEdBQUU7SUFDVixJQUFBLDRCQUFVLEdBQUU7OzZEQUNTO0FBR3RCO0lBREMsSUFBQSw0QkFBVSxHQUFFOzt5REFDd0I7QUFJckM7SUFGQyxJQUFBLDBCQUFRLEdBQUU7SUFDVixJQUFBLDRCQUFVLEdBQUU7OzJEQUNPO0FBSXBCO0lBRkMsSUFBQSwwQkFBUSxHQUFFO0lBQ1YsSUFBQSw0QkFBVSxHQUFFOzt3REFDSTtBQUlqQjtJQUZDLElBQUEsMEJBQVEsR0FBRTtJQUNWLElBQUEsNEJBQVUsR0FBRTtrREFDSCxNQUFNLG9CQUFOLE1BQU07d0RBQWtCO0FBSWxDO0lBRkMsSUFBQSwwQkFBUSxHQUFFO0lBQ1YsSUFBQSw0QkFBVSxHQUFFOzswREFDTTtBQUluQjtJQUZDLElBQUEsMEJBQVEsR0FBRTtJQUNWLElBQUEsNEJBQVUsR0FBRTs7MkRBQ087QUFJcEI7SUFGQyxJQUFBLDBCQUFRLEdBQUU7SUFDVixJQUFBLDRCQUFVLEdBQUU7OzZEQUNTO0FBSXRCO0lBRkMsSUFBQSwwQkFBUSxHQUFFO0lBQ1YsSUFBQSw0QkFBVSxHQUFFOzs2REFDUztBQUl0QjtJQUZDLElBQUEsMEJBQVEsR0FBRTtJQUNWLElBQUEsNEJBQVUsR0FBRTs7NkRBQ1M7QUFJdEI7SUFGQyxJQUFBLDBCQUFRLEdBQUU7SUFDVixJQUFBLDRCQUFVLEdBQUU7O3lEQUNLO0FBSWxCO0lBRkMsSUFBQSwwQkFBUSxHQUFFO0lBQ1YsSUFBQSw0QkFBVSxHQUFFOzsyREFDTztBQUlwQjtJQUZDLElBQUEsMEJBQVEsR0FBRTtJQUNWLElBQUEsNEJBQVUsR0FBRTs7cURBQ0MiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcbWlncmF0aW9uXFxkdG9cXGltcG9ydC1jb3JyZXNwb25kZW5jZS5kdG8udHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtcclxuICBJc1N0cmluZyxcclxuICBJc05vdEVtcHR5LFxyXG4gIElzT3B0aW9uYWwsXHJcbiAgSXNOdW1iZXIsXHJcbiAgSXNPYmplY3QsXHJcbn0gZnJvbSAnY2xhc3MtdmFsaWRhdG9yJztcclxuXHJcbmV4cG9ydCBjbGFzcyBJbXBvcnRDb3JyZXNwb25kZW5jZUR0byB7XHJcbiAgQElzU3RyaW5nKClcclxuICBASXNOb3RFbXB0eSgpXHJcbiAgZG9jdW1lbnROdW1iZXIhOiBzdHJpbmc7XHJcblxyXG4gIEBJc1N0cmluZygpXHJcbiAgQElzTm90RW1wdHkoKVxyXG4gIHN1YmplY3QhOiBzdHJpbmc7XHJcblxyXG4gIEBJc1N0cmluZygpXHJcbiAgQElzTm90RW1wdHkoKVxyXG4gIGNhdGVnb3J5ITogc3RyaW5nO1xyXG5cclxuICBASXNTdHJpbmcoKVxyXG4gIEBJc09wdGlvbmFsKClcclxuICBzb3VyY2VGaWxlUGF0aD86IHN0cmluZztcclxuXHJcbiAgQElzTnVtYmVyKClcclxuICBASXNPcHRpb25hbCgpXHJcbiAgdGVtcEF0dGFjaG1lbnRJZD86IG51bWJlcjtcclxuXHJcbiAgQElzTnVtYmVyKClcclxuICBASXNPcHRpb25hbCgpXHJcbiAgYWlDb25maWRlbmNlPzogbnVtYmVyO1xyXG5cclxuICBASXNPcHRpb25hbCgpXHJcbiAgYWlJc3N1ZXM/OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPltdO1xyXG5cclxuICBASXNTdHJpbmcoKVxyXG4gIEBJc05vdEVtcHR5KClcclxuICBtaWdyYXRlZEJ5ITogc3RyaW5nOyAvLyBcIlNZU1RFTV9JTVBPUlRcIlxyXG5cclxuICBASXNTdHJpbmcoKVxyXG4gIEBJc05vdEVtcHR5KClcclxuICBiYXRjaElkITogc3RyaW5nO1xyXG5cclxuICBASXNPYmplY3QoKVxyXG4gIEBJc09wdGlvbmFsKClcclxuICBkZXRhaWxzPzogUmVjb3JkPHN0cmluZywgdW5rbm93bj47XHJcblxyXG4gIEBJc051bWJlcigpXHJcbiAgQElzTm90RW1wdHkoKVxyXG4gIHByb2plY3RJZCE6IG51bWJlcjtcclxuXHJcbiAgQElzU3RyaW5nKClcclxuICBASXNPcHRpb25hbCgpXHJcbiAgaXNzdWVkRGF0ZT86IHN0cmluZztcclxuXHJcbiAgQElzU3RyaW5nKClcclxuICBASXNPcHRpb25hbCgpXHJcbiAgcmVjZWl2ZWREYXRlPzogc3RyaW5nO1xyXG5cclxuICBASXNTdHJpbmcoKVxyXG4gIEBJc09wdGlvbmFsKClcclxuICBkb2N1bWVudERhdGU/OiBzdHJpbmc7XHJcblxyXG4gIEBJc051bWJlcigpXHJcbiAgQElzT3B0aW9uYWwoKVxyXG4gIGRpc2NpcGxpbmVJZD86IG51bWJlcjtcclxuXHJcbiAgQElzTnVtYmVyKClcclxuICBASXNPcHRpb25hbCgpXHJcbiAgc2VuZGVySWQ/OiBudW1iZXI7XHJcblxyXG4gIEBJc051bWJlcigpXHJcbiAgQElzT3B0aW9uYWwoKVxyXG4gIHJlY2VpdmVySWQ/OiBudW1iZXI7XHJcblxyXG4gIEBJc1N0cmluZygpXHJcbiAgQElzT3B0aW9uYWwoKVxyXG4gIGJvZHk/OiBzdHJpbmc7XHJcbn1cclxuIl0sInZlcnNpb24iOjN9

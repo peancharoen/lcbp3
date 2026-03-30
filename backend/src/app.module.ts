@@ -118,6 +118,14 @@ import { MigrationModule } from './modules/migration/migration.module';
         charset: 'utf8mb4',
         autoLoadEntities: true,
         synchronize: false, // Production Ready: false
+        // ป้องกัน ECONNRESET จาก idle connection ที่ถูก MariaDB ตัด
+        connectTimeout: 30000, // 30 วินาที
+        acquireTimeout: 30000, // 30 วินาที
+        extra: {
+          connectionLimit: 10,
+          enableKeepAlive: true, // ส่ง TCP keepalive ป้องกัน connection ตาย
+          keepAliveInitialDelay: 10000, // 10 วินาทีก่อนส่ง keepalive ครั้งแรก
+        },
       }),
     }),
 

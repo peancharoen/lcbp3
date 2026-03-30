@@ -53,7 +53,9 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
   const subject = currentRevision?.subject || '-';
   const description = currentRevision?.description || '-';
   const status = currentRevision?.status?.statusCode || 'UNKNOWN';
-  const attachments = currentRevision?.attachments || [];
+  // [FIX v1.8.1] flatten attachmentLinks จาก junction table แทน attachments โดยตรง
+  const attachments =
+    currentRevision?.attachmentLinks?.map((link) => link.attachment) ?? [];
   const importance = (currentRevision?.details?.importance as string) || 'NORMAL';
   const canEditMetadata = hasPermission('correspondence.edit');
   const privilegedEditableStatuses = ['SUBCSC', 'SUBOWN', 'IN_REVIEW_CSC'];
@@ -294,10 +296,15 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
                       >
                         <div className="flex items-center gap-3">
                           <FileText className="h-5 w-5 text-primary" />
-                          <span className="text-sm font-medium">{file.name}</span>
+                          <span className="text-sm font-medium">{file.originalFilename}</span>
                         </div>
                         <Button variant="ghost" size="sm" asChild>
-                          <a href={file.url} target="_blank" rel="noopener noreferrer">
+                          <a
+                            href={file.filePath}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Download ${file.originalFilename}`}
+                          >
                             <Download className="h-4 w-4" />
                           </a>
                         </Button>

@@ -1,0 +1,87 @@
+dd64838a9214400a0aa18efa214c7909
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RfaRevision = void 0;
+// File: src/modules/rfa/entities/rfa-revision.entity.ts
+const typeorm_1 = require("typeorm");
+const correspondence_revision_entity_1 = require("../../correspondence/entities/correspondence-revision.entity");
+const rfa_approve_code_entity_1 = require("./rfa-approve-code.entity");
+const rfa_item_entity_1 = require("./rfa-item.entity");
+const rfa_status_code_entity_1 = require("./rfa-status-code.entity");
+const rfa_workflow_entity_1 = require("./rfa-workflow.entity");
+let RfaRevision = class RfaRevision {
+};
+exports.RfaRevision = RfaRevision;
+__decorate([
+    (0, typeorm_1.PrimaryColumn)(),
+    __metadata("design:type", Number)
+], RfaRevision.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => correspondence_revision_entity_1.CorrespondenceRevision, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'id' }),
+    __metadata("design:type", typeof (_a = typeof correspondence_revision_entity_1.CorrespondenceRevision !== "undefined" && correspondence_revision_entity_1.CorrespondenceRevision) === "function" ? _a : Object)
+], RfaRevision.prototype, "correspondenceRevision", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'rfa_status_code_id' }),
+    __metadata("design:type", Number)
+], RfaRevision.prototype, "rfaStatusCodeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'rfa_approve_code_id', nullable: true }),
+    __metadata("design:type", Number)
+], RfaRevision.prototype, "rfaApproveCodeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'approved_date', type: 'date', nullable: true }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], RfaRevision.prototype, "approvedDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'json', nullable: true }),
+    __metadata("design:type", Object)
+], RfaRevision.prototype, "details", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'schema_version', default: 1 }),
+    __metadata("design:type", Number)
+], RfaRevision.prototype, "schemaVersion", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'v_ref_drawing_count',
+        type: 'int',
+        generatedType: 'VIRTUAL',
+        asExpression: "JSON_UNQUOTE(JSON_EXTRACT(details, '$.drawingCount'))",
+        nullable: true,
+    }),
+    __metadata("design:type", Number)
+], RfaRevision.prototype, "vRefDrawingCount", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => rfa_status_code_entity_1.RfaStatusCode),
+    (0, typeorm_1.JoinColumn)({ name: 'rfa_status_code_id' }),
+    __metadata("design:type", typeof (_c = typeof rfa_status_code_entity_1.RfaStatusCode !== "undefined" && rfa_status_code_entity_1.RfaStatusCode) === "function" ? _c : Object)
+], RfaRevision.prototype, "statusCode", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => rfa_approve_code_entity_1.RfaApproveCode),
+    (0, typeorm_1.JoinColumn)({ name: 'rfa_approve_code_id' }),
+    __metadata("design:type", typeof (_d = typeof rfa_approve_code_entity_1.RfaApproveCode !== "undefined" && rfa_approve_code_entity_1.RfaApproveCode) === "function" ? _d : Object)
+], RfaRevision.prototype, "approveCode", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => rfa_item_entity_1.RfaItem, (item) => item.rfaRevision, { cascade: true }),
+    __metadata("design:type", Array)
+], RfaRevision.prototype, "items", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => rfa_workflow_entity_1.RfaWorkflow, (workflow) => workflow.rfaRevision, {
+        cascade: true,
+    }),
+    __metadata("design:type", Array)
+], RfaRevision.prototype, "workflows", void 0);
+exports.RfaRevision = RfaRevision = __decorate([
+    (0, typeorm_1.Entity)('rfa_revisions')
+], RfaRevision);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xccmZhXFxlbnRpdGllc1xccmZhLXJldmlzaW9uLmVudGl0eS50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBQUEsd0RBQXdEO0FBQ3hELHFDQVFpQjtBQUNqQixpSEFBc0c7QUFDdEcsdUVBQTJEO0FBQzNELHVEQUE0QztBQUM1QyxxRUFBeUQ7QUFDekQsK0RBQW9EO0FBRzdDLElBQU0sV0FBVyxHQUFqQixNQUFNLFdBQVc7Q0FxRHZCLENBQUE7QUFyRFksa0NBQVc7QUFFdEI7SUFEQyxJQUFBLHVCQUFhLEdBQUU7O3VDQUNKO0FBSVo7SUFGQyxJQUFBLGtCQUFRLEVBQUMsR0FBRyxFQUFFLENBQUMsdURBQXNCLEVBQUUsRUFBRSxRQUFRLEVBQUUsU0FBUyxFQUFFLENBQUM7SUFDL0QsSUFBQSxvQkFBVSxFQUFDLEVBQUUsSUFBSSxFQUFFLElBQUksRUFBRSxDQUFDO2tEQUNGLHVEQUFzQixvQkFBdEIsdURBQXNCOzJEQUFDO0FBR2hEO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLG9CQUFvQixFQUFFLENBQUM7O29EQUNkO0FBR3pCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLHFCQUFxQixFQUFFLFFBQVEsRUFBRSxJQUFJLEVBQUUsQ0FBQzs7cURBQzlCO0FBRzFCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGVBQWUsRUFBRSxJQUFJLEVBQUUsTUFBTSxFQUFFLFFBQVEsRUFBRSxJQUFJLEVBQUUsQ0FBQztrREFDakQsSUFBSSxvQkFBSixJQUFJO2lEQUFDO0FBS3BCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLE1BQU0sRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7OzRDQUN4QjtBQUlqQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxnQkFBZ0IsRUFBRSxPQUFPLEVBQUUsQ0FBQyxFQUFFLENBQUM7O2tEQUN4QjtBQVV2QjtJQVBDLElBQUEsZ0JBQU0sRUFBQztRQUNOLElBQUksRUFBRSxxQkFBcUI7UUFDM0IsSUFBSSxFQUFFLEtBQUs7UUFDWCxhQUFhLEVBQUUsU0FBUztRQUN4QixZQUFZLEVBQUUsdURBQXVEO1FBQ3JFLFFBQVEsRUFBRSxJQUFJO0tBQ2YsQ0FBQzs7cURBQ3dCO0FBTTFCO0lBRkMsSUFBQSxtQkFBUyxFQUFDLEdBQUcsRUFBRSxDQUFDLHNDQUFhLENBQUM7SUFDOUIsSUFBQSxvQkFBVSxFQUFDLEVBQUUsSUFBSSxFQUFFLG9CQUFvQixFQUFFLENBQUM7a0RBQzlCLHNDQUFhLG9CQUFiLHNDQUFhOytDQUFDO0FBSTNCO0lBRkMsSUFBQSxtQkFBUyxFQUFDLEdBQUcsRUFBRSxDQUFDLHdDQUFjLENBQUM7SUFDL0IsSUFBQSxvQkFBVSxFQUFDLEVBQUUsSUFBSSxFQUFFLHFCQUFxQixFQUFFLENBQUM7a0RBQzlCLHdDQUFjLG9CQUFkLHdDQUFjO2dEQUFDO0FBRzdCO0lBREMsSUFBQSxtQkFBUyxFQUFDLEdBQUcsRUFBRSxDQUFDLHlCQUFPLEVBQUUsQ0FBQyxJQUFJLEVBQUUsRUFBRSxDQUFDLElBQUksQ0FBQyxXQUFXLEVBQUUsRUFBRSxPQUFPLEVBQUUsSUFBSSxFQUFFLENBQUM7OzBDQUN0RDtBQUtsQjtJQUhDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQyxpQ0FBVyxFQUFFLENBQUMsUUFBUSxFQUFFLEVBQUUsQ0FBQyxRQUFRLENBQUMsV0FBVyxFQUFFO1FBQ2hFLE9BQU8sRUFBRSxJQUFJO0tBQ2QsQ0FBQzs7OENBQ3dCO3NCQXBEZixXQUFXO0lBRHZCLElBQUEsZ0JBQU0sRUFBQyxlQUFlLENBQUM7R0FDWCxXQUFXLENBcUR2QiIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcbmFwLWRtcy5sY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFxyZmFcXGVudGl0aWVzXFxyZmEtcmV2aXNpb24uZW50aXR5LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8vIEZpbGU6IHNyYy9tb2R1bGVzL3JmYS9lbnRpdGllcy9yZmEtcmV2aXNpb24uZW50aXR5LnRzXG5pbXBvcnQge1xuICBDb2x1bW4sXG4gIEVudGl0eSxcbiAgSm9pbkNvbHVtbixcbiAgTWFueVRvT25lLFxuICBPbmVUb01hbnksXG4gIFByaW1hcnlDb2x1bW4sXG4gIE9uZVRvT25lLFxufSBmcm9tICd0eXBlb3JtJztcbmltcG9ydCB7IENvcnJlc3BvbmRlbmNlUmV2aXNpb24gfSBmcm9tICcuLi8uLi9jb3JyZXNwb25kZW5jZS9lbnRpdGllcy9jb3JyZXNwb25kZW5jZS1yZXZpc2lvbi5lbnRpdHknO1xuaW1wb3J0IHsgUmZhQXBwcm92ZUNvZGUgfSBmcm9tICcuL3JmYS1hcHByb3ZlLWNvZGUuZW50aXR5JztcbmltcG9ydCB7IFJmYUl0ZW0gfSBmcm9tICcuL3JmYS1pdGVtLmVudGl0eSc7XG5pbXBvcnQgeyBSZmFTdGF0dXNDb2RlIH0gZnJvbSAnLi9yZmEtc3RhdHVzLWNvZGUuZW50aXR5JztcbmltcG9ydCB7IFJmYVdvcmtmbG93IH0gZnJvbSAnLi9yZmEtd29ya2Zsb3cuZW50aXR5JztcblxuQEVudGl0eSgncmZhX3JldmlzaW9ucycpXG5leHBvcnQgY2xhc3MgUmZhUmV2aXNpb24ge1xuICBAUHJpbWFyeUNvbHVtbigpXG4gIGlkITogbnVtYmVyO1xuXG4gIEBPbmVUb09uZSgoKSA9PiBDb3JyZXNwb25kZW5jZVJldmlzaW9uLCB7IG9uRGVsZXRlOiAnQ0FTQ0FERScgfSlcbiAgQEpvaW5Db2x1bW4oeyBuYW1lOiAnaWQnIH0pXG4gIGNvcnJlc3BvbmRlbmNlUmV2aXNpb24hOiBDb3JyZXNwb25kZW5jZVJldmlzaW9uO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAncmZhX3N0YXR1c19jb2RlX2lkJyB9KVxuICByZmFTdGF0dXNDb2RlSWQhOiBudW1iZXI7XG5cbiAgQENvbHVtbih7IG5hbWU6ICdyZmFfYXBwcm92ZV9jb2RlX2lkJywgbnVsbGFibGU6IHRydWUgfSlcbiAgcmZhQXBwcm92ZUNvZGVJZD86IG51bWJlcjtcblxuICBAQ29sdW1uKHsgbmFtZTogJ2FwcHJvdmVkX2RhdGUnLCB0eXBlOiAnZGF0ZScsIG51bGxhYmxlOiB0cnVlIH0pXG4gIGFwcHJvdmVkRGF0ZT86IERhdGU7XG5cbiAgLy8gLS0tIEpTT04gJiBTY2hlbWEgU2VjdGlvbiAtLS1cblxuICBAQ29sdW1uKHsgdHlwZTogJ2pzb24nLCBudWxsYWJsZTogdHJ1ZSB9KVxuICBkZXRhaWxzPzogb2JqZWN0OyAvLyBEeW5hbWljIEpTT04g4oCUIHR5cGVkIGFzIGBvYmplY3RgIHBlciBUeXBlT1JNIEpTT04gY29sdW1uIGNvbnZlbnRpb24gKG5vLWFueSwgQURSLTAxOSlcblxuICAvLyDinIUgW05ld10g4LiI4Liz4LmA4Lib4LmH4LiZ4Liq4Liz4Lir4Lij4Lix4LiaIERhdGEgTWlncmF0aW9uIChUMi41LjUpXG4gIEBDb2x1bW4oeyBuYW1lOiAnc2NoZW1hX3ZlcnNpb24nLCBkZWZhdWx0OiAxIH0pXG4gIHNjaGVtYVZlcnNpb24hOiBudW1iZXI7XG5cbiAgLy8g4pyFIFZpcnR1YWwgQ29sdW1uXG4gIEBDb2x1bW4oe1xuICAgIG5hbWU6ICd2X3JlZl9kcmF3aW5nX2NvdW50JyxcbiAgICB0eXBlOiAnaW50JyxcbiAgICBnZW5lcmF0ZWRUeXBlOiAnVklSVFVBTCcsXG4gICAgYXNFeHByZXNzaW9uOiBcIkpTT05fVU5RVU9URShKU09OX0VYVFJBQ1QoZGV0YWlscywgJyQuZHJhd2luZ0NvdW50JykpXCIsXG4gICAgbnVsbGFibGU6IHRydWUsXG4gIH0pXG4gIHZSZWZEcmF3aW5nQ291bnQ/OiBudW1iZXI7XG5cbiAgLy8gLS0tIFJlbGF0aW9ucyAtLS1cblxuICBATWFueVRvT25lKCgpID0+IFJmYVN0YXR1c0NvZGUpXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ3JmYV9zdGF0dXNfY29kZV9pZCcgfSlcbiAgc3RhdHVzQ29kZSE6IFJmYVN0YXR1c0NvZGU7XG5cbiAgQE1hbnlUb09uZSgoKSA9PiBSZmFBcHByb3ZlQ29kZSlcbiAgQEpvaW5Db2x1bW4oeyBuYW1lOiAncmZhX2FwcHJvdmVfY29kZV9pZCcgfSlcbiAgYXBwcm92ZUNvZGU/OiBSZmFBcHByb3ZlQ29kZTtcblxuICBAT25lVG9NYW55KCgpID0+IFJmYUl0ZW0sIChpdGVtKSA9PiBpdGVtLnJmYVJldmlzaW9uLCB7IGNhc2NhZGU6IHRydWUgfSlcbiAgaXRlbXMhOiBSZmFJdGVtW107XG5cbiAgQE9uZVRvTWFueSgoKSA9PiBSZmFXb3JrZmxvdywgKHdvcmtmbG93KSA9PiB3b3JrZmxvdy5yZmFSZXZpc2lvbiwge1xuICAgIGNhc2NhZGU6IHRydWUsXG4gIH0pXG4gIHdvcmtmbG93cyE6IFJmYVdvcmtmbG93W107XG59XG4iXSwidmVyc2lvbiI6M30=

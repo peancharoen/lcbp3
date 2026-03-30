@@ -78,8 +78,8 @@ erDiagram
     shop_drawing_sub_categories ||--o{ shop_drawings : "sub_categorizes"
 
     %% Attachments
-    attachments ||--o{ correspondence_attachments : "attached_to"
-    correspondences ||--o{ correspondence_attachments : "has"
+    attachments ||--o{ correspondence_revision_attachments : "attached_to"
+    correspondence_revisions ||--o{ correspondence_revision_attachments : "has"
 ```
 
 ---
@@ -357,7 +357,7 @@ erDiagram
 **Relationships**:
 
 - Parent: correspondence_types, **disciplines**, projects, organizations, users
-- Children: correspondence_revisions, correspondence_recipients, correspondence_tags, correspondence_references, correspondence_attachments, circulations, transmittals
+- Children: correspondence_revisions, correspondence_recipients, correspondence_tags, correspondence_references, circulations, transmittals
 
 ---
 
@@ -1386,7 +1386,7 @@ erDiagram
 **Relationships**:
 
 - Parent: users
-- Referenced by: correspondence_attachments, circulation_attachments, shop_drawing_revision_attachments, contract_drawing_attachments
+- Referenced by: correspondence_revision_attachments, circulation_attachments, shop_drawing_revision_attachments, contract_drawing_attachments
 
 **Business Rules**:
 
@@ -1398,33 +1398,37 @@ erDiagram
 
 ---
 
-### 8.2 correspondence_attachments
+### 8.2 correspondence_revision_attachments (UPDATE v1.8.1)
 
-**Purpose**: Junction table linking correspondences to file attachments (M:N)
+**Purpose**: Junction table linking **correspondence_revisions** to file attachments (M:N)
 
-| Column Name       | Data Type | Constraints     | Description                  |
-| ----------------- | --------- | --------------- | ---------------------------- |
-| correspondence_id | INT       | PRIMARY KEY, FK | Reference to correspondences |
-| attachment_id     | INT       | PRIMARY KEY, FK | Reference to attachments     |
-| is_main_document  | BOOLEAN   | DEFAULT FALSE   | Main/primary document flag   |
+> **[FIX v1.8.1]** เปลี่ยนจาก `correspondence_attachments` (FK → `correspondences.id`) → `correspondence_revision_attachments` (FK → `correspondence_revisions.id`)
+> เหตุผล: ไฟล์แนบผูกกับ revision ไม่ใช่ correspondence master เพราะแต่ละ revision อาจมีไฟล์แนบต่างกัน
+
+| Column Name                  | Data Type | Constraints     | Description                             |
+| ---------------------------- | --------- | --------------- | --------------------------------------- |
+| correspondence_revision_id   | INT       | PRIMARY KEY, FK | Reference to correspondence_revisions   |
+| attachment_id                | INT       | PRIMARY KEY, FK | Reference to attachments                |
+| is_main_document             | BOOLEAN   | DEFAULT FALSE   | Main/primary document flag of revision  |
 
 **Indexes**:
 
-- PRIMARY KEY (correspondence_id, attachment_id)
-- FOREIGN KEY (correspondence_id) REFERENCES correspondences(id) ON DELETE CASCADE
+- PRIMARY KEY (correspondence_revision_id, attachment_id)
+- FOREIGN KEY (correspondence_revision_id) REFERENCES correspondence_revisions(id) ON DELETE CASCADE
 - FOREIGN KEY (attachment_id) REFERENCES attachments(id) ON DELETE CASCADE
-- INDEX (attachment_id)
-- INDEX (is_main_document)
+- INDEX idx_corr_rev_att_revision (correspondence_revision_id)
 
 **Relationships**:
 
-- Parent: correspondences, attachments
+- Parent: correspondence_revisions, attachments
+- correspondence_revisions has `attachmentLinks` OneToMany relation
 
 **Business Rules**:
 
-- One correspondence can have multiple attachments
-- One attachment can be linked to multiple correspondences
-- is_main_document identifies primary file (typically PDF)
+- One revision can have multiple attachments
+- One attachment can be linked to multiple revisions
+- is_main_document identifies primary file of that revision (typically PDF)
+- เมื่อ create/update correspondence → commit attachments → บันทึก revision_id ลงตารางนี้
 
 ---
 

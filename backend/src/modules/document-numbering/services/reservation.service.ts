@@ -167,24 +167,33 @@ export class ReservationService {
 
   /**
    * Cron job: Cleanup expired reservations every 5 minutes
+   * ใช้ try/catch เพื่อรองรับ transient ECONNRESET — TypeORM pool จะ reconnect อัตโนมัติใน tick ถัดไป
    */
   @Cron('*/5 * * * *')
   async cleanupExpired(): Promise<void> {
-    const result = await this.reservationRepo
-      .createQueryBuilder()
-      .update()
-      .set({
-        status: ReservationStatus.CANCELLED,
-        cancelledAt: () => 'NOW()',
-      })
-      .where('document_number_status = :status', {
-        status: ReservationStatus.RESERVED,
-      })
-      .andWhere('expires_at < NOW()')
-      .execute();
+    try {
+      const result = await this.reservationRepo
+        .createQueryBuilder()
+        .update()
+        .set({
+          status: ReservationStatus.CANCELLED,
+          cancelledAt: () => 'NOW()',
+        })
+        .where('document_number_status = :status', {
+          status: ReservationStatus.RESERVED,
+        })
+        .andWhere('expires_at < NOW()')
+        .execute();
 
-    if ((result.affected ?? 0) > 0) {
-      this.logger.log(`Cleaned up ${result.affected} expired reservations`);
+      if ((result.affected ?? 0) > 0) {
+        this.logger.log(`Cleaned up ${result.affected} expired reservations`);
+      }
+    } catch (error: unknown) {
+      // ECONNRESET บน idle connection — TypeORM จะ reconnect pool ใน request ถัดไปโดยอัตโนมัติ
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `[cleanupExpired] Transient DB error (will retry next tick): ${msg}`
+      );
     }
   }
 

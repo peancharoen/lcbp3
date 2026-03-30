@@ -1,0 +1,152 @@
+9d65398c4dd748113121ec3481c06564
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CorrespondenceRevision = void 0;
+const typeorm_1 = require("typeorm");
+const rfa_revision_entity_1 = require("../../rfa/entities/rfa-revision.entity");
+const correspondence_entity_1 = require("./correspondence.entity");
+const correspondence_status_entity_1 = require("./correspondence-status.entity");
+const user_entity_1 = require("../../user/entities/user.entity");
+const uuid_base_entity_1 = require("../../../common/entities/uuid-base.entity");
+const class_transformer_1 = require("class-transformer");
+const correspondence_revision_attachment_entity_1 = require("./correspondence-revision-attachment.entity");
+let CorrespondenceRevision = class CorrespondenceRevision extends uuid_base_entity_1.UuidBaseEntity {
+};
+exports.CorrespondenceRevision = CorrespondenceRevision;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    (0, class_transformer_1.Exclude)(),
+    __metadata("design:type", Number)
+], CorrespondenceRevision.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'correspondence_id' }),
+    __metadata("design:type", Number)
+], CorrespondenceRevision.prototype, "correspondenceId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'revision_number' }),
+    __metadata("design:type", Number)
+], CorrespondenceRevision.prototype, "revisionNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'revision_label', nullable: true, length: 10 }),
+    __metadata("design:type", String)
+], CorrespondenceRevision.prototype, "revisionLabel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_current', default: false }),
+    __metadata("design:type", Boolean)
+], CorrespondenceRevision.prototype, "isCurrent", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'correspondence_status_id' }),
+    __metadata("design:type", Number)
+], CorrespondenceRevision.prototype, "statusId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 500 }),
+    __metadata("design:type", String)
+], CorrespondenceRevision.prototype, "subject", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'description', type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], CorrespondenceRevision.prototype, "description", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], CorrespondenceRevision.prototype, "body", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], CorrespondenceRevision.prototype, "remarks", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'json', nullable: true }),
+    __metadata("design:type", Object)
+], CorrespondenceRevision.prototype, "details", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'schema_version', default: 1 }),
+    __metadata("design:type", Number)
+], CorrespondenceRevision.prototype, "schemaVersion", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'v_ref_project_id',
+        type: 'int',
+        generatedType: 'VIRTUAL',
+        asExpression: "JSON_UNQUOTE(JSON_EXTRACT(details, '$.projectId'))",
+        nullable: true,
+    }),
+    __metadata("design:type", Number)
+], CorrespondenceRevision.prototype, "vRefProjectId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'v_doc_subtype',
+        type: 'varchar',
+        length: 50,
+        generatedType: 'VIRTUAL',
+        asExpression: "JSON_UNQUOTE(JSON_EXTRACT(details, '$.subType'))",
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], CorrespondenceRevision.prototype, "vRefType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'document_date', type: 'date', nullable: true }),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], CorrespondenceRevision.prototype, "documentDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'issued_date', type: 'datetime', nullable: true }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], CorrespondenceRevision.prototype, "issuedDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'received_date', type: 'datetime', nullable: true }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], CorrespondenceRevision.prototype, "receivedDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'due_date', type: 'datetime', nullable: true }),
+    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
+], CorrespondenceRevision.prototype, "dueDate", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_e = typeof Date !== "undefined" && Date) === "function" ? _e : Object)
+], CorrespondenceRevision.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'created_by', nullable: true }),
+    __metadata("design:type", Number)
+], CorrespondenceRevision.prototype, "createdBy", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => correspondence_entity_1.Correspondence, (corr) => corr.revisions, {
+        onDelete: 'CASCADE',
+    }),
+    (0, typeorm_1.JoinColumn)({ name: 'correspondence_id' }),
+    __metadata("design:type", typeof (_f = typeof correspondence_entity_1.Correspondence !== "undefined" && correspondence_entity_1.Correspondence) === "function" ? _f : Object)
+], CorrespondenceRevision.prototype, "correspondence", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => correspondence_status_entity_1.CorrespondenceStatus),
+    (0, typeorm_1.JoinColumn)({ name: 'correspondence_status_id' }),
+    __metadata("design:type", typeof (_g = typeof correspondence_status_entity_1.CorrespondenceStatus !== "undefined" && correspondence_status_entity_1.CorrespondenceStatus) === "function" ? _g : Object)
+], CorrespondenceRevision.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User),
+    (0, typeorm_1.JoinColumn)({ name: 'created_by' }),
+    __metadata("design:type", typeof (_h = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _h : Object)
+], CorrespondenceRevision.prototype, "creator", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => rfa_revision_entity_1.RfaRevision, (rfaRev) => rfaRev.correspondenceRevision),
+    __metadata("design:type", typeof (_j = typeof rfa_revision_entity_1.RfaRevision !== "undefined" && rfa_revision_entity_1.RfaRevision) === "function" ? _j : Object)
+], CorrespondenceRevision.prototype, "rfaRevision", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => correspondence_revision_attachment_entity_1.CorrespondenceRevisionAttachment, (link) => link.revision),
+    __metadata("design:type", Array)
+], CorrespondenceRevision.prototype, "attachmentLinks", void 0);
+exports.CorrespondenceRevision = CorrespondenceRevision = __decorate([
+    (0, typeorm_1.Entity)('correspondence_revisions')
+    // ✅ เพิ่ม Index สำหรับ Virtual Columns เพื่อให้ Search เร็วขึ้น
+    ,
+    (0, typeorm_1.Index)('idx_corr_rev_v_project', ['vRefProjectId']),
+    (0, typeorm_1.Index)('idx_corr_rev_v_type', ['vRefType'])
+], CorrespondenceRevision);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcY29ycmVzcG9uZGVuY2VcXGVudGl0aWVzXFxjb3JyZXNwb25kZW5jZS1yZXZpc2lvbi5lbnRpdHkudHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQUFBLHFDQVVpQjtBQUNqQixnRkFBcUU7QUFDckUsbUVBQXlEO0FBQ3pELGlGQUFzRTtBQUN0RSxpRUFBdUQ7QUFDdkQsZ0ZBQTJFO0FBQzNFLHlEQUE0QztBQUM1QywyR0FBK0Y7QUFNeEYsSUFBTSxzQkFBc0IsR0FBNUIsTUFBTSxzQkFBdUIsU0FBUSxpQ0FBYztDQXVHekQsQ0FBQTtBQXZHWSx3REFBc0I7QUFHakM7SUFGQyxJQUFBLGdDQUFzQixHQUFFO0lBQ3hCLElBQUEsMkJBQU8sR0FBRTs7a0RBQ0U7QUFHWjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxtQkFBbUIsRUFBRSxDQUFDOztnRUFDWjtBQUcxQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxpQkFBaUIsRUFBRSxDQUFDOzs4REFDWjtBQUd4QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxnQkFBZ0IsRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLE1BQU0sRUFBRSxFQUFFLEVBQUUsQ0FBQzs7NkRBQ3hDO0FBR3ZCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxPQUFPLEVBQUUsS0FBSyxFQUFFLENBQUM7O3lEQUMzQjtBQUdwQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSwwQkFBMEIsRUFBRSxDQUFDOzt3REFDM0I7QUFHbEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxNQUFNLEVBQUUsR0FBRyxFQUFFLENBQUM7O3VEQUNQO0FBR2pCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxJQUFJLEVBQUUsTUFBTSxFQUFFLFFBQVEs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RSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQ3pCLGtCQUFJLG9CQUFKLGtCQUFJO3VEQUFDO0FBSWY7SUFEQyxJQUFBLGtCQUFRLEVBQUMsR0FBRyxFQUFFLENBQUMsaUNBQVcsRUFBRSxDQUFDLE1BQU0sRUFBRSxFQUFFLENBQUMsTUFBTSxDQUFDLHNCQUFzQixDQUFDO2tEQUN6RCxpQ0FBVyxvQkFBWCxpQ0FBVzsyREFBQztBQU8xQjtJQUpDLElBQUEsbUJBQVMsRUFDUixHQUFHLEVBQUUsQ0FBQyw0RUFBZ0MsRUFDdEMsQ0FBQyxJQUFJLEVBQUUsRUFBRSxDQUFDLElBQUksQ0FBQyxRQUFRLENBQ3hCOzsrREFDb0Q7aUNBdEcxQyxzQkFBc0I7SUFKbEMsSUFBQSxnQkFBTSxFQUFDLDBCQUEwQixDQUFDO0lBQ25DLGdFQUFnRTs7SUFDL0QsSUFBQSxlQUFLLEVBQUMsd0JBQXdCLEVBQUUsQ0FBQyxlQUFlLENBQUMsQ0FBQztJQUNsRCxJQUFBLGVBQUssRUFBQyxxQkFBcUIsRUFBRSxDQUFDLFVBQVUsQ0FBQyxDQUFDO0dBQzlCLHNCQUFzQixDQXVHbEMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcY29ycmVzcG9uZGVuY2VcXGVudGl0aWVzXFxjb3JyZXNwb25kZW5jZS1yZXZpc2lvbi5lbnRpdHkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtcbiAgRW50aXR5LFxuICBDb2x1bW4sXG4gIFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4sXG4gIE1hbnlUb09uZSxcbiAgSm9pbkNvbHVtbixcbiAgQ3JlYXRlRGF0ZUNvbHVtbixcbiAgSW5kZXgsXG4gIE9uZVRvT25lLFxuICBPbmVUb01hbnksXG59IGZyb20gJ3R5cGVvcm0nO1xuaW1wb3J0IHsgUmZhUmV2aXNpb24gfSBmcm9tICcuLi8uLi9yZmEvZW50aXRpZXMvcmZhLXJldmlzaW9uLmVudGl0eSc7XG5pbXBvcnQgeyBDb3JyZXNwb25kZW5jZSB9IGZyb20gJy4vY29ycmVzcG9uZGVuY2UuZW50aXR5JztcbmltcG9ydCB7IENvcnJlc3BvbmRlbmNlU3RhdHVzIH0gZnJvbSAnLi9jb3JyZXNwb25kZW5jZS1zdGF0dXMuZW50aXR5JztcbmltcG9ydCB7IFVzZXIgfSBmcm9tICcuLi8uLi91c2VyL2VudGl0aWVzL3VzZXIuZW50aXR5JztcbmltcG9ydCB7IFV1aWRCYXNlRW50aXR5IH0gZnJvbSAnLi4vLi4vLi4vY29tbW9uL2VudGl0aWVzL3V1aWQtYmFzZS5lbnRpdHknO1xuaW1wb3J0IHsgRXhjbHVkZSB9IGZyb20gJ2NsYXNzLXRyYW5zZm9ybWVyJztcbmltcG9ydCB7IENvcnJlc3BvbmRlbmNlUmV2aXNpb25BdHRhY2htZW50IH0gZnJvbSAnLi9jb3JyZXNwb25kZW5jZS1yZXZpc2lvbi1hdHRhY2htZW50LmVudGl0eSc7XG5cbkBFbnRpdHkoJ2NvcnJlc3BvbmRlbmNlX3JldmlzaW9ucycpXG4vLyDinIUg4LmA4Lie4Li04LmI4LihIEluZGV4IOC4quC4s+C4q+C4o+C4seC4miBWaXJ0dWFsIENvbHVtbnMg4LmA4Lie4Li34LmI4Lit4LmD4Lir4LmJIFNlYXJjaCDguYDguKPguYfguKfguILguLbguYnguJlcbkBJbmRleCgnaWR4X2NvcnJfcmV2X3ZfcHJvamVjdCcsIFsndlJlZlByb2plY3RJZCddKVxuQEluZGV4KCdpZHhfY29ycl9yZXZfdl90eXBlJywgWyd2UmVmVHlwZSddKVxuZXhwb3J0IGNsYXNzIENvcnJlc3BvbmRlbmNlUmV2aXNpb24gZXh0ZW5kcyBVdWlkQmFzZUVudGl0eSB7XG4gIEBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uKClcbiAgQEV4Y2x1ZGUoKVxuICBpZCE6IG51bWJlcjtcblxuICBAQ29sdW1uKHsgbmFtZTogJ2NvcnJlc3BvbmRlbmNlX2lkJyB9KVxuICBjb3JyZXNwb25kZW5jZUlkITogbnVtYmVyO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAncmV2aXNpb25fbnVtYmVyJyB9KVxuICByZXZpc2lvbk51bWJlciE6IG51bWJlcjsgLy8gMCwgMSwgMi4uLlxuXG4gIEBDb2x1bW4oeyBuYW1lOiAncmV2aXNpb25fbGFiZWwnLCBudWxsYWJsZTogdHJ1ZSwgbGVuZ3RoOiAxMCB9KVxuICByZXZpc2lvbkxhYmVsPzogc3RyaW5nOyAvLyBBLCBCLCAwMDEuLi5cblxuICBAQ29sdW1uKHsgbmFtZTogJ2lzX2N1cnJlbnQnLCBkZWZhdWx0OiBmYWxzZSB9KVxuICBpc0N1cnJlbnQhOiBib29sZWFuO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAnY29ycmVzcG9uZGVuY2Vfc3RhdHVzX2lkJyB9KVxuICBzdGF0dXNJZCE6IG51bWJlcjtcblxuICBAQ29sdW1uKHsgbGVuZ3RoOiA1MDAgfSlcbiAgc3ViamVjdCE6IHN0cmluZztcblxuICBAQ29sdW1uKHsgbmFtZTogJ2Rlc2NyaXB0aW9uJywgdHlwZTogJ3RleHQnLCBudWxsYWJsZTogdHJ1ZSB9KVxuICBkZXNjcmlwdGlvbj86IHN0cmluZztcblxuICBAQ29sdW1uKHsgdHlwZTogJ3RleHQnLCBudWxsYWJsZTogdHJ1ZSB9KVxuICBib2R5Pzogc3RyaW5nO1xuXG4gIEBDb2x1bW4oeyB0eXBlOiAndGV4dCcsIG51bGxhYmxlOiB0cnVlIH0pXG4gIHJlbWFya3M/OiBzdHJpbmc7XG5cbiAgQENvbHVtbih7IHR5cGU6ICdqc29uJywgbnVsbGFibGU6IHRydWUgfSlcbiAgZGV0YWlscz86IG9iamVjdDsgLy8gRHluYW1pYyBKU09OIOKAlCB0eXBlZCBhcyBgb2JqZWN0YCBwZXIgVHlwZU9STSBKU09OIGNvbHVtbiBjb252ZW50aW9uIChuby1hbnksIEFEUi0wMTkpXG5cbiAgQENvbHVtbih7IG5hbWU6ICdzY2hlbWFfdmVyc2lvbicsIGRlZmF1bHQ6IDEgfSlcbiAgc2NoZW1hVmVyc2lvbiE6IG51bWJlcjtcblxuICAvLyDinIUgW05ld10gVmlydHVhbCBDb2x1bW46IOC4lOC4tuC4hyBQcm9qZWN0IElEIOC4iOC4suC4gSBKU09OIGRldGFpbHNcbiAgQENvbHVtbih7XG4gICAgbmFtZTogJ3ZfcmVmX3Byb2plY3RfaWQnLFxuICAgIHR5cGU6ICdpbnQnLFxuICAgIGdlbmVyYXRlZFR5cGU6ICdWSVJUVUFMJyxcbiAgICBhc0V4cHJlc3Npb246IFwiSlNPTl9VTlFVT1RFKEpTT05fRVhUUkFDVChkZXRhaWxzLCAnJC5wcm9qZWN0SWQnKSlcIixcbiAgICBudWxsYWJsZTogdHJ1ZSxcbiAgfSlcbiAgdlJlZlByb2plY3RJZD86IG51bWJlcjtcblxuICAvLyDinIUgW05ld10gVmlydHVhbCBDb2x1bW46IOC4lOC4tuC4hyBEb2N1bWVudCBTdWJUeXBlIOC4iOC4suC4gSBKU09OIGRldGFpbHNcbiAgQENvbHVtbih7XG4gICAgbmFtZTogJ3ZfZG9jX3N1YnR5cGUnLFxuICAgIHR5cGU6ICd2YXJjaGFyJyxcbiAgICBsZW5ndGg6IDUwLFxuICAgIGdlbmVyYXRlZFR5cGU6ICdWSVJUVUFMJyxcbiAgICBhc0V4cHJlc3Npb246IFwiSlNPTl9VTlFVT1RFKEpTT05fRVhUUkFDVChkZXRhaWxzLCAnJC5zdWJUeXBlJykpXCIsXG4gICAgbnVsbGFibGU6IHRydWUsXG4gIH0pXG4gIHZSZWZUeXBlPzogc3RyaW5nO1xuXG4gIC8vIERhdGVzXG4gIEBDb2x1bW4oeyBuYW1lOiAnZG9jdW1lbnRfZGF0ZScsIHR5cGU6ICdkYXRlJywgbnVsbGFibGU6IHRydWUgfSlcbiAgZG9jdW1lbnREYXRlPzogRGF0ZTtcblxuICBAQ29sdW1uKHsgbmFtZTogJ2lzc3VlZF9kYXRlJywgdHlwZTogJ2RhdGV0aW1lJywgbnVsbGFibGU6IHRydWUgfSlcbiAgaXNzdWVkRGF0ZT86IERhdGU7XG5cbiAgQENvbHVtbih7IG5hbWU6ICdyZWNlaXZlZF9kYXRlJywgdHlwZTogJ2RhdGV0aW1lJywgbnVsbGFibGU6IHRydWUgfSlcbiAgcmVjZWl2ZWREYXRlPzogRGF0ZTtcblxuICBAQ29sdW1uKHsgbmFtZTogJ2R1ZV9kYXRlJywgdHlwZTogJ2RhdGV0aW1lJywgbnVsbGFibGU6IHRydWUgfSlcbiAgZHVlRGF0ZT86IERhdGU7XG5cbiAgQENyZWF0ZURhdGVDb2x1bW4oeyBuYW1lOiAnY3JlYXRlZF9hdCcgfSlcbiAgY3JlYXRlZEF0ITogRGF0ZTtcblxuICBAQ29sdW1uKHsgbmFtZTogJ2NyZWF0ZWRfYnknLCBudWxsYWJsZTogdHJ1ZSB9KVxuICBjcmVhdGVkQnk/OiBudW1iZXI7XG5cbiAgLy8gUmVsYXRpb25zXG4gIEBNYW55VG9PbmUoKCkgPT4gQ29ycmVzcG9uZGVuY2UsIChjb3JyKSA9PiBjb3JyLnJldmlzaW9ucywge1xuICAgIG9uRGVsZXRlOiAnQ0FTQ0FERScsXG4gIH0pXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ2NvcnJlc3BvbmRlbmNlX2lkJyB9KVxuICBjb3JyZXNwb25kZW5jZT86IENvcnJlc3BvbmRlbmNlO1xuXG4gIEBNYW55VG9PbmUoKCkgPT4gQ29ycmVzcG9uZGVuY2VTdGF0dXMpXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ2NvcnJlc3BvbmRlbmNlX3N0YXR1c19pZCcgfSlcbiAgc3RhdHVzPzogQ29ycmVzcG9uZGVuY2VTdGF0dXM7XG5cbiAgQE1hbnlUb09uZSgoKSA9PiBVc2VyKVxuICBASm9pbkNvbHVtbih7IG5hbWU6ICdjcmVhdGVkX2J5JyB9KVxuICBjcmVhdG9yPzogVXNlcjtcblxuICAvLyBBZGRlZCBpbnZlcnNlIHJlbGF0aW9uIGZvciBDVEkgbWFwcGluZyB0byBzdWJjbGFzc2VzIChSRkEpXG4gIEBPbmVUb09uZSgoKSA9PiBSZmFSZXZpc2lvbiwgKHJmYVJldikgPT4gcmZhUmV2LmNvcnJlc3BvbmRlbmNlUmV2aXNpb24pXG4gIHJmYVJldmlzaW9uPzogUmZhUmV2aXNpb247XG5cbiAgLy8gW0ZJWCB2MS44LjFdIFJlbGF0aW9uOiDguYTguJ/guKXguYzguYHguJnguJrguILguK3guIcgcmV2aXNpb24g4LiZ4Li14LmJ4Lic4LmI4Liy4LiZIGp1bmN0aW9uIHRhYmxlXG4gIEBPbmVUb01hbnkoXG4gICAgKCkgPT4gQ29ycmVzcG9uZGVuY2VSZXZpc2lvbkF0dGFjaG1lbnQsXG4gICAgKGxpbmspID0+IGxpbmsucmV2aXNpb25cbiAgKVxuICBhdHRhY2htZW50TGlua3M/OiBDb3JyZXNwb25kZW5jZVJldmlzaW9uQXR0YWNobWVudFtdO1xufVxuIl0sInZlcnNpb24iOjN9

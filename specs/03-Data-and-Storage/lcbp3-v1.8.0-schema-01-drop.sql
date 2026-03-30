@@ -1,4 +1,4 @@
-﻿-- ==========================================================
+-- ==========================================================
 -- DMS v1.8.0 Schema Part 1/3: DROP Statements
 -- รันไฟล์นี้ก่อน เพื่อล้างตารางเดิมทั้งหมด
 -- ==========================================================
@@ -98,7 +98,7 @@ DROP TABLE IF EXISTS shop_drawing_revision_attachments;
 
 DROP TABLE IF EXISTS asbuilt_drawing_revision_attachments;
 
-DROP TABLE IF EXISTS correspondence_attachments;
+DROP TABLE IF EXISTS correspondence_revision_attachments;
 
 DROP TABLE IF EXISTS attachments;
 

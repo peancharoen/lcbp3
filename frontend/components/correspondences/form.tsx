@@ -24,7 +24,9 @@ import { toast } from 'sonner';
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
   projectId: z.string().min(1, 'Please select a Project'),
-  contractId: z.string().min(1, 'Please select a Contract'),
+  // [FIX v1.8.1] contractId optional เพราะ correspondences ไม่มี contract_id โดยตรง
+  // จะ auto-populate จาก discipline เฉพาะ UI เท่านั้น
+  contractId: z.string().optional(),
   documentTypeId: z.number().min(1, 'Please select a Document Type'),
   disciplineId: z.number().optional(),
   subject: z.string().min(5, 'Subject must be at least 5 characters'),
@@ -66,6 +68,12 @@ interface DisciplineOption {
   id: number;
   disciplineCode: string;
   codeNameEn?: string;
+  // [FIX v1.8.1] บาง API ส่ง contract relation มาด้วย → ใช้ resolve contractId
+  contract?: {
+    publicId?: string;
+    contractName?: string;
+    contractCode?: string;
+  };
 }
 
 interface InitialCorrespondenceData {
@@ -168,7 +176,8 @@ export function CorrespondenceForm({
     projectId:
       normalizePublicId(initialData?.project?.publicId) ??
       normalizePublicId(initialData?.projectId),
-    contractId: normalizePublicId(initialData?.contract?.publicId),
+    // [FIX v1.8.1] correspondences ไม่มี contract_id โดยตรง → จะ auto-populate จาก discipline useEffect
+    contractId: undefined,
     documentTypeId: initialData?.correspondenceTypeId || undefined,
     disciplineId: initialData?.disciplineId || undefined,
     subject: currentRev?.subject || currentRev?.title || '',
@@ -240,6 +249,21 @@ export function CorrespondenceForm({
       setValue('disciplineId', undefined);
     }
   }, [contractId, setValue]);
+
+  // [FIX v1.8.1] Auto-populate contractId จาก discipline เมื่อ edit mode
+  // disciplines API ส่ง contract relation มาด้วย ถ้ามี discipline
+  useEffect(() => {
+    if (!initialData?.disciplineId) return;
+    if (disciplines.length === 0) return;
+    // ถ้ามี contractId ใน form แล้ว ไม่ต้อง override
+    const currentContractId = watch('contractId');
+    if (currentContractId) return;
+
+    const matched = disciplines.find((d) => d.id === initialData.disciplineId);
+    if (matched?.contract?.publicId) {
+      setValue('contractId', matched.contract.publicId);
+    }
+  }, [initialData?.disciplineId, disciplines, setValue, watch]);
 
   const [isUploading, setIsUploading] = useState(false);
 

@@ -1,0 +1,28 @@
+bcb72451389188fe12a13aa93be14537
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AddReferenceDto = void 0;
+const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
+class AddReferenceDto {
+}
+exports.AddReferenceDto = AddReferenceDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Target Correspondence UUID to reference (ADR-019)',
+        example: '019505a1-7c3e-7000-8000-abc123def456',
+    }),
+    (0, class_validator_1.IsUUID)('all'),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], AddReferenceDto.prototype, "targetUuid", void 0);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcY29ycmVzcG9uZGVuY2VcXGR0b1xcYWRkLXJlZmVyZW5jZS5kdG8udHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7O0FBQUEscURBQXFEO0FBQ3JELDZDQUE4QztBQUU5QyxNQUFhLGVBQWU7Q0FRM0I7QUFSRCwwQ0FRQztBQURDO0lBTkMsSUFBQSxxQkFBVyxFQUFDO1FBQ1gsV0FBVyxFQUFFLG1EQUFtRDtRQUNoRSxPQUFPLEVBQUUsc0NBQXNDO0tBQ2hELENBQUM7SUFDRCxJQUFBLHdCQUFNLEVBQUMsS0FBSyxDQUFDO0lBQ2IsSUFBQSw0QkFBVSxHQUFFOzttREFDTyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcbmFwLWRtcy5sY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFxjb3JyZXNwb25kZW5jZVxcZHRvXFxhZGQtcmVmZXJlbmNlLmR0by50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBJc1VVSUQsIElzTm90RW1wdHkgfSBmcm9tICdjbGFzcy12YWxpZGF0b3InO1xuaW1wb3J0IHsgQXBpUHJvcGVydHkgfSBmcm9tICdAbmVzdGpzL3N3YWdnZXInO1xuXG5leHBvcnQgY2xhc3MgQWRkUmVmZXJlbmNlRHRvIHtcbiAgQEFwaVByb3BlcnR5KHtcbiAgICBkZXNjcmlwdGlvbjogJ1RhcmdldCBDb3JyZXNwb25kZW5jZSBVVUlEIHRvIHJlZmVyZW5jZSAoQURSLTAxOSknLFxuICAgIGV4YW1wbGU6ICcwMTk1MDVhMS03YzNlLTcwMDAtODAwMC1hYmMxMjNkZWY0NTYnLFxuICB9KVxuICBASXNVVUlEKCdhbGwnKVxuICBASXNOb3RFbXB0eSgpXG4gIHRhcmdldFV1aWQhOiBzdHJpbmc7XG59XG4iXSwidmVyc2lvbiI6M30=

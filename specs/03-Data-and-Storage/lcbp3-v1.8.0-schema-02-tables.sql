@@ -848,15 +848,18 @@ CREATE TABLE attachments (
   UNIQUE INDEX idx_attachments_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "กลาง" เก็บไฟล์แนบทั้งหมดของระบบ';
 
--- ตารางเชื่อม correspondences กับ attachments (M:N)
-CREATE TABLE correspondence_attachments (
-  correspondence_id INT COMMENT 'ID ของเอกสาร',
-  attachment_id INT COMMENT 'ID ของไฟล์แนบ',
-  is_main_document BOOLEAN DEFAULT FALSE COMMENT '(1 = ไฟล์หลัก)',
-  PRIMARY KEY (correspondence_id, attachment_id),
-  FOREIGN KEY (correspondence_id) REFERENCES correspondences (id) ON DELETE CASCADE,
-  FOREIGN KEY (attachment_id) REFERENCES attachments (id) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อม correspondences กับ attachments (M :N)';
+-- ตารางเชื่อม correspondence_revisions กับ attachments (M:N)
+-- [FIX] FK เปลี่ยนจาก correspondences.id → correspondence_revisions.id
+-- เหตุผล: ไฟล์แนบผูกกับ revision ไม่ใช่ correspondence master (แต่ละ revision มีไฟล์ต่างกัน)
+CREATE TABLE correspondence_revision_attachments (
+  correspondence_revision_id INT NOT NULL COMMENT 'ID ของ Revision ที่ผูกไฟล์แนบนี้',
+  attachment_id INT NOT NULL COMMENT 'ID ของไฟล์แนบ',
+  is_main_document BOOLEAN DEFAULT FALSE COMMENT '(1 = ไฟล์หลักของ Revision นี้)',
+  PRIMARY KEY (correspondence_revision_id, attachment_id),
+  FOREIGN KEY (correspondence_revision_id) REFERENCES correspondence_revisions (id) ON DELETE CASCADE,
+  FOREIGN KEY (attachment_id) REFERENCES attachments (id) ON DELETE CASCADE,
+  INDEX idx_corr_rev_att_revision (correspondence_revision_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเชื่อม correspondence_revisions กับ attachments (M:N)';
 
 -- ตารางเชื่อม circulations กับ attachments (M:N)
 CREATE TABLE circulation_attachments (

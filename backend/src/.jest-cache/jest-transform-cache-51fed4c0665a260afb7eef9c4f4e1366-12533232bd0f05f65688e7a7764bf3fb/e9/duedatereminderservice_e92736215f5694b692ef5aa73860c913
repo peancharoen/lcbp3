@@ -1,0 +1,88 @@
+44e675a368131d73a63042b53b7ae55b
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var DueDateReminderService_1;
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DueDateReminderService = void 0;
+const common_1 = require("@nestjs/common");
+const schedule_1 = require("@nestjs/schedule");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const correspondence_revision_entity_1 = require("./entities/correspondence-revision.entity");
+const notification_service_1 = require("../notification/notification.service");
+const user_service_1 = require("../user/user.service");
+let DueDateReminderService = DueDateReminderService_1 = class DueDateReminderService {
+    constructor(revisionRepo, notificationService, userService) {
+        this.revisionRepo = revisionRepo;
+        this.notificationService = notificationService;
+        this.userService = userService;
+        this.logger = new common_1.Logger(DueDateReminderService_1.name);
+    }
+    async sendDueDateReminders() {
+        this.logger.log('Running due date reminder check...');
+        const now = new Date();
+        const threeDaysLater = new Date(now);
+        threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+        const revisions = await this.revisionRepo.find({
+            where: {
+                isCurrent: true,
+                dueDate: (0, typeorm_2.Between)(now, threeDaysLater),
+            },
+            relations: ['correspondence', 'correspondence.originator', 'status'],
+        });
+        this.logger.log(`Found ${revisions.length} correspondences approaching due date`);
+        for (const revision of revisions) {
+            const corr = revision.correspondence;
+            if (!corr)
+                continue;
+            const statusCode = revision.status?.statusCode ?? '';
+            if (statusCode === 'CANCELLED' || statusCode === 'CLBOWN')
+                continue;
+            if (!corr.originatorId)
+                continue;
+            try {
+                const targetUserId = await this.userService.findDocControlIdByOrg(corr.originatorId);
+                if (!targetUserId)
+                    continue;
+                const daysLeft = Math.ceil((revision.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                await this.notificationService.send({
+                    userId: targetUserId,
+                    title: 'Due Date Approaching',
+                    message: `${corr.correspondenceNumber} — "${revision.subject}" is due in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`,
+                    type: 'EMAIL',
+                    entityType: 'correspondence',
+                    entityId: corr.id,
+                    link: `/correspondences/${corr.publicId}`,
+                });
+            }
+            catch (err) {
+                this.logger.warn(`Due date reminder failed for ${corr.correspondenceNumber}: ${err.message}`);
+            }
+        }
+    }
+};
+exports.DueDateReminderService = DueDateReminderService;
+__decorate([
+    (0, schedule_1.Cron)(schedule_1.CronExpression.EVERY_DAY_AT_8AM),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], DueDateReminderService.prototype, "sendDueDateReminders", null);
+exports.DueDateReminderService = DueDateReminderService = DueDateReminderService_1 = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, typeorm_1.InjectRepository)(correspondence_revision_entity_1.CorrespondenceRevision)),
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof notification_service_1.NotificationService !== "undefined" && notification_service_1.NotificationService) === "function" ? _b : Object, typeof (_c = typeof user_service_1.UserService !== "undefined" && user_service_1.UserService) === "function" ? _c : Object])
+], DueDateReminderService);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcY29ycmVzcG9uZGVuY2VcXGR1ZS1kYXRlLXJlbWluZGVyLnNlcnZpY2UudHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFBQSwyQ0FBb0Q7QUFDcEQsK0NBQXdEO0FBQ3hELDZDQUFtRDtBQUNuRCxxQ0FBOEM7QUFDOUMsOEZBQW1GO0FBQ25GLCtFQUEyRTtBQUMzRSx1REFBbUQ7QUFHNUMsSUFBTSxzQkFBc0IsOEJBQTVCLE1BQU0sc0JBQXNCO0lBR2pDLFlBRUUsWUFBd0QsRUFDaEQsbUJBQXdDLEVBQ3hDLFdBQXdCO1FBRnhCLGlCQUFZLEdBQVosWUFBWSxDQUFvQztRQUNoRCx3QkFBbUIsR0FBbkIsbUJBQW1CLENBQXFCO1FBQ3hDLGdCQUFXLEdBQVgsV0FBVyxDQUFhO1FBTmpCLFdBQU0sR0FBRyxJQUFJLGVBQU0sQ0FBQyx3QkFBc0IsQ0FBQyxJQUFJLENBQUMsQ0FBQztJQU8vRCxDQUFDO0lBR0UsQUFBTixLQUFLLENBQUMsb0JBQW9CO1FBQ3hCLElBQUksQ0FBQyxNQUFNLENBQUMsR0FBRyxDQUFDLG9DQUFvQyxDQUFDLENBQUM7UUFFdEQsTUFBTSxHQUFHLEdBQUcsSUFBSSxJQUFJLEVBQUUsQ0FBQztRQUN2QixNQUFNLGNBQWMsR0FBRyxJQUFJLElBQUksQ0FBQyxHQUFHLENBQUMsQ0FBQztRQUNyQyxjQUFjLENBQUMsT0FBTyxDQUFDLGNBQWMsQ0FBQyxPQUFPLEVBQUUsR0FBRyxDQUFDLENBQUMsQ0FBQztRQUVyRCxNQUFNLFNBQVMsR0FBRyxNQUFNLElBQUksQ0FBQyxZQUFZLENBQUMsSUFBSSxDQUFDO1lBQzdDLEtBQUssRUFBRTtnQkFDTCxTQUFTLEVBQUUsSUFBSTtnQkFDZixPQUFPLEVBQUUsSUFBQSxpQkFBTyxFQUFDLEdBQUcsRUFBRSxjQUFjLENBQUM7YUFDdEM7WUFDRCxTQUFTLEVBQUUsQ0FBQyxnQkFBZ0IsRUFBRSwyQkFBMkIsRUFBRSxRQUFRLENBQUM7U0FDckUsQ0FBQyxDQUFDO1FBRUgsSUFBSSxDQUFDLE1BQU0sQ0FBQyxHQUFHLENBQ2IsU0FBUyxTQUFTLENBQUMsTUFBTSx1Q0FBdUMsQ0FDakUsQ0FBQztRQUVGLEtBQUssTUFBTSxRQUFRLElBQUksU0FBUyxFQUFFLENBQUM7WUFDakMsTUFBTSxJQUFJLEdBQUcsUUFBUSxDQUFDLGNBQWMsQ0FBQztZQUNyQyxJQUFJLENBQUMsSUFBSTtnQkFBRSxTQUFTO1lBRXBCLE1BQU0sVUFBVSxHQUFHLFFBQVEsQ0FBQyxNQUFNLEVBQUUsVUFBVSxJQUFJLEVBQUUsQ0FBQztZQUNyRCxJQUFJLFVBQVUsS0FBSyxXQUFXLElBQUksVUFBVSxLQUFLLFFBQVE7Z0JBQUUsU0FBUztZQUVwRSxJQUFJLENBQUMsSUFBSSxDQUFDLFlBQVk7Z0JBQUUsU0FBUztZQUVqQyxJQUFJLENBQUM7Z0JBQ0gsTUFBTSxZQUFZLEdBQUcsTUFBTSxJQUFJLENBQUMsV0FBVyxDQUFDLHFCQUFxQixDQUMvRCxJQUFJLENBQUMsWUFBWSxDQUNsQixDQUFDO2dCQUNGLElBQUksQ0FBQyxZQUFZO29CQUFFLFNBQVM7Z0JBRTVCLE1BQU0sUUFBUSxHQUFHLElBQUksQ0FBQyxJQUFJLENBQ3hCLENBQUMsUUFBUSxDQUFDLE9BQVEsQ0FBQyxPQUFPLEVBQUUsR0FBRyxHQUFHLENBQUMsT0FBTyxFQUFFLENBQUMsR0FBRyxDQUFDLElBQUksR0FBRyxFQUFFLEdBQUcsRUFBRSxHQUFHLEVBQUUsQ0FBQyxDQUN0RSxDQUFDO2dCQUVGLE1BQU0sSUFBSSxDQUFDLG1CQUFtQixDQUFDLElBQUksQ0FBQztvQkFDbEMsTUFBTSxFQUFFLFlBQVk7b0JBQ3BCLEtBQUssRUFBRSxzQkFBc0I7b0JBQzdCLE9BQU8sRUFBRSxHQUFHLElBQUksQ0FBQyxvQkFBb0IsT0FBTyxRQUFRLENBQUMsT0FBTyxlQUFlLFFBQVEsT0FBTyxRQUFRLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQyxFQUFFLENBQUMsQ0FBQyxDQUFDLEdBQUcsR0FBRztvQkFDdEgsSUFBSSxFQUFFLE9BQU87b0JBQ2IsVUFBVSxFQUFFLGdCQUFnQjtvQkFDNUIsUUFBUSxFQUFFLElBQUksQ0FBQyxFQUFFO29CQUNqQixJQUFJLEVBQUUsb0JBQW9CLElBQUksQ0FBQyxRQUFRLEVBQUU7aUJBQzFDLENBQUMsQ0FBQztZQUNMLENBQUM7WUFBQyxPQUFPLEdBQUcsRUFBRSxDQUFDO2dCQUNiLElBQUksQ0FBQyxNQUFNLENBQUMsSUFBSSxDQUNkLGdDQUFnQyxJQUFJLENBQUMsb0JBQW9CLEtBQU0sR0FBYSxDQUFDLE9BQU8sRUFBRSxDQUN2RixDQUFDO1lBQ0osQ0FBQztRQUNILENBQUM7SUFDSCxDQUFDO0NBQ0YsQ0FBQTtBQWpFWSx3REFBc0I7QUFXM0I7SUFETCxJQUFBLGVBQUksRUFBQyx5QkFBYyxDQUFDLGdCQUFnQixDQUFDOzs7O2tFQXNEckM7aUNBaEVVLHNCQUFzQjtJQURsQyxJQUFBLG1CQUFVLEdBQUU7SUFLUixXQUFBLElBQUEsMEJBQWdCLEVBQUMsdURBQXNCLENBQUMsQ0FBQTt5REFDbkIsb0JBQVUsb0JBQVYsb0JBQVUsb0RBQ0gsMENBQW1CLG9CQUFuQiwwQ0FBbUIsb0RBQzNCLDBCQUFXLG9CQUFYLDBCQUFXO0dBUHZCLHNCQUFzQixDQWlFbEMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcY29ycmVzcG9uZGVuY2VcXGR1ZS1kYXRlLXJlbWluZGVyLnNlcnZpY2UudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgSW5qZWN0YWJsZSwgTG9nZ2VyIH0gZnJvbSAnQG5lc3Rqcy9jb21tb24nO1xyXG5pbXBvcnQgeyBDcm9uLCBDcm9uRXhwcmVzc2lvbiB9IGZyb20gJ0BuZXN0anMvc2NoZWR1bGUnO1xyXG5pbXBvcnQgeyBJbmplY3RSZXBvc2l0b3J5IH0gZnJvbSAnQG5lc3Rqcy90eXBlb3JtJztcclxuaW1wb3J0IHsgUmVwb3NpdG9yeSwgQmV0d2VlbiB9IGZyb20gJ3R5cGVvcm0nO1xyXG5pbXBvcnQgeyBDb3JyZXNwb25kZW5jZVJldmlzaW9uIH0gZnJvbSAnLi9lbnRpdGllcy9jb3JyZXNwb25kZW5jZS1yZXZpc2lvbi5lbnRpdHknO1xyXG5pbXBvcnQgeyBOb3RpZmljYXRpb25TZXJ2aWNlIH0gZnJvbSAnLi4vbm90aWZpY2F0aW9uL25vdGlmaWNhdGlvbi5zZXJ2aWNlJztcclxuaW1wb3J0IHsgVXNlclNlcnZpY2UgfSBmcm9tICcuLi91c2VyL3VzZXIuc2VydmljZSc7XHJcblxyXG5ASW5qZWN0YWJsZSgpXHJcbmV4cG9ydCBjbGFzcyBEdWVEYXRlUmVtaW5kZXJTZXJ2aWNlIHtcclxuICBwcml2YXRlIHJlYWRvbmx5IGxvZ2dlciA9IG5ldyBMb2dnZXIoRHVlRGF0ZVJlbWluZGVyU2VydmljZS5uYW1lKTtcclxuXHJcbiAgY29uc3RydWN0b3IoXHJcbiAgICBASW5qZWN0UmVwb3NpdG9yeShDb3JyZXNwb25kZW5jZVJldmlzaW9uKVxyXG4gICAgcHJpdmF0ZSByZXZpc2lvblJlcG86IFJlcG9zaXRvcnk8Q29ycmVzcG9uZGVuY2VSZXZpc2lvbj4sXHJcbiAgICBwcml2YXRlIG5vdGlmaWNhdGlvblNlcnZpY2U6IE5vdGlmaWNhdGlvblNlcnZpY2UsXHJcbiAgICBwcml2YXRlIHVzZXJTZXJ2aWNlOiBVc2VyU2VydmljZVxyXG4gICkge31cclxuXHJcbiAgQENyb24oQ3JvbkV4cHJlc3Npb24uRVZFUllfREFZX0FUXzhBTSlcclxuICBhc3luYyBzZW5kRHVlRGF0ZVJlbWluZGVycygpIHtcclxuICAgIHRoaXMubG9nZ2VyLmxvZygnUnVubmluZyBkdWUgZGF0ZSByZW1pbmRlciBjaGVjay4uLicpO1xyXG5cclxuICAgIGNvbnN0IG5vdyA9IG5ldyBEYXRlKCk7XHJcbiAgICBjb25zdCB0aHJlZURheXNMYXRlciA9IG5ldyBEYXRlKG5vdyk7XHJcbiAgICB0aHJlZURheXNMYXRlci5zZXREYXRlKHRocmVlRGF5c0xhdGVyLmdldERhdGUoKSArIDMpO1xyXG5cclxuICAgIGNvbnN0IHJldmlzaW9ucyA9IGF3YWl0IHRoaXMucmV2aXNpb25SZXBvLmZpbmQoe1xyXG4gICAgICB3aGVyZToge1xyXG4gICAgICAgIGlzQ3VycmVudDogdHJ1ZSxcclxuICAgICAgICBkdWVEYXRlOiBCZXR3ZWVuKG5vdywgdGhyZWVEYXlzTGF0ZXIpLFxyXG4gICAgICB9LFxyXG4gICAgICByZWxhdGlvbnM6IFsnY29ycmVzcG9uZGVuY2UnLCAnY29ycmVzcG9uZGVuY2Uub3JpZ2luYXRvcicsICdzdGF0dXMnXSxcclxuICAgIH0pO1xyXG5cclxuICAgIHRoaXMubG9nZ2VyLmxvZyhcclxuICAgICAgYEZvdW5kICR7cmV2aXNpb25zLmxlbmd0aH0gY29ycmVzcG9uZGVuY2VzIGFwcHJvYWNoaW5nIGR1ZSBkYXRlYFxyXG4gICAgKTtcclxuXHJcbiAgICBmb3IgKGNvbnN0IHJldmlzaW9uIG9mIHJldmlzaW9ucykge1xyXG4gICAgICBjb25zdCBjb3JyID0gcmV2aXNpb24uY29ycmVzcG9uZGVuY2U7XHJcbiAgICAgIGlmICghY29ycikgY29udGludWU7XHJcblxyXG4gICAgICBjb25zdCBzdGF0dXNDb2RlID0gcmV2aXNpb24uc3RhdHVzPy5zdGF0dXNDb2RlID8/ICcnO1xyXG4gICAgICBpZiAoc3RhdHVzQ29kZSA9PT0gJ0NBTkNFTExFRCcgfHwgc3RhdHVzQ29kZSA9PT0gJ0NMQk9XTicpIGNvbnRpbnVlO1xyXG5cclxuICAgICAgaWYgKCFjb3JyLm9yaWdpbmF0b3JJZCkgY29udGludWU7XHJcblxyXG4gICAgICB0cnkge1xyXG4gICAgICAgIGNvbnN0IHRhcmdldFVzZXJJZCA9IGF3YWl0IHRoaXMudXNlclNlcnZpY2UuZmluZERvY0NvbnRyb2xJZEJ5T3JnKFxyXG4gICAgICAgICAgY29yci5vcmlnaW5hdG9ySWRcclxuICAgICAgICApO1xyXG4gICAgICAgIGlmICghdGFyZ2V0VXNlcklkKSBjb250aW51ZTtcclxuXHJcbiAgICAgICAgY29uc3QgZGF5c0xlZnQgPSBNYXRoLmNlaWwoXHJcbiAgICAgICAgICAocmV2aXNpb24uZHVlRGF0ZSEuZ2V0VGltZSgpIC0gbm93LmdldFRpbWUoKSkgLyAoMTAwMCAqIDYwICogNjAgKiAyNClcclxuICAgICAgICApO1xyXG5cclxuICAgICAgICBhd2FpdCB0aGlzLm5vdGlmaWNhdGlvblNlcnZpY2Uuc2VuZCh7XHJcbiAgICAgICAgICB1c2VySWQ6IHRhcmdldFVzZXJJZCxcclxuICAgICAgICAgIHRpdGxlOiAnRHVlIERhdGUgQXBwcm9hY2hpbmcnLFxyXG4gICAgICAgICAgbWVzc2FnZTogYCR7Y29yci5jb3JyZXNwb25kZW5jZU51bWJlcn0g4oCUIFwiJHtyZXZpc2lvbi5zdWJqZWN0fVwiIGlzIGR1ZSBpbiAke2RheXNMZWZ0fSBkYXkke2RheXNMZWZ0ID09PSAxID8gJycgOiAncyd9LmAsXHJcbiAgICAgICAgICB0eXBlOiAnRU1BSUwnLFxyXG4gICAgICAgICAgZW50aXR5VHlwZTogJ2NvcnJlc3BvbmRlbmNlJyxcclxuICAgICAgICAgIGVudGl0eUlkOiBjb3JyLmlkLFxyXG4gICAgICAgICAgbGluazogYC9jb3JyZXNwb25kZW5jZXMvJHtjb3JyLnB1YmxpY0lkfWAsXHJcbiAgICAgICAgfSk7XHJcbiAgICAgIH0gY2F0Y2ggKGVycikge1xyXG4gICAgICAgIHRoaXMubG9nZ2VyLndhcm4oXHJcbiAgICAgICAgICBgRHVlIGRhdGUgcmVtaW5kZXIgZmFpbGVkIGZvciAke2NvcnIuY29ycmVzcG9uZGVuY2VOdW1iZXJ9OiAkeyhlcnIgYXMgRXJyb3IpLm1lc3NhZ2V9YFxyXG4gICAgICAgICk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICB9XHJcbn1cclxuIl0sInZlcnNpb24iOjN9

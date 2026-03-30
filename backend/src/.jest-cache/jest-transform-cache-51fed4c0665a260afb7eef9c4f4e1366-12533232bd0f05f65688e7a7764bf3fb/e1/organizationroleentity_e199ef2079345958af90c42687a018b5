@@ -1,0 +1,42 @@
+95691959b999bf3e510fb4b6ef1c7c34
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.OrganizationRole = void 0;
+const typeorm_1 = require("typeorm");
+const base_entity_1 = require("../../../common/entities/base.entity");
+/**
+ * OrganizationRole Entity
+ * Represents the role/type of an organization in the system
+ * (OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD_PARTY)
+ *
+ * Schema reference: organization_roles table (lines 205-211 in schema SQL)
+ */
+let OrganizationRole = class OrganizationRole extends base_entity_1.BaseEntity {
+};
+exports.OrganizationRole = OrganizationRole;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], OrganizationRole.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'role_name',
+        length: 20,
+        unique: true,
+        comment: 'Role name (OWNER, DESIGNER, CONSULTANT, CONTRACTOR, THIRD_PARTY)',
+    }),
+    __metadata("design:type", String)
+], OrganizationRole.prototype, "roleName", void 0);
+exports.OrganizationRole = OrganizationRole = __decorate([
+    (0, typeorm_1.Entity)('organization_roles')
+], OrganizationRole);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcb3JnYW5pemF0aW9uXFxlbnRpdGllc1xcb3JnYW5pemF0aW9uLXJvbGUuZW50aXR5LnRzIiwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7OztBQUFBLHFDQUFpRTtBQUNqRSxzRUFBa0U7QUFFbEU7Ozs7OztHQU1HO0FBRUksSUFBTSxnQkFBZ0IsR0FBdEIsTUFBTSxnQkFBaUIsU0FBUSx3QkFBVTtDQVcvQyxDQUFBO0FBWFksNENBQWdCO0FBRTNCO0lBREMsSUFBQSxnQ0FBc0IsR0FBRTs7NENBQ2I7QUFRWjtJQU5DLElBQUEsZ0JBQU0sRUFBQztRQUNOLElBQUksRUFBRSxXQUFXO1FBQ2pCLE1BQU0sRUFBRSxFQUFFO1FBQ1YsTUFBTSxFQUFFLElBQUk7UUFDWixPQUFPLEVBQUUsa0VBQWtFO0tBQzVFLENBQUM7O2tEQUNnQjsyQkFWUCxnQkFBZ0I7SUFENUIsSUFBQSxnQkFBTSxFQUFDLG9CQUFvQixDQUFDO0dBQ2hCLGdCQUFnQixDQVc1QiIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcbmFwLWRtcy5sY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFxvcmdhbml6YXRpb25cXGVudGl0aWVzXFxvcmdhbml6YXRpb24tcm9sZS5lbnRpdHkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgRW50aXR5LCBDb2x1bW4sIFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4gfSBmcm9tICd0eXBlb3JtJztcbmltcG9ydCB7IEJhc2VFbnRpdHkgfSBmcm9tICcuLi8uLi8uLi9jb21tb24vZW50aXRpZXMvYmFzZS5lbnRpdHknO1xuXG4vKipcbiAqIE9yZ2FuaXphdGlvblJvbGUgRW50aXR5XG4gKiBSZXByZXNlbnRzIHRoZSByb2xlL3R5cGUgb2YgYW4gb3JnYW5pemF0aW9uIGluIHRoZSBzeXN0ZW1cbiAqIChPV05FUiwgREVTSUdORVIsIENPTlNVTFRBTlQsIENPTlRSQUNUT1IsIFRISVJEX1BBUlRZKVxuICpcbiAqIFNjaGVtYSByZWZlcmVuY2U6IG9yZ2FuaXphdGlvbl9yb2xlcyB0YWJsZSAobGluZXMgMjA1LTIxMSBpbiBzY2hlbWEgU1FMKVxuICovXG5ARW50aXR5KCdvcmdhbml6YXRpb25fcm9sZXMnKVxuZXhwb3J0IGNsYXNzIE9yZ2FuaXphdGlvblJvbGUgZXh0ZW5kcyBCYXNlRW50aXR5IHtcbiAgQFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4oKVxuICBpZCE6IG51bWJlcjtcblxuICBAQ29sdW1uKHtcbiAgICBuYW1lOiAncm9sZV9uYW1lJyxcbiAgICBsZW5ndGg6IDIwLFxuICAgIHVuaXF1ZTogdHJ1ZSxcbiAgICBjb21tZW50OiAnUm9sZSBuYW1lIChPV05FUiwgREVTSUdORVIsIENPTlNVTFRBTlQsIENPTlRSQUNUT1IsIFRISVJEX1BBUlRZKScsXG4gIH0pXG4gIHJvbGVOYW1lITogc3RyaW5nO1xufVxuIl0sInZlcnNpb24iOjN9
