@@ -499,6 +499,8 @@ export class CorrespondenceService {
         'originator',
         'recipients',
         'recipients.recipientOrganization', // [v1.5.1] Fixed relation name
+        'discipline',
+        'discipline.contract',
       ],
     });
 
@@ -521,6 +523,8 @@ export class CorrespondenceService {
         'originator',
         'recipients',
         'recipients.recipientOrganization',
+        'discipline',
+        'discipline.contract',
       ],
     });
 

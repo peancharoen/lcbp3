@@ -65,6 +65,7 @@ export interface Correspondence {
   projectId: number;
   originatorId?: number;
   correspondenceTypeId: number;
+  disciplineId?: number;
   isInternal: boolean;
   createdAt: string;
 
@@ -79,6 +80,14 @@ export interface Correspondence {
     recipientType: 'TO' | 'CC';
     recipientOrganization?: Organization;
   }[];
+  contract?: { publicId: string; contractName: string; contractCode: string };
+  discipline?: {
+    id: number;
+    disciplineCode: string;
+    codeNameEn?: string;
+    codeNameTh?: string;
+    contract?: { publicId: string; contractName: string; contractCode: string };
+  };
 }
 
 export interface CreateCorrespondenceDto {

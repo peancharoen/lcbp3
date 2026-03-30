@@ -176,8 +176,11 @@ export function CorrespondenceForm({
     projectId:
       normalizePublicId(initialData?.project?.publicId) ??
       normalizePublicId(initialData?.projectId),
-    // [FIX v1.8.1] correspondences ไม่มี contract_id โดยตรง → จะ auto-populate จาก discipline useEffect
-    contractId: undefined,
+    // [FIX v1.8.1] correspondences ไม่มี contract_id โดยตรง → จะ auto-populate จาก discipline useEffect หรือจาก object contract เองในกรณี mock/test
+    contractId:
+      normalizePublicId(initialData?.contract?.publicId) ??
+      normalizePublicId(initialData?.discipline?.contract?.publicId) ??
+      normalizePublicId((initialData as Record<string, unknown>)?.contractId as string),
     documentTypeId: initialData?.correspondenceTypeId || undefined,
     disciplineId: initialData?.disciplineId || undefined,
     subject: currentRev?.subject || currentRev?.title || '',
