@@ -16,7 +16,7 @@ import { useCreateCorrespondence, useUpdateCorrespondence } from '@/hooks/use-co
 import { Organization } from '@/types/organization';
 import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines, useContracts } from '@/hooks/use-master-data';
 import { CreateCorrespondenceDto } from '@/types/dto/correspondence/create-correspondence.dto';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { numberingApi } from '@/lib/api/numbering';
 import { filesApi } from '@/lib/api/files';
 import { toast } from 'sonner';
@@ -81,8 +81,11 @@ interface InitialCorrespondenceData {
   project?: { publicId?: string };
   contract?: { publicId?: string };
   correspondenceTypeId?: number;
+  type?: { id?: number; publicId?: string };
   disciplineId?: number;
   discipline?: {
+    id?: number;
+    publicId?: string;
     contract?: { publicId?: string };
   };
   revisions?: Array<{
@@ -167,50 +170,60 @@ export function CorrespondenceForm({
   const selectedRevision = normalizedSelectedRevisionId
     ? initialData?.revisions?.find((r) => normalizeUuid(r.publicId) === normalizedSelectedRevisionId)
     : undefined;
-  const currentRev = selectedRevision || initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
-  const initialToRecipient = initialData?.recipients?.find((r) => r.recipientType === 'TO');
-  const initialCcRecipientIds =
-    initialData?.recipients
-      ?.filter((r) => r.recipientType === 'CC')
-      .map((r) => normalizePublicId(r.recipientOrganization?.publicId))
-      .filter((value): value is string => Boolean(value)) ?? [];
+  const defaultValues = useMemo<Partial<FormData>>(() => {
+    const currentRevision = selectedRevision || initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
+    const initialToRecipient = initialData?.recipients?.find((r) => r.recipientType === 'TO');
+    const initialCcRecipientIds =
+      initialData?.recipients
+        ?.filter((r) => r.recipientType === 'CC')
+        .map((r) => normalizePublicId(r.recipientOrganization?.publicId))
+        .filter((value): value is string => Boolean(value)) ?? [];
 
-  const defaultValues: Partial<FormData> = {
-    projectId:
-      normalizePublicId(initialData?.project?.publicId) ??
-      normalizePublicId(initialData?.projectId),
-    // [FIX v1.8.1] correspondences ไม่มี contract_id โดยตรง → จะ auto-populate จาก discipline useEffect หรือจาก object contract เองในกรณี mock/test
-    contractId:
-      normalizePublicId(initialData?.contract?.publicId) ??
-      normalizePublicId(initialData?.discipline?.contract?.publicId) ??
-      normalizePublicId((initialData as Record<string, unknown>)?.contractId as string),
-    documentTypeId: initialData?.correspondenceTypeId || undefined,
-    disciplineId: initialData?.disciplineId || undefined,
-    subject: currentRev?.subject || currentRev?.title || '',
-    description: currentRev?.description || '',
-    body: currentRev?.body || '',
-    remarks: currentRev?.remarks || '',
-    dueDate: currentRev?.dueDate ? new Date(currentRev.dueDate).toISOString().split('T')[0] : undefined,
-    documentDate: currentRev?.documentDate ? new Date(currentRev.documentDate).toISOString().split('T')[0] : undefined,
-    issuedDate: currentRev?.issuedDate ? new Date(currentRev.issuedDate).toISOString().split('T')[0] : undefined,
-    receivedDate: currentRev?.receivedDate ? new Date(currentRev.receivedDate).toISOString().split('T')[0] : undefined,
-    fromOrganizationId:
-      normalizePublicId(initialData?.originator?.publicId) ?? normalizePublicId(initialData?.originatorId),
-    toOrganizationId: normalizePublicId(initialToRecipient?.recipientOrganization?.publicId),
-    ccOrganizationIds: initialCcRecipientIds,
-    importance: currentRev?.details?.importance || 'NORMAL',
-  } as Partial<FormData>;
+    return {
+      projectId:
+        normalizePublicId(initialData?.project?.publicId) ??
+        normalizePublicId((initialData as Record<string, unknown>)?.projectId),
+      contractId:
+        normalizePublicId(initialData?.contract?.publicId) ??
+        normalizePublicId(initialData?.discipline?.contract?.publicId) ??
+        normalizePublicId((initialData as Record<string, unknown>)?.contractId as string),
+      documentTypeId: initialData?.type?.id ?? initialData?.correspondenceTypeId,
+      disciplineId: initialData?.discipline?.id ?? initialData?.disciplineId,
+      subject: currentRevision?.subject || currentRevision?.title || '',
+      description: currentRevision?.description || '',
+      body: currentRevision?.body || '',
+      remarks: currentRevision?.remarks || '',
+      dueDate: currentRevision?.dueDate ? new Date(currentRevision.dueDate).toISOString().split('T')[0] : undefined,
+      documentDate: currentRevision?.documentDate ? new Date(currentRevision.documentDate).toISOString().split('T')[0] : undefined,
+      issuedDate: currentRevision?.issuedDate ? new Date(currentRevision.issuedDate).toISOString().split('T')[0] : undefined,
+      receivedDate: currentRevision?.receivedDate ? new Date(currentRevision.receivedDate).toISOString().split('T')[0] : undefined,
+      fromOrganizationId:
+        normalizePublicId(initialData?.originator?.publicId) ??
+        normalizePublicId((initialData as Record<string, unknown>)?.originatorId as string),
+      toOrganizationId: normalizePublicId(initialToRecipient?.recipientOrganization?.publicId),
+      ccOrganizationIds: initialCcRecipientIds,
+      importance: currentRevision?.details?.importance || 'NORMAL',
+    } as Partial<FormData>;
+  }, [initialData, selectedRevision]);
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(correspondenceSchema) as Resolver<FormData>,
     defaultValues: defaultValues as FormData,
   });
+
+  // Watch for dynamic updates of initialData to ensure form correctly populates
+  useEffect(() => {
+    if (initialData) {
+      reset(defaultValues as FormData);
+    }
+  }, [initialData, selectedRevisionId, reset, defaultValues]);
 
   // Watch for controlled inputs
   const projectId = watch('projectId');
