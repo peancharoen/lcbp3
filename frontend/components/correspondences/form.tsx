@@ -82,6 +82,9 @@ interface InitialCorrespondenceData {
   contract?: { publicId?: string };
   correspondenceTypeId?: number;
   disciplineId?: number;
+  discipline?: {
+    contract?: { publicId?: string };
+  };
   revisions?: Array<{
     publicId?: string;
     isCurrent?: boolean;
