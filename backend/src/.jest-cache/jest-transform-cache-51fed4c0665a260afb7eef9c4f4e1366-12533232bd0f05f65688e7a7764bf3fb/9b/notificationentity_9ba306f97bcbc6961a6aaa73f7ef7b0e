@@ -1,0 +1,78 @@
+13340187d49b680ecdfe6abb0e074407
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Notification = exports.NotificationType = void 0;
+const typeorm_1 = require("typeorm");
+const user_entity_1 = require("../../user/entities/user.entity");
+const uuid_base_entity_1 = require("../../../common/entities/uuid-base.entity");
+const class_transformer_1 = require("class-transformer");
+var NotificationType;
+(function (NotificationType) {
+    NotificationType["EMAIL"] = "EMAIL";
+    NotificationType["LINE"] = "LINE";
+    NotificationType["SYSTEM"] = "SYSTEM";
+})(NotificationType || (exports.NotificationType = NotificationType = {}));
+let Notification = class Notification extends uuid_base_entity_1.UuidBaseEntity {
+};
+exports.Notification = Notification;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    (0, class_transformer_1.Exclude)(),
+    __metadata("design:type", Number)
+], Notification.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'user_id' }),
+    __metadata("design:type", Number)
+], Notification.prototype, "userId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 255 }),
+    __metadata("design:type", String)
+], Notification.prototype, "title", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text' }),
+    __metadata("design:type", String)
+], Notification.prototype, "message", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'notification_type',
+        type: 'enum',
+        enum: NotificationType,
+    }),
+    __metadata("design:type", String)
+], Notification.prototype, "notificationType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_read', default: false }),
+    __metadata("design:type", Boolean)
+], Notification.prototype, "isRead", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'entity_type', length: 50, nullable: true }),
+    __metadata("design:type", String)
+], Notification.prototype, "entityType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'entity_id', nullable: true }),
+    __metadata("design:type", Number)
+], Notification.prototype, "entityId", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    (0, typeorm_1.PrimaryColumn)(),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], Notification.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User),
+    (0, typeorm_1.JoinColumn)({ name: 'user_id' }),
+    __metadata("design:type", typeof (_b = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _b : Object)
+], Notification.prototype, "user", void 0);
+exports.Notification = Notification = __decorate([
+    (0, typeorm_1.Entity)('notifications')
+], Notification);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcbm90aWZpY2F0aW9uXFxlbnRpdGllc1xcbm90aWZpY2F0aW9uLmVudGl0eS50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBQUEscUNBUWlCO0FBQ2pCLGlFQUF1RDtBQUN2RCxnRkFBMkU7QUFDM0UseURBQTRDO0FBRTVDLElBQVksZ0JBSVg7QUFKRCxXQUFZLGdCQUFnQjtJQUMxQixtQ0FBZSxDQUFBO0lBQ2YsaUNBQWEsQ0FBQTtJQUNiLHFDQUFpQixDQUFBO0FBQ25CLENBQUMsRUFKVyxnQkFBZ0IsZ0NBQWhCLGdCQUFnQixRQUkzQjtBQUdNLElBQU0sWUFBWSxHQUFsQixNQUFNLFlBQWEsU0FBUSxpQ0FBYztDQXdDL0MsQ0FBQTtBQXhDWSxvQ0FBWTtBQUd2QjtJQUZDLElBQUEsZ0NBQXNCLEdBQUU7SUFDeEIsSUFBQSwyQkFBTyxHQUFFOzt3Q0FDRTtBQUdaO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFNBQVMsRUFBRSxDQUFDOzs0Q0FDWjtBQUdoQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLE1BQU0sRUFBRSxHQUFHLEVBQUUsQ0FBQzs7MkNBQ1Q7QUFHZjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxNQUFNLEVBQUUsQ0FBQzs7NkNBQ1I7QUFPakI7SUFMQyxJQUFBLGdCQUFNLEVBQUM7UUFDTixJQUFJLEVBQUUsbUJBQW1CO1FBQ3pCLElBQUksRUFBRSxNQUFNO1FBQ1osSUFBSSxFQUFFLGdCQUFnQjtLQUN2QixDQUFDOztzREFDa0M7QUFHcEM7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsU0FBUyxFQUFFLE9BQU8sRUFBRSxLQUFLLEVBQUUsQ0FBQzs7NENBQzNCO0FBR2pCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxNQUFNLEVBQUUsRUFBRSxFQUFFLFFBQVEsRUFBRSxJQUFJLEVBQUUsQ0FBQzs7Z0RBQ3hDO0FBR3BCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7OzhDQUM1QjtBQUtsQjtJQUZDLElBQUEsMEJBQWdCLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7SUFDeEMsSUFBQSx1QkFBYSxHQUFFO2tEQUNKLElBQUksb0JBQUosSUFBSTsrQ0FBQztBQU1qQjtJQUZDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQyxrQkFBSSxDQUFDO0lBQ3JCLElBQUEsb0JBQVUsRUFBQyxFQUFFLElBQUksRUFBRSxTQUFTLEVBQUUsQ0FBQztrREFDekIsa0JBQUksb0JBQUosa0JBQUk7MENBQUM7dUJBdkNELFlBQVk7SUFEeEIsSUFBQSxnQkFBTSxFQUFDLGVBQWUsQ0FBQztHQUNYLFlBQVksQ0F3Q3hCIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxuYXAtZG1zLmxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXG5vdGlmaWNhdGlvblxcZW50aXRpZXNcXG5vdGlmaWNhdGlvbi5lbnRpdHkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtcbiAgRW50aXR5LFxuICBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uLFxuICBDb2x1bW4sXG4gIENyZWF0ZURhdGVDb2x1bW4sXG4gIE1hbnlUb09uZSxcbiAgSm9pbkNvbHVtbixcbiAgUHJpbWFyeUNvbHVtbiwgLy8g4pyFIFtGaXhdIOC5gOC4nuC4tOC5iOC4oSBJbXBvcnQg4LiZ4Li14LmJXG59IGZyb20gJ3R5cGVvcm0nO1xuaW1wb3J0IHsgVXNlciB9IGZyb20gJy4uLy4uL3VzZXIvZW50aXRpZXMvdXNlci5lbnRpdHknO1xuaW1wb3J0IHsgVXVpZEJhc2VFbnRpdHkgfSBmcm9tICcuLi8uLi8uLi9jb21tb24vZW50aXRpZXMvdXVpZC1iYXNlLmVudGl0eSc7XG5pbXBvcnQgeyBFeGNsdWRlIH0gZnJvbSAnY2xhc3MtdHJhbnNmb3JtZXInO1xuXG5leHBvcnQgZW51bSBOb3RpZmljYXRpb25UeXBlIHtcbiAgRU1BSUwgPSAnRU1BSUwnLFxuICBMSU5FID0gJ0xJTkUnLFxuICBTWVNURU0gPSAnU1lTVEVNJyxcbn1cblxuQEVudGl0eSgnbm90aWZpY2F0aW9ucycpXG5leHBvcnQgY2xhc3MgTm90aWZpY2F0aW9uIGV4dGVuZHMgVXVpZEJhc2VFbnRpdHkge1xuICBAUHJpbWFyeUdlbmVyYXRlZENvbHVtbigpXG4gIEBFeGNsdWRlKClcbiAgaWQhOiBudW1iZXI7XG5cbiAgQENvbHVtbih7IG5hbWU6ICd1c2VyX2lkJyB9KVxuICB1c2VySWQhOiBudW1iZXI7XG5cbiAgQENvbHVtbih7IGxlbmd0aDogMjU1IH0pXG4gIHRpdGxlITogc3RyaW5nO1xuXG4gIEBDb2x1bW4oeyB0eXBlOiAndGV4dCcgfSlcbiAgbWVzc2FnZSE6IHN0cmluZztcblxuICBAQ29sdW1uKHtcbiAgICBuYW1lOiAnbm90aWZpY2F0aW9uX3R5cGUnLFxuICAgIHR5cGU6ICdlbnVtJyxcbiAgICBlbnVtOiBOb3RpZmljYXRpb25UeXBlLFxuICB9KVxuICBub3RpZmljYXRpb25UeXBlITogTm90aWZpY2F0aW9uVHlwZTtcblxuICBAQ29sdW1uKHsgbmFtZTogJ2lzX3JlYWQnLCBkZWZhdWx0OiBmYWxzZSB9KVxuICBpc1JlYWQhOiBib29sZWFuO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAnZW50aXR5X3R5cGUnLCBsZW5ndGg6IDUwLCBudWxsYWJsZTogdHJ1ZSB9KVxuICBlbnRpdHlUeXBlPzogc3RyaW5nOyAvLyBlLmcuLCAncmZhJywgJ2NpcmN1bGF0aW9uJywgJ2NvcnJlc3BvbmRlbmNlJ1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAnZW50aXR5X2lkJywgbnVsbGFibGU6IHRydWUgfSlcbiAgZW50aXR5SWQ/OiBudW1iZXI7XG5cbiAgLy8g4pyFIFtGaXhdIOC4o+C4p+C4oSBEZWNvcmF0b3Ig4LmE4Lin4LmJ4LiX4Li14LmI4LiZ4Li14LmI4LiX4Li14LmI4LmA4LiU4Li14Lii4LinICjguYDguJvguYfguJnguJfguLHguYnguIcgQ3JlYXRlRGF0ZSDguYHguKXguLAgUHJpbWFyeUNvbHVtbiDguKrguLPguKvguKPguLHguJogUGFydGl0aW9uKVxuICBAQ3JlYXRlRGF0ZUNvbHVtbih7IG5hbWU6ICdjcmVhdGVkX2F0JyB9KVxuICBAUHJpbWFyeUNvbHVtbigpXG4gIGNyZWF0ZWRBdCE6IERhdGU7XG5cbiAgLy8gLS0tIFJlbGF0aW9ucyAtLS1cblxuICBATWFueVRvT25lKCgpID0+IFVzZXIpXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ3VzZXJfaWQnIH0pXG4gIHVzZXIhOiBVc2VyO1xufVxuIl0sInZlcnNpb24iOjN9

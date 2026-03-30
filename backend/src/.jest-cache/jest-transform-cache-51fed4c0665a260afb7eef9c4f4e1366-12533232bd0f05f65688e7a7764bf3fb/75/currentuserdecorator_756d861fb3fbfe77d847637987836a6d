@@ -1,0 +1,19 @@
+35b8e07bce844098e15d4509e8b81f88
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CurrentUser = void 0;
+const common_1 = require("@nestjs/common");
+/**
+ * Decorator สำหรับดึงข้อมูล User ปัจจุบันจาก Request Object
+ * ใช้คู่กับ JwtAuthGuard
+ *
+ * ตัวอย่างการใช้:
+ * @Get()
+ * findAll(@CurrentUser() user: User) { ... }
+ */
+exports.CurrentUser = (0, common_1.createParamDecorator)((data, ctx) => {
+    const request = ctx.switchToHttp().getRequest();
+    // request.user ถูก set โดย Passport/JwtStrategy
+    return request.user;
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcY29tbW9uXFxkZWNvcmF0b3JzXFxjdXJyZW50LXVzZXIuZGVjb3JhdG9yLnRzIiwibWFwcGluZ3MiOiI7OztBQUFBLDJDQUF3RTtBQUd4RTs7Ozs7OztHQU9HO0FBQ1UsUUFBQSxXQUFXLEdBQUcsSUFBQSw2QkFBb0IsRUFDN0MsQ0FBQyxJQUFhLEVBQUUsR0FBcUIsRUFBRSxFQUFFO0lBQ3ZDLE1BQU0sT0FBTyxHQUFHLEdBQUcsQ0FBQyxZQUFZLEVBQUUsQ0FBQyxVQUFVLEVBQW1CLENBQUM7SUFDakUsZ0RBQWdEO0lBQ2hELE9BQU8sT0FBTyxDQUFDLElBQUksQ0FBQztBQUN0QixDQUFDLENBQ0YsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcbmFwLWRtcy5sY2JwM1xcYmFja2VuZFxcc3JjXFxjb21tb25cXGRlY29yYXRvcnNcXGN1cnJlbnQtdXNlci5kZWNvcmF0b3IudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgY3JlYXRlUGFyYW1EZWNvcmF0b3IsIEV4ZWN1dGlvbkNvbnRleHQgfSBmcm9tICdAbmVzdGpzL2NvbW1vbic7XG5pbXBvcnQgeyBVc2VyIH0gZnJvbSAnLi4vLi4vbW9kdWxlcy91c2VyL2VudGl0aWVzL3VzZXIuZW50aXR5JztcblxuLyoqXG4gKiBEZWNvcmF0b3Ig4Liq4Liz4Lir4Lij4Lix4Lia4LiU4Li24LiH4LiC4LmJ4Lit4Lih4Li54LilIFVzZXIg4Lib4Lix4LiI4LiI4Li44Lia4Lix4LiZ4LiI4Liy4LiBIFJlcXVlc3QgT2JqZWN0XG4gKiDguYPguIrguYnguITguLnguYjguIHguLHguJogSnd0QXV0aEd1YXJkXG4gKlxuICog4LiV4Lix4Lin4Lit4Lii4LmI4Liy4LiH4LiB4Liy4Lij4LmD4LiK4LmJOlxuICogQEdldCgpXG4gKiBmaW5kQWxsKEBDdXJyZW50VXNlcigpIHVzZXI6IFVzZXIpIHsgLi4uIH1cbiAqL1xuZXhwb3J0IGNvbnN0IEN1cnJlbnRVc2VyID0gY3JlYXRlUGFyYW1EZWNvcmF0b3IoXG4gIChkYXRhOiB1bmtub3duLCBjdHg6IEV4ZWN1dGlvbkNvbnRleHQpID0+IHtcbiAgICBjb25zdCByZXF1ZXN0ID0gY3R4LnN3aXRjaFRvSHR0cCgpLmdldFJlcXVlc3Q8eyB1c2VyPzogVXNlciB9PigpO1xuICAgIC8vIHJlcXVlc3QudXNlciDguJbguLnguIEgc2V0IOC5guC4lOC4oiBQYXNzcG9ydC9Kd3RTdHJhdGVneVxuICAgIHJldHVybiByZXF1ZXN0LnVzZXI7XG4gIH1cbik7XG4iXSwidmVyc2lvbiI6M30=

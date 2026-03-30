@@ -1,0 +1,60 @@
+6262498f7a2d69edbdffbd9828e34069
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RefreshToken = void 0;
+const typeorm_1 = require("typeorm");
+const user_entity_1 = require("../../../modules/user/entities/user.entity");
+let RefreshToken = class RefreshToken {
+};
+exports.RefreshToken = RefreshToken;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)({ name: 'token_id' }),
+    __metadata("design:type", Number)
+], RefreshToken.prototype, "tokenId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'user_id' }),
+    __metadata("design:type", Number)
+], RefreshToken.prototype, "userId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'token_hash', length: 255 }),
+    __metadata("design:type", String)
+], RefreshToken.prototype, "tokenHash", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'expires_at' }),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], RefreshToken.prototype, "expiresAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_revoked', default: false }),
+    __metadata("design:type", Boolean)
+], RefreshToken.prototype, "isRevoked", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], RefreshToken.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], RefreshToken.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'replaced_by_token', nullable: true, length: 255 }),
+    __metadata("design:type", String)
+], RefreshToken.prototype, "replacedByToken", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'user_id' }),
+    __metadata("design:type", typeof (_d = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _d : Object)
+], RefreshToken.prototype, "user", void 0);
+exports.RefreshToken = RefreshToken = __decorate([
+    (0, typeorm_1.Entity)('refresh_tokens')
+], RefreshToken);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcY29tbW9uXFxhdXRoXFxlbnRpdGllc1xccmVmcmVzaC10b2tlbi5lbnRpdHkudHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQUFBLHFDQVFpQjtBQUNqQiw0RUFBa0U7QUFHM0QsSUFBTSxZQUFZLEdBQWxCLE1BQU0sWUFBWTtDQTZCeEIsQ0FBQTtBQTdCWSxvQ0FBWTtBQUV2QjtJQURDLElBQUEsZ0NBQXNCLEVBQUMsRUFBRSxJQUFJLEVBQUUsVUFBVSxFQUFFLENBQUM7OzZDQUM1QjtBQUdqQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxTQUFTLEVBQUUsQ0FBQzs7NENBQ1o7QUFHaEI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLE1BQU0sRUFBRSxHQUFHLEVBQUUsQ0FBQzs7K0NBQ3pCO0FBR25CO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUNuQixJQUFJLG9CQUFKLElBQUk7K0NBQUM7QUFHakI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLE9BQU8sRUFBRSxLQUFLLEVBQUUsQ0FBQzs7K0NBQzNCO0FBR3BCO0lBREMsSUFBQSwwQkFBZ0IsRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsQ0FBQztrREFDN0IsSUFBSSxvQkFBSixJQUFJOytDQUFDO0FBR2pCO0lBREMsSUFBQSwwQkFBZ0IsRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsQ0FBQztrREFDN0IsSUFBSSxvQkFBSixJQUFJOytDQUFDO0FBR2pCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLG1CQUFtQixFQUFFLFFBQVEsRUFBRSxJQUFJLEVBQUUsTUFBTSxFQUFFLEdBQUcsRUFBRSxDQUFDOztxREFDMUM7QUFLekI7SUFGQyxJQUFBLG1CQUFTLEVBQUMsR0FBRyxFQUFFLENBQUMsa0JBQUksRUFBRSxFQUFFLFFBQVEsRUFBRSxTQUFTLEVBQUUsQ0FBQztJQUM5QyxJQUFBLG9CQUFVLEVBQUMsRUFBRSxJQUFJLEVBQUUsU0FBUyxFQUFFLENBQUM7a0RBQ3pCLGtCQUFJLG9CQUFKLGtCQUFJOzBDQUFDO3VCQTVCRCxZQUFZO0lBRHhCLElBQUEsZ0JBQU0sRUFBQyxnQkFBZ0IsQ0FBQztHQUNaLFlBQVksQ0E2QnhCIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxuYXAtZG1zLmxjYnAzXFxiYWNrZW5kXFxzcmNcXGNvbW1vblxcYXV0aFxcZW50aXRpZXNcXHJlZnJlc2gtdG9rZW4uZW50aXR5LnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7XG4gIEVudGl0eSxcbiAgQ29sdW1uLFxuICBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uLFxuICBDcmVhdGVEYXRlQ29sdW1uLFxuICBVcGRhdGVEYXRlQ29sdW1uLFxuICBNYW55VG9PbmUsXG4gIEpvaW5Db2x1bW4sXG59IGZyb20gJ3R5cGVvcm0nO1xuaW1wb3J0IHsgVXNlciB9IGZyb20gJy4uLy4uLy4uL21vZHVsZXMvdXNlci9lbnRpdGllcy91c2VyLmVudGl0eSc7XG5cbkBFbnRpdHkoJ3JlZnJlc2hfdG9rZW5zJylcbmV4cG9ydCBjbGFzcyBSZWZyZXNoVG9rZW4ge1xuICBAUHJpbWFyeUdlbmVyYXRlZENvbHVtbih7IG5hbWU6ICd0b2tlbl9pZCcgfSlcbiAgdG9rZW5JZCE6IG51bWJlcjtcblxuICBAQ29sdW1uKHsgbmFtZTogJ3VzZXJfaWQnIH0pXG4gIHVzZXJJZCE6IG51bWJlcjtcblxuICBAQ29sdW1uKHsgbmFtZTogJ3Rva2VuX2hhc2gnLCBsZW5ndGg6IDI1NSB9KVxuICB0b2tlbkhhc2ghOiBzdHJpbmc7XG5cbiAgQENvbHVtbih7IG5hbWU6ICdleHBpcmVzX2F0JyB9KVxuICBleHBpcmVzQXQhOiBEYXRlO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAnaXNfcmV2b2tlZCcsIGRlZmF1bHQ6IGZhbHNlIH0pXG4gIGlzUmV2b2tlZCE6IGJvb2xlYW47XG5cbiAgQENyZWF0ZURhdGVDb2x1bW4oeyBuYW1lOiAnY3JlYXRlZF9hdCcgfSlcbiAgY3JlYXRlZEF0ITogRGF0ZTtcblxuICBAVXBkYXRlRGF0ZUNvbHVtbih7IG5hbWU6ICd1cGRhdGVkX2F0JyB9KVxuICB1cGRhdGVkQXQhOiBEYXRlO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAncmVwbGFjZWRfYnlfdG9rZW4nLCBudWxsYWJsZTogdHJ1ZSwgbGVuZ3RoOiAyNTUgfSlcbiAgcmVwbGFjZWRCeVRva2VuPzogc3RyaW5nOyAvLyBGb3Igcm90YXRpb24gc3VwcG9ydFxuXG4gIC8vIFJlbGF0aW9uc1xuICBATWFueVRvT25lKCgpID0+IFVzZXIsIHsgb25EZWxldGU6ICdDQVNDQURFJyB9KVxuICBASm9pbkNvbHVtbih7IG5hbWU6ICd1c2VyX2lkJyB9KVxuICB1c2VyPzogVXNlcjtcbn1cbiJdLCJ2ZXJzaW9uIjozfQ==

@@ -1,0 +1,71 @@
+a61c4ba4d5fdbac05238ed3724e66b2c
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DocumentNumberCounter = void 0;
+// File: src/modules/document-numbering/entities/document-number-counter.entity.ts
+const typeorm_1 = require("typeorm");
+let DocumentNumberCounter = class DocumentNumberCounter {
+};
+exports.DocumentNumberCounter = DocumentNumberCounter;
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'project_id' }),
+    __metadata("design:type", Number)
+], DocumentNumberCounter.prototype, "projectId", void 0);
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'originator_organization_id' }),
+    __metadata("design:type", Number)
+], DocumentNumberCounter.prototype, "originatorId", void 0);
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'recipient_organization_id' }),
+    __metadata("design:type", Number)
+], DocumentNumberCounter.prototype, "recipientOrganizationId", void 0);
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'correspondence_type_id' }),
+    __metadata("design:type", Number)
+], DocumentNumberCounter.prototype, "correspondenceTypeId", void 0);
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'sub_type_id' }),
+    __metadata("design:type", Number)
+], DocumentNumberCounter.prototype, "subTypeId", void 0);
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'rfa_type_id' }),
+    __metadata("design:type", Number)
+], DocumentNumberCounter.prototype, "rfaTypeId", void 0);
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'discipline_id' }),
+    __metadata("design:type", Number)
+], DocumentNumberCounter.prototype, "disciplineId", void 0);
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'reset_scope', length: 20 }),
+    __metadata("design:type", String)
+], DocumentNumberCounter.prototype, "resetScope", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'last_number', default: 0 }),
+    __metadata("design:type", Number)
+], DocumentNumberCounter.prototype, "lastNumber", void 0);
+__decorate([
+    (0, typeorm_1.VersionColumn)({ name: 'version' }),
+    __metadata("design:type", Number)
+], DocumentNumberCounter.prototype, "version", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], DocumentNumberCounter.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'updated_at' }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], DocumentNumberCounter.prototype, "updatedAt", void 0);
+exports.DocumentNumberCounter = DocumentNumberCounter = __decorate([
+    (0, typeorm_1.Entity)('document_number_counters')
+], DocumentNumberCounter);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcZG9jdW1lbnQtbnVtYmVyaW5nXFxlbnRpdGllc1xcZG9jdW1lbnQtbnVtYmVyLWNvdW50ZXIuZW50aXR5LnRzIiwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7QUFBQSxrRkFBa0Y7QUFDbEYscUNBQXVFO0FBR2hFLElBQU0scUJBQXFCLEdBQTNCLE1BQU0scUJBQXFCO0NBb0NqQyxDQUFBO0FBcENZLHNEQUFxQjtBQUVoQztJQURDLElBQUEsdUJBQWEsRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsQ0FBQzs7d0RBQ25CO0FBR25CO0lBREMsSUFBQSx1QkFBYSxFQUFDLEVBQUUsSUFBSSxFQUFFLDRCQUE0QixFQUFFLENBQUM7OzJEQUNoQztBQUd0QjtJQURDLElBQUEsdUJBQWEsRUFBQyxFQUFFLElBQUksRUFBRSwyQkFBMkIsRUFBRSxDQUFDOztzRUFDcEI7QUFHakM7SUFEQyxJQUFBLHVCQUFhLEVBQUMsRUFBRSxJQUFJLEVBQUUsd0JBQXdCLEVBQUUsQ0FBQzs7bUVBQ3BCO0FBRzlCO0lBREMsSUFBQSx1QkFBYSxFQUFDLEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxDQUFDOzt3REFDcEI7QUFHbkI7SUFEQyxJQUFBLHVCQUFhLEVBQUMsRUFBRSxJQUFJLEVBQUUsYUFBYSxFQUFFLENBQUM7O3dEQUNwQjtBQUduQjtJQURDLElBQUEsdUJBQWEsRUFBQyxFQUFFLElBQUksRUFBRSxlQUFlLEVBQUUsQ0FBQzs7MkRBQ25CO0FBR3RCO0lBREMsSUFBQSx1QkFBYSxFQUFDLEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxNQUFNLEVBQUUsRUFBRSxFQUFFLENBQUM7O3lEQUMvQjtBQUdwQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxhQUFhLEVBQUUsT0FBTyxFQUFFLENBQUMsRUFBRSxDQUFDOzt5REFDeEI7QUFHcEI7SUFEQyxJQUFBLHVCQUFhLEVBQUMsRUFBRSxJQUFJLEVBQUUsU0FBUyxFQUFFLENBQUM7O3NEQUNsQjtBQUdqQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsQ0FBQztrREFDbkIsSUFBSSxvQkFBSixJQUFJO3dEQUFDO0FBR2pCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDO2tEQUNuQixJQUFJLG9CQUFKLElBQUk7d0RBQUM7Z0NBbkNOLHFCQUFxQjtJQURqQyxJQUFBLGdCQUFNLEVBQUMsMEJBQTBCLENBQUM7R0FDdEIscUJBQXFCLENBb0NqQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcbmFwLWRtcy5sY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFxkb2N1bWVudC1udW1iZXJpbmdcXGVudGl0aWVzXFxkb2N1bWVudC1udW1iZXItY291bnRlci5lbnRpdHkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLy8gRmlsZTogc3JjL21vZHVsZXMvZG9jdW1lbnQtbnVtYmVyaW5nL2VudGl0aWVzL2RvY3VtZW50LW51bWJlci1jb3VudGVyLmVudGl0eS50c1xuaW1wb3J0IHsgRW50aXR5LCBDb2x1bW4sIFByaW1hcnlDb2x1bW4sIFZlcnNpb25Db2x1bW4gfSBmcm9tICd0eXBlb3JtJztcblxuQEVudGl0eSgnZG9jdW1lbnRfbnVtYmVyX2NvdW50ZXJzJylcbmV4cG9ydCBjbGFzcyBEb2N1bWVudE51bWJlckNvdW50ZXIge1xuICBAUHJpbWFyeUNvbHVtbih7IG5hbWU6ICdwcm9qZWN0X2lkJyB9KVxuICBwcm9qZWN0SWQhOiBudW1iZXI7XG5cbiAgQFByaW1hcnlDb2x1bW4oeyBuYW1lOiAnb3JpZ2luYXRvcl9vcmdhbml6YXRpb25faWQnIH0pXG4gIG9yaWdpbmF0b3JJZCE6IG51bWJlcjtcblxuICBAUHJpbWFyeUNvbHVtbih7IG5hbWU6ICdyZWNpcGllbnRfb3JnYW5pemF0aW9uX2lkJyB9KVxuICByZWNpcGllbnRPcmdhbml6YXRpb25JZCE6IG51bWJlcjtcblxuICBAUHJpbWFyeUNvbHVtbih7IG5hbWU6ICdjb3JyZXNwb25kZW5jZV90eXBlX2lkJyB9KVxuICBjb3JyZXNwb25kZW5jZVR5cGVJZCE6IG51bWJlcjtcblxuICBAUHJpbWFyeUNvbHVtbih7IG5hbWU6ICdzdWJfdHlwZV9pZCcgfSlcbiAgc3ViVHlwZUlkITogbnVtYmVyO1xuXG4gIEBQcmltYXJ5Q29sdW1uKHsgbmFtZTogJ3JmYV90eXBlX2lkJyB9KVxuICByZmFUeXBlSWQhOiBudW1iZXI7XG5cbiAgQFByaW1hcnlDb2x1bW4oeyBuYW1lOiAnZGlzY2lwbGluZV9pZCcgfSlcbiAgZGlzY2lwbGluZUlkITogbnVtYmVyO1xuXG4gIEBQcmltYXJ5Q29sdW1uKHsgbmFtZTogJ3Jlc2V0X3Njb3BlJywgbGVuZ3RoOiAyMCB9KVxuICByZXNldFNjb3BlITogc3RyaW5nO1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAnbGFzdF9udW1iZXInLCBkZWZhdWx0OiAwIH0pXG4gIGxhc3ROdW1iZXIhOiBudW1iZXI7XG5cbiAgQFZlcnNpb25Db2x1bW4oeyBuYW1lOiAndmVyc2lvbicgfSlcbiAgdmVyc2lvbiE6IG51bWJlcjtcblxuICBAQ29sdW1uKHsgbmFtZTogJ2NyZWF0ZWRfYXQnIH0pXG4gIGNyZWF0ZWRBdCE6IERhdGU7XG5cbiAgQENvbHVtbih7IG5hbWU6ICd1cGRhdGVkX2F0JyB9KVxuICB1cGRhdGVkQXQhOiBEYXRlO1xufVxuIl0sInZlcnNpb24iOjN9

@@ -1,0 +1,58 @@
+d1f644f9fc5b52e63c0cb88535d3596a
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ShopDrawingSubCategory = void 0;
+const typeorm_1 = require("typeorm");
+let ShopDrawingSubCategory = class ShopDrawingSubCategory {
+};
+exports.ShopDrawingSubCategory = ShopDrawingSubCategory;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], ShopDrawingSubCategory.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'project_id' }),
+    __metadata("design:type", Number)
+], ShopDrawingSubCategory.prototype, "projectId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'sub_category_code', length: 50, unique: true }),
+    __metadata("design:type", String)
+], ShopDrawingSubCategory.prototype, "subCategoryCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'sub_category_name', length: 255 }),
+    __metadata("design:type", String)
+], ShopDrawingSubCategory.prototype, "subCategoryName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], ShopDrawingSubCategory.prototype, "description", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'sort_order', default: 0 }),
+    __metadata("design:type", Number)
+], ShopDrawingSubCategory.prototype, "sortOrder", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_active', default: true }),
+    __metadata("design:type", Boolean)
+], ShopDrawingSubCategory.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], ShopDrawingSubCategory.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], ShopDrawingSubCategory.prototype, "updatedAt", void 0);
+exports.ShopDrawingSubCategory = ShopDrawingSubCategory = __decorate([
+    (0, typeorm_1.Entity)('shop_drawing_sub_categories')
+], ShopDrawingSubCategory);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcZHJhd2luZ1xcZW50aXRpZXNcXHNob3AtZHJhd2luZy1zdWItY2F0ZWdvcnkuZW50aXR5LnRzIiwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7QUFBQSxxQ0FNaUI7QUFHVixJQUFNLHNCQUFzQixHQUE1QixNQUFNLHNCQUFzQjtDQTJCbEMsQ0FBQTtBQTNCWSx3REFBc0I7QUFFakM7SUFEQyxJQUFBLGdDQUFzQixHQUFFOztrREFDYjtBQUdaO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLFlBQVksRUFBRSxDQUFDOzt5REFDWjtBQUduQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxtQkFBbUIsRUFBRSxNQUFNLEVBQUUsRUFBRSxFQUFFLE1BQU0sRUFBRSxJQUFJLEVBQUUsQ0FBQzs7K0RBQ3ZDO0FBR3pCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLG1CQUFtQixFQUFFLE1BQU0sRUFBRSxHQUFHLEVBQUUsQ0FBQzs7K0RBQzFCO0FBR3pCO0lBREMsSUFBQSxnQkFBTSxFQUFDLEVBQUUsSUFBSSxFQUFFLE1BQU0sRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFLENBQUM7OzJEQUNwQjtBQUdyQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsT0FBTyxFQUFFLENBQUMsRUFBRSxDQUFDOzt5REFDeEI7QUFHbkI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLE9BQU8sRUFBRSxJQUFJLEVBQUUsQ0FBQzs7d0RBQzFCO0FBR25CO0lBREMsSUFBQSwwQkFBZ0IsRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsQ0FBQztrREFDN0IsSUFBSSxvQkFBSixJQUFJO3lEQUFDO0FBR2pCO0lBREMsSUFBQSwwQkFBZ0IsRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsQ0FBQztrREFDN0IsSUFBSSxvQkFBSixJQUFJO3lEQUFDO2lDQTFCTixzQkFBc0I7SUFEbEMsSUFBQSxnQkFBTSxFQUFDLDZCQUE2QixDQUFDO0dBQ3pCLHNCQUFzQixDQTJCbEMiLCJuYW1lcyI6W10sInNvdXJjZXMiOlsiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcZHJhd2luZ1xcZW50aXRpZXNcXHNob3AtZHJhd2luZy1zdWItY2F0ZWdvcnkuZW50aXR5LnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7XG4gIEVudGl0eSxcbiAgUHJpbWFyeUdlbmVyYXRlZENvbHVtbixcbiAgQ29sdW1uLFxuICBDcmVhdGVEYXRlQ29sdW1uLFxuICBVcGRhdGVEYXRlQ29sdW1uLFxufSBmcm9tICd0eXBlb3JtJztcblxuQEVudGl0eSgnc2hvcF9kcmF3aW5nX3N1Yl9jYXRlZ29yaWVzJylcbmV4cG9ydCBjbGFzcyBTaG9wRHJhd2luZ1N1YkNhdGVnb3J5IHtcbiAgQFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4oKVxuICBpZCE6IG51bWJlcjsgLy8g4LmA4LiV4Li04LihICEgKOC4leC4seC4p+C4l+C4teC5iCBlcnJvcilcblxuICBAQ29sdW1uKHsgbmFtZTogJ3Byb2plY3RfaWQnIH0pXG4gIHByb2plY3RJZCE6IG51bWJlcjsgLy8g4LmA4LiV4Li04LihICFcblxuICBAQ29sdW1uKHsgbmFtZTogJ3N1Yl9jYXRlZ29yeV9jb2RlJywgbGVuZ3RoOiA1MCwgdW5pcXVlOiB0cnVlIH0pXG4gIHN1YkNhdGVnb3J5Q29kZSE6IHN0cmluZzsgLy8g4LmA4LiV4Li04LihICFcblxuICBAQ29sdW1uKHsgbmFtZTogJ3N1Yl9jYXRlZ29yeV9uYW1lJywgbGVuZ3RoOiAyNTUgfSlcbiAgc3ViQ2F0ZWdvcnlOYW1lITogc3RyaW5nOyAvLyDguYDguJXguLTguKEgIVxuXG4gIEBDb2x1bW4oeyB0eXBlOiAndGV4dCcsIG51bGxhYmxlOiB0cnVlIH0pXG4gIGRlc2NyaXB0aW9uPzogc3RyaW5nOyAvLyBudWxsYWJsZSDguYPguIrguYkgP1xuXG4gIEBDb2x1bW4oeyBuYW1lOiAnc29ydF9vcmRlcicsIGRlZmF1bHQ6IDAgfSlcbiAgc29ydE9yZGVyITogbnVtYmVyOyAvLyDguYDguJXguLTguKEgIVxuXG4gIEBDb2x1bW4oeyBuYW1lOiAnaXNfYWN0aXZlJywgZGVmYXVsdDogdHJ1ZSB9KVxuICBpc0FjdGl2ZSE6IGJvb2xlYW47IC8vIOC5gOC4leC4tOC4oSAhXG5cbiAgQENyZWF0ZURhdGVDb2x1bW4oeyBuYW1lOiAnY3JlYXRlZF9hdCcgfSlcbiAgY3JlYXRlZEF0ITogRGF0ZTsgLy8g4LmA4LiV4Li04LihICFcblxuICBAVXBkYXRlRGF0ZUNvbHVtbih7IG5hbWU6ICd1cGRhdGVkX2F0JyB9KVxuICB1cGRhdGVkQXQhOiBEYXRlOyAvLyDguYDguJXguLTguKEgIVxufVxuIl0sInZlcnNpb24iOjN9

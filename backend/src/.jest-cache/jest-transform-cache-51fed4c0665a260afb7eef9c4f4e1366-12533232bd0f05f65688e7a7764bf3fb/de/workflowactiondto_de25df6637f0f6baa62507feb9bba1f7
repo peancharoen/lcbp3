@@ -1,0 +1,80 @@
+397e9fb75dd17b7b0f05a57990aa58d9
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WorkflowActionDto = void 0;
+const class_validator_1 = require("class-validator");
+const workflow_interface_1 = require("../../workflow-engine/interfaces/workflow.interface");
+const swagger_1 = require("@nestjs/swagger");
+/**
+ * DTO for processing workflow actions
+ *
+ * Supports both:
+ * - New Unified Workflow Engine (uses instanceId)
+ * - Legacy RFA workflow (uses returnToSequence)
+ */
+class WorkflowActionDto {
+}
+exports.WorkflowActionDto = WorkflowActionDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Workflow Instance ID (UUID) - for Unified Workflow Engine',
+        example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    }),
+    (0, class_validator_1.IsUUID)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], WorkflowActionDto.prototype, "instanceId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Workflow Action',
+        enum: ['APPROVE', 'REJECT', 'RETURN', 'CANCEL', 'ACKNOWLEDGE'],
+    }),
+    (0, class_validator_1.IsEnum)(workflow_interface_1.WorkflowAction),
+    __metadata("design:type", typeof (_a = typeof workflow_interface_1.WorkflowAction !== "undefined" && workflow_interface_1.WorkflowAction) === "function" ? _a : Object)
+], WorkflowActionDto.prototype, "action", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Review comments',
+        example: 'Approved with note...',
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], WorkflowActionDto.prototype, "comment", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Review comments (deprecated, use comment)',
+        example: 'Approved with note...',
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], WorkflowActionDto.prototype, "comments", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Sequence to return to (only for RETURN action in legacy RFA)',
+        example: 1,
+    }),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], WorkflowActionDto.prototype, "returnToSequence", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Additional payload data',
+        example: { priority: 'HIGH' },
+    }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_b = typeof Record !== "undefined" && Record) === "function" ? _b : Object)
+], WorkflowActionDto.prototype, "payload", void 0);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcY29ycmVzcG9uZGVuY2VcXGR0b1xcd29ya2Zsb3ctYWN0aW9uLmR0by50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBQUEscURBQThFO0FBQzlFLDRGQUFxRjtBQUNyRiw2Q0FBbUU7QUFFbkU7Ozs7OztHQU1HO0FBQ0gsTUFBYSxpQkFBaUI7Q0FpRDdCO0FBakRELDhDQWlEQztBQTFDQztJQU5DLElBQUEsNkJBQW1CLEVBQUM7UUFDbkIsV0FBVyxFQUFFLDJEQUEyRDtRQUN4RSxPQUFPLEVBQUUsc0NBQXNDO0tBQ2hELENBQUM7SUFDRCxJQUFBLHdCQUFNLEdBQUU7SUFDUixJQUFBLDRCQUFVLEdBQUU7O3FEQUNPO0FBT3BCO0lBTEMsSUFBQSxxQkFBVyxFQUFDO1FBQ1gsV0FBVyxFQUFFLGlCQUFpQjtRQUM5QixJQUFJLEVBQUUsQ0FBQyxTQUFTLEVBQUUsUUFBUSxFQUFFLFFBQVEsRUFBRSxRQUFRLEVBQUUsYUFBYSxDQUFDO0tBQy9ELENBQUM7SUFDRCxJQUFBLHdCQUFNLEVBQUMsbUNBQWMsQ0FBQztrREFDZCxtQ0FBYyxvQkFBZCxtQ0FBYztpREFBQztBQVF4QjtJQU5DLElBQUEsNkJBQW1CLEVBQUM7UUFDbkIsV0FBVyxFQUFFLGlCQUFpQjtRQUM5QixPQUFPLEVBQUUsdUJBQXVCO0tBQ2pDLENBQUM7SUFDRCxJQUFBLDBCQUFRLEdBQUU7SUFDVixJQUFBLDRCQUFVLEdBQUU7O2tEQUNJO0FBV2pCO0lBTkMsSUFBQSw2QkFBbUIsRUFBQztRQUNuQixXQUFXLEVBQUUsMkNBQTJDO1FBQ3hELE9BQU8sRUFBRSx1QkFBdUI7S0FDakMsQ0FBQztJQUNELElBQUEsMEJBQVEsR0FBRTtJQUNWLElBQUEsNEJBQVUsR0FBRTs7bURBQ0s7QUFRbEI7SUFOQyxJQUFBLDZCQUFtQixFQUFDO1FBQ25CLFdBQVcsRUFBRSw4REFBOEQ7UUFDM0UsT0FBTyxFQUFFLENBQUM7S0FDWCxDQUFDO0lBQ0QsSUFBQSx1QkFBSyxHQUFFO0lBQ1AsSUFBQSw0QkFBVSxHQUFFOzsyREFDYTtBQU8xQjtJQUxDLElBQUEsNkJBQW1CLEVBQUM7UUFDbkIsV0FBVyxFQUFFLHlCQUF5QjtRQUN0QyxPQUFPLEVBQUUsRUFBRSxRQUFRLEVBQUUsTUFBTSxFQUFFO0tBQzlCLENBQUM7SUFDRCxJQUFBLDRCQUFVLEdBQUU7a0RBQ0gsTUFBTSxvQkFBTixNQUFNO2tEQUFrQiIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcbmFwLWRtcy5sY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFxjb3JyZXNwb25kZW5jZVxcZHRvXFx3b3JrZmxvdy1hY3Rpb24uZHRvLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IElzRW51bSwgSXNTdHJpbmcsIElzT3B0aW9uYWwsIElzVVVJRCwgSXNJbnQgfSBmcm9tICdjbGFzcy12YWxpZGF0b3InO1xuaW1wb3J0IHsgV29ya2Zsb3dBY3Rpb24gfSBmcm9tICcuLi8uLi93b3JrZmxvdy1lbmdpbmUvaW50ZXJmYWNlcy93b3JrZmxvdy5pbnRlcmZhY2UnO1xuaW1wb3J0IHsgQXBpUHJvcGVydHksIEFwaVByb3BlcnR5T3B0aW9uYWwgfSBmcm9tICdAbmVzdGpzL3N3YWdnZXInO1xuXG4vKipcbiAqIERUTyBmb3IgcHJvY2Vzc2luZyB3b3JrZmxvdyBhY3Rpb25zXG4gKlxuICogU3VwcG9ydHMgYm90aDpcbiAqIC0gTmV3IFVuaWZpZWQgV29ya2Zsb3cgRW5naW5lICh1c2VzIGluc3RhbmNlSWQpXG4gKiAtIExlZ2FjeSBSRkEgd29ya2Zsb3cgKHVzZXMgcmV0dXJuVG9TZXF1ZW5jZSlcbiAqL1xuZXhwb3J0IGNsYXNzIFdvcmtmbG93QWN0aW9uRHRvIHtcbiAgQEFwaVByb3BlcnR5T3B0aW9uYWwoe1xuICAgIGRlc2NyaXB0aW9uOiAnV29ya2Zsb3cgSW5zdGFuY2UgSUQgKFVVSUQpIC0gZm9yIFVuaWZpZWQgV29ya2Zsb3cgRW5naW5lJyxcbiAgICBleGFtcGxlOiAnYTFiMmMzZDQtZTVmNi03ODkwLWFiY2QtZWYxMjM0NTY3ODkwJyxcbiAgfSlcbiAgQElzVVVJRCgpXG4gIEBJc09wdGlvbmFsKClcbiAgaW5zdGFuY2VJZD86IHN0cmluZztcblxuICBAQXBpUHJvcGVydHkoe1xuICAgIGRlc2NyaXB0aW9uOiAnV29ya2Zsb3cgQWN0aW9uJyxcbiAgICBlbnVtOiBbJ0FQUFJPVkUnLCAnUkVKRUNUJywgJ1JFVFVSTicsICdDQU5DRUwnLCAnQUNLTk9XTEVER0UnXSxcbiAgfSlcbiAgQElzRW51bShXb3JrZmxvd0FjdGlvbilcbiAgYWN0aW9uITogV29ya2Zsb3dBY3Rpb247XG5cbiAgQEFwaVByb3BlcnR5T3B0aW9uYWwoe1xuICAgIGRlc2NyaXB0aW9uOiAnUmV2aWV3IGNvbW1lbnRzJyxcbiAgICBleGFtcGxlOiAnQXBwcm92ZWQgd2l0aCBub3RlLi4uJyxcbiAgfSlcbiAgQElzU3RyaW5nKClcbiAgQElzT3B0aW9uYWwoKVxuICBjb21tZW50Pzogc3RyaW5nO1xuXG4gIC8qKlxuICAgKiBAZGVwcmVjYXRlZCBVc2UgJ2NvbW1lbnQnIGluc3RlYWRcbiAgICovXG4gIEBBcGlQcm9wZXJ0eU9wdGlvbmFsKHtcbiAgICBkZXNjcmlwdGlvbjogJ1JldmlldyBjb21tZW50cyAoZGVwcmVjYXRlZCwgdXNlIGNvbW1lbnQpJyxcbiAgICBleGFtcGxlOiAnQXBwcm92ZWQgd2l0aCBub3RlLi4uJyxcbiAgfSlcbiAgQElzU3RyaW5nKClcbiAgQElzT3B0aW9uYWwoKVxuICBjb21tZW50cz86IHN0cmluZztcblxuICBAQXBpUHJvcGVydHlPcHRpb25hbCh7XG4gICAgZGVzY3JpcHRpb246ICdTZXF1ZW5jZSB0byByZXR1cm4gdG8gKG9ubHkgZm9yIFJFVFVSTiBhY3Rpb24gaW4gbGVnYWN5IFJGQSknLFxuICAgIGV4YW1wbGU6IDEsXG4gIH0pXG4gIEBJc0ludCgpXG4gIEBJc09wdGlvbmFsKClcbiAgcmV0dXJuVG9TZXF1ZW5jZT86IG51bWJlcjtcblxuICBAQXBpUHJvcGVydHlPcHRpb25hbCh7XG4gICAgZGVzY3JpcHRpb246ICdBZGRpdGlvbmFsIHBheWxvYWQgZGF0YScsXG4gICAgZXhhbXBsZTogeyBwcmlvcml0eTogJ0hJR0gnIH0sXG4gIH0pXG4gIEBJc09wdGlvbmFsKClcbiAgcGF5bG9hZD86IFJlY29yZDxzdHJpbmcsIHVua25vd24+O1xufVxuIl0sInZlcnNpb24iOjN9

@@ -1,0 +1,28 @@
+1392f4037731be5b7557fad753ade41e
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CancelCorrespondenceDto = void 0;
+const swagger_1 = require("@nestjs/swagger");
+const class_validator_1 = require("class-validator");
+class CancelCorrespondenceDto {
+}
+exports.CancelCorrespondenceDto = CancelCorrespondenceDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Reason for cancelling the correspondence',
+        example: 'Document was created in error',
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CancelCorrespondenceDto.prototype, "reason", void 0);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcY29ycmVzcG9uZGVuY2VcXGR0b1xcY2FuY2VsLWNvcnJlc3BvbmRlbmNlLmR0by50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7QUFBQSw2Q0FBOEM7QUFDOUMscURBQXVEO0FBRXZELE1BQWEsdUJBQXVCO0NBUW5DO0FBUkQsMERBUUM7QUFEQztJQU5DLElBQUEscUJBQVcsRUFBQztRQUNYLFdBQVcsRUFBRSwwQ0FBMEM7UUFDdkQsT0FBTyxFQUFFLCtCQUErQjtLQUN6QyxDQUFDO0lBQ0QsSUFBQSwwQkFBUSxHQUFFO0lBQ1YsSUFBQSw0QkFBVSxHQUFFOzt1REFDRyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcbmFwLWRtcy5sY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFxjb3JyZXNwb25kZW5jZVxcZHRvXFxjYW5jZWwtY29ycmVzcG9uZGVuY2UuZHRvLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IEFwaVByb3BlcnR5IH0gZnJvbSAnQG5lc3Rqcy9zd2FnZ2VyJztcclxuaW1wb3J0IHsgSXNTdHJpbmcsIElzTm90RW1wdHkgfSBmcm9tICdjbGFzcy12YWxpZGF0b3InO1xyXG5cclxuZXhwb3J0IGNsYXNzIENhbmNlbENvcnJlc3BvbmRlbmNlRHRvIHtcclxuICBAQXBpUHJvcGVydHkoe1xyXG4gICAgZGVzY3JpcHRpb246ICdSZWFzb24gZm9yIGNhbmNlbGxpbmcgdGhlIGNvcnJlc3BvbmRlbmNlJyxcclxuICAgIGV4YW1wbGU6ICdEb2N1bWVudCB3YXMgY3JlYXRlZCBpbiBlcnJvcicsXHJcbiAgfSlcclxuICBASXNTdHJpbmcoKVxyXG4gIEBJc05vdEVtcHR5KClcclxuICByZWFzb24hOiBzdHJpbmc7XHJcbn1cclxuIl0sInZlcnNpb24iOjN9

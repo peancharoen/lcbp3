@@ -1,0 +1,44 @@
+b94c9f56f6c087f382d7a351eebbbf92
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CommitBatchDto = exports.CommitBatchItemDto = void 0;
+const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
+const import_correspondence_dto_1 = require("./import-correspondence.dto");
+class CommitBatchItemDto {
+}
+exports.CommitBatchItemDto = CommitBatchItemDto;
+__decorate([
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", Number)
+], CommitBatchItemDto.prototype, "queueId", void 0);
+__decorate([
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => import_correspondence_dto_1.ImportCorrespondenceDto),
+    __metadata("design:type", typeof (_a = typeof import_correspondence_dto_1.ImportCorrespondenceDto !== "undefined" && import_correspondence_dto_1.ImportCorrespondenceDto) === "function" ? _a : Object)
+], CommitBatchItemDto.prototype, "dto", void 0);
+class CommitBatchDto {
+}
+exports.CommitBatchDto = CommitBatchDto;
+__decorate([
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => CommitBatchItemDto),
+    __metadata("design:type", Array)
+], CommitBatchDto.prototype, "items", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CommitBatchDto.prototype, "batchId", void 0);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcbWlncmF0aW9uXFxkdG9cXGNvbW1pdC1iYXRjaC5kdG8udHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQUFBLHFEQUFnRjtBQUNoRix5REFBeUM7QUFDekMsMkVBQXNFO0FBRXRFLE1BQWEsa0JBQWtCO0NBTzlCO0FBUEQsZ0RBT0M7QUFMQztJQURDLElBQUEsNEJBQVUsR0FBRTs7bURBQ0k7QUFJakI7SUFGQyxJQUFBLGdDQUFjLEdBQUU7SUFDaEIsSUFBQSx3QkFBSSxFQUFDLEdBQUcsRUFBRSxDQUFDLG1EQUF1QixDQUFDO2tEQUM5QixtREFBdUIsb0JBQXZCLG1EQUF1QjsrQ0FBQztBQUdoQyxNQUFhLGNBQWM7Q0FTMUI7QUFURCx3Q0FTQztBQUxDO0lBSEMsSUFBQSx5QkFBTyxHQUFFO0lBQ1QsSUFBQSxnQ0FBYyxFQUFDLEVBQUUsSUFBSSxFQUFFLElBQUksRUFBRSxDQUFDO0lBQzlCLElBQUEsd0JBQUksRUFBQyxHQUFHLEVBQUUsQ0FBQyxrQkFBa0IsQ0FBQzs7NkNBQ0Y7QUFJN0I7SUFGQyxJQUFBLDBCQUFRLEdBQUU7SUFDVixJQUFBLDRCQUFVLEdBQUU7OytDQUNJIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxuYXAtZG1zLmxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXG1pZ3JhdGlvblxcZHRvXFxjb21taXQtYmF0Y2guZHRvLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IElzQXJyYXksIFZhbGlkYXRlTmVzdGVkLCBJc1N0cmluZywgSXNOb3RFbXB0eSB9IGZyb20gJ2NsYXNzLXZhbGlkYXRvcic7XG5pbXBvcnQgeyBUeXBlIH0gZnJvbSAnY2xhc3MtdHJhbnNmb3JtZXInO1xuaW1wb3J0IHsgSW1wb3J0Q29ycmVzcG9uZGVuY2VEdG8gfSBmcm9tICcuL2ltcG9ydC1jb3JyZXNwb25kZW5jZS5kdG8nO1xuXG5leHBvcnQgY2xhc3MgQ29tbWl0QmF0Y2hJdGVtRHRvIHtcbiAgQElzTm90RW1wdHkoKVxuICBxdWV1ZUlkITogbnVtYmVyO1xuXG4gIEBWYWxpZGF0ZU5lc3RlZCgpXG4gIEBUeXBlKCgpID0+IEltcG9ydENvcnJlc3BvbmRlbmNlRHRvKVxuICBkdG8hOiBJbXBvcnRDb3JyZXNwb25kZW5jZUR0bztcbn1cblxuZXhwb3J0IGNsYXNzIENvbW1pdEJhdGNoRHRvIHtcbiAgQElzQXJyYXkoKVxuICBAVmFsaWRhdGVOZXN0ZWQoeyBlYWNoOiB0cnVlIH0pXG4gIEBUeXBlKCgpID0+IENvbW1pdEJhdGNoSXRlbUR0bylcbiAgaXRlbXMhOiBDb21taXRCYXRjaEl0ZW1EdG9bXTtcblxuICBASXNTdHJpbmcoKVxuICBASXNOb3RFbXB0eSgpXG4gIGJhdGNoSWQhOiBzdHJpbmc7XG59XG4iXSwidmVyc2lvbiI6M30=

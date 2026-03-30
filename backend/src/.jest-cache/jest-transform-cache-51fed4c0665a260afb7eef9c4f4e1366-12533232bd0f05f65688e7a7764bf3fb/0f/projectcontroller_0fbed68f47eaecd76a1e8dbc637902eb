@@ -1,0 +1,128 @@
+4c7e494a61ffe7e65effb9e0f3873eb7
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProjectController = void 0;
+const common_1 = require("@nestjs/common");
+const swagger_1 = require("@nestjs/swagger");
+const project_service_1 = require("./project.service");
+const create_project_dto_1 = require("./dto/create-project.dto");
+const update_project_dto_1 = require("./dto/update-project.dto");
+const search_project_dto_1 = require("./dto/search-project.dto");
+const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const rbac_guard_1 = require("../../common/guards/rbac.guard");
+const parse_uuid_pipe_1 = require("../../common/pipes/parse-uuid.pipe");
+const require_permission_decorator_1 = require("../../common/decorators/require-permission.decorator");
+let ProjectController = class ProjectController {
+    constructor(projectService) {
+        this.projectService = projectService;
+    }
+    create(createDto) {
+        return this.projectService.create(createDto);
+    }
+    findAll(searchDto) {
+        return this.projectService.findAll(searchDto);
+    }
+    // @RequirePermission('organization.view') // หรือเปิดให้ดูได้ทั่วไปถ้าจำเป็น
+    findAllOrgs() {
+        return this.projectService.findAllOrganizations();
+    }
+    findContracts(uuid) {
+        return this.projectService.findContracts(uuid);
+    }
+    findOne(uuid) {
+        return this.projectService.findOneByUuid(uuid);
+    }
+    update(uuid, updateDto) {
+        return this.projectService.update(uuid, updateDto);
+    }
+    remove(uuid) {
+        return this.projectService.remove(uuid);
+    }
+};
+exports.ProjectController = ProjectController;
+__decorate([
+    (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Create new Project' }),
+    (0, require_permission_decorator_1.RequirePermission)('project.create'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_b = typeof create_project_dto_1.CreateProjectDto !== "undefined" && create_project_dto_1.CreateProjectDto) === "function" ? _b : Object]),
+    __metadata("design:returntype", void 0)
+], ProjectController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Search Projects' }),
+    (0, require_permission_decorator_1.RequirePermission)('project.view'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_c = typeof search_project_dto_1.SearchProjectDto !== "undefined" && search_project_dto_1.SearchProjectDto) === "function" ? _c : Object]),
+    __metadata("design:returntype", void 0)
+], ProjectController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('organizations'),
+    (0, swagger_1.ApiOperation)({ summary: 'List All Organizations (Master Data)' })
+    // @RequirePermission('organization.view') // หรือเปิดให้ดูได้ทั่วไปถ้าจำเป็น
+    ,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], ProjectController.prototype, "findAllOrgs", null);
+__decorate([
+    (0, common_1.Get)(':uuid/contracts'),
+    (0, swagger_1.ApiOperation)({ summary: 'List All Contracts in Project' }),
+    (0, require_permission_decorator_1.RequirePermission)('project.view'),
+    __param(0, (0, common_1.Param)('uuid', parse_uuid_pipe_1.ParseUuidPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProjectController.prototype, "findContracts", null);
+__decorate([
+    (0, common_1.Get)(':uuid'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get Project Details' }),
+    (0, require_permission_decorator_1.RequirePermission)('project.view'),
+    __param(0, (0, common_1.Param)('uuid', parse_uuid_pipe_1.ParseUuidPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProjectController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Patch)(':uuid'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update Project' }),
+    (0, require_permission_decorator_1.RequirePermission)('project.edit'),
+    __param(0, (0, common_1.Param)('uuid', parse_uuid_pipe_1.ParseUuidPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, typeof (_d = typeof update_project_dto_1.UpdateProjectDto !== "undefined" && update_project_dto_1.UpdateProjectDto) === "function" ? _d : Object]),
+    __metadata("design:returntype", void 0)
+], ProjectController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':uuid'),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete Project (Soft Delete)' }),
+    (0, require_permission_decorator_1.RequirePermission)('project.delete'),
+    __param(0, (0, common_1.Param)('uuid', parse_uuid_pipe_1.ParseUuidPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProjectController.prototype, "remove", null);
+exports.ProjectController = ProjectController = __decorate([
+    (0, swagger_1.ApiTags)('Projects'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, rbac_guard_1.RbacGuard),
+    (0, common_1.Controller)('projects') // แนะนำให้ใช้ plural noun (projects)
+    ,
+    __metadata("design:paramtypes", [typeof (_a = typeof project_service_1.ProjectService !== "undefined" && project_service_1.ProjectService) === "function" ? _a : Object])
+], ProjectController);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xccHJvamVjdFxccHJvamVjdC5jb250cm9sbGVyLnRzIiwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7QUFBQSwyQ0FVd0I7QUFDeEIsNkNBQXVFO0FBRXZFLHVEQUFtRDtBQUNuRCxpRUFBNEQ7QUFDNUQsaUVBQTREO0FBQzVELGlFQUE0RDtBQUU1RCx1RUFBa0U7QUFDbEUsK0RBQTJEO0FBQzNELHdFQUFtRTtBQUNuRSx1R0FBeUY7QUFNbEYsSUFBTSxpQkFBaUIsR0FBdkIsTUFBTSxpQkFBaUI7SUFDNUIsWUFBNkIsY0FBOEI7UUFBOUIsbUJBQWMsR0FBZCxjQUFjLENBQWdCO0lBQUcsQ0FBQztJQUsvRCxNQUFNLENBQVMsU0FBMkI7UUFDeEMsT0FBTyxJQUFJLENBQUMsY0FBYyxDQUFDLE1BQU0sQ0FBQyxTQUFTLENBQUMsQ0FBQztJQUMvQyxDQUFDO0lBS0QsT0FBTyxDQUFVLFNBQTJCO1FBQzFDLE9BQU8sSUFBSSxDQUFDLGNBQWMsQ0FBQyxPQUFPLENBQUMsU0FBUyxDQUFDLENBQUM7SUFDaEQsQ0FBQztJQUtELEFBREEsNkVBQTZFO0lBQzdFLFdBQVc7UUFDVCxPQUFPLElBQUksQ0FBQyxjQUFjLENBQUMsb0JBQW9CLEVBQUUsQ0FBQztJQUNwRCxDQUFDO0lBS0QsYUFBYSxDQUErQixJQUFZO1FBQ3RELE9BQU8sSUFBSSxDQUFDLGNBQWMsQ0FBQyxhQUFhLENBQUMsSUFBSSxDQUFDLENBQUM7SUFDakQsQ0FBQztJQUtELE9BQU8sQ0FBK0IsSUFBWTtRQUNoRCxPQUFPLElBQUksQ0FBQyxjQUFjLENBQUMsYUFBYSxDQUFDLElBQUksQ0FBQyxDQUFDO0lBQ2pELENBQUM7SUFLRCxNQUFNLENBQzBCLElBQVksRUFDbEMsU0FBMkI7UUFFbkMsT0FBTyxJQUFJLENBQUMsY0FBYyxDQUFDLE1BQU0sQ0FBQyxJQUFJLEVBQUUsU0FBUyxDQUFDLENBQUM7SUFDckQsQ0FBQztJQUtELE1BQU0sQ0FBK0IsSUFBWTtRQUMvQyxPQUFPLElBQUksQ0FBQyxjQUFjLENBQUMsTUFBTSxDQUFDLElBQUksQ0FBQyxDQUFDO0lBQzFDLENBQUM7Q0FDRixDQUFBO0FBdERZLDhDQUFpQjtBQU01QjtJQUhDLElBQUEsYUFBSSxHQUFFO0lBQ04sSUFBQSxzQkFBWSxFQUFDLEVBQUUsT0FBTyxFQUFFLG9CQUFvQixFQUFFLENBQUM7SUFDL0MsSUFBQSxnREFBaUIsRUFBQyxnQkFBZ0IsQ0FBQztJQUM1QixXQUFBLElBQUEsYUFBSSxHQUFFLENBQUE7O3lEQUFZLHFDQUFnQixvQkFBaEIscUNBQWdCOzsrQ0FFekM7QUFLRDtJQUhDLElBQUEsWUFBRyxHQUFFO0lBQ0wsSUFBQSxzQkFBWSxFQUFDLEVBQUUsT0FBTyxFQUFFLGlCQUFpQixFQUFFLENBQUM7SUFDNUMsSUFBQSxnREFBaUIsRUFBQyxjQUFjLENBQUM7SUFDekIsV0FBQSxJQUFBLGNBQUssR0FBRSxDQUFBOzt5REFBWSxxQ0FBZ0Isb0JBQWhCLHFDQUFnQjs7Z0RBRTNDO0FBS0Q7SUFIQyxJQUFBLFlBQUcsRUFBQyxlQUFlLENBQUM7SUFDcEIsSUFBQSxzQkFBWSxFQUFDLEVBQUUsT0FBTyxFQUFFLHNDQUFzQyxFQUFFLENBQUM7SUFDbEUsNkVBQTZFOzs7OztvREFHNUU7QUFLRDtJQUhDLElBQUEsWUFBRyxFQUFDLGlCQUFpQixDQUFDO0lBQ3RCLElBQUEsc0JBQVksRUFBQyxFQUFFLE9BQU8sRUFBRSwrQkFBK0IsRUFBRSxDQUFDO0lBQzFELElBQUEsZ0RBQWlCLEVBQUMsY0FBYyxDQUFDO0lBQ25CLFdBQUEsSUFBQSxjQUFLLEVBQUMsTUFBTSxFQUFFLCtCQUFhLENBQUMsQ0FBQTs7OztzREFFMUM7QUFLRDtJQUhDLElBQUEsWUFBRyxFQUFDLE9BQU8sQ0FBQztJQUNaLElBQUEsc0JBQVksRUFBQyxFQUFFLE9BQU8sRUFBRSxxQkFBcUIsRUFBRSxDQUFDO0lBQ2hELElBQUEsZ0RBQWlCLEVBQUMsY0FBYyxDQUFDO0lBQ3pCLFdBQUEsSUFBQSxjQUFLLEVBQUMsTUFBTSxFQUFFLCtCQUFhLENBQUMsQ0FBQTs7OztnREFFcEM7QUFLRDtJQUhDLElBQUEsY0FBSyxFQUFDLE9BQU8sQ0FBQztJQUNkLElBQUEsc0JBQVksRUFBQyxFQUFFLE9BQU8sRUFBRSxnQkFBZ0IsRUFBRSxDQUFDO0lBQzNDLElBQUEsZ0RBQWlCLEVBQUMsY0FBYyxDQUFDO0lBRS9CLFdBQUEsSUFBQSxjQUFLLEVBQUMsTUFBTSxFQUFFLCtCQUFhLENBQUMsQ0FBQTtJQUM1QixXQUFBLElBQUEsYUFBSSxHQUFFLENBQUE7O2lFQUFZLHFDQUFnQixvQkFBaEIscUNBQWdCOzsrQ0FHcEM7QUFLRDtJQUhDLElBQUEsZUFBTSxFQUFDLE9BQU8sQ0FBQztJQUNmLElBQUEsc0JBQVksRUFBQyxFQUFFLE9BQU8sRUFBRSw4QkFBOEIsRUFBRSxDQUFDO0lBQ3pELElBQUEsZ0RBQWlCLEVBQUMsZ0JBQWdCLENBQUM7SUFDNUIsV0FBQSxJQUFBLGNBQUssRUFBQyxNQUFNLEVBQUUsK0JBQWEsQ0FBQyxDQUFBOzs7OytDQUVuQzs0QkFyRFUsaUJBQWlCO0lBSjdCLElBQUEsaUJBQU8sRUFBQyxVQUFVLENBQUM7SUFDbkIsSUFBQSx1QkFBYSxHQUFFO0lBQ2YsSUFBQSxrQkFBUyxFQUFDLDZCQUFZLEVBQUUsc0JBQVMsQ0FBQztJQUNsQyxJQUFBLG1CQUFVLEVBQUMsVUFBVSxDQUFDLENBQUMscUNBQXFDOzt5REFFZCxnQ0FBYyxvQkFBZCxnQ0FBYztHQURoRCxpQkFBaUIsQ0FzRDdCIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxuYXAtZG1zLmxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXHByb2plY3RcXHByb2plY3QuY29udHJvbGxlci50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge1xuICBDb250cm9sbGVyLFxuICBHZXQsXG4gIFBvc3QsXG4gIEJvZHksXG4gIFBhdGNoLFxuICBQYXJhbSxcbiAgRGVsZXRlLFxuICBRdWVyeSxcbiAgVXNlR3VhcmRzLFxufSBmcm9tICdAbmVzdGpzL2NvbW1vbic7XG5pbXBvcnQgeyBBcGlUYWdzLCBBcGlPcGVyYXRpb24sIEFwaUJlYXJlckF1dGggfSBmcm9tICdAbmVzdGpzL3N3YWdnZXInO1xuXG5pbXBvcnQgeyBQcm9qZWN0U2VydmljZSB9IGZyb20gJy4vcHJvamVjdC5zZXJ2aWNlJztcbmltcG9ydCB7IENyZWF0ZVByb2plY3REdG8gfSBmcm9tICcuL2R0by9jcmVhdGUtcHJvamVjdC5kdG8nO1xuaW1wb3J0IHsgVXBkYXRlUHJvamVjdER0byB9IGZyb20gJy4vZHRvL3VwZGF0ZS1wcm9qZWN0LmR0byc7XG5pbXBvcnQgeyBTZWFyY2hQcm9qZWN0RHRvIH0gZnJvbSAnLi9kdG8vc2VhcmNoLXByb2plY3QuZHRvJztcblxuaW1wb3J0IHsgSnd0QXV0aEd1YXJkIH0gZnJvbSAnLi4vLi4vY29tbW9uL2d1YXJkcy9qd3QtYXV0aC5ndWFyZCc7XG5pbXBvcnQgeyBSYmFjR3VhcmQgfSBmcm9tICcuLi8uLi9jb21tb24vZ3VhcmRzL3JiYWMuZ3VhcmQnO1xuaW1wb3J0IHsgUGFyc2VVdWlkUGlwZSB9IGZyb20gJy4uLy4uL2NvbW1vbi9waXBlcy9wYXJzZS11dWlkLnBpcGUnO1xuaW1wb3J0IHsgUmVxdWlyZVBlcm1pc3Npb24gfSBmcm9tICcuLi8uLi9jb21tb24vZGVjb3JhdG9ycy9yZXF1aXJlLXBlcm1pc3Npb24uZGVjb3JhdG9yJztcblxuQEFwaVRhZ3MoJ1Byb2plY3RzJylcbkBBcGlCZWFyZXJBdXRoKClcbkBVc2VHdWFyZHMoSnd0QXV0aEd1YXJkLCBSYmFjR3VhcmQpXG5AQ29udHJvbGxlcigncHJvamVjdHMnKSAvLyDguYHguJnguLDguJnguLPguYPguKvguYnguYPguIrguYkgcGx1cmFsIG5vdW4gKHByb2plY3RzKVxuZXhwb3J0IGNsYXNzIFByb2plY3RDb250cm9sbGVyIHtcbiAgY29uc3RydWN0b3IocHJpdmF0ZSByZWFkb25seSBwcm9qZWN0U2VydmljZTogUHJvamVjdFNlcnZpY2UpIHt9XG5cbiAgQFBvc3QoKVxuICBAQXBpT3BlcmF0aW9uKHsgc3VtbWFyeTogJ0NyZWF0ZSBuZXcgUHJvamVjdCcgfSlcbiAgQFJlcXVpcmVQZXJtaXNzaW9uKCdwcm9qZWN0LmNyZWF0ZScpXG4gIGNyZWF0ZShAQm9keSgpIGNyZWF0ZUR0bzogQ3JlYXRlUHJvamVjdER0bykge1xuICAgIHJldHVybiB0aGlzLnByb2plY3RTZXJ2aWNlLmNyZWF0ZShjcmVhdGVEdG8pO1xuICB9XG5cbiAgQEdldCgpXG4gIEBBcGlPcGVyYXRpb24oeyBzdW1tYXJ5OiAnU2VhcmNoIFByb2plY3RzJyB9KVxuICBAUmVxdWlyZVBlcm1pc3Npb24oJ3Byb2plY3QudmlldycpXG4gIGZpbmRBbGwoQFF1ZXJ5KCkgc2VhcmNoRHRvOiBTZWFyY2hQcm9qZWN0RHRvKSB7XG4gICAgcmV0dXJuIHRoaXMucHJvamVjdFNlcnZpY2UuZmluZEFsbChzZWFyY2hEdG8pO1xuICB9XG5cbiAgQEdldCgnb3JnYW5pemF0aW9ucycpXG4gIEBBcGlPcGVyYXRpb24oeyBzdW1tYXJ5OiAnTGlzdCBBbGwgT3JnYW5pemF0aW9ucyAoTWFzdGVyIERhdGEpJyB9KVxuICAvLyBAUmVxdWlyZVBlcm1pc3Npb24oJ29yZ2FuaXphdGlvbi52aWV3JykgLy8g4Lir4Lij4Li34Lit4LmA4Lib4Li04LiU4LmD4Lir4LmJ4LiU4Li54LmE4LiU4LmJ4LiX4Lix4LmI4Lin4LmE4Lib4LiW4LmJ4Liy4LiI4Liz4LmA4Lib4LmH4LiZXG4gIGZpbmRBbGxPcmdzKCkge1xuICAgIHJldHVybiB0aGlzLnByb2plY3RTZXJ2aWNlLmZpbmRBbGxPcmdhbml6YXRpb25zKCk7XG4gIH1cblxuICBAR2V0KCc6dXVpZC9jb250cmFjdHMnKVxuICBAQXBpT3BlcmF0aW9uKHsgc3VtbWFyeTogJ0xpc3QgQWxsIENvbnRyYWN0cyBpbiBQcm9qZWN0JyB9KVxuICBAUmVxdWlyZVBlcm1pc3Npb24oJ3Byb2plY3QudmlldycpXG4gIGZpbmRDb250cmFjdHMoQFBhcmFtKCd1dWlkJywgUGFyc2VVdWlkUGlwZSkgdXVpZDogc3RyaW5nKSB7XG4gICAgcmV0dXJuIHRoaXMucHJvamVjdFNlcnZpY2UuZmluZENvbnRyYWN0cyh1dWlkKTtcbiAgfVxuXG4gIEBHZXQoJzp1dWlkJylcbiAgQEFwaU9wZXJhdGlvbih7IHN1bW1hcnk6ICdHZXQgUHJvamVjdCBEZXRhaWxzJyB9KVxuICBAUmVxdWlyZVBlcm1pc3Npb24oJ3Byb2plY3QudmlldycpXG4gIGZpbmRPbmUoQFBhcmFtKCd1dWlkJywgUGFyc2VVdWlkUGlwZSkgdXVpZDogc3RyaW5nKSB7XG4gICAgcmV0dXJuIHRoaXMucHJvamVjdFNlcnZpY2UuZmluZE9uZUJ5VXVpZCh1dWlkKTtcbiAgfVxuXG4gIEBQYXRjaCgnOnV1aWQnKVxuICBAQXBpT3BlcmF0aW9uKHsgc3VtbWFyeTogJ1VwZGF0ZSBQcm9qZWN0JyB9KVxuICBAUmVxdWlyZVBlcm1pc3Npb24oJ3Byb2plY3QuZWRpdCcpXG4gIHVwZGF0ZShcbiAgICBAUGFyYW0oJ3V1aWQnLCBQYXJzZVV1aWRQaXBlKSB1dWlkOiBzdHJpbmcsXG4gICAgQEJvZHkoKSB1cGRhdGVEdG86IFVwZGF0ZVByb2plY3REdG9cbiAgKSB7XG4gICAgcmV0dXJuIHRoaXMucHJvamVjdFNlcnZpY2UudXBkYXRlKHV1aWQsIHVwZGF0ZUR0byk7XG4gIH1cblxuICBARGVsZXRlKCc6dXVpZCcpXG4gIEBBcGlPcGVyYXRpb24oeyBzdW1tYXJ5OiAnRGVsZXRlIFByb2plY3QgKFNvZnQgRGVsZXRlKScgfSlcbiAgQFJlcXVpcmVQZXJtaXNzaW9uKCdwcm9qZWN0LmRlbGV0ZScpXG4gIHJlbW92ZShAUGFyYW0oJ3V1aWQnLCBQYXJzZVV1aWRQaXBlKSB1dWlkOiBzdHJpbmcpIHtcbiAgICByZXR1cm4gdGhpcy5wcm9qZWN0U2VydmljZS5yZW1vdmUodXVpZCk7XG4gIH1cbn1cbiJdLCJ2ZXJzaW9uIjozfQ==

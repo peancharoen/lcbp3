@@ -1,0 +1,54 @@
+4b5cbb5bf5451f06bb72b25c9c1d277c
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CorrespondenceRevisionAttachment = void 0;
+// File: src/modules/correspondence/entities/correspondence-revision-attachment.entity.ts
+const typeorm_1 = require("typeorm");
+const correspondence_revision_entity_1 = require("./correspondence-revision.entity");
+const attachment_entity_1 = require("../../../common/file-storage/entities/attachment.entity");
+/**
+ * CorrespondenceRevisionAttachment
+ *
+ * ตารางเชื่อม correspondence_revisions กับ attachments (M:N)
+ * [FIX v1.8.1] FK ชี้ไป correspondence_revisions.id ไม่ใช่ correspondences.id
+ * เหตุผล: ไฟล์แนบผูกกับ revision เพื่อรองรับไฟล์ที่ต่างกันในแต่ละ revision
+ */
+let CorrespondenceRevisionAttachment = class CorrespondenceRevisionAttachment {
+};
+exports.CorrespondenceRevisionAttachment = CorrespondenceRevisionAttachment;
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'correspondence_revision_id' }),
+    __metadata("design:type", Number)
+], CorrespondenceRevisionAttachment.prototype, "correspondenceRevisionId", void 0);
+__decorate([
+    (0, typeorm_1.PrimaryColumn)({ name: 'attachment_id' }),
+    __metadata("design:type", Number)
+], CorrespondenceRevisionAttachment.prototype, "attachmentId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_main_document', default: false }),
+    __metadata("design:type", Boolean)
+], CorrespondenceRevisionAttachment.prototype, "isMainDocument", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => correspondence_revision_entity_1.CorrespondenceRevision, (revision) => revision.attachmentLinks, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'correspondence_revision_id' }),
+    __metadata("design:type", typeof (_a = typeof correspondence_revision_entity_1.CorrespondenceRevision !== "undefined" && correspondence_revision_entity_1.CorrespondenceRevision) === "function" ? _a : Object)
+], CorrespondenceRevisionAttachment.prototype, "revision", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => attachment_entity_1.Attachment, { onDelete: 'CASCADE', eager: false }),
+    (0, typeorm_1.JoinColumn)({ name: 'attachment_id' }),
+    __metadata("design:type", typeof (_b = typeof attachment_entity_1.Attachment !== "undefined" && attachment_entity_1.Attachment) === "function" ? _b : Object)
+], CorrespondenceRevisionAttachment.prototype, "attachment", void 0);
+exports.CorrespondenceRevisionAttachment = CorrespondenceRevisionAttachment = __decorate([
+    (0, typeorm_1.Entity)('correspondence_revision_attachments')
+], CorrespondenceRevisionAttachment);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcY29ycmVzcG9uZGVuY2VcXGVudGl0aWVzXFxjb3JyZXNwb25kZW5jZS1yZXZpc2lvbi1hdHRhY2htZW50LmVudGl0eS50cyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBQUEseUZBQXlGO0FBQ3pGLHFDQUErRTtBQUMvRSxxRkFBMEU7QUFDMUUsK0ZBQXFGO0FBRXJGOzs7Ozs7R0FNRztBQUVJLElBQU0sZ0NBQWdDLEdBQXRDLE1BQU0sZ0NBQWdDO0NBMEI1QyxDQUFBO0FBMUJZLDRFQUFnQztBQUczQztJQURDLElBQUEsdUJBQWEsRUFBQyxFQUFFLElBQUksRUFBRSw0QkFBNEIsRUFBRSxDQUFDOztrRkFDcEI7QUFJbEM7SUFEQyxJQUFBLHVCQUFhLEVBQUMsRUFBRSxJQUFJLEVBQUUsZUFBZSxFQUFFLENBQUM7O3NFQUNuQjtBQUl0QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxrQkFBa0IsRUFBRSxPQUFPLEVBQUUsS0FBSyxFQUFFLENBQUM7O3dFQUM1QjtBQVN6QjtJQU5DLElBQUEsbUJBQVMsRUFDUixHQUFHLEVBQUUsQ0FBQyx1REFBc0IsRUFDNUIsQ0FBQyxRQUFRLEVBQUUsRUFBRSxDQUFDLFFBQVEsQ0FBQyxlQUFlLEVBQ3RDLEVBQUUsUUFBUSxFQUFFLFNBQVMsRUFBRSxDQUN4QjtJQUNBLElBQUEsb0JBQVUsRUFBQyxFQUFFLElBQUksRUFBRSw0QkFBNEIsRUFBRSxDQUFDO2tEQUN4Qyx1REFBc0Isb0JBQXRCLHVEQUFzQjtrRUFBQztBQUtsQztJQUZDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQyw4QkFBVSxFQUFFLEVBQUUsUUFBUSxFQUFFLFNBQVMsRUFBRSxLQUFLLEVBQUUsS0FBSyxFQUFFLENBQUM7SUFDbEUsSUFBQSxvQkFBVSxFQUFDLEVBQUUsSUFBSSxFQUFFLGVBQWUsRUFBRSxDQUFDO2tEQUN6Qiw4QkFBVSxvQkFBViw4QkFBVTtvRUFBQzsyQ0F6QmIsZ0NBQWdDO0lBRDVDLElBQUEsZ0JBQU0sRUFBQyxxQ0FBcUMsQ0FBQztHQUNqQyxnQ0FBZ0MsQ0EwQjVDIiwibmFtZXMiOltdLCJzb3VyY2VzIjpbIkQ6XFxuYXAtZG1zLmxjYnAzXFxiYWNrZW5kXFxzcmNcXG1vZHVsZXNcXGNvcnJlc3BvbmRlbmNlXFxlbnRpdGllc1xcY29ycmVzcG9uZGVuY2UtcmV2aXNpb24tYXR0YWNobWVudC5lbnRpdHkudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLy8gRmlsZTogc3JjL21vZHVsZXMvY29ycmVzcG9uZGVuY2UvZW50aXRpZXMvY29ycmVzcG9uZGVuY2UtcmV2aXNpb24tYXR0YWNobWVudC5lbnRpdHkudHNcbmltcG9ydCB7IEVudGl0eSwgQ29sdW1uLCBNYW55VG9PbmUsIEpvaW5Db2x1bW4sIFByaW1hcnlDb2x1bW4gfSBmcm9tICd0eXBlb3JtJztcbmltcG9ydCB7IENvcnJlc3BvbmRlbmNlUmV2aXNpb24gfSBmcm9tICcuL2NvcnJlc3BvbmRlbmNlLXJldmlzaW9uLmVudGl0eSc7XG5pbXBvcnQgeyBBdHRhY2htZW50IH0gZnJvbSAnLi4vLi4vLi4vY29tbW9uL2ZpbGUtc3RvcmFnZS9lbnRpdGllcy9hdHRhY2htZW50LmVudGl0eSc7XG5cbi8qKlxuICogQ29ycmVzcG9uZGVuY2VSZXZpc2lvbkF0dGFjaG1lbnRcbiAqXG4gKiDguJXguLLguKPguLLguIfguYDguIrguLfguYjguK3guKEgY29ycmVzcG9uZGVuY2VfcmV2aXNpb25zIOC4geC4seC4miBhdHRhY2htZW50cyAoTTpOKVxuICogW0ZJWCB2MS44LjFdIEZLIOC4iuC4teC5ieC5hOC4myBjb3JyZXNwb25kZW5jZV9yZXZpc2lvbnMuaWQg4LmE4Lih4LmI4LmD4LiK4LmIIGNvcnJlc3BvbmRlbmNlcy5pZFxuICog4LmA4Lir4LiV4Li44Lic4LilOiDguYTguJ/guKXguYzguYHguJnguJrguJzguLnguIHguIHguLHguJogcmV2aXNpb24g4LmA4Lie4Li34LmI4Lit4Lij4Lit4LiH4Lij4Lix4Lia4LmE4Lif4Lil4LmM4LiX4Li14LmI4LiV4LmI4Liy4LiH4LiB4Lix4LiZ4LmD4LiZ4LmB4LiV4LmI4Lil4LiwIHJldmlzaW9uXG4gKi9cbkBFbnRpdHkoJ2NvcnJlc3BvbmRlbmNlX3JldmlzaW9uX2F0dGFjaG1lbnRzJylcbmV4cG9ydCBjbGFzcyBDb3JyZXNwb25kZW5jZVJldmlzaW9uQXR0YWNobWVudCB7XG4gIC8vIOC4hOC4teC4ouC5jOC4q+C4peC4seC4geC4guC4reC4hyByZXZpc2lvbiDguJfguLXguYjguJzguLnguIHguYTguJ/guKXguYzguJnguLXguYlcbiAgQFByaW1hcnlDb2x1bW4oeyBuYW1lOiAnY29ycmVzcG9uZGVuY2VfcmV2aXNpb25faWQnIH0pXG4gIGNvcnJlc3BvbmRlbmNlUmV2aXNpb25JZCE6IG51bWJlcjtcblxuICAvLyDguITguLXguKLguYzguKvguKXguLHguIHguILguK3guIcgYXR0YWNobWVudFxuICBAUHJpbWFyeUNvbHVtbih7IG5hbWU6ICdhdHRhY2htZW50X2lkJyB9KVxuICBhdHRhY2htZW50SWQhOiBudW1iZXI7XG5cbiAgLy8g4LmE4Lif4Lil4LmM4Lir4Lil4Lix4LiB4LiC4Lit4LiHIHJldmlzaW9uIOC4meC4teC5iSAo4LmA4LiK4LmI4LiZIFBERiDguKvguKXguLHguIEpXG4gIEBDb2x1bW4oeyBuYW1lOiAnaXNfbWFpbl9kb2N1bWVudCcsIGRlZmF1bHQ6IGZhbHNlIH0pXG4gIGlzTWFpbkRvY3VtZW50ITogYm9vbGVhbjtcblxuICAvLyBSZWxhdGlvbjog4Lir4Lil4Liy4LiiIENvcnJlc3BvbmRlbmNlUmV2aXNpb25BdHRhY2htZW50IOKGkiDguKvguJnguLbguYjguIcgQ29ycmVzcG9uZGVuY2VSZXZpc2lvblxuICBATWFueVRvT25lKFxuICAgICgpID0+IENvcnJlc3BvbmRlbmNlUmV2aXNpb24sXG4gICAgKHJldmlzaW9uKSA9PiByZXZpc2lvbi5hdHRhY2htZW50TGlua3MsXG4gICAgeyBvbkRlbGV0ZTogJ0NBU0NBREUnIH1cbiAgKVxuICBASm9pbkNvbHVtbih7IG5hbWU6ICdjb3JyZXNwb25kZW5jZV9yZXZpc2lvbl9pZCcgfSlcbiAgcmV2aXNpb24/OiBDb3JyZXNwb25kZW5jZVJldmlzaW9uO1xuXG4gIC8vIFJlbGF0aW9uOiDguKvguKXguLLguKIgQ29ycmVzcG9uZGVuY2VSZXZpc2lvbkF0dGFjaG1lbnQg4oaSIOC4q+C4meC4tuC5iOC4hyBBdHRhY2htZW50XG4gIEBNYW55VG9PbmUoKCkgPT4gQXR0YWNobWVudCwgeyBvbkRlbGV0ZTogJ0NBU0NBREUnLCBlYWdlcjogZmFsc2UgfSlcbiAgQEpvaW5Db2x1bW4oeyBuYW1lOiAnYXR0YWNobWVudF9pZCcgfSlcbiAgYXR0YWNobWVudD86IEF0dGFjaG1lbnQ7XG59XG4iXSwidmVyc2lvbiI6M30=

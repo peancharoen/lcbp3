@@ -1,0 +1,86 @@
+0c24b9f8be734e3fd27c98767cdcec9a
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d, _e, _f;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ShopDrawing = void 0;
+const typeorm_1 = require("typeorm");
+const shop_drawing_revision_entity_1 = require("./shop-drawing-revision.entity");
+const project_entity_1 = require("../../project/entities/project.entity");
+const shop_drawing_main_category_entity_1 = require("./shop-drawing-main-category.entity");
+const shop_drawing_sub_category_entity_1 = require("./shop-drawing-sub-category.entity");
+const uuid_base_entity_1 = require("../../../common/entities/uuid-base.entity");
+const class_transformer_1 = require("class-transformer");
+let ShopDrawing = class ShopDrawing extends uuid_base_entity_1.UuidBaseEntity {
+};
+exports.ShopDrawing = ShopDrawing;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    (0, class_transformer_1.Exclude)(),
+    __metadata("design:type", Number)
+], ShopDrawing.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'project_id' }),
+    __metadata("design:type", Number)
+], ShopDrawing.prototype, "projectId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'drawing_number', length: 100, unique: true }),
+    __metadata("design:type", String)
+], ShopDrawing.prototype, "drawingNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'main_category_id' }),
+    __metadata("design:type", Number)
+], ShopDrawing.prototype, "mainCategoryId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'sub_category_id' }),
+    __metadata("design:type", Number)
+], ShopDrawing.prototype, "subCategoryId", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
+    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+], ShopDrawing.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], ShopDrawing.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)({ name: 'deleted_at' }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], ShopDrawing.prototype, "deletedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'updated_by', nullable: true }),
+    __metadata("design:type", Number)
+], ShopDrawing.prototype, "updatedBy", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => project_entity_1.Project),
+    (0, typeorm_1.JoinColumn)({ name: 'project_id' }),
+    __metadata("design:type", typeof (_d = typeof project_entity_1.Project !== "undefined" && project_entity_1.Project) === "function" ? _d : Object)
+], ShopDrawing.prototype, "project", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => shop_drawing_main_category_entity_1.ShopDrawingMainCategory),
+    (0, typeorm_1.JoinColumn)({ name: 'main_category_id' }),
+    __metadata("design:type", typeof (_e = typeof shop_drawing_main_category_entity_1.ShopDrawingMainCategory !== "undefined" && shop_drawing_main_category_entity_1.ShopDrawingMainCategory) === "function" ? _e : Object)
+], ShopDrawing.prototype, "mainCategory", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => shop_drawing_sub_category_entity_1.ShopDrawingSubCategory),
+    (0, typeorm_1.JoinColumn)({ name: 'sub_category_id' }),
+    __metadata("design:type", typeof (_f = typeof shop_drawing_sub_category_entity_1.ShopDrawingSubCategory !== "undefined" && shop_drawing_sub_category_entity_1.ShopDrawingSubCategory) === "function" ? _f : Object)
+], ShopDrawing.prototype, "subCategory", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => shop_drawing_revision_entity_1.ShopDrawingRevision, (revision) => revision.shopDrawing, {
+        cascade: true,
+    }),
+    __metadata("design:type", Array)
+], ShopDrawing.prototype, "revisions", void 0);
+exports.ShopDrawing = ShopDrawing = __decorate([
+    (0, typeorm_1.Entity)('shop_drawings')
+], ShopDrawing);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiRDpcXG5hcC1kbXMubGNicDNcXGJhY2tlbmRcXHNyY1xcbW9kdWxlc1xcZHJhd2luZ1xcZW50aXRpZXNcXHNob3AtZHJhd2luZy5lbnRpdHkudHMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQUFBLHFDQVVpQjtBQUNqQixpRkFBcUU7QUFDckUsMEVBQWdFO0FBQ2hFLDJGQUE4RTtBQUM5RSx5RkFBNEU7QUFDNUUsZ0ZBQTJFO0FBQzNFLHlEQUE0QztBQUdyQyxJQUFNLFdBQVcsR0FBakIsTUFBTSxXQUFZLFNBQVEsaUNBQWM7Q0ErQzlDLENBQUE7QUEvQ1ksa0NBQVc7QUFHdEI7SUFGQyxJQUFBLGdDQUFzQixHQUFFO0lBQ3hCLElBQUEsMkJBQU8sR0FBRTs7dUNBQ0U7QUFHWjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsQ0FBQzs7OENBQ1o7QUFHbkI7SUFEQyxJQUFBLGdCQUFNLEVBQUMsRUFBRSxJQUFJLEVBQUUsZ0JBQWdCLEVBQUUsTUFBTSxFQUFFLEdBQUcsRUFBRSxNQUFNLEVBQUUsSUFBSSxFQUFFLENBQUM7O2tEQUN2QztBQUd2QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxrQkFBa0IsRUFBRSxDQUFDOzttREFDYjtBQUd4QjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxpQkFBaUIsRUFBRSxDQUFDOztrREFDYjtBQUd2QjtJQURDLElBQUEsMEJBQWdCLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQzdCLElBQUksb0JBQUosSUFBSTs4Q0FBQztBQUdqQjtJQURDLElBQUEsMEJBQWdCLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQzdCLElBQUksb0JBQUosSUFBSTs4Q0FBQztBQUdqQjtJQURDLElBQUEsMEJBQWdCLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQzdCLElBQUksb0JBQUosSUFBSTs4Q0FBQztBQUdqQjtJQURDLElBQUEsZ0JBQU0sRUFBQyxFQUFFLElBQUksRUFBRSxZQUFZLEVBQUUsUUFBUSxFQUFFLElBQUksRUFBRSxDQUFDOzs4Q0FDNUI7QUFNbkI7SUFGQyxJQUFBLG1CQUFTLEVBQUMsR0FBRyxFQUFFLENBQUMsd0JBQU8sQ0FBQztJQUN4QixJQUFBLG9CQUFVLEVBQUMsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLENBQUM7a0RBQ3pCLHdCQUFPLG9CQUFQLHdCQUFPOzRDQUFDO0FBSWxCO0lBRkMsSUFBQSxtQkFBUyxFQUFDLEdBQUcsRUFBRSxDQUFDLDJEQUF1QixDQUFDO0lBQ3hDLElBQUEsb0JBQVUsRUFBQyxFQUFFLElBQUksRUFBRSxrQkFBa0IsRUFBRSxDQUFDO2tEQUMxQiwyREFBdUIsb0JBQXZCLDJEQUF1QjtpREFBQztBQUl2QztJQUZDLElBQUEsbUJBQVMsRUFBQyxHQUFHLEVBQUUsQ0FBQyx5REFBc0IsQ0FBQztJQUN2QyxJQUFBLG9CQUFVLEVBQUMsRUFBRSxJQUFJLEVBQUUsaUJBQWlCLEVBQUUsQ0FBQztrREFDMUIseURBQXNCLG9CQUF0Qix5REFBc0I7Z0RBQUM7QUFLckM7SUFIQyxJQUFBLG1CQUFTLEVBQUMsR0FBRyxFQUFFLENBQUMsa0RBQW1CLEVBQUUsQ0FBQyxRQUFRLEVBQUUsRUFBRSxDQUFDLFFBQVEsQ0FBQyxXQUFXLEVBQUU7UUFDeEUsT0FBTyxFQUFFLElBQUk7S0FDZCxDQUFDOzs4Q0FDZ0M7c0JBOUN2QixXQUFXO0lBRHZCLElBQUEsZ0JBQU0sRUFBQyxlQUFlLENBQUM7R0FDWCxXQUFXLENBK0N2QiIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJEOlxcbmFwLWRtcy5sY2JwM1xcYmFja2VuZFxcc3JjXFxtb2R1bGVzXFxkcmF3aW5nXFxlbnRpdGllc1xcc2hvcC1kcmF3aW5nLmVudGl0eS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge1xuICBFbnRpdHksXG4gIFByaW1hcnlHZW5lcmF0ZWRDb2x1bW4sXG4gIENvbHVtbixcbiAgQ3JlYXRlRGF0ZUNvbHVtbixcbiAgVXBkYXRlRGF0ZUNvbHVtbixcbiAgRGVsZXRlRGF0ZUNvbHVtbixcbiAgT25lVG9NYW55LFxuICBNYW55VG9PbmUsXG4gIEpvaW5Db2x1bW4sXG59IGZyb20gJ3R5cGVvcm0nO1xuaW1wb3J0IHsgU2hvcERyYXdpbmdSZXZpc2lvbiB9IGZyb20gJy4vc2hvcC1kcmF3aW5nLXJldmlzaW9uLmVudGl0eSc7XG5pbXBvcnQgeyBQcm9qZWN0IH0gZnJvbSAnLi4vLi4vcHJvamVjdC9lbnRpdGllcy9wcm9qZWN0LmVudGl0eSc7XG5pbXBvcnQgeyBTaG9wRHJhd2luZ01haW5DYXRlZ29yeSB9IGZyb20gJy4vc2hvcC1kcmF3aW5nLW1haW4tY2F0ZWdvcnkuZW50aXR5JztcbmltcG9ydCB7IFNob3BEcmF3aW5nU3ViQ2F0ZWdvcnkgfSBmcm9tICcuL3Nob3AtZHJhd2luZy1zdWItY2F0ZWdvcnkuZW50aXR5JztcbmltcG9ydCB7IFV1aWRCYXNlRW50aXR5IH0gZnJvbSAnLi4vLi4vLi4vY29tbW9uL2VudGl0aWVzL3V1aWQtYmFzZS5lbnRpdHknO1xuaW1wb3J0IHsgRXhjbHVkZSB9IGZyb20gJ2NsYXNzLXRyYW5zZm9ybWVyJztcblxuQEVudGl0eSgnc2hvcF9kcmF3aW5ncycpXG5leHBvcnQgY2xhc3MgU2hvcERyYXdpbmcgZXh0ZW5kcyBVdWlkQmFzZUVudGl0eSB7XG4gIEBQcmltYXJ5R2VuZXJhdGVkQ29sdW1uKClcbiAgQEV4Y2x1ZGUoKVxuICBpZCE6IG51bWJlcjsgLy8g4LmA4LiV4Li04LihICFcblxuICBAQ29sdW1uKHsgbmFtZTogJ3Byb2plY3RfaWQnIH0pXG4gIHByb2plY3RJZCE6IG51bWJlcjsgLy8g4LmA4LiV4Li04LihICFcblxuICBAQ29sdW1uKHsgbmFtZTogJ2RyYXdpbmdfbnVtYmVyJywgbGVuZ3RoOiAxMDAsIHVuaXF1ZTogdHJ1ZSB9KVxuICBkcmF3aW5nTnVtYmVyITogc3RyaW5nOyAvLyDguYDguJXguLTguKEgIVxuXG4gIEBDb2x1bW4oeyBuYW1lOiAnbWFpbl9jYXRlZ29yeV9pZCcgfSlcbiAgbWFpbkNhdGVnb3J5SWQhOiBudW1iZXI7IC8vIOC5gOC4leC4tOC4oSAhXG5cbiAgQENvbHVtbih7IG5hbWU6ICdzdWJfY2F0ZWdvcnlfaWQnIH0pXG4gIHN1YkNhdGVnb3J5SWQhOiBudW1iZXI7IC8vIOC5gOC4leC4tOC4oSAhXG5cbiAgQENyZWF0ZURhdGVDb2x1bW4oeyBuYW1lOiAnY3JlYXRlZF9hdCcgfSlcbiAgY3JlYXRlZEF0ITogRGF0ZTsgLy8g4LmA4LiV4Li04LihICFcblxuICBAVXBkYXRlRGF0ZUNvbHVtbih7IG5hbWU6ICd1cGRhdGVkX2F0JyB9KVxuICB1cGRhdGVkQXQhOiBEYXRlOyAvLyDguYDguJXguLTguKEgIVxuXG4gIEBEZWxldGVEYXRlQ29sdW1uKHsgbmFtZTogJ2RlbGV0ZWRfYXQnIH0pXG4gIGRlbGV0ZWRBdD86IERhdGU7IC8vIG51bGxhYmxlXG5cbiAgQENvbHVtbih7IG5hbWU6ICd1cGRhdGVkX2J5JywgbnVsbGFibGU6IHRydWUgfSlcbiAgdXBkYXRlZEJ5PzogbnVtYmVyOyAvLyBudWxsYWJsZVxuXG4gIC8vIC0tLSBSZWxhdGlvbnMgLS0tXG5cbiAgQE1hbnlUb09uZSgoKSA9PiBQcm9qZWN0KVxuICBASm9pbkNvbHVtbih7IG5hbWU6ICdwcm9qZWN0X2lkJyB9KVxuICBwcm9qZWN0ITogUHJvamVjdDsgLy8g4LmA4LiV4Li04LihICEgKOC4leC4seC4p+C4l+C4teC5iCBlcnJvcilcblxuICBATWFueVRvT25lKCgpID0+IFNob3BEcmF3aW5nTWFpbkNhdGVnb3J5KVxuICBASm9pbkNvbHVtbih7IG5hbWU6ICdtYWluX2NhdGVnb3J5X2lkJyB9KVxuICBtYWluQ2F0ZWdvcnkhOiBTaG9wRHJhd2luZ01haW5DYXRlZ29yeTsgLy8g4LmA4LiV4Li04LihICFcblxuICBATWFueVRvT25lKCgpID0+IFNob3BEcmF3aW5nU3ViQ2F0ZWdvcnkpXG4gIEBKb2luQ29sdW1uKHsgbmFtZTogJ3N1Yl9jYXRlZ29yeV9pZCcgfSlcbiAgc3ViQ2F0ZWdvcnkhOiBTaG9wRHJhd2luZ1N1YkNhdGVnb3J5OyAvLyDguYDguJXguLTguKEgIVxuXG4gIEBPbmVUb01hbnkoKCkgPT4gU2hvcERyYXdpbmdSZXZpc2lvbiwgKHJldmlzaW9uKSA9PiByZXZpc2lvbi5zaG9wRHJhd2luZywge1xuICAgIGNhc2NhZGU6IHRydWUsXG4gIH0pXG4gIHJldmlzaW9ucyE6IFNob3BEcmF3aW5nUmV2aXNpb25bXTsgLy8g4LmA4LiV4Li04LihICFcbn1cbiJdLCJ2ZXJzaW9uIjozfQ==

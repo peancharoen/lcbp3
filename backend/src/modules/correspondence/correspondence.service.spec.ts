@@ -11,6 +11,7 @@ import { CorrespondenceReference } from './entities/correspondence-reference.ent
 import { CorrespondenceTag } from './entities/correspondence-tag.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
+import { CorrespondenceRevisionAttachment } from './entities/correspondence-revision-attachment.entity';
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 import { JsonSchemaService } from '../json-schema/json-schema.service';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
@@ -152,6 +153,10 @@ describe('CorrespondenceService', () => {
         {
           provide: NotificationService,
           useValue: { send: jest.fn().mockResolvedValue(undefined) },
+        },
+        {
+          provide: getRepositoryToken(CorrespondenceRevisionAttachment),
+          useValue: createMockRepository(),
         },
       ],
     }).compile();
