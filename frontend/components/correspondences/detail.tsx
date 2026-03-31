@@ -25,15 +25,6 @@ interface CorrespondenceDetailProps {
   selectedRevisionId?: string;
 }
 
-const normalizeUuid = (value?: string): string | undefined => {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const normalized = value.trim().toLowerCase();
-  return normalized.length > 0 ? normalized : undefined;
-};
-
 const normalizeRecipientType = (value?: string): string | undefined => {
   if (typeof value !== 'string') {
     return undefined;
@@ -54,9 +45,9 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
 
   if (!data) return <div>No data found</div>;
 
-  const normalizedSelectedRevisionId = normalizeUuid(selectedRevisionId);
-  const selectedRevision = normalizedSelectedRevisionId
-    ? data.revisions?.find((r) => normalizeUuid(r.publicId) === normalizedSelectedRevisionId)
+  // เลือก revision ตาม selectedRevisionId ถ้ามี ถ้าไม่มีใช้ revision ปัจจุบัน
+  const selectedRevision = selectedRevisionId
+    ? data.revisions?.find((r) => r.publicId === selectedRevisionId)
     : undefined;
   const currentRevision = selectedRevision || data.revisions?.find((r) => r.isCurrent) || data.revisions?.[0];
   const subject = currentRevision?.subject || '-';

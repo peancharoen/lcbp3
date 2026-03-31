@@ -3,6 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { clearAuthTokenCache } from '@/lib/api/client';
 
 export function AuthSync() {
   const { data: session, status } = useSession();
@@ -10,6 +11,7 @@ export function AuthSync() {
 
   useEffect(() => {
     if (session?.error === 'RefreshAccessTokenError') {
+      clearAuthTokenCache(); // Clear cached token on auth error
       signOut({ callbackUrl: '/login' });
     } else if (status === 'authenticated' && session?.user) {
       // Map NextAuth session to AuthStore user
@@ -40,6 +42,7 @@ export function AuthSync() {
         (session as { accessToken?: string }).accessToken || ''
       );
     } else if (status === 'unauthenticated') {
+      clearAuthTokenCache(); // Clear cached token on logout
       logout();
     }
   }, [session, status, setAuth, logout]);
