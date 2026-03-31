@@ -5,6 +5,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import QueryProvider from '@/providers/query-provider';
 import SessionProvider from '@/providers/session-provider'; // ✅ Import เข้ามา
+import ThemeProvider from '@/providers/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -24,12 +25,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <head />
       <body className={cn('min-h-screen bg-background font-sans antialiased', inter.className)}>
         <SessionProvider>
-          {' '}
-          {/* ✅ หุ้มด้วย SessionProvider เป็นชั้นนอกสุด หรือใน body */}
-          <QueryProvider>
-            {children}
-            <Toaster />
-          </QueryProvider>
+          <ThemeProvider>
+            <QueryProvider>
+              {children}
+              <Toaster />
+            </QueryProvider>
+          </ThemeProvider>
         </SessionProvider>
       </body>
     </html>

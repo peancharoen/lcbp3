@@ -1,8 +1,10 @@
 'use client';
 
 import { CorrespondenceList } from '@/components/correspondences/list';
+import { CorrespondenceUxFlowDialog } from '@/components/correspondences/ux-flow-dialog';
 import { Pagination } from '@/components/common/pagination';
 import { useCorrespondences } from '@/hooks/use-correspondence';
+import { useCorrespondenceTypes } from '@/hooks/use-master-data';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Loader2, Search, X, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
 import apiClient from '@/lib/api/client';
+import { CorrespondenceType } from '@/types/master-data';
 
 const STATUS_FILTERS = [
   { value: '', label: 'All Statuses' },
@@ -19,17 +22,49 @@ const STATUS_FILTERS = [
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
+const extractArrayData = <T,>(value: unknown): T[] => {
+  let current: unknown = value;
+
+  for (let i = 0; i < 5; i += 1) {
+    if (Array.isArray(current)) {
+      return current as T[];
+    }
+
+    if (!current || typeof current !== 'object' || !('data' in current)) {
+      return [];
+    }
+
+    current = (current as { data?: unknown }).data;
+  }
+
+  return Array.isArray(current) ? (current as T[]) : [];
+};
+
 export function CorrespondencesContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const page = Number(searchParams.get('page') || '1');
   const statusFilter = searchParams.get('status') || '';
+  const typeFilter = (searchParams.get('type') || '').toUpperCase();
   const search = searchParams.get('search') || undefined;
   const revisionStatus = (searchParams.get('revisionStatus') as 'CURRENT' | 'ALL' | 'OLD') || 'CURRENT';
 
   const [searchInput, setSearchInput] = useState(search || '');
   const [exporting, setExporting] = useState(false);
+
+  const { data: correspondenceTypesData, isLoading: isLoadingTypeOptions } =
+    useCorrespondenceTypes();
+  const correspondenceTypes = extractArrayData<CorrespondenceType>(
+    correspondenceTypesData
+  );
+  const resolvedTypeId = typeFilter
+    ? correspondenceTypes.find(
+        (type) => type.typeCode?.toUpperCase() === typeFilter
+      )?.id
+    : undefined;
+  const shouldWaitForTypeResolution =
+    Boolean(typeFilter) && isLoadingTypeOptions;
 
   const handleExportCsv = async () => {
     setExporting(true);
@@ -38,6 +73,7 @@ export function CorrespondencesContent() {
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
       if (revisionStatus) params.revisionStatus = revisionStatus;
+      if (resolvedTypeId) params.typeId = String(resolvedTypeId);
 
       const response = await apiClient.get('/correspondences/export-csv', {
         params,
@@ -59,7 +95,11 @@ export function CorrespondencesContent() {
     page,
     search,
     status: statusFilter || undefined,
+    typeId: resolvedTypeId,
     revisionStatus,
+    limit: 10,
+  }, {
+    enabled: !shouldWaitForTypeResolution,
   });
 
   const buildUrl = useCallback((updates: Record<string, string>) => {
@@ -97,6 +137,37 @@ export function CorrespondencesContent() {
     <>
       {/* Filters bar */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 bg-muted p-1 rounded-md">
+          <Link key="type-all" href={buildUrl({ type: '' })}>
+            <Button
+              variant={!typeFilter ? 'default' : 'ghost'}
+              size="sm"
+              className="text-xs px-3 h-7"
+            >
+              All Types
+            </Button>
+          </Link>
+          {correspondenceTypes
+            .filter((type) => type.isActive)
+            .map((type) => {
+              const normalizedTypeCode = type.typeCode?.toUpperCase();
+              return (
+                <Link
+                  key={`type-${type.typeCode}`}
+                  href={buildUrl({ type: normalizedTypeCode || '' })}
+                >
+                  <Button
+                    variant={typeFilter === normalizedTypeCode ? 'default' : 'ghost'}
+                    size="sm"
+                    className="text-xs px-3 h-7"
+                  >
+                    {type.typeCode}
+                  </Button>
+                </Link>
+              );
+            })}
+        </div>
+
         {/* Search */}
         <div className="flex items-center gap-1 flex-1 min-w-[200px] max-w-sm">
           <div className="relative w-full">
@@ -154,7 +225,7 @@ export function CorrespondencesContent() {
         <Button
           variant="outline"
           size="sm"
-          className="h-9 ml-auto gap-1.5"
+          className="h-9 gap-1.5"
           onClick={handleExportCsv}
           disabled={exporting}
         >
@@ -165,6 +236,8 @@ export function CorrespondencesContent() {
           )}
           Export CSV
         </Button>
+
+        <CorrespondenceUxFlowDialog />
       </div>
 
       <CorrespondenceList data={data?.data || []} />

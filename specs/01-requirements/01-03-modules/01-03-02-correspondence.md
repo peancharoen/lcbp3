@@ -3,10 +3,10 @@
 ---
 
 title: 'Functional Requirements: Correspondence Management'
-version: 1.8.2
+version: 1.8.3
 status: implemented
 owner: Nattanin Peancharoen
-last_updated: 2026-03-24
+last_updated: 2026-03-31
 related:
 
 - specs/01-requirements/01-01-objectives.md
@@ -34,7 +34,7 @@ related:
 | `correspondence_recipients` | ผู้รับ TO/CC (M:N กับ organizations) |
 | `correspondence_references` | การอ้างอิงข้ามเอกสาร (M:N) |
 | `correspondence_tags` | Tags ที่ติดกับเอกสาร (M:N) |
-| `correspondence_attachments` | ไฟล์แนบ (M:N กับ attachments) |
+| `correspondence_revision_attachments` | ไฟล์แนบต่อ Revision (M:N กับ attachments) |
 | `correspondence_types` | Master: ประเภทเอกสาร (Global) |
 | `correspondence_status` | Master: สถานะเอกสาร (Global) |
 
@@ -86,6 +86,19 @@ related:
 ### Document Number Preview
 
 ระบบแสดง Preview เลขเอกสารแบบ Real-time ก่อน Submit เมื่อกรอกครบ: Project + Type + Discipline + To Organization โดยเรียก `POST /api/correspondences/preview-number`
+
+### Frontend Routing & Filtering (v1.8.3)
+
+- รายการเอกสารใช้หน้าเดียวที่ `/correspondences`
+- กรองประเภทผ่าน query string `?type=<TYPE_CODE>` เช่น `/correspondences?type=RFA`
+- เส้นทาง list เดิมของ RFA (`/rfas` และ `/rfa`) redirect มาหน้าเดียวข้างต้น
+- หน้า RFA เฉพาะทาง `/rfas/new`, `/rfas/[uuid]`, `/rfas/[uuid]/edit` ยังแยกจาก Correspondence เพื่อรองรับ extension logic
+
+### UX Flow Diagram (v1.8.3)
+
+- หน้า `/correspondences` มีปุ่ม `UX Flow` เพื่อแสดง lifecycle ของ Correspondence
+- เนื้อหาครอบคลุม Master-Revision pattern, two-phase attachment, และ RFA extension path
+- เอกสารอ้างอิง implementation อยู่ที่ `specs/01-requirements/01-03-modules/01-03-02a-correspondence-rfa-unified-ux-flow.md`
 
 ---
 

@@ -7,19 +7,35 @@ import { Can } from '@/components/common/can';
 
 export const dynamic = 'force-dynamic';
 
-export default function CorrespondencesPage() {
+interface CorrespondencesPageProps {
+  searchParams?: {
+    type?: string;
+  };
+}
+
+export default function CorrespondencesPage({
+  searchParams,
+}: CorrespondencesPageProps) {
+  const isRfaView = searchParams?.type?.toUpperCase() === 'RFA';
+  const heading = isRfaView ? 'RFAs (Request for Approval)' : 'Correspondences';
+  const description = isRfaView
+    ? 'Unified list view for RFA documents'
+    : 'Manage official letters and communications';
+  const createHref = isRfaView ? '/rfas/new' : '/correspondences/new';
+  const createLabel = isRfaView ? 'New RFA' : 'New Correspondence';
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Correspondences</h1>
-          <p className="text-muted-foreground mt-1">Manage official letters and communications</p>
+          <h1 className="text-3xl font-bold">{heading}</h1>
+          <p className="text-muted-foreground mt-1">{description}</p>
         </div>
         <Can permission="correspondence.create">
-          <Link href="/correspondences/new">
+          <Link href={createHref}>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Correspondence
+              {createLabel}
             </Button>
           </Link>
         </Can>

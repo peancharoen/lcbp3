@@ -209,7 +209,8 @@ test-results/
 
 # Jest
 jest-results/
-
+backend/src/.jest-cache/
+frontend/src/.jest-cache/
 # Cypress
 cypress/videos/
 cypress/screenshots/

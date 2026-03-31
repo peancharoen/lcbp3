@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function RFAsPage() {
+export default function RfaLegacyPage() {
   redirect('/correspondences?type=RFA');
 }

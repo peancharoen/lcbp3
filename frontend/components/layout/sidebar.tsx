@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -26,6 +26,8 @@ export type NavItem = {
   icon: LucideIcon;
   permission?: string | null;
   adminOnly?: boolean;
+  matchType?: string;
+  excludeType?: string;
 };
 
 export const mainNavItems: NavItem[] = [
@@ -40,12 +42,14 @@ export const mainNavItems: NavItem[] = [
     href: '/correspondences',
     icon: FileText,
     permission: null,
+    excludeType: 'RFA',
   },
   {
     title: 'RFAs',
-    href: '/rfas',
+    href: '/correspondences?type=RFA',
     icon: FileCheck,
     permission: null,
+    matchType: 'RFA',
   },
   {
     title: 'Drawings',
@@ -86,9 +90,11 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'DC';
+  const currentType = searchParams.get('type')?.toUpperCase();
 
   return (
     <div
@@ -115,7 +121,16 @@ export function Sidebar({ className }: SidebarProps) {
           {mainNavItems.map((item) => {
             if (item.adminOnly && !isAdmin) return null;
 
-            const isActive = pathname.startsWith(item.href);
+            const baseHref = item.href.split('?')[0];
+            const isRfaSubRoute = item.matchType === 'RFA' && pathname.startsWith('/rfas');
+            const isBaseActive = pathname.startsWith(baseHref) || isRfaSubRoute;
+            const isTypeMatched =
+              !item.matchType ||
+              currentType === item.matchType.toUpperCase() ||
+              isRfaSubRoute;
+            const isTypeExcluded =
+              !!item.excludeType && currentType === item.excludeType.toUpperCase();
+            const isActive = isBaseActive && isTypeMatched && !isTypeExcluded;
 
             const LinkComponent = (
               <Link
@@ -167,9 +182,11 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 
 export function MobileSidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'DC';
+  const currentType = searchParams.get('type')?.toUpperCase();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -189,7 +206,16 @@ export function MobileSidebar() {
             {mainNavItems.map((item) => {
               if (item.adminOnly && !isAdmin) return null;
 
-              const isActive = pathname.startsWith(item.href);
+              const baseHref = item.href.split('?')[0];
+              const isRfaSubRoute = item.matchType === 'RFA' && pathname.startsWith('/rfas');
+              const isBaseActive = pathname.startsWith(baseHref) || isRfaSubRoute;
+              const isTypeMatched =
+                !item.matchType ||
+                currentType === item.matchType.toUpperCase() ||
+                isRfaSubRoute;
+              const isTypeExcluded =
+                !!item.excludeType && currentType === item.excludeType.toUpperCase();
+              const isActive = isBaseActive && isTypeMatched && !isTypeExcluded;
 
               const LinkComponent = (
                 <Link

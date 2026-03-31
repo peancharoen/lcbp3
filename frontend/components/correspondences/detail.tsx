@@ -34,6 +34,15 @@ const normalizeUuid = (value?: string): string | undefined => {
   return normalized.length > 0 ? normalized : undefined;
 };
 
+const normalizeRecipientType = (value?: string): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim().toUpperCase();
+  return normalized.length > 0 ? normalized : undefined;
+};
+
 export function CorrespondenceDetail({ data, selectedRevisionId }: CorrespondenceDetailProps) {
   const submitMutation = useSubmitCorrespondence();
   const processMutation = useProcessWorkflow();
@@ -68,8 +77,8 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
     (privilegedEditableStatuses.includes(status) && isPrivilegedEditRole);
   const canEditDocument = canEditInStatus && (hasPermission('correspondence.edit') || isPrivilegedEditRole);
 
-  const toRecipients = data.recipients?.filter((r) => r.recipientType === 'TO') || [];
-  const ccRecipients = data.recipients?.filter((r) => r.recipientType === 'CC') || [];
+  const toRecipients = data.recipients?.filter((r) => normalizeRecipientType(r.recipientType) === 'TO') || [];
+  const ccRecipients = data.recipients?.filter((r) => normalizeRecipientType(r.recipientType) === 'CC') || [];
 
   const handleSubmit = () => {
     if (confirm('Are you sure you want to submit this correspondence?')) {

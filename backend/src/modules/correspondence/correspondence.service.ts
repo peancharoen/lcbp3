@@ -511,22 +511,26 @@ export class CorrespondenceService {
   }
 
   async findOneByUuid(publicId: string) {
-    const correspondence = await this.correspondenceRepo.findOne({
-      where: { publicId },
-      relations: [
-        'revisions',
-        'revisions.status',
-        'revisions.attachmentLinks', // [FIX v1.8.1] โหลด junction
-        'revisions.attachmentLinks.attachment', // [FIX v1.8.1] โหลด attachment จริง
-        'type',
-        'project',
-        'originator',
-        'recipients',
-        'recipients.recipientOrganization',
-        'discipline',
-        'discipline.contract',
-      ],
-    });
+    const correspondence = await this.correspondenceRepo
+      .createQueryBuilder('corr')
+      .leftJoinAndSelect('corr.revisions', 'rev')
+      .leftJoinAndSelect('rev.status', 'status')
+      .leftJoinAndSelect('rev.attachmentLinks', 'revAttachmentLink')
+      .leftJoinAndSelect('revAttachmentLink.attachment', 'attachment')
+      .leftJoinAndSelect('corr.type', 'type')
+      .leftJoinAndSelect('corr.project', 'project')
+      .leftJoinAndSelect('corr.originator', 'originator')
+      .leftJoinAndSelect('corr.recipients', 'recipient')
+      .leftJoinAndSelect(
+        'recipient.recipientOrganization',
+        'recipientOrganization'
+      )
+      .leftJoinAndSelect('corr.discipline', 'discipline')
+      .leftJoinAndSelect('discipline.contract', 'contract')
+      .where('corr.publicId = :publicId', { publicId })
+      .orderBy('rev.revisionNumber', 'DESC')
+      .addOrderBy('rev.createdAt', 'DESC')
+      .getOne();
 
     if (!correspondence) {
       throw new NotFoundException(

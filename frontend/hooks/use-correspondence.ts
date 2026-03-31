@@ -9,6 +9,10 @@ import { toast } from 'sonner';
 // Error type for axios errors
 type ApiError = Error & { response?: { data?: { message?: string } } };
 
+interface UseCorrespondencesOptions {
+  enabled?: boolean;
+}
+
 // Keys for Query Cache
 export const correspondenceKeys = {
   all: ['correspondences'] as const,
@@ -20,11 +24,15 @@ export const correspondenceKeys = {
 
 // --- Queries ---
 
-export function useCorrespondences(params: SearchCorrespondenceDto) {
+export function useCorrespondences(
+  params: SearchCorrespondenceDto,
+  options?: UseCorrespondencesOptions
+) {
   return useQuery({
     queryKey: correspondenceKeys.list(params),
     queryFn: () => correspondenceService.getAll(params),
     placeholderData: (previousData) => previousData, // Keep previous data while fetching new page
+    enabled: options?.enabled,
   });
 }
 
