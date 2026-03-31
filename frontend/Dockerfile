@@ -45,6 +45,9 @@ WORKDIR /w/frontend
 COPY --from=deps /w/frontend/node_modules ./node_modules
 COPY frontend/ ./
 
+# Ensure public directory exists and has content
+RUN ls -la /w/frontend/public/ || (echo "WARNING: public directory not found, creating empty one" && mkdir -p /w/frontend/public)
+
 # NEXT_PUBLIC_* vars must be set at BUILD TIME (baked into client bundle)
 ARG NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
@@ -103,7 +106,7 @@ COPY --from=build --chown=nextjs:nextjs /w/frontend/public ./public
 COPY --from=build --chown=nextjs:nextjs /w/frontend/package.json ./
 
 # Verify files exist
-RUN ls -la ./node_modules/next/dist/bin/next && ls -la ./.next/ || (echo "ERROR: Required files not found!" && exit 1)
+RUN ls -la ./node_modules/next/dist/bin/next && ls -la ./.next/ && ls -la ./public/ || (echo "ERROR: Required files not found!" && exit 1)
 
 USER nextjs
 
