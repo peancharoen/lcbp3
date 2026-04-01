@@ -9,10 +9,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 
-// Import Custom Interceptors & Filters ที่สร้างใน T1.1
-import { TransformInterceptor } from './common/interceptors/transform.interceptor';
-import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
-
 async function bootstrap() {
   // 1. Create App
   const app = await NestFactory.create(AppModule);
@@ -65,9 +61,8 @@ async function bootstrap() {
     })
   );
 
-  // ลงทะเบียน Global Interceptor และ Filter ที่เราสร้างไว้
-  app.useGlobalInterceptors(new TransformInterceptor());
-  app.useGlobalFilters(new HttpExceptionFilter());
+  // ⚠️ TransformInterceptor & HttpExceptionFilter ลงทะเบียนผ่าน APP_INTERCEPTOR/APP_FILTER ใน CommonModule แล้ว
+  // ห้ามลงทะเบียนซ้ำที่นี่ เพราะจะทำให้ Response ถูก wrap ซ้อน 2 ชั้น
 
   // 📘 6. Swagger Configuration
   const swaggerConfig = new DocumentBuilder()

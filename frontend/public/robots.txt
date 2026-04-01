@@ -1,6 +1,5 @@
+# Block all crawlers from accessing any part of the site
+# This is an API/application server, not a content site
 User-agent: *
-Disallow: /api/
-Allow: /
+Disallow: /
 
-# Sitemap
-# Sitemap: https://your-domain.com/sitemap.xml

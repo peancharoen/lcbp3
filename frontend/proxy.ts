@@ -6,9 +6,44 @@ import { auth } from '@/lib/auth';
 // รายการ Route ที่ไม่ต้อง Login ก็เข้าได้ (Public Routes)
 const publicRoutes = ['/login', '/register', '/'];
 
+// 🛡️ Bot/Scanner Patterns - บล็อก requests ที่เป็น automated scanning
+const blockedPatterns = [
+  // WordPress scanning
+  /\/wp-includes/i,
+  /\/wp-content/i,
+  /\/wp\//i,
+  /\/wordpress/i,
+  /\/xmlrpc\.php/i,
+  /wlwmanifest\.xml/i,
+  // Environment/config files
+  /\/\.env/i,
+  /\/\.env\./i,
+  /\/config\/\.env/i,
+  /\/api\/\.env/i,
+  // Database admin tools
+  /\/phpmyadmin/i,
+  /\/adminer/i,
+  /\/pma/i,
+  // Common scanner paths
+  /\/\.git/i,
+  /\/\.svn/i,
+  /\/config\.json/i,
+  /\/package\.json/i,
+];
+
+function isBlockedPath(path: string): boolean {
+  return blockedPatterns.some((pattern) => pattern.test(path));
+}
+
 export default auth((req) => {
-  const isLoggedIn = !!req.auth;
   const { nextUrl } = req;
+
+  // 🛡️ 0. Block Bot/Scanner Requests (ไม่ส่งต่อไป backend)
+  if (isBlockedPath(nextUrl.pathname)) {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const isLoggedIn = !!req.auth;
 
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
   const isAuthRoute = nextUrl.pathname.startsWith('/api/auth');
@@ -46,7 +81,7 @@ export default auth((req) => {
   // 5. Generate CSP with Nonce (Security Rule Tier 1)
   // ใช้ Nonce Strategy เพื่ออนุญาต Inline Script เฉพาะที่ระบุตัวตนได้ ป้องกัน XSS
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  
+
   let connectSrcApi = 'http://localhost:3001';
   if (process.env.NEXT_PUBLIC_API_URL) {
     try {
@@ -56,21 +91,19 @@ export default auth((req) => {
     }
   }
 
-  const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https:;
-    font-src 'self' data:;
-    connect-src 'self' ws: wss: ${connectSrcApi};
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    frame-ancestors 'none';
-    upgrade-insecure-requests;
-  `
-    .replace(/\s{2,}/g, ' ')
-    .trim();
+  const cspHeader = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval' 'unsafe-inline' http: https:`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' blob: data: https:",
+    "font-src 'self' data:",
+    `connect-src 'self' ws: wss: ${connectSrcApi}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join('; ');
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-nonce', nonce);
