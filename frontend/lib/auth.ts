@@ -162,13 +162,13 @@ export const {
           }
 
           return {
-            id: backendData.user.user_id.toString(),
-            publicId: backendData.user.publicId, // ✅ Added (ADR-019 Waived for session)
+            id: backendData.user.publicId, // ✅ Use publicId for session identity (ADR-019)
+            publicId: backendData.user.publicId,
             name: `${backendData.user.firstName ?? ''} ${backendData.user.lastName ?? ''}`.trim(),
             email: backendData.user.email,
             username: backendData.user.username,
-            firstName: backendData.user.firstName, // ✅ Added
-            lastName: backendData.user.lastName, // ✅ Added
+            firstName: backendData.user.firstName,
+            lastName: backendData.user.lastName,
             role: backendData.user.role || 'User',
             organizationId: backendData.user.primaryOrganizationId,
             accessToken: backendData.access_token,

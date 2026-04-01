@@ -97,7 +97,7 @@ export async function seedUsers(dataSource: DataSource) {
   ];
 
   const salt = await bcrypt.genSalt();
-  const password = await bcrypt.hash('password123', salt); // Default password
+  const password = await bcrypt.hash('Center2025', salt); // Default password (ADR-019 aligned)
 
   for (const u of usersData) {
     let user = await userRepo.findOneBy({ username: u.username });

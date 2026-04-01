@@ -43,7 +43,47 @@ export default auth((req) => {
     }
   }
 
-  return NextResponse.next(); // แก้ไขจาก null
+  // 5. Generate CSP with Nonce (Security Rule Tier 1)
+  // ใช้ Nonce Strategy เพื่ออนุญาต Inline Script เฉพาะที่ระบุตัวตนได้ ป้องกัน XSS
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  
+  let connectSrcApi = 'http://localhost:3001';
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    try {
+      connectSrcApi = new URL(process.env.NEXT_PUBLIC_API_URL).origin;
+    } catch {
+      connectSrcApi = process.env.NEXT_PUBLIC_API_URL;
+    }
+  }
+
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data: https:;
+    font-src 'self' data:;
+    connect-src 'self' ws: wss: ${connectSrcApi};
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  `
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', cspHeader);
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+  response.headers.set('Content-Security-Policy', cspHeader);
+
+  return response;
 });
 
 // กำหนดว่า Middleware นี้จะทำงานกับ Route ไหนบ้าง

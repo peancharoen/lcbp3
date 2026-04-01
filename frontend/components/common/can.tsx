@@ -2,7 +2,7 @@
 'use client';
 
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 interface CanProps {
   permission?: string;
@@ -18,6 +18,15 @@ interface CanProps {
 
 export function Can({ permission, role, children, fallback = null }: CanProps) {
   const { hasPermission, hasRole } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <>{fallback}</>;
+  }
 
   let allowed = true;
 

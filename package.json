@@ -13,7 +13,7 @@
     "start:mcp": "node ./scripts/start-mcp.js",
     "dev:backend": "pnpm --filter backend start:dev",
     "dev:frontend": "pnpm --filter lcbp3-frontend dev",
-    "dev": "pnpm run --parallel /dev|start:dev/",
+    "dev": "pnpm run --parallel \"/dev|start:dev/\"",
     "prepare": "husky",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"

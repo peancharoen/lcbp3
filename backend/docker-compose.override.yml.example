@@ -12,5 +12,5 @@ services:
   # Override สำหรับ Database (Local Dev)
   mariadb:
     environment:
-      - MYSQL_ROOT_PASSWORD=Center#2025
+      - MYSQL_ROOT_PASSWORD=Center2025
       - MYSQL_PASSWORD=Center2025

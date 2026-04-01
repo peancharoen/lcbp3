@@ -78,18 +78,6 @@ const nextConfig = {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval'", // จำเป็นสำหรับ Workflow DSL Engine (new Function())
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https:",
-              "font-src 'self'",
-              "connect-src 'self' ws: wss:",
-              "frame-src 'self'",
-            ].join('; '),
-          },
         ],
       },
     ];

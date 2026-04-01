@@ -57,7 +57,7 @@ import { MigrationModule } from './modules/migration/migration.module';
     // 1. Setup Config Module พร้อม Validation
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ['.env', '.env.local'],
       load: [redisConfig],
       validationSchema: envValidationSchema,
       validationOptions: {

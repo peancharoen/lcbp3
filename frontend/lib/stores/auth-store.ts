@@ -3,8 +3,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export interface User {
-  id: string; // Internal stringified INT (for stability)
-  publicId?: string; // ADR-019: Public UUIDv7
+  id: string; // publicId (ADR-019)
+  publicId: string;
   username: string;
   email: string;
   firstName: string;

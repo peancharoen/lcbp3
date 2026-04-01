@@ -4,11 +4,11 @@ import _NextAuth, { DefaultSession } from 'next-auth';
 declare module 'next-auth' {
   interface Session {
     user: {
-      id: string;
-      publicId: string; // ✅ Added (ADR-019 Waived for session)
-      username: string; // ✅ Added
-      firstName: string; // ✅ Added
-      lastName: string; // ✅ Added
+      id: string; // publicId (ADR-019)
+      publicId: string;
+      username: string;
+      firstName: string;
+      lastName: string;
       role: string;
       organizationId?: number;
     } & DefaultSession['user'];
@@ -18,11 +18,11 @@ declare module 'next-auth' {
   }
 
   interface User {
-    id: string;
-    publicId: string; // ✅ Added
-    username: string; // ✅ Added
-    firstName: string; // ✅ Added
-    lastName: string; // ✅ Added
+    id: string; // publicId (ADR-019)
+    publicId: string;
+    username: string;
+    firstName: string;
+    lastName: string;
     role: string;
     organizationId?: number;
     accessToken?: string;
@@ -32,8 +32,8 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    id: string;
-    username: string; // ✅ Added
+    id: string; // publicId or username depending on auth flow
+    username: string;
     role: string;
     organizationId?: number;
     accessToken?: string;

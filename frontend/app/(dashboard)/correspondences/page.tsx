@@ -8,15 +8,16 @@ import { Can } from '@/components/common/can';
 export const dynamic = 'force-dynamic';
 
 interface CorrespondencesPageProps {
-  searchParams?: {
+  searchParams: Promise<{
     type?: string;
-  };
+  }>;
 }
 
-export default function CorrespondencesPage({
+export default async function CorrespondencesPage({
   searchParams,
 }: CorrespondencesPageProps) {
-  const isRfaView = searchParams?.type?.toUpperCase() === 'RFA';
+  const params = await searchParams;
+  const isRfaView = params?.type?.toUpperCase() === 'RFA';
   const heading = isRfaView ? 'RFAs (Request for Approval)' : 'Correspondences';
   const description = isRfaView
     ? 'Unified list view for RFA documents'

@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-03-12
-**Version:** 1.8.1
+**Version:** 1.8.2
 **Decision Makers:** Development Team, Database Architect
 **Related Documents:**
 
@@ -369,26 +369,6 @@ ALTER TABLE notifications
   -- Using regular INDEX instead
 ```
 
-### Rollback SQL
-
-```sql
--- Rollback: Remove UUID columns (Non-destructive reverse)
-ALTER TABLE users DROP INDEX idx_users_uuid, DROP COLUMN uuid;
-ALTER TABLE organizations DROP INDEX idx_organizations_uuid, DROP COLUMN uuid;
-ALTER TABLE projects DROP INDEX idx_projects_uuid, DROP COLUMN uuid;
-ALTER TABLE contracts DROP INDEX idx_contracts_uuid, DROP COLUMN uuid;
-ALTER TABLE correspondences DROP INDEX idx_correspondences_uuid, DROP COLUMN uuid;
-ALTER TABLE correspondence_revisions DROP INDEX idx_correspondence_revisions_uuid, DROP COLUMN uuid;
-ALTER TABLE circulations DROP INDEX idx_circulations_uuid, DROP COLUMN uuid;
-ALTER TABLE shop_drawings DROP INDEX idx_shop_drawings_uuid, DROP COLUMN uuid;
-ALTER TABLE shop_drawing_revisions DROP INDEX idx_shop_drawing_revisions_uuid, DROP COLUMN uuid;
-ALTER TABLE contract_drawings DROP INDEX idx_contract_drawings_uuid, DROP COLUMN uuid;
-ALTER TABLE asbuilt_drawings DROP INDEX idx_asbuilt_drawings_uuid, DROP COLUMN uuid;
-ALTER TABLE asbuilt_drawing_revisions DROP INDEX idx_asbuilt_drawing_revisions_uuid, DROP COLUMN uuid;
-ALTER TABLE attachments DROP INDEX idx_attachments_uuid, DROP COLUMN uuid;
-ALTER TABLE notifications DROP INDEX idx_notifications_uuid, DROP COLUMN uuid;
-```
-
 ---
 
 ## Storage Impact Analysis
@@ -530,17 +510,12 @@ type ProjectOption = {
 
 ---
 
-## Waivers & Exceptions
+## 🔄 Change Log
 
-### 1. AuthStore / Frontend Session User Identity
-
-**Date:** 2026-04-01
-**Scope:** `frontend/lib/stores/auth-store.ts`, `frontend/lib/auth.ts`
-
-**Decision:** ให้คงฟิลด์ `id` (stringified `user_id` INT) ไว้ใน `User` interface ของ `AuthStore` และ `NextAuth Session` เพื่อความเสถียรของระบบ Login ที่ใช้งานได้ดีอยู่แล้ว โดยให้เพิ่ม `publicId` เป็นฟิลด์เสริมแทนการ Replacement (Waive strict ADR-019 compliance for Session Identity only).
-
-**Rationale:** ป้องกันความเสี่ยงในการเปลี่ยน Logic การจัดการ Session ที่อาจส่งผลกระทบต่อระบบ Authentication โดยรวม
-
----
+| Version | Date       | Changes                                                             | Updated By  |
+| ------- | ---------- | ------------------------------------------------------------------- | ----------- |
+| 1.8.2   | 2026-04-01 | Removed Waiver: Session Identity to enforce strict `publicId` usage | Antigravity |
+| 1.8.1   | 2026-03-21 | Added Naming Convention Summary & Transition Strategy               | Claude      |
+| 1.8.0   | 2026-03-12 | Initial Decision Outcome & Technical Spec                           | Human Dev   |
 
 _สำหรับรายละเอียดการ Implement ดูที่ Implementation Plan ใน `05-07-hybrid-uuid-implementation-plan.md`_
