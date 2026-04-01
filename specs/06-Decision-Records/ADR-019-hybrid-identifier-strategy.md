@@ -530,4 +530,17 @@ type ProjectOption = {
 
 ---
 
+## Waivers & Exceptions
+
+### 1. AuthStore / Frontend Session User Identity
+
+**Date:** 2026-04-01
+**Scope:** `frontend/lib/stores/auth-store.ts`, `frontend/lib/auth.ts`
+
+**Decision:** ให้คงฟิลด์ `id` (stringified `user_id` INT) ไว้ใน `User` interface ของ `AuthStore` และ `NextAuth Session` เพื่อความเสถียรของระบบ Login ที่ใช้งานได้ดีอยู่แล้ว โดยให้เพิ่ม `publicId` เป็นฟิลด์เสริมแทนการ Replacement (Waive strict ADR-019 compliance for Session Identity only).
+
+**Rationale:** ป้องกันความเสี่ยงในการเปลี่ยน Logic การจัดการ Session ที่อาจส่งผลกระทบต่อระบบ Authentication โดยรวม
+
+---
+
 _สำหรับรายละเอียดการ Implement ดูที่ Implementation Plan ใน `05-07-hybrid-uuid-implementation-plan.md`_

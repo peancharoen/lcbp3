@@ -3,13 +3,15 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export interface User {
-  id: string;
+  id: string; // Internal stringified INT (for stability)
+  publicId?: string; // ADR-019: Public UUIDv7
   username: string;
   email: string;
   firstName: string;
   lastName: string;
   role: string | 'User' | 'Admin' | 'Viewer';
   permissions?: string[];
+  primaryOrganizationName?: string;
 }
 
 interface AuthState {

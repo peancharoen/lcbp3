@@ -33,6 +33,7 @@ interface TokenPayload {
 
 interface LoginPayload extends TokenPayload {
   user: {
+    publicId: string; // ✅ Added (ADR-019)
     user_id: number;
     username: string;
     email?: string;
@@ -162,9 +163,12 @@ export const {
 
           return {
             id: backendData.user.user_id.toString(),
+            publicId: backendData.user.publicId, // ✅ Added (ADR-019 Waived for session)
             name: `${backendData.user.firstName ?? ''} ${backendData.user.lastName ?? ''}`.trim(),
             email: backendData.user.email,
             username: backendData.user.username,
+            firstName: backendData.user.firstName, // ✅ Added
+            lastName: backendData.user.lastName, // ✅ Added
             role: backendData.user.role || 'User',
             organizationId: backendData.user.primaryOrganizationId,
             accessToken: backendData.access_token,
@@ -186,7 +190,10 @@ export const {
         return {
           ...token,
           id: user.id,
+          publicId: user.publicId, // ✅ Save publicId
           username: user.username, // ✅ Save username
+          firstName: user.firstName, // ✅ Save firstName
+          lastName: user.lastName, // ✅ Save lastName
           role: user.role,
           organizationId: user.organizationId,
           accessToken: user.accessToken,
@@ -211,7 +218,10 @@ export const {
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.publicId = token.publicId as string; // ✅ Restore publicId
         session.user.username = token.username as string; // ✅ Restore username
+        session.user.firstName = token.firstName as string; // ✅ Restore firstName
+        session.user.lastName = token.lastName as string; // ✅ Restore lastName
         session.user.role = token.role as string;
         session.user.organizationId = token.organizationId as number;
 

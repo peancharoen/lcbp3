@@ -96,13 +96,16 @@ export default function SettingsPage() {
           <div>
             <p className="font-medium">Current User</p>
             <p className="text-sm text-muted-foreground">
-              {user?.fullName || user?.username || 'Unknown'} ({user?.role})
+              {user?.firstName && user?.lastName
+                ? `${user.firstName} ${user.lastName}`
+                : user?.username || 'Unknown'}{' '}
+              ({user?.role})
             </p>
           </div>
           <div>
             <p className="font-medium">Organization</p>
             <p className="text-sm text-muted-foreground">
-              {user?.primaryOrganization?.organizationName || 'Not assigned'}
+              {user?.primaryOrganizationName || 'Not assigned'}
             </p>
           </div>
           <div>

@@ -32,11 +32,12 @@ export function AuthSync() {
       setAuth(
         {
           id: user.id || user.user_id || '',
-          username: user.username || '',
-          email: user.email || '',
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
-          role: user.role || 'User',
+          publicId: session.user.publicId, // ✅ ADR-019
+          username: user.username || session.user.username || '',
+          email: user.email || session.user.email || '',
+          firstName: user.firstName || session.user.firstName || '',
+          lastName: user.lastName || session.user.lastName || '',
+          role: user.role || session.user.role || 'User',
           permissions: user.permissions,
         },
         (session as { accessToken?: string }).accessToken || ''
