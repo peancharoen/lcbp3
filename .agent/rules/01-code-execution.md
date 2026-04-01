@@ -21,6 +21,9 @@ denyAuto:
   - 'DROP TABLE'
   - 'TRUNCATE'
   - 'DELETE FROM'
+  - 'pnpm migration:*'
+  - 'npm run migration:*'
+  - 'npx auth secret'
 alwaysReview: true
 scopes:
   - 'backend/src/**'
