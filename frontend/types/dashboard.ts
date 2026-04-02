@@ -8,20 +8,32 @@ export interface DashboardStats {
 }
 
 export interface ActivityLog {
-  id: number;
+  id: string;
+  action: string;
+  entityType?: string;
+  entityId?: string;
+  details?: Record<string, unknown>;
+  createdAt: string;
+  username?: string;
   user: {
     name: string;
     initials: string;
     avatar?: string;
   };
-  action: string;
-  description: string;
-  createdAt: string;
   targetUrl: string;
+  description: string;
 }
 
 export interface PendingTask {
-  id: number;
+  publicId: string;
+  workflowCode: string;
+  currentState: string;
+  entityType: string;
+  entityId: string;
+  documentNumber: string;
+  subject: string;
+  assignedAt: string;
+  // Derived fields for UI
   title: string;
   description: string;
   daysOverdue: number;

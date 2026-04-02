@@ -130,24 +130,34 @@ export class DashboardService {
       .createQueryBuilder('log')
       .leftJoin('log.user', 'user')
       .select([
+        'log.auditId',
         'log.action',
         'log.entityType',
         'log.entityId',
         'log.detailsJson',
         'log.createdAt',
         'user.username',
+        'user.firstName',
+        'user.lastName',
       ])
       .orderBy('log.createdAt', 'DESC')
       .limit(limit)
       .getMany();
 
     return logs.map((log) => ({
+      id: log.auditId,
       action: log.action,
       entityType: log.entityType,
       entityId: log.entityId,
       details: log.detailsJson,
       createdAt: log.createdAt,
-      username: log.user?.username,
+      user: log.user
+        ? {
+            username: log.user.username,
+            firstName: log.user.firstName,
+            lastName: log.user.lastName,
+          }
+        : undefined,
     }));
   }
 

@@ -53,7 +53,7 @@ export function PendingTasks({ tasks, isLoading }: PendingTasksProps) {
           ) : (
             tasks.map((task) => (
               <Link
-                key={task.id}
+                key={task.publicId}
                 href={task.url}
                 className="block p-3 bg-muted/40 rounded-lg border hover:bg-muted/60 transition-colors group"
               >

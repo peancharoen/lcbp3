@@ -22,6 +22,9 @@ export class GetActivityDto {
  * DTO สำหรับ Response ของ Activity Item
  */
 export class ActivityItemDto {
+  @ApiPropertyOptional({ description: 'ID ของ Activity' })
+  id!: string;
+
   @ApiPropertyOptional({ description: 'Action ที่กระทำ' })
   action!: string;
 
@@ -37,6 +40,10 @@ export class ActivityItemDto {
   @ApiPropertyOptional({ description: 'วันที่กระทำ' })
   createdAt!: Date;
 
-  @ApiPropertyOptional({ description: 'ชื่อผู้ใช้' })
-  username?: string;
+  @ApiPropertyOptional({ description: 'ข้อมูลผู้ใช้' })
+  user?: {
+    username: string;
+    firstName?: string;
+    lastName?: string;
+  };
 }
