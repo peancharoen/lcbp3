@@ -6,13 +6,11 @@ import { AuthSync } from '@/components/auth/auth-sync';
 
 export default function SessionProvider({
   children,
-  nonce,
 }: {
   children: React.ReactNode;
-  nonce?: string;
 }) {
   return (
-    <NextAuthSessionProvider nonce={nonce}>
+    <NextAuthSessionProvider>
       <AuthSync />
       {children}
     </NextAuthSessionProvider>
