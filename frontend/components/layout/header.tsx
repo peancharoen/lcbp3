@@ -5,6 +5,7 @@ import { GlobalSearch } from './global-search';
 import { NotificationsDropdown } from './notifications-dropdown';
 import { MobileSidebar } from './sidebar';
 import { ThemeToggle } from './theme-toggle';
+import { ProjectSwitcher } from './project-switcher';
 
 export function Header() {
   return (
@@ -18,6 +19,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <ProjectSwitcher />
         <ThemeToggle />
         <NotificationsDropdown />
         <UserMenu />

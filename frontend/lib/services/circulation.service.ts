@@ -45,11 +45,11 @@ export const circulationService = {
   },
 
   /**
-   * ดึงรายการใบเวียนของ correspondence (by correspondence UUID)
+   * ดึงรายการใบเวียนของ correspondence (by correspondence publicId)
    */
-  getByCorrespondenceUuid: async (correspondenceUuid: string) => {
+  getByCorrespondenceUuid: async (correspondencePublicId: string) => {
     const response = await apiClient.get('/circulations', {
-      params: { correspondenceUuid, limit: 50 },
+      params: { correspondencePublicId, limit: 50 },
     });
     return response.data;
   },

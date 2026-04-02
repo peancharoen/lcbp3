@@ -7,6 +7,9 @@ export interface SearchCirculationDto {
   /** OPEN, COMPLETED, CANCELLED */
   status?: string;
 
+  /** กรองตาม correspondence publicId (ADR-019) */
+  correspondencePublicId?: string;
+
   page?: number;
 
   limit?: number;

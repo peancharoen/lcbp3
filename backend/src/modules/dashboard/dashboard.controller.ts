@@ -13,7 +13,7 @@ import { User } from '../user/entities/user.entity';
 import { DashboardService } from './dashboard.service';
 
 // DTOs
-import { GetActivityDto, GetPendingDto } from './dto';
+import { GetActivityDto, GetPendingDto, GetStatsDto } from './dto';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
@@ -27,8 +27,8 @@ export class DashboardController {
    */
   @Get('stats')
   @ApiOperation({ summary: 'Get dashboard statistics' })
-  async getStats(@CurrentUser() user: User) {
-    return this.dashboardService.getStats(user.user_id);
+  async getStats(@CurrentUser() user: User, @Query() query: GetStatsDto) {
+    return this.dashboardService.getStats(user.user_id, query);
   }
 
   /**

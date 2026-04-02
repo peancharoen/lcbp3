@@ -6,10 +6,10 @@ export const circulationKeys = {
   byCorrespondence: (uuid: string) => ['circulations', 'byCorrespondence', uuid] as const,
 };
 
-export function useCirculationsByCorrespondence(correspondenceUuid: string) {
+export function useCirculationsByCorrespondence(correspondencePublicId: string) {
   return useQuery({
-    queryKey: circulationKeys.byCorrespondence(correspondenceUuid),
-    queryFn: () => circulationService.getByCorrespondenceUuid(correspondenceUuid),
-    enabled: !!correspondenceUuid,
+    queryKey: circulationKeys.byCorrespondence(correspondencePublicId),
+    queryFn: () => circulationService.getByCorrespondenceUuid(correspondencePublicId),
+    enabled: !!correspondencePublicId,
   });
 }

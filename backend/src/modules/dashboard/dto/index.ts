@@ -4,3 +4,4 @@
 export * from './dashboard-stats.dto';
 export * from './get-activity.dto';
 export * from './get-pending.dto';
+export * from './get-stats.dto';

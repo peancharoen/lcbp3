@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 
 interface CirculationStatusCardProps {
-  correspondenceUuid: string;
+  correspondencePublicId: string;
 }
 
 const ROUTING_STATUS_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
@@ -86,8 +86,8 @@ function CirculationItem({ circ }: { circ: Circulation }) {
   );
 }
 
-export function CirculationStatusCard({ correspondenceUuid }: CirculationStatusCardProps) {
-  const { data, isLoading } = useCirculationsByCorrespondence(correspondenceUuid);
+export function CirculationStatusCard({ correspondencePublicId }: CirculationStatusCardProps) {
+  const { data, isLoading } = useCirculationsByCorrespondence(correspondencePublicId);
 
   const circulations: Circulation[] = Array.isArray(data)
     ? data
@@ -122,7 +122,7 @@ export function CirculationStatusCard({ correspondenceUuid }: CirculationStatusC
           ))
         )}
 
-        <Link href={`/circulation/new?correspondenceUuid=${correspondenceUuid}`}>
+        <Link href={`/circulation/new?correspondencePublicId=${correspondencePublicId}`}>
           <Button variant="outline" size="sm" className="w-full h-8 text-xs mt-1">
             <GitBranch className="h-3 w-3 mr-1.5" />
             New Circulation

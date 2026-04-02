@@ -3,31 +3,31 @@ import { dashboardService } from '@/lib/services/dashboard.service';
 
 export const dashboardKeys = {
   all: ['dashboard'] as const,
-  stats: () => [...dashboardKeys.all, 'stats'] as const,
-  activity: () => [...dashboardKeys.all, 'activity'] as const,
-  pending: () => [...dashboardKeys.all, 'pending'] as const,
+  stats: (projectId?: string | null) => [...dashboardKeys.all, 'stats', projectId] as const,
+  activity: (projectId?: string | null) => [...dashboardKeys.all, 'activity', projectId] as const,
+  pending: (projectId?: string | null) => [...dashboardKeys.all, 'pending', projectId] as const,
 };
 
-export function useDashboardStats() {
+export function useDashboardStats(projectId?: string | null) {
   return useQuery({
-    queryKey: dashboardKeys.stats(),
-    queryFn: dashboardService.getStats,
+    queryKey: dashboardKeys.stats(projectId),
+    queryFn: () => dashboardService.getStats(projectId),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
-export function useRecentActivity() {
+export function useRecentActivity(projectId?: string | null) {
   return useQuery({
-    queryKey: dashboardKeys.activity(),
-    queryFn: dashboardService.getRecentActivity,
+    queryKey: dashboardKeys.activity(projectId),
+    queryFn: () => dashboardService.getRecentActivity(projectId),
     staleTime: 1 * 60 * 1000,
   });
 }
 
-export function usePendingTasks() {
+export function usePendingTasks(projectId?: string | null) {
   return useQuery({
-    queryKey: dashboardKeys.pending(),
-    queryFn: dashboardService.getPendingTasks,
+    queryKey: dashboardKeys.pending(projectId),
+    queryFn: () => dashboardService.getPendingTasks(projectId),
     staleTime: 2 * 60 * 1000,
   });
 }

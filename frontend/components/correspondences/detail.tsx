@@ -416,7 +416,7 @@ export function CorrespondenceDetail({ data, selectedRevisionId }: Correspondenc
           </Card>
 
           {/* Circulations */}
-          <CirculationStatusCard correspondenceUuid={data.publicId} />
+          <CirculationStatusCard correspondencePublicId={data.publicId} />
 
           {/* Tags */}
           <TagManager

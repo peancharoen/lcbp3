@@ -20,7 +20,11 @@ import {
   ActivityItemDto,
   GetPendingDto,
   PendingTaskItemDto,
+  GetStatsDto,
 } from './dto';
+import { Project } from '../project/entities/project.entity';
+import { UserAssignment } from '../user/entities/user-assignment.entity';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class DashboardService {
@@ -33,18 +37,82 @@ export class DashboardService {
     private auditLogRepo: Repository<AuditLog>,
     @InjectRepository(WorkflowInstance)
     private workflowInstanceRepo: Repository<WorkflowInstance>,
+    @InjectRepository(Project)
+    private projectRepo: Repository<Project>,
+    @InjectRepository(UserAssignment)
+    private userAssignmentRepo: Repository<UserAssignment>,
     private dataSource: DataSource
   ) {}
+
+  /**
+   * ตรวจสอบว่า User มีสิทธิเข้าถึงโครงการหรือไม่
+   */
+  private async checkProjectAccess(
+    userId: number,
+    projectId: string
+  ): Promise<number> {
+    // 1. หา Internal ID ของ Project
+    const project = await this.projectRepo.findOne({
+      where: { publicId: projectId },
+      select: ['id'],
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    // 2. ตรวจสอบสิทธิ (UserAssignment)
+    // สำหรับ Global Admin อาจจะไม่ต้องเช็ค (ในที่นี้เช็คว่ามีการมอบหมายโครงการนี้ให้หรือไม่)
+    // NOTE: ในอนาคตอาจจะใช้ CASL แทน
+    const assignment = await this.userAssignmentRepo.findOne({
+      where: { userId, projectId: project.id },
+    });
+
+    // Check if user is a global admin (assigned to NULL project/org/contract)
+    const isGlobalAdmin = await this.userAssignmentRepo.findOne({
+      where: {
+        userId,
+        projectId: undefined,
+        organizationId: undefined,
+        contractId: undefined,
+      },
+    });
+
+    if (!assignment && !isGlobalAdmin) {
+      this.logger.warn(
+        `User ${userId} attempted to access project ${projectId} without assignment`
+      );
+      throw new ForbiddenException(
+        `You do not have access to project ${projectId}`
+      );
+    }
+
+    return project.id;
+  }
 
   /**
    * ดึงสถิติ Dashboard
    * @param userId - ID ของ User ที่ Login
    */
-  async getStats(userId: number): Promise<DashboardStatsDto> {
-    this.logger.debug(`Getting dashboard stats for user ${userId}`);
+  async getStats(userId: number, dto: GetStatsDto): Promise<DashboardStatsDto> {
+    const { projectId } = dto;
+    this.logger.debug(
+      `Getting dashboard stats for user ${userId}, project: ${projectId || 'Global'}`
+    );
 
-    // นับจำนวนเอกสารทั้งหมด
-    const totalDocuments = await this.correspondenceRepo.count();
+    let internalProjectId: number | undefined;
+    if (projectId) {
+      internalProjectId = await this.checkProjectAccess(userId, projectId);
+    }
+
+    // นับจำนวนเอกสาร
+    const totalDocumentsQuery = this.correspondenceRepo.createQueryBuilder('c');
+    if (internalProjectId) {
+      totalDocumentsQuery.where('c.projectId = :internalProjectId', {
+        internalProjectId,
+      });
+    }
+    const totalDocuments = await totalDocumentsQuery.getCount();
 
     // นับจำนวนเอกสารเดือนนี้
     const startOfMonth = new Date();
@@ -57,28 +125,43 @@ export class DashboardService {
       .getCount();
 
     // นับงานที่รอ Approve (Workflow Active)
-    const pendingApprovals = await this.workflowInstanceRepo.count({
-      where: { status: WorkflowStatus.ACTIVE },
-    });
+    const pendingApprovalsQuery = this.workflowInstanceRepo
+      .createQueryBuilder('w')
+      .where('w.status = :status', { status: WorkflowStatus.ACTIVE });
 
-    // นับ RFA ทั้งหมด (correspondence_type_id = RFA type)
-    // ใช้ Raw Query เพราะต้อง JOIN กับ correspondence_types
-    const rfaCountResult = await this.dataSource.query<
-      { count: string | number }[]
-    >(`
+    if (internalProjectId) {
+      // WorkflowInstance JOIN กับ Correspondence เพื่อเช็ค Project
+      pendingApprovalsQuery
+        .innerJoin('correspondences', 'c', 'w.entity_id = c.uuid')
+        .andWhere('c.project_id = :internalProjectId', { internalProjectId });
+    }
+    const pendingApprovals = await pendingApprovalsQuery.getCount();
+
+    // นับ RFA ทั้งหมด
+    let rfaSql = `
       SELECT COUNT(*) as count
       FROM correspondences c
       JOIN correspondence_types ct ON c.correspondence_type_id = ct.id
       WHERE ct.type_code = 'RFA'
-    `);
+    `;
+    const params: (string | number)[] = [];
+    if (internalProjectId) {
+      rfaSql += ` AND c.project_id = ?`;
+      params.push(internalProjectId);
+    }
+    const rfaCountResult = await this.dataSource.query<
+      { count: string | number }[]
+    >(rfaSql, params);
     const totalRfas = Number(rfaCountResult[0]?.count || '0');
 
     // นับ Circulation ทั้งหมด
+    let circSql = `SELECT COUNT(*) as count FROM circulations ci`;
+    if (internalProjectId) {
+      circSql += ` JOIN correspondences c ON ci.correspondence_id = c.id WHERE c.project_id = ?`;
+    }
     const circulationsCountResult = await this.dataSource.query<
       { count: string | number }[]
-    >(`
-      SELECT COUNT(*) as count FROM circulations
-    `);
+    >(circSql, internalProjectId ? [internalProjectId] : []);
     const totalCirculations = Number(circulationsCountResult[0]?.count || '0');
 
     // นับเอกสารที่อนุมัติแล้ว (APPROVED)
@@ -86,21 +169,25 @@ export class DashboardService {
     // เบื้องต้นนับจาก CorrespondenceStatus ที่เป็น 'APPROVED' หรือ 'CODE 1'
     // หรือนับจาก Workflow ที่ Completed และ Action เป็น APPROVE
     // เพื่อความง่ายในเบื้องต้น นับจาก CorrespondenceRevision ที่มี status 'APPROVED' (ถ้ามี)
-    // หรือนับจาก RFA ที่มี Approve Code
 
     // สำหรับ LCBP3 นับ RFA ที่ approveCodeId ไม่ใช่ null (หรือ check status code = APR/FAP)
     // และ Correspondence ทั่วไปที่มีสถานะ Completed
     // เพื่อความรวดเร็ว ใช้วิธีนับ Revision ที่ isCurrent = 1 และ statusCode = 'APR' (Approved)
 
-    // Check status code 'APR' exists
-    const aprStatusCount = await this.dataSource.query<
-      { count: string | number }[]
-    >(`
+    // นับเอกสารที่อนุมัติแล้ว
+    let appSql = `
         SELECT COUNT(r.id) as count
         FROM correspondence_revisions r
         JOIN correspondence_status s ON r.correspondence_status_id = s.id
+        JOIN correspondences c ON r.correspondence_id = c.id
         WHERE r.is_current = 1 AND s.status_code IN ('APR', 'CMP')
-    `);
+    `;
+    if (internalProjectId) {
+      appSql += ` AND c.project_id = ?`;
+    }
+    const aprStatusCount = await this.dataSource.query<
+      { count: string | number }[]
+    >(appSql, internalProjectId ? [internalProjectId] : []);
     const approved = Number(aprStatusCount[0]?.count || '0');
 
     return {
@@ -122,11 +209,18 @@ export class DashboardService {
     userId: number,
     dto: GetActivityDto
   ): Promise<ActivityItemDto[]> {
-    const { limit = 10 } = dto;
-    this.logger.debug(`Getting recent activity for user ${userId}`);
+    const { limit = 10, projectId } = dto;
+    this.logger.debug(
+      `Getting recent activity for user ${userId}, project: ${projectId || 'Global'}`
+    );
+
+    let internalProjectId: number | undefined;
+    if (projectId) {
+      internalProjectId = await this.checkProjectAccess(userId, projectId);
+    }
 
     // ดึง Recent Audit Logs
-    const logs = await this.auditLogRepo
+    const query = this.auditLogRepo
       .createQueryBuilder('log')
       .leftJoin('log.user', 'user')
       .select([
@@ -139,7 +233,22 @@ export class DashboardService {
         'user.username',
         'user.firstName',
         'user.lastName',
-      ])
+      ]);
+
+    // NOTE: AuditLog อาจจะไม่มี projectId โดยตรง
+    // ในที่นี้ถ้ามี projectId เราจะพยายามกรองจาก detailsJson หรือ Entity ล่าสุด
+    // หรือถ้า Entity เป็น Correspondence เราสามารถ JOIN ได้
+    // เบื้องต้นถ้าไม่ซับซ้อน จะดึง Global มาก่อน หรือถ้าโครงการสำคัญมากให้ปรับ Schema
+    if (internalProjectId) {
+      // ตัวอย่างการกรองเบื้องต้นสำหรับ Correspondence
+      query.andWhere(
+        `(log.entityType = 'Correspondence' AND CAST(JSON_EXTRACT(log.detailsJson, '$.projectId') AS UNSIGNED) = :internalProjectId)
+             OR (log.entityType != 'Correspondence')`, // แสดงอย่างอื่นด้วย
+        { internalProjectId }
+      );
+    }
+
+    const logs = await query
       .orderBy('log.createdAt', 'DESC')
       .limit(limit)
       .getMany();
@@ -174,46 +283,73 @@ export class DashboardService {
     data: PendingTaskItemDto[];
     meta: { total: number; page: number; limit: number };
   }> {
-    const { page = 1, limit = 10 } = dto;
+    const { page = 1, limit = 10, projectId } = dto;
     const offset = (page - 1) * limit;
 
-    this.logger.debug(`Getting pending tasks for user ${userId}`);
+    this.logger.debug(
+      `Getting pending tasks for user ${userId}, project: ${projectId || 'Global'}`
+    );
 
-    // ใช้ Raw Query เพราะต้อง Query จาก View และ Filter ด้วย JSON
-    // v_user_tasks มี assignee_ids_json สำหรับ Filter
-    // MariaDB 11.8: ใช้ JSON_SEARCH แทน CAST AS JSON
+    let internalProjectId: number | undefined;
+    if (projectId) {
+      internalProjectId = await this.checkProjectAccess(userId, projectId);
+    }
+
     const userIdNum = Number(userId);
+
+    const joinClause = internalProjectId
+      ? `JOIN correspondence_revisions cr ON v_user_tasks.entity_id = CAST(cr.id AS CHAR) AND v_user_tasks.entity_type IN ('rfa_revision', 'correspondence_revision')
+         JOIN correspondences c ON cr.correspondence_id = c.id
+         LEFT JOIN circulations circ ON v_user_tasks.entity_id = CAST(circ.id AS CHAR) AND v_user_tasks.entity_type = 'circulation'
+         LEFT JOIN correspondences c2 ON circ.correspondence_id = c2.id`
+      : '';
+    const projectFilter = internalProjectId
+      ? `AND (c.project_id = ? OR c2.project_id = ?)`
+      : '';
 
     const [tasks, countResult] = await Promise.all([
       this.dataSource.query<PendingTaskItemDto[]>(
         `
         SELECT
-          instance_id as instanceId,
-          workflow_code as workflowCode,
-          current_state as currentState,
-          entity_type as entityType,
-          entity_id as entityId,
-          document_number as documentNumber,
-          subject,
-          assigned_at as assignedAt
+          v_user_tasks.instance_id as instanceId,
+          v_user_tasks.workflow_code as workflowCode,
+          v_user_tasks.current_state as currentState,
+          v_user_tasks.entity_type as entityType,
+          v_user_tasks.entity_id as entityId,
+          v_user_tasks.document_number as documentNumber,
+          v_user_tasks.subject,
+          v_user_tasks.assigned_at as assignedAt
         FROM v_user_tasks
+        ${joinClause}
         WHERE
-          JSON_SEARCH(assignee_ids_json, 'one', ?) IS NOT NULL
-          OR owner_id = ?
-        ORDER BY assigned_at DESC
+          (JSON_SEARCH(v_user_tasks.assignee_ids_json, 'one', ?) IS NOT NULL OR v_user_tasks.owner_id = ?)
+          ${projectFilter}
+        ORDER BY v_user_tasks.assigned_at DESC
         LIMIT ? OFFSET ?
       `,
-        [userIdNum, userIdNum, limit, offset]
+        internalProjectId
+          ? [
+              userIdNum,
+              userIdNum,
+              internalProjectId,
+              internalProjectId,
+              limit,
+              offset,
+            ]
+          : [userIdNum, userIdNum, limit, offset]
       ),
       this.dataSource.query<{ total: string | number }[]>(
         `
-        SELECT COUNT(*) as total
+        SELECT COUNT(v_user_tasks.instance_id) as total
         FROM v_user_tasks
+        ${joinClause}
         WHERE
-          JSON_SEARCH(assignee_ids_json, 'one', ?) IS NOT NULL
-          OR owner_id = ?
+          (JSON_SEARCH(v_user_tasks.assignee_ids_json, 'one', ?) IS NOT NULL OR v_user_tasks.owner_id = ?)
+          ${projectFilter}
       `,
-        [userIdNum, userIdNum]
+        internalProjectId
+          ? [userIdNum, userIdNum, internalProjectId, internalProjectId]
+          : [userIdNum, userIdNum]
       ),
     ]);
 

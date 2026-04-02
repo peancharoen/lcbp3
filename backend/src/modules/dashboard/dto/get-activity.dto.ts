@@ -3,7 +3,7 @@
 
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 /**
  * DTO สำหรับ Query params ของ GET /dashboard/activity
@@ -16,6 +16,11 @@ export class GetActivityDto {
   @Min(1)
   @Max(50)
   limit?: number = 10;
+
+  @ApiPropertyOptional({ description: 'ID ของโครงการ (UUID)' })
+  @IsOptional()
+  @IsString()
+  projectId?: string;
 }
 
 /**

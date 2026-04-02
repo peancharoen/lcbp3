@@ -30,7 +30,7 @@ describe('use-circulation hooks', () => {
   });
 
   describe('useCirculationsByCorrespondence', () => {
-    it('should fetch circulations for a correspondence UUID', async () => {
+    it('should fetch circulations for a correspondence publicId', async () => {
       const mockData = {
         data: [
           {
@@ -60,7 +60,7 @@ describe('use-circulation hooks', () => {
       expect(result.current.data).toEqual(mockData);
     });
 
-    it('should not fetch when correspondenceUuid is empty', () => {
+    it('should not fetch when correspondencePublicId is empty', () => {
       const { wrapper } = createTestQueryClient();
       const { result } = renderHook(
         () => useCirculationsByCorrespondence(''),

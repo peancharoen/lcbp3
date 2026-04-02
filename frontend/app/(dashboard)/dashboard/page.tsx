@@ -5,11 +5,14 @@ import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { PendingTasks } from '@/components/dashboard/pending-tasks';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { useDashboardStats, useRecentActivity, usePendingTasks } from '@/hooks/use-dashboard';
+import { useProjectStore } from '@/lib/stores/project-store';
 
 export default function DashboardPage() {
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  const { data: activities, isLoading: activityLoading } = useRecentActivity();
-  const { data: tasks, isLoading: tasksLoading } = usePendingTasks();
+  const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
+
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(selectedProjectId);
+  const { data: activities, isLoading: activityLoading } = useRecentActivity(selectedProjectId);
+  const { data: tasks, isLoading: tasksLoading } = usePendingTasks(selectedProjectId);
 
   return (
     <div className="space-y-8">

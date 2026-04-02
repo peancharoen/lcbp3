@@ -27,14 +27,16 @@ interface RawPendingTask {
 }
 
 export const dashboardService = {
-  getStats: async (): Promise<DashboardStats> => {
-    const response = await apiClient.get('/dashboard/stats');
+  getStats: async (projectId?: string | null): Promise<DashboardStats> => {
+    const params = projectId ? { projectId } : undefined;
+    const response = await apiClient.get('/dashboard/stats', { params });
     return response.data;
   },
 
-  getRecentActivity: async (): Promise<ActivityLog[]> => {
+  getRecentActivity: async (projectId?: string | null): Promise<ActivityLog[]> => {
     try {
-      const response = await apiClient.get('/dashboard/activity');
+      const params = projectId ? { projectId } : undefined;
+      const response = await apiClient.get('/dashboard/activity', { params });
       if (Array.isArray(response.data)) {
         return (response.data as RawActivityLog[]).map((log) => {
           const firstName = log.user?.firstName || '';
@@ -59,9 +61,10 @@ export const dashboardService = {
     }
   },
 
-  getPendingTasks: async (): Promise<PendingTask[]> => {
+  getPendingTasks: async (projectId?: string | null): Promise<PendingTask[]> => {
     try {
-      const response = await apiClient.get('/dashboard/pending');
+      const params = projectId ? { projectId } : undefined;
+      const response = await apiClient.get('/dashboard/pending', { params });
       const rawTasks = (response.data?.data || (Array.isArray(response.data) ? response.data : [])) as RawPendingTask[];
 
       return rawTasks.map((task) => {

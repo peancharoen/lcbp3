@@ -356,6 +356,12 @@ export function CorrespondenceForm({
     }
 
     const fetchPreview = async () => {
+      // Don't preview or change number in edit mode
+      if (uuid) {
+        setPreview(null);
+        return;
+      }
+
       try {
         const res = await numberingApi.previewNumber({
           projectId,
@@ -387,29 +393,21 @@ export function CorrespondenceForm({
               readOnly
               className="bg-muted font-mono font-bold text-lg w-full"
             />
-            {preview && preview.number !== initialData.correspondenceNumber && (
-              <span className="text-xs text-amber-600 font-semibold whitespace-nowrap px-2">Start Change Detected</span>
-            )}
           </div>
         </div>
       )}
 
-      {/* Preview Section */}
-      {preview && (
+      {/* Preview Section - Only for New Documents */}
+      {preview && !uuid && (
         <div
-          className={`p-4 rounded-md border ${preview.number !== initialData?.correspondenceNumber ? 'bg-amber-50 border-amber-200' : 'bg-muted border-border'}`}
+          className="p-4 rounded-md border bg-muted border-border"
         >
           <p className="text-sm font-semibold mb-1 flex items-center gap-2">
-            {initialData?.correspondenceNumber ? 'New Document Number (Preview)' : 'Document Number Preview'}
-            {preview.number !== initialData?.correspondenceNumber && initialData?.correspondenceNumber && (
-              <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-                Will Update
-              </span>
-            )}
+            Document Number Preview
           </p>
           <div className="flex items-center gap-3">
             <span
-              className={`text-xl font-bold font-mono tracking-wide ${preview.number !== initialData?.correspondenceNumber ? 'text-amber-700' : 'text-primary'}`}
+              className="text-xl font-bold font-mono tracking-wide text-primary"
             >
               {preview.number}
             </span>
@@ -419,11 +417,6 @@ export function CorrespondenceForm({
               </span>
             )}
           </div>
-          {preview.number !== initialData?.correspondenceNumber && initialData?.correspondenceNumber && (
-            <p className="text-xs text-muted-foreground mt-2">
-              * The document number will be regenerated because critical fields were changed.
-            </p>
-          )}
         </div>
       )}
 

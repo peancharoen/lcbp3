@@ -1,3 +1,8 @@
+// File: lib/api/dashboard.ts
+// Change Log:
+// - Fixed TypeScript type error in mock data (id: number -> id: string)
+// - Updated PendingTask mock data to match interface
+
 import { DashboardStats, ActivityLog, PendingTask } from '@/types/dashboard';
 
 export const dashboardApi = {
@@ -17,7 +22,7 @@ export const dashboardApi = {
     await new Promise((resolve) => setTimeout(resolve, 600));
     return [
       {
-        id: 1,
+        id: 'activity-1',
         user: { name: 'John Doe', initials: 'JD' },
         action: 'Created RFA',
         description: 'RFA-001: Concrete Pouring Request',
@@ -25,7 +30,7 @@ export const dashboardApi = {
         targetUrl: '/rfas/1',
       },
       {
-        id: 2,
+        id: 'activity-2',
         user: { name: 'Jane Smith', initials: 'JS' },
         action: 'Approved Correspondence',
         description: 'COR-005: Site Safety Report',
@@ -33,7 +38,7 @@ export const dashboardApi = {
         targetUrl: '/correspondences/5',
       },
       {
-        id: 3,
+        id: 'activity-3',
         user: { name: 'Mike Johnson', initials: 'MJ' },
         action: 'Uploaded Drawing',
         description: 'A-101: Ground Floor Plan Rev B',
@@ -47,7 +52,14 @@ export const dashboardApi = {
     await new Promise((resolve) => setTimeout(resolve, 400));
     return [
       {
-        id: 1,
+        publicId: 'task-1',
+        workflowCode: 'RFA_WORKFLOW',
+        currentState: 'REVIEWING',
+        entityType: 'RFA',
+        entityId: 'rfa-001-uuid',
+        documentNumber: 'RFA-002',
+        subject: 'Review RFA-002',
+        assignedAt: new Date().toISOString(),
         title: 'Review RFA-002',
         description: 'Approval required for steel reinforcement',
         daysOverdue: 2,
@@ -55,7 +67,14 @@ export const dashboardApi = {
         priority: 'HIGH',
       },
       {
-        id: 2,
+        publicId: 'task-2',
+        workflowCode: 'CORR_WORKFLOW',
+        currentState: 'PENDING_APPROVAL',
+        entityType: 'Correspondence',
+        entityId: 'corr-010-uuid',
+        documentNumber: 'COR-101',
+        subject: 'Approve Monthly Report',
+        assignedAt: new Date().toISOString(),
         title: 'Approve Monthly Report',
         description: 'January 2025 Progress Report',
         daysOverdue: 0,
