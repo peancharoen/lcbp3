@@ -2,15 +2,17 @@
 
 **Status:** Accepted
 **Date:** 2026-02-26
-**Version:** 1.8.0
-**Decision Makers:** Development Team, DevOps Engineer
+**Version:** 1.8.3 (Aligned with ADR-020)
+**Decision Makers:** Development Team, DevOps Engineer, AI Integration Lead
 **Related Documents:**
 
+- [ADR-020: AI Intelligence Integration Architecture](./ADR-020-ai-intelligence-integration.md) — Overall AI Architecture & RFA-First Strategy
 - [Legacy Data Migration Plan](../03-Data-and-Storage/03-04-legacy-data-migration.md)
 - [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
+- [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md) — UUID Strategy สำหรับ DB Lookup
 - [Software Architecture](../02-Architecture/02-02-software-architecture.md)
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
-  > **Note:** ADR-017 is clarified and hardened by ADR-018 regarding AI physical isolation. Category Enum system-driven, Idempotency Contract, Duplicate Handling Clarification, Storage Enforcement, Audit Log Enhancement, Review Queue Integration, Revision Drift Protection, Execution Time, Encoding Normalization, Security Hardening, Orchestrator on QNAP, AI Physical Isolation (Desktop Desk-5439).
+  > **Note:** ADR-017 is clarified and hardened by ADR-018 regarding AI physical isolation. Now part of unified ADR-020 architecture with RFA-First approach, Gemma 4 model, and comprehensive Human-in-the-Loop validation.
 
 ---
 
@@ -92,10 +94,10 @@
 | Component              | รายละเอียด                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------ |
 | Migration Orchestrator | n8n (Docker บน QNAP NAS)                                                                                     |
-| AI Model Primary       | Ollama `llama3.2:3b` (Validation, Summarization, Tagging)                                                    |
+| AI Model Primary       | Ollama `gemma4:9b` (9.6 GB, Gemma 4 9B) — Validation, Summarization, Tagging |
 | AI Model Fallback      | Ollama `mistral:7b-instruct-q4_K_M`                                                                          |
 | Hardware               | QNAP NAS (Orchestrator) + Desktop Desk-5439 (AI Processing, RTX 2060 SUPER 8GB)                              |
-| DB Lookup (n8n)        | n8n ทำการ Query `project_id`, `organization_id` และดึง `Tags` จาก DB ให้ AI                                  |
+| DB Lookup (n8n)        | n8n ทำการ Query `project_uuid`, `organization_uuid` และดึง `Tags` จาก DB ให้ AI (ADR-019)                      |
 | Data Ingestion         | 1. Staging ลง `migration_review_queue` -> 2. กดยืนยันผ่าน Frontend Management UI -> 3. Final Commit ผ่าน API |
 | Concurrency (n8n)      | Sequential — Batch Size 50-100 ป้องกัน DB Connection Overload                                                |
 | Checkpoint             | MariaDB `migration_progress` และการใช้ `ON DUPLICATE KEY UPDATE` ใน Staging                                  |
@@ -387,3 +389,12 @@ IF excel_revision != current_db_revision + 1
 ---
 
 _สำหรับขั้นตอนปฏิบัติงานแบบละเอียด ดูที่ `03-04-legacy-data-migration.md` และ `03-05-n8n-migration-setup-guide.md`_
+
+---
+
+## Document History
+
+| Version | Date       | Author      | Changes                                                              |
+| ------- | ---------- | ----------- | -------------------------------------------------------------------- |
+| 1.8.0   | 2026-02-26 | DevOps Team | Initial ADR — Ollama + n8n Migration Architecture                    |
+| 1.8.2   | 2026-04-03 | Tech Lead   | **Updated** — Aligned with ADR-019 (UUID Strategy), changed AI Model to `gemma4:9b` (9.6 GB) |
