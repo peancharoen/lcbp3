@@ -56,8 +56,8 @@ export default function TransmittalPage() {
           </SelectTrigger>
           <SelectContent>
             {(Array.isArray(projects) ? projects : []).map(
-              (p: { uuid: string; projectName?: string; projectCode?: string }) => (
-                <SelectItem key={p.uuid} value={p.uuid}>
+              (p: { publicId: string; projectName?: string; projectCode?: string }) => (
+                <SelectItem key={p.publicId} value={p.publicId}>
                   {p.projectName || p.projectCode}
                 </SelectItem>
               )

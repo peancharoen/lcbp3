@@ -696,14 +696,94 @@ export class CorrespondenceService {
         )
       : undefined;
 
-    // 3. Update Correspondence Entity if needed
+    // 3. Check if number regeneration is needed (only for DRAFT status)
+    const oldCorr = revision.correspondence;
+    if (!oldCorr) {
+      throw new InternalServerErrorException(
+        'Correspondence relation not loaded for revision'
+      );
+    }
+    const oldRecipientOrgId = oldCorr.recipients?.find(
+      (r) => r.recipientType === 'TO'
+    )?.recipientOrganizationId;
+    const newRecipientOrgId = updResolvedRecipients?.find(
+      (r) => r.type === 'TO'
+    )?.organizationId;
+
+    const needsNumberRegen =
+      (updResolvedProjectId && updResolvedProjectId !== oldCorr.projectId) ||
+      (updateDto.typeId && updateDto.typeId !== oldCorr.correspondenceTypeId) ||
+      (newRecipientOrgId && newRecipientOrgId !== oldRecipientOrgId);
+
+    let newNumber: string | undefined;
+    if (needsNumberRegen) {
+      // Check if current status is DRAFT - only regenerate for drafts
+      const currentStatus = await this.statusRepo.findOne({
+        where: { id: revision.statusId },
+      });
+
+      if (currentStatus?.statusCode === 'DRAFT') {
+        // Resolve originator for number generation
+        const originatorId =
+          updResolvedOriginatorId ||
+          oldCorr.originatorId ||
+          user.primaryOrganizationId;
+
+        // Get type info for number generation
+        const typeId = updateDto.typeId || oldCorr.correspondenceTypeId;
+        const type = await this.typeRepo.findOne({ where: { id: typeId } });
+
+        if (!type) {
+          throw new NotFoundException('Document Type not found');
+        }
+
+        // Get recipient org code for number generation
+        const recipientOrgId = newRecipientOrgId || oldRecipientOrgId;
+        let _recipientCode = '';
+        if (recipientOrgId) {
+          const recOrg = await this.dataSource.manager.findOne(Organization, {
+            where: { id: recipientOrgId },
+          });
+          if (recOrg) _recipientCode = recOrg.organizationCode;
+        }
+
+        const projectId = updResolvedProjectId || oldCorr.projectId;
+
+        newNumber = await this.numberingService.updateNumberForDraft(
+          oldCorr.correspondenceNumber,
+          {
+            projectId: oldCorr.projectId,
+            originatorOrganizationId:
+              oldCorr.originatorId || user.primaryOrganizationId || 0,
+            typeId: oldCorr.correspondenceTypeId,
+            disciplineId: oldCorr.disciplineId,
+            recipientOrganizationId: oldRecipientOrgId || 0,
+            userId: user.user_id,
+          },
+          {
+            projectId,
+            originatorOrganizationId:
+              originatorId || user.primaryOrganizationId || 0,
+            typeId,
+            disciplineId: updateDto.disciplineId || oldCorr.disciplineId,
+            recipientOrganizationId: recipientOrgId || 0,
+            userId: user.user_id,
+          }
+        );
+      }
+    }
+
+    // 4. Update Correspondence Entity if needed
     const correspondenceUpdate: Record<string, unknown> = {};
+    if (newNumber) correspondenceUpdate.correspondenceNumber = newNumber;
     if (updateDto.disciplineId)
       correspondenceUpdate.disciplineId = updateDto.disciplineId;
     if (updResolvedProjectId)
       correspondenceUpdate.projectId = updResolvedProjectId;
     if (updResolvedOriginatorId)
       correspondenceUpdate.originatorId = updResolvedOriginatorId;
+    if (updateDto.typeId)
+      correspondenceUpdate.correspondenceTypeId = updateDto.typeId;
 
     if (Object.keys(correspondenceUpdate).length > 0) {
       await this.correspondenceRepo.update(id, correspondenceUpdate);

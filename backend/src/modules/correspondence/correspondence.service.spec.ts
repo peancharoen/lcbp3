@@ -184,11 +184,22 @@ describe('CorrespondenceService', () => {
         user_id: 1,
         primaryOrganizationId: 10,
       } as unknown as User;
+
+      const mockCorr = {
+        id: 1,
+        publicId: 'corr-uuid-1',
+        correspondenceNumber: 'CORR-001',
+        projectId: 1,
+        createdAt: new Date(),
+        recipients: [],
+      };
+
       const mockRevision = {
         id: 100,
         correspondenceId: 1,
         isCurrent: true,
         statusId: 23,
+        correspondence: mockCorr,
       };
 
       jest
@@ -209,11 +220,7 @@ describe('CorrespondenceService', () => {
       ]);
 
       jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue({
-        id: 1,
-        publicId: 'corr-uuid-1',
-        correspondenceNumber: 'CORR-001',
-        projectId: 1,
-        createdAt: new Date(),
+        ...mockCorr,
         revisions: [],
       } as unknown as Correspondence);
 
@@ -258,16 +265,6 @@ describe('CorrespondenceService', () => {
 
     it('should NOT regenerate number if critical fields unchanged', async () => {
       const mockUser = { id: 1, primaryOrganizationId: 10 } as unknown as User;
-      const mockRevision = {
-        id: 100,
-        correspondenceId: 1,
-        isCurrent: true,
-        statusId: 5,
-      };
-
-      jest
-        .spyOn(revisionRepo, 'findOne')
-        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
 
       const mockCorr = {
         id: 1,
@@ -278,6 +275,18 @@ describe('CorrespondenceService', () => {
         correspondenceNumber: 'OLD-NUM',
         recipients: [{ recipientType: 'TO', recipientOrganizationId: 99 }],
       };
+      const mockRevision = {
+        id: 100,
+        correspondenceId: 1,
+        isCurrent: true,
+        statusId: 5,
+        correspondence: mockCorr,
+      };
+
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
+
       jest
         .spyOn(correspondenceRepo, 'findOne')
         .mockResolvedValue(mockCorr as unknown as Correspondence);
@@ -296,16 +305,6 @@ describe('CorrespondenceService', () => {
 
     it('should regenerate number if Project ID changes', async () => {
       const mockUser = { id: 1, primaryOrganizationId: 10 } as unknown as User;
-      const mockRevision = {
-        id: 100,
-        correspondenceId: 1,
-        isCurrent: true,
-        statusId: 5,
-      };
-      jest
-        .spyOn(revisionRepo, 'findOne')
-        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
-
       const mockCorr = {
         id: 1,
         projectId: 1,
@@ -315,9 +314,32 @@ describe('CorrespondenceService', () => {
         correspondenceNumber: 'OLD-NUM',
         recipients: [{ recipientType: 'TO', recipientOrganizationId: 99 }],
       };
+      const mockRevision = {
+        id: 100,
+        correspondenceId: 1,
+        isCurrent: true,
+        statusId: 5,
+        correspondence: mockCorr,
+      };
       jest
-        .spyOn(correspondenceRepo, 'findOne')
-        .mockResolvedValue(mockCorr as unknown as Correspondence);
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
+
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 5,
+        statusCode: 'DRAFT',
+      });
+
+      const typeRepo = testingModule.get<Repository<CorrespondenceType>>(
+        getRepositoryToken(CorrespondenceType)
+      );
+      (typeRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 2,
+        typeCode: 'OLD-TYPE',
+      });
 
       const updateDto: UpdateCorrespondenceDto = {
         projectId: 2,
@@ -326,6 +348,11 @@ describe('CorrespondenceService', () => {
       const uuidResolver =
         testingModule.get<UuidResolverService>(UuidResolverService);
       (uuidResolver.resolveProjectId as jest.Mock).mockResolvedValue(2);
+
+      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue({
+        ...mockCorr,
+        projectId: 2,
+      } as unknown as Correspondence);
 
       await service.update(1, updateDto, mockUser);
 
@@ -336,16 +363,6 @@ describe('CorrespondenceService', () => {
 
     it('should regenerate number if Document Type changes', async () => {
       const mockUser = { id: 1, primaryOrganizationId: 10 } as unknown as User;
-      const mockRevision = {
-        id: 100,
-        correspondenceId: 1,
-        isCurrent: true,
-        statusId: 5,
-      };
-      jest
-        .spyOn(revisionRepo, 'findOne')
-        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
-
       const mockCorr = {
         id: 1,
         projectId: 1,
@@ -355,13 +372,24 @@ describe('CorrespondenceService', () => {
         correspondenceNumber: 'OLD-NUM',
         recipients: [{ recipientType: 'TO', recipientOrganizationId: 99 }],
       };
-      jest
-        .spyOn(correspondenceRepo, 'findOne')
-        .mockResolvedValue(mockCorr as unknown as Correspondence);
-
-      const updateDto: UpdateCorrespondenceDto = {
-        typeId: 999,
+      const mockRevision = {
+        id: 100,
+        correspondenceId: 1,
+        isCurrent: true,
+        statusId: 5,
+        correspondence: mockCorr,
       };
+      jest
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
+
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 5,
+        statusCode: 'DRAFT',
+      });
 
       const typeRepo = testingModule.get<Repository<CorrespondenceType>>(
         getRepositoryToken(CorrespondenceType)
@@ -370,6 +398,15 @@ describe('CorrespondenceService', () => {
         id: 999,
         typeCode: 'NEW-TYPE',
       });
+
+      const updateDto: UpdateCorrespondenceDto = {
+        typeId: 999,
+      };
+
+      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue({
+        ...mockCorr,
+        correspondenceTypeId: 999,
+      } as unknown as Correspondence);
 
       await service.update(1, updateDto, mockUser);
 
@@ -380,16 +417,6 @@ describe('CorrespondenceService', () => {
 
     it('should regenerate number if Recipient Organization changes', async () => {
       const mockUser = { id: 1, primaryOrganizationId: 10 } as unknown as User;
-      const mockRevision = {
-        id: 100,
-        correspondenceId: 1,
-        isCurrent: true,
-        statusId: 5,
-      };
-      jest
-        .spyOn(revisionRepo, 'findOne')
-        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
-
       const mockCorr = {
         id: 1,
         projectId: 1,
@@ -399,9 +426,32 @@ describe('CorrespondenceService', () => {
         correspondenceNumber: 'OLD-NUM',
         recipients: [{ recipientType: 'TO', recipientOrganizationId: 99 }],
       };
+      const mockRevision = {
+        id: 100,
+        correspondenceId: 1,
+        isCurrent: true,
+        statusId: 5,
+        correspondence: mockCorr,
+      };
       jest
-        .spyOn(correspondenceRepo, 'findOne')
-        .mockResolvedValue(mockCorr as unknown as Correspondence);
+        .spyOn(revisionRepo, 'findOne')
+        .mockResolvedValue(mockRevision as unknown as CorrespondenceRevision);
+
+      const typeRepo = testingModule.get<Repository<CorrespondenceType>>(
+        getRepositoryToken(CorrespondenceType)
+      );
+      (typeRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 2,
+        typeCode: 'OLD-TYPE',
+      });
+
+      const statusRepo = testingModule.get<Repository<CorrespondenceStatus>>(
+        getRepositoryToken(CorrespondenceStatus)
+      );
+      (statusRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 5,
+        statusCode: 'DRAFT',
+      });
 
       // Access DataSource manager for mocking
       mockDataSource.manager.findOne.mockResolvedValue({
@@ -412,6 +462,11 @@ describe('CorrespondenceService', () => {
       const updateDto: UpdateCorrespondenceDto = {
         recipients: [{ type: 'TO', organizationId: 88 }],
       };
+
+      jest.spyOn(correspondenceRepo, 'findOne').mockResolvedValue({
+        ...mockCorr,
+        recipients: [{ recipientType: 'TO', recipientOrganizationId: 88 }],
+      } as unknown as Correspondence);
 
       await service.update(1, updateDto, mockUser);
 

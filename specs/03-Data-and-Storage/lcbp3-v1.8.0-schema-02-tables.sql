@@ -790,6 +790,31 @@ CREATE TABLE circulations (
   UNIQUE INDEX idx_circulations_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "แม่" ของใบเวียนเอกสารภายใน';
 
+-- ตารางเก็บ Routing/Workflow ของใบเวียน (ขั้นตอนการดำเนินงาน)
+CREATE TABLE circulation_routings (
+  id INT PRIMARY KEY AUTO_INCREMENT COMMENT 'ID ของรายการ routing',
+  circulation_id INT NOT NULL COMMENT 'ID ของใบเวียน',
+  step_number INT NOT NULL COMMENT 'ลำดับขั้นตอน',
+  organization_id INT NOT NULL COMMENT 'ID ขององค์กรในขั้นตอนนี้',
+  assigned_to INT NULL COMMENT 'ID ของผู้ใช้ที่ได้รับมอบหมาย (NULL = ยังไม่มอบหมาย)',
+  STATUS ENUM(
+    'PENDING',
+    'IN_PROGRESS',
+    'COMPLETED',
+    'REJECTED'
+  ) DEFAULT 'PENDING' COMMENT 'สถานะขั้นตอน',
+  comments TEXT NULL COMMENT 'ความคิดเห็น/หมายเหตุ',
+  completed_at DATETIME NULL COMMENT 'วันที่เสร็จสิ้นขั้นตอน',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  FOREIGN KEY (circulation_id) REFERENCES circulations (id) ON DELETE CASCADE,
+  FOREIGN KEY (organization_id) REFERENCES organizations (id),
+  FOREIGN KEY (assigned_to) REFERENCES users (user_id) ON DELETE
+  SET NULL,
+    INDEX idx_circulation_routing_circulation (circulation_id),
+    INDEX idx_circulation_routing_status (STATUS)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตารางเก็บ Routing/Workflow ของใบเวียน';
+
 -- =====================================================
 -- 7. 📤 Transmittals (เอกสารนำส่ง)
 -- =====================================================
