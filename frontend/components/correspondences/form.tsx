@@ -77,15 +77,14 @@ interface DisciplineOption {
 }
 
 interface InitialCorrespondenceData {
-  projectId?: number | string;
+  projectId?: string;
   project?: { publicId?: string };
   contract?: { publicId?: string };
   correspondenceTypeId?: number;
-  type?: { id?: number; publicId?: string };
+  type?: { id?: number };
   disciplineId?: number;
   discipline?: {
     id?: number;
-    publicId?: string;
     contract?: { publicId?: string };
   };
   revisions?: Array<{
@@ -102,11 +101,11 @@ interface InitialCorrespondenceData {
     receivedDate?: string;
     details?: { importance: 'NORMAL' | 'HIGH' | 'URGENT' };
   }>;
-  originatorId?: number;
+  originatorId?: string;
   originator?: { publicId?: string };
   recipients?: Array<{
     recipientType: string;
-    recipientOrganizationId: number;
+    recipientOrganizationId?: string;
     recipientOrganization?: { publicId?: string };
   }>;
   correspondenceNumber?: string;

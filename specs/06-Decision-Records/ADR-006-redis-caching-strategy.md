@@ -10,6 +10,20 @@
 
 ---
 
+## 🎯 Gap Analysis & Purpose
+
+### ปิด Gap จากเอกสาร:
+- **Non-Functional Rules** - Section 4.2: "ระบบต้องตอบสนอง Performance ได้ < 200ms (p90)"
+  - เหตุผล: Database queries ช้า ต้องใช้ Cache ในการเพิ่ม Performance
+- **Software Architecture** - Section 5.3: "ระบบต้องรองรับ Concurrent Access พร้อม Locking Mechanism"
+  - เหตุผล: ต้องการ Distributed Lock สำหรับ Document Numbering และ Race Conditions
+
+### แก้ไขความขัดแย้ง:
+- **Performance Requirements** vs **Data Consistency**: ต้องการความเร็วสูงแต่ต้องรักษาความสม่ำเสมอของข้อมูล
+  - การตัดสินใจนี้ช่วยแก้ไขโดย: ใช้ Redis พร้อม Cache Invalidation Strategy ที่ชัดเจน
+
+---
+
 ## Context and Problem Statement
 
 LCBP3-DMS ต้องการ High Performance ในการ:
@@ -87,6 +101,75 @@ LCBP3-DMS ต้องการ High Performance ในการ:
 ## Decision Outcome
 
 **Chosen Option:** Redis as Distributed Cache + Lock Provider
+
+---
+
+## 🔍 Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ)
+
+| Component | Level | Impact Description | Required Action |
+|-----------|-------|-------------------|-----------------|
+| **Backend Services** | 🔴 High | ทุก Service ต้องใช้ Redis สำหรับ Cache และ Locking | Implement Redis clients |
+| **Authentication** | 🔴 High | Session Management และ Permission Caching | Update Auth service |
+| **Document Numbering** | 🔴 High | Distributed Locking สำหรับ Race Condition | Integrate Redlock |
+| **Infrastructure** | 🔴 High | ต้องติดตั้ง Redis Server และ Monitoring | Redis setup |
+| **API Performance** | 🟡 Medium | Response time ลดลง < 200ms | Performance optimization |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ)
+
+#### 🔴 Critical Changes (ต้องทำทันที)
+- [ ] **Install Redis Server** - docker-compose.yml: Redis 7 configuration
+- [ ] **Create Redis Service** - backend/src/common/redis/: Redis connection management
+- [ ] **Update Auth Service** - backend/src/modules/auth/: Session caching
+- [ ] **Update Numbering Service** - backend/src/modules/document-numbering/: Distributed locks
+- [ ] **Add Permission Caching** - backend/src/modules/permissions/: Cache user abilities
+
+#### 🟡 Important Changes (ควรทำภายใน 1 สัปดาห์)
+- [ ] **Create Cache Invalidation Service** - backend/src/common/cache/: Cache management
+- [ ] **Add Rate Limiting** - backend/src/common/guards/: Redis-based rate limiter
+- [ ] **Setup BullMQ Queues** - backend/src/common/queues/: Background job processing
+- [ ] **Add Redis Monitoring** - backend/src/common/monitoring/: Metrics and alerts
+
+#### 🟢 Nice-to-Have (ทำถ้ามีเวลา)
+- [ ] **Create Redis Admin UI** - frontend/app/(admin)/admin/redis/: Cache management UI
+- [ ] **Add Performance Dashboard** - Grafana dashboards: Redis metrics visualization
+- [ ] **Implement Cache Warming** - Scripts: Pre-populate cache
+
+### Cross-Module Dependencies
+
+```mermaid
+graph TB
+    ADR[ADR-006 Redis Strategy] --> Auth[Auth Service]
+    ADR --> Numbering[Numbering Service]
+    ADR --> Permissions[Permission Service]
+    ADR --> API[All APIs]
+    ADR --> Redis[(Redis Server)]
+
+    Numbering --> ADR002[ADR-002 Numbering]
+    Auth --> ADR016[ADR-016 Security]
+    API --> ADR001[ADR-001 Workflow]
+
+    Redis --> ADR005[ADR-005 Tech Stack]
+    Redis --> ADR015[ADR-015 Deployment]
+```
+
+---
+
+## 📋 Version Dependency Matrix
+
+| ADR | Version | Dependency Type | Affected Version(s) | Implementation Status |
+|-----|---------|-----------------|---------------------|----------------------|
+| **ADR-006** | 1.0 | Infrastructure | v1.8.0+ | ✅ Implemented |
+| **ADR-002** | 1.0 | Required By | v1.8.0+ | ✅ Implemented |
+| **ADR-016** | 1.0 | Used By | v1.8.0+ | ✅ Implemented |
+| **ADR-005** | 1.0 | Component | v1.8.0+ | ✅ Implemented |
+
+### Version Compatibility Rules
+
+- **Minimum Version:** v1.8.0 (ADR มีผลบังคับใช้)
+- **Breaking Changes:** ไม่มี (Infrastructure component)
+- **Deprecation Timeline:** ไม่มี (Core infrastructure)
 
 ---
 
@@ -406,6 +489,26 @@ export class RedisMonitoringService {
 - **Memory:** Set max memory + LRU eviction policy
 - **Complexity:** Centralize invalidation logic
 - **Data Loss:** Enable AOF persistence
+
+---
+
+## 🔄 Review Cycle & Maintenance
+
+### Review Schedule
+- **Next Review:** 2026-08-24 (6 months from last review)
+- **Review Type:** Scheduled (Infrastructure Review)
+- **Reviewers:** System Architect, DevOps Engineer, Development Team Lead
+
+### Review Checklist
+- [ ] ยังคงเป็น Core Principle หรือไม่? (Redis เป็น Infrastructure หลัก)
+- [ ] มีการเปลี่ยนแปลง Technology ที่กระทบหรือไม่? (New caching solutions, Redis alternatives)
+- [ ] มี Issue หรือ Bug ที่เกิดจาก ADR นี้หรือไม่? (Cache invalidation issues, Performance problems)
+- [ ] ต้องการ Update หรือ Deprecate หรือไม่? (Redis version upgrades, New patterns)
+
+### Version History
+| Version | Date | Changes | Status |
+|---------|------|---------|--------|
+| 1.0 | 2026-02-24 | Initial version - Redis Distributed Cache + Lock | ✅ Active |
 
 ---
 

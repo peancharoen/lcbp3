@@ -4,6 +4,68 @@
 **Date:** 2025-12-01
 **Decision Makers:** Frontend Team, System Architect
 **Related Documents:** [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
+**Version Applicability:** v1.8.0+
+**Next Review:** 2026-08-01 (6-month cycle)
+
+---
+
+## Gap Analysis & Requirement Linking
+
+### ปิด Gap จาก Requirements:
+
+| Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
+|----------------|-------------|-------------------|
+| **Modern Architecture** | [Product Vision](../00-overview/00-03-product-vision.md) - Technology Requirements | App Router with Server Components |
+| **Performance Optimization** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-PERF-003 | Server Components reduce bundle size |
+| **Layout Management** | [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md) - Architecture | Built-in nested layout system |
+| **Future-Proofing** | [Engineering Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md) - Technology choices | Next.js recommended approach |
+| **Code Organization** | [Architecture](../02-architecture/02-02-software-architecture.md) - Frontend structure | Route groups and file-based routing |
+
+### แก้ไขความขัดแย้ง:
+
+- **Conflict:** Familiarity vs. Modern approach (Pages Router vs. App Router)
+- **Resolution:** Chose App Router for future-proofing and performance
+- **Trade-off:** Learning curve vs. Better performance and DX
+
+---
+
+## Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ):
+
+| Component | ผลกระทบ | ความสำคัญ |
+|-----------|----------|-----------|
+| **App Structure** | Complete folder reorganization | 🔴 Critical |
+| **Routing Logic** | File-based routing with groups | 🔴 Critical |
+| **Layout System** | Nested layouts with auth | 🔴 Critical |
+| **Data Fetching** | Server vs Client components | 🔴 Critical |
+| **State Management** | Integration with App Router | 🟡 Important |
+| **Form Handling** | Server Actions integration | 🟡 Important |
+| **Authentication** | Server-side auth checks | 🟡 Important |
+| **Component Library** | Server Component compatibility | 🟡 Important |
+| **Development Workflow** | New patterns and conventions | 🟢 Guidelines |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ):
+
+#### Frontend (Next.js)
+- [x] Restructure app/ directory with route groups
+- [x] Implement root and nested layouts
+- [x] Convert pages to Server Components where appropriate
+- [x] Add 'use client' directives to interactive components
+- [x] Implement Server Actions for form handling
+- [x] Add loading and error boundary components
+- [x] Update authentication to server-side checks
+
+#### Development Process
+- [x] Train team on Server Components
+- [x] Document App Router patterns
+- [x] Update code review guidelines
+- [x] Create migration guide from Pages Router
+
+#### Integration
+- [x] Update state management for App Router
+- [x] Ensure UI library compatibility
+- [x] Test form handling with Server Actions
 
 ---
 
@@ -381,6 +443,35 @@ export default function Error({
 
 ---
 
+## ADR Review Cycle
+
+### Core Principle Review Schedule
+- **Review Frequency:** ทุก 6 เดือน (กุมภาพันธ์ และ สิงหาคม)
+- **Trigger Events:**
+  - Major Next.js version upgrade
+  - Performance issues with current implementation
+  - New App Router features or patterns
+  - Server Components ecosystem maturity
+
+### Review Checklist
+- [ ] App Router implementation meeting performance goals
+- [ ] Server/Client component separation effective
+- [ ] Layout system working as expected
+- [ ] Team adoption and productivity satisfactory
+- [ ] Cross-document dependencies still valid
+- [ ] New Next.js features to adopt
+- [ ] Bundle size and performance metrics acceptable
+
+### Version Dependency Matrix
+
+| System Version | ADR Version | Required Changes | Status |
+|----------------|-------------|------------------|---------|
+| v1.8.0 - v1.8.5 | ADR-011 v1.0 | Base App Router implementation | ✅ Complete |
+| v1.9.0+ | ADR-011 v1.1 | Review performance and adoption | 📋 Planned |
+| v2.0.0+ | ADR-011 v2.0 | Consider new Next.js patterns | 📋 Future |
+
+---
+
 ## Related ADRs
 
 - [ADR-005: Technology Stack](./ADR-005-technology-stack.md) - เลือกใช้ Next.js
@@ -395,5 +486,16 @@ export default function Error({
 
 ---
 
-**Last Updated:** 2025-12-01
-**Next Review:** 2026-06-01
+**Document Version:** v1.0
+**Last Updated:** 2026-02-24
+**Next Review:** 2026-08-01 (6-month cycle)
+**Version Applicability:** LCBP3 v1.8.0+
+
+---
+
+## Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| v1.0 | 2025-12-01 | Initial ADR creation with App Router strategy | Frontend Team |
+| v1.1 | 2026-04-04 | Added structured templates: Impact Analysis, Gap Linking, Version Dependency, Review Cycle | System Architect |

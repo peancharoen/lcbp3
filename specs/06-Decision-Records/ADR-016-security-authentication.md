@@ -4,6 +4,67 @@
 **Date:** 2026-02-24
 **Decision Makers:** Security Team, System Architect
 **Related Documents:** [ADR-004: RBAC Implementation](./ADR-004-rbac-implementation.md), [ADR-007: API Design](./ADR-007-api-design-error-handling.md)
+**Version Applicability:** v1.8.0+
+**Next Review:** 2026-08-01 (6-month cycle)
+
+---
+
+## Gap Analysis & Requirement Linking
+
+### ปิด Gap จาก Requirements:
+
+| Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
+|----------------|-------------|-------------------|
+| **Authentication & Authorization** | [Product Vision](../00-overview/00-03-product-vision.md) - Security Requirements | JWT + RBAC 4-level implementation |
+| **Data Protection** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-SEC-001 | AES-256 encryption at rest + HTTPS in transit |
+| **Audit Trail** | [Business Rules](../01-Requirements/01-02-business-rules/01-02-01-rbac-matrix.md) | Comprehensive security event logging |
+| **Session Management** | [Edge Cases](../01-Requirements/01-06-edge-cases-and-rules.md) - Session timeout | Stateless JWT + 15min access token expiry |
+| **Input Validation** | [API Design](../02-architecture/02-04-api-design.md) - Validation layer | Class-validator + Zod + Sanitization |
+
+### แก้ไขความขัดแย้ง:
+
+- **Conflict:** Cross-domain authentication complexity vs. User Experience
+- **Resolution:** Chose Bearer tokens over HTTP-only cookies for Next.js ↔ NestJS communication
+- **Trade-off:** Slightly reduced XSS protection for improved developer experience
+
+---
+
+## Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ):
+
+| Component | ผลกระทบ | ความสำคัญ |
+|-----------|----------|-----------|
+| **Backend Auth Module** | JWT implementation + Guards | 🔴 Critical |
+| **Frontend Auth Store** | Zustand token management | 🔴 Critical |
+| **Database Schema** | refresh_tokens table | 🔴 Critical |
+| **API Controllers** | @UseGuards(JwtAuthGuard) | 🟡 Important |
+| **Middleware** | Helmet + CORS configuration | 🟡 Important |
+| **User Service** | Password hashing with bcrypt | 🟡 Important |
+| **Audit Log Service** | Security event tracking | 🟡 Important |
+| **Frontend Login Page** | Token storage logic | 🟢 Guidelines |
+| **Environment Config** | JWT secrets + Encryption keys | 🔴 Critical |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ):
+
+#### Backend (NestJS)
+- [x] Implement AuthService with JWT
+- [x] Create JwtAuthGuard
+- [x] Add refresh_tokens entity
+- [x] Configure Helmet + CORS
+- [x] Add rate limiting (Throttler)
+- [x] Implement audit logging
+
+#### Frontend (Next.js)
+- [x] Create auth store (Zustand)
+- [x] Update API client with Bearer token
+- [x] Add token refresh logic
+- [x] Update login/logout flows
+
+#### Infrastructure
+- [x] Environment variables for secrets
+- [x] HTTPS/TLS configuration
+- [x] Database encryption setup
 
 ---
 
@@ -427,6 +488,35 @@ await this.auditLogService.create({
 
 ---
 
+## ADR Review Cycle
+
+### Core Principle Review Schedule
+- **Review Frequency:** ทุก 6 เดือน (กุมภาพันธ์ และ สิงหาคม)
+- **Trigger Events:**
+  - Major version upgrade (v1.9.0, v2.0.0)
+  - Security vulnerability discovery
+  - New compliance requirements
+  - Architecture changes affecting auth
+
+### Review Checklist
+- [ ] JWT configuration still meets security standards
+- [ ] Password policy alignment with current threats
+- [ ] Rate limiting effectiveness
+- [ ] Audit log completeness
+- [ ] Cross-document dependencies still valid
+- [ ] Implementation matches documented decisions
+- [ ] New security best practices to consider
+
+### Version Dependency Matrix
+
+| System Version | ADR Version | Required Changes | Status |
+|----------------|-------------|------------------|---------|
+| v1.8.0 - v1.8.5 | ADR-016 v1.0 | Base implementation | ✅ Complete |
+| v1.9.0+ | ADR-016 v1.1 | Review JWT expiry times | 📋 Planned |
+| v2.0.0+ | ADR-016 v2.0 | Consider session management changes | 📋 Future |
+
+---
+
 ## Related ADRs
 
 - [ADR-004: RBAC Implementation](./ADR-004-rbac-implementation.md)
@@ -443,5 +533,16 @@ await this.auditLogService.create({
 
 ---
 
+**Document Version:** v1.0
 **Last Updated:** 2026-02-24
-**Next Review:** 2026-06-01 (Quarterly review)
+**Next Review:** 2026-08-01 (6-month cycle)
+**Version Applicability:** LCBP3 v1.8.0+
+
+---
+
+## Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| v1.0 | 2026-02-24 | Initial ADR creation with security strategy | Security Team |
+| v1.1 | 2026-04-04 | Added structured templates: Impact Analysis, Gap Linking, Version Dependency, Review Cycle | System Architect |

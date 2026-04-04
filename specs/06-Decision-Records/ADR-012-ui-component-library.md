@@ -4,6 +4,63 @@
 **Date:** 2026-02-24
 **Decision Makers:** Frontend Team, UX Designer
 **Related Documents:** [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
+**Version Applicability:** v1.8.0+
+**Next Review:** 2026-08-01 (6-month cycle)
+
+---
+
+## Gap Analysis & Requirement Linking
+
+### ปิด Gap จาก Requirements:
+
+| Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
+|----------------|-------------|-------------------|
+| **Design Consistency** | [Product Vision](../00-overview/00-03-product-vision.md) - UI/UX Requirements | Shadcn/UI for consistent design system |
+| **Accessibility Support** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-UI-003 | Radix UI primitives for WCAG 2.1 AA |
+| **Performance Optimization** | [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md) - Performance | Tree-shakeable components, minimal bundle |
+| **Customization Flexibility** | [Engineering Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md) - DX | Full ownership of component code |
+| **Bundle Size Constraints** | [Architecture](../02-architecture/02-02-software-architecture.md) - Performance | Copy-only-what-you-use approach |
+
+### แก้ไขความขัดแย้ง:
+
+- **Conflict:** Library vs. Custom (MUI/Ant Design vs. Shadcn/UI)
+- **Resolution:** Chose Shadcn/UI for full control and minimal bundle
+- **Trade-off:** Manual updates vs. Complete customization freedom
+
+---
+
+## Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ):
+
+| Component | ผลกระทบ | ความสำคัญ |
+|-----------|----------|-----------|
+| **UI Components** | All UI components use Shadcn/UI | 🔴 Critical |
+| **Tailwind Config** | CSS variables and theming | 🔴 Critical |
+| **Component Library** | Custom component compositions | 🔴 Critical |
+| **Form Components** | Integration with React Hook Form | 🟡 Important |
+| **Layout Components** | Page layouts and navigation | 🟡 Important |
+| **Theme System** | Dark/light mode support | 🟡 Important |
+| **Component Testing** | Unit tests for custom components | 🟡 Important |
+| **Documentation** | Component usage guidelines | 🟢 Guidelines |
+| **Update Process** | Manual component update workflow | 🟢 Guidelines |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ):
+
+#### Frontend (Next.js)
+- [x] Initialize Shadcn/UI project
+- [x] Add core components (Button, Input, Card, etc.)
+- [x] Setup Tailwind CSS with CSS variables
+- [x] Create custom component compositions
+- [x] Implement theme switching
+- [x] Update all pages to use new components
+- [x] Add component testing
+
+#### Design System
+- [x] Define design tokens and colors
+- [x] Create component usage guidelines
+- [x] Document customization patterns
+- [x] Setup component update workflow
 
 ---
 
@@ -409,6 +466,35 @@ export function CorrespondenceCard({ correspondence }) {
 
 ---
 
+## ADR Review Cycle
+
+### Core Principle Review Schedule
+- **Review Frequency:** ทุก 6 เดือน (กุมภาพันธ์ และ สิงหาคม)
+- **Trigger Events:**
+  - Major version upgrade (v1.9.0, v2.0.0)
+  - Shadcn/UI major updates
+  - New component requirements
+  - Accessibility standard updates
+
+### Review Checklist
+- [ ] Component library still meets design requirements
+- [ ] Bundle size within acceptable limits
+- [ ] Accessibility compliance maintained
+- [ ] Custom components properly documented
+- [ ] Cross-document dependencies still valid
+- [ ] New component libraries to consider
+- [ ] Component update workflow effective
+
+### Version Dependency Matrix
+
+| System Version | ADR Version | Required Changes | Status |
+|----------------|-------------|------------------|---------|
+| v1.8.0 - v1.8.5 | ADR-012 v1.0 | Base Shadcn/UI implementation | ✅ Complete |
+| v1.9.0+ | ADR-012 v1.1 | Review component updates and performance | 📋 Planned |
+| v2.0.0+ | ADR-012 v2.0 | Consider new UI patterns or libraries | 📋 Future |
+
+---
+
 ## Related ADRs
 
 - [ADR-005: Technology Stack](./ADR-005-technology-stack.md) - เลือกใช้ Tailwind CSS
@@ -424,5 +510,16 @@ export function CorrespondenceCard({ correspondence }) {
 
 ---
 
-**Last Updated:** 2025-12-01
-**Next Review:** 2026-06-01
+**Document Version:** v1.0
+**Last Updated:** 2026-02-24
+**Next Review:** 2026-08-01 (6-month cycle)
+**Version Applicability:** LCBP3 v1.8.0+
+
+---
+
+## Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| v1.0 | 2026-02-24 | Initial ADR creation with UI component strategy | Frontend Team |
+| v1.1 | 2026-04-04 | Added structured templates: Impact Analysis, Gap Linking, Version Dependency, Review Cycle | System Architect |

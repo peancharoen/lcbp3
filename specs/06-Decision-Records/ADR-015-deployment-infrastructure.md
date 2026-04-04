@@ -4,6 +4,67 @@
 **Date:** 2026-02-24
 **Decision Makers:** DevOps Team, System Architect
 **Related Documents:** [ADR-005: Technology Stack](./ADR-005-technology-stack.md), [Operations Guide](../04-Infrastructure-OPS/04-04-deployment-guide.md), [Docker Compose Setup](../04-Infrastructure-OPS/04-01-docker-compose.md)
+**Version Applicability:** v1.8.0+
+**Next Review:** 2026-08-01 (6-month cycle)
+
+---
+
+## Gap Analysis & Requirement Linking
+
+### ปิด Gap จาก Requirements:
+
+| Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
+|----------------|-------------|-------------------|
+| **Deployment Strategy** | [Product Vision](../00-overview/00-03-product-vision.md) - Infrastructure Requirements | Docker Compose + Blue-Green on QNAP |
+| **Zero Downtime** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-DEPLOY-001 | Blue-Green deployment with NGINX proxy |
+| **Resource Constraints** | [Infrastructure OPS](../04-Infrastructure-OPS/04-01-docker-compose.md) - QNAP limitations | Single-server Docker Compose (not K8s) |
+| **Rollback Capability** | [Edge Cases](../01-Requirements/01-06-edge-cases-and-rules.md) - Deployment failures | Tagged images + NGINX switchback |
+| **Environment Management** | [Security ADR-016](./ADR-016-security-authentication.md) - Secrets management | .env files on QNAP only |
+
+### แก้ไขความขัดแย้ง:
+
+- **Conflict:** Complexity vs. Reliability (Docker Compose vs Kubernetes)
+- **Resolution:** Chose Docker Compose for QNAP compatibility, added Blue-Green for reliability
+- **Trade-off:** Manual scaling vs. Resource efficiency
+
+---
+
+## Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ):
+
+| Component | ผลกระทบ | ความสำคัญ |
+|-----------|----------|-----------|
+| **Docker Compose Files** | Blue/Green structure + NGINX proxy | 🔴 Critical |
+| **Deployment Scripts** | deploy.sh with health checks | 🔴 Critical |
+| **Environment Config** | .env management strategy | 🔴 Critical |
+| **QNAP Storage** | Volume mounting strategy | 🔴 Critical |
+| **NGINX Configuration** | Reverse proxy setup | 🟡 Important |
+| **CI/CD Pipeline** | Gitea Actions integration | 🟡 Important |
+| **Monitoring Setup** | Health check endpoints | 🟡 Important |
+| **Backup Strategy** | Database backup automation | 🟡 Important |
+| **Documentation** | Deployment runbooks | 🟢 Guidelines |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ):
+
+#### Infrastructure (QNAP)
+- [x] Create blue/green directory structure
+- [x] Setup shared volumes for uploads/logs
+- [x] Configure NGINX reverse proxy
+- [x] Implement deployment scripts
+- [x] Setup environment variables management
+
+#### Application (Backend/Frontend)
+- [x] Add health check endpoints
+- [x] Implement graceful shutdown
+- [x] Add startup validation for required env vars
+- [x] Configure logging to shared volume
+
+#### Operations
+- [x] Create deployment checklist
+- [x] Setup backup automation
+- [x] Document rollback procedures
+- [x] Configure monitoring alerts
 
 ---
 
@@ -440,6 +501,35 @@ server {
 
 ---
 
+## ADR Review Cycle
+
+### Core Principle Review Schedule
+- **Review Frequency:** ทุก 6 เดือน (กุมภาพันธ์ และ สิงหาคม)
+- **Trigger Events:**
+  - Major version upgrade (v1.9.0, v2.0.0)
+  - QNAP Container Station updates
+  - Performance issues requiring scaling changes
+  - Security updates affecting deployment
+
+### Review Checklist
+- [ ] Blue-Green deployment still meets zero-downtime requirements
+- [ ] Resource allocation matches current load
+- [ ] Security best practices still current
+- [ ] QNAP compatibility maintained
+- [ ] Cross-document dependencies still valid
+- [ ] New deployment tools/practices to consider
+- [ ] Backup and recovery procedures tested
+
+### Version Dependency Matrix
+
+| System Version | ADR Version | Required Changes | Status |
+|----------------|-------------|------------------|---------|
+| v1.8.0 - v1.8.5 | ADR-015 v1.0 | Base Docker Compose setup | ✅ Complete |
+| v1.9.0+ | ADR-015 v1.1 | Review resource allocation | 📋 Planned |
+| v2.0.0+ | ADR-015 v2.0 | Consider horizontal scaling | 📋 Future |
+
+---
+
 ## Related ADRs
 
 - [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
@@ -455,5 +545,16 @@ server {
 
 ---
 
+**Document Version:** v1.0
 **Last Updated:** 2026-02-24
-**Next Review:** 2026-06-01
+**Next Review:** 2026-08-01 (6-month cycle)
+**Version Applicability:** LCBP3 v1.8.0+
+
+---
+
+## Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| v1.0 | 2026-02-24 | Initial ADR creation with deployment strategy | DevOps Team |
+| v1.1 | 2026-04-04 | Added structured templates: Impact Analysis, Gap Linking, Version Dependency, Review Cycle | System Architect |

@@ -70,6 +70,7 @@ type RfaTypeOption = {
 };
 
 type CorrespondenceTypeOption = {
+  id: number; // Master data INT ID
   publicId: string; // ADR-019: public identifier
   typeCode?: string;
   typeName?: string;
@@ -272,8 +273,8 @@ export function RFAForm() {
       try {
         const res = await correspondenceService.previewNumber({
           projectId: selectedProjectId,
-          typeId: rfaCorrespondenceType.publicId,
-          disciplineId,
+          typeId: rfaCorrespondenceType.id,
+          disciplineId: Number(disciplineId || 0),
           recipients: [{ organizationId: toOrganizationId, type: 'TO' }],
           subject: watch('subject') || 'Preview Subject',
         });

@@ -4,6 +4,64 @@
 **Date:** 2026-02-24
 **Decision Makers:** Frontend Team
 **Related Documents:** [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md), [ADR-011: App Router](./ADR-011-nextjs-app-router.md)
+**Version Applicability:** v1.8.0+
+**Next Review:** 2026-08-01 (6-month cycle)
+
+---
+
+## Gap Analysis & Requirement Linking
+
+### ปิด Gap จาก Requirements:
+
+| Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
+|----------------|-------------|-------------------|
+| **Global State Management** | [Product Vision](../00-overview/00-03-product-vision.md) - UI/UX Requirements | Zustand for client state |
+| **Server State Synchronization** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-UI-001 | TanStack Query for API data |
+| **Performance Optimization** | [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md) - Performance | Selective re-renders with Zustand |
+| **Type Safety** | [Engineering Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md) - TypeScript | Full TypeScript support |
+| **Bundle Size Constraints** | [Architecture](../02-architecture/02-02-software-architecture.md) - Performance | Lightweight solutions (Zustand 1.2kb) |
+
+### แก้ไขความขัดแย้ง:
+
+- **Conflict:** Complexity vs. Features (Redux vs. Zustand)
+- **Resolution:** Chose Zustand + TanStack Query for simplicity and specialization
+- **Trade-off:** Smaller ecosystem vs. Better developer experience
+
+---
+
+## Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ):
+
+| Component | ผลกระทบ | ความสำคัญ |
+|-----------|----------|-----------|
+| **Auth Store** | User session management | 🔴 Critical |
+| **Notification Store** | Global notifications | 🔴 Critical |
+| **UI Store** | Theme and preferences | 🟡 Important |
+| **API Client** | TanStack Query integration | 🔴 Critical |
+| **Form Components** | React Hook Form + Zod | 🟡 Important |
+| **Server Components** | Data fetching patterns | 🟡 Important |
+| **Component Structure** | 'use client' directives | 🟡 Important |
+| **Testing Setup** | Store testing patterns | 🟢 Guidelines |
+| **Documentation** | State management patterns | 🟢 Guidelines |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ):
+
+#### Frontend (Next.js)
+- [x] Install Zustand and TanStack Query
+- [x] Create auth store with persistence
+- [x] Create notification store
+- [x] Create UI preferences store
+- [x] Setup Query Provider
+- [x] Update components to use stores
+- [x] Add 'use client' directives where needed
+- [x] Implement form validation with RHF + Zod
+
+#### Architecture
+- [x] Define state management patterns
+- [x] Document when to use each solution
+- [x] Create store templates
+- [x] Setup testing utilities for stores
 
 ---
 
@@ -381,6 +439,35 @@ export const useUIStore = create<UIState>()(
 
 ---
 
+## ADR Review Cycle
+
+### Core Principle Review Schedule
+- **Review Frequency:** ทุก 6 เดือน (กุมภาพันธ์ และ สิงหาคม)
+- **Trigger Events:**
+  - Major version upgrade (v1.9.0, v2.0.0)
+  - Performance issues requiring state management changes
+  - New React/Next.js features affecting state
+  - Bundle size optimization requirements
+
+### Review Checklist
+- [ ] State management patterns still meet requirements
+- [ ] Bundle size within acceptable limits
+- [ ] Performance metrics acceptable (re-render counts)
+- [ ] Type safety maintained across stores
+- [ ] Cross-document dependencies still valid
+- [ ] New state management libraries to consider
+- [ ] Testing coverage for stores adequate
+
+### Version Dependency Matrix
+
+| System Version | ADR Version | Required Changes | Status |
+|----------------|-------------|------------------|---------|
+| v1.8.0 - v1.8.5 | ADR-014 v1.0 | Base Zustand + TanStack Query setup | ✅ Complete |
+| v1.9.0+ | ADR-014 v1.1 | Review bundle size and performance | 📋 Planned |
+| v2.0.0+ | ADR-014 v2.0 | Consider new React state patterns | 📋 Future |
+
+---
+
 ## Related ADRs
 
 - [ADR-011: Next.js App Router](./ADR-011-nextjs-app-router.md) - Server Components
@@ -396,5 +483,16 @@ export const useUIStore = create<UIState>()(
 
 ---
 
+**Document Version:** v1.0
 **Last Updated:** 2026-02-24
-**Next Review:** 2026-06-01
+**Next Review:** 2026-08-01 (6-month cycle)
+**Version Applicability:** LCBP3 v1.8.0+
+
+---
+
+## Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| v1.0 | 2026-02-24 | Initial ADR creation with state management strategy | Frontend Team |
+| v1.1 | 2026-04-04 | Added structured templates: Impact Analysis, Gap Linking, Version Dependency, Review Cycle | System Architect |

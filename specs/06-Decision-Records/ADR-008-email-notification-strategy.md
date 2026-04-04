@@ -4,6 +4,63 @@
 **Date:** 2026-02-24
 **Decision Makers:** Backend Team, System Architect
 **Related Documents:** [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md), [TASK-BE-011](../06-tasks/README.md)
+**Version Applicability:** v1.8.0+
+**Next Review:** 2026-08-01 (6-month cycle)
+
+---
+
+## Gap Analysis & Requirement Linking
+
+### ปิด Gap จาก Requirements:
+
+| Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
+|----------------|-------------|-------------------|
+| **Multi-Channel Notifications** | [Product Vision](../00-overview/00-03-product-vision.md) - Communication Requirements | BullMQ + Redis for Email, LINE, In-app |
+| **Performance Optimization** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-PERF-001 | Async queue prevents API blocking |
+| **Reliability & Retry** | [Business Rules](../01-Requirements/01-02-business-rules/01-02-03-ui-ux-rules.md) - User Experience | BullMQ retry mechanism with exponential backoff |
+| **Template Management** | [Engineering Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md) - Maintainability | Handlebars templates with Git versioning |
+| **User Preferences** | [Edge Cases](../01-Requirements/01-06-edge-cases-and-rules.md) - User settings | Configurable notification channels |
+
+### แก้ไขความขัดแย้ง:
+
+- **Conflict:** Sync vs Async sending (Performance vs. Simplicity)
+- **Resolution:** Chose BullMQ for reliability and performance
+- **Trade-off:** Redis dependency vs. Robust notification system
+
+---
+
+## Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ):
+
+| Component | ผลกระทบ | ความสำคัญ |
+|-----------|----------|-----------|
+| **Notification Service** | Core notification logic | 🔴 Critical |
+| **Email Queue** | BullMQ queue setup | 🔴 Critical |
+| **Email Processor** | Queue worker implementation | 🔴 Critical |
+| **LINE Notify Queue** | LINE notification handling | 🟡 Important |
+| **Email Templates** | Handlebars template files | 🟡 Important |
+| **Workflow Integration** | Event → notification triggers | 🟡 Important |
+| **Redis Infrastructure** | Queue storage and management | 🔴 Critical |
+| **User Preferences** | Notification settings UI | 🟢 Guidelines |
+| **Monitoring Dashboard** | Bull Board for job monitoring | 🟢 Guidelines |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ):
+
+#### Backend (NestJS)
+- [x] Setup BullMQ module with Redis connection
+- [x] Create NotificationService with queue management
+- [x] Implement EmailProcessor with Handlebars templates
+- [x] Add LINE Notify processor
+- [x] Integrate with workflow events
+- [x] Add retry logic and error handling
+- [x] Setup job monitoring (Bull Board)
+
+#### Infrastructure
+- [x] Configure Redis for queue persistence
+- [x] Setup SMTP credentials
+- [x] Create email template directory structure
+- [x] Configure LINE Notify API access
 
 ---
 
@@ -387,6 +444,35 @@ async notifyWorkflowTransition(
 
 ---
 
+## ADR Review Cycle
+
+### Core Principle Review Schedule
+- **Review Frequency:** ทุก 6 เดือน (กุมภาพันธ์ และ สิงหาคม)
+- **Trigger Events:**
+  - Major version upgrade (v1.9.0, v2.0.0)
+  - Notification channel requirements changes
+  - Queue performance issues
+  - New notification providers (LINE Notify v2, etc.)
+
+### Review Checklist
+- [ ] Queue performance metrics acceptable
+- [ ] Email delivery rates within SLA
+- [ ] Template system still meets requirements
+- [ ] Redis capacity and performance adequate
+- [ ] Cross-document dependencies still valid
+- [ ] New notification channels to consider
+- [ ] Security of notification data maintained
+
+### Version Dependency Matrix
+
+| System Version | ADR Version | Required Changes | Status |
+|----------------|-------------|------------------|---------|
+| v1.8.0 - v1.8.5 | ADR-008 v1.0 | Base BullMQ + Redis setup | ✅ Complete |
+| v1.9.0+ | ADR-008 v1.1 | Review queue performance and channels | 📋 Planned |
+| v2.0.0+ | ADR-008 v2.0 | Consider new notification patterns | 📋 Future |
+
+---
+
 ## Related ADRs
 
 - [ADR-006: Redis Caching Strategy](./ADR-006-redis-caching-strategy.md) - ใช้ Redis สำหรับ Queue
@@ -402,5 +488,16 @@ async notifyWorkflowTransition(
 
 ---
 
-**Last Updated:** 2025-12-01
-**Next Review:** 2025-06-01
+**Document Version:** v1.0
+**Last Updated:** 2026-02-24
+**Next Review:** 2026-08-01 (6-month cycle)
+**Version Applicability:** LCBP3 v1.8.0+
+
+---
+
+## Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| v1.0 | 2026-02-24 | Initial ADR creation with notification strategy | Backend Team |
+| v1.1 | 2026-04-04 | Added structured templates: Impact Analysis, Gap Linking, Version Dependency, Review Cycle | System Architect |

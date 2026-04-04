@@ -3,7 +3,15 @@
 **Status:** Accepted
 **Date:** 2026-03-12
 **Version:** 1.8.2
+**Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
 **Decision Makers:** Development Team, Database Architect
+**Gap Resolution:** Addresses security vulnerability from sequential INT IDs (OWASP BOLA) and scalability requirements for cross-system integration (Product Vision v1.8.5, Section 2.4) and API security requirements (Security Requirements, Section 3.1)
+**Version Dependency:**
+- **Effective From:** v1.8.2
+- **Applies To:** v1.8.2+ (Progressive implementation)
+- **Backward Compatible:** v1.8.0+ (Dual-mode transition)
+- **Required For:** v1.9.0+ (All public APIs must use UUID)
+
 **Related Documents:**
 
 - [Data Dictionary](../03-Data-and-Storage/03-01-data-dictionary.md)
@@ -89,6 +97,48 @@
 **Chosen Option:** Option 3 — Hybrid INT + UUID (MariaDB Native Type)
 
 **Rationale:** เป็นแนวทางที่ Balance ระหว่าง Security, Performance และ Migration Effort ดีที่สุด ไม่ต้อง Rewrite FK ทั้งหมด ไม่ต้อง Migrate ข้อมูล และเพิ่มความปลอดภัยของ API
+
+---
+
+## Impact Analysis
+
+### Affected Components
+
+| Component | Impact Level | Description |
+|-----------|--------------|-------------|
+| **Database Schema** | **High** | Add UUID columns to 14 core tables with UNIQUE indexes |
+| **Backend Entities** | **High** | Add BaseUuidEntity, update all public-facing entities |
+| **API Layer** | **High** | Update controllers, services, DTOs to use UUID parameters |
+| **Frontend Types** | **Medium** | Update TypeScript interfaces to use publicId consistently |
+| **URL Routing** | **Medium** | Change route patterns from INT to UUID parameters |
+| **Security Model** | **Medium** | Enhanced OWASP BOLA protection, API authentication |
+| **Caching Strategy** | **Medium** | Redis cache keys transition from INT to UUID |
+| **API Documentation** | **Low** | Update endpoint documentation and examples |
+| **Testing Framework** | **Low** | Update test fixtures and mock data |
+
+### Required Changes
+
+| Change Category | Specific Changes | Priority |
+|----------------|------------------|----------|
+| **Database** | <ul><li>ADD UUID column to 14 core tables (SQL First)</li><li>CREATE UNIQUE INDEX on each UUID column</li><li>Update data dictionary with new fields</li></ul> | **Critical** |
+| **Backend** | <ul><li>Create BaseUuidEntity with publicId property</li><li>Update 14+ entities to extend BaseUuidEntity</li><li>Modify controllers to accept UUID parameters</li><li>Update services to resolve UUID → INT for queries</li><li>Modify DTOs to expose publicId, exclude INT id</li></ul> | **Critical** |
+| **API Layer** | <ul><li>Update route patterns to use :uuid parameters</li><li>Add ParseUUIDPipe for validation</li><li>Implement FindByIdOrUuid methods during transition</li><li>Update API responses to return publicId</li></ul> | **Critical** |
+| **Frontend** | <ul><li>Update all TypeScript interfaces to use publicId</li><li>Remove fallback uuid/id fields from types</li><li>Update URL construction to use publicId</li><li>Modify API calls to pass UUID strings</li></ul> | **High** |
+| **Security** | <ul><li>Update CASL policies to work with UUID identifiers</li><li>Enhance API authentication for UUID-based routes</li><li>Update audit logging to use UUID references</li></ul> | **High** |
+| **Caching** | <ul><li>Update Redis cache key strategy to use UUID</li><li>Implement cache invalidation for UUID-based keys</li><li>Migrate existing cache entries during transition</li></ul> | **Medium** |
+| **Testing** | <ul><li>Update unit tests with UUID fixtures</li><li>Modify integration tests for UUID routes</li><li>Add performance tests for UUID vs INT lookups</li></ul> | **Medium** |
+| **Documentation** | <ul><li>Update API documentation with UUID examples</li><li>Create migration guide for developers</li><li>Update frontend development guidelines</li></ul> | **Medium** |
+
+### Cross-Component Dependencies
+
+| Dependency | Source | Target | Impact |
+|------------|--------|--------|--------|
+| **Entity → Database** | BaseUuidEntity publicId property | Database uuid column | Data persistence |
+| **Controller → Service** | UUID route parameters | Service UUID resolution | Request handling |
+| **Frontend → API** | publicId in TypeScript | UUID API endpoints | Data binding |
+| **Cache → Database** | Redis UUID keys | Database UUID lookups | Performance |
+| **Security → API** | CASL UUID policies | UUID-based route protection | Authorization |
+| **Documentation → Code** | UUID examples | Implementation patterns | Developer guidance |
 
 ---
 
@@ -510,12 +560,119 @@ type ProjectOption = {
 
 ---
 
+## ADR Review Cycle
+
+### Review Classification
+
+**Core ADR Status:** This ADR is classified as a **Core Architecture Decision** due to its fundamental impact on system security, data architecture, and API design patterns.
+
+### Review Schedule
+
+| Review Type | Frequency | Trigger | Scope |
+|-------------|-----------|---------|-------|
+| **Regular Review** | Every 6 months | Calendar-based | Security effectiveness, performance impact |
+| **Major Version Review** | Every major version (v2.0.0, v3.0.0) | Version planning | Architecture relevance, new requirements |
+| **Security Review** | Annually or after security incident | Security audit | OWASP compliance, threat model updates |
+| **Performance Review** | Quarterly | Performance monitoring | Database performance, query optimization |
+
+### Review Process
+
+#### Phase 1: Preparation (1 week before review)
+1. **Metrics Collection**
+   - UUID vs INT query performance benchmarks
+   - Security incident reports related to ID enumeration
+   - Storage usage and growth patterns
+   - Developer adoption and compliance rates
+   - Cross-system integration success metrics
+
+2. **Stakeholder Notification**
+   - Development Team
+   - Database Architect
+   - Security Team
+   - API Team
+   - Frontend Team
+
+#### Phase 2: Review Meeting (2-hour session)
+1. **Security Assessment**
+   - Review any ID enumeration attempts
+   - Assess OWASP BOLA protection effectiveness
+   - Evaluate UUID randomness and collision resistance
+
+2. **Performance Evaluation**
+   - Analyze UUID lookup performance vs INT
+   - Review index fragmentation and maintenance
+   - Assess storage impact and growth projections
+
+3. **Implementation Compliance**
+   - Check frontend publicId usage consistency
+   - Verify API endpoint UUID adoption
+   - Review cache key migration progress
+
+#### Phase 3: Decision & Documentation (1 week after review)
+1. **Review Outcomes**
+   - **No Change:** ADR remains valid and effective
+   - **Update Required:** Adjust naming conventions or patterns
+   - **Supersede:** New ADR created for different identifier strategy
+   - **Retire:** ADR no longer relevant (unlikely given core nature)
+
+2. **Documentation Updates**
+   - Update review date and findings
+   - Add new version notes
+   - Update implementation guidelines
+   - Modify transition timeline if needed
+
+### Review Criteria
+
+| Criterion | Question | Pass/Fail Threshold |
+|-----------|----------|---------------------|
+| **Security Effectiveness** | Are ID enumeration attacks prevented? | Pass: 0 incidents, Fail: Any successful enumeration |
+| **Performance Impact** | Are UUID lookups within acceptable limits? | Pass: <50ms avg, Fail: >50ms avg |
+| **Developer Compliance** | Is publicId used consistently across codebase? | Pass: >95% compliance, Fail: <95% |
+| **Storage Efficiency** | Is storage impact within projections? | Pass: <5% deviation, Fail: >5% |
+| **API Coverage** | Are all public APIs using UUID? | Pass: 100% coverage, Fail: Any INT-based endpoints |
+| **Frontend Consistency** | Are all TypeScript types using publicId? | Pass: 100% compliance, Fail: Any fallback fields |
+
+### Review History Template
+
+```
+## Review Cycle [YYYY-MM-DD]
+
+**Review Type:** [Regular/Major Version/Security/Performance]
+**Reviewers:** [Names and roles]
+**Duration:** [Meeting date]
+
+### Findings
+- [Key findings from security and performance assessment]
+
+### Issues Identified
+- [Problems or concerns discovered]
+
+### Recommendations
+- [Action items and decisions]
+
+### Outcome
+- [No Change/Update Required/Supersede/Retire]
+
+### Next Review Date
+- [YYYY-MM-DD]
+```
+
+---
+
 ## 🔄 Change Log
 
 | Version | Date       | Changes                                                             | Updated By  |
 | ------- | ---------- | ------------------------------------------------------------------- | ----------- |
+| 1.8.3   | 2026-04-04 | Enhanced — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking | System Architect |
 | 1.8.2   | 2026-04-01 | Removed Waiver: Session Identity to enforce strict `publicId` usage | Antigravity |
 | 1.8.1   | 2026-03-21 | Added Naming Convention Summary & Transition Strategy               | Claude      |
 | 1.8.0   | 2026-03-12 | Initial Decision Outcome & Technical Spec                           | Human Dev   |
+
+---
+
+**Last Updated:** 2026-04-04
+**Status:** Accepted
+**Implementation Target:** v1.9.0+ (Progressive)
+**Next Review Date:** 2026-10-04 (6-month regular review)
 
 _สำหรับรายละเอียดการ Implement ดูที่ Implementation Plan ใน `05-07-hybrid-uuid-implementation-plan.md`_

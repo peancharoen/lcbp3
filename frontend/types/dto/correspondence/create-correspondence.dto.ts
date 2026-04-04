@@ -1,17 +1,17 @@
 // File: src/types/dto/correspondence/create-correspondence.dto.ts
 
 export interface CreateCorrespondenceDto {
-  /** ID or UUID ของโครงการ */
-  projectId: number | string;
+  /** UUID ของโครงการ (ADR-019) */
+  projectId: string;
 
-  /** ID ของประเภทเอกสาร (เช่น RFA, LETTER) - ADR-019: Accept UUID */
-  typeId: number | string;
+  /** ID ของประเภทเอกสาร (เช่น RFA, LETTER) - Master data ใช้ INT */
+  typeId: number;
 
-  /** [Req 6B] สาขางาน (เช่น GEN, STR) - ADR-019: Accept UUID */
-  disciplineId?: number | string;
+  /** [Req 6B] สาขางาน (เช่น GEN, STR) - Master data ใช้ INT */
+  disciplineId?: number;
 
-  /** [Req 6B] ประเภทย่อย (เช่น MAT, SHP สำหรับ Transmittal/RFA) - ADR-019: Accept UUID */
-  subTypeId?: number | string;
+  /** [Req 6B] ประเภทย่อย (เช่น MAT, SHP สำหรับ Transmittal/RFA) - Master data ใช้ INT */
+  subTypeId?: number;
 
   /** หัวข้อเอกสาร */
   subject: string;
@@ -44,13 +44,13 @@ export interface CreateCorrespondenceDto {
   isInternal?: boolean;
 
   /** * ✅ Field สำหรับ Impersonation (เลือกองค์กรผู้ส่ง)
-   * ใช้กรณี Admin สร้างเอกสารแทนผู้อื่น
+   * ใช้กรณี Admin สร้างเอกสารแทนผู้อื่น (ADR-019: UUID)
    */
-  originatorId?: number | string;
+  originatorId?: string;
 
   /** Temp IDs from two-phase file upload (POST /files/upload → tempId) */
   attachmentTempIds?: string[];
 
-  /** รายชื่อผู้รับ */
-  recipients?: { organizationId: number | string; type: 'TO' | 'CC' }[];
+  /** รายชื่อผู้รับ (ADR-019: organizationId เป็น UUID) */
+  recipients?: { organizationId: string; type: 'TO' | 'CC' }[];
 }

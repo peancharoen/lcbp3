@@ -4,6 +4,65 @@
 **Date:** 2026-02-24
 **Decision Makers:** Backend Team, DevOps Team, System Architect
 **Related Documents:** [TASK-BE-001](../06-tasks/TASK-BE-015-schema-v160-migration.md), [ADR-005: Technology Stack](./ADR-005-technology-stack.md)
+**Version Applicability:** v1.8.0+
+**Next Review:** 2026-08-01 (6-month cycle)
+
+---
+
+## Gap Analysis & Requirement Linking
+
+### ปิด Gap จาก Requirements:
+
+| Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
+|----------------|-------------|-------------------|
+| **Schema Evolution** | [Product Vision](../00-overview/00-03-product-vision.md) - Data Integrity | TypeORM migrations with version control |
+| **Zero-Downtime Deployment** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-DEPLOY-001 | Blue-Green deployment strategy |
+| **Data Safety** | [Business Rules](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md) - Document numbering | Rollback mechanism with backups |
+| **Team Collaboration** | [Engineering Guidelines](../05-Engineering-Guidelines/05-02-backend-guidelines.md) - Team workflows | Git-based migration collaboration |
+| **Auditability** | [Infrastructure OPS](../04-Infrastructure-OPS/04-04-deployment-guide.md) - Deployment tracking | Migration tracking table and CI/CD integration |
+
+### แก้ไขความขัดแย้ง:
+
+- **Conflict:** Simplicity vs. Safety (Synchronize vs. TypeORM Migrations)
+- **Resolution:** Chose TypeORM Migrations for production safety
+- **Trade-off:** Additional discipline required vs. Data protection
+
+---
+
+## Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ):
+
+| Component | ผลกระทบ | ความสำคัญ |
+|-----------|----------|-----------|
+| **Database Config** | TypeORM configuration with migrations | 🔴 Critical |
+| **Migration Files** | Version-controlled schema changes | 🔴 Critical |
+| **CI/CD Pipeline** | Automated migration execution | 🔴 Critical |
+| **Deployment Scripts** | Blue-Green deployment logic | 🔴 Critical |
+| **Database Backup** | Pre-migration backup strategy | 🔴 Critical |
+| **Migration Testing** | Test suite for migrations | 🟡 Important |
+| **Documentation** | Migration best practices guide | 🟢 Guidelines |
+| **Monitoring** | Migration execution monitoring | 🟢 Guidelines |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ):
+
+#### Backend (NestJS)
+- [x] Configure TypeORM with migrations disabled
+- [x] Create migration workflow scripts
+- [x] Setup migration testing framework
+- [x] Implement migration rollback procedures
+- [x] Add migration health checks
+
+#### DevOps/Infrastructure
+- [x] Create database backup automation
+- [x] Setup Blue-Green deployment pipeline
+- [x] Configure migration execution in CI/CD
+- [x] Add migration monitoring and alerts
+
+#### Team Processes
+- [x] Define migration review checklist
+- [x] Document migration conflict resolution
+- [x] Create migration approval workflow
 
 ---
 
@@ -349,6 +408,35 @@ describe('Migrations', () => {
 
 ---
 
+## ADR Review Cycle
+
+### Core Principle Review Schedule
+- **Review Frequency:** ทุก 6 เดือน (กุมภาพันธ์ และ สิงหาคม)
+- **Trigger Events:**
+  - Major version upgrade (v1.9.0, v2.0.0)
+  - Complex schema changes requiring breaking migrations
+  - Database performance issues
+  - New TypeORM version compatibility
+
+### Review Checklist
+- [ ] Migration process still meeting safety requirements
+- [ ] Zero-downtime strategy effective
+- [ ] Rollback procedures tested and working
+- [ ] Team collaboration workflow smooth
+- [ ] Cross-document dependencies still valid
+- [ ] New database technologies or patterns to consider
+- [ ] Migration execution time within acceptable limits
+
+### Version Dependency Matrix
+
+| System Version | ADR Version | Required Changes | Status |
+|----------------|-------------|------------------|---------|
+| v1.8.0 - v1.8.5 | ADR-009 v1.0 | Base TypeORM migration setup | ✅ Complete |
+| v1.9.0+ | ADR-009 v1.1 | Review migration performance and tools | 📋 Planned |
+| v2.0.0+ | ADR-009 v2.0 | Consider new database patterns | 📋 Future |
+
+---
+
 ## Related ADRs
 
 - [ADR-005: Technology Stack](./ADR-005-technology-stack.md) - เลือกใช้ TypeORM
@@ -364,5 +452,16 @@ describe('Migrations', () => {
 
 ---
 
-**Last Updated:** 2025-12-01
-**Next Review:** 2025-06-01
+**Document Version:** v1.0
+**Last Updated:** 2026-02-24
+**Next Review:** 2026-08-01 (6-month cycle)
+**Version Applicability:** LCBP3 v1.8.0+
+
+---
+
+## Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| v1.0 | 2026-02-24 | Initial ADR creation with migration strategy | Backend Team |
+| v1.1 | 2026-04-04 | Added structured templates: Impact Analysis, Gap Linking, Version Dependency, Review Cycle | System Architect |

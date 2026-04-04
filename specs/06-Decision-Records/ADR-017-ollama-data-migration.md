@@ -3,7 +3,15 @@
 **Status:** Accepted
 **Date:** 2026-02-26
 **Version:** 1.8.3 (Aligned with ADR-020)
+**Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
 **Decision Makers:** Development Team, DevOps Engineer, AI Integration Lead
+**Gap Resolution:** Addresses legacy document migration challenges (20,000+ PDFs) and data integrity validation requirements (Product Vision v1.8.5, Section 3.1) and migration acceptance criteria (UAT Criteria, Section 4.6)
+**Version Dependency:**
+- **Effective From:** v1.8.3
+- **Applies To:** v1.8.3+ (Migration execution)
+- **Backward Compatible:** v1.8.0+ (Migration planning)
+- **Required For:** v1.9.0+ (Legacy data completion)
+
 **Related Documents:**
 
 - [ADR-020: AI Intelligence Integration Architecture](./ADR-020-ai-intelligence-integration.md) — Overall AI Architecture & RFA-First Strategy
@@ -85,7 +93,51 @@
 
 **Chosen Option:** Option 3 — Local AI Model (Ollama) + n8n
 
-**Rationale:** ประยุกต์ใช้ Hardware ที่มีอยู่ โดยไม่ขัดหลัก Privacy และ Security ของโครงการ n8n ช่วยลด Risk ที่จะกระทบ Core Backend และรองรับ Checkpoint/Resume ได้ดีกว่าการเขียน Script เอง
+**Rationale:**
+
+ประยุกต์ใช้ Hardware ที่มีอยู่ โดยไม่ขัดหลัก Privacy และ Security ของโครงการ n8n ช่วยลด Risk ที่จะกระทบ Core Backend และรองรับ Checkpoint/Resume ได้ดีกว่าการเขียน Script เอง
+
+---
+
+## Impact Analysis
+
+### Affected Components
+
+| Component | Impact Level | Description |
+|-----------|--------------|-------------|
+| **Migration Infrastructure** | **High** | n8n workflows, Ollama AI services, Admin Desktop setup |
+| **Database Schema** | **High** | Migration tables, audit logs, staging areas |
+| **Backend Services** | **High** | Migration APIs, validation services, storage integration |
+| **Storage Systems** | **Medium** | Two-phase storage, file management, cleanup processes |
+| **Security Model** | **Medium** | Migration tokens, IP whitelisting, audit trails |
+| **Frontend Interface** | **Medium** | Migration dashboard, review queues, approval workflows |
+| **Monitoring & Logging** | **Medium** | Migration progress tracking, error handling, performance metrics |
+| **Documentation** | **Low** | Migration procedures, troubleshooting guides |
+
+### Required Changes
+
+| Change Category | Specific Changes | Priority |
+|----------------|------------------|----------|
+| **Infrastructure** | <ul><li>Setup n8n on QNAP NAS with Docker</li><li>Install Ollama with Gemma 4 on Admin Desktop</li><li>Configure PaddleOCR service for Thai text extraction</li><li>Setup network segmentation and AI isolation per ADR-018</li><li>Configure GPU monitoring and temperature controls</li></ul> | **Critical** |
+| **Database** | <ul><li>Create migration_logs table with UUIDv7 primary keys</li><li>Create migration_review_queue staging table</li><li>Create import_transactions audit table</li><li>Create migration_progress tracking table</li><li>Setup migration_fallback_state table</li></ul> | **Critical** |
+| **Backend** | <ul><li>Implement MigrationService with business logic</li><li>Create AI validation layer with confidence thresholds</li><li>Add migration-specific API endpoints with CASL guards</li><li>Implement idempotency handling for migration requests</li><li>Create storage service integration for two-phase file handling</li></ul> | **Critical** |
+| **Security** | <ul><li>Implement migration token system with 7-day expiry</li><li>Setup IP whitelisting for migration services</li><li>Configure rate limiting for migration endpoints</li><li>Create comprehensive audit logging for migration operations</li><li>Implement Nginx security rules for migration access</li></ul> | **High** |
+| **Storage** | <ul><li>Implement two-phase storage (temp → permanent)</li><li>Create migration-specific storage paths</li><li>Setup file cleanup and archival processes</li><li>Implement storage service integration</li><li>Create file validation and virus scanning workflows</li></ul> | **High** |
+| **Frontend** | <ul><li>Build migration dashboard with queue management</li><li>Create review interface for AI suggestions</li><li>Implement bulk approval/rejection workflows</li><li>Add progress tracking and monitoring displays</li><li>Create error handling and retry interfaces</li></ul> | **Medium** |
+| **Monitoring** | <ul><li>Setup migration progress tracking and metrics</li><li>Implement AI service health monitoring</li><li>Create error logging and alerting systems</li><li>Setup performance monitoring for migration workflows</li><li>Create GPU temperature and resource monitoring</li></ul> | **Medium** |
+| **Documentation** | <ul><li>Create migration operation procedures</li><li>Document troubleshooting and recovery processes</li><li>Create admin training materials</li><li>Update API documentation with migration endpoints</li><li>Create rollback and recovery guides</li></ul> | **Medium** |
+
+### Cross-Component Dependencies
+
+| Dependency | Source | Target | Impact |
+|------------|--------|--------|--------|
+| **n8n → Backend API** | Migration workflows | Validation endpoints | Data processing |
+| **AI Services → Backend** | Ollama processing | AI validation layer | Quality control |
+| **Migration Service → Storage** | Data processing | Two-phase storage | File management |
+| **Frontend → Migration API** | Dashboard interface | Migration endpoints | User interaction |
+| **Audit → Migration** | Logging service | Migration audit trail | Compliance tracking |
+| **Monitoring → Infrastructure** | Health checks | AI and n8n services | Operational stability |
+| **Security → Migration** | Token validation | Migration access control | Access management |
 
 ---
 
@@ -392,9 +444,112 @@ _สำหรับขั้นตอนปฏิบัติงานแบบ�
 
 ---
 
+## ADR Review Cycle
+
+### Review Classification
+
+**Core ADR Status:** This ADR is classified as a **Core Migration Architecture** due to its fundamental impact on data migration strategy and AI integration patterns.
+
+### Review Schedule
+
+| Review Type | Frequency | Trigger | Scope |
+|-------------|-----------|---------|-------|
+| **Regular Review** | Every 6 months | Calendar-based | Migration effectiveness, AI accuracy |
+| **Major Version Review** | Every major version (v2.0.0, v3.0.0) | Version planning | Architecture relevance, new migration requirements |
+| **Migration Review** | During migration execution | Migration progress | Performance, accuracy, operational issues |
+| **Post-Migration Review** | After migration completion | Migration completion | Lessons learned, improvements, retirement planning |
+
+### Review Process
+
+#### Phase 1: Preparation (1 week before review)
+1. **Migration Metrics Collection**
+   - Migration progress and completion rates
+   - AI validation accuracy and confidence scores
+   - Error rates and failure patterns
+   - Processing performance benchmarks
+   - Storage and resource utilization metrics
+
+2. **Stakeholder Notification**
+   - Development Team
+   - DevOps Engineer
+   - AI Integration Lead
+   - Database Administrator
+   - Project Management
+
+#### Phase 2: Review Meeting (2-hour session)
+1. **Migration Performance Assessment**
+   - Review migration progress against targets
+   - Analyze AI validation accuracy and effectiveness
+   - Evaluate processing speed and resource utilization
+   - Assess error handling and recovery procedures
+
+2. **Data Quality Evaluation**
+   - Review AI validation accuracy against human verification
+   - Analyze data integrity and consistency metrics
+   - Evaluate duplicate detection and handling
+   - Assess revision drift protection effectiveness
+
+3. **Operational Assessment**
+   - Review system stability and reliability
+   - Evaluate monitoring and alerting effectiveness
+   - Assess rollback and recovery procedures
+   - Review security compliance and audit trails
+
+#### Phase 3: Decision & Documentation (1 week after review)
+1. **Review Outcomes**
+   - **No Change:** Migration architecture remains effective
+   - **Update Required:** Adjust AI parameters or migration procedures
+   - **Enhancement:** Add new migration capabilities or optimizations
+   - **Retire:** Migration complete, ADR no longer needed
+
+2. **Documentation Updates**
+   - Update migration procedures and guidelines
+   - Revise performance benchmarks and targets
+   - Document lessons learned and best practices
+   - Update operational procedures and troubleshooting guides
+
+### Review Criteria
+
+| Criterion | Question | Pass/Fail Threshold |
+|-----------|----------|---------------------|
+| **Migration Progress** | Is migration meeting completion targets? | Pass: ≥90% of target, Fail: <90% |
+| **AI Validation Accuracy** | Is AI validation meeting accuracy targets? | Pass: ≥85% accuracy, Fail: <85% |
+| **Processing Performance** | Are processing times within acceptable limits? | Pass: <3s per record, Fail: >3s |
+| **Data Integrity** | Are data integrity issues within acceptable limits? | Pass: <2% errors, Fail: ≥2% |
+| **System Stability** | Is migration system stable and reliable? | Pass: >99% uptime, Fail: <99% |
+| **Security Compliance** | Are all security controls functioning properly? | Pass: 100% compliant, Fail: Any violations |
+
+### Review History Template
+
+```
+## Review Cycle [YYYY-MM-DD]
+
+**Review Type:** [Regular/Major Version/Migration/Post-Migration]
+**Reviewers:** [Names and roles]
+**Duration:** [Meeting date]
+
+### Findings
+- [Key findings from migration performance and data quality assessment]
+
+### Issues Identified
+- [Performance bottlenecks, accuracy problems, or operational issues]
+
+### Recommendations
+- [Migration optimizations, AI improvements, or procedural changes]
+
+### Outcome
+- [No Change/Update Required/Enhancement/Retire]
+
+### Next Review Date
+- [YYYY-MM-DD]
+```
+
+---
+
 ## Document History
 
 | Version | Date       | Author      | Changes                                                              |
 | ------- | ---------- | ----------- | -------------------------------------------------------------------- |
 | 1.8.0   | 2026-02-26 | DevOps Team | Initial ADR — Ollama + n8n Migration Architecture                    |
 | 1.8.2   | 2026-04-03 | Tech Lead   | **Updated** — Aligned with ADR-019 (UUID Strategy), changed AI Model to `gemma4:9b` (9.6 GB) |
+| 1.8.4   | 2026-04-04 | System Architect | **Enhanced** — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |

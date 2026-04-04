@@ -4,6 +4,67 @@
 **Date:** 2026-02-24
 **Decision Makers:** Frontend Team
 **Related Documents:** [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md)
+**Version Applicability:** v1.8.0+
+**Next Review:** 2026-08-01 (6-month cycle)
+
+---
+
+## Gap Analysis & Requirement Linking
+
+### ปิด Gap จาก Requirements:
+
+| Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
+|----------------|-------------|-------------------|
+| **Form Validation** | [Product Vision](../00-overview/00-03-product-vision.md) - Data Integrity | React Hook Form + Zod validation |
+| **Performance Optimization** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-UI-002 | Uncontrolled components for minimal re-renders |
+| **Type Safety** | [Engineering Guidelines](../05-Engineering-Guidelines/05-01-fullstack-js-guidelines.md) - TypeScript | Zod schema to TypeScript types |
+| **Developer Experience** | [Frontend Guidelines](../05-Engineering-Guidelines/05-03-frontend-guidelines.md) - DX | Clean API with minimal boilerplate |
+| **Bundle Size Constraints** | [Architecture](../02-architecture/02-02-software-architecture.md) - Performance | Lightweight solution (8.5kb) |
+
+### แก้ไขความขัดแย้ง:
+
+- **Conflict:** Performance vs. Developer Experience (Formik vs. RHF)
+- **Resolution:** Chose React Hook Form for performance and type safety
+- **Trade-off:** Learning curve for uncontrolled components vs. Better performance
+
+---
+
+## Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ):
+
+| Component | ผลกระทบ | ความสำคัญ |
+|-----------|----------|-----------|
+| **Form Components** | All forms use RHF + Zod | 🔴 Critical |
+| **Validation Schemas** | Zod schemas for all forms | 🔴 Critical |
+| **API Routes** | Server-side validation | 🔴 Critical |
+| **UI Components** | FormField wrapper components | 🟡 Important |
+| **File Upload** | RHF integration for file handling | 🟡 Important |
+| **Dynamic Forms** | useFieldArray for complex forms | 🟡 Important |
+| **Type Definitions** | Form types from Zod schemas | 🟡 Important |
+| **Testing Setup** | Form testing utilities | 🟢 Guidelines |
+| **Documentation** | Form patterns and examples | 🟢 Guidelines |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ):
+
+#### Frontend (Next.js)
+- [x] Install React Hook Form + Zod
+- [x] Create validation schemas for all forms
+- [x] Update all form components to use RHF
+- [x] Create reusable FormField components
+- [x] Implement file upload with RHF
+- [x] Add dynamic form patterns (useFieldArray)
+- [x] Setup form testing utilities
+
+#### Backend (NestJS)
+- [x] Sync validation logic with frontend schemas
+- [x] Update DTOs to match Zod schemas
+- [x] Add proper error responses for validation failures
+
+#### Architecture
+- [x] Document form patterns
+- [x] Create form component templates
+- [x] Define validation strategy across stack
 
 ---
 
@@ -471,6 +532,35 @@ import { Controller } from 'react-hook-form';
 
 ---
 
+## ADR Review Cycle
+
+### Core Principle Review Schedule
+- **Review Frequency:** ทุก 6 เดือน (กุมภาพันธ์ และ สิงหาคม)
+- **Trigger Events:**
+  - Major version upgrade (v1.9.0, v2.0.0)
+  - Performance issues requiring form optimization
+  - New form patterns or requirements
+  - React Hook Form/Zod major updates
+
+### Review Checklist
+- [ ] Form performance metrics acceptable
+- [ ] Validation schemas still meet requirements
+- [ ] Type safety maintained across forms
+- [ ] Bundle size within limits
+- [ ] Cross-document dependencies still valid
+- [ ] New form libraries or patterns to consider
+- [ ] Backend validation sync maintained
+
+### Version Dependency Matrix
+
+| System Version | ADR Version | Required Changes | Status |
+|----------------|-------------|------------------|---------|
+| v1.8.0 - v1.8.5 | ADR-013 v1.0 | Base RHF + Zod implementation | ✅ Complete |
+| v1.9.0+ | ADR-013 v1.1 | Review form performance and patterns | 📋 Planned |
+| v2.0.0+ | ADR-013 v2.0 | Consider new form technologies | 📋 Future |
+
+---
+
 ## Related ADRs
 
 - [ADR-007: API Design & Error Handling](./ADR-007-api-design-error-handling.md)
@@ -485,5 +575,16 @@ import { Controller } from 'react-hook-form';
 
 ---
 
+**Document Version:** v1.0
 **Last Updated:** 2026-02-24
-**Next Review:** 2026-06-01
+**Next Review:** 2026-08-01 (6-month cycle)
+**Version Applicability:** LCBP3 v1.8.0+
+
+---
+
+## Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| v1.0 | 2026-02-24 | Initial ADR creation with form handling strategy | Frontend Team |
+| v1.1 | 2026-04-04 | Added structured templates: Impact Analysis, Gap Linking, Version Dependency, Review Cycle | System Architect |

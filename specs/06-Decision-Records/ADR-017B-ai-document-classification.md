@@ -1,9 +1,17 @@
-# ADR-017B: Smart Legacy Document Digitization (AI-Powered Use Case Extension)
+# ADR-017B: AI Document Classification
 
 **Status:** Accepted
 **Date:** 2026-03-27
 **Version:** 1.8.2 (Aligned with ADR-020)
+**Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
 **Decision Makers:** Development Team, AI Integration Lead
+**Gap Resolution:** Addresses manual document classification inefficiency and inconsistency problems (Product Vision v1.8.5, Section 3.3) and AI-assisted workflow requirements (UAT Criteria, Section 4.8)
+**Version Dependency:**
+- **Effective From:** v1.8.2
+- **Applies To:** v1.8.2+ (AI classification features)
+- **Backward Compatible:** v1.8.0+ (Manual classification still available)
+- **Required For:** v1.9.0+ (Enhanced document management)
+
 **Related Documents:**
 
 - [ADR-020: AI Intelligence Integration Architecture](./ADR-020-ai-intelligence-integration.md) — Overall AI Architecture & RFA-First Strategy
@@ -14,7 +22,7 @@
 - [Migration Business Scope](../03-Data-and-Storage/03-06-migration-business-scope.md)
 - [Glossary](../00-Overview/00-02-glossary.md)
 
-> **Note:** ADR-017B เป็น Use Case Extension ของ ADR-017 ที่ขยายขอบเขตการใช้งาน Ollama จาก Migration Batch สู่ระบบจัดหมวดหมู่เอกสารอัจฉริยะ (Smart Categorization) พร้อมควบคุมตาม ADR-018 (AI Isolation Policy) และเป็นส่วนหนึ่งของ ADR-020 (Unified AI Architecture).
+> **Note:** ADR-017B extends ADR-017's scope from batch migration to AI-powered document classification, enabling automatic categorization and metadata extraction. Complies with ADR-018 (AI Isolation Policy) and is part of ADR-020 (Unified AI Architecture).
 
 ---
 
@@ -22,11 +30,11 @@
 
 ### ปัญหาที่ต้องการแก้ไข
 
-โครงการ LCBP3 มีเอกสารเก่าจำนวนมาก (กว่า 20,000 ฉบับ) ที่ต้องนำเข้าสู่ระบบ DMS ใหม่ การจัดหมวดหมู่และสกัด Metadata ด้วยมือมีปัญหาหลัก 3 ประการ:
+โครงการ LCBP3 มีเอกสารจำนวนมาก (ทั้งเก่าและใหม่) ที่ต้องจัดหมวดหมู่และสกัด Metadata อัตโนมัติ การจัดหมวดหมู่ด้วยมือมีปัญหาหลัก 3 ประการ:
 
-1. **Manual Labor สูง:** ต้องใช้เวลานานในการอ่านและพิมพ์ข้อมูล Metadata (Data Entry)
-2. **Human Error:** ความผิดพลาดจากการพิมพ์ (Typo) โดยเฉพาะเลขที่สัญญาและชื่อเฉพาะ
-3. **Searchability:** ไฟล์ PDF ที่เป็นแค่ภาพสแกน (Scanned) ไม่สามารถค้นหาเนื้อหาได้
+1. **Manual Labor สูง:** ต้องใช้เวลานานในการอ่านและจัดหมวดหมู่เอกสารด้วยมือ
+2. **Human Error:** ความผิดพลาดจากการจัดหมวดหมู่ (ผิดประเภท, ผิด Tag) โดยเฉพาะเอกสารที่ซับซ้อน
+3. **Inconsistency:** การจัดหมวดหมู่ไม่สม่ำเสมอกันระหว่างผู้จัดการคนละคน
 
 ### ข้อจำกัดที่สำคัญ
 
@@ -100,7 +108,47 @@
 
 **Rationale:**
 
-ประยุกต์ใช้ Hardware ที่มีอยู่ (i7-9700K + RTX 2060 Super) โดยไม่ขัดหลัก Privacy และ Security ของโครงการ n8n ช่วยลด Risk ที่จะกระทบ Core Backend และรองรับ Checkpoint/Resume ได้ดีกว่าการเขียน Script เอง นอกจากนี้ยังสอดคล้องกับ **ADR-018 (AI Boundary)** ที่กำหนดให้ AI ต้องรันบน Admin Desktop แยกต่างหาก และไม่สามารถเข้าถึง Database/Storage โดยตรงได้
+การใช้ AI จัดหมวดหมู่เอกสารอัตโนมัติด้วย Ollama ช่วยลดภาระงานจากการจัดหมวดหมู่ด้วยมือ พร้อมรักษาความปลอดภัยตามนโยบาย ADR-018 ที่กำหนดให้ AI ต้องรันบน Admin Desktop แยกต่างหาก และไม่สามารถเข้าถึง Database/Storage โดยตรง ทำให้ได้ประสิทธิภาพที่ดีขึ้นในการจัดการเอกสารขนาดใหญ่
+
+---
+
+## Impact Analysis
+
+### Affected Components
+
+| Component | Impact Level | Description |
+|-----------|--------------|-------------|
+| **Frontend Components** | **High** | AI classification UI, suggestion displays, user confirmation flows |
+| **Backend Services** | **High** | AI integration endpoints, validation services, classification logic |
+| **AI Infrastructure** | **Medium** | Ollama model usage, prompt engineering, confidence scoring |
+| **Database Schema** | **Medium** | AI suggestion storage, classification history, confidence tracking |
+| **User Experience** | **Medium** | Workflow changes, AI-assisted classification interfaces |
+| **API Design** | **Medium** | AI classification endpoints, response formats, error handling |
+| **Testing Framework** | **Low** | AI accuracy tests, classification validation, user acceptance tests |
+| **Documentation** | **Low** | User guides, AI classification procedures, troubleshooting |
+
+### Required Changes
+
+| Change Category | Specific Changes | Priority |
+|----------------|------------------|----------|
+| **Frontend** | <ul><li>Create AI classification suggestion components</li><li>Build confidence score indicators</li><li>Implement user confirmation dialogs</li><li>Add classification history displays</li><li>Create AI-assisted tagging interface</li></ul> | **Critical** |
+| **Backend** | <ul><li>Implement AI classification service endpoints</li><li>Create validation layer for AI suggestions</li><li>Add confidence threshold processing</li><li>Implement classification audit logging</li><li>Create AI model communication interfaces</li></ul> | **Critical** |
+| **Database** | <ul><li>Create AI classification suggestions table</li><li>Add confidence score tracking fields</li><li>Implement classification history logging</li><li>Create user feedback storage for AI improvement</li><li>Update data dictionary with AI fields</li></ul> | **High** |
+| **AI Integration** | <ul><li>Setup Ollama model communication protocols</li><li>Implement prompt engineering for document classification</li><li>Create confidence scoring algorithms</li><li>Setup fallback model switching logic</li><li>Implement AI response validation</li></ul> | **High** |
+| **API** | <ul><li>Create /api/ai/classify endpoint</li><li>Implement AI suggestion confirmation endpoints</li><li>Add AI service health check endpoints</li><li>Create classification feedback endpoints</li><li>Implement rate limiting for AI services</li></ul> | **High** |
+| **Testing** | <ul><li>Create AI accuracy validation tests</li><li>Implement classification consistency tests</li><li>Add user acceptance testing for AI features</li><li>Create performance tests for AI endpoints</li><li>Implement security tests for AI boundaries</li></ul> | **Medium** |
+| **Documentation** | <ul><li>Create user guide for AI classification features</li><li>Document AI model limitations and best practices</li><li>Create troubleshooting guide for AI issues</li><li>Update API documentation with AI endpoints</li></ul> | **Medium** |
+
+### Cross-Component Dependencies
+
+| Dependency | Source | Target | Impact |
+|------------|--------|--------|--------|
+| **Frontend → AI API** | Classification UI components | /api/ai/classify endpoint | User experience |
+| **Backend → AI Services** | AI classification service | Ollama model API | Classification accuracy |
+| **Database → Classification** | Classification results | AI suggestions table | Data persistence |
+| **Validation → AI Output** | Validation layer | AI response processing | Quality control |
+| **Audit → AI Interactions** | Logging service | Classification audit trail | Compliance |
+| **Testing → AI Accuracy** | Test suites | Classification validation | Quality assurance |
 
 ---
 
@@ -269,19 +317,19 @@ Phase 2: Final Commit (โดย Admin ผ่าน Frontend)
 
 ### Positive Consequences
 
-1. ✅ **Privacy Guaranteed** — ไม่มีข้อมูลออกนอกเครือข่ายองค์กร
-2. ✅ **Zero AI Cost** — ไม่มีค่าใช้จ่าย Pay-per-use
-3. ✅ **Security Compliant (ADR-018)** — AI Isolation ชัดเจน
-4. ✅ **Human-in-the-Loop** — ความถูกต้อง 100% ก่อน Commit
-5. ✅ **Recoverability** — รองรับ Checkpoint/Resume และ Rollback
-6. ✅ **Searchable Legacy** — Scanned PDF กลายเป็น Searchable Metadata
+1. ✅ **Automated Classification:** ลดเวลาการจัดหมวดหมู่เอกสารด้วยมืออย่างมีนัยสำคัญ
+2. ✅ **Consistent Categorization:** AI จัดหมวดหมู่อย่างสม่ำเสมอตามเกณฑ์เดียวกัน
+3. ✅ **Security Compliant (ADR-018):** AI Isolation ชัดเจน ปลอดภัย
+4. ✅ **Human-in-the-Loop:** ความถูกต้อง 100% ก่อนยืนยันการจัดหมวดหมู่
+5. ✅ **Scalable:** รองรับการจัดหมวดหมู่เอกสารจำนวนมาก
+6. ✅ **Cost Effective:** ไม่มีค่าใช้จ่ายต่อเอกสาร (On-premise AI)
 
 ### Negative Consequences
 
-1. ❌ **Operational Overhead** — ต้องดูแล GPU Temperature และ Desktop Uptime
-2. ❌ **Accuracy Trade-off** — Model ขนาดเล็กอาจแม่นยำน้อยกว่า Cloud AI
-3. ❌ **Time Investment** — ต้องใช้เวลา ~3–4 คืนในการ Migration
-4. ❌ **Hardware Dependency** — ต้องพึ่งพา Desktop Desk-5439
+1. ❌ **Operational Overhead:** ต้องดูแล GPU Temperature และ Desktop Uptime
+2. ❌ **Accuracy Trade-off:** Model ขนาดเล็กอาจแม่นยำน้อยกว่า Cloud AI
+3. ❌ **Hardware Dependency:** ต้องพึ่งพา Desktop Desk-5439
+4. ❌ **Processing Time:** ต้องรอ AI processing สำหรับเอกสารแต่ละฉบับ
 
 ### Mitigation Strategies
 
@@ -289,6 +337,108 @@ Phase 2: Final Commit (โดย Admin ผ่าน Frontend)
 - **Confidence Threshold** — แบ่งระดับตามความมั่นใจของ AI
 - **Fallback Model** — Auto-switch ไป mistral:7b-instruct เมื่อ Error ≥ Threshold
 - **Monitoring** — ตรวจสอบ GPU Temperature และ Progress ตลอดเวลา
+
+---
+
+## ADR Review Cycle
+
+### Review Classification
+
+**Core ADR Status:** This ADR is classified as a **Core AI Feature** due to its fundamental impact on document management workflows and AI integration patterns.
+
+### Review Schedule
+
+| Review Type | Frequency | Trigger | Scope |
+|-------------|-----------|---------|-------|
+| **Regular Review** | Every 6 months | Calendar-based | AI accuracy, user adoption, performance |
+| **Major Version Review** | Every major version (v2.0.0, v3.0.0) | Version planning | Architecture relevance, new AI capabilities |
+| **Performance Review** | Quarterly | Performance monitoring | AI processing times, accuracy metrics |
+| **User Feedback Review** | Quarterly | User feedback analysis | User satisfaction, workflow improvements |
+
+### Review Process
+
+#### Phase 1: Preparation (1 week before review)
+1. **Metrics Collection**
+   - AI classification accuracy rates and trends
+   - User adoption and satisfaction metrics
+   - Processing performance benchmarks
+   - Error rates and failure patterns
+   - User feedback and improvement suggestions
+
+2. **Stakeholder Notification**
+   - Development Team
+   - AI Integration Lead
+   - Product Management
+   - User Experience Team
+   - Quality Assurance Team
+
+#### Phase 2: Review Meeting (2-hour session)
+1. **Performance Assessment**
+   - Review AI accuracy metrics against targets
+   - Analyze processing time performance
+   - Evaluate error rates and failure patterns
+   - Assess system resource utilization
+
+2. **User Experience Evaluation**
+   - Review user adoption and satisfaction rates
+   - Analyze user feedback and improvement requests
+   - Evaluate workflow integration effectiveness
+   - Assess user interface and experience quality
+
+3. **Technology Assessment**
+   - Review AI model performance and accuracy
+   - Evaluate new AI technologies and improvements
+   - Assess integration with other system components
+   - Review security and compliance status
+
+#### Phase 3: Decision & Documentation (1 week after review)
+1. **Review Outcomes**
+   - **No Change:** AI classification remains effective and accurate
+   - **Update Required:** Adjust AI parameters or user interface
+   - **Enhancement:** Add new classification capabilities or features
+   - **Retire:** AI classification no longer needed (unlikely)
+
+2. **Documentation Updates**
+   - Update AI classification procedures and guidelines
+   - Revise user documentation and training materials
+   - Update performance metrics and targets
+   - Modify integration documentation
+
+### Review Criteria
+
+| Criterion | Question | Pass/Fail Threshold |
+|-----------|----------|---------------------|
+| **Classification Accuracy** | Is AI meeting target accuracy rates? | Pass: ≥85%, Fail: <85% |
+| **User Adoption** | Are users actively using AI classification? | Pass: >70% adoption, Fail: ≤70% |
+| **Processing Performance** | Are processing times within acceptable limits? | Pass: <10s per document, Fail: >10s |
+| **User Satisfaction** | Are users satisfied with AI suggestions? | Pass: ≥4.0/5.0, Fail: <4.0/5.0 |
+| **Error Rates** | Are AI errors within acceptable thresholds? | Pass: <5% error rate, Fail: ≥5% |
+| **Integration Stability** | Is AI integration stable and reliable? | Pass: >99% uptime, Fail: <99% |
+
+### Review History Template
+
+```
+## Review Cycle [YYYY-MM-DD]
+
+**Review Type:** [Regular/Major Version/Performance/User Feedback]
+**Reviewers:** [Names and roles]
+**Duration:** [Meeting date]
+
+### Findings
+- [Key findings from accuracy, performance, and user experience assessment]
+
+### Issues Identified
+- [Accuracy problems, performance bottlenecks, or user experience issues]
+
+### Recommendations
+- [AI model improvements, user interface enhancements, or workflow changes]
+
+### Outcome
+- [No Change/Update Required/Enhancement/Retire]
+
+### Next Review Date
+- [YYYY-MM-DD]
+```
 
 ---
 
@@ -309,9 +459,12 @@ Phase 2: Final Commit (โดย Admin ผ่าน Frontend)
 |---------|------------|------------|---------|
 | 1.0.0   | 2026-02-26 | Nattanin   | Initial Use Case Specification |
 | 1.8.1   | 2026-03-27 | Tech Lead  | **Refactored to ADR format** — Aligned with ADR-017, ADR-018, and Project Specs |
+| 1.8.3   | 2026-04-04 | System Architect | **Renamed** — Changed from "Smart Legacy Document Digitization" to "AI Document Classification" for clarity and simplicity |
+| 1.8.4   | 2026-04-04 | System Architect | **Enhanced** — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |
 
 ---
 
-**Last Updated:** 2026-03-27
+**Last Updated:** 2026-04-04
 **Status:** Accepted
 **Next Review:** 2026-06-01 (Quarterly review)
+**Next 6-Month Review:** 2026-10-04 (regular review cycle)

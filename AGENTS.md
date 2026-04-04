@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.8.5 (Refactored) | Last synced from repo: 2026-03-27
+- Version: 1.8.5 (Refactored) | Last synced from repo: 2026-04-04
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 
 ---
@@ -36,6 +36,7 @@ Build fails immediately if violated:
 - Database correctness — verify schema before writing queries
 - File upload security (ClamAV + whitelist)
 - AI validation boundary (ADR-018)
+- Error handling strategy (ADR-007)
 - Forbidden patterns: `any`, `console.log`, UUID misuse
 
 ### 🟡 Tier 2 — IMPORTANT (CODE REVIEW)
@@ -61,21 +62,24 @@ Best practice — follow when possible:
 
 Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
 
-| Document                | Path                                                              | Use When                        |
-| ----------------------- | ----------------------------------------------------------------- | ------------------------------- |
-| **Glossary**            | `specs/00-overview/00-02-glossary.md`                             | Verify domain terminology       |
-| **Schema Tables**       | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`     | Before writing any query        |
-| **Data Dictionary**     | `specs/03-Data-and-Storage/03-01-data-dictionary.md`              | Field meanings + business rules |
-| **Edge Cases**          | `specs/01-Requirements/01-06-edge-cases-and-rules.md`             | Prevent bugs in flows           |
-| **ADR-019 UUID**        | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | UUID-related work               |
-| **Backend Guidelines**  | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`     | NestJS patterns                 |
-| **Frontend Guidelines** | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`    | Next.js patterns                |
-| **Testing Strategy**    | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`       | Coverage goals                  |
-| **Git Conventions**     | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`        | Commit/branch naming            |
-| **Code Snippets**       | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`          | Reusable patterns               |
-| **i18n Guidelines**     | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`        | Localization rules              |
-| **Release Policy**      | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`  | Before deploy/hotfix            |
-| **UAT Criteria**        | `specs/01-Requirements/01-05-acceptance-criteria.md`              | Feature completeness            |
+| Document                   | Path                                                               | Use When                        |
+| -------------------------- | ------------------------------------------------------------------ | ------------------------------- |
+| **Glossary**               | `specs/00-overview/00-02-glossary.md`                              | Verify domain terminology       |
+| **Schema Tables**          | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`      | Before writing any query        |
+| **Data Dictionary**        | `specs/03-Data-and-Storage/03-01-data-dictionary.md`               | Field meanings + business rules |
+| **Edge Cases**             | `specs/01-Requirements/01-06-edge-cases-and-rules.md`              | Prevent bugs in flows           |
+| **ADR-007 Error Handling** | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`     | Error patterns & recovery       |
+| **ADR-018 AI Boundary**    | `specs/06-Decision-Records/ADR-018-ai-boundary.md`                 | AI isolation rules              |
+| **ADR-019 UUID**           | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`  | UUID-related work               |
+| **ADR-020 AI Integration** | `specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md` | AI architecture patterns        |
+| **Backend Guidelines**     | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`      | NestJS patterns                 |
+| **Frontend Guidelines**    | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`     | Next.js patterns                |
+| **Testing Strategy**       | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`        | Coverage goals                  |
+| **Git Conventions**        | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`         | Commit/branch naming            |
+| **Code Snippets**          | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`           | Reusable patterns               |
+| **i18n Guidelines**        | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`         | Localization rules              |
+| **Release Policy**         | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`   | Before deploy/hotfix            |
+| **UAT Criteria**           | `specs/01-Requirements/01-05-acceptance-criteria.md`               | Feature completeness            |
 
 ---
 
@@ -136,6 +140,8 @@ Read `specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` 
 6. **Rate Limiting:** `ThrottlerGuard` on all auth endpoints
 7. **File Upload:** Whitelist PDF/DWG/DOCX/XLSX/ZIP, max 50MB, ClamAV scan
 8. **AI Isolation (ADR-018):** Ollama on Admin Desktop ONLY — NO direct DB/storage access
+9. **Error Handling (ADR-007):** Use layered error classification with user-friendly messages
+10. **AI Integration (ADR-020):** RFA-First approach with unified pipeline architecture
 
 Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 
@@ -229,6 +235,8 @@ When user asks about... check these files:
 | "ตรวจสอบ permission" | `seed-permissions.sql`, `ADR-016`                       | CASL 4-Level RBAC matrix                            |
 | "deploy production"  | `04-08-release-management-policy.md`, `ADR-015`         | Release Gates + Blue-Green strategy                 |
 | "เพิ่ม test"         | `05-04-testing-strategy.md`                             | Coverage goals + test patterns                      |
+| "AI integration"     | `ADR-018`, `ADR-020`                                    | AI boundary + unified pipeline                      |
+| "Error handling"     | `ADR-007`                                               | Layered error classification + recovery             |
 
 ---
 
@@ -241,7 +249,7 @@ When user asks about... check these files:
 - [ ] Code identifiers in English
 - [ ] Schema changes via SQL directly (not migration)
 - [ ] Test coverage meets targets (Backend 70%+, Business Logic 80%+)
-- [ ] Relevant ADRs checked (ADR-009, ADR-018, ADR-019)
+- [ ] Relevant ADRs checked (ADR-007, ADR-009, ADR-018, ADR-019, ADR-020)
 - [ ] Glossary terms used correctly
 - [ ] Error handling complete (Logger + HttpException)
 - [ ] i18n keys used instead of hardcode text
@@ -265,15 +273,15 @@ This file is a **quick reference**. For detailed information:
 
 ## 🔄 Change Log
 
-| Version | Date       | Changes                                                             | Updated By     |
-| ------- | ---------- | ------------------------------------------------------------------- | -------------- |
-| 1.8.5   | 2026-03-27 | Refactored — moved detailed content to specs/, now quick reference  | Windsurf AI    |
-| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note | Windsurf AI    |
-| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow        | Human Dev + AI |
-| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n       | Human Dev + AI |
-| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                  | Claude Sonnet  |
-| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                      | Human Dev      |
-| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                       | Gemini Pro     |
+| Version | Date       | Changes                                                                      | Updated By     |
+| ------- | ---------- | ---------------------------------------------------------------------------- | -------------- |
+| 1.8.5   | 2026-04-04 | Added ADR-007 error handling, ADR-020 AI integration, updated security rules | Windsurf AI    |
+| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note          | Windsurf AI    |
+| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                 | Human Dev + AI |
+| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n                | Human Dev + AI |
+| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                           | Claude Sonnet  |
+| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                               | Human Dev      |
+| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                                | Gemini Pro     |
 
 ---
 

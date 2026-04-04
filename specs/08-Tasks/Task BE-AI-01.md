@@ -20,34 +20,16 @@
   - Webhook endpoint: `/webhook/ai-processing`
   - Environment variables: `N8N_BASIC_AUTH_USER`, `N8N_BASIC_AUTH_PASSWORD`
 - [ ] **Ollama Service:**
-  - Pull model: `gemma:9b` (GPU optimized, higher accuracy)
+  - Pull model: `gemma4:e4b` (GPU optimized, higher accuracy)
   - API endpoint: `http://localhost:11434`
   - Health check: `GET /api/tags`
   - Memory requirement: Minimum 8GB VRAM for 9B model
-  - ollama run gemma4:9b-q5_K_M / gemma4:9b-q4_K_M
-  - สร้างไฟล์ %USERPROFILE%\.ollama\config
-```config
-# ใช้ GPU เป็นหลัก
-gpu: true
-num_gpu: 1
-
-# เปิด KV cache เพื่อให้ตอบเร็วขึ้น
-kv_cache: true
-
-# จำกัด batch size ให้เหมาะกับ VRAM 8GB
-gpu_batch_size: 512
-
-# ปรับ num_thread ให้เหมาะกับ CPU 6–8 คอร์
-num_thread: 6
-
-# เปิด mmap เพื่อโหลดโมเดลเร็วขึ้น
-mmap: true
-
-# ปรับ max_seq_len ให้เหมาะกับงาน DMS
-max_seq_len: 4096
-
-# ปรับ temp ต่ำเพื่อให้ผลลัพธ์เสถียร
-temperature: 0.2
+  - ollama run gemma4
+  - ตั้ง Windows System Environment Variables หรือใน PowerShell:
+    - [System.Environment]::SetEnvironmentVariable('OLLAMA_HOST', '0.0.0.0', 'User')
+    - [System.Environment]::SetEnvironmentVariable('OLLAMA_KEEP_ALIVE', '30m', 'User')
+    - [System.Environment]::SetEnvironmentVariable("OLLAMA_NUM_GPU", "1", "User")
+    - [System.Environment]::SetEnvironmentVariable("OLLAMA_NUM_THREAD", "8", "User")
 ```
 
 - [ ] **PaddleOCR Service:**

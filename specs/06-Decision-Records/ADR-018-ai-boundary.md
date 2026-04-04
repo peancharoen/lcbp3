@@ -3,12 +3,20 @@
 **Status:** Accepted
 **Date:** 2026-03-27
 **Version:** 1.8.2 (Aligned with ADR-020)
+**Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
 **Decision Makers:** Security Team, System Architect, AI Integration Lead
+**Gap Resolution:** Addresses AI security risks (data exposure, unauthorized modification, privilege escalation) and compliance requirements (ISO 27001, PDPA) from Security Requirements (Section 3.1) and Risk Assessment (Section 4.2)
+**Version Dependency:**
+- **Effective From:** v1.8.2
+- **Applies To:** v1.8.2+ (All AI implementations)
+- **Backward Compatible:** v1.8.0+ (Security policy enforcement)
+- **Required For:** v1.9.0+ (Mandatory for all AI features)
+
 **Related Documents:**
 
 - [ADR-020: AI Intelligence Integration Architecture](./ADR-020-ai-intelligence-integration.md) — Overall AI Architecture & RFA-First Strategy
 - [ADR-017: Ollama Data Migration Architecture](./ADR-017-ollama-data-migration.md)
-- [ADR-017B: Smart Legacy Document Digitization](./ADR-017B-ollama.md)
+- [ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md)
 - [ADR-016: Security & Authentication](./ADR-016-security-authentication.md)
 - [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)
 - [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
@@ -101,6 +109,45 @@
 **Rationale:**
 
 การแยก AI ไปรันบน Admin Desktop (Desk-5439) และบังคับให้สื่อสารผ่าน DMS Backend API เท่านั้น เป็นแนวทางที่ Balance ระหว่าง Security, Privacy, และ Operational Feasibility ดีที่สุด ทำให้ AI ถูกมองว่าเป็น **Untrusted External Component** เสมอ แม้จะรันในเครือข่ายเดียวกัน
+
+---
+
+## Impact Analysis
+
+### Affected Components
+
+| Component | Impact Level | Description |
+|-----------|--------------|-------------|
+| **AI Infrastructure** | **High** | Physical isolation on Admin Desktop, network segmentation |
+| **Security Architecture** | **High** | New AI authentication, audit logging, validation layers |
+| **API Design** | **Medium** | AI-specific endpoints, authentication scopes, rate limiting |
+| **Network Configuration** | **Medium** | IP whitelisting, firewall rules, zone segmentation |
+| **Monitoring & Logging** | **Medium** | AI service health checks, audit trail expansion |
+| **Development Workflow** | **Low** | AI development guidelines, compliance checks |
+| **Documentation** | **Low** | Security policies, AI integration guides |
+
+### Required Changes
+
+| Change Category | Specific Changes | Priority |
+|----------------|------------------|----------|
+| **Infrastructure** | <ul><li>Setup AI Zone on Admin Desktop (Desk-5439)</li><li>Configure network segmentation and IP whitelisting</li><li>Install Ollama and AI services on isolated host</li><li>Setup firewall rules for AI communication</li></ul> | **Critical** |
+| **Security** | <ul><li>Create AI service authentication tokens</li><li>Implement AI-specific API scopes and permissions</li><li>Setup comprehensive audit logging for AI interactions</li><li>Configure rate limiting for AI endpoints</li></ul> | **Critical** |
+| **API Layer** | <ul><li>Create AI validation service with confidence thresholds</li><li>Add AI-specific authentication middleware</li><li>Implement AI request/response logging</li><li>Create AI health check endpoints</li></ul> | **Critical** |
+| **Network** | <ul><li>Configure LAN-only access for AI services</li><li>Setup IP whitelist for AI host communication</li><li>Implement network monitoring for AI traffic</li><li>Create firewall rules for AI zone isolation</li></ul> | **High** |
+| **Monitoring** | <ul><li>Setup AI service health monitoring</li><li>Create audit log analysis for AI interactions</li><li>Implement GPU temperature and resource monitoring</li><li>Create alerting for AI service failures</li></ul> | **High** |
+| **Documentation** | <ul><li>Create AI integration security guidelines</li><li>Update development workflows with AI security requirements</li><li>Create AI compliance documentation</li><li>Update API documentation with AI security requirements</li></ul> | **Medium** |
+| **Testing** | <ul><li>Create AI security penetration tests</li><li>Implement AI boundary validation tests</li><li>Create AI authentication and authorization tests</li><li>Setup AI compliance verification tests</li></ul> | **Medium** |
+
+### Cross-Component Dependencies
+
+| Dependency | Source | Target | Impact |
+|------------|--------|--------|--------|
+| **AI Services → Backend API** | Ollama/OpenRAG requests | DMS Backend validation layer | Security enforcement |
+| **Authentication → AI Services** | JWT token validation | AI service access control | Access management |
+| **Network → AI Infrastructure** | Firewall rules | Admin Desktop isolation | Network security |
+| **Audit → AI Interactions** | Logging service | AI request/response tracking | Compliance monitoring |
+| **Monitoring → AI Health** | Health checks | AI service availability | Operational stability |
+| **Documentation → Development** | Security guidelines | AI integration patterns | Developer compliance |
 
 ---
 
@@ -384,11 +431,113 @@ Response:
 ## Related Documents
 
 - [ADR-017: Ollama Data Migration Architecture](./ADR-017-ollama-data-migration.md) — Migration implementation following ADR-018
-- [ADR-017B: Smart Legacy Document Digitization](./ADR-017B-ollama.md) — Smart categorization use case
+- [ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md) — AI document classification use case
 - [ADR-016: Security & Authentication](./ADR-016-security-authentication.md) — General security strategy
 - [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md) — UUID strategy for API security
 - [03-07-OpenRAG.md](../03-Data-and-Storage/03-07-OpenRAG.md) — RAG architecture under ADR-018
 - [03-05-n8n-migration-setup-guide.md](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md) — n8n setup with AI isolation
+
+---
+
+## ADR Review Cycle
+
+### Review Classification
+
+**Core ADR Status:** This ADR is classified as a **Core Security Policy** due to its fundamental impact on system security, compliance, and AI governance.
+
+### Review Schedule
+
+| Review Type | Frequency | Trigger | Scope |
+|-------------|-----------|---------|-------|
+| **Regular Review** | Every 6 months | Calendar-based | Security effectiveness, compliance status |
+| **Major Version Review** | Every major version (v2.0.0, v3.0.0) | Version planning | Architecture relevance, new AI technologies |
+| **Security Review** | Quarterly | Security audit | Threat model updates, vulnerability assessment |
+| **Compliance Review** | Annually | Compliance audit | ISO 27001, PDPA requirements verification |
+
+### Review Process
+
+#### Phase 1: Preparation (1 week before review)
+1. **Security Metrics Collection**
+   - AI service access logs and anomaly detection
+   - Authentication and authorization audit results
+   - Network segmentation and firewall rule effectiveness
+   - Audit log completeness and integrity verification
+   - Compliance framework updates (ISO 27001, PDPA)
+
+2. **Stakeholder Notification**
+   - Security Team
+   - System Architect
+   - AI Integration Lead
+   - Compliance Officer
+   - DevOps Team
+
+#### Phase 2: Review Meeting (2-hour session)
+1. **Security Assessment**
+   - Review AI isolation effectiveness and any breach attempts
+   - Assess authentication and authorization mechanisms
+   - Evaluate audit logging completeness and accuracy
+   - Review network segmentation and firewall configurations
+
+2. **Compliance Evaluation**
+   - Verify ISO 27001 and PDPA compliance status
+   - Review regulatory changes and impact requirements
+   - Assess audit trail completeness for compliance reporting
+   - Evaluate data privacy and retention policies
+
+3. **Technology Assessment**
+   - Review AI technology stack currency and security patches
+   - Assess new AI security threats and mitigation strategies
+   - Evaluate monitoring and alerting effectiveness
+   - Review incident response procedures for AI security events
+
+#### Phase 3: Decision & Documentation (1 week after review)
+1. **Review Outcomes**
+   - **No Change:** Security policy remains effective and compliant
+   - **Update Required:** Adjust security controls or procedures
+   - **Enhancement:** Add new security measures for emerging threats
+   - **Urgent:** Immediate security updates required
+
+2. **Documentation Updates**
+   - Update security controls and procedures
+   - Revise compliance documentation
+   - Update incident response playbooks
+   - Modify security guidelines and training materials
+
+### Review Criteria
+
+| Criterion | Question | Pass/Fail Threshold |
+|-----------|----------|---------------------|
+| **Security Effectiveness** | Are AI isolation controls preventing unauthorized access? | Pass: 0 incidents, Fail: Any breach |
+| **Compliance Status** | Are all ISO 27001 and PDPA requirements met? | Pass: 100% compliant, Fail: Any gaps |
+| **Audit Trail Completeness** | Are all AI interactions logged and traceable? | Pass: 100% coverage, Fail: <100% |
+| **Authentication Integrity** | Are AI service authentication mechanisms robust? | Pass: No unauthorized access, Fail: Any incidents |
+| **Network Isolation** | Are AI services properly segmented from production? | Pass: No lateral movement, Fail: Any cross-zone access |
+| **Monitoring Effectiveness** | Are AI security events detected and alerted promptly? | Pass: <5min detection, Fail: >5min |
+
+### Review History Template
+
+```
+## Review Cycle [YYYY-MM-DD]
+
+**Review Type:** [Regular/Major Version/Security/Compliance]
+**Reviewers:** [Names and roles]
+**Duration:** [Meeting date]
+
+### Findings
+- [Key findings from security and compliance assessment]
+
+### Issues Identified
+- [Security gaps, compliance issues, or vulnerabilities discovered]
+
+### Recommendations
+- [Security enhancements, compliance improvements, or procedural changes]
+
+### Outcome
+- [No Change/Update Required/Enhancement/Urgent]
+
+### Next Review Date
+- [YYYY-MM-DD]
+```
 
 ---
 
@@ -398,9 +547,11 @@ Response:
 | ------- | ---------- | ------------ | -------------------------------------------------------- |
 | 1.8.1   | 2026-03-27 | Security Lead| Initial ADR — AI Boundary Policy (Physical Isolation)    |
 | 1.8.2   | 2026-04-03 | Tech Lead    | Updated — Aligned AI Model spec with ADR-017/017B        |
+| 1.8.3   | 2026-04-04 | System Architect | Enhanced — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |
 
 ---
 
-**Last Updated:** 2026-04-03
+**Last Updated:** 2026-04-04
 **Status:** Accepted
 **Next Review:** 2026-06-01 (Quarterly security review)
+**Next 6-Month Review:** 2026-10-04 (regular review cycle)

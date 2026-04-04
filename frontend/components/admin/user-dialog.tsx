@@ -107,7 +107,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
         lastName: user.lastName,
         isActive: user.isActive,
         lineId: user.lineId || '',
-        primaryOrganizationId: user.primaryOrganizationId?.toString() || ALL_ORGANIZATIONS_VALUE,
+        primaryOrganizationId: user.primaryOrganizationId || ALL_ORGANIZATIONS_VALUE,
         roleIds: user.roles?.map((r: { roleId?: number }) => r.roleId).filter((id): id is number => id !== undefined) || [],
         password: '',
         confirmPassword: '',

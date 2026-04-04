@@ -4,6 +4,68 @@
 **Date:** 2026-02-24
 **Decision Makers:** Backend Team, DevOps Team
 **Related Documents:** [Backend Guidelines](../03-implementation/03-02-backend-guidelines.md)
+**Version Applicability:** v1.8.0+
+**Next Review:** 2026-08-01 (6-month cycle)
+
+---
+
+## Gap Analysis & Requirement Linking
+
+### ปิด Gap จาก Requirements:
+
+| Gap/Requirement | แหล่งที่มา | วิธีการแก้ไขใน ADR นี้ |
+|----------------|-------------|-------------------|
+| **Structured Logging** | [Product Vision](../00-overview/00-03-product-vision.md) - Operations Requirements | Winston with JSON format for searchability |
+| **Performance Monitoring** | [Acceptance Criteria](../01-Requirements/01-05-acceptance-criteria.md) - AC-PERF-002 | Request logging and performance interceptors |
+| **Error Tracking** | [Business Rules](../01-Requirements/01-02-business-rules/01-02-03-ui-ux-rules.md) - User Experience | Global exception filter with context |
+| **Audit Trail** | [Security ADR-016](./ADR-016-security-authentication.md) - Security events | Structured audit logging for compliance |
+| **Scalability** | [Architecture](../02-architecture/02-02-software-architecture.md) - Performance | Phase 2 ELK Stack for centralized logging |
+
+### แก้ไขความขัดแย้ง:
+
+- **Conflict:** Cost vs. Features (Winston vs. Full ELK Stack)
+- **Resolution:** Phased approach - Winston now, ELK later
+- **Trade-off:** Manual log search initially vs. Future centralized dashboard
+
+---
+
+## Impact Analysis
+
+### Affected Components (ส่วนประกอบที่ได้รับผลกระทบ):
+
+| Component | ผลกระทบ | ความสำคัำ |
+|-----------|----------|-----------|
+| **Logger Configuration** | Winston setup with transports | 🔴 Critical |
+| **NestJS Integration** | Custom logger service | 🔴 Critical |
+| **Request Middleware** | HTTP request logging | 🟡 Important |
+| **Exception Filter** | Global error logging | 🔴 Critical |
+| **Performance Interceptor** | Slow request detection | 🟡 Important |
+| **Database Logging** | Query performance tracking | 🟡 Important |
+| **Log Rotation** | File management strategy | 🟡 Important |
+| **Docker Logging** | Container log configuration | 🟢 Guidelines |
+| **Future ELK Stack** | Phase 2 centralized logging | 🟢 Guidelines |
+
+### Required Changes (การเปลี่ยนแปลงที่ต้องดำเนินการ):
+
+#### Backend (NestJS)
+- [x] Configure Winston with multiple transports
+- [x] Create custom NestJS logger service
+- [x] Implement request logging middleware
+- [x] Add global exception filter
+- [x] Create performance interceptor
+- [x] Configure database query logging
+- [x] Setup log rotation policies
+
+#### Infrastructure
+- [x] Configure Docker logging driver
+- [x] Setup log volume persistence
+- [x] Create log monitoring alerts
+- [x] Plan ELK Stack architecture (Phase 2)
+
+#### Development Process
+- [x] Define logging standards and best practices
+- [x] Create logging guidelines documentation
+- [x] Setup log analysis procedures
 
 ---
 
@@ -435,6 +497,35 @@ logger.add(
 
 ---
 
+## ADR Review Cycle
+
+### Core Principle Review Schedule
+- **Review Frequency:** ทุก 6 เดือน (กุมภาพันธ์ และ สิงหาคม)
+- **Trigger Events:**
+  - Major version upgrade (v1.9.0, v2.0.0)
+  - Log volume exceeds capacity
+  - Performance issues requiring deeper monitoring
+  - ELK Stack implementation (Phase 2)
+
+### Review Checklist
+- [ ] Logging strategy still meeting observability needs
+- [ ] Log storage and rotation policies effective
+- [ ] Performance monitoring providing adequate insights
+- [ ] Error tracking and alerting working properly
+- [ ] Cross-document dependencies still valid
+- [ ] New logging technologies or patterns to consider
+- [ ] ELK Stack implementation timeline and requirements
+
+### Version Dependency Matrix
+
+| System Version | ADR Version | Required Changes | Status |
+|----------------|-------------|------------------|---------|
+| v1.8.0 - v1.8.5 | ADR-010 v1.0 | Base Winston logging setup | ✅ Complete |
+| v1.9.0+ | ADR-010 v1.1 | Review logging performance and ELK readiness | 📋 Planned |
+| v2.0.0+ | ADR-010 v2.0 | Implement ELK Stack (Phase 2) | 📋 Future |
+
+---
+
 ## Related ADRs
 
 - [ADR-007: API Design & Error Handling](./ADR-007-api-design-error-handling.md)
@@ -450,5 +541,16 @@ logger.add(
 
 ---
 
-**Last Updated:** 2025-12-01
-**Next Review:** 2025-06-01
+**Document Version:** v1.0
+**Last Updated:** 2026-02-24
+**Next Review:** 2026-08-01 (6-month cycle)
+**Version Applicability:** LCBP3 v1.8.0+
+
+---
+
+## Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| v1.0 | 2026-02-24 | Initial ADR creation with logging strategy | Backend Team |
+| v1.1 | 2026-04-04 | Added structured templates: Impact Analysis, Gap Linking, Version Dependency, Review Cycle | System Architect |

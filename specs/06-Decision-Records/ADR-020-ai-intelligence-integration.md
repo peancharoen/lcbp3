@@ -3,11 +3,19 @@
 **Status:** Proposed
 **Date:** 2026-04-03
 **Version:** 1.8.5
+**Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
 **Decision Makers:** Development Team, AI Integration Lead, System Architect
+**Gap Resolution:** Addresses requirement for automated document processing efficiency (Product Vision v1.8.5, Section 3.2) and acceptance criteria for AI-assisted metadata extraction (UAT Criteria, Section 4.7)
+**Version Dependency:**
+- **Effective From:** v1.9.0
+- **Applies To:** v1.9.0+ (Full implementation)
+- **Backward Compatible:** v1.8.5 (API endpoints only)
+- **Required For:** v2.0.0 (Core AI features)
+
 **Related Documents:**
 
 - [ADR-017: Ollama Data Migration Architecture](./ADR-017-ollama-data-migration.md)
-- [ADR-017B: Smart Legacy Document Digitization](./ADR-017B-ollama.md)
+- [ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md)
 - [ADR-018: AI Boundary Policy](./ADR-018-ai-boundary.md) — AI Physical Isolation
 - [ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md) — UUID Strategy
 - [n8n Migration Setup Guide](../03-Data-and-Storage/03-05-n8n-migration-setup-guide.md)
@@ -80,6 +88,45 @@
 **Rationale:**
 
 การสร้าง Pipeline กลางเดียวสำหรับ AI และใช้ Component ร่วมกันทาง Frontend จะช่วยลดความซับซ้อนในการบำรุงรักษา และรับประกันความสม่ำเสมอของคุณภาพ AI ทั้งในการนำเข้าเอกสารเก่าและใหม่
+
+---
+
+## Impact Analysis
+
+### Affected Components
+
+| Component | Impact Level | Description |
+|-----------|--------------|-------------|
+| **Backend Architecture** | **High** | New AiModule, MigrationService, database schema changes |
+| **Frontend Components** | **Medium** | DocumentReviewForm, Migration Dashboard enhancements |
+| **Infrastructure** | **High** | Admin Desktop AI services, n8n workflows, Docker setup |
+| **Security Model** | **Medium** | ADR-018 boundary enforcement, new API endpoints |
+| **Database Schema** | **Medium** | migration_logs table, ai_audit_logs table |
+| **API Layer** | **Medium** | New AI endpoints, authentication scopes |
+| **Testing Framework** | **Medium** | AI accuracy tests, integration tests |
+| **Documentation** | **Low** | User guides, admin procedures |
+
+### Required Changes
+
+| Change Category | Specific Changes | Priority |
+|----------------|------------------|----------|
+| **Database** | <ul><li>Create `migration_logs` table (SQL First)</li><li>Create `ai_audit_logs` table</li><li>Update data dictionary</li></ul> | **Critical** |
+| **Backend** | <ul><li>Implement AiModule with n8n integration</li><li>Create MigrationService with business logic</li><li>Add AI endpoints with CASL guards</li><li>Update validation layer for AI responses</li></ul> | **Critical** |
+| **Frontend** | <ul><li>Build DocumentReviewForm reusable component</li><li>Create Admin Migration Dashboard</li><li>Integrate AI suggestions in RFA form</li><li>Add confidence score indicators</li></ul> | **High** |
+| **Infrastructure** | <ul><li>Setup n8n on Admin Desktop (Desk-5439)</li><li>Deploy Ollama with Gemma 4</li><li>Configure PaddleOCR service</li><li>Setup Docker containers</li></ul> | **Critical** |
+| **Security** | <ul><li>Implement ADR-018 AI boundaries</li><li>Add AI-specific authentication scopes</li><li>Create audit logging for AI interactions</li><li>Setup rate limiting for AI endpoints</li></ul> | **Critical** |
+| **Testing** | <ul><li>AI accuracy validation tests</li><li>End-to-end pipeline tests</li><li>Security boundary verification</li><li>Performance benchmarking</li></ul> | **High** |
+| **Documentation** | <ul><li>Admin workflow procedures</li><li>User AI assistance guide</li><li>Troubleshooting procedures</li><li>API documentation updates</li></ul> | **Medium** |
+
+### Cross-Component Dependencies
+
+| Dependency | Source | Target | Impact |
+|------------|--------|--------|--------|
+| **AI Service → Database** | AiService extraction calls | migration_logs table | Data persistence |
+| **Frontend → AI Gateway** | DocumentReviewForm | /api/ai/extract endpoint | Real-time suggestions |
+| **n8n → Backend API** | AI workflows | Validation endpoints | Human-in-the-loop |
+| **Admin Desktop → QNAP NAS** | AI services | DMS backend API | Security boundary |
+| **Migration Service → Storage** | Batch processing | File storage system | Document handling |
 
 ---
 
@@ -479,7 +526,7 @@ OUTPUT FORMAT:
 
 ### Architecture Decision Records
 - **[ADR-017: Ollama Data Migration](./ADR-017-ollama-data-migration.md)** — Foundation migration architecture
-- **[ADR-017B: Smart Categorization](./ADR-017B-ollama.md)** — AI categorization use cases
+- **[ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md)** — AI classification use cases
 - **[ADR-018: AI Boundary Policy](./ADR-018-ai-boundary.md)** — Security isolation requirements (CRITICAL)
 - **[ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)** — UUID usage patterns (CRITICAL)
 
@@ -500,16 +547,118 @@ OUTPUT FORMAT:
 
 ---
 
+## ADR Review Cycle
+
+### Review Classification
+
+**Core ADR Status:** This ADR is classified as a **Core Architecture Decision** due to its fundamental impact on system architecture and security boundaries.
+
+### Review Schedule
+
+| Review Type | Frequency | Trigger | Scope |
+|-------------|-----------|---------|-------|
+| **Regular Review** | Every 6 months | Calendar-based | Validity assessment, performance metrics |
+| **Major Version Review** | Every major version (v2.0.0, v3.0.0) | Version planning | Architecture relevance, compatibility |
+| **Security Review** | Annually or after security incident | Security audit | ADR-018 compliance, threat model |
+| **Technology Review** | As needed | Tech stack changes | AI model updates, infrastructure changes |
+
+### Review Process
+
+#### Phase 1: Preparation (1 week before review)
+1. **Metrics Collection**
+   - AI accuracy rates and trends
+   - Performance benchmarks vs targets
+   - Security incident reports
+   - User feedback and satisfaction scores
+   - Technology stack currency assessment
+
+2. **Stakeholder Notification**
+   - Development Team
+   - AI Integration Lead
+   - System Architect
+   - Security Team
+   - Product Management
+
+#### Phase 2: Review Meeting (2-hour session)
+1. **Current State Assessment**
+   - Review success metrics achievement
+   - Identify gaps or deviations from original decision
+   - Assess technology relevance and currency
+
+2. **Impact Evaluation**
+   - Measure actual vs expected business impact
+   - Evaluate implementation challenges
+   - Identify unintended consequences
+
+3. **Future Considerations**
+   - Emerging AI technologies
+   - Changing business requirements
+   - Scalability concerns
+   - Security landscape changes
+
+#### Phase 3: Decision & Documentation (1 week after review)
+1. **Review Outcomes**
+   - **No Change:** ADR remains valid and effective
+   - **Update Required:** Minor adjustments to implementation
+   - **Supersede:** New ADR created to replace this one
+   - **Retire:** ADR no longer relevant
+
+2. **Documentation Updates**
+   - Update review date and findings
+   - Add new version notes
+   - Link to related ADRs if created
+   - Update implementation roadmap
+
+### Review Criteria
+
+| Criterion | Question | Pass/Fail Threshold |
+|-----------|----------|---------------------|
+| **Effectiveness** | Is AI achieving target accuracy (>85%)? | Pass: ≥85%, Fail: <85% |
+| **Performance** | Are processing times within targets (<15s)? | Pass: ≤15s, Fail: >15s |
+| **Security** | Is ADR-018 compliance maintained? | Pass: 100% compliant, Fail: Any violation |
+| **Adoption** | Are users utilizing AI features? | Pass: >70% adoption, Fail: ≤70% |
+| **Maintainability** | Is system supportable with current resources? | Pass: Yes, Fail: Requires additional resources |
+| **Technology Currency** | Are AI models and infrastructure up-to-date? | Pass: Current version, Fail: >1 version behind |
+
+### Review History Template
+
+```
+## Review Cycle [YYYY-MM-DD]
+
+**Review Type:** [Regular/Major Version/Security/Technology]
+**Reviewers:** [Names and roles]
+**Duration:** [Meeting date]
+
+### Findings
+- [Key findings from metrics and assessment]
+
+### Issues Identified
+- [Problems or concerns discovered]
+
+### Recommendations
+- [Action items and decisions]
+
+### Outcome
+- [No Change/Update Required/Supersede/Retire]
+
+### Next Review Date
+- [YYYY-MM-DD]
+```
+
+---
+
 ## Document History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.8.5 | 2026-04-03 | AI Integration Lead | Initial ADR — AI Intelligence Integration Architecture |
 | 1.8.6 | 2026-04-03 | Tech Lead | Updated — Aligned with detailed task specifications and implementation requirements |
+| 1.8.7 | 2026-04-04 | System Architect | Enhanced — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |
 
 ---
 
-**Last Updated:** 2026-04-03
+**Last Updated:** 2026-04-04
 **Status:** Proposed
 **Review Date:** 2026-04-10
 **Implementation Target:** v1.9.0
+**Next Review Date:** 2026-10-04 (6-month regular review)
