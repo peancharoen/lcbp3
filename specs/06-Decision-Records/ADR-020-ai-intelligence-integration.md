@@ -526,7 +526,7 @@ OUTPUT FORMAT:
 
 ### Architecture Decision Records
 - **[ADR-017: Ollama Data Migration](./ADR-017-ollama-data-migration.md)** — Foundation migration architecture
-- **[ADR-017B: AI Document Classification](./ADR-017B-ai-document-classification.md)** — AI classification use cases
+- **[ADR-017B: Smart Categorization](./ADR-017B-ollama.md)** — AI categorization use cases
 - **[ADR-018: AI Boundary Policy](./ADR-018-ai-boundary.md)** — Security isolation requirements (CRITICAL)
 - **[ADR-019: Hybrid Identifier Strategy](./ADR-019-hybrid-identifier-strategy.md)** — UUID usage patterns (CRITICAL)
 

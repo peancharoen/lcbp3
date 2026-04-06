@@ -1,4 +1,9 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  NotFoundException,
+  ValidationException,
+  WorkflowException,
+} from '../../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WorkflowDslSchema, WorkflowDsl } from './workflow-dsl.schema';
@@ -36,16 +41,18 @@ export class WorkflowDslParser {
       return await this.workflowDefRepo.save(definition);
     } catch (error: unknown) {
       if (error instanceof SyntaxError) {
-        throw new BadRequestException(`Invalid JSON: ${error.message}`);
+        throw new ValidationException(`Invalid JSON: ${error.message}`);
       }
       const err = error as {
         name?: string;
-        errors?: unknown;
+        errors?: unknown[];
         message?: string;
       };
       if (err.name === 'ZodError') {
-        throw new BadRequestException(
-          `Invalid workflow DSL: ${JSON.stringify(err.errors)}`
+        throw new WorkflowException(
+          'INVALID_WORKFLOW_DSL',
+          `Invalid workflow DSL: ${JSON.stringify(err.errors)}`,
+          'Workflow DSL ไม่ถูกต้อง'
         );
       }
       throw error;
@@ -66,16 +73,20 @@ export class WorkflowDslParser {
 
     // 1. Validate initial state
     if (!stateSet.has(dsl.initialState)) {
-      throw new BadRequestException(
-        `Initial state "${dsl.initialState}" not found in states array`
+      throw new WorkflowException(
+        'DSL_INVALID_INITIAL_STATE',
+        `Initial state "${dsl.initialState}" not found in states array`,
+        'Initial State ไม่พบใน States Array'
       );
     }
 
     // 2. Validate final states
     dsl.finalStates.forEach((state) => {
       if (!stateSet.has(state)) {
-        throw new BadRequestException(
-          `Final state "${state}" not found in states array`
+        throw new WorkflowException(
+          'DSL_INVALID_FINAL_STATE',
+          `Final state "${state}" not found in states array`,
+          'Final State ไม่พบใน States Array'
         );
       }
     });
@@ -86,15 +97,19 @@ export class WorkflowDslParser {
     dsl.transitions.forEach((transition, index) => {
       // Check 'from' state
       if (!stateSet.has(transition.from)) {
-        throw new BadRequestException(
-          `Transition ${index}: 'from' state "${transition.from}" not found in states array`
+        throw new WorkflowException(
+          'DSL_INVALID_TRANSITION_FROM',
+          `Transition ${index}: 'from' state "${transition.from}" not found in states array`,
+          'Transition อ้างอิง State ที่ไม่พบ'
         );
       }
 
       // Check 'to' state
       if (!stateSet.has(transition.to)) {
-        throw new BadRequestException(
-          `Transition ${index}: 'to' state "${transition.to}" not found in states array`
+        throw new WorkflowException(
+          'DSL_INVALID_TRANSITION_TO',
+          `Transition ${index}: 'to' state "${transition.to}" not found in states array`,
+          'Transition อ้างอิง State ที่ไม่พบ'
         );
       }
 
@@ -120,8 +135,10 @@ export class WorkflowDslParser {
     dsl.transitions.forEach((transition) => {
       const key = `${transition.from}-${transition.trigger}-${transition.to}`;
       if (transitionKeys.has(key)) {
-        throw new BadRequestException(
-          `Duplicate transition: ${transition.from} --[${transition.trigger}]--> ${transition.to}`
+        throw new WorkflowException(
+          'DSL_DUPLICATE_TRANSITION',
+          `Duplicate transition: ${transition.from} --[${transition.trigger}]--> ${transition.to}`,
+          'DSL มี Transition ซ้ำซ้อน'
         );
       }
       transitionKeys.add(key);
@@ -158,9 +175,7 @@ export class WorkflowDslParser {
     });
 
     if (!definition) {
-      throw new BadRequestException(
-        `Workflow definition ${definitionId} not found`
-      );
+      throw new NotFoundException('Workflow definition', String(definitionId));
     }
 
     try {
@@ -171,8 +186,10 @@ export class WorkflowDslParser {
         `Failed to parse stored DSL for definition ${definitionId}`,
         error
       );
-      throw new BadRequestException(
-        `Invalid stored DSL: ${error instanceof Error ? error.message : String(error)}`
+      throw new WorkflowException(
+        'INVALID_STORED_DSL',
+        `Invalid stored DSL: ${error instanceof Error ? error.message : String(error)}`,
+        'DSL ที่บันทึกไว้ไม่ถูกต้อง'
       );
     }
   }

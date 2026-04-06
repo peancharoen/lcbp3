@@ -1,14 +1,9 @@
 // File: src/modules/workflow-engine/workflow-engine.service.ts
 
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { NotFoundException, WorkflowException } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-
 // Entities
 import { WorkflowDefinition } from './entities/workflow-definition.entity';
 import { WorkflowHistory } from './entities/workflow-history.entity';
@@ -104,9 +99,7 @@ export class WorkflowEngineService {
   ): Promise<WorkflowDefinition> {
     const definition = await this.workflowDefRepo.findOne({ where: { id } });
     if (!definition) {
-      throw new NotFoundException(
-        `Workflow Definition with ID "${id}" not found`
-      );
+      throw new NotFoundException('Workflow Definition', id);
     }
 
     if (dto.dsl) {
@@ -115,8 +108,11 @@ export class WorkflowEngineService {
         definition.dsl = dto.dsl as unknown as Record<string, unknown>;
         definition.compiled = compiled as unknown as Record<string, unknown>;
       } catch (error: unknown) {
-        throw new BadRequestException(
-          `Invalid DSL: ${error instanceof Error ? error.message : String(error)}`
+        throw new WorkflowException(
+          'INVALID_WORKFLOW_DSL',
+          `Invalid DSL: ${error instanceof Error ? error.message : String(error)}`,
+          'Workflow DSL ไม่ถูกต้อง กรุณาตรวจสอบโครงสร้าง',
+          ['ตรวจสอบ syntax ของ DSL', 'ดูตัวอย่าง DSL ที่ถูกต้อง']
         );
       }
     }
@@ -149,9 +145,7 @@ export class WorkflowEngineService {
   async getDefinitionById(id: string): Promise<WorkflowDefinition> {
     const definition = await this.workflowDefRepo.findOne({ where: { id } });
     if (!definition) {
-      throw new NotFoundException(
-        `Workflow Definition with ID "${id}" not found`
-      );
+      throw new NotFoundException('Workflow Definition', id);
     }
     return definition;
   }
@@ -197,9 +191,7 @@ export class WorkflowEngineService {
     });
 
     if (!definition) {
-      throw new NotFoundException(
-        `Workflow "${workflowCode}" not found or inactive.`
-      );
+      throw new NotFoundException('Workflow', workflowCode);
     }
 
     // 2. หา Initial State จาก Compiled Structure
@@ -209,8 +201,11 @@ export class WorkflowEngineService {
     const initialState = compiled.initialState;
 
     if (!initialState) {
-      throw new BadRequestException(
-        `Workflow "${workflowCode}" has no initial state defined.`
+      throw new WorkflowException(
+        'WORKFLOW_NO_INITIAL_STATE',
+        `Workflow "${workflowCode}" has no initial state defined`,
+        'Workflow ไม่มี Initial State ที่กำหนด',
+        ['ตรวจสอบ DSL ของ Workflow นี้']
       );
     }
 
@@ -242,9 +237,7 @@ export class WorkflowEngineService {
     });
 
     if (!instance) {
-      throw new NotFoundException(
-        `Workflow Instance "${instanceId}" not found`
-      );
+      throw new NotFoundException('Workflow Instance', instanceId);
     }
 
     return instance;
@@ -276,14 +269,15 @@ export class WorkflowEngineService {
       });
 
       if (!instance) {
-        throw new NotFoundException(
-          `Workflow Instance "${instanceId}" not found.`
-        );
+        throw new NotFoundException('Workflow Instance', instanceId);
       }
 
       if (instance.status !== WorkflowStatus.ACTIVE) {
-        throw new BadRequestException(
-          `Workflow is not active (Status: ${instance.status}).`
+        throw new WorkflowException(
+          'WORKFLOW_NOT_ACTIVE',
+          `Workflow is not active (Status: ${instance.status})`,
+          'Workflow ไม่อยู่ในสถานะ Active',
+          ['ตรวจสอบสถานะของ Workflow']
         );
       }
 
@@ -427,7 +421,12 @@ export class WorkflowEngineService {
       case 'RETURN': {
         const targetStep = returnToSequence || currentSequence - 1;
         if (targetStep < 1) {
-          throw new BadRequestException('Cannot return beyond the first step');
+          throw new WorkflowException(
+            'WORKFLOW_INVALID_RETURN_TARGET',
+            'Cannot return beyond the first step',
+            'ไม่สามารถส่งคืนไปเกินกว่าขั้นตอนแรกได้',
+            ['ตรวจสอบลำดับขั้นตอนที่ต้องการส่งคืน']
+          );
         }
         return {
           nextStepSequence: targetStep,

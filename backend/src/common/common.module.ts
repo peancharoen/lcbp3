@@ -7,7 +7,7 @@ import { CryptoService } from './services/crypto.service';
 import { RequestContextService } from './services/request-context.service';
 import { UuidResolverService } from './services/uuid-resolver.service';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
-import { HttpExceptionFilter } from './exceptions/http-exception.filter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
 // import { IdempotencyInterceptor } from './interceptors/idempotency.interceptor'; // นำเข้าถ้าต้องการใช้ Global
 
@@ -21,7 +21,7 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
     // Register Global Filter & Interceptor ที่นี่ หรือใน AppModule ก็ได้
     {
       provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
+      useClass: GlobalExceptionFilter,
     },
     {
       provide: APP_INTERCEPTOR,

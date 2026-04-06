@@ -1,10 +1,11 @@
+import { Injectable, Logger } from '@nestjs/common';
 import {
-  Injectable,
-  Logger,
+  BusinessException,
   ConflictException,
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+  NotFoundException,
+  SystemException,
+  ValidationException,
+} from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
@@ -57,7 +58,7 @@ export class MigrationService {
     userId: number
   ) {
     if (!idempotencyKey) {
-      throw new BadRequestException('Idempotency-Key header is required');
+      throw new ValidationException('Idempotency-Key header is required');
     }
 
     // 1. Idempotency Check
@@ -76,7 +77,10 @@ export class MigrationService {
         };
       } else {
         throw new ConflictException(
-          `Transaction failed previously with status ${existingTransaction.statusCode}`
+          'MIGRATION_DUPLICATE_TRANSACTION',
+          `Transaction failed previously with status ${existingTransaction.statusCode}`,
+          'รายการนี้เคยดำเนินการไปแล้วและล้มเหลว',
+          ['ตรวจสอบสถานะ Transaction ก่อนหน้า', 'ลองใช้ Idempotency-Key ใหม่']
         );
       }
     }
@@ -114,8 +118,8 @@ export class MigrationService {
     }
 
     if (!typeId) {
-      throw new BadRequestException(
-        `Category "${dto.category}" not found in system.`
+      throw new ValidationException(
+        `Category "${dto.category}" not found in system`
       );
     }
 
@@ -129,8 +133,8 @@ export class MigrationService {
       });
     }
     if (!status) {
-      throw new InternalServerErrorException(
-        'CRITICAL: No default correspondence status found (missing CLBOWN/DRAFT)'
+      throw new SystemException(
+        'No default correspondence status found (missing CLBOWN/DRAFT)'
       );
     }
 
@@ -139,9 +143,7 @@ export class MigrationService {
       where: { id: dto.projectId },
     });
     if (!project) {
-      throw new BadRequestException(
-        `Project ID ${dto.projectId} not found in database`
-      );
+      throw new NotFoundException('Project', String(dto.projectId));
     }
 
     const isRFA = type?.typeCode === 'RFA' || dto.category === 'RFA';
@@ -397,9 +399,7 @@ export class MigrationService {
       });
       await this.importTransactionRepo.save(failedTransaction).catch(() => {});
 
-      throw new InternalServerErrorException(
-        'Migration import failed: ' + errorMessage
-      );
+      throw new SystemException('Migration import failed: ' + errorMessage);
     } finally {
       await queryRunner.release();
     }
@@ -407,7 +407,7 @@ export class MigrationService {
 
   async enqueueRecord(dto: EnqueueMigrationDto) {
     if (!dto.documentNumber) {
-      throw new BadRequestException('documentNumber is required');
+      throw new ValidationException('documentNumber is required');
     }
 
     // Determine status based on confidence policy in ADR-017
@@ -492,7 +492,7 @@ export class MigrationService {
   async getQueueItemById(id: number) {
     const item = await this.reviewQueueRepo.findOne({ where: { id } });
     if (!item) {
-      throw new BadRequestException(`Queue item with ID ${id} not found`);
+      throw new NotFoundException('Queue item', String(id));
     }
     return item;
   }
@@ -538,12 +538,14 @@ export class MigrationService {
   ) {
     const queueItem = await this.reviewQueueRepo.findOne({ where: { id } });
     if (!queueItem) {
-      throw new BadRequestException(`Queue item ${id} not found`);
+      throw new NotFoundException('Queue item', String(id));
     }
 
     if (queueItem.status !== MigrationReviewStatus.PENDING) {
-      throw new BadRequestException(
-        `Queue item ${id} is already ${queueItem.status}`
+      throw new BusinessException(
+        'MIGRATION_ITEM_NOT_PENDING',
+        `Queue item ${id} is already ${queueItem.status}`,
+        'รายการนี้ไม่อยู่ในสถานะ PENDING'
       );
     }
 
@@ -565,7 +567,7 @@ export class MigrationService {
     userId: number
   ) {
     if (!idempotencyKey) {
-      throw new BadRequestException('Idempotency-Key header is required');
+      throw new ValidationException('Idempotency-Key header is required');
     }
 
     const results = [];
@@ -612,7 +614,7 @@ export class MigrationService {
   async rejectQueueItem(id: number, userId: number) {
     const queueItem = await this.reviewQueueRepo.findOne({ where: { id } });
     if (!queueItem) {
-      throw new BadRequestException('Queue item not found');
+      throw new NotFoundException('Queue item', String(id));
     }
 
     queueItem.status = MigrationReviewStatus.REJECTED;
@@ -628,12 +630,12 @@ export class MigrationService {
 
   getStagingFileStream(filePath: string) {
     if (!filePath) {
-      throw new BadRequestException('File path is required');
+      throw new ValidationException('File path is required');
     }
 
     const resolvedPath = path.resolve(filePath);
     if (!existsSync(resolvedPath)) {
-      throw new BadRequestException('File not found at specified path');
+      throw new NotFoundException('File', filePath);
     }
 
     return createReadStream(resolvedPath);

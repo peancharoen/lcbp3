@@ -1,4 +1,5 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { BusinessException } from '../../../common/exceptions';
 import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
 import { Repository, EntityManager, IsNull, Equal } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -318,8 +319,11 @@ export class DocumentNumberingService {
   async setCounterValue(id: number, sequence: number) {
     await Promise.resolve(id); // satisfy unused
     await Promise.resolve(sequence);
-    throw new BadRequestException(
-      'Updating counter by single ID is not supported with composite keys. Use manualOverride.'
+    throw new BusinessException(
+      'COUNTER_UPDATE_NOT_SUPPORTED',
+      'Updating counter by single ID is not supported with composite keys',
+      'ไม่รองรับการอัปเดต Counter แบบ Single ID กรุณาใช้ manualOverride',
+      ['ใช้ manualOverride แทน']
     );
   }
 

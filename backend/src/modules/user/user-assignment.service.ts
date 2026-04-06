@@ -1,4 +1,5 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ValidationException } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { UserAssignment } from './entities/user-assignment.entity';
@@ -22,7 +23,7 @@ export class UserAssignmentService {
       (v) => v != null
     );
     if (scopes.length > 1) {
-      throw new BadRequestException(
+      throw new ValidationException(
         'Cannot assign multiple scopes at once. Choose one of Org, Project, or Contract.'
       );
     }
@@ -55,7 +56,7 @@ export class UserAssignmentService {
           // Validation (Scope)
           const scopes = [organizationId, projectId].filter((v) => v != null);
           if (scopes.length > 1) {
-            throw new BadRequestException(
+            throw new ValidationException(
               `User ${userId}: Cannot assign multiple scopes.`
             );
           }

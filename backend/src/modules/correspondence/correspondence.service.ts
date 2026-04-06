@@ -1,13 +1,13 @@
 // File: src/modules/correspondence/correspondence.service.ts
 
+import { Injectable, Logger } from '@nestjs/common';
 import {
-  Injectable,
+  BusinessException,
   NotFoundException,
-  BadRequestException,
-  InternalServerErrorException,
-  ForbiddenException,
-  Logger,
-} from '@nestjs/common';
+  PermissionException,
+  SystemException,
+  ValidationException,
+} from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 
@@ -125,7 +125,7 @@ export class CorrespondenceService {
       }
 
       if (!userOrgId) {
-        throw new BadRequestException(
+        throw new ValidationException(
           'User must belong to an organization to create documents'
         );
       }
@@ -139,14 +139,17 @@ export class CorrespondenceService {
     // Check if it's internal communication
     if (createDto.isInternal) {
       // Internal communications should use Circulation instead
-      throw new BadRequestException(
-        'Internal communications should use Circulation Sheet instead of Correspondence'
+      throw new BusinessException(
+        'INVALID_DOCUMENT_TYPE',
+        'Internal communications should use Circulation Sheet instead of Correspondence',
+        'การสื่อสารภายในควรใช้ Circulation Sheet แทน Correspondence',
+        ['ใช้ Circulation Sheet สำหรับการสื่อสารภายในองค์กร']
       );
     }
 
     // Validate recipients
     if (!createDto.recipients || createDto.recipients.length === 0) {
-      throw new BadRequestException(
+      throw new ValidationException(
         'At least one recipient (TO or CC) is required'
       );
     }
@@ -155,7 +158,7 @@ export class CorrespondenceService {
     const ccRecipients = createDto.recipients.filter((r) => r.type === 'CC');
 
     if (toRecipients.length === 0 && ccRecipients.length === 0) {
-      throw new BadRequestException(
+      throw new ValidationException(
         'At least one TO or CC recipient is required'
       );
     }
@@ -167,8 +170,11 @@ export class CorrespondenceService {
       );
 
       if (recipientOrgId === originatorOrgId) {
-        throw new BadRequestException(
-          'Cannot send correspondence to your own organization. Use Circulation Sheet for internal communication.'
+        throw new BusinessException(
+          'CORRESPONDENCE_TO_SELF',
+          'Cannot send correspondence to your own organization',
+          'ไม่สามารถส่งเอกสารถึงองค์กรของตัวเองได้ ใช้ Circulation Sheet แทน',
+          ['ใช้ Circulation Sheet สำหรับการสื่อสารภายใน']
         );
       }
     }
@@ -199,15 +205,14 @@ export class CorrespondenceService {
     const type = await this.typeRepo.findOne({
       where: { id: createDto.typeId },
     });
-    if (!type) throw new NotFoundException('Document Type not found');
+    if (!type)
+      throw new NotFoundException('Document Type', String(createDto.typeId));
 
     const statusDraft = await this.statusRepo.findOne({
       where: { statusCode: 'DRAFT' },
     });
     if (!statusDraft) {
-      throw new InternalServerErrorException(
-        'Status DRAFT not found in Master Data'
-      );
+      throw new SystemException('Status DRAFT not found in Master Data');
     }
 
     let userOrgId = user.primaryOrganizationId;
@@ -225,15 +230,16 @@ export class CorrespondenceService {
         user.user_id
       );
       if (!canManageAll) {
-        throw new ForbiddenException(
-          'You do not have permission to create documents on behalf of other organizations.'
+        throw new PermissionException(
+          'correspondence',
+          'create on behalf of other organization'
         );
       }
       userOrgId = resolvedOriginatorId;
     }
 
     if (!userOrgId) {
-      throw new BadRequestException(
+      throw new ValidationException(
         'User must belong to an organization to create documents'
       );
     }
@@ -505,7 +511,7 @@ export class CorrespondenceService {
     });
 
     if (!correspondence) {
-      throw new NotFoundException(`Correspondence with ID ${id} not found`);
+      throw new NotFoundException('Correspondence', String(id));
     }
     return correspondence;
   }
@@ -533,9 +539,7 @@ export class CorrespondenceService {
       .getOne();
 
     if (!correspondence) {
-      throw new NotFoundException(
-        `Correspondence with UUID ${publicId} not found`
-      );
+      throw new NotFoundException('Correspondence', publicId);
     }
     return correspondence;
   }
@@ -548,11 +552,15 @@ export class CorrespondenceService {
     });
 
     if (!source || !target) {
-      throw new NotFoundException('Source or Target correspondence not found');
+      throw new NotFoundException('Source or Target correspondence');
     }
 
     if (source.id === target.id) {
-      throw new BadRequestException('Cannot reference self');
+      throw new BusinessException(
+        'SELF_REFERENCE',
+        'Cannot reference self',
+        'ไม่สามารถอ้างอิงเอกสารเดียวกันได้'
+      );
     }
 
     const exists = await this.referenceRepo.findOne({
@@ -581,7 +589,7 @@ export class CorrespondenceService {
     });
 
     if (result.affected === 0) {
-      throw new NotFoundException('Reference not found');
+      throw new NotFoundException('Reference');
     }
   }
 
@@ -598,14 +606,14 @@ export class CorrespondenceService {
       where: { id },
     });
     if (!correspondence) {
-      throw new NotFoundException(`Correspondence ${id} not found`);
+      throw new NotFoundException('Correspondence', String(id));
     }
 
     const tag = await this.dataSource.manager.findOne(Tag, {
       where: { id: tagId },
     });
     if (!tag) {
-      throw new NotFoundException(`Tag ${tagId} not found`);
+      throw new NotFoundException('Tag', String(tagId));
     }
 
     const exists = await this.tagRepo.findOne({
@@ -620,7 +628,7 @@ export class CorrespondenceService {
   async removeTag(id: number, tagId: number) {
     const result = await this.tagRepo.delete({ correspondenceId: id, tagId });
     if (result.affected === 0) {
-      throw new NotFoundException('Tag assignment not found');
+      throw new NotFoundException('Tag assignment');
     }
   }
 
@@ -649,9 +657,7 @@ export class CorrespondenceService {
     });
 
     if (!revision) {
-      throw new NotFoundException(
-        `Current revision for correspondence ${id} not found`
-      );
+      throw new NotFoundException('Current revision', `correspondence:${id}`);
     }
 
     // 2. Check Permission
@@ -669,9 +675,7 @@ export class CorrespondenceService {
           permissions.includes('system.manage_all');
 
         if (!canEditSubmittedOrLater) {
-          throw new ForbiddenException(
-            'Only Org Admin or Superadmin can edit non-draft correspondences'
-          );
+          throw new PermissionException('correspondence', 'edit non-draft');
         }
       }
     }
@@ -699,7 +703,7 @@ export class CorrespondenceService {
     // 3. Check if number regeneration is needed (only for DRAFT status)
     const oldCorr = revision.correspondence;
     if (!oldCorr) {
-      throw new InternalServerErrorException(
+      throw new SystemException(
         'Correspondence relation not loaded for revision'
       );
     }
@@ -734,7 +738,7 @@ export class CorrespondenceService {
         const type = await this.typeRepo.findOne({ where: { id: typeId } });
 
         if (!type) {
-          throw new NotFoundException('Document Type not found');
+          throw new NotFoundException('Document Type', String(typeId));
         }
 
         // Get recipient org code for number generation
@@ -898,7 +902,8 @@ export class CorrespondenceService {
     const type = await this.typeRepo.findOne({
       where: { id: createDto.typeId },
     });
-    if (!type) throw new NotFoundException('Document Type not found');
+    if (!type)
+      throw new NotFoundException('Document Type', String(createDto.typeId));
 
     let userOrgId = user.primaryOrganizationId;
     if (!userOrgId) {
@@ -953,9 +958,7 @@ export class CorrespondenceService {
       permissions.includes('system.manage_all');
 
     if (!canCancel) {
-      throw new ForbiddenException(
-        'Only administrators can cancel correspondences'
-      );
+      throw new PermissionException('correspondence', 'cancel');
     }
 
     // Check if there are any active circulations
@@ -981,7 +984,7 @@ export class CorrespondenceService {
     });
 
     if (!currentRevision) {
-      throw new NotFoundException('Current revision not found');
+      throw new NotFoundException('Current revision');
     }
 
     // Get cancelled status
@@ -990,7 +993,7 @@ export class CorrespondenceService {
     });
 
     if (!cancelledStatus) {
-      throw new InternalServerErrorException('CANCELLED status not found');
+      throw new SystemException('CANCELLED status not found in Master Data');
     }
 
     const queryRunner = this.dataSource.createQueryRunner();

@@ -90,6 +90,78 @@ apiClient.interceptors.request.use(
 // Response Interceptors
 // ---------------------------------------------------------------------------
 
+// รูปแบบ Error Response จาก Backend (ADR-007)
+export interface ApiErrorPayload {
+  type: string;
+  code: string;
+  message: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  timestamp: string;
+  statusCode?: number;
+  recoveryActions?: string[];
+  technicalMessage?: string;
+  details?: Record<string, unknown>;
+}
+
+export interface ApiErrorResponse {
+  error: ApiErrorPayload;
+}
+
+// แปลง Axios error เป็น Structured Error Response (ADR-007)
+export function parseApiError(axiosError: AxiosError): ApiErrorResponse {
+  if (axiosError.response?.data) {
+    const data = axiosError.response.data;
+    // กรณีที่ backend ส่ง { error: { ... } } ตาม ADR-007
+    if (typeof data === 'object' && data !== null && 'error' in data) {
+      return data as ApiErrorResponse;
+    }
+    // กรณี NestJS validation error { message: [...], statusCode: 400 }
+    if (typeof data === 'object' && data !== null && 'message' in data) {
+      const status = axiosError.response.status;
+      return {
+        error: {
+          type: 'VALIDATION',
+          code: 'HTTP_ERROR',
+          message: Array.isArray((data as Record<string, unknown>).message)
+            ? 'ข้อมูลที่กรอกไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่'
+            : String((data as Record<string, unknown>).message),
+          severity: status >= 500 ? 'HIGH' : 'MEDIUM',
+          timestamp: new Date().toISOString(),
+          statusCode: status,
+          recoveryActions: ['ตรวจสอบข้อมูลที่กรอก', 'แก้ไขข้อมูลที่ผิดพลาด', 'ลองใหม่อีกครั้ง'],
+        },
+      };
+    }
+  }
+
+  // กรณี Network Error
+  if (!axiosError.response) {
+    return {
+      error: {
+        type: 'INFRASTRUCTURE',
+        code: 'NETWORK_ERROR',
+        message: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้',
+        severity: 'HIGH',
+        timestamp: new Date().toISOString(),
+        recoveryActions: ['ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', 'ลองใหม่ภายหลัง'],
+      },
+    };
+  }
+
+  // Fallback
+  return {
+    error: {
+      type: 'INTERNAL_ERROR',
+      code: 'UNKNOWN_ERROR',
+      message: 'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่ภายหลัง',
+      severity: 'HIGH',
+      timestamp: new Date().toISOString(),
+      statusCode: axiosError.response?.status,
+      recoveryActions: ['ลองใหม่อีกครั้ง', 'ติดต่อผู้ดูแลระบบหากยังพบปัญหา'],
+    },
+  };
+}
+
 apiClient.interceptors.response.use(
   (response) => {
     return response;
@@ -107,7 +179,9 @@ apiClient.interceptors.response.use(
         }
       }
     }
-    return Promise.reject(error);
+    // แปลง error เป็น structured format ตาม ADR-007 ก่อน reject
+    const structuredError = parseApiError(error);
+    return Promise.reject(structuredError);
   }
 );
 

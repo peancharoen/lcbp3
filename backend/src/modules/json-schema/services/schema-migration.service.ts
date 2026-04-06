@@ -1,5 +1,9 @@
 // File: src/modules/json-schema/services/schema-migration.service.ts
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  BusinessException,
+  NotFoundException,
+} from '../../../common/exceptions';
 import { DataSource } from 'typeorm';
 import { JsonSchemaService } from '../json-schema.service';
 
@@ -66,9 +70,7 @@ export class SchemaMigrationService {
       ]);
 
       if (!entities || entities.length === 0) {
-        throw new BadRequestException(
-          `Entity ${entityType} with ID ${entityId} not found.`
-        );
+        throw new NotFoundException(entityType, String(entityId));
       }
 
       const entity = entities[0];
@@ -125,8 +127,10 @@ export class SchemaMigrationService {
       );
 
       if (!validation.isValid) {
-        throw new BadRequestException(
-          `Migration failed: Resulting data does not match target schema v${targetSchema.version}. Errors: ${JSON.stringify(validation.errors)}`
+        throw new BusinessException(
+          'SCHEMA_MIGRATION_VALIDATION_FAILED',
+          `Migration failed: Data does not match target schema v${targetSchema.version}`,
+          'การ Migration ล้มเหลว: ข้อมูลไม่ตรงกับ Schema เป้าหมาย'
         );
       }
 

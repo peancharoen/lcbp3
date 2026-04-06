@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { ForbiddenException } from '@nestjs/common';
+import { PermissionException } from '../../common/exceptions';
 import { CorrespondenceService } from './correspondence.service';
 import { Correspondence } from './entities/correspondence.entity';
 import { CorrespondenceRevision } from './entities/correspondence-revision.entity';
@@ -260,7 +260,7 @@ describe('CorrespondenceService', () => {
 
       await expect(
         service.update(2, { subject: 'Should Fail' }, mockUser)
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(PermissionException);
     });
 
     it('should NOT regenerate number if critical fields unchanged', async () => {

@@ -1,13 +1,14 @@
 // File: src/modules/rfa/rfa.service.ts
 
+import { Injectable, Logger } from '@nestjs/common';
 import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
+  BusinessException,
   NotFoundException,
-} from '@nestjs/common';
+  PermissionException,
+  SystemException,
+  ValidationException,
+  WorkflowException,
+} from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 
@@ -122,7 +123,8 @@ export class RfaService {
     const rfaType = await this.rfaTypeRepo.findOne({
       where: { id: createDto.rfaTypeId },
     });
-    if (!rfaType) throw new NotFoundException('RFA Type not found');
+    if (!rfaType)
+      throw new NotFoundException('RFA Type', String(createDto.rfaTypeId));
 
     const rfaTypeCode = rfaType.typeCode.toUpperCase();
     const rawShopDrawingRefs = createDto.shopDrawingRevisionIds ?? [];
@@ -130,25 +132,25 @@ export class RfaService {
 
     if (['DDW', 'SDW'].includes(rfaTypeCode)) {
       if (rawShopDrawingRefs.length === 0) {
-        throw new BadRequestException(
+        throw new ValidationException(
           'Selected RFA Type requires at least one Shop Drawing Revision'
         );
       }
 
       if (rawAsBuiltDrawingRefs.length > 0) {
-        throw new BadRequestException(
+        throw new ValidationException(
           'Selected RFA Type cannot reference As-Built Drawing Revisions'
         );
       }
     } else if (rfaTypeCode === 'ADW') {
       if (rawAsBuiltDrawingRefs.length === 0) {
-        throw new BadRequestException(
+        throw new ValidationException(
           'Selected RFA Type requires at least one As-Built Drawing Revision'
         );
       }
 
       if (rawShopDrawingRefs.length > 0) {
-        throw new BadRequestException(
+        throw new ValidationException(
           'Selected RFA Type cannot reference Shop Drawing Revisions'
         );
       }
@@ -156,7 +158,7 @@ export class RfaService {
       rawShopDrawingRefs.length > 0 ||
       rawAsBuiltDrawingRefs.length > 0
     ) {
-      throw new BadRequestException(
+      throw new ValidationException(
         'Selected RFA Type does not support drawing revision items'
       );
     }
@@ -185,7 +187,7 @@ export class RfaService {
       where: { typeCode: 'RFA', isActive: true },
     });
     if (!correspondenceType) {
-      throw new InternalServerErrorException(
+      throw new SystemException(
         'Correspondence Type RFA not found in Master Data'
       );
     }
@@ -195,8 +197,11 @@ export class RfaService {
       : rfaType.contractId;
 
     if (rfaType.contractId !== internalContractId) {
-      throw new BadRequestException(
-        'Selected RFA Type does not belong to the selected contract'
+      throw new BusinessException(
+        'RFA_TYPE_CONTRACT_MISMATCH',
+        'Selected RFA Type does not belong to the selected contract',
+        'ประเภท RFA ที่เลือกไม่ตรงกับสัญญาที่ระบุ',
+        ['เลือกประเภท RFA ที่ตรงกับสัญญา']
       );
     }
 
@@ -206,12 +211,18 @@ export class RfaService {
       });
 
       if (!discipline) {
-        throw new NotFoundException('Discipline not found');
+        throw new NotFoundException(
+          'Discipline',
+          String(createDto.disciplineId)
+        );
       }
 
       if (discipline.contractId !== internalContractId) {
-        throw new BadRequestException(
-          'Selected Discipline does not belong to the selected contract'
+        throw new BusinessException(
+          'DISCIPLINE_CONTRACT_MISMATCH',
+          'Selected Discipline does not belong to the selected contract',
+          'Discipline ที่เลือกไม่ตรงกับสัญญาที่ระบุ',
+          ['เลือก Discipline ที่ตรงกับสัญญา']
         );
       }
     }
@@ -226,9 +237,7 @@ export class RfaService {
       where: { statusCode: 'DFT' },
     });
     if (!statusDraft) {
-      throw new InternalServerErrorException(
-        'Status DFT (Draft) not found in Master Data'
-      );
+      throw new SystemException('Status DFT (Draft) not found in Master Data');
     }
 
     const resolvedOriginatorId = createDto.originatorId
@@ -247,15 +256,18 @@ export class RfaService {
         user.user_id
       );
       if (!canManageAll) {
-        throw new ForbiddenException(
-          'You do not have permission to create documents on behalf of other organizations.'
+        throw new PermissionException(
+          'rfa',
+          'create on behalf of other organization'
         );
       }
       userOrgId = resolvedOriginatorId;
     }
 
     if (!userOrgId) {
-      throw new BadRequestException('User must belong to an organization');
+      throw new ValidationException(
+        'User must belong to an organization to create RFA'
+      );
     }
 
     // EC-RFA-001: Check for existing active RFA per Shop Drawing Revision
@@ -273,9 +285,11 @@ export class RfaService {
         .getMany();
 
       if (conflictingItems.length > 0) {
-        throw new BadRequestException(
-          '[EC-RFA-001] One or more selected Shop Drawing Revisions already have an active RFA. ' +
-            'A Shop Drawing Revision can only be referenced by one active RFA at a time.'
+        throw new BusinessException(
+          'EC_RFA_001_ACTIVE_RFA_EXISTS',
+          '[EC-RFA-001] One or more selected Shop Drawing Revisions already have an active RFA.',
+          'Shop Drawing Revision ที่เลือกมี RFA ที่ยังใช้งานอยู่แล้ว',
+          ['ตรวจสอบ RFA ที่มีอยู่', 'เลือก Shop Drawing Revision อื่น']
         );
       }
     }
@@ -315,8 +329,8 @@ export class RfaService {
         }
       );
       if (!corrStatusDraft)
-        throw new InternalServerErrorException(
-          'Correspondence Status DRAFT not found'
+        throw new SystemException(
+          'Correspondence Status DRAFT not found in Master Data'
         );
 
       // 1. Create Correspondence Record
@@ -385,7 +399,7 @@ export class RfaService {
         });
 
         if (shopDrawings.length !== shopDrawingRevisionIds.length) {
-          throw new NotFoundException('Some Shop Drawing Revisions not found');
+          throw new NotFoundException('Shop Drawing Revision');
         }
 
         rfaItems.push(
@@ -405,9 +419,7 @@ export class RfaService {
         });
 
         if (asBuiltDrawings.length !== asBuiltDrawingRevisionIds.length) {
-          throw new NotFoundException(
-            'Some As-Built Drawing Revisions not found'
-          );
+          throw new NotFoundException('As-Built Drawing Revision');
         }
 
         rfaItems.push(
@@ -588,7 +600,7 @@ export class RfaService {
       select: ['id'],
     });
     if (!correspondence) {
-      throw new NotFoundException(`RFA with publicId ${publicId} not found`);
+      throw new NotFoundException('RFA', publicId);
     }
     return this.findOne(correspondence.id);
   }
@@ -599,7 +611,7 @@ export class RfaService {
       select: ['id'],
     });
     if (!correspondence) {
-      throw new NotFoundException(`RFA with publicId ${publicId} not found`);
+      throw new NotFoundException('RFA', publicId);
     }
     return this.findOne(correspondence.id, true);
   }
@@ -628,7 +640,7 @@ export class RfaService {
     });
 
     if (!rfa) {
-      throw new NotFoundException(`RFA ID ${id} not found`);
+      throw new NotFoundException('RFA', String(id));
     }
 
     if (rawEntities) {
@@ -657,12 +669,17 @@ export class RfaService {
       (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
     const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
     if (!currentCorrRev || !currentCorrRev.rfaRevision)
-      throw new NotFoundException('Current revision not found');
+      throw new NotFoundException('Current revision');
 
     const currentRfaRev = currentCorrRev.rfaRevision;
 
     if (currentRfaRev.statusCode.statusCode !== 'DFT') {
-      throw new BadRequestException('Only DRAFT documents can be submitted');
+      throw new WorkflowException(
+        'RFA_INVALID_SUBMIT_STATUS',
+        'Only DRAFT documents can be submitted',
+        'สามารถส่งได้เฉพาะเอกสารสถานะ DRAFT เท่านั้น',
+        ['ตรวจสอบสถานะเอกสารปัจจุบัน']
+      );
     }
 
     const template = await this.templateRepo.findOne({
@@ -671,7 +688,12 @@ export class RfaService {
     });
 
     if (!template) {
-      throw new BadRequestException('Invalid routing template');
+      throw new BusinessException(
+        'ROUTING_TEMPLATE_NOT_FOUND',
+        'Invalid routing template',
+        'ไม่พบ Routing Template ที่กำหนด',
+        ['ตรวจสอบ Routing Template ที่ตั้งค่าไว้']
+      );
     }
 
     // Manual fetch of steps
@@ -681,14 +703,19 @@ export class RfaService {
     });
 
     if (steps.length === 0) {
-      throw new BadRequestException('Routing template has no steps');
+      throw new BusinessException(
+        'ROUTING_TEMPLATE_EMPTY',
+        'Routing template has no steps',
+        'Routing Template ไม่มีขั้นตอนกำหนดไว้',
+        ['เพิ่ม Step ใน Routing Template']
+      );
     }
 
     const statusForApprove = await this.rfaStatusRepo.findOne({
       where: { statusCode: 'FAP' },
     });
     if (!statusForApprove)
-      throw new InternalServerErrorException('Status FAP not found');
+      throw new SystemException('Status FAP not found in Master Data');
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -765,11 +792,14 @@ export class RfaService {
     });
 
     if (!currentRouting)
-      throw new BadRequestException('No active workflow step found');
-    if (currentRouting.toOrganizationId !== user.primaryOrganizationId) {
-      throw new ForbiddenException(
-        'You are not authorized to process this step'
+      throw new WorkflowException(
+        'NO_ACTIVE_WORKFLOW_STEP',
+        'No active workflow step found',
+        'ไม่พบขั้นตอน Workflow ที่ยังเปิดอยู่',
+        ['ตรวจสอบสถานะ Workflow ของเอกสาร']
       );
+    if (currentRouting.toOrganizationId !== user.primaryOrganizationId) {
+      throw new PermissionException('rfa workflow step', 'process');
     }
 
     const template = await this.templateRepo.findOne({
@@ -777,7 +807,10 @@ export class RfaService {
       // relations: ['steps'],
     });
 
-    if (!template) throw new InternalServerErrorException('Template not found');
+    if (!template)
+      throw new SystemException(
+        'Routing Template not found for workflow processing'
+      );
 
     // Manual fetch steps
     const steps = await this.templateStepRepo.find({
@@ -786,7 +819,7 @@ export class RfaService {
     });
 
     if (steps.length === 0)
-      throw new InternalServerErrorException('Template steps not found');
+      throw new SystemException('Routing Template steps not found');
 
     // Call Engine to calculate next step
     const result = this.workflowEngine.processAction(
@@ -874,13 +907,16 @@ export class RfaService {
       (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
     const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
     if (!currentCorrRev || !currentCorrRev.rfaRevision)
-      throw new NotFoundException('Current revision not found');
+      throw new NotFoundException('Current revision');
 
     const currentRfaRev = currentCorrRev.rfaRevision;
 
     if (currentRfaRev.statusCode.statusCode !== 'DFT') {
-      throw new BadRequestException(
-        'Only DRAFT documents can be edited. Submit a new revision for non-draft documents.'
+      throw new WorkflowException(
+        'RFA_EDIT_NON_DRAFT',
+        'Only DRAFT documents can be edited',
+        'สามารถแก้ไขได้เฉพาะเอกสารสถานะ DRAFT เท่านั้น',
+        ['ส่งเอกสารเพื่อสร้าง Revision ใหม่สำหรับเอกสารที่ไม่ใช่ DRAFT']
       );
     }
 
@@ -915,13 +951,16 @@ export class RfaService {
       (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
     const currentCorrRev = corrRevisions.find((r) => r.isCurrent);
     if (!currentCorrRev || !currentCorrRev.rfaRevision)
-      throw new NotFoundException('Current revision not found');
+      throw new NotFoundException('Current revision');
 
     const currentRfaRev = currentCorrRev.rfaRevision;
 
     if (currentRfaRev.statusCode.statusCode !== 'DFT') {
-      throw new BadRequestException(
-        'Only DRAFT documents can be cancelled. Contact an Org Admin to cancel submitted documents.'
+      throw new WorkflowException(
+        'RFA_CANCEL_NON_DRAFT',
+        'Only DRAFT documents can be cancelled',
+        'สามารถยกเลิกได้เฉพาะเอกสารสถานะ DRAFT เท่านั้น',
+        ['ติดต่อ Org Admin เพื่อยกเลิกเอกสารที่ส่งแล้ว']
       );
     }
 
@@ -929,7 +968,7 @@ export class RfaService {
       where: { statusCode: 'CC' },
     });
     if (!statusCC)
-      throw new InternalServerErrorException(
+      throw new SystemException(
         'Status CC (Cancelled) not found in Master Data'
       );
 

@@ -1,9 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import {
-  Injectable,
   NotFoundException,
-  BadRequestException,
-  ForbiddenException,
-} from '@nestjs/common';
+  PermissionException,
+  ValidationException,
+} from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 
@@ -53,15 +53,18 @@ export class CirculationService {
         user.user_id
       );
       if (!canManageAll) {
-        throw new ForbiddenException(
-          'You do not have permission to create documents on behalf of other organizations.'
+        throw new PermissionException(
+          'circulation',
+          'create on behalf of other organization'
         );
       }
       userOrgId = resolvedOriginatorId;
     }
 
     if (!userOrgId) {
-      throw new BadRequestException('User must belong to an organization');
+      throw new ValidationException(
+        'User must belong to an organization to create a circulation'
+      );
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -195,11 +198,12 @@ export class CirculationService {
       relations: ['circulation'],
     });
 
-    if (!routing) throw new NotFoundException('Routing task not found');
+    if (!routing)
+      throw new NotFoundException('Routing task', String(routingId));
 
     // Check Permission: คนทำต้องเป็นเจ้าของ Task
     if (routing.assignedTo !== user.user_id) {
-      throw new ForbiddenException('You are not assigned to this task');
+      throw new PermissionException('circulation routing task', 'process');
     }
 
     // Update Routing

@@ -1,12 +1,8 @@
 // File: src/modules/user/user.service.ts
 // บันทึกการแก้ไข: แก้ไข Error TS1272 โดยใช้ 'import type' สำหรับ Cache interface (T1.3)
 
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { NotFoundException, ConflictException } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -56,7 +52,12 @@ export class UserService {
     } catch (error: unknown) {
       const dbError = error as { code?: string };
       if (dbError.code === 'ER_DUP_ENTRY') {
-        throw new ConflictException('Username or Email already exists');
+        throw new ConflictException(
+          'USER_DUPLICATE',
+          'Username or Email already exists',
+          'ชื่อผู้ใช้หรืออีเมลนี้มีอยู่ในระบบแล้ว',
+          ['ลองใช้ชื่อผู้ใช้หรืออีเมลอื่น']
+        );
       }
       throw error;
     }
@@ -152,7 +153,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException('User', String(id));
     }
 
     return user;
@@ -171,7 +172,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User with publicId ${publicId} not found`);
+      throw new NotFoundException('User', publicId);
     }
 
     return user;
@@ -217,7 +218,7 @@ export class UserService {
     const result = await this.usersRepository.softDelete(user.user_id);
 
     if (result.affected === 0) {
-      throw new NotFoundException(`User with UUID ${uuid} not found`);
+      throw new NotFoundException('User', uuid);
     }
     // เคลียร์ Cache เมื่อลบ
     await this.clearUserCache(user.user_id);
@@ -275,7 +276,7 @@ export class UserService {
     });
 
     if (!role) {
-      throw new NotFoundException(`Role ID ${roleId} not found`);
+      throw new NotFoundException('Role', String(roleId));
     }
 
     // Load permissions entities

@@ -1,5 +1,6 @@
 // File: src/modules/json-schema/services/ui-schema.service.ts
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ValidationException } from '../../../common/exceptions';
 import {
   UiSchema,
   UiSchemaField,
@@ -21,8 +22,8 @@ export class UiSchemaService {
 
     // 1. Validate Structure เบื้องต้น
     if (!uiSchema.layout || !uiSchema.fields) {
-      throw new BadRequestException(
-        'UI Schema must contain "layout" and "fields" properties.'
+      throw new ValidationException(
+        'UI Schema must contain "layout" and "fields" properties'
       );
     }
 
@@ -34,7 +35,7 @@ export class UiSchemaService {
       group.fields.forEach((fieldKey) => {
         layoutFields.add(fieldKey);
         if (!definedFields.has(fieldKey)) {
-          throw new BadRequestException(
+          throw new ValidationException(
             `Field "${fieldKey}" used in layout "${group.title}" is not defined in "fields".`
           );
         }

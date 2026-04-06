@@ -24,7 +24,10 @@ import {
 } from './dto';
 import { Project } from '../project/entities/project.entity';
 import { UserAssignment } from '../user/entities/user-assignment.entity';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  NotFoundException,
+  PermissionException,
+} from '../../common/exceptions';
 
 @Injectable()
 export class DashboardService {
@@ -58,7 +61,7 @@ export class DashboardService {
     });
 
     if (!project) {
-      throw new NotFoundException(`Project with ID ${projectId} not found`);
+      throw new NotFoundException('Project', String(projectId));
     }
 
     // 2. ตรวจสอบสิทธิ (UserAssignment)
@@ -82,9 +85,7 @@ export class DashboardService {
       this.logger.warn(
         `User ${userId} attempted to access project ${projectId} without assignment`
       );
-      throw new ForbiddenException(
-        `You do not have access to project ${projectId}`
-      );
+      throw new PermissionException('project', 'view');
     }
 
     return project.id;

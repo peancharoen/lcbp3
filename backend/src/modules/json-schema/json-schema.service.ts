@@ -1,13 +1,12 @@
 // File: src/modules/json-schema/json-schema.service.ts
 // บันทึกการแก้ไข: Fix TS2345 (undefined check)
 
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
-  BadRequestException,
-  Injectable,
-  Logger,
+  BusinessException,
   NotFoundException,
-  OnModuleInit,
-} from '@nestjs/common';
+  ValidationException,
+} from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import Ajv, { ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
@@ -101,7 +100,7 @@ export class JsonSchemaService implements OnModuleInit {
     try {
       this.ajv.compile(createDto.schemaDefinition);
     } catch (error: unknown) {
-      throw new BadRequestException(
+      throw new ValidationException(
         `Invalid JSON Schema format: ${error instanceof Error ? error.message : String(error)}`
       );
     }
@@ -207,7 +206,7 @@ export class JsonSchemaService implements OnModuleInit {
   async findOne(id: number): Promise<JsonSchema> {
     const schema = await this.jsonSchemaRepository.findOne({ where: { id } });
     if (!schema) {
-      throw new NotFoundException(`JsonSchema with ID ${id} not found`);
+      throw new NotFoundException('JsonSchema', String(id));
     }
     return schema;
   }
@@ -224,9 +223,7 @@ export class JsonSchemaService implements OnModuleInit {
     });
 
     if (!schema) {
-      throw new NotFoundException(
-        `JsonSchema '${code}' version ${version} not found`
-      );
+      throw new NotFoundException('JsonSchema', `${code}@v${version}`);
     }
     return schema;
   }
@@ -241,9 +238,7 @@ export class JsonSchemaService implements OnModuleInit {
     });
 
     if (!schema) {
-      throw new NotFoundException(
-        `Active JsonSchema with code '${code}' not found`
-      );
+      throw new NotFoundException('Active JsonSchema', code);
     }
     return schema;
   }
@@ -333,8 +328,10 @@ export class JsonSchemaService implements OnModuleInit {
         validate = this.ajv.compile(schema.schemaDefinition);
         this.validators.set(schemaCode, validate);
       } catch (error: unknown) {
-        throw new BadRequestException(
-          `Invalid Schema Definition for '${schemaCode}': ${error instanceof Error ? error.message : String(error)}`
+        throw new BusinessException(
+          'INVALID_SCHEMA_DEFINITION',
+          `Invalid Schema Definition for '${schemaCode}': ${error instanceof Error ? error.message : String(error)}`,
+          'Schema Definition ไม่ถูกต้อง'
         );
       }
     }
@@ -353,7 +350,7 @@ export class JsonSchemaService implements OnModuleInit {
       const errorMsg = result.errors
         .map((e) => `${e.field}: ${e.message}`)
         .join(', ');
-      throw new BadRequestException(`JSON Validation Failed: ${errorMsg}`);
+      throw new ValidationException(`JSON Validation Failed: ${errorMsg}`);
     }
     return true;
   }
@@ -372,7 +369,7 @@ export class JsonSchemaService implements OnModuleInit {
       try {
         this.ajv.compile(updateDto.schemaDefinition);
       } catch (error: unknown) {
-        throw new BadRequestException(
+        throw new ValidationException(
           `Invalid JSON Schema format: ${error instanceof Error ? error.message : String(error)}`
         );
       }

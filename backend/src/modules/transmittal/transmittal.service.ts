@@ -1,11 +1,10 @@
+import { Injectable, Logger } from '@nestjs/common';
 import {
-  Injectable,
-  Logger,
   NotFoundException,
-  InternalServerErrorException,
-  BadRequestException,
-  ForbiddenException,
-} from '@nestjs/common';
+  PermissionException,
+  SystemException,
+  ValidationException,
+} from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Transmittal } from './entities/transmittal.entity';
@@ -57,13 +56,13 @@ export class TransmittalService {
     const type = await this.typeRepo.findOne({
       where: { typeCode: 'TRN' }, // Adjust code as per Master Data
     });
-    if (!type) throw new NotFoundException('Transmittal Type (TRN) not found');
+    if (!type) throw new NotFoundException('Transmittal Type (TRN)');
 
     const statusDraft = await this.statusRepo.findOne({
       where: { statusCode: 'DRAFT' },
     });
     if (!statusDraft)
-      throw new InternalServerErrorException('Status DRAFT not found');
+      throw new SystemException('Status DRAFT not found in Master Data');
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -86,15 +85,16 @@ export class TransmittalService {
         user.user_id
       );
       if (!canManageAll) {
-        throw new ForbiddenException(
-          'You do not have permission to create documents on behalf of other organizations.'
+        throw new PermissionException(
+          'transmittal',
+          'create on behalf of other organization'
         );
       }
       userOrgId = resolvedOriginatorId;
     }
 
     if (!userOrgId) {
-      throw new BadRequestException(
+      throw new ValidationException(
         'User must belong to an organization to create a transmittal'
       );
     }

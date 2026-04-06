@@ -1,6 +1,10 @@
 // File: src/modules/workflow-engine/workflow-dsl.service.ts
 
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  ValidationException,
+  WorkflowException,
+} from '../../common/exceptions';
 
 // ==========================================
 // 1. Interfaces for RAW DSL (Input from User)
@@ -86,8 +90,11 @@ export class WorkflowDslService {
     for (const rawState of dsl.states) {
       if (rawState.initial) {
         if (initialFound) {
-          throw new BadRequestException(
-            `DSL Error: Multiple initial states found (at "${rawState.name}").`
+          throw new WorkflowException(
+            'DSL_MULTIPLE_INITIAL_STATES',
+            `DSL Error: Multiple initial states found (at "${rawState.name}")`,
+            'DSL มี Initial State หลายค่า แต่ละ Workflow ต้องมีเพียง Initial State เดียว',
+            ['ตรวจสอบโครงสร้าง DSL และแก้ไข Initial State']
           );
         }
         compiled.initialState = rawState.name;
@@ -104,8 +111,11 @@ export class WorkflowDslService {
         for (const [action, rule] of Object.entries(rawState.on)) {
           // Validation: Target state must exist
           if (!definedStates.has(rule.to)) {
-            throw new BadRequestException(
-              `DSL Error: State "${rawState.name}" transitions via "${action}" to unknown state "${rule.to}".`
+            throw new WorkflowException(
+              'DSL_UNKNOWN_TRANSITION_TARGET',
+              `DSL Error: State "${rawState.name}" transitions via "${action}" to unknown state "${rule.to}"`,
+              'DSL อ้างอิง State ที่ไม่พบ',
+              ['ตรวจสอบชื่อ State ที่กำหนดใน Transition']
             );
           }
 
@@ -133,7 +143,12 @@ export class WorkflowDslService {
     }
 
     if (!initialFound) {
-      throw new BadRequestException('DSL Error: No initial state defined.');
+      throw new WorkflowException(
+        'DSL_NO_INITIAL_STATE',
+        'DSL Error: No initial state defined',
+        'DSL ไม่มีการกำหนด Initial State',
+        ['เพิ่ม initial: true ใน State หนึ่ง']
+      );
     }
 
     return compiled;
@@ -153,15 +168,21 @@ export class WorkflowDslService {
 
     // 1. Validate State Existence
     if (!stateConfig) {
-      throw new BadRequestException(
-        `Runtime Error: Current state "${currentState}" is invalid.`
+      throw new WorkflowException(
+        'WORKFLOW_INVALID_CURRENT_STATE',
+        `Runtime Error: Current state "${currentState}" is invalid`,
+        'Workflow อยู่ในสถานะที่ไม่รู้จัก',
+        ['ตรวจสอบ DSL ของ Workflow']
       );
     }
 
     // 2. Check if terminal
     if (stateConfig.terminal) {
-      throw new BadRequestException(
-        `Runtime Error: Cannot transition from terminal state "${currentState}".`
+      throw new WorkflowException(
+        'WORKFLOW_TERMINAL_STATE',
+        `Runtime Error: Cannot transition from terminal state "${currentState}"`,
+        'ไม่สามารถดำเนินการจาก State สุดท้ายได้',
+        ['เอกสารสิ้นสุดกระบวนการแล้ว']
       );
     }
 
@@ -169,8 +190,11 @@ export class WorkflowDslService {
     const transition = stateConfig.transitions[action];
     if (!transition) {
       const allowed = Object.keys(stateConfig.transitions).join(', ');
-      throw new BadRequestException(
-        `Invalid Action: "${action}" is not allowed from "${currentState}". Allowed: [${allowed}]`
+      throw new WorkflowException(
+        'WORKFLOW_INVALID_ACTION',
+        `Invalid Action: "${action}" is not allowed from "${currentState}". Allowed: [${allowed}]`,
+        `ไม่สามารถดำเนินการ "${action}" ในสถานะปัจจุบัน ทำได้: [${allowed}]`,
+        ['เลือกการดำเนินการที่อนุญาตจากรายการ']
       );
     }
 
@@ -181,8 +205,11 @@ export class WorkflowDslService {
     if (transition.condition) {
       const isMet = this.evaluateCondition(transition.condition, context);
       if (!isMet) {
-        throw new BadRequestException(
-          'Condition Failed: The criteria for this transition are not met.'
+        throw new WorkflowException(
+          'WORKFLOW_CONDITION_NOT_MET',
+          'Condition Failed: The criteria for this transition are not met',
+          'เงื่อนไขสำหรับการดำเนินการนี้ไม่ผ่าน',
+          ['ตรวจสอบเงื่อนไขที่กำหนดใน Workflow']
         );
       }
     }
@@ -199,12 +226,12 @@ export class WorkflowDslService {
 
   private validateSchemaStructure(dsl: unknown) {
     if (!dsl || typeof dsl !== 'object') {
-      throw new BadRequestException('DSL must be a JSON object.');
+      throw new ValidationException('DSL must be a JSON object');
     }
     const d = dsl as Record<string, unknown>;
     if (!d.workflow || !d.states || !Array.isArray(d.states)) {
-      throw new BadRequestException(
-        'DSL Error: Missing required fields (workflow, states).'
+      throw new ValidationException(
+        'DSL Error: Missing required fields (workflow, states)'
       );
     }
   }
@@ -226,15 +253,23 @@ export class WorkflowDslService {
     if (requiredRoles.length > 0) {
       const hasRole = requiredRoles.some((r) => userRoles.includes(r));
       if (!hasRole) {
-        throw new BadRequestException(
-          `Access Denied: Required roles [${requiredRoles.join(', ')}]`
+        throw new WorkflowException(
+          'WORKFLOW_ROLE_REQUIRED',
+          `Access Denied: Required roles [${requiredRoles.join(', ')}]`,
+          `ต้องมี Role: [${requiredRoles.join(', ')}] จึงจะดำเนินการนี้ได้`,
+          ['ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์']
         );
       }
     }
 
     // Check Specific User
     if (req.userId && String(req.userId) !== String(userId)) {
-      throw new BadRequestException('Access Denied: User mismatch.');
+      throw new WorkflowException(
+        'WORKFLOW_USER_MISMATCH',
+        'Access Denied: User mismatch',
+        'ผู้ใช้ไม่ได้รับอนุญาตให้ดำเนินการนี้',
+        ['ตรวจสอบว่าเล็็กชื่ออีเมลที่ป้อนให้เข้าสู่ระบบ']
+      );
     }
   }
 
