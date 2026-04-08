@@ -10,7 +10,7 @@ import {
 import { WorkflowHistory } from './entities/workflow-history.entity';
 import { WorkflowDslService } from './workflow-dsl.service';
 import { WorkflowEventService } from './workflow-event.service';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '../../common/exceptions';
 import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dto';
 
 describe('WorkflowEngineService', () => {

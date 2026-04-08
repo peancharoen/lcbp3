@@ -4,7 +4,11 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { WorkflowDslParser } from './parser.service';
 import { WorkflowDefinition } from '../entities/workflow-definition.entity';
 import { RFA_WORKFLOW_EXAMPLE } from './workflow-dsl.schema';
-import { BadRequestException } from '@nestjs/common';
+import {
+  ValidationException,
+  WorkflowException,
+  NotFoundException,
+} from '../../../common/exceptions';
 
 describe('WorkflowDslParser', () => {
   let parser: WorkflowDslParser;
@@ -50,7 +54,7 @@ describe('WorkflowDslParser', () => {
       const invalidJson = '{ invalid json }';
 
       await expect(parser.parse(invalidJson)).rejects.toThrow(
-        BadRequestException
+        ValidationException
       );
     });
 
@@ -71,7 +75,7 @@ describe('WorkflowDslParser', () => {
       };
 
       await expect(parser.parse(JSON.stringify(invalidDsl))).rejects.toThrow(
-        BadRequestException
+        WorkflowException
       );
     });
 
@@ -86,7 +90,7 @@ describe('WorkflowDslParser', () => {
       };
 
       await expect(parser.parse(JSON.stringify(invalidDsl))).rejects.toThrow(
-        BadRequestException
+        WorkflowException
       );
     });
 
@@ -101,7 +105,7 @@ describe('WorkflowDslParser', () => {
       };
 
       await expect(parser.parse(JSON.stringify(invalidDsl))).rejects.toThrow(
-        BadRequestException
+        WorkflowException
       );
     });
 
@@ -119,7 +123,7 @@ describe('WorkflowDslParser', () => {
       };
 
       await expect(parser.parse(JSON.stringify(invalidDsl))).rejects.toThrow(
-        BadRequestException
+        WorkflowException
       );
     });
 
@@ -130,7 +134,7 @@ describe('WorkflowDslParser', () => {
       };
 
       await expect(parser.parse(JSON.stringify(invalidDsl))).rejects.toThrow(
-        BadRequestException
+        WorkflowException
       );
     });
   });
@@ -185,7 +189,7 @@ describe('WorkflowDslParser', () => {
       mockRepository.findOne = jest.fn().mockResolvedValue(null);
 
       await expect(parser.getParsedDsl('999')).rejects.toThrow(
-        BadRequestException
+        NotFoundException
       );
     });
   });
