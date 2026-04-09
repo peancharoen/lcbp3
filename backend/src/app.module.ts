@@ -51,6 +51,7 @@ import { ResilienceModule } from './common/resilience/resilience.module';
 import { SearchModule } from './modules/search/search.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { MigrationModule } from './modules/migration/migration.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -187,6 +188,7 @@ import { MigrationModule } from './modules/migration/migration.module';
     DashboardModule,
     AuditLogModule,
     MigrationModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [

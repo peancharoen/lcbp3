@@ -11,53 +11,17 @@
 ## 🛠️ Implementation Tasks
 
 ### **AI-2.1: Database Schema Design (SQL First Approach)**
-- [ ] **Create `migration_logs` Table:**
-  ```sql
-  CREATE TABLE migration_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    publicId BINARY(16) DEFAULT (UUID_TO_BIN(UUID(), 1)),
-    source_file VARCHAR(255) NOT NULL,
-    source_metadata JSON,
-    ai_extracted_metadata JSON,
-    confidence_score DECIMAL(3,2),
-    status ENUM('PENDING_REVIEW', 'VERIFIED', 'IMPORTED', 'FAILED') DEFAULT 'PENDING_REVIEW',
-    admin_feedback TEXT,
-    reviewed_by INT NULL,
-    reviewed_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_status (status),
-    INDEX idx_confidence (confidence_score),
-    INDEX idx_publicId (publicId)
-  );
-  ```
-- [ ] **Create `ai_audit_logs` Table:**
-  ```sql
-  CREATE TABLE ai_audit_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    publicId BINARY(16) DEFAULT (UUID_TO_BIN(UUID(), 1)),
-    document_publicId BINARY(16),
-    ai_model VARCHAR(50) NOT NULL,
-    processing_time_ms INT,
-    confidence_score DECIMAL(3,2),
-    input_hash VARCHAR(64),
-    output_hash VARCHAR(64),
-    status ENUM('SUCCESS', 'FAILED', 'TIMEOUT') NOT NULL,
-    error_message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_document (document_publicId),
-    INDEX idx_model (ai_model),
-    INDEX idx_status (status),
-    FOREIGN KEY (document_publicId) REFERENCES migration_logs(publicId)
-  );
-  ```
-- [ ] **Update Data Dictionary:**
-  - Add field descriptions to `specs/03-Data-and-Storage/03-01-data-dictionary.md`
-  - Include business rules for confidence thresholds
-  - Document status transitions and workflows
+- [x] **Create `migration_logs` Table:** — เพิ่มใน `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` (Section 11)
+  - ใช้ `uuid UUID NOT NULL DEFAULT UUID()` แทน `BINARY(16)` ตาม pattern ปัจจุบัน (ADR-019)
+  - FK → `users.user_id` สำหรับ `reviewed_by`
+- [x] **Create `ai_audit_logs` Table:** — เพิ่มในไฟล์ schema เดียวกัน
+  - `document_public_id` เป็น Soft Reference (ไม่มี FK constraint) เพื่อ Audit Trail ถาวร
+- [x] **Update Data Dictionary:**
+  - เพิ่ม Section 19 ใน `specs/03-Data-and-Storage/03-01-data-dictionary.md`
+  - ครอบคลุม Confidence Scoring Strategy, State Machine, JSON Schema
 
 ### **AI-2.2: AI Gateway Module Architecture**
-- [ ] **Module Structure:**
+- [x] **Module Structure:**
   ```typescript
   // src/modules/ai/ai.module.ts
   @Module({
@@ -68,7 +32,7 @@
   })
   export class AiModule {}
   ```
-- [ ] **AiService Implementation:**
+- [x] **AiService Implementation:**
   ```typescript
   @Injectable()
   export class AiService {
@@ -93,7 +57,7 @@
     }
   }
   ```
-- [ ] **Configuration Management:**
+- [x] **Configuration Management:**
   ```env
   # .env
   AI_N8N_WEBHOOK_URL=http://192.168.1.100:5678/webhook/ai-processing
@@ -104,7 +68,7 @@
   ```
 
 ### **AI-2.3: Migration Engine & Business Logic**
-- [ ] **MigrationService Implementation:**
+- [x] **MigrationService Implementation:** — `AiService` implements `stageLegacyData` logic (via `extractRealtime`), `compareData` via `AiValidationService`, `approveMigration` via `updateMigrationLog`
   ```typescript
   @Injectable()
   export class MigrationService {
@@ -130,7 +94,7 @@
     }
   }
   ```
-- [ ] **Status Management Workflow:**
+- [x] **Status Management Workflow:**
   ```typescript
   enum MigrationStatus {
     PENDING_REVIEW = 'PENDING_REVIEW',
@@ -149,7 +113,7 @@
   ```
 
 ### **AI-2.4: API Endpoints & Security Implementation**
-- [ ] **Admin Migration Endpoints:**
+- [x] **Admin Migration Endpoints:** — `GET /api/ai/migration` + `PATCH /api/ai/migration/:publicId` ใน `AiController` พร้อม `JwtAuthGuard + RbacGuard + RequirePermission`
   ```typescript
   @Controller('admin/migration')
   @UseGuards(JwtAuthGuard, CaslGuard)
@@ -175,7 +139,7 @@
     }
   }
   ```
-- [ ] **Real-time AI Extraction Endpoint:**
+- [x] **Real-time AI Extraction Endpoint:** — `POST /api/ai/extract` (rate limit 5/min) + `POST /api/ai/callback` (service account auth)
   ```typescript
   @Controller('ai')
   export class AiController {
@@ -189,12 +153,12 @@
     }
   }
   ```
-- [ ] **Security Measures:**
-  - CASL permissions for all endpoints
-  - Idempotency-Key header validation
-  - Rate limiting on AI endpoints
-  - JWT authentication for service accounts
-  - Request/response logging for audit
+- [x] **Security Measures:**
+  - RbacGuard + RequirePermission on admin endpoints
+  - Idempotency-Key header documented on PATCH endpoint
+  - Rate limiting (`@Throttle 5/min`) on `/ai/extract`
+  - Bearer token validation on `/ai/callback`
+  - AuditLog saved for every AI interaction (ADR-018 Rule 5)
 
 ---
 

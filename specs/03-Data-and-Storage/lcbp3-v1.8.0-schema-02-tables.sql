@@ -1400,3 +1400,51 @@ CREATE TABLE workflow_histories (
 CREATE INDEX idx_wf_hist_instance ON workflow_histories (instance_id);
 
 CREATE INDEX idx_wf_hist_user ON workflow_histories (action_by_user_id);
+
+-- =====================================================
+-- 11. 🤖 AI Gateway (ตาราง AI Integration - ADR-018, ADR-020)
+-- =====================================================
+-- ตารางเก็บบันทึก Migration เอกสารที่ผ่าน AI Processing
+CREATE TABLE migration_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  source_file VARCHAR(255) NOT NULL COMMENT 'Path ของไฟล์ต้นทาง',
+  source_metadata JSON NULL COMMENT 'Metadata จาก Excel/แหล่งข้อมูลต้นทาง',
+  ai_extracted_metadata JSON NULL COMMENT 'Metadata ที่ AI สกัดได้',
+  confidence_score DECIMAL(3, 2) NULL COMMENT 'คะแนนความมั่นใจ AI (0.00-1.00)',
+  STATUS ENUM(
+    'PENDING_REVIEW',
+    'VERIFIED',
+    'IMPORTED',
+    'FAILED'
+  ) NOT NULL DEFAULT 'PENDING_REVIEW' COMMENT 'สถานะ: PENDING_REVIEW=รอตรวจ, VERIFIED=ตรวจแล้ว, IMPORTED=นำเข้าแล้ว, FAILED=ล้มเหลว',
+  admin_feedback TEXT NULL COMMENT 'ความเห็นจาก Admin ผู้ตรวจสอบ',
+  reviewed_by INT NULL COMMENT 'User ID ของ Admin ที่ตรวจสอบ (FK users.id)',
+  reviewed_at TIMESTAMP NULL COMMENT 'เวลาที่ตรวจสอบ',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  UNIQUE INDEX idx_migration_logs_uuid (uuid),
+  INDEX idx_migration_logs_status (STATUS),
+  INDEX idx_migration_logs_confidence (confidence_score),
+  FOREIGN KEY (reviewed_by) REFERENCES users (user_id) ON DELETE
+  SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บบันทึก Migration เอกสารที่ผ่าน AI Processing (Task BE-AI-02)';
+
+-- ตาราง Audit Log สำหรับการทำงานของ AI ทุกครั้ง (ADR-018 Rule 5)
+CREATE TABLE ai_audit_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  document_public_id UUID NULL COMMENT 'UUID ของ migration_logs ที่เกี่ยวข้อง',
+  ai_model VARCHAR(50) NOT NULL COMMENT 'ชื่อ AI Model ที่ใช้ประมวลผล เช่น gemma4',
+  processing_time_ms INT NULL COMMENT 'เวลาประมวลผล (milliseconds)',
+  confidence_score DECIMAL(3, 2) NULL COMMENT 'คะแนนความมั่นใจ AI (0.00-1.00)',
+  input_hash VARCHAR(64) NULL COMMENT 'SHA-256 hash ของ Input เพื่อ Audit',
+  output_hash VARCHAR(64) NULL COMMENT 'SHA-256 hash ของ Output เพื่อ Audit',
+  STATUS ENUM('SUCCESS', 'FAILED', 'TIMEOUT') NOT NULL COMMENT 'สถานะการประมวลผล',
+  error_message TEXT NULL COMMENT 'ข้อความ Error (ถ้ามี)',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  UNIQUE INDEX idx_ai_audit_logs_uuid (uuid),
+  INDEX idx_ai_audit_document (document_public_id),
+  INDEX idx_ai_audit_model (ai_model),
+  INDEX idx_ai_audit_status (STATUS)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง Audit Log การทำงาน AI ทุกครั้ง (ADR-018 Rule 5 Audit Logging)';

@@ -28,4 +28,18 @@ export const envValidationSchema = Joi.object({
   REDIS_HOST: Joi.string().required(),
   REDIS_PORT: Joi.number().default(6379),
   REDIS_PASSWORD: Joi.string().required(),
+
+  // 5. AI Gateway Configuration (ADR-018, ADR-020)
+  // URL ของ n8n Webhook สำหรับส่งเอกสารไปประมวลผล
+  AI_N8N_WEBHOOK_URL: Joi.string().uri().optional(),
+  // Token สำหรับ Service Account Authentication กับ n8n
+  AI_N8N_AUTH_TOKEN: Joi.string().optional(),
+  // URL ของ Ollama บน Admin Desktop (Desk-5439)
+  AI_OLLAMA_URL: Joi.string().uri().optional(),
+  // Timeout สำหรับการรอผลลัพธ์จาก AI (milliseconds)
+  AI_TIMEOUT_MS: Joi.number().default(30000),
+  // จำนวนครั้งสูงสุดในการ Retry เมื่อ AI ล้มเหลว
+  AI_MAX_RETRIES: Joi.number().default(3),
+  // Base URL ของ Backend เพื่อสร้าง Callback URL
+  APP_BASE_URL: Joi.string().uri().optional(),
 });

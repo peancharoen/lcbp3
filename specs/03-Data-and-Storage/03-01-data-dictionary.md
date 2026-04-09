@@ -2208,7 +2208,105 @@ SELECT * FROM correspondences WHERE deleted_at IS NULL;
 
 ---
 
-## **19. 📖 Glossary (คำศัพท์)**
+## **19. 🤖 AI Gateway Tables (ADR-018, ADR-020)**
+
+> เพิ่มใน v1.9.0 — Task BE-AI-02 | ตารางสำหรับ AI Intelligence Integration
+
+### 19.1 `migration_logs`
+
+**วัตถุประสงค์:** ติดตามสถานะการประมวลผล AI สำหรับเอกสารแต่ละรายการ ใช้ในกระบวนการ Legacy Migration และ New Ingestion
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
+| `uuid` | UUID | NO | Public Identifier (UUIDv7) — ใช้ใน API response เป็น `publicId` |
+| `source_file` | VARCHAR(255) | NO | Path หรือ publicId ของไฟล์ต้นทาง |
+| `source_metadata` | JSON | YES | Metadata จากแหล่งต้นทาง (Excel, manual input) |
+| `ai_extracted_metadata` | JSON | YES | Metadata ที่ AI สกัดได้ — ประกอบด้วย subject, date, discipline, drawingReference, contractNumber |
+| `confidence_score` | DECIMAL(3,2) | YES | คะแนนความมั่นใจของ AI (0.00–1.00) ตาม ADR-020 Confidence Strategy |
+| `status` | ENUM | NO | สถานะปัจจุบัน (ดู State Machine ด้านล่าง) |
+| `admin_feedback` | TEXT | YES | ความเห็นของ Admin ผู้ตรวจสอบ |
+| `reviewed_by` | INT | YES | FK → `users.user_id` — Admin ที่ทำการตรวจสอบ |
+| `reviewed_at` | TIMESTAMP | YES | เวลาที่ Admin ตรวจสอบ |
+| `created_at` | TIMESTAMP | NO | วันที่สร้าง record |
+| `updated_at` | TIMESTAMP | NO | วันที่แก้ไขล่าสุด (Auto-update) |
+
+#### Status Enum Values
+
+| Status | Description | Action Required |
+|--------|-------------|-----------------|
+| `PENDING_REVIEW` | รอ Admin ตรวจสอบ (Default) | Admin ต้องตรวจสอบและเปลี่ยนสถานะ |
+| `VERIFIED` | Admin ยืนยันแล้ว พร้อม Import | ระบบนำเข้าหรือรอ Batch Import |
+| `IMPORTED` | นำเข้าสู่ระบบสำเร็จ (Terminal State) | ไม่สามารถแก้ไขได้อีก |
+| `FAILED` | ล้มเหลว — AI หรือ Validation ไม่ผ่าน | สามารถ Retry ได้ (→ PENDING_REVIEW) |
+
+#### State Machine (Status Transitions)
+
+```
+PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
+      │                │
+      ↓                ↓
+    FAILED ──────→ PENDING_REVIEW (retry)
+```
+
+**กฎ:**
+- `IMPORTED` เป็น Terminal State — ห้ามเปลี่ยนสถานะ
+- Admin สามารถเปลี่ยนได้เฉพาะ `PENDING_REVIEW → VERIFIED` หรือ `PENDING_REVIEW → FAILED`
+- `FAILED → PENDING_REVIEW` สำหรับ Retry
+
+#### `ai_extracted_metadata` JSON Schema
+
+```json
+{
+  "subject": "string — หัวเรื่องเอกสาร",
+  "date": "YYYY-MM-DD — วันที่เอกสาร",
+  "discipline": "Civil | Mechanical | Electrical | Architectural",
+  "drawingReference": "string — รหัสแบบอ้างอิง",
+  "contractNumber": "string — เลขสัญญา",
+  "discrepancies": ["string — รายการที่ไม่สอดคล้องกับต้นทาง"]
+}
+```
+
+---
+
+### 19.2 `ai_audit_logs`
+
+**วัตถุประสงค์:** บันทึก Audit Trail ของ AI Interaction ทุกครั้ง ตาม ADR-018 Rule 5 — ห้ามลบ record ออก
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
+| `uuid` | UUID | NO | Public Identifier (UUIDv7) |
+| `document_public_id` | UUID | YES | UUID ของ `migration_logs` ที่เกี่ยวข้อง (Soft Reference — ไม่ใช่ FK ในระดับ TypeORM) |
+| `ai_model` | VARCHAR(50) | NO | ชื่อ AI Model เช่น `gemma4`, `paddleocr`, `gemma4:27b` |
+| `processing_time_ms` | INT | YES | เวลาประมวลผล (milliseconds) — เป้าหมาย < 15,000ms ตาม ADR-020 |
+| `confidence_score` | DECIMAL(3,2) | YES | คะแนนความมั่นใจ (0.00–1.00) |
+| `input_hash` | VARCHAR(64) | YES | SHA-256 hash ของ Input — เพื่อ Integrity Verification |
+| `output_hash` | VARCHAR(64) | YES | SHA-256 hash ของ Output — เพื่อ Integrity Verification |
+| `status` | ENUM | NO | ผลการประมวลผล: SUCCESS / FAILED / TIMEOUT |
+| `error_message` | TEXT | YES | รายละเอียด Error (เมื่อ status = FAILED หรือ TIMEOUT) |
+| `created_at` | TIMESTAMP | NO | วันที่สร้าง — เรียงตาม timestamp เพื่อ Audit |
+
+#### Business Rules
+
+1. **Immutable Records** — ห้ามแก้ไขหรือลบ `ai_audit_logs` หลังสร้าง (Audit Trail)
+2. **Data Retention** — เก็บไว้อย่างน้อย 90 วัน ตาม ADR-020 Data Privacy
+3. **No FK Constraint** — `document_public_id` เป็น Soft Reference เพื่อให้ Log ยังคงอยู่แม้ MigrationLog ถูกลบ
+
+---
+
+### 19.3 Confidence Scoring Strategy (ADR-020)
+
+| Score Range | Action | Description |
+|-------------|--------|-------------|
+| **0.95–1.00** | `auto_approve` | นำเข้าอัตโนมัติ (Migration mode เท่านั้น) |
+| **0.85–0.94** | `low_priority_review` | รอ Admin ตรวจสอบ — ลำดับต่ำ |
+| **0.60–0.84** | `high_priority_review` | รอ Admin ตรวจสอบ — ลำดับสูง |
+| **< 0.60** | `reject` | ปฏิเสธ — Admin ต้องกรอกข้อมูลเอง |
+
+---
+
+## **20. 📖 Glossary (คำศัพท์)**
 
 - **RFA**: Request for Approval (เอกสารขออนุมัติ)
 - **Transmittal**: Document Transmittal Sheet (ใบนำส่งเอกสาร)

@@ -82,12 +82,12 @@ const editInitialData = {
   recipients: [
     {
       recipientType: 'TO',
-      recipientOrganizationId: 200,
+      recipientOrganizationId: 'org-2',
       recipientOrganization: { publicId: 'org-2' },
     },
     {
       recipientType: 'CC',
-      recipientOrganizationId: 300,
+      recipientOrganizationId: 'org-3',
       recipientOrganization: { publicId: 'org-3' },
     },
   ],
