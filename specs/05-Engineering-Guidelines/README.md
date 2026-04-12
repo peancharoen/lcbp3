@@ -10,9 +10,9 @@
 
 | Attribute          | Value                            |
 | ------------------ | -------------------------------- |
-| **Version**        | 1.8.1                            |
+| **Version**        | 1.8.6                            |
 | **Status**         | Active                           |
-| **Last Updated**   | 2026-03-16                       |
+| **Last Updated**   | 2026-04-10                       |
 | **Owner**          | Nattanin Peancharoen             |
 | **Classification** | Internal Technical Documentation |
 
@@ -29,6 +29,10 @@
     - [2. Backend Guidelines](#2-backend-guidelines)
     - [3. Frontend Guidelines](#3-frontend-guidelines)
     - [4. Document Numbering System](#4-document-numbering-system)
+    - [5. Git Conventions](#5-git-conventions)
+    - [6. Code Snippets](#6-code-snippets)
+    - [7. UUID Implementation Plan](#7-uuid-implementation-plan)
+    - [8. i18n Guidelines](#8-i18n-guidelines)
   - [🧪 Testing Strategy](#-testing-strategy)
   - [🛠️ Technology Stack Recap](#️-technology-stack-recap)
   - [🔗 Related Documents](#-related-documents)
@@ -79,7 +83,7 @@
 - React Hook Form + Zod for Client Validation
 - API Client Interceptors (Auth & Idempotency)
 
-### 4. [Document Numbering System](../01-Requirements/business-rules/01-02-02-doc-numbering-rules.md)
+### 4. [Document Numbering System](../01-Requirements/01-02-business-rules/01-02-02-doc-numbering-rules.md)
 
 **รายละเอียดการนำระบบออกเลขที่เอกสารไปใช้งาน**
 
@@ -87,6 +91,45 @@
 - Double-Lock Strategy (Redis Redlock + Database VersionColumn)
 - Reservation Flow (Phase 1: Reserve, Phase 2: Confirm)
 - API Specs for Numbering Management
+
+### 5. [Git Conventions](./05-05-git-conventions.md)
+
+**มาตรฐานการใช้ Git และ Commit Messages**
+
+- Branch Naming (feature/, fix/, hotfix/)
+- Commit Message Format (Conventional Commits)
+- PR/Merge กระบวนการ
+- [Git Cheatsheet](./05-05-git-cheatsheet.md) — คำสั่งที่ใช้บ่อย
+
+### 6. [Code Snippets](./05-06-code-snippets.md)
+
+**ตัวอย่างโค้ดที่ใช้ซ้ำบ่อย (Reusable Patterns)**
+
+- Backend DTO Pattern with `@IsUUID()`
+- Frontend RHF + Zod Form Pattern
+- UUID Safe Pattern
+- Backend Error Handling Pattern
+- Workflow Transition Pattern
+- Redis Cache Pattern
+- Frontend TanStack Query Pattern
+
+### 7. [UUID Implementation Plan](./05-07-hybrid-uuid-implementation-plan.md)
+
+**แผนการ Implement Hybrid Identifier (ADR-019)**
+
+- Migration Strategy (INT → UUIDv7)
+- Backend: `UuidBaseEntity` Pattern
+- Frontend: `publicId` Usage Guidelines
+- API Response Standardization
+
+### 8. [i18n Guidelines](./05-08-i18n-guidelines.md)
+
+**แนวทางการทำ Localization**
+
+- i18n Key Structure (Thai/English)
+- Error Message Keys vs Hardcoded Text
+- Frontend Locale Organization
+- Comments Language Policy (Thai for business, English for technical)
 
 ---
 
@@ -123,9 +166,9 @@
 
 <div align="center">
 
-**LCBP3-DMS Implementation Specification v1.8.1**
+**LCBP3-DMS Implementation Specification v1.8.6**
 
-[FullStack](./05-01-fullstack-js-guidelines.md) • [Backend](./05-02-backend-guidelines.md) • [Frontend](./05-03-frontend-guidelines.md) • [Testing](./05-04-testing-strategy.md)
+[FullStack](./05-01-fullstack-js-guidelines.md) • [Backend](./05-02-backend-guidelines.md) • [Frontend](./05-03-frontend-guidelines.md) • [Testing](./05-04-testing-strategy.md) • [Git](./05-05-git-conventions.md) • [Snippets](./05-06-code-snippets.md) • [UUID](./05-07-hybrid-uuid-implementation-plan.md) • [i18n](./05-08-i18n-guidelines.md)
 
 [Main README](../../README.md) • [Architecture](../02-Architecture/README.md) • [Requirements](../01-Requirements/README.md)
 

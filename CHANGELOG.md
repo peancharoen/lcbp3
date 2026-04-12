@@ -1,6 +1,16 @@
 # Version History
 
-## [Unreleased]
+## 1.8.5 (2026-04-10)
+
+### Specification & ADR Documentation
+
+#### 📋 **ADR Registry Update** (2026-04-10)
+
+- **Added**: ADR-003 (API Design Strategy) to `06-Decision-Records/README.md` — Hybrid REST + Action Strategy สำหรับ Resource และ Workflow Operations
+- **Added**: ADR-004 (Database Schema Design Strategy) to `06-Decision-Records/README.md` — Selective Normalization + Standard Patterns (UUID, Soft Delete, Audit)
+- **Added**: ADR-007 (Error Handling & Recovery Strategy) to `06-Decision-Records/README.md` — Layered Classification (Validation / Business / System) + Recovery Actions
+- **Updated**: `06-Decision-Records/README.md` version 1.8.2 → 1.8.5
+- **Total ADRs**: 21 (ADR-001 to ADR-020 + ADR-017B)
 
 ### Correspondence Module — Phase 7 Complete (2026-03-24)
 

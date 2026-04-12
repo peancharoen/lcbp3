@@ -1,7 +1,7 @@
 # Architecture Decision Records (ADRs)
 
-**Version:** 1.8.2
-**Last Updated:** 2026-04-04
+**Version:** 1.8.5
+**Last Updated:** 2026-04-10
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
 
 ---
@@ -50,6 +50,7 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 | ADR                                                 | Title                                | Status                | Date       | Summary                                                         |
 | --------------------------------------------------- | ------------------------------------ | --------------------- | ---------- | --------------------------------------------------------------- |
+| [ADR-004](./ADR-004-database-schema-design-strategy.md) | Database Schema Design Strategy  | ✅ Accepted           | 2026-04-04 | Selective Normalization + Standard Patterns (UUID, Soft Delete, Audit) |
 | [ADR-005](./ADR-005-technology-stack.md)            | Technology Stack Selection           | ✅ Accepted           | 2026-02-24 | Full Stack TypeScript: NestJS 11 + Next.js 16 + MariaDB + Redis |
 | [ADR-006](./ADR-006-redis-caching-strategy.md)      | Redis Usage & Caching Strategy       | ✅ Accepted           | 2026-02-24 | Redis สำหรับ Distributed Lock, Cache, Queue, และ Rate Limiting  |
 | [ADR-009](./ADR-009-database-migration-strategy.md) | Database Migration & Deployment      | ✅ Accepted (Pending) | 2026-02-24 | TypeORM Migrations พร้อม Blue-Green Deployment                  |
@@ -59,6 +60,8 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 | ADR                                                 | Title                         | Status                       | Date       | Summary                                                                       |
 | --------------------------------------------------- | ----------------------------- | ---------------------------- | ---------- | ----------------------------------------------------------------------------- |
+| [ADR-003](./ADR-003-api-design-strategy.md)         | API Design Strategy           | ✅ Accepted                  | 2026-04-04 | Hybrid REST + Action Strategy สำหรับ Resource และ Workflow Operations         |
+| [ADR-007](./ADR-007-error-handling-strategy.md)     | Error Handling & Recovery     | ✅ Accepted                  | 2026-04-04 | Layered Error Classification พร้อม User-friendly Messages และ Recovery Actions |
 | [ADR-008](./ADR-008-email-notification-strategy.md) | Email & Notification Strategy | ✅ Accepted (Pending Review) | 2026-02-24 | BullMQ + Redis Queue สำหรับ Multi-channel Notifications (Email, LINE, In-app) |
 
 ### Observability
@@ -113,12 +116,15 @@ Architecture Decision Records (ADRs) เป็นเอกสารที่บ�
 
 ### 4. Infrastructure & Performance
 
+- **ADR-004:** Database Schema Design - Selective Normalization + Standard Patterns
 - **ADR-005:** Technology Stack - TypeScript ecosystem (NestJS 11, Next.js 16)
 - **ADR-006:** Redis - Caching และ Distributed coordination
 - **ADR-015:** Deployment - Docker Compose with Blue-Green Deployment
 
 ### 5. API & Integration
 
+- **ADR-003:** API Design - Hybrid REST + Action Strategy สำหรับ Resource และ Workflow Operations
+- **ADR-007:** Error Handling - Layered Classification (Validation / Business / System) พร้อม Recovery Actions
 - **ADR-008:** Notification - BullMQ Queue สำหรับ Multi-channel notifications
 
 ### 6. Observability & Monitoring
@@ -369,9 +375,9 @@ graph TB
 
 ---
 
-**Version:** 1.8.2 (Enhanced Template + Review Process)
-**Last Review:** 2026-04-04
-**Next Review:** 2026-10-04
+**Version:** 1.8.5 (Added ADR-003, ADR-004, ADR-007)
+**Last Review:** 2026-04-10
+**Next Review:** 2026-10-10
 
 ---
 

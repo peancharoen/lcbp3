@@ -1,7 +1,7 @@
 # Code Snippets
 
-**Version:** 1.8.4  
-**Last Updated:** 2026-03-24  
+**Version:** 1.8.6
+**Last Updated:** 2026-04-10
 **Location:** `specs/05-Engineering-Guidelines/05-06-code-snippets.md`
 
 ---
@@ -88,6 +88,68 @@ if (entity) {
   await this.cacheManager.set(cacheKey, entity, 300); // 5 minutes
 }
 return entity;
+```
+
+---
+
+## Workflow Transition Pattern
+
+```typescript
+// [workflow-transition] → Pattern สำหรับการเปลี่ยนสถานะเอกสารอย่างปลอดภัย
+// ใช้ใน: WorkflowEngineService
+
+async transitionStatus(
+  publicId: string, // รับ UUIDv7 เท่านั้น (ADR-019)
+  targetStatus: DocumentStatus,
+  actor: RequestWithUser
+): Promise<Document> {
+  // 1. ค้นหา Entity ด้วย publicId และตรวจสอบการมีอยู่
+  const document = await this.repo.findOne({
+    where: { publicId },
+    relations: ['currentAssignee'],
+  });
+
+  if (!document) {
+    this.logger.warn(`ไม่พบเอกสาร UUID: ${publicId}`, 'WorkflowService');
+    throw new NotFoundException(ErrorCode.DOC_NOT_FOUND);
+  }
+
+  // 2. ตรวจสอบว่า transition นี้ถูกต้องตาม DSL (ADR-001)
+  await this.workflowEngine.validateTransition(document.workflowState, targetStatus);
+
+  // 3. Business Logic Validation: ตรวจสอบสิทธิ์ผู้รับผิดชอบ
+  if (document.currentAssignee?.publicId !== actor.user.publicId) {
+    throw new ForbiddenException(ErrorCode.UNAUTHORIZED_TRANSITION);
+  }
+
+  // 4. ปรับปรุงสถานะและใช้ @VersionColumn ใน Entity เพื่อทำ Optimistic Locking
+  try {
+    document.status = targetStatus;
+    document.updatedBy = actor.user.publicId;
+
+    const savedDoc = await this.repo.save(document);
+
+    // 5. บันทึก Audit Log
+    this.logger.log(
+      `เอกสาร ${publicId} เปลี่ยนสถานะเป็น ${targetStatus} โดย ${actor.user.publicId}`
+    );
+
+    // 6. ส่งงานเข้า Queue (BullMQ) สำหรับการส่ง Notification/Email (ADR-008)
+    await this.notificationQueue.add('status-change', {
+      docId: savedDoc.publicId,
+      status: targetStatus,
+      recipientPublicId: savedDoc.creatorPublicId, // ใช้ publicId ตาม ADR-019
+    });
+
+    return savedDoc;
+  } catch (error) {
+    if (error instanceof OptimisticLockVersionMismatchError) {
+      // ป้องกันการแก้ไขซ้ำซ้อนในเวลาเดียวกัน (Race Condition)
+      throw new ConflictException('ข้อมูลถูกแก้ไขโดยผู้อื่นไปก่อนหน้าแล้ว กรุณารีเฟรชหน้าจอ');
+    }
+    throw error;
+  }
+}
 ```
 
 ---
