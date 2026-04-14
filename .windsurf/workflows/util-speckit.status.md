@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Display a dashboard showing feature status, completion percentage, and blockers.
 ---
 

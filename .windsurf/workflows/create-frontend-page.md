@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Create a new Next.js App Router page following project standards
 ---
 

@@ -1,9 +1,15 @@
 # Speckit Skills Version
 
-version: 1.1.0
-release_date: 2026-01-24
+version: 1.8.6
+release_date: 2026-04-14
 
 ## Changelog
+
+### 1.8.6 (2026-04-14)
+- Version alignment with LCBP3-DMS v1.8.6
+- Complete skill implementations for all 20 skills
+- Enhanced security and audit capabilities
+- Production-ready deployment status
 
 ### 1.1.0 (2026-01-24)
 - New QA skills: tester, reviewer, checker

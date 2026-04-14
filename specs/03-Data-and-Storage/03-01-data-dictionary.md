@@ -1371,6 +1371,7 @@ erDiagram
 | expires_at          | DATETIME     | NULL                        | เวลาหมดอายุของไฟล์ Temp (เพื่อให้ Cron Job ลบออก)                          |
 | checksum            | VARCHAR(64)  | NULL                        | SHA-256 Checksum สำหรับ Verify File Integrity [Req 3.9.3]                  |
 | reference_date      | DATE         | NULL                        | Date used for folder structure (e.g. Issue Date) to prevent broken paths   |
+| workflow_history_id | VARCHAR(36)  | NULL, FK                    | **[ADR-021]** อ้างอิง workflow_histories.publicId — NULL = ไฟล์แนบหลักของเอกสาร; NOT NULL = ไฟล์หลักฐานประจำ Workflow Step |
 
 **Indexes**:
 
@@ -1382,10 +1383,11 @@ erDiagram
 - UNIQUE INDEX idx_attachments_uuid (uuid)
 - INDEX (created_at)
 - INDEX (reference_date)
+- INDEX (workflow_history_id)
 
 **Relationships**:
 
-- Parent: users
+- Parent: users, workflow_histories (via workflow_history_id)
 - Referenced by: correspondence_revision_attachments, circulation_attachments, shop_drawing_revision_attachments, contract_drawing_attachments
 
 **Business Rules**:
@@ -1395,6 +1397,10 @@ erDiagram
 - File path points to QNAP NAS storage
 - Original filename preserved for download
 - One file record can be linked to multiple documents
+- **[ADR-021]** `workflow_history_id = NULL` → Main Document attachment (linked via junction tables)
+- **[ADR-021]** `workflow_history_id IS NOT NULL` → Step-evidence attachment — linked exclusively to a single workflow transition history record (Approve/Reject/Return evidence)
+- Step-evidence attachments are committed (is_temporary = false) during `processTransition()` in the same transaction as the history record
+- Cleanup jobs MUST NOT delete attachments where `workflow_history_id IS NOT NULL`
 
 ---
 

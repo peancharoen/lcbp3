@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Migrate existing projects into the speckit structure by generating spec.md, plan.md, and tasks.md from existing code.
 ---
 

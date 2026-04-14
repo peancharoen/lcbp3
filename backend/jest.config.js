@@ -24,6 +24,10 @@ module.exports = {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
 
+  // ใช้ V8 built-in coverage แทน babel-plugin-istanbul
+  // เพื่อหลีกเลี่ยง test-exclude@6.0.0 + minimatch incompatibility
+  coverageProvider: 'v8',
+
   // Coverage configuration
   collectCoverageFrom: [
     '**/*.(t|j)s',

@@ -6,6 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { WorkflowHistory } from '../../../modules/workflow-engine/entities/workflow-history.entity';
 import { User } from '../../../modules/user/entities/user.entity';
 import { UuidBaseEntity } from '../../entities/uuid-base.entity';
 import { Exclude } from 'class-transformer';
@@ -45,6 +46,20 @@ export class Attachment extends UuidBaseEntity {
 
   @Column({ name: 'reference_date', type: 'date', nullable: true })
   referenceDate?: Date;
+
+  // ADR-021: FK ไปยัง workflow_histories สำหรับไฟล์แนบประจำ Step
+  // NULL = ไฟล์แนบหลัก (Main Document), NOT NULL = ไฟล์ประจำ Workflow Step
+  @Column({ name: 'workflow_history_id', length: 36, nullable: true })
+  workflowHistoryId?: string;
+
+  // Lazy relation — ไม่ include ใน default query เพื่อป้องกัน N+1
+  @ManyToOne(
+    () => WorkflowHistory,
+    (history: WorkflowHistory) => history.attachments,
+    { nullable: true, onDelete: 'SET NULL', lazy: true }
+  )
+  @JoinColumn({ name: 'workflow_history_id' })
+  workflowHistory?: Promise<WorkflowHistory>;
 
   @Column({ name: 'uploaded_by_user_id' })
   uploadedByUserId!: number;

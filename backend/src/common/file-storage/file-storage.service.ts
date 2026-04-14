@@ -171,6 +171,31 @@ export class FileStorageService {
   }
 
   /**
+   * ADR-021: Preview File by publicId (Content-Disposition: inline)
+   * ดึงไฟล์มาเป็น Stream สำหรับแสดงผลใน Browser โดยตรง (ใช้กับ FilePreviewModal)
+   */
+  async preview(
+    publicId: string
+  ): Promise<{ stream: fs.ReadStream; attachment: Attachment }> {
+    const attachment = await this.attachmentRepository.findOne({
+      where: { publicId },
+    });
+
+    if (!attachment) {
+      throw new NotFoundException(`Attachment not found`);
+    }
+
+    const filePath = attachment.filePath;
+    if (!fs.existsSync(filePath)) {
+      this.logger.error(`Preview file missing on disk: ${filePath}`);
+      throw new NotFoundException('File not found on server storage');
+    }
+
+    const stream = fs.createReadStream(filePath);
+    return { stream, attachment };
+  }
+
+  /**
    * Download File
    * ดึงไฟล์มาเป็น Stream เพื่อส่งกลับไปให้ Controller
    */

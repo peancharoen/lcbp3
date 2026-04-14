@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Deploy the application via Gitea Actions to QNAP Container Station
 ---
 

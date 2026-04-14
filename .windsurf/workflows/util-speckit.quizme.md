@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Challenge the specification with Socratic questioning to identify logical gaps, unhandled edge cases, and robustness issues.
 ---
 

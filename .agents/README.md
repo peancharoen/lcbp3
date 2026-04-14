@@ -2,7 +2,7 @@
 
 > **The Event Horizon of Software Quality.**
 > _Adapted for Google Antigravity IDE from [github/spec-kit](https://github.com/github/spec-kit)._
-> _Version: 1.2.0 — LCBP3-DMS Edition (v1.8.1 UAT Ready)_
+> _Version: 1.8.6 — LCBP3-DMS Edition (v1.8.6 Production Ready)_
 
 ---
 
@@ -55,7 +55,7 @@ Some skills and scripts reference a `.specify/` directory for templates and proj
 The toolkit is organized into modular components that provide both the logic (Scripts) and the structure (Templates) for the agent.
 
 ```text
-.agents/
+.agents/                        # Agent Skills & Rules
 ├── skills/                        # @ Mentions (Agent Intelligence)
 │   ├── nestjs-best-practices/     # NestJS Architecture Patterns
 │   ├── next-best-practices/       # Next.js App Router Patterns
@@ -78,32 +78,37 @@ The toolkit is organized into modular components that provide both the logic (Sc
 │   ├── speckit-tester/            # Test Runner & Coverage
 │   └── speckit-validate/          # Implementation Validator
 │
-├── workflows/                     # / Slash Commands (Orchestration)
-│   ├── 00-speckit-all.md          # Full Pipeline (10 steps: Specify → Validate)
-│   ├── 01–11-speckit-*.md         # Individual phase workflows
-│   ├── speckit-prepare.md         # Prep Pipeline (5 steps: Specify → Analyze)
-│   ├── schema-change.md           # DB Schema Change (ADR-009)
-│   ├── create-backend-module.md   # NestJS Module Scaffolding
-│   ├── create-frontend-page.md    # Next.js Page Scaffolding
-│   ├── deploy.md                  # Deployment via Gitea CI/CD
-│   └── util-speckit-*.md          # Utilities (checklist, diff, migrate, etc.)
+├── rules/                         # Project Context & Validation Rules
+│   ├── 00-project-context.md      # Role, Persona, Rule Tiers
+│   ├── 01-adr-019-uuid.md         # UUID Strategy (Critical)
+│   ├── 02-security.md             # Security Requirements
+│   ├── 03-typescript.md            # TypeScript Standards
+│   ├── 04-domain-terminology.md   # DMS Glossary Compliance
+│   ├── 05-forbidden-actions.md    # Critical Prohibited Patterns
+│   ├── 06-backend-patterns.md     # NestJS Architecture Rules
+│   ├── 07-frontend-patterns.md    # Next.js App Router Rules
+│   ├── 08-development-flow.md      # Development Workflow
+│   ├── 09-commit-checklist.md      # Pre-commit Validation
+│   ├── 10-error-handling.md       # ADR-007 Compliance
+│   └── 11-ai-integration.md       # ADR-018/020 AI Boundaries
 │
 └── scripts/
     ├── bash/                      # Bash Core (Kinetic logic)
-    │   ├── common.sh              # Shared utilities & path resolution
-    │   ├── check-prerequisites.sh # Prerequisite validation
-    │   ├── create-new-feature.sh  # Feature branch creation
-    │   ├── setup-plan.sh          # Plan template setup
-    │   ├── update-agent-context.sh # Agent file updater (main)
-    │   ├── plan-parser.sh         # Plan data extraction (module)
-    │   ├── content-generator.sh   # Language-specific templates (module)
-    │   └── agent-registry.sh      # 17-agent type registry (module)
     ├── powershell/                 # PowerShell Equivalents (Windows-native)
-    │   ├── common.ps1             # Shared utilities & prerequisites
-    │   └── create-new-feature.ps1 # Feature branch creation
     ├── fix_links.py               # Spec link fixer
     ├── verify_links.py            # Spec link verifier
     └── start-mcp.js               # MCP server launcher
+
+.windsurf/workflows/               # / Slash Commands (Orchestration)
+├── 00-speckit.all.md              # Full Pipeline (10 steps: Specify → Validate)
+├── 01–11-speckit-*.md             # Individual phase workflows
+├── speckit-prepare.md             # Prep Pipeline (5 steps: Specify → Analyze)
+├── schema-change.md               # DB Schema Change (ADR-009)
+├── create-backend-module.md       # NestJS Module Scaffolding
+├── create-frontend-page.md        # Next.js Page Scaffolding
+├── deploy.md                      # Deployment via Gitea CI/CD
+├── review.md                      # Code Review Workflow
+└── util-speckit-*.md              # Utilities (checklist, diff, migrate, etc.)
 ```
 
 ---
@@ -254,19 +259,19 @@ If you change your mind mid-project:
 
 ---
 
-## 🏗️ LCBP3-DMS Project Notes (v1.8.1)
+## 🏗️ LCBP3-DMS Project Notes (v1.8.6)
 
-### 📊 Current Status: UAT Ready (2026-03-11)
+### 📊 Current Status: Production Ready (2026-04-14)
 
-| Area          | Status                                |
-| ------------- | ------------------------------------- |
-| Backend       | ✅ 18 Modules, Production Ready       |
-| Frontend      | ✅ 100% Complete                      |
-| Database      | ✅ Schema v1.8.0 Stable               |
-| Documentation | ✅ **10/10 Gaps Closed**              |
-| AI Migration  | 🔄 Pre-migration Setup (n8n + Ollama) |
-| UAT           | 🔄 In Progress                        |
-| Deployment    | 📋 Pending Go-Live                    |
+| Area          | Status                          |
+| ------------- | ------------------------------- |
+| Backend       | ✅ 18 Modules, Production Ready |
+| Frontend      | ✅ 100% Complete                |
+| Database      | ✅ Schema v1.8.6 Stable         |
+| Documentation | ✅ **10/10 Gaps Closed**        |
+| AI Migration  | ✅ Ollama Integration Complete  |
+| UAT           | ✅ Completed Successfully       |
+| Deployment    | ✅ Production Deployed          |
 
 ### 📁 Key Spec Files (Always Check Before Writing Code)
 
@@ -297,6 +302,153 @@ If you change your mind mid-project:
 - ❌ DO NOT use TypeORM Migrations — modify schema SQL directly (ADR-009)
 - ❌ DO NOT give Ollama direct DB access — all writes via DMS API (ADR-018)
 - ❌ DO NOT use `any` TypeScript type anywhere
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues & Solutions
+
+#### **Version Inconsistency Errors**
+
+**Problem**: Scripts report version mismatches between files.
+
+**Solution**:
+
+```bash
+# Run version validation
+./scripts/bash/validate-versions.sh
+
+# Fix by updating all files to v1.8.6
+# Then re-run validation to confirm
+```
+
+**Files to check**:
+
+- `.agents/README.md`
+- `.agents/skills/VERSION`
+- `.agents/rules/00-project-context.md`
+- `.agents/skills/skills.md`
+
+#### **Missing Workflow Files**
+
+**Problem**: Workflows not found in `.windsurf/workflows/`.
+
+**Solution**:
+
+```bash
+# Sync workflow check
+./scripts/bash/sync-workflows.sh
+
+# Verify all 23 expected workflows are present
+# Create missing ones from templates if needed
+```
+
+#### **Skill Health Issues**
+
+**Problem**: Skills missing SKILL.md or required sections.
+
+**Solution**:
+
+```bash
+# Run comprehensive skill audit
+./scripts/bash/audit-skills.sh
+
+# Check specific skill issues
+# Missing files will be listed with specific errors
+```
+
+**Required SKILL.md sections**:
+
+- Front matter: `name`, `description`, `version`
+- Content: `## Role`, `## Task`
+
+#### **Script Permission Issues**
+
+**Problem**: Bash scripts not executable.
+
+**Solution**:
+
+```bash
+# Make scripts executable
+chmod +x .agents/scripts/bash/*.sh
+
+# Verify with
+ls -la .agents/scripts/bash/
+```
+
+#### **PowerShell Execution Policy**
+
+**Problem**: PowerShell scripts blocked by execution policy.
+
+**Solution**:
+
+```powershell
+# Check current policy
+Get-ExecutionPolicy
+
+# Allow scripts for current user
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Or run bypass for single script
+PowerShell -ExecutionPolicy Bypass -File .agents/scripts/powershell/audit-skills.ps1
+```
+
+### Debug Mode
+
+**Enable verbose output**:
+
+```bash
+# Run scripts with debug info
+bash -x .agents/scripts/bash/audit-skills.sh
+
+# PowerShell with verbose output
+$VerbosePreference = "Continue"
+. .agents/scripts/powershell/audit-skills.ps1
+```
+
+### Health Check Commands
+
+**Quick health assessment**:
+
+```bash
+# 1. Check versions
+./scripts/bash/validate-versions.sh
+
+# 2. Audit skills
+./scripts/bash/audit-skills.sh
+
+# 3. Sync workflows
+./scripts/bash/sync-workflows.sh
+
+# 4. Check directory structure
+find .agents -type f -name "*.md" | wc -l
+find .windsurf/workflows -name "*.md" | wc -l
+```
+
+**PowerShell equivalent**:
+
+```powershell
+# 1. Check versions
+. .agents/scripts/powershell/validate-versions.ps1
+
+# 2. Audit skills
+. .agents/scripts/powershell/audit-skills.ps1
+
+# 3. Count files
+(Get-ChildItem -Path .agents -Recurse -Filter "*.md").Count
+(Get-ChildItem -Path .windsurf/workflows -Filter "*.md").Count
+```
+
+### Getting Help
+
+**If issues persist**:
+
+1. Check LCBP3 project version alignment
+2. Verify `.specify/` directory structure (if using templates)
+3. Ensure all dependencies are installed (bash, powershell core)
+4. Review the specific error messages in script output
+5. Check this README for workflow path updates (`.windsurf/workflows`)
 
 ---
 

@@ -1,0 +1,355 @@
+openapi: "3.0.3"
+info:
+  title: "ADR-021: Workflow Transition with Step-specific Attachments"
+  version: "1.8.6"
+  description: |
+    Extended Workflow Engine API contracts for ADR-021.
+    - POST /instances/:id/transition — extended with attachmentPublicIds
+    - GET /instances/:id/history — new endpoint returning history with attachments per step
+
+servers:
+  - url: "/api/workflow-engine"
+    description: "NAP-DMS Backend API"
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  headers:
+    IdempotencyKey:
+      description: |
+        UUIDv7 idempotency token. If the same key+userId is received within 24h,
+        the cached response is returned without re-processing. (ADR-021 §5.1)
+      schema:
+        type: string
+        format: uuid
+      required: true
+
+  schemas:
+    WorkflowTransitionRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          description: "Action ที่ต้องการทำ — ต้องตรงกับ DSL ของ Workflow นี้"
+          example: "APPROVE"
+          enum: [APPROVE, REJECT, RETURN, ACKNOWLEDGE]
+        comment:
+          type: string
+          description: "ความเห็นประกอบการอนุมัติ"
+          example: "อนุมัติแล้ว ดำเนินการต่อได้เลย"
+          nullable: true
+        payload:
+          type: object
+          description: "ข้อมูลเพิ่มเติมสำหรับ DSL Context"
+          additionalProperties: true
+          nullable: true
+          example:
+            urgent: true
+        attachmentPublicIds:
+          type: array
+          description: |
+            รายการ publicId (UUIDv7) ของไฟล์แนบที่ต้องการผูกกับขั้นตอนนี้.
+            ไฟล์ต้องผ่าน Two-Phase Upload ก่อน (is_temporary = false, ClamAV passed).
+            ADR-019: ใช้ publicId เท่านั้น — ห้ามใช้ INT id.
+          items:
+            type: string
+            format: uuid
+            example: "019505a1-7c3e-7000-8000-abc123def456"
+          maxItems: 20
+          nullable: true
+
+    WorkflowTransitionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        nextState:
+          type: string
+          description: "สถานะใหม่หลัง Transition"
+          example: "APPROVED"
+        historyId:
+          type: string
+          format: uuid
+          description: "ID ของ WorkflowHistory record ที่เพิ่งสร้าง"
+          example: "b8a2e3c1-4567-4abc-8def-0123456789ab"
+        isCompleted:
+          type: boolean
+          description: "true ถ้า Workflow สิ้นสุดแล้ว (Terminal State)"
+          example: false
+        attachmentsLinked:
+          type: integer
+          description: "จำนวนไฟล์แนบที่ถูก link กับ History record นี้"
+          example: 2
+
+    AttachmentSummary:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+          description: "UUIDv7 identifier (ADR-019)"
+          example: "019505a1-7c3e-7000-8000-abc123def456"
+        originalFilename:
+          type: string
+          example: "drawing-rev-A.pdf"
+        mimeType:
+          type: string
+          example: "application/pdf"
+        fileSize:
+          type: integer
+          description: "ขนาดไฟล์ (bytes)"
+          example: 2048000
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-04-12T10:30:00Z"
+
+    WorkflowHistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "UUID ของ history record (PK โดยตรง)"
+          example: "b8a2e3c1-4567-4abc-8def-0123456789ab"
+        fromState:
+          type: string
+          example: "PENDING_REVIEW"
+        toState:
+          type: string
+          example: "APPROVED"
+        action:
+          type: string
+          example: "APPROVE"
+        actorName:
+          type: string
+          description: "ชื่อผู้ดำเนินการ (populated via user join)"
+          example: "สมชาย ใจดี"
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+          example: "อนุมัติแล้ว"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-04-12T10:30:00Z"
+        attachments:
+          type: array
+          description: "ไฟล์แนบที่อัปโหลดพร้อมขั้นตอนนี้ (Step-specific)"
+          items:
+            $ref: "#/components/schemas/AttachmentSummary"
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+          description: "Technical error message (for developers)"
+        userMessage:
+          type: string
+          description: "User-friendly message (Thai, for display)"
+        recoveryAction:
+          type: string
+          description: "คำแนะนำสำหรับผู้ใช้ในการแก้ปัญหา"
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+
+paths:
+  /instances/{instanceId}/transition:
+    post:
+      operationId: processWorkflowTransition
+      summary: "ดำเนินการเปลี่ยนสถานะ Workflow พร้อมแนบไฟล์ประจำขั้นตอน"
+      description: |
+        Executes a workflow state transition. Optionally links pre-uploaded attachments
+        to this workflow history step.
+
+        **Security:**
+        - Requires `workflow.action_review` permission
+        - 4-Level RBAC: Superadmin > Org Admin > Assigned Handler > Read-only
+        - Idempotency-Key header REQUIRED (prevents duplicate submissions)
+
+        **File Attachment:**
+        - Files must be pre-uploaded via Two-Phase upload endpoint
+        - Files must be committed (is_temporary = false, ClamAV passed)
+        - Max 20 attachments per transition
+
+        **Concurrency:**
+        - Redis Redlock applied to instanceId
+        - Only 1 concurrent transition allowed per instance
+      parameters:
+        - name: instanceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: "Workflow Instance ID (UUID)"
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: "UUIDv7 idempotency token (TTL: 24h). Re-use returns cached response."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowTransitionRequest"
+            examples:
+              approve_with_attachments:
+                summary: "อนุมัติพร้อมไฟล์แนบ"
+                value:
+                  action: "APPROVE"
+                  comment: "อนุมัติแล้ว เอกสารครบถ้วน"
+                  attachmentPublicIds:
+                    - "019505a1-7c3e-7000-8000-abc123def456"
+                    - "019505b2-8d4f-7000-9000-def456abc789"
+              reject_no_attachments:
+                summary: "ปฏิเสธโดยไม่มีไฟล์แนบ"
+                value:
+                  action: "REJECT"
+                  comment: "เอกสารไม่ครบถ้วน กรุณาแก้ไขและส่งใหม่"
+      responses:
+        "200":
+          description: "Transition executed successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/WorkflowTransitionResponse"
+        "200_idempotent":
+          description: "Idempotent response — duplicate key detected, cached result returned"
+          headers:
+            X-Idempotent-Replay:
+              schema:
+                type: string
+                enum: ["true"]
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/WorkflowTransitionResponse"
+        "400":
+          description: |
+            Bad Request — possible causes:
+            - Missing Idempotency-Key header
+            - Invalid action for current state
+            - attachmentPublicIds contains non-committed or non-existent UUIDs
+            - Workflow not in ACTIVE status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Forbidden — user does not have permission for this transition"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                statusCode: 403
+                userMessage: "คุณไม่มีสิทธิ์ดำเนินการในขั้นตอนนี้"
+                recoveryAction: "ติดต่อผู้รับผิดชอบหรือ Admin หากคิดว่านี่เป็นข้อผิดพลาด"
+        "404":
+          description: "Workflow Instance not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Conflict — Concurrent transition in progress (Redlock busy)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                statusCode: 409
+                userMessage: "มีการดำเนินการอื่นอยู่ระหว่างดำเนินการ กรุณารอสักครู่แล้วลองใหม่"
+                recoveryAction: "รอ 5 วินาทีแล้วลองใหม่อีกครั้ง"
+
+  /instances/{instanceId}/history:
+    get:
+      operationId: getWorkflowHistory
+      summary: "ดึงประวัติการเปลี่ยนสถานะพร้อมไฟล์แนบประจำแต่ละขั้นตอน"
+      description: |
+        Returns the complete workflow history for an instance, including
+        step-specific attachments for each transition.
+
+        **Caching:** Redis cache TTL 1h, invalidated on state change.
+        **Security:** Requires `document.view` permission.
+      parameters:
+        - name: instanceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: "Workflow Instance ID (UUID)"
+      responses:
+        "200":
+          description: "History with step attachments"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/WorkflowHistoryItem"
+              example:
+                data:
+                  - id: "b8a2e3c1-4567-4abc-8def-0123456789ab"
+                    fromState: "DRAFT"
+                    toState: "PENDING_REVIEW"
+                    action: "SUBMIT"
+                    actorName: "สมชาย ใจดี"
+                    comment: "ส่งเพื่อตรวจสอบ"
+                    createdAt: "2026-04-10T09:00:00Z"
+                    attachments: []
+                  - id: "c9b3f4d2-5678-5bcd-9ef0-1234567890bc"
+                    fromState: "PENDING_REVIEW"
+                    toState: "APPROVED"
+                    action: "APPROVE"
+                    actorName: "วิชัย รักดี"
+                    comment: "อนุมัติแล้ว"
+                    createdAt: "2026-04-12T10:30:00Z"
+                    attachments:
+                      - publicId: "019505a1-7c3e-7000-8000-abc123def456"
+                        originalFilename: "drawing-rev-A.pdf"
+                        mimeType: "application/pdf"
+                        fileSize: 2048000
+                        createdAt: "2026-04-12T10:25:00Z"
+        "403":
+          description: "Forbidden"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Instance not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

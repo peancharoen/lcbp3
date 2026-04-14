@@ -48,8 +48,13 @@ export interface Circulation {
   createdByUserId: number;
   submittedAt?: string;
   closedAt?: string;
+  deadlineDate?: string; // v1.8.7: delta-05 EC-CIRC-003
   createdAt: string;
   updatedAt: string;
+  // ADR-021 / v1.8.7: Workflow context fields
+  workflowInstanceId?: string; // UUID ของ WorkflowInstance
+  workflowState?: string; // สถานะปัจจุบันใน Workflow
+  availableActions?: string[]; // Actions ที่ทำได้ ณ ขณะนี้
   // Joined relations from API
   routings?: CirculationRouting[];
   correspondence?: {

@@ -41,7 +41,19 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     const cacheKey = `idempotency:${idempotencyKey}`;
 
-    const cachedResponse = await this.cacheManager.get(cacheKey);
+    let cachedResponse;
+    try {
+      cachedResponse = await this.cacheManager.get(cacheKey);
+    } catch (err) {
+      // Log error but proceed with request if cache get fails
+      const errorMessage = err instanceof Error ? err.stack : String(err);
+      this.logger.error(
+        `Failed to get idempotency key ${idempotencyKey} from cache`,
+        errorMessage
+      );
+      // Proceed with request as if no cached response exists
+      cachedResponse = undefined;
+    }
 
     if (cachedResponse) {
       this.logger.warn(

@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.8.6 | Last synced from repo: 2026-04-10
+- Version: 1.8.7 | Last synced from repo: 2026-04-14
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 
 ---
@@ -107,30 +107,31 @@ Best practice — follow when possible:
 
 Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
 
-| Document                    | Path                                                                 | Status      | Use When                             |
-| --------------------------- | -------------------------------------------------------------------- | ----------- | ------------------------------------ |
-| **Glossary**                | `specs/00-overview/00-02-glossary.md`                                | —           | Verify domain terminology            |
-| **Schema Tables**           | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`        | —           | Before writing any query             |
-| **Data Dictionary**         | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                 | —           | Field meanings + business rules      |
-| **RBAC Matrix**             | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` | —           | Permission levels + roles            |
-| **Edge Cases**              | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                | —           | Prevent bugs in flows                |
-| **ADR-001 Workflow Engine** | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`       | ✅ Active   | DSL-based workflow implementation    |
-| **ADR-002 Doc Numbering**   | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`   | ✅ Active   | Document number generation + locking |
-| **ADR-007 Error Handling**  | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`       | ✅ Active   | Error patterns & recovery            |
-| **ADR-008 Notifications**   | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`   | ✅ Active   | BullMQ + multi-channel notification  |
-| **ADR-009 DB Migration**    | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`   | ✅ Active   | Schema changes — edit SQL directly   |
-| **ADR-016 Security**        | `specs/06-Decision-Records/ADR-016-security-authentication.md`       | ✅ Active   | Auth, RBAC, file upload security     |
-| **ADR-018 AI Boundary**     | `specs/06-Decision-Records/ADR-018-ai-boundary.md`                   | ✅ Active   | AI isolation rules                   |
-| **ADR-019 UUID**            | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`    | ✅ Active   | UUID-related work                    |
-| **ADR-020 AI Integration**  | `specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md`   | 🔄 Proposed | AI architecture patterns             |
-| **Backend Guidelines**      | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`        | —           | NestJS patterns                      |
-| **Frontend Guidelines**     | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`       | —           | Next.js patterns                     |
-| **Testing Strategy**        | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`          | —           | Coverage goals                       |
-| **Git Conventions**         | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`           | —           | Commit/branch naming                 |
-| **Code Snippets**           | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`             | —           | Reusable patterns                    |
-| **i18n Guidelines**         | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`           | —           | Localization rules                   |
-| **Release Policy**          | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`     | —           | Before deploy/hotfix                 |
-| **UAT Criteria**            | `specs/01-Requirements/01-05-acceptance-criteria.md`                 | —           | Feature completeness                 |
+| Document                     | Path                                                                 | Status    | Use When                               |
+| ---------------------------- | -------------------------------------------------------------------- | --------- | -------------------------------------- |
+| **Glossary**                 | `specs/00-overview/00-02-glossary.md`                                | —         | Verify domain terminology              |
+| **Schema Tables**            | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`        | —         | Before writing any query               |
+| **Data Dictionary**          | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                 | —         | Field meanings + business rules        |
+| **RBAC Matrix**              | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` | —         | Permission levels + roles              |
+| **Edge Cases**               | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                | —         | Prevent bugs in flows                  |
+| **ADR-001 Workflow Engine**  | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`       | ✅ Active | DSL-based workflow implementation      |
+| **ADR-002 Doc Numbering**    | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`   | ✅ Active | Document number generation + locking   |
+| **ADR-007 Error Handling**   | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`       | ✅ Active | Error patterns & recovery              |
+| **ADR-008 Notifications**    | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`   | ✅ Active | BullMQ + multi-channel notification    |
+| **ADR-009 DB Migration**     | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`   | ✅ Active | Schema changes — edit SQL directly     |
+| **ADR-016 Security**         | `specs/06-Decision-Records/ADR-016-security-authentication.md`       | ✅ Active | Auth, RBAC, file upload security       |
+| **ADR-018 AI Boundary**      | `specs/06-Decision-Records/ADR-018-ai-boundary.md`                   | ✅ Active | AI isolation rules                     |
+| **ADR-019 UUID**             | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`    | ✅ Active | UUID-related work                      |
+| **ADR-020 AI Integration**   | `specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md`   | ✅ Active | AI architecture patterns               |
+| **ADR-021 Workflow Context** | `specs/06-Decision-Records/ADR-021-workflow-context.md`              | ✅ Active | Integrated workflow & step attachments |
+| **Backend Guidelines**       | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`        | —         | NestJS patterns                        |
+| **Frontend Guidelines**      | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`       | —         | Next.js patterns                       |
+| **Testing Strategy**         | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`          | —         | Coverage goals                         |
+| **Git Conventions**          | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`           | —         | Commit/branch naming                   |
+| **Code Snippets**            | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`             | —         | Reusable patterns                      |
+| **i18n Guidelines**          | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`           | —         | Localization rules                     |
+| **Release Policy**           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`     | —         | Before deploy/hotfix                   |
+| **UAT Criteria**             | `specs/01-Requirements/01-05-acceptance-criteria.md`                 | —         | Feature completeness                   |
 
 ---
 
@@ -309,6 +310,25 @@ The following actions MUST NOT be performed autonomously. **Stop and ask for con
 - All existing tests still pass (no regressions)
 - If logic changed: at least 1 regression test added
 
+### 🟣 ADR-021 Integration Work - Workflow Engine & Context
+
+**MUST complete:**
+
+1. **Read ADR-021** - Integrated workflow & step attachments
+2. **Check ADR-001** - Unified workflow engine patterns
+3. **Verify WorkflowEngineService** - Polymorphic instance handling
+4. **Add workflow fields** - Expose workflowInstanceId, workflowState, availableActions
+5. **Include IntegratedBanner** - Frontend workflow lifecycle display
+6. **Test workflow transitions** - State changes and action validation
+
+**Expected output:**
+
+- Backend services expose workflow context fields
+- Frontend pages use IntegratedBanner + WorkflowLifecycle
+- Workflow instance creation and state management
+- Proper RBAC guards on workflow actions
+- Unit tests for workflow transitions
+
 ---
 
 ## 🎯 Context-Aware Triggers
@@ -333,13 +353,12 @@ When user asks about... check these files:
 | "Workflow / DSL"        | `ADR-001`, `01-03-modules/01-03-06-unified-workflow.md`                               | DSL state machine + WorkflowEngineService               |
 | "Document numbering"    | `ADR-002`, `01-02-business-rules/01-02-02-doc-numbering-rules.md`                     | Redis Redlock + DB optimistic lock (double-lock)        |
 | "ตรวจสอบ Workflow"      | `01-06-edge-cases.md`, `05-02-backend-guidelines.md`, `ADR-001`, `ADR-002`            | เช็คการเปลี่ยน State, คิว BullMQ และการล็อกเลขที่เอกสาร |
+| "Transmittal submit"    | ADR-021, TransmittalService                                                           | submit() with EC-RFA-004 validation                     |
+| "Circulation reassign"  | ADR-021, CirculationService                                                           | reassignRouting() with EC-CIRC-001                      |
 | "Audit ความปลอดภัย"     | `ADR-016`, `ADR-018`, `ADR-019`                                                       | ตรวจสอบ UUID pattern, CASL Guard และ AI Boundary        |
 
----
+... (rest of the code remains the same)
 
-## ✅ Quick Reference Checklist (Before Every Commit)
-
-- [ ] UUID pattern verified (no parseInt on UUID)
 - [ ] No `any` types in TypeScript
 - [ ] No `console.log` in committed code
 - [ ] Business logic comments in Thai (human devs), technical/library comments in English (AI tools)
@@ -370,16 +389,17 @@ This file is a **quick reference**. For detailed information:
 
 ## 🔄 Change Log
 
-| Version | Date       | Changes                                                                                                                                    | Updated By     |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
-| 1.8.6   | 2026-04-10 | + DMS Workflow Engine Protocol, + Security & Integrity Audit Protocol, + 2 Context-Aware Triggers, ADR Status column, Forbidden Why column | Human Dev      |
-| 1.8.5   | 2026-04-04 | Added ADR-007 error handling, ADR-020 AI integration, updated security rules                                                               | Windsurf AI    |
-| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note                                                                        | Windsurf AI    |
-| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                                                                               | Human Dev + AI |
-| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n                                                                              | Human Dev + AI |
-| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                                                                                         | Claude Sonnet  |
-| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                                                                                             | Human Dev      |
-| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                                                                                              | Gemini Pro     |
+| Version | Date       | Changes                                                                                                                                     | Updated By     |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.8.7   | 2026-04-14 | + ADR-021 Workflow Context integration, + ADR-021 Integration Work tier, + Transmittal/Circulation context triggers, updated ADR-020 status | Windsurf AI    |
+| 1.8.6   | 2026-04-10 | + DMS Workflow Engine Protocol, + Security & Integrity Audit Protocol, + 2 Context-Aware Triggers, ADR Status column, Forbidden Why column  | Human Dev      |
+| 1.8.5   | 2026-04-04 | Added ADR-007 error handling, ADR-020 AI integration, updated security rules                                                                | Windsurf AI    |
+| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note                                                                         | Windsurf AI    |
+| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                                                                                | Human Dev + AI |
+| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n                                                                               | Human Dev + AI |
+| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                                                                                          | Claude Sonnet  |
+| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                                                                                              | Human Dev      |
+| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                                                                                               | Gemini Pro     |
 
 ---
 

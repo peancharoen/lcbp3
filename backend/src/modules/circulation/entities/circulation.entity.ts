@@ -46,6 +46,9 @@ export class Circulation extends UuidBaseEntity {
   @Column({ name: 'closed_at', type: 'timestamp', nullable: true })
   closedAt?: Date;
 
+  @Column({ name: 'deadline_date', type: 'date', nullable: true })
+  deadlineDate?: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

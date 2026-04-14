@@ -1,15 +1,20 @@
 // File: src/modules/workflow-engine/workflow-engine.controller.ts
 
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
+  Headers,
+  Inject,
   Param,
   Patch,
   Post,
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -27,10 +32,11 @@ import { EvaluateWorkflowDto } from './dto/evaluate-workflow.dto';
 import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto';
 import { WorkflowTransitionDto } from './dto/workflow-transition.dto';
 
-// Guards & Decorators (อ้างอิงตามโครงสร้าง src/common ในแผนงาน)
+// Guards & Decorators
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
+import { WorkflowTransitionGuard } from './guards/workflow-transition.guard';
 import type { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
 @ApiTags('Workflow Engine')
@@ -38,7 +44,10 @@ import type { RequestWithUser } from '../../common/interfaces/request-with-user.
 @Controller('workflow-engine')
 @UseGuards(JwtAuthGuard, RbacGuard) // บังคับ Login และตรวจสอบสิทธิ์ทุก Request
 export class WorkflowEngineController {
-  constructor(private readonly workflowService: WorkflowEngineService) {}
+  constructor(
+    private readonly workflowService: WorkflowEngineService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
+  ) {}
 
   // =================================================================
   // Definition Management (Admin / Developer)
@@ -89,25 +98,56 @@ export class WorkflowEngineController {
   // =================================================================
 
   @Post('instances/:id/transition')
-  @ApiOperation({ summary: 'สั่งเปลี่ยนสถานะเอกสาร (User Action)' })
+  @ApiOperation({
+    summary:
+      'สั่งเปลี่ยนสถานะเอกสาร (User Action) — ADR-021: 4-Level RBAC + Idempotency',
+  })
   @ApiParam({ name: 'id', description: 'Workflow Instance ID (UUID)' })
-  // Permission จะถูกตรวจสอบ Dynamic ภายใน Service ตาม State ของ Workflow แต่ขั้นต้นต้องมีสิทธิ์ทำงาน Workflow
-  @RequirePermission('workflow.action_review')
+  // ADR-021: แทนที่ @RequirePermission สามัญใช้ WorkflowTransitionGuard (4-Level RBAC เต็มรูปแบบ)
+  @UseGuards(WorkflowTransitionGuard)
   async processTransition(
     @Param('id') instanceId: string,
     @Body() dto: WorkflowTransitionDto,
-    @Request() req: RequestWithUser
+    @Request() req: RequestWithUser,
+    @Headers('Idempotency-Key') idempotencyKey: string
   ) {
-    // ดึง User ID จาก Token (req.user มาจาก JwtStrategy)
+    // ADR-016: Idempotency-Key ต้องมีทุก Request
+    if (!idempotencyKey) {
+      throw new BadRequestException('Idempotency-Key header is required');
+    }
+
+    // ตรวจ Redis ว่า Request นี้ถูกส่งมาแล้วหรือไม่
+    const cacheKey = `idempotency:wf:${idempotencyKey}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached; // คืนผลเดิม (Idempotent Response)
+    }
+
     const userId = req.user?.user_id;
 
-    return this.workflowService.processTransition(
+    const result = await this.workflowService.processTransition(
       instanceId,
       dto.action,
       userId,
       dto.comment,
-      dto.payload
+      dto.payload,
+      dto.attachmentPublicIds // ADR-021: step-specific attachments
     );
+
+    // เก็บใน Redis 24 ชั่วโมง (86400 วินาที = 86400000 ms ใน cache-manager v7)
+    await this.cacheManager.set(cacheKey, result, 86_400_000);
+
+    return result;
+  }
+
+  @Get('instances/:id/history')
+  @ApiOperation({
+    summary: 'ดึงประวัติ Workflow พร้อมไฟล์แนบประจำแต่ละ Step (ADR-021)',
+  })
+  @ApiParam({ name: 'id', description: 'Workflow Instance ID (UUID)' })
+  @RequirePermission('document.view')
+  async getHistory(@Param('id') instanceId: string) {
+    return this.workflowService.getHistoryWithAttachments(instanceId);
   }
 
   @Get('instances/:id/actions')

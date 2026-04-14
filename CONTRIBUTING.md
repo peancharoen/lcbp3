@@ -75,7 +75,7 @@ specs/
 │   ├── 05-03-frontend-guidelines.md
 │   └── 05-04-testing-strategy.md
 │
-├── 06-Decision-Records/      # Architecture Decision Records (21 ADRs)
+├── 06-Decision-Records/      # Architecture Decision Records (22 ADRs)
 │   ├── README.md
 │   ├── ADR-001-unified-workflow-engine.md
 │   ├── ADR-002-document-numbering-strategy.md
@@ -88,7 +88,8 @@ specs/
 │   ├── ADR-017B-ai-document-classification.md
 │   ├── ADR-018-ai-boundary.md                  # AI Isolation Policy [★ Patch 1.8.1]
 │   ├── ADR-019-hybrid-identifier-strategy.md
-│   └── ADR-020-ai-intelligence-integration.md
+│   ├── ADR-020-ai-intelligence-integration.md
+│   └── ADR-021-workflow-context.md              # Integrated Workflow Context [★ v1.8.7]
 │
 └── 99-archives/              # ประวัติการทำงานและ Tasks เก่า
     ├── history/
@@ -98,16 +99,16 @@ specs/
 
 ### 📋 หมวดหมู่เอกสาร
 
-| หมวด                          | วัตถุประสงค์                           | ไฟล์สำคัญ       | ผู้ดูแล                 |
-| ----------------------------- | -------------------------------------- | --------------- | ----------------------- |
-| **00-Overview**               | ภาพรวม, Product Vision, KPI, Training  | Gap 1/5/6/9     | Project Manager / PO    |
-| **01-Requirements**           | User Stories, UAT, UI, Edge Cases      | Gap 2/3/4/10    | Business Analyst + PO   |
-| **02-Architecture**           | สถาปัตยกรรมและการออกแบบ                | —               | Tech Lead + Architects  |
-| **03-Data-and-Storage**       | Schema v1.8.0, Migration Scope         | Gap 7           | Backend Lead + DBA      |
-| **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8           | DevOps Team             |
-| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —               | Development Team Leads  |
-| **06-Decision-Records**       | Architecture Decision Records (21)     | ADR-018/019/020 | Tech Lead + Senior Devs |
-| **99-archives**               | Archived / Tasks                       | —               | All Team Members        |
+| หมวด                          | วัตถุประสงค์                           | ไฟล์สำคัญ           | ผู้ดูแล                 |
+| ----------------------------- | -------------------------------------- | ------------------- | ----------------------- |
+| **00-Overview**               | ภาพรวม, Product Vision, KPI, Training  | Gap 1/5/6/9         | Project Manager / PO    |
+| **01-Requirements**           | User Stories, UAT, UI, Edge Cases      | Gap 2/3/4/10        | Business Analyst + PO   |
+| **02-Architecture**           | สถาปัตยกรรมและการออกแบบ                | —                   | Tech Lead + Architects  |
+| **03-Data-and-Storage**       | Schema v1.8.0, Migration Scope         | Gap 7               | Backend Lead + DBA      |
+| **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8               | DevOps Team             |
+| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —                   | Development Team Leads  |
+| **06-Decision-Records**       | Architecture Decision Records (22)     | ADR-018/019/020/021 | Tech Lead + Senior Devs |
+| **99-archives**               | Archived / Tasks                       | —                   | All Team Members        |
 
 ---
 
@@ -145,8 +146,6 @@ POST /api/correspondences
 ```
 ````
 
-````
-
 #### ❌ ผิด
 
 ```markdown
@@ -157,7 +156,7 @@ POST /api/correspondences
 - สร้างได้
 - แก้ไขได้
 - ส่งได้
-````
+```
 
 ### 3. โครงสร้างเอกสาร
 
@@ -307,6 +306,9 @@ git push origin spec/requirements/update-correspondence
 - [ ] ตรวจสอบ markdown syntax
 - [ ] ตรวจสอบ internal links
 - [ ] เพิ่ม Related Documents
+- [ ] ผ่าน L1 Peer Review
+- [ ] ผ่าน L2 Technical Review
+- [ ] ได้รับ L3 Approval
 ```
 
 ---
@@ -544,18 +546,19 @@ graph LR
 
 **Document History**:
 
-| Version | Date       | Author     | Changes                                                     |
-| ------- | ---------- | ---------- | ----------------------------------------------------------- |
-| 1.0.0   | 2025-01-15 | John Doe   | Initial version                                             |
-| 1.1.0   | 2025-02-20 | Jane Smith | Add CC support                                              |
-| 1.2.0   | 2025-03-10 | John Doe   | Update workflow                                             |
-| 1.8.1   | 2026-03-21 | Tech Lead  | Security hardening, numbering fixes, dependency updates     |
-| 1.8.5   | 2026-04-10 | Tech Lead  | ADR registry complete (21 ADRs), spec documentation updates |
+| Version | Date       | Author     | Changes                                                           |
+| ------- | ---------- | ---------- | ----------------------------------------------------------------- |
+| 1.0.0   | 2025-01-15 | John Doe   | Initial version                                                   |
+| 1.1.0   | 2025-02-20 | Jane Smith | Add CC support                                                    |
+| 1.8.7   | 2026-04-14 | Tech Lead  | ADR-021 integration complete (22 ADRs), workflow context features |
+| 1.8.5   | 2026-04-10 | Tech Lead  | ADR registry complete (21 ADRs), spec documentation updates       |
+| 1.8.1   | 2026-03-21 | Tech Lead  | Security hardening, numbering fixes, dependency updates           |
 
-**Current Version**: 1.8.5
+**Current Version**: 1.8.7
 **Status**: Approved
-**Last Updated**: 2026-04-10
+**Last Updated**: 2026-04-14
 **Security**: 0 vulnerabilities (backend)
+**Workflow Engine**: ADR-021 Integrated Context complete
 ```
 
 ### 5. UUID Conventions (ADR-019)

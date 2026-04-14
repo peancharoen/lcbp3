@@ -74,6 +74,12 @@ export interface RFA {
 
   // Deprecated/Mapped fields
   correspondenceNumber?: string; // Convenience accessor
+
+  // ADR-021: Workflow Engine fields (optional — populated when workflow is active)
+  workflowInstanceId?: string;
+  workflowState?: string;
+  availableActions?: string[];
+  priority?: import('./workflow').WorkflowPriority;
 }
 
 export interface CreateRFADto {

@@ -8,6 +8,7 @@ import {
   WorkflowStatus,
 } from './entities/workflow-instance.entity';
 import { WorkflowHistory } from './entities/workflow-history.entity';
+import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { WorkflowDslService } from './workflow-dsl.service';
 import { WorkflowEventService } from './workflow-event.service';
 import { NotFoundException } from '../../common/exceptions';
@@ -30,6 +31,7 @@ describe('WorkflowEngineService', () => {
     manager: {
       findOne: jest.fn(),
       save: jest.fn(),
+      update: jest.fn(),
     },
   };
 
@@ -81,6 +83,14 @@ describe('WorkflowEngineService', () => {
           useValue: {
             create: jest.fn(),
             save: jest.fn(),
+            find: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(Attachment),
+          useValue: {
+            find: jest.fn(),
+            update: jest.fn(),
           },
         },
         { provide: WorkflowDslService, useValue: mockDslService },

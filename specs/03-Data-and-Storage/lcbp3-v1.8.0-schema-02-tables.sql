@@ -781,6 +781,7 @@ CREATE TABLE circulations (
   created_by_user_id INT NOT NULL COMMENT 'ID ของผู้สร้างใบเวียน',
   submitted_at TIMESTAMP NULL COMMENT 'วันที่ส่งใบเวียน',
   closed_at TIMESTAMP NULL COMMENT 'วันที่ปิดใบเวียน',
+  deadline_date DATE NULL COMMENT 'วันที่กำหนดส่งมอบ',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
   FOREIGN KEY (correspondence_id) REFERENCES correspondences (id),
@@ -868,9 +869,13 @@ CREATE TABLE attachments (
   expires_at DATETIME NULL COMMENT 'เวลาหมดอายุของไฟล์ Temp',
   CHECKSUM VARCHAR(64) NULL COMMENT 'SHA-256 Checksum',
   reference_date DATE NULL COMMENT 'Date used for folder structure (e.g. Issue Date) to prevent broken paths',
+  workflow_history_id CHAR(36) NULL COMMENT 'FK to workflow_histories.id  for step-specific attachments (ADR-021). NULL = main document',
   FOREIGN KEY (uploaded_by_user_id) REFERENCES users (user_id) ON DELETE CASCADE,
-  INDEX idx_attachments_reference_date (reference_date),
-  UNIQUE INDEX idx_attachments_uuid (uuid)
+  FOREIGN KEY (workflow_history_id) REFERENCES workflow_histories (id) ON DELETE
+  SET NULL ON UPDATE CASCADE,
+    INDEX idx_attachments_reference_date (reference_date),
+    INDEX idx_att_wfhist_created (workflow_history_id, created_at),
+    UNIQUE INDEX idx_attachments_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "กลาง" เก็บไฟล์แนบทั้งหมดของระบบ';
 
 -- ตารางเชื่อม correspondence_revisions กับ attachments (M:N)

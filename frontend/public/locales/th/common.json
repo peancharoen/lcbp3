@@ -1,0 +1,40 @@
+{
+  "workflow.priority.URGENT": "ด่วนที่สุด",
+  "workflow.priority.HIGH": "ด่วน",
+  "workflow.priority.MEDIUM": "ปกติ",
+  "workflow.priority.LOW": "ไม่ด่วน",
+
+  "workflow.action.APPROVE": "อนุมัติ",
+  "workflow.action.REJECT": "ปฏิเสธ",
+  "workflow.action.RETURN": "ส่งคืน",
+  "workflow.action.ACKNOWLEDGE": "รับทราบ",
+  "workflow.action.COMMENT": "แสดงความเห็น",
+  "workflow.action.commentLabel": "ความเห็นประกอบการดำเนินการ",
+  "workflow.action.commentPlaceholder": "ระบุเหตุผล (ถ้ามี)...",
+  "workflow.action.confirm": "ยืนยัน",
+  "workflow.action.cancel": "ยกเลิก",
+
+  "workflow.status.default": "—",
+
+  "workflow.timeline.noHistory": "ยังไม่มีประวัติ Workflow สำหรับเอกสารนี้",
+  "workflow.timeline.loadError": "ไม่สามารถโหลด Workflow Timeline ได้ กรุณาลองใหม่",
+  "workflow.timeline.current": "ปัจจุบัน",
+  "workflow.timeline.step.APPROVE": "อนุมัติ",
+  "workflow.timeline.step.REJECT": "ปฏิเสธ",
+  "workflow.timeline.step.RETURN": "ส่งคืน",
+  "workflow.timeline.step.ACKNOWLEDGE": "รับทราบ",
+  "workflow.timeline.step.COMMENT": "ความเห็น",
+  "workflow.timeline.step.SUBMIT": "ส่งเรื่อง",
+  "workflow.timeline.uploadHint": "ลากไฟล์มาวาง หรือคลิกเพื่อเลือก",
+  "workflow.timeline.uploading": "กำลังอัปโหลด...",
+  "workflow.timeline.uploadTypes": "PDF, DOCX, XLSX, DWG, ZIP · สูงสุด 50 MB",
+  "workflow.timeline.uploadError": "ไม่สามารถอัปโหลด",
+
+  "filePreview.fallbackTitle": "ไฟล์",
+  "filePreview.fileUnavailable": "ไฟล์ถูกลบออกจาก Storage แล้ว",
+  "workflow.timeline.fileUnavailable": "ไฟล์ไม่พร้อมใช้งาน",
+  "filePreview.unsupported": "ไม่รองรับการแสดงผลสำหรับไฟล์ประเภทนี้",
+  "filePreview.loadError": "ไม่สามารถโหลดไฟล์ได้ กรุณาลองใหม่",
+  "filePreview.download": "ดาวน์โหลด",
+  "filePreview.close": "ปิด"
+}

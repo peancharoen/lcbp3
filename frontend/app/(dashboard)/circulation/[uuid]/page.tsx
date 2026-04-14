@@ -1,17 +1,31 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { circulationService } from '@/lib/services/circulation.service';
-import { Circulation, UpdateCirculationRoutingDto } from '@/types/circulation';
+import { UpdateCirculationRoutingDto } from '@/types/circulation';
+import { useCirculation, circulationKeys } from '@/hooks/use-circulation';
+import { useWorkflowHistory } from '@/hooks/use-workflow-history';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, isPast, addDays, parseISO } from 'date-fns';
 import { toast } from 'sonner';
+import { IntegratedBanner } from '@/components/workflow/integrated-banner';
+import { WorkflowLifecycle } from '@/components/workflow/workflow-lifecycle';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+/**
+ * EC-CIRC-003: ตรวจสอบว่า deadline เลยกำหนดแล้วหรือไม่ (overdue = วันถัดไปหลัง deadline + 1 วัน)
+ */
+function isOverdue(deadlineDate?: string): boolean {
+  if (!deadlineDate) return false;
+  return isPast(addDays(parseISO(deadlineDate), 1));
+}
 
 /**
  * Get initials from name
@@ -44,23 +58,22 @@ export default function CirculationDetailPage() {
   const params = useParams();
   const queryClient = useQueryClient();
   const uuid = params.uuid as string;
+  const [pendingAttachmentIds, setPendingAttachmentIds] = useState<string[]>([]);
+
+  const { circulation, isLoading, error } = useCirculation(uuid);
 
   const {
-    data: circulation,
-    isLoading,
-    error,
-  } = useQuery<Circulation>({
-    queryKey: ['circulation', uuid],
-    queryFn: () => circulationService.getByUuid(uuid),
-    enabled: !!uuid,
-  });
+    data: workflowHistory,
+    isLoading: historyLoading,
+    error: historyError,
+  } = useWorkflowHistory(circulation?.workflowInstanceId);
 
   const completeMutation = useMutation({
     mutationFn: ({ routingId, data }: { routingId: number; data: UpdateCirculationRoutingDto }) =>
       circulationService.updateRouting(routingId, data),
     onSuccess: () => {
       toast.success('Task completed successfully');
-      queryClient.invalidateQueries({ queryKey: ['circulation', uuid] });
+      queryClient.invalidateQueries({ queryKey: circulationKeys.detail(uuid) });
     },
     onError: () => {
       toast.error('Failed to update task status');
@@ -99,22 +112,36 @@ export default function CirculationDetailPage() {
   }
 
   return (
-    <section className="space-y-6">
-      {/* Header */}
+    <section className="space-y-4">
+      {/* ADR-021: Integrated Banner — wired with live workflow data (v1.8.7) */}
+      <IntegratedBanner
+        docNo={circulation.circulationNo ?? ''}
+        subject={circulation.subject ?? ''}
+        status={circulation.statusCode ?? ''}
+        instanceId={circulation.workflowInstanceId}
+        workflowState={circulation.workflowState}
+        availableActions={circulation.availableActions}
+        pendingAttachmentIds={pendingAttachmentIds}
+        isLoading={isLoading}
+      />
+
+      {/* Navigation Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/circulation">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">{circulation.circulationNo}</h1>
-            <p className="text-muted-foreground">{circulation.subject}</p>
-          </div>
-        </div>
-        <Badge variant={getStatusVariant(circulation.statusCode)}>{circulation.statusCode}</Badge>
+        <Link href="/circulation">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            กลับ
+          </Button>
+        </Link>
       </div>
+
+      {/* Tabs — Details / Workflow */}
+      <Tabs defaultValue="details">
+        <TabsList>
+          <TabsTrigger value="details">รายละเอียด</TabsTrigger>
+          <TabsTrigger value="workflow">Workflow</TabsTrigger>
+        </TabsList>
+        <TabsContent value="details" className="space-y-4">
 
       {/* Info Card */}
       <Card>
@@ -148,6 +175,20 @@ export default function CirculationDetailPage() {
               >
                 {circulation.correspondence.correspondenceNumber}
               </Link>
+            </div>
+          )}
+          {circulation.deadlineDate && (
+            <div>
+              <p className="text-sm text-muted-foreground">Deadline</p>
+              <p className="font-medium flex items-center gap-1">
+                {format(parseISO(circulation.deadlineDate), 'dd MMM yyyy')}
+                {isOverdue(circulation.deadlineDate) && (
+                  <Badge variant="destructive" className="text-xs ml-1">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Overdue
+                  </Badge>
+                )}
+              </p>
             </div>
           )}
         </CardContent>
@@ -203,6 +244,18 @@ export default function CirculationDetailPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+        <TabsContent value="workflow">
+          {/* ADR-021: WorkflowLifecycle — wired with history data (v1.8.7) */}
+          <WorkflowLifecycle
+            history={workflowHistory}
+            currentState={circulation.workflowState}
+            isLoading={historyLoading}
+            error={historyError instanceof Error ? historyError : null}
+            onAttachmentsChange={setPendingAttachmentIds}
+          />
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }

@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Run the full speckit pipeline from specification to analysis in one command.
 ---
 

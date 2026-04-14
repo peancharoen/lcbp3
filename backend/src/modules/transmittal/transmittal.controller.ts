@@ -6,6 +6,8 @@ import {
   Param,
   UseGuards,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { TransmittalService } from './transmittal.service';
 import { CreateTransmittalDto } from './dto/create-transmittal.dto';
@@ -23,6 +25,7 @@ import {
 } from '@nestjs/swagger';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { ProjectService } from '../project/project.service';
+import { Audit } from '../../common/decorators/audit.decorator';
 
 @ApiTags('Transmittals')
 @ApiBearerAuth()
@@ -61,11 +64,29 @@ export class TransmittalController {
   @Get(':uuid')
   @ApiOperation({ summary: 'Get Transmittal details' })
   @ApiParam({
-    name: 'publicId',
+    name: 'uuid',
     description: 'Transmittal publicId (from correspondences.publicId)',
   })
   @RequirePermission('document.view')
   findOne(@Param('uuid', ParseUuidPipe) uuid: string) {
     return this.transmittalService.findOneByUuid(uuid);
+  }
+
+  @Post(':uuid/submit')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Submit Transmittal to Workflow (with EC-RFA-004 validation)',
+  })
+  @ApiParam({
+    name: 'uuid',
+    description: 'Transmittal publicId (from correspondences.publicId)',
+  })
+  @RequirePermission('document.manage')
+  @Audit('transmittal.submit', 'transmittal')
+  submit(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @CurrentUser() user: User
+  ) {
+    return this.transmittalService.submit(uuid, user);
   }
 }

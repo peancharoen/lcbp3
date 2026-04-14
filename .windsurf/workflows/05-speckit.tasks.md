@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts.
 ---
 

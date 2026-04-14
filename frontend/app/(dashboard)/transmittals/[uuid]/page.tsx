@@ -1,14 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { transmittalService } from '@/lib/services/transmittal.service';
-import { Transmittal } from '@/types/transmittal';
+import { useTransmittal } from '@/hooks/use-transmittal';
+import { useWorkflowHistory } from '@/hooks/use-workflow-history';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, RefreshCw, Printer } from 'lucide-react';
+import { IntegratedBanner } from '@/components/workflow/integrated-banner';
+import { WorkflowLifecycle } from '@/components/workflow/workflow-lifecycle';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -16,16 +19,15 @@ import { toast } from 'sonner';
 export default function TransmittalDetailPage() {
   const params = useParams();
   const uuid = params.uuid as string;
+  const [pendingAttachmentIds, setPendingAttachmentIds] = useState<string[]>([]);
+
+  const { transmittal, isLoading, error } = useTransmittal(uuid);
 
   const {
-    data: transmittal,
-    isLoading,
-    error,
-  } = useQuery<Transmittal>({
-    queryKey: ['transmittal', uuid],
-    queryFn: () => transmittalService.getByUuid(uuid),
-    enabled: !!uuid,
-  });
+    data: workflowHistory,
+    isLoading: historyLoading,
+    error: historyError,
+  } = useWorkflowHistory(transmittal?.workflowInstanceId);
 
   const handlePrint = () => {
     toast.info('PDF Export is coming soon...');
@@ -56,30 +58,45 @@ export default function TransmittalDetailPage() {
     );
   }
 
+  const transmittalDocNo = transmittal.correspondence?.correspondenceNumber ?? transmittal.transmittalNo ?? '';
+  const transmittalSubject = transmittal.subject ?? '';
+  const transmittalStatus = transmittal.purpose ?? '';
+
   return (
-    <section className="space-y-6">
-      {/* Header */}
+    <section className="space-y-4">
+      {/* ADR-021: Integrated Banner — wired with live workflow data (v1.8.7) */}
+      <IntegratedBanner
+        docNo={transmittalDocNo}
+        subject={transmittalSubject}
+        status={transmittalStatus}
+        instanceId={transmittal.workflowInstanceId}
+        workflowState={transmittal.workflowState}
+        availableActions={transmittal.availableActions}
+        pendingAttachmentIds={pendingAttachmentIds}
+        isLoading={isLoading}
+      />
+
+      {/* Navigation Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/transmittals">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">
-              {transmittal.correspondence?.correspondenceNumber || transmittal.transmittalNo}
-            </h1>
-            <p className="text-muted-foreground">
-              {transmittal.correspondence?.revisions?.find((r) => r.isCurrent)?.title || transmittal.subject}
-            </p>
-          </div>
-        </div>
-        <Button variant="outline" onClick={handlePrint}>
+        <Link href="/transmittals">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            กลับ
+          </Button>
+        </Link>
+        <Button variant="outline" size="sm" onClick={handlePrint}>
           <Printer className="h-4 w-4 mr-2" />
           Export PDF
         </Button>
       </div>
+
+      {/* Tabs — Details / Workflow */}
+      <Tabs defaultValue="details">
+        <TabsList>
+          <TabsTrigger value="details">รายละเอียด</TabsTrigger>
+          <TabsTrigger value="workflow">Workflow</TabsTrigger>
+        </TabsList>
+        <TabsContent value="details" className="space-y-4">
 
       {/* Info Card */}
       <Card>
@@ -154,6 +171,18 @@ export default function TransmittalDetailPage() {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+        <TabsContent value="workflow">
+          {/* ADR-021: WorkflowLifecycle — wired with history data (v1.8.7) */}
+          <WorkflowLifecycle
+            history={workflowHistory}
+            currentState={transmittal.workflowState}
+            isLoading={historyLoading}
+            error={historyError instanceof Error ? historyError : null}
+            onAttachmentsChange={setPendingAttachmentIds}
+          />
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }

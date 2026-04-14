@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Manage database schema changes following ADR-009 (no migrations, modify SQL directly)
 ---
 
@@ -18,7 +19,7 @@ Follows `specs/06-Decision-Records/ADR-009-database-strategy.md` — **NO TypeOR
 1. **Read current schema** — load the full schema file:
 
 ```
-specs/03-Data-and-Storage/lcbp3-v1.7.0-schema.sql
+specs/03-Data-and-Storage/lcbp3-v1.8.0-schema.sql
 ```
 
 2. **Read data dictionary** — understand current field definitions:
@@ -35,7 +36,7 @@ specs/03-Data-and-Storage/03-01-data-dictionary.md
 - Indexes being added/modified
 - Seed data impact (if any)
 
-4. **Modify schema SQL** — edit `specs/03-Data-and-Storage/lcbp3-v1.7.0-schema.sql`:
+4. **Modify schema SQL** — edit `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema.sql`:
    - Add/modify table definitions
    - Maintain consistent formatting (uppercase SQL keywords, lowercase identifiers)
    - Add inline comments for new columns explaining purpose
@@ -52,8 +53,8 @@ specs/03-Data-and-Storage/03-01-data-dictionary.md
    - Add enum value definitions if applicable
 
 6. **Update seed data** (if applicable):
-   - `specs/03-Data-and-Storage/lcbp3-v1.7.0-seed-basic.sql` — for reference/lookup data
-   - `specs/03-Data-and-Storage/lcbp3-v1.7.0-seed-permissions.sql` — for new CASL permissions
+   - `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-basic.sql` — for reference/lookup data
+   - `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` — for new CASL permissions
 
 7. **Update TypeORM entity** — modify corresponding `backend/src/modules/<module>/entities/*.entity.ts`:
    - Map ONLY columns defined in schema SQL

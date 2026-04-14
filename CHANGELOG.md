@@ -1,5 +1,103 @@
 # Version History
 
+## 1.8.7 (2026-04-14)
+
+### feat(workflow): ADR-021 Integration Complete - Transmittals & Circulation
+
+#### Summary
+
+Successfully integrated ADR-021 (Integrated Workflow Context & Step-specific Attachments) into Transmittals and Circulation modules. All backend services, frontend pages, and tests are wired to the Unified Workflow Engine.
+
+#### **Backend Changes (B1-B9)**
+
+- **WorkflowEngineService**: Added `getInstanceByEntity(entityType, entityId)` for polymorphic workflow instance lookup
+- **TransmittalService**:
+  - Expose `workflowInstanceId`, `workflowState`, `availableActions` in `findOneByUuid()`
+  - Added purpose filter to `findAll()`
+  - Added `submit()` with EC-RFA-004 validation (prevents submission if any item correspondence is DRAFT)
+  - Starts workflow instance `TRANSMITTAL_FLOW_V1` and updates CorrespondenceRevision status
+- **TransmittalController**: Added `POST /:uuid/submit` endpoint with RBAC and Audit
+- **TransmittalModule**: Imported `WorkflowEngineModule` and `CorrespondenceRevision`
+- **CirculationService**:
+  - Expose workflow fields in `findOneByUuid()`
+  - Added `reassignRouting()` (EC-CIRC-001) for PENDING routing reassignment
+  - Added `forceClose()` (EC-CIRC-002) with transactional rollback and reason validation
+- **CirculationController**: Added `PATCH /:uuid/routing/:routingId/reassign` and `POST /:uuid/force-close`
+- **Circulation Entity**: Added `deadlineDate` column for EC-CIRC-003 Overdue badge
+- **Schema Delta**: `05-add-circulation-deadline.sql` per ADR-009 (no migrations)
+
+#### **Frontend Changes (F1-F7)**
+
+- **Types**: Extended `Transmittal` and `Circulation` interfaces with workflow fields; added `deadlineDate` to Circulation
+- **Hooks**: Created `useTransmittal()` and extended `useCirculation()` hooks with TanStack Query
+- **Detail Pages**:
+  - Both wired with `IntegratedBanner` and `WorkflowLifecycle` using live workflow data
+  - Circulation page includes EC-CIRC-003 Overdue badge logic (`isOverdue()`)
+- **List Page**: Added purpose filter dropdown to `transmittals/page.tsx`
+
+#### **Tests (T1-T2): 19/19 Passing**
+
+- **TransmittalService**: 7 tests covering EC-RFA-004 validation, workflow instance creation, and error cases
+- **CirculationService**: 12 tests covering EC-CIRC-001 (reassign), EC-CIRC-002 (forceClose), EC-CIRC-003 (deadlineDate exposure)
+
+#### **Key Technical Decisions**
+
+- Followed ADR-019 UUID handling (no parseInt, use string UUIDs)
+- Used ADR-009 direct schema edits (no TypeORM migrations)
+- Enforced RBAC with CASL guards and Audit decorators
+- Implemented transactional force-close with proper rollback
+- Maintained existing patterns for error handling and service architecture
+
+#### **Remaining Work**
+
+- I1: i18n keys for new workflow actions (low priority)
+
+#### **Files Modified**
+
+Backend: 11 files (services, controllers, entities, modules, deltas)
+Frontend: 7 files (types, hooks, pages, services)
+Tests: 2 new spec files with full coverage
+
+#### **Verification**
+
+- Backend TS: No errors in modified files
+- Frontend TS: No errors in modified files
+- Jest: 19/19 tests passing
+- All components follow existing patterns and ADRs
+
+---
+
+## 1.8.6 (2026-04-12)
+
+### feat(workflow): ADR-021 Integrated Workflow Context & Step-specific Attachments
+
+#### 🏗️ Backend (NestJS)
+
+- **Added**: `workflow_history_id` column to `attachments` table (Delta SQL: `04-add-workflow-history-id-to-attachments.sql`)
+- **Added**: `WorkflowTransitionWithAttachmentsGuard` — validates UUIDv7 `attachmentPublicIds` array on transition requests
+- **Added**: `processTransition()` in `WorkflowEngineService` — links step-evidence attachments to `workflow_history` in the same transaction; commits temp→permanent atomically
+- **Added**: `GET /workflow-engine/instances/:id/history` endpoint with attachment summaries per step (Redis cached, 5 min TTL)
+- **Added**: `GET /files/preview/:publicId` endpoint with inline `Content-Disposition` for PDF/image rendering
+- **Added**: `Idempotency-Key` header support on `POST /workflow-engine/instances/:id/transition` (Redis dedup, 24 h TTL)
+
+#### 🖥️ Frontend (Next.js)
+
+- **Added**: `IntegratedBanner` component — document header with status badge, priority badge, workflow state, and action buttons (Approve/Reject/Return/Acknowledge/Comment)
+- **Added**: `WorkflowLifecycle` component — vertical timeline of workflow history with attachment chips, "current step" badge, and drag-and-drop upload zone
+- **Added**: `FilePreviewModal` component — inline PDF/image preview via BlobURL with 404 "ไฟล์ไม่พร้อมใช้งาน" detection
+- **Added**: `useWorkflowAction` hook — idempotent workflow transition with UUIDv4 Idempotency-Key, TanStack Query cache invalidation on success
+- **Added**: `useWorkflowHistory` hook — fetches step history with attachments per instance
+- **Added**: `WorkflowErrorBoundary` class component — catches unexpected failures without crashing the full detail page
+- **Added**: i18n support for all new components (`public/locales/th|en/common.json`, `lib/i18n/`, `hooks/use-translations.ts`)
+- **Modified**: RFA and Correspondence detail pages — integrated all ADR-021 components end-to-end
+
+#### 📚 Specs & Documentation
+
+- **Updated**: `specs/03-Data-and-Storage/03-01-data-dictionary.md` — `attachments.workflow_history_id` field with business rules (ADR-021)
+- **Added**: `specs/08-Tasks/ADR-021-workflow-context/tasks.md` — complete task breakdown (47 tasks, Phases 1–8)
+
+---
+
 ## 1.8.5 (2026-04-10)
 
 ### Specification & ADR Documentation

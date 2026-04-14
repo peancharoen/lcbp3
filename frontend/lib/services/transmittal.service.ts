@@ -44,6 +44,15 @@ export const transmittalService = {
   },
 
   /**
+   * Submit Transmittal to Workflow (EC-RFA-004 validation fires on backend)
+   * POST /transmittals/:uuid/submit
+   */
+  submit: async (uuid: string): Promise<{ instanceId: string; currentState: string }> => {
+    const response = await apiClient.post(`/transmittals/${uuid}/submit`);
+    return response.data?.data ?? response.data;
+  },
+
+  /**
    * ลบเอกสาร (Soft Delete)
    */
   delete: async (uuid: string) => {

@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Compare two versions of a spec or plan to highlight changes.
 ---
 

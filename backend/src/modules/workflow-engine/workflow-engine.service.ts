@@ -3,7 +3,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NotFoundException, WorkflowException } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 // Entities
 import { WorkflowDefinition } from './entities/workflow-definition.entity';
 import { WorkflowHistory } from './entities/workflow-history.entity';
@@ -11,11 +11,13 @@ import {
   WorkflowInstance,
   WorkflowStatus,
 } from './entities/workflow-instance.entity';
+import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 
 // Services & Interfaces
 import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dto';
 import { EvaluateWorkflowDto } from './dto/evaluate-workflow.dto';
 import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto';
+import { WorkflowHistoryItemDto } from './dto/workflow-history-item.dto';
 import {
   CompiledWorkflow,
   RawEvent,
@@ -48,6 +50,9 @@ export class WorkflowEngineService {
     private readonly instanceRepo: Repository<WorkflowInstance>,
     @InjectRepository(WorkflowHistory)
     private readonly historyRepo: Repository<WorkflowHistory>,
+    // ADR-021: Repository สำหรับ Link Attachments ประจำ Step
+    @InjectRepository(Attachment)
+    private readonly attachmentRepo: Repository<Attachment>,
     private readonly dslService: WorkflowDslService,
     private readonly eventService: WorkflowEventService, // [NEW] Inject Service
     private readonly dataSource: DataSource // ใช้สำหรับ Transaction
@@ -244,6 +249,42 @@ export class WorkflowEngineService {
   }
 
   /**
+   * ค้นหา Workflow Instance จาก entityType + entityId (ADR-021 / v1.8.7)
+   * ใช้โดย TransmittalService และ CirculationService เพื่อ expose workflowInstanceId ใน response
+   * คืนค่า null ถ้าไม่มี Instance (เช่น เอกสาร Draft ที่ยังไม่เริ่ม Workflow)
+   */
+  async getInstanceByEntity(
+    entityType: string,
+    entityId: string
+  ): Promise<{
+    id: string;
+    currentState: string;
+    availableActions: string[];
+  } | null> {
+    const instance = await this.instanceRepo.findOne({
+      where: { entityType, entityId, status: WorkflowStatus.ACTIVE },
+      relations: ['definition'],
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!instance) return null;
+
+    const compiled = instance.definition?.compiled as unknown as
+      | CompiledWorkflow
+      | undefined;
+    const stateConfig = compiled?.states?.[instance.currentState];
+    const availableActions = stateConfig?.transitions
+      ? Object.keys(stateConfig.transitions)
+      : [];
+
+    return {
+      id: instance.id,
+      currentState: instance.currentState,
+      availableActions,
+    };
+  }
+
+  /**
    * ดำเนินการเปลี่ยนสถานะ (Transition) ของ Instance จริงแบบ Transactional
    */
   async processTransition(
@@ -251,7 +292,9 @@ export class WorkflowEngineService {
     action: string,
     userId: number,
     comment?: string,
-    payload: Record<string, unknown> = {}
+    payload: Record<string, unknown> = {},
+    // ADR-021: publicIds ของไฟล์แนบประจำ Step นี้ (Two-Phase upload ก่อนแล้ว)
+    attachmentPublicIds?: string[]
   ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -323,6 +366,15 @@ export class WorkflowEngineService {
       });
       await queryRunner.manager.save(history);
 
+      // ADR-021: ผูกไฟล์แนบประจำ Step นี้ (ทำในตัว Transaction เดียวกัน)
+      if (attachmentPublicIds && attachmentPublicIds.length > 0) {
+        await queryRunner.manager.update(
+          Attachment,
+          { publicId: In(attachmentPublicIds) },
+          { workflowHistoryId: history.id }
+        );
+      }
+
       await queryRunner.commitTransaction();
 
       // [NEW] เก็บค่าไว้ Dispatch หลัง Commit
@@ -378,6 +430,66 @@ export class WorkflowEngineService {
       dto.action,
       dto.context || {}
     );
+  }
+
+  // =================================================================
+  // [PART 2.5] ADR-021: Workflow History with Step Attachments
+  // =================================================================
+
+  /**
+   * ดึงประวัติ Workflow พร้อมไฟล์แนบประจำแต่ละ Step (2-query, ไม่มี N+1)
+   * GET /instances/:id/history
+   */
+  async getHistoryWithAttachments(
+    instanceId: string
+  ): Promise<WorkflowHistoryItemDto[]> {
+    const histories = await this.historyRepo.find({
+      where: { instanceId },
+      order: { createdAt: 'ASC' },
+    });
+
+    if (histories.length === 0) return [];
+
+    // Batch-load attachments ครั้งเดียวเพื่อป้องกัน N+1
+    const historyIds = histories.map((h) => h.id);
+    const attachments = await this.attachmentRepo.find({
+      where: { workflowHistoryId: In(historyIds) },
+      select: [
+        'publicId',
+        'originalFilename',
+        'mimeType',
+        'fileSize',
+        'workflowHistoryId',
+      ],
+    });
+
+    // Group attachments ตาม workflowHistoryId
+    const attByHistoryId = attachments.reduce<Record<string, Attachment[]>>(
+      (acc, att) => {
+        const key = att.workflowHistoryId!;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(att);
+        return acc;
+      },
+      {}
+    );
+
+    return histories.map((h) => ({
+      id: h.id,
+      fromState: h.fromState,
+      toState: h.toState,
+      action: h.action,
+      actionByUserId: h.actionByUserId,
+      comment: h.comment,
+      metadata: h.metadata,
+      attachments: (attByHistoryId[h.id] ?? []).map((att) => ({
+        publicId: att.publicId,
+        originalFilename: att.originalFilename,
+        mimeType: att.mimeType,
+        fileSize: att.fileSize,
+      })),
+      createdAt: h.createdAt.toISOString(),
+    }));
   }
 
   // =================================================================
