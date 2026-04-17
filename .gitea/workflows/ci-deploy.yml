@@ -14,8 +14,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: 📥 Checkout
+      - name: 📥 Checkout (HTTPS)
         uses: actions/checkout@v4
+        continue-on-error: true
+
+      - name: 📥 Checkout (SSH fallback)
+        if: failure()
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 2222 git.np-dms.work >> ~/.ssh/known_hosts
+          git clone ssh://git@git.np-dms.work:2222/np-dms/lcbp3.git .
+          git fetch origin main
+          git reset --hard origin/main
 
       # ── [1] pnpm ต้องมาก่อน setup-node เสมอ ────────────────
       - name: ⚙️ Install pnpm
