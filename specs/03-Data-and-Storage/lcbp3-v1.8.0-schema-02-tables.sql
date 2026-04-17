@@ -1369,6 +1369,8 @@ CREATE INDEX idx_workflow_active ON workflow_definitions (workflow_code, is_acti
 CREATE TABLE workflow_instances (
   id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID ของ Instance',
   definition_id CHAR(36) NOT NULL COMMENT 'อ้างอิง Definition ที่ใช้',
+  contract_id INT NULL COMMENT 'Contract ที่ Workflow นี้เป็นส่วนหนึ่ง (NULL = org-scoped หรือ legacy)',
+  -- [delta-07]
   entity_type VARCHAR(50) NOT NULL COMMENT 'ประเภทเอกสาร (rfa_revision, correspondence_revision, circulation)',
   entity_id VARCHAR(50) NOT NULL COMMENT 'ID ของเอกสาร (String/Int)',
   current_state VARCHAR(50) NOT NULL COMMENT 'สถานะปัจจุบัน',
@@ -1381,10 +1383,14 @@ CREATE TABLE workflow_instances (
   context JSON NULL COMMENT 'ตัวแปร Context สำหรับตัดสินใจ',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_wf_inst_def FOREIGN KEY (definition_id) REFERENCES workflow_definitions (id) ON DELETE CASCADE
+  CONSTRAINT fk_wf_inst_def FOREIGN KEY (definition_id) REFERENCES workflow_definitions (id) ON DELETE CASCADE,
+  CONSTRAINT fk_wf_inst_contract FOREIGN KEY (contract_id) REFERENCES contracts (id) ON DELETE
+  SET NULL -- [delta-07]
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บสถานะการเดินเรื่องของเอกสาร';
 
 CREATE INDEX idx_wf_inst_entity ON workflow_instances (entity_type, entity_id);
+
+CREATE INDEX idx_wf_inst_contract ON workflow_instances (contract_id, entity_type, STATUS);
 
 CREATE INDEX idx_wf_inst_state ON workflow_instances (current_state);
 

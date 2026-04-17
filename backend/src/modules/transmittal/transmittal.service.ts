@@ -250,7 +250,10 @@ export class TransmittalService {
   ): Promise<{ instanceId: string; currentState: string }> {
     const correspondence = await this.dataSource.manager.findOne(
       Correspondence,
-      { where: { publicId: uuid }, select: ['id', 'correspondenceNumber'] }
+      {
+        where: { publicId: uuid },
+        select: ['id', 'correspondenceNumber', 'disciplineId'],
+      }
     );
     if (!correspondence)
       throw new NotFoundException(`Transmittal publicId ${uuid}`);
@@ -286,11 +289,20 @@ export class TransmittalService {
     const statusDraft = await this.statusRepo.findOne({
       where: { statusCode: 'DRAFT' },
     });
+    // [C3] Resolve contractId from discipline for contract-scoped workflow
+    let contractId: number | null = null;
+    if (correspondence.disciplineId) {
+      const rows = await this.dataSource.query<[{ contract_id: number }]>(
+        'SELECT contract_id FROM disciplines WHERE id = ? LIMIT 1',
+        [correspondence.disciplineId]
+      );
+      contractId = rows[0]?.contract_id ?? null;
+    }
     const instance = await this.workflowEngine.createInstance(
       'TRANSMITTAL_FLOW_V1',
       'transmittal',
       correspondence.id.toString(),
-      { ownerId: user.user_id }
+      { ownerId: user.user_id, contractId }
     );
 
     const result = await this.workflowEngine.processTransition(

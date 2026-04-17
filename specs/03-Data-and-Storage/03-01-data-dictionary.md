@@ -1,9 +1,9 @@
 ---
 title: 'Data & Storage: Data Dictionary and Data Model Architecture'
-version: 1.8.0
+version: 1.8.7
 status: released
 owner: Nattanin Peancharoen
-last_updated: 2026-02-28
+last_updated: 2026-04-14
 related:
   - specs/01-requirements/02-architecture.md
   - specs/01-requirements/03-functional-requirements.md
@@ -1714,24 +1714,33 @@ erDiagram
 
 **Purpose**: เก็บสถานะของ Workflow ที่กำลังรันอยู่จริง (Runtime)
 
-| Column Name   | Data Type   | Constraints      | Description                                    |
-| :------------ | :---------- | :--------------- | :--------------------------------------------- |
-| id            | CHAR(36)    | PK, UUID         | Unique Instance ID                             |
-| definition_id | CHAR(36)    | FK, NOT NULL     | อ้างอิง Definition ที่ใช้                      |
-| entity_type   | VARCHAR(50) | NOT NULL         | ประเภทเอกสาร (rfa_revision, correspondence...) |
-| entity_id     | VARCHAR(50) | NOT NULL         | ID ของเอกสาร                                   |
-| current_state | VARCHAR(50) | NOT NULL         | สถานะปัจจุบัน                                  |
-| status        | ENUM        | DEFAULT 'ACTIVE' | ACTIVE, COMPLETED, CANCELLED, TERMINATED       |
-| context       | JSON        | NULL             | ตัวแปร Context สำหรับตัดสินใจ                  |
-| created_at    | TIMESTAMP   | DEFAULT NOW      | เวลาที่สร้าง                                   |
-| updated_at    | TIMESTAMP   | ON UPDATE        | เวลาที่อัปเดตล่าสุด                            |
+| Column Name   | Data Type   | Constraints                | Description                                                                                     |
+| :------------ | :---------- | :------------------------- | :---------------------------------------------------------------------------------------------- |
+| id            | CHAR(36)    | PK, UUID                   | Unique Instance ID                                                                              |
+| definition_id | CHAR(36)    | FK, NOT NULL               | อ้างอิง Definition ที่ใช้                                                                           |
+| **contract_id** | **INT**   | **NULL, FK**               | **[delta-07 / ADR-021 C3]** Contract ที่ Workflow นี้สังกัด (NULL = org-scoped เช่น Circulation) |
+| entity_type   | VARCHAR(50) | NOT NULL                   | ประเภทเอกสาร (rfa, correspondence, transmittal, circulation)                             |
+| entity_id     | VARCHAR(50) | NOT NULL                   | ID ของเอกสาร                                                                                    |
+| current_state | VARCHAR(50) | NOT NULL                   | สถานะปัจจุบัน                                                                                   |
+| status        | ENUM        | DEFAULT 'ACTIVE'           | ACTIVE, COMPLETED, CANCELLED, TERMINATED                                                        |
+| context       | JSON        | NULL                       | ตัวแปร Context สำหรับตัดสินใจ (รวม contractId, projectId, initiatorId เป็นต้น)                      |
+| created_at    | TIMESTAMP   | DEFAULT NOW                | เวลาที่สร้าง                                                                                    |
+| updated_at    | TIMESTAMP   | ON UPDATE                  | เวลาที่อัปเดตล่าสุด                                                                         |
+
+**Business Rules**:
+
+- `contract_id` = NOT NULL → contract-scoped workflow (RFA, Correspondence, Transmittal) — Guard Level 2.5 ตรวจ membership
+- `contract_id` = NULL → org-scoped workflow (Circulation) — Guard Level 2 (org match only)
+- `context.contractId` mirrors `contract_id` column — redundant by design (ฟิลเตอร์ได้ทั้งสองทาง)
 
 **Indexes**:
 
 - PRIMARY KEY (id)
 - FOREIGN KEY (definition_id) REFERENCES workflow_definitions(id) ON DELETE CASCADE
+- **FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE SET NULL** [delta-07]
 - INDEX (entity_type, entity_id)
 - INDEX (current_state)
+- **INDEX (contract_id, entity_type, status)** — `idx_wf_inst_contract` [delta-07]
 
 ---
 
@@ -1978,8 +1987,9 @@ PARTITION BY RANGE (YEAR(created_at)) (
 | audit_logs               | (module, action)                                  | Action type analysis           |
 | notifications            | (user_id, is_read)                                | Unread notifications query     |
 | document_number_counters | (project_id, correspondence_type_id, reset_scope) | Running number generation      |
-| workflow_instances       | (entity_type, entity_id)                          | Workflow lookup by document ID |
-| workflow_instances       | (current_state)                                   | Monitor active workflows       |
+| workflow_instances       | (entity_type, entity_id)                          | Workflow lookup by document ID                            |
+| workflow_instances       | (current_state)                                   | Monitor active workflows                                  |
+| workflow_instances       | (contract_id, entity_type, status)                | **[delta-07]** Guard contract-membership + dashboard filter |
 
 ### 13.2 Unique Constraints
 

@@ -440,14 +440,15 @@ export class RfaService {
       await queryRunner.commitTransaction();
 
       // [NEW V1.5.1] Start Unified Workflow Instance
+      // [C2 FIX] Drawing types (DDW/SDW/ADW) are RFA subtypes — all use RFA_APPROVAL
       try {
-        const workflowCode = `RFA_${rfaType.typeCode}`; // e.g., RFA_GEN
         await this.workflowEngine.createInstance(
-          workflowCode,
+          'RFA_APPROVAL',
           'rfa',
           savedRfa.id.toString(),
           {
             projectId: internalProjectId,
+            contractId: internalContractId,
             originatorId: userOrgId,
             disciplineId: createDto.disciplineId,
             initiatorId: user.user_id,

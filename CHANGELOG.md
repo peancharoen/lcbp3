@@ -1,5 +1,90 @@
 # Version History
 
+## 1.8.8 (2026-04-14)
+
+### feat(workflow): ADR-021 Integrated Workflow Context & Step-specific Attachments
+
+#### Summary
+
+Successfully implemented ADR-021 (Integrated Workflow Context & Step-specific Attachments) across the entire LCBP3-DMS system. This major enhancement provides unified workflow management with step-specific file attachments, comprehensive RBAC security, and integrated file preview functionality.
+
+#### **Backend Changes (T001-T041)**
+
+- **Database Schema**: Added `workflow_history_id` to `attachments` table with foreign key constraint
+- **WorkflowEngineService**:
+  - Extended `processTransition()` to handle `attachmentPublicIds` parameter
+  - Added `getHistoryWithAttachments()` with batch loading to prevent N+1 queries
+  - Implemented attachment linking within same transaction as workflow history
+- **WorkflowEngineController**:
+  - Added `GET /instances/:id/history` endpoint with RBAC protection
+  - Enhanced `POST /instances/:id/transition` with idempotency key validation
+  - Added `Idempotency-Key` header validation for duplicate submission prevention
+- **WorkflowTransitionGuard**: Implemented 4-Level RBAC Matrix:
+  - Level 1: Superadmin with `system.manage_all`
+  - Level 2: Org Admin with same organization
+  - Level 2.5: Contract membership validation (cross-contract prevention)
+  - Level 3: Assigned handler validation
+  - Level 4: Unauthorized user denial
+- **File Storage**: Added `GET /files/preview/:publicId` endpoint for inline file viewing
+- **Entity Relations**: Enhanced `Attachment` and `WorkflowHistory` with bidirectional relationships
+
+#### **Frontend Changes (T012-T041)**
+
+- **IntegratedBanner Component**:
+  - Displays document metadata, workflow status, and action buttons
+  - Integrates with `useWorkflowAction` hook for seamless workflow operations
+  - Supports priority badges and status indicators
+- **WorkflowLifecycle Component**:
+  - Vertical timeline visualization of workflow history
+  - Drag-and-drop file upload zone for step-specific attachments
+  - Attachment chips with preview and unavailable file handling
+  - Real-time status updates with loading states
+- **FilePreviewModal Component**:
+  - Inline PDF rendering via iframe
+  - Image preview with proper scaling
+  - JWT-authenticated file access via apiClient
+  - Download functionality and proper cleanup
+- **WorkflowErrorBoundary**: Error boundary for workflow components
+- **useWorkflowAction Hook**:
+  - UUIDv7 idempotency key generation
+  - TanStack Query cache invalidation on success
+  - Comprehensive error handling with user feedback
+- **Type Definitions**: Extended interfaces for workflow integration
+
+#### **Security & Compliance**
+
+- **RBAC Implementation**: Full 4-Level RBAC Matrix compliance per ADR-016
+- **UUID Strategy**: ADR-019 compliant UUIDv7 handling throughout
+- **Input Validation**: Class-validator + Zod for all DTOs
+- **Audit Logging**: Comprehensive audit trail for all workflow actions
+- **File Security**: Two-phase upload with ClamAV scanning (where applicable)
+
+#### **Testing (T030-T031)**
+
+- **WorkflowTransitionGuard**: 15 test cases covering all RBAC levels and edge cases
+- **WorkflowEngineService**: Extended tests for attachment linking and transaction handling
+- **Frontend Components**: Comprehensive integration testing
+- **E2E Coverage**: Full workflow scenarios with file attachments
+
+#### **i18n Support (T036-T039)**
+
+- Complete internationalization for all new UI components
+- Thai and English locale support for workflow actions and messages
+- No hardcoded strings in JSX/TSX components
+
+#### **Performance Optimizations**
+
+- **Batch Loading**: Prevented N+1 queries in history retrieval
+- **Cache Strategy**: Redis-based caching for workflow history (TTL 3600s)
+- **Lazy Loading**: Attachment relationships loaded on-demand
+- **Memory Management**: Proper cleanup of Blob URLs and event listeners
+
+#### **Documentation Updates**
+
+- **Data Dictionary**: Updated with `workflow_history_id` field documentation
+- **API Documentation**: Enhanced OpenAPI specs for new endpoints
+- **Component Documentation**: Comprehensive JSDoc for all new components
+
 ## 1.8.7 (2026-04-14)
 
 ### feat(workflow): ADR-021 Integration Complete - Transmittals & Circulation

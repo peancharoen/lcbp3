@@ -116,14 +116,14 @@ export class WorkflowEngineController {
       throw new BadRequestException('Idempotency-Key header is required');
     }
 
-    // ตรวจ Redis ว่า Request นี้ถูกส่งมาแล้วหรือไม่
-    const cacheKey = `idempotency:wf:${idempotencyKey}`;
+    const userId = req.user?.user_id;
+
+    // ตรวจ Redis ว่า Request นี้ถูกส่งมาแล้วหรือไม่ (key ผูกกับ userId ป้องกัน cross-user replay)
+    const cacheKey = `idempotency:transition:${idempotencyKey}:${userId}`;
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) {
       return cached; // คืนผลเดิม (Idempotent Response)
     }
-
-    const userId = req.user?.user_id;
 
     const result = await this.workflowService.processTransition(
       instanceId,

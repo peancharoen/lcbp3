@@ -111,8 +111,8 @@ frontend/hooks/
 # 🟡 Frontend — Page Refactors (use new components)
 frontend/app/(dashboard)/rfas/[uuid]/page.tsx        [MODIFY — integrate IntegratedBanner + WorkflowLifecycle]
 frontend/app/(dashboard)/correspondences/[uuid]/page.tsx [MODIFY — same]
-frontend/app/(dashboard)/transmittals/[uuid]/page.tsx    [MODIFY — same, if detail page exists]
-frontend/app/(dashboard)/circulation/[uuid]/page.tsx     [MODIFY — same, if detail page exists]
+frontend/app/(dashboard)/transmittals/[uuid]/page.tsx    [MODIFY — same as RFA/Correspondence]
+frontend/app/(dashboard)/circulation/[uuid]/page.tsx     [MODIFY — same as RFA/Correspondence]
 ```
 
 ---
@@ -135,6 +135,8 @@ _No constitution violations. Architecture is additive (Nullable FK, extended DTO
 | Existing visualizer reuse | `components/custom/workflow-visualizer.tsx` is **horizontal** — new `workflow-lifecycle.tsx` is **vertical** | Different layout semantics; keep both |
 | Idempotency storage | Redis key: `idempotency:transition:{idempotencyKey}:{userId}` → serialized response (TTL: 24h) | Per .windsurfrules Security Rule #1 + ADR-021 §5.1 |
 | Cache invalidation | On `processTransition()` success → invalidate Redis key `wf:history:{instanceId}` | ADR-021 §9 — override TTL on state change |
+| Drawing workflow type (DDW/SDW/ADW) | Drawing types are **RFA subtypes** — all use single `RFA_APPROVAL` workflow code | Removing per-type codes (`RFA_DDW` etc.) eliminates dead workflow definitions; drawing metadata lives on the document, not the workflow |
+| Workflow scope per document type | RFA / Correspondence / Transmittal → **contract-scoped** (`contract_id` on `workflow_instances`); Circulation → **org-scoped** (`contract_id = NULL`) | Workflow Guard Level 2.5 blocks cross-contract access; Circulation is internal org document |
 
 ---
 
@@ -221,6 +223,8 @@ Response: WorkflowHistoryItem[] with nested attachments[] per step
 | F6 | Create `FilePreviewModal` component | `components/common/file-preview-modal.tsx` | F1 |
 | F7 | Refactor RFA detail page — integrate new components | `rfas/[uuid]/page.tsx` | F3–F6 |
 | F8 | Refactor Correspondence detail page — integrate new components | `correspondences/[uuid]/page.tsx` | F3–F6 |
+| F9 | Refactor Transmittal detail page — integrate new components | `transmittals/[uuid]/page.tsx` | F3–F6 |
+| F10 | Refactor Circulation detail page — integrate new components | `circulation/[uuid]/page.tsx` | F3–F6 |
 
 ### 🟢 GUIDELINES (after F7/F8)
 

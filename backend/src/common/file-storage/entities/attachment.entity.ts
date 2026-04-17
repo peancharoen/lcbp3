@@ -49,7 +49,7 @@ export class Attachment extends UuidBaseEntity {
 
   // ADR-021: FK ไปยัง workflow_histories สำหรับไฟล์แนบประจำ Step
   // NULL = ไฟล์แนบหลัก (Main Document), NOT NULL = ไฟล์ประจำ Workflow Step
-  @Column({ name: 'workflow_history_id', length: 36, nullable: true })
+  @Column({ name: 'workflow_history_id', nullable: true })
   workflowHistoryId?: string;
 
   // Lazy relation — ไม่ include ใน default query เพื่อป้องกัน N+1

@@ -1,6 +1,8 @@
 // File: src/modules/workflow-engine/workflow-engine.service.ts
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { NotFoundException, WorkflowException } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
@@ -55,7 +57,8 @@ export class WorkflowEngineService {
     private readonly attachmentRepo: Repository<Attachment>,
     private readonly dslService: WorkflowDslService,
     private readonly eventService: WorkflowEventService, // [NEW] Inject Service
-    private readonly dataSource: DataSource // ใช้สำหรับ Transaction
+    private readonly dataSource: DataSource, // ใช้สำหรับ Transaction
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache // ADR-021 T024: History cache
   ) {}
 
   // =================================================================
@@ -215,12 +218,18 @@ export class WorkflowEngineService {
     }
 
     // 3. สร้าง Instance
+    // [C3] Extract contractId from context to persist as searchable column
+    const contractId =
+      typeof initialContext.contractId === 'number'
+        ? initialContext.contractId
+        : null;
     const instance = this.instanceRepo.create({
       definition,
       entityType,
       entityId,
       currentState: initialState,
       status: WorkflowStatus.ACTIVE,
+      contractId,
       context: initialContext,
     });
 
@@ -364,18 +373,21 @@ export class WorkflowEngineService {
           payload,
         },
       });
-      await queryRunner.manager.save(history);
+      const savedHistory = await queryRunner.manager.save(history);
 
       // ADR-021: ผูกไฟล์แนบประจำ Step นี้ (ทำในตัว Transaction เดียวกัน)
       if (attachmentPublicIds && attachmentPublicIds.length > 0) {
         await queryRunner.manager.update(
           Attachment,
           { publicId: In(attachmentPublicIds) },
-          { workflowHistoryId: history.id }
+          { workflowHistoryId: savedHistory.id }
         );
       }
 
       await queryRunner.commitTransaction();
+
+      // ADR-021 T043: Invalidate Workflow History cache หลัง transition สำเร็จ
+      void this.cacheManager.del(`wf:history:${instanceId}`);
 
       // [NEW] เก็บค่าไว้ Dispatch หลัง Commit
       eventsToDispatch = evaluation.events;
@@ -443,6 +455,12 @@ export class WorkflowEngineService {
   async getHistoryWithAttachments(
     instanceId: string
   ): Promise<WorkflowHistoryItemDto[]> {
+    // ADR-021 T024: Redis cache — ป้องกัน N+1 บน repeated view (TTL 1h)
+    const cacheKey = `wf:history:${instanceId}`;
+    const cached =
+      await this.cacheManager.get<WorkflowHistoryItemDto[]>(cacheKey);
+    if (cached) return cached;
+
     const histories = await this.historyRepo.find({
       where: { instanceId },
       order: { createdAt: 'ASC' },
@@ -474,7 +492,7 @@ export class WorkflowEngineService {
       {}
     );
 
-    return histories.map((h) => ({
+    const result: WorkflowHistoryItemDto[] = histories.map((h) => ({
       id: h.id,
       fromState: h.fromState,
       toState: h.toState,
@@ -490,6 +508,10 @@ export class WorkflowEngineService {
       })),
       createdAt: h.createdAt.toISOString(),
     }));
+
+    // Cache result (TTL 1h = 3_600_000 ms)
+    await this.cacheManager.set(cacheKey, result, 3_600_000);
+    return result;
   }
 
   // =================================================================

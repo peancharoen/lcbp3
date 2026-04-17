@@ -30,7 +30,7 @@ import { WorkflowTransitionDto } from '../workflow-engine/dto/workflow-transitio
 @Injectable()
 export class RfaWorkflowService {
   private readonly logger = new Logger(RfaWorkflowService.name);
-  private readonly WORKFLOW_CODE = 'RFA_FLOW_V1'; // ควรกำหนดใน Config หรือ Enum
+  private readonly WORKFLOW_CODE = 'RFA_APPROVAL'; // [C2] All RFA types share one workflow
 
   constructor(
     private readonly workflowEngine: WorkflowEngineService,

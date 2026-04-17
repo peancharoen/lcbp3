@@ -221,7 +221,7 @@ export interface WorkflowTransitionWithAttachmentsDto {
          Body: { action, comment, attachmentPublicIds: [uuid1, uuid2] }
      │
      ▼
-[WorkflowTransitionGuard] — RBAC check (4-Level)
+[WorkflowTransitionGuard] — RBAC check (4.5-Level: Superadmin / Org Admin / Level 2.5 Contract Membership / Assigned Handler)
      │ pass
      ▼
 [WorkflowEngineService.processTransition()]
@@ -253,15 +253,21 @@ export interface WorkflowTransitionWithAttachmentsDto {
 ## 7. Entity Relationship Diagram
 
 ```
+contracts
+  │ 1
+  │ (FK, nullable) [delta-07]
+  ▼ N
 workflow_definitions
        │ 1
        │ has many
        ▼ N
-workflow_instances ──────────────── documents (RFA/Corr/etc)
-       │ 1                                 (entityType + entityId)
+workflow_instances ────────────────── documents (RFA/Corr/Transmittal/Circulation)
+  contract_id: INT NULL [delta-07]       (entityType + entityId)
+  (NULL = org-scoped e.g. Circulation)
+       │ 1
        │ has many
        ▼ N
-workflow_histories ◄─────────────────────────────┐
+workflow_histories ◄─────────────────────────┤
        │ id: CHAR(36) UUID                        │
        │                                          │
        │ ◄── attachments.workflow_history_id (FK, nullable)
@@ -281,5 +287,4 @@ attachments
 | `attachments` | `idx_att_wfhist_created` (NEW) | `(workflow_history_id, created_at)` | Fetch step attachments sorted by date |
 | `workflow_histories` | `idx_wf_hist_instance` (existing) | `(instance_id)` | Fetch all steps for a workflow instance |
 | `workflow_histories` | `idx_wf_hist_user` (existing) | `(action_by_user_id)` | Audit queries per user |
-
-**No additional indexes required** — the composite `(workflow_history_id, created_at)` covers the primary access pattern.
+| `workflow_instances` | `idx_wf_inst_contract` (NEW — delta-07) | `(contract_id, entity_type, status)` | Guard contract-membership lookup + dashboard queries per contract |

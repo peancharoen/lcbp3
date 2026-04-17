@@ -1,6 +1,6 @@
 # Tasks: Transmittals + Circulation Complete Integration (v1.8.7 Post-ADR-021)
 
-**Branch**: `001-transmittals-circulation` | **Total Tasks**: 18 | **Phase**: Implementation
+**Branch**: `001-transmittals-circulation` | **Total Tasks**: 18 | **Phase**: ✅ Complete (v1.8.7)
 
 ---
 
@@ -10,49 +10,49 @@
 - **File**: `backend/src/modules/workflow-engine/workflow-engine.service.ts`
 - **Action**: Add method that queries `WorkflowInstance` by `entityType + entityId`; returns `{ id, currentState, availableActions? } | null`
 - **Dependencies**: none
-- **Status**: [ ]
+- **Status**: [x]
 
 ### B2 — TransmittalService: Expose `workflowInstanceId` in `findOneByUuid()`
 - **File**: `backend/src/modules/transmittal/transmittal.service.ts`
 - **Action**: Call `workflowEngine.getInstanceByEntity('transmittal', correspondenceId.toString())` and merge `workflowInstanceId`, `workflowState` into response
 - **Dependencies**: B1
-- **Status**: [ ]
+- **Status**: [x]
 
 ### B3 — TransmittalService: Add `purpose` filter to `findAll()`
 - **File**: `backend/src/modules/transmittal/transmittal.service.ts`
 - **Action**: Add `purpose?: string` to `SearchTransmittalDto` and apply `andWhere` in `findAll()`
 - **Dependencies**: none (parallel with B1)
-- **Status**: [ ]
+- **Status**: [x]
 
 ### B4 — TransmittalService: Add `submit()` with EC-RFA-004 validation
 - **File**: `backend/src/modules/transmittal/transmittal.service.ts`
 - **Action**: New `submit(uuid, user)` method; fetches all `transmittal_items`, checks each item's correspondence current revision status — throws `422 ValidationException` if any is `DRAFT`; then calls `workflowEngine.createInstance('TRANSMITTAL_FLOW_V1', 'transmittal', ...)` and transitions with `SUBMIT`
 - **Dependencies**: B1
-- **Status**: [ ]
+- **Status**: [x]
 
 ### B5 — TransmittalController: Add `POST /:uuid/submit` endpoint
 - **File**: `backend/src/modules/transmittal/transmittal.controller.ts`
 - **Action**: Add endpoint with `@RequirePermission('document.manage')`, `@Audit('transmittal.submit', 'transmittal')`
 - **Dependencies**: B4
-- **Status**: [ ]
+- **Status**: [x]
 
 ### B6 — CirculationService: Expose `workflowInstanceId` in `findOneByUuid()`
 - **File**: `backend/src/modules/circulation/circulation.service.ts`
 - **Action**: Call `workflowEngine.getInstanceByEntity('circulation', circulation.id.toString())`, merge into response; also compute `isOverdue` per routing based on `deadline_date`
 - **Dependencies**: B1
-- **Status**: [ ]
+- **Status**: [x]
 
 ### B7 — CirculationService: Add `reassignRouting()` (EC-CIRC-001)
 - **File**: `backend/src/modules/circulation/circulation.service.ts`
 - **Action**: Fetch routing, verify user has Document Control permission, resolve `newAssigneeUuid` → INT via `uuidResolver.resolveUserId()`, update `routing.assignedTo`, write audit log
 - **Dependencies**: none
-- **Status**: [ ]
+- **Status**: [x]
 
 ### B8 — CirculationService: Add `forceClose()` (EC-CIRC-002)
 - **File**: `backend/src/modules/circulation/circulation.service.ts`
 - **Action**: Require `reason` (non-empty), update all PENDING routings to `CANCELLED`, set `circulation.statusCode = 'CANCELLED'`, write audit log entry; use `queryRunner` for atomicity
 - **Dependencies**: none
-- **Status**: [ ]
+- **Status**: [x]
 
 ### B9 — CirculationController: Add reassign + force-close endpoints
 - **File**: `backend/src/modules/circulation/circulation.controller.ts`
@@ -60,7 +60,7 @@
   - `PATCH /:uuid/routing/:routingId/reassign` — `@RequirePermission('circulation.manage')`
   - `POST /:uuid/force-close` — `@RequirePermission('circulation.manage')`
 - **Dependencies**: B7, B8
-- **Status**: [ ]
+- **Status**: [x]
 
 ---
 
@@ -70,25 +70,25 @@
 - **File**: `frontend/types/transmittal.ts`
 - **Action**: Add `workflowInstanceId?: string`, `workflowState?: string`, `availableActions?: string[]` to `Transmittal` interface; add `purpose?: string` to `SearchTransmittalDto`; no `any` types (ADR-019)
 - **Dependencies**: none (parallel with Phase 1)
-- **Status**: [ ]
+- **Status**: [x]
 
 ### F2 — Update `types/circulation.ts`
 - **File**: `frontend/types/circulation.ts`
 - **Action**: Add `workflowInstanceId?: string`, `workflowState?: string`, `availableActions?: string[]` to `Circulation`; add `deadline?: string`, `assigneeType?: 'MAIN' | 'ACTION' | 'INFORMATION'` to `CirculationRouting`
 - **Dependencies**: none
-- **Status**: [ ]
+- **Status**: [x]
 
 ### F3 — Create `hooks/use-transmittal.ts`
 - **File**: `frontend/hooks/use-transmittal.ts`
 - **Action**: Create `useTransmittal(uuid: string | undefined)` with `queryKey: ['transmittal', uuid]`, `staleTime: 60_000`; export `transmittalKeys` query key factory
 - **Dependencies**: F1
-- **Status**: [ ]
+- **Status**: [x]
 
 ### F4 — Update `hooks/use-circulation.ts`
 - **File**: `frontend/hooks/use-circulation.ts`
 - **Action**: Add `useCirculation(uuid: string | undefined)` hook with `queryKey: ['circulation', uuid]`, `staleTime: 60_000`
 - **Dependencies**: F2
-- **Status**: [ ]
+- **Status**: [x]
 
 ---
 
@@ -103,7 +103,7 @@
   - Pass `instanceId`, `workflowState`, `availableActions`, `pendingAttachmentIds` to `IntegratedBanner`
   - Pass `history`, `currentState`, `isLoading`, `error`, `onAttachmentsChange` to `WorkflowLifecycle` in Workflow tab
 - **Dependencies**: F3, F1
-- **Status**: [ ]
+- **Status**: [x]
 
 ### F6 — Wire Circulation detail page
 - **File**: `frontend/app/(dashboard)/circulation/[uuid]/page.tsx`
@@ -116,7 +116,7 @@
   - Add Overdue badge to routing rows where `isOverdue(routing.deadline)` is true
   - Replace hardcoded "Complete" button with proper workflow action
 - **Dependencies**: F4, F2
-- **Status**: [ ]
+- **Status**: [x]
 
 ---
 
@@ -126,13 +126,13 @@
 - **File**: `frontend/app/(dashboard)/transmittals/page.tsx`
 - **Action**: Add `purpose` select filter (FOR_APPROVAL / FOR_INFORMATION / FOR_REVIEW / OTHER) passing to `transmittalService.getAll()`. Read current page to assess if pagination works.
 - **Dependencies**: F1
-- **Status**: [ ]
+- **Status**: [x]
 
 ### I1 — i18n keys for Transmittal/Circulation workflow
 - **Files**: `public/locales/th/*.json`, `public/locales/en/*.json`
 - **Action**: Check `use-translations.ts` for key lookup pattern; add missing keys: `transmittal.purpose.*`, `circulation.status.*`, `circulation.overdue`, `circulation.forceClose.*`, `circulation.reassign.*`
 - **Dependencies**: F5, F6
-- **Status**: [ ]
+- **Status**: [ ] *(low priority — pending)*
 
 ---
 
@@ -142,13 +142,13 @@
 - **File**: `backend/src/modules/transmittal/transmittal.service.spec.ts` (create if needed)
 - **Action**: Test `submit()` throws `ValidationException` when item correspondence is DRAFT; test passes when all items are SUBMITTED
 - **Dependencies**: B4
-- **Status**: [ ]
+- **Status**: [x]
 
 ### T2 — Circulation service edge-case unit tests
 - **File**: `backend/src/modules/circulation/circulation.service.spec.ts` (create if needed)
 - **Action**: Test `reassignRouting()` — permission check, assignment update; test `forceClose()` — all pending routings cancelled, reason logged; test `isOverdue` helper (EC-CIRC-003)
 - **Dependencies**: B7, B8
-- **Status**: [ ]
+- **Status**: [x]
 
 ---
 
