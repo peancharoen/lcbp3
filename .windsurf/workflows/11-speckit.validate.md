@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Validate that implementation matches specification requirements.
 ---
 

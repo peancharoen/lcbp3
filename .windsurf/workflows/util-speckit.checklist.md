@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Generate a custom checklist for the current feature based on user requirements.
 ---
 

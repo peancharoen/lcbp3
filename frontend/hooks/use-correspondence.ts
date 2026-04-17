@@ -6,6 +6,9 @@ import { SubmitCorrespondenceDto } from '@/types/dto/correspondence/submit-corre
 import { WorkflowActionDto } from '@/types/dto/correspondence/workflow-action.dto';
 import { toast } from 'sonner';
 
+// ADR-021: Re-export useWorkflowHistory เพื่อให้ page import ได้จาก use-correspondence
+export { useWorkflowHistory } from './use-workflow-history';
+
 // Error type for axios errors
 type ApiError = Error & { response?: { data?: { message?: string } } };
 

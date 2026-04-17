@@ -6,7 +6,7 @@ pnpm lint-staged
 
 # 2. Additional Global Safety Checks (Per t2.md) - Optimized for staged files
 # Use || true to prevent script exit if grep finds nothing for the file list
-staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$') || true
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$' | grep -E '^(backend|frontend)/') || true
 
 if [ -n "$staged_files" ]; then
     # UUID misuse check

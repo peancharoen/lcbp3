@@ -10,10 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { TransmittalListResponse } from '@/types/transmittal';
+import { TransmittalPurpose } from '@/types/dto/transmittal/transmittal.dto';
+
+const PURPOSE_OPTIONS: { value: TransmittalPurpose | ''; label: string }[] = [
+  { value: '', label: 'All Purposes' },
+  { value: TransmittalPurpose.FOR_APPROVAL, label: 'For Approval' },
+  { value: TransmittalPurpose.FOR_INFORMATION, label: 'For Information' },
+  { value: TransmittalPurpose.FOR_REVIEW, label: 'For Review' },
+  { value: TransmittalPurpose.OTHER, label: 'Other' },
+];
 
 export default function TransmittalPage() {
   // ADR-019: Dynamic project selection via UUID
   const [selectedProjectUuid, setSelectedProjectUuid] = useState<string>('');
+  const [selectedPurpose, setSelectedPurpose] = useState<TransmittalPurpose | ''>('');
 
   const { data: projectsData } = useQuery({
     queryKey: ['projects-for-transmittals'],
@@ -22,8 +32,12 @@ export default function TransmittalPage() {
   const projects = projectsData?.data || projectsData || [];
 
   const { data, isLoading, error, refetch } = useQuery<TransmittalListResponse>({
-    queryKey: ['transmittals', selectedProjectUuid],
-    queryFn: () => transmittalService.getAll({ projectId: selectedProjectUuid }),
+    queryKey: ['transmittals', selectedProjectUuid, selectedPurpose],
+    queryFn: () =>
+      transmittalService.getAll({
+        projectId: selectedProjectUuid,
+        ...(selectedPurpose ? { purpose: selectedPurpose } : {}),
+      }),
     enabled: !!selectedProjectUuid,
   });
 
@@ -47,11 +61,11 @@ export default function TransmittalPage() {
         </div>
       </div>
 
-      {/* ADR-019: Project filter */}
-      <div className="flex items-center gap-3">
+      {/* Filters: Project + Purpose (v1.8.7 B3) */}
+      <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium text-muted-foreground">Project:</span>
         <Select value={selectedProjectUuid} onValueChange={setSelectedProjectUuid}>
-          <SelectTrigger className="w-[280px]">
+          <SelectTrigger className="w-[240px]">
             <SelectValue placeholder="Select a project" />
           </SelectTrigger>
           <SelectContent>
@@ -62,6 +76,23 @@ export default function TransmittalPage() {
                 </SelectItem>
               )
             )}
+          </SelectContent>
+        </Select>
+
+        <span className="text-sm font-medium text-muted-foreground">Purpose:</span>
+        <Select
+          value={selectedPurpose || '__all__'}
+          onValueChange={(v) => setSelectedPurpose(v === '__all__' ? '' : (v as TransmittalPurpose))}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Purposes" />
+          </SelectTrigger>
+          <SelectContent>
+            {PURPOSE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value || '__all__'} value={opt.value || '__all__'}>
+                {opt.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

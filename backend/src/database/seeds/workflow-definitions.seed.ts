@@ -8,9 +8,9 @@ export const seedWorkflowDefinitions = async (dataSource: DataSource) => {
   const repo = dataSource.getRepository(WorkflowDefinition);
   const dslService = new WorkflowDslService();
 
-  // 1. RFA Workflow (Standard)
+  // 1. RFA Workflow — all RFA types (incl. drawing subtypes DDW/SDW/ADW) share one definition
   const rfaDsl = {
-    workflow: 'RFA_FLOW_V1', // [FIX] เปลี่ยนชื่อให้ตรงกับค่าใน RfaWorkflowService
+    workflow: 'RFA_APPROVAL', // [C2] Single code for all RFA types
     version: 1,
     description: 'Standard RFA Approval Workflow',
     states: [
@@ -52,34 +52,49 @@ export const seedWorkflowDefinitions = async (dataSource: DataSource) => {
     ],
   };
 
-  // 2. Circulation Workflow
+  // 2. Circulation Workflow — org-scoped (contractId = null), states match delta-06
   const circulationDsl = {
-    workflow: 'CIRCULATION_INTERNAL_V1', // [FIX] เปลี่ยนชื่อให้ตรงกับค่าใน CirculationWorkflowService
+    workflow: 'CIRCULATION_FLOW_V1', // [C1] renamed from CIRCULATION_INTERNAL_V1
     version: 1,
-    description: 'Internal Document Circulation',
+    description:
+      'Circulation Workflow — DRAFT → ROUTING → COMPLETED | CANCELLED',
     states: [
       {
-        name: 'OPEN',
+        name: 'DRAFT',
         initial: true,
-        on: {
-          START: {
-            // [FIX] เปลี่ยนชื่อ Action ให้ตรงกับที่ Service เรียกใช้ ('START')
-            to: 'IN_REVIEW',
-          },
-        },
+        on: { START: { to: 'ROUTING' } },
       },
       {
-        name: 'IN_REVIEW',
+        name: 'ROUTING',
         on: {
-          COMPLETE_TASK: {
-            // [FIX] เปลี่ยนให้สอดคล้องกับ Action ที่ใช้จริง
-            to: 'COMPLETED',
-          },
-          CANCEL: { to: 'CANCELLED' },
+          COMPLETE: { to: 'COMPLETED' },
+          FORCE_CLOSE: { to: 'CANCELLED' },
         },
       },
       { name: 'COMPLETED', terminal: true },
       { name: 'CANCELLED', terminal: true },
+    ],
+  };
+
+  // 4. Transmittal Workflow
+  const transmittalDsl = {
+    workflow: 'TRANSMITTAL_FLOW_V1',
+    version: 1,
+    description: 'Transmittal Submission Workflow',
+    states: [
+      {
+        name: 'DRAFT',
+        initial: true,
+        on: { SUBMIT: { to: 'SUBMITTED' } },
+      },
+      {
+        name: 'SUBMITTED',
+        on: {
+          ACKNOWLEDGE: { to: 'COMPLETED' },
+          RETURN: { to: 'DRAFT' },
+        },
+      },
+      { name: 'COMPLETED', terminal: true },
     ],
   };
 
@@ -106,7 +121,7 @@ export const seedWorkflowDefinitions = async (dataSource: DataSource) => {
     ],
   };
 
-  const workflows = [rfaDsl, circulationDsl, correspondenceDsl];
+  const workflows = [rfaDsl, circulationDsl, correspondenceDsl, transmittalDsl];
 
   for (const dsl of workflows) {
     const exists = await repo.findOne({

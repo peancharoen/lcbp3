@@ -5,6 +5,9 @@ import { WorkflowActionDto } from '@/lib/services/rfa.service';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/types/api-error';
 
+// ADR-021: Re-export useWorkflowHistory เพื่อให้ page import ได้จาก use-rfa
+export { useWorkflowHistory } from './use-workflow-history';
+
 // Keys
 export const rfaKeys = {
   all: ['rfas'] as const,

@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Execute the full preparation pipeline (Specify -> Clarify -> Plan -> Tasks -> Analyze) in sequence.
 ---
 

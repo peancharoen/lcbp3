@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Execute tests, measure coverage, and report results.
 ---
 

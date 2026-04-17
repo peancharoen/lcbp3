@@ -5,11 +5,13 @@ import { FileStorageService } from './file-storage.service.js';
 import { FileStorageController } from './file-storage.controller.js';
 import { FileCleanupService } from './file-cleanup.service.js'; // ✅ Import
 import { Attachment } from './entities/attachment.entity';
+import { UserModule } from '../../modules/user/user.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Attachment]),
     ScheduleModule.forRoot(), // ✅ เปิดใช้งาน Cron Job],
+    UserModule,
   ],
   controllers: [FileStorageController],
   providers: [

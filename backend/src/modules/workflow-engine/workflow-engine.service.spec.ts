@@ -1,15 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkflowEngineService } from './workflow-engine.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { WorkflowDefinition } from './entities/workflow-definition.entity';
 import {
   WorkflowInstance,
   WorkflowStatus,
 } from './entities/workflow-instance.entity';
 import { WorkflowHistory } from './entities/workflow-history.entity';
+import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { WorkflowDslService } from './workflow-dsl.service';
 import { WorkflowEventService } from './workflow-event.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { NotFoundException } from '../../common/exceptions';
 import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dto';
 
@@ -30,6 +32,7 @@ describe('WorkflowEngineService', () => {
     manager: {
       findOne: jest.fn(),
       save: jest.fn(),
+      update: jest.fn(),
     },
   };
 
@@ -81,11 +84,27 @@ describe('WorkflowEngineService', () => {
           useValue: {
             create: jest.fn(),
             save: jest.fn(),
+            find: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(Attachment),
+          useValue: {
+            find: jest.fn(),
+            update: jest.fn(),
           },
         },
         { provide: WorkflowDslService, useValue: mockDslService },
         { provide: WorkflowEventService, useValue: mockEventService },
         { provide: DataSource, useValue: mockDataSource },
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+            del: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
@@ -199,6 +218,104 @@ describe('WorkflowEngineService', () => {
 
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
       expect(mockQueryRunner.release).toHaveBeenCalled();
+    });
+
+    // ADR-021 T031: Tests for step-specific attachments
+    describe('ADR-021 Step-specific Attachments', () => {
+      it('should link attachments to workflow history record', async () => {
+        const instanceId = 'inst-1';
+        const attachmentPublicIds = ['att-123', 'att-456'];
+        const mockInstance = {
+          id: instanceId,
+          currentState: 'PENDING',
+          status: WorkflowStatus.ACTIVE,
+          definition: { compiled: mockCompiledWorkflow },
+          context: { some: 'data' },
+        };
+
+        // Mock the history object with an ID
+        const mockHistory = { id: 'history-123' };
+        mockQueryRunner.manager.findOne.mockResolvedValue(mockInstance);
+
+        // Mock save to return the history object when called with any entity
+        mockQueryRunner.manager.save.mockResolvedValue(mockHistory);
+        mockDslService.evaluate.mockReturnValue({
+          nextState: 'APPROVED',
+          events: [],
+        });
+
+        await service.processTransition(
+          instanceId,
+          'APPROVE',
+          1,
+          'Test comment',
+          {},
+          attachmentPublicIds
+        );
+
+        expect(mockQueryRunner.manager.update).toHaveBeenCalledWith(
+          Attachment,
+          { publicId: In(attachmentPublicIds) },
+          { workflowHistoryId: 'history-123' }
+        );
+      });
+
+      it('should skip attachment linking when no attachmentPublicIds provided', async () => {
+        const instanceId = 'inst-1';
+        const mockInstance = {
+          id: instanceId,
+          currentState: 'PENDING',
+          status: WorkflowStatus.ACTIVE,
+          definition: { compiled: mockCompiledWorkflow },
+          context: { some: 'data' },
+        };
+
+        mockQueryRunner.manager.findOne.mockResolvedValue(mockInstance);
+        mockDslService.evaluate.mockReturnValue({
+          nextState: 'APPROVED',
+          events: [],
+        });
+
+        await service.processTransition(instanceId, 'APPROVE', 1);
+
+        expect(mockQueryRunner.manager.update).not.toHaveBeenCalledWith(
+          expect.any(Object),
+          expect.any(Object),
+          expect.objectContaining({ workflowHistoryId: expect.any(String) })
+        );
+      });
+
+      it('should handle empty attachmentPublicIds array', async () => {
+        const instanceId = 'inst-1';
+        const mockInstance = {
+          id: instanceId,
+          currentState: 'PENDING',
+          status: WorkflowStatus.ACTIVE,
+          definition: { compiled: mockCompiledWorkflow },
+          context: { some: 'data' },
+        };
+
+        mockQueryRunner.manager.findOne.mockResolvedValue(mockInstance);
+        mockDslService.evaluate.mockReturnValue({
+          nextState: 'APPROVED',
+          events: [],
+        });
+
+        await service.processTransition(
+          instanceId,
+          'APPROVE',
+          1,
+          'Test comment',
+          {},
+          [] // Empty array
+        );
+
+        expect(mockQueryRunner.manager.update).not.toHaveBeenCalledWith(
+          expect.any(Object),
+          expect.any(Object),
+          expect.objectContaining({ workflowHistoryId: expect.any(String) })
+        );
+      });
     });
   });
 });

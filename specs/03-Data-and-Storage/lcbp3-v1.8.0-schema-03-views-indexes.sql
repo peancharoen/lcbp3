@@ -49,6 +49,9 @@ CREATE INDEX idx_tags_name ON tags (tag_name);
 
 CREATE INDEX idx_tags_created_at ON tags (created_at);
 
+-- Index for circulations deadline_date (EC-CIRC-003 Overdue Badge)
+CREATE INDEX idx_circulations_deadline ON circulations (deadline_date);
+
 -- Indexes for correspondence_tags
 CREATE INDEX idx_correspondence_tags_correspondence ON correspondence_tags (correspondence_id);
 

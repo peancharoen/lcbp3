@@ -377,14 +377,24 @@ export class CorrespondenceService {
       await queryRunner.commitTransaction();
 
       // Start Workflow Instance (non-blocking)
+      // All correspondence types use CORRESPONDENCE_FLOW_V1 (type code is NOT a separate workflow)
       try {
-        const workflowCode = `CORRESPONDENCE_${type.typeCode}`;
+        let corrContractId: number | null = null;
+        if (createDto.disciplineId) {
+          const disciplineRows = await this.dataSource.query<
+            [{ contract_id: number }]
+          >('SELECT contract_id FROM disciplines WHERE id = ? LIMIT 1', [
+            createDto.disciplineId,
+          ]);
+          corrContractId = disciplineRows[0]?.contract_id ?? null;
+        }
         await this.workflowEngine.createInstance(
-          workflowCode,
+          'CORRESPONDENCE_FLOW_V1',
           'correspondence',
           savedCorr.id.toString(),
           {
             projectId: resolvedProjectId,
+            contractId: corrContractId,
             originatorId: userOrgId,
             disciplineId: createDto.disciplineId,
             initiatorId: user.user_id,
@@ -392,7 +402,7 @@ export class CorrespondenceService {
         );
       } catch (error: unknown) {
         this.logger.warn(
-          `Workflow not started for ${docNumber.number} (Code: CORRESPONDENCE_${type.typeCode}): ${(error as Error).message}`
+          `Workflow not started for ${docNumber.number}: ${(error as Error).message}`
         );
       }
 

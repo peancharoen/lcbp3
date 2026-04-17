@@ -1,7 +1,15 @@
 // File: src/modules/workflow-engine/dto/workflow-transition.dto.ts
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class WorkflowTransitionDto {
   @ApiProperty({
@@ -27,4 +35,16 @@ export class WorkflowTransitionDto {
   @IsObject()
   @IsOptional()
   payload?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description:
+      'รายการ publicId ของไฟล์แนบ (ต้องอัปโหลดผ่าน Two-Phase ก่อน — ADR-016)',
+    example: ['019505a1-7c3e-7000-8000-abc123def456'],
+    type: [String],
+  })
+  @IsArray()
+  @IsUUID('all', { each: true })
+  @ArrayMaxSize(20)
+  @IsOptional()
+  attachmentPublicIds?: string[];
 }

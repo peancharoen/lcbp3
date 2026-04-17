@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Run static analysis tools and aggregate results.
 ---
 

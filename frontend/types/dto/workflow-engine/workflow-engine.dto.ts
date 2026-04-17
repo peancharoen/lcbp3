@@ -61,3 +61,18 @@ export interface GetAvailableActionsDto {
   /** สถานะปัจจุบัน */
   currentState: string;
 }
+
+// --- ADR-021: Workflow Transition with Step Attachments ---
+export interface WorkflowTransitionWithAttachmentsDto {
+  /** ชื่อ Action (ต้องตรงกับ DSL) เช่น APPROVE, REJECT */
+  action: string;
+
+  /** ความเห็นประกอบการดำเนินการ */
+  comment?: string;
+
+  /** ข้อมูลเพิ่มเติม */
+  payload?: Record<string, unknown>;
+
+  /** รายการ publicId ของไฟล์แนบประจำ Step นี้ (max 20, ADR-016 Two-Phase upload) */
+  attachmentPublicIds?: string[];
+}

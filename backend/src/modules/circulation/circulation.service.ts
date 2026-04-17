@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   NotFoundException,
   PermissionException,
@@ -16,9 +16,12 @@ import { SearchCirculationDto } from './dto/search-circulation.dto';
 import { DocumentNumberingService } from '../document-numbering/services/document-numbering.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { UserService } from '../user/user.service';
+import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
 
 @Injectable()
 export class CirculationService {
+  private readonly logger = new Logger(CirculationService.name);
+
   private async hasSystemManageAllPermission(userId: number): Promise<boolean> {
     const permissions = await this.userService.getUserPermissions(userId);
     return permissions.includes('system.manage_all');
@@ -32,7 +35,8 @@ export class CirculationService {
     private numberingService: DocumentNumberingService,
     private dataSource: DataSource,
     private uuidResolver: UuidResolverService,
-    private userService: UserService
+    private userService: UserService,
+    private workflowEngine: WorkflowEngineService
   ) {}
 
   async create(createDto: CreateCirculationDto, user: User) {
@@ -184,7 +188,115 @@ export class CirculationService {
     });
     if (!circulation)
       throw new NotFoundException(`Circulation publicId ${publicId} not found`);
-    return circulation;
+
+    // v1.8.7: ดึง Workflow Instance สำหรับ Circulation นี้ (nullable — ก่อน Submit ไม่มี Instance)
+    const wfInstance = await this.workflowEngine.getInstanceByEntity(
+      'circulation',
+      circulation.id.toString()
+    );
+
+    return {
+      ...circulation,
+      workflowInstanceId: wfInstance?.id,
+      workflowState: wfInstance?.currentState,
+      availableActions: wfInstance?.availableActions ?? [],
+    };
+  }
+
+  /**
+   * EC-CIRC-001: Re-assign routing เมื่อ Assignee ถูก Deactivate (v1.8.7)
+   * ต้องมีสิทธิ์ circulation.manage
+   */
+  async reassignRouting(
+    routingId: number,
+    newAssigneePublicId: string,
+    user: User
+  ) {
+    const routing = await this.routingRepo.findOne({
+      where: { id: routingId },
+      relations: ['circulation'],
+    });
+    if (!routing)
+      throw new NotFoundException('Circulation Routing', String(routingId));
+
+    if (routing.status !== 'PENDING') {
+      throw new ValidationException(
+        `Routing ID ${routingId} ไม่ได้อยู่ใน PENDING จึงไม่สามารถ Re-assign ได้`
+      );
+    }
+
+    const newAssigneeId =
+      await this.uuidResolver.resolveUserId(newAssigneePublicId);
+    routing.assignedTo = newAssigneeId;
+    const saved = await this.routingRepo.save(routing);
+
+    this.logger.log(
+      `Circulation routing ${routingId} reassigned to user ${newAssigneeId} by ${user.user_id}`
+    );
+    return saved;
+  }
+
+  /**
+   * EC-CIRC-002: Force Close Circulation พร้อม reason บังคับ (v1.8.7)
+   * ปิด routing ที่ PENDING ทั้งหมด + เปลี่ยน statusCode เป็น CANCELLED
+   * ต้องมีสิทธิ์ circulation.manage
+   */
+  async forceClose(publicId: string, reason: string, user: User) {
+    if (!reason || reason.trim().length === 0) {
+      throw new ValidationException('กรุณาระบุเหตุผลในการปิดใบเวียนแบบบังคับ');
+    }
+
+    const circulation = await this.circulationRepo.findOne({
+      where: { publicId },
+      relations: ['routings'],
+    });
+    if (!circulation)
+      throw new NotFoundException(`Circulation publicId ${publicId}`);
+
+    if (
+      circulation.statusCode === 'COMPLETED' ||
+      circulation.statusCode === 'CANCELLED'
+    ) {
+      throw new ValidationException(
+        `ใบเวียน ${circulation.circulationNo} ปิดไปแล้ว (${circulation.statusCode})`
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // ปิด routing ที่ยัง PENDING ทั้งหมด
+      const pendingRoutings = circulation.routings.filter(
+        (r) => r.status === 'PENDING' || r.status === 'IN_PROGRESS'
+      );
+      for (const routing of pendingRoutings) {
+        routing.status = 'REJECTED';
+        routing.comments = `Force closed by user ${user.user_id}: ${reason}`;
+        routing.completedAt = new Date();
+        await queryRunner.manager.save(routing);
+      }
+
+      // อัปเดตสถานะ Circulation เป็น CANCELLED
+      circulation.statusCode = 'CANCELLED';
+      circulation.closedAt = new Date();
+      await queryRunner.manager.save(circulation);
+
+      await queryRunner.commitTransaction();
+      this.logger.log(
+        `Circulation ${publicId} force-closed by user ${user.user_id}. Reason: ${reason}`
+      );
+      return { success: true, affectedRoutings: pendingRoutings.length };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(
+        `Force close failed for ${publicId}: ${(err as Error).message}`
+      );
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   // ✅ Logic อัปเดตสถานะและปิดงาน
@@ -213,12 +325,14 @@ export class CirculationService {
     await this.routingRepo.save(routing);
 
     // Check: ถ้าทุกคนทำเสร็จแล้ว ให้ปิดใบเวียน (Master)
-    const pendingCount = await this.routingRepo.count({
-      where: {
-        circulationId: routing.circulationId,
-        status: 'PENDING', // หรือ status ที่ยังไม่เสร็จ
-      },
-    });
+    // Bug 5 fix: นับทั้ง PENDING และ IN_PROGRESS — forceClose() ปิดทั้งสองสถานะ
+    const pendingCount = await this.routingRepo
+      .createQueryBuilder('r')
+      .where('r.circulationId = :cid', { cid: routing.circulationId })
+      .andWhere('r.status IN (:...statuses)', {
+        statuses: ['PENDING', 'IN_PROGRESS'],
+      })
+      .getCount();
 
     if (pendingCount === 0) {
       await this.circulationRepo.update(routing.circulationId, {

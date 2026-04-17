@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FileStorageController } from './file-storage.controller';
 import { FileStorageService } from './file-storage.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RbacGuard } from '../guards/rbac.guard';
 import { RequestWithUser } from '../interfaces/request-with-user.interface';
 
 describe('FileStorageController', () => {
@@ -12,6 +14,7 @@ describe('FileStorageController', () => {
       upload: jest.fn(),
       download: jest.fn(),
       delete: jest.fn(),
+      preview: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -22,7 +25,12 @@ describe('FileStorageController', () => {
           useValue: mockFileStorageService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RbacGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<FileStorageController>(FileStorageController);
   });

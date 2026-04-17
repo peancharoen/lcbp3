@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Create or update the feature specification from a natural language feature description.
 ---
 

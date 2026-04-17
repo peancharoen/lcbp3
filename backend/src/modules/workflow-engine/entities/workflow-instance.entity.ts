@@ -37,6 +37,14 @@ export class WorkflowInstance {
   @Column({ name: 'definition_id' })
   definitionId!: string;
 
+  @Column({
+    name: 'contract_id',
+    type: 'int',
+    nullable: true,
+    comment: 'Contract ที่ Workflow นี้เป็นส่วนหนึ่ง (NULL = global/legacy)',
+  })
+  contractId?: number | null;
+
   // Polymorphic Relation: เชื่อมกับเอกสารได้หลายประเภท (RFA, CORR, etc.) โดยไม่ต้อง Foreign Key จริง
   @Column({
     name: 'entity_type',

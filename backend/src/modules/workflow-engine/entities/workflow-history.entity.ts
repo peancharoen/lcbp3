@@ -7,8 +7,10 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { WorkflowInstance } from './workflow-instance.entity';
 
 /**
@@ -58,4 +60,12 @@ export class WorkflowHistory {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
+
+  // ADR-021: ไฟล์แนบที่อัปโหลดพร้อมขั้นตอนนี้ — Lazy โหลดเฉพาะเมื่อต้องการ (ป้องกัน N+1)
+  @OneToMany(
+    () => Attachment,
+    (attachment: Attachment) => attachment.workflowHistory,
+    { lazy: true }
+  )
+  attachments?: Promise<Attachment[]>;
 }

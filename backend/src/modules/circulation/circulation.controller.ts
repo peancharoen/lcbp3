@@ -8,13 +8,22 @@ import {
   ParseIntPipe,
   UseGuards,
   Patch,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { CirculationService } from './circulation.service';
 import { CreateCirculationDto } from './dto/create-circulation.dto';
 import { UpdateCirculationRoutingDto } from './dto/update-circulation-routing.dto';
 import { SearchCirculationDto } from './dto/search-circulation.dto';
+import { ReassignRoutingDto } from './dto/reassign-routing.dto';
+import { ForceCloseCirculationDto } from './dto/force-close-circulation.dto';
 import { User } from '../user/entities/user.entity';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -62,5 +71,44 @@ export class CirculationController {
     @CurrentUser() user: User
   ) {
     return this.circulationService.updateRoutingStatus(id, updateDto, user);
+  }
+
+  @Patch(':uuid/routing/:routingId/reassign')
+  @ApiOperation({
+    summary:
+      'Re-assign routing to new user when assignee is deactivated (EC-CIRC-001)',
+  })
+  @ApiParam({ name: 'uuid', description: 'Circulation publicId' })
+  @ApiParam({ name: 'routingId', description: 'CirculationRouting INT id' })
+  @ApiBody({ type: ReassignRoutingDto })
+  @RequirePermission('circulation.manage')
+  @Audit('circulation.reassign', 'circulation')
+  reassignRouting(
+    @Param('routingId', ParseIntPipe) routingId: number,
+    @Body() dto: ReassignRoutingDto,
+    @CurrentUser() user: User
+  ) {
+    return this.circulationService.reassignRouting(
+      routingId,
+      dto.newAssigneeId,
+      user
+    );
+  }
+
+  @Post(':uuid/force-close')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Force close a Circulation with mandatory reason (EC-CIRC-002)',
+  })
+  @ApiParam({ name: 'uuid', description: 'Circulation publicId' })
+  @ApiBody({ type: ForceCloseCirculationDto })
+  @RequirePermission('circulation.manage')
+  @Audit('circulation.force_close', 'circulation')
+  forceClose(
+    @Param('uuid', ParseUuidPipe) uuid: string,
+    @Body() dto: ForceCloseCirculationDto,
+    @CurrentUser() user: User
+  ) {
+    return this.circulationService.forceClose(uuid, dto.reason, user);
   }
 }

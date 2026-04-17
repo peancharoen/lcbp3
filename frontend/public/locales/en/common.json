@@ -1,0 +1,41 @@
+{
+  "workflow.priority.URGENT": "Urgent",
+  "workflow.priority.HIGH": "High",
+  "workflow.priority.MEDIUM": "Normal",
+  "workflow.priority.LOW": "Low",
+
+  "workflow.action.APPROVE": "Approve",
+  "workflow.action.REJECT": "Reject",
+  "workflow.action.RETURN": "Return",
+  "workflow.action.ACKNOWLEDGE": "Acknowledge",
+  "workflow.action.COMMENT": "Comment",
+  "workflow.action.commentLabel": "Comment / Reason",
+  "workflow.action.commentPlaceholder": "Enter reason (optional)...",
+  "workflow.action.confirm": "Confirm",
+  "workflow.action.cancel": "Cancel",
+
+  "workflow.status.default": "—",
+
+  "workflow.timeline.noHistory": "No workflow history for this document.",
+  "workflow.timeline.loadError": "Unable to load Workflow Timeline. Please try again.",
+  "workflow.timeline.current": "Current",
+  "workflow.timeline.step.APPROVE": "Approved",
+  "workflow.timeline.step.REJECT": "Rejected",
+  "workflow.timeline.step.RETURN": "Returned",
+  "workflow.timeline.step.ACKNOWLEDGE": "Acknowledged",
+  "workflow.timeline.step.COMMENT": "Comment",
+  "workflow.timeline.step.SUBMIT": "Submitted",
+  "workflow.timeline.uploadHint": "Drag & drop files here, or click to select",
+  "workflow.timeline.uploading": "Uploading...",
+  "workflow.timeline.uploadTypes": "PDF, DOCX, XLSX, DWG, ZIP · Max 50 MB",
+  "workflow.timeline.uploadError": "Unable to upload",
+  "workflow.timeline.removeFile": "Remove file",
+
+  "filePreview.fallbackTitle": "File",
+  "filePreview.fileUnavailable": "File has been removed from storage.",
+  "workflow.timeline.fileUnavailable": "File unavailable",
+  "filePreview.unsupported": "Preview is not available for this file type.",
+  "filePreview.loadError": "Unable to load file. Please try again.",
+  "filePreview.download": "Download",
+  "filePreview.close": "Close"
+}

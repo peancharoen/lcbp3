@@ -20,6 +20,8 @@ import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileStorageService } from './file-storage.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RbacGuard } from '../guards/rbac.guard';
+import { RequirePermission } from '../decorators/require-permission.decorator';
 import type { RequestWithUser } from '../interfaces/request-with-user.interface';
 
 @Controller('files')
@@ -68,6 +70,32 @@ export class FileStorageController {
       // บังคับให้ browser ดาวน์โหลดไฟล์ แทนการ preview
       'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
       'Content-Length': attachment.fileSize,
+    });
+
+    return new StreamableFile(stream);
+  }
+
+  /**
+   * ADR-021: Preview Endpoint — GET /files/preview/:publicId
+   * ส่งไฟล์กลับพร้อม Content-Disposition: inline เพื่อให้ Browser แสดงผลโดยตรง
+   * ใช้ publicId (UUIDv7) ตาม ADR-019 — ไม่ใช้ INT id
+   */
+  @Get('preview/:publicId')
+  @UseGuards(RbacGuard)
+  @RequirePermission('document.view')
+  async previewFile(
+    @Param('publicId') publicId: string,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<StreamableFile> {
+    const { stream, attachment } =
+      await this.fileStorageService.preview(publicId);
+    const encodedFilename = encodeURIComponent(attachment.originalFilename);
+
+    res.set({
+      'Content-Type': attachment.mimeType ?? 'application/octet-stream',
+      // inline = browser แสดงผล, attachment = บังคับดาวน์โหลด
+      'Content-Disposition': `inline; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
+      'Content-Length': String(attachment.fileSize),
     });
 
     return new StreamableFile(stream);

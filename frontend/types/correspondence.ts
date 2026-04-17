@@ -88,6 +88,12 @@ export interface Correspondence {
     codeNameTh?: string;
     contract?: { publicId: string; contractName: string; contractCode: string };
   };
+
+  // ADR-021: Workflow Engine fields (optional — populated when workflow is active)
+  workflowInstanceId?: string;
+  workflowState?: string;
+  availableActions?: string[];
+  priority?: import('./workflow').WorkflowPriority;
 }
 
 export interface CreateCorrespondenceDto {

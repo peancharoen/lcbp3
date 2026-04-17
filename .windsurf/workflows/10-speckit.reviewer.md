@@ -1,4 +1,5 @@
 ---
+auto_execution_mode: 0
 description: Perform code review with actionable feedback and suggestions.
 ---
 

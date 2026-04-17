@@ -36,6 +36,10 @@ export interface Transmittal {
   purpose?: TransmittalPurpose;
   remarks?: string;
   createdAt: string;
+  // ADR-021 / v1.8.7: Workflow context fields
+  workflowInstanceId?: string; // UUID ของ WorkflowInstance (null = Draft ยังไม่ submit)
+  workflowState?: string; // สถานะปัจจุบันใน Workflow เช่น IN_REVIEW, APPROVED
+  availableActions?: string[]; // Actions ที่ทำได้ ณ ขณะนี้ เช่น ['APPROVE', 'REJECT']
   // Joined relations from API
   items?: TransmittalItem[];
   correspondence?: {
@@ -90,5 +94,6 @@ export interface SearchTransmittalDto {
   page?: number;
   limit?: number;
   projectId?: number | string; // ADR-019: Accept UUID
+  purpose?: TransmittalPurpose; // v1.8.7: B3 purpose filter
   search?: string;
 }

@@ -23,6 +23,7 @@ import { CorrespondenceStatus } from '../correspondence/entities/correspondence-
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { CorrespondenceRecipient } from '../correspondence/entities/correspondence-recipient.entity';
 import { UserService } from '../user/user.service';
+import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
 
 @Injectable()
 export class TransmittalService {
@@ -42,10 +43,13 @@ export class TransmittalService {
     private typeRepo: Repository<CorrespondenceType>,
     @InjectRepository(CorrespondenceStatus)
     private statusRepo: Repository<CorrespondenceStatus>,
+    @InjectRepository(CorrespondenceRevision)
+    private revisionRepo: Repository<CorrespondenceRevision>,
     private numberingService: DocumentNumberingService,
     private dataSource: DataSource,
     private uuidResolver: UuidResolverService,
-    private userService: UserService
+    private userService: UserService,
+    private workflowEngine: WorkflowEngineService
   ) {}
 
   async create(
@@ -192,9 +196,15 @@ export class TransmittalService {
 
   /**
    * ADR-019: Find Transmittal by parent Correspondence publicId (public identifier).
-   * Resolves correspondence.publicId → internal correspondenceId (INT)
+   * v1.8.7: Exposes workflowInstanceId, workflowState, availableActions via WorkflowEngineService
    */
-  async findOneByUuid(publicId: string): Promise<Transmittal> {
+  async findOneByUuid(publicId: string): Promise<
+    Transmittal & {
+      workflowInstanceId?: string;
+      workflowState?: string;
+      availableActions?: string[];
+    }
+  > {
     const correspondence = await this.dataSource.manager.findOne(
       Correspondence,
       { where: { publicId }, select: ['id'] }
@@ -204,7 +214,20 @@ export class TransmittalService {
         `Transmittal with publicId ${publicId} not found`
       );
     }
-    return this.findOne(correspondence.id);
+    const transmittal = await this.findOne(correspondence.id);
+
+    // v1.8.7: ดึง Workflow Instance สำหรับ Transmittal นี้ (nullable — Draft ไม่มี Instance)
+    const wfInstance = await this.workflowEngine.getInstanceByEntity(
+      'transmittal',
+      correspondence.id.toString()
+    );
+
+    return {
+      ...transmittal,
+      workflowInstanceId: wfInstance?.id,
+      workflowState: wfInstance?.currentState,
+      availableActions: wfInstance?.availableActions ?? [],
+    };
   }
 
   async findOne(id: number): Promise<Transmittal> {
@@ -215,6 +238,109 @@ export class TransmittalService {
     if (!transmittal)
       throw new NotFoundException(`Transmittal ID ${id} not found`);
     return transmittal;
+  }
+
+  /**
+   * Submit Transmittal — ตรวจสอบ EC-RFA-004 ก่อนเริ่ม Workflow (v1.8.7)
+   * EC-RFA-004: ทุก item ต้องไม่อยู่ใน DRAFT ก่อน Submit
+   */
+  async submit(
+    uuid: string,
+    user: User
+  ): Promise<{ instanceId: string; currentState: string }> {
+    const correspondence = await this.dataSource.manager.findOne(
+      Correspondence,
+      {
+        where: { publicId: uuid },
+        select: ['id', 'correspondenceNumber', 'disciplineId', 'originatorId'],
+      }
+    );
+    if (!correspondence)
+      throw new NotFoundException(`Transmittal publicId ${uuid}`);
+
+    const transmittal = await this.transmittalRepo.findOne({
+      where: { correspondenceId: correspondence.id },
+      relations: ['items'],
+    });
+    if (!transmittal) throw new NotFoundException('Transmittal', uuid);
+
+    // EC-RFA-004: ตรวจสอบว่า item ทุกชิ้นไม่อยู่ใน DRAFT
+    if (transmittal.items && transmittal.items.length > 0) {
+      const itemCorrIds = transmittal.items.map((i) => i.itemCorrespondenceId);
+      const draftRevisions = await this.revisionRepo
+        .createQueryBuilder('rev')
+        .innerJoin('rev.status', 'status')
+        .where('rev.correspondenceId IN (:...ids)', { ids: itemCorrIds })
+        .andWhere('rev.isCurrent = :isCurrent', { isCurrent: true })
+        .andWhere('status.statusCode = :code', { code: 'DRAFT' })
+        .leftJoinAndSelect('rev.correspondence', 'corr')
+        .getMany();
+
+      if (draftRevisions.length > 0) {
+        const draftDocNo =
+          draftRevisions[0]?.correspondence?.correspondenceNumber ?? 'Unknown';
+        throw new ValidationException(
+          `RFA ${draftDocNo} ยังอยู่ใน Draft กรุณา Submit ก่อน`
+        );
+      }
+    }
+
+    // Bug 1 fix: ป้องกัน duplicate instance — ถ้ามี Active Instance อยู่แล้ว ให้หยุด
+    const existingInstance = await this.workflowEngine.getInstanceByEntity(
+      'transmittal',
+      correspondence.id.toString()
+    );
+    if (existingInstance) {
+      throw new ValidationException(
+        `Transmittal นี้ถูก Submit ไปแล้ว (Workflow Instance: ${existingInstance.id})`
+      );
+    }
+
+    // [C3] Resolve contractId from discipline for contract-scoped workflow
+    let contractId: number | null = null;
+    if (correspondence.disciplineId) {
+      const rows = await this.dataSource.query<[{ contract_id: number }]>(
+        'SELECT contract_id FROM disciplines WHERE id = ? LIMIT 1',
+        [correspondence.disciplineId]
+      );
+      contractId = rows[0]?.contract_id ?? null;
+    }
+
+    // Bug 2 fix: ใส่ organizationId ใน context เพื่อให้ WorkflowTransitionGuard Level 2 (Org Admin) ทำงานได้
+    const instance = await this.workflowEngine.createInstance(
+      'TRANSMITTAL_FLOW_V1',
+      'transmittal',
+      correspondence.id.toString(),
+      {
+        ownerId: user.user_id,
+        contractId,
+        organizationId: correspondence.originatorId ?? null,
+      }
+    );
+
+    const result = await this.workflowEngine.processTransition(
+      instance.id,
+      'SUBMIT',
+      user.user_id,
+      'Transmittal Submitted'
+    );
+
+    // Sync สถานะกลับที่ Correspondence Revision
+    const revision = await this.revisionRepo.findOne({
+      where: { correspondenceId: correspondence.id, isCurrent: true },
+    });
+    if (revision) {
+      const submittedStatus = await this.statusRepo.findOne({
+        where: { statusCode: 'SUBMITTED' },
+      });
+      if (submittedStatus) {
+        revision.statusId = submittedStatus.id;
+        await this.revisionRepo.save(revision);
+      }
+    }
+
+    this.logger.log(`Transmittal ${uuid} submitted — instance ${instance.id}`);
+    return { instanceId: instance.id, currentState: result.nextState };
   }
 
   async findAll(query: SearchTransmittalDto) {
@@ -236,6 +362,13 @@ export class TransmittalService {
     if (projectId) {
       queryBuilder.andWhere('correspondence.projectId = :projectId', {
         projectId,
+      });
+    }
+
+    // B3: purpose filter (EC-RFA-004 aligned)
+    if (query.purpose) {
+      queryBuilder.andWhere('transmittal.purpose = :purpose', {
+        purpose: query.purpose,
       });
     }
 

@@ -17,7 +17,7 @@ import { WorkflowTransitionDto } from '../workflow-engine/dto/workflow-transitio
 @Injectable()
 export class CirculationWorkflowService {
   private readonly logger = new Logger(CirculationWorkflowService.name);
-  private readonly WORKFLOW_CODE = 'CIRCULATION_INTERNAL_V1';
+  private readonly WORKFLOW_CODE = 'CIRCULATION_FLOW_V1';
 
   constructor(
     private readonly workflowEngine: WorkflowEngineService,
@@ -48,9 +48,10 @@ export class CirculationWorkflowService {
         );
       }
 
-      // Context อาจประกอบด้วย Department หรือ Priority
-      const context = {
-        organizationId: circulation.organization,
+      // Context — Circulation เป็น internal document ระดับ Organization (ไม่ผูก contract)
+      // Guard Level 2 ตรวจ organizationId; Level 2.5 (contract check) จะ skip เมื่อ contractId = null
+      const context: Record<string, unknown> = {
+        organizationId: circulation.organizationId,
         creatorId: userId,
       };
 

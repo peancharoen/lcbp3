@@ -377,7 +377,7 @@ export function CorrespondenceForm({
 
     const timer = setTimeout(fetchPreview, 500);
     return () => clearTimeout(timer);
-  }, [projectId, documentTypeId, disciplineId, fromOrgId, toOrgId]);
+  }, [projectId, documentTypeId, disciplineId, fromOrgId, toOrgId, uuid]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl space-y-6">

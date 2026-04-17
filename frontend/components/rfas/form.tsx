@@ -286,7 +286,7 @@ export function RFAForm() {
 
     const timer = setTimeout(fetchPreview, 500);
     return () => clearTimeout(timer);
-  }, [rfaTypeId, disciplineId, toOrganizationId, selectedProjectId, rfaCorrespondenceType?.publicId, watch]);
+  }, [rfaTypeId, disciplineId, toOrganizationId, selectedProjectId, rfaCorrespondenceType?.publicId, rfaCorrespondenceType?.id, watch]);
 
   const onSubmit = (data: RFAFormData) => {
     if (requiresShopDrawings && data.shopDrawingRevisionIds?.length === 0) {
