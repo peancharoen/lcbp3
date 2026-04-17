@@ -60,7 +60,9 @@ export default function TransmittalDetailPage() {
 
   const transmittalDocNo = transmittal.correspondence?.correspondenceNumber ?? transmittal.transmittalNo ?? '';
   const transmittalSubject = transmittal.subject ?? '';
-  const transmittalStatus = transmittal.purpose ?? '';
+  const transmittalStatus = transmittal.workflowInstanceId
+    ? (transmittal.workflowState ?? 'SUBMITTED')
+    : 'DRAFT';
 
   return (
     <section className="space-y-4">

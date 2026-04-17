@@ -294,7 +294,7 @@ export function WorkflowLifecycle({
                     type="button"
                     className="ml-0.5 hover:text-destructive"
                     onClick={(e) => { e.stopPropagation(); removeUploadedFile(f.publicId); }}
-                    aria-label={t('workflow.timeline.uploadError')}
+                    aria-label={t('workflow.timeline.removeFile')}
                   >
                     <XIcon className="h-3 w-3" />
                   </button>

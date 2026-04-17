@@ -51,7 +51,7 @@ export class CirculationWorkflowService {
       // Context — Circulation เป็น internal document ระดับ Organization (ไม่ผูก contract)
       // Guard Level 2 ตรวจ organizationId; Level 2.5 (contract check) จะ skip เมื่อ contractId = null
       const context: Record<string, unknown> = {
-        organizationId: circulation.organization,
+        organizationId: circulation.organizationId,
         creatorId: userId,
       };
 

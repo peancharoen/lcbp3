@@ -252,7 +252,7 @@ export class TransmittalService {
       Correspondence,
       {
         where: { publicId: uuid },
-        select: ['id', 'correspondenceNumber', 'disciplineId'],
+        select: ['id', 'correspondenceNumber', 'disciplineId', 'originatorId'],
       }
     );
     if (!correspondence)
@@ -285,10 +285,17 @@ export class TransmittalService {
       }
     }
 
-    // เริ่ม Workflow Instance สำหรับ Transmittal
-    const statusDraft = await this.statusRepo.findOne({
-      where: { statusCode: 'DRAFT' },
-    });
+    // Bug 1 fix: ป้องกัน duplicate instance — ถ้ามี Active Instance อยู่แล้ว ให้หยุด
+    const existingInstance = await this.workflowEngine.getInstanceByEntity(
+      'transmittal',
+      correspondence.id.toString()
+    );
+    if (existingInstance) {
+      throw new ValidationException(
+        `Transmittal นี้ถูก Submit ไปแล้ว (Workflow Instance: ${existingInstance.id})`
+      );
+    }
+
     // [C3] Resolve contractId from discipline for contract-scoped workflow
     let contractId: number | null = null;
     if (correspondence.disciplineId) {
@@ -298,11 +305,17 @@ export class TransmittalService {
       );
       contractId = rows[0]?.contract_id ?? null;
     }
+
+    // Bug 2 fix: ใส่ organizationId ใน context เพื่อให้ WorkflowTransitionGuard Level 2 (Org Admin) ทำงานได้
     const instance = await this.workflowEngine.createInstance(
       'TRANSMITTAL_FLOW_V1',
       'transmittal',
       correspondence.id.toString(),
-      { ownerId: user.user_id, contractId }
+      {
+        ownerId: user.user_id,
+        contractId,
+        organizationId: correspondence.originatorId ?? null,
+      }
     );
 
     const result = await this.workflowEngine.processTransition(
@@ -313,18 +326,16 @@ export class TransmittalService {
     );
 
     // Sync สถานะกลับที่ Correspondence Revision
-    if (statusDraft) {
-      const revision = await this.revisionRepo.findOne({
-        where: { correspondenceId: correspondence.id, isCurrent: true },
+    const revision = await this.revisionRepo.findOne({
+      where: { correspondenceId: correspondence.id, isCurrent: true },
+    });
+    if (revision) {
+      const submittedStatus = await this.statusRepo.findOne({
+        where: { statusCode: 'SUBMITTED' },
       });
-      if (revision) {
-        const submittedStatus = await this.statusRepo.findOne({
-          where: { statusCode: 'SUBMITTED' },
-        });
-        if (submittedStatus) {
-          revision.statusId = submittedStatus.id;
-          await this.revisionRepo.save(revision);
-        }
+      if (submittedStatus) {
+        revision.statusId = submittedStatus.id;
+        await this.revisionRepo.save(revision);
       }
     }
 

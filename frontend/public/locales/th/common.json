@@ -29,6 +29,7 @@
   "workflow.timeline.uploading": "กำลังอัปโหลด...",
   "workflow.timeline.uploadTypes": "PDF, DOCX, XLSX, DWG, ZIP · สูงสุด 50 MB",
   "workflow.timeline.uploadError": "ไม่สามารถอัปโหลด",
+  "workflow.timeline.removeFile": "ลบไฟล์",
 
   "filePreview.fallbackTitle": "ไฟล์",
   "filePreview.fileUnavailable": "ไฟล์ถูกลบออกจาก Storage แล้ว",

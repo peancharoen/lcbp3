@@ -29,6 +29,7 @@
   "workflow.timeline.uploading": "Uploading...",
   "workflow.timeline.uploadTypes": "PDF, DOCX, XLSX, DWG, ZIP · Max 50 MB",
   "workflow.timeline.uploadError": "Unable to upload",
+  "workflow.timeline.removeFile": "Remove file",
 
   "filePreview.fallbackTitle": "File",
   "filePreview.fileUnavailable": "File has been removed from storage.",

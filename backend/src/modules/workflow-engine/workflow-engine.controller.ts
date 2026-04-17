@@ -116,7 +116,7 @@ export class WorkflowEngineController {
       throw new BadRequestException('Idempotency-Key header is required');
     }
 
-    const userId = req.user?.user_id;
+    const userId = req.user.user_id;
 
     // ตรวจ Redis ว่า Request นี้ถูกส่งมาแล้วหรือไม่ (key ผูกกับ userId ป้องกัน cross-user replay)
     const cacheKey = `idempotency:transition:${idempotencyKey}:${userId}`;
@@ -154,9 +154,18 @@ export class WorkflowEngineController {
   @ApiOperation({
     summary: 'ดึงรายการปุ่ม Action ที่สามารถกดได้ ณ สถานะปัจจุบัน',
   })
-  @RequirePermission('document.view') // ผู้ที่มีสิทธิ์ดูเอกสาร ควรดู Action ได้
-  getAvailableActions(@Param('id') _instanceId: string) {
-    // Note: Logic การดึง Action ตาม Instance ID จะถูก Implement ใน Task ถัดไป
-    return { message: 'Pending implementation in Service layer' };
+  @ApiParam({ name: 'id', description: 'Workflow Instance ID (UUID)' })
+  @RequirePermission('document.view')
+  async getAvailableActions(@Param('id') instanceId: string) {
+    const instance = await this.workflowService.getInstanceById(instanceId);
+    const actions = await this.workflowService.getAvailableActions(
+      instance.definition.workflow_code,
+      instance.currentState
+    );
+    return {
+      instanceId,
+      currentState: instance.currentState,
+      availableActions: actions,
+    };
   }
 }

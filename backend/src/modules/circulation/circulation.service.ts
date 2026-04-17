@@ -325,12 +325,14 @@ export class CirculationService {
     await this.routingRepo.save(routing);
 
     // Check: ถ้าทุกคนทำเสร็จแล้ว ให้ปิดใบเวียน (Master)
-    const pendingCount = await this.routingRepo.count({
-      where: {
-        circulationId: routing.circulationId,
-        status: 'PENDING', // หรือ status ที่ยังไม่เสร็จ
-      },
-    });
+    // Bug 5 fix: นับทั้ง PENDING และ IN_PROGRESS — forceClose() ปิดทั้งสองสถานะ
+    const pendingCount = await this.routingRepo
+      .createQueryBuilder('r')
+      .where('r.circulationId = :cid', { cid: routing.circulationId })
+      .andWhere('r.status IN (:...statuses)', {
+        statuses: ['PENDING', 'IN_PROGRESS'],
+      })
+      .getCount();
 
     if (pendingCount === 0) {
       await this.circulationRepo.update(routing.circulationId, {

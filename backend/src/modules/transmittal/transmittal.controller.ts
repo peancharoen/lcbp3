@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Controller,
   Get,
+  Headers,
   Post,
   Body,
   Param,
@@ -85,8 +87,12 @@ export class TransmittalController {
   @Audit('transmittal.submit', 'transmittal')
   submit(
     @Param('uuid', ParseUuidPipe) uuid: string,
-    @CurrentUser() user: User
+    @CurrentUser() user: User,
+    @Headers('Idempotency-Key') idempotencyKey: string
   ) {
+    if (!idempotencyKey) {
+      throw new BadRequestException('Idempotency-Key header is required');
+    }
     return this.transmittalService.submit(uuid, user);
   }
 }

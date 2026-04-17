@@ -387,7 +387,13 @@ export class WorkflowEngineService {
       await queryRunner.commitTransaction();
 
       // ADR-021 T043: Invalidate Workflow History cache หลัง transition สำเร็จ
-      void this.cacheManager.del(`wf:history:${instanceId}`);
+      this.cacheManager
+        .del(`wf:history:${instanceId}`)
+        .catch((e: unknown) =>
+          this.logger.warn(
+            `Cache invalidation failed for wf:history:${instanceId} — stale data may be served. Error: ${e instanceof Error ? e.message : String(e)}`
+          )
+        );
 
       // [NEW] เก็บค่าไว้ Dispatch หลัง Commit
       eventsToDispatch = evaluation.events;
