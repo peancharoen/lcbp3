@@ -2,7 +2,7 @@ name: CI / CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
   workflow_dispatch:
 
@@ -14,18 +14,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: 📥 Checkout (HTTPS)
-        uses: actions/checkout@v4
-        continue-on-error: true
-
-      - name: 📥 Checkout (SSH fallback)
-        if: failure()
+      - name: Checkout (SSH fallback for HTTPS timeout)
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p 2222 git.np-dms.work >> ~/.ssh/known_hosts
-          git clone ssh://git@git.np-dms.work:2222/np-dms/lcbp3.git .
+          # Try HTTPS first with timeout
+          if timeout 30 git clone --depth 1 https://git.np-dms.work/np-dms/lcbp3.git . 2>/dev/null; then
+            echo "HTTPS checkout successful"
+          else
+            echo "HTTPS failed, using SSH fallback"
+            mkdir -p ~/.ssh
+            echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh-keyscan -p 2222 git.np-dms.work >> ~/.ssh/known_hosts
+            git clone --depth 1 ssh://git@git.np-dms.work:2222/np-dms/lcbp3.git .
+          fi
           git fetch origin main
           git reset --hard origin/main
 
@@ -40,7 +41,7 @@ jobs:
           node-version: 20
           # ลบ cache: "pnpm" ออก — ใช้ volume mount บน runner แทน
 
-      # ── [2] ชี้ store ไปที่ volume ที่ mount ไว้ ─────────────
+          # ── [2] ชี้ store ไปที่ volume ที่ mount ไว้ ─────────────
       - name: 🔧 Set pnpm store path
         run: pnpm config set store-dir /root/.local/share/pnpm
 
