@@ -16,13 +16,32 @@ jobs:
     steps:
       - name: Checkout (SSH)
         run: |
+          set -e  # Exit on any error
+          echo "Setting up SSH..."
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          echo "Adding deploy key..."
           echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p 2222 git.np-dms.work >> ~/.ssh/known_hosts
+
+          echo "Testing SSH connection..."
+          ssh -T -p 2222 git@git.np-dms.work || true
+
+          echo "Adding known hosts..."
+          ssh-keyscan -p 2222 git.np-dms.work >> ~/.ssh/known_hosts 2>/dev/null || echo "ssh-keyscan failed, trying manual known hosts"
+
+          # Add actual host key
+          echo "[git.np-dms.work]:2222 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC3ii1sfG2oUWfO6xW9RNXWJNT4Qnv/jE7b/2u8lqpyrbmFs5GWflj7AwGkYL1OIXb5oamOJVAnPyypDnxPmsqEwCoqBeytkgl4GG5ToDju7nXLFB83C8o8yIgpNjM8hWM8cbbSRo45eRV8uR42F8Z/bfCYAthJCAEXs0g3OBAHOk9nSCxGXbS46WTuV4FhfbnjlJ6a8rfSjYoJ3kRaw9kyCr5vzQfvE4As4nLy4iZWM1g/Nif1G2n+CHBH5wlOCfcjDBkPfjJ7Xmoo99ZiQUqFsYaQ78qZFbtKrcMkGfhPvo1tGAcEJeZJft+gbONHAJy1462nEjqDKcq94V5TYNK10O/Qy+JB1eLrGVeeyjKep+tCtJrIVzeXtniphl0G2TYjUmdSUFVGOO1Ku1v0c+1yIqxVoe8uI/d7PCae3U0wAHPWCoX7G5DILaeW8YpBVqhInugjuXsgIuRPt08xO2AXV3CLM5AKWMfsufz5hIR+gga7sCSofBpYRyR8w6Ov8NdfVVjFix8K1XuAz1R7RCTwtMvI3Ft+HYiICvKbVotx6w8mbI5klpOSc3O76KhcYf6sQS/wu8SDBATFhOzbfoIaS3kaZtDwThKLnjjwDwiE9ivoK2W8p7pCJkB1WVdNkiE4E12q8P+R90Sp984GRGlIdz0uf7EXZIxsSomHh5TarQ==" >> ~/.ssh/known_hosts
+
+          echo "Cloning repository..."
           git clone --depth 1 ssh://git@git.np-dms.work:2222/np-dms/lcbp3.git .
+
+          echo "Fetching and resetting to main..."
           git fetch origin main
           git reset --hard origin/main
+
+          echo "Checkout completed successfully"
 
       # ── [1] pnpm ต้องมาก่อน setup-node เสมอ ────────────────
       - name: ⚙️ Install pnpm
