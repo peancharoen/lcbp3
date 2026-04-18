@@ -1,0 +1,43 @@
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/x-base.yml
+# DMS Container v1.8.6 — Shared anchors (S2)
+# ============================================================
+# วิธีใช้ (Docker Compose V2 `include:`):
+#
+#   # ในไฟล์ docker-compose.yml ของแต่ละ stack
+#   include:
+#     - path: ../x-base.yml
+#
+#   services:
+#     mysvc:
+#       <<: [*restart_policy, *default_logging, *hardening]
+#       image: ...
+#
+# หมายเหตุ:
+#   - ไฟล์นี้ "ไม่มี services" — ใช้เฉพาะเก็บ YAML anchors
+#   - ถ้า Compose version เก่าที่ยังไม่รองรับ `include:` ให้ copy anchors เหล่านี้
+#     ไปไว้ในแต่ละไฟล์โดยตรง (pattern ปัจจุบันของ repo)
+# ============================================================
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+# ค่า hardening มาตรฐานสำหรับ app containers (ADR-016 + M4)
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+# Healthcheck HTTP generic (ใส่ test เอง หรือ override)
+x-healthcheck-http: &healthcheck_http_defaults
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s

@@ -60,8 +60,11 @@ specs/
 │   ├── 03-01-data-dictionary.md
 │   └── 03-06-migration-business-scope.md     # Gap 7: Migration Scope [★ NEW]
 │
-├── 04-Infrastructure-OPS/    # Deployment & Operations (8 docs)
+├── 04-Infrastructure-OPS/    # Deployment & Operations (9 docs)
 │   ├── README.md
+│   ├── 04-00-docker-compose/               # 🔒 Live compose stacks [★ v1.8.9 hardened]
+│   │   ├── SECURITY-MIGRATION-v1.8.6.md    # 27-finding hardening runbook
+│   │   └── README.md                       # Stack overview + secret roadmap
 │   ├── 04-01-docker-compose.md
 │   ├── 04-03-monitoring.md
 │   ├── 04-04-deployment-guide.md
@@ -550,14 +553,16 @@ graph LR
 | ------- | ---------- | ---------- | ----------------------------------------------------------------- |
 | 1.0.0   | 2025-01-15 | John Doe   | Initial version                                                   |
 | 1.1.0   | 2025-02-20 | Jane Smith | Add CC support                                                    |
-| 1.8.7   | 2026-04-14 | Tech Lead  | ADR-021 integration complete (22 ADRs), workflow context features |
-| 1.8.5   | 2026-04-10 | Tech Lead  | ADR registry complete (21 ADRs), spec documentation updates       |
 | 1.8.1   | 2026-03-21 | Tech Lead  | Security hardening, numbering fixes, dependency updates           |
+| 1.8.5   | 2026-04-10 | Tech Lead  | ADR registry complete (21 ADRs), spec documentation updates       |
+| 1.8.7   | 2026-04-14 | Tech Lead  | ADR-021 integration complete (22 ADRs), workflow context features |
+| 1.8.8   | 2026-04-14 | Tech Lead  | Step-specific attachments, IntegratedBanner, WorkflowLifecycle    |
+| 1.8.9   | 2026-04-18 | Tech Lead  | Docker Compose hardening — 27 findings (C1–S4) addressed          |
 
-**Current Version**: 1.8.7
+**Current Version**: 1.8.9
 **Status**: Approved
-**Last Updated**: 2026-04-14
-**Security**: 0 vulnerabilities (backend)
+**Last Updated**: 2026-04-18
+**Security**: 0 vulnerabilities (backend) + Compose stack hardened (27 findings → 0)
 **Workflow Engine**: ADR-021 Integrated Context complete
 ```
 

@@ -1,0 +1,68 @@
+# File: /volume1/np-dms/gitea-runner/docker-compose.yml
+# Deploy on: ASUSTOR AS5403T
+# เชื่อมต่อกับ Gitea บน QNAP ผ่าน Domain URL
+#
+# Setup:
+#   1. cp .env.example .env
+#   2. แก้ค่าใน .env
+#   3. docker compose up -d
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+services:
+  runner:
+    <<: *default_logging
+    image: gitea/act_runner:0.2.11
+    container_name: gitea-runner
+    restart: unless-stopped
+    extra_hosts:
+      - "git.np-dms.work:192.168.10.8"
+    environment:
+      - TZ=Asia/Bangkok
+      - CONFIG_FILE=/config.yaml
+
+      # Gitea connection
+      - GITEA_INSTANCE_URL=${GITEA_INSTANCE_URL}
+      - GITEA_RUNNER_REGISTRATION_TOKEN=${GITEA_RUNNER_REGISTRATION_TOKEN}
+      - GITEA_RUNNER_NAME=${GITEA_RUNNER_NAME:-asustor-runner}
+
+      # Label: ubuntu:22.04 แทน node:18-bullseye
+      #   setup-node จะ install Node version ที่ถูกต้องได้เอง
+      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://ubuntu:22.04,self-hosted:docker://ubuntu:22.04
+
+      # pnpm store path — ชี้ไปที่ volume ด้านล่าง
+      - PNPM_HOME=/root/.local/share/pnpm
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /volume1/np-dms/gitea-runner/data:/data
+
+      # pnpm global store — persist ข้ามทุก run, ไม่ถูกลบตอน Checkout
+      - /volume1/np-dms/gitea-runner/pnpm-store:/root/.local/share/pnpm
+
+      # Node.js tool cache — setup-node ไม่ต้อง download ซ้ำ
+      - /volume1/np-dms/gitea-runner/tool-cache:/opt/hostedtoolcache
+
+      # config
+      - /volume1/np-dms/gitea-runner/data:/data
+      - /volume1/np-dms/gitea-runner/config/config.yaml:/config.yaml
+
+    healthcheck:
+      test: ["CMD", "pgrep", "act_runner"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G

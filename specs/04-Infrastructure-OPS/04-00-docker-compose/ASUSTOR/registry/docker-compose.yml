@@ -1,0 +1,104 @@
+# File: /volume1/np-dms/registry/docker-compose.yml
+# DMS Container v1.8.6: Application name: lcbp3-registry
+# Deploy on: ASUSTOR AS5403T
+# Services: registry, portainer
+# ============================================================
+# ⚠️  ข้อกำหนด:
+#     - ต้องสร้าง Docker Network ก่อน: docker network create lcbp3
+#     - Registry ใช้ Port 5000 (domain: registry.np-dms.work)
+#     - Portainer ใช้ Port 9443 (domain: portainer.np-dms.work)
+# ============================================================
+# 🔒 SECURITY (M6):
+#   Registry เปิด htpasswd auth (ADR-016)
+#   Prerequisite (ทำครั้งเดียวก่อน deploy):
+#     docker run --rm --entrypoint htpasswd httpd:2 -Bbn \
+#       "$REGISTRY_ADMIN_USER" "$REGISTRY_ADMIN_PASSWORD" \
+#       > /volume1/np-dms/registry/auth/htpasswd
+#   Env (.env): REGISTRY_ADMIN_USER, REGISTRY_ADMIN_PASSWORD
+# ============================================================
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+networks:
+  lcbp3:
+    external: true
+
+services:
+  # 1. ตัวเก็บ Image (Docker Registry)
+  registry:
+    <<: [*restart_policy, *default_logging]
+    image: registry:2
+    container_name: registry
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    env_file:
+      - .env
+    environment:
+      TZ: 'Asia/Bangkok'
+      # --- Storage ---
+      REGISTRY_STORAGE_DELETE_ENABLED: 'true'
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      # --- M6: htpasswd auth ---
+      REGISTRY_AUTH: 'htpasswd'
+      REGISTRY_AUTH_HTPASSWD_REALM: 'NP-DMS Registry'
+      REGISTRY_AUTH_HTPASSWD_PATH: '/auth/htpasswd'
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - '5000:5000'
+    volumes:
+      - '/volume1/np-dms/registry/data:/var/lib/registry'
+      - '/volume1/np-dms/registry/auth:/auth:ro'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:5000/v2/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - lcbp3
+
+  # 2. UI สำหรับส่องดู Image
+  registry-ui:
+    <<: [*restart_policy, *default_logging]
+    image: joxit/docker-registry-ui:2.5.7
+    container_name: registry-ui
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - '8880:80'
+    environment:
+      TZ: 'Asia/Bangkok'
+      REGISTRY_TITLE: 'NP-DMS Registry'
+      REGISTRY_URL: 'http://registry:5000'
+      SINGLE_REGISTRY: 'true'
+      DELETE_IMAGES: 'true'
+    depends_on:
+      registry:
+        condition: service_healthy
+    networks:
+      - lcbp3
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:80/']
+      interval: 30s
+      timeout: 10s
+      retries: 3

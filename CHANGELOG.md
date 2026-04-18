@@ -1,5 +1,91 @@
 # Version History
 
+## 1.8.9 (2026-04-18)
+
+### chore(infra): Docker Compose security hardening — 27 findings (C1–S4) addressed
+
+#### Summary
+
+Full security audit and hardening of the production Docker Compose stacks on QNAP and ASUSTOR. 27 findings resolved across 4 phases (Critical / High / Medium / Low + Suggestions), 11 compose files modified, 12 new files created, **zero secrets remain committed**. See `specs/04-Infrastructure-OPS/04-00-docker-compose/SECURITY-MIGRATION-v1.8.6.md` for the complete runbook.
+
+#### **Phase 1 — Critical (C1–C6) + H6**
+
+- **C1**: Extracted all secrets from `.env.template` and inline `environment:` blocks → `env_file: .env` + `${VAR:?...}` substitution with `CHANGE_ME_*` placeholders
+- **C2**: Split `JWT_SECRET` (backend-only) from `AUTH_SECRET` (Next.js NextAuth) — no more identical values
+- **C3**: Redis enforced `--requirepass $REDIS_PASSWORD` on the server (not just client env)
+- **C4**: Elasticsearch bound to internal `lcbp3` network only, removed LAN `ports:` exposure
+- **C5**: MariaDB root and app user split; host loopback bind; `MARIADB_RANDOM_ROOT_PASSWORD` fallback documented
+- **C6**: ClamAV service added upstream of backend file uploads (ADR-016)
+- **H6**: Renamed deprecated `QNAP/service/docker-compse.yml` → `docker-compose.yml`
+
+#### **Phase 2 — High (H1–H5, H7)**
+
+- **H1**: Backend-only env verified (no `JWT_REFRESH_SECRET` leakage to frontend)
+- **H2**: n8n + n8n-db secrets moved to `${N8N_DB_PASSWORD}` / `${N8N_ENCRYPTION_KEY}`
+- **H3**: Removed `/var/run/docker.sock` mount on n8n; added `tecnativa/docker-socket-proxy` (read-only `CONTAINERS/IMAGES/INFO/VERSION` only); n8n uses `DOCKER_HOST=tcp://docker-socket-proxy:2375`
+- **H4**: ASUSTOR cAdvisor port mapping corrected to `8088:8080`
+- **H5**: QNAP exporters use `expose:` only (no host ports); resource limits + healthchecks applied
+- **H7**: All `:latest` tags pinned to verified semver: `gitea:1.22.3-rootless`, `n8n:1.66.0`, `tika:2.9.2.1-full`, `postgres:16.4-alpine`, `mongo:7.0.14`, `rocket.chat:6.10.5`, `nginx-proxy-manager:2.11.3`, `registry-ui:2.5.7`, `act_runner:0.2.11`, `node-exporter:v1.8.2`, `cadvisor:v0.49.1`; app images templated `${BACKEND_IMAGE_TAG:-latest}` / `${FRONTEND_IMAGE_TAG:-latest}` for CI
+
+#### **Phase 3 — Medium (M1–M9)**
+
+- **M1**: Removed obsolete `version:` keys from remaining compose files
+- **M2**: Healthchecks added to `mongodb` (authed mongosh ping), `rocketchat` (`/api/info`), `tika` (`/tika`), `landing`, `registry-ui`, `npm`, `gitea`, `docker-socket-proxy`
+- **M3**: Resource `reservations` + `limits` filled in on all services
+- **M4**: Backend / Frontend / ClamAV hardened — `security_opt: [no-new-privileges:true]`, `cap_drop: [ALL]`, `read_only: true` + `tmpfs`, non-root `user:` (`node` / `nextjs`)
+- **M5**: Elasticsearch `ulimits.memlock: -1` verified (Phase 1)
+- **M6**: Docker Registry enforces `REGISTRY_AUTH=htpasswd` with mounted `/auth/htpasswd`
+- **M7**: phpMyAdmin host port `89:80` removed → `expose: 80` only (access via NPM)
+- **M8**: MongoDB runs with `--auth --keyFile=/etc/mongo/keyfile`; `mongo-init-replica` creates root + limited `rocketchat` user; RocketChat uses authenticated `MONGO_URL` / `MONGO_OPLOG_URL`
+- **M9**: `x-restart` / `x-logging` anchors applied uniformly
+
+#### **Phase 4 — Low + Suggestions (L1–L5 + S1–S4)**
+
+- **L1**: Removed `stdin_open: true` + `tty: true` from all production services
+- **L2**: Filename strategy documented; existing `docker-compose-*.yml` names kept to not break ops scripts
+- **L3**: Stale `v1_7_0` / `v1_8_0` version markers bumped to `v1.8.6` (stack-internal)
+- **L4**: Trimmed ~50 lines of legacy ACL/ops comments from `npm` and `gitea` compose files
+- **L5**: Documented promtail `user: '0:0'` requirement (reads `/var/lib/docker/containers` read-only)
+- **S1**: Secret-manager roadmap added (Docker Swarm secrets → Infisical/Vault → SOPS)
+- **S2**: Created `x-base.yml` with shared YAML anchors for Compose V2.20+ `include:`
+- **S3**: Per-stack `.env.example` created for 9 stacks (app, service, mariadb, npm, n8n, gitea, rocketchat, ASUSTOR monitoring, ASUSTOR registry)
+- **S4**: ClamAV scan service already delivered in C6 ✓
+
+#### **New Documentation**
+
+- `specs/04-Infrastructure-OPS/04-00-docker-compose/README.md` — stack overview + secret roadmap
+- `specs/04-Infrastructure-OPS/04-00-docker-compose/SECURITY-MIGRATION-v1.8.6.md` — full migration runbook (Phase 1–4 verification checklists, MongoDB keyfile + Registry htpasswd ops steps, breaking-change notices)
+- `specs/04-Infrastructure-OPS/04-00-docker-compose/x-base.yml` — shared anchors
+
+#### **Ops Actions Required (Post-Merge)**
+
+1. **Rotate** every secret that ever appeared in git history (JWT, DB, Redis, Grafana, n8n, Mongo, Registry)
+2. Populate per-stack `.env` files on QNAP/ASUSTOR from the new `.env.example` + root `.env.template`
+3. Generate MongoDB keyfile: `openssl rand -base64 756 > /share/np-dms/rocketchat/mongo-keyfile && chmod 400 && chown 999:999`
+4. Generate Registry htpasswd: `docker run --rm --entrypoint htpasswd httpd:2 -Bbn $USER $PASS > /volume1/np-dms/registry/auth/htpasswd`
+5. `ALTER USER 'n8n'@'%' IDENTIFIED BY '<new>';` in MariaDB before recreating n8n-db container
+6. Update CI pipelines to pass `BACKEND_IMAGE_TAG=$GITHUB_SHA` / `FRONTEND_IMAGE_TAG=$GITHUB_SHA`
+7. Verify backend/frontend work under `read_only: true` (tmpfs covers `/tmp`, `/app/.next/cache`)
+
+#### **Breaking Changes**
+
+- **MongoDB**: requires keyfile + data migration (`mongodump` → wipe → `mongorestore` with new auth) before restart
+- **Frontend `read_only`**: Next.js image must not write outside `/tmp` or `/app/.next/cache`
+- **Backend `user: node`**: image must have `node` user with write access to `/app/logs`
+- **Registry auth**: existing CI runners need new credentials; pushes fail with 401 otherwise
+- **phpMyAdmin**: direct-port `:89` users must switch to `https://pma.np-dms.work` via NPM
+
+#### **Files Modified**
+
+`QNAP/app/docker-compose-app.yml`, `QNAP/mariadb/docker-compose-lcbp3-db.yml`, `QNAP/service/docker-compose.yml`, `QNAP/npm/docker-compose.yml`, `QNAP/gitea/docker-compose.yml`, `QNAP/n8n/docker-compose.yml`, `QNAP/rocketchat/docker-compose.yml`, `QNAP/monitoring/docker-compose.yml`, `ASUSTOR/registry/docker-compose.yml`, `ASUSTOR/gitea-runner/docker-compose.yml`, `ASUSTOR/monitoring/docker-compose.yml`
+
+#### **Root/Docs Updates**
+
+- `README.md` — version badge 1.8.9, added "Infrastructure" row + Roadmap entry
+- `CONTRIBUTING.md` — version history table + compose folder entry
+- `specs/README.md` — version bump, added Infra Hardening to Critical Files table
+- `specs/04-Infrastructure-OPS/README.md` — refreshed with hardened stack layout + new Guiding Principles (§5 Secret Hygiene, §6 Container Hardening)
+
 ## 1.8.8 (2026-04-14)
 
 ### feat(workflow): ADR-021 Integrated Workflow Context & Step-specific Attachments

@@ -1,0 +1,106 @@
+# File: /share/np-dms/npm/docker-compose.yml
+# DMS Container v1.8.6 — Application: lcbp3-npm, Service: npm + landing
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+name: lcbp3-npm
+services:
+  npm:
+    <<: [*restart_policy, *default_logging]
+    image: jc21/nginx-proxy-manager:2.11.3
+    container_name: npm
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - '80:80' # HTTP
+      - '443:443' # HTTPS
+      - '81:81' # NPM Admin UI
+    env_file:
+      - .env
+    environment:
+      TZ: 'Asia/Bangkok'
+      DB_MYSQL_HOST: 'mariadb'
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: 'npm'
+      # ⚠️ ADR-016: ห้ามใช้รหัสง่าย ๆ เช่น 'npm' — ตั้งใน .env (NPM_DB_PASSWORD)
+      DB_MYSQL_PASSWORD: ${NPM_DB_PASSWORD:?NPM_DB_PASSWORD required}
+      DB_MYSQL_NAME: 'npm'
+      # Uncomment this if IPv6 is not enabled on your host
+      DISABLE_IPV6: 'true'
+    networks:
+      - lcbp3
+      - giteanet
+    volumes:
+      - '/share/np-dms/npm/data:/data'
+      - '/share/dms-data/logs/npm:/data/logs'
+      - '/share/np-dms/npm/letsencrypt:/etc/letsencrypt'
+      - '/share/np-dms/npm/custom:/data/nginx/custom'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:81/api/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  landing:
+    <<: [*restart_policy, *default_logging]
+    image: nginx:1.27-alpine
+    container_name: landing
+    user: '0:0'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - '/share/np-dms/npm/landing:/usr/share/nginx/html:ro'
+    networks:
+      - lcbp3
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+networks:
+  lcbp3:
+    external: true
+  giteanet:
+    external: true
+    name: gitnet
+
+# docker exec -it npm id
+# chown -R 0:0 /share/Container/npm
+# setfacl -R -m u:0:rwx /share/Container/npm
+#  :Email: admin@example.com Password: changeme
+
+# Note: Configurations
+# Domain Names        | Forward Hostname | IP Forward Port | Cache Assets | Block Common Exploits | Websockets | Force SSL | HTTP/2 | SupportHSTS Enabled |
+# backend.np-dms.work | backend          |      3000       |     [ ]      |          [x]          |    [ ]     |    [x]    |  [x]   |        [ ]          |
+# lcbp3.np-dms.work   | frontend         |      3000       |     [x]      |          [x]          |    [x]     |    [x]    |  [x]   |        [ ]          |
+# db.np-dms.work      | mariadb          |      3306       |     [x]      |          [x]          |    [x]     |    [x]    |  [x]   |        [ ]          |
+# git.np-dms.work     | gitea            |      3000       |     [x]      |          [x]          |    [x]     |    [x]    |  [x]   |        [ ]          |
+# n8n.np-dms.work     | n8n              |      5678       |     [x]      |          [x]          |    [x]     |    [x]    |  [x]   |        [ ]          |
+# npm.np-dms.work     | npm              |       81        |     [ ]      |          [x]          |    [x]     |    [x]    |  [x]   |        [ ]          |
+# pma.np-dms.work     | pma              |       80        |     [x]      |          [x]          |    [ ]     |    [x]    |  [x]   |        [ ]          |
+# np-dms.work,        | landing          |       80        |     [x]      |          [x]          |    [ ]     |    [x]    |  [x]   |        [ ]          |
+# www.np-dms.work     | landing          |       80        |     [x]      |          [x]          |    [ ]     |    [x]    |  [x]   |        [ ]          |
+
+# L4: runbook details  ertain ops (folder permissions, DB bootstrap)  moved to:
+# specs/04-Infrastructure-OPS/04-08-release-management-policy.md
+# Initial admin: admin@example.com / changeme ( )เปลี่ยนทันทีหลัง onboarding)

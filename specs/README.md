@@ -1,9 +1,9 @@
 # 📚 LCBP3-DMS Specifications Directory
 
-**Version:** 1.8.1 (Patch)
-**Last Updated:** 2026-03-19
+**Version:** 1.8.9 (Infrastructure Hardening)
+**Last Updated:** 2026-04-18
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
-**Status:** ✅ UAT Ready — 10/10 Documentation Gaps Closed
+**Status:** ✅ UAT Ready — 10/10 Documentation Gaps Closed • 🔒 Compose Stack Hardened (27 findings → 0)
 
 ---
 
@@ -11,7 +11,7 @@
 
 ---
 
-## 📂 Directory Structure (v1.8.1)
+## 📂 Directory Structure (v1.8.9)
 
 ```text
 specs/
@@ -56,7 +56,11 @@ specs/
 │   └── README.md                # ภาพรวม Data Strategy
 │
 ├── 04-Infrastructure-OPS/       # โครงสร้างพื้นฐานและการปฏิบัติการ
-│   ├── 04-00-docker-compose/    # Docker compose source files
+│   ├── 04-00-docker-compose/    # 🔒 Live compose stacks (QNAP + ASUSTOR) — v1.8.9 hardened
+│   │   ├── SECURITY-MIGRATION-v1.8.6.md  # Full 27-finding hardening runbook
+│   │   ├── README.md                     # Stack overview + secret roadmap
+│   │   ├── x-base.yml                    # Shared YAML anchors
+│   │   └── .env.template                 # Master env template
 │   ├── 04-01-docker-compose.md  # DEV/PROD Docker configuration
 │   ├── 04-02-backup-recovery.md # Disaster Recovery & DB Backup
 │   ├── 04-03-monitoring.md      # KPI, Audit Logging, Grafana/Prometheus
@@ -122,6 +126,7 @@ specs/
 | **Migration Scope**  | `03-Data-and-Storage/03-06-migration-business-scope.md`     | งาน Migration Bot                   |
 | **Release Policy**   | `04-Infrastructure-OPS/04-08-release-management-policy.md`  | ก่อน Deploy / Hotfix                |
 | **UAT Criteria**     | `01-Requirements/01-05-acceptance-criteria.md`              | ตรวจความสมบูรณ์ Feature             |
+| **Infra Hardening**  | `04-Infrastructure-OPS/04-00-docker-compose/SECURITY-MIGRATION-v1.8.6.md` | Compose security runbook (v1.8.9) |
 | **ADR-009**          | `06-Decision-Records/ADR-009-db-strategy.md`                | Schema Change Process               |
 | **ADR-018**          | `06-Decision-Records/ADR-018-ai-boundary.md`                | AI/Ollama Integration Rules         |
 | **ADR-019**          | `06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | Hybrid ID Strategy (INT + UUIDv7)   |

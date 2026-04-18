@@ -1,0 +1,180 @@
+# File: /share/np-dms/rocketchat/docker-compose.yml
+# DMS Container v1.8.6 — RocketChat + MongoDB
+# ============================================================
+# 🔒 SECURITY (M8):
+#   MongoDB รันแบบ replica set + auth
+#   Prerequisite (ทำครั้งเดียวก่อน deploy):
+#     openssl rand -base64 756 > /share/np-dms/rocketchat/mongo-keyfile
+#     chmod 400 /share/np-dms/rocketchat/mongo-keyfile
+#     chown 999:999 /share/np-dms/rocketchat/mongo-keyfile
+#   Env (.env):
+#     MONGO_ROOT_USERNAME, MONGO_ROOT_PASSWORD,
+#     MONGO_RC_USERNAME,   MONGO_RC_PASSWORD
+# ============================================================
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+services:
+  mongodb:
+    <<: [*restart_policy, *default_logging]
+    image: docker.io/library/mongo:7.0.14
+    container_name: mongodb
+    # M8: เปิด --auth + keyFile สำหรับ replica set internal auth
+    command:
+      - 'mongod'
+      - '--oplogSize=128'
+      - '--replSet=rs0'
+      - '--bind_ip_all'
+      - '--auth'
+      - '--keyFile=/etc/mongo/keyfile'
+    env_file:
+      - .env
+    environment:
+      TZ: 'Asia/Bangkok'
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME required}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD required}
+    volumes:
+      - /share/np-dms/rocketchat/data/db:/data/db
+      - /share/np-dms/rocketchat/data/dump:/dump
+      - /share/np-dms/rocketchat/mongo-keyfile:/etc/mongo/keyfile:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - lcbp3
+    expose:
+      - '27017'
+    # M2: healthcheck via mongosh (authenticated)
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mongosh --quiet -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand(\"ping\").ok" | grep -q 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Service สำหรับ Init Replica Set + สร้าง RocketChat user (รันแล้วจบ)
+  mongo-init-replica:
+    image: docker.io/library/mongo:7.0.14
+    container_name: mongo-init-replica
+    restart: 'no'
+    <<: *default_logging
+    env_file:
+      - .env
+    environment:
+      TZ: 'Asia/Bangkok'
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    entrypoint:
+      - bash
+      - -c
+      - |
+        set -e
+        echo "Waiting for mongodb..."
+        until mongosh --host mongodb \
+          -u "$$MONGO_ROOT_USERNAME" -p "$$MONGO_ROOT_PASSWORD" \
+          --authenticationDatabase admin --quiet \
+          --eval "db.adminCommand('ping')"; do
+          sleep 2
+        done
+
+        mongosh --host mongodb \
+          -u "$$MONGO_ROOT_USERNAME" -p "$$MONGO_ROOT_PASSWORD" \
+          --authenticationDatabase admin --quiet --eval '
+            try { rs.status() } catch (e) {
+              rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongodb:27017" }] });
+            }'
+
+        # สร้าง user rocketchat ถ้ายังไม่มี
+        mongosh --host mongodb \
+          -u "$$MONGO_ROOT_USERNAME" -p "$$MONGO_ROOT_PASSWORD" \
+          --authenticationDatabase admin --quiet --eval '
+            const u = db.getSiblingDB("rocketchat").getUser("'"$$MONGO_RC_USERNAME"'");
+            if (!u) {
+              db.getSiblingDB("rocketchat").createUser({
+                user: "'"$$MONGO_RC_USERNAME"'",
+                pwd:  "'"$$MONGO_RC_PASSWORD"'",
+                roles: [
+                  { role: "readWrite", db: "rocketchat" },
+                  { role: "read",      db: "local" }
+                ]
+              });
+            }'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - lcbp3
+
+  rocketchat:
+    <<: [*restart_policy, *default_logging]
+    image: registry.rocket.chat/rocketchat/rocket.chat:6.10.5
+    container_name: rocketchat
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Bangkok
+      - PORT=3000
+      - ROOT_URL=https://chat.np-dms.work
+      # M8: ใช้ authenticated URL
+      - MONGO_URL=mongodb://${MONGO_RC_USERNAME}:${MONGO_RC_PASSWORD}@mongodb:27017/rocketchat?replicaSet=rs0&authSource=rocketchat
+      - MONGO_OPLOG_URL=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/local?replicaSet=rs0&authSource=admin
+      - DEPLOY_METHOD=docker
+      - ACCOUNTS_AVATAR_STORE_PATH=/app/uploads
+    volumes:
+      - /share/np-dms/rocketchat/uploads:/app/uploads
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    depends_on:
+      mongo-init-replica:
+        condition: service_completed_successfully
+    networks:
+      - lcbp3
+    expose:
+      - '3000'
+    # M2: healthcheck
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -sf http://localhost:3000/api/info | grep -q ''"success":true'' || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+networks:
+  lcbp3:
+    external: true

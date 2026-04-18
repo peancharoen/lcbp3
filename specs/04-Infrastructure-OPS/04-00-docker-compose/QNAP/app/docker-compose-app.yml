@@ -1,5 +1,5 @@
 # File: /share/np-dms/app/docker-compose-app.yml
-# DMS Container v1.8.0: Application Stack (Backend + Frontend)
+# DMS Container v1.8.6: Application Stack (Backend + Frontend)
 # Application name: lcbp3-app
 # ============================================================
 # ⚠️  ใช้งานร่วมกับ services อื่นที่รันอยู่แล้วบน QNAP:
@@ -9,8 +9,12 @@
 #     - search  (services)
 #     - npm     (lcbp3-npm)
 # ============================================================
-# 🔒 SECURITY: Secrets ใส่ตรงใน environment section เพราะ QNAP Container Station
-#              ไม่รองรับ .env file — Repo ต้องเป็น Private เท่านั้น
+# 🔒 SECURITY (ADR-016, Tier-1):
+#   - ห้าม commit ค่า secret จริงในไฟล์นี้
+#   - ใช้ .env (gitignored) คู่กับ compose:
+#       docker compose --env-file .env -f docker-compose-app.yml up -d
+#   - QNAP Container Station 3.x รองรับ env_file แล้ว
+#   - JWT_SECRET (backend) ต้องคนละค่ากับ AUTH_SECRET (frontend NextAuth)
 # ============================================================
 
 name: lcbp3
@@ -36,10 +40,18 @@ services:
   # ----------------------------------------------------------------
   backend:
     <<: [*restart_policy, *default_logging]
-    image: lcbp3-backend:latest
+    image: lcbp3-backend:${BACKEND_IMAGE_TAG:-latest}
     container_name: backend
-    stdin_open: true
-    tty: true
+    # M4: container hardening
+    user: 'node'
+    # L1: stdin_open/tty removed — production services ไม่ต้องใช้ interactive TTY
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     deploy:
       resources:
         limits:
@@ -48,6 +60,8 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
+    env_file:
+      - .env
     environment:
       TZ: 'Asia/Bangkok'
       NODE_ENV: 'production'
@@ -56,18 +70,23 @@ services:
       DB_PORT: '3306'
       DB_DATABASE: 'lcbp3'
       DB_USERNAME: 'center'
-      DB_PASSWORD: 'Center#2025'
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required}
       # --- Redis ---
       REDIS_HOST: 'cache'
       REDIS_PORT: '6379'
-      REDIS_PASSWORD: 'Center2025'
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD required}
       # --- Elasticsearch ---
       ELASTICSEARCH_HOST: 'search'
       ELASTICSEARCH_PORT: '9200'
-      # --- JWT ---
-      JWT_SECRET: 'eebc122aa65adde8c76c6a0847d9649b2b67a06db1504693e6c912e51499b76e'
+      ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-elastic}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD required}
+      # --- JWT (backend only) ---
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required}
       JWT_EXPIRATION: '8h'
-      JWT_REFRESH_SECRET: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2'
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET required}
+      # --- ClamAV (ADR-016 file upload scan) ---
+      CLAMAV_HOST: 'clamav'
+      CLAMAV_PORT: '3310'
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'
@@ -91,6 +110,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    depends_on:
+      clamav:
+        condition: service_healthy
 
   # ----------------------------------------------------------------
   # 2. Frontend Web App (Next.js)
@@ -98,10 +120,19 @@ services:
   # ----------------------------------------------------------------
   frontend:
     <<: [*restart_policy, *default_logging]
-    image: lcbp3-frontend:latest
+    image: lcbp3-frontend:${FRONTEND_IMAGE_TAG:-latest}
     container_name: frontend
-    stdin_open: true
-    tty: true
+    # M4: container hardening (Next.js standalone runs as 'nextjs' user by default)
+    user: 'nextjs'
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+      - /app/.next/cache:rw,size=256m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # L1: stdin_open/tty removed
     deploy:
       resources:
         limits:
@@ -110,6 +141,8 @@ services:
         reservations:
           cpus: '0.25'
           memory: 512M
+    env_file:
+      - .env
     environment:
       TZ: 'Asia/Bangkok'
       NODE_ENV: 'production'
@@ -117,8 +150,8 @@ services:
       PORT: '3000'
       # --- API Backend URL ---
       NEXT_PUBLIC_API_URL: 'https://backend.np-dms.work/api'
-      # --- NextAuth ---
-      AUTH_SECRET: 'eebc122aa65adde8c76c6a0847d9649b2b67a06db1504693e6c912e51499b76e'
+      # --- NextAuth (ห้ามใช้ค่าเดียวกับ JWT_SECRET) ---
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET required}
       AUTH_URL: 'https://lcbp3.np-dms.work'
       AUTH_TRUST_HOST: 'true'
       INTERNAL_API_URL: 'http://backend:3000/api'
@@ -133,3 +166,45 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+  # ----------------------------------------------------------------
+  # 3. ClamAV (Antivirus scanning for file uploads — ADR-016)
+  # Service Name: clamav (Backend อ้างอิง CLAMAV_HOST=clamav, port 3310)
+  # ----------------------------------------------------------------
+  clamav:
+    <<: [*restart_policy, *default_logging]
+    image: clamav/clamav:1.3
+    container_name: clamav
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 1G
+    environment:
+      TZ: 'Asia/Bangkok'
+      CLAMAV_NO_FRESHCLAMD: 'false'
+      CLAMAV_NO_CLAMD: 'false'
+      CLAMD_STARTUP_TIMEOUT: '1800'
+    networks:
+      - lcbp3
+    volumes:
+      # cache definitions เพื่อไม่ต้อง download ทุกครั้งที่ restart
+      - '/share/np-dms/clamav/data:/var/lib/clamav'
+      - '/share/np-dms/data/logs/clamav:/var/log/clamav'
+    healthcheck:
+      test: ['CMD', 'clamdcheck.sh']
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 300s

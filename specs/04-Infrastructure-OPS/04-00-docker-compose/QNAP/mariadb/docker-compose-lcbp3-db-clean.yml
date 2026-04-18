@@ -1,0 +1,97 @@
+# File: /share/np-dms/mariadb/docker-compose-lcbp3-db.yml
+# DMS Container v1.8.6 : Application name: lcbp3-db, Service: mariadb, pma
+# ============================================================
+# SECURITY (ADR-016, Tier-1):
+#   - root user / app user must use different passwords (least privilege)
+#   - host port 3306 bind only to 127.0.0.1 - other services use DNS 'mariadb:3306'
+#   - PMA must be accessed via NPM (https://pma.np-dms.work) only
+#   - set .env in same folder:
+#     DB_ROOT_PASSWORD, DB_PASSWORD, NPM_DB_PASSWORD, GITEA_DB_PASSWORD, N8N_DB_PASSWORD
+# ============================================================
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+name: lcbp3-db
+
+services:
+  mariadb:
+    <<: [*restart_policy, *default_logging]
+    image: mariadb:11.8
+    container_name: mariadb
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    command: >-
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+    env_file:
+      - .env
+    environment:
+      # root password must differ from app user (least privilege)
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD required}
+      MARIADB_DATABASE: 'lcbp3'
+      MARIADB_USER: 'center'
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required}
+      TZ: 'Asia/Bangkok'
+    # bind only to loopback for backup/migration on host - not exposed to LAN
+    ports:
+      - '127.0.0.1:3306:3306'
+    networks:
+      - lcbp3
+    volumes:
+      - '/share/np-dms/mariadb/data:/var/lib/mysql'
+      - '/share/np-dms/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf:ro'
+      - '/share/np-dms/mariadb/init:/docker-entrypoint-initdb.d:ro'
+      - '/share/dms-data/mariadb/backup:/backup'
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  pma:
+    <<: [*restart_policy, *default_logging]
+    image: phpmyadmin:5-apache
+    container_name: pma
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+    environment:
+      TZ: 'Asia/Bangkok'
+      PMA_HOST: 'mariadb'
+      PMA_PORT: '3306'
+      PMA_ABSOLUTE_URI: 'https://pma.np-dms.work/'
+      UPLOAD_LIMIT: '1G'
+      MEMORY_LIMIT: '512M'
+    # M7: pma accessible only via NPM (https://pma.np-dms.work) - do not publish port 89 to LAN
+    expose:
+      - '80'
+    networks:
+      - lcbp3
+    volumes:
+      - '/share/np-dms/pma/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro'
+      - '/share/np-dms/pma/zzz-custom.ini:/usr/local/etc/php/conf.d/zzz-custom.ini:ro'
+      - '/share/np-dms/pma/tmp:/var/lib/phpmyadmin/tmp:rw'
+      - '/share/dms-data/logs/pma:/var/log/apache2'
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+networks:
+  lcbp3:
+    external: true

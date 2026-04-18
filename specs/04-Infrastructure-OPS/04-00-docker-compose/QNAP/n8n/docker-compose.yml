@@ -1,5 +1,11 @@
-# File: share/np-dms/n8n/docker-compose-lcbp3-n8n.yml
-# DMS Container v1_8_0 แยก service และ folder, Application name:n8n service n8n
+# File: /share/np-dms/n8n/docker-compose.yml
+# DMS Container v1.8.6 — Application: n8n
+# ============================================================
+# 🔒 SECURITY:
+#   - secrets อยู่ใน .env (gitignored) — หลีกปัญหาการตีความหมาย `$` ใน YAML
+#   - n8n ไม่ได้ mount /var/run/docker.sock โดยตรง (H3)
+#     ใช้ docker-socket-proxy จำกัด capability — read-only Containers/Images API
+# ============================================================
 x-restart: &restart_policy
   restart: unless-stopped
 
@@ -12,11 +18,13 @@ x-logging: &default_logging
 services:
   n8n-db:
     <<: [*restart_policy, *default_logging]
-    image: postgres:16-alpine
+    image: postgres:16.4-alpine
     container_name: n8n-db
+    env_file:
+      - .env
     environment:
       - POSTGRES_USER=n8n
-      - POSTGRES_PASSWORD=Np721220$
+      - POSTGRES_PASSWORD=${N8N_DB_PASSWORD:?N8N_DB_PASSWORD required}
       - POSTGRES_DB=n8n
     volumes:
       - '/share/np-dms/n8n/postgres-data:/var/lib/postgresql/data'
@@ -28,30 +36,88 @@ services:
       timeout: 5s
       retries: 5
 
+  # ----------------------------------------------------------------
+  # Docker Socket Proxy (H3) — ให้เฉพาะ read-only Containers/Images API
+  # n8n ต้องตั้ง DOCKER_HOST=tcp://docker-socket-proxy:2375 (ถ้าใช้ docker node)
+  # ----------------------------------------------------------------
+  docker-socket-proxy:
+    <<: [*restart_policy, *default_logging]
+    image: tecnativa/docker-socket-proxy:0.2
+    container_name: docker-socket-proxy
+    environment:
+      TZ: 'Asia/Bangkok'
+      # เปิดเฉพาะ endpoint ที่ n8n จำเป็นต้องใช้
+      CONTAINERS: '1'
+      IMAGES: '1'
+      INFO: '1'
+      VERSION: '1'
+      # ปิดหมดที่อันตราย ซึ่งเป็นค่า default ของ image
+      POST: '0'
+      DELETE: '0'
+      EXEC: '0'
+      VOLUMES: '0'
+      NETWORKS: '0'
+      SERVICES: '0'
+      TASKS: '0'
+      SWARM: '0'
+      SYSTEM: '0'
+      AUTH: '0'
+      SECRETS: '0'
+      NODES: '0'
+      CONFIGS: '0'
+      DISTRIBUTION: '0'
+      PLUGINS: '0'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      lcbp3: {}
+    expose:
+      - '2375'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:2375/version || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   tika:
     <<: [*restart_policy, *default_logging]
-    image: apache/tika:latest-full
+    image: apache/tika:2.9.2.1-full
     container_name: tika
     user: 'root'
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
     environment:
-      - TESSDATA_PREFIX=/tessdata
+      TZ: 'Asia/Bangkok'
+      TESSDATA_PREFIX: '/tessdata'
     volumes:
       - /share/np-dms/n8n/tessdata:/tessdata
     networks:
       lcbp3: {}
     expose:
       - '9998'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:9998/tika || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   n8n:
     <<: [*restart_policy, *default_logging]
-    image: n8nio/n8n:latest
-    # build:
-    #   context: ./n8n-custom
+    image: n8nio/n8n:1.66.0
     container_name: n8n
-    stdin_open: true
-    tty: true
     depends_on:
       n8n-db:
+        condition: service_healthy
+      docker-socket-proxy:
         condition: service_healthy
     deploy:
       resources:
@@ -61,6 +127,8 @@ services:
         reservations:
           cpus: '0.25'
           memory: 512M
+    env_file:
+      - .env
     environment:
       TZ: 'Asia/Bangkok'
       NODE_ENV: 'production'
@@ -74,22 +142,23 @@ services:
       N8N_PROXY_HOPS: '1'
       N8N_DIAGNOSTICS_ENABLED: 'false'
       N8N_SECURE_COOKIE: 'true'
-      N8N_ENCRYPTION_KEY: '9AAIB7Da9DW1qAhJE5/Bz4SnbQjeAngI'
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY required}
       # File access control for "Read/Write Files from Disk" nodes
       # Ref: https://github.com/n8n-io/n8n/blob/master/packages/@n8n/config/src/configs/security.config.ts
-      # Default is "~/.n8n-files". Separate multiple dirs with semicolon (;)
       N8N_RESTRICT_FILE_ACCESS_TO: '/home/node/.n8n-files'
       N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: 'false'
       GENERIC_TIMEZONE: 'Asia/Bangkok'
       NODE_FUNCTION_ALLOW_BUILTIN: '*'
       NODES_EXCLUDE: '[]'
+      # H3: ใช้ socket proxy แทนการผูก docker.sock โดยตรง
+      DOCKER_HOST: 'tcp://docker-socket-proxy:2375'
       # DB Setup
       DB_TYPE: postgresdb
       DB_POSTGRESDB_DATABASE: n8n
       DB_POSTGRESDB_HOST: n8n-db
       DB_POSTGRESDB_PORT: 5432
       DB_POSTGRESDB_USER: n8n
-      DB_POSTGRESDB_PASSWORD: Np721220$
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD:?N8N_DB_PASSWORD required}
       # Data Prune
       EXECUTIONS_DATA_PRUNE: 'true'
       EXECUTIONS_DATA_MAX_AGE: 168
@@ -104,7 +173,7 @@ services:
       - '/share/np-dms/n8n/cache:/home/node/.cache'
       - '/share/np-dms/n8n/scripts:/scripts'
       - '/share/np-dms/n8n/data:/data'
-      - '/var/run/docker.sock:/var/run/docker.sock'
+      # H3: ลบ docker.sock direct mount — ใช้ docker-socket-proxy แทน
       # read-only: อ่านไฟล์ PDF ต้นฉบับเท่านั้น
       - '/share/np-dms-as/Legacy:/home/node/.n8n-files/staging_ai:ro' # Add alias for np-dms-as to match the node setting
       # read-write: เขียน Log และ CSV ทั้งหมด

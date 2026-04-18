@@ -1,6 +1,16 @@
-# File: share/np-dms/git/docker-compose-lcbp3-git.yml
-# DMS Container v1_8_0 : แยก service และ folder
-# Application name: git, Servive:gitea
+# File: /share/np-dms/git/docker-compose.yml
+# DMS Container v1.8.6 — Application: git, Service: gitea
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+name: lcbp3-gitea
 networks:
   lcbp3:
     external: true
@@ -10,11 +20,21 @@ networks:
 
 services:
   gitea:
-    image: gitea/gitea:latest-rootless
+    <<: [*restart_policy, *default_logging]
+    image: gitea/gitea:1.22.3-rootless
     container_name: gitea
-    restart: always
-    stdin_open: true
-    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - .env
     environment:
       # ---- File ownership in QNAP ----
       USER_UID: '1000'
@@ -36,7 +56,7 @@ services:
       GITEA__database__HOST: mariadb:3306
       GITEA__database__NAME: 'gitea'
       GITEA__database__USER: 'gitea'
-      GITEA__database__PASSWD: 'Center#2025'
+      GITEA__database__PASSWD: ${GITEA_DB_PASSWORD:?GITEA_DB_PASSWORD required}
       # --- repos
       GITEA__repository__ROOT: /var/lib/gitea/git/repositories
       DISABLE_HTTP_GIT: 'false'
@@ -63,25 +83,11 @@ services:
     networks:
       - lcbp3
       - giteanet
-# networks:
-#   gitea_net:
-#     driver: bridge
-#     name: git_gitea_net
-# networks: [gitea_net]
-# chown -R 1000:1000 /share/Container/gitea/
-# [/share/Container/git] # ls -l /share/Container/gitea/etc/app.ini
-# [/share/Container/git] # setfacl -R -m u:1000:rwx /share/Container/gitea/
-# [/share/Container/git] # setfacl -R -m u:70:rwx /share/Container/git/postgres/
-# getfacl /share/Container/git/etc/app.ini
-# chown -R 1000:1000 /share/Container/gitea/
-# ล้าง
-# setfacl -R -b /share/Container/gitea/
-#
-# chgrp -R administrators /share/Container/gitea/
-# chown -R 1000:1000 /share/Container/gitea/etc /share/Container/gitea/lib /share/Container/gitea/backup
-# setfacl -m u:1000:rwx -m g:1000:rwx /share/Container/gitea/etc /share/Container/gitea/lib /share/Container/gitea/backup
-
-# CREATE DATABASE gitea CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
-# CREATE USER 'gitea'@'%' IDENTIFIED BY 'Center#2025';
-# GRANT ALL PRIVILEGES ON gitea.* TO 'gitea'@'%';
-# FLUSH PRIVILEGES;
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3000/api/healthz']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+# L4: ขั้นตอน ops (folder permissions, DB bootstrap) ย้ายไปที่:
+# specs/04-Infrastructure-OPS/04-08-release-management-policy.md

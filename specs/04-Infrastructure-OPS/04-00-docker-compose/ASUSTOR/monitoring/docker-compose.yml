@@ -1,5 +1,5 @@
 # File: /volume1/np-dms/monitoring/docker-compose.yml
-# DMS Container v1.8.0: Application name: lcbp3-monitoring
+# DMS Container v1.8.6: Application name: lcbp3-monitoring
 # Deploy on: ASUSTOR AS5403T
 # Services: prometheus, grafana, node-exporter, cadvisor, uptime-kuma, loki, promtail
 
@@ -25,8 +25,6 @@ services:
     <<: [*restart_policy, *default_logging]
     image: prom/prometheus:v2.48.0
     container_name: prometheus
-    stdin_open: true
-    tty: true
     deploy:
       resources:
         limits:
@@ -62,8 +60,6 @@ services:
     <<: [*restart_policy, *default_logging]
     image: grafana/grafana:10.2.2
     container_name: grafana
-    stdin_open: true
-    tty: true
     deploy:
       resources:
         limits:
@@ -72,10 +68,12 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+    env_file:
+      - .env
     environment:
       TZ: 'Asia/Bangkok'
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: 'Center#2025'
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD required}
       GF_SERVER_ROOT_URL: 'https://grafana.np-dms.work'
       GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-piechart-panel
     ports:
@@ -164,8 +162,9 @@ services:
           memory: 256M
     environment:
       TZ: 'Asia/Bangkok'
+    # H4: cAdvisor binds 8080 ภายใน container — map เป็น 8088 บน host
     ports:
-      - '8088:8088'
+      - '8088:8080'
     networks:
       - lcbp3
     volumes:
@@ -213,6 +212,8 @@ services:
     <<: [*restart_policy, *default_logging]
     image: grafana/promtail:2.9.0
     container_name: promtail
+    # L5: รันในฐานะ root เพราะต้องอ่าน /var/lib/docker/containers
+    # ที่ mount เข้ามาแบบ read-only
     user: '0:0'
     deploy:
       resources:

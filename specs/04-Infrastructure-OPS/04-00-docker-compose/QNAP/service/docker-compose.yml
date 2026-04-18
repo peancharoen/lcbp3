@@ -1,0 +1,125 @@
+# File: /share/np-dms/services/docker-compose.yml
+# DMS Container v1.8.6: Application name: services
+# Services: cache (Redis), search (Elasticsearch)
+# ============================================================
+# 🔒 SECURITY (ADR-016, Tier-1):
+#   - Redis: ใช้ --requirepass บังคับ auth ฝั่ง server
+#   - Elasticsearch: ปิด host port mapping (ใช้ DNS ภายใน lcbp3 network เท่านั้น)
+#   - ใช้ .env (gitignored) ในโฟลเดอร์เดียวกัน:
+#       docker compose --env-file .env up -d
+# ============================================================
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+networks:
+  lcbp3:
+    external: true
+
+services:
+  # ----------------------------------------------------------------
+  # 1. Redis (Caching + Distributed Lock + BullMQ queues)
+  # Service Name: cache (Backend อ้างอิง REDIS_HOST=cache)
+  # ----------------------------------------------------------------
+  cache:
+    <<: [*restart_policy, *default_logging]
+    image: redis:7-alpine
+    container_name: cache
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    environment:
+      TZ: 'Asia/Bangkok'
+    env_file:
+      - .env
+    # บังคับ auth ฝั่ง server, เปิด AOF persistence
+    command:
+      - 'redis-server'
+      - '--requirepass'
+      - '${REDIS_PASSWORD:?REDIS_PASSWORD required}'
+      - '--appendonly'
+      - 'yes'
+      - '--maxmemory-policy'
+      - 'allkeys-lru'
+    # bind เฉพาะ loopback host เพื่อ debug — service อื่นใช้ DNS 'cache:6379' ผ่าน lcbp3 network
+    ports:
+      - '127.0.0.1:6379:6379'
+    networks:
+      - lcbp3
+    volumes:
+      - '/share/np-dms/services/cache/data:/data'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'redis-cli',
+          '-a',
+          '${REDIS_PASSWORD}',
+          '--no-auth-warning',
+          'ping',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------
+  # 2. Elasticsearch (Advanced Search)
+  # Service Name: search (Backend อ้างอิง ELASTICSEARCH_HOST=search)
+  # ----------------------------------------------------------------
+  search:
+    <<: [*restart_policy, *default_logging]
+    image: elasticsearch:8.11.1
+    container_name: search
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 2G
+    env_file:
+      - .env
+    environment:
+      TZ: 'Asia/Bangkok'
+      # --- Single-node ---
+      discovery.type: 'single-node'
+      # --- Security (ADR-016) ---
+      # NOTE: หากเปิด xpack.security ต้องตั้ง ELASTIC_PASSWORD และอัปเดต backend client config
+      # ค่าเริ่มต้น keep ปิดไว้เพราะ network เข้าถึงได้เฉพาะภายใน lcbp3 (ไม่มี host port)
+      xpack.security.enabled: 'false'
+      # --- Performance ---
+      ES_JAVA_OPTS: '-Xms1g -Xmx1g'
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    # ❌ ห้าม publish 9200 ไปยัง LAN (ADR-016)
+    # service ภายในใช้ DNS 'search:9200' ผ่าน lcbp3 network
+    expose:
+      - '9200'
+    networks:
+      - lcbp3
+    volumes:
+      - '/share/np-dms/services/search/data:/usr/share/elasticsearch/data'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -s http://localhost:9200/_cluster/health | grep -q ''"status":"green"\|"status":"yellow"''',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5

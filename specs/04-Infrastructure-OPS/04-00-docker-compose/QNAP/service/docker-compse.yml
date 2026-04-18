@@ -1,0 +1,109 @@
+# ============================================================
+# ⚠️ DEPRECATED — ชื่อไฟล์มี typo (docker-compse.yml)
+#   ไฟล์นี้ถูกแทนที่ด้วย ./docker-compose.yml (v1.8.6)
+#   ไฟล์ใหม่มีการแก้ไข Tier-1 security:
+#     - Redis: --requirepass + bind 127.0.0.1
+#     - Elasticsearch: ปิด host port (internal only)
+#   โปรดลบไฟล์นี้หลัง verify ว่า deploy ใหม่สำเร็จ:
+#     docker compose -f docker-compose.yml --env-file .env up -d
+#     git rm specs/04-Infrastructure-OPS/04-00-docker-compose/QNAP/service/docker-compse.yml
+# ============================================================
+# (เนื้อหาเดิมเก็บไว้เพื่อ reference ระหว่าง migration เท่านั้น)
+
+# File: /share/np-dms/services/docker-compose.yml (หรือไฟล์ที่คุณใช้รวม)
+# DMS Container v1_7_0: เพิ่ม Application name: services
+#Services 'cache' (Redis) และ 'search' (Elasticsearch)
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+networks:
+  lcbp3:
+    external: true
+
+services:
+  # ----------------------------------------------------------------
+  # 1. Redis (สำหรับ Caching และ Distributed Lock)
+  # Service Name: cache (ตามที่ NPM และ Backend Plan อ้างอิง)
+  # ----------------------------------------------------------------
+  cache:
+    <<: [ *restart_policy, *default_logging ]
+    image: redis:7-alpine # ใช้ Alpine image เพื่อให้มีขนาดเล็ก
+    container_name: cache
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G # Redis เป็น in-memory, ให้ memory เพียงพอต่อการใช้งาน
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    environment:
+      TZ: "Asia/Bangkok"
+    ports:
+      - "6379:6379"
+    networks:
+      - lcbp3 # เชื่อมต่อ network ภายในเท่านั้น
+    volumes:
+      - "/share/np-dms/services/cache/data:/data" # Map volume สำหรับเก็บข้อมูล (ถ้าต้องการ persistence)
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ] # ตรวจสอบว่า service พร้อมใช้งาน
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------
+  # 2. Elasticsearch (สำหรับ Advanced Search)
+  # Service Name: search (ตามที่ NPM และ Backend Plan อ้างอิง)
+  # ----------------------------------------------------------------
+  search:
+    <<: [ *restart_policy, *default_logging ]
+    image: elasticsearch:8.11.1 # แนะนำให้ระบุเวอร์ชันชัดเจน (V.8)
+    container_name: search
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0" # Elasticsearch ใช้ CPU และ Memory ค่อนข้างหนัก
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 2G
+    environment:
+      TZ: "Asia/Bangkok"
+      # --- Critical Settings for Single-Node ---
+      discovery.type: "single-node" # สำคัญมาก: กำหนดให้รันแบบ 1 node
+      # --- Security (Disable for Development) ---
+      # ปิด xpack security เพื่อให้ NestJS เชื่อมต่อง่าย (backend -> search:9200)
+      # หากเป็น Production จริง ควรเปิดใช้งานและตั้งค่า token/cert ครับ
+      xpack.security.enabled: "false"
+      # --- Performance Tuning ---
+      # กำหนด Heap size (1GB) ให้เหมาะสมกับ memory limit (4GB)
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+    ports:
+      - "9200:9200"
+    networks:
+      - lcbp3 # เชื่อมต่อ network ภายใน (NPM จะ proxy port 9200 จากภายนอก)
+    volumes:
+      - "/share/np-dms/services/search/data:/usr/share/elasticsearch/data" # Map volume สำหรับเก็บ data/indices
+    healthcheck:
+      # รอจนกว่า cluster health จะเป็น yellow หรือ green
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:9200/_cluster/health | grep -q
+            '\"status\":\"green\"\\|\\\"status\":\"yellow\"'",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
