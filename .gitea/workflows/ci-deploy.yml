@@ -14,19 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout (SSH fallback for HTTPS timeout)
+      - name: Checkout (SSH)
         run: |
-          # Try HTTPS first with timeout
-          if timeout 30 git clone --depth 1 https://git.np-dms.work/np-dms/lcbp3.git . 2>/dev/null; then
-            echo "HTTPS checkout successful"
-          else
-            echo "HTTPS failed, using SSH fallback"
-            mkdir -p ~/.ssh
-            echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
-            chmod 600 ~/.ssh/id_rsa
-            ssh-keyscan -p 2222 git.np-dms.work >> ~/.ssh/known_hosts
-            git clone --depth 1 ssh://git@git.np-dms.work:2222/np-dms/lcbp3.git .
-          fi
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 2222 git.np-dms.work >> ~/.ssh/known_hosts
+          git clone --depth 1 ssh://git@git.np-dms.work:2222/np-dms/lcbp3.git .
           git fetch origin main
           git reset --hard origin/main
 
