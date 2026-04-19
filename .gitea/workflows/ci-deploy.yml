@@ -68,15 +68,16 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: self-hosted
     steps:
-      - name: � Checkout
+      - name: " Checkout"
         uses: actions/checkout@v4
 
-      - name: 🔐 Setup SSH and Deploy to QNAP
+      - name: " Setup SSH Key and Deploy to QNAP"
         run: |
-          # Ensure sshpass is available (install if needed)
-          if ! command -v sshpass &> /dev/null; then
-            apt-get update -qq && apt-get install -y -qq sshpass
-          fi
+          # Setup SSH key authentication
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.HOST }} >> ~/.ssh/known_hosts
 
           # Create remote deployment script
           REMOTE_SCRIPT=$(cat << 'SCRIPT_EOF'
@@ -89,24 +90,24 @@ jobs:
 
           # Verify Docker is accessible
           if ! docker version > /dev/null 2>&1; then
-            echo "✗ Docker not accessible. Check Container Station."
+            echo " Docker not accessible. Check Container Station."
             exit 1
           fi
-          echo "✓ Docker accessible"
+          echo " Docker accessible"
 
           # Sync scripts first
-          echo "📂 Syncing deployment scripts..."
+          echo " Syncing deployment scripts..."
           cd /share/np-dms/app/source/lcbp3
 
           # Check if directory exists
           if [ ! -d ".git" ]; then
-            echo "✗ Git repository not found at expected path"
+            echo " Git repository not found at expected path"
             exit 1
           fi
 
           git fetch origin main
           git reset --hard origin/main
-          echo "✓ Code synced"
+          echo " Code synced"
 
           # Ensure scripts are executable
           chmod +x scripts/deploy.sh scripts/rollback.sh 2>/dev/null || true
@@ -116,10 +117,10 @@ jobs:
           # Note: Docker build cache is preserved for faster builds
           # Only prune cache manually when needed: docker builder prune -f
 
-          echo "🚀 Executing deployment..."
+          echo " Executing deployment..."
           ./scripts/deploy.sh
 
-          echo "✓ Deployment completed successfully"
+          echo " Deployment completed successfully"
           SCRIPT_EOF
           )
 
@@ -128,20 +129,21 @@ jobs:
           attempt=1
 
           while [ $attempt -le $max_attempts ]; do
-            echo "🚀 Deployment attempt $attempt/$max_attempts..."
+            echo " Deployment attempt $attempt/$max_attempts..."
 
-            if echo "$REMOTE_SCRIPT" | sshpass -p "${{ secrets.PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+            if echo "$REMOTE_SCRIPT" | ssh -o StrictHostKeyChecking=no \
                 -o ConnectTimeout=60 \
                 -o ServerAliveInterval=30 \
                 -o ServerAliveCountMax=60 \
                 -o TCPKeepAlive=yes \
+                -i ~/.ssh/id_rsa \
                 -p ${{ secrets.PORT }} ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'bash -s'; then
-              echo "✅ Deployment successful!"
+              echo " Deployment successful!"
               exit 0
             else
-              echo "⚠️ Attempt $attempt failed"
+              echo " Attempt $attempt failed"
               if [ $attempt -lt $max_attempts ]; then
-                echo "⏳ Retrying in 10 seconds..."
+                echo " Retrying in 10 seconds..."
                 sleep 10
               fi
             fi
@@ -149,6 +151,6 @@ jobs:
             attempt=$((attempt + 1))
           done
 
-          echo "❌ All deployment attempts failed"
+          echo " All deployment attempts failed"
           exit 1
         timeout-minutes: 20

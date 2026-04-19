@@ -21,7 +21,7 @@ networks:
 services:
   gitea:
     <<: [*restart_policy, *default_logging]
-    image: gitea/gitea:1.22.3-rootless
+    image: gitea/gitea:latest-rootless
     container_name: gitea
     deploy:
       resources:
