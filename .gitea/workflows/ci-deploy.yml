@@ -71,6 +71,18 @@ jobs:
       - name: " Checkout"
         uses: actions/checkout@v4
 
+      - name: " Debug Connection Info"
+        run: |
+          echo "HOST length: ${#HOST_VAL}"
+          echo "PORT value: $PORT_VAL"
+          # ลอง resolve DNS ของ host
+          nslookup "$HOST_VAL" 2>/dev/null || host "$HOST_VAL" 2>/dev/null || echo "Cannot resolve"
+          # ดูว่า host ตอบสนองหรือไม่
+          nc -zv -w5 "$HOST_VAL" "$PORT_VAL" 2>&1 || true
+        env:
+          HOST_VAL: ${{ secrets.HOST }}
+          PORT_VAL: ${{ secrets.PORT }}
+
       - name: " Setup SSH Key and Deploy to QNAP"
         run: |
           # Setup SSH key authentication

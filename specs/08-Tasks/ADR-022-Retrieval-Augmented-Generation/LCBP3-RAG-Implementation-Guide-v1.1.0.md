@@ -1,4 +1,4 @@
-นี่คือร่างเนื้อหาฉบับปรับปรุงของ **LCBP3 RAG Implementation Guide (v1.1.0)** ในรูปแบบ Markdown โดยเน้นการยกระดับความปลอดภัย (Security), การรองรับหลายโครงการ (Multi-tenancy), และความถูกต้องของคำตอบ (Truthfulness) ตามมาตรฐานระบบ LCBP3 DMS
+นี่คือร่างเนื้อหาฉบับปรับปรุงของ **LCBP3 RAG Implementation Guide (v1.1.0) by Gemini** ในรูปแบบ Markdown โดยเน้นการยกระดับความปลอดภัย (Security), การรองรับหลายโครงการ (Multi-tenancy), และความถูกต้องของคำตอบ (Truthfulness) ตามมาตรฐานระบบ LCBP3 DMS
 
 ---
 

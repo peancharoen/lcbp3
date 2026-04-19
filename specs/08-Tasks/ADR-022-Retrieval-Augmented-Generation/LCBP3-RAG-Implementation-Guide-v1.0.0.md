@@ -1,7 +1,7 @@
 
 **LCBP3 DMS**
 
-**RAG Implementation Guide**
+**RAG Implementation Guide by Claude**
 
 Retrieval-Augmented Generation for Document Management System
 

@@ -1,4 +1,4 @@
-# 📋 Review: LCBP3 DMS RAG Implementation Guide (v1.1.0)
+# 📋 Review: LCBP3 DMS RAG Implementation Guide (v1.1.1 by Qwen)
 
 ---
 

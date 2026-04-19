@@ -1,0 +1,233 @@
+openapi: 3.1.0
+info:
+  title: LCBP3 RAG API
+  description: Retrieval-Augmented Generation endpoints for LCBP3 DMS (ADR-022)
+  version: 1.0.0
+
+servers:
+  - url: /api
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RagQueryRequest:
+      type: object
+      required: [ question, projectPublicId ]
+      properties:
+        question:
+          type: string
+          maxLength: 500
+          description: คำถามภาษาไทย/อังกฤษ
+          example: "เอกสาร REF-2026-001 มีเนื้อหาอะไร?"
+        projectPublicId:
+          type: string
+          format: uuid
+          description: UUIDv7 ของโครงการ (mandatory tenant isolation)
+        maxClassification:
+          type: string
+          enum: [ PUBLIC, INTERNAL, CONFIDENTIAL ]
+          default: INTERNAL
+          description: ระดับ classification สูงสุดที่ user มีสิทธิ์เข้าถึง
+
+    Citation:
+      type: object
+      properties:
+        chunkId:
+          type: string
+          format: uuid
+        docNumber:
+          type: string
+          nullable: true
+          example: "REF-2026-001"
+        docType:
+          type: string
+          example: "CORR"
+        revision:
+          type: string
+          nullable: true
+          example: "Rev.A"
+        snippet:
+          type: string
+          description: ข้อความส่วนที่ตอบคำถาม (max 200 chars)
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    RagQueryResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+          description: คำตอบที่ AI สร้างขึ้นจาก context
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Citation"
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: ระดับความมั่นใจของคำตอบ (< 0.6 = fallback message)
+        fallbackUsed:
+          type: boolean
+          description: true = ใช้ Ollama local LLM แทน Typhoon API
+        latencyMs:
+          type: integer
+          description: เวลา end-to-end (ms)
+
+    RagIngestionStatus:
+      type: object
+      properties:
+        attachmentId:
+          type: string
+          format: uuid
+        ragStatus:
+          type: string
+          enum: [ PENDING, PROCESSING, INDEXED, FAILED ]
+        ragLastError:
+          type: string
+          nullable: true
+        chunkCount:
+          type: integer
+          description: จำนวน chunks ที่ indexed แล้ว (0 ถ้ายังไม่ INDEXED)
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        userMessage:
+          type: string
+          description: ข้อความที่แสดงต่อ user (ภาษาไทย)
+        recoveryAction:
+          type: string
+          nullable: true
+
+paths:
+  /rag/query:
+    post:
+      summary: RAG Query — ถามคำถามจากเอกสารโครงการ
+      description: |
+        ค้นหา context จากเอกสารที่ indexed แล้วและสร้างคำตอบด้วย AI
+        - CONFIDENTIAL documents → ใช้ local Ollama เท่านั้น (ADR-018)
+        - ทุก query บังคับระบุ projectPublicId เพื่อ tenant isolation
+        - Idempotency-Key header บังคับ (AGENTS.md security rule)
+      tags: [ RAG ]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUIDv4 idempotency key — prevent duplicate query submissions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RagQueryRequest"
+      responses:
+        "200":
+          description: คำตอบพร้อม citations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/RagQueryResponse"
+        "400":
+          description: Invalid input (question เปล่า หรือ projectPublicId ไม่ถูกต้อง)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: ไม่มีสิทธิ์เข้าถึงโครงการนี้
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+        "503":
+          description: RAG service unavailable (Qdrant / Ollama / Typhoon ทั้งหมด down)
+
+  /rag/status/{attachmentId}:
+    get:
+      summary: ตรวจสอบสถานะ RAG ingestion ของ attachment
+      tags: [ RAG ]
+      parameters:
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: publicId (UUIDv7) ของ attachment
+      responses:
+        "200":
+          description: สถานะ ingestion ปัจจุบัน
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/RagIngestionStatus"
+        "404":
+          description: Attachment ไม่พบ
+
+  /rag/ingest/{attachmentId}:
+    post:
+      summary: Trigger manual re-ingestion (สำหรับไฟล์ที่ FAILED)
+      description: Re-enqueue rag:ocr job สำหรับ attachment; reset rag_status → PENDING
+      tags: [ RAG ]
+      parameters:
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "202":
+          description: Re-ingestion job queued
+        "400":
+          description: Attachment ไม่อยู่ใน FAILED state
+        "404":
+          description: Attachment ไม่พบ
+
+  /rag/vectors/{attachmentId}:
+    delete:
+      summary: ลบ vectors ของ attachment จาก Qdrant (เมื่อลบเอกสาร)
+      description: |
+        เรียกโดย DocumentService เมื่อ soft-delete attachment
+        ลบ Qdrant points + document_chunks rows ทั้งหมดของ attachment
+      tags: [ RAG ]
+      parameters:
+        - name: attachmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Vectors deleted successfully
+        "404":
+          description: Attachment ไม่พบ
