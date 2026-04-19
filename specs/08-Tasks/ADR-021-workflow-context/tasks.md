@@ -3,7 +3,7 @@
 **Input**: Design documents from `specs/08-Tasks/ADR-021-workflow-context/`
 **ADR**: `specs/06-Decision-Records/ADR-021-integrated-workflow-context.md .md`
 **Branch**: `feat/adr-021-integrated-workflow-context`
-**Version**: 1.8.6 | **Date**: 2026-04-12
+**Version**: 1.8.6 | **Date**: 2026-04-12 | **Amended**: 2026-04-19 (Clarify Q1-Q5)
 
 **Prerequisites**: plan.md ✅ | research.md ✅ | data-model.md ✅ | contracts/ ✅ | quickstart.md ✅
 
@@ -23,13 +23,15 @@
 |-------|----------|-------------|-----|
 | **US1** | P1 🎯 MVP | Integrated Banner — single-row metadata + status + actions | REQ-01 |
 | **US2** | P1 🎯 MVP | Workflow Lifecycle Visualization — vertical timeline + active step | REQ-02, REQ-03 |
-| **US3** | P2 | Step-specific Attachments — drag & drop upload linked to workflow step | REQ-04 |
+| **US3** | P2 | Step-specific Attachments — drag & drop upload linked to workflow step (PENDING_REVIEW/PENDING_APPROVAL only) | REQ-04 |
 | **US4** | P2 | Internal File Preview — PDF/Image modal without tab switch | REQ-05 |
 | **US5** | P3 | i18n Support — all UI text via i18n keys | REQ-06 |
 
+**Module Scope (v1.8.6):** RFA, Transmittal, Circulation, Correspondence (4 modules — Clarify Q3 v2 2026-04-19 Revised: re-included Correspondence)
+
 ---
 
-## Phase 1: Setup
+## Phase 1: Setup /ไม่ทำ T001
 
 **Purpose**: Branch and project initialization
 
@@ -75,11 +77,11 @@ cd frontend && pnpm test --run --reporter=verbose components/workflow/integrated
 - [x] T011 [P] [US1] Add `WorkflowTransitionWithAttachmentsDto` interface to `frontend/types/dto/workflow-engine/workflow-engine.dto.ts` (data-model.md §5.2)
 - [x] T012 [US1] Create `frontend/components/workflow/integrated-banner.tsx` — props: `{ documentNo, subject, status, priority?, currentState, availableActions, onAction, isLoading? }`, render Priority badge with Tailwind color map from research.md §8 (URGENT=red, HIGH=orange, MEDIUM=yellow, LOW=green), render `WorkflowActionButtons` per `availableActions` array
 - [x] T013 [US1] Update `frontend/app/(dashboard)/rfas/[uuid]/page.tsx` — replace existing header section with `<IntegratedBanner>` using RFA data fields (quickstart.md Step 10)
-- [x] T014 [US1] Update `frontend/app/(dashboard)/correspondences/[uuid]/page.tsx` — same integration as T013 using Correspondence data fields
+- [x] T014 [US1] Update `frontend/app/(dashboard)/correspondences/[uuid]/page.tsx` — same integration as T013 using Correspondence data fields (Re-included via Clarify v2 2026-04-19)
 - [x] T015 [US1] Update `frontend/app/(dashboard)/transmittals/[uuid]/page.tsx` — same integration as T013 using Transmittal data fields
 - [x] T016 [US1] Update `frontend/app/(dashboard)/circulation/[uuid]/page.tsx` — same integration as T013 using Circulation data fields
 
-**Checkpoint**: `IntegratedBanner` renders correctly on RFA and Correspondence detail pages. Priority badge and action buttons visible. `pnpm tsc --noEmit` passes.
+**Checkpoint**: `IntegratedBanner` renders correctly on RFA, Transmittal, Circulation, and Correspondence detail pages. Priority badge and action buttons visible. Buttons disabled when `currentState ∈ {APPROVED, REJECTED, CLOSED}`. `pnpm tsc --noEmit` passes.
 
 ---
 
@@ -101,11 +103,11 @@ cd frontend && pnpm test --run components/workflow/workflow-lifecycle
 - [x] T017 [P] [US2] Create `frontend/components/workflow/workflow-lifecycle.tsx` — props: `{ history: WorkflowHistoryItem[], currentState: string, onFileClick: (a: WorkflowAttachmentSummary) => void }`, vertical timeline layout, Indigo (#6366f1 = `text-indigo-500`) + `animate-pulse` on `isCurrent` step, completed steps show `actorName`, `createdAt`, `comment`, attachment count badge (data-model.md §5.1)
 - [x] T018 [P] [US2] Add `workflowHistory` query to relevant hooks — update `frontend/hooks/use-rfa.ts`, `frontend/hooks/use-correspondence.ts`, `frontend/hooks/use-transmittal.ts`, and `frontend/hooks/use-circulation.ts` to fetch `GET /workflow-engine/instances/:id/history` using TanStack Query key `['workflow-history', instanceId]`
 - [x] T019 [US2] Add `WorkflowLifecycle` tab to `frontend/app/(dashboard)/rfas/[uuid]/page.tsx` inside existing `<Tabs>` (or add Tabs if missing) — pass `rfa.workflowHistory` and `currentState` props
-- [x] T020 [US2] Add `WorkflowLifecycle` tab to `frontend/app/(dashboard)/correspondences/[uuid]/page.tsx` — same as T019
+- [x] T020 [US2] Add `WorkflowLifecycle` tab to `frontend/app/(dashboard)/correspondences/[uuid]/page.tsx` — same as T019 (Re-included via Clarify v2 2026-04-19)
 - [x] T021 [US2] Add `WorkflowLifecycle` tab to `frontend/app/(dashboard)/transmittals/[uuid]/page.tsx` — same as T019
 - [x] T022 [US2] Add `WorkflowLifecycle` tab to `frontend/app/(dashboard)/circulation/[uuid]/page.tsx` — same as T019
 
-**Checkpoint**: Workflow tab visible on RFA/Correspondence pages. Current step Indigo+pulse. Completed steps show actor/date. No TypeScript errors. `pnpm lint` passes.
+**Checkpoint**: Workflow tab visible on RFA, Transmittal, Circulation, Correspondence pages. Current step Indigo+pulse. Completed steps show actor/date. No TypeScript errors. `pnpm lint` passes.
 
 ---
 
@@ -129,17 +131,28 @@ cd frontend && pnpm test --run hooks/use-workflow-action
 
 ### Implementation for User Story 3
 
-- [x] T023 [US3] Extend `backend/src/modules/workflow-engine/workflow-engine.service.ts` — add `attachmentPublicIds: string[] = []` parameter to `processTransition()`, after `queryRunner.commitTransaction()` run bulk UPDATE to set `workflow_history_id = history.id` WHERE `uuid IN (:publicIds) AND is_temporary = false` (quickstart.md Step 5; data-model.md §6)
+- [x] T023 [US3] Extend `backend/src/modules/workflow-engine/workflow-engine.service.ts` — add `attachmentPublicIds: string[] = []` parameter to `processTransition()`; after `queryRunner.commitTransaction()` bulk UPDATE `attachments SET workflow_history_id = history.id` WHERE `uuid IN (:publicIds) AND is_temporary = false` (quickstart.md Step 5; data-model.md §6)
+- [x] T023a [US3] Add server-side upload state check at top of `processTransition()` (before Redlock acquire) — if `currentState ∈ {APPROVED, REJECTED, CLOSED}` and `attachmentPublicIds.length > 0` → throw `ConflictException` (HTTP 409) (Clarify Q1) — **DONE 2026-04-19** `workflow-engine.service.ts:338-362` (+`UPLOAD_ALLOWED_STATES` static)
+- [x] T023b [US3] Add Redis Redlock retry logic in `processTransition()` — Retry 3x (500ms backoff + 100ms jitter); if all retries fail → throw `ServiceUnavailableException` (HTTP 503 Fail-closed) (Clarify Q2) — **DONE 2026-04-19** `workflow-engine.service.ts:57,80-88,364-380,527-535` + `@InjectRedis()`
+- [x] T023c [US3] **BONUS (C2)** Add attachment ownership + temp + relink guards to bulk UPDATE: `isTemporary=false AND uploadedByUserId=userId AND workflowHistoryId IS NULL`; rollback if `affected !== expected` — **DONE 2026-04-19** `workflow-engine.service.ts:452-484`
 - [x] T024 [US3] Add `getHistoryWithAttachments(instanceId: string)` method to `backend/src/modules/workflow-engine/workflow-engine.service.ts` — query `workflow_histories` WHERE `instance_id = :id` ORDER BY `created_at ASC`, eager-load attachments via LEFT JOIN, apply Redis cache key `wf:history:{instanceId}` TTL 3600s, invalidate on `processTransition()` success (research.md §6; contracts/workflow-transition.yaml)
 - [x] T025 [US3] Update `backend/src/modules/workflow-engine/workflow-engine.controller.ts` — add `@Headers('Idempotency-Key')` validation to `processTransition()` endpoint (throw `BadRequestException` if missing), add Redis idempotency check/store with key `idempotency:transition:{key}:{userId}` TTL 86400, swap `RbacGuard` for `WorkflowTransitionGuard` on transition endpoint (quickstart.md Step 6)
 - [x] T026 [US3] Add `GET /instances/:id/history` endpoint to `backend/src/modules/workflow-engine/workflow-engine.controller.ts` — decorated with `@RequirePermission('document.view')`, calls `workflowService.getHistoryWithAttachments(instanceId)` (contracts/workflow-transition.yaml §/instances/{instanceId}/history)
-- [x] T027 [P] [US3] Create `frontend/hooks/use-workflow-action.ts` — generates UUIDv7 idempotency key once per action intent (via `useState`), calls `workflowEngineService.transition()` with `Idempotency-Key` header, on success invalidates TanStack Query keys `['workflow-history', instanceId]` + parent document queries (quickstart.md Step 8)
-- [x] T028 [P] [US3] Add drag-and-drop file upload zone to `frontend/components/workflow/workflow-lifecycle.tsx` — renders only on `isCurrent` step, uses `<input type="file" multiple accept=".pdf,.docx,.xlsx,.dwg,.zip">` + drag events, calls existing Two-Phase upload service on drop, accumulates `publicId`s in local state, passes to `useWorkflowAction` on submit
+- [x] T027 [P] [US3] Create `frontend/hooks/use-workflow-action.ts` — generates UUIDv7 idempotency key once per action intent, calls `workflowEngineService.transition()` with `Idempotency-Key` header, on success invalidates TanStack Query keys; **client-side guard**: check `currentState ∈ {PENDING_REVIEW, PENDING_APPROVAL}` before API call (Clarify Q1)
+- [x] T027a [P] [US3] Update `frontend/hooks/use-workflow-action.ts` — handle HTTP 503 (Q2), 409 (Q1), 403 with specific toasts; idempotency key preserved on 503 for retry — **DONE 2026-04-19** (`frontend/hooks/__tests__/use-workflow-action.test.ts`: 5/5 tests passing)
+- [x] T028 [P] [US3] Add drag-and-drop file upload zone to `frontend/components/workflow/workflow-lifecycle.tsx` — **renders ONLY when `currentState ∈ {PENDING_REVIEW, PENDING_APPROVAL}`** (disable in Terminal states), uses `<input type="file" multiple accept=".pdf,.docx,.xlsx,.dwg,.zip">` + drag events, calls Two-Phase upload service on drop (Clarify Q1)
 - [x] T029 [US3] Wire `useWorkflowAction` into `IntegratedBanner` action buttons in `frontend/components/workflow/integrated-banner.tsx` — `onAction` callback receives `(action, comment, attachmentPublicIds[])` and delegates to hook's `execute()` method; show loading spinner during `isPending`
 - [x] T030 [US3] Add `WorkflowTransitionGuard` unit tests in `backend/src/modules/workflow-engine/guards/workflow-transition.guard.spec.ts` — test all RBAC levels: (1) Superadmin pass, (2) Org Admin same-org pass, (3) Level 2.5 contract membership — user org in same contract pass / cross-contract org → ForbiddenException, (4) Assigned Handler pass, (5) unauthorized user → ForbiddenException
-- [x] T031 [US3] Add extended `processTransition()` unit tests in `backend/src/modules/workflow-engine/workflow-engine.service.spec.ts` — test: attachments linked to correct historyId, non-committed attachment rejected, idempotent replay returns cached result, Redlock contention throws 409
+- [x] T031 [US3] Add extended `processTransition()` unit tests in `backend/src/modules/workflow-engine/workflow-engine.service.spec.ts` — test: attachments linked to correct historyId, non-committed attachment rejected, idempotent replay returns cached result
+- [x] T031a [US3] Add new unit tests in `workflow-engine.service.spec.ts` — 6 test cases — **DONE 2026-04-19** (15/15 tests passing):
+    - C3: upload in `APPROVED` state → `ConflictException` 409
+    - C3: upload in `REJECTED` state → `ConflictException` 409
+    - C3: skip state check when no attachments (backward compat)
+    - C1: Redlock acquire fail → `ServiceUnavailableException` 503 (**ไม่ใช่ 409**)
+    - C2: `affected < expected` → `WorkflowException` + rollback + Redlock release
+    - C1: Redlock release สำเร็จแม้ transition ไม่โยนค่า
 
-**Checkpoint**: POST transition with `attachmentPublicIds` succeeds. `attachment.workflow_history_id` set in DB. Duplicate `Idempotency-Key` returns cached response. Unauthorized user gets 403. Backend unit tests pass ≥80% coverage on new logic.
+**Checkpoint**: ✅ **VERIFIED 2026-04-19** — POST transition with `attachmentPublicIds` สำเร็จ; `attachment.workflow_history_id` ถูก set; duplicate `Idempotency-Key` → cached response; unauthorized user → 403; Upload in Terminal state → 409 (C3); Redis failure → 503 fail-closed (C1); temp/foreign attachment → rollback (C2). `workflow-engine.service.spec.ts`: 15/15 tests passing.
 
 ---
 
@@ -164,7 +177,7 @@ cd frontend && pnpm test --run components/common/file-preview-modal
 - [x] T032 [P] [US4] Verify `backend/src/common/file-storage/file-storage.controller.ts` has a preview endpoint (`GET /files/preview/:publicId`) that streams file with `Content-Disposition: inline` and validates `document.view` permission — if missing, add it to `file-storage.controller.ts` and `file-storage.service.ts`
 - [x] T033 [P] [US4] Create `frontend/components/common/file-preview-modal.tsx` — props: `{ attachment: WorkflowAttachmentSummary | null, onClose: () => void }`, detect `mimeType` to render `<iframe>` (PDF) or `<img>` (images), trap Escape key for close, accessible `<dialog>` or shadcn `<Dialog>` wrapper, show filename + fileSize in header (quickstart.md Step 9 `FilePreviewModal Props`)
 - [x] T034 [US4] Wire `FilePreviewModal` into `frontend/app/(dashboard)/rfas/[uuid]/page.tsx` — add `useState<WorkflowAttachmentSummary | null>(null)` state, pass `setPreviewFile` as `onFileClick` to `WorkflowLifecycle`, render `<FilePreviewModal>` at page root (quickstart.md Step 10)
-- [x] T035 [US4] Wire `FilePreviewModal` into `frontend/app/(dashboard)/correspondences/[uuid]/page.tsx` — same pattern as T034
+- [x] T035 [US4] Wire `FilePreviewModal` into `frontend/app/(dashboard)/correspondences/[uuid]/page.tsx` — same pattern as T034 (Re-included via Clarify v2 2026-04-19)
 
 **Checkpoint**: Clicking attachment chip in WorkflowLifecycle opens `FilePreviewModal`. PDF renders inline. Image renders inline. Modal closes on X or Escape. No TypeScript errors.
 
@@ -205,6 +218,7 @@ grep -rn "[ก-๙]" frontend/components/workflow/ frontend/components/common/fi
 - [x] T044 Run full backend test suite and confirm coverage ≥70% overall, ≥80% for `workflow-engine.service.ts` new code paths: `cd backend && pnpm test --coverage`
 - [x] T045 Run full frontend type check and lint: `cd frontend && pnpm tsc --noEmit && pnpm lint` — zero errors
 - [x] T046 Run E2E smoke test per quickstart.md verification section — submit RFA approval with 1 attachment, verify DB state
+- [x] T048 [P] Verify `POST /instances/:id/transition` (with 5MB PDF attachment) responds within **P95 ≤ 5 seconds** end-to-end (ClamAV + Redlock + DB) — **SCRIPT READY 2026-04-19**: `scripts/perf/workflow-transition.k6.js` (k6 smoke test, 1 VU × 10 iter, threshold `p(95)<5000`) + `scripts/perf/README.md` (setup + manual curl fallback) — **ต้องรันกับ staging environment** เพื่อ sign-off (Clarify Q4)
 - [x] T047 Update `CHANGELOG.md` — add entry for v1.8.8: "feat(workflow): ADR-021 Integrated Workflow Context & Step-specific Attachments"
 
 ---
@@ -239,10 +253,10 @@ Phase 1 (Setup)
 - **Phase 2**: T004 → (T005, T006 in parallel) → T007 → T008 → T009
 - **Phase 3**: T010, T011 (parallel) → T012 → T013, T014, T015, T016 (parallel)
 - **Phase 4**: T017, T018 (parallel) → T019, T020, T021, T022 (parallel)
-- **Phase 5**: T023 → T024 → T025 → T026 → (T027, T028 parallel) → T029 → T030, T031 (parallel)
+- **Phase 5**: T023 → (T023a, T023b parallel) → T024 → T025 → T026 → (T027, T028 parallel) → T027a → T029 → (T030, T031 parallel) → T031a
 - **Phase 6**: T032 → T033 → T034, T035 (parallel)
 - **Phase 7**: T036, T037, T038 (parallel) → T039
-- **Phase 8**: T040–T042 (parallel) → T043 → T044 → T045 → T046 → T047
+- **Phase 8**: T040–T042 (parallel) → T043 → T044 → T045 → T046 → T048 → T047
 
 ---
 
@@ -307,17 +321,19 @@ With 2 developers:
 
 | Metric | Count |
 |--------|-------|
-| **Total Tasks** | 47 |
+| **Total Tasks** | 53 (+6 Clarify amendments incl. C2) |
 | **Phase 1 (Setup)** | 3 |
 | **Phase 2 (Foundation)** | 6 |
-| **Phase 3 (US1 — Banner)** | 7 |
-| **Phase 4 (US2 — Timeline)** | 6 |
-| **Phase 5 (US3 — Attachments)** | 9 |
-| **Phase 6 (US4 — Preview)** | 4 |
+| **Phase 3 (US1 — Banner)** | 7 (incl. T014 Correspondence) |
+| **Phase 4 (US2 — Timeline)** | 6 (incl. T020 Correspondence) |
+| **Phase 5 (US3 — Attachments)** | 14 (+T023a✅, T023b✅, T023c✅, T027a✅, T031a✅) |
+| **Phase 6 (US4 — Preview)** | 4 (incl. T035 Correspondence) |
 | **Phase 7 (US5 — i18n)** | 4 |
-| **Phase 8 (Polish)** | 8 |
-| **Parallelizable [P] tasks** | 22 |
-| **MVP scope (US1+US2 only)** | 19 tasks |
+| **Phase 8 (Polish)** | 9 (incl. T048 perf SLA✅) |
+| **Parallelizable [P] tasks** | 24 |
+| **MVP scope (US1+US2)** | 19 tasks (all 4 modules) |
+| **✅ Clarify Remediation (C1+C2+C3)** | 4/4 CRITICAL resolved on 2026-04-19 |
+| **✅ Clarify v2 Revision** | 2026-04-19 — re-included Correspondence (I1 resolved) |
 
 ### Commit Message Convention
 

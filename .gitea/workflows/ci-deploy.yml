@@ -71,113 +71,31 @@ jobs:
       - name: " Checkout"
         uses: actions/checkout@v4
 
-      - name: " Debug Connection Info"
+      - name: "🚀 Deploy to QNAP"
         run: |
-          echo "HOST length: ${#HOST_VAL}"
-          echo "PORT value: $PORT_VAL"
-          # ลอง resolve DNS ของ host
-          nslookup "$HOST_VAL" 2>/dev/null || host "$HOST_VAL" 2>/dev/null || echo "Cannot resolve"
-          # ดูว่า host ตอบสนองหรือไม่
-          nc -zv -w5 "$HOST_VAL" "$PORT_VAL" 2>&1 || true
-        env:
-          HOST_VAL: ${{ secrets.HOST }}
-          PORT_VAL: ${{ secrets.PORT }}
-
-      - name: " Setup SSH Key and Deploy to QNAP"
-        run: |
-          # Setup SSH key authentication
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-          # Debug: Check SSH key
-          echo "SSH key file exists: $(test -f ~/.ssh/id_rsa && echo 'YES' || echo 'NO')"
-          echo "SSH key permissions: $(ls -la ~/.ssh/id_rsa)"
-          echo "SSH key first line: $(head -1 ~/.ssh/id_rsa)"
+          ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 \
+              -o BatchMode=yes \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=10 \
+              -i ~/.ssh/id_rsa \
+              -p ${{ secrets.PORT }} ${{ secrets.USERNAME }}@${{ secrets.HOST }} bash << 'REMOTE_EOF'
+            set -e
+            export PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-          # Create remote deployment script
-          REMOTE_SCRIPT=$(cat << 'SCRIPT_EOF'
-          set -e
-          export PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+            cd /share/np-dms/app/source/lcbp3
+            [ -d .git ] || { echo "✗ Git repo not found"; exit 1; }
 
-          echo "=========================================="
-          echo "Starting QNAP Deployment Process"
-          echo "=========================================="
+            git fetch origin main
+            git reset --hard origin/main
+            chmod +x scripts/deploy.sh scripts/rollback.sh 2>/dev/null || true
+            mkdir -p /share/np-dms/app/logs
 
-          # Verify Docker is accessible
-          if ! docker version > /dev/null 2>&1; then
-            echo " Docker not accessible. Check Container Station."
-            exit 1
-          fi
-          echo " Docker accessible"
-
-          # Sync scripts first
-          echo " Syncing deployment scripts..."
-          cd /share/np-dms/app/source/lcbp3
-
-          # Check if directory exists
-          if [ ! -d ".git" ]; then
-            echo " Git repository not found at expected path"
-            exit 1
-          fi
-
-          git fetch origin main
-          git reset --hard origin/main
-          echo " Code synced"
-
-          # Ensure scripts are executable
-          chmod +x scripts/deploy.sh scripts/rollback.sh 2>/dev/null || true
-
-          mkdir -p /share/np-dms/app/logs
-
-          # Note: Docker build cache is preserved for faster builds
-          # Only prune cache manually when needed: docker builder prune -f
-
-          echo " Executing deployment..."
-          ./scripts/deploy.sh
-
-          echo " Deployment completed successfully"
-          SCRIPT_EOF
-          )
-
-          # Retry logic for SSH connection
-          max_attempts=3
-          attempt=1
-
-          while [ $attempt -le $max_attempts ]; do
-            echo " Deployment attempt $attempt/$max_attempts..."
-
-            # Debug: Test SSH connection first
-            echo "Testing SSH connection..."
-            ssh -o StrictHostKeyChecking=no \
-                -o ConnectTimeout=10 \
-                -o BatchMode=yes \
-                -o PasswordAuthentication=no \
-                -o LogLevel=DEBUG3 \
-                -i ~/.ssh/id_rsa \
-                -p ${{ secrets.PORT }} ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'echo "SSH auth successful"'
-
-            if echo "$REMOTE_SCRIPT" | ssh -o StrictHostKeyChecking=no \
-                -o ConnectTimeout=60 \
-                -o ServerAliveInterval=30 \
-                -o ServerAliveCountMax=60 \
-                -o TCPKeepAlive=yes \
-                -i ~/.ssh/id_rsa \
-                -p ${{ secrets.PORT }} ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'bash -s'; then
-              echo " Deployment successful!"
-              exit 0
-            else
-              echo " Attempt $attempt failed"
-              if [ $attempt -lt $max_attempts ]; then
-                echo " Retrying in 10 seconds..."
-                sleep 10
-              fi
-            fi
-
-            attempt=$((attempt + 1))
-          done
-
-          echo " All deployment attempts failed"
-          exit 1
+            ./scripts/deploy.sh
+          REMOTE_EOF
         timeout-minutes: 20

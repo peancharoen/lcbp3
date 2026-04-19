@@ -1,3 +1,14 @@
+// ADR-021 Clarify Q2 (C1): Mock Redlock ก่อน import service
+// ใช้ module-level mock เพื่อบังคับให้ constructor `new Redlock(...)` ในการสร้าง service
+const mockRedlockAcquire = jest.fn();
+const mockRedlockRelease = jest.fn().mockResolvedValue(undefined);
+jest.mock('redlock', () =>
+  jest.fn().mockImplementation(() => ({
+    acquire: mockRedlockAcquire,
+  }))
+);
+
+import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkflowEngineService } from './workflow-engine.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -12,8 +23,11 @@ import { Attachment } from '../../common/file-storage/entities/attachment.entity
 import { WorkflowDslService } from './workflow-dsl.service';
 import { WorkflowEventService } from './workflow-event.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { NotFoundException } from '../../common/exceptions';
+import { NotFoundException, WorkflowException } from '../../common/exceptions';
 import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dto';
+
+// Token ของ @nestjs-modules/ioredis — default Redis connection
+const DEFAULT_REDIS_TOKEN = 'default_IORedisModuleConnectionToken';
 
 describe('WorkflowEngineService', () => {
   let service: WorkflowEngineService;
@@ -60,6 +74,12 @@ describe('WorkflowEngineService', () => {
   };
 
   beforeEach(async () => {
+    // ADR-021 C1: default Redlock behavior = acquire สำเร็จ
+    mockRedlockAcquire.mockReset().mockResolvedValue({
+      release: mockRedlockRelease,
+    });
+    mockRedlockRelease.mockClear();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkflowEngineService,
@@ -105,6 +125,13 @@ describe('WorkflowEngineService', () => {
             del: jest.fn().mockResolvedValue(undefined),
           },
         },
+        // ADR-021 C1: Redis mock สำหรับ @InjectRedis()
+        {
+          provide: DEFAULT_REDIS_TOKEN,
+          useValue: {
+            // ไม่จำเป็นต้องมี method จริง เพราะ Redlock ถูก mock แล้ว
+          },
+        },
       ],
     }).compile();
 
@@ -113,8 +140,6 @@ describe('WorkflowEngineService', () => {
     instanceRepo = module.get(getRepositoryToken(WorkflowInstance));
     dslService = module.get(WorkflowDslService);
     eventService = module.get(WorkflowEventService);
-
-    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -227,18 +252,27 @@ describe('WorkflowEngineService', () => {
         const attachmentPublicIds = ['att-123', 'att-456'];
         const mockInstance = {
           id: instanceId,
-          currentState: 'PENDING',
+          currentState: 'PENDING_REVIEW', // ADR-021 C3: allowed upload state
           status: WorkflowStatus.ACTIVE,
           definition: { compiled: mockCompiledWorkflow },
           context: { some: 'data' },
         };
 
+        // C3 pre-check ดึง instance จาก instanceRepo.findOne (ไม่ใช่ queryRunner)
+        (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+          id: instanceId,
+          currentState: 'PENDING_REVIEW',
+        });
+
         // Mock the history object with an ID
         const mockHistory = { id: 'history-123' };
         mockQueryRunner.manager.findOne.mockResolvedValue(mockInstance);
-
-        // Mock save to return the history object when called with any entity
         mockQueryRunner.manager.save.mockResolvedValue(mockHistory);
+        // C2: update ต้องรายงาน affected = attachmentPublicIds.length
+        mockQueryRunner.manager.update.mockResolvedValue({
+          affected: attachmentPublicIds.length,
+        });
+
         mockDslService.evaluate.mockReturnValue({
           nextState: 'APPROVED',
           events: [],
@@ -253,9 +287,15 @@ describe('WorkflowEngineService', () => {
           attachmentPublicIds
         );
 
+        // C2: where clause ต้องมี guards ครบ 3 ชั้น
         expect(mockQueryRunner.manager.update).toHaveBeenCalledWith(
           Attachment,
-          { publicId: In(attachmentPublicIds) },
+          {
+            publicId: In(attachmentPublicIds),
+            isTemporary: false,
+            uploadedByUserId: 1,
+            workflowHistoryId: null,
+          },
           { workflowHistoryId: 'history-123' }
         );
       });
@@ -315,6 +355,175 @@ describe('WorkflowEngineService', () => {
           expect.any(Object),
           expect.objectContaining({ workflowHistoryId: expect.any(String) })
         );
+      });
+    });
+
+    // ============================================================
+    // ADR-021 T031a: Clarify Session 2026-04-19 Amendments
+    // ============================================================
+    describe('ADR-021 Clarify Q1+Q2 (T031a) — state check, Redlock, guards', () => {
+      const attachmentPublicIds = ['att-1'];
+
+      it('C3: should throw ConflictException (409) when uploading in APPROVED state', async () => {
+        // Arrange: currentState = APPROVED (terminal, ไม่อยู่ใน UPLOAD_ALLOWED_STATES)
+        (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+          id: 'inst-1',
+          currentState: 'APPROVED',
+        });
+
+        // Act + Assert
+        await expect(
+          service.processTransition(
+            'inst-1',
+            'APPROVE',
+            1,
+            undefined,
+            {},
+            attachmentPublicIds
+          )
+        ).rejects.toThrow(ConflictException);
+
+        // Redlock ต้องไม่ถูกเรียก (pre-check บล็อกก่อน)
+        expect(mockRedlockAcquire).not.toHaveBeenCalled();
+      });
+
+      it('C3: should throw ConflictException (409) when uploading in REJECTED state', async () => {
+        (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+          id: 'inst-1',
+          currentState: 'REJECTED',
+        });
+
+        await expect(
+          service.processTransition(
+            'inst-1',
+            'APPROVE',
+            1,
+            undefined,
+            {},
+            attachmentPublicIds
+          )
+        ).rejects.toThrow(ConflictException);
+      });
+
+      it('C3: should skip state check when attachmentPublicIds is empty', async () => {
+        // ถ้าไม่มี attachment ไม่ต้องตรวจ state — transition ในสถานะไหนก็ได้
+        const mockInstance = {
+          id: 'inst-1',
+          currentState: 'DRAFT',
+          status: WorkflowStatus.ACTIVE,
+          definition: { compiled: mockCompiledWorkflow },
+          context: {},
+        };
+        mockQueryRunner.manager.findOne.mockResolvedValue(mockInstance);
+        mockQueryRunner.manager.save.mockResolvedValue({ id: 'history-1' });
+        mockDslService.evaluate.mockReturnValue({
+          nextState: 'PENDING',
+          events: [],
+        });
+
+        await expect(
+          service.processTransition('inst-1', 'SUBMIT', 1)
+        ).resolves.toBeDefined();
+
+        // pre-check ต้องไม่ถูกเรียก (ไม่มี attachments)
+        expect(instanceRepo.findOne).not.toHaveBeenCalled();
+      });
+
+      it('C1: should throw ServiceUnavailableException (503) when Redlock acquire fails', async () => {
+        // Arrange: state check ผ่าน
+        (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+          id: 'inst-1',
+          currentState: 'PENDING_REVIEW',
+        });
+        // Redlock ล้มเหลว — Redis ล่ม / ไม่สามารถ acquire หลัง retry 3 ครั้ง
+        mockRedlockAcquire.mockRejectedValue(
+          new Error('ExecutionError: unable to achieve quorum')
+        );
+
+        // Act + Assert
+        await expect(
+          service.processTransition(
+            'inst-1',
+            'APPROVE',
+            1,
+            undefined,
+            {},
+            attachmentPublicIds
+          )
+        ).rejects.toThrow(ServiceUnavailableException);
+
+        // DB transaction ต้องไม่เคยเริ่ม (fail-closed before DB work)
+        expect(mockQueryRunner.startTransaction).not.toHaveBeenCalled();
+      });
+
+      it('C2: should rollback and throw when update.affected < expected (temp/foreign attachment)', async () => {
+        // Arrange: state ผ่าน, Redlock ผ่าน, DB transaction เดินไปถึง update
+        (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+          id: 'inst-1',
+          currentState: 'PENDING_APPROVAL',
+        });
+        mockQueryRunner.manager.findOne.mockResolvedValue({
+          id: 'inst-1',
+          currentState: 'PENDING_APPROVAL',
+          status: WorkflowStatus.ACTIVE,
+          definition: { compiled: mockCompiledWorkflow },
+          context: {},
+        });
+        mockQueryRunner.manager.save.mockResolvedValue({ id: 'history-999' });
+        mockDslService.evaluate.mockReturnValue({
+          nextState: 'APPROVED',
+          events: [],
+        });
+        // affected < expected — แปลว่ามีไฟล์บางไฟล์ temp / ของคนอื่น / ผูกไปแล้ว
+        mockQueryRunner.manager.update.mockResolvedValue({ affected: 1 });
+
+        await expect(
+          service.processTransition(
+            'inst-1',
+            'APPROVE',
+            1,
+            undefined,
+            {},
+            ['att-1', 'att-2', 'att-3'] // ขอ 3 ไฟล์ แต่ affected = 1
+          )
+        ).rejects.toThrow(WorkflowException);
+
+        // ต้อง rollback
+        expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
+        // ต้องไม่ commit
+        expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+        // ต้อง release Redlock
+        expect(mockRedlockRelease).toHaveBeenCalled();
+      });
+
+      it('C1: should release Redlock even when transition succeeds', async () => {
+        (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+          id: 'inst-1',
+          currentState: 'PENDING_REVIEW',
+        });
+        mockQueryRunner.manager.findOne.mockResolvedValue({
+          id: 'inst-1',
+          currentState: 'PENDING_REVIEW',
+          status: WorkflowStatus.ACTIVE,
+          definition: { compiled: mockCompiledWorkflow },
+          context: {},
+        });
+        mockQueryRunner.manager.save.mockResolvedValue({ id: 'history-1' });
+        mockQueryRunner.manager.update.mockResolvedValue({ affected: 1 });
+        mockDslService.evaluate.mockReturnValue({
+          nextState: 'APPROVED',
+          events: [],
+        });
+
+        await service.processTransition('inst-1', 'APPROVE', 1, undefined, {}, [
+          'att-1',
+        ]);
+
+        expect(mockRedlockAcquire).toHaveBeenCalledWith(
+          ['lock:wf:transition:inst-1'],
+          10000
+        );
+        expect(mockRedlockRelease).toHaveBeenCalled();
       });
     });
   });

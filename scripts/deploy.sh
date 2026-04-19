@@ -32,32 +32,32 @@ fi
 
 cd "$SOURCE_DIR"
 
-# [1/3] Build images
-echo "[1/3] Building Docker images..."
-echo "  Building backend..."
-docker build -f backend/Dockerfile -t lcbp3-backend:latest . || {
-    echo "✗ Backend build failed!"
-    exit 1
-}
+# เปิด BuildKit เพื่อ layer cache และ parallel build
+export DOCKER_BUILDKIT=1
 
-echo "  Building frontend (API: $API_URL)..."
+# [1/3] Build images (parallel)
+echo "[1/3] Building Docker images (parallel)..."
+
+docker build -f backend/Dockerfile -t lcbp3-backend:latest . &
+BACKEND_PID=$!
+
 docker build -f frontend/Dockerfile \
     --build-arg NEXT_PUBLIC_API_URL="$API_URL" \
     --build-arg AUTH_URL="$AUTH_URL" \
-    -t lcbp3-frontend:latest . || {
-    echo "✗ Frontend build failed!"
-    exit 1
-}
+    -t lcbp3-frontend:latest . &
+FRONTEND_PID=$!
+
+wait $BACKEND_PID  || { echo "✗ Backend build failed!";  exit 1; }
+wait $FRONTEND_PID || { echo "✗ Frontend build failed!"; exit 1; }
 echo "✓ Images built"
 
 # [2/3] Start / restart stack with new images
 echo "[2/3] Starting application stack..."
-docker compose -f "$COMPOSE_FILE" up -d --force-recreate
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate
 echo "✓ Stack started"
 
 # [3/3] Health check
 echo "[3/3] Waiting for backend to be healthy..."
-sleep 10
 for i in $(seq 1 30); do
     if docker exec backend curl -sf http://localhost:3000/health > /dev/null 2>&1 || \
        docker exec backend curl -sf http://localhost:3000/ping > /dev/null 2>&1; then
@@ -66,7 +66,7 @@ for i in $(seq 1 30); do
     fi
     if [ "$i" -eq 30 ]; then
         echo "✗ Backend health check failed after 60s"
-        docker compose -f "$COMPOSE_FILE" logs backend --tail=50
+        docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs backend --tail=50
         exit 1
     fi
     echo "  Waiting... ($i/30)"

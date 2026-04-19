@@ -21,7 +21,8 @@
 ### Session 2026-04-19
 - **Q:** สถานะ Workflow ใดบ้างที่อนุญาตให้อัปโหลด Step-specific Attachment ได้? → **A:** เฉพาะสถานะ Active-decision เท่านั้น (`PENDING_REVIEW`, `PENDING_APPROVAL`) — ห้ามอัปโหลดในสถานะ Terminal (`APPROVED`, `REJECTED`, `CLOSED`)
 - **Q:** หาก Redis Redlock ล้มเหลวระหว่าง Transition ระบบควรทำอย่างไร? → **A:** Fail-closed — Retry 3 ครั้ง (500ms exponential backoff) แล้ว throw HTTP 503 "Service temporarily unavailable" เพื่อรักษาความถูกต้องของข้อมูล
-- **Q:** Module ใดบ้างที่ต้องรองรับ Step-specific Attachments ใน v1.8.6? → **A:** เฉพาะ Module ที่ผ่าน Workflow Engine: **RFA, Transmittal, Circulation** — ไม่รวม Correspondence (ใช้ Circulation เป็น vehicle อยู่แล้ว หลีกเลี่ยงซ้ำซ้อน)
+- **Q:** Module ใดบ้างที่ต้องรองรับ Step-specific Attachments ใน v1.8.6? → **A:** ~~เฉพาะ Module ที่ผ่าน Workflow Engine: **RFA, Transmittal, Circulation** — ไม่รวม Correspondence~~ **[REVERSED ในรอบ refinement — ดูด้านล่าง]**
+- **Q (Revised 2026-04-19 v2):** Module scope สุดท้ายคืออะไร? → **A:** **RFA, Transmittal, Circulation, Correspondence ทั้ง 4 module** — เหตุผล: Correspondence detail page มีการ integrate แล้วในการ implement รอบก่อน (T014/T020/T035) การ revert จะสร้าง regression โดยไม่จำเป็น + Correspondence มี workflow instance ของตัวเองผ่าน `CORRESPONDENCE_FLOW` DSL ไม่ได้ routing ผ่าน Circulation 100%
 - **Q:** Performance target ของ Upload + Transition API คืออะไร? → **A:** P95 ≤ 5 วินาที สำหรับ file ≤ 10MB (ClamAV scan + Redlock + DB transaction included)
 - **Q:** Definition of Done สำหรับ REQ-01 ถึง REQ-06 คืออะไร? → **A:** กำหนด Observable Outcome 1 ประโยคต่อ REQ ที่ตรวจสอบได้โดย QA/Product Owner โดยไม่ต้องอ่าน code
 
@@ -134,7 +135,8 @@
   - *Action:* Refactor Header เป็น Integrated Banner และเพิ่ม Tab Workflow Lifecycle
 - `frontend/app/(dashboard)/circulation/[uuid]/page.tsx`
   - *Action:* Refactor Header เป็น Integrated Banner และเพิ่ม Tab Workflow Lifecycle
-- **หมายเหตุ (Out of Scope v1.8.6):** `correspondences/[uuid]/page.tsx` — ไม่รวมใน Scope นี้ Correspondence ใช้ Circulation เป็น Routing Vehicle อยู่แล้ว
+- `frontend/app/(dashboard)/correspondences/[uuid]/page.tsx`
+  - *Action:* Refactor Header เป็น Integrated Banner และเพิ่ม Tab Workflow Lifecycle (Re-included via Clarify v2 2026-04-19)
 - `frontend/components/workflow/workflow-visualizer.tsx` (สร้างใหม่)
   - *Action:* พัฒนาการแสดงผล Vertical Timeline พร้อมระบบสี Active/Inactive
 - `frontend/components/common/file-preview-modal.tsx` (สร้างใหม่)

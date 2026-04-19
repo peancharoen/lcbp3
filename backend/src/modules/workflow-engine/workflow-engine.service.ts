@@ -1,11 +1,21 @@
 // File: src/modules/workflow-engine/workflow-engine.service.ts
 
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  Logger,
+  ConflictException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { NotFoundException, WorkflowException } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
+// ADR-021 Clarify Q2: Redis Redlock for transition Fail-closed (Retry 3x → 503)
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import Redlock, { Lock } from 'redlock';
 // Entities
 import { WorkflowDefinition } from './entities/workflow-definition.entity';
 import { WorkflowHistory } from './entities/workflow-history.entity';
@@ -44,6 +54,13 @@ export interface TransitionResult {
 @Injectable()
 export class WorkflowEngineService {
   private readonly logger = new Logger(WorkflowEngineService.name);
+  private readonly redlock: Redlock;
+
+  // ADR-021 Clarify Q1: สถานะ workflow ที่อนุญาตให้อัปโหลด Step-attachment
+  private static readonly UPLOAD_ALLOWED_STATES = new Set<string>([
+    'PENDING_REVIEW',
+    'PENDING_APPROVAL',
+  ]);
 
   constructor(
     @InjectRepository(WorkflowDefinition)
@@ -58,8 +75,18 @@ export class WorkflowEngineService {
     private readonly dslService: WorkflowDslService,
     private readonly eventService: WorkflowEventService, // [NEW] Inject Service
     private readonly dataSource: DataSource, // ใช้สำหรับ Transaction
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache // ADR-021 T024: History cache
-  ) {}
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache, // ADR-021 T024: History cache
+    @InjectRedis() private readonly redis: Redis // ADR-021 Clarify Q2: Redlock
+  ) {
+    // ADR-021 Clarify Q2 (C1): Redlock Fail-closed
+    // Retry 3 ครั้ง × 500ms เพิ่ม jitter → ถ้ายังไม่ได้ throw HTTP 503
+    this.redlock = new Redlock([this.redis], {
+      driftFactor: 0.01,
+      retryCount: 3,
+      retryDelay: 500,
+      retryJitter: 100,
+    });
+  }
 
   // =================================================================
   // [PART 1] Definition Management (Phase 6A)
@@ -305,6 +332,53 @@ export class WorkflowEngineService {
     // ADR-021: publicIds ของไฟล์แนบประจำ Step นี้ (Two-Phase upload ก่อนแล้ว)
     attachmentPublicIds?: string[]
   ) {
+    const hasAttachments =
+      attachmentPublicIds !== undefined && attachmentPublicIds.length > 0;
+
+    // ==============================================================
+    // ADR-021 Clarify Q1 (C3): ตรวจสถานะก่อน acquire Redlock
+    // อนุญาตให้แนบไฟล์เฉพาะในสถานะ PENDING_REVIEW / PENDING_APPROVAL
+    // ==============================================================
+    if (hasAttachments) {
+      const instancePreCheck = await this.instanceRepo.findOne({
+        where: { id: instanceId },
+        select: ['id', 'currentState'],
+      });
+      if (!instancePreCheck) {
+        throw new NotFoundException('Workflow Instance', instanceId);
+      }
+      if (
+        !WorkflowEngineService.UPLOAD_ALLOWED_STATES.has(
+          instancePreCheck.currentState
+        )
+      ) {
+        throw new ConflictException({
+          userMessage: 'ไม่สามารถอัปโหลดไฟล์ในสถานะนี้ได้',
+          recoveryAction:
+            'อนุญาตเฉพาะสถานะ PENDING_REVIEW หรือ PENDING_APPROVAL เท่านั้น',
+          currentState: instancePreCheck.currentState,
+        });
+      }
+    }
+
+    // ==============================================================
+    // ADR-021 Clarify Q2 (C1): Acquire Redlock (Fail-closed)
+    // Retry 3x × 500ms + jitter → ถ้ายังไม่ได้ throw HTTP 503
+    // ==============================================================
+    const lockKey = `lock:wf:transition:${instanceId}`;
+    let lock: Lock;
+    try {
+      lock = await this.redlock.acquire([lockKey], 10000); // 10s TTL
+    } catch (err) {
+      this.logger.error(
+        `Redlock acquire failed after retries for ${instanceId}: ${(err as Error).message}`
+      );
+      throw new ServiceUnavailableException({
+        userMessage: 'ระบบยุ่งชั่วคราว กรุณาลองใหม่ภายหลัง',
+        recoveryAction: 'รอสักครู่แล้วลองใหม่',
+      });
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -375,13 +449,38 @@ export class WorkflowEngineService {
       });
       const savedHistory = await queryRunner.manager.save(history);
 
-      // ADR-021: ผูกไฟล์แนบประจำ Step นี้ (ทำในตัว Transaction เดียวกัน)
-      if (attachmentPublicIds && attachmentPublicIds.length > 0) {
-        await queryRunner.manager.update(
+      // ==============================================================
+      // ADR-021 (C2): Link attachments พร้อม guard 3 ชั้น
+      //   1. isTemporary = false       — Two-Phase commit แล้ว (ADR-016)
+      //   2. uploadedByUserId = userId — ownership check (กัน attach ไฟล์คนอื่น)
+      //   3. workflowHistoryId IS NULL — ยังไม่เคยผูกกับ step อื่น
+      // ==============================================================
+      if (hasAttachments) {
+        const updateResult = await queryRunner.manager.update(
           Attachment,
-          { publicId: In(attachmentPublicIds) },
+          {
+            publicId: In(attachmentPublicIds),
+            isTemporary: false,
+            uploadedByUserId: userId,
+            workflowHistoryId: null,
+          },
           { workflowHistoryId: savedHistory.id }
         );
+
+        const expected = attachmentPublicIds.length;
+        const actual = updateResult.affected ?? 0;
+        if (actual !== expected) {
+          throw new WorkflowException(
+            'INVALID_ATTACHMENTS',
+            `Attachment link mismatch: expected ${expected}, linked ${actual}`,
+            'ไฟล์แนบบางไฟล์ไม่สามารถผูกกับขั้นตอนนี้ได้',
+            [
+              'ตรวจสอบว่าไฟล์อัปโหลดสำเร็จ (ไม่ใช่ temp)',
+              'ตรวจสอบว่าคุณเป็นเจ้าของไฟล์ทุกไฟล์',
+              'ตรวจสอบว่าไฟล์ยังไม่เคยถูกผูกกับ step อื่น',
+            ]
+          );
+        }
       }
 
       await queryRunner.commitTransaction();
@@ -426,6 +525,14 @@ export class WorkflowEngineService {
       throw err;
     } finally {
       await queryRunner.release();
+      // ADR-021 C1: ปล่อย Redlock เสมอ (non-blocking หาก release ผิดพลาด)
+      lock.release().catch((e: unknown) => {
+        this.logger.warn(
+          `Redlock release failed for ${instanceId} (may have expired): ${
+            e instanceof Error ? e.message : String(e)
+          }`
+        );
+      });
     }
   }
 

@@ -271,4 +271,4 @@ for (let attempt = 1; attempt <= MAX_LOCK_RETRIES; attempt++) {
 | 9 | File preview security | `Content-Disposition: inline` + permission check | Direct storage URL |
 | 10 | Redlock failure mode | Fail-closed: Retry 3x (500ms backoff) → HTTP 503 | Fail-open |
 | 11 | Upload-permitted states | `PENDING_REVIEW`, `PENDING_APPROVAL` only | All non-terminal states |
-| 12 | Module scope (v1.8.6) | RFA, Transmittal, Circulation | Including Correspondence |
+| 12 | Module scope (v1.8.6) | **RFA, Transmittal, Circulation, Correspondence** (v2 Revised 2026-04-19) | ~~Excluding Correspondence~~ |

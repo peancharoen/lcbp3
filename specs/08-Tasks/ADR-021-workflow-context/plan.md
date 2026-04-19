@@ -110,10 +110,10 @@ frontend/hooks/
 └── use-workflow-action.ts                           [NEW — upload + transition orchestration]
 
 # 🟡 Frontend — Page Refactors (use new components)
-frontend/app/(dashboard)/rfas/[uuid]/page.tsx           [MODIFY — integrate IntegratedBanner + WorkflowLifecycle]
-frontend/app/(dashboard)/transmittals/[uuid]/page.tsx    [MODIFY — same as RFA]
-frontend/app/(dashboard)/circulation/[uuid]/page.tsx     [MODIFY — same as RFA]
-# ⛔ OUT OF SCOPE (v1.8.6): correspondences/[uuid]/page.tsx — Correspondence ใช้ Circulation เป็น Routing Vehicle (Clarify Q3)
+frontend/app/(dashboard)/rfas/[uuid]/page.tsx              [MODIFY — integrate IntegratedBanner + WorkflowLifecycle]
+frontend/app/(dashboard)/transmittals/[uuid]/page.tsx       [MODIFY — same as RFA]
+frontend/app/(dashboard)/circulation/[uuid]/page.tsx        [MODIFY — same as RFA]
+frontend/app/(dashboard)/correspondences/[uuid]/page.tsx    [MODIFY — same as RFA] (Re-included v2 2026-04-19)
 ```
 
 ---
@@ -199,7 +199,7 @@ Response: WorkflowHistoryItem[] with nested attachments[] per step
 5. Handle HTTP 503 (Redlock unavailable) → แสดง toast "ระบบยุ่ง กรุณาลองใหม่"
 6. Invalidate TanStack Query cache for the document + workflow instance
 
-**Modules in scope (v1.8.6):** RFA, Transmittal, Circulation — ไม่รวม Correspondence (Clarify Q3)
+**Modules in scope (v1.8.6):** RFA, Transmittal, Circulation, Correspondence (4 modules) — Clarify Q3 v2 (2026-04-19 revised)
 
 ---
 
@@ -231,7 +231,7 @@ Response: WorkflowHistoryItem[] with nested attachments[] per step
 | F7 | Refactor RFA detail page — integrate new components | `rfas/[uuid]/page.tsx` | F3–F6 |
 | F8 | Refactor Transmittal detail page — integrate new components | `transmittals/[uuid]/page.tsx` | F3–F6 |
 | F9 | Refactor Circulation detail page — integrate new components | `circulation/[uuid]/page.tsx` | F3–F6 |
-| ~~F10~~ | ~~Correspondence~~ | **OUT OF SCOPE v1.8.6** — Clarify Q3 | — |
+| F10 | Refactor Correspondence detail page — integrate new components | `correspondences/[uuid]/page.tsx` | F3–F6 |
 
 ### 🟢 GUIDELINES (after F7/F8)
 
