@@ -144,13 +144,25 @@ cd frontend && pnpm test --run hooks/use-workflow-action
 - [x] T029 [US3] Wire `useWorkflowAction` into `IntegratedBanner` action buttons in `frontend/components/workflow/integrated-banner.tsx` — `onAction` callback receives `(action, comment, attachmentPublicIds[])` and delegates to hook's `execute()` method; show loading spinner during `isPending`
 - [x] T030 [US3] Add `WorkflowTransitionGuard` unit tests in `backend/src/modules/workflow-engine/guards/workflow-transition.guard.spec.ts` — test all RBAC levels: (1) Superadmin pass, (2) Org Admin same-org pass, (3) Level 2.5 contract membership — user org in same contract pass / cross-contract org → ForbiddenException, (4) Assigned Handler pass, (5) unauthorized user → ForbiddenException
 - [x] T031 [US3] Add extended `processTransition()` unit tests in `backend/src/modules/workflow-engine/workflow-engine.service.spec.ts` — test: attachments linked to correct historyId, non-committed attachment rejected, idempotent replay returns cached result
-- [x] T031a [US3] Add new unit tests in `workflow-engine.service.spec.ts` — 6 test cases — **DONE 2026-04-19** (15/15 tests passing):
+- [x] T031a [US3] Add new unit tests in `workflow-engine.service.spec.ts` — 7 test cases — **DONE 2026-04-19** (16/16 tests passing):
     - C3: upload in `APPROVED` state → `ConflictException` 409
     - C3: upload in `REJECTED` state → `ConflictException` 409
     - C3: skip state check when no attachments (backward compat)
     - C1: Redlock acquire fail → `ServiceUnavailableException` 503 (**ไม่ใช่ 409**)
     - C2: `affected < expected` → `WorkflowException` + rollback + Redlock release
+    - **H1: TOCTOU state change between pre-check and pessimistic lock → `ConflictException` 409 + rollback** (code review 2026-04-19)
     - C1: Redlock release สำเร็จแม้ transition ไม่โยนค่า
+- [x] T031b [US3] **Code Review fixes 2026-04-19** — 9 issues resolved (H1 + M1-M3 + L1-L2 + S1-S3):
+    - **H1** Backend: State check ซ้ำภายใน pessimistic lock (`workflow-engine.service.ts:419-429`) — ปิด TOCTOU race
+    - **M1** Frontend: 403 handler ใช้ backend message แทน hardcoded string (`use-workflow-action.ts:80-86`)
+    - **M2** Backend: Migrate `@nestjs/common` ConflictException + ServiceUnavailableException → custom `common/exceptions` (ADR-007 layered payload) — เพิ่ม `ErrorType.SERVICE_UNAVAILABLE` (503) + `ServiceUnavailableException` ใน `base.exception.ts`
+    - **M3** Frontend: Reset idempotency key on 409 (`use-workflow-action.ts:71-78`) — preserve บน 503 เท่านั้น
+    - **L1** k6 script: แทน remote `jslib.k6.io` import ด้วย `k6/crypto` built-in UUID v4 generator — ไม่ต้องมีอินเทอร์เน็ตตอนรัน
+    - **L2** Backend: ลบ redundant `updatedContext` alias + `eventsToDispatch` outer declaration — ใช้ `context`/`evaluation.events` โดยตรง; ลบ unused `RawEvent` import
+    - **S1** Backend: Prometheus metrics สำหรับ Redlock observability — `workflow_redlock_acquire_duration_ms` (Histogram labeled by outcome) + `workflow_redlock_acquire_failures_total` (Counter); register ใน module, inject via `@InjectMetric`
+    - **S2** Backend: เพิ่ม comment ใน pre-check เพื่อชี้แจงว่า `WorkflowInstance.id` = CHAR(36) UUID direct PK (ไม่ใช่ UuidBaseEntity pattern)
+    - **S3** Frontend: Harden `isApiErrorResponse` type guard ป้องกัน `{ error: null }` edge case
+    - Tests: Backend 16/16 + Frontend 8/8 passing
 
 **Checkpoint**: ✅ **VERIFIED 2026-04-19** — POST transition with `attachmentPublicIds` สำเร็จ; `attachment.workflow_history_id` ถูก set; duplicate `Idempotency-Key` → cached response; unauthorized user → 403; Upload in Terminal state → 409 (C3); Redis failure → 503 fail-closed (C1); temp/foreign attachment → rollback (C2). `workflow-engine.service.spec.ts`: 15/15 tests passing.
 

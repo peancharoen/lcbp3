@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MigrationController } from './migration.controller';
 import { MigrationService } from './migration.service';
 import { ImportCorrespondenceDto } from './dto/import-correspondence.dto';
+import { User } from '../user/entities/user.entity';
 
 describe('MigrationController', () => {
   let controller: MigrationController;
@@ -32,17 +33,29 @@ describe('MigrationController', () => {
 
   it('should call importCorrespondence on service', async () => {
     const dto: ImportCorrespondenceDto = {
-      document_number: 'DOC-001',
+      documentNumber: 'DOC-001',
       subject: 'Legacy Record',
       category: 'Correspondence',
-      source_file_path: '/staging_ai/test.pdf',
-      migrated_by: 'SYSTEM_IMPORT',
-      batch_id: 'batch1',
-      project_id: 1,
+      sourceFilePath: '/staging_ai/test.pdf',
+      migratedBy: 'SYSTEM_IMPORT',
+      batchId: 'batch1',
+      projectId: 1,
     };
 
     const idempotencyKey = 'key123';
-    const user = { userId: 5 };
+    const user: User = {
+      user_id: 5,
+      username: 'testuser',
+      password: 'hashedpassword',
+      email: 'test@example.com',
+      publicId: '019505a1-7c3e-7000-8000-abc123def456',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true,
+      failedAttempts: 0,
+      primaryOrganizationPublicId: undefined,
+      generatePublicId: jest.fn(),
+    };
 
     const result = await controller.importCorrespondence(
       dto,

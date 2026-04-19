@@ -12,13 +12,13 @@ import type { ApiErrorResponse } from '@/lib/api/client';
 import type { WorkflowTransitionWithAttachmentsDto } from '@/types/dto/workflow-engine/workflow-engine.dto';
 
 // Type guard — ตรวจสอบว่า error ที่ได้มาเป็น ApiErrorResponse (จาก parseApiError interceptor)
+// S3: ป้องกัน edge case `{ error: null }` ซึ่ง typeof null === 'object' แต่ destructure จะ throw
 function isApiErrorResponse(err: unknown): err is ApiErrorResponse {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'error' in err &&
-    typeof (err as ApiErrorResponse).error === 'object'
-  );
+  if (typeof err !== 'object' || err === null || !('error' in err)) {
+    return false;
+  }
+  const inner = (err as { error: unknown }).error;
+  return typeof inner === 'object' && inner !== null;
 }
 
 export function useWorkflowAction(instanceId: string | undefined) {
@@ -69,15 +69,17 @@ export function useWorkflowAction(instanceId: string | undefined) {
 
         // Clarify Q1: 409 Conflict (ไม่อยู่ในสถานะที่อนุญาตให้อัปโหลด)
         if (statusCode === 409) {
+          // M3: reset idempotency key — user intent กับ state เดิมใช้ไม่ได้แล้ว
+          setIdempotencyKey(uuidv4());
           toast.error(message || 'ไม่สามารถดำเนินการในสถานะนี้ได้', {
             description: recoveryActions?.[0],
           });
           return;
         }
 
-        // 403 Forbidden — ไม่มีสิทธิ์
+        // 403 Forbidden — ไม่มีสิทธิ์ (M1: ใช้ message จาก backend เพื่อคง context)
         if (statusCode === 403) {
-          toast.error('คุณไม่มีสิทธิ์ดำเนินการในขั้นตอนนี้', {
+          toast.error(message || 'คุณไม่มีสิทธิ์ดำเนินการในขั้นตอนนี้', {
             description: recoveryActions?.[0],
           });
           return;

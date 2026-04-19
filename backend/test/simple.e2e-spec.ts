@@ -1,6 +1,6 @@
 import _request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { _RoutingTemplate } from '../src/modules/correspondence/entities/routing-template.entity';
+import { RoutingTemplate } from '../src/modules/correspondence/entities/routing-template.entity';
 
 import { Test, TestingModule } from '@nestjs/testing';
 

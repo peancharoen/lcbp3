@@ -10,10 +10,15 @@ import { of, lastValueFrom } from 'rxjs';
 import { Request } from 'express';
 import type { Socket } from 'net';
 
+type MockAuditLogRepo = {
+  create: jest.Mock;
+  save: jest.Mock;
+};
+
 describe('AuditLogInterceptor', () => {
   let interceptor: AuditLogInterceptor;
   let reflector: Reflector;
-  let auditLogRepo: jest.Mocked<Partial<typeof AuditLog.prototype.constructor>>;
+  let auditLogRepo: MockAuditLogRepo;
 
   const createMockUser = (userId: number): User => {
     const user = new User();
@@ -55,7 +60,7 @@ describe('AuditLogInterceptor', () => {
   });
 
   beforeEach(async () => {
-    const mockRepository = {
+    const mockRepository: MockAuditLogRepo = {
       create: jest.fn().mockReturnValue({}),
       save: jest.fn().mockResolvedValue({}),
     };
@@ -78,7 +83,7 @@ describe('AuditLogInterceptor', () => {
 
     interceptor = module.get<AuditLogInterceptor>(AuditLogInterceptor);
     reflector = module.get<Reflector>(Reflector);
-    auditLogRepo = module.get(getRepositoryToken(AuditLog));
+    auditLogRepo = module.get<MockAuditLogRepo>(getRepositoryToken(AuditLog));
   });
 
   afterEach(() => {

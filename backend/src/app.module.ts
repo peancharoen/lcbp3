@@ -52,6 +52,7 @@ import { SearchModule } from './modules/search/search.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { MigrationModule } from './modules/migration/migration.module';
 import { AiModule } from './modules/ai/ai.module';
+import { RagModule } from './modules/rag/rag.module';
 
 @Module({
   imports: [
@@ -189,6 +190,7 @@ import { AiModule } from './modules/ai/ai.module';
     AuditLogModule,
     MigrationModule,
     AiModule,
+    RagModule,
   ],
   controllers: [AppController],
   providers: [

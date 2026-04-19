@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule'; // ✅ Import
 import { FileStorageService } from './file-storage.service.js';
 import { FileStorageController } from './file-storage.controller.js';
@@ -12,6 +13,7 @@ import { UserModule } from '../../modules/user/user.module';
     TypeOrmModule.forFeature([Attachment]),
     ScheduleModule.forRoot(), // ✅ เปิดใช้งาน Cron Job],
     UserModule,
+    BullModule.registerQueue({ name: 'rag:ocr' }),
   ],
   controllers: [FileStorageController],
   providers: [

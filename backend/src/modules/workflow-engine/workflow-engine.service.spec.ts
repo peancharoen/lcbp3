@@ -8,7 +8,6 @@ jest.mock('redlock', () =>
   }))
 );
 
-import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkflowEngineService } from './workflow-engine.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -23,7 +22,13 @@ import { Attachment } from '../../common/file-storage/entities/attachment.entity
 import { WorkflowDslService } from './workflow-dsl.service';
 import { WorkflowEventService } from './workflow-event.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { NotFoundException, WorkflowException } from '../../common/exceptions';
+// ADR-007: \u0e43\u0e0a\u0e49 custom exceptions \u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14\u0e08\u0e32\u0e01 common/exceptions (\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e49 @nestjs/common built-in)
+import {
+  NotFoundException,
+  WorkflowException,
+  ConflictException,
+  ServiceUnavailableException,
+} from '../../common/exceptions';
 import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dto';
 
 // Token ของ @nestjs-modules/ioredis — default Redis connection
@@ -130,6 +135,20 @@ describe('WorkflowEngineService', () => {
           provide: DEFAULT_REDIS_TOKEN,
           useValue: {
             // ไม่จำเป็นต้องมี method จริง เพราะ Redlock ถูก mock แล้ว
+          },
+        },
+        // ADR-021 S1: Prometheus metrics mocks
+        {
+          provide: 'PROM_METRIC_WORKFLOW_REDLOCK_ACQUIRE_DURATION_MS',
+          useValue: {
+            labels: jest.fn().mockReturnThis(),
+            observe: jest.fn(),
+          },
+        },
+        {
+          provide: 'PROM_METRIC_WORKFLOW_REDLOCK_ACQUIRE_FAILURES_TOTAL',
+          useValue: {
+            inc: jest.fn(),
           },
         },
       ],
@@ -494,6 +513,45 @@ describe('WorkflowEngineService', () => {
         expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
         // ต้อง release Redlock
         expect(mockRedlockRelease).toHaveBeenCalled();
+      });
+
+      it('H1: should throw ConflictException when state changes between pre-check and pessimistic lock (TOCTOU)', async () => {
+        // Arrange: pre-check พบ PENDING_REVIEW (stale read)
+        (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+          id: 'inst-1',
+          currentState: 'PENDING_REVIEW',
+        });
+        // แต่ภายใน transaction (pessimistic lock) state เปลี่ยนเป็น APPROVED แล้ว
+        // (simulate: another request transition ไปก่อนที่ Redlock จะ release)
+        mockQueryRunner.manager.findOne.mockResolvedValue({
+          id: 'inst-1',
+          currentState: 'APPROVED', // ← เปลี่ยนไปแล้ว
+          status: WorkflowStatus.ACTIVE,
+          definition: { compiled: mockCompiledWorkflow },
+          context: {},
+        });
+        mockDslService.evaluate.mockReturnValue({
+          nextState: 'APPROVED',
+          events: [],
+        });
+
+        await expect(
+          service.processTransition(
+            'inst-1',
+            'APPROVE',
+            1,
+            undefined,
+            {},
+            attachmentPublicIds
+          )
+        ).rejects.toThrow(ConflictException);
+
+        // ต้อง rollback transaction + release Redlock
+        expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
+        expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+        expect(mockRedlockRelease).toHaveBeenCalled();
+        // attachment update ต้องไม่ถูกเรียก
+        expect(mockQueryRunner.manager.update).not.toHaveBeenCalled();
       });
 
       it('C1: should release Redlock even when transition succeeds', async () => {

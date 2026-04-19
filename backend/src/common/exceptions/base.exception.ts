@@ -14,6 +14,7 @@ export enum ErrorType {
   DATABASE_ERROR = 'DATABASE_ERROR',
   EXTERNAL_SERVICE = 'EXTERNAL_SERVICE',
   INFRASTRUCTURE = 'INFRASTRUCTURE',
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE', // 503 — ระบบไม่พร้อมให้บริการชั่วคราว (Redlock fail, Redis down)
 }
 
 // ระดับความรุนแรงของ Error
@@ -49,6 +50,8 @@ export function getStatusCode(type: ErrorType): number {
     case ErrorType.EXTERNAL_SERVICE:
     case ErrorType.INFRASTRUCTURE:
       return HttpStatus.INTERNAL_SERVER_ERROR;
+    case ErrorType.SERVICE_UNAVAILABLE:
+      return HttpStatus.SERVICE_UNAVAILABLE; // 503
     default:
       return HttpStatus.INTERNAL_SERVER_ERROR;
   }
@@ -230,6 +233,30 @@ export class DatabaseException extends BaseException {
       ErrorSeverity.HIGH,
       details,
       ['ลองใหม่ภายหลัง', 'แจ้งผู้ดูแลระบบหากยังพบปัญหา']
+    );
+  }
+}
+
+// Service Unavailable (503) - ระบบไม่พร้อมให้บริการชั่วคราว
+// ADR-021 C1: Redlock Fail-closed — retry ครบแล้ว ยัง acquire ไม่ได้
+export class ServiceUnavailableException extends BaseException {
+  constructor(
+    code: string,
+    message: string,
+    userMessage?: string,
+    recoveryActions?: string[]
+  ) {
+    super(
+      ErrorType.SERVICE_UNAVAILABLE,
+      code,
+      message,
+      userMessage || 'ระบบยุ่งชั่วคราว กรุณาลองใหม่ภายหลัง',
+      ErrorSeverity.HIGH,
+      undefined,
+      recoveryActions || [
+        'รอสักครู่แล้วลองใหม่',
+        'แจ้งผู้ดูแลระบบหากยังพบปัญหา',
+      ]
     );
   }
 }

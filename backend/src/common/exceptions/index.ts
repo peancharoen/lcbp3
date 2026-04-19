@@ -14,6 +14,7 @@ export {
   WorkflowException,
   SystemException,
   DatabaseException,
+  ServiceUnavailableException,
 } from './base.exception';
 
 export type { ValidationErrorDetail, ErrorPayload } from './base.exception';

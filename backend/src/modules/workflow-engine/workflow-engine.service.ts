@@ -1,21 +1,23 @@
 // File: src/modules/workflow-engine/workflow-engine.service.ts
 
-import {
-  Injectable,
-  Inject,
-  Logger,
-  ConflictException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { NotFoundException, WorkflowException } from '../../common/exceptions';
+// ADR-007: ใช้ custom exceptions ที่ extends BaseException เพื่อให้ payload ตรง layered structure
+import {
+  NotFoundException,
+  WorkflowException,
+  ConflictException,
+  ServiceUnavailableException,
+} from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 // ADR-021 Clarify Q2: Redis Redlock for transition Fail-closed (Retry 3x → 503)
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import Redlock, { Lock } from 'redlock';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import { Counter, Histogram } from 'prom-client';
 // Entities
 import { WorkflowDefinition } from './entities/workflow-definition.entity';
 import { WorkflowHistory } from './entities/workflow-history.entity';
@@ -30,11 +32,7 @@ import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dt
 import { EvaluateWorkflowDto } from './dto/evaluate-workflow.dto';
 import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto';
 import { WorkflowHistoryItemDto } from './dto/workflow-history-item.dto';
-import {
-  CompiledWorkflow,
-  RawEvent,
-  WorkflowDslService,
-} from './workflow-dsl.service';
+import { CompiledWorkflow, WorkflowDslService } from './workflow-dsl.service';
 import { WorkflowEventService } from './workflow-event.service'; // [NEW] Import Event Service
 
 // Legacy Interface (Backward Compatibility)
@@ -76,7 +74,12 @@ export class WorkflowEngineService {
     private readonly eventService: WorkflowEventService, // [NEW] Inject Service
     private readonly dataSource: DataSource, // ใช้สำหรับ Transaction
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache, // ADR-021 T024: History cache
-    @InjectRedis() private readonly redis: Redis // ADR-021 Clarify Q2: Redlock
+    @InjectRedis() private readonly redis: Redis, // ADR-021 Clarify Q2: Redlock
+    // ADR-021 S1: Redlock observability metrics
+    @InjectMetric('workflow_redlock_acquire_duration_ms')
+    private readonly redlockAcquireDuration: Histogram<string>,
+    @InjectMetric('workflow_redlock_acquire_failures_total')
+    private readonly redlockAcquireFailures: Counter<string>
   ) {
     // ADR-021 Clarify Q2 (C1): Redlock Fail-closed
     // Retry 3 ครั้ง × 500ms เพิ่ม jitter → ถ้ายังไม่ได้ throw HTTP 503
@@ -340,6 +343,8 @@ export class WorkflowEngineService {
     // อนุญาตให้แนบไฟล์เฉพาะในสถานะ PENDING_REVIEW / PENDING_APPROVAL
     // ==============================================================
     if (hasAttachments) {
+      // ADR-021 S2: `id` ใน WorkflowInstance เป็น CHAR(36) UUID direct PK
+      // (ไม่ใช่ pattern UuidBaseEntity ที่ INT+publicId) — ADR-019 compliant เพราะ UUID ถูก expose โดยตรง
       const instancePreCheck = await this.instanceRepo.findOne({
         where: { id: instanceId },
         select: ['id', 'currentState'],
@@ -352,12 +357,15 @@ export class WorkflowEngineService {
           instancePreCheck.currentState
         )
       ) {
-        throw new ConflictException({
-          userMessage: 'ไม่สามารถอัปโหลดไฟล์ในสถานะนี้ได้',
-          recoveryAction:
+        throw new ConflictException(
+          'WORKFLOW_STATE_LOCKED',
+          `Upload rejected: currentState=${instancePreCheck.currentState} not in UPLOAD_ALLOWED_STATES`,
+          'ไม่สามารถอัปโหลดไฟล์ในสถานะนี้ได้',
+          [
             'อนุญาตเฉพาะสถานะ PENDING_REVIEW หรือ PENDING_APPROVAL เท่านั้น',
-          currentState: instancePreCheck.currentState,
-        });
+            'รีเฟรชหน้าแล้วตรวจสถานะล่าสุด',
+          ]
+        );
       }
     }
 
@@ -367,24 +375,33 @@ export class WorkflowEngineService {
     // ==============================================================
     const lockKey = `lock:wf:transition:${instanceId}`;
     let lock: Lock;
+    const acquireStart = Date.now();
     try {
       lock = await this.redlock.acquire([lockKey], 10000); // 10s TTL
+      // S1: บันทึก duration กรณี acquire สำเร็จ
+      this.redlockAcquireDuration
+        .labels({ outcome: 'success' })
+        .observe(Date.now() - acquireStart);
     } catch (err) {
+      // S1: บันทึก duration + failure counter
+      this.redlockAcquireDuration
+        .labels({ outcome: 'failure' })
+        .observe(Date.now() - acquireStart);
+      this.redlockAcquireFailures.inc();
       this.logger.error(
         `Redlock acquire failed after retries for ${instanceId}: ${(err as Error).message}`
       );
-      throw new ServiceUnavailableException({
-        userMessage: 'ระบบยุ่งชั่วคราว กรุณาลองใหม่ภายหลัง',
-        recoveryAction: 'รอสักครู่แล้วลองใหม่',
-      });
+      throw new ServiceUnavailableException(
+        'WORKFLOW_LOCK_UNAVAILABLE',
+        `Redlock acquire failed after 3 retries on lock:wf:transition:${instanceId}`,
+        'ระบบยุ่งชั่วคราว กรุณาลองใหม่ภายหลัง',
+        ['รอสักครู่แล้วลองใหม่', 'แจ้งผู้ดูแลระบบหากยังพบปัญหา']
+      );
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
-
-    let eventsToDispatch: RawEvent[] = [];
-    let updatedContext: Record<string, unknown> = {};
 
     try {
       // 1. Lock Instance เพื่อป้องกัน Race Condition (Pessimistic Write Lock)
@@ -404,6 +421,22 @@ export class WorkflowEngineService {
           `Workflow is not active (Status: ${instance.status})`,
           'Workflow ไม่อยู่ในสถานะ Active',
           ['ตรวจสอบสถานะของ Workflow']
+        );
+      }
+
+      // ==============================================================
+      // ADR-021 (H1): Re-check state ภายใต้ pessimistic lock — ปิด TOCTOU race
+      // pre-check ด้านหน้าเป็น optimistic fast-fail; เช็กที่นี่เป็น authoritative
+      // ==============================================================
+      if (
+        hasAttachments &&
+        !WorkflowEngineService.UPLOAD_ALLOWED_STATES.has(instance.currentState)
+      ) {
+        throw new ConflictException(
+          'WORKFLOW_STATE_CHANGED',
+          `TOCTOU: state changed to ${instance.currentState} under pessimistic lock`,
+          'ไม่สามารถอัปโหลดไฟล์ได้ (สถานะเอกสารได้เปลี่ยนไปก่อนหน้านี้)',
+          ['รีเฟรชหน้าแล้วตรวจสถานะล่าสุดของเอกสาร']
         );
       }
 
@@ -494,27 +527,23 @@ export class WorkflowEngineService {
           )
         );
 
-      // [NEW] เก็บค่าไว้ Dispatch หลัง Commit
-      eventsToDispatch = evaluation.events;
-      updatedContext = context;
-
       this.logger.log(
         `Transition: ${instanceId} [${fromState}] --${action}--> [${toState}] by User:${userId}`
       );
 
-      // [NEW] Dispatch Events (Async) ผ่าน WorkflowEventService
-      if (eventsToDispatch && eventsToDispatch.length > 0) {
+      // Dispatch Events (Async, Fire-and-forget) ผ่าน WorkflowEventService
+      if (evaluation.events.length > 0) {
         void this.eventService.dispatchEvents(
           instance.id,
-          eventsToDispatch,
-          updatedContext
+          evaluation.events,
+          context
         );
       }
 
       return {
         success: true,
         nextState: toState,
-        events: eventsToDispatch,
+        events: evaluation.events,
         isCompleted: instance.status === WorkflowStatus.COMPLETED,
       };
     } catch (err) {

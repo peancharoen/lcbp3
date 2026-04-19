@@ -91,9 +91,39 @@ describe('useWorkflowAction — T027a error handling (Clarify Q1+Q2)', () => {
     );
   });
 
-  it('403: should show unauthorized toast', async () => {
+  it('M1 (403): should use backend-provided message instead of hardcoded string', async () => {
+    // backend ส่ง message แบบ contextual (cross-contract) — frontend ต้อง preserve
     vi.mocked(workflowEngineService.transition).mockRejectedValue(
-      makeApiError(403, 'ไม่มีสิทธิ์', ['ติดต่อ Admin'])
+      makeApiError(
+        403,
+        'คุณไม่มีสิทธิ์เข้าถึง Workflow ของสัญญานี้',
+        ['ตรวจสอบสิทธิ์กับ Project Admin']
+      )
+    );
+
+    const { wrapper } = createTestQueryClient();
+    const { result } = renderHook(() => useWorkflowAction('inst-1'), { wrapper });
+
+    await act(async () => {
+      result.current.mutate({ action: 'APPROVE' });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    // ✓ toast ต้องใช้ backend message (ไม่ใช่ "คุณไม่มีสิทธิ์ดำเนินการในขั้นตอนนี้" generic)
+    expect(toast.error).toHaveBeenCalledWith(
+      'คุณไม่มีสิทธิ์เข้าถึง Workflow ของสัญญานี้',
+      expect.objectContaining({
+        description: 'ตรวจสอบสิทธิ์กับ Project Admin',
+      })
+    );
+  });
+
+  it('M1 (403): should fallback to generic message when backend message missing', async () => {
+    vi.mocked(workflowEngineService.transition).mockRejectedValue(
+      makeApiError(403, '', ['ติดต่อ Admin'])
     );
 
     const { wrapper } = createTestQueryClient();
@@ -113,6 +143,81 @@ describe('useWorkflowAction — T027a error handling (Clarify Q1+Q2)', () => {
         description: 'ติดต่อ Admin',
       })
     );
+  });
+
+  it('M3 (409): should reset idempotency key after 409 so retry uses fresh key', async () => {
+    // First call → 409
+    vi.mocked(workflowEngineService.transition).mockRejectedValueOnce(
+      makeApiError(409, 'ไม่สามารถอัปโหลดในสถานะนี้ได้', ['รีเฟรชหน้า'])
+    );
+    // Second call → success
+    vi.mocked(workflowEngineService.transition).mockResolvedValueOnce({
+      success: true,
+      nextState: 'APPROVED',
+    });
+
+    const { wrapper } = createTestQueryClient();
+    const { result } = renderHook(() => useWorkflowAction('inst-1'), { wrapper });
+
+    // First mutate → 409
+    await act(async () => {
+      result.current.mutate({ action: 'APPROVE' });
+    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    const firstKey = vi
+      .mocked(workflowEngineService.transition)
+      .mock.calls[0][2];
+
+    // Second mutate → success
+    await act(async () => {
+      result.current.mutate({ action: 'APPROVE' });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const secondKey = vi
+      .mocked(workflowEngineService.transition)
+      .mock.calls[1][2];
+
+    // ✓ Key ต้องแตกต่างกัน (reset แล้วหลัง 409)
+    expect(firstKey).not.toBe(secondKey);
+    expect(firstKey).toMatch(/^[0-9a-f-]{36}$/);
+    expect(secondKey).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('M3 (503): should NOT reset idempotency key (user can retry with same key)', async () => {
+    // First call → 503
+    vi.mocked(workflowEngineService.transition).mockRejectedValueOnce(
+      makeApiError(503, 'ระบบยุ่ง')
+    );
+    // Second call → success
+    vi.mocked(workflowEngineService.transition).mockResolvedValueOnce({
+      success: true,
+    });
+
+    const { wrapper } = createTestQueryClient();
+    const { result } = renderHook(() => useWorkflowAction('inst-1'), { wrapper });
+
+    await act(async () => {
+      result.current.mutate({ action: 'APPROVE' });
+    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    const firstKey = vi
+      .mocked(workflowEngineService.transition)
+      .mock.calls[0][2];
+
+    await act(async () => {
+      result.current.mutate({ action: 'APPROVE' });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const secondKey = vi
+      .mocked(workflowEngineService.transition)
+      .mock.calls[1][2];
+
+    // ✓ Key ต้องเหมือนเดิม (503 = retryable, same intent)
+    expect(firstKey).toBe(secondKey);
   });
 
   it('should show success toast on 200', async () => {

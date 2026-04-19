@@ -16,8 +16,28 @@
 
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
+import crypto from 'k6/crypto';
 import { Trend } from 'k6/metrics';
+
+// L1: สร้าง UUIDv4 จาก k6/crypto (built-in) แทน remote jslib
+// รูปแบบตาม RFC 4122 section 4.4 — 16 bytes random + set version/variant bits
+function uuidv4() {
+  const bytes = new Uint8Array(crypto.randomBytes(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant RFC 4122
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return (
+    hex.slice(0, 8) +
+    '-' +
+    hex.slice(8, 12) +
+    '-' +
+    hex.slice(12, 16) +
+    '-' +
+    hex.slice(16, 20) +
+    '-' +
+    hex.slice(20, 32)
+  );
+}
 
 // Custom metric เฉพาะ transition endpoint (ไม่รวม login/upload)
 const transitionDuration = new Trend('transition_duration_ms', true);
@@ -34,8 +54,8 @@ export const options = {
   },
   thresholds: {
     // ADR-021 Clarify Q4: P95 ≤ 5000ms
-    'transition_duration_ms': ['p(95) < 5000'],
-    'http_req_failed': ['rate < 0.01'], // < 1% failure rate
+    transition_duration_ms: ['p(95) < 5000'],
+    http_req_failed: ['rate < 0.01'], // < 1% failure rate
   },
 };
 
@@ -50,16 +70,12 @@ export function setup() {
   const attachmentUuid = __ENV.ATTACHMENT_UUID;
 
   if (!username || !password || !instanceId || !attachmentUuid) {
-    throw new Error(
-      'Missing env vars. Required: USERNAME, PASSWORD, INSTANCE_ID, ATTACHMENT_UUID'
-    );
+    throw new Error('Missing env vars. Required: USERNAME, PASSWORD, INSTANCE_ID, ATTACHMENT_UUID');
   }
 
-  const loginRes = http.post(
-    `${baseUrl}/api/auth/login`,
-    JSON.stringify({ username, password }),
-    { headers: { 'Content-Type': 'application/json' } }
-  );
+  const loginRes = http.post(`${baseUrl}/api/auth/login`, JSON.stringify({ username, password }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 
   check(loginRes, {
     'login successful': (r) => r.status === 200 || r.status === 201,
@@ -92,18 +108,14 @@ export default function (data) {
   const params = {
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Idempotency-Key': idempotencyKey,
     },
     tags: { name: 'workflow-transition' },
   };
 
   const start = Date.now();
-  const res = http.post(
-    `${baseUrl}/api/workflow-engine/instances/${instanceId}/transition`,
-    payload,
-    params
-  );
+  const res = http.post(`${baseUrl}/api/workflow-engine/instances/${instanceId}/transition`, payload, params);
   const duration = Date.now() - start;
 
   transitionDuration.add(duration);

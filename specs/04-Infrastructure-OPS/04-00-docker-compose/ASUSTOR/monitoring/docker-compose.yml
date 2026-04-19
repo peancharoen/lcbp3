@@ -77,7 +77,7 @@ services:
       GF_SERVER_ROOT_URL: 'https://grafana.np-dms.work'
       GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-piechart-panel
     ports:
-      - '3000:3000'
+      - '3003:3000'
     networks:
       - lcbp3
     volumes:

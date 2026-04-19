@@ -23,6 +23,7 @@ networks:
   lcbp3:
     external: true
 
+name: lcbp3-services
 services:
   # ----------------------------------------------------------------
   # 1. Redis (Caching + Distributed Lock + BullMQ queues)
@@ -30,13 +31,13 @@ services:
   # ----------------------------------------------------------------
   cache:
     <<: [*restart_policy, *default_logging]
-    image: redis:7-alpine
+    image: redis:7-alpine # ใช้ Alpine image เพื่อให้มีขน
     container_name: cache
     deploy:
       resources:
         limits:
           cpus: '1.0'
-          memory: 2G
+          memory: 2G # Redis เป็น in-memory, ให้ memory เพียงพอต่อการ
         reservations:
           cpus: '0.25'
           memory: 512M
@@ -80,12 +81,12 @@ services:
   # ----------------------------------------------------------------
   search:
     <<: [*restart_policy, *default_logging]
-    image: elasticsearch:8.11.1
+    image: elasticsearch:8.11.1 # แนะนำให้ระบุเวอร์ชันชัดเจน
     container_name: search
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: '2.0' # Elasticsearch ใช้ CPU และ Memory ค่อนข้างห
           memory: 4G
         reservations:
           cpus: '0.5'
@@ -100,7 +101,7 @@ services:
       # NOTE: หากเปิด xpack.security ต้องตั้ง ELASTIC_PASSWORD และอัปเดต backend client config
       # ค่าเริ่มต้น keep ปิดไว้เพราะ network เข้าถึงได้เฉพาะภายใน lcbp3 (ไม่มี host port)
       xpack.security.enabled: 'false'
-      # --- Performance ---
+      # --- Performance กำหนด Heap size (1GB) ให้เหมาะสมกับ memory limit (4G ---
       ES_JAVA_OPTS: '-Xms1g -Xmx1g'
     ulimits:
       memlock:

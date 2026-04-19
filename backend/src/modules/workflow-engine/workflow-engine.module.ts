@@ -2,6 +2,10 @@
 
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import {
+  makeCounterProvider,
+  makeHistogramProvider,
+} from '@willsoto/nestjs-prometheus';
 
 // Entities
 import { WorkflowDefinition } from './entities/workflow-definition.entity';
@@ -37,6 +41,17 @@ import { WorkflowEngineController } from './workflow-engine.controller';
     WorkflowDslService,
     WorkflowEventService,
     WorkflowTransitionGuard,
+    // ADR-021 S1: Redlock observability — Prometheus metrics
+    makeHistogramProvider({
+      name: 'workflow_redlock_acquire_duration_ms',
+      help: 'เวลาที่ใช้ในการ acquire Redlock สำหรับ workflow transition (รวม retry)',
+      labelNames: ['outcome'], // 'success' | 'failure'
+      buckets: [50, 100, 250, 500, 1000, 2000, 5000, 10000],
+    }),
+    makeCounterProvider({
+      name: 'workflow_redlock_acquire_failures_total',
+      help: 'จำนวนครั้งที่ Redlock acquire ล้มเหลวหลัง retry ครบ (Fail-closed HTTP 503)',
+    }),
   ],
   exports: [WorkflowEngineService], // Export Service ให้ Module อื่น (Correspondence, RFA) เรียกใช้
 })

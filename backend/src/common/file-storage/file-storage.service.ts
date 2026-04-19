@@ -4,10 +4,13 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -24,7 +27,8 @@ export class FileStorageService {
   constructor(
     @InjectRepository(Attachment)
     private attachmentRepository: Repository<Attachment>,
-    private configService: ConfigService
+    private configService: ConfigService,
+    @Optional() @InjectQueue('rag:ocr') private readonly ragOcrQueue?: Queue
   ) {
     // ใช้ env vars จาก docker-compose สำหรับ Production
     // ถ้าไม่ได้กำหนดจะ fallback เป็น ./uploads/temp และ ./uploads/permanent
@@ -90,7 +94,18 @@ export class FileStorageService {
    */
   async commit(
     tempIds: string[],
-    options?: { issueDate?: Date; documentType?: string }
+    options?: {
+      issueDate?: Date;
+      documentType?: string;
+      ragMeta?: {
+        docType: string;
+        docNumber: string | null;
+        revision: string | null;
+        projectCode: string;
+        projectPublicId: string;
+        classification: 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL';
+      };
+    }
   ): Promise<Attachment[]> {
     if (!tempIds || tempIds.length === 0) {
       return [];
@@ -149,7 +164,27 @@ export class FileStorageService {
           att.expiresAt = undefined; // เคลียร์วันหมดอายุ
           att.referenceDate = effectiveDate; // Save reference date
 
-          committedAttachments.push(await this.attachmentRepository.save(att));
+          const saved = await this.attachmentRepository.save(att);
+          committedAttachments.push(saved);
+
+          if (this.ragOcrQueue && options?.ragMeta) {
+            await this.ragOcrQueue
+              .add(
+                'ocr',
+                {
+                  attachmentPublicId: saved.publicId,
+                  filePath: saved.filePath,
+                  ...options.ragMeta,
+                },
+                { jobId: saved.publicId }
+              )
+              .catch((err: unknown) => {
+                this.logger.error(
+                  `Failed to enqueue rag:ocr for ${saved.publicId}`,
+                  err instanceof Error ? err.stack : String(err)
+                );
+              });
+          }
         } else {
           this.logger.error(`File missing during commit: ${oldPath}`);
           throw new NotFoundException(

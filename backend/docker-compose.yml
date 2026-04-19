@@ -54,10 +54,24 @@ services:
       - esdata:/usr/share/elasticsearch/data
     networks:
       - lcbp3-net
+  # ADR-022 RAG: Qdrant vector store (tiered multitenancy for project isolation)
+  qdrant:
+    image: qdrant/qdrant:v1.16.1
+    container_name: lcbp3-qdrant-local
+    restart: always
+    ports:
+      - '6333:6333' # REST API
+      - '6334:6334' # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - lcbp3-net
+
 volumes:
   db_data:
   redis_data: # เพิ่ม Volume
   esdata:
+  qdrant_data: # ADR-022 RAG vector store
 
 networks:
   lcbp3-net:

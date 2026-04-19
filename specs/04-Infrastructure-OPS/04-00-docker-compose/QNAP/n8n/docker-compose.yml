@@ -15,6 +15,7 @@ x-logging: &default_logging
     options:
       max-size: '10m'
       max-file: '5'
+name: lcbp3-n8n
 services:
   n8n-db:
     <<: [*restart_policy, *default_logging]
@@ -112,7 +113,9 @@ services:
 
   n8n:
     <<: [*restart_policy, *default_logging]
-    image: n8nio/n8n:1.66.0
+    build:
+      context: ./n8n-custom
+      dockerfile: Dockerfile
     container_name: n8n
     depends_on:
       n8n-db:
@@ -163,6 +166,8 @@ services:
       EXECUTIONS_DATA_PRUNE: 'true'
       EXECUTIONS_DATA_MAX_AGE: 168
       # EXECUTIONS_DATA_PRUNE_TIMEOUT: 60
+      # Storage Migration (fix deprecation warning)
+      N8N_MIGRATE_FS_STORAGE_PATH: 'true'
 
     ports:
       - '5678:5678'
