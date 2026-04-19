@@ -214,19 +214,25 @@ export interface WorkflowTransitionWithAttachmentsDto {
      │
      ▼
 [User clicks Approve/Reject/Return]
-  → use-workflow-action hook:
-      1. Generates Idempotency-Key (UUIDv7)
-      2. POST /workflow-engine/instances/:id/transition
+  → use-workflow-action hook (client-side guard):
+      1. ❗️ ตรวจสอบ currentState ∈ {PENDING_REVIEW, PENDING_APPROVAL}
+         └ ถ้าไม่ใช่ → ไม่ส่ง API (ปุ่ม disabled ไว้แล้ว)
+      2. Generates Idempotency-Key (UUIDv7)
+      3. POST /workflow-engine/instances/:id/transition
          Header: Idempotency-Key
          Body: { action, comment, attachmentPublicIds: [uuid1, uuid2] }
      │
      ▼
-[WorkflowTransitionGuard] — RBAC check (4.5-Level: Superadmin / Org Admin / Level 2.5 Contract Membership / Assigned Handler)
+[WorkflowTransitionGuard] — RBAC check (4-Level: Superadmin / Org Admin / Contract Member / Assigned Handler)
      │ pass
      ▼
 [WorkflowEngineService.processTransition()]
   → Check Redis idempotency key (return cached if duplicate)
+  → ❗️ Server-side state check: currentState ∈ {PENDING_REVIEW, PENDING_APPROVAL}
+      └ ถ้าไม่ใช่ → throw HTTP 409 Conflict "ไม่สามารถอัปโหลดในสถานะนี้" (Clarify Q1)
   → Acquire Redis Redlock on instanceId
+      └ Retry 3x (500ms exponential backoff)
+      └ ถ้า Redis ล่ม / Lock ไม่ได้ → throw HTTP 503 "Service temporarily unavailable" (Clarify Q2 Fail-closed)
   → Begin DB Transaction:
       1. Lock WorkflowInstance (pessimistic_write)
       2. Evaluate DSL transition
@@ -246,6 +252,7 @@ export interface WorkflowTransitionWithAttachmentsDto {
      │
      ▼
 [Frontend: invalidate TanStack Query cache → reload document + timeline]
+  → HTTP 503 → แสดง toast "ระบบยุ่ง กรุณาลองใหม่" (user may retry)
 ```
 
 ---

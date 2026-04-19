@@ -23,7 +23,7 @@
 **Testing**: Jest (backend unit + e2e), Vitest (frontend)
 **Target Platform**: QNAP Container Station (Docker), Browser (Chrome/Edge latest)
 **Project Type**: Web application (backend/ + frontend/ monorepo)
-**Performance Goals**: Workflow history + attachment join query < 200ms p95 (mitigated by Redis Cache TTL 1h)
+**Performance Goals**: (1) Workflow history + attachment join query < 200ms p95 (mitigated by Redis Cache TTL 1h); (2) `POST /instances/:id/transition` (พร้อม file) P95 ≤ 5 วินาที สำหรับ file ≤ 10MB (รวม ClamAV + Redlock + DB transaction) — Clarify Q4
 **Constraints**: No TypeORM migrations (ADR-009); UUID via `publicId` only (ADR-019); ClamAV scan mandatory (ADR-016); BullMQ for all async jobs (ADR-008)
 **Scale/Scope**: ~50 concurrent users, documents in hundreds per project
 
@@ -45,7 +45,8 @@ _GATE: Checked against `.windsurfrules` before Phase 0. Re-verified after Phase 
 | **🔴 No `any` types** | ✅ PASS | All new types fully typed — see data-model.md |
 | **🟡 Thin Controller** | ✅ PASS | Controller delegates to Service; Guard handles RBAC |
 | **🟡 Test Coverage 80% business logic** | ⚠️ REQUIRED | See testing plan in Phase 3 |
-| **🔴 Redis Redlock (ADR-002)** | ✅ PASS | Redlock applied to `instanceId` during `processTransition()` — existing pattern extended |
+| **🔴 Redis Redlock (ADR-002)** | ✅ PASS | Redlock applied to `instanceId` during `processTransition()` — Fail-closed: Retry 3x (500ms exponential backoff) → HTTP 503 if Redis unavailable (Clarify Q2) |
+| **🔴 Upload State Restriction** | ✅ PASS | Step-attachment upload permitted only in `PENDING_REVIEW`/`PENDING_APPROVAL`; Terminal states (`APPROVED`,`REJECTED`,`CLOSED`) → HTTP 409 (Clarify Q1) |
 
 ---
 
@@ -109,10 +110,10 @@ frontend/hooks/
 └── use-workflow-action.ts                           [NEW — upload + transition orchestration]
 
 # 🟡 Frontend — Page Refactors (use new components)
-frontend/app/(dashboard)/rfas/[uuid]/page.tsx        [MODIFY — integrate IntegratedBanner + WorkflowLifecycle]
-frontend/app/(dashboard)/correspondences/[uuid]/page.tsx [MODIFY — same]
-frontend/app/(dashboard)/transmittals/[uuid]/page.tsx    [MODIFY — same as RFA/Correspondence]
-frontend/app/(dashboard)/circulation/[uuid]/page.tsx     [MODIFY — same as RFA/Correspondence]
+frontend/app/(dashboard)/rfas/[uuid]/page.tsx           [MODIFY — integrate IntegratedBanner + WorkflowLifecycle]
+frontend/app/(dashboard)/transmittals/[uuid]/page.tsx    [MODIFY — same as RFA]
+frontend/app/(dashboard)/circulation/[uuid]/page.tsx     [MODIFY — same as RFA]
+# ⛔ OUT OF SCOPE (v1.8.6): correspondences/[uuid]/page.tsx — Correspondence ใช้ Circulation เป็น Routing Vehicle (Clarify Q3)
 ```
 
 ---
@@ -178,10 +179,12 @@ Response: WorkflowHistoryItem[] with nested attachments[] per step
 ```
 <IntegratedBanner document={doc} workflowInstance={instance} onAction={...} />
   └── uses: <PriorityBadge />, <StatusBadge />, <WorkflowActionButtons />
+  └── WorkflowActionButtons: disabled เมื่อ currentState ∈ {APPROVED, REJECTED, CLOSED}
 
 <WorkflowLifecycle instance={instance} onFileClick={openPreview} />
   └── vertical timeline, Indigo active step (pulse animation)
   └── each step: StepCard with date, actor, comment, attachments[]
+  └── Drag & Drop zone: แสดงเฉพาะเมื่อ currentState ∈ {PENDING_REVIEW, PENDING_APPROVAL}
 
 <FilePreviewModal file={attachment} onClose={...} />
   └── PDF: <iframe src="/api/files/preview/:publicId" />
@@ -190,9 +193,13 @@ Response: WorkflowHistoryItem[] with nested attachments[] per step
 
 **`use-workflow-action` hook responsibilities:**
 1. Validate `Idempotency-Key` (generate UUIDv7 once per action intent)
-2. Ensure all `attachmentPublicIds` are committed (not temp) before transition
-3. Call `POST /instances/:id/transition` with `Idempotency-Key` header
-4. Invalidate TanStack Query cache for the document + workflow instance
+2. Guard: ตรวจสอบว่า `currentState ∈ {PENDING_REVIEW, PENDING_APPROVAL}` ก่อน transition (client-side guard)
+3. Ensure all `attachmentPublicIds` are committed (not temp) before transition
+4. Call `POST /instances/:id/transition` with `Idempotency-Key` header
+5. Handle HTTP 503 (Redlock unavailable) → แสดง toast "ระบบยุ่ง กรุณาลองใหม่"
+6. Invalidate TanStack Query cache for the document + workflow instance
+
+**Modules in scope (v1.8.6):** RFA, Transmittal, Circulation — ไม่รวม Correspondence (Clarify Q3)
 
 ---
 
@@ -222,9 +229,9 @@ Response: WorkflowHistoryItem[] with nested attachments[] per step
 | F5 | Create `WorkflowLifecycle` component (vertical timeline) | `components/workflow/workflow-lifecycle.tsx` | F1 |
 | F6 | Create `FilePreviewModal` component | `components/common/file-preview-modal.tsx` | F1 |
 | F7 | Refactor RFA detail page — integrate new components | `rfas/[uuid]/page.tsx` | F3–F6 |
-| F8 | Refactor Correspondence detail page — integrate new components | `correspondences/[uuid]/page.tsx` | F3–F6 |
-| F9 | Refactor Transmittal detail page — integrate new components | `transmittals/[uuid]/page.tsx` | F3–F6 |
-| F10 | Refactor Circulation detail page — integrate new components | `circulation/[uuid]/page.tsx` | F3–F6 |
+| F8 | Refactor Transmittal detail page — integrate new components | `transmittals/[uuid]/page.tsx` | F3–F6 |
+| F9 | Refactor Circulation detail page — integrate new components | `circulation/[uuid]/page.tsx` | F3–F6 |
+| ~~F10~~ | ~~Correspondence~~ | **OUT OF SCOPE v1.8.6** — Clarify Q3 | — |
 
 ### 🟢 GUIDELINES (after F7/F8)
 
@@ -278,6 +285,11 @@ cd frontend && pnpm test --run  # Vitest
 - [ ] Unauthorized user (not handler, not admin) → `403 Forbidden`
 - [ ] ClamAV test file (EICAR) upload → blocked before transition
 - [ ] `attachmentPublicIds` with non-temp (already-committed) UUID → rejected
+- [ ] Upload attempt when `currentState = APPROVED/REJECTED/CLOSED` → `409 Conflict` (Clarify Q1)
+- [ ] Transition when Redis unavailable (mock Redis down) → retry 3x then `503 Service Unavailable` (Clarify Q2)
+
+### Definition of Done Reference
+ดู DoD Observable Outcomes ต่อ REQ ใน [ADR-021 §9.1](../../06-Decision-Records/ADR-021-integrated-workflow-context.md%20.md#definition-of-done-observable-outcomes)
 
 ---
 

@@ -18,6 +18,13 @@
 - **Q:** What is the cache TTL for Workflow History data to reduce join query overhead? → **A:** 1 hour — balanced cache duration for workflow history data
 - **Q:** Who is authorized to upload step-specific attachments during a workflow transition? → **A:** Only assigned handler can upload; superadmin and organization admin can upload on behalf (impersonation)
 
+### Session 2026-04-19
+- **Q:** สถานะ Workflow ใดบ้างที่อนุญาตให้อัปโหลด Step-specific Attachment ได้? → **A:** เฉพาะสถานะ Active-decision เท่านั้น (`PENDING_REVIEW`, `PENDING_APPROVAL`) — ห้ามอัปโหลดในสถานะ Terminal (`APPROVED`, `REJECTED`, `CLOSED`)
+- **Q:** หาก Redis Redlock ล้มเหลวระหว่าง Transition ระบบควรทำอย่างไร? → **A:** Fail-closed — Retry 3 ครั้ง (500ms exponential backoff) แล้ว throw HTTP 503 "Service temporarily unavailable" เพื่อรักษาความถูกต้องของข้อมูล
+- **Q:** Module ใดบ้างที่ต้องรองรับ Step-specific Attachments ใน v1.8.6? → **A:** เฉพาะ Module ที่ผ่าน Workflow Engine: **RFA, Transmittal, Circulation** — ไม่รวม Correspondence (ใช้ Circulation เป็น vehicle อยู่แล้ว หลีกเลี่ยงซ้ำซ้อน)
+- **Q:** Performance target ของ Upload + Transition API คืออะไร? → **A:** P95 ≤ 5 วินาที สำหรับ file ≤ 10MB (ClamAV scan + Redlock + DB transaction included)
+- **Q:** Definition of Done สำหรับ REQ-01 ถึง REQ-06 คืออะไร? → **A:** กำหนด Observable Outcome 1 ประโยคต่อ REQ ที่ตรวจสอบได้โดย QA/Product Owner โดยไม่ต้องอ่าน code
+
 ---
 
 ## 2. บริบทและความสำคัญ (Context & Problem Statement)
@@ -54,7 +61,7 @@
 | REQ-01 | **Integrated Banner** | แสดง ID, Status, Priority (`URGENT`/`HIGH`/`MEDIUM`/`LOW` พร้อม visual indicators) และปุ่ม Approve/Reject ไว้ในแถบด้านบนสุด |
 | REQ-02 | **Step Detail View** | ใน Tab Workflow Engine ต้องแสดงรายละเอียด Role, Handler และ Description ของทุกขั้นตอน |
 | REQ-03 | **Active Step Color** | ขั้นตอนปัจจุบันใช้สี Indigo (#6366f1) พร้อม Pulse effect |
-| REQ-04 | **Step-safe Upload** | รองรับการลากวางไฟล์ (Drag & Drop) เพื่อแนบหลักฐานประจำขั้นตอนนั้นๆ |
+| REQ-04 | **Step-safe Upload** | รองรับการลากวางไฟล์ (Drag & Drop) เพื่อแนบหลักฐานประจำขั้นตอนนั้นๆ — **อนุญาตเฉพาะสถานะ `PENDING_REVIEW` และ `PENDING_APPROVAL` เท่านั้น** สถานะ Terminal (`APPROVED`, `REJECTED`, `CLOSED`) ไม่อนุญาต |
 | REQ-05 | **Internal Preview** | คลิกดูไฟล์ PDF/Images ได้ทันทีผ่าน Modal ภายในระบบ |
 | REQ-06 | **i18n Support** | ทุก UI text ต้องใช้ i18n keys ตาม `05-08-i18n-guidelines.md` |
 
@@ -64,7 +71,7 @@
 
 1. **Database Consistency:** ต้องเพิ่ม `workflow_history_id` ในตาราง `attachments` โดยรักษาค่าเป็น Nullable สำหรับไฟล์หลัก (Main Docs)
 2. **Concurrency Control:**
-   - **Transition Lock:** ใช้ Redis Redlock เมื่อมีการเปลี่ยนสถานะพร้อมอัปโหลดไฟล์ (Two-Phase: Lock → Upload + Transition → Unlock)
+   - **Transition Lock:** ใช้ Redis Redlock เมื่อมีการเปลี่ยนสถานะพร้อมอัปโหลดไฟล์ (Two-Phase: Lock → Upload + Transition → Unlock) — หาก Lock ไม่สำเร็จ: Retry 3 ครั้ง (500ms exponential backoff) แล้ว Fail-closed (HTTP 503)
    - **File Upload:** ใช้ Temp Storage ก่อน (ADR-016 Two-Phase Upload) แล้วย้ายไป Permanent หลัง Transition สำเร็จ
 3. **Security Audit:** ทุกไฟล์แนบราย Step ต้องผ่านการสแกน **ClamAV** และบันทึกข้อมูล Who/When ลงใน Audit Log (ADR-016)
 4. **Identifier Strategy:** อ้างอิงไฟล์ผ่าน **UUIDv7** (publicId) เท่านั้น ห้ามใช้ ID ที่เป็น Integer ใน API (ADR-019)
@@ -73,6 +80,7 @@
 7. **File Size Limits:** ไม่กำหนด Limit ที่ Application Layer — ควบคุมโดย Infrastructure (Reverse Proxy / Storage Config) เท่านั้น
 8. **Idempotency Control:** ทุกการอัปโหลดไฟล์พร้อม Transition ต้องมีการตรวจสอบ `Idempotency-Key` header (per .windsurfrules Security Rule #1)
 9. **Async Event Processing:** Notifications และ Events จาก workflow transitions ต้องใช้ **BullMQ** queue (ADR-008) — ห้าม inline ใน Service
+10. **Performance SLA:** `POST /workflow/:uuid/transition` (พร้อม file) ต้องตอบสนองภายใน **P95 ≤ 5 วินาที** สำหรับไฟล์ขนาด ≤ 10MB (รวม ClamAV scan + Redlock + DB transaction)
 
 ---
 
@@ -94,8 +102,10 @@
 | **Upload ไฟล์ระหว่าง Transition ล้มเหลว** | Rollback transaction ทั้งหมด, ลบ temp files, คงสถานะ workflow เดิม |
 | **ไฟล์ถูกลบจาก Storage หลัง Attach** | แสดง "File unavailable" ใน UI, บันทึก metadata ไว้ตามเดิม |
 | **Concurrent Transition พร้อม Upload** | Redis Redlock จัดการ queue, อนุญาตเพียง 1 transition พร้อมกัน |
+| **Redis Redlock ล้มเหลว / Redis ล่ม** | Retry 3 ครั้ง (500ms exponential backoff) — หากยังล้มเหลว throw HTTP 503 "Service temporarily unavailable" (Fail-closed, ห้าม Fail-open) |
 | **Invalid File Type** | Reject ตั้งแต่ client-side (whitelist: PDF, DOCX, XLSX, DWG, ZIP) |
 | **Unauthorized Upload Attempt** | ตรวจสอบสิทธิ์: เฉพาะ assigned handler, superadmin, หรือ org admin เท่านั้น |
+| **Upload ในสถานะ Terminal** | Reject ทันทีด้วย HTTP 409 — ไม่อนุญาตอัปโหลดเมื่อสถานะเป็น `APPROVED`, `REJECTED`, หรือ `CLOSED` |
 | **Duplicate Upload (Network Retry)** | ตรวจสอบ `Idempotency-Key` — reject duplicate พร้อม return existing result |
 | **Cache Stale Data** | Invalidate Redis Cache ทันทีเมื่อ workflow state เปลี่ยน (TTL override)
 
@@ -118,8 +128,13 @@
   - *Action:* Implement **CASL Guard** สำหรับ 4-Level RBAC: Superadmin > Org Admin > Assigned Handler > Read-only
 
 ### 🟡 Frontend Layer (UI & Interaction)
-- `frontend/app/(dashboard)/rfas/[uuid]/page.tsx` (และโมดูลอื่นที่เกี่ยวข้อง เช่น correspondences, circulations)
+- `frontend/app/(dashboard)/rfas/[uuid]/page.tsx`
   - *Action:* Refactor Header เป็น Integrated Banner และเพิ่ม Tab Workflow Lifecycle
+- `frontend/app/(dashboard)/transmittals/[uuid]/page.tsx`
+  - *Action:* Refactor Header เป็น Integrated Banner และเพิ่ม Tab Workflow Lifecycle
+- `frontend/app/(dashboard)/circulation/[uuid]/page.tsx`
+  - *Action:* Refactor Header เป็น Integrated Banner และเพิ่ม Tab Workflow Lifecycle
+- **หมายเหตุ (Out of Scope v1.8.6):** `correspondences/[uuid]/page.tsx` — ไม่รวมใน Scope นี้ Correspondence ใช้ Circulation เป็น Routing Vehicle อยู่แล้ว
 - `frontend/components/workflow/workflow-visualizer.tsx` (สร้างใหม่)
   - *Action:* พัฒนาการแสดงผล Vertical Timeline พร้อมระบบสี Active/Inactive
 - `frontend/components/common/file-preview-modal.tsx` (สร้างใหม่)
@@ -164,6 +179,17 @@
 - **Backend Overall Coverage:** 70%+
 - **Frontend Component Tests:** สำหรับ Integrated Banner, Workflow Visualizer, File Preview Modal
 - **E2E Tests:** สำหรับ complete workflow พร้อม file upload
+
+### Definition of Done (Observable Outcomes)
+
+| REQ | Done When |
+|-----|-----------|
+| **REQ-01** | Banner แสดง Doc No, Status, Priority badge และปุ่ม Approve/Reject ก่อนเนื้อหาเอกสารในทุก Module (RFA, Transmittal, Circulation) |
+| **REQ-02** | Tab "Workflow Engine" แสดง Role + Handler + Description ครบทุก Step โดยไม่ต้อง reload หน้า |
+| **REQ-03** | Step ปัจจุบันใช้สี Indigo (#6366f1) พร้อม CSS Pulse animation ที่มองเห็นได้ชัดเจน; Step อื่นๆ ไม่มี animation |
+| **REQ-04** | Drag & Drop ทำงานเฉพาะเมื่อ Status = `PENDING_REVIEW`/`PENDING_APPROVAL`; ปุ่มถูก disable เมื่อ Status = `APPROVED`/`REJECTED`/`CLOSED` |
+| **REQ-05** | คลิกไฟล์ PDF/Image ใดก็ตามเปิด Preview Modal แบบ In-browser โดยไม่ navigate ออกจากหน้าปัจจุบัน |
+| **REQ-06** | ไม่มี Hardcoded text ใน Component ใหม่; ทุก label ต้องเปลี่ยนภาษาได้เมื่อ switch EN/TH |
 
 ---
 

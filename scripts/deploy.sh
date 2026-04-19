@@ -7,7 +7,7 @@
 set -e
 
 SOURCE_DIR="/share/np-dms/app/source/lcbp3"
-COMPOSE_FILE="$SOURCE_DIR/specs/04-Infrastructure-OPS/04-00-docker-compose/docker-compose-app.yml"
+COMPOSE_FILE="$SOURCE_DIR/specs/04-Infrastructure-OPS/04-00-docker-compose/QNAP/app/docker-compose-app.yml"
 ENV_FILE="/share/np-dms/app/.env"
 
 API_URL="https://backend.np-dms.work/api"

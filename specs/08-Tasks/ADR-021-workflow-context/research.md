@@ -201,6 +201,61 @@ The existing component is **horizontal** layout. ADR-021 §3.2 requires **Vertic
 
 ---
 
+## Research Question 10: Redis Redlock Failure Mode During Transition
+
+**Question:** If Redis is unreachable or Redlock cannot be acquired, should the system fail-open (allow transition) or fail-closed (block transition)?
+
+**Context (Clarify Q2):** In DMS, a race condition that creates duplicate approvals is worse than temporary service unavailability. Incorrect document state corrupts audit trails and may have legal/contractual consequences.
+
+### Option A: Fail-open (Rejected ❌)
+Allow transition even without a lock. Accepts Race Condition risk.
+- **Con:** Two concurrent approvals possible — violates document integrity.
+
+### Option B: Retry then fail-open (Rejected ❌)
+Retry 3x then allow anyway.
+- **Con:** Still permits race condition under high load.
+
+### Option C: Fail-closed — Retry then HTTP 503 (Selected ✅)
+Retry 3x with 500ms exponential backoff → if still unavailable → throw HTTP 503.
+- **Pro:** Data integrity preserved at all times.
+- **Pro:** HTTP 503 is a retryable error — client can display toast and user can retry manually.
+- **Con:** Temporary service degradation during Redis outage (~50 concurrent users; outage rare).
+
+**Decision:** Option C — Fail-closed.
+**Implementation:**
+```typescript
+// ใน WorkflowEngineService.processTransition()
+// ลอง Acquire Redlock สูงสุด 3 ครั้ง
+const MAX_LOCK_RETRIES = 3;
+const LOCK_BACKOFF_MS = 500;
+
+for (let attempt = 1; attempt <= MAX_LOCK_RETRIES; attempt++) {
+  try {
+    lock = await this.redlock.acquire([`lock:wf:${instanceId}`], 10000);
+    break; // สำเร็จ
+  } catch {
+    if (attempt === MAX_LOCK_RETRIES) {
+      throw new ServiceUnavailableException('ระบบยุ่งชั่วคราว กรุณาลองใหม่ภายหลัง');
+    }
+    await sleep(LOCK_BACKOFF_MS * attempt); // exponential backoff
+  }
+}
+```
+
+---
+
+## Research Question 11: Upload-Permitted States
+
+**Question:** Which workflow states allow step-attachment upload? (Clarify Q1)
+
+**Decision:** Upload permitted ONLY in `PENDING_REVIEW` and `PENDING_APPROVAL`.
+
+**Rationale:** Attachments are decision-support evidence. After a terminal decision (`APPROVED`, `REJECTED`, `CLOSED`), adding attachments retroactively would contaminate the audit trail.
+
+**Implementation:** Both client-side guard (disable upload UI) AND server-side validation in `processTransition()` before acquiring Redlock.
+
+---
+
 ## Summary of All Decisions
 
 | # | Decision | Chosen | Rejected |
@@ -214,3 +269,6 @@ The existing component is **horizontal** layout. ADR-021 §3.2 requires **Vertic
 | 7 | Transition RBAC | New `WorkflowTransitionGuard` 4-Level | Extend existing `RbacGuard` |
 | 8 | Priority display | Tailwind badges from `instance.context.priority` | Hardcoded status |
 | 9 | File preview security | `Content-Disposition: inline` + permission check | Direct storage URL |
+| 10 | Redlock failure mode | Fail-closed: Retry 3x (500ms backoff) → HTTP 503 | Fail-open |
+| 11 | Upload-permitted states | `PENDING_REVIEW`, `PENDING_APPROVAL` only | All non-terminal states |
+| 12 | Module scope (v1.8.6) | RFA, Transmittal, Circulation | Including Correspondence |
