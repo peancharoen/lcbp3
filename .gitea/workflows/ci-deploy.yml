@@ -79,6 +79,11 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.HOST }} >> ~/.ssh/known_hosts
 
+          # Debug: Check SSH key
+          echo "SSH key file exists: $(test -f ~/.ssh/id_rsa && echo 'YES' || echo 'NO')"
+          echo "SSH key permissions: $(ls -la ~/.ssh/id_rsa)"
+          echo "SSH key first line: $(head -1 ~/.ssh/id_rsa)"
+
           # Create remote deployment script
           REMOTE_SCRIPT=$(cat << 'SCRIPT_EOF'
           set -e
@@ -130,6 +135,16 @@ jobs:
 
           while [ $attempt -le $max_attempts ]; do
             echo " Deployment attempt $attempt/$max_attempts..."
+
+            # Debug: Test SSH connection first
+            echo "Testing SSH connection..."
+            ssh -o StrictHostKeyChecking=no \
+                -o ConnectTimeout=10 \
+                -o BatchMode=yes \
+                -o PasswordAuthentication=no \
+                -o LogLevel=DEBUG3 \
+                -i ~/.ssh/id_rsa \
+                -p ${{ secrets.PORT }} ${{ secrets.USERNAME }}@${{ secrets.HOST }} 'echo "SSH auth successful"'
 
             if echo "$REMOTE_SCRIPT" | ssh -o StrictHostKeyChecking=no \
                 -o ConnectTimeout=60 \
