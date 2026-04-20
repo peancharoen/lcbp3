@@ -31,7 +31,7 @@ services:
   # ----------------------------------------------------------------
   cache:
     <<: [*restart_policy, *default_logging]
-    image: redis:7-alpine # ใช้ Alpine image เพื่อให้มีขน
+    image: redis:7-alpine # ใช้ Alpine image เพื่อให้มีขนาดเล็ก
     container_name: cache
     deploy:
       resources:
@@ -86,7 +86,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0' # Elasticsearch ใช้ CPU และ Memory ค่อนข้างห
+          cpus: '2.0' # Elasticsearch ใช้ CPU และ Memory ค่อนข้างหนัก
           memory: 4G
         reservations:
           cpus: '0.5'

@@ -1,0 +1,500 @@
+openapi: 3.0.3
+info:
+  title: Infrastructure Operations API
+  description: API for managing infrastructure operations, deployments, and monitoring
+  version: 1.0.0
+  contact:
+    name: Infrastructure Team
+    email: infra@np-dms.work
+
+paths:
+  /deployments:
+    get:
+      summary: List all deployments
+      description: Retrieve status of all deployment environments
+      tags:
+        - Deployments
+      responses:
+        '200':
+          description: List of deployments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deployments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Deployment'
+    
+    post:
+      summary: Create new deployment
+      description: Initiate a new deployment to specified environment
+      tags:
+        - Deployments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentRequest'
+      responses:
+        '201':
+          description: Deployment initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deployment'
+        '400':
+          description: Invalid deployment request
+        '409':
+          description: Deployment already in progress
+
+  /deployments/{deploymentId}:
+    get:
+      summary: Get deployment details
+      description: Retrieve detailed information about a specific deployment
+      tags:
+        - Deployments
+      parameters:
+        - name: deploymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deployment details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deployment'
+        '404':
+          description: Deployment not found
+
+    patch:
+      summary: Update deployment status
+      description: Update deployment status or trigger rollback
+      tags:
+        - Deployments
+      parameters:
+        - name: deploymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentUpdate'
+      responses:
+        '200':
+          description: Deployment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deployment'
+        '404':
+          description: Deployment not found
+        '409':
+          description: Invalid state transition
+
+  /backups:
+    get:
+      summary: List backup archives
+      description: Retrieve list of available backup archives
+      tags:
+        - Backups
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [completed, in_progress, failed, validated]
+        - name: environment
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of backup archives retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BackupArchive'
+
+    post:
+      summary: Create backup
+      description: Initiate a new backup operation
+      tags:
+        - Backups
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BackupRequest'
+      responses:
+        '201':
+          description: Backup initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupArchive'
+        '409':
+          description: Backup already in progress
+
+  /backups/{backupId}/restore:
+    post:
+      summary: Restore from backup
+      description: Initiate restore operation from specified backup
+      tags:
+        - Backups
+      parameters:
+        - name: backupId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreRequest'
+      responses:
+        '202':
+          description: Restore operation initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestoreOperation'
+        '404':
+          description: Backup not found
+        '409':
+          description: Restore operation already in progress
+
+  /monitoring/metrics:
+    get:
+      summary: Get monitoring metrics
+      description: Retrieve current monitoring metrics for all services
+      tags:
+        - Monitoring
+      parameters:
+        - name: service
+          in: query
+          schema:
+            type: string
+        - name: metric
+          in: query
+          schema:
+            type: string
+        - name: timeRange
+          in: query
+          schema:
+            type: string
+            enum: [1h, 6h, 24h, 7d, 30d]
+      responses:
+        '200':
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metrics:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MonitoringMetric'
+
+  /monitoring/alerts:
+    get:
+      summary: Get active alerts
+      description: Retrieve list of active monitoring alerts
+      tags:
+        - Monitoring
+      parameters:
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [critical, warning, info]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, acknowledged, resolved]
+      responses:
+        '200':
+          description: Alerts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Alert'
+
+    post:
+      summary: Acknowledge alert
+      description: Acknowledge an active alert
+      tags:
+        - Monitoring
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertAcknowledgment'
+      responses:
+        '200':
+          description: Alert acknowledged successfully
+        '404':
+          description: Alert not found
+
+components:
+  schemas:
+    Deployment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        environment:
+          type: string
+          enum: [blue, green, staging, production]
+        status:
+          type: string
+          enum: [planned, in_progress, testing, live, failed, decommissioned]
+        version:
+          type: string
+        services:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        healthStatus:
+          type: string
+          enum: [healthy, unhealthy, unknown]
+
+    DeploymentRequest:
+      type: object
+      required:
+        - environment
+        - version
+      properties:
+        environment:
+          type: string
+          enum: [blue, green, staging, production]
+        version:
+          type: string
+        services:
+          type: array
+          items:
+            type: string
+        rollbackPlan:
+          type: boolean
+        healthCheckTimeout:
+          type: integer
+          format: int32
+
+    DeploymentUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [testing, live, failed, decommissioned]
+        rollback:
+          type: boolean
+        reason:
+          type: string
+
+    BackupArchive:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [full, incremental, differential]
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, failed, validated, expired]
+        environment:
+          type: string
+        size:
+          type: integer
+          format: int64
+        compressionRatio:
+          type: number
+          format: float
+        encrypted:
+          type: boolean
+        validated:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        retentionDays:
+          type: integer
+          format: int32
+
+    BackupRequest:
+      type: object
+      required:
+        - type
+        - environment
+      properties:
+        type:
+          type: string
+          enum: [full, incremental, differential]
+        environment:
+          type: string
+        include:
+          type: array
+          items:
+            type: string
+            enum: [databases, files, configurations, logs]
+        compression:
+          type: boolean
+        encryption:
+          type: boolean
+        validation:
+          type: boolean
+
+    RestoreRequest:
+      type: object
+      required:
+        - targetEnvironment
+      properties:
+        targetEnvironment:
+          type: string
+        include:
+          type: array
+          items:
+            type: string
+            enum: [databases, files, configurations, logs]
+        confirm:
+          type: boolean
+        reason:
+          type: string
+
+    RestoreOperation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        backupId:
+          type: string
+          format: uuid
+        targetEnvironment:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed]
+        progress:
+          type: integer
+          format: int32
+        estimatedCompletion:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+
+    MonitoringMetric:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        service:
+          type: string
+        metric:
+          type: string
+        value:
+          type: number
+          format: float
+        unit:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        rule:
+          type: string
+        severity:
+          type: string
+          enum: [critical, warning, info]
+        status:
+          type: string
+          enum: [active, acknowledged, resolved]
+        service:
+          type: string
+        message:
+          type: string
+        triggeredAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type: string
+          format: date-time
+        acknowledgedBy:
+          type: string
+        resolvedAt:
+          type: string
+          format: date-time
+
+    AlertAcknowledgment:
+      type: object
+      required:
+        - alertId
+      properties:
+        alertId:
+          type: string
+          format: uuid
+        acknowledgedBy:
+          type: string
+        note:
+          type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

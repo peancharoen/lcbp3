@@ -62,6 +62,48 @@ services:
 
 Otherwise, keep the inline anchor pattern (current repo-wide convention).
 
+## Image Pinning Strategy
+
+The LCBP3 platform uses a **hybrid image pinning approach**:
+
+### Infrastructure Services (Pinned)
+All infrastructure services use **explicitly pinned versions** for stability:
+
+```yaml
+# Examples
+redis:7-alpine
+elasticsearch:8.11.1
+mariadb:11.8
+gitea/gitea:1.22.3-rootless
+n8nio/n8n:1.66.0
+```
+
+**Rationale:**
+- Infrastructure services evolve independently
+- Breaking changes in Redis/Elasticsearch/MariaDB can cause data corruption
+- Pinned versions ensure predictable behavior across deployments
+
+### Application Services (Variable)
+Application images use **environment variable tags** for CI/CD flexibility:
+
+```yaml
+backend:
+  image: lcbp3-backend:${BACKEND_IMAGE_TAG:-latest}
+frontend:
+  image: lcbp3-frontend:${FRONTEND_IMAGE_TAG:-latest}
+```
+
+**Rationale:**
+- Application code changes frequently with each release
+- CI pipelines inject SHA-specific tags per release
+- `:latest` fallback enables local development
+- Environment variable allows rollback to specific versions
+
+### Version Control
+- **Infrastructure versions** updated manually in compose files
+- **Application versions** controlled via CI/CD pipeline environment variables
+- **Release policy** documented in `04-08-release-management-policy.md`
+
 ## Secret Management Roadmap (S1)
 
 Current: `env_file: .env` (gitignored) per stack.

@@ -61,7 +61,7 @@ services:
           cpus: '0.5'
           memory: 512M
     env_file:
-      - .env
+      - /share/np-dms/app/.env
     environment:
       TZ: 'Asia/Bangkok'
       NODE_ENV: 'production'
@@ -142,7 +142,7 @@ services:
           cpus: '0.25'
           memory: 512M
     env_file:
-      - .env
+      - /share/np-dms/app/.env
     environment:
       TZ: 'Asia/Bangkok'
       NODE_ENV: 'production'

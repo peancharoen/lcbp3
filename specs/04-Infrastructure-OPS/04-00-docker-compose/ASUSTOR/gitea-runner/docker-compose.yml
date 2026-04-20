@@ -1,4 +1,5 @@
 # File: /volume1/np-dms/gitea-runner/docker-compose.yml
+# DMS Container v1.8.6: Application name: lcbp3-gitea-runner
 # Deploy on: ASUSTOR AS5403T
 # เชื่อมต่อกับ Gitea บน QNAP ผ่าน Domain URL
 #
