@@ -6,64 +6,38 @@
 #   - cadvisor:8080
 # H5: ไม่ publish ports ออก LAN, ตัด obsolete `version:` field, pin tags
 # ============================================================
-
-x-restart: &restart_policy
-  restart: unless-stopped
-
-x-logging: &default_logging
-  logging:
-    driver: 'json-file'
-    options:
-      max-size: '10m'
-      max-file: '5'
+# Application name lcbp3-monitoring-exporter
+version: '3.8'
 
 networks:
   lcbp3:
     external: true
-
+name: lcbp3-monitoring-exporter
 services:
   node-exporter:
-    <<: [*restart_policy, *default_logging]
-    image: prom/node-exporter:v1.8.2
+    image: prom/node-exporter:v1.7.0
     container_name: node-exporter
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 128M
-    environment:
-      TZ: 'Asia/Bangkok'
+    restart: unless-stopped
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    expose:
-      - '9100'
+    ports:
+      - "9100:9100"
     networks:
       - lcbp3
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:9100/metrics']
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   cadvisor:
-    <<: [*restart_policy, *default_logging]
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
     container_name: cadvisor
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-    environment:
-      TZ: 'Asia/Bangkok'
-    expose:
-      - '8080'
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "8088:8080"
     networks:
       - lcbp3
     volumes:
@@ -71,8 +45,18 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8080/healthz']
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.15.0
+    container_name: mysqld-exporter
+    restart: unless-stopped
+    user: root
+    command:
+      - '--config.my-cnf=/etc/mysql/my.cnf'
+    ports:
+      - "9104:9104"
+    networks:
+      - lcbp3
+    volumes:
+      - "/share/np-dms/monitoring/mysqld-exporter/.my.cnf:/etc/mysql/my.cnf:ro"

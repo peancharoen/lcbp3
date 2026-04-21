@@ -175,14 +175,14 @@ services:
     <<: [*restart_policy, *default_logging]
     image: clamav/clamav:1.4.4
     container_name: clamav
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
+    # security_opt:
+    #  - no-new-privileges:true
+    # cap_drop:
+    #   - ALL
+    # cap_add:
+    #   - CHOWN
+    #   - SETUID
+    #   - SETGID
     deploy:
       resources:
         limits:
@@ -192,6 +192,8 @@ services:
           cpus: '0.25'
           memory: 1G
     environment:
+      CLAMAV_NO_LOG_FILE: 'true'      # ปิดการเขียนไฟล์ clamd.log
+      FRESHCLAM_NO_LOG_FILE: 'true'   # ปิดการเขียนไฟล์ freshclam.log
       TZ: 'Asia/Bangkok'
       CLAMAV_NO_FRESHCLAMD: 'false'
       CLAMAV_NO_CLAMD: 'false'

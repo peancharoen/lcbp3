@@ -13,6 +13,8 @@ x-logging: &default_logging
       max-size: '10m'
       max-file: '5'
 
+name: lcbp3-monitoring
+
 networks:
   lcbp3:
     external: true
@@ -162,7 +164,7 @@ services:
           memory: 256M
     environment:
       TZ: 'Asia/Bangkok'
-    # H4: cAdvisor binds 8080 ภายใน container — map เป็น 8088 บน host
+    # H4: cAdvisor binds 8080  container  map  8088  host
     ports:
       - '8088:8080'
     networks:
@@ -212,8 +214,8 @@ services:
     <<: [*restart_policy, *default_logging]
     image: grafana/promtail:2.9.0
     container_name: promtail
-    # L5: รันในฐานะ root เพราะต้องอ่าน /var/lib/docker/containers
-    # ที่ mount เข้ามาแบบ read-only
+    # L5:  root  /var/lib/docker/containers
+    #  mount  read-only
     user: '0:0'
     deploy:
       resources:

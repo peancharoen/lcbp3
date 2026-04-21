@@ -1,7 +1,7 @@
 # File: /share/np-dms/n8n/docker-compose.yml
 # DMS Container v1.8.6 — Application: n8n
 # ============================================================
-# 🔒 SECURITY:
+# ߔ⠓ECURITY:
 #   - secrets อยู่ใน .env (gitignored) — หลีกปัญหาการตีความหมาย `$` ใน YAML
 #   - n8n ไม่ได้ mount /var/run/docker.sock โดยตรง (H3)
 #     ใช้ docker-socket-proxy จำกัด capability — read-only Containers/Images API
@@ -113,9 +113,7 @@ services:
 
   n8n:
     <<: [*restart_policy, *default_logging]
-    build:
-      context: ./n8n-custom
-      dockerfile: Dockerfile
+    image: n8nio/n8n:2.16.1
     container_name: n8n
     depends_on:
       n8n-db:
@@ -166,8 +164,6 @@ services:
       EXECUTIONS_DATA_PRUNE: 'true'
       EXECUTIONS_DATA_MAX_AGE: 168
       # EXECUTIONS_DATA_PRUNE_TIMEOUT: 60
-      # Storage Migration (fix deprecation warning)
-      N8N_MIGRATE_FS_STORAGE_PATH: 'true'
 
     ports:
       - '5678:5678'

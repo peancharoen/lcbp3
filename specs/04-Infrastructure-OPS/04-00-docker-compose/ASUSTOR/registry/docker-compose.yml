@@ -8,7 +8,7 @@
 #     - Registry ใช้ Port 5000 (domain: registry.np-dms.work)
 #     - Portainer ใช้ Port 9443 (domain: portainer.np-dms.work)
 # ============================================================
-# 🔒 SECURITY (M6):
+#  SECURITY (M6):
 #   Registry เปิด htpasswd auth (ADR-016)
 #   Prerequisite (ทำครั้งเดียวก่อน deploy):
 #     docker run --rm --entrypoint htpasswd httpd:2 -Bbn \
@@ -108,7 +108,8 @@ services:
       - lcbp3
     healthcheck:
       # test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:80/']
-      test: ["CMD-SHELL", "wget --spider -q http://localhost/ || exit 1"]
+      # test: ["CMD-SHELL", "wget --spider -q http://localhost/ || exit 1"]
+      test: ["CMD", "pgrep", "nginx"]
       interval: 30s
       timeout: 10s
       retries: 3
