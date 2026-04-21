@@ -43,19 +43,19 @@ services:
     image: lcbp3-backend:${BACKEND_IMAGE_TAG:-latest}
     container_name: backend
     # M4: container hardening
-    user: 'node'
+    # user: 'node'
     # L1: stdin_open/tty removed — production services ไม่ต้องใช้ interactive TTY
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=256m
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
+    # read_only: true
+    # tmpfs:
+    #   - /tmp:rw,noexec,nosuid,size=256m
+    # security_opt:
+    #  - no-new-privileges:true
+    # cap_drop:
+    #   - ALL
+    # cap_add:
+    #   - CHOWN
+    #   - SETUID
+    #  - SETGID
     deploy:
       resources:
         limits:
@@ -127,19 +127,19 @@ services:
     image: lcbp3-frontend:${FRONTEND_IMAGE_TAG:-latest}
     container_name: frontend
     # M4: container hardening (Next.js standalone runs as 'nextjs' user by default)
-    user: 'nextjs'
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=128m
-      - /app/.next/cache:rw,size=256m
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
+    # user: 'nextjs'
+    # read_only: true
+    # tmpfs:
+    #   - /tmp:rw,noexec,nosuid,size=128m
+    #   - /app/.next/cache:rw,size=256m
+    # security_opt:
+    #   - no-new-privileges:true
+    # cap_drop:
+    #   - ALL
+    # cap_add:
+    #  - CHOWN
+    #   - SETUID
+    #   - SETGID
     # L1: stdin_open/tty removed
     deploy:
       resources:
