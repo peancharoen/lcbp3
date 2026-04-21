@@ -14,14 +14,14 @@ export interface EmbeddingJobData extends ThaiPreprocessJobData {
   normalizedText: string;
 }
 
-@Processor('rag:thai-preprocess')
+@Processor('rag-thai-preprocess')
 export class ThaiPreprocessProcessor extends WorkerHost {
   private readonly logger = new Logger(ThaiPreprocessProcessor.name);
   private readonly thaiUrl: string;
 
   constructor(
     private readonly configService: ConfigService,
-    @InjectQueue('rag:embedding') private readonly embeddingQueue: Queue
+    @InjectQueue('rag-embedding') private readonly embeddingQueue: Queue
   ) {
     super();
     this.thaiUrl = this.configService.get<string>(

@@ -13,7 +13,7 @@ import { UserModule } from '../../modules/user/user.module';
     TypeOrmModule.forFeature([Attachment]),
     ScheduleModule.forRoot(), // ✅ เปิดใช้งาน Cron Job],
     UserModule,
-    BullModule.registerQueue({ name: 'rag:ocr' }),
+    BullModule.registerQueue({ name: 'rag-ocr' }),
   ],
   controllers: [FileStorageController],
   providers: [

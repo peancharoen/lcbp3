@@ -20,12 +20,12 @@ export interface OcrJobData {
   classification: 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL';
 }
 
-@Processor('rag:ocr')
+@Processor('rag-ocr')
 export class OcrProcessor extends WorkerHost {
   private readonly logger = new Logger(OcrProcessor.name);
 
   constructor(
-    @InjectQueue('rag:thai-preprocess') private readonly thaiQueue: Queue,
+    @InjectQueue('rag-thai-preprocess') private readonly thaiQueue: Queue,
     @InjectRepository(DocumentChunk)
     private readonly chunkRepo: Repository<DocumentChunk>
   ) {
@@ -40,7 +40,7 @@ export class OcrProcessor extends WorkerHost {
     });
     if (existing > 0) {
       this.logger.log(
-        `rag:ocr job already indexed for ${attachmentPublicId}, skipping`
+        `rag-ocr job already indexed for ${attachmentPublicId}, skipping`
       );
       return;
     }

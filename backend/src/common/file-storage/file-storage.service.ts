@@ -28,7 +28,7 @@ export class FileStorageService {
     @InjectRepository(Attachment)
     private attachmentRepository: Repository<Attachment>,
     private configService: ConfigService,
-    @Optional() @InjectQueue('rag:ocr') private readonly ragOcrQueue?: Queue
+    @Optional() @InjectQueue('rag-ocr') private readonly ragOcrQueue?: Queue
   ) {
     // ใช้ env vars จาก docker-compose สำหรับ Production
     // ถ้าไม่ได้กำหนดจะ fallback เป็น ./uploads/temp และ ./uploads/permanent
@@ -180,7 +180,7 @@ export class FileStorageService {
               )
               .catch((err: unknown) => {
                 this.logger.error(
-                  `Failed to enqueue rag:ocr for ${saved.publicId}`,
+                  `Failed to enqueue rag-ocr for ${saved.publicId}`,
                   err instanceof Error ? err.stack : String(err)
                 );
               });

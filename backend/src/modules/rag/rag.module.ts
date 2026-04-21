@@ -28,9 +28,9 @@ const DLQ_DEFAULTS = {
     UserModule,
     TypeOrmModule.forFeature([DocumentChunk]),
     BullModule.registerQueue(
-      { name: 'rag:ocr', defaultJobOptions: DLQ_DEFAULTS },
-      { name: 'rag:thai-preprocess', defaultJobOptions: DLQ_DEFAULTS },
-      { name: 'rag:embedding', defaultJobOptions: DLQ_DEFAULTS }
+      { name: 'rag-ocr', defaultJobOptions: DLQ_DEFAULTS },
+      { name: 'rag-thai-preprocess', defaultJobOptions: DLQ_DEFAULTS },
+      { name: 'rag-embedding', defaultJobOptions: DLQ_DEFAULTS }
     ),
   ],
   controllers: [RagController],

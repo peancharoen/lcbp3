@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { IngestionService } from '../ingestion.service';
 
-const QUEUE_TOKEN = 'BullQueue_rag:ocr';
+const QUEUE_TOKEN = 'BullQueue_rag-ocr';
 
 const mockOcrQueue = {
   getJob: jest.fn(),
@@ -35,7 +35,7 @@ describe('IngestionService', () => {
     jest.clearAllMocks();
   });
 
-  it('should enqueue rag:ocr job with attachmentPublicId as jobId', async () => {
+  it('should enqueue rag-ocr job with attachmentPublicId as jobId', async () => {
     mockOcrQueue.getJob.mockResolvedValue(null);
     mockOcrQueue.add.mockResolvedValue({ id: baseJobData.attachmentPublicId });
 

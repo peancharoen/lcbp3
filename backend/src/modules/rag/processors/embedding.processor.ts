@@ -13,7 +13,7 @@ import { EmbeddingJobData } from './thai-preprocess.processor';
 const CHUNK_SIZE = 512;
 const CHUNK_OVERLAP = 50;
 
-@Processor('rag:embedding')
+@Processor('rag-embedding')
 export class EmbeddingProcessor extends WorkerHost {
   private readonly logger = new Logger(EmbeddingProcessor.name);
 

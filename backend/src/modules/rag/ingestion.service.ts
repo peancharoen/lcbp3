@@ -8,7 +8,7 @@ import { OcrJobData } from './processors/ocr.processor';
 export class IngestionService {
   private readonly logger = new Logger(IngestionService.name);
 
-  constructor(@InjectQueue('rag:ocr') private readonly ocrQueue: Queue) {}
+  constructor(@InjectQueue('rag-ocr') private readonly ocrQueue: Queue) {}
 
   async enqueue(data: OcrJobData): Promise<void> {
     const jobId = data.attachmentPublicId;
@@ -18,13 +18,13 @@ export class IngestionService {
       const state = await existing.getState();
       if (state === 'active' || state === 'waiting' || state === 'delayed') {
         this.logger.log(
-          `rag:ocr job already queued for ${jobId} (state: ${state})`
+          `rag-ocr job already queued for ${jobId} (state: ${state})`
         );
         return;
       }
     }
 
     await this.ocrQueue.add('ocr', data, { jobId });
-    this.logger.log(`Enqueued rag:ocr for attachment ${jobId}`);
+    this.logger.log(`Enqueued rag-ocr for attachment ${jobId}`);
   }
 }
