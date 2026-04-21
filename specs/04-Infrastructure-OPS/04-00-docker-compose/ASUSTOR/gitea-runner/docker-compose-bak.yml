@@ -1,0 +1,21 @@
+# File: /volume1/np-dms/gitea-runner/docker-compose.yml
+# Deploy on: ASUSTOR AS5403T
+# เชื่อมต่อกับ Gitea บน QNAP ผ่าน Domain URL
+
+version: "3.8"
+
+services:
+  runner:
+    image: gitea/act_runner:latest
+    container_name: gitea-runner
+    restart: always
+    environment:
+      # ใช้ Domain URL เพื่อเชื่อมต่อ Gitea ข้ามเครื่อง (QNAP)
+      - GITEA_INSTANCE_URL=https://git.np-dms.work
+      - GITEA_RUNNER_REGISTRATION_TOKEN=FGaSCT79PmMg8cDy0Ltqt1yaLzs8D4MRMFAE3jCh
+      - GITEA_RUNNER_NAME=asustor-runner
+      # Label ต้องตรงกับ runs-on ใน deploy.yaml
+      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://node:18-bullseye,self-hosted:docker://node:18-bullseye
+    volumes:
+      - /volume1/np-dms/gitea-runner/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock

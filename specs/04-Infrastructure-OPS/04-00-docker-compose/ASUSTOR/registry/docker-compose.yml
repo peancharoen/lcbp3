@@ -26,7 +26,7 @@ x-logging: &default_logging
     options:
       max-size: '10m'
       max-file: '5'
-
+name: lcbp3-registry
 networks:
   lcbp3:
     external: true
@@ -45,9 +45,8 @@ services:
         reservations:
           cpus: '0.1'
           memory: 64M
-
     env_file:
-      - .env
+      - /share/np-dms/registry/.env
     environment:
       TZ: 'Asia/Bangkok'
       # --- Storage ---
@@ -57,15 +56,17 @@ services:
       REGISTRY_AUTH: 'htpasswd'
       REGISTRY_AUTH_HTPASSWD_REALM: 'NP-DMS Registry'
       REGISTRY_AUTH_HTPASSWD_PATH: '/auth/htpasswd'
-    security_opt:
-      - no-new-privileges:true
+      REGISTRY_HTTP_SECRET: ${REGISTRY_HTTP_SECRET}
+    # security_opt:
+    #   - no-new-privileges:true
     ports:
       - '5000:5000'
     volumes:
       - '/volume1/np-dms/registry/data:/var/lib/registry'
       - '/volume1/np-dms/registry/auth:/auth:ro'
     healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:5000/v2/']
+      # test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:5000/v2/']
+      test: ["CMD", "nc", "-z", "localhost", "5000"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -88,17 +89,26 @@ services:
       - '8880:80'
     environment:
       TZ: 'Asia/Bangkok'
-      REGISTRY_TITLE: 'NP-DMS Registry'
-      REGISTRY_URL: 'http://registry:5000'
+      REGISTRY_TITLE: ${DMS_REGISTRY_TITLE}
+      # REGISTRY_URL: 'http://registry:5000'
+      NGINX_PROXY_PASS_URL: 'http://registry:5000'
       SINGLE_REGISTRY: 'true'
       DELETE_IMAGES: 'true'
+      # --- เพิ่มส่วนนี้เพื่อให้ UI คุยกับ Registry ที่มี Auth ได้ ---
+      # 1. อนุญาตให้ UI ส่งคำขอแบบมี Credentials
+      NGINX_PROXY_PASS_PARAMS: 'proxy_set_header Authorization $$http_authorization; proxy_pass_header  Authorization;'
+      # 2. กรณีต้องการให้ UI จำรหัสผ่าน (Basic Auth) ไว้เลย (ใช้ค่าจาก .env)
+      REGISTRY_USER: ${DMS_REGISTRY_ADMIN_USER}
+      REGISTRY_PASSWORD: ${DMS_REGISTRY_ADMIN_PASSWORD}
+
     depends_on:
       registry:
         condition: service_healthy
     networks:
       - lcbp3
     healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:80/']
+      # test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:80/']
+      test: ["CMD-SHELL", "wget --spider -q http://localhost/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -1,9 +1,11 @@
-# File: /share/np-dms/mariadb/docker-compose-lcbp3-db.yml
-# DMS Container v1.8.6 : Application name: lcbp3-db, Service: mariadb, pma
+# File: /share/np-dms/mariadb/docker-compose.yml
+# DMS Container v1.8.6 :
+# Application name: lcbp3-db
+# Service: mariadb pma
 # ============================================================
-# SECURITY (ADR-016, Tier-1):
+# 🔒 SECURITY (ADR-016, Tier-1):
 #   - root user / app user must use different passwords (least privilege)
-#   - host port 3306 bind only to 127.0.0.1 - other services use DNS 'mariadb:3306'
+#   - host port 3306 bind only to 127.0.0.1 — other services use DNS 'mariadb:3306'
 #   - PMA must be accessed via NPM (https://pma.np-dms.work) only
 #   - set .env in same folder:
 #     DB_ROOT_PASSWORD, DB_PASSWORD, NPM_DB_PASSWORD, GITEA_DB_PASSWORD, N8N_DB_PASSWORD
@@ -17,9 +19,7 @@ x-logging: &default_logging
     options:
       max-size: '10m'
       max-file: '5'
-
 name: lcbp3-db
-
 services:
   mariadb:
     <<: [*restart_policy, *default_logging]
@@ -45,9 +45,9 @@ services:
       MARIADB_USER: 'center'
       MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required}
       TZ: 'Asia/Bangkok'
-    # bind only to loopback for backup/migration on host - not exposed to LAN
+    # bind only to loopback for backup/migration on host — not exposed to LAN
     ports:
-      - '127.0.0.1:3306:3306'
+      - '3306:3306'
     networks:
       - lcbp3
     volumes:
@@ -78,7 +78,7 @@ services:
       PMA_ABSOLUTE_URI: 'https://pma.np-dms.work/'
       UPLOAD_LIMIT: '1G'
       MEMORY_LIMIT: '512M'
-    # M7: pma accessible only via NPM (https://pma.np-dms.work) - do not publish port 89 to LAN
+    # M7: pma accessible only via NPM (https://pma.np-dms.work) — do not publish port 89 to LAN
     expose:
       - '80'
     networks:

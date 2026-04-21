@@ -1,0 +1,70 @@
+# File: /volume1/np-dms/registry/docker-compose.yml
+# DMS Container v1.8.0: Application name: lcbp3-registry
+# Deploy on: ASUSTOR AS5403T
+# Services: registry, portainer
+# ============================================================
+# ⚠️  ข้อกำหนด:
+#     - ต้องสร้าง Docker Network ก่อน: docker network create lcbp3
+#     - Registry ใช้ Port 5000 (domain: registry.np-dms.work)
+#     - Portainer ใช้ Port 9443 (domain: portainer.np-dms.work)
+# ============================================================
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: 'json-file'
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+networks:
+  lcbp3:
+    external: true
+
+services:
+  # 1. Docker Registry Engine
+  registry:
+    <<: [*restart_policy, *default_logging]
+    image: registry:2
+    container_name: registry
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    environment:
+      TZ: 'Asia/Bangkok'
+      REGISTRY_STORAGE_DELETE_ENABLED: 'true'
+      # เพิ่มความปลอดภัยเบื้องต้น (ถ้าต้องการ) หรือจัดการเรื่อง CORS
+      # REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin: '[https://registry-ui.np-dms.work]'
+      # REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods: '[HEAD,GET,OPTIONS,DELETE]'
+      # REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers: '[Authorization,Accept,Cache-Control]'
+    ports:
+      - "5000:5000"
+    volumes:
+      - '/volume1/np-dms/registry/data:/var/lib/registry'
+    healthcheck:
+      test: ["CMD", "bin/registry", "garbage-collect", "--dry-run", "/etc/docker/registry/config.yml"] # Check config/binary readiness
+      interval: 1m
+      timeout: 10s
+      retries: 3
+    networks:
+      - lcbp3
+
+  # 2. Registry Browser UI
+  registry-ui:
+    <<: [*restart_policy, *default_logging]
+    image: joxit/docker-registry-ui:latest
+    container_name: registry-ui
+    ports:
+      - "8880:80"
+    environment:
+      - REGISTRY_TITLE=LCBP3-DMS Local Registry
+      - REGISTRY_URL=http://registry:5000
+      - SINGLE_REGISTRY=true
+      - DELETE_IMAGES=true # ยอมให้กดลบจากหน้า UI ได้
+    depends_on:
+      - registry
+    networks:
+      - lcbp3
