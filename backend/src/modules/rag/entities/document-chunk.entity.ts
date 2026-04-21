@@ -17,10 +17,10 @@ export class DocumentChunk {
   @Column({ length: 20, name: 'doc_type' })
   docType!: string;
 
-  @Column({ length: 100, name: 'doc_number', nullable: true })
+  @Column({ type: 'varchar', length: 100, name: 'doc_number', nullable: true })
   docNumber!: string | null;
 
-  @Column({ length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   revision!: string | null;
 
   @Column({ length: 50, name: 'project_code' })
@@ -36,7 +36,7 @@ export class DocumentChunk {
   })
   classification!: 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL';
 
-  @Column({ length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   version!: string | null;
 
   @Column({ length: 100, name: 'embedding_model', default: 'nomic-embed-text' })
