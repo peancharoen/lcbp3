@@ -52,6 +52,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
     deploy:
       resources:
         limits:
@@ -132,6 +136,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
     # L1: stdin_open/tty removed
     deploy:
       resources:
@@ -210,3 +218,9 @@ services:
       timeout: 30s
       retries: 3
       start_period: 300s
+
+# sudo chown -R 100:101 /share/np-dms/data/logs/clamav
+# sudo chmod -R 755 /share/np-dms/data/logs/climax
+
+# sudo chown -R 100:101 /share/np-dms/clamav/data
+# sudo chmod -R 775 /share/np-dms/clamav/data
