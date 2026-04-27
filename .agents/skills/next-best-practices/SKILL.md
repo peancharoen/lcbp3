@@ -1,6 +1,8 @@
 ---
 name: next-best-practices
-description: Next.js best practices - file conventions, RSC boundaries, data patterns, async APIs, metadata, error handling, route handlers, image/font optimization, bundling
+description: Next.js best practices for LCBP3-DMS frontend. Enforces ADR-019 (publicId only, no parseInt/id fallback), TanStack Query + RHF + Zod, shadcn/ui, i18n, ADR-007 error UX, ADR-021 IntegratedBanner/WorkflowLifecycle, two-phase file upload.
+version: 1.8.9
+scope: frontend
 user-invocable: false
 ---
 
@@ -157,6 +159,24 @@ See [parallel-routes.md](./parallel-routes.md) for:
 - `default.tsx` for fallbacks
 - Closing modals correctly with `router.back()`
 
+## i18n (Thai / English)
+
+See [i18n.md](./i18n.md) for:
+
+- `useTranslations('namespace')` pattern
+- Key naming (kebab-case, feature-namespaced)
+- When Zod messages stay inline vs i18n
+- Server-side `userMessage` passthrough
+
+## Two-Phase File Upload
+
+See [two-phase-upload.md](./two-phase-upload.md) for:
+
+- `useDropzone` + `useMutation` hook
+- `tempFileIds` form-state pattern
+- Whitelist MIME / max-size (must mirror backend)
+- Clear-on-submit / expired-temp handling
+
 ## Self-Hosting
 
 See [self-hosting.md](./self-hosting.md) for:
@@ -204,28 +224,38 @@ const form = useForm({
 });
 ```
 
-### ADR-019 UUID Handling (CRITICAL)
+### ADR-019 UUID Handling (CRITICAL — March 2026 Pattern)
+
+> **Updated:** ใช้ `publicId` ตรงๆ — ห้ามใช้ `id ?? ''` fallback หรือ `uuid` ร่วม.
 
 ```tsx
-// Interface ต้องมีทั้ง id และ publicId
+// ✅ CORRECT — Interface มีแค่ publicId
 interface Contract {
-  id?: number; // Internal (อาจ undefined)
-  publicId?: string; // UUID - ใช้ตัวนี้
+  publicId?: string; // UUID from API — ใช้ตัวนี้
   contractCode: string;
+  contractName: string;
 }
 
-// Select options - ใช้ pattern นี้เสมอ
+// ✅ CORRECT — Select options (ไม่มี fallback)
 const options = contracts.map((c) => ({
   label: `${c.contractName} (${c.contractCode})`,
-  value: String(c.publicId ?? c.id ?? ''), // fallback pattern
-  key: String(c.publicId ?? c.id ?? ''),
+  value: c.publicId ?? '', // ใช้ publicId ล้วน
+  key: c.publicId ?? c.contractCode, // fallback ไป business field ได้
 }));
 
-// ❌ ห้ามใช้ parseInt บน UUID
-// const id = parseInt(projectId); // WRONG!
+// ❌ WRONG — pattern เก่า (ห้าม)
+interface OldContract {
+  id?: number; // ❌ อย่า expose INT id
+  uuid?: string; // ❌ ใช้ชื่อ uuid
+  publicId?: string;
+}
+const oldValue = String(c.publicId ?? c.id ?? ''); // ❌ `id ?? ''` fallback ห้าม
 
-// ✅ ส่ง UUID string ตรงๆ
-apiClient.get(`/projects/${projectId}`); // projectId is UUID string
+// ❌ NEVER parseInt on UUID
+// const badId = parseInt(projectPublicId); // "019505..." → 19 (WRONG!)
+
+// ✅ ส่ง UUID string ตรงๆ ไป API
+apiClient.get(`/projects/${projectPublicId}`);
 ```
 
 ### Naming Conventions
@@ -312,13 +342,17 @@ apiClient.interceptors.request.use((config) => {
 
 ### Anti-Patterns (ห้ามทำ)
 
-- ❌ Fetch data ใน useEffect โดยตรง
+- ❌ Fetch data ใน useEffect โดยตรง (ใช้ TanStack Query)
 - ❌ Props drilling ลึกเกิน 3 levels
 - ❌ Inline styles (ใช้ Tailwind)
-- ❌ console.log ใน production
-- ❌ parseInt() บน UUID values
+- ❌ `console.log` ใน committed code
+- ❌ `parseInt()` / `Number()` / `+` บน UUID values (ADR-019)
+- ❌ `id ?? ''` fallback บน `publicId` (ใช้ `publicId ?? ''` หรือ fallback ไป business field)
+- ❌ Expose `uuid` คู่กับ `publicId` ใน interface (ใช้ `publicId` อย่างเดียว)
 - ❌ ใช้ index เป็น key ใน list
 - ❌ Snake_case ใน form field names (ใช้ camelCase)
+- ❌ Hardcode Thai/English string ใน component (ใช้ i18n keys)
+- ❌ `any` type (strict mode)
 
 ---
 

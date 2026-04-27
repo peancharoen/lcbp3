@@ -1,8 +1,9 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.8.7 | Last synced from repo: 2026-04-14
+- Version: 1.8.9 | Last synced from repo: 2026-04-22
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
+- Skill pack: `.agents/skills/` (v1.8.9, 20 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
 ---
 
@@ -380,26 +381,30 @@ This file is a **quick reference**. For detailed information:
 
 - **Architecture:** `specs/02-architecture/`
 - **Requirements:** `specs/01-requirements/`
-- **Data & Storage:** `specs/03-Data-and-Storage/`
+- **Data & Storage:** `specs/03-Data-and-Storage/` (canonical schema + `deltas/` incremental SQL per ADR-009)
 - **Engineering Guidelines:** `specs/05-Engineering-Guidelines/`
 - **Decision Records:** `specs/06-Decision-Records/`
 - **Infrastructure:** `specs/04-Infrastructure-OPS/`
+- **Agent Skill Pack:** `.agents/skills/` (NestJS/Next.js rules + 18 Speckit workflow skills)
+- **Helper Scripts:** `.agents/scripts/{bash,powershell}/` (audit, validate, prerequisites, setup-plan)
 
 ---
 
 ## 🔄 Change Log
 
-| Version | Date       | Changes                                                                                                                                     | Updated By     |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1.8.7   | 2026-04-14 | + ADR-021 Workflow Context integration, + ADR-021 Integration Work tier, + Transmittal/Circulation context triggers, updated ADR-020 status | Windsurf AI    |
-| 1.8.6   | 2026-04-10 | + DMS Workflow Engine Protocol, + Security & Integrity Audit Protocol, + 2 Context-Aware Triggers, ADR Status column, Forbidden Why column  | Human Dev      |
-| 1.8.5   | 2026-04-04 | Added ADR-007 error handling, ADR-020 AI integration, updated security rules                                                                | Windsurf AI    |
-| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note                                                                         | Windsurf AI    |
-| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                                                                                | Human Dev + AI |
-| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n                                                                               | Human Dev + AI |
-| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                                                                                          | Claude Sonnet  |
-| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                                                                                              | Human Dev      |
-| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                                                                                               | Gemini Pro     |
+| Version | Date       | Changes                                                                                                                                           | Updated By     |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.8.9   | 2026-04-22 | `.agents/skills/` LCBP3-native rebuild (20 skills @ v1.8.9) + `_LCBP3-CONTEXT.md` appendix + `specs/03-Data-and-Storage/deltas/` + AGENTS.md sync | Windsurf AI    |
+| 1.8.8   | 2026-04-14 | Workflow attachments (ADR-021) + step-attachment envelope fields                                                                                  | Windsurf AI    |
+| 1.8.7   | 2026-04-14 | + ADR-021 Workflow Context integration, + ADR-021 Integration Work tier, + Transmittal/Circulation context triggers, updated ADR-020 status       | Windsurf AI    |
+| 1.8.6   | 2026-04-10 | + DMS Workflow Engine Protocol, + Security & Integrity Audit Protocol, + 2 Context-Aware Triggers, ADR Status column, Forbidden Why column        | Human Dev      |
+| 1.8.5   | 2026-04-04 | Added ADR-007 error handling, ADR-020 AI integration, updated security rules                                                                      | Windsurf AI    |
+| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note                                                                               | Windsurf AI    |
+| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                                                                                      | Human Dev + AI |
+| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n                                                                                     | Human Dev + AI |
+| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                                                                                                | Claude Sonnet  |
+| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                                                                                                    | Human Dev      |
+| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                                                                                                     | Gemini Pro     |
 
 ---
 

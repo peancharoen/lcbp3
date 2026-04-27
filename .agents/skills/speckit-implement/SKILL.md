@@ -1,7 +1,7 @@
 ---
 name: speckit-implement
 description: Execute the implementation plan by processing and executing all tasks defined in tasks.md (with Ironclad Anti-Regression Protocols)
-version: 1.0.0
+version: 1.8.9
 depends-on:
   - speckit-tasks
 ---
@@ -81,7 +81,7 @@ At the start of execution and after every 3 modifications:
 
 ### Outline
 
-1. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\\''m Groot' (or double-quote if possible: "I'm Groot").
+1. Run `../scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Check checklists status** (if FEATURE_DIR/checklists/ exists):
    - Scan all checklist files in the checklists/ directory
@@ -246,3 +246,15 @@ At the start of execution and after every 3 modifications:
 ---
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit-tasks` first to regenerate the task list.
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

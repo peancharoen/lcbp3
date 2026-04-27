@@ -1,8 +1,8 @@
 # NestJS Best Practices
 
-**Version 1.8.9**
-**NAP-DMS / LCBP3** — Laem Chabang Port Phase 3 Document Management System
-2026-04-22
+**Version 1.1.0**
+NestJS Best Practices
+January 2026
 
 > **Note:**
 > This document is mainly for agents and LLMs to follow when maintaining,
@@ -14,9 +14,7 @@
 
 ## Abstract
 
-Comprehensive NestJS best-practices guide compiled for the LCBP3-DMS backend. Contains 40+ rules across 11 categories (10 general + 1 project-specific), prioritized by impact. Forked from Kadajett/nestjs-best-practices (v1.1.0) and aligned to LCBP3 ADRs: ADR-001 (workflow engine), ADR-002 (document numbering), ADR-007 (error handling), ADR-008 (notifications/BullMQ), ADR-009 (no TypeORM migrations), ADR-016 (security), ADR-018/020 (AI boundary), ADR-019 (hybrid UUID identifier — March 2026 pattern), and ADR-021 (workflow context).
-
-This document is the single, consolidated reference used by Cascade and other AI coding agents when writing, reviewing, or refactoring backend code in this repository. All LCBP3-specific overrides live in section 11.
+Comprehensive best practices and architecture guide for NestJS applications, designed for AI agents and LLMs. Contains 40 rules across 10 categories, prioritized by impact from critical (architecture, dependency injection) to incremental (DevOps patterns). Each rule includes detailed explanations, real-world examples comparing incorrect vs. correct implementations, and specific impact metrics to guide automated refactoring and code generation.
 
 ---
 
@@ -42,11 +40,10 @@ This document is the single, consolidated reference used by Cascade and other AI
    - 3.3 [Use Exception Filters for Error Handling](#33-use-exception-filters-for-error-handling)
 4. [Security](#4-security) — **HIGH**
    - 4.1 [Implement Secure JWT Authentication](#41-implement-secure-jwt-authentication)
-   - 4.2 [Two-Phase File Upload + ClamAV (ADR-016)](#42-two-phase-file-upload-clamav-adr-016-)
-   - 4.3 [Implement Rate Limiting](#43-implement-rate-limiting)
-   - 4.4 [Sanitize Output to Prevent XSS](#44-sanitize-output-to-prevent-xss)
-   - 4.5 [Use Guards for Authentication and Authorization](#45-use-guards-for-authentication-and-authorization)
-   - 4.6 [Validate All Input with DTOs and Pipes](#46-validate-all-input-with-dtos-and-pipes)
+   - 4.2 [Implement Rate Limiting](#42-implement-rate-limiting)
+   - 4.3 [Sanitize Output to Prevent XSS](#43-sanitize-output-to-prevent-xss)
+   - 4.4 [Use Guards for Authentication and Authorization](#44-use-guards-for-authentication-and-authorization)
+   - 4.5 [Validate All Input with DTOs and Pipes](#45-validate-all-input-with-dtos-and-pipes)
 5. [Performance](#5-performance) — **HIGH**
    - 5.1 [Use Async Lifecycle Hooks Correctly](#51-use-async-lifecycle-hooks-correctly)
    - 5.2 [Use Lazy Loading for Large Modules](#52-use-lazy-loading-for-large-modules)
@@ -58,10 +55,8 @@ This document is the single, consolidated reference used by Cascade and other AI
    - 6.3 [Use Testing Module for Unit Tests](#63-use-testing-module-for-unit-tests)
 7. [Database & ORM](#7-database-orm) — **MEDIUM-HIGH**
    - 7.1 [Avoid N+1 Query Problems](#71-avoid-n-1-query-problems)
-   - 7.2 [Hybrid Identifier Strategy (ADR-019)](#72-hybrid-identifier-strategy-adr-019-)
-   - 7.3 [No TypeORM Migrations (ADR-009)](#73-no-typeorm-migrations-adr-009-)
-   - 7.4 [No TypeORM Migrations (ADR-009)](#74-no-typeorm-migrations-adr-009-)
-   - 7.5 [Use Transactions for Multi-Step Operations](#75-use-transactions-for-multi-step-operations)
+   - 7.2 [Use Database Migrations](#72-use-database-migrations)
+   - 7.3 [Use Transactions for Multi-Step Operations](#73-use-transactions-for-multi-step-operations)
 8. [API Design](#8-api-design) — **MEDIUM**
    - 8.1 [Use DTOs and Serialization for API Responses](#81-use-dtos-and-serialization-for-api-responses)
    - 8.2 [Use Interceptors for Cross-Cutting Concerns](#82-use-interceptors-for-cross-cutting-concerns)
@@ -72,12 +67,10 @@ This document is the single, consolidated reference used by Cascade and other AI
    - 9.2 [Use Message and Event Patterns Correctly](#92-use-message-and-event-patterns-correctly)
    - 9.3 [Use Message Queues for Background Jobs](#93-use-message-queues-for-background-jobs)
 10. [DevOps & Deployment](#10-devops-deployment) — **LOW-MEDIUM**
-   - 10.1 [Implement Graceful Shutdown](#101-implement-graceful-shutdown)
-   - 10.2 [Use ConfigModule for Environment Configuration](#102-use-configmodule-for-environment-configuration)
-   - 10.3 [Use Structured Logging](#103-use-structured-logging)
-11. [LCBP3 Project-Specific](#11-lcbp3-project-specific) — **CRITICAL**
-   - 11.1 [AI Integration Boundary (ADR-018 / ADR-020)](#111-ai-integration-boundary-adr-018-adr-020-)
-   - 11.2 [Workflow Engine + Document Numbering + Workflow Context (ADR-001 / 002 / 021)](#112-workflow-engine-document-numbering-workflow-context-adr-001-002-021-)
+
+- 10.1 [Implement Graceful Shutdown](#101-implement-graceful-shutdown)
+- 10.2 [Use ConfigModule for Environment Configuration](#102-use-configmodule-for-environment-configuration)
+- 10.3 [Use Structured Logging](#103-use-structured-logging)
 
 ---
 
@@ -87,7 +80,7 @@ This document is the single, consolidated reference used by Cascade and other AI
 
 ### 1.1 Avoid Circular Dependencies
 
-**Impact: CRITICAL** — '#1 cause of runtime crashes'
+**Impact: CRITICAL** — "#1 cause of runtime crashes"
 
 Circular dependencies occur when Module A imports Module B, and Module B imports Module A (directly or transitively). NestJS can sometimes resolve these through forward references, but they indicate architectural problems and should be avoided. This is the #1 cause of runtime crashes in NestJS applications.
 
@@ -165,7 +158,7 @@ Reference: [NestJS Circular Dependency](https://docs.nestjs.com/fundamentals/cir
 
 ### 1.2 Organize by Feature Modules
 
-**Impact: CRITICAL** — '3-5x faster onboarding and development'
+**Impact: CRITICAL** — "3-5x faster onboarding and development"
 
 Organize your application into feature modules that encapsulate related functionality. Each feature module should be self-contained with its own controllers, services, entities, and DTOs. Avoid organizing by technical layer (all controllers together, all services together). This enables 3-5x faster onboarding and feature development.
 
@@ -384,7 +377,7 @@ Reference: [NestJS Modules](https://docs.nestjs.com/modules#shared-modules)
 
 ### 1.4 Single Responsibility for Services
 
-**Impact: CRITICAL** — '40%+ improvement in testability'
+**Impact: CRITICAL** — "40%+ improvement in testability"
 
 Each service should have a single, well-defined responsibility. Avoid "god services" that handle multiple unrelated concerns. If a service name includes "And" or handles more than one domain concept, it likely violates single responsibility. This reduces complexity and improves testability by 40%+.
 
@@ -1950,142 +1943,7 @@ Reference: [NestJS Authentication](https://docs.nestjs.com/security/authenticati
 
 ---
 
-### 4.2 Two-Phase File Upload + ClamAV (ADR-016)
-
-**Impact: CRITICAL** — Upload → Temp → ClamAV scan → Commit → Permanent. Whitelist + 50MB cap. StorageService only.
-
-**Never write uploaded files directly to permanent storage.** All uploads must go through:
-
-```
-Client → Upload endpoint → Temp storage → ClamAV scan → Commit endpoint → Permanent storage
-```
-
----
-
-## Constraints (non-negotiable)
-
-| Rule | Value |
-| --- | --- |
-| Allowed MIME types | `application/pdf`, `image/vnd.dwg`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `application/zip` |
-| Allowed extensions | `.pdf`, `.dwg`, `.docx`, `.xlsx`, `.zip` |
-| Max size | 50 MB |
-| Temp TTL | 24 h (purged by cron) |
-| Virus scan | ClamAV (blocking) |
-| Mover | `StorageService` only — never `fs.rename` directly from controller |
-
----
-
-## Phase 1: Upload to Temp
-
-```typescript
-@Post('upload')
-@UseGuards(JwtAuthGuard, ThrottlerGuard)
-@UseInterceptors(FileInterceptor('file', {
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
-}))
-async uploadTemp(
-  @UploadedFile() file: Express.Multer.File,
-  @CurrentUser() user: User,
-): Promise<{ tempId: string; expiresAt: string }> {
-  // 1. Validate MIME + extension (defense in depth)
-  this.fileValidator.assertAllowed(file);
-
-  // 2. Scan with ClamAV
-  const scanResult = await this.clamavService.scan(file.buffer);
-  if (!scanResult.clean) {
-    throw new BusinessException(
-      `ClamAV rejected: ${scanResult.signature}`,
-      'ไฟล์ไม่ปลอดภัย ระบบตรวจพบความเสี่ยง',
-      'กรุณาตรวจสอบไฟล์และลองใหม่อีกครั้ง',
-      'FILE_INFECTED',
-    );
-  }
-
-  // 3. Save to temp (encrypted at rest)
-  const tempId = await this.storageService.saveToTemp(file, user.id);
-
-  return {
-    tempId,
-    expiresAt: addHours(new Date(), 24).toISOString(),
-  };
-}
-```
-
----
-
-## Phase 2: Commit in Transaction
-
-The business operation (e.g., creating a Correspondence) promotes temp files to permanent **in the same DB transaction**.
-
-```typescript
-async createCorrespondence(dto: CreateCorrespondenceDto, user: User) {
-  return this.dataSource.transaction(async (manager) => {
-    // 1. Create domain entity
-    const entity = await manager.save(Correspondence, {
-      ...dto,
-      createdById: user.id,
-    });
-
-    // 2. Commit temp files → permanent (ACID together with entity)
-    await this.storageService.commitFiles(
-      dto.tempFileIds,
-      { entityId: entity.id, entityType: 'correspondence' },
-      manager,
-    );
-
-    return entity;
-  });
-}
-```
-
-If the transaction rolls back, temp files remain and expire in 24h — no orphaned permanent files.
-
----
-
-## StorageService Contract
-
-```typescript
-export interface StorageService {
-  saveToTemp(file: Express.Multer.File, ownerId: number): Promise<string>;
-  commitFiles(
-    tempIds: string[],
-    target: { entityId: number; entityType: string },
-    manager: EntityManager,
-  ): Promise<FileRecord[]>;
-  purgeExpiredTemp(): Promise<number>; // called by cron
-  getPermanentPath(fileId: number): Promise<string>;
-}
-```
-
----
-
-## ❌ Forbidden
-
-```typescript
-// ❌ Direct write to permanent
-fs.writeFileSync(`/var/storage/${file.originalname}`, file.buffer);
-
-// ❌ Skip ClamAV
-await this.storageService.savePermanent(file);
-
-// ❌ Non-whitelist MIME
-@UseInterceptors(FileInterceptor('file')) // no size or type limit
-
-// ❌ Commit outside transaction
-const entity = await this.repo.save(...);
-await this.storageService.commitFiles(tempIds, ...); // race: entity exists, files may fail
-```
-
----
-
-## Reference
-
-- [ADR-016 Security & Authentication](../../../../specs/06-Decision-Records/ADR-016-security-authentication.md)
-- [Edge Cases](../../../../specs/01-Requirements/01-06-edge-cases-and-rules.md) — file upload scenarios
-
----
-
-### 4.3 Implement Rate Limiting
+### 4.2 Implement Rate Limiting
 
 **Impact: HIGH** — Protects against abuse and ensures fair resource usage
 
@@ -2208,7 +2066,7 @@ Reference: [NestJS Throttler](https://docs.nestjs.com/security/rate-limiting)
 
 ---
 
-### 4.4 Sanitize Output to Prevent XSS
+### 4.3 Sanitize Output to Prevent XSS
 
 **Impact: HIGH** — XSS vulnerabilities can compromise user sessions and data
 
@@ -2345,7 +2203,7 @@ Reference: [OWASP XSS Prevention](https://cheatsheetseries.owasp.org/cheatsheets
 
 ---
 
-### 4.5 Use Guards for Authentication and Authorization
+### 4.4 Use Guards for Authentication and Authorization
 
 **Impact: HIGH** — Enforces access control before handlers execute
 
@@ -2472,7 +2330,7 @@ Reference: [NestJS Guards](https://docs.nestjs.com/guards)
 
 ---
 
-### 4.6 Validate All Input with DTOs and Pipes
+### 4.5 Validate All Input with DTOs and Pipes
 
 **Impact: HIGH** — First line of defense against attacks
 
@@ -3735,458 +3593,134 @@ Reference: [TypeORM Relations](https://typeorm.io/relations)
 
 ---
 
-### 7.2 Hybrid Identifier Strategy (ADR-019)
+### 7.2 Use Database Migrations
 
-**Impact: CRITICAL** — Use INT PK internally + UUID for public API per project ADR-019
+**Impact: HIGH** — Enables safe, repeatable database schema changes
 
-**This project follows ADR-019: INT Primary Key (internal) + UUIDv7 (public API)**
+Never use `synchronize: true` in production. Use migrations for all schema changes. Migrations provide version control for your database, enable safe rollbacks, and ensure consistency across all environments.
 
-Unlike standard practices that use UUID as the primary key, this project uses a **hybrid approach** optimized for MariaDB performance and API consistency.
-
-> **Updated pattern (March 2026):** Entities extend `UuidBaseEntity`. The `publicId` column is exposed **directly** in API responses — ห้ามใช้ `@Expose({ name: 'id' })` เพื่อ rename.
-
-### The Strategy
-
-| Layer           | Field      | Type                                | Usage                                             |
-| --------------- | ---------- | ----------------------------------- | ------------------------------------------------- |
-| **Database PK** | `id`       | `INT AUTO_INCREMENT`                | Internal foreign keys only (marked `@Exclude()`)  |
-| **Public API**  | `publicId` | `MariaDB UUID` (native, BINARY(16)) | External references, URLs — exposed as-is         |
-| **DTO Input**   | `xxxUuid`  | `string` (UUIDv7)                   | Accept UUID in create/update DTOs                 |
-| **DTO Output**  | `publicId` | `string` (UUIDv7)                   | API returns `publicId` field directly (no rename) |
-
-### Why Hybrid IDs?
-
-- **Performance**: INT PK is faster for joins and indexing than UUID
-- **Security**: Internal IDs never exposed in API (enumerable IDs are a risk)
-- **Compatibility**: UUID works well with distributed systems and external integrations
-- **MariaDB Native**: Uses MariaDB's native UUID type (stored as BINARY(16), auto-converts to string)
-
-### Entity Definition (Current Pattern)
+**Incorrect (using synchronize or manual SQL):**
 
 ```typescript
-import { Entity, Column } from 'typeorm';
-import { UuidBaseEntity } from '@/common/entities/uuid-base.entity';
-
-@Entity('contracts')
-export class Contract extends UuidBaseEntity {
-  // publicId (string UUIDv7) + id (INT, @Exclude) สืบทอดจาก UuidBaseEntity
-  // API response → { publicId: "019505a1-7c3e-7000-8000-abc123...", contractCode: ..., ... }
-
-  @Column()
-  contractCode: string;
-
-  @Column()
-  contractName: string;
-
-  @Column({ name: 'project_id' })
-  projectId: number; // INT FK — internal, not exposed if marked @Exclude in UuidBaseEntity
-}
-```
-
-**`UuidBaseEntity` (shared base):**
-
-```typescript
-import { PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Exclude } from 'class-transformer';
-
-export abstract class UuidBaseEntity {
-  @PrimaryGeneratedColumn()
-  @Exclude() // ❗ CRITICAL: INT id must never leak to API
-  id: number;
-
-  @Column({ type: 'uuid', unique: true, generated: 'uuid' })
-  publicId: string; // UUIDv7, exposed as-is
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-}
-```
-
-### DTO Pattern (Accept UUID, Resolve to INT Internally)
-
-```typescript
-// dto/create-contract.dto.ts
-import { IsUUID, IsNotEmpty } from 'class-validator';
-
-export class CreateContractDto {
-  @IsNotEmpty()
-  @IsUUID('7') // UUIDv7 (MariaDB native)
-  projectUuid: string; // Accept UUID from client
-
-  @IsNotEmpty()
-  contractCode: string;
-
-  @IsNotEmpty()
-  contractName: string;
-}
-
-// ❌ NO Response DTO with @Expose rename needed.
-// Entity class_transformer via TransformInterceptor will serialize publicId directly.
-```
-
-### Service/Controller Pattern
-
-```typescript
-@Controller('contracts')
-@UseGuards(JwtAuthGuard, CaslAbilityGuard)
-export class ContractsController {
-  constructor(
-    private contractsService: ContractsService,
-    private uuidResolver: UuidResolver
-  ) {}
-
-  @Post()
-  async create(@Body() dto: CreateContractDto) {
-    // Resolve UUID → INT PK for FK relationship
-    const projectId = await this.uuidResolver.resolveProject(dto.projectUuid);
-
-    const contract = await this.contractsService.create({
-      ...dto,
-      projectId,
-    });
-
-    // Response: TransformInterceptor + @Exclude on id → publicId exposed directly
-    return contract;
-  }
-
-  @Get(':publicId')
-  async findOne(@Param('publicId', ParseUuidPipe) publicId: string) {
-    return this.contractsService.findOneByPublicId(publicId);
-  }
-}
-```
-
-### UUID Resolver Helper
-
-```typescript
-@Injectable()
-export class UuidResolver {
-  constructor(
-    @InjectRepository(Project)
-    private projectRepo: Repository<Project>,
-    @InjectRepository(Contract)
-    private contractRepo: Repository<Contract>
-  ) {}
-
-  async resolveProject(publicId: string): Promise<number> {
-    const project = await this.projectRepo.findOne({
-      where: { publicId },
-      select: ['id'], // Only INT PK for FK
-    });
-    if (!project) throw new NotFoundException('Project not found');
-    return project.id;
-  }
-
-  async resolveContract(publicId: string): Promise<number> {
-    const contract = await this.contractRepo.findOne({
-      where: { publicId },
-      select: ['id'],
-    });
-    if (!contract) throw new NotFoundException('Contract not found');
-    return contract.id;
-  }
-}
-```
-
-### TransformInterceptor (Required — register ONCE)
-
-```typescript
-// Register via APP_INTERCEPTOR in CommonModule — ห้ามซ้ำใน main.ts
-@Injectable()
-export class TransformInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    return next.handle().pipe(
-      map((data) => instanceToPlain(data)) // Applies @Exclude / @Expose
-    );
-  }
-}
-
-// common.module.ts
-@Module({
-  providers: [
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TransformInterceptor,
-    },
-  ],
-})
-export class CommonModule {}
-```
-
-> **Warning:** ห้ามเรียก `app.useGlobalInterceptors(new TransformInterceptor())` ใน `main.ts` ซ้ำ — จะทำให้ response double-wrap `{ data: { data: ... } }`.
-
-### Critical: NEVER ParseInt on UUID
-
-```typescript
-// ❌ WRONG - parseInt on UUID gives garbage value
-const id = parseInt(projectPublicId); // "0195a1b2-..." → 195 (wrong!)
-
-// ❌ WRONG - Number() on UUID
-const id = Number(projectPublicId); // NaN
-
-// ❌ WRONG - Unary plus on UUID
-const id = +projectPublicId; // NaN
-
-// ✅ CORRECT - Resolve via database lookup
-const projectId = await uuidResolver.resolveProject(projectPublicId);
-
-// ✅ CORRECT - Use TypeORM find with publicId column
-const project = await projectRepo.findOne({ where: { publicId: projectPublicId } });
-const id = project.id; // Get INT PK from entity
-```
-
-### Query with publicId (No Resolution Needed)
-
-```typescript
-// Direct UUID lookup in TypeORM
-const project = await this.projectRepo.findOne({
-  where: { publicId: projectPublicId },
+// Use synchronize in production
+TypeOrmModule.forRoot({
+  type: 'postgres',
+  synchronize: true, // DANGEROUS in production!
+  // Can drop columns, tables, or data
 });
 
-// Relations use INT FK internally
-const contracts = await this.contractRepo.find({
-  where: { projectId: project.id }, // INT for FK query
-});
-```
+// Manual SQL in production
+@Injectable()
+export class DatabaseService {
+  async addColumn(): Promise<void> {
+    await this.dataSource.query('ALTER TABLE users ADD COLUMN age INT');
+    // No version control, no rollback, inconsistent across envs
+  }
+}
 
-### Reference
+// Modify entities without migration
+@Entity()
+export class User {
+  @Column()
+  email: string;
 
-- [ADR-019 Hybrid Identifier Strategy](../../../../specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md)
-- [UUID Implementation Plan](../../../../specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md)
-- [Data Dictionary](../../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
-
-> **Warning**: Using `parseInt()`, `Number()`, or unary `+` on UUID values violates ADR-019 and will cause data corruption. Always resolve UUIDs via database lookup.
-
----
-
-### 7.3 No TypeORM Migrations (ADR-009)
-
-**Impact: CRITICAL** — Edit SQL schema files directly; n8n handles data migration. Do not generate TypeORM migration files.
-
-**This project does NOT use TypeORM migration files.**
-
-All schema changes must be made **directly** in the canonical SQL file:
-
-- `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
-
-Delta scripts (for incremental rollout to existing environments) go under:
-
-- `specs/03-Data-and-Storage/deltas/YYYY-MM-DD-descriptive-name.sql`
-
-Data migration (e.g., backfilling a new column) is handled by **n8n workflows**, not TypeORM's `QueryRunner`.
-
----
-
-## Why No Migrations?
-
-1. **Single source of truth** — The full SQL schema is always readable as one file. No need to replay a migration chain to understand current state.
-2. **Review friendly** — Schema diff = git diff on the SQL file. Reviewers see the complete picture.
-3. **Ops alignment** — DBAs and operators work in SQL, not TypeScript.
-4. **n8n for data** — Business-meaningful data transforms live in n8n where they can be versioned, retried, and orchestrated with monitoring.
-
----
-
-## ✅ Workflow for a Schema Change
-
-1. **Update Data Dictionary** first:
-   - `specs/03-Data-and-Storage/03-01-data-dictionary.md` — add field meaning + business rules.
-2. **Update the canonical schema**:
-   - Edit `lcbp3-v1.8.0-schema-02-tables.sql` — add/alter column, constraint, index.
-3. **Add a delta script** (if deploying to existing env):
-   - `specs/03-Data-and-Storage/deltas/2026-04-22-add-rfa-revision-column.sql`
-
-   ```sql
-   -- Delta: Add revision column to rfa table
-   ALTER TABLE rfa
-     ADD COLUMN revision INT NOT NULL DEFAULT 1 AFTER status;
-
-   CREATE INDEX idx_rfa_revision ON rfa(revision);
-   ```
-4. **Update the Entity** (`backend/src/.../entities/rfa.entity.ts`):
-
-   ```typescript
-   @Column({ type: 'int', default: 1 })
-   revision: number;
-   ```
-5. **If data backfill needed** → create n8n workflow, not TypeScript migration.
-
----
-
-## ❌ Forbidden
-
-```bash
-# ❌ DO NOT generate migrations
-pnpm typeorm migration:generate ./src/migrations/AddRevision
-
-# ❌ DO NOT run migrations
-pnpm typeorm migration:run
-```
-
-```typescript
-// ❌ DO NOT write migration classes
-export class AddRevision1730000000000 implements MigrationInterface {
-  async up(queryRunner: QueryRunner): Promise<void> { /* ... */ }
-  async down(queryRunner: QueryRunner): Promise<void> { /* ... */ }
+  @Column() // Added without migration
+  newField: string; // Will crash in production if synchronize is false
 }
 ```
 
----
-
-## ✅ TypeORM Config (runtime only)
+**Correct (use migrations for all schema changes):**
 
 ```typescript
-// ormconfig.ts
-export default {
-  type: 'mariadb',
-  // ...
-  synchronize: false,      // ❗ NEVER true (would auto-sync entity ↔ schema)
-  migrationsRun: false,    // ❗ NEVER true
-  // ❌ Do NOT specify `migrations:` entries
-};
-```
+// Configure TypeORM for migrations
+// data-source.ts
+export const dataSource = new DataSource({
+  type: 'postgres',
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  entities: ['dist/**/*.entity.js'],
+  migrations: ['dist/migrations/*.js'],
+  synchronize: false, // Always false in production
+  migrationsRun: true, // Run migrations on startup
+});
 
-`synchronize: false` is mandatory because the canonical SQL file is authoritative — TypeORM should never mutate the schema.
-
----
-
-## Reference
-
-- [ADR-009 Database Migration Strategy](../../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)
-- [Data Dictionary](../../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
-- [Schema Tables](../../../../specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)
-
----
-
-### 7.4 No TypeORM Migrations (ADR-009)
-
-**Impact: HIGH** — Use direct SQL schema files instead of TypeORM migrations per project ADR
-
-**This project follows ADR-009: Direct SQL Schema Management**
-
-Unlike standard NestJS/TypeORM practices, this project does **NOT** use TypeORM migrations. Instead, we manage database schema through direct SQL files.
-
-### Why No Migrations?
-
-- **ADR-009 Decision**: Explicit schema control over auto-generated migrations
-- **MariaDB-specific features**: Native UUID type, virtual columns, custom indexing
-- **Team workflow**: Schema changes reviewed as SQL, not TypeORM migration classes
-- **Audit trail**: Single source of truth in `specs/03-Data-and-Storage/`
-
-### Schema File Locations
-
-```
-specs/03-Data-and-Storage/
-├── lcbp3-v1.8.0-schema-01-drop.sql      # Drop statements (dev only)
-├── lcbp3-v1.8.0-schema-02-tables.sql   # CREATE TABLE statements
-├── lcbp3-v1.8.0-schema-03-views-indexes.sql  # Views, indexes, constraints
-└── deltas/                              # Incremental changes
-    ├── 01-add-reference-date.sql
-    ├── 02-add-rbac-bulk-permission.sql
-    └── 03-fix-numbering-enums.sql
-```
-
-### Correct: Using SQL Schema Files
-
-```typescript
-// TypeORM configuration - NO migrationsRun
+// app.module.ts
 TypeOrmModule.forRootAsync({
   inject: [ConfigService],
   useFactory: (config: ConfigService) => ({
-    type: 'mariadb',
+    type: 'postgres',
     host: config.get('DB_HOST'),
-    port: config.get('DB_PORT'),
-    username: config.get('DB_USERNAME'),
-    password: config.get('DB_PASSWORD'),
-    database: config.get('DB_NAME'),
-    entities: ['dist/**/*.entity.js'],
-    synchronize: false, // NEVER true, even in development
-    migrationsRun: false, // Disabled per ADR-009
-    // Migrations are managed via SQL files, not TypeORM
+    synchronize: config.get('NODE_ENV') === 'development', // Only in dev
+    migrations: ['dist/migrations/*.js'],
+    migrationsRun: true,
   }),
 });
-```
 
-### Schema Change Process (ADR-009)
-
-1. **Modify SQL file directly**:
-
-   ```sql
-   -- specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql
-   ALTER TABLE correspondences
-   ADD COLUMN priority VARCHAR(20) DEFAULT 'normal';
-   ```
-
-2. **Create delta for existing databases**:
-
-   ```sql
-   -- specs/03-Data-and-Storage/deltas/04-add-priority-column.sql
-   ALTER TABLE correspondences
-   ADD COLUMN priority VARCHAR(20) DEFAULT 'normal';
-   ```
-
-3. **Apply to database manually or via deployment script**:
-   ```bash
-   mysql -u root -p lcbp3 < specs/03-Data-and-Storage/deltas/04-add-priority-column.sql
-   ```
-
-### Entity Definition (No Migration Needed)
-
-```typescript
-@Entity('correspondences')
-export class Correspondence {
-  @PrimaryGeneratedColumn()
-  id: number; // Internal INT PK
-
-  @Column({ type: 'uuid' })
-  uuid: string; // Public UUID
-
-  @Column({ name: 'priority', default: 'normal' })
-  priority: string;
-
-  // No migration class needed - schema managed via SQL
-}
-```
-
-### Anti-Pattern: TypeORM Migrations (Do NOT Use)
-
-```typescript
-// ❌ WRONG - Do not create migration files
 // migrations/1705312800000-AddUserAge.ts
+import { MigrationInterface, QueryRunner } from 'typeorm';
+
 export class AddUserAge1705312800000 implements MigrationInterface {
+  name = 'AddUserAge1705312800000';
+
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "users" ADD "age" integer`);
+    // Add column with default to handle existing rows
+    await queryRunner.query(`
+      ALTER TABLE "users" ADD "age" integer DEFAULT 0
+    `);
+
+    // Add index for frequently queried columns
+    await queryRunner.query(`
+      CREATE INDEX "IDX_users_age" ON "users" ("age")
+    `);
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    // Always implement down for rollback
+    await queryRunner.query(`DROP INDEX "IDX_users_age"`);
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "age"`);
   }
 }
 
-// ❌ WRONG - Do not enable migrationsRun
-TypeOrmModule.forRoot({
-  migrationsRun: true, // Disabled per ADR-009
-  migrations: ['dist/migrations/*.js'],
-});
+// Safe column rename (two-step)
+export class RenameNameToFullName1705312900000 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    // Step 1: Add new column
+    await queryRunner.query(`
+      ALTER TABLE "users" ADD "full_name" varchar(255)
+    `);
+
+    // Step 2: Copy data
+    await queryRunner.query(`
+      UPDATE "users" SET "full_name" = "name"
+    `);
+
+    // Step 3: Add NOT NULL constraint
+    await queryRunner.query(`
+      ALTER TABLE "users" ALTER COLUMN "full_name" SET NOT NULL
+    `);
+
+    // Step 4: Drop old column (after verifying app works)
+    await queryRunner.query(`
+      ALTER TABLE "users" DROP COLUMN "name"
+    `);
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`ALTER TABLE "users" ADD "name" varchar(255)`);
+    await queryRunner.query(`UPDATE "users" SET "name" = "full_name"`);
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "full_name"`);
+  }
+}
 ```
 
-### When You Need Schema Changes
-
-1. Check `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
-2. Add your DDL to the appropriate SQL file
-3. Create delta file in `deltas/` directory
-4. Apply SQL to your database
-5. Update corresponding Entity class
-
-### Reference
-
-- [ADR-009 Database Strategy](../../../../specs/06-Decision-Records/ADR-009-db-strategy.md)
-- [Schema SQL Files](../../../../specs/03-Data-and-Storage/)
-- [Data Dictionary](../../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
-
-> **Warning**: Attempting to use TypeORM migrations in this project violates ADR-009 and will be rejected in code review.
+Reference: [TypeORM Migrations](https://typeorm.io/migrations)
 
 ---
 
-### 7.5 Use Transactions for Multi-Step Operations
+### 7.3 Use Transactions for Multi-Step Operations
 
 **Impact: HIGH** — Ensures data consistency in multi-step operations
 
@@ -6316,363 +5850,14 @@ Reference: [NestJS Logger](https://docs.nestjs.com/techniques/logger)
 
 ---
 
-## 11. LCBP3 Project-Specific
-
-**Section Impact: CRITICAL**
-
-### 11.1 AI Integration Boundary (ADR-018 / ADR-020)
-
-**Impact: CRITICAL** — AI runs on Admin Desktop only; AI → DMS API → DB (never direct); human-in-the-loop validation mandatory; full audit trail.
-
-LCBP3 uses **on-premises AI only** (Ollama on Admin Desktop) with strict isolation from data layers.
-
----
-
-## The Boundary
-
-```
-┌────────────────────────────────────────────────────────────┐
-│  User Browser (Next.js)                                    │
-└─────────────────────────┬──────────────────────────────────┘
-                          │  (authenticated HTTPS)
-┌─────────────────────────▼──────────────────────────────────┐
-│  DMS API (NestJS)  ◀── enforces CASL, validation, audit    │
-│   ├─ AiGateway (proxies to Ollama)                          │
-│   └─ DB + Storage (Elasticsearch, MariaDB, File System)    │
-└─────────────────────────┬──────────────────────────────────┘
-                          │ (HTTP → Admin Desktop, internal)
-┌─────────────────────────▼──────────────────────────────────┐
-│  Admin Desktop (Desk-5439)                                 │
-│   ├─ Ollama (Gemma 4)                                       │
-│   ├─ PaddleOCR (Thai + English)                             │
-│   └─ n8n orchestration                                      │
-└────────────────────────────────────────────────────────────┘
-```
-
-**❗ Admin Desktop has NO network access to MariaDB, no SMB to storage, no shared secrets.** It receives base64-encoded file bytes over HTTPS and returns extracted text + suggestions.
-
----
-
-## Required Patterns
-
-### 1. AiGateway Module (backend)
-
-```typescript
-@Module({
-  controllers: [AiController],
-  providers: [AiService, AiGateway, AiAuditLogger],
-  exports: [AiService],
-})
-export class AiModule {}
-
-@Injectable()
-export class AiService {
-  async extractMetadata(fileId: number, user: User): Promise<ExtractedMetadata> {
-    // 1. Authorize (CASL: user can read this file)
-    await this.ability.ensureCan(user, 'read', File, fileId);
-
-    // 2. Load file (DMS API, inside the boundary)
-    const fileBytes = await this.storageService.read(fileId);
-
-    // 3. Call Admin Desktop AI over HTTP
-    const raw = await this.aiGateway.extract(fileBytes);
-
-    // 4. Validate AI output schema (Zod)
-    const parsed = ExtractedMetadataSchema.parse(raw);
-
-    // 5. Audit log (who, what, when, model, confidence)
-    await this.auditLogger.log({
-      userId: user.id,
-      action: 'ai.extract_metadata',
-      fileId,
-      model: raw.model,
-      confidence: parsed.confidence,
-    });
-
-    // 6. Return — frontend MUST render for human confirmation
-    return parsed;
-  }
-}
-```
-
-### 2. Human-in-the-Loop
-
-AI output is **never persisted directly**. Users must confirm via `DocumentReviewForm`:
-
-```tsx
-<DocumentReviewForm
-  document={doc}
-  aiSuggestions={suggestions}
-  onConfirm={(reviewed) => saveMetadata(reviewed)} // user edits applied
-/>
-```
-
-The `user_confirmed_at` timestamp and diff (AI suggestion → final value) are stored in the audit log.
-
-### 3. Rate Limiting
-
-```typescript
-@Post('ai/extract')
-@UseGuards(JwtAuthGuard, CaslAbilityGuard, ThrottlerGuard)
-@Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10 req/min/user
-async extract(@Body() dto: ExtractDto) { /* ... */ }
-```
-
----
-
-## ❌ Forbidden
-
-```typescript
-// ❌ AI container connecting to DB
-// docker-compose.yml inside ai-service:
-// environment:
-//   DATABASE_URL: mysql://...  ← NEVER
-
-// ❌ AI SDK calling cloud API
-import OpenAI from 'openai'; // ❌ No cloud AI SDKs in production code
-const client = new OpenAI({ apiKey: ... });
-
-// ❌ Persisting AI output without human confirm
-async extractAndSave(fileId: number) {
-  const metadata = await this.ai.extract(fileId);
-  await this.repo.save({ fileId, ...metadata }); // ❌ skips human review
-}
-
-// ❌ Skipping audit log
-const result = await this.aiGateway.extract(bytes); // no logging
-return result;
-```
-
----
-
-## Audit Log Schema
-
-```sql
-CREATE TABLE ai_audit_log (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  public_id UUID UNIQUE NOT NULL,
-  user_id INT NOT NULL,
-  action VARCHAR(64) NOT NULL,       -- 'ai.extract_metadata', 'ai.classify', etc.
-  file_id INT,
-  model VARCHAR(64),                  -- 'gemma-4:7b', 'paddleocr-v3'
-  confidence DECIMAL(4,3),
-  input_hash CHAR(64),                -- SHA-256 of input for replay detection
-  output_summary JSON,
-  human_confirmed_at DATETIME,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_user_created (user_id, created_at),
-  INDEX idx_file (file_id)
-);
-```
-
----
-
-## Reference
-
-- [ADR-018 AI Boundary](../../../../specs/06-Decision-Records/ADR-018-ai-boundary.md)
-- [ADR-020 AI Intelligence Integration](../../../../specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md)
-- [ADR-017 Ollama Data Migration](../../../../specs/06-Decision-Records/ADR-017-ollama-data-migration.md)
-
----
-
-### 11.2 Workflow Engine + Document Numbering + Workflow Context (ADR-001 / 002 / 021)
-
-**Impact: CRITICAL** — DSL-based state machine; double-lock numbering; integrated workflow context exposed to clients.
-
-LCBP3 uses a **unified workflow engine** (DSL-based state machine) across RFA, Transmittal, Correspondence, Circulation, and Shop Drawing. Every state transition goes through the same engine — no per-type routing tables.
-
----
-
-## ADR-001: Unified Workflow Engine
-
-### State Transition Pattern
-
-```typescript
-@Injectable()
-export class WorkflowEngine {
-  async transition(
-    instanceId: string,
-    action: WorkflowAction,
-    actor: User,
-    context?: WorkflowContext,
-  ): Promise<WorkflowInstance> {
-    // 1. Load current state from DB (never trust client-provided state)
-    const instance = await this.repo.findOneByPublicId(instanceId);
-    if (!instance) throw new NotFoundException();
-
-    // 2. Validate transition against DSL
-    const dsl = await this.dslService.load(instance.workflowTypeId);
-    const nextState = dsl.resolve(instance.currentState, action);
-    if (!nextState) {
-      throw new BusinessException(
-        `Action ${action} not allowed from state ${instance.currentState}`,
-        'ไม่สามารถดำเนินการนี้ได้ในสถานะปัจจุบัน',
-        'กรุณาตรวจสอบขั้นตอนการอนุมัติ',
-        'WF_INVALID_TRANSITION',
-      );
-    }
-
-    // 3. Apply transition atomically (optimistic lock via @VersionColumn)
-    instance.currentState = nextState;
-    await this.repo.save(instance); // throws OptimisticLockVersionMismatchError on race
-
-    // 4. Emit event for listeners (notifications via BullMQ — ADR-008)
-    this.eventBus.publish(new WorkflowTransitionedEvent(instance, action, actor));
-
-    return instance;
-  }
-}
-```
-
-### ❌ Anti-Patterns
-
-- ❌ Hard-coded `switch (state)` in controllers/services
-- ❌ Trusting `currentState` from request body
-- ❌ Creating separate routing tables per document type
-
----
-
-## ADR-002: Document Numbering (Double-Lock)
-
-Concurrent requests for a new document number **must** use both:
-
-1. **Redis Redlock** — distributed lock across app instances
-2. **TypeORM `@VersionColumn`** — optimistic lock on counter row
-
-### Counter Entity
-
-```typescript
-@Entity('document_number_counters')
-@Unique(['projectId', 'documentTypeId'])
-export class DocumentNumberCounter extends UuidBaseEntity {
-  @Column({ name: 'project_id' })
-  projectId: number;
-
-  @Column({ name: 'document_type_id' })
-  documentTypeId: number;
-
-  @Column({ name: 'last_number', default: 0 })
-  lastNumber: number;
-
-  @VersionColumn()
-  version: number; // ❗ Optimistic lock — do not rename, do not remove
-}
-```
-
-### Service Pattern
-
-```typescript
-@Injectable()
-export class DocumentNumberingService {
-  constructor(
-    @InjectRepository(DocumentNumberCounter)
-    private counterRepo: Repository<DocumentNumberCounter>,
-    private redlock: RedlockService,
-    private readonly logger: Logger,
-  ) {}
-
-  async generateNext(ctx: NumberingContext): Promise<string> {
-    const lockKey = `doc_num:${ctx.projectId}:${ctx.documentTypeId}`;
-
-    // Distributed lock — 3s TTL, up to 5 retries
-    const lock = await this.redlock.acquire([lockKey], 3000);
-
-    try {
-      // Optimistic lock via @VersionColumn
-      const counter = await this.counterRepo.findOne({
-        where: { projectId: ctx.projectId, documentTypeId: ctx.documentTypeId },
-      });
-
-      if (!counter) {
-        throw new NotFoundException('Counter not initialized for this project/type');
-      }
-
-      counter.lastNumber += 1;
-      await this.counterRepo.save(counter); // may throw OptimisticLockVersionMismatchError
-
-      return this.formatNumber(ctx, counter.lastNumber);
-    } catch (err) {
-      if (err instanceof OptimisticLockVersionMismatchError) {
-        this.logger.warn(`Numbering race detected for ${lockKey}, retrying`);
-        // Let caller retry via BullMQ retry policy
-      }
-      throw err;
-    } finally {
-      await lock.release();
-    }
-  }
-
-  private formatNumber(ctx: NumberingContext, seq: number): string {
-    // e.g. "LCBP3-RFA-0042"
-    return `${ctx.projectCode}-${ctx.typeCode}-${String(seq).padStart(4, '0')}`;
-  }
-}
-```
-
-### ❌ Anti-Patterns
-
-- ❌ App-side counter only (`let counter = 0; counter++`)
-- ❌ Using `findOne` + `update` without `@VersionColumn`
-- ❌ Using only Redis lock without DB optimistic lock (race if Redis fails)
-
----
-
-## ADR-021: Integrated Workflow Context
-
-Every workflow-aware API response **must** expose:
-
-```typescript
-export class WorkflowEnvelope<T> {
-  data: T;
-
-  workflow: {
-    instancePublicId: string;
-    currentState: string;       // e.g. 'pending_review'
-    availableActions: string[]; // e.g. ['approve', 'reject', 'request-revision']
-    canEdit: boolean;           // computed from CASL + current state
-    lastTransitionAt: string;   // ISO 8601
-  };
-
-  stepAttachments?: Array<{     // files produced by the current/previous step
-    publicId: string;
-    fileName: string;
-    stepCode: string;
-    downloadUrl: string;
-  }>;
-}
-```
-
-Frontend uses `workflow.availableActions` to render buttons — no client-side state machine logic.
-
----
-
-## Reference
-
-- [ADR-001 Unified Workflow Engine](../../../../specs/06-Decision-Records/ADR-001-unified-workflow-engine.md)
-- [ADR-002 Document Numbering Strategy](../../../../specs/06-Decision-Records/ADR-002-document-numbering-strategy.md)
-- [ADR-021 Workflow Context](../../../../specs/06-Decision-Records/ADR-021-workflow-context.md)
-
----
-
 ## References
 
-- [AGENTS.md (root)](../../../AGENTS.md) — canonical AI agent rules
-- [CONTRIBUTING.md](../../../CONTRIBUTING.md) — spec authoring + PR process
-- [ADR-001 Unified Workflow Engine](../../../specs/06-Decision-Records/ADR-001-unified-workflow-engine.md)
-- [ADR-002 Document Numbering Strategy](../../../specs/06-Decision-Records/ADR-002-document-numbering-strategy.md)
-- [ADR-007 Error Handling Strategy](../../../specs/06-Decision-Records/ADR-007-error-handling-strategy.md)
-- [ADR-008 Email/Notification Strategy](../../../specs/06-Decision-Records/ADR-008-email-notification-strategy.md)
-- [ADR-009 Database Migration Strategy](../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)
-- [ADR-016 Security & Authentication](../../../specs/06-Decision-Records/ADR-016-security-authentication.md)
-- [ADR-018 AI Boundary](../../../specs/06-Decision-Records/ADR-018-ai-boundary.md)
-- [ADR-019 Hybrid Identifier Strategy](../../../specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md)
-- [ADR-020 AI Intelligence Integration](../../../specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md)
-- [ADR-021 Workflow Context](../../../specs/06-Decision-Records/ADR-021-workflow-context.md)
-- [Backend Engineering Guidelines](../../../specs/05-Engineering-Guidelines/05-02-backend-guidelines.md)
-- [Schema — v1.8.0 Tables](../../../specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)
-- [Data Dictionary](../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)
-- Upstream: [Kadajett/nestjs-best-practices](https://github.com/Kadajett/nestjs-best-practices) v1.1.0
+- https://docs.nestjs.com
+- https://github.com/nestjs/nest
+- https://typeorm.io
+- https://github.com/typestack/class-validator
+- https://github.com/goldbergyoni/nodebestpractices
 
 ---
 
-*Generated by build-agents.ts on 2026-04-22*
+_Generated by build-agents.ts on 2026-01-16_

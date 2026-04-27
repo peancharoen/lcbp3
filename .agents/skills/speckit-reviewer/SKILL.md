@@ -1,7 +1,7 @@
 ---
 name: speckit-reviewer
 description: Perform code review with actionable feedback and suggestions.
-version: 1.0.0
+version: 1.8.9
 depends-on: []
 ---
 
@@ -142,3 +142,15 @@ Review code changes and provide structured feedback with severity levels.
 - **Be Balanced**: Mention what's good, not just what's wrong
 - **Prioritize**: Focus on real issues, not style nitpicks
 - **Be Educational**: Explain WHY something is an issue
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

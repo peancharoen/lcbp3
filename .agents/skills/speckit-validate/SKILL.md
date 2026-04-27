@@ -1,7 +1,7 @@
 ---
 name: speckit-validate
 description: Validate that implementation matches specification requirements.
-version: 1.0.0
+version: 1.8.9
 depends-on:
   - speckit-implement
 ---
@@ -92,3 +92,15 @@ Post-implementation validation that compares code against spec requirements.
 - **Be Fair**: Semantic matching, not just keyword matching
 - **Be Actionable**: Every gap should have a clear fix recommendation
 - **Don't Block on Style**: Focus on functional coverage, not code style
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

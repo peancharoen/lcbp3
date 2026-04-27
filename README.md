@@ -325,9 +325,9 @@ lcbp3-dms/
 ├── .vscode/                    # VS Code settings and extensions
 ├── .husky/                     # Git hooks
 │
-├── AGENTS.md                   # AI agent rules & project context
-├── GEMINI.md                   # AI coding guidelines
-├── CONTRIBUTING.md             # Contribution guidelines
+├── AGENTS.md                   # AI agent rules & project context (v1.8.9) [★ primary]
+├── GEMINI.md                   # AI coding guidelines [legacy — kept for backward compat]
+├── CONTRIBUTING.md             # Contribution guidelines (+ AI-Assisted section)
 ├── CHANGELOG.md                # Version history
 ├── README.md                   # This file
 ├── package.json                # Root package.json (monorepo)
@@ -739,6 +739,22 @@ docker-compose -f docker-compose.yml up -d
 - Development Process
 - Pull Request Process
 - Coding Standards
+- **AI-Assisted Contributions** (AGENTS.md + `.agents/skills/` skill pack + Windsurf slash commands)
+
+### 🤖 For AI Agents (Windsurf Cascade, Codex CLI, opencode, Amp, Antigravity)
+
+ไฟล์กลางสำหรับ AI assistants:
+
+| Priority | File                                                                     | Purpose                                                                                       |
+| -------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| 1        | [`AGENTS.md`](./AGENTS.md)                                               | Quick-reference rules (Tier 1/2/3 enforcement, ADR-019 March 2026 pattern, forbidden actions) |
+| 2        | [`.agents/skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md) | Shared context appendix injected into every speckit-\* skill                                  |
+| 3        | [`.agents/skills/README.md`](./.agents/skills/README.md)                 | Skill-pack layout + slash-command invocation guide                                            |
+| 4        | `specs/06-Decision-Records/`                                             | 22 ADRs (architectural decisions)                                                             |
+
+**Slash commands:** `/02-speckit.specify` → `/04-speckit.plan` → `/05-speckit.tasks` → `/07-speckit.implement` → `/10-speckit.reviewer` → `/12-speckit.security-audit`
+
+**Health checks:** `bash ./.agents/scripts/bash/audit-skills.sh` or `pwsh ./.agents/scripts/powershell/audit-skills.ps1`
 
 ---
 
@@ -769,7 +785,18 @@ This project is **Internal Use Only** - ลิขสิทธิ์เป็น�
 
 ## 🗺️ Roadmap
 
-### ✅ Version 1.8.9 (Apr 2026) — Infrastructure Hardening
+### ✅ Version 1.8.9 (Apr 2026) — Infrastructure Hardening + Agent Skill Pack Rebuild
+
+**Agent skill pack rebuilt (`.agents/skills/` @ v1.8.9) — 2026-04-22:**
+
+- ✅ 20 skills standardized (2 best-practices + 18 speckit-\*) — shared `_LCBP3-CONTEXT.md` appendix
+- ✅ ADR-019 drift removed: `publicId` exposed directly (no `@Expose({ name: 'id' })` rename); `id ?? ''` fallback eliminated
+- ✅ Dead references cleaned: `GEMINI.md` → `AGENTS.md`; `.specify/memory/` → `AGENTS.md`; `v1.7.0` → `v1.8.0` schema
+- ✅ New rules: workflow-engine (ADR-001/002/021), file-two-phase-upload (ADR-016), ai-boundary (ADR-018/020), no-typeorm-migrations (ADR-009), i18n, two-phase-upload (frontend)
+- ✅ `.windsurf/workflows/` path fixes (18 files) + 2 new wrappers (`12-speckit.security-audit`, `util-speckit.taskstoissues`)
+- ✅ `specs/03-Data-and-Storage/deltas/` directory bootstrapped (ADR-009 incremental SQL)
+- ✅ Regenerated `nestjs-best-practices/AGENTS.md` (188KB, 45 rules × 11 categories incl. LCBP3 project-specific)
+- ✅ Helper scripts fixed (bash + pwsh): BASE_DIR, CRLF, color enum, version extraction
 
 **Docker Compose stacks fully hardened — 27 findings across 4 phases:**
 

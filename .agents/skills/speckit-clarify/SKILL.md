@@ -1,7 +1,7 @@
 ---
 name: speckit-clarify
 description: Identify underspecified areas in the current feature spec by asking up to 5 highly targeted clarification questions and encoding answers back into the spec.
-version: 1.0.0
+version: 1.8.9
 depends-on:
   - speckit-specify
 handoffs:
@@ -189,3 +189,15 @@ Behavior rules:
 - If quota reached with unresolved high-impact categories remaining, explicitly flag them under Deferred with rationale.
 
 Context for prioritization: {{args}}
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

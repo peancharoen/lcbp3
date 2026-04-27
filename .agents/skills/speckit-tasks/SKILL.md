@@ -1,7 +1,7 @@
 ---
 name: speckit-tasks
 description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts.
-version: 1.0.0
+version: 1.8.9
 depends-on:
   - speckit-plan
 handoffs:
@@ -145,3 +145,15 @@ Every task MUST strictly follow this format:
   - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

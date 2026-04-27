@@ -1,17 +1,19 @@
-# UUID Handling (ADR-019)
+# UUID Handling (ADR-019) — March 2026 Pattern
 
 **Project-specific: Hybrid Identifier Strategy for NAP-DMS**
 
 This project uses ADR-019: INT Primary Key (internal) + UUIDv7 (public API). Frontend code must handle this correctly.
 
+> **Updated pattern:** Backend exposes `publicId` directly — ไม่มี `@Expose({ name: 'id' })` rename แล้ว. Frontend ใช้ `publicId` ตรงๆ — ห้าม fallback ไป `id`.
+
 ## The Pattern
 
-| Source | Field Name | Type | Notes |
-|--------|------------|------|-------|
-| **API Response** | `id` | `string` (UUID) | Actually `publicId` exposed via `@Expose({ name: 'id' })` |
-| **TypeScript Interface** | `publicId?: string` | UUID string | Use this for all references |
-| **Fallback** | `id?: number` | INT (internal) | May be undefined due to `@Exclude()` |
-| **Form Values** | `xxxUuid` | `string` | DTO field names: `projectUuid`, `contractUuid` |
+| Source                   | Field Name          | Type              | Notes                                                       |
+| ------------------------ | ------------------- | ----------------- | ----------------------------------------------------------- |
+| **API Response**         | `publicId`          | `string` (UUIDv7) | Exposed directly (no rename)                                |
+| **TypeScript Interface** | `publicId?: string` | UUID string       | ใช้ตัวนี้เท่านั้น                                           |
+| **Form DTO**             | `xxxUuid`           | `string`          | DTO field names: `projectUuid`, `contractUuid` (input only) |
+| **URL param**            | `[publicId]`        | `string` (UUID)   | e.g. `/correspondences/[publicId]/page.tsx`                 |
 
 ## Critical Rules
 
@@ -31,22 +33,26 @@ const id = +projectId; // NaN
 apiClient.get(`/projects/${projectId}`); // projectId is already UUID string
 ```
 
-### 2. Use `publicId ?? id` Pattern
+### 2. Use `publicId` Only — NO `id ?? ''` Fallback
 
 ```tsx
-// types/project.ts
+// ✅ CORRECT — types/project.ts
 interface Project {
-  id?: number;           // Internal INT (may be undefined)
-  publicId?: string;     // UUID from API (use this)
+  publicId?: string; // UUID from API — ใช้ตัวนี้เท่านั้น
   projectCode: string;
   projectName: string;
 }
 
-// Component usage
+// ✅ CORRECT — Component usage
 const projectOptions = projects.map((p) => ({
   label: `${p.projectName} (${p.projectCode})`,
-  value: String(p.publicId ?? p.id ?? ''), // ADR-019 pattern
-  key: String(p.publicId ?? p.id ?? ''),
+  value: p.publicId ?? '', // ADR-019 — ไม่ต้อง String() และไม่ไป id
+  key: p.publicId ?? p.projectCode, // fallback ไป business field ได้
+}));
+
+// ❌ WRONG — pattern เก่า
+const oldOptions = projects.map((p) => ({
+  value: String(p.publicId ?? p.id ?? ''), // ❌ `id ?? ''` fallback
 }));
 ```
 
@@ -84,14 +90,13 @@ export function ContractSelect({ contracts, value, onChange }: ContractSelectPro
         <SelectValue placeholder="เลือกสัญญา" />
       </SelectTrigger>
       <SelectContent>
-        {contracts.map((c) => (
-          <SelectItem 
-            key={String(c.publicId ?? c.id ?? '')} 
-            value={String(c.publicId ?? c.id ?? '')}
-          >
-            {c.contractName} ({c.contractCode})
-          </SelectItem>
-        ))}
+        {contracts
+          .filter((c) => !!c.publicId) // กรอง contract ที่มี publicId เท่านั้น
+          .map((c) => (
+            <SelectItem key={c.publicId} value={c.publicId!}>
+              {c.contractName} ({c.contractCode})
+            </SelectItem>
+          ))}
       </SelectContent>
     </Select>
   );
@@ -113,7 +118,9 @@ const columns: ColumnDef<Discipline>[] = [
     cell: ({ row }) => {
       const contract = row.original.contract;
       return contract ? (
-        <span>{contract.contractName} ({contract.contractCode})</span>
+        <span>
+          {contract.contractName} ({contract.contractCode})
+        </span>
       ) : (
         <span className="text-muted-foreground">-</span>
       );
@@ -153,10 +160,9 @@ export const contractService = {
 ## TypeScript Interfaces
 
 ```tsx
-// types/entities.ts
+// ✅ CORRECT — types/entities.ts
 export interface BaseEntity {
-  id?: number;           // Internal INT - may be undefined
-  publicId?: string;     // UUID - use this for API calls
+  publicId?: string; // UUID — ใช้ตัวนี้เท่านั้น (ไม่มี INT id ใน interface)
   createdAt?: string;
   updatedAt?: string;
 }
@@ -170,14 +176,12 @@ export interface Project extends BaseEntity {
 export interface Contract extends BaseEntity {
   contractCode: string;
   contractName: string;
-  projectId?: number;        // Internal INT FK
-  projectUuid?: string;      // UUID for DTOs
-  project?: Project;         // Relation
+  project?: Project; // Relation (nested entity)
 }
 
-// DTOs
+// DTO (input only — รับ UUID จาก form)
 export interface CreateContractDto {
-  projectUuid: string;       // Accept UUID from form
+  projectUuid: string; // UUID string from select
   contractCode: string;
   contractName: string;
 }
@@ -215,9 +219,7 @@ export function ContractForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        {/* Form fields */}
-      </form>
+      <form onSubmit={form.handleSubmit(onSubmit)}>{/* Form fields */}</form>
     </Form>
   );
 }
@@ -231,19 +233,20 @@ export default async function ContractPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   // id is UUID string from URL
   const contract = await contractService.getById(id);
-  
+
   return <ContractDetail contract={contract} />;
 }
 ```
 
 ## Common Pitfalls
 
-| Pitfall | Wrong | Right |
-|---------|-------|-------|
-| Assuming `entity.id` exists | `key={entity.id}` | `key={entity.publicId ?? entity.id}` |
-| parseInt on UUID | `parseInt(projectId)` | `projectId` (string) |
-| Field name mismatch | `name="project_id"` | `name="projectUuid"` |
-| Missing fallback | `value={entity.publicId}` | `value={entity.publicId ?? entity.id ?? ''}` |
+| Pitfall                      | ❌ Wrong                                         | ✅ Right                          |
+| ---------------------------- | ------------------------------------------------ | --------------------------------- |
+| Using INT `id`               | `key={entity.id}`                                | `key={entity.publicId}`           |
+| parseInt on UUID             | `parseInt(projectId)`                            | `projectId` (string)              |
+| Field name mismatch          | `name="project_id"`                              | `name="projectUuid"`              |
+| `id ?? ''` fallback          | `value={publicId ?? id ?? ''}`                   | `value={publicId ?? ''}`          |
+| `uuid` + `publicId` together | `interface { uuid?: string; publicId?: string }` | `interface { publicId?: string }` |
 
 ## Reference
 

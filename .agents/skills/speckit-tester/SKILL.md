@@ -1,7 +1,7 @@
 ---
 name: speckit-tester
 description: Execute tests, measure coverage, and report results.
-version: 1.0.0
+version: 1.8.9
 depends-on: []
 ---
 
@@ -120,3 +120,15 @@ Detect the project's test framework, execute tests, and generate a comprehensive
 - **Preserve Output**: Keep full test output for debugging
 - **Be Helpful**: Suggest fixes for common failure patterns
 - **Respect Timeouts**: Set reasonable timeout (5 min default)
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

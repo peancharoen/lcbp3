@@ -3,7 +3,8 @@
 # audit-skills.sh - Verify skill completeness and health
 # Part of LCBP3-DMS Phase 2 improvements
 
-set -euo pipefail
+set -uo pipefail
+# Note: no -e — we let per-skill checks accumulate issues without terminating
 
 # Colors for output
 RED='\033[0;31m'
@@ -13,7 +14,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Base directory
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 AGENTS_DIR="$BASE_DIR/.agents"
 SKILLS_DIR="$AGENTS_DIR/skills"
 
@@ -25,9 +26,9 @@ echo
 check_skill_health() {
     local skill_dir="$1"
     local skill_name="$(basename "$skill_dir")"
-    
+
     local issues=0
-    
+
     # Check for SKILL.md
     if [[ -f "$skill_dir/SKILL.md" ]]; then
         echo -e "${GREEN}  OK${NC}: $skill_name/SKILL.md"
@@ -35,7 +36,7 @@ check_skill_health() {
         echo -e "${RED}  MISSING${NC}: $skill_name/SKILL.md"
         ((issues++))
     fi
-    
+
     # Check for templates directory (optional)
     if [[ -d "$skill_dir/templates" ]]; then
         template_count=$(find "$skill_dir/templates" -name "*.md" -type f | wc -l)
@@ -45,7 +46,7 @@ check_skill_health() {
             echo -e "${YELLOW}  EMPTY${NC}: $skill_name/templates (no files)"
         fi
     fi
-    
+
     # Check SKILL.md content if exists
     local skill_file="$skill_dir/SKILL.md"
     if [[ -f "$skill_file" ]]; then
@@ -56,27 +57,21 @@ check_skill_health() {
                 echo -e "    ${GREEN}  FIELD${NC}: $field"
             else
                 echo -e "    ${RED}  MISSING FIELD${NC}: $field"
-                ((issues++))
+                ((issues++)) || true
             fi
         done
-        
-        # Check for Role section
-        if grep -q "^## Role$" "$skill_file"; then
-            echo -e "    ${GREEN}  SECTION${NC}: Role"
-        else
-            echo -e "    ${YELLOW}  MISSING SECTION${NC}: Role"
-            ((issues++))
-        fi
-        
-        # Check for Task section
-        if grep -q "^## Task$" "$skill_file"; then
-            echo -e "    ${GREEN}  SECTION${NC}: Task"
-        else
-            echo -e "    ${YELLOW}  MISSING SECTION${NC}: Task"
-            ((issues++))
+
+        # Check for LCBP3 context reference (speckit-* skills only)
+        if [[ "$skill_name" == speckit-* ]]; then
+            if grep -q '_LCBP3-CONTEXT\.md' "$skill_file"; then
+                echo -e "    ${GREEN}  CONTEXT${NC}: LCBP3 appendix referenced"
+            else
+                echo -e "    ${YELLOW}  MISSING${NC}: LCBP3 context reference"
+                ((issues++)) || true
+            fi
         fi
     fi
-    
+
     return $issues
 }
 
@@ -84,7 +79,15 @@ check_skill_health() {
 get_skill_version() {
     local skill_file="$1"
     if [[ -f "$skill_file" ]]; then
-        grep "^version:" "$skill_file" | head -1 | sed 's/version: *//' || echo "unknown"
+        # Match 'version: X.Y.Z' (or quoted) at a LINE START only; ignore nested `  version:` fields.
+        # Output: bare X.Y.Z with no quotes/whitespace.
+        local raw
+        raw=$(grep -E "^version:[[:space:]]*['\"]?[0-9]+\.[0-9]+\.[0-9]+" "$skill_file" | head -1 || true)
+        if [[ -n "$raw" ]]; then
+            printf '%s' "$raw" | sed -E "s/^version:[[:space:]]*['\"]?([0-9]+\.[0-9]+\.[0-9]+).*/\1/"
+        else
+            echo "unknown"
+        fi
     else
         echo "no_file"
     fi
@@ -114,15 +117,19 @@ SKILL_SUMMARY=()
 
 for skill_dir in "${SKILL_DIRS[@]}"; do
     skill_name="$(basename "$skill_dir")"
+    # Skip non-skill entries (e.g. _LCBP3-CONTEXT.md would not match here; safe)
+    [[ "$skill_name" == _* ]] && continue
     echo "Auditing: $skill_name"
     echo "------------------------"
-    
+
+    set +e
     check_skill_health "$skill_dir"
     issues=$?
-    
+    set -u
+
     skill_version=$(get_skill_version "$skill_dir/SKILL.md")
     SKILL_SUMMARY+=("$skill_name:$issues:$skill_version")
-    
+
     TOTAL_ISSUES=$((TOTAL_ISSUES + issues))
     echo
 done
@@ -147,15 +154,15 @@ echo
 # Check skills.md version consistency
 SKILLS_VERSION_FILE="$SKILLS_DIR/VERSION"
 if [[ -f "$SKILLS_VERSION_FILE" ]]; then
-    global_version=$(grep "^version:" "$SKILLS_VERSION_FILE" | sed 's/version: *//')
+    global_version=$(grep "^version:" "$SKILLS_VERSION_FILE" | sed 's/version: *//' | tr -d '\r\n ')
     echo "Global skills version: v$global_version"
     echo
-    
+
     # Check for version mismatches
     echo "Version Consistency Check:"
     echo "------------------------"
     VERSION_MISMATCHES=0
-    
+
     for summary in "${SKILL_SUMMARY[@]}"; do
         IFS=':' read -r name issues version <<< "$summary"
         if [[ "$version" != "unknown" && "$version" != "no_file" && "$version" != "$global_version" ]]; then
@@ -163,7 +170,7 @@ if [[ -f "$SKILLS_VERSION_FILE" ]]; then
             ((VERSION_MISMATCHES++))
         fi
     done
-    
+
     if [[ $VERSION_MISMATCHES -eq 0 ]]; then
         echo -e "${GREEN}  All skills match global version${NC}"
     fi

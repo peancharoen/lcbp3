@@ -1,7 +1,7 @@
 ---
 name: speckit-diff
 description: Compare two versions of a spec or plan to highlight changes.
-version: 1.0.0
+version: 1.8.9
 depends-on: []
 ---
 
@@ -84,3 +84,15 @@ Compare two versions of a specification artifact and produce a structured diff r
 - **Highlight Impact**: Explain what each change means for implementation
 - **Flag Breaking Changes**: Any change that invalidates existing work
 - **Ignore Whitespace**: Focus on semantic changes, not formatting
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

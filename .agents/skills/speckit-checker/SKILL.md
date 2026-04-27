@@ -1,7 +1,7 @@
 ---
 name: speckit-checker
 description: Run static analysis tools and aggregate results.
-version: 1.0.0
+version: 1.8.9
 depends-on: []
 ---
 
@@ -157,3 +157,15 @@ Auto-detect available tools, run them, and aggregate results into a prioritized 
 - **Be Actionable**: Every issue should have a clear fix path
 - **Don't Duplicate**: Dedupe issues found by multiple tools
 - **Respect Configs**: Honor project's existing linter configs
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

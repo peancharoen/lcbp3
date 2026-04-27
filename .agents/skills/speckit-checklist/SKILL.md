@@ -1,7 +1,7 @@
 ---
 name: speckit-checklist
 description: Generate a custom checklist for the current feature based on user requirements.
-version: 1.0.0
+version: 1.8.9
 ---
 
 ## Checklist Purpose: "Unit Tests for English"
@@ -300,3 +300,15 @@ Sample items:
 - Correct: Validation of requirement quality
 - Wrong: "Does it do X?"
 - Correct: "Is X clearly specified?"
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

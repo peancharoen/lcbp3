@@ -11,7 +11,7 @@ description: Execute tests, measure coverage, and report results.
    - The user may specify test paths, options, or just run all tests.
 
 2. **Load Skill**:
-   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit.tester/SKILL.md`
+   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit-tester/SKILL.md`
 
 3. **Execute**:
    - Follow the instructions in the `SKILL.md` exactly.

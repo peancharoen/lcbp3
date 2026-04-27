@@ -1,9 +1,18 @@
 # Speckit Skills Version
 
-version: 1.8.6
-release_date: 2026-04-14
+version: 1.8.9
+release_date: 2026-04-22
 
 ## Changelog
+
+### 1.8.9 (2026-04-22)
+- Full LCBP3-native rebuild of `.agents/skills/`
+- Fixed ADR-019 drift (removed `@Expose({ name: 'id' })` and `id ?? ''` fallback patterns)
+- Replaced all dead references (`GEMINI.md` → `AGENTS.md`, v1.7.0 → v1.8.0 schema, `.specify/memory/` → `AGENTS.md`)
+- Added real helper scripts under `.agents/scripts/bash/` and `.agents/scripts/powershell/`
+- Added ADR-007/008/020/021 coverage
+- New rules: workflow-engine, file-two-phase-upload, ai-boundary, i18n, file-upload, workflow-banner
+- Standardized frontmatter across all 20 skills (`version: 1.8.9`)
 
 ### 1.8.6 (2026-04-14)
 - Version alignment with LCBP3-DMS v1.8.6

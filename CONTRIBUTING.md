@@ -58,7 +58,8 @@ specs/
 │   ├── lcbp3-v1.8.0-seed-basic.sql           # Master Data Seed
 │   ├── lcbp3-v1.8.0-seed-permissions.sql     # RBAC Permissions Seed
 │   ├── 03-01-data-dictionary.md
-│   └── 03-06-migration-business-scope.md     # Gap 7: Migration Scope [★ NEW]
+│   ├── 03-06-migration-business-scope.md     # Gap 7: Migration Scope [★ NEW]
+│   └── deltas/                               # Incremental SQL (ADR-009) [★ v1.8.9]
 │
 ├── 04-Infrastructure-OPS/    # Deployment & Operations (9 docs)
 │   ├── README.md
@@ -710,6 +711,50 @@ Create `.markdownlint.json`:
 
 **Labels**: spec, [category]
 ```
+
+---
+
+## 🤖 AI-Assisted Contributions
+
+โปรเจกต์นี้รองรับ AI agents (Windsurf Cascade, Codex CLI, opencode, Amp, Antigravity) ในการเขียน / review / refactor โค้ด — ผ่านคู่มือกลางคือ [`AGENTS.md`](./AGENTS.md) และชุดทักษะใน [`.agents/skills/`](./.agents/skills/)
+
+### Canonical Rule Sources (อ่านตามลำดับนี้)
+
+1. **[`AGENTS.md`](./AGENTS.md)** — quick-reference rules + change log (supersedes legacy `GEMINI.md`)
+2. **[`.agents/skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)** — shared context loaded by every speckit-\* skill
+3. **[`.agents/skills/README.md`](./.agents/skills/README.md)** — skill-pack layout + Windsurf invocation guide
+4. `specs/06-Decision-Records/` (โดยเฉพาะ ADR-019 — UUID **March 2026 pattern**)
+5. `specs/05-Engineering-Guidelines/` (backend / frontend / testing / i18n / git conventions)
+
+### Invocation (Windsurf)
+
+ใช้ slash commands ด้านล่าง — `.windsurf/workflows/*.md` ห่อหุ้ม [`.agents/skills/speckit-*`](./.agents/skills/) ไว้ให้:
+
+- `/02-speckit.specify` → spec.md
+- `/04-speckit.plan` → plan.md + data-model.md + contracts/
+- `/05-speckit.tasks` → tasks.md
+- `/07-speckit.implement` → execute tasks (with Ironclad Anti-Regression Protocols)
+- `/10-speckit.reviewer` → code review (Tier 1/2/3 classification)
+- `/12-speckit.security-audit` → OWASP + CASL + LCBP3-specific
+
+### Health Checks
+
+```bash
+# Version + frontmatter consistency
+bash  ./.agents/scripts/bash/validate-versions.sh
+pwsh  ./.agents/scripts/powershell/validate-versions.ps1
+
+# Full skill audit (20 skills)
+bash  ./.agents/scripts/bash/audit-skills.sh
+pwsh  ./.agents/scripts/powershell/audit-skills.ps1
+```
+
+### 🔴 Tier 1 Non-Negotiables (AI must enforce)
+
+- **ADR-019 UUID** — `publicId` exposed directly; ห้าม `parseInt`/`Number`/`+` บน UUID; ห้าม `id ?? ''` fallback; ห้ามใช้ `@Expose({ name: 'id' })` rename
+- **ADR-009 Schema** — แก้ `lcbp3-v1.8.0-schema-02-tables.sql` โดยตรง + เพิ่ม delta ที่ `specs/03-Data-and-Storage/deltas/`; ห้าม TypeORM migrations
+- **ADR-016 Security** — CASL + `Idempotency-Key` + ClamAV two-phase upload
+- **ADR-018/020 AI Boundary** — Ollama on Admin Desktop only; human-in-the-loop validation
 
 ---
 

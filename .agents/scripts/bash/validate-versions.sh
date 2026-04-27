@@ -12,11 +12,11 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Base directory
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 AGENTS_DIR="$BASE_DIR/.agents"
 
 # Expected version (should match LCBP3 version)
-EXPECTED_VERSION="1.8.6"
+EXPECTED_VERSION="1.8.9"
 
 echo "=== .agents Version Validation ==="
 echo "Base directory: $BASE_DIR"
@@ -27,7 +27,7 @@ echo
 extract_version() {
     local file="$1"
     local pattern="$2"
-    
+
     if [[ -f "$file" ]]; then
         grep -o "$pattern" "$file" | head -1 | sed 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' || echo "NOT_FOUND"
     else
@@ -37,10 +37,8 @@ extract_version() {
 
 # Files to check
 declare -A FILES_TO_CHECK=(
-    ["$AGENTS_DIR/README.md"]="Version: \([0-9]\+\.[0-9]\+\.[0-9]\+\)"
     ["$AGENTS_DIR/skills/VERSION"]="version: \([0-9]\+\.[0-9]\+\.[0-9]\+\)"
-    ["$AGENTS_DIR/rules/00-project-context.md"]="Version: \([0-9]\+\.[0-9]\+\.[0-9]\+\)"
-    ["$AGENTS_DIR/skills/skills.md"]="V\([0-9]\+\.[0-9]\+\.[0-9]\+\)"
+    ["$AGENTS_DIR/skills/skills.md"]="[Vv]\([0-9]\+\.[0-9]\+\.[0-9]\+\)"
 )
 
 # Track issues
@@ -52,9 +50,9 @@ echo
 for file in "${!FILES_TO_CHECK[@]}"; do
     pattern="${FILES_TO_CHECK[$file]}"
     relative_path="${file#$BASE_DIR/}"
-    
+
     version=$(extract_version "$file" "$pattern")
-    
+
     if [[ "$version" == "NOT_FOUND" ]] || [[ "$version" == "FILE_NOT_FOUND" ]]; then
         echo -e "${RED}  ERROR${NC}: $relative_path - Version not found"
         ((ISSUES++))

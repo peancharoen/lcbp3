@@ -9,7 +9,7 @@ description: Perform code review with actionable feedback and suggestions.
    - The user may specify files to review, "staged" for git staged changes, or "branch" for branch diff.
 
 2. **Load Skill**:
-   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit.reviewer/SKILL.md`
+   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit-reviewer/SKILL.md`
 
 3. **Execute**:
    - Follow the instructions in the `SKILL.md` exactly.

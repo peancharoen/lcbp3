@@ -1,7 +1,7 @@
 ---
 name: speckit-migrate
 description: Migrate existing projects into the speckit structure by generating spec.md, plan.md, and tasks.md from existing code.
-version: 1.0.0
+version: 1.8.9
 depends-on: []
 ---
 
@@ -116,3 +116,15 @@ Analyze an existing codebase and generate speckit artifacts (spec.md, plan.md, t
 - **Preserve Intent**: Use code comments and naming to understand purpose
 - **Flag TODOs**: Any TODO/FIXME/HACK in code becomes an open task
 - **Be Conservative**: When unsure, ask rather than assume
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

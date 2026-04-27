@@ -1,7 +1,7 @@
 ---
 name: speckit-quizme
 description: Challenge the specification with Socratic questioning to identify logical gaps, unhandled edge cases, and robustness issues.
-version: 1.0.0
+version: 1.8.9
 handoffs:
   - label: Clarify Spec Requirements
     agent: speckit-clarify
@@ -65,3 +65,15 @@ Execution steps:
 - **Be a Skeptic**: Don't assume the happy path works.
 - **Focus on "When" and "If"**: When high load, If network drops, When concurrent edits.
 - **Don't be annoying**: Focus on _critical_ flaws, not nitpicks.
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

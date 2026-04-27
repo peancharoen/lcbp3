@@ -11,7 +11,7 @@ description: Run static analysis tools and aggregate results.
    - The user may specify paths to check or run on entire project.
 
 2. **Load Skill**:
-   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit.checker/SKILL.md`
+   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit-checker/SKILL.md`
 
 3. **Execute**:
    - Follow the instructions in the `SKILL.md` exactly.

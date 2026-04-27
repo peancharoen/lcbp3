@@ -2,16 +2,16 @@
 # Part of LCBP3-DMS Phase 2 improvements
 
 param(
-    [string]$BaseDir = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)),
-    [string]$ExpectedVersion = "1.8.6"
+    [string]$BaseDir = (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))),
+    [string]$ExpectedVersion = "1.8.9"
 )
 
-# Colors for output
+# Map to ConsoleColor enum (Write-Host expects enum, not ANSI)
 $Colors = @{
-    Red = "`e[0;31m"
-    Green = "`e[0;32m"
-    Yellow = "`e[1;33m"
-    NoColor = "`e[0m"
+    Red = 'Red'
+    Green = 'Green'
+    Yellow = 'Yellow'
+    NoColor = 'Gray'
 }
 
 $AgentsDir = Join-Path $BaseDir ".agents"
@@ -27,7 +27,7 @@ function Get-VersionFromFile {
         [string]$FilePath,
         [string]$Pattern
     )
-    
+
     if (Test-Path $FilePath) {
         try {
             $content = Get-Content $FilePath -Raw
@@ -46,9 +46,7 @@ function Get-VersionFromFile {
 
 # Files to check
 $FilesToCheck = @{
-    (Join-Path $AgentsDir "README.md") = "Version: ([0-9]+\.[0-9]+\.[0-9]+)"
     (Join-Path $AgentsDir "skills\VERSION") = "version: ([0-9]+\.[0-9]+\.[0-9]+)"
-    (Join-Path $AgentsDir "rules\00-project-context.md") = "Version: ([0-9]+\.[0-9]+\.[0-9]+)"
     (Join-Path $AgentsDir "skills\skills.md") = "V([0-9]+\.[0-9]+\.[0-9]+)"
 }
 
@@ -61,9 +59,9 @@ Write-Host ""
 foreach ($file in $FilesToCheck.Keys) {
     $pattern = $FilesToCheck[$file]
     $relativePath = $file.Replace($BaseDir + "\", "")
-    
+
     $version = Get-VersionFromFile -FilePath $file -Pattern $pattern
-    
+
     if ($version -eq "NOT_FOUND" -or $version -eq "FILE_NOT_FOUND") {
         Write-Host "  ERROR: $relativePath - Version not found" -ForegroundColor $Colors.Red
         $Issues++

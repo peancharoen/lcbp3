@@ -1,7 +1,7 @@
 ---
 name: speckit-specify
 description: Create or update the feature specification from a natural language feature description.
-version: 1.0.0
+version: 1.8.9
 handoffs:
   - label: Build Technical Plan
     agent: speckit-plan
@@ -64,8 +64,8 @@ Given that feature description, do this:
 
    d. Run the script `../scripts/bash/create-new-feature.sh --json "{{args}}"` with the calculated number and short-name:
    - Pass `--number N+1` and `--short-name "your-short-name"` along with the feature description
-   - Bash example: `.specify/scripts/bash/create-new-feature.sh --json "{{args}}" --json --number 5 --short-name "user-auth" "Add user authentication"`
-   - PowerShell example: `.specify/scripts/bash/create-new-feature.sh --json "{{args}}" -Json -Number 5 -ShortName "user-auth" "Add user authentication"`
+   - Bash example: `.agents/scripts/bash/create-new-feature.sh --json "{{args}}" --number 5 --short-name "user-auth" "Add user authentication"`
+   - PowerShell example: `.agents/scripts/powershell/create-new-feature.ps1 -Json -Args '{{args}}' -Number 5 -ShortName "user-auth" "Add user authentication"`
 
    **IMPORTANT**:
    - Check all three sources (remote branches, local branches, specs directories) to find the highest number
@@ -262,3 +262,15 @@ Success criteria must be:
 - "Database can handle 1000 TPS" (implementation detail, use user-facing metric)
 - "React components render efficiently" (framework-specific)
 - "Redis cache hit rate above 80%" (technology-specific)
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../\_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

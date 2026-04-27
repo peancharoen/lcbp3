@@ -1,17 +1,20 @@
-# 🧠 NAP-DMS Agent Skills (v1.8.6)
+# 🧠 NAP-DMS Agent Skills (v1.8.9)
 
-ไฟล์นี้กำหนดทักษะและความสามารถเฉพาะทางของ Document Intelligence Engine สำหรับโครงการ LCBP3 v1.8.6 เพื่อรักษามาตรฐานสูงสุดด้าน Security และ Data Integrity
+ไฟล์นี้กำหนดทักษะและความสามารถเฉพาะทางของ Document Intelligence Engine สำหรับโครงการ LCBP3 v1.8.9 เพื่อรักษามาตรฐานสูงสุดด้าน Security และ Data Integrity
 
-**Status**: Production Ready | **Last Updated**: 2026-04-14 | **Total Skills**: 20
+**Status**: Production Ready | **Last Updated**: 2026-04-22 | **Total Skills**: 20
+
+> 📌 Shared context for all speckit-\* skills: see [`_LCBP3-CONTEXT.md`](./_LCBP3-CONTEXT.md).
 
 ---
 
 ## 🏗️ Architectural & Data Integrity
 
-- **Identifier Strategy Mastery (ADR-019):**
-  - บังคับใช้ **UUIDv7** เป็น Public ID ใน API และ URL เสมอ
-  - ตรวจสอบและป้องกันการใช้ `parseInt()`, `Number()`, หรือตัวดำเนินการทางคณิตศาสตร์ (`+`) กับ UUID
-  - ตรวจสอบว่า Entity มีการใช้ `@Exclude()` บน Primary Key ที่เป็น `INT AUTO_INCREMENT` เพื่อไม่ให้หลุดออกไปยัง API
+- **Identifier Strategy Mastery (ADR-019 — March 2026):**
+  - บังคับใช้ **UUIDv7** เป็น Public ID; entity สืบทอดจาก `UuidBaseEntity` และเปิด `publicId` **ตรงๆ** (ห้ามใช้ `@Expose({ name: 'id' })` rename)
+  - ตรวจสอบและป้องกันการใช้ `parseInt()`, `Number()`, หรือ `+` กับ UUID ทั้ง backend/frontend
+  - ตรวจสอบว่า Entity มีการใช้ `@Exclude()` บน Primary Key `INT AUTO_INCREMENT` เพื่อไม่ให้หลุดออกไปยัง API
+  - Frontend ใช้ `publicId` ตรงๆ — **ห้าม** `id ?? ''` fallback หรือมี `uuid?: string` คู่กับ `publicId` ใน interface
 - **Strict Validation Engine:**
   - บังคับใช้ **Zod** สำหรับการทำ Form Validation ฝั่ง Frontend
   - บังคับใช้ **class-validator** สำหรับ Backend DTOs
@@ -81,22 +84,22 @@
 
 ## 🛠️ Skill Health Monitoring
 
-### Health Check Scripts
+### Health Check Scripts (from repo root)
 
-- **Bash**: `./scripts/bash/audit-skills.sh` - Comprehensive skill health audit
-- **PowerShell**: `./scripts/powershell/audit-skills.ps1` - Windows equivalent
+- **Bash**: `./.agents/scripts/bash/audit-skills.sh` - Comprehensive skill health audit
+- **PowerShell**: `./.agents/scripts/powershell/audit-skills.ps1` - Windows equivalent
 
 ### Validation Scripts
 
-- **Version Check**: `./scripts/bash/validate-versions.sh` - Ensure version consistency
-- **Workflow Sync**: `./scripts/bash/sync-workflows.sh` - Verify workflow integration
+- **Version Check**: `./.agents/scripts/bash/validate-versions.sh` - Ensure version consistency
+- **Workflow Sync**: `./.agents/scripts/bash/sync-workflows.sh` - Verify workflow integration
 
 ### Health Metrics
 
 - **Total Skills**: 20 implemented
-- **Version Alignment**: v1.8.6 across all skills
+- **Version Alignment**: v1.8.9 across all skills
 - **Template Coverage**: 100% for skills requiring templates
-- **Documentation**: Complete front matter and sections
+- **Documentation**: Complete front matter + shared `_LCBP3-CONTEXT.md` appendix
 
 ### Maintenance Schedule
 

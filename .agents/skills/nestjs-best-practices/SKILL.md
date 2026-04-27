@@ -1,10 +1,12 @@
 ---
 name: nestjs-best-practices
-description: NestJS best practices and architecture patterns for building production-ready applications. This skill should be used when writing, reviewing, or refactoring NestJS code to ensure proper patterns for modules, dependency injection, security, and performance.
+description: NestJS best practices and architecture patterns for building production-ready LCBP3-DMS backend code. Enforces ADR-009 (no TypeORM migrations), ADR-019 (hybrid UUID), ADR-016 (security), ADR-007 (error handling), ADR-008 (BullMQ), ADR-001/002 (workflow + numbering), ADR-018/020 (AI boundary), and ADR-021 (workflow context).
+version: 1.8.9
+scope: backend
+user-invocable: false
 license: MIT
 metadata:
-  author: Kadajett
-  version: '1.1.0'
+  upstream: 'Kadajett/nestjs-best-practices v1.1.0 (forked + LCBP3-aligned)'
 ---
 
 # NestJS Best Practices
@@ -110,6 +112,13 @@ Reference these guidelines when:
 - `devops-use-logging` - Structured logging
 - `devops-graceful-shutdown` - Zero-downtime deployments
 
+### 11. LCBP3-Specific (CRITICAL — Project Overrides)
+
+- `db-no-typeorm-migrations` — **CRITICAL** ADR-009: edit SQL directly
+- `lcbp3-workflow-engine` — **CRITICAL** ADR-001/002/021: DSL state machine + double-lock numbering + workflow context
+- `security-file-two-phase-upload` — **CRITICAL** ADR-016: Upload → Temp → ClamAV → Commit
+- `lcbp3-ai-boundary` — **CRITICAL** ADR-018/020: Ollama on-prem only, human-in-the-loop
+
 ## NAP-DMS Project-Specific Rules (MUST FOLLOW)
 
 These rules override general NestJS best practices for the NAP-DMS project:
@@ -120,20 +129,61 @@ These rules override general NestJS best practices for the NAP-DMS project:
 - แก้ไข schema โดยตรงที่: `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
 - ใช้ n8n workflow สำหรับ data migration ถ้าจำเป็น
 
-### ADR-019: Hybrid Identifier Strategy (CRITICAL)
+### ADR-019: Hybrid Identifier Strategy (CRITICAL — March 2026 Pattern)
+
+> **Updated pattern:** `UuidBaseEntity` exposes `publicId` **directly**. ห้ามใช้ `@Expose({ name: 'id' })` — API จะคืน `publicId` เป็น field name ตรงๆ.
 
 ```typescript
+// ✅ CORRECT — ใช้ UuidBaseEntity
 @Entity()
-export class Project {
-  @PrimaryGeneratedColumn()
-  @Exclude() // ห้ามส่งออกทาง API
-  id: number; // INT AUTO_INCREMENT - internal only
+export class Project extends UuidBaseEntity {
+  // publicId (string UUIDv7) + id (INT, @Exclude) สืบทอดจาก UuidBaseEntity
+  // API response → { publicId: "019505a1-7c3e-7000-8000-abc123..." }
 
-  @Column({ type: 'uuid' })
-  @Expose({ name: 'id' }) // ส่งออกเป็น 'id' ทาง API
-  publicId: string; // UUIDv7 - public API identifier
+  @Column()
+  projectCode: string;
+
+  @Column()
+  projectName: string;
 }
 ```
+
+```typescript
+// ❌ WRONG — pattern เก่า ห้ามใช้
+@Entity()
+export class OldProject {
+  @PrimaryGeneratedColumn()
+  @Exclude()
+  id: number;
+
+  @Column({ type: 'uuid' })
+  @Expose({ name: 'id' }) // ❌ อย่า rename publicId เป็น 'id'
+  publicId: string;
+}
+```
+
+**DTO Input (รับ UUID จาก Frontend):**
+
+```typescript
+export class CreateContractDto {
+  @IsUUID('7')
+  projectUuid: string; // รับ UUID string จาก client
+}
+
+// Controller resolves UUID → INT internally
+@Post()
+async create(@Body() dto: CreateContractDto) {
+  const projectId = await this.projectService.resolveInternalId(dto.projectUuid);
+  return this.contractService.create({ ...dto, projectId });
+}
+```
+
+**ห้ามเด็ดขาด (CI Blocker):**
+
+- ❌ `parseInt(projectPublicId)` — "019505…" → 19 (silently wrong)
+- ❌ `Number(publicId)` / `+publicId` — NaN
+- ❌ `@Expose({ name: 'id' })` บน `publicId` (pattern เก่า)
+- ❌ Expose INT `id` ใน API response (ต้อง `@Exclude()` เสมอ)
 
 ### Two-Phase File Upload
 

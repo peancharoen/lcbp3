@@ -32,6 +32,7 @@ const CATEGORIES = [
   { prefix: 'api-', name: 'API Design', impact: 'MEDIUM', section: 8 },
   { prefix: 'micro-', name: 'Microservices', impact: 'MEDIUM', section: 9 },
   { prefix: 'devops-', name: 'DevOps & Deployment', impact: 'LOW-MEDIUM', section: 10 },
+  { prefix: 'lcbp3-', name: 'LCBP3 Project-Specific', impact: 'CRITICAL', section: 11 },
 ];
 
 interface RuleFrontmatter {
@@ -50,8 +51,10 @@ interface Rule {
 }
 
 function parseFrontmatter(content: string): { frontmatter: RuleFrontmatter | null; body: string } {
+  // Normalize CRLF → LF so the regex works on Windows-authored files
+  const normalized = content.replace(/\r\n/g, '\n');
   const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
-  const match = content.match(frontmatterRegex);
+  const match = normalized.match(frontmatterRegex);
 
   if (!match) {
     return { frontmatter: null, body: content };

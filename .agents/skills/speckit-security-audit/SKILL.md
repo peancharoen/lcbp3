@@ -1,7 +1,7 @@
 ---
 name: speckit-security-audit
 description: Perform a security-focused audit of the codebase against OWASP Top 10, CASL authorization, and LCBP3-DMS security requirements.
-version: 1.0.0
+version: 1.8.9
 depends-on:
   - speckit-checker
 ---
@@ -12,16 +12,16 @@ You are the **Antigravity Security Sentinel**. Your mission is to identify secur
 
 ## Task
 
-Perform a comprehensive security audit covering OWASP Top 10, CASL permission enforcement, file upload safety, and project-specific security rules defined in `specs/06-Decision-Records/ADR-016-security.md`.
+Perform a comprehensive security audit covering OWASP Top 10, CASL permission enforcement, file upload safety, and project-specific security rules defined in `specs/06-Decision-Records/ADR-016-security-authentication.md`.
 
 ## Context Loading
 
 Before auditing, load the security context:
 
-1. Read `specs/06-Decision-Records/ADR-016-security.md` for project security decisions
+1. Read `specs/06-Decision-Records/ADR-016-security-authentication.md` for project security decisions
 2. Read `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md` for backend security patterns
-3. Read `specs/03-Data-and-Storage/lcbp3-v1.7.0-seed-permissions.sql` for CASL permission definitions
-4. Read `GEMINI.md` for security rules (Section: Security & Integrity Rules)
+3. Read `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` for CASL permission definitions
+4. Read `AGENTS.md` for security rules (Section: Security Rules Non-Negotiable + Security & Integrity Audit Protocol)
 
 ## Execution Steps
 
@@ -44,7 +44,7 @@ Scan the `backend/src/` directory for each OWASP category:
 
 ### Phase 2: CASL Authorization Audit
 
-1. **Load permission matrix** from `specs/03-Data-and-Storage/lcbp3-v1.7.0-seed-permissions.sql`
+1. **Load permission matrix** from `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql`
 2. **Scan all controllers** for `@UseGuards(CaslAbilityGuard)` coverage:
 
    ```bash
@@ -197,3 +197,15 @@ Generate a structured report:
 - **No False Confidence**: If a check is inconclusive, mark it as "⚠️ Needs Manual Review" rather than passing.
 - **LCBP3-Specific**: Prioritize project-specific rules (idempotency, ClamAV, Redlock) over generic checks.
 - **Frontend Too**: If scope includes frontend, also check for XSS in React components, unescaped user data, and exposed API keys.
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

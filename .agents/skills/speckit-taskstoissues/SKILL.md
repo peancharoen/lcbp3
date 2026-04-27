@@ -1,7 +1,7 @@
 ---
 name: speckit-taskstoissues
 description: Convert existing tasks into actionable, dependency-ordered issues for the feature based on available design artifacts.
-version: 1.1.0
+version: 1.8.9
 depends-on:
   - speckit-tasks
 tools: ['github/github-mcp-server/issue_write']
@@ -204,3 +204,15 @@ Convert all tasks from `tasks.md` into well-structured issues on the appropriate
 - **Label Consistency**: Use a consistent label taxonomy across all issues
 - **Platform Safety**: Never create issues on repos that don't match the git remote
 - **Dry Run Support**: Always support `--dry-run` to preview before creating
+
+---
+
+## LCBP3-DMS Context (MUST LOAD)
+
+Before executing, load **[../_LCBP3-CONTEXT.md](../_LCBP3-CONTEXT.md)** to get:
+
+- Canonical rule sources (AGENTS.md, specs/06-Decision-Records/, specs/05-Engineering-Guidelines/)
+- Tier 1 non-negotiables (ADR-019 UUID, ADR-009 schema, ADR-016 security, ADR-002 numbering, ADR-008 BullMQ, ADR-018/020 AI boundary, ADR-007 errors)
+- Domain glossary (Correspondence / RFA / Transmittal / Circulation)
+- Helper script real paths
+- Commit checklist

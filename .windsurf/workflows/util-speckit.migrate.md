@@ -9,7 +9,7 @@ description: Migrate existing projects into the speckit structure by generating 
    - The user has provided an input prompt (path to analyze, feature name).
 
 2. **Load Skill**:
-   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit.migrate/SKILL.md`
+   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit-migrate/SKILL.md`
 
 3. **Execute**:
    - Follow the instructions in the `SKILL.md` exactly.
