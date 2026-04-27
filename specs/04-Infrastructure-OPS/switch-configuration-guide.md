@@ -178,17 +178,28 @@ General:
 **Configuration:**
 
 ```bash
-Loopback Control: Spanning Tree
-
-STP:
-- Edge Port: ENABLE
-- BPDU Guard: ENABLE 🔥 (optional แต่แนะนำ)
-- Loop Protect: DISABLE
-
 General:
-- Flow Control: ON
-- EEE: OFF
-```
+- 802.1X Control: Auto
+- Port Isolation: DISABLE
+- Flow Control: ENABLE
+- EEE: DISABLE
+- Multicast Fast Leave: IGMP (IPv4)->DISABLE, MLD (IPv6)->DISABLE
+- Loopback Control: Spanning Tree
+  - Edge Port: ENABLE
+  - Spanning Tree Config:
+    - Loop Protect: DISABLE
+    - Root Protect: DISABLE
+    - TC Guard: DISABLE
+    - BPDU Protect: ENABLE 🔥 (ใช้คู่กับพอร์ตประเภทขอบเครือข่าย (Edge Port) ที่เชื่อมต่อกับอุปกรณ์ปลายทางเท่านั้น เช่น เครื่อง PC, เครื่องพิมพ์ หรือ Access Point))
+    - BPDU Filter: DISABLE
+    - BPDU Forward: DISABLE
+LLDP-MED: ENABLE
+Bandwidth Control: Storming Control
+  - Rate Mode: Ratio
+    - Broadcast: 1%
+    - Unknown Unicast: 2%
+    - Multicast: 2%
+    - Action: Drop
 
 📌 **หมายเหตุ:** AP ไม่ควรส่ง BPDU → เปิด guard ได้
 
