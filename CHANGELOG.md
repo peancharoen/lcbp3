@@ -1,5 +1,17 @@
 # Version History
 
+## 1.8.10 (2026-04-28)
+
+### docs(infra): Network Infrastructure Guide v3.1 — Document Renamed + AMPCOM 2.5G Integration
+
+- **Renamed**: `switch-configuration-guide.md` → `04-network-infrastructure-guide.md` (better reflects comprehensive scope: switches, VLAN, security, topology)
+- **Added**: AMPCOM ZX-SWTGW218AS 2.5Gbps switch integration
+- **Updated**: SG3210X-M2 port mapping (Port 8→AMPCOM SFP+ 10Gbps, Port 9→ER7206 SFP 1Gbps)
+- **Updated**: SG2428P port 17-19 (IP Phone Trunk 3 ports), Port 20 (Hardened MGMT)
+- **Updated**: Admin Desktop moved to AMPCOM Port 8 (2.5Gbps access)
+- **Added**: Security Hardening sections (DHCP Snooping, Storm Control, STP Priority, Jumbo Frame)
+- **Updated**: `04-Infrastructure-OPS/README.md` Document Index with new entry
+
 ## 1.8.9 (2026-04-18)
 
 ### chore(infra): Docker Compose security hardening — 27 findings (C1–S4) addressed

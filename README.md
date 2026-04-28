@@ -3,7 +3,7 @@
 > **Laem Chabang Port Phase 3 - Document Management System**
 > ระบบบริหารจัดการเอกสารโครงการแบบครบวงจร สำหรับโครงการก่อสร้างท่าเรือแหลมฉบังระยะที่ 3
 
-[![Version](https://img.shields.io/badge/version-1.8.9-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.8.10-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Internal-red.svg)]()
 [![Status](https://img.shields.io/badge/status-UAT%20Ready-brightgreen.svg)]()
 [![Docs](https://img.shields.io/badge/docs-10%2F10%20Gaps%20Closed-success.svg)](./specs/00-Overview/README.md)
@@ -12,9 +12,9 @@
 
 ## 📈 Current Status (As of 2026-04-18)
 
-**Version 1.8.9 — Infrastructure Hardening Complete (27 findings → 0)**
+**Version 1.8.10 — Network Infrastructure Guide v3.1 + AMPCOM 2.5G Integration**
 
-> v1.8.7 (ADR-021 Integration) + v1.8.8 (Workflow Attachments) shipped Apr 14; v1.8.9 (Compose stack hardening) shipped Apr 18.
+> v1.8.9 (Compose hardening) shipped Apr 18; v1.8.10 (Network Infra Guide renamed + AMPCOM integration) shipped Apr 28.
 
 | Area                   | Status                   | หมายเหตุ                                                           |
 | ---------------------- | ------------------------ | ------------------------------------------------------------------ |
