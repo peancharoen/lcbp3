@@ -145,7 +145,7 @@ Document Control can re-assign a Circulation when an assignee is deactivated (EC
 ### Key Entities
 
 - **Transmittal**: Extends Correspondence (`type_code = 'TRANSMITTAL'`). Has `purpose`, `remarks`, and a list of `transmittal_items`. Has one `WorkflowInstance` via the Unified Workflow Engine.
-- **TransmittalItem**: Links a Transmittal to the document it carries (`correspondences` M:N). Has `quantity`, `itemType`, `remarks`.
+- **TransmittalItem**: Links a Transmittal to the document it carries (`correspondences` M:N). Has `quantity`, `itemType` (DRAWING / RFA / CORRESPONDENCE), `remarks`, and `revisionId` (FK to `correspondence_revisions` — added in v1.8.8).
 - **Circulation**: Internal task-tracking document linked 1:1 to a Correspondence per organization. Has `statusCode`, `deadline`, and a list of `routings` (assignees with type: Main/Action/Information).
 - **CirculationRouting**: A single assignee entry in a Circulation. Has `assigneeType`, `status`, `deadline`, `comments`.
 
@@ -181,3 +181,13 @@ Document Control can re-assign a Circulation when an assignee is deactivated (EC
 - Q: Should the Transmittal "Submit" action go through the Workflow Engine transition (ADR-021 pattern), or does it remain a direct status update on the `correspondences` table? → A: Submit uses the Workflow Engine transition (`action: 'SUBMIT'`), consistent with ADR-001 Unified Workflow Engine for all document types. EC-RFA-004 validation fires as a pre-transition check in the service.
 - Q: Should Circulation `routings` "Complete" action be a Workflow Engine transition or a direct routing status update? → A: Direct routing status update (not a full Workflow Engine transition) because Circulation workflow state is controlled at the Circulation level, not per-routing. The overall Circulation transitions (OPEN → IN_REVIEW → COMPLETED) go through the Workflow Engine.
 - Q: For `workflowInstanceId` in the Transmittal/Circulation API response — should it be added to the existing response shape or is a dedicated `/workflow` sub-resource needed? → A: Add `workflowInstanceId` directly to the existing `findOneByUuid` response shape (additive, backward-compatible). Consistent with how RFA/Correspondence expose it.
+
+### Session 2026-04-29 — Transmittal Revision Refactor Clarifications
+
+- Q: Revision Table Strategy — should Transmittal have its own revisions table or reuse `correspondence_revisions`? → A: **B** — Reuse `correspondence_revisions` with JSON `details` field for transmittal-specific data (purpose, remarks), following Correspondence pattern.
+- Q: Transmittal Items Revision Handling — how should items behave when creating a new revision? → A: **A** — Copy all current items to new revision automatically, preserving the exact state at each revision point. Users can then add/remove items in the new revision.
+- Q: `transmittal_items` Schema Change — how to support item revisioning? → A: **B** — Add `revision_id` column to existing `transmittal_items` table (NULLable FK to `correspondence_revisions.id`), backward compatible per ADR-009.
+- Q: Workflow Instance Binding — which revision should the workflow bind to? → A: **A** — Bind to current revision only. New revision becomes the new workflow target. Historical revisions remain for audit but are no longer part of active workflow.
+- Q: Document Numbering on Revision — should doc number change on revision? → A: **B** — Keep same document number, revision label distinguishes versions (follows Correspondence pattern).
+
+---

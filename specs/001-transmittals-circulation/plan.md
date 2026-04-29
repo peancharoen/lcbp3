@@ -1,6 +1,6 @@
-# Implementation Plan: Transmittals + Circulation Complete Integration (v1.8.7 Post-ADR-021)
+# Implementation Plan: Transmittals + Circulation Complete Integration (v1.8.8 with Revision Refactor)
 
-**Branch**: `001-transmittals-circulation` | **Date**: 2026-04-12 | **Spec**: `specs/001-transmittals-circulation/spec.md`
+**Branch**: `001-transmittals-circulation` | **Date**: 2026-04-29 | **Spec**: `specs/001-transmittals-circulation/spec.md`
 
 ---
 
@@ -182,7 +182,7 @@ useQuery<Transmittal>({
 ```
 Returns: `{ transmittal, isLoading, error }` — replaces inline `useQuery` in detail page.
 
-#### `useCirculation(uuid)` hook  
+#### `useCirculation(uuid)` hook
 ```ts
 useQuery<Circulation>({
   queryKey: ['circulation', uuid],
@@ -331,3 +331,126 @@ ADR-021 (IntegratedBanner/WorkflowLifecycle components)
 | Circulation has no WF instance (workflow never started) | High | Medium | `getInstanceByEntity()` returns null → `workflowInstanceId` = undefined → banner shows status only, no actions |
 | Transmittal entity has no `publicId` own column | Medium | Low | Already handled: `publicId` maps from `correspondence.publicId` in `findAll()` |
 | EC-CIRC-003 timezone issues (deadline at 23:59:59) | Low | Medium | Use UTC comparison; test with mocked date |
+
+---
+
+## Phase 4: Transmittal Revision Refactor (v1.8.8)
+
+**Based on**: Clarifications Session 2026-04-29
+**Goal**: Restructure Transmittal to follow Master-Revision Pattern like RFA/Correspondence
+
+### Clarification Decisions Applied
+
+| Decision | Implementation |
+|----------|----------------|
+| **B** — Reuse `correspondence_revisions` | Transmittal-specific data (`purpose`, `remarks`) stored in `correspondence_revisions.details` JSON field |
+| **A** — Copy items on revision | When creating new revision, clone all `transmittal_items` with new `revision_id` |
+| **B** — Add `revision_id` column | Schema change: `ALTER TABLE transmittal_items ADD revision_id INT NULL FK` |
+| **A** — Workflow binds to current revision | `workflow_instances.entity_id` references `correspondence_revisions.id` (not master) |
+| **B** — Keep same document number | Revision label (A, B, C) distinguishes versions; doc number unchanged |
+
+### Schema Changes (ADR-009 — SQL Direct)
+
+```sql
+-- 1. Add revision_id to transmittal_items (backward compatible)
+ALTER TABLE transmittal_items
+  ADD COLUMN revision_id INT NULL COMMENT 'FK to correspondence_revisions' AFTER transmittal_id,
+  ADD CONSTRAINT fk_transmittal_items_revision
+    FOREIGN KEY (revision_id) REFERENCES correspondence_revisions(id) ON DELETE CASCADE,
+  ADD INDEX idx_transmittal_items_revision (revision_id);
+
+-- 2. Add item_type column to transmittal_items (H1 fix)
+ALTER TABLE transmittal_items
+  ADD COLUMN item_type VARCHAR(50) NULL COMMENT 'ประเภทเอกสาร เช่น DRAWING, RFA, CORRESPONDENCE' AFTER item_correspondence_id;
+
+-- 3. Drop deprecated columns from transmittals table (ADR-009)
+--    Run AFTER R14 (service updated to write purpose/remarks → revision.details) is deployed
+ALTER TABLE transmittals
+  DROP COLUMN purpose,
+  DROP COLUMN remarks;
+```
+
+### Data Model Update
+
+```
+correspondences (Master - type_code='TRANSMITTAL')
+  └── correspondence_revisions (Revisions)
+        ├── details.purpose      ← Transmittal purpose (JSON)
+        ├── details.remarks    ← Transmittal remarks (JSON)
+        └── transmittal_items (with revision_id FK)
+              └── item_correspondence_id → correspondences.id
+```
+
+### Backend Changes
+
+| Task | File | Description |
+|------|------|-------------|
+| R1 | `transmittal.service.ts` | Update `findOneByUuid` to join `correspondence_revisions` and read `purpose`/`remarks` from `details` JSON |
+| R2 | `transmittal.service.ts` | Add `createRevision()` method — copy items automatically, link to new revision |
+| R3 | `transmittal.service.ts` | Update `submit()` to work with revision-scoped items (EC-RFA-004) |
+| R4 | `transmittal-item.entity.ts` | Add `revisionId` column (nullable, FK to `correspondence_revisions.id`) |
+| R5 | `transmittal.service.ts` | Add `copyItemsToRevision(oldRevisionId, newRevisionId)` helper |
+| R6 | `workflow-engine.service.ts` | Update `getInstanceByEntity` to support `entity_type='transmittal'` with `entity_id=revision.publicId` (UUID string, ADR-019 — NOT INT revision.id) |
+| R17 | `transmittal-item.entity.ts` + `transmittal.service.ts` + `schema-02-tables.sql` | Add `item_type VARCHAR(50) NULL` column to `transmittal_items` table (ADR-009 SQL), add TypeORM column, save `item.itemType` in `create()` — Fixes H1 |
+| R18 | `transmittal.service.ts` | Replace `ORG_CODE: 'ORG'` hardcode with real `organizationCode` lookup via `dataSource.manager.findOne(Organization, { where: { id: userOrgId } })` — Fixes M1 |
+
+### Frontend Changes
+
+| Task | File | Description |
+|------|------|-------------|
+| R7 | `types/transmittal.ts` | Add `revisionId`, `revisionNumber`, `revisionLabel` to `Transmittal` type |
+| R8 | `types/transmittal.ts` | Add `revisionId` to `TransmittalItem` type |
+| R9 | `transmittals/[uuid]/page.tsx` | Show revision selector (like RFA) when multiple revisions exist |
+| R10 | `transmittals/[uuid]/page.tsx` | Display revision label (A, B, C) in banner |
+
+### API Contract Changes
+
+#### `GET /transmittals/:uuid` (Updated)
+
+```json
+{
+  "data": {
+    "publicId": "...",
+    "revisionId": "019abc...",
+    "revisionNumber": 1,
+    "revisionLabel": "A",
+    "purpose": "FOR_APPROVAL",
+    "remarks": "...",
+    "workflowInstanceId": "019def...",
+    "items": [
+      {
+        "id": 1,
+        "revisionId": "019abc...",
+        "itemCorrespondenceId": "...",
+        ...
+      }
+    ]
+  }
+}
+```
+
+#### `POST /transmittals/:uuid/revisions` (NEW)
+
+**Request**: `{ "remarks": "optional revision reason" }`
+**Response**: `{ "revisionId": "...", "revisionNumber": 2, "revisionLabel": "B" }`
+**Action**: Creates new `correspondence_revisions` record, copies all items automatically
+**Guards**: Document Control or above
+
+### Constitution Check (Revision Refactor)
+
+| Rule | Status | Notes |
+|------|--------|-------|
+| ADR-009 — Schema changes via SQL | ✅ REQUIRED | Add `revision_id` via direct SQL, no TypeORM migration |
+| ADR-019 — UUID strings | ✅ REQUIRED | All IDs use `publicId` string |
+| ADR-021 — Workflow Context | ✅ REQUIRED | Workflow binds to `correspondence_revisions.publicId` (UUID string, ADR-019) |
+| Master-Revision Pattern | ✅ REQUIRED | Aligns with RFA/Correspondence pattern |
+
+### Risk Register (Revision Refactor)
+
+| Risk | Probability | Impact | Mitigation |
+|------|------------|--------|-----------|
+| Data migration complexity | Medium | High | Backward-compatible NULLable `revision_id`; migrate existing items post-deploy |
+| Workflow instance re-binding | Medium | High | New revision = new workflow target; historical revisions preserve state |
+| Correspondence type detection | Low | Medium | Ensure `type_code='TRANSMITTAL'` when querying revisions |
+
+---
