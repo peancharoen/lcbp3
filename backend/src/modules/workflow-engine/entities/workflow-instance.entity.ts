@@ -85,4 +85,15 @@ export class WorkflowInstance {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
+
+  // ADR-001 v1.1 FR-002: Optimistic lock — incremented on every successful transition
+  // Client ส่งค่านี้มาด้วยทุกครั้งที่ transition; Server reject HTTP 409 ถ้าไม่ตรง
+  @Column({
+    name: 'version_no',
+    type: 'int',
+    default: 1,
+    comment:
+      'Optimistic lock counter — incremented on each successful transition (ADR-001 v1.1 FR-002)',
+  })
+  versionNo!: number;
 }

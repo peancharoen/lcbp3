@@ -1,6 +1,8 @@
 // File: src/modules/workflow-engine/workflow-event.service.ts
 
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { RawEvent } from './workflow-dsl.service';
 
 // Interface สำหรับ External Services ที่จะมารับ Event ต่อ
@@ -19,81 +21,47 @@ export interface WorkflowEventHandler {
 export class WorkflowEventService {
   private readonly logger = new Logger(WorkflowEventService.name);
 
-  // สามารถ Inject NotificationService หรือ HttpService เข้ามาได้ตรงนี้
-  // constructor(private readonly notificationService: NotificationService) {}
+  constructor(
+    // ADR-008: ใช้ BullMQ queue แทน inline processing เพื่อ Retry + DLQ (FR-005)
+    @InjectQueue('workflow-events')
+    private readonly workflowEventQueue: Queue
+  ) {}
 
   /**
-   * ประมวลผลรายการ Events ที่เกิดจากการเปลี่ยนสถานะ
+   * เพิ่ม Job ลงใน workflow-events queue (ADR-008: Async ไม่ Block Response)
+   * Processor: WorkflowEventProcessor (workflow-event.processor.ts)
    */
   dispatchEvents(
     instanceId: string,
     events: RawEvent[],
-    context: Record<string, unknown>
-  ) {
+    context: Record<string, unknown>,
+    workflowCode?: string
+  ): void {
     if (!events || events.length === 0) return;
 
     this.logger.log(
-      `Dispatching ${events.length} events for Instance ${instanceId}`
+      `Enqueuing ${events.length} event(s) for Instance ${instanceId} → workflow-events queue`
     );
 
-    // ทำแบบ Async ไม่รอผล (Fire-and-forget) เพื่อไม่ให้กระทบ Response Time ของ User
-    void Promise.allSettled(
-      events.map((event) => this.processSingleEvent(instanceId, event, context))
-    ).then((results) => {
-      // Log errors if any
-      results.forEach((res, idx) => {
-        if (res.status === 'rejected') {
-          this.logger.error(
-            `Failed to process event [${idx}]: ${String(res.reason)}`
-          );
+    // ADR-008: Fire-and-forget — ไม่ await เพื่อไม่กระทบ Response Time
+    // WorkflowEventProcessor จะประมวลผลและ retry อัตโนมัติ (3 retries, exponential backoff)
+    void this.workflowEventQueue
+      .add(
+        'process-events',
+        { instanceId, events, context, workflowCode },
+        {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 500 },
+          removeOnComplete: { age: 86_400 }, // เก็บ 24h
+          removeOnFail: false, // เก็บไว้ใน Bull Board + DLQ
         }
-      });
-    });
-  }
-
-  private async processSingleEvent(
-    instanceId: string,
-    event: RawEvent,
-    context: Record<string, unknown>
-  ) {
-    await Promise.resolve();
-    try {
-      switch (event.type) {
-        case 'notify':
-          this.handleNotify(event, context);
-          break;
-        case 'webhook':
-          this.handleWebhook(event, context);
-          break;
-        case 'auto_action':
-          // Logic สำหรับ Auto Transition (เช่น ถ้าผ่านเงื่อนไข ให้ไปต่อเลย)
-          this.logger.log(`Auto Action triggered for ${instanceId}`);
-          break;
-        default:
-          this.logger.warn(`Unknown event type: ${event.type}`);
-      }
-    } catch (error) {
-      this.logger.error(
-        `Error processing event ${event.type}: ${String(error)}`
+      )
+      .catch((err: unknown) =>
+        this.logger.error(
+          `Failed to enqueue workflow events for ${instanceId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        )
       );
-      throw error;
-    }
-  }
-
-  // --- Handlers ---
-
-  private handleNotify(event: RawEvent, _context: Record<string, unknown>) {
-    // Mockup: ในของจริงจะเรียก NotificationService.send()
-    // const recipients = this.resolveRecipients(event.target, context);
-    this.logger.log(
-      `[EVENT] Notify target: "${event.target}" | Template: "${event.template}"`
-    );
-  }
-
-  private handleWebhook(event: RawEvent, _context: Record<string, unknown>) {
-    // Mockup: เรียก HttpService.post()
-    this.logger.log(
-      `[EVENT] Webhook to: "${event.target}" | Payload: ${JSON.stringify(event.payload)}`
-    );
   }
 }

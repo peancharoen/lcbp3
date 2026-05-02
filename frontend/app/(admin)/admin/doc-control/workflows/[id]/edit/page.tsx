@@ -23,6 +23,7 @@ export default function WorkflowEditPage() {
   const router = useRouter();
   const id = params?.id === 'new' ? null : (params?.id as string);
 
+  const [hasValidationErrors, setHasValidationErrors] = useState(false);
   const [workflowData, setWorkflowData] = useState<Partial<Workflow>>({
     workflowName: '',
     description: '',
@@ -102,7 +103,7 @@ export default function WorkflowEditPage() {
           <Link href="/admin/doc-control/workflows">
             <Button variant="outline">Cancel</Button>
           </Link>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || hasValidationErrors}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <Save className="mr-2 h-4 w-4" />
             {id ? 'Save Changes' : 'Create Workflow'}
@@ -177,6 +178,7 @@ export default function WorkflowEditPage() {
               <DSLEditor
                 initialValue={workflowData.dslDefinition}
                 onChange={(value) => setWorkflowData({ ...workflowData, dslDefinition: value })}
+                onValidationChange={setHasValidationErrors}
               />
             </TabsContent>
 

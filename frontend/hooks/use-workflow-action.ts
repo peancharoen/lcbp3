@@ -67,10 +67,18 @@ export function useWorkflowAction(instanceId: string | undefined) {
           return;
         }
 
-        // Clarify Q1: 409 Conflict (ไม่อยู่ในสถานะที่อนุญาตให้อัปโหลด)
+        // Clarify Q1: 409 Conflict (state violation หรือ optimistic lock conflict)
         if (statusCode === 409) {
           // M3: reset idempotency key — user intent กับ state เดิมใช้ไม่ได้แล้ว
           setIdempotencyKey(uuidv4());
+          // FR-002: Optimistic lock conflict — แสดง message เฉพาะเพื่อบอก user ให้ refresh
+          const isVersionConflict = error.error.code === 'WORKFLOW_VERSION_CONFLICT';
+          if (isVersionConflict) {
+            toast.error('เอกสารถูกอนุมัติโดยผู้อื่นแล้ว กรุณารีเฟรช', {
+              description: 'ข้อมูลที่คุณกำลังดูอาจล้าสมัย กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง',
+            });
+            return;
+          }
           toast.error(message || 'ไม่สามารถดำเนินการในสถานะนี้ได้', {
             description: recoveryActions?.[0],
           });

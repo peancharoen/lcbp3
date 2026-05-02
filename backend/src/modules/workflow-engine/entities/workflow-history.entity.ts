@@ -47,6 +47,17 @@ export class WorkflowHistory {
   })
   actionByUserId?: number;
 
+  // ADR-019: UUID ของ User ผู้ดำเนินการ — expose ใน API Response แทน INT PK
+  // NULL = System Action หรือ Pre-migration record (Delta 10)
+  @Column({
+    name: 'action_by_user_uuid',
+    length: 36,
+    nullable: true,
+    comment:
+      'UUID ของ User ผู้ดำเนินการ — ใช้ใน API Response per ADR-019. INT FK action_by_user_id ยังคงอยู่สำหรับ Internal use',
+  })
+  actionByUserUuid?: string;
+
   @Column({ type: 'text', nullable: true, comment: 'ความเห็นประกอบการอนุมัติ' })
   comment?: string;
 

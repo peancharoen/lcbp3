@@ -1,0 +1,205 @@
+openapi: "3.1.0"
+info:
+  title: Workflow Engine — Definitions API
+  version: "1.1.0"
+  description: |
+    Endpoints for managing workflow DSL definitions.
+    Requires system.manage_all (Super Admin only) for all write operations (FR-009).
+    Includes DSL validation endpoint for Admin UI inline feedback (FR-025).
+
+paths:
+  /workflow-engine/definitions:
+    get:
+      summary: List all workflow definitions (latest version per code)
+      tags: [WorkflowDefinitions]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Array of latest definitions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkflowDefinitionDto"
+
+    post:
+      summary: Create a new workflow definition (auto-increments version)
+      description: |
+        Creates a new version for the given workflow_code.
+        DSL is compiled and validated (Phase 1 save-time check — FR-008).
+        Requires system.manage_all permission.
+      tags: [WorkflowDefinitions]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkflowDefinitionDto"
+      responses:
+        "201":
+          description: Definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDefinitionDto"
+        "400":
+          description: DSL structure validation failed (Phase 1)
+        "403":
+          description: Requires system.manage_all
+
+  /workflow-engine/definitions/{id}:
+    get:
+      summary: Get a specific definition by UUID
+      tags: [WorkflowDefinitions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDefinitionDto"
+
+    patch:
+      summary: Update a workflow definition (DSL or is_active toggle)
+      description: |
+        Updating DSL re-compiles and re-validates (Phase 1).
+        Toggling is_active=true invalidates the Redis active pointer cache immediately (FR-007, SC-005).
+        In-progress instances are NOT rebound (FR-010).
+        Requires system.manage_all.
+      tags: [WorkflowDefinitions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkflowDefinitionDto"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDefinitionDto"
+        "400":
+          description: DSL validation failed
+        "403":
+          description: Requires system.manage_all
+
+  /workflow-engine/definitions/validate:
+    post:
+      summary: Validate a DSL JSON without saving (for Admin UI inline feedback — FR-025)
+      description: |
+        Runs Phase 1 (structure) validation only. Returns errors per field.
+        No authentication required for this endpoint (read-only, no state change)
+        — but still protected by JWT for Admin UI use.
+      tags: [WorkflowDefinitions]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dsl]
+              properties:
+                dsl:
+                  type: object
+                  description: DSL JSON to validate
+      responses:
+        "200":
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DslValidationResultDto"
+
+components:
+  schemas:
+    WorkflowDefinitionDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        workflowCode:
+          type: string
+          example: RFA_FLOW_V1
+        version:
+          type: integer
+          example: 2
+        isActive:
+          type: boolean
+        dsl:
+          type: object
+          description: Raw DSL JSON (JSON Logic conditions only — no eval/new Function)
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateWorkflowDefinitionDto:
+      type: object
+      required: [workflow_code, dsl]
+      properties:
+        workflow_code:
+          type: string
+          example: RFA_FLOW_V2
+        dsl:
+          type: object
+          description: DSL JSON — must use JSON Logic format for conditions (FR-001)
+        is_active:
+          type: boolean
+          default: true
+
+    UpdateWorkflowDefinitionDto:
+      type: object
+      properties:
+        dsl:
+          type: object
+        is_active:
+          type: boolean
+        workflow_code:
+          type: string
+
+    DslValidationResultDto:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+                description: JSON path to the invalid field (e.g. "states.DRAFT.transitions")
+              message:
+                type: string
+                description: Human-readable error description
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

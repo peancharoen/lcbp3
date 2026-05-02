@@ -75,4 +75,7 @@ export interface WorkflowTransitionWithAttachmentsDto {
 
   /** รายการ publicId ของไฟล์แนบประจำ Step นี้ (max 20, ADR-016 Two-Phase upload) */
   attachmentPublicIds?: string[];
+
+  /** FR-002: Client-side optimistic lock version — ส่งพร้อมทุก transition เพื่อตรวจ conflict (HTTP 409) */
+  versionNo?: number;
 }

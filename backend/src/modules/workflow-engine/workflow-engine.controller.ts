@@ -93,6 +93,19 @@ export class WorkflowEngineController {
     return this.workflowService.evaluate(dto);
   }
 
+  @Post('definitions/validate')
+  @ApiOperation({
+    summary: 'FR-025: ตรวจสอบความถูกต้องของ DSL โดยไม่บันทึกข้อมูล',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '{ valid: true } หรือ { valid: false, errors: [...] }',
+  })
+  @RequirePermission('system.manage_all')
+  validateDefinition(@Body() body: { dsl: Record<string, unknown> }) {
+    return this.workflowService.validateDsl(body.dsl);
+  }
+
   // =================================================================
   // Runtime Engine (User Actions)
   // =================================================================
@@ -117,6 +130,8 @@ export class WorkflowEngineController {
     }
 
     const userId = req.user.user_id;
+    // ADR-019: ใช้ publicId (UUID) แทน INT PK สำหรับ History record
+    const userUuid = req.user.publicId;
 
     // ตรวจ Redis ว่า Request นี้ถูกส่งมาแล้วหรือไม่ (key ผูกกับ userId ป้องกัน cross-user replay)
     const cacheKey = `idempotency:transition:${idempotencyKey}:${userId}`;
@@ -131,7 +146,9 @@ export class WorkflowEngineController {
       userId,
       dto.comment,
       dto.payload,
-      dto.attachmentPublicIds // ADR-021: step-specific attachments
+      dto.attachmentPublicIds, // ADR-021: step-specific attachments
+      userUuid, // ADR-019: UUID สำหรับ history record
+      dto.versionNo // ADR-001 v1.1 FR-002: Optimistic lock
     );
 
     // เก็บใน Redis 24 ชั่วโมง (86400 วินาที = 86400000 ms ใน cache-manager v7)

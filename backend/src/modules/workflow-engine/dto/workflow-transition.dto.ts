@@ -4,11 +4,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   IsArray,
+  IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
   IsUUID,
+  Min,
 } from 'class-validator';
 
 export class WorkflowTransitionDto {
@@ -47,4 +49,15 @@ export class WorkflowTransitionDto {
   @ArrayMaxSize(20)
   @IsOptional()
   attachmentPublicIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Optimistic lock version — ส่งค่าที่ได้จาก GET /instances/:id เพื่อป้องกัน Double-approval (ADR-001 v1.1 FR-002). Server ตอบ 409 ถ้าค่าไม่ตรง',
+    example: 5,
+    minimum: 1,
+  })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  versionNo?: number;
 }

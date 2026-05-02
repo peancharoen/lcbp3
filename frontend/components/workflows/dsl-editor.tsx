@@ -14,9 +14,11 @@ interface DSLEditorProps {
   initialValue?: string;
   onChange?: (value: string) => void;
   readOnly?: boolean;
+  // FR-025: callback เมื่อผล validate เปลี่ยน — parent ใช้ disable Save button
+  onValidationChange?: (hasErrors: boolean) => void;
 }
 
-export function DSLEditor({ initialValue = '', onChange, readOnly = false }: DSLEditorProps) {
+export function DSLEditor({ initialValue = '', onChange, readOnly = false, onValidationChange }: DSLEditorProps) {
   const [dsl, setDsl] = useState(initialValue);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -47,9 +49,12 @@ export function DSLEditor({ initialValue = '', onChange, readOnly = false }: DSL
     try {
       const result = await workflowApi.validateDSL(dsl);
       setValidationResult(result);
+      // FR-025: แจ้ง parent ว่ามี validation errors หรือไม่
+      onValidationChange?.(!result.valid);
     } catch (_error) {
       // Validation failed - error state shown in UI
       setValidationResult({ valid: false, errors: ['Validation failed due to server error'] });
+      onValidationChange?.(true);
     } finally {
       setIsValidating(false);
     }

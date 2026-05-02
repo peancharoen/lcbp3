@@ -551,7 +551,19 @@ export class CorrespondenceService {
     if (!correspondence) {
       throw new NotFoundException('Correspondence', publicId);
     }
-    return correspondence;
+
+    // ADR-021: expose live workflow state (null-safe — Draft \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35 workflow instance)
+    const workflowInstance = await this.workflowEngine.getInstanceByEntity(
+      'correspondence',
+      correspondence.publicId
+    );
+
+    return {
+      ...correspondence,
+      workflowInstanceId: workflowInstance?.id ?? null,
+      workflowState: workflowInstance?.currentState ?? null,
+      availableActions: workflowInstance?.availableActions ?? [],
+    };
   }
 
   async addReference(id: number, dto: AddReferenceDto) {

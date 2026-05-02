@@ -375,6 +375,22 @@ When user asks about... check these files:
 
 ---
 
+## Agent skills
+
+### Issue tracker
+
+Issues live in the self-hosted Gitea repo at git.np-dms.work:2222. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (no custom mapping). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo with domain documentation in `specs/`. See `docs/agents/domain.md`.
+
+---
+
 ## 📚 Full Documentation
 
 This file is a **quick reference**. For detailed information:

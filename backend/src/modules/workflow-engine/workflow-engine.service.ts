@@ -32,7 +32,11 @@ import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dt
 import { EvaluateWorkflowDto } from './dto/evaluate-workflow.dto';
 import { UpdateWorkflowDefinitionDto } from './dto/update-workflow-definition.dto';
 import { WorkflowHistoryItemDto } from './dto/workflow-history-item.dto';
-import { CompiledWorkflow, WorkflowDslService } from './workflow-dsl.service';
+import {
+  CompiledWorkflow,
+  RawWorkflowDSL,
+  WorkflowDslService,
+} from './workflow-dsl.service';
 import { WorkflowEventService } from './workflow-event.service'; // [NEW] Import Event Service
 
 // Legacy Interface (Backward Compatibility)
@@ -79,7 +83,12 @@ export class WorkflowEngineService {
     @InjectMetric('workflow_redlock_acquire_duration_ms')
     private readonly redlockAcquireDuration: Histogram<string>,
     @InjectMetric('workflow_redlock_acquire_failures_total')
-    private readonly redlockAcquireFailures: Counter<string>
+    private readonly redlockAcquireFailures: Counter<string>,
+    // FR-023: Per-transition metrics — labelled by workflow_code, action, outcome
+    @InjectMetric('workflow_transitions_total')
+    private readonly transitionsTotal: Counter<string>,
+    @InjectMetric('workflow_transition_duration_ms')
+    private readonly transitionDuration: Histogram<string>
   ) {
     // ADR-021 Clarify Q2 (C1): Redlock Fail-closed
     // Retry 3 ครั้ง × 500ms เพิ่ม jitter → ถ้ายังไม่ได้ throw HTTP 503
@@ -94,6 +103,30 @@ export class WorkflowEngineService {
   // =================================================================
   // [PART 1] Definition Management (Phase 6A)
   // =================================================================
+
+  /**
+   * FR-025: ตรวจสอบ DSL โดยไม่บันทึก — ใช้สำหรับ inline validation ใน Admin Editor
+   */
+  validateDsl(
+    dsl: Record<string, unknown>
+  ):
+    | { valid: true }
+    | { valid: false; errors: { path: string; message: string }[] } {
+    try {
+      this.dslService.compile(dsl as unknown as RawWorkflowDSL);
+      return { valid: true };
+    } catch (error: unknown) {
+      return {
+        valid: false,
+        errors: [
+          {
+            path: '',
+            message: error instanceof Error ? error.message : String(error),
+          },
+        ],
+      };
+    }
+  }
 
   /**
    * สร้างหรืออัปเดต Workflow Definition ใหม่ (Auto Versioning)
@@ -122,6 +155,12 @@ export class WorkflowEngineService {
     });
 
     const saved = await this.workflowDefRepo.save(entity);
+    // T044: Cache definition per version (TTL 1h, SC-005)
+    await this.cacheManager.set(
+      `wf:def:${saved.workflow_code}:${saved.version}`,
+      saved,
+      3_600_000
+    );
     this.logger.log(
       `Created Workflow Definition: ${saved.workflow_code} v${saved.version}`
     );
@@ -155,10 +194,30 @@ export class WorkflowEngineService {
       }
     }
 
+    const prevIsActive = definition.is_active;
     if (dto.is_active !== undefined) definition.is_active = dto.is_active;
     if (dto.workflow_code) definition.workflow_code = dto.workflow_code;
 
-    return this.workflowDefRepo.save(definition);
+    const updated = await this.workflowDefRepo.save(definition);
+
+    // T045: Invalidate version cache เมื่อ DSL เปลี่ยน
+    if (dto.dsl) {
+      await this.cacheManager.del(
+        `wf:def:${updated.workflow_code}:${updated.version}`
+      );
+    }
+    // T045: Invalidate active pointer เมื่อ is_active เปลี่ยน
+    if (dto.is_active !== undefined && dto.is_active !== prevIsActive) {
+      await this.cacheManager.del(`wf:def:${updated.workflow_code}:active`);
+    }
+    // T045: Re-cache updated definition
+    await this.cacheManager.set(
+      `wf:def:${updated.workflow_code}:${updated.version}`,
+      updated,
+      3_600_000
+    );
+
+    return updated;
   }
 
   /**
@@ -181,10 +240,17 @@ export class WorkflowEngineService {
    * ดึง Workflow Definition ตาม ID หรือ Code
    */
   async getDefinitionById(id: string): Promise<WorkflowDefinition> {
+    // T046: Read-through cache (TTL 1h, SC-005)
+    const cacheKey = `wf:def:id:${id}`;
+    const cached = await this.cacheManager.get<WorkflowDefinition>(cacheKey);
+    if (cached) return cached;
+
     const definition = await this.workflowDefRepo.findOne({ where: { id } });
     if (!definition) {
       throw new NotFoundException('Workflow Definition', id);
     }
+
+    await this.cacheManager.set(cacheKey, definition, 3_600_000);
     return definition;
   }
 
@@ -317,7 +383,7 @@ export class WorkflowEngineService {
       : [];
 
     return {
-      id: instance.id,
+      id: instance.id, // publicId (UUID) ของ workflow instance
       currentState: instance.currentState,
       availableActions,
     };
@@ -333,10 +399,48 @@ export class WorkflowEngineService {
     comment?: string,
     payload: Record<string, unknown> = {},
     // ADR-021: publicIds ของไฟล์แนบประจำ Step นี้ (Two-Phase upload ก่อนแล้ว)
-    attachmentPublicIds?: string[]
+    attachmentPublicIds?: string[],
+    // ADR-019: UUID ของ User สำหรับ history record (ไม่ expose INT PK)
+    userUuid?: string,
+    // ADR-001 v1.1 FR-002: Optimistic lock — Client ส่งมาเพื่อป้องกัน Double-approval
+    clientVersionNo?: number
   ) {
+    // FR-022/023: เริ่มจับเวลาทั้ง method เพื่อบันทึก latency metric
+    const startMs = Date.now();
+    let outcome:
+      | 'success'
+      | 'conflict'
+      | 'forbidden'
+      | 'validation_error'
+      | 'system_error' = 'system_error';
+    let workflowCode = 'unknown';
+    let fromState: string | undefined;
+    let toState: string | undefined;
     const hasAttachments =
       attachmentPublicIds !== undefined && attachmentPublicIds.length > 0;
+
+    // ==============================================================
+    // ADR-001 v1.1 FR-002: Fast-fail Optimistic Lock Check (ก่อน Redlock)
+    // ลดภาระ Redlock สำหรับ Client ที่ส่ง version_no ล้าสมัยมา
+    // ==============================================================
+    if (clientVersionNo !== undefined) {
+      const current = await this.instanceRepo.findOne({
+        where: { id: instanceId },
+        select: ['id', 'versionNo'],
+      });
+      if (!current) {
+        throw new NotFoundException('Workflow Instance', instanceId);
+      }
+      if (current.versionNo !== clientVersionNo) {
+        outcome = 'conflict';
+        throw new ConflictException(
+          'WORKFLOW_VERSION_CONFLICT',
+          `Fast-fail: expected version_no=${clientVersionNo}, actual=${current.versionNo}`,
+          'เอกสารถูกอนุมัติโดยผู้อื่นแล้ว กรุณารีเฟรชและลองใหม่',
+          ['รีเฟรชหน้าแล้วดูสถานะล่าสุดก่อนดำเนินการ']
+        );
+      }
+    }
 
     // ==============================================================
     // ADR-021 Clarify Q1 (C3): ตรวจสถานะก่อน acquire Redlock
@@ -453,8 +557,10 @@ export class WorkflowEngineService {
         context
       );
 
-      const fromState = instance.currentState;
-      const toState = evaluation.nextState;
+      fromState = instance.currentState;
+      toState = evaluation.nextState;
+      // FR-023: บันทึก workflowCode สำหรับ metric labels
+      workflowCode = instance.definition?.workflow_code ?? 'unknown';
 
       // 3. อัปเดต Instance
       instance.currentState = toState;
@@ -474,6 +580,8 @@ export class WorkflowEngineService {
         toState,
         action,
         actionByUserId: userId,
+        // ADR-019 FR-003: UUID ของ User สำหรับ API Response (INT PK ไม่ expose)
+        actionByUserUuid: userUuid,
         comment,
         metadata: {
           events: evaluation.events,
@@ -516,6 +624,27 @@ export class WorkflowEngineService {
         }
       }
 
+      // ADR-001 v1.1 FR-002: CAS version increment หลัง commit ใน DB transaction
+      // UPDATE จะล้มเหลว (affected=0) ถ้า version_no ถูกเปลี่ยนระหว่างนี้ (TOCTOU edge case)
+      const casResult = await queryRunner.manager
+        .createQueryBuilder()
+        .update(WorkflowInstance)
+        .set({ versionNo: () => 'version_no + 1' })
+        .where('id = :id AND version_no = :expected', {
+          id: instanceId,
+          expected: instance.versionNo,
+        })
+        .execute();
+
+      if ((casResult.affected ?? 0) === 0) {
+        throw new ConflictException(
+          'WORKFLOW_VERSION_CONFLICT',
+          'version_no changed between Redlock acquisition and CAS update (TOCTOU edge case)',
+          'เกิด Conflict กรุณารีเฟรชและลองใหม่',
+          ['รีเฟรชหน้า', 'ลองดำเนินการอีกครั้ง']
+        );
+      }
+
       await queryRunner.commitTransaction();
 
       // ADR-021 T043: Invalidate Workflow History cache หลัง transition สำเร็จ
@@ -536,23 +665,85 @@ export class WorkflowEngineService {
         void this.eventService.dispatchEvents(
           instance.id,
           evaluation.events,
-          context
+          context,
+          workflowCode // FR-005: DLQ notification \u0e43\u0e0a\u0e49 workflowCode \u0e23\u0e30\u0e1a\u0e38\u0e1a\u0e23\u0e34\u0e1a\u0e17\u0e18\u0e34\u0e4c Ops
         );
       }
 
+      outcome = 'success';
+      // FR-014 T014: คืน versionNo ที่ increment แล้ว ให้ Client เก็บไว้สำหรับ request ถัดไป
+      const newVersionNo = instance.versionNo + 1;
+
       return {
         success: true,
+        previousState: fromState,
         nextState: toState,
         events: evaluation.events,
         isCompleted: instance.status === WorkflowStatus.COMPLETED,
+        versionNo: newVersionNo,
       };
     } catch (err) {
       await queryRunner.rollbackTransaction();
+
+      // FR-019: Rollback file attachments กลับเป็น temporary เมื่อ DB transaction ล้มเหลว
+      // ไฟล์บน disk ยังคงอยู่ที่ permanent storage; cleanup job จะจัดการหลัง 24h TTL
+      if (
+        hasAttachments &&
+        attachmentPublicIds &&
+        attachmentPublicIds.length > 0
+      ) {
+        await this.attachmentRepo
+          .update(
+            { publicId: In(attachmentPublicIds), uploadedByUserId: userId },
+            {
+              isTemporary: true,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            }
+          )
+          .catch((rollbackErr: unknown) =>
+            this.logger.error(
+              `FR-019 Attachment rollback failed for ${instanceId}: ${rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr)}`
+            )
+          );
+        this.logger.warn(
+          `FR-019: Reverted ${attachmentPublicIds.length} attachment(s) to temp for instance ${instanceId} after DB failure`
+        );
+      }
+
+      // จำแนก outcome สำหรับ metric label
+      if (err instanceof ConflictException) outcome = 'conflict';
+      else if ((err as { status?: number }).status === 403)
+        outcome = 'forbidden';
+      else if (err instanceof WorkflowException) outcome = 'validation_error';
+
       this.logger.error(
         `Transition Failed for ${instanceId}: ${(err as Error).message}`
       );
       throw err;
     } finally {
+      const durationMs = Date.now() - startMs;
+      // FR-023: บันทึก transition duration histogram
+      this.transitionDuration
+        .labels({ workflow_code: workflowCode })
+        .observe(durationMs);
+      // FR-023: บันทึก transition counter ตาม outcome
+      this.transitionsTotal
+        .labels({ workflow_code: workflowCode, action, outcome })
+        .inc();
+      // FR-022: Structured log entry ทุก transition (success/failure/conflict)
+      this.logger.log(
+        JSON.stringify({
+          instanceId,
+          action,
+          fromState,
+          toState,
+          userUuid,
+          durationMs,
+          outcome,
+          workflowCode,
+        })
+      );
+
       await queryRunner.release();
       // ADR-021 C1: ปล่อย Redlock เสมอ (non-blocking หาก release ผิดพลาด)
       lock.release().catch((e: unknown) => {

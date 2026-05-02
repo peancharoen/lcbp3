@@ -34,9 +34,11 @@ describe('WorkflowTransitionGuard', () => {
 
   const mockRequest = (
     params: Record<string, string> = {},
-    user: MockUserPayload = mockUser
+    user: MockUserPayload = mockUser,
+    action = 'APPROVE'
   ): Partial<RequestWithUser> => ({
     params,
+    body: { action },
     user: user as RequestWithUser['user'],
   });
 
@@ -120,6 +122,7 @@ describe('WorkflowTransitionGuard', () => {
       expect(userService.getUserPermissions).toHaveBeenCalledWith(123);
       expect(instanceRepo.findOne).toHaveBeenCalledWith({
         where: { id: 'instance-123' },
+        relations: ['definition'],
       });
     });
 
@@ -273,6 +276,130 @@ describe('WorkflowTransitionGuard', () => {
       await expect(guard.canActivate(context)).rejects.toThrow(
         ForbiddenException
       );
+    });
+  });
+
+  // T025: DSL require.role → CASL ability mapping tests
+  describe('DSL CASL Role Mapping (FR-002a)', () => {
+    it('should allow access when DSL requires OrgAdmin role and user has organization.manage_users', async () => {
+      userService.getUserPermissions.mockResolvedValue([
+        'organization.manage_users',
+      ]);
+      const mockInstance = {
+        id: 'instance-dsl-1',
+        currentState: 'PENDING_REVIEW',
+        context: { organizationId: 99 }, // Different org — Level 2 would deny
+        contractId: null,
+        definition: {
+          compiled: {
+            states: {
+              PENDING_REVIEW: {
+                transitions: {
+                  APPROVE: { requirements: { roles: ['OrgAdmin'] } },
+                },
+              },
+            },
+          },
+        },
+      };
+      instanceRepo.findOne.mockResolvedValue(mockInstance);
+      const context = mockContext(
+        mockRequest({ id: 'instance-dsl-1' }, mockUser, 'APPROVE')
+      );
+
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+    });
+
+    it('should allow access when DSL requires ContractMember and user has contract.view', async () => {
+      userService.getUserPermissions.mockResolvedValue(['contract.view']);
+      const mockInstance = {
+        id: 'instance-dsl-2',
+        currentState: 'REVIEW',
+        context: { organizationId: 99 },
+        contractId: null,
+        definition: {
+          compiled: {
+            states: {
+              REVIEW: {
+                transitions: {
+                  SUBMIT: { requirements: { roles: ['ContractMember'] } },
+                },
+              },
+            },
+          },
+        },
+      };
+      instanceRepo.findOne.mockResolvedValue(mockInstance);
+      const context = mockContext(
+        mockRequest({ id: 'instance-dsl-2' }, mockUser, 'SUBMIT')
+      );
+
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+    });
+
+    it('should deny when DSL requires OrgAdmin but user only has contract.view', async () => {
+      userService.getUserPermissions.mockResolvedValue(['contract.view']);
+      const mockInstance = {
+        id: 'instance-dsl-3',
+        currentState: 'PENDING',
+        context: { organizationId: 99 },
+        contractId: null,
+        definition: {
+          compiled: {
+            states: {
+              PENDING: {
+                transitions: {
+                  APPROVE: { requirements: { roles: ['OrgAdmin'] } },
+                },
+              },
+            },
+          },
+        },
+      };
+      instanceRepo.findOne.mockResolvedValue(mockInstance);
+      const context = mockContext(
+        mockRequest({ id: 'instance-dsl-3' }, mockUser, 'APPROVE')
+      );
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException
+      );
+    });
+
+    it('should fall through to Level 3 when DSL role is AssignedHandler', async () => {
+      userService.getUserPermissions.mockResolvedValue(['document.view']);
+      const mockInstance = {
+        id: 'instance-dsl-4',
+        currentState: 'ASSIGNED',
+        context: { organizationId: 99, assignedUserId: 123 }, // same as mockUser.user_id
+        contractId: null,
+        definition: {
+          compiled: {
+            states: {
+              ASSIGNED: {
+                transitions: {
+                  COMPLETE: {
+                    requirements: { roles: ['AssignedHandler'] },
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      instanceRepo.findOne.mockResolvedValue(mockInstance);
+      const context = mockContext(
+        mockRequest({ id: 'instance-dsl-4' }, mockUser, 'COMPLETE')
+      );
+
+      // AssignedHandler → falls to Level 3 check → passes because assignedUserId === user_id
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
     });
   });
 

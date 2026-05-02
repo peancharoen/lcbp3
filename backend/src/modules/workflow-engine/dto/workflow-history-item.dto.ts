@@ -12,6 +12,8 @@ export class WorkflowHistoryItemDto {
   toState!: string;
   action!: string;
   actionByUserId?: number;
+  // ADR-019: UUID ของ User ผู้ดำเนินการ — expose แทน INT PK ในทุก API Response
+  actorUuid?: string;
   comment?: string;
   metadata?: Record<string, unknown>;
   attachments!: AttachmentSummaryDto[];

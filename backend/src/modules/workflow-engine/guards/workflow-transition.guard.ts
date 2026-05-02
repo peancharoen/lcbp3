@@ -12,7 +12,17 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { WorkflowInstance } from '../entities/workflow-instance.entity';
+import { CompiledWorkflow } from '../workflow-dsl.service';
 import { UserService } from '../../../modules/user/user.service';
+
+// FR-002a: DSL require.role → CASL ability สตาติก mapping (research.md Decision 2)
+// 'ไม่รู้จัก' DSL role → fall through ไป Level 3 (assignedUserId) check
+const DSL_ROLE_TO_CASL: Record<string, string> = {
+  Superadmin: 'system.manage_all',
+  OrgAdmin: 'organization.manage_users',
+  ContractMember: 'contract.view',
+  AssignedHandler: '__assigned__', // ไม่ map ไป CASL — จัดการโดย Level 3 check
+};
 import type { RequestWithUser } from '../../../common/interfaces/request-with-user.interface';
 
 /**
@@ -39,6 +49,8 @@ export class WorkflowTransitionGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const instanceId = request.params['id'];
+    // FR-002a: action \u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a DSL role check (\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a requirements.roles \u0e02\u0e2d\u0e07 transition \u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e17\u0e33)
+    const action = (request.body as { action?: string }).action ?? '';
     const user = request.user;
 
     // ดึงสิทธิ์ทั้งหมดของ User จาก DB (ตาม pattern เดียวกับ RbacGuard)
@@ -51,13 +63,35 @@ export class WorkflowTransitionGuard implements CanActivate {
       return true;
     }
 
-    // ดึง Instance เพื่อตรวจสอบ Context
+    // ดึง Instance + Definition เพื่อตรวจสอบ Context และ DSL require.role
     const instance = await this.instanceRepo.findOne({
       where: { id: instanceId },
+      relations: ['definition'],
     });
 
     if (!instance) {
       throw new NotFoundException('Workflow Instance', instanceId);
+    }
+
+    // FR-002a: DSL require.role → CASL ability check
+    // ตรวจสอบ requirements.roles ของ CompiledTransition ที่ตรงกับ action ที่ Request ขอ
+    // (ยังต้องผ่าน contract membership check Level 2.5)
+    const compiled = instance.definition?.compiled as
+      | CompiledWorkflow
+      | undefined;
+    const stateConfig = compiled?.states?.[instance.currentState];
+    // CompiledTransition.requirements.roles — ไม่ใช่ stateConfig.require (ซึ่งไม่มี)
+    const requiredDslRoles: string[] =
+      stateConfig?.transitions?.[action]?.requirements?.roles ?? [];
+    let dslRoleAuthorized = false;
+    for (const dslRole of requiredDslRoles) {
+      const caslAbility = DSL_ROLE_TO_CASL[dslRole];
+      if (caslAbility && caslAbility !== '__assigned__') {
+        if (userPermissions.includes(caslAbility)) {
+          dslRoleAuthorized = true;
+          break;
+        }
+      }
     }
 
     // Level 2: Org Admin — organization.manage_users + สังกัดองค์กรเดียวกับเอกสาร
@@ -99,16 +133,21 @@ export class WorkflowTransitionGuard implements CanActivate {
       }
     }
 
-    // Level 3: Assigned Handler — User นี้ถูก Assign มาให้ทำ Step นี้โดยตรง
+    // Level 3: Assigned Handler หรือ DSL CASL-authorized role
+    // FR-002a: ถ้า DSL require.role ตรงกับ CASL ability ของ User → ผ่าน
+    // (กรณี AssignedHandler ใน DSL → ตรวจสอบผ่าน assignedUserId ใน context)
     const assignedUserId = instance.context?.assignedUserId as
       | number
       | undefined;
-    if (assignedUserId !== undefined && user.user_id === assignedUserId) {
+    if (
+      dslRoleAuthorized ||
+      (assignedUserId !== undefined && user.user_id === assignedUserId)
+    ) {
       return true;
     }
 
     this.logger.warn(
-      `Unauthorized transition attempt: User ${user.user_id} on Instance ${instanceId}`
+      `Unauthorized transition attempt: User ${user.user_id} on Instance ${instanceId} (DSL roles: [${requiredDslRoles.join(', ')}])`
     );
     throw new ForbiddenException({
       userMessage: 'คุณไม่มีสิทธิ์ดำเนินการในขั้นตอนนี้',

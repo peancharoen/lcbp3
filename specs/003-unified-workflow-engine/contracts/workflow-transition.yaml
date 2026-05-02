@@ -1,0 +1,276 @@
+openapi: "3.1.0"
+info:
+  title: Workflow Engine — Transition API
+  version: "1.1.0"
+  description: |
+    Endpoints for triggering workflow state transitions.
+    ADR-001 v1.1: Added version_no (optimistic lock) and action_by_user_uuid.
+    ADR-021: Step-specific attachment support via attachmentPublicIds.
+
+paths:
+  /workflow-engine/instances/{id}/transition:
+    post:
+      summary: Trigger a workflow state transition
+      description: |
+        Transitions the workflow instance to the next state based on the DSL definition.
+        Requires Idempotency-Key header (ADR-016).
+        Optionally includes pre-uploaded attachment publicIds (ADR-021).
+        Supports optimistic concurrency control via versionNo (ADR-001 v1.1).
+      tags: [WorkflowEngine]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Workflow Instance UUID
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUIDv7 idempotency key — duplicate requests return cached response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowTransitionDto"
+      responses:
+        "200":
+          description: Transition successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowTransitionResponseDto"
+        "409":
+          description: |
+            Conflict — one of:
+            - version_no mismatch (optimistic lock) — refresh and retry
+            - Terminal state — cannot transition further
+            - Upload rejected (state not in PENDING_REVIEW/PENDING_APPROVAL)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: DSL condition not met or required context field missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "403":
+          description: User lacks the required CASL ability for this transition
+        "503":
+          description: Redlock unavailable — retry after brief delay
+
+  /workflow-engine/instances/{id}:
+    get:
+      summary: Get workflow instance state
+      description: Returns current state, available actions, and versionNo for optimistic locking.
+      tags: [WorkflowEngine]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Instance details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowInstanceDto"
+
+  /workflow-engine/instances/{id}/history:
+    get:
+      summary: Get workflow history (timeline)
+      description: Returns all transition records for a workflow instance, including step-specific attachments.
+      tags: [WorkflowEngine]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: History items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkflowHistoryItemDto"
+
+components:
+  schemas:
+    WorkflowTransitionDto:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          example: APPROVE
+          description: Action name matching a DSL transition key
+        comment:
+          type: string
+          maxLength: 2000
+          description: Optional decision comment
+        versionNo:
+          type: integer
+          minimum: 1
+          description: |
+            Current version_no from the client. If provided, triggers optimistic
+            lock check — returns 409 if mismatch (ADR-001 v1.1 FR-002).
+          example: 5
+        payload:
+          type: object
+          additionalProperties: true
+          description: Additional context fields required by DSL conditions
+        attachmentPublicIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 20
+          description: |
+            Pre-uploaded attachment UUIDs (ADR-021). Files must have been
+            uploaded via Two-Phase upload and passed ClamAV scan before
+            this request. Only valid in PENDING_REVIEW or PENDING_APPROVAL.
+
+    WorkflowTransitionResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        previousState:
+          type: string
+          example: PENDING_REVIEW
+        nextState:
+          type: string
+          example: PENDING_APPROVAL
+        historyId:
+          type: string
+          format: uuid
+          description: UUID of the created WorkflowHistory record
+        isCompleted:
+          type: boolean
+          description: True if the transition reached a terminal state
+        versionNo:
+          type: integer
+          description: Updated versionNo after successful transition — client must store for next request
+
+    WorkflowInstanceDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        currentState:
+          type: string
+          example: PENDING_REVIEW
+        status:
+          type: string
+          enum: [ACTIVE, COMPLETED, CANCELLED, TERMINATED]
+        versionNo:
+          type: integer
+          description: Current optimistic lock version — include in next transition request
+        availableActions:
+          type: array
+          items:
+            type: string
+          example: [APPROVE, REJECT, RETURN]
+        workflowCode:
+          type: string
+          example: RFA_FLOW_V1
+
+    WorkflowHistoryItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fromState:
+          type: string
+        toState:
+          type: string
+        action:
+          type: string
+        actorUuid:
+          type: string
+          format: uuid
+          description: UUID of the acting user (ADR-019 — INT FK excluded from API)
+        actorName:
+          type: string
+          description: Populated via user join for display
+        comment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentSummaryDto"
+
+    AttachmentSummaryDto:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+          description: ADR-019 public identifier
+        originalFilename:
+          type: string
+        mimeType:
+          type: string
+        fileSize:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        userMessage:
+          type: string
+        recoveryAction:
+          type: string
+        errorCode:
+          type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        userMessage:
+          type: string
+        fields:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

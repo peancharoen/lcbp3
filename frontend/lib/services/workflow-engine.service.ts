@@ -179,6 +179,23 @@ export const workflowEngineService = {
   },
 
   /**
+   * FR-025: ตรวจสอบ DSL โดยไม่บันทึก
+   * POST /workflow-engine/definitions/validate
+   */
+  validateDsl: async (
+    dsl: Record<string, unknown>
+  ): Promise<
+    | { valid: true }
+    | { valid: false; errors: { path: string; message: string }[] }
+  > => {
+    const response = await apiClient.post(
+      '/workflow-engine/definitions/validate',
+      { dsl }
+    );
+    return (response.data as { data?: unknown })?.data ?? response.data;
+  },
+
+  /**
    * ลบ Workflow Definition
    * DELETE /workflow-engine/definitions/:id
    */

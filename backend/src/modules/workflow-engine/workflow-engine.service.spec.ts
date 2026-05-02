@@ -35,13 +35,22 @@ import { CreateWorkflowDefinitionDto } from './dto/create-workflow-definition.dt
 const DEFAULT_REDIS_TOKEN = 'default_IORedisModuleConnectionToken';
 
 describe('WorkflowEngineService', () => {
+  let compiledModule: TestingModule;
   let service: WorkflowEngineService;
   let defRepo: Repository<WorkflowDefinition>;
   let instanceRepo: Repository<WorkflowInstance>;
+  let attachmentRepo: { find: jest.Mock; update: jest.Mock };
   let dslService: WorkflowDslService;
   let eventService: WorkflowEventService;
 
   // Mock Objects
+  const mockCasQueryBuilder = {
+    update: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    execute: jest.fn().mockResolvedValue({ affected: 1 }),
+  };
+
   const mockQueryRunner = {
     connect: jest.fn(),
     startTransaction: jest.fn(),
@@ -52,6 +61,8 @@ describe('WorkflowEngineService', () => {
       findOne: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
+      // ADR-001 v1.1 FR-002: CAS version increment mock
+      createQueryBuilder: jest.fn().mockReturnValue(mockCasQueryBuilder),
     },
   };
 
@@ -85,7 +96,7 @@ describe('WorkflowEngineService', () => {
     });
     mockRedlockRelease.mockClear();
 
-    const module: TestingModule = await Test.createTestingModule({
+    compiledModule = await Test.createTestingModule({
       providers: [
         WorkflowEngineService,
         {
@@ -151,14 +162,30 @@ describe('WorkflowEngineService', () => {
             inc: jest.fn(),
           },
         },
+        // FR-023: Per-transition metrics mocks
+        {
+          provide: 'PROM_METRIC_WORKFLOW_TRANSITIONS_TOTAL',
+          useValue: {
+            labels: jest.fn().mockReturnThis(),
+            inc: jest.fn(),
+          },
+        },
+        {
+          provide: 'PROM_METRIC_WORKFLOW_TRANSITION_DURATION_MS',
+          useValue: {
+            labels: jest.fn().mockReturnThis(),
+            observe: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
-    service = module.get<WorkflowEngineService>(WorkflowEngineService);
-    defRepo = module.get(getRepositoryToken(WorkflowDefinition));
-    instanceRepo = module.get(getRepositoryToken(WorkflowInstance));
-    dslService = module.get(WorkflowDslService);
-    eventService = module.get(WorkflowEventService);
+    service = compiledModule.get<WorkflowEngineService>(WorkflowEngineService);
+    defRepo = compiledModule.get(getRepositoryToken(WorkflowDefinition));
+    instanceRepo = compiledModule.get(getRepositoryToken(WorkflowInstance));
+    attachmentRepo = compiledModule.get(getRepositoryToken(Attachment));
+    dslService = compiledModule.get(WorkflowDslService);
+    eventService = compiledModule.get(WorkflowEventService);
   });
 
   it('should be defined', () => {
@@ -563,11 +590,13 @@ describe('WorkflowEngineService', () => {
           id: 'inst-1',
           currentState: 'PENDING_REVIEW',
           status: WorkflowStatus.ACTIVE,
-          definition: { compiled: mockCompiledWorkflow },
+          definition: { compiled: mockCompiledWorkflow, workflow_code: 'WF01' },
           context: {},
+          versionNo: 1,
         });
         mockQueryRunner.manager.save.mockResolvedValue({ id: 'history-1' });
         mockQueryRunner.manager.update.mockResolvedValue({ affected: 1 });
+        mockCasQueryBuilder.execute.mockResolvedValue({ affected: 1 });
         mockDslService.evaluate.mockReturnValue({
           nextState: 'APPROVED',
           events: [],
@@ -583,6 +612,285 @@ describe('WorkflowEngineService', () => {
         );
         expect(mockRedlockRelease).toHaveBeenCalled();
       });
+    });
+  });
+
+  // ============================================================
+  // T024: ADR-001 v1.1 FR-002 — Optimistic Lock Tests
+  // ============================================================
+  describe('Optimistic Lock (FR-002)', () => {
+    const baseInstance = {
+      id: 'inst-opt-1',
+      currentState: 'PENDING_REVIEW',
+      status: WorkflowStatus.ACTIVE,
+      definition: { compiled: mockCompiledWorkflow, workflow_code: 'WF01' },
+      context: {},
+      versionNo: 5,
+    };
+
+    it('T024a: should throw ConflictException (409) when clientVersionNo does not match current versionNo (fast-fail)', async () => {
+      // Arrange: DB มี version_no=5, client ส่ง version_no=3 (ล้าสมัย)
+      (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 'inst-opt-1',
+        versionNo: 5,
+      });
+
+      // Act + Assert
+      await expect(
+        service.processTransition(
+          'inst-opt-1',
+          'APPROVE',
+          1,
+          undefined,
+          {},
+          undefined,
+          'user-uuid-123',
+          3 // clientVersionNo ล้าสมัย
+        )
+      ).rejects.toThrow(ConflictException);
+
+      // Fast-fail: Redlock ต้องไม่ถูกเรียก (ผ่าน check ก่อน acquire)
+      expect(mockRedlockAcquire).not.toHaveBeenCalled();
+    });
+
+    it('T024b: should pass fast-fail and proceed when clientVersionNo matches current versionNo', async () => {
+      // Arrange: clientVersionNo ตรงกับ DB
+      (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 'inst-opt-1',
+        currentState: 'PENDING_REVIEW',
+        versionNo: 5,
+      });
+      mockQueryRunner.manager.findOne.mockResolvedValue({
+        ...baseInstance,
+        versionNo: 5,
+      });
+      mockQueryRunner.manager.save.mockResolvedValue({ id: 'history-1' });
+      mockCasQueryBuilder.execute.mockResolvedValue({ affected: 1 });
+      mockDslService.evaluate.mockReturnValue({
+        nextState: 'APPROVED',
+        events: [],
+      });
+
+      // Act
+      const result = await service.processTransition(
+        'inst-opt-1',
+        'APPROVE',
+        1,
+        undefined,
+        {},
+        undefined,
+        'user-uuid-123',
+        5 // clientVersionNo ตรง
+      );
+
+      // Assert: สำเร็จ + คืน versionNo ใหม่
+      expect(result.success).toBe(true);
+      expect(result.versionNo).toBe(6); // 5 + 1
+      expect(mockRedlockAcquire).toHaveBeenCalled();
+    });
+
+    it('T024c: should throw ConflictException when CAS update returns affected=0 (TOCTOU edge case)', async () => {
+      // Arrange: fast-fail ผ่าน (ไม่ส่ง clientVersionNo), แต่ CAS ล้มเหลว
+      (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+        id: 'inst-opt-1',
+        currentState: 'PENDING_REVIEW',
+        versionNo: 5,
+      });
+      mockQueryRunner.manager.findOne.mockResolvedValue({
+        ...baseInstance,
+        versionNo: 5,
+      });
+      mockQueryRunner.manager.save.mockResolvedValue({ id: 'history-1' });
+      // CAS: เกิด TOCTOU — version_no ถูกเปลี่ยนระหว่าง Redlock acquire กับ CAS update
+      mockCasQueryBuilder.execute.mockResolvedValue({ affected: 0 });
+      mockDslService.evaluate.mockReturnValue({
+        nextState: 'APPROVED',
+        events: [],
+      });
+
+      // Act + Assert
+      await expect(
+        service.processTransition(
+          'inst-opt-1',
+          'APPROVE',
+          1,
+          undefined,
+          {},
+          undefined
+          // ไม่ส่ง clientVersionNo — TOCTOU ถูกตรวจโดย CAS layer
+        )
+      ).rejects.toThrow(ConflictException);
+
+      expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
+      expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+    });
+
+    it('T024d: should rollback attachments to temp when DB transaction fails (FR-019)', async () => {
+      // Arrange: commit ล้มเหลว — คาดว่า attachments จะถูก revert กลับเป็น temp
+      (instanceRepo.findOne as jest.Mock).mockResolvedValue(null); // no pre-check needed (no attachment state)
+      mockQueryRunner.manager.findOne.mockResolvedValue({
+        ...baseInstance,
+        versionNo: 5,
+      });
+      mockQueryRunner.manager.save.mockResolvedValue({ id: 'history-1' });
+      // CAS สำเร็จ
+      mockCasQueryBuilder.execute.mockResolvedValue({ affected: 1 });
+      // commitTransaction ล้มเหลว
+      mockQueryRunner.commitTransaction.mockRejectedValueOnce(
+        new Error('DB connection lost')
+      );
+      mockDslService.evaluate.mockReturnValue({
+        nextState: 'APPROVED',
+        events: [],
+      });
+
+      // Act + Assert
+      await expect(
+        service.processTransition(
+          'inst-opt-1',
+          'APPROVE',
+          1,
+          undefined,
+          {},
+          ['att-rollback-1', 'att-rollback-2'] // แนบไฟล์ 2 ไฟล์
+        )
+      ).rejects.toThrow(Error);
+
+      // FR-019: attachmentRepo.update ต้องถูกเรียกเพื่อ revert ไฟล์กลับเป็น temp
+      expect(attachmentRepo.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          publicId: ['att-rollback-1', 'att-rollback-2'],
+        }),
+        expect.objectContaining({ isTemporary: true })
+      );
+    });
+  });
+
+  // ============================================================
+  // T048: ADR-001 FR-007 — DSL Redis Cache Invalidation Tests
+  // ============================================================
+  describe('DSL Redis Cache Invalidation (FR-007, SC-005)', () => {
+    it('T048a: update() should invalidate cache when DSL changes', async () => {
+      // Arrange
+      const mockDef = {
+        id: 'def-cache-1',
+        workflow_code: 'RFA_V1',
+        version: 2,
+        is_active: false,
+        dsl: {},
+        compiled: {},
+      };
+      (defRepo.findOne as jest.Mock).mockResolvedValue(mockDef);
+      (defRepo.save as jest.Mock).mockResolvedValue({ ...mockDef, version: 2 });
+      mockDslService.compile.mockReturnValue(mockCompiledWorkflow);
+
+      const cacheManager = compiledModule.get<{
+        del: jest.Mock;
+        set: jest.Mock;
+        get: jest.Mock;
+      }>(CACHE_MANAGER);
+
+      // Act
+      await service.update('def-cache-1', {
+        dsl: {
+          workflow: 'RFA_V1',
+          states: [],
+        } as unknown as import('./dto/create-workflow-definition.dto').CreateWorkflowDefinitionDto['dsl'],
+      });
+
+      // Assert: cache del เรียกด้วย version key
+      expect(cacheManager.del).toHaveBeenCalledWith('wf:def:RFA_V1:2');
+      // Assert: re-cache เรียกหลัง del
+      expect(cacheManager.set).toHaveBeenCalledWith(
+        'wf:def:RFA_V1:2',
+        expect.any(Object),
+        3_600_000
+      );
+    });
+
+    it('T048b: update() should invalidate active pointer when is_active toggles to true', async () => {
+      // Arrange: definition เดิม is_active = false
+      const mockDef = {
+        id: 'def-cache-2',
+        workflow_code: 'TRANSMITTAL_V1',
+        version: 1,
+        is_active: false,
+        dsl: {},
+        compiled: {},
+      };
+      (defRepo.findOne as jest.Mock).mockResolvedValue(mockDef);
+      (defRepo.save as jest.Mock).mockResolvedValue({
+        ...mockDef,
+        is_active: true,
+      });
+
+      const cacheManager = compiledModule.get<{
+        del: jest.Mock;
+        set: jest.Mock;
+        get: jest.Mock;
+      }>(CACHE_MANAGER);
+
+      // Act: activate definition
+      await service.update('def-cache-2', { is_active: true });
+
+      // Assert: active pointer ถูกลบออกจาก cache
+      expect(cacheManager.del).toHaveBeenCalledWith(
+        'wf:def:TRANSMITTAL_V1:active'
+      );
+    });
+
+    it('T048c: createDefinition() should set cache with version key after save', async () => {
+      // Arrange
+      (defRepo.findOne as jest.Mock).mockResolvedValue({ version: 3 });
+      (defRepo.create as jest.Mock).mockReturnValue({
+        workflow_code: 'WF_CACHE',
+        version: 4,
+      });
+      (defRepo.save as jest.Mock).mockResolvedValue({
+        workflow_code: 'WF_CACHE',
+        version: 4,
+      });
+      mockDslService.compile.mockReturnValue(mockCompiledWorkflow);
+      const cacheManager = compiledModule.get<{
+        del: jest.Mock;
+        set: jest.Mock;
+        get: jest.Mock;
+      }>(CACHE_MANAGER);
+
+      // Act
+      await service.createDefinition({
+        workflow_code: 'WF_CACHE',
+        dsl: {},
+      } as import('./dto/create-workflow-definition.dto').CreateWorkflowDefinitionDto);
+
+      // Assert: cache set ด้วย version key
+      expect(cacheManager.set).toHaveBeenCalledWith(
+        'wf:def:WF_CACHE:4',
+        expect.objectContaining({ workflow_code: 'WF_CACHE', version: 4 }),
+        3_600_000
+      );
+    });
+
+    it('T048d: getDefinitionById() should return from cache on cache hit', async () => {
+      // Arrange: cache มีข้อมูลอยู่แล้ว
+      const cachedDef = {
+        id: 'def-hit-1',
+        workflow_code: 'CACHED_WF',
+        version: 1,
+      };
+      const cacheManager = compiledModule.get<{
+        del: jest.Mock;
+        set: jest.Mock;
+        get: jest.Mock;
+      }>(CACHE_MANAGER);
+      cacheManager.get.mockResolvedValueOnce(cachedDef);
+
+      // Act
+      const result = await service.getDefinitionById('def-hit-1');
+
+      // Assert: ไม่ต้องออก DB
+      expect(result).toEqual(cachedDef);
+      expect(defRepo.findOne).not.toHaveBeenCalled();
     });
   });
 });
