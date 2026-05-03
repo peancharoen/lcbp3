@@ -8,9 +8,12 @@ import apiClient from '@/lib/api/client';
 import { FilePreviewModal } from '../file-preview-modal';
 import type { WorkflowAttachmentSummary } from '@/types/workflow';
 
-// Mock useTranslations — คืน key เป็น fallback สำหรับ test
+// Mock useTranslations — คืน stable function reference เพื่อป้องกัน useEffect loop
+// ถ้า mock คืน inline arrow function ใหม่ทุก render, t จะเปลี่ยนทุกรอบ
+// ทำให้ useEffect (ที่มี t ใน deps) ทำงานซ้ำแบบ infinite loop → isLoading ค้างเป็น true ตลอด
+const stableT = (key: string): string => key;
 vi.mock('@/hooks/use-translations', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => stableT,
 }));
 
 // apiClient.get ถูก mock ใน vitest.setup.ts แล้ว

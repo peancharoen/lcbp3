@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.8.9 | Last synced from repo: 2026-04-22
+- Version: 1.9.0 | Last synced from repo: 2026-05-03
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` (v1.8.9, 20 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -83,7 +83,7 @@ Build fails immediately if violated:
 - File upload security (ClamAV + whitelist)
 - AI validation boundary (ADR-018)
 - Error handling strategy (ADR-007)
-- Forbidden patterns: `any`, `console.log`, UUID misuse
+- Forbidden patterns: `any`, `console.log`, UUID misuse, `id ?? ''` fallback
 
 ### 🟡 Tier 2 — IMPORTANT (CODE REVIEW)
 
@@ -93,6 +93,7 @@ Must fix before merge:
 - Test coverage (80%+ business logic, 70%+ backend overall)
 - Cache invalidation
 - Naming conventions
+- **TypeScript Standards:** Missing JSDoc, explicit types, or file headers
 
 ### 🟢 Tier 3 — GUIDELINES
 
@@ -108,13 +109,13 @@ Best practice — follow when possible:
 
 Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
 
-| Document                     | Path                                                                 | Status    | Use When                               |
-| ---------------------------- | -------------------------------------------------------------------- | --------- | -------------------------------------- |
-| **Glossary**                 | `specs/00-overview/00-02-glossary.md`                                | —         | Verify domain terminology              |
-| **Schema Tables**            | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`        | —         | Before writing any query               |
-| **Data Dictionary**          | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                 | —         | Field meanings + business rules        |
-| **RBAC Matrix**              | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` | —         | Permission levels + roles              |
-| **Edge Cases**               | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                | —         | Prevent bugs in flows                  |
+| Document                     | Path                                                                 | Status   | Use When                               |
+| ---------------------------- | -------------------------------------------------------------------- | -------- | -------------------------------------- |
+| **Glossary**                 | `specs/00-overview/00-02-glossary.md`                                | —        | Verify domain terminology              |
+| **Schema Tables**            | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`        | —        | Before writing any query               |
+| **Data Dictionary**          | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                 | —        | Field meanings + business rules        |
+| **RBAC Matrix**              | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` | —        | Permission levels + roles              |
+| **Edge Cases**               | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                | —        | Prevent bugs in flows                  |
 | **ADR-001 Workflow Engine**  | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`       | ✅ Active | DSL-based workflow implementation      |
 | **ADR-002 Doc Numbering**    | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`   | ✅ Active | Document number generation + locking   |
 | **ADR-007 Error Handling**   | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`       | ✅ Active | Error patterns & recovery              |
@@ -125,14 +126,14 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | **ADR-019 UUID**             | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`    | ✅ Active | UUID-related work                      |
 | **ADR-020 AI Integration**   | `specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md`   | ✅ Active | AI architecture patterns               |
 | **ADR-021 Workflow Context** | `specs/06-Decision-Records/ADR-021-workflow-context.md`              | ✅ Active | Integrated workflow & step attachments |
-| **Backend Guidelines**       | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`        | —         | NestJS patterns                        |
-| **Frontend Guidelines**      | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`       | —         | Next.js patterns                       |
-| **Testing Strategy**         | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`          | —         | Coverage goals                         |
-| **Git Conventions**          | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`           | —         | Commit/branch naming                   |
-| **Code Snippets**            | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`             | —         | Reusable patterns                      |
-| **i18n Guidelines**          | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`           | —         | Localization rules                     |
-| **Release Policy**           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`     | —         | Before deploy/hotfix                   |
-| **UAT Criteria**             | `specs/01-Requirements/01-05-acceptance-criteria.md`                 | —         | Feature completeness                   |
+| **Backend Guidelines**       | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`        | —        | NestJS patterns                        |
+| **Frontend Guidelines**      | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`       | —        | Next.js patterns                       |
+| **Testing Strategy**         | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`          | —        | Coverage goals                         |
+| **Git Conventions**          | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`           | —        | Commit/branch naming                   |
+| **Code Snippets**            | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`             | —        | Reusable patterns                      |
+| **i18n Guidelines**          | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`           | —        | Localization rules                     |
+| **Release Policy**           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`     | —        | Before deploy/hotfix                   |
+| **UAT Criteria**             | `specs/01-Requirements/01-05-acceptance-criteria.md`                 | —        | Feature completeness                   |
 
 ---
 
@@ -200,11 +201,24 @@ Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 
 ---
 
-## 📐 TypeScript Rules
+## 📐 TypeScript Rules & Coding Standards
 
-- **Strict Mode** — all strict checks enforced
-- **ZERO `any` types** — use proper types or `unknown` + narrowing
-- **ZERO `console.log`** — NestJS `Logger` (backend); remove before commit (frontend)
+### 📝 Core Standards
+
+- **Strict Mode** — all strict checks enforced.
+- **ZERO `any` types** — use proper types or `unknown` + narrowing.
+- **ZERO `console.log`** — use NestJS `Logger` (backend) or remove before commit (frontend).
+- **English for Code** — use English for all code identifiers, variables, and logic.
+- **Thai for Comments** — use Thai for comments, documentation, and JSDoc.
+- **Explicit Typing** — explicitly define types for all variables, parameters, and return values.
+- **JSDoc** — use JSDoc for all public classes and methods.
+
+### 🏗️ File & Function Structure
+
+- **File Headers** — every file MUST start with `// File: path/filename` on the first line.
+- **Change Log** — include `// Change Log` at the top of the file to track modifications.
+- **Single Export** — export **only one main symbol** (class, interface, or function) per file.
+- **Function Style** — avoid unnecessary blank lines inside functions to maintain compactness.
 
 ---
 
@@ -279,7 +293,7 @@ The following actions MUST NOT be performed autonomously. **Stop and ask for con
 4. **Check data dictionary** — confirm field meanings + business rules
 5. **Scan edge cases** — `01-06-edge-cases-and-rules.md`
 6. **Check ADRs** — verify decisions align (ADR-009, ADR-018, ADR-019)
-7. **Write code** — TypeScript strict, no `any`, no `console.log`
+7. **Write code** — TypeScript strict, no `any`, no `console.log`, follow headers/JSDoc rules
 
 ### 🟡 Normal Work — UI / Feature / Integration
 
@@ -288,6 +302,7 @@ The following actions MUST NOT be performed autonomously. **Stop and ask for con
 1. Follow existing patterns in codebase
 2. Check spec for relevant module only
 3. Verify no forbidden patterns (`any`, `console.log`, UUID misuse)
+4. **Apply TypeScript Standards:** File headers, Thai comments, JSDoc
 
 **Expected output:**
 
@@ -358,12 +373,16 @@ When user asks about... check these files:
 | "Circulation reassign"  | ADR-021, CirculationService                                                           | reassignRouting() with EC-CIRC-001                      |
 | "Audit ความปลอดภัย"     | `ADR-016`, `ADR-018`, `ADR-019`                                                       | ตรวจสอบ UUID pattern, CASL Guard และ AI Boundary        |
 
-... (rest of the code remains the same)
+## 🛠️ Final Checklist (Tier 1 & Tier 2)
 
-- [ ] No `any` types in TypeScript
-- [ ] No `console.log` in committed code
-- [ ] Business logic comments in Thai (human devs), technical/library comments in English (AI tools)
+- [ ] **File header `// File: path/filename` present**
+- [ ] **`// Change Log` section included at top**
+- [ ] No `any` types in TypeScript (use interfaces/types)
+- [ ] No `console.log` in committed code (use Logger)
+- [ ] Business logic comments in Thai, technical comments in English
 - [ ] Code identifiers in English
+- [ ] **JSDoc present for public classes and methods**
+- [ ] **One main export per file**
 - [ ] Schema changes via SQL directly (not migration)
 - [ ] Test coverage meets targets (Backend 70%+, Business Logic 80%+)
 - [ ] Relevant ADRs checked (ADR-007, ADR-009, ADR-018, ADR-019, ADR-020)
@@ -410,6 +429,7 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                           | Updated By     |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                      | Windsurf AI    |
 | 1.8.9   | 2026-04-22 | `.agents/skills/` LCBP3-native rebuild (20 skills @ v1.8.9) + `_LCBP3-CONTEXT.md` appendix + `specs/03-Data-and-Storage/deltas/` + AGENTS.md sync | Windsurf AI    |
 | 1.8.8   | 2026-04-14 | Workflow attachments (ADR-021) + step-attachment envelope fields                                                                                  | Windsurf AI    |
 | 1.8.7   | 2026-04-14 | + ADR-021 Workflow Context integration, + ADR-021 Integration Work tier, + Transmittal/Circulation context triggers, updated ADR-020 status       | Windsurf AI    |
