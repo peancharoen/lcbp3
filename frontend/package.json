@@ -13,7 +13,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
-    "copy-monaco-assets": "node -e \"const fs=require('fs');const src='node_modules/monaco-editor/min/vs';const dst='public/monaco-vs';if(!fs.existsSync(dst)){fs.cpSync(src,dst,{recursive:true});console.log('Monaco assets copied')}else{console.log('Monaco assets already exist')}\"",
+    "copy-monaco-assets": "node -e \"const fs=require('fs');const path=require('path');const dst='public/monaco-vs';try{const pkgJson=require.resolve('monaco-editor/package.json');const src=path.join(path.dirname(pkgJson),'min','vs');if(!fs.existsSync(dst)){fs.cpSync(src,dst,{recursive:true});console.log('Monaco assets copied from: '+src)}else{console.log('Monaco assets already exist')}}catch(e){console.warn('WARNING: monaco-editor not found, skipping copy. Run after npm install.');process.exit(0)}\"",
     "postinstall": "npm run copy-monaco-assets"
   },
   "dependencies": {

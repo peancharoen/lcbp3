@@ -11,6 +11,7 @@ import { workflowApi } from '@/lib/api/workflows';
 vi.mock('@monaco-editor/react', () => ({
   default: ({ onChange }: { onChange?: (v: string) => void }) => (
     <textarea
+      aria-label="Workflow DSL editor"
       data-testid="monaco-editor"
       onChange={(e) => onChange?.(e.target.value)}
     />
