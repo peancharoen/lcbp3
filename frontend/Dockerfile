@@ -49,22 +49,18 @@ COPY frontend/ ./
 RUN ls -la /w/frontend/public/ || (echo "WARNING: public directory not found, creating empty one" && mkdir -p /w/frontend/public)
 
 # Copy Monaco Editor assets สำหรับ self-hosting (ไม่ต้องพึ่ง cdn.jsdelivr.net)
-# เพื่อผ่าน CSP directive: style-src 'self' 'unsafe-inline'
-RUN node -e "\
-  const fs=require('fs'); \
-  const path=require('path'); \
-  const dst='/w/frontend/public/monaco-vs'; \
-  const searchPaths=['/w/frontend/node_modules','/w/node_modules']; \
-  try { \
-    const pkgJson=require.resolve('monaco-editor/package.json',{paths:searchPaths}); \
-    const src=path.join(path.dirname(pkgJson),'min','vs'); \
-    if(!fs.existsSync(dst)){fs.cpSync(src,dst,{recursive:true});console.log('Monaco assets copied from: '+src)} \
-    else{console.log('Monaco assets already exist at '+dst)} \
-  } catch(e) { \
-    console.error('ERROR: monaco-editor not found in',searchPaths,e.message); \
-    process.exit(1); \
-  } \
-"
+# ใช้ find + cp -rL เพื่อรองรับ pnpm virtual store symlinks
+RUN set -e; \
+    MONACO_VS=$(find /w/frontend/node_modules /w/node_modules \
+      -path "*/monaco-editor/min/vs" -type d 2>/dev/null | head -1); \
+    if [ -z "$MONACO_VS" ]; then \
+      echo "ERROR: monaco-editor/min/vs not found in node_modules" && exit 1; \
+    fi; \
+    echo "Found Monaco at: $MONACO_VS"; \
+    mkdir -p /w/frontend/public; \
+    cp -rL "$MONACO_VS" /w/frontend/public/monaco-vs; \
+    echo "Monaco assets copied successfully"
+
 
 # NEXT_PUBLIC_* vars must be set at BUILD TIME (baked into client bundle)
 ARG NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api
