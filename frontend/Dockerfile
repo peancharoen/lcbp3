@@ -25,8 +25,8 @@ WORKDIR /w
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY frontend/package.json ./frontend/
 
-# Install frontend deps only
-RUN pnpm install --frozen-lockfile --filter lcbp3-frontend...
+# Install frontend deps only (--ignore-scripts เพื่อข้าม postinstall ที่อาจ fail ใน CI)
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter lcbp3-frontend...
 
 # =========================
 # Stage 2: Build Application
@@ -47,6 +47,24 @@ COPY frontend/ ./
 
 # Ensure public directory exists and has content
 RUN ls -la /w/frontend/public/ || (echo "WARNING: public directory not found, creating empty one" && mkdir -p /w/frontend/public)
+
+# Copy Monaco Editor assets สำหรับ self-hosting (ไม่ต้องพึ่ง cdn.jsdelivr.net)
+# เพื่อผ่าน CSP directive: style-src 'self' 'unsafe-inline'
+RUN node -e "\
+  const fs=require('fs'); \
+  const path=require('path'); \
+  const dst='/w/frontend/public/monaco-vs'; \
+  const searchPaths=['/w/frontend/node_modules','/w/node_modules']; \
+  try { \
+    const pkgJson=require.resolve('monaco-editor/package.json',{paths:searchPaths}); \
+    const src=path.join(path.dirname(pkgJson),'min','vs'); \
+    if(!fs.existsSync(dst)){fs.cpSync(src,dst,{recursive:true});console.log('Monaco assets copied from: '+src)} \
+    else{console.log('Monaco assets already exist at '+dst)} \
+  } catch(e) { \
+    console.error('ERROR: monaco-editor not found in',searchPaths,e.message); \
+    process.exit(1); \
+  } \
+"
 
 # NEXT_PUBLIC_* vars must be set at BUILD TIME (baked into client bundle)
 ARG NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api
