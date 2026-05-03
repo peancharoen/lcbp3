@@ -98,6 +98,8 @@ export default auth((req) => {
     "img-src 'self' blob: data: https:",
     "font-src 'self' data:",
     `connect-src 'self' ws: wss: ${connectSrcApi}`,
+    // Monaco Editor Web Workers ต้องการ blob: URL สำหรับ inline workers
+    "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

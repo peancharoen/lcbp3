@@ -12,7 +12,9 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
-    "test:debug": "vitest --inspect-brk --no-file-parallelism"
+    "test:debug": "vitest --inspect-brk --no-file-parallelism",
+    "copy-monaco-assets": "node -e \"const fs=require('fs');const src='node_modules/monaco-editor/min/vs';const dst='public/monaco-vs';if(!fs.existsSync(dst)){fs.cpSync(src,dst,{recursive:true});console.log('Monaco assets copied')}else{console.log('Monaco assets already exist')}\"",
+    "postinstall": "npm run copy-monaco-assets"
   },
   "dependencies": {
     "@hookform/resolvers": "3.9.0",

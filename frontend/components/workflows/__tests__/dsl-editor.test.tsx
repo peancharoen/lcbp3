@@ -15,6 +15,10 @@ vi.mock('@monaco-editor/react', () => ({
       onChange={(e) => onChange?.(e.target.value)}
     />
   ),
+  // เพิ่ม loader mock เพื่อรองรับ loader.config() call ใน dsl-editor.tsx
+  loader: {
+    config: vi.fn(),
+  },
 }));
 
 // Mock next-themes

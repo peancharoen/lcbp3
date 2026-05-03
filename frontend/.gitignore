@@ -17,6 +17,9 @@
 # production
 /build
 
+# Generated Monaco Editor self-hosted assets (สร้างใหม่อัตโนมัติจาก npm postinstall)
+/public/monaco-vs
+
 # misc
 .DS_Store
 *.pem

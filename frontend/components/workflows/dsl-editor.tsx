@@ -1,3 +1,5 @@
+// File: components/workflows/dsl-editor.tsx
+// Change Log: 2026-05-03 — แก้ CSP violation โดยเปลี่ยนจาก CDN เป็น self-hosted Monaco assets
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -5,10 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertCircle, Play, Loader2 } from 'lucide-react';
-import Editor, { OnMount } from '@monaco-editor/react';
+import Editor, { OnMount, loader } from '@monaco-editor/react';
 import { workflowApi } from '@/lib/api/workflows';
 import { ValidationResult } from '@/types/workflow';
 import { useTheme } from 'next-themes';
+
+// กำหนดให้ Monaco โหลด assets จาก self-hosted path แทน cdn.jsdelivr.net
+// เพื่อผ่าน CSP directive: style-src 'self' 'unsafe-inline'
+loader.config({ paths: { vs: '/monaco-vs' } });
+
 
 interface DSLEditorProps {
   initialValue?: string;
