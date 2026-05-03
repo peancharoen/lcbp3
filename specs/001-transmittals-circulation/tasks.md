@@ -1,347 +1,279 @@
-# Tasks: Transmittals + Circulation Complete Integration (v1.8.8 with Revision Refactor)
+# Tasks: Transmittals + Circulation Complete Integration (v1.8.8 + Session 2026-05-03 Clarifications)
 
-**Branch**: `001-transmittals-circulation` | **Total Tasks**: 36 (18 v1.8.7 + 18 v1.8.8 Phase 4) | **Phase**: Phase 4 Ready — Revision Refactor
+**Branch**: `001-transmittals-circulation`
+**Total Tasks**: 46 (27 v1.8.7 + 19 v1.8.8 Phase 4) | **Spec**: `specs/001-transmittals-circulation/spec.md`
+**Last Updated**: 2026-05-03 — Added B9c, B10, B11, T3, expanded T2/I1 from Session 2026-05-03 clarifications
 
 ---
 
 ## Phase 1 — Backend Foundation (Critical — blocks all frontend work)
 
-### B1 — WorkflowEngineService: Add `getInstanceByEntity()`
-- **File**: `backend/src/modules/workflow-engine/workflow-engine.service.ts`
-- **Action**: Add method that queries `WorkflowInstance` by `entityType + entityId`; returns `{ id, currentState, availableActions? } | null`
-- **Dependencies**: none
-- **Status**: [x]
+> **Goal**: Expose `workflowInstanceId` from both backend services; implement all EC handlers.
+> **Join pattern**: `workflow_instances WHERE entity_type = ? AND entity_id = ?` (string) — no new FK columns.
 
-### B2 — TransmittalService: Expose `workflowInstanceId` in `findOneByUuid()`
-- **File**: `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: Call `workflowEngine.getInstanceByEntity('transmittal', correspondenceId.toString())` and merge `workflowInstanceId`, `workflowState` into response
-- **Dependencies**: B1
-- **Status**: [x]
+- [x] T001 Implement `WorkflowEngineService.getInstanceByEntity(entityType, entityId)` — query `workflow_instances WHERE entity_type = ? AND entity_id = ?`; return `{ id, currentState, availableActions? } | null` in `backend/src/modules/workflow-engine/workflow-engine.service.ts`
 
-### B3 — TransmittalService: Add `purpose` filter to `findAll()`
-- **File**: `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: Add `purpose?: string` to `SearchTransmittalDto` and apply `andWhere` in `findAll()`
-- **Dependencies**: none (parallel with B1)
-- **Status**: [x]
+- [x] T002 [P] Update `TransmittalService.findOneByUuid()` — call `getInstanceByEntity('TRANSMITTAL', correspondences.id)`, merge `workflowInstanceId`, `workflowState` into response in `backend/src/modules/transmittal/transmittal.service.ts`
 
-### B4 — TransmittalService: Add `submit()` with EC-RFA-004 validation
-- **File**: `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: New `submit(uuid, user)` method; fetches all `transmittal_items`, checks each item's correspondence current revision status — throws `422 ValidationException` if any is `DRAFT`; then calls `workflowEngine.createInstance('TRANSMITTAL_FLOW_V1', 'transmittal', ...)` and transitions with `SUBMIT`
-- **Dependencies**: B1
-- **Status**: [x]
+- [x] T003 [P] Add `purpose?: string` to `SearchTransmittalDto` and apply `andWhere` filter in `TransmittalService.findAll()` in `backend/src/modules/transmittal/transmittal.service.ts`
 
-### B5 — TransmittalController: Add `POST /:uuid/submit` endpoint
-- **File**: `backend/src/modules/transmittal/transmittal.controller.ts`
-- **Action**: Add endpoint with `@RequirePermission('document.manage')`, `@Audit('transmittal.submit', 'transmittal')`
-- **Dependencies**: B4
-- **Status**: [x]
+- [x] T004 Add `TransmittalService.submit(uuid, user)` — pre-check all `transmittal_items` for DRAFT correspondence (EC-RFA-004); throw `422 ValidationException` identifying offending doc; then call `workflowEngine.createInstance` + transition `SUBMIT` in `backend/src/modules/transmittal/transmittal.service.ts`
 
-### B6 — CirculationService: Expose `workflowInstanceId` in `findOneByUuid()`
-- **File**: `backend/src/modules/circulation/circulation.service.ts`
-- **Action**: Call `workflowEngine.getInstanceByEntity('circulation', circulation.id.toString())`, merge into response; also compute `isOverdue` per routing based on `deadline_date`
-- **Dependencies**: B1
-- **Status**: [x]
+- [x] T005 Add `POST /:uuid/submit` endpoint with `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` + `@Audit('transmittal.submit', 'transmittal')` in `backend/src/modules/transmittal/transmittal.controller.ts`
 
-### B7 — CirculationService: Add `reassignRouting()` (EC-CIRC-001)
-- **File**: `backend/src/modules/circulation/circulation.service.ts`
-- **Action**: Fetch routing, verify user has Document Control permission, resolve `newAssigneeUuid` → INT via `uuidResolver.resolveUserId()`, update `routing.assignedTo`, write audit log
-- **Dependencies**: none
-- **Status**: [x]
+- [x] T006 [P] Update `CirculationService.findOneByUuid()` — call `getInstanceByEntity('CIRCULATION', circulation.id)`, merge `workflowInstanceId`, `workflowState`; compute `isOverdue: boolean` **server-side** per routing (`NOW() > deadline_date + INTERVAL 1 DAY`) in `backend/src/modules/circulation/circulation.service.ts`
 
-### B8 — CirculationService: Add `forceClose()` (EC-CIRC-002)
-- **File**: `backend/src/modules/circulation/circulation.service.ts`
-- **Action**: Require `reason` (non-empty), update all PENDING routings to `CANCELLED`, set `circulation.statusCode = 'CANCELLED'`, write audit log entry; use `queryRunner` for atomicity
-- **Dependencies**: none
-- **Status**: [x]
+- [x] T007 [P] Add `CirculationService.reassignRouting(routingId, newAssigneeUuid, user)` — verify `ability.can('reassign', 'Circulation')` (Document Control+); resolve UUID→INT via `uuidResolver`; update `routing.assignedTo`; write audit log in `backend/src/modules/circulation/circulation.service.ts`
 
-### B9 — CirculationController: Add reassign + force-close endpoints
-- **File**: `backend/src/modules/circulation/circulation.controller.ts`
-- **Action**:
-  - `PATCH /:uuid/routing/:routingId/reassign` — `@RequirePermission('circulation.manage')`
-  - `POST /:uuid/force-close` — `@RequirePermission('circulation.manage')`
-- **Dependencies**: B7, B8
-- **Status**: [x]
+- [x] T008 [P] Add `CirculationService.forceClose(uuid, reason, user)` — single `queryRunner` transaction: update all PENDING routings to `CANCELLED`, set `circulation.statusCode = 'CANCELLED'`, write audit log; enqueue BullMQ `notification-queue` job **post-commit** per affected assignee (payload: `{ circulationNo, correspondenceNo, cancellationReason }`); verify `ability.can('forceClose', 'Circulation')` in `backend/src/modules/circulation/circulation.service.ts`
+
+- [x] T009 Add `CirculationService.close(uuid, user)` — verify `ability.can('close', 'Circulation')` (Document Control only); pre-condition check: ALL Main/Action routings must be COMPLETED (throw `422` if not); update `circulation.statusCode = 'CLOSED'`; write audit log in `backend/src/modules/circulation/circulation.service.ts`
+
+- [x] T010 Add PATCH `/:uuid/routing/:routingId/reassign` + POST `/:uuid/force-close` endpoints with `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` in `backend/src/modules/circulation/circulation.controller.ts`
+
+- [x] T011 Add POST `/:uuid/close` endpoint with `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` (`ability.can('close', 'Circulation')`) + `@Audit('circulation.close', 'circulation')` in `backend/src/modules/circulation/circulation.controller.ts`
+
+- [x] T012 Add EC-CORR-001 cascade handler in `CorrespondenceService.cancel()` — on cancel: find all OPEN Circulations for this correspondence; call `CirculationService.forceClose()` per Circulation; enqueue BullMQ `notification-queue` job per **affected assignee with pending routing** (payload: `{ circulationNo, correspondenceNo, cancellationReason }`); write combined audit log in `backend/src/modules/correspondence/correspondence.service.ts`
 
 ---
 
-## Phase 2 — Frontend Types & Hooks (Important — depends on Phase 1)
+## Phase 2 — Frontend Types & Hooks (Important — depends on Phase 1 API shape)
 
-### F1 — Update `types/transmittal.ts`
-- **File**: `frontend/types/transmittal.ts`
-- **Action**: Add `workflowInstanceId?: string`, `workflowState?: string`, `availableActions?: string[]` to `Transmittal` interface; add `purpose?: string` to `SearchTransmittalDto`; no `any` types (ADR-019)
-- **Dependencies**: none (parallel with Phase 1)
-- **Status**: [x]
+- [x] T013 [P] Update `Transmittal` interface — add `workflowInstanceId?: string`, `workflowState?: string`, `availableActions?: string[]`; add `isOverdue?: boolean` to `CirculationRouting` (backend-provided, no client computation); no `any` types (ADR-019) in `frontend/types/transmittal.ts`
 
-### F2 — Update `types/circulation.ts`
-- **File**: `frontend/types/circulation.ts`
-- **Action**: Add `workflowInstanceId?: string`, `workflowState?: string`, `availableActions?: string[]` to `Circulation`; add `deadline?: string`, `assigneeType?: 'MAIN' | 'ACTION' | 'INFORMATION'` to `CirculationRouting`
-- **Dependencies**: none
-- **Status**: [x]
+- [x] T014 [P] Update `Circulation` and `CirculationRouting` interfaces — add `workflowInstanceId?: string`, `workflowState?: string`, `availableActions?: string[]`; add `isOverdue: boolean`, `deadline?: string`, `assigneeType?: 'MAIN' | 'ACTION' | 'INFORMATION'` to `CirculationRouting` in `frontend/types/circulation.ts`
 
-### F3 — Create `hooks/use-transmittal.ts`
-- **File**: `frontend/hooks/use-transmittal.ts`
-- **Action**: Create `useTransmittal(uuid: string | undefined)` with `queryKey: ['transmittal', uuid]`, `staleTime: 60_000`; export `transmittalKeys` query key factory
-- **Dependencies**: F1
-- **Status**: [x]
+- [x] T015 Create `useTransmittal(uuid: string | undefined)` TanStack Query hook — `queryKey: ['transmittal', uuid]`, `staleTime: 60_000`, export `transmittalKeys` factory in `frontend/hooks/use-transmittal.ts`
 
-### F4 — Update `hooks/use-circulation.ts`
-- **File**: `frontend/hooks/use-circulation.ts`
-- **Action**: Add `useCirculation(uuid: string | undefined)` hook with `queryKey: ['circulation', uuid]`, `staleTime: 60_000`
-- **Dependencies**: F2
-- **Status**: [x]
+- [x] T016 Add `useCirculation(uuid: string | undefined)` hook — `queryKey: ['circulation', uuid]`, `staleTime: 60_000` in `frontend/hooks/use-circulation.ts`
 
 ---
 
-## Phase 3 — Frontend Detail Pages (Important — depends on Phase 2 + Phase 1 deployed)
+## Phase 3 — US1: Transmittal Workflow-Wired Detail Page (P1 🎯 MVP)
 
-### F5 — Wire Transmittal detail page
-- **File**: `frontend/app/(dashboard)/transmittals/[uuid]/page.tsx`
-- **Action**:
-  - Replace inline `useQuery` with `useTransmittal(uuid)`
-  - Add `useWorkflowHistory(transmittal?.workflowInstanceId)`
-  - Add `const [pendingAttachmentIds, setPendingAttachmentIds] = useState<string[]>([])`
-  - Pass `instanceId`, `workflowState`, `availableActions`, `pendingAttachmentIds` to `IntegratedBanner`
-  - Pass `history`, `currentState`, `isLoading`, `error`, `onAttachmentsChange` to `WorkflowLifecycle` in Workflow tab
-- **Dependencies**: F3, F1
-- **Status**: [x]
+> **Story Goal**: Doc Control officer sees live doc number, `workflowState`, and action buttons in `IntegratedBanner`; Workflow tab shows full timeline.
+> **Independent Test**: Navigate to `/transmittals/{uuid}` — verify `IntegratedBanner` shows real state + actions; Workflow tab renders at least creation step; `pnpm tsc --noEmit` zero errors.
 
-### F6 — Wire Circulation detail page
-- **File**: `frontend/app/(dashboard)/circulation/[uuid]/page.tsx`
-- **Action**:
-  - Replace inline `useQuery` with `useCirculation(uuid)`
-  - Add `useWorkflowHistory(circulation?.workflowInstanceId)`
-  - Add `isOverdue(deadline?)` helper function
-  - Wire `IntegratedBanner` with `instanceId`, `workflowState`, `availableActions`
-  - Wire `WorkflowLifecycle` with history in Workflow tab
-  - Add Overdue badge to routing rows where `isOverdue(routing.deadline)` is true
-  - Replace hardcoded "Complete" button with proper workflow action
-- **Dependencies**: F4, F2
-- **Status**: [x]
+- [x] T017 [US1] Wire `IntegratedBanner` with `instanceId={transmittal.workflowInstanceId}`, `workflowState`, `availableActions` from `useTransmittal()` hook; wire `WorkflowLifecycle` in Workflow tab with `useWorkflowHistory(instanceId)` in `frontend/app/(dashboard)/transmittals/[uuid]/page.tsx`
 
 ---
 
-## Phase 4 — List Page & i18n (Guidelines)
+## Phase 4 — US2: Circulation Workflow-Wired Detail Page (P1 🎯 MVP)
 
-### F7 — Transmittal list page: add purpose filter
-- **File**: `frontend/app/(dashboard)/transmittals/page.tsx`
-- **Action**: Add `purpose` select filter (FOR_APPROVAL / FOR_INFORMATION / FOR_REVIEW / OTHER) passing to `transmittalService.getAll()`. Read current page to assess if pagination works.
-- **Dependencies**: F1
-- **Status**: [x]
+> **Story Goal**: Doc Control sees circulation number, assignees with deadline, Overdue badge (from backend `isOverdue` field), full workflow timeline, and "Close Circulation" button (Document Control only when all Main/Action COMPLETED).
+> **Independent Test**: Navigate to `/circulation/{uuid}` — verify `IntegratedBanner` shows `circulationNo`, `statusCode`; Overdue badge appears when `routing.isOverdue === true`; "Close Circulation" hidden for non-Document Control users.
 
-### I1 — i18n keys for Transmittal/Circulation workflow
-- **Files**: `public/locales/th/*.json`, `public/locales/en/*.json`
-- **Action**: Check `use-translations.ts` for key lookup pattern; add missing keys: `transmittal.purpose.*`, `circulation.status.*`, `circulation.overdue`, `circulation.forceClose.*`, `circulation.reassign.*`
-- **Dependencies**: F5, F6
-- **Status**: [ ] *(low priority — pending)*
+- [x] T018 [US2] Wire `IntegratedBanner` + `WorkflowLifecycle` from `useCirculation()` + `useWorkflowHistory()` in `frontend/app/(dashboard)/circulation/[uuid]/page.tsx`
+
+- [ ] T019 [US2] Add Overdue badge to routing rows — render badge when `routing.isOverdue === true` (backend field only; **FORBIDDEN: no client-side `new Date()` comparison**); highlight `deadline` date in red in `frontend/app/(dashboard)/circulation/[uuid]/page.tsx`
+
+- [ ] T020 [US2] Show "Close Circulation" button conditionally — visible only when `user.role === 'DOCUMENT_CONTROL'` AND all Main/Action routings are `COMPLETED`; calls `POST /:uuid/close`; hide completely for all other roles in `frontend/app/(dashboard)/circulation/[uuid]/page.tsx`
 
 ---
 
-## Phase 5 — Tests (Tier 2 — required before merge)
+## Phase 5 — US3: Transmittal List Page with Search & Filter (P1)
 
-### T1 — Transmittal service EC-RFA-004 unit test
-- **File**: `backend/src/modules/transmittal/transmittal.service.spec.ts` (create if needed)
-- **Action**: Test `submit()` throws `ValidationException` when item correspondence is DRAFT; test passes when all items are SUBMITTED
-- **Dependencies**: B4
-- **Status**: [x]
+> **Story Goal**: Doc Control browses transmittals, filters by `purpose`, searches by doc number/subject within 500ms.
+> **Independent Test**: Navigate to `/transmittals` — purpose filter updates list; search filters within 500ms; empty state shown when no results.
 
-### T2 — Circulation service edge-case unit tests
-- **File**: `backend/src/modules/circulation/circulation.service.spec.ts` (create if needed)
-- **Action**: Test `reassignRouting()` — permission check, assignment update; test `forceClose()` — all pending routings cancelled, reason logged; test `isOverdue` helper (EC-CIRC-003)
-- **Dependencies**: B7, B8
-- **Status**: [x]
+- [x] T021 [US3] Add `purpose` select filter (FOR_APPROVAL / FOR_INFORMATION / FOR_REVIEW / OTHER) and verify pagination + search in `frontend/app/(dashboard)/transmittals/page.tsx`
 
 ---
 
-## Execution Order
+## Phase 6 — US4: EC-RFA-004 Submit Validation (P2)
+
+> **Story Goal**: Doc Control blocked from submitting Transmittal with DRAFT items; 422 error clearly identifies the offending document.
+> **Independent Test**: Create Transmittal with DRAFT item → submit → expect 422 with offending doc number in error message; item highlighted in UI.
+
+- [x] T022 [US4] Verify UI shows 422 error from `POST /transmittals/:uuid/submit` with item-level identification — display `userMessage` from ADR-007 error response in `frontend/app/(dashboard)/transmittals/[uuid]/page.tsx`
+
+---
+
+## Phase 7 — US5: Circulation Edge Cases — Re-assign & Force Close (P2)
+
+> **Story Goal**: Doc Control can re-assign deactivated assignee (EC-CIRC-001) and force-close stuck Circulation with mandatory reason (EC-CIRC-002).
+> **Independent Test**: Deactivate assignee in OPEN Circulation → Re-assign button visible. Force-close with reason → status CANCELLED, reason in audit log.
+
+- [x] T023 [US5] Add Re-assign UI — show "Re-assign" action button for deactivated assignee routings; open modal with user search; calls `PATCH /:uuid/routing/:routingId/reassign` in `frontend/app/(dashboard)/circulation/[uuid]/page.tsx`
+
+- [x] T024 [US5] Add Force Close UI — "Force Close" button (Document Control only); modal requires mandatory reason field; calls `POST /:uuid/force-close`; invalidate `['circulation', uuid]` query on success in `frontend/app/(dashboard)/circulation/[uuid]/page.tsx`
+
+---
+
+## Phase 8 — Tests (Tier 2 — required before merge)
+
+- [x] T025 Unit test `TransmittalService.submit()` — throws `ValidationException` (422) when any item correspondence is DRAFT; passes when all items are SUBMITTED/APPROVED in `backend/src/modules/transmittal/transmittal.service.spec.ts`
+
+- [x] T026 Unit test `CirculationService.reassignRouting()` — permission check throws 403 for non-Document Control; updates `routing.assignedTo` correctly in `backend/src/modules/circulation/circulation.service.spec.ts`
+
+- [x] T027 Unit test `CirculationService.forceClose()` — all PENDING routings set to CANCELLED in single transaction; mandatory reason logged; BullMQ `notification-queue` job enqueued post-commit (verify with mock queue) in `backend/src/modules/circulation/circulation.service.spec.ts`
+
+- [ ] T028 Unit test `CirculationService.findOneByUuid()` — `isOverdue: boolean` computed correctly via server-side logic with mocked `Date` (or injected `ClockService`): `true` when `now > deadline + 1 day`, `false` when `now <= deadline + 1 day`, `false` when `deadline` is null (SC-007) in `backend/src/modules/circulation/circulation.service.spec.ts`
+
+- [ ] T029 Unit test `CirculationService.close()` — throws 403 for non-Document Control; throws 422 when any Main/Action routing is not COMPLETED; succeeds and sets status to CLOSED when all COMPLETED in `backend/src/modules/circulation/circulation.service.spec.ts`
+
+- [ ] T030 Unit test EC-CORR-001 — `CorrespondenceService.cancel()` enqueues BullMQ notification job per affected assignee; payload includes `circulationNo`, `correspondenceNo`, `cancellationReason`; audit log written in `backend/src/modules/correspondence/correspondence.service.spec.ts`
+
+- [ ] T031 Integration test `CirculationService.forceClose()` with 50 routings — total transaction time ≤ 3 seconds (SC-008); use bulk UPDATE query not loop in `backend/src/modules/circulation/circulation.service.spec.ts`
+
+- [ ] T032 Frontend unit test — Overdue badge renders when `routing.isOverdue === true` (no client-side date math); badge absent when `routing.isOverdue === false`; snapshot test for both states in `frontend/app/(dashboard)/circulation/[uuid]/__tests__/page.test.tsx`
+
+- [ ] T033 Frontend unit test — "Close Circulation" button visible for `DOCUMENT_CONTROL` role only; hidden for `SUPERVISOR`, `ASSIGNEE`, `VIEWER` roles in `frontend/app/(dashboard)/circulation/[uuid]/__tests__/page.test.tsx`
+
+---
+
+## Phase 9 — i18n Polish (Guidelines)
+
+- [ ] T034 [P] Add Thai i18n keys for force-close modal, close action, overdue badge, EC-CORR-001 notification in `frontend/public/locales/th/circulation.json` — keys: `circulation.forceClose.title`, `circulation.forceClose.reason`, `circulation.close.confirm`, `circulation.overdue`, `circulation.notification.cancelledByCorrespondence`
+
+- [ ] T035 [P] Add English i18n keys matching Thai keys above in `frontend/public/locales/en/circulation.json`
+
+---
+
+## Phase 10 — Transmittal Revision Refactor (v1.8.8 — Based on Clarifications 2026-04-29)
+
+> **Goal**: Restructure Transmittal to follow Master-Revision Pattern (like RFA/Correspondence).
+
+- [ ] T036 Schema: Add `revision_id INT NULL` with FK to `correspondence_revisions(id)` + index to `transmittal_items`; add `item_type VARCHAR(50) NULL` column (ADR-009 direct SQL) in `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
+
+- [ ] T037 Update `TransmittalItem` entity — add nullable `revisionId` column + `@ManyToOne` relation to `CorrespondenceRevision`; add `itemType?: string` column in `backend/src/modules/transmittal/entities/transmittal-item.entity.ts`
+
+- [ ] T038 Update `TransmittalService.findOneByUuid()` — join `correspondence_revisions`, read `purpose`/`remarks` from `details` JSON; include `revisionId`, `revisionNumber`, `revisionLabel` in response in `backend/src/modules/transmittal/transmittal.service.ts`
+
+- [ ] T039 Add `TransmittalService.copyItemsToRevision(oldRevisionId, newRevisionId)` helper — bulk clone `transmittal_items` rows in single atomic transaction in `backend/src/modules/transmittal/transmittal.service.ts`
+
+- [ ] T040 Add `TransmittalService.createRevision(uuid, user)` — create `correspondence_revisions` record; auto-copy all items via `copyItemsToRevision()` in `backend/src/modules/transmittal/transmittal.service.ts`
+
+- [ ] T041 Add `POST /:uuid/revisions` endpoint with `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` + `@Audit('transmittal.create-revision', 'transmittal')`; returns `{ revisionId, revisionNumber, revisionLabel }` in `backend/src/modules/transmittal/transmittal.controller.ts`
+
+- [ ] T042 Update `TransmittalService.submit()` — EC-RFA-004 checks current revision items only; workflow instance binds to `correspondence_revisions.publicId` (UUID string, ADR-019 — NOT revision.id INT) in `backend/src/modules/transmittal/transmittal.service.ts`
+
+- [ ] T043 Update `TransmittalService.create()` — write `purpose`/`remarks` to `CorrespondenceRevision.details` JSON; replace hardcoded `ORG_CODE: 'ORG'` with real org lookup (`organizationCode` from `Organization` entity, pattern: `correspondence.service.ts:263-269`); save `itemType` from DTO in `backend/src/modules/transmittal/transmittal.service.ts`
+
+- [ ] T044 Schema: Drop `purpose` and `remarks` from `transmittals` table (ADR-009 direct SQL — deploy AFTER T043 is live); remove corresponding TypeORM columns from entity in `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` + `backend/src/modules/transmittal/transmittal.entity.ts`
+
+- [ ] T045 Fix `TransmittalItemDto.itemId` — change `itemId: number` + `@IsInt()` → `itemId: string` + `@IsUUID()`; resolve UUID→INT via `uuidResolver.resolveCorrespondenceId()` in service (ADR-019 CRITICAL) in `backend/src/modules/transmittal/dto/create-transmittal.dto.ts` + `backend/src/modules/transmittal/transmittal.service.ts`
+
+- [ ] T046 [P] Add revision fields to frontend types — `revisionId?: string`, `revisionNumber?: number`, `revisionLabel?: string` to `Transmittal`; `revisionId?: string` to `TransmittalItem`; update `useTransmittal(uuid, revisionId?)` hook in `frontend/types/transmittal.ts` + `frontend/hooks/use-transmittal.ts`
+
+- [ ] T047 Add revision selector to Transmittal detail page — dropdown when multiple revisions exist (pattern: RFA detail page); display `revisionLabel` (A, B, C) in `IntegratedBanner` in `frontend/app/(dashboard)/transmittals/[uuid]/page.tsx`
+
+- [ ] T048 ADR-019 compliance scan — verify all revision-related fields use `publicId` (string UUID) not `id` (INT) in both backend responses and frontend types; run `grep -rn "parseInt\|Number(\|\.id[^a-zA-Z]"` on new code in `backend/src/modules/transmittal/` + `frontend/types/transmittal.ts`
+
+---
+
+## Dependency Graph
 
 ```
-B1 (parallel: B3, F1, F2)
-  → B2, B4 (parallel), B6 (parallel)
-    → B5                  → T1
-    → B7, B8 (parallel)
-      → B9               → T2
-  → F3, F4 (parallel after F1, F2)
-    → F5, F6 (parallel after F3, F4)
-      → F7, I1 (polish)
+Phase 1 (Backend Foundation):
+  T001 → T002 [P], T006 [P]  (workflow instance join)
+  T001 → T004 → T005         (submit + EC-RFA-004)
+  T007 [P], T008 [P]         (reassign + force-close — parallel)
+  T009 → T011                (close Circulation — Document Control only)
+  T012                       (EC-CORR-001 cascade — no Phase 1 deps)
+
+Phase 2 (Types & Hooks):
+  T013 [P], T014 [P]         (types — parallel, no Phase 1 deps)
+  T013 → T015                (useTransmittal hook)
+  T014 → T016                (useCirculation hook)
+
+Phase 3 (US1 — Transmittal Detail):
+  T015, T002 → T017
+
+Phase 4 (US2 — Circulation Detail):
+  T016, T006, T009, T011 → T018, T019, T020
+
+Phase 5 (US3 — List):
+  T013, T003 → T021
+
+Phase 6 (US4 — EC-RFA-004 UI):
+  T005, T017 → T022
+
+Phase 7 (US5 — EC-CIRC-001/002):
+  T007, T008, T018 → T023, T024
+
+Phase 8 (Tests):
+  T004 → T025
+  T007 → T026
+  T008 → T027
+  T006 → T028
+  T009 → T029
+  T012 → T030
+  T008, T031 (integration — 50 routings ≤3s)
+  T019 → T032
+  T020 → T033
+
+Phase 10 (Revision Refactor):
+  T036 → T037 → T038 → T039, T040 → T041
+  T038 → T042 (submit revision-scoped)
+  T038 → T043 (create writes to details JSON)
+  T043 deployed → T044 (drop columns)
+  T045 (UUID fix — parallel)
+  T046 [P] → T047
+  T038, T046 → T048 (ADR-019 scan)
 ```
+
+---
+
+## Parallel Execution Opportunities
+
+| Group | Tasks | Condition |
+|---|---|---|
+| Backend foundation | T002, T003, T006, T007, T008, T012 | All start after T001 |
+| Types | T013, T014 | Immediately (no Phase 1 deps) |
+| Hooks | T015, T016 | After respective types |
+| Detail pages | T017, T018 | After hooks + backend |
+| Tests | T025–T031 | After their respective service methods |
+| i18n | T034, T035 | After Phase 4 UI complete |
+| Revision types | T046 | Parallel with schema (T036) |
+
+---
+
+## Implementation Strategy (MVP → Full)
+
+| Scope | Tasks | Deliverable |
+|---|---|---|
+| **MVP** (US1 + US2 core) | T001–T009, T013–T020 | Both detail pages live with workflow data |
+| **P1 Complete** | + T021, T022 | List page + submit validation |
+| **P2 Complete** | + T023, T024, T028–T033 | EC edge cases + all tests |
+| **Full** | + T034–T048 | i18n polish + Revision Refactor |
 
 ---
 
 ## Commit Message Convention
 
 ```
-feat(transmittal): expose workflowInstanceId in findOneByUuid response
-feat(circulation): expose workflowInstanceId + overdue in findOneByUuid
-feat(circulation): add reassignRouting EC-CIRC-001 handler
-feat(circulation): add forceClose EC-CIRC-002 handler
-feat(transmittal): add submit endpoint with EC-RFA-004 validation
-feat(frontend): wire WorkflowLifecycle in transmittal detail page
-feat(frontend): wire WorkflowLifecycle + overdue badge in circulation detail
-test(transmittal): EC-RFA-004 submit validation unit tests
-test(circulation): EC-CIRC-001/002/003 edge case unit tests
+feat(workflow-engine): add getInstanceByEntity() for Transmittal+Circulation join
+feat(transmittal): expose workflowInstanceId via entity_type join in findOneByUuid
+feat(transmittal): add submit endpoint with EC-RFA-004 DRAFT item validation
+feat(circulation): expose workflowInstanceId + server-side isOverdue in findOneByUuid
+feat(circulation): add reassignRouting EC-CIRC-001 handler with CASL guard
+feat(circulation): add forceClose EC-CIRC-002 — single transaction + BullMQ post-commit
+feat(circulation): add close endpoint — Document Control only (FR-C09)
+feat(correspondence): add EC-CORR-001 cascade — force-close Circulations + BullMQ notify (FR-X05)
+feat(frontend): wire WorkflowLifecycle in transmittal detail page (US1)
+feat(frontend): wire WorkflowLifecycle + server-side overdue badge in circulation detail (US2)
+feat(frontend): add Close Circulation button — Document Control role guard (FR-C09)
+test(circulation): isOverdue server-side unit test with mocked Date (SC-007)
+test(circulation): close() RBAC + pre-condition unit tests
+test(circulation): forceClose integration test ≤3s / 50 routings (SC-008)
+test(correspondence): EC-CORR-001 BullMQ notification enqueue test
+feat(schema): add revision_id + item_type to transmittal_items (ADR-009)
+fix(transmittal): TransmittalItemDto.itemId INT→UUID string (ADR-019)
+fix(transmittal): replace hardcoded ORG_CODE with real organizationCode lookup
 ```
 
 ---
 
-## Phase 4 — Transmittal Revision Refactor (v1.8.8)
+## Security Verification Checklist
 
-**Based on**: Clarifications Session 2026-04-29
-**Goal**: Restructure Transmittal to follow Master-Revision Pattern
-
-### R1 — Schema: Add `revision_id` to `transmittal_items`
-- **File**: `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
-- **Action**: Add `revision_id INT NULL` column with FK to `correspondence_revisions(id)`, create index per ADR-009
-- **Dependencies**: none
-- **Status**: [ ]
-
-### R2 — Backend Entity: Update `TransmittalItem` with `revisionId`
-- **File**: `backend/src/modules/transmittal/entities/transmittal-item.entity.ts`
-- **Action**: Add `revisionId` column (nullable), add `@ManyToOne` relation to `CorrespondenceRevision`
-- **Dependencies**: R1
-- **Status**: [ ]
-
-### R3 — Backend Service: Update `findOneByUuid` to read from revision
-- **File**: `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: Join `correspondence_revisions`, read `purpose`/`remarks` from `details` JSON field; include `revisionId`, `revisionNumber`, `revisionLabel` in response
-- **Dependencies**: R2
-- **Status**: [ ]
-
-### R4 — Backend Service: Add `createRevision()` method
-- **File**: `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: Create new `correspondence_revisions` record, copy all items from current revision to new revision via `copyItemsToRevision()` helper
-- **Dependencies**: R3
-- **Status**: [ ]
-
-### R5 — Backend Service: Add `copyItemsToRevision()` helper
-- **File**: `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: Clone all `transmittal_items` where `revision_id = oldRevisionId`, insert new records with `revision_id = newRevisionId`. **Success Criteria**: (1) Item count in new revision equals old revision, (2) All `quantity` values preserved, (3) `item_correspondence_id` FK constraints pass, (4) Atomic transaction (rollback on failure).
-- **Dependencies**: R2
-- **Status**: [ ]
-
-### R6 — Backend Controller: Add `POST /:uuid/revisions` endpoint
-- **File**: `backend/src/modules/transmittal/transmittal.controller.ts`
-- **Action**: New endpoint with `@RequirePermission('document.manage')` (ADR-016), `@Audit('transmittal.create-revision', 'transmittal')`, calls `createRevision()`, returns `{ revisionId, revisionNumber, revisionLabel }`
-- **Dependencies**: R4
-- **Status**: [ ]
-- **Security**: CASL Guard required — Document Control role or above
-
-### R7 — Backend Service: Update `submit()` for revision-scoped items
-- **File**: `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: EC-RFA-004 validation checks items for current revision only; workflow instance binds to `correspondence_revisions.id`
-- **Dependencies**: R3, R4
-- **Status**: [ ]
-
-### R8 — Frontend Types: Add revision fields to `Transmittal`
-- **File**: `frontend/types/transmittal.ts`
-- **Action**: Add `revisionId?: string`, `revisionNumber?: number`, `revisionLabel?: string` to `Transmittal` interface
-- **Dependencies**: none (parallel)
-- **Status**: [ ]
-
-### R9 — Frontend Types: Add `revisionId` to `TransmittalItem`
-- **File**: `frontend/types/transmittal.ts`
-- **Action**: Add `revisionId?: string` to `TransmittalItem` interface
-- **Dependencies**: R8
-- **Status**: [ ]
-
-### R10 — Frontend Page: Add revision selector to detail page
-- **File**: `frontend/app/(dashboard)/transmittals/[uuid]/page.tsx`
-- **Action**: Show revision dropdown when multiple revisions exist (like RFA pattern), display `revisionLabel` (A, B, C) in banner
-- **Dependencies**: R8, R9
-- **Status**: [ ]
-
-### R11 — Frontend Hook: Update `useTransmittal` for revision context
-- **File**: `frontend/hooks/use-transmittal.ts`
-- **Action**: Add optional `revisionId` parameter to fetch specific revision; default to current revision
-- **Dependencies**: R8
-- **Status**: [ ]
-
-### R12 — Workflow Engine: Update `getInstanceByEntity` for revision binding (ADR-019)
-- **File**: `backend/src/modules/workflow-engine/workflow-engine.service.ts`
-- **Action**: Support `entity_type='transmittal'` with `entity_id=revision.publicId` (UUID string, NOT revision.id INT). Ensure workflow instance stores and retrieves using UUIDv7 string per ADR-019.
-- **Dependencies**: R3
-- **Status**: [ ]
-- **ADR-019 Check**: Use `revision.publicId` (string) — never `revision.id` (INT) for entity binding
-
-### R14 — Backend Service: Update `create()` to write `purpose`/`remarks` to `details` JSON
-- **File**: `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: In `create()`, stop writing `purpose`/`remarks` to `Transmittal` entity; instead store them in `CorrespondenceRevision.details = { purpose, remarks }` JSON field. Remove `purpose`/`remarks` from `queryRunner.manager.create(Transmittal, {...})` call.
-- **Dependencies**: R3 (findOneByUuid reads from details)
-- **Status**: [ ]
-- **Note**: Must deploy BEFORE step 3 SQL (DROP COLUMN) in schema-02-tables.sql
-
-### R15 — Schema: Drop `purpose` and `remarks` from `transmittals` table
-- **File**: `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
-- **Action**: `ALTER TABLE transmittals DROP COLUMN purpose, DROP COLUMN remarks;` per ADR-009. Also remove corresponding TypeORM columns from `transmittal.entity.ts`.
-- **Dependencies**: R14 (must be fully deployed first)
-- **Status**: [ ]
-- **ADR-009**: Direct SQL only — no TypeORM migration file
-
-### R16 — DTO: Fix `TransmittalItemDto.itemId` to UUID (ADR-019)
-- **File**: `backend/src/modules/transmittal/dto/create-transmittal.dto.ts` + `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: Change `itemId: number` + `@IsInt()` → `itemId: string` + `@IsUUID()`. In `create()`, replace direct assignment with `uuidResolver.resolveCorrespondenceId(item.itemId)` before saving `itemCorrespondenceId`.
-- **Dependencies**: R1 (schema must be stable)
-- **Status**: [ ]
-- **ADR-019**: CRITICAL — Frontend must send `publicId` (UUID string), not INT id
-
-### R17 — Schema + Entity: Add `itemType` column to `transmittal_items` (H1)
-- **Files**: `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` + `backend/src/modules/transmittal/entities/transmittal-item.entity.ts` + `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: (1) SQL: `ALTER TABLE transmittal_items ADD COLUMN item_type VARCHAR(50) NULL COMMENT 'ประเภทเอกสาร เช่น DRAWING, RFA, CORRESPONDENCE' AFTER item_correspondence_id;` (ADR-009). (2) Entity: add `@Column({ name: 'item_type', nullable: true }) itemType?: string;`. (3) Service `create()`: save `itemType: item.itemType` from DTO (field already exists in `TransmittalItemDto`).
-- **Dependencies**: R1
-- **Status**: [ ]
-- **Note**: Fixes H1 — DTO had `itemType` but it was never persisted to DB
-
-### R18 — Service: Fix `ORG_CODE` hardcode in `create()` (M1)
-- **Files**: `backend/src/modules/transmittal/transmittal.service.ts`
-- **Action**: Before `generateNextNumber()`, fetch originator org: `const originatorOrg = await this.dataSource.manager.findOne(Organization, { where: { id: userOrgId } }); const orgCode = originatorOrg?.organizationCode ?? 'UNK';` — then replace `ORG_CODE: 'ORG'` with `ORG_CODE: orgCode`. Pattern matches `correspondence.service.ts` line 263-269.
-- **Dependencies**: none (parallel)
-- **Status**: [ ]
-- **Note**: Fixes M1 — `Organization.organizationCode` field confirmed at `organization.entity.ts:24`
-
-### R13 — Validation: ADR-019 UUID Compliance Check
-- **File**: `backend/src/modules/transmittal/` + `frontend/types/transmittal.ts`
-- **Action**: Verify all revision-related fields use `publicId` (string UUID) not `id` (INT): `revisionId`, `workflowInstanceId`, `transmittalId` in responses. Run `grep -n "parseInt\|Number(\|\.id[^a-zA-Z]"` to catch violations.
-- **Dependencies**: R2, R3, R12
-- **Status**: [ ]
-- **ADR-019**: CRITICAL — Zero tolerance for INT ID exposure in API responses
-
----
-
-## Phase 4 Execution Order
-
-```
-R1 (schema)
-  → R2 (entity)
-    → R3 (service findOneByUuid) ─┬→ R4 (createRevision) → R6 (controller endpoint)
-                                  │    → R5 (copyItems helper)
-                                  ├→ R7 (submit update)
-                                  ├→ R12 (workflow binding update)
-                                  └→ R13 (ADR-019 validation)
-R8 (frontend types) ─┬→ R9 (item types)
-  → R11 (hook update)  │
-  → R10 (page update) ─┘
-R3 → R14 (create() writes to details JSON)
-  → R15 (DROP COLUMN purpose/remarks) ← deploy R14 first
-R1 → R17 (add item_type column + entity + save in create())
-R18 (fix ORG_CODE — no dependencies, parallel safe)
-```
-
----
-
-## Phase 4 Commit Message Convention
-
-```
-feat(schema): add revision_id to transmittal_items table (ADR-009)
-feat(transmittal): add revisionId column to TransmittalItem entity
-feat(transmittal): update findOneByUuid to read from correspondence_revisions
-feat(transmittal): add createRevision with automatic item copying
-feat(transmittal): add copyItemsToRevision helper method
-feat(transmittal): add POST /:uuid/revisions endpoint
-feat(transmittal): update submit for revision-scoped items (EC-RFA-004)
-feat(frontend): add revision fields to Transmittal types
-feat(frontend): add revision selector to transmittal detail page
-feat(workflow-engine): update getInstanceByEntity for revision binding
-chore(validation): ADR-019 UUID compliance check for revision refactor
-fix(transmittal): change TransmittalItemDto.itemId from INT to UUID string (ADR-019)
-feat(transmittal): add item_type column to transmittal_items and persist from DTO (H1)
-fix(transmittal): replace hardcoded ORG_CODE with real organizationCode lookup (M1)
-```
+- [ ] `ability.can('reassign', 'Circulation')` — 403 for non-Document Control (T007)
+- [ ] `ability.can('forceClose', 'Circulation')` — 403 for non-Document Control (T008)
+- [ ] `ability.can('close', 'Circulation')` — 403 for all non-Document Control roles (T009)
+- [ ] Close Circulation pre-condition: 422 if any Main/Action routing not COMPLETED (T009)
+- [ ] `Idempotency-Key` header enforced on all workflow transitions
+- [ ] `workflowInstanceId` is `string` (UUID) — never `number` in any response (ADR-019)
+- [ ] EC-CORR-001 notification is BullMQ job — NOT inline in request thread (ADR-008)
+- [ ] Frontend `isOverdue` from backend field only — no `new Date()` comparison in JSX (T019)
+- [ ] No `parseInt` / `Number()` / `+` on any UUID in new code (ADR-019)
+- [ ] Two-phase file upload via `StorageService` for any new file operations (ADR-016)

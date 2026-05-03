@@ -47,7 +47,7 @@ A Document Control officer opens a Circulation Sheet and sees the circulation nu
 
 1. **Given** an OPEN Circulation with a past deadline, **When** a user opens the detail page, **Then** an Overdue badge is displayed and the deadline date is highlighted in red.
 2. **Given** a Circulation with multiple assignees, **When** an assignee marks their task complete, **Then** their routing status updates to COMPLETED and the page refreshes.
-3. **Given** a Circulation where all Main/Action assignees are COMPLETED, **When** the Document Control user views the page, **Then** a "Close Circulation" action is available.
+3. **Given** a Circulation where all Main/Action assignees are COMPLETED, **When** a **Document Control** user views the page, **Then** a "Close Circulation" action is available (other roles must NOT see this button).
 
 ---
 
@@ -102,8 +102,8 @@ Document Control can re-assign a Circulation when an assignee is deactivated (EC
 - **EC-RFA-004**: Transmittal with DRAFT items cannot be submitted → `422 Unprocessable Entity` with item identification.
 - **EC-CIRC-001**: Assignee deactivated before responding → Document Control can re-assign.
 - **EC-CIRC-002**: Multi-assignee, some not responded → Document Control can Force Close with mandatory reason.
-- **EC-CIRC-003**: Deadline = today `23:59:59`; Overdue Badge the following day at `00:00`.
-- **EC-CORR-001**: Cancelling a Correspondence with open Circulations → all Circulations force-closed + audit log.
+- **EC-CIRC-003**: Deadline = today `23:59:59`; Overdue Badge the following day at `00:00`. Overdue is computed **server-side** — backend returns `isOverdue: boolean` in the Circulation response. Client renders badge based solely on this field (no client-side date math).
+- **EC-CORR-001**: Cancelling a Correspondence with open Circulations → all Circulations force-closed + audit log + **BullMQ notification** (email + in-app) dispatched to all affected assignees with pending routings (ADR-008). No inline notification — must be queued job.
 - Transmittal `workflowInstanceId` is `null` when no workflow has been started (Draft state) → banner shows status only, no action buttons.
 - Circulation data is scoped to the user's organization — users from other organizations must receive a 403 response.
 - Duplicate `Idempotency-Key` on workflow transition → return cached response, no re-processing.
@@ -120,7 +120,7 @@ Document Control can re-assign a Circulation when an assignee is deactivated (EC
 - **FR-T02**: The Transmittal detail page Workflow tab MUST render `WorkflowLifecycle` wired to the workflow history of the Transmittal's workflow instance.
 - **FR-T03**: The Transmittal list page MUST support pagination, search by document number/subject, and filter by `purpose`.
 - **FR-T04**: The Transmittal `Transmittal` frontend type MUST include `workflowInstanceId?: string` and `workflowState?: string` fields (ADR-019: string UUID only).
-- **FR-T05**: The `transmittalService.getByUuid()` response MUST include `workflowInstanceId` from the backend.
+- **FR-T05**: The `transmittalService.getByUuid()` response MUST include `workflowInstanceId` resolved via `workflow_instances JOIN ON reference_type = 'TRANSMITTAL' AND reference_id = correspondences.id` — no separate FK column on the Transmittal entity.
 - **FR-T06**: A dedicated `useTransmittal(uuid)` TanStack Query hook MUST be created for the detail page.
 - **FR-T07**: Submitting a Transmittal with DRAFT items MUST return a `422` error identifying the offending item (EC-RFA-004).
 
@@ -128,12 +128,13 @@ Document Control can re-assign a Circulation when an assignee is deactivated (EC
 
 - **FR-C01**: The Circulation detail page MUST display `workflowState`, `availableActions`, and action buttons via `IntegratedBanner` using the live workflow instance.
 - **FR-C02**: The Circulation detail page Workflow tab MUST render `WorkflowLifecycle` wired to the workflow history.
-- **FR-C03**: The Circulation detail page assignee section MUST display deadline per assignee type and an Overdue badge when `NOW() > deadline_date + 1 day` (EC-CIRC-003).
+- **FR-C03**: The Circulation detail page assignee section MUST display deadline per assignee type and an Overdue badge based on the backend-provided `isOverdue: boolean` field in the API response (EC-CIRC-003). The frontend MUST NOT compute overdue status independently.
 - **FR-C04**: The Circulation `Circulation` frontend type MUST include `workflowInstanceId?: string` and `workflowState?: string`.
 - **FR-C05**: The `circulationService.getByUuid()` response MUST include `workflowInstanceId` from the backend.
 - **FR-C06**: A dedicated `useCirculation(uuid)` TanStack Query hook MUST be created for the detail page.
 - **FR-C07**: Document Control MUST be able to re-assign a routing when the assignee is deactivated (EC-CIRC-001).
-- **FR-C08**: Document Control MUST be able to Force Close a Circulation with a mandatory reason; all pending routings are force-closed and the reason is logged in the audit trail (EC-CIRC-002).
+- **FR-C08**: Document Control MUST be able to Force Close a Circulation with a mandatory reason. The operation MUST be **synchronous** — all routing status updates and the audit log entry are committed in a single DB transaction before the `200 OK` response is returned. BullMQ notification jobs are enqueued **after** the transaction commits. **SLA: ≤ 3 seconds** for a Circulation with up to 50 routings (EC-CIRC-002).
+- **FR-C09**: The "Close Circulation" action (triggered when all Main/Action assignees are COMPLETED) is available to **Document Control only** — guarded by `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` with `ability.can('close', 'Circulation')`. Assignees and other roles must NOT see the button.
 
 **Cross-Cutting:**
 
@@ -141,6 +142,7 @@ Document Control can re-assign a Circulation when an assignee is deactivated (EC
 - **FR-X02**: All new frontend types MUST NOT use `any` — strict TypeScript required.
 - **FR-X03**: All backend responses for these modules MUST include `workflowInstanceId?: string` in the data shape.
 - **FR-X04**: All new user-facing strings MUST use i18n keys — no hardcoded Thai/English text in JSX.
+- **FR-X05**: When a Correspondence is cancelled and open Circulations are force-closed (EC-CORR-001), a BullMQ notification job MUST be enqueued for each affected assignee with a pending routing — delivering both email and in-app notifications (ADR-008). The job payload MUST include `circulationNo`, `correspondenceNo`, and `cancellationReason`.
 
 ### Key Entities
 
@@ -154,8 +156,8 @@ Document Control can re-assign a Circulation when an assignee is deactivated (EC
 ## Assumptions
 
 - ADR-021 backend is fully deployed — `workflow_history_id` column exists on `attachments`, `workflowInstanceId` is exposed from the Workflow Engine module.
-- The backend `transmittal` module already has a `workflowInstance` relation or can join it via the Correspondence FK chain.
-- The backend `circulation` module already has a `workflowInstance` relation available.
+- The backend `transmittal` module resolves `workflowInstanceId` by joining `workflow_instances` on `reference_type = 'TRANSMITTAL'` and `reference_id = correspondences.id` — **no separate FK column** is required on the Transmittal side.
+- The backend `circulation` module resolves `workflowInstanceId` by joining `workflow_instances` on `reference_type = 'CIRCULATION'` and `reference_id = circulations.id`.
 - The Unified Workflow Engine (`WorkflowEngineService`) is the single source of truth for state and transitions — Transmittal and Circulation statuses are NOT independently maintained once a workflow is started.
 
 ---
@@ -170,7 +172,8 @@ Document Control can re-assign a Circulation when an assignee is deactivated (EC
 - **SC-004**: All new TypeScript code passes `pnpm tsc --noEmit` with zero errors and `pnpm lint` with zero warnings.
 - **SC-005**: No hardcoded Thai or English text in any new JSX component — verified by grep.
 - **SC-006**: Unit test coverage ≥ 80% on new business logic (EC-RFA-004 validation, EC-CIRC-001/002/003 handlers).
-- **SC-007**: Overdue Badge appears correctly when `NOW() > deadline_date + 1 day` — verified by unit test with mocked date.
+- **SC-007**: `isOverdue: boolean` is computed correctly on the backend when `NOW() > deadline_date + 1 day` — verified by a **backend unit test** in `CirculationService` with mocked `Date` (or injected `ClockService`). Frontend unit test verifies badge renders when `isOverdue === true`.
+- **SC-008**: Force Close Circulation (FR-C08) completes within **3 seconds** under a Circulation with 50 routings — verified by a backend integration test measuring total transaction time.
 
 ---
 
@@ -189,5 +192,13 @@ Document Control can re-assign a Circulation when an assignee is deactivated (EC
 - Q: `transmittal_items` Schema Change — how to support item revisioning? → A: **B** — Add `revision_id` column to existing `transmittal_items` table (NULLable FK to `correspondence_revisions.id`), backward compatible per ADR-009.
 - Q: Workflow Instance Binding — which revision should the workflow bind to? → A: **A** — Bind to current revision only. New revision becomes the new workflow target. Historical revisions remain for audit but are no longer part of active workflow.
 - Q: Document Numbering on Revision — should doc number change on revision? → A: **B** — Keep same document number, revision label distinguishes versions (follows Correspondence pattern).
+
+### Session 2026-05-03
+
+- Q: Who can trigger the "Close Circulation" action when all Main/Action assignees are COMPLETED? → A: **A** — Document Control only, consistent with ADR-016 and FR-C08. Guarded by `CaslAbilityGuard` with `ability.can('close', 'Circulation')`.
+- Q: Should EC-CORR-001 (cancel Correspondence → force-close Circulations) trigger notifications to affected assignees? → A: **A** — Yes, BullMQ notification (email + in-app) to all affected assignees with pending routings (ADR-008). Job payload: `circulationNo`, `correspondenceNo`, `cancellationReason`. See FR-X05.
+- Q: Where should the Overdue determination for Circulation deadline (EC-CIRC-003) be computed? → A: **A** — Server-side. Backend returns `isOverdue: boolean` in the Circulation response; client renders badge based solely on this field. Unit test targets `CirculationService` with mocked server time. See FR-C03, SC-007.
+- Q: Where does `workflowInstanceId` bind in the data model for a Transmittal? → A: **A** — On the `correspondences` row; join via `workflow_instances ON reference_type = 'TRANSMITTAL' AND reference_id = correspondences.id`. No new FK column needed. See FR-T05 and updated Assumptions.
+- Q: Should Force Close Circulation (FR-C08) be synchronous or asynchronous, and what is the latency SLA? → A: **A** — Synchronous; all routing updates + audit log in a single DB transaction; `200 OK` after commit; BullMQ notifications enqueued post-commit. SLA: ≤ 3 seconds for up to 50 routings. See FR-C08, SC-008.
 
 ---

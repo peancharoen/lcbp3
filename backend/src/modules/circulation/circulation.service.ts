@@ -299,6 +299,47 @@ export class CirculationService {
     }
   }
 
+  /**
+   * EC-CIRC-00X: Close Circulation (FR-C09)
+   * ต้องมีสิทธิ์ circulation.close (หรือ circulation.manage) เช็คใน controller
+   */
+  async close(publicId: string, user: User) {
+    const circulation = await this.circulationRepo.findOne({
+      where: { publicId },
+      relations: ['routings'],
+    });
+    if (!circulation)
+      throw new NotFoundException(`Circulation publicId ${publicId}`);
+
+    if (
+      circulation.statusCode === 'COMPLETED' ||
+      circulation.statusCode === 'CANCELLED' ||
+      circulation.statusCode === 'CLOSED'
+    ) {
+      throw new ValidationException(
+        `ใบเวียน ${circulation.circulationNo} ปิดไปแล้ว (${circulation.statusCode})`
+      );
+    }
+
+    const pendingCount = circulation.routings.filter(
+      (r) => r.status === 'PENDING' || r.status === 'IN_PROGRESS'
+    ).length;
+
+    if (pendingCount > 0) {
+      throw new ValidationException(
+        'All Main/Action routings must be COMPLETED before closing'
+      );
+    }
+
+    circulation.statusCode = 'CLOSED';
+    circulation.closedAt = new Date();
+    await this.circulationRepo.save(circulation);
+
+    this.logger.log(`Circulation ${publicId} closed by user ${user.user_id}`);
+
+    return { success: true };
+  }
+
   // ✅ Logic อัปเดตสถานะและปิดงาน
   async updateRoutingStatus(
     routingId: number,

@@ -24,6 +24,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
 import { SearchModule } from '../search/search.module';
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 import { NotificationModule } from '../notification/notification.module';
+import { CirculationModule } from '../circulation/circulation.module';
 
 /**
  * CorrespondenceModule
@@ -51,6 +52,7 @@ import { NotificationModule } from '../notification/notification.module';
     SearchModule,
     FileStorageModule,
     NotificationModule,
+    CirculationModule,
   ],
   controllers: [CorrespondenceController],
   providers: [

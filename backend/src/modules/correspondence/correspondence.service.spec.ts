@@ -20,6 +20,7 @@ import { SearchService } from '../search/search.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { NotificationService } from '../notification/notification.service';
+import { CirculationService } from '../circulation/circulation.service';
 import { UpdateCorrespondenceDto } from './dto/update-correspondence.dto';
 import { CreateCorrespondenceDto } from './dto/create-correspondence.dto';
 import { User } from '../user/entities/user.entity';
@@ -157,6 +158,12 @@ describe('CorrespondenceService', () => {
         {
           provide: getRepositoryToken(CorrespondenceRevisionAttachment),
           useValue: createMockRepository(),
+        },
+        {
+          provide: CirculationService,
+          useValue: {
+            forceClose: jest.fn().mockResolvedValue({ success: true }),
+          },
         },
       ],
     }).compile();

@@ -111,4 +111,17 @@ export class CirculationController {
   ) {
     return this.circulationService.forceClose(uuid, dto.reason, user);
   }
+
+  @Post(':uuid/close')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Close a Circulation when all Main/Action routings are completed (FR-C09)',
+  })
+  @ApiParam({ name: 'uuid', description: 'Circulation publicId' })
+  @RequirePermission('circulation.manage')
+  @Audit('circulation.close', 'circulation')
+  close(@Param('uuid', ParseUuidPipe) uuid: string, @CurrentUser() user: User) {
+    return this.circulationService.close(uuid, user);
+  }
 }

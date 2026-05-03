@@ -1,6 +1,6 @@
 // File: src/modules/correspondence/correspondence.service.ts
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import {
   BusinessException,
   NotFoundException,
@@ -39,6 +39,9 @@ import { SearchService } from '../search/search.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import { NotificationService } from '../notification/notification.service';
+import { CirculationService } from '../circulation/circulation.service';
+import { Circulation } from '../circulation/entities/circulation.entity';
+import { CirculationRouting } from '../circulation/entities/circulation-routing.entity';
 
 /**
  * CorrespondenceService - Document management (CRUD)
@@ -92,7 +95,9 @@ export class CorrespondenceService {
     private uuidResolver: UuidResolverService,
     private notificationService: NotificationService,
     @InjectRepository(CorrespondenceRevisionAttachment)
-    private revAttachRepo: Repository<CorrespondenceRevisionAttachment>
+    private revAttachRepo: Repository<CorrespondenceRevisionAttachment>,
+    @Inject(forwardRef(() => CirculationService))
+    private circulationService: CirculationService
   ) {}
 
   /**
@@ -984,11 +989,11 @@ export class CorrespondenceService {
     }
 
     // Check if there are any active circulations
-    const circulationRepo = this.dataSource.getRepository('Circulation');
+    const circulationRepo = this.dataSource.getRepository(Circulation);
     const activeCirculations = await circulationRepo.find({
       where: {
         correspondenceId: correspondence.id,
-        status: 'OPEN',
+        statusCode: 'OPEN',
       },
     });
 
@@ -1033,24 +1038,46 @@ export class CorrespondenceService {
         }
       );
 
+      await queryRunner.commitTransaction();
+
       // Force close all active circulations
       if (activeCirculations.length > 0) {
-        await queryRunner.manager.update(
-          'Circulation',
-          {
-            correspondenceId: correspondence.id,
-            status: 'OPEN',
-          },
-          {
-            status: 'FORCE_CLOSED',
-            closedAt: new Date(),
-            closedBy: user.user_id,
-            closeReason: `Correspondence cancelled: ${reason}`,
-          }
-        );
-      }
+        for (const circ of activeCirculations) {
+          try {
+            await this.circulationService.forceClose(
+              circ.publicId,
+              `Correspondence cancelled: ${reason}`,
+              user
+            );
 
-      await queryRunner.commitTransaction();
+            // T012: Enqueue BullMQ notification for affected assignees
+            // CirculationService.forceClose already updates status, we just need to notify.
+            // Ideally we'd notify the people who were pending.
+            const circWithRoutings = await this.dataSource
+              .getRepository(CirculationRouting)
+              .find({
+                where: { circulationId: circ.id, status: 'REJECTED' },
+              });
+            for (const r of circWithRoutings) {
+              if (r.assignedTo) {
+                void this.notificationService.send({
+                  userId: r.assignedTo,
+                  title: 'Circulation Force Closed',
+                  message: `ใบเวียน ${circ.circulationNo} ถูกปิดแบบบังคับ เนื่องจากเอกสารต้นทางถูกยกเลิก`,
+                  type: 'EMAIL',
+                  entityType: 'circulation',
+                  entityId: circ.id,
+                  link: `/circulations/${circ.publicId}`,
+                });
+              }
+            }
+          } catch (e) {
+            this.logger.error(
+              `Failed to force close circulation ${circ.publicId}: ${(e as Error).message}`
+            );
+          }
+        }
+      }
 
       // Re-index cancelled status in Elasticsearch (fire-and-forget)
       void this.searchService.indexDocument({

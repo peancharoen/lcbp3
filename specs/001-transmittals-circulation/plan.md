@@ -86,19 +86,23 @@ frontend/
 
 1. **`workflowInstanceId` exposure**: No schema changes needed. The `WorkflowInstance` table has `entity_type` + `entity_id` columns. Add `getInstanceByEntity(entityType, entityId)` to `WorkflowEngineService`, then call it in `findOneByUuid` for both modules.
 
-2. **Transmittal entityType**: Use `'transmittal'` (matching the entity ID = `correspondence.id.toString()`). Consistent with how RFA uses `'rfa'`.
+2. **Transmittal entityType**: Use `'transmittal'`; join via `workflow_instances WHERE entity_type = 'TRANSMITTAL' AND entity_id = correspondences.id` (string). Consistent with RFA pattern. **No separate FK column added.**
 
-3. **Circulation entityType**: Use `'circulation'` (entity ID = `circulation.id.toString()`). The Circulation entity already extends `UuidBaseEntity` (has `publicId`).
+3. **Circulation entityType**: Use `'circulation'`; join via `workflow_instances WHERE entity_type = 'CIRCULATION' AND entity_id = circulations.id` (string). The Circulation entity already extends `UuidBaseEntity` (has `publicId`).
 
 4. **Transmittal publicId**: The Transmittal entity has no own `publicId` — it shares `correspondence.publicId`. The service already maps it: `publicId: t.correspondence?.publicId`. This is correct; no change needed.
 
 5. **EC-RFA-004 validation**: Fires in `TransmittalService.submit()` (new method). Check all `transmittal_items` → fetch their correspondence's current revision status → if any is DRAFT, throw `ValidationException`.
 
-6. **EC-CIRC-001 (Reassign)**: New `CirculationService.reassignRouting(routingId, newAssigneeUuid, user)`. Requires `Document Control` or above role. Updates `routing.assignedTo` to the new user's INT id.
+6. **EC-CIRC-001 (Reassign)**: New `CirculationService.reassignRouting(routingId, newAssigneeUuid, user)`. Requires `Document Control` or above role (`ability.can('reassign', 'Circulation')`). Updates `routing.assignedTo` to the new user's INT id.
 
-7. **EC-CIRC-002 (Force Close)**: New `CirculationService.forceClose(circulationId, reason, user)`. Requires `Document Control` or above. Updates all PENDING routings to `CANCELLED`, sets `circulation.statusCode = 'CANCELLED'`, writes audit log.
+7. **EC-CIRC-002 (Force Close) — Synchronous, ≤3s SLA**: New `CirculationService.forceClose(uuid, reason, user)`. Requires `Document Control` or above (`ability.can('forceClose', 'Circulation')`). All routing status updates + audit log committed in **a single DB transaction**; respond `200 OK` after commit. BullMQ notification jobs enqueued **post-commit** (not inside transaction). SLA: ≤ 3 seconds for ≤ 50 routings.
 
-8. **EC-CIRC-003 (Overdue)**: Pure frontend logic. Compare `routing.deadline` with `new Date()`. Show `OverdueBadge` if `now > deadline + 1 day`. No backend change needed.
+8. **EC-CIRC-003 (Overdue) — Server-side**: `CirculationService.findOneByUuid()` computes `isOverdue = NOW() > deadline_date + INTERVAL 1 DAY` per routing and returns `isOverdue: boolean` in the response. **Frontend MUST NOT compute overdue independently** — render badge based solely on backend field. Unit test: `CirculationService` spec with mocked `Date`/`ClockService`.
+
+9. **EC-CORR-001 (Cancel Correspondence → Force-close Circulations)**: When Correspondence is cancelled, all OPEN Circulations are force-closed + audit log written. A BullMQ job is enqueued **per affected assignee** with pending routing on queue `notification-queue`. Job payload: `{ circulationNo, correspondenceNo, cancellationReason }`. No inline notification.
+
+10. **Close Circulation (FR-C09) RBAC**: The "Close Circulation" action (all Main/Action assignees COMPLETED) is exposed **only to Document Control** — guarded by `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` with `ability.can('close', 'Circulation')`. Frontend hides button for all other roles.
 
 ---
 
@@ -136,11 +140,14 @@ The `WorkflowInstance` table already exists with `entity_type VARCHAR`, `entity_
     "workflowInstanceId": "019def...",
     "workflowState": "OPEN",
     "availableActions": [],
+    "isOverdue": false,
     "routings": [
       {
-        "id": 1,
+        "assigneePublicId": "...",
+        "assigneeType": "MAIN",
         "deadline": "2026-04-20T00:00:00.000Z",
         "isOverdue": true,
+        "status": "PENDING",
         ...
       }
     ],
@@ -148,6 +155,8 @@ The `WorkflowInstance` table already exists with `entity_type VARCHAR`, `entity_
   }
 }
 ```
+
+> ⚠️ `isOverdue` is computed **server-side** in `CirculationService` (`NOW() > deadline_date + INTERVAL 1 DAY`). Frontend must NOT recompute this field.
 
 #### `POST /transmittals/:uuid/submit` (NEW)
 
@@ -166,7 +175,14 @@ The `WorkflowInstance` table already exists with `entity_type VARCHAR`, `entity_
 #### `POST /circulation/:id/force-close` (NEW)
 
 **Request**: `{ "reason": "mandatory string" }`
-**Guards**: `@RequirePermission('circulation.manage')`
+**Guards**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` with `ability.can('forceClose', 'Circulation')`
+**Response**: `{ "success": true }`
+**Behaviour**: Synchronous. Single DB transaction (all routing updates + audit log). BullMQ notification per assignee enqueued post-commit. **SLA: ≤ 3 seconds** for ≤ 50 routings.
+
+#### `POST /circulation/:id/close` (NEW)
+
+**Guards**: `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` with `ability.can('close', 'Circulation')` — **Document Control only**
+**Pre-condition**: All Main/Action routings must be in COMPLETED state (server validates; 422 if not)
 **Response**: `{ "success": true }`
 
 ### Frontend Architecture
@@ -194,15 +210,19 @@ useQuery<Circulation>({
 
 #### `useWorkflowHistory(instanceId)` — already exists, use directly in pages.
 
-#### Overdue Badge logic (frontend-only)
+#### Overdue Badge logic (backend-computed, frontend renders)
 ```ts
-function isOverdue(deadline?: string): boolean {
-  if (!deadline) return false;
-  const deadlinePlusOne = new Date(deadline);
-  deadlinePlusOne.setDate(deadlinePlusOne.getDate() + 1);
-  return new Date() > deadlinePlusOne;
-}
+// ✅ CORRECT — render from backend field only
+const isRoutingOverdue = routing.isOverdue; // boolean from API
+
+// ❌ FORBIDDEN — frontend must NOT recompute
+// const isOverdue = new Date() > new Date(routing.deadline);
 ```
+The `isOverdue` field is computed in `CirculationService.findOneByUuid()` via:
+```ts
+const isOverdue = new Date() > addDays(new Date(routing.deadline), 1);
+```
+Unit test: mock `Date` in `circulation.service.spec.ts` (or inject `ClockService`).
 
 ---
 
@@ -212,35 +232,38 @@ function isOverdue(deadline?: string): boolean {
 
 | Task | File | Description |
 |------|------|-------------|
-| B1 | `workflow-engine.service.ts` | Add `getInstanceByEntity(entityType, entityId)` returning `{ id, currentState }` or null |
-| B2 | `transmittal.service.ts` | `findOneByUuid`: lookup workflow instance, add to response |
+| B1 | `workflow-engine.service.ts` | Add `getInstanceByEntity(entityType, entityId)` — join `workflow_instances WHERE entity_type = ? AND entity_id = ?`; returns `{ id, currentState }` or null |
+| B2 | `transmittal.service.ts` | `findOneByUuid`: join workflow instance via `entity_type='TRANSMITTAL'`, `entity_id=correspondences.id`; add `workflowInstanceId` to response |
 | B3 | `transmittal.service.ts` | `findAll`: add `purpose` filter |
-| B4 | `transmittal.service.ts` | Add `submit(uuid, user)` with EC-RFA-004 validation |
-| B5 | `transmittal.controller.ts` | Add `POST /:uuid/submit` endpoint with guard |
-| B6 | `circulation.service.ts` | `findOneByUuid`: lookup workflow instance, compute overdue |
-| B7 | `circulation.service.ts` | Add `reassignRouting(routingId, newAssigneeUuid, user)` |
-| B8 | `circulation.service.ts` | Add `forceClose(uuid, reason, user)` with EC-CIRC-002 |
-| B9 | `circulation.controller.ts` | Add PATCH `/routing/:id/reassign` + POST `/force-close` |
+| B4 | `transmittal.service.ts` | Add `submit(uuid, user)` with EC-RFA-004 validation (pre-transition check) |
+| B5 | `transmittal.controller.ts` | Add `POST /:uuid/submit` endpoint with `CaslAbilityGuard` |
+| B6 | `circulation.service.ts` | `findOneByUuid`: join workflow instance via `entity_type='CIRCULATION'`, `entity_id=circulations.id`; compute `isOverdue: boolean` server-side per routing |
+| B7 | `circulation.service.ts` | Add `reassignRouting(routingId, newAssigneeUuid, user)` — guard `ability.can('reassign', 'Circulation')` |
+| B8 | `circulation.service.ts` | Add `forceClose(uuid, reason, user)` — single DB transaction; enqueue BullMQ `notification-queue` post-commit; SLA ≤ 3s / 50 routings |
+| B9 | `circulation.service.ts` | Add `close(uuid, user)` — Document Control only; pre-condition all Main/Action routings COMPLETED |
+| B10 | `circulation.controller.ts` | Add PATCH `/routing/:id/reassign` + POST `/force-close` + POST `/close` with CASL guards |
+| B11 | `correspondence.service.ts` | On cancel: force-close all OPEN Circulations + enqueue BullMQ `notification-queue` job per affected assignee (EC-CORR-001, FR-X05) |
 
 ### Important (Frontend)
 
 | Task | File | Description |
 |------|------|-------------|
 | F1 | `types/transmittal.ts` | Add `workflowInstanceId?`, `workflowState?`, `availableActions?` |
-| F2 | `types/circulation.ts` | Add `workflowInstanceId?`, `workflowState?`, deadline to routing |
+| F2 | `types/circulation.ts` | Add `workflowInstanceId?`, `workflowState?`, `isOverdue: boolean` per routing (backend-provided) |
 | F3 | `hooks/use-transmittal.ts` | New `useTransmittal(uuid)` hook |
 | F4 | `hooks/use-circulation.ts` | Add `useCirculation(uuid)` hook |
 | F5 | `transmittals/[uuid]/page.tsx` | Wire banner + lifecycle with real data |
-| F6 | `circulation/[uuid]/page.tsx` | Wire banner + lifecycle + overdue badge |
+| F6 | `circulation/[uuid]/page.tsx` | Wire banner + lifecycle + Overdue badge from `routing.isOverdue` (backend field — no client-side date math); show "Close Circulation" button only when `canClose && user.role === 'DOCUMENT_CONTROL'` |
 | F7 | `transmittals/page.tsx` | Verify list page works, add purpose filter |
 
 ### Guidelines (i18n + Tests)
 
 | Task | File | Description |
 |------|------|-------------|
-| I1 | `public/locales/th/*.json` | Add missing transmittal/circulation workflow keys |
-| T1 | `transmittal.service.spec.ts` | Unit test EC-RFA-004 submit validation |
-| T2 | `circulation.service.spec.ts` | Unit tests EC-CIRC-001/002/003 handlers |
+| I1 | `public/locales/th/*.json` + `en/*.json` | Add missing transmittal/circulation workflow keys (force-close modal, overdue badge, close action) |
+| T1 | `transmittal.service.spec.ts` | Unit test EC-RFA-004 submit validation (422 on DRAFT item) |
+| T2 | `circulation.service.spec.ts` | Unit tests: EC-CIRC-001 reassign, EC-CIRC-002 force-close (transaction + BullMQ enqueue), EC-CIRC-003 `isOverdue` with mocked Date, EC-CORR-001 notification job enqueue |
+| T3 | `circulation.service.spec.ts` | Integration test: Force Close with 50 routings completes within 3s (SC-008) |
 
 ---
 
@@ -291,11 +314,15 @@ cd frontend && pnpm test
 ```
 
 ### Security Verification
-- [ ] Reassign endpoint: 403 if user is not Document Control or above
-- [ ] Force Close endpoint: 403 if user is not Document Control or above
+- [ ] Reassign endpoint: 403 if user is not Document Control or above (`ability.can('reassign', 'Circulation')`)
+- [ ] Force Close endpoint: 403 if user is not Document Control or above (`ability.can('forceClose', 'Circulation')`)
+- [ ] Close Circulation endpoint: 403 for all non-Document Control roles (`ability.can('close', 'Circulation')`)
+- [ ] Close Circulation: 422 if any Main/Action routing is not COMPLETED
 - [ ] Workflow transition: `Idempotency-Key` header enforced
 - [ ] No `parseInt` on any UUID in new code
 - [ ] `workflowInstanceId` is string (not number) in all responses
+- [ ] EC-CORR-001: BullMQ notification job enqueued, NOT inline in request thread
+- [ ] `isOverdue` on Circulation response is boolean from backend — no frontend date math
 
 ---
 
@@ -327,10 +354,12 @@ ADR-021 (IntegratedBanner/WorkflowLifecycle components)
 
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|-----------|
-| `entity_type` mismatch — Transmittal uses wrong entityType in WF instance | Medium | High | Check `workflowEngine.createInstance()` call in `transmittal.service.ts`; use same entityType string consistently |
+| `entity_type` mismatch — Transmittal uses wrong entityType in WF instance | Medium | High | Join via `entity_type='TRANSMITTAL'` + `entity_id=correspondences.id` consistently in `getInstanceByEntity()` |
 | Circulation has no WF instance (workflow never started) | High | Medium | `getInstanceByEntity()` returns null → `workflowInstanceId` = undefined → banner shows status only, no actions |
 | Transmittal entity has no `publicId` own column | Medium | Low | Already handled: `publicId` maps from `correspondence.publicId` in `findAll()` |
-| EC-CIRC-003 timezone issues (deadline at 23:59:59) | Low | Medium | Use UTC comparison; test with mocked date |
+| EC-CIRC-003 timezone — server TZ differs from Bangkok | Low | High | Compute `isOverdue` in MariaDB with `NOW()` (server TZ is UTC+7 per docker-compose); verify in unit test with fixed timestamp |
+| Force Close latency > 3s with 50+ routings | Low | Medium | Use bulk UPDATE query (not loop), wrap in single transaction; add integration test SC-008 |
+| EC-CORR-001 notification lost if BullMQ unavailable | Low | High | BullMQ persistence (Redis AOF) ensures job survives restarts; dead-letter queue `notification-queue-failed` alerts ops |
 
 ---
 
