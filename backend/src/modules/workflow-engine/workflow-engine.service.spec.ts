@@ -127,7 +127,7 @@ describe('WorkflowEngineService', () => {
           provide: getRepositoryToken(Attachment),
           useValue: {
             find: jest.fn(),
-            update: jest.fn(),
+            update: jest.fn().mockResolvedValue({ affected: 0 }),
           },
         },
         { provide: WorkflowDslService, useValue: mockDslService },
@@ -727,7 +727,9 @@ describe('WorkflowEngineService', () => {
 
     it('T024d: should rollback attachments to temp when DB transaction fails (FR-019)', async () => {
       // Arrange: commit ล้มเหลว — คาดว่า attachments จะถูก revert กลับเป็น temp
-      (instanceRepo.findOne as jest.Mock).mockResolvedValue(null); // no pre-check needed (no attachment state)
+      (instanceRepo.findOne as jest.Mock).mockResolvedValue({
+        currentState: 'PENDING_REVIEW',
+      }); // ผ่าน pre-check, transaction จะ fail ที่ commit
       mockQueryRunner.manager.findOne.mockResolvedValue({
         ...baseInstance,
         versionNo: 5,
@@ -759,7 +761,7 @@ describe('WorkflowEngineService', () => {
       // FR-019: attachmentRepo.update ต้องถูกเรียกเพื่อ revert ไฟล์กลับเป็น temp
       expect(attachmentRepo.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          publicId: ['att-rollback-1', 'att-rollback-2'],
+          publicId: In(['att-rollback-1', 'att-rollback-2']),
         }),
         expect.objectContaining({ isTemporary: true })
       );

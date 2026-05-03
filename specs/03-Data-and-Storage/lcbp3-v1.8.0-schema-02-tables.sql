@@ -1381,6 +1381,7 @@ CREATE TABLE workflow_instances (
     'TERMINATED'
   ) DEFAULT 'ACTIVE' COMMENT 'สถานะภาพรวม',
   context JSON NULL COMMENT 'ตัวแปร Context สำหรับตัดสินใจ',
+  version_no INT NOT NULL DEFAULT 1 COMMENT 'Optimistic lock counter — incremented on every successful transition (ADR-001 v1.1 FR-002). Client sends current value; server rejects with 409 if mismatch.',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_wf_inst_def FOREIGN KEY (definition_id) REFERENCES workflow_definitions (id) ON DELETE CASCADE,
@@ -1394,6 +1395,9 @@ CREATE INDEX idx_wf_inst_contract ON workflow_instances (contract_id, entity_typ
 
 CREATE INDEX idx_wf_inst_state ON workflow_instances (current_state);
 
+-- Index เพื่อรองรับ CAS check: WHERE id = ? AND version_no = ?
+CREATE INDEX idx_wf_inst_version ON workflow_instances (id, version_no);
+
 -- 3. ตารางเก็บประวัติ (Audit Log / History)
 CREATE TABLE workflow_histories (
   id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID',
@@ -1402,6 +1406,7 @@ CREATE TABLE workflow_histories (
   to_state VARCHAR(50) NOT NULL COMMENT 'สถานะปลายทาง',
   ACTION VARCHAR(50) NOT NULL COMMENT 'Action ที่กระทำ',
   action_by_user_id INT NULL COMMENT 'User ID ผู้กระทำ',
+  action_by_user_uuid VARCHAR(36) NULL COMMENT 'UUID ของ User ผู้ดำเนินการ — ใช้ใน API Response แทน INT FK (ADR-019). NULL = System Action หรือ Pre-migration record',
   COMMENT TEXT NULL COMMENT 'ความเห็น',
   metadata JSON NULL COMMENT 'Snapshot ข้อมูล ณ ขณะนั้น',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

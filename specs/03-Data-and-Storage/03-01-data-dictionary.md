@@ -1724,6 +1724,7 @@ erDiagram
 | current_state | VARCHAR(50) | NOT NULL                   | สถานะปัจจุบัน                                                                                   |
 | status        | ENUM        | DEFAULT 'ACTIVE'           | ACTIVE, COMPLETED, CANCELLED, TERMINATED                                                        |
 | context       | JSON        | NULL                       | ตัวแปร Context สำหรับตัดสินใจ (รวม contractId, projectId, initiatorId เป็นต้น)                      |
+| **version_no** | **INT**   | **NOT NULL, DEFAULT 1**   | **[ADR-001 v1.1 FR-002] Optimistic lock counter — incremented on every successful transition. Client sends current value; server rejects with 409 if mismatch.** |
 | created_at    | TIMESTAMP   | DEFAULT NOW                | เวลาที่สร้าง                                                                                    |
 | updated_at    | TIMESTAMP   | ON UPDATE                  | เวลาที่อัปเดตล่าสุด                                                                         |
 
@@ -1737,12 +1738,11 @@ erDiagram
 
 - PRIMARY KEY (id)
 - FOREIGN KEY (definition_id) REFERENCES workflow_definitions(id) ON DELETE CASCADE
-- **FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE SET NULL** [delta-07]
+- FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE SET NULL
 - INDEX (entity_type, entity_id)
 - INDEX (current_state)
-- **INDEX (contract_id, entity_type, status)** — `idx_wf_inst_contract` [delta-07]
-
----
+- INDEX (contract_id, entity_type, status)
+- INDEX (id, version_no) — `idx_wf_inst_version` [ADR-001 v1.1 FR-002] — Supports CAS check: WHERE id = ? AND version_no = ?
 
 ### 10.3 workflow_histories
 
@@ -1756,6 +1756,7 @@ erDiagram
 | to_state          | VARCHAR(50) | NOT NULL     | สถานะปลายทาง              |
 | action            | VARCHAR(50) | NOT NULL     | Action ที่กระทำ           |
 | action_by_user_id | INT         | FK, NULL     | User ID ผู้กระทำ          |
+| **action_by_user_uuid** | **VARCHAR(36)** | **NULL** | **[ADR-019 FR-003] UUID ของ User ผู้ดำเนินการ — ใช้ใน API Response แทน INT FK. NULL = System Action หรือ Pre-migration record** |
 | comment           | TEXT        | NULL         | ความเห็น                  |
 | metadata          | JSON        | NULL         | Snapshot ข้อมูล ณ ขณะนั้น |
 | created_at        | TIMESTAMP   | DEFAULT NOW  | เวลาที่กระทำ              |
