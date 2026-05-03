@@ -76,7 +76,9 @@ export class WorkflowTransitionGuard implements CanActivate {
     // FR-002a: DSL require.role → CASL ability check
     // ตรวจสอบ requirements.roles ของ CompiledTransition ที่ตรงกับ action ที่ Request ขอ
     // (ยังต้องผ่าน contract membership check Level 2.5)
-    const compiled = instance.definition?.compiled as
+    // NOTE: ต้อง cast ผ่าน unknown ก่อน เพราะ entity type เป็น Record<string,unknown>
+    // ซึ่งไม่ overlap กับ CompiledWorkflow เพียงพอสำหรับ direct cast (TS2352)
+    const compiled = instance.definition?.compiled as unknown as
       | CompiledWorkflow
       | undefined;
     const stateConfig = compiled?.states?.[instance.currentState];
