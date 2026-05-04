@@ -52,20 +52,29 @@ Given that feature description, do this:
    git fetch --all --prune
    ```
 
-   b. Find the highest feature number across all sources for the short-name:
+   b. **Determine the category** for this feature (MUST ask user):
+   - Ask: "Which category does this feature belong to?"
+   - Present options:
+     - **100 - Infrastructures**: Deployment, Monitoring, Docker Compose, Network, Security hardening
+     - **200 - Fullstacks**: Backend + Frontend features, Workflow Engine, API development, UI components
+     - **300 - Others**: Documentation, Research, Non-code tasks, Process improvement
+   - Wait for user to respond with category (100, 200, or 300)
+   - Default to 200 if user doesn't specify
+
+   c. Find the highest feature number across all sources for the short-name within the chosen category:
    - Remote branches: `git ls-remote --heads origin | grep -E 'refs/heads/[0-9]+-<short-name>$'`
    - Local branches: `git branch | grep -E '^[* ]*[0-9]+-<short-name>$'`
-   - Specs directories: Check for directories matching `specs/[0-9]+-<short-name>`
+   - Specs directories: Check for directories matching `specs/<category>-*/[0-9]+-<short-name>`
 
-   c. Determine the next available number:
+   d. Determine the next available number:
    - Extract all numbers from all three sources
    - Find the highest number N
    - Use N+1 for the new branch number
 
-   d. Run the script `../scripts/bash/create-new-feature.sh --json "{{args}}"` with the calculated number and short-name:
-   - Pass `--number N+1` and `--short-name "your-short-name"` along with the feature description
-   - Bash example: `.agents/scripts/bash/create-new-feature.sh --json "{{args}}" --number 5 --short-name "user-auth" "Add user authentication"`
-   - PowerShell example: `.agents/scripts/powershell/create-new-feature.ps1 -Json -Args '{{args}}' -Number 5 -ShortName "user-auth" "Add user authentication"`
+   e. Run the script `../scripts/bash/create-new-feature.sh --json "{{args}}"` with the calculated number, short-name, and category:
+   - Pass `--number N+1`, `--short-name "your-short-name"`, and `--category <100|200|300>` along with the feature description
+   - Bash example: `.agents/scripts/bash/create-new-feature.sh --json "{{args}}" --number 5 --short-name "user-auth" --category 200 "Add user authentication"`
+   - PowerShell example: `.agents/scripts/powershell/create-new-feature.ps1 -Json -Args '{{args}}' -Number 5 -ShortName "user-auth" -Category 200 "Add user authentication"`
 
    **IMPORTANT**:
    - Check all three sources (remote branches, local branches, specs directories) to find the highest number

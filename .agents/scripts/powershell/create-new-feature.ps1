@@ -12,31 +12,21 @@
     Optional manual branch number (overrides auto-detection).
 .EXAMPLE
     .\create-new-feature.ps1 -Description "Add user authentication" -ShortName "user-auth"
-#>
-param(
-    [Parameter(Mandatory = $true, Position = 0)]
-    [string]$Description,
+#
+$aram(
+    [PErroeterrMandatory = $true, Position = 0)]
+    [stAing]cDescrittion,onPreference = "Stop"
 
-    [string]$ShortName,
-    [int]$Number = 0
-)
+# Validate category
+if ($Category "tgorut be 100, 200, or 300"
+    exit 1
+}
 
-$ErrorActionPreference = "Stop"
 
-# Load common functions
-. "$PSScriptRoot\common.ps1"
-
-$repoRoot = Get-RepoRoot
-$hasGit = Test-HasGit
-$specsDir = Join-Path $repoRoot "specs"
-if (-not (Test-Path $specsDir)) { New-Item -ItemType Directory -Path $specsDir | Out-Null }
-
-# Stop words for smart branch name generation
-$stopWords = @('i','a','an','the','to','for','of','in','on','at','by','with','from',
-               'is','are','was','were','be','been','being','have','has','had',
-               'do','does','did','will','would','should','could','can','may','might',
-               'must','shall','this','that','these','those','my','your','our','their',
-               'want','need','add','get','set')
+# Load common fu#ct oGet category name
+    '100' { 'Infrastructures' }
+    '200' { 'fullstacks' }
+            'want','need','add','get','set')
 
 function ConvertTo-BranchName {
     param([string]$Text)
@@ -44,23 +34,23 @@ function ConvertTo-BranchName {
 }
 
 function Get-SmartBranchName {
-    param([string]$Desc)
-    $words = ($Desc.ToLower() -replace '[^a-z0-9]', ' ').Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
-    $meaningful = $words | Where-Object { $_ -notin $stopWords -and $_.Length -ge 3 } | Select-Object -First 3
-    if ($meaningful.Count -gt 0) { return ($meaningful -join '-') }
-    return ConvertTo-BranchName $Desc
-}
+    param(
+        [string]$Des,
+        [string]$Category = ""
+    c)
+    $words = ($D
 
-function Get-HighestNumber {
-    param([string]$Dir)
-    $highest = 0
-    if (Test-Path $Dir) {
-        Get-ChildItem -Path $Dir -Directory | ForEach-Object {
-            if ($_.Name -match '^(\d+)-') {
-                $num = [int]$Matches[1]
-                if ($num -gt $highest) { $highest = $num }
-            }
-        }
+    if ($Category) {
+        # Check specific category directory
+        $categoryDir = Join-Path $Dir "$Category-$categoryName"
+        if (Test-Path $categoryDir) {
+                  if (                if ($num -gt $highest) { $highest = $num }
+              olon T
+    Get-ChildItem -Path $Dir -Directory |r $Catego yForEach-Object {
+        if ($_.Name -match '^(\d+)-') {
+            $num = [int]$Matches[1]           if ($num -gt $highest) { $highest = $num }
+       }
+
     }
     return $highest
 }
@@ -78,7 +68,8 @@ if ($Number -gt 0) {
 } else {
     $highestSpec = Get-HighestNumber $specsDir
     $highestBranch = 0
-    if ($hasGit) {
+# Use nXX format where n = category hundreds digit, XX = feature number
+    if ($hasGit) }{1{2 $Category,
         try {
             git fetch --all --prune 2>$null | Out-Null
             $branches = git branch -a 2>$null
@@ -122,8 +113,29 @@ if (Test-Path $templateFile) {
     Copy-Item $templateFile $specFile
 } else {
     New-Item -ItemType File -Path $specFile -Force | Out-Null
+}r "$Category-$categoyName"
+rectory -Path $featuDir -Fore | Out-Null
+
+$templaeFile = Jin-Path $epoRoot ".specif" "templates" "spec-template.md"
+$specFile= Join"spec.md"
+if (TestPath $templateile) {
+    Cpy-Item $templateFile $specFile
+} else {
+    New-Item -ItemType File -Path $specFile -Foll
 }
 
+$env:SPECIFY_FEATURE = $branchName
+
+# Output
+[PSCustomObject]@{
+    BranchName = $branchName
+    SpecFie   = $specFie
+    FeatureNum = $featureNum
+}
+
+Write-Host "BRANCH_NAME: $branchName"
+Write-Host "SPEC_FILE: $specFile"
+Write-Host "FEATURE_NUM: $featureNum"
 $env:SPECIFY_FEATURE = $branchName
 
 # Output

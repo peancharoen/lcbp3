@@ -82,6 +82,7 @@ const eslintConfig = [
       '*.config.js',
       '*.config.mjs',
       '*.config.ts',
+      'public/monaco-vs/**',
     ],
   },
 ];

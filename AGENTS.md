@@ -109,13 +109,13 @@ Best practice — follow when possible:
 
 Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
 
-| Document                     | Path                                                                 | Status   | Use When                               |
-| ---------------------------- | -------------------------------------------------------------------- | -------- | -------------------------------------- |
-| **Glossary**                 | `specs/00-overview/00-02-glossary.md`                                | —        | Verify domain terminology              |
-| **Schema Tables**            | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`        | —        | Before writing any query               |
-| **Data Dictionary**          | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                 | —        | Field meanings + business rules        |
-| **RBAC Matrix**              | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` | —        | Permission levels + roles              |
-| **Edge Cases**               | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                | —        | Prevent bugs in flows                  |
+| Document                     | Path                                                                 | Status    | Use When                               |
+| ---------------------------- | -------------------------------------------------------------------- | --------- | -------------------------------------- |
+| **Glossary**                 | `specs/00-overview/00-02-glossary.md`                                | —         | Verify domain terminology              |
+| **Schema Tables**            | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`        | —         | Before writing any query               |
+| **Data Dictionary**          | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                 | —         | Field meanings + business rules        |
+| **RBAC Matrix**              | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` | —         | Permission levels + roles              |
+| **Edge Cases**               | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                | —         | Prevent bugs in flows                  |
 | **ADR-001 Workflow Engine**  | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`       | ✅ Active | DSL-based workflow implementation      |
 | **ADR-002 Doc Numbering**    | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`   | ✅ Active | Document number generation + locking   |
 | **ADR-007 Error Handling**   | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`       | ✅ Active | Error patterns & recovery              |
@@ -126,14 +126,69 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | **ADR-019 UUID**             | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`    | ✅ Active | UUID-related work                      |
 | **ADR-020 AI Integration**   | `specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md`   | ✅ Active | AI architecture patterns               |
 | **ADR-021 Workflow Context** | `specs/06-Decision-Records/ADR-021-workflow-context.md`              | ✅ Active | Integrated workflow & step attachments |
-| **Backend Guidelines**       | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`        | —        | NestJS patterns                        |
-| **Frontend Guidelines**      | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`       | —        | Next.js patterns                       |
-| **Testing Strategy**         | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`          | —        | Coverage goals                         |
-| **Git Conventions**          | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`           | —        | Commit/branch naming                   |
-| **Code Snippets**            | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`             | —        | Reusable patterns                      |
-| **i18n Guidelines**          | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`           | —        | Localization rules                     |
-| **Release Policy**           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`     | —        | Before deploy/hotfix                   |
-| **UAT Criteria**             | `specs/01-Requirements/01-05-acceptance-criteria.md`                 | —        | Feature completeness                   |
+| **Backend Guidelines**       | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`        | —         | NestJS patterns                        |
+| **Frontend Guidelines**      | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`       | —         | Next.js patterns                       |
+| **Testing Strategy**         | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`          | —         | Coverage goals                         |
+| **Git Conventions**          | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`           | —         | Commit/branch naming                   |
+| **Code Snippets**            | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`             | —         | Reusable patterns                      |
+| **i18n Guidelines**          | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`           | —         | Localization rules                     |
+| **Release Policy**           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`     | —         | Before deploy/hotfix                   |
+| **UAT Criteria**             | `specs/01-Requirements/01-05-acceptance-criteria.md`                 | —         | Feature completeness                   |
+
+---
+
+## 📁 Specs Folder Organization
+
+โครงสร้างโฟลเดอร์ `specs/` แบ่งเป็น 2 ส่วนหลัก:
+
+### 1. Core Specs (Permanent - ไม่เปลี่ยนชื่อ)
+
+โฟลเดอร์เหล่านี้เป็น Source of Truth ถาวรของระบบ:
+
+- `00-overview/` - ภาพรวมระบบ + Product Vision + KPI + Training
+- `01-requirements/` - Business Requirements & Modularity
+- `02-architecture/` - สถาปัตยกรรมระบบ (System & Network)
+- `03-Data-and-Storage/` - โครงสร้างฐานข้อมูลและการจัดการไฟล์
+- `04-Infrastructure-OPS/` - โครงสร้างพื้นฐานและการปฏิบัติการ
+- `05-Engineering-Guidelines/` - มาตรฐานการพัฒนาและการเขียนโค้ด
+- `06-Decision-Records/` - Architecture Decision Records (ADRs)
+- `08-Tasks/` - Task documents
+- `88-logs/` - Logs
+- `99-archives/` - ประวัติการทำงานและ Tasks เก่า
+
+### 2. Feature Work (Categorized - ใช้สำหรับงาน Implement)
+
+โฟลเดอร์เหล่านี้ใช้เก็บ plan.md, spec.md, tasks.md สำหรับงานที่กำลังดำเนินการ:
+
+- `100-Infrastructures/` - งานที่เกี่ยวกับ Infrastructure (Deployment, Monitoring, Docker Compose, Network)
+- `200-fullstacks/` - งาน Fullstack Development (Backend + Frontend features, Workflow Engine, API)
+- `300-others/` - งานอื่นๆ (Documentation, Research, Non-code tasks)
+
+### การตั้งชื่อโฟลเดอร์ Feature Work
+
+ใช้รูปแบบ: `nXX-feature-name`
+
+- **n** = หลักร้อยของหมวดหมู่ (1, 2, 3)
+- **XX** = เลขลำดับงาน (01, 02, 03, ...)
+- **feature-name** = ชื่องาน (kebab-case)
+
+ตัวอย่าง:
+
+- `100-Infrastructures/102-infra-ops` - Infrastructure Operations
+- `200-fullstacks/201-transmittals-circulation` - Transmittals + Circulation Integration
+- `200-fullstacks/203-unified-workflow-engine` - Unified Workflow Engine
+
+### กฎสำคัญ
+
+- **เมื่อสร้าง feature spec ใหม่** → วางไว้ในหมวดหมู่ที่เหมาะสม (100/200/300)
+- **ใช้เลขลำดับต่อจากงานล่าสุด** ในหมวดหมู่เดียวกัน
+- **อ่าน README.md** ในแต่ละหมวดหมู่ก่อนเริ่มงาน
+
+ดูรายละเอียดเพิ่มเติมใน:
+
+- `specs/100-Infrastructures/README.md`
+- `specs/200-fullstacks/README.md`
+- `specs/300-others/README.md`
 
 ---
 

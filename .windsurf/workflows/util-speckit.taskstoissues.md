@@ -9,7 +9,7 @@ description: Convert existing tasks into actionable, dependency-ordered issues o
    - The user may pass filters (e.g., phase, priority). Default: convert all pending tasks.
 
 2. **Load Skill**:
-   - Use the `view_file` tool to read the skill file at: `.agents/skills/speckit-taskstoissues/SKILL.md`
+   - Use the `view_file` tool to read the skill file at: `.windsurf/skills/speckit-taskstoissues/SKILL.md`
    - Also load `.agents/skills/_LCBP3-CONTEXT.md` for project conventions (labels, commit format).
 
 3. **Execute**:

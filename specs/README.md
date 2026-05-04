@@ -86,6 +86,22 @@ specs/
 │   ├── ADR-019-hybrid-identifier-strategy.md  # ★ Hybrid ID: INT PK + UUIDv7 Public API
 │   └── README.md                # รายชื่อ ADR ทั้งหมดพร้อมสถานะและวันที่
 │
+├── 100-Infrastructures/         # Feature Work: Infrastructure (Deployment, Monitoring, Docker Compose, Network)
+│   ├── 102-infra-ops/           # Infrastructure Operations & Deployment Automation
+│   └── README.md                # Category guide
+│
+├── 200-fullstacks/              # Feature Work: Fullstack Development (Backend + Frontend features, Workflow Engine, API)
+│   ├── 201-transmittals-circulation/  # Transmittals + Circulation Integration
+│   ├── 203-unified-workflow-engine/   # Unified Workflow Engine
+│   └── README.md                # Category guide
+│
+├── 300-others/                  # Feature Work: Documentation, Research, Non-code tasks
+│   └── README.md                # Category guide
+│
+├── 08-Tasks/                    # Task documents
+│
+├── 88-logs/                     # Logs
+│
 └── 99-archives/                 # ประวัติการทำงานและ Tasks เก่า
     ├── history/                 # ประวัติเก่า
     ├── tasks/                   # Task ที่อดีตเคยถูกใช้งาน
