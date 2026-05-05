@@ -1,5 +1,54 @@
 # Version History
 
+## 1.8.11 (2026-05-05)
+
+### chore(node): Upgrade to Node.js v24.15.0 LTS
+
+#### Summary
+
+อัพเกรด Node.js จาก v22.20.0 เป็น v24.15.0 LTS พร้อมการทดสอบครบถ้วนและปรับปรุง configuration ที่เกี่ยวข้อง
+
+#### Changes
+
+- **Docker**: อัพเดท base image จาก `node:22-alpine` เป็น `node:24-alpine` (backend + frontend รวม 6 stages)
+- **package.json**: เพิ่ม `engines.node: ">=24.0.0"` ทั้ง backend และ frontend
+- **.nvmrc**: สร้างไฟล์ใหม่กำหนด Node.js version `24.15.0` สำหรับ nvm users
+- **CI/CD**: อัพเดท `.gitea/workflows/ci-deploy.yml` ใช้ `node-version: 24.15.0`
+- **Jest E2E**: เพิ่ม `transformIgnorePatterns` รองรับ `uuid@13` ES Module syntax
+
+#### Validation Results
+
+| Test Suite          | Result        | Details         |
+| ------------------- | ------------- | --------------- |
+| Backend Unit Tests  | ✅ 340 passed | All suites pass |
+| Frontend Unit Tests | ✅ 137 passed | Vitest stable   |
+| Frontend Build      | ✅ Success    | 39 static pages |
+| CI/CD Pipeline      | ✅ Pass       | QNAP Runner     |
+
+#### Developer Impact
+
+**สำหรับทีม development**:
+
+```powershell
+# Windows: ติดตั้ง Node.js v24.15.0
+winget install OpenJS.NodeJS --version 24.15.0
+
+# หรือดาวน์โหลดจาก
+https://nodejs.org/download/release/v24.15.0/
+
+# ตรวจสอบ
+node --version  # v24.15.0
+```
+
+**หลัง pull โค้ดใหม่**:
+
+```powershell
+cd backend && Remove-Item -Recurse -Force node_modules && pnpm install
+cd frontend && Remove-Item -Recurse -Force node_modules && pnpm install
+```
+
+---
+
 ## 1.8.10 (2026-04-28)
 
 ### docs(infra): Network Infrastructure Guide v3.1 — Document Renamed + AMPCOM 2.5G Integration
