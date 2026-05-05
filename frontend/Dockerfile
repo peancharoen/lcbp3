@@ -15,7 +15,7 @@
 # =========================
 # Stage 1: Install Dependencies
 # =========================
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
@@ -31,7 +31,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts --filter lcbp3-frontend...
 # =========================
 # Stage 2: Build Application
 # =========================
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
@@ -96,7 +96,7 @@ RUN pnpm --filter lcbp3-frontend deploy /deploy --prod --legacy
 # =========================
 # Stage 3: Production Runtime
 # =========================
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
 WORKDIR /app
 

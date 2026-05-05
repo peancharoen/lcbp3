@@ -2,7 +2,7 @@ name: CI / CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
   workflow_dispatch:
 
@@ -25,7 +25,7 @@ jobs:
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24.15.0
           # ลบ cache: "pnpm" ออก — ใช้ volume mount บน runner แทน
 
           # ── [2] ชี้ store ไปที่ volume ที่ mount ไว้ ─────────────
@@ -68,10 +68,10 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: self-hosted
     steps:
-      - name: " Checkout"
+      - name: ' Checkout'
         uses: actions/checkout@v4
 
-      - name: "🚀 Deploy to QNAP"
+      - name: '🚀 Deploy to QNAP'
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa

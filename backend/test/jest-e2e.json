@@ -14,6 +14,7 @@
     "^@database/(.*)$": "<rootDir>/src/database/$1",
     "^(\\.{1,2}/.*)\\.js$": "$1"
   },
+  "transformIgnorePatterns": ["node_modules/.pnpm/(?!uuid)"],
   "setupFilesAfterEnv": ["<rootDir>/test/jest-e2e.setup.ts"],
   "testTimeout": 60000,
   "maxWorkers": 1,
