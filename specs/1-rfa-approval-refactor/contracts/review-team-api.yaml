@@ -1,0 +1,486 @@
+# Review Teams API Contract
+# OpenAPI 3.0.3
+
+openapi: 3.0.3
+info:
+  title: Review Teams API
+  version: 1.0.0
+  description: |
+    API for managing Review Teams and Review Tasks for RFA approval workflow.
+    All IDs are UUID strings (publicId) per ADR-019.
+
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Review Teams
+  - name: Review Tasks
+
+paths:
+  /review-teams:
+    get:
+      summary: List Review Teams
+      tags: [Review Teams]
+      parameters:
+        - name: projectId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: List of review teams
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReviewTeam'
+
+    post:
+      summary: Create Review Team
+      tags: [Review Teams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewTeamDto'
+      responses:
+        '201':
+          description: Created review team
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTeam'
+
+  /review-teams/{publicId}:
+    parameters:
+      - name: publicId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get Review Team
+      tags: [Review Teams]
+      responses:
+        '200':
+          description: Review team details with members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTeamWithMembers'
+
+    patch:
+      summary: Update Review Team
+      tags: [Review Teams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewTeamDto'
+      responses:
+        '200':
+          description: Updated review team
+
+    delete:
+      summary: Soft Delete Review Team
+      tags: [Review Teams]
+      responses:
+        '204':
+          description: Deleted
+
+  /review-teams/{teamId}/members:
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      summary: Add Member to Review Team
+      tags: [Review Teams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTeamMemberDto'
+      responses:
+        '201':
+          description: Member added
+
+  /review-teams/{teamId}/members/{memberId}:
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: memberId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    delete:
+      summary: Remove Member from Review Team
+      tags: [Review Teams]
+      responses:
+        '204':
+          description: Member removed
+
+  /review-tasks:
+    get:
+      summary: List Review Tasks (for current user inbox)
+      tags: [Review Tasks]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, IN_PROGRESS, COMPLETED, DELEGATED, EXPIRED]
+        - name: includeDelegated
+          in: query
+          schema:
+            type: boolean
+            default: false
+            description: Include tasks delegated to user
+      responses:
+        '200':
+          description: List of review tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReviewTask'
+                  aggregate:
+                    $ref: '#/components/schemas/TaskAggregate'
+
+  /review-tasks/{publicId}:
+    parameters:
+      - name: publicId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get Review Task Detail
+      tags: [Review Tasks]
+      responses:
+        '200':
+          description: Task details with RFA info
+
+    post:
+      summary: Complete Review Task
+      tags: [Review Tasks]
+      description: Submit review decision with response code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteReviewTaskDto'
+      responses:
+        '200':
+          description: Task completed, consensus evaluated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: '#/components/schemas/ReviewTask'
+                  consensus:
+                    $ref: '#/components/schemas/ConsensusResult'
+
+  /review-tasks/{publicId}/delegate:
+    post:
+      summary: Delegate Review Task
+      tags: [Review Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                delegateeUserId:
+                  type: string
+                  format: uuid
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Task delegated
+
+  /rfa-revisions/{revisionId}/review-status:
+    get:
+      summary: Get Aggregate Review Status for RFA Revision
+      tags: [Review Tasks]
+      parameters:
+        - name: revisionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Aggregate status across all disciplines
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewAggregateStatus'
+
+components:
+  schemas:
+    ReviewTeam:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        defaultForRfaTypes:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        memberCount:
+          type: integer
+
+    ReviewTeamWithMembers:
+      allOf:
+        - $ref: '#/components/schemas/ReviewTeam'
+        - type: object
+          properties:
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/TeamMember'
+
+    TeamMember:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/UserBrief'
+        discipline:
+          $ref: '#/components/schemas/DisciplineBrief'
+        role:
+          type: string
+          enum: [REVIEWER, LEAD, MANAGER]
+        priorityOrder:
+          type: integer
+
+    ReviewTask:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        rfaRevisionId:
+          type: string
+          format: uuid
+        team:
+          $ref: '#/components/schemas/ReviewTeam'
+        discipline:
+          $ref: '#/components/schemas/DisciplineBrief'
+        assignedTo:
+          $ref: '#/components/schemas/UserBrief'
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED, DELEGATED, EXPIRED, CANCELLED]
+        dueDate:
+          type: string
+          format: date
+        responseCode:
+          $ref: '#/components/schemas/ResponseCodeBrief'
+        comments:
+          type: string
+        isDelegated:
+          type: boolean
+
+    ConsensusResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [APPROVED, REJECTED, IN_PROGRESS, SPLIT]
+        totalDisciplines:
+          type: integer
+        completedCount:
+          type: integer
+        approvedCount:
+          type: integer
+        rejectedCount:
+          type: integer
+        vetoTriggered:
+          type: boolean
+          description: True if any discipline gave Code 3
+
+    ReviewAggregateStatus:
+      type: object
+      properties:
+        rfaRevisionId:
+          type: string
+          format: uuid
+        totalTasks:
+          type: integer
+        completedTasks:
+          type: integer
+        pendingTasks:
+          type: integer
+        consensusStatus:
+          type: string
+          enum: [UNANIMOUS_APPROVAL, MAJORITY_APPROVAL, REJECTED, IN_PROGRESS, PENDING]
+        perDiscipline:
+          type: array
+          items:
+            type: object
+            properties:
+              discipline:
+                $ref: '#/components/schemas/DisciplineBrief'
+              taskId:
+                type: string
+                format: uuid
+              status:
+                type: string
+              responseCode:
+                type: string
+
+    CreateReviewTeamDto:
+      type: object
+      required: [name, projectId]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 255
+        projectId:
+          type: string
+          format: uuid
+        defaultForRfaTypes:
+          type: array
+          items:
+            type: string
+
+    UpdateReviewTeamDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        description:
+          type: string
+        isActive:
+          type: boolean
+
+    AddTeamMemberDto:
+      type: object
+      required: [userId, disciplineId]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        disciplineId:
+          type: integer
+        role:
+          type: string
+          enum: [REVIEWER, LEAD, MANAGER]
+          default: REVIEWER
+
+    CompleteReviewTaskDto:
+      type: object
+      required: [responseCodeId]
+      properties:
+        responseCodeId:
+          type: string
+          format: uuid
+          description: Selected response code (e.g., 1A, 2, 3)
+        comments:
+          type: string
+          maxLength: 2000
+        attachments:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    UserBrief:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+
+    DisciplineBrief:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+
+    ResponseCodeBrief:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        descriptionTh:
+          type: string
+        descriptionEn:
+          type: string
+
+    TaskAggregate:
+      type: object
+      properties:
+        total:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
