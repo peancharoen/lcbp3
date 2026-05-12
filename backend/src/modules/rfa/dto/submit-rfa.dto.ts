@@ -1,6 +1,6 @@
 // File: src/modules/rfa/dto/submit-rfa.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class SubmitRfaDto {
   @ApiProperty({
@@ -10,4 +10,13 @@ export class SubmitRfaDto {
   @IsInt()
   @IsNotEmpty()
   templateId!: number;
+
+  @ApiProperty({
+    description: 'publicId ของ Review Team สำหรับ Parallel Review (ADR-019)',
+    example: '019505a1-7c3e-7000-8000-abc123def456',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  reviewTeamPublicId?: string;
 }

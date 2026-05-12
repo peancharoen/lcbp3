@@ -1,6 +1,6 @@
 # Quickstart Guide: RFA Approval System Refactor
 
-**Branch**: `1-rfa-approval-refactor`  
+**Branch**: `1-rfa-approval-refactor`
 **Prerequisites**: Docker Compose environment running (MariaDB, Redis)
 
 ---
@@ -88,7 +88,7 @@ Verify modules loaded:
 # Terminal 2 - Reminder processor
 npx ts-node -r tsconfig-paths/register src/modules/reminder/processors/reminder.processor.ts
 
-# Terminal 3 - Distribution processor  
+# Terminal 3 - Distribution processor
 npx ts-node -r tsconfig-paths/register src/modules/distribution/processors/distribution.processor.ts
 ```
 
@@ -268,7 +268,60 @@ mysql -u root -p lcbp3 -e "SELECT COUNT(*) FROM response_codes;"
 
 ---
 
-## 8. Next Steps
+## 8. Running Tests
+
+### 8.1 Backend Unit + Integration Tests
+
+```bash
+cd backend
+
+# Unit tests only (runs from src/)
+npm test
+
+# Tests in tests/ directory (Phase 9 stubs)
+npx jest --rootDir . --testMatch '**/tests/**/*.spec.ts' --passWithNoTests
+
+# Coverage report
+npm run test:cov
+```
+
+### 8.2 Frontend Tests
+
+```bash
+cd frontend
+npm test -- --watchAll=false
+```
+
+### 8.3 E2E Tests (requires seeded database)
+
+```bash
+cd backend
+npm run test:e2e
+```
+
+---
+
+## 9. New Phase 9 Components
+
+| Component | Path | Description |
+|-----------|------|-------------|
+| `AggregateStatusService` | `backend/src/modules/review-team/services/` | Consensus % calculator |
+| `ConsensusService` | `backend/src/modules/review-team/services/` | Triggers distribution after all tasks complete |
+| `VetoOverrideService` | `backend/src/modules/review-team/services/` | PM force-approve with audit trail |
+| `ParallelGatewayHandler` | `backend/src/modules/workflow-engine/dsl/` | DSL support for parallel review |
+| `ReviewTaskInbox` | `frontend/components/review-task/` | Reviewer inbox with status filters |
+| `ParallelProgress` | `frontend/components/review-task/` | Discipline track progress bar |
+| `VetoOverrideDialog` | `frontend/components/review-task/` | PM override dialog with justification |
+
+### New Admin URLs
+
+- **Distribution Matrix**: http://localhost:3000/dashboard/admin/distribution-matrices
+- **Reminder Rules**: http://localhost:3000/dashboard/admin/reminder-rules
+- **Master Approval Matrix**: http://localhost:3000/dashboard/admin/approval-matrix
+
+---
+
+## 10. Next Steps
 
 1. **Run Tests**: `npm test` (backend), `npm run test:e2e` (frontend)
 2. **Load Test**: `k6 run load-tests/rfa-approval-load.js`

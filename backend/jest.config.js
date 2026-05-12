@@ -14,10 +14,14 @@ module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
 
   // Root directory for tests
-  rootDir: 'src',
+  rootDir: '.',
 
-  // Test file pattern
-  testRegex: '.*\\.spec\\.ts$',
+  // Test file pattern — ครอบคลุมทั้ง src/ (unit) และ tests/ (integration/e2e)
+  testMatch: [
+    '<rootDir>/src/**/*.spec.ts',
+    '<rootDir>/tests/**/*.spec.ts',
+    '<rootDir>/tests/**/*.e2e-spec.ts',
+  ],
 
   // TypeScript transformation
   transform: {
@@ -30,16 +34,16 @@ module.exports = {
 
   // Coverage configuration
   collectCoverageFrom: [
-    '**/*.(t|j)s',
-    '!**/*.d.ts',
-    '!**/index.ts',
-    '!**/database/seeds/**',
-    '!**/database/migrations/**',
-    '!**/config/**',
-    '!**/scripts/**',
-    '!**/*.module.ts',
+    'src/**/*.(t|j)s',
+    '!src/**/*.d.ts',
+    '!src/**/index.ts',
+    '!src/**/database/seeds/**',
+    '!src/**/database/migrations/**',
+    '!src/**/config/**',
+    '!src/**/scripts/**',
+    '!src/**/*.module.ts',
   ],
-  coverageDirectory: '../coverage',
+  coverageDirectory: './coverage',
   coveragePathIgnorePatterns: ['/node_modules/', '/test/', '/dist/'],
 
   // Test environment
@@ -49,7 +53,7 @@ module.exports = {
   cacheDirectory: '.jest-cache',
 
   // Global setup after env
-  setupFilesAfterEnv: ['../test/jest.setup.ts'],
+  setupFilesAfterEnv: ['./test/jest.setup.ts'],
 
   // Transform ignore patterns (ให้ Jest ประมวลผล ESM modules)
   // รองรับ uuid และ @nestjs/elasticsearch ที่เป็น ESM
@@ -100,11 +104,11 @@ module.exports = {
 
   // Module name mapper for path aliases
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
-    '^@common/(.*)$': '<rootDir>/common/$1',
-    '^@modules/(.*)$': '<rootDir>/modules/$1',
-    '^@config/(.*)$': '<rootDir>/config/$1',
-    '^@database/(.*)$': '<rootDir>/database/$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@common/(.*)$': '<rootDir>/src/common/$1',
+    '^@modules/(.*)$': '<rootDir>/src/modules/$1',
+    '^@config/(.*)$': '<rootDir>/src/config/$1',
+    '^@database/(.*)$': '<rootDir>/src/database/$1',
   },
 
   // Verbose output for debugging
