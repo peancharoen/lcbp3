@@ -30,14 +30,23 @@ import { UserModule } from '../user/user.module';
 import { DistributionModule } from '../distribution/distribution.module';
 
 // Queue constants
-import { QUEUE_REMINDERS, QUEUE_VETO_NOTIFICATIONS } from '../common/constants/queue.constants';
+import {
+  QUEUE_REMINDERS,
+  QUEUE_VETO_NOTIFICATIONS,
+} from '../common/constants/queue.constants';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ReviewTeam, ReviewTeamMember, ReviewTask, User, Discipline]),
+    TypeOrmModule.forFeature([
+      ReviewTeam,
+      ReviewTeamMember,
+      ReviewTask,
+      User,
+      Discipline,
+    ]),
     BullModule.registerQueue(
       { name: QUEUE_REMINDERS },
-      { name: QUEUE_VETO_NOTIFICATIONS },
+      { name: QUEUE_VETO_NOTIFICATIONS }
     ),
     ResponseCodeModule,
     NotificationModule,

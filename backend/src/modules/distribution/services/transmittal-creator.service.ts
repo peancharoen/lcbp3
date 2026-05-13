@@ -15,7 +15,7 @@ export class TransmittalCreatorService {
 
   constructor(
     @InjectRepository(DistributionMatrix)
-    private readonly matrixRepo: Repository<DistributionMatrix>,
+    private readonly matrixRepo: Repository<DistributionMatrix>
   ) {}
 
   /**
@@ -40,7 +40,7 @@ export class TransmittalCreatorService {
 
     if (!matrix || !matrix.recipients || matrix.recipients.length === 0) {
       this.logger.log(
-        `No distribution matrix found for project ${payload.projectId}, docType ${payload.documentTypeCode}`,
+        `No distribution matrix found for project ${payload.projectId}, docType ${payload.documentTypeCode}`
       );
       return { transmittalPublicIds: [] };
     }
@@ -52,13 +52,13 @@ export class TransmittalCreatorService {
       !matrix.responseCodeFilter.includes(payload.responseCode)
     ) {
       this.logger.log(
-        `Response code ${payload.responseCode} not in filter — skipping distribution`,
+        `Response code ${payload.responseCode} not in filter — skipping distribution`
       );
       return { transmittalPublicIds: [] };
     }
 
     this.logger.log(
-      `Creating Transmittal for RFA ${payload.rfaPublicId} → ${matrix.recipients.length} recipients`,
+      `Creating Transmittal for RFA ${payload.rfaPublicId} → ${matrix.recipients.length} recipients`
     );
 
     // TODO: เรียก TransmittalService.create() เมื่อ integrate ใน Sprint ถัดไป

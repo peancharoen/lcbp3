@@ -19,7 +19,7 @@ export class NotificationTriggerService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     private readonly notificationService: NotificationService,
-    private readonly implicationsService: ImplicationsService,
+    private readonly implicationsService: ImplicationsService
   ) {}
 
   /**
@@ -30,14 +30,16 @@ export class NotificationTriggerService {
     responseCodePublicId: string,
     rfaPublicId: string,
     documentNumber: string,
-    reviewerUserId: number,
+    _reviewerUserId: number
   ): Promise<void> {
     const responseCode = await this.responseCodeRepo.findOne({
       where: { publicId: responseCodePublicId },
     });
 
     if (!responseCode) {
-      this.logger.warn(`Response code not found for notification trigger: ${responseCodePublicId}`);
+      this.logger.warn(
+        `Response code not found for notification trigger: ${responseCodePublicId}`
+      );
       return;
     }
 
@@ -75,12 +77,12 @@ export class NotificationTriggerService {
           type: 'SYSTEM',
           entityType: 'rfa',
           entityId: rfaPublicId as unknown as number,
-        }),
-      ),
+        })
+      )
     );
 
     this.logger.log(
-      `Triggered ${notifyRoles.length} role notifications for code ${codeLabel} on document ${documentNumber}`,
+      `Triggered ${notifyRoles.length} role notifications for code ${codeLabel} on document ${documentNumber}`
     );
   }
 }

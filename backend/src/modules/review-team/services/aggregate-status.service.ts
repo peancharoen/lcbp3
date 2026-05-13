@@ -4,7 +4,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReviewTask } from '../entities/review-task.entity';
-import { ReviewTaskStatus, ConsensusDecision } from '../../common/enums/review.enums';
+import {
+  ReviewTaskStatus,
+  ConsensusDecision,
+} from '../../common/enums/review.enums';
 
 export interface AggregateStatus {
   total: number;
@@ -24,7 +27,7 @@ export class AggregateStatusService {
 
   constructor(
     @InjectRepository(ReviewTask)
-    private readonly taskRepo: Repository<ReviewTask>,
+    private readonly taskRepo: Repository<ReviewTask>
   ) {}
 
   /**
@@ -47,12 +50,23 @@ export class AggregateStatusService {
 
     for (const task of tasks) {
       switch (task.status) {
-        case ReviewTaskStatus.COMPLETED: counts.completed++; break;
-        case ReviewTaskStatus.PENDING: counts.pending++; break;
-        case ReviewTaskStatus.IN_PROGRESS: counts.inProgress++; break;
-        case ReviewTaskStatus.DELEGATED: counts.delegated++; break;
-        case ReviewTaskStatus.EXPIRED: counts.expired++; break;
-        default: break;
+        case ReviewTaskStatus.COMPLETED:
+          counts.completed++;
+          break;
+        case ReviewTaskStatus.PENDING:
+          counts.pending++;
+          break;
+        case ReviewTaskStatus.IN_PROGRESS:
+          counts.inProgress++;
+          break;
+        case ReviewTaskStatus.DELEGATED:
+          counts.delegated++;
+          break;
+        case ReviewTaskStatus.EXPIRED:
+          counts.expired++;
+          break;
+        default:
+          break;
       }
     }
 
@@ -94,7 +108,7 @@ export class AggregateStatusService {
 
     // All approved: Code 1A or 1B = APPROVED
     const allApproved = tasks.every((t) =>
-      ['1A', '1B'].includes(t.responseCode?.code ?? ''),
+      ['1A', '1B'].includes(t.responseCode?.code ?? '')
     );
     if (allApproved) return ConsensusDecision.APPROVED;
 

@@ -49,7 +49,11 @@ export class DistributionRecipient extends UuidBaseEntity {
   createdAt!: Date;
 
   // Relations
-  @ManyToOne(() => DistributionMatrix, (m: DistributionMatrix) => m.recipients, { onDelete: 'CASCADE' })
+  @ManyToOne(
+    () => DistributionMatrix,
+    (m: DistributionMatrix) => m.recipients,
+    { onDelete: 'CASCADE' }
+  )
   @JoinColumn({ name: 'matrix_id' })
   matrix!: DistributionMatrix;
 }

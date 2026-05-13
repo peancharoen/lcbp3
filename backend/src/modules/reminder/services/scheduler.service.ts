@@ -15,13 +15,15 @@ export interface ScheduleReminderPayload {
   reminderType: ReminderType;
 }
 
+type ReminderJob = Job<ScheduleReminderPayload>;
+
 @Injectable()
 export class SchedulerService {
   private readonly logger = new Logger(SchedulerService.name);
 
   constructor(
     @InjectQueue(QUEUE_REMINDERS)
-    private readonly reminderQueue: Queue,
+    private readonly reminderQueue: Queue
   ) {}
 
   /**
@@ -32,7 +34,8 @@ export class SchedulerService {
     const { taskPublicId, dueDate } = payload;
     const now = Date.now();
 
-    const remindersToSchedule: Array<{ type: ReminderType; delayMs: number }> = [];
+    const remindersToSchedule: Array<{ type: ReminderType; delayMs: number }> =
+      [];
 
     // 2 วันก่อน due date
     const twoDaysBefore = dueDate.getTime() - 2 * 86_400_000;
@@ -71,13 +74,13 @@ export class SchedulerService {
         this.reminderQueue.add(
           'send-reminder',
           { ...payload, reminderType: type },
-          { delay: delayMs, removeOnComplete: true, removeOnFail: 100 },
-        ),
-      ),
+          { delay: delayMs, removeOnComplete: true, removeOnFail: 100 }
+        )
+      )
     );
 
     this.logger.log(
-      `Scheduled ${remindersToSchedule.length} reminders for task ${taskPublicId}`,
+      `Scheduled ${remindersToSchedule.length} reminders for task ${taskPublicId}`
     );
   }
 
@@ -86,12 +89,14 @@ export class SchedulerService {
    */
   async cancelForTask(taskPublicId: string): Promise<void> {
     const jobs = await this.reminderQueue.getDelayed();
-    const taskJobs = jobs.filter((j: Job) => j.data?.taskPublicId === taskPublicId);
+    const taskJobs = jobs.filter(
+      (j: ReminderJob) => j.data.taskPublicId === taskPublicId
+    );
 
-    await Promise.all(taskJobs.map((j: Job) => j.remove()));
+    await Promise.all(taskJobs.map((j: ReminderJob) => j.remove()));
 
     this.logger.log(
-      `Cancelled ${taskJobs.length} reminder jobs for task ${taskPublicId}`,
+      `Cancelled ${taskJobs.length} reminder jobs for task ${taskPublicId}`
     );
   }
 }

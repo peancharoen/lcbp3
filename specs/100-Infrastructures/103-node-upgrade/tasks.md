@@ -16,10 +16,10 @@
 
 **Purpose**: Verify local environment readiness and create feature branch
 
-- [ ] T001 [P] Verify Node.js v24.15.0 is available: `nvm install 24.15.0` and confirm installation
-- [ ] T002 Create feature branch: `git checkout -b 103-node-upgrade`
-- [ ] T003 [P] Verify pnpm 9.x compatibility with Node.js v24: check pnpm documentation
-- [ ] T004 Pull latest Docker image: `docker pull node:24.15.0-alpine3.21`
+- [x] T001 [P] Verify Node.js v24.15.0 is available: `nvm install 24.15.0` and confirm installation
+- [x] T002 Create feature branch: `git checkout -b 103-node-upgrade`
+- [x] T003 [P] Verify pnpm 9.x compatibility with Node.js v24: check pnpm documentation
+- [x] T004 Pull latest Docker image: `docker pull node:24.15.0-alpine3.21`
 
 ---
 
@@ -48,7 +48,7 @@
 ### Docker & Build for Backend
 
 - [x] T010 [P] Update `backend/Dockerfile`: change `FROM node:22-alpine` to `FROM node:24-alpine` (all 3 stages)
-- [ ] T011 Regenerate `backend/pnpm-lock.yaml`: `rm -rf node_modules pnpm-lock.yaml && pnpm install` (uses Node.js v24)
+- [x] T011 Regenerate `backend/pnpm-lock.yaml`: `rm -rf node_modules pnpm-lock.yaml && pnpm install` (uses Node.js v24)
 - [ ] T012 Test backend Docker build: `docker build -t nap-dms-backend:v24-test .` - verify no errors
 
 ### Native Dependencies Validation
@@ -77,7 +77,7 @@
 ### Docker & Build for Frontend
 
 - [x] T020 [P] Update `frontend/Dockerfile`: change `FROM node:22-alpine` to `FROM node:24-alpine` (all 3 stages)
-- [ ] T021 Regenerate `frontend/pnpm-lock.yaml`: `rm -rf node_modules pnpm-lock.yaml && pnpm install` (uses Node.js v24)
+- [x] T021 Regenerate `frontend/pnpm-lock.yaml`: `rm -rf node_modules pnpm-lock.yaml && pnpm install` (uses Node.js v24)
 - [ ] T022 Test frontend Docker build: `docker build -t nap-dms-frontend:v24-test .` - verify no errors
 
 ### Build Validation
@@ -153,9 +153,9 @@
 
 ### Documentation Updates
 
-- [ ] T042 Update `README.md`: Add Node.js v24.15.0 requirement to prerequisites section
-- [ ] T043 Update developer onboarding docs: Reference new `.nvmrc` files for version management
-- [ ] T044 Update `CHANGELOG.md`: Add entry for Node.js v24.15.0 upgrade
+- [x] T042 Update `README.md`: Add Node.js v24.15.0 requirement to prerequisites section
+- [x] T043 Update developer onboarding docs: Reference new `.nvmrc` files for version management
+- [x] T044 Update `CHANGELOG.md`: Add entry for Node.js v24.15.0 upgrade
 
 ### Final Validation
 

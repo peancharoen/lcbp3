@@ -46,7 +46,9 @@ export class ReviewTeamMember extends UuidBaseEntity {
   createdAt!: Date;
 
   // Relations
-  @ManyToOne(() => ReviewTeam, (team: ReviewTeam) => team.members, { onDelete: 'CASCADE' })
+  @ManyToOne(() => ReviewTeam, (team: ReviewTeam) => team.members, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'team_id' })
   team!: ReviewTeam;
 

@@ -1,7 +1,7 @@
 ---
 name: speckit-diff
 description: Compare two versions of a spec or plan to highlight changes.
-version: 1.8.9
+version: 1.9.0
 depends-on: []
 ---
 

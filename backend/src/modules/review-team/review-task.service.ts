@@ -1,5 +1,11 @@
 // File: src/modules/review-team/review-task.service.ts
-import { Injectable, Logger, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReviewTask } from './entities/review-task.entity';
@@ -19,7 +25,7 @@ export class ReviewTaskService {
     @InjectRepository(ReviewTask)
     private readonly reviewTaskRepo: Repository<ReviewTask>,
     @InjectRepository(ResponseCode)
-    private readonly responseCodeRepo: Repository<ResponseCode>,
+    private readonly responseCodeRepo: Repository<ResponseCode>
   ) {}
 
   /**
@@ -41,8 +47,11 @@ export class ReviewTaskService {
       .leftJoinAndSelect('task.team', 'team');
 
     if (dto.rfaRevisionPublicId) {
-      qb.innerJoin('rfa_revisions', 'rev', 'rev.id = task.rfa_revision_id')
-        .where('rev.uuid = :uuid', { uuid: dto.rfaRevisionPublicId });
+      qb.innerJoin(
+        'rfa_revisions',
+        'rev',
+        'rev.id = task.rfa_revision_id'
+      ).where('rev.uuid = :uuid', { uuid: dto.rfaRevisionPublicId });
     }
 
     if (dto.status) {
@@ -50,7 +59,9 @@ export class ReviewTaskService {
     }
 
     if (dto.assignedToUserPublicId) {
-      qb.andWhere('user.uuid = :userUuid', { userUuid: dto.assignedToUserPublicId });
+      qb.andWhere('user.uuid = :userUuid', {
+        userUuid: dto.assignedToUserPublicId,
+      });
     }
 
     if (dto.dueDateFrom) {
@@ -94,7 +105,8 @@ export class ReviewTaskService {
     const total = tasks.length;
     const completed = tasks.filter(
       (t: ReviewTask) =>
-        t.status === ReviewTaskStatus.COMPLETED || t.status === ReviewTaskStatus.CANCELLED,
+        t.status === ReviewTaskStatus.COMPLETED ||
+        t.status === ReviewTaskStatus.CANCELLED
     ).length;
     const pending = total - completed;
 
@@ -114,7 +126,7 @@ export class ReviewTaskService {
 
     if (task.status !== ReviewTaskStatus.PENDING) {
       throw new BadRequestException(
-        `Cannot start review: task is already ${task.status}`,
+        `Cannot start review: task is already ${task.status}`
       );
     }
 
@@ -126,7 +138,10 @@ export class ReviewTaskService {
    * บันทึกผลการตรวจสอบ (FR-009, T069)
    * ใช้ Optimistic Locking (@VersionColumn) ป้องกัน race condition (ADR-002)
    */
-  async completeReview(publicId: string, dto: CompleteReviewTaskDto): Promise<ReviewTask> {
+  async completeReview(
+    publicId: string,
+    dto: CompleteReviewTaskDto
+  ): Promise<ReviewTask> {
     const task = await this.findByPublicId(publicId);
 
     if (
@@ -134,7 +149,7 @@ export class ReviewTaskService {
       task.status === ReviewTaskStatus.CANCELLED
     ) {
       throw new BadRequestException(
-        `Cannot complete review: task is already ${task.status}`,
+        `Cannot complete review: task is already ${task.status}`
       );
     }
 
@@ -145,7 +160,7 @@ export class ReviewTaskService {
 
     if (!responseCode) {
       throw new NotFoundException(
-        `Response Code not found: ${dto.responseCodePublicId}`,
+        `Response Code not found: ${dto.responseCodePublicId}`
       );
     }
 
@@ -154,7 +169,7 @@ export class ReviewTaskService {
       ReviewTaskStatus.COMPLETED,
       responseCode.id,
       false, // requiresComments checked at controller level via ResponseCodeRule
-      dto.comments,
+      dto.comments
     );
 
     task.status = ReviewTaskStatus.COMPLETED;
@@ -168,9 +183,12 @@ export class ReviewTaskService {
       return await this.reviewTaskRepo.save(task);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      if (errorMessage.includes('OptimisticLock') || errorMessage.includes('version')) {
+      if (
+        errorMessage.includes('OptimisticLock') ||
+        errorMessage.includes('version')
+      ) {
         throw new ConflictException(
-          'Review task was modified concurrently. Please refresh and try again.',
+          'Review task was modified concurrently. Please refresh and try again.'
         );
       }
       throw err;

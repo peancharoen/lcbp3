@@ -11,10 +11,11 @@ import { EscalationService } from './services/escalation.service';
 import { ReminderProcessor } from './processors/reminder.processor';
 import { QUEUE_REMINDERS } from '../common/constants/queue.constants';
 import { NotificationModule } from '../notification/notification.module';
+import { Project } from '../project/entities/project.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ReminderRule, ReviewTask]),
+    TypeOrmModule.forFeature([ReminderRule, ReviewTask, Project]),
     BullModule.registerQueue({ name: QUEUE_REMINDERS }),
     NotificationModule,
   ],

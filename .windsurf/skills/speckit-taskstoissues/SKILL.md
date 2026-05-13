@@ -1,7 +1,7 @@
 ---
 name: speckit-taskstoissues
 description: Convert existing tasks into actionable, dependency-ordered issues for the feature based on available design artifacts.
-version: 1.8.9
+version: 1.9.0
 depends-on:
   - speckit-tasks
 tools: ['github/github-mcp-server/issue_write']

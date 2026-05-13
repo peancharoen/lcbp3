@@ -9,10 +9,7 @@ import { CircularDetectionService } from './services/circular-detection.service'
 import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Delegation, User]),
-    UserModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Delegation, User]), UserModule],
   providers: [DelegationService, CircularDetectionService],
   controllers: [DelegationController],
   exports: [DelegationService],

@@ -1,9 +1,9 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.0 | Last synced from repo: 2026-05-03
+- Version: 1.9.1 | Last synced from repo: 2026-05-13
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
-- Skill pack: `.agents/skills/` (v1.8.9, 20 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
+- Skill pack: `.agents/skills/` (v1.9.1, 21 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
 ---
 
@@ -427,6 +427,7 @@ When user asks about... check these files:
 | "Transmittal submit"    | ADR-021, TransmittalService                                                           | submit() with EC-RFA-004 validation                     |
 | "Circulation reassign"  | ADR-021, CirculationService                                                           | reassignRouting() with EC-CIRC-001                      |
 | "Audit ความปลอดภัย"     | `ADR-016`, `ADR-018`, `ADR-019`                                                       | ตรวจสอบ UUID pattern, CASL Guard และ AI Boundary        |
+| "แก้ bug / bugfix"      | `.agents/workflows/bugfix.md`, `error-catalog.md`                                     | ใช้ bugfix workflow สำหรับเคสที่สาเหตุชัดเจน           |
 
 ## 🛠️ Final Checklist (Tier 1 & Tier 2)
 
@@ -475,7 +476,7 @@ This file is a **quick reference**. For detailed information:
 - **Engineering Guidelines:** `specs/05-Engineering-Guidelines/`
 - **Decision Records:** `specs/06-Decision-Records/`
 - **Infrastructure:** `specs/04-Infrastructure-OPS/`
-- **Agent Skill Pack:** `.agents/skills/` (NestJS/Next.js rules + 18 Speckit workflow skills)
+- **Agent Skill Pack:** `.agents/skills/` (NestJS/Next.js rules + 21 Speckit & Utility skills)
 - **Helper Scripts:** `.agents/scripts/{bash,powershell}/` (audit, validate, prerequisites, setup-plan)
 
 ---
@@ -484,6 +485,7 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                           | Updated By     |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                   | Windsurf AI    |
 | 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                      | Windsurf AI    |
 | 1.8.9   | 2026-04-22 | `.agents/skills/` LCBP3-native rebuild (20 skills @ v1.8.9) + `_LCBP3-CONTEXT.md` appendix + `specs/03-Data-and-Storage/deltas/` + AGENTS.md sync | Windsurf AI    |
 | 1.8.8   | 2026-04-14 | Workflow attachments (ADR-021) + step-attachment envelope fields                                                                                  | Windsurf AI    |

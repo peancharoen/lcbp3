@@ -18,9 +18,13 @@ trigger: always_on
 
 ## 🟡 Normal Work — UI / Feature / Integration
 
-- Follow existing patterns in codebase
-- Check spec for relevant module only
-- No need to read all specs
+- Follow existing patterns in codebase.
+- Check spec for relevant module only.
+- **Hybrid Specs Organization:** 
+  - Place new Infrastructure tasks in `specs/100-Infrastructures/`
+  - Place new Feature/Workflow tasks in `specs/200-fullstacks/`
+  - Place Documentation/Research in `specs/300-others/`
+- Ensure no forbidden patterns (`any`, `console.log`, UUID misuse) are introduced.
 
 ## 🟢 Quick Fix — Bug Fix / Typo / Style
 

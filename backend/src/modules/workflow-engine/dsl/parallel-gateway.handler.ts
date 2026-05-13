@@ -45,7 +45,9 @@ export class ParallelGatewayHandler {
         return completedBranches.size >= 1;
 
       default:
-        this.logger.warn(`Unknown completion strategy: ${step.completionStrategy as string}`);
+        this.logger.warn(
+          `Unknown completion strategy: ${step.completionStrategy as string}`
+        );
         return false;
     }
   }
@@ -55,7 +57,7 @@ export class ParallelGatewayHandler {
    */
   createContext(
     rfaRevisionPublicId: string,
-    step: ParallelGatewayStep,
+    step: ParallelGatewayStep
   ): GatewayExecutionContext {
     return {
       rfaRevisionPublicId,
@@ -70,14 +72,14 @@ export class ParallelGatewayHandler {
   markBranchComplete(
     ctx: GatewayExecutionContext,
     branchId: string,
-    step: ParallelGatewayStep,
+    step: ParallelGatewayStep
   ): { canAdvance: boolean; completedCount: number } {
     ctx.completedBranches.add(branchId);
 
     const canAdvance = this.canAdvance(step, ctx);
 
     this.logger.log(
-      `Branch ${branchId} complete. ${ctx.completedBranches.size}/${ctx.totalBranches} — canAdvance: ${canAdvance}`,
+      `Branch ${branchId} complete. ${ctx.completedBranches.size}/${ctx.totalBranches} — canAdvance: ${canAdvance}`
     );
 
     return { canAdvance, completedCount: ctx.completedBranches.size };

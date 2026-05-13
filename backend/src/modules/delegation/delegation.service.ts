@@ -1,5 +1,10 @@
 // File: src/modules/delegation/delegation.service.ts
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Delegation } from './entities/delegation.entity';
@@ -16,18 +21,29 @@ export class DelegationService {
     private readonly delegationRepo: Repository<Delegation>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-    private readonly circularDetectionService: CircularDetectionService,
+    private readonly circularDetectionService: CircularDetectionService
   ) {}
 
   /**
    * สร้าง Delegation ใหม่ พร้อมตรวจสอบ Circular (FR-011, FR-012)
    */
-  async create(delegatorPublicId: string, dto: CreateDelegationDto): Promise<Delegation> {
-    const delegator = await this.userRepo.findOne({ where: { publicId: delegatorPublicId } });
-    if (!delegator) throw new NotFoundException(`User not found: ${delegatorPublicId}`);
+  async create(
+    delegatorPublicId: string,
+    dto: CreateDelegationDto
+  ): Promise<Delegation> {
+    const delegator = await this.userRepo.findOne({
+      where: { publicId: delegatorPublicId },
+    });
+    if (!delegator)
+      throw new NotFoundException(`User not found: ${delegatorPublicId}`);
 
-    const delegate = await this.userRepo.findOne({ where: { publicId: dto.delegateUserPublicId } });
-    if (!delegate) throw new NotFoundException(`Delegate user not found: ${dto.delegateUserPublicId}`);
+    const delegate = await this.userRepo.findOne({
+      where: { publicId: dto.delegateUserPublicId },
+    });
+    if (!delegate)
+      throw new NotFoundException(
+        `Delegate user not found: ${dto.delegateUserPublicId}`
+      );
 
     // ตรวจสอบ date range
     if (dto.startDate >= dto.endDate) {
@@ -38,12 +54,12 @@ export class DelegationService {
     const isCircular = await this.circularDetectionService.wouldCreateCircle(
       delegator.user_id,
       delegate.user_id,
-      dto.startDate,
+      dto.startDate
     );
 
     if (isCircular) {
       throw new BadRequestException(
-        'Circular delegation detected — this would create a delegation loop',
+        'Circular delegation detected — this would create a delegation loop'
       );
     }
 
@@ -64,7 +80,9 @@ export class DelegationService {
    * ดึง Delegations ของ User ทั้งหมด (ในฐานะผู้มอบหมาย)
    */
   async findByDelegator(delegatorPublicId: string): Promise<Delegation[]> {
-    const user = await this.userRepo.findOne({ where: { publicId: delegatorPublicId } });
+    const user = await this.userRepo.findOne({
+      where: { publicId: delegatorPublicId },
+    });
     if (!user) throw new NotFoundException(delegatorPublicId);
 
     return this.delegationRepo.find({
@@ -78,7 +96,10 @@ export class DelegationService {
    * ดึง Active Delegations สำหรับ User ณ วันที่กำหนด (FR-013)
    * ใช้ใน ReviewTaskService ก่อน assign task
    */
-  async findActiveDelegate(userId: number, date: Date = new Date()): Promise<User | null> {
+  async findActiveDelegate(
+    userId: number,
+    date: Date = new Date()
+  ): Promise<User | null> {
     const delegation = await this.delegationRepo
       .createQueryBuilder('d')
       .innerJoinAndSelect('d.delegate', 'delegate')
@@ -100,10 +121,13 @@ export class DelegationService {
       where: { publicId },
     });
 
-    if (!delegation) throw new NotFoundException(`Delegation not found: ${publicId}`);
+    if (!delegation)
+      throw new NotFoundException(`Delegation not found: ${publicId}`);
 
     // ตรวจสอบ ownership
-    const delegator = await this.userRepo.findOne({ where: { publicId: delegatorPublicId } });
+    const delegator = await this.userRepo.findOne({
+      where: { publicId: delegatorPublicId },
+    });
     if (!delegator || delegation.delegatorUserId !== delegator.user_id) {
       throw new BadRequestException('You can only revoke your own delegations');
     }

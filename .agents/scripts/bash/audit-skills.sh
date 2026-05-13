@@ -20,6 +20,8 @@ SKILLS_DIR="$AGENTS_DIR/skills"
 
 echo "=== Skills Health Audit ==="
 echo "Base directory: $BASE_DIR"
+echo "Agents directory: $AGENTS_DIR"
+echo "Specs directory: $BASE_DIR/specs"
 echo
 
 # Function to check if skill has required files
@@ -178,8 +180,57 @@ fi
 
 echo
 
+# Specs Integrity Audit (New for v1.9.0)
+echo "=== Specs Integrity Audit ==="
+echo "---------------------------"
+
+SPECS_DIR="$BASE_DIR/specs"
+CATEGORIES=("100-Infrastructures" "200-fullstacks" "300-others")
+SPEC_ISSUES=0
+
+if [[ -d "$SPECS_DIR" ]]; then
+    # 1. Check for core categories
+    for cat in "${CATEGORIES[@]}"; do
+        if [[ -d "$SPECS_DIR/$cat" ]]; then
+            echo -e "${GREEN}  FOUND${NC}: category $cat"
+            
+            # Check features within category
+            features=$(find "$SPECS_DIR/$cat" -maxdepth 1 -type d -not -path "$SPECS_DIR/$cat" | wc -l)
+            echo "    -> Contains $features feature(s)"
+            
+            # Check each feature for spec.md
+            while IFS= read -r f_dir; do
+                if [[ -n "$f_dir" ]]; then
+                    f_name=$(basename "$f_dir")
+                    if [[ ! -f "$f_dir/spec.md" ]]; then
+                        echo -e "    ${RED}  MISSING${NC}: $f_name/spec.md"
+                        ((SPEC_ISSUES++))
+                    fi
+                fi
+            done < <(find "$SPECS_DIR/$cat" -maxdepth 1 -type d -not -path "$SPECS_DIR/$cat")
+        else
+            echo -e "${YELLOW}  MISSING${NC}: category $cat"
+            ((SPEC_ISSUES++))
+        fi
+    done
+
+    # 2. Check for misplaced files in specs root
+    misplaced=$(find "$SPECS_DIR" -maxdepth 1 -type f -name "*.md" | wc -l)
+    if [[ $misplaced -gt 1 ]]; then # Ignore README.md
+        echo -e "${YELLOW}  WARNING${NC}: Found $misplaced misplaced files in specs root (should be in 100/200/300)"
+        ((SPEC_ISSUES++))
+    fi
+else
+    echo -e "${RED}ERROR: Specs directory not found${NC}"
+    ((SPEC_ISSUES++))
+fi
+
+echo
+
 # Overall health
-if [[ $TOTAL_ISSUES -eq 0 ]]; then
+TOTAL_HEALTH_ISSUES=$((TOTAL_ISSUES + SPEC_ISSUES))
+
+if [[ $TOTAL_HEALTH_ISSUES -eq 0 ]]; then
     echo -e "${GREEN}=== SUCCESS: All skills healthy ===${NC}"
     echo "Total skills: ${#SKILL_DIRS[@]}"
     exit 0

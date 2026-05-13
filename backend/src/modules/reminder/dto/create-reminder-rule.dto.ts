@@ -1,5 +1,12 @@
 // File: src/modules/reminder/dto/create-reminder-rule.dto.ts
-import { IsEnum, IsInt, IsOptional, IsString, IsArray, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsArray,
+  MaxLength,
+} from 'class-validator';
 import { ReminderType } from '../../common/enums/review.enums';
 
 export class CreateReminderRuleDto {

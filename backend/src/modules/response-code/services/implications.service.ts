@@ -35,14 +35,14 @@ export class ImplicationsService {
       responseCode.code,
       affectsSchedule,
       affectsCost,
-      requiresContractReview,
+      requiresContractReview
     );
 
     const actionRequired = this.buildActionList(
       responseCode.code,
       requiresContractReview,
       requiresEiaAmendment,
-      affectsCost,
+      affectsCost
     );
 
     return {
@@ -60,7 +60,7 @@ export class ImplicationsService {
     code: string,
     affectsSchedule: boolean,
     affectsCost: boolean,
-    requiresContractReview: boolean,
+    requiresContractReview: boolean
   ): CodeImplicationResult['severity'] {
     // Code 3 (Rejected) = CRITICAL เสมอ
     if (code === '3') return 'CRITICAL';
@@ -72,7 +72,8 @@ export class ImplicationsService {
     if (affectsSchedule && affectsCost) return 'HIGH';
 
     // มีผลต่ออย่างใดอย่างหนึ่ง
-    if (requiresContractReview || affectsSchedule || affectsCost) return 'MEDIUM';
+    if (requiresContractReview || affectsSchedule || affectsCost)
+      return 'MEDIUM';
 
     return 'LOW';
   }
@@ -81,7 +82,7 @@ export class ImplicationsService {
     code: string,
     requiresContractReview: boolean,
     requiresEiaAmendment: boolean,
-    affectsCost: boolean,
+    affectsCost: boolean
   ): string[] {
     const actions: string[] = [];
 

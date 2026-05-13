@@ -1,7 +1,7 @@
 ---
 name: speckit-implement
 description: Execute the implementation plan by processing and executing all tasks defined in tasks.md (with Ironclad Anti-Regression Protocols)
-version: 1.8.9
+version: 1.9.0
 depends-on:
   - speckit-tasks
 ---

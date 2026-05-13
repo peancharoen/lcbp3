@@ -16,7 +16,10 @@ describe('CircularDetectionService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CircularDetectionService,
-        { provide: getRepositoryToken(Delegation), useValue: mockDelegationRepo },
+        {
+          provide: getRepositoryToken(Delegation),
+          useValue: mockDelegationRepo,
+        },
       ],
     }).compile();
 

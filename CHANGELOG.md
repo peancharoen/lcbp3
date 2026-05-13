@@ -1,5 +1,19 @@
 # Version History
 
+## 1.9.0 (2026-05-13)
+
+### feat(agent): Agent Infrastructure Standardization (v1.9.0)
+
+#### Summary
+สร้างมาตรฐานใหม่สำหรับการทำงานร่วมกับ AI Agent (Antigravity/Windsurf/CLI) ให้เป็นเอกภาพทั่วทั้งโครงการ (Agent-Agnostic) พร้อมปรับปรุงโครงสร้างการเก็บ Specification ให้รองรับการขยายตัวในอนาคต
+
+#### Changes
+- **Agent Infrastructure**: ย้ายและรวบรวม Rules, Skills และ Workflows ไว้ที่ `.agents/` เป็น Single Source of Truth
+- **Hybrid Specs Structure**: เริ่มใช้โครงสร้างโฟลเดอร์ `specs/[100/200/300]-category/` เพื่อจัดระเบียบงาน Infra, Fullstack และงานทั่วไป
+- **Automation**: เพิ่มสคริปต์ `sync-agent-configs.ps1` และ `audit-skills.sh` เพื่อตรวจสอบความสมบูรณ์และซิงค์ข้อมูลอัตโนมัติ
+- **Standardization**: กำหนดมาตรฐานการเขียนโค้ดใหม่ (File Headers, Change Logs, Thai JSDoc) ทั่วทั้งโครงการ
+- **Drift Prevention**: ใช้ Directory Junctions เชื่อมโยง `.windsurf/` เข้ากับ `.agents/` โดยตรง
+
 ## 1.8.11 (2026-05-05)
 
 ### chore(node): Upgrade to Node.js v24.15.0 LTS

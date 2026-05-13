@@ -14,7 +14,7 @@ export class DistributionProcessor extends WorkerHost {
 
   constructor(
     private readonly transmittalCreator: TransmittalCreatorService,
-    private readonly notificationService: NotificationService,
+    private readonly notificationService: NotificationService
   ) {
     super();
   }
@@ -23,14 +23,15 @@ export class DistributionProcessor extends WorkerHost {
     const payload = job.data;
 
     this.logger.log(
-      `Processing distribution for RFA ${payload.rfaPublicId} (${payload.documentTypeCode}, code ${payload.responseCode})`,
+      `Processing distribution for RFA ${payload.rfaPublicId} (${payload.documentTypeCode}, code ${payload.responseCode})`
     );
 
     // 1. สร้าง Transmittal records
-    const result = await this.transmittalCreator.createFromDistribution(payload);
+    const result =
+      await this.transmittalCreator.createFromDistribution(payload);
 
     this.logger.log(
-      `Created ${result.transmittalPublicIds.length} transmittals for RFA ${payload.rfaPublicId}`,
+      `Created ${result.transmittalPublicIds.length} transmittals for RFA ${payload.rfaPublicId}`
     );
 
     // 2. แจ้งเตือน submitter

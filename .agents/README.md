@@ -2,7 +2,11 @@
 
 > **The Event Horizon of Software Quality.**
 > _Adapted for Google Antigravity IDE from [github/spec-kit](https://github.com/github/spec-kit)._
-> _Version: 1.8.6 — LCBP3-DMS Edition (v1.8.6 Production Ready)_
+> # Speckit Agent Infrastructure (v1.9.0)
+> 
+> - Version: 1.9.0
+> - Last Updated: 2026-05-13
+> - Core Principle: **Sync with AGENTS.md v1.9.0**
 
 ---
 
@@ -78,8 +82,19 @@ The toolkit is organized into modular components that provide both the logic (Sc
 │   ├── speckit-tester/            # Test Runner & Coverage
 │   └── speckit-validate/          # Implementation Validator
 │
+├── workflows/                     # / Slash Commands (Orchestration)
+│   ├── 00-speckit.all.md          # Full Pipeline (10 steps: Specify → Validate)
+│   ├── 01–11-speckit-*.md         # Individual phase workflows
+│   ├── speckit-prepare.md         # Prep Pipeline (5 steps: Specify → Analyze)
+│   ├── schema-change.md           # DB Schema Change (ADR-009)
+│   ├── create-backend-module.md   # NestJS Module Scaffolding
+│   ├── create-frontend-page.md    # Next.js Page Scaffolding
+│   ├── deploy.md                  # Deployment via Gitea CI/CD
+│   ├── review.md                  # Code Review Workflow
+│   └── util-speckit-*.md          # Utilities (checklist, diff, migrate, etc.)
+│
 ├── rules/                         # Project Context & Validation Rules
-│   ├── 00-project-context.md      # Role, Persona, Rule Tiers
+│   ├── 00-project-context.md      # Role, Persona, Rule Tiers (v1.9.0)
 │   ├── 01-adr-019-uuid.md         # UUID Strategy (Critical)
 │   ├── 02-security.md             # Security Requirements
 │   ├── 03-typescript.md            # TypeScript Standards
@@ -94,20 +109,10 @@ The toolkit is organized into modular components that provide both the logic (Sc
 │
 └── scripts/
     ├── bash/                      # Bash Core (Kinetic logic)
-    ├── powershell/                 # PowerShell Equivalents (Windows-native)
+    ├── powershell/                # PowerShell Equivalents (Windows-native)
     ├── fix_links.py               # Spec link fixer
     ├── verify_links.py            # Spec link verifier
     └── start-mcp.js               # MCP server launcher
-
-.windsurf/workflows/               # / Slash Commands (Orchestration)
-├── 00-speckit.all.md              # Full Pipeline (10 steps: Specify → Validate)
-├── 01–11-speckit-*.md             # Individual phase workflows
-├── speckit-prepare.md             # Prep Pipeline (5 steps: Specify → Analyze)
-├── schema-change.md               # DB Schema Change (ADR-009)
-├── create-backend-module.md       # NestJS Module Scaffolding
-├── create-frontend-page.md        # Next.js Page Scaffolding
-├── deploy.md                      # Deployment via Gitea CI/CD
-├── review.md                      # Code Review Workflow
 └── util-speckit-*.md              # Utilities (checklist, diff, migrate, etc.)
 ```
 
@@ -259,7 +264,7 @@ If you change your mind mid-project:
 
 ---
 
-## 🏗️ LCBP3-DMS Project Notes (v1.8.6)
+## 🏗️ LCBP3-DMS Project Notes (v1.9.0)
 
 ### 📊 Current Status: Production Ready (2026-04-14)
 
@@ -319,7 +324,7 @@ If you change your mind mid-project:
 # Run version validation
 ./scripts/bash/validate-versions.sh
 
-# Fix by updating all files to v1.8.6
+# Fix by updating all files to v1.9.0
 # Then re-run validation to confirm
 ```
 

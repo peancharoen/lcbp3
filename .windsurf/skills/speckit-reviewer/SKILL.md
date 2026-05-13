@@ -1,7 +1,7 @@
 ---
 name: speckit-reviewer
 description: Perform code review with actionable feedback and suggestions.
-version: 1.8.9
+version: 1.9.0
 depends-on: []
 ---
 

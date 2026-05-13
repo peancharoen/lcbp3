@@ -12,10 +12,15 @@ import { ApprovalListenerService } from './services/approval-listener.service';
 import { TransmittalCreatorService } from './services/transmittal-creator.service';
 import { QUEUE_DISTRIBUTION } from '../common/constants/queue.constants';
 import { NotificationModule } from '../notification/notification.module';
+import { Project } from '../project/entities/project.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([DistributionMatrix, DistributionRecipient]),
+    TypeOrmModule.forFeature([
+      DistributionMatrix,
+      DistributionRecipient,
+      Project,
+    ]),
     BullModule.registerQueue({ name: QUEUE_DISTRIBUTION }),
     NotificationModule,
   ],
@@ -27,6 +32,10 @@ import { NotificationModule } from '../notification/notification.module';
     TransmittalCreatorService,
   ],
   controllers: [DistributionController],
-  exports: [DistributionService, DistributionMatrixService, ApprovalListenerService],
+  exports: [
+    DistributionService,
+    DistributionMatrixService,
+    ApprovalListenerService,
+  ],
 })
 export class DistributionModule {}

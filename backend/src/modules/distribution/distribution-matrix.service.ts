@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DistributionMatrix } from './entities/distribution-matrix.entity';
 import { DistributionRecipient } from './entities/distribution-recipient.entity';
+import { Project } from '../project/entities/project.entity';
 
 export interface CreateDistributionMatrixDto {
   projectId: number;
@@ -29,6 +30,8 @@ export class DistributionMatrixService {
     private readonly matrixRepo: Repository<DistributionMatrix>,
     @InjectRepository(DistributionRecipient)
     private readonly recipientRepo: Repository<DistributionRecipient>,
+    @InjectRepository(Project)
+    private readonly projectRepo: Repository<Project>
   ) {}
 
   async findByProject(projectId: number): Promise<DistributionMatrix[]> {
@@ -39,9 +42,20 @@ export class DistributionMatrixService {
     });
   }
 
+  async findByProjectPublicId(
+    projectPublicId: string
+  ): Promise<DistributionMatrix[]> {
+    const project = await this.projectRepo.findOne({
+      where: { publicId: projectPublicId },
+    });
+    if (!project)
+      throw new NotFoundException(`Project not found: ${projectPublicId}`);
+    return this.findByProject(project.id);
+  }
+
   async findOneByDocType(
     projectId: number,
-    documentTypeCode: string,
+    documentTypeCode: string
   ): Promise<DistributionMatrix | null> {
     return this.matrixRepo.findOne({
       where: { projectId, documentTypeCode, isActive: true },
@@ -56,10 +70,13 @@ export class DistributionMatrixService {
 
   async addRecipient(
     matrixPublicId: string,
-    dto: AddRecipientDto,
+    dto: AddRecipientDto
   ): Promise<DistributionRecipient> {
-    const matrix = await this.matrixRepo.findOne({ where: { publicId: matrixPublicId } });
-    if (!matrix) throw new NotFoundException(`Matrix not found: ${matrixPublicId}`);
+    const matrix = await this.matrixRepo.findOne({
+      where: { publicId: matrixPublicId },
+    });
+    if (!matrix)
+      throw new NotFoundException(`Matrix not found: ${matrixPublicId}`);
 
     const recipient = this.recipientRepo.create({
       matrixId: matrix.id,
@@ -70,7 +87,9 @@ export class DistributionMatrixService {
   }
 
   async removeRecipient(recipientPublicId: string): Promise<void> {
-    const recipient = await this.recipientRepo.findOne({ where: { publicId: recipientPublicId } });
+    const recipient = await this.recipientRepo.findOne({
+      where: { publicId: recipientPublicId },
+    });
     if (!recipient) throw new NotFoundException(recipientPublicId);
     await this.recipientRepo.remove(recipient);
   }

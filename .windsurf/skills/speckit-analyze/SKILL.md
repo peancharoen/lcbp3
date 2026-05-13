@@ -1,7 +1,7 @@
 ---
 name: speckit-analyze
 description: Perform a non-destructive cross-artifact consistency and quality analysis across spec.md, plan.md, and tasks.md after task generation.
-version: 1.8.9
+version: 1.9.0
 depends-on:
   - speckit-tasks
 ---

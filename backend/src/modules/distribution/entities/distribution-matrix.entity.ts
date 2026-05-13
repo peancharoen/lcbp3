@@ -27,7 +27,11 @@ export class DistributionMatrix extends UuidBaseEntity {
   @Column({ name: 'document_type_code', length: 20 })
   documentTypeCode!: string; // 'SDW', 'DDW', 'ADW', 'MS'...
 
-  @Column({ name: 'response_code_filter', type: 'simple-array', nullable: true })
+  @Column({
+    name: 'response_code_filter',
+    type: 'simple-array',
+    nullable: true,
+  })
   responseCodeFilter?: string[]; // ['1A','1B'] — NULL = ทุก code
 
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
@@ -44,6 +48,10 @@ export class DistributionMatrix extends UuidBaseEntity {
   @JoinColumn({ name: 'project_id' })
   project?: Project;
 
-  @OneToMany(() => DistributionRecipient, (r: DistributionRecipient) => r.matrix, { cascade: true })
+  @OneToMany(
+    () => DistributionRecipient,
+    (r: DistributionRecipient) => r.matrix,
+    { cascade: true }
+  )
   recipients?: DistributionRecipient[];
 }

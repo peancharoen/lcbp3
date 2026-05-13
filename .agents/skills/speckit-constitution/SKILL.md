@@ -1,7 +1,7 @@
 ---
 name: speckit-constitution
 description: Create or update the project constitution from interactive or provided principle inputs, ensuring all dependent templates stay in sync.
-version: 1.8.9
+version: 1.9.0
 handoffs:
   - label: Build Specification
     agent: speckit-specify

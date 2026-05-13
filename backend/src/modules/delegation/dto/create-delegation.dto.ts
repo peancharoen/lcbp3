@@ -1,5 +1,12 @@
 // File: src/modules/delegation/dto/create-delegation.dto.ts
-import { IsDate, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsDate,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { DelegationScope } from '../../common/enums/review.enums';
 

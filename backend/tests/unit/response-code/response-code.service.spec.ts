@@ -35,7 +35,10 @@ describe('ResponseCodeService', () => {
       providers: [
         ResponseCodeService,
         { provide: getRepositoryToken(ResponseCode), useValue: mockCodeRepo },
-        { provide: getRepositoryToken(ResponseCodeRule), useValue: mockRuleRepo },
+        {
+          provide: getRepositoryToken(ResponseCodeRule),
+          useValue: mockRuleRepo,
+        },
       ],
     }).compile();
 
@@ -48,11 +51,15 @@ describe('ResponseCodeService', () => {
 
   describe('findByCategory', () => {
     it('should return codes filtered by category', async () => {
-      const result = await service.findByCategory(ResponseCodeCategory.ENGINEERING);
+      const result = await service.findByCategory(
+        ResponseCodeCategory.ENGINEERING
+      );
       expect(mockCodeRepo.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ category: ResponseCodeCategory.ENGINEERING }),
-        }),
+          where: expect.objectContaining({
+            category: ResponseCodeCategory.ENGINEERING,
+          }),
+        })
       );
       expect(result).toEqual([mockCode]);
     });

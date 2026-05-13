@@ -1,7 +1,17 @@
 // File: src/modules/distribution/distribution.controller.ts
 // Admin endpoints สำหรับจัดการ Distribution Matrix (T058)
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { DistributionMatrixService } from './distribution-matrix.service';
 
 class CreateMatrixDto {
@@ -24,8 +34,10 @@ export class DistributionController {
   constructor(private readonly matrixService: DistributionMatrixService) {}
 
   @Get()
-  findByProject(@Query('projectId') projectId: string) {
-    return this.matrixService.findByProject(parseInt(projectId, 10));
+  findByProject(
+    @Query('projectPublicId', ParseUuidPipe) projectPublicId: string
+  ) {
+    return this.matrixService.findByProjectPublicId(projectPublicId);
   }
 
   @Post()
@@ -34,7 +46,10 @@ export class DistributionController {
   }
 
   @Post(':publicId/recipients')
-  addRecipient(@Param('publicId') publicId: string, @Body() dto: AddRecipientDto) {
+  addRecipient(
+    @Param('publicId') publicId: string,
+    @Body() dto: AddRecipientDto
+  ) {
     return this.matrixService.addRecipient(publicId, dto);
   }
 

@@ -22,7 +22,7 @@ export class InheritanceService {
 
   constructor(
     @InjectRepository(ResponseCodeRule)
-    private readonly ruleRepo: Repository<ResponseCodeRule>,
+    private readonly ruleRepo: Repository<ResponseCodeRule>
   ) {}
 
   /**
@@ -34,7 +34,7 @@ export class InheritanceService {
    */
   async resolveMatrix(
     documentTypeId: number,
-    projectId?: number,
+    projectId?: number
   ): Promise<ResolvedMatrix[]> {
     // ดึง global rules (projectId IS NULL)
     const globalRules = await this.ruleRepo.find({
@@ -63,7 +63,7 @@ export class InheritanceService {
 
     // Build map: responseCodeId → project rule
     const projectRuleMap = new Map(
-      projectRules.map((r) => [r.responseCodeId, r]),
+      projectRules.map((r) => [r.responseCodeId, r])
     );
 
     // Merge: project overrides global
@@ -96,7 +96,7 @@ export class InheritanceService {
     // เพิ่ม project-only rules (ไม่มี global parent)
     for (const projectRule of projectRules) {
       const alreadyMerged = globalRules.some(
-        (g) => g.responseCodeId === projectRule.responseCodeId,
+        (g) => g.responseCodeId === projectRule.responseCodeId
       );
       if (!alreadyMerged) {
         merged.push({
@@ -113,7 +113,7 @@ export class InheritanceService {
     }
 
     this.logger.debug(
-      `Resolved ${merged.length} rules for docType=${documentTypeId}, project=${projectId}`,
+      `Resolved ${merged.length} rules for docType=${documentTypeId}, project=${projectId}`
     );
 
     return merged;

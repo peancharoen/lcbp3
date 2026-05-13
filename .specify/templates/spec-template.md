@@ -1,8 +1,13 @@
+// File: specs/[100/200/300]-category/feature-name/spec.md
+// Change Log:
+// - [DATE]: Initial specification for [FEATURE NAME]
+
 # Feature Specification: [FEATURE NAME]
 
 **Feature Branch**: `[###-feature-name]`  
 **Created**: [DATE]  
 **Status**: Draft  
+**Category**: [100-Infrastructures | 200-fullstacks | 300-others]
 **Input**: User description: "$ARGUMENTS"
 
 ## User Scenarios & Testing _(mandatory)_

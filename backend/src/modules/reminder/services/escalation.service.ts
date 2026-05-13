@@ -17,7 +17,7 @@ export class EscalationService {
     private readonly reviewTaskRepo: Repository<ReviewTask>,
     @InjectRepository(ReminderRule)
     private readonly reminderRuleRepo: Repository<ReminderRule>,
-    private readonly notificationService: NotificationService,
+    private readonly notificationService: NotificationService
   ) {}
 
   /**
@@ -39,7 +39,7 @@ export class EscalationService {
     if (daysOverdue < 1) return;
 
     this.logger.log(
-      `Escalation L1: task ${taskPublicId} is ${daysOverdue} days overdue`,
+      `Escalation L1: task ${taskPublicId} is ${daysOverdue} days overdue`
     );
 
     // แจ้ง Team Lead
@@ -74,11 +74,13 @@ export class EscalationService {
     if (daysOverdue < 3) return;
 
     this.logger.warn(
-      `Escalation L2: task ${taskPublicId} is ${daysOverdue} days overdue — escalating to PM`,
+      `Escalation L2: task ${taskPublicId} is ${daysOverdue} days overdue — escalating to PM`
     );
 
     // TODO: ดึง PM user ID จาก project membership — ใช้ placeholder สำหรับตอนนี้
-    this.logger.log(`L2 escalation notification queued for task ${taskPublicId}`);
+    this.logger.log(
+      `L2 escalation notification queued for task ${taskPublicId}`
+    );
   }
 
   /**

@@ -1,7 +1,10 @@
 // File: src/modules/distribution/services/approval-listener.service.ts
 // Strangler Pattern — listens for RFA approval events and triggers distribution (T055)
 import { Injectable, Logger } from '@nestjs/common';
-import { DistributionService, DistributionJobPayload } from '../distribution.service';
+import {
+  DistributionService,
+  DistributionJobPayload,
+} from '../distribution.service';
 import { ConsensusDecision } from '../../common/enums/review.enums';
 
 /**
@@ -33,7 +36,7 @@ export class ApprovalListenerService {
 
     if (!shouldDistribute) {
       this.logger.log(
-        `RFA ${event.rfaPublicId} decision = ${event.decision} — distribution skipped`,
+        `RFA ${event.rfaPublicId} decision = ${event.decision} — distribution skipped`
       );
       return;
     }
@@ -50,7 +53,7 @@ export class ApprovalListenerService {
     await this.distributionService.queueDistribution(payload);
 
     this.logger.log(
-      `Distribution triggered for RFA ${event.rfaPublicId} (${event.decision})`,
+      `Distribution triggered for RFA ${event.rfaPublicId} (${event.decision})`
     );
   }
 }

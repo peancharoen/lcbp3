@@ -7,11 +7,11 @@ import { CheckCircle2, Clock, SendHorizonal, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-type DistributionStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+type DistributionStatusValue = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
 interface DistributionRecord {
   publicId: string;
-  status: DistributionStatus;
+  status: DistributionStatusValue;
   transmittalCount: number;
   recipientCount: number;
   processedAt?: string;
@@ -25,7 +25,7 @@ interface DistributionStatusProps {
 }
 
 const STATUS_CONFIG: Record<
-  DistributionStatus,
+  DistributionStatusValue,
   { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ElementType }
 > = {
   PENDING: { label: 'Queued', variant: 'outline', icon: Clock },

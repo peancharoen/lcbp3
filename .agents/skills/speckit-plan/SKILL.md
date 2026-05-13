@@ -1,7 +1,7 @@
 ---
 name: speckit-plan
 description: Execute the implementation planning workflow using the plan template to generate design artifacts.
-version: 1.8.9
+version: 1.9.0
 depends-on:
   - speckit-specify
 handoffs:

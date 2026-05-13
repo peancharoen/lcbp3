@@ -6,7 +6,10 @@ import { Repository } from 'typeorm';
 import { ReviewTask } from '../entities/review-task.entity';
 import { AggregateStatusService } from './aggregate-status.service';
 import { ApprovalListenerService } from '../../distribution/services/approval-listener.service';
-import { ConsensusDecision, ReviewTaskStatus } from '../../common/enums/review.enums';
+import {
+  ConsensusDecision,
+  ReviewTaskStatus,
+} from '../../common/enums/review.enums';
 
 export interface ConsensusResult {
   decision: ConsensusDecision;
@@ -23,7 +26,7 @@ export class ConsensusService {
     @InjectRepository(ReviewTask)
     private readonly taskRepo: Repository<ReviewTask>,
     private readonly aggregateStatusService: AggregateStatusService,
-    private readonly approvalListenerService: ApprovalListenerService,
+    private readonly approvalListenerService: ApprovalListenerService
   ) {}
 
   /**
@@ -36,15 +39,17 @@ export class ConsensusService {
       rfaRevisionPublicId: string;
       projectId: number;
       documentTypeCode: string;
-    },
+    }
   ): Promise<ConsensusResult> {
-    const isReady = await this.aggregateStatusService.isReadyForConsensus(rfaRevisionId);
+    const isReady =
+      await this.aggregateStatusService.isReadyForConsensus(rfaRevisionId);
 
-    const status = await this.aggregateStatusService.getForRevision(rfaRevisionId);
+    const status =
+      await this.aggregateStatusService.getForRevision(rfaRevisionId);
 
     if (!isReady) {
       this.logger.debug(
-        `Revision ${rfaRevisionId}: ${status.completed}/${status.total} tasks done — not ready for consensus`,
+        `Revision ${rfaRevisionId}: ${status.completed}/${status.total} tasks done — not ready for consensus`
       );
       return {
         decision: ConsensusDecision.PENDING,
@@ -54,10 +59,11 @@ export class ConsensusService {
       };
     }
 
-    const decision = await this.aggregateStatusService.evaluateConsensus(rfaRevisionId);
+    const decision =
+      await this.aggregateStatusService.evaluateConsensus(rfaRevisionId);
 
     this.logger.log(
-      `Revision ${rfaRevisionId}: consensus = ${decision} (${status.total} tasks)`,
+      `Revision ${rfaRevisionId}: consensus = ${decision} (${status.total} tasks)`
     );
 
     let triggeredDistribution = false;

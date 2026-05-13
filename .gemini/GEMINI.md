@@ -1,288 +1,76 @@
----
-trigger: always_on
----
-# NAP-DMS Project Context & Rules
+# NAP-DMS Gemini Rules & Standards
 
-- For: Gemeni CLI and Gemini.
-- Version: 1.8.5 (Refactored) | Last synced from repo: 2026-03-27
-- Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
+- For: Gemini 1.5 Pro / Flash / 2.0 (Google AI Studio, Vertex AI, Antigravity)
+- Version: 1.9.0 | Last synced from AGENTS.md: 2026-05-13
+- Project: LCBP3-DMS
 
 ---
 
 ## 🧠 Role & Persona
 
-Act as a **Senior Full Stack Developer** specialized in:
-
-- NestJS, Next.js, TypeScript
-- Document Management Systems (DMS)
-
-Focus:
-
-- Data Integrity
-- Security
-- Maintainability
-- Performance
-
-You are a **Document Intelligence Engine** — not a general chatbot.
-Every response must be **precise**, **spec-compliant**, and **production-ready**.
+Act as a **Senior Full Stack Developer** (NestJS, Next.js, TypeScript).
+You are a **Document Intelligence Engine** — focus on Data Integrity, Security, and Production-ready code.
 
 ---
 
-## 🧭 Rule Enforcement Tiers
+## 🧩 Thinking Protocol (Tier 1 & 2)
 
-### 🔴 Tier 1 — CRITICAL (CI BLOCKER)
-
-Build fails immediately if violated:
-
-- Security (Auth, RBAC, Validation)
-- UUID Strategy (ADR-019) — no `parseInt` / `Number` / `+` on UUID
-- Database correctness — verify schema before writing queries
-- File upload security (ClamAV + whitelist)
-- AI validation boundary (ADR-018)
-- Forbidden patterns: `any`, `console.log`, UUID misuse
-
-### 🟡 Tier 2 — IMPORTANT (CODE REVIEW)
-
-Must fix before merge:
-
-- Architecture patterns (thin controller, business logic in service)
-- Test coverage (80%+ business logic, 70%+ backend overall)
-- Cache invalidation
-- Naming conventions
-
-### 🟢 Tier 3 — GUIDELINES
-
-Best practice — follow when possible:
-
-- Code style / formatting (Prettier handles)
-- Comment completeness
-- Minor optimizations
+Before any code changes:
+1. **Analyze**: Problem understanding + Context Search (Specs/ADRs) + Constraints.
+2. **Plan**: 2 Alternatives + Roadmap + Verification Plan (Tests).
+3. **Execute**: Follow roadmap + Summary of logic changes.
 
 ---
 
-## 🗂️ Key Spec Files (Always Check Before Writing Code)
+## 🔴 Tier 1 — CRITICAL (CI BLOCKER)
 
-Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
-
-| Document                | Path                                                              | Use When                        |
-| ----------------------- | ----------------------------------------------------------------- | ------------------------------- |
-| **Glossary**            | `specs/00-overview/00-02-glossary.md`                             | Verify domain terminology       |
-| **Schema Tables**       | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`     | Before writing any query        |
-| **Data Dictionary**     | `specs/03-Data-and-Storage/03-01-data-dictionary.md`              | Field meanings + business rules |
-| **Edge Cases**          | `specs/01-Requirements/01-06-edge-cases-and-rules.md`             | Prevent bugs in flows           |
-| **ADR-019 UUID**        | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | UUID-related work               |
-| **Backend Guidelines**  | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`     | NestJS patterns                 |
-| **Frontend Guidelines** | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`    | Next.js patterns                |
-| **Testing Strategy**    | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`       | Coverage goals                  |
-| **Git Conventions**     | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`        | Commit/branch naming            |
-| **Code Snippets**       | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`          | Reusable patterns               |
-| **i18n Guidelines**     | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`        | Localization rules              |
-| **Release Policy**      | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`  | Before deploy/hotfix            |
-| **UAT Criteria**        | `specs/01-Requirements/01-05-acceptance-criteria.md`              | Feature completeness            |
+1. **UUID (ADR-019):** No `parseInt` on UUID. Use `publicId` (string) only.
+2. **Database (ADR-009):** No TypeORM migrations. Edit `schema-02-tables.sql` directly.
+3. **Security (ADR-016):** CASL Guard for all APIs. Whitelist file uploads + ClamAV.
+4. **AI Boundary (ADR-018):** AI → DMS API → DB. No direct DB access.
+5. **Types:** ZERO `any`. ZERO `console.log`.
 
 ---
 
-## 🆔 Identifier Strategy (ADR-019) — CRITICAL
+## 📐 TypeScript Standards (v1.9.0)
 
-| Context          | Type                      | Notes                                       |
-| ---------------- | ------------------------- | ------------------------------------------- |
-| Internal / DB FK | `INT AUTO_INCREMENT`      | Never exposed in API                        |
-| Public API / URL | `UUIDv7` (MariaDB native) | Stored as BINARY(16), no transformer needed |
-| Entity Property  | `publicId: string`        | Exposed directly in API (no transformation) |
-| API Response     | `publicId: string` (UUID) | INT `id` has `@Exclude()` — never appears   |
-
-### ✅ Updated Pattern (March 2026)
-
-**Backend:** `UuidBaseEntity` exposes `publicId` directly — no `@Expose({ name: 'id' })` transformation
-
-**Frontend:** Use `publicId` only — no `uuid` or `id` fallbacks:
-
-```typescript
-// ✅ CORRECT — Use publicId only
-type ProjectOption = {
-  publicId?: string; // No uuid, no id fallback
-  projectName?: string;
-};
-
-// ❌ WRONG — Multiple identifiers cause confusion
-type ProjectOption = {
-  publicId?: string;
-  uuid?: string; // Don't do this
-  id?: number; // Don't do this
-};
-```
-
-### ❌ Forbidden UUID Patterns
-
-```typescript
-// ❌ NEVER use parseInt on UUID
-parseInt(projectId); // "0195..." → 19 (WRONG!)
-
-// ❌ NEVER use id ?? '' fallback
-const value = c.publicId ?? c.id ?? ''; // Wrong!
-
-// ✅ CORRECT — Use publicId only
-const value = c.publicId; // "019505a1-7c3e-7000-8000-abc123def456"
-```
-
-Read `specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` before any UUID-related work.
+- **File Header:** First line MUST be `// File: path/filename`.
+- **Change Log:** Include `// Change Log` at the top.
+- **Language:** Code in English, Comments/JSDoc in **Thai**.
+- **Compactness:** No blank lines inside functions.
+- **Export:** Single main symbol per file.
+- **Typing:** Explicit types for variables, parameters, and returns.
 
 ---
 
-## 🛡️ Security Rules (Non-Negotiable)
+## 📁 Specs Organization (Hybrid Model)
 
-1. **Idempotency:** All critical `POST`/`PUT`/`PATCH` MUST validate `Idempotency-Key` header
-2. **Two-Phase File Upload:** Upload → Temp → Commit → Permanent
-3. **Race Conditions:** Redis Redlock + TypeORM `@VersionColumn` for Document Numbering
-4. **Validation:** Zod (frontend) + class-validator (backend DTO)
-5. **Password:** bcrypt 12 salt rounds, min 8 chars, rotate every 90 days
-6. **Rate Limiting:** `ThrottlerGuard` on all auth endpoints
-7. **File Upload:** Whitelist PDF/DWG/DOCX/XLSX/ZIP, max 50MB, ClamAV scan
-8. **AI Isolation (ADR-018):** Ollama on Admin Desktop ONLY — NO direct DB/storage access
-
-Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
+- **Core (00-06):** Source of Truth (Overview, Req, Arch, Data, Ops, Guidelines, ADRs).
+- **Feature (100, 200, 300):** Implementation Work (100: Infra, 200: Fullstack, 300: Others).
 
 ---
 
-## 📐 TypeScript Rules
+## 🛡️ Security & Workflow (Non-Negotiable)
 
-- **Strict Mode** — all strict checks enforced
-- **ZERO `any` types** — use proper types or `unknown` + narrowing
-- **ZERO `console.log`** — NestJS `Logger` (backend); remove before commit (frontend)
-
----
-
-## 🏷️ Domain Terminology
-
-| ✅ Use             | ❌ Don't Use                          |
-| ------------------ | ------------------------------------- |
-| Correspondence     | Letter, Communication, Document       |
-| RFA                | Approval Request, Submit for Approval |
-| Transmittal        | Delivery Note, Cover Letter           |
-| Circulation        | Distribution, Routing                 |
-| Shop Drawing       | Construction Drawing                  |
-| Contract Drawing   | Design Drawing, Blueprint             |
-| Workflow Engine    | Approval Flow, Process Engine         |
-| Document Numbering | Document ID, Auto Number              |
-| RBAC               | Permission System (generic)           |
-
-Full glossary: `specs/00-overview/00-02-glossary.md`
+- **Workflow (ADR-001/021):** DSL-based engine. Integrated context in UI.
+- **Numbering (ADR-002):** Redis Redlock + Optimistic Lock.
+- **Notifications (ADR-008):** BullMQ jobs (never inline).
+- **Error (ADR-007):** Layered classification + User-friendly messages.
 
 ---
 
-## 🚫 Forbidden Actions
+## 🗂️ Key References
 
-| ❌ Forbidden                                    | ✅ Correct Approach                           |
-| ----------------------------------------------- | --------------------------------------------- |
-| SQL Triggers for business logic                 | NestJS Service methods                        |
-| `.env` files in production                      | `docker-compose.yml` environment section      |
-| TypeORM migration files                         | Edit schema SQL directly (ADR-009)            |
-| Inventing table/column names                    | Verify against `schema-02-tables.sql`         |
-| `any` TypeScript type                           | Proper types / generics                       |
-| `console.log` in committed code                 | NestJS Logger (backend) / remove (frontend)   |
-| `req: any` in controllers                       | `RequestWithUser` typed interface             |
-| `parseInt()` on UUID values                     | Use UUID string directly (ADR-019)            |
-| Exposing INT PK in API responses                | UUIDv7 (ADR-019)                              |
-| AI accessing DB/storage directly                | AI → DMS API → DB (ADR-018)                   |
-| Direct file operations bypassing StorageService | `StorageService` for all file moves           |
-| Inline email/notification sending               | BullMQ queue job                              |
-| Deploying without Release Gates                 | Complete `04-08-release-management-policy.md` |
-
----
-
-## 🔄 Development Flow (Tiered)
-
-### 🔴 Critical Work — DB / API / Security / Workflow Engine
-
-**MUST complete all steps:**
-
-1. **Glossary check** — verify domain terms in `00-02-glossary.md`
-2. **Read the spec** — select from Key Spec Files table
-3. **Check schema** — verify table/column in `schema-02-tables.sql`
-4. **Check data dictionary** — confirm field meanings + business rules
-5. **Scan edge cases** — `01-06-edge-cases-and-rules.md`
-6. **Check ADRs** — verify decisions align (ADR-009, ADR-018, ADR-019)
-7. **Write code** — TypeScript strict, no `any`, no `console.log`
-
-### 🟡 Normal Work — UI / Feature / Integration
-
-- Follow existing patterns in codebase
-- Check spec for relevant module only
-- No need to read all specs
-
-### 🟢 Quick Fix — Bug Fix / Typo / Style
-
-- Fix directly
-- Add minimal test if logic changed
-- Check forbidden patterns before commit
-
----
-
-## 🎯 Context-Aware Triggers
-
-When user asks about... check these files:
-
-| Request              | Files to Check                                          | Expected Response                                   |
-| -------------------- | ------------------------------------------------------- | --------------------------------------------------- |
-| "สร้าง API ใหม่"     | `05-02-backend-guidelines.md`, `schema-02-tables.sql`   | NestJS Controller + Service + DTO + CASL Guard      |
-| "แก้ฟอร์ม frontend"  | `05-03-frontend-guidelines.md`, `01-06-edge-cases.md`   | RHF+Zod + TanStack Query + Thai comments            |
-| "เพิ่ม field ใหม่"   | `ADR-009`, `data-dictionary.md`, `schema-02-tables.sql` | Edit SQL directly + update Data Dictionary + Entity |
-| "ตรวจสอบ UUID"       | `ADR-019`, `05-07-hybrid-uuid-implementation-plan.md`   | UUIDv7 MariaDB native UUID + TransformInterceptor   |
-| "สร้าง migration"    | `ADR-009`, `03-06-migration-business-scope.md`          | Edit SQL schema directly + n8n workflow             |
-| "ตรวจสอบ permission" | `seed-permissions.sql`, `ADR-016`                       | CASL 4-Level RBAC matrix                            |
-| "deploy production"  | `04-08-release-management-policy.md`, `ADR-015`         | Release Gates + Blue-Green strategy                 |
-| "เพิ่ม test"         | `05-04-testing-strategy.md`                             | Coverage goals + test patterns                      |
-
----
-
-## ✅ Quick Reference Checklist (Before Every Commit)
-
-- [ ] UUID pattern verified (no parseInt on UUID)
-- [ ] No `any` types in TypeScript
-- [ ] No `console.log` in committed code
-- [ ] Comments in Thai
-- [ ] Code identifiers in English
-- [ ] Schema changes via SQL directly (not migration)
-- [ ] Test coverage meets targets (Backend 70%+, Business Logic 80%+)
-- [ ] Relevant ADRs checked (ADR-009, ADR-018, ADR-019)
-- [ ] Glossary terms used correctly
-- [ ] Error handling complete (Logger + HttpException)
-- [ ] i18n keys used instead of hardcode text
-- [ ] Cache invalidation when data modified
-- [ ] Security checklist passed (OWASP Top 10)
-
----
-
-## 📚 Full Documentation
-
-This file is a **quick reference**. For detailed information:
-
-- **Architecture:** `specs/02-architecture/`
-- **Requirements:** `specs/01-requirements/`
-- **Data & Storage:** `specs/03-Data-and-Storage/`
-- **Engineering Guidelines:** `specs/05-Engineering-Guidelines/`
-- **Decision Records:** `specs/06-Decision-Records/`
-- **Infrastructure:** `specs/04-Infrastructure-OPS/`
+| Area | Key File |
+| --- | --- |
+| Glossary | `specs/00-overview/00-02-glossary.md` |
+| Schema | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` |
+| RBAC | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` |
+| API | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md` |
+| UI | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md` |
 
 ---
 
 ## 🔄 Change Log
-
-| Version | Date       | Changes                                                             | Updated By     |
-| ------- | ---------- | ------------------------------------------------------------------- | -------------- |
-| 1.8.5   | 2026-03-27 | Refactored — moved detailed content to specs/, now quick reference  | Windsurf AI    |
-| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note | Windsurf AI    |
-| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow        | Human Dev + AI |
-| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n       | Human Dev + AI |
-| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                  | Claude Sonnet  |
-| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                      | Human Dev      |
-| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                       | Gemini Pro     |
-
----
-
-**To update this file:**
-
-1. Edit relevant sections
-2. Update Change Log above
-3. Bump version number in header
-4. Commit: `spec(agents): bump to vX.X.X - <brief description>`
+- 1.9.0: Sync with AGENTS.md v1.9.0 (TS Standards, Hybrid Specs).
+- 1.8.5: Legacy version.

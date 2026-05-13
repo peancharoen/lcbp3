@@ -1,7 +1,7 @@
 ---
 name: speckit-tasks
 description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts.
-version: 1.8.9
+version: 1.9.0
 depends-on:
   - speckit-plan
 handoffs:

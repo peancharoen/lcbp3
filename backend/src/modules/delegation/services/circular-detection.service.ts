@@ -9,7 +9,7 @@ import { Delegation } from '../entities/delegation.entity';
 export class CircularDetectionService {
   constructor(
     @InjectRepository(Delegation)
-    private readonly delegationRepo: Repository<Delegation>,
+    private readonly delegationRepo: Repository<Delegation>
   ) {}
 
   /**
@@ -24,7 +24,7 @@ export class CircularDetectionService {
   async wouldCreateCircle(
     proposedFrom: number,
     proposedTo: number,
-    today: Date = new Date(),
+    today: Date = new Date()
   ): Promise<boolean> {
     // ถ้า A→B และ proposedFrom=B, proposedTo=A → circular ชัดเจน
     if (proposedFrom === proposedTo) return true;
@@ -57,7 +57,7 @@ export class CircularDetectionService {
     current: number,
     target: number,
     graph: Map<number, number[]>,
-    visited: Set<number>,
+    visited: Set<number>
   ): boolean {
     if (current === target) return true;
     if (visited.has(current)) return false;

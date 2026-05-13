@@ -56,6 +56,9 @@ export class ResponseCode extends UuidBaseEntity {
   createdAt!: Date;
 
   // Relations
-  @OneToMany(() => ResponseCodeRule, (rule: ResponseCodeRule) => rule.responseCode)
+  @OneToMany(
+    () => ResponseCodeRule,
+    (rule: ResponseCodeRule) => rule.responseCode
+  )
   rules?: ResponseCodeRule[];
 }

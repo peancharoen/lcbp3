@@ -1,7 +1,7 @@
 ---
 name: speckit-security-audit
 description: Perform a security-focused audit of the codebase against OWASP Top 10, CASL authorization, and LCBP3-DMS security requirements.
-version: 1.8.9
+version: 1.9.0
 depends-on:
   - speckit-checker
 ---

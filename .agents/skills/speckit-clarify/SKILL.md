@@ -1,7 +1,7 @@
 ---
 name: speckit-clarify
 description: Identify underspecified areas in the current feature spec by asking up to 5 highly targeted clarification questions and encoding answers back into the spec.
-version: 1.8.9
+version: 1.9.0
 depends-on:
   - speckit-specify
 handoffs:

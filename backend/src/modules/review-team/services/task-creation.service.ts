@@ -8,7 +8,10 @@ import { Repository, EntityManager } from 'typeorm';
 import { ReviewTeam } from '../entities/review-team.entity';
 import { ReviewTeamMember } from '../entities/review-team-member.entity';
 import { ReviewTask } from '../entities/review-task.entity';
-import { ReviewTaskStatus } from '../../common/enums/review.enums';
+import {
+  ReviewTaskStatus,
+  ReviewTeamMemberRole,
+} from '../../common/enums/review.enums';
 
 @Injectable()
 export class TaskCreationService {
@@ -20,7 +23,7 @@ export class TaskCreationService {
     @InjectRepository(ReviewTeamMember)
     private readonly memberRepo: Repository<ReviewTeamMember>,
     @InjectRepository(ReviewTask)
-    private readonly reviewTaskRepo: Repository<ReviewTask>,
+    private readonly reviewTaskRepo: Repository<ReviewTask>
   ) {}
 
   /**
@@ -36,7 +39,7 @@ export class TaskCreationService {
     rfaRevisionId: number,
     reviewTeamPublicId: string,
     dueDate: Date,
-    manager: EntityManager,
+    manager: EntityManager
   ): Promise<ReviewTask[]> {
     // ดึง ReviewTeam พร้อม members
     const team = await this.reviewTeamRepo.findOne({
@@ -46,7 +49,7 @@ export class TaskCreationService {
 
     if (!team || !team.isActive) {
       this.logger.warn(
-        `ReviewTeam ${reviewTeamPublicId} not found or inactive — skipping task creation`,
+        `ReviewTeam ${reviewTeamPublicId} not found or inactive — skipping task creation`
       );
       return [];
     }
@@ -55,7 +58,7 @@ export class TaskCreationService {
 
     if (members.length === 0) {
       this.logger.warn(
-        `ReviewTeam ${reviewTeamPublicId} has no members — skipping task creation`,
+        `ReviewTeam ${reviewTeamPublicId} has no members — skipping task creation`
       );
       return [];
     }
@@ -65,7 +68,7 @@ export class TaskCreationService {
     for (const member of members) {
       // LEAD มี priority สูงสุด ถ้ามีหลายคนใน Discipline เดียวกัน
       const existing = disciplineMap.get(member.disciplineId);
-      if (!existing || member.role === 'LEAD') {
+      if (!existing || member.role === ReviewTeamMemberRole.LEAD) {
         disciplineMap.set(member.disciplineId, member);
       }
     }
@@ -87,7 +90,7 @@ export class TaskCreationService {
     }
 
     this.logger.log(
-      `Created ${tasks.length} parallel review tasks for RFA revision ${rfaRevisionId}, team ${reviewTeamPublicId}`,
+      `Created ${tasks.length} parallel review tasks for RFA revision ${rfaRevisionId}, team ${reviewTeamPublicId}`
     );
 
     return tasks;
@@ -106,7 +109,7 @@ export class TaskCreationService {
     return tasks.every(
       (t: ReviewTask) =>
         t.status === ReviewTaskStatus.COMPLETED ||
-        t.status === ReviewTaskStatus.CANCELLED,
+        t.status === ReviewTaskStatus.CANCELLED
     );
   }
 }

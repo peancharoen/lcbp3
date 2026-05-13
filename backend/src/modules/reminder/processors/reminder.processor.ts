@@ -15,7 +15,7 @@ export class ReminderProcessor extends WorkerHost {
 
   constructor(
     private readonly escalationService: EscalationService,
-    private readonly notificationService: NotificationService,
+    private readonly notificationService: NotificationService
   ) {
     super();
   }
@@ -23,14 +23,17 @@ export class ReminderProcessor extends WorkerHost {
   async process(job: Job<ScheduleReminderPayload>): Promise<void> {
     const { taskPublicId, assigneeUserId, reminderType } = job.data;
 
-    this.logger.log(`Processing reminder job: ${reminderType} for task ${taskPublicId}`);
+    this.logger.log(
+      `Processing reminder job: ${reminderType} for task ${taskPublicId}`
+    );
 
     switch (reminderType) {
       case ReminderType.DUE_SOON:
         await this.notificationService.send({
           userId: assigneeUserId,
           title: '⏰ Review Task Due Soon',
-          message: 'Your review task is due in 2 days. Please complete your review.',
+          message:
+            'Your review task is due in 2 days. Please complete your review.',
           type: 'SYSTEM',
           entityType: 'review_task',
           entityId: taskPublicId as unknown as number,
@@ -41,7 +44,8 @@ export class ReminderProcessor extends WorkerHost {
         await this.notificationService.send({
           userId: assigneeUserId,
           title: '🔔 Review Task Due Today',
-          message: 'Your review task is due today. Please complete it as soon as possible.',
+          message:
+            'Your review task is due today. Please complete it as soon as possible.',
           type: 'SYSTEM',
           entityType: 'review_task',
           entityId: taskPublicId as unknown as number,
@@ -52,7 +56,8 @@ export class ReminderProcessor extends WorkerHost {
         await this.notificationService.send({
           userId: assigneeUserId,
           title: '🚨 Review Task Overdue',
-          message: 'Your review task is overdue. Escalation will occur if not completed.',
+          message:
+            'Your review task is overdue. Escalation will occur if not completed.',
           type: 'SYSTEM',
           entityType: 'review_task',
           entityId: taskPublicId as unknown as number,

@@ -1,10 +1,10 @@
----
-description: 'Task list template for feature implementation'
----
+// File: specs/[100/200/300]-category/feature-name/tasks.md
+// Change Log:
+// - [DATE]: Initial task list for [FEATURE NAME]
 
 # Tasks: [FEATURE NAME]
 
-**Input**: Design documents from `/specs/[###-feature-name]/`
+**Input**: Design documents from `/specs/[100/200/300]-category/feature-name/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
 **Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
@@ -17,12 +17,12 @@ description: 'Task list template for feature implementation'
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
 
-## Path Conventions
+## Path Conventions (v1.9.0)
 
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- **Backend (NestJS)**: `backend/src/`
+- **Frontend (Next.js)**: `frontend/src/`
+- **Specs (Hybrid)**: `specs/[100/200/300]-category/`
+- Paths shown below assume standard LCBP3 mono-repo structure.
 
 <!--
   ============================================================================

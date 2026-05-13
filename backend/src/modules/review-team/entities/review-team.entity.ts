@@ -30,7 +30,11 @@ export class ReviewTeam extends UuidBaseEntity {
   @Column({ length: 255, nullable: true })
   description?: string;
 
-  @Column({ name: 'default_for_rfa_types', type: 'simple-array', nullable: true })
+  @Column({
+    name: 'default_for_rfa_types',
+    type: 'simple-array',
+    nullable: true,
+  })
   defaultForRfaTypes?: string[]; // Auto-assign ให้ RFA type เช่น ['SDW','DDW']
 
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
@@ -47,6 +51,10 @@ export class ReviewTeam extends UuidBaseEntity {
   @JoinColumn({ name: 'project_id' })
   project?: Project;
 
-  @OneToMany(() => ReviewTeamMember, (member: ReviewTeamMember) => member.team, { cascade: true })
+  @OneToMany(
+    () => ReviewTeamMember,
+    (member: ReviewTeamMember) => member.team,
+    { cascade: true }
+  )
   members?: ReviewTeamMember[];
 }

@@ -34,11 +34,11 @@ export class ResponseCodeController {
   @Get('document-type/:documentTypeId')
   findByDocumentType(
     @Param('documentTypeId') documentTypeId: string,
-    @Query('projectId') projectId?: string,
+    @Query('projectId') projectId?: string
   ) {
     return this.responseCodeService.findByDocumentType(
       Number(documentTypeId),
-      projectId ? Number(projectId) : undefined,
+      projectId ? Number(projectId) : undefined
     );
   }
 

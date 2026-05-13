@@ -1,7 +1,7 @@
 ---
 name: speckit-specify
 description: Create or update the feature specification from a natural language feature description.
-version: 1.8.9
+version: 1.9.0
 handoffs:
   - label: Build Technical Plan
     agent: speckit-plan

@@ -1,7 +1,7 @@
 ---
 name: speckit-tester
 description: Execute tests, measure coverage, and report results.
-version: 1.8.9
+version: 1.9.0
 depends-on: []
 ---
 

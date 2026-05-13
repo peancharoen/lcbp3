@@ -14,7 +14,10 @@ export function validateDueDate(dueDate: Date): void {
 /**
  * ตรวจสอบ delegation date range ไม่เกิน 90 วัน
  */
-export function validateDelegationDateRange(startDate: Date, endDate: Date): void {
+export function validateDelegationDateRange(
+  startDate: Date,
+  endDate: Date
+): void {
   if (endDate <= startDate) {
     throw new Error('End date must be after start date');
   }
@@ -35,7 +38,7 @@ export function validateTaskCompletionRequirements(
   taskStatus: string,
   responseCodeId: number | undefined | null,
   requiresComments: boolean,
-  comments: string | undefined | null,
+  comments: string | undefined | null
 ): void {
   if (taskStatus === 'COMPLETED') {
     if (!responseCodeId) {
@@ -54,11 +57,11 @@ export function validateTaskCompletionRequirements(
 export function validateVersion(
   expectedVersion: number,
   actualVersion: number,
-  entityName: string,
+  entityName: string
 ): void {
   if (actualVersion !== expectedVersion) {
     throw new Error(
-      `Optimistic lock conflict on ${entityName}: expected version ${expectedVersion}, got ${actualVersion}. Please retry.`,
+      `Optimistic lock conflict on ${entityName}: expected version ${expectedVersion}, got ${actualVersion}. Please retry.`
     );
   }
 }

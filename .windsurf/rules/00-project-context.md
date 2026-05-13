@@ -24,7 +24,9 @@ Every response must be **precise**, **spec-compliant**, and **production-ready**
 ## Project Information
 
 - **Project:** NAP-DMS (LCBP3)
-- **Version:** 1.8.6
+- Version: 1.9.0
+- Last Updated: 2026-05-13
+- Canonical Source: AGENTS.md
 - **Stack:** NestJS + Next.js + TypeScript + MariaDB + Ollama (AI)
 - **Repo:** https://git.np-dms.work/np-dms/lcbp3
 
@@ -58,3 +60,24 @@ Best practice — follow when possible:
 - Code style / formatting (Prettier handles)
 - Comment completeness
 - Minor optimizations
+
+---
+
+## 📐 TypeScript Rules & Coding Standards (v1.9.0)
+
+### 📝 Core Standards
+
+- **Strict Mode** — all strict checks enforced.
+- **ZERO `any` types** — use proper types or `unknown` + narrowing.
+- **ZERO `console.log`** — use NestJS `Logger` (backend) or remove before commit (frontend).
+- **English for Code** — use English for all code identifiers, variables, and logic.
+- **Thai for Comments** — use Thai for comments, documentation, and JSDoc.
+- **Explicit Typing** — explicitly define types for all variables, parameters, and return values.
+- **JSDoc** — use JSDoc for all public classes and methods.
+
+### 🏗️ File & Function Structure
+
+- **File Headers** — every file MUST start with `// File: path/filename` on the first line.
+- **Change Log** — include `// Change Log` at the top of the file to track modifications.
+- **Single Export** — export **only one main symbol** per file.
+- **Function Style** — avoid unnecessary blank lines inside functions.

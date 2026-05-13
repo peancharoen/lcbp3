@@ -24,7 +24,9 @@ describe('Parallel Review Consensus (Integration)', () => {
       const codes = ['1A', '3', '2'];
       const hasVeto = codes.some((c) => c === '3');
 
-      const decision = hasVeto ? ConsensusDecision.REJECTED : ConsensusDecision.APPROVED;
+      const decision = hasVeto
+        ? ConsensusDecision.REJECTED
+        : ConsensusDecision.APPROVED;
 
       expect(decision).toBe(ConsensusDecision.REJECTED);
     });

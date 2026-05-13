@@ -1,7 +1,7 @@
 ---
 name: speckit-validate
 description: Validate that implementation matches specification requirements.
-version: 1.8.9
+version: 1.9.0
 depends-on:
   - speckit-implement
 ---

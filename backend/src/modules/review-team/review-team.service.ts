@@ -1,5 +1,10 @@
 // File: src/modules/review-team/review-team.service.ts
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReviewTeam } from './entities/review-team.entity';
@@ -25,7 +30,7 @@ export class ReviewTeamService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(Discipline)
-    private readonly disciplineRepo: Repository<Discipline>,
+    private readonly disciplineRepo: Repository<Discipline>
   ) {}
 
   /**
@@ -74,14 +79,17 @@ export class ReviewTeamService {
   /**
    * ดึง Teams ที่เป็น Default สำหรับ RFA type นั้นๆ (FR-002)
    */
-  async findDefaultForRfaType(rfaTypeCode: string, projectId: number): Promise<ReviewTeam[]> {
+  async findDefaultForRfaType(
+    rfaTypeCode: string,
+    projectId: number
+  ): Promise<ReviewTeam[]> {
     const teams = await this.teamRepo.find({
       where: { projectId, isActive: true },
       relations: ['members'],
     });
 
     return teams.filter(
-      (t: ReviewTeam) => t.defaultForRfaTypes?.includes(rfaTypeCode) ?? false,
+      (t: ReviewTeam) => t.defaultForRfaTypes?.includes(rfaTypeCode) ?? false
     );
   }
 
@@ -90,9 +98,11 @@ export class ReviewTeamService {
    */
   async create(dto: CreateReviewTeamDto): Promise<ReviewTeam> {
     // ตรวจสอบว่า project มีอยู่จริง (via publicId)
-    const project = await this.teamRepo.manager.getRepository('projects').findOne({
-      where: { uuid: dto.projectPublicId } as Record<string, unknown>,
-    });
+    const project = await this.teamRepo.manager
+      .getRepository('projects')
+      .findOne({
+        where: { uuid: dto.projectPublicId } as Record<string, unknown>,
+      });
 
     if (!project) {
       throw new NotFoundException(`Project not found: ${dto.projectPublicId}`);
@@ -112,12 +122,16 @@ export class ReviewTeamService {
   /**
    * อัปเดต Review Team
    */
-  async update(publicId: string, dto: UpdateReviewTeamDto): Promise<ReviewTeam> {
+  async update(
+    publicId: string,
+    dto: UpdateReviewTeamDto
+  ): Promise<ReviewTeam> {
     const team = await this.findByPublicId(publicId);
 
     if (dto.name !== undefined) team.name = dto.name;
     if (dto.description !== undefined) team.description = dto.description;
-    if (dto.defaultForRfaTypes !== undefined) team.defaultForRfaTypes = dto.defaultForRfaTypes;
+    if (dto.defaultForRfaTypes !== undefined)
+      team.defaultForRfaTypes = dto.defaultForRfaTypes;
     if (dto.isActive !== undefined) team.isActive = dto.isActive;
 
     return this.teamRepo.save(team);
@@ -126,27 +140,40 @@ export class ReviewTeamService {
   /**
    * เพิ่มสมาชิกใน Review Team (FR-001)
    */
-  async addMember(teamPublicId: string, dto: AddTeamMemberDto): Promise<ReviewTeamMember> {
+  async addMember(
+    teamPublicId: string,
+    dto: AddTeamMemberDto
+  ): Promise<ReviewTeamMember> {
     const team = await this.findByPublicId(teamPublicId);
 
     // ตรวจสอบ User
-    const user = await this.userRepo.findOne({ where: { publicId: dto.userPublicId } });
-    if (!user) throw new NotFoundException(`User not found: ${dto.userPublicId}`);
+    const user = await this.userRepo.findOne({
+      where: { publicId: dto.userPublicId },
+    });
+    if (!user)
+      throw new NotFoundException(`User not found: ${dto.userPublicId}`);
 
     // ตรวจสอบ Discipline
     const discipline = await this.disciplineRepo.findOne({
       where: { id: Number(dto.disciplinePublicId) },
     });
-    if (!discipline) throw new NotFoundException(`Discipline not found: ${dto.disciplinePublicId}`);
+    if (!discipline)
+      throw new NotFoundException(
+        `Discipline not found: ${dto.disciplinePublicId}`
+      );
 
     // ตรวจสอบซ้ำ
     const existing = await this.memberRepo.findOne({
-      where: { teamId: team.id, userId: user.user_id, disciplineId: discipline.id },
+      where: {
+        teamId: team.id,
+        userId: user.user_id,
+        disciplineId: discipline.id,
+      },
     });
 
     if (existing) {
       throw new BadRequestException(
-        `User ${dto.userPublicId} is already a member of this team for discipline ${dto.disciplinePublicId}`,
+        `User ${dto.userPublicId} is already a member of this team for discipline ${dto.disciplinePublicId}`
       );
     }
 
@@ -164,7 +191,10 @@ export class ReviewTeamService {
   /**
    * ลบสมาชิกออกจาก Review Team
    */
-  async removeMember(teamPublicId: string, memberPublicId: string): Promise<void> {
+  async removeMember(
+    teamPublicId: string,
+    memberPublicId: string
+  ): Promise<void> {
     const team = await this.findByPublicId(teamPublicId);
     const member = await this.memberRepo.findOne({
       where: { publicId: memberPublicId, teamId: team.id },

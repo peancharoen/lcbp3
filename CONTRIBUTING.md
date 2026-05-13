@@ -82,18 +82,11 @@ specs/
 ├── 06-Decision-Records/      # Architecture Decision Records (22 ADRs)
 │   ├── README.md
 │   ├── ADR-001-unified-workflow-engine.md
-│   ├── ADR-002-document-numbering-strategy.md
-│   ├── ADR-003-api-design-strategy.md          # Hybrid REST + Action [★ v1.8.5]
-│   ├── ADR-004-database-schema-design-strategy.md  # Selective Normalization [★ v1.8.5]
-│   ├── ... (ADR-005 to ADR-006)
-│   ├── ADR-007-error-handling-strategy.md      # Layered Error Handling [★ v1.8.5]
-│   ├── ... (ADR-008 to ADR-016)
-│   ├── ADR-017-ollama-data-migration.md
-│   ├── ADR-017B-ai-document-classification.md
-│   ├── ADR-018-ai-boundary.md                  # AI Isolation Policy [★ Patch 1.8.1]
-│   ├── ADR-019-hybrid-identifier-strategy.md
-│   ├── ADR-020-ai-intelligence-integration.md
-│   └── ADR-021-workflow-context.md              # Integrated Workflow Context [★ v1.8.7]
+│   └── ...
+│
+├── 100-Infrastructures/      # งาน Infrastructure (Deployment, Ops, Docker) [★ v1.9.0]
+├── 200-fullstacks/          # งาน Feature (Backend + Frontend, Workflow) [★ v1.9.0]
+├── 300-others/              # งานเอกสารและการวิจัยทั่วไป [★ v1.9.0]
 │
 └── 99-archives/              # ประวัติการทำงานและ Tasks เก่า
     ├── history/
@@ -112,6 +105,9 @@ specs/
 | **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8               | DevOps Team             |
 | **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —                   | Development Team Leads  |
 | **06-Decision-Records**       | Architecture Decision Records (22)     | ADR-018/019/020/021 | Tech Lead + Senior Devs |
+| **100-Infrastructures**      | Infrastructure Operations & Ops        | —                   | DevOps / SRE Team       |
+| **200-fullstacks**           | Feature Implementation (Fullstack)     | spec.md, plan.md    | Development Team        |
+| **300-others**               | Documentation & Research               | —                   | All Team Members        |
 | **99-archives**               | Archived / Tasks                       | —                   | All Team Members        |
 
 ---
@@ -726,28 +722,32 @@ Create `.markdownlint.json`:
 4. `specs/06-Decision-Records/` (โดยเฉพาะ ADR-019 — UUID **March 2026 pattern**)
 5. `specs/05-Engineering-Guidelines/` (backend / frontend / testing / i18n / git conventions)
 
-### Invocation (Windsurf)
+### Invocation (v1.9.0 Unified)
 
-ใช้ slash commands ด้านล่าง — `.windsurf/workflows/*.md` ห่อหุ้ม [`.agents/skills/speckit-*`](./.agents/skills/) ไว้ให้:
+ใช้ slash commands ผ่านโฟลเดอร์หลักคือ [`.agents/workflows/`](./.agents/workflows/) (ซึ่งถูก Mirror ไปยัง `.windsurf/workflows/` อัตโนมัติ):
 
-- `/02-speckit.specify` → spec.md
-- `/04-speckit.plan` → plan.md + data-model.md + contracts/
-- `/05-speckit.tasks` → tasks.md
-- `/07-speckit.implement` → execute tasks (with Ironclad Anti-Regression Protocols)
-- `/10-speckit.reviewer` → code review (Tier 1/2/3 classification)
-- `/12-speckit.security-audit` → OWASP + CASL + LCBP3-specific
+- `/00-speckit.all` → Full Pipeline (Specify → Validate)
+- `/102-speckit.specify` → สร้าง spec.md (ต้องระบุหมวดหมู่ 100/200/300)
+- `/104-speckit.plan` → สร้าง plan.md
+- `/107-speckit.implement` → รันงานตาม tasks.md
+- `/schema-change` → แก้ไข Database Schema ตาม ADR-009
 
-### Health Checks
+### Health Checks & Synchronization
 
 ```bash
-# Version + frontmatter consistency
-bash  ./.agents/scripts/bash/validate-versions.sh
-pwsh  ./.agents/scripts/powershell/validate-versions.ps1
+# Sync configurations จาก .agents ไปยัง .windsurf (v1.9.0)
+pwsh  ./scripts/sync-agent-configs.ps1
 
-# Full skill audit (20 skills)
+# Full system audit (Skills + Specs structure)
 bash  ./.agents/scripts/bash/audit-skills.sh
-pwsh  ./.agents/scripts/powershell/audit-skills.ps1
 ```
+
+### 📐 TypeScript Coding Standards (v1.9.0)
+
+1. **File Header**: ทุกไฟล์ต้องเริ่มด้วย `// File: path/filename`
+2. **Change Log**: ต้องมีส่วน `// Change Log` ที่หัวไฟล์
+3. **Language**: Code/Logic เป็น English, Comments/JSDoc เป็น **Thai**
+4. **Export**: Export เพียง 1 symbol หลักต่อไฟล์เท่านั้น
 
 ### 🔴 Tier 1 Non-Negotiables (AI must enforce)
 

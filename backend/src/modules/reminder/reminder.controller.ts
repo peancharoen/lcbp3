@@ -1,6 +1,16 @@
 // File: src/modules/reminder/reminder.controller.ts
 // Admin endpoints สำหรับจัดการ Reminder Rules (T048)
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ReminderService } from './reminder.service';
 import { CreateReminderRuleDto } from './dto/create-reminder-rule.dto';
@@ -11,8 +21,8 @@ export class ReminderController {
   constructor(private readonly reminderService: ReminderService) {}
 
   @Get()
-  findAll(@Query('projectId') projectId?: string) {
-    return this.reminderService.findAll(projectId ? parseInt(projectId, 10) : undefined);
+  findAll(@Query('projectPublicId') projectPublicId?: string) {
+    return this.reminderService.findAllByProjectPublicId(projectPublicId);
   }
 
   @Get(':publicId')
@@ -26,7 +36,10 @@ export class ReminderController {
   }
 
   @Patch(':publicId')
-  update(@Param('publicId') publicId: string, @Body() dto: Partial<CreateReminderRuleDto>): Promise<unknown> {
+  update(
+    @Param('publicId') publicId: string,
+    @Body() dto: Partial<CreateReminderRuleDto>
+  ): Promise<unknown> {
     return this.reminderService.update(publicId, dto);
   }
 

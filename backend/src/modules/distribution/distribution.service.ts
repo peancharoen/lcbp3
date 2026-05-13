@@ -20,7 +20,7 @@ export class DistributionService {
 
   constructor(
     @InjectQueue(QUEUE_DISTRIBUTION)
-    private readonly distributionQueue: Queue,
+    private readonly distributionQueue: Queue
   ) {}
 
   /**
@@ -35,14 +35,16 @@ export class DistributionService {
     });
 
     this.logger.log(
-      `Distribution queued for RFA ${payload.rfaPublicId} (code: ${payload.responseCode})`,
+      `Distribution queued for RFA ${payload.rfaPublicId} (code: ${payload.responseCode})`
     );
   }
 
   /**
    * ตรวจสอบสถานะ distribution jobs ของ RFA
    */
-  async getJobStatus(rfaPublicId: string): Promise<{ pending: number; completed: number }> {
+  async getJobStatus(
+    _rfaPublicId: string
+  ): Promise<{ pending: number; completed: number }> {
     const [waiting, active] = await Promise.all([
       this.distributionQueue.getWaitingCount(),
       this.distributionQueue.getActiveCount(),

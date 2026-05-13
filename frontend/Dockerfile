@@ -17,7 +17,7 @@
 # =========================
 FROM node:24-alpine AS deps
 
-RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /w
 

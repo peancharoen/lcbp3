@@ -1,7 +1,7 @@
 ---
 name: speckit-checklist
 description: Generate a custom checklist for the current feature based on user requirements.
-version: 1.8.9
+version: 1.9.0
 ---
 
 ## Checklist Purpose: "Unit Tests for English"

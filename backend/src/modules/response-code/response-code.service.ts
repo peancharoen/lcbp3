@@ -14,7 +14,7 @@ export class ResponseCodeService {
     @InjectRepository(ResponseCode)
     private readonly responseCodeRepo: Repository<ResponseCode>,
     @InjectRepository(ResponseCodeRule)
-    private readonly responseCodeRuleRepo: Repository<ResponseCodeRule>,
+    private readonly responseCodeRuleRepo: Repository<ResponseCodeRule>
   ) {}
 
   /**
@@ -31,7 +31,9 @@ export class ResponseCodeService {
    * ดึง Response Codes ตาม Category (FR-006)
    * ใช้สำหรับแสดงผลใน Review page ตามประเภทเอกสาร
    */
-  async findByCategory(category: ResponseCodeCategory): Promise<ResponseCode[]> {
+  async findByCategory(
+    category: ResponseCodeCategory
+  ): Promise<ResponseCode[]> {
     return this.responseCodeRepo.find({
       where: { category, isActive: true },
       order: { code: 'ASC' },
@@ -44,7 +46,7 @@ export class ResponseCodeService {
    */
   async findByDocumentType(
     documentTypeId: number,
-    projectId?: number,
+    projectId?: number
   ): Promise<ResponseCode[]> {
     // ดึง Rules ระดับ Project (ถ้ามี) หรือ Global default
     const rules = await this.responseCodeRuleRepo.find({
@@ -64,7 +66,7 @@ export class ResponseCodeService {
     }
 
     return Array.from(codeMap.values()).sort((a, b) =>
-      a.code.localeCompare(b.code),
+      a.code.localeCompare(b.code)
     );
   }
 

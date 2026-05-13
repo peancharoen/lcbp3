@@ -1,0 +1,24 @@
+{
+  "version": "1.8.9",
+  "organization": "**NAP-DMS / LCBP3** — Laem Chabang Port Phase 3 Document Management System",
+  "date": "2026-04-22",
+  "abstract": "Comprehensive NestJS best-practices guide compiled for the LCBP3-DMS backend. Contains 40+ rules across 11 categories (10 general + 1 project-specific), prioritized by impact. Forked from Kadajett/nestjs-best-practices (v1.1.0) and aligned to LCBP3 ADRs: ADR-001 (workflow engine), ADR-002 (document numbering), ADR-007 (error handling), ADR-008 (notifications/BullMQ), ADR-009 (no TypeORM migrations), ADR-016 (security), ADR-018/020 (AI boundary), ADR-019 (hybrid UUID identifier — March 2026 pattern), and ADR-021 (workflow context).\n\nThis document is the single, consolidated reference used by Cascade and other AI coding agents when writing, reviewing, or refactoring backend code in this repository. All LCBP3-specific overrides live in section 11.",
+  "references": [
+    "[AGENTS.md (root)](../../../AGENTS.md) — canonical AI agent rules",
+    "[CONTRIBUTING.md](../../../CONTRIBUTING.md) — spec authoring + PR process",
+    "[ADR-001 Unified Workflow Engine](../../../specs/06-Decision-Records/ADR-001-unified-workflow-engine.md)",
+    "[ADR-002 Document Numbering Strategy](../../../specs/06-Decision-Records/ADR-002-document-numbering-strategy.md)",
+    "[ADR-007 Error Handling Strategy](../../../specs/06-Decision-Records/ADR-007-error-handling-strategy.md)",
+    "[ADR-008 Email/Notification Strategy](../../../specs/06-Decision-Records/ADR-008-email-notification-strategy.md)",
+    "[ADR-009 Database Migration Strategy](../../../specs/06-Decision-Records/ADR-009-database-migration-strategy.md)",
+    "[ADR-016 Security & Authentication](../../../specs/06-Decision-Records/ADR-016-security-authentication.md)",
+    "[ADR-018 AI Boundary](../../../specs/06-Decision-Records/ADR-018-ai-boundary.md)",
+    "[ADR-019 Hybrid Identifier Strategy](../../../specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md)",
+    "[ADR-020 AI Intelligence Integration](../../../specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md)",
+    "[ADR-021 Workflow Context](../../../specs/06-Decision-Records/ADR-021-workflow-context.md)",
+    "[Backend Engineering Guidelines](../../../specs/05-Engineering-Guidelines/05-02-backend-guidelines.md)",
+    "[Schema — v1.8.0 Tables](../../../specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql)",
+    "[Data Dictionary](../../../specs/03-Data-and-Storage/03-01-data-dictionary.md)",
+    "Upstream: [Kadajett/nestjs-best-practices](https://github.com/Kadajett/nestjs-best-practices) v1.1.0"
+  ]
+}

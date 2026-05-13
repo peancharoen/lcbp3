@@ -56,7 +56,10 @@ export class ReviewTeamController {
    * อัปเดต Review Team
    */
   @Patch(':publicId')
-  update(@Param('publicId') publicId: string, @Body() dto: UpdateReviewTeamDto) {
+  update(
+    @Param('publicId') publicId: string,
+    @Body() dto: UpdateReviewTeamDto
+  ) {
     return this.reviewTeamService.update(publicId, dto);
   }
 
@@ -65,7 +68,10 @@ export class ReviewTeamController {
    * เพิ่มสมาชิก
    */
   @Post(':publicId/members')
-  addMember(@Param('publicId') teamPublicId: string, @Body() dto: AddTeamMemberDto) {
+  addMember(
+    @Param('publicId') teamPublicId: string,
+    @Body() dto: AddTeamMemberDto
+  ) {
     return this.reviewTeamService.addMember(teamPublicId, dto);
   }
 
@@ -76,7 +82,7 @@ export class ReviewTeamController {
   @Delete(':publicId/members/:memberPublicId')
   removeMember(
     @Param('publicId') teamPublicId: string,
-    @Param('memberPublicId') memberPublicId: string,
+    @Param('memberPublicId') memberPublicId: string
   ) {
     return this.reviewTeamService.removeMember(teamPublicId, memberPublicId);
   }
