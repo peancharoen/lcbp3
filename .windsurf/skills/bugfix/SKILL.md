@@ -1,10 +1,7 @@
-// File: .agents/skills/bugfix/SKILL.md
-// Change Log: 2026-05-13 - Initial version improved from docs/bugfix.md
-
 ---
 name: bugfix
 description: Quick bugfix workflow with minimal impact. Focused on surgical fixes without unrelated refactoring.
-version: 1.0.0
+version: 1.9.0
 ---
 
 # Bugfix
@@ -29,7 +26,7 @@ version: 1.0.0
 ## Phase 3 — Execution (การดำเนินการ)
 
 1. **Apply Fix**: ลงมือแก้ไขโค้ดตามแผน
-2. **Verify Fix**: 
+2. **Verify Fix**:
    - จำลองสถานการณ์เพื่อยืนยันว่า Bug หายไปจริง
    - ตรวจสอบว่าไม่มี Forbidden Patterns (`any`, `console.log`, UUID misuse)
 3. **Regression Check**: ตรวจสอบส่วนที่เกี่ยวข้องว่ายังทำงานได้ปกติ
