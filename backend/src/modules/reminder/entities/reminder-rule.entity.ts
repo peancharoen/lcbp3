@@ -20,6 +20,9 @@ export class ReminderRule extends UuidBaseEntity {
   @Exclude()
   projectId?: number; // NULL = global rule
 
+  @Column({ length: 100 })
+  name!: string;
+
   @Column({ name: 'document_type_code', length: 20, nullable: true })
   documentTypeCode?: string; // 'SDW', 'DDW' — NULL = all types
 
@@ -37,6 +40,9 @@ export class ReminderRule extends UuidBaseEntity {
 
   @Column({ name: 'notify_roles', type: 'simple-array', nullable: true })
   notifyRoles?: string[]; // เช่น ['TASK_ASSIGNEE', 'TEAM_LEAD', 'PROJECT_MANAGER']
+
+  @Column({ name: 'message_template', type: 'text', nullable: true })
+  messageTemplate?: string;
 
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
   isActive!: boolean;

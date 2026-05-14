@@ -22,12 +22,15 @@ import { VetoOverrideService } from './services/veto-override.service';
 
 // Controllers
 import { ReviewTeamController } from './review-team.controller';
+import { ReviewTaskController } from './review-task.controller';
 
 // Modules
 import { ResponseCodeModule } from '../response-code/response-code.module';
 import { NotificationModule } from '../notification/notification.module';
 import { UserModule } from '../user/user.module';
 import { DistributionModule } from '../distribution/distribution.module';
+import { DelegationModule } from '../delegation/delegation.module';
+import { ReminderModule } from '../reminder/reminder.module';
 
 // Queue constants
 import {
@@ -52,6 +55,8 @@ import {
     NotificationModule,
     UserModule,
     DistributionModule,
+    DelegationModule,
+    ReminderModule,
   ],
   providers: [
     ReviewTeamService,
@@ -61,7 +66,7 @@ import {
     ConsensusService,
     VetoOverrideService,
   ],
-  controllers: [ReviewTeamController],
+  controllers: [ReviewTeamController, ReviewTaskController],
   exports: [
     ReviewTeamService,
     ReviewTaskService,

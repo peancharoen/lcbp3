@@ -14,6 +14,10 @@ export class CreateReminderRuleDto {
   @IsInt()
   projectId?: number;
 
+  @IsString()
+  @MaxLength(100)
+  name!: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(20)
@@ -33,4 +37,8 @@ export class CreateReminderRuleDto {
   @IsArray()
   @IsString({ each: true })
   notifyRoles?: string[];
+
+  @IsOptional()
+  @IsString()
+  messageTemplate?: string;
 }

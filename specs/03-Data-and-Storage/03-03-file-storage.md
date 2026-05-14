@@ -3,7 +3,7 @@
 ---
 
 title: 'Data & Storage: File Storage and Handling (Two-Phase)'
-version: 1.8.0
+version: 1.9.0
 status: drafted
 owner: Nattanin Peancharoen
 last_updated: 2026-02-22
@@ -80,23 +80,30 @@ LCBP3-DMS ต้องจัดการ File Uploads สำหรับ Attachm
 ```sql
 CREATE TABLE attachments (
   id INT PRIMARY KEY AUTO_INCREMENT,
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
   original_filename VARCHAR(255) NOT NULL,
   stored_filename VARCHAR(255) NOT NULL,  -- UUID-based
   file_path VARCHAR(500) NOT NULL,        -- QNAP Mount path
   mime_type VARCHAR(100) NOT NULL,
   file_size INT NOT NULL,
   checksum VARCHAR(64) NULL,  -- SHA-256
+  reference_date DATE NULL COMMENT 'ADR-019/ADR-003: folder partition date',
 
   -- Two-Phase Fields
   is_temporary BOOLEAN DEFAULT TRUE,
   temp_id VARCHAR(100) NULL,  -- UUID for temp reference
   expires_at DATETIME NULL,   -- Temp file expiration
 
+  -- ADR-021: Integrated Workflow Context
+  workflow_history_id CHAR(36) NULL COMMENT 'FK to workflow_histories.id for step-specific attachments',
+
   uploaded_by_user_id INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (uploaded_by_user_id) REFERENCES users(user_id),
-  INDEX idx_temp_files (is_temporary, expires_at)
+  FOREIGN KEY (workflow_history_id) REFERENCES workflow_histories(id) ON DELETE SET NULL,
+  INDEX idx_temp_files (is_temporary, expires_at),
+  INDEX idx_attachments_reference_date (reference_date)
 );
 ```
 

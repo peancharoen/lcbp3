@@ -1,4 +1,6 @@
 // File: src/modules/distribution/distribution.service.ts
+// Change Log
+// - 2026-05-14: Carry canonical documentTypeId in queue payload while preserving legacy code metadata.
 // Enqueue distribution jobs เมื่อ RFA ได้รับการอนุมัติ (T054)
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -9,7 +11,8 @@ export interface DistributionJobPayload {
   rfaPublicId: string;
   rfaRevisionPublicId: string;
   projectId: number;
-  documentTypeCode: string;
+  documentTypeId?: number;
+  documentTypeCode?: string;
   responseCode: string;
   approvedAt: Date;
 }

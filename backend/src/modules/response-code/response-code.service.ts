@@ -1,10 +1,20 @@
 // File: src/modules/response-code/response-code.service.ts
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+// Change Log:
+// - 2026-05-13: Add basic CRUD methods for response codes to support controller mutations.
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { ResponseCode } from './entities/response-code.entity';
 import { ResponseCodeRule } from './entities/response-code-rule.entity';
 import { ResponseCodeCategory } from '../common/enums/review.enums';
+import { CreateResponseCodeDto } from './dto/create-response-code.dto';
+import { UpdateResponseCodeDto } from './dto/update-response-code.dto';
 
 @Injectable()
 export class ResponseCodeService {
@@ -83,6 +93,83 @@ export class ResponseCodeService {
     }
 
     return code;
+  }
+
+  /**
+   * สร้าง Response Code ใหม่สำหรับ Master Approval Matrix
+   */
+  async create(dto: CreateResponseCodeDto): Promise<ResponseCode> {
+    const existing = await this.responseCodeRepo.findOne({
+      where: {
+        code: dto.code,
+        category: dto.category,
+      },
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        `Response Code already exists for code=${dto.code}, category=${dto.category}`
+      );
+    }
+
+    const entity = this.responseCodeRepo.create({
+      code: dto.code,
+      subStatus: dto.subStatus,
+      category: dto.category,
+      descriptionTh: dto.descriptionTh,
+      descriptionEn: dto.descriptionEn,
+      implications: dto.implications,
+      notifyRoles: dto.notifyRoles,
+      isActive: dto.isActive ?? true,
+      isSystem: false,
+    });
+
+    return this.responseCodeRepo.save(entity);
+  }
+
+  /**
+   * อัปเดต Response Code ตาม publicId
+   */
+  async update(
+    publicId: string,
+    dto: UpdateResponseCodeDto
+  ): Promise<ResponseCode> {
+    const entity = await this.findByPublicId(publicId);
+
+    if (
+      (dto.code && dto.code !== entity.code) ||
+      (dto.category && dto.category !== entity.category)
+    ) {
+      const existing = await this.responseCodeRepo.findOne({
+        where: {
+          code: dto.code ?? entity.code,
+          category: dto.category ?? entity.category,
+        },
+      });
+
+      if (existing && existing.publicId !== entity.publicId) {
+        throw new ConflictException(
+          `Response Code already exists for code=${dto.code ?? entity.code}, category=${dto.category ?? entity.category}`
+        );
+      }
+    }
+
+    Object.assign(entity, dto);
+    return this.responseCodeRepo.save(entity);
+  }
+
+  /**
+   * ปิดการใช้งาน Response Code โดยไม่ลบข้อมูล
+   */
+  async deactivate(publicId: string): Promise<void> {
+    const entity = await this.findByPublicId(publicId);
+
+    if (entity.isSystem) {
+      throw new BadRequestException('Cannot deactivate a system response code');
+    }
+
+    entity.isActive = false;
+    await this.responseCodeRepo.save(entity);
   }
 
   /**

@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useProcessRFA, useSubmitRFA } from '@/hooks/use-rfa';
+import { ReviewTeamSelector } from '@/components/review-team/ReviewTeamSelector';
 
 interface RFADetailProps {
   data: RFA;
@@ -20,6 +21,7 @@ export function RFADetail({ data }: RFADetailProps) {
   const [actionState, setActionState] = useState<'approve' | 'reject' | 'submit' | null>(null);
   const [comments, setComments] = useState('');
   const [templateId, setTemplateId] = useState<number>(1);
+  const [reviewTeamPublicId, setReviewTeamPublicId] = useState<string | undefined>(undefined);
   const processMutation = useProcessRFA();
   const submitMutation = useSubmitRFA();
   const currentRevision = data.revisions.find((revision) => revision.isCurrent) ?? data.revisions[0];
@@ -79,10 +81,17 @@ export function RFADetail({ data }: RFADetailProps) {
 
   const handleSubmit = () => {
     submitMutation.mutate(
-      { uuid: data.publicId, templateId },
+      {
+        uuid: data.publicId,
+        data: {
+          templateId,
+          reviewTeamPublicId,
+        },
+      },
       {
         onSuccess: () => {
           setActionState(null);
+          setReviewTeamPublicId(undefined);
         },
       }
     );
@@ -159,6 +168,14 @@ export function RFADetail({ data }: RFADetailProps) {
               />
               <p className="text-xs text-muted-foreground">Enter the routing template ID for this submission.</p>
             </div>
+            {data.correspondence?.project?.publicId && (
+              <ReviewTeamSelector
+                projectPublicId={data.correspondence.project.publicId}
+                value={reviewTeamPublicId}
+                onChange={setReviewTeamPublicId}
+                disabled={submitMutation.isPending}
+              />
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setActionState(null)}>Cancel</Button>
               <Button onClick={handleSubmit} disabled={submitMutation.isPending}>

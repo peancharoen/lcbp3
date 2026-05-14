@@ -1,4 +1,6 @@
 // File: src/modules/distribution/distribution.module.ts
+// Change Log
+// - 2026-05-14: Register ResponseCode repository for Distribution Matrix publicId resolution.
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
@@ -13,6 +15,8 @@ import { TransmittalCreatorService } from './services/transmittal-creator.servic
 import { QUEUE_DISTRIBUTION } from '../common/constants/queue.constants';
 import { NotificationModule } from '../notification/notification.module';
 import { Project } from '../project/entities/project.entity';
+import { ResponseCode } from '../response-code/entities/response-code.entity';
+import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
 
 @Module({
   imports: [
@@ -20,9 +24,11 @@ import { Project } from '../project/entities/project.entity';
       DistributionMatrix,
       DistributionRecipient,
       Project,
+      ResponseCode,
     ]),
     BullModule.registerQueue({ name: QUEUE_DISTRIBUTION }),
     NotificationModule,
+    DocumentNumberingModule,
   ],
   providers: [
     DistributionService,

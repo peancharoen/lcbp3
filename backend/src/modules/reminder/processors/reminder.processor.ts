@@ -3,11 +3,14 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { QUEUE_REMINDERS } from '../../common/constants/queue.constants';
 import { ReminderType } from '../../common/enums/review.enums';
 import { EscalationService } from '../services/escalation.service';
 import { NotificationService } from '../../notification/notification.service';
 import { ScheduleReminderPayload } from '../services/scheduler.service';
+import { ReviewTask } from '../../review-team/entities/review-task.entity';
 
 @Processor(QUEUE_REMINDERS)
 export class ReminderProcessor extends WorkerHost {
@@ -15,7 +18,9 @@ export class ReminderProcessor extends WorkerHost {
 
   constructor(
     private readonly escalationService: EscalationService,
-    private readonly notificationService: NotificationService
+    private readonly notificationService: NotificationService,
+    @InjectRepository(ReviewTask)
+    private readonly taskRepo: Repository<ReviewTask>
   ) {
     super();
   }
@@ -27,17 +32,28 @@ export class ReminderProcessor extends WorkerHost {
       `Processing reminder job: ${reminderType} for task ${taskPublicId}`
     );
 
+    // ดึง internal ID ของ task
+    const task = await this.taskRepo.findOne({
+      where: { publicId: taskPublicId },
+      select: ['id', 'assignedToUserId'],
+    });
+
+    if (!task) {
+      this.logger.warn(`Task ${taskPublicId} not found — skipping reminder`);
+      return;
+    }
+
     switch (reminderType) {
       case ReminderType.DUE_SOON:
         await this.notificationService.send({
           userId: assigneeUserId,
           title: '⏰ Review Task Due Soon',
-          message:
-            'Your review task is due in 2 days. Please complete your review.',
+          message: 'Your review task is due soon. Please complete your review.',
           type: 'SYSTEM',
           entityType: 'review_task',
-          entityId: taskPublicId as unknown as number,
+          entityId: task.id,
         });
+        await this.escalationService.recordHistory(task, reminderType, 0);
         break;
 
       case ReminderType.ON_DUE:
@@ -48,8 +64,9 @@ export class ReminderProcessor extends WorkerHost {
             'Your review task is due today. Please complete it as soon as possible.',
           type: 'SYSTEM',
           entityType: 'review_task',
-          entityId: taskPublicId as unknown as number,
+          entityId: task.id,
         });
+        await this.escalationService.recordHistory(task, reminderType, 0);
         break;
 
       case ReminderType.OVERDUE:
@@ -60,8 +77,9 @@ export class ReminderProcessor extends WorkerHost {
             'Your review task is overdue. Escalation will occur if not completed.',
           type: 'SYSTEM',
           entityType: 'review_task',
-          entityId: taskPublicId as unknown as number,
+          entityId: task.id,
         });
+        await this.escalationService.recordHistory(task, reminderType, 0);
         break;
 
       case ReminderType.ESCALATION_L1:

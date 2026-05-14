@@ -1,4 +1,6 @@
 // File: src/modules/rfa/rfa.service.ts
+// Change Log:
+// - 2026-05-13: Invoke TaskCreationService during submit when a review team is selected.
 
 import { Injectable, Logger } from '@nestjs/common';
 import {
@@ -59,6 +61,7 @@ import { SearchService } from '../search/search.service';
 import { UserService } from '../user/user.service';
 import { WorkflowEngineService } from '../workflow-engine/workflow-engine.service';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
+import { TaskCreationService } from '../review-team/services/task-creation.service';
 
 @Injectable()
 export class RfaService {
@@ -109,6 +112,7 @@ export class RfaService {
     private userService: UserService,
     private workflowEngine: WorkflowEngineService,
     private notificationService: NotificationService,
+    private taskCreationService: TaskCreationService,
     private dataSource: DataSource,
     private searchService: SearchService,
     private uuidResolver: UuidResolverService
@@ -664,7 +668,12 @@ export class RfaService {
     return mappedRfa;
   }
 
-  async submit(rfaId: number, templateId: number, user: User) {
+  async submit(
+    rfaId: number,
+    templateId: number,
+    user: User,
+    reviewTeamPublicId?: string
+  ) {
     const rfa = await this.findOne(rfaId, true);
     const corrRevisions =
       (rfa.correspondence?.revisions as CorrRevWithRfa[] | undefined) ?? [];
@@ -746,6 +755,17 @@ export class RfaService {
         processedAt: new Date(),
       });
       await queryRunner.manager.save(routing);
+
+      if (reviewTeamPublicId) {
+        await this.taskCreationService.createParallelTasks(
+          currentRfaRev.id,
+          reviewTeamPublicId,
+          routing.dueDate ?? new Date(),
+          queryRunner.manager,
+          rfa.correspondence.projectId,
+          rfa.rfaType.typeCode
+        );
+      }
 
       // Notify
       const recipientUserId = await this.userService.findDocControlIdByOrg(

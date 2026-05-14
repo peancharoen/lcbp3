@@ -1,4 +1,6 @@
 // File: src/modules/review-team/review-team.service.ts
+// Change Log:
+// - 2026-05-13: Resolve project public IDs with UuidResolverService and align discipline lookup with INT discipline IDs.
 import {
   Injectable,
   Logger,
@@ -11,6 +13,7 @@ import { ReviewTeam } from './entities/review-team.entity';
 import { ReviewTeamMember } from './entities/review-team-member.entity';
 import { User } from '../user/entities/user.entity';
 import { Discipline } from '../master/entities/discipline.entity';
+import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 import {
   CreateReviewTeamDto,
   UpdateReviewTeamDto,
@@ -30,7 +33,8 @@ export class ReviewTeamService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(Discipline)
-    private readonly disciplineRepo: Repository<Discipline>
+    private readonly disciplineRepo: Repository<Discipline>,
+    private readonly uuidResolver: UuidResolverService
   ) {}
 
   /**
@@ -97,21 +101,14 @@ export class ReviewTeamService {
    * สร้าง Review Team ใหม่
    */
   async create(dto: CreateReviewTeamDto): Promise<ReviewTeam> {
-    // ตรวจสอบว่า project มีอยู่จริง (via publicId)
-    const project = await this.teamRepo.manager
-      .getRepository('projects')
-      .findOne({
-        where: { uuid: dto.projectPublicId } as Record<string, unknown>,
-      });
-
-    if (!project) {
-      throw new NotFoundException(`Project not found: ${dto.projectPublicId}`);
-    }
+    const projectId = await this.uuidResolver.resolveProjectId(
+      dto.projectPublicId
+    );
 
     const team = this.teamRepo.create({
       name: dto.name,
       description: dto.description,
-      projectId: (project as { id: number }).id,
+      projectId,
       defaultForRfaTypes: dto.defaultForRfaTypes,
       isActive: true,
     });
@@ -155,12 +152,10 @@ export class ReviewTeamService {
 
     // ตรวจสอบ Discipline
     const discipline = await this.disciplineRepo.findOne({
-      where: { id: Number(dto.disciplinePublicId) },
+      where: { id: dto.disciplineId },
     });
     if (!discipline)
-      throw new NotFoundException(
-        `Discipline not found: ${dto.disciplinePublicId}`
-      );
+      throw new NotFoundException(`Discipline not found: ${dto.disciplineId}`);
 
     // ตรวจสอบซ้ำ
     const existing = await this.memberRepo.findOne({
@@ -173,7 +168,7 @@ export class ReviewTeamService {
 
     if (existing) {
       throw new BadRequestException(
-        `User ${dto.userPublicId} is already a member of this team for discipline ${dto.disciplinePublicId}`
+        `User ${dto.userPublicId} is already a member of this team for discipline ${dto.disciplineId}`
       );
     }
 

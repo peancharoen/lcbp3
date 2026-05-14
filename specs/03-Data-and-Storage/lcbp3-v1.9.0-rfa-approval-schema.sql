@@ -1,8 +1,8 @@
 -- =============================================================================
 -- LCBP3-DMS v1.9.0 — RFA Approval System Refactor Schema
--- Feature Branch: 1-rfa-approval-refactor
+-- Feature Branch: 204-rfa-approval-refactor
 -- ADR-009: No TypeORM migrations — edit SQL schema directly
--- Created: 2026-05-12
+-- Created: 2026-05-13
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `review_team_members` (
   KEY `idx_rtm_team` (`team_id`),
   KEY `idx_rtm_user` (`user_id`),
   CONSTRAINT `fk_rtm_team` FOREIGN KEY (`team_id`) REFERENCES `review_teams` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_rtm_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_rtm_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_rtm_discipline` FOREIGN KEY (`discipline_id`) REFERENCES `disciplines` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS `review_tasks` (
   CONSTRAINT `fk_rt_rfa_revision` FOREIGN KEY (`rfa_revision_id`) REFERENCES `rfa_revisions` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_rt_team` FOREIGN KEY (`team_id`) REFERENCES `review_teams` (`id`),
   CONSTRAINT `fk_rt_discipline` FOREIGN KEY (`discipline_id`) REFERENCES `disciplines` (`id`),
-  CONSTRAINT `fk_rt_user` FOREIGN KEY (`assigned_to_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_rt_user` FOREIGN KEY (`assigned_to_user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   CONSTRAINT `fk_rt_response_code` FOREIGN KEY (`response_code_id`) REFERENCES `response_codes` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -128,44 +128,44 @@ CREATE TABLE IF NOT EXISTS `review_tasks` (
 -- 6. delegations — การมอบหมายงาน
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `delegations` (
-  `id`              INT             NOT NULL AUTO_INCREMENT,
-  `uuid`            UUID            NOT NULL DEFAULT (UUID()),
-  `delegator_id`    INT             NOT NULL COMMENT 'ผู้มอบหมาย',
-  `delegatee_id`    INT             NOT NULL COMMENT 'ผู้รับมอบหมาย',
-  `start_date`      DATE            NOT NULL,
-  `end_date`        DATE            NULL,
-  `scope`           ENUM('ALL','RFA_ONLY','CORRESPONDENCE_ONLY','SPECIFIC_TYPES') NOT NULL DEFAULT 'ALL',
-  `document_types`  TEXT            NULL COMMENT 'Comma-separated doc type codes when scope=SPECIFIC_TYPES',
-  `is_active`       TINYINT(1)      NOT NULL DEFAULT 1,
-  `reason`          TEXT            NULL,
-  `created_at`      DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at`      DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `id`                  INT             NOT NULL AUTO_INCREMENT,
+  `uuid`                UUID            NOT NULL DEFAULT (UUID()),
+  `delegator_user_id`   INT             NOT NULL COMMENT 'ผู้มอบหมาย (FK → users.user_id)',
+  `delegate_user_id`    INT             NOT NULL COMMENT 'ผู้รับมอบหมาย (FK → users.user_id)',
+  `start_date`          DATE            NOT NULL,
+  `end_date`            DATE            NULL COMMENT 'BullMQ job flips is_active=0 when end_date < NOW() (ADR-008)',
+  `scope`               ENUM('ALL','RFA_ONLY','CORRESPONDENCE_ONLY','SPECIFIC_TYPES') NOT NULL DEFAULT 'ALL',
+  `document_types`      TEXT            NULL COMMENT 'Comma-separated doc type codes when scope=SPECIFIC_TYPES',
+  `is_active`           TINYINT(1)      NOT NULL DEFAULT 1 COMMENT 'Managed by BullMQ scheduler — do not flip manually',
+  `reason`              TEXT            NULL,
+  `created_at`          DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at`          DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_delegations_uuid` (`uuid`),
-  KEY `idx_delegations_active` (`delegator_id`, `is_active`, `start_date`, `end_date`),
-  KEY `idx_delegations_delegatee` (`delegatee_id`, `is_active`),
-  CONSTRAINT `fk_del_delegator` FOREIGN KEY (`delegator_id`) REFERENCES `users` (`id`),
-  CONSTRAINT `fk_del_delegatee` FOREIGN KEY (`delegatee_id`) REFERENCES `users` (`id`)
+  KEY `idx_delegations_active` (`delegator_user_id`, `is_active`, `start_date`, `end_date`),
+  KEY `idx_delegations_delegate` (`delegate_user_id`, `is_active`),
+  CONSTRAINT `fk_del_delegator` FOREIGN KEY (`delegator_user_id`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `fk_del_delegate` FOREIGN KEY (`delegate_user_id`) REFERENCES `users` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 7. reminder_rules — กฎการแจ้งเตือน
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `reminder_rules` (
-  `id`                        INT         NOT NULL AUTO_INCREMENT,
-  `uuid`                      UUID        NOT NULL DEFAULT (UUID()),
+  `id`                        INT          NOT NULL AUTO_INCREMENT,
+  `uuid`                      UUID         NOT NULL DEFAULT (UUID()),
   `name`                      VARCHAR(100) NOT NULL,
-  `project_id`                INT         NULL COMMENT 'NULL = global',
-  `document_type_id`          INT         NULL COMMENT 'NULL = all types',
-  `trigger_days_before_due`   INT         NOT NULL DEFAULT 2,
-  `escalation_days_after_due` INT         NOT NULL DEFAULT 1,
+  `project_id`                INT          NULL COMMENT 'NULL = global',
+  `document_type_id`          INT          NULL COMMENT 'NULL = all types',
+  `trigger_days_before_due`   INT          NOT NULL DEFAULT 2,
+  `escalation_days_after_due` INT          NOT NULL DEFAULT 1,
   `reminder_type`             ENUM('DUE_SOON','ON_DUE','OVERDUE','ESCALATION_L1','ESCALATION_L2') NOT NULL,
-  `recipients`                TEXT        NOT NULL COMMENT 'Comma-separated: ASSIGNEE,MANAGER,PROJECT_MANAGER',
-  `message_template_th`       TEXT        NOT NULL,
-  `message_template_en`       TEXT        NOT NULL,
-  `is_active`                 TINYINT(1)  NOT NULL DEFAULT 1,
-  `created_at`                DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at`                DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `recipients`                TEXT         NOT NULL COMMENT 'Comma-separated: ASSIGNEE,MANAGER,PROJECT_MANAGER',
+  `message_template_th`       TEXT         NOT NULL,
+  `message_template_en`       TEXT         NOT NULL,
+  `is_active`                 TINYINT(1)   NOT NULL DEFAULT 1,
+  `created_at`                DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at`                DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_reminder_rules_uuid` (`uuid`),
   KEY `idx_reminder_rules_active` (`is_active`, `project_id`)
@@ -175,15 +175,15 @@ CREATE TABLE IF NOT EXISTS `reminder_rules` (
 -- 8. distribution_matrices — ตารางกระจายเอกสาร
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `distribution_matrices` (
-  `id`                INT         NOT NULL AUTO_INCREMENT,
-  `uuid`              UUID        NOT NULL DEFAULT (UUID()),
+  `id`                INT          NOT NULL AUTO_INCREMENT,
+  `uuid`              UUID         NOT NULL DEFAULT (UUID()),
   `name`              VARCHAR(100) NOT NULL,
-  `project_id`        INT         NULL COMMENT 'NULL = global',
-  `document_type_id`  INT         NOT NULL,
-  `response_code_id`  INT         NULL COMMENT 'NULL = applies to all codes',
-  `conditions`        JSON        NULL COMMENT '{"codes":["1A","1B"],"excludeCodes":["3","4"]}',
-  `is_active`         TINYINT(1)  NOT NULL DEFAULT 1,
-  `created_at`        DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `project_id`        INT          NULL COMMENT 'NULL = global',
+  `document_type_id`  INT          NOT NULL,
+  `response_code_id`  INT          NULL COMMENT 'NULL = applies to all codes',
+  `conditions`        JSON         NULL COMMENT '{"codes":["1A","1B"],"excludeCodes":["3","4"]}',
+  `is_active`         TINYINT(1)   NOT NULL DEFAULT 1,
+  `created_at`        DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_distribution_matrices_uuid` (`uuid`),
   KEY `idx_distribution_lookup` (`document_type_id`, `response_code_id`, `is_active`),
@@ -195,22 +195,17 @@ CREATE TABLE IF NOT EXISTS `distribution_matrices` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `distribution_recipients` (
   `id`                    INT         NOT NULL AUTO_INCREMENT,
+  `uuid`                  UUID        NOT NULL DEFAULT (UUID()) COMMENT 'UUID Public Identifier (ADR-019)',
   `matrix_id`             INT         NOT NULL,
   `recipient_type`        ENUM('USER','ORGANIZATION','TEAM','ROLE') NOT NULL,
-  `recipient_public_id`   UUID        NOT NULL COMMENT 'publicId of user/org/team',
+  `recipient_public_id`   UUID        NOT NULL COMMENT 'publicId of target: USER=users.uuid | ORGANIZATION=organizations.uuid | TEAM=review_teams.uuid | ROLE=roles.uuid',
   `delivery_method`       ENUM('EMAIL','IN_APP','BOTH') NOT NULL DEFAULT 'BOTH',
   `sequence`              INT         NULL COMMENT 'For ordered delivery',
   `created_at`            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_distribution_recipients_uuid` (`uuid`),
   KEY `idx_dr_matrix` (`matrix_id`),
+  KEY `idx_dr_type_recipient` (`recipient_type`, `recipient_public_id`),
   CONSTRAINT `fk_dr_matrix` FOREIGN KEY (`matrix_id`) REFERENCES `distribution_matrices` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =============================================================================
--- Additional Indexes (Performance)
--- =============================================================================
--- (all created inline above with KEY statements)
-
--- =============================================================================
--- END OF SCHEMA v1.9.0
--- =============================================================================
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Polymorphic recipients — no FK on recipient_public_id by design.';

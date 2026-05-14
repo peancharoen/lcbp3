@@ -30,7 +30,7 @@ interface User {
 }
 
 interface Discipline {
-  publicId: string;
+  id?: number;
   disciplineCode: string;
   codeNameEn?: string;
 }
@@ -68,14 +68,16 @@ export function TeamMemberManager({
   const removeMember = useRemoveTeamMember();
 
   const handleAdd = () => {
-    if (!selectedUser || !selectedDiscipline) return;
+    const disciplineId = Number(selectedDiscipline);
+
+    if (!selectedUser || Number.isNaN(disciplineId)) return;
 
     addMember.mutate(
       {
         teamPublicId,
         data: {
           userPublicId: selectedUser,
-          disciplinePublicId: selectedDiscipline,
+          disciplineId,
           role: selectedRole,
         },
       },
@@ -151,7 +153,7 @@ export function TeamMemberManager({
           </SelectTrigger>
           <SelectContent>
             {availableDisciplines.map((d) => (
-              <SelectItem key={d.publicId} value={d.publicId}>
+              <SelectItem key={String(d.id)} value={String(d.id)}>
                 {d.disciplineCode}
               </SelectItem>
             ))}

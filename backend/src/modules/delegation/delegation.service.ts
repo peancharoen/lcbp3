@@ -11,6 +11,7 @@ import { Delegation } from './entities/delegation.entity';
 import { User } from '../user/entities/user.entity';
 import { CircularDetectionService } from './services/circular-detection.service';
 import { CreateDelegationDto } from './dto/create-delegation.dto';
+import { DelegationScope } from '../common/enums/review.enums';
 
 @Injectable()
 export class DelegationService {
@@ -63,6 +64,23 @@ export class DelegationService {
       );
     }
 
+    const delegateOnward = await this.findActiveDelegate(
+      delegate.user_id,
+      dto.startDate,
+      [
+        DelegationScope.ALL,
+        DelegationScope.RFA_ONLY,
+        DelegationScope.CORRESPONDENCE_ONLY,
+        DelegationScope.SPECIFIC_TYPES,
+      ]
+    );
+
+    if (delegateOnward) {
+      throw new BadRequestException(
+        'Nested delegation is not allowed — delegatee already delegates onward'
+      );
+    }
+
     const delegation = this.delegationRepo.create({
       delegatorUserId: delegator.user_id,
       delegateUserId: delegate.user_id,
@@ -98,7 +116,8 @@ export class DelegationService {
    */
   async findActiveDelegate(
     userId: number,
-    date: Date = new Date()
+    date: Date = new Date(),
+    scopes: DelegationScope[] = [DelegationScope.ALL]
   ): Promise<User | null> {
     const delegation = await this.delegationRepo
       .createQueryBuilder('d')
@@ -107,6 +126,7 @@ export class DelegationService {
       .andWhere('d.is_active = 1')
       .andWhere('d.start_date <= :date', { date })
       .andWhere('d.end_date >= :date', { date })
+      .andWhere('d.scope IN (:...scopes)', { scopes })
       .orderBy('d.created_at', 'DESC')
       .getOne();
 

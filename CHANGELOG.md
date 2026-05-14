@@ -1,17 +1,37 @@
 # Version History
 
-## 1.9.0 (2026-05-13)
+## 1.9.1 (2026-05-14)
 
-### feat(agent): Agent Infrastructure Standardization (v1.9.0)
+### docs(architecture): Unified AI Architecture Consolidation (ADR-023)
 
 #### Summary
-สร้างมาตรฐานใหม่สำหรับการทำงานร่วมกับ AI Agent (Antigravity/Windsurf/CLI) ให้เป็นเอกภาพทั่วทั้งโครงการ (Agent-Agnostic) พร้อมปรับปรุงโครงสร้างการเก็บ Specification ให้รองรับการขยายตัวในอนาคต
+
+ยุบรวมข้อกำหนดและสถาปัตยกรรมด้าน AI ที่กระจัดกระจาย (ADR-017, ADR-017B, ADR-018, ADR-020 และ ADR-022) เข้าสู่เอกสารหลักฉบับเดียวคือ **ADR-023: Unified AI Architecture** เพื่อเป็น Single Source of Truth และป้องกันปัญหา Revision Drift
 
 #### Changes
+
+- **Master AI Spec**: สร้างเอกสาร `ADR-023-unified-ai-architecture.md` ควบคุมสถาปัตยกรรม AI ทั้งหมดของระบบ
+- **Superseded Legacy ADRs**: เปลี่ยนสถานะของ ADR-017, ADR-017B, ADR-018, ADR-020 และ ADR-022 เป็น `Superseded by ADR-023`
+- **Zero Trust Boundary**: ย้ำเกณฑ์การแยกส่วน AI Workloads (Ollama, Qdrant, n8n) ให้อยู่บนเครื่อง Admin Desktop (`Desk-5439`) เท่านั้น และห้ามเข้าถึง DB/Storage โดยตรง (ต้องผ่าน DMS API Gateway)
+- **Documentation Synced**: ปรับปรุงเอกสารอ้างอิงทั้งหมดใน `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md` และ `AGENTS.md` ให้ชี้มาที่ ADR-023
+
+## 1.9.0 (2026-05-13)
+
+### feat(migration): RFA System & Agent Infrastructure Standardization (v1.9.0)
+
+#### Summary
+
+การปรับปรุงระบบ RFA Approval ให้สมบูรณ์พร้อมใช้งานจริง และสร้างมาตรฐานใหม่สำหรับการทำงานร่วมกับ AI Agent (Antigravity/Windsurf/CLI) ให้เป็นเอกภาพทั่วทั้งโครงการ (Agent-Agnostic) พร้อมปรับปรุงโครงสร้างการเก็บ Specification ให้รองรับการขยายตัวในอนาคต
+
+#### Changes
+
+- **RFA System Migration**: อัปเดต Schema (v1.9.0), ปรับปรุง Data Dictionary และขยายสิทธิ์ใน RBAC Matrix (Lead Engineer role)
+- **Workflow Context**: เชื่อมต่อ ADR-021 (Integrated Workflow Context) เข้ากับทุกกระบวนการ Workflow
 - **Agent Infrastructure**: ย้ายและรวบรวม Rules, Skills และ Workflows ไว้ที่ `.agents/` เป็น Single Source of Truth
 - **Hybrid Specs Structure**: เริ่มใช้โครงสร้างโฟลเดอร์ `specs/[100/200/300]-category/` เพื่อจัดระเบียบงาน Infra, Fullstack และงานทั่วไป
 - **Automation**: เพิ่มสคริปต์ `sync-agent-configs.ps1` และ `audit-skills.sh` เพื่อตรวจสอบความสมบูรณ์และซิงค์ข้อมูลอัตโนมัติ
 - **Standardization**: กำหนดมาตรฐานการเขียนโค้ดใหม่ (File Headers, Change Logs, Thai JSDoc) ทั่วทั้งโครงการ
+- **Node.js v24 Environment**: ปรับปรุงสภาพแวดล้อมให้เป็น Node.js v24.15.0 LTS ทั้งหมด
 - **Drift Prevention**: ใช้ Directory Junctions เชื่อมโยง `.windsurf/` เข้ากับ `.agents/` โดยตรง
 
 ## 1.8.11 (2026-05-05)

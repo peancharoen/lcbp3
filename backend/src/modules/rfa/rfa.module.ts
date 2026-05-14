@@ -34,6 +34,7 @@ import { RfaService } from './rfa.service';
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
 import { NotificationModule } from '../notification/notification.module';
 import { ProjectModule } from '../project/project.module';
+import { ReviewTeamModule } from '../review-team/review-team.module';
 import { SearchModule } from '../search/search.module';
 import { UserModule } from '../user/user.module';
 import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module';
@@ -66,6 +67,7 @@ import { WorkflowEngineModule } from '../workflow-engine/workflow-engine.module'
     DocumentNumberingModule,
     UserModule,
     ProjectModule,
+    ReviewTeamModule,
     SearchModule,
     WorkflowEngineModule,
     NotificationModule,

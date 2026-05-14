@@ -17,6 +17,7 @@ export interface VetoOverrideDto {
   rfaPublicId: string;
   rfaRevisionPublicId: string;
   projectId: number;
+  documentTypeId?: number;
   documentTypeCode: string;
   overrideReason: string;
   overriddenByUserId: number;
@@ -72,6 +73,7 @@ export class VetoOverrideService {
       rfaPublicId: dto.rfaPublicId,
       rfaRevisionPublicId: dto.rfaRevisionPublicId,
       projectId: dto.projectId,
+      documentTypeId: dto.documentTypeId,
       documentTypeCode: dto.documentTypeCode,
       responseCode: '1A',
       decision: ConsensusDecision.OVERRIDDEN,

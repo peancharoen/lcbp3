@@ -588,6 +588,7 @@ export class WorkflowEngineService {
 |---------|------|---------|--------|
 | 1.0 | 2026-02-24 | Initial version - DSL-based Unified Workflow Engine | ✅ Active |
 | 1.1 | 2026-05-02 | Production hardening: JSON Logic condition engine, optimistic lock concurrency, BullMQ dedicated queue, context schema two-phase validation, async-only auto-action rule | ✅ Active |
+| 1.9.0 | 2026-05-13 | Finalized integration with RFA Approval System and Integrated Workflow Context (ADR-021) | ✅ Active |
 
 ---
 

@@ -14,6 +14,8 @@ import { Users } from 'lucide-react';
 import { useReviewTeams } from '@/hooks/use-review-teams';
 import { ReviewTeam } from '@/types/review-team';
 
+const NO_REVIEW_TEAM_VALUE = '__skip_parallel_review__';
+
 interface ReviewTeamSelectorProps {
   projectPublicId: string;
   rfaTypeCode?: string;
@@ -50,15 +52,17 @@ export function ReviewTeamSelector({
       </div>
 
       <Select
-        value={value ?? ''}
-        onValueChange={(v: string) => onChange(v || undefined)}
+        value={value ?? NO_REVIEW_TEAM_VALUE}
+        onValueChange={(v: string) =>
+          onChange(v === NO_REVIEW_TEAM_VALUE ? undefined : v)
+        }
         disabled={disabled || isLoading}
       >
         <SelectTrigger>
           <SelectValue placeholder={isLoading ? 'Loading teams...' : 'Skip — no parallel review'} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Skip — no parallel review</SelectItem>
+          <SelectItem value={NO_REVIEW_TEAM_VALUE}>Skip — no parallel review</SelectItem>
           {filteredTeams.map((team) => (
             <SelectItem key={team.publicId} value={team.publicId}>
               <div className="flex items-center gap-2">

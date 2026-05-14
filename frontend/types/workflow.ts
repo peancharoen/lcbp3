@@ -3,6 +3,14 @@ export type WorkflowType = 'CORRESPONDENCE' | 'RFA' | 'DRAWING';
 // ADR-021: ระดับความเร่งด่วน (แสดงด้วย Badge สี)
 export type WorkflowPriority = 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
 
+export enum ReminderType {
+  DUE_SOON = 'DUE_SOON',
+  ON_DUE = 'ON_DUE',
+  OVERDUE = 'OVERDUE',
+  ESCALATION_L1 = 'ESCALATION_L1',
+  ESCALATION_L2 = 'ESCALATION_L2',
+}
+
 // ADR-021: ข้อมูลสรุปไฟล์แนบประจำ Step
 export interface WorkflowAttachmentSummary {
   publicId: string;

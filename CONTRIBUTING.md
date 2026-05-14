@@ -8,13 +8,13 @@
 
 ## 📚 Table of Contents
 
-- [ภาพรวม Specification Structure](#-specification-structure)
-- [หลักการเขียน Specifications](#-writing-principles)
-- [Workflow การแก้ไข Specs](#-contribution-workflow)
-- [Template และ Guidelines](#-templates--guidelines)
-- [Review Process](#-review-process)
-- [Best Practices](#-best-practices)
-- [Tools และ Resources](#-tools--resources)
+- [ภาพรวม Specification Structure](#specification-structure)
+- [หลักการเขียน Specifications](#writing-principles)
+- [Workflow การแก้ไข Specs](#contribution-workflow)
+- [Template และ Guidelines](#templates--guidelines)
+- [Review Process](#review-process)
+- [Best Practices](#best-practices)
+- [Tools และ Resources](#tools--resources)
 
 ---
 
@@ -50,16 +50,16 @@ specs/
 │   ├── 02-03-network-design.md
 │   └── 02-04-api-design.md
 │
-├── 03-Data-and-Storage/      # Database Schema v1.8.0 (3-file split)
+├── 03-Data-and-Storage/      # Database Schema v1.9.0 (3-file split)
 │   ├── README.md
-│   ├── lcbp3-v1.8.0-schema-01-drop.sql       # DROP statements
-│   ├── lcbp3-v1.8.0-schema-02-tables.sql     # CREATE TABLE
-│   ├── lcbp3-v1.8.0-schema-03-views-indexes.sql  # Views + Indexes
-│   ├── lcbp3-v1.8.0-seed-basic.sql           # Master Data Seed
-│   ├── lcbp3-v1.8.0-seed-permissions.sql     # RBAC Permissions Seed
+│   ├── lcbp3-v1.9.0-schema-01-drop.sql       # DROP statements
+│   ├── lcbp3-v1.9.0-schema-02-tables.sql     # CREATE TABLE
+│   ├── lcbp3-v1.9.0-schema-03-views-indexes.sql  # Views + Indexes
+│   ├── lcbp3-v1.9.0-seed-basic.sql           # Master Data Seed
+│   ├── lcbp3-v1.9.0-seed-permissions.sql     # RBAC Permissions Seed
 │   ├── 03-01-data-dictionary.md
 │   ├── 03-06-migration-business-scope.md     # Gap 7: Migration Scope [★ NEW]
-│   └── deltas/                               # Incremental SQL (ADR-009) [★ v1.8.9]
+│   └── deltas/                               # Incremental SQL (ADR-009) [★ v1.9.0]
 │
 ├── 04-Infrastructure-OPS/    # Deployment & Operations (9 docs)
 │   ├── README.md
@@ -79,7 +79,7 @@ specs/
 │   ├── 05-03-frontend-guidelines.md
 │   └── 05-04-testing-strategy.md
 │
-├── 06-Decision-Records/      # Architecture Decision Records (22 ADRs)
+├── 06-Decision-Records/      # Architecture Decision Records (23 ADRs)
 │   ├── README.md
 │   ├── ADR-001-unified-workflow-engine.md
 │   └── ...
@@ -104,7 +104,7 @@ specs/
 | **03-Data-and-Storage**       | Schema v1.8.0, Migration Scope         | Gap 7               | Backend Lead + DBA      |
 | **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8               | DevOps Team             |
 | **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —                   | Development Team Leads  |
-| **06-Decision-Records**       | Architecture Decision Records (22)     | ADR-018/019/020/021 | Tech Lead + Senior Devs |
+| **06-Decision-Records**       | Architecture Decision Records (23)     | ADR-019/021/023     | Tech Lead + Senior Devs |
 | **100-Infrastructures**      | Infrastructure Operations & Ops        | —                   | DevOps / SRE Team       |
 | **200-fullstacks**           | Feature Implementation (Fullstack)     | spec.md, plan.md    | Development Team        |
 | **300-others**               | Documentation & Research               | —                   | All Team Members        |
@@ -555,12 +555,14 @@ graph LR
 | 1.8.7   | 2026-04-14 | Tech Lead  | ADR-021 integration complete (22 ADRs), workflow context features |
 | 1.8.8   | 2026-04-14 | Tech Lead  | Step-specific attachments, IntegratedBanner, WorkflowLifecycle    |
 | 1.8.9   | 2026-04-18 | Tech Lead  | Docker Compose hardening — 27 findings (C1–S4) addressed          |
+| 1.9.0   | 2026-05-13 | Tech Lead  | Agent Infrastructure standard & RFA System migration finalized     |
+| 1.9.1   | 2026-05-14 | Tech Lead  | Consolidated AI master architecture into ADR-023                   |
 
-**Current Version**: 1.8.9
+**Current Version**: 1.9.0
 **Status**: Approved
-**Last Updated**: 2026-04-18
+**Last Updated**: 2026-05-13
 **Security**: 0 vulnerabilities (backend) + Compose stack hardened (27 findings → 0)
-**Workflow Engine**: ADR-021 Integrated Context complete
+**Workflow Engine**: ADR-021 Integrated Context complete + RFA v1.9.0 finalized
 ```
 
 ### 5. UUID Conventions (ADR-019)
@@ -754,7 +756,7 @@ bash  ./.agents/scripts/bash/audit-skills.sh
 - **ADR-019 UUID** — `publicId` exposed directly; ห้าม `parseInt`/`Number`/`+` บน UUID; ห้าม `id ?? ''` fallback; ห้ามใช้ `@Expose({ name: 'id' })` rename
 - **ADR-009 Schema** — แก้ `lcbp3-v1.8.0-schema-02-tables.sql` โดยตรง + เพิ่ม delta ที่ `specs/03-Data-and-Storage/deltas/`; ห้าม TypeORM migrations
 - **ADR-016 Security** — CASL + `Idempotency-Key` + ClamAV two-phase upload
-- **ADR-018/020 AI Boundary** — Ollama on Admin Desktop only; human-in-the-loop validation
+- **ADR-023 AI Architecture** — Ollama on Admin Desktop only; human-in-the-loop validation
 
 ---
 

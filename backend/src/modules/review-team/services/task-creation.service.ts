@@ -11,7 +11,11 @@ import { ReviewTask } from '../entities/review-task.entity';
 import {
   ReviewTaskStatus,
   ReviewTeamMemberRole,
+  DelegationScope,
+  ReminderType,
 } from '../../common/enums/review.enums';
+import { DelegationService } from '../../delegation/delegation.service';
+import { SchedulerService } from '../../reminder/services/scheduler.service';
 
 @Injectable()
 export class TaskCreationService {
@@ -23,7 +27,9 @@ export class TaskCreationService {
     @InjectRepository(ReviewTeamMember)
     private readonly memberRepo: Repository<ReviewTeamMember>,
     @InjectRepository(ReviewTask)
-    private readonly reviewTaskRepo: Repository<ReviewTask>
+    private readonly reviewTaskRepo: Repository<ReviewTask>,
+    private readonly delegationService: DelegationService,
+    private readonly schedulerService: SchedulerService
   ) {}
 
   /**
@@ -34,12 +40,16 @@ export class TaskCreationService {
    * @param reviewTeamPublicId - publicId ของ Review Team (ADR-019)
    * @param dueDate - กำหนดเวลาตรวจสอบ
    * @param manager - EntityManager จาก QueryRunner (ใช้ Transaction เดิม)
+   * @param projectId - (Optional) ID ของโครงการ สำหรับ reminder rules
+   * @param documentTypeCode - (Optional) ประเภทเอกสาร สำหรับ reminder rules
    */
   async createParallelTasks(
     rfaRevisionId: number,
     reviewTeamPublicId: string,
     dueDate: Date,
-    manager: EntityManager
+    manager: EntityManager,
+    projectId?: number,
+    documentTypeCode?: string
   ): Promise<ReviewTask[]> {
     // ดึง ReviewTeam พร้อม members
     const team = await this.reviewTeamRepo.findOne({
@@ -77,16 +87,40 @@ export class TaskCreationService {
 
     // สร้าง ReviewTask สำหรับแต่ละ Discipline พร้อมกัน (Parallel)
     for (const [disciplineId, leadMember] of disciplineMap) {
+      const activeDelegate = await this.delegationService.findActiveDelegate(
+        leadMember.userId,
+        dueDate,
+        [DelegationScope.ALL, DelegationScope.RFA_ONLY]
+      );
+      const assignedToUserId = activeDelegate?.user_id ?? leadMember.userId;
+      const delegatedFromUserId = activeDelegate
+        ? leadMember.userId
+        : undefined;
+
       const task = manager.create(ReviewTask, {
         rfaRevisionId,
         teamId: team.id,
         disciplineId,
-        assignedToUserId: leadMember.userId,
+        assignedToUserId,
+        delegatedFromUserId,
         status: ReviewTaskStatus.PENDING,
         dueDate,
       });
       const saved = await manager.save(ReviewTask, task);
       tasks.push(saved);
+
+      // Schedule Reminders & Escalation (US4)
+      if (saved.assignedToUserId) {
+        await this.schedulerService.scheduleForTask({
+          taskPublicId: saved.publicId,
+          rfaPublicId: rfaRevisionId.toString(), // ใช้ rfaRevisionId เป็น placeholder
+          assigneeUserId: saved.assignedToUserId,
+          dueDate: saved.dueDate ?? dueDate,
+          reminderType: ReminderType.DUE_SOON, // Start type, scheduler will fetch rules
+          projectId: projectId ?? team.projectId,
+          documentTypeCode,
+        });
+      }
     }
 
     this.logger.log(

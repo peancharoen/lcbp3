@@ -2,7 +2,7 @@
 
 | description                                                        | version |
 | ------------------------------------------------------------------ | ------- |
-| legacy PDF document migration to system v1.8.0 uses n8n and Ollama | 1.8.0   |
+| legacy PDF document migration to system v1.9.0 uses n8n and Ollama | 1.9.0   |
 
 > **Note:** Category Enum system-driven, Idempotency Contract, Duplicate Handling Clarification, Storage Enforcement, Audit Log Enhancement, Review Queue Integration, Revision Drift Protection, Execution Time, Encoding Normalization, Security Hardening, Orchestrator on QNAP, AI Physical Isolation (Desktop Desk-5439), Folder Standard (/share/np-dms/n8n), **AI Tag Extraction & Auto-Tagging**
 

@@ -1,6 +1,6 @@
 ---
 title: 'Data & Storage: Data Dictionary and Data Model Architecture'
-version: 1.8.7
+version: 1.9.0
 status: released
 owner: Nattanin Peancharoen
 last_updated: 2026-04-14
@@ -84,7 +84,7 @@ erDiagram
 
 ---
 
-# 3. Data Dictionary V1.8.0
+# 3. Data Dictionary V1.9.0
 
 > หมายเหตุ: PK = Primary Key, FK = Foreign Key, AI = AUTO_INCREMENT. รูปแบบ Soft Delete จะปรากฏ Column `deleted_at DATETIME NULL` เป็นมาตรฐาน
 
@@ -165,14 +165,14 @@ erDiagram
     ### 2.2 roles
     - - Purpose **: MASTER TABLE defining system roles WITH scope levels | COLUMN Name | Data TYPE | Constraints | Description | | ----------- | ------------ | --------------------------- | ---------------------------------------------------- |
         | role_id | INT | PRIMARY KEY,
-        AUTO_INCREMENT | UNIQUE identifier FOR role | | role_name | VARCHAR(100) | NOT NULL | Role name (e.g., 'Superadmin', 'Document Control') | | scope | ENUM | NOT NULL | Scope LEVEL: GLOBAL,
+        AUTO_INCREMENT | UNIQUE identifier FOR role | | **uuid** | **UUID** | **NOT NULL, DEFAULT (UUID()), UNIQUE** | **[delta-11] UUID Public Identifier (ADR-019) — ใช้ใน API Response / distribution_recipients** | | role_name | VARCHAR(100) | NOT NULL | Role name (e.g., 'Superadmin', 'Document Control') | | scope | ENUM | NOT NULL | Scope LEVEL: GLOBAL,
         Organization,
         Project,
         Contract | | description | TEXT | NULL | Role description | | is_system | BOOLEAN | DEFAULT FALSE | System role flag (cannot be deleted) |
         | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp |
         | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Last update timestamp |
         | deleted_at | DATETIME | NULL | Soft delete timestamp |
-        ** INDEXES **: - PRIMARY KEY (role_id) - INDEX (scope) ** Relationships \*\*: - Referenced by: role_permissions,
+        ** INDEXES **: - PRIMARY KEY (role_id) - **UNIQUE INDEX idx_roles_uuid (uuid) [delta-11]** - INDEX (scope) ** Relationships \*\*: - Referenced by: role_permissions,
         user_assignments ---
 
     ### 2.3 permissions
@@ -2337,4 +2337,258 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 ---
 
-**End of Data Dictionary V1.8.0**
+**End of Data Dictionary V1.9.0**
+
+---
+
+## **20. 🔍 RFA Approval System Tables (NEW v1.9.0)**
+
+> Feature Branch: `1-rfa-approval-refactor` | Schema File: `lcbp3-v1.9.0-rfa-approval-schema.sql`
+
+### 20.1 review_teams
+
+**Purpose**: ทีมตรวจสอบแยกตาม Discipline สำหรับ RFA Approval
+
+| Column Name           | Data Type    | Constraints                     | Description                                   |
+| --------------------- | ------------ | ------------------------------- | --------------------------------------------- |
+| id                    | INT          | PRIMARY KEY, AUTO_INCREMENT     | Internal ID                                   |
+| uuid                  | UUID         | NOT NULL, UNIQUE, DEFAULT UUID()| UUID Public Identifier (ADR-019)              |
+| project_id            | INT          | NOT NULL, FK                    | Reference to projects                         |
+| name                  | VARCHAR(100) | NOT NULL                        | Team name                                     |
+| description           | VARCHAR(255) | NULL                            | Team description                              |
+| default_for_rfa_types | TEXT         | NULL                            | Comma-separated RFA type codes (e.g. SDW,DDW) |
+| is_active             | TINYINT(1)   | NOT NULL, DEFAULT 1             | Active status                                 |
+| created_at            | DATETIME(6)  | NOT NULL, DEFAULT NOW           | Record creation timestamp                     |
+| updated_at            | DATETIME(6)  | NOT NULL, ON UPDATE             | Last update timestamp                         |
+
+**Indexes**:
+
+- PRIMARY KEY (id)
+- UNIQUE KEY uq_review_teams_uuid (uuid)
+- KEY idx_review_teams_project (project_id, is_active)
+- FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+
+**Relationships**:
+
+- Parent: projects
+- Children: review_team_members, review_tasks
+- Referenced by: distribution_recipients (recipient_type='TEAM')
+
+---
+
+### 20.2 review_team_members
+
+**Purpose**: สมาชิกในทีมแยกตาม Discipline (M:N ระหว่าง review_teams และ users)
+
+| Column Name    | Data Type   | Constraints                     | Description                           |
+| -------------- | ----------- | ------------------------------- | ------------------------------------- |
+| id             | INT         | PRIMARY KEY, AUTO_INCREMENT     | Internal ID                           |
+| uuid           | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()| UUID Public Identifier (ADR-019)      |
+| team_id        | INT         | NOT NULL, FK                    | Reference to review_teams             |
+| user_id        | INT         | NOT NULL, FK                    | Reference to users (user_id)          |
+| discipline_id  | INT         | NOT NULL, FK                    | Reference to disciplines              |
+| role           | ENUM        | NOT NULL, DEFAULT 'REVIEWER'    | REVIEWER, LEAD, MANAGER               |
+| priority_order | INT         | NOT NULL, DEFAULT 0             | Assignment priority within discipline |
+| created_at     | DATETIME(6) | NOT NULL, DEFAULT NOW           | Record creation timestamp             |
+
+**Indexes**:
+
+- PRIMARY KEY (id)
+- UNIQUE KEY uq_review_team_members_uuid (uuid)
+- UNIQUE KEY uq_team_user_discipline (team_id, user_id, discipline_id)
+- FOREIGN KEY (team_id) REFERENCES review_teams(id) ON DELETE CASCADE
+- FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+- FOREIGN KEY (discipline_id) REFERENCES disciplines(id)
+
+---
+
+### 20.3 response_codes
+
+**Purpose**: รหัสตอบกลับมาตรฐาน (Approval Matrix) สำหรับ RFA Review
+
+| Column Name     | Data Type | Constraints                         | Description                                                          |
+| --------------- | --------- | ----------------------------------- | -------------------------------------------------------------------- |
+| id              | INT       | PRIMARY KEY, AUTO_INCREMENT         | Internal ID                                                          |
+| uuid            | UUID      | NOT NULL, UNIQUE, DEFAULT UUID()    | UUID Public Identifier (ADR-019)                                     |
+| code            | VARCHAR(10)| NOT NULL                           | Response code (1A, 1B, 1C, 1D, 1E, 1F, 1G, 2, 3, 4)               |
+| sub_status      | VARCHAR(10)| NULL                               | Optional sub-status                                                  |
+| category        | ENUM      | NOT NULL                            | ENGINEERING, MATERIAL, CONTRACT, TESTING, ESG                        |
+| description_th  | TEXT      | NOT NULL                            | Thai description                                                     |
+| description_en  | TEXT      | NOT NULL                            | English description                                                  |
+| implications    | JSON      | NULL                                | {affectsSchedule, affectsCost, requiresContractReview}              |
+| notify_roles    | TEXT      | NULL                                | Comma-separated roles to notify (e.g. CONTRACT_MANAGER,QS_MANAGER)  |
+| is_active       | TINYINT(1)| NOT NULL, DEFAULT 1                 | Active status                                                        |
+| is_system       | TINYINT(1)| NOT NULL, DEFAULT 0                 | System default — cannot delete                                       |
+| created_at      | DATETIME(6)| NOT NULL, DEFAULT NOW              | Record creation timestamp                                            |
+
+**Indexes**:
+
+- PRIMARY KEY (id)
+- UNIQUE KEY uq_response_codes_uuid (uuid)
+- UNIQUE KEY uq_response_code_category (code, category)
+- KEY idx_rc_category_active (category, is_active)
+
+---
+
+### 20.4 response_code_rules
+
+**Purpose**: กฎการใช้ Response Code ต่อโครงการ/ประเภทเอกสาร (Project-level Override)
+
+| Column Name            | Data Type   | Constraints                  | Description                              |
+| ---------------------- | ----------- | ---------------------------- | ---------------------------------------- |
+| id                     | INT         | PRIMARY KEY, AUTO_INCREMENT  | Internal ID                              |
+| uuid                   | UUID        | NOT NULL, UNIQUE             | UUID Public Identifier (ADR-019)         |
+| project_id             | INT         | NULL, FK                     | NULL = global default                    |
+| document_type_id       | INT         | NOT NULL, FK                 | Reference to correspondence_types        |
+| response_code_id       | INT         | NOT NULL, FK                 | Reference to response_codes              |
+| is_enabled             | TINYINT(1)  | NOT NULL, DEFAULT 1          | Enable/disable this code for the context |
+| requires_comments      | TINYINT(1)  | NOT NULL, DEFAULT 0          | Force comment when selecting this code   |
+| triggers_notification  | TINYINT(1)  | NOT NULL, DEFAULT 0          | Send notification when used              |
+| parent_rule_id         | INT         | NULL, FK                     | For inheritance tracking                 |
+| created_at             | DATETIME(6) | NOT NULL, DEFAULT NOW        | Record creation timestamp                |
+| updated_at             | DATETIME(6) | NOT NULL, ON UPDATE          | Last update timestamp                    |
+
+**Business Rules**:
+
+- `project_id = NULL` = Global default rule (applies to all projects)
+- Project-level rules override global defaults
+- UNIQUE constraint: (project_id, document_type_id, response_code_id)
+
+---
+
+### 20.5 review_tasks
+
+**Purpose**: งานตรวจสอบสำหรับแต่ละ Discipline ใน Parallel Review Flow
+
+| Column Name              | Data Type   | Constraints                         | Description                                   |
+| ------------------------ | ----------- | ----------------------------------- | --------------------------------------------- |
+| id                       | INT         | PRIMARY KEY, AUTO_INCREMENT         | Internal ID                                   |
+| uuid                     | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()    | UUID Public Identifier (ADR-019)              |
+| rfa_revision_id          | INT         | NOT NULL, FK                        | Reference to rfa_revisions                    |
+| team_id                  | INT         | NOT NULL, FK                        | Reference to review_teams                     |
+| discipline_id            | INT         | NOT NULL, FK                        | Reference to disciplines                      |
+| assigned_to_user_id      | INT         | NULL, FK                            | Assigned reviewer (NULL = auto-assign)        |
+| status                   | ENUM        | NOT NULL, DEFAULT 'PENDING'         | PENDING, IN_PROGRESS, COMPLETED, DELEGATED, EXPIRED, CANCELLED |
+| due_date                 | DATE        | NULL                                | Review due date                               |
+| response_code_id         | INT         | NULL, FK                            | Selected response code                        |
+| comments                 | TEXT        | NULL                                | Reviewer comments                             |
+| attachments              | JSON        | NULL                                | Array of attachment publicIds (ADR-021)       |
+| delegated_from_user_id   | INT         | NULL                                | Original assignee when task was delegated     |
+| completed_at             | TIMESTAMP   | NULL                                | Completion timestamp                          |
+| version                  | INT         | NOT NULL, DEFAULT 1                 | Optimistic locking (ADR-002)                  |
+| created_at               | DATETIME(6) | NOT NULL, DEFAULT NOW               | Record creation timestamp                     |
+| updated_at               | DATETIME(6) | NOT NULL, ON UPDATE                 | Last update timestamp                         |
+
+**Indexes**:
+
+- UNIQUE KEY uq_review_task_per_revision_discipline (rfa_revision_id, team_id, discipline_id)
+- KEY idx_review_tasks_assigned (assigned_to_user_id, status)
+- FOREIGN KEY (assigned_to_user_id) REFERENCES users(user_id) ON DELETE SET NULL
+
+**Business Rules**:
+
+- One task per revision + team + discipline combination (UNIQUE enforced)
+- `version` column used for optimistic locking (ADR-002)
+- `attachments` JSON stores publicIds — resolved via AttachmentsService (no FK)
+
+---
+
+### 20.6 delegations
+
+**Purpose**: การมอบหมายงาน (Task Delegation) ระหว่างผู้ใช้
+
+| Column Name        | Data Type   | Constraints                     | Description                                                 |
+| ------------------ | ----------- | ------------------------------- | ----------------------------------------------------------- |
+| id                 | INT         | PRIMARY KEY, AUTO_INCREMENT     | Internal ID                                                 |
+| uuid               | UUID        | NOT NULL, UNIQUE, DEFAULT UUID()| UUID Public Identifier (ADR-019)                            |
+| delegator_user_id  | INT         | NOT NULL, FK                    | ผู้มอบหมาย → users(user_id)                                 |
+| delegate_user_id   | INT         | NOT NULL, FK                    | ผู้รับมอบหมาย → users(user_id)                              |
+| start_date         | DATE        | NOT NULL                        | วันที่เริ่มการมอบหมาย                                       |
+| end_date           | DATE        | NULL                            | วันที่สิ้นสุด — BullMQ job flip is_active=0 เมื่อผ่าน (ADR-008) |
+| scope              | ENUM        | NOT NULL, DEFAULT 'ALL'         | ALL, RFA_ONLY, CORRESPONDENCE_ONLY, SPECIFIC_TYPES          |
+| document_types     | TEXT        | NULL                            | Comma-separated doc type codes when scope=SPECIFIC_TYPES    |
+| is_active          | TINYINT(1)  | NOT NULL, DEFAULT 1             | Managed by BullMQ scheduler — ห้าม flip manual              |
+| reason             | TEXT        | NULL                            | เหตุผลการมอบหมาย                                            |
+| created_at         | DATETIME(6) | NOT NULL, DEFAULT NOW           | Record creation timestamp                                   |
+| updated_at         | DATETIME(6) | NOT NULL, ON UPDATE             | Last update timestamp                                       |
+
+**Business Rules**:
+
+- **Auto-expiry**: BullMQ Scheduled Job ตรวจ `end_date < NOW()` และ flip `is_active = 0` (ADR-008)
+- **Active check query**: `WHERE delegator_user_id = ? AND is_active = 1 AND start_date <= NOW() AND (end_date IS NULL OR end_date >= NOW())`
+- ห้ามเปลี่ยน `is_active` โดยตรงในระดับ Service — ใช้ BullMQ เท่านั้น
+
+---
+
+### 20.7 reminder_rules
+
+**Purpose**: กฎการแจ้งเตือน (Reminder/Escalation) สำหรับ Review Tasks
+
+| Column Name                | Data Type   | Constraints              | Description                                              |
+| -------------------------- | ----------- | ------------------------ | -------------------------------------------------------- |
+| id                         | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                           |
+| uuid                       | UUID        | NOT NULL, UNIQUE         | UUID Public Identifier (ADR-019)                         |
+| name                       | VARCHAR(100)| NOT NULL                 | Rule name                                                |
+| project_id                 | INT         | NULL, FK                 | NULL = global rule                                       |
+| document_type_id           | INT         | NULL, FK                 | NULL = applies to all types                              |
+| trigger_days_before_due    | INT         | NOT NULL, DEFAULT 2      | วันก่อน due date ที่จะแจ้งเตือน                          |
+| escalation_days_after_due  | INT         | NOT NULL, DEFAULT 1      | วันหลัง due date ที่จะ escalate                           |
+| reminder_type              | ENUM        | NOT NULL                 | DUE_SOON, ON_DUE, OVERDUE, ESCALATION_L1, ESCALATION_L2 |
+| recipients                 | TEXT        | NOT NULL                 | Comma-separated: ASSIGNEE, MANAGER, PROJECT_MANAGER      |
+| message_template_th        | TEXT        | NOT NULL                 | Thai message template                                    |
+| message_template_en        | TEXT        | NOT NULL                 | English message template                                 |
+| is_active                  | TINYINT(1)  | NOT NULL, DEFAULT 1      | Active status                                            |
+| created_at                 | DATETIME(6) | NOT NULL, DEFAULT NOW    | Record creation timestamp                                |
+| updated_at                 | DATETIME(6) | NOT NULL, ON UPDATE      | Last update timestamp                                    |
+
+---
+
+### 20.8 distribution_matrices
+
+**Purpose**: ตารางกำหนดกฎการกระจายเอกสาร (Distribution Matrix) ตาม Response Code
+
+| Column Name      | Data Type   | Constraints              | Description                                    |
+| ---------------- | ----------- | ------------------------ | ---------------------------------------------- |
+| id               | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                 |
+| uuid             | UUID        | NOT NULL, UNIQUE         | UUID Public Identifier (ADR-019)               |
+| name             | VARCHAR(100)| NOT NULL                 | Matrix name                                    |
+| project_id       | INT         | NULL, FK                 | NULL = global matrix                           |
+| document_type_id | INT         | NOT NULL, FK             | Reference to correspondence_types              |
+| response_code_id | INT         | NULL, FK                 | NULL = applies to all codes                    |
+| conditions       | JSON        | NULL                     | {codes:["1A","1B"], excludeCodes:["3","4"]}   |
+| is_active        | TINYINT(1)  | NOT NULL, DEFAULT 1      | Active status                                  |
+| created_at       | DATETIME(6) | NOT NULL, DEFAULT NOW    | Record creation timestamp                      |
+
+---
+
+### 20.9 distribution_recipients
+
+**Purpose**: ผู้รับเอกสารใน Distribution Matrix (Polymorphic Reference)
+
+| Column Name          | Data Type   | Constraints              | Description                                                       |
+| -------------------- | ----------- | ------------------------ | ----------------------------------------------------------------- |
+| id                   | INT         | PRIMARY KEY, AUTO_INCREMENT | Internal ID                                                    |
+| uuid                 | UUID        | NOT NULL, UNIQUE         | UUID Public Identifier (ADR-019)                                  |
+| matrix_id            | INT         | NOT NULL, FK             | Reference to distribution_matrices                                |
+| recipient_type       | ENUM        | NOT NULL                 | USER, ORGANIZATION, TEAM, ROLE                                    |
+| recipient_public_id  | UUID        | NOT NULL                 | publicId ของ target entity (ดูตาราง Polymorphic Resolution ด้านล่าง) |
+| delivery_method      | ENUM        | NOT NULL, DEFAULT 'BOTH' | EMAIL, IN_APP, BOTH                                               |
+| sequence             | INT         | NULL                     | For ordered delivery                                              |
+| created_at           | DATETIME(6) | NOT NULL, DEFAULT NOW    | Record creation timestamp                                         |
+
+**Polymorphic Resolution Table**:
+
+| recipient_type | recipient_public_id อ้างอิง | FK | หมายเหตุ |
+|---|---|---|---|
+| USER | users.uuid | Soft (no FK) | Resolved via UserService |
+| ORGANIZATION | organizations.uuid | Soft (no FK) | Resolved via OrgService |
+| TEAM | review_teams.uuid | Soft (no FK) | Q4A — ทีมตรวจสอบ RFA |
+| ROLE | roles.uuid | Soft (no FK) | Q4B — ต้องใช้หลัง Apply delta-11 |
+
+**Business Rules**:
+
+- **ไม่มี FK constraint** บน recipient_public_id โดยออกแบบ (Polymorphic Pattern)
+- Service Layer ต้องตรวจสอบ existence ก่อน save
+- ใช้ index `idx_dr_type_recipient (recipient_type, recipient_public_id)` สำหรับ lookup performance
+
+---

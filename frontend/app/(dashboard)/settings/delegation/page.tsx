@@ -14,13 +14,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { useMyDelegations, useCreateDelegation, useRevokeDelegation, Delegation } from '@/hooks/use-delegation';
+import {
+  useMyDelegations,
+  useCreateDelegation,
+  useRevokeDelegation,
+  Delegation,
+} from '@/hooks/use-delegation';
+import { useUsers } from '@/hooks/use-users';
 import { DelegationForm } from '@/components/delegation/DelegationForm';
+import { User } from '@/types/user';
 
 export default function DelegationPage() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data: delegations = [], isLoading } = useMyDelegations();
+  const { data: users = [] } = useUsers({ limit: 100 });
   const createDelegation = useCreateDelegation();
   const revokeDelegation = useRevokeDelegation();
 
@@ -48,7 +56,11 @@ export default function DelegationPage() {
               <DialogTitle>Create Delegation</DialogTitle>
             </DialogHeader>
             <DelegationForm
-              availableUsers={[]}
+              availableUsers={users.map((user: User) => ({
+                publicId: user.publicId,
+                fullName: `${user.firstName} ${user.lastName}`.trim(),
+                email: user.email,
+              }))}
               onSubmit={(dto) =>
                 createDelegation.mutate(dto, {
                   onSuccess: () => setCreateOpen(false),

@@ -1,84 +1,81 @@
 'use client';
 
 // File: components/reminder/ReminderHistory.tsx
-// แสดงประวัติ Reminder และ Escalation ของ Review Task (T050)
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Clock, AlertTriangle, Bell } from 'lucide-react';
-
-type ReminderType = 'DUE_SOON' | 'ON_DUE' | 'OVERDUE' | 'ESCALATION_L1' | 'ESCALATION_L2';
-
-interface ReminderEntry {
-  id: string;
-  type: ReminderType;
-  sentAt: string;
-  recipient?: string;
-  isDelivered?: boolean;
-}
+import { format } from 'date-fns';
+import { History, Bell, ShieldAlert, AlertTriangle } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { useReminderHistory } from '@/hooks/use-reminder';
+import { ReminderType } from '@/types/workflow';
 
 interface ReminderHistoryProps {
-  reminders: ReminderEntry[];
-  isLoading?: boolean;
+  taskPublicId: string;
 }
 
-const TYPE_CONFIG: Record<
-  ReminderType,
-  { label: string; icon: React.ElementType; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
-> = {
-  DUE_SOON: { label: 'Due Soon', icon: Clock, variant: 'outline' },
-  ON_DUE: { label: 'Due Today', icon: Bell, variant: 'secondary' },
-  OVERDUE: { label: 'Overdue', icon: AlertTriangle, variant: 'destructive' },
-  ESCALATION_L1: { label: 'Escalation L1', icon: AlertTriangle, variant: 'destructive' },
-  ESCALATION_L2: { label: 'Escalation L2 (PM)', icon: AlertTriangle, variant: 'destructive' },
-};
+export function ReminderHistoryViewer({ taskPublicId }: ReminderHistoryProps) {
+  const { data: history = [], isLoading } = useReminderHistory(taskPublicId);
 
-export function ReminderHistory({ reminders, isLoading }: ReminderHistoryProps) {
-  if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading reminder history...</div>;
-  }
-
-  if (reminders.length === 0) {
-    return <div className="text-sm text-muted-foreground">No reminders sent yet.</div>;
-  }
+  const getIcon = (type: ReminderType) => {
+    switch (type) {
+      case ReminderType.ESCALATION_L1:
+        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+      case ReminderType.ESCALATION_L2:
+        return <ShieldAlert className="h-4 w-4 text-red-500" />;
+      default:
+        return <Bell className="h-4 w-4 text-blue-500" />;
+    }
+  };
 
   return (
-    <div className="space-y-2">
-      {reminders.map((entry) => {
-        const config = TYPE_CONFIG[entry.type];
-        const Icon = config.icon;
-
-        return (
-          <div
-            key={entry.id}
-            className="flex items-center justify-between py-1.5 border-b last:border-0"
-          >
-            <div className="flex items-center gap-2">
-              <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <Badge variant={config.variant} className="text-xs">
-                {config.label}
-              </Badge>
-              {entry.recipient && (
-                <span className="text-xs text-muted-foreground">→ {entry.recipient}</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {entry.isDelivered !== undefined && (
-                <span className={`text-xs ${entry.isDelivered ? 'text-green-600' : 'text-orange-500'}`}>
-                  {entry.isDelivered ? '✓ Delivered' : '⏳ Pending'}
-                </span>
-              )}
-              <span className="text-xs text-muted-foreground">
-                {new Date(entry.sentAt).toLocaleDateString('th-TH', {
-                  day: '2-digit',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-            </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <History className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-semibold">Reminder History</CardTitle>
+        </div>
+        <CardDescription>ประวัติการแจ้งเตือนและการยกระดับ</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="text-xs text-muted-foreground py-4 text-center">
+            Loading history...
           </div>
-        );
-      })}
-    </div>
+        ) : history.length === 0 ? (
+          <div className="text-xs text-muted-foreground py-4 text-center border rounded-md border-dashed">
+            No reminders sent yet.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {history.map((item) => (
+              <div
+                key={item.publicId}
+                className="flex items-start gap-3 text-xs border-b pb-3 last:border-0 last:pb-0"
+              >
+                <div className="mt-0.5">{getIcon(item.reminderType)}</div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold uppercase tracking-wider">
+                      {item.reminderType.replace('_', ' ')}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {format(new Date(item.sentAt), 'dd MMM yyyy HH:mm')}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Sent to: <span className="text-foreground">{item.user?.fullName ?? 'Unknown User'}</span>
+                    {item.escalationLevel > 0 && ` (L${item.escalationLevel})`}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

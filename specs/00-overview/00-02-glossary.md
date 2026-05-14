@@ -1,8 +1,8 @@
 # Glossary - คำศัพท์และคำย่อทางเทคนิค
 
 **Project:** LCBP3-DMS
-**Version:** 1.7.0
-**Last Updated:** 2025-12-18
+**Version:** 1.9.0
+**Last Updated:** 2026-05-13
 
 ---
 
@@ -11,7 +11,7 @@
 ### A
 
 **ADR (Architecture Decision Record)**
-เอกสารบันทึกการตัดสินใจทางสถาปัตยกรรมที่สำคัญ พร้อมบริบท ทางเลือก และเหตุผล
+เอกสารบันทึกการตัดสินใจทางสถาปัตยกรรมที่สำคัญ พร้อมบริบท ทางเลือก และเหตุผล (ดู ADR-001 ถึง ADR-021)
 
 **API (Application Programming Interface)**
 ชุดคำสั่งและโปรโตคอลที่ใช้สำหรับการสื่อสารระหว่างระบบ
@@ -448,6 +448,15 @@ Logging library สำหรับ Node.js
 **Closed**
 ปิดเรื่อง
 
+**Lead Engineer**
+บทบาทวิศวกรอาวุโสที่มีอำนาจอนุมัติทางเทคนิคในระบบ RFA
+
+**Parallel Review**
+กระบวนการตรวจสอบเอกสารพร้อมกันหลายบุคคลในขั้นตอนเดียวกัน (Workflow Engine)
+
+**Polymorphic Distribution**
+การกระจายเอกสารที่ผู้รับสามารถเป็นได้ทั้ง User หรือ Role (ADR-019)
+
 ---
 
 ### Disciplines (สาขาวิชาชีพ)
@@ -491,6 +500,6 @@ Logging library สำหรับ Node.js
 
 ---
 
-**Version:** 1.7.0
-**Last Updated:** 2025-12-18
-**Next Review:** 2026-03-01
+**Version:** 1.9.0
+**Last Updated:** 2026-05-13
+**Next Review:** 2026-08-13

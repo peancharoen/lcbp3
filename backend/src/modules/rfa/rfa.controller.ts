@@ -1,4 +1,6 @@
 // File: src/modules/rfa/rfa.controller.ts
+// Change Log:
+// - 2026-05-13: Wire submit reviewTeamPublicId through to the submit workflow for parallel review task creation.
 import {
   Body,
   Controller,
@@ -76,7 +78,12 @@ export class RfaController {
   ) {
     // ADR-019: resolve UUID → internal INT id via findOneByUuidRaw
     const rfa = await this.rfaService.findOneByUuidRaw(uuid);
-    return this.rfaService.submit(rfa.id, submitDto.templateId, user);
+    return this.rfaService.submit(
+      rfa.id,
+      submitDto.templateId,
+      user,
+      submitDto.reviewTeamPublicId
+    );
   }
 
   @Post(':uuid/action')

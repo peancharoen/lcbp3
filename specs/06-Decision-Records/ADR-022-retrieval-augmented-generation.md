@@ -1,6 +1,6 @@
 # ADR-022: Retrieval-Augmented Generation (RAG) System
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-023: Unified AI Architecture](./ADR-023-unified-ai-architecture.md)
 **Date:** 2026-04-19
 **Decision Makers:** Development Team, System Architect
 **Related Documents:**

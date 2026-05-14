@@ -6,6 +6,9 @@ import { Queue } from 'bullmq';
 import { QUEUE_REMINDERS } from '../../common/constants/queue.constants';
 import type { Job } from 'bullmq';
 import { ReminderType } from '../../common/enums/review.enums';
+import { ReminderRule } from '../entities/reminder-rule.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 export interface ScheduleReminderPayload {
   taskPublicId: string;
@@ -13,6 +16,8 @@ export interface ScheduleReminderPayload {
   assigneeUserId: number;
   dueDate: Date;
   reminderType: ReminderType;
+  projectId?: number;
+  documentTypeCode?: string;
 }
 
 type ReminderJob = Job<ScheduleReminderPayload>;
@@ -23,64 +28,67 @@ export class SchedulerService {
 
   constructor(
     @InjectQueue(QUEUE_REMINDERS)
-    private readonly reminderQueue: Queue
+    private readonly reminderQueue: Queue,
+    @InjectRepository(ReminderRule)
+    private readonly ruleRepo: Repository<ReminderRule>
   ) {}
 
   /**
-   * Schedule ชุด reminders ให้ Review Task (FR-013)
+   * Schedule ชุด reminders ให้ Review Task (FR-013) ตาม ReminderRule
    * เรียกหลังจาก TaskCreationService สร้าง tasks เรียบร้อยแล้ว
    */
   async scheduleForTask(payload: ScheduleReminderPayload): Promise<void> {
-    const { taskPublicId, dueDate } = payload;
+    const { taskPublicId, dueDate, projectId, documentTypeCode } = payload;
     const now = Date.now();
 
-    const remindersToSchedule: Array<{ type: ReminderType; delayMs: number }> =
-      [];
-
-    // 2 วันก่อน due date
-    const twoDaysBefore = dueDate.getTime() - 2 * 86_400_000;
-    if (twoDaysBefore > now) {
-      remindersToSchedule.push({
-        type: ReminderType.DUE_SOON,
-        delayMs: twoDaysBefore - now,
-      });
-    }
-
-    // วัน due date เอง
-    const onDue = dueDate.getTime();
-    if (onDue > now) {
-      remindersToSchedule.push({
-        type: ReminderType.ON_DUE,
-        delayMs: onDue - now,
-      });
-    }
-
-    // 1 วันหลัง due (Escalation L1)
-    const oneDayAfter = dueDate.getTime() + 1 * 86_400_000;
-    remindersToSchedule.push({
-      type: ReminderType.ESCALATION_L1,
-      delayMs: Math.max(oneDayAfter - now, 0),
+    // ดึงกฎที่เกี่ยวข้อง (Global + Project specific)
+    const rules = await this.ruleRepo.find({
+      where: [
+        { projectId, documentTypeCode, isActive: true },
+        { projectId: undefined, documentTypeCode, isActive: true },
+        { projectId, documentTypeCode: undefined, isActive: true },
+        { projectId: undefined, documentTypeCode: undefined, isActive: true },
+      ],
     });
 
-    // 3 วันหลัง due (Escalation L2)
-    const threeDaysAfter = dueDate.getTime() + 3 * 86_400_000;
-    remindersToSchedule.push({
-      type: ReminderType.ESCALATION_L2,
-      delayMs: Math.max(threeDaysAfter - now, 0),
-    });
+    if (rules.length === 0) {
+      this.logger.debug(`No reminder rules found for task ${taskPublicId}`);
+      return;
+    }
 
-    await Promise.all(
-      remindersToSchedule.map(({ type, delayMs }) =>
+    const jobs = [];
+
+    for (const rule of rules) {
+      const triggerTime =
+        dueDate.getTime() - rule.daysBeforeDue * 24 * 60 * 60 * 1000;
+      const delayMs = triggerTime - now;
+
+      // ถ้าเวลาผ่านไปแล้ว ไม่ต้อง schedule (ยกเว้น overdue ที่อาจจะต้องการส่งทันที)
+      if (delayMs <= 0 && rule.reminderType !== ReminderType.OVERDUE) {
+        continue;
+      }
+
+      jobs.push(
         this.reminderQueue.add(
           'send-reminder',
-          { ...payload, reminderType: type },
-          { delay: delayMs, removeOnComplete: true, removeOnFail: 100 }
+          {
+            ...payload,
+            reminderType: rule.reminderType,
+          },
+          {
+            delay: Math.max(delayMs, 0),
+            removeOnComplete: true,
+            removeOnFail: 100,
+            jobId: `${taskPublicId}-${rule.reminderType}-${rule.id}`, // ป้องกัน duplicate
+          }
         )
-      )
-    );
+      );
+    }
+
+    await Promise.all(jobs);
 
     this.logger.log(
-      `Scheduled ${remindersToSchedule.length} reminders for task ${taskPublicId}`
+      `Scheduled ${jobs.length} reminders for task ${taskPublicId} based on ${rules.length} rules`
     );
   }
 

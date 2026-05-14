@@ -1,10 +1,11 @@
 // File: src/modules/distribution/entities/distribution-matrix.entity.ts
+// Change Log
+// - 2026-05-14: Align columns with canonical v1.9.0 schema and ADR-019 publicId contract.
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
   ManyToOne,
   JoinColumn,
@@ -13,6 +14,12 @@ import { Exclude } from 'class-transformer';
 import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
 import { DistributionRecipient } from './distribution-recipient.entity';
 import { Project } from '../../project/entities/project.entity';
+import { ResponseCode } from '../../response-code/entities/response-code.entity';
+
+export interface DistributionConditions {
+  codes?: string[];
+  excludeCodes?: string[];
+}
 
 @Entity('distribution_matrices')
 export class DistributionMatrix extends UuidBaseEntity {
@@ -20,19 +27,23 @@ export class DistributionMatrix extends UuidBaseEntity {
   @Exclude()
   id!: number;
 
-  @Column({ name: 'project_id' })
+  @Column({ length: 100 })
+  name!: string;
+
+  @Column({ name: 'project_id', nullable: true })
   @Exclude()
-  projectId!: number;
+  projectId?: number;
 
-  @Column({ name: 'document_type_code', length: 20 })
-  documentTypeCode!: string; // 'SDW', 'DDW', 'ADW', 'MS'...
+  @Column({ name: 'document_type_id' })
+  @Exclude()
+  documentTypeId!: number;
 
-  @Column({
-    name: 'response_code_filter',
-    type: 'simple-array',
-    nullable: true,
-  })
-  responseCodeFilter?: string[]; // ['1A','1B'] — NULL = ทุก code
+  @Column({ name: 'response_code_id', nullable: true })
+  @Exclude()
+  responseCodeId?: number;
+
+  @Column({ type: 'json', nullable: true })
+  conditions?: DistributionConditions;
 
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
   isActive!: boolean;
@@ -40,13 +51,13 @@ export class DistributionMatrix extends UuidBaseEntity {
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt!: Date;
-
-  // Relations
   @ManyToOne(() => Project)
   @JoinColumn({ name: 'project_id' })
   project?: Project;
+
+  @ManyToOne(() => ResponseCode)
+  @JoinColumn({ name: 'response_code_id' })
+  responseCode?: ResponseCode;
 
   @OneToMany(
     () => DistributionRecipient,

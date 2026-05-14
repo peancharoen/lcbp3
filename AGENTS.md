@@ -1,9 +1,9 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.1 | Last synced from repo: 2026-05-13
+- Version: 1.9.2 | Last synced from repo: 2026-05-14
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
-- Skill pack: `.agents/skills/` (v1.9.1, 21 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
+- Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
 ---
 
@@ -66,7 +66,7 @@ If significant logic changes are made, summarize what was done for the user afte
 
 - **UUID Validation:** ทุกครั้งที่มีการรับค่า ID จาก API หรือ URL ต้องตรวจสอบว่าเป็น **UUIDv7** และห้ามใช้ `parseInt()` หรือตัวดำเนินการทางคณิตศาสตร์กับค่านี้เด็ดขาด (ADR-019)
 - **RBAC Check:** การสร้าง API ใหม่ต้องมี **CASL Guard** และตรวจสอบสิทธิ์แบบ 4-Level RBAC Matrix เสมอ (ADR-016)
-- **Data Isolation:** หากมีการใช้ฟีเจอร์ AI ต้องมั่นใจว่ารันผ่าน **Ollama บน Admin Desktop** เท่านั้น และห้ามให้ AI เข้าถึง Database หรือ Storage โดยตรง (ต้องผ่าน DMS API เท่านั้น) (ADR-018)
+- **Data Isolation:** หากมีการใช้ฟีเจอร์ AI ต้องมั่นใจว่ารันผ่าน **Ollama บน Admin Desktop** เท่านั้น และห้ามให้ AI เข้าถึง Database หรือ Storage โดยตรง (ต้องผ่าน DMS API เท่านั้น) (ADR-023)
 - **Input Sanitization:** ไฟล์อัปโหลดต้องผ่านการตรวจสอบแบบ **Two-Phase** (Temp → Commit) และต้องสแกนด้วย **ClamAV** ก่อนย้ายเข้า Permanent Storage (ADR-016)
 
 ---
@@ -81,7 +81,7 @@ Build fails immediately if violated:
 - UUID Strategy (ADR-019) — no `parseInt` / `Number` / `+` on UUID
 - Database correctness — verify schema before writing queries
 - File upload security (ClamAV + whitelist)
-- AI validation boundary (ADR-018)
+- AI validation boundary (ADR-023)
 - Error handling strategy (ADR-007)
 - Forbidden patterns: `any`, `console.log`, UUID misuse, `id ?? ''` fallback
 
@@ -122,10 +122,9 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | **ADR-008 Notifications**    | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`   | ✅ Active | BullMQ + multi-channel notification    |
 | **ADR-009 DB Migration**     | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`   | ✅ Active | Schema changes — edit SQL directly     |
 | **ADR-016 Security**         | `specs/06-Decision-Records/ADR-016-security-authentication.md`       | ✅ Active | Auth, RBAC, file upload security       |
-| **ADR-018 AI Boundary**      | `specs/06-Decision-Records/ADR-018-ai-boundary.md`                   | ✅ Active | AI isolation rules                     |
 | **ADR-019 UUID**             | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`    | ✅ Active | UUID-related work                      |
-| **ADR-020 AI Integration**   | `specs/06-Decision-Records/ADR-020-ai-intelligence-integration.md`   | ✅ Active | AI architecture patterns               |
 | **ADR-021 Workflow Context** | `specs/06-Decision-Records/ADR-021-workflow-context.md`              | ✅ Active | Integrated workflow & step attachments |
+| **ADR-023 AI Architecture**  | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`       | ✅ Active | Unified AI boundaries and pipeline     |
 | **Backend Guidelines**       | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`        | —         | NestJS patterns                        |
 | **Frontend Guidelines**      | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`       | —         | Next.js patterns                       |
 | **Testing Strategy**         | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`          | —         | Coverage goals                         |
@@ -248,9 +247,9 @@ Read `specs/05-Engineering-Guidelines/05-07-hybrid-uuid-implementation-plan.md` 
 5. **Password:** bcrypt 12 salt rounds, min 8 chars, rotate every 90 days
 6. **Rate Limiting:** `ThrottlerGuard` on all auth endpoints
 7. **File Upload:** Whitelist PDF/DWG/DOCX/XLSX/ZIP, max 50MB, ClamAV scan
-8. **AI Isolation (ADR-018):** Ollama on Admin Desktop ONLY — NO direct DB/storage access
+8. **AI Isolation (ADR-023):** Ollama on Admin Desktop ONLY — NO direct DB/storage access
 9. **Error Handling (ADR-007):** Use layered error classification with user-friendly messages
-10. **AI Integration (ADR-020):** RFA-First approach with unified pipeline architecture
+10. **AI Integration (ADR-023):** RFA-First approach with unified pipeline architecture
 
 Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 
@@ -308,12 +307,12 @@ Full glossary: `specs/00-overview/00-02-glossary.md`
 | `req: any` in controllers                       | `RequestWithUser` typed interface               | Type safety lost; auth context unreachable           |
 | `parseInt()` on UUID values                     | Use UUID string directly (ADR-019)              | `"019505…"` parsed to integer `19` — silently wrong  |
 | Exposing INT PK in API responses                | UUIDv7 `publicId` (ADR-019)                     | Leaks row count; enables DB enumeration attacks      |
-| AI accessing DB/storage directly                | AI → DMS API → DB (ADR-018)                     | Bypasses RBAC, audit trail, and validation layer     |
+| AI accessing DB/storage directly                | AI → DMS API → DB (ADR-023)                     | Bypasses RBAC, audit trail, and validation layer     |
 | Direct file operations bypassing StorageService | `StorageService` for all file moves             | Orphaned files; broken ClamAV scan; no audit trail   |
 | Inline email/notification sending               | BullMQ queue job (ADR-008)                      | Blocks request thread; no retry on transient failure |
 | Deploying without Release Gates                 | Complete `04-08-release-management-policy.md`   | Unverified deploy risks data loss in production      |
-| AI direct cloud API calls                       | On-premises Ollama only (ADR-018)               | Data privacy violation; no audit control             |
-| AI outputs without human validation             | Human-in-the-loop validation required (ADR-020) | Unvalidated AI metadata corrupts document records    |
+| AI direct cloud API calls                       | On-premises Ollama only (ADR-023)               | Data privacy violation; no audit control             |
+| AI outputs without human validation             | Human-in-the-loop validation required (ADR-023) | Unvalidated AI metadata corrupts document records    |
 
 ---
 
@@ -347,7 +346,7 @@ The following actions MUST NOT be performed autonomously. **Stop and ask for con
 3. **Check schema** — verify table/column in `schema-02-tables.sql`
 4. **Check data dictionary** — confirm field meanings + business rules
 5. **Scan edge cases** — `01-06-edge-cases-and-rules.md`
-6. **Check ADRs** — verify decisions align (ADR-009, ADR-018, ADR-019)
+6. **Check ADRs** — verify decisions align (ADR-009, ADR-019, ADR-023)
 7. **Write code** — TypeScript strict, no `any`, no `console.log`, follow headers/JSDoc rules
 
 ### 🟡 Normal Work — UI / Feature / Integration
@@ -408,25 +407,25 @@ When user asks about... check these files:
 
 | Request                 | Files to Check                                                                        | Expected Response                                       |
 | ----------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| "สร้าง API ใหม่"        | `05-02-backend-guidelines.md`, `schema-02-tables.sql`                                 | NestJS Controller + Service + DTO + CASL Guard          |
-| "แก้ฟอร์ม frontend"     | `05-03-frontend-guidelines.md`, `01-06-edge-cases.md`                                 | RHF+Zod + TanStack Query + Thai comments                |
-| "เพิ่ม field ใหม่"      | `ADR-009`, `data-dictionary.md`, `schema-02-tables.sql`                               | Edit SQL directly + update Data Dictionary + Entity     |
+| "สร้าง API ใหม่"        | `05-02-backend-guidelines.md`, `lcbp3-v1.9.0-schema-02-tables.sql`                    | NestJS Controller + Service + DTO + CASL Guard          |
+| "แก้ฟอร์ม frontend"     | `05-03-frontend-guidelines.md`, `01-06-edge-cases-and-rules.md`                       | RHF+Zod + TanStack Query + Thai comments                |
+| "เพิ่ม field ใหม่"      | `ADR-009`, `03-01-data-dictionary.md`, `lcbp3-v1.9.0-schema-02-tables.sql`            | Edit SQL directly + update Data Dictionary + Entity     |
 | "ตรวจสอบ UUID"          | `ADR-019`, `05-07-hybrid-uuid-implementation-plan.md`                                 | UUIDv7 MariaDB native UUID + TransformInterceptor       |
 | "สร้าง migration"       | `ADR-009`, `03-06-migration-business-scope.md`                                        | Edit SQL schema directly + n8n workflow                 |
-| "ตรวจสอบ permission"    | `seed-permissions.sql`, `ADR-016`                                                     | CASL 4-Level RBAC matrix                                |
+| "ตรวจสอบ permission"    | `lcbp3-v1.9.0-seed-permissions.sql`, `ADR-016`                                        | CASL 4-Level RBAC matrix                                |
 | "deploy production"     | `04-08-release-management-policy.md`, `ADR-015`                                       | Release Gates + Blue-Green strategy                     |
 | "เพิ่ม test"            | `05-04-testing-strategy.md`                                                           | Coverage goals + test patterns                          |
-| "AI integration"        | `ADR-018`, `ADR-020`                                                                  | AI boundary + unified pipeline                          |
+| "AI integration"        | `ADR-023`                                                                             | AI boundary + unified pipeline                          |
 | "Error handling"        | `ADR-007`                                                                             | Layered error classification + recovery                 |
 | "File upload"           | `ADR-016`, `05-02-backend-guidelines.md`, `03-Data-and-Storage/03-03-file-storage.md` | Two-phase upload → temp → commit; ClamAV + whitelist    |
 | "Notifications / Queue" | `ADR-008`, `05-02-backend-guidelines.md`                                              | BullMQ job — never inline; check retry + dead-letter    |
 | "Add i18n / translate"  | `05-08-i18n-guidelines.md`                                                            | i18n keys only — no hardcoded text                      |
 | "Workflow / DSL"        | `ADR-001`, `01-03-modules/01-03-06-unified-workflow.md`                               | DSL state machine + WorkflowEngineService               |
 | "Document numbering"    | `ADR-002`, `01-02-business-rules/01-02-02-doc-numbering-rules.md`                     | Redis Redlock + DB optimistic lock (double-lock)        |
-| "ตรวจสอบ Workflow"      | `01-06-edge-cases.md`, `05-02-backend-guidelines.md`, `ADR-001`, `ADR-002`            | เช็คการเปลี่ยน State, คิว BullMQ และการล็อกเลขที่เอกสาร |
+| "ตรวจสอบ Workflow"      | `01-06-edge-cases-and-rules.md`, `05-02-backend-guidelines.md`, `ADR-001`, `ADR-002`  | เช็คการเปลี่ยน State, คิว BullMQ และการล็อกเลขที่เอกสาร |
 | "Transmittal submit"    | ADR-021, TransmittalService                                                           | submit() with EC-RFA-004 validation                     |
 | "Circulation reassign"  | ADR-021, CirculationService                                                           | reassignRouting() with EC-CIRC-001                      |
-| "Audit ความปลอดภัย"     | `ADR-016`, `ADR-018`, `ADR-019`                                                       | ตรวจสอบ UUID pattern, CASL Guard และ AI Boundary        |
+| "Audit ความปลอดภัย"     | `ADR-016`, `ADR-019`, `ADR-023`                                                       | ตรวจสอบ UUID pattern, CASL Guard และ AI Boundary        |
 | "แก้ bug / bugfix"      | `.agents/workflows/bugfix.md`, `error-catalog.md`                                     | ใช้ bugfix workflow สำหรับเคสที่สาเหตุชัดเจน           |
 
 ## 🛠️ Final Checklist (Tier 1 & Tier 2)
@@ -441,7 +440,7 @@ When user asks about... check these files:
 - [ ] **One main export per file**
 - [ ] Schema changes via SQL directly (not migration)
 - [ ] Test coverage meets targets (Backend 70%+, Business Logic 80%+)
-- [ ] Relevant ADRs checked (ADR-007, ADR-009, ADR-018, ADR-019, ADR-020)
+- [ ] Relevant ADRs checked (ADR-007, ADR-009, ADR-019, ADR-021, ADR-023)
 - [ ] Glossary terms used correctly
 - [ ] Error handling complete (Logger + HttpException)
 - [ ] i18n keys used instead of hardcode text
@@ -485,6 +484,7 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                           | Updated By     |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.2   | 2026-05-14 | Consolidated legacy AI ADRs (017, 017B, 018, 020, 022) into master ADR-023: Unified AI Architecture                                               | Antigravity AI |
 | 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                   | Windsurf AI    |
 | 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                      | Windsurf AI    |
 | 1.8.9   | 2026-04-22 | `.agents/skills/` LCBP3-native rebuild (20 skills @ v1.8.9) + `_LCBP3-CONTEXT.md` appendix + `specs/03-Data-and-Storage/deltas/` + AGENTS.md sync | Windsurf AI    |

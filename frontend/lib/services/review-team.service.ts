@@ -17,7 +17,7 @@ export interface UpdateReviewTeamDto {
 
 export interface AddTeamMemberDto {
   userPublicId: string;
-  disciplinePublicId: string;
+  disciplineId: number;
   role: 'REVIEWER' | 'LEAD' | 'MANAGER';
   priorityOrder?: number;
 }

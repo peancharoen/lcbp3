@@ -11,7 +11,7 @@
 
 ---
 
-## 📂 Directory Structure (v1.8.9)
+## 📂 Directory Structure (v1.9.0)
 
 ```text
 specs/
@@ -48,11 +48,11 @@ specs/
 │   ├── 03-04-legacy-data-migration.md  # Legacy Data Migration จาก Excel (ADR-017)
 │   ├── 03-05-n8n-migration-setup-guide.md  # n8n Workflow Setup + Ollama Integration
 │   ├── 03-06-migration-business-scope.md   # ★ Gap 7: Migration Scope, 3 Tiers, Go/No-Go Gates
-│   ├── lcbp3-v1.8.0-schema-01-drop.sql     # Schema: DROP statements
-│   ├── lcbp3-v1.8.0-schema-02-tables.sql   # Schema: CREATE TABLE (Source of Truth)
-│   ├── lcbp3-v1.8.0-schema-03-views-indexes.sql  # Schema: Views + Indexes
-│   ├── lcbp3-v1.8.0-seed-basic.sql         # Seed: Master Data
-│   ├── lcbp3-v1.8.0-seed-permissions.sql   # Seed: CASL Permission Matrix
+│   ├── lcbp3-v1.9.0-schema-01-drop.sql     # Schema: DROP statements
+│   ├── lcbp3-v1.9.0-schema-02-tables.sql   # Schema: CREATE TABLE (Source of Truth)
+│   ├── lcbp3-v1.9.0-schema-03-views-indexes.sql  # Schema: Views + Indexes
+│   ├── lcbp3-v1.9.0-seed-basic.sql         # Seed: Master Data
+│   ├── lcbp3-v1.9.0-seed-permissions.sql   # Seed: CASL Permission Matrix
 │   └── README.md                # ภาพรวม Data Strategy
 │
 ├── 04-Infrastructure-OPS/       # โครงสร้างพื้นฐานและการปฏิบัติการ
@@ -135,9 +135,9 @@ specs/
 
 | เอกสาร               | Path                                                        | ใช้เมื่อ                            |
 | -------------------- | ----------------------------------------------------------- | ----------------------------------- |
-| **Schema Tables**    | `03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`     | ก่อนเขียน Query ทุกครั้ง            |
+| **Schema Tables**    | `03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`     | ก่อนเขียน Query ทุกครั้ง            |
 | **Data Dictionary**  | `03-Data-and-Storage/03-01-data-dictionary.md`              | ตรวจ Field Meaning + Business Rules |
-| **Seed Permissions** | `03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql`     | ตรวจ CASL Permission Matrix         |
+| **Seed Permissions** | `03-Data-and-Storage/lcbp3-v1.9.0-seed-permissions.sql`     | ตรวจ CASL Permission Matrix         |
 | **Edge Cases**       | `01-Requirements/01-06-edge-cases-and-rules.md`             | 37 Rules ป้องกัน Bug                |
 | **Migration Scope**  | `03-Data-and-Storage/03-06-migration-business-scope.md`     | งาน Migration Bot                   |
 | **Release Policy**   | `04-Infrastructure-OPS/04-08-release-management-policy.md`  | ก่อน Deploy / Hotfix                |
@@ -153,13 +153,13 @@ specs/
 
 1. **The Specs are the Source of Truth:** ก่อนเริ่มงานเสมอ ให้อ่าน Requirement, Architecture และ ADR ถ้าเจอประโยคไหนที่คุณคิดไว้แล้วขัดแย้งกับ Specs ให้ยึดจากใน `specs/` เป็นคำตอบสุดท้าย
 
-2. **Never Invent Tables / Columns:** ห้ามสร้างคอลัมน์ใหม่ในหัวเอง ให้ดู Schema ใน `03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` สำหรับโครงสร้าง Table ทั้งหลัก และ Reference — Schema แบ่งเป็น 3 ไฟล์ (01-drop / 02-tables / 03-views-indexes)
+2. **Never Invent Tables / Columns:** ห้ามสร้างคอลัมน์ใหม่ในหัวเอง ให้ดู Schema ใน `03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` สำหรับโครงสร้าง Table ทั้งหลัก และ Reference — Schema แบ่งเป็น 3 ไฟล์ (01-drop / 02-tables / 03-views-indexes)
 
 3. **Double-Lock Numbering:** ระบบออกเลขเอกสารมีความอ่อนไหวสูง เนื่องจากมีหลาย User พร้อมกัน ต้องใช้ **Redis Redlock** ควบคู่กับ **DB Optimistic Lock** เพื่อแก้ Race Condition (ADR-002)
 
 4. **Follow Blue-Green Deployment:** โปรเจกต์พึ่งพาการทำ Blue-Green Environment เพื่อ Downtime ขั้นต่ำ ต้องผ่าน **5 Release Gates** ก่อน Deploy ทุกครั้ง — ดู `04-08-release-management-policy.md`
 
-5. **No `any` Types:** ไม่อนุญาตให้ใช้ `any` ในโค้ด พยายามใช้ Validation ผ่าน DTO / Zod แบบ Strongly-typed เสมอ — **Enforced ✅** (0 remaining in backend as of v1.8.1, ดูเทคนิคที่ `05-02-backend-guidelines.md`)
+5. **No `any` Types:** ไม่อนุญาตให้ใช้ `any` ในโค้ด พยายามใช้ Validation ผ่าน DTO / Zod แบบ Strongly-typed เสมอ — **Enforced ✅** (0 remaining in backend as of v1.9.0, ดูเทคนิคที่ `05-02-backend-guidelines.md`)
 
 6. **AI Isolation (ADR-018):** Ollama ต้องรันบน **Admin Desktop** (i9-9900K, RTX 2060 SUPER 8GB) เท่านั้น — ห้ามรันบน QNAP/Production Server ห้ามมี Direct DB Access โดยเด็ดขาด AI Output ต้องผ่าน Backend Validation ก่อน Write ทุกครั้ง
 

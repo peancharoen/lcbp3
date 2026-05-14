@@ -1,6 +1,6 @@
 # ADR-020: AI Intelligence Integration Architecture
 
-**Status:** Proposed
+**Status:** Superseded by [ADR-023: Unified AI Architecture](./ADR-023-unified-ai-architecture.md)
 **Date:** 2026-04-03
 **Version:** 1.8.5
 **Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
@@ -654,11 +654,12 @@ OUTPUT FORMAT:
 | 1.8.5 | 2026-04-03 | AI Integration Lead | Initial ADR — AI Intelligence Integration Architecture |
 | 1.8.6 | 2026-04-03 | Tech Lead | Updated — Aligned with detailed task specifications and implementation requirements |
 | 1.8.7 | 2026-04-04 | System Architect | Enhanced — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |
+| 1.8.8 | 2026-05-14 | System Architect | Superseded — Consolidated into master AI architecture [ADR-023](./ADR-023-unified-ai-architecture.md) |
 
 ---
 
 **Last Updated:** 2026-04-04
-**Status:** Proposed
+**Status:** Superseded by ADR-023
 **Review Date:** 2026-04-10
 **Implementation Target:** v1.9.0
 **Next Review Date:** 2026-10-04 (6-month regular review)

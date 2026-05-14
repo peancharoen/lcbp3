@@ -1,17 +1,17 @@
-# 4. Access Control & RBAC Matrix (V1.8.0)
+# 4. Access Control & RBAC Matrix (V1.9.0)
 
 ---
 
 title: 'Access Control & RBAC Matrix'
-version: 1.8.0
+version: 1.9.0
 status: APPROVED
 owner: Nattanin Peancharoen / Development Team
-last_updated: 2026-02-23
+last_updated: 2026-05-13
 related:
 
 - specs/02-architecture/02-01-system-architecture.md
-- specs/03-implementation/03-02-backend-guidelines.md
-- specs/07-database/07-01-data-dictionary-v1.8.0.md
+- specs/05-Engineering-Guidelines/05-02-backend-guidelines.md
+- specs/03-Data-and-Storage/03-01-data-dictionary.md
 - specs/05-decisions/ADR-005-redis-usage-strategy.md
 - specs/05-decisions/ADR-001-unified-workflow-engine.md
   references:
@@ -78,6 +78,7 @@ Global (ทั้งระบบ)
 | **Viewer**           | Organization | Document viewer            | View documents that have access permissions                                                                           |
 | **Project Manager**  | Project      | Project manager            | Manage members in the project (add/delete/assign roles), create/manage contracts in the project, view project reports |
 | **Contract Admin**   | Contract     | Contract administrator     | Manage users in the contract, manage roles/permissions within the contract, view contract reports                     |
+| **Lead Engineer**    | Contract     | Lead Engineer              | RFA Reviewer/Approver authority, technical validation, shop drawing approval                                           |
 
 ### Master Data Management Authority
 

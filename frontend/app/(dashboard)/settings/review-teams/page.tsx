@@ -18,17 +18,22 @@ import { useReviewTeams, useCreateReviewTeam, useUpdateReviewTeam } from '@/hook
 import { ReviewTeamForm } from '@/components/review-team/ReviewTeamForm';
 import { TeamMemberManager } from '@/components/review-team/TeamMemberManager';
 import { ReviewTeam } from '@/types/review-team';
-
-// TODO: ดึง projectPublicId จาก context หรือ URL param จริง
-const MOCK_PROJECT_ID = 'current-project-public-id';
+import { useProjectStore } from '@/lib/stores/project-store';
+import { useUsers } from '@/hooks/use-users';
+import { useContracts, useDisciplines } from '@/hooks/use-master-data';
 
 export default function ReviewTeamsPage() {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTeam, setEditTeam] = useState<ReviewTeam | null>(null);
+  const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
+  const { data: availableUsers = [] } = useUsers();
+  const { data: contracts = [] } = useContracts(selectedProjectId ?? undefined);
+  const primaryContractId = contracts[0]?.publicId;
+  const { data: availableDisciplines = [] } = useDisciplines(primaryContractId);
 
   const { data: teams = [], isLoading } = useReviewTeams({
-    projectPublicId: MOCK_PROJECT_ID,
+    projectPublicId: selectedProjectId ?? undefined,
   });
 
   const createTeam = useCreateReviewTeam();
@@ -56,7 +61,7 @@ export default function ReviewTeamsPage() {
               <DialogTitle>Create Review Team</DialogTitle>
             </DialogHeader>
             <ReviewTeamForm
-              projectPublicId={MOCK_PROJECT_ID}
+              projectPublicId={selectedProjectId ?? ''}
               onSubmit={(values) =>
                 createTeam.mutate(values, {
                   onSuccess: () => setCreateOpen(false),
@@ -125,8 +130,8 @@ export default function ReviewTeamsPage() {
                 <TeamMemberManager
                   teamPublicId={team.publicId}
                   members={team.members ?? []}
-                  availableUsers={[]}
-                  availableDisciplines={[]}
+                  availableUsers={availableUsers}
+                  availableDisciplines={availableDisciplines}
                 />
               </CardContent>
             )}
@@ -149,7 +154,7 @@ export default function ReviewTeamsPage() {
           </DialogHeader>
           {editTeam && (
             <ReviewTeamForm
-              projectPublicId={MOCK_PROJECT_ID}
+              projectPublicId={selectedProjectId ?? ''}
               defaultValues={editTeam}
               onSubmit={(values) =>
                 updateTeam.mutate(

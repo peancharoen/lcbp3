@@ -1,4 +1,6 @@
 // File: src/modules/distribution/services/approval-listener.service.ts
+// Change Log
+// - 2026-05-14: Accept canonical documentTypeId in approval events.
 // Strangler Pattern — listens for RFA approval events and triggers distribution (T055)
 import { Injectable, Logger } from '@nestjs/common';
 import {
@@ -24,7 +26,8 @@ export class ApprovalListenerService {
     rfaPublicId: string;
     rfaRevisionPublicId: string;
     projectId: number;
-    documentTypeCode: string;
+    documentTypeId?: number;
+    documentTypeCode?: string;
     responseCode: string;
     decision: ConsensusDecision;
     approvedAt: Date;
@@ -45,6 +48,7 @@ export class ApprovalListenerService {
       rfaPublicId: event.rfaPublicId,
       rfaRevisionPublicId: event.rfaRevisionPublicId,
       projectId: event.projectId,
+      documentTypeId: event.documentTypeId,
       documentTypeCode: event.documentTypeCode,
       responseCode: event.responseCode,
       approvedAt: event.approvedAt,

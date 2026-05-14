@@ -38,6 +38,7 @@ export class ConsensusService {
       rfaPublicId: string;
       rfaRevisionPublicId: string;
       projectId: number;
+      documentTypeId?: number;
       documentTypeCode: string;
     }
   ): Promise<ConsensusResult> {

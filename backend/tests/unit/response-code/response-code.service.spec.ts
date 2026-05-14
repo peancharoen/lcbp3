@@ -6,6 +6,7 @@ import { ResponseCodeService } from '../../../src/modules/response-code/response
 import { ResponseCode } from '../../../src/modules/response-code/entities/response-code.entity';
 import { ResponseCodeRule } from '../../../src/modules/response-code/entities/response-code-rule.entity';
 import { ResponseCodeCategory } from '../../../src/modules/common/enums/review.enums';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 
 const mockCode: Partial<ResponseCode> = {
   id: 1,
@@ -21,6 +22,13 @@ const mockCode: Partial<ResponseCode> = {
 const mockCodeRepo = {
   find: jest.fn().mockResolvedValue([mockCode]),
   findOne: jest.fn().mockResolvedValue(mockCode),
+  create: jest.fn(
+    (payload: Partial<ResponseCode>): Partial<ResponseCode> => payload
+  ),
+  save: jest.fn(
+    (payload: Partial<ResponseCode>): Promise<Partial<ResponseCode>> =>
+      Promise.resolve(payload)
+  ),
 };
 
 const mockRuleRepo = {
@@ -31,6 +39,18 @@ describe('ResponseCodeService', () => {
   let service: ResponseCodeService;
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockCodeRepo.find.mockResolvedValue([mockCode]);
+    mockCodeRepo.findOne.mockResolvedValue(mockCode);
+    mockCodeRepo.create.mockImplementation(
+      (payload: Partial<ResponseCode>): Partial<ResponseCode> => payload
+    );
+    mockCodeRepo.save.mockImplementation(
+      (payload: Partial<ResponseCode>): Promise<Partial<ResponseCode>> =>
+        Promise.resolve(payload)
+    );
+    mockRuleRepo.find.mockResolvedValue([]);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ResponseCodeService,
@@ -69,6 +89,74 @@ describe('ResponseCodeService', () => {
     it('should return enabled codes for document type', async () => {
       const result = await service.findByDocumentType(1, 1);
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('create', () => {
+    it('should create a non-system response code when code/category is unique', async () => {
+      mockCodeRepo.findOne.mockResolvedValueOnce(null);
+
+      const result = await service.create({
+        code: '9A',
+        category: ResponseCodeCategory.ENGINEERING,
+        descriptionTh: 'ทดสอบ',
+        descriptionEn: 'Test',
+      });
+
+      expect(mockCodeRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: '9A',
+          category: ResponseCodeCategory.ENGINEERING,
+          isSystem: false,
+          isActive: true,
+        })
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          code: '9A',
+          category: ResponseCodeCategory.ENGINEERING,
+          isSystem: false,
+        })
+      );
+    });
+
+    it('should reject duplicate code/category pairs', async () => {
+      await expect(
+        service.create({
+          code: '1A',
+          category: ResponseCodeCategory.ENGINEERING,
+          descriptionTh: 'ซ้ำ',
+          descriptionEn: 'Duplicate',
+        })
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('update', () => {
+    it('should update an existing response code by publicId', async () => {
+      const result = await service.update('test-uuid-1', {
+        descriptionEn: 'Updated Description',
+      });
+
+      expect(mockCodeRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          publicId: 'test-uuid-1',
+          descriptionEn: 'Updated Description',
+        })
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          descriptionEn: 'Updated Description',
+        })
+      );
+    });
+  });
+
+  describe('deactivate', () => {
+    it('should reject deactivation for system response codes', async () => {
+      await expect(service.deactivate('test-uuid-1')).rejects.toBeInstanceOf(
+        BadRequestException
+      );
     });
   });
 });

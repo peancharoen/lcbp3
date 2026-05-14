@@ -1,4 +1,6 @@
 // File: src/modules/review-team/dto/shared/review-team.dto.ts
+// Change Log:
+// - 2026-05-13: Align AddTeamMemberDto discipline identifier with the INT-based disciplines schema.
 // Shared DTOs สำหรับ Review Team และ Review Task APIs
 
 import {
@@ -69,8 +71,9 @@ export class AddTeamMemberDto {
   @IsUUID()
   userPublicId!: string; // ADR-019
 
-  @IsUUID()
-  disciplinePublicId!: string; // ADR-019
+  @IsInt()
+  @IsPositive()
+  disciplineId!: number; // disciplines table is internal INT per current schema
 
   @IsEnum(ReviewTeamMemberRole)
   role!: ReviewTeamMemberRole;

@@ -9,6 +9,11 @@ export interface WorkflowActionDto {
   stepNumber?: number; // อาจจะไม่จำเป็นถ้า Backend เช็ค state ปัจจุบันได้เอง
 }
 
+export interface SubmitRfaDto {
+  templateId: number;
+  reviewTeamPublicId?: string;
+}
+
 export const rfaService = {
   /**
    * ดึงรายการ RFA ทั้งหมด (รองรับ Search & Filter)
@@ -40,9 +45,9 @@ export const rfaService = {
   /**
    * Submit a Draft RFA to workflow
    */
-  submit: async (uuid: string, templateId: number) => {
+  submit: async (uuid: string, data: SubmitRfaDto) => {
     // POST /rfas/:uuid/submit (ADR-019)
-    const response = await apiClient.post(`/rfas/${uuid}/submit`, { templateId });
+    const response = await apiClient.post(`/rfas/${uuid}/submit`, data);
     return response.data;
   },
 

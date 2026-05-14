@@ -25,6 +25,11 @@ export class ReminderController {
     return this.reminderService.findAllByProjectPublicId(projectPublicId);
   }
 
+  @Get('history/:taskPublicId')
+  getHistory(@Param('taskPublicId') taskPublicId: string) {
+    return this.reminderService.findHistoryByTaskPublicId(taskPublicId);
+  }
+
   @Get(':publicId')
   findOne(@Param('publicId') publicId: string) {
     return this.reminderService.findOne(publicId);

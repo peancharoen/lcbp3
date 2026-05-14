@@ -1,6 +1,6 @@
 # ADR-017B: AI Document Classification
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-023: Unified AI Architecture](./ADR-023-unified-ai-architecture.md)
 **Date:** 2026-03-27
 **Version:** 1.8.2 (Aligned with ADR-020)
 **Review Cycle:** Core ADR (Review every 6 months or Major Version upgrade)
@@ -461,10 +461,11 @@ Phase 2: Final Commit (โดย Admin ผ่าน Frontend)
 | 1.8.1   | 2026-03-27 | Tech Lead  | **Refactored to ADR format** — Aligned with ADR-017, ADR-018, and Project Specs |
 | 1.8.3   | 2026-04-04 | System Architect | **Renamed** — Changed from "Smart Legacy Document Digitization" to "AI Document Classification" for clarity and simplicity |
 | 1.8.4   | 2026-04-04 | System Architect | **Enhanced** — Added Impact Analysis template, ADR Review Cycle process, Gap Linking to requirements, and Version Dependency tracking |
+| 1.8.5   | 2026-05-14 | System Architect | **Superseded** — Consolidated into master AI architecture [ADR-023](./ADR-023-unified-ai-architecture.md) |
 
 ---
 
 **Last Updated:** 2026-04-04
-**Status:** Accepted
+**Status:** Superseded by ADR-023
 **Next Review:** 2026-06-01 (Quarterly review)
 **Next 6-Month Review:** 2026-10-04 (regular review cycle)

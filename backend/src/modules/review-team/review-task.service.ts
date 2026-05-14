@@ -1,4 +1,6 @@
 // File: src/modules/review-team/review-task.service.ts
+// Change Log:
+// - 2026-05-13: Record audit trail when a review task response code is completed or changed.
 import {
   Injectable,
   Logger,
@@ -10,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReviewTask } from './entities/review-task.entity';
 import { ResponseCode } from '../response-code/entities/response-code.entity';
+import { ResponseCodeAuditService } from '../response-code/services/audit.service';
 import {
   CompleteReviewTaskDto,
   SearchReviewTaskDto,
@@ -25,7 +28,8 @@ export class ReviewTaskService {
     @InjectRepository(ReviewTask)
     private readonly reviewTaskRepo: Repository<ReviewTask>,
     @InjectRepository(ResponseCode)
-    private readonly responseCodeRepo: Repository<ResponseCode>
+    private readonly responseCodeRepo: Repository<ResponseCode>,
+    private readonly responseCodeAuditService: ResponseCodeAuditService
   ) {}
 
   /**
@@ -92,6 +96,48 @@ export class ReviewTaskService {
   }
 
   /**
+   * ดึง Review Task พร้อม context ทั้งหมด (RFA, Project, Type)
+   */
+  async findFullTaskContext(publicId: string): Promise<ReviewTask> {
+    const task = await this.reviewTaskRepo
+      .createQueryBuilder('task')
+      .leftJoinAndSelect('task.responseCode', 'responseCode')
+      .leftJoinAndSelect('task.team', 'team')
+      .innerJoinAndMapOne(
+        'task.rfaRevision',
+        'rfa_revisions',
+        'rfaRev',
+        'rfaRev.id = task.rfa_revision_id'
+      )
+      .innerJoinAndMapOne(
+        'rfaRev.correspondenceRevision',
+        'correspondence_revisions',
+        'corrRev',
+        'corrRev.id = rfaRev.id'
+      )
+      .innerJoinAndMapOne(
+        'corrRev.correspondence',
+        'correspondences',
+        'corr',
+        'corr.id = corrRev.correspondence_id'
+      )
+      .leftJoinAndMapOne(
+        'corr.type',
+        'correspondence_types',
+        'corrType',
+        'corrType.id = corr.correspondence_type_id'
+      )
+      .where('task.uuid = :publicId', { publicId })
+      .getOne();
+
+    if (!task) {
+      throw new NotFoundException(`Review Task not found: ${publicId}`);
+    }
+
+    return task;
+  }
+
+  /**
    * ดึง Tasks รวมทั้งหมดของ RFA Revision พร้อม Aggregate Status (FR-004)
    */
   async getAggregateStatus(rfaRevisionId: number): Promise<{
@@ -143,6 +189,7 @@ export class ReviewTaskService {
     dto: CompleteReviewTaskDto
   ): Promise<ReviewTask> {
     const task = await this.findByPublicId(publicId);
+    const previousResponseCodeId = task.responseCodeId;
 
     if (
       task.status === ReviewTaskStatus.COMPLETED ||
@@ -180,7 +227,15 @@ export class ReviewTaskService {
 
     try {
       // TypeORM จะ throw OptimisticLockVersionMismatchError ถ้า version ไม่ตรง (ADR-002)
-      return await this.reviewTaskRepo.save(task);
+      const savedTask = await this.reviewTaskRepo.save(task);
+      await this.responseCodeAuditService.logReviewTaskResponseCodeChange({
+        reviewTaskPublicId: savedTask.publicId,
+        responseCodePublicId: dto.responseCodePublicId,
+        previousResponseCodeId,
+        currentResponseCodeId: responseCode.id,
+        comments: dto.comments,
+      });
+      return savedTask;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       if (

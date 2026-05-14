@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: LCBP3-DMS AI API
+  version: 1.0.0
+paths:
+  /api/ai/legacy-migration/ingest:
+    post:
+      summary: Upload legacy documents to the AI Pipeline
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '202':
+          description: Accepted and queued for processing
+          
+  /api/ai/legacy-migration/queue:
+    get:
+      summary: List documents in the staging queue
+      responses:
+        '200':
+          description: Returns a list of migration review records
+          
+  /api/ai/legacy-migration/queue/{publicId}/approve:
+    post:
+      summary: Approve a document and import to DB
+      parameters:
+        - in: path
+          name: publicId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document successfully imported
+          
+  /api/ai/rag/query:
+    post:
+      summary: Submit a conversational query to the local LLM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectPublicId:
+                  type: string
+                  format: uuid
+                query:
+                  type: string
+      responses:
+        '202':
+          description: Query queued via BullMQ, returns a Job ID
+          
+  /api/ai/audit-logs:
+    delete:
+      summary: Hard delete AI audit logs
+      responses:
+        '204':
+          description: Logs deleted successfully (Requires SYSTEM_ADMIN)

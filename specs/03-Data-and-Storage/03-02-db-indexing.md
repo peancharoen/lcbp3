@@ -1,8 +1,8 @@
 # Database Indexing & Performance Strategy
 
-**Version:** 1.0.0
+**Version:** 1.1.0 (v1.9.0 Core Schema)
 **Context:** Production-scale (100k+ documents, High Concurrency)
-**Database:** MySQL 8.x (On-Premise via Docker)
+**Database:** MariaDB 11.x (Native UUID Support)
 
 ## 1. Core Principles (หลักการสำคัญ)
 
@@ -64,13 +64,45 @@ ADD INDEX `idx_doc_status_is_current` (`is_current`, `status`, `project_id`);
 ALTER TABLE `documents`
 ADD INDEX `idx_project_updated` (`project_id`, `updated_at` DESC);
 
--- สำหรับ Inbox / Pending Tasks ของ User
+-- สำหรับ Inbox / Pending Tasks ของ User (General Workflow)
 ALTER TABLE `workflow_instances`
 ADD INDEX `idx_assignee_status` (`assignee_id`, `status`, `created_at` DESC);
 
+-- สำหรับ Optimistic Locking (ADR-001 v1.1)
+ALTER TABLE `workflow_instances`
+ADD INDEX `idx_wf_inst_version` (`id`, `version_no`);
+
 ```
 
-### 3.2 Full-Text Search (ทางเลือกเบื้องต้นก่อนใช้ Elasticsearch)
+### 3.2 RFA Parallel Review & Delegation (v1.9.0)
+
+ในระบบ RFA ใหม่ มีการใช้ Parallel Review และการมอบหมายงาน (Delegation) ซึ่งต้องการ Index เฉพาะทาง:
+
+```sql
+-- สำหรับดึงงานที่รอตรวจแยกตาม Discipline และสถานะ
+ALTER TABLE `review_tasks`
+ADD INDEX `idx_review_tasks_lookup` (`assigned_to_user_id`, `status`, `discipline_id`);
+
+-- สำหรับการตรวจสอบสิทธิ์การตรวจรายคน (Priority Order)
+ALTER TABLE `review_team_members`
+ADD INDEX `idx_rtm_lookup` (`team_id`, `user_id`, `is_active`);
+
+-- สำหรับเช็คการมอบหมายงานที่ยังมีผลอยู่ (Managed by BullMQ)
+ALTER TABLE `delegations`
+ADD INDEX `idx_delegations_active_lookup` (`delegator_user_id`, `is_active`, `start_date`, `end_date`);
+```
+
+### 3.3 Polymorphic Distribution Matrix
+
+เนื่องจาก `distribution_recipients` เก็บ `recipient_public_id` แบบ UUID (ADR-019) และไม่มี Hard FK:
+
+```sql
+-- สำหรับ Lookup ผู้รับเอกสารตามประเภท
+ALTER TABLE `distribution_recipients`
+ADD INDEX `idx_dr_type_recipient` (`recipient_type`, `recipient_public_id`);
+```
+
+### 3.4 Full-Text Search (ทางเลือกเบื้องต้นก่อนใช้ Elasticsearch)
 
 หากผู้ใช้ต้องการค้นหาจากชื่อเอกสาร (`title`) หรือเนื้อหาบางส่วน
 

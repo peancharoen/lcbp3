@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { rfaService } from '@/lib/services/rfa.service';
+import { rfaService, SubmitRfaDto } from '@/lib/services/rfa.service';
 import { SearchRfaDto, CreateRfaDto, UpdateRfaDto } from '@/types/dto/rfa/rfa.dto';
 import { WorkflowActionDto } from '@/lib/services/rfa.service';
 import { toast } from 'sonner';
@@ -41,8 +41,8 @@ export function useSubmitRFA() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ uuid, templateId }: { uuid: string; templateId: number }) =>
-      rfaService.submit(uuid, templateId),
+    mutationFn: ({ uuid, data }: { uuid: string; data: SubmitRfaDto }) =>
+      rfaService.submit(uuid, data),
     onSuccess: (_, { uuid }) => {
       toast.success('RFA submitted successfully');
       queryClient.invalidateQueries({ queryKey: rfaKeys.detail(uuid) });
