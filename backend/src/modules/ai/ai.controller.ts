@@ -1,17 +1,26 @@
 // File: src/modules/ai/ai.controller.ts
-// Controller สำหรับ AI Gateway Endpoints (ADR-018, ADR-020)
+// Change Log
+// - 2026-05-14: เพิ่ม Legacy Migration staging endpoints ตาม ADR-023.
+// - 2026-05-14: ย้าย DeleteAuditLogsQueryDto ไป dto/ folder; ลบ authHeader passthrough (🟢 LOW-1/LOW-2).
+// Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
   Controller,
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
   Headers,
+  HttpCode,
+  HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
@@ -22,27 +31,50 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { AiService, ExtractionResult, PaginatedResult } from './ai.service';
+import {
+  AiIngestService,
+  MigrationReviewResponse,
+  PaginatedMigrationReviewResponse,
+} from './ai-ingest.service';
+import { AiRagService } from './ai-rag.service';
+import { AiQueueService } from './ai-queue.service';
+import { AiRagQueryDto } from './dto/ai-rag-query.dto';
 import { ExtractDocumentDto } from './dto/extract-document.dto';
 import { AiCallbackDto } from './dto/ai-callback.dto';
 import { MigrationUpdateDto } from './dto/migration-update.dto';
 import { MigrationQueryDto } from './dto/migration-query.dto';
+import {
+  ApproveLegacyMigrationDto,
+  LegacyMigrationIngestDto,
+  LegacyMigrationQueueQueryDto,
+} from './dto/legacy-migration.dto';
 import { MigrationLog } from './entities/migration-log.entity';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../common/guards/rbac.guard';
+import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { User } from '../user/entities/user.entity';
+import { ServiceAccountGuard } from './guards/service-account.guard';
+import { v7 as uuidv7 } from 'uuid';
+import { DeleteAuditLogsQueryDto } from './dto/delete-audit-logs.dto';
 
 @ApiTags('AI Gateway')
 @Controller('ai')
 export class AiController {
-  constructor(private readonly aiService: AiService) {}
+  constructor(
+    private readonly aiService: AiService,
+    private readonly aiIngestService: AiIngestService,
+    private readonly aiRagService: AiRagService,
+    private readonly aiQueueService: AiQueueService
+  ) {}
 
   // --- Real-time Extraction (User Upload) ---
 
   @Post('extract')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
   @ApiBearerAuth()
+  @RequirePermission('ai.extract')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // Rate limit: 5 requests/minute (ADR-020)
   @ApiOperation({
     summary:
@@ -60,6 +92,7 @@ export class AiController {
   // --- Webhook Callback จาก n8n (Service Account) ---
 
   @Post('callback')
+  @UseGuards(ServiceAccountGuard) // T029: กำหนด guard ที่ controller layer (ADR-016)
   @ApiOperation({
     summary: 'AI Callback Endpoint — รับผลลัพธ์จาก n8n หลัง AI ประมวลผลเสร็จ',
     description:
@@ -67,7 +100,8 @@ export class AiController {
   })
   @ApiHeader({
     name: 'Authorization',
-    description: 'Bearer {AI_N8N_AUTH_TOKEN} — Service Account Token จาก n8n',
+    description:
+      'Bearer {AI_N8N_SERVICE_TOKEN} — Service Account Token จาก n8n',
     required: true,
   })
   @ApiHeader({
@@ -77,14 +111,9 @@ export class AiController {
   })
   async handleCallback(
     @Body() dto: AiCallbackDto,
-    @Headers('authorization') authHeader: string,
     @Headers('x-ai-source') aiSource: string
   ): Promise<{ message: string }> {
-    await this.aiService.handleWebhookCallback(
-      dto,
-      aiSource ?? 'unknown',
-      authHeader
-    );
+    await this.aiService.handleWebhookCallback(dto, aiSource ?? 'unknown');
     return { message: 'Callback processed successfully' };
   }
 
@@ -149,5 +178,170 @@ export class AiController {
     @CurrentUser() user: User
   ): Promise<MigrationLog> {
     return this.aiService.updateMigrationLog(publicId, dto, user.user_id);
+  }
+
+  // ─── AI Audit Log Endpoints (Phase 5 — T026) ──────────────────────────────
+
+  @Delete('audit-logs')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'AI Audit Log Hard Delete — ลบ log ถาวร (SYSTEM_ADMIN เท่านั้น) (T026)',
+    description:
+      'ต้องระบุ documentPublicId หรือ olderThanDays อย่างน้อยหนึ่งอย่าง',
+  })
+  async deleteAuditLogs(
+    @Query() query: DeleteAuditLogsQueryDto
+  ): Promise<{ deleted: number }> {
+    return this.aiService.deleteAuditLogs({
+      documentPublicId: query.documentPublicId,
+      olderThanDays: query.olderThanDays,
+    });
+  }
+
+  // ─── RAG Query Endpoints (Phase 4 — FR-009, FR-010, FR-011) ────────────────
+
+  @Post('rag/query')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // Rate limit: 5 requests/minute per user (FR-010)
+  @RequirePermission('rag.query')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    summary:
+      'RAG Query — ส่ง query เข้า BullMQ เพื่อประมวลผลแบบ async (FR-009, FR-010)',
+    description:
+      'ส่งคำถาม RAG เข้าคิว BullMQ (concurrency=1 บน Desk-5439) แล้วคืน requestPublicId สำหรับ polling',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key สำหรับ request',
+    required: true,
+  })
+  async submitRagQuery(
+    @Body() dto: AiRagQueryDto,
+    @CurrentUser() user: User,
+    @Headers('idempotency-key') _idempotencyKey: string
+  ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
+    // ตรวจสอบว่า user มี active job อยู่แล้วหรือไม่ (FR-009: 1 active job per user)
+    const activeJob = await this.aiRagService.getActiveJob(
+      String(user.publicId ?? user.user_id)
+    );
+    if (activeJob) {
+      return { requestPublicId: activeJob, jobId: '', status: 'queued' };
+    }
+
+    // สร้าง requestPublicId ใหม่ (ADR-019: UUID)
+    const requestPublicId = uuidv7();
+    const userPublicId = String(user.publicId ?? user.user_id);
+
+    // ลงทะเบียน job ใน Redis ก่อนส่งเข้า BullMQ
+    await this.aiRagService.registerActiveJob(userPublicId, requestPublicId);
+
+    // ส่ง job เข้า BullMQ ตาม ADR-008
+    const jobId = await this.aiQueueService.enqueueRagQuery({
+      requestPublicId,
+      userPublicId,
+      projectPublicId: dto.projectPublicId,
+      query: dto.question,
+    });
+
+    return { requestPublicId, jobId, status: 'queued' };
+  }
+
+  @Get('rag/jobs/:requestPublicId')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('rag.query')
+  @ApiOperation({
+    summary: 'RAG Job Status — ดูสถานะและผลลัพธ์ของ RAG query (polling)',
+  })
+  @ApiParam({
+    name: 'requestPublicId',
+    description: 'requestPublicId จาก submit endpoint',
+  })
+  async getRagJobStatus(
+    @Param('requestPublicId', ParseUuidPipe) requestPublicId: string
+  ) {
+    const result = await this.aiRagService.getJobResult(requestPublicId);
+    if (!result) {
+      return { requestPublicId, status: 'not_found' };
+    }
+    return result;
+  }
+
+  @Delete('rag/jobs/:requestPublicId')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('rag.query')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'RAG Job Cancel — ยกเลิก RAG job ที่กำลังประมวลผล (T022, FR-011)',
+  })
+  @ApiParam({
+    name: 'requestPublicId',
+    description: 'requestPublicId ของ job ที่ต้องการยกเลิก',
+  })
+  async cancelRagJob(
+    @Param('requestPublicId', ParseUuidPipe) requestPublicId: string
+  ): Promise<void> {
+    await this.aiRagService.cancelJob(requestPublicId);
+  }
+
+  @Post('legacy-migration/ingest')
+  @UseGuards(ServiceAccountGuard)
+  @UseInterceptors(FilesInterceptor('files', 25))
+  @ApiOperation({
+    summary: 'Legacy Migration: ingest PDF batch into AI staging queue',
+  })
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Bearer {AI_N8N_SERVICE_TOKEN}',
+    required: true,
+  })
+  async ingestLegacyMigration(
+    @Body() dto: LegacyMigrationIngestDto,
+    @UploadedFiles() files: Express.Multer.File[] = []
+  ) {
+    return this.aiIngestService.ingest(dto, files);
+  }
+
+  @Get('legacy-migration/queue')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('ai.migration_manage')
+  @ApiOperation({ summary: 'Legacy Migration: list AI staging queue records' })
+  async getLegacyMigrationQueue(
+    @Query() query: LegacyMigrationQueueQueryDto
+  ): Promise<PaginatedMigrationReviewResponse> {
+    return this.aiIngestService.listQueue(query);
+  }
+
+  @Post('legacy-migration/queue/:publicId/approve')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('ai.migration_manage')
+  @ApiOperation({ summary: 'Legacy Migration: approve AI staging record' })
+  @ApiParam({ name: 'publicId', description: 'Migration review publicId' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key for this approval/import operation',
+    required: true,
+  })
+  async approveLegacyMigrationRecord(
+    @Param('publicId', ParseUuidPipe) publicId: string,
+    @Body() dto: ApproveLegacyMigrationDto,
+    @Headers('idempotency-key') idempotencyKey: string,
+    @CurrentUser() user: User
+  ): Promise<{ record: MigrationReviewResponse; importResult: unknown }> {
+    return this.aiIngestService.approve(
+      publicId,
+      dto,
+      idempotencyKey,
+      user.user_id
+    );
   }
 }

@@ -6,6 +6,17 @@
 - `frontend/`: Next.js dashboard application with route groups under `app`, shared components under `components`, and feature hooks under `hooks`.
 - `specs/`: Core specifications plus categorized feature work. The active RFA approval refactor lives in `specs/200-fullstacks/204-rfa-approval-refactor`.
 
+## Unified AI Architecture
+
+- `backend/src/modules/ai`: ADR-023 gateway module for AI boundaries. It now owns AI queue registration, n8n service-account validation, the AI-scoped Qdrant gateway, and `MigrationReviewRecord` mapping for `migration_review_queue`.
+- `backend/src/modules/ai/ai-ingest.service.ts`: publicId-based legacy migration staging service. It accepts n8n/API batches, stores files through `FileStorageService`, creates `migration_review_queue` records, and delegates final import to `MigrationService` after human review.
+- `backend/src/modules/ai/workflows/folder-watcher.json`: n8n workflow template for watched-folder ingestion into `/api/ai/legacy-migration/ingest`.
+- AI BullMQ queues are centralized in `backend/src/modules/common/constants/queue.constants.ts`: `ai-ingest`, `ai-rag-query`, and `ai-vector-deletion`.
+- `frontend/app/(dashboard)/ai-staging`: dashboard route for reviewing AI staging records with constrained project/category/organization dropdowns before approval.
+- `frontend/lib/api/ai.ts` and `frontend/components/ai/AiStatusBanner.tsx`: frontend ADR-023 hooks and graceful-degradation banner for AI staging.
+- Schema changes for the AI staging queue and AI development feedback log are tracked as SQL delta `specs/03-Data-and-Storage/deltas/12-unified-ai-architecture.sql` per ADR-009.
+- Existing RAG ingestion code still lives under `backend/src/modules/rag`; US2 will migrate query orchestration to the ADR-023 AI queue path without replacing the existing ingestion processors in this foundation slice.
+
 ## RFA Approval Refactor
 
 - `review-team`: review team CRUD, member assignment, review task creation, aggregate status, consensus, and veto override.

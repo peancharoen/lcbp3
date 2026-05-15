@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule } from '@nestjs/config';
 
 import { DocumentChunk } from './entities/document-chunk.entity';
+import { QUEUE_AI_VECTOR_DELETION } from '../common/constants/queue.constants';
 import { EmbeddingService } from './embedding.service';
 import { QdrantService } from './qdrant.service';
 import { TyphoonService } from './typhoon.service';
@@ -30,7 +31,9 @@ const DLQ_DEFAULTS = {
     BullModule.registerQueue(
       { name: 'rag-ocr', defaultJobOptions: DLQ_DEFAULTS },
       { name: 'rag-thai-preprocess', defaultJobOptions: DLQ_DEFAULTS },
-      { name: 'rag-embedding', defaultJobOptions: DLQ_DEFAULTS }
+      { name: 'rag-embedding', defaultJobOptions: DLQ_DEFAULTS },
+      // T028: Producer สำหรับ dispatch vector deletion jobs (ADR-023 FR-008)
+      { name: QUEUE_AI_VECTOR_DELETION }
     ),
   ],
   controllers: [RagController],

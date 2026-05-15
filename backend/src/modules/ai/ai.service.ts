@@ -87,7 +87,9 @@ export class AiService {
     this.n8nWebhookUrl =
       this.configService.get<string>('AI_N8N_WEBHOOK_URL') ?? '';
     this.n8nAuthToken =
-      this.configService.get<string>('AI_N8N_AUTH_TOKEN') ?? '';
+      this.configService.get<string>('AI_N8N_SERVICE_TOKEN') ??
+      this.configService.get<string>('AI_N8N_AUTH_TOKEN') ??
+      '';
     this.timeoutMs = this.configService.get<number>('AI_TIMEOUT_MS') ?? 30000;
     this.callbackBaseUrl =
       this.configService.get<string>('APP_BASE_URL') ?? 'http://localhost:3001';
@@ -219,22 +221,10 @@ export class AiService {
 
   async handleWebhookCallback(
     payload: AiCallbackDto,
-    aiSource: string,
-    authHeader: string
+    aiSource: string
   ): Promise<void> {
-    // 1. ตรวจสอบ Service Account Authentication (ADR-018 Rule 2)
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new ValidationException(
-        'Missing or invalid Authorization header for AI callback'
-      );
-    }
-
-    const token = authHeader.substring(7);
-    if (token !== this.n8nAuthToken) {
-      throw new ValidationException('Invalid AI service account token');
-    }
-
-    // 2. ค้นหา MigrationLog ด้วย publicId (ADR-019: ใช้ UUID เท่านั้น)
+    // ServiceAccountGuard ผ่านการ validate Bearer token แล้วที่ controller layer (🟢 LOW-1)
+    // 1. ค้นหา MigrationLog ด้วย publicId (ADR-019: ใช้ UUID เท่านั้น)
     const migrationLog = await this.migrationLogRepo.findOne({
       where: { publicId: payload.migrationLogPublicId },
     });
@@ -367,6 +357,54 @@ export class AiService {
     );
 
     return updated;
+  }
+
+  // T026: Hard-delete AuditLogs (SYSTEM_ADMIN only — ADR-023)
+
+  /**
+   * ลบ AiAuditLog แบบ hard delete ตามเกณฑ์ที่กำหนด
+   * @returns จำนวน record ที่ถูกลบ
+   */
+  async deleteAuditLogs(criteria: {
+    documentPublicId?: string;
+    olderThanDays?: number;
+  }): Promise<{ deleted: number }> {
+    if (!criteria.documentPublicId && !criteria.olderThanDays) {
+      throw new ValidationException(
+        'At least one deletion criterion (documentPublicId or olderThanDays) is required'
+      );
+    }
+
+    const qb = this.aiAuditLogRepo.createQueryBuilder('log');
+
+    if (criteria.documentPublicId) {
+      qb.andWhere('log.documentPublicId = :docId', {
+        docId: criteria.documentPublicId,
+      });
+    }
+
+    if (criteria.olderThanDays) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - criteria.olderThanDays);
+      qb.andWhere('log.createdAt < :cutoff', { cutoff });
+    }
+
+    const count = await qb.getCount();
+    if (count === 0) return { deleted: 0 };
+
+    // ใช้ delete().execute() เพื่อออก SQL เดียว แทน N individual DELETEs
+    const deleteQb = this.aiAuditLogRepo.createQueryBuilder('log').delete();
+    if (criteria.olderThanDays) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - criteria.olderThanDays);
+      deleteQb.andWhere('log.createdAt < :cutoff', { cutoff });
+    }
+    await deleteQb.execute();
+
+    this.logger.log(
+      `Deleted ${count} AI audit log(s) — criteria=${JSON.stringify(criteria)}`
+    );
+    return { deleted: count };
   }
 
   // --- Helper: บันทึก AuditLog ---

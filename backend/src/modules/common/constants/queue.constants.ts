@@ -16,3 +16,12 @@ export const QUEUE_DISTRIBUTION = 'distribution';
 
 /** Queue สำหรับ Veto Override Notifications (T068.5) */
 export const QUEUE_VETO_NOTIFICATIONS = 'veto-notifications';
+
+/** Queue สำหรับ Legacy Document Migration ผ่าน AI Pipeline (ADR-023) */
+export const QUEUE_AI_INGEST = 'ai-ingest';
+
+/** Queue สำหรับ RAG Query ที่ต้องจำกัด concurrency บน Desk-5439 (ADR-023) */
+export const QUEUE_AI_RAG = 'ai-rag-query';
+
+/** Queue สำหรับลบ vector ใน Qdrant แบบ asynchronous (ADR-023 FR-008) */
+export const QUEUE_AI_VECTOR_DELETION = 'ai-vector-deletion';

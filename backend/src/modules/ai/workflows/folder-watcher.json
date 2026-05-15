@@ -1,0 +1,70 @@
+{
+  "name": "LCBP3 ADR-023 Folder Watcher",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "lcbp3-ai-folder-watcher",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "id": "folder-watcher-webhook",
+      "name": "Watched Folder Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.DMS_API_URL}}/api/ai/legacy-migration/ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AI_N8N_SERVICE_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "batchId",
+              "value": "={{$json.batchId}}"
+            },
+            {
+              "name": "source",
+              "value": "folder-watcher"
+            },
+            {
+              "name": "records",
+              "value": "={{JSON.stringify($json.records || [])}}"
+            }
+          ]
+        }
+      },
+      "id": "post-to-dms",
+      "name": "POST to DMS AI Ingest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 300]
+    }
+  ],
+  "connections": {
+    "Watched Folder Trigger": {
+      "main": [
+        [
+          {
+            "node": "POST to DMS AI Ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

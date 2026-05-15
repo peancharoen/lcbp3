@@ -6,6 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUE_AI_VECTOR_DELETION } from '../common/constants/queue.constants';
+import { AiVectorDeletionJobPayload } from '../ai/ai-queue.service';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { createHash } from 'crypto';
@@ -32,7 +36,9 @@ export class RagService {
     private readonly ingestionService: IngestionService,
     @InjectRepository(DocumentChunk)
     private readonly chunkRepo: Repository<DocumentChunk>,
-    @InjectRedis() private readonly redis: Redis
+    @InjectRedis() private readonly redis: Redis,
+    @InjectQueue(QUEUE_AI_VECTOR_DELETION)
+    private readonly vectorDeletionQueue: Queue<AiVectorDeletionJobPayload>
   ) {}
 
   async query(
@@ -184,19 +190,24 @@ export class RagService {
     await this.qdrant.onModuleInit();
   }
 
-  async deleteVectors(attachmentPublicId: string): Promise<void> {
+  async deleteVectors(
+    attachmentPublicId: string,
+    requestedByUserPublicId = 'system'
+  ): Promise<void> {
+    // ลบ DocumentChunk ออกจาก DB แบบ synchronous (รวดเร็ว ไม่มี external dependency)
     await this.chunkRepo.delete({ documentId: attachmentPublicId });
-    try {
-      await this.qdrant.deleteByDocumentId(attachmentPublicId);
-    } catch (err) {
-      this.logger.error(
-        `Qdrant delete failed for ${attachmentPublicId}`,
-        err instanceof Error ? err.stack : String(err)
-      );
-    }
-    await this.chunkRepo.manager.query(
-      `UPDATE attachments SET rag_status = 'PENDING', rag_last_error = NULL WHERE public_id = ?`,
-      [attachmentPublicId]
+    // T028: เปลี่ยน Qdrant deletion เป็น async ผ่าน BullMQ เพื่อ eventual consistency (FR-008)
+    await this.vectorDeletionQueue.add(
+      'delete-document-vectors',
+      { documentPublicId: attachmentPublicId, requestedByUserPublicId },
+      {
+        jobId: attachmentPublicId,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+      }
+    );
+    this.logger.log(
+      `Vector deletion queued for attachment=${attachmentPublicId}`
     );
   }
 

@@ -8,9 +8,9 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize `AiModule` inside `backend/src/ai/ai.module.ts`
-- [ ] T002 [P] Install `qdrant-js` client dependency in the backend workspace
-- [ ] T003 Add `AI_HOST_URL`, `AI_QDRANT_URL`, `AI_N8N_SERVICE_TOKEN` to backend `.env` configuration
+- [X] T001 Initialize `AiModule` inside `backend/src/ai/ai.module.ts`
+- [X] T002 [P] Install `qdrant-js` client dependency in the backend workspace
+- [X] T003 Add `AI_HOST_URL`, `AI_QDRANT_URL`, `AI_N8N_SERVICE_TOKEN` to backend `.env` configuration
 
 ---
 
@@ -19,11 +19,11 @@
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Setup `QdrantService` in `backend/src/ai/qdrant.service.ts` to manage vector DB connections
-- [ ] T005 [P] Setup BullMQ infrastructure in `AiModule` (configure `AiQueueService`)
-- [ ] T006 [P] Implement `ServiceAccountGuard` to validate n8n service tokens for internal API routes
-- [ ] T007 Implement SQL Schema Deltas for `migration_review_queue` and `ai_audit_logs` in MariaDB
-- [ ] T008 Implement TypeORM base entities mapping to the created SQL tables
+- [X] T004 Setup `QdrantService` in `backend/src/ai/qdrant.service.ts` to manage vector DB connections
+- [X] T005 [P] Setup BullMQ infrastructure in `AiModule` (configure `AiQueueService`)
+- [X] T006 [P] Implement `ServiceAccountGuard` to validate n8n service tokens for internal API routes
+- [X] T007 Implement SQL Schema Deltas for `migration_review_queue` and `ai_audit_logs` in MariaDB
+- [X] T008 Implement TypeORM base entities mapping to the created SQL tables
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -36,16 +36,16 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] Create `MigrationReviewRecord` TypeORM Entity in `backend/src/ai/entities/migration-review.entity.ts`
-- [ ] T010 [US1] Implement `AiIngestService` to handle batch ingestion and queue creation
-- [ ] T011 [US1] Implement `POST /api/ai/legacy-migration/ingest` in `AiController` using `ServiceAccountGuard`
-- [ ] T011b [P] [US1] Export n8n workflow definition to `backend/src/ai/workflows/folder-watcher.json` to monitor the network directory and POST to the ingest API (FR-001b)
-- [ ] T012 [US1] Implement `GET /api/ai/legacy-migration/queue` in `AiController`
-- [ ] T013 [US1] Implement `POST /api/ai/legacy-migration/queue/{publicId}/approve` with Zod/class-validator payload checking (FR-007)
-- [ ] T014 [P] [US1] Create Frontend API hooks for staging queue in `frontend/src/lib/api/ai.ts`
-- [ ] T015 [US1] Build Frontend Staging Queue Table UI in `frontend/src/app/(dashboard)/ai-staging/page.tsx`
-- [ ] T016 [US1] Implement UI Form dropdown constraints for master data fields in the approval modal (FR-012)
-- [ ] T017 [US1] Build `AiStatusBanner.tsx` component in `frontend/src/components/ai/AiStatusBanner.tsx` to handle offline graceful degradation
+- [X] T009 [P] [US1] Create `MigrationReviewRecord` TypeORM Entity in `backend/src/ai/entities/migration-review.entity.ts`
+- [X] T010 [US1] Implement `AiIngestService` to handle batch ingestion and queue creation
+- [X] T011 [US1] Implement `POST /api/ai/legacy-migration/ingest` in `AiController` using `ServiceAccountGuard`
+- [X] T011b [P] [US1] Export n8n workflow definition to `backend/src/ai/workflows/folder-watcher.json` to monitor the network directory and POST to the ingest API (FR-001b)
+- [X] T012 [US1] Implement `GET /api/ai/legacy-migration/queue` in `AiController`
+- [X] T013 [US1] Implement `POST /api/ai/legacy-migration/queue/{publicId}/approve` with Zod/class-validator payload checking (FR-007)
+- [X] T014 [P] [US1] Create Frontend API hooks for staging queue in `frontend/src/lib/api/ai.ts`
+- [X] T015 [US1] Build Frontend Staging Queue Table UI in `frontend/src/app/(dashboard)/ai-staging/page.tsx`
+- [X] T016 [US1] Implement UI Form dropdown constraints for master data fields in the approval modal (FR-012)
+- [X] T017 [US1] Build `AiStatusBanner.tsx` component in `frontend/src/components/ai/AiStatusBanner.tsx` to handle offline graceful degradation
 
 **Checkpoint**: At this point, User Story 1 should be fully functional.
 
@@ -58,12 +58,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T018 [P] [US2] Create BullMQ Processor `rag.processor.ts` with strict concurrency limit = 1 (FR-009)
-- [ ] T019 [US2] Implement `AiRagService` containing Ollama LLM integration logic
-- [ ] T020 [US2] Enforce `projectPublicId` filtering natively in Qdrant search payload inside `AiRagService`
-- [ ] T021 [US2] Implement `POST /api/ai/rag/query` to push jobs to BullMQ and apply rate limiting (5 per min) (FR-010)
-- [ ] T022 [US2] Add AbortController logic to backend processor to cancel LLM generation on client disconnect (FR-011)
-- [ ] T023 [P] [US2] Build `RagChatWidget.tsx` component with streaming/polling UI for queue wait status
+- [X] T018 [P] [US2] Create BullMQ Processor `rag.processor.ts` with strict concurrency limit = 1 (FR-009)
+- [X] T019 [US2] Implement `AiRagService` containing Ollama LLM integration logic
+- [X] T020 [US2] Enforce `projectPublicId` filtering natively in Qdrant search payload inside `AiRagService`
+- [X] T021 [US2] Implement `POST /api/ai/rag/query` to push jobs to BullMQ and apply rate limiting (5 per min) (FR-010)
+- [X] T022 [US2] Add AbortController logic to backend processor to cancel LLM generation on client disconnect (FR-011)
+- [X] T023 [P] [US2] Build `RagChatWidget.tsx` component with streaming/polling UI for queue wait status
 
 **Checkpoint**: RAG capability is fully implemented and throttled safely.
 
@@ -76,11 +76,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T024 [P] [US3] Create `AiAuditLog` TypeORM Entity in `backend/src/ai/entities/ai-audit-log.entity.ts`
-- [ ] T025 [US3] Inject Audit Log creation logic into the `/approve` endpoint (capture Human vs AI differences)
-- [ ] T026 [US3] Implement `DELETE /api/ai/audit-logs` endpoint with `@UseGuards(CaslAbilityGuard)` checking for `SYSTEM_ADMIN`
-- [ ] T027 [US3] Create BullMQ Processor `vector-deletion.processor.ts` to handle asynchronous vector cleanup (FR-008)
-- [ ] T028 [US3] Integrate `vector-deletion-queue` dispatch into the main Document Deletion service
+- [X] T024 [P] [US3] Create `AiAuditLog` TypeORM Entity in `backend/src/ai/entities/ai-audit-log.entity.ts`
+- [X] T025 [US3] Inject Audit Log creation logic into the `/approve` endpoint (capture Human vs AI differences)
+- [X] T026 [US3] Implement `DELETE /api/ai/audit-logs` endpoint with `@UseGuards(CaslAbilityGuard)` checking for `SYSTEM_ADMIN`
+- [X] T027 [US3] Create BullMQ Processor `vector-deletion.processor.ts` to handle asynchronous vector cleanup (FR-008)
+- [X] T028 [US3] Integrate `vector-deletion-queue` dispatch into the main Document Deletion service
 
 **Checkpoint**: AI Audit and safe vector cleanup are complete.
 
@@ -90,9 +90,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T029 Code cleanup and CASL RBAC matrix review for all AI endpoints
-- [ ] T030 E2E Validation of the BullMQ concurrency limit (stress test 10 concurrent requests)
-- [ ] T031 Finalize `README.md` and `quickstart.md` documentation for Desk-5439 setup
+- [X] T029 Code cleanup and CASL RBAC matrix review for all AI endpoints
+- [X] T030 E2E Validation of the BullMQ concurrency limit (stress test 10 concurrent requests)
+- [X] T031 Finalize `README.md` and `quickstart.md` documentation for Desk-5439 setup
 
 ---
 

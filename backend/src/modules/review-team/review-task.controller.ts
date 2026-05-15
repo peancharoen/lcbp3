@@ -56,39 +56,40 @@ export class ReviewTaskController {
 
     // Evaluate consensus after completion (FR-010)
     try {
-      const fullTask = (await this.reviewTaskService.findFullTaskContext(
-        publicId
-      )) as unknown as Record<string, unknown>;
+      const fullTask =
+        await this.reviewTaskService.findFullTaskContext(publicId);
 
-      const rfaRevision = fullTask.rfaRevision as
-        | Record<string, unknown>
-        | undefined;
+      // Cast to access dynamic properties from innerJoinAndMapOne safely without 'any'
+      const context = fullTask as unknown as {
+        rfaRevisionId: number;
+        rfaRevision?: {
+          correspondenceRevision?: {
+            publicId: string;
+            correspondence?: {
+              publicId: string;
+              projectId: number;
+              type?: {
+                id: number;
+                typeCode: string;
+              };
+            };
+          };
+        };
+      };
 
-      const corrRevision = rfaRevision?.correspondenceRevision as
-        | Record<string, unknown>
-        | undefined;
+      const rfaRevision = context.rfaRevision;
+      const corrRevision = rfaRevision?.correspondenceRevision;
+      const correspondence = corrRevision?.correspondence;
 
-      const correspondence = corrRevision?.correspondence as
-        | Record<string, unknown>
-        | undefined;
-
-      if (rfaRevision && correspondence) {
+      if (rfaRevision && corrRevision && correspondence) {
         await this.consensusService.evaluateAfterTaskComplete(
-          fullTask.rfaRevisionId,
+          context.rfaRevisionId,
           {
-            rfaPublicId: correspondence.publicId as string,
-
-            rfaRevisionPublicId: corrRevision.publicId as string,
-
-            projectId: correspondence.projectId as number,
-
-            documentTypeId: (
-              correspondence.type as Record<string, unknown> | undefined
-            )?.id as number | undefined,
-
-            documentTypeCode:
-              ((correspondence.type as Record<string, unknown> | undefined)
-                ?.typeCode as string | undefined) ?? 'RFA',
+            rfaPublicId: correspondence.publicId,
+            rfaRevisionPublicId: corrRevision.publicId,
+            projectId: correspondence.projectId,
+            documentTypeId: correspondence.type?.id,
+            documentTypeCode: correspondence.type?.typeCode ?? 'RFA',
           }
         );
       }

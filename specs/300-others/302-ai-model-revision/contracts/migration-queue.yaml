@@ -1,0 +1,206 @@
+openapi: "3.1.0"
+info:
+  title: Migration Queue API
+  version: "1.0.0"
+  description: Legacy Document Migration pipeline endpoints (ADR-023A)
+
+paths:
+  /api/ai/migration/queue:
+    post:
+      summary: Submit legacy document for AI processing (n8n → DMS API)
+      description: |
+        Called by n8n during Legacy Migration Phase.
+        Queues OCR + extract-metadata jobs (ai-batch).
+        Result stored in migration_review_queue (status=PENDING).
+        Requires Idempotency-Key header to prevent duplicates.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            example: "SD-001-2026:batch-001"
+          description: Format — <doc_number>:<batch_id>
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MigrationQueueRequest'
+      responses:
+        "202":
+          description: Job queued for AI processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrationQueuedResponse'
+        "409":
+          description: Duplicate — idempotency_key already exists
+
+    get:
+      summary: List migration_review_queue (Admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, IMPORTED, REJECTED]
+        - name: batchId
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated queue list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrationQueueListResponse'
+
+  /api/ai/migration/queue/{publicId}/approve:
+    post:
+      summary: Admin approves migration item → imports document
+      description: |
+        Imports document from temp path to DMS.
+        Automatically queues embed-document job after import.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Document imported, embed job queued
+        "400":
+          description: Item not in PENDING status
+        "404":
+          description: Queue item not found
+
+  /api/ai/migration/queue/{publicId}/reject:
+    post:
+      summary: Admin rejects migration item
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        "200":
+          description: Item rejected
+        "400":
+          description: Item not in PENDING status
+
+components:
+  schemas:
+    MigrationQueueRequest:
+      type: object
+      required: [batchId, filename, tempPath]
+      properties:
+        batchId:
+          type: string
+          description: n8n batch identifier
+        filename:
+          type: string
+        tempPath:
+          type: string
+          description: Absolute path in temp storage on server
+
+    MigrationQueuedResponse:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING]
+        jobId:
+          type: string
+          description: BullMQ job ID for tracking
+
+    MigrationQueueListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MigrationQueueItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    MigrationQueueItem:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+        originalFilename:
+          type: string
+        aiMetadata:
+          type: object
+          description: AI-extracted metadata suggestion
+        confidenceScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        ocrUsed:
+          type: boolean
+        status:
+          type: string
+          enum: [PENDING, IMPORTED, REJECTED]
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectionReason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,184 @@
+openapi: "3.1.0"
+info:
+  title: AI Jobs API
+  version: "1.0.0"
+  description: BullMQ-based AI job submission endpoints (ADR-023A)
+
+paths:
+  /api/ai/suggest:
+    post:
+      summary: Queue AI Suggestion job (ai-realtime)
+      description: |
+        Triggered internally after document commit.
+        Queues ai-suggest job to extract metadata from PDF (max 3 pages).
+        Returns jobId for polling.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiSuggestRequest'
+      responses:
+        "202":
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobQueuedResponse'
+        "400":
+          $ref: '#/components/responses/ValidationError'
+        "503":
+          description: AI Service unavailable (Desk-5439 offline) — document saved, AI skipped
+
+  /api/ai/jobs/{jobId}/status:
+    get:
+      summary: Poll job status
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatusResponse'
+
+  /api/ai/rag/query:
+    post:
+      summary: RAG Q&A query (ai-realtime)
+      description: |
+        Queues rag-query job. Results returned via polling or WebSocket event.
+        projectPublicId REQUIRED — enforces multi-tenant isolation.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RagQueryRequest'
+      responses:
+        "202":
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobQueuedResponse'
+
+  /api/ai/embed:
+    post:
+      summary: Queue embed-document job (ai-batch)
+      description: |
+        Triggered internally after document commit (parallel with ai-suggest).
+        Full-document chunked embedding — NOT limited to 3 pages.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbedDocumentRequest'
+      responses:
+        "202":
+          $ref: '#/components/schemas/JobQueuedResponse'
+
+components:
+  schemas:
+    AiSuggestRequest:
+      type: object
+      required: [documentPublicId, projectPublicId, idempotencyKey]
+      properties:
+        documentPublicId:
+          type: string
+          format: uuid
+          description: UUIDv7 of the committed document
+        projectPublicId:
+          type: string
+          format: uuid
+          description: UUIDv7 of the project — REQUIRED for multi-tenancy
+        idempotencyKey:
+          type: string
+          description: Prevents duplicate AI job on retry
+
+    RagQueryRequest:
+      type: object
+      required: [projectPublicId, question]
+      properties:
+        projectPublicId:
+          type: string
+          format: uuid
+          description: UUIDv7 — limits search to this project only
+        question:
+          type: string
+          maxLength: 500
+          description: Natural language question (Thai or English)
+        topK:
+          type: integer
+          default: 5
+          minimum: 1
+          maximum: 20
+
+    EmbedDocumentRequest:
+      type: object
+      required: [documentPublicId, projectPublicId, idempotencyKey]
+      properties:
+        documentPublicId:
+          type: string
+          format: uuid
+        projectPublicId:
+          type: string
+          format: uuid
+        idempotencyKey:
+          type: string
+
+    JobQueuedResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        queue:
+          type: string
+          enum: [ai-realtime, ai-batch]
+        estimatedWaitSecs:
+          type: integer
+
+    JobStatusResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [waiting, active, completed, failed]
+        result:
+          type: object
+          nullable: true
+          description: AI suggestion payload when completed
+
+  responses:
+    ValidationError:
+      description: Validation failed (class-validator)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              statusCode:
+                type: integer
+              message:
+                type: array
+                items:
+                  type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

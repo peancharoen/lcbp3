@@ -28,7 +28,7 @@
 - **ADR-016 Security:** JWT + CASL 4-Level RBAC; `@UseGuards(JwtAuthGuard, CaslAbilityGuard)` on every mutation controller; `ThrottlerGuard` on auth; bcrypt 12 rounds; `Idempotency-Key` required on POST/PUT/PATCH.
 - **ADR-002 Document Numbering:** Redis Redlock + TypeORM `@VersionColumn` (double-lock). Never use application-side counter alone.
 - **ADR-008 Notifications:** BullMQ queue — never inline email/notification in a request thread.
-- **ADR-018 AI Boundary:** Ollama on Admin Desktop only; AI → DMS API → DB (never direct DB/storage). Human-in-the-loop validation required.
+- **ADR-023/023A AI Boundary:** Ollama on Admin Desktop only; AI → DMS API → DB (never direct DB/storage). 2-model stack: `gemma4:e4b Q8_0` + `nomic-embed-text`. BullMQ `ai-realtime` / `ai-batch` queues. Human-in-the-loop validation required. (ADR-018 superseded by ADR-023)
 - **ADR-007 Error Handling:** Layered (Validation / Business / System); `BusinessException` hierarchy; user-friendly `userMessage` + `recoveryAction`; technical stack only in logs.
 - **TypeScript Strict:** Zero `any`, zero `console.log` (use NestJS `Logger`).
 - **i18n:** No hardcoded Thai/English strings in components — use i18n keys (see `05-08-i18n-guidelines.md`).
@@ -38,30 +38,30 @@
 
 ## 🏷️ Domain Glossary (reject generic terms)
 
-| ✅ Use | ❌ Don't Use |
-| --- | --- |
-| Correspondence | Letter, Communication, Document |
-| RFA | Approval Request, Submit for Approval |
-| Transmittal | Delivery Note, Cover Letter |
-| Circulation | Distribution, Routing |
-| Shop Drawing | Construction Drawing |
-| Contract Drawing | Design Drawing, Blueprint |
-| Workflow Engine | Approval Flow, Process Engine |
-| Document Numbering | Document ID, Auto Number |
+| ✅ Use             | ❌ Don't Use                          |
+| ------------------ | ------------------------------------- |
+| Correspondence     | Letter, Communication, Document       |
+| RFA                | Approval Request, Submit for Approval |
+| Transmittal        | Delivery Note, Cover Letter           |
+| Circulation        | Distribution, Routing                 |
+| Shop Drawing       | Construction Drawing                  |
+| Contract Drawing   | Design Drawing, Blueprint             |
+| Workflow Engine    | Approval Flow, Process Engine         |
+| Document Numbering | Document ID, Auto Number              |
 
 ---
 
 ## 📁 Key Files for Generating / Validating Artifacts
 
-| When you need... | Read |
-| --- | --- |
-| A new feature spec | `.agents/skills/speckit-specify/templates/spec-template.md` + `specs/01-Requirements/01-06-edge-cases-and-rules.md` |
-| A plan | `.agents/skills/speckit-plan/templates/plan-template.md` + relevant ADRs |
-| Task breakdown | `.agents/skills/speckit-tasks/templates/tasks-template.md` + existing patterns in `specs/08-Tasks/` |
-| Acceptance criteria / UAT | `specs/01-Requirements/01-05-acceptance-criteria.md` |
-| Schema / table definition | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` + `03-01-data-dictionary.md` |
-| RBAC / permissions | `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` + `01-02-01-rbac-matrix.md` |
-| Release / hotfix | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md` |
+| When you need...          | Read                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| A new feature spec        | `.agents/skills/speckit-specify/templates/spec-template.md` + `specs/01-Requirements/01-06-edge-cases-and-rules.md` |
+| A plan                    | `.agents/skills/speckit-plan/templates/plan-template.md` + relevant ADRs                                            |
+| Task breakdown            | `.agents/skills/speckit-tasks/templates/tasks-template.md` + existing patterns in `specs/08-Tasks/`                 |
+| Acceptance criteria / UAT | `specs/01-Requirements/01-05-acceptance-criteria.md`                                                                |
+| Schema / table definition | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql` + `03-01-data-dictionary.md`                          |
+| RBAC / permissions        | `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` + `01-02-01-rbac-matrix.md`                           |
+| Release / hotfix          | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`                                                    |
 
 ---
 
@@ -83,7 +83,7 @@
 - [ ] Business comments in Thai, code identifiers in English
 - [ ] Schema changes via SQL directly (not migration)
 - [ ] Test coverage meets targets (Backend 70%+, Business Logic 80%+)
-- [ ] Relevant ADRs referenced (007/008/009/016/018/019/020/021)
+- [ ] Relevant ADRs referenced (007/008/009/016/019/021/023/023A for AI work)
 - [ ] Domain glossary terms used correctly
 - [ ] Error handling: `Logger` + `HttpException` / `BusinessException`
 - [ ] i18n keys used (no hardcode text)

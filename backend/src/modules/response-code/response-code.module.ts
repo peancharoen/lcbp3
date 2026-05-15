@@ -35,6 +35,7 @@ import { NotificationModule } from '../notification/notification.module';
     NotificationTriggerService,
     MatrixManagementService,
     InheritanceService,
+    TypeOrmModule,
   ],
 })
 export class ResponseCodeModule {}

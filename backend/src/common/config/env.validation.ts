@@ -29,10 +29,16 @@ export const envValidationSchema = Joi.object({
   REDIS_PORT: Joi.number().default(6379),
   REDIS_PASSWORD: Joi.string().required(),
 
-  // 5. AI Gateway Configuration (ADR-018, ADR-020)
+  // 5. AI Gateway Configuration (ADR-023)
+  // URL หลักของเครื่อง AI Host (Desk-5439)
+  AI_HOST_URL: Joi.string().uri().optional(),
+  // URL ของ Qdrant บนเครื่อง AI Host
+  AI_QDRANT_URL: Joi.string().uri().optional(),
+  // Token สำหรับ n8n Service Account ตาม ADR-023
+  AI_N8N_SERVICE_TOKEN: Joi.string().optional(),
   // URL ของ n8n Webhook สำหรับส่งเอกสารไปประมวลผล
   AI_N8N_WEBHOOK_URL: Joi.string().uri().optional(),
-  // Token สำหรับ Service Account Authentication กับ n8n
+  // Legacy alias: ใช้ AI_N8N_SERVICE_TOKEN สำหรับงานใหม่
   AI_N8N_AUTH_TOKEN: Joi.string().optional(),
   // URL ของ Ollama บน Admin Desktop (Desk-5439)
   AI_OLLAMA_URL: Joi.string().uri().optional(),

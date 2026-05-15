@@ -114,19 +114,7 @@ describe('AiService', () => {
       processingTimeMs: 5000,
     };
 
-    const validAuthHeader = 'Bearer test-token';
-
-    it('ควรปฏิเสธ request เมื่อไม่มี Authorization header', async () => {
-      await expect(
-        service.handleWebhookCallback(validPayload, 'n8n', '')
-      ).rejects.toThrow();
-    });
-
-    it('ควรปฏิเสธ request เมื่อ Token ไม่ถูกต้อง', async () => {
-      await expect(
-        service.handleWebhookCallback(validPayload, 'n8n', 'Bearer wrong-token')
-      ).rejects.toThrow();
-    });
+    // หมายเหตุ: token validation ย้ายไป ServiceAccountGuard ที่ controller layer แล้ว (🟢 LOW-1)
 
     it('ควร throw NotFoundException เมื่อ MigrationLog ไม่พบ', async () => {
       mockMigrationLogRepo.findOne.mockResolvedValue(null);
@@ -138,7 +126,7 @@ describe('AiService', () => {
       });
 
       await expect(
-        service.handleWebhookCallback(validPayload, 'n8n', validAuthHeader)
+        service.handleWebhookCallback(validPayload, 'n8n')
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
@@ -159,7 +147,7 @@ describe('AiService', () => {
         reasons: [],
       });
 
-      await service.handleWebhookCallback(validPayload, 'n8n', validAuthHeader);
+      await service.handleWebhookCallback(validPayload, 'n8n');
 
       expect(mockMigrationLogRepo.save).toHaveBeenCalled();
       expect(mockAuditLogRepo.create).toHaveBeenCalled();
@@ -183,11 +171,7 @@ describe('AiService', () => {
         reasons: [],
       });
 
-      await service.handleWebhookCallback(
-        highConfidencePayload,
-        'n8n',
-        validAuthHeader
-      );
+      await service.handleWebhookCallback(highConfidencePayload, 'n8n');
 
       const calls = mockMigrationLogRepo.save.mock.calls as [MigrationLog][];
       const savedLog = calls[0][0];
@@ -215,11 +199,7 @@ describe('AiService', () => {
         reasons: ['AI processing failed'],
       });
 
-      await service.handleWebhookCallback(
-        failedPayload,
-        'n8n',
-        validAuthHeader
-      );
+      await service.handleWebhookCallback(failedPayload, 'n8n');
 
       const calls = mockMigrationLogRepo.save.mock.calls as [MigrationLog][];
       const savedLog = calls[0][0];

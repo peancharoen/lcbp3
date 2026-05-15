@@ -2,12 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+import { getQueueToken } from '@nestjs/bullmq';
 import { RagService } from '../rag.service';
 import { QdrantService } from '../qdrant.service';
 import { EmbeddingService } from '../embedding.service';
 import { TyphoonService } from '../typhoon.service';
 import { IngestionService } from '../ingestion.service';
 import { DocumentChunk } from '../entities/document-chunk.entity';
+import { QUEUE_AI_VECTOR_DELETION } from '../../common/constants/queue.constants';
 
 const DEFAULT_REDIS_TOKEN = 'default_IORedisModuleConnectionToken';
 
@@ -41,6 +43,10 @@ const mockRedis = {
   setex: jest.fn(),
 };
 
+const mockVectorDeletionQueue = {
+  add: jest.fn().mockResolvedValue({ id: 'mock-job-id' }),
+};
+
 describe('RagService', () => {
   let service: RagService;
 
@@ -54,6 +60,10 @@ describe('RagService', () => {
         { provide: IngestionService, useValue: mockIngestion },
         { provide: getRepositoryToken(DocumentChunk), useValue: mockChunkRepo },
         { provide: DEFAULT_REDIS_TOKEN, useValue: mockRedis },
+        {
+          provide: getQueueToken(QUEUE_AI_VECTOR_DELETION),
+          useValue: mockVectorDeletionQueue,
+        },
       ],
     }).compile();
 
