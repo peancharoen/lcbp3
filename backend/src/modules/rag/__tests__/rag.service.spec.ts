@@ -6,7 +6,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { RagService } from '../rag.service';
 import { QdrantService } from '../qdrant.service';
 import { EmbeddingService } from '../embedding.service';
-import { TyphoonService } from '../typhoon.service';
+import { LocalLlmService } from '../local-llm.service';
 import { IngestionService } from '../ingestion.service';
 import { DocumentChunk } from '../entities/document-chunk.entity';
 import { QUEUE_AI_VECTOR_DELETION } from '../../common/constants/queue.constants';
@@ -23,7 +23,7 @@ const mockEmbedding = {
   embed: jest.fn(),
 };
 
-const mockTyphoon = {
+const mockLocalLlm = {
   generate: jest.fn(),
   sanitizeInput: jest.fn((t: string) => t),
 };
@@ -56,7 +56,7 @@ describe('RagService', () => {
         RagService,
         { provide: QdrantService, useValue: mockQdrant },
         { provide: EmbeddingService, useValue: mockEmbedding },
-        { provide: TyphoonService, useValue: mockTyphoon },
+        { provide: LocalLlmService, useValue: mockLocalLlm },
         { provide: IngestionService, useValue: mockIngestion },
         { provide: getRepositoryToken(DocumentChunk), useValue: mockChunkRepo },
         { provide: DEFAULT_REDIS_TOKEN, useValue: mockRedis },
@@ -95,7 +95,7 @@ describe('RagService', () => {
           score: 0.92,
         },
       ]);
-      mockTyphoon.generate.mockResolvedValue({
+      mockLocalLlm.generate.mockResolvedValue({
         answer: 'คำตอบ',
         usedFallbackModel: false,
       });
@@ -129,20 +129,17 @@ describe('RagService', () => {
       mockQdrant.isReady.mockReturnValue(true);
       mockEmbedding.embed.mockResolvedValue(new Array(768).fill(0.1));
       mockQdrant.hybridSearch.mockResolvedValue([]);
-      mockTyphoon.generate.mockResolvedValue({
+      mockLocalLlm.generate.mockResolvedValue({
         answer: 'ลับมาก',
-        usedFallbackModel: true,
+        usedFallbackModel: false,
       });
 
       const result = await service.query(dto, adminPerms);
 
       expect(mockRedis.get).not.toHaveBeenCalled();
       expect(mockRedis.setex).not.toHaveBeenCalled();
-      expect(mockTyphoon.generate).toHaveBeenCalledWith(
-        expect.any(String),
-        true
-      );
-      expect(result.usedFallbackModel).toBe(true);
+      expect(mockLocalLlm.generate).toHaveBeenCalledWith(expect.any(String));
+      expect(result.usedFallbackModel).toBe(false);
     });
 
     it('collectionReady=false → throw ServiceUnavailableException RAG_NOT_READY', async () => {
@@ -158,7 +155,7 @@ describe('RagService', () => {
       mockRedis.get.mockResolvedValue(null);
       mockEmbedding.embed.mockResolvedValue(new Array(768).fill(0.1));
       mockQdrant.hybridSearch.mockResolvedValue([]);
-      mockTyphoon.generate.mockResolvedValue({
+      mockLocalLlm.generate.mockResolvedValue({
         answer: 'A',
         usedFallbackModel: false,
       });
@@ -181,7 +178,7 @@ describe('RagService', () => {
       mockRedis.get.mockResolvedValue(null);
       mockEmbedding.embed.mockResolvedValue(new Array(768).fill(0.1));
       mockQdrant.hybridSearch.mockResolvedValue([]);
-      mockTyphoon.generate.mockResolvedValue({
+      mockLocalLlm.generate.mockResolvedValue({
         anwer: 'ok',
         usedFallbackModel: false,
       });
@@ -199,9 +196,9 @@ describe('RagService', () => {
       mockRedis.get.mockResolvedValue(null);
       mockEmbedding.embed.mockResolvedValue(new Array(768).fill(0.1));
       mockQdrant.hybridSearch.mockResolvedValue([]);
-      mockTyphoon.generate.mockResolvedValue({
+      mockLocalLlm.generate.mockResolvedValue({
         answer: 'ok',
-        usedFallbackModel: true,
+        usedFallbackModel: false,
       });
 
       await service.query(dto, adminPerms);

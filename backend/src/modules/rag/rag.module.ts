@@ -7,7 +7,7 @@ import { DocumentChunk } from './entities/document-chunk.entity';
 import { QUEUE_AI_VECTOR_DELETION } from '../common/constants/queue.constants';
 import { EmbeddingService } from './embedding.service';
 import { QdrantService } from './qdrant.service';
-import { TyphoonService } from './typhoon.service';
+import { LocalLlmService } from './local-llm.service';
 import { RagService } from './rag.service';
 import { RagController } from './rag.controller';
 import { IngestionService } from './ingestion.service';
@@ -40,7 +40,7 @@ const DLQ_DEFAULTS = {
   providers: [
     EmbeddingService,
     QdrantService,
-    TyphoonService,
+    LocalLlmService,
     RagService,
     IngestionService,
     OcrProcessor,
@@ -50,7 +50,7 @@ const DLQ_DEFAULTS = {
   exports: [
     EmbeddingService,
     QdrantService,
-    TyphoonService,
+    LocalLlmService,
     RagService,
     IngestionService,
   ],

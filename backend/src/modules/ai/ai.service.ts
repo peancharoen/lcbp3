@@ -1,11 +1,13 @@
 // File: src/modules/ai/ai.service.ts
 // Service หลักของ AI Gateway — เชื่อมต่อระหว่าง DMS กับ n8n/Ollama Pipeline (ADR-018, ADR-020)
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { InjectQueue } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Job, Queue } from 'bullmq';
 import { firstValueFrom, timeout, catchError } from 'rxjs';
 import { AxiosError } from 'axios';
 import {
@@ -25,6 +27,14 @@ import { ExtractDocumentDto } from './dto/extract-document.dto';
 import { MigrationUpdateDto } from './dto/migration-update.dto';
 import { MigrationQueryDto } from './dto/migration-query.dto';
 import { AiValidationService } from './ai-validation.service';
+import { CreateAiJobDto } from './dto/create-ai-job.dto';
+import {
+  QUEUE_AI_BATCH,
+  QUEUE_AI_REALTIME,
+} from '../common/constants/queue.constants';
+import { AiRealtimeJobData } from './processors/ai-realtime.processor';
+import { AiBatchJobData } from './processors/ai-batch.processor';
+import { AuditLog } from '../../common/entities/audit-log.entity';
 
 // ผลลัพธ์ของ Real-time Extraction
 export interface ExtractionResult {
@@ -43,6 +53,14 @@ export interface PaginatedResult<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+interface AnalyticsQueryResult {
+  documentType: string | null;
+  avgConfidence: string | number;
+  total: string | number;
+  overrides: string | number;
+  rejections: string | number;
 }
 
 // Context สำหรับส่งไปยัง n8n
@@ -65,6 +83,20 @@ interface N8nWebhookResponse {
   errorMessage?: string;
 }
 
+export interface AiQueueResult {
+  success: boolean;
+  jobId?: string;
+  error?: Error;
+}
+
+export interface AiJobStatusResult {
+  jobId: string;
+  queue: 'ai-realtime' | 'ai-batch';
+  status: string;
+  result?: unknown;
+  failedReason?: string;
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -82,7 +114,15 @@ export class AiService {
     @InjectRepository(MigrationLog)
     private readonly migrationLogRepo: Repository<MigrationLog>,
     @InjectRepository(AiAuditLog)
-    private readonly aiAuditLogRepo: Repository<AiAuditLog>
+    private readonly aiAuditLogRepo: Repository<AiAuditLog>,
+    @InjectRepository(AuditLog)
+    private readonly auditLogRepo: Repository<AuditLog>,
+    @Optional()
+    @InjectQueue(QUEUE_AI_REALTIME)
+    private readonly aiRealtimeQueue?: Queue<AiRealtimeJobData>,
+    @Optional()
+    @InjectQueue(QUEUE_AI_BATCH)
+    private readonly aiBatchQueue?: Queue<AiBatchJobData>
   ) {
     this.n8nWebhookUrl =
       this.configService.get<string>('AI_N8N_WEBHOOK_URL') ?? '';
@@ -93,6 +133,87 @@ export class AiService {
     this.timeoutMs = this.configService.get<number>('AI_TIMEOUT_MS') ?? 30000;
     this.callbackBaseUrl =
       this.configService.get<string>('APP_BASE_URL') ?? 'http://localhost:3001';
+  }
+
+  // --- ADR-023A BullMQ Job Queueing ---
+
+  /** ส่งงาน AI Suggest เข้า ai-realtime queue แบบไม่ block request thread */
+  async queueSuggestJob(dto: CreateAiJobDto): Promise<AiQueueResult> {
+    if (!this.aiRealtimeQueue) {
+      const error = new Error('AI realtime queue is not registered');
+      this.logger.error('AI job queue failed', {
+        documentPublicId: dto.documentPublicId,
+        error,
+      });
+      return { success: false, error };
+    }
+
+    try {
+      const job = await this.aiRealtimeQueue.add(
+        'ai-suggest',
+        {
+          jobType: 'ai-suggest',
+          documentPublicId: dto.documentPublicId,
+          projectPublicId: dto.projectPublicId,
+          payload: dto.payload ?? {},
+          idempotencyKey: dto.idempotencyKey,
+        },
+        { jobId: dto.idempotencyKey }
+      );
+      return { success: true, jobId: String(job.id) };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      this.logger.error('AI job queue failed', {
+        documentPublicId: dto.documentPublicId,
+        error,
+      });
+      return { success: false, error };
+    }
+  }
+
+  /** ส่งงาน embedding เข้า ai-batch queue แบบ best-effort */
+  async queueEmbedJob(dto: CreateAiJobDto): Promise<AiQueueResult> {
+    if (!this.aiBatchQueue) {
+      const error = new Error('AI batch queue is not registered');
+      this.logger.error('AI job queue failed', {
+        documentPublicId: dto.documentPublicId,
+        error,
+      });
+      return { success: false, error };
+    }
+
+    try {
+      const job = await this.aiBatchQueue.add(
+        'embed-document',
+        {
+          jobType: 'embed-document',
+          documentPublicId: dto.documentPublicId,
+          projectPublicId: dto.projectPublicId,
+          payload: dto.payload ?? {},
+          idempotencyKey: dto.idempotencyKey,
+        },
+        { jobId: dto.idempotencyKey }
+      );
+      return { success: true, jobId: String(job.id) };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      this.logger.error('AI job queue failed', {
+        documentPublicId: dto.documentPublicId,
+        error,
+      });
+      return { success: false, error };
+    }
+  }
+
+  /** อ่านสถานะ job จาก ai-realtime หรือ ai-batch เพื่อให้ frontend polling ได้ */
+  async getAiJobStatus(jobId: string): Promise<AiJobStatusResult> {
+    const realtimeJob = await this.aiRealtimeQueue?.getJob(jobId);
+    if (realtimeJob) return this.toJobStatus(jobId, 'ai-realtime', realtimeJob);
+
+    const batchJob = await this.aiBatchQueue?.getJob(jobId);
+    if (batchJob) return this.toJobStatus(jobId, 'ai-batch', batchJob);
+
+    return { jobId, queue: 'ai-realtime', status: 'not_found' };
   }
 
   // --- Real-time Extraction (สำหรับ User Upload ใหม่) ---
@@ -437,5 +558,137 @@ export class AiService {
         auditError instanceof Error ? auditError.message : String(auditError);
       this.logger.error(`Failed to save AI audit log: ${errMsg}`);
     }
+  }
+
+  // --- Phase 6: AI Analytics Summary (T036) ---
+
+  /**
+   * สรุปสถิติ AI Audit Logs แยกตาม document type และ status
+   * @returns ข้อมูลสรุป avgConfidence, overrideRate, rejectedRate แยกตาม type
+   */
+  async getAnalyticsSummary(): Promise<{
+    byDocumentType: Array<{
+      documentType: string;
+      avgConfidence: number;
+      overrideRate: number;
+      rejectedRate: number;
+      total: number;
+    }>;
+    overall: {
+      avgConfidence: number;
+      overrideRate: number;
+      rejectedRate: number;
+      total: number;
+    };
+  }> {
+    // Query ai_audit_logs GROUP BY document type จาก ai_suggestion_json
+    const qb = this.aiAuditLogRepo.createQueryBuilder('log');
+
+    // ดึง document type จาก JSON field
+    const results = await qb
+      .select([
+        "JSON_UNQUOTE(JSON_EXTRACT(log.aiSuggestionJson, '$.documentType')) as documentType",
+        'AVG(log.confidenceScore) as avgConfidence',
+        'COUNT(*) as total',
+        'SUM(CASE WHEN log.humanOverrideJson IS NOT NULL THEN 1 ELSE 0 END) as overrides',
+        'SUM(CASE WHEN log.status = :rejectedStatus THEN 1 ELSE 0 END) as rejections',
+      ])
+      .where('log.aiSuggestionJson IS NOT NULL')
+      .andWhere('log.confidenceScore IS NOT NULL')
+      .setParameter('rejectedStatus', AiAuditStatus.FAILED)
+      .groupBy('documentType')
+      .getRawMany<AnalyticsQueryResult>();
+
+    const byDocumentType = results.map((row) => ({
+      documentType: row.documentType || 'UNKNOWN',
+      avgConfidence: Number(row.avgConfidence) || 0,
+      overrideRate:
+        Number(row.total) > 0
+          ? (Number(row.overrides) / Number(row.total)) * 100
+          : 0,
+      rejectedRate:
+        Number(row.total) > 0
+          ? (Number(row.rejections) / Number(row.total)) * 100
+          : 0,
+      total: Number(row.total),
+    }));
+
+    // คำนวณ overall stats จาก raw results เพื่อความแม่นยำ
+    const totalDocs = results.reduce((sum, row) => sum + Number(row.total), 0);
+    const totalOverrides = results.reduce(
+      (sum, row) => sum + Number(row.overrides),
+      0
+    );
+    const totalRejections = results.reduce(
+      (sum, row) => sum + Number(row.rejections),
+      0
+    );
+    const totalConfidence = results.reduce(
+      (sum, row) => sum + Number(row.avgConfidence) * Number(row.total),
+      0
+    );
+
+    return {
+      byDocumentType,
+      overall: {
+        avgConfidence: totalDocs > 0 ? totalConfidence / totalDocs : 0,
+        overrideRate: totalDocs > 0 ? (totalOverrides / totalDocs) * 100 : 0,
+        rejectedRate: totalDocs > 0 ? (totalRejections / totalDocs) * 100 : 0,
+        total: totalDocs,
+      },
+    };
+  }
+
+  // --- Phase 6: Single Audit Log Delete (T037) ---
+
+  /**
+   * ลบ AiAuditLog แบบ single record โดย publicId
+   * @param publicId UUID ของ audit log ที่ต้องการลบ
+   * @param userId ID ของผู้ทำการลบ (สำหรับ audit trail)
+   */
+  async deleteAuditLogByPublicId(
+    publicId: string,
+    userId: number
+  ): Promise<{ deleted: boolean; publicId: string }> {
+    const auditLog = await this.aiAuditLogRepo.findOne({
+      where: { publicId },
+    });
+
+    if (!auditLog) {
+      throw new NotFoundException('AiAuditLog', publicId);
+    }
+
+    await this.aiAuditLogRepo.remove(auditLog);
+
+    // บันทึกใน audit_logs table (T037 requirement)
+    const auditEntry = this.auditLogRepo.create({
+      userId,
+      action: 'AI_AUDIT_LOG_DELETED',
+      entityType: 'AiAuditLog',
+      entityId: publicId,
+      severity: 'INFO',
+      detailsJson: { deletedAuditLogPublicId: publicId },
+    });
+    await this.auditLogRepo.save(auditEntry);
+
+    this.logger.log(
+      `AI audit log deleted — publicId=${publicId}, deletedBy=${userId}`
+    );
+
+    return { deleted: true, publicId };
+  }
+
+  private async toJobStatus(
+    jobId: string,
+    queue: 'ai-realtime' | 'ai-batch',
+    job: Job<AiRealtimeJobData | AiBatchJobData>
+  ): Promise<AiJobStatusResult> {
+    return {
+      jobId,
+      queue,
+      status: await job.getState(),
+      result: job.returnvalue,
+      failedReason: job.failedReason,
+    };
   }
 }

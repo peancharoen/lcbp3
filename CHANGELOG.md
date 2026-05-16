@@ -1,5 +1,22 @@
 # Version History
 
+## 1.9.2 (2026-05-15)
+
+### feat(ai): AI Model Revision & Hybrid Staging (ADR-023A)
+
+#### Summary
+
+ยกระดับระบบ AI สู่มาตรฐาน ADR-023A โดยใช้ Dual-Queue BullMQ เพื่อแยกโหลดงานแบบ Real-time และ Batch, เพิ่มระบบ RAG Multi-tenancy (Project Isolation), และสร้าง Legacy Migration Pipeline พร้อมหน้า Staging Queue สำหรับ Human-in-the-loop review
+
+#### Changes
+
+- **Dual-Queue BullMQ**: ติดตั้ง `ai-realtime` (High Priority) และ `ai-batch` (Background) พร้อมระบบ Auto-Pause เพื่อป้องกันการแย่งทรัพยากร Local GPU (Ollama)
+- **RAG Multi-tenancy**: ปรับปรุง `QdrantService` ให้บังคับใช้ `projectPublicId` ในทุกการค้นหาและบันทึก เพื่อแยกข้อมูล RAG ระหว่างโครงการ 100%
+- **Legacy Migration Pipeline**: สร้าง API และ Service สำหรับรับข้อมูลจาก n8n เข้าสู่ Staging Queue เพื่อให้ Admin ตรวจสอบและยืนยัน Metadata ก่อนบันทึกจริง
+- **AI Monitoring Dashboard**: เพิ่มหน้าสถิติประสิทธิภาพ AI (Avg. Confidence, Override Rate) และระบบ recalibration คำแนะนำสำหรับค่า Threshold
+- **Security (CASL)**: ติดตั้ง RBAC สิทธิ์ใหม่ `ai.extract`, `ai.query`, `ai.migration_manage` และ `ai.delete_audit`
+- **i18n & UX**: ปรับปรุงหน้า AI Staging ให้รองรับ 2 ภาษา (TH/EN) พร้อม Confidence Badges และ Status Banner
+
 ## 1.9.1 (2026-05-14)
 
 ### docs(architecture): Unified AI Architecture Consolidation (ADR-023)

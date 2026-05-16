@@ -16,7 +16,7 @@ import { createHash } from 'crypto';
 
 import { QdrantService } from './qdrant.service';
 import { EmbeddingService } from './embedding.service';
-import { TyphoonService } from './typhoon.service';
+import { LocalLlmService } from './local-llm.service';
 import { IngestionService } from './ingestion.service';
 import { DocumentChunk } from './entities/document-chunk.entity';
 import { RagQueryDto } from './dto/rag-query.dto';
@@ -32,7 +32,7 @@ export class RagService {
   constructor(
     private readonly qdrant: QdrantService,
     private readonly embedding: EmbeddingService,
-    private readonly typhoon: TyphoonService,
+    private readonly localLlm: LocalLlmService,
     private readonly ingestionService: IngestionService,
     @InjectRepository(DocumentChunk)
     private readonly chunkRepo: Repository<DocumentChunk>,
@@ -84,13 +84,10 @@ export class RagService {
 
     const context = this.buildContext(reranked);
 
-    const safeQuestion = this.typhoon.sanitizeInput(question);
+    const safeQuestion = this.localLlm.sanitizeInput(question);
     const prompt = this.buildPrompt(safeQuestion, context);
 
-    const { answer, usedFallbackModel } = await this.typhoon.generate(
-      prompt,
-      isConfidential
-    );
+    const { answer, usedFallbackModel } = await this.localLlm.generate(prompt);
 
     const citations: RagCitation[] = reranked.map((r) => ({
       chunkId: r.chunkId,

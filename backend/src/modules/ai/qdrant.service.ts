@@ -66,11 +66,11 @@ export class AiQdrantService implements OnModuleInit {
     }
   }
 
-  /** ค้นหา vector โดยบังคับ projectPublicId เพื่อป้องกันข้อมูลข้ามโครงการ */
-  async searchByProject(
-    vector: number[],
+  /** ค้นหา vector โดยบังคับ projectPublicId เป็น parameter แรกตาม ADR-023A */
+  async search(
     projectPublicId: string,
-    limit: number
+    vector: number[],
+    topK = 5
   ): Promise<AiVectorSearchResult[]> {
     if (!projectPublicId) {
       throw new ServiceUnavailableException('AI_QDRANT_PROJECT_SCOPE_REQUIRED');
@@ -78,7 +78,7 @@ export class AiQdrantService implements OnModuleInit {
 
     const results = await this.client.search(AI_COLLECTION_NAME, {
       vector,
-      limit,
+      limit: topK,
       filter: {
         must: [{ key: 'project_public_id', match: { value: projectPublicId } }],
       },
@@ -92,6 +92,15 @@ export class AiQdrantService implements OnModuleInit {
     }));
   }
 
+  /** Compatibility wrapper สำหรับ code เดิมระหว่าง transition ไป contract ใหม่ */
+  async searchByProject(
+    vector: number[],
+    projectPublicId: string,
+    limit: number
+  ): Promise<AiVectorSearchResult[]> {
+    return this.search(projectPublicId, vector, limit);
+  }
+
   /** ลบ vector ของเอกสารด้วย publicId ผ่าน queue processor ในขั้นถัดไป */
   async deleteByDocumentPublicId(documentPublicId: string): Promise<void> {
     await this.client.delete(AI_COLLECTION_NAME, {
@@ -99,6 +108,34 @@ export class AiQdrantService implements OnModuleInit {
       filter: {
         must: [{ key: 'public_id', match: { value: documentPublicId } }],
       },
+    });
+  }
+
+  /** Upsert vectors ไป Qdrant พร้อม project isolation (T021) */
+  async upsert(
+    projectPublicId: string,
+    points: Array<{
+      id: string;
+      vector: number[];
+      payload: Record<string, unknown>;
+    }>
+  ): Promise<void> {
+    if (!projectPublicId) {
+      throw new ServiceUnavailableException('AI_QDRANT_PROJECT_SCOPE_REQUIRED');
+    }
+
+    // เพิ่ม project_public_id ใน payload ทุก point เพื่อ isolation
+    const pointsWithProject = points.map((point) => ({
+      ...point,
+      payload: {
+        ...point.payload,
+        project_public_id: projectPublicId,
+      },
+    }));
+
+    await this.client.upsert(AI_COLLECTION_NAME, {
+      wait: true,
+      points: pointsWithProject,
     });
   }
 }

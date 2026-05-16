@@ -118,4 +118,23 @@ export class AggregateStatusService {
 
     return ConsensusDecision.APPROVED_WITH_COMMENTS;
   }
+
+  /**
+   * คืนค่า Response Code ที่เข้มงวดที่สุดจาก Tasks ที่เสร็จแล้ว (T068 Improvement)
+   * Code Priority: 3 > 2 > 1B > 1A
+   */
+  async getMostRestrictiveResponseCode(rfaRevisionId: number): Promise<string> {
+    const tasks = await this.taskRepo.find({
+      where: { rfaRevisionId, status: ReviewTaskStatus.COMPLETED },
+      relations: ['responseCode'],
+    });
+
+    if (tasks.length === 0) return '1A';
+
+    const codes = tasks.map((t) => t.responseCode?.code ?? '').filter(Boolean);
+    if (codes.includes('3')) return '3';
+    if (codes.includes('2')) return '2';
+    if (codes.includes('1B')) return '1B';
+    return '1A';
+  }
 }

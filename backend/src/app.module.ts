@@ -17,27 +17,26 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { envValidationSchema } from './common/config/env.validation.js';
+import { envValidationSchema } from './common/config/env.validation';
 import redisConfig from './common/config/redis.config';
 import { winstonConfig } from './modules/monitoring/logger/winston.config';
 
 // Entities & Interceptors
-import { AuditLog } from './common/entities/audit-log.entity';
 import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { MaintenanceModeGuard } from './common/guards/maintenance-mode.guard';
 
 // Modules
 import { CommonModule } from './common/common.module';
-import { AuthModule } from './common/auth/auth.module.js';
+import { AuthModule } from './common/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { ProjectModule } from './modules/project/project.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { ContractModule } from './modules/contract/contract.module';
 import { MasterModule } from './modules/master/master.module'; // [NEW] ✅ เพิ่ม MasterModule
-import { FileStorageModule } from './common/file-storage/file-storage.module.js';
+import { FileStorageModule } from './common/file-storage/file-storage.module';
 import { DocumentNumberingModule } from './modules/document-numbering/document-numbering.module';
-import { JsonSchemaModule } from './modules/json-schema/json-schema.module.js';
+import { JsonSchemaModule } from './modules/json-schema/json-schema.module';
 import { WorkflowEngineModule } from './modules/workflow-engine/workflow-engine.module';
 import { CorrespondenceModule } from './modules/correspondence/correspondence.module';
 import { RfaModule } from './modules/rfa/rfa.module';
@@ -135,9 +134,6 @@ import { DistributionModule } from './modules/distribution/distribution.module';
         },
       }),
     }),
-
-    // Register AuditLog Entity (Global Scope)
-    TypeOrmModule.forFeature([AuditLog]),
 
     // 3. BullMQ (Redis) Setup
     BullModule.forRootAsync({

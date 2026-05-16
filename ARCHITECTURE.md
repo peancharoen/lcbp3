@@ -16,6 +16,9 @@
 - `frontend/lib/api/ai.ts` and `frontend/components/ai/AiStatusBanner.tsx`: frontend ADR-023 hooks and graceful-degradation banner for AI staging.
 - Schema changes for the AI staging queue and AI development feedback log are tracked as SQL delta `specs/03-Data-and-Storage/deltas/12-unified-ai-architecture.sql` per ADR-009.
 - Existing RAG ingestion code still lives under `backend/src/modules/rag`; US2 will migrate query orchestration to the ADR-023 AI queue path without replacing the existing ingestion processors in this foundation slice.
+- ADR-023A Phase 1 removed the cloud LLM client from `backend/src/modules/rag`; RAG generation now uses `LocalLlmService` with Ollama only, and SQL deltas `14-add-migration-review-queue.sql` plus `15-add-ai-processing-status.sql` track the AI model revision schema changes.
+- ADR-023A Phase 2 adds `ai-realtime` and `ai-batch` queue constants, processors, and module registration. `AiRealtimeProcessor` pauses `ai-batch` while interactive work is active, `AiModule.onModuleInit()` auto-resumes stale paused batch queues, and `OllamaService`/`OcrService` provide the local 2-model/OCR foundation for later user stories.
+- ADR-023A Phase 3 adds AI Suggest queueing through `/api/ai/suggest`, `/api/ai/jobs/:jobId/status`, `CreateAiJobDto`, and best-effort central commit hooks in `FileStorageService.commit()` when project-scoped metadata is available. `attachments.ai_processing_status` is the current schema-aligned progress field for queued AI work.
 
 ## RFA Approval Refactor
 

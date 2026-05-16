@@ -31,7 +31,7 @@
 | **ADR-002 Document Numbering** | ✅ PASS | Existing RFA numbering reused, no new numbering needed |
 | **ADR-008 BullMQ** | ✅ PASS | Reminders, Distribution, Escalation all use BullMQ |
 | **ADR-016 CASL** | ✅ PASS | Reviewer permissions via CASL ability checks |
-| **ADR-018 AI Boundary** | ✅ PASS | No AI involvement in approval workflow |
+| **ADR-023/023A AI Boundary** | ✅ PASS | No AI involvement in approval workflow (Ollama on Admin Desktop only) |
 | **ADR-007 Error Handling** | ✅ PASS | BusinessException/WorkflowException for approval errors |
 | **No `any` types** | ✅ PASS | Strict TypeScript enforced |
 | **No `console.log`** | ✅ PASS | NestJS Logger for backend, removed for frontend commits |
@@ -69,6 +69,11 @@
 - [ ] Unit Tests สำหรับ Lead Consolidation rules
 - [ ] E2E Tests สำหรับ Delegation expiry และ Escalation flow
 - [ ] โหลดเทสต์สำหรับ Distribution Matrix (Concurrent approvals)
+- [ ] **Performance Tests สำหรับ Approval Matrix Service**
+  - Load testing กับ 1000+ response code rules
+  - Benchmark consensus calculation กับ 10+ disciplines
+  - Query performance test สำหรับ review_tasks กับ indexes
+  - Document SLA targets: Approval lookup < 100ms, Consensus calc < 500ms
 
 ---
 
@@ -93,10 +98,34 @@
 
 ---
 
+## 🔗 Cross-Spec Dependencies
+
+### Dependencies จาก 302-ai-model-revision
+
+| Component | Impact | Coordination |
+|-----------|--------|--------------|
+| **BullMQ Infrastructure** | ใช้ queue `ai-realtime` และ `ai-batch` ร่วมกัน | ตรวจสอบว่า Reminder/Escalation jobs ไม่ชนกับ AI jobs |
+| **QdrantService** | อาจใช้สำหรับ RFA document search | ตรวจสอบ projectPublicId filtering ถ้ามี integration |
+| **Ollama on Desk-5439** | Shared GPU resource | Schedule Reminder batch jobs นอกช่วง AI peak |
+
+### Shared Entities/Services
+
+- **Audit Logging**: ใช้ `audit_logs` table ร่วมกัน — ตรวจสอบ action types ไม่ซ้ำกัน
+- **Notification System**: ใช้ BullMQ + notification service ร่วมกัน — ตรวจสอบ queue priority
+
+### Deployment Sequence Recommendation
+
+1. Phase 1-2 ของ AI Model Revision (เสร็จก่อน)
+2. Phase 1-3 ของ RFA Approval Refactor (ใช้ BullMQ ที่ setup แล้ว)
+3. Phase 4+ ทั้งสอง features ทำพร้อมกันได้
+
+---
+
 ## 🔗 References
 
 - **Spec File**: `specs/200-fullstacks/204-rfa-approval-refactor/spec.md`
 - **Research File**: `specs/200-fullstacks/204-rfa-approval-refactor/research.md`
+- **Cross-Spec**: `specs/300-others/302-ai-model-revision/plan.md` (BullMQ/Qdrant shared infrastructure)
 - **ADR-001**: Unified Workflow Engine
 - **ADR-019**: Hybrid Identifier Strategy
 - **ADR-008**: BullMQ Notification Strategy

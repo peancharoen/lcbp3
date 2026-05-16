@@ -45,6 +45,7 @@ export class TaskCreationService {
    */
   async createParallelTasks(
     rfaRevisionId: number,
+    rfaPublicId: string,
     reviewTeamPublicId: string,
     dueDate: Date,
     manager: EntityManager,
@@ -113,7 +114,7 @@ export class TaskCreationService {
       if (saved.assignedToUserId) {
         await this.schedulerService.scheduleForTask({
           taskPublicId: saved.publicId,
-          rfaPublicId: rfaRevisionId.toString(), // ใช้ rfaRevisionId เป็น placeholder
+          rfaPublicId: rfaPublicId, // ADR-019: Use actual UUID
           assigneeUserId: saved.assignedToUserId,
           dueDate: saved.dueDate ?? dueDate,
           reminderType: ReminderType.DUE_SOON, // Start type, scheduler will fetch rules

@@ -8,12 +8,13 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { CheckCircle2, RefreshCcw } from 'lucide-react';
+import { CheckCircle2, RefreshCcw, BarChart3, AlertTriangle } from 'lucide-react';
 import {
   AiStagingRecord,
   AiStagingStatus,
   useAiStagingQueue,
   useApproveAiStagingRecord,
+  useAiAnalyticsSummary,
 } from '@/lib/api/ai';
 import { projectService } from '@/lib/services/project.service';
 import { masterDataService } from '@/lib/services/master-data.service';
@@ -47,6 +48,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { useTranslations } from '@/hooks/use-translations';
 
 interface ProjectOption {
@@ -102,10 +116,12 @@ function getStatusVariant(
 
 export default function AiStagingPage() {
   const t = useTranslations();
+  const [activeTab, setActiveTab] = useState('queue');
   const [selectedRecord, setSelectedRecord] = useState<AiStagingRecord | null>(
     null
   );
   const queueQuery = useAiStagingQueue();
+  const analyticsQuery = useAiAnalyticsSummary();
   const approveMutation = useApproveAiStagingRecord();
   const projectsQuery = useQuery({
     queryKey: ['ai-staging', 'projects'],
@@ -202,8 +218,11 @@ export default function AiStagingPage() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => void queueQuery.refetch()}
-          disabled={queueQuery.isFetching}
+          onClick={() => {
+            if (activeTab === 'queue') queueQuery.refetch();
+            else analyticsQuery.refetch();
+          }}
+          disabled={queueQuery.isFetching || analyticsQuery.isFetching}
         >
           <RefreshCcw className="mr-2 h-4 w-4" />
           {t('ai.staging.refresh')}
@@ -212,64 +231,246 @@ export default function AiStagingPage() {
 
       <AiStatusBanner isOffline={queueQuery.isError} />
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('ai.staging.file')}</TableHead>
-              <TableHead>{t('ai.staging.batch')}</TableHead>
-              <TableHead>{t('ai.staging.confidence')}</TableHead>
-              <TableHead>{t('ai.staging.status')}</TableHead>
-              <TableHead className="w-[120px]" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.map((record) => (
-              <TableRow key={record.publicId}>
-                <TableCell className="font-medium">
-                  {record.originalFileName}
-                  {record.errorReason ? (
-                    <p className="text-xs text-destructive">
-                      {record.errorReason}
-                    </p>
-                  ) : null}
-                </TableCell>
-                <TableCell>{record.batchId}</TableCell>
-                <TableCell>
-                  {record.confidenceScore === undefined
-                    ? t('ai.staging.empty')
-                    : `${Math.round(record.confidenceScore * 100)}%`}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getStatusVariant(record.status)}>
-                    {record.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={record.status !== AiStagingStatus.PENDING}
-                    onClick={() => openApprovalDialog(record)}
-                  >
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    {t('ai.staging.review')}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {records.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  {queueQuery.isLoading
-                    ? t('ai.staging.loading')
-                    : t('ai.staging.emptyQueue')}
-                </TableCell>
-              </TableRow>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="queue">{t('ai.staging.queueTab')}</TabsTrigger>
+          <TabsTrigger value="analytics">
+            <BarChart3 className="mr-2 h-4 w-4" />
+            {t('ai.staging.analyticsTab')}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="queue">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('ai.staging.file')}</TableHead>
+                  <TableHead>{t('ai.staging.batch')}</TableHead>
+                  <TableHead>{t('ai.staging.confidence')}</TableHead>
+                  <TableHead>{t('ai.staging.status')}</TableHead>
+                  <TableHead className="w-[120px]" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {records.map((record) => (
+                  <TableRow key={record.publicId}>
+                    <TableCell className="font-medium">
+                      {record.originalFileName}
+                      {record.errorReason ? (
+                        <p className="text-xs text-destructive">
+                          {record.errorReason}
+                        </p>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>{record.batchId}</TableCell>
+                    <TableCell>
+                      {record.confidenceScore === undefined
+                        ? t('ai.staging.empty')
+                        : `${Math.round(record.confidenceScore * 100)}%`}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(record.status)}>
+                        {record.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={record.status !== AiStagingStatus.PENDING}
+                        onClick={() => openApprovalDialog(record)}
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        {t('ai.staging.review')}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {records.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      {queueQuery.isLoading
+                        ? t('ai.staging.loading')
+                        : t('ai.staging.emptyQueue')}
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <div className="space-y-6">
+            {/* Phase 6 T038: AI Analytics Summary */}
+            {analyticsQuery.isLoading ? (
+              <div className="text-center text-muted-foreground">
+                {t('ai.staging.loading')}
+              </div>
+            ) : analyticsQuery.error ? (
+              <div className="text-center text-destructive">
+                {t('ai.staging.analyticsError')}
+              </div>
+            ) : analyticsQuery.data ? (
+              <>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">
+                        {t('ai.staging.avgConfidence')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {Math.round(analyticsQuery.data.overall.avgConfidence * 100)}%
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">
+                        {t('ai.staging.overrideRate')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {analyticsQuery.data.overall.overrideRate.toFixed(1)}%
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">
+                        {t('ai.staging.rejectedRate')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {analyticsQuery.data.overall.rejectedRate.toFixed(1)}%
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('ai.staging.byDocumentType')}</CardTitle>
+                    <CardDescription>
+                      {t('ai.staging.byDocumentTypeDesc')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {analyticsQuery.data.byDocumentType.map((item) => (
+                        <div key={item.documentType} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{item.documentType}</span>
+                            <span className="text-muted-foreground">
+                              {item.total} {t('ai.staging.documents')}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4 text-xs">
+                            <div>
+                              <div className="text-muted-foreground">
+                                {t('ai.staging.confidence')}
+                              </div>
+                              <div className="font-medium">
+                                {Math.round(item.avgConfidence * 100)}%
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">
+                                {t('ai.staging.override')}
+                              </div>
+                              <div className="font-medium">
+                                {item.overrideRate.toFixed(1)}%
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">
+                                {t('ai.staging.rejected')}
+                              </div>
+                              <div className="font-medium">
+                                {item.rejectedRate.toFixed(1)}%
+                              </div>
+                            </div>
+                          </div>
+                          <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary transition-all"
+                              style={{ width: `${item.avgConfidence * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Phase 6 T039: Threshold Recalibration UI */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      {t('ai.staging.thresholdRecalibration')}
+                    </CardTitle>
+                    <CardDescription>
+                      {t('ai.staging.thresholdDesc')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>{t('ai.staging.highThreshold')}</Label>
+                        <div className="text-2xl font-bold">
+                          {process.env.NEXT_PUBLIC_AI_CONFIDENCE_HIGH || '0.85'}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t('ai.staging.midThreshold')}</Label>
+                        <div className="text-2xl font-bold">
+                          {process.env.NEXT_PUBLIC_AI_CONFIDENCE_MID || '0.60'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {analyticsQuery.data.overall.overrideRate > 40 && (
+                      <div className="rounded-md bg-yellow-50 border border-yellow-200 p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium text-yellow-800">
+                              {t('ai.staging.thresholdWarning')}
+                            </div>
+                            <div className="text-sm text-yellow-700">
+                              {t('ai.staging.thresholdWarningDesc', {
+                                rate: analyticsQuery.data.overall.overrideRate.toFixed(1),
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-sm text-muted-foreground">
+                      {t('ai.staging.thresholdNote')}
+                      <a
+                        href="/docs/ai-configuration"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline ml-1"
+                      >
+                        {t('ai.staging.thresholdDocs')}
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
             ) : null}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <Dialog
         open={selectedRecord !== null}

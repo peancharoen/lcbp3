@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+import { Readable } from 'stream';
 import { AiIngestService } from './ai-ingest.service';
 import { AiQueueService } from './ai-queue.service';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
@@ -35,7 +36,7 @@ function makeFile(
     mimetype: 'application/pdf',
     buffer: Buffer.from('pdf-content'),
     size: 1024,
-    stream: null as unknown as NodeJS.ReadableStream,
+    stream: new Readable(),
     destination: '',
     filename: 'test.pdf',
     path: '',

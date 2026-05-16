@@ -759,6 +759,7 @@ export class RfaService {
       if (reviewTeamPublicId) {
         await this.taskCreationService.createParallelTasks(
           currentRfaRev.id,
+          currentCorrRev.publicId, // ADR-019: Pass UUID
           reviewTeamPublicId,
           routing.dueDate ?? new Date(),
           queryRunner.manager,

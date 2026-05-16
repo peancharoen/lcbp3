@@ -82,6 +82,7 @@ describe('TaskCreationService delegation resolution', () => {
 
     const tasks = await service.createParallelTasks(
       100,
+      'rfa-public-id',
       team.publicId,
       new Date('2026-05-20T00:00:00.000Z'),
       manager as unknown as EntityManager

@@ -1,0 +1,70 @@
+{
+  "title": "จัดการทีมตรวจสอบ",
+  "subtitle": "สร้างและจัดการทีมตรวจสอบเอกสารตามสาขา",
+
+  "list": {
+    "title": "รายการทีมตรวจสอบ",
+    "createButton": "สร้างทีมใหม่",
+    "searchPlaceholder": "ค้นหาทีม...",
+    "noResults": "ไม่พบทีมตรวจสอบ",
+    "teamCount": "{{count}} ทีม",
+    "memberCount": "{{count}} สมาชิก"
+  },
+
+  "form": {
+    "createTitle": "สร้างทีมตรวจสอบ",
+    "editTitle": "แก้ไขทีมตรวจสอบ",
+    "name": "ชื่อทีม",
+    "namePlaceholder": "ระบุชื่อทีมตรวจสอบ",
+    "description": "รายละเอียด",
+    "descriptionPlaceholder": "ระบุรายละเอียดทีม (ถ้ามี)",
+    "disciplines": "สาขาที่รับผิดชอบ",
+    "disciplinesPlaceholder": "เลือกสาขา...",
+    "rfaTypes": "ประเภท RFA ที่ตรวจสอบ",
+    "rfaTypesPlaceholder": "เลือกประเภท RFA...",
+    "isActive": "เปิดใช้งาน",
+    "isDefault": "ตั้งเป็นค่าเริ่มต้น",
+    "saveButton": "บันทึก",
+    "cancelButton": "ยกเลิก",
+    "deleteButton": "ลบทีม",
+    "confirmDelete": "ยืนยันการลบทีมนี้?"
+  },
+
+  "members": {
+    "title": "สมาชิกทีม",
+    "addButton": "เพิ่มสมาชิก",
+    "removeButton": "ลบออกจากทีม",
+    "role": {
+      "LEAD": "หัวหน้าทีม",
+      "REVIEWER": "ผู้ตรวจสอบ",
+      "OBSERVER": "ผู้สังเกตการณ์"
+    },
+    "noMembers": "ยังไม่มีสมาชิกในทีม",
+    "searchUserPlaceholder": "ค้นหาผู้ใช้..."
+  },
+
+  "status": {
+    "active": "เปิดใช้งาน",
+    "inactive": "ปิดใช้งาน",
+    "default": "ค่าเริ่มต้น"
+  },
+
+  "errors": {
+    "nameRequired": "กรุณาระบุชื่อทีม",
+    "nameExists": "ชื่อทีมนี้มีอยู่แล้ว",
+    "disciplineRequired": "กรุณาเลือกอย่างน้อยหนึ่งสาขา",
+    "memberRequired": "กรุณาเพิ่มอย่างน้อยหนึ่งสมาชิก",
+    "leadRequired": "ทีมต้องมีหัวหน้าทีมอย่างน้อยหนึ่งคน",
+    "loadFailed": "ไม่สามารถโหลดข้อมูลทีมได้",
+    "saveFailed": "ไม่สามารถบันทึกทีมได้",
+    "deleteFailed": "ไม่สามารถลบทีมได้"
+  },
+
+  "success": {
+    "created": "สร้างทีมสำเร็จ",
+    "updated": "อัปเดตทีมสำเร็จ",
+    "deleted": "ลบทีมสำเร็จ",
+    "memberAdded": "เพิ่มสมาชิกสำเร็จ",
+    "memberRemoved": "ลบสมาชิกสำเร็จ"
+  }
+}

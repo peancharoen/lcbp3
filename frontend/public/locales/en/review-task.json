@@ -1,0 +1,104 @@
+{
+  "title": "Review Tasks",
+  "subtitle": "Manage document review tasks and track status",
+
+  "inbox": {
+    "title": "Review Inbox",
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "delegated": "Delegated",
+    "noTasks": "No review tasks",
+    "filterAll": "All",
+    "filterByProject": "Filter by Project",
+    "filterByDiscipline": "Filter by Discipline"
+  },
+
+  "status": {
+    "PENDING": "Pending",
+    "IN_PROGRESS": "In Progress",
+    "COMPLETED": "Completed",
+    "DELEGATED": "Delegated",
+    "OVERDUE": "Overdue"
+  },
+
+  "actions": {
+    "start": "Start Review",
+    "complete": "Complete Review",
+    "delegate": "Delegate",
+    "return": "Return",
+    "viewDetails": "View Details",
+    "addComment": "Add Comment",
+    "viewDocument": "View Document"
+  },
+
+  "form": {
+    "completeTitle": "Complete Review",
+    "responseCode": "Response Code",
+    "responseCodePlaceholder": "Select code...",
+    "comments": "Comments",
+    "commentsPlaceholder": "Enter comments...",
+    "attachments": "Attachments",
+    "addAttachment": "Add File",
+    "confirmComplete": "Confirm completion?",
+    "saveButton": "Save",
+    "cancelButton": "Cancel"
+  },
+
+  "progress": {
+    "title": "Review Progress",
+    "completedOf": "{{completed}}/{{total}} Completed",
+    "consensusStatus": "Consensus Status: {{status}}",
+    "waitingFor": "Waiting for: {{disciplines}}",
+    "parallelReview": "Parallel Review",
+    "sequentialReview": "Sequential Review"
+  },
+
+  "veto": {
+    "button": "Veto Override",
+    "title": "Veto Override - Force Approval",
+    "justification": "Justification for Override",
+    "justificationPlaceholder": "Enter justification for forcing approval...",
+    "confirm": "Confirm Veto Override",
+    "warning": "This action will be logged in Audit Log and notify relevant teams",
+    "pmOnly": "Project Manager Only"
+  },
+
+  "consensus": {
+    "APPROVED": "Approved",
+    "APPROVED_WITH_COMMENTS": "Approved with Comments",
+    "REJECTED": "Rejected",
+    "PENDING": "Pending",
+    "VETO_OVERRIDE": "Veto Override",
+    "calculating": "Calculating consensus..."
+  },
+
+  "reminders": {
+    "dueSoon": "Due in {{days}} days",
+    "overdue": "Overdue by {{days}} days",
+    "escalationLevel1": "Escalation Level 1",
+    "escalationLevel2": "Escalation Level 2"
+  },
+
+  "confirmation": {
+    "title": "Confirm Action",
+    "message": "Are you sure you want to proceed with this action?",
+    "confirmButton": "Confirm",
+    "cancelButton": "Cancel"
+  },
+
+  "errors": {
+    "loadFailed": "Failed to load review tasks",
+    "completeFailed": "Failed to complete review",
+    "responseCodeRequired": "Please select a response code",
+    "raceCondition": "Task status changed, please refresh and try again",
+    "unauthorized": "You are not authorized for this action"
+  },
+
+  "success": {
+    "started": "Review started successfully",
+    "completed": "Review completed successfully",
+    "delegated": "Delegated successfully",
+    "commentAdded": "Comment added successfully"
+  }
+}

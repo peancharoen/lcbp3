@@ -8,12 +8,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthService } from './auth.service.js';
-import { AuthController } from './auth.controller.js';
-import { SessionController } from './session.controller.js';
-import { UserModule } from '../../modules/user/user.module.js';
-import { JwtStrategy } from './strategies/jwt.strategy.js';
-import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy.js';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { SessionController } from './session.controller';
+import { UserModule } from '../../modules/user/user.module';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { User } from '../../modules/user/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity'; // [P2-2]
 import { CaslModule } from './casl/casl.module';

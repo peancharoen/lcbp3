@@ -1,0 +1,72 @@
+{
+  "title": "การมอบหมายงานแทน",
+  "subtitle": "จัดการการมอบหมายงานตรวจสอบให้ผู้อื่นทำแทน",
+
+  "list": {
+    "title": "รายการมอบหมายงาน",
+    "createButton": "สร้างการมอบหมาย",
+    "noActive": "ไม่มีการมอบหมายงานที่ active",
+    "historyButton": "ประวัติการมอบหมาย"
+  },
+
+  "form": {
+    "createTitle": "สร้างการมอบหมายงาน",
+    "editTitle": "แก้ไขการมอบหมายงาน",
+    "delegateTo": "มอบหมายให้",
+    "delegateToPlaceholder": "เลือกผู้ใช้...",
+    "startDate": "วันที่เริ่มต้น",
+    "endDate": "วันที่สิ้นสุด",
+    "scope": "ขอบเขตการมอบหมาย",
+    "scopeOptions": {
+      "ALL": "ทั้งหมด",
+      "DISCIPLINE": "เฉพาะสาขา",
+      "PROJECT": "เฉพาะโครงการ"
+    },
+    "reason": "เหตุผล",
+    "reasonPlaceholder": "ระบุเหตุผลการมอบหมายงาน...",
+    "saveButton": "บันทึก",
+    "cancelButton": "ยกเลิก",
+    "revokeButton": "ยกเลิกการมอบหมาย"
+  },
+
+  "status": {
+    "active": "Active",
+    "expired": "หมดอายุ",
+    "revoked": "ถูกยกเลิก",
+    "upcoming": "เริ่มเร็วๆ นี้"
+  },
+
+  "badge": {
+    "delegatedFrom": "มอบหมายจาก: {{name}}",
+    "delegatedTo": "มอบหมายให้: {{name}}",
+    "until": "จนถึง: {{date}}"
+  },
+
+  "notifications": {
+    "createdTitle": "ได้รับการมอบหมายงาน",
+    "createdBody": "{{delegator}} ได้มอบหมายงานตรวจสอบให้คุณ",
+    "expiringTitle": "การมอบหมายงานใกล้หมดอายุ",
+    "expiringBody": "การมอบหมายงานจะหมดอายุใน {{days}} วัน",
+    "expiredTitle": "การมอบหมายงานหมดอายุ",
+    "expiredBody": "การมอบหมายงานได้หมดอายุแล้ว งานจะกลับมาที่ผู้มอบหมาย"
+  },
+
+  "errors": {
+    "delegateToRequired": "กรุณาเลือกผู้รับมอบหมาย",
+    "startDateRequired": "กรุณาระบุวันที่เริ่มต้น",
+    "endDateRequired": "กรุณาระบุวันที่สิ้นสุด",
+    "invalidDateRange": "วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มต้น",
+    "circularDelegation": "ไม่สามารถมอบหมายแบบวนซ้ำได้ ({{path}})",
+    "selfDelegation": "ไม่สามารถมอบหมายให้ตัวเองได้",
+    "overlapExists": "มีการมอบหมายที่ซ้อนทับกันอยู่แล้ว",
+    "loadFailed": "ไม่สามารถโหลดข้อมูลได้",
+    "saveFailed": "ไม่สามารถบันทึกการมอบหมายได้",
+    "revokeFailed": "ไม่สามารถยกเลิกการมอบหมายได้"
+  },
+
+  "success": {
+    "created": "สร้างการมอบหมายสำเร็จ",
+    "updated": "อัปเดตการมอบหมายสำเร็จ",
+    "revoked": "ยกเลิกการมอบหมายสำเร็จ"
+  }
+}

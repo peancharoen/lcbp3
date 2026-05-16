@@ -6,8 +6,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, FindOptionsWhere, FindManyOptions } from 'typeorm';
 import { Contract } from './entities/contract.entity';
-import { CreateContractDto } from './dto/create-contract.dto.js';
-import { UpdateContractDto } from './dto/update-contract.dto.js';
+import { CreateContractDto } from './dto/create-contract.dto';
+import { UpdateContractDto } from './dto/update-contract.dto';
 import { UuidResolverService } from '../../common/services/uuid-resolver.service';
 
 @Injectable()

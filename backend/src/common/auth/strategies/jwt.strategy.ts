@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Request } from 'express';
-import { UserService } from '../../../modules/user/user.service.js';
+import { UserService } from '../../../modules/user/user.service';
 
 // Interface สำหรับ Payload ใน Token
 export interface JwtPayload {

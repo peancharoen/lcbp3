@@ -3,7 +3,7 @@
 **Feature Branch**: `main` (no branch — per user instruction)
 **Feature Dir**: `specs/300-others/302-ai-model-revision/`
 **Created**: 2026-05-15
-**Status**: Ready for Planning
+**Status**: Completed
 **ADR Source**: `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`
 
 ---
@@ -85,7 +85,7 @@ Admin สามารถดู AI Performance metrics จาก ai_audit_logs (c
 - ถ้า PDF มีหน้าเดียวแต่มี text น้อยกว่า 100 chars → ใช้ Slow Path (OCR) แทน Fast Path
 - ถ้า embed-document job fail 3 ครั้ง → dead-letter queue; Admin ได้รับแจ้ง; เอกสารยังค้นหาได้ผ่าน DB search
 - ถ้า Qdrant unavailable → BullMQ retry; RAG Q&A ตอบ "ระบบค้นหา AI ชั่วคราวไม่พร้อม"
-- ถ้า GPU temp > 85°C (Desk-5439) → ai-batch queue pause อัตโนมัติ; ai-realtime ยังทำงาน
+- GPU temp monitoring เป็น infrastructure concern — handled by Ops Runbook (04-Infrastructure-OPS/); application-level GPU protection คือ concurrency=1 + 2-queue separation; ไม่มี code implementation สำหรับ GPU temp (out-of-scope — QuizMe 2026-05-15)
 - เอกสารถูก delete จาก DMS → ต้อง delete chunks ออกจาก Qdrant ด้วย (document_public_id filter)
 
 ---
@@ -108,7 +108,7 @@ Admin สามารถดู AI Performance metrics จาก ai_audit_logs (c
 - **FR-012**: Typhoon Cloud API (`rag/typhoon.service.ts`) MUST ถูก remove ออกจาก codebase ทั้งหมด
 - **FR-013**: ระบบ MUST fallback gracefully เมื่อ AI Service ไม่พร้อม — เอกสารยังอัปโหลดได้ปกติ
 - **FR-014**: AI Suggestion MUST ผ่านการ validate กับ Master Data (`/api/meta/categories`) ก่อนนำเสนอ — ห้าม AI สร้างประเภทใหม่
-- **FR-017**: `document.service.ts` (และทุก service ที่เรียก AI queue) MUST wrap `queueSuggestJob()` + `queueEmbedJob()` ใน try/catch — on catch: `Logger.error('AI job queue failed', { documentPublicId, error })`; document commit MUST NOT fail หรือ return 5xx ต่อ user; ioredis offline queue จัดการ short Redis blip อัตโนมัติ (Scenario 3, QuizMe 2026-05-15)
+- **FR-017**: `AiService.queueSuggestJob()` + `queueEmbedJob()` MUST wrap BullMQ queue operations ใน try/catch ภายใน — on catch: `Logger.error('AI job queue failed', { documentPublicId, error })` และ return `{ success: false, error }` แทนการ throw; document service เรียก method นี้และ check result — ไม่ต้องใส่ try/catch ในทุก service (centralized pattern, QuizMe 2026-05-15)
 - **FR-018**: `documents` table MUST มี column `ai_processing_status ENUM('PENDING','PROCESSING','DONE','FAILED') DEFAULT 'PENDING'` — set `PENDING` เมื่อ document commit; set `PROCESSING` เมื่อ job ถูก dequeue; set `DONE` เมื่อ ai-suggest + embed-document สำเร็จทั้งคู่; set `FAILED` เมื่อ job เข้า dead-letter; ใช้ detect documents ที่ยังไม่ได้ประมวลผล (ADR-009: SQL delta #15, Scenario 3, QuizMe 2026-05-15)
 - **FR-016**: `AiModule` MUST implement `OnModuleInit` — บน startup ตรวจสอบ: ถ้า `ai-batch` paused AND `ai-realtime` มี active job count = 0 → `ai-batch.resume()` อัตโนมัติ; บันทึก `Logger.warn('ai-batch auto-resumed on startup')` เพื่อ traceability (ป้องกัน stale paused state หลัง crash — Scenario 2, QuizMe 2026-05-15)
 - **FR-015**: เมื่อ AI Suggestion สำหรับ categorical field (document_type, discipline) ไม่ตรงกับ Master Data — ระบบ MUST แสดง suggestion text พร้อม badge "⚠️ ไม่รู้จัก — กรุณาเลือกจาก dropdown"; confidence badge ยังแสดงค่าตามปกติ; `ai_audit_logs.ai_suggestion_json` บันทึก raw AI output; `human_override_json` บันทึก value ที่ user เลือก (Scenario 1 — QuizMe 2026-05-15)
@@ -129,7 +129,7 @@ Admin สามารถดู AI Performance metrics จาก ai_audit_logs (c
 
 - **SC-001**: AI Suggestion ปรากฏบนฟอร์มภายใน 30 วินาที สำหรับ Digital PDF และ 90 วินาที สำหรับ Scanned PDF (p95)
 - **SC-002**: RAG Q&A ตอบกลับภายใน 10 วินาที (p95 นับจาก dequeue จาก `ai-realtime`)
-- **SC-003**: VRAM peak ไม่เกิน 5GB เมื่อรัน 2 models พร้อมกัน (gemma4:e4b + nomic-embed-text)
+- **SC-003**: VRAM peak ไม่เกิน 5GB เมื่อรัน 2 models พร้อมกัน (gemma4:e4b + nomic-embed-text) — วัดด้วย `nvidia-smi --query-gpu=memory.used --format=csv,noheader` ระหว่าง job run (ดู verification ใน quickstart.md Scenario 6, QuizMe 2026-05-15)
 - **SC-004**: ไม่มี data leak ข้ามโครงการใน RAG — ทุก Qdrant query มี `project_public_id` filter (ตรวจสอบได้จาก query log)
 - **SC-005**: Legacy Migration Batch 20,000 ฉบับ ประมวลผลสำเร็จโดยไม่มี duplicate record (ตรวจสอบด้วย Idempotency-Key)
 - **SC-006**: admin_override_rate < 40% หลัง Calibration Phase (100-500 ฉบับแรก)

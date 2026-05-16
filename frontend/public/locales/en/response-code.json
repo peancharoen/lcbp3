@@ -1,0 +1,79 @@
+{
+  "title": "Response Codes",
+  "subtitle": "Manage review response codes and implications",
+
+  "list": {
+    "title": "Response Code List",
+    "createButton": "Create New Code",
+    "searchPlaceholder": "Search codes...",
+    "noResults": "No response codes found",
+    "filterByCategory": "Filter by Category"
+  },
+
+  "categories": {
+    "ENGINEERING": "Engineering",
+    "CONTRACT": "Contract",
+    "QUALITY": "Quality",
+    "SAFETY": "Safety",
+    "PROCUREMENT": "Procurement",
+    "GENERAL": "General"
+  },
+
+  "form": {
+    "createTitle": "Create Response Code",
+    "editTitle": "Edit Response Code",
+    "code": "Code",
+    "codePlaceholder": "e.g., 1A, 1B, 2",
+    "subStatus": "Sub-status",
+    "subStatusPlaceholder": "e.g., A, B, C",
+    "category": "Category",
+    "description": "Description",
+    "descriptionPlaceholder": "Description of response code",
+    "descriptionThai": "Description (Thai)",
+    "implications": "Implications",
+    "implicationsPlaceholder": "Implications when this code is selected",
+    "notifyRoles": "Notify Roles",
+    "isActive": "Active",
+    "saveButton": "Save",
+    "cancelButton": "Cancel"
+  },
+
+  "selector": {
+    "placeholder": "Select response code...",
+    "filterByDocType": "Filter by Document Type",
+    "loading": "Loading..."
+  },
+
+  "implications": {
+    "title": "Code Implications",
+    "critical": "Critical",
+    "warning": "Warning",
+    "info": "Info",
+    "notificationsSent": "Notifications will be sent to: {{roles}}"
+  },
+
+  "matrix": {
+    "title": "Master Approval Matrix",
+    "subtitle": "Define response codes by document type",
+    "docType": "Document Type",
+    "applicableCodes": "Applicable Codes",
+    "projectOverride": "Project Override",
+    "inheritanceNote": "Inherited from default",
+    "addOverride": "Add Project Override"
+  },
+
+  "errors": {
+    "codeRequired": "Code is required",
+    "codeExists": "Code already exists",
+    "categoryRequired": "Please select a category",
+    "invalidCode": "Invalid code format",
+    "loadFailed": "Failed to load codes",
+    "saveFailed": "Failed to save code"
+  },
+
+  "success": {
+    "created": "Code created successfully",
+    "updated": "Code updated successfully",
+    "deleted": "Code deleted successfully"
+  }
+}

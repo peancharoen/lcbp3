@@ -1,0 +1,72 @@
+{
+  "title": "Task Delegation",
+  "subtitle": "Manage delegation of review tasks to others",
+
+  "list": {
+    "title": "Delegation List",
+    "createButton": "Create Delegation",
+    "noActive": "No active delegations",
+    "historyButton": "Delegation History"
+  },
+
+  "form": {
+    "createTitle": "Create Delegation",
+    "editTitle": "Edit Delegation",
+    "delegateTo": "Delegate To",
+    "delegateToPlaceholder": "Select user...",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "scope": "Delegation Scope",
+    "scopeOptions": {
+      "ALL": "All",
+      "DISCIPLINE": "Discipline Only",
+      "PROJECT": "Project Only"
+    },
+    "reason": "Reason",
+    "reasonPlaceholder": "Enter reason for delegation...",
+    "saveButton": "Save",
+    "cancelButton": "Cancel",
+    "revokeButton": "Revoke Delegation"
+  },
+
+  "status": {
+    "active": "Active",
+    "expired": "Expired",
+    "revoked": "Revoked",
+    "upcoming": "Starting Soon"
+  },
+
+  "badge": {
+    "delegatedFrom": "Delegated from: {{name}}",
+    "delegatedTo": "Delegated to: {{name}}",
+    "until": "Until: {{date}}"
+  },
+
+  "notifications": {
+    "createdTitle": "Delegation Received",
+    "createdBody": "{{delegator}} has delegated review tasks to you",
+    "expiringTitle": "Delegation Expiring Soon",
+    "expiringBody": "Delegation will expire in {{days}} days",
+    "expiredTitle": "Delegation Expired",
+    "expiredBody": "Delegation has expired. Tasks returned to delegator"
+  },
+
+  "errors": {
+    "delegateToRequired": "Please select delegatee",
+    "startDateRequired": "Start date is required",
+    "endDateRequired": "End date is required",
+    "invalidDateRange": "End date must be after start date",
+    "circularDelegation": "Circular delegation not allowed ({{path}})",
+    "selfDelegation": "Cannot delegate to yourself",
+    "overlapExists": "Overlapping delegation already exists",
+    "loadFailed": "Failed to load data",
+    "saveFailed": "Failed to save delegation",
+    "revokeFailed": "Failed to revoke delegation"
+  },
+
+  "success": {
+    "created": "Delegation created successfully",
+    "updated": "Delegation updated successfully",
+    "revoked": "Delegation revoked successfully"
+  }
+}

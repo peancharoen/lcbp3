@@ -1,0 +1,70 @@
+{
+  "title": "Review Team Management",
+  "subtitle": "Create and manage document review teams by discipline",
+
+  "list": {
+    "title": "Review Team List",
+    "createButton": "Create New Team",
+    "searchPlaceholder": "Search teams...",
+    "noResults": "No review teams found",
+    "teamCount": "{{count}} teams",
+    "memberCount": "{{count}} members"
+  },
+
+  "form": {
+    "createTitle": "Create Review Team",
+    "editTitle": "Edit Review Team",
+    "name": "Team Name",
+    "namePlaceholder": "Enter team name",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter team description (optional)",
+    "disciplines": "Responsible Disciplines",
+    "disciplinesPlaceholder": "Select disciplines...",
+    "rfaTypes": "RFA Types to Review",
+    "rfaTypesPlaceholder": "Select RFA types...",
+    "isActive": "Active",
+    "isDefault": "Set as Default",
+    "saveButton": "Save",
+    "cancelButton": "Cancel",
+    "deleteButton": "Delete Team",
+    "confirmDelete": "Confirm delete this team?"
+  },
+
+  "members": {
+    "title": "Team Members",
+    "addButton": "Add Member",
+    "removeButton": "Remove from Team",
+    "role": {
+      "LEAD": "Team Lead",
+      "REVIEWER": "Reviewer",
+      "OBSERVER": "Observer"
+    },
+    "noMembers": "No members in this team yet",
+    "searchUserPlaceholder": "Search users..."
+  },
+
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "default": "Default"
+  },
+
+  "errors": {
+    "nameRequired": "Team name is required",
+    "nameExists": "Team name already exists",
+    "disciplineRequired": "Please select at least one discipline",
+    "memberRequired": "Please add at least one member",
+    "leadRequired": "Team must have at least one lead",
+    "loadFailed": "Failed to load team data",
+    "saveFailed": "Failed to save team",
+    "deleteFailed": "Failed to delete team"
+  },
+
+  "success": {
+    "created": "Team created successfully",
+    "updated": "Team updated successfully",
+    "deleted": "Team deleted successfully",
+    "memberAdded": "Member added successfully",
+    "memberRemoved": "Member removed successfully"
+  }
+}

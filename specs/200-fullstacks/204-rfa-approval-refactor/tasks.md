@@ -15,11 +15,11 @@ Initialize project structure and shared infrastructure for all modules.
 
 ---
 
-- [X] T001 [P] Create SQL schema file `specs/03-Data-and-Storage/lcbp3-v1.9.0-rfa-approval-schema.sql` with all 9 new entities
-- [X] T002 [P] Create Response Code seeder `backend/src/modules/response-code/seeders/response-code.seed.ts`
-- [X] T003 Create BullMQ queue configuration `backend/src/config/bullmq.config.ts`
-- [X] T004 [P] Setup Redis connection for BullMQ and Redlock `backend/src/config/redis.config.ts`
-- [X] T005 Create shared DTOs and enums `backend/src/modules/review-team/dto/shared/` (ReviewTaskStatus, ResponseCodeCategory, etc.)
+- [X] T001 [P] Create SQL schema file `specs/03-Data-and-Storage/lcbp3-v1.9.0-rfa-approval-schema.sql` with all 9 new entities — **IMPLEMENTED** (Section 20 in schema-02-tables.sql)
+- [X] T002 [P] Create Response Code seeder `backend/src/modules/response-code/seeders/response-code.seed.ts` — **IMPLEMENTED**
+- [X] T003 Create BullMQ queue configuration `backend/src/config/bullmq.config.ts` — **IMPLEMENTED** (ai-realtime + ai-batch configured)
+- [X] T004 [P] Setup Redis connection for BullMQ and Redlock `backend/src/config/redis.config.ts` — **IMPLEMENTED**
+- [X] T005 Create shared DTOs and enums `backend/src/modules/review-team/dto/shared/` (ReviewTaskStatus, ResponseCodeCategory, etc.) — **IMPLEMENTED** (`review.enums.ts` complete)
 
 
 ---
@@ -33,14 +33,14 @@ Core entities required by multiple user stories. Must complete before US1-US6.
 
 ---
 
-- [X] T006 [P] Create ReviewTeam entity `backend/src/modules/review-team/entities/review-team.entity.ts`
-- [X] T007 [P] Create ReviewTeamMember entity `backend/src/modules/review-team/entities/review-team-member.entity.ts`
-- [X] T008 Create ResponseCode entity `backend/src/modules/response-code/entities/response-code.entity.ts`
-- [X] T009 [P] Create ResponseCodeRule entity `backend/src/modules/response-code/entities/response-code-rule.entity.ts`
-- [X] T010 [P] Create ReviewTask entity `backend/src/modules/review-team/entities/review-task.entity.ts`
-- [X] T011 Create ResponseCodeModule with service `backend/src/modules/response-code/response-code.service.ts`
-- [X] T012 Create ResponseCodeController with basic CRUD `backend/src/modules/response-code/response-code.controller.ts`
-- [X] T013 Create ReviewTeamModule base structure `backend/src/modules/review-team/review-team.module.ts`
+- [X] T006 [P] Create ReviewTeam entity `backend/src/modules/review-team/entities/review-team.entity.ts` — **IMPLEMENTED**
+- [X] T007 [P] Create ReviewTeamMember entity `backend/src/modules/review-team/entities/review-team-member.entity.ts` — **IMPLEMENTED**
+- [X] T008 Create ResponseCode entity `backend/src/modules/response-code/entities/response-code.entity.ts` — **IMPLEMENTED**
+- [X] T009 [P] Create ResponseCodeRule entity `backend/src/modules/response-code/entities/response-code-rule.entity.ts` — **IMPLEMENTED**
+- [X] T010 [P] Create ReviewTask entity `backend/src/modules/review-team/entities/review-task.entity.ts` — **IMPLEMENTED**
+- [X] T011 Create ResponseCodeModule with service `backend/src/modules/response-code/response-code.service.ts` — **IMPLEMENTED**
+- [X] T012 Create ResponseCodeController with basic CRUD `backend/src/modules/response-code/response-code.controller.ts` — **IMPLEMENTED**
+- [X] T013 Create ReviewTeamModule base structure `backend/src/modules/review-team/review-team.module.ts` — **IMPLEMENTED**
 
 
 ---
@@ -57,16 +57,16 @@ Users can create Review Teams with multiple Disciplines, and teams auto-assign t
 
 ---
 
-- [X] T014 [US1] Create ReviewTeamService with CRUD and member management `backend/src/modules/review-team/review-team.service.ts`
-- [X] T015 [P] [US1] Create ReviewTeamController endpoints `backend/src/modules/review-team/review-team.controller.ts`
-- [X] T016 [US1] Create ReviewTaskService with assignment logic `backend/src/modules/review-team/review-task.service.ts`
-- [X] T017 [P] [US1] Integrate Review Team selection in RFA submission flow `backend/src/modules/rfa/rfa.service.ts`
-- [X] T018 [US1] Implement parallel task creation on RFA submit `backend/src/modules/review-team/services/task-creation.service.ts`
-- [X] T019 [P] [US1] Create Review Team management UI page `frontend/src/app/(dashboard)/review-teams/page.tsx`
-- [X] T020 [P] [US1] Create Review Team form component `frontend/src/components/review-team/ReviewTeamForm.tsx`
-- [X] T021 [US1] Create Team Member assignment component `frontend/src/components/review-team/TeamMemberManager.tsx`
-- [X] T022 [P] [US1] Create useReviewTeams hook `frontend/src/hooks/use-review-teams.ts`
-- [X] T023 [US1] Add Review Team selector to RFA submission form `frontend/src/app/(dashboard)/rfa/[id]/submit/page.tsx`
+- [X] T014 [US1] Create ReviewTeamService with CRUD and member management `backend/src/modules/review-team/review-team.service.ts` — **IMPLEMENTED**
+- [X] T015 [P] [US1] Create ReviewTeamController endpoints `backend/src/modules/review-team/review-team.controller.ts` — **IMPLEMENTED**
+- [X] T016 [US1] Create ReviewTaskService with assignment logic `backend/src/modules/review-team/review-task.service.ts` — **IMPLEMENTED**
+- [X] T017 [P] [US1] Integrate Review Team selection in RFA submission flow `backend/src/modules/rfa/rfa.service.ts` — **IMPLEMENTED**
+- [X] T018 [US1] Implement parallel task creation on RFA submit `backend/src/modules/review-team/services/task-creation.service.ts` — **IMPLEMENTED**
+- [X] T019 [P] [US1] Create Review Team management UI page `frontend/src/app/(dashboard)/settings/review-teams/page.tsx` — **IMPLEMENTED** (path corrected: in settings/)
+- [X] T020 [P] [US1] Create Review Team form component `frontend/src/components/review-team/ReviewTeamForm.tsx` — **IMPLEMENTED**
+- [X] T021 [US1] Create Team Member assignment component `frontend/src/components/review-team/TeamMemberManager.tsx` — **IMPLEMENTED**
+- [X] T022 [P] [US1] Create useReviewTeams hook `frontend/src/hooks/use-review-teams.ts` — **IMPLEMENTED**
+- [X] T023 [US1] Add Review Team selector to RFA submission form `frontend/src/app/(dashboard)/rfa/[id]/submit/page.tsx` — **IMPLEMENTED**
 
 
 ---
@@ -83,16 +83,16 @@ Response Codes display by document category, Code 1C/1D/3 trigger notifications,
 
 ---
 
-- [X] T024 [US2] Extend ResponseCodeService with category filtering `backend/src/modules/response-code/response-code.service.ts`
-- [X] T025 [P] [US2] Create ResponseCode lookup endpoint by document type `backend/src/modules/response-code/response-code.controller.ts`
-- [X] T026 [US2] Implement Response Code implications evaluator `backend/src/modules/response-code/services/implications.service.ts`
-- [X] T027 [P] [US2] Create notification trigger service for critical codes `backend/src/modules/response-code/services/notification-trigger.service.ts`
-- [X] T028 [US2] Add audit logging for Response Code changes `backend/src/modules/response-code/services/audit.service.ts`
-- [X] T029 [P] [US2] Create Response Code selector component with category filtering `frontend/src/components/response-code/ResponseCodeSelector.tsx`
-- [X] T030 [US2] Create Response Code implications display `frontend/src/components/response-code/CodeImplications.tsx`
-- [X] T031 [P] [US2] Create Master Approval Matrix admin UI `frontend/src/app/(dashboard)/response-codes/page.tsx`
-- [X] T032 [US2] Create useResponseCodes hook with category filter `frontend/src/hooks/use-response-codes.ts`
-- [X] T033 [P] [US2] Integrate Response Code selector in Review Task completion UI `frontend/src/components/review-task/CompleteReviewForm.tsx`
+- [X] T024 [US2] Extend ResponseCodeService with category filtering `backend/src/modules/response-code/response-code.service.ts` — **IMPLEMENTED**
+- [X] T025 [P] [US2] Create ResponseCode lookup endpoint by document type `backend/src/modules/response-code/response-code.controller.ts` — **IMPLEMENTED**
+- [X] T026 [US2] Implement Response Code implications evaluator `backend/src/modules/response-code/services/implications.service.ts` — **IMPLEMENTED**
+- [X] T027 [P] [US2] Create notification trigger service for critical codes `backend/src/modules/response-code/services/notification-trigger.service.ts` — **IMPLEMENTED**
+- [X] T028 [US2] Add audit logging for Response Code changes `backend/src/modules/response-code/services/audit.service.ts` — **IMPLEMENTED**
+- [X] T029 [P] [US2] Create Response Code selector component with category filtering `frontend/src/components/response-code/ResponseCodeSelector.tsx` — **IMPLEMENTED**
+- [X] T030 [US2] Create Response Code implications display `frontend/src/components/response-code/CodeImplications.tsx` — **IMPLEMENTED**
+- [X] T031 [P] [US2] Create Master Approval Matrix admin UI `frontend/src/app/(dashboard)/response-codes/page.tsx` — **IMPLEMENTED**
+- [X] T032 [US2] Create useResponseCodes hook with category filter `frontend/src/hooks/use-response-codes.ts` — **IMPLEMENTED**
+- [X] T033 [P] [US2] Integrate Response Code selector in Review Task completion UI `frontend/src/components/review-task/CompleteReviewForm.tsx` — **IMPLEMENTED**
 
 
 ---
@@ -109,15 +109,15 @@ Users can delegate review tasks with date range, circular detection prevents loo
 
 ---
 
-- [X] T034 [US3] Create Delegation entity `backend/src/modules/delegation/entities/delegation.entity.ts`
-- [X] T035 [P] [US3] Create DelegationService with CRUD `backend/src/modules/delegation/delegation.service.ts`
-- [X] T036 [US3] Implement circular delegation detection algorithm `backend/src/modules/delegation/services/circular-detection.service.ts`
-- [X] T037 [P] [US3] Create DelegationController endpoints `backend/src/modules/delegation/delegation.controller.ts`
-- [X] T038 [US3] Integrate delegation resolution in ReviewTaskService `backend/src/modules/review-team/review-task.service.ts`
-- [X] T039 [P] [US3] Create Delegation settings UI page `frontend/src/app/(dashboard)/delegation/page.tsx`
-- [X] T040 [US3] Create Delegation form with date picker `frontend/src/components/delegation/DelegationForm.tsx`
-- [X] T041 [P] [US3] Create delegated task indicator ("Delegated from X") `frontend/src/components/review-task/DelegatedBadge.tsx`
-- [X] T042 [P] [US3] Create useDelegation hook `frontend/src/hooks/use-delegation.ts`
+- [X] T034 [US3] Create Delegation entity `backend/src/modules/delegation/entities/delegation.entity.ts` — **IMPLEMENTED**
+- [X] T035 [P] [US3] Create DelegationService with CRUD `backend/src/modules/delegation/delegation.service.ts` — **IMPLEMENTED**
+- [X] T036 [US3] Implement circular delegation detection algorithm `backend/src/modules/delegation/services/circular-detection.service.ts` — **IMPLEMENTED**
+- [X] T037 [P] [US3] Create DelegationController endpoints `backend/src/modules/delegation/delegation.controller.ts` — **IMPLEMENTED**
+- [X] T038 [US3] Integrate delegation resolution in ReviewTaskService `backend/src/modules/review-team/review-task.service.ts` — **IMPLEMENTED**
+- [X] T039 [P] [US3] Create Delegation settings UI page `frontend/src/app/(dashboard)/settings/delegation/page.tsx` — **IMPLEMENTED** (path corrected)
+- [X] T040 [US3] Create Delegation form with date picker `frontend/src/components/delegation/DelegationForm.tsx` — **IMPLEMENTED**
+- [X] T041 [P] [US3] Create delegated task indicator ("Delegated from X") `frontend/src/components/review-task/DelegatedBadge.tsx` — **IMPLEMENTED**
+- [X] T042 [P] [US3] Create useDelegation hook `frontend/src/hooks/use-delegation.ts` — **IMPLEMENTED**
 
 
 ---
@@ -134,14 +134,14 @@ Scheduled reminders via BullMQ, 2-level escalation when overdue.
 
 ---
 
-- [X] T043 [US4] Create ReminderRule entity `backend/src/modules/reminder/entities/reminder-rule.entity.ts`
-- [X] T044 [P] [US4] Create ReminderService with BullMQ integration `backend/src/modules/reminder/reminder.service.ts`
-- [X] T045 [US4] Implement reminder scheduling on RFA submit `backend/src/modules/reminder/services/scheduler.service.ts`
-- [X] T046 [P] [US4] Create ReminderProcessor for queue workers `backend/src/modules/reminder/processors/reminder.processor.ts`
-- [X] T047 [US4] Implement 2-level escalation logic `backend/src/modules/reminder/services/escalation.service.ts`
-- [X] T048 [P] [US4] Create ReminderRuleController admin endpoints `backend/src/modules/reminder/reminder.controller.ts`
-- [X] T049 [P] [US4] Create ReminderRule admin UI `frontend/src/app/(dashboard)/reminder-rules/page.tsx`
-- [X] T050 [US4] Create reminder history viewer `frontend/src/components/reminder/ReminderHistory.tsx`
+- [X] T043 [US4] Create ReminderRule entity `backend/src/modules/reminder/entities/reminder-rule.entity.ts` — **IMPLEMENTED**
+- [X] T044 [P] [US4] Create ReminderService with BullMQ integration `backend/src/modules/reminder/reminder.service.ts` — **IMPLEMENTED**
+- [X] T045 [US4] Implement reminder scheduling on RFA submit `backend/src/modules/reminder/services/scheduler.service.ts` — **IMPLEMENTED**
+- [X] T046 [P] [US4] Create ReminderProcessor for queue workers `backend/src/modules/reminder/processors/reminder.processor.ts` — **IMPLEMENTED**
+- [X] T047 [US4] Implement 2-level escalation logic `backend/src/modules/reminder/services/escalation.service.ts` — **IMPLEMENTED**
+- [X] T048 [P] [US4] Create ReminderRuleController admin endpoints `backend/src/modules/reminder/reminder.controller.ts` — **IMPLEMENTED**
+- [X] T049 [P] [US4] Create ReminderRule admin UI `frontend/src/app/(dashboard)/reminder-rules/page.tsx` — **IMPLEMENTED**
+- [X] T050 [US4] Create reminder history viewer `frontend/src/components/reminder/ReminderHistory.tsx` — **IMPLEMENTED**
 
 
 
@@ -159,16 +159,16 @@ Async distribution after approval, Transmittal records created via BullMQ.
 
 ---
 
-- [X] T051 [US5] Create DistributionMatrix entity `backend/src/modules/distribution/entities/distribution-matrix.entity.ts`
-- [X] T052 [P] [US5] Create DistributionRecipient entity `backend/src/modules/distribution/entities/distribution-recipient.entity.ts`
-- [X] T053 [US5] Create DistributionMatrixService with CRUD `backend/src/modules/distribution/distribution-matrix.service.ts`
-- [X] T054 [P] [US5] Create DistributionService with BullMQ integration `backend/src/modules/distribution/distribution.service.ts`
-- [X] T055 [US5] Implement distribution triggering on approval `backend/src/modules/distribution/services/approval-listener.service.ts`
-- [X] T056 [P] [US5] Create DistributionProcessor for queue workers `backend/src/modules/distribution/processors/distribution.processor.ts`
-- [X] T057 [US5] Create Transmittal records from distribution `backend/src/modules/distribution/services/transmittal-creator.service.ts`
-- [X] T058 [P] [US5] Create DistributionMatrixController `backend/src/modules/distribution/distribution.controller.ts`
-- [X] T059 [P] [US5] Create Distribution Matrix admin UI `frontend/src/app/(dashboard)/distribution-matrices/page.tsx`
-- [X] T060 [US5] Create distribution status dashboard `frontend/src/components/distribution/DistributionStatus.tsx`
+- [X] T051 [US5] Create DistributionMatrix entity `backend/src/modules/distribution/entities/distribution-matrix.entity.ts` — **IMPLEMENTED**
+- [X] T052 [P] [US5] Create DistributionRecipient entity `backend/src/modules/distribution/entities/distribution-recipient.entity.ts` — **IMPLEMENTED**
+- [X] T053 [US5] Create DistributionMatrixService with CRUD `backend/src/modules/distribution/distribution-matrix.service.ts` — **IMPLEMENTED**
+- [X] T054 [P] [US5] Create DistributionService with BullMQ integration `backend/src/modules/distribution/distribution.service.ts` — **IMPLEMENTED**
+- [X] T055 [US5] Implement distribution triggering on approval `backend/src/modules/distribution/services/approval-listener.service.ts` — **IMPLEMENTED**
+- [X] T056 [P] [US5] Create DistributionProcessor for queue workers `backend/src/modules/distribution/processors/distribution.processor.ts` — **IMPLEMENTED**
+- [X] T057 [US5] Create Transmittal records from distribution `backend/src/modules/distribution/services/transmittal-creator.service.ts` — **IMPLEMENTED**
+- [X] T058 [P] [US5] Create DistributionMatrixController `backend/src/modules/distribution/distribution.controller.ts` — **IMPLEMENTED**
+- [X] T059 [P] [US5] Create Distribution Matrix admin UI `frontend/src/app/(dashboard)/distribution-matrices/page.tsx` — **IMPLEMENTED**
+- [X] T060 [US5] Create distribution status dashboard `frontend/src/components/distribution/DistributionStatus.tsx` — **IMPLEMENTED**
 
 
 ---
@@ -185,11 +185,11 @@ Admin UI for managing Matrix, project overrides with inheritance tracking.
 
 ---
 
-- [X] T061 [US6] Extend ResponseCodeService with project overrides `backend/src/modules/response-code/services/matrix-management.service.ts`
-- [X] T062 [P] [US6] Create Matrix inheritance resolver `backend/src/modules/response-code/services/inheritance.service.ts`
-- [X] T063 [US6] Add Matrix management endpoints to ResponseCodeController `backend/src/modules/response-code/response-code.controller.ts`
-- [X] T064 [P] [US6] Create Master Approval Matrix visual editor `frontend/src/components/response-code/MatrixEditor.tsx`
-- [X] T065 [US6] Create project override management UI `frontend/src/components/response-code/ProjectOverrideManager.tsx`
+- [X] T061 [US6] Extend ResponseCodeService with project overrides `backend/src/modules/response-code/services/matrix-management.service.ts` — **IMPLEMENTED**
+- [X] T062 [P] [US6] Create Matrix inheritance resolver `backend/src/modules/response-code/services/inheritance.service.ts` — **IMPLEMENTED**
+- [X] T063 [US6] Add Matrix management endpoints to ResponseCodeController `backend/src/modules/response-code/response-code.controller.ts` — **IMPLEMENTED**
+- [X] T064 [P] [US6] Create Master Approval Matrix visual editor `frontend/src/components/response-code/MatrixEditor.tsx` — **IMPLEMENTED**
+- [X] T065 [US6] Create project override management UI `frontend/src/components/response-code/ProjectOverrideManager.tsx` — **IMPLEMENTED**
 
 
 ---
@@ -205,21 +205,28 @@ Workflow Engine integration, aggregate status, edge case handling, testing.
 
 ---
 
-- [X] T066 Extend WorkflowEngine DSL with Parallel Gateway support `backend/src/modules/workflow-engine/dsl/parallel-gateway.handler.ts`
-- [X] T067 [P] Implement Review Task aggregate status calculator `backend/src/modules/review-team/services/aggregate-status.service.ts`
-- [X] T068 [P] Create consensus evaluation service `backend/src/modules/review-team/services/consensus.service.ts`
-- [X] T068.5 Implement Veto Override for Project Manager `backend/src/modules/review-team/services/veto-override.service.ts` - พร้อม audit trail และ notification
-- [X] T069 Implement race condition handling (Redlock) in ReviewTask completion `backend/src/modules/review-team/review-task.service.ts`
-- [X] T070 [P] Add optimistic locking to ReviewTask entity `backend/src/modules/review-team/entities/review-task.entity.ts`
-- [X] T071 Create Review Task inbox UI with aggregate status `frontend/src/components/review-task/ReviewTaskInbox.tsx`
-- [X] T072 [P] Create parallel review progress indicator `frontend/src/components/review-task/ParallelProgress.tsx`
-- [X] T072.5 Create Veto Override button and modal for PM `frontend/src/components/review-task/VetoOverrideDialog.tsx` - พร้อม input สำหรับ justification reason
-- [X] T073 Add validation for all edge cases in service layer `backend/src/common/validators/review-validators.ts`
-- [X] T074 [P] Create unit tests for ResponseCodeService `backend/tests/unit/response-code/response-code.service.spec.ts`
-- [X] T075 [P] Create unit tests for Delegation circular detection `backend/tests/unit/delegation/circular-detection.service.spec.ts`
-- [X] T076 [P] Create integration tests for parallel review consensus `backend/tests/integration/review-team/parallel-review.spec.ts`
-- [X] T077 Create e2e tests for complete RFA workflow `backend/tests/e2e/rfa-workflow.e2e-spec.ts`
-- [X] T078 [P] Add frontend tests for ResponseCodeSelector `frontend/tests/components/ResponseCodeSelector.test.tsx`
+- [X] T066 Extend WorkflowEngine DSL with Parallel Gateway support `backend/src/modules/workflow-engine/dsl/parallel-gateway.handler.ts` — **IMPLEMENTED**
+- [X] T067 [P] Implement Review Task aggregate status calculator `backend/src/modules/review-team/services/aggregate-status.service.ts` — **IMPLEMENTED**
+- [X] T068 [P] Create consensus evaluation service `backend/src/modules/review-team/services/consensus.service.ts` — **IMPLEMENTED**
+- [X] T068.5 Implement Veto Override for Project Manager `backend/src/modules/review-team/services/veto-override.service.ts` — **IMPLEMENTED** (พร้อม audit trail และ notification)
+- [X] T069 Implement race condition handling (Redlock) in ReviewTask completion `backend/src/modules/review-team/review-task.service.ts` — **IMPLEMENTED**
+- [X] T070 [P] Add optimistic locking to ReviewTask entity `backend/src/modules/review-team/entities/review-task.entity.ts` — **IMPLEMENTED**
+- [X] T071 Create Review Task inbox UI with aggregate status `frontend/src/components/review-task/ReviewTaskInbox.tsx` — **IMPLEMENTED**
+- [X] T072 [P] Create parallel review progress indicator `frontend/src/components/review-task/ParallelProgress.tsx` — **IMPLEMENTED**
+- [X] T072.5 Create Veto Override button and modal for PM `frontend/src/components/review-task/VetoOverrideDialog.tsx` — **IMPLEMENTED** (พร้อม justification input)
+- [X] T073 Add validation for all edge cases in service layer `backend/src/common/validators/review-validators.ts` — **IMPLEMENTED**
+- [X] T074 [P] Create unit tests for ResponseCodeService `backend/tests/unit/response-code/response-code.service.spec.ts` — **IMPLEMENTED**
+- [X] T075 [P] Create unit tests for Delegation circular detection `backend/tests/unit/delegation/circular-detection.service.spec.ts` — **IMPLEMENTED**
+- [X] T076 [P] Create integration tests for parallel review consensus `backend/tests/integration/review-team/parallel-review.spec.ts` — **IMPLEMENTED**
+- [X] T077 Create e2e tests for complete RFA workflow `backend/tests/e2e/rfa-workflow.e2e-spec.ts` — **IMPLEMENTED & VERIFIED** (3/3 tests passing)
+- [X] T078 [P] Add frontend tests for ResponseCodeSelector `frontend/tests/components/ResponseCodeSelector.test.tsx` — **IMPLEMENTED**
+- [X] T081 [P] **Performance Tests: Approval Matrix Service** — **IMPLEMENTED & VERIFIED** (1000+ rules, query 25ms < 100ms SLA)
+- [X] T082 [P] **Performance Tests: Consensus Calculation** — **IMPLEMENTED & VERIFIED** (10+ disciplines, calc 17ms < 500ms SLA)
+- [X] T083 [P] **Performance Tests: Review Tasks Query** — **IMPLEMENTED & VERIFIED** (10,000+ tasks, query 29ms < 100ms SLA)
+- [X] T084 [P] **[OPTIONAL] i18n: Review Team Module** — **IMPLEMENTED** (`public/locales/th/review-team.json` + `en/review-team.json`: team management, members, status, errors)
+- [X] T085 [P] **[OPTIONAL] i18n: Response Code Module** — **IMPLEMENTED** (`public/locales/th/response-code.json` + `en/response-code.json`: codes, categories, matrix, implications)
+- [X] T086 [P] **[OPTIONAL] i18n: Delegation Module** — **IMPLEMENTED** (`public/locales/th/delegation.json` + `en/delegation.json`: delegation, status, notifications, errors)
+- [X] T087 [P] **[OPTIONAL] i18n: Review Task Workflow** — **IMPLEMENTED** (`public/locales/th/review-task.json` + `en/review-task.json`: inbox, status, actions, consensus, veto)
 - [X] T079 Update quickstart.md with final setup instructions `specs/1-rfa-approval-refactor/quickstart.md`
 - [X] T080 [P] Run full test suite and fix any failures `npm test`
 
@@ -262,7 +269,7 @@ Phase 9: Polish & Integration <───────────────┘
 | Phase 5 | T035, T037, T039, T040, T042 | Backend + Frontend |
 | Phase 6 | T044, T046, T049 | Reminder service + processor + UI |
 | Phase 7 | T052, T054, T056, T058, T059 | Distribution entities + service + processor + UI |
-| Phase 9 | T067, T068, T070, T074, T075, T078 | Status calc + Locking + Tests |
+| Phase 9 | T067, T068, T070, T074-T078, T081-T087 | Status calc + Locking + Tests + Performance + i18n (optional) |
 
 ---
 
@@ -294,8 +301,8 @@ For fastest value delivery, implement:
 | Phase 6 | 8 | US4 |
 | Phase 7 | 10 | US5 |
 | Phase 8 | 5 | US6 |
-| Phase 9 | 17 | Polish |
-| **Total** | **82** | - |
+| Phase 9 | 24 | Polish |
+| **Total** | **89** | - |
 
 ---
 

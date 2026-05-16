@@ -1,0 +1,79 @@
+{
+  "title": "รหัสผลการตรวจสอบ",
+  "subtitle": "จัดการรหัสผลการตรวจสอบและผลกระทบ",
+
+  "list": {
+    "title": "รายการรหัสผลตรวจสอบ",
+    "createButton": "สร้างรหัสใหม่",
+    "searchPlaceholder": "ค้นหารหัส...",
+    "noResults": "ไม่พบรหัสผลตรวจสอบ",
+    "filterByCategory": "กรองตามหมวดหมู่"
+  },
+
+  "categories": {
+    "ENGINEERING": "วิศวกรรม",
+    "CONTRACT": "สัญญา",
+    "QUALITY": "คุณภาพ",
+    "SAFETY": "ความปลอดภัย",
+    "PROCUREMENT": "จัดซื้อ",
+    "GENERAL": "ทั่วไป"
+  },
+
+  "form": {
+    "createTitle": "สร้างรหัสผลตรวจสอบ",
+    "editTitle": "แก้ไขรหัสผลตรวจสอบ",
+    "code": "รหัส",
+    "codePlaceholder": "เช่น 1A, 1B, 2",
+    "subStatus": "สถานะย่อย",
+    "subStatusPlaceholder": "เช่น A, B, C",
+    "category": "หมวดหมู่",
+    "description": "คำอธิบาย",
+    "descriptionPlaceholder": "คำอธิบายรหัสผลตรวจสอบ",
+    "descriptionThai": "คำอธิบาย (ภาษาไทย)",
+    "implications": "ผลกระทบ",
+    "implicationsPlaceholder": "ผลกระทบที่เกิดขึ้นเมื่อเลือกรหัสนี้",
+    "notifyRoles": "แจ้งเตือนถึงบทบาท",
+    "isActive": "เปิดใช้งาน",
+    "saveButton": "บันทึก",
+    "cancelButton": "ยกเลิก"
+  },
+
+  "selector": {
+    "placeholder": "เลือกรหัสผลตรวจสอบ...",
+    "filterByDocType": "กรองตามประเภทเอกสาร",
+    "loading": "กำลังโหลด..."
+  },
+
+  "implications": {
+    "title": "ผลกระทบจากรหัส",
+    "critical": "สำคัญ",
+    "warning": "คำเตือน",
+    "info": "ข้อมูล",
+    "notificationsSent": "จะมีการแจ้งเตือนไปยัง: {{roles}}"
+  },
+
+  "matrix": {
+    "title": "Master Approval Matrix",
+    "subtitle": "กำหนดรหัสผลตรวจสอบตามประเภทเอกสาร",
+    "docType": "ประเภทเอกสาร",
+    "applicableCodes": "รหัสที่ใช้ได้",
+    "projectOverride": "การตั้งค่าเฉพาะโครงการ",
+    "inheritanceNote": "สืบทอดจากค่าเริ่มต้น",
+    "addOverride": "เพิ่มการตั้งค่าเฉพาะโครงการ"
+  },
+
+  "errors": {
+    "codeRequired": "กรุณาระบุรหัส",
+    "codeExists": "รหัสนี้มีอยู่แล้ว",
+    "categoryRequired": "กรุณาเลือกหมวดหมู่",
+    "invalidCode": "รูปแบบรหัสไม่ถูกต้อง",
+    "loadFailed": "ไม่สามารถโหลดรหัสได้",
+    "saveFailed": "ไม่สามารถบันทึกรหัสได้"
+  },
+
+  "success": {
+    "created": "สร้างรหัสสำเร็จ",
+    "updated": "อัปเดตรหัสสำเร็จ",
+    "deleted": "ลบรหัสสำเร็จ"
+  }
+}

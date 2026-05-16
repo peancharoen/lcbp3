@@ -9,17 +9,28 @@ import { useTranslations } from '@/hooks/use-translations';
 
 interface AiStatusBannerProps {
   isOffline: boolean;
+  queuePaused?: boolean;
 }
 
-export function AiStatusBanner({ isOffline }: AiStatusBannerProps) {
+export function AiStatusBanner({ isOffline, queuePaused = false }: AiStatusBannerProps) {
   const t = useTranslations();
 
   if (isOffline) {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>{t('ai.status.offlineTitle')}</AlertTitle>
+        <AlertTitle>{t('ai.service_unavailable')}</AlertTitle>
         <AlertDescription>{t('ai.status.offlineDescription')}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (queuePaused) {
+    return (
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>{t('ai.status.queue-paused')}</AlertTitle>
+        <AlertDescription>{t('ai.status.queuePausedDescription')}</AlertDescription>
       </Alert>
     );
   }

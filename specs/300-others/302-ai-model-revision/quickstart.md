@@ -90,12 +90,17 @@ grep -r "typhoon" backend/src --include="*.ts"
 # Expected: NO results (file should be deleted)
 ```
 
-### Scenario 6: GPU Overload Prevention
+### Scenario 6: GPU Overload Prevention + VRAM Verification
 
 ```bash
-# While ai-batch job is running, submit ai-realtime job
+# 1. While ai-batch job is running, submit ai-realtime job
 # Expected: ai-batch pauses; ai-realtime job completes; ai-batch resumes
 # Observable via BullMQ dashboard or job status API
+
+# 2. Measure VRAM peak during job run (verify SC-003):
+nvidia-smi --query-gpu=memory.used --format=csv,noheader
+# Expected: value < 5120 MB (5GB threshold per SC-003)
+# Repeat during both ai-batch and ai-realtime jobs to verify peak
 ```
 
 ---

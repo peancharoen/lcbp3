@@ -16,11 +16,12 @@ module.exports = {
   // Root directory for tests
   rootDir: '.',
 
-  // Test file pattern — ครอบคลุมทั้ง src/ (unit) และ tests/ (integration/e2e)
+  // Test file pattern — ครอบคลุมทั้ง src/ (unit), tests/ (integration/e2e), และ performance tests
   testMatch: [
     '<rootDir>/src/**/*.spec.ts',
     '<rootDir>/tests/**/*.spec.ts',
     '<rootDir>/tests/**/*.e2e-spec.ts',
+    '<rootDir>/tests/**/*.perf-spec.ts',
   ],
 
   // TypeScript transformation

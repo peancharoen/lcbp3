@@ -3,7 +3,7 @@ import { ValidationException } from '../../common/exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { UserAssignment } from './entities/user-assignment.entity';
-import { AssignRoleDto } from './dto/assign-role.dto.js';
+import { AssignRoleDto } from './dto/assign-role.dto';
 import { BulkAssignmentDto, ActionType } from './dto/bulk-assignment.dto';
 import { User } from './entities/user.entity';
 

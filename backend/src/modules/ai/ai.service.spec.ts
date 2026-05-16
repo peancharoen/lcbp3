@@ -3,6 +3,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { getQueueToken } from '@nestjs/bullmq';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { AiService } from './ai.service';
@@ -15,6 +16,11 @@ import { AiAuditLog, AiAuditStatus } from './entities/ai-audit-log.entity';
 import { AiCallbackDto } from './dto/ai-callback.dto';
 import { MigrationUpdateDto } from './dto/migration-update.dto';
 import { NotFoundException, BusinessException } from '../../common/exceptions';
+import { AuditLog } from '../../common/entities/audit-log.entity';
+import {
+  QUEUE_AI_BATCH,
+  QUEUE_AI_REALTIME,
+} from '../common/constants/queue.constants';
 
 describe('AiService', () => {
   let service: AiService;
@@ -36,6 +42,19 @@ describe('AiService', () => {
   const mockAuditLogRepo = {
     create: jest.fn(),
     save: jest.fn(),
+  };
+
+  const mockMainAuditLogRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+  };
+
+  const mockQueue = {
+    add: jest.fn(),
+    isPaused: jest.fn().mockResolvedValue(false),
+    getActiveCount: jest.fn().mockResolvedValue(0),
+    resume: jest.fn(),
+    getState: jest.fn().mockResolvedValue('completed'),
   };
 
   // Mock ConfigService — คืนค่า Config ตาม Key
@@ -80,6 +99,8 @@ describe('AiService', () => {
     );
     mockAuditLogRepo.create.mockReturnValue({});
     mockAuditLogRepo.save.mockResolvedValue({});
+    mockMainAuditLogRepo.create.mockReturnValue({});
+    mockMainAuditLogRepo.save.mockResolvedValue({});
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -89,6 +110,12 @@ describe('AiService', () => {
           useValue: mockMigrationLogRepo,
         },
         { provide: getRepositoryToken(AiAuditLog), useValue: mockAuditLogRepo },
+        {
+          provide: getRepositoryToken(AuditLog),
+          useValue: mockMainAuditLogRepo,
+        },
+        { provide: getQueueToken(QUEUE_AI_REALTIME), useValue: mockQueue },
+        { provide: getQueueToken(QUEUE_AI_BATCH), useValue: mockQueue },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: HttpService, useValue: mockHttpService },
         { provide: AiValidationService, useValue: mockValidationService },

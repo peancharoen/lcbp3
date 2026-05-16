@@ -17,6 +17,10 @@ import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { Attachment } from './entities/attachment.entity';
 import { ForbiddenException } from '@nestjs/common'; // ✅ Import เพิ่ม
+import {
+  QUEUE_AI_BATCH,
+  QUEUE_AI_REALTIME,
+} from '../../modules/common/constants/queue.constants';
 
 @Injectable()
 export class FileStorageService {
@@ -28,7 +32,13 @@ export class FileStorageService {
     @InjectRepository(Attachment)
     private attachmentRepository: Repository<Attachment>,
     private configService: ConfigService,
-    @Optional() @InjectQueue('rag-ocr') private readonly ragOcrQueue?: Queue
+    @Optional() @InjectQueue('rag-ocr') private readonly ragOcrQueue?: Queue,
+    @Optional()
+    @InjectQueue(QUEUE_AI_REALTIME)
+    private readonly aiRealtimeQueue?: Queue,
+    @Optional()
+    @InjectQueue(QUEUE_AI_BATCH)
+    private readonly aiBatchQueue?: Queue
   ) {
     // ใช้ env vars จาก docker-compose สำหรับ Production
     // ถ้าไม่ได้กำหนดจะ fallback เป็น ./uploads/temp และ ./uploads/permanent
@@ -185,6 +195,13 @@ export class FileStorageService {
                 );
               });
           }
+
+          if (options?.ragMeta?.projectPublicId) {
+            await this.enqueueAiJobsForCommittedAttachment(
+              saved,
+              options.ragMeta.projectPublicId
+            );
+          }
         } else {
           this.logger.error(`File missing during commit: ${oldPath}`);
           throw new NotFoundException(
@@ -277,6 +294,57 @@ export class FileStorageService {
 
   private calculateChecksum(buffer: Buffer): string {
     return crypto.createHash('sha256').update(buffer).digest('hex');
+  }
+
+  private async enqueueAiJobsForCommittedAttachment(
+    attachment: Attachment,
+    projectPublicId: string
+  ): Promise<void> {
+    const commonPayload = {
+      documentPublicId: attachment.publicId,
+      projectPublicId,
+      payload: { pdfPath: attachment.filePath },
+    };
+    const suggestResult = await this.aiRealtimeQueue
+      ?.add(
+        'ai-suggest',
+        {
+          ...commonPayload,
+          jobType: 'ai-suggest',
+          idempotencyKey: `suggest:${attachment.publicId}`,
+        },
+        { jobId: `suggest:${attachment.publicId}` }
+      )
+      .then(() => true)
+      .catch((err: unknown) => {
+        this.logger.warn(
+          `AI job queue failed, document saved without AI: ${attachment.publicId} (${err instanceof Error ? err.message : String(err)})`
+        );
+        return false;
+      });
+    const embedResult = await this.aiBatchQueue
+      ?.add(
+        'embed-document',
+        {
+          ...commonPayload,
+          jobType: 'embed-document',
+          idempotencyKey: `embed:${attachment.publicId}`,
+        },
+        { jobId: `embed:${attachment.publicId}` }
+      )
+      .then(() => true)
+      .catch((err: unknown) => {
+        this.logger.warn(
+          `AI job queue failed, document saved without AI: ${attachment.publicId} (${err instanceof Error ? err.message : String(err)})`
+        );
+        return false;
+      });
+    if (suggestResult === false || embedResult === false) {
+      await this.attachmentRepository.update(
+        { publicId: attachment.publicId },
+        { aiProcessingStatus: 'FAILED' }
+      );
+    }
   }
 
   /**

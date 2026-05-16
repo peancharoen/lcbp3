@@ -41,6 +41,7 @@ import { AiQueueService } from './ai-queue.service';
 import { AiRagQueryDto } from './dto/ai-rag-query.dto';
 import { ExtractDocumentDto } from './dto/extract-document.dto';
 import { AiCallbackDto } from './dto/ai-callback.dto';
+import { CreateAiJobDto } from './dto/create-ai-job.dto';
 import { MigrationUpdateDto } from './dto/migration-update.dto';
 import { MigrationQueryDto } from './dto/migration-query.dto';
 import {
@@ -70,6 +71,49 @@ export class AiController {
   ) {}
 
   // --- Real-time Extraction (User Upload) ---
+
+  @Post('suggest')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('ai.suggest')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    summary: 'AI Suggest — enqueue metadata suggestion job',
+    description:
+      'รับ documentPublicId/projectPublicId แล้วส่งงานเข้า ai-realtime queue เพื่อให้ frontend polling สถานะ',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key เพื่อป้องกัน duplicate AI Suggest job',
+    required: true,
+  })
+  async suggestDocumentMetadata(
+    @Body() dto: CreateAiJobDto,
+    @Headers('idempotency-key') idempotencyKey: string
+  ): Promise<{ success: boolean; jobId?: string; status: string }> {
+    const result = await this.aiService.queueSuggestJob({
+      ...dto,
+      jobType: 'ai-suggest',
+      idempotencyKey: idempotencyKey || dto.idempotencyKey,
+    });
+    return {
+      success: result.success,
+      jobId: result.jobId,
+      status: result.success ? 'queued' : 'failed',
+    };
+  }
+
+  @Get('jobs/:jobId/status')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('ai.suggest')
+  @ApiOperation({
+    summary: 'AI Job Status — polling endpoint สำหรับ AI Suggest',
+  })
+  @ApiParam({ name: 'jobId', description: 'BullMQ job id' })
+  async getAiJobStatus(@Param('jobId') jobId: string) {
+    return this.aiService.getAiJobStatus(jobId);
+  }
 
   @Post('extract')
   @UseGuards(JwtAuthGuard, RbacGuard)
@@ -200,6 +244,43 @@ export class AiController {
       documentPublicId: query.documentPublicId,
       olderThanDays: query.olderThanDays,
     });
+  }
+
+  // ─── Phase 6: AI Analytics & Single Audit Log Delete (T036, T037) ────────
+
+  @Get('analytics/summary')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('ai.read_analytics')
+  @ApiOperation({
+    summary: 'AI Analytics Summary — สรุปสถิติ AI Audit Logs (T036)',
+    description:
+      'คำนวณ avgConfidence, overrideRate, rejectedRate แยกตาม document type และ overall',
+  })
+  async getAnalyticsSummary() {
+    return this.aiService.getAnalyticsSummary();
+  }
+
+  @Delete('audit-logs/:publicId')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('ai.delete_audit')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'AI Audit Log Single Delete — ลบ log เดี่ยวโดย publicId (SYSTEM_ADMIN เท่านั้น) (T037)',
+    description:
+      'ลบ AiAuditLog เดี่ยวและบันทึกใน audit_logs (action: AI_AUDIT_LOG_DELETED)',
+  })
+  @ApiParam({
+    name: 'publicId',
+    description: 'UUID ของ AiAuditLog (ADR-019)',
+  })
+  async deleteAuditLogByPublicId(
+    @Param('publicId', ParseUuidPipe) publicId: string,
+    @CurrentUser() user: User
+  ): Promise<{ deleted: boolean; publicId: string }> {
+    return this.aiService.deleteAuditLogByPublicId(publicId, user.user_id);
   }
 
   // ─── RAG Query Endpoints (Phase 4 — FR-009, FR-010, FR-011) ────────────────

@@ -1066,8 +1066,6 @@ VALUES -- Contract Management
 -- ==========================================================
 -- VERIFICATION: Run permissions-verification.sql after this
 -- ==========================================================
-
-
 -- ==========================================================
 -- MERGED FROM fix-project-permissions.sql (v1.9.0 Update)
 -- ==========================================================
@@ -1088,15 +1086,19 @@ VALUES (
     'project',
     1
   );
+
 -- 2. Grant project.view to Superadmin (Role 1)
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (1, 202);
+
 -- 3. Grant project.view to Organization Admin (Role 2)
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (2, 202);
+
 -- 4. Grant project.view to Project Manager (Role 6)
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (6, 202);
+
 -- 5. Grant project.view to Viewer (Role 5)
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (5, 202);
@@ -1139,25 +1141,44 @@ VALUES (
     'Hard Delete ai_audit_logs (Superadmin Only)',
     'ai',
     1
+  ),
+  (
+    185,
+    'ai.read_analytics',
+    'ดู AI Analytics Summary (Confidence, Override Rate, Rejected Rate)',
+    'ai',
+    1
+  ),
+  (
+    186,
+    'ai.delete_audit',
+    'ลบ AiAuditLog เดี่ยวโดย publicId (Superadmin Only)',
+    'ai',
+    1
   );
 
 -- Role 1: Superadmin — ได้รับทุก permission โดยอัตโนมัติผ่าน SELECT-all pattern (บรรทัด 825-829)
--- Role 2: Org Admin — ai.suggest, ai.rag_query, ai.migration_manage
+-- Role 2: Org Admin — ai.suggest, ai.rag_query, ai.migration_manage, ai.read_analytics
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (2, 181),
   -- ai.suggest
   (2, 182),
   -- ai.rag_query
-  (2, 183);
+  (2, 183),
+  -- ai.migration_manage
+  (2, 185);
 
--- ai.migration_manage
--- Role 3: Document Control — ai.suggest, ai.rag_query, ai.migration_manage
+-- ai.read_analytics
+-- Role 3: Document Control — ai.suggest, ai.rag_query, ai.migration_manage, ai.read_analytics
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (3, 181),
   -- ai.suggest
   (3, 182),
   -- ai.rag_query
-  (3, 183);
+  (3, 183),
+  -- ai.migration_manage
+  (3, 185);
 
+-- ai.read_analytics
 -- ai.migration_manage
 -- ai.audit_log_delete (184) — Superadmin เท่านั้น, ไม่ grant ให้ Role อื่น

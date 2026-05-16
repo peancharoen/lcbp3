@@ -678,6 +678,8 @@
     "workbench.settings.alwaysShowAdvancedSettings": true,
     "npm.packageManager": "pnpm",
     "editor.mouseWheelZoom": true,
+    "terminal.integrated.mouseWheelZoom": true,
+    "terminal.integrated.tabs.title": "${process}-${cwd}",
   },
   // ========================================
   // LAUNCH CONFIGURATIONS

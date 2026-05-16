@@ -1,18 +1,26 @@
 // File: components/ai/ai-suggestion-field.tsx
 // Component แสดง AI Suggestion พร้อม Accept / Reject / Edit actions (ADR-018, ADR-020)
+'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, X, Edit2, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import apiClient from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 
-// สีตาม confidence score (>= 0.95 สีเขียว, >= 0.85 สีเหลือง, < 0.85 สีแดง)
+// สีตาม confidence score ของ ADR-023A
 const getConfidenceClass = (confidence: number): string => {
-  if (confidence >= 0.95) return 'text-green-700 bg-green-50 border-green-400';
-  if (confidence >= 0.85) return 'text-yellow-700 bg-yellow-50 border-yellow-400';
-  return 'text-red-700 bg-red-50 border-red-400';
+  if (confidence >= 0.85) return 'text-green-700 bg-green-50 border-green-400';
+  if (confidence >= 0.6) return 'text-yellow-700 bg-yellow-50 border-yellow-400';
+  return 'text-muted-foreground bg-muted border-border';
+};
+
+const getConfidenceLabel = (confidence: number): string => {
+  if (confidence >= 0.85) return 'AI แนะนำ';
+  if (confidence >= 0.6) return 'ตรวจสอบก่อนยืนยัน';
+  return '';
 };
 
 export interface AiSuggestionFieldProps {
@@ -20,6 +28,10 @@ export interface AiSuggestionFieldProps {
   value: string;
   suggestion?: string;
   confidence?: number;
+  isUnknown?: boolean;
+  jobId?: string;
+  onJobCompleted?: (result: unknown) => void;
+  onJobFailed?: () => void;
   onAccept: () => void;
   onReject: () => void;
   onEdit: (newValue: string) => void;
@@ -31,6 +43,10 @@ export function AiSuggestionField({
   value,
   suggestion,
   confidence,
+  isUnknown = false,
+  jobId,
+  onJobCompleted,
+  onJobFailed,
   onAccept,
   onReject,
   onEdit,
@@ -54,18 +70,50 @@ export function AiSuggestionField({
     setIsEditing(true);
   };
 
+  useEffect(() => {
+    if (!jobId) return undefined;
+    const interval = window.setInterval(() => {
+      void apiClient
+        .get(`/ai/jobs/${jobId}/status`)
+        .then((response) => {
+          const status = response.data?.status as string | undefined;
+          if (status === 'completed') {
+            window.clearInterval(interval);
+            onJobCompleted?.(response.data?.result);
+          }
+          if (status === 'failed') {
+            window.clearInterval(interval);
+            onJobFailed?.();
+          }
+        })
+        .catch(() => {
+          window.clearInterval(interval);
+          onJobFailed?.();
+        });
+    }, 3000);
+    return () => window.clearInterval(interval);
+  }, [jobId, onJobCompleted, onJobFailed]);
+
   return (
     <div className={cn('space-y-1', className)}>
       {/* Label พร้อม Confidence Badge */}
       <div className="flex items-center gap-2">
         <label className="text-sm font-medium">{label}</label>
-        {hasSuggestion && confidence !== undefined && (
+        {hasSuggestion && confidence !== undefined && getConfidenceLabel(confidence) && (
           <Badge
             variant="outline"
             className={cn('text-xs gap-1 px-1.5 py-0', getConfidenceClass(confidence))}
           >
             <Sparkles className="h-3 w-3" />
-            AI {Math.round(confidence * 100)}%
+            {getConfidenceLabel(confidence)} {Math.round(confidence * 100)}%
+          </Badge>
+        )}
+        {hasSuggestion && isUnknown && (
+          <Badge
+            variant="outline"
+            className="text-xs px-1.5 py-0 text-red-700 bg-red-50 border-red-300"
+          >
+            ไม่รู้จัก
           </Badge>
         )}
       </div>
@@ -156,10 +204,13 @@ export function AiSuggestionField({
       {/* แสดง AI Suggestion hint เมื่อค่าปัจจุบันต่างจาก AI */}
       {hasSuggestion && !isAiValue && (
         <p className="text-xs text-muted-foreground pl-1">
-          AI แนะนำ:{' '}
+          {isUnknown ? 'ไม่รู้จัก — กรุณาเลือกจาก dropdown: ' : 'AI แนะนำ: '}
           <button
             type="button"
-            className="font-medium text-yellow-700 hover:underline"
+            className={cn(
+              'font-medium hover:underline',
+              isUnknown ? 'text-red-700' : 'text-yellow-700'
+            )}
             onClick={onAccept}
           >
             {suggestion}

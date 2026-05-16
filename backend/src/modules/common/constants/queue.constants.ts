@@ -20,6 +20,12 @@ export const QUEUE_VETO_NOTIFICATIONS = 'veto-notifications';
 /** Queue สำหรับ Legacy Document Migration ผ่าน AI Pipeline (ADR-023) */
 export const QUEUE_AI_INGEST = 'ai-ingest';
 
+/** Queue สำหรับ AI งาน interactive ที่ต้องมาก่อน batch jobs (ADR-023A) */
+export const QUEUE_AI_REALTIME = 'ai-realtime';
+
+/** Queue สำหรับ AI งาน batch เช่น OCR, extract metadata และ embedding (ADR-023A) */
+export const QUEUE_AI_BATCH = 'ai-batch';
+
 /** Queue สำหรับ RAG Query ที่ต้องจำกัด concurrency บน Desk-5439 (ADR-023) */
 export const QUEUE_AI_RAG = 'ai-rag-query';
 

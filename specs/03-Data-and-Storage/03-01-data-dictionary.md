@@ -1,9 +1,9 @@
 ---
 title: 'Data & Storage: Data Dictionary and Data Model Architecture'
-version: 1.9.0
+version: 1.9.1
 status: released
 owner: Nattanin Peancharoen
-last_updated: 2026-04-14
+last_updated: 2026-05-16
 related:
   - specs/01-requirements/02-architecture.md
   - specs/01-requirements/03-functional-requirements.md
@@ -1372,6 +1372,7 @@ erDiagram
 | checksum            | VARCHAR(64)  | NULL                        | SHA-256 Checksum สำหรับ Verify File Integrity [Req 3.9.3]                  |
 | reference_date      | DATE         | NULL                        | Date used for folder structure (e.g. Issue Date) to prevent broken paths   |
 | workflow_history_id | VARCHAR(36)  | NULL, FK                    | **[ADR-021]** อ้างอิง workflow_histories.publicId — NULL = ไฟล์แนบหลักของเอกสาร; NOT NULL = ไฟล์หลักฐานประจำ Workflow Step |
+| ai_processing_status | ENUM | NOT NULL, DEFAULT 'PENDING' | **[ADR-023A]** สถานะ AI job ของไฟล์เอกสาร: PENDING / PROCESSING / DONE / FAILED |
 
 **Indexes**:
 
@@ -1384,6 +1385,7 @@ erDiagram
 - INDEX (created_at)
 - INDEX (reference_date)
 - INDEX (workflow_history_id)
+- INDEX idx_attachments_ai_status (ai_processing_status)
 
 **Relationships**:
 
@@ -2286,29 +2288,86 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 ---
 
-### 19.2 `ai_audit_logs`
+### 19.1 `migration_review_queue`
 
-**วัตถุประสงค์:** บันทึก Audit Trail ของ AI Interaction ทุกครั้ง ตาม ADR-018 Rule 5 — ห้ามลบ record ออก
+**วัตถุประสงค์:** ตาราง staging queue สำหรับ AI migration ตาม ADR-023A — เก็บข้อมูลเอกสาร legacy ที่ AI ประมวลผลแล้วรอ Admin ตรวจสอบ
 
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
 | `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
 | `uuid` | UUID | NO | Public Identifier (UUIDv7) |
-| `document_public_id` | UUID | YES | UUID ของ `migration_logs` ที่เกี่ยวข้อง (Soft Reference — ไม่ใช่ FK ในระดับ TypeORM) |
-| `ai_model` | VARCHAR(50) | NO | ชื่อ AI Model เช่น `gemma4`, `paddleocr`, `gemma4:27b` |
-| `processing_time_ms` | INT | YES | เวลาประมวลผล (milliseconds) — เป้าหมาย < 15,000ms ตาม ADR-020 |
-| `confidence_score` | DECIMAL(3,2) | YES | คะแนนความมั่นใจ (0.00–1.00) |
-| `input_hash` | VARCHAR(64) | YES | SHA-256 hash ของ Input — เพื่อ Integrity Verification |
-| `output_hash` | VARCHAR(64) | YES | SHA-256 hash ของ Output — เพื่อ Integrity Verification |
-| `status` | ENUM | NO | ผลการประมวลผล: SUCCESS / FAILED / TIMEOUT |
-| `error_message` | TEXT | YES | รายละเอียด Error (เมื่อ status = FAILED หรือ TIMEOUT) |
-| `created_at` | TIMESTAMP | NO | วันที่สร้าง — เรียงตาม timestamp เพื่อ Audit |
+| `batch_id` | VARCHAR(100) | NO | n8n batch identifier |
+| `idempotency_key` | VARCHAR(200) | NO | Idempotency-Key สำหรับป้องกัน queue ซ้ำ |
+| `original_filename` | VARCHAR(500) | NO | ชื่อไฟล์ต้นฉบับจาก legacy source |
+| `storage_temp_path` | VARCHAR(1000) | NO | temp storage path ก่อน import |
+| `ai_metadata_json` | JSON | NO | AI suggestion payload เต็มสำหรับ human review |
+| `confidence_score` | DECIMAL(5,4) | NO | AI confidence score 0.0000-1.0000 |
+| `ocr_used` | TINYINT(1) | NO | ระบุว่าใช้ OCR path หรือไม่ (default: 0) |
+| `status` | ENUM | NO | สถานะ: PENDING / APPROVED / IMPORTED / REJECTED |
+| `reviewed_by` | INT | YES | Internal users.user_id ของผู้ review |
+| `reviewed_at` | DATETIME | YES | เวลาที่ review record |
+| `rejection_reason` | VARCHAR(500) | YES | เหตุผลเมื่อ reject |
+| `version` | INT | NO | Optimistic locking version |
+| `created_at` | DATETIME | NO | วันที่สร้าง |
+| `updated_at` | DATETIME | NO | วันที่แก้ไขล่าสุด |
+
+**Indexes**:
+
+- PRIMARY KEY (id)
+- UNIQUE KEY uq_migration_review_uuid (uuid)
+- UNIQUE KEY uq_migration_review_idempotency (idempotency_key)
+- KEY idx_migration_review_status_created (status, created_at)
+- KEY idx_migration_review_batch (batch_id)
+- KEY idx_migration_review_reviewed_by (reviewed_by)
+- CONSTRAINT fk_migration_review_reviewed_by FOREIGN KEY (reviewed_by) REFERENCES users (user_id) ON DELETE SET NULL
 
 #### Business Rules
 
-1. **Immutable Records** — ห้ามแก้ไขหรือลบ `ai_audit_logs` หลังสร้าง (Audit Trail)
-2. **Data Retention** — เก็บไว้อย่างน้อย 90 วัน ตาม ADR-020 Data Privacy
-3. **No FK Constraint** — `document_public_id` เป็น Soft Reference เพื่อให้ Log ยังคงอยู่แม้ MigrationLog ถูกลบ
+1. **Staging Area** — ข้อมูลที่ประมวลผลผ่าน n8n จะถูกส่งเข้าตารางนี้เสมอ
+2. **Record Lifecycle** — Record ไม่ถูกลบหลัง Import — เปลี่ยน status เป็น IMPORTED เก็บไว้ตลอดเพื่อ Debug
+3. **Status Transitions** — PENDING → IMPORTED หรือ PENDING → REJECTED
+4. **Confidence Threshold** — กำหนดผ่าน .env (AI_THRESHOLD_HIGH=0.85, AI_THRESHOLD_MID=0.60)
+
+---
+
+### 19.2 `ai_audit_logs`
+
+**วัตถุประสงค์:** บันทึก AI Development Feedback Log ตาม ADR-023/ADR-023A — เก็บ AI Suggestion + การตัดสินใจของมนุษย์เพื่อวิเคราะห์และปรับปรุงคุณภาพโมเดล (ไม่ใช่ Compliance Audit Trail)
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | INT AUTO_INCREMENT | NO | Internal PK — ห้าม expose ใน API (ADR-019) |
+| `uuid` | UUID | NO | Public Identifier (UUIDv7) |
+| `document_public_id` | UUID | YES | Imported document publicId when available |
+| `ai_model` | VARCHAR(50) | NO | Legacy AI model column used by current gateway service (default: gemma4) |
+| `model_name` | VARCHAR(100) | NO | Local model name used by ADR-023 AI pipeline |
+| `ai_suggestion_json` | JSON | YES | AI suggested metadata |
+| `human_override_json` | JSON | YES | Human approved or overridden metadata |
+| `processing_time_ms` | INT | YES | Legacy processing duration field |
+| `confidence_score` | DECIMAL(4,3) | YES | AI confidence score 0.000-1.000 |
+| `input_hash` | VARCHAR(64) | YES | Legacy SHA-256 input hash |
+| `output_hash` | VARCHAR(64) | YES | Legacy SHA-256 output hash |
+| `status` | ENUM | NO | Legacy processing status field: SUCCESS / FAILED / TIMEOUT |
+| `error_message` | TEXT | YES | Legacy processing error field |
+| `confirmed_by_user_id` | INT | YES | Internal users.user_id that confirmed the record |
+| `created_at` | TIMESTAMP | NO | วันที่สร้าง |
+
+**Indexes**:
+
+- PRIMARY KEY (id)
+- UNIQUE KEY idx_ai_audit_logs_uuid (uuid)
+- KEY idx_ai_audit_document (document_public_id)
+- KEY idx_ai_audit_model (ai_model)
+- KEY idx_ai_audit_model_name (model_name)
+- KEY idx_ai_audit_status (status)
+- KEY idx_ai_audit_confirmed_by (confirmed_by_user_id)
+- CONSTRAINT fk_ai_audit_confirmed_by_user FOREIGN KEY (confirmed_by_user_id) REFERENCES users (user_id) ON DELETE SET NULL
+
+#### Business Rules
+
+1. **Development Feedback Log** — เป็น log สำหรับวิเคราะห์และปรับปรุงคุณภาพโมเดล AI ไม่ใช่ Compliance Audit Trail
+2. **Data Retention** — เก็บไว้ตลอดอายุโครงการ (~5-10 ปี) — Admin สามารถ Hard Delete ได้ผ่าน Frontend
+3. **RBAC** — เฉพาะ Role SYSTEM_ADMIN เท่านั้นที่ลบได้ — การลบทุกครั้งต้องบันทึกใน audit_logs (action: 'AI_AUDIT_LOG_DELETED')
 
 ---
 

@@ -63,7 +63,29 @@ CREATE TABLE migration_review_queue (
 
 ---
 
-### 3. Qdrant Vector Structure (no DB change — external store)
+### 3. `documents` table changes (existing table — ADR-009: SQL delta)
+
+เพิ่ม column `ai_processing_status` สำหรับ track AI job progress
+
+```sql
+-- Delta file: specs/03-Data-and-Storage/deltas/15-add-ai-processing-status.sql
+
+ALTER TABLE documents
+ADD COLUMN ai_processing_status ENUM('PENDING','PROCESSING','DONE','FAILED')
+  NOT NULL DEFAULT 'PENDING';
+
+ADD INDEX idx_ai_status (ai_processing_status);
+```
+
+**State transitions**:
+- `PENDING` → เมื่อ document commit (ใหม่)
+- `PROCESSING` → เมื่อ AI job ถูก dequeue
+- `DONE` → เมื่อ ai-suggest + embed-document สำเร็จทั้งคู่
+- `FAILED` → เมื่อ job เข้า dead-letter
+
+---
+
+### 4. Qdrant Vector Structure (no DB change — external store)
 
 Collection name: `lcbp3_documents` (shared collection, separated by payload filter)
 
@@ -95,7 +117,7 @@ filter: {
 
 ---
 
-### 4. BullMQ Job Payload Interfaces
+### 5. BullMQ Job Payload Interfaces
 
 **ai-realtime queue** (RAG Q&A, AI Suggest):
 ```typescript
@@ -130,7 +152,7 @@ interface AiBatchJobData {
 
 ---
 
-### 5. State Transitions
+### 6. State Transitions
 
 **Document Upload Flow** (new documents):
 ```

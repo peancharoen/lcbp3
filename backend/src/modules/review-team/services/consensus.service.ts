@@ -6,10 +6,7 @@ import { Repository } from 'typeorm';
 import { ReviewTask } from '../entities/review-task.entity';
 import { AggregateStatusService } from './aggregate-status.service';
 import { ApprovalListenerService } from '../../distribution/services/approval-listener.service';
-import {
-  ConsensusDecision,
-  ReviewTaskStatus,
-} from '../../common/enums/review.enums';
+import { ConsensusDecision } from '../../common/enums/review.enums';
 
 export interface ConsensusResult {
   decision: ConsensusDecision;
@@ -72,15 +69,10 @@ export class ConsensusService {
       decision === ConsensusDecision.APPROVED ||
       decision === ConsensusDecision.APPROVED_WITH_COMMENTS
     ) {
-      // ดึง response code ที่ predominant
-      const completedTasks = await this.taskRepo.find({
-        where: { rfaRevisionId, status: ReviewTaskStatus.COMPLETED },
-        relations: ['responseCode'],
-        order: { completedAt: 'DESC' },
-        take: 1,
-      });
-
-      const responseCode = completedTasks[0]?.responseCode?.code ?? '1A';
+      const responseCode =
+        await this.aggregateStatusService.getMostRestrictiveResponseCode(
+          rfaRevisionId
+        );
 
       await this.approvalListenerService.onConsensusReached({
         ...context,

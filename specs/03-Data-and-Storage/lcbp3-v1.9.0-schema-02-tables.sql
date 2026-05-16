@@ -871,13 +871,15 @@ CREATE TABLE attachments (
   CHECKSUM VARCHAR(64) NULL COMMENT 'SHA-256 Checksum',
   reference_date DATE NULL COMMENT 'Date used for folder structure (e.g. Issue Date) to prevent broken paths',
   workflow_history_id CHAR(36) NULL COMMENT 'FK to workflow_histories.id  for step-specific attachments (ADR-021). NULL = main document',
+  ai_processing_status ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') NOT NULL DEFAULT 'PENDING' COMMENT 'สถานะ AI job ของไฟล์เอกสารตาม ADR-023A',
   FOREIGN KEY (uploaded_by_user_id) REFERENCES users (user_id) ON DELETE CASCADE,
   FOREIGN KEY (workflow_history_id) REFERENCES workflow_histories (id) ON DELETE
   SET NULL ON UPDATE CASCADE,
     INDEX idx_attachments_reference_date (reference_date),
     INDEX idx_att_wfhist_created (workflow_history_id, created_at),
+    INDEX idx_attachments_ai_status (ai_processing_status),
     UNIQUE INDEX idx_attachments_uuid (uuid)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'ตาราง "กลาง" เก็บไฟล์แนบทั้งหมดของระบบ';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง "กลาง" เก็บไฟล์แนบทั้งหมดของระบบ';
 
 -- ตารางเชื่อม correspondence_revisions กับ attachments (M:N)
 -- [FIX] FK เปลี่ยนจาก correspondences.id → correspondence_revisions.id
@@ -1447,60 +1449,98 @@ CREATE TABLE migration_logs (
   SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บบันทึก Migration เอกสารที่ผ่าน AI Processing (Task BE-AI-02)';
 
--- ตาราง Audit Log สำหรับการทำงานของ AI ทุกครั้ง (ADR-018 Rule 5)
+-- =====================================================
+-- 12. 🤖 AI Migration Review Queue (ADR-023, ADR-023A)
+-- =====================================================
+-- ตาราง staging queue สำหรับ AI migration ตาม ADR-023A
+CREATE TABLE migration_review_queue (
+  id INT NOT NULL AUTO_INCREMENT COMMENT 'Internal PK (ห้าม expose ใน API)',
+  uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  batch_id VARCHAR(100) NOT NULL COMMENT 'n8n batch identifier',
+  idempotency_key VARCHAR(200) NOT NULL COMMENT 'Idempotency-Key สำหรับป้องกัน queue ซ้ำ',
+  original_filename VARCHAR(500) NOT NULL COMMENT 'ชื่อไฟล์ต้นฉบับจาก legacy source',
+  storage_temp_path VARCHAR(1000) NOT NULL COMMENT 'temp storage path ก่อน import',
+  ai_metadata_json JSON NOT NULL COMMENT 'AI suggestion payload เต็มสำหรับ human review',
+  confidence_score DECIMAL(5, 4) NOT NULL COMMENT 'AI confidence score 0.0000-1.0000',
+  ocr_used TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'ระบุว่าใช้ OCR path หรือไม่',
+  STATUS ENUM('PENDING', 'APPROVED', 'IMPORTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+  reviewed_by INT NULL COMMENT 'Internal users.user_id ของผู้ review',
+  reviewed_at DATETIME NULL COMMENT 'เวลาที่ review record',
+  rejection_reason VARCHAR(500) NULL COMMENT 'เหตุผลเมื่อ reject',
+  version INT NOT NULL DEFAULT 1 COMMENT 'Optimistic locking version',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_migration_review_uuid (uuid),
+  UNIQUE KEY uq_migration_review_idempotency (idempotency_key),
+  KEY idx_migration_review_status_created (STATUS, created_at),
+  KEY idx_migration_review_batch (batch_id),
+  KEY idx_migration_review_reviewed_by (reviewed_by),
+  CONSTRAINT fk_migration_review_reviewed_by FOREIGN KEY (reviewed_by) REFERENCES users (user_id) ON DELETE
+  SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ADR-023A AI migration review staging queue';
+
+-- ตาราง Audit Log สำหรับการทำงานของ AI ทุกครั้ง (ADR-023, ADR-023A)
 CREATE TABLE ai_audit_logs (
   id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
   uuid UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
-  document_public_id UUID NULL COMMENT 'UUID ของ migration_logs ที่เกี่ยวข้อง',
-  ai_model VARCHAR(50) NOT NULL COMMENT 'ชื่อ AI Model ที่ใช้ประมวลผล เช่น gemma4',
-  processing_time_ms INT NULL COMMENT 'เวลาประมวลผล (milliseconds)',
-  confidence_score DECIMAL(3, 2) NULL COMMENT 'คะแนนความมั่นใจ AI (0.00-1.00)',
-  input_hash VARCHAR(64) NULL COMMENT 'SHA-256 hash ของ Input เพื่อ Audit',
-  output_hash VARCHAR(64) NULL COMMENT 'SHA-256 hash ของ Output เพื่อ Audit',
-  STATUS ENUM('SUCCESS', 'FAILED', 'TIMEOUT') NOT NULL COMMENT 'สถานะการประมวลผล',
-  error_message TEXT NULL COMMENT 'ข้อความ Error (ถ้ามี)',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
-  UNIQUE INDEX idx_ai_audit_logs_uuid (uuid),
-  INDEX idx_ai_audit_document (document_public_id),
-  INDEX idx_ai_audit_model (ai_model),
-  INDEX idx_ai_audit_status (STATUS)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง Audit Log การทำงาน AI ทุกครั้ง (ADR-018 Rule 5 Audit Logging)';
+  document_public_id UUID NULL COMMENT 'Imported document publicId when available',
+  ai_model VARCHAR(50) NOT NULL DEFAULT 'gemma4' COMMENT 'Legacy AI model column used by current gateway service',
+  model_name VARCHAR(100) NOT NULL COMMENT 'Local model name used by ADR-023 AI pipeline',
+  ai_suggestion_json JSON NULL COMMENT 'AI suggested metadata',
+  human_override_json JSON NULL COMMENT 'Human approved or overridden metadata',
+  processing_time_ms INT NULL COMMENT 'Legacy processing duration field',
+  confidence_score DECIMAL(4, 3) NULL COMMENT 'AI confidence score 0.000-1.000',
+  input_hash VARCHAR(64) NULL COMMENT 'Legacy SHA-256 input hash',
+  output_hash VARCHAR(64) NULL COMMENT 'Legacy SHA-256 output hash',
+  STATUS ENUM('SUCCESS', 'FAILED', 'TIMEOUT') NOT NULL DEFAULT 'SUCCESS' COMMENT 'Legacy processing status field',
+  error_message TEXT NULL COMMENT 'Legacy processing error field',
+  confirmed_by_user_id INT NULL COMMENT 'Internal users.user_id that confirmed the record',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY idx_ai_audit_logs_uuid (uuid),
+  KEY idx_ai_audit_document (document_public_id),
+  KEY idx_ai_audit_model (ai_model),
+  KEY idx_ai_audit_model_name (model_name),
+  KEY idx_ai_audit_status (STATUS),
+  KEY idx_ai_audit_confirmed_by (confirmed_by_user_id),
+  CONSTRAINT fk_ai_audit_confirmed_by_user FOREIGN KEY (confirmed_by_user_id) REFERENCES users (user_id) ON DELETE
+  SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ADR-023 AI development feedback log';
 
 -- =============================================================================
 -- 20. RFA Approval System (v1.9.0)
 -- =============================================================================
-
 -- -----------------------------------------------------------------------------
 -- 20.1 review_teams — ทีมตรวจสอบแยกตาม Discipline
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `review_teams` (
-  `id`                    INT             NOT NULL AUTO_INCREMENT,
-  `uuid`                  UUID            NOT NULL DEFAULT (UUID()),
-  `project_id`            INT             NOT NULL,
-  `name`                  VARCHAR(100)    NOT NULL,
-  `description`           VARCHAR(255)    NULL,
-  `default_for_rfa_types` TEXT            NULL COMMENT 'Comma-separated RFA type codes e.g. SDW,DDW',
-  `is_active`             TINYINT(1)      NOT NULL DEFAULT 1,
-  `created_at`            DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at`            DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `project_id` INT NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `description` VARCHAR(255) NULL,
+  `default_for_rfa_types` TEXT NULL COMMENT 'Comma-separated RFA type codes e.g. SDW,DDW',
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_review_teams_uuid` (`uuid`),
   KEY `idx_review_teams_project` (`project_id`, `is_active`),
   CONSTRAINT `fk_review_teams_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 20.2 review_team_members — สมาชิกในทีมแยกตาม Discipline
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `review_team_members` (
-  `id`              INT             NOT NULL AUTO_INCREMENT,
-  `uuid`            UUID            NOT NULL DEFAULT (UUID()),
-  `team_id`         INT             NOT NULL,
-  `user_id`         INT             NOT NULL,
-  `discipline_id`   INT             NOT NULL,
-  `role`            ENUM('REVIEWER','LEAD','MANAGER') NOT NULL DEFAULT 'REVIEWER',
-  `priority_order`  INT             NOT NULL DEFAULT 0,
-  `created_at`      DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `team_id` INT NOT NULL,
+  `user_id` INT NOT NULL,
+  `discipline_id` INT NOT NULL,
+  `role` ENUM('REVIEWER', 'LEAD', 'MANAGER') NOT NULL DEFAULT 'REVIEWER',
+  `priority_order` INT NOT NULL DEFAULT 0,
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_review_team_members_uuid` (`uuid`),
   UNIQUE KEY `uq_team_user_discipline` (`team_id`, `user_id`, `discipline_id`),
@@ -1509,73 +1549,91 @@ CREATE TABLE IF NOT EXISTS `review_team_members` (
   CONSTRAINT `fk_rtm_team` FOREIGN KEY (`team_id`) REFERENCES `review_teams` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_rtm_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_rtm_discipline` FOREIGN KEY (`discipline_id`) REFERENCES `disciplines` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 20.3 response_codes — รหัสตอบกลับมาตรฐาน (Master Approval Matrix)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `response_codes` (
-  `id`              INT             NOT NULL AUTO_INCREMENT,
-  `uuid`            UUID            NOT NULL DEFAULT (UUID()),
-  `code`            VARCHAR(10)     NOT NULL COMMENT '1A, 1B, 1C, 1D, 1E, 1F, 1G, 2, 3, 4',
-  `sub_status`      VARCHAR(10)     NULL,
-  `category`        ENUM('ENGINEERING','MATERIAL','CONTRACT','TESTING','ESG') NOT NULL,
-  `description_th`  TEXT            NOT NULL,
-  `description_en`  TEXT            NOT NULL,
-  `implications`    JSON            NULL COMMENT '{"affectsSchedule":bool,"affectsCost":bool,"requiresContractReview":bool}',
-  `notify_roles`    TEXT            NULL COMMENT 'Comma-separated roles e.g. CONTRACT_MANAGER,QS_MANAGER',
-  `is_active`       TINYINT(1)      NOT NULL DEFAULT 1,
-  `is_system`       TINYINT(1)      NOT NULL DEFAULT 0 COMMENT 'System default — cannot delete',
-  `created_at`      DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `code` VARCHAR(10) NOT NULL COMMENT '1A, 1B, 1C, 1D, 1E, 1F, 1G, 2, 3, 4',
+  `sub_status` VARCHAR(10) NULL,
+  `category` ENUM(
+    'ENGINEERING',
+    'MATERIAL',
+    'CONTRACT',
+    'TESTING',
+    'ESG'
+  ) NOT NULL,
+  `description_th` TEXT NOT NULL,
+  `description_en` TEXT NOT NULL,
+  `implications` JSON NULL COMMENT '{"affectsSchedule":bool,"affectsCost":bool,"requiresContractReview":bool}',
+  `notify_roles` TEXT NULL COMMENT 'Comma-separated roles e.g. CONTRACT_MANAGER,QS_MANAGER',
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `is_system` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'System default — cannot delete',
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_response_codes_uuid` (`uuid`),
   UNIQUE KEY `uq_response_code_category` (`code`, `category`),
   KEY `idx_rc_category_active` (`category`, `is_active`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 20.4 response_code_rules — กฎการใช้รหัสต่อโครงการ/ประเภทเอกสาร
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `response_code_rules` (
-  `id`                    INT         NOT NULL AUTO_INCREMENT,
-  `uuid`                  UUID        NOT NULL DEFAULT (UUID()),
-  `project_id`            INT         NULL COMMENT 'NULL = global default',
-  `document_type_id`      INT         NOT NULL,
-  `response_code_id`      INT         NOT NULL,
-  `is_enabled`            TINYINT(1)  NOT NULL DEFAULT 1,
-  `requires_comments`     TINYINT(1)  NOT NULL DEFAULT 0,
-  `triggers_notification` TINYINT(1)  NOT NULL DEFAULT 0,
-  `parent_rule_id`        INT         NULL COMMENT 'For inheritance tracking',
-  `created_at`            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at`            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `project_id` INT NULL COMMENT 'NULL = global default',
+  `document_type_id` INT NOT NULL,
+  `response_code_id` INT NOT NULL,
+  `is_enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `requires_comments` TINYINT(1) NOT NULL DEFAULT 0,
+  `triggers_notification` TINYINT(1) NOT NULL DEFAULT 0,
+  `parent_rule_id` INT NULL COMMENT 'For inheritance tracking',
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_response_code_rules_uuid` (`uuid`),
-  UNIQUE KEY `uq_rule_per_project_doctype_code` (`project_id`, `document_type_id`, `response_code_id`),
+  UNIQUE KEY `uq_rule_per_project_doctype_code` (
+    `project_id`,
+    `document_type_id`,
+    `response_code_id`
+  ),
   KEY `idx_response_rules_lookup` (`project_id`, `document_type_id`, `is_enabled`),
   CONSTRAINT `fk_rcr_response_code` FOREIGN KEY (`response_code_id`) REFERENCES `response_codes` (`id`),
-  CONSTRAINT `fk_rcr_parent` FOREIGN KEY (`parent_rule_id`) REFERENCES `response_code_rules` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  CONSTRAINT `fk_rcr_parent` FOREIGN KEY (`parent_rule_id`) REFERENCES `response_code_rules` (`id`) ON DELETE
+  SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 20.5 review_tasks — งานตรวจสอบสำหรับแต่ละ Discipline (Parallel Review)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `review_tasks` (
-  `id`                    INT             NOT NULL AUTO_INCREMENT,
-  `uuid`                  UUID            NOT NULL DEFAULT (UUID()),
-  `rfa_revision_id`       INT             NOT NULL,
-  `team_id`               INT             NOT NULL,
-  `discipline_id`         INT             NOT NULL,
-  `assigned_to_user_id`   INT             NULL COMMENT 'NULL = auto-assign by discipline',
-  `status`                ENUM('PENDING','IN_PROGRESS','COMPLETED','DELEGATED','EXPIRED','CANCELLED') NOT NULL DEFAULT 'PENDING',
-  `due_date`              DATE            NULL,
-  `response_code_id`      INT             NULL,
-  `comments`              TEXT            NULL,
-  `attachments`           JSON            NULL COMMENT 'Array of attachment publicIds',
-  `delegated_from_user_id` INT            NULL COMMENT 'Original assignee when delegated',
-  `completed_at`          TIMESTAMP       NULL,
-  `version`               INT             NOT NULL DEFAULT 1 COMMENT 'Optimistic locking (ADR-002)',
-  `created_at`            DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at`            DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `rfa_revision_id` INT NOT NULL,
+  `team_id` INT NOT NULL,
+  `discipline_id` INT NOT NULL,
+  `assigned_to_user_id` INT NULL COMMENT 'NULL = auto-assign by discipline',
+  `status` ENUM(
+    'PENDING',
+    'IN_PROGRESS',
+    'COMPLETED',
+    'DELEGATED',
+    'EXPIRED',
+    'CANCELLED'
+  ) NOT NULL DEFAULT 'PENDING',
+  `due_date` DATE NULL,
+  `response_code_id` INT NULL,
+  `comments` TEXT NULL,
+  `attachments` JSON NULL COMMENT 'Array of attachment publicIds',
+  `delegated_from_user_id` INT NULL COMMENT 'Original assignee when delegated',
+  `completed_at` TIMESTAMP NULL,
+  `version` INT NOT NULL DEFAULT 1 COMMENT 'Optimistic locking (ADR-002)',
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_review_tasks_uuid` (`uuid`),
   UNIQUE KEY `uq_review_task_per_revision_discipline` (`rfa_revision_id`, `team_id`, `discipline_id`),
@@ -1585,95 +1643,117 @@ CREATE TABLE IF NOT EXISTS `review_tasks` (
   CONSTRAINT `fk_rt_rfa_revision` FOREIGN KEY (`rfa_revision_id`) REFERENCES `rfa_revisions` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_rt_team` FOREIGN KEY (`team_id`) REFERENCES `review_teams` (`id`),
   CONSTRAINT `fk_rt_discipline` FOREIGN KEY (`discipline_id`) REFERENCES `disciplines` (`id`),
-  CONSTRAINT `fk_rt_user` FOREIGN KEY (`assigned_to_user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_rt_response_code` FOREIGN KEY (`response_code_id`) REFERENCES `response_codes` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  CONSTRAINT `fk_rt_user` FOREIGN KEY (`assigned_to_user_id`) REFERENCES `users` (`user_id`) ON DELETE
+  SET NULL,
+    CONSTRAINT `fk_rt_response_code` FOREIGN KEY (`response_code_id`) REFERENCES `response_codes` (`id`) ON DELETE
+  SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 20.6 delegations — การมอบหมายงาน
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `delegations` (
-  `id`                  INT             NOT NULL AUTO_INCREMENT,
-  `uuid`                UUID            NOT NULL DEFAULT (UUID()),
-  `delegator_user_id`   INT             NOT NULL COMMENT 'ผู้มอบหมาย (FK → users.user_id)',
-  `delegate_user_id`    INT             NOT NULL COMMENT 'ผู้รับมอบหมาย (FK → users.user_id)',
-  `start_date`          DATE            NOT NULL,
-  `end_date`            DATE            NULL     COMMENT 'BullMQ job flips is_active=0 when end_date < NOW() (ADR-008)',
-  `scope`               ENUM('ALL','RFA_ONLY','CORRESPONDENCE_ONLY','SPECIFIC_TYPES') NOT NULL DEFAULT 'ALL',
-  `document_types`      TEXT            NULL COMMENT 'Comma-separated doc type codes when scope=SPECIFIC_TYPES',
-  `is_active`           TINYINT(1)      NOT NULL DEFAULT 1 COMMENT 'Managed by BullMQ scheduler — do not flip manually',
-  `reason`              TEXT            NULL,
-  `created_at`          DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at`          DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `delegator_user_id` INT NOT NULL COMMENT 'ผู้มอบหมาย (FK → users.user_id)',
+  `delegate_user_id` INT NOT NULL COMMENT 'ผู้รับมอบหมาย (FK → users.user_id)',
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NULL COMMENT 'BullMQ job flips is_active=0 when end_date < NOW() (ADR-008)',
+  `scope` ENUM(
+    'ALL',
+    'RFA_ONLY',
+    'CORRESPONDENCE_ONLY',
+    'SPECIFIC_TYPES'
+  ) NOT NULL DEFAULT 'ALL',
+  `document_types` TEXT NULL COMMENT 'Comma-separated doc type codes when scope=SPECIFIC_TYPES',
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Managed by BullMQ scheduler — do not flip manually',
+  `reason` TEXT NULL,
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_delegations_uuid` (`uuid`),
-  KEY `idx_delegations_active` (`delegator_user_id`, `is_active`, `start_date`, `end_date`),
+  KEY `idx_delegations_active` (
+    `delegator_user_id`,
+    `is_active`,
+    `start_date`,
+    `end_date`
+  ),
   KEY `idx_delegations_delegate` (`delegate_user_id`, `is_active`),
   CONSTRAINT `fk_del_delegator` FOREIGN KEY (`delegator_user_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `fk_del_delegate` FOREIGN KEY (`delegate_user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 20.7 reminder_rules — กฎการแจ้งเตือน
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `reminder_rules` (
-  `id`                        INT         NOT NULL AUTO_INCREMENT,
-  `uuid`                      UUID        NOT NULL DEFAULT (UUID()),
-  `name`                      VARCHAR(100) NOT NULL,
-  `project_id`                INT         NULL COMMENT 'NULL = global',
-  `document_type_id`          INT         NULL COMMENT 'NULL = all types',
-  `trigger_days_before_due`   INT         NOT NULL DEFAULT 2,
-  `escalation_days_after_due` INT         NOT NULL DEFAULT 1,
-  `reminder_type`             ENUM('DUE_SOON','ON_DUE','OVERDUE','ESCALATION_L1','ESCALATION_L2') NOT NULL,
-  `recipients`                TEXT        NOT NULL COMMENT 'Comma-separated: ASSIGNEE,MANAGER,PROJECT_MANAGER',
-  `message_template_th`       TEXT        NOT NULL,
-  `message_template_en`       TEXT        NOT NULL,
-  `is_active`                 TINYINT(1)  NOT NULL DEFAULT 1,
-  `created_at`                DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `updated_at`                DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `name` VARCHAR(100) NOT NULL,
+  `project_id` INT NULL COMMENT 'NULL = global',
+  `document_type_id` INT NULL COMMENT 'NULL = all types',
+  `trigger_days_before_due` INT NOT NULL DEFAULT 2,
+  `escalation_days_after_due` INT NOT NULL DEFAULT 1,
+  `reminder_type` ENUM(
+    'DUE_SOON',
+    'ON_DUE',
+    'OVERDUE',
+    'ESCALATION_L1',
+    'ESCALATION_L2'
+  ) NOT NULL,
+  `recipients` TEXT NOT NULL COMMENT 'Comma-separated: ASSIGNEE,MANAGER,PROJECT_MANAGER',
+  `message_template_th` TEXT NOT NULL,
+  `message_template_en` TEXT NOT NULL,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_reminder_rules_uuid` (`uuid`),
   KEY `idx_reminder_rules_active` (`is_active`, `project_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 20.8 distribution_matrices — ตารางกระจายเอกสาร
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `distribution_matrices` (
-  `id`                INT         NOT NULL AUTO_INCREMENT,
-  `uuid`              UUID        NOT NULL DEFAULT (UUID()),
-  `name`              VARCHAR(100) NOT NULL,
-  `project_id`        INT         NULL COMMENT 'NULL = global',
-  `document_type_id`  INT         NOT NULL,
-  `response_code_id`  INT         NULL COMMENT 'NULL = applies to all codes',
-  `conditions`        JSON        NULL COMMENT '{"codes":["1A","1B"],"excludeCodes":["3","4"]}',
-  `is_active`         TINYINT(1)  NOT NULL DEFAULT 1,
-  `created_at`        DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()),
+  `name` VARCHAR(100) NOT NULL,
+  `project_id` INT NULL COMMENT 'NULL = global',
+  `document_type_id` INT NOT NULL,
+  `response_code_id` INT NULL COMMENT 'NULL = applies to all codes',
+  `conditions` JSON NULL COMMENT '{"codes":["1A","1B"],"excludeCodes":["3","4"]}',
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_distribution_matrices_uuid` (`uuid`),
-  KEY `idx_distribution_lookup` (`document_type_id`, `response_code_id`, `is_active`),
-  CONSTRAINT `fk_dm_response_code` FOREIGN KEY (`response_code_id`) REFERENCES `response_codes` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_distribution_lookup` (
+    `document_type_id`,
+    `response_code_id`,
+    `is_active`
+  ),
+  CONSTRAINT `fk_dm_response_code` FOREIGN KEY (`response_code_id`) REFERENCES `response_codes` (`id`) ON DELETE
+  SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 20.9 distribution_recipients — ผู้รับเอกสารใน Distribution Matrix
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `distribution_recipients` (
-  `id`                    INT         NOT NULL AUTO_INCREMENT,
-  `uuid`                  UUID        NOT NULL DEFAULT (UUID()) COMMENT 'UUID Public Identifier (ADR-019)',
-  `matrix_id`             INT         NOT NULL,
-  `recipient_type`        ENUM('USER','ORGANIZATION','TEAM','ROLE') NOT NULL,
-  `recipient_public_id`   UUID        NOT NULL COMMENT 'publicId of target: USER=users.uuid | ORGANIZATION=organizations.uuid | TEAM=review_teams.uuid | ROLE=roles.uuid',
-  `delivery_method`       ENUM('EMAIL','IN_APP','BOTH') NOT NULL DEFAULT 'BOTH',
-  `sequence`              INT         NULL COMMENT 'For ordered delivery',
-  `created_at`            DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `uuid` UUID NOT NULL DEFAULT (UUID()) COMMENT 'UUID Public Identifier (ADR-019)',
+  `matrix_id` INT NOT NULL,
+  `recipient_type` ENUM('USER', 'ORGANIZATION', 'TEAM', 'ROLE') NOT NULL,
+  `recipient_public_id` UUID NOT NULL COMMENT 'publicId of target: USER=users.uuid | ORGANIZATION=organizations.uuid | TEAM=review_teams.uuid | ROLE=roles.uuid',
+  `delivery_method` ENUM('EMAIL', 'IN_APP', 'BOTH') NOT NULL DEFAULT 'BOTH',
+  `sequence` INT NULL COMMENT 'For ordered delivery',
+  `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_distribution_recipients_uuid` (`uuid`),
   KEY `idx_dr_matrix` (`matrix_id`),
   KEY `idx_dr_type_recipient` (`recipient_type`, `recipient_public_id`),
   CONSTRAINT `fk_dr_matrix` FOREIGN KEY (`matrix_id`) REFERENCES `distribution_matrices` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Polymorphic recipients — no FK on recipient_public_id (by design). ROLE type uses roles.uuid (ADR-019)';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Polymorphic recipients — no FK on recipient_public_id (by design). ROLE type uses roles.uuid (ADR-019)';
 
 -- =============================================================================
 -- END OF SCHEMA v1.9.0

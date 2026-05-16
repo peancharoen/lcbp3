@@ -18,9 +18,12 @@ import {
   AddTeamMemberDto,
   SearchReviewTeamDto,
 } from './dto/shared/review-team.dto';
+import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
 
 @Controller('review-teams')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ReviewTeamController {
   constructor(private readonly reviewTeamService: ReviewTeamService) {}
 
@@ -29,6 +32,7 @@ export class ReviewTeamController {
    * ดึงรายการ Review Teams ตาม project
    */
   @Get()
+  @RequirePermission('master_data.view')
   findAll(@Query() dto: SearchReviewTeamDto) {
     return this.reviewTeamService.findAll(dto);
   }
@@ -38,6 +42,7 @@ export class ReviewTeamController {
    * ดึง Review Team เดียว (ADR-019)
    */
   @Get(':publicId')
+  @RequirePermission('master_data.view')
   findOne(@Param('publicId') publicId: string) {
     return this.reviewTeamService.findByPublicId(publicId);
   }
@@ -47,6 +52,8 @@ export class ReviewTeamController {
    * สร้าง Review Team ใหม่
    */
   @Post()
+  @RequirePermission('master_data.manage')
+  @Audit('review_team.create', 'review_team')
   create(@Body() dto: CreateReviewTeamDto) {
     return this.reviewTeamService.create(dto);
   }
@@ -56,6 +63,8 @@ export class ReviewTeamController {
    * อัปเดต Review Team
    */
   @Patch(':publicId')
+  @RequirePermission('master_data.manage')
+  @Audit('review_team.update', 'review_team')
   update(
     @Param('publicId') publicId: string,
     @Body() dto: UpdateReviewTeamDto
@@ -68,6 +77,8 @@ export class ReviewTeamController {
    * เพิ่มสมาชิก
    */
   @Post(':publicId/members')
+  @RequirePermission('master_data.manage')
+  @Audit('review_team.add_member', 'review_team')
   addMember(
     @Param('publicId') teamPublicId: string,
     @Body() dto: AddTeamMemberDto
@@ -80,6 +91,8 @@ export class ReviewTeamController {
    * ลบสมาชิก
    */
   @Delete(':publicId/members/:memberPublicId')
+  @RequirePermission('master_data.manage')
+  @Audit('review_team.remove_member', 'review_team')
   removeMember(
     @Param('publicId') teamPublicId: string,
     @Param('memberPublicId') memberPublicId: string
@@ -92,6 +105,8 @@ export class ReviewTeamController {
    * Deactivate Review Team (soft delete)
    */
   @Delete(':publicId')
+  @RequirePermission('master_data.manage')
+  @Audit('review_team.deactivate', 'review_team')
   deactivate(@Param('publicId') publicId: string) {
     return this.reviewTeamService.deactivate(publicId);
   }

@@ -154,3 +154,27 @@ Tasks: T043–T050
 | 2-queue BullMQ (vs single) | RAG SLA requires isolation from batch jobs | Single queue + priority ไม่ป้องกัน long-running job block |
 | External Qdrant (vs SQL FTS) | Semantic search capability ไม่มีใน MariaDB FULLTEXT | MariaDB FTS ไม่รองรับ multilingual semantic similarity |
 | Python sidecar OCR | PaddleOCR เป็น Python library ไม่มี Node.js binding | ไม่มีทางเลือก OCR ภาษาไทยที่เทียบเท่าใน Node.js ecosystem |
+
+---
+
+## 🔗 Cross-Spec Dependencies
+
+### Dependencies กับ 204-rfa-approval-refactor
+
+| Component | Impact | Coordination |
+|-----------|--------|--------------|
+| **BullMQ Queues** | `ai-realtime` และ `ai-batch` จะถูกใช้โดย RFA Reminder/Escalation | ตรวจสอบว่า RFA jobs ไม่ชนกับ AI jobs — ใช้ queue name prefix หรือ priority |
+| **QdrantService** | อาจถูกใช้สำหรับ RFA document context | ตรวจสอบว่า RFA ใช้ projectPublicId filter ถูกต้อง |
+| **Ollama GPU** | Shared resource กับ RFA (ถ้ามี AI features) | ตรวจสอบว่าไม่มี GPU contention |
+
+### Shared Infrastructure
+
+- **BullMQ**: 2 queues (`ai-realtime`, `ai-batch`) — RFA อาจเพิ่ม `rfa-reminders` queue
+- **Redis**: ใช้ instance เดียวกัน — ตรวจสอบ memory usage
+- **Audit Logs**: ใช้ table เดียวกัน — ตรวจสอบ action types ไม่ซ้ำกัน
+
+### Deployment Sequence
+
+1. Phase 0-1 ของ AI Model Revision (BullMQ 2-queue foundation)
+2. Phase 1-3 ของ RFA Approval Refactor (ใช้ BullMQ ที่ setup แล้ว)
+3. ทดสอบ integration ก่อน deploy ทั้งสอง features พร้อมกัน

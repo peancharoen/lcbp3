@@ -1,0 +1,104 @@
+{
+  "title": "งานตรวจสอบ",
+  "subtitle": "จัดการงานตรวจสอบเอกสารและติดตามสถานะ",
+
+  "inbox": {
+    "title": "กล่องงานตรวจสอบ",
+    "pending": "รอดำเนินการ",
+    "inProgress": "กำลังดำเนินการ",
+    "completed": "เสร็จสิ้น",
+    "delegated": "มอบหมายแล้ว",
+    "noTasks": "ไม่มีงานตรวจสอบ",
+    "filterAll": "ทั้งหมด",
+    "filterByProject": "กรองตามโครงการ",
+    "filterByDiscipline": "กรองตามสาขา"
+  },
+
+  "status": {
+    "PENDING": "รอดำเนินการ",
+    "IN_PROGRESS": "กำลังดำเนินการ",
+    "COMPLETED": "เสร็จสิ้น",
+    "DELEGATED": "มอบหมายแล้ว",
+    "OVERDUE": "เลยกำหนด"
+  },
+
+  "actions": {
+    "start": "เริ่มตรวจสอบ",
+    "complete": "ดำเนินการเสร็จสิ้น",
+    "delegate": "มอบหมาย",
+    "return": "ส่งคืน",
+    "viewDetails": "ดูรายละเอียด",
+    "addComment": "เพิ่มความเห็น",
+    "viewDocument": "ดูเอกสาร"
+  },
+
+  "form": {
+    "completeTitle": "ดำเนินการตรวจสอบ",
+    "responseCode": "รหัสผลตรวจสอบ",
+    "responseCodePlaceholder": "เลือกรหัส...",
+    "comments": "ความเห็น",
+    "commentsPlaceholder": "ระบุความเห็นประกอบ...",
+    "attachments": "ไฟล์แนบ",
+    "addAttachment": "เพิ่มไฟล์",
+    "confirmComplete": "ยืนยันการดำเนินการเสร็จสิ้น?",
+    "saveButton": "บันทึก",
+    "cancelButton": "ยกเลิก"
+  },
+
+  "progress": {
+    "title": "ความคืบหน้าการตรวจสอบ",
+    "completedOf": "{{completed}}/{{total}} เสร็จสิ้น",
+    "consensusStatus": "สถานะฉันทามติ: {{status}}",
+    "waitingFor": "รอจาก: {{disciplines}}",
+    "parallelReview": "การตรวจสอบแบบขนาน",
+    "sequentialReview": "การตรวจสอบแบบลำดับ"
+  },
+
+  "veto": {
+    "button": "Veto Override",
+    "title": "Veto Override - บังคับอนุมัติ",
+    "justification": "เหตุผลในการบังคับอนุมัติ",
+    "justificationPlaceholder": "ระบุเหตุผลที่จำเป็นต้องบังคับอนุมัติ...",
+    "confirm": "ยืนยัน Veto Override",
+    "warning": "การกระทำนี้จะถูกบันทึกใน Audit Log และแจ้งเตือนทีมงานที่เกี่ยวข้อง",
+    "pmOnly": "เฉพาะ Project Manager เท่านั้น"
+  },
+
+  "consensus": {
+    "APPROVED": "อนุมัติ",
+    "APPROVED_WITH_COMMENTS": "อนุมัติพร้อมความเห็น",
+    "REJECTED": "ไม่อนุมัติ",
+    "PENDING": "รอการพิจารณา",
+    "VETO_OVERRIDE": "Veto Override",
+    "calculating": "กำลังคำนวณฉันทามติ..."
+  },
+
+  "reminders": {
+    "dueSoon": "ครบกำหนดใน {{days}} วัน",
+    "overdue": "เลยกำหนด {{days}} วัน",
+    "escalationLevel1": "การแจ้งเตือนระดับ 1",
+    "escalationLevel2": "การแจ้งเตือนระดับ 2"
+  },
+
+  "confirmation": {
+    "title": "ยืนยันการดำเนินการ",
+    "message": "คุณแน่ใจหรือไม่ว่าต้องการดำเนินการนี้?",
+    "confirmButton": "ยืนยัน",
+    "cancelButton": "ยกเลิก"
+  },
+
+  "errors": {
+    "loadFailed": "ไม่สามารถโหลดงานตรวจสอบได้",
+    "completeFailed": "ไม่สามารถดำเนินการเสร็จสิ้นได้",
+    "responseCodeRequired": "กรุณาเลือกรหัสผลตรวจสอบ",
+    "raceCondition": "สถานะงานมีการเปลี่ยนแปลง กรุณารีเฟรชและลองใหม่",
+    "unauthorized": "คุณไม่มีสิทธิ์ดำเนินการนี้"
+  },
+
+  "success": {
+    "started": "เริ่มตรวจสอบสำเร็จ",
+    "completed": "ดำเนินการเสร็จสิ้นสำเร็จ",
+    "delegated": "มอบหมายสำเร็จ",
+    "commentAdded": "เพิ่มความเห็นสำเร็จ"
+  }
+}

@@ -47,6 +47,14 @@ export class Attachment extends UuidBaseEntity {
   @Column({ name: 'reference_date', type: 'date', nullable: true })
   referenceDate?: Date;
 
+  @Column({
+    name: 'ai_processing_status',
+    type: 'enum',
+    enum: ['PENDING', 'PROCESSING', 'DONE', 'FAILED'],
+    default: 'PENDING',
+  })
+  aiProcessingStatus!: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
+
   // ADR-021: FK ไปยัง workflow_histories สำหรับไฟล์แนบประจำ Step
   // NULL = ไฟล์แนบหลัก (Main Document), NOT NULL = ไฟล์ประจำ Workflow Step
   @Column({ name: 'workflow_history_id', nullable: true })

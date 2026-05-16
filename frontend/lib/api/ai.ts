@@ -176,3 +176,50 @@ export function useApproveAiStagingRecord() {
     },
   });
 }
+
+// ─── Phase 6: AI Monitoring & Analytics Hooks (T036, T037) ───────────────────
+
+export interface AiAnalyticsSummary {
+  byDocumentType: Array<{
+    documentType: string;
+    avgConfidence: number;
+    overrideRate: number;
+    rejectedRate: number;
+    total: number;
+  }>;
+  overall: {
+    avgConfidence: number;
+    overrideRate: number;
+    rejectedRate: number;
+    total: number;
+  };
+}
+
+export const aiAnalyticsKeys = {
+  all: ['ai-analytics'] as const,
+  summary: () => [...aiAnalyticsKeys.all, 'summary'] as const,
+};
+
+export function useAiAnalyticsSummary() {
+  return useQuery({
+    queryKey: aiAnalyticsKeys.summary(),
+    queryFn: async (): Promise<AiAnalyticsSummary> => {
+      const response = await apiClient.get('/ai/analytics/summary');
+      return extractData<AiAnalyticsSummary>(response.data);
+    },
+    staleTime: 5 * 60 * 1000, // Analytics can be cached longer
+  });
+}
+
+export function useDeleteAiAuditLog() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (publicId: string): Promise<{ deleted: boolean; publicId: string }> => {
+      const response = await apiClient.delete(`/ai/audit-logs/${publicId}`);
+      return extractData<{ deleted: boolean; publicId: string }>(response.data);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: aiAnalyticsKeys.all });
+    },
+  });
+}

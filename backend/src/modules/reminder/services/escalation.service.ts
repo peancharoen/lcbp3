@@ -11,6 +11,8 @@ import {
 import { NotificationService } from '../../notification/notification.service';
 import { ReminderRule } from '../entities/reminder-rule.entity';
 import { ReminderHistory } from '../entities/reminder-history.entity';
+import { UserAssignment } from '../../user/entities/user-assignment.entity';
+import { CorrespondenceRevision } from '../../correspondence/entities/correspondence-revision.entity';
 
 @Injectable()
 export class EscalationService {
@@ -23,6 +25,8 @@ export class EscalationService {
     private readonly reminderRuleRepo: Repository<ReminderRule>,
     @InjectRepository(ReminderHistory)
     private readonly historyRepo: Repository<ReminderHistory>,
+    @InjectRepository(UserAssignment)
+    private readonly assignmentRepo: Repository<UserAssignment>,
     private readonly notificationService: NotificationService
   ) {}
 
@@ -108,8 +112,55 @@ export class EscalationService {
       `Escalation L2 (Strike ${strikes + 1}): task ${taskPublicId} — escalating to PM`
     );
 
-    // TODO: ดึง PM user ID จาก project membership
-    // สำหรับตอนนี้ แจ้งผู้รับผิดชอบเดิมแต่หัวเรื่องแรงขึ้น
+    // ✅ [Fix] ดึง PM user ID จาก project membership (T068.5)
+    let pmUserId: number | undefined = undefined;
+
+    try {
+      const fullTask = (await this.reviewTaskRepo.findOne({
+        where: { publicId: taskPublicId },
+        relations: [
+          'rfaRevision',
+          'rfaRevision.correspondenceRevision',
+          'rfaRevision.correspondenceRevision.correspondence',
+        ],
+      })) as {
+        rfaRevision?: {
+          correspondenceRevision?: CorrespondenceRevision;
+        };
+      } | null;
+
+      const correspondence =
+        fullTask?.rfaRevision?.correspondenceRevision?.correspondence;
+
+      if (correspondence?.projectId) {
+        const pmAssignment = await this.assignmentRepo.findOne({
+          where: {
+            projectId: correspondence.projectId,
+            role: { roleName: 'Project Manager' },
+          },
+          relations: ['role'],
+        });
+        pmUserId = pmAssignment?.userId;
+      }
+    } catch (err: unknown) {
+      this.logger.error(
+        `Failed to find PM for task ${taskPublicId}: ${String(err)}`
+      );
+    }
+
+    // แจ้ง PM (ถ้าหาเจอ)
+    if (pmUserId) {
+      await this.notificationService.send({
+        userId: pmUserId,
+        title: `🛑 ESCALATION L2: Review Task Overdue`,
+        message: `Task ${task.publicId} (${task.discipline?.codeNameEn ?? ''}) assigned to ${task.assignedToUser?.firstName ?? ''} ${task.assignedToUser?.lastName ?? ''} is critically overdue.`,
+        type: 'SYSTEM',
+        entityType: 'review_task',
+        entityId: task.id,
+      });
+    }
+
+    // แจ้งผู้รับผิดชอบเดิมด้วย
     if (task.assignedToUserId) {
       await this.notificationService.send({
         userId: task.assignedToUserId,

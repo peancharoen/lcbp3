@@ -10,12 +10,12 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { ContractService } from './contract.service.js';
-import { CreateContractDto } from './dto/create-contract.dto.js';
-import { UpdateContractDto } from './dto/update-contract.dto.js';
-import { SearchContractDto } from './dto/search-contract.dto.js';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
-import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
+import { ContractService } from './contract.service';
+import { CreateContractDto } from './dto/create-contract.dto';
+import { UpdateContractDto } from './dto/update-contract.dto';
+import { SearchContractDto } from './dto/search-contract.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 
 @ApiTags('Contracts')

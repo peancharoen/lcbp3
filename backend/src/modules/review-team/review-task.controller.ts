@@ -11,7 +11,11 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { Audit } from '../../common/decorators/audit.decorator';
 import { ReviewTaskService } from './review-task.service';
+
 import { ConsensusService } from './services/consensus.service';
 import { VetoOverrideService } from './services/veto-override.service';
 import type { VetoOverrideDto } from './services/veto-override.service';
@@ -23,7 +27,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../user/entities/user.entity';
 
 @Controller('review-tasks')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ReviewTaskController {
   constructor(
     private readonly reviewTaskService: ReviewTaskService,
@@ -32,21 +36,27 @@ export class ReviewTaskController {
   ) {}
 
   @Get()
+  @RequirePermission('document.view')
   findAll(@Query() dto: SearchReviewTaskDto) {
     return this.reviewTaskService.findAll(dto);
   }
 
   @Get(':publicId')
+  @RequirePermission('document.view')
   findOne(@Param('publicId', ParseUUIDPipe) publicId: string) {
     return this.reviewTaskService.findByPublicId(publicId);
   }
 
   @Patch(':publicId/start')
+  @RequirePermission('workflow.action_review')
+  @Audit('review_task.start', 'review_task')
   startReview(@Param('publicId', ParseUUIDPipe) publicId: string) {
     return this.reviewTaskService.startReview(publicId);
   }
 
   @Patch(':publicId/complete')
+  @RequirePermission('workflow.action_review')
+  @Audit('review_task.complete', 'review_task')
   async completeReview(
     @Param('publicId', ParseUUIDPipe) publicId: string,
     @Body() dto: CompleteReviewTaskDto,
@@ -102,6 +112,8 @@ export class ReviewTaskController {
   }
 
   @Post('veto-override')
+  @RequirePermission('document.admin_edit')
+  @Audit('review_task.veto_override', 'review_task')
   async overrideVeto(@Body() dto: VetoOverrideDto, @CurrentUser() user: User) {
     return this.vetoOverrideService.executeOverride({
       ...dto,

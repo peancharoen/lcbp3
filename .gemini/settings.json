@@ -2,7 +2,8 @@
   "general": {
     "previewFeatures": true,
     "enablePromptCompletion": true,
-    "preferredEditor": "antigravity"
+    "preferredEditor": "antigravity",
+    "defaultApprovalMode": "auto_edit"
   },
   "ide": {
     "enabled": true

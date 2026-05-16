@@ -95,4 +95,8 @@ export class ReviewTask extends UuidBaseEntity {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'delegated_from_user_id' })
   delegatedFromUser?: User;
+
+  @ManyToOne('RfaRevision')
+  @JoinColumn({ name: 'rfa_revision_id' })
+  rfaRevision?: unknown; // Use unknown to avoid circular dependency and satisfy linter
 }

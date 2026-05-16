@@ -12,9 +12,9 @@ import { Project } from './entities/project.entity';
 import { OrganizationService } from '../organization/organization.service';
 
 // DTOs
-import { CreateProjectDto } from './dto/create-project.dto.js';
-import { UpdateProjectDto } from './dto/update-project.dto.js';
-import { SearchProjectDto } from './dto/search-project.dto.js';
+import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
+import { SearchProjectDto } from './dto/search-project.dto';
 
 @Injectable()
 export class ProjectService {
