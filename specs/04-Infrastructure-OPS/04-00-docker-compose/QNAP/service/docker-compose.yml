@@ -53,7 +53,7 @@ services:
       - '--appendonly'
       - 'yes'
       - '--maxmemory-policy'
-      - 'allkeys-lru'
+      - 'noeviction'
     # bind เฉพาะ loopback host เพื่อ debug — service อื่นใช้ DNS 'cache:6379' ผ่าน lcbp3 network
     ports:
       - '127.0.0.1:6379:6379'

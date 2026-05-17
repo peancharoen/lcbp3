@@ -94,6 +94,7 @@ services:
       # --- Qdrant (Vector Database for RAG — ADR-023A) ---
       QDRANT_HOST: 'qdrant'
       QDRANT_PORT: '6333'
+      QDRANT_URL: 'http://qdrant:6333'
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'
