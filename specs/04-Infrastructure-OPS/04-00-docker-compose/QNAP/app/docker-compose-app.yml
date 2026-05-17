@@ -89,8 +89,11 @@ services:
       JWT_EXPIRATION: '8h'
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET required}
       # --- ClamAV (ADR-016 file upload scan) ---
-      CLAMAV_HOST: 'clamav'
+      CLAMAV_HOST: 'localhost'
       CLAMAV_PORT: '3310'
+      # --- Qdrant (Vector Database for RAG — ADR-023A) ---
+      QDRANT_HOST: 'qdrant'
+      QDRANT_PORT: '6333'
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'
@@ -119,7 +122,43 @@ services:
         condition: service_healthy
 
   # ----------------------------------------------------------------
-  # 2. Frontend Web App (Next.js)
+  # 3. ClamAV (Antivirus scanning for file uploads — ADR-016)
+  # Service Name: clamav (Backend อ้างอิง CLAMAV_HOST=clamav, port 3310)
+  # ----------------------------------------------------------------
+  clamav:
+    <<: [*restart_policy, *default_logging]
+    image: clamav/clamav:1.4.4
+    container_name: clamav
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 1G
+    environment:
+      CLAMAV_NO_LOG_FILE: 'true'      # ปิดการเขียนไฟล์ clamd.log
+      FRESHCLAM_NO_LOG_FILE: 'true'   # ปิดการเขียนไฟล์ freshclam.log
+      TZ: 'Asia/Bangkok'
+      CLAMAV_NO_FRESHCLAMD: 'false'
+      CLAMAV_NO_CLAMD: 'false'
+      CLAMD_STARTUP_TIMEOUT: '1800'
+    networks:
+      - lcbp3
+    volumes:
+      # cache definitions เพื่อไม่ต้อง download ทุกครั้งที่ restart
+      - '/share/np-dms/services/clamav/data:/var/lib/clamav'
+      - '/share/np-dms/data/logs/clamav:/var/log/clamav'
+    healthcheck:
+      test: ['CMD', 'clamdcheck.sh']
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 300s
+
+  # ----------------------------------------------------------------
+  # 4. Frontend Web App (Next.js)
   # Service Name: frontend (ตามที่ NPM อ้างอิง → frontend:3000)
   # ----------------------------------------------------------------
   frontend:
