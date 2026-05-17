@@ -13,11 +13,13 @@ import { MatrixManagementService } from './services/matrix-management.service';
 import { InheritanceService } from './services/inheritance.service';
 import { User } from '../user/entities/user.entity';
 import { NotificationModule } from '../notification/notification.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ResponseCode, ResponseCodeRule, User, AuditLog]),
     NotificationModule,
+    UserModule,
   ],
   providers: [
     ResponseCodeService,
