@@ -17,6 +17,7 @@ import { NotificationModule } from '../notification/notification.module';
 import { Project } from '../project/entities/project.entity';
 import { ResponseCode } from '../response-code/entities/response-code.entity';
 import { DocumentNumberingModule } from '../document-numbering/document-numbering.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { DocumentNumberingModule } from '../document-numbering/document-numberin
     BullModule.registerQueue({ name: QUEUE_DISTRIBUTION }),
     NotificationModule,
     DocumentNumberingModule,
+    UserModule,
   ],
   providers: [
     DistributionService,

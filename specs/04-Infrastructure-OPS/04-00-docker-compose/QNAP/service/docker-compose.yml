@@ -131,7 +131,7 @@ services:
   # ----------------------------------------------------------------
   qdrant:
     <<: [*restart_policy, *default_logging]
-    image: qdrant/qdrant:v1.7.0
+    image: qdrant/qdrant:v1.16.1
     container_name: qdrant
     deploy:
       resources:
@@ -153,11 +153,12 @@ services:
     volumes:
       - '/share/np-dms/services/qdrant/storage:/qdrant/storage'
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:6333/health']
+      # qdrant image ไม่มี curl — ใช้ bash /dev/tcp TCP check แทน (ADR-016)
+      test: ['CMD-SHELL', 'bash -c "exec 3<>/dev/tcp/localhost/6333 && echo -e \"GET /healthz HTTP/1.0\r\nHost: localhost\r\n\r\n\" >&3 && grep -q \"200 OK\" <&3"']
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 40s
 
 # mkdir -p /share/np-dms/services/qdrant/storage
 # chown -R 100:101 /share/np-dms/services/qdrant/storage
