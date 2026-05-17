@@ -30,7 +30,9 @@ trigger: always_on
 - [ ] No SQL injection vulnerabilities
 - [ ] File upload validation (whitelist + ClamAV)
 - [ ] Rate limiting applied to auth endpoints
-- [ ] AI boundary enforcement (ADR-018) - no direct DB/storage access
+- [ ] AI boundary enforcement (ADR-023) - no direct DB/storage access
 - [ ] AI audit logging implemented for AI interactions
+- [ ] AI outputs validated before use (human-in-the-loop)
 - [ ] Error handling follows ADR-007 layered classification
+- [ ] Cache invalidation when data modified
 - [ ] OWASP Top 10 review passed

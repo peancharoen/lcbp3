@@ -2,8 +2,9 @@
 
 > **The Event Horizon of Software Quality.**
 > _Adapted for Google Antigravity IDE from [github/spec-kit](https://github.com/github/spec-kit)._
+>
 > # Speckit Agent Infrastructure (v1.9.0)
-> 
+>
 > - Version: 1.9.0
 > - Last Updated: 2026-05-13
 > - Core Principle: **Sync with AGENTS.md v1.9.0**
@@ -282,7 +283,7 @@ If you change your mind mid-project:
 
 | เอกสาร          | Path                                                             | ใช้เมื่อ            |
 | --------------- | ---------------------------------------------------------------- | ------------------- |
-| Schema Tables   | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`    | ก่อนเขียน Query     |
+| Schema Tables   | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`    | ก่อนเขียน Query     |
 | Data Dictionary | `specs/03-Data-and-Storage/03-01-data-dictionary.md`             | ตรวจ Business Rules |
 | Edge Cases      | `specs/01-Requirements/01-06-edge-cases-and-rules.md`            | 37 Rules            |
 | Migration Scope | `specs/03-Data-and-Storage/03-06-migration-business-scope.md`    | Migration Bot       |

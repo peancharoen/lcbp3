@@ -1,12 +1,12 @@
-# 🚀 Release Management Policy — LCBP3-DMS v1.8.0
+# 🚀 Release Management Policy — LCBP3-DMS v1.9.0
 
 ---
 
 title: 'Release Management Policy, Versioning Strategy, and Deployment Gates'
-version: 1.0.0
+version: 1.1.0
 status: DRAFT
-owner: Nattanin Peancharoen (System Architect / Release Manager)
-last_updated: 2026-03-11
+owner: Nattanin Peancharoen (System Architect / Release Manager / Product Owner)
+last_updated: 2026-05-16
 related:
 
 - specs/04-Infrastructure-OPS/04-04-deployment-guide.md ← Blue-Green Deployment Detail
@@ -17,7 +17,7 @@ related:
 ---
 
 > [!IMPORTANT]
-> ทุก Release สู่ Production **ต้องผ่าน Release Gate** — ไม่มีข้อยกเว้น  
+> ทุก Release สู่ Production **ต้องผ่าน Release Gate** — มีข้อยกเว้นเฉพาะ P0 Emergency เท่านั้น
 > เอกสารนี้กำหนด Policy ที่ทุกคนในทีมต้องปฏิบัติตาม
 
 ---
@@ -74,12 +74,14 @@ lcbp3-backend:v1.8.0-rc.1  ← Release Candidate
 
 | Release Type               | Cadence       | Who Approves                 | Notes                 |
 | -------------------------- | ------------- | ---------------------------- | --------------------- |
-| **Sprint Release** (Minor) | ทุก 2 สัปดาห์ | PO + Lead Dev                | ตามแผน Sprint         |
-| **Hotfix** (Patch)         | ตามเหตุการณ์  | Lead Dev (P0/P1) → PO Notify | ไม่รอ Sprint          |
-| **Emergency Hotfix**       | ทันที (P0)    | Lead Dev → แจ้ง PO พร้อมกัน  | Security, System Down |
+| **Sprint Release** (Minor) | ทุก 2 สัปดาห์ (Ideal State) | PO + Lead Dev                | ตามแผน Sprint         |
+| **Hotfix** (Patch)         | ตามเหตุการณ์  | System Architect/DevOps → PO Notify | ไม่รอ Sprint          |
+| **Emergency Hotfix**       | ทันที (P0)    | System Architect/DevOps → แจ้ง PO พร้อมกัน  | Security, System Down |
 | **Major Release**          | กำหนดโดย PO   | PO + กทท. Sign-off           | Phase Change          |
 
-### Sprint Release Calendar (ตัวอย่าง)
+### Sprint Release Calendar (Ideal State - Not Yet Implemented)
+
+> **หมายเหตุ:** Sprint cadence ทุก 2 สัปดาห์เป็น ideal state ยังไม่ได้ทำจริงในปัจจุบัน ปัจจุบะทำ release แบบ as-needed
 
 ```
 Sprint 1:  01–14 มี.ค. 2569  → Release v1.9.0 (28 มี.ค.)
@@ -105,14 +107,16 @@ Sprint 2:  15–28 มี.ค. 2569  → Release v1.10.0 (11 เม.ย.)
 | -------------------------- | ------------------ | ----------------------------------- |
 | **TypeScript Compile**     | `tsc --noEmit`     | 0 Errors                            |
 | **Unit Tests Pass**        | Jest               | ≥ 80% Pass Rate                     |
-| **E2E Tests (Core Flows)** | Playwright/Cypress | 100% Core Flows ผ่าน                |
+| **E2E Tests (Core Flows)** | Playwright          | 100% Core Flows ผ่าน                |
 | **Security Scan**          | `npm audit`        | 0 Critical/High Vulnerabilities     |
+| **UUID Misuse Check**      | grep script        | 0 parseInt on UUID (ADR-019)        |
+| **Console.log Check**      | grep script        | 0 console.log in committed code     |
 | **Lint**                   | ESLint             | 0 Errors (Warnings ยอมรับได้)       |
 | **Build Success**          | Docker Build       | Exit 0                              |
 | **Image Size**             | Docker inspect     | < 2GB (Backend), < 1.5GB (Frontend) |
 
-**Owner:** Lead Dev  
-**Tool:** Gitea CI/CD Pipeline (ADR-015)
+**Owner:** System Architect/DevOps
+**Tool:** Gitea CI/CD Pipeline (.gitea/workflows/ci-deploy.yml)
 
 ---
 
@@ -123,10 +127,10 @@ Sprint 2:  15–28 มี.ค. 2569  → Release v1.10.0 (11 เม.ย.)
 | Deploy to Staging Environment                               | สำเร็จ, ไม่มี Error          | DevOps      |
 | Health Check `/health` → 200                                | ✅                           | Automated   |
 | Smoke Test (Manual): Login → Create Correspondence → Submit | ผ่าน                         | Dev หรือ QA |
-| Migration Script (ถ้ามี Schema Change)                      | รันสำเร็จบน Staging Schema   | DBA / Dev   |
+| Migration Script (ถ้ามี Schema Change)                      | รันสำเร็จบน Staging Schema   | System Architect/DevOps   |
 | Rollback Test: Deploy → Rollback → Verify                   | ระบบ Rollback ได้ใน < 5 นาที | DevOps      |
 
-**Owner:** Nattanin P.
+**Owner:** Nattanin P. (System Architect / Release Manager / Product Owner)
 
 ---
 
@@ -138,11 +142,11 @@ PO Review: ✅ ไม่มี Known Blocker Issues?
 PO Sign-off: ✅ อนุมัติ Release
 
 ถ้ามี Schema Change:
-  DBA Confirm: ✅ Schema SQL พร้อม Apply บน Production
-  DBA Confirm: ✅ Rollback SQL พร้อม (ถ้าจำเป็น)
+  System Architect/DevOps Confirm: ✅ Schema SQL พร้อม Apply บน Production
+  System Architect/DevOps Confirm: ✅ Rollback SQL พร้อม (ถ้าจำเป็น)
 ```
 
-**Owner:** Nattanin P. (PO + Release Manager)
+**Owner:** Nattanin P. (System Architect / Release Manager / Product Owner)
 
 ---
 
@@ -155,8 +159,8 @@ PO Sign-off: ✅ อนุมัติ Release
 2. Post-Deploy Verification (15 นาที):
    ✅ Health Check: All containers healthy
    ✅ Smoke Test: Login + Core Feature
-   ✅ Error Rate: < 1% (Grafana) ใน 15 นาทีแรก
-   ✅ Response Time: P90 < 500ms (Grafana)
+   ✅ Error Rate: < 1% (Grafana on ASUSTOR) ใน 15 นาทีแรก
+   ✅ Response Time: P90 < 500ms (Grafana on ASUSTOR)
 
 3. ถ้าผ่าน → RELEASE COMPLETE ✅
 4. ถ้าไม่ผ่าน → ROLLBACK ทันที (rollback.sh)
@@ -357,7 +361,7 @@ Security Check:      npm audit (ถ้าเป็น Security Bug)
 | **Mean Time to Restore (MTTR)** | < 4 ชั่วโมง (P0) / < 8 ชั่วโมง (P1) | Incident Log              |
 | **Time to Rollback**            | < 5 นาที (Blue-Green Switch)        | Deploy Log                |
 
-> **หมายเหตุ:** Metrics เหล่านี้คือ **DORA Metrics** (DevOps Research and Assessment)  
+> **หมายเหตุ:** Metrics เหล่านี้คือ **DORA Metrics** (DevOps Research and Assessment)
 > ติดตามใน Monthly Engineering Review
 
 ---
@@ -367,50 +371,39 @@ Security Check:      npm audit (ถ้าเป็น Security Bug)
 ### Pipeline Stages (ทุก PR เข้า `develop` หรือ `release/*`)
 
 ```yaml
-# .gitea/workflows/ci.yml (ตัวอย่าง Structure)
+# .gitea/workflows/ci-deploy.yml (Actual Implementation)
 
-stages:
-  - name: "1. Code Quality"
-    jobs:
-      - typecheck        # tsc --noEmit
-      - lint             # ESLint
-      - unit-test        # Jest (coverage report)
+jobs:
+  # JOB 1: CI & Quality Gate
+  build:
+    steps:
+      - pnpm install --frozen-lockfile
+      - pnpm lint
+      - Security checks:
+        - UUID misuse check (grep parseInt.*uuid)
+        - Console.log check (grep console.log)
+      - pnpm test (backend + frontend)
 
-  - name: "2. Security"
-    jobs:
-      - dependency-audit # npm audit
-      - secret-scan      # gitleaks (ตรวจ Secret ใน Code)
-
-  - name: "3. Build"
-    jobs:
-      - build-backend    # docker build lcbp3-backend:${BRANCH_SHA}
-      - build-frontend   # docker build lcbp3-frontend:${BRANCH_SHA}
-
-  - name: "4. Integration Test" (เฉพาะ release/* branch)
-    jobs:
-      - deploy-staging   # Deploy to Staging Environment
-      - smoke-test       # Playwright Smoke Test
-      - api-test         # Postman/Newman Core API Tests
-
-  - name: "5. Release" (เฉพาะ main branch, Manual Trigger)
-    jobs:
-      - tag-version      # git tag vX.Y.Z
-      - push-registry    # Push image ไปยัง Internal Registry
-      - deploy-prod      # deploy.sh (Blue-Green)
-      - notify           # LINE Notification
+  # JOB 2: Deploy — Trigger Blue-Green on QNAP (main branch only)
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - SSH to QNAP
+      - git pull origin main
+      - ./scripts/deploy.sh
 ```
+
+> **หมายเหตุ:** Pipeline จริงมี 2 jobs เท่านั้น ไม่มี stages แยก 5 ขั้นตอนตามที่เคยระบุในเอกสารเดิม
 
 ### Environment Variables ที่ CI/CD ใช้
 
 ```bash
 # Gitea Secrets (ตั้งค่าใน Gitea Settings → Secrets)
-REGISTRY_URL=registry.internal.example.com
-REGISTRY_USERNAME=ci-bot
-REGISTRY_PASSWORD=<secret>
-QNAP_SSH_KEY=<private key>
-QNAP_HOST=192.168.1.x
-LINE_NOTIFY_TOKEN=<secret>
-STAGING_URL=https://staging.lcbp3-dms.internal
+SSH_KEY=<private key for QNAP>
+HOST=192.168.10.8
+PORT=22
+USERNAME=admin
 ```
 
 ---
@@ -421,12 +414,14 @@ STAGING_URL=https://staging.lcbp3-dms.internal
 
 ```
 ✅ npm audit: 0 Critical, 0 High vulnerabilities
-✅ ไม่มี Secret/Credential hardcoded ใน Code (Gitleaks)
+✅ ไม่มี Secret/Credential hardcoded ใน Code (git secrets check)
 ✅ .env ไม่ถูก Commit (gitignore check)
 ✅ JWT_SECRET และ DB_PASSWORD ไม่ใช่ Default Values
 ✅ Docker Image ไม่มี Root User (USER node)
 ✅ Helmet.js Security Headers ยังทำงาน (Smoke Test)
 ✅ Rate Limiting ยังทำงาน (Login endpoint test)
+✅ UUID misuse check: 0 parseInt on UUID (ADR-019)
+✅ Console.log check: 0 console.log in committed code
 ```
 
 ### ข้อห้ามเด็ดขาด (Forbidden in Release)
@@ -467,6 +462,8 @@ STAGING_URL=https://staging.lcbp3-dms.internal
 - [ ] TypeScript 0 Errors
 - [ ] ESLint 0 Errors
 - [ ] `npm audit` 0 Critical/High
+- [ ] UUID misuse check: 0 parseInt on UUID
+- [ ] Console.log check: 0 console.log in committed code
 - [ ] Docker Build Success
 - [ ] CHANGELOG.md Updated
 - [ ] Delta SQL file ready (ถ้ามี Schema Change)
@@ -496,7 +493,15 @@ STAGING_URL=https://staging.lcbp3-dms.internal
 
 ## 📝 Document Control
 
-- **Version:** 1.0.0 | **Status:** DRAFT
-- **Created:** 2026-03-11 | **Owner:** Nattanin Peancharoen
+- **Version:** 1.1.0 | **Status:** DRAFT
+- **Created:** 2026-03-11 | **Owner:** Nattanin Peancharoen (System Architect / Release Manager / Product Owner)
+- **Last Updated:** 2026-05-16 | Updated CI/CD pipeline to match actual implementation
 - **Next Review:** Pre Sprint 1 (T-2 สัปดาห์ก่อน Go-Live)
 - **Classification:** Internal — Developer + DevOps + PO Only
+
+## 📝 Change History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|---------|
+| 1.0.0 | 2026-03-11 | Initial release policy document | Nattanin P. |
+| 1.1.0 | 2026-05-16 | Updated to v1.9.0: Fixed CI/CD pipeline description, clarified monitoring infrastructure (ASUSTOR vs QNAP), updated role references to reflect actual team structure, marked Sprint cadence as ideal state | Nattanin P. |

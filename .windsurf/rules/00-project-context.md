@@ -63,7 +63,7 @@ Best practice — follow when possible:
 
 ---
 
-## 📐 TypeScript Rules & Coding Standards (v1.9.0)
+## 📐 TypeScript Rules & Coding Standards (v1.9.3)
 
 ### 📝 Core Standards
 

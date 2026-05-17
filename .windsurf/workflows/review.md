@@ -40,7 +40,7 @@ The following are **CI-blocking issues** that must be caught in code review. The
 
 - **❌ NO SQL Triggers for business logic** — use NestJS Service methods instead
 - **❌ NO `.env` files in production** — use Docker environment variables
-- **❌ NO direct table/column name invention** — verify against `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
+- **❌ NO direct table/column name invention** — verify against `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
 
 ### Security (ADR-016)
 

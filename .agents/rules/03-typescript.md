@@ -1,4 +1,4 @@
-# TypeScript Rules (v1.9.0)
+# TypeScript Rules (v1.9.3)
 
 ## Core Standards
 
@@ -13,9 +13,17 @@
 ## File & Function Structure
 
 - **File Headers** — every file MUST start with `// File: path/filename` on the first line.
+  - Use **absolute path** from project root (e.g., `// File: backend/src/modules/correspondence/correspondence.service.ts`)
+  - Do NOT use relative path (e.g., `// File: src/example.service.ts`)
 - **Change Log** — include `// Change Log` at the top of the file.
 - **Single Export** — export **only one main symbol** per file.
 - **Function Style** — avoid unnecessary blank lines inside functions.
+
+## i18n Guidelines
+
+- **No Hardcoded Text:** Use i18n keys for all user-facing text
+- **Reference:** `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`
+- **Pattern:** Use `t('key.path')` from i18n hook instead of hardcoded strings
 
 ## Patterns
 

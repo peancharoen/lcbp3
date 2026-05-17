@@ -96,19 +96,19 @@ specs/
 
 ### 📋 หมวดหมู่เอกสาร
 
-| หมวด                          | วัตถุประสงค์                           | ไฟล์สำคัญ           | ผู้ดูแล                 |
-| ----------------------------- | -------------------------------------- | ------------------- | ----------------------- |
-| **00-Overview**               | ภาพรวม, Product Vision, KPI, Training  | Gap 1/5/6/9         | Project Manager / PO    |
-| **01-Requirements**           | User Stories, UAT, UI, Edge Cases      | Gap 2/3/4/10        | Business Analyst + PO   |
-| **02-Architecture**           | สถาปัตยกรรมและการออกแบบ                | —                   | Tech Lead + Architects  |
-| **03-Data-and-Storage**       | Schema v1.8.0, Migration Scope         | Gap 7               | Backend Lead + DBA      |
-| **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8               | DevOps Team             |
-| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —                   | Development Team Leads  |
-| **06-Decision-Records**       | Architecture Decision Records (23)     | ADR-019/021/023     | Tech Lead + Senior Devs |
-| **100-Infrastructures**      | Infrastructure Operations & Ops        | —                   | DevOps / SRE Team       |
-| **200-fullstacks**           | Feature Implementation (Fullstack)     | spec.md, plan.md    | Development Team        |
-| **300-others**               | Documentation & Research               | —                   | All Team Members        |
-| **99-archives**               | Archived / Tasks                       | —                   | All Team Members        |
+| หมวด                          | วัตถุประสงค์                           | ไฟล์สำคัญ        | ผู้ดูแล                 |
+| ----------------------------- | -------------------------------------- | ---------------- | ----------------------- |
+| **00-Overview**               | ภาพรวม, Product Vision, KPI, Training  | Gap 1/5/6/9      | Project Manager / PO    |
+| **01-Requirements**           | User Stories, UAT, UI, Edge Cases      | Gap 2/3/4/10     | Business Analyst + PO   |
+| **02-Architecture**           | สถาปัตยกรรมและการออกแบบ                | —                | Tech Lead + Architects  |
+| **03-Data-and-Storage**       | Schema v1.8.0, Migration Scope         | Gap 7            | Backend Lead + DBA      |
+| **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8            | DevOps Team             |
+| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —                | Development Team Leads  |
+| **06-Decision-Records**       | Architecture Decision Records (23)     | ADR-019/021/023  | Tech Lead + Senior Devs |
+| **100-Infrastructures**       | Infrastructure Operations & Ops        | —                | DevOps / SRE Team       |
+| **200-fullstacks**            | Feature Implementation (Fullstack)     | spec.md, plan.md | Development Team        |
+| **300-others**                | Documentation & Research               | —                | All Team Members        |
+| **99-archives**               | Archived / Tasks                       | —                | All Team Members        |
 
 ---
 
@@ -555,8 +555,8 @@ graph LR
 | 1.8.7   | 2026-04-14 | Tech Lead  | ADR-021 integration complete (22 ADRs), workflow context features |
 | 1.8.8   | 2026-04-14 | Tech Lead  | Step-specific attachments, IntegratedBanner, WorkflowLifecycle    |
 | 1.8.9   | 2026-04-18 | Tech Lead  | Docker Compose hardening — 27 findings (C1–S4) addressed          |
-| 1.9.0   | 2026-05-13 | Tech Lead  | Agent Infrastructure standard & RFA System migration finalized     |
-| 1.9.1   | 2026-05-14 | Tech Lead  | Consolidated AI master architecture into ADR-023                   |
+| 1.9.0   | 2026-05-13 | Tech Lead  | Agent Infrastructure standard & RFA System migration finalized    |
+| 1.9.1   | 2026-05-14 | Tech Lead  | Consolidated AI master architecture into ADR-023                  |
 
 **Current Version**: 1.9.0
 **Status**: Approved
@@ -754,7 +754,7 @@ bash  ./.agents/scripts/bash/audit-skills.sh
 ### 🔴 Tier 1 Non-Negotiables (AI must enforce)
 
 - **ADR-019 UUID** — `publicId` exposed directly; ห้าม `parseInt`/`Number`/`+` บน UUID; ห้าม `id ?? ''` fallback; ห้ามใช้ `@Expose({ name: 'id' })` rename
-- **ADR-009 Schema** — แก้ `lcbp3-v1.8.0-schema-02-tables.sql` โดยตรง + เพิ่ม delta ที่ `specs/03-Data-and-Storage/deltas/`; ห้าม TypeORM migrations
+- **ADR-009 Schema** — แก้ `lcbp3-v1.9.0-schema-02-tables.sql` โดยตรง + เพิ่ม delta ที่ `specs/03-Data-and-Storage/deltas/`; ห้าม TypeORM migrations
 - **ADR-016 Security** — CASL + `Idempotency-Key` + ClamAV two-phase upload
 - **ADR-023 AI Architecture** — Ollama on Admin Desktop only; human-in-the-loop validation
 

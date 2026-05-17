@@ -112,7 +112,7 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | Document                     | Path                                                                 | Status    | Use When                                                                          |
 | ---------------------------- | -------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------- |
 | **Glossary**                 | `specs/00-overview/00-02-glossary.md`                                | —         | Verify domain terminology                                                         |
-| **Schema Tables**            | `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`        | —         | Before writing any query                                                          |
+| **Schema Tables**            | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`        | —         | Before writing any query                                                          |
 | **Data Dictionary**          | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                 | —         | Field meanings + business rules                                                   |
 | **RBAC Matrix**              | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` | —         | Permission levels + roles                                                         |
 | **Edge Cases**               | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                | —         | Prevent bugs in flows                                                             |
@@ -122,6 +122,7 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | **ADR-008 Notifications**    | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`   | ✅ Active | BullMQ + multi-channel notification                                               |
 | **ADR-009 DB Migration**     | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`   | ✅ Active | Schema changes — edit SQL directly                                                |
 | **ADR-016 Security**         | `specs/06-Decision-Records/ADR-016-security-authentication.md`       | ✅ Active | Auth, RBAC, file upload security                                                  |
+| **ADR-015 Release Strategy** | `specs/06-Decision-Records/ADR-015-deployment-infrastructure.md`     | ✅ Active | Blue-Green deployment + release gates                                             |
 | **ADR-019 UUID**             | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`    | ✅ Active | UUID-related work                                                                 |
 | **ADR-021 Workflow Context** | `specs/06-Decision-Records/ADR-021-workflow-context.md`              | ✅ Active | Integrated workflow & step attachments                                            |
 | **ADR-023 AI Architecture**  | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`       | ✅ Active | Unified AI boundaries and pipeline (base architecture)                            |
@@ -487,6 +488,7 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                                                                             | Updated By     |
 | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.4   | 2026-05-16 | Added ADR-015 Release Strategy to Key Spec Files table (Blue-Green deployment + release gates)                                                                                                      | Human Dev      |
 | 1.9.3   | 2026-05-15 | ADR-023A: Model revision — gemma4:9b+Typhoon→gemma4:e4b Q8_0 (2-model stack), BullMQ 2-queue split, RAG full-doc embed, OCR auto-detect, n8n→DMS API boundary, QdrantService multi-tenancy contract | Windsurf AI    |
 | 1.9.2   | 2026-05-14 | Consolidated legacy AI ADRs (017, 017B, 018, 020, 022) into master ADR-023: Unified AI Architecture                                                                                                 | Antigravity AI |
 | 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                                                                     | Windsurf AI    |

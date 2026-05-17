@@ -1,7 +1,7 @@
 # Schema Deltas
 
 Incremental SQL scripts applied to existing environments **after** the canonical schema
-(`../lcbp3-v1.8.0-schema-02-tables.sql`) has been updated.
+(`../lcbp3-v1.9.0-schema-02-tables.sql`) has been updated.
 
 ## Naming Convention
 
@@ -17,7 +17,7 @@ Examples:
 
 ## Rules (per ADR-009)
 
-1. **Never replace** the canonical `lcbp3-v1.8.x-schema-02-tables.sql` — update it first, then add the delta here.
+1. **Never replace** the canonical `lcbp3-v1.9.x-schema-02-tables.sql` — update it first, then add the delta here.
 2. **Idempotent where possible** — prefer `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE … ADD COLUMN IF NOT EXISTS`, etc.
 3. **No TypeORM migrations** — these `.sql` files are the only schema deployment mechanism.
 4. **Data backfill** goes through **n8n workflows**, not this directory.
@@ -61,5 +61,5 @@ irreversible — document in the delta header when rollback is impossible.
 ## References
 
 - [ADR-009 Database Migration Strategy](../../06-Decision-Records/ADR-009-database-migration-strategy.md)
-- [Canonical Schema](../lcbp3-v1.8.0-schema-02-tables.sql)
+- [Canonical Schema](../lcbp3-v1.9.0-schema-02-tables.sql)
 - [Data Dictionary](../03-01-data-dictionary.md)

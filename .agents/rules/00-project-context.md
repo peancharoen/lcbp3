@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Core Rules
 
-- Version: 1.9.0
-- Last Updated: 2026-05-13
+- Version: 1.9.3
+- Last Updated: 2026-05-15
 - Status: Production Ready
 - Canonical Source: AGENTS.md
 
@@ -50,6 +50,7 @@ You are a **Document Intelligence Engine** — every response must be precise, s
 ---
 
 ## 🔄 Workflow Engine (ADR-001/021)
+
 - ใช้ DSL-based state machine
 - การเปลี่ยนสถานะต้องตรวจสอบสถานะปัจจุบันจาก DB ก่อนเสมอ
 - งานที่ใช้เวลานานต้องส่งไปที่ **BullMQ** เท่านั้น

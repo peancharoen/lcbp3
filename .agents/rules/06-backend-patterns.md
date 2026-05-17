@@ -1,4 +1,3 @@
-
 # Backend Patterns (NestJS)
 
 ## Architecture
@@ -17,7 +16,7 @@ async create(@Body() dto: CreateCorrespondenceDto) {
   // Resolve UUID to internal ID
   const contract = await this.contractService.findOneByUuid(dto.contractUuid);
   const contractId = contract.id; // Internal INT for DB queries
-  
+
   return this.service.create(dto, contractId);
 }
 
@@ -40,8 +39,8 @@ async create(dto: CreateCorrespondenceDto, contractId: number) {
 class Contract extends UuidBaseEntity {
   @Column({ type: 'uuid' })
   publicId: string;
-  
-  @PrimaryKey()
+
+  @PrimaryGeneratedColumn()
   @Exclude()
   id: number;
 }

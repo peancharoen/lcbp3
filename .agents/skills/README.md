@@ -1,6 +1,6 @@
 # `.agents/skills/` — LCBP3 Agent Skill Pack
 
-**Version:** 1.8.9 | **Last Updated:** 2026-04-22 | **Total Skills:** 20
+**Version:** 1.9.0 | **Last Updated:** 2026-05-17 | **Total Skills:** 23
 
 Agent skills for AI-assisted development in **Windsurf IDE** (and compatible agents: Codex CLI, opencode, Amp, Antigravity, AGENTS.md-aware tools).
 
@@ -16,12 +16,15 @@ Agent skills for AI-assisted development in **Windsurf IDE** (and compatible age
 ├── README.md                    # (this file)
 ├── nestjs-best-practices/       # Backend rules (40 rules across 10 categories)
 ├── next-best-practices/         # Frontend rules (Next.js 15+)
+├── e2e-testing/                 # Playwright E2E testing patterns (POM, flaky tests, CI/CD)
+├── verification-loop/           # Comprehensive verification (build, typecheck, lint, test, security)
+├── security-review/             # OWASP Top 10 + ADR compliance checklist
 └── speckit-*/                   # 18 workflow skills (spec → plan → tasks → implement → …)
 ```
 
 Each skill directory contains:
 
-- `SKILL.md` — frontmatter (`name`, `description`, `version: 1.8.9`, `scope`, `depends-on`, `handoffs`) + instructions
+- `SKILL.md` — frontmatter (`name`, `description`, `version: 1.9.0`, `scope`, `depends-on`, `handoffs`) + instructions
 - `templates/` _(optional)_ — artifact templates (spec/plan/tasks/checklist)
 - `rules/` _(nestjs only)_ — individual rule files grouped by prefix (`arch-`, `security-`, `db-`, etc.)
 
@@ -62,14 +65,14 @@ Use `/00-speckit.all` to run specify → clarify → plan → tasks → analyze 
 
 From repo root:
 
-| Script | Purpose |
-| --- | --- |
-| `./.agents/scripts/bash/check-prerequisites.sh --json` | Emit `FEATURE_DIR` + `AVAILABLE_DOCS` for a feature branch |
-| `./.agents/scripts/bash/setup-plan.sh --json` | Emit `FEATURE_SPEC`, `IMPL_PLAN`, `SPECS_DIR`, `BRANCH` |
-| `./.agents/scripts/bash/update-agent-context.sh windsurf` | Append tech entries to `AGENTS.md` |
-| `./.agents/scripts/bash/audit-skills.sh` | Validate all `SKILL.md` frontmatter + presence |
-| `./.agents/scripts/bash/validate-versions.sh` | Version consistency check |
-| `./.agents/scripts/bash/sync-workflows.sh` | Verify every skill has a `.windsurf/workflows/*.md` wrapper |
+| Script                                                    | Purpose                                                     |
+| --------------------------------------------------------- | ----------------------------------------------------------- |
+| `./.agents/scripts/bash/check-prerequisites.sh --json`    | Emit `FEATURE_DIR` + `AVAILABLE_DOCS` for a feature branch  |
+| `./.agents/scripts/bash/setup-plan.sh --json`             | Emit `FEATURE_SPEC`, `IMPL_PLAN`, `SPECS_DIR`, `BRANCH`     |
+| `./.agents/scripts/bash/update-agent-context.sh windsurf` | Append tech entries to `AGENTS.md`                          |
+| `./.agents/scripts/bash/audit-skills.sh`                  | Validate all `SKILL.md` frontmatter + presence              |
+| `./.agents/scripts/bash/validate-versions.sh`             | Version consistency check                                   |
+| `./.agents/scripts/bash/sync-workflows.sh`                | Verify every skill has a `.windsurf/workflows/*.md` wrapper |
 
 All scripts mirror to `.agents/scripts/powershell/*.ps1` for Windows.
 
@@ -92,7 +95,7 @@ See [`_LCBP3-CONTEXT.md`](./_LCBP3-CONTEXT.md) for the complete list.
 
 To add a new skill:
 
-1. Create `NAME/SKILL.md` with frontmatter: `name`, `description`, `version: 1.8.9`, `scope`, `depends-on`.
+1. Create `NAME/SKILL.md` with frontmatter: `name`, `description`, `version: 1.9.0`, `scope`, `depends-on`.
 2. Append an LCBP3 context reference pointing to `_LCBP3-CONTEXT.md`.
 3. Wrap with `.windsurf/workflows/NAME.md` so it becomes a slash command.
 4. Update [`skills.md`](./skills.md) dependency matrix.

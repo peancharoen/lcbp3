@@ -126,7 +126,7 @@ These rules override general NestJS best practices for the NAP-DMS project:
 ### ADR-009: No TypeORM Migrations
 
 - **ห้ามสร้างไฟล์ migration ของ TypeORM**
-- แก้ไข schema โดยตรงที่: `specs/03-Data-and-Storage/lcbp3-v1.8.0-schema-02-tables.sql`
+- แก้ไข schema โดยตรงที่: `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
 - ใช้ n8n workflow สำหรับ data migration ถ้าจำเป็น
 
 ### ADR-019: Hybrid Identifier Strategy (CRITICAL — March 2026 Pattern)

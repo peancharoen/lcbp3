@@ -1,10 +1,10 @@
 # 04.1 Infrastructure Setup & Docker Compose
 
 **Project:** LCBP3-DMS
-**Version:** 1.8.0
+**Version:** 1.9.0
 **Status:** Active
-**Owner:** Nattanin Peancharoen / DevOps Team
-**Last Updated:** 2026-02-23
+**Owner:** Nattanin Peancharoen (System Architect / Release Manager / Product Owner)
+**Last Updated:** 2026-05-16
 
 > 📍 **Primary Server:** QNAP TS-473A (Application & Database)
 > 💾 **Backup Server:** ASUSTOR AS5403T (Infrastructure & Backup)
@@ -17,11 +17,73 @@ This document serves as the authoritative guide for the environment setup, Docke
 
 ---
 
+# Infrastructure Distribution
+
+> 📍 **Multi-Server Architecture:** LCBP3-DMS ใช้ distributed infrastructure แบ่งการทำงานระหว่าง 2 เครื่องหลัก
+
+## Server Roles
+
+| Server | IP Address | Role | Services |
+|--------|------------|------|----------|
+| **QNAP TS-473A** | 192.168.10.8 | Primary Application & Database Server | Backend, Frontend, MariaDB, Redis (cache), Elasticsearch (search), Qdrant, ClamAV, Monitoring Exporters |
+| **ASUSTOR AS5403T** | 192.168.10.9 | Infrastructure & Backup Server | Prometheus, Grafana, Gitea Runner |
+
+## Service Distribution
+
+### QNAP (192.168.10.8)
+
+**Application Stack** (`/share/np-dms/app/docker-compose-app.yml`):
+- `backend` - NestJS API
+- `frontend` - Next.js Web App
+- `qdrant` - Vector Database (ADR-023A)
+- `clamav` - Antivirus Scanner (ADR-016)
+
+**Infrastructure Services** (`/share/np-dms/services/docker-compose.yml`):
+- `cache` - Redis (Caching + Distributed Lock + BullMQ queues)
+- `search` - Elasticsearch (Full-text Search)\n- `qdrant` - Vector Database for RAG (ADR-023A)\n- `clamav` - Antivirus Scanner (ADR-016)
+
+**Database Stack** (`/share/np-dms/mariadb/docker-compose.yml`):
+- `mariadb` - MariaDB Database
+- `pma` - phpMyAdmin (via NPM proxy only)\n\n**MariaDB Configuration:**\n- Config file location: `/share/np-dms/mariadb/my.cnf` (mount to `/etc/mysql/conf.d/my.cnf:ro`)\n- Backup directory: `/share/dms-data/mariadb/backup`
+
+**Monitoring Exporters** (`/share/np-dms/monitoring/docker-compose.yml`):
+- `node-exporter` - System metrics
+- `cadvisor` - Container metrics
+- `mysqld-exporter` - Database metrics
+
+**Supporting Services**:
+- NPM (Nginx Proxy Manager) - Reverse Proxy & SSL
+- Gitea - Git Repository
+- n8n - Workflow Automation
+- RocketChat - Team Communication
+
+### ASUSTOR (192.168.10.9)
+
+**Monitoring Stack**:
+- `prometheus` - Metrics Collection & Alerting
+- `grafana` - Visualization & Dashboards
+- Gitea Runner - CI/CD Pipeline Execution
+
+## Network Architecture
+
+**Docker Network:** `lcbp3` (external bridge network)
+
+- ทุก service บน QNAP เชื่อมต่อผ่าน network `lcbp3` เดียวกัน
+- Services สื่อสารกันด้วย DNS names (เช่น `backend:3000`, `cache:6379`)
+- ASUSTOR scrape metrics ผ่าน QNAP exporters ผ่าน network DNS
+
+**Network Security:**
+- Elasticsearch และ Redis ไม่ publish ports ออก LAN (ใช้ `expose` เฉพาะภายใน network)
+- MariaDB publish port 3306 แต่ bind เฉพาะ loopback (127.0.0.1:3306) สำหรับ backup/migration
+- Public access ผ่าน NPM reverse proxy เท่านั้น
+
+---
+
 # Environment Setup & Configuration
 
 **Project:** LCBP3-DMS
-**Version:** 1.8.0
-**Last Updated:** 2025-12-02
+**Version:** 1.9.0
+**Last Updated:** 2026-05-16
 
 ---
 
@@ -37,34 +99,35 @@ This document describes environment variables, configuration files, and secrets 
 
 ```bash
 # File: backend/.env (DO NOT commit to Git)
+# Location: /share/np-dms/app/.env (ใช้ร่วมกับ docker-compose-app.yml)
 
 # Application
 NODE_ENV=production
 APP_PORT=3000
-APP_URL=https://lcbp3-dms.example.com
+APP_URL=https://lcbp3.np-dms.work
 
 # Database
-DB_HOST=lcbp3-mariadb
+DB_HOST=mariadb
 DB_PORT=3306
-DB_USER=lcbp3_user
-DB_PASS=<STRONG_PASSWORD>
-DB_NAME=lcbp3_dms
+DB_DATABASE=lcbp3
+DB_USERNAME=center
+DB_PASSWORD=<STRONG_PASSWORD>
 
 # Redis
-REDIS_HOST=lcbp3-redis
+REDIS_HOST=cache
 REDIS_PORT=6379
 REDIS_PASSWORD=<STRONG_PASSWORD>
 
 # JWT Authentication
 JWT_SECRET=<RANDOM_256_BIT_SECRET>
-JWT_EXPIRATION=1h
+JWT_EXPIRATION=8h
 JWT_REFRESH_SECRET=<RANDOM_256_BIT_SECRET>
 JWT_REFRESH_EXPIRATION=7d
 
-# File Storage
-UPLOAD_DIR=/app/uploads
-TEMP_UPLOAD_DIR=/app/uploads/temp
-MAX_FILE_SIZE=104857600  # 100MB
+# File Storage (Two-Phase Storage - ADR-016)
+UPLOAD_TEMP_DIR=/app/uploads/temp
+UPLOAD_PERMANENT_DIR=/app/uploads/permanent
+MAX_FILE_SIZE=52428800  # 50MB
 ALLOWED_FILE_TYPES=pdf,doc,docx,xls,xlsx,dwg,jpg,png
 
 # SMTP Email
@@ -77,20 +140,31 @@ SMTP_FROM="LCBP3-DMS System <noreply@example.com>"
 # LINE Notify (Optional)
 LINE_NOTIFY_ENABLED=true
 
-# ClamAV Virus Scanner
+# ClamAV Virus Scanner (ADR-016)
 CLAMAV_HOST=clamav
 CLAMAV_PORT=3310
 
 # Elasticsearch
-ELASTICSEARCH_NODE=http://lcbp3-elasticsearch:9200
-ELASTICSEARCH_INDEX_PREFIX=lcbp3_
+ELASTICSEARCH_HOST=search
+ELASTICSEARCH_PORT=9200
+ELASTICSEARCH_USERNAME=elastic
+ELASTICSEARCH_PASSWORD=<STRONG_PASSWORD>
+
+# Qdrant Vector Database (ADR-023A)
+QDRANT_HOST=qdrant
+QDRANT_PORT=6333
+QDRANT_GRPC_PORT=6334
+
+# Document Numbering (ADR-002)
+NUMBERING_LOCK_TIMEOUT=5000
+NUMBERING_RESERVATION_TTL=300
 
 # Logging
 LOG_LEVEL=info
 LOG_FILE_PATH=/app/logs
 
 # Frontend URL (for email links)
-FRONTEND_URL=https://lcbp3-dms.example.com
+FRONTEND_URL=https://lcbp3.np-dms.work
 
 # Rate Limiting
 RATE_LIMIT_TTL=60
@@ -101,13 +175,14 @@ RATE_LIMIT_MAX=100
 
 ```bash
 # File: frontend/.env.local (DO NOT commit to Git)
+# Location: /share/np-dms/app/.env (ใช้ร่วมกับ docker-compose-app.yml)
 
 # API Backend
-NEXT_PUBLIC_API_URL=https://lcbp3-dms.example.com/api
+NEXT_PUBLIC_API_URL=https://backend.np-dms.work/api
 
 # Application
 NEXT_PUBLIC_APP_NAME=LCBP3-DMS
-NEXT_PUBLIC_APP_VERSION=1.8.0
+NEXT_PUBLIC_APP_VERSION=1.9.0
 
 # Feature Flags
 NEXT_PUBLIC_ENABLE_NOTIFICATIONS=true
@@ -118,134 +193,88 @@ NEXT_PUBLIC_ENABLE_LINE_NOTIFY=true
 
 ## 🐳 Docker Compose Configuration
 
-### Production docker-compose.yml
+> **⚠️ สำคัญ:** LCBP3-DMS ใช้ **Split Files Architecture** ไม่ใช่ monolithic docker-compose.yml เดียว
+>
+> ดูรายละเอียดและไฟล์จริงได้ที่: [Appendix A - Live QNAP Production Configs](#appendix-a--live-qnap-production-configs)
+
+### Split Files Structure
+
+```
+/share/np-dms/
+├── app/docker-compose-app.yml          # Application Stack (backend, frontend)
+├── mariadb/docker-compose.yml          # Database Stack (mariadb, pma)
+├── services/docker-compose.yml         # Infrastructure Services (cache/redis, search/elasticsearch, qdrant, clamav)
+├── monitoring/docker-compose.yml       # Monitoring Exporters (node-exporter, cadvisor, mysqld-exporter)
+├── npm/docker-compose.yml              # Nginx Proxy Manager
+├── git/docker-compose.yml              # Gitea
+└── n8n/docker-compose.yml              # n8n Automation
+```
+
+### Production Configuration Overview
+
+**Application Stack** (`app/docker-compose-app.yml`):
+- `backend` - NestJS API (port 3000 internal)
+- `frontend` - Next.js Web App (port 3000 internal)
+- `qdrant` - Vector Database for RAG (ADR-023A)
+- `clamav` - Antivirus Scanner (ADR-016)
+
+**Infrastructure Services** (`services/docker-compose.yml`):
+- `cache` - Redis 7-alpine (Caching + Distributed Lock + BullMQ)
+- `search` - Elasticsearch 8.11.1 (Full-text Search)\n- `qdrant` - Vector Database for RAG (ADR-023A)\n- `clamav` - Antivirus Scanner (ADR-016)
+
+**Database Stack** (`mariadb/docker-compose.yml`):
+- `mariadb` - MariaDB 11.8
+- `pma` - phpMyAdmin (via NPM proxy only)\n\n**MariaDB Configuration:**\n- Config file location: `/share/np-dms/mariadb/my.cnf` (mount to `/etc/mysql/conf.d/my.cnf:ro`)\n- Backup directory: `/share/dms-data/mariadb/backup`
+
+**Network:** ทุก stack ใช้ external network `lcbp3` เดียวกัน
+
+> **ดู configuration ทั้งหมดได้ที่:** [Appendix A](#appendix-a--live-qnap-production-configs)
+
+### Legacy Monolithic Example (Deprecated)
+
+⚠️ **ข้อมูลด้านล่างนี้เป็นตัวอย่างเท่านั้น - อย่าใช้ใน production**
+
+เอกสารเดิมแสดง monolithic docker-compose.yml แต่ production จริงใช้ split files ดังนี้:
 
 ```yaml
-# File: docker-compose.yml
+# ❌ DEPRECATED: อย่าใช้ monolithic approach นี้
 version: '3.8'
 
 services:
-  # NGINX Reverse Proxy
   nginx:
     image: nginx:alpine
     container_name: lcbp3-nginx
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-      - nginx-logs:/var/log/nginx
-    depends_on:
-      - backend
-      - frontend
-    restart: unless-stopped
-    networks:
-      - lcbp3-network
+    # ... (ใช้ NPM แทน)
 
-  # NestJS Backend
   backend:
     image: lcbp3-backend:latest
     container_name: lcbp3-backend
-    environment:
-      - NODE_ENV=production
-    env_file:
-      - ./backend/.env
-    volumes:
-      - uploads:/app/uploads
-      - backend-logs:/app/logs
-    depends_on:
-      - mariadb
-      - redis
-      - elasticsearch
-    restart: unless-stopped
-    networks:
-      - lcbp3-network
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    # ... (ดู app/docker-compose-app.yml จริง)
 
-  # Next.js Frontend
   frontend:
     image: lcbp3-frontend:latest
     container_name: lcbp3-frontend
-    environment:
-      - NODE_ENV=production
-    env_file:
-      - ./frontend/.env.local
-    restart: unless-stopped
-    networks:
-      - lcbp3-network
+    # ... (ดู app/docker-compose-app.yml จริง)
 
-  # MariaDB Database
   mariadb:
     image: mariadb:11.8
     container_name: lcbp3-mariadb
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASS}
-    volumes:
-      - mariadb-data:/var/lib/mysql
-      - ./mariadb/init:/docker-entrypoint-initdb.d:ro
-    ports:
-      - '3306:3306'
-    restart: unless-stopped
-    networks:
-      - lcbp3-network
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    # ... (ดู mariadb/docker-compose.yml จริง)
 
-  # Redis Cache & Queue
   redis:
     image: redis:7.2-alpine
-    container_name: lcbp3-redis
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis-data:/data
-    ports:
-      - '6379:6379'
-    restart: unless-stopped
-    networks:
-      - lcbp3-network
+    container_name: cache
+    # ... (ดู services/docker-compose.yml จริง - service name: cache)
 
-  # Elasticsearch
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: lcbp3-elasticsearch
-    environment:
-      - discovery.type=single-node
-      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
-      - xpack.security.enabled=false
-    volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
-    ports:
-      - '9200:9200'
-    restart: unless-stopped
-    networks:
-      - lcbp3-network
+    container_name: search
+    # ... (ดู services/docker-compose.yml จริง - service name: search)
 
-  # ClamAV (Optional - for virus scanning)
   clamav:
     image: clamav/clamav:latest
     container_name: lcbp3-clamav
-    restart: unless-stopped
-    networks:
-      - lcbp3-network
-
-networks:
-  lcbp3-network:
-    driver: bridge
-
-volumes:
-  mariadb-data:
-  redis-data:
-  elasticsearch-data:
-  uploads:
-  backend-logs:
-  nginx-logs:
+    # ... (ดู app/docker-compose-app.yml จริง)
 ```
 
 ### Development docker-compose.override.yml
@@ -291,49 +320,169 @@ services:
 
   elasticsearch:
     environment:
-      - 'ES_JAVA_OPTS=-Xms256m -Xmx256m' # Lower memory for dev
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m' # Lower memory for dev
 ```
 
 ---
 
-## 🔑 Secrets Management
+## 🔒 Secrets Management\n\n> **🔄 Update:** LCBP3-DMS ใช้ **.env files** แทน Docker secrets เพื่อความเข้ากันได้กับมาตราฐานทั่วไปและ CI/CD pipeline\n\n### Why .env Files?\n\n- **Industry Standard:** .env files เป็นมาตราฐานทั่วไปสำหรับ environment configuration\n- **CI/CD Friendly:** ง่ายต่อการจัดการผ่าน GitHub Actions secrets และ Gitea secrets\n- **QNAP Container Station 3.x:** รองรับ `env_file` อย่างเต็มที่\n- **Simplicity:** ไม่ต้องจัดการกับ Docker secrets ที่ซับซ้อน\n\n### .env Files Structure\n\n```\n/share/np-dms/\n├── app/.env                    # Application stack secrets (backend, frontend, qdrant, clamav)\n├── mariadb/.env                # Database secrets\n├── services/.env               # Infrastructure services secrets (cache, search)\n├── npm/.env                    # NPM secrets\n├── git/.env                    # Gitea secrets\n└── n8n/.env                    # n8n secrets\n```\n\n### Creating .env Files\n\n```bash\n# Copy example template\ncp .env.example .env\n\n# Edit with actual values\nnano .env\n\n# Set restrictive permissions\nchmod 600 .env\n```\n\n### Security Best Practices\n\n- **File Permissions:** `chmod 600 .env` (read/write for owner only)\n- **Git Ignore:** เพิ่ม `.env` ใน `.gitignore`\n- **Environment-Specific:** ใช้ `.env.production`, `.env.staging` สำหรับ environment ต่างกัน\n- **CI/CD Secrets:** ใช้ GitHub Actions secrets หรือ Gitea secrets สำหรับ CI/CD pipeline\n- **Rotation:** Rotate secrets ทุก 90 วัน (ตาม ADR-016)\n\n### Alternative: Docker Secrets (Legacy)\n\nเอกสารเดิมแนะนำ Docker secrets แต่ LCBP3-DMS เลือกใช้ .env files แทน:\n\n```yaml\n# ❌ DEPRECATED: Docker secrets approach\nsecrets:\n  db_password:\n    file: ./secrets/db_password.txt\n\nservices:\n  backend:\n    secrets:\n      - db_password\n```\n\n> **หากต้องการใช้ Docker secrets:** ดู Docker documentation สำหรับการใช้งาน แต่ไม่แนะนำสำหรับ LCBP3-DMS
 
-### Using Docker Secrets (Recommended for Production)
-
-```yaml
-# docker-compose.yml
-services:
-  backend:
-   secrets:
-      - db_password
-      - jwt_secret
-    environment:
-      DB_PASS_FILE: /run/secrets/db_password
-      JWT_SECRET_FILE: /run/secrets/jwt_secret
-
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt
-  jwt_secret:
-    file: ./secrets/jwt_secret.txt
-```
-
-### Generate Strong Secrets
+### Using .env Files (Recommended for Production)
 
 ```bash
-# Generate JWT Secret
-openssl rand -base64 64
+# File: /share/np-dms/app/.env
+# Location: /share/np-dms/app/.env (ใช้ร่วมกับ docker-compose-app.yml)
+# ⚠️ DO NOT commit to Git
 
-# Generate Database Password
-openssl rand -base64 32
+# Database
+DB_PASSWORD=<STRONG_RANDOM_PASSWORD>
 
-# Generate Redis Password
-openssl rand -base64 32
+# Redis
+REDIS_PASSWORD=<STRONG_RANDOM_PASSWORD>
+
+# JWT Authentication
+JWT_SECRET=<RANDOM_256_BIT_SECRET>
+JWT_REFRESH_SECRET=<RANDOM_256_BIT_SECRET>
+
+# SMTP Email
+SMTP_PASS=<APP_PASSWORD>
+
+# Elasticsearch
+ELASTICSEARCH_PASSWORD=<STRONG_PASSWORD>
+
+# Qdrant
+QDRANT_API_KEY=<OPTIONAL_API_KEY>
+```
+
+### Docker Compose Integration
+
+```yaml
+# File: docker-compose-app.yml
+services:
+  backend:
+    env_file:
+      - .env
+    environment:
+      TZ: 'Asia/Bangkok'
 ```
 
 ---
 
-## 📁 Directory Structure
+## � Volume/Storage Architecture (QNAP-Specific)
+
+> **QNAP NAS Storage:** LCBP3-DMS ใช้ QNAP absolute paths แทน Docker named volumes เพื่อประโยชน์จาก NAS storage management
+
+### Storage Paths on QNAP
+
+```
+/share/np-dms/
+├── app/
+│   ├── .env                      # Environment variables (gitignored)
+│   └── docker-compose-app.yml    # Application stack
+│
+├── mariadb/
+│   ├── data/                     # MariaDB database files
+│   ├── my.cnf                    # MariaDB configuration (mount to /etc/mysql/conf.d/my.cnf:ro)
+│   └── init/                     # Database initialization scripts
+│
+├── services/
+│   ├── cache/
+│   │   └── data/                 # Redis persistence
+│   └── search/
+│       └── data/                 # Elasticsearch indices
+│
+├── monitoring/
+│   └── docker-compose.yml       # Monitoring exporters
+│
+├── npm/
+│   ├── data/                     # NPM configuration
+│   ├── letsencrypt/              # SSL certificates
+│   └── custom/                   # Custom nginx configs
+│
+├── git/
+│   ├── etc/                      # Gitea configuration
+│   ├── lib/                      # Gitea libraries
+│   ├── gitea_repos/              # Git repositories
+│   └── gitea_registry/           # Container registry
+│
+├── n8n/
+│   ├── /home/node/.n8n           # n8n workflow data
+│   ├── cache/                    # n8n cache
+│   └── scripts/                  # n8n custom scripts
+│
+└── data/
+    ├── uploads/
+    │   ├── temp/                 # Temporary upload storage (Two-Phase Storage - ADR-016)
+    │   └── permanent/            # Permanent document storage
+    └── logs/
+        ├── backend/              # Backend application logs
+        └── frontend/             # Frontend application logs
+```
+
+### Volume Mounts in Docker Compose
+
+**Application Stack** (`app/docker-compose-app.yml`):
+```yaml
+volumes:
+  - '/share/np-dms/data/uploads/temp:/app/uploads/temp'
+  - '/share/np-dms/data/uploads/permanent:/app/uploads/permanent'
+  - '/share/np-dms/data/logs/backend:/app/logs'
+```
+
+**Database Stack** (`mariadb/docker-compose.yml`):
+```yaml
+volumes:
+  - '/share/np-dms/mariadb/data:/var/lib/mysql'
+  - '/share/np-dms/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf:ro'
+  - '/share/np-dms/mariadb/init:/docker-entrypoint-initdb.d:ro'
+  - '/share/dms-data/mariadb/backup:/backup'
+```
+
+**Infrastructure Services** (`services/docker-compose.yml`):
+```yaml
+volumes:
+  - '/share/np-dms/services/cache/data:/data'              # Redis
+  - '/share/np-dms/services/search/data:/usr/share/elasticsearch/data'  # Elasticsearch
+```
+
+### Storage Permissions
+
+QNAP requires specific UID/GID for container access:
+
+- **MariaDB:** UID 999
+- **Redis:** UID 999
+- **Elasticsearch:** UID 1000
+- **phpMyAdmin:** UID 33
+
+Example setup:
+```bash
+# MariaDB
+chown -R 999:999 /share/np-dms/mariadb
+chmod -R 755 /share/np-dms/mariadb
+
+# Redis
+chown -R 999:999 /share/np-dms/services/cache/data
+chmod -R 750 /share/np-dms/services/cache/data
+
+# Elasticsearch
+chown -R 1000:1000 /share/np-dms/services/search/data
+chmod -R 750 /share/np-dms/services/search/data
+```
+
+### Backup Strategy
+
+QNAP provides native snapshot backup for `/share/np-dms/` directory:
+- **Frequency:** Daily snapshots (configurable in QNAP Hybrid Backup Sync)
+- **Retention:** 7-30 days (configurable)
+- **Target:** External USB drive or remote NAS
+
+Additional application-level backups:
+- **Database:** mysqldump scripts (see Backup & Recovery section)
+- **Configuration:** `/share/np-dms/*.env` files (manual backup)
+
+---
+
+## �� Directory Structure
 
 ```
 lcbp3/
@@ -451,7 +600,7 @@ docker exec lcbp3-backend env | grep DB_
 
 ```bash
 # Test Redis connection
-docker exec lcbp3-redis redis-cli -a <PASSWORD> ping
+docker exec cache redis-cli -a <PASSWORD> ping
 # Should return: PONG
 ```
 
@@ -475,15 +624,15 @@ docker exec lcbp3-backend env | grep NODE_ENV
 
 ---
 
-**Version:** 1.8.0
-**Last Review:** 2025-12-01
-**Next Review:** 2026-03-01
+**Version:** 1.9.0
+**Last Review:** 2026-05-16
+**Next Review:** 2026-08-16
 
 ---
 
 # Infrastructure Setup
 
-> 📍 **Document Version:** v1.8.0
+> 📍 **Document Version:** v1.9.0
 > 🖥️ **Primary Server:** QNAP TS-473A (Application & Database)
 > 💾 **Backup Server:** ASUSTOR AS5403T (Infrastructure & Backup)
 
@@ -508,7 +657,7 @@ version: '3.8'
 services:
   redis:
     image: 'redis:7.2-alpine'
-    container_name: lcbp3-redis
+    container_name: cache
     restart: unless-stopped
     # AOF: Enabled for durability
     # Maxmemory: Prevent OOM
@@ -840,7 +989,7 @@ curl -X POST http://admin:admin@localhost:3000/api/dashboards/db \
 
 ### 5.1 Database Backup Strategy
 
-#### Automated Backup Script
+> **⚠️ Note:** Scripts ด้านล่างนี้เป็นตัวอย่าง/เทมเพลตเท่านั้น - วิธีการจริงจะตัดสินใจภายหลังตามความเหมาะสมกับ infrastructure\n\n#### Automated Backup Script (Example)
 
 ```bash
 #!/bin/bash
@@ -998,7 +1147,7 @@ docker exec cache redis-cli ping
 
 ---
 
-## 6. Maintenance Procedures
+## 6. Maintenance Procedures\n\n> **⚠️ Note:** Procedures ด้านล่างนี้เป็น template/guidelines เท่านั้น - วิธีการจริงจะตัดสินใจภายหลังตามความเหมาะสมกับ infrastructure
 
 ### 6.1 Sequence Adjustment
 
@@ -1107,16 +1256,16 @@ LINES TERMINATED BY '\n';
 echo "🧹 Cleaning up expired reservations..."
 
 # Get all reservation keys
-KEYS=$(docker exec lcbp3-redis-1 redis-cli --cluster call 172.20.0.2:6379 KEYS "reservation:*" | grep -v "(error)")
+KEYS=$(docker exec cache-1 redis-cli --cluster call 172.20.0.2:6379 KEYS "reservation:*" | grep -v "(error)")
 
 COUNT=0
 for KEY in $KEYS; do
   # Check TTL
-  TTL=$(docker exec lcbp3-redis-1 redis-cli TTL "$KEY")
+  TTL=$(docker exec cache-1 redis-cli TTL "$KEY")
 
   if [ "$TTL" -lt 0 ]; then
     # Delete expired key
-    docker exec lcbp3-redis-1 redis-cli DEL "$KEY"
+    docker exec cache-1 redis-cli DEL "$KEY"
     ((COUNT++))
   fi
 done
@@ -1236,8 +1385,8 @@ echo "⚠️  Please verify system functionality manually"
 1. Check Redis cluster health
 
    ```bash
-   docker exec lcbp3-redis-1 redis-cli cluster info
-   docker exec lcbp3-redis-1 redis-cli cluster nodes
+   docker exec cache-1 redis-cli cluster info
+   docker exec cache-1 redis-cli cluster nodes
    ```
 
 2. Check database locks
