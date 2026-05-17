@@ -25,6 +25,7 @@ import { ReviewTeamController } from './review-team.controller';
 import { ReviewTaskController } from './review-task.controller';
 
 // Modules
+import { CaslModule } from '../../common/auth/casl/casl.module';
 import { ResponseCodeModule } from '../response-code/response-code.module';
 import { NotificationModule } from '../notification/notification.module';
 import { UserModule } from '../user/user.module';
@@ -51,6 +52,7 @@ import {
       { name: QUEUE_REMINDERS },
       { name: QUEUE_VETO_NOTIFICATIONS }
     ),
+    CaslModule,
     ResponseCodeModule,
     NotificationModule,
     UserModule,
