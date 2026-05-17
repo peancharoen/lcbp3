@@ -28,7 +28,6 @@
 | 🚀 **Deployment**      | ✅ Production Ready      | Blue-Green on QNAP Container Station                               |
 | 🔒 **Infrastructure**  | ✅ Hardened (v1.8.9)     | Compose stacks audited; secrets, auth, container hardening applied |
 
-
 ---
 
 ## 🎯 ภาพรวมโครงการ
@@ -311,21 +310,21 @@ lcbp3-dms/
 
 ### เอกสารหลัก (specs/ folder)
 
-| เอกสาร                  | คำอธิบาย                                                         | Gap       | ไฟล์หลัก                                |
-| ----------------------- | ---------------------------------------------------------------- | --------- | --------------------------------------- |
-| **Product Vision**      | Vision, Strategic Pillars, Guardrails                            | Gap 1 ✅  | `00-03-product-vision.md`               |
-| **User Stories**        | 27 Stories, 8 Epics, MoSCoW                                      | Gap 2 ✅  | `01-04-user-stories.md`                 |
-| **Acceptance Criteria** | UAT Criteria, Sign-off Process                                   | Gap 3 ✅  | `01-05-acceptance-criteria.md`          |
-| **UI/UX Wireframes**    | 26 Screens, ASCII Wireframes, Design System                      | Gap 4 ✅  | `01-07-ui-wireframes.md`                |
-| **Stakeholder & Risk**  | Sign-off, Risk Register, Change Control                          | Gap 5 ✅  | `00-04-stakeholder-signoff-and-risk.md` |
-| **KPI Baseline**        | 14 KPIs, SQL Queries, Grafana Specs                              | Gap 6 ✅  | `00-05-kpi-baseline.md`                 |
-| **Migration Scope**     | 20K Docs, 3 Tiers, Go/No-Go Gates                                | Gap 7 ✅  | `03-06-migration-business-scope.md`     |
-| **Release Policy**      | SemVer, 5 Gates, Hotfix, Rollback                                | Gap 8 ✅  | `04-08-release-management-policy.md`    |
-| **Training Plan**       | Curriculum per Role, UAT Training                                | Gap 9 ✅  | `00-06-training-plan.md`                |
-| **Edge Cases & Rules**  | 37 Edge Cases, Business Logic Guards                             | Gap 10 ✅ | `01-06-edge-cases-and-rules.md`         |
-| **Schema v1.8.0**       | Tables, Views, Indexes (3-file split)                            | —         | `lcbp3-v1.8.0-schema-*.sql`             |
-| **Data Dictionary**     | Field Meanings, Business Rules                                   | —         | `03-01-data-dictionary.md`              |
-| **ADRs (23)**           | All Architecture Decisions incl. ADR-003/004/007/019/021/023     | -         | `06-Decision-Records/`                  |
+| เอกสาร                  | คำอธิบาย                                                     | Gap       | ไฟล์หลัก                                |
+| ----------------------- | ------------------------------------------------------------ | --------- | --------------------------------------- |
+| **Product Vision**      | Vision, Strategic Pillars, Guardrails                        | Gap 1 ✅  | `00-03-product-vision.md`               |
+| **User Stories**        | 27 Stories, 8 Epics, MoSCoW                                  | Gap 2 ✅  | `01-04-user-stories.md`                 |
+| **Acceptance Criteria** | UAT Criteria, Sign-off Process                               | Gap 3 ✅  | `01-05-acceptance-criteria.md`          |
+| **UI/UX Wireframes**    | 26 Screens, ASCII Wireframes, Design System                  | Gap 4 ✅  | `01-07-ui-wireframes.md`                |
+| **Stakeholder & Risk**  | Sign-off, Risk Register, Change Control                      | Gap 5 ✅  | `00-04-stakeholder-signoff-and-risk.md` |
+| **KPI Baseline**        | 14 KPIs, SQL Queries, Grafana Specs                          | Gap 6 ✅  | `00-05-kpi-baseline.md`                 |
+| **Migration Scope**     | 20K Docs, 3 Tiers, Go/No-Go Gates                            | Gap 7 ✅  | `03-06-migration-business-scope.md`     |
+| **Release Policy**      | SemVer, 5 Gates, Hotfix, Rollback                            | Gap 8 ✅  | `04-08-release-management-policy.md`    |
+| **Training Plan**       | Curriculum per Role, UAT Training                            | Gap 9 ✅  | `00-06-training-plan.md`                |
+| **Edge Cases & Rules**  | 37 Edge Cases, Business Logic Guards                         | Gap 10 ✅ | `01-06-edge-cases-and-rules.md`         |
+| **Schema v1.8.0**       | Tables, Views, Indexes (3-file split)                        | —         | `lcbp3-v1.8.0-schema-*.sql`             |
+| **Data Dictionary**     | Field Meanings, Business Rules                               | —         | `03-01-data-dictionary.md`              |
+| **ADRs (23)**           | All Architecture Decisions incl. ADR-003/004/007/019/021/023 | -         | `06-Decision-Records/`                  |
 
 ---
 
@@ -529,5 +528,6 @@ lcbp3-dms/
 **Built with ❤️ for LCBP3 Project**
 
 [Documentation](./docs) • [Issues](https://git.np-dms.work/lcbp3/lcbp3-dms/issues) • [Changelog](./CHANGELOG.md)
+เพิ่มชั่วคราวเพื่อ push
 
 </div>
