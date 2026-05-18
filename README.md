@@ -3,16 +3,16 @@
 > **Laem Chabang Port Phase 3 - Document Management System**
 > ระบบบริหารจัดการเอกสารโครงการแบบครบวงจร สำหรับโครงการก่อสร้างท่าเรือแหลมฉบังระยะที่ 3
 
-[![Version](https://img.shields.io/badge/version-1.9.0-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.9.2-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Internal-red.svg)]()
 [![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)]()
 [![Docs](https://img.shields.io/badge/docs-10%2F10%20Gaps%20Closed-success.svg)](./specs/00-Overview/README.md)
 
 ---
 
-## 📈 Current Status (As of 2026-05-13)
+## 📈 Current Status (As of 2026-05-18)
 
-**Version 1.9.0 — RFA Migration & Universal Agent Infrastructure**
+**Version 1.9.2 — AI Model Revision & Hybrid Staging (ADR-023A)**
 
 > v1.8.11 shipped May 5; v1.9.0 (RFA Migration & Agent-Agnostic Infra) shipped May 13.
 
