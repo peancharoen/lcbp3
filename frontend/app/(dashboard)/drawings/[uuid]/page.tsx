@@ -18,6 +18,8 @@ import { contractDrawingService } from '@/lib/services/contract-drawing.service'
 import { shopDrawingService } from '@/lib/services/shop-drawing.service';
 import { asBuiltDrawingService } from '@/lib/services/asbuilt-drawing.service';
 import { useUpdateContractDrawing, useUploadRevision } from '@/hooks/use-drawing';
+import { AiChatToggle } from '@/components/ai/ai-chat-toggle';
+import { AiChatPanel } from '@/components/ai/ai-chat-panel';
 
 type DrawingType = 'CONTRACT' | 'SHOP' | 'AS_BUILT';
 
@@ -78,6 +80,7 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
   const isUploadMode = searchParams.get('upload') === 'true';
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const { data: drawing, isLoading } = useQuery({
     queryKey: ['drawing-detail', uuid],
@@ -120,7 +123,8 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
   const revisions = drawing.revisions || [];
 
   return (
-    <div className="space-y-6">
+    <div className={`relative transition-all duration-300 ${isChatOpen ? 'lg:pr-[400px]' : ''}`}>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -232,6 +236,14 @@ export default function DrawingDetailPage({ params }: { params: Promise<{ uuid: 
           </div>
         </div>
       )}
+      </div>
+      <AiChatToggle isOpen={isChatOpen} onClick={() => setIsChatOpen(!isChatOpen)} />
+      <AiChatPanel
+        context={{ type: 'drawing', publicId: uuid }}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onToggle={() => setIsChatOpen((prev) => !prev)}
+      />
     </div>
   );
 }

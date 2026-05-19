@@ -1,0 +1,98 @@
+openapi: 3.0.3
+info:
+  title: Document Chat Subsystem API
+  description: API endpoints for interacting with the document-isolated AI Assistant (ADR-026)
+  version: 1.0.0
+paths:
+  /api/ai/chat:
+    post:
+      summary: Send a query to the AI Assistant within a specific document context
+      description: |
+        Processes a natural language query under a strict CASL-guarded document context.
+        The AI Gateway uses the provided `context` to fetch context-specific data via the AI Tool Layer (ADR-025)
+        before forwarding the enriched prompt to the local Ollama LLM.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+                - context
+              properties:
+                query:
+                  type: string
+                  example: "ช่วยสรุปรายการ Drawing ใน RFA นี้หน่อย"
+                context:
+                  type: object
+                  required:
+                    - type
+                    - publicId
+                  properties:
+                    type:
+                      type: string
+                      enum: [drawing, rfa, transmittal, correspondence]
+                      example: "rfa"
+                    publicId:
+                      type: string
+                      format: uuid
+                      example: "019505a1-7c3e-7000-8000-abc123def456"
+      responses:
+        '200':
+          description: Successful response returning AI reply and optional action chips
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - messageId
+                  - role
+                  - content
+                  - latencyMs
+                properties:
+                  messageId:
+                    type: string
+                    format: uuid
+                    example: "019505a4-569d-7000-8000-f1f2f3f4f5f6"
+                  role:
+                    type: string
+                    enum: [assistant]
+                    example: "assistant"
+                  content:
+                    type: string
+                    description: Markdown-formatted AI response
+                    example: "จากการตรวจสอบ RFA-0042 นี้ มี Drawing ที่เกี่ยวข้องทั้งหมด 3 รายการ..."
+                  suggestedActions:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - label
+                        - query
+                      properties:
+                        label:
+                          type: string
+                          example: "ดู Drawing ฉบับใหม่ล่าสุด"
+                        query:
+                          type: string
+                          example: "ขอรายละเอียดเกี่ยวกับ Drawing ล่าสุด"
+                  latencyMs:
+                    type: integer
+                    example: 2450
+        '400':
+          description: Invalid input parameters or malformed UUIDv7
+        '401':
+          description: Unauthorized access (Missing or invalid JWT token)
+        '403':
+          description: Forbidden (User fails CASL security guard for the specified project/document context)
+        '504':
+          description: AI Gateway Timeout (Ollama pipeline took more than 10 seconds to respond)
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

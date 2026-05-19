@@ -12,6 +12,8 @@ import { Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { RFA } from '@/types/rfa';
 import type { WorkflowAttachmentSummary } from '@/types/workflow';
+import { AiChatToggle } from '@/components/ai/ai-chat-toggle';
+import { AiChatPanel } from '@/components/ai/ai-chat-panel';
 
 export default function RFADetailPage() {
   const { uuid } = useParams();
@@ -32,6 +34,7 @@ export default function RFADetailPage() {
   const [pendingAttachmentIds, setPendingAttachmentIds] = useState<string[]>([]);
   // ADR-021 T041: ติดตาม publicIds ที่ Storage แจ้ง  404
   const [unavailableIds, setUnavailableIds] = useState<string[]>([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const handleUnavailable = (publicId: string) =>
     setUnavailableIds((prev) => [...new Set([...prev, publicId])]);
 
@@ -56,7 +59,8 @@ export default function RFADetailPage() {
   const status = currentRevision?.statusCode?.statusCode ?? '';
 
   return (
-    <div className="space-y-4">
+    <div className={`relative transition-all duration-300 ${isChatOpen ? 'lg:pr-[400px]' : ''}`}>
+      <div className="space-y-4">
       {/* ADR-021: Integrated Banner — เลขเอกสาร + สถานะ + ปุ่ม Action */}
       <IntegratedBanner
         docNo={docNo}
@@ -101,6 +105,14 @@ export default function RFADetailPage() {
           onUnavailable={handleUnavailable}
         />
       </WorkflowErrorBoundary>
+      </div>
+      <AiChatToggle isOpen={isChatOpen} onClick={() => setIsChatOpen(!isChatOpen)} />
+      <AiChatPanel
+        context={{ type: 'rfa', publicId: uuidStr }}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onToggle={() => setIsChatOpen((prev) => !prev)}
+      />
     </div>
   );
 }

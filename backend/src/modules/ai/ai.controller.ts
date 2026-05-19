@@ -2,6 +2,7 @@
 // Change Log
 // - 2026-05-14: เพิ่ม Legacy Migration staging endpoints ตาม ADR-023.
 // - 2026-05-14: ย้าย DeleteAuditLogsQueryDto ไป dto/ folder; ลบ authHeader passthrough (🟢 LOW-1/LOW-2).
+// - 2026-05-19: เพิ่ม POST /ai/intent endpoint สำหรับ AI Tool Layer (ADR-025).
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -59,6 +60,8 @@ import { User } from '../user/entities/user.entity';
 import { ServiceAccountGuard } from './guards/service-account.guard';
 import { v7 as uuidv7 } from 'uuid';
 import { DeleteAuditLogsQueryDto } from './dto/delete-audit-logs.dto';
+import { AiToolRegistryService } from './tool/ai-tool-registry.service';
+import { AiIntentRequestDto } from './dto/ai-intent-request.dto';
 
 @ApiTags('AI Gateway')
 @Controller('ai')
@@ -67,10 +70,45 @@ export class AiController {
     private readonly aiService: AiService,
     private readonly aiIngestService: AiIngestService,
     private readonly aiRagService: AiRagService,
-    private readonly aiQueueService: AiQueueService
+    private readonly aiQueueService: AiQueueService,
+    private readonly aiToolRegistryService: AiToolRegistryService
   ) {}
 
   // --- Real-time Extraction (User Upload) ---
+
+  // ─── AI Tool Layer Endpoint (ADR-025) ──────────────────────────────────────
+
+  @Post('intent')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('ai.suggest')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'AI Intent Dispatch — ส่ง Intent ไปยัง Tool Registry (ADR-025)',
+    description:
+      'รับ intent code + projectPublicId แล้ว dispatch ไปยัง Tool Handler ที่ตรงกัน พร้อม CASL enforcement',
+  })
+  async dispatchIntent(
+    @Body() dto: AiIntentRequestDto,
+    @CurrentUser() user: User
+  ): Promise<{
+    ok: boolean;
+    data?: unknown;
+    reason?: string;
+    message?: string;
+  }> {
+    const result = await this.aiToolRegistryService.dispatch(dto.intent, {
+      requestUser: user,
+      projectPublicId: dto.projectPublicId,
+      params: dto.params,
+    });
+    if (result.ok) {
+      return { ok: true, data: result.data };
+    }
+    return { ok: false, reason: result.reason, message: result.message };
+  }
+
+  // ---------------------------------------------------------------------------
 
   @Post('suggest')
   @UseGuards(JwtAuthGuard, RbacGuard)

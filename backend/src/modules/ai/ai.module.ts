@@ -2,6 +2,8 @@
 // Change Log
 // - 2026-05-14: เพิ่ม BullMQ/Qdrant/Service Account foundation สำหรับ ADR-023.
 // - 2026-05-15: เพิ่ม ai-realtime/ai-batch foundation และ stale paused recovery ตาม ADR-023A.
+// - 2026-05-19: เพิ่ม IntentClassifierModule (ADR-024 Intent Classification).
+// - 2026-05-19: เพิ่ม AiToolModule (ADR-025 AI Tool Layer).
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
@@ -37,6 +39,8 @@ import { Project } from '../project/entities/project.entity';
 import { Organization } from '../organization/entities/organization.entity';
 import { CorrespondenceType } from '../correspondence/entities/correspondence-type.entity';
 import { RbacGuard } from '../../common/guards/rbac.guard';
+import { IntentClassifierModule } from './intent-classifier/intent-classifier.module';
+import { AiToolModule } from './tool/ai-tool.module';
 import {
   QUEUE_AI_BATCH,
   QUEUE_AI_INGEST,
@@ -97,6 +101,11 @@ import {
     MigrationModule,
     FileStorageModule,
     AuditLogModule,
+
+    // ADR-024: Intent Classification (Hybrid Pattern → LLM Fallback)
+    IntentClassifierModule,
+    // ADR-025: AI Tool Layer (Tool Registry + CASL-enforced Tool Services)
+    AiToolModule,
   ],
   controllers: [AiController],
   providers: [
