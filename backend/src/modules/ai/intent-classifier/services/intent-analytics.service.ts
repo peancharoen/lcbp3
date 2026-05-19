@@ -33,6 +33,17 @@ export interface RecalibrationRecommendation {
   priority: number;
 }
 
+/** Plain interface for log with method (avoid entity method requirements) */
+export interface LogWithMethod {
+  confidenceScore?: number;
+  processingTimeMs?: number;
+  method: string;
+}
+
+export interface LogWithMethodAndIntent extends LogWithMethod {
+  intentCode: string;
+}
+
 /** ผลลัพธ์สรุปรวม Analytics */
 export interface ClassificationAnalytics {
   /** จำนวน request ทั้งหมดในช่วง */
@@ -156,10 +167,8 @@ export class IntentAnalyticsService {
   }
 
   /** สรุปสถิติแยกตาม method */
-  private groupByMethod(
-    logs: Array<AiAuditLog & { method: string }>
-  ): MethodStats[] {
-    const groups = new Map<string, AiAuditLog[]>();
+  private groupByMethod(logs: LogWithMethod[]): MethodStats[] {
+    const groups = new Map<string, LogWithMethod[]>();
     for (const log of logs) {
       const key = log.method;
       if (!groups.has(key)) groups.set(key, []);
@@ -180,10 +189,8 @@ export class IntentAnalyticsService {
   }
 
   /** สรุปสถิติแยกตาม intent code */
-  private groupByIntent(
-    logs: Array<AiAuditLog & { method: string; intentCode: string }>
-  ): IntentStats[] {
-    const groups = new Map<string, Array<AiAuditLog & { method: string }>>();
+  private groupByIntent(logs: LogWithMethodAndIntent[]): IntentStats[] {
+    const groups = new Map<string, LogWithMethod[]>();
     for (const log of logs) {
       const key = log.intentCode;
       if (!groups.has(key)) groups.set(key, []);
@@ -209,10 +216,10 @@ export class IntentAnalyticsService {
    * Intent ที่ถูก classify ด้วย LLM บ่อย ควรเพิ่ม pattern
    */
   private buildRecalibration(
-    logs: Array<AiAuditLog & { method: string; intentCode: string }>
+    logs: LogWithMethodAndIntent[]
   ): RecalibrationRecommendation[] {
     const llmLogs = logs.filter((l) => l.method === 'llm_fallback');
-    const groups = new Map<string, AiAuditLog[]>();
+    const groups = new Map<string, LogWithMethod[]>();
     for (const log of llmLogs) {
       const key = log.intentCode;
       if (key === 'FALLBACK' || key === 'UNKNOWN') continue;

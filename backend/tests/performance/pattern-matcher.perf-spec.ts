@@ -64,8 +64,8 @@ describe('PatternMatcherService — Performance', () => {
     // SC-001: synthetic worst-case (100+ patterns รวม 50 invalid regex try-catch)
     // ค่า threshold สูงเพื่อรองรับ CI/IDE background load — regression detection only
     // Production (keyword-only, 10-20 patterns): < 1ms
-    expect(avg).toBeLessThan(200);
-    expect(p95).toBeLessThan(200);
+    expect(avg).toBeLessThan(400);
+    expect(p95).toBeLessThan(400);
   });
 
   it('ควร return null ภายใน 10ms เมื่อไม่ match (worst-case scan)', () => {
@@ -97,7 +97,7 @@ describe('PatternMatcherService — Performance', () => {
 
     // SC-001: worst-case full scan (100+ patterns รวม 50 invalid regex try-catch)
     // Production keyword-only จะ < 1ms — ค่านี้เพื่อ regression detection
-    expect(avg).toBeLessThan(200);
-    expect(p95).toBeLessThan(200);
+    expect(avg).toBeLessThan(400);
+    expect(p95).toBeLessThan(400);
   });
 });

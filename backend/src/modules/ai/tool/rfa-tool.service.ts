@@ -71,9 +71,9 @@ export class RfaToolService {
             submittedAt: currentRevision?.issuedDate
               ? currentRevision.issuedDate.toISOString()
               : null,
-            respondedAt: rfaRevision?.respondedAt
+            respondedAt: rfaRevision?.approvedDate
               ? new Date(
-                  rfaRevision.respondedAt as string | number | Date
+                  rfaRevision.approvedDate as string | number | Date
                 ).toISOString()
               : null,
             contractPublicId: '', // Contract publicId — ถ้า contract entity มี publicId ให้เพิ่มทีหลัง

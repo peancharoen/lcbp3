@@ -52,13 +52,9 @@ export class DrawingToolService {
       };
     }
     try {
-      // แปลง projectPublicId → internal project id (ADR-019)
-      const internalProjectId = await this.uuidResolver.resolveProjectId(
-        context.projectPublicId
-      );
-      // ดึงข้อมูล Shop Drawing
+      // ดึงข้อมูล Shop Drawing (ใช้ projectUuid ตาม ADR-019)
       const result = await this.shopDrawingService.findAll({
-        projectId: internalProjectId,
+        projectUuid: context.projectPublicId,
         page: 1,
         limit: 20,
       });

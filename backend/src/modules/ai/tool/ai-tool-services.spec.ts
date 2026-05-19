@@ -58,7 +58,7 @@ describe('AI Tool Services (RFA, Drawing, Transmittal)', () => {
                   statusCode: 'APPROVED',
                 },
                 items: [{}, {}],
-                respondedAt: new Date('2026-01-02T00:00:00Z'),
+                approvedDate: new Date('2026-01-02T00:00:00Z'),
               },
             },
           ],
