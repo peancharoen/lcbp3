@@ -36,7 +36,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🧹 Lint
-        run: pnpm lint
+        run: pnpm --filter backend lint:ci
+        working-directory: .
 
       - name: 🔍 Security & quality checks
         run: |
