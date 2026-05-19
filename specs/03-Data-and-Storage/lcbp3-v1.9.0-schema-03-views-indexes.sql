@@ -93,6 +93,23 @@ CREATE INDEX idx_backup_logs_started_at ON backup_logs (started_at);
 
 CREATE INDEX idx_backup_logs_completed_at ON backup_logs (completed_at);
 
+-- Indexes for workflow_definitions (ADR-001 Unified Workflow Engine)
+CREATE INDEX idx_workflow_active ON workflow_definitions (workflow_code, is_active, version);
+
+-- Indexes for workflow_instances (ADR-001 Unified Workflow Engine)
+CREATE INDEX idx_wf_inst_entity ON workflow_instances (entity_type, entity_id);
+
+CREATE INDEX idx_wf_inst_contract ON workflow_instances (contract_id, entity_type, STATUS);
+
+CREATE INDEX idx_wf_inst_state ON workflow_instances (current_state);
+
+CREATE INDEX idx_wf_inst_version ON workflow_instances (id, version_no);
+
+-- Indexes for workflow_histories (ADR-001 Unified Workflow Engine)
+CREATE INDEX idx_wf_hist_instance ON workflow_histories (instance_id);
+
+CREATE INDEX idx_wf_hist_user ON workflow_histories (action_by_user_id);
+
 -- =====================================================
 -- Additional Composite Indexes for Performance
 -- =====================================================

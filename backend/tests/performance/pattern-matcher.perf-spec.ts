@@ -58,13 +58,8 @@ describe('PatternMatcherService — Performance', () => {
     expect(result?.intentCode).toBe('SUMMARIZE_DOCUMENT');
 
     const avg = times.reduce((a, b) => a + b, 0) / times.length;
-    const max = Math.max(...times);
+    const _max = Math.max(...times); // Kept for potential future debugging
     const p95 = times.sort((a, b) => a - b)[Math.floor(times.length * 0.95)];
-
-    // eslint-disable-next-line no-console -- performance logging allowed in test
-    console.log(
-      `Pattern Match Perf: avg=${avg.toFixed(3)}ms, p95=${p95.toFixed(3)}ms, max=${max.toFixed(3)}ms`
-    );
 
     // SC-001: synthetic worst-case (100+ patterns รวม 50 invalid regex try-catch)
     // ค่า threshold สูงเพื่อรองรับ CI/IDE background load — regression detection only
@@ -99,11 +94,6 @@ describe('PatternMatcherService — Performance', () => {
 
     const avg = times.reduce((a, b) => a + b, 0) / times.length;
     const p95 = times.sort((a, b) => a - b)[Math.floor(times.length * 0.95)];
-
-    // eslint-disable-next-line no-console -- performance logging allowed in test
-    console.log(
-      `Pattern Miss Perf: avg=${avg.toFixed(3)}ms, p95=${p95.toFixed(3)}ms`
-    );
 
     // SC-001: worst-case full scan (100+ patterns รวม 50 invalid regex try-catch)
     // Production keyword-only จะ < 1ms — ค่านี้เพื่อ regression detection

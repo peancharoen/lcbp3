@@ -872,14 +872,41 @@ CREATE TABLE attachments (
   reference_date DATE NULL COMMENT 'Date used for folder structure (e.g. Issue Date) to prevent broken paths',
   workflow_history_id CHAR(36) NULL COMMENT 'FK to workflow_histories.id  for step-specific attachments (ADR-021). NULL = main document',
   ai_processing_status ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') NOT NULL DEFAULT 'PENDING' COMMENT 'สถานะ AI job ของไฟล์เอกสารตาม ADR-023A',
+  rag_status ENUM('PENDING', 'PROCESSING', 'INDEXED', 'FAILED') NOT NULL DEFAULT 'PENDING' COMMENT 'สถานะ RAG ingestion ระดับ file (ADR-022)',
+  rag_last_error TEXT NULL COMMENT 'Error message ล่าสุดเมื่อ rag_status = FAILED',
   FOREIGN KEY (uploaded_by_user_id) REFERENCES users (user_id) ON DELETE CASCADE,
   FOREIGN KEY (workflow_history_id) REFERENCES workflow_histories (id) ON DELETE
   SET NULL ON UPDATE CASCADE,
     INDEX idx_attachments_reference_date (reference_date),
     INDEX idx_att_wfhist_created (workflow_history_id, created_at),
     INDEX idx_attachments_ai_status (ai_processing_status),
+    INDEX idx_attachments_rag_status (rag_status),
     UNIQUE INDEX idx_attachments_uuid (uuid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง "กลาง" เก็บไฟล์แนบทั้งหมดของระบบ';
+
+-- =====================================================
+-- 14. 📄 Document Chunks (ADR-022 RAG)
+-- =====================================================
+-- ตารางเก็บ vector metadata สำหรับ RAG ingestion
+CREATE TABLE document_chunks (
+  id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID = Qdrant point ID',
+  document_id CHAR(36) NOT NULL COMMENT 'FK → attachments.public_id (UUIDv7)',
+  chunk_index INT NOT NULL COMMENT 'ลำดับ chunk ภายใน document',
+  content TEXT NOT NULL COMMENT 'เนื้อหา chunk หลัง PyThaiNLP normalize',
+  doc_type VARCHAR(20) NOT NULL COMMENT 'CORR, RFA, DRAWING, CONTRACT, RPT, TRANS',
+  doc_number VARCHAR(100) NULL COMMENT 'หมายเลขเอกสาร เช่น REF-2026-001',
+  revision VARCHAR(20) NULL COMMENT 'Revision เช่น Rev.A',
+  project_code VARCHAR(50) NOT NULL COMMENT 'รหัสโครงการ (ใช้ filter)',
+  project_public_id CHAR(36) NOT NULL COMMENT 'UUIDv7 ของโครงการ (Qdrant tenant key)',
+  version VARCHAR(20) NULL COMMENT 'เวอร์ชันเอกสาร เช่น 1.0, 2.1 (ถ้ามี)',
+  classification ENUM('PUBLIC', 'INTERNAL', 'CONFIDENTIAL') NOT NULL DEFAULT 'INTERNAL',
+  embedding_model VARCHAR(100) NOT NULL DEFAULT 'nomic-embed-text',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  INDEX idx_chunks_document_id (document_id),
+  INDEX idx_chunks_doc_number_rev (doc_number, revision),
+  INDEX idx_chunks_project (project_public_id),
+  FULLTEXT INDEX ft_chunks_content (content)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง Document Chunks สำหรับ RAG (ADR-022)';
 
 -- ตารางเชื่อม correspondence_revisions กับ attachments (M:N)
 -- [FIX] FK เปลี่ยนจาก correspondences.id → correspondence_revisions.id
@@ -1365,9 +1392,6 @@ CREATE TABLE workflow_definitions (
   UNIQUE KEY uq_workflow_version (workflow_code, version)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บนิยามกฎการเดินเอกสาร (Workflow DSL)';
 
--- สร้าง Index สำหรับการค้นหา Workflow ที่ Active ล่าสุดได้เร็วขึ้น
-CREATE INDEX idx_workflow_active ON workflow_definitions (workflow_code, is_active, version);
-
 -- 2. ตารางเก็บ Workflow Instance (สถานะเอกสารจริง)
 CREATE TABLE workflow_instances (
   id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID ของ Instance',
@@ -1392,15 +1416,6 @@ CREATE TABLE workflow_instances (
   SET NULL -- [delta-07]
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางเก็บสถานะการเดินเรื่องของเอกสาร';
 
-CREATE INDEX idx_wf_inst_entity ON workflow_instances (entity_type, entity_id);
-
-CREATE INDEX idx_wf_inst_contract ON workflow_instances (contract_id, entity_type, STATUS);
-
-CREATE INDEX idx_wf_inst_state ON workflow_instances (current_state);
-
--- Index เพื่อรองรับ CAS check: WHERE id = ? AND version_no = ?
-CREATE INDEX idx_wf_inst_version ON workflow_instances (id, version_no);
-
 -- 3. ตารางเก็บประวัติ (Audit Log / History)
 CREATE TABLE workflow_histories (
   id CHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID',
@@ -1415,10 +1430,6 @@ CREATE TABLE workflow_histories (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_wf_hist_inst FOREIGN KEY (instance_id) REFERENCES workflow_instances (id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตารางประวัติการเปลี่ยนสถานะ Workflow';
-
-CREATE INDEX idx_wf_hist_instance ON workflow_histories (instance_id);
-
-CREATE INDEX idx_wf_hist_user ON workflow_histories (action_by_user_id);
 
 -- =====================================================
 -- 11. 🤖 AI Gateway (ตาราง AI Integration - ADR-018, ADR-020)
@@ -1506,6 +1517,43 @@ CREATE TABLE ai_audit_logs (
   CONSTRAINT fk_ai_audit_confirmed_by_user FOREIGN KEY (confirmed_by_user_id) REFERENCES users (user_id) ON DELETE
   SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ADR-023 AI development feedback log';
+
+-- =====================================================
+-- 13. 🤖 Intent Classification (ADR-024)
+-- =====================================================
+-- Intent Definitions Table
+CREATE TABLE IF NOT EXISTS ai_intent_definitions (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
+  public_id UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  intent_code VARCHAR(50) NOT NULL COMMENT 'รหัส Intent เช่น RAG_QUERY, GET_RFA',
+  description_th VARCHAR(255) NOT NULL COMMENT 'คำอธิบายภาษาไทย',
+  description_en VARCHAR(255) NOT NULL COMMENT 'คำอธิบายภาษาอังกฤษ',
+  category ENUM('read', 'suggest', 'utility') NOT NULL COMMENT 'ประเภท Intent',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'สถานะการใช้งาน',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  UNIQUE KEY uk_intent_public_id (public_id),
+  UNIQUE KEY uk_intent_code (intent_code),
+  INDEX idx_intent_active (is_active, category)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง Intent Definitions สำหรับ Hybrid Intent Classifier (ADR-024)';
+
+-- Intent Patterns Table
+CREATE TABLE IF NOT EXISTS ai_intent_patterns (
+  id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Internal PK (ห้าม expose ใน API)',
+  public_id UUID NOT NULL DEFAULT UUID() COMMENT 'UUID Public Identifier (ADR-019)',
+  intent_code VARCHAR(50) NOT NULL COMMENT 'รหัส Intent (FK to ai_intent_definitions)',
+  language ENUM('th', 'en', 'any') NOT NULL DEFAULT 'any' COMMENT 'ภาษาของ pattern',
+  pattern_type ENUM('keyword', 'regex') NOT NULL DEFAULT 'keyword' COMMENT 'ประเภท pattern',
+  pattern_value VARCHAR(255) NOT NULL COMMENT 'ค่า pattern (keyword หรือ regex)',
+  priority INT NOT NULL DEFAULT 100 COMMENT 'ลำดับความสำคัญ (ยิ่งน้อยยิ่งสำคัญ)',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'สถานะการใช้งาน',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'วันที่สร้าง',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'วันที่แก้ไขล่าสุด',
+  UNIQUE KEY uk_pattern_public_id (public_id),
+  INDEX idx_pattern_intent_code (intent_code),
+  INDEX idx_pattern_active_priority (is_active, priority ASC),
+  CONSTRAINT fk_intent_pattern_definition FOREIGN KEY (intent_code) REFERENCES ai_intent_definitions(intent_code) ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'ตาราง Intent Patterns สำหรับ Hybrid Intent Classifier (ADR-024)';
 
 -- =============================================================================
 -- 20. RFA Approval System (v1.9.0)

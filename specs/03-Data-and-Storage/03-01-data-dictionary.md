@@ -2371,7 +2371,43 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 
 ---
 
-### 19.3 Confidence Scoring Strategy (ADR-020)
+### 19.3 `document_chunks`
+
+**วัตถุประสงค์:** เก็บ vector metadata สำหรับ RAG ingestion ตาม ADR-022
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | CHAR(36) | NO | UUID = Qdrant point ID |
+| `document_id` | CHAR(36) | NO | FK → attachments.public_id (UUIDv7) |
+| `chunk_index` | INT | NO | ลำดับ chunk ภายใน document |
+| `content` | TEXT | NO | เนื้อหา chunk หลัง PyThaiNLP normalize |
+| `doc_type` | VARCHAR(20) | NO | CORR, RFA, DRAWING, CONTRACT, RPT, TRANS |
+| `doc_number` | VARCHAR(100) | YES | หมายเลขเอกสาร เช่น REF-2026-001 |
+| `revision` | VARCHAR(20) | YES | Revision เช่น Rev.A |
+| `project_code` | VARCHAR(50) | NO | รหัสโครงการ (ใช้ filter) |
+| `project_public_id` | CHAR(36) | NO | UUIDv7 ของโครงการ (Qdrant tenant key) |
+| `version` | VARCHAR(20) | YES | เวอร์ชันเอกสาร เช่น 1.0, 2.1 (ถ้ามี) |
+| `classification` | ENUM | NO | PUBLIC, INTERNAL, CONFIDENTIAL (DEFAULT: INTERNAL) |
+| `embedding_model` | VARCHAR(100) | NO | nomic-embed-text |
+| `created_at` | DATETIME(3) | NO | วันที่สร้าง |
+
+**Indexes**:
+
+- PRIMARY KEY (id)
+- INDEX idx_chunks_document_id (document_id)
+- INDEX idx_chunks_doc_number_rev (doc_number, revision)
+- INDEX idx_chunks_project (project_public_id)
+- FULLTEXT INDEX ft_chunks_content (content)
+
+**Business Rules**:
+
+1. **Project Isolation** — Qdrant queries MUST include project_public_id filter (compile-time enforcement per ADR-023A)
+2. **Chunk Size** — 512 tokens with 64 tokens overlap (ADR-023A RAG embed scope)
+3. **Embedding Model** — nomic-embed-text only (ADR-023A 2-model stack)
+
+---
+
+### 19.4 Confidence Scoring Strategy (ADR-020)
 
 | Score Range | Action | Description |
 |-------------|--------|-------------|
@@ -2379,6 +2415,72 @@ PENDING_REVIEW ──→ VERIFIED ──→ IMPORTED (terminal)
 | **0.85–0.94** | `low_priority_review` | รอ Admin ตรวจสอบ — ลำดับต่ำ |
 | **0.60–0.84** | `high_priority_review` | รอ Admin ตรวจสอบ — ลำดับสูง |
 | **< 0.60** | `reject` | ปฏิเสธ — Admin ต้องกรอกข้อมูลเอง |
+
+---
+
+### 19.4 Intent Classification Tables (ADR-024)
+
+> เพิ่มใน v1.9.0 — Feature 224-intent-classification | ตารางสำหรับ Hybrid Intent Classifier (Pattern Match + LLM Fallback)
+
+#### 19.4.1 `ai_intent_definitions`
+
+**วัตถุประสงค์:** เก็บ Intent Definitions (ประเภทความตั้งใจของผู้ใช้) สำหรับ Hybrid Intent Classifier ตาม ADR-024
+
+| Column Name | Data Type | Constraints | Description |
+| ----------- | --------- | ----------- | ----------- |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | Internal PK (ห้าม expose ใน API) |
+| public_id | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) |
+| intent_code | VARCHAR(50) | NOT NULL, UNIQUE | รหัส Intent เช่น RAG_QUERY, GET_RFA |
+| description_th | VARCHAR(255) | NOT NULL | คำอธิบายภาษาไทย |
+| description_en | VARCHAR(255) | NOT NULL | คำอธิบายภาษาอังกฤษ |
+| category | ENUM | NOT NULL | read, suggest, utility |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | สถานะการใช้งาน |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | วันที่สร้าง |
+| updated_at | TIMESTAMP | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | วันที่แก้ไขล่าสุด |
+
+**Indexes**:
+- PRIMARY KEY (id)
+- UNIQUE KEY uk_intent_public_id (public_id)
+- UNIQUE KEY uk_intent_code (intent_code)
+- INDEX idx_intent_active (is_active, category)
+
+**Business Rules**:
+1. **Intent Categories** — read (ดึงข้อมูล), suggest (แนะนำ), utility (อื่นๆ)
+2. **Active Status** — Intent ที่ไม่ active จะไม่ถูกใช้ในการ classify
+3. **Seed Data** — 12 Intent Definitions พร้อม patterns v1 (RAG_QUERY, GET_RFA, GET_DRAWING, ฯลฯ)
+
+---
+
+#### 19.4.2 `ai_intent_patterns`
+
+**วัตถุประสงค์:** เก็บ Patterns (keyword และ regex) สำหรับ Pattern Matching ใน Hybrid Intent Classifier
+
+| Column Name | Data Type | Constraints | Description |
+| ----------- | --------- | ----------- | ----------- |
+| id | INT | PRIMARY KEY, AUTO_INCREMENT | Internal PK (ห้าม expose ใน API) |
+| public_id | UUID | NOT NULL, UNIQUE, DEFAULT UUID() | UUID Public Identifier (ADR-019) |
+| intent_code | VARCHAR(50) | NOT NULL, FK | รหัส Intent (FK to ai_intent_definitions) |
+| language | ENUM | NOT NULL, DEFAULT 'any' | th, en, any |
+| pattern_type | ENUM | NOT NULL, DEFAULT 'keyword' | keyword, regex |
+| pattern_value | VARCHAR(255) | NOT NULL | ค่า pattern (keyword หรือ regex) |
+| priority | INT | NOT NULL, DEFAULT 100 | ลำดับความสำคัญ (ยิ่งน้อยยิ่งสำคัญ) |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | สถานะการใช้งาน |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | วันที่สร้าง |
+| updated_at | TIMESTAMP | NOT NULL, ON UPDATE CURRENT_TIMESTAMP | วันที่แก้ไขล่าสุด |
+
+**Indexes**:
+- PRIMARY KEY (id)
+- UNIQUE KEY uk_pattern_public_id (public_id)
+- INDEX idx_pattern_intent_code (intent_code)
+- INDEX idx_pattern_active_priority (is_active, priority ASC)
+- CONSTRAINT fk_intent_pattern_definition FOREIGN KEY (intent_code) REFERENCES ai_intent_definitions(intent_code) ON UPDATE CASCADE ON DELETE RESTRICT
+
+**Business Rules**:
+1. **Pattern Types** — keyword (ตรงตัว), regex (regular expression)
+2. **Priority** — ยิ่งน้อยยิ่งสำคัญ (ตัวอย่าง: keyword=10, regex=5)
+3. **Language** — th (ไทย), en (อังกฤษ), any (ทุกภาษา)
+4. **Seed Data** — ~45 patterns สำหรับ 12 Intents (ยกเว้น FALLBACK)
+5. **LLM Fallback** — เมื่อไม่ match pattern ไหนเลย → ใช้ LLM (gemma4:e4b Q8_0) ตาม ADR-023A
 
 ---
 

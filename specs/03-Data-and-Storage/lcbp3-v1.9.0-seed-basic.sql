@@ -2197,3 +2197,530 @@ VALUES (
     '2025-12-16 09:34:10',
     '2025-12-16 09:34:10'
   );
+
+-- =====================================================
+-- Intent Classification Seed (ADR-024)
+-- =====================================================
+-- Intent Definitions (v1) — 12 รายการ
+INSERT IGNORE INTO ai_intent_definitions (
+    intent_code,
+    description_th,
+    description_en,
+    category
+  )
+VALUES -- Read Intents
+  (
+    'RAG_QUERY',
+    'ถามคำถามธรรมชาติ ตอบจาก vector + doc context',
+    'Natural language query from vector DB + document context',
+    'read'
+  ),
+  (
+    'GET_RFA',
+    'ดึง RFA ตาม filter',
+    'Get RFA by filters',
+    'read'
+  ),
+  (
+    'GET_DRAWING',
+    'ดึง Drawing revision',
+    'Get Drawing revision',
+    'read'
+  ),
+  (
+    'GET_TRANSMITTAL',
+    'ดึง Transmittal',
+    'Get Transmittal',
+    'read'
+  ),
+  (
+    'GET_CORRESPONDENCE',
+    'ดึง Correspondence ทั่วไป',
+    'Get Correspondence',
+    'read'
+  ),
+  (
+    'GET_CIRCULATION',
+    'ดึง Circulation',
+    'Get Circulation',
+    'read'
+  ),
+  (
+    'GET_RFA_DRAWINGS',
+    'ดึง Drawings ที่ผูกกับ RFA',
+    'Get Drawings linked to RFA',
+    'read'
+  ),
+  (
+    'SUMMARIZE_DOCUMENT',
+    'สรุปเอกสารที่เปิดอยู่',
+    'Summarize current document',
+    'read'
+  ),
+  (
+    'LIST_OVERDUE',
+    'รายการ cross-entity ที่เกินกำหนด',
+    'List overdue items across entities',
+    'read'
+  ),
+  -- Suggest Intents
+  (
+    'SUGGEST_METADATA',
+    'แนะนำ metadata สำหรับเอกสารที่อัปโหลด',
+    'Suggest metadata for uploaded document',
+    'suggest'
+  ),
+  (
+    'SUGGEST_ACTION',
+    'แจ้งเตือนว่าควรทำอะไรต่อ',
+    'Suggest next actions',
+    'suggest'
+  ),
+  -- Utility Intents
+  (
+    'FALLBACK',
+    'ไม่เข้า intent ไหน / ไม่เกี่ยวกับระบบ',
+    'No matching intent / unrelated to system',
+    'utility'
+  );
+
+-- Intent Patterns Seed (ADR-024)
+-- =====================================================
+-- RAG_QUERY patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES ('RAG_QUERY', 'th', 'keyword', 'ค้นหา', 10),
+  ('RAG_QUERY', 'th', 'keyword', 'หาข้อมูล', 10),
+  ('RAG_QUERY', 'en', 'keyword', 'search', 10),
+  ('RAG_QUERY', 'en', 'keyword', 'find', 10),
+  (
+    'RAG_QUERY',
+    'any',
+    'regex',
+    '(?i)(what|where|who|when|how|why).*\\?',
+    50
+  );
+
+-- GET_RFA patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES ('GET_RFA', 'th', 'keyword', 'rfa', 10),
+  ('GET_RFA', 'th', 'keyword', 'อาร์เอฟเอ', 10),
+  (
+    'GET_RFA',
+    'en',
+    'keyword',
+    'request for approval',
+    15
+  ),
+  ('GET_RFA', 'any', 'regex', '(?i)rfa[- ]?\\d+', 5);
+
+-- GET_DRAWING patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES ('GET_DRAWING', 'th', 'keyword', 'แบบ', 20),
+  ('GET_DRAWING', 'th', 'keyword', 'drawing', 10),
+  ('GET_DRAWING', 'en', 'keyword', 'drawing', 10),
+  ('GET_DRAWING', 'en', 'keyword', 'revision', 20),
+  (
+    'GET_DRAWING',
+    'any',
+    'regex',
+    '(?i)(shop.?draw|dwg|rev\\.?\\s*\\d)',
+    5
+  );
+
+-- GET_TRANSMITTAL patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES (
+    'GET_TRANSMITTAL',
+    'th',
+    'keyword',
+    'transmittal',
+    10
+  ),
+  (
+    'GET_TRANSMITTAL',
+    'th',
+    'keyword',
+    'ทรานส์มิตทอล',
+    10
+  ),
+  (
+    'GET_TRANSMITTAL',
+    'en',
+    'keyword',
+    'transmittal',
+    10
+  ),
+  (
+    'GET_TRANSMITTAL',
+    'any',
+    'regex',
+    '(?i)tr[- ]?\\d+',
+    5
+  );
+
+-- GET_CORRESPONDENCE patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES (
+    'GET_CORRESPONDENCE',
+    'th',
+    'keyword',
+    'จดหมาย',
+    10
+  ),
+  (
+    'GET_CORRESPONDENCE',
+    'th',
+    'keyword',
+    'หนังสือ',
+    15
+  ),
+  (
+    'GET_CORRESPONDENCE',
+    'en',
+    'keyword',
+    'correspondence',
+    10
+  ),
+  (
+    'GET_CORRESPONDENCE',
+    'en',
+    'keyword',
+    'letter',
+    15
+  );
+
+-- GET_CIRCULATION patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES ('GET_CIRCULATION', 'th', 'keyword', 'เวียน', 10),
+  (
+    'GET_CIRCULATION',
+    'th',
+    'keyword',
+    'circulation',
+    10
+  ),
+  (
+    'GET_CIRCULATION',
+    'en',
+    'keyword',
+    'circulation',
+    10
+  ),
+  (
+    'GET_CIRCULATION',
+    'en',
+    'keyword',
+    'distribute',
+    15
+  );
+
+-- GET_RFA_DRAWINGS patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES (
+    'GET_RFA_DRAWINGS',
+    'th',
+    'keyword',
+    'แบบใน rfa',
+    5
+  ),
+  (
+    'GET_RFA_DRAWINGS',
+    'en',
+    'keyword',
+    'drawings in rfa',
+    5
+  ),
+  (
+    'GET_RFA_DRAWINGS',
+    'any',
+    'regex',
+    '(?i)(draw|แบบ).*(rfa|อาร์เอฟเอ)',
+    5
+  );
+
+-- SUMMARIZE_DOCUMENT patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES (
+    'SUMMARIZE_DOCUMENT',
+    'th',
+    'keyword',
+    'สรุป',
+    10
+  ),
+  (
+    'SUMMARIZE_DOCUMENT',
+    'th',
+    'keyword',
+    'สรุปเอกสาร',
+    5
+  ),
+  (
+    'SUMMARIZE_DOCUMENT',
+    'en',
+    'keyword',
+    'summarize',
+    10
+  ),
+  (
+    'SUMMARIZE_DOCUMENT',
+    'en',
+    'keyword',
+    'summary',
+    10
+  ),
+  (
+    'SUMMARIZE_DOCUMENT',
+    'any',
+    'regex',
+    '(?i)(สรุป|summar|tldr|tl;dr)',
+    5
+  );
+
+-- LIST_OVERDUE patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES ('LIST_OVERDUE', 'th', 'keyword', 'เกินกำหนด', 10),
+  ('LIST_OVERDUE', 'th', 'keyword', 'ค้าง', 15),
+  ('LIST_OVERDUE', 'th', 'keyword', 'overdue', 10),
+  ('LIST_OVERDUE', 'en', 'keyword', 'overdue', 10),
+  ('LIST_OVERDUE', 'en', 'keyword', 'late', 20),
+  (
+    'LIST_OVERDUE',
+    'any',
+    'regex',
+    '(?i)(overdue|เกินกำหนด|ล่าช้า)',
+    5
+  );
+
+-- SUGGEST_METADATA patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES (
+    'SUGGEST_METADATA',
+    'th',
+    'keyword',
+    'แนะนำ metadata',
+    5
+  ),
+  ('SUGGEST_METADATA', 'th', 'keyword', 'แท็ก', 15),
+  (
+    'SUGGEST_METADATA',
+    'en',
+    'keyword',
+    'suggest metadata',
+    5
+  ),
+  ('SUGGEST_METADATA', 'en', 'keyword', 'tag', 15),
+  (
+    'SUGGEST_METADATA',
+    'any',
+    'regex',
+    '(?i)(suggest|แนะนำ).*(tag|meta|ประเภท)',
+    5
+  );
+
+-- SUGGEST_ACTION patterns
+INSERT IGNORE INTO ai_intent_patterns (
+    intent_code,
+    language,
+    pattern_type,
+    pattern_value,
+    priority
+  )
+VALUES (
+    'SUGGEST_ACTION',
+    'th',
+    'keyword',
+    'ทำอะไรต่อ',
+    10
+  ),
+  ('SUGGEST_ACTION', 'th', 'keyword', 'แนะนำ', 20),
+  (
+    'SUGGEST_ACTION',
+    'en',
+    'keyword',
+    'what should i do',
+    10
+  ),
+  (
+    'SUGGEST_ACTION',
+    'en',
+    'keyword',
+    'next step',
+    10
+  ),
+  (
+    'SUGGEST_ACTION',
+    'any',
+    'regex',
+    '(?i)(next.?step|ทำอะไร|ควรทำ|what.*do)',
+    10
+  );
+
+-- FALLBACK: ไม่ต้อง seed pattern — ใช้เป็น default เมื่อไม่ match อะไรเลย
+-- =====================================================
+-- Workflow Definitions Seed (ADR-001)
+-- =====================================================
+-- CIRCULATION_FLOW_V1 Workflow Definition
+INSERT IGNORE INTO workflow_definitions (
+    id,
+    workflow_code,
+    version,
+    description,
+    dsl,
+    compiled,
+    is_active,
+    created_at,
+    updated_at
+  )
+VALUES (
+    UUID(),
+    'CIRCULATION_FLOW_V1',
+    1,
+    'Circulation Workflow — DRAFT → ROUTING → COMPLETED | CANCELLED',
+    JSON_OBJECT(
+      'workflow',
+      'CIRCULATION_FLOW_V1',
+      'version',
+      1,
+      'states',
+      JSON_ARRAY(
+        JSON_OBJECT(
+          'name',
+          'DRAFT',
+          'initial',
+          TRUE,
+          'on',
+          JSON_OBJECT(
+            'START',
+            JSON_OBJECT('to', 'ROUTING')
+          )
+        ),
+        JSON_OBJECT(
+          'name',
+          'ROUTING',
+          'on',
+          JSON_OBJECT(
+            'COMPLETE',
+            JSON_OBJECT('to', 'COMPLETED'),
+            'FORCE_CLOSE',
+            JSON_OBJECT('to', 'CANCELLED')
+          )
+        ),
+        JSON_OBJECT('name', 'COMPLETED', 'terminal', TRUE),
+        JSON_OBJECT('name', 'CANCELLED', 'terminal', TRUE)
+      )
+    ),
+    JSON_OBJECT(
+      'initialState',
+      'DRAFT',
+      'states',
+      JSON_OBJECT(
+        'DRAFT',
+        JSON_OBJECT(
+          'initial',
+          TRUE,
+          'terminal',
+          FALSE,
+          'transitions',
+          JSON_OBJECT(
+            'START',
+            JSON_OBJECT('to', 'ROUTING', 'events', JSON_ARRAY())
+          )
+        ),
+        'ROUTING',
+        JSON_OBJECT(
+          'initial',
+          FALSE,
+          'terminal',
+          FALSE,
+          'transitions',
+          JSON_OBJECT(
+            'COMPLETE',
+            JSON_OBJECT('to', 'COMPLETED', 'events', JSON_ARRAY()),
+            'FORCE_CLOSE',
+            JSON_OBJECT('to', 'CANCELLED', 'events', JSON_ARRAY())
+          )
+        ),
+        'COMPLETED',
+        JSON_OBJECT(
+          'initial',
+          FALSE,
+          'terminal',
+          TRUE,
+          'transitions',
+          JSON_OBJECT()
+        ),
+        'CANCELLED',
+        JSON_OBJECT(
+          'initial',
+          FALSE,
+          'terminal',
+          TRUE,
+          'transitions',
+          JSON_OBJECT()
+        )
+      )
+    ),
+    TRUE,
+    NOW(),
+    NOW()
+  );

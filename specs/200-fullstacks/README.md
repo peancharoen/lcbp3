@@ -16,7 +16,12 @@
 ## ตัวอย่างงานที่อยู่ในโฟลเดอร์นี้
 
 - `201-transmittals-circulation` - Transmittals + Circulation Integration
+- `202-adr-021-integrated-workflow-conte` - ADR-021 Integrated Workflow Context
 - `203-unified-workflow-engine` - Unified Workflow Engine
+- `204-rfa-approval-refactor` - RFA Approval Refactor
+- `224-intent-classification` - AI Intent Classification
+- `225-ai-tool-layer-architecture` - AI Tool Layer Architecture
+- `226-document-chat-ui-pattern` - Document Chat UI Pattern
 
 ## การตั้งชื่อโฟลเดอร์
 

@@ -1,7 +1,7 @@
 # 📚 LCBP3-DMS Specifications Directory
 
-**Version:** 1.9.0 (Global Standards & Agent Sync)
-**Last Updated:** 2026-05-13
+**Version:** 1.9.2 (AI Model Revision & Hybrid Staging)
+**Last Updated:** 2026-05-18
 **Project:** LCBP3-DMS (Laem Chabang Port Phase 3 - Document Management System)
 **Status:** ✅ Production Ready — 10/10 Documentation Gaps Closed • Hybrid Specs Structure Applied
 
@@ -80,10 +80,12 @@ specs/
 │   ├── 05-07-hybrid-uuid-implementation-plan.md  # ADR-019 Implementation Guide
 │   └── README.md                        # ภาพรวมเป้าหมายงาน Engineering
 │
-├── 06-Decision-Records/         # Architecture Decision Records (17 + Patch + ADR-019)
+├── 06-Decision-Records/         # Architecture Decision Records (23 ADRs)
 │   ├── ADR-001 to ADR-017...    # ไฟล์อธิบายสถาปัตยกรรม (ADR)
-│   ├── ADR-018-ai-boundary.md   # ★ Patch 1.8.1: AI/Ollama Isolation Policy
+│   ├── ADR-018-ai-boundary.md   # ★ Patch 1.8.1: AI/Ollama Isolation Policy (Superseded by ADR-023)
 │   ├── ADR-019-hybrid-identifier-strategy.md  # ★ Hybrid ID: INT PK + UUIDv7 Public API
+│   ├── ADR-023-unified-ai-architecture.md  # ★ Unified AI Architecture (Consolidates ADR-017/017B/018/020/022)
+│   ├── ADR-023A-unified-ai-architecture.md  # ★ AI Model Revision: 2-Model Stack + BullMQ 2-Queue
 │   └── README.md                # รายชื่อ ADR ทั้งหมดพร้อมสถานะและวันที่
 │
 ├── 100-Infrastructures/         # Feature Work: Infrastructure (Deployment, Monitoring, Docker Compose, Network)

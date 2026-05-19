@@ -1155,10 +1155,24 @@ VALUES (
     'ลบ AiAuditLog เดี่ยวโดย publicId (Superadmin Only)',
     'ai',
     1
+  ),
+  (
+    187,
+    'rag.query',
+    'ใช้งาน RAG Q&A เพื่อค้นหาคำตอบจากเอกสาร',
+    'rag',
+    1
+  ),
+  (
+    188,
+    'rag.manage',
+    'จัดการ RAG ingestion, re-index, ลบ vectors',
+    'rag',
+    1
   );
 
 -- Role 1: Superadmin — ได้รับทุก permission โดยอัตโนมัติผ่าน SELECT-all pattern (บรรทัด 825-829)
--- Role 2: Org Admin — ai.suggest, ai.rag_query, ai.migration_manage, ai.read_analytics
+-- Role 2: Org Admin — ai.suggest, ai.rag_query, ai.migration_manage, ai.read_analytics, rag.query
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (2, 181),
   -- ai.suggest
@@ -1166,10 +1180,12 @@ VALUES (2, 181),
   -- ai.rag_query
   (2, 183),
   -- ai.migration_manage
-  (2, 185);
+  (2, 185),
+  -- ai.read_analytics
+  (2, 187);
 
--- ai.read_analytics
--- Role 3: Document Control — ai.suggest, ai.rag_query, ai.migration_manage, ai.read_analytics
+-- rag.query
+-- Role 3: Document Control — ai.suggest, ai.rag_query, ai.migration_manage, ai.read_analytics, rag.query
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 VALUES (3, 181),
   -- ai.suggest
@@ -1177,8 +1193,22 @@ VALUES (3, 181),
   -- ai.rag_query
   (3, 183),
   -- ai.migration_manage
-  (3, 185);
+  (3, 185),
+  -- ai.read_analytics
+  (3, 187);
 
--- ai.read_analytics
+-- rag.query
+-- rag.manage (188) — Superadmin เท่านั้น, ไม่ grant ให้ Role อื่น
 -- ai.migration_manage
 -- ai.audit_log_delete (184) — Superadmin เท่านั้น, ไม่ grant ให้ Role อื่น
+-- ==========================================================
+-- 19. RBAC Bulk Permission (Delta 02)
+-- ==========================================================
+-- Grant user.manage_assignments to ADMIN, Org Admin, DC, Document Control roles
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT r.role_id,
+  p.permission_id
+FROM roles r,
+  permissions p
+WHERE r.role_name IN ('ADMIN', 'Org Admin', 'DC', 'Document Control')
+  AND p.permission_name = 'user.manage_assignments';

@@ -11,27 +11,16 @@
 | `lcbp3-v1.9.0-schema-01-drop.sql` | สคริปต์ลบตารางทั้งหมด (ใช้สำหรับ reset schema) |
 | `lcbp3-v1.9.0-schema-02-tables.sql` | สคริปต์สร้างตารางทั้งหมด (CREATE TABLE) |
 | `lcbp3-v1.9.0-schema-03-views-indexes.sql` | สคริปต์สร้าง Views และ Indexes |
-| `lcbp3-v1.9.0-migration.sql` | สคริปต์ migration สำหรับการอัปเกรดจากเวอร์ชันก่อนหน้า |
-| `lcbp3-v1.9.0-rfa-approval-schema.sql` | Schema เฉพาะสำหรับระบบ RFA Approval System |
+| `lcbp3-v1.9.0-migration.sql` | สคริปต์ migration support tables สำหรับ n8n Migration Workflow (temporary - ลบได้หลัง migration เสร็จ) |
 
 ### Seed Files (ข้อมูลเริ่มต้น)
 
 | ไฟล์ | คำอธิบาย |
 |------|-----------|
-| `lcbp3-v1.9.0-seed-basic.sql` | ข้อมูลเริ่มต้นพื้นฐาน (Organizations, Users, Roles, Permissions) |
+| `lcbp3-v1.9.0-seed-basic.sql` | ข้อมูลเริ่มต้นพื้นฐาน (Organizations, Users, Roles, Permissions, Intent Classification, Workflow Definitions) |
 | `lcbp3-v1.9.0-seed-permissions.sql` | ข้อมูล RBAC Permissions ตาม ADR-016 |
 | `lcbp3-v1.9.0-seed-contractdrawing.sql` | ข้อมูล Contract Drawings ตัวอย่าง |
 | `lcbp3-v1.9.0-seed-shopdrawing.sql` | ข้อมูล Shop Drawings ตัวอย่าง |
-
-### Delta Files (การเปลี่ยนแปลง Schema แบบ Incremental)
-
-ตั้งอยู่ใน `deltas/` - เก็บ SQL delta สำหรับการเปลี่ยนแปลง schema ตาม ADR-009 (ไม่ใช้ TypeORM migrations)
-
-| ไฟล์ | คำอธิบาย |
-|------|-----------|
-| `12-unified-ai-architecture.sql` | เพิ่มตาราง AI: migration_review_queue, ai_audit_logs (ADR-023) |
-| `14-add-migration-review-queue.sql` | เพิ่มคอลัมน์ใหม่ใน migration_review_queue (ADR-023A) |
-| `15-add-ai-processing-status.sql` | เพิ่ม ai_processing_status ใน attachments (ADR-023A) |
 
 ### Documentation
 
@@ -81,13 +70,11 @@ mysql < lcbp3-v1.9.0-seed-shopdrawing.sql
 ### การอัปเกรดจากเวอร์ชันก่อนหน้า
 
 ```bash
-# รัน migration script
+# รัน migration script (สำหรับ n8n Migration Workflow เท่านั้น)
 mysql < lcbp3-v1.9.0-migration.sql
 
-# รัน delta files ที่ยังไม่ได้ใช้ (ตามลำดับเลข)
-mysql < deltas/12-unified-ai-architecture.sql
-mysql < deltas/14-add-migration-review-queue.sql
-mysql < deltas/15-add-ai-processing-status.sql
+# หมายเหตุ: ทุกการเปลี่ยนแปลง schema ได้ถูกรวมเข้า schema-02-tables.sql และ seed files แล้ว
+# ไม่มี delta files ที่ต้องรันแยกตาม ADR-009
 ```
 
 ## 🔗 เอกสารที่เกี่ยวข้อง
@@ -99,6 +86,7 @@ mysql < deltas/15-add-ai-processing-status.sql
 - **ADR-019**: Hybrid Identifier Strategy - UUID Strategy
 - **ADR-023**: Unified AI Architecture - สถาปัตยกรรม AI หลัก
 - **ADR-023A**: Unified AI Architecture (Model Revision) - อัปเดตโมเดล AI
+- **ADR-024**: Intent Classification Strategy - Hybrid Intent Classifier (Pattern Match + LLM Fallback)
 
 ### Engineering Guidelines
 
@@ -115,6 +103,16 @@ mysql < deltas/15-add-ai-processing-status.sql
 
 ## 📝 Change Log
 
+- **2026-05-19**:
+  - เพิ่ม Intent Classification tables (ai_intent_definitions, ai_intent_patterns) ตาม ADR-024
+  - รวม delta files (16-add-intent-classification.sql, 17-seed-intent-patterns.sql) เข้า schema-02-tables.sql และ seed-basic.sql
+  - ลบ rfa-approval-schema.sql (ตารางทั้งหมดถูกรวมเข้า schema-02-tables.sql แล้ว)
+  - ลบ redundant delta files (12, 14, 15) - ตารางและคอลัมน์ทั้งหมดถูกรวมเข้า schema-02-tables.sql แล้ว
+  - รวม delta files ที่เหลือ (13 ไฟล์) เข้า schema-02-tables.sql, seed-permissions.sql, และ seed-basic.sql:
+    - Schema: rag_status, rag_last_error (attachments), document_chunks table
+    - Seed: RAG permissions, RBAC bulk permission, CIRCULATION_FLOW_V1 workflow definition
+  - อัปเดต Data Dictionary ด้วย document_chunks table
+  - ลบ deltas/ directory ทั้งหมด (ตาม ADR-009 - รวมเข้า main schema/seed เสร็จแล้ว)
 - **2026-05-15**: เพิ่ม AI-related tables (migration_review_queue, ai_audit_logs) และ ai_processing_status column ตาม ADR-023A
 - **2026-05-14**: อัปเดต schema เป็น v1.9.0 เพื่อรองรับ RFA Approval System และ Unified AI Architecture
 
