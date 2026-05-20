@@ -11,6 +11,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { Queue } from 'bullmq';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
@@ -95,6 +96,9 @@ import {
 
     // Config สำหรับ AI Env Vars
     ConfigModule,
+
+    // Redis Module สำหรับ @InjectRedis() (AiRagService)
+    RedisModule,
 
     // UserModule สำหรับ RbacGuard (ต้องการ UserService)
     UserModule,

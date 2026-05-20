@@ -5,6 +5,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { IntentDefinition } from './entities/intent-definition.entity';
 import { IntentPattern } from './entities/intent-pattern.entity';
 import { AiAuditLog } from '../entities/ai-audit-log.entity';
@@ -32,6 +33,7 @@ import { IntentAnalyticsController } from './controllers/intent-analytics.contro
   imports: [
     TypeOrmModule.forFeature([IntentDefinition, IntentPattern, AiAuditLog]),
     ConfigModule,
+    RedisModule,
   ],
   controllers: [
     IntentAdminController,

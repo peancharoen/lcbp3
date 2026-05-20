@@ -33,7 +33,6 @@
     "github.copilot",
     "bierner.markdown-mermaid",
     "vitest.explorer",
-    "google.geminicodeassist",
     "openai.chatgpt"
   ]
 }
