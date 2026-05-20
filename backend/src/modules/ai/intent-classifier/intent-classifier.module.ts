@@ -24,6 +24,7 @@ import {
 } from './controllers/intent-admin.controller';
 import { IntentClassifyController } from './controllers/intent-classify.controller';
 import { IntentAnalyticsController } from './controllers/intent-analytics.controller';
+import { UserModule } from '../../user/user.module';
 
 /**
  * Module สำหรับ Intent Classification System
@@ -34,6 +35,7 @@ import { IntentAnalyticsController } from './controllers/intent-analytics.contro
     TypeOrmModule.forFeature([IntentDefinition, IntentPattern, AiAuditLog]),
     ConfigModule,
     RedisModule,
+    UserModule,
   ],
   controllers: [
     IntentAdminController,
