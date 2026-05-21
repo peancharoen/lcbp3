@@ -1,11 +1,13 @@
 // File: backend/tests/performance/review-tasks.perf-spec.ts
 // Change Log:
+// - 2026-05-21: แก้ไขไทป์ ReviewTaskStatus ในข้อมูลจำลองและสเปก
 // - 2026-05-16: Performance test for Review Tasks Query with 10,000+ tasks
 
 import { ReviewTask } from '../../src/modules/review-team/entities/review-task.entity';
+import { ReviewTaskStatus } from '../../src/modules/common/enums/review.enums';
 
 interface FindAllOptions {
-  status?: string;
+  status?: ReviewTaskStatus;
   assignedToUserId?: number;
   disciplineId?: number;
   page?: number;
@@ -69,7 +71,11 @@ describe('ReviewTaskService Query Performance', () => {
       (_, i) => ({
         id: i + 1,
         uuid: `task-${i}`,
-        status: ['PENDING', 'IN_PROGRESS', 'COMPLETED'][i % 3],
+        status: [
+          ReviewTaskStatus.PENDING,
+          ReviewTaskStatus.IN_PROGRESS,
+          ReviewTaskStatus.COMPLETED,
+        ][i % 3],
         assignedToUserId: (i % 100) + 1,
         rfaRevisionId: (i % 500) + 1,
         disciplineId: (i % 20) + 1,
@@ -81,7 +87,7 @@ describe('ReviewTaskService Query Performance', () => {
 
     const startTime = Date.now();
     const result = service.findAll({
-      status: 'PENDING',
+      status: ReviewTaskStatus.PENDING,
       page: 1,
       limit: 20,
     });
@@ -99,7 +105,7 @@ describe('ReviewTaskService Query Performance', () => {
       (_, i) => ({
         id: i + 1,
         uuid: `task-${i}`,
-        status: 'PENDING',
+        status: ReviewTaskStatus.PENDING,
         assignedToUserId: 42,
         disciplineId: 5,
       })
@@ -109,7 +115,7 @@ describe('ReviewTaskService Query Performance', () => {
 
     const startTime = Date.now();
     const result = service.findAll({
-      status: 'PENDING',
+      status: ReviewTaskStatus.PENDING,
       assignedToUserId: 42,
       disciplineId: 5,
       page: 1,

@@ -1,5 +1,6 @@
 // File: backend/tests/integration/cross-spec/qdrant-isolation.spec.ts
 // Change Log:
+// - 2026-05-21: แก้ไข Type Casting ของ AiQdrantService ด้วย unknown
 // - 2026-05-16: Cross-spec integration test for QdrantService projectPublicId isolation
 // - 2026-05-16: Fixed mocking strategy to use factory pattern with proper method exposure
 
@@ -132,7 +133,9 @@ describe('Cross-Spec: QdrantService Isolation', () => {
 
   it('should verify no rawSearch method exists (security)', () => {
     // Assert: No rawSearch method that bypasses projectPublicId filtering
-    expect((service as Record<string, unknown>).rawSearch).toBeUndefined();
+    expect(
+      (service as unknown as Record<string, unknown>).rawSearch
+    ).toBeUndefined();
   });
 
   it('should handle RFA cross-spec usage correctly', async () => {

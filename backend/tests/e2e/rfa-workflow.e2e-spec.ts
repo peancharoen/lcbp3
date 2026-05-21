@@ -1,5 +1,6 @@
 // File: backend/tests/e2e/rfa-workflow.e2e-spec.ts
 // Change Log
+// - 2026-05-21: แก้ไขไทป์ Record ให้ครอบคลุม ReviewTaskStatus ทั้งหมด (EXPIRED, CANCELLED)
 // - 2026-05-15: Initial E2E test scaffolding
 // - 2026-05-16: Simplified to use unit test approach - full E2E requires database
 // - Note: Full E2E tests require running database and full infrastructure setup
@@ -37,6 +38,8 @@ describe('RFA Approval Workflow (E2E)', () => {
       ],
       [ReviewTaskStatus.COMPLETED]: [],
       [ReviewTaskStatus.DELEGATED]: [ReviewTaskStatus.IN_PROGRESS],
+      [ReviewTaskStatus.EXPIRED]: [],
+      [ReviewTaskStatus.CANCELLED]: [],
     };
 
     // Verify status enum values exist

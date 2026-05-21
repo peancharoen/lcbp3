@@ -1,5 +1,6 @@
 // File: backend/tests/performance/approval-matrix.perf-spec.ts
 // Change Log:
+// - 2026-05-21: แก้ไขการจำลองข้อมูลและการคอมไพล์ไทป์ใน ResponseCodeRule
 // - 2026-05-16: Performance test for Approval Matrix Service with 1000+ rules
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -46,20 +47,25 @@ describe('ApprovalMatrixService Performance', () => {
       (_, i) => ({
         id: i + 1,
         responseCodeId: (i % 10) + 1,
-        documentTypeId: (i % 5) + 1,
+        documentTypeId: 1,
         isRequired: i % 3 === 0,
         priority: (i % 5) + 1,
+        responseCode: {
+          id: (i % 10) + 1,
+          code: `CODE-${i % 10}`,
+          isActive: true,
+        } as unknown as ResponseCode,
       })
     );
 
+    jest.spyOn(responseCodeRepo, 'find').mockResolvedValue([]);
     jest
-      .spyOn(responseCodeRepo, 'find')
+      .spyOn(responseCodeRuleRepo, 'find')
       .mockResolvedValue(mockRules as ResponseCodeRule[]);
-    jest.spyOn(responseCodeRuleRepo, 'find').mockResolvedValue([]);
 
     // Act: Measure lookup time
     const startTime = Date.now();
-    const _result = await service.findByDocumentType(1, 'SHOP_DRAWING');
+    const _result = await service.findByDocumentType(1, 100);
     const endTime = Date.now();
 
     // Assert: Must complete within 100ms
@@ -81,19 +87,26 @@ describe('ApprovalMatrixService Performance', () => {
         category: (
           ['ENGINEERING', 'CONTRACT', 'QUALITY'] as ResponseCodeCategory[]
         )[i % 3],
-        description: `Description for code ${i}`,
+        descriptionTh: `Description for code ${i}`,
       })
     );
 
+    const mockRules: Partial<ResponseCodeRule>[] = mockCodes.map((code, i) => ({
+      id: i + 1,
+      responseCodeId: code.id,
+      documentTypeId: 1,
+      responseCode: code as ResponseCode,
+    }));
+
+    jest.spyOn(responseCodeRepo, 'find').mockResolvedValue([]);
     jest
-      .spyOn(responseCodeRepo, 'find')
-      .mockResolvedValue(mockCodes as ResponseCode[]);
-    jest.spyOn(responseCodeRuleRepo, 'find').mockResolvedValue([]);
+      .spyOn(responseCodeRuleRepo, 'find')
+      .mockResolvedValue(mockRules as ResponseCodeRule[]);
 
     // Act: Run 10 concurrent lookups
     const startTime = Date.now();
     const promises = Array.from({ length: 10 }, () =>
-      service.findByDocumentType(1, 'SHOP_DRAWING')
+      service.findByDocumentType(1, 100)
     );
     await Promise.all(promises);
     const endTime = Date.now();

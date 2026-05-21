@@ -1,5 +1,6 @@
 // File: src/modules/ai/intent-classifier/controllers/intent-admin.controller.spec.ts
 // Change Log
+// - 2026-05-21: แก้ไขไทป์ให้ตรงกับ Enum ล่าสุด
 // - 2026-05-19: สร้าง Integration test สำหรับ Admin API (T016, US1).
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -10,7 +11,10 @@ import {
 } from './intent-admin.controller';
 import { IntentDefinitionService } from '../services/intent-definition.service';
 import { IntentPatternService } from '../services/intent-pattern.service';
-import { IntentCategory } from '../interfaces/intent-category.enum';
+import {
+  IntentCategory,
+  PatternType,
+} from '../interfaces/intent-category.enum';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../../../../common/guards/rbac.guard';
 
@@ -60,7 +64,7 @@ describe('IntentAdminController', () => {
 
   describe('findAll', () => {
     it('ควรเรียก service.findAll พร้อม filter', async () => {
-      await controller.findAll('read', 'true');
+      await controller.findAll(IntentCategory.READ, 'true');
 
       expect(definitionService.findAll).toHaveBeenCalledWith({
         category: 'read',
@@ -135,7 +139,7 @@ describe('IntentAdminController', () => {
 
   describe('createPattern', () => {
     it('ควร merge intentCode กับ dto', async () => {
-      const dto = { patternType: 'keyword' as const, patternValue: 'rfa' };
+      const dto = { patternType: PatternType.KEYWORD, patternValue: 'rfa' };
       patternService.create.mockResolvedValue({ publicId: 'p-1' } as never);
 
       await controller.createPattern('GET_RFA', dto);

@@ -1,5 +1,6 @@
 // File: src/modules/ai/intent-classifier/services/intent-analytics.service.spec.ts
 // Change Log
+// - 2026-05-21: แก้ไขการทำ Type Casting ของ AiAuditLog ใน Mock ให้สมบูรณ์ขึ้นด้วย unknown
 // - 2026-05-19: สร้าง Unit tests สำหรับ IntentAnalyticsService (T033, US3).
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -21,6 +22,7 @@ function mockLog(
   const intentCode = overrides.intentCode ?? 'GET_RFA';
   return {
     id: Math.floor(Math.random() * 1000),
+    publicId: 'mock-public-id',
     aiModel: 'intent-classifier',
     modelName: method === 'llm_fallback' ? 'gemma4:e4b' : 'pattern-match',
     aiSuggestionJson: {
@@ -33,7 +35,7 @@ function mockLog(
     confidenceScore: overrides.confidence ?? 1.0,
     status: overrides.status ?? AiAuditStatus.SUCCESS,
     createdAt: new Date(),
-  } as AiAuditLog;
+  } as unknown as AiAuditLog;
 }
 
 describe('IntentAnalyticsService', () => {
