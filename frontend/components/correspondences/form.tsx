@@ -14,12 +14,20 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useCreateCorrespondence, useUpdateCorrespondence } from '@/hooks/use-correspondence';
 import { Organization } from '@/types/organization';
-import { useOrganizations, useProjects, useCorrespondenceTypes, useDisciplines, useContracts } from '@/hooks/use-master-data';
+import {
+  useOrganizations,
+  useProjects,
+  useCorrespondenceTypes,
+  useDisciplines,
+  useContracts,
+} from '@/hooks/use-master-data';
 import { CreateCorrespondenceDto } from '@/types/dto/correspondence/create-correspondence.dto';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { numberingApi } from '@/lib/api/numbering';
 import { filesApi } from '@/lib/api/files';
 import { toast } from 'sonner';
+import { AiSuggestionButton } from '@/components/ai/ai-suggestion-button';
+import { useAiStatus } from '@/hooks/use-ai-status';
 
 // Updated Zod Schema with all required fields
 const correspondenceSchema = z.object({
@@ -155,6 +163,7 @@ export function CorrespondenceForm({
   const router = useRouter();
   const createMutation = useCreateCorrespondence();
   const updateMutation = useUpdateCorrespondence();
+  const { data: aiStatus, isLoading: isAiStatusLoading } = useAiStatus();
 
   // Fetch master data for dropdowns
   const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
@@ -170,7 +179,8 @@ export function CorrespondenceForm({
     ? initialData?.revisions?.find((r) => normalizeUuid(r.publicId) === normalizedSelectedRevisionId)
     : undefined;
   const defaultValues = useMemo<Partial<FormData>>(() => {
-    const currentRevision = selectedRevision || initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
+    const currentRevision =
+      selectedRevision || initialData?.revisions?.find((r) => r.isCurrent) || initialData?.revisions?.[0];
     const initialToRecipient = initialData?.recipients?.find((r) => r.recipientType === 'TO');
     const initialCcRecipientIds =
       initialData?.recipients
@@ -193,9 +203,15 @@ export function CorrespondenceForm({
       body: currentRevision?.body || '',
       remarks: currentRevision?.remarks || '',
       dueDate: currentRevision?.dueDate ? new Date(currentRevision.dueDate).toISOString().split('T')[0] : undefined,
-      documentDate: currentRevision?.documentDate ? new Date(currentRevision.documentDate).toISOString().split('T')[0] : undefined,
-      issuedDate: currentRevision?.issuedDate ? new Date(currentRevision.issuedDate).toISOString().split('T')[0] : undefined,
-      receivedDate: currentRevision?.receivedDate ? new Date(currentRevision.receivedDate).toISOString().split('T')[0] : undefined,
+      documentDate: currentRevision?.documentDate
+        ? new Date(currentRevision.documentDate).toISOString().split('T')[0]
+        : undefined,
+      issuedDate: currentRevision?.issuedDate
+        ? new Date(currentRevision.issuedDate).toISOString().split('T')[0]
+        : undefined,
+      receivedDate: currentRevision?.receivedDate
+        ? new Date(currentRevision.receivedDate).toISOString().split('T')[0]
+        : undefined,
       fromOrganizationId:
         normalizePublicId(initialData?.originator?.publicId) ??
         normalizePublicId((initialData as Record<string, unknown>)?.originatorId as string),
@@ -289,12 +305,15 @@ export function CorrespondenceForm({
     // Build recipients array with TO and CC
     const recipients = [
       { organizationId: data.toOrganizationId, type: 'TO' as const },
-      ...(data.ccOrganizationIds?.map(orgId => ({ organizationId: orgId, type: 'CC' as const })) || [])
+      ...(data.ccOrganizationIds?.map((orgId) => ({ organizationId: orgId, type: 'CC' as const })) || []),
     ];
 
     // Phase 1: Upload attachments to temp storage
     let attachmentTempIds: string[] | undefined;
-    const validFiles = (data.attachments || []).filter((f): f is File => f instanceof File && !('validationError' in f && (f as { validationError?: string }).validationError));
+    const validFiles = (data.attachments || []).filter(
+      (f): f is File =>
+        f instanceof File && !('validationError' in f && (f as { validationError?: string }).validationError)
+    );
     if (validFiles.length > 0) {
       setIsUploading(true);
       try {
@@ -332,10 +351,7 @@ export function CorrespondenceForm({
     };
 
     if (uuid && initialData) {
-      updateMutation.mutate(
-        { uuid, data: payload },
-        { onSuccess: () => router.push(`/correspondences/${uuid}`) }
-      );
+      updateMutation.mutate({ uuid, data: payload }, { onSuccess: () => router.push(`/correspondences/${uuid}`) });
     } else {
       createMutation.mutate(payload, {
         onSuccess: () => router.push('/correspondences'),
@@ -398,18 +414,10 @@ export function CorrespondenceForm({
 
       {/* Preview Section - Only for New Documents */}
       {preview && !uuid && (
-        <div
-          className="p-4 rounded-md border bg-muted border-border"
-        >
-          <p className="text-sm font-semibold mb-1 flex items-center gap-2">
-            Document Number Preview
-          </p>
+        <div className="p-4 rounded-md border bg-muted border-border">
+          <p className="text-sm font-semibold mb-1 flex items-center gap-2">Document Number Preview</p>
           <div className="flex items-center gap-3">
-            <span
-              className="text-xl font-bold font-mono tracking-wide text-primary"
-            >
-              {preview.number}
-            </span>
+            <span className="text-xl font-bold font-mono tracking-wide text-primary">{preview.number}</span>
             {preview.isDefaultTemplate && (
               <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
                 Default Template
@@ -575,7 +583,7 @@ export function CorrespondenceForm({
           <Label>CC Organizations (Optional)</Label>
           <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-3">
             {organizationOptions
-              .filter(org => org.publicId !== toOrgId) // Exclude TO organization
+              .filter((org) => org.publicId !== toOrgId) // Exclude TO organization
               .map((org) => (
                 <div key={org.publicId} className="flex items-center space-x-2">
                   <Checkbox
@@ -586,7 +594,10 @@ export function CorrespondenceForm({
                       if (checked) {
                         setValue('ccOrganizationIds', [...currentCC, org.publicId]);
                       } else {
-                        setValue('ccOrganizationIds', currentCC.filter(id => id !== org.publicId));
+                        setValue(
+                          'ccOrganizationIds',
+                          currentCC.filter((id) => id !== org.publicId)
+                        );
                       }
                     }}
                   />
@@ -596,15 +607,20 @@ export function CorrespondenceForm({
                 </div>
               ))}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Select organizations to receive a copy of this correspondence
-          </p>
+          <p className="text-xs text-muted-foreground">Select organizations to receive a copy of this correspondence</p>
         </div>
       </div>
 
       {/* Subject */}
       <div className="space-y-2">
-        <Label htmlFor="subject">Subject *</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="subject">Subject *</Label>
+          <AiSuggestionButton
+            aiEnabled={aiStatus?.aiFeaturesEnabled ?? true}
+            isLoading={isAiStatusLoading}
+            onClick={() => toast.info('AI Suggestion queued')}
+          />
+        </div>
         <Input id="subject" {...register('subject')} placeholder="Enter subject" />
         {errors.subject && <p className="text-sm text-destructive">{errors.subject.message}</p>}
       </div>

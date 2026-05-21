@@ -21,6 +21,9 @@ import { CreateRfaDto } from '@/types/dto/rfa/rfa.dto';
 import { useState, useEffect, type FormEvent } from 'react';
 import { correspondenceService } from '@/lib/services/correspondence.service';
 import { Contract } from '@/types/contract';
+import { AiSuggestionButton } from '@/components/ai/ai-suggestion-button';
+import { useAiStatus } from '@/hooks/use-ai-status';
+import { toast } from 'sonner';
 
 const rfaSchema = z.object({
   projectId: z.string().min(1, 'Project is required'), // ADR-019: UUID
@@ -145,6 +148,7 @@ const getMasterOptionValue = (option: { publicId?: string; id?: number }): strin
 export function RFAForm() {
   const router = useRouter();
   const createMutation = useCreateRFA();
+  const { data: aiStatus, isLoading: isAiStatusLoading } = useAiStatus();
 
   const { data: projectsData, isLoading: isLoadingProjects } = useProjects();
   const projects = dedupeByKey(extractArrayData<ProjectOption>(projectsData), (project) => project.publicId);
@@ -192,12 +196,13 @@ export function RFAForm() {
 
   const selectedContractId = watch('contractId');
   const { data: disciplinesData, isLoading: isLoadingDisciplines } = useDisciplines(selectedContractId);
-  const disciplines = dedupeByKey(
-    extractArrayData<DisciplineOption>(disciplinesData),
-    (discipline) => getMasterOptionValue(discipline)
+  const disciplines = dedupeByKey(extractArrayData<DisciplineOption>(disciplinesData), (discipline) =>
+    getMasterOptionValue(discipline)
   );
   const { data: rfaTypesData, isLoading: isLoadingRfaTypes } = useRfaTypes(selectedContractId);
-  const rfaTypes = dedupeByKey(extractArrayData<RfaTypeOption>(rfaTypesData), (rfaType) => getMasterOptionValue(rfaType));
+  const rfaTypes = dedupeByKey(extractArrayData<RfaTypeOption>(rfaTypesData), (rfaType) =>
+    getMasterOptionValue(rfaType)
+  );
   const [shopDrawingSearch, setShopDrawingSearch] = useState('');
   const [shopDrawingPage, setShopDrawingPage] = useState(1);
   const { data: shopDrawingsData, isLoading: isLoadingShopDrawings } = useDrawings('SHOP', {
@@ -286,7 +291,15 @@ export function RFAForm() {
 
     const timer = setTimeout(fetchPreview, 500);
     return () => clearTimeout(timer);
-  }, [rfaTypeId, disciplineId, toOrganizationId, selectedProjectId, rfaCorrespondenceType?.publicId, rfaCorrespondenceType?.id, watch]);
+  }, [
+    rfaTypeId,
+    disciplineId,
+    toOrganizationId,
+    selectedProjectId,
+    rfaCorrespondenceType?.publicId,
+    rfaCorrespondenceType?.id,
+    watch,
+  ]);
 
   const onSubmit = (data: RFAFormData) => {
     if (requiresShopDrawings && data.shopDrawingRevisionIds?.length === 0) {
@@ -346,7 +359,7 @@ export function RFAForm() {
         <h3 className="text-lg font-semibold mb-4">RFA Information</h3>
 
         <div className="space-y-4">
-                    <div>
+          <div>
             <Label>Project *</Label>
             <Select
               value={selectedProjectId || undefined}
@@ -429,7 +442,7 @@ export function RFAForm() {
                   <SelectValue placeholder={isLoadingDisciplines ? 'Loading...' : 'Select Discipline'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {disciplines.map((d) => (
+                  {disciplines.map((d) =>
                     (() => {
                       const disciplineValue = getMasterOptionValue(d);
 
@@ -443,7 +456,7 @@ export function RFAForm() {
                         </SelectItem>
                       );
                     })()
-                  ))}
+                  )}
                   {!isLoadingDisciplines && disciplines.length === 0 && (
                     <SelectItem value="0" disabled>
                       No disciplines found
@@ -521,7 +534,14 @@ export function RFAForm() {
             </div>
           </div>
           <div>
-            <Label htmlFor="subject">Subject *</Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="subject">Subject *</Label>
+              <AiSuggestionButton
+                aiEnabled={aiStatus?.aiFeaturesEnabled ?? true}
+                isLoading={isAiStatusLoading}
+                onClick={() => toast.info('AI Suggestion queued')}
+              />
+            </div>
             <Input id="subject" {...register('subject')} placeholder="Enter subject" />
             {errors.subject && <p className="text-sm text-destructive mt-1">{errors.subject.message}</p>}
           </div>
@@ -540,8 +560,6 @@ export function RFAForm() {
             <Label htmlFor="description">Description</Label>
             <Input id="description" {...register('description')} placeholder="Enter key description" />
           </div>
-
-
         </div>
       </Card>
 

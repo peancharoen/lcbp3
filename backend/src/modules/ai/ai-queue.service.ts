@@ -2,6 +2,8 @@
 // Change Log
 // - 2026-05-14: เพิ่ม service กลางสำหรับส่งงาน AI เข้า BullMQ ตาม ADR-023.
 // - 2026-05-14: เพิ่ม JSDoc idempotency contract สำหรับทุก enqueue method (💡 S3).
+// - 2026-05-21: เพิ่มการลงทะเบียน QUEUE_AI_BATCH และ enqueueSandboxJob สำหรับ Superadmin sandbox.
+// - 2026-05-21: แก้ไข ESLint error โดยการเปลี่ยน Queue<any> เป็น Queue<unknown> สำหรับ batchQueue
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, JobsOptions } from 'bullmq';
@@ -9,6 +11,7 @@ import {
   QUEUE_AI_INGEST,
   QUEUE_AI_RAG,
   QUEUE_AI_VECTOR_DELETION,
+  QUEUE_AI_BATCH,
 } from '../common/constants/queue.constants';
 
 /** Payload สำหรับงาน ingest เอกสารเก่าเข้า AI Pipeline */
@@ -48,7 +51,9 @@ export class AiQueueService {
     @InjectQueue(QUEUE_AI_RAG)
     private readonly ragQueue: Queue<AiRagJobPayload>,
     @InjectQueue(QUEUE_AI_VECTOR_DELETION)
-    private readonly vectorDeletionQueue: Queue<AiVectorDeletionJobPayload>
+    private readonly vectorDeletionQueue: Queue<AiVectorDeletionJobPayload>,
+    @InjectQueue(QUEUE_AI_BATCH)
+    private readonly batchQueue: Queue<unknown>
   ) {}
 
   /**
@@ -91,5 +96,52 @@ export class AiQueueService {
       }
     );
     return String(job.id);
+  }
+
+  /**
+   * ส่ง sandbox job เข้า queue ai-batch โดยกำหนด priority = 1 เพื่อความรวดเร็วสำหรับ Superadmin
+   * @idempotency `jobId = payload.idempotencyKey`
+   */
+  async enqueueSandboxJob(
+    jobType: 'sandbox-rag' | 'sandbox-extract',
+    payload: {
+      idempotencyKey: string;
+      projectPublicId?: string;
+      query?: string;
+      userPublicId?: string;
+      filePublicId?: string;
+      pdfPath?: string;
+    }
+  ): Promise<string> {
+    const job = await this.batchQueue.add(
+      jobType,
+      {
+        jobType,
+        documentPublicId: payload.idempotencyKey,
+        projectPublicId: payload.projectPublicId ?? '',
+        payload: {
+          query: payload.query,
+          userPublicId: payload.userPublicId,
+          filePublicId: payload.filePublicId,
+          pdfPath: payload.pdfPath,
+        },
+        idempotencyKey: payload.idempotencyKey,
+      },
+      {
+        ...this.defaultOptions,
+        priority: 1,
+        jobId: payload.idempotencyKey,
+      }
+    );
+    return String(job.id);
+  }
+
+  /**
+   * ดึงจำนวนงานที่กำลังประมวลผลอยู่หรือกำลังรอคิวใน batchQueue เพื่อคำนวณ rate limiting แบบไดนามิก
+   */
+  async getBatchQueueSize(): Promise<number> {
+    const active = await this.batchQueue.getActiveCount();
+    const waiting = await this.batchQueue.getWaitingCount();
+    return active + waiting;
   }
 }

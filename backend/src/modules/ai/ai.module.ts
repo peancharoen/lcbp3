@@ -4,6 +4,7 @@
 // - 2026-05-15: เพิ่ม ai-realtime/ai-batch foundation และ stale paused recovery ตาม ADR-023A.
 // - 2026-05-19: เพิ่ม IntentClassifierModule (ADR-024 Intent Classification).
 // - 2026-05-19: เพิ่ม AiToolModule (ADR-025 AI Tool Layer).
+// - 2026-05-21: ลงทะเบียน SystemSetting, AiSettingsService และ AiEnabledGuard สำหรับ ADR-027.
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
@@ -15,6 +16,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { Queue } from 'bullmq';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
+import { AiSettingsService } from './ai-settings.service';
 import { AiIngestService } from './ai-ingest.service';
 import { AiQueueService } from './ai-queue.service';
 import { AiQdrantService } from './qdrant.service';
@@ -30,6 +32,8 @@ import { EmbeddingService } from './services/embedding.service';
 import { MigrationLog } from './entities/migration-log.entity';
 import { AiAuditLog } from './entities/ai-audit-log.entity';
 import { MigrationReviewRecord } from './entities/migration-review.entity';
+import { SystemSetting } from './entities/system-setting.entity';
+import { AiEnabledGuard } from './guards/ai-enabled.guard';
 import { UserModule } from '../user/user.module';
 import { MigrationModule } from '../migration/migration.module';
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
@@ -58,6 +62,7 @@ import {
       AiAuditLog,
       AuditLog,
       MigrationReviewRecord,
+      SystemSetting,
       Attachment,
       Project,
       Organization,
@@ -114,6 +119,7 @@ import {
   controllers: [AiController],
   providers: [
     AiService,
+    AiSettingsService,
     AiIngestService,
     AiQueueService,
     AiQdrantService,
@@ -130,9 +136,11 @@ import {
     AiVectorDeletionProcessor,
     // RbacGuard ต้องการ UserService จาก UserModule
     RbacGuard,
+    AiEnabledGuard,
   ],
   exports: [
     AiService,
+    AiSettingsService,
     AiIngestService,
     AiQueueService,
     AiQdrantService,

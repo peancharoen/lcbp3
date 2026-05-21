@@ -2,6 +2,8 @@
 // Change Log
 // - 2026-05-14: เพิ่ม Qdrant gateway สำหรับ AI Module พร้อม project payload filter.
 // - 2026-05-14: เพิ่ม OnModuleInit เพื่อ auto-call ensureCollection() (💡 S2).
+// - 2026-05-21: เพิ่ม checkHealth สำหรับตรวจสอบสุขภาพและความเร็วของ Qdrant
+
 import {
   Injectable,
   Logger,
@@ -137,5 +139,38 @@ export class AiQdrantService implements OnModuleInit {
       wait: true,
       points: pointsWithProject,
     });
+  }
+
+  /** ตรวจสอบสุขภาพและความเร็ว (Latency) ของ Qdrant */
+  async checkHealth(): Promise<{
+    status: 'HEALTHY' | 'DEGRADED' | 'DOWN';
+    latencyMs: number;
+    collections?: string[];
+    error?: string;
+  }> {
+    const startTime = Date.now();
+    try {
+      const collections = await Promise.race([
+        this.client.getCollections(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Qdrant request timeout')), 5000)
+        ),
+      ]);
+      const latencyMs = Date.now() - startTime;
+      return {
+        status: 'HEALTHY',
+        latencyMs,
+        collections: collections.collections.map((c) => c.name),
+      };
+    } catch (err: unknown) {
+      const latencyMs = Date.now() - startTime;
+      const error = err instanceof Error ? err.message : String(err);
+      const isTimeout = err instanceof Error && error.includes('timeout');
+      return {
+        status: isTimeout ? 'DEGRADED' : 'DOWN',
+        latencyMs,
+        error,
+      };
+    }
   }
 }

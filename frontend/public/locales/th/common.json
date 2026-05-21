@@ -41,6 +41,7 @@
 
   "ai.status.offlineTitle": "ระบบ AI ไม่พร้อมใช้งาน",
   "ai.status.offlineDescription": "ไม่สามารถเชื่อมต่อ staging queue ของ AI ได้ชั่วคราว แต่ยังทำงานเอกสารแบบ manual ได้ตามปกติ",
+  "ai.status.disabledDescription": "ระบบ AI ไม่พร้อมใช้งานชั่วคราว กรุณากรอกข้อมูลด้วยตนเอง",
   "ai.status.onlineTitle": "ระบบ AI พร้อมใช้งาน",
   "ai.status.onlineDescription": "เชื่อมต่อคิวตรวจสอบข้อมูลเอกสารเก่าเรียบร้อยแล้ว",
   "ai.staging.title": "คิวตรวจสอบ AI",

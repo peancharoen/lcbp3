@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { CorrespondenceForm } from './form';
+import { createTestQueryClient } from '@/lib/test-utils';
 import {
   useProjects,
   useOrganizations,
@@ -94,6 +96,11 @@ const editInitialData = {
   correspondenceNumber: 'CORR-001',
 };
 
+const renderWithQueryClient = (ui: ReactElement) => {
+  const { wrapper } = createTestQueryClient();
+  return render(ui, { wrapper });
+};
+
 describe('CorrespondenceForm (edit regression)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -140,7 +147,7 @@ describe('CorrespondenceForm (edit regression)', () => {
   });
 
   it('keeps edit prefilled values after mount (no reset on initial render)', async () => {
-    render(<CorrespondenceForm initialData={editInitialData} uuid="corr-uuid-1" />);
+    renderWithQueryClient(<CorrespondenceForm initialData={editInitialData} uuid="corr-uuid-1" />);
 
     expect(screen.getByLabelText('Subject *')).toHaveValue('Existing Subject');
 
@@ -156,7 +163,7 @@ describe('CorrespondenceForm (edit regression)', () => {
   });
 
   it('keeps dependent fields intact after async effects (reset guard)', async () => {
-    render(<CorrespondenceForm initialData={editInitialData} uuid="corr-uuid-2" />);
+    renderWithQueryClient(<CorrespondenceForm initialData={editInitialData} uuid="corr-uuid-2" />);
 
     expect(screen.getByLabelText('Subject *')).toHaveValue('Existing Subject');
     expect(screen.getByText('Current Document Number')).toBeInTheDocument();

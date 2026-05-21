@@ -20,12 +20,13 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "lint:ci": "node --max-old-space-size=4096 node_modules/eslint/bin/eslint.js \"{src,apps,libs,test}/**/*.ts\"",
-    "test": "jest --config jest.config.js --forceExit",
+    "test": "jest --config jest.config.js --forceExit --testPathIgnorePatterns=tests/performance",
     "test:debug-handles": "jest --config jest.config.js --detectOpenHandles",
     "test:watch": "jest --config jest.config.js --watch",
     "test:cov": "jest --config jest.config.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --config jest.config.js --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit",
+    "test:perf": "jest --config jest.config.js --forceExit tests/performance",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts"
   },
   "dependencies": {

@@ -41,6 +41,7 @@
 
   "ai.status.offlineTitle": "AI unavailable",
   "ai.status.offlineDescription": "AI staging is temporarily unavailable. Manual document operations remain available.",
+  "ai.status.disabledDescription": "AI is temporarily unavailable. Please enter the information manually.",
   "ai.status.onlineTitle": "AI staging available",
   "ai.status.onlineDescription": "Legacy migration review queue is connected.",
   "ai.staging.title": "AI Staging Queue",

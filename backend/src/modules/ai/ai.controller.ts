@@ -3,6 +3,10 @@
 // - 2026-05-14: เพิ่ม Legacy Migration staging endpoints ตาม ADR-023.
 // - 2026-05-14: ย้าย DeleteAuditLogsQueryDto ไป dto/ folder; ลบ authHeader passthrough (🟢 LOW-1/LOW-2).
 // - 2026-05-19: เพิ่ม POST /ai/intent endpoint สำหรับ AI Tool Layer (ADR-025).
+// - 2026-05-21: เพิ่ม AI Admin settings endpoints และ AiEnabledGuard สำหรับ ADR-027.
+// - 2026-05-21: เพิ่ม GET /ai/admin/health สำหรับดึงสถานะสุขภาพ AI Infrastructure (T028).
+// - 2026-05-21: เพิ่ม POST /ai/admin/sandbox/extract endpoint สำหรับ Superadmin OCR sandbox (T041 & T042)
+// - 2026-05-21: แก้ไขข้อห้ามใช้ parseInt โดยการใช้ Number แทนตามกฎ Tier 1
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -20,8 +24,13 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  UploadedFile,
+  HttpException,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
@@ -32,6 +41,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { AiService, ExtractionResult, PaginatedResult } from './ai.service';
+import { AiSettingsService } from './ai-settings.service';
 import {
   AiIngestService,
   MigrationReviewResponse,
@@ -62,6 +72,11 @@ import { v7 as uuidv7 } from 'uuid';
 import { DeleteAuditLogsQueryDto } from './dto/delete-audit-logs.dto';
 import { AiToolRegistryService } from './tool/ai-tool-registry.service';
 import { AiIntentRequestDto } from './dto/ai-intent-request.dto';
+import { ToggleAiFeaturesDto } from './dto/ai-admin-settings.dto';
+import { AiEnabledGuard } from './guards/ai-enabled.guard';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { FileStorageService } from '../../common/file-storage/file-storage.service';
 
 @ApiTags('AI Gateway')
 @Controller('ai')
@@ -71,7 +86,10 @@ export class AiController {
     private readonly aiIngestService: AiIngestService,
     private readonly aiRagService: AiRagService,
     private readonly aiQueueService: AiQueueService,
-    private readonly aiToolRegistryService: AiToolRegistryService
+    private readonly aiSettingsService: AiSettingsService,
+    private readonly aiToolRegistryService: AiToolRegistryService,
+    private readonly fileStorageService: FileStorageService,
+    @InjectRedis() private readonly redis: Redis
   ) {}
 
   // --- Real-time Extraction (User Upload) ---
@@ -79,7 +97,7 @@ export class AiController {
   // ─── AI Tool Layer Endpoint (ADR-025) ──────────────────────────────────────
 
   @Post('intent')
-  @UseGuards(JwtAuthGuard, RbacGuard)
+  @UseGuards(JwtAuthGuard, AiEnabledGuard, RbacGuard)
   @ApiBearerAuth()
   @RequirePermission('ai.suggest')
   @HttpCode(HttpStatus.OK)
@@ -111,7 +129,7 @@ export class AiController {
   // ---------------------------------------------------------------------------
 
   @Post('suggest')
-  @UseGuards(JwtAuthGuard, RbacGuard)
+  @UseGuards(JwtAuthGuard, AiEnabledGuard, RbacGuard)
   @ApiBearerAuth()
   @RequirePermission('ai.suggest')
   @HttpCode(HttpStatus.ACCEPTED)
@@ -154,7 +172,7 @@ export class AiController {
   }
 
   @Post('extract')
-  @UseGuards(JwtAuthGuard, RbacGuard)
+  @UseGuards(JwtAuthGuard, AiEnabledGuard, RbacGuard)
   @ApiBearerAuth()
   @RequirePermission('ai.extract')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // Rate limit: 5 requests/minute (ADR-020)
@@ -169,6 +187,168 @@ export class AiController {
     @CurrentUser() user: User
   ): Promise<ExtractionResult> {
     return this.aiService.extractRealtime(dto, user.user_id);
+  }
+
+  @Get('status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'AI Status — อ่านสถานะเปิด/ปิด AI features สำหรับผู้ใช้ที่ล็อกอิน',
+  })
+  async getAiStatus(): Promise<{ aiFeaturesEnabled: boolean }> {
+    const aiFeaturesEnabled =
+      await this.aiSettingsService.getAiFeaturesEnabled();
+    return { aiFeaturesEnabled };
+  }
+
+  // --- AI Admin Console Settings (ADR-027) ---
+
+  @Get('admin/settings')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary: 'AI Admin Settings — อ่านสถานะเปิด/ปิด AI features',
+  })
+  async getAiAdminSettings(): Promise<{ aiFeaturesEnabled: boolean }> {
+    const aiFeaturesEnabled =
+      await this.aiSettingsService.getAiFeaturesEnabled();
+    return { aiFeaturesEnabled };
+  }
+
+  @Post('admin/toggle')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'AI Admin Toggle — เปิด/ปิด AI features สำหรับผู้ใช้ทั่วไป',
+  })
+  async toggleAiFeatures(
+    @Body() dto: ToggleAiFeaturesDto,
+    @CurrentUser() user: User
+  ): Promise<{ aiFeaturesEnabled: boolean }> {
+    const aiFeaturesEnabled = await this.aiSettingsService.setAiFeaturesEnabled(
+      dto.enabled,
+      user.user_id
+    );
+    return { aiFeaturesEnabled };
+  }
+
+  @Get('admin/health')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary:
+      'AI System Health — ดึงสถานะสุขภาพ Ollama, Qdrant และ BullMQ queues',
+  })
+  async getAiSystemHealth() {
+    return this.aiService.getSystemHealth();
+  }
+
+  @Post('admin/sandbox/rag')
+  @UseGuards(JwtAuthGuard, AiEnabledGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    summary:
+      'AI Admin Sandbox RAG Query — ส่ง sandbox RAG เข้า queue ai-batch (T035)',
+    description:
+      'รัน RAG query สำหรับ Superadmin ใน sandbox environment เพื่อคุมทรัพยากร',
+  })
+  async submitSandboxRagQuery(
+    @Body() dto: AiRagQueryDto,
+    @CurrentUser() user: User
+  ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
+    const userPublicId = String(user.publicId ?? user.user_id);
+    const activeJob = await this.aiRagService.getActiveJob(userPublicId);
+    if (activeJob) {
+      return { requestPublicId: activeJob, jobId: activeJob, status: 'queued' };
+    }
+    const requestPublicId = uuidv7();
+    await this.aiRagService.registerActiveJob(userPublicId, requestPublicId);
+    const jobId = await this.aiQueueService.enqueueSandboxJob('sandbox-rag', {
+      idempotencyKey: requestPublicId,
+      projectPublicId: dto.projectPublicId,
+      query: dto.question,
+      userPublicId,
+    });
+    return { requestPublicId, jobId, status: 'queued' };
+  }
+
+  @Get('admin/sandbox/job/:id')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary:
+      'AI Admin Sandbox Job Status — ตรวจสอบสถานะ RAG sandbox job (T036)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'requestPublicId (UUID) ของ sandbox job ที่ส่งคำขอ',
+  })
+  async getSandboxJobStatus(@Param('id', ParseUuidPipe) id: string) {
+    const result = await this.aiRagService.getJobResult(id);
+    if (!result) {
+      return { requestPublicId: id, status: 'not_found' };
+    }
+    return result;
+  }
+
+  @Post('admin/sandbox/extract')
+  @UseGuards(JwtAuthGuard, AiEnabledGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    summary:
+      'AI Admin Sandbox OCR Extract — อัปโหลดไฟล์เพื่อทำ OCR Sandbox (T041 & T042)',
+    description:
+      'รัน OCR Sandbox สำหรับ Superadmin โดยคิว batchQueue ควบคุมอัตราการใช้งาน',
+  })
+  async submitSandboxExtract(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 50 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: 'pdf' }),
+        ],
+      })
+    )
+    file: Express.Multer.File,
+    @CurrentUser() user: User
+  ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
+    const queueSize = await this.aiQueueService.getBatchQueueSize();
+    if (queueSize >= 3) {
+      const rateKey = `ai:sandbox:rate:${String(user.user_id)}`;
+      const countStr = await this.redis.get(rateKey);
+      const count = countStr ? Number(countStr) : 0;
+      if (count >= 10) {
+        throw new HttpException(
+          'Rate limit exceeded. Capped at 10 requests per hour when the queue is busy.',
+          HttpStatus.TOO_MANY_REQUESTS
+        );
+      }
+      if (!countStr) {
+        await this.redis.setex(rateKey, 3600, '1');
+      } else {
+        await this.redis.incr(rateKey);
+      }
+    }
+    const attachment = await this.fileStorageService.upload(file, user.user_id);
+    const requestPublicId = uuidv7();
+    const jobId = await this.aiQueueService.enqueueSandboxJob(
+      'sandbox-extract',
+      {
+        idempotencyKey: requestPublicId,
+        pdfPath: attachment.filePath,
+      }
+    );
+    return { requestPublicId, jobId, status: 'queued' };
   }
 
   // --- Webhook Callback จาก n8n (Service Account) ---
@@ -324,7 +504,7 @@ export class AiController {
   // ─── RAG Query Endpoints (Phase 4 — FR-009, FR-010, FR-011) ────────────────
 
   @Post('rag/query')
-  @UseGuards(JwtAuthGuard, RbacGuard)
+  @UseGuards(JwtAuthGuard, AiEnabledGuard, RbacGuard)
   @ApiBearerAuth()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // Rate limit: 5 requests/minute per user (FR-010)
   @RequirePermission('rag.query')

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Settings, Activity, Shield, FileStack, ChevronDown, ChevronRight, Database } from 'lucide-react';
+import { Settings, Activity, Shield, FileStack, ChevronDown, ChevronRight, Database, Brain } from 'lucide-react';
 
 interface MenuItem {
   href?: string;
@@ -62,6 +62,7 @@ export const menuItems: MenuItem[] = [
       { href: '/admin/migration/errors', label: 'Error Logs' },
     ],
   },
+  { href: '/admin/ai', label: 'AI Console', icon: Brain },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

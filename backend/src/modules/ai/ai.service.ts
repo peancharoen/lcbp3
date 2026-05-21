@@ -1,11 +1,15 @@
 // File: src/modules/ai/ai.service.ts
 // Service หลักของ AI Gateway — เชื่อมต่อระหว่าง DMS กับ n8n/Ollama Pipeline (ADR-018, ADR-020)
-
+// Change Log
+// - 2026-05-21: เพิ่ม getSystemHealth พร้อมระบบแคช Redis 30 วินาทีตาม ADR-027.
+// - 2026-05-21: แก้ไข ESLint unsafe return error ใน getSystemHealth โดยใช้ interface SystemHealthResponse
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import type Redis from 'ioredis';
 import { Repository } from 'typeorm';
 import { Job, Queue } from 'bullmq';
 import { firstValueFrom, timeout, catchError } from 'rxjs';
@@ -35,6 +39,8 @@ import {
 import { AiRealtimeJobData } from './processors/ai-realtime.processor';
 import { AiBatchJobData } from './processors/ai-batch.processor';
 import { AuditLog } from '../../common/entities/audit-log.entity';
+import { OllamaService } from './services/ollama.service';
+import { AiQdrantService } from './qdrant.service';
 
 // ผลลัพธ์ของ Real-time Extraction
 export interface ExtractionResult {
@@ -97,6 +103,42 @@ export interface AiJobStatusResult {
   failedReason?: string;
 }
 
+export interface SystemHealthResponse {
+  ollama: {
+    status: string;
+    latencyMs: number;
+    models: string[];
+    error?: string;
+  };
+  qdrant: {
+    status: string;
+    latencyMs: number;
+    collections?: string[];
+    error?: string;
+  };
+  queues: {
+    realtime:
+      | {
+          active: number;
+          waiting: number;
+          failed: number;
+          completed: number;
+          isPaused: boolean;
+        }
+      | { error: string };
+    batch:
+      | {
+          active: number;
+          waiting: number;
+          failed: number;
+          completed: number;
+          isPaused: boolean;
+        }
+      | { error: string };
+  };
+  timestamp: string;
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -122,7 +164,14 @@ export class AiService {
     private readonly aiRealtimeQueue?: Queue<AiRealtimeJobData>,
     @Optional()
     @InjectQueue(QUEUE_AI_BATCH)
-    private readonly aiBatchQueue?: Queue<AiBatchJobData>
+    private readonly aiBatchQueue?: Queue<AiBatchJobData>,
+    @Optional()
+    private readonly ollamaService?: OllamaService,
+    @Optional()
+    private readonly qdrantService?: AiQdrantService,
+    @Optional()
+    @InjectRedis()
+    private readonly redis?: Redis
   ) {
     this.n8nWebhookUrl =
       this.configService.get<string>('AI_N8N_WEBHOOK_URL') ?? '';
@@ -676,6 +725,76 @@ export class AiService {
     );
 
     return { deleted: true, publicId };
+  }
+
+  /** ดึงสุขภาพของโครงสร้างพื้นฐานระบบ AI (Ollama, Qdrant, queues) */
+  async getSystemHealth(): Promise<SystemHealthResponse> {
+    const cacheKey = 'system_health:cache';
+    if (this.redis) {
+      try {
+        const cached = await this.redis.get(cacheKey);
+        if (cached) return JSON.parse(cached) as SystemHealthResponse;
+      } catch (err: unknown) {
+        this.logger.warn(
+          `Failed to read system health cache: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+    const [ollama, qdrant, realtimeQueueMetrics, batchQueueMetrics] =
+      await Promise.all([
+        this.ollamaService
+          ? this.ollamaService.checkHealth()
+          : Promise.resolve({
+              status: 'DOWN',
+              latencyMs: 0,
+              models: [],
+              error: 'OllamaService not injected',
+            }),
+        this.qdrantService
+          ? this.qdrantService.checkHealth()
+          : Promise.resolve({
+              status: 'DOWN',
+              latencyMs: 0,
+              error: 'AiQdrantService not injected',
+            }),
+        this.getQueueMetrics(this.aiRealtimeQueue),
+        this.getQueueMetrics(this.aiBatchQueue),
+      ]);
+    const health = {
+      ollama,
+      qdrant,
+      queues: {
+        realtime: realtimeQueueMetrics,
+        batch: batchQueueMetrics,
+      },
+      timestamp: new Date().toISOString(),
+    };
+    if (this.redis) {
+      try {
+        await this.redis.set(cacheKey, JSON.stringify(health), 'EX', 30);
+      } catch (err: unknown) {
+        this.logger.warn(
+          `Failed to write system health cache: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+    return health;
+  }
+
+  private async getQueueMetrics(queue?: Queue) {
+    if (!queue) return { error: 'Queue not registered' };
+    try {
+      const [active, waiting, failed, completed, isPaused] = await Promise.all([
+        queue.getActiveCount(),
+        queue.getWaitingCount(),
+        queue.getFailedCount(),
+        queue.getCompletedCount(),
+        queue.isPaused(),
+      ]);
+      return { active, waiting, failed, completed, isPaused };
+    } catch (err: unknown) {
+      return { error: err instanceof Error ? err.message : String(err) };
+    }
   }
 
   private async toJobStatus(

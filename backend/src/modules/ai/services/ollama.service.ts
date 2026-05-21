@@ -1,6 +1,7 @@
 // File: src/modules/ai/services/ollama.service.ts
 // Change Log
 // - 2026-05-15: เพิ่ม Ollama service สำหรับ ADR-023A 2-model stack.
+// - 2026-05-21: เพิ่ม checkHealth สำหรับตรวจสอบสุขภาพและความเร็ว (Latency) ของ Ollama
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -90,5 +91,38 @@ export class OllamaService {
   /** คืนชื่อ embedding model สำหรับ audit log */
   getEmbeddingModelName(): string {
     return this.embedModel;
+  }
+
+  /** ตรวจสอบสุขภาพและความเร็ว (Latency) ของระบบ Ollama */
+  async checkHealth(): Promise<{
+    status: 'HEALTHY' | 'DEGRADED' | 'DOWN';
+    latencyMs: number;
+    models: string[];
+    error?: string;
+  }> {
+    const startTime = Date.now();
+    try {
+      await axios.get(`${this.ollamaUrl}/api/tags`, { timeout: 5000 });
+      const latencyMs = Date.now() - startTime;
+      return {
+        status: 'HEALTHY',
+        latencyMs,
+        models: [this.mainModel, this.embedModel],
+      };
+    } catch (err: unknown) {
+      const latencyMs = Date.now() - startTime;
+      const error = err instanceof Error ? err.message : String(err);
+      const isTimeout =
+        err instanceof Error &&
+        (err.message.includes('timeout') ||
+          err.message.includes('504') ||
+          err.message.includes('code ECONNABORTED'));
+      return {
+        status: isTimeout ? 'DEGRADED' : 'DOWN',
+        latencyMs,
+        models: [this.mainModel, this.embedModel],
+        error,
+      };
+    }
   }
 }

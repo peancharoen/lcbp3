@@ -1,5 +1,7 @@
 // File: src/modules/ai/ai.service.spec.ts
 // Unit Tests สำหรับ AiService — ทดสอบ Business Logic สำคัญ: Callback, Update, Status Transitions
+// Change Log
+// - 2026-05-21: เพิ่ม unit tests สำหรับ getSystemHealth (T026) ทั้งกรณี cache hit/miss และ queue metrics.
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -21,6 +23,10 @@ import {
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
 } from '../common/constants/queue.constants';
+import { OllamaService } from './services/ollama.service';
+import { AiQdrantService } from './qdrant.service';
+
+const DEFAULT_REDIS_TOKEN = 'default_IORedisModuleConnectionToken';
 
 describe('AiService', () => {
   let service: AiService;
@@ -52,9 +58,33 @@ describe('AiService', () => {
   const mockQueue = {
     add: jest.fn(),
     isPaused: jest.fn().mockResolvedValue(false),
-    getActiveCount: jest.fn().mockResolvedValue(0),
+    getActiveCount: jest.fn().mockResolvedValue(1),
+    getWaitingCount: jest.fn().mockResolvedValue(2),
+    getFailedCount: jest.fn().mockResolvedValue(3),
+    getCompletedCount: jest.fn().mockResolvedValue(4),
     resume: jest.fn(),
     getState: jest.fn().mockResolvedValue('completed'),
+  };
+
+  const mockOllamaService = {
+    checkHealth: jest.fn().mockResolvedValue({
+      status: 'HEALTHY',
+      latencyMs: 120,
+      models: ['gemma4:e4b', 'nomic-embed-text'],
+    }),
+  };
+
+  const mockQdrantService = {
+    checkHealth: jest.fn().mockResolvedValue({
+      status: 'HEALTHY',
+      latencyMs: 45,
+      collections: ['lcbp3_vectors'],
+    }),
+  };
+
+  const mockRedis = {
+    get: jest.fn(),
+    set: jest.fn(),
   };
 
   // Mock ConfigService — คืนค่า Config ตาม Key
@@ -119,6 +149,9 @@ describe('AiService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: HttpService, useValue: mockHttpService },
         { provide: AiValidationService, useValue: mockValidationService },
+        { provide: OllamaService, useValue: mockOllamaService },
+        { provide: AiQdrantService, useValue: mockQdrantService },
+        { provide: DEFAULT_REDIS_TOKEN, useValue: mockRedis },
       ],
     }).compile();
 
@@ -319,6 +352,69 @@ describe('AiService', () => {
       expect(result).toHaveProperty('page', 1);
       expect(result).toHaveProperty('limit', 10);
       expect(result).toHaveProperty('totalPages');
+    });
+  });
+
+  // --- getSystemHealth ---
+
+  describe('getSystemHealth', () => {
+    it('ควรอ่านข้อมูลสุขภาพจาก Redis cache หากมีข้อมูลอยู่แล้ว (Cache Hit)', async () => {
+      const mockCachedData = {
+        ollama: { status: 'HEALTHY', latencyMs: 50, models: ['model1'] },
+        qdrant: { status: 'HEALTHY', latencyMs: 20, collections: ['col1'] },
+        queues: {
+          realtime: {
+            active: 1,
+            waiting: 2,
+            failed: 3,
+            completed: 4,
+            isPaused: false,
+          },
+          batch: {
+            active: 1,
+            waiting: 2,
+            failed: 3,
+            completed: 4,
+            isPaused: false,
+          },
+        },
+        timestamp: '2026-05-21T12:00:00.000Z',
+      };
+      mockRedis.get.mockResolvedValue(JSON.stringify(mockCachedData));
+      const result = await service.getSystemHealth();
+      expect(result).toEqual(mockCachedData);
+      expect(mockRedis.get).toHaveBeenCalledWith('system_health:cache');
+      expect(mockOllamaService.checkHealth).not.toHaveBeenCalled();
+    });
+
+    it('ควรดึงข้อมูลจาก Service และบันทึกลง Redis cache เมื่อไม่มีข้อมูลใน cache (Cache Miss)', async () => {
+      mockRedis.get.mockResolvedValue(null);
+      mockOllamaService.checkHealth.mockResolvedValue({
+        status: 'HEALTHY',
+        latencyMs: 120,
+        models: ['gemma4:e4b', 'nomic-embed-text'],
+      });
+      mockQdrantService.checkHealth.mockResolvedValue({
+        status: 'HEALTHY',
+        latencyMs: 45,
+        collections: ['lcbp3_vectors'],
+      });
+      const result = await service.getSystemHealth();
+      expect(result.ollama.status).toBe('HEALTHY');
+      expect(result.qdrant.status).toBe('HEALTHY');
+      expect(result.queues.realtime).toEqual({
+        active: 1,
+        waiting: 2,
+        failed: 3,
+        completed: 4,
+        isPaused: false,
+      });
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        'system_health:cache',
+        expect.any(String),
+        'EX',
+        30
+      );
     });
   });
 });

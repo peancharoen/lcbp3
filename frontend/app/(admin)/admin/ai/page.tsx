@@ -1,0 +1,769 @@
+// File: frontend/app/(admin)/admin/ai/page.tsx
+'use client';
+// Change Log
+// - 2026-05-21: เพิ่มหน้า AI Admin Console สำหรับเปิด/ปิด AI features.
+// - 2026-05-21: เพิ่มส่วนแสดงผลสถานะสุขภาพของระบบ AI (Ollama, Qdrant, queues) แบบ real-time polling 30s (T030, T031).
+// - 2026-05-21: เพิ่ม RAG Playground Sandbox tab สำหรับ Superadmin (T037, T038).
+// - 2026-05-21: เพิ่ม OCR Sandbox tab พร้อมการอัปเดตสถานะและการแสดงผล JSON แบบมีสีสำหรับ Superadmin (T043-T045).
+// - 2026-05-21: แก้ไข ESLint error เกี่ยวกับ any type และ console.error statement ให้ตรงตามมาตรฐาน Tier 1/2
+
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Brain, Loader2, Power, ShieldCheck, Cpu, Database, Activity, Search, Info, HelpCircle, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
+import { useAiStatus, useToggleAiFeatures, useAiHealth } from '@/hooks/use-ai-status';
+import { projectService } from '@/lib/services/project.service';
+import { adminAiService, AiSandboxJobResult } from '@/lib/services/admin-ai.service';
+import { toast } from 'sonner';
+
+interface SandboxProject {
+  publicId: string;
+  projectName: string;
+  projectCode: string;
+}
+
+export default function AiAdminConsolePage() {
+  const { data, isLoading, isError, refetch, isFetching } = useAiStatus();
+  const { data: health, isLoading: isHealthLoading, refetch: refetchHealth } = useAiHealth();
+  const toggleMutation = useToggleAiFeatures();
+  const aiEnabled = data?.aiFeaturesEnabled ?? false;
+  const busy = isLoading || toggleMutation.isPending;
+  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [question, setQuestion] = useState<string>('');
+  const [sandboxJobId, setSandboxJobId] = useState<string | null>(null);
+  const [sandboxJobResult, setSandboxJobResult] = useState<AiSandboxJobResult | null>(null);
+  const [isSandboxPolling, setIsSandboxPolling] = useState<boolean>(false);
+  const [sandboxProgress, setSandboxProgress] = useState<number>(0);
+  const [sandboxStatusText, setSandboxStatusText] = useState<string>('');
+  const [ocrFile, setOcrFile] = useState<File | null>(null);
+  const [ocrJobId, setOcrJobId] = useState<string | null>(null);
+  const [ocrJobResult, setOcrJobResult] = useState<AiSandboxJobResult | null>(null);
+  const [isOcrPolling, setIsOcrPolling] = useState<boolean>(false);
+  const [ocrProgress, setOcrProgress] = useState<number>(0);
+  const [ocrStatusText, setOcrStatusText] = useState<string>('');
+  const { data: projects = [], isLoading: isProjectsLoading } = useQuery<SandboxProject[]>({
+    queryKey: ['admin-sandbox-projects'],
+    queryFn: async () => {
+      const res = await projectService.getAll({ isActive: true, limit: 100 });
+      return res as SandboxProject[];
+    },
+  });
+  const handleToggle = async (enabled: boolean): Promise<void> => {
+    await toggleMutation.mutateAsync(enabled);
+  };
+  const handleRefreshAll = async (): Promise<void> => {
+    await Promise.all([refetch(), refetchHealth()]);
+  };
+  const handleSubmitSandbox = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!selectedProject) {
+      toast.error('กรุณาเลือกโครงการ');
+      return;
+    }
+    if (!question.trim()) {
+      toast.error('กรุณากรอกคำถาม');
+      return;
+    }
+    try {
+      setSandboxJobResult(null);
+      setSandboxProgress(10);
+      setSandboxStatusText('กำลังส่งคำถาม RAG เข้าสู่ระบบคิว...');
+      const response = await adminAiService.submitSandboxRag(selectedProject, question);
+      setSandboxJobId(response.requestPublicId);
+      setIsSandboxPolling(true);
+      toast.success('ส่งคำถามเข้าสู่คิว sandbox สำเร็จ');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการส่งคำถาม RAG');
+      setSandboxProgress(0);
+      setSandboxStatusText('');
+    }
+  };
+  useEffect(() => {
+    if (!sandboxJobId) return;
+    let timer: NodeJS.Timeout;
+    const pollSandboxJob = async () => {
+      try {
+        const res = await adminAiService.getSandboxJobStatus(sandboxJobId);
+        setSandboxJobResult(res);
+        if (res.status === 'pending') {
+          setSandboxProgress(20);
+          setSandboxStatusText('อยู่ระหว่างเข้าคิวรอประมวลผล (Pending in BullMQ)...');
+        } else if (res.status === 'processing') {
+          setSandboxProgress(60);
+          setSandboxStatusText('กำลังค้นหาเอกสารผ่าน Qdrant และประมวลผล RAG ด้วย Local LLM...');
+        } else if (res.status === 'completed') {
+          setSandboxProgress(100);
+          setSandboxStatusText('ประมวลผลคำตอบเสร็จสิ้น');
+          setIsSandboxPolling(false);
+          setSandboxJobId(null);
+          toast.success('RAG Sandbox ตอบคำถามสำเร็จ');
+        } else if (res.status === 'failed') {
+          setSandboxProgress(100);
+          setSandboxStatusText('การประมวลผลล้มเหลว');
+          setIsSandboxPolling(false);
+          setSandboxJobId(null);
+          toast.error(res.errorMessage || 'เกิดข้อผิดพลาดในการรัน RAG Playground');
+        } else if (res.status === 'cancelled') {
+          setSandboxProgress(100);
+          setSandboxStatusText('การประมวลผลถูกยกเลิก');
+          setIsSandboxPolling(false);
+          setSandboxJobId(null);
+          toast.error('Sandbox job ถูกยกเลิก');
+        } else if (res.status === 'not_found') {
+          setSandboxProgress(15);
+          setSandboxStatusText('กำลังเตรียมการจัดคิว...');
+        }
+      } catch {
+        // เงียบข้อผิดพลาดตามนโยบาย UI
+      }
+    };
+    pollSandboxJob();
+    timer = setInterval(pollSandboxJob, 5000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [sandboxJobId]);
+  const handleSubmitOcr = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!ocrFile) {
+      toast.error('กรุณาเลือกไฟล์ PDF สำหรับทำ OCR');
+      return;
+    }
+    if (ocrFile.size > 50 * 1024 * 1024) {
+      toast.error('ขนาดไฟล์เกินกว่า 50MB');
+      return;
+    }
+    if (ocrFile.type !== 'application/pdf' && !ocrFile.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('กรุณาอัปโหลดไฟล์ในรูปแบบ PDF เท่านั้น');
+      return;
+    }
+    try {
+      setOcrJobResult(null);
+      setOcrProgress(10);
+      setOcrStatusText('กำลังอัปโหลดไฟล์ไปยังระบบเซิร์ฟเวอร์...');
+      const response = await adminAiService.submitSandboxExtract(ocrFile);
+      setOcrJobId(response.requestPublicId);
+      setIsOcrPolling(true);
+      toast.success('อัปโหลดไฟล์สำเร็จและเข้าสู่คิว sandbox OCR');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการทำ OCR Sandbox');
+      setOcrProgress(0);
+      setOcrStatusText('');
+    }
+  };
+  useEffect(() => {
+    if (!ocrJobId) return;
+    let timer: NodeJS.Timeout;
+    const pollOcrJob = async () => {
+      try {
+        const res = await adminAiService.getSandboxJobStatus(ocrJobId);
+        setOcrJobResult(res);
+        if (res.status === 'pending') {
+          setOcrProgress(30);
+          setOcrStatusText('อยู่ในคิวรอดำเนินการ (Pending in BullMQ)...');
+        } else if (res.status === 'processing') {
+          setOcrProgress(70);
+          setOcrStatusText('กำลังอ่านไฟล์ PDF และสกัดข้อความด้วย OCR & LLM...');
+        } else if (res.status === 'completed') {
+          setOcrProgress(100);
+          setOcrStatusText('การทำ OCR และสกัดข้อมูลเมตาดาต้าเสร็จสิ้น');
+          setIsOcrPolling(false);
+          setOcrJobId(null);
+          toast.success('ทำ OCR Sandbox สำเร็จ');
+        } else if (res.status === 'failed') {
+          setOcrProgress(100);
+          setOcrStatusText('การทำ OCR ล้มเหลว');
+          setIsOcrPolling(false);
+          setOcrJobId(null);
+          toast.error(res.errorMessage || 'การทำ OCR Sandbox เกิดข้อผิดพลาด');
+        } else if (res.status === 'cancelled') {
+          setOcrProgress(100);
+          setOcrStatusText('การทำ OCR ถูกยกเลิก');
+          setIsOcrPolling(false);
+          setOcrJobId(null);
+          toast.error('OCR sandbox job ถูกยกเลิก');
+        } else if (res.status === 'not_found') {
+          setOcrProgress(20);
+          setOcrStatusText('กำลังตรวจสอบสถานะคิวงาน...');
+        }
+      } catch {
+        // เงียบข้อผิดพลาดตามนโยบาย UI
+      }
+    };
+    pollOcrJob();
+    timer = setInterval(pollOcrJob, 5000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [ocrJobId]);
+  const renderStatusBadge = (status?: 'HEALTHY' | 'DEGRADED' | 'DOWN') => {
+    if (!status) return <Badge variant="outline">Unknown</Badge>;
+    switch (status) {
+      case 'HEALTHY':
+        return <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20">Healthy</Badge>;
+      case 'DEGRADED':
+        return <Badge className="border-amber-500/20 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">Degraded</Badge>;
+      default:
+        return <Badge variant="destructive">Down</Badge>;
+    }
+  };
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
+            <Brain className="h-6 w-6" />
+            AI Console
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">ควบคุมสถานะ AI features สำหรับผู้ใช้ทั่วไป</p>
+        </div>
+        <Badge variant={aiEnabled ? 'default' : 'destructive'} className="w-fit">
+          {aiEnabled ? 'AI Enabled' : 'AI Disabled'}
+        </Badge>
+      </div>
+      <Tabs defaultValue="overview" className="w-full space-y-6">
+        <TabsList className="grid w-full grid-cols-3 max-w-[500px]">
+          <TabsTrigger value="overview">Overview & Health</TabsTrigger>
+          <TabsTrigger value="playground">RAG Playground</TabsTrigger>
+          <TabsTrigger value="ocr">OCR Sandbox</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Cpu className="h-4 w-4 text-primary" />
+                  Ollama AI Engine
+                </CardTitle>
+                {isHealthLoading ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> : renderStatusBadge(health?.ollama?.status)}
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>ความเร็วตอบสนอง</span>
+                  <span className="font-semibold text-foreground">{health?.ollama?.latencyMs !== undefined ? `${health.ollama.latencyMs} ms` : '-'}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">โมเดลที่โหลดอยู่:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {health?.ollama?.models && health.ollama.models.length > 0 ? (
+                      health.ollama.models.map((m) => (
+                        <Badge key={m} variant="secondary" className="text-[10px] py-0 px-1">
+                          {m}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground italic">ไม่มีโมเดลที่โหลดอยู่</span>
+                    )}
+                  </div>
+                </div>
+                {health?.ollama?.error && (
+                  <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.ollama.error}</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Database className="h-4 w-4 text-primary" />
+                  Qdrant Vector DB
+                </CardTitle>
+                {isHealthLoading ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> : renderStatusBadge(health?.qdrant?.status)}
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>ความเร็วตอบสนอง</span>
+                  <span className="font-semibold text-foreground">{health?.qdrant?.latencyMs !== undefined ? `${health.qdrant.latencyMs} ms` : '-'}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">คอลเลกชัน:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {health?.qdrant?.collections && health.qdrant.collections.length > 0 ? (
+                      health.qdrant.collections.map((c) => (
+                        <Badge key={c} variant="outline" className="text-[10px] py-0 px-1 bg-background/30">
+                          {c}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground italic">ไม่มีคอลเลกชัน</span>
+                    )}
+                  </div>
+                </div>
+                {health?.qdrant?.error && (
+                  <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.qdrant.error}</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Activity className="h-4 w-4 text-primary" />
+                  BullMQ Queue Health
+                </CardTitle>
+                {isHealthLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                ) : (
+                  <Badge variant="outline" className="text-[10px]">
+                    {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString() : 'N/A'}
+                  </Badge>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center justify-between font-medium text-[11px] border-b pb-1 mb-1">
+                    <span>คิว / สถานะงาน</span>
+                    <span>Active / Waiting / Failed</span>
+                  </div>
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1 font-mono">
+                      realtime
+                      {health?.queues?.realtime?.isPaused && <span className="text-[9px] text-amber-500 font-sans">(Paused)</span>}
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {health?.queues?.realtime?.active ?? 0} / {health?.queues?.realtime?.waiting ?? 0} /{' '}
+                      <span className={(health?.queues?.realtime?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
+                        {health?.queues?.realtime?.failed ?? 0}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1 font-mono">
+                      batch
+                      {health?.queues?.batch?.isPaused && <span className="text-[9px] text-amber-500 font-sans">(Paused)</span>}
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {health?.queues?.batch?.active ?? 0} / {health?.queues?.batch?.waiting ?? 0} /{' '}
+                      <span className={(health?.queues?.batch?.failed ?? 0) > 0 ? 'text-destructive' : ''}>
+                        {health?.queues?.batch?.failed ?? 0}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+                {(health?.queues?.realtime?.error || health?.queues?.batch?.error) && (
+                  <p className="mt-1 text-[10px] text-destructive line-clamp-1">
+                    {health.queues.realtime.error || health.queues.batch.error}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Power className="h-5 w-5" />
+                System Toggle
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <div className="text-base font-medium">
+                    {aiEnabled ? 'AI พร้อมให้ผู้ใช้ทั่วไปใช้งาน' : 'AI ถูกปิดสำหรับผู้ใช้ทั่วไป'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Superadmin ยังสามารถเข้าถึงส่วนทดสอบและดูแลระบบได้ตามสิทธิ์
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <Switch
+                    checked={aiEnabled}
+                    disabled={busy || isError}
+                    aria-label="Toggle AI features"
+                    onCheckedChange={handleToggle}
+                  />
+                </div>
+              </div>
+              {isError && (
+                <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  ไม่สามารถโหลดสถานะ AI ได้ กรุณาลองใหม่อีกครั้ง
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ShieldCheck className="h-5 w-5" />
+                  Protection
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                เมื่อปิด AI ระบบจะบล็อก AI inference endpoints สำหรับผู้ใช้ทั่วไปด้วย HTTP 503
+                และให้ผู้ใช้กรอกข้อมูลเองชั่วคราว
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Polling</CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                <span>
+                  อัปเดตสถานะทุก 30 วินาที
+                  {(isFetching || isHealthLoading) && !(isLoading || isHealthLoading) ? ' (กำลังรีเฟรช)' : ''}
+                </span>
+                <Button type="button" variant="outline" size="sm" onClick={() => void handleRefreshAll()}>
+                  Refresh
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        <TabsContent value="playground" className="space-y-6">
+          <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Search className="h-5 w-5 text-primary" />
+                RAG Sandbox Playground (isolated)
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                พื้นที่ทดสอบสืบค้นเอกสารและสรุปผลด้วย Retrieval-Augmented Generation (RAG) คิวงานใช้ระดับความสำคัญพิเศษ (Priority 1)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmitSandbox} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="project-select" className="text-sm font-medium text-foreground">
+                    เลือกโครงการ
+                  </label>
+                  {isProjectsLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      กำลังโหลดรายการโครงการ...
+                    </div>
+                  ) : (
+                    <Select value={selectedProject} onValueChange={setSelectedProject} disabled={isSandboxPolling}>
+                      <SelectTrigger id="project-select" className="w-full">
+                        <SelectValue placeholder="-- กรุณาเลือกโครงการ --" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map((proj) => (
+                          <SelectItem key={proj.publicId} value={proj.publicId}>
+                            {proj.projectName} ({proj.projectCode})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="rag-question" className="text-sm font-medium text-foreground">
+                    คำถามเพื่อการสืบค้น
+                  </label>
+                  <Textarea
+                    id="rag-question"
+                    placeholder="ตัวอย่าง: ค้นหาเอกสาร RFA ล่าสุดที่อนุมัติเกี่ยวกับ Shop Drawing ของงานระบบไฟฟ้า"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    disabled={isSandboxPolling}
+                    rows={4}
+                    className="resize-none border border-input bg-background/50"
+                  />
+                  <div className="text-right text-[11px] text-muted-foreground">
+                    {question.length} ตัวอักษร
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="submit"
+                    disabled={isSandboxPolling || !selectedProject || !question.trim()}
+                    className="flex items-center gap-2"
+                  >
+                    {isSandboxPolling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        กำลังประมวลผล Sandbox...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4" />
+                        ส่งคำถาม Sandbox RAG
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+          {isSandboxPolling && (
+            <Card className="border border-amber-500/20 bg-amber-500/5">
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex items-center justify-between text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                    <span>{sandboxStatusText}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{sandboxProgress}%</span>
+                </div>
+                <Progress value={sandboxProgress} className="h-2" />
+                <div className="rounded bg-background/50 p-2 text-[11px] text-muted-foreground font-mono flex items-center gap-2">
+                  <Info className="h-3 w-3" />
+                  ID คำขอ: {sandboxJobId}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {sandboxJobResult && (
+            <div className="space-y-6">
+              {sandboxJobResult.status === 'completed' && (
+                <>
+                  <Card className="border border-emerald-500/20 bg-background/50 backdrop-blur-md">
+                    <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
+                      <CardTitle className="text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                        <Brain className="h-4 w-4" />
+                        คำตอบที่ประมวลผลได้ (RAG Sandbox Answer)
+                      </CardTitle>
+                      {sandboxJobResult.usedFallbackModel && (
+                        <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/20 bg-amber-500/5">
+                          โมเดลสำรอง (Fallback)
+                        </Badge>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground select-text font-sans">
+                        {sandboxJobResult.answer}
+                      </div>
+                      {sandboxJobResult.completedAt && (
+                        <div className="mt-4 text-right text-[10px] text-muted-foreground">
+                          เสร็จสิ้นเมื่อ: {new Date(sandboxJobResult.completedAt).toLocaleString()}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                        <HelpCircle className="h-4 w-4" />
+                        เอกสารที่อ้างอิง ({sandboxJobResult.citations?.length ?? 0} รายการ)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {sandboxJobResult.citations && sandboxJobResult.citations.length > 0 ? (
+                        <div className="grid gap-3 sm:grid-cols-1">
+                          {sandboxJobResult.citations.map((cite, index) => (
+                            <div
+                              key={cite.pointId || index}
+                              className="rounded-lg border border-border/40 bg-background/30 p-3 hover:bg-background/60 transition-colors space-y-2"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-primary/10 text-primary hover:bg-primary/20 text-[10px] border-none py-0">
+                                    {cite.docType || 'Document'}
+                                  </Badge>
+                                  <span className="text-xs font-semibold text-foreground">
+                                    {cite.docNumber || 'ไม่มีเลขที่เอกสาร'}
+                                  </span>
+                                </div>
+                                <Badge variant="outline" className="text-[10px] py-0 border-border/50 text-muted-foreground">
+                                  Score Match: {(cite.score * 100).toFixed(1)}%
+                                </Badge>
+                              </div>
+                              {cite.snippet && (
+                                <p className="text-xs text-muted-foreground line-clamp-3 bg-background/50 p-2 rounded border border-border/20 italic font-sans leading-relaxed">
+                                  &quot;{cite.snippet}&quot;
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 text-xs text-muted-foreground italic">
+                          ไม่มีการสกัดเอกสารอ้างอิงสำหรับคำถามนี้
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+              {sandboxJobResult.status === 'failed' && (
+                <Card className="border border-destructive/20 bg-destructive/5">
+                  <CardHeader className="flex flex-row items-center gap-2 pb-2 text-destructive">
+                    <AlertCircle className="h-5 w-5" />
+                    <CardTitle className="text-sm font-medium">ประมวลผล Sandbox ล้มเหลว</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {sandboxJobResult.errorMessage || 'เกิดข้อผิดพลาดในการเรียกใช้ Local LLM หรือ Vector DB ใน Sandbox Sandbox process ล้มเหลว กรุณาตรวจสอบสถานะสุขภาพของ Ollama Engine/Qdrant DB ใน Overview Tab'}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </TabsContent>
+        <TabsContent value="ocr" className="space-y-6">
+          <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Brain className="h-5 w-5 text-primary" />
+                OCR Sandbox Playground (isolated)
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                พื้นที่อัปโหลดไฟล์ PDF เพื่อทำการทดสอบทำ OCR และจำลองการดึง Metadata ออกมาในรูปแบบโครงสร้าง JSON โดยไม่บันทึกข้อมูลลงฐานข้อมูลจริง
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmitOcr} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    อัปโหลดเอกสาร PDF (ขนาดไม่เกิน 50MB)
+                  </label>
+                  <div
+                    className={`flex flex-col items-center justify-center rounded-lg border border-dashed p-8 transition-colors ${
+                      ocrFile
+                        ? 'border-primary/50 bg-primary/5'
+                        : 'border-muted-foreground/20 hover:bg-muted/10'
+                    }`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (isOcrPolling) return;
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) {
+                        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                          setOcrFile(file);
+                        } else {
+                          toast.error('กรุณาเลือกไฟล์ PDF เท่านั้น');
+                        }
+                      }
+                    }}
+                  >
+                    <Activity className="h-10 w-10 text-muted-foreground/60 mb-2" />
+                    {ocrFile ? (
+                      <div className="text-center space-y-1">
+                        <p className="text-sm font-medium text-foreground">{ocrFile.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          ({(ocrFile.size / 1024 / 1024).toFixed(2)} MB)
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={isOcrPolling}
+                          onClick={() => setOcrFile(null)}
+                          className="mt-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          ลบไฟล์
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          ลากและวางไฟล์ PDF หรือคลิกเพื่ออัปโหลด
+                        </p>
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          disabled={isOcrPolling}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setOcrFile(file);
+                          }}
+                          className="hidden"
+                          id="ocr-file-upload"
+                        />
+                        <label
+                          htmlFor="ocr-file-upload"
+                          className="mt-2 inline-flex h-8 items-center justify-center rounded-md bg-secondary px-3 text-xs font-medium text-secondary-foreground ring-offset-background transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
+                        >
+                          เลือกไฟล์
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="submit"
+                    disabled={isOcrPolling || !ocrFile}
+                    className="flex items-center gap-2"
+                  >
+                    {isOcrPolling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        กำลังประมวลผล OCR...
+                      </>
+                    ) : (
+                      <>
+                        <Power className="h-4 w-4" />
+                        เริ่มทำ OCR Sandbox
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+          {isOcrPolling && (
+            <Card className="border border-amber-500/20 bg-amber-500/5">
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex items-center justify-between text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                    <span>{ocrStatusText}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{ocrProgress}%</span>
+                </div>
+                <Progress value={ocrProgress} className="h-2" />
+                <div className="rounded bg-background/50 p-2 text-[11px] text-muted-foreground font-mono flex items-center gap-2">
+                  <Info className="h-3 w-3" />
+                  ID คำขอ: {ocrJobId}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {ocrJobResult && (
+            <div className="space-y-6">
+              {ocrJobResult.status === 'completed' && (
+                <Card className="border border-emerald-500/20 bg-background/50 backdrop-blur-md">
+                  <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
+                    <CardTitle className="text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                      <Brain className="h-4 w-4" />
+                      ผลลัพธ์การสกัด Metadata แบบโครงสร้าง (JSON Output)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[400px]">
+                      <pre className="text-emerald-600 dark:text-emerald-400 select-text">
+                        {ocrJobResult.answer}
+                      </pre>
+                    </div>
+                    {ocrJobResult.completedAt && (
+                      <div className="mt-4 text-right text-[10px] text-muted-foreground">
+                        เสร็จสิ้นเมื่อ: {new Date(ocrJobResult.completedAt).toLocaleString()}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              {ocrJobResult.status === 'failed' && (
+                <Card className="border border-destructive/20 bg-destructive/5">
+                  <CardHeader className="flex flex-row items-center gap-2 pb-2 text-destructive">
+                    <AlertCircle className="h-5 w-5" />
+                    <CardTitle className="text-sm font-medium">ประมวลผล OCR Sandbox ล้มเหลว</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {ocrJobResult.errorMessage || 'เกิดข้อผิดพลาดขึ้นระหว่างการอ่านไฟล์เอกสาร PDF หรือการเรียก LLM Sandbox สำหรับถอดความเมตาดาต้า กรุณาตรวจสอบสถานะสุขภาพของตัวบริการ'}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

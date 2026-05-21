@@ -107,13 +107,21 @@ export interface ApiErrorResponse {
   error: ApiErrorPayload;
 }
 
+export const AI_FEATURES_UNAVAILABLE_EVENT = 'ai-features-unavailable';
+
 // แปลง Axios error เป็น Structured Error Response (ADR-007)
 export function parseApiError(axiosError: AxiosError): ApiErrorResponse {
   if (axiosError.response?.data) {
     const data = axiosError.response.data;
     // กรณีที่ backend ส่ง { error: { ... } } ตาม ADR-007
     if (typeof data === 'object' && data !== null && 'error' in data) {
-      return data as ApiErrorResponse;
+      const parsed = data as ApiErrorResponse;
+      return {
+        error: {
+          ...parsed.error,
+          statusCode: axiosError.response.status,
+        },
+      };
     }
     // กรณี NestJS validation error { message: [...], statusCode: 400 }
     if (typeof data === 'object' && data !== null && 'message' in data) {
@@ -181,6 +189,17 @@ apiClient.interceptors.response.use(
     }
     // แปลง error เป็น structured format ตาม ADR-007 ก่อน reject
     const structuredError = parseApiError(error);
+    if (
+      structuredError.error.statusCode === 503 &&
+      structuredError.error.code === 'AI_FEATURES_UNAVAILABLE' &&
+      typeof window !== 'undefined'
+    ) {
+      window.dispatchEvent(
+        new CustomEvent(AI_FEATURES_UNAVAILABLE_EVENT, {
+          detail: structuredError.error,
+        })
+      );
+    }
     return Promise.reject(structuredError);
   }
 );

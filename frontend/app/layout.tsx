@@ -8,6 +8,7 @@ import SessionProvider from '@/providers/session-provider'; // ✅ Import เข
 import ThemeProvider from '@/providers/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { headers } from 'next/headers';
+import { AiStatusBannerHost } from '@/components/ai/ai-status-banner-host';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -30,6 +31,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <SessionProvider>
           <ThemeProvider nonce={nonce}>
             <QueryProvider>
+              <AiStatusBannerHost />
               {children}
               <Toaster />
             </QueryProvider>
