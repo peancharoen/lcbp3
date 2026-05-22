@@ -146,6 +146,10 @@ erDiagram
         AI | UNIQUE identifier | | contract_id | INT | FK,
         NOT NULL | ผูกกับสัญญา | | discipline_code | VARCHAR(10) | NOT NULL | รหัสสาขา (เช่น GEN, STR) | | code_name_th | VARCHAR(255) | NULL | ชื่อไทย | | code_name_en | VARCHAR(255) | NULL | ชื่ออังกฤษ | | is_active | TINYINT(1) | DEFAULT 1 | สถานะการใช้งาน | ** INDEXES \*\*: - UNIQUE (contract_id, discipline_code) ---
 
+    ### 1.6 system_settings (NEW v1.9.0)
+    - - Purpose **: ตารางเก็บข้อมูลการตั้งค่าระบบแบบไดนามิก (เช่น สถานะการเปิด/ปิด AI features ทั่วทั้งระบบ) | COLUMN Name | Data TYPE | Constraints | Description | |: -------------- | :----------- | :----------- | :--------------------- |
+        | id | INT | PK, AI | ID ของตาราง | | setting_key | VARCHAR(100) | NOT NULL, UNIQUE | คีย์การตั้งค่าระบบ (เช่น 'AI_FEATURES_ENABLED') | | setting_value | TEXT | NOT NULL | ค่าที่บันทึก (stringified) | | data_type | ENUM | NOT NULL, DEFAULT 'string' | ประเภทข้อมูลสำหรับ validation ('string', 'number', 'boolean', 'json') | | category | VARCHAR(50) | NULL | หมวดหมู่การตั้งค่า (เช่น 'ai') | | is_encrypted | TINYINT(1) | DEFAULT 0 | เข้ารหัสค่า sensitive (1 = เข้ารหัส, 0 = ไม่เข้ารหัส) | | validation_rules | JSON | NULL | กฎ validation (min, max, allowed_values) | | description | TEXT | NULL | คำอธิบายข้อมูลการตั้งค่า | | is_public | TINYINT(1) | DEFAULT 0 | เผยแพร่ให้ frontend อ่านได้หรือ admin เท่านั้น (1 = เผยแพร่, 0 = แอดมินเท่านั้น) | | updated_by | INT | FK, NULL | ผู้แก้ไขล่าสุด | | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | เวลาสร้างเรคคอร์ด | | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE | เวลาอัปเดตเรคคอร์ดล่าสุด | ** INDEXES \*\*: - PRIMARY KEY (id) - UNIQUE (setting_key) - FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL - INDEX idx_system_settings_category (category) - INDEX idx_system_settings_is_public (is_public) ** Business Rules \*\*: - ใช้เก็บค่าการตั้งค่าระดับระบบที่ต้องการปรับเปลี่ยนแบบไดนามิกผ่านหน้า Admin Console - คีย์ `AI_FEATURES_ENABLED` ควบคุมสถานะการทำงานของฟีเจอร์ AI สำหรับผู้ใช้ทั่วไป ---
+
     ## **2. 👥 Users & RBAC Tables (ผู้ใช้, สิทธิ์, บทบาท)**
 
     ### 2.1 users

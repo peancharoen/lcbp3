@@ -1,6 +1,7 @@
 // File: src/modules/ai/ai-settings.service.ts
 // Change Log
 // - 2026-05-21: เพิ่ม service สำหรับอ่าน/เขียน AI feature toggle พร้อม Redis cache.
+// - 2026-05-22: เพิ่ม try-catch ใน getAiFeaturesEnabled() เพื่อความยืดหยุ่นในกรณีที่ฐานข้อมูลยังไม่ได้อัปเกรดตาราง system_settings
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -26,14 +27,21 @@ export class AiSettingsService {
 
   /** อ่านสถานะเปิด/ปิด AI features โดยใช้ Redis cache ก่อน DB */
   async getAiFeaturesEnabled(): Promise<boolean> {
-    const cachedValue = await this.getCachedValue();
-    if (cachedValue !== null) return cachedValue === 'true';
-    const setting = await this.settingRepo.findOne({
-      where: { settingKey: AI_FEATURES_ENABLED_KEY },
-    });
-    const enabled = setting ? setting.settingValue === 'true' : true;
-    await this.setCachedValue(enabled);
-    return enabled;
+    try {
+      const cachedValue = await this.getCachedValue();
+      if (cachedValue !== null) return cachedValue === 'true';
+      const setting = await this.settingRepo.findOne({
+        where: { settingKey: AI_FEATURES_ENABLED_KEY },
+      });
+      const enabled = setting ? setting.settingValue === 'true' : true;
+      await this.setCachedValue(enabled);
+      return enabled;
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to retrieve AI features enabled setting from database: ${this.toMessage(error)}`
+      );
+      return true;
+    }
   }
 
   /** อัปเดตสถานะ AI features ใน transaction แล้ว invalid cache หลัง DB สำเร็จ */
