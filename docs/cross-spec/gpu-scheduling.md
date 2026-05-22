@@ -1,3 +1,6 @@
+// File: docs/cross-spec/gpu-scheduling.md
+// Change Log
+// - 2026-05-22: แก้ไข IP Address ของเซิร์ฟเวอร์ AI จาก 192.168.10.100 เป็น 192.168.10.8 เพื่อให้ตรงกับสภาพแวดล้อมจริง
 # Cross-Spec: GPU Resource Coordination
 
 **Date**: 2026-05-16  
@@ -79,7 +82,7 @@ export class AiRealtimeProcessor {
 watch -n 1 nvidia-smi
 
 # Check Ollama model status
-curl http://192.168.10.100:11434/api/ps
+curl http://192.168.10.8:11434/api/ps
 
 # Monitor queue states
 redis-cli KEYS "bull:*:meta"

@@ -1,6 +1,7 @@
 // File: frontend/hooks/__tests__/use-ai-chat.test.ts
 // Change Log:
 // - 2026-05-19: สร้าง Unit Test สำหรับ useAiChat Hook
+// - 2026-05-22: แก้ act() warning ใน test ล้างประวัติ — ใช้ async act() แทน sync
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
@@ -65,8 +66,9 @@ describe('useAiChat hook', () => {
   it('ควรสามารถล้างประวัติการสนทนาได้', async () => {
     const { wrapper } = createTestQueryClient();
     const { result } = renderHook(() => useAiChat(mockContext), { wrapper });
-    act(() => {
-      result.current.sendMessage('สวัสดี');
+    // ใช้ async act() เพื่อให้ React flush state updates จาก sendMessage (Promise) ได้ครบ
+    await act(async () => {
+      void result.current.sendMessage('สวัสดี');
     });
     act(() => {
       result.current.clearHistory();

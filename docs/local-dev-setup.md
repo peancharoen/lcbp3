@@ -1,3 +1,6 @@
+// File: docs/local-dev-setup.md
+// Change Log
+// - 2026-05-22: แก้ไข IP Address ของเซิร์ฟเวอร์ AI จาก 192.168.10.100 เป็น 192.168.10.8 เพื่อให้ตรงกับสภาพแวดล้อมจริง
 # Local Dev Setup Guide
 
 > วิธีตั้งค่าและรัน Development Environment สำหรับ LCBP3 NAP-DMS
@@ -66,9 +69,9 @@ REDIS_PASSWORD=Center2025
 JWT_SECRET=<สร้างด้วย openssl rand -base64 32>
 
 # AI services (ถ้าไม่ใช้ AI ให้ปล่อยค่าเดิมได้)
-OLLAMA_URL=http://192.168.10.100:11434
-AI_HOST_URL=http://192.168.10.100:11434
-AI_QDRANT_URL=http://192.168.10.100:6333
+OLLAMA_URL=http://192.168.10.8:11434
+AI_HOST_URL=http://192.168.10.8:11434
+AI_QDRANT_URL=http://192.168.10.8:6333
 ```
 
 ### Frontend — `frontend/.env.local`

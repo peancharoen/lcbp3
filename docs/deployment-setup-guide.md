@@ -1,4 +1,6 @@
 // File: docs/deployment-setup-guide.md
+// Change Log
+// - 2026-05-22: แก้ไข IP Address ของเซิร์ฟเวอร์ AI จาก 192.168.10.100 เป็น 192.168.10.8 เพื่อให้ตรงกับสภาพแวดล้อมจริง
 # คู่มือการตั้งค่าและการ Deploy ระบบ (Deployment Setup Guide)
 
 > **Project:** NAP-DMS (LCBP3)  
@@ -129,9 +131,9 @@ CLAMAV_HOST=lcbp3-clamav
 CLAMAV_PORT=3310
 
 # AI Services Boundary (ADR-023/ADR-023A - Isolation on Admin Desktop)
-OLLAMA_URL=http://192.168.10.100:11434
-AI_HOST_URL=http://192.168.10.100:11434
-AI_QDRANT_URL=http://192.168.10.100:6333
+OLLAMA_URL=http://192.168.10.8:11434
+AI_HOST_URL=http://192.168.10.8:11434
+AI_QDRANT_URL=http://192.168.10.8:6333
 ```
 
 ---

@@ -1,3 +1,6 @@
+// File: docs/development-setup-guide.md
+// Change Log
+// - 2026-05-22: แก้ไข IP Address ของเซิร์ฟเวอร์ AI จาก 192.168.10.100 เป็น 192.168.10.8 เพื่อให้ตรงกับสภาพแวดล้อมจริง
 # คู่มือการตั้งค่าและเริ่มต้น Development (Development Setup Guide)
 
 > **LCBP3-DMS — Document Management System**
@@ -190,9 +193,9 @@ CLAMAV_HOST=localhost
 CLAMAV_PORT=3310
 
 # AI Services (ถ้ามี AI Host)
-AI_HOST_URL=http://192.168.10.100:11434
-AI_QDRANT_URL=http://192.168.10.100:6333
-OLLAMA_URL=http://192.168.10.100:11434
+AI_HOST_URL=http://192.168.10.8:11434
+AI_QDRANT_URL=http://192.168.10.8:6333
+OLLAMA_URL=http://192.168.10.8:11434
 OLLAMA_MODEL_MAIN=gemma4:e4b
 OLLAMA_MODEL_EMBED=nomic-embed-text
 ```

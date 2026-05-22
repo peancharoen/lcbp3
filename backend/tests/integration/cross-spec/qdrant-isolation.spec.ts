@@ -1,5 +1,6 @@
 // File: backend/tests/integration/cross-spec/qdrant-isolation.spec.ts
 // Change Log:
+// - 2026-05-22: อัปเดต IP Address ของ Qdrant จาก 192.168.10.100 เป็น 192.168.10.8 ตามความต้องการของผู้ใช้
 // - 2026-05-21: แก้ไข Type Casting ของ AiQdrantService ด้วย unknown
 // - 2026-05-16: Cross-spec integration test for QdrantService projectPublicId isolation
 // - 2026-05-16: Fixed mocking strategy to use factory pattern with proper method exposure
@@ -49,8 +50,8 @@ describe('Cross-Spec: QdrantService Isolation', () => {
           useValue: {
             get: jest.fn((key: string) => {
               const config: Record<string, string> = {
-                AI_QDRANT_URL: 'http://192.168.10.100:6333',
-                QDRANT_URL: 'http://192.168.10.100:6333',
+                AI_QDRANT_URL: 'http://192.168.10.8:6333',
+                QDRANT_URL: 'http://192.168.10.8:6333',
               };
               return config[key];
             }),

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -101,6 +102,10 @@ export function FilePreviewModal({ attachment, onClose, onUnavailable }: FilePre
               </span>
             )}
           </DialogTitle>
+          {/* sr-only: ซ่อนจาก UI แต่ screen reader อ่านได้ — จำเป็นสำหรับ Radix DialogContent */}
+          <DialogDescription className="sr-only">
+            {attachment?.originalFilename ?? t('filePreview.fallbackTitle')}
+          </DialogDescription>
         </DialogHeader>
 
         {/* Body — Preview Area */}
