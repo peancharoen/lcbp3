@@ -11,18 +11,17 @@ related:
 
 - specs/03-Data-and-Storage/03-04-legacy-data-migration.md ← Technical Implementation
 - specs/03-Data-and-Storage/03-05-n8n-migration-setup-guide.md
-- specs/06-Decision-Records/ADR-017-ollama-data-migration.md
-- specs/06-Decision-Records/ADR-018-ai-boundary.md
+- specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md
 - specs/00-Overview/00-04-stakeholder-signoff-and-risk.md ← Risk Register (RISK-002)
 
 ---
 
 > [!IMPORTANT]
-> เอกสารนี้กำหนด **ขอบเขตทางธุรกิจ** ของการ Migration เท่านั้น  
+> เอกสารนี้กำหนด **ขอบเขตทางธุรกิจ** ของการ Migration เท่านั้น
 > รายละเอียดทางเทคนิค (n8n Workflow, Ollama Prompt, API Spec) อยู่ใน `03-04-legacy-data-migration.md`
 
 > [!NOTE]
-> "เอกสารเก่า" คือเอกสารที่บริหารจัดการผ่าน Email + File Share ก่อนระบบ LCBP3-DMS  
+> "เอกสารเก่า" คือเอกสารที่บริหารจัดการผ่าน Email + File Share ก่อนระบบ LCBP3-DMS
 > จำนวน: ประมาณ **20,000 ไฟล์ PDF** พร้อม Metadata ใน Excel
 
 ---
@@ -33,7 +32,7 @@ related:
 | ----------------- | ------------------------------------------------------------- |
 | **Continuity**    | ผู้ใช้สามารถค้นหาและอ้างอิงเอกสารเก่าในระบบใหม่ได้ทันที       |
 | **Traceability**  | Workflow ใหม่สามารถ Link กลับไปยัง Correspondence เก่าได้     |
-| **Searchability** | เอกสารเก่าถูก Index ใน Elasticsearch — ค้นหาได้ด้วย Full-text |
+| **Searchability** | เอกสารเก่าถูก Index ใน Elasticsearch (Full-text keyword) และ Qdrant (Semantic RAG) — ค้นหาได้ทั้ง keyword และ context-aware |
 | **Compliance**    | Audit Trail ครบ: รู้ว่าใครนำเข้า เมื่อไหร่ จาก Batch ไหน      |
 
 ---
@@ -58,7 +57,7 @@ related:
 **เงื่อนไข Include:**
 
 - ไฟล์ต้องเป็น PDF (หรือ DWG สำหรับ Drawing)
-- ไฟล์ต้อง Readable โดย Tika/Ollama (ไม่ Corrupted)
+- ไฟล์ต้อง Readable โดย OCR Service — PyMuPDF (Fast Path) หรือ PaddleOCR (Slow Path) ไม่ Corrupted (ตาม ADR-023A Section 4.2)
 - มี Row ใน Excel Metadata ที่ตรงกัน (document_number ไม่ว่าง)
 
 ---
@@ -195,6 +194,7 @@ T+1 เดือน:
 | Idempotency Test: รัน Batch ซ้ำ          | 0 Duplicate Records               | SQL Count                      |
 | Organization Mapping ครบ                 | 100%                              | Lookup Table review            |
 | Frontend Review UI พร้อมใช้งาน           | ✅                                | UAT Passed สำหรับหน้าจออนุมัติ |
+| **Backend `POST /api/ai/jobs` พร้อมใช้งาน** | ✅ (Blocking) | ทดสอบ `type: migrate-document` สำเร็จ — ยังไม่มีใน Backend ต้องพัฒนาก่อน |
 | Migration Bot Token Active + Whitelisted | ✅                                | API Test                       |
 | Staging NAS Space: ≥ 500GB free          | ✅                                | QNAP Dashboard                 |
 
@@ -223,6 +223,7 @@ T+1 เดือน:
 | User Search Test: สามารถค้นหา Legacy Doc ใน ES | ✅       |
 | Zero Orphan Files ใน Staging                   | ✅       |
 | Legacy System Archive เสร็จ (Compress + Store) | ✅       |
+| Drop Migration Tables (ยกเว้น `import_transactions`) | ✅ | `migration_progress`, `migration_review_queue`, `migration_errors`, `migration_fallback_state`, `migration_daily_summary` |
 
 ---
 
@@ -236,6 +237,7 @@ T+1 เดือน:
 | **Tier 1 Document List**                 | Document Control ทุก Org | ยืนยัน T-5                               |
 | **Daily Monitoring (n8n Runs)**          | Nattanin P.              | T-3 ถึง Go-Live                          |
 | **Admin Review Queue & AI Tag Approval** | Document Control (สค.)   | ทุกเช้าวันทำงาน (บังคับตรวจสอบ New Tags) |
+| **Final Commit (Execute Import)** | `DOCUMENT_CONTROLLER` \| `ADMIN` \| `SUPERADMIN` | กดปุ่ม Execute Import หลัง Review ครบ |
 | **Post-migration Verification**          | Nattanin P.              | After each Gate                          |
 | **Legacy System Archival**               | กทท. IT + NAP            | T+30                                     |
 

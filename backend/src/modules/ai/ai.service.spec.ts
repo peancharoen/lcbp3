@@ -25,6 +25,7 @@ import {
 } from '../common/constants/queue.constants';
 import { OllamaService } from './services/ollama.service';
 import { AiQdrantService } from './qdrant.service';
+import { ImportTransaction } from '../migration/entities/import-transaction.entity';
 
 const DEFAULT_REDIS_TOKEN = 'default_IORedisModuleConnectionToken';
 
@@ -117,8 +118,6 @@ describe('AiService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-
-    // ตั้งค่า default return values
     mockMigrationLogRepo.create.mockReturnValue({
       publicId: '019505a1-7c3e-7000-8000-abc123def456',
       sourceFile: 'test-file-uuid',
@@ -131,7 +130,6 @@ describe('AiService', () => {
     mockAuditLogRepo.save.mockResolvedValue({});
     mockMainAuditLogRepo.create.mockReturnValue({});
     mockMainAuditLogRepo.save.mockResolvedValue({});
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AiService,
@@ -144,6 +142,10 @@ describe('AiService', () => {
           provide: getRepositoryToken(AuditLog),
           useValue: mockMainAuditLogRepo,
         },
+        {
+          provide: getRepositoryToken(ImportTransaction),
+          useValue: { findOne: jest.fn(), create: jest.fn(), save: jest.fn() },
+        },
         { provide: getQueueToken(QUEUE_AI_REALTIME), useValue: mockQueue },
         { provide: getQueueToken(QUEUE_AI_BATCH), useValue: mockQueue },
         { provide: ConfigService, useValue: mockConfigService },
@@ -154,7 +156,6 @@ describe('AiService', () => {
         { provide: DEFAULT_REDIS_TOKEN, useValue: mockRedis },
       ],
     }).compile();
-
     service = module.get<AiService>(AiService);
   });
 

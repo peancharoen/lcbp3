@@ -5,6 +5,7 @@
 // - 2026-05-19: เพิ่ม IntentClassifierModule (ADR-024 Intent Classification).
 // - 2026-05-19: เพิ่ม AiToolModule (ADR-025 AI Tool Layer).
 // - 2026-05-21: ลงทะเบียน SystemSetting, AiSettingsService และ AiEnabledGuard สำหรับ ADR-027.
+// - 2026-05-22: นำเข้าและลงทะเบียน CleanupTempFilesWorker (T016) เพื่อลบไฟล์แนบชั่วคราวหมดอายุ
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
@@ -36,7 +37,10 @@ import { SystemSetting } from './entities/system-setting.entity';
 import { AiEnabledGuard } from './guards/ai-enabled.guard';
 import { UserModule } from '../user/user.module';
 import { MigrationModule } from '../migration/migration.module';
+import { TagsModule } from '../tags/tags.module';
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
+import { ImportTransaction } from '../migration/entities/import-transaction.entity';
+import { MigrationReviewQueue } from '../migration/entities/migration-review-queue.entity';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { AuditLog } from '../../common/entities/audit-log.entity';
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
@@ -46,6 +50,7 @@ import { CorrespondenceType } from '../correspondence/entities/correspondence-ty
 import { RbacGuard } from '../../common/guards/rbac.guard';
 import { IntentClassifierModule } from './intent-classifier/intent-classifier.module';
 import { AiToolModule } from './tool/ai-tool.module';
+import { CleanupTempFilesWorker } from './workers/cleanup-temp-files.worker';
 import {
   QUEUE_AI_BATCH,
   QUEUE_AI_INGEST,
@@ -67,6 +72,8 @@ import {
       Project,
       Organization,
       CorrespondenceType,
+      ImportTransaction,
+      MigrationReviewQueue,
     ]),
 
     BullModule.registerQueue(
@@ -108,6 +115,7 @@ import {
     // UserModule สำหรับ RbacGuard (ต้องการ UserService)
     UserModule,
     MigrationModule,
+    TagsModule,
     FileStorageModule,
     AuditLogModule,
 
@@ -137,6 +145,7 @@ import {
     // RbacGuard ต้องการ UserService จาก UserModule
     RbacGuard,
     AiEnabledGuard,
+    CleanupTempFilesWorker,
   ],
   exports: [
     AiService,

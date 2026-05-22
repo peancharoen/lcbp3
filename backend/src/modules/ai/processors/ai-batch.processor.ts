@@ -5,6 +5,7 @@
 // - 2026-05-21: เพิ่มการรองรับ sandbox-rag และ sandbox-extract สำหรับ Superadmin sandbox.
 // - 2026-05-21: พัฒนาระบบประมวลผล sandbox-extract พร้อมเชื่อมต่อ OcrService, OllamaService และ Redis cache
 // - 2026-05-21: แก้ไข ESLint unused variable สำหรับ parseError ใน catch block
+// - 2026-05-22: แก้ไข type compilation error ใน processMigrateDocument และนำช่องว่างภายในฟังก์ชันออก
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -19,13 +20,29 @@ import { EmbeddingService } from '../services/embedding.service';
 import { AiRagService } from '../ai-rag.service';
 import { OcrService } from '../services/ocr.service';
 import { OllamaService } from '../services/ollama.service';
+import { Project } from '../../project/entities/project.entity';
+import { AiAuditLog, AiAuditStatus } from '../entities/ai-audit-log.entity';
+import { TagsService } from '../../tags/tags.service';
+import { MigrationService } from '../../migration/migration.service';
+import { MigrationErrorType } from '../../migration/entities/migration-error.entity';
+
+interface MigrateDocumentMetadata extends Record<string, unknown> {
+  documentNumber?: string;
+  subject?: string;
+  category?: string;
+  date?: string;
+  confidence?: number;
+  tags?: string[];
+  summary?: string;
+}
 
 export type AiBatchJobType =
   | 'ocr'
   | 'extract-metadata'
   | 'embed-document'
   | 'sandbox-rag'
-  | 'sandbox-extract';
+  | 'sandbox-extract'
+  | 'migrate-document';
 
 export interface AiBatchJobData {
   jobType: AiBatchJobType;
@@ -36,6 +53,41 @@ export interface AiBatchJobData {
   idempotencyKey: string;
 }
 
+const readString = (value: unknown): string | undefined =>
+  typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+
+const readNumberId = (value: unknown): number | undefined =>
+  typeof value === 'number'
+    ? value
+    : typeof value === 'string' && value.trim().length > 0
+      ? Number(value)
+      : undefined;
+
+const toStringList = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+
+const parseMigrateDocumentMetadata = (
+  cleanedResponse: string
+): MigrateDocumentMetadata => {
+  const parsed: unknown = JSON.parse(cleanedResponse);
+  if (!parsed || typeof parsed !== 'object') {
+    return {};
+  }
+  const source = parsed as Record<string, unknown>;
+  return {
+    documentNumber: readString(source.documentNumber),
+    subject: readString(source.subject),
+    category: readString(source.category),
+    date: readString(source.date),
+    confidence:
+      typeof source.confidence === 'number' ? source.confidence : undefined,
+    tags: toStringList(source.tags),
+    summary: readString(source.summary),
+  };
+};
+
 /** Processor สำหรับงาน AI batch ที่รันทีละงานเพื่อคุม VRAM */
 @Processor(QUEUE_AI_BATCH, { concurrency: 1 })
 export class AiBatchProcessor extends WorkerHost {
@@ -45,10 +97,16 @@ export class AiBatchProcessor extends WorkerHost {
   constructor(
     @InjectRepository(Attachment)
     private readonly attachmentRepo: Repository<Attachment>,
+    @InjectRepository(Project)
+    private readonly projectRepo: Repository<Project>,
+    @InjectRepository(AiAuditLog)
+    private readonly aiAuditLogRepo: Repository<AiAuditLog>,
     private readonly embeddingService: EmbeddingService,
     private readonly ragService: AiRagService,
     private readonly ocrService: OcrService,
     private readonly ollamaService: OllamaService,
+    private readonly tagsService: TagsService,
+    private readonly migrationService: MigrationService,
     @InjectRedis() private readonly redis: Redis
   ) {
     super();
@@ -96,6 +154,15 @@ export class AiBatchProcessor extends WorkerHost {
             `Sandbox Extract job processing — jobId=${String(job.id)}`
           );
           await this.processSandboxExtract(job.data);
+          return;
+        case 'migrate-document':
+          this.logger.log(
+            `Migrate document job processing — jobId=${String(job.id)}`
+          );
+          await this.processMigrateDocument(job);
+          if (!isSandbox) {
+            await this.setAiProcessingStatus(job.data.documentPublicId, 'DONE');
+          }
           return;
         default: {
           const unreachable: never = job.data.jobType;
@@ -246,6 +313,195 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
         })
       );
       throw err;
+    }
+  }
+
+  private async processMigrateDocument(
+    job: Job<AiBatchJobData>
+  ): Promise<void> {
+    const startTime = Date.now();
+    const { documentPublicId, projectPublicId, payload, batchId } = job.data;
+    const docNumber = payload.documentNumber as string;
+    const attachment = await this.attachmentRepo.findOne({
+      where: { publicId: documentPublicId },
+    });
+    if (!attachment) {
+      throw new Error(`ไม่พบ attachment สำหรับ publicId: ${documentPublicId}`);
+    }
+    const project = await this.projectRepo.findOne({
+      where: { publicId: projectPublicId },
+    });
+    if (!project) {
+      throw new Error(`ไม่พบโครงการสำหรับ publicId: ${projectPublicId}`);
+    }
+    let ocrResult;
+    try {
+      ocrResult = await this.ocrService.detectAndExtract({
+        pdfPath: attachment.filePath,
+      });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`OCR สกัดข้อมูลล้มเหลว: ${errMsg}`);
+      await this.migrationService.createError({
+        batchId: batchId || 'unknown',
+        documentNumber: docNumber,
+        errorType: MigrationErrorType.FILE_ERROR,
+        errorMessage: errMsg,
+      });
+      await this.saveAiAuditLog({
+        documentPublicId,
+        aiModel: 'ocr-engine',
+        status: AiAuditStatus.FAILED,
+        errorMessage: errMsg,
+        processingTimeMs: Date.now() - startTime,
+      });
+      throw err;
+    }
+    const prompt = `You are a professional document intelligence engine.
+Analyze the following OCR text extracted from a legacy project document and extract the metadata fields.
+OCR TEXT:
+${ocrResult.text}
+Extract these fields:
+1. documentNumber: The official document number or code. If not found, return null.
+2. subject: The main subject, title, or topic of the document. If not found, return null.
+3. discipline: Must be exactly one of: "Civil", "Mechanical", "Electrical", "Architectural", or null if not specified.
+4. category: Must be exactly one of: "Correspondence", "Transmittal", "Circulation", "RFA", "Shop Drawing", "Contract Drawing", or null if not specified.
+5. date: The issue/document date in YYYY-MM-DD format. If not found, return null.
+6. confidence: A float between 0.0 and 1.0 indicating your confidence in this extraction.
+7. tags: An array of tags/keywords (strings) that describe the document.
+8. summary: A short 1-2 sentence summary of the document contents.
+Return ONLY a valid JSON object matching this schema. Do NOT include markdown code blocks, HTML, or any conversational text. Example:
+{
+  "documentNumber": "LCBP3-CIV-001",
+  "subject": "Foundation Inspection Report",
+  "discipline": "Civil",
+  "category": "Correspondence",
+  "date": "2026-05-20",
+  "confidence": 0.95,
+  "tags": ["foundation", "inspection", "concrete"],
+  "summary": "This document is a foundation inspection report for the LCBP3 project, confirming concrete strength."
+}`;
+    let aiResponse: string;
+    try {
+      aiResponse = await this.ollamaService.generate(prompt);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`การวิเคราะห์ของ AI ล้มเหลว: ${errMsg}`);
+      await this.migrationService.createError({
+        batchId: batchId || 'unknown',
+        documentNumber: docNumber,
+        errorType: MigrationErrorType.API_ERROR,
+        errorMessage: errMsg,
+      });
+      await this.saveAiAuditLog({
+        documentPublicId,
+        aiModel: this.ollamaService.getMainModelName(),
+        status: AiAuditStatus.FAILED,
+        errorMessage: errMsg,
+        processingTimeMs: Date.now() - startTime,
+      });
+      throw err;
+    }
+    const cleanedResponse = aiResponse
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
+    let extractedMetadata: MigrateDocumentMetadata;
+    try {
+      extractedMetadata = parseMigrateDocumentMetadata(cleanedResponse);
+    } catch (_err: unknown) {
+      const errMsg = `ไม่สามารถแปลงผลลัพธ์ของ AI เป็น JSON ได้: ${cleanedResponse}`;
+      this.logger.error(errMsg);
+      await this.migrationService.createError({
+        batchId: batchId || 'unknown',
+        documentNumber: docNumber,
+        errorType: MigrationErrorType.AI_PARSE_ERROR,
+        errorMessage: errMsg,
+        rawAiResponse: aiResponse,
+      });
+      await this.saveAiAuditLog({
+        documentPublicId,
+        aiModel: this.ollamaService.getMainModelName(),
+        status: AiAuditStatus.FAILED,
+        errorMessage: errMsg,
+        processingTimeMs: Date.now() - startTime,
+      });
+      throw new Error(errMsg);
+    }
+    let mappedTags: Record<string, string>[] = [];
+    if (extractedMetadata.tags && extractedMetadata.tags.length > 0) {
+      const tags = await this.tagsService.findOrCreateTags(
+        project.id,
+        extractedMetadata.tags,
+        attachment.uploadedByUserId
+      );
+      mappedTags = tags.map((t) => ({
+        publicId: t.publicId,
+        tagName: t.tagName,
+      }));
+    }
+    const confidence =
+      typeof extractedMetadata.confidence === 'number'
+        ? extractedMetadata.confidence
+        : 0.5;
+    const isValid = confidence >= 0.6 && !!extractedMetadata.documentNumber;
+    const payloadTitle = readString(payload.title);
+    await this.migrationService.enqueueRecord({
+      documentNumber: extractedMetadata.documentNumber || docNumber,
+      subject: extractedMetadata.subject || payloadTitle,
+      originalSubject: payloadTitle,
+      body: extractedMetadata.summary || '',
+      category: extractedMetadata.category || 'Correspondence',
+      aiSummary: extractedMetadata.summary || '',
+      projectId: project.id,
+      senderOrgId: readNumberId(payload.senderOrgId),
+      receiverOrgId: readNumberId(payload.receiverOrgId),
+      issuedDate: extractedMetadata.date || undefined,
+      receivedDate: extractedMetadata.date || undefined,
+      extractedTags: mappedTags,
+      tempAttachmentId: attachment.id,
+      isValid,
+      confidence,
+      aiJobId: String(job.id),
+    });
+    await this.saveAiAuditLog({
+      documentPublicId,
+      aiModel: this.ollamaService.getMainModelName(),
+      status: AiAuditStatus.SUCCESS,
+      aiSuggestionJson: extractedMetadata,
+      confidenceScore: confidence,
+      processingTimeMs: Date.now() - startTime,
+    });
+    this.logger.log(
+      `ประมวลผลเอกสาร ${docNumber} สำเร็จและถูกส่งเข้า Staging Queue แล้ว`
+    );
+  }
+
+  private async saveAiAuditLog(data: {
+    documentPublicId: string;
+    aiModel: string;
+    status: AiAuditStatus;
+    aiSuggestionJson?: Record<string, unknown>;
+    confidenceScore?: number;
+    processingTimeMs?: number;
+    errorMessage?: string;
+  }): Promise<void> {
+    try {
+      const log = this.aiAuditLogRepo.create({
+        documentPublicId: data.documentPublicId,
+        aiModel: data.aiModel,
+        modelName: data.aiModel,
+        status: data.status,
+        aiSuggestionJson: data.aiSuggestionJson,
+        confidenceScore: data.confidenceScore,
+        processingTimeMs: data.processingTimeMs,
+        errorMessage: data.errorMessage,
+      });
+      await this.aiAuditLogRepo.save(log);
+    } catch (err: unknown) {
+      this.logger.error(
+        `บันทึก ai_audit_logs ล้มเหลว: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 }

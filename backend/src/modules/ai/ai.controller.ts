@@ -53,8 +53,10 @@ import { AiRagQueryDto } from './dto/ai-rag-query.dto';
 import { ExtractDocumentDto } from './dto/extract-document.dto';
 import { AiCallbackDto } from './dto/ai-callback.dto';
 import { CreateAiJobDto } from './dto/create-ai-job.dto';
+import { SubmitAiJobDto } from './dto/submit-ai-job.dto';
 import { MigrationUpdateDto } from './dto/migration-update.dto';
 import { MigrationQueryDto } from './dto/migration-query.dto';
+import { ValidationException } from '../../common/exceptions';
 import {
   ApproveLegacyMigrationDto,
   LegacyMigrationIngestDto,
@@ -168,6 +170,43 @@ export class AiController {
   })
   @ApiParam({ name: 'jobId', description: 'BullMQ job id' })
   async getAiJobStatus(@Param('jobId') jobId: string) {
+    return this.aiService.getAiJobStatus(jobId);
+  }
+
+  @Post('jobs')
+  @UseGuards(JwtAuthGuard, AiEnabledGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('ai.suggest')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    summary: 'Submit AI migration job — ส่งงานย้ายเอกสารให้ AI ประมวลผล',
+    description:
+      'รับ tempAttachmentId/documentNumber แล้วส่งงานย้ายเอกสารเข้า BullMQ เพื่อรอการประมวลผล',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique key เพื่อป้องกัน duplicate AI job',
+    required: true,
+  })
+  async submitMigrationJob(
+    @Body() dto: SubmitAiJobDto,
+    @Headers('idempotency-key') idempotencyKey: string
+  ) {
+    if (!idempotencyKey) {
+      throw new ValidationException('Idempotency-Key header is required');
+    }
+    return this.aiService.submitMigrationJob(dto, idempotencyKey);
+  }
+
+  @Get('jobs/:jobId')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('ai.suggest')
+  @ApiOperation({
+    summary: 'AI Job Status polling by jobId',
+  })
+  @ApiParam({ name: 'jobId', description: 'BullMQ job id' })
+  async getAiJobStatusById(@Param('jobId') jobId: string) {
     return this.aiService.getAiJobStatus(jobId);
   }
 

@@ -57,6 +57,7 @@ import { ResponseCodeModule } from './modules/response-code/response-code.module
 import { DelegationModule } from './modules/delegation/delegation.module';
 import { ReminderModule } from './modules/reminder/reminder.module';
 import { DistributionModule } from './modules/distribution/distribution.module';
+import { TagsModule } from './modules/tags/tags.module';
 
 @Module({
   imports: [
@@ -197,6 +198,7 @@ import { DistributionModule } from './modules/distribution/distribution.module';
     DelegationModule,
     ReminderModule,
     DistributionModule,
+    TagsModule,
   ],
   controllers: [AppController],
   providers: [

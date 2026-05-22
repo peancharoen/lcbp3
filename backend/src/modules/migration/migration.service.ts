@@ -443,6 +443,7 @@ export class MigrationService {
     queueItem.extractedTags = dto.extractedTags;
     queueItem.tempAttachmentId = dto.tempAttachmentId;
     queueItem.status = autoStatus;
+    queueItem.aiJobId = dto.aiJobId;
 
     if (dto.issuedDate) {
       const parsed = new Date(dto.issuedDate);

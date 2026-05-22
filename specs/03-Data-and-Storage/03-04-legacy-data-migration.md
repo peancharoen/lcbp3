@@ -16,7 +16,7 @@
 - รักษาโครงสร้างความสัมพันธ์ (Project / Contract / Ref No.) และระบบการทำ Revision ตาม Business Rules
 - **Checkpoint Support:** รองรับการหยุดและเริ่มงานต่อ (Resume) จากจุดที่ค้างอยู่ได้กรณีเกิดเหตุขัดข้อง
 
-> **Note:** เอกสารนี้ขยายความถึงวิธีปฏิบัติ (Implementation) จากการตัดสินใจทางสถาปัตยกรรมใน [ADR-017: Ollama Data Migration Architecture](../06-Decision-Records/ADR-017-ollama-data-migration.md)
+> **Note:** เอกสารนี้ขยายความถึงวิธีปฏิบัติ (Implementation) จากการตัดสินใจทางสถาปัตยกรรมใน [ADR-023A: Unified AI Architecture — Model Revision](../06-Decision-Records/ADR-023A-unified-ai-architecture.md)
 
 ---
 
@@ -49,47 +49,30 @@
 - ติดตั้ง Ollama บน Desktop (Desk-5439, RTX 2060 SUPER 8GB)
 - No DB credentials, Internal network only
 
-#### 🔍 เปรียบเทียบผลลัพธ์ที่คาดหวัง
+#### 🔍 AI Model Stack (ADR-023A)
 
-| งาน                   | Typhoon2-4B | Qwen2.5-7B | OpenThaiGPT-7B |
-| --------------------- | ----------- | ---------- | -------------- |
-| ความเร็ว (ток/วินาที) | ~35-45      | ~8-12      | ~10-15         |
-| ความเข้าใจบริบทไทย    | ดีมาก       | ดี         | ดีมาก          |
-| การสร้างแท็กแม่นยำ    | ⭐⭐⭐⭐    | ⭐⭐⭐⭐   | ⭐⭐⭐⭐⭐     |
-| ความเสถียรบน 8GB      | ✅ สูง      | ⚠️ ปานกลาง | ⚠️ ปานกลาง     |
+ใช้ **2 โมเดลเท่านั้น** ตาม ADR-023A — รันบน Desk-5439 เท่านั้น **ห้ามเปลี่ยนโดยไม่ review ADR:**
+
+| โมเดล | VRAM (โดยประมาณ) | หน้าที่ |
+| ------ | ---------------- | ------- |
+| `gemma4:e4b Q8_0` | ~4.0GB | OCR Post-processing, Metadata Extraction, Classification |
+| `nomic-embed-text` | ~0.3GB | Embedding 768-dim สำหรับ Qdrant |
+| **รวม (peak)** | **~4.3GB** | **เผื่อ headroom ~3.7GB สำหรับ KV Cache** |
 
 ```bash
-# แนะนำ: llama3.2:3b (เร็ว, VRAM ~3GB, เหมาะ Classification) หรือ ollama run llama3.2:3b
-ollama pull llama3.2:3b
+# ติดตั้งโมเดล (รันบน Desk-5439 เท่านั้น)
+ollama pull gemma4:e4b
+ollama pull nomic-embed-text
 
-# ทางเลือกที่ 1: เร็ว + ไทยดี (แนะนำ)
-ollama pull scb10x/typhoon2.1-gemma3-4b
-ollama run scb10x/typhoon2.1-gemma3-4b --system "คุณเป็นผู้ช่วยจัดหมวดหมู่เอกสารภาษาไทย โปรดตอบกลับในรูปแบบ JSON เท่านั้น" --option temperature=0.2 --option num_ctx=4096
-
-# ทางเลือกที่ 2: คุณภาพสูง (โมเดลที่คุณใช้อยู่)
-ollama pull qwen2.5:7b-instruct-q4_K_M
-ollama run qwen2.5:7b-instruct-q4_K_M --system "คุณเป็นผู้ช่วยจัดหมวดหมู่เอกสารภาษาไทย โปรดตอบกลับในรูปแบบ JSON เท่านั้น" --option temperature=0.2 --option num_ctx=4096
-# ถ้า Q4_K_M ยังหนักไป ลอง Q3_K_M (คุณภาพลดเล็กน้อย แต่ประหยัดแรม)
-ollama pull qwen2.5:7b-instruct-q3_K_M
-
-# ทางเลือกที่ 3: ไทยเฉพาะทาง
-ollama pull promptnow/openthaigpt1.5-7b-instruct-q4_k_m
-ollama run openthaigpt1.5-7b-instruct-q4_k_m --system "คุณเป็นผู้ช่วยจัดหมวดหมู่เอกสารภาษาไทย โปรดตอบกลับในรูปแบบ JSON เท่านั้น" --option temperature=0.2 --option num_ctx=4096
-
-# เปิด terminal อีกหน้าต่างแล้วรัน
+# ตรวจสอบ GPU usage
 watch -n 1 nvidia-smi
-
-# Fallback: mistral:7b-instruct-q4_K_M (แม่นกว่า, VRAM ~5GB)
-# ollama pull mistral:7b-instruct-q4_K_M
 ```
-
-ใช้ ทางเลือกที่ 1
 
 **ทดสอบ Ollama:**
 
 ```bash
 curl http://192.168.20.100:11434/api/generate \
-  -d '{"model":"llama3.2:3b","prompt":"reply: ok","stream":false}'
+  -d '{"model":"gemma4:e4b","prompt":"reply: ok","stream":false}'
 ```
 
 **Concurrency Configuration:**
@@ -121,6 +104,8 @@ CREATE TABLE IF NOT EXISTS migration_progress (
 ```
 
 **Tags Table (สำหรับ AI Tag Extraction):**
+
+> 🔴 **Pre-requisite (Blocking):** ตาราง `tags` และ `correspondence_tags` **ยังไม่มีใน production schema** — ต้องสร้าง SQL delta ใน `specs/03-Data-and-Storage/deltas/` ตาม ADR-009 ก่อน Migration เริ่ม
 
 ```sql
 -- ตาราง Master เก็บ Tags (Global หรือ Project-specific)
@@ -241,41 +226,55 @@ n8n ต้องเก็บ categories นี้ไว้ใน Workflow Variab
 #### Node 3: File Processor (Extract PDF Text & Temp Upload)
 
 - ตรวจสอบไฟล์ PDF มีอยู่จริงบน NAS `/share/np-dms/staging_ai`
-- **Extract PDF Text:** ใช้ Apache Tika สกัดข้อความจากเอกสาร
+- **OCR/Text Extraction:** ดำเนินการโดย BullMQ Worker บน Desk-5439 (PyMuPDF Fast Path หากมี text layer > 100 chars/page หรือ PaddleOCR + PyThaiNLP Slow Path หาก scanned — ตาม ADR-023A Section 4.2) — n8n ไม่ extract text เอง
 - **Two-Phase Storage (Upload):**
   - n8n ยิง `POST /api/storage/upload` ส่งไฟล์ PDF เข้า Backend
   - Backend อัพโหลดไฟล์, กำหนด `is_temporary = TRUE`
   - Backend ส่งคืน `attachment_id` ให้ n8n (จะเรียกว่า `temp_attachment_id`)
+  - **Temp File TTL:** Backend ลบ temp file อัตโนมัติหาก job `failed` หรือไม่มี commit ภายใน **24 ชั่วโมง** (Scheduled cleanup job ใน BullMQ)
 
-#### Node 4: AI Analysis (Sequential เท่านั้น)
+#### Node 4: AI Job Submission & Polling (via BullMQ)
 
-**System Prompt:**
+> 🔴 **Pre-requisite (Blocking):** Endpoint `POST /api/ai/jobs` (type: `migrate-document`) **ยังไม่มีใน Backend** — ต้องพัฒนาและทดสอบก่อน Migration Phase เริ่ม (เพิ่มใน Go/No-Go Gate #1)
 
-```text
-You are a Document Controller for a large construction project.
-Your task is to validate document metadata, summarize content, and suggest relevant tags.
-You MUST respond ONLY with valid JSON. No explanation, no markdown.
+> ⚠️ **ADR-023A:** n8n ห้ามเรียก Ollama โดยตรง — ต้องผ่าน DMS API → BullMQ เท่านั้น เพื่อให้ RBAC, ADR-007 Error Handling และ `ai_audit_logs` ครอบคลุมทุก job โดยอัตโนมัติ
+
+**Step 1: Submit AI Job**
+
+```http
+POST /api/ai/jobs
+Authorization: Bearer <MIGRATION_TOKEN>
+Content-Type: application/json
+
+{
+  "type": "migrate-document",
+  "payload": {
+    "temp_attachment_id": "{{$json.temp_attachment_id}}",
+    "document_number": "{{$json.document_number}}",
+    "title": "{{$json.title}}",
+    "existing_tags": "{{$json.existing_tags_json}}",
+    "system_categories": "{{$json.system_categories}}"
+  }
+}
 ```
 
-**User Prompt:**
+Response: `{ "jobId": "<uuid>" }`
 
-```text
-Validate and summarize this document. Respond in JSON.
-Document Number: {{$json.document_number}}
-Title: {{$json.title}}
-Extracted Text: {{$json.extracted_text}}
+**Step 2: Poll Job Result (n8n Loop Node)**
 
-Existing Project Tags: {{$json.existing_tags_json}}
+```http
+GET /api/ai/jobs/{{jobId}}
+Authorization: Bearer <MIGRATION_TOKEN>
+```
 
-Analyze the content to provide:
-1. Validation of Subject/Dates with PDF text.
-2. A 4-5 sentence summary.
-3. Suggest tags. Select from Existing Project Tags if applicable. If no existing tag fits, suggest a NEW one (set is_new: true).
+Poll ทุก 5 วินาที จนกว่า `status = "completed"` หรือ `"failed"` (timeout 120 วินาที)
 
-Respond ONLY with this exact JSON structure:
+**AI Output Contract (จาก BullMQ Worker — gemma4:e4b Q8_0):**
+
+```json
 {
-  "is_valid": true | false,
-  "confidence": 0.0 to 1.0,
+  "is_valid": true,
+  "confidence": 0.92,
   "category": "Correspondence",
   "summary": "<4-5 sentence summary>",
   "suggested_tags": [
@@ -284,6 +283,8 @@ Respond ONLY with this exact JSON structure:
   "detected_issues": []
 }
 ```
+
+> **Note:** System Prompt และ User Prompt อยู่ใน BullMQ Worker (Backend NestJS) ไม่ใช่ใน n8n Workflow
 
 #### Node 5: Staging Ingestion (Insert to Review Queue)
 
@@ -319,7 +320,7 @@ ON DUPLICATE KEY UPDATE status = VALUES(status), ai_summary = VALUES(ai_summary)
 1. หน้าจอ **Frontend Management UI** ดึงข้อมูลจาก `migration_review_queue`
 2. Admin สามารถ Browse & Edit ข้อมูล
 3. **Tag Review:** Admin สามารถพิจารณา Tags ที่เป็น `is_new: true` ว่าควรตีตก หรือเปลี่ยนไปแมตช์ของเดิม
-4. Admin กดปุ่ม **Execute Import** ส่งให้ Backend รัน Final Commit.
+4. ผู้มีสิทธิ์ (`DOCUMENT_CONTROLLER` | `ADMIN` | `SUPERADMIN`) กดปุ่ม **Execute Import** ส่งให้ Backend รัน Final Commit.
 5. Backend ยิงคำสั่งสร้าง Correspondence, นำ `temp_attachment_id` ไปผูกกับ Revision, ปรับเป็น `is_temporary = FALSE` และสร้าง/เชื่อม Tags จริง.
 
 ---
@@ -416,7 +417,7 @@ WHERE batch_id = 'migration_20260226';
 | 4        | Idempotency ซ้ำ             | `import_transactions` table + Backend คืน HTTP 200            |
 | 5        | Revision Drift              | ตรวจ Excel revision column → Route ไป Review Queue            |
 | 6        | Storage bypass              | ห้าม move file โดยตรง — ผ่าน Backend API เท่านั้น             |
-| 7        | GPU VRAM Overflow           | ใช้เฉพาะ Quantized Model (q4_K_M)                             |
+| 7        | GPU VRAM Overflow           | ใช้ `gemma4:e4b Q8_0` + `nomic-embed-text` (~4.3GB peak) — ต่ำกว่า VRAM 8GB อย่างมีเสถียรภาพ ตาม ADR-023A |
 | 8        | ดิสก์ NAS เต็ม              | ปิด "Save Successful Executions" ใน n8n                       |
 | 9        | Migration Token ถูกขโมย     | Token 7 วัน, IP Whitelist `<NAS_IP>` เท่านั้น                 |
 | 11       | AI Tag Extraction ผิดพลาด   | Tag confidence < 0.6 → ส่งไป Review Queue / บันทึกใน metadata |

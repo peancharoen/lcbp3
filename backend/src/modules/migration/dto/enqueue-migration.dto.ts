@@ -78,4 +78,8 @@ export class EnqueueMigrationDto {
   @IsArray()
   @IsOptional()
   aiIssues?: Record<string, unknown>[];
+
+  @IsString()
+  @IsOptional()
+  aiJobId?: string;
 }

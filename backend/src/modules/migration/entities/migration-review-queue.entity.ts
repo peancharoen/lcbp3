@@ -1,3 +1,7 @@
+// File: src/modules/migration/entities/migration-review-queue.entity.ts
+// Change Log:
+// - 2026-05-22: เพิ่มฟิลด์ aiJobId สำหรับเก็บ jobId ของ BullMQ (ADR-028)
+
 import {
   Entity,
   Column,
@@ -5,14 +9,17 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 
+import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
+
 export enum MigrationReviewStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
+  IMPORTED = 'IMPORTED',
   REJECTED = 'REJECTED',
 }
 
 @Entity('migration_review_queue')
-export class MigrationReviewQueue {
+export class MigrationReviewQueue extends UuidBaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
@@ -85,6 +92,9 @@ export class MigrationReviewQueue {
 
   @Column({ name: 'temp_attachment_id', type: 'int', nullable: true })
   tempAttachmentId?: number;
+
+  @Column({ name: 'ai_job_id', type: 'varchar', length: 36, nullable: true })
+  aiJobId?: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
