@@ -79,7 +79,7 @@ specs/
 │   ├── 05-03-frontend-guidelines.md
 │   └── 05-04-testing-strategy.md
 │
-├── 06-Decision-Records/      # Architecture Decision Records (23 ADRs)
+├── 06-Decision-Records/      # Architecture Decision Records (28 ADRs)
 │   ├── README.md
 │   ├── ADR-001-unified-workflow-engine.md
 │   └── ...
@@ -96,19 +96,19 @@ specs/
 
 ### 📋 หมวดหมู่เอกสาร
 
-| หมวด                          | วัตถุประสงค์                           | ไฟล์สำคัญ        | ผู้ดูแล                 |
-| ----------------------------- | -------------------------------------- | ---------------- | ----------------------- |
-| **00-Overview**               | ภาพรวม, Product Vision, KPI, Training  | Gap 1/5/6/9      | Project Manager / PO    |
-| **01-Requirements**           | User Stories, UAT, UI, Edge Cases      | Gap 2/3/4/10     | Business Analyst + PO   |
-| **02-Architecture**           | สถาปัตยกรรมและการออกแบบ                | —                | Tech Lead + Architects  |
-| **03-Data-and-Storage**       | Schema v1.8.0, Migration Scope         | Gap 7            | Backend Lead + DBA      |
-| **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8            | DevOps Team             |
-| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —                | Development Team Leads  |
-| **06-Decision-Records**       | Architecture Decision Records (23)     | ADR-019/021/023  | Tech Lead + Senior Devs |
-| **100-Infrastructures**       | Infrastructure Operations & Ops        | —                | DevOps / SRE Team       |
-| **200-fullstacks**            | Feature Implementation (Fullstack)     | spec.md, plan.md | Development Team        |
-| **300-others**                | Documentation & Research               | —                | All Team Members        |
-| **99-archives**               | Archived / Tasks                       | —                | All Team Members        |
+| หมวด                          | วัตถุประสงค์                           | ไฟล์สำคัญ               | ผู้ดูแล                 |
+| ----------------------------- | -------------------------------------- | ----------------------- | ----------------------- |
+| **00-Overview**               | ภาพรวม, Product Vision, KPI, Training  | Gap 1/5/6/9             | Project Manager / PO    |
+| **01-Requirements**           | User Stories, UAT, UI, Edge Cases      | Gap 2/3/4/10            | Business Analyst + PO   |
+| **02-Architecture**           | สถาปัตยกรรมและการออกแบบ                | —                       | Tech Lead + Architects  |
+| **03-Data-and-Storage**       | Schema v1.8.0, Migration Scope         | Gap 7                   | Backend Lead + DBA      |
+| **04-Infrastructure-OPS**     | Deployment, Operations, Release Policy | Gap 8                   | DevOps Team             |
+| **05-Engineering-Guidelines** | แผนการพัฒนาและ Implementation          | —                       | Development Team Leads  |
+| **06-Decision-Records**       | Architecture Decision Records (28)     | ADR-019/021/023/024-028 | Tech Lead + Senior Devs |
+| **100-Infrastructures**       | Infrastructure Operations & Ops        | —                       | DevOps / SRE Team       |
+| **200-fullstacks**            | Feature Implementation (Fullstack)     | spec.md, plan.md        | Development Team        |
+| **300-others**                | Documentation & Research               | —                       | All Team Members        |
+| **99-archives**               | Archived / Tasks                       | —                       | All Team Members        |
 
 ---
 
@@ -546,23 +546,28 @@ graph LR
 
 **Document History**:
 
-| Version | Date       | Author     | Changes                                                           |
-| ------- | ---------- | ---------- | ----------------------------------------------------------------- |
-| 1.0.0   | 2025-01-15 | John Doe   | Initial version                                                   |
-| 1.1.0   | 2025-02-20 | Jane Smith | Add CC support                                                    |
-| 1.8.1   | 2026-03-21 | Tech Lead  | Security hardening, numbering fixes, dependency updates           |
-| 1.8.5   | 2026-04-10 | Tech Lead  | ADR registry complete (21 ADRs), spec documentation updates       |
-| 1.8.7   | 2026-04-14 | Tech Lead  | ADR-021 integration complete (22 ADRs), workflow context features |
-| 1.8.8   | 2026-04-14 | Tech Lead  | Step-specific attachments, IntegratedBanner, WorkflowLifecycle    |
-| 1.8.9   | 2026-04-18 | Tech Lead  | Docker Compose hardening — 27 findings (C1–S4) addressed          |
-| 1.9.0   | 2026-05-13 | Tech Lead  | Agent Infrastructure standard & RFA System migration finalized    |
-| 1.9.1   | 2026-05-14 | Tech Lead  | Consolidated AI master architecture into ADR-023                  |
+| Version | Date       | Author     | Changes                                                                           |
+| ------- | ---------- | ---------- | --------------------------------------------------------------------------------- |
+| 1.0.0   | 2025-01-15 | John Doe   | Initial version                                                                   |
+| 1.1.0   | 2025-02-20 | Jane Smith | Add CC support                                                                    |
+| 1.8.1   | 2026-03-21 | Tech Lead  | Security hardening, numbering fixes, dependency updates                           |
+| 1.8.5   | 2026-04-10 | Tech Lead  | ADR registry complete (21 ADRs), spec documentation updates                       |
+| 1.8.7   | 2026-04-14 | Tech Lead  | ADR-021 integration complete (22 ADRs), workflow context features                 |
+| 1.8.8   | 2026-04-14 | Tech Lead  | Step-specific attachments, IntegratedBanner, WorkflowLifecycle                    |
+| 1.8.9   | 2026-04-18 | Tech Lead  | Docker Compose hardening — 27 findings (C1–S4) addressed                          |
+| 1.9.0   | 2026-05-13 | Tech Lead  | Agent Infrastructure standard & RFA System migration finalized                    |
+| 1.9.1   | 2026-05-14 | Tech Lead  | Consolidated AI master architecture into ADR-023                                  |
+| 1.9.2   | 2026-05-15 | Tech Lead  | AI Model Revision ADR-023A: 2-Model Stack + BullMQ 2-Queue (23 ADRs)              |
+| 1.9.3   | 2026-05-19 | Tech Lead  | ADR-024 Intent Classification + ADR-025 AI Tool Layer + ADR-026 Chat UI (26 ADRs) |
+| 1.9.4   | 2026-05-21 | Tech Lead  | ADR-027 AI Admin Console & Dynamic Control (27 ADRs)                              |
+| 1.9.5   | 2026-05-22 | Tech Lead  | ADR-028 Migration Architecture Refactor + Root Docs Update (28 ADRs)              |
 
-**Current Version**: 1.9.0
+**Current Version**: 1.9.5
 **Status**: Approved
-**Last Updated**: 2026-05-13
+**Last Updated**: 2026-05-22
 **Security**: 0 vulnerabilities (backend) + Compose stack hardened (27 findings → 0)
 **Workflow Engine**: ADR-021 Integrated Context complete + RFA v1.9.0 finalized
+**AI Runtime Layer**: ADR-024/025/026/027 Accepted — Intent Classification, Tool Layer, Chat UI, Admin Console
 ```
 
 ### 5. UUID Conventions (ADR-019)
@@ -756,7 +761,9 @@ bash  ./.agents/scripts/bash/audit-skills.sh
 - **ADR-019 UUID** — `publicId` exposed directly; ห้าม `parseInt`/`Number`/`+` บน UUID; ห้าม `id ?? ''` fallback; ห้ามใช้ `@Expose({ name: 'id' })` rename
 - **ADR-009 Schema** — แก้ `lcbp3-v1.9.0-schema-02-tables.sql` โดยตรง + เพิ่ม delta ที่ `specs/03-Data-and-Storage/deltas/`; ห้าม TypeORM migrations
 - **ADR-016 Security** — CASL + `Idempotency-Key` + ClamAV two-phase upload
-- **ADR-023 AI Architecture** — Ollama on Admin Desktop only; human-in-the-loop validation
+- **ADR-023/023A AI Architecture** — Ollama on Admin Desktop only; 2-Model Stack (gemma4:e4b Q8_0 + nomic-embed-text); BullMQ 2-Queue; human-in-the-loop validation
+- **ADR-024 Intent Classification** — Hybrid Pattern→LLM Fallback; Redis cache 5 min; ห้าม LLM Fallback โดยไม่มี Pattern Layer
+- **ADR-025 AI Tool Layer** — Server-side Tool dispatch; CASL-guarded; ToolResult DTO ใช้ `publicId` เท่านั้น
 
 ---
 

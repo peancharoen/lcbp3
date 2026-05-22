@@ -1,5 +1,61 @@
 # Version History
 
+## 1.9.5 (2026-05-22)
+
+### docs(adr): ADR-028 Migration Architecture Refactor + Root Docs Update
+
+#### Summary
+
+เพิ่ม ADR-028 (Migration Architecture Refactor — Staging Queue & Post-Migration Cleanup) และอัปเดตเอกสาร Root ทั้งหมดให้สะท้อนสถานะ v1.9.5
+
+#### Changes
+
+- **ADR-028**: สร้างเอกสาร `ADR-028-migration-architecture-refactor.md` ครอบคลุม Staging Queue, Post-Migration Cleanup Process และ Migration Validation Gates
+- **specs/README.md**: อัปเดต version 1.9.2 → 1.9.5, เพิ่ม ADR-024 ถึง ADR-028 ในตาราง ADR Reference, อัปเดต Directory Structure ให้ครบ (200-fullstacks 9 folders, 300-others 2 folders, 100-Infrastructures 2 folders, 05-Engineering-Guidelines ครบ 8 ไฟล์)
+- **ARCHITECTURE.md**: อัปเดต version 1.9.2 → 1.9.5, เพิ่ม ADR-024/025/026/027/028 ในตาราง, แก้ schema reference v1.8.0 → v1.9.0
+- **CHANGELOG.md**: เพิ่ม entries 1.9.3, 1.9.4, 1.9.5
+- **CONTEXT.md**: อัปเดต ADR table — ADR-024/025/026 เปลี่ยนสถานะเป็น ✅ Accepted
+- **CONTRIBUTING.md**: อัปเดต version history table, ADR count 23 → 28, document history entries
+- **README.md**: อัปเดต version badge 1.9.2 → 1.9.5, status date, ADR count ในเอกสาร
+
+---
+
+## 1.9.4 (2026-05-21)
+
+### feat(ai): AI Admin Console & Dynamic Control (ADR-027)
+
+#### Summary
+
+สร้าง AI Admin Console สำหรับควบคุมระบบ AI แบบ Dynamic — จัดการ Model, Prompt Template, Intent Definitions, และ System Health โดยไม่ต้อง Redeploy
+
+#### Changes
+
+- **ADR-027**: สร้างเอกสาร `ADR-027-ai-admin-console-and-dynamic-control.md` ครอบคลุม Admin Panel Architecture, Dynamic Control Mechanism และ Access Control
+- **CONTEXT-ADR-027.md**: เอกสาร Context สำหรับ AI Admin Console implementation
+- **specs/200-fullstacks/227-ai-admin-console/**: Feature spec folder สำหรับ AI Admin Console
+
+---
+
+## 1.9.3 (2026-05-19)
+
+### feat(ai): Intent Classification + Tool Layer + Document Chat (ADR-024/025/026)
+
+#### Summary
+
+สร้าง AI Runtime Layer ครบชุด — Intent Classifier (Hybrid Pattern→LLM), AI Tool Layer (Server-side dispatch), และ Document Chat UI (Side-panel) ตามลำดับ dependency ที่วางไว้ใน CONTEXT.md
+
+#### Changes
+
+- **ADR-024**: `ADR-024-intent-classification-strategy.md` — Hybrid strategy: Pattern Layer (keyword/regex จาก `ai_intent_patterns` DB, cache Redis 5 min) → LLM Fallback (Ollama gemma4:e4b, semaphore max=3 sync)
+- **ADR-025**: `ADR-025-ai-tool-layer-architecture.md` — Server-side Tool dispatch: AI Gateway → Tool Registry → Business Service ภายใต้ CASL scope; ToolResult DTO มีเฉพาะ `publicId` + business codes
+- **ADR-026**: `ADR-026-document-chat-ui-pattern.md` — Side-panel Document Chat UI พร้อม `useAiChat()` hook, streaming response support, TanStack Query cache
+- **CONTEXT.md**: อัปเดต Intent Classification terminology, AI Tool Layer glossary, Relationships, และ ADR status table (ADR-024/025/026 → ✅ Accepted)
+- **specs/200-fullstacks/**: เพิ่ม 224-intent-classification/, 225-ai-tool-layer-architecture/, 226-document-chat-ui-pattern/
+- **specs/300-others/**: เพิ่ม 301-unified-ai-arch/, 302-ai-model-revision/
+- **AGENTS.md**: Bump to v1.9.5
+
+---
+
 ## 1.9.2 (2026-05-15)
 
 ### feat(ai): AI Model Revision & Hybrid Staging (ADR-023A)

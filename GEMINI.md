@@ -1,7 +1,7 @@
 # NAP-DMS Gemini Rules & Standards
 
 - For: Gemini (Google AI Studio, Vertex AI, Antigravity, Gemini CLI)
-- Version: 1.9.5 | Last synced from AGENTS.md: 2026-05-18
+- Version: 1.9.6 | Last synced from AGENTS.md: 2026-05-22
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](../.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](../.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -89,7 +89,9 @@ Must fix before merge:
 Requires domain-specific knowledge:
 
 - **ADR-021 Integration:** Workflow Engine & Context implementation
-- **AI Integration:** ADR-023/023A boundary enforcement and pipeline usage
+- **AI Infrastructure:** ADR-023/023A boundary enforcement and pipeline usage
+- **AI Runtime Layer:** ADR-024 Intent Classification, ADR-025 Tool Layer, ADR-026 Chat UI, ADR-027 Admin Console
+- **Migration Pipeline:** ADR-028 Staging Queue & post-migration cleanup
 - **Complex Business Logic:** Multi-step workflows with state management
 - **Performance Optimization:** Database queries, caching strategies, bulk operations
 
@@ -107,32 +109,37 @@ Best practice — follow when possible:
 
 Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
 
-| Document                     | Path                                                                 | Status    | Use When                                                                          |
-| ---------------------------- | -------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------- |
-| **Glossary**                 | `specs/00-overview/00-02-glossary.md`                                | —         | Verify domain terminology                                                         |
-| **Schema Tables**            | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`        | —         | Before writing any query                                                          |
-| **Data Dictionary**          | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                 | —         | Field meanings + business rules                                                   |
-| **RBAC Matrix**              | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` | —         | Permission levels + roles                                                         |
-| **Edge Cases**               | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                | —         | Prevent bugs in flows                                                             |
-| **ADR-001 Workflow Engine**  | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`       | ✅ Active | DSL-based workflow implementation                                                 |
-| **ADR-002 Doc Numbering**    | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`   | ✅ Active | Document number generation + locking                                              |
-| **ADR-007 Error Handling**   | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`       | ✅ Active | Error patterns & recovery                                                         |
-| **ADR-008 Notifications**    | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`   | ✅ Active | BullMQ + multi-channel notification                                               |
-| **ADR-009 DB Migration**     | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`   | ✅ Active | Schema changes — edit SQL directly                                                |
-| **ADR-016 Security**         | `specs/06-Decision-Records/ADR-016-security-authentication.md`       | ✅ Active | Auth, RBAC, file upload security                                                  |
-| **ADR-015 Release Strategy** | `specs/06-Decision-Records/ADR-015-deployment-infrastructure.md`     | ✅ Active | Blue-Green deployment + release gates                                             |
-| **ADR-019 UUID**             | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`    | ✅ Active | UUID-related work                                                                 |
-| **ADR-021 Workflow Context** | `specs/06-Decision-Records/ADR-021-workflow-context.md`              | ✅ Active | Integrated workflow & step attachments                                            |
-| **ADR-023 AI Architecture**  | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`      | ✅ Active | Unified AI boundaries and pipeline (base architecture)                            |
-| **ADR-023A AI Model Rev.**   | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`      | ✅ Active | 2-Model stack (gemma4:e4b Q8_0), BullMQ 2-queue, RAG embed scope, OCR auto-detect |
-| **Backend Guidelines**       | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`        | —         | NestJS patterns                                                                   |
-| **Frontend Guidelines**      | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`       | —         | Next.js patterns                                                                  |
-| **Testing Strategy**         | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`          | —         | Coverage goals                                                                    |
-| **Git Conventions**          | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`           | —         | Commit/branch naming                                                              |
-| **Code Snippets**            | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`             | —         | Reusable patterns                                                                 |
-| **i18n Guidelines**          | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`           | —         | Localization rules                                                                |
-| **Release Policy**           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`     | —         | Before deploy/hotfix                                                              |
-| **UAT Criteria**             | `specs/01-Requirements/01-05-acceptance-criteria.md`                 | —         | Feature completeness                                                              |
+| Document                       | Path                                                                        | Status    | Use When                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------- |
+| **Glossary**                   | `specs/00-overview/00-02-glossary.md`                                       | —         | Verify domain terminology                                                         |
+| **Schema Tables**              | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`               | —         | Before writing any query                                                          |
+| **Data Dictionary**            | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                        | —         | Field meanings + business rules                                                   |
+| **RBAC Matrix**                | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md`        | —         | Permission levels + roles                                                         |
+| **Edge Cases**                 | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                       | —         | Prevent bugs in flows                                                             |
+| **ADR-001 Workflow Engine**    | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`              | ✅ Active | DSL-based workflow implementation                                                 |
+| **ADR-002 Doc Numbering**      | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`          | ✅ Active | Document number generation + locking                                              |
+| **ADR-007 Error Handling**     | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`              | ✅ Active | Error patterns & recovery                                                         |
+| **ADR-008 Notifications**      | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`          | ✅ Active | BullMQ + multi-channel notification                                               |
+| **ADR-009 DB Migration**       | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`          | ✅ Active | Schema changes — edit SQL directly                                                |
+| **ADR-016 Security**           | `specs/06-Decision-Records/ADR-016-security-authentication.md`              | ✅ Active | Auth, RBAC, file upload security                                                  |
+| **ADR-015 Release Strategy**   | `specs/06-Decision-Records/ADR-015-deployment-infrastructure.md`            | ✅ Active | Blue-Green deployment + release gates                                             |
+| **ADR-019 UUID**               | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`           | ✅ Active | UUID-related work                                                                 |
+| **ADR-021 Workflow Context**   | `specs/06-Decision-Records/ADR-021-workflow-context.md`                     | ✅ Active | Integrated workflow & step attachments                                            |
+| **ADR-023 AI Architecture**    | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`              | ✅ Active | Unified AI boundaries and pipeline (base architecture)                            |
+| **ADR-023A AI Model Rev.**     | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | ✅ Active | 2-Model stack (gemma4:e4b Q8_0), BullMQ 2-queue, RAG embed scope, OCR auto-detect |
+| **ADR-024 Intent Class.**      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`       | ✅ Active | Hybrid Pattern→LLM Fallback; ai_intent_patterns DB; Redis cache 5 min             |
+| **ADR-025 AI Tool Layer**      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`           | ✅ Active | Server-side Tool dispatch; CASL-guarded bridge; ToolResult uses publicId only     |
+| **ADR-026 Chat UI**            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`             | ✅ Active | Side-panel Document Chat UI; useAiChat() hook; streaming response support         |
+| **ADR-027 AI Admin Console**   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md` | ✅ Active | Admin Panel + dynamic model/prompt/intent control without redeploy                |
+| **ADR-028 Migration Refactor** | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`      | ✅ Active | Staging Queue & post-migration cleanup                                            |
+| **Backend Guidelines**         | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`               | —         | NestJS patterns                                                                   |
+| **Frontend Guidelines**        | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`              | —         | Next.js patterns                                                                  |
+| **Testing Strategy**           | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`                 | —         | Coverage goals                                                                    |
+| **Git Conventions**            | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`                  | —         | Commit/branch naming                                                              |
+| **Code Snippets**              | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`                    | —         | Reusable patterns                                                                 |
+| **i18n Guidelines**            | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`                  | —         | Localization rules                                                                |
+| **Release Policy**             | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`            | —         | Before deploy/hotfix                                                              |
+| **UAT Criteria**               | `specs/01-Requirements/01-05-acceptance-criteria.md`                        | —         | Feature completeness                                                              |
 
 ---
 
@@ -280,41 +287,41 @@ Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 
 ## 🏷️ Domain Terminology
 
-| ✅ Use             | ❌ Don't Use                          |
-| ------------------ | ------------------------------------- |
-| Correspondence     | Letter, Communication, Document       |
-| RFA                | Approval Request, Submit for Approval |
-| Transmittal        | Delivery Note, Cover Letter           |
-| Circulation        | Distribution, Routing                 |
-| Shop Drawing       | Construction Drawing                  |
-| Contract Drawing   | Design Drawing, Blueprint             |
-| Workflow Engine    | Approval Flow, Process Engine         |
-| Document Numbering | Document ID, Auto Number              |
-| RBAC               | Permission System (generic)           |
+| ✅ Use             | ❌ Don't Use                          | คำอธิบายเพิ่มเติม                                |
+| ------------------ | ------------------------------------- | ------------------------------------------------ |
+| Correspondence     | Letter, Communication, Document       | ครอบคลุมทุกประเภท: Letter, RFA, Memo, ฯลฯ        |
+| RFA                | Approval Request, Submit for Approval | เอกสารขออนุมัติ (ชนิดหนึ่งของ Correspondence)    |
+| Transmittal        | Delivery Note, Cover Letter           | เอกสารนำส่ง (ชนิดหนึ่งของ Correspondence)        |
+| Circulation        | Distribution, Routing                 | ใบเวียนเอกสารภายใน (ชนิดหนึ่งของ Correspondence) |
+| Shop Drawing       | Construction Drawing                  | แบบก่อสร้าง                                      |
+| Contract Drawing   | Design Drawing, Blueprint             | แบบคู่สัญญา                                      |
+| Workflow Engine    | Approval Flow, Process Engine         | เครื่องมือจัดการลำดับงาน                         |
+| Document Numbering | Document ID, Auto Number              | ระบบจัดการเลขที่เอกสาร                           |
+| RBAC               | Permission System (generic)           | การควบคุมสิทธิ์ตามบทบาท                          |
 
 ---
 
 ## 🚫 Forbidden Actions
 
-| ❌ Forbidden                                    | ✅ Correct Approach                                     |
-| ----------------------------------------------- | ------------------------------------------------------- |
-| SQL Triggers for business logic                 | NestJS Service methods                                  |
-| `.env` files in production                      | `docker-compose.yml` environment section                |
-| TypeORM migration files                         | Edit schema SQL directly (ADR-009)                      |
-| Inventing table/column names                    | Verify against `lcbp3-v1.9.0-schema-02-tables.sql`      |
-| `any` TypeScript type                           | Proper types / generics                                 |
-| `console.log` in committed code                 | NestJS Logger (backend) / remove (frontend)             |
-| `req: any` in controllers                       | `RequestWithUser` typed interface                       |
-| `parseInt()` on UUID values                     | Use UUID string directly (ADR-019)                      |
-| Exposing INT PK in API responses                | UUIDv7 `publicId` (ADR-019)                             |
-| AI accessing DB/storage directly                | AI → DMS API → DB (ADR-023/023A)                        |
-| Direct file operations bypassing StorageService | `StorageService` for all file moves                     |
-| Inline email/notification sending               | BullMQ queue job (ADR-008)                              |
-| Deploying without Release Gates                 | Complete `04-08-release-management-policy.md`           |
-| AI direct cloud API calls                       | On-premises Ollama only (ADR-023/023A)                  |
-| AI outputs without human validation             | Human-in-the-loop validation required (ADR-023/023A)    |
-| n8n calling Ollama/Qdrant directly              | n8n → DMS API → BullMQ → Ollama (ADR-023A)              |
-| Qdrant query without `projectPublicId` filter   | `QdrantService.search(projectPublicId, ...)` (ADR-023A) |
+| ❌ Forbidden                                    | ✅ Correct Approach                                     | ⚠️ Why                                               |
+| ----------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
+| SQL Triggers for business logic                 | NestJS Service methods                                  | Untestable; bypasses audit log                       |
+| `.env` files in production                      | `docker-compose.yml` environment section                | Secrets exposed in version control                   |
+| TypeORM migration files                         | Edit schema SQL directly (ADR-009)                      | Migration drift risk; schema managed via SQL delta   |
+| Inventing table/column names                    | Verify against `schema-02-tables.sql`                   | Schema mismatch causes silent runtime errors         |
+| `any` TypeScript type                           | Proper types / generics                                 | Defeats strict mode; hides runtime type errors       |
+| `console.log` in committed code                 | NestJS Logger (backend) / remove (frontend)             | Log flooding in production; risk of data leakage     |
+| `req: any` in controllers                       | `RequestWithUser` typed interface                       | Type safety lost; auth context unreachable           |
+| `parseInt()` on UUID values                     | Use UUID string directly (ADR-019)                      | `"0195…"` parsed to integer `19` — silently wrong    |
+| Exposing INT PK in API responses                | UUIDv7 `publicId` (ADR-019)                             | Leaks row count; enables DB enumeration attacks      |
+| AI accessing DB/storage directly                | AI → DMS API → DB (ADR-023/023A)                        | Bypasses RBAC, audit trail, and validation layer     |
+| Direct file operations bypassing StorageService | `StorageService` for all file moves                     | Orphaned files; broken ClamAV scan; no audit trail   |
+| Inline email/notification sending               | BullMQ queue job (ADR-008)                              | Blocks request thread; no retry on transient failure |
+| Deploying without Release Gates                 | Complete `04-08-release-management-policy.md`           | Unverified deploy risks data loss in production      |
+| AI direct cloud API calls                       | On-premises Ollama only (ADR-023/023A)                  | Data privacy violation; no audit control             |
+| AI outputs without human validation             | Human-in-the-loop validation required (ADR-023/023A)    | Unvalidated AI metadata corrupts document records    |
+| n8n calling Ollama/Qdrant directly              | n8n → DMS API → BullMQ → Ollama (ADR-023A)              | Bypasses audit log, RBAC, and error handling layer   |
+| Qdrant query without `projectPublicId` filter   | `QdrantService.search(projectPublicId, ...)` (ADR-023A) | Cross-project data leak via vector search            |
 
 ---
 
@@ -350,11 +357,11 @@ Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 3. Add regression test if logic changed
 4. Verify no forbidden patterns introduced
 
-### 🟣 Specialized Work — ADR-021, AI Integration, Complex Logic
+### � Specialized Work — ADR-021, AI Runtime Layer, Complex Logic
 
 **MUST complete:**
 
-1. **Domain Knowledge Check** - Read relevant ADRs (ADR-021, ADR-023/023A)
+1. **Domain Knowledge Check** - Read relevant ADRs (ADR-021, ADR-023/023A, ADR-024~028)
 2. **Pattern Verification** - Check existing implementations in codebase
 3. **Specialized Requirements** - Follow domain-specific patterns
 4. **Complex Logic Testing** - Multi-scenario test coverage
@@ -369,13 +376,26 @@ Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 - Include IntegratedBanner - Frontend workflow lifecycle display
 - Test workflow transitions - State changes and action validation
 
-**For AI Integration (ADR-023/023A):**
+**For AI Infrastructure (ADR-023/023A):**
 
 - Verify AI boundary enforcement - No direct DB/storage access
 - Check BullMQ 2-queue setup - ai-realtime + ai-batch
 - Validate Qdrant multi-tenancy - projectPublicId filter required
 - Test human-in-the-loop validation workflows
-- Audit AI interaction logging
+- Audit AI interaction logging to ai_audit_logs
+
+**For AI Runtime Layer (ADR-024/025/026/027):**
+
+- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (gemma4:e4b, semaphore max=3)
+- ADR-025: Tool Registry dispatch — AI Gateway → Tool → Business Service; ToolResult DTO must use publicId only
+- ADR-026: useAiChat() hook + side-panel UI; streaming response via SSE; TanStack Query cache
+- ADR-027: Admin Console — dynamic model/prompt/intent control; CASL-guarded admin-only endpoints
+
+**For Migration Pipeline (ADR-028):**
+
+- Use Staging Queue pattern — never write directly to production tables
+- Post-migration cleanup process required after each batch
+- Migration Validation Gates must pass before promoting to production
 
 **Expected output:**
 
@@ -401,7 +421,7 @@ When user asks about... check these files:
 | "ตรวจสอบ permission"        | ✅     | `lcbp3-v1.9.0-seed-permissions.sql`, `ADR-016`                                        | CASL 4-Level RBAC matrix                                                |
 | "deploy production"         | ✅     | `04-08-release-management-policy.md`, `ADR-015`                                       | Release Gates + Blue-Green strategy                                     |
 | "เพิ่ม test"                | ✅     | `05-04-testing-strategy.md`                                                           | Coverage goals + test patterns                                          |
-| "AI integration"            | ✅     | `ADR-023`, `ADR-023A`                                                                 | AI boundary + 2-model stack + BullMQ queue policy                       |
+| "AI integration"            | ✅     | `ADR-023`, `ADR-023A`, `ADR-024`, `ADR-025`                                           | AI boundary + 2-model stack + BullMQ queue policy + Intent/Tool Layer   |
 | "Error handling"            | ✅     | `ADR-007`                                                                             | Layered error classification + recovery                                 |
 | "File upload"               | ✅     | `ADR-016`, `05-02-backend-guidelines.md`, `03-Data-and-Storage/03-03-file-storage.md` | Two-phase upload → temp → commit; ClamAV + whitelist                    |
 | "Notifications / Queue"     | ✅     | `ADR-008`, `05-02-backend-guidelines.md`                                              | BullMQ job — never inline; check retry + dead-letter                    |
@@ -413,6 +433,11 @@ When user asks about... check these files:
 | "Circulation reassign"      | 📋     | `ADR-021`, `specs/200-fullstacks/201-transmittals-circulation/`                       | reassignRouting() with EC-CIRC-001                                      |
 | "สร้าง workflow ใหม่"       | 📋     | `ADR-001`, `ADR-021`, `specs/200-fullstacks/203-unified-workflow-engine/`             | DSL workflow definition + WorkflowEngineService setup                   |
 | "ตรวจสอบ AI boundary"       | ✅     | `ADR-023`, `ADR-023A`                                                                 | Verify Ollama isolation + BullMQ queues + Qdrant projectPublicId filter |
+| "Intent classification"     | ✅     | `ADR-024`, `specs/200-fullstacks/224-intent-classification/`                          | Pattern Layer → LLM Fallback; ai_intent_patterns; Redis cache 5 min     |
+| "AI Tool Layer"             | ✅     | `ADR-025`, `specs/200-fullstacks/225-ai-tool-layer-architecture/`                     | Tool Registry; CASL-guarded dispatch; ToolResult publicId only          |
+| "Document Chat UI"          | ✅     | `ADR-026`, `specs/200-fullstacks/226-document-chat-ui-pattern/`                       | Side-panel; useAiChat() hook; streaming SSE; TanStack Query cache       |
+| "AI Admin Console"          | ✅     | `ADR-027`, `specs/200-fullstacks/227-ai-admin-console/`                               | Dynamic model/prompt/intent control; admin-only CASL endpoints          |
+| "Migration refactor"        | ✅     | `ADR-028`, `specs/200-fullstacks/228-migration-arch-refactor/`                        | Staging Queue; post-migration cleanup; validation gates                 |
 | "จัดการ document numbering" | ✅     | `ADR-002`, `specs/03-Data-and-Storage/03-04-document-numbering.md`                    | Redis Redlock + template system + preview/override workflows            |
 | "Audit ความปลอดภัย"         | ✅     | `ADR-016`, `ADR-019`, `ADR-023`, `ADR-023A`                                           | ตรวจสอบ UUID pattern, CASL Guard, AI Boundary และ Qdrant multi-tenancy  |
 | "แก้ bug / bugfix"          | ✅     | `.agents/workflows/bugfix.md`, `error-catalog.md`                                     | ใช้ bugfix workflow สำหรับเคสที่สาเหตุชัดเจน                            |
@@ -535,12 +560,13 @@ This file is a **quick reference**. For detailed information:
 
 ## 🔄 Change Log
 
-| Version | Date       | Changes                                                                                                                                                                                               | Updated By     |
-| ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1.9.5   | 2026-05-18 | **Grill-with-Docs Session:** Domain terminology clarified (Correspondence = all doc types), Tier 3: SPECIALIZED WORK added, Context-Aware Triggers with Status column, Tier-specific Final Checklists | Windsurf AI    |
-| 1.9.4   | 2026-05-16 | Added ADR-015 Release Strategy to Key Spec Files table (Blue-Green deployment + release gates)                                                                                                        | Human Dev      |
-| 1.9.3   | 2026-05-15 | ADR-023A: Model revision — gemma4:9b+Typhoon→gemma4:e4b Q8_0 (2-model stack), BullMQ 2-queue split, RAG full-doc embed, OCR auto-detect, n8n→DMS API boundary, QdrantService multi-tenancy contract   | Windsurf AI    |
-| 1.9.2   | 2026-05-14 | Consolidated legacy AI ADRs (017, 017B, 018, 020, 022) into master ADR-023: Unified AI Architecture                                                                                                   | Antigravity AI |
-| 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                                                                       | Windsurf AI    |
-| 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                                                                          | Windsurf AI    |
-| 1.8.5   | 2026-04-22 | Legacy version                                                                                                                                                                                        | Human Dev      |
+| Version | Date       | Changes                                                                                                                                                                                                                               | Updated By     |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.6   | 2026-05-22 | Added ADR-024/025/026/027/028 to Key Spec Files; Tier 3 expanded (AI Runtime Layer + Migration Pipeline); Specialized Work updated; 6 new Context-Aware Triggers; Forbidden Actions + Domain Terminology synced from AGENTS.md v1.9.6 | Windsurf AI    |
+| 1.9.5   | 2026-05-18 | **Grill-with-Docs Session:** Domain terminology clarified (Correspondence = all doc types), Tier 3: SPECIALIZED WORK added, Context-Aware Triggers with Status column, Tier-specific Final Checklists                                 | Windsurf AI    |
+| 1.9.4   | 2026-05-16 | Added ADR-015 Release Strategy to Key Spec Files table (Blue-Green deployment + release gates)                                                                                                                                        | Human Dev      |
+| 1.9.3   | 2026-05-15 | ADR-023A: Model revision — gemma4:9b+Typhoon→gemma4:e4b Q8_0 (2-model stack), BullMQ 2-queue split, RAG full-doc embed, OCR auto-detect, n8n→DMS API boundary, QdrantService multi-tenancy contract                                   | Windsurf AI    |
+| 1.9.2   | 2026-05-14 | Consolidated legacy AI ADRs (017, 017B, 018, 020, 022) into master ADR-023: Unified AI Architecture                                                                                                                                   | Antigravity AI |
+| 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                                                                                                       | Windsurf AI    |
+| 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                                                                                                          | Windsurf AI    |
+| 1.8.5   | 2026-04-22 | Legacy version                                                                                                                                                                                                                        | Human Dev      |

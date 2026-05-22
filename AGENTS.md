@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.5 | Last synced from repo: 2026-05-18
+- Version: 1.9.6 | Last synced from repo: 2026-05-22
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -89,7 +89,9 @@ Must fix ก่อน merge:
 Requires domain-specific knowledge:
 
 - **ADR-021 Integration:** Workflow Engine & Context implementation
-- **AI Integration:** ADR-023/023A boundary enforcement and pipeline usage
+- **AI Infrastructure:** ADR-023/023A boundary enforcement and pipeline usage
+- **AI Runtime Layer:** ADR-024 Intent Classification, ADR-025 Tool Layer, ADR-026 Chat UI, ADR-027 Admin Console
+- **Migration Pipeline:** ADR-028 Staging Queue & post-migration cleanup
 - **Complex Business Logic:** Multi-step workflows with state management
 - **Performance Optimization:** Database queries, caching strategies, bulk operations
 
@@ -107,32 +109,37 @@ Best practice — follow when possible:
 
 Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
 
-| Document                     | Path                                                                 | Status    | Use When                                                                          |
-| ---------------------------- | -------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------- |
-| **Glossary**                 | `specs/00-overview/00-02-glossary.md`                                | —         | Verify domain terminology                                                         |
-| **Schema Tables**            | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`        | —         | Before writing any query                                                          |
-| **Data Dictionary**          | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                 | —         | Field meanings + business rules                                                   |
-| **RBAC Matrix**              | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md` | —         | Permission levels + roles                                                         |
-| **Edge Cases**               | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                | —         | Prevent bugs in flows                                                             |
-| **ADR-001 Workflow Engine**  | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`       | ✅ Active | DSL-based workflow implementation                                                 |
-| **ADR-002 Doc Numbering**    | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`   | ✅ Active | Document number generation + locking                                              |
-| **ADR-007 Error Handling**   | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`       | ✅ Active | Error patterns & recovery                                                         |
-| **ADR-008 Notifications**    | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`   | ✅ Active | BullMQ + multi-channel notification                                               |
-| **ADR-009 DB Migration**     | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`   | ✅ Active | Schema changes — edit SQL directly                                                |
-| **ADR-016 Security**         | `specs/06-Decision-Records/ADR-016-security-authentication.md`       | ✅ Active | Auth, RBAC, file upload security                                                  |
-| **ADR-015 Release Strategy** | `specs/06-Decision-Records/ADR-015-deployment-infrastructure.md`     | ✅ Active | Blue-Green deployment + release gates                                             |
-| **ADR-019 UUID**             | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`    | ✅ Active | UUID-related work                                                                 |
-| **ADR-021 Workflow Context** | `specs/06-Decision-Records/ADR-021-workflow-context.md`              | ✅ Active | Integrated workflow & step attachments                                            |
-| **ADR-023 AI Architecture**  | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`       | ✅ Active | Unified AI boundaries and pipeline (base architecture)                            |
-| **ADR-023A AI Model Rev.**   | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`      | ✅ Active | 2-Model stack (gemma4:e4b Q8_0), BullMQ 2-queue, RAG embed scope, OCR auto-detect |
-| **Backend Guidelines**       | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`        | —         | NestJS patterns                                                                   |
-| **Frontend Guidelines**      | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`       | —         | Next.js patterns                                                                  |
-| **Testing Strategy**         | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`          | —         | Coverage goals                                                                    |
-| **Git Conventions**          | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`           | —         | Commit/branch naming                                                              |
-| **Code Snippets**            | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`             | —         | Reusable patterns                                                                 |
-| **i18n Guidelines**          | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`           | —         | Localization rules                                                                |
-| **Release Policy**           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`     | —         | Before deploy/hotfix                                                              |
-| **UAT Criteria**             | `specs/01-Requirements/01-05-acceptance-criteria.md`                 | —         | Feature completeness                                                              |
+| Document                       | Path                                                                        | Status    | Use When                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------- |
+| **Glossary**                   | `specs/00-overview/00-02-glossary.md`                                       | —         | Verify domain terminology                                                         |
+| **Schema Tables**              | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`               | —         | Before writing any query                                                          |
+| **Data Dictionary**            | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                        | —         | Field meanings + business rules                                                   |
+| **RBAC Matrix**                | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md`        | —         | Permission levels + roles                                                         |
+| **Edge Cases**                 | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                       | —         | Prevent bugs in flows                                                             |
+| **ADR-001 Workflow Engine**    | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`              | ✅ Active | DSL-based workflow implementation                                                 |
+| **ADR-002 Doc Numbering**      | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`          | ✅ Active | Document number generation + locking                                              |
+| **ADR-007 Error Handling**     | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`              | ✅ Active | Error patterns & recovery                                                         |
+| **ADR-008 Notifications**      | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`          | ✅ Active | BullMQ + multi-channel notification                                               |
+| **ADR-009 DB Migration**       | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`          | ✅ Active | Schema changes — edit SQL directly                                                |
+| **ADR-016 Security**           | `specs/06-Decision-Records/ADR-016-security-authentication.md`              | ✅ Active | Auth, RBAC, file upload security                                                  |
+| **ADR-015 Release Strategy**   | `specs/06-Decision-Records/ADR-015-deployment-infrastructure.md`            | ✅ Active | Blue-Green deployment + release gates                                             |
+| **ADR-019 UUID**               | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`           | ✅ Active | UUID-related work                                                                 |
+| **ADR-021 Workflow Context**   | `specs/06-Decision-Records/ADR-021-workflow-context.md`                     | ✅ Active | Integrated workflow & step attachments                                            |
+| **ADR-023 AI Architecture**    | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`              | ✅ Active | Unified AI boundaries and pipeline (base architecture)                            |
+| **ADR-023A AI Model Rev.**     | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | ✅ Active | 2-Model stack (gemma4:e4b Q8_0), BullMQ 2-queue, RAG embed scope, OCR auto-detect |
+| **ADR-024 Intent Class.**      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`       | ✅ Active | Hybrid Pattern→LLM Fallback; ai_intent_patterns DB; Redis cache 5 min             |
+| **ADR-025 AI Tool Layer**      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`           | ✅ Active | Server-side Tool dispatch; CASL-guarded bridge; ToolResult uses publicId only     |
+| **ADR-026 Chat UI**            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`             | ✅ Active | Side-panel Document Chat UI; useAiChat() hook; streaming response support         |
+| **ADR-027 AI Admin Console**   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md` | ✅ Active | Admin Panel + dynamic model/prompt/intent control without redeploy                |
+| **ADR-028 Migration Refactor** | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`      | ✅ Active | Staging Queue & post-migration cleanup                                            |
+| **Backend Guidelines**         | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`               | —         | NestJS patterns                                                                   |
+| **Frontend Guidelines**        | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`              | —         | Next.js patterns                                                                  |
+| **Testing Strategy**           | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`                 | —         | Coverage goals                                                                    |
+| **Git Conventions**            | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`                  | —         | Commit/branch naming                                                              |
+| **Code Snippets**              | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`                    | —         | Reusable patterns                                                                 |
+| **i18n Guidelines**            | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`                  | —         | Localization rules                                                                |
+| **Release Policy**             | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`            | —         | Before deploy/hotfix                                                              |
+| **UAT Criteria**               | `specs/01-Requirements/01-05-acceptance-criteria.md`                        | —         | Feature completeness                                                              |
 
 ---
 
@@ -380,11 +387,11 @@ Full glossary: `specs/00-overview/00-02-glossary.md`
 - All existing tests still pass (no regressions)
 - If logic changed: at least 1 regression test added
 
-### � Specialized Work — ADR-021, AI Integration, Complex Logic
+### 🟢 Specialized Work — ADR-021, AI Runtime Layer, Complex Logic
 
 **MUST complete:**
 
-1. **Domain Knowledge Check** - Read relevant ADRs (ADR-021, ADR-023/023A)
+1. **Domain Knowledge Check** - Read relevant ADRs (ADR-021, ADR-023/023A, ADR-024~028)
 2. **Pattern Verification** - Check existing implementations in codebase
 3. **Specialized Requirements** - Follow domain-specific patterns
 4. **Complex Logic Testing** - Multi-scenario test coverage
@@ -399,13 +406,26 @@ Full glossary: `specs/00-overview/00-02-glossary.md`
 - Include IntegratedBanner - Frontend workflow lifecycle display
 - Test workflow transitions - State changes and action validation
 
-**For AI Integration (ADR-023/023A):**
+**For AI Infrastructure (ADR-023/023A):**
 
 - Verify AI boundary enforcement - No direct DB/storage access
 - Check BullMQ 2-queue setup - ai-realtime + ai-batch
 - Validate Qdrant multi-tenancy - projectPublicId filter required
 - Test human-in-the-loop validation workflows
-- Audit AI interaction logging
+- Audit AI interaction logging to ai_audit_logs
+
+**For AI Runtime Layer (ADR-024/025/026/027):**
+
+- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (gemma4:e4b, semaphore max=3)
+- ADR-025: Tool Registry dispatch — AI Gateway → Tool → Business Service; ToolResult DTO must use publicId only
+- ADR-026: useAiChat() hook + side-panel UI; streaming response via SSE; TanStack Query cache
+- ADR-027: Admin Console — dynamic model/prompt/intent control; CASL-guarded admin-only endpoints
+
+**For Migration Pipeline (ADR-028):**
+
+- Use Staging Queue pattern — never write directly to production tables
+- Post-migration cleanup process required after each batch
+- Migration Validation Gates must pass before promoting to production
 
 **Expected output:**
 
@@ -431,7 +451,7 @@ When user asks about... check these files:
 | "ตรวจสอบ permission"        | ✅     | `lcbp3-v1.9.0-seed-permissions.sql`, `ADR-016`                                        | CASL 4-Level RBAC matrix                                                |
 | "deploy production"         | ✅     | `04-08-release-management-policy.md`, `ADR-015`                                       | Release Gates + Blue-Green strategy                                     |
 | "เพิ่ม test"                | ✅     | `05-04-testing-strategy.md`                                                           | Coverage goals + test patterns                                          |
-| "AI integration"            | ✅     | `ADR-023`, `ADR-023A`                                                                 | AI boundary + 2-model stack + BullMQ queue policy                       |
+| "AI integration"            | ✅     | `ADR-023`, `ADR-023A`, `ADR-024`, `ADR-025`                                           | AI boundary + 2-model stack + BullMQ queue policy + Intent/Tool Layer   |
 | "Error handling"            | ✅     | `ADR-007`                                                                             | Layered error classification + recovery                                 |
 | "File upload"               | ✅     | `ADR-016`, `05-02-backend-guidelines.md`, `03-Data-and-Storage/03-03-file-storage.md` | Two-phase upload → temp → commit; ClamAV + whitelist                    |
 | "Notifications / Queue"     | ✅     | `ADR-008`, `05-02-backend-guidelines.md`                                              | BullMQ job — never inline; check retry + dead-letter                    |
@@ -443,6 +463,11 @@ When user asks about... check these files:
 | "Circulation reassign"      | 📋     | `ADR-021`, `specs/200-fullstacks/201-transmittals-circulation/`                       | reassignRouting() with EC-CIRC-001                                      |
 | "สร้าง workflow ใหม่"       | 📋     | `ADR-001`, `ADR-021`, `specs/200-fullstacks/203-unified-workflow-engine/`             | DSL workflow definition + WorkflowEngineService setup                   |
 | "ตรวจสอบ AI boundary"       | ✅     | `ADR-023`, `ADR-023A`                                                                 | Verify Ollama isolation + BullMQ queues + Qdrant projectPublicId filter |
+| "Intent classification"     | ✅     | `ADR-024`, `specs/200-fullstacks/224-intent-classification/`                          | Pattern Layer → LLM Fallback; ai_intent_patterns; Redis cache 5 min     |
+| "AI Tool Layer"             | ✅     | `ADR-025`, `specs/200-fullstacks/225-ai-tool-layer-architecture/`                     | Tool Registry; CASL-guarded dispatch; ToolResult publicId only          |
+| "Document Chat UI"          | ✅     | `ADR-026`, `specs/200-fullstacks/226-document-chat-ui-pattern/`                       | Side-panel; useAiChat() hook; streaming SSE; TanStack Query cache       |
+| "AI Admin Console"          | ✅     | `ADR-027`, `specs/200-fullstacks/227-ai-admin-console/`                               | Dynamic model/prompt/intent control; admin-only CASL endpoints          |
+| "Migration refactor"        | ✅     | `ADR-028`, `specs/200-fullstacks/228-migration-arch-refactor/`                        | Staging Queue; post-migration cleanup; validation gates                 |
 | "จัดการ document numbering" | ✅     | `ADR-002`, `specs/03-Data-and-Storage/03-04-document-numbering.md`                    | Redis Redlock + template system + preview/override workflows            |
 | "Audit ความปลอดภัย"         | ✅     | `ADR-016`, `ADR-019`, `ADR-023`, `ADR-023A`                                           | ตรวจสอบ UUID pattern, CASL Guard, AI Boundary และ Qdrant multi-tenancy  |
 | "แก้ bug / bugfix"          | ✅     | `.agents/workflows/bugfix.md`, `error-catalog.md`                                     | ใช้ bugfix workflow สำหรับเคสที่สาเหตุชัดเจน                            |
@@ -565,25 +590,26 @@ This file is a **quick reference**. For detailed information:
 
 ## 🔄 Change Log
 
-| Version | Date       | Changes                                                                                                                                                                                               | Updated By     |
-| ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1.9.5   | 2026-05-18 | **Grill-with-Docs Session:** Domain terminology clarified (Correspondence = all doc types), Tier 3: SPECIALIZED WORK added, Context-Aware Triggers with Status column, Tier-specific Final Checklists | Windsurf AI    |
-| 1.9.4   | 2026-05-16 | Added ADR-015 Release Strategy to Key Spec Files table (Blue-Green deployment + release gates)                                                                                                        | Human Dev      |
-| 1.9.3   | 2026-05-15 | ADR-023A: Model revision — gemma4:9b+Typhoon→gemma4:e4b Q8_0 (2-model stack), BullMQ 2-queue split, RAG full-doc embed, OCR auto-detect, n8n→DMS API boundary, QdrantService multi-tenancy contract   | Windsurf AI    |
-| 1.9.2   | 2026-05-14 | Consolidated legacy AI ADRs (017, 017B, 018, 020, 022) into master ADR-023: Unified AI Architecture                                                                                                   | Antigravity AI |
-| 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                                                                       | Windsurf AI    |
-| 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                                                                          | Windsurf AI    |
-| 1.8.9   | 2026-04-22 | `.agents/skills/` LCBP3-native rebuild (20 skills @ v1.8.9) + `_LCBP3-CONTEXT.md` appendix + `specs/03-Data-and-Storage/deltas/` + AGENTS.md sync                                                     | Windsurf AI    |
-| 1.8.8   | 2026-04-14 | Workflow attachments (ADR-021) + step-attachment envelope fields                                                                                                                                      | Windsurf AI    |
-| 1.8.7   | 2026-04-14 | + ADR-021 Workflow Context integration, + ADR-021 Integration Work tier, + Transmittal/Circulation context triggers, updated ADR-020 status                                                           | Windsurf AI    |
-| 1.8.6   | 2026-04-10 | + DMS Workflow Engine Protocol, + Security & Integrity Audit Protocol, + 2 Context-Aware Triggers, ADR Status column, Forbidden Why column                                                            | Human Dev      |
-| 1.8.5   | 2026-04-04 | Added ADR-007 error handling, ADR-020 AI integration, updated security rules                                                                                                                          | Windsurf AI    |
-| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note                                                                                                                                   | Windsurf AI    |
-| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                                                                                                                                          | Human Dev + AI |
-| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n                                                                                                                                         | Human Dev + AI |
-| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                                                                                                                                                    | Claude Sonnet  |
-| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                                                                                                                                                        | Human Dev      |
-| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                                                                                                                                                         | Gemini Pro     |
+| Version | Date       | Changes                                                                                                                                                                                                                                    | Updated By     |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| 1.9.6   | 2026-05-22 | Added ADR-024/025/026/027/028 to Key Spec Files table; Tier 3 expanded with AI Runtime Layer + Migration Pipeline tiers; Specialized Work section updated with ADR-024~028 patterns; 6 new Context-Aware Triggers; bumped Last synced date | Windsurf AI    |
+| 1.9.5   | 2026-05-18 | **Grill-with-Docs Session:** Domain terminology clarified (Correspondence = all doc types), Tier 3: SPECIALIZED WORK added, Context-Aware Triggers with Status column, Tier-specific Final Checklists                                      | Windsurf AI    |
+| 1.9.4   | 2026-05-16 | Added ADR-015 Release Strategy to Key Spec Files table (Blue-Green deployment + release gates)                                                                                                                                             | Human Dev      |
+| 1.9.3   | 2026-05-15 | ADR-023A: Model revision — gemma4:9b+Typhoon→gemma4:e4b Q8_0 (2-model stack), BullMQ 2-queue split, RAG full-doc embed, OCR auto-detect, n8n→DMS API boundary, QdrantService multi-tenancy contract                                        | Windsurf AI    |
+| 1.9.2   | 2026-05-14 | Consolidated legacy AI ADRs (017, 017B, 018, 020, 022) into master ADR-023: Unified AI Architecture                                                                                                                                        | Antigravity AI |
+| 1.9.1   | 2026-05-13 | Added `bugfix` workflow and skill (migrated and improved from `docs/bugfix.md`)                                                                                                                                                            | Windsurf AI    |
+| 1.9.0   | 2026-05-03 | Integrated Global TypeScript Coding Standards (Headers, JSDoc, Thai comments, Single Export, No blank lines)                                                                                                                               | Windsurf AI    |
+| 1.8.9   | 2026-04-22 | `.agents/skills/` LCBP3-native rebuild (20 skills @ v1.8.9) + `_LCBP3-CONTEXT.md` appendix + `specs/03-Data-and-Storage/deltas/` + AGENTS.md sync                                                                                          | Windsurf AI    |
+| 1.8.8   | 2026-04-14 | Workflow attachments (ADR-021) + step-attachment envelope fields                                                                                                                                                                           | Windsurf AI    |
+| 1.8.7   | 2026-04-14 | + ADR-021 Workflow Context integration, + ADR-021 Integration Work tier, + Transmittal/Circulation context triggers, updated ADR-020 status                                                                                                | Windsurf AI    |
+| 1.8.6   | 2026-04-10 | + DMS Workflow Engine Protocol, + Security & Integrity Audit Protocol, + 2 Context-Aware Triggers, ADR Status column, Forbidden Why column                                                                                                 | Human Dev      |
+| 1.8.5   | 2026-04-04 | Added ADR-007 error handling, ADR-020 AI integration, updated security rules                                                                                                                                                               | Windsurf AI    |
+| 1.8.4   | 2026-03-24 | Phase 5.4→✅ DONE, Tailwind 3.4.3, ADR count(16), MariaDB UUID note                                                                                                                                                                        | Windsurf AI    |
+| 1.8.3   | 2026-03-21 | + Rule Enforcement Tiers (🔴🟡🟢), + Tiered Development Flow                                                                                                                                                                               | Human Dev + AI |
+| 1.8.2   | 2026-03-21 | + Context Triggers, + Code Snippets, + Error Handling, + i18n                                                                                                                                                                              | Human Dev + AI |
+| 1.8.1   | 2026-03-21 | + ADR-019 UUID patterns, + Phase 5.4 pending files                                                                                                                                                                                         | Claude Sonnet  |
+| 1.8.0   | 2026-03-19 | + Security overrides, + UAT criteria reference                                                                                                                                                                                             | Human Dev      |
+| 1.7.2   | 2026-03-15 | + AI Boundary rules (ADR-018)                                                                                                                                                                                                              | Gemini Pro     |
 
 ---
 
