@@ -1,6 +1,7 @@
 // File: src/modules/migration/migration.module.ts
 // Change Log:
 // - 2026-05-22: นำเข้าและลงทะเบียน ExpirePendingReviewsWorker (T016b), Attachment, User, และ NotificationModule เพื่อรองรับระบบยกเลิกรีวิวที่หมดอายุ
+// - 2026-05-22: เพิ่ม CaslModule import เพื่อแก้ไข PermissionsGuard dependency (AbilityFactory)
 
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -18,6 +19,7 @@ import { FileStorageModule } from '../../common/file-storage/file-storage.module
 import { Attachment } from '../../common/file-storage/entities/attachment.entity';
 import { User } from '../user/entities/user.entity';
 import { NotificationModule } from '../notification/notification.module';
+import { CaslModule } from '../../common/auth/casl/casl.module';
 
 import { MigrationReviewQueue } from './entities/migration-review-queue.entity';
 import { MigrationError } from './entities/migration-error.entity';
@@ -39,6 +41,7 @@ import { ExpirePendingReviewsWorker } from './workers/expire-pending-reviews.wor
     ]),
     FileStorageModule,
     NotificationModule,
+    CaslModule,
   ],
   controllers: [MigrationController, MigrationReviewController],
   providers: [
