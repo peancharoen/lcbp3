@@ -4,7 +4,13 @@ import { User } from '../../../modules/user/entities/user.entity';
 import { UserAssignment } from '../../../modules/user/entities/user-assignment.entity';
 
 // Define action types
-export type Actions = 'create' | 'read' | 'update' | 'delete' | 'manage';
+export type Actions =
+  | 'create'
+  | 'read'
+  | 'update'
+  | 'delete'
+  | 'manage'
+  | 'commit';
 
 // Define subject types (resources)
 export type Subjects =
@@ -18,6 +24,7 @@ export type Subjects =
   | 'user'
   | 'role'
   | 'workflow'
+  | 'migration'
   | 'all';
 
 export type AppAbility = Ability<[Actions, Subjects]>;

@@ -19,6 +19,7 @@ import {
   ValidationException,
   SystemException,
   BusinessException,
+  ConflictException,
 } from '../../common/exceptions';
 import {
   MigrationLog,
@@ -32,6 +33,9 @@ import { MigrationUpdateDto } from './dto/migration-update.dto';
 import { MigrationQueryDto } from './dto/migration-query.dto';
 import { AiValidationService } from './ai-validation.service';
 import { CreateAiJobDto } from './dto/create-ai-job.dto';
+import { SubmitAiJobDto } from './dto/submit-ai-job.dto';
+import { ImportTransaction } from '../migration/entities/import-transaction.entity';
+import { Project } from '../project/entities/project.entity';
 import {
   QUEUE_AI_BATCH,
   QUEUE_AI_REALTIME,
@@ -159,6 +163,8 @@ export class AiService {
     private readonly aiAuditLogRepo: Repository<AiAuditLog>,
     @InjectRepository(AuditLog)
     private readonly auditLogRepo: Repository<AuditLog>,
+    @InjectRepository(ImportTransaction)
+    private readonly importTransactionRepo: Repository<ImportTransaction>,
     @Optional()
     @InjectQueue(QUEUE_AI_REALTIME)
     private readonly aiRealtimeQueue?: Queue<AiRealtimeJobData>,
@@ -248,6 +254,71 @@ export class AiService {
       const error = err instanceof Error ? err : new Error(String(err));
       this.logger.error('AI job queue failed', {
         documentPublicId: dto.documentPublicId,
+        error,
+      });
+      return { success: false, error };
+    }
+  }
+
+  /** ส่งคำขอเปิดงานประมวลผลการย้ายเอกสารของ AI (migrate-document) เข้า BullMQ */
+  async submitMigrationJob(
+    dto: SubmitAiJobDto,
+    idempotencyKey: string
+  ): Promise<AiQueueResult> {
+    if (!this.aiBatchQueue) {
+      const error = new Error('AI batch queue is not registered');
+      this.logger.error('AI job queue failed', {
+        documentPublicId: dto.payload.tempAttachmentId,
+        error,
+      });
+      return { success: false, error };
+    }
+    const existingTx = await this.importTransactionRepo.findOne({
+      where: {
+        documentNumber: dto.payload.documentNumber,
+        batchId: dto.payload.batchId,
+      },
+    });
+    if (existingTx && existingTx.statusCode !== 500) {
+      throw new ConflictException(
+        'MIGRATION_DUPLICATE_TRANSACTION',
+        `Document ${dto.payload.documentNumber} already imported in batch ${dto.payload.batchId}`,
+        'เอกสารนี้ได้รับการนำเข้าในระบบ Staging/Production แล้ว'
+      );
+    }
+    const activeJob = await this.aiBatchQueue.getJob(idempotencyKey);
+    if (activeJob) {
+      return { success: true, jobId: String(activeJob.id) };
+    }
+    const defaultProject = await this.importTransactionRepo.manager.findOne(
+      Project,
+      { where: {} }
+    );
+    const projectPublicId =
+      defaultProject?.publicId ?? '00000000-0000-0000-0000-000000000000';
+    try {
+      const job = await this.aiBatchQueue.add(
+        'migrate-document',
+        {
+          jobType: 'migrate-document',
+          documentPublicId: dto.payload.tempAttachmentId,
+          projectPublicId,
+          payload: {
+            documentNumber: dto.payload.documentNumber,
+            title: dto.payload.title,
+            batchId: dto.payload.batchId,
+            existingTags: dto.payload.existingTags,
+            systemCategories: dto.payload.systemCategories,
+          },
+          idempotencyKey,
+        },
+        { jobId: idempotencyKey }
+      );
+      return { success: true, jobId: String(job.id) };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      this.logger.error('AI job queue failed', {
+        documentPublicId: dto.payload.tempAttachmentId,
         error,
       });
       return { success: false, error };

@@ -1,7 +1,12 @@
+// File: types/migration.ts
+// Change Log:
+// - 2026-05-22: Initial creation and update for ADR-019 compatibility and added subject fields
+
 export enum MigrationReviewStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+  IMPORTED = 'IMPORTED',
 }
 
 export interface MigrationReviewQueueItem {
@@ -10,9 +15,12 @@ export interface MigrationReviewQueueItem {
   documentNumber: string;
   title?: string;
   originalTitle?: string;
+  subject?: string;
+  originalSubject?: string;
+  body?: string;
   aiSuggestedCategory?: string;
   aiConfidence?: number;
-  aiIssues?: Record<string, unknown>;
+  aiIssues?: Record<string, unknown>[];
   reviewReason?: string;
   status: MigrationReviewStatus;
   reviewedBy?: string;
@@ -25,7 +33,7 @@ export interface MigrationReviewQueueItem {
   issuedDate?: string;
   remarks?: string;
   aiSummary?: string;
-  extractedTags?: Record<string, unknown>;
+  extractedTags?: Record<string, unknown>[];
   tempAttachmentId?: number | string; // ADR-019: Accept UUID
 }
 

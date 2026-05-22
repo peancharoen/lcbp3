@@ -3,7 +3,7 @@
 > **สำหรับ n8n Free Plan (Self-hosted)** - ไม่ใช้ Environment Variables
 > **Version:** 1.8.0-free | **Last Updated:** 2026-03-04
 
-เอกสารนี้จัดทำขึ้นเพื่อรองรับการ Migration เอกสาร PDF 20,000 ฉบับ ตามแผนใน `03-04-legacy-data-migration.md` และ `ADR-017-ollama-data-migration.md`
+เอกสารนี้จัดทำขึ้นเพื่อรองรับการ Migration เอกสาร PDF 20,000 ฉบับ ตามแผนใน `03-04-legacy-data-migration.md` และ `ADR-023A-unified-ai-architecture.md`
 
 ---
 
@@ -120,8 +120,9 @@ const CONFIG = {
 
   // Ollama Settings
   OLLAMA_HOST: 'http://192.168.20.100:11434',
-  OLLAMA_MODEL_PRIMARY: 'llama3.2:3b',
-  OLLAMA_MODEL_FALLBACK: 'mistral:7b-instruct-q4_K_M',
+  OLLAMA_MODEL: 'gemma4:e4b',         // ห้ามเปลี่ยน — กำหนดโดย ADR-023A
+  EMBED_MODEL: 'nomic-embed-text',     // สำหรับ Embedding เท่านั้น
+  // ไม่มี FALLBACK model — BullMQ concurrency=1 จัดการ GPU usage
 
   // Backend Settings
   BACKEND_URL: 'https://backend.np-dms.work',
@@ -164,7 +165,7 @@ return [{ json: { config_loaded: true, timestamp: new Date().toISOString() } }];
 1. **สร้าง Dedicated User สำหรับ Migration เท่านั้น** (แนะนำใช้ชื่อ `migration_bot`)
 2. **ใช้ Token ที่มีสิทธิ์จำกัด** (เฉพาะ API ที่จำเป็น)
 3. **Rotate Token ทันทีหลัง Migration เสร็จ**
-4. **💡 หมายเหตุ:** Backend ระบบ DMS ได้ถูกตั้งค่าให้สร้าง Token แบบไม่มีวันหมดอายุ (100 ปี) สำหรับ User ชื่อ `migration_bot` โดยเฉพาะ เพื่อป้องกันปัญหา Token หมดอายุระหว่างที่ Workflow กำลังทำงานข้ามวัน
+4. **💡 หมายเหตุ:** Token Expiry ≤ **7 วัน** ตาม ADR-023 — ต้อง Renew ทุกสัปดาห์ระหว่าง Migration Phase และ **Revoke ทันทีวัน Go-Live** (ดู Timeline ใน 03-06 Section 4)
 
 **Credentials (ถ้าใช้):**
 
@@ -210,14 +211,14 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 
 **ตารางที่สร้าง (6 ตาราง ชั่วคราว — ลบได้หลัง Migration เสร็จ):**
 
-| ตาราง                      | วัตถุประสงค์                       |
-| -------------------------- | ---------------------------------- |
-| `migration_progress`       | Checkpoint ติดตามความคืบหน้า Batch |
-| `migration_review_queue`   | รายการที่ต้องตรวจสอบโดยคน          |
-| `migration_errors`         | Error Log                          |
-| `migration_fallback_state` | สถานะ AI Model Fallback            |
-| `import_transactions`      | Idempotency ป้องกัน Import ซ้ำ     |
-| `migration_daily_summary`  | สรุปผลรายวัน                       |
+| ตาราง                      | วัตถุประสงค์                       | Retention |
+| -------------------------- | ---------------------------------- | --------- |
+| `migration_progress`       | Checkpoint ติดตามความคืบหน้า Batch | Drop หลัง Gate #3 |
+| `migration_review_queue`   | รายการที่ต้องตรวจสอบโดยคน          | Drop หลัง Gate #3 |
+| `migration_errors`         | Error Log                          | Drop หลัง Gate #3 |
+| `migration_fallback_state` | สถานะ AI Model Fallback            | Drop หลัง Gate #3 |
+| `import_transactions`      | Idempotency + **Audit Trail**      | ✅ เก็บถาวร (ไม่ Drop) |
+| `migration_daily_summary`  | สรุปผลรายวัน                       | Drop หลัง Gate #3 |
 
 ---
 
@@ -230,6 +231,7 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 
 ### Node 1: Pre-flight Checks & Data Reader
 
+- **Pre-flight Token Validation (FR-010a):** เรียก API `GET /api/auth/me` ก่อนประมวลผลเพื่อตรวจสอบความถูกต้องและอายุของ `MIGRATION_TOKEN` หากไม่ผ่าน (401 Unauthorized) ให้ยุติการทำงานทันทีเพื่อป้องกันการส่ง API ที่ล้มเหลว
 - ตรวจสอบ Backend Health และ Ollama Ping
 - อ่าน Checkpoint (`last_processed_index`) จาก `migration_progress`
 - Batch ข้อมูลจาก Excel ตามตาราง `BATCH_SIZE` ปกติ (50-100)
@@ -244,17 +246,21 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 
 ### Node 3: Text Extraction & Temp Upload
 
-- ใช้ **Apache Tika** (ผ่าน `Extract PDF Text` node หรือ HTTP Request) สกัดข้อความ (OCR/Text) ออกจาก PDF ใน staging
+- **OCR/Text Extraction ดำเนินการโดย BullMQ Worker** (Desk-5439) — n8n ไม่ extract เอง (PyMuPDF Fast Path / PaddleOCR + PyThaiNLP Slow Path ตาม ADR-023A Section 4.2)
 - แนบไฟล์ไปยัง Backend: ยิง HTTP Request **`POST /api/storage/upload`** ของ Backend
 - รอรับผลลัพธ์เป็น `temp_attachment_id` (หมายความว่าไฟล์นี้เข้าข่าย Temporary ถูกเก็บจัดการใน NAS เรียบร้อยแล้ว)
 - Output: ไฟล์พร้อมใช้งาน, ได้เนื้อหา Text มาเตรียม prompt
 
-### Node 4: AI Analysis
+### Node 4: AI Job Submission & Polling
 
-- วาง System Prompt บังคับ Output JSON
-- โยน Metadata (Title, Date, DB Lookups) พร้อม Extracted PDF Text คุยกับ **Ollama `llama3.2:3b`**
-- ให้ AI วิเคราะห์ และสรุปเป็น `ai_summary`
-- ให้ AI แนะนำ Tags ใหม่หรือเลือก Tags เดิมจาก `existing_tags_json`
+> ⚠️ **ADR-023A:** ห้ามเรียก Ollama โดยตรง — ต้องผ่าน DMS API → BullMQ
+
+- **Idempotency-Key Deterministic (FR-001a):** ส่ง header `Idempotency-Key` ในรูปแบบ `{batchId}:{documentNumber}` (ตัวอย่าง: `migration_20260226:DOC-001`) เพื่อให้แน่ใจว่าการส่งคำขอประมวลผลเอกสารซ้ำจะไม่มีผลซ้ำซ้อนในระบบ และไม่ใช้ random UUID
+- **Graceful Token Expiry (FR-010b):** หากพบข้อผิดพลาด 401 Unauthorized ในระหว่างที่ทำการประมวลผล (mid-batch) ให้ทำการอัปเดตสถานะใน `migration_progress` เป็น `TOKEN_EXPIRED` เพื่อบันทึก Checkpoint ล่าสุดและหยุดการรัน เพื่อให้สามารถดึงข้อมูล token ใหม่มาใส่แล้วกด Resume ต่อจากจุดเดิมได้ทันที
+- Submit: `POST /api/ai/jobs` พร้อม `temp_attachment_id`, `document_number`, `title`, `existing_tags`, `system_categories`
+- Response: `{ "jobId": "<uuid>" }`
+- Poll: `GET /api/ai/jobs/{{jobId}}` ทุก 5 วินาที จน `status = "completed"` (timeout 120 วินาที)
+- AI inference ใช้ `gemma4:e4b Q8_0` ผ่าน BullMQ Worker — System/User Prompt อยู่ใน Backend NestJS ไม่ใช่ใน n8n
 
 ### Node 5: Parse & Validate
 
@@ -503,5 +509,5 @@ mysql -h <DB_HOST> -u migration_bot -p -e "SELECT COUNT(DISTINCT ct.corresponden
 
 ---
 
-**เอกสารฉบับนี้จัดทำขึ้นสำหรับ n8n Free Plan (Self-hosted) ตาม ADR-017 และ 03-04**
+**เอกสารฉบับนี้จัดทำขึ้นสำหรับ n8n Free Plan (Self-hosted) ตาม ADR-023A และ 03-04**
 **Version:** 1.8.0-free | **Last Updated:** 2026-03-04 | **Author:** Development Team

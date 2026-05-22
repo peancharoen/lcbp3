@@ -26,6 +26,7 @@ interface MigrationAiIssues {
   sourceFilePath?: string;
   keyPoints?: string[];
   validationResults?: Array<{ message: string; severity: string }>;
+  tags?: string[];
 }
 
 const reviewFormSchema = z.object({
@@ -101,11 +102,9 @@ export default function MigrationReviewPage() {
 
   const onSubmit = async (values: ReviewFormValues) => {
     if (!item) return;
-
     try {
       setSubmitting(true);
-      const issues = item.aiIssues || {};
-
+      const issues = (item.aiIssues || {}) as unknown as MigrationAiIssues;
       const payload = {
         documentNumber: values.documentNumber,
         subject: values.subject,
@@ -113,7 +112,7 @@ export default function MigrationReviewPage() {
         sourceFilePath: issues.sourceFilePath || '',
         migratedBy: 'SYSTEM_IMPORT',
         batchId: 'MANUAL_REVIEW_BATCH',
-        projectId: 1, // Assumption or pulled from store
+        projectId: 1,
         documentDate: values.documentDate,
         issuedDate: values.issuedDate,
         receivedDate: values.receivedDate,
@@ -124,15 +123,12 @@ export default function MigrationReviewPage() {
           aiConfidence: item.aiConfidence,
         },
       };
-
       if (!item?.id) {
         toast.error('Invalid item ID');
         return;
       }
-      // Mock idempotency key based on timestamp to ensure uniqueness per approval retry
       const idempotencyKey = `review-${item.id}-${Date.now()}`;
       await migrationService.approveQueueItem(item.id, payload, idempotencyKey);
-
       toast.success('Document approved and imported successfully');
       router.push('/admin/migration');
     } catch (error: unknown) {
