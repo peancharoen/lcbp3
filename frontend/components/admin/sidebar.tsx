@@ -4,66 +4,90 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Settings, Activity, Shield, FileStack, ChevronDown, ChevronRight, Database, Brain } from 'lucide-react';
+import {
+  Settings,
+  Activity,
+  Shield,
+  ChevronDown,
+  ChevronRight,
+  Brain,
+  FolderOpen,
+  BookOpen,
+  Ruler,
+} from 'lucide-react';
+
+interface MenuChild {
+  href: string;
+  label: string;
+}
 
 interface MenuItem {
   href?: string;
   label: string;
+  sublabel?: string;
   icon: React.ComponentType<{ className?: string }>;
-  children?: { href: string; label: string }[];
+  children?: MenuChild[];
 }
 
 export const menuItems: MenuItem[] = [
   {
-    label: 'Access Control',
+    label: 'ผู้ใช้งาน & การเข้าถึง',
+    sublabel: 'Identity & Access',
     icon: Shield,
     children: [
-      { href: '/admin/access-control/users', label: 'Users' },
-      { href: '/admin/access-control/roles', label: 'Roles' },
-      { href: '/admin/access-control/organizations', label: 'Organizations' },
+      { href: '/admin/access-control/users', label: 'ผู้ใช้งาน' },
+      { href: '/admin/access-control/roles', label: 'บทบาท & สิทธิ์' },
+      { href: '/admin/access-control/organizations', label: 'องค์กร' },
     ],
   },
   {
-    label: 'Document Control',
-    icon: FileStack,
+    label: 'ตั้งค่าโครงการ',
+    sublabel: 'Project Setup',
+    icon: FolderOpen,
     children: [
-      { href: '/admin/doc-control/projects', label: 'Projects' },
-      { href: '/admin/doc-control/contracts', label: 'Contracts' },
-      { href: '/admin/doc-control/numbering', label: 'Numbering' },
-      { href: '/admin/doc-control/reference', label: 'Reference Data' },
-      { href: '/admin/doc-control/workflows', label: 'Workflows' },
+      { href: '/admin/doc-control/projects', label: 'โครงการ' },
+      { href: '/admin/doc-control/contracts', label: 'สัญญา' },
+      { href: '/admin/doc-control/numbering', label: 'รูปแบบเลขที่' },
+      { href: '/admin/doc-control/workflows', label: 'เวิร์กโฟลว์' },
     ],
   },
   {
-    label: 'Drawing Master',
-    icon: FileStack, // Or another icon
+    label: 'ข้อมูลอ้างอิง',
+    sublabel: 'Reference Data',
+    icon: BookOpen,
     children: [
-      { href: '/admin/doc-control/drawings/contract/volumes', label: 'Contract: Volumes' },
-      { href: '/admin/doc-control/drawings/contract/categories', label: 'Contract: Categories' },
-      { href: '/admin/doc-control/drawings/contract/sub-categories', label: 'Contract: Sub-categories' },
-      { href: '/admin/doc-control/drawings/shop/main-categories', label: 'Shop: Main Categories' },
-      { href: '/admin/doc-control/drawings/shop/sub-categories', label: 'Shop: Sub-categories' },
+      { href: '/admin/doc-control/reference/disciplines', label: 'สาขาวิชาชีพ' },
+      { href: '/admin/doc-control/reference/rfa-types', label: 'ประเภท RFA' },
+      { href: '/admin/doc-control/reference/correspondence-types', label: 'ประเภทหนังสือ' },
+      { href: '/admin/doc-control/reference/tags', label: 'แท็ก' },
     ],
   },
   {
-    label: 'Monitoring',
+    label: 'ข้อมูลแบบ Drawing',
+    sublabel: 'Drawing Master',
+    icon: Ruler,
+    children: [
+      { href: '/admin/doc-control/drawings/contract/volumes', label: 'สัญญา: Volume' },
+      { href: '/admin/doc-control/drawings/contract/categories', label: 'สัญญา: หมวดหมู่' },
+      { href: '/admin/doc-control/drawings/contract/sub-categories', label: 'สัญญา: หมวดหมู่ย่อย' },
+      { href: '/admin/doc-control/drawings/shop/main-categories', label: 'Shop: หมวดหมู่หลัก' },
+      { href: '/admin/doc-control/drawings/shop/sub-categories', label: 'Shop: หมวดหมู่ย่อย' },
+    ],
+  },
+  {
+    label: 'การปฏิบัติการ',
+    sublabel: 'Operations',
     icon: Activity,
     children: [
-      { href: '/admin/monitoring/audit-logs', label: 'Audit Logs' },
-      { href: '/admin/monitoring/system-logs/numbering', label: 'System Logs' },
-      { href: '/admin/monitoring/sessions', label: 'Active Sessions' },
-    ],
-  },
-  {
-    label: 'Migration',
-    icon: Database,
-    children: [
-      { href: '/admin/migration', label: 'Review Queue' },
-      { href: '/admin/migration/errors', label: 'Error Logs' },
+      { href: '/admin/monitoring/audit-logs', label: 'บันทึกการตรวจสอบ' },
+      { href: '/admin/monitoring/system-logs/numbering', label: 'บันทึกระบบ' },
+      { href: '/admin/monitoring/sessions', label: 'เซสชันที่ใช้งาน' },
+      { href: '/admin/migration', label: 'คิวนำเข้าข้อมูล' },
+      { href: '/admin/migration/errors', label: 'บันทึกข้อผิดพลาด' },
     ],
   },
   { href: '/admin/ai', label: 'AI Console', icon: Brain },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/settings', label: 'ตั้งค่าระบบ', sublabel: 'Settings', icon: Settings },
 ];
 
 export function AdminSidebar() {
@@ -100,21 +124,26 @@ export function AdminSidebar() {
                 <button
                   onClick={() => toggleMenu(item.label)}
                   className={cn(
-                    'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium',
+                    'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-colors',
                     hasActiveChild
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  <span className="flex items-center gap-3">
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                  <span className="flex items-center gap-3 min-w-0">
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="flex flex-col items-start text-left min-w-0">
+                      <span className="text-sm font-medium leading-tight truncate">{item.label}</span>
+                      {item.sublabel && (
+                        <span className="text-[10px] font-normal leading-tight opacity-60">{item.sublabel}</span>
+                      )}
+                    </span>
                   </span>
-                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
                 </button>
 
                 {isExpanded && (
-                  <div className="ml-4 mt-1 space-y-1 border-l pl-4">
+                  <div className="ml-4 mt-1 space-y-0.5 border-l pl-4">
                     {item.children.map((child) => {
                       const isActive = pathname === child.href;
                       return (
@@ -145,14 +174,19 @@ export function AdminSidebar() {
               key={item.href}
               href={item.href!}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium',
+                'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
                 isActive
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="flex flex-col items-start min-w-0">
+                <span className="text-sm font-medium leading-tight truncate">{item.label}</span>
+                {item.sublabel && (
+                  <span className="text-[10px] font-normal leading-tight opacity-60">{item.sublabel}</span>
+                )}
+              </span>
             </Link>
           );
         })}
@@ -212,21 +246,26 @@ export function AdminMobileSidebar() {
                     <button
                       onClick={() => toggleMenu(item.label)}
                       className={cn(
-                        'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium',
+                        'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-colors',
                         hasActiveChild
                           ? 'bg-primary/10 text-primary'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       )}
                     >
-                      <span className="flex items-center gap-3">
-                        <Icon className="h-4 w-4" />
-                        <span>{item.label}</span>
+                      <span className="flex items-center gap-3 min-w-0">
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="flex flex-col items-start text-left min-w-0">
+                          <span className="text-sm font-medium leading-tight truncate">{item.label}</span>
+                          {item.sublabel && (
+                            <span className="text-[10px] font-normal leading-tight opacity-60">{item.sublabel}</span>
+                          )}
+                        </span>
                       </span>
-                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
                     </button>
 
                     {isExpanded && (
-                      <div className="ml-4 mt-1 space-y-1 border-l pl-4">
+                      <div className="ml-4 mt-1 space-y-0.5 border-l pl-4">
                         {item.children.map((child) => {
                           const isActive = pathname === child.href;
                           return (
@@ -258,14 +297,19 @@ export function AdminMobileSidebar() {
                   href={item.href!}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium',
+                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="flex flex-col items-start min-w-0">
+                    <span className="text-sm font-medium leading-tight truncate">{item.label}</span>
+                    {item.sublabel && (
+                      <span className="text-[10px] font-normal leading-tight opacity-60">{item.sublabel}</span>
+                    )}
+                  </span>
                 </Link>
               );
             })}
