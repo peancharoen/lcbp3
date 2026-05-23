@@ -1,7 +1,7 @@
 # 📋 คู่มือการตั้งค่า n8n สำหรับ Legacy Data Migration (Free Plan Edition)
 
 > **สำหรับ n8n Free Plan (Self-hosted)** - ไม่ใช้ Environment Variables
-> **Version:** 1.8.0-free | **Last Updated:** 2026-03-04
+> **Version:** 1.9.0-free | **Last Updated:** 2026-05-23
 
 เอกสารนี้จัดทำขึ้นเพื่อรองรับการ Migration เอกสาร PDF 20,000 ฉบับ ตามแผนใน `03-04-legacy-data-migration.md` และ `ADR-023A-unified-ai-architecture.md`
 
@@ -45,7 +45,7 @@
 │                    ▼                            ▼           │
 │         ┌─────────────────┐          ┌─────────────────┐   │
 │         │  AI Analysis    │          │  Error Logger   │   │
-│         │  (Ollama)       │          │  (CSV + DB)     │   │
+│         │  (Backend API)  │          │  (CSV + DB)     │   │
 │         └────────┬────────┘          └─────────────────┘   │
 │                  │                                           │
 │         ┌────────▼────────┐                                 │
@@ -171,7 +171,7 @@ return [{ json: { config_loaded: true, timestamp: new Date().toISOString() } }];
 
 | Credential | Type | ใช้ใน Node |
 | ---------- | ---- | --------- ||
-| Ollama API | HTTP Request | Ollama AI Analysis |
+| ~~Ollama API~~ | ~~HTTP Request~~ | ~~ไม่ใช้แล้ว — ADR-023A~~ |
 | LCBP3 Backend | HTTP Request | Import to Backend, Fetch Categories |
 | MariaDB | MySQL | ทุก Database Node |
 
@@ -194,8 +194,86 @@ curl -X POST https://api.np-dms.work/api/auth/login \
 1. เปลี่ยน URL ให้ตรงกับ Backend ของคุณ (เช่น `http://localhost:3001/api/auth/login` สำหรับ Local)
 2. นำรหัสผ่านของบัญชี `migration_bot` มาใส่แทนที่ `YOUR_PASSWORD`
 3. ในผลลัพธ์ที่ได้ ให้คัดลอกเฉพาะค่าจากฟิลด์ `access_token` (ข้อความยาวๆ)
-4. นำมาตั้งค่าใน n8n Node "Set Configuration" (Node 0) ในรูปแบบ:
-   `MIGRATION_TOKEN: 'Bearer <คัดลอก Token มาวางที่นี่>'`
+4. นำมาตั้งค่าตามขั้นตอนด้านล่าง
+
+---
+
+### ขั้นตอนที่ 4: วิธีอัพเดต MIGRATION_TOKEN ใน n8n (ทำทุกครั้งที่ Token หมดอายุ)
+
+> ⚠️ Token มีอายุ **≤ 7 วัน** — ต้อง Renew ทุกสัปดาห์ระหว่าง Migration Phase
+
+**ขั้นตอน:**
+
+**1. รับ Token ใหม่ (cURL หรือ Postman)**
+
+```bash
+curl -X POST https://backend.np-dms.work/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"migration_bot","password":"YOUR_PASSWORD"}' \
+  | grep -o '"access_token":"[^"]*"'
+```
+
+ผลลัพธ์ที่ได้:
+```json
+{ "access_token": "eyJhbGci...xxxxxx" }
+```
+
+**2. เปิด n8n UI → เข้า Workflow**
+
+```
+https://n8n.np-dms.work  (หรือ http://localhost:5678)
+→ เปิด Workflow: "LCBP3 Migration Workflow v2.0.0"
+→ คลิก Node "Set Configuration"
+→ คลิก Edit
+```
+
+**3. แก้ไขค่า `MIGRATION_TOKEN` ในโค้ด**
+
+หาบรรทัด:
+```javascript
+MIGRATION_TOKEN: 'Bearer YOUR_MIGRATION_TOKEN_HERE',
+```
+
+เปลี่ยนเป็น:
+```javascript
+MIGRATION_TOKEN: 'Bearer eyJhbGci...xxxxxx',  // ← วาง access_token ที่ได้มา
+```
+
+> ⚠️ **ต้องขึ้นต้นด้วย `Bearer ` (มีเว้นวรรค)** — ถ้าขาดจะได้ 401 ทุก request
+
+**4. กด Save → ทดสอบ Token ก่อน Resume**
+
+```bash
+# ทดสอบว่า Token ใช้งานได้
+curl -H "Authorization: Bearer eyJhbGci...xxxxxx" \
+  https://backend.np-dms.work/api/auth/me
+```
+
+ถ้าได้ `{ "username": "migration_bot", ... }` → Token ถูกต้อง ✅
+
+**5. Resume Workflow จาก Checkpoint**
+
+Workflow จะอ่าน `last_processed_index` จาก `migration_progress` table และ **ทำต่อจากจุดเดิมโดยอัตโนมัติ** — ไม่ต้องรัน Excel ซ้ำตั้งแต่ต้น
+
+---
+
+### ⚠️ กรณี Workflow หยุดกลางคัน (TOKEN_EXPIRED Error)
+
+เมื่อ `Poll AI Job Status` node พบ 401 Unauthorized จะ throw:
+```
+TOKEN_EXPIRED: 401 Unauthorized — กรุณา renew MIGRATION_TOKEN แล้ว resume
+```
+
+**วิธีแก้:**
+1. รับ Token ใหม่ (ขั้นตอนที่ 1 ด้านบน)
+2. อัพเดต `Set Configuration` node (ขั้นตอนที่ 3 ด้านบน)
+3. ตรวจสอบ Checkpoint ล่าสุด:
+   ```sql
+   SELECT batch_id, last_processed_index, status, updated_at
+   FROM migration_progress
+   ORDER BY updated_at DESC LIMIT 5;
+   ```
+4. รัน Workflow ใหม่ด้วย Form Trigger เดิม — จะ Resume จาก `last_processed_index` ที่บันทึกไว้
 
 ---
 
@@ -232,7 +310,7 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 ### Node 1: Pre-flight Checks & Data Reader
 
 - **Pre-flight Token Validation (FR-010a):** เรียก API `GET /api/auth/me` ก่อนประมวลผลเพื่อตรวจสอบความถูกต้องและอายุของ `MIGRATION_TOKEN` หากไม่ผ่าน (401 Unauthorized) ให้ยุติการทำงานทันทีเพื่อป้องกันการส่ง API ที่ล้มเหลว
-- ตรวจสอบ Backend Health และ Ollama Ping
+- ตรวจสอบ Backend Health (`GET /health`) และ Token validation (`GET /api/auth/me`)
 - อ่าน Checkpoint (`last_processed_index`) จาก `migration_progress`
 - Batch ข้อมูลจาก Excel ตามตาราง `BATCH_SIZE` ปกติ (50-100)
 - Normalize ข้อมูล UTF-8 (NFC) และสร้าง `original_index`

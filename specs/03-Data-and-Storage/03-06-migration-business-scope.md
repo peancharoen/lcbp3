@@ -194,7 +194,7 @@ T+1 เดือน:
 | Idempotency Test: รัน Batch ซ้ำ          | 0 Duplicate Records               | SQL Count                      |
 | Organization Mapping ครบ                 | 100%                              | Lookup Table review            |
 | Frontend Review UI พร้อมใช้งาน           | ✅                                | UAT Passed สำหรับหน้าจออนุมัติ |
-| **Backend `POST /api/ai/jobs` พร้อมใช้งาน** | ✅ (Blocking) | ทดสอบ `type: migrate-document` สำเร็จ — ยังไม่มีใน Backend ต้องพัฒนาก่อน |
+| **Backend `POST /api/ai/jobs` พร้อมใช้งาน** | ✅ (Verified 2026-05-23) | ทดสอบ `type: migrate-document` สำเร็จ — endpoint พร้อมใช้งานแล้ว |
 | Migration Bot Token Active + Whitelisted | ✅                                | API Test                       |
 | Staging NAS Space: ≥ 500GB free          | ✅                                | QNAP Dashboard                 |
 
