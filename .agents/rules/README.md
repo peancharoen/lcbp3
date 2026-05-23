@@ -4,13 +4,14 @@ Critical rules and guidelines for AI agents working on LCBP3-DMS.
 
 ## Version
 
-- **Current:** v1.9.3
-- **Last Updated:** 2026-05-15
-- **Synced with:** `AGENTS.md` (v1.9.3)
+- **Current:** v1.9.6
+- **Last Updated:** 2026-05-22
+- **Synced with:** `AGENTS.md` (v1.9.6)
 
 ## Purpose
 
 This directory contains rule files that define:
+
 - Project context and role expectations
 - Critical Tier 1 rules (CI blockers)
 - Coding standards and patterns
@@ -24,6 +25,7 @@ This directory contains rule files that define:
 ### 🔴 Tier 1 — CRITICAL (CI BLOCKER)
 
 Build fails immediately if violated:
+
 - Security (Auth, RBAC, Validation)
 - UUID Strategy (ADR-019) — no `parseInt` / `Number` / `+` on UUID
 - Database correctness — verify schema before writing queries
@@ -35,15 +37,28 @@ Build fails immediately if violated:
 ### 🟡 Tier 2 — IMPORTANT (CODE REVIEW)
 
 Must fix before merge:
+
 - Architecture patterns (thin controller, business logic in service)
 - Test coverage (80%+ business logic, 70%+ backend overall)
 - Cache invalidation
 - Naming conventions
 - TypeScript Standards: Missing JSDoc, explicit types, or file headers
 
-### 🟢 Tier 3 — GUIDELINES
+### 🟢 Tier 3 — SPECIALIZED WORK
+
+Requires domain-specific knowledge:
+
+- **ADR-021 Integration:** Workflow Engine & Context implementation
+- **AI Infrastructure:** ADR-023/023A boundary enforcement and pipeline usage
+- **AI Runtime Layer:** ADR-024 Intent Classification, ADR-025 Tool Layer, ADR-026 Chat UI, ADR-027 Admin Console
+- **Migration Pipeline:** ADR-028 Staging Queue & post-migration cleanup
+- **Complex Business Logic:** Multi-step workflows with state management
+- **Performance Optimization:** Database queries, caching strategies, bulk operations
+
+### 🔵 Tier 4 — GUIDELINES
 
 Best practice — follow when possible:
+
 - Code style / formatting (Prettier handles)
 - Comment completeness
 - Minor optimizations
@@ -52,61 +67,68 @@ Best practice — follow when possible:
 
 ### Core Rules (Tier 1 - CRITICAL)
 
-| File | Purpose |
-|------|---------|
+| File                    | Purpose                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------- |
 | `00-project-context.md` | Project context, role & persona, tier classification, specs folder organization |
-| `01-adr-019-uuid.md` | UUID handling strategy — no parseInt, use publicId only |
-| `02-security.md` | Security requirements, checklist, ADR-023/023A AI boundaries |
+| `01-adr-019-uuid.md`    | UUID handling strategy — no parseInt, use publicId only                         |
+| `02-security.md`        | Security requirements, checklist, ADR-023/023A AI boundaries                    |
 
 ### Coding Standards
 
-| File | Purpose |
-|------|---------|
-| `03-typescript.md` | TypeScript rules, file headers, i18n guidelines |
-| `06-backend-patterns.md` | NestJS patterns, UUID resolution, API response patterns |
+| File                      | Purpose                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| `03-typescript.md`        | TypeScript rules, file headers, i18n guidelines         |
+| `06-backend-patterns.md`  | NestJS patterns, UUID resolution, API response patterns |
 | `07-frontend-patterns.md` | Next.js patterns, RHF+Zod+TanStack Query, UUID handling |
 
 ### Domain & Workflow
 
-| File | Purpose |
-|------|---------|
-| `04-domain-terminology.md` | DMS glossary, key spec files priority table |
-| `08-development-flow.md` | Development workflow by work type (Critical/Normal/Quick Fix) |
+| File                       | Purpose                                                       |
+| -------------------------- | ------------------------------------------------------------- |
+| `04-domain-terminology.md` | DMS glossary, key spec files priority table                   |
+| `08-development-flow.md`   | Development workflow by work type (Critical/Normal/Quick Fix) |
 
 ### Compliance & Architecture
 
-| File | Purpose |
-|------|---------|
+| File                      | Purpose                                                        |
+| ------------------------- | -------------------------------------------------------------- |
 | `05-forbidden-actions.md` | Actions that must never be done, schema changes, UUID handling |
-| `09-commit-checklist.md` | Pre-commit verification, commit message format |
-| `10-error-handling.md` | ADR-007 error handling strategy, layered classification |
-| `11-ai-integration.md` | ADR-023/023A AI architecture, 2-model stack, BullMQ 2-queue |
+| `09-commit-checklist.md`  | Pre-commit verification, commit message format                 |
+| `10-error-handling.md`    | ADR-007 error handling strategy, layered classification        |
+| `11-ai-integration.md`    | ADR-023/023A AI architecture, 2-model stack, BullMQ 2-queue    |
 
 ## Key Spec Files Priority
 
 Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
 
-| Document | Path | Use When |
-|----------|------|----------|
-| **Glossary** | `specs/00-overview/00-02-glossary.md` | Verify domain terminology |
-| **Schema Tables** | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` | Before writing any query |
-| **Data Dictionary** | `specs/03-Data-and-Storage/03-01-data-dictionary.md` | Field meanings + business rules |
-| **Edge Cases** | `specs/01-Requirements/01-06-edge-cases-and-rules.md` | Prevent bugs in flows |
-| **ADR-019 UUID** | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md` | UUID-related work |
-| **ADR-023 AI** | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md` | AI integration work |
-| **Backend Guidelines** | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md` | NestJS patterns |
-| **Frontend Guidelines** | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md` | Next.js patterns |
-| **Testing Strategy** | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md` | Coverage goals |
+| Document                       | Path                                                                        | Use When                          |
+| ------------------------------ | --------------------------------------------------------------------------- | --------------------------------- |
+| **Glossary**                   | `specs/00-overview/00-02-glossary.md`                                       | Verify domain terminology         |
+| **Schema Tables**              | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`               | Before writing any query          |
+| **Data Dictionary**            | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                        | Field meanings + business rules   |
+| **Edge Cases**                 | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                       | Prevent bugs in flows             |
+| **ADR-019 UUID**               | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`           | UUID-related work                 |
+| **ADR-023 AI**                 | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`              | AI integration work               |
+| **ADR-023A AI Model**          | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | 2-model stack, BullMQ 2-queue     |
+| **ADR-024 Intent Class.**      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`       | Pattern→LLM Fallback; Redis cache |
+| **ADR-025 AI Tool Layer**      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`           | Tool Registry; CASL-guarded       |
+| **ADR-026 Chat UI**            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`             | Side-panel; streaming SSE         |
+| **ADR-027 AI Admin Console**   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md` | Dynamic control; admin-only       |
+| **ADR-028 Migration Refactor** | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`      | Staging Queue; cleanup            |
+| **Backend Guidelines**         | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`               | NestJS patterns                   |
+| **Frontend Guidelines**        | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`              | Next.js patterns                  |
+| **Testing Strategy**           | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`                 | Coverage goals                    |
 
 ## Maintenance
 
 When updating rules:
 
 1. **Check AGENTS.md version** — Ensure rule files are synced
-2. **Update version numbers** — Bump version in `00-project-context.md` and `03-typescript.md`
-3. **Review ADR references** — Ensure all ADR references are current (ADR-023, ADR-023A, etc.)
+2. **Update version numbers** — Bump version in `00-project-context.md` only (03-typescript.md no longer has version)
+3. **Review ADR references** — Ensure all ADR references are current (ADR-023, ADR-023A, ADR-024~028)
 4. **Add new forbidden actions** — When new patterns are identified as violations
 5. **Update key spec files table** — When new ADRs or guidelines are added
+6. **Update Tier 3 SPECIALIZED WORK** — When new domain-specific workflows are added
 
 ## Related Documents
 

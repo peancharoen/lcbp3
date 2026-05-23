@@ -7,6 +7,7 @@
 // - 2026-05-21: เพิ่ม GET /ai/admin/health สำหรับดึงสถานะสุขภาพ AI Infrastructure (T028).
 // - 2026-05-21: เพิ่ม POST /ai/admin/sandbox/extract endpoint สำหรับ Superadmin OCR sandbox (T041 & T042)
 // - 2026-05-21: แก้ไขข้อห้ามใช้ parseInt โดยการใช้ Number แทนตามกฎ Tier 1
+// - 2026-05-23: เพิ่ม Migration Checkpoint API endpoints แทน MySQL direct access (ADR-023A)
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -79,6 +80,12 @@ import { AiEnabledGuard } from './guards/ai-enabled.guard';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { AiMigrationCheckpointService } from './ai-migration-checkpoint.service';
+import {
+  MigrationErrorLogDto,
+  MigrationQueueRecordDto,
+  SaveCheckpointDto,
+} from './dto/migration-checkpoint.dto';
 
 @ApiTags('AI Gateway')
 @Controller('ai')
@@ -91,6 +98,7 @@ export class AiController {
     private readonly aiSettingsService: AiSettingsService,
     private readonly aiToolRegistryService: AiToolRegistryService,
     private readonly fileStorageService: FileStorageService,
+    private readonly migrationCheckpointService: AiMigrationCheckpointService,
     @InjectRedis() private readonly redis: Redis
   ) {}
 
@@ -681,5 +689,48 @@ export class AiController {
       idempotencyKey,
       user.user_id
     );
+  }
+
+  // ─── Migration Checkpoint API (ADR-023A) ──────────────────────────────────
+
+  @Get('migration/checkpoint/:batchId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Migration: ดึง Checkpoint ของ Batch (ADR-023A)' })
+  @ApiParam({
+    name: 'batchId',
+    description: 'Batch ID ที่ต้องการดึง Checkpoint',
+  })
+  async getMigrationCheckpoint(@Param('batchId') batchId: string) {
+    return this.migrationCheckpointService.getCheckpoint(batchId);
+  }
+
+  @Post('migration/checkpoint')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Migration: บันทึก/อัพเดต Checkpoint (ADR-023A)' })
+  async saveMigrationCheckpoint(@Body() dto: SaveCheckpointDto) {
+    return this.migrationCheckpointService.saveCheckpoint(dto);
+  }
+
+  @Post('migration/queue/record')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Migration: บันทึกรายการเข้า Review Queue (ADR-023A)',
+  })
+  async upsertMigrationQueueRecord(@Body() dto: MigrationQueueRecordDto) {
+    return this.migrationCheckpointService.upsertQueueRecord(dto);
+  }
+
+  @Post('migration/errors')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Migration: บันทึก Error Log (ADR-023A)' })
+  async logMigrationError(@Body() dto: MigrationErrorLogDto) {
+    return this.migrationCheckpointService.logError(dto);
   }
 }

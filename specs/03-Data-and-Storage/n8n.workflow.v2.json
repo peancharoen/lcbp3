@@ -30,7 +30,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// CONFIGURATION v2.0 — ADR-023A Compliant\n// n8n เรียกแค่ DMS Backend API เท่านั้น — ห้ามเรียก Ollama โดยตรง\n// ============================================\nconst formData = $('Form Trigger').first()?.json || {};\nconst batchSizeInput = parseInt(String(formData['Batch Size'] || '0'));\nconst excelFileInput = String(formData['Excel File Path'] || '').trim();\n\nconst BATCH_ID = (() => {\n  const d = new Date(Date.now() + 7 * 3600000);\n  const s = d.toISOString();\n  return s.substring(0,10).replace(/-/g,'') + ':' + s.substring(11,16).replace(/:/g,'');\n})();\n\nconst CONFIG = {\n  // Backend Settings\n  BACKEND_URL: 'https://backend.np-dms.work',\n  MIGRATION_TOKEN: 'Bearer YOUR_MIGRATION_TOKEN_HERE', // 🔴 เปลี่ยน\n\n  // Batch Settings\n  BATCH_SIZE: batchSizeInput > 0 ? batchSizeInput : 10,\n  BATCH_ID: BATCH_ID,\n  DELAY_MS: 2000,\n\n  // AI Job Settings (ADR-023A)\n  AI_JOB_POLL_INTERVAL_MS: 5000,\n  AI_JOB_TIMEOUT_MS: 120000,\n\n  // Confidence Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n\n  // Paths (Container paths — ต้องตรงกับ volume mount ใน docker-compose)\n  EXCEL_FILE: excelFileInput || '/home/node/.n8n-files/staging_ai/C22024.xlsx',\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n};\n\nreturn [{ json: { config: CONFIG } }];"
+        "jsCode": "// ============================================\n// CONFIGURATION v2.0 — ADR-023A Compliant\n// n8n เรียกแค่ DMS Backend API เท่านั้น — ห้ามเรียก Ollama โดยตรง\n// ============================================\nconst formData = $('Form Trigger').first()?.json || {};\nconst batchSizeInput = parseInt(String(formData['Batch Size'] || '0'));\nconst excelFileInput = String(formData['Excel File Path'] || '').trim();\n\nconst BATCH_ID = (() => {\n  const d = new Date(Date.now() + 7 * 3600000);\n  const s = d.toISOString();\n  return s.substring(0,10).replace(/-/g,'') + ':' + s.substring(11,16).replace(/:/g,'');\n})();\n\nconst CONFIG = {\n  // Backend Settings\n  BACKEND_URL: 'https://backend.np-dms.work',\n  MIGRATION_TOKEN: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1pZ3JhdGlvbl9ib3QiLCJzdWIiOjUsInNjb3BlIjoiR2xvYmFsIiwiaWF0IjoxNzc5NTQwNDk4LCJleHAiOjQ5MzUzMDA0OTh9.TZVzG8u4Cyz8hi0cU3eGaeXinKWKHN3HtYnDcS5p_5I', // 🔴 เปลี่ยน\n\n  // Batch Settings\n  BATCH_SIZE: batchSizeInput > 0 ? batchSizeInput : 10,\n  BATCH_ID: BATCH_ID,\n  DELAY_MS: 2000,\n\n  // AI Job Settings (ADR-023A)\n  AI_JOB_POLL_INTERVAL_MS: 5000,\n  AI_JOB_TIMEOUT_MS: 120000,\n\n  // Confidence Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n\n  // Paths (Container paths — ต้องตรงกับ volume mount ใน docker-compose)\n  EXCEL_FILE: excelFileInput || '/home/node/.n8n-files/staging_ai/C22024.xlsx',\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n};\n\nreturn [{ json: { config: CONFIG } }];"
       },
       "id": "8f1d3378-cca6-48b6-99db-693e46ac81ef",
       "name": "Set Configuration",
@@ -56,7 +56,7 @@
     },
     {
       "parameters": {
-        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/auth/me",
+        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/auth/profile",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -160,28 +160,30 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT last_processed_index, status FROM migration_progress WHERE batch_id = '{{$('Set Configuration').first().json.config.BATCH_ID}}' LIMIT 1",
+        "url": "={{ $('Set Configuration').first().json.config.BACKEND_URL + '/api/ai/migration/checkpoint/' + $('Set Configuration').first().json.config.BATCH_ID }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "a83f8598-72fd-4cc8-9d98-1ea3cb3b42df",
       "name": "Read Checkpoint",
-      "type": "n8n-nodes-base.mySql",
-      "typeVersion": 2.4,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [32096, 13504],
       "alwaysOutputData": true,
-      "credentials": {
-        "mySql": {
-          "id": "CHHfbKhMacNo03V4",
-          "name": "MySQL account"
-        }
-      },
       "onError": "continueErrorOutput",
-      "notes": "อ่านตำแหน่งล่าสุดที่ประมวลผล"
+      "notes": "GET /api/ai/migration/checkpoint/:batchId — ADR-023A (ไม่ใช้ MySQL โดยตรง)"
     },
     {
       "parameters": {
-        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.last_processed_index || 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Exit condition: ไม่มี records เหลือ\nif (currentBatch.length === 0) {\n  return [{ json: { batch_complete: true, total_processed: startIndex } }];\n}\n\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const getVal = (possibleKeys) => {\n    const exactMatch = possibleKeys.find(k => item[k] !== undefined);\n    if (exactMatch) return item[exactMatch];\n    const lowerTrimmedKeys = Object.keys(item).map(k => ({ original: k, parsed: k.toLowerCase().trim() }));\n    for (const pk of possibleKeys) {\n      const found = lowerTrimmedKeys.find(k => k.parsed === pk.toLowerCase().trim());\n      if (found) return item[found.original];\n    }\n    return '';\n  };\n\n  const docNum = getVal(['document_number', 'correspondence_number', 'Document Number', 'Corr. No.']);\n  const excelFileName = getVal(['File name', 'file_name', 'File Name', 'filename']);\n  \n  if (!excelFileName) {\n    throw new Error(`Missing 'File name' column for row ${i + startIndex + 1}, document: ${docNum}`);\n  }\n  \n  return {\n    json: {\n      batch_complete: false,\n      document_number: normalize(docNum),\n      title: normalize(getVal(['title', 'Title', 'Subject', 'subject'])),\n      legacy_number: normalize(getVal(['legacy_number', 'Legacy Number', 'Response Doc.'])),\n      excel_revision: getVal(['revision', 'Revision', 'rev']) || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: normalize(excelFileName),\n      issued_date: normalize(getVal(['issued_date', 'Issued_date', 'Issued Date', 'date', 'Date'])),\n      received_date: normalize(getVal(['received_date', 'Received_date', 'Received Date'])),\n      sender: normalize(getVal(['sender', 'Sender', 'From', 'from'])),\n      receiver: normalize(getVal(['receiver', 'Receiver', 'To', 'to'])),\n    }\n  };\n});"
+        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.data?.lastProcessedIndex ?? cpJson.lastProcessedIndex ?? cpJson.last_processed_index ?? 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Exit condition: ไม่มี records เหลือ\nif (currentBatch.length === 0) {\n  return [{ json: { batch_complete: true, total_processed: startIndex } }];\n}\n\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const getVal = (possibleKeys) => {\n    const exactMatch = possibleKeys.find(k => item[k] !== undefined);\n    if (exactMatch) return item[exactMatch];\n    const lowerTrimmedKeys = Object.keys(item).map(k => ({ original: k, parsed: k.toLowerCase().trim() }));\n    for (const pk of possibleKeys) {\n      const found = lowerTrimmedKeys.find(k => k.parsed === pk.toLowerCase().trim());\n      if (found) return item[found.original];\n    }\n    return '';\n  };\n\n  const docNum = getVal(['document_number', 'correspondence_number', 'Document Number', 'Corr. No.']);\n  const excelFileName = getVal(['File name', 'file_name', 'File Name', 'filename']);\n  \n  if (!excelFileName) {\n    throw new Error(`Missing 'File name' column for row ${i + startIndex + 1}, document: ${docNum}`);\n  }\n  \n  return {\n    json: {\n      batch_complete: false,\n      document_number: normalize(docNum),\n      title: normalize(getVal(['title', 'Title', 'Subject', 'subject'])),\n      legacy_number: normalize(getVal(['legacy_number', 'Legacy Number', 'Response Doc.'])),\n      excel_revision: getVal(['revision', 'Revision', 'rev']) || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: normalize(excelFileName),\n      issued_date: normalize(getVal(['issued_date', 'Issued_date', 'Issued Date', 'date', 'Date'])),\n      received_date: normalize(getVal(['received_date', 'Received_date', 'Received Date'])),\n      sender: normalize(getVal(['sender', 'Sender', 'From', 'from'])),\n      receiver: normalize(getVal(['receiver', 'Receiver', 'To', 'to'])),\n    }\n  };\n});"
       },
       "id": "80845e32-c283-4e9f-af73-6339d675fb38",
       "name": "Process Batch + Encoding",
@@ -218,7 +220,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/storage/upload",
+        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/files/upload",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -368,41 +370,55 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO migration_review_queue (document_number, title, original_title, ai_suggested_category, ai_confidence, ai_issues, review_reason, status, created_at) VALUES ('{{$json.document_number}}', '{{$json.ai_result.subject || $json.title}}', '{{$json.title}}', '{{$json.ai_result.suggested_category}}', {{$json.ai_result.confidence}}, '{{JSON.stringify({ job_id: $json.job_id, temp_attachment_id: $json.temp_attachment_id, type_code: $json.ai_result.type_code, subject: $json.ai_result.subject, suggested_tags: $json.ai_result.suggested_tags, key_points: $json.ai_result.key_points || [], issued_date: $json.ai_result.issued_date, received_date: $json.ai_result.received_date })}}', '{{$json.review_reason || \"\"}}', 'PENDING', NOW()) ON DUPLICATE KEY UPDATE status = 'PENDING', review_reason = '{{$json.review_reason || \"\"}}', ai_issues = VALUES(ai_issues), created_at = NOW()",
+        "method": "POST",
+        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/migration/queue/record",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchId: $json.batch_id, documentNumber: $json.document_number, subject: ($json.ai_result?.subject || $json.title), originalSubject: $json.title, tempAttachmentId: $json.temp_attachment_id, confidence: $json.ai_result?.confidence, reviewReason: $json.review_reason || '', status: 'PENDING', aiResult: $json.ai_result, idempotencyKey: $json.batch_id + ':' + $json.document_number }) }}",
         "options": {}
       },
       "id": "c1bd4485-e58f-4270-892e-edda34c2e328",
       "name": "Insert Review Queue (Auto)",
-      "type": "n8n-nodes-base.mySql",
-      "typeVersion": 2.4,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [33856, 13312],
-      "credentials": {
-        "mySql": {
-          "id": "CHHfbKhMacNo03V4",
-          "name": "MySQL account"
-        }
-      },
-      "notes": "Auto Ready (confidence ≥ 0.85) → migration_review_queue PENDING"
+      "onError": "continueErrorOutput",
+      "notes": "POST /api/ai/migration/queue/record (PENDING) — ADR-023A"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO migration_review_queue (document_number, title, original_title, ai_suggested_category, ai_confidence, ai_issues, review_reason, status, created_at) VALUES ('{{$json.document_number}}', '{{$json.ai_result.subject || $json.title}}', '{{$json.title}}', '{{$json.ai_result.suggested_category}}', {{$json.ai_result.confidence}}, '{{JSON.stringify({ job_id: $json.job_id, temp_attachment_id: $json.temp_attachment_id, type_code: $json.ai_result.type_code, subject: $json.ai_result.subject, suggested_tags: $json.ai_result.suggested_tags, key_points: $json.ai_result.key_points || [], issued_date: $json.ai_result.issued_date, received_date: $json.ai_result.received_date })}}', '{{$json.review_reason}}', 'PENDING_REVIEW', NOW()) ON DUPLICATE KEY UPDATE status = 'PENDING_REVIEW', review_reason = '{{$json.review_reason}}', ai_issues = VALUES(ai_issues), created_at = NOW()",
+        "method": "POST",
+        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/migration/queue/record",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchId: $json.batch_id, documentNumber: $json.document_number, subject: ($json.ai_result?.subject || $json.title), originalSubject: $json.title, tempAttachmentId: $json.temp_attachment_id, confidence: $json.ai_result?.confidence, reviewReason: $json.review_reason || '', status: 'PENDING_REVIEW', aiResult: $json.ai_result, idempotencyKey: $json.batch_id + ':' + $json.document_number }) }}",
         "options": {}
       },
       "id": "f1a2b3c4-d5e6-7890-abcd-567890123456",
       "name": "Insert Review Queue (Flagged)",
-      "type": "n8n-nodes-base.mySql",
-      "typeVersion": 2.4,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [33856, 13504],
-      "credentials": {
-        "mySql": {
-          "id": "CHHfbKhMacNo03V4",
-          "name": "MySQL account"
-        }
-      },
-      "notes": "Flagged (confidence 0.60–0.84) → migration_review_queue PENDING_REVIEW"
+      "onError": "continueErrorOutput",
+      "notes": "POST /api/ai/migration/queue/record (PENDING_REVIEW) — ADR-023A"
     },
     {
       "parameters": {
@@ -428,41 +444,55 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO migration_errors (batch_id, document_number, error_type, error_message, created_at) VALUES ('{{$('Set Configuration').first().json.config.BATCH_ID}}', '{{$json.document_number}}', '{{$json.error_type || \"UNKNOWN\"}}', '{{$json.error || $json.parse_error}}', NOW())",
+        "method": "POST",
+        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/migration/errors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, documentNumber: $json.document_number, errorType: $json.error_type || 'UNKNOWN', errorMessage: $json.error || $json.parse_error || '', jobId: $json.job_id || '' }) }}",
         "options": {}
       },
       "id": "0f058ad0-3c09-4c9f-bdcf-503cd58ee395",
       "name": "Log Error to DB",
-      "type": "n8n-nodes-base.mySql",
-      "typeVersion": 2.4,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [34032, 13888],
-      "credentials": {
-        "mySql": {
-          "id": "CHHfbKhMacNo03V4",
-          "name": "MySQL account"
-        }
-      },
-      "notes": "บันทึก Error ลง MariaDB"
+      "onError": "continueErrorOutput",
+      "notes": "POST /api/ai/migration/errors — ADR-023A"
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO migration_progress (batch_id, last_processed_index, status) VALUES ('{{$('Set Configuration').first().json.config.BATCH_ID}}', {{$json.original_index || 0}}, 'RUNNING') ON DUPLICATE KEY UPDATE last_processed_index = {{$json.original_index || 0}}, updated_at = NOW()",
+        "method": "POST",
+        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/migration/checkpoint",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, lastProcessedIndex: $json.original_index || 0, status: 'RUNNING' }) }}",
         "options": {}
       },
       "id": "bb0e611b-db28-4266-ba40-3b5d534a16f7",
       "name": "Save Checkpoint",
-      "type": "n8n-nodes-base.mySql",
-      "typeVersion": 2.4,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
       "position": [34032, 13312],
-      "credentials": {
-        "mySql": {
-          "id": "CHHfbKhMacNo03V4",
-          "name": "MySQL account"
-        }
-      },
-      "notes": "บันทึก Checkpoint ทุก record ที่ผ่าน Review Queue"
+      "onError": "continueErrorOutput",
+      "notes": "POST /api/ai/migration/checkpoint — ADR-023A"
     },
     {
       "parameters": {

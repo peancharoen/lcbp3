@@ -6,8 +6,8 @@
 > # Speckit Agent Infrastructure (v1.9.0)
 >
 > - Version: 1.9.0
-> - Last Updated: 2026-05-13
-> - Core Principle: **Sync with AGENTS.md v1.9.0**
+> - Last Updated: 2026-05-22
+> - Core Principle: **Sync with AGENTS.md v1.9.6**
 
 ---
 
@@ -95,18 +95,18 @@ The toolkit is organized into modular components that provide both the logic (Sc
 │   └── util-speckit-*.md          # Utilities (checklist, diff, migrate, etc.)
 │
 ├── rules/                         # Project Context & Validation Rules
-│   ├── 00-project-context.md      # Role, Persona, Rule Tiers (v1.9.0)
+│   ├── 00-project-context.md      # Role, Persona, Rule Tiers (v1.9.6)
 │   ├── 01-adr-019-uuid.md         # UUID Strategy (Critical)
-│   ├── 02-security.md             # Security Requirements
+│   ├── 02-security.md             # Security Requirements (ADR-023/023A)
 │   ├── 03-typescript.md            # TypeScript Standards
 │   ├── 04-domain-terminology.md   # DMS Glossary Compliance
 │   ├── 05-forbidden-actions.md    # Critical Prohibited Patterns
 │   ├── 06-backend-patterns.md     # NestJS Architecture Rules
 │   ├── 07-frontend-patterns.md    # Next.js App Router Rules
-│   ├── 08-development-flow.md      # Development Workflow
+│   ├── 08-development-flow.md      # Development Workflow (Tier 3 SPECIALIZED WORK)
 │   ├── 09-commit-checklist.md      # Pre-commit Validation
 │   ├── 10-error-handling.md       # ADR-007 Compliance
-│   └── 11-ai-integration.md       # ADR-018/020 AI Boundaries
+│   └── 11-ai-integration.md       # ADR-023/023A AI Boundaries
 │
 └── scripts/
     ├── bash/                      # Bash Core (Kinetic logic)
@@ -265,9 +265,9 @@ If you change your mind mid-project:
 
 ---
 
-## 🏗️ LCBP3-DMS Project Notes (v1.9.0)
+## 🏗️ LCBP3-DMS Project Notes (v1.9.6)
 
-### 📊 Current Status: Production Ready (2026-04-14)
+### 📊 Current Status: Production Ready (2026-05-22)
 
 | Area          | Status                          |
 | ------------- | ------------------------------- |
@@ -306,7 +306,7 @@ If you change your mind mid-project:
 - ❌ DO NOT bypass Release Gates before deploying — `04-08-release-management-policy.md`
 - ❌ DO NOT start Migration without Gate #1 approval — `03-06-migration-business-scope.md`
 - ❌ DO NOT use TypeORM Migrations — modify schema SQL directly (ADR-009)
-- ❌ DO NOT give Ollama direct DB access — all writes via DMS API (ADR-018)
+- ❌ DO NOT give Ollama direct DB access — all writes via DMS API (ADR-023/023A)
 - ❌ DO NOT use `any` TypeScript type anywhere
 
 ---
@@ -325,7 +325,7 @@ If you change your mind mid-project:
 # Run version validation
 ./scripts/bash/validate-versions.sh
 
-# Fix by updating all files to v1.9.0
+# Fix by updating all files to v1.9.6
 # Then re-run validation to confirm
 ```
 

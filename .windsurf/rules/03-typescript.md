@@ -1,4 +1,8 @@
-# TypeScript Rules (v1.9.3)
+---
+trigger: always_on
+---
+
+# TypeScript Rules
 
 ## Core Standards
 

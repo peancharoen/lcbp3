@@ -1,4 +1,4 @@
-# TypeScript Rules (v1.9.3)
+# TypeScript Rules
 
 ## Core Standards
 

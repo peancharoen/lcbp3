@@ -9,9 +9,9 @@
 5. **Password:** bcrypt 12 salt rounds, min 8 chars, rotate every 90 days
 6. **Rate Limiting:** `ThrottlerGuard` on all auth endpoints
 7. **File Upload:** Whitelist PDF/DWG/DOCX/XLSX/ZIP, max 50MB, ClamAV scan
-8. **AI Isolation (ADR-018):** Ollama on Admin Desktop ONLY — NO direct DB/storage access
+8. **AI Isolation (ADR-023/023A):** Ollama on Admin Desktop ONLY — NO direct DB/storage access; 2-model stack `gemma4:e4b Q8_0` + `nomic-embed-text`; all inference via BullMQ (`ai-realtime` / `ai-batch`)
 9. **Error Handling (ADR-007):** Use layered error classification with user-friendly messages
-10. **AI Integration (ADR-020):** RFA-First approach with unified pipeline architecture
+10. **AI Integration (ADR-023/023A):** RFA-First approach; n8n orchestrates Migration Phase only via DMS API — never calls Ollama directly; `QdrantService.search()` requires `projectPublicId` as mandatory param
 11. **AI Audit Trail:** Log all AI interactions and human validations
 12. **Rate Limiting:** Apply to AI endpoints to prevent abuse
 
@@ -26,7 +26,7 @@
 - [ ] No SQL injection vulnerabilities
 - [ ] File upload validation (whitelist + ClamAV)
 - [ ] Rate limiting applied to auth endpoints
-- [ ] AI boundary enforcement (ADR-023) - no direct DB/storage access
+- [ ] AI boundary enforcement (ADR-023/023A) - no direct DB/storage access
 - [ ] AI audit logging implemented for AI interactions
 - [ ] AI outputs validated before use (human-in-the-loop)
 - [ ] Error handling follows ADR-007 layered classification

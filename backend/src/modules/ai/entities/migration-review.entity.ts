@@ -15,6 +15,7 @@ import { UuidBaseEntity } from '../../../common/entities/uuid-base.entity';
 
 export enum MigrationReviewRecordStatus {
   PENDING = 'PENDING',
+  PENDING_REVIEW = 'PENDING_REVIEW',
   IMPORTED = 'IMPORTED',
   REJECTED = 'REJECTED',
 }

@@ -39,7 +39,12 @@ CREATE TABLE IF NOT EXISTS migration_review_queue (
   extracted_tags JSON COMMENT 'Tag ที่ AI นำเสนอหรือจับคู่ได้',
   temp_attachment_id INT NULL COMMENT 'ID ของไฟล์ชั่วคราวจาก Two-Phase Storage',
   review_reason VARCHAR(255),
-  STATUS ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
+  STATUS ENUM(
+    'PENDING',
+    'PENDING_REVIEW',
+    'APPROVED',
+    'REJECTED'
+  ) DEFAULT 'PENDING',
   reviewed_by VARCHAR(100),
   reviewed_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
