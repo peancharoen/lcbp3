@@ -38,6 +38,9 @@ export class MigrationError {
   @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage?: string;
 
+  @Column({ name: 'job_id', length: 100, nullable: true })
+  jobId?: string;
+
   @Column({ name: 'raw_ai_response', type: 'text', nullable: true })
   rawAiResponse?: string;
 

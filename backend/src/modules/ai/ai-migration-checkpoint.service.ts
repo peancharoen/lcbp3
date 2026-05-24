@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-05-23: สร้าง service จัดการ Migration Checkpoint, Queue และ Error log ผ่าน API (ADR-023A)
 // - 2026-05-24: เพิ่มฟังก์ชันค้นหาและแปลง UUID เป็นตัวเลข ID จริงใน upsertQueueRecord เพื่อป้องกันการเขียนทับด้วย undefined
+// - 2026-05-24: Normalize migration error type และบันทึก jobId เพื่อป้องกัน DB enum reject
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -27,6 +28,35 @@ export interface CheckpointResponse {
   status: MigrationProgressStatus;
   updatedAt: Date | null;
 }
+
+type MigrationErrorTypeValue =
+  | 'FILE_NOT_FOUND'
+  | 'MISSING_FILENAME'
+  | 'FILE_ERROR'
+  | 'AI_PARSE_ERROR'
+  | 'API_ERROR'
+  | 'DB_ERROR'
+  | 'SECURITY'
+  | 'UNKNOWN';
+
+const MIGRATION_ERROR_TYPE_MAP: Readonly<
+  Record<string, MigrationErrorTypeValue>
+> = {
+  AI_JOB_FAILED: 'API_ERROR',
+  PARSE_ERROR: 'AI_PARSE_ERROR',
+  TOKEN_EXPIRED: 'API_ERROR',
+};
+
+const MIGRATION_ERROR_TYPES = new Set<MigrationErrorTypeValue>([
+  'FILE_NOT_FOUND',
+  'MISSING_FILENAME',
+  'FILE_ERROR',
+  'AI_PARSE_ERROR',
+  'API_ERROR',
+  'DB_ERROR',
+  'SECURITY',
+  'UNKNOWN',
+]);
 
 @Injectable()
 export class AiMigrationCheckpointService {
@@ -140,19 +170,31 @@ export class AiMigrationCheckpointService {
    * บันทึก Error Log สำหรับเอกสารที่ประมวลผลไม่สำเร็จ
    */
   async logError(dto: MigrationErrorLogDto): Promise<{ id: number }> {
+    const errorType = this.normalizeMigrationErrorType(dto.errorType);
     const result = await this.dataSource.query<{ insertId: number }[]>(
-      `INSERT INTO migration_errors (batch_id, document_number, error_type, error_message, created_at)
-       VALUES (?, ?, ?, ?, NOW())`,
+      `INSERT INTO migration_errors (batch_id, document_number, error_type, error_message, job_id, created_at)
+       VALUES (?, ?, ?, ?, ?, NOW())`,
       [
         dto.batchId,
         dto.documentNumber,
-        dto.errorType ?? 'UNKNOWN',
+        errorType,
         dto.errorMessage ?? '',
+        dto.jobId ?? null,
       ]
     );
     this.logger.warn(
-      `Error logged — batchId=${dto.batchId} doc=${dto.documentNumber} type=${dto.errorType}`
+      `Error logged — batchId=${dto.batchId} doc=${dto.documentNumber} type=${errorType}`
     );
     return { id: result[0]?.insertId ?? 0 };
+  }
+
+  /** แปลง error_type จาก workflow ให้ตรง enum ของ migration_errors */
+  private normalizeMigrationErrorType(
+    errorType?: string
+  ): MigrationErrorTypeValue {
+    const mappedType = errorType
+      ? (MIGRATION_ERROR_TYPE_MAP[errorType] ?? errorType)
+      : 'UNKNOWN';
+    return MIGRATION_ERROR_TYPES.has(mappedType) ? mappedType : 'UNKNOWN';
   }
 }

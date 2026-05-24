@@ -574,7 +574,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/error_log_${config.BATCH_ID}.csv`;\nconst header = 'timestamp,document_number,error_type,error_message,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nfor (const item of items) {\n  const line = [\n    new Date().toISOString(),\n    esc(item.json.document_number),\n    esc(item.json.error_type || 'UNKNOWN'),\n    esc(item.json.error || item.json.parse_error),\n    esc(item.json.job_id || '')\n  ].join(',') + '\\n';\n  fs.appendFileSync(csvPath, line, 'utf8');\n}\n\nreturn items;"
+        "jsCode": "const fs = require('fs');\nconst items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nconst ERROR_TYPE_MAP = {\n  AI_JOB_FAILED: 'API_ERROR',\n  PARSE_ERROR: 'AI_PARSE_ERROR',\n  TOKEN_EXPIRED: 'API_ERROR',\n};\nconst ALLOWED_ERROR_TYPES = new Set([\n  'FILE_NOT_FOUND',\n  'MISSING_FILENAME',\n  'FILE_ERROR',\n  'AI_PARSE_ERROR',\n  'API_ERROR',\n  'DB_ERROR',\n  'SECURITY',\n  'UNKNOWN',\n]);\nconst normalizeErrorType = (type) => {\n  const mappedType = ERROR_TYPE_MAP[type] || type || 'UNKNOWN';\n  return ALLOWED_ERROR_TYPES.has(mappedType) ? mappedType : 'UNKNOWN';\n};\n\nconst csvPath = `${config.LOG_PATH}/error_log_${config.BATCH_ID}.csv`;\nconst header = 'timestamp,document_number,error_type,error_message,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nfor (const item of items) {\n  item.json.document_number = item.json.document_number || 'WORKFLOW';\n  item.json.error_type = normalizeErrorType(item.json.error_type);\n  item.json.error = item.json.error || item.json.parse_error || item.json.message || '';\n  item.json.job_id = item.json.job_id || '';\n\n  const line = [\n    new Date().toISOString(),\n    esc(item.json.document_number),\n    esc(item.json.error_type),\n    esc(item.json.error),\n    esc(item.json.job_id)\n  ].join(',') + '\\n';\n  fs.appendFileSync(csvPath, line, 'utf8');\n}\n\nreturn items;"
       },
       "id": "511428dc-3aad-4de1-a9dc-9a87c791371e",
       "name": "Log Error to CSV",
@@ -605,7 +605,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, documentNumber: $json.document_number || 'WORKFLOW', errorType: $json.error_type || 'UNKNOWN', errorMessage: $json.error || $json.parse_error || $json.message || '', jobId: $json.job_id || '' }) }}",
+        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, documentNumber: $json.document_number, errorType: $json.error_type, errorMessage: $json.error, jobId: $json.job_id || '' }) }}",
         "options": {
           "timeout": 10000
         }

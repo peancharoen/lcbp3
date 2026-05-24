@@ -65,9 +65,11 @@ CREATE TABLE IF NOT EXISTS migration_errors (
     'UNKNOWN'
   ),
   error_message TEXT,
+  job_id VARCHAR(100) NULL,
   raw_ai_response TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_batch_id (batch_id),
+  INDEX idx_job_id (job_id),
   INDEX idx_error_type (error_type)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'Migration: Error Log';
 
