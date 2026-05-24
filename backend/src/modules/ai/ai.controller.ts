@@ -696,6 +696,7 @@ export class AiController {
   @Get('migration/checkpoint/:batchId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 500, ttl: 60000 } }) // 500 req/min for n8n workflow loop
   @ApiOperation({ summary: 'Migration: ดึง Checkpoint ของ Batch (ADR-023A)' })
   @ApiParam({
     name: 'batchId',
@@ -708,6 +709,7 @@ export class AiController {
   @Post('migration/checkpoint')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 500, ttl: 60000 } }) // 500 req/min for n8n workflow loop
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Migration: บันทึก/อัพเดต Checkpoint (ADR-023A)' })
   async saveMigrationCheckpoint(@Body() dto: SaveCheckpointDto) {
@@ -717,6 +719,7 @@ export class AiController {
   @Post('migration/queue/record')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 500, ttl: 60000 } }) // 500 req/min for n8n workflow loop
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Migration: บันทึกรายการเข้า Review Queue (ADR-023A)',
@@ -728,6 +731,7 @@ export class AiController {
   @Post('migration/errors')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 500, ttl: 60000 } }) // 500 req/min for n8n workflow loop
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Migration: บันทึก Error Log (ADR-023A)' })
   async logMigrationError(@Body() dto: MigrationErrorLogDto) {
