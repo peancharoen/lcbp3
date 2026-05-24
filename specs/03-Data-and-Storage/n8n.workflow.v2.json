@@ -24,19 +24,25 @@
       "name": "Form Trigger",
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
-      "position": [31024, 13504],
+      "position": [
+        31024,
+        13504
+      ],
       "webhookId": "e164a362-0c6b-4243-a5ad-b325aa943f4f",
       "notes": "เปิด URL เพื่อตั้งค่าก่อนรัน"
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// CONFIGURATION v2.0 — ADR-023A Compliant\n// n8n เรียกแค่ DMS Backend API เท่านั้น — ห้ามเรียก Ollama โดยตรง\n// ============================================\nconst formData = $('Form Trigger').first()?.json || {};\nconst batchSizeInput = parseInt(String(formData['Batch Size'] || '0'));\nconst excelFileInput = String(formData['Excel File Path'] || '').trim();\n\nconst BATCH_ID = (() => {\n  const d = new Date(Date.now() + 7 * 3600000);\n  const s = d.toISOString();\n  return s.substring(0,10).replace(/-/g,'') + ':' + s.substring(11,16).replace(/:/g,'');\n})();\n\nconst CONFIG = {\n  // Backend Settings\n  BACKEND_URL: 'https://backend.np-dms.work',\n  MIGRATION_TOKEN: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1pZ3JhdGlvbl9ib3QiLCJzdWIiOjUsInNjb3BlIjoiR2xvYmFsIiwiaWF0IjoxNzc5NTQwNDk4LCJleHAiOjQ5MzUzMDA0OTh9.TZVzG8u4Cyz8hi0cU3eGaeXinKWKHN3HtYnDcS5p_5I', // 🔴 เปลี่ยน\n\n  // Batch Settings\n  BATCH_SIZE: batchSizeInput > 0 ? batchSizeInput : 10,\n  BATCH_ID: BATCH_ID,\n  DELAY_MS: 2000,\n\n  // AI Job Settings (ADR-023A)\n  AI_JOB_POLL_INTERVAL_MS: 5000,\n  AI_JOB_TIMEOUT_MS: 120000,\n\n  // Confidence Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n\n  // Paths (Container paths — ต้องตรงกับ volume mount ใน docker-compose)\n  EXCEL_FILE: excelFileInput || '/home/node/.n8n-files/staging_ai/C22024.xlsx',\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n};\n\nreturn [{ json: { config: CONFIG } }];"
+        "jsCode": "// ============================================\n// CONFIGURATION v2.0 — ADR-023A Compliant\n// n8n เรียกแค่ DMS Backend API เท่านั้น — ห้ามเรียก Ollama โดยตรง\n// ============================================\nconst formData = $('Form Trigger').first()?.json || {};\nconst batchSizeInput = parseInt(String(formData['Batch Size'] || '0'));\nconst excelFileInput = String(formData['Excel File Path'] || '').trim();\nconst jwtTokenInput = String($env.N8N_MIGRATION_TOKEN || '').trim();\nconst resolvedExcelFile = excelFileInput || '/home/node/.n8n-files/staging_ai/C22024.xlsx';\n\n// Validate Excel file path to prevent path traversal\nif (resolvedExcelFile.includes('..') || resolvedExcelFile.includes('~')) {\n  throw new Error('Invalid Excel file path: path traversal detected');\n}\n\nif (!jwtTokenInput || !jwtTokenInput.startsWith('Bearer ')) {\n  throw new Error('N8N_MIGRATION_TOKEN env var is missing or must start with \"Bearer \"');\n}\n\nconst BATCH_ID = (() => {\n  // ใช้ Excel filename เป็น BATCH_ID เพื่อให้ checkpoint ทำงานถูกต้อง\n  // เปลี่ยน Excel file = BATCH_ID ใหม่ = เริ่มใหม่ (ปลอดภัย)\n  // ใช้ Excel file เดิม = BATCH_ID เดิม = resume ได้\n  const filename = resolvedExcelFile.split('/').pop().split('\\\\').pop();\n  const baseName = filename.replace(/\\.xlsx?$/i, '');\n  return baseName + '-MIGRATION';\n})();\n\nconst CONFIG = {\n  // Backend Settings\n  BACKEND_URL: 'https://backend.np-dms.work',\n  MIGRATION_TOKEN: jwtTokenInput,\n\n  // Batch Settings\n  BATCH_SIZE: batchSizeInput > 0 ? batchSizeInput : 10,\n  BATCH_ID: BATCH_ID,\n  DELAY_MS: 5000,\n\n  // AI Job Settings (ADR-023A)\n  AI_JOB_POLL_INTERVAL_MS: 5000,\n  AI_JOB_TIMEOUT_MS: 120000,\n\n  // Confidence Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n\n  // Paths (Container paths — ต้องตรงกับ volume mount ใน docker-compose)\n  EXCEL_FILE: resolvedExcelFile,\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n};\n\nreturn [{ json: { config: CONFIG } }];"
       },
       "id": "8f1d3378-cca6-48b6-99db-693e46ac81ef",
       "name": "Set Configuration",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [31216, 13504],
+      "position": [
+        31216,
+        13504
+      ],
       "notes": "กำหนดค่า Configuration ทั้งหมด — แก้ไขที่นี่เท่านั้น (ไม่มี Ollama config แล้ว)"
     },
     {
@@ -50,8 +56,10 @@
       "name": "Check Backend Health",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [31392, 13504],
-      "onError": "continueErrorOutput",
+      "position": [
+        31392,
+        13504
+      ],
       "notes": "ตรวจสอบ Backend พร้อมใช้งาน"
     },
     {
@@ -74,8 +82,10 @@
       "name": "Validate Token",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [31392, 13696],
-      "onError": "continueErrorOutput",
+      "position": [
+        31392,
+        13696
+      ],
       "notes": "FR-010a: ตรวจสอบ MIGRATION_TOKEN ก่อนเริ่ม Batch"
     },
     {
@@ -98,7 +108,10 @@
       "name": "Fetch Categories",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [31568, 13504],
+      "position": [
+        31568,
+        13504
+      ],
       "notes": "ดึง Categories จาก Backend"
     },
     {
@@ -121,18 +134,24 @@
       "name": "Fetch Tags",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [31568, 13696],
+      "position": [
+        31568,
+        13696
+      ],
       "notes": "ดึง Tags ที่มีอยู่แล้วจาก Backend"
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\ntry {\n  if (!fs.existsSync(config.EXCEL_FILE)) {\n    throw new Error(`Excel file not found at: ${config.EXCEL_FILE}`);\n  }\n  if (!fs.existsSync(config.SOURCE_PDF_DIR)) {\n    throw new Error(`PDF Source directory not found at: ${config.SOURCE_PDF_DIR}`);\n  }\n  \n  const files = fs.readdirSync(config.SOURCE_PDF_DIR);\n  \n  // Check write permission to log path\n  fs.writeFileSync(`${config.LOG_PATH}/.preflight_ok`, new Date().toISOString());\n  \n  // Grab categories\n  let categories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  try {\n    const upstreamData = $('Fetch Categories').first()?.json?.data;\n    if (upstreamData && Array.isArray(upstreamData)) {\n      categories = upstreamData.map(c => c.name || c.type || c);\n    }\n  } catch(e) {}\n  \n  // Grab existing tags\n  let existingTags = [];\n  try {\n    const tagData = $('Fetch Tags').first()?.json?.data || [];\n    existingTags = Array.isArray(tagData)\n      ? tagData.map(t => ({ publicId: t.id, tagName: t.tag_name || t.name || '' })).filter(t => t.tagName)\n      : [];\n  } catch(e) {}\n    \n  return [{ json: { \n    preflight_ok: true, \n    pdf_count_in_source: files.length,\n    excel_target: config.EXCEL_FILE,\n    system_categories: categories,\n    existing_tags: existingTags,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}"
+        "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\ntry {\n  if (!fs.existsSync(config.EXCEL_FILE)) {\n    throw new Error(`Excel file not found at: ${config.EXCEL_FILE}`);\n  }\n  if (!fs.existsSync(config.SOURCE_PDF_DIR)) {\n    throw new Error(`PDF Source directory not found at: ${config.SOURCE_PDF_DIR}`);\n  }\n  \n  const files = fs.readdirSync(config.SOURCE_PDF_DIR);\n  \n  // Check write permission to log path\n  fs.writeFileSync(`${config.LOG_PATH}/.preflight_ok`, new Date().toISOString());\n  \n  // Grab categories\n  let categories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  try {\n    const upstreamData = $('Fetch Categories').first()?.json?.data;\n    if (upstreamData && Array.isArray(upstreamData)) {\n      categories = upstreamData.map(c => c.name || c.type || c);\n    }\n  } catch(e) {}\n  \n  // Grab existing tags\n  let existingTags = [];\n  try {\n    const tagData = $('Fetch Tags').first()?.json?.data || [];\n    existingTags = Array.isArray(tagData)\n      ? tagData.map(t => ({ publicId: t.publicId, tagName: t.tag_name || t.name || '' })).filter(t => t.tagName && t.publicId)\n      : [];\n  } catch(e) {}\n    \n  return [{ json: { \n    preflight_ok: true, \n    pdf_count_in_source: files.length,\n    excel_target: config.EXCEL_FILE,\n    system_categories: categories,\n    existing_tags: existingTags,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}"
       },
       "id": "910b13e2-994a-4fb6-bca1-637e1628c586",
       "name": "File Mount Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [31744, 13504],
+      "position": [
+        31744,
+        13504
+      ],
       "notes": "ตรวจสอบ File System + รวบรวม master data สำหรับ AI payload"
     },
     {
@@ -144,7 +163,10 @@
       "name": "Read Excel Binary",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [31920, 13504],
+      "position": [
+        31920,
+        13504
+      ],
       "notes": "ดึงไฟล์ Excel ขึ้นมาไว้ในหน่วยความจำ"
     },
     {
@@ -155,7 +177,10 @@
       "name": "Read Excel",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
-      "position": [31920, 13696],
+      "position": [
+        31920,
+        13696
+      ],
       "notes": "แปลงข้อมูล Excel เป็น JSON Data"
     },
     {
@@ -170,26 +195,36 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 2000,
+          "timeout": 10000
+        }
       },
       "id": "a83f8598-72fd-4cc8-9d98-1ea3cb3b42df",
       "name": "Read Checkpoint",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [32096, 13504],
+      "position": [
+        32096,
+        13504
+      ],
       "alwaysOutputData": true,
-      "onError": "continueErrorOutput",
       "notes": "GET /api/ai/migration/checkpoint/:batchId — ADR-023A (ไม่ใช้ MySQL โดยตรง)"
     },
     {
       "parameters": {
-        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.data?.lastProcessedIndex ?? cpJson.lastProcessedIndex ?? cpJson.last_processed_index ?? 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Exit condition: ไม่มี records เหลือ\nif (currentBatch.length === 0) {\n  return [{ json: { batch_complete: true, total_processed: startIndex } }];\n}\n\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const getVal = (possibleKeys) => {\n    const exactMatch = possibleKeys.find(k => item[k] !== undefined);\n    if (exactMatch) return item[exactMatch];\n    const lowerTrimmedKeys = Object.keys(item).map(k => ({ original: k, parsed: k.toLowerCase().trim() }));\n    for (const pk of possibleKeys) {\n      const found = lowerTrimmedKeys.find(k => k.parsed === pk.toLowerCase().trim());\n      if (found) return item[found.original];\n    }\n    return '';\n  };\n\n  const docNum = getVal(['document_number', 'correspondence_number', 'Document Number', 'Corr. No.']);\n  const excelFileName = getVal(['File name', 'file_name', 'File Name', 'filename']);\n  \n  if (!excelFileName) {\n    throw new Error(`Missing 'File name' column for row ${i + startIndex + 1}, document: ${docNum}`);\n  }\n  \n  return {\n    json: {\n      batch_complete: false,\n      document_number: normalize(docNum),\n      title: normalize(getVal(['title', 'Title', 'Subject', 'subject'])),\n      legacy_number: normalize(getVal(['legacy_number', 'Legacy Number', 'Response Doc.'])),\n      excel_revision: getVal(['revision', 'Revision', 'rev']) || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: normalize(excelFileName),\n      issued_date: normalize(getVal(['issued_date', 'Issued_date', 'Issued Date', 'date', 'Date'])),\n      received_date: normalize(getVal(['received_date', 'Received_date', 'Received Date'])),\n      sender: normalize(getVal(['sender', 'Sender', 'From', 'from'])),\n      receiver: normalize(getVal(['receiver', 'Receiver', 'To', 'to'])),\n    }\n  };\n});"
+        "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.data?.lastProcessedIndex ?? cpJson.lastProcessedIndex ?? cpJson.data?.last_processed_index ?? cpJson.last_processed_index ?? 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Exit condition: ไม่มี records เหลือ\nif (currentBatch.length === 0) {\n  return [{ json: { batch_complete: true, total_processed: startIndex } }];\n}\n\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const getVal = (possibleKeys) => {\n    const exactMatch = possibleKeys.find(k => item[k] !== undefined);\n    if (exactMatch) return item[exactMatch];\n    const lowerTrimmedKeys = Object.keys(item).map(k => ({ original: k, parsed: k.toLowerCase().trim() }));\n    for (const pk of possibleKeys) {\n      const found = lowerTrimmedKeys.find(k => k.parsed === pk.toLowerCase().trim());\n      if (found) return item[found.original];\n    }\n    return '';\n  };\n\n  const docNum = getVal(['document_number', 'correspondence_number', 'Document Number', 'Corr. No.']);\n  const excelFileName = getVal(['File name', 'file_name', 'File Name', 'filename']);\n  \n  if (!excelFileName) {\n    throw new Error(`Missing 'File name' column for row ${i + startIndex + 1}, document: ${docNum}`);\n  }\n  \n  return {\n    json: {\n      batch_complete: false,\n      document_number: normalize(docNum),\n      title: normalize(getVal(['title', 'Title', 'Subject', 'subject'])),\n      legacy_number: normalize(getVal(['legacy_number', 'Legacy Number', 'Response Doc.'])),\n      excel_revision: getVal(['revision', 'Revision', 'rev']) || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: normalize(excelFileName),\n      issued_date: normalize(getVal(['issued_date', 'Issued_date', 'Issued Date', 'date', 'Date'])),\n      received_date: normalize(getVal(['received_date', 'Received_date', 'Received Date'])),\n      sender: normalize(getVal(['sender', 'Sender', 'From', 'from'])),\n      receiver: normalize(getVal(['receiver', 'Receiver', 'To', 'to'])),\n    }\n  };\n});"
       },
       "id": "80845e32-c283-4e9f-af73-6339d675fb38",
       "name": "Process Batch + Encoding",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [32272, 13504],
+      "position": [
+        32272,
+        13504
+      ],
       "alwaysOutputData": true,
       "notes": "ตัด Batch + Normalize UTF-8 + Exit condition เมื่อ records หมด"
     },
@@ -201,7 +236,10 @@
       "name": "File Validator",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [32448, 13504],
+      "position": [
+        32448,
+        13504
+      ],
       "notes": "ตรวจสอบไฟล์ PDF ใน Directory"
     },
     {
@@ -213,7 +251,10 @@
       "name": "Read PDF File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
-      "position": [32624, 13504],
+      "position": [
+        32624,
+        13504
+      ],
       "onError": "continueErrorOutput",
       "notes": "อ่าน PDF Binary เพื่อเตรียม Upload"
     },
@@ -227,6 +268,10 @@
             {
               "name": "Authorization",
               "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.batch_id + ':' + $json.document_number + ':upload' }}"
             }
           ]
         },
@@ -242,6 +287,9 @@
           ]
         },
         "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 2000,
           "timeout": 60000
         }
       },
@@ -249,19 +297,25 @@
       "name": "Upload PDF to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [32800, 13504],
+      "position": [
+        32800,
+        13504
+      ],
       "onError": "continueErrorOutput",
       "notes": "ADR-023A: อัพโหลด PDF เข้า Backend Temp Storage → รับ temp_attachment_id"
     },
     {
       "parameters": {
-        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst uploadResponse = $input.first()?.json || {};\nconst metaItem = $('File Validator').all()[$input.context?.itemIndex ?? 0]?.json || {};\nconst mountCheckData = $('File Mount Check').first()?.json || {};\n\nconst tempAttachmentId = uploadResponse?.data?.id || uploadResponse?.id;\nif (!tempAttachmentId) {\n  throw new Error(`Upload failed — no temp_attachment_id returned for document: ${metaItem.document_number}`);\n}\n\n// สร้าง SubmitAiJobDto ตาม Backend DTO\nconst submitPayload = {\n  type: 'migrate-document',\n  payload: {\n    tempAttachmentId: String(tempAttachmentId),\n    documentNumber: String(metaItem.document_number || ''),\n    title: String(metaItem.title || ''),\n    batchId: String(config.BATCH_ID),\n    existingTags: mountCheckData.existing_tags || [],\n    systemCategories: mountCheckData.system_categories || [],\n  }\n};\n\n// Idempotency-Key: deterministic format ตาม FR-001a\nconst idempotencyKey = `${config.BATCH_ID}:${metaItem.document_number}`;\n\nreturn [{\n  json: {\n    ...metaItem,\n    temp_attachment_id: tempAttachmentId,\n    submit_payload: submitPayload,\n    idempotency_key: idempotencyKey,\n  }\n}];"
+        "jsCode": "const config = $('Set Configuration').first().json.config;\nconst uploadResponse = $input.first()?.json || {};\nconst metaItem = $('File Validator').all()[$input.context?.itemIndex ?? 0]?.json || {};\nconst mountCheckData = $('File Mount Check').first()?.json || {};\n\nconst tempAttachmentPublicId = uploadResponse?.data?.publicId || uploadResponse?.publicId;\nconst tempAttachmentDbId = uploadResponse?.data?.id || uploadResponse?.id;\nif (!tempAttachmentPublicId) {\n  throw new Error(`Upload failed — no temp_attachment_public_id returned for document: ${metaItem.document_number}`);\n}\n\n// สร้าง SubmitAiJobDto ตาม Backend DTO\nconst submitPayload = {\n  type: 'migrate-document',\n  payload: {\n    tempAttachmentId: String(tempAttachmentPublicId),\n    documentNumber: String(metaItem.document_number || ''),\n    title: String(metaItem.title || ''),\n    batchId: String(config.BATCH_ID),\n    existingTags: mountCheckData.existing_tags || [],\n    systemCategories: mountCheckData.system_categories || [],\n  }\n};\n\n// Idempotency-Key: deterministic format ตาม FR-001a\nconst idempotencyKey = `${config.BATCH_ID}:${metaItem.document_number}`;\n\nreturn [{\n  json: {\n    ...metaItem,\n    temp_attachment_public_id: tempAttachmentPublicId,\n    temp_attachment_id: Number.isFinite(Number(tempAttachmentDbId)) ? Number(tempAttachmentDbId) : undefined,\n    submit_payload: submitPayload,\n    idempotency_key: idempotencyKey,\n  }\n}];"
       },
       "id": "c2d3e4f5-a6b7-8901-cdef-234567890123",
       "name": "Build AI Job Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [32976, 13504],
+      "position": [
+        32976,
+        13504
+      ],
       "notes": "สร้าง SubmitAiJobDto payload + Idempotency-Key ตาม FR-001a"
     },
     {
@@ -285,6 +339,9 @@
         "specifyBody": "json",
         "jsonBody": "={{ $json.submit_payload }}",
         "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 2000,
           "timeout": 30000
         }
       },
@@ -292,7 +349,10 @@
       "name": "Submit AI Job",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [33152, 13504],
+      "position": [
+        33152,
+        13504
+      ],
       "onError": "continueErrorOutput",
       "notes": "ADR-023A: POST /api/ai/jobs — Backend จัดการ Ollama ผ่าน BullMQ"
     },
@@ -304,7 +364,10 @@
       "name": "Poll AI Job Status",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [33328, 13504],
+      "position": [
+        33328,
+        13504
+      ],
       "notes": "Poll GET /api/ai/jobs/{jobId} ทุก 5 วินาที (timeout 120 วินาที)"
     },
     {
@@ -315,7 +378,10 @@
       "name": "Parse & Validate AI Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [33504, 13504],
+      "position": [
+        33504,
+        13504
+      ],
       "notes": "Parse AI result + Confidence routing prep + Tag normalization (isNew flag)"
     },
     {
@@ -324,8 +390,23 @@
           "values": [
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
-                "conditions": [{ "leftValue": "={{ $json.route_index }}", "rightValue": 0, "operator": { "type": "number", "operation": "equals", "singleValue": true } }],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route_index }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -333,8 +414,23 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
-                "conditions": [{ "leftValue": "={{ $json.route_index }}", "rightValue": 1, "operator": { "type": "number", "operation": "equals", "singleValue": true } }],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route_index }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -342,8 +438,23 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
-                "conditions": [{ "leftValue": "={{ $json.route_index }}", "rightValue": 2, "operator": { "type": "number", "operation": "equals", "singleValue": true } }],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route_index }}",
+                    "rightValue": 2,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -351,8 +462,23 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
-                "conditions": [{ "leftValue": "={{ $json.route_index }}", "rightValue": 3, "operator": { "type": "number", "operation": "equals", "singleValue": true } }],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route_index }}",
+                    "rightValue": 3,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -366,7 +492,10 @@
       "name": "Route by Confidence",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [33680, 13504]
+      "position": [
+        33680,
+        13504
+      ]
     },
     {
       "parameters": {
@@ -378,19 +507,31 @@
             {
               "name": "Authorization",
               "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key + ':queue' }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ batchId: $json.batch_id, documentNumber: $json.document_number, subject: ($json.ai_result?.subject || $json.title), originalSubject: $json.title, tempAttachmentId: $json.temp_attachment_id, confidence: $json.ai_result?.confidence, reviewReason: $json.review_reason || '', status: 'PENDING', aiResult: $json.ai_result, idempotencyKey: $json.batch_id + ':' + $json.document_number }) }}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify({ batchId: $json.batch_id, documentNumber: $json.document_number, subject: ($json.ai_result?.subject || $json.title), originalSubject: $json.title, tempAttachmentId: $json.temp_attachment_id === undefined ? undefined : Number($json.temp_attachment_id), confidence: $json.ai_result?.confidence, reviewReason: $json.review_reason || '', status: 'PENDING', aiResult: $json.ai_result, idempotencyKey: $json.batch_id + ':' + $json.document_number }) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 2000,
+          "timeout": 10000
+        }
       },
       "id": "c1bd4485-e58f-4270-892e-edda34c2e328",
       "name": "Insert Review Queue (Auto)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [33856, 13312],
+      "position": [
+        33856,
+        13312
+      ],
       "onError": "continueErrorOutput",
       "notes": "POST /api/ai/migration/queue/record (PENDING) — ADR-023A"
     },
@@ -404,42 +545,60 @@
             {
               "name": "Authorization",
               "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key + ':queue' }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ batchId: $json.batch_id, documentNumber: $json.document_number, subject: ($json.ai_result?.subject || $json.title), originalSubject: $json.title, tempAttachmentId: $json.temp_attachment_id, confidence: $json.ai_result?.confidence, reviewReason: $json.review_reason || '', status: 'PENDING_REVIEW', aiResult: $json.ai_result, idempotencyKey: $json.batch_id + ':' + $json.document_number }) }}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify({ batchId: $json.batch_id, documentNumber: $json.document_number, subject: ($json.ai_result?.subject || $json.title), originalSubject: $json.title, tempAttachmentId: $json.temp_attachment_id === undefined ? undefined : Number($json.temp_attachment_id), confidence: $json.ai_result?.confidence, reviewReason: $json.review_reason || '', status: 'PENDING_REVIEW', aiResult: $json.ai_result, idempotencyKey: $json.batch_id + ':' + $json.document_number }) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 2000,
+          "timeout": 10000
+        }
       },
       "id": "f1a2b3c4-d5e6-7890-abcd-567890123456",
       "name": "Insert Review Queue (Flagged)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [33856, 13504],
+      "position": [
+        33856,
+        13504
+      ],
       "onError": "continueErrorOutput",
       "notes": "POST /api/ai/migration/queue/record (PENDING_REVIEW) — ADR-023A"
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst item = $input.first();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/reject_log.csv`;\nconst header = 'timestamp,document_number,title,reject_reason,ai_confidence,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nconst line = [\n  new Date().toISOString(),\n  esc(item.json.document_number),\n  esc(item.json.title),\n  esc(item.json.reject_reason),\n  item.json.ai_result?.confidence ?? 'N/A',\n  esc(item.json.job_id || '')\n].join(',') + '\\n';\n\nfs.appendFileSync(csvPath, line, 'utf8');\n\nreturn [$input.first()];"
+        "jsCode": "const fs = require('fs');\nconst item = $input.first();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/reject_log_${config.BATCH_ID}.csv`;\nconst header = 'timestamp,document_number,title,reject_reason,ai_confidence,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nconst line = [\n  new Date().toISOString(),\n  esc(item.json.document_number),\n  esc(item.json.title),\n  esc(item.json.reject_reason),\n  item.json.ai_result?.confidence ?? 'N/A',\n  esc(item.json.job_id || '')\n].join(',') + '\\n';\n\nfs.appendFileSync(csvPath, line, 'utf8');\n\nreturn [$input.first()];"
       },
       "id": "0bb3530f-02d5-44d0-ad94-c94d97d91b6a",
       "name": "Log Reject to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [33856, 13696],
+      "position": [
+        33856,
+        13696
+      ],
       "notes": "บันทึกรายการที่ถูกปฏิเสธลง CSV"
     },
     {
       "parameters": {
-        "jsCode": "const fs = require('fs');\nconst items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/error_log.csv`;\nconst header = 'timestamp,document_number,error_type,error_message,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nfor (const item of items) {\n  const line = [\n    new Date().toISOString(),\n    esc(item.json.document_number),\n    esc(item.json.error_type || 'UNKNOWN'),\n    esc(item.json.error || item.json.parse_error),\n    esc(item.json.job_id || '')\n  ].join(',') + '\\n';\n  fs.appendFileSync(csvPath, line, 'utf8');\n}\n\nreturn items;"
+        "jsCode": "const fs = require('fs');\nconst items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/error_log_${config.BATCH_ID}.csv`;\nconst header = 'timestamp,document_number,error_type,error_message,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nfor (const item of items) {\n  const line = [\n    new Date().toISOString(),\n    esc(item.json.document_number),\n    esc(item.json.error_type || 'UNKNOWN'),\n    esc(item.json.error || item.json.parse_error),\n    esc(item.json.job_id || '')\n  ].join(',') + '\\n';\n  fs.appendFileSync(csvPath, line, 'utf8');\n}\n\nreturn items;"
       },
       "id": "8250dd88-ca81-45aa-93d8-480c9bcd6b14",
       "name": "Log Error to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [33856, 13888],
+      "position": [
+        33856,
+        13888
+      ],
       "notes": "บันทึก Error ลง CSV"
     },
     {
@@ -452,19 +611,31 @@
             {
               "name": "Authorization",
               "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ ($json.batch_id || $('Set Configuration').first().json.config.BATCH_ID) + ':' + ($json.document_number || 'WORKFLOW') + ':error' }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, documentNumber: $json.document_number, errorType: $json.error_type || 'UNKNOWN', errorMessage: $json.error || $json.parse_error || '', jobId: $json.job_id || '' }) }}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, documentNumber: $json.document_number || 'WORKFLOW', errorType: $json.error_type || 'UNKNOWN', errorMessage: $json.error || $json.parse_error || $json.message || '', jobId: $json.job_id || '' }) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 2000,
+          "timeout": 10000
+        }
       },
       "id": "0f058ad0-3c09-4c9f-bdcf-503cd58ee395",
       "name": "Log Error to DB",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [34032, 13888],
+      "position": [
+        34032,
+        13888
+      ],
       "onError": "continueErrorOutput",
       "notes": "POST /api/ai/migration/errors — ADR-023A"
     },
@@ -478,19 +649,31 @@
             {
               "name": "Authorization",
               "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $('Set Configuration').first().json.config.BATCH_ID + ':checkpoint:' + (($json.original_index || 0) + 1) }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, lastProcessedIndex: $json.original_index || 0, status: 'RUNNING' }) }}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, lastProcessedIndex: ($json.original_index || 0) + 1, status: 'RUNNING' }) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 2000,
+          "timeout": 10000
+        }
       },
       "id": "bb0e611b-db28-4266-ba40-3b5d534a16f7",
       "name": "Save Checkpoint",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [34032, 13312],
+      "position": [
+        34032,
+        13312
+      ],
       "onError": "continueErrorOutput",
       "notes": "POST /api/ai/migration/checkpoint — ADR-023A"
     },
@@ -503,95 +686,494 @@
       "name": "Delay",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
-      "position": [34208, 13504],
+      "position": [
+        34208,
+        13504
+      ],
       "webhookId": "38e97a99-4dcc-4b63-977a-a02945a1c369",
       "notes": "หน่วงเวลาระหว่าง Records"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.batch_complete }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Batch Complete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.batch_complete }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Continue Loop"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1c2d3e4-f5a6-7890-bcde-f12345678902",
+      "name": "Check Batch Complete",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        34384,
+        13504
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$('Set Configuration').first().json.config.BACKEND_URL}}/api/ai/migration/checkpoint",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$('Set Configuration').first().json.config.MIGRATION_TOKEN}}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $('Set Configuration').first().json.config.BATCH_ID + ':complete' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchId: $('Set Configuration').first().json.config.BATCH_ID, lastProcessedIndex: $json.total_processed, status: 'COMPLETED' }) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "waitBetweenTries": 2000,
+          "timeout": 10000
+        }
+      },
+      "id": "9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
+      "name": "Mark Batch Complete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        34208,
+        13696
+      ],
+      "notes": "Update checkpoint status to COMPLETED when batch finishes"
     }
   ],
   "pinData": {},
   "connections": {
     "Form Trigger": {
-      "main": [[{ "node": "Set Configuration", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Set Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Set Configuration": {
-      "main": [[{ "node": "Check Backend Health", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Check Backend Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Check Backend Health": {
-      "main": [[{ "node": "Validate Token", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Validate Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Validate Token": {
-      "main": [[{ "node": "Fetch Categories", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fetch Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch Categories": {
-      "main": [[{ "node": "Fetch Tags", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fetch Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch Tags": {
-      "main": [[{ "node": "File Mount Check", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "File Mount Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "File Mount Check": {
-      "main": [[{ "node": "Read Excel Binary", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Read Excel Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Read Excel Binary": {
-      "main": [[{ "node": "Read Excel", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Read Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Read Excel": {
-      "main": [[{ "node": "Read Checkpoint", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Read Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Read Checkpoint": {
-      "main": [[{ "node": "Process Batch + Encoding", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Process Batch + Encoding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Process Batch + Encoding": {
-      "main": [[{ "node": "File Validator", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Check Batch Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "File Validator": {
-      "main": [[{ "node": "Read PDF File", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Read PDF File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Read PDF File": {
-      "main": [[{ "node": "Upload PDF to Backend", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Upload PDF to Backend",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Upload PDF to Backend": {
-      "main": [[{ "node": "Build AI Job Payload", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build AI Job Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build AI Job Payload": {
-      "main": [[{ "node": "Submit AI Job", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Submit AI Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Submit AI Job": {
-      "main": [[{ "node": "Poll AI Job Status", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Poll AI Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Poll AI Job Status": {
-      "main": [[{ "node": "Parse & Validate AI Response", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse & Validate AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse & Validate AI Response": {
-      "main": [[{ "node": "Route by Confidence", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Route by Confidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Route by Confidence": {
       "main": [
-        [{ "node": "Insert Review Queue (Auto)", "type": "main", "index": 0 }],
-        [{ "node": "Insert Review Queue (Flagged)", "type": "main", "index": 0 }],
-        [{ "node": "Log Reject to CSV", "type": "main", "index": 0 }],
-        [{ "node": "Log Error to CSV", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Insert Review Queue (Auto)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Review Queue (Flagged)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Reject to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Insert Review Queue (Auto)": {
-      "main": [[{ "node": "Save Checkpoint", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Save Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Insert Review Queue (Flagged)": {
-      "main": [[{ "node": "Save Checkpoint", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Save Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Save Checkpoint": {
-      "main": [[{ "node": "Delay", "type": "main", "index": 0 }]]
-    },
-    "Log Reject to CSV": {
-      "main": [[{ "node": "Delay", "type": "main", "index": 0 }]]
-    },
-    "Log Error to CSV": {
-      "main": [[{ "node": "Log Error to DB", "type": "main", "index": 0 }]]
-    },
-    "Log Error to DB": {
-      "main": [[{ "node": "Delay", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Delay": {
-      "main": [[{ "node": "Read Checkpoint", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Read Checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Batch Complete": {
+      "main": [
+        [
+          {
+            "node": "Mark Batch Complete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "File Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Batch Complete": {
+      "main": []
+    },
+    "Log Reject to CSV": {
+      "main": [
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error to CSV": {
+      "main": [
+        [
+          {
+            "node": "Log Error to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error to DB": {
+      "main": [
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -606,7 +1188,13 @@
   },
   "id": "u7CLP05AyFb8Um0P",
   "tags": [
-    { "name": "migration", "createdAt": "2026-05-23" },
-    { "name": "v2", "createdAt": "2026-05-23" }
+    {
+      "name": "migration",
+      "createdAt": "2026-05-23"
+    },
+    {
+      "name": "v2",
+      "createdAt": "2026-05-23"
+    }
   ]
 }
