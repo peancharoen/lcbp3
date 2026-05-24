@@ -95,7 +95,7 @@ Admin สามารถดู AI Performance metrics จาก ai_audit_logs (c
 ### Functional Requirements
 
 - **FR-001**: ระบบ MUST ตรวจจับประเภท PDF (Digital vs Scanned) อัตโนมัติโดยใช้ `extracted_chars > OCR_CHAR_THRESHOLD` โดยไม่ให้ User เลือก
-- **FR-002**: ระบบ MUST ส่ง PDF เข้า gemma4:e4b สูงสุด 3 หน้าแรกเท่านั้น สำหรับงาน Classification และ Tagging
+- **FR-002**: ระบบ MUST ส่ง PDF เข้า gemma4:e2b สูงสุด 5 หน้าแรกเท่านั้น สำหรับงาน Classification และ Tagging
 - **FR-003**: ระบบ MUST ฝัง Vector จากเอกสารทั้งฉบับ (full-document chunking) สำหรับ RAG — ไม่จำกัด 3 หน้า
 - **FR-004**: AI Inference ทั้งหมด MUST ผ่าน BullMQ Worker บน NestJS — ห้าม n8n เรียก Ollama โดยตรง
 - **FR-005**: `QdrantService.search()` MUST รับ `projectPublicId: string` เป็น required parameter เสมอ
@@ -129,7 +129,7 @@ Admin สามารถดู AI Performance metrics จาก ai_audit_logs (c
 
 - **SC-001**: AI Suggestion ปรากฏบนฟอร์มภายใน 30 วินาที สำหรับ Digital PDF และ 90 วินาที สำหรับ Scanned PDF (p95)
 - **SC-002**: RAG Q&A ตอบกลับภายใน 10 วินาที (p95 นับจาก dequeue จาก `ai-realtime`)
-- **SC-003**: VRAM peak ไม่เกิน 5GB เมื่อรัน 2 models พร้อมกัน (gemma4:e4b + nomic-embed-text) — วัดด้วย `nvidia-smi --query-gpu=memory.used --format=csv,noheader` ระหว่าง job run (ดู verification ใน quickstart.md Scenario 6, QuizMe 2026-05-15)
+- **SC-003**: VRAM peak ไม่เกิน 3GB เมื่อรัน 2 models พร้อมกัน (gemma4:e2b + nomic-embed-text) — วัดด้วย `nvidia-smi --query-gpu=memory.used --format=csv,noheader` ระหว่าง job run (ดู verification ใน quickstart.md Scenario 6, QuizMe 2026-05-15)
 - **SC-004**: ไม่มี data leak ข้ามโครงการใน RAG — ทุก Qdrant query มี `project_public_id` filter (ตรวจสอบได้จาก query log)
 - **SC-005**: Legacy Migration Batch 20,000 ฉบับ ประมวลผลสำเร็จโดยไม่มี duplicate record (ตรวจสอบด้วย Idempotency-Key)
 - **SC-006**: admin_override_rate < 40% หลัง Calibration Phase (100-500 ฉบับแรก)
@@ -140,7 +140,7 @@ Admin สามารถดู AI Performance metrics จาก ai_audit_logs (c
 
 ## Assumptions
 
-- Desk-5439 พร้อมใช้งานและมี Ollama ที่ติดตั้ง `gemma4:e4b Q8_0` และ `nomic-embed-text` แล้ว
+- Desk-5439 พร้อมใช้งานและมี Ollama ที่ติดตั้ง `gemma4:e2b` และ `nomic-embed-text` แล้ว
 - Qdrant instance พร้อมใช้งานและ accessible จาก NestJS backend
 - n8n instance สามารถ call DMS API ผ่าน HTTP ได้
 - PaddleOCR ติดตั้งบน Desk-5439 พร้อมรองรับภาษาไทย
@@ -150,7 +150,7 @@ Admin สามารถดู AI Performance metrics จาก ai_audit_logs (c
 ## Clarifications
 
 ### Session 2026-05-15
-- Q: RAG embedding scope — embed ทั้งฉบับหรือแค่ 3 หน้า? → A: ทั้งฉบับ (chunked 512t/64t overlap) — 3-page limit ใช้เฉพาะ Classification/Tagging
+- Q: RAG embedding scope — embed ทั้งฉบับหรือแค่ 5 หน้า? → A: ทั้งฉบับ (chunked 512t/64t overlap) — 5-page limit ใช้เฉพาะ Classification/Tagging
 - Q: embed-document trigger timing → A: AUTO ทันทีหลัง commit (parallel กับ AI Suggestion), ไม่รอ Human confirm
 - Q: n8n role → A: n8n call DMS API เท่านั้น (`POST /api/ai/jobs`) — ไม่เรียก Ollama/Qdrant โดยตรง
 - Q: QdrantService enforcement → A: `projectPublicId: string` เป็น required param — ไม่มี optional fallback

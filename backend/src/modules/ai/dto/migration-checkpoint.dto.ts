@@ -1,6 +1,7 @@
 // File: src/modules/ai/dto/migration-checkpoint.dto.ts
 // Change Log:
 // - 2026-05-23: สร้าง DTOs สำหรับ Migration Checkpoint API endpoints (ADR-023A)
+// - 2026-05-24: ปรับปรุงประเภทข้อมูล tempAttachmentId ใน MigrationQueueRecordDto ให้รับได้ทั้ง string (UUID) และ number
 
 import {
   IsEnum,
@@ -47,9 +48,8 @@ export class MigrationQueueRecordDto {
   @IsOptional()
   originalSubject?: string;
 
-  @IsNumber()
   @IsOptional()
-  tempAttachmentId?: number;
+  tempAttachmentId?: string | number;
 
   @IsNumber()
   @Min(0)

@@ -11,9 +11,9 @@
 
 **Requirements:**
 - **OS**: Windows 10/11 หรือ Linux (Desk-5439)
-- **GPU**: NVIDIA GPU ที่รองรับ CUDA 11.8+ (VRAM ≥ 6GB แนะนำ)
+- **GPU**: NVIDIA GPU ที่รองรับ CUDA 11.8+ (VRAM ≥ 4GB แนะนำ)
 - **Ollama Version**: ≥ 0.5.0
-- **Models**: `gemma4:e2b` (Q4_K_M quantization) + `nomic-embed-text`
+- **Models**: `gemma4:e2b` (Q4 quantization) + `nomic-embed-text`
 
 **Verification Steps:**
 
@@ -30,7 +30,7 @@ nvidia-smi
 ollama list
 # Expected output:
 # NAME                    ID              SIZE      MODIFIED
-# gemma4:e2b              <hash>          2.4 GB    <timestamp>
+# gemma4:e2b              <hash>          2.0 GB    <timestamp>
 # nomic-embed-text        <hash>          274 MB    <timestamp>
 
 # 4. Test model inference (quick test)
@@ -54,7 +54,7 @@ ollama pull nomic-embed-text
 
 # Verify VRAM usage during inference
 nvidia-smi --query-gpu=memory.used --format=csv,noheader
-# Expected: < 5120 MB (5GB threshold per SC-003)
+# Expected: < 3072 MB (3GB threshold per SC-003)
 ```
 
 **Troubleshooting:**
@@ -285,7 +285,7 @@ curl http://192.168.10.XX:8765/health
 ### 7. GPU Resource Monitoring (Critical for SC-003)
 
 **Requirements:**
-- **VRAM Limit**: ≤ 5GB peak (per SC-003)
+- **VRAM Limit**: ≤ 3GB peak (per SC-003)
 - **Concurrency**: 1 job per queue (enforced by BullMQ)
 
 **Verification Commands:**
@@ -303,12 +303,12 @@ nvidia-smi --query-gpu=timestamp,memory.used,utilization.gpu \
 ```
 
 **Expected Behavior:**
-- **ai-batch job**: VRAM peaks at ~2.5GB (gemma4:e2b Q4_K_M)
-- **ai-realtime job**: VRAM peaks at ~2.5GB (same model)
+- **ai-batch job**: VRAM peaks at ~2.0GB (gemma4:e2b Q4)
+- **ai-realtime job**: VRAM peaks at ~2.0GB (same model)
 - **No concurrent jobs**: ai-batch pauses when ai-realtime active (GPU protection)
 
 **Troubleshooting:**
-- **VRAM overflow (>5GB)**: Reduce model quantization or increase GPU memory
+- **VRAM overflow (>3GB)**: Reduce model quantization or increase GPU memory
 - **GPU contention**: Verify BullMQ concurrency=1 enforcement
 - **Slow inference**: Check GPU utilization, consider faster model quantization
 
@@ -399,7 +399,7 @@ grep -r "typhoon" backend/src --include="*.ts"
 
 # 2. Measure VRAM peak during job run (verify SC-003):
 nvidia-smi --query-gpu=memory.used --format=csv,noheader
-# Expected: value < 5120 MB (5GB threshold per SC-003)
+# Expected: value < 3072 MB (3GB threshold per SC-003)
 # Repeat during both ai-batch and ai-realtime jobs to verify peak
 ```
 

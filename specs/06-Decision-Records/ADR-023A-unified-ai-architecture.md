@@ -1,4 +1,4 @@
-# ADR-023A: Unified AI Architecture — Model Revision (gemma4:e4b Q8_0, 2-Model Stack)
+# ADR-023A: Unified AI Architecture — Model Revision (gemma4:e2b, 2-Model Stack)
 
 **Status:** Accepted
 **Date:** 2026-05-15
@@ -14,7 +14,7 @@
 - [RAG Implementation Guide v1.1.2](../08-Tasks/ADR-022-Retrieval-Augmented-Generation/LCBP3-RAG-Implementation-Guide-v1.1.2.md)
 - [ADR-023: Unified AI Architecture (Base)](./ADR-023-unified-ai-architecture.md)
 
-> **หมายเหตุ:** ADR-023A เป็นสำเนาอัปเดตของ ADR-023 v1.1 โดยปรับปรุงชุดโมเดล AI เพื่อให้ใช้งาน VRAM ≤ 8GB ได้อย่างมีเสถียรภาพ ลดจาก 3 โมเดล (gemma4:9b + Typhoon Local + nomic-embed-text) เหลือ 2 โมเดล (gemma4:e4b Q8_0 + nomic-embed-text) โดย gemma4:e4b ทำหน้าที่ครอบคลุมทั้ง General Inference และ OCR Post-processing/Extraction แทน Typhoon Local
+> **หมายเหตุ:** ADR-023A เป็นสำเนาอัปเดตของ ADR-023 v1.1 โดยปรับปรุงชุดโมเดล AI เพื่อให้ใช้งาน VRAM ≤ 8GB ได้อย่างมีเสถียรภาพ ลดจาก 3 โมเดล (gemma4:9b + Typhoon Local + nomic-embed-text) เหลือ 2 โมเดล (gemma4:e2b + nomic-embed-text) โดย gemma4:e2b ทำหน้าที่ครอบคลุมทั้ง General Inference และ OCR Post-processing/Extraction แทน Typhoon Local
 
 ---
 
@@ -79,32 +79,32 @@
 - ❌ Ollama ไม่สลับโมเดลได้ฉับพลัน หากโหลดพร้อมกัน VRAM เต็มแน่นอน
 - ❌ ต้องจัดการ Routing Logic (เลือกว่างานไหนใช้โมเดลไหน) เพิ่ม Complexity
 
-### Option 4: Unified 2-Model Stack (gemma4:e4b Q8_0 + nomic-embed-text) ⭐ **SELECTED**
+### Option 4: Unified 2-Model Stack (gemma4:e2b + nomic-embed-text) ⭐ **SELECTED**
 
 | โมเดล | ขนาด (VRAM โดยประมาณ) | หน้าที่ |
 |-------|----------------------|---------|
-| `gemma4:e4b Q8_0` | ~4.5GB | General Inference + OCR Post-processing + Extraction + RAG Q&A |
+| `gemma4:e2b` | ~2GB (Q4) | General Inference + OCR Post-processing + Extraction + RAG Q&A |
 | `nomic-embed-text` | ~0.3GB | Embedding 768-dim สำหรับ Qdrant |
-| **รวม** | **~4.8GB** | **เผื่อ headroom ~3.2GB สำหรับ KV Cache และ context window ขนาดใหญ่** |
+| **รวม** | **~2.3GB** | **เผื่อ headroom ~5.7GB สำหรับ KV Cache และ context window ขนาดใหญ่ (8K tokens)** |
 
 **Pros:**
 - ✅ **VRAM ≤ 8GB อย่างมีเสถียรภาพ:** โมเดลทั้ง 2 โหลดพร้อมกันได้ มี headroom เพียงพอสำหรับ KV Cache ขนาดใหญ่
-- ✅ **Single Model ลด Routing Complexity:** gemma4:e4b ครอบคลุมทุก Use Case (OCR clean-up, Extraction, RAG, Classification) ผ่าน Prompt Engineering ที่แตกต่างกัน
+- ✅ **Single Model ลด Routing Complexity:** gemma4:e2b ครอบคลุมทุก Use Case (OCR clean-up, Extraction, RAG, Classification) ผ่าน Prompt Engineering ที่แตกต่างกัน
 - ✅ **BullMQ Sequential Queue:** การใช้โมเดลเดียวทำให้ Queue ทำงานได้ตรงไปตรงมา — ไม่มีปัญหา Worker ต้องสลับโมเดลระหว่างงาน
 - ✅ **GPU Overload Prevention ตาม ADR-023:** สอดคล้องกับนโยบายที่กำหนดไว้แต่เดิม
-- ✅ **gemma4:e4b Q8_0:** quantization Q8_0 รักษาความแม่นยำของ weights ใกล้เคียง FP16 มากที่สุด เหมาะกับงานที่ต้องการความละเอียดด้านภาษา
+- ✅ **gemma4:e2b Q4:** quantization Q4 ประหยัด VRAM มากที่สุด (~2GB) พร้อม context window 8K tokens ขนาดใหญ่
 
 **Cons:**
-- ❌ ไม่มี Typhoon Local ซึ่งถูก Fine-tune มาสำหรับภาษาไทยโดยเฉพาะ — ต้องพึ่ง Prompt Engineering บน gemma4:e4b แทน
+- ❌ ไม่มี Typhoon Local ซึ่งถูก Fine-tune มาสำหรับภาษาไทยโดยเฉพาะ — ต้องพึ่ง Prompt Engineering บน gemma4:e2b แทน
 
 ---
 
 ## Decision Outcome
 
-**Chosen Option:** Option 4 — Unified 2-Model Stack (gemma4:e4b Q8_0 + nomic-embed-text)
+**Chosen Option:** Option 4 — Unified 2-Model Stack (gemma4:e2b + nomic-embed-text)
 
 ### Rationale
-การลด Model Stack จาก 3 → 2 โมเดลช่วยให้ VRAM Budget ≤ 8GB อย่างมีเสถียรภาพ โดย gemma4:e4b Q8_0 สามารถทำหน้าที่แทน Typhoon Local ได้ผ่าน Prompt Engineering เนื่องจาก gemma4 architecture รองรับ Multimodal Context ได้ดี และ Q8_0 quantization รักษา quality ไว้ในระดับสูง BullMQ Sequential Queue ทำงานได้ตรงไปตรงมามากขึ้นเมื่อมีโมเดลเดียว ลด complexity ของ Job Routing
+การลด Model Stack จาก 3 → 2 โมเดลช่วยให้ VRAM Budget ≤ 8GB อย่างมีเสถียรภาพ โดย gemma4:e2b สามารถทำหน้าที่แทน Typhoon Local ได้ผ่าน Prompt Engineering เนื่องจาก gemma4 architecture รองรับ Multimodal Context ได้ดี และ Q4 quantization ประหยัด VRAM มากที่สุด BullMQ Sequential Queue ทำงานได้ตรงไปตรงมามากขึ้นเมื่อมีโมเดลเดียว ลด complexity ของ Job Routing
 
 ---
 
@@ -130,7 +130,7 @@ graph TB
     end
 
     subgraph DESK["🖥️ Desk-5439 (AI Isolation Host)"]
-        OLLAMA["Ollama\ngemma4:e4b Q8_0\n+ nomic-embed-text"]
+        OLLAMA["Ollama\ngemma4:e2b\n+ nomic-embed-text"]
         QDRANT[Qdrant Vector Store]
         NLP[PaddleOCR + PyThaiNLP]
     end
@@ -183,9 +183,9 @@ graph TB
 
 | โมเดล | Role | VRAM (โดยประมาณ) | หมายเหตุ |
 |-------|------|-----------------|---------|
-| `gemma4:e4b Q8_0` | General Inference + OCR Post-processing + Extraction + RAG Q&A | ~4.0GB (weights) + ~0.2GB (KV Cache) | Q8_0 ≈ 4B × 8-bit = ~4.0GB; KV Cache ต่ำเพราะ input ≤ 3 หน้า (~2,000 tokens) |
+| `gemma4:e2b` | General Inference + OCR Post-processing + Extraction + RAG Q&A | ~2GB (Q4) + ~0.2GB (KV Cache) | Q4 quantization; Context window 8K tokens; Parameters 2.1B |
 | `nomic-embed-text` | Embedding 768-dim → Qdrant | ~0.3GB | สร้าง Semantic Vector สำหรับ Hybrid Search |
-| **รวม (peak)** | | **~4.5GB** | **เผื่อ headroom ~3.5GB — มั่นใจสูง เพราะ PDF input จำกัด ≤ 3 หน้า** |
+| **รวม (peak)** | | **~2.5GB** | **เผื่อ headroom ~5.5GB — มั่นใจสูง เพราะ context window ขนาดใหญ่ (8K tokens)** |
 
 * **Orchestrator:** ใช้ **n8n** เป็นตัวควบคุม Flow **Migration Phase เท่านั้น** (trigger batch, monitor progress, handle retry ระดับ batch) — ห้าม n8n เรียก Ollama หรือ PaddleOCR โดยตรง
 * **Job Executor:** ทุก AI Inference (OCR, Extraction, Embedding, RAG) ต้องผ่าน **BullMQ บน NestJS เท่านั้น** — n8n call `POST /api/ai/jobs` เพื่อ queue job แล้ว poll ผลผ่าน `GET /api/ai/jobs/:jobId`
@@ -202,10 +202,10 @@ Real-time Flow (User Upload):
 
 > **เหตุผล:** การ inference ทั้งหมดผ่าน BullMQ ทำให้ RBAC, ADR-007 Error Handling และ `ai_audit_logs` ครอบคลุมทุก job โดยอัตโนมัติ — ถ้า n8n bypass BullMQ จะเกิด audit gap
 
-* **LLM Engine:** ใช้ **Ollama** บน Desk-5439 รันโมเดล `gemma4:e4b Q8_0` สำหรับงานทั้งหมด ได้แก่ General Inference, OCR Post-processing, Metadata Extraction, Classification และ RAG Q&A
+* **LLM Engine:** ใช้ **Ollama** บน Desk-5439 รันโมเดล `gemma4:e2b` สำหรับงานทั้งหมด ได้แก่ General Inference, OCR Post-processing, Metadata Extraction, Classification และ RAG Q&A
 * **Embedding Model:** ใช้ `nomic-embed-text` รันผ่าน Ollama บน Desk-5439 สำหรับแปลงเวกเตอร์ 768-มิติ
 * **OCR & NLP:** ใช้ **PaddleOCR** สกัดข้อความจาก Scanned PDF และใช้ **PyThaiNLP** ตัดคำ/เตรียมข้อความภาษาไทย — ทั้งคู่รันบน Desk-5439
-* ❌ **Typhoon Local:** ไม่ใช้ — ถูกแทนที่โดย `gemma4:e4b Q8_0` เพื่อรักษา VRAM Budget
+* ❌ **Typhoon Local:** ไม่ใช้ — ถูกแทนที่โดย `gemma4:e2b` เพื่อรักษา VRAM Budget
 * ❌ **Typhoon Cloud API:** ไม่ใช้ — `rag/typhoon.service.ts` ต้องถูก Remove ออกจาก Codebase (Dead Code + Security Risk)
 
 #### 2.2 BullMQ Queue Architecture (GPU Overload Prevention)
@@ -231,8 +231,8 @@ Queue: ai-realtime (BullMQ)
 
 | Job Type | โมเดลที่ใช้ | SLA Target |
 |----------|-----------|------------|
-| `rag-query` | `gemma4:e4b Q8_0` | p95 < 10s (นับตั้งแต่ dequeue) |
-| `ai-suggest` | `gemma4:e4b Q8_0` | p95 < 8s |
+| `rag-query` | `gemma4:e2b` | p95 < 10s (นับตั้งแต่ dequeue) |
+| `ai-suggest` | `gemma4:e2b` | p95 < 8s |
 
 ##### Queue 2: `ai-batch` (Background Processing)
 
@@ -246,8 +246,8 @@ Queue: ai-batch (BullMQ)
 
 | Job Type | โมเดลที่ใช้ | Priority |
 |----------|-----------|---------|
-| `ocr-postprocess` | `gemma4:e4b Q8_0` | Normal |
-| `metadata-extract` | `gemma4:e4b Q8_0` | Normal |
+| `ocr-postprocess` | `gemma4:e2b` | Normal |
+| `metadata-extract` | `gemma4:e2b` | Normal |
 | `embed-document` | `nomic-embed-text` | Low |
 
 > ⚠️ **GPU Constraint:** แม้จะแยก 2 Queue แต่ Ollama Worker บน Desk-5439 มี GPU เดียว — หาก `ai-realtime` และ `ai-batch` รัน Job พร้อมกัน VRAM อาจเต็ม ให้ตั้งค่า `ai-batch` pause อัตโนมัติเมื่อ `ai-realtime` มี active job (ผ่าน BullMQ Event hooks: `active` / `completed`)
@@ -320,19 +320,19 @@ Queue: ai-batch (BullMQ)
 
 #### 4.1 PDF Input Limit (Hard Constraint)
 
-> **กฎ:** ส่ง PDF เข้า **gemma4:e4b Q8_0** ได้ **สูงสุด 3 หน้าแรกเท่านั้น** สำหรับงาน Summarization, Classification และ Tagging
+> **กฎ:** ส่ง PDF เข้า **gemma4:e2b** ได้ **สูงสุด 5 หน้าแรกเท่านั้น** สำหรับงาน Summarization, Classification และ Tagging (เพิ่มจาก 3 เพราะ context window 8K tokens)
 > ⚠️ **ข้อยกเว้น:** งาน `embed-document` (RAG) ใช้เอกสารทั้งฉบับ — ดู Section 5
 
 **เหตุผล:**
-- หน้าปก + หน้าที่ 1–2 ของเอกสารวิศวกรรมมักมีข้อมูลหลักครบ (Document Title, Drawing No., Discipline, Project Code, Revision)
-- จำกัด KV Cache ที่ ~2,000 tokens → VRAM peak ≤ ~4.5GB ตามที่ออกแบบไว้
+- หน้าปก + หน้าที่ 1–4 ของเอกสารวิศวกรรมมักมีข้อมูลหลักครบ (Document Title, Drawing No., Discipline, Project Code, Revision)
+- Context window 8K tokens รองรับ ~5 หน้า → VRAM peak ≤ ~2.5GB ตามที่ออกแบบไว้
 - ป้องกัน Job ใช้เวลานานเกิน SLA
 
 **Implementation Note:**
 ```
 n8n PDF Pre-processor:
-  extract_pages: [1, 2, 3]   ← hard limit, ห้ามเปลี่ยนโดยไม่ review ADR
-  fallback: ถ้า PDF < 3 หน้า → ใช้ทั้งหมด
+  extract_pages: [1, 2, 3, 4, 5]   ← hard limit, ห้ามเปลี่ยนโดยไม่ review ADR
+  fallback: ถ้า PDF < 5 หน้า → ใช้ทั้งหมด
 ```
 
 #### 4.2 PDF Type Auto-Detection (OCR Routing)
@@ -414,8 +414,8 @@ export class QdrantService {
   // ❌ ห้าม expose rawSearch() หรือ method ที่ไม่บังคับ filter
 }
 ```
-* **LLM สำหรับ RAG Q&A:** ใช้ **Local Ollama (`gemma4:e4b Q8_0`)** บน Desk-5439 เท่านั้น — ไม่มี Cloud Fallback เนื่องจากเอกสารทั้งหมดจัดชั้นเป็น INTERNAL
-* **Context Window สำหรับ RAG:** ส่ง top-K chunks (K=5) เข้า gemma4:e4b ≈ 5 × 512 = ~2,560 tokens — อยู่ในขีดจำกัด VRAM
+* **LLM สำหรับ RAG Q&A:** ใช้ **Local Ollama (`gemma4:e2b`)** บน Desk-5439 เท่านั้น — ไม่มี Cloud Fallback เนื่องจากเอกสารทั้งหมดจัดชั้นเป็น INTERNAL
+* **Context Window สำหรับ RAG:** ส่ง top-K chunks (K=5) เข้า gemma4:e2b ≈ 5 × 512 = ~2,560 tokens — อยู่ในขีดจำกัด VRAM (8K tokens)
 * **Performance Target:** $p95 < 10s$ สำหรับการตอบคำถามผ่าน Local LLM (นับตั้งแต่ dequeue จาก `ai-realtime`)
 
 ### 6. `ai_audit_logs` — AI Development Feedback Log

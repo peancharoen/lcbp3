@@ -1,8 +1,8 @@
 # Feature Specification: Intent Classification System
 
-**Feature Branch**: `224-intent-classification`  
-**Created**: 2026-05-19  
-**Status**: Draft  
+**Feature Branch**: `224-intent-classification`
+**Created**: 2026-05-19
+**Status**: Draft
 **Input**: ADR-024 Intent Classification Strategy + CONTEXT.md AI Runtime Layer
 
 ---
@@ -93,7 +93,7 @@
 - **FR-004**: ระบบต้องรองรับ Pattern Type 2 แบบ: `keyword` (case-insensitive includes) และ `regex` (RegExp.test)
 - **FR-005**: ระบบต้องมี Caching Layer ด้วย Redis (Key: `ai:intent:patterns:active`, TTL: 300 วินาที) เพื่อลดการ Query DB
 - **FR-006**: ระบบต้องทำ Pattern Matching ตามลำดับ Priority (ASC) — Pattern ที่มี priority ต่ำกว่าจะถูกตรวจสอบก่อน
-- **FR-007**: หากไม่มี Pattern Match → ระบบต้องเรียก LLM Fallback (Ollama gemma4:e4b Q8_0) แบบ Synchronous
+- **FR-007**: หากไม่มี Pattern Match → ระบบต้องเรียก LLM Fallback (Ollama gemma4:e2b) แบบ Synchronous
 - **FR-008**: LLM Fallback ต้องใช้ Semaphore จำกัด Concurrent Calls สูงสุด 3 รายการพร้อมกัน
 - **FR-009**: ระบบต้อง Validate Confidence Score จาก LLM และ Override เป็น `FALLBACK` หาก confidence < 0.4
 - **FR-010**: ระบบต้องบันทึกทุก Classification Request ลง `ai_audit_logs` โดยมีข้อมูล: input, output, method, latency, projectPublicId, userPublicId
@@ -128,7 +128,7 @@
 
 ### Dependencies
 
-- Ollama Server บน Admin Desktop (Desk-5439) พร้อม Model gemma4:e4b Q8_0
+- Ollama Server บน Admin Desktop (Desk-5439) พร้อม Model gemma4:e2b
 - Redis Cache Server พร้อมใช้งาน
 - Database Schema ตาราง `ai_intent_definitions` และ `ai_intent_patterns` (เพิ่มผ่าน SQL Delta)
 - AI Gateway Module ที่มีอยู่แล้ว (ADR-023A)

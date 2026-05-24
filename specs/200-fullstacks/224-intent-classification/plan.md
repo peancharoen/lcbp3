@@ -13,29 +13,29 @@
 - Backend: NestJS Module (IntentClassifierModule) พร้อม Service สำหรับ Pattern Matching และ LLM Fallback
 - Database: ตาราง `ai_intent_definitions` และ `ai_intent_patterns` (SQL Delta ตาม ADR-009)
 - Caching: Redis (TTL 5 นาที) สำหรับ Patterns
-- AI: Ollama gemma4:e4b Q8_0 บน Admin Desktop (Desk-5439) สำหรับ LLM Fallback
+- AI: Ollama gemma4:e2b บน Admin Desktop (Desk-5439) สำหรับ LLM Fallback
 - Frontend: Admin UI สำหรับจัดการ Intent และ Patterns + Test Console
 
 ---
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x (NestJS 11) + Next.js 16  
-**Primary Dependencies**: 
+**Language/Version**: TypeScript 5.x (NestJS 11) + Next.js 16
+**Primary Dependencies**:
 - Backend: NestJS, TypeORM, ioredis (Redis), axios (Ollama HTTP)
-- Frontend: React, TanStack Query, shadcn/ui components  
-**Storage**: MariaDB 11.8 (Intent Definitions/Patterns), Redis (Cache), Ollama (LLM)  
-**Testing**: Jest (Backend Unit/Integration), Vitest (Frontend Unit), Playwright (E2E)  
-**Target Platform**: QNAP NAS (Docker), Admin Desktop (Ollama)  
-**Project Type**: Web application (Backend + Frontend)  
-**Performance Goals**: 
+- Frontend: React, TanStack Query, shadcn/ui components
+**Storage**: MariaDB 11.8 (Intent Definitions/Patterns), Redis (Cache), Ollama (LLM)
+**Testing**: Jest (Backend Unit/Integration), Vitest (Frontend Unit), Playwright (E2E)
+**Target Platform**: QNAP NAS (Docker), Admin Desktop (Ollama)
+**Project Type**: Web application (Backend + Frontend)
+**Performance Goals**:
 - Pattern Match: < 10ms (cache hit), < 50ms (cache miss)
 - LLM Fallback: < 2000ms (รวม Pattern Check)
-**Constraints**: 
+**Constraints**:
 - GPU Budget: RTX 2060 Super 8GB (ใช้ร่วมกับ RAG, OCR, Embedding)
 - LLM Semaphore: Max 3 concurrent calls
 - Bilingual Input: ไทย/อังกฤษปน + typo tolerance
-**Scale/Scope**: 
+**Scale/Scope**:
 - 12 Intent Definitions (v1)
 - 50+ concurrent users
 - 70-80% Pattern Hit Rate target
@@ -146,7 +146,7 @@ frontend/
 
 **หัวข้อที่ต้อง Research**:
 1. Redis Cache Strategy สำหรับ Patterns (TTL + Invalidation)
-2. Ollama HTTP API Integration (gemma4:e4b Q8_0)
+2. Ollama HTTP API Integration (gemma4:e2b)
 3. Semaphore Pattern ใน NestJS (p-limit หรือ RxJS)
 4. Regex Validation ใน TypeORM/Class-Validator
 

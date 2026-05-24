@@ -109,7 +109,7 @@ DBA หรือ DevOps สร้างตาราง `tags` และ `corresp
 - **FR-001b**: Backend ต้อง double-check `import_transactions` (document_number + batch_id + status != FAILED) ก่อน enqueue BullMQ — ถ้าซ้ำ return 409 พร้อม `existingJobId` (defense-in-depth ต่างหากจาก Idempotency-Key)
 - **FR-002**: ระบบต้องมี endpoint `GET /api/ai/jobs/:jobId` สำหรับ polling status และรับ AI output
 - **FR-003**: BullMQ Worker ต้องรัน OCR auto-detect: PyMuPDF (extracted_chars > 100) หรือ PaddleOCR + PyThaiNLP
-- **FR-004**: AI inference ต้องใช้ `gemma4:e4b Q8_0` เท่านั้น ผ่าน Ollama บน Desk-5439 (ห้าม model อื่น)
+- **FR-004**: AI inference ต้องใช้ `gemma4:e2b` เท่านั้น ผ่าน Ollama บน Desk-5439 (ห้าม model อื่น)
 - **FR-005**: Temp files ต้องถูก auto-cleanup ใน 24 ชั่วโมง หลัง job `failed` หรือไม่มี commit (Scheduled BullMQ job)
 - **FR-005a**: Cleanup scheduler ต้อง exclude temp files ที่ถูก reference โดย `migration_review_queue.status = PENDING` — ห้ามลบ file ที่รออยู่ใน review queue
 - **FR-005b**: PENDING records ที่ไม่มี action ภายใน 30 วัน ต้อง auto-expire เป็น `EXPIRED` + cleanup temp file + แจ้ง Admin (BullMQ notification job)

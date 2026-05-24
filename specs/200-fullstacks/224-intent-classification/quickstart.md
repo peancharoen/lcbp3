@@ -1,13 +1,13 @@
 # Quick Start: Intent Classification System
 
-**Feature**: 224-intent-classification  
+**Feature**: 224-intent-classification
 **Date**: 2026-05-19
 
 ---
 
 ## Prerequisites
 
-- Ollama Server บน Admin Desktop (Desk-5439) พร้อม Model `gemma4:e4b`
+- Ollama Server บน Admin Desktop (Desk-5439) พร้อม Model `gemma4:e2b`
 - Redis Server พร้อมใช้งาน
 - Database Schema อัปเดตผ่าน SQL Delta
 
@@ -56,7 +56,7 @@ INSERT INTO ai_intent_definitions (intent_code, description_th, description_en, 
 ```env
 # Ollama Configuration
 OLLAMA_BASE_URL=http://192.168.10.10:11434
-OLLAMA_MODEL=gemma4:e4b
+OLLAMA_MODEL=gemma4:e2b
 OLLAMA_TIMEOUT_MS=5000
 
 # Intent Classification

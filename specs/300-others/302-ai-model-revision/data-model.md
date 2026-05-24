@@ -9,7 +9,7 @@
 
 ### 1. `ai_audit_logs` (existing table — verify against schema)
 
-ไม่มีการเพิ่ม column ใหม่ — ใช้ `model_name` column ที่มีอยู่แล้วบันทึก `gemma4:e4b` แทน `gemma4:9b`
+ไม่มีการเพิ่ม column ใหม่ — ใช้ `model_name` column ที่มีอยู่แล้วบันทึก `gemma4:e2b` แทน `gemma4:9b`
 
 **Key fields (existing)**:
 ```
@@ -18,7 +18,7 @@ public_id        BINARY(16) → UUIDv7
 document_id      INT FK documents.id
 project_id       INT FK projects.id
 job_type         VARCHAR(50)     -- 'classification', 'tagging', 'rag', 'embed'
-model_name       VARCHAR(100)    -- 'gemma4:e4b', 'nomic-embed-text'
+model_name       VARCHAR(100)    -- 'gemma4:e2b', 'nomic-embed-text'
 confidence_score DECIMAL(5,4)    -- 0.0000 – 1.0000
 ai_suggestion_json   JSON
 human_override_json  JSON NULL
@@ -127,7 +127,7 @@ interface AiRealtimeJobData {
   projectPublicId: string;    // UUIDv7 — required
   userId: number;             // INT internal ID (for audit only)
   payload: {
-    // ai-suggest: { pdfPath: string; pages: 1-3 }
+    // ai-suggest: { pdfPath: string; pages: 1-5 }
     // rag-query:  { question: string; topK: number }
   };
   idempotencyKey: string;
@@ -142,7 +142,7 @@ interface AiBatchJobData {
   projectPublicId: string;    // UUIDv7 — required
   payload: {
     // ocr:              { pdfPath: string }
-    // extract-metadata: { textContent: string; maxPages: 3 }
+    // extract-metadata: { textContent: string; maxPages: 5 }
     // embed-document:   { pdfPath: string; chunkSize: 512; overlap: 64 }
   };
   batchId?: string;           // สำหรับ Legacy Migration เท่านั้น

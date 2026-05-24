@@ -120,7 +120,7 @@ const CONFIG = {
 
   // Ollama Settings
   OLLAMA_HOST: 'http://192.168.20.100:11434',
-  OLLAMA_MODEL: 'gemma4:e4b',         // ห้ามเปลี่ยน — กำหนดโดย ADR-023A
+  OLLAMA_MODEL: 'gemma4:e2b',         // ห้ามเปลี่ยน — กำหนดโดย ADR-023A
   EMBED_MODEL: 'nomic-embed-text',     // สำหรับ Embedding เท่านั้น
   // ไม่มี FALLBACK model — BullMQ concurrency=1 จัดการ GPU usage
 
@@ -338,7 +338,7 @@ mysql -h <DB_HOST> -u migration_bot -p lcbp3_production < lcbp3-v1.8.0-migration
 - Submit: `POST /api/ai/jobs` พร้อม `temp_attachment_id`, `document_number`, `title`, `existing_tags`, `system_categories`
 - Response: `{ "jobId": "<uuid>" }`
 - Poll: `GET /api/ai/jobs/{{jobId}}` ทุก 5 วินาที จน `status = "completed"` (timeout 120 วินาที)
-- AI inference ใช้ `gemma4:e4b Q8_0` ผ่าน BullMQ Worker — System/User Prompt อยู่ใน Backend NestJS ไม่ใช่ใน n8n
+- AI inference ใช้ `gemma4:e2b` ผ่าน BullMQ Worker — System/User Prompt อยู่ใน Backend NestJS ไม่ใช่ใน n8n
 
 ### Node 5: Parse & Validate
 

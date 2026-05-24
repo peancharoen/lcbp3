@@ -193,7 +193,7 @@ specs/
 
 5. **No `any` Types:** ไม่อนุญาตให้ใช้ `any` ในโค้ด พยายามใช้ Validation ผ่าน DTO / Zod แบบ Strongly-typed เสมอ — **Enforced ✅** (0 remaining in backend as of v1.9.0, ดูเทคนิคที่ `05-02-backend-guidelines.md`)
 
-6. **AI Isolation (ADR-023/023A):** Ollama ต้องรันบน **Admin Desktop** (Desk-5439) เท่านั้น — ห้ามรันบน QNAP/Production Server ห้ามมี Direct DB Access โดยเด็ดขาด AI Output ต้องผ่าน Backend Validation ก่อน Write ทุกครั้ง ใช้ 2-Model Stack (gemma4:e4b Q8_0 + nomic-embed-text) + BullMQ 2-Queue (ai-realtime/ai-batch)
+6. **AI Isolation (ADR-023/023A):** Ollama ต้องรันบน **Admin Desktop** (Desk-5439) เท่านั้น — ห้ามรันบน QNAP/Production Server ห้ามมี Direct DB Access โดยเด็ดขาด AI Output ต้องผ่าน Backend Validation ก่อน Write ทุกครั้ง ใช้ 2-Model Stack (gemma4:e2b + nomic-embed-text) + BullMQ 2-Queue (ai-realtime/ai-batch)
 
 7. **UAT Sign-off Required:** ห้าม Close UAT โดยไม่มี Acceptance Criteria ✅ ครบทุกข้อ — ดู `01-05-acceptance-criteria.md`
 

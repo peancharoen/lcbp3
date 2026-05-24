@@ -20,7 +20,7 @@
   - Webhook endpoint: `/webhook/ai-processing`
   - Environment variables: `N8N_BASIC_AUTH_USER`, `N8N_BASIC_AUTH_PASSWORD`
 - [ ] **Ollama Service:**
-  - Pull model: `gemma4:e4b` (GPU optimized, higher accuracy)
+  - Pull model: `gemma4:e2b` (GPU optimized, lower VRAM)
   - API endpoint: `http://localhost:11434`
   - Health check: `GET /api/tags`
   - Memory requirement: Minimum 8GB VRAM for 9B model

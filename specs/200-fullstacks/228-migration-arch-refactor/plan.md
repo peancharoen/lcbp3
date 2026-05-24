@@ -8,17 +8,17 @@
 
 ## Summary
 
-Refactor migration architecture ให้สอดคล้องกับ ADR-023A: n8n เรียกผ่าน BullMQ แทน Ollama โดยตรง, ใช้ `gemma4:e4b Q8_0`, OCR ผ่าน PyMuPDF/PaddleOCR, สร้าง Backend endpoint `/api/ai/jobs`, SQL delta สำหรับ `tags`/`correspondence_tags`, และ Migration Review UI
+Refactor migration architecture ให้สอดคล้องกับ ADR-023A: n8n เรียกผ่าน BullMQ แทน Ollama โดยตรง, ใช้ `gemma4:e2b`, OCR ผ่าน PyMuPDF/PaddleOCR, สร้าง Backend endpoint `/api/ai/jobs`, SQL delta สำหรับ `tags`/`correspondence_tags`, และ Migration Review UI
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x, NestJS 10.x, Next.js 14.x  
-**Primary Dependencies**: BullMQ, TypeORM, CASL, TanStack Query, Zod  
-**Storage**: MariaDB (SQL delta via ADR-009), Qdrant (embedding), Redis (BullMQ)  
-**Testing**: Jest (Backend), Vitest (Frontend)  
-**Target Platform**: QNAP NAS (Backend + n8n), Admin Desktop Desk-5439 (Ollama + OCR Worker)  
-**Performance Goals**: Fast Path OCR < 5s/file; Slow Path OCR < 60s/file; AI inference < 30s  
-**Constraints**: VRAM peak ~4.3GB; BullMQ concurrency=1 (ai-batch); Token TTL ≤ 7 วัน  
+**Language/Version**: TypeScript 5.x, NestJS 10.x, Next.js 14.x
+**Primary Dependencies**: BullMQ, TypeORM, CASL, TanStack Query, Zod
+**Storage**: MariaDB (SQL delta via ADR-009), Qdrant (embedding), Redis (BullMQ)
+**Testing**: Jest (Backend), Vitest (Frontend)
+**Target Platform**: QNAP NAS (Backend + n8n), Admin Desktop Desk-5439 (Ollama + OCR Worker)
+**Performance Goals**: Fast Path OCR < 5s/file; Slow Path OCR < 60s/file; AI inference < 30s
+**Constraints**: VRAM peak ~2.5GB; BullMQ concurrency=1 (ai-batch); Token TTL ≤ 7 วัน
 **Scale/Scope**: 20,000 PDF documents; ~3 วินาที/record → ~16.6 ชั่วโมงรวม
 
 ## Constitution Check
@@ -31,7 +31,7 @@ Refactor migration architecture ให้สอดคล้องกับ ADR-0
 | ADR-008 | BullMQ สำหรับ background jobs | ✅ (ai-batch queue) |
 | ADR-023A | n8n → DMS API → BullMQ → Ollama (ห้าม direct) | ✅ |
 | ADR-007 | Layered error handling + user-friendly messages | ✅ |
-| ADR-023A | gemma4:e4b Q8_0 + nomic-embed-text เท่านั้น | ✅ |
+| ADR-023A | gemma4:e2b + nomic-embed-text เท่านั้น | ✅ |
 
 ## Project Structure
 

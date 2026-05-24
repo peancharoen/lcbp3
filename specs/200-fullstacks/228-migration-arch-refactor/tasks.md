@@ -39,7 +39,7 @@
 
 - [x] T009 [US1] สร้าง BullMQ Worker `MigrateDocumentWorker` ใน `backend/src/modules/ai/workers/migrate-document.worker.ts` — Step 1: fetch temp file from StorageService
 - [x] T010 [P] [US1] เพิ่ม OCR routing logic ใน Worker — PyMuPDF Fast Path (chars > 100) หรือ PaddleOCR Slow Path — เรียกผ่าน OCR Service HTTP API (ไม่ใช่ direct Ollama)
-- [x] T011 [P] [US1] เพิ่ม gemma4:e4b inference ใน Worker — System Prompt + User Prompt สำหรับ metadata extraction + classification + tagging
+- [x] T011 [P] [US1] เพิ่ม gemma4:e2b inference ใน Worker — System Prompt + User Prompt สำหรับ metadata extraction + classification + tagging
 - [x] T012 [US1] เพิ่ม JSON validation + error handling ใน Worker (ADR-007) — ถ้า AI output ไม่ถูก format → mark job failed + log ใน `ai_audit_logs`
 - [x] T013 [US1] เพิ่ม `submitMigrationJob()` method ใน `backend/src/modules/ai/ai.service.ts` — (1) Idempotency-Key check; (2) double-check `import_transactions` (document_number + batch_id + status != FAILED) ก่อน enqueue → 409 พร้อม existingJobId ถ้าซ้ำ (FR-001b); (3) enqueue ไปยัง ai-batch queue
 - [x] T014 [US1] เพิ่ม `POST /api/ai/jobs` endpoint ใน `backend/src/modules/ai/ai.controller.ts` (JwtAuthGuard + CaslAbilityGuard + Idempotency-Key header validation)

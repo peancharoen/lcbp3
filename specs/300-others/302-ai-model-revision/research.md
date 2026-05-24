@@ -8,13 +8,13 @@
 
 ## Decision 1: Model Stack Reduction
 
-- **Decision**: ใช้ 2-model stack: `gemma4:e4b Q8_0` + `nomic-embed-text` แทน 3-model stack เดิม
-- **Rationale**: VRAM budget RTX 2060 Super 8GB — 3-model stack (gemma4:9b + Typhoon + nomic-embed-text) ใช้ ~7.8GB ไม่มี headroom; 2-model stack ใช้ ~4.5GB peak มี headroom ~3.5GB
+- **Decision**: ใช้ 2-model stack: `gemma4:e2b` + `nomic-embed-text` แทน 3-model stack เดิม
+- **Rationale**: VRAM budget RTX 2060 Super 8GB — 3-model stack (gemma4:9b + Typhoon + nomic-embed-text) ใช้ ~7.8GB ไม่มี headroom; 2-model stack ใช้ ~2.5GB peak มี headroom ~5.5GB
 - **Alternatives considered**:
   - gemma4:9b + nomic-embed-text (ไม่มี Typhoon): ยังเกิน budget ~6.8GB
-  - gemma4:e4b Q4_K_M (quantize ต่ำกว่า): ประหยัด VRAM มากกว่าแต่คุณภาพต่ำกว่า Q8_0
+  - gemma4:e4b Q8_0: ใช้ VRAM ~4.5GB แต่ context window น้อยกว่า
   - ย้ายไปใช้ Cloud AI: ขัดกับ ADR-023 (INTERNAL data — ห้าม Cloud)
-- **VRAM Detail**: gemma4:e4b Q8_0 = ~4.0GB weights + ~0.2GB KV Cache (จำกัดโดย 3-page input limit) + nomic-embed-text ~0.3GB = **~4.5GB peak**
+- **VRAM Detail**: gemma4:e2b Q4 = ~2GB weights + ~0.2GB KV Cache (จำกัดโดย 5-page input limit) + nomic-embed-text ~0.3GB = **~2.5GB peak**
 
 ---
 
@@ -24,7 +24,7 @@
 - **Rationale**: Single queue ทำให้ RAG Q&A (interactive, p95 < 10s) ถูก block โดย OCR/Embed batch jobs (ไม่มี SLA); 2-queue ให้ priority separation โดยไม่เพิ่ม Worker ที่ทำให้ VRAM overflow
 - **Alternatives considered**:
   - Single queue + priority field: priority ใน BullMQ ไม่ป้องกัน long-running job ที่กำลังรันอยู่ block queue ถัดไป
-  - 2 Queues + 2 Workers พร้อมกัน: VRAM overflow เมื่อทั้งคู่ใช้ gemma4:e4b พร้อมกัน
+  - 2 Queues + 2 Workers พร้อมกัน: VRAM overflow เมื่อทั้งคู่ใช้ gemma4:e2b พร้อมกัน
 - **Implementation**: BullMQ `active` event บน `ai-realtime` → pause `ai-batch`; `completed`/`failed` → resume `ai-batch`
 
 ---
@@ -72,7 +72,7 @@
 ## Decision 7: Threshold Recalibration Policy
 
 - **Decision**: ใช้ค่าเริ่มต้น 0.85/0.60 สำหรับ Migration Phase แรก แล้ว recalibrate หลัง 100-500 ฉบับแรก
-- **Rationale**: ค่าเดิมถูกกำหนดในยุค gemma4:9b — distribution อาจเปลี่ยนไปกับ gemma4:e4b; recalibrate จาก real data ดีกว่า hardcode ค่าใหม่โดยไม่มีข้อมูล
+- **Rationale**: ค่าเดิมถูกกำหนดในยุค gemma4:9b — distribution อาจเปลี่ยนไปกับ gemma4:e2b; recalibrate จาก real data ดีกว่า hardcode ค่าใหม่โดยไม่มีข้อมูล
 - **Trigger**: REJECTED rate > 30% หรือ Admin override rate > 40% → ปรับลด threshold
 
 ---
@@ -81,6 +81,6 @@
 
 | Assumption | Risk | Mitigation |
 |-----------|------|-----------|
-| gemma4:e4b Q8_0 รองรับภาษาไทยได้ดีเพียงพอ | HIGH — ไม่มีหลักฐานเชิงคุณภาพ | ทดสอบ 50-100 ฉบับก่อน Go-live; เตรียม Prompt Engineering ชดเชย |
-| 3-page limit เพียงพอสำหรับ metadata extraction | MEDIUM — บางเอกสารอาจมี title block หน้า 4+ | ตรวจสอบตัวอย่างเอกสาร 20 ฉบับก่อน implementation |
+| gemma4:e2b รองรับภาษาไทยได้ดีเพียงพอ | HIGH — ไม่มีหลักฐานเชิงคุณภาพ | ทดสอบ 50-100 ฉบับก่อน Go-live; เตรียม Prompt Engineering ชดเชย |
+| 5-page limit เพียงพอสำหรับ metadata extraction | MEDIUM — บางเอกสารอาจมี title block หน้า 6+ | ตรวจสอบตัวอย่างเอกสาร 20 ฉบับก่อน implementation |
 | RTX 2060 Super VRAM ใช้ได้ 8GB เต็ม | LOW — GPU อาจมี overhead จาก OS และ driver | monitor จริงด้วย `nvidia-smi` ระหว่าง UAT |

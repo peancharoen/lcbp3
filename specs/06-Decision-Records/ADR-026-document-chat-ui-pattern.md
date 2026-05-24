@@ -228,7 +228,7 @@ AI Gateway (ADR-023A)
     └─→ RAG Pipeline ถ้าเป็น RAG_QUERY
     │
     ▼
-Ollama (gemma4:e4b Q8_0)
+Ollama (gemma4:e2b)
     │
     ▼
 Response → Stream/Chunk → UI

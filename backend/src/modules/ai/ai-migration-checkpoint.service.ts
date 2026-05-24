@@ -1,6 +1,7 @@
 // File: src/modules/ai/ai-migration-checkpoint.service.ts
 // Change Log:
 // - 2026-05-23: สร้าง service จัดการ Migration Checkpoint, Queue และ Error log ผ่าน API (ADR-023A)
+// - 2026-05-24: เพิ่มฟังก์ชันค้นหาและแปลง UUID เป็นตัวเลข ID จริงใน upsertQueueRecord เพื่อป้องกันการเขียนทับด้วย undefined
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -102,7 +103,19 @@ export class AiMigrationCheckpointService {
 
     record.batchId = dto.batchId;
     record.originalFileName = dto.documentNumber;
-    record.tempAttachmentId = dto.tempAttachmentId ?? undefined;
+    if (dto.tempAttachmentId) {
+      if (typeof dto.tempAttachmentId === 'number') {
+        record.tempAttachmentId = dto.tempAttachmentId;
+      } else {
+        const rows = await this.dataSource.manager.query<{ id: number }[]>(
+          'SELECT id FROM attachments WHERE uuid = ? LIMIT 1',
+          [dto.tempAttachmentId]
+        );
+        if (rows && rows.length > 0) {
+          record.tempAttachmentId = rows[0].id;
+        }
+      }
+    }
     record.confidenceScore = dto.confidence ?? undefined;
     record.status =
       dto.status === 'PENDING_REVIEW'
