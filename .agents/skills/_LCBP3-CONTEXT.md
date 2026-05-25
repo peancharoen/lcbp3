@@ -5,14 +5,14 @@
 
 **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
 **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
-**Version:** 1.8.9 (2026-04-18)
+**Version:** 1.9.7 (2026-05-25)
 
 ---
 
 ## 📌 Canonical Rule Sources (read in this order)
 
 1. **`AGENTS.md`** (repo root) — primary rule file for AI agents; supersedes legacy `GEMINI.md`.
-2. **`specs/06-Decision-Records/`** — architectural decisions (22 ADRs); ADR priority > Engineering Guidelines.
+2. **`specs/06-Decision-Records/`** — architectural decisions (29 ADRs); ADR priority > Engineering Guidelines.
 3. **`specs/05-Engineering-Guidelines/`** — backend/frontend/testing/i18n/git patterns.
 4. **`specs/00-Overview/00-02-glossary.md`** — domain terminology (Correspondence / RFA / Transmittal / Circulation).
 5. **`specs/00-Overview/00-03-product-vision.md`** — project constitution (Vision, Strategic Pillars, Guardrails).
@@ -29,6 +29,7 @@
 - **ADR-002 Document Numbering:** Redis Redlock + TypeORM `@VersionColumn` (double-lock). Never use application-side counter alone.
 - **ADR-008 Notifications:** BullMQ queue — never inline email/notification in a request thread.
 - **ADR-023/023A AI Boundary:** Ollama on Admin Desktop only; AI → DMS API → DB (never direct DB/storage). 2-model stack: `gemma4:e4b Q8_0` + `nomic-embed-text`. BullMQ `ai-realtime` / `ai-batch` queues. Human-in-the-loop validation required. (ADR-018 superseded by ADR-023)
+- **ADR-029 Dynamic Prompt Management:** Prompt templates in DB (`ai_prompts`), never hardcoded in processor; Redis cache `ai:prompt:active:{type}` TTL 60s; `activate()` runs in DB transaction + Redis DEL after commit; `system.manage_all` guard on all mutations.
 - **ADR-007 Error Handling:** Layered (Validation / Business / System); `BusinessException` hierarchy; user-friendly `userMessage` + `recoveryAction`; technical stack only in logs.
 - **TypeScript Strict:** Zero `any`, zero `console.log` (use NestJS `Logger`).
 - **i18n:** No hardcoded Thai/English strings in components — use i18n keys (see `05-08-i18n-guidelines.md`).
@@ -53,15 +54,21 @@
 
 ## 📁 Key Files for Generating / Validating Artifacts
 
-| When you need...          | Read                                                                                                                |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| A new feature spec        | `.agents/skills/speckit-specify/templates/spec-template.md` + `specs/01-Requirements/01-06-edge-cases-and-rules.md` |
-| A plan                    | `.agents/skills/speckit-plan/templates/plan-template.md` + relevant ADRs                                            |
-| Task breakdown            | `.agents/skills/speckit-tasks/templates/tasks-template.md` + existing patterns in `specs/08-Tasks/`                 |
-| Acceptance criteria / UAT | `specs/01-Requirements/01-05-acceptance-criteria.md`                                                                |
-| Schema / table definition | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` + `03-01-data-dictionary.md`                          |
-| RBAC / permissions        | `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` + `01-02-01-rbac-matrix.md`                           |
-| Release / hotfix          | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`                                                    |
+| When you need...           | Read                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| A new feature spec         | `.agents/skills/speckit-specify/templates/spec-template.md` + `specs/01-Requirements/01-06-edge-cases-and-rules.md` |
+| A plan                     | `.agents/skills/speckit-plan/templates/plan-template.md` + relevant ADRs                                            |
+| Task breakdown             | `.agents/skills/speckit-tasks/templates/tasks-template.md` + existing patterns in `specs/08-Tasks/`                 |
+| Acceptance criteria / UAT  | `specs/01-Requirements/01-05-acceptance-criteria.md`                                                                |
+| Schema / table definition  | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql` + `03-01-data-dictionary.md`                          |
+| RBAC / permissions         | `specs/03-Data-and-Storage/lcbp3-v1.8.0-seed-permissions.sql` + `01-02-01-rbac-matrix.md`                           |
+| Release / hotfix           | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`                                                    |
+| ADR-024 Intent Class.      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`                                               |
+| ADR-025 AI Tool Layer      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`                                                   |
+| ADR-026 Chat UI            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`                                                     |
+| ADR-027 AI Admin Console   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md`                                         |
+| ADR-028 Migration Refactor | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`                                              |
+| ADR-029 Dynamic Prompts    | `specs/06-Decision-Records/ADR-029-dynamic-prompt-management.md`                                                    |
 
 ---
 
@@ -83,7 +90,7 @@
 - [ ] Business comments in Thai, code identifiers in English
 - [ ] Schema changes via SQL directly (not migration)
 - [ ] Test coverage meets targets (Backend 70%+, Business Logic 80%+)
-- [ ] Relevant ADRs referenced (007/008/009/016/019/021/023/023A for AI work)
+- [ ] Relevant ADRs referenced (007/008/009/016/019/021/023/023A/024-029 for AI work)
 - [ ] Domain glossary terms used correctly
 - [ ] Error handling: `Logger` + `HttpException` / `BusinessException`
 - [ ] i18n keys used (no hardcode text)

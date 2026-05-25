@@ -1,0 +1,278 @@
+openapi: "3.0.3"
+info:
+  title: AI Prompts Management API
+  description: ADR-029 — Versioned prompt management for OCR extraction
+  version: "1.0.0"
+
+# Base path: /api/ai/prompts (mounted under AiController)
+
+paths:
+  /ai/prompts/{promptType}:
+    get:
+      operationId: listPromptVersions
+      summary: ดึง Prompt Versions ทั้งหมดของ prompt_type นั้น
+      description: Returns all versions sorted by version_number DESC. No pagination (v1). Guarded by system.manage_all.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: promptType
+          in: path
+          required: true
+          schema:
+            type: string
+            example: ocr_extraction
+      responses:
+        "200":
+          description: List of prompt versions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AiPromptResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      operationId: createPromptVersion
+      summary: สร้าง Prompt Version ใหม่ (inactive)
+      description: Validates {{ocr_text}} placeholder. Assigns next version_number automatically. Logs to audit_logs.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: promptType
+          in: path
+          required: true
+          schema:
+            type: string
+            example: ocr_extraction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAiPromptRequest"
+      responses:
+        "201":
+          description: Created prompt version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AiPromptResponse"
+        "400":
+          description: Template missing {{ocr_text}} placeholder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "template ต้องมี {{ocr_text}} placeholder"
+                userMessage: "กรุณาเพิ่ม {{ocr_text}} ใน template ก่อนบันทึก"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /ai/prompts/{promptType}/{versionNumber}:
+    delete:
+      operationId: deletePromptVersion
+      summary: ลบ Prompt Version (ห้ามลบ active version)
+      description: Guards against deleting the active version. Logs to audit_logs.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: promptType
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: versionNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "204":
+          description: Deleted successfully
+        "400":
+          description: Cannot delete active version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "ไม่สามารถลบ active version ได้"
+                userMessage: "กรุณา activate version อื่นก่อน แล้วจึงลบ version นี้"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /ai/prompts/{promptType}/{versionNumber}/activate:
+    post:
+      operationId: activatePromptVersion
+      summary: Activate Prompt Version — นำไปใช้จริงทั้ง sandbox และ migrate-document
+      description: Runs in transaction — deactivates current active, activates this version, invalidates Redis cache. Logs to audit_logs.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: promptType
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: versionNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Activated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AiPromptResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /ai/prompts/{promptType}/{versionNumber}/note:
+    patch:
+      operationId: updatePromptNote
+      summary: บันทึก Manual Note สำหรับ Prompt Version
+      description: Updates manual_note field only. Does not create new version. No audit log required.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: promptType
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: versionNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePromptNoteRequest"
+      responses:
+        "200":
+          description: Note updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AiPromptResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AiPromptResponse:
+      type: object
+      properties:
+        promptType:
+          type: string
+          example: ocr_extraction
+        versionNumber:
+          type: integer
+          example: 3
+        template:
+          type: string
+          description: Full prompt template with {{ocr_text}} placeholder
+        isActive:
+          type: boolean
+          example: true
+        testResultJson:
+          type: object
+          nullable: true
+          description: Last sandbox run result (8 fields)
+        manualNote:
+          type: string
+          nullable: true
+        lastTestedAt:
+          type: string
+          format: date-time
+          nullable: true
+        activatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - promptType
+        - versionNumber
+        - template
+        - isActive
+        - createdAt
+
+    CreateAiPromptRequest:
+      type: object
+      properties:
+        template:
+          type: string
+          description: "Must contain {{ocr_text}} placeholder"
+          example: "Extract fields from the following text:\n{{ocr_text}}\nReturn JSON."
+      required:
+        - template
+
+    UpdatePromptNoteRequest:
+      type: object
+      properties:
+        manualNote:
+          type: string
+          nullable: true
+          maxLength: 2000
+      required:
+        - manualNote
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        userMessage:
+          type: string
+        recoveryAction:
+          type: string
+
+  responses:
+    Forbidden:
+      description: "Forbidden — requires system.manage_all permission"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: "Prompt version not found"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

@@ -7,6 +7,7 @@
 - 2026-05-25 (Session 4): Normalize migration error logging ตาม AGENTS.md — แก้ n8n `Log Error to CSV`/`Log Error to DB`, harden backend `logError()`, เพิ่ม `job_id` ใน migration_errors SQL/delta, และเพิ่ม regression test.
 - 2026-05-25 (Session 5): N8N Workflow Debug — แก้ Submit AI Job (jsonBody serialization + RBAC permission gap) และเพิ่ม checksum-based dedup ใน FileStorageService.upload().
 - 2026-05-25 (Session 6): AI Model Management (ADR-027) — เพิ่มระบบเลือกโมเดล AI แบบไดนามิกผ่าน AI Admin Console: สร้าง `ai_available_models` table + entity, extend `AiSettingsService` ด้วย methods CRUD โมเดล, add REST endpoints, update frontend UI ด้วย Select dropdown และ model list management, update `OllamaService` ใช้ DB-configured model แทน ENV เท่านั้น.
+- 2026-05-25 (Session 7): PaddleOCR Sidecar setup บน Desk-5439 — สร้าง FastAPI sidecar (port 8765) รองรับ `/ocr` + `/normalize`, แก้ AggregateError ใน ocr.service.ts, เพิ่ม path remapping (`OCR_SIDECAR_UPLOAD_BASE`), CIFS volume mount จาก QNAP.
 -->
 
 # 🧠 Agent Long-term Project Memory
@@ -181,17 +182,18 @@ docker compose ps                        # Check status
 
 ## 🌐 7. Environment & Services
 
-| Service          | Local URL / Port            | Production                | Notes                                |
-| ---------------- | --------------------------- | ------------------------- | ------------------------------------ |
-| **Backend API**  | `http://localhost:3001`     | QNAP `192.168.10.8`       | NestJS — `/api` prefix               |
-| **Frontend**     | `http://localhost:3000`     | QNAP `192.168.10.8`       | Next.js                              |
-| **MariaDB**      | `localhost:3307`            | QNAP internal             | DB: `lcbp3`, root via docker         |
-| **Redis**        | `localhost:6379`            | QNAP internal             | BullMQ + session store               |
-| **n8n**          | `http://localhost:5678`     | QNAP `192.168.10.8:5678`  | Migration orchestrator only          |
-| **Ollama**       | `http://192.168.10.X:11434` | Admin Desktop (Desk-5439) | gemma4:e4b Q8_0 + nomic-embed-text   |
-| **Qdrant**       | `http://localhost:6333`     | Admin Desktop (Desk-5439) | Vector DB — requires projectPublicId |
-| **Gitea**        | `https://git.np-dms.work`   | QNAP `192.168.10.8`       | Source + CI/CD                       |
-| **Gitea Runner** | ASUSTOR `192.168.10.9`      | —                         | CI runner                            |
+| Service          | Local URL / Port              | Production                | Notes                                |
+| ---------------- | ----------------------------- | ------------------------- | ------------------------------------ |
+| **Backend API**  | `http://localhost:3001`       | QNAP `192.168.10.8`       | NestJS — `/api` prefix               |
+| **Frontend**     | `http://localhost:3000`       | QNAP `192.168.10.8`       | Next.js                              |
+| **MariaDB**      | `localhost:3307`              | QNAP internal             | DB: `lcbp3`, root via docker         |
+| **Redis**        | `localhost:6379`              | QNAP internal             | BullMQ + session store               |
+| **n8n**          | `http://localhost:5678`       | QNAP `192.168.10.8:5678`  | Migration orchestrator only          |
+| **Ollama**       | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439) | gemma4:e2b + nomic-embed-text        |
+| **Qdrant**       | `http://localhost:6333`       | Admin Desktop (Desk-5439) | Vector DB — requires projectPublicId |
+| **PaddleOCR**    | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439) | `/ocr` + `/normalize` (FastAPI)      |
+| **Gitea**        | `https://git.np-dms.work`     | QNAP `192.168.10.8`       | Source + CI/CD                       |
+| **Gitea Runner** | ASUSTOR `192.168.10.9`        | —                         | CI runner                            |
 
 ### Key Environment Variables (ตรวจสอบใน `docker-compose.yml`)
 
@@ -207,13 +209,14 @@ QDRANT_URL
 
 ## 🚀 8. Recent Rollouts
 
-| วันที่     | Version | รายการ                                                                                        | สถานะ                       |
-| ---------- | ------- | --------------------------------------------------------------------------------------------- | --------------------------- |
-| 2026-05-23 | v1.9.6  | Specs reorganization (`100/200/300-*` folders), AGENTS.md v1.9.6 update                       | ✅ Complete                 |
-| 2026-05-23 | v1.9.6  | N8N Workflow v2 (`n8n.workflow.v2.json`) — ADR-023A compliant, ลบ Ollama direct               | ⏳ Pending import to n8n UI |
-| 2026-05-24 | v1.9.6  | AGENTS.md Project Memory Override rule (Windsurf / Antigravity / Codex)                       | ✅ Complete                 |
-| 2026-05-25 | v1.9.6  | Migration Queue attachment UUID fix — DTO + Service + n8n.workflow.v2.json (Session 3)        | ✅ Complete (tsc verified)  |
-| 2026-05-25 | v1.9.6  | Migration error normalization + `job_id` logging — workflow + backend + SQL/delta (Session 4) | ✅ Complete                 |
+| วันที่     | Version | รายการ                                                                                               | สถานะ                       |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------- | --------------------------- |
+| 2026-05-23 | v1.9.6  | Specs reorganization (`100/200/300-*` folders), AGENTS.md v1.9.6 update                              | ✅ Complete                 |
+| 2026-05-23 | v1.9.6  | N8N Workflow v2 (`n8n.workflow.v2.json`) — ADR-023A compliant, ลบ Ollama direct                      | ⏳ Pending import to n8n UI |
+| 2026-05-24 | v1.9.6  | AGENTS.md Project Memory Override rule (Windsurf / Antigravity / Codex)                              | ✅ Complete                 |
+| 2026-05-25 | v1.9.6  | Migration Queue attachment UUID fix — DTO + Service + n8n.workflow.v2.json (Session 3)               | ✅ Complete (tsc verified)  |
+| 2026-05-25 | v1.9.6  | Migration error normalization + `job_id` logging — workflow + backend + SQL/delta (Session 4)        | ✅ Complete                 |
+| 2026-05-25 | v1.9.6  | PaddleOCR Sidecar บน Desk-5439 — FastAPI `/ocr`+`/normalize`, CIFS mount, path remapping (Session 7) | ✅ Running                  |
 
 ---
 
@@ -347,7 +350,7 @@ unsupported value -> UNKNOWN
 
 ---
 
-### Session 5 — 2026-05-25 (N8N Submit AI Job Debug + Upload Dedup) ← **ล่าสุด**
+### Session 5 — 2026-05-25 (N8N Submit AI Job Debug + Upload Dedup)
 
 #### ปัญหาที่พบ (Root Cause)
 
@@ -387,6 +390,60 @@ unsupported value -> UNKNOWN
 - รัน delta SQL ใน MariaDB (ถ้ายังไม่รัน): `2026-05-25-grant-ai-permissions-to-superadmin.sql`
 - Import `n8n.workflow.v2.json` ใหม่เข้า n8n UI
 - `pnpm --filter backend test -- file-storage` — ยืนยัน checksum dedup
+
+---
+
+### Session 7 — 2026-05-25 (PaddleOCR Sidecar Setup) ← **ล่าสุด**
+
+#### สิ่งที่ทำ
+
+- แก้ `AggregateError` (empty message) ใน `ocr.service.ts` — wrap เป็น Error พร้อม context ที่ชัดเจน
+- สร้าง PaddleOCR + PyThaiNLP FastAPI sidecar รันบน Desk-5439 (Windows 10/11, Docker Desktop WSL2)
+- เพิ่ม path remapping `remapPath()` ใน `OcrService` — แปลง `/app/uploads/...` → `/mnt/uploads/...`
+
+#### ไฟล์ที่สร้าง/แก้ไข
+
+| ไฟล์                                                                                        | การเปลี่ยนแปลง                                                                  |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/Dockerfile`         | ✅ สร้างใหม่ — Python 3.10 slim, ลบ pre-download step (segfault)                |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py`             | ✅ สร้างใหม่ — FastAPI: `/health`, `/ocr` (PaddleOCR), `/normalize` (PyThaiNLP) |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/requirements.txt`   | ✅ สร้างใหม่ — `numpy<2.0` ต้องอยู่ก่อน paddlepaddle (ABI fix)                  |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml` | ✅ สร้างใหม่ — CIFS volume mount + named volume สำหรับ model cache              |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/QNAP/app/docker-compose-app.yml`          | เพิ่ม `OCR_API_URL`, `OCR_CHAR_THRESHOLD`, `OCR_SIDECAR_UPLOAD_BASE`            |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/QNAP/app/.env.example`                    | เพิ่ม `OCR_API_URL`, `OCR_CHAR_THRESHOLD`, `OCR_SIDECAR_UPLOAD_BASE`            |
+| `backend/src/modules/ai/services/ocr.service.ts`                                            | เพิ่ม `remapPath()`, AggregateError fix                                         |
+
+#### Known Issues / Fixes
+
+- `numpy<2.0` ต้องอยู่ก่อน `paddlepaddle` — ABI mismatch กับ cv2 (numpy 2.x)
+- Docker Desktop WSL2 ไม่รองรับ bind mount จาก network drive (Z:\) → ใช้ CIFS volume แทน
+- Pre-download model ใน Dockerfile ทำให้ segfault (exit 139) → ลบออก download ตอน runtime
+- `OLLAMA_RAG_MODEL` → เปลี่ยนเป็น `OLLAMA_MODEL_MAIN=gemma4:e2b` ตาม ADR-023A
+
+#### CIFS Volume Config
+
+```yaml
+volumes:
+  qnap_uploads:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: 'username=${QNAP_USER},password=${QNAP_PASS},vers=3.0,uid=0,gid=0'
+      device: '//192.168.10.8/np-dms-as/data/uploads'
+```
+
+#### Path Remapping
+
+```
+backend: /app/uploads/temp/xxx.pdf → sidecar: /mnt/uploads/temp/xxx.pdf
+OCR_SIDECAR_UPLOAD_BASE=/mnt/uploads (env var)
+```
+
+#### Verification
+
+- `curl http://localhost:8765/health` → `{"status":"ok","engine":"paddleocr"}` ✅
+- `POST /ocr` ทดสอบกับไฟล์จริงใน `/mnt/uploads/temp/` → ได้ text กลับ ✅
+- 78 test suites, 672 tests ผ่านทั้งหมด ✅
 
 ---
 
