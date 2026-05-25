@@ -2,6 +2,7 @@
 # PaddleOCR Sidecar — รันบน Desk-5439 (AI Isolation Host) ตาม ADR-023A
 # Change Log:
 # - 2026-05-25: Initial compose file สำหรับ PaddleOCR HTTP sidecar
+# - 2026-05-25: แก้ volumes ให้ถูกต้องสำหรับ Windows + Docker Desktop
 #
 # วิธีรัน:
 #   docker compose up -d --build
@@ -27,9 +28,14 @@ services:
       # ตั้ง USE_GPU=true เพื่อใช้ RTX 2060 Super (ต้องติดตั้ง nvidia-container-toolkit)
       USE_GPU: "false"
     volumes:
-      # mount path เดียวกับที่ backend เห็น (permanent uploads)
-      # ต้องตรงกับ UPLOAD_PERMANENT_DIR ที่ backend ใช้ผ่าน network share
-      - /share/np-dms-as/data/uploads:/mnt/uploads:ro
+      # Model cache — Docker named volume เพื่อไม่ต้อง download ใหม่ทุกครั้ง
+      - paddleocr_models:/root/.paddleocr
+      # Uploads จาก QNAP NAS ผ่าน SMB (map drive ก่อน เช่น net use Z: \\192.168.10.8\np-dms-as)
+      # หรือใช้ Windows path โดยตรง: //192.168.10.8/np-dms-as/data/uploads
+      - type: bind
+        source: //192.168.10.8/np-dms-as/data/uploads
+        target: /mnt/uploads
+        read_only: true
     logging:
       driver: "json-file"
       options:
@@ -41,3 +47,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
+volumes:
+  paddleocr_models:
+    name: paddleocr_models

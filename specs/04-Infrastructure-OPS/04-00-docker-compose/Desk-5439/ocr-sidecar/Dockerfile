@@ -25,10 +25,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source code
 COPY app.py .
 
-# Download PaddleOCR models ล่วงหน้าระหว่าง build (ลด cold-start time)
-# โมเดลภาษาไทย (th) + อังกฤษ (en) ตาม ADR-023A
-RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle_cls=True, lang='en', use_gpu=False)"
-
 EXPOSE 8765
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
