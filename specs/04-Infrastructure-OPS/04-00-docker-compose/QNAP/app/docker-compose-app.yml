@@ -95,6 +95,9 @@ services:
       QDRANT_HOST: 'qdrant'
       QDRANT_PORT: '6333'
       QDRANT_URL: 'http://qdrant:6333'
+      # --- PaddleOCR Sidecar (Desk-5439 — ADR-023A) ---
+      OCR_API_URL: ${OCR_API_URL:?OCR_API_URL required}
+      OCR_CHAR_THRESHOLD: ${OCR_CHAR_THRESHOLD:-100}
       # --- Numbering ---
       NUMBERING_LOCK_TIMEOUT: '5000'
       NUMBERING_RESERVATION_TTL: '300'

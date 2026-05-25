@@ -1,0 +1,43 @@
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml
+# PaddleOCR Sidecar — รันบน Desk-5439 (AI Isolation Host) ตาม ADR-023A
+# Change Log:
+# - 2026-05-25: Initial compose file สำหรับ PaddleOCR HTTP sidecar
+#
+# วิธีรัน:
+#   docker compose up -d --build
+#
+# ทดสอบ:
+#   curl http://localhost:8765/health
+
+name: lcbp3-ocr
+
+services:
+  ocr-sidecar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ocr-sidecar
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      OCR_CHAR_THRESHOLD: "100"
+      OCR_PORT: "8765"
+      OCR_MAX_PAGES: "0"
+      # ตั้ง USE_GPU=true เพื่อใช้ RTX 2060 Super (ต้องติดตั้ง nvidia-container-toolkit)
+      USE_GPU: "false"
+    volumes:
+      # mount path เดียวกับที่ backend เห็น (permanent uploads)
+      # ต้องตรงกับ UPLOAD_PERMANENT_DIR ที่ backend ใช้ผ่าน network share
+      - /share/np-dms-as/data/uploads:/mnt/uploads:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

@@ -1,6 +1,7 @@
 // File: src/modules/ai/services/ocr.service.ts
 // Change Log
 // - 2026-05-15: เพิ่ม OCR auto-detection service สำหรับ ADR-023A.
+// - 2026-05-25: แก้ไข AggregateError (empty message) จาก axios โดย wrap เป็น Error พร้อม context ที่ชัดเจน.
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -52,15 +53,28 @@ export class OcrService {
       return { text: extractedText, ocrUsed: false };
     }
 
-    const response = await axios.post<PaddleOcrResponse>(
-      `${this.ocrApiUrl}/ocr`,
-      { pdfPath: input.pdfPath },
-      { timeout: 90000 }
-    );
-
-    return {
-      text: response.data.text ?? '',
-      ocrUsed: true,
-    };
+    try {
+      const response = await axios.post<PaddleOcrResponse>(
+        `${this.ocrApiUrl}/ocr`,
+        { pdfPath: input.pdfPath },
+        { timeout: 90000 }
+      );
+      return {
+        text: response.data.text ?? '',
+        ocrUsed: true,
+      };
+    } catch (err: unknown) {
+      const cause =
+        err instanceof AggregateError && err.errors?.length
+          ? err.errors
+              .map((e: unknown) => (e instanceof Error ? e.message : String(e)))
+              .join('; ')
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      throw new Error(
+        `PaddleOCR sidecar unreachable at ${this.ocrApiUrl} — ${cause}`
+      );
+    }
   }
 }
