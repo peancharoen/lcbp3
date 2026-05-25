@@ -56,19 +56,36 @@ export class FileStorageService {
 
   /**
    * Phase 1: Upload (บันทึกไฟล์ลง Temp)
+   * Idempotent: ถ้าไฟล์ checksum เดิมยังอยู่ใน temp (ไม่หมดอายุ) จะคืน record เดิมแทน
+   * ป้องกัน orphan files จาก n8n retry
    */
   async upload(file: Express.Multer.File, userId: number): Promise<Attachment> {
-    const tempId = uuidv4();
     // Fix: แปลงชื่อไฟล์จาก Latin1 → UTF-8 (Multer/busboy decodes as Latin1 by default)
     const originalFilename = this.fixMulterFilename(file.originalname);
-    const fileExt = path.extname(originalFilename);
-    const storedFilename = `${uuidv4()}${fileExt}`;
-    const tempPath = path.join(this.tempDir, storedFilename);
 
     // 1. คำนวณ Checksum (SHA-256) เพื่อความปลอดภัยและความถูกต้องของไฟล์
     const checksum = this.calculateChecksum(file.buffer);
 
-    // 2. บันทึกไฟล์ลง Disk (Temp Folder)
+    // 2. Checksum-based dedup — ถ้า temp attachment เดิมยังไม่หมดอายุ คืน record เดิมทันที
+    const existing = await this.attachmentRepository
+      .createQueryBuilder('a')
+      .where('a.checksum = :checksum', { checksum })
+      .andWhere('a.isTemporary = :isTemp', { isTemp: true })
+      .andWhere('a.uploadedByUserId = :userId', { userId })
+      .andWhere('a.expiresAt > :now', { now: new Date() })
+      .getOne();
+    if (existing) {
+      this.logger.log(
+        `Dedup upload: returning existing temp attachment publicId=${existing.publicId} checksum=${checksum}`
+      );
+      return existing;
+    }
+
+    const fileExt = path.extname(originalFilename);
+    const storedFilename = `${uuidv4()}${fileExt}`;
+    const tempPath = path.join(this.tempDir, storedFilename);
+
+    // 3. บันทึกไฟล์ลง Disk (Temp Folder)
     try {
       await fs.writeFile(tempPath, file.buffer);
     } catch (error) {
@@ -76,7 +93,7 @@ export class FileStorageService {
       throw new BadRequestException('File upload failed');
     }
 
-    // 3. สร้าง Record ใน Database
+    // 4. สร้าง Record ใน Database
     const attachment = this.attachmentRepository.create({
       originalFilename,
       storedFilename: storedFilename,
@@ -84,7 +101,7 @@ export class FileStorageService {
       mimeType: file.mimetype,
       fileSize: file.size,
       isTemporary: true,
-      tempId: tempId,
+      tempId: uuidv4(),
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // หมดอายุใน 24 ชม.
       checksum: checksum,
       uploadedByUserId: userId,

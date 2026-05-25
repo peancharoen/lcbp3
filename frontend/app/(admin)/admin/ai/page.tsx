@@ -6,10 +6,11 @@
 // - 2026-05-21: เพิ่ม RAG Playground Sandbox tab สำหรับ Superadmin (T037, T038).
 // - 2026-05-21: เพิ่ม OCR Sandbox tab พร้อมการอัปเดตสถานะและการแสดงผล JSON แบบมีสีสำหรับ Superadmin (T043-T045).
 // - 2026-05-21: แก้ไข ESLint error เกี่ยวกับ any type และ console.error statement ให้ตรงตามมาตรฐาน Tier 1/2
+// - 2026-05-25: เพิ่ม AI Model Management UI สำหรับเลือกโมเดลแบบไดนามิก (ADR-027).
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Brain, Loader2, Power, ShieldCheck, Cpu, Database, Activity, Search, Info, HelpCircle, AlertCircle } from 'lucide-react';
+import { Brain, Loader2, Power, ShieldCheck, Cpu, Database, Activity, Search, Info, HelpCircle, AlertCircle, Settings2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useAiStatus, useToggleAiFeatures, useAiHealth } from '@/hooks/use-ai-status';
 import { projectService } from '@/lib/services/project.service';
-import { adminAiService, AiSandboxJobResult } from '@/lib/services/admin-ai.service';
+import { adminAiService, AiSandboxJobResult, AiAvailableModel } from '@/lib/services/admin-ai.service';
 import { toast } from 'sonner';
 
 interface SandboxProject {
@@ -48,6 +49,17 @@ export default function AiAdminConsolePage() {
   const [isOcrPolling, setIsOcrPolling] = useState<boolean>(false);
   const [ocrProgress, setOcrProgress] = useState<number>(0);
   const [ocrStatusText, setOcrStatusText] = useState<string>('');
+
+  // AI Model Management State (ADR-027)
+  const { data: aiModelsData, refetch: refetchModels } = useQuery<{ models: AiAvailableModel[]; activeModel: string }>({
+    queryKey: ['ai-available-models'],
+    queryFn: async () => {
+      return await adminAiService.getAvailableModels();
+    },
+  });
+  const availableModels = aiModelsData?.models ?? [];
+  const activeModel = aiModelsData?.activeModel ?? '';
+
   const { data: projects = [], isLoading: isProjectsLoading } = useQuery<SandboxProject[]>({
     queryKey: ['admin-sandbox-projects'],
     queryFn: async () => {
@@ -57,6 +69,37 @@ export default function AiAdminConsolePage() {
   });
   const handleToggle = async (enabled: boolean): Promise<void> => {
     await toggleMutation.mutateAsync(enabled);
+  };
+
+  const handleModelChange = async (modelName: string): Promise<void> => {
+    try {
+      await adminAiService.setActiveModel(modelName);
+      toast.success(`เปลี่ยนโมเดลเป็น ${modelName} สำเร็จ`);
+      await refetchModels();
+    } catch {
+      toast.error('ไม่สามารถเปลี่ยนโมเดลได้');
+    }
+  };
+
+  const handleToggleModel = async (modelName: string): Promise<void> => {
+    try {
+      await adminAiService.toggleModelActive(modelName);
+      toast.success(`เปลี่ยนสถานะโมเดล ${modelName} สำเร็จ`);
+      await refetchModels();
+    } catch {
+      toast.error('ไม่สามารถเปลี่ยนสถานะโมเดลได้');
+    }
+  };
+
+  const handleRemoveModel = async (modelName: string): Promise<void> => {
+    if (!confirm(`ต้องการลบโมเดล ${modelName} ใช่หรือไม่?`)) return;
+    try {
+      await adminAiService.removeModel(modelName);
+      toast.success(`ลบโมเดล ${modelName} สำเร็จ`);
+      await refetchModels();
+    } catch {
+      toast.error('ไม่สามารถลบโมเดลได้');
+    }
   };
   const handleRefreshAll = async (): Promise<void> => {
     await Promise.all([refetch(), refetchHealth()]);
@@ -389,6 +432,107 @@ export default function AiAdminConsolePage() {
               )}
             </CardContent>
           </Card>
+
+          {/* AI Model Management Card (ADR-027) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Settings2 className="h-5 w-5" />
+                AI Model Management
+                <Badge variant="outline" className="text-[10px]">ADR-027</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="space-y-2 flex-1">
+                  <label htmlFor="model-select" className="text-sm font-medium text-foreground">
+                    โมเดล AI ที่ใช้งานอยู่ (Global)
+                  </label>
+                  <Select
+                    value={activeModel}
+                    onValueChange={handleModelChange}
+                  >
+                    <SelectTrigger id="model-select" className="w-full sm:w-[300px]">
+                      <SelectValue placeholder="-- เลือกโมเดล --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableModels
+                        .filter((m) => m.isActive)
+                        .map((model) => (
+                          <SelectItem key={model.modelName} value={model.modelName}>
+                            {model.modelName}
+                            {model.isDefault && (
+                              <Badge variant="secondary" className="ml-2 text-[10px]">Default</Badge>
+                            )}
+                            {model.vramGb && (
+                              <span className="ml-1 text-muted-foreground">({model.vramGb}GB)</span>
+                            )}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  โมเดลปัจจุบัน: <Badge variant="default">{activeModel || 'Loading...'}</Badge>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-3">รายการโมเดลทั้งหมด</h4>
+                <div className="space-y-2">
+                  {availableModels.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">ไม่มีโมเดลในระบบ</p>
+                  ) : (
+                    availableModels.map((model) => (
+                      <div
+                        key={model.modelName}
+                        className="flex items-center justify-between p-2 rounded border bg-background/50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={model.isActive ? 'default' : 'secondary'}
+                            className="text-[10px]"
+                          >
+                            {model.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                          <span className="text-sm font-medium">{model.modelName}</span>
+                          {model.isDefault && (
+                            <Badge variant="outline" className="text-[10px]">Default</Badge>
+                          )}
+                          {activeModel === model.modelName && (
+                            <Badge variant="default" className="text-[10px] bg-emerald-500">Current</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!model.isDefault && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleToggleModel(model.modelName)}
+                                disabled={activeModel === model.modelName && model.isActive}
+                              >
+                                {model.isActive ? 'Deactivate' : 'Activate'}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveModel(model.modelName)}
+                                disabled={model.isDefault || activeModel === model.modelName}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>

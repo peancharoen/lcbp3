@@ -6,6 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AiSettingsService } from './ai-settings.service';
 import { SystemSetting } from './entities/system-setting.entity';
+import { AiAvailableModel } from './entities/ai-available-model.entity';
 
 const DEFAULT_REDIS_TOKEN = 'default_IORedisModuleConnectionToken';
 
@@ -16,6 +17,15 @@ describe('AiSettingsService', () => {
     manager: {
       transaction: jest.fn(),
     },
+  };
+
+  const mockAiModelRepo = {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    save: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    softDelete: jest.fn(),
   };
 
   const mockRedis = {
@@ -34,6 +44,10 @@ describe('AiSettingsService', () => {
         {
           provide: getRepositoryToken(SystemSetting),
           useValue: mockSettingRepo,
+        },
+        {
+          provide: getRepositoryToken(AiAvailableModel),
+          useValue: mockAiModelRepo,
         },
         { provide: DEFAULT_REDIS_TOKEN, useValue: mockRedis },
       ],

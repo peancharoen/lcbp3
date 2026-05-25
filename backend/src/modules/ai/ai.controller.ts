@@ -282,6 +282,116 @@ export class AiController {
     return { aiFeaturesEnabled };
   }
 
+  // ─── AI Model Management (ADR-027) ─────────────────────────────────────────
+
+  @Get('admin/models')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary: 'AI Models — ดึงรายการโมเดล AI ทั้งหมดที่ใช้งานได้',
+  })
+  async getAvailableModels() {
+    const models = await this.aiSettingsService.getAvailableModels();
+    const activeModel = await this.aiSettingsService.getActiveModel();
+    return { models, activeModel };
+  }
+
+  @Get('admin/models/active')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary: 'AI Active Model — ดึงโมเดล AI ที่ใช้งานอยู่ปัจจุบัน',
+  })
+  async getActiveModel() {
+    const activeModel = await this.aiSettingsService.getActiveModel();
+    return { activeModel };
+  }
+
+  @Post('admin/models/active')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'AI Set Active Model — ตั้งค่าโมเดล AI ที่ใช้งาน (global)',
+  })
+  async setActiveModel(
+    @Body() dto: { modelName: string },
+    @CurrentUser() user: User
+  ) {
+    const activeModel = await this.aiSettingsService.setActiveModel(
+      dto.modelName,
+      user.user_id
+    );
+    return { activeModel };
+  }
+
+  @Post('admin/models')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'AI Add Model — เพิ่มโมเดล AI ใหม่เข้าระบบ (Superadmin only)',
+  })
+  async addModel(
+    @Body()
+    dto: {
+      modelName: string;
+      modelVersion: string;
+      description?: string;
+      vramGb?: number;
+    },
+    @CurrentUser() user: User
+  ) {
+    const model = await this.aiSettingsService.addModel(dto, user.user_id);
+    return { model };
+  }
+
+  @Patch('admin/models/:modelName/toggle')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'AI Toggle Model — เปลี่ยนสถานะ active/inactive ของโมเดล',
+  })
+  @ApiParam({
+    name: 'modelName',
+    description: 'ชื่อโมเดล เช่น gemma4:e4b',
+  })
+  async toggleModelActive(
+    @Param('modelName') modelName: string,
+    @CurrentUser() user: User
+  ) {
+    const model = await this.aiSettingsService.toggleModelActive(
+      modelName,
+      user.user_id
+    );
+    return { model };
+  }
+
+  @Delete('admin/models/:modelName')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'AI Remove Model — ลบโมเดล AI (soft delete)',
+  })
+  @ApiParam({
+    name: 'modelName',
+    description: 'ชื่อโมเดลที่ต้องการลบ',
+  })
+  async removeModel(
+    @Param('modelName') modelName: string,
+    @CurrentUser() user: User
+  ): Promise<void> {
+    await this.aiSettingsService.removeModel(modelName, user.user_id);
+  }
+
   @Get('admin/health')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @ApiBearerAuth()

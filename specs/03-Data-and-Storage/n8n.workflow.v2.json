@@ -20,28 +20,28 @@
         },
         "options": {}
       },
-      "id": "a0346819-4e97-4208-99c8-e4f958d652fe",
+      "id": "8cf0c7a9-7166-463f-8b8b-b622bf46c605",
       "name": "Form Trigger",
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
       "position": [
-        -9280,
-        4400
+        -11376,
+        6272
       ],
-      "webhookId": "dd44ab55-df6b-4f3b-a740-6a993ca7ded0",
+      "webhookId": "3698859a-0217-4675-ae92-eb67e4242236",
       "notes": "เปิด URL เพื่อตั้งค่าก่อนรัน"
     },
     {
       "parameters": {
         "jsCode": "// ============================================\n// CONFIGURATION v2.0 — ADR-023A Compliant\n// n8n เรียกแค่ DMS Backend API เท่านั้น — ห้ามเรียก Ollama โดยตรง\n// ============================================\nconst formData = $('Form Trigger').first()?.json || {};\nconst batchSizeInput = parseInt(String(formData['Batch Size'] || '0'));\nconst excelFileInput = String(formData['Excel File Path'] || '').trim();\nconst jwtTokenInput = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1pZ3JhdGlvbl9ib3QiLCJzdWIiOjUsInNjb3BlIjoiR2xvYmFsIiwiaWF0IjoxNzc5NTQwNDk4LCJleHAiOjQ5MzUzMDA0OTh9.TZVzG8u4Cyz8hi0cU3eGaeXinKWKHN3HtYnDcS5p_5I';\nconst resolvedExcelFile = excelFileInput || '/home/node/.n8n-files/staging_ai/C22024.xlsx';\n\n// Validate Excel file path to prevent path traversal\nif (resolvedExcelFile.includes('..') || resolvedExcelFile.includes('~')) {\n  throw new Error('Invalid Excel file path: path traversal detected');\n}\n\nif (!jwtTokenInput || !jwtTokenInput.startsWith('Bearer ')) {\n  throw new Error('JWT Token is required and must start with \"Bearer \"');\n}\n\nconst BATCH_ID = (() => {\n  // ใช้ Excel filename เป็น BATCH_ID เพื่อให้ checkpoint ทำงานถูกต้อง\n  // เปลี่ยน Excel file = BATCH_ID ใหม่ = เริ่มใหม่ (ปลอดภัย)\n  // ใช้ Excel file เดิม = BATCH_ID เดิม = resume ได้\n  const filename = resolvedExcelFile.split('/').pop().split('\\\\').pop();\n  const baseName = filename.replace(/\\.xlsx?$/i, '');\n  return baseName + '-MIGRATION';\n})();\n\nconst CONFIG = {\n  // Backend Settings\n  BACKEND_URL: 'http://backend:3000',\n  MIGRATION_TOKEN: jwtTokenInput,\n\n  // Batch Settings\n  BATCH_SIZE: batchSizeInput > 0 ? batchSizeInput : 10,\n  BATCH_ID: BATCH_ID,\n  DELAY_MS: 60000,\n\n  // AI Job Settings (ADR-023A)\n  AI_JOB_POLL_INTERVAL_MS: 5000,\n  AI_JOB_TIMEOUT_MS: 120000,\n\n  // Confidence Thresholds\n  CONFIDENCE_HIGH: 0.85,\n  CONFIDENCE_LOW: 0.60,\n\n  // Paths (Container paths — ต้องตรงกับ volume mount ใน docker-compose)\n  EXCEL_FILE: resolvedExcelFile,\n  SOURCE_PDF_DIR: '/home/node/.n8n-files/staging_ai/Incoming/08C.2/2567',\n  LOG_PATH: '/home/node/.n8n-files/migration_logs',\n};\n\nreturn [{ json: { config: CONFIG } }];"
       },
-      "id": "65143f3f-b0ee-45e6-b0f9-bf57546b7482",
+      "id": "c785a235-4992-4396-884d-4c2137fb2304",
       "name": "Set Configuration",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -9088,
-        4400
+        -11184,
+        6272
       ],
       "notes": "กำหนดค่า Configuration ทั้งหมด — แก้ไขที่นี่เท่านั้น (ไม่มี Ollama config แล้ว)"
     },
@@ -52,13 +52,13 @@
           "timeout": 5000
         }
       },
-      "id": "b6295d67-9a34-4550-8e96-096a59a88053",
+      "id": "0c23585c-33e3-4eaa-bc54-3cff5079745f",
       "name": "Check Backend Health",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -8912,
-        4400
+        -11008,
+        6272
       ],
       "notes": "ตรวจสอบ Backend พร้อมใช้งาน"
     },
@@ -78,13 +78,13 @@
           "timeout": 5000
         }
       },
-      "id": "92b9007e-9ad1-40f6-8e37-cec5113f6b30",
+      "id": "69db8e96-2203-47fc-b8a8-c6573c53178e",
       "name": "Validate Token",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -8736,
-        4400
+        -10832,
+        6272
       ],
       "notes": "FR-010a: ตรวจสอบ MIGRATION_TOKEN ก่อนเริ่ม Batch"
     },
@@ -104,13 +104,13 @@
           "timeout": 10000
         }
       },
-      "id": "a9c11f42-b63b-412f-b919-88dbc7ab095e",
+      "id": "c9e3959b-4019-4ec6-b254-4a89156ca0d0",
       "name": "Fetch Categories",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -9088,
-        4592
+        -11184,
+        6464
       ],
       "notes": "ดึง Categories จาก Backend"
     },
@@ -130,13 +130,13 @@
           "timeout": 10000
         }
       },
-      "id": "108423e3-90de-49a3-b950-8f78cd231b84",
+      "id": "e3ed851e-1ef2-42d4-84bd-df29cfe6e13e",
       "name": "Fetch Tags",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -8912,
-        4592
+        -11008,
+        6464
       ],
       "notes": "ดึง Tags ที่มีอยู่แล้วจาก Backend"
     },
@@ -144,13 +144,13 @@
       "parameters": {
         "jsCode": "const fs = require('fs');\nconst config = $('Set Configuration').first().json.config;\n\ntry {\n  if (!fs.existsSync(config.EXCEL_FILE)) {\n    throw new Error(`Excel file not found at: ${config.EXCEL_FILE}`);\n  }\n  if (!fs.existsSync(config.SOURCE_PDF_DIR)) {\n    throw new Error(`PDF Source directory not found at: ${config.SOURCE_PDF_DIR}`);\n  }\n  \n  const files = fs.readdirSync(config.SOURCE_PDF_DIR);\n  \n  // Check write permission to log path\n  fs.writeFileSync(`${config.LOG_PATH}/.preflight_ok`, new Date().toISOString());\n  \n  // Grab categories\n  let categories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  try {\n    const upstreamData = $('Fetch Categories').first()?.json?.data;\n    if (upstreamData && Array.isArray(upstreamData)) {\n      categories = upstreamData.map(c => c.name || c.type || c);\n    }\n  } catch(e) {}\n  \n  // Grab existing tags\n  let existingTags = [];\n  try {\n    const tagData = $('Fetch Tags').first()?.json?.data || [];\n    existingTags = Array.isArray(tagData)\n      ? tagData.map(t => ({ publicId: t.publicId, tagName: t.tag_name || t.name || '' })).filter(t => t.tagName && t.publicId)\n      : [];\n  } catch(e) {}\n    \n  return [{ json: { \n    preflight_ok: true, \n    pdf_count_in_source: files.length,\n    excel_target: config.EXCEL_FILE,\n    system_categories: categories,\n    existing_tags: existingTags,\n    timestamp: new Date().toISOString()\n  }}];\n} catch (err) {\n  throw new Error(`Pre-flight check failed: ${err.message}`);\n}"
       },
-      "id": "d8e2efec-7fb4-44c3-b544-0dc51dcfd3fc",
+      "id": "6568ed41-da80-4f00-9378-905cc95d86f0",
       "name": "File Mount Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -8736,
-        4592
+        -10832,
+        6464
       ],
       "notes": "ตรวจสอบ File System + รวบรวม master data สำหรับ AI payload"
     },
@@ -159,13 +159,13 @@
         "fileSelector": "={{ $json.excel_target }}",
         "options": {}
       },
-      "id": "c2a6ca17-aae8-4213-93ab-8179e1febfb3",
+      "id": "1802f33d-7fc6-42cb-897b-e312dc7c9626",
       "name": "Read Excel Binary",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
       "position": [
-        -9088,
-        4784
+        -11184,
+        6656
       ],
       "notes": "ดึงไฟล์ Excel ขึ้นมาไว้ในหน่วยความจำ"
     },
@@ -173,13 +173,13 @@
       "parameters": {
         "options": {}
       },
-      "id": "ebfdde99-92a1-4060-9867-2f330b13554f",
+      "id": "af6a69f5-7f04-40f6-9608-1cfe231ee85f",
       "name": "Read Excel",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
       "position": [
-        -8912,
-        4784
+        -11008,
+        6656
       ],
       "notes": "แปลงข้อมูล Excel เป็น JSON Data"
     },
@@ -199,13 +199,13 @@
           "timeout": 10000
         }
       },
-      "id": "9cf3971c-287a-42ab-9327-72e1a4d8011c",
+      "id": "ebddd4ee-0f4e-471b-9f01-179dbcb7f0ba",
       "name": "Read Checkpoint",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -8720,
-        4784
+        -10832,
+        6672
       ],
       "alwaysOutputData": true,
       "notes": "GET /api/ai/migration/checkpoint/:batchId — ADR-023A (ไม่ใช้ MySQL โดยตรง)"
@@ -214,13 +214,13 @@
       "parameters": {
         "jsCode": "const cpJson = $input.first()?.json || {};\nconst startIndex = cpJson.data?.lastProcessedIndex ?? cpJson.lastProcessedIndex ?? cpJson.data?.last_processed_index ?? cpJson.last_processed_index ?? 0;\nconst config = $('Set Configuration').first().json.config;\n\nconst allItems = $('Read Excel').all().map(i => i.json);\nconst remaining = allItems.slice(startIndex);\nconst currentBatch = remaining.slice(0, config.BATCH_SIZE);\n\n// Exit condition: ไม่มี records เหลือ\nif (currentBatch.length === 0) {\n  return [{ json: { batch_complete: true, total_processed: startIndex } }];\n}\n\nconst normalize = (str) => {\n  if (!str) return '';\n  return String(str).normalize('NFC').trim();\n};\n\nreturn currentBatch.map((item, i) => {\n  const getVal = (possibleKeys) => {\n    const exactMatch = possibleKeys.find(k => item[k] !== undefined);\n    if (exactMatch) return item[exactMatch];\n    const lowerTrimmedKeys = Object.keys(item).map(k => ({ original: k, parsed: k.toLowerCase().trim() }));\n    for (const pk of possibleKeys) {\n      const found = lowerTrimmedKeys.find(k => k.parsed === pk.toLowerCase().trim());\n      if (found) return item[found.original];\n    }\n    return '';\n  };\n\n  const docNum = getVal(['document_number', 'correspondence_number', 'Document Number', 'Corr. No.']);\n  const excelFileName = getVal(['File name', 'file_name', 'File Name', 'filename']);\n  \n  if (!excelFileName) {\n    throw new Error(`Missing 'File name' column for row ${i + startIndex + 1}, document: ${docNum}`);\n  }\n  \n  return {\n    json: {\n      batch_complete: false,\n      document_number: normalize(docNum),\n      title: normalize(getVal(['title', 'Title', 'Subject', 'subject'])),\n      legacy_number: normalize(getVal(['legacy_number', 'Legacy Number', 'Response Doc.'])),\n      excel_revision: getVal(['revision', 'Revision', 'rev']) || 1,\n      original_index: startIndex + i,\n      batch_id: config.BATCH_ID,\n      file_name: normalize(excelFileName),\n      issued_date: normalize(getVal(['issued_date', 'Issued_date', 'Issued Date', 'date', 'Date'])),\n      received_date: normalize(getVal(['received_date', 'Received_date', 'Received Date'])),\n      sender: normalize(getVal(['sender', 'Sender', 'From', 'from'])),\n      receiver: normalize(getVal(['receiver', 'Receiver', 'To', 'to'])),\n    }\n  };\n});"
       },
-      "id": "c101543e-a3a2-4538-a99c-0419df50948f",
+      "id": "b488f4ac-4864-4a16-ac26-71bd850fa49b",
       "name": "Process Batch + Encoding",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -8528,
-        4400
+        -11184,
+        6880
       ],
       "alwaysOutputData": true,
       "notes": "ตัด Batch + Normalize UTF-8 + Exit condition เมื่อ records หมด"
@@ -229,13 +229,13 @@
       "parameters": {
         "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst config = $('Set Configuration').first().json.config;\n\nconst items = $input.all();\nif (!items || items.length === 0) return [];\n\n// ตรวจสอบ exit condition\nif (items[0]?.json?.batch_complete === true) {\n  return items;\n}\n\nconst validated = [];\nconst errors = [];\n\nfor (const item of items) {\n  const fileName = item.json?.file_name;\n  if (!fileName) {\n    errors.push({ ...item, json: { ...item.json, file_valid: false, error: 'file_name is missing', error_type: 'MISSING_FILENAME' } });\n    continue;\n  }\n  \n  let safeName = path.basename(String(fileName)).normalize('NFC');\n  if (!safeName.toLowerCase().endsWith('.pdf')) safeName += '.pdf';\n  const filePath = path.resolve(config.SOURCE_PDF_DIR, safeName);\n  \n  if (!filePath.startsWith(path.resolve(config.SOURCE_PDF_DIR))) {\n    errors.push({ ...item, json: { ...item.json, file_valid: false, error: 'Path traversal detected', error_type: 'SECURITY' } });\n    continue;\n  }\n  \n  try {\n    if (fs.existsSync(filePath)) {\n      const stats = fs.statSync(filePath);\n      validated.push({ ...item, json: { ...item.json, file_valid: true, file_path: filePath, file_size: stats.size } });\n    } else {\n      errors.push({ ...item, json: { ...item.json, file_valid: false, error: `File not found: ${safeName}`, error_type: 'FILE_NOT_FOUND' } });\n    }\n  } catch (err) {\n    errors.push({ ...item, json: { ...item.json, file_valid: false, error: err.message, error_type: 'FILE_ERROR' } });\n  }\n}\n\nreturn [...validated, ...errors];"
       },
-      "id": "282e1c8a-74b6-4ae7-a50b-3e2ff7b1558d",
+      "id": "e831cd28-880c-4f93-99fc-901383d1cda3",
       "name": "File Validator",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -8512,
-        4800
+        -10640,
+        6272
       ],
       "notes": "ตรวจสอบไฟล์ PDF ใน Directory"
     },
@@ -244,13 +244,13 @@
         "fileSelector": "={{ $json.file_path }}",
         "options": {}
       },
-      "id": "ab2d3ff8-9862-4a5c-a21d-5e04004d6a40",
+      "id": "20625b33-17e8-4730-94f1-37c9b6c24df9",
       "name": "Read PDF File",
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1,
       "position": [
-        -8288,
-        4640
+        -10640,
+        6464
       ],
       "onError": "continueErrorOutput",
       "notes": "อ่าน PDF Binary เพื่อเตรียม Upload"
@@ -287,13 +287,13 @@
           "timeout": 300000
         }
       },
-      "id": "0346a124-aaf3-49de-9181-77cb5e80a4d3",
+      "id": "2677c8b3-223a-4952-b4e2-41b92bd7f059",
       "name": "Upload PDF to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -8080,
-        4400
+        -10416,
+        6272
       ],
       "onError": "continueErrorOutput",
       "notes": "ADR-023A: อัพโหลด PDF เข้า Backend Temp Storage → รับ temp_attachment_id"
@@ -302,13 +302,13 @@
       "parameters": {
         "jsCode": "const config = $('Set Configuration').first().json.config;\nconst uploadResponse = $input.first()?.json || {};\nconst metaItem = $('File Validator').all()[$input.context?.itemIndex ?? 0]?.json || {};\nconst mountCheckData = $('File Mount Check').first()?.json || {};\n\n// Backend returns { data: { publicId, tempId, ... } } per ADR-019 (id is @Exclude'd)\nconst tempAttachmentPublicId = uploadResponse?.data?.publicId || uploadResponse?.publicId;\nif (!tempAttachmentPublicId) {\n  throw new Error(`Upload failed — no temp_attachment_public_id returned. Upload response: ${JSON.stringify(uploadResponse)}`);\n}\n\n// Validate required fields per DTO\nconst docNumber = String(metaItem.document_number || '').trim();\nconst docTitle = String(metaItem.title || '').trim();\nif (!docNumber) {\n  throw new Error(`document_number is empty for item: ${JSON.stringify(metaItem)}`);\n}\nif (!docTitle) {\n  throw new Error(`title is empty for document: ${docNumber}`);\n}\n\n// Normalize existingTags to match TagOptionDto (tagName is required)\nconst existingTags = (mountCheckData.existing_tags || [])\n  .filter(t => t.tagName && t.tagName.trim())\n  .map(t => ({\n    publicId: t.publicId || undefined,\n    tagName: String(t.tagName).trim(),\n    colorCode: t.colorCode || undefined,\n  }));\n\n// สร้าง SubmitAiJobDto ตาม Backend DTO\nconst submitPayload = {\n  type: 'migrate-document',\n  payload: {\n    tempAttachmentId: String(tempAttachmentPublicId),\n    documentNumber: docNumber,\n    title: docTitle,\n    batchId: String(config.BATCH_ID),\n    existingTags: existingTags,\n    systemCategories: mountCheckData.system_categories || [],\n  }\n};\n\n// Idempotency-Key: deterministic format ตาม FR-001a\nconst idempotencyKey = `${config.BATCH_ID}:${docNumber}`;\n\nreturn [{\n  json: {\n    ...metaItem,\n    temp_attachment_public_id: tempAttachmentPublicId,\n    submit_payload: submitPayload,\n    idempotency_key: idempotencyKey,\n  }\n}];"
       },
-      "id": "1b7e6adb-b7e2-40dd-b472-3a5a79861bfb",
+      "id": "fad3f363-a595-4a43-a48f-cefb258c2687",
       "name": "Build AI Job Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -7888,
-        4304
+        -10400,
+        6496
       ],
       "notes": "สร้าง SubmitAiJobDto payload + Idempotency-Key ตาม FR-001a"
     },
@@ -331,18 +331,18 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ $json.submit_payload }}",
+        "jsonBody": "={{ JSON.stringify($json.submit_payload) }}",
         "options": {
           "timeout": 30000
         }
       },
-      "id": "f2a5ee75-cd14-4118-925d-43182735aa75",
+      "id": "7fb24018-9739-4ae9-8650-d118d73e38d7",
       "name": "Submit AI Job",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -7744,
-        4384
+        -10400,
+        6672
       ],
       "onError": "continueErrorOutput",
       "notes": "ADR-023A: POST /api/ai/jobs — Backend จัดการ Ollama ผ่าน BullMQ"
@@ -351,13 +351,13 @@
       "parameters": {
         "jsCode": "// Poll GET /api/ai/jobs/{jobId} ทุก 5 วินาที จน status = completed หรือ timeout 120 วินาที\nconst config = $('Set Configuration').first().json.config;\nconst submitResponse = $input.first()?.json || {};\nconst originalMeta = $('Build AI Job Payload').all()[$input.context?.itemIndex ?? 0]?.json || {};\n\nconst jobId = submitResponse?.jobId || submitResponse?.data?.jobId;\nif (!jobId) {\n  // FR-010b: ถ้า 401 → mark TOKEN_EXPIRED\n  if (submitResponse?.statusCode === 401 || submitResponse?.error?.status === 401) {\n    throw new Error('TOKEN_EXPIRED: 401 Unauthorized — กรุณา renew MIGRATION_TOKEN แล้ว resume');\n  }\n  throw new Error(`Submit AI Job failed — no jobId returned for: ${originalMeta.document_number}`);\n}\n\nconst pollIntervalMs = config.AI_JOB_POLL_INTERVAL_MS || 5000;\nconst timeoutMs = config.AI_JOB_TIMEOUT_MS || 120000;\nconst startTime = Date.now();\n\nwhile (true) {\n  if (Date.now() - startTime > timeoutMs) {\n    throw new Error(`AI Job timeout after ${timeoutMs}ms for jobId: ${jobId}, document: ${originalMeta.document_number}`);\n  }\n  \n  const statusResponse = await $helpers.httpRequest({\n    method: 'GET',\n    url: `${config.BACKEND_URL}/api/ai/jobs/${jobId}`,\n    headers: { 'Authorization': config.MIGRATION_TOKEN },\n    json: true\n  });\n  \n  const status = statusResponse?.status || statusResponse?.data?.status;\n  \n  if (status === 'completed') {\n    return [{\n      json: {\n        ...originalMeta,\n        job_id: jobId,\n        ai_result: statusResponse?.result || statusResponse?.data?.result || {},\n        ai_status: 'completed',\n      }\n    }];\n  }\n  \n  if (status === 'failed') {\n    return [{\n      json: {\n        ...originalMeta,\n        job_id: jobId,\n        ai_status: 'failed',\n        parse_error: `AI Job failed: ${JSON.stringify(statusResponse?.error || statusResponse?.data?.error || 'unknown')}`,\n        error_type: 'AI_JOB_FAILED',\n        route_index: 3\n      }\n    }];\n  }\n  \n  // status = 'processing' — รอแล้ว poll ใหม่\n  await new Promise(resolve => setTimeout(resolve, pollIntervalMs));\n}"
       },
-      "id": "f95bbb5f-6bde-4146-b577-8d824776029e",
+      "id": "2abd110c-292e-46e2-9033-18d38963161d",
       "name": "Poll AI Job Status",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -7552,
-        4368
+        -10208,
+        6272
       ],
       "notes": "Poll GET /api/ai/jobs/{jobId} ทุก 5 วินาที (timeout 120 วินาที)"
     },
@@ -365,13 +365,13 @@
       "parameters": {
         "jsCode": "const config = $('Set Configuration').first().json.config;\nconst items = $input.all();\nconst results = [];\n\nconst CATEGORY_TO_TYPE_CODE = {\n  'Correspondence': 'LETTER',\n  'RFA': 'RFA',\n  'Transmittal': 'TRANSMITTAL',\n  'Drawing': 'OTHER',\n  'Report': 'OTHER',\n  'Other': 'OTHER',\n};\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // ถ้า poll ส่ง error กลับมาโดยตรง (route_index = 3)\n  if (data.route_index === 3 || data.ai_status === 'failed') {\n    results.push({ json: { ...data, route_index: 3 } });\n    continue;\n  }\n  \n  const ai = data.ai_result || {};\n  \n  if (!ai || typeof ai !== 'object') {\n    results.push({ json: { ...data, parse_error: 'Empty or invalid ai_result', error_type: 'PARSE_ERROR', route_index: 3 } });\n    continue;\n  }\n  \n  // Enum Validation for Category\n  const systemCategories = ['Correspondence','RFA','Drawing','Transmittal','Report','Other'];\n  let finalCategory = ai.suggested_category || ai.category || 'Correspondence';\n  if (!systemCategories.includes(finalCategory)) {\n    finalCategory = String(data.document_number || '').includes('-RFA-') ? 'RFA' : 'Correspondence';\n  }\n  const typeCode = CATEGORY_TO_TYPE_CODE[finalCategory] || 'LETTER';\n  \n  // Tag normalization — is_new flag\n  const suggestedTags = Array.isArray(ai.suggested_tags)\n    ? ai.suggested_tags.map(t => ({\n        tagName: String(t.tagName || t.tag_name || ''),\n        publicId: t.publicId || t.public_id || undefined,\n        isNew: Boolean(t.isNew ?? t.is_new ?? !t.publicId),\n        colorCode: t.colorCode || t.color_code || 'default',\n      })).filter(t => t.tagName)\n    : [];\n  \n  const confidence = Number(ai.confidence || 0);\n  \n  const normalizedAi = {\n    ...ai,\n    suggested_category: finalCategory,\n    type_code: typeCode,\n    confidence,\n    suggested_tags: suggestedTags,\n  };\n  \n  let route_index;\n  let review_reason = '';\n  let reject_reason = '';\n  \n  if (confidence >= config.CONFIDENCE_HIGH && ai.is_valid !== false) {\n    route_index = 0; // Auto Ready\n  } else if (confidence >= config.CONFIDENCE_LOW) {\n    route_index = 1; // Flagged\n    review_reason = `Confidence ${confidence.toFixed(2)} < ${config.CONFIDENCE_HIGH}`;\n  } else {\n    route_index = 2; // Rejected\n    reject_reason = ai.is_valid === false ? 'AI marked invalid' : `Confidence ${confidence.toFixed(2)} < ${config.CONFIDENCE_LOW}`;\n  }\n  \n  results.push({\n    json: {\n      ...data,\n      ai_result: normalizedAi,\n      route_index,\n      review_reason,\n      reject_reason,\n    }\n  });\n}\n\nreturn results;"
       },
-      "id": "6bdcd7fd-0a8a-4f21-91bd-ed5fcbda860c",
+      "id": "419d8d1a-06c7-4cca-b1ed-53cf0a632c7e",
       "name": "Parse & Validate AI Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -7376,
-        4368
+        -10208,
+        6496
       ],
       "notes": "Parse AI result + Confidence routing prep + Tag normalization (isNew flag)"
     },
@@ -479,13 +479,13 @@
         },
         "options": {}
       },
-      "id": "35ad90cd-bb71-44a6-8851-ae4ea6ed4747",
+      "id": "5abd2557-cb16-4102-aca3-db8e8d009286",
       "name": "Route by Confidence",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        -7216,
-        4512
+        -10048,
+        6560
       ]
     },
     {
@@ -512,13 +512,13 @@
           "timeout": 10000
         }
       },
-      "id": "f26c6512-8f2d-4cca-a643-65ae7255c37a",
+      "id": "48a0cc23-8219-45bc-b68b-4bf37ca68364",
       "name": "Insert Review Queue (Auto)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -6976,
-        4496
+        -9888,
+        6272
       ],
       "onError": "continueErrorOutput",
       "notes": "POST /api/ai/migration/queue/record (PENDING) — ADR-023A"
@@ -547,13 +547,13 @@
           "timeout": 10000
         }
       },
-      "id": "b720ce71-d0f4-402a-9bd3-077cf1730977",
+      "id": "2fc51220-e960-4ba5-a8ba-72dc7d786359",
       "name": "Insert Review Queue (Flagged)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -6944,
-        4720
+        -9808,
+        6576
       ],
       "onError": "continueErrorOutput",
       "notes": "POST /api/ai/migration/queue/record (PENDING_REVIEW) — ADR-023A"
@@ -562,13 +562,13 @@
       "parameters": {
         "jsCode": "const fs = require('fs');\nconst item = $input.first();\nconst config = $('Set Configuration').first().json.config;\n\nconst csvPath = `${config.LOG_PATH}/reject_log_${config.BATCH_ID}.csv`;\nconst header = 'timestamp,document_number,title,reject_reason,ai_confidence,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nconst line = [\n  new Date().toISOString(),\n  esc(item.json.document_number),\n  esc(item.json.title),\n  esc(item.json.reject_reason),\n  item.json.ai_result?.confidence ?? 'N/A',\n  esc(item.json.job_id || '')\n].join(',') + '\\n';\n\nfs.appendFileSync(csvPath, line, 'utf8');\n\nreturn [$input.first()];"
       },
-      "id": "6e83de99-1244-4478-9a33-e779cdb9504a",
+      "id": "62c48542-9b36-4db3-83ef-23bf1af39875",
       "name": "Log Reject to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -6944,
-        4848
+        -9808,
+        6784
       ],
       "notes": "บันทึกรายการที่ถูกปฏิเสธลง CSV"
     },
@@ -576,13 +576,13 @@
       "parameters": {
         "jsCode": "const fs = require('fs');\nconst items = $input.all();\nconst config = $('Set Configuration').first().json.config;\n\nconst ERROR_TYPE_MAP = {\n  AI_JOB_FAILED: 'API_ERROR',\n  PARSE_ERROR: 'AI_PARSE_ERROR',\n  TOKEN_EXPIRED: 'API_ERROR',\n};\nconst ALLOWED_ERROR_TYPES = new Set([\n  'FILE_NOT_FOUND',\n  'MISSING_FILENAME',\n  'FILE_ERROR',\n  'AI_PARSE_ERROR',\n  'API_ERROR',\n  'DB_ERROR',\n  'SECURITY',\n  'UNKNOWN',\n]);\nconst normalizeErrorType = (type) => {\n  const mappedType = ERROR_TYPE_MAP[type] || type || 'UNKNOWN';\n  return ALLOWED_ERROR_TYPES.has(mappedType) ? mappedType : 'UNKNOWN';\n};\n\nconst csvPath = `${config.LOG_PATH}/error_log_${config.BATCH_ID}.csv`;\nconst header = 'timestamp,document_number,error_type,error_message,job_id\\n';\nconst esc = (s) => `\"${String(s || '').replace(/\"/g, '\"\"')}\"`;\n\nif (!fs.existsSync(csvPath)) {\n  fs.writeFileSync(csvPath, header, 'utf8');\n}\n\nfor (const item of items) {\n  item.json.document_number = item.json.document_number || 'WORKFLOW';\n  item.json.error_type = normalizeErrorType(item.json.error_type);\n  item.json.error = item.json.error || item.json.parse_error || item.json.message || '';\n  item.json.job_id = item.json.job_id || '';\n\n  const line = [\n    new Date().toISOString(),\n    esc(item.json.document_number),\n    esc(item.json.error_type),\n    esc(item.json.error),\n    esc(item.json.job_id)\n  ].join(',') + '\\n';\n  fs.appendFileSync(csvPath, line, 'utf8');\n}\n\nreturn items;"
       },
-      "id": "511428dc-3aad-4de1-a9dc-9a87c791371e",
+      "id": "724da26e-5c71-4146-8a4c-a16299dfae17",
       "name": "Log Error to CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -7936,
-        4800
+        -10416,
+        6864
       ],
       "notes": "บันทึก Error ลง CSV"
     },
@@ -610,13 +610,13 @@
           "timeout": 10000
         }
       },
-      "id": "7e8f3617-a6e4-4d40-922d-eb93ae91e690",
+      "id": "aa49b719-9133-4ab8-af24-27754c4b4cd2",
       "name": "Log Error to DB",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -7232,
-        4944
+        -10208,
+        6864
       ],
       "onError": "continueErrorOutput",
       "notes": "POST /api/ai/migration/errors — ADR-023A"
@@ -645,13 +645,13 @@
           "timeout": 10000
         }
       },
-      "id": "9471990c-1abe-42f8-8062-bd68cb9ad985",
+      "id": "702e0d86-786c-4731-89bb-a7b80aa4d425",
       "name": "Save Checkpoint",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -6784,
-        4640
+        -9664,
+        6384
       ],
       "onError": "continueErrorOutput",
       "notes": "POST /api/ai/migration/checkpoint — ADR-023A"
@@ -661,13 +661,13 @@
         "amount": "={{$('Set Configuration').first().json.config.DELAY_MS / 1000}}",
         "unit": "seconds"
       },
-      "id": "fcf3e098-93f6-42ee-b930-aa0bc84d3ed7",
+      "id": "f8eadb50-d241-423c-a62e-4c87fd96c3be",
       "name": "Delay",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
       "position": [
-        -6640,
-        4880
+        -9536,
+        6880
       ],
       "webhookId": "38e97a99-4dcc-4b63-977a-a02945a1c369",
       "notes": "หน่วงเวลาระหว่าง Records"
@@ -728,13 +728,13 @@
         },
         "options": {}
       },
-      "id": "e489d28d-37e8-4204-bba8-07a5226b1275",
+      "id": "0ef559e7-8ffc-4bf5-b6ef-2d5e2d44d57a",
       "name": "Check Batch Complete",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        -8512,
-        4608
+        -11008,
+        6880
       ]
     },
     {
@@ -761,13 +761,13 @@
           "timeout": 10000
         }
       },
-      "id": "171b627f-3b00-4fbf-86b7-6076fdc29d19",
+      "id": "c059f49b-a184-43ff-aef4-a84077c10524",
       "name": "Mark Batch Complete",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -8304,
-        4400
+        -10784,
+        6864
       ],
       "notes": "Update checkpoint status to COMPLETED when batch finishes"
     }
@@ -1154,7 +1154,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "efadd20e-a46b-4354-8f75-ec1de215d065",
+  "versionId": "62952ca6-0590-44c3-a53e-9909eea209c7",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "9e70e47c1eaf3bac72f497ddfbde0983f840f7d0f059537f7e37dd70de18ecb7"
@@ -1162,16 +1162,16 @@
   "id": "4LlPbAKU5BZLgiTg",
   "tags": [
     {
-      "updatedAt": "2026-05-23T12:26:47.389Z",
-      "createdAt": "2026-05-23T12:26:47.389Z",
-      "id": "jNSEtctPbU5leFPw",
-      "name": "v2"
-    },
-    {
       "updatedAt": "2026-05-23T12:26:47.393Z",
       "createdAt": "2026-05-23T12:26:47.393Z",
       "id": "mGZTyPfxbcsAuFpR",
       "name": "migration"
+    },
+    {
+      "updatedAt": "2026-05-23T12:26:47.389Z",
+      "createdAt": "2026-05-23T12:26:47.389Z",
+      "id": "jNSEtctPbU5leFPw",
+      "name": "v2"
     }
   ]
 }

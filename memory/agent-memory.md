@@ -3,6 +3,10 @@
 - 2026-05-23: Initialized long-term memory system with core project rules, Windows environment settings, and constraints.
 - 2026-05-23 (Session 2): N8N Workflow Refactor — QuizMe session, decisions locked, สร้าง CONTEXT-N8N-Refactor.md, สร้าง n8n.workflow.v2.json (ADR-023A compliant), อัพเดต 03-05 และ 03-06.
 - 2026-05-24: เพิ่ม sections: Known Commands, Current Decisions, Do/Don't Quick Reference, Environment & Services, Recent Rollouts.
+- 2026-05-25 (Session 3): แก้ไขบัค `tempAttachmentId` ใน Migration Queue — เปลี่ยนจาก Integer ที่ไม่มีอยู่จริงเป็น UUID string (ADR-019), อัปเดต DTO, Service UUID-to-INT resolution, และ n8n.workflow.v2.json.
+- 2026-05-25 (Session 4): Normalize migration error logging ตาม AGENTS.md — แก้ n8n `Log Error to CSV`/`Log Error to DB`, harden backend `logError()`, เพิ่ม `job_id` ใน migration_errors SQL/delta, และเพิ่ม regression test.
+- 2026-05-25 (Session 5): N8N Workflow Debug — แก้ Submit AI Job (jsonBody serialization + RBAC permission gap) และเพิ่ม checksum-based dedup ใน FileStorageService.upload().
+- 2026-05-25 (Session 6): AI Model Management (ADR-027) — เพิ่มระบบเลือกโมเดล AI แบบไดนามิกผ่าน AI Admin Console: สร้าง `ai_available_models` table + entity, extend `AiSettingsService` ด้วย methods CRUD โมเดล, add REST endpoints, update frontend UI ด้วย Select dropdown และ model list management, update `OllamaService` ใช้ DB-configured model แทน ENV เท่านั้น.
 -->
 
 # 🧠 Agent Long-term Project Memory
@@ -10,6 +14,15 @@
 > **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
 > **Version:** 1.9.6 (Last Synced: 2026-05-23)
 > **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
+
+> [!IMPORTANT]
+> **Project memory นี้ต้องใช้งานภายใต้ `AGENTS.md` เสมอ**
+>
+> - ให้ใช้ `AGENTS.md` เป็นกฎหลักก่อน memory ทุกครั้ง
+> - ถ้า memory เก่าหรือ session note ขัดกับ `AGENTS.md` ให้ยึด `AGENTS.md`
+> - งาน schema ต้องทำตาม ADR-009 ผ่าน SQL/delta เท่านั้น
+> - งาน UUID/Public API ต้องทำตาม ADR-019 โดยใช้ `publicId` และห้าม `parseInt()` บน UUID
+> - งาน n8n / AI migration ต้องอยู่ในขอบเขต ADR-023A และ mutation ต้องมี `Idempotency-Key`
 
 ---
 
@@ -194,11 +207,13 @@ QDRANT_URL
 
 ## 🚀 8. Recent Rollouts
 
-| วันที่     | Version | รายการ                                                                          | สถานะ                       |
-| ---------- | ------- | ------------------------------------------------------------------------------- | --------------------------- |
-| 2026-05-23 | v1.9.6  | Specs reorganization (`100/200/300-*` folders), AGENTS.md v1.9.6 update         | ✅ Complete                 |
-| 2026-05-23 | v1.9.6  | N8N Workflow v2 (`n8n.workflow.v2.json`) — ADR-023A compliant, ลบ Ollama direct | ⏳ Pending import to n8n UI |
-| 2026-05-24 | v1.9.6  | AGENTS.md Project Memory Override rule (Windsurf / Antigravity / Codex)         | ✅ Complete                 |
+| วันที่     | Version | รายการ                                                                                        | สถานะ                       |
+| ---------- | ------- | --------------------------------------------------------------------------------------------- | --------------------------- |
+| 2026-05-23 | v1.9.6  | Specs reorganization (`100/200/300-*` folders), AGENTS.md v1.9.6 update                       | ✅ Complete                 |
+| 2026-05-23 | v1.9.6  | N8N Workflow v2 (`n8n.workflow.v2.json`) — ADR-023A compliant, ลบ Ollama direct               | ⏳ Pending import to n8n UI |
+| 2026-05-24 | v1.9.6  | AGENTS.md Project Memory Override rule (Windsurf / Antigravity / Codex)                       | ✅ Complete                 |
+| 2026-05-25 | v1.9.6  | Migration Queue attachment UUID fix — DTO + Service + n8n.workflow.v2.json (Session 3)        | ✅ Complete (tsc verified)  |
+| 2026-05-25 | v1.9.6  | Migration error normalization + `job_id` logging — workflow + backend + SQL/delta (Session 4) | ✅ Complete                 |
 
 ---
 
@@ -210,7 +225,7 @@ QDRANT_URL
 - อัปเดตกฎ `AGENTS.md` และ `GEMINI.md` ให้ตรงกับมาตรฐานใหม่
 - ริเริ่มระบบ `memory/agent-memory.md`
 
-### Session 2 — 2026-05-23 (N8N Workflow Refactor) ← **ล่าสุด**
+### Session 2 — 2026-05-23 (N8N Workflow Refactor)
 
 #### Decisions ที่ Lock แล้ว (จาก QuizMe Session)
 
@@ -256,13 +271,131 @@ Form Trigger → Set Config → Health/Token Check → Fetch Master Data
 → Save Checkpoint → Delay → Loop
 ```
 
+### Session 3 — 2026-05-24 (Migration Queue Attachment UUID Bug Fix)
+
+#### ปัญหาที่พบ (Root Cause)
+
+ไฟล์ `n8n.workflow.v2.json` (โหนด `Insert Review Queue`) ส่งค่า `tempAttachmentId` โดยใช้ `{{parseInt($json.attachmentId)}}` ซึ่งพยายามแปลง UUID string เป็นตัวเลข ผลลัพธ์คือค่า `NaN` หรือตัวเลขที่ผิดพลาด (เช่น `"0195..."` → `19`) ทำให้คอลัมน์ `temp_attachment_id` ใน `migration_review_queue` เป็น `NULL` เสมอ — ละเมิด ADR-019 Tier 1 Blocker
+
+#### การแก้ไข (Fix)
+
+| ไฟล์                                                        | การเปลี่ยนแปลง                                                                     |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `backend/src/modules/ai/dto/migration-checkpoint.dto.ts`    | ปรับ `tempAttachmentId` เป็น `@IsOptional()` รองรับทั้ง UUID string และ Integer PK |
+| `backend/src/modules/ai/ai-migration-checkpoint.service.ts` | เพิ่ม UUID→INT resolution: `SELECT id FROM attachments WHERE uuid = ? LIMIT 1`     |
+| `specs/03-Data-and-Storage/n8n.workflow.v2.json`            | เปลี่ยนส่ง `temp_attachment_public_id` (UUID string) แทน `parseInt(...)` ที่ผิด    |
+
+#### Pattern ที่ตกลง (Locked)
+
+```
+n8n ส่ง: { tempAttachmentId: "019505a1-7c3e-7000-..." }  ← UUID string
+Backend รับ: ตรวจสอบประเภท → ถ้าเป็น string → query DB → ได้ INT id จริง
+DB บันทึก: migration_review_queue.temp_attachment_id = <INT>  ← ถูกต้อง
+```
+
+#### Verification
+
+- `npx tsc --noEmit` — ✅ ผ่าน ไม่มี type error
+- ตรวจสอบ logic ใน Service แล้ว ไม่มีการเขียนทับ `tempAttachmentId` ด้วย `undefined` (guard check แล้ว)
+
+### Session 4 — 2026-05-25 (Migration Error Normalization ตาม AGENTS.md) ← **ล่าสุด**
+
+#### ปัญหาที่พบ (Root Cause)
+
+- `Log Error to CSV` และ `Log Error to DB` ใน `n8n.workflow.v2.json` ส่ง `error_type` บางค่าไม่ตรง enum ของ `migration_errors`
+- ค่าที่พบจริงและต้อง normalize: `AI_JOB_FAILED`, `PARSE_ERROR`, `TOKEN_EXPIRED`
+- backend `AiMigrationCheckpointService.logError()` เดิม insert ค่า `dto.errorType` ตรง ๆ ทำให้เสี่ยง DB enum reject
+- ตาราง `migration_errors` เดิมไม่มี `job_id` แม้ workflow/DTO จะมี `jobId` อยู่แล้ว ทำให้ trace กลับไป BullMQ job ไม่ครบ
+
+#### การแก้ไข (Fix)
+
+| ไฟล์                                                                                   | การเปลี่ยนแปลง                                                                |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `specs/03-Data-and-Storage/n8n.workflow.v2.json`                                       | normalize `error_type`, `document_number`, `error`, `job_id` ก่อนเขียน CSV/DB |
+| `backend/src/modules/ai/ai-migration-checkpoint.service.ts`                            | map/validate `errorType` ซ้ำก่อน insert และเพิ่ม `job_id` ใน SQL insert       |
+| `backend/src/modules/migration/entities/migration-error.entity.ts`                     | เพิ่ม field `jobId?: string`                                                  |
+| `specs/03-Data-and-Storage/lcbp3-v1.9.0-migration.sql`                                 | เพิ่มคอลัมน์ `job_id VARCHAR(100) NULL` และ index                             |
+| `specs/03-Data-and-Storage/deltas/2026-05-22-drop-migration-tables.rollback.sql`       | อัปเดต table definition ของ `migration_errors` ให้มี `job_id`                 |
+| `specs/03-Data-and-Storage/deltas/2026-05-24-add-migration-errors-job-id.sql`          | เพิ่ม delta สำหรับ add `job_id`                                               |
+| `specs/03-Data-and-Storage/deltas/2026-05-24-add-migration-errors-job-id.rollback.sql` | เพิ่ม rollback สำหรับ drop `job_id`                                           |
+| `backend/src/modules/ai/ai-migration-checkpoint.service.spec.ts`                       | เพิ่ม regression tests สำหรับ error normalization + `job_id`                  |
+
+#### Mapping ที่ Lock แล้ว
+
+```
+AI_JOB_FAILED -> API_ERROR
+PARSE_ERROR -> AI_PARSE_ERROR
+TOKEN_EXPIRED -> API_ERROR
+unsupported value -> UNKNOWN
+```
+
+#### กฎใช้งานต่อไป
+
+- ให้ถือ enum ของ `migration_errors.error_type` เป็น source of truth เสมอ
+- workflow ต้อง normalize ก่อนส่งเข้า backend และ backend ต้อง normalize ซ้ำอีกชั้น
+- ห้ามพึ่ง DB enum reject เป็น validation mechanism
+- การเพิ่มคอลัมน์ `job_id` ต้องทำผ่าน SQL/delta ตาม ADR-009 เท่านั้น
+
+#### Verification
+
+- workflow normalization assertion — ✅ ผ่าน
+- `pnpm --filter backend build` — ✅ ผ่าน
+- `pnpm --filter backend test -- --runTestsByPath src/modules/ai/ai-migration-checkpoint.service.spec.ts` — ✅ ผ่าน
+- regression seam ที่เพิ่มยืนยัน:
+  - `AI_JOB_FAILED` map เป็น `API_ERROR`
+  - unsupported error type fallback เป็น `UNKNOWN`
+
+---
+
+### Session 5 — 2026-05-25 (N8N Submit AI Job Debug + Upload Dedup) ← **ล่าสุด**
+
+#### ปัญหาที่พบ (Root Cause)
+
+**Bug 1: `Submit AI Job` → 400 Bad Request**
+
+- n8n HTTP Request node `typeVersion: 4.1` เมื่อ `specifyBody: "json"` และ `jsonBody` เป็น expression ที่ return **object** → n8n ส่ง body เป็น `"[object Object]"` แทน JSON string
+- แก้ด้วย `JSON.stringify($json.submit_payload)`
+
+**Bug 2: `Submit AI Job` → 403 Forbidden**
+
+- `migration_bot` (user_id=5, role_id=1/Superadmin) ไม่มี `ai.suggest` ใน `role_permissions`
+- Root cause: Seed script `INSERT INTO role_permissions SELECT 1, permission_id FROM permissions WHERE is_active = 1` รันก่อน `ai.*` permissions (id 181-186) ถูก insert เข้า `permissions` table
+- แก้ด้วย delta SQL grant ai.\* ให้ role_id=1
+
+**Bug 3: Upload ซ้ำเมื่อ n8n retry**
+
+- `FileStorageService.upload()` เดิมไม่มี dedup → ทุก retry สร้าง orphan temp attachment ใหม่
+- แก้ด้วย checksum-based dedup: query หา temp record ที่มี checksum+userId เดิมและยังไม่หมดอายุ → คืน record เดิมแทน
+
+#### การแก้ไข (Fix)
+
+| ไฟล์                                                                                          | การเปลี่ยนแปลง                                                |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `specs/03-Data-and-Storage/n8n.workflow.v2.json`                                              | `jsonBody` เปลี่ยนเป็น `JSON.stringify($json.submit_payload)` |
+| `specs/03-Data-and-Storage/deltas/2026-05-25-grant-ai-permissions-to-superadmin.sql`          | INSERT IGNORE ai.\* permissions สำหรับ role_id=1 (Superadmin) |
+| `specs/03-Data-and-Storage/deltas/2026-05-25-grant-ai-permissions-to-superadmin.rollback.sql` | Rollback DELETE สำหรับ delta ข้างบน                           |
+| `backend/src/common/file-storage/file-storage.service.ts`                                     | เพิ่ม checksum dedup ใน `upload()` ก่อน write file            |
+
+#### กฎที่ Lock แล้ว
+
+- `jsonBody` ใน n8n HTTP Request `typeVersion >= 4.1` ต้องใช้ `JSON.stringify(...)` เมื่อ `specifyBody: "json"` และค่าเป็น object
+- ทุกครั้งที่เพิ่ม permission ใหม่ใน `permissions` table ต้อง grant ให้ Superadmin (role_id=1) ด้วยทันที — ห้ามปล่อยให้ขาดหาย
+- `FileStorageService.upload()` เป็น idempotent ผ่าน SHA-256 checksum + userId + expiresAt
+
+#### Verification ที่ยังต้องทำ
+
+- รัน delta SQL ใน MariaDB (ถ้ายังไม่รัน): `2026-05-25-grant-ai-permissions-to-superadmin.sql`
+- Import `n8n.workflow.v2.json` ใหม่เข้า n8n UI
+- `pnpm --filter backend test -- file-storage` — ยืนยัน checksum dedup
+
 ---
 
 ## 🎯 10. แผนงานขั้นต่อไป (Next Session Focus)
 
 ### N8N Migration (งานหลักที่เหลือ)
 
-- [ ] **Import `n8n.workflow.v2.json`** เข้า n8n UI และทดสอบ End-to-End
+- [ ] **Import `n8n.workflow.v2.json`** เข้า n8n UI และทดสอบ End-to-End (มี fix จาก Session 3, 4, 5 แล้ว)
+- [ ] **ทดสอบ End-to-End จริง** — รัน n8n กับ Excel ตัวอย่าง → ตรวจสอบว่า `Submit AI Job` ผ่าน, `migration_review_queue` มีข้อมูล, `migration_errors.job_id` ถูกบันทึก
 - [ ] **ตรวจสอบ `ai-realtime` processor** ว่า return `suggestedTags[]` พร้อม `isNew` flag
 - [ ] **Frontend Editable Review Form** (Pipeline B) — pre-fill AI suggestions + tag suggestion UI
 - [ ] **Dry Run** กับ Excel จริงก่อน Production Migration
@@ -270,3 +403,5 @@ Form Trigger → Set Config → Health/Token Check → Fetch Master Data
 ### งานทั่วไป
 
 - [ ] รักษาความเป็นระเบียบและอัปเดต `memory/agent-memory.md` ทุกครั้งที่ Task สำคัญเสร็จ
+- [ ] เพิ่ม unit test สำหรับ `upsertQueueRecord` ใน `ai-migration-checkpoint.service.spec.ts` (UUID→INT path)
+- [ ] เพิ่ม unit test สำหรับ checksum dedup ใน `file-storage.service.spec.ts`

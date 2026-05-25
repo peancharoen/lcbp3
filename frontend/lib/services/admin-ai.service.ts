@@ -4,6 +4,7 @@
 // - 2026-05-21: เพิ่ม service method `getHealth` สำหรับดึงข้อมูลสุขภาพของระบบ AI (T028).
 // - 2026-05-21: เพิ่ม API service สำหรับ Superadmin Sandbox RAG (T037).
 // - 2026-05-21: เพิ่ม service method `submitSandboxExtract` สำหรับอัปโหลดไฟล์ใน OCR Sandbox (T043).
+// - 2026-05-25: เพิ่ม methods สำหรับจัดการโมเดล AI แบบไดนามิก (ADR-027).
 
 import api from '../api/client';
 
@@ -59,6 +60,27 @@ export interface AiSandboxJobResult {
   completedAt?: string;
 }
 
+export interface AiAvailableModel {
+  id: number;
+  modelName: string;
+  modelVersion: string;
+  description?: string;
+  vramGb?: number;
+  isActive: boolean;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AiModelsResponse {
+  models: AiAvailableModel[];
+  activeModel: string;
+}
+
+export interface AiActiveModelResponse {
+  activeModel: string;
+}
+
 const extractData = <T>(value: unknown): T => {
   if (value && typeof value === 'object' && 'data' in value) {
     return (value as { data: T }).data;
@@ -109,5 +131,38 @@ export const adminAiService = {
       },
     });
     return extractData<{ requestPublicId: string; jobId: string; status: string }>(data);
+  },
+
+  // --- AI Model Management (ADR-027) ---
+
+  getAvailableModels: async (): Promise<AiModelsResponse> => {
+    const { data } = await api.get('/ai/admin/models');
+    return extractData<AiModelsResponse>(data);
+  },
+
+  getActiveModel: async (): Promise<AiActiveModelResponse> => {
+    const { data } = await api.get('/ai/admin/models/active');
+    return extractData<AiActiveModelResponse>(data);
+  },
+
+  setActiveModel: async (modelName: string): Promise<AiActiveModelResponse> => {
+    const { data } = await api.post('/ai/admin/models/active', { modelName });
+    return extractData<AiActiveModelResponse>(data);
+  },
+
+  addModel: async (
+    model: Omit<AiAvailableModel, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<{ model: AiAvailableModel }> => {
+    const { data } = await api.post('/ai/admin/models', model);
+    return extractData<{ model: AiAvailableModel }>(data);
+  },
+
+  toggleModelActive: async (modelName: string): Promise<{ model: AiAvailableModel }> => {
+    const { data } = await api.patch(`/ai/admin/models/${encodeURIComponent(modelName)}/toggle`);
+    return extractData<{ model: AiAvailableModel }>(data);
+  },
+
+  removeModel: async (modelName: string): Promise<void> => {
+    await api.delete(`/ai/admin/models/${encodeURIComponent(modelName)}`);
   },
 };

@@ -395,7 +395,7 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
       });
       await this.saveAiAuditLog({
         documentPublicId,
-        aiModel: this.ollamaService.getMainModelName(),
+        aiModel: await this.ollamaService.getMainModelName(),
         status: AiAuditStatus.FAILED,
         errorMessage: errMsg,
         processingTimeMs: Date.now() - startTime,
@@ -421,7 +421,7 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
       });
       await this.saveAiAuditLog({
         documentPublicId,
-        aiModel: this.ollamaService.getMainModelName(),
+        aiModel: await this.ollamaService.getMainModelName(),
         status: AiAuditStatus.FAILED,
         errorMessage: errMsg,
         processingTimeMs: Date.now() - startTime,
@@ -466,7 +466,7 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
     });
     await this.saveAiAuditLog({
       documentPublicId,
-      aiModel: this.ollamaService.getMainModelName(),
+      aiModel: await this.ollamaService.getMainModelName(),
       status: AiAuditStatus.SUCCESS,
       aiSuggestionJson: extractedMetadata,
       confidenceScore: confidence,

@@ -46,6 +46,13 @@ describe('FileStorageService', () => {
             find: jest.fn(),
             findOne: jest.fn(),
             remove: jest.fn(),
+            createQueryBuilder: jest.fn(() => ({
+              where: jest.fn().mockReturnThis(),
+              andWhere: jest.fn().mockReturnThis(),
+              orderBy: jest.fn().mockReturnThis(),
+              limit: jest.fn().mockReturnThis(),
+              getOne: jest.fn().mockResolvedValue(null),
+            })),
           },
         },
         {

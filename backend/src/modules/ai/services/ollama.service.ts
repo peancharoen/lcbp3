@@ -2,10 +2,12 @@
 // Change Log
 // - 2026-05-15: เพิ่ม Ollama service สำหรับ ADR-023A 2-model stack.
 // - 2026-05-21: เพิ่ม checkHealth สำหรับตรวจสอบสุขภาพและความเร็ว (Latency) ของ Ollama
+// - 2026-05-25: เพิ่มการใช้งานโมเดลจาก DB (AiSettingsService) แทน ENV เท่านั้น (ADR-027).
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { AiSettingsService } from '../ai-settings.service';
 
 export interface OllamaGenerateOptions {
   timeoutMs?: number;
@@ -17,18 +19,23 @@ export interface OllamaGenerateOptions {
 export class OllamaService {
   private readonly logger = new Logger(OllamaService.name);
   private readonly ollamaUrl: string;
-  private readonly mainModel: string;
+  private readonly defaultMainModel: string;
   private readonly embedModel: string;
   private readonly timeoutMs: number;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional()
+    private readonly aiSettingsService?: AiSettingsService
+  ) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
       this.configService.get<string>('AI_HOST_URL', 'http://localhost:11434')
     );
-    this.mainModel = this.configService.get<string>(
+    // Default fallback model (ADR-023A: gemma4:e2b)
+    this.defaultMainModel = this.configService.get<string>(
       'OLLAMA_MODEL_MAIN',
-      'gemma4:e4b'
+      'gemma4:e2b'
     );
     this.embedModel = this.configService.get<string>(
       'OLLAMA_MODEL_EMBED',
@@ -37,16 +44,31 @@ export class OllamaService {
     this.timeoutMs = this.configService.get<number>('AI_TIMEOUT_MS', 30000);
   }
 
-  /** สร้างข้อความตอบกลับจาก gemma4:e4b หรือค่า ENV ที่กำหนด */
+  /** ดึงชื่อโมเดลที่ใช้งานอยู่ (จาก DB หรือ ENV fallback) */
+  private async getActiveModelName(): Promise<string> {
+    if (this.aiSettingsService) {
+      try {
+        return await this.aiSettingsService.getActiveModel();
+      } catch (err: unknown) {
+        this.logger.warn(
+          `Failed to get active model from DB: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+    return this.defaultMainModel;
+  }
+
+  /** สร้างข้อความตอบกลับจากโมเดลที่กำหนด (DB หรือ ENV fallback) */
   async generate(
     prompt: string,
     options: OllamaGenerateOptions = {}
   ): Promise<string> {
+    const modelName = await this.getActiveModelName();
     try {
       const response = await axios.post<{ response: string }>(
         `${this.ollamaUrl}/api/generate`,
         {
-          model: this.mainModel,
+          model: modelName,
           prompt,
           stream: false,
         },
@@ -58,7 +80,7 @@ export class OllamaService {
       return response.data.response ?? '';
     } catch (err) {
       this.logger.error(
-        'Ollama generate failed',
+        `Ollama generate failed with model ${modelName}`,
         err instanceof Error ? err.stack : String(err)
       );
       throw err;
@@ -83,9 +105,14 @@ export class OllamaService {
     }
   }
 
-  /** คืนชื่อ main model สำหรับ audit log */
-  getMainModelName(): string {
-    return this.mainModel;
+  /** คืนชื่อ main model สำหรับ audit log (async เพราะต้องเช็ค DB) */
+  async getMainModelName(): Promise<string> {
+    return this.getActiveModelName();
+  }
+
+  /** คืนชื่อ main model แบบ sync (fallback สำหรับกรณีที่ไม่ต้องการ async) */
+  getMainModelNameSync(): string {
+    return this.defaultMainModel;
   }
 
   /** คืนชื่อ embedding model สำหรับ audit log */
@@ -101,13 +128,14 @@ export class OllamaService {
     error?: string;
   }> {
     const startTime = Date.now();
+    const activeModel = await this.getActiveModelName();
     try {
       await axios.get(`${this.ollamaUrl}/api/tags`, { timeout: 5000 });
       const latencyMs = Date.now() - startTime;
       return {
         status: 'HEALTHY',
         latencyMs,
-        models: [this.mainModel, this.embedModel],
+        models: [activeModel, this.embedModel],
       };
     } catch (err: unknown) {
       const latencyMs = Date.now() - startTime;
@@ -120,7 +148,7 @@ export class OllamaService {
       return {
         status: isTimeout ? 'DEGRADED' : 'DOWN',
         latencyMs,
-        models: [this.mainModel, this.embedModel],
+        models: [activeModel, this.embedModel],
         error,
       };
     }

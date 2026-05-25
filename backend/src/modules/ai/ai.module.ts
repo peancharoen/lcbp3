@@ -7,6 +7,7 @@
 // - 2026-05-21: ลงทะเบียน SystemSetting, AiSettingsService และ AiEnabledGuard สำหรับ ADR-027.
 // - 2026-05-22: นำเข้าและลงทะเบียน CleanupTempFilesWorker (T016) เพื่อลบไฟล์แนบชั่วคราวหมดอายุ
 // - 2026-05-23: ลงทะเบียน MigrationProgress + AiMigrationCheckpointService (ADR-023A)
+// - 2026-05-25: ลงทะเบียน AiAvailableModel สำหรับ AI Model Management (ADR-027).
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
@@ -36,6 +37,7 @@ import { AiAuditLog } from './entities/ai-audit-log.entity';
 import { MigrationReviewRecord } from './entities/migration-review.entity';
 import { MigrationProgress } from './entities/migration-progress.entity';
 import { SystemSetting } from './entities/system-setting.entity';
+import { AiAvailableModel } from './entities/ai-available-model.entity';
 import { AiMigrationCheckpointService } from './ai-migration-checkpoint.service';
 import { AiEnabledGuard } from './guards/ai-enabled.guard';
 import { UserModule } from '../user/user.module';
@@ -72,6 +74,7 @@ import {
       MigrationReviewRecord,
       MigrationProgress,
       SystemSetting,
+      AiAvailableModel,
       Attachment,
       Project,
       Organization,
