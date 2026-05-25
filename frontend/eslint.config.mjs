@@ -1,3 +1,7 @@
+// File: frontend/eslint.config.mjs
+// Change Log
+// - 2026-05-25: Added coverage/** to ignored directories to prevent linting auto-generated test coverage files
+
 import js from '@eslint/js';
 import globals from 'globals';
 import typescriptParser from '@typescript-eslint/parser';
@@ -79,6 +83,7 @@ const eslintConfig = [
       'out/**',
       'dist/**',
       'build/**',
+      'coverage/**',
       '*.config.js',
       '*.config.mjs',
       '*.config.ts',

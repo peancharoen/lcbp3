@@ -6,6 +6,7 @@
 // - 2026-05-21: พัฒนาระบบประมวลผล sandbox-extract พร้อมเชื่อมต่อ OcrService, OllamaService และ Redis cache
 // - 2026-05-21: แก้ไข ESLint unused variable สำหรับ parseError ใน catch block
 // - 2026-05-22: แก้ไข type compilation error ใน processMigrateDocument และนำช่องว่างภายในฟังก์ชันออก
+// - 2026-05-25: เชื่อมต่อ AiPromptsService และเปิดใช้งาน Dynamic Prompt สำหรับ OCR extraction ใน sandbox และ migration pipeline
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -25,11 +26,13 @@ import { AiAuditLog, AiAuditStatus } from '../entities/ai-audit-log.entity';
 import { TagsService } from '../../tags/tags.service';
 import { MigrationService } from '../../migration/migration.service';
 import { MigrationErrorType } from '../../migration/entities/migration-error.entity';
+import { AiPromptsService } from '../prompts/ai-prompts.service';
 
 interface MigrateDocumentMetadata extends Record<string, unknown> {
   documentNumber?: string;
   subject?: string;
   category?: string;
+  discipline?: string;
   date?: string;
   confidence?: number;
   tags?: string[];
@@ -80,6 +83,7 @@ const parseMigrateDocumentMetadata = (
     documentNumber: readString(source.documentNumber),
     subject: readString(source.subject),
     category: readString(source.category),
+    discipline: readString(source.discipline),
     date: readString(source.date),
     confidence:
       typeof source.confidence === 'number' ? source.confidence : undefined,
@@ -107,6 +111,7 @@ export class AiBatchProcessor extends WorkerHost {
     private readonly ollamaService: OllamaService,
     private readonly tagsService: TagsService,
     private readonly migrationService: MigrationService,
+    private readonly aiPromptsService: AiPromptsService,
     @InjectRedis() private readonly redis: Redis
   ) {
     super();
@@ -252,28 +257,14 @@ export class AiBatchProcessor extends WorkerHost {
     );
     try {
       const ocrResult = await this.ocrService.detectAndExtract({ pdfPath });
-      const prompt = `You are an expert document extraction system.
-Analyze the following OCR text extracted from a project document and extract the metadata fields.
-
-OCR TEXT:
-${ocrResult.text}
-
-Extract these fields:
-1. documentNumber: The official document number or code. If not found, return null.
-2. subject: The main subject, title, or topic of the document. If not found, return null.
-3. discipline: Must be exactly one of: "Civil", "Mechanical", "Electrical", "Architectural", or null if not specified.
-4. date: The issue date in YYYY-MM-DD format. If not found, return null.
-5. confidence: A float between 0.0 and 1.0 indicating your confidence in this extraction.
-
-Return ONLY a valid JSON object matching this schema. Do NOT include markdown code blocks, HTML, or any conversational text. Example:
-{
-  "documentNumber": "LCBP3-CIV-001",
-  "subject": "Foundation Inspection Report",
-  "discipline": "Civil",
-  "date": "2026-05-20",
-  "confidence": 0.95
-}`;
-      const response = await this.ollamaService.generate(prompt);
+      const { resolvedPrompt, versionNumber } =
+        await this.aiPromptsService.resolveActive(
+          'ocr_extraction',
+          ocrResult.text
+        );
+      const response = await this.ollamaService.generate(resolvedPrompt, {
+        timeoutMs: 120000,
+      });
       const cleanedResponse = response
         .replace(/```json/g, '')
         .replace(/```/g, '')
@@ -289,6 +280,11 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
           `Failed to parse LLM response as JSON: ${cleanedResponse}`
         );
       }
+      await this.aiPromptsService.saveTestResult(
+        'ocr_extraction',
+        versionNumber,
+        extractedMetadata
+      );
       await this.redis.setex(
         `ai:rag:result:${idempotencyKey}`,
         3600,
@@ -296,6 +292,7 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
           requestPublicId: idempotencyKey,
           status: 'completed',
           answer: JSON.stringify(extractedMetadata, null, 2),
+          promptVersionUsed: versionNumber,
           completedAt: new Date().toISOString(),
         })
       );
@@ -357,33 +354,13 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
       });
       throw err;
     }
-    const prompt = `You are a professional document intelligence engine.
-Analyze the following OCR text extracted from a legacy project document and extract the metadata fields.
-OCR TEXT:
-${ocrResult.text}
-Extract these fields:
-1. documentNumber: The official document number or code. If not found, return null.
-2. subject: The main subject, title, or topic of the document. If not found, return null.
-3. discipline: Must be exactly one of: "Civil", "Mechanical", "Electrical", "Architectural", or null if not specified.
-4. category: Must be exactly one of: "Correspondence", "Transmittal", "Circulation", "RFA", "Shop Drawing", "Contract Drawing", or null if not specified.
-5. date: The issue/document date in YYYY-MM-DD format. If not found, return null.
-6. confidence: A float between 0.0 and 1.0 indicating your confidence in this extraction.
-7. tags: An array of tags/keywords (strings) that describe the document.
-8. summary: A short 1-2 sentence summary of the document contents.
-Return ONLY a valid JSON object matching this schema. Do NOT include markdown code blocks, HTML, or any conversational text. Example:
-{
-  "documentNumber": "LCBP3-CIV-001",
-  "subject": "Foundation Inspection Report",
-  "discipline": "Civil",
-  "category": "Correspondence",
-  "date": "2026-05-20",
-  "confidence": 0.95,
-  "tags": ["foundation", "inspection", "concrete"],
-  "summary": "This document is a foundation inspection report for the LCBP3 project, confirming concrete strength."
-}`;
+    const { resolvedPrompt } = await this.aiPromptsService.resolveActive(
+      'ocr_extraction',
+      ocrResult.text
+    );
     let aiResponse: string;
     try {
-      aiResponse = await this.ollamaService.generate(prompt);
+      aiResponse = await this.ollamaService.generate(resolvedPrompt);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`การวิเคราะห์ของ AI ล้มเหลว: ${errMsg}`);
@@ -395,7 +372,7 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
       });
       await this.saveAiAuditLog({
         documentPublicId,
-        aiModel: await this.ollamaService.getMainModelName(),
+        aiModel: this.ollamaService.getMainModelName(),
         status: AiAuditStatus.FAILED,
         errorMessage: errMsg,
         processingTimeMs: Date.now() - startTime,
@@ -421,7 +398,7 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
       });
       await this.saveAiAuditLog({
         documentPublicId,
-        aiModel: await this.ollamaService.getMainModelName(),
+        aiModel: this.ollamaService.getMainModelName(),
         status: AiAuditStatus.FAILED,
         errorMessage: errMsg,
         processingTimeMs: Date.now() - startTime,
@@ -463,10 +440,13 @@ Return ONLY a valid JSON object matching this schema. Do NOT include markdown co
       isValid,
       confidence,
       aiJobId: String(job.id),
+      details: {
+        discipline: extractedMetadata.discipline,
+      },
     });
     await this.saveAiAuditLog({
       documentPublicId,
-      aiModel: await this.ollamaService.getMainModelName(),
+      aiModel: this.ollamaService.getMainModelName(),
       status: AiAuditStatus.SUCCESS,
       aiSuggestionJson: extractedMetadata,
       confidenceScore: confidence,

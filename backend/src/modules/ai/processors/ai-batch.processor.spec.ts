@@ -19,6 +19,7 @@ import { Project } from '../../project/entities/project.entity';
 import { AiAuditLog } from '../entities/ai-audit-log.entity';
 import { TagsService } from '../../tags/tags.service';
 import { MigrationService } from '../../migration/migration.service';
+import { AiPromptsService } from '../prompts/ai-prompts.service';
 
 describe('AiBatchProcessor', () => {
   let processor: AiBatchProcessor;
@@ -90,6 +91,13 @@ describe('AiBatchProcessor', () => {
     createError: jest.fn().mockResolvedValue(undefined),
     enqueueRecord: jest.fn().mockResolvedValue(undefined),
   };
+  const mockAiPromptsService = {
+    resolveActive: jest.fn().mockResolvedValue({
+      resolvedPrompt: 'Resolved test prompt with OCR text',
+      versionNumber: 2,
+    }),
+    saveTestResult: jest.fn().mockResolvedValue(undefined),
+  };
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -113,6 +121,7 @@ describe('AiBatchProcessor', () => {
         },
         { provide: TagsService, useValue: mockTagsService },
         { provide: MigrationService, useValue: mockMigrationService },
+        { provide: AiPromptsService, useValue: mockAiPromptsService },
       ],
     }).compile();
     processor = module.get<AiBatchProcessor>(AiBatchProcessor);

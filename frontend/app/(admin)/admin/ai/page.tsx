@@ -23,6 +23,7 @@ import { useAiStatus, useToggleAiFeatures, useAiHealth } from '@/hooks/use-ai-st
 import { projectService } from '@/lib/services/project.service';
 import { adminAiService, AiSandboxJobResult, AiAvailableModel } from '@/lib/services/admin-ai.service';
 import { toast } from 'sonner';
+import OcrSandboxPromptManager from '@/components/admin/ai/OcrSandboxPromptManager';
 
 interface SandboxProject {
   publicId: string;
@@ -43,12 +44,7 @@ export default function AiAdminConsolePage() {
   const [isSandboxPolling, setIsSandboxPolling] = useState<boolean>(false);
   const [sandboxProgress, setSandboxProgress] = useState<number>(0);
   const [sandboxStatusText, setSandboxStatusText] = useState<string>('');
-  const [ocrFile, setOcrFile] = useState<File | null>(null);
-  const [ocrJobId, setOcrJobId] = useState<string | null>(null);
-  const [ocrJobResult, setOcrJobResult] = useState<AiSandboxJobResult | null>(null);
-  const [isOcrPolling, setIsOcrPolling] = useState<boolean>(false);
-  const [ocrProgress, setOcrProgress] = useState<number>(0);
-  const [ocrStatusText, setOcrStatusText] = useState<string>('');
+
 
   // AI Model Management State (ADR-027)
   const { data: aiModelsData, refetch: refetchModels } = useQuery<{ models: AiAvailableModel[]; activeModel: string }>({
@@ -174,80 +170,7 @@ export default function AiAdminConsolePage() {
       clearInterval(timer);
     };
   }, [sandboxJobId]);
-  const handleSubmitOcr = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-    if (!ocrFile) {
-      toast.error('กรุณาเลือกไฟล์ PDF สำหรับทำ OCR');
-      return;
-    }
-    if (ocrFile.size > 50 * 1024 * 1024) {
-      toast.error('ขนาดไฟล์เกินกว่า 50MB');
-      return;
-    }
-    if (ocrFile.type !== 'application/pdf' && !ocrFile.name.toLowerCase().endsWith('.pdf')) {
-      toast.error('กรุณาอัปโหลดไฟล์ในรูปแบบ PDF เท่านั้น');
-      return;
-    }
-    try {
-      setOcrJobResult(null);
-      setOcrProgress(10);
-      setOcrStatusText('กำลังอัปโหลดไฟล์ไปยังระบบเซิร์ฟเวอร์...');
-      const response = await adminAiService.submitSandboxExtract(ocrFile);
-      setOcrJobId(response.requestPublicId);
-      setIsOcrPolling(true);
-      toast.success('อัปโหลดไฟล์สำเร็จและเข้าสู่คิว sandbox OCR');
-    } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'เกิดข้อผิดพลาดในการทำ OCR Sandbox');
-      setOcrProgress(0);
-      setOcrStatusText('');
-    }
-  };
-  useEffect(() => {
-    if (!ocrJobId) return;
-    let timer: NodeJS.Timeout;
-    const pollOcrJob = async () => {
-      try {
-        const res = await adminAiService.getSandboxJobStatus(ocrJobId);
-        setOcrJobResult(res);
-        if (res.status === 'pending') {
-          setOcrProgress(30);
-          setOcrStatusText('อยู่ในคิวรอดำเนินการ (Pending in BullMQ)...');
-        } else if (res.status === 'processing') {
-          setOcrProgress(70);
-          setOcrStatusText('กำลังอ่านไฟล์ PDF และสกัดข้อความด้วย OCR & LLM...');
-        } else if (res.status === 'completed') {
-          setOcrProgress(100);
-          setOcrStatusText('การทำ OCR และสกัดข้อมูลเมตาดาต้าเสร็จสิ้น');
-          setIsOcrPolling(false);
-          setOcrJobId(null);
-          toast.success('ทำ OCR Sandbox สำเร็จ');
-        } else if (res.status === 'failed') {
-          setOcrProgress(100);
-          setOcrStatusText('การทำ OCR ล้มเหลว');
-          setIsOcrPolling(false);
-          setOcrJobId(null);
-          toast.error(res.errorMessage || 'การทำ OCR Sandbox เกิดข้อผิดพลาด');
-        } else if (res.status === 'cancelled') {
-          setOcrProgress(100);
-          setOcrStatusText('การทำ OCR ถูกยกเลิก');
-          setIsOcrPolling(false);
-          setOcrJobId(null);
-          toast.error('OCR sandbox job ถูกยกเลิก');
-        } else if (res.status === 'not_found') {
-          setOcrProgress(20);
-          setOcrStatusText('กำลังตรวจสอบสถานะคิวงาน...');
-        }
-      } catch {
-        // เงียบข้อผิดพลาดตามนโยบาย UI
-      }
-    };
-    pollOcrJob();
-    timer = setInterval(pollOcrJob, 5000);
-    return () => {
-      clearInterval(timer);
-    };
-  }, [ocrJobId]);
+
   const renderStatusBadge = (status?: 'HEALTHY' | 'DEGRADED' | 'DOWN') => {
     if (!status) return <Badge variant="outline">Unknown</Badge>;
     switch (status) {
@@ -745,167 +668,7 @@ export default function AiAdminConsolePage() {
           )}
         </TabsContent>
         <TabsContent value="ocr" className="space-y-6">
-          <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Brain className="h-5 w-5 text-primary" />
-                OCR Sandbox Playground (isolated)
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                พื้นที่อัปโหลดไฟล์ PDF เพื่อทำการทดสอบทำ OCR และจำลองการดึง Metadata ออกมาในรูปแบบโครงสร้าง JSON โดยไม่บันทึกข้อมูลลงฐานข้อมูลจริง
-              </p>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmitOcr} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    อัปโหลดเอกสาร PDF (ขนาดไม่เกิน 50MB)
-                  </label>
-                  <div
-                    className={`flex flex-col items-center justify-center rounded-lg border border-dashed p-8 transition-colors ${
-                      ocrFile
-                        ? 'border-primary/50 bg-primary/5'
-                        : 'border-muted-foreground/20 hover:bg-muted/10'
-                    }`}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (isOcrPolling) return;
-                      const file = e.dataTransfer.files?.[0];
-                      if (file) {
-                        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-                          setOcrFile(file);
-                        } else {
-                          toast.error('กรุณาเลือกไฟล์ PDF เท่านั้น');
-                        }
-                      }
-                    }}
-                  >
-                    <Activity className="h-10 w-10 text-muted-foreground/60 mb-2" />
-                    {ocrFile ? (
-                      <div className="text-center space-y-1">
-                        <p className="text-sm font-medium text-foreground">{ocrFile.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          ({(ocrFile.size / 1024 / 1024).toFixed(2)} MB)
-                        </p>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={isOcrPolling}
-                          onClick={() => setOcrFile(null)}
-                          className="mt-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          ลบไฟล์
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="text-center space-y-1">
-                        <p className="text-sm text-muted-foreground">
-                          ลากและวางไฟล์ PDF หรือคลิกเพื่ออัปโหลด
-                        </p>
-                        <input
-                          type="file"
-                          accept=".pdf"
-                          disabled={isOcrPolling}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) setOcrFile(file);
-                          }}
-                          className="hidden"
-                          id="ocr-file-upload"
-                        />
-                        <label
-                          htmlFor="ocr-file-upload"
-                          className="mt-2 inline-flex h-8 items-center justify-center rounded-md bg-secondary px-3 text-xs font-medium text-secondary-foreground ring-offset-background transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
-                        >
-                          เลือกไฟล์
-                        </label>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 pt-2">
-                  <Button
-                    type="submit"
-                    disabled={isOcrPolling || !ocrFile}
-                    className="flex items-center gap-2"
-                  >
-                    {isOcrPolling ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        กำลังประมวลผล OCR...
-                      </>
-                    ) : (
-                      <>
-                        <Power className="h-4 w-4" />
-                        เริ่มทำ OCR Sandbox
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-          {isOcrPolling && (
-            <Card className="border border-amber-500/20 bg-amber-500/5">
-              <CardContent className="pt-6 space-y-4">
-                <div className="flex items-center justify-between text-sm font-medium">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-                    <span>{ocrStatusText}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{ocrProgress}%</span>
-                </div>
-                <Progress value={ocrProgress} className="h-2" />
-                <div className="rounded bg-background/50 p-2 text-[11px] text-muted-foreground font-mono flex items-center gap-2">
-                  <Info className="h-3 w-3" />
-                  ID คำขอ: {ocrJobId}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {ocrJobResult && (
-            <div className="space-y-6">
-              {ocrJobResult.status === 'completed' && (
-                <Card className="border border-emerald-500/20 bg-background/50 backdrop-blur-md">
-                  <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                      <Brain className="h-4 w-4" />
-                      ผลลัพธ์การสกัด Metadata แบบโครงสร้าง (JSON Output)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[400px]">
-                      <pre className="text-emerald-600 dark:text-emerald-400 select-text">
-                        {ocrJobResult.answer}
-                      </pre>
-                    </div>
-                    {ocrJobResult.completedAt && (
-                      <div className="mt-4 text-right text-[10px] text-muted-foreground">
-                        เสร็จสิ้นเมื่อ: {new Date(ocrJobResult.completedAt).toLocaleString()}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-              {ocrJobResult.status === 'failed' && (
-                <Card className="border border-destructive/20 bg-destructive/5">
-                  <CardHeader className="flex flex-row items-center gap-2 pb-2 text-destructive">
-                    <AlertCircle className="h-5 w-5" />
-                    <CardTitle className="text-sm font-medium">ประมวลผล OCR Sandbox ล้มเหลว</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {ocrJobResult.errorMessage || 'เกิดข้อผิดพลาดขึ้นระหว่างการอ่านไฟล์เอกสาร PDF หรือการเรียก LLM Sandbox สำหรับถอดความเมตาดาต้า กรุณาตรวจสอบสถานะสุขภาพของตัวบริการ'}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
+          <OcrSandboxPromptManager />
         </TabsContent>
       </Tabs>
     </div>
