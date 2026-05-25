@@ -30,13 +30,8 @@ services:
     volumes:
       # Model cache — Docker named volume เพื่อไม่ต้อง download ใหม่ทุกครั้ง
       - paddleocr_models:/root/.paddleocr
-      # Uploads จาก QNAP NAS ผ่าน SMB mapped drive Z:
-      # ก่อนรัน: net use Z: \\192.168.10.8\np-dms-as /persistent:yes
-      # แล้วเปิด Docker Desktop → Settings → Resources → File Sharing → เพิ่ม Z:\
-      - type: bind
-        source: Z:\data\uploads
-        target: /mnt/uploads
-        read_only: true
+      # Uploads จาก QNAP NAS ผ่าน CIFS (SMB) volume — Docker mount โดยตรง
+      - qnap_uploads:/mnt/uploads:ro
     logging:
       driver: "json-file"
       options:
@@ -52,3 +47,9 @@ services:
 volumes:
   paddleocr_models:
     name: paddleocr_models
+  qnap_uploads:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: "username=${QNAP_USER},password=${QNAP_PASS},vers=3.0,uid=0,gid=0"
+      device: "//192.168.10.8/np-dms-as/data/uploads"
