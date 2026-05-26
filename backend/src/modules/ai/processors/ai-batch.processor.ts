@@ -6,7 +6,8 @@
 // - 2026-05-21: พัฒนาระบบประมวลผล sandbox-extract พร้อมเชื่อมต่อ OcrService, OllamaService และ Redis cache
 // - 2026-05-21: แก้ไข ESLint unused variable สำหรับ parseError ใน catch block
 // - 2026-05-22: แก้ไข type compilation error ใน processMigrateDocument และนำช่องว่างภายในฟังก์ชันออก
-// - 2026-05-25: เชื่อมต่อ AiPromptsService และเปิดใช้งาน Dynamic Prompt สำหรับ OCR extraction ใน sandbox และ migration pipeline
+// - 2026-05-25: เพิ่ม AiPromptsService เพื่อดึง Dynamic Prompt สำหรับ OCR extraction ใน sandbox และ migration pipeline
+// - 2026-05-26: แก้ไข bug lockDuration=30000ms ทำให้ sandbox-extract job stall เมื่อ Ollama ใช้เวลา >30s — เพิ่ม lockDuration: 150000
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -92,8 +93,11 @@ const parseMigrateDocumentMetadata = (
   };
 };
 
-/** Processor สำหรับงาน AI batch ที่รันทีละงานเพื่อคุม VRAM */
-@Processor(QUEUE_AI_BATCH, { concurrency: 1 })
+/** Processor สำหรับงาน AI batch ที่รันทีละงานเพื่อคุม VRAM
+ *  lockDuration: 150000ms — รองรับ Ollama sandbox ที่ใช้เวลาสูงสุด 120s (ADR-029 FR-008)
+ *  ค่า default ของ BullMQ คือ 30000ms ซึ่งน้อยกว่า timeout → job stall
+ */
+@Processor(QUEUE_AI_BATCH, { concurrency: 1, lockDuration: 150000 })
 export class AiBatchProcessor extends WorkerHost {
   private readonly logger = new Logger(AiBatchProcessor.name);
   private readonly abortControllers = new Map<string, AbortController>();
@@ -360,7 +364,9 @@ export class AiBatchProcessor extends WorkerHost {
     );
     let aiResponse: string;
     try {
-      aiResponse = await this.ollamaService.generate(resolvedPrompt);
+      aiResponse = await this.ollamaService.generate(resolvedPrompt, {
+        timeoutMs: 120000,
+      });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`การวิเคราะห์ของ AI ล้มเหลว: ${errMsg}`);
