@@ -1,4 +1,3 @@
-
 # Commit Checklist
 
 ## Pre-Commit Verification
@@ -28,6 +27,7 @@ type(scope): description
 Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 Examples:
+
 - `feat(correspondence): add originator organization validation`
 - `fix(uuid): correct parseInt usage to string comparison`
 - `spec(agents): bump to v1.8.5 - refactor structure`

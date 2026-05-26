@@ -1,6 +1,6 @@
 # 📝 Contributing to LCBP3-DMS Specifications
 
-> แนวทางการมีส่วนร่วมในการพัฒนาเอกสาร Specifications ของโครงการ LCBP3-DMS (v1.9.5)
+> แนวทางการมีส่วนร่วมในการพัฒนาเอกสาร Specifications ของโครงการ LCBP3-DMS (v1.9.7)
 
 ยินดีต้อนรับสู่คู่มือการมีส่วนร่วมในการพัฒนาเอกสาร Specifications! เอกสารนี้จะช่วยให้คุณเข้าใจวิธีการสร้าง แก้ไข และปรับปรุงเอกสารข้อกำหนดของโครงการได้อย่างมีประสิทธิภาพ
 
@@ -561,13 +561,15 @@ graph LR
 | 1.9.3   | 2026-05-19 | Tech Lead  | ADR-024 Intent Classification + ADR-025 AI Tool Layer + ADR-026 Chat UI (26 ADRs) |
 | 1.9.4   | 2026-05-21 | Tech Lead  | ADR-027 AI Admin Console & Dynamic Control (27 ADRs)                              |
 | 1.9.5   | 2026-05-22 | Tech Lead  | ADR-028 Migration Architecture Refactor + Root Docs Update (28 ADRs)              |
+| 1.9.6   | 2026-05-22 | Tech Lead  | AGENTS.md v1.9.6 — AI Runtime Layer + Migration Pipeline Tiers expanded           |
+| 1.9.7   | 2026-05-25 | Tech Lead  | ADR-029 Dynamic Prompt Management + PaddleOCR Sidecar infra + bug fixes (29 ADRs) |
 
-**Current Version**: 1.9.5
+**Current Version**: 1.9.7
 **Status**: Approved
-**Last Updated**: 2026-05-22
+**Last Updated**: 2026-05-25
 **Security**: 0 vulnerabilities (backend) + Compose stack hardened (27 findings → 0)
 **Workflow Engine**: ADR-021 Integrated Context complete + RFA v1.9.0 finalized
-**AI Runtime Layer**: ADR-024/025/026/027 Accepted — Intent Classification, Tool Layer, Chat UI, Admin Console
+**AI Runtime Layer**: ADR-024/025/026/027/028/029 Active — Intent Classification, Tool Layer, Chat UI, Admin Console, Dynamic Prompts
 ```
 
 ### 5. UUID Conventions (ADR-019)

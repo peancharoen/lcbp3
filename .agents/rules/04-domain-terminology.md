@@ -2,17 +2,17 @@
 
 ## DMS Glossary
 
-| ✅ Use             | ❌ Don't Use                          |
-| ------------------ | ------------------------------------- |
-| Correspondence     | Letter, Communication, Document       |
-| RFA                | Approval Request, Submit for Approval |
-| Transmittal        | Delivery Note, Cover Letter           |
-| Circulation        | Distribution, Routing                 |
-| Shop Drawing       | Construction Drawing                  |
-| Contract Drawing   | Design Drawing, Blueprint             |
-| Workflow Engine    | Approval Flow, Process Engine         |
-| Document Numbering | Document ID, Auto Number              |
-| RBAC               | Permission System (generic)           |
+| ✅ Use             | ❌ Don't Use                          | คำอธิบายเพิ่มเติม                                |
+| ------------------ | ------------------------------------- | ------------------------------------------------ |
+| Correspondence     | Letter, Communication, Document       | ครอบคลุมทุกประเภท: Letter, RFA, Memo, ฯลฯ        |
+| RFA                | Approval Request, Submit for Approval | เอกสารขออนุมัติ (ชนิดหนึ่งของ Correspondence)    |
+| Transmittal        | Delivery Note, Cover Letter           | เอกสารนำส่ง (ชนิดหนึ่งของ Correspondence)        |
+| Circulation        | Distribution, Routing                 | ใบเวียนเอกสารภายใน (ชนิดหนึ่งของ Correspondence) |
+| Shop Drawing       | Construction Drawing                  | แบบก่อสร้าง                                      |
+| Contract Drawing   | Design Drawing, Blueprint             | แบบคู่สัญญา                                      |
+| Workflow Engine    | Approval Flow, Process Engine         | เครื่องมือจัดการลำดับงาน                         |
+| Document Numbering | Document ID, Auto Number              | ระบบจัดการเลขที่เอกสาร                           |
+| RBAC               | Permission System (generic)           | การควบคุมสิทธิ์ตามบทบาท                          |
 
 ## Full Glossary
 

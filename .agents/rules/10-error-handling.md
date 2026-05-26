@@ -1,4 +1,3 @@
-
 # ADR-007 Error Handling Strategy
 
 ## CRITICAL RULES
@@ -11,23 +10,18 @@
 
 ## Error Classification
 
-| Error Type | Description | User Message | Technical Log |
-|------------|-------------|--------------|---------------|
-| **Validation** | Input validation failures | Clear field-level errors | Full validation details |
-| **Business** | Business rule violations | Actionable guidance | Business context + user ID |
-| **System** | Infrastructure failures | Generic "try again" | Full stack trace + metrics |
+| Error Type     | Description               | User Message             | Technical Log              |
+| -------------- | ------------------------- | ------------------------ | -------------------------- |
+| **Validation** | Input validation failures | Clear field-level errors | Full validation details    |
+| **Business**   | Business rule violations  | Actionable guidance      | Business context + user ID |
+| **System**     | Infrastructure failures   | Generic "try again"      | Full stack trace + metrics |
 
 ## Backend Pattern (NestJS)
 
 ```typescript
 // Custom Exception Hierarchy
 export class BusinessException extends HttpException {
-  constructor(
-    message: string,
-    userMessage: string,
-    recoveryAction?: string,
-    errorCode?: string
-  ) {
+  constructor(message: string, userMessage: string, recoveryAction?: string, errorCode?: string) {
     super({ message, userMessage, recoveryAction, errorCode }, 400);
   }
 }
