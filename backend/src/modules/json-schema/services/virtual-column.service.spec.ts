@@ -160,12 +160,6 @@ describe('VirtualColumnService', () => {
             columnName: 'col',
             jsonPath: '$.x',
             dataType: input as
-             |
-
-
-
-
-
               | 'INT'
               | 'VARCHAR'
               | 'BOOLEAN'
