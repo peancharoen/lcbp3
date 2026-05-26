@@ -28,6 +28,7 @@ const baseConfig: VirtualColumnConfig = {
   jsonPath: '$.disciplineCode',
   dataType: 'VARCHAR',
   indexType: undefined,
+  isRequired: false,
 };
 
 describe('VirtualColumnService', () => {
@@ -92,7 +93,7 @@ describe('VirtualColumnService', () => {
         .mockResolvedValueOnce(undefined); // CREATE INDEX
       service = await buildService(makeDataSource(qr));
       await service.setupVirtualColumns('rfa_revisions', [
-        { ...baseConfig, indexType: 'BTREE' },
+        { ...baseConfig, indexType: 'INDEX' },
       ]);
       // ควรเรียก query 3 ครั้ง: ADD COLUMN, check index, CREATE INDEX
       expect(qr.query).toHaveBeenCalledTimes(3);
@@ -122,7 +123,7 @@ describe('VirtualColumnService', () => {
         .mockResolvedValueOnce([{ count: 1 }]); // index มีอยู่แล้ว
       service = await buildService(makeDataSource(qr));
       await service.setupVirtualColumns('rfa_revisions', [
-        { ...baseConfig, indexType: 'BTREE' },
+        { ...baseConfig, indexType: 'INDEX' },
       ]);
       // ไม่ควรเรียก CREATE INDEX
       expect(qr.query).toHaveBeenCalledTimes(2);
@@ -158,8 +159,21 @@ describe('VirtualColumnService', () => {
           {
             columnName: 'col',
             jsonPath: '$.x',
-            dataType: input,
+            dataType: input as
+             |
+
+
+
+
+
+              | 'INT'
+              | 'VARCHAR'
+              | 'BOOLEAN'
+              | 'DATE'
+              | 'DECIMAL'
+              | 'DATETIME',
             indexType: undefined,
+            isRequired: false,
           },
         ]);
         const addColSql = qr.query.mock.calls[0][0] as string;
