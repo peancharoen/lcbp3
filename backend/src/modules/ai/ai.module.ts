@@ -56,6 +56,8 @@ import { RbacGuard } from '../../common/guards/rbac.guard';
 import { IntentClassifierModule } from './intent-classifier/intent-classifier.module';
 import { AiToolModule } from './tool/ai-tool.module';
 import { CleanupTempFilesWorker } from './workers/cleanup-temp-files.worker';
+import { AiPromptsModule } from './prompts/ai-prompts.module';
+import { AiPrompt } from './prompts/ai-prompts.entity';
 import {
   QUEUE_AI_BATCH,
   QUEUE_AI_INGEST,
@@ -81,6 +83,7 @@ import {
       CorrespondenceType,
       ImportTransaction,
       MigrationReviewQueue,
+      AiPrompt,
     ]),
 
     BullModule.registerQueue(
@@ -130,6 +133,8 @@ import {
     IntentClassifierModule,
     // ADR-025: AI Tool Layer (Tool Registry + CASL-enforced Tool Services)
     AiToolModule,
+    // ADR-029: Dynamic Prompt Management for OCR Extraction
+    AiPromptsModule,
   ],
   controllers: [AiController],
   providers: [

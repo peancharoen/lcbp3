@@ -1,4 +1,3 @@
-
 # Frontend Patterns (Next.js)
 
 ## Form Handling
@@ -17,7 +16,7 @@ interface ProjectOption {
 }
 
 // Select options
-const options = contracts.map(c => ({
+const options = contracts.map((c) => ({
   label: `${c.contractName} (${c.contractCode})`,
   value: c.publicId!, // Use publicId, no fallback to id
 }));

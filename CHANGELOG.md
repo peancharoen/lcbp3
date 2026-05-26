@@ -1,5 +1,43 @@
 # Version History
 
+## 1.9.7 (2026-05-25)
+
+### docs(ai): ADR-029 Dynamic Prompt Management + PaddleOCR Sidecar + Bug Fixes
+
+#### Summary
+
+เพิ่ม ADR-029 (Dynamic Prompt Management) สำหรับจัดการ Prompt Templates ใน DB และ Deploy PaddleOCR Sidecar บน Desk-5439 พร้อมแก้ไข Bug สำคัญในระบบ n8n, Correspondence และ Tags/Contracts
+
+#### Changes
+
+- **ADR-029**: สร้างเอกสาร `ADR-029-dynamic-prompt-management.md` — Prompt templates เก็บใน `ai_prompts` table, Redis cache `ai:prompt:active:{type}` TTL 60s; `activate()` รันใน DB transaction + Redis DEL; CASL guard `system.manage_all` บน mutations
+- **PaddleOCR Sidecar (Desk-5439)**: สร้าง Docker Compose stack สำหรับ OCR sidecar — FastAPI (`app.py`) endpoints `/ocr` + `/normalize` + `/health`; CIFS volume เชื่อมต่อ QNAP (`//192.168.10.8/np-dms-as/data/uploads`); model download ตอน runtime (ไม่ pre-download ใน Dockerfile เพื่อหลีกเลี่ยง segfault)
+- **n8n Workflow Fixes**: แก้ไข Migration Queue attachment UUID mismatch, normalize migration errors, debug n8n Submit AI Job pipeline
+- **TransformInterceptor Bug Fix**: ลบ duplicate registration ออกจาก `main.ts` (เก็บเฉพาะ `APP_INTERCEPTOR` ใน `CommonModule`) — แก้ปัญหา double-wrapped response `{ data: { data: ... } }`
+- **Correspondence Module Fixes**: `findOneByUuid()` ใช้ explicit JOIN + revision ordering (DESC) เพื่อให้ deterministic; normalize `recipient_type` whitespace variants ใน frontend detail component
+- **Tags/Contracts UUID Fixes**: แก้ TypeORM Tag entity column-name mismatch; แก้ `handleEdit` ใน contracts page อ่าน `contract.project?.id` แทน `project?.publicId`
+- **Playwright E2E**: ติดตั้ง MCP Playwright server, สร้าง E2E spec `frontend/e2e/workflow-adr021.spec.ts`
+- **Root Docs**: อัปเดต `AGENTS.md` v1.9.7 (ADR-029, gemma4:e4b Q8_0 fix), `README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`, `CONTRIBUTING.md` ทั้งหมดสะท้อน 29 ADRs
+
+---
+
+## 1.9.6 (2026-05-22)
+
+### spec(agents): AGENTS.md v1.9.6 — AI Runtime Layer + Migration Pipeline Tiers
+
+#### Summary
+
+อัปเดต `AGENTS.md` ให้ครอบคลุม AI Runtime Layer (ADR-024~028) อย่างครบถ้วน พร้อมขยาย Tier 3 SPECIALIZED WORK และเพิ่ม Context-Aware Triggers ใหม่
+
+#### Changes
+
+- **Key Spec Files**: เพิ่ม ADR-024/025/026/027/028 ในตาราง Key Spec Files
+- **Tier 3 Expanded**: เพิ่ม AI Runtime Layer (ADR-024/025/026/027) และ Migration Pipeline (ADR-028) ใน Specialized Work tiers
+- **Context-Aware Triggers**: เพิ่ม 6 triggers ใหม่ (Intent classification, AI Tool Layer, Document Chat UI, AI Admin Console, Migration refactor, งานค้าง/resume)
+- **Specialized Work Flow**: เพิ่ม subsection "For AI Runtime Layer" และ "For Migration Pipeline" ใน Development Flow
+
+---
+
 ## 1.9.5 (2026-05-22)
 
 ### docs(adr): ADR-028 Migration Architecture Refactor + Root Docs Update

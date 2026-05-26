@@ -7,7 +7,7 @@ trigger: always_on
 ## CRITICAL RULES
 
 - **ALWAYS** follow ADR-023 AI boundary policy (isolation on Admin Desktop)
-- **ALWAYS** use ADR-023A 2-model stack (gemma4:e4b Q8_0 + nomic-embed-text)
+- **ALWAYS** use ADR-023A 2-model stack (gemma4:e2b + nomic-embed-text)
 - **ALWAYS** use BullMQ 2-queue (ai-realtime + ai-batch) for GPU overload prevention
 - **NEVER** allow AI direct database/storage access
 - **ALWAYS** implement human-in-the-loop validation
@@ -30,7 +30,7 @@ n8n (Migration) → DMS API → BullMQ → Admin Desktop (Ollama) → Backend Va
 | ----------------- | ------------------------- | ------------------------------------------------------------------------ |
 | **AI Gateway**    | Backend (NestJS)          | API endpoints, validation, audit logging                                 |
 | **BullMQ Queues** | Backend (NestJS)          | ai-realtime (RAG/Suggest), ai-batch (OCR/Extract/Embed)                  |
-| **Ollama Engine** | Admin Desktop (Desk-5439) | gemma4:e4b Q8_0 (LLM) + nomic-embed-text (Embedding)                     |
+| **Ollama Engine** | Admin Desktop (Desk-5439) | gemma4:e2b (LLM) + nomic-embed-text (Embedding)                          |
 | **OCR Engine**    | Admin Desktop (Desk-5439) | PaddleOCR + PyThaiNLP (Thai/English text extraction)                     |
 | **Orchestrator**  | QNAP NAS (n8n)            | Migration Phase orchestrator only (calls DMS API, never Ollama directly) |
 
@@ -80,7 +80,7 @@ export class AiService {
   async extractMetadata(documentId: string): Promise<AIMetadata> {
     // 1. Validate permissions
     // 2. Queue job to BullMQ (ai-batch or ai-realtime)
-    // 3. Worker sends to Admin Desktop AI (gemma4:e4b Q8_0)
+    // 3. Worker sends to Admin Desktop AI (gemma4:e2b)
     // 4. Validate AI response
     // 5. Log audit trail to ai_audit_logs
     // 6. Return validated results
@@ -119,7 +119,7 @@ const DocumentReviewForm = ({ document, aiSuggestions }) => {
 
 ## ADR-023A Specific Rules
 
-- **2-Model Stack:** gemma4:e4b Q8_0 (~4.0GB) + nomic-embed-text (~0.3GB) = ~4.3GB VRAM peak
+- **2-Model Stack:** gemma4:e2b + nomic-embed-text
 - **PDF 3-Page Limit:** Classification/Tagging uses first 3 pages only (NOT RAG embedding)
 - **RAG Embedding:** Full document chunked at 512 tokens/64 tokens overlap
 - **OCR Auto-Detect:** PyMuPDF chars > 100 → Fast path, else PaddleOCR
@@ -133,7 +133,7 @@ const DocumentReviewForm = ({ document, aiSuggestions }) => {
 - [ ] BullMQ 2-queue setup (ai-realtime + ai-batch)
 - [ ] QdrantService with projectPublicId enforcement
 - [ ] DocumentReviewForm reusable component
-- [ ] Admin Desktop Ollama (gemma4:e4b Q8_0 + nomic-embed-text) + PaddleOCR setup
+- [ ] Admin Desktop Ollama (gemma4:e2b + nomic-embed-text) + PaddleOCR setup
 - [ ] n8n workflow orchestration (Migration Phase only)
 - [ ] AI audit logging and monitoring (ai_audit_logs)
 - [ ] Human-in-the-loop validation workflows
@@ -142,3 +142,8 @@ const DocumentReviewForm = ({ document, aiSuggestions }) => {
 
 - `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md` (Base architecture)
 - `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md` (Model revision - current)
+- `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md` (Pattern→LLM Fallback)
+- `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md` (Tool Registry)
+- `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md` (Chat UI)
+- `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md` (Admin Console)
+- `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md` (Migration Pipeline)

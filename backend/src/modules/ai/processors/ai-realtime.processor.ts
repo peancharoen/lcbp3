@@ -114,7 +114,7 @@ export class AiRealtimeProcessor extends WorkerHost {
         this.aiAuditLogRepo.create({
           documentPublicId: job.data.documentPublicId,
           aiModel: 'gemma4',
-          modelName: await this.ollamaService.getMainModelName(),
+          modelName: this.ollamaService.getMainModelName(),
           aiSuggestionJson: normalizedSuggestion,
           confidenceScore: this.extractConfidence(normalizedSuggestion),
           processingTimeMs: Date.now() - startTime,
@@ -136,7 +136,7 @@ export class AiRealtimeProcessor extends WorkerHost {
         this.aiAuditLogRepo.create({
           documentPublicId: job.data.documentPublicId,
           aiModel: 'gemma4',
-          modelName: await this.ollamaService.getMainModelName(),
+          modelName: this.ollamaService.getMainModelName(),
           processingTimeMs: Date.now() - startTime,
           status: AiAuditStatus.FAILED,
           errorMessage: err instanceof Error ? err.message : String(err),
