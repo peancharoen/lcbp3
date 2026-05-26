@@ -49,7 +49,7 @@ export default function NumberingPage() {
   const [isTesting, setIsTesting] = useState(false);
   const [testTemplate, setTestTemplate] = useState<NumberingTemplate | null>(null);
 
-  const selectedProject = (projects as ProjectItem[]).find((p) => String(p.publicId) === selectedProjectId);
+  const selectedProject = Array.isArray(projects) ? (projects as ProjectItem[]).find((p) => String(p.publicId) === selectedProjectId) : undefined;
   const selectedProjectName = selectedProject?.projectName || 'Unknown Project';
 
   // Master Data

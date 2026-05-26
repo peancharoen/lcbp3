@@ -99,9 +99,9 @@ export default function UsersPage() {
           return 'All Organizations';
         }
 
-        const org = organizationList.find(
+        const org = Array.isArray(organizationList) ? organizationList.find(
           (o) => (o.id ?? o.publicId) === orgId?.toString() || o.publicId === orgId?.toString()
-        );
+        ) : undefined;
         return org ? org.organizationCode : 'All Organizations';
       },
     },

@@ -281,7 +281,7 @@ function ManageMappings({ projectId }: { projectId: string }) {
                   {subCategories
                     .filter(
                       (s: ContractSubCategory) =>
-                        !mappings.find((m: Record<string, unknown>) => {
+                        !Array.isArray(mappings) || !mappings.find((m: Record<string, unknown>) => {
                           const sub = m.subCategory as { id?: number } | undefined;
                           return sub?.id === s.id;
                         })

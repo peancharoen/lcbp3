@@ -1,6 +1,7 @@
 // File: frontend/lib/services/ai-prompts.service.ts
 // Change Log
 // - 2026-05-25: Created aiPromptsService for prompt versioning and sandbox operations (ADR-029)
+// - 2026-05-26: แก้ไขการ unwrap ข้อมูลจาก TransformInterceptor ที่ซ้อนกันหลายชั้นเพื่อป้องกันข้อผิดพลาด N.find is not a function
 
 import api from '../api/client';
 import { AiPrompt } from '../../types/ai-prompts';
@@ -13,6 +14,17 @@ const extractData = <T>(value: unknown): T => {
 };
 
 /**
+ * ฟังก์ชันช่วย unwrap ข้อมูลจาก API Response ที่อาจจะถูก wrap ซ้อนกันหลายชั้นโดย TransformInterceptor
+ */
+const unwrapResponse = <T>(value: unknown): T => {
+  const extracted = extractData<T>(value);
+  if (extracted && typeof extracted === 'object' && 'data' in extracted) {
+    return (extracted as { data: T }).data;
+  }
+  return extracted;
+};
+
+/**
  * Service สำหรับเรียก API ในการจัดการ AI prompt templates ทางฝั่งหน้าบ้าน
  */
 export const aiPromptsService = {
@@ -21,7 +33,7 @@ export const aiPromptsService = {
    */
   listVersions: async (promptType: string): Promise<AiPrompt[]> => {
     const { data } = await api.get(`/ai/prompts/${encodeURIComponent(promptType)}`);
-    return extractData<AiPrompt[]>(data);
+    return unwrapResponse<AiPrompt[]>(data);
   },
 
   /**
@@ -29,7 +41,7 @@ export const aiPromptsService = {
    */
   createVersion: async (promptType: string, template: string): Promise<AiPrompt> => {
     const { data } = await api.post(`/ai/prompts/${encodeURIComponent(promptType)}`, { template });
-    return extractData<AiPrompt>(data);
+    return unwrapResponse<AiPrompt>(data);
   },
 
   /**
@@ -39,7 +51,7 @@ export const aiPromptsService = {
     const { data } = await api.post(
       `/ai/prompts/${encodeURIComponent(promptType)}/${versionNumber}/activate`
     );
-    return extractData<AiPrompt>(data);
+    return unwrapResponse<AiPrompt>(data);
   },
 
   /**
@@ -61,6 +73,7 @@ export const aiPromptsService = {
       `/ai/prompts/${encodeURIComponent(promptType)}/${versionNumber}/note`,
       { manualNote }
     );
-    return extractData<AiPrompt>(data);
+    return unwrapResponse<AiPrompt>(data);
   },
 };
+

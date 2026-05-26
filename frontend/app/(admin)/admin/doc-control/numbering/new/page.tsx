@@ -21,9 +21,10 @@ export default function NewTemplatePage() {
   const contractId = getContractPublicId(firstContract);
   const { data: disciplines = [] } = useDisciplines(contractId);
 
-  const selectedProjectName =
-    (projects as Array<{ id?: number; publicId?: string; projectName: string }>).find((p) =>
-      String(p.publicId ?? p.id) === String(projectId))?.projectName || 'LCBP3';
+  const selectedProjectName = Array.isArray(projects)
+    ? (projects as Array<{ id?: number; publicId?: string; projectName: string }>).find((p) =>
+        String(p.publicId ?? p.id) === String(projectId))?.projectName || 'LCBP3'
+    : 'LCBP3';
 
   const handleSave = async (data: Partial<NumberingTemplate>) => {
     try {

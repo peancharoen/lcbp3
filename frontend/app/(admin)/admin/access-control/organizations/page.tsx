@@ -80,7 +80,7 @@ export default function OrganizationsPage() {
       header: 'Role',
       cell: ({ row }) => {
         const roleId = row.getValue('roleId') as number;
-        const role = ORGANIZATION_ROLES.find((r) => r.value === roleId?.toString());
+        const role = Array.isArray(ORGANIZATION_ROLES) ? ORGANIZATION_ROLES.find((r) => r.value === roleId?.toString()) : undefined;
         return role ? role.label : '-';
       },
     },

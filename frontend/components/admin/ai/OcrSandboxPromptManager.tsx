@@ -3,6 +3,7 @@
 // - 2026-05-25: Created OcrSandboxPromptManager component for dynamic prompt editing, version control, and sandbox testing (ADR-029)
 // - 2026-05-25: Extracted inline strings to i18n keys via useTranslations() (Obs #1 fix)
 // - 2026-05-25: Refactored sandbox polling to useSandboxRun hook (Obs #2 fix)
+// - 2026-05-26: เพิ่มการตรวจสอบ versionsQuery.data แบบทนทานเพื่อป้องกัน Error N.find is not a function ในกรณีที่ API ส่งข้อมูลแบบ wrapped object มา
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -43,7 +44,12 @@ export default function OcrSandboxPromptManager() {
     deleteMutation,
     updateNoteMutation,
   } = useAiPrompts(promptType);
-  const versions = versionsQuery.data ?? [];
+  const versionsData = versionsQuery.data;
+  const versions = Array.isArray(versionsData)
+    ? versionsData
+    : (versionsData && typeof versionsData === 'object' && 'data' in versionsData && Array.isArray((versionsData as { data: unknown }).data))
+    ? (versionsData as { data: AiPrompt[] }).data
+    : [];
   const activePrompt = versions.find((v) => v.isActive);
   const [templateText, setTemplateText] = useState<string>('');
   const [ocrFile, setOcrFile] = useState<File | null>(null);
