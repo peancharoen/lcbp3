@@ -290,12 +290,15 @@ export class AiService {
     if (activeJob) {
       return { success: true, jobId: String(activeJob.id) };
     }
-    const defaultProject = await this.importTransactionRepo.manager.findOne(
-      Project,
-      { where: {} }
-    );
-    const projectPublicId =
-      defaultProject?.publicId ?? '00000000-0000-0000-0000-000000000000';
+    let projectPublicId = dto.payload.contextOverride?.projectPublicId;
+    if (!projectPublicId) {
+      const defaultProject = await this.importTransactionRepo.manager.findOne(
+        Project,
+        { where: {} }
+      );
+      projectPublicId =
+        defaultProject?.publicId ?? '00000000-0000-0000-0000-000000000000';
+    }
     try {
       const job = await this.aiBatchQueue.add(
         'migrate-document',
@@ -309,7 +312,9 @@ export class AiService {
             batchId: dto.payload.batchId,
             existingTags: dto.payload.existingTags,
             systemCategories: dto.payload.systemCategories,
+            contextOverride: dto.payload.contextOverride,
           },
+          batchId: dto.payload.batchId,
           idempotencyKey,
         },
         { jobId: idempotencyKey }

@@ -335,7 +335,7 @@ CREATE TABLE correspondences (
 CREATE TABLE correspondence_recipients (
   correspondence_id INT COMMENT 'ID ของเอกสาร',
   recipient_organization_id INT COMMENT 'ID องค์กรผู้รับ',
-  recipient_type ENUM('TO', 'CC ') COMMENT 'ประเภทผู้รับ (TO หรือ CC)',
+  recipient_type ENUM('TO', 'CC') COMMENT 'ประเภทผู้รับ (TO หรือ CC)',
   PRIMARY KEY (
     correspondence_id,
     recipient_organization_id,

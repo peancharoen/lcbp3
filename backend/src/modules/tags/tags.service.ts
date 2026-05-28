@@ -2,6 +2,7 @@
 // Change Log:
 // - 2026-05-22: เริ่มต้นสร้าง TagsService สำหรับจัดการข้อมูลแท็กและเชื่อมโยงกับเอกสารโต้ตอบตาม ADR-028
 // - 2026-05-22: แก้ไข type compilation error ของ projectId ใน findOne และ find โดยใช้ IsNull()
+// - 2026-05-28: เพิ่ม findOrSuggestTags() คืนค่า isNew flag สำหรับ EC-001 edge case
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -83,6 +84,45 @@ export class TagsService {
         createdBy,
       });
       result.push(tag);
+    }
+    return result;
+  }
+
+  /**
+   * ค้นหาหรือสร้างแท็กจากชื่อหลายๆ ชื่อพร้อมกัน และคืนค่า isNew flag สำหรับแต่ละแท็ก
+   * ใช้ใน EC-001: AI สกัด Tags ออกมาแล้วไม่มีในระบบ จะ suggest เป็น Tag ใหม่ (isNew: true)
+   * @param projectId รหัสโครงการ (null = แท็กทั่วไป)
+   * @param tagNames รายชื่อแท็กที่สกัดจาก AI
+   * @param createdBy รหัสผู้ใช้ที่สร้าง
+   * @returns รายการ { tag, isNew } สำหรับแต่ละแท็กที่ unique
+   */
+  async findOrSuggestTags(
+    projectId: number | null,
+    tagNames: string[],
+    createdBy?: number | null
+  ): Promise<Array<{ tag: Tag; isNew: boolean }>> {
+    const uniqueNames = Array.from(
+      new Set(tagNames.map((name) => this.normalize(name)))
+    ).filter(Boolean);
+    const result: Array<{ tag: Tag; isNew: boolean }> = [];
+    for (const name of uniqueNames) {
+      const normalizedName = this.normalize(name);
+      const existing = await this.tagRepo.findOne({
+        where: {
+          projectId: projectId === null ? IsNull() : projectId,
+          tagName: normalizedName,
+        },
+      });
+      if (existing) {
+        result.push({ tag: existing, isNew: false });
+      } else {
+        const created = await this.create({
+          projectId,
+          tagName: name,
+          createdBy,
+        });
+        result.push({ tag: created, isNew: true });
+      }
     }
     return result;
   }

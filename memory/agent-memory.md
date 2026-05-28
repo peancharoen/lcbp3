@@ -9,6 +9,7 @@
 - 2026-05-25 (Session 6): AI Model Management (ADR-027) — เพิ่มระบบเลือกโมเดล AI แบบไดนามิกผ่าน AI Admin Console: สร้าง `ai_available_models` table + entity, extend `AiSettingsService` ด้วย methods CRUD โมเดล, add REST endpoints, update frontend UI ด้วย Select dropdown และ model list management, update `OllamaService` ใช้ DB-configured model แทน ENV เท่านั้น.
 - 2026-05-25 (Session 7): PaddleOCR Sidecar setup บน Desk-5439 — สร้าง FastAPI sidecar (port 8765) รองรับ `/ocr` + `/normalize`, แก้ AggregateError ใน ocr.service.ts, เพิ่ม path remapping (`OCR_SIDECAR_UPLOAD_BASE`), CIFS volume mount จาก QNAP.
 - 2026-05-26: เพิ่ม system memories ที่หายไป — QNAP SSH Key Authentication, TransformInterceptor double registration, ADR-021 Transmittals/Circulation integration, Correspondence detail fixes, Playwright E2E setup, Tag/Contract UUID fixes.
+- 2026-05-27: Context-Aware Prompts & DB CC Typo Cleanup (ADR-030) — นำเสนอการผูก Master Data เข้ากับ Prompt Extraction, ออกแบบ JSON Context-Aware configuration, อัปเดต Entity/DTOs, ออกแบบ JSON format ผู้รับเป็น Object Array ป้องกันบัค และแก้ whitespace typo 'CC ' ในฐานข้อมูล
 -->
 
 # 🧠 Agent Long-term Project Memory
@@ -218,6 +219,7 @@ QDRANT_URL
 | 2026-05-25 | v1.9.6  | Migration Queue attachment UUID fix — DTO + Service + n8n.workflow.v2.json (Session 3)               | ✅ Complete (tsc verified)  |
 | 2026-05-25 | v1.9.6  | Migration error normalization + `job_id` logging — workflow + backend + SQL/delta (Session 4)        | ✅ Complete                 |
 | 2026-05-25 | v1.9.6  | PaddleOCR Sidecar บน Desk-5439 — FastAPI `/ocr`+`/normalize`, CIFS mount, path remapping (Session 7) | ✅ Running                  |
+| 2026-05-27 | v1.9.7  | Context-Aware Prompt Templates & DB CC Whitespace Cleanup (ADR-030) (Session 9)                      | ✅ Complete (v1.9.7 main)   |
 
 ---
 
@@ -642,6 +644,37 @@ npx playwright show-report             # Generate report
 
 ---
 
+### Session 9 — 2026-05-27 (Context-Aware Prompt Templates & Database Typo CC Cleanup) ← **ล่าสุด**
+
+**Summary:** ดำเนินการอิมพลีเมนต์ ADR-030 (Context-Aware Prompt Templates สำหรับการสกัดข้อมูลเอกสาร) และทำการแก้ไขบัคช่องว่างประเภทผู้รับ `'CC '` ในฐานข้อมูล
+
+**Backend Changes (B1-B6):**
+- **AiPrompt Entity**: เพิ่มการแมปคอลัมน์ `contextConfig` ไปยัง JSON ฟิลด์ `context_config` ในฐานข้อมูลเพื่อควบคุม master data resolution
+- **CreateAiPromptDto / Response DTO**: ปรับแต่งให้รองรับการรับและส่งออกคอลัมน์ `contextConfig`
+- **AiPromptsService**:
+  - อิมพลีเมนต์เมธอด `resolveContext()` สำหรับการดึงข้อมูล Master Data ดำเนินการคัดกรองข้อมูลอ้างอิงโครงการ (Projects, Organizations, Disciplines, CorrespondenceTypes, Tags) สอดคล้องกับ dynamic config filter
+  - ติดตั้ง **Gatekeeper Rule** (ตัวกรองความปลอดภัย) โยน `ForbiddenException` ทันทีเมื่อมีการร้องขอ override project UUID ข้ามอาณาเขตโครงการที่กำหนดใน template เพื่อป้องกัน Cross-project data leak
+- **AiBatchProcessor**:
+  - ปรับปรุงโครงสร้าง `MigrateDocumentMetadata` interface, sandbox extraction, และ migration process ให้ดึงข้อมูลและแมป master data context-aware
+  - สกัดและจำแนกผู้รับเอกสาร (recipients) ภายใต้โครงสร้าง JSON แบบใหม่ในรูป Object Array: `recipients: Array<{ organizationPublicId: string, recipientType: 'TO' | 'CC' }>` เพื่อความเสถียรและทนทานของข้อมูล
+- **Unit Tests**:
+  - เพิ่มชุดการทดสอบ `resolveContext` ใน `ai-prompts.service.spec.ts` ครอบคลุมการจำลอง master data resolution, การโยน `NotFoundException` และการล็อคสิทธิ์ความปลอดภัยด้วย `ForbiddenException` เมื่อ override โครงการข้าม boundary
+  - แก้ไข mock dependencies ของ `AiPromptsService` ใน `ai-batch.processor.spec.ts` ป้องกันปัญหา `TypeError: getActive is not a function` ทำให้ผ่าน unit tests 100%
+
+**Database & Schema Changes (ADR-009):**
+- **schema-02-tables.sql**: แก้ไข line 338 ปรับปรุง `ENUM('TO', 'CC ')` เป็น `ENUM('TO', 'CC')`
+- **SQL Delta**: สร้าง `2026-05-27-add-context-aware-prompts-and-cleanup.sql` ดำเนินการ `UPDATE` ข้อมูลเก่าที่เป็น `'CC '` ให้เป็น `'CC'` เพื่อล้างช่องว่าง จากนั้นสั่ง `ALTER TABLE` ปรับปรุงฟิลด์ enum และ Seed template ภาษาไทยเวอร์ชัน 2
+- **Rollback SQL**: สร้างไฟล์ย้อนกลับ `2026-05-27-add-context-aware-prompts-and-cleanup.rollback.sql` เรียบร้อย
+
+**Frontend Changes:**
+- **detail.tsx**: ตรวจสอบการใช้งาน `normalizeRecipientType` ซึ่งครอบคลุมการล้างช่องว่างและการกรองผู้รับ TO/CC ได้อย่างทนทาน
+
+**Verification:**
+- `pnpm --filter backend build` — ✅ Compile ผ่านแบบ Strict Mode
+- unit tests AI module & backend suites — ✅ ผ่านทั้งหมด 60 suites / 521 tests
+
+---
+
 ## 🎯 10. แผนงานขั้นต่อไป (Next Session Focus)
 
 ### N8N Migration (งานหลักที่เหลือ)
@@ -655,5 +688,6 @@ npx playwright show-report             # Generate report
 ### งานทั่วไป
 
 - [ ] รักษาความเป็นระเบียบและอัปเดต `memory/agent-memory.md` ทุกครั้งที่ Task สำคัญเสร็จ
+- [ ] ดำเนินการรัน SQL delta script ใน MariaDB เมื่อขึ้นสภาพแวดล้อมจริง
 - [ ] เพิ่ม unit test สำหรับ `upsertQueueRecord` ใน `ai-migration-checkpoint.service.spec.ts` (UUID→INT path)
 - [ ] เพิ่ม unit test สำหรับ checksum dedup ใน `file-storage.service.spec.ts`

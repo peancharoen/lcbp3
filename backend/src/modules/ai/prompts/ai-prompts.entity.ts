@@ -2,6 +2,7 @@
 // Change Log
 // - 2026-05-25: Created TypeORM entity for dynamic prompt management (ADR-029)
 // - 2026-05-25: Added definite assignment assertion operator (!) to satisfy strictPropertyInitialization
+// - 2026-05-27: Added publicId column for ADR-019 compliance
 
 import {
   Entity,
@@ -21,6 +22,9 @@ export class AiPrompt {
   @Exclude() // ADR-019: INT PK ไม่ expose ใน API
   id!: number;
 
+  @Column({ type: 'uuid', unique: true })
+  publicId!: string;
+
   @Column({ name: 'prompt_type', length: 50 })
   promptType!: string;
 
@@ -32,6 +36,9 @@ export class AiPrompt {
 
   @Column({ name: 'field_schema', type: 'json', nullable: true })
   fieldSchema!: Record<string, unknown> | null;
+
+  @Column({ name: 'context_config', type: 'json', nullable: true })
+  contextConfig!: Record<string, unknown> | null;
 
   @Column({ name: 'is_active', type: 'tinyint', width: 1, default: 0 })
   isActive!: boolean;

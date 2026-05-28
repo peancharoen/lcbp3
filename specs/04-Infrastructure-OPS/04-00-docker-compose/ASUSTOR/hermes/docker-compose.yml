@@ -1,0 +1,37 @@
+version: "3.8"
+
+x-restart: &restart_policy
+  restart: unless-stopped
+
+x-logging: &default_logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+networks:
+  lcbp3:
+    external: true
+
+name: lcbp3-hermes
+services:
+  hermes-agent:
+    image: np-dms.work/hermes/agent:latest
+    container_name: hermes_agent_lcbp3
+    networks:
+      - lcbp3
+    environment:
+      - DATABASE_HOST=mariadb_container_name # เชื่อมตรงผ่าน Container Name ในเครือข่าย lcbp3
+      - DATABASE_PORT=3306
+      - GITEA_URL=http://gitea_container_name:3000
+      - HERMES_ENV=local_dev
+    # 🧠 คำแนะนำการจำกัด Resource สำหรับ ASUSTOR NAS (ปรับตามสเปกเครื่องของคุณ)
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0" # จำกัดให้ใช้สูงสุดไม่เกิน 2 Cores (ป้องกัน CPU spike 100%)
+          memory: 4096M # จำกัด RAM สูงสุดที่ 4GB (หากรัน Small LLM/Embedding ภายใน)
+        reservations:
+          memory: 2048M # จองสิทธิ์ RAM ขั้นต่ำไว้ที่ 2GB
+    restart: unless-stopped

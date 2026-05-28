@@ -58,6 +58,7 @@ describe('AiService', () => {
 
   const mockQueue = {
     add: jest.fn(),
+    getJob: jest.fn(),
     isPaused: jest.fn().mockResolvedValue(false),
     getActiveCount: jest.fn().mockResolvedValue(1),
     getWaitingCount: jest.fn().mockResolvedValue(2),
@@ -86,6 +87,15 @@ describe('AiService', () => {
   const mockRedis = {
     get: jest.fn(),
     set: jest.fn(),
+  };
+
+  const mockImportTransactionRepo = {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    manager: {
+      findOne: jest.fn(),
+    },
   };
 
   // Mock ConfigService — คืนค่า Config ตาม Key
@@ -144,7 +154,7 @@ describe('AiService', () => {
         },
         {
           provide: getRepositoryToken(ImportTransaction),
-          useValue: { findOne: jest.fn(), create: jest.fn(), save: jest.fn() },
+          useValue: mockImportTransactionRepo,
         },
         { provide: getQueueToken(QUEUE_AI_REALTIME), useValue: mockQueue },
         { provide: getQueueToken(QUEUE_AI_BATCH), useValue: mockQueue },
@@ -161,6 +171,46 @@ describe('AiService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('submitMigrationJob', () => {
+    it('ควรส่ง projectPublicId และ contextOverride จาก n8n เข้า BullMQ โดยไม่ใช้ default project', async () => {
+      mockImportTransactionRepo.findOne.mockResolvedValue(null);
+      mockQueue.getJob.mockResolvedValue(null);
+      mockQueue.add.mockResolvedValue({ id: 'job-001' });
+      const result = await service.submitMigrationJob(
+        {
+          type: 'migrate-document',
+          payload: {
+            tempAttachmentId: '019505a1-7c3e-7000-8000-abc123def456',
+            documentNumber: 'LEGACY-001',
+            title: 'Legacy Title',
+            batchId: 'C22024-MIGRATION',
+            contextOverride: {
+              projectPublicId: '019505a1-7c3e-7000-8000-abc123def777',
+              contractPublicId: '019505a1-7c3e-7000-8000-abc123def888',
+            },
+          },
+        },
+        'C22024-MIGRATION:LEGACY-001'
+      );
+      expect(result).toEqual({ success: true, jobId: 'job-001' });
+      expect(mockImportTransactionRepo.manager.findOne).not.toHaveBeenCalled();
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'migrate-document',
+        expect.objectContaining({
+          projectPublicId: '019505a1-7c3e-7000-8000-abc123def777',
+          batchId: 'C22024-MIGRATION',
+          payload: expect.objectContaining({
+            contextOverride: {
+              projectPublicId: '019505a1-7c3e-7000-8000-abc123def777',
+              contractPublicId: '019505a1-7c3e-7000-8000-abc123def888',
+            },
+          }),
+        }),
+        { jobId: 'C22024-MIGRATION:LEGACY-001' }
+      );
+    });
   });
 
   // --- handleWebhookCallback ---

@@ -2,6 +2,7 @@
 // Change Log
 // - 2026-05-25: Created AiPromptResponseDto to exclude internal INT PK and expose clean API fields (ADR-029)
 // - 2026-05-25: Added definite assignment assertion operator (!) to satisfy strictPropertyInitialization
+// - 2026-05-27: Added publicId field for ADR-019 compliance
 
 import { Expose } from 'class-transformer';
 
@@ -10,6 +11,9 @@ import { Expose } from 'class-transformer';
  * โดยคัดกรองเฉพาะข้อมูลภายนอกและปิดบัง PK ดั้งเดิมตามนโยบายความปลอดภัย
  */
 export class AiPromptResponseDto {
+  @Expose({ name: 'id' })
+  publicId!: string;
+
   @Expose()
   promptType!: string;
 
@@ -24,6 +28,9 @@ export class AiPromptResponseDto {
 
   @Expose()
   testResultJson!: Record<string, unknown> | null;
+
+  @Expose()
+  contextConfig!: Record<string, unknown> | null;
 
   @Expose()
   manualNote!: string | null;

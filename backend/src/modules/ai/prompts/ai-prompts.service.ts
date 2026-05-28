@@ -4,11 +4,12 @@
 // - 2026-05-25: Fixed BusinessException and NotFoundException constructor signatures
 // - 2026-05-25: Cast getRawOne() to resolve TypeScript type assertion error in ESLint
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
+import { randomUUID } from 'crypto';
 import { AiPrompt } from './ai-prompts.entity';
 import { AuditLog } from '../../../common/entities/audit-log.entity';
 import { CreateAiPromptDto } from './dto/create-ai-prompt.dto';
@@ -37,7 +38,220 @@ export class AiPromptsService {
   ) {}
 
   /**
+   * ค้นหาและเตรียมข้อมูล Master Data อ้างอิงโครงการ (Context Resolution)
+   * ดึงโครงการ, องค์กร, สาขางาน, ประเภทเอกสาร, และแท็ก
+   * พร้อมทั้งทำหน้าที่เป็น Gatekeeper ป้องกันความสอดคล้องความปลอดภัย (ADR-030)
+   * @param activePrompt Prompt version ที่ใช้งานอยู่
+   * @param overrideProjectPublicId UUID โครงการสำหรับ override (optional)
+   * @param overrideContractPublicId UUID สัญญาสำหรับ override (optional)
+   * @returns Master data context ที่กรองแล้ว
+   */
+  async resolveContext(
+    activePrompt: AiPrompt,
+    overrideProjectPublicId?: string,
+    overrideContractPublicId?: string
+  ): Promise<Record<string, unknown>> {
+    const config = activePrompt.contextConfig || {};
+    const filter =
+      (config.filter as Record<string, number | string | null | undefined>) ||
+      {};
+    let targetProjectId: number | null = filter.projectId
+      ? Number(filter.projectId)
+      : null;
+    const targetContractId: number | null = filter.contractId
+      ? Number(filter.contractId)
+      : null;
+
+    // 1. Logic ตรวจสอบ Override และทำหน้าที่ Gatekeeper ป้องกัน Cross-project data leak
+    if (overrideProjectPublicId) {
+      // ค้นหาโครงการเป้าหมายตาม UUID สาธารณะ
+      const foundProject = await this.dataSource.manager
+        .createQueryBuilder()
+        .select('p.id', 'id')
+        .from('projects', 'p')
+        .where('p.uuid = :uuid', { uuid: overrideProjectPublicId })
+        .andWhere('p.deleted_at IS NULL')
+        .getRawOne<{ id: number }>();
+
+      if (!foundProject) {
+        throw new NotFoundException('Project', overrideProjectPublicId);
+      }
+
+      const overrideProjectId = Number(foundProject.id);
+
+      // ตรวจสอบความสอดคล้องระดับโครงการ (Gatekeeper Rule)
+      if (targetProjectId !== null && targetProjectId !== overrideProjectId) {
+        throw new ForbiddenException(
+          `Cross-project boundary violation: Template is restricted to project ID ${targetProjectId} but requested override is ${overrideProjectId}`
+        );
+      }
+
+      // หากผ่านการคัดกรอง หรือเป็น Global template ให้ใช้ค่า override project ID นี้
+      targetProjectId = overrideProjectId;
+    }
+
+    let overrideContractProjectId: number | null = null;
+    let overrideContractId: number | null = null;
+    if (overrideContractPublicId) {
+      const foundContract = await this.dataSource.manager
+        .createQueryBuilder()
+        .select(['c.id as id', 'c.project_id as projectId'])
+        .from('contracts', 'c')
+        .where('c.uuid = :uuid', { uuid: overrideContractPublicId })
+        .getRawOne<{ id: number; projectId: number }>();
+
+      if (!foundContract) {
+        throw new NotFoundException('Contract', overrideContractPublicId);
+      }
+
+      overrideContractId = Number(foundContract.id);
+      overrideContractProjectId = Number(foundContract.projectId);
+
+      if (
+        targetContractId !== null &&
+        targetContractId !== overrideContractId
+      ) {
+        throw new ForbiddenException(
+          `Cross-contract boundary violation: Template is restricted to contract ID ${targetContractId} but requested override is ${overrideContractId}`
+        );
+      }
+
+      if (
+        targetProjectId !== null &&
+        overrideContractProjectId !== targetProjectId
+      ) {
+        throw new ForbiddenException(
+          `Cross-project boundary violation: Contract belongs to project ID ${overrideContractProjectId} but requested project is ${targetProjectId}`
+        );
+      }
+    }
+    const targetContractIdResolved =
+      overrideContractId !== null ? overrideContractId : targetContractId;
+    if (targetProjectId === null && overrideContractProjectId !== null) {
+      targetProjectId = overrideContractProjectId;
+    }
+
+    // 2. ดึง Master Data ภายใต้ Project/Contract scope ที่จำกัด
+    const projectsQuery = this.dataSource.manager
+      .createQueryBuilder()
+      .select([
+        'p.project_code as projectCode',
+        'p.uuid as uuid',
+        'p.project_name as projectName',
+      ])
+      .from('projects', 'p')
+      .where('p.deleted_at IS NULL');
+    if (targetProjectId) {
+      projectsQuery.andWhere('p.id = :projectId', {
+        projectId: targetProjectId,
+      });
+    }
+    const projects = await projectsQuery.getRawMany<{
+      projectCode: string;
+      uuid: string;
+      projectName: string;
+    }>();
+
+    const orgsQuery = this.dataSource.manager
+      .createQueryBuilder()
+      .select([
+        'o.organization_code as organizationCode',
+        'o.uuid as uuid',
+        'o.organization_name as organizationName',
+      ])
+      .from('organizations', 'o')
+      .where('o.deleted_at IS NULL');
+    if (targetProjectId) {
+      // ค้นหาองค์กรที่ผูกอยู่ในโครงการนั้นๆ
+      orgsQuery
+        .innerJoin('project_organizations', 'po', 'po.organization_id = o.id')
+        .andWhere('po.project_id = :projectId', { projectId: targetProjectId });
+    }
+    const organizations = await orgsQuery.getRawMany<{
+      organizationCode: string;
+      uuid: string;
+      organizationName: string;
+    }>();
+
+    const disciplinesQuery = this.dataSource.manager
+      .createQueryBuilder()
+      .select([
+        'd.discipline_code as disciplineCode',
+        'd.code_name_th as codeNameTh',
+      ])
+      .from('disciplines', 'd')
+      .where('d.is_active = 1');
+    if (targetContractIdResolved) {
+      disciplinesQuery.andWhere('d.contract_id = :contractId', {
+        contractId: targetContractIdResolved,
+      });
+    } else if (targetProjectId) {
+      // ดึงจากสัญญาทั้งหมดที่อยู่ภายใต้โครงการเป้าหมาย
+      disciplinesQuery
+        .innerJoin('contracts', 'c', 'c.id = d.contract_id')
+        .andWhere('c.project_id = :projectId', { projectId: targetProjectId });
+    }
+    const disciplines = await disciplinesQuery.getRawMany<{
+      disciplineCode: string;
+      codeNameTh: string;
+    }>();
+
+    const correspondenceTypes = await this.dataSource.manager
+      .createQueryBuilder()
+      .select(['t.type_code as typeCode', 't.type_name as typeName'])
+      .from('correspondence_types', 't')
+      .where('t.is_active = 1')
+      .andWhere('t.deleted_at IS NULL')
+      .getRawMany<{ typeCode: string; typeName: string }>();
+
+    const tagsQuery = this.dataSource.manager
+      .createQueryBuilder()
+      .select(['tg.tag_name as tagName', 'tg.color_code as colorCode'])
+      .from('tags', 'tg')
+      .where('tg.deleted_at IS NULL');
+    if (targetProjectId) {
+      tagsQuery.andWhere(
+        '(tg.project_id = :projectId OR tg.project_id IS NULL)',
+        { projectId: targetProjectId }
+      );
+    } else {
+      tagsQuery.andWhere('tg.project_id IS NULL');
+    }
+    const tags = await tagsQuery.getRawMany<{
+      tagName: string;
+      colorCode: string;
+    }>();
+
+    return {
+      availableProjects: projects.map((p) => ({
+        code: p.projectCode,
+        uuid: p.uuid,
+        name: p.projectName,
+      })),
+      availableOrganizations: organizations.map((o) => ({
+        code: o.organizationCode,
+        uuid: o.uuid,
+        name: o.organizationName,
+      })),
+      availableDisciplines: disciplines.map((d) => ({
+        code: d.disciplineCode,
+        name: d.codeNameTh,
+      })),
+      availableCorrespondenceTypes: correspondenceTypes.map((t) => ({
+        code: t.typeCode,
+        name: t.typeName,
+      })),
+      availableTags: tags.map((t) => ({
+        name: tgName(t.tagName),
+        color: t.colorCode,
+      })),
+    };
+  }
+
+  /**
    * ดึงรายการเวอร์ชันทั้งหมดของ prompt_type ที่กำหนด
+   * @param promptType ประเภทของ prompt (เช่น 'ocr_extraction')
+   * @returns รายการ prompt versions เรียงตาม versionNumber ล่าสุดก่อน
    */
   async findAll(promptType: string): Promise<AiPrompt[]> {
     return this.aiPromptRepo.find({
@@ -48,6 +262,8 @@ export class AiPromptsService {
 
   /**
    * ดึง Active prompt จาก Redis cache หรือ DB fallback
+   * @param promptType ประเภทของ prompt
+   * @returns Prompt version ที่เปิดใช้งานอยู่ หรือ null หากไม่พบ
    */
   async getActive(promptType: string): Promise<AiPrompt | null> {
     const cacheKey = `${this.cachePrefix}${promptType}`;
@@ -78,6 +294,10 @@ export class AiPromptsService {
 
   /**
    * ค้นหา prompt ที่มีผลใช้งานจริง และแทนที่ placeholder {{ocr_text}} ด้วยข้อความ OCR
+   * @param promptType ประเภทของ prompt
+   * @param ocrText ข้อความที่สกัดจาก OCR
+   * @returns Prompt ที่แทนที่ placeholder แล้ว พร้อม version number
+   * @throws BusinessException หากไม่พบ active prompt
    */
   async resolveActive(
     promptType: string,
@@ -97,6 +317,11 @@ export class AiPromptsService {
 
   /**
    * สร้าง Prompt Version ใหม่พร้อมการตรวจสอบ placeholder และ character limit
+   * @param promptType ประเภทของ prompt
+   * @param dto ข้อมูล template และ contextConfig
+   * @param userId ID ของผู้สร้าง
+   * @returns Prompt version ที่สร้างใหม่
+   * @throws ValidationException หาก template ไม่มี placeholder หรือเกิน character limit
    */
   async create(
     promptType: string,
@@ -122,9 +347,12 @@ export class AiPromptsService {
       const nextVersion =
         (maxVersionResult?.max ? Number(maxVersionResult.max) : 0) + 1;
       const newPrompt = this.aiPromptRepo.create({
+        publicId: randomUUID(),
         promptType,
         versionNumber: nextVersion,
         template: dto.template,
+        fieldSchema: null,
+        contextConfig: dto.contextConfig || null,
         isActive: false,
         createdBy: userId,
       });
@@ -147,6 +375,11 @@ export class AiPromptsService {
 
   /**
    * เปิดใช้งานเวอร์ชันที่กำหนด และยกเลิกการใช้งานเวอร์ชันอื่นทั้งหมดภายใต้ prompt_type เดียวกัน
+   * @param promptType ประเภทของ prompt
+   * @param versionNumber เลขเวอร์ชันที่ต้องการเปิดใช้งาน
+   * @param userId ID ของผู้ดำเนินการ
+   * @returns Prompt version ที่เปิดใช้งานแล้ว
+   * @throws NotFoundException หากไม่พบ prompt version
    */
   async activate(
     promptType: string,
@@ -202,6 +435,11 @@ export class AiPromptsService {
 
   /**
    * ลบเวอร์ชันที่ไม่ได้ใช้งาน (ห้ามลบเวอร์ชันที่เป็น active)
+   * @param promptType ประเภทของ prompt
+   * @param versionNumber เลขเวอร์ชันที่ต้องการลบ
+   * @param userId ID ของผู้ดำเนินการ
+   * @throws NotFoundException หากไม่พบ prompt version
+   * @throws BusinessException หากพยายามลบ active version
    */
   async delete(
     promptType: string,
@@ -232,6 +470,11 @@ export class AiPromptsService {
 
   /**
    * อัปเดต manual note ของเวอร์ชันที่กำหนด
+   * @param promptType ประเภทของ prompt
+   * @param versionNumber เลขเวอร์ชัน
+   * @param note ข้อความ note หรือ null หากต้องการลบ
+   * @returns Prompt version ที่อัปเดตแล้ว
+   * @throws NotFoundException หากไม่พบ prompt version
    */
   async updateNote(
     promptType: string,
@@ -250,6 +493,9 @@ export class AiPromptsService {
 
   /**
    * บันทึกผลทดสอบของเวอร์ชันหลังจากรัน OCR Sandbox
+   * @param promptType ประเภทของ prompt
+   * @param versionNumber เลขเวอร์ชัน
+   * @param resultJson ผลลัพธ์การทดสอบในรูป JSON
    */
   async saveTestResult(
     promptType: string,
@@ -291,4 +537,9 @@ export class AiPromptsService {
       );
     }
   }
+}
+
+/** Helper function to sanitize tag name */
+function tgName(name: unknown): string {
+  return typeof name === 'string' ? name.trim() : '';
 }

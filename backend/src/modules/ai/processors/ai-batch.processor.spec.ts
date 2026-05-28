@@ -4,6 +4,8 @@
 // - 2026-05-21: เพิ่มการทดสอบ sandbox-extract พร้อม mock OcrService, OllamaService และ Redis (T039).
 // - 2026-05-21: แก้ไข ESLint unexpected any และ unsafe member access โดยกำหนด type ให้ redis เป็น Record<string, jest.Mock>
 // - 2026-05-22: เพิ่ม Mock dependencies (ProjectRepository, AiAuditLogRepository, TagsService, MigrationService) เพื่อแก้ปัญหา Nest resolve dependency ใน unit test และปรับโครงสร้างฟังก์ชันไม่มีบรรทัดว่าง (Zero Blank Lines) ตามกฎเหล็ก
+// - 2026-05-27: เพิ่ม Mock สำหรับ getActive และ resolveContext ของ AiPromptsService เพื่อรองรับ Context-Aware Prompt (T017)
+// - 2026-05-28: เพิ่ม test สำหรับ EC-001 (NEW_TAG_SUGGESTED) และ EC-002 (UNRESOLVED_SENDER/RECIPIENT_UUID)
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -86,12 +88,34 @@ describe('AiBatchProcessor', () => {
       .mockResolvedValue([
         { id: 5, publicId: 'tag-uuid-999', tagName: 'foundation' },
       ]),
+    findOrSuggestTags: jest.fn().mockResolvedValue([
+      {
+        tag: { id: 5, publicId: 'tag-uuid-999', tagName: 'foundation' },
+        isNew: false,
+      },
+    ]),
   };
   const mockMigrationService = {
     createError: jest.fn().mockResolvedValue(undefined),
     enqueueRecord: jest.fn().mockResolvedValue(undefined),
   };
   const mockAiPromptsService = {
+    getActive: jest.fn().mockResolvedValue({
+      id: 1,
+      promptType: 'ocr_extraction',
+      versionNumber: 2,
+      template:
+        'Resolved test prompt with OCR text {{ocr_text}} and context {{master_data_context}}',
+      isActive: true,
+      contextConfig: { filter: {} },
+    }),
+    resolveContext: jest.fn().mockResolvedValue({
+      availableProjects: [],
+      availableOrganizations: [],
+      availableDisciplines: [],
+      availableCorrespondenceTypes: [],
+      availableTags: [],
+    }),
     resolveActive: jest.fn().mockResolvedValue({
       resolvedPrompt: 'Resolved test prompt with OCR text',
       versionNumber: 2,
@@ -203,6 +227,114 @@ describe('AiBatchProcessor', () => {
       expect.stringContaining('completed')
     );
   });
+  it('EC-001: ควรบันทึก aiIssues เมื่อ AI สกัด Tag ใหม่ที่ไม่มีในระบบ', async () => {
+    mockTagsService.findOrSuggestTags.mockResolvedValueOnce([
+      {
+        tag: { id: 5, publicId: 'tag-uuid-999', tagName: 'foundation' },
+        isNew: false,
+      },
+      {
+        tag: { id: 99, publicId: 'tag-uuid-new', tagName: 'newlytag' },
+        isNew: true,
+      },
+    ]);
+    const mockManager = {
+      createQueryBuilder: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getRawOne: jest.fn().mockResolvedValue({ id: 10 }),
+    };
+    jest
+      .spyOn(
+        mockAttachmentRepo as unknown as { manager: unknown },
+        'manager',
+        'get'
+      )
+      .mockReturnValue(mockManager);
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 2,
+      publicId: 'proj-uuid-456',
+    });
+    const job = {
+      id: 'job-ec001',
+      data: {
+        jobType: 'migrate-document',
+        documentPublicId: 'doc-uuid-123',
+        projectPublicId: 'proj-uuid-456',
+        payload: { documentNumber: 'LEGACY-EC001', title: 'EC001 Title' },
+        idempotencyKey: 'idem-ec001',
+        batchId: 'batch-ec001',
+      },
+    } as unknown as Job<AiBatchJobData>;
+    await processor.process(job);
+    expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiIssues: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'NEW_TAG_SUGGESTED',
+            tagName: 'newlytag',
+          }),
+        ]),
+      })
+    );
+  });
+  it('EC-002: ควรตั้ง isValid=false และบันทึก aiIssues เมื่อ UUID ผู้ส่งไม่พบใน Master Data', async () => {
+    mockTagsService.findOrSuggestTags.mockResolvedValueOnce([]);
+    mockOllamaService.generate.mockResolvedValueOnce(
+      JSON.stringify({
+        documentNumber: 'LEGACY-EC002',
+        subject: 'EC002 Subject',
+        discipline: 'Civil',
+        category: 'Correspondence',
+        originatorOrganizationPublicId: 'unknown-org-uuid',
+        confidence: 0.95,
+        tags: [],
+        summary: 'summary',
+      })
+    );
+    const mockManager = {
+      createQueryBuilder: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getRawOne: jest.fn().mockResolvedValue(null),
+    };
+    jest
+      .spyOn(
+        mockAttachmentRepo as unknown as { manager: unknown },
+        'manager',
+        'get'
+      )
+      .mockReturnValue(mockManager);
+    mockProjectRepo.findOne.mockResolvedValue({
+      id: 2,
+      publicId: 'proj-uuid-456',
+    });
+    const job = {
+      id: 'job-ec002',
+      data: {
+        jobType: 'migrate-document',
+        documentPublicId: 'doc-uuid-123',
+        projectPublicId: 'proj-uuid-456',
+        payload: { documentNumber: 'LEGACY-EC002', title: 'EC002 Title' },
+        idempotencyKey: 'idem-ec002',
+        batchId: 'batch-ec002',
+      },
+    } as unknown as Job<AiBatchJobData>;
+    await processor.process(job);
+    expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isValid: false,
+        aiIssues: expect.arrayContaining([
+          expect.objectContaining({
+            type: 'UNRESOLVED_SENDER_UUID',
+            uuid: 'unknown-org-uuid',
+          }),
+        ]),
+      })
+    );
+  });
   it('ควรประมวลผล migrate-document โดยจำลอง OCR, AI และเรียก migrationService.enqueueRecord', async () => {
     const job = {
       id: 'job-migrate',
@@ -215,6 +347,9 @@ describe('AiBatchProcessor', () => {
           title: 'Legacy Title',
           senderOrgId: 1,
           receiverOrgId: 2,
+          contextOverride: {
+            contractPublicId: 'contract-uuid-789',
+          },
         },
         idempotencyKey: 'idem-migrate-123',
         batchId: 'batch-999',
@@ -228,15 +363,20 @@ describe('AiBatchProcessor', () => {
       pdfPath: '/files/test.pdf',
     });
     expect(ollamaService.generate).toHaveBeenCalledTimes(1);
-    expect(mockTagsService.findOrCreateTags).toHaveBeenCalledTimes(1);
+    expect(mockTagsService.findOrSuggestTags).toHaveBeenCalledTimes(1);
     expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
       expect.objectContaining({
-        documentNumber: 'LCBP3-CIV-001',
+        documentNumber: 'LEGACY-001',
         subject: 'Foundation Inspection Report',
         category: 'Correspondence',
         isValid: true,
         confidence: 0.95,
       })
+    );
+    expect(mockAiPromptsService.resolveContext).toHaveBeenCalledWith(
+      expect.anything(),
+      'proj-uuid-456',
+      'contract-uuid-789'
     );
     expect(mockAiAuditLogRepo.create).toHaveBeenCalledTimes(1);
     expect(mockAiAuditLogRepo.save).toHaveBeenCalledTimes(1);

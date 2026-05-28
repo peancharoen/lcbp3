@@ -36,6 +36,21 @@ export class TagOptionDto {
 }
 
 /**
+ * ตัวกรองบริบท Master Data สำหรับ Migration AI โดยใช้ public UUID เท่านั้น
+ */
+export class MigrationContextOverrideDto {
+  @ApiPropertyOptional({ description: 'UUID สาธารณะของโครงการ' })
+  @IsUUID()
+  @IsOptional()
+  projectPublicId?: string;
+
+  @ApiPropertyOptional({ description: 'UUID สาธารณะของสัญญา' })
+  @IsUUID()
+  @IsOptional()
+  contractPublicId?: string;
+}
+
+/**
  * Payload ข้อมูลเอกสารเก่าสำหรับการทำ Migration
  */
 export class MigrateDocumentPayloadDto {
@@ -73,6 +88,16 @@ export class MigrateDocumentPayloadDto {
   @IsString()
   @IsNotEmpty()
   batchId!: string;
+
+  @ApiPropertyOptional({
+    type: MigrationContextOverrideDto,
+    description: 'ตัวกรอง Master Data Context ตาม ADR-030',
+  })
+  @IsObject()
+  @ValidateNested()
+  @Type(() => MigrationContextOverrideDto)
+  @IsOptional()
+  contextOverride?: MigrationContextOverrideDto;
 }
 
 /**
