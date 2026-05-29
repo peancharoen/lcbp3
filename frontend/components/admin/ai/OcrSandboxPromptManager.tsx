@@ -5,6 +5,7 @@
 // - 2026-05-25: Refactored sandbox polling to useSandboxRun hook (Obs #2 fix)
 // - 2026-05-26: เพิ่มการตรวจสอบ versionsQuery.data แบบทนทานเพื่อป้องกัน Error N.find is not a function ในกรณีที่ API ส่งข้อมูลแบบ wrapped object มา
 // - 2026-05-29: เพิ่ม OCR Raw Text section ในผล sandbox
+// - 2026-05-29: ปรับปรุงการโหลด Active Prompt ให้ทนทานต่อ race conditions และรูปแบบประเภทข้อมูลที่ส่งมาจาก API (boolean, number, string)
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -52,8 +53,11 @@ export default function OcrSandboxPromptManager() {
     : (versionsData && typeof versionsData === 'object' && 'data' in versionsData && Array.isArray((versionsData as { data: unknown }).data))
     ? (versionsData as { data: AiPrompt[] }).data
     : [];
-  const activePrompt = versions.find((v) => Boolean(v.isActive));
+  const activePrompt = versions.find(
+    (v) => v.isActive === true || (v.isActive as unknown) === 1 || (v.isActive as unknown) === '1'
+  );
   const [templateText, setTemplateText] = useState<string>('');
+  const [hasLoadedActivePrompt, setHasLoadedActivePrompt] = useState<boolean>(false);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
   const [manualNote, setManualNote] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'editor' | 'sandbox'>('editor');
@@ -64,11 +68,11 @@ export default function OcrSandboxPromptManager() {
       toast.success(t('ai.prompt.sandboxSuccess'));
     });
   useEffect(() => {
-    if (activePrompt && !templateText) {
+    if (activePrompt && !hasLoadedActivePrompt) {
       setTemplateText(activePrompt.template);
+      setHasLoadedActivePrompt(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePrompt]);
+  }, [activePrompt, hasLoadedActivePrompt]);
   const handleSaveVersion = async () => {
     if (!templateText.includes('{{ocr_text}}')) {
       toast.error(t('ai.prompt.placeholderError'));
