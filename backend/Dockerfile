@@ -28,7 +28,7 @@ RUN pnpm install --frozen-lockfile --filter backend...
 # =========================
 FROM node:24-alpine AS build
 
-RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /app
 
@@ -47,6 +47,9 @@ COPY backend/ ./backend/
 RUN cd backend && \
     NODE_OPTIONS="--max-old-space-size=4096" \
     pnpm run build
+
+# ✅ เพิ่มตรงนี้
+RUN test -f /app/backend/dist/main.js || (echo "❌ build failed silently" && exit 1)
 
 # Deploy with production deps only (pnpm workspace isolation)
 RUN PNPM_IGNORE_SCRIPTS=none \
