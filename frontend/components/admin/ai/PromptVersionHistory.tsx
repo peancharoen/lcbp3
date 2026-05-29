@@ -55,12 +55,14 @@ export default function PromptVersionHistory({
             ไม่พบเวอร์ชันอื่นในระบบ
           </div>
         ) : (
-          versions.map((version) => (
+          versions.map((version) => {
+            const isActive = version.isActive === true || (version.isActive as unknown) === 1;
+            return (
             <div
               key={version.versionNumber}
               className={cn(
                 'group relative rounded-lg border border-border/30 bg-background/50 p-3.5 transition-all duration-200 hover:border-primary/30 hover:bg-background/80',
-                version.isActive && 'border-emerald-500/20 bg-emerald-500/[0.02] shadow-[inset_0_1px_3px_rgba(16,185,129,0.03)]'
+                isActive && 'border-emerald-500/20 bg-emerald-500/[0.02] shadow-[inset_0_1px_3px_rgba(16,185,129,0.03)]'
               )}
             >
               <div className="flex items-start justify-between gap-3">
@@ -69,7 +71,7 @@ export default function PromptVersionHistory({
                     <span className="font-mono text-sm font-bold text-foreground">
                       v{version.versionNumber}
                     </span>
-                    {version.isActive ? (
+                    {isActive ? (
                       <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 text-[10px] py-0 px-1.5 flex items-center gap-1 select-none">
                         <CheckCircle2 className="h-3 w-3" />
                         ใช้งานจริง (Active)
@@ -133,7 +135,7 @@ export default function PromptVersionHistory({
                 </div>
               )}
             </div>
-          ))
+          );})
         )}
       </CardContent>
     </Card>

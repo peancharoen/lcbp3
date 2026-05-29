@@ -346,6 +346,8 @@ export class AiBatchProcessor extends WorkerHost {
           requestPublicId: idempotencyKey,
           status: 'completed',
           answer: JSON.stringify(extractedMetadata, null, 2),
+          ocrText: ocrResult.text,
+          ocrUsed: ocrResult.ocrUsed,
           promptVersionUsed: activePrompt.versionNumber,
           completedAt: new Date().toISOString(),
         })

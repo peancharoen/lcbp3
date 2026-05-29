@@ -6,6 +6,7 @@
 // - 2026-05-21: เพิ่ม service method `submitSandboxExtract` สำหรับอัปโหลดไฟล์ใน OCR Sandbox (T043).
 // - 2026-05-25: เพิ่ม methods สำหรับจัดการโมเดล AI แบบไดนามิก (ADR-027).
 // - 2026-05-29: เพิ่ม ocr field ใน AiSystemHealth interface ตาม OcrService.checkHealth()
+// - 2026-05-29: เพิ่ม ocrText, ocrUsed, promptVersionUsed ใน AiSandboxJobResult
 
 import api from '../api/client';
 
@@ -60,6 +61,9 @@ export interface AiSandboxJobResult {
   requestPublicId: string;
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'not_found';
   answer?: string;
+  ocrText?: string;
+  ocrUsed?: boolean;
+  promptVersionUsed?: number;
   citations?: AiRagCitation[];
   confidence?: number;
   usedFallbackModel?: boolean;

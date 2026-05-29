@@ -4,6 +4,7 @@
 // - 2026-05-25: Extracted inline strings to i18n keys via useTranslations() (Obs #1 fix)
 // - 2026-05-25: Refactored sandbox polling to useSandboxRun hook (Obs #2 fix)
 // - 2026-05-26: เพิ่มการตรวจสอบ versionsQuery.data แบบทนทานเพื่อป้องกัน Error N.find is not a function ในกรณีที่ API ส่งข้อมูลแบบ wrapped object มา
+// - 2026-05-29: เพิ่ม OCR Raw Text section ในผล sandbox
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -23,6 +24,7 @@ import {
   ScrollText,
   Loader2,
   StickyNote,
+  ScanText,
 } from 'lucide-react';
 import { useAiPrompts, useSandboxRun } from '@/hooks/use-ai-prompts';
 import { useTranslations } from '@/hooks/use-translations';
@@ -50,7 +52,7 @@ export default function OcrSandboxPromptManager() {
     : (versionsData && typeof versionsData === 'object' && 'data' in versionsData && Array.isArray((versionsData as { data: unknown }).data))
     ? (versionsData as { data: AiPrompt[] }).data
     : [];
-  const activePrompt = versions.find((v) => v.isActive);
+  const activePrompt = versions.find((v) => Boolean(v.isActive));
   const [templateText, setTemplateText] = useState<string>('');
   const [ocrFile, setOcrFile] = useState<File | null>(null);
   const [manualNote, setManualNote] = useState<string>('');
@@ -333,6 +335,24 @@ export default function OcrSandboxPromptManager() {
             )}
             {sandboxState.result && sandboxState.result.status === 'completed' && (
               <div className="space-y-6">
+                <Card className="border border-blue-500/20 bg-background/50 backdrop-blur-md">
+                  <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
+                    <CardTitle className="text-base text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                      <ScanText className="h-4 w-4" />
+                      OCR Raw Text
+                    </CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      {sandboxState.result.ocrUsed ? 'PaddleOCR' : 'Fast Path (Text Layer)'}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[200px] border border-border/10">
+                      <pre className="text-blue-600 dark:text-blue-400 select-text leading-relaxed whitespace-pre-wrap">
+                        {sandboxState.result.ocrText || '(ไม่มีข้อความ)'}
+                      </pre>
+                    </div>
+                  </CardContent>
+                </Card>
                 <Card className="border border-emerald-500/20 bg-background/50 backdrop-blur-md">
                   <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
