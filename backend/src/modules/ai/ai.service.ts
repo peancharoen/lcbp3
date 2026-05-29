@@ -3,6 +3,7 @@
 // Change Log
 // - 2026-05-21: เพิ่ม getSystemHealth พร้อมระบบแคช Redis 30 วินาทีตาม ADR-027.
 // - 2026-05-21: แก้ไข ESLint unsafe return error ใน getSystemHealth โดยใช้ interface SystemHealthResponse
+// - 2026-05-29: เพิ่ม OcrService.checkHealth() เข้า getSystemHealth() เพื่อแสดงสถานะ OCR sidecar
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -45,6 +46,7 @@ import { AiBatchJobData } from './processors/ai-batch.processor';
 import { AuditLog } from '../../common/entities/audit-log.entity';
 import { OllamaService } from './services/ollama.service';
 import { AiQdrantService } from './qdrant.service';
+import { OcrService, OcrHealthResult } from './services/ocr.service';
 
 // ผลลัพธ์ของ Real-time Extraction
 export interface ExtractionResult {
@@ -120,6 +122,7 @@ export interface SystemHealthResponse {
     collections?: string[];
     error?: string;
   };
+  ocr: OcrHealthResult;
   queues: {
     realtime:
       | {
@@ -175,6 +178,8 @@ export class AiService {
     private readonly ollamaService?: OllamaService,
     @Optional()
     private readonly qdrantService?: AiQdrantService,
+    @Optional()
+    private readonly ocrService?: OcrService,
     @Optional()
     @InjectRedis()
     private readonly redis?: Redis
@@ -816,7 +821,7 @@ export class AiService {
         );
       }
     }
-    const [ollama, qdrant, realtimeQueueMetrics, batchQueueMetrics] =
+    const [ollama, qdrant, ocr, realtimeQueueMetrics, batchQueueMetrics] =
       await Promise.all([
         this.ollamaService
           ? this.ollamaService.checkHealth()
@@ -833,12 +838,21 @@ export class AiService {
               latencyMs: 0,
               error: 'AiQdrantService not injected',
             }),
+        this.ocrService
+          ? this.ocrService.checkHealth()
+          : Promise.resolve({
+              status: 'DOWN' as const,
+              latencyMs: 0,
+              url: 'not configured',
+              error: 'OcrService not injected',
+            }),
         this.getQueueMetrics(this.aiRealtimeQueue),
         this.getQueueMetrics(this.aiBatchQueue),
       ]);
     const health = {
       ollama,
       qdrant,
+      ocr,
       queues: {
         realtime: realtimeQueueMetrics,
         batch: batchQueueMetrics,

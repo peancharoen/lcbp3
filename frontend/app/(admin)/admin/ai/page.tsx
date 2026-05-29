@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Brain, Loader2, Power, ShieldCheck, Cpu, Database, Activity, Search, Info, HelpCircle, AlertCircle, Settings2, Trash2 } from 'lucide-react';
+import { Brain, Loader2, Power, ShieldCheck, Cpu, Database, Activity, Search, Info, HelpCircle, AlertCircle, Settings2, Trash2, ScanText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -265,6 +265,28 @@ export default function AiAdminConsolePage() {
                 </div>
                 {health?.qdrant?.error && (
                   <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.qdrant.error}</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <ScanText className="h-4 w-4 text-primary" />
+                  PaddleOCR Sidecar
+                </CardTitle>
+                {isHealthLoading ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> : renderStatusBadge(health?.ocr?.status)}
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>ความเร็วตอบสนอง</span>
+                  <span className="font-semibold text-foreground">{health?.ocr?.latencyMs !== undefined ? `${health.ocr.latencyMs} ms` : '-'}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>URL</span>
+                  <span className="font-mono text-[10px] text-foreground truncate max-w-[160px]">{health?.ocr?.url ?? '-'}</span>
+                </div>
+                {health?.ocr?.error && (
+                  <p className="mt-1 text-[10px] text-destructive line-clamp-2">{health.ocr.error}</p>
                 )}
               </CardContent>
             </Card>

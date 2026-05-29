@@ -5,6 +5,7 @@
 // - 2026-05-21: เพิ่ม API service สำหรับ Superadmin Sandbox RAG (T037).
 // - 2026-05-21: เพิ่ม service method `submitSandboxExtract` สำหรับอัปโหลดไฟล์ใน OCR Sandbox (T043).
 // - 2026-05-25: เพิ่ม methods สำหรับจัดการโมเดล AI แบบไดนามิก (ADR-027).
+// - 2026-05-29: เพิ่ม ocr field ใน AiSystemHealth interface ตาม OcrService.checkHealth()
 
 import api from '../api/client';
 
@@ -32,6 +33,12 @@ export interface AiSystemHealth {
     status: 'HEALTHY' | 'DEGRADED' | 'DOWN';
     latencyMs: number;
     collections?: string[];
+    error?: string;
+  };
+  ocr: {
+    status: 'HEALTHY' | 'DOWN';
+    latencyMs: number;
+    url: string;
     error?: string;
   };
   queues: {

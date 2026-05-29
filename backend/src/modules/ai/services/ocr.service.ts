@@ -3,6 +3,7 @@
 // - 2026-05-15: เพิ่ม OCR auto-detection service สำหรับ ADR-023A.
 // - 2026-05-25: แก้ไข AggregateError (empty message) จาก axios โดย wrap เป็น Error พร้อม context ที่ชัดเจน.
 // - 2026-05-25: เพิ่ม path remapping (OCR_UPLOAD_BASE_PATH) เพื่อแปลง local upload path เป็น path ที่ sidecar เห็นผ่าน CIFS.
+// - 2026-05-29: เพิ่ม checkHealth() เพื่อตรวจสอบสุขภาพของ PaddleOCR sidecar สำหรับ getSystemHealth() (ADR-027)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -21,6 +22,13 @@ export interface OcrDetectionResult {
 
 interface PaddleOcrResponse {
   text?: string;
+}
+
+export interface OcrHealthResult {
+  status: 'HEALTHY' | 'DOWN';
+  latencyMs: number;
+  url: string;
+  error?: string;
 }
 
 /** บริการเลือก fast path หรือ PaddleOCR sidecar ตามจำนวนตัวอักษรที่ extract ได้ */
@@ -54,6 +62,28 @@ export class OcrService {
       return localPath.replace(this.localUploadBase, this.sidecarUploadBase);
     }
     return localPath;
+  }
+
+  /** ตรวจสอบสุขภาพและ latency ของ PaddleOCR sidecar ผ่าน GET /health */
+  async checkHealth(): Promise<OcrHealthResult> {
+    const startTime = Date.now();
+    try {
+      await axios.get(`${this.ocrApiUrl}/health`, { timeout: 5000 });
+      return {
+        status: 'HEALTHY',
+        latencyMs: Date.now() - startTime,
+        url: this.ocrApiUrl,
+      };
+    } catch (err: unknown) {
+      const cause = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`OCR sidecar health check failed: ${cause}`);
+      return {
+        status: 'DOWN',
+        latencyMs: Date.now() - startTime,
+        url: this.ocrApiUrl,
+        error: cause,
+      };
+    }
   }
 
   /** ตรวจสอบ text layer ก่อนเลือก OCR slow path */

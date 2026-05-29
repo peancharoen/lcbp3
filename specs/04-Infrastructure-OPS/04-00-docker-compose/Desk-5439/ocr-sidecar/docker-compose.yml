@@ -8,7 +8,7 @@
 #   docker compose up -d --build
 #
 # ทดสอบ:
-#   curl http://localhost:8765/health
+#   curl http://192.168.10.100:8765/health
 
 name: lcbp3-ocr
 
