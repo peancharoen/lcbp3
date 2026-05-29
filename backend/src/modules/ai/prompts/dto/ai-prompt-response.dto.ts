@@ -11,7 +11,7 @@ import { Expose } from 'class-transformer';
  * โดยคัดกรองเฉพาะข้อมูลภายนอกและปิดบัง PK ดั้งเดิมตามนโยบายความปลอดภัย
  */
 export class AiPromptResponseDto {
-  @Expose({ name: 'id' })
+  @Expose()
   publicId!: string;
 
   @Expose()
