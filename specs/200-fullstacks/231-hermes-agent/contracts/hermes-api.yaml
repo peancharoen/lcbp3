@@ -1,0 +1,339 @@
+openapi: 3.0.3
+info:
+  title: Hermes Agent API
+  description: |
+    Hermes Agent — Autonomous Dev Orchestrator & Telegram DevOps Bridge
+    Feature: 231-hermes-agent | ADR-031 v2.0
+
+    IMPORTANT:
+    - All endpoints are LAN/VPN-only (never public internet)
+    - Telegram webhook endpoint is the only exception (via reverse proxy with TLS)
+    - Authentication: X-API-Key header for all non-webhook endpoints
+    - All responses include transactionId for traceability
+  version: 1.0.0
+  contact:
+    name: NAP-DMS Architecture Team
+
+servers:
+  - url: http://{ASUSTOR_IP}:8080/api/v1
+    description: Hermes Agent API (LAN/VPN only)
+    variables:
+      ASUSTOR_IP:
+        default: "192.168.10.X"
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: HERMES_PROXY_API_KEY — stored in ASUSTOR secret store
+
+  schemas:
+    TransactionId:
+      type: string
+      format: uuid
+      description: UUIDv7 transaction identifier (ADR-019)
+      example: "019505a1-7c3e-7000-8000-abc123def456"
+
+    HermesStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [HEALTHY, DEGRADED, DOWN]
+        version:
+          type: string
+        uptime:
+          type: number
+        queues:
+          type: object
+          properties:
+            notification:
+              type: object
+              properties:
+                waiting: { type: number }
+                active: { type: number }
+                failed: { type: number }
+            orchestration:
+              type: object
+              properties:
+                waiting: { type: number }
+                active: { type: number }
+                failed: { type: number }
+        soulMdLastEntry:
+          type: string
+          description: ISO datetime of last SOUL.md session entry
+        timestamp:
+          type: string
+          format: date-time
+
+    OperationsLogEntry:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/TransactionId'
+        operatorIdentity:
+          type: string
+        commandType:
+          type: string
+          enum: [TELEGRAM_INBOUND, TELEGRAM_OUTBOUND, ORCHESTRATION_TASK, GIT_WRITE, PROXY_REQUEST]
+        targetSystem:
+          type: string
+        commandSummary:
+          type: string
+          description: Redacted command description
+        status:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED, FAILED, REJECTED]
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorClassification:
+          type: string
+          nullable: true
+
+    OrchestrationTaskRequest:
+      type: object
+      required: [description, taskType, telegramChatId]
+      properties:
+        description:
+          type: string
+          description: Coding task description (no production data)
+        taskType:
+          type: string
+          enum: [DEVOPS, DMS_FEATURE, SCHEMA_DB, BUG_FIX]
+        telegramChatId:
+          type: string
+          description: Chat ID for progress/result notifications
+
+    OrchestrationTaskResponse:
+      type: object
+      properties:
+        taskId:
+          $ref: '#/components/schemas/TransactionId'
+        status:
+          type: string
+          enum: [QUEUED, CONTEXT_LOADING, SUB_AGENT_DELEGATED, SELF_CORRECTION, PR_CREATED, DONE, ESCALATED, FAILED]
+        prUrl:
+          type: string
+          nullable: true
+          description: Gitea PR URL (populated when status=PR_CREATED or DONE)
+        branchName:
+          type: string
+          nullable: true
+
+    TelegramWebhookPayload:
+      type: object
+      properties:
+        message:
+          type: object
+          properties:
+            from:
+              type: object
+              properties:
+                id: { type: integer }
+                username: { type: string }
+            text: { type: string }
+            chat:
+              type: object
+              properties:
+                id: { type: integer }
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        transactionId:
+          $ref: '#/components/schemas/TransactionId'
+
+paths:
+  /health:
+    get:
+      summary: Hermes health check
+      description: Returns current health status of Hermes Agent and its subsystems
+      security: []
+      operationId: getHealth
+      tags: [System]
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HermesStatus'
+
+  /telegram/webhook:
+    post:
+      summary: Telegram webhook inbound handler
+      description: |
+        Receives Telegram Bot webhook updates.
+        MUST be behind reverse proxy with TLS.
+        MUST verify X-Telegram-Bot-Api-Secret-Token header.
+        DevOps commands only — no DMS document operations.
+      security: []
+      operationId: handleTelegramWebhook
+      tags: [Telegram]
+      parameters:
+        - name: X-Telegram-Bot-Api-Secret-Token
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Telegram webhook secret for request verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelegramWebhookPayload'
+      responses:
+        '200':
+          description: Webhook processed (command dispatched or acknowledged)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionId:
+                    $ref: '#/components/schemas/TransactionId'
+                  status:
+                    type: string
+                    enum: [DISPATCHED, REJECTED, ACKNOWLEDGED]
+        '401':
+          description: Invalid webhook secret token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orchestration/tasks:
+    post:
+      summary: Submit autonomous coding task
+      description: |
+        Submit a coding task for Hermes to orchestrate via sub-agents.
+        NEVER include production document content, DB query results, or secrets in task description.
+      operationId: submitOrchestrationTask
+      tags: [Orchestration]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrchestrationTaskRequest'
+      responses:
+        '202':
+          description: Task queued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationTaskResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orchestration/tasks/{taskId}:
+    get:
+      summary: Get orchestration task status
+      operationId: getOrchestrationTask
+      tags: [Orchestration]
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/TransactionId'
+      responses:
+        '200':
+          description: Task status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationTaskResponse'
+        '404':
+          description: Task not found
+
+  /operations/logs:
+    get:
+      summary: Query Hermes operations log
+      description: Returns paginated DevOps operations log entries. Admin only.
+      operationId: getOperationsLog
+      tags: [Operations]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, IN_PROGRESS, COMPLETED, FAILED, REJECTED]
+        - name: commandType
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Operations log entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OperationsLogEntry'
+                  total:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /operations/logs/{transactionId}:
+    get:
+      summary: Get specific operation by transactionId
+      description: Used by Telegram /status command to track DevOps transactions
+      operationId: getOperationByTransactionId
+      tags: [Operations]
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/TransactionId'
+      responses:
+        '200':
+          description: Operation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationsLogEntry'
+        '404':
+          description: Transaction not found
