@@ -33,6 +33,48 @@ import PromptVersionHistory from './PromptVersionHistory';
 import { cn } from '@/lib/utils';
 import { AiPrompt } from '@/types/ai-prompts';
 
+const DEFAULT_OCR_TEMPLATE = `คุณคือเอนจิ้นสกัดข้อมูลอัจฉริยะ (Document Intelligence Engine)
+วิเคราะห์ข้อความ OCR ที่ได้รับจากเอกสารของโครงการ Laem Chabang Port Phase 3 และสกัดข้อมูลเมตาดาต้าให้ออกมาเป็น JSON object ที่ถูกต้องตามโครงสร้างที่กำหนด
+
+ข้อความ OCR ที่สกัดได้:
+{{ocr_text}}
+
+ข้อมูลอ้างอิงของระบบ (Master Data Context):
+{{master_data_context}}
+
+กฎการสกัดข้อมูล:
+1. วิเคราะห์และจับคู่ข้อมูลจากข้อความ OCR กับข้อมูลอ้างอิงที่ระบุใน Master Data Context เสมอ
+2. สำหรับโครงการ (project) ให้ค้นหาและสกัดส่งกลับเป็น UUID ของโครงการ (projectPublicId)
+3. สำหรับประเภทเอกสารโต้ตอบ (correspondence type) ให้สกัดรหัสส่งกลับมา (correspondenceTypeCode) เช่น RFA, Transmittal
+4. สำหรับสาขางาน (discipline) ให้ส่งคืนรหัสส่งกลับมา (disciplineCode) เช่น GEN, STR
+5. สำหรับหน่วยงานผู้ส่ง (originator) ค้นหาจาก availableOrganizations และส่งกลับมาเป็น UUID (originatorOrganizationPublicId)
+6. สำหรับหน่วยงานผู้รับ (recipients) ให้ส่งกลับมาเป็นรายการ Array ของออบเจกต์ ซึ่งมี UUID ขององค์กร (organizationPublicId) และประเภทผู้รับ (recipientType: "TO" หรือ "CC") เสมอ
+7. สำหรับหัวข้อเอกสาร (subject) ให้สกัดหัวข้อหรือชื่อเรื่องของเอกสารภาษาไทยหรือภาษาอังกฤษ
+8. วันที่ของเอกสาร (documentDate) ให้ส่งคืนในรูปแบบ YYYY-MM-DD
+9. รายการแท็ก (tags) สกัดคำสำคัญหรือคำแนะนำ Tags (สอดคล้องกับ availableTags หากมี)
+10. สรุปความเนื้อหา (summary) เขียนสรุปรายละเอียดเอกสารสั้นกระชับ 4-5 ประโยคเป็นภาษาไทยอย่างสละสลวย
+11. confidence: ค่าความมั่นใจในการสกัดข้อมูลนี้ (ทศนิยมระหว่าง 0.0 ถึง 1.0)
+
+ส่งคืนคำตอบเฉพาะ JSON Object ที่ถูกต้องเท่านั้น ห้ามใส่บล็อกโค้ด markdown หรือคำอธิบายเพิ่มเติมใดๆ
+โครงสร้าง JSON ผลลัพธ์:
+{
+  "projectPublicId": "string หรือ null",
+  "correspondenceTypeCode": "string หรือ null",
+  "disciplineCode": "string หรือ null",
+  "originatorOrganizationPublicId": "string หรือ null",
+  "recipients": [
+    {
+      "organizationPublicId": "string",
+      "recipientType": "TO หรือ CC"
+    }
+  ],
+  "subject": "string หรือ null",
+  "documentDate": "string:YYYY-MM-DD หรือ null",
+  "tags": ["string"],
+  "summary": "string หรือ null",
+  "confidence": 0.95
+}`;
+
 /**
  * Component หลักสำหรับจัดการ Prompt versions ของ OCR sandbox และ Migration
  * ประกอบไปด้วยตัวแก้ไข Prompt, รายการเวอร์ชัน, และส่วนสกัดทดสอบ (Sandbox run)
@@ -55,7 +97,7 @@ export default function OcrSandboxPromptManager() {
     : [];
   const activePrompt = versions.find(
     (v) => v.isActive === true || (v.isActive as unknown) === 1 || (v.isActive as unknown) === '1'
-  );
+  ) || versions[0];
   const [templateText, setTemplateText] = useState<string>('');
   const [hasLoadedActivePrompt, setHasLoadedActivePrompt] = useState<boolean>(false);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
@@ -68,11 +110,16 @@ export default function OcrSandboxPromptManager() {
       toast.success(t('ai.prompt.sandboxSuccess'));
     });
   useEffect(() => {
-    if (activePrompt && !hasLoadedActivePrompt) {
-      setTemplateText(activePrompt.template);
-      setHasLoadedActivePrompt(true);
+    if (versionsQuery.isSuccess) {
+      if (activePrompt && !hasLoadedActivePrompt) {
+        setTemplateText(activePrompt.template);
+        setHasLoadedActivePrompt(true);
+      } else if (versions.length === 0 && !hasLoadedActivePrompt) {
+        setTemplateText(DEFAULT_OCR_TEMPLATE);
+        setHasLoadedActivePrompt(true);
+      }
     }
-  }, [activePrompt, hasLoadedActivePrompt]);
+  }, [activePrompt, versions.length, versionsQuery.isSuccess, hasLoadedActivePrompt]);
   const handleSaveVersion = async () => {
     if (!templateText.includes('{{ocr_text}}')) {
       toast.error(t('ai.prompt.placeholderError'));
