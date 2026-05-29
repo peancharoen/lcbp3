@@ -6,6 +6,7 @@
 // - 2026-05-22: เพิ่ม Mock dependencies (ProjectRepository, AiAuditLogRepository, TagsService, MigrationService) เพื่อแก้ปัญหา Nest resolve dependency ใน unit test และปรับโครงสร้างฟังก์ชันไม่มีบรรทัดว่าง (Zero Blank Lines) ตามกฎเหล็ก
 // - 2026-05-27: เพิ่ม Mock สำหรับ getActive และ resolveContext ของ AiPromptsService เพื่อรองรับ Context-Aware Prompt (T017)
 // - 2026-05-28: เพิ่ม test สำหรับ EC-001 (NEW_TAG_SUGGESTED) และ EC-002 (UNRESOLVED_SENDER/RECIPIENT_UUID)
+// - 2026-05-29: แก้ไข mockAttachmentRepo เพิ่ม property manager เพื่อรองรับ jest.spyOn ใน EC-001, EC-002, และ migrate-document tests
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -71,6 +72,7 @@ describe('AiBatchProcessor', () => {
       uploadedByUserId: 10,
     }),
     update: jest.fn().mockResolvedValue({ affected: 1 }),
+    manager: {},
   };
   const mockProjectRepo = {
     findOne: jest.fn().mockResolvedValue({
@@ -245,13 +247,8 @@ describe('AiBatchProcessor', () => {
       where: jest.fn().mockReturnThis(),
       getRawOne: jest.fn().mockResolvedValue({ id: 10 }),
     };
-    jest
-      .spyOn(
-        mockAttachmentRepo as unknown as { manager: unknown },
-        'manager',
-        'get'
-      )
-      .mockReturnValue(mockManager);
+    (mockAttachmentRepo as unknown as { manager: unknown }).manager =
+      mockManager;
     mockProjectRepo.findOne.mockResolvedValue({
       id: 2,
       publicId: 'proj-uuid-456',
@@ -300,13 +297,8 @@ describe('AiBatchProcessor', () => {
       where: jest.fn().mockReturnThis(),
       getRawOne: jest.fn().mockResolvedValue(null),
     };
-    jest
-      .spyOn(
-        mockAttachmentRepo as unknown as { manager: unknown },
-        'manager',
-        'get'
-      )
-      .mockReturnValue(mockManager);
+    (mockAttachmentRepo as unknown as { manager: unknown }).manager =
+      mockManager;
     mockProjectRepo.findOne.mockResolvedValue({
       id: 2,
       publicId: 'proj-uuid-456',
@@ -336,6 +328,15 @@ describe('AiBatchProcessor', () => {
     );
   });
   it('ควรประมวลผล migrate-document โดยจำลอง OCR, AI และเรียก migrationService.enqueueRecord', async () => {
+    const mockManager = {
+      createQueryBuilder: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getRawOne: jest.fn().mockResolvedValue({ id: 10 }),
+    };
+    (mockAttachmentRepo as unknown as { manager: unknown }).manager =
+      mockManager;
     const job = {
       id: 'job-migrate',
       data: {
