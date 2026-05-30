@@ -6,6 +6,7 @@
 # - 2026-05-30: เพิ่ม OCR_LANG=tha+eng (Tesseract Thai + English)
 # - 2026-05-30: เพิ่ม Typhoon OCR environment variables (T009b, ADR-032)
 #              OLLAMA_API_URL ชี้ไปที่ http://192.168.10.100:11434 (Admin Desktop LAN IP)
+# - 2026-05-30: Revert volumes กลับไปใช้ Windows Z: drive bind mount (แทน CIFS volume driver ที่พัง)
 #
 # วิธีรัน:
 #   docker compose up -d --build
@@ -37,8 +38,8 @@ services:
       # Timeout 120 วินาที/หน้า (budget สำหรับ 3B model บน RTX 2060 Super)
       TYPHOON_OCR_TIMEOUT: "120"
     volumes:
-      # Uploads จาก QNAP NAS ผ่าน CIFS (SMB) volume — Docker mount โดยตรง
-      - qnap_uploads:/mnt/uploads:ro
+      # Uploads จาก QNAP NAS ผ่าน Windows mapped drive Z:
+      - z:/data/uploads:/mnt/uploads:ro
     logging:
       driver: "json-file"
       options:
@@ -51,10 +52,3 @@ services:
       retries: 3
       start_period: 60s
 
-volumes:
-  qnap_uploads:
-    driver: local
-    driver_opts:
-      type: cifs
-      o: "username=${QNAP_USER},password=${QNAP_PASS},vers=3.0,uid=0,gid=0"
-      device: "//192.168.10.8/np-dms-as/data/uploads"

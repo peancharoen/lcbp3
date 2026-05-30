@@ -47,7 +47,6 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create SQL delta to extend ai_audit_logs table with modelType, vramUsageMB, cacheHit fields in specs/03-Data-and-Storage/deltas/2026-05-30-extend-ai-audit-logs.sql
 - [x] T004 Create SQL delta to extend ai_audit_logs table with modelType, vramUsageMB, cacheHit fields in specs/03-Data-and-Storage/deltas/2026-05-30-extend-ai-audit-logs.sql
 - [x] T005 Add Typhoon OCR prompt template to ai_prompts table via SQL delta in specs/03-Data-and-Storage/deltas/2026-05-30-add-typhoon-ocr-prompt.sql
 - [x] T006 [P] Implement VRAMMonitorService in backend/src/modules/ai/services/vram-monitor.service.ts to track GPU VRAM usage via Ollama API
