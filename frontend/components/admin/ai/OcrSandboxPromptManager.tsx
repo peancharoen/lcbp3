@@ -99,7 +99,7 @@ export default function OcrSandboxPromptManager() {
     (v) => v.isActive === true || (v.isActive as unknown) === 1 || (v.isActive as unknown) === '1'
   ) || versions[0];
   const [templateText, setTemplateText] = useState<string>('');
-  const [hasLoadedActivePrompt, setHasLoadedActivePrompt] = useState<boolean>(false);
+  const [loadedPromptKey, setLoadedPromptKey] = useState<string | null>(null);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
   const [manualNote, setManualNote] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'editor' | 'sandbox'>('editor');
@@ -110,16 +110,20 @@ export default function OcrSandboxPromptManager() {
       toast.success(t('ai.prompt.sandboxSuccess'));
     });
   useEffect(() => {
-    if (versionsQuery.isSuccess) {
-      if (activePrompt && !hasLoadedActivePrompt) {
+    if (!versionsQuery.isSuccess) return;
+    if (activePrompt) {
+      const promptKey = `${activePrompt.promptType}:${activePrompt.versionNumber}`;
+      if (loadedPromptKey !== promptKey) {
         setTemplateText(activePrompt.template);
-        setHasLoadedActivePrompt(true);
-      } else if (versions.length === 0 && !hasLoadedActivePrompt) {
-        setTemplateText(DEFAULT_OCR_TEMPLATE);
-        setHasLoadedActivePrompt(true);
+        setLoadedPromptKey(promptKey);
       }
+      return;
     }
-  }, [activePrompt, versions.length, versionsQuery.isSuccess, hasLoadedActivePrompt]);
+    if (versions.length === 0 && loadedPromptKey === null) {
+      setTemplateText(DEFAULT_OCR_TEMPLATE);
+      setLoadedPromptKey('default');
+    }
+  }, [activePrompt, versions.length, versionsQuery.isSuccess, loadedPromptKey]);
   const handleSaveVersion = async () => {
     if (!templateText.includes('{{ocr_text}}')) {
       toast.error(t('ai.prompt.placeholderError'));

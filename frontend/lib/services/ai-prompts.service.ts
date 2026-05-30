@@ -7,10 +7,13 @@ import api from '../api/client';
 import { AiPrompt } from '../../types/ai-prompts';
 
 const extractData = <T>(value: unknown): T => {
-  if (value && typeof value === 'object' && 'data' in value) {
-    return (value as { data: T }).data;
+  let current: unknown = value;
+  let depth = 0;
+  while (current && typeof current === 'object' && 'data' in current && depth < 5) {
+    current = (current as { data: unknown }).data;
+    depth += 1;
   }
-  return value as T;
+  return current as T;
 };
 
 /**
@@ -18,9 +21,6 @@ const extractData = <T>(value: unknown): T => {
  */
 const unwrapResponse = <T>(value: unknown): T => {
   const extracted = extractData<T>(value);
-  if (extracted && typeof extracted === 'object' && 'data' in extracted) {
-    return (extracted as { data: T }).data;
-  }
   return extracted;
 };
 
