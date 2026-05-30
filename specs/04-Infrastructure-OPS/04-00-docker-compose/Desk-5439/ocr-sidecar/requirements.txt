@@ -1,5 +1,9 @@
+# PaddleOCR Sidecar Requirements
+# Change Log:
+# - 2026-05-30: ลด paddlepaddle จาก 2.6.2 เป็น 2.5.2 เพื่อแก้ SIGILL (Illegal Instruction) บน CPU ที่ไม่รองรับ AVX
+
 numpy<2.0
-paddlepaddle==2.6.2
+paddlepaddle==2.5.2
 paddleocr==2.7.3
 PyMuPDF==1.24.0
 pytesseract==0.3.13
