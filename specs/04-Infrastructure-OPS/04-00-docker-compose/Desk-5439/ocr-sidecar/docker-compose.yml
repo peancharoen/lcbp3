@@ -3,6 +3,7 @@
 # Change Log:
 # - 2026-05-25: Initial compose file สำหรับ PaddleOCR HTTP sidecar
 # - 2026-05-25: แก้ volumes ให้ถูกต้องสำหรับ Windows + Docker Desktop
+# - 2026-05-30: เพิ่ม OCR_LANG=ch (CTJK) เพื่อรองรับภาษาไทย
 #
 # วิธีรัน:
 #   docker compose up -d --build
@@ -25,6 +26,7 @@ services:
       OCR_CHAR_THRESHOLD: "100"
       OCR_PORT: "8765"
       OCR_MAX_PAGES: "0"
+      OCR_LANG: "ch"  # ch = CTJK (รองรับภาษาไทย), en = English
       # ตั้ง USE_GPU=true เพื่อใช้ RTX 2060 Super (ต้องติดตั้ง nvidia-container-toolkit)
       USE_GPU: "false"
     volumes:

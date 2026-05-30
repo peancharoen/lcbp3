@@ -3,6 +3,7 @@
 # ตาม ADR-023A: OCR auto-detect (PyMuPDF chars > 100 → Fast path, else PaddleOCR)
 # Change Log:
 # - 2026-05-25: Initial FastAPI server สำหรับ PaddleOCR sidecar
+# - 2026-05-30: เปลี่ยน lang='en' เป็น lang='ch' (CTJK) เพื่อรองรับภาษาไทย
 
 import os
 import logging
@@ -26,12 +27,13 @@ app = FastAPI(title="PaddleOCR Sidecar", version="1.0.0")
 OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
 USE_GPU = os.getenv("USE_GPU", "false").lower() == "true"
 MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
+OCR_LANG = os.getenv("OCR_LANG", "ch")  # ch = CTJK (รองรับภาษาไทย), en = English
 
 # โหลด PaddleOCR model ครั้งเดียวตอน startup (ลด latency ต่อ request)
-logger.info(f"Loading PaddleOCR model (use_gpu={USE_GPU})...")
+logger.info(f"Loading PaddleOCR model (use_gpu={USE_GPU}, lang={OCR_LANG})...")
 ocr_engine = PaddleOCR(
     use_angle_cls=True,
-    lang="en",
+    lang=OCR_LANG,
     use_gpu=USE_GPU,
     show_log=False,
 )
