@@ -24,6 +24,7 @@ export default tseslint.config(
             'jest.config.js',
             '*.config.mjs',
             'scratch/*.ts',
+            'test/*.ts',
           ],
         },
         tsconfigRootDir: import.meta.dirname,
