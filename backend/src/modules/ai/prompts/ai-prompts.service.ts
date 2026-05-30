@@ -293,6 +293,21 @@ export class AiPromptsService {
   }
 
   /**
+   * ดึง Prompt version ตาม versionNumber ที่ระบุ
+   * @param promptType ประเภทของ prompt
+   * @param versionNumber เลข version ที่ต้องการ
+   * @returns Prompt version ที่ตรงกับ versionNumber หรือ null หากไม่พบ
+   */
+  async findByVersion(
+    promptType: string,
+    versionNumber: number
+  ): Promise<AiPrompt | null> {
+    return this.aiPromptRepo.findOne({
+      where: { promptType, versionNumber },
+    });
+  }
+
+  /**
    * ค้นหา prompt ที่มีผลใช้งานจริง และแทนที่ placeholder {{ocr_text}} ด้วยข้อความ OCR
    * @param promptType ประเภทของ prompt
    * @param ocrText ข้อความที่สกัดจาก OCR

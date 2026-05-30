@@ -144,6 +144,34 @@ export const adminAiService = {
     return extractData<{ requestPublicId: string; jobId: string; status: string }>(data);
   },
 
+  // --- Step 1: OCR Only (สำหรับตรวจคุณภาพ OCR ก่อนทดสอบ AI) ---
+
+  submitSandboxOcr: async (
+    file: File
+  ): Promise<{ requestPublicId: string; jobId: string; status: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post('/ai/admin/sandbox/ocr', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return extractData<{ requestPublicId: string; jobId: string; status: string }>(data);
+  },
+
+  // --- Step 2: AI Extraction (ใช้ OCR text ที่ cache จาก Step 1) ---
+
+  submitSandboxAiExtract: async (
+    requestPublicId: string,
+    promptVersion?: number
+  ): Promise<{ requestPublicId: string; jobId: string; status: string }> => {
+    const { data } = await api.post('/ai/admin/sandbox/ai-extract', {
+      requestPublicId,
+      promptVersion,
+    });
+    return extractData<{ requestPublicId: string; jobId: string; status: string }>(data);
+  },
+
   // --- AI Model Management (ADR-027) ---
 
   getAvailableModels: async (): Promise<AiModelsResponse> => {

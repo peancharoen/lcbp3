@@ -103,7 +103,11 @@ export class AiQueueService {
    * @idempotency `jobId = payload.idempotencyKey`
    */
   async enqueueSandboxJob(
-    jobType: 'sandbox-rag' | 'sandbox-extract',
+    jobType:
+      | 'sandbox-rag'
+      | 'sandbox-extract'
+      | 'sandbox-ocr-only'
+      | 'sandbox-ai-extract',
     payload: {
       idempotencyKey: string;
       projectPublicId?: string;
@@ -111,6 +115,7 @@ export class AiQueueService {
       userPublicId?: string;
       filePublicId?: string;
       pdfPath?: string;
+      extraPayload?: Record<string, unknown>;
     }
   ): Promise<string> {
     const job = await this.batchQueue.add(
@@ -124,6 +129,7 @@ export class AiQueueService {
           userPublicId: payload.userPublicId,
           filePublicId: payload.filePublicId,
           pdfPath: payload.pdfPath,
+          ...payload.extraPayload,
         },
         idempotencyKey: payload.idempotencyKey,
       },

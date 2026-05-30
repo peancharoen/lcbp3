@@ -40,6 +40,8 @@ import {
   ApiHeader,
   ApiParam,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { AiService, ExtractionResult, PaginatedResult } from './ai.service';
 import { AiSettingsService } from './ai-settings.service';
@@ -503,6 +505,77 @@ export class AiController {
       {
         idempotencyKey: requestPublicId,
         pdfPath: attachment.filePath,
+      }
+    );
+    return { requestPublicId, jobId, status: 'queued' };
+  }
+
+  // --- Step 1: OCR Only (สำหรับตรวจคุณภาพ OCR ก่อนทดสอบ AI) ---
+
+  @Post('admin/sandbox/ocr')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary: 'Step 1: Run OCR Only — สำหรับตรวจคุณภาพ OCR ก่อนทดสอบ AI',
+    description:
+      'Upload PDF และรัน OCR เท่านั้น ไม่เรียก LLM — ผลลัพธ์ cache ไว้สำหรับ Step 2',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  async submitSandboxOcr(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 50 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: 'pdf' }),
+        ],
+      })
+    )
+    file: Express.Multer.File,
+    @CurrentUser() user: User
+  ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
+    const attachment = await this.fileStorageService.upload(file, user.user_id);
+    const requestPublicId = uuidv7();
+    const jobId = await this.aiQueueService.enqueueSandboxJob(
+      'sandbox-ocr-only',
+      {
+        idempotencyKey: requestPublicId,
+        pdfPath: attachment.filePath,
+      }
+    );
+    return { requestPublicId, jobId, status: 'queued' };
+  }
+
+  // --- Step 2: AI Extraction (ใช้ OCR text ที่ cache จาก Step 1) ---
+
+  @Post('admin/sandbox/ai-extract')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary: 'Step 2: Run AI Extraction — ใช้ OCR text ที่ cache จาก Step 1',
+    description:
+      'รับ requestPublicId จาก Step 1 และ optional promptVersion แล้ว run LLM extraction',
+  })
+  async submitSandboxAiExtract(
+    @Body() dto: { requestPublicId: string; promptVersion?: number }
+  ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
+    const { requestPublicId, promptVersion } = dto;
+    const jobId = await this.aiQueueService.enqueueSandboxJob(
+      'sandbox-ai-extract',
+      {
+        idempotencyKey: requestPublicId,
+        projectPublicId: 'default', // Sandbox ใช้ default project
+        extraPayload: { promptVersion },
       }
     );
     return { requestPublicId, jobId, status: 'queued' };

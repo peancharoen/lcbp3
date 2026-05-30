@@ -6,6 +6,7 @@
 // - 2026-05-26: เพิ่มการตรวจสอบ versionsQuery.data แบบทนทานเพื่อป้องกัน Error N.find is not a function ในกรณีที่ API ส่งข้อมูลแบบ wrapped object มา
 // - 2026-05-29: เพิ่ม OCR Raw Text section ในผล sandbox
 // - 2026-05-29: ปรับปรุงการโหลด Active Prompt ให้ทนทานต่อ race conditions และรูปแบบประเภทข้อมูลที่ส่งมาจาก API (boolean, number, string)
+// - 2026-05-30: Refactor เป็น 2-step flow (Step 1: OCR-only → Step 2: AI Extraction) ตาม spec 231
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -32,6 +33,7 @@ import { useTranslations } from '@/hooks/use-translations';
 import PromptVersionHistory from './PromptVersionHistory';
 import { cn } from '@/lib/utils';
 import { AiPrompt } from '@/types/ai-prompts';
+import { adminAiService } from '@/lib/services/admin-ai.service';
 
 const DEFAULT_OCR_TEMPLATE = `คุณคือเอนจิ้นสกัดข้อมูลอัจฉริยะ (Document Intelligence Engine)
 วิเคราะห์ข้อความ OCR ที่ได้รับจากเอกสารของโครงการ Laem Chabang Port Phase 3 และสกัดข้อมูลเมตาดาต้าให้ออกมาเป็น JSON object ที่ถูกต้องตามโครงสร้างที่กำหนด
@@ -103,7 +105,15 @@ export default function OcrSandboxPromptManager() {
   const [ocrFile, setOcrFile] = useState<File | null>(null);
   const [manualNote, setManualNote] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'editor' | 'sandbox'>('editor');
-  const { state: sandboxState, jobId: sandboxJobId, submit: submitSandbox, reset: resetSandbox } =
+  // 2-step flow states
+  const [sandboxStep, setSandboxStep] = useState<'ocr' | 'ai'>('ocr');
+  const [ocrResult, setOcrResult] = useState<{
+    requestPublicId: string;
+    ocrText: string;
+    ocrUsed: boolean;
+  } | null>(null);
+  const [selectedPromptVersion, setSelectedPromptVersion] = useState<number | undefined>(undefined);
+  const { state: sandboxState, jobId: sandboxJobId, reset: resetSandbox } =
     useSandboxRun(() => {
       // เมื่อ sandbox เสร็จสิ้น: รีเฟรชรายการเวอร์ชัน
       versionsQuery.refetch();
@@ -175,27 +185,95 @@ export default function OcrSandboxPromptManager() {
       toast.error(error.response?.data?.message || t('ai.prompt.saveNoteError'));
     }
   };
-  const handleSubmitOcr = async (e: React.FormEvent) => {
+  // Step 1: OCR-only handler
+  const handleStep1Ocr = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activePrompt) {
-      toast.error(t('ai.prompt.noActivePrompt'));
-      return;
-    }
     if (!ocrFile) {
       toast.error(t('ai.prompt.noFile'));
       return;
     }
     try {
       resetSandbox();
-      await submitSandbox(ocrFile);
+      setSandboxStep('ocr');
+      const { requestPublicId } = await adminAiService.submitSandboxOcr(ocrFile);
       toast.success(t('ai.prompt.uploadSuccess'));
+      // Poll สำหรับผลลัพธ์ OCR
+      const pollInterval = setInterval(async () => {
+        try {
+          const result = await adminAiService.getSandboxJobStatus(requestPublicId);
+          if (result.status === 'completed') {
+            clearInterval(pollInterval);
+            setOcrResult({
+              requestPublicId,
+              ocrText: result.ocrText || '',
+              ocrUsed: result.ocrUsed || false,
+            });
+            setSandboxStep('ai');
+            toast.success('OCR completed successfully');
+          } else if (result.status === 'failed') {
+            clearInterval(pollInterval);
+            toast.error(result.errorMessage || 'OCR failed');
+          }
+        } catch (_err) {
+          clearInterval(pollInterval);
+          toast.error('Poll error occurred');
+        }
+      }, 1000);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || t('ai.prompt.uploadError'));
     }
   };
+  // Step 2: AI Extraction handler
+  const handleStep2AiExtract = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ocrResult) {
+      toast.error('Please run Step 1 (OCR) first');
+      return;
+    }
+    if (!activePrompt) {
+      toast.error(t('ai.prompt.noActivePrompt'));
+      return;
+    }
+    try {
+      resetSandbox();
+      const { requestPublicId } = await adminAiService.submitSandboxAiExtract(
+        ocrResult.requestPublicId,
+        selectedPromptVersion
+      );
+      toast.success('AI Extraction started');
+      // Poll สำหรับผลลัพธ์ AI
+      const pollInterval = setInterval(async () => {
+        try {
+          const result = await adminAiService.getSandboxJobStatus(requestPublicId);
+          if (result.status === 'completed') {
+            clearInterval(pollInterval);
+            // Trigger sandbox state update via useSandboxRun
+            toast.success(t('ai.prompt.sandboxSuccess'));
+            versionsQuery.refetch();
+          } else if (result.status === 'failed') {
+            clearInterval(pollInterval);
+            toast.error(result.errorMessage || 'AI Extraction failed');
+          }
+        } catch (_err) {
+          clearInterval(pollInterval);
+          toast.error('Poll error occurred');
+        }
+      }, 1000);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || 'AI Extraction failed');
+    }
+  };
+  // Reset 2-step flow
+  const handleResetSandbox = () => {
+    setSandboxStep('ocr');
+    setOcrResult(null);
+    setSelectedPromptVersion(undefined);
+    setOcrFile(null);
+    resetSandbox();
+  };
   // แปล status key เป็นข้อความตาม locale ปัจจุบัน
-  const statusLabel = sandboxState.statusText ? t(sandboxState.statusText) : '';
   return (
     <div className="grid gap-6 lg:grid-cols-12 items-start">
       <div className="lg:col-span-8 space-y-6">
@@ -282,102 +360,173 @@ export default function OcrSandboxPromptManager() {
                   {t('ai.prompt.sandboxCardTitle')}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  {t('ai.prompt.sandboxCardDesc')}
+                  {sandboxStep === 'ocr'
+                    ? 'Step 1: Upload PDF and run OCR to check quality'
+                    : 'Step 2: Test AI prompt with OCR text'}
                 </p>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmitOcr} className="space-y-4">
-                  <div className="space-y-2">
-                    <div
-                      className={cn(
-                        'flex flex-col items-center justify-center rounded-lg border border-dashed p-8 transition-all',
-                        ocrFile ? 'border-primary/50 bg-primary/5' : 'border-muted-foreground/20 hover:bg-muted/10'
-                      )}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        if (sandboxState.isRunning) return;
-                        const file = e.dataTransfer.files?.[0];
-                        if (file?.name.toLowerCase().endsWith('.pdf')) {
-                          setOcrFile(file);
-                        } else {
-                          toast.error(t('ai.prompt.dropzonePdfOnly'));
-                        }
-                      }}
-                    >
-                      <Brain className="h-9 w-9 text-muted-foreground/50 mb-2 animate-bounce" />
-                      {ocrFile ? (
-                        <div className="text-center space-y-1">
-                          <p className="text-sm font-semibold">{ocrFile.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            ({(ocrFile.size / 1024 / 1024).toFixed(2)} MB)
-                          </p>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={sandboxState.isRunning}
-                            onClick={() => setOcrFile(null)}
-                            className="mt-2 text-xs text-destructive hover:bg-destructive/10"
-                          >
-                            {t('ai.prompt.removeFile')}
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="text-center space-y-1">
-                          <p className="text-xs text-muted-foreground">
-                            {t('ai.prompt.dropzoneDrag')}
-                          </p>
-                          <input
-                            type="file"
-                            accept=".pdf"
-                            disabled={sandboxState.isRunning}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) setOcrFile(file);
-                            }}
-                            className="hidden"
-                            id="ocr-sandbox-file"
-                          />
-                          <label
-                            htmlFor="ocr-sandbox-file"
-                            className="mt-2.5 inline-flex h-8 items-center justify-center rounded-md bg-secondary px-3.5 text-xs font-semibold cursor-pointer hover:bg-secondary/85 transition-colors"
-                          >
-                            {t('ai.prompt.dropzoneChoose')}
-                          </label>
-                        </div>
-                      )}
+                {sandboxStep === 'ocr' ? (
+                  <form onSubmit={handleStep1Ocr} className="space-y-4">
+                    <div className="space-y-2">
+                      <div
+                        className={cn(
+                          'flex flex-col items-center justify-center rounded-lg border border-dashed p-8 transition-all',
+                          ocrFile ? 'border-primary/50 bg-primary/5' : 'border-muted-foreground/20 hover:bg-muted/10'
+                        )}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (sandboxState.isRunning) return;
+                          const file = e.dataTransfer.files?.[0];
+                          if (file?.name.toLowerCase().endsWith('.pdf')) {
+                            setOcrFile(file);
+                          } else {
+                            toast.error(t('ai.prompt.dropzonePdfOnly'));
+                          }
+                        }}
+                      >
+                        <Brain className="h-9 w-9 text-muted-foreground/50 mb-2 animate-bounce" />
+                        {ocrFile ? (
+                          <div className="text-center space-y-1">
+                            <p className="text-sm font-semibold">{ocrFile.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              ({(ocrFile.size / 1024 / 1024).toFixed(2)} MB)
+                            </p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={sandboxState.isRunning}
+                              onClick={() => setOcrFile(null)}
+                              className="mt-2 text-xs text-destructive hover:bg-destructive/10"
+                            >
+                              {t('ai.prompt.removeFile')}
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-center space-y-1">
+                            <p className="text-xs text-muted-foreground">
+                              {t('ai.prompt.dropzoneDrag')}
+                            </p>
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              disabled={sandboxState.isRunning}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) setOcrFile(file);
+                              }}
+                              className="hidden"
+                              id="ocr-sandbox-file"
+                            />
+                            <label
+                              htmlFor="ocr-sandbox-file"
+                              className="mt-2.5 inline-flex h-8 items-center justify-center rounded-md bg-secondary px-3.5 text-xs font-semibold cursor-pointer hover:bg-secondary/85 transition-colors"
+                            >
+                              {t('ai.prompt.dropzoneChoose')}
+                            </label>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button
-                      type="submit"
-                      disabled={sandboxState.isRunning || !ocrFile || !activePrompt}
-                      className="flex items-center gap-2"
-                    >
-                      {sandboxState.isRunning ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          {t('ai.prompt.running')}
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4" />
-                          {t('ai.prompt.runSandbox')}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
+                    <div className="flex justify-end gap-3 pt-2">
+                      <Button
+                        type="submit"
+                        disabled={sandboxState.isRunning || !ocrFile}
+                        className="flex items-center gap-2"
+                      >
+                        {sandboxState.isRunning ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Running OCR...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-4 w-4" />
+                            Step 1: Run OCR Only
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleStep2AiExtract} className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">Prompt Version:</span>
+                        <select
+                          value={selectedPromptVersion ?? (activePrompt?.versionNumber ?? '')}
+                          onChange={(e) => setSelectedPromptVersion(e.target.value ? Number(e.target.value) : undefined)}
+                          className="text-xs bg-background border border-input rounded px-2 py-1"
+                        >
+                          {versions.map((v) => (
+                            <option key={v.versionNumber} value={v.versionNumber}>
+                              Version {v.versionNumber} {v.isActive ? '(Active)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex justify-end gap-3 pt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleResetSandbox}
+                          className="text-xs"
+                        >
+                          Reset
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={sandboxState.isRunning || !activePrompt}
+                          className="flex items-center gap-2"
+                        >
+                          {sandboxState.isRunning ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Running AI...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4" />
+                              Step 2: Run AI Extraction
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </form>
+                )}
               </CardContent>
             </Card>
+            {sandboxStep === 'ai' && ocrResult && (
+              <Card className="border border-blue-500/20 bg-background/50 backdrop-blur-md">
+                <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-base text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                    <ScanText className="h-4 w-4" />
+                    OCR Raw Text (Step 1 Result)
+                  </CardTitle>
+                  <Badge variant="outline" className="text-xs">
+                    {ocrResult.ocrUsed ? 'PaddleOCR' : 'Fast Path (Text Layer)'}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[200px] border border-border/10">
+                    <pre className="text-blue-600 dark:text-blue-400 select-text leading-relaxed whitespace-pre-wrap">
+                      {ocrResult.ocrText || '(ไม่มีข้อความ)'}
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {sandboxState.isRunning && (
               <Card className="border border-amber-500/20 bg-amber-500/5">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center justify-between text-xs font-medium">
                     <span className="flex items-center gap-1.5">
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-500" />
-                      {statusLabel}
+                      {sandboxStep === 'ocr' ? 'Running OCR...' : 'Running AI Extraction...'}
                     </span>
                     <span>{sandboxState.progress}%</span>
                   </div>
@@ -388,37 +537,17 @@ export default function OcrSandboxPromptManager() {
                 </CardContent>
               </Card>
             )}
-            {sandboxState.result && sandboxState.result.status === 'completed' && (
+            {sandboxState.result && sandboxState.result.status === 'completed' && sandboxStep === 'ai' && (
               <div className="space-y-6">
-                <Card className="border border-blue-500/20 bg-background/50 backdrop-blur-md">
-                  <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-base text-blue-600 dark:text-blue-400 flex items-center gap-2">
-                      <ScanText className="h-4 w-4" />
-                      OCR Raw Text
-                    </CardTitle>
-                    <Badge variant="outline" className="text-xs">
-                      {sandboxState.result.ocrUsed ? 'PaddleOCR' : 'Fast Path (Text Layer)'}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[200px] border border-border/10">
-                      <pre className="text-blue-600 dark:text-blue-400 select-text leading-relaxed whitespace-pre-wrap">
-                        {sandboxState.result.ocrText || '(ไม่มีข้อความ)'}
-                      </pre>
-                    </div>
-                  </CardContent>
-                </Card>
                 <Card className="border border-emerald-500/20 bg-background/50 backdrop-blur-md">
                   <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
                     <CardTitle className="text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
                       <FileJson className="h-4 w-4" />
                       {t('ai.prompt.resultTitle')}
                     </CardTitle>
-                    {activePrompt && (
-                      <Badge variant="outline" className="text-xs text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
-                        {t('ai.prompt.resultVersionBadge', { version: String(activePrompt.versionNumber) })}
-                      </Badge>
-                    )}
+                    <Badge variant="outline" className="text-xs text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
+                      Version {sandboxState.result.promptVersionUsed || (activePrompt?.versionNumber ?? '?')}
+                    </Badge>
                   </CardHeader>
                   <CardContent className="pt-4 space-y-4">
                     <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[300px] border border-border/10">

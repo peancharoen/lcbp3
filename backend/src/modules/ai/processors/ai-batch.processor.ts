@@ -49,6 +49,8 @@ export type AiBatchJobType =
   | 'embed-document'
   | 'sandbox-rag'
   | 'sandbox-extract'
+  | 'sandbox-ocr-only'
+  | 'sandbox-ai-extract'
   | 'migrate-document';
 
 export interface AiBatchJobData {
@@ -196,6 +198,18 @@ export class AiBatchProcessor extends WorkerHost {
             `Sandbox Extract job processing — jobId=${String(job.id)}`
           );
           await this.processSandboxExtract(job.data);
+          return;
+        case 'sandbox-ocr-only':
+          this.logger.log(
+            `Sandbox OCR-Only job processing — jobId=${String(job.id)}`
+          );
+          await this.processSandboxOcrOnly(job.data);
+          return;
+        case 'sandbox-ai-extract':
+          this.logger.log(
+            `Sandbox AI-Extract job processing — jobId=${String(job.id)}`
+          );
+          await this.processSandboxAiExtract(job.data);
           return;
         case 'migrate-document':
           this.logger.log(
@@ -355,6 +369,186 @@ export class AiBatchProcessor extends WorkerHost {
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Sandbox extract failed: ${errMsg}`);
+      await this.redis.setex(
+        `ai:rag:result:${idempotencyKey}`,
+        3600,
+        JSON.stringify({
+          requestPublicId: idempotencyKey,
+          status: 'failed',
+          errorMessage: errMsg,
+          completedAt: new Date().toISOString(),
+        })
+      );
+      throw err;
+    }
+  }
+
+  /** Step 1: OCR เท่านั้น — สำหรับตรวจคุณภาพ OCR ก่อนทดสอบ AI */
+  private async processSandboxOcrOnly(data: AiBatchJobData): Promise<void> {
+    const { idempotencyKey, payload } = data;
+    const pdfPath = payload.pdfPath as string;
+
+    if (!pdfPath) {
+      throw new Error('pdfPath is required for sandbox-ocr-only job');
+    }
+
+    await this.redis.setex(
+      `ai:rag:result:${idempotencyKey}`,
+      3600,
+      JSON.stringify({
+        requestPublicId: idempotencyKey,
+        status: 'processing',
+      })
+    );
+
+    try {
+      const ocrResult = await this.ocrService.detectAndExtract({ pdfPath });
+
+      // Cache OCR text สำหรับ Step 2
+      await this.redis.setex(
+        `ai:sandbox:ocr:${idempotencyKey}`,
+        3600,
+        JSON.stringify({
+          ocrText: ocrResult.text,
+          ocrUsed: ocrResult.ocrUsed,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
+      await this.redis.setex(
+        `ai:rag:result:${idempotencyKey}`,
+        3600,
+        JSON.stringify({
+          requestPublicId: idempotencyKey,
+          status: 'completed',
+          ocrText: ocrResult.text,
+          ocrUsed: ocrResult.ocrUsed,
+          completedAt: new Date().toISOString(),
+        })
+      );
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Sandbox OCR-only failed: ${errMsg}`);
+      await this.redis.setex(
+        `ai:rag:result:${idempotencyKey}`,
+        3600,
+        JSON.stringify({
+          requestPublicId: idempotencyKey,
+          status: 'failed',
+          errorMessage: errMsg,
+          completedAt: new Date().toISOString(),
+        })
+      );
+      throw err;
+    }
+  }
+
+  /** Step 2: AI Extraction — ใช้ OCR text ที่ cache จาก Step 1 */
+  private async processSandboxAiExtract(data: AiBatchJobData): Promise<void> {
+    const { idempotencyKey, payload, projectPublicId } = data;
+    const promptVersion = (payload.promptVersion as number) || undefined;
+
+    await this.redis.setex(
+      `ai:rag:result:${idempotencyKey}`,
+      3600,
+      JSON.stringify({
+        requestPublicId: idempotencyKey,
+        status: 'processing',
+      })
+    );
+
+    try {
+      // ดึง OCR text จาก cache
+      const cachedOcr = await this.redis.get(
+        `ai:sandbox:ocr:${idempotencyKey}`
+      );
+      if (!cachedOcr) {
+        throw new Error(
+          'OCR text not found or expired, please run Step 1 first'
+        );
+      }
+      const parsedOcr = JSON.parse(cachedOcr) as {
+        ocrText: string;
+        ocrUsed: boolean;
+        timestamp: string;
+      };
+      const { ocrText } = parsedOcr;
+
+      // ดึง prompt version
+      const activePrompt =
+        await this.aiPromptsService.getActive('ocr_extraction');
+      if (!activePrompt) {
+        throw new Error('No active ocr_extraction prompt version found');
+      }
+
+      // ถ้าระบุ promptVersion ให้ใช้ version นั้น
+      const targetPrompt = promptVersion
+        ? await this.aiPromptsService.findByVersion(
+            'ocr_extraction',
+            promptVersion
+          )
+        : activePrompt;
+
+      if (!targetPrompt) {
+        throw new Error(`Prompt version ${promptVersion} not found`);
+      }
+
+      // Resolve context และ run LLM
+      const masterDataContext = await this.aiPromptsService.resolveContext(
+        targetPrompt,
+        projectPublicId
+      );
+
+      const resolvedPrompt = targetPrompt.template
+        .replace('{{ocr_text}}', ocrText)
+        .replace(
+          '{{master_data_context}}',
+          JSON.stringify(masterDataContext, null, 2)
+        );
+
+      const response = await this.ollamaService.generate(resolvedPrompt, {
+        timeoutMs: 120000,
+      });
+
+      const cleanedResponse = response
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim();
+
+      let extractedMetadata: Record<string, unknown>;
+      try {
+        extractedMetadata = JSON.parse(cleanedResponse) as Record<
+          string,
+          unknown
+        >;
+      } catch {
+        throw new Error(
+          `Failed to parse LLM response as JSON: ${cleanedResponse}`
+        );
+      }
+
+      await this.aiPromptsService.saveTestResult(
+        'ocr_extraction',
+        targetPrompt.versionNumber,
+        extractedMetadata
+      );
+
+      await this.redis.setex(
+        `ai:rag:result:${idempotencyKey}`,
+        3600,
+        JSON.stringify({
+          requestPublicId: idempotencyKey,
+          status: 'completed',
+          answer: JSON.stringify(extractedMetadata, null, 2),
+          ocrText,
+          ocrUsed: parsedOcr.ocrUsed,
+          promptVersionUsed: targetPrompt.versionNumber,
+          completedAt: new Date().toISOString(),
+        })
+      );
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Sandbox AI-extract failed: ${errMsg}`);
       await this.redis.setex(
         `ai:rag:result:${idempotencyKey}`,
         3600,
