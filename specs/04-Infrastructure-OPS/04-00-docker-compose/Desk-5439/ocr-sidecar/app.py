@@ -1,9 +1,10 @@
 # File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py
-# PaddleOCR HTTP Sidecar API — รับ POST /ocr แล้วคืนข้อความที่สกัดจาก PDF/Image
-# ตาม ADR-023A: OCR auto-detect (PyMuPDF chars > 100 → Fast path, else PaddleOCR)
+# Tesseract OCR HTTP Sidecar API — รับ POST /ocr แล้วคืนข้อความที่สกัดจาก PDF/Image
+# ตาม ADR-023A: OCR auto-detect (PyMuPDF chars > 100 → Fast path, else Tesseract)
 # Change Log:
 # - 2026-05-25: Initial FastAPI server สำหรับ PaddleOCR sidecar
 # - 2026-05-30: เปลี่ยน lang='en' เป็น lang='ch' (CTJK) เพื่อรองรับภาษาไทย
+# - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
 
 import os
 import logging
@@ -11,33 +12,26 @@ import re
 import fitz  # PyMuPDF
 from pathlib import Path
 from typing import Optional
+from PIL import Image
+import pytesseract
+import io
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from paddleocr import PaddleOCR
 from pythainlp.tokenize import word_tokenize
 from pythainlp.util import normalize as thai_normalize
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ocr-sidecar")
 
-app = FastAPI(title="PaddleOCR Sidecar", version="1.0.0")
+app = FastAPI(title="Tesseract OCR Sidecar", version="1.0.0")
 
 # อ่านค่า config จาก environment
 OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
-USE_GPU = os.getenv("USE_GPU", "false").lower() == "true"
 MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
-OCR_LANG = os.getenv("OCR_LANG", "ch")  # ch = CTJK (รองรับภาษาไทย), en = English
+OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng = Thai + English)
 
-# โหลด PaddleOCR model ครั้งเดียวตอน startup (ลด latency ต่อ request)
-logger.info(f"Loading PaddleOCR model (use_gpu={USE_GPU}, lang={OCR_LANG})...")
-ocr_engine = PaddleOCR(
-    use_angle_cls=True,
-    lang=OCR_LANG,
-    use_gpu=USE_GPU,
-    show_log=False,
-)
-logger.info("PaddleOCR model loaded.")
+logger.info(f"Tesseract OCR Sidecar initialized (lang={OCR_LANG})")
 
 
 class OcrRequest(BaseModel):
@@ -54,7 +48,7 @@ class OcrResponse(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "engine": "paddleocr"}
+    return {"status": "ok", "engine": "tesseract"}
 
 
 @app.post("/ocr", response_model=OcrResponse)
@@ -90,25 +84,19 @@ def ocr_extract(req: OcrRequest):
             charCount=total_chars,
         )
 
-    # Slow path: ใช้ PaddleOCR กับทุกหน้า
-    logger.info(f"Slow path (PaddleOCR): {total_chars} chars too few for {pdf_path.name}")
+    # Slow path: ใช้ Tesseract OCR กับทุกหน้า
+    logger.info(f"Slow path (Tesseract): {total_chars} chars too few for {pdf_path.name}")
     ocr_text_parts = []
     for i in pages_to_process:
         page = doc[i]
         pix = page.get_pixmap(dpi=200)
         img_bytes = pix.tobytes("png")
-        result = ocr_engine.ocr(img_bytes, cls=True)
-        if result:
-            for line in result:
-                if line:
-                    for word_info in line:
-                        if word_info and len(word_info) >= 2:
-                            text_part = word_info[1]
-                            if isinstance(text_part, (list, tuple)) and len(text_part) >= 1:
-                                ocr_text_parts.append(str(text_part[0]))
+        img = Image.open(io.BytesIO(img_bytes))
+        text = pytesseract.image_to_string(img, lang=OCR_LANG)
+        ocr_text_parts.append(text.strip())
 
     ocr_text = "\n".join(ocr_text_parts).strip()
-    logger.info(f"PaddleOCR extracted {len(ocr_text)} chars from {pdf_path.name}")
+    logger.info(f"Tesseract extracted {len(ocr_text)} chars from {pdf_path.name}")
 
     return OcrResponse(
         text=ocr_text,

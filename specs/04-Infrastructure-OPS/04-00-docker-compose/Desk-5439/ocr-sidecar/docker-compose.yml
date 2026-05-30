@@ -26,12 +26,10 @@ services:
       OCR_CHAR_THRESHOLD: "100"
       OCR_PORT: "8765"
       OCR_MAX_PAGES: "0"
-      OCR_LANG: "ch"  # ch = CTJK (รองรับภาษาไทย), en = English
+      OCR_LANG: "tha+eng"  # Tesseract language code (Thai + English)
       # ตั้ง USE_GPU=true เพื่อใช้ RTX 2060 Super (ต้องติดตั้ง nvidia-container-toolkit)
       USE_GPU: "false"
     volumes:
-      # Model cache — Docker named volume เพื่อไม่ต้อง download ใหม่ทุกครั้ง
-      - paddleocr_models:/root/.paddleocr
       # Uploads จาก QNAP NAS ผ่าน CIFS (SMB) volume — Docker mount โดยตรง
       - qnap_uploads:/mnt/uploads:ro
     logging:
@@ -47,8 +45,6 @@ services:
       start_period: 60s
 
 volumes:
-  paddleocr_models:
-    name: paddleocr_models
   qnap_uploads:
     driver: local
     driver_opts:
