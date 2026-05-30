@@ -33,8 +33,25 @@ app = FastAPI(title="Tesseract OCR Sidecar", version="1.0.0")
 OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
 MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
 OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng = Thai + English)
+# PSM 6 = Assume single uniform block of text (เหมาะกับเอกสารที่มี header/footer)
+# OEM 1 = LSTM only (ดีกว่า legacy engine)
+TESSERACT_CONFIG = f"--psm 6 --oem 1"
+# Crop margin: ตัด header/footer (บน 10%, ล่าง 10%)
+CROP_TOP_RATIO = 0.10
+CROP_BOTTOM_RATIO = 0.02
 
-logger.info(f"Tesseract OCR Sidecar initialized (lang={OCR_LANG})")
+logger.info(f"Tesseract OCR Sidecar initialized (lang={OCR_LANG}, config={TESSERACT_CONFIG})")
+
+
+def crop_header_footer(pil_image: Image.Image, top_ratio: float = 0.10, bottom_ratio: float = 0.10) -> Image.Image:
+    """Crop header/footer ออกจาก image เพื่อลบข้อความที่ไม่จำเป็น"""
+    width, height = pil_image.size
+    top_crop = int(height * top_ratio)
+    bottom_crop = int(height * bottom_ratio)
+
+    # Crop: (left, top, right, bottom)
+    cropped = pil_image.crop((0, top_crop, width, height - bottom_crop))
+    return cropped
 
 
 def preprocess_image(pil_image: Image.Image) -> Image.Image:
@@ -116,10 +133,14 @@ def ocr_extract(req: OcrRequest):
         img_bytes = pix.tobytes("png")
         img = Image.open(io.BytesIO(img_bytes))
 
-        # Preprocess ด้วย OpenCV เพื่อเพิ่มความแม่นยำ
-        processed_img = preprocess_image(img)
+        # Crop header/footer ก่อนเพื่อลบข้อความที่ไม่จำเป็น
+        cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
 
-        text = pytesseract.image_to_string(processed_img, lang=OCR_LANG)
+        # Preprocess ด้วย OpenCV เพื่อเพิ่มความแม่นยำ
+        processed_img = preprocess_image(cropped_img)
+
+        # OCR ด้วย Tesseract โดยใช้ PSM 6 และ OEM 1
+        text = pytesseract.image_to_string(processed_img, lang=OCR_LANG, config=TESSERACT_CONFIG)
         ocr_text_parts.append(text.strip())
 
     ocr_text = "\n".join(ocr_text_parts).strip()
