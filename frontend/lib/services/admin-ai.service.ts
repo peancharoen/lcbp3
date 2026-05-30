@@ -7,6 +7,8 @@
 // - 2026-05-25: เพิ่ม methods สำหรับจัดการโมเดล AI แบบไดนามิก (ADR-027).
 // - 2026-05-29: เพิ่ม ocr field ใน AiSystemHealth interface ตาม OcrService.checkHealth()
 // - 2026-05-29: เพิ่ม ocrText, ocrUsed, promptVersionUsed ใน AiSandboxJobResult
+// - 2026-05-30: เพิ่มเมธอด getOcrEngines และ selectOcrEngine สำหรับจัดการ OCR engines (T017, T018, US1)
+// - 2026-05-30: เพิ่ม getVramStatus และปรับปรุง getAvailableModels/setActiveModel/addModel ให้เรียกใช้ endpoints ใหม่ที่มี VRAM capacity check (T031-T034, US2)
 
 import api from '../api/client';
 
@@ -63,6 +65,8 @@ export interface AiSandboxJobResult {
   answer?: string;
   ocrText?: string;
   ocrUsed?: boolean;
+  engineUsed?: string;
+  fallbackUsed?: boolean;
   promptVersionUsed?: number;
   citations?: AiRagCitation[];
   confidence?: number;
@@ -71,12 +75,30 @@ export interface AiSandboxJobResult {
   completedAt?: string;
 }
 
+export interface LoadedModelInfo {
+  modelId: string;
+  modelName: string;
+  vramUsageMB: number;
+}
+
+export interface VramStatusResponse {
+  totalVRAMMB: number;
+  usedVRAMMB: number;
+  usagePercent: number;
+  thresholdPercent: number;
+  loadedModels: LoadedModelInfo[];
+  canLoadModel: boolean;
+  lastUpdated: string;
+}
+
 export interface AiAvailableModel {
-  id: number;
+  id?: number;
+  modelId?: string;
   modelName: string;
   modelVersion: string;
   description?: string;
   vramGb?: number;
+  vramRequirementMB?: number;
   isActive: boolean;
   isDefault: boolean;
   createdAt: string;
@@ -147,10 +169,12 @@ export const adminAiService = {
   // --- Step 1: OCR Only (สำหรับตรวจคุณภาพ OCR ก่อนทดสอบ AI) ---
 
   submitSandboxOcr: async (
-    file: File
+    file: File,
+    engineType: 'auto' | 'tesseract' | 'typhoon-ocr-3b' = 'auto'
   ): Promise<{ requestPublicId: string; jobId: string; status: string }> => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('engineType', engineType);
     const { data } = await api.post('/ai/admin/sandbox/ocr', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -172,10 +196,10 @@ export const adminAiService = {
     return extractData<{ requestPublicId: string; jobId: string; status: string }>(data);
   },
 
-  // --- AI Model Management (ADR-027) ---
+  // --- AI Model Management (ADR-027, US2) ---
 
   getAvailableModels: async (): Promise<AiModelsResponse> => {
-    const { data } = await api.get('/ai/admin/models');
+    const { data } = await api.get('/ai/models');
     return extractData<AiModelsResponse>(data);
   },
 
@@ -184,15 +208,20 @@ export const adminAiService = {
     return extractData<AiActiveModelResponse>(data);
   },
 
-  setActiveModel: async (modelName: string): Promise<AiActiveModelResponse> => {
-    const { data } = await api.post('/ai/admin/models/active', { modelName });
+  setActiveModel: async (modelId: string): Promise<AiActiveModelResponse> => {
+    const { data } = await api.patch(`/ai/models/${encodeURIComponent(modelId)}/activate`, {});
     return extractData<AiActiveModelResponse>(data);
+  },
+
+  getVramStatus: async (): Promise<VramStatusResponse> => {
+    const { data } = await api.get('/ai/vram/status');
+    return extractData<VramStatusResponse>(data);
   },
 
   addModel: async (
     model: Omit<AiAvailableModel, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<{ model: AiAvailableModel }> => {
-    const { data } = await api.post('/ai/admin/models', model);
+    const { data } = await api.post('/ai/models', model);
     return extractData<{ model: AiAvailableModel }>(data);
   },
 
@@ -204,4 +233,30 @@ export const adminAiService = {
   removeModel: async (modelName: string): Promise<void> => {
     await api.delete(`/ai/admin/models/${encodeURIComponent(modelName)}`);
   },
+
+  // --- OCR Engine Management (ADR-032) ---
+
+  getOcrEngines: async (): Promise<OcrEngineResponse[]> => {
+    const { data } = await api.get('/ai/ocr-engines');
+    return extractData<OcrEngineResponse[]>(data);
+  },
+
+  selectOcrEngine: async (engineId: string): Promise<{ activeEngineName: string }> => {
+    const { data } = await api.post(`/ai/ocr-engines/${encodeURIComponent(engineId)}/select`, {});
+    return extractData<{ activeEngineName: string }>(data);
+  },
 };
+
+export interface OcrEngineResponse {
+  engineId: string;
+  engineName: string;
+  engineType: string;
+  isActive: boolean;
+  isCurrentActive: boolean;
+  vramRequirementMB: number;
+  processingTimeLimitSeconds: number;
+  concurrentLimit: number;
+  fallbackEngineId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

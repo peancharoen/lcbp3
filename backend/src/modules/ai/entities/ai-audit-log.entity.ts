@@ -1,6 +1,7 @@
 // File: src/modules/ai/entities/ai-audit-log.entity.ts
 // Change Log
 // - 2026-05-14: เพิ่ม ADR-023 feedback fields โดยคง legacy audit fields ไว้ช่วงเปลี่ยนผ่าน.
+// - 2026-05-30: เพิ่ม modelType, vramUsageMB, cacheHit สำหรับ Typhoon OCR integration (T008, ADR-032).
 // Entity สำหรับตาราง ai_audit_logs — บันทึก AI Interaction และ feedback ตาม ADR-023
 
 import {
@@ -38,6 +39,19 @@ export class AiAuditLog extends UuidBaseEntity {
   @Index('idx_ai_audit_model_name')
   @Column({ name: 'model_name', type: 'varchar', length: 100, nullable: true })
   modelName?: string;
+
+  // ประเภท OCR/LLM model ที่ใช้ เช่น tesseract, typhoon-ocr-3b, typhoon2.1-gemma3-4b (ADR-032)
+  @Index('idx_ai_audit_model_type')
+  @Column({ name: 'model_type', type: 'varchar', length: 50, nullable: true })
+  modelType?: string;
+
+  // VRAM ที่ใช้จริง (MB) ณ เวลาประมวลผล (ADR-032)
+  @Column({ name: 'vram_usage_mb', type: 'int', nullable: true })
+  vramUsageMb?: number;
+
+  // ระบุว่าผลลัพธ์มาจาก Redis cache (true) หรือ OCR จริง (false) (ADR-032)
+  @Column({ name: 'cache_hit', type: 'tinyint', width: 1, default: 0 })
+  cacheHit!: boolean;
 
   // JSON ที่ AI แนะนำก่อนมนุษย์ตรวจสอบ
   @Column({ name: 'ai_suggestion_json', type: 'json', nullable: true })

@@ -1,5 +1,23 @@
 # Version History
 
+## 1.9.8 (2026-05-30)
+
+### spec(ai): Typhoon OCR Integration (ADR-032) + Spec Generation
+
+#### Summary
+
+สร้างสเปคฉบบสมบูรณ์สำหรับ Typhoon OCR Integration (232-typhoon-ocr-integration) พร้อม ADR-032 และอัปเดตเอกสารระบบทั้งหมด
+
+#### Changes
+
+- **ADR-032**: สร้างเอกสาร `ADR-032-typhoon-ocr-integration.md` — Typhoon OCR-3B (scb10x/typhoon-ocr-3b) และ typhoon2.1-gemma3-4b (scb10x/typhoon2.1-gemma3-4b) เป็นทางเลือก OCR/LLM บน Admin Desktop (Desk-5439); VRAM monitoring; Redis caching 24 ชั่วโมง; sequential processing (1 concurrent request); fallback to Tesseract
+- **Feature Spec**: สร้าง `specs/200-fullstacks/232-typhoon-ocr-integration/spec.md` — 3 User Stories (P1: Typhoon OCR Option, P2: Typhoon LLM in AI Model Management, P3: ADR Conflict Resolution); 12 Functional Requirements; 7 Success Criteria
+- **Implementation Plan**: สร้าง `plan.md`, `research.md`, `data-model.md`, `contracts/api-contracts.md`, `quickstart.md` — 54 tasks แบ่งเป็น 6 phases (Setup, Foundational, US1, US2, US3, Polish)
+- **Specs README**: อัปเดต `specs/06-Decision-Records/README.md`, `specs/200-fullstacks/README.md`, `specs/README.md` เพิ่ม ADR-032 และ 232-typhoon-ocr-integration
+- **Root Docs**: อัปเดต `AGENTS.md` v1.9.8 (ADR-031, ADR-032), `ARCHITECTURE.md`, `CONTEXT.md`, `CONTRIBUTING.md`
+
+---
+
 ## 1.9.7 (2026-05-25)
 
 ### docs(ai): ADR-029 Dynamic Prompt Management + PaddleOCR Sidecar + Bug Fixes

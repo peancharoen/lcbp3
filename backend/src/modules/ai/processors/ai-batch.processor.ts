@@ -22,6 +22,10 @@ import { QUEUE_AI_BATCH } from '../../common/constants/queue.constants';
 import { EmbeddingService } from '../services/embedding.service';
 import { AiRagService } from '../ai-rag.service';
 import { OcrService } from '../services/ocr.service';
+import {
+  SandboxOcrEngineService,
+  SandboxOcrEngineType,
+} from '../services/sandbox-ocr-engine.service';
 import { OllamaService } from '../services/ollama.service';
 import { Project } from '../../project/entities/project.entity';
 import { AiAuditLog, AiAuditStatus } from '../entities/ai-audit-log.entity';
@@ -147,6 +151,7 @@ export class AiBatchProcessor extends WorkerHost {
     private readonly embeddingService: EmbeddingService,
     private readonly ragService: AiRagService,
     private readonly ocrService: OcrService,
+    private readonly sandboxOcrEngineService: SandboxOcrEngineService,
     private readonly ollamaService: OllamaService,
     private readonly tagsService: TagsService,
     private readonly migrationService: MigrationService,
@@ -295,6 +300,7 @@ export class AiBatchProcessor extends WorkerHost {
   private async processSandboxExtract(data: AiBatchJobData): Promise<void> {
     const { idempotencyKey, payload, projectPublicId } = data;
     const pdfPath = payload.pdfPath as string;
+    const engineType = (payload.engineType as SandboxOcrEngineType) || 'auto';
     const overrideProjPublicId =
       (payload.projectPublicId as string) || projectPublicId;
     if (!pdfPath) {
@@ -309,7 +315,10 @@ export class AiBatchProcessor extends WorkerHost {
       })
     );
     try {
-      const ocrResult = await this.ocrService.detectAndExtract({ pdfPath });
+      const ocrResult = await this.sandboxOcrEngineService.detectAndExtract(
+        pdfPath,
+        engineType
+      );
 
       const activePrompt =
         await this.aiPromptsService.getActive('ocr_extraction');
@@ -362,6 +371,8 @@ export class AiBatchProcessor extends WorkerHost {
           answer: JSON.stringify(extractedMetadata, null, 2),
           ocrText: ocrResult.text,
           ocrUsed: ocrResult.ocrUsed,
+          engineUsed: ocrResult.engineUsed,
+          fallbackUsed: ocrResult.fallbackUsed,
           promptVersionUsed: activePrompt.versionNumber,
           completedAt: new Date().toISOString(),
         })
@@ -387,6 +398,7 @@ export class AiBatchProcessor extends WorkerHost {
   private async processSandboxOcrOnly(data: AiBatchJobData): Promise<void> {
     const { idempotencyKey, payload } = data;
     const pdfPath = payload.pdfPath as string;
+    const engineType = (payload.engineType as SandboxOcrEngineType) || 'auto';
 
     if (!pdfPath) {
       throw new Error('pdfPath is required for sandbox-ocr-only job');
@@ -402,7 +414,10 @@ export class AiBatchProcessor extends WorkerHost {
     );
 
     try {
-      const ocrResult = await this.ocrService.detectAndExtract({ pdfPath });
+      const ocrResult = await this.sandboxOcrEngineService.detectAndExtract(
+        pdfPath,
+        engineType
+      );
 
       // Cache OCR text สำหรับ Step 2
       await this.redis.setex(
@@ -411,6 +426,8 @@ export class AiBatchProcessor extends WorkerHost {
         JSON.stringify({
           ocrText: ocrResult.text,
           ocrUsed: ocrResult.ocrUsed,
+          engineUsed: ocrResult.engineUsed,
+          fallbackUsed: ocrResult.fallbackUsed,
           timestamp: new Date().toISOString(),
         })
       );
@@ -423,6 +440,8 @@ export class AiBatchProcessor extends WorkerHost {
           status: 'completed',
           ocrText: ocrResult.text,
           ocrUsed: ocrResult.ocrUsed,
+          engineUsed: ocrResult.engineUsed,
+          fallbackUsed: ocrResult.fallbackUsed,
           completedAt: new Date().toISOString(),
         })
       );
@@ -470,6 +489,8 @@ export class AiBatchProcessor extends WorkerHost {
       const parsedOcr = JSON.parse(cachedOcr) as {
         ocrText: string;
         ocrUsed: boolean;
+        engineUsed?: string;
+        fallbackUsed?: boolean;
         timestamp: string;
       };
       const { ocrText } = parsedOcr;
@@ -542,6 +563,8 @@ export class AiBatchProcessor extends WorkerHost {
           answer: JSON.stringify(extractedMetadata, null, 2),
           ocrText,
           ocrUsed: parsedOcr.ocrUsed,
+          engineUsed: parsedOcr.engineUsed,
+          fallbackUsed: parsedOcr.fallbackUsed,
           promptVersionUsed: targetPrompt.versionNumber,
           completedAt: new Date().toISOString(),
         })

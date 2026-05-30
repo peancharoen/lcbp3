@@ -1,9 +1,11 @@
 # File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml
-# PaddleOCR Sidecar — รันบน Desk-5439 (AI Isolation Host) ตาม ADR-023A
+# Tesseract OCR Sidecar — รันบน Desk-5439 (AI Isolation Host) ตาม ADR-023A
 # Change Log:
 # - 2026-05-25: Initial compose file สำหรับ PaddleOCR HTTP sidecar
 # - 2026-05-25: แก้ volumes ให้ถูกต้องสำหรับ Windows + Docker Desktop
-# - 2026-05-30: เพิ่ม OCR_LANG=ch (CTJK) เพื่อรองรับภาษาไทย
+# - 2026-05-30: เพิ่ม OCR_LANG=tha+eng (Tesseract Thai + English)
+# - 2026-05-30: เพิ่ม Typhoon OCR environment variables (T009b, ADR-032)
+#              OLLAMA_API_URL ชี้ไปที่ http://192.168.10.100:11434 (Admin Desktop LAN IP)
 #
 # วิธีรัน:
 #   docker compose up -d --build
@@ -27,8 +29,13 @@ services:
       OCR_PORT: "8765"
       OCR_MAX_PAGES: "0"
       OCR_LANG: "tha+eng"  # Tesseract language code (Thai + English)
-      # ตั้ง USE_GPU=true เพื่อใช้ RTX 2060 Super (ต้องติดตั้ง nvidia-container-toolkit)
-      USE_GPU: "false"
+      USE_GPU: "false"  # OCR sidecar รันบน CPU, Typhoon OCR ใช้ Ollama แยก
+      # ─── Typhoon OCR via Ollama (ADR-032) ───────────────────────────────────
+      # ชี้ไปที่ Ollama ที่รันบน Desk-5439 ผ่าน LAN IP (ไม่ใช่ host.docker.internal)
+      OLLAMA_API_URL: "http://192.168.10.100:11434"
+      TYPHOON_OCR_MODEL: "scb10x/typhoon-ocr-3b"
+      # Timeout 120 วินาที/หน้า (budget สำหรับ 3B model บน RTX 2060 Super)
+      TYPHOON_OCR_TIMEOUT: "120"
     volumes:
       # Uploads จาก QNAP NAS ผ่าน CIFS (SMB) volume — Docker mount โดยตรง
       - qnap_uploads:/mnt/uploads:ro

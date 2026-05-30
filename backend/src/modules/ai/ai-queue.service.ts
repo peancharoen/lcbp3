@@ -115,6 +115,7 @@ export class AiQueueService {
       userPublicId?: string;
       filePublicId?: string;
       pdfPath?: string;
+      engineType?: string;
       extraPayload?: Record<string, unknown>;
     }
   ): Promise<string> {
@@ -129,6 +130,7 @@ export class AiQueueService {
           userPublicId: payload.userPublicId,
           filePublicId: payload.filePublicId,
           pdfPath: payload.pdfPath,
+          engineType: payload.engineType,
           ...payload.extraPayload,
         },
         idempotencyKey: payload.idempotencyKey,

@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.7 | Last synced from repo: 2026-05-25
+- Version: 1.9.8 | Last synced from repo: 2026-05-30
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -120,38 +120,40 @@ Best practice — follow when possible:
 
 Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > others
 
-| Document                       | Path                                                                        | Status    | Use When                                                                          |
-| ------------------------------ | --------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------- |
-| **Glossary**                   | `specs/00-overview/00-02-glossary.md`                                       | —         | Verify domain terminology                                                         |
-| **Schema Tables**              | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`               | —         | Before writing any query                                                          |
-| **Data Dictionary**            | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                        | —         | Field meanings + business rules                                                   |
-| **RBAC Matrix**                | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md`        | —         | Permission levels + roles                                                         |
-| **Edge Cases**                 | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                       | —         | Prevent bugs in flows                                                             |
-| **ADR-001 Workflow Engine**    | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`              | ✅ Active | DSL-based workflow implementation                                                 |
-| **ADR-002 Doc Numbering**      | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`          | ✅ Active | Document number generation + locking                                              |
-| **ADR-007 Error Handling**     | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`              | ✅ Active | Error patterns & recovery                                                         |
-| **ADR-008 Notifications**      | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`          | ✅ Active | BullMQ + multi-channel notification                                               |
-| **ADR-009 DB Migration**       | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`          | ✅ Active | Schema changes — edit SQL directly                                                |
-| **ADR-016 Security**           | `specs/06-Decision-Records/ADR-016-security-authentication.md`              | ✅ Active | Auth, RBAC, file upload security                                                  |
-| **ADR-015 Release Strategy**   | `specs/06-Decision-Records/ADR-015-deployment-infrastructure.md`            | ✅ Active | Blue-Green deployment + release gates                                             |
-| **ADR-019 UUID**               | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`           | ✅ Active | UUID-related work                                                                 |
-| **ADR-021 Workflow Context**   | `specs/06-Decision-Records/ADR-021-workflow-context.md`                     | ✅ Active | Integrated workflow & step attachments                                            |
-| **ADR-023 AI Architecture**    | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`              | ✅ Active | Unified AI boundaries and pipeline (base architecture)                            |
-| **ADR-023A AI Model Rev.**     | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | ✅ Active | 2-Model stack (gemma4:e4b Q8_0), BullMQ 2-queue, RAG embed scope, OCR auto-detect |
-| **ADR-024 Intent Class.**      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`       | ✅ Active | Hybrid Pattern→LLM Fallback; ai_intent_patterns DB; Redis cache 5 min             |
-| **ADR-025 AI Tool Layer**      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`           | ✅ Active | Server-side Tool dispatch; CASL-guarded bridge; ToolResult uses publicId only     |
-| **ADR-026 Chat UI**            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`             | ✅ Active | Side-panel Document Chat UI; useAiChat() hook; streaming response support         |
-| **ADR-027 AI Admin Console**   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md` | ✅ Active | Admin Panel + dynamic model/prompt/intent control without redeploy                |
-| **ADR-028 Migration Refactor** | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`      | ✅ Active | Staging Queue & post-migration cleanup                                            |
-| **ADR-029 Dynamic Prompts**    | `specs/06-Decision-Records/ADR-029-dynamic-prompt-management.md`            | ✅ Active | Prompt templates in DB (`ai_prompts`); Redis cache TTL 60s; versioned             |
-| **Backend Guidelines**         | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`               | —         | NestJS patterns                                                                   |
-| **Frontend Guidelines**        | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`              | —         | Next.js patterns                                                                  |
-| **Testing Strategy**           | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`                 | —         | Coverage goals                                                                    |
-| **Git Conventions**            | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`                  | —         | Commit/branch naming                                                              |
-| **Code Snippets**              | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`                    | —         | Reusable patterns                                                                 |
-| **i18n Guidelines**            | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`                  | —         | Localization rules                                                                |
-| **Release Policy**             | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`            | —         | Before deploy/hotfix                                                              |
-| **UAT Criteria**               | `specs/01-Requirements/01-05-acceptance-criteria.md`                        | —         | Feature completeness                                                              |
+| Document                       | Path                                                                        | Status    | Use When                                                                               |
+| ------------------------------ | --------------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------- |
+| **Glossary**                   | `specs/00-overview/00-02-glossary.md`                                       | —         | Verify domain terminology                                                              |
+| **Schema Tables**              | `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`               | —         | Before writing any query                                                               |
+| **Data Dictionary**            | `specs/03-Data-and-Storage/03-01-data-dictionary.md`                        | —         | Field meanings + business rules                                                        |
+| **RBAC Matrix**                | `specs/01-requirements/01-02-business-rules/01-02-01-rbac-matrix.md`        | —         | Permission levels + roles                                                              |
+| **Edge Cases**                 | `specs/01-Requirements/01-06-edge-cases-and-rules.md`                       | —         | Prevent bugs in flows                                                                  |
+| **ADR-001 Workflow Engine**    | `specs/06-Decision-Records/ADR-001-unified-workflow-engine.md`              | ✅ Active | DSL-based workflow implementation                                                      |
+| **ADR-002 Doc Numbering**      | `specs/06-Decision-Records/ADR-002-document-numbering-strategy.md`          | ✅ Active | Document number generation + locking                                                   |
+| **ADR-007 Error Handling**     | `specs/06-Decision-Records/ADR-007-error-handling-strategy.md`              | ✅ Active | Error patterns & recovery                                                              |
+| **ADR-008 Notifications**      | `specs/06-Decision-Records/ADR-008-email-notification-strategy.md`          | ✅ Active | BullMQ + multi-channel notification                                                    |
+| **ADR-009 DB Migration**       | `specs/06-Decision-Records/ADR-009-database-migration-strategy.md`          | ✅ Active | Schema changes — edit SQL directly                                                     |
+| **ADR-016 Security**           | `specs/06-Decision-Records/ADR-016-security-authentication.md`              | ✅ Active | Auth, RBAC, file upload security                                                       |
+| **ADR-015 Release Strategy**   | `specs/06-Decision-Records/ADR-015-deployment-infrastructure.md`            | ✅ Active | Blue-Green deployment + release gates                                                  |
+| **ADR-019 UUID**               | `specs/06-Decision-Records/ADR-019-hybrid-identifier-strategy.md`           | ✅ Active | UUID-related work                                                                      |
+| **ADR-021 Workflow Context**   | `specs/06-Decision-Records/ADR-021-workflow-context.md`                     | ✅ Active | Integrated workflow & step attachments                                                 |
+| **ADR-023 AI Architecture**    | `specs/06-Decision-Records/ADR-023-unified-ai-architecture.md`              | ✅ Active | Unified AI boundaries and pipeline (base architecture)                                 |
+| **ADR-023A AI Model Rev.**     | `specs/06-Decision-Records/ADR-023A-unified-ai-architecture.md`             | ✅ Active | 2-Model stack (gemma4:e4b Q8_0), BullMQ 2-queue, RAG embed scope, OCR auto-detect      |
+| **ADR-024 Intent Class.**      | `specs/06-Decision-Records/ADR-024-intent-classification-strategy.md`       | ✅ Active | Hybrid Pattern→LLM Fallback; ai_intent_patterns DB; Redis cache 5 min                  |
+| **ADR-025 AI Tool Layer**      | `specs/06-Decision-Records/ADR-025-ai-tool-layer-architecture.md`           | ✅ Active | Server-side Tool dispatch; CASL-guarded bridge; ToolResult uses publicId only          |
+| **ADR-026 Chat UI**            | `specs/06-Decision-Records/ADR-026-document-chat-ui-pattern.md`             | ✅ Active | Side-panel Document Chat UI; useAiChat() hook; streaming response support              |
+| **ADR-027 AI Admin Console**   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md` | ✅ Active | Admin Panel + dynamic model/prompt/intent control without redeploy                     |
+| **ADR-028 Migration Refactor** | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`      | ✅ Active | Staging Queue & post-migration cleanup                                                 |
+| **ADR-029 Dynamic Prompts**    | `specs/06-Decision-Records/ADR-029-dynamic-prompt-management.md`            | ✅ Active | Prompt templates in DB (`ai_prompts`); Redis cache TTL 60s; versioned                  |
+| **ADR-031 Hermes Agent**       | `specs/06-Decision-Records/ADR-031-hermes-agent-telegram-devops-bridge.md`  | 📝 Draft  | Optional DevOps Agent with Telegram commands, read-only diagnostics                    |
+| **ADR-032 Typhoon OCR**        | `specs/06-Decision-Records/ADR-032-typhoon-ocr-integration.md`              | 📝 Draft  | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop, VRAM monitoring, Redis caching |
+| **Backend Guidelines**         | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`               | —         | NestJS patterns                                                                        |
+| **Frontend Guidelines**        | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`              | —         | Next.js patterns                                                                       |
+| **Testing Strategy**           | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`                 | —         | Coverage goals                                                                         |
+| **Git Conventions**            | `specs/05-Engineering-Guidelines/05-05-git-conventions.md`                  | —         | Commit/branch naming                                                                   |
+| **Code Snippets**              | `specs/05-Engineering-Guidelines/05-06-code-snippets.md`                    | —         | Reusable patterns                                                                      |
+| **i18n Guidelines**            | `specs/05-Engineering-Guidelines/05-08-i18n-guidelines.md`                  | —         | Localization rules                                                                     |
+| **Release Policy**             | `specs/04-Infrastructure-OPS/04-08-release-management-policy.md`            | —         | Before deploy/hotfix                                                                   |
+| **UAT Criteria**               | `specs/01-Requirements/01-05-acceptance-criteria.md`                        | —         | Feature completeness                                                                   |
 
 ---
 

@@ -115,6 +115,7 @@ specs/
 │   ├── 226-document-chat-ui-pattern/  # Document Chat UI Pattern
 │   ├── 227-ai-admin-console/          # AI Admin Console
 │   ├── 228-migration-arch-refactor/   # Migration Architecture Refactor
+│   ├── 232-typhoon-ocr-integration/   # Typhoon OCR Integration (Typhoon OCR-3B + typhoon2.1-gemma3-4b)
 │   └── README.md                # Category guide
 │
 ├── 300-others/                  # Feature Work: Documentation, Research, Non-code tasks

@@ -107,10 +107,15 @@ export default function OcrSandboxPromptManager() {
   const [activeTab, setActiveTab] = useState<'editor' | 'sandbox'>('editor');
   // 2-step flow states
   const [sandboxStep, setSandboxStep] = useState<'ocr' | 'ai'>('ocr');
+  const [selectedOcrEngine, setSelectedOcrEngine] = useState<
+    'auto' | 'tesseract' | 'typhoon-ocr-3b'
+  >('auto');
   const [ocrResult, setOcrResult] = useState<{
     requestPublicId: string;
     ocrText: string;
     ocrUsed: boolean;
+    engineUsed?: string;
+    fallbackUsed?: boolean;
   } | null>(null);
   const [selectedPromptVersion, setSelectedPromptVersion] = useState<number | undefined>(undefined);
   const { state: sandboxState, jobId: sandboxJobId, reset: resetSandbox } =
@@ -195,7 +200,10 @@ export default function OcrSandboxPromptManager() {
     try {
       resetSandbox();
       setSandboxStep('ocr');
-      const { requestPublicId } = await adminAiService.submitSandboxOcr(ocrFile);
+      const { requestPublicId } = await adminAiService.submitSandboxOcr(
+        ocrFile,
+        selectedOcrEngine
+      );
       toast.success(t('ai.prompt.uploadSuccess'));
       // Poll สำหรับผลลัพธ์ OCR
       const pollInterval = setInterval(async () => {
@@ -207,6 +215,8 @@ export default function OcrSandboxPromptManager() {
               requestPublicId,
               ocrText: result.ocrText || '',
               ocrUsed: result.ocrUsed || false,
+              engineUsed: result.engineUsed,
+              fallbackUsed: result.fallbackUsed,
             });
             setSandboxStep('ai');
             toast.success('OCR completed successfully');
@@ -270,6 +280,7 @@ export default function OcrSandboxPromptManager() {
     setSandboxStep('ocr');
     setOcrResult(null);
     setSelectedPromptVersion(undefined);
+    setSelectedOcrEngine('auto');
     setOcrFile(null);
     resetSandbox();
   };
@@ -369,6 +380,22 @@ export default function OcrSandboxPromptManager() {
                 {sandboxStep === 'ocr' ? (
                   <form onSubmit={handleStep1Ocr} className="space-y-4">
                     <div className="space-y-2">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">OCR Engine</label>
+                        <select
+                          value={selectedOcrEngine}
+                          onChange={(e) =>
+                            setSelectedOcrEngine(
+                              e.target.value as 'auto' | 'tesseract' | 'typhoon-ocr-3b'
+                            )
+                          }
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
+                        >
+                          <option value="auto">Auto (Current Baseline)</option>
+                          <option value="tesseract">Tesseract OCR</option>
+                          <option value="typhoon-ocr-3b">Typhoon OCR-3B</option>
+                        </select>
+                      </div>
                       <div
                         className={cn(
                           'flex flex-col items-center justify-center rounded-lg border border-dashed p-8 transition-all',
@@ -508,10 +535,19 @@ export default function OcrSandboxPromptManager() {
                     OCR Raw Text (Step 1 Result)
                   </CardTitle>
                   <Badge variant="outline" className="text-xs">
-                    {ocrResult.ocrUsed ? 'Tesseract' : 'Fast Path (Text Layer)'}
+                    {ocrResult.engineUsed === 'typhoon-ocr-3b'
+                      ? 'Typhoon OCR-3B'
+                      : ocrResult.ocrUsed
+                        ? 'Tesseract'
+                        : 'Fast Path (Text Layer)'}
                   </Badge>
                 </CardHeader>
                 <CardContent className="pt-4">
+                  {ocrResult.fallbackUsed && (
+                    <div className="mb-3 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                      Typhoon OCR unavailable. Fallback to Tesseract was used for this run.
+                    </div>
+                  )}
                   <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[200px] border border-border/10">
                     <pre className="text-blue-600 dark:text-blue-400 select-text leading-relaxed whitespace-pre-wrap">
                       {ocrResult.ocrText || '(ไม่มีข้อความ)'}

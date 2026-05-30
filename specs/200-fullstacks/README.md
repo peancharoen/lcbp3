@@ -22,6 +22,9 @@
 - `224-intent-classification` - AI Intent Classification
 - `225-ai-tool-layer-architecture` - AI Tool Layer Architecture
 - `226-document-chat-ui-pattern` - Document Chat UI Pattern
+- `227-ai-admin-console` - AI Admin Console
+- `228-migration-arch-refactor` - Migration Architecture Refactor
+- `232-typhoon-ocr-integration` - Typhoon OCR Integration (Typhoon OCR-3B + typhoon2.1-gemma3-4b)
 
 ## การตั้งชื่อโฟลเดอร์
 

@@ -10,7 +10,9 @@
 import os
 import logging
 import re
+import base64
 import fitz  # PyMuPDF
+import httpx
 from pathlib import Path
 from typing import Optional
 from PIL import Image
@@ -33,6 +35,9 @@ app = FastAPI(title="Tesseract OCR Sidecar", version="1.0.0")
 OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
 MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
 OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng = Thai + English)
+OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
+TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "scb10x/typhoon-ocr-3b")
+TYPHOON_OCR_TIMEOUT = int(os.getenv("TYPHOON_OCR_TIMEOUT", "120"))
 # PSM 3 = Fully automatic page segmentation (เหมาะกับเอกสารที่มี layout หลายส่วน เช่น วันที่/เลขที่)
 # OEM 1 = LSTM only (ดีกว่า legacy engine)
 TESSERACT_CONFIG = f"--psm 3 --oem 1"
@@ -101,6 +106,7 @@ def preprocess_image(pil_image: Image.Image) -> Image.Image:
 class OcrRequest(BaseModel):
     pdfPath: str
     maxPages: Optional[int] = None
+    engine: Optional[str] = None
 
 
 class OcrResponse(BaseModel):
@@ -108,11 +114,36 @@ class OcrResponse(BaseModel):
     ocrUsed: bool
     pageCount: int
     charCount: int
+    engineUsed: str
 
 
 @app.get("/health")
 def health():
     return {"status": "ok", "engine": "tesseract"}
+
+
+def process_with_typhoon_ocr(pil_image: Image.Image) -> str:
+    """เรียก Typhoon OCR ผ่าน Ollama สำหรับ sandbox option โดยไม่แตะ backend DB/storage"""
+    img_buffer = io.BytesIO()
+    pil_image.save(img_buffer, format="PNG")
+    image_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
+    payload = {
+        "model": TYPHOON_OCR_MODEL,
+        "prompt": "สกัดข้อความภาษาไทยและอังกฤษทั้งหมดจากภาพนี้อย่างถูกต้อง รักษาโครงสร้างบรรทัดและการเว้นวรรคให้ใกล้เคียงต้นฉบับมากที่สุด ห้ามเพิ่มคำอธิบายใดๆ",
+        "images": [image_base64],
+        "stream": False,
+        "options": {
+            "temperature": 0.0,
+            "top_p": 0.9,
+            "repeat_penalty": 1.0,
+        },
+        "keep_alive": 0,
+    }
+    with httpx.Client(timeout=TYPHOON_OCR_TIMEOUT) as client:
+        response = client.post(f"{OLLAMA_API_URL}/api/generate", json=payload)
+        response.raise_for_status()
+        data = response.json()
+        return str(data.get("response", "")).strip()
 
 
 @app.post("/ocr", response_model=OcrResponse)
@@ -121,6 +152,7 @@ def ocr_extract(req: OcrRequest):
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail=f"ไม่พบไฟล์: {req.pdfPath}")
 
+    selected_engine = (req.engine or "auto").strip().lower()
     max_pages = req.maxPages or MAX_PAGES
 
     try:
@@ -131,24 +163,45 @@ def ocr_extract(req: OcrRequest):
     pages_to_process = list(range(min(len(doc), max_pages) if max_pages > 0 else len(doc)))
     page_count = len(pages_to_process)
 
-    # Fast path: ลอง extract text layer ก่อน
     fast_text_parts = []
-    for i in pages_to_process:
-        page = doc[i]
-        fast_text_parts.append(page.get_text())
-    fast_text = "\n".join(fast_text_parts).strip()
-    total_chars = len(fast_text)
+    total_chars = 0
+    if selected_engine == "auto":
+        # Fast path: ลอง extract text layer ก่อน
+        for i in pages_to_process:
+            page = doc[i]
+            fast_text_parts.append(page.get_text())
+        fast_text = "\n".join(fast_text_parts).strip()
+        total_chars = len(fast_text)
+        if total_chars > OCR_CHAR_THRESHOLD:
+            logger.info(f"Fast path: {total_chars} chars extracted from {pdf_path.name}")
+            return OcrResponse(
+                text=fast_text,
+                ocrUsed=False,
+                pageCount=page_count,
+                charCount=total_chars,
+                engineUsed="fast-path",
+            )
 
-    if total_chars > OCR_CHAR_THRESHOLD:
-        logger.info(f"Fast path: {total_chars} chars extracted from {pdf_path.name}")
+    if selected_engine == "typhoon-ocr-3b":
+        logger.info(f"Typhoon OCR path: {pdf_path.name}")
+        typhoon_text_parts = []
+        for i in pages_to_process:
+            page = doc[i]
+            pix = page.get_pixmap(dpi=300)
+            img_bytes = pix.tobytes("png")
+            img = Image.open(io.BytesIO(img_bytes))
+            cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
+            processed_img = preprocess_image(cropped_img)
+            typhoon_text_parts.append(process_with_typhoon_ocr(processed_img))
+        typhoon_text = filter_ocr_noise("\n".join(typhoon_text_parts).strip())
         return OcrResponse(
-            text=fast_text,
-            ocrUsed=False,
+            text=typhoon_text,
+            ocrUsed=True,
             pageCount=page_count,
-            charCount=total_chars,
+            charCount=len(typhoon_text),
+            engineUsed="typhoon-ocr-3b",
         )
 
-    # Slow path: ใช้ Tesseract OCR กับทุกหน้า
     logger.info(f"Slow path (Tesseract): {total_chars} chars too few for {pdf_path.name}")
     ocr_text_parts = []
     for i in pages_to_process:
@@ -179,6 +232,7 @@ def ocr_extract(req: OcrRequest):
         ocrUsed=True,
         pageCount=page_count,
         charCount=len(ocr_text),
+        engineUsed="tesseract",
     )
 
 

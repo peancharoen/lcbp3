@@ -179,13 +179,24 @@ graph TB
 
 > **นโยบาย:** เอกสารทั้งหมดใน LCBP3 จัดชั้นเป็น **INTERNAL** — AI Inference ทั้งหมดต้องรันภายใน Physical Isolation Boundary บน Desk-5439 เท่านั้น ห้ามใช้ Cloud AI Provider โดยเด็ดขาด
 
-#### 2.1 Model Stack (2 โมเดลเท่านั้น)
+#### 2.1 Model Stack & Dynamic Thai-Specialized Models (T041, US2, US3)
+
+ระบบประมวลผลพื้นฐานจะรันด้วยชุด 2-Model Stack ที่ประหยัด VRAM เป็นหลัก และเปิดให้โหลดสลับไปประมวลผลด้วยโมเดลภาษาไทยเฉพาะทางประสิทธิภาพสูง (High-Performance Thai Specialized Models) ได้แบบ Dynamic ภายใต้การควบคุมของ VRAM Monitor เพื่อไม่ให้เกิด VRAM OOM:
+
+##### ชุดประมวลผลหลัก (Baseline 2-Model Stack):
 
 | โมเดล | Role | VRAM (โดยประมาณ) | หมายเหตุ |
 |-------|------|-----------------|---------|
 | `gemma4:e2b` | General Inference + OCR Post-processing + Extraction + RAG Q&A | ~2GB (Q4) + ~0.2GB (KV Cache) | Q4 quantization; Context window 8K tokens; Parameters 2.1B |
 | `nomic-embed-text` | Embedding 768-dim → Qdrant | ~0.3GB | สร้าง Semantic Vector สำหรับ Hybrid Search |
 | **รวม (peak)** | | **~2.5GB** | **เผื่อ headroom ~5.5GB — มั่นใจสูง เพราะ context window ขนาดใหญ่ (8K tokens)** |
+
+##### โมเดลภาษาไทยเฉพาะทางที่เป็นทางเลือก (Dynamic Thai Specialized Models):
+
+| โมเดลทางเลือก | Role | VRAM (โดยประมาณ) | การจำกัดความเสี่ยง VRAM OOM |
+|-------|------|-----------------|---------|
+| **`scb10x/typhoon-ocr-3b`** | OCR ภาษาไทยใน OCR Sandbox | ~3.5GB | ตั้งค่า `"keep_alive": 0` (unload ทันทีหลังเสร็จสิ้น) + เช็ค VRAM ว่างต้อง ≥ 4000MB (มิฉะนั้นห้ามรันและ Fallback ไป Tesseract อัตโนมัติใน 5 วินาที) |
+| **`scb10x/typhoon2.1-gemma3-4b`** | LLM สำหรับสกัดข้อมูลและจัดหมวดหมู่เอกสาร | ~4.5GB | ตั้งค่า `"keep_alive": 0` + ตรวจสอบ capacity โดย `VramMonitorService` ก่อนอนุญาตให้เปลี่ยนโมเดลหลัก |
 
 * **Orchestrator:** ใช้ **n8n** เป็นตัวควบคุม Flow **Migration Phase เท่านั้น** (trigger batch, monitor progress, handle retry ระดับ batch) — ห้าม n8n เรียก Ollama หรือ PaddleOCR โดยตรง
 * **Job Executor:** ทุก AI Inference (OCR, Extraction, Embedding, RAG) ต้องผ่าน **BullMQ บน NestJS เท่านั้น** — n8n call `POST /api/ai/jobs` เพื่อ queue job แล้ว poll ผลผ่าน `GET /api/ai/jobs/:jobId`
@@ -481,6 +492,7 @@ export class QdrantService {
 | 1.0 | 2026-05-14 | ยุบรวมและแทนที่ ADR-017, 017B, 018, 020, 022 เป็นฉบับเดียว | ✅ Superseded |
 | 1.1 | 2026-05-14 | Grilling Session: (1) ล็อค Local-only AI บน Desk-5439 ทั้งหมด (2) แยก Typhoon Local vs Cloud (3) ลบ Typhoon Cloud API ออก (4) กำหนด `ai_audit_logs` เป็น Development Feedback Log ไม่ใช่ Compliance (5) เพิ่ม Admin Hard Delete Policy | ✅ Superseded by 023A |
 | 1.2 | 2026-05-15 | ADR-023A: เปลี่ยน Model Stack 3→2 (ลบ Typhoon Local, เปลี่ยน gemma4:9b → gemma4:e4b Q8_0), เพิ่ม BullMQ Queue Policy Table, เพิ่ม VRAM Budget breakdown | ✅ Active |
+| 1.3 | 2026-05-30 | บันทึกการรองรับ Typhoon OCR-3B และ typhoon2.1-gemma3-4b แบบ Dynamic พร้อมระบบ VRAM capacity check และ Tesseract fallback | ✅ Active |
 
 ---
 

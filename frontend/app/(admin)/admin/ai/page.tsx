@@ -1,5 +1,4 @@
 // File: frontend/app/(admin)/admin/ai/page.tsx
-'use client';
 // Change Log
 // - 2026-05-21: เพิ่มหน้า AI Admin Console สำหรับเปิด/ปิด AI features.
 // - 2026-05-21: เพิ่มส่วนแสดงผลสถานะสุขภาพของระบบ AI (Ollama, Qdrant, queues) แบบ real-time polling 30s (T030, T031).
@@ -7,6 +6,9 @@
 // - 2026-05-21: เพิ่ม OCR Sandbox tab พร้อมการอัปเดตสถานะและการแสดงผล JSON แบบมีสีสำหรับ Superadmin (T043-T045).
 // - 2026-05-21: แก้ไข ESLint error เกี่ยวกับ any type และ console.error statement ให้ตรงตามมาตรฐาน Tier 1/2
 // - 2026-05-25: เพิ่ม AI Model Management UI สำหรับเลือกโมเดลแบบไดนามิก (ADR-027).
+// - 2026-05-30: นำเข้าและแสดงผล OcrEngineSelector component ใน Overview tab (T019, T020)
+
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -24,6 +26,7 @@ import { projectService } from '@/lib/services/project.service';
 import { adminAiService, AiSandboxJobResult, AiAvailableModel } from '@/lib/services/admin-ai.service';
 import { toast } from 'sonner';
 import OcrSandboxPromptManager from '@/components/admin/ai/OcrSandboxPromptManager';
+import OcrEngineSelector from '@/components/admin/ai/OcrEngineSelector';
 
 interface SandboxProject {
   publicId: string;
@@ -45,7 +48,6 @@ export default function AiAdminConsolePage() {
   const [sandboxProgress, setSandboxProgress] = useState<number>(0);
   const [sandboxStatusText, setSandboxStatusText] = useState<string>('');
 
-
   // AI Model Management State (ADR-027)
   const { data: aiModelsData, refetch: refetchModels } = useQuery<{ models: AiAvailableModel[]; activeModel: string }>({
     queryKey: ['ai-available-models'],
@@ -56,6 +58,15 @@ export default function AiAdminConsolePage() {
   const availableModels = aiModelsData?.models ?? [];
   const activeModel = aiModelsData?.activeModel ?? '';
 
+  // VRAM Monitoring State (T034, T036, US2)
+  const { data: vramStatus, refetch: refetchVram } = useQuery({
+    queryKey: ['ai-vram-status'],
+    queryFn: async () => {
+      return await adminAiService.getVramStatus();
+    },
+    refetchInterval: 15000,
+  });
+
   const { data: projects = [], isLoading: isProjectsLoading } = useQuery<SandboxProject[]>({
     queryKey: ['admin-sandbox-projects'],
     queryFn: async () => {
@@ -63,17 +74,23 @@ export default function AiAdminConsolePage() {
       return res as SandboxProject[];
     },
   });
+
   const handleToggle = async (enabled: boolean): Promise<void> => {
     await toggleMutation.mutateAsync(enabled);
   };
 
-  const handleModelChange = async (modelName: string): Promise<void> => {
+  const handleModelChange = async (modelId: string): Promise<void> => {
     try {
-      await adminAiService.setActiveModel(modelName);
-      toast.success(`เปลี่ยนโมเดลเป็น ${modelName} สำเร็จ`);
+      const selectedModel = availableModels.find(m => m.modelId === modelId || String(m.id) === modelId);
+      const name = selectedModel?.modelName || modelId;
+      await adminAiService.setActiveModel(modelId);
+      toast.success(`เปลี่ยนโมเดลเป็น ${name} สำเร็จ`);
       await refetchModels();
-    } catch {
-      toast.error('ไม่สามารถเปลี่ยนโมเดลได้');
+      refetchVram();
+    } catch (err: unknown) {
+      const errorResponse = err as { response?: { data?: { message?: string } } };
+      const errorMsg = errorResponse.response?.data?.message || 'ไม่สามารถเปลี่ยนโมเดลได้เนื่องจาก VRAM ไม่เพียงพอ';
+      toast.error(errorMsg);
     }
   };
 
@@ -97,9 +114,11 @@ export default function AiAdminConsolePage() {
       toast.error('ไม่สามารถลบโมเดลได้');
     }
   };
+
   const handleRefreshAll = async (): Promise<void> => {
-    await Promise.all([refetch(), refetchHealth()]);
+    await Promise.all([refetch(), refetchHealth(), refetchModels(), refetchVram()]);
   };
+
   const handleSubmitSandbox = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!selectedProject) {
@@ -125,6 +144,7 @@ export default function AiAdminConsolePage() {
       setSandboxStatusText('');
     }
   };
+
   useEffect(() => {
     if (!sandboxJobId) return;
     let timer: NodeJS.Timeout;
@@ -182,6 +202,7 @@ export default function AiAdminConsolePage() {
         return <Badge variant="destructive">Down</Badge>;
     }
   };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -272,7 +293,7 @@ export default function AiAdminConsolePage() {
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <ScanText className="h-4 w-4 text-primary" />
-                  PaddleOCR Sidecar
+                  OCR Sidecar (Tesseract)
                 </CardTitle>
                 {isHealthLoading ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> : renderStatusBadge(health?.ocr?.status)}
               </CardHeader>
@@ -342,7 +363,62 @@ export default function AiAdminConsolePage() {
                 )}
               </CardContent>
             </Card>
+            <Card className="relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-md md:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Cpu className="h-4 w-4 text-primary" />
+                  VRAM GPU Monitor
+                </CardTitle>
+                {vramStatus ? (
+                  <Badge variant={vramStatus.usagePercent > 85 ? 'destructive' : 'secondary'} className="text-[10px]">
+                    {vramStatus.usagePercent}% Used
+                  </Badge>
+                ) : (
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {vramStatus ? (
+                  <>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">GPU VRAM Usage</span>
+                        <span className="font-semibold text-foreground">
+                          {vramStatus.usedVRAMMB} MB / {vramStatus.totalVRAMMB} MB
+                        </span>
+                      </div>
+                      <Progress value={vramStatus.usagePercent} className="h-2" />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1 text-xs">
+                        <span className="text-muted-foreground block">โมเดลที่โหลดบน GPU ในปัจจุบัน:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {vramStatus.loadedModels && vramStatus.loadedModels.length > 0 ? (
+                            vramStatus.loadedModels.map((m) => (
+                              <Badge key={m.modelId || m.modelName} className="bg-primary/10 text-primary border-none hover:bg-primary/20 text-[10px]">
+                                {m.modelName} ({m.vramUsageMB} MB)
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground italic">ไม่มีโมเดลที่โหลดค้างในหน่วยความจำ</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-1 text-xs sm:text-right">
+                        <span className="text-muted-foreground block">ความสามารถในการโหลดโมเดลใหม่:</span>
+                        <Badge variant={vramStatus.canLoadModel ? 'default' : 'destructive'} className="mt-1 text-[10px]">
+                          {vramStatus.canLoadModel ? 'พร้อมโหลดโมเดลหลัก' : 'หน่วยความจำไม่เพียงพอ (OOM Guard)'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic text-center py-4">กำลังดึงข้อมูลสถานะ GPU VRAM...</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
+          
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -394,7 +470,7 @@ export default function AiAdminConsolePage() {
                     โมเดล AI ที่ใช้งานอยู่ (Global)
                   </label>
                   <Select
-                    value={activeModel}
+                    value={availableModels.find((m) => m.modelName === activeModel)?.modelId || availableModels.find((m) => m.modelName === activeModel)?.id?.toString() || ''}
                     onValueChange={handleModelChange}
                   >
                     <SelectTrigger id="model-select" className="w-full sm:w-[300px]">
@@ -404,13 +480,13 @@ export default function AiAdminConsolePage() {
                       {availableModels
                         .filter((m) => m.isActive)
                         .map((model) => (
-                          <SelectItem key={model.modelName} value={model.modelName}>
+                          <SelectItem key={model.modelId || model.modelName} value={model.modelId || model.id?.toString() || model.modelName}>
                             {model.modelName}
                             {model.isDefault && (
                               <Badge variant="secondary" className="ml-2 text-[10px]">Default</Badge>
                             )}
-                            {model.vramGb && (
-                              <span className="ml-1 text-muted-foreground">({model.vramGb}GB)</span>
+                            {model.vramRequirementMB && (
+                              <span className="ml-1 text-muted-foreground">({Math.round(model.vramRequirementMB / 1024 * 10) / 10}GB VRAM)</span>
                             )}
                           </SelectItem>
                         ))}
@@ -430,7 +506,7 @@ export default function AiAdminConsolePage() {
                   ) : (
                     availableModels.map((model) => (
                       <div
-                        key={model.modelName}
+                        key={model.modelId || model.modelName}
                         className="flex items-center justify-between p-2 rounded border bg-background/50"
                       >
                         <div className="flex items-center gap-2">
@@ -446,6 +522,11 @@ export default function AiAdminConsolePage() {
                           )}
                           {activeModel === model.modelName && (
                             <Badge variant="default" className="text-[10px] bg-emerald-500">Current</Badge>
+                          )}
+                          {model.vramRequirementMB && (
+                            <Badge variant="outline" className="text-[10px] border-amber-500/20 text-amber-500 bg-amber-500/5">
+                              {Math.round(model.vramRequirementMB / 1024 * 10) / 10} GB VRAM
+                            </Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
@@ -478,6 +559,9 @@ export default function AiAdminConsolePage() {
             </CardContent>
           </Card>
 
+          {/* OCR Engine Management Card (ADR-032) */}
+          <OcrEngineSelector />
+
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
@@ -507,6 +591,7 @@ export default function AiAdminConsolePage() {
             </Card>
           </div>
         </TabsContent>
+        
         <TabsContent value="playground" className="space-y-6">
           <Card className="border border-border/50 bg-background/50 backdrop-blur-md">
             <CardHeader>
@@ -689,6 +774,7 @@ export default function AiAdminConsolePage() {
             </div>
           )}
         </TabsContent>
+
         <TabsContent value="ocr" className="space-y-6">
           <OcrSandboxPromptManager />
         </TabsContent>

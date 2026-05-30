@@ -3,10 +3,10 @@
 ---
 
 **title:** 'LCBP3-DMS Architecture Documentation'
-**version:** 1.9.7
+**version:** 1.9.8
 **status:** active
 **owner:** Nattanin Peancharoen
-**last_updated:** 2026-05-25
+**last_updated:** 2026-05-30
 **related:**
 
 - specs/02-Architecture/02-01-system-context.md
@@ -519,24 +519,26 @@ graph TB
 
 ### 6.1 Key ADRs Implemented
 
-| ADR          | Title                           | Status    | Description                                                           |
-| ------------ | ------------------------------- | --------- | --------------------------------------------------------------------- |
-| **ADR-001**  | Unified Workflow Engine         | ✅ Active | DSL-based workflow implementation                                     |
-| **ADR-002**  | Document Numbering Strategy     | ✅ Active | Document number generation + locking                                  |
-| **ADR-007**  | Error Handling Strategy         | ✅ Active | Layered error classification                                          |
-| **ADR-008**  | Email Notification Strategy     | ✅ Active | BullMQ + multi-channel notification                                   |
-| **ADR-009**  | Database Migration Strategy     | ✅ Active | Schema changes — edit SQL directly                                    |
-| **ADR-016**  | Security Authentication         | ✅ Active | Auth, RBAC, file upload security                                      |
-| **ADR-019**  | Hybrid Identifier Strategy      | ✅ Active | INT PK + UUIDv7 Public API                                            |
-| **ADR-021**  | Workflow Context                | ✅ Active | Integrated workflow & step attachments                                |
-| **ADR-023**  | Unified AI Architecture         | ✅ Active | AI boundaries and pipeline                                            |
-| **ADR-023A** | AI Model Revision               | ✅ Active | 2-Model stack with BullMQ queues                                      |
-| **ADR-024**  | Intent Classification Strategy  | ✅ Active | Hybrid Pattern → LLM Fallback intent routing                          |
-| **ADR-025**  | AI Tool Layer Architecture      | ✅ Active | Server-side Tool dispatch, CASL-guarded bridge                        |
-| **ADR-026**  | Document Chat UI Pattern        | ✅ Active | Side-panel document chat UI                                           |
-| **ADR-027**  | AI Admin Console & Dynamic Ctrl | ✅ Active | AI Admin Panel + dynamic model/prompt control                         |
-| **ADR-028**  | Migration Architecture Refactor | ✅ Active | Staging Queue & post-migration cleanup                                |
-| **ADR-029**  | Dynamic Prompt Management       | ✅ Active | Prompt templates in DB (`ai_prompts`), Redis cache TTL 60s, versioned |
+| ADR          | Title                           | Status    | Description                                                                            |
+| ------------ | ------------------------------- | --------- | -------------------------------------------------------------------------------------- |
+| **ADR-001**  | Unified Workflow Engine         | ✅ Active | DSL-based workflow implementation                                                      |
+| **ADR-002**  | Document Numbering Strategy     | ✅ Active | Document number generation + locking                                                   |
+| **ADR-007**  | Error Handling Strategy         | ✅ Active | Layered error classification                                                           |
+| **ADR-008**  | Email Notification Strategy     | ✅ Active | BullMQ + multi-channel notification                                                    |
+| **ADR-009**  | Database Migration Strategy     | ✅ Active | Schema changes — edit SQL directly                                                     |
+| **ADR-016**  | Security Authentication         | ✅ Active | Auth, RBAC, file upload security                                                       |
+| **ADR-019**  | Hybrid Identifier Strategy      | ✅ Active | INT PK + UUIDv7 Public API                                                             |
+| **ADR-021**  | Workflow Context                | ✅ Active | Integrated workflow & step attachments                                                 |
+| **ADR-023**  | Unified AI Architecture         | ✅ Active | AI boundaries and pipeline                                                             |
+| **ADR-023A** | AI Model Revision               | ✅ Active | 2-Model stack with BullMQ queues                                                       |
+| **ADR-024**  | Intent Classification Strategy  | ✅ Active | Hybrid Pattern → LLM Fallback intent routing                                           |
+| **ADR-025**  | AI Tool Layer Architecture      | ✅ Active | Server-side Tool dispatch, CASL-guarded bridge                                         |
+| **ADR-026**  | Document Chat UI Pattern        | ✅ Active | Side-panel document chat UI                                                            |
+| **ADR-027**  | AI Admin Console & Dynamic Ctrl | ✅ Active | AI Admin Panel + dynamic model/prompt control                                          |
+| **ADR-028**  | Migration Architecture Refactor | ✅ Active | Staging Queue & post-migration cleanup                                                 |
+| **ADR-029**  | Dynamic Prompt Management       | ✅ Active | Prompt templates in DB (`ai_prompts`), Redis cache TTL 60s, versioned                  |
+| **ADR-031**  | Hermes Agent & Telegram Bridge  | 📝 Draft  | Optional DevOps Agent with Telegram commands, read-only diagnostics                    |
+| **ADR-032**  | Typhoon OCR Integration         | 📝 Draft  | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop, VRAM monitoring, Redis caching |
 
 ### 6.2 ADR References
 

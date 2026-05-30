@@ -9,6 +9,7 @@
 // - 2026-05-21: แก้ไขข้อห้ามใช้ parseInt โดยการใช้ Number แทนตามกฎ Tier 1
 // - 2026-05-23: เพิ่ม Migration Checkpoint API endpoints แทน MySQL direct access (ADR-023A)
 // - 2026-05-30: เพิ่ม @UseInterceptors(FileInterceptor('file')) ใน submitSandboxOcr เพื่อแก้ไขปัญหา BadRequestException (File is required)
+// - 2026-05-30: เพิ่ม endpoints GET/POST/PATCH models และ GET vram/status สำหรับ dynamic AI model management และ VRAM monitoring (T031-T034, US2)
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -78,6 +79,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { DeleteAuditLogsQueryDto } from './dto/delete-audit-logs.dto';
 import { AiToolRegistryService } from './tool/ai-tool-registry.service';
 import { AiIntentRequestDto } from './dto/ai-intent-request.dto';
+import { AddAiModelDto } from './dto/add-ai-model.dto';
 import { ToggleAiFeaturesDto } from './dto/ai-admin-settings.dto';
 import { AiEnabledGuard } from './guards/ai-enabled.guard';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -921,5 +923,85 @@ export class AiController {
   @ApiOperation({ summary: 'Migration: บันทึก Error Log (ADR-023A)' })
   async logMigrationError(@Body() dto: MigrationErrorLogDto) {
     return this.migrationCheckpointService.logError(dto);
+  }
+
+  // ─── AI Model Management & VRAM Monitoring Endpoints (T031-T034, US2) ───
+
+  @Get(['models', 'ai-models'])
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary:
+      'AI Models List — ดึงรายการโมเดล AI ทั้งหมดพร้อม VRAM requirement (T031, US2)',
+    description:
+      'ดึงรายการโมเดล AI ทั้งหมดที่ใช้งานได้ รวมถึงสถานะการทำงานและทรัพยากร VRAM ที่ต้องการ',
+  })
+  async getAiModels() {
+    const result = await this.aiService.getAiModels();
+    return {
+      data: {
+        models: result.models,
+        activeModel: result.activeModel,
+      },
+      models: result.models,
+      activeModel: result.activeModel,
+    };
+  }
+
+  @Post(['models', 'ai-models'])
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary:
+      'AI Add Model — เพิ่มโมเดล AI ใหม่เข้าระบบพร้อมระบุ VRAM requirement (T032, US2)',
+    description:
+      'เพิ่มโมเดล AI ใหม่เข้าสู่ระบบเพื่อใช้สำหรับคิวงาน หรือ OCR processing',
+  })
+  async addAiModel(@Body() dto: AddAiModelDto, @CurrentUser() user: User) {
+    const model = await this.aiService.addAiModel(dto, user.user_id);
+    return { data: model };
+  }
+
+  @Patch(['models/:modelId/activate', 'ai-models/:modelId/activate'])
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'AI Activate Model — สลับโมเดล AI หลักพร้อมตรวจสอบ VRAM (T033, US2)',
+    description:
+      'เปิดใช้งานโมเดล AI สำหรับระบบหลัก โดยจะมีการตรวจสอบ capacity ของ VRAM GPU ป้องกัน OOM',
+  })
+  async activateAiModel(
+    @Param('modelId') modelId: string,
+    @Body() _dto: { isActive?: boolean },
+    @CurrentUser() user: User
+  ) {
+    const activeModelName = await this.aiService.activateAiModel(
+      { modelId },
+      user.user_id
+    );
+    return {
+      data: { id: modelId, isActive: true, activeModel: activeModelName },
+    };
+  }
+
+  @Get('vram/status')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary:
+      'AI VRAM Status — ดึงสถานะ VRAM และโมเดลที่โหลดอยู่บน Ollama (T034, US2)',
+    description:
+      'ตรวจสอบปริมาณ VRAM ที่เหลืออยู่ และรายการโมเดลทั้งหมดที่โหลดอยู่ใน GPU แบบเรียลไทม์',
+  })
+  async getVramStatus() {
+    const status = await this.aiService.getVramStatus();
+    return { data: status };
   }
 }

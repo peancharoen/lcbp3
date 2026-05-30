@@ -17,6 +17,7 @@ import { EmbeddingService } from '../services/embedding.service';
 import { AiRagService } from '../ai-rag.service';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
 import { OcrService } from '../services/ocr.service';
+import { SandboxOcrEngineService } from '../services/sandbox-ocr-engine.service';
 import { OllamaService } from '../services/ollama.service';
 import { Project } from '../../project/entities/project.entity';
 import { AiAuditLog } from '../entities/ai-audit-log.entity';
@@ -29,6 +30,7 @@ describe('AiBatchProcessor', () => {
   let embeddingService: jest.Mocked<EmbeddingService>;
   let ragService: jest.Mocked<AiRagService>;
   let ocrService: jest.Mocked<OcrService>;
+  let sandboxOcrEngineService: jest.Mocked<SandboxOcrEngineService>;
   let ollamaService: jest.Mocked<OllamaService>;
   let redis: Record<string, jest.Mock>;
   let attachmentRepo: jest.Mocked<Repository<Attachment>>;
@@ -45,6 +47,14 @@ describe('AiBatchProcessor', () => {
     detectAndExtract: jest
       .fn()
       .mockResolvedValue({ text: 'OCR text LCBP3-CIV-001 Civil' }),
+  };
+  const mockSandboxOcrEngineService = {
+    detectAndExtract: jest.fn().mockResolvedValue({
+      text: 'OCR text LCBP3-CIV-001 Civil',
+      ocrUsed: true,
+      engineUsed: 'typhoon-ocr-3b',
+      fallbackUsed: false,
+    }),
   };
   const mockOllamaService = {
     getMainModelName: jest.fn().mockReturnValue('gemma4:e4b'),
@@ -131,6 +141,10 @@ describe('AiBatchProcessor', () => {
         { provide: EmbeddingService, useValue: mockEmbeddingService },
         { provide: AiRagService, useValue: mockRagService },
         { provide: OcrService, useValue: mockOcrService },
+        {
+          provide: SandboxOcrEngineService,
+          useValue: mockSandboxOcrEngineService,
+        },
         { provide: OllamaService, useValue: mockOllamaService },
         { provide: DEFAULT_REDIS_TOKEN, useValue: mockRedis },
         {
@@ -154,6 +168,7 @@ describe('AiBatchProcessor', () => {
     embeddingService = module.get(EmbeddingService);
     ragService = module.get(AiRagService);
     ocrService = module.get(OcrService);
+    sandboxOcrEngineService = module.get(SandboxOcrEngineService);
     ollamaService = module.get(OllamaService);
     redis = module.get(DEFAULT_REDIS_TOKEN);
     attachmentRepo = module.get(getRepositoryToken(Attachment));
@@ -218,9 +233,10 @@ describe('AiBatchProcessor', () => {
       },
     } as unknown as Job<AiBatchJobData>;
     await processor.process(job);
-    expect(ocrService.detectAndExtract).toHaveBeenCalledWith({
-      pdfPath: '/files/test.pdf',
-    });
+    expect(sandboxOcrEngineService.detectAndExtract).toHaveBeenCalledWith(
+      '/files/test.pdf',
+      'auto'
+    );
     expect(ollamaService.generate).toHaveBeenCalledTimes(1);
     expect(redis.setex).toHaveBeenCalledTimes(2);
     expect(redis.setex).toHaveBeenLastCalledWith(

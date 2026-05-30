@@ -150,7 +150,7 @@ export class AiSettingsService {
         where: { settingKey: AI_ACTIVE_MODEL_KEY },
       });
 
-      const activeModel = setting?.settingValue ?? 'gemma4:e2b';
+      const activeModel = setting?.settingValue ?? 'gemma4:e4b';
       await this.redis.set(
         AI_ACTIVE_MODEL_CACHE_KEY,
         activeModel,
@@ -160,7 +160,7 @@ export class AiSettingsService {
       return activeModel;
     } catch (error: unknown) {
       this.logger.error(`Failed to get active model: ${this.toMessage(error)}`);
-      return 'gemma4:e2b';
+      return 'gemma4:e4b';
     }
   }
 

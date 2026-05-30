@@ -98,4 +98,17 @@ describe('AiSettingsService', () => {
       'system_settings:AI_FEATURES_ENABLED'
     );
   });
+
+  it('ควรใช้ gemma4:e4b เป็นค่า active model เริ่มต้นเมื่อยังไม่มี system setting', async () => {
+    mockRedis.get.mockResolvedValue(null);
+    mockSettingRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.getActiveModel()).resolves.toBe('gemma4:e4b');
+    expect(mockRedis.set).toHaveBeenCalledWith(
+      'system_settings:AI_ACTIVE_MODEL',
+      'gemma4:e4b',
+      'EX',
+      30
+    );
+  });
 });

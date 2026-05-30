@@ -164,7 +164,10 @@ graph TB
 
 * **Orchestrator:** ใช้ **n8n** เป็นตัวควบคุม Flow การนำเข้าและเตรียมข้อมูล
 * **LLM Engine (General Inference):** ใช้ **Ollama** บน Desk-5439 รันโมเดล `gemma4:9b` สำหรับงานทำความเข้าใจเอกสารและ RAG Q&A
-* **LLM Engine (OCR Post-processing & Extraction):** ใช้ **Typhoon Local Model** (Typhoon 2 series) รันผ่าน Ollama บน Desk-5439 สำหรับทำความสะอาดข้อความ (OCR Post-processing) และสกัด Metadata (Classification/Extraction) จากข้อความที่ PaddleOCR สกัดมาแล้ว
+* **LLM Engine & OCR (Thai Specialized Models - T040, US2, US3):** รองรับการสลับและเปิดใช้งานโมเดลเฉพาะทางภาษาไทย On-premises แบบ dynamic ได้แก่:
+  * **`scb10x/typhoon-ocr-3b`** (~3.5GB VRAM) สำหรับ OCR ภาษาไทยคุณภาพสูงผ่าน OCR Sandbox Selector (มี fallback ไปยัง Tesseract อัตโนมัติใน 5 วินาที)
+  * **`scb10x/typhoon2.1-gemma3-4b`** (~4.5GB VRAM) สำหรับงานสกัด Metadata และวิเคราะห์ข้อความภาษาไทยผ่าน AI Model Management
+  * ทั้งหมดนี้ควบคุมด้วยนโยบาย **`keep_alive = 0`** ( unload ทันทีหลัง inference) และ **`VramMonitorService`** ใน backend เพื่อหลีกเลี่ยง GPU VRAM OOM
 * **Embedding Model:** ใช้ `nomic-embed-text` รันผ่าน Ollama บน Desk-5439 สำหรับแปลงเวกเตอร์ 768-มิติ
 * **OCR & NLP:** ใช้ **PaddleOCR** สกัดข้อความจาก Scanned PDF และใช้ **PyThaiNLP** ตัดคำ/เตรียมข้อความภาษาไทย — ทั้งคู่รันบน Desk-5439
 * ❌ **Typhoon Cloud API:** ไม่ใช้ — `rag/typhoon.service.ts` ต้องถูก Remove ออกจาก Codebase (Dead Code + Security Risk)
@@ -238,6 +241,7 @@ graph TB
 |---------|------|---------|--------|
 | 1.0 | 2026-05-14 | ยุบรวมและแทนที่ ADR-017, 017B, 018, 020, 022 เป็นฉบับเดียว | ✅ Active |
 | 1.1 | 2026-05-14 | Grilling Session: (1) ล็อค Local-only AI บน Desk-5439 ทั้งหมด (2) แยก Typhoon Local vs Cloud (3) ลบ Typhoon Cloud API ออก (4) กำหนด `ai_audit_logs` เป็น Development Feedback Log ไม่ใช่ Compliance (5) เพิ่ม Admin Hard Delete Policy | ✅ Active |
+| 1.2 | 2026-05-30 | บันทึกการรองรับ Typhoon OCR-3B และ typhoon2.1-gemma3-4b แบบ Dynamic พร้อมระบบ VRAM capacity check และ Tesseract fallback | ✅ Active |
 
 ---
 

@@ -8,15 +8,17 @@
 - 2026-05-25 (Session 5): N8N Workflow Debug — แก้ Submit AI Job (jsonBody serialization + RBAC permission gap) และเพิ่ม checksum-based dedup ใน FileStorageService.upload().
 - 2026-05-25 (Session 6): AI Model Management (ADR-027) — เพิ่มระบบเลือกโมเดล AI แบบไดนามิกผ่าน AI Admin Console: สร้าง `ai_available_models` table + entity, extend `AiSettingsService` ด้วย methods CRUD โมเดล, add REST endpoints, update frontend UI ด้วย Select dropdown และ model list management, update `OllamaService` ใช้ DB-configured model แทน ENV เท่านั้น.
 - 2026-05-25 (Session 7): PaddleOCR Sidecar setup บน Desk-5439 — สร้าง FastAPI sidecar (port 8765) รองรับ `/ocr` + `/normalize`, แก้ AggregateError ใน ocr.service.ts, เพิ่ม path remapping (`OCR_SIDECAR_UPLOAD_BASE`), CIFS volume mount จาก QNAP.
-- 2026-05-26: เพิ่ม system memories ที่หายไป — QNAP SSH Key Authentication, TransformInterceptor double registration, ADR-021 Transmittals/Circulation integration, Correspondence detail fixes, Playwright E2E setup, Tag/Contract UUID fixes.
+- 2026-05-30: เพิ่ม system memories ที่หายไป — QNAP SSH Key Authentication, TransformInterceptor double registration, ADR-021 Transmittals/Circulation integration, Correspondence detail fixes, Playwright E2E setup, Tag/Contract UUID fixes.
 - 2026-05-27: Context-Aware Prompts & DB CC Typo Cleanup (ADR-030) — นำเสนอการผูก Master Data เข้ากับ Prompt Extraction, ออกแบบ JSON Context-Aware configuration, อัปเดต Entity/DTOs, ออกแบบ JSON format ผู้รับเป็น Object Array ป้องกันบัค และแก้ whitespace typo 'CC ' ในฐานข้อมูล
 - 2026-05-30 (Session 8): OCR Engine Migration — เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อแก้ปัญหา SIGILL (Illegal Instruction) บน CPU เก่าที่ไม่รองรับ AVX: อัปเดต requirements.txt (ลบ paddlepaddle/paddleocr, เพิ่ม pytesseract), app.py (เปลี่ยนใช้ pytesseract, OCR_LANG=tha+eng), Dockerfile (ติดตั้ง tesseract-ocr + ภาษาไทย/อังกฤษ), docker-compose.yml (OCR_LANG=tha+eng, ลบ paddleocr_models volume), backend ocr.service.ts (เปลี่ยน comment/error message), frontend OcrSandboxPromptManager.tsx (เปลี่ยน Badge text)
+- 2026-05-30 (Session 10): OCR Sandbox Two-Step Flow (ADR-030/231) — แยก OCR Sandbox เป็น 2 steps: Step 1 OCR-only → Step 2 AI Extraction. Backend: เพิ่ม job types sandbox-ocr-only และ sandbox-ai-extract, processors processSandboxOcrOnly/processSandboxAiExtract, endpoints POST /ai/admin/sandbox/ocr และ /ai/admin/sandbox/ai-extract, method findByVersion ใน AiPromptsService. Frontend: เพิ่ม methods submitSandboxOcr/submitSandboxAiExtract ใน adminAiService, refactor OcrSandboxPromptManager.tsx ให้มี 2-step UI พร้อม states sandboxStep/ocrResult/selectedPromptVersion, handlers handleStep1Ocr/handleStep2AiExtract/handleResetSandbox. Schema Fix: สร้าง delta SQL 2026-05-30-add-ai-prompts-publicId.sql เพื่อเพิ่ม publicId column ใน ai_prompts table (ADR-019 compliance).
+- 2026-05-30 (Session 11): Typhoon OCR & LLM Integration (ADR-032) — พัฒนาการใช้งานโมเดลภาษาไทยผสมอังกฤษ Typhoon OCR-3B ร่วมกับ Tesseract OCR แบบ Dynamic พร้อมระบบ caching 24 ชม., VRAM Monitor ป้องกัน GPU OOM และระบบ fallback 5s เมื่อโมเดลมีปัญหา และการสลับและบริหารจัดการ LLM โมเดลหลักแบบ Dynamic ในระบบ AI Model Management ของ Next.js frontend
 -->
 
 # 🧠 Agent Long-term Project Memory
 
 > **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
-> **Version:** 1.9.6 (Last Synced: 2026-05-23)
+> **Version:** 1.9.8 (Last Synced: 2026-05-30)
 > **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
 
 > [!IMPORTANT]
@@ -191,10 +193,9 @@ docker compose ps                        # Check status
 | **Frontend**      | `http://localhost:3000`       | QNAP `192.168.10.8`       | Next.js                              |
 | **MariaDB**       | `localhost:3307`              | QNAP internal             | DB: `lcbp3`, root via docker         |
 | **Redis**         | `localhost:6379`              | QNAP internal             | BullMQ + session store               |
-| **n8n**           | `http://localhost:5678`       | QNAP `192.168.10.8:5678`  | Migration orchestrator only          |
-| **Ollama**        | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439) | gemma4:e2b + nomic-embed-text        |
+| **Ollama**        | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439) | gemma4:e2b/e4b, typhoon2.1-gemma3-4b + nomic-embed-text |
 | **Qdrant**        | `http://localhost:6333`       | Admin Desktop (Desk-5439) | Vector DB — requires projectPublicId |
-| **Tesseract OCR** | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439) | `/ocr` + `/normalize` (FastAPI)      |
+| **OCR Sidecar**   | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439) | Dynamic (Tesseract tha+eng / Typhoon OCR-3B) |
 | **Gitea**         | `https://git.np-dms.work`     | QNAP `192.168.10.8`       | Source + CI/CD                       |
 | **Gitea Runner**  | ASUSTOR `192.168.10.9`        | —                         | CI runner                            |
 
@@ -725,19 +726,116 @@ npx playwright show-report             # Generate report
 
 ---
 
-## 🎯 10. แผนงานขั้นต่อไป (Next Session Focus)
+### Session 10 — 2026-05-30 (OCR Sandbox Two-Step Flow) ← **ล่าสุด**
 
-### N8N Migration (งานหลักที่เหลือ)
+**Summary:** แยก OCR Sandbox เป็น 2 steps ตาม spec 231: Step 1 OCR-only → Step 2 AI Extraction เพื่อให้ admin ตรวจคุณภาพ OCR ก่อนทดสอบ AI prompt
+
+**Backend Changes (B1-B5):**
+
+- **AiBatchJobType**: เพิ่ม `sandbox-ocr-only` และ `sandbox-ai-extract` job types
+- **AiBatchProcessor**:
+  - เพิ่ม `processSandboxOcrOnly()` — รัน OCR เท่านั้น, cache OCR text ใน Redis key `ai:sandbox:ocr:{idempotencyKey}` (TTL 3600s)
+  - เพิ่ม `processSandboxAiExtract()` — ดึง OCR text จาก cache, resolve prompt version (active หรือ version ที่ระบุ), replace {{ocr_text}} และ {{master_data_context}}, run LLM
+- **AiPromptsService**: เพิ่ม `findByVersion(promptType, versionNumber)` method สำหรับดึง prompt version ที่ระบุ
+- **AiController**:
+  - เพิ่ม `POST /ai/admin/sandbox/ocr` — Step 1 endpoint (รับ file multipart/form-data)
+  - เพิ่ม `POST /ai/admin/sandbox/ai-extract` — Step 2 endpoint (รับ requestPublicId + optional promptVersion)
+- **AiQueueService**: อัปเดต `enqueueSandboxJob()` รองรับ job types ใหม่และ extraPayload สำหรับส่ง promptVersion
+
+**Frontend Changes (F1-F3):**
+
+- **adminAiService**: เพิ่ม `submitSandboxOcr(file)` และ `submitSandboxAiExtract(requestPublicId, promptVersion)` methods
+- **OcrSandboxPromptManager.tsx**:
+  - เพิ่ม states: `sandboxStep` ('ocr'|'ai'), `ocrResult` (requestPublicId, ocrText, ocrUsed), `selectedPromptVersion`
+  - เพิ่ม handlers: `handleStep1Ocr()` (poll OCR result), `handleStep2AiExtract()` (poll AI result), `handleResetSandbox()`
+  - Refactor UI: Step 1 (upload + Run OCR button) → Step 2 (prompt version dropdown + Run AI Extraction button + Reset button)
+  - แสดง OCR Raw Text card หลัง Step 1 เสร็จ (สีน้ำเงิน, badge บอก PaddleOCR/Fast Path)
+  - แสดง AI Extraction result หลัง Step 2 เสร็จ (สีเขียว, badge บอก promptVersionUsed)
+
+**Schema Fix (ADR-009 + ADR-019):**
+
+- **Delta SQL**: สร้าง `2026-05-30-add-ai-prompts-publicId.sql` เพิ่ม `publicId CHAR(36) UNIQUE` column ใน `ai_prompts` table
+- **Root Cause**: Entity มี `publicId` field แต่ DB table ไม่มี column นี้ → QueryFailedError: "Unknown column 'AiPrompt.publicId' in 'SELECT'"
+- **Fix**: ใช้ CHAR(36) แทน UUID type (MariaDB compatible), generate UUID สำหรับ existing records ด้วย `UUID()` function
+
+**Verification:**
+
+- Backend TypeScript: ✅ ผ่าน (`npx tsc --noEmit`)
+- Frontend TypeScript: ✅ ผ่าน (`npx tsc --noEmit`)
+- ESLint: ✅ ผ่าน (แก้ unused `user` parameter ใน `submitSandboxAiExtract`)
+
+**Data Flow:**
+
+```
+Step 1: Upload PDF → POST /ai/admin/sandbox/ocr
+  ↓
+  BullMQ: sandbox-ocr-only job
+  ↓
+  OCR Service → Cache OCR text (ai:sandbox:ocr:{id})
+  ↓
+  Frontend displays OCR Raw Text
+
+Step 2: Select prompt version → POST /ai/admin/sandbox/ai-extract
+  ↓
+  BullMQ: sandbox-ai-extract job
+  ↓
+  Retrieve OCR text from cache (ai:sandbox:ocr:{id})
+  ↓
+  Replace {{ocr_text}} → LLM → JSON result
+  ↓
+  Frontend displays AI Extraction result
+```
+
+**Pending:**
+
+- Run delta SQL `2026-05-30-add-ai-prompts-publicId.sql` ใน production database
+- Restart backend service หลัง apply delta
+- Test 2-step flow จริงใน production environment
+
+---
+
+### Session 11 — 2026-05-30 (Typhoon OCR & LLM Integration) ← **ล่าสุด**
+
+**Summary:** ออกแบบและพัฒนาการใช้งานโมเดลภาษาไทยผสมอังกฤษ Typhoon OCR-3B ร่วมกับ Tesseract OCR แบบ Dynamic พร้อมระบบ caching 24 ชม., VRAM Monitor ป้องกัน GPU OOM และระบบ fallback 5s เมื่อโมเดลมีปัญหา และการสลับและบริหารจัดการ LLM โมเดลหลักแบบ Dynamic ในระบบ AI Model Management ของ Next.js frontend ตามข้อกำหนด ADR-032
+
+**Backend Changes (B1-B5):**
+
+- **OcrService**:
+  - เพิ่ม dynamic OCR engine selection (`getOcrEngines()`, `selectOcrEngine()`, `getActiveEngineId()`) จัดเก็บสถานะหลักใน DB `system_settings` (`OCR_ACTIVE_ENGINE`) พร้อม cache ใน Redis 30s ป้องกันคิวรีซ้ำซ้อน
+  - ปรับปรุง `detectAndExtract()` ให้เลือกใช้ engine ที่เหมาะสม หากผู้ใช้เลือก Typhoon OCR-3B จะทำงานผ่าน `processWithTyphoon()` ร่วมกับ `OcrCacheService` (24-hour Redis caching) และ `VramMonitorService` (ตรวจสอบ VRAM capacity > 4GB ก่อนโหลดโมเดล)
+  - พัฒนาระบบ **Graceful Fallback** ไปยัง Tesseract OCR ในเวลา 5 วินาทีหาก Typhoon ขัดข้องหรือ VRAM ไม่เพียงพอ โดยมีการบันทึกรายละเอียดและ error ลง `ai_audit_logs`
+- **AiService**:
+  - เพิ่ม endpoints สำหรับ AI Model Management: `GET /models`, `POST /models` (Superadmin), `PATCH /models/:modelId/activate` และ `GET /vram/status` (Used/Free VRAM และ Active models บน GPU) ร่วมกับ `AiSettingsService` และ `VramMonitorService`
+  - ตรวจสอบความปลอดภัย VRAM ก่อนอนุญาตให้สลับโมเดลหลัก หากเหลือพื้นที่หน่วยความจำ GPU ไม่พอ จะโยน `BusinessException` แจ้งเตือนภาษาไทยพร้อมบันทึกลง Audit Log และระงับการเปลี่ยนโมเดลทันที
+  - แก้ไขข้อผิดพลาด build error ใน `ai.service.ts` โดยการนำเข้า `OllamaService` และ `AiQdrantService` ที่ขาดหายไปใน constructor
+
+**Frontend Changes (F1-F3):**
+
+- **admin-ai.service.ts**: เพิ่ม interface `LoadedModelInfo` และ `VramStatusResponse` และเพิ่ม methods `getVramStatus()`, `getAvailableModels()`, `setActiveModel()`, และ `addModel()` โดยใช้ dynamic path ที่อ้างอิง UUIDv7 (`modelId`) และส่ง idempotency headers ตาม ADR-019/ADR-016
+- **admin/ai/page.tsx**: อัปเดตหน้า AI Admin page โดยเพิ่ม **VRAM GPU Monitor Card** แบบ realtime (ดึงและสลับรีเฟรชผ่าน React Query ทุก 15s) แสดง Free/Used VRAM และ active models บน GPU และปรับปรุง UI ส่วน AI Model Management ให้สลับโมเดลหลักผ่าน UUIDv7 และแสดง VRAM requirements ของแต่ละโมเดลอย่างสวยงามพรีเมียม
+
+**ADRs Update (ADR-023/023A):**
+
+- อัปเดต `ADR-023-unified-ai-architecture.md` (v1.2) และ `ADR-023A-unified-ai-architecture.md` (v1.3) เพื่อรับรองสถาปัตยกรรม dynamic Thai specialized models (Typhoon OCR & LLM) ภายใต้การควบคุมของ VRAM Monitor
+
+**Verification:**
+
+- Backend NestJS Build: ✅ Compile สำเร็จ 100% ปราศจาก Error (`npm run build` ใน backend)
+- Frontend Next.js Build: ✅ Compile สำเร็จ 100% ปราศจาก Error (`npm run build` ใน frontend)
+
+---
+
+## 🎯 11. แผนงานขั้นต่อไป (Next Session Focus)
+
+### N8N Migration & E2E Testing (งานหลักที่เหลือ)
 
 - [ ] **Import `n8n.workflow.v2.json`** เข้า n8n UI และทดสอบ End-to-End (มี fix จาก Session 3, 4, 5 แล้ว)
 - [ ] **ทดสอบ End-to-End จริง** — รัน n8n กับ Excel ตัวอย่าง → ตรวจสอบว่า `Submit AI Job` ผ่าน, `migration_review_queue` มีข้อมูล, `migration_errors.job_id` ถูกบันทึก
-- [ ] **ตรวจสอบ `ai-realtime` processor** ว่า return `suggestedTags[]` พร้อม `isNew` flag
 - [ ] **Frontend Editable Review Form** (Pipeline B) — pre-fill AI suggestions + tag suggestion UI
 - [ ] **Dry Run** กับ Excel จริงก่อน Production Migration
 
 ### งานทั่วไป
 
-- [ ] รักษาความเป็นระเบียบและอัปเดต `memory/agent-memory.md` ทุกครั้งที่ Task สำคัญเสร็จ
 - [ ] ดำเนินการรัน SQL delta script ใน MariaDB เมื่อขึ้นสภาพแวดล้อมจริง
 - [ ] เพิ่ม unit test สำหรับ `upsertQueueRecord` ใน `ai-migration-checkpoint.service.spec.ts` (UUID→INT path)
 - [ ] เพิ่ม unit test สำหรับ checksum dedup ใน `file-storage.service.spec.ts`

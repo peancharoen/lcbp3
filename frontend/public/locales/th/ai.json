@@ -44,5 +44,38 @@
     "delete_confirm": "ต้องการลบ Pattern นี้?",
     "loading": "กำลังโหลด...",
     "not_found": "ไม่พบ Intent"
+  },
+  "typhoon_ocr": {
+    "engine_name": "Typhoon OCR-3B",
+    "engine_description": "OCR ด้วย AI สำหรับเอกสารภาษาไทย (ความแม่นยำสูง)",
+    "engine_tesseract": "Tesseract OCR (มาตรฐาน)",
+    "engine_auto": "อัตโนมัติ (ตรวจข้อความก่อน)",
+    "select_engine": "เลือก OCR Engine",
+    "processing": "กำลังประมวลผลด้วย Typhoon OCR...",
+    "cache_hit": "ใช้ผลลัพธ์จาก Cache",
+    "cache_miss": "ประมวลผล OCR ใหม่",
+    "fallback_used": "ใช้ Tesseract แทน (Typhoon ไม่พร้อมใช้งาน)",
+    "vram_insufficient": "VRAM ไม่เพียงพอ — กรุณาลองใหม่ภายหลัง",
+    "vram_status": "สถานะ VRAM",
+    "vram_free": "VRAM ว่าง",
+    "vram_used": "VRAM ที่ใช้",
+    "vram_mb": "MB",
+    "model_loaded": "โมเดลพร้อมใช้งาน",
+    "model_unloaded": "โมเดลไม่ได้โหลด",
+    "error_ollama_unavailable": "ไม่สามารถเชื่อมต่อ Ollama ได้ — ใช้ Tesseract แทน",
+    "error_timeout": "หมดเวลาการประมวลผล OCR",
+    "error_vram": "VRAM ไม่เพียงพอสำหรับโหลดโมเดล Typhoon OCR"
+  },
+  "typhoon_llm": {
+    "model_name": "Typhoon 2.1 Gemma3 4B",
+    "model_description": "LLM ภาษาไทย/อังกฤษ สำหรับสกัด Metadata จากเอกสาร",
+    "model_gemma4": "Gemma4 E4B (มาตรฐาน)",
+    "select_model": "เลือก AI Model",
+    "add_typhoon": "เพิ่ม Typhoon 2.1 Gemma3 4B",
+    "vram_required": "VRAM ที่ต้องการ: 4.5 GB",
+    "processing": "กำลังประมวลผลด้วย Typhoon LLM...",
+    "error_vram": "VRAM ไม่เพียงพอสำหรับโหลดโมเดล Typhoon LLM",
+    "error_timeout": "หมดเวลาการประมวลผล LLM (120 วินาที)"
   }
 }
+

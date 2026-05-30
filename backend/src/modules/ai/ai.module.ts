@@ -8,6 +8,7 @@
 // - 2026-05-22: นำเข้าและลงทะเบียน CleanupTempFilesWorker (T016) เพื่อลบไฟล์แนบชั่วคราวหมดอายุ
 // - 2026-05-23: ลงทะเบียน MigrationProgress + AiMigrationCheckpointService (ADR-023A)
 // - 2026-05-25: ลงทะเบียน AiAvailableModel สำหรับ AI Model Management (ADR-027).
+// - 2026-05-30: ลงทะเบียน VramMonitorService, OcrCacheService, TyphoonOcrProcessor, TyphoonLlmProcessor (ADR-032).
 // Module สำหรับ AI Gateway — ลงทะเบียน Services และ Controllers (ADR-023)
 
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
@@ -31,7 +32,10 @@ import { AiBatchProcessor } from './processors/ai-batch.processor';
 import { AiVectorDeletionProcessor } from './processors/vector-deletion.processor';
 import { OllamaService } from './services/ollama.service';
 import { OcrService } from './services/ocr.service';
+import { SandboxOcrEngineService } from './services/sandbox-ocr-engine.service';
 import { EmbeddingService } from './services/embedding.service';
+import { VramMonitorService } from './services/vram-monitor.service';
+import { OcrCacheService } from './services/ocr-cache.service';
 import { MigrationLog } from './entities/migration-log.entity';
 import { AiAuditLog } from './entities/ai-audit-log.entity';
 import { MigrationReviewRecord } from './entities/migration-review.entity';
@@ -65,6 +69,14 @@ import {
   QUEUE_AI_REALTIME,
   QUEUE_AI_VECTOR_DELETION,
 } from '../common/constants/queue.constants';
+import {
+  TyphoonOcrProcessor,
+  QUEUE_TYPHOON_OCR,
+} from './processors/typhoon-ocr.processor';
+import {
+  TyphoonLlmProcessor,
+  QUEUE_TYPHOON_LLM,
+} from './processors/typhoon-llm.processor';
 
 @Module({
   imports: [
@@ -107,7 +119,26 @@ import {
         },
       },
       { name: QUEUE_AI_RAG },
-      { name: QUEUE_AI_VECTOR_DELETION }
+      { name: QUEUE_AI_VECTOR_DELETION },
+      // Typhoon OCR + LLM queues: concurrency=1 เพื่อป้องกัน VRAM overflow (ADR-032)
+      {
+        name: QUEUE_TYPHOON_OCR,
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: 50,
+          removeOnFail: 100,
+        },
+      },
+      {
+        name: QUEUE_TYPHOON_LLM,
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: 50,
+          removeOnFail: 100,
+        },
+      }
     ),
 
     // HTTP Client สำหรับเรียก n8n Webhook (ADR-018: AI สื่อสารผ่าน API)
@@ -147,7 +178,11 @@ import {
     AiValidationService,
     OllamaService,
     OcrService,
+    SandboxOcrEngineService,
     EmbeddingService,
+    // ADR-032: Typhoon OCR VRAM monitoring + result caching
+    VramMonitorService,
+    OcrCacheService,
     AiRealtimeProcessor,
     AiBatchProcessor,
     // Phase 4: RAG BullMQ pipeline (ADR-023)
@@ -155,6 +190,9 @@ import {
     AiRagProcessor,
     // Phase 5: Vector Deletion async processor (ADR-023 FR-008)
     AiVectorDeletionProcessor,
+    // ADR-032: Typhoon OCR + LLM sequential processors (concurrency=1)
+    TyphoonOcrProcessor,
+    TyphoonLlmProcessor,
     // RbacGuard ต้องการ UserService จาก UserModule
     RbacGuard,
     AiEnabledGuard,
@@ -170,6 +208,10 @@ import {
     AiValidationService,
     OllamaService,
     OcrService,
+    SandboxOcrEngineService,
+    // ADR-032: Export สำหรับใช้งานใน controller
+    VramMonitorService,
+    OcrCacheService,
     AiRagService,
   ],
 })

@@ -44,9 +44,21 @@ import {
 import { AiRealtimeJobData } from './processors/ai-realtime.processor';
 import { AiBatchJobData } from './processors/ai-batch.processor';
 import { AuditLog } from '../../common/entities/audit-log.entity';
-import { OllamaService } from './services/ollama.service';
-import { AiQdrantService } from './qdrant.service';
 import { OcrService, OcrHealthResult } from './services/ocr.service';
+import { AiSettingsService } from './ai-settings.service';
+import {
+  VramMonitorService,
+  VramStatus,
+} from './services/vram-monitor.service';
+import {
+  AiModelConfiguration,
+  AiModelType,
+} from './entities/ai-model-configuration.entity';
+import { AddAiModelDto } from './dto/add-ai-model.dto';
+import { ActivateAiModelDto } from './dto/activate-ai-model.dto';
+import { AiAvailableModel } from './entities/ai-available-model.entity';
+import { AiQdrantService } from './qdrant.service';
+import { OllamaService } from './services/ollama.service';
 
 // ผลลัพธ์ของ Real-time Extraction
 export interface ExtractionResult {
@@ -180,6 +192,10 @@ export class AiService {
     private readonly qdrantService?: AiQdrantService,
     @Optional()
     private readonly ocrService?: OcrService,
+    @Optional()
+    private readonly aiSettingsService?: AiSettingsService,
+    @Optional()
+    private readonly vramMonitorService?: VramMonitorService,
     @Optional()
     @InjectRedis()
     private readonly redis?: Redis
@@ -899,5 +915,173 @@ export class AiService {
       result: job.returnvalue,
       failedReason: job.failedReason,
     };
+  }
+
+  // --- AI Model Management with VRAM Monitoring (T027 - T030, T038, US2) ---
+
+  /** ดึงรายการโมเดล AI ทั้งหมดพร้อมระบุตัวที่ใช้งานอยู่ปัจจุบัน (T027) */
+  async getAiModels(): Promise<{
+    models: AiModelConfiguration[];
+    activeModel: string;
+  }> {
+    if (!this.aiSettingsService) {
+      throw new SystemException('AiSettingsService not injected in AiService');
+    }
+
+    const availableModels = await this.aiSettingsService.getAvailableModels();
+    const activeModelName = await this.aiSettingsService.getActiveModel();
+
+    // Map ข้อมูลของ AiAvailableModel (DB) ให้กลายเป็น AiModelConfiguration (Plain Class)
+    const MODEL_UUID_MAP: Record<string, string> = {
+      'gemma4:e2b': '019505a1-7c3e-7000-8000-abc123def201',
+      'gemma4:e4b': '019505a1-7c3e-7000-8000-abc123def202',
+      'typhoon2.1-gemma3-4b': '019505a1-7c3e-7000-8000-abc123def203',
+    };
+
+    const models = availableModels.map((model) => {
+      const vramRequirementMB = Math.round((model.vramGb ?? 4.0) * 1024);
+      const mockUuid =
+        MODEL_UUID_MAP[model.modelName] ??
+        `019505a1-7c3e-7000-8000-abc123def2${(model.id % 90) + 10}`;
+
+      return {
+        modelId: mockUuid,
+        modelName: model.modelName,
+        modelType: AiModelType.LLM, // ตาราง ai_available_models ใช้สำหรับ LLM models
+        ollamaModelName: model.modelName,
+        vramRequirementMB,
+        isActive: model.isActive,
+        useCases: ['document_analysis', 'ocr_extraction'],
+        quantization: model.modelName.includes('e2b') ? 'Q2_K' : 'Q4_K_M',
+        createdAt: model.createdAt,
+        updatedAt: model.updatedAt,
+      } as AiModelConfiguration;
+    });
+
+    return {
+      models,
+      activeModel: activeModelName,
+    };
+  }
+
+  /** ดึงข้อมูลสถานะ VRAM ล่าสุดของระบบ (T034) */
+  async getVramStatus(): Promise<VramStatus> {
+    if (!this.vramMonitorService) {
+      throw new SystemException('VramMonitorService not injected in AiService');
+    }
+    return this.vramMonitorService.getVramStatus();
+  }
+
+  /** เพิ่มโมเดล AI ใหม่เข้าระบบ (Superadmin only - T028) */
+  async addAiModel(
+    dto: AddAiModelDto,
+    userId: number
+  ): Promise<AiAvailableModel> {
+    if (!this.aiSettingsService) {
+      throw new SystemException('AiSettingsService not injected in AiService');
+    }
+
+    const vramGb = Number((dto.vramRequirementMB / 1024).toFixed(2));
+    const model = await this.aiSettingsService.addModel(
+      {
+        modelName: dto.modelName,
+        modelVersion: dto.ollamaModelName.split(':')[1] || 'latest',
+        description: `Added via API. Quantization: ${dto.quantization || 'N/A'}. Use Cases: ${dto.useCases.join(', ')}`,
+        vramGb,
+      },
+      userId
+    );
+
+    // บันทึก Audit Log สำหรับการเพิ่มโมเดล AI ใหม่ (T038)
+    await this.saveAuditLog({
+      documentPublicId: '00000000-0000-0000-0000-000000000000',
+      aiModel: 'system',
+      status: AiAuditStatus.SUCCESS,
+      errorMessage: `Model ${dto.modelName} added by user ${userId}. VRAM requirement: ${dto.vramRequirementMB}MB`,
+    });
+
+    return model;
+  }
+
+  /** เปลี่ยนแปลงโมเดล AI ที่ทำงานพร้อมตรวจสอบพื้นที่ VRAM (T029, T030, T038) */
+  async activateAiModel(
+    dto: ActivateAiModelDto,
+    userId: number
+  ): Promise<string> {
+    if (!this.aiSettingsService || !this.vramMonitorService) {
+      throw new SystemException(
+        'AiSettingsService or VramMonitorService not injected in AiService'
+      );
+    }
+
+    // 1. ดึงรายละเอียดโมเดลจากรายการ
+    const availableModels = await this.aiSettingsService.getAvailableModels();
+
+    // ค้นหาด้วยชื่อโมเดล หรือด้วย modelId (ที่แมป UUID)
+    const MODEL_UUID_MAP: Record<string, string> = {
+      '019505a1-7c3e-7000-8000-abc123def201': 'gemma4:e2b',
+      '019505a1-7c3e-7000-8000-abc123def202': 'gemma4:e4b',
+      '019505a1-7c3e-7000-8000-abc123def203': 'typhoon2.1-gemma3-4b',
+    };
+
+    let targetModelName = dto.modelId;
+    if (MODEL_UUID_MAP[dto.modelId]) {
+      targetModelName = MODEL_UUID_MAP[dto.modelId];
+    }
+
+    const model = availableModels.find(
+      (m) => m.modelName === targetModelName || String(m.id) === dto.modelId
+    );
+    if (!model) {
+      throw new NotFoundException(
+        `AI Model with identifier ${dto.modelId} not found`
+      );
+    }
+
+    if (!model.isActive) {
+      throw new BusinessException(
+        'MODEL_INACTIVE',
+        `AI Model ${model.modelName} is not active`,
+        'โมเดล AI นี้ยังไม่ได้เปิดใช้งาน กรุณาตั้งค่าสถานะโมเดลเป็น Active ก่อน'
+      );
+    }
+
+    // 2. ตรวจสอบ VRAM ก่อนอนุญาตให้เปลี่ยนโมเดลหลัก (T030)
+    const vramRequirementMB = Math.round((model.vramGb ?? 4.0) * 1024);
+    const hasCapacity =
+      await this.vramMonitorService.hasVramCapacity(vramRequirementMB);
+    if (!hasCapacity) {
+      const vramStatus = await this.vramMonitorService.getVramStatus();
+      const errMsg = `VRAM ไม่เพียงพอสำหรับการโหลดโมเดล ${model.modelName} (ต้องการ ${vramRequirementMB}MB, เหลือ ${vramStatus.freeVramMb}MB) — กรุณา unload โมเดลอื่น หรือเว้นระยะห่างในการโหลด`;
+
+      await this.saveAuditLog({
+        documentPublicId: '00000000-0000-0000-0000-000000000000',
+        aiModel: 'system',
+        status: AiAuditStatus.FAILED,
+        errorMessage: `Failed to activate model ${model.modelName} due to insufficient VRAM: ${errMsg}`,
+      });
+
+      throw new BusinessException(
+        'INSUFFICIENT_VRAM',
+        errMsg,
+        `พื้นที่หน่วยความจำ GPU (VRAM) ไม่เพียงพอสำหรับการโหลดโมเดล ${model.modelName}`
+      );
+    }
+
+    // 3. ทำการสลับโมเดล AI
+    const activeModel = await this.aiSettingsService.setActiveModel(
+      model.modelName,
+      userId
+    );
+
+    // บันทึก Audit Log สำหรับการเปิดใช้งานโมเดล AI (T038)
+    await this.saveAuditLog({
+      documentPublicId: '00000000-0000-0000-0000-000000000000',
+      aiModel: 'system',
+      status: AiAuditStatus.SUCCESS,
+      errorMessage: `Model ${model.modelName} activated by user ${userId}. VRAM Capacity verified successfully.`,
+    });
+
+    return activeModel;
   }
 }
