@@ -43,6 +43,34 @@ CROP_BOTTOM_RATIO = 0.02
 logger.info(f"Tesseract OCR Sidecar initialized (lang={OCR_LANG}, config={TESSERACT_CONFIG})")
 
 
+def filter_ocr_noise(text: str) -> str:
+    """Filter ขยะ OCR เช่น บรรทัดสั้น/สัญลักษณ์ที่ไม่มีความหมาย"""
+    lines = text.split("\n")
+    filtered_lines = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        # ลบบรรทัดที่สั้นเกินไป (น้อยกว่า 3 ตัวอักษร)
+        if len(line) < 3:
+            continue
+
+        # ลบบรรทัดที่มีแต่สัญลักษณ์/ตัวเลขโดดๆ (ไม่มีตัวอักษรภาษาไทย/อังกฤษ)
+        thai_chars = sum(1 for c in line if '\u0E00' <= c <= '\u0E7F')
+        english_chars = sum(1 for c in line if c.isalpha() and c.isascii())
+        total_chars = len(line)
+
+        # ถ้ามีตัวอักษรภาษาไทยหรืออังกฤษน้อยกว่า 20% ของบรรทัด ให้ถือว่าเป็นขยะ
+        if total_chars > 0 and (thai_chars + english_chars) / total_chars < 0.2:
+            continue
+
+        filtered_lines.append(line)
+
+    return "\n".join(filtered_lines)
+
+
 def crop_header_footer(pil_image: Image.Image, top_ratio: float = 0.10, bottom_ratio: float = 0.10) -> Image.Image:
     """Crop header/footer ออกจาก image เพื่อลบข้อความที่ไม่จำเป็น"""
     width, height = pil_image.size
@@ -140,6 +168,10 @@ def ocr_extract(req: OcrRequest):
         ocr_text_parts.append(text.strip())
 
     ocr_text = "\n".join(ocr_text_parts).strip()
+
+    # Filter ขยะ OCR หลังจากสกัดข้อความแล้ว
+    ocr_text = filter_ocr_noise(ocr_text)
+
     logger.info(f"Tesseract extracted {len(ocr_text)} chars from {pdf_path.name}")
 
     return OcrResponse(
