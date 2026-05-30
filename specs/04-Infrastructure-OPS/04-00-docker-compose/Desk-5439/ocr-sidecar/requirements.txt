@@ -2,9 +2,10 @@
 # Change Log:
 # - 2026-05-30: ลด paddlepaddle จาก 2.6.2 เป็น 2.5.2 เพื่อแก้ SIGILL (Illegal Instruction) บน CPU ที่ไม่รองรับ AVX
 # - 2026-05-30: ลด paddleocr จาก 2.7.3 เป็น 2.6.1.3 เพื่อความเข้ากันได้กับ paddlepaddle 2.5.2
+# - 2026-05-30: เปลี่ยนเป็น paddlepaddle-cpu (CPU-only) เพื่อหลีกเลี่ยง AVX requirement บน CPU เก่า
 
 numpy<2.0
-paddlepaddle==2.5.2
+paddlepaddle-cpu==2.5.2
 paddleocr==2.6.1.3
 PyMuPDF==1.24.0
 pytesseract==0.3.13
