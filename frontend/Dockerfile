@@ -83,7 +83,7 @@ ENV NEXT_TURBOPACK=0
 # nested App Router paths. Redirect .next output to ultra-short root path /n
 # to minimise overlay nesting depth, then move back after build completes.
 RUN mkdir /n && ln -s /n .next && \
-    pnpm run build -- --webpack && \
+    pnpm run build && \
     rm .next && mv /n .next
 
 # Verify build was created
