@@ -33,9 +33,9 @@ app = FastAPI(title="Tesseract OCR Sidecar", version="1.0.0")
 OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
 MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
 OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng = Thai + English)
-# PSM 6 = Assume single uniform block of text (เหมาะกับเอกสารที่มี header/footer)
+# PSM 3 = Fully automatic page segmentation (เหมาะกับเอกสารที่มี layout หลายส่วน เช่น วันที่/เลขที่)
 # OEM 1 = LSTM only (ดีกว่า legacy engine)
-TESSERACT_CONFIG = f"--psm 6 --oem 1"
+TESSERACT_CONFIG = f"--psm 3 --oem 1"
 # Crop margin: ตัด header/footer (บน 10%, ล่าง 10%)
 CROP_TOP_RATIO = 0.10
 CROP_BOTTOM_RATIO = 0.02
