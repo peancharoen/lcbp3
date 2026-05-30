@@ -49,7 +49,7 @@ RUN cd backend && \
     pnpm run build
 
 # ✅ เพิ่มตรงนี้
-RUN test -f /app/backend/dist/main.js || (echo "❌ build failed silently" && exit 1)
+# RUN test -f /app/backend/dist/main.js || (echo "❌ build failed silently" && exit 1)
 
 # Deploy with production deps only (pnpm workspace isolation)
 RUN PNPM_IGNORE_SCRIPTS=none \

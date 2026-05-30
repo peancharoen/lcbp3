@@ -2,6 +2,9 @@
 /dist
 /node_modules
 /build
+/scratch/*.js
+/scratch/*.js.map
+/scratch/*.d.ts
 
 # Logs
 logs

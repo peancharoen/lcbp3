@@ -22,6 +22,7 @@ node_modules
 
 # Build artifacts (rebuilt inside Docker)
 backend/dist
+**/*.tsbuildinfo
 frontend/.next
 
 # Specs & docs (not needed in image)

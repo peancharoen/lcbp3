@@ -20,7 +20,11 @@ export default tseslint.config(
       sourceType: 'commonjs',
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['jest.config.js', '*.config.mjs'],
+          allowDefaultProject: [
+            'jest.config.js',
+            '*.config.mjs',
+            'scratch/*.ts',
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },
