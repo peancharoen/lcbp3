@@ -36,8 +36,8 @@ OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng 
 # PSM 3 = Fully automatic page segmentation (เหมาะกับเอกสารที่มี layout หลายส่วน เช่น วันที่/เลขที่)
 # OEM 1 = LSTM only (ดีกว่า legacy engine)
 TESSERACT_CONFIG = f"--psm 3 --oem 1"
-# Crop margin: ตัด header/footer (บน 10%, ล่าง 10%)
-CROP_TOP_RATIO = 0.10
+# Crop margin: ตัด header/footer (บน 5%, ล่าง 2%)
+CROP_TOP_RATIO = 0.05
 CROP_BOTTOM_RATIO = 0.02
 
 logger.info(f"Tesseract OCR Sidecar initialized (lang={OCR_LANG}, config={TESSERACT_CONFIG})")
@@ -62,16 +62,12 @@ def preprocess_image(pil_image: Image.Image) -> Image.Image:
     # แปลงเป็น grayscale
     gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
 
-    # Denoise ด้วย median blur
+    # Denoise ด้วย median blur (เบางๆ เพื่อลบ noise แต่ไม่ทำลายตัวอักษร)
     denoised = cv2.medianBlur(gray, 3)
 
-    # Adaptive threshold เพื่อแยก background จาก text
-    thresh = cv2.adaptiveThreshold(
-        denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
-    )
-
+    # ใช้ grayscale เท่านั้น (ไม่ใช้ adaptive threshold เพราะทำให้ตัวอักษรเสียรูป)
     # แปลงกลับเป็น PIL Image
-    return Image.fromarray(thresh)
+    return Image.fromarray(denoised)
 
 
 class OcrRequest(BaseModel):
