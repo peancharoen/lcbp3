@@ -8,6 +8,7 @@
 // - 2026-05-21: เพิ่ม POST /ai/admin/sandbox/extract endpoint สำหรับ Superadmin OCR sandbox (T041 & T042)
 // - 2026-05-21: แก้ไขข้อห้ามใช้ parseInt โดยการใช้ Number แทนตามกฎ Tier 1
 // - 2026-05-23: เพิ่ม Migration Checkpoint API endpoints แทน MySQL direct access (ADR-023A)
+// - 2026-05-30: เพิ่ม @UseInterceptors(FileInterceptor('file')) ใน submitSandboxOcr เพื่อแก้ไขปัญหา BadRequestException (File is required)
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -515,6 +516,7 @@ export class AiController {
   @Post('admin/sandbox/ocr')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('system.manage_all')
+  @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
     summary: 'Step 1: Run OCR Only — สำหรับตรวจคุณภาพ OCR ก่อนทดสอบ AI',
     description:
