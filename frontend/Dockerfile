@@ -74,14 +74,16 @@ ENV AUTH_URL=${AUTH_URL}
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Disable Turbopack to avoid "No child process" panic in Docker container
+# ปิดการใช้งาน Turbopack เพื่อหลีกเลี่ยงอาการ "No child process" panic ใน Docker container
+# เนื่องจากใน Next.js 16+ Turbopack ถูกเปิดใช้งานเป็นค่าเริ่มต้นและไม่สนใจ env NEXT_TURBOPACK=0
+# จึงต้องระบุ flag --webpack เพื่อบังคับใช้งาน Webpack ในคำสั่ง build
 ENV NEXT_TURBOPACK=0
 
 # WORKAROUND: QNAP overlayfs fails with "Unknown system error -10" on deeply
 # nested App Router paths. Redirect .next output to ultra-short root path /n
 # to minimise overlay nesting depth, then move back after build completes.
 RUN mkdir /n && ln -s /n .next && \
-    pnpm run build && \
+    pnpm run build -- --webpack && \
     rm .next && mv /n .next
 
 # Verify build was created
