@@ -5,6 +5,7 @@
 # - 2026-05-25: Initial FastAPI server สำหรับ PaddleOCR sidecar
 # - 2026-05-30: เปลี่ยน lang='en' เป็น lang='ch' (CTJK) เพื่อรองรับภาษาไทย
 # - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
+# - 2026-05-30: เพิ่ม OpenCV preprocessing (threshold, denoise) และ DPI 300 เพื่อเพิ่มความแม่นยำ
 
 import os
 import logging
@@ -15,6 +16,8 @@ from typing import Optional
 from PIL import Image
 import pytesseract
 import io
+import cv2
+import numpy as np
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -32,6 +35,26 @@ MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
 OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng = Thai + English)
 
 logger.info(f"Tesseract OCR Sidecar initialized (lang={OCR_LANG})")
+
+
+def preprocess_image(pil_image: Image.Image) -> Image.Image:
+    """Preprocess image ด้วย OpenCV เพื่อเพิ่มความแม่นยำ OCR"""
+    # แปลง PIL Image เป็น numpy array (OpenCV format)
+    img_array = np.array(pil_image)
+
+    # แปลงเป็น grayscale
+    gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
+
+    # Denoise ด้วย median blur
+    denoised = cv2.medianBlur(gray, 3)
+
+    # Adaptive threshold เพื่อแยก background จาก text
+    thresh = cv2.adaptiveThreshold(
+        denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+    )
+
+    # แปลงกลับเป็น PIL Image
+    return Image.fromarray(thresh)
 
 
 class OcrRequest(BaseModel):
@@ -89,10 +112,14 @@ def ocr_extract(req: OcrRequest):
     ocr_text_parts = []
     for i in pages_to_process:
         page = doc[i]
-        pix = page.get_pixmap(dpi=200)
+        pix = page.get_pixmap(dpi=300)  # เพิ่ม DPI เป็น 300 เพื่อความชัด
         img_bytes = pix.tobytes("png")
         img = Image.open(io.BytesIO(img_bytes))
-        text = pytesseract.image_to_string(img, lang=OCR_LANG)
+
+        # Preprocess ด้วย OpenCV เพื่อเพิ่มความแม่นยำ
+        processed_img = preprocess_image(img)
+
+        text = pytesseract.image_to_string(processed_img, lang=OCR_LANG)
         ocr_text_parts.append(text.strip())
 
     ocr_text = "\n".join(ocr_text_parts).strip()

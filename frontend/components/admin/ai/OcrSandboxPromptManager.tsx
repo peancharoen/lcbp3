@@ -508,7 +508,7 @@ export default function OcrSandboxPromptManager() {
                     OCR Raw Text (Step 1 Result)
                   </CardTitle>
                   <Badge variant="outline" className="text-xs">
-                    {ocrResult.ocrUsed ? 'PaddleOCR' : 'Fast Path (Text Layer)'}
+                    {ocrResult.ocrUsed ? 'Tesseract' : 'Fast Path (Text Layer)'}
                   </Badge>
                 </CardHeader>
                 <CardContent className="pt-4">

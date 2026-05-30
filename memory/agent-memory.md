@@ -10,6 +10,7 @@
 - 2026-05-25 (Session 7): PaddleOCR Sidecar setup บน Desk-5439 — สร้าง FastAPI sidecar (port 8765) รองรับ `/ocr` + `/normalize`, แก้ AggregateError ใน ocr.service.ts, เพิ่ม path remapping (`OCR_SIDECAR_UPLOAD_BASE`), CIFS volume mount จาก QNAP.
 - 2026-05-26: เพิ่ม system memories ที่หายไป — QNAP SSH Key Authentication, TransformInterceptor double registration, ADR-021 Transmittals/Circulation integration, Correspondence detail fixes, Playwright E2E setup, Tag/Contract UUID fixes.
 - 2026-05-27: Context-Aware Prompts & DB CC Typo Cleanup (ADR-030) — นำเสนอการผูก Master Data เข้ากับ Prompt Extraction, ออกแบบ JSON Context-Aware configuration, อัปเดต Entity/DTOs, ออกแบบ JSON format ผู้รับเป็น Object Array ป้องกันบัค และแก้ whitespace typo 'CC ' ในฐานข้อมูล
+- 2026-05-30 (Session 8): OCR Engine Migration — เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อแก้ปัญหา SIGILL (Illegal Instruction) บน CPU เก่าที่ไม่รองรับ AVX: อัปเดต requirements.txt (ลบ paddlepaddle/paddleocr, เพิ่ม pytesseract), app.py (เปลี่ยนใช้ pytesseract, OCR_LANG=tha+eng), Dockerfile (ติดตั้ง tesseract-ocr + ภาษาไทย/อังกฤษ), docker-compose.yml (OCR_LANG=tha+eng, ลบ paddleocr_models volume), backend ocr.service.ts (เปลี่ยน comment/error message), frontend OcrSandboxPromptManager.tsx (เปลี่ยน Badge text)
 -->
 
 # 🧠 Agent Long-term Project Memory
@@ -184,18 +185,18 @@ docker compose ps                        # Check status
 
 ## 🌐 7. Environment & Services
 
-| Service          | Local URL / Port              | Production                | Notes                                |
-| ---------------- | ----------------------------- | ------------------------- | ------------------------------------ |
-| **Backend API**  | `http://localhost:3001`       | QNAP `192.168.10.8`       | NestJS — `/api` prefix               |
-| **Frontend**     | `http://localhost:3000`       | QNAP `192.168.10.8`       | Next.js                              |
-| **MariaDB**      | `localhost:3307`              | QNAP internal             | DB: `lcbp3`, root via docker         |
-| **Redis**        | `localhost:6379`              | QNAP internal             | BullMQ + session store               |
-| **n8n**          | `http://localhost:5678`       | QNAP `192.168.10.8:5678`  | Migration orchestrator only          |
-| **Ollama**       | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439) | gemma4:e2b + nomic-embed-text        |
-| **Qdrant**       | `http://localhost:6333`       | Admin Desktop (Desk-5439) | Vector DB — requires projectPublicId |
-| **PaddleOCR**    | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439) | `/ocr` + `/normalize` (FastAPI)      |
-| **Gitea**        | `https://git.np-dms.work`     | QNAP `192.168.10.8`       | Source + CI/CD                       |
-| **Gitea Runner** | ASUSTOR `192.168.10.9`        | —                         | CI runner                            |
+| Service           | Local URL / Port              | Production                | Notes                                |
+| ----------------- | ----------------------------- | ------------------------- | ------------------------------------ |
+| **Backend API**   | `http://localhost:3001`       | QNAP `192.168.10.8`       | NestJS — `/api` prefix               |
+| **Frontend**      | `http://localhost:3000`       | QNAP `192.168.10.8`       | Next.js                              |
+| **MariaDB**       | `localhost:3307`              | QNAP internal             | DB: `lcbp3`, root via docker         |
+| **Redis**         | `localhost:6379`              | QNAP internal             | BullMQ + session store               |
+| **n8n**           | `http://localhost:5678`       | QNAP `192.168.10.8:5678`  | Migration orchestrator only          |
+| **Ollama**        | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439) | gemma4:e2b + nomic-embed-text        |
+| **Qdrant**        | `http://localhost:6333`       | Admin Desktop (Desk-5439) | Vector DB — requires projectPublicId |
+| **Tesseract OCR** | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439) | `/ocr` + `/normalize` (FastAPI)      |
+| **Gitea**         | `https://git.np-dms.work`     | QNAP `192.168.10.8`       | Source + CI/CD                       |
+| **Gitea Runner**  | ASUSTOR `192.168.10.9`        | —                         | CI runner                            |
 
 ### Key Environment Variables (ตรวจสอบใน `docker-compose.yml`)
 
@@ -211,15 +212,16 @@ QDRANT_URL
 
 ## 🚀 8. Recent Rollouts
 
-| วันที่     | Version | รายการ                                                                                               | สถานะ                       |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------------- | --------------------------- |
-| 2026-05-23 | v1.9.6  | Specs reorganization (`100/200/300-*` folders), AGENTS.md v1.9.6 update                              | ✅ Complete                 |
-| 2026-05-23 | v1.9.6  | N8N Workflow v2 (`n8n.workflow.v2.json`) — ADR-023A compliant, ลบ Ollama direct                      | ⏳ Pending import to n8n UI |
-| 2026-05-24 | v1.9.6  | AGENTS.md Project Memory Override rule (Windsurf / Antigravity / Codex)                              | ✅ Complete                 |
-| 2026-05-25 | v1.9.6  | Migration Queue attachment UUID fix — DTO + Service + n8n.workflow.v2.json (Session 3)               | ✅ Complete (tsc verified)  |
-| 2026-05-25 | v1.9.6  | Migration error normalization + `job_id` logging — workflow + backend + SQL/delta (Session 4)        | ✅ Complete                 |
-| 2026-05-25 | v1.9.6  | PaddleOCR Sidecar บน Desk-5439 — FastAPI `/ocr`+`/normalize`, CIFS mount, path remapping (Session 7) | ✅ Running                  |
-| 2026-05-27 | v1.9.7  | Context-Aware Prompt Templates & DB CC Whitespace Cleanup (ADR-030) (Session 9)                      | ✅ Complete (v1.9.7 main)   |
+| วันที่     | Version | รายการ                                                                                               | สถานะ                         |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 2026-05-23 | v1.9.6  | Specs reorganization (`100/200/300-*` folders), AGENTS.md v1.9.6 update                              | ✅ Complete                   |
+| 2026-05-23 | v1.9.6  | N8N Workflow v2 (`n8n.workflow.v2.json`) — ADR-023A compliant, ลบ Ollama direct                      | ⏳ Pending import to n8n UI   |
+| 2026-05-24 | v1.9.6  | AGENTS.md Project Memory Override rule (Windsurf / Antigravity / Codex)                              | ✅ Complete                   |
+| 2026-05-25 | v1.9.6  | Migration Queue attachment UUID fix — DTO + Service + n8n.workflow.v2.json (Session 3)               | ✅ Complete (tsc verified)    |
+| 2026-05-25 | v1.9.6  | Migration error normalization + `job_id` logging — workflow + backend + SQL/delta (Session 4)        | ✅ Complete                   |
+| 2026-05-25 | v1.9.6  | PaddleOCR Sidecar บน Desk-5439 — FastAPI `/ocr`+`/normalize`, CIFS mount, path remapping (Session 7) | ✅ Running                    |
+| 2026-05-27 | v1.9.7  | Context-Aware Prompt Templates & DB CC Whitespace Cleanup (ADR-030) (Session 9)                      | ✅ Complete (v1.9.7 main)     |
+| 2026-05-30 | v1.9.7  | OCR Engine Migration — PaddleOCR → Tesseract (Session 8)                                             | ✅ Complete (pending rebuild) |
 
 ---
 
@@ -450,7 +452,51 @@ OCR_SIDECAR_UPLOAD_BASE=/mnt/uploads (env var)
 
 ---
 
-### Session 8 — 2026-05-26 (System Memories Consolidation)
+### Session 8 — 2026-05-30 (OCR Engine Migration — PaddleOCR → Tesseract)
+
+#### ปัญหาที่พบ (Root Cause)
+
+**Bug 1: PaddleOCR SIGILL (Illegal Instruction)**
+
+- PaddleOCR 2.6.2 ต้องการ AVX instruction set ซึ่ง CPU บน Desk-5439 ไม่รองรับ
+- ลองลดรุ่นเป็น 2.5.2 → ยังมี dependency conflict กับ paddleocr 2.7.3
+- ลองใช้ paddlepaddle-cpu → ยังคงมีปัญหา dependency
+
+**Bug 2: OCR ภาษาไทยผิด**
+
+- PaddleOCR ตั้งค่า `lang="en"` ทำให้ข้อความภาษาไทยถูกแปลงเป็นอักษรละตินผิดๆ
+- เช่น: "10 กุมภาพันธ์ 2568" → "10 qunnwus 2568"
+
+#### การแก้ไข (Fix)
+
+เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อ:
+
+1. แก้ปัญหา SIGILL บน CPU เก่าที่ไม่รองรับ AVX
+2. รองรับภาษาไทยด้วย `tha+eng` language code
+
+| ไฟล์                                                                                        | การเปลี่ยนแปลง                                                               |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/requirements.txt`   | ลบ paddlepaddle/paddleocr, เพิ่ม pytesseract, Pillow                         |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py`             | เปลี่ยนใช้ pytesseract, OCR_LANG เป็น `tha+eng`, ลบ PaddleOCR initialization |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/Dockerfile`         | ติดตั้ง tesseract-ocr, tesseract-ocr-tha, tesseract-ocr-eng                  |
+| `specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml` | OCR_LANG เป็น `tha+eng`, ลบ paddleocr_models volume                          |
+| `backend/src/modules/ai/services/ocr.service.ts`                                            | เปลี่ยน comment/error message จาก PaddleOCR เป็น Tesseract                   |
+| `frontend/components/admin/ai/OcrSandboxPromptManager.tsx`                                  | เปลี่ยน Badge text จาก PaddleOCR เป็น Tesseract                              |
+
+#### กฎที่ Lock แล้ว
+
+- Tesseract OCR ไม่ต้องการ AVX instruction set → ทำงานได้บน CPU ทุกรุ่น
+- Tesseract รองรับภาษาไทยด้วย `tha+eng` language code
+- API contract ยังเหมือนเดิม (`POST /ocr` คืน `{ text, ocrUsed }`) → backend/frontend ไม่ต้องเปลี่ยน logic
+
+#### Verification ที่ต้องทำ
+
+- Rebuild container บน Desk-5439: `docker compose down && docker compose up -d --build`
+- ทดสอบ OCR ภาษาไทย: "10 กุมภาพันธ์ 2568" ควรออกมาถูกต้อง
+
+---
+
+### Session 9 — 2026-05-26 (System Memories Consolidation)
 
 #### QNAP SSH Key Authentication & CI/CD Deployment
 
@@ -649,6 +695,7 @@ npx playwright show-report             # Generate report
 **Summary:** ดำเนินการอิมพลีเมนต์ ADR-030 (Context-Aware Prompt Templates สำหรับการสกัดข้อมูลเอกสาร) และทำการแก้ไขบัคช่องว่างประเภทผู้รับ `'CC '` ในฐานข้อมูล
 
 **Backend Changes (B1-B6):**
+
 - **AiPrompt Entity**: เพิ่มการแมปคอลัมน์ `contextConfig` ไปยัง JSON ฟิลด์ `context_config` ในฐานข้อมูลเพื่อควบคุม master data resolution
 - **CreateAiPromptDto / Response DTO**: ปรับแต่งให้รองรับการรับและส่งออกคอลัมน์ `contextConfig`
 - **AiPromptsService**:
@@ -662,14 +709,17 @@ npx playwright show-report             # Generate report
   - แก้ไข mock dependencies ของ `AiPromptsService` ใน `ai-batch.processor.spec.ts` ป้องกันปัญหา `TypeError: getActive is not a function` ทำให้ผ่าน unit tests 100%
 
 **Database & Schema Changes (ADR-009):**
+
 - **schema-02-tables.sql**: แก้ไข line 338 ปรับปรุง `ENUM('TO', 'CC ')` เป็น `ENUM('TO', 'CC')`
 - **SQL Delta**: สร้าง `2026-05-27-add-context-aware-prompts-and-cleanup.sql` ดำเนินการ `UPDATE` ข้อมูลเก่าที่เป็น `'CC '` ให้เป็น `'CC'` เพื่อล้างช่องว่าง จากนั้นสั่ง `ALTER TABLE` ปรับปรุงฟิลด์ enum และ Seed template ภาษาไทยเวอร์ชัน 2
 - **Rollback SQL**: สร้างไฟล์ย้อนกลับ `2026-05-27-add-context-aware-prompts-and-cleanup.rollback.sql` เรียบร้อย
 
 **Frontend Changes:**
+
 - **detail.tsx**: ตรวจสอบการใช้งาน `normalizeRecipientType` ซึ่งครอบคลุมการล้างช่องว่างและการกรองผู้รับ TO/CC ได้อย่างทนทาน
 
 **Verification:**
+
 - `pnpm --filter backend build` — ✅ Compile ผ่านแบบ Strict Mode
 - unit tests AI module & backend suites — ✅ ผ่านทั้งหมด 60 suites / 521 tests
 

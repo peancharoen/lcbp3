@@ -4,10 +4,11 @@
 # Change Log:
 # - 2026-05-25: Initial Dockerfile สำหรับ PaddleOCR sidecar (port 8765)
 # - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
+# - 2026-05-30: เพิ่ม system dependencies สำหรับ OpenCV (libsm6, libxext6, libxrender1, libfontconfig1, libx11-6)
 
 FROM python:3.10-slim
 
-# ติดตั้ง system dependencies สำหรับ PDF processing, Tesseract OCR และภาษาไทย
+# ติดตั้ง system dependencies สำหรับ PDF processing, Tesseract OCR, ภาษาไทย และ OpenCV
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgl1 \
@@ -16,6 +17,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-tha \
     tesseract-ocr-eng \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libfontconfig1 \
+    libx11-6 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

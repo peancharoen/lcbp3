@@ -3,7 +3,8 @@
 // - 2026-05-15: เพิ่ม OCR auto-detection service สำหรับ ADR-023A.
 // - 2026-05-25: แก้ไข AggregateError (empty message) จาก axios โดย wrap เป็น Error พร้อม context ที่ชัดเจน.
 // - 2026-05-25: เพิ่ม path remapping (OCR_UPLOAD_BASE_PATH) เพื่อแปลง local upload path เป็น path ที่ sidecar เห็นผ่าน CIFS.
-// - 2026-05-29: เพิ่ม checkHealth() เพื่อตรวจสอบสุขภาพของ PaddleOCR sidecar สำหรับ getSystemHealth() (ADR-027)
+// - 2026-05-29: เพิ่ม checkHealth() เพื่อตรวจสอบสุขภาพของ OCR sidecar สำหรับ getSystemHealth() (ADR-027)
+// - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -20,7 +21,7 @@ export interface OcrDetectionResult {
   ocrUsed: boolean;
 }
 
-interface PaddleOcrResponse {
+interface OcrSidecarResponse {
   text?: string;
 }
 
@@ -31,7 +32,7 @@ export interface OcrHealthResult {
   error?: string;
 }
 
-/** บริการเลือก fast path หรือ PaddleOCR sidecar ตามจำนวนตัวอักษรที่ extract ได้ */
+/** บริการเลือก fast path หรือ OCR sidecar (Tesseract) ตามจำนวนตัวอักษรที่ extract ได้ */
 @Injectable()
 export class OcrService {
   private readonly logger = new Logger(OcrService.name);
@@ -64,7 +65,7 @@ export class OcrService {
     return localPath;
   }
 
-  /** ตรวจสอบสุขภาพและ latency ของ PaddleOCR sidecar ผ่าน GET /health */
+  /** ตรวจสอบสุขภาพและ latency ของ OCR sidecar (Tesseract) ผ่าน GET /health */
   async checkHealth(): Promise<OcrHealthResult> {
     const startTime = Date.now();
     try {
@@ -105,7 +106,7 @@ export class OcrService {
     try {
       const sidecarPath = this.remapPath(input.pdfPath);
       this.logger.debug(`OCR path remap: ${input.pdfPath} → ${sidecarPath}`);
-      const response = await axios.post<PaddleOcrResponse>(
+      const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr`,
         { pdfPath: sidecarPath },
         { timeout: 90000 }
@@ -124,7 +125,7 @@ export class OcrService {
             ? err.message
             : String(err);
       throw new Error(
-        `PaddleOCR sidecar unreachable at ${this.ocrApiUrl} — ${cause}`
+        `OCR sidecar (Tesseract) unreachable at ${this.ocrApiUrl} — ${cause}`
       );
     }
   }
