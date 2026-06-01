@@ -51,22 +51,36 @@ export class SandboxOcrEngineService {
   private remapPath(localPath: string): string {
     if (!localPath) return localPath;
 
-    // แปลง Windows backslash ให้เป็น forward slash
+    // 1. แปลง Backslash (\) ทั้งหมดให้เป็น Forward slash (/) และทำความสะอาด path
     const normalizedPath = localPath.replace(/\\/g, '/');
-    const normalizedLocalBase = this.localUploadBase.replace(/\\/g, '/');
 
-    // ตรวจสอบความเข้ากันได้ของ base path
+    // 2. สกัดเอาส่วนของ path ที่อยู่หลัง /uploads หรือ uploads
+    // เช่น "E:/np-dms/lcbp3/backend/uploads/temp/xxx.pdf" หรือ "Z:/data/uploads/permanent/xxx.pdf"
+    // จะค้นหาคำว่า "uploads/" แบบ Case-Insensitive
+    const uploadsMatch = normalizedPath.match(/\/uploads\/(.+)$/i);
+
+    if (uploadsMatch && uploadsMatch[1]) {
+      // คืนค่าเป็น /mnt/uploads/ + ส่วนปลายของไฟล์ (เช่น temp/xxx.pdf หรือ permanent/xxx.pdf)
+      const sidecarBase = this.sidecarUploadBase.replace(/\/$/, '');
+      const mappedPath = `${sidecarBase}/${uploadsMatch[1]}`;
+      this.logger.debug(
+        `Mapped Windows path "${localPath}" to Sidecar path "${mappedPath}"`
+      );
+      return mappedPath;
+    }
+
+    // กรณีสำรอง: ถ้าไม่มี /uploads/ ใน path แต่เริ่มด้วย localUploadBase
+    const normalizedLocalBase = this.localUploadBase.replace(/\\/g, '/');
     if (normalizedLocalBase && normalizedPath.includes(normalizedLocalBase)) {
       const relativePart = normalizedPath.substring(
         normalizedPath.indexOf(normalizedLocalBase) + normalizedLocalBase.length
       );
-      return `${this.sidecarUploadBase.replace(/\/$/, '')}${relativePart}`;
-    }
-
-    // กรณีพิเศษ: ถ้าเป็น Windows Path และมีคำว่า /uploads/ ให้แมปเข้ากับ sidecar base
-    const uploadsIndex = normalizedPath.indexOf('/uploads/');
-    if (uploadsIndex !== -1) {
-      return `${this.sidecarUploadBase.replace(/\/$/, '')}${normalizedPath.substring(uploadsIndex + 8)}`;
+      const sidecarBase = this.sidecarUploadBase.replace(/\/$/, '');
+      const mappedPath = `${sidecarBase}${relativePart}`;
+      this.logger.debug(
+        `Mapped fallback path "${localPath}" to "${mappedPath}"`
+      );
+      return mappedPath;
     }
 
     return normalizedPath;
