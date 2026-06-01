@@ -1,6 +1,7 @@
 // File: src/modules/ai/services/sandbox-ocr-engine.service.ts
 // Change Log
 // - 2026-05-30: แยก SandboxOcrEngineService ออกจาก OcrService เพื่อรองรับการเลือก Typhoon OCR เฉพาะ sandbox โดยไม่กระทบ core OCR flow
+// - 2026-06-01: ปรับปรุง remapPath ให้รองรับ Windows absolute และ relative path ได้แม่นยำ 100%
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -51,32 +52,43 @@ export class SandboxOcrEngineService {
   private remapPath(localPath: string): string {
     if (!localPath) return localPath;
 
-    // 1. แปลง Backslash (\) ทั้งหมดให้เป็น Forward slash (/) และทำความสะอาด path
-    const normalizedPath = localPath.replace(/\\/g, '/');
+    // 1. แปลง Backslash (\) ทั้งหมดให้เป็น Forward slash (/) และรวม slash ที่ซ้ำซ้อน
+    const normalizedPath = localPath.replace(/\\/g, '/').replace(/\/+/g, '/');
+    const sidecarBase = this.sidecarUploadBase.replace(/\/+$/, '');
 
-    // 2. สกัดเอาส่วนของ path ที่อยู่หลัง /uploads หรือ uploads
-    // เช่น "E:/np-dms/lcbp3/backend/uploads/temp/xxx.pdf" หรือ "Z:/data/uploads/permanent/xxx.pdf"
-    // จะค้นหาคำว่า "uploads/" แบบ Case-Insensitive
+    // 2. สกัดเอาส่วนของ path ที่อยู่หลัง /uploads/
     const uploadsMatch = normalizedPath.match(/\/uploads\/(.+)$/i);
-
     if (uploadsMatch && uploadsMatch[1]) {
-      // คืนค่าเป็น /mnt/uploads/ + ส่วนปลายของไฟล์ (เช่น temp/xxx.pdf หรือ permanent/xxx.pdf)
-      const sidecarBase = this.sidecarUploadBase.replace(/\/$/, '');
-      const mappedPath = `${sidecarBase}/${uploadsMatch[1]}`;
+      const relativePart = uploadsMatch[1].replace(/^\/+/, '');
+      const mappedPath = `${sidecarBase}/${relativePart}`;
       this.logger.debug(
         `Mapped Windows path "${localPath}" to Sidecar path "${mappedPath}"`
       );
       return mappedPath;
     }
 
-    // กรณีสำรอง: ถ้าไม่มี /uploads/ ใน path แต่เริ่มด้วย localUploadBase
-    const normalizedLocalBase = this.localUploadBase.replace(/\\/g, '/');
-    if (normalizedLocalBase && normalizedPath.includes(normalizedLocalBase)) {
-      const relativePart = normalizedPath.substring(
-        normalizedPath.indexOf(normalizedLocalBase) + normalizedLocalBase.length
+    // 3. กรณี Relative path ที่ขึ้นต้นด้วย uploads/ เช่น "uploads/temp/xxx.pdf"
+    if (normalizedPath.startsWith('uploads/')) {
+      const relativePart = normalizedPath.substring(8).replace(/^\/+/, '');
+      const mappedPath = `${sidecarBase}/${relativePart}`;
+      this.logger.debug(
+        `Mapped relative path "${localPath}" to "${mappedPath}"`
       );
-      const sidecarBase = this.sidecarUploadBase.replace(/\/$/, '');
-      const mappedPath = `${sidecarBase}${relativePart}`;
+      return mappedPath;
+    }
+
+    // 4. กรณีสำรอง: ถ้าเริ่มด้วย localUploadBase
+    const normalizedLocalBase = this.localUploadBase
+      .replace(/\\/g, '/')
+      .replace(/\/+/g, '/');
+    if (normalizedLocalBase && normalizedPath.includes(normalizedLocalBase)) {
+      const relativePart = normalizedPath
+        .substring(
+          normalizedPath.indexOf(normalizedLocalBase) +
+            normalizedLocalBase.length
+        )
+        .replace(/^\/+/, '');
+      const mappedPath = `${sidecarBase}/${relativePart}`;
       this.logger.debug(
         `Mapped fallback path "${localPath}" to "${mappedPath}"`
       );
