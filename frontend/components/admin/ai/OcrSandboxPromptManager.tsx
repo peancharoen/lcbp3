@@ -108,7 +108,7 @@ export default function OcrSandboxPromptManager() {
   // 2-step flow states
   const [sandboxStep, setSandboxStep] = useState<'ocr' | 'ai'>('ocr');
   const [selectedOcrEngine, setSelectedOcrEngine] = useState<
-    'auto' | 'tesseract' | 'typhoon-ocr-3b'
+    'auto' | 'tesseract' | 'typhoon-ocr-3b' | 'typhoon-ocr1.5-3b'
   >('auto');
   const [ocrResult, setOcrResult] = useState<{
     requestPublicId: string;
@@ -386,14 +386,15 @@ export default function OcrSandboxPromptManager() {
                           value={selectedOcrEngine}
                           onChange={(e) =>
                             setSelectedOcrEngine(
-                              e.target.value as 'auto' | 'tesseract' | 'typhoon-ocr-3b'
+                              e.target.value as 'auto' | 'tesseract' | 'typhoon-ocr-3b' | 'typhoon-ocr1.5-3b'
                             )
                           }
                           className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
                         >
                           <option value="auto">Auto (Current Baseline)</option>
                           <option value="tesseract">Tesseract OCR</option>
-                          <option value="typhoon-ocr-3b">Typhoon OCR-3B</option>
+                          <option value="typhoon-ocr-3b">Typhoon OCR-3B (v1.0)</option>
+                          <option value="typhoon-ocr1.5-3b">Typhoon OCR-3B (v1.5)</option>
                         </select>
                       </div>
                       <div
