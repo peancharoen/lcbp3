@@ -7,6 +7,9 @@
 # - 2026-05-30: เพิ่ม Typhoon OCR environment variables (T009b, ADR-032)
 #              OLLAMA_API_URL ชี้ไปที่ http://192.168.10.100:11434 (Admin Desktop LAN IP)
 # - 2026-05-30: Revert volumes กลับไปใช้ Windows Z: drive bind mount (แทน CIFS volume driver ที่พัง)
+# - 2026-06-01: แก้ volumes เปลี่ยนจาก Z: drive bind mount (ไม่ทำงานบน WSL2)
+#              เป็น CIFS named volume ชี้ตรงไปที่ UNC path \\192.168.10.8\np-dms-as\data\uploads
+#              ต้องสร้างไฟล์ .env ที่ Desk-5439 (ดูตัวอย่างใน .env.example)
 #
 # วิธีรัน:
 #   docker compose up -d --build
@@ -38,8 +41,8 @@ services:
       # Timeout 120 วินาที/หน้า (budget สำหรับ 3B model บน RTX 2060 Super)
       TYPHOON_OCR_TIMEOUT: "120"
     volumes:
-      # Uploads จาก QNAP NAS ผ่าน Windows mapped drive Z:
-      - z:/data/uploads:/mnt/uploads:ro
+      # Uploads จาก QNAP NAS ผ่าน CIFS named volume (แทน Z: drive ที่ WSL2 mount ไม่ได้)
+      - qnap_uploads:/mnt/uploads:ro
     logging:
       driver: "json-file"
       options:
@@ -51,4 +54,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
+volumes:
+  qnap_uploads:
+    driver: local
+    driver_opts:
+      type: cifs
+      # UNC path ตรงไปที่ share บน QNAP NAS — ไม่ผ่าน mapped drive letter
+      device: "//192.168.10.8/np-dms-as/data/uploads"
+      o: "username=${QNAP_SMB_USER},password=${QNAP_SMB_PASS},vers=3.0,uid=0,gid=0,file_mode=0444,dir_mode=0555"
 
