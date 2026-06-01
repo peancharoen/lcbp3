@@ -150,6 +150,21 @@
 
 ---
 
+## Phase 7: Bugfix — OCR Sidecar 404 (2026-06-01)
+
+**Root Cause:** Docker Desktop WSL2 ไม่สามารถ bind mount Windows network drive (Z:) หรือ CIFS volume ได้ ทำให้ `/mnt/uploads` ใน sidecar container ว่างเปล่า และ sidecar ตอบกลับ 404 ทุกครั้ง
+
+**Fix:** เปลี่ยน architecture จาก shared volume mount เป็น multipart HTTP upload
+
+- [x] T051 เพิ่ม `POST /ocr-upload` endpoint ใน `app.py` รับ multipart file โดยตรง (ไม่ต้องการ volume mount)
+- [x] T052 Refactor `_process_pdf_doc()` เป็น shared function ระหว่าง `/ocr` และ `/ocr-upload`
+- [x] T053 ลบ `remapPath()` และ `sidecarUploadBase` ออกจาก `ocr.service.ts` เปลี่ยนเป็น `fs.readFileSync` + Node.js `FormData`
+- [x] T054 ลบ `remapPath()` และ `sidecarUploadBase` ออกจาก `sandbox-ocr-engine.service.ts` เปลี่ยนเป็น multipart upload
+- [x] T055 ลบ `volumes:` section ออกจาก `docker-compose.yml` — ไม่ต้องการ shared storage อีกต่อไป
+- [x] T056 อัพเดต ADR-032 บันทึก architectural decision เรื่อง file transfer approach
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
