@@ -184,7 +184,7 @@ export class TyphoonOcrProcessor extends WorkerHost {
     const log = this.auditLogRepo.create({
       documentPublicId: params.documentPublicId,
       aiModel: 'typhoon-ocr',
-      modelName: 'scb10x/typhoon-ocr-3b',
+      modelName: 'scb10x/typhoon-ocr1.5-3b',
       modelType: params.engineType,
       status: params.status,
       processingTimeMs: params.processingTimeMs,

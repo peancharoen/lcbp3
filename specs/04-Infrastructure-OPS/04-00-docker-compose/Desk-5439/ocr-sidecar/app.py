@@ -7,6 +7,7 @@
 # - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
 # - 2026-05-30: เพิ่ม OpenCV preprocessing (threshold, denoise) และ DPI 300 เพื่อเพิ่มความแม่นยำ
 # - 2026-06-01: เพิ่ม POST /ocr-upload รับ multipart file โดยตรง ไม่ต้องพึ่ง shared volume mount
+# - 2026-06-01: เปลี่ยน TYPHOON_OCR_MODEL default เป็น scb10x/typhoon-ocr1.5-3b
 
 import os
 import logging
@@ -37,7 +38,7 @@ OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
 MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
 OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng = Thai + English)
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
-TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "scb10x/typhoon-ocr-3b")
+TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "scb10x/typhoon-ocr1.5-3b")
 TYPHOON_OCR_TIMEOUT = int(os.getenv("TYPHOON_OCR_TIMEOUT", "120"))
 # PSM 3 = Fully automatic page segmentation (เหมาะกับเอกสารที่มี layout หลายส่วน เช่น วันที่/เลขที่)
 # OEM 1 = LSTM only (ดีกว่า legacy engine)
@@ -146,7 +147,7 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int) -
                 engineUsed="fast-path",
             )
 
-    if selected_engine == "typhoon-ocr-3b":
+    if selected_engine in ("typhoon-ocr-3b", "typhoon-ocr1.5-3b"):
         typhoon_text_parts = []
         for i in pages_to_process:
             page = doc[i]
@@ -162,7 +163,7 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int) -
             ocrUsed=True,
             pageCount=page_count,
             charCount=len(typhoon_text),
-            engineUsed="typhoon-ocr-3b",
+            engineUsed="typhoon-ocr1.5-3b",
         )
 
     logger.info(f"Slow path (Tesseract): {total_chars} chars too few")

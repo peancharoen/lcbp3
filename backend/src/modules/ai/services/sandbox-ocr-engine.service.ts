@@ -9,7 +9,11 @@ import axios from 'axios';
 import * as fs from 'fs';
 import { OcrService } from './ocr.service';
 
-export type SandboxOcrEngineType = 'auto' | 'tesseract' | 'typhoon-ocr-3b';
+export type SandboxOcrEngineType =
+  | 'auto'
+  | 'tesseract'
+  | 'typhoon-ocr-3b'
+  | 'typhoon-ocr1.5-3b';
 
 interface SandboxOcrSidecarResponse {
   text?: string;

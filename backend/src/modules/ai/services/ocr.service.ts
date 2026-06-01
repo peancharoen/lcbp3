@@ -319,7 +319,7 @@ export class OcrService {
         new Blob([fileBuffer], { type: 'application/pdf' }),
         'upload.pdf'
       );
-      form.append('engine', 'typhoon-ocr-3b');
+      form.append('engine', 'typhoon-ocr1.5-3b');
       const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,
@@ -332,7 +332,7 @@ export class OcrService {
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
         aiModel: 'typhoon-ocr',
-        modelName: 'typhoon-ocr-3b',
+        modelName: 'typhoon-ocr1.5-3b',
         modelType: 'typhoon-ocr',
         status: AiAuditStatus.SUCCESS,
         processingTimeMs: durationMs,

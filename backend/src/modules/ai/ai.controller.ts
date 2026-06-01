@@ -86,6 +86,7 @@ import { AiEnabledGuard } from './guards/ai-enabled.guard';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { FileStorageService } from '../../common/file-storage/file-storage.service';
+import { SandboxOcrEngineType } from './services/sandbox-ocr-engine.service';
 import { AiMigrationCheckpointService } from './ai-migration-checkpoint.service';
 import {
   MigrationErrorLogDto,
@@ -538,7 +539,7 @@ export class AiController {
         },
         engineType: {
           type: 'string',
-          enum: ['auto', 'tesseract', 'typhoon-ocr-3b'],
+          enum: ['auto', 'tesseract', 'typhoon-ocr-3b', 'typhoon-ocr1.5-3b'],
           description: 'OCR engine ที่ต้องการใช้ (default: auto)',
         },
       },
@@ -560,13 +561,17 @@ export class AiController {
     const attachment = await this.fileStorageService.upload(file, user.user_id);
     const requestPublicId = uuidv7();
     // ตรวจสอบและ normalize engineType ให้เป็นค่าที่ valid
-    const validEngineTypes = ['auto', 'tesseract', 'typhoon-ocr-3b'] as const;
-    const resolvedEngineType: 'auto' | 'tesseract' | 'typhoon-ocr-3b' =
-      validEngineTypes.includes(
-        engineType as 'auto' | 'tesseract' | 'typhoon-ocr-3b'
-      )
-        ? (engineType as 'auto' | 'tesseract' | 'typhoon-ocr-3b')
-        : 'auto';
+    const validEngineTypes = [
+      'auto',
+      'tesseract',
+      'typhoon-ocr-3b',
+      'typhoon-ocr1.5-3b',
+    ] as const;
+    const resolvedEngineType: SandboxOcrEngineType = validEngineTypes.includes(
+      engineType as SandboxOcrEngineType
+    )
+      ? (engineType as SandboxOcrEngineType)
+      : 'auto';
     const jobId = await this.aiQueueService.enqueueSandboxJob(
       'sandbox-ocr-only',
       {

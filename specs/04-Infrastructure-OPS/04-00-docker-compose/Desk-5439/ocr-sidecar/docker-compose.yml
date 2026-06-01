@@ -9,6 +9,7 @@
 # - 2026-05-30: Revert volumes กลับไปใช้ Windows Z: drive bind mount (แทน CIFS volume driver ที่พัง)
 # - 2026-06-01: ลบ volumes ออกทั้งหมด — backend ส่ง file content ผ่าน multipart /ocr-upload แทน
 #              ไม่ต้องการ shared storage อีกต่อไป
+# - 2026-06-01: เปลี่ยน TYPHOON_OCR_MODEL เป็น scb10x/typhoon-ocr1.5-3b
 #
 # วิธีรัน:
 #   docker compose up -d --build
@@ -36,7 +37,7 @@ services:
       # ─── Typhoon OCR via Ollama (ADR-032) ───────────────────────────────────
       # ชี้ไปที่ Ollama ที่รันบน Desk-5439 ผ่าน LAN IP (ไม่ใช่ host.docker.internal)
       OLLAMA_API_URL: "http://192.168.10.100:11434"
-      TYPHOON_OCR_MODEL: "scb10x/typhoon-ocr-3b"
+      TYPHOON_OCR_MODEL: "scb10x/typhoon-ocr1.5-3b"
       # Timeout 120 วินาที/หน้า (budget สำหรับ 3B model บน RTX 2060 Super)
       TYPHOON_OCR_TIMEOUT: "120"
     logging:
