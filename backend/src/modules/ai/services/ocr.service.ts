@@ -331,6 +331,19 @@ export class OcrService {
       };
     } catch (err: unknown) {
       const durationMs = Date.now() - startTime;
+      // ดึง axios response body detail ออกมาด้วย (เช่น ไม่พบไฟล์: /mnt/uploads/...)
+      const axiosDetail =
+        err !== null &&
+        typeof err === 'object' &&
+        'response' in err &&
+        err.response !== null &&
+        typeof err.response === 'object' &&
+        'data' in err.response &&
+        err.response.data !== null &&
+        typeof err.response.data === 'object' &&
+        'detail' in err.response.data
+          ? String((err.response.data as { detail: unknown }).detail)
+          : null;
       const cause =
         err instanceof AggregateError && err.errors?.length
           ? err.errors
@@ -339,6 +352,9 @@ export class OcrService {
           : err instanceof Error
             ? err.message
             : String(err);
+      const fullCause = axiosDetail
+        ? `${cause} — sidecar detail: ${axiosDetail} (sidecarPath: ${sidecarPath})`
+        : `${cause} (sidecarPath: ${sidecarPath})`;
 
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
@@ -347,11 +363,11 @@ export class OcrService {
         modelType: 'tesseract',
         status: AiAuditStatus.FAILED,
         processingTimeMs: durationMs,
-        errorMessage: cause,
+        errorMessage: fullCause,
         cacheHit: false,
       });
 
-      throw new Error(`Tesseract OCR Sidecar failed: ${cause}`);
+      throw new Error(`Tesseract OCR Sidecar failed: ${fullCause}`);
     }
   }
 

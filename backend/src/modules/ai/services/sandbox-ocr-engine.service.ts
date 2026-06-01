@@ -130,9 +130,25 @@ export class SandboxOcrEngineService {
         fallbackUsed: false,
       };
     } catch (error: unknown) {
+      // ดึง axios response body detail ออกมาด้วย (เช่น ไม่พบไฟล์: /mnt/uploads/...)
+      const axiosDetail =
+        error !== null &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response !== null &&
+        typeof error.response === 'object' &&
+        'data' in error.response &&
+        error.response.data !== null &&
+        typeof error.response.data === 'object' &&
+        'detail' in error.response.data
+          ? String((error.response.data as { detail: unknown }).detail)
+          : null;
       const cause = error instanceof Error ? error.message : String(error);
+      const fullCause = axiosDetail
+        ? `${cause} — sidecar detail: ${axiosDetail}`
+        : cause;
       this.logger.warn(
-        `Typhoon OCR failed in sandbox, falling back to Tesseract: ${cause}`
+        `Typhoon OCR failed in sandbox, falling back to Tesseract: ${fullCause}`
       );
 
       const fallbackResult = await this.ocrService.detectAndExtract({
