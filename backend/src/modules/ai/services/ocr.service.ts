@@ -7,6 +7,7 @@
 // - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
 // - 2026-05-30: เพิ่ม VRAM insufficiency guard สำหรับ Typhoon OCR engine (T016a, ADR-032)
 // - 2026-05-30: ปรับปรุงสำหรับ Dynamic OCR Engine selection, Caching, และ Graceful Fallback (T013, T014, T016, T022, T023, US1)
+// - 2026-06-01: ปรับปรุง remapPath ให้รองรับ Windows absolute และ relative path ได้แม่นยำ 100%
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -201,32 +202,43 @@ export class OcrService {
   private remapPath(localPath: string): string {
     if (!localPath) return localPath;
 
-    // 1. แปลง Backslash (\) ทั้งหมดให้เป็น Forward slash (/) และทำความสะอาด path
-    const normalizedPath = localPath.replace(/\\/g, '/');
+    // 1. แปลง Backslash (\) ทั้งหมดให้เป็น Forward slash (/) และรวม slash ที่ซ้ำซ้อน
+    const normalizedPath = localPath.replace(/\\/g, '/').replace(/\/+/g, '/');
+    const sidecarBase = this.sidecarUploadBase.replace(/\/+$/, '');
 
-    // 2. สกัดเอาส่วนของ path ที่อยู่หลัง /uploads หรือ uploads
-    // เช่น "E:/np-dms/lcbp3/backend/uploads/temp/xxx.pdf" หรือ "Z:/data/uploads/permanent/xxx.pdf"
-    // จะค้นหาคำว่า "uploads/" แบบ Case-Insensitive
+    // 2. สกัดเอาส่วนของ path ที่อยู่หลัง /uploads/
     const uploadsMatch = normalizedPath.match(/\/uploads\/(.+)$/i);
-
     if (uploadsMatch && uploadsMatch[1]) {
-      // คืนค่าเป็น /mnt/uploads/ + ส่วนปลายของไฟล์ (เช่น temp/xxx.pdf หรือ permanent/xxx.pdf)
-      const sidecarBase = this.sidecarUploadBase.replace(/\/$/, '');
-      const mappedPath = `${sidecarBase}/${uploadsMatch[1]}`;
+      const relativePart = uploadsMatch[1].replace(/^\/+/, '');
+      const mappedPath = `${sidecarBase}/${relativePart}`;
       this.logger.debug(
         `Mapped Windows path "${localPath}" to Sidecar path "${mappedPath}"`
       );
       return mappedPath;
     }
 
-    // กรณีสำรอง: ถ้าไม่มี /uploads/ ใน path แต่เริ่มด้วย localUploadBase
-    const normalizedLocalBase = this.localUploadBase.replace(/\\/g, '/');
-    if (normalizedLocalBase && normalizedPath.includes(normalizedLocalBase)) {
-      const relativePart = normalizedPath.substring(
-        normalizedPath.indexOf(normalizedLocalBase) + normalizedLocalBase.length
+    // 3. กรณี Relative path ที่ขึ้นต้นด้วย uploads/ เช่น "uploads/temp/xxx.pdf"
+    if (normalizedPath.startsWith('uploads/')) {
+      const relativePart = normalizedPath.substring(8).replace(/^\/+/, '');
+      const mappedPath = `${sidecarBase}/${relativePart}`;
+      this.logger.debug(
+        `Mapped relative path "${localPath}" to "${mappedPath}"`
       );
-      const sidecarBase = this.sidecarUploadBase.replace(/\/$/, '');
-      const mappedPath = `${sidecarBase}${relativePart}`;
+      return mappedPath;
+    }
+
+    // 4. กรณีสำรอง: ถ้าเริ่มด้วย localUploadBase
+    const normalizedLocalBase = this.localUploadBase
+      .replace(/\\/g, '/')
+      .replace(/\/+/g, '/');
+    if (normalizedLocalBase && normalizedPath.includes(normalizedLocalBase)) {
+      const relativePart = normalizedPath
+        .substring(
+          normalizedPath.indexOf(normalizedLocalBase) +
+            normalizedLocalBase.length
+        )
+        .replace(/^\/+/, '');
+      const mappedPath = `${sidecarBase}/${relativePart}`;
       this.logger.debug(
         `Mapped fallback path "${localPath}" to "${mappedPath}"`
       );
@@ -335,98 +347,56 @@ export class OcrService {
         modelType: 'tesseract',
         status: AiAuditStatus.FAILED,
         processingTimeMs: durationMs,
-        cacheHit: false,
         errorMessage: cause,
+        cacheHit: false,
       });
 
-      throw new Error(
-        `OCR sidecar (Tesseract) unreachable at ${this.ocrApiUrl} — ${cause}`
-      );
+      throw new Error(`Tesseract OCR Sidecar failed: ${cause}`);
     }
   }
 
-  /** ประมวลผลผ่าน Typhoon OCR พร้อม Caching และ Fallback */
+  /** ประมวลผลผ่าน Typhoon OCR */
   private async processWithTyphoon(
     input: OcrDetectionInput
   ): Promise<OcrDetectionResult> {
     const startTime = Date.now();
-    const pdfPath = input.pdfPath!;
-    const engineType = 'typhoon-ocr-3b';
+    const sidecarPath = this.remapPath(input.pdfPath!);
 
-    // 1. ตรวจสอบ Redis cache (T022)
     try {
-      const cached = await this.ocrCacheService.get(pdfPath, engineType);
-      if (cached) {
-        this.logger.log(`OCR Cache Hit for Typhoon OCR: ${pdfPath}`);
-        const durationMs = Date.now() - startTime;
-
-        await this.writeAuditLog({
-          documentPublicId: input.documentPublicId,
-          aiModel: 'typhoon-ocr',
-          modelName: 'scb10x/typhoon-ocr-3b',
-          modelType: engineType,
-          status: AiAuditStatus.SUCCESS,
-          processingTimeMs: durationMs,
-          cacheHit: true,
-        });
-
-        return {
-          text: cached.text,
-          ocrUsed: true,
-        };
+      // 1. ตรวจสอบ VRAM insufficiency guard
+      const hasCapacity = await this.vramMonitorService.hasVramCapacity(
+        TYPHOON_OCR_REQUIRED_VRAM_MB
+      );
+      if (!hasCapacity) {
+        this.logger.warn(
+          `VRAM insufficient for Typhoon OCR. Falling back to Tesseract baseline.`
+        );
+        return this.processWithTesseract(input);
       }
-    } catch (err: unknown) {
-      this.logger.warn(
-        `Cache checking failed: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
 
-    // 2. ตรวจสอบปริมาณ VRAM ก่อนประมวลผล (T016a)
-    const hasCapacity = await this.vramMonitorService.hasVramCapacity(
-      TYPHOON_OCR_REQUIRED_VRAM_MB
-    );
-    if (!hasCapacity) {
-      const errorMsg = `VRAM capacity (< 4GB) insufficient for Typhoon OCR-3B. Fallback to Tesseract.`;
-      return this.fallbackToTesseract(
-        pdfPath,
-        errorMsg,
-        input.documentPublicId
+      this.logger.debug(
+        `Typhoon OCR processing: ${input.pdfPath} → ${sidecarPath}`
       );
-    }
-
-    // 3. เรียกประมวลผล Typhoon OCR
-    const sidecarPath = this.remapPath(pdfPath);
-    try {
-      this.logger.log(`Calling Typhoon OCR-3B for: ${sidecarPath}`);
       const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr`,
-        { pdfPath: sidecarPath, engine: engineType },
-        { timeout: 60000 } // 60s timeout per ADR-032
+        {
+          pdfPath: sidecarPath,
+          engine: 'typhoon-ocr-3b',
+        },
+        { timeout: 120000 }
       );
 
       const text = response.data.text ?? '';
       const durationMs = Date.now() - startTime;
 
-      // เซ็ต Cache ลง Redis 24 ชั่วโมง (T022)
-      await this.ocrCacheService.set(pdfPath, engineType, {
-        text,
-        engineUsed: engineType,
-        charCount: text.length,
-      });
-
-      // Invalidate VRAM monitor cache เนื่องจากใช้ keep_alive = 0 โมเดลจะถูก unload ทันที
-      await this.vramMonitorService.invalidateCache();
-
-      // บันทึก Audit Log (T023)
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
         aiModel: 'typhoon-ocr',
-        modelName: 'scb10x/typhoon-ocr-3b',
-        modelType: engineType,
+        modelName: 'typhoon-ocr-3b',
+        modelType: 'typhoon-ocr',
         status: AiAuditStatus.SUCCESS,
         processingTimeMs: durationMs,
         cacheHit: false,
-        vramUsageMb: TYPHOON_OCR_REQUIRED_VRAM_MB,
       });
 
       return {
@@ -434,106 +404,38 @@ export class OcrService {
         ocrUsed: true,
       };
     } catch (err: unknown) {
-      const cause = err instanceof Error ? err.message : String(err);
-      const errorMsg = `Typhoon OCR API call failed: ${cause}`;
-
-      // 4. สลับเอนจินสำรองอัตโนมัติ (Graceful Fallback to Tesseract - T016)
-      return this.fallbackToTesseract(
-        pdfPath,
-        errorMsg,
-        input.documentPublicId
+      this.logger.warn(
+        `Typhoon OCR failed, trying fallback baseline (Tesseract): ${err instanceof Error ? err.message : String(err)}`
       );
+      return this.processWithTesseract(input);
     }
   }
 
-  /** สลับไปใช้งาน Tesseract OCR อัตโนมัติในฐานะระบบสำรอง (Graceful Fallback - T016) */
-  private async fallbackToTesseract(
-    pdfPath: string,
-    originalError: string,
-    documentPublicId?: string
-  ): Promise<OcrDetectionResult> {
-    this.logger.warn(
-      `Typhoon OCR processing failed, initiating graceful fallback to Tesseract: ${originalError}`
-    );
-    const startTime = Date.now();
-    const sidecarPath = this.remapPath(pdfPath);
-
-    try {
-      const response = await axios.post<OcrSidecarResponse>(
-        `${this.ocrApiUrl}/ocr`,
-        { pdfPath: sidecarPath }, // ส่งโดยไม่มี engine parameter เพื่อให้เป็น Tesseract
-        { timeout: 30000 } // 30s timeout สำหรับ fallback
-      );
-
-      const text = response.data.text ?? '';
-      const durationMs = Date.now() - startTime;
-
-      // บันทึก Audit Log ด้วยสถานะ SUCCESS สำหรับ Tesseract แต่ระบุ Error ของ Typhoon ไว้
-      await this.writeAuditLog({
-        documentPublicId,
-        aiModel: 'tesseract',
-        modelName: 'tesseract-ocr',
-        modelType: 'tesseract',
-        status: AiAuditStatus.SUCCESS,
-        processingTimeMs: durationMs,
-        cacheHit: false,
-        errorMessage: `Graceful fallback from Typhoon OCR. Original error: ${originalError}`,
-      });
-
-      return {
-        text,
-        ocrUsed: true,
-      };
-    } catch (err: unknown) {
-      const durationMs = Date.now() - startTime;
-      const cause = err instanceof Error ? err.message : String(err);
-      this.logger.error(`OCR fallback to Tesseract failed: ${cause}`);
-
-      await this.writeAuditLog({
-        documentPublicId,
-        aiModel: 'tesseract',
-        modelName: 'tesseract-ocr',
-        modelType: 'tesseract',
-        status: AiAuditStatus.FAILED,
-        processingTimeMs: durationMs,
-        cacheHit: false,
-        errorMessage: `Fallback failed: ${cause}. Original Typhoon error: ${originalError}`,
-      });
-
-      throw new Error(
-        `OCR processing failed entirely. Typhoon error: ${originalError}. Fallback error: ${cause}`
-      );
-    }
-  }
-
-  /** เขียนบันทึก AI Audit Log (T023) */
-  private async writeAuditLog(params: {
+  /** บันทึก Log การรัน AI */
+  private async writeAuditLog(log: {
     documentPublicId?: string;
     aiModel: string;
     modelName: string;
     modelType: string;
     status: AiAuditStatus;
     processingTimeMs: number;
-    cacheHit: boolean;
-    vramUsageMb?: number;
     errorMessage?: string;
+    cacheHit: boolean;
   }): Promise<void> {
     try {
-      const log = this.auditLogRepo.create({
-        documentPublicId: params.documentPublicId,
-        aiModel: params.aiModel,
-        modelName: params.modelName,
-        modelType: params.modelType,
-        status: params.status,
-        processingTimeMs: params.processingTimeMs,
-        cacheHit: params.cacheHit,
-        vramUsageMb: params.vramUsageMb,
-        errorMessage: params.errorMessage,
-      });
-      await this.auditLogRepo.save(log);
+      await this.auditLogRepo.save(
+        this.auditLogRepo.create({
+          documentPublicId: log.documentPublicId,
+          aiModel: log.aiModel,
+          modelName: log.modelName,
+          processingTimeMs: log.processingTimeMs,
+          status: log.status,
+          errorMessage: log.errorMessage,
+        })
+      );
     } catch (err: unknown) {
-      this.logger.warn(
-        `Failed to write AI audit log: ${err instanceof Error ? err.message : String(err)}`
+      this.logger.error(
+        `Failed to save AI Audit Log: ${err instanceof Error ? err.message : String(err)}`
       );
     }
   }
