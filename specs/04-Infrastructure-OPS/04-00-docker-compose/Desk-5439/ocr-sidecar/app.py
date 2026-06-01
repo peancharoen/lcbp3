@@ -6,6 +6,7 @@
 # - 2026-05-30: เปลี่ยน lang='en' เป็น lang='ch' (CTJK) เพื่อรองรับภาษาไทย
 # - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
 # - 2026-05-30: เพิ่ม OpenCV preprocessing (threshold, denoise) และ DPI 300 เพื่อเพิ่มความแม่นยำ
+# - 2026-06-01: เพิ่ม POST /ocr-upload รับ multipart file โดยตรง ไม่ต้องพึ่ง shared volume mount
 
 import os
 import logging
@@ -21,7 +22,7 @@ import io
 import cv2
 import numpy as np
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from pythainlp.tokenize import word_tokenize
 from pythainlp.util import normalize as thai_normalize
@@ -122,6 +123,71 @@ def health():
     return {"status": "ok", "engine": "tesseract"}
 
 
+def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int) -> OcrResponse:
+    """ประมวลผล fitz.Document ด้วย engine ที่เลือก — shared logic สำหรับ /ocr และ /ocr-upload"""
+    pages_to_process = list(range(min(len(doc), max_pages) if max_pages > 0 else len(doc)))
+    page_count = len(pages_to_process)
+
+    fast_text_parts = []
+    total_chars = 0
+    if selected_engine == "auto":
+        for i in pages_to_process:
+            page = doc[i]
+            fast_text_parts.append(page.get_text())
+        fast_text = "\n".join(fast_text_parts).strip()
+        total_chars = len(fast_text)
+        if total_chars > OCR_CHAR_THRESHOLD:
+            logger.info(f"Fast path: {total_chars} chars extracted")
+            return OcrResponse(
+                text=fast_text,
+                ocrUsed=False,
+                pageCount=page_count,
+                charCount=total_chars,
+                engineUsed="fast-path",
+            )
+
+    if selected_engine == "typhoon-ocr-3b":
+        typhoon_text_parts = []
+        for i in pages_to_process:
+            page = doc[i]
+            pix = page.get_pixmap(dpi=300)
+            img_bytes = pix.tobytes("png")
+            img = Image.open(io.BytesIO(img_bytes))
+            cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
+            processed_img = preprocess_image(cropped_img)
+            typhoon_text_parts.append(process_with_typhoon_ocr(processed_img))
+        typhoon_text = filter_ocr_noise("\n".join(typhoon_text_parts).strip())
+        return OcrResponse(
+            text=typhoon_text,
+            ocrUsed=True,
+            pageCount=page_count,
+            charCount=len(typhoon_text),
+            engineUsed="typhoon-ocr-3b",
+        )
+
+    logger.info(f"Slow path (Tesseract): {total_chars} chars too few")
+    ocr_text_parts = []
+    for i in pages_to_process:
+        page = doc[i]
+        pix = page.get_pixmap(dpi=300)
+        img_bytes = pix.tobytes("png")
+        img = Image.open(io.BytesIO(img_bytes))
+        cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
+        processed_img = preprocess_image(cropped_img)
+        text = pytesseract.image_to_string(processed_img, lang=OCR_LANG, config=TESSERACT_CONFIG)
+        ocr_text_parts.append(text.strip())
+
+    ocr_text = filter_ocr_noise("\n".join(ocr_text_parts).strip())
+    logger.info(f"Tesseract extracted {len(ocr_text)} chars")
+    return OcrResponse(
+        text=ocr_text,
+        ocrUsed=True,
+        pageCount=page_count,
+        charCount=len(ocr_text),
+        engineUsed="tesseract",
+    )
+
+
 def process_with_typhoon_ocr(pil_image: Image.Image) -> str:
     """เรียก Typhoon OCR ผ่าน Ollama สำหรับ sandbox option โดยไม่แตะ backend DB/storage"""
     img_buffer = io.BytesIO()
@@ -148,92 +214,35 @@ def process_with_typhoon_ocr(pil_image: Image.Image) -> str:
 
 @app.post("/ocr", response_model=OcrResponse)
 def ocr_extract(req: OcrRequest):
+    """OCR จาก path (legacy — ใช้เมื่อ sidecar และ backend เข้าถึง storage เดียวกัน)"""
     pdf_path = Path(req.pdfPath)
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail=f"ไม่พบไฟล์: {req.pdfPath}")
-
     selected_engine = (req.engine or "auto").strip().lower()
     max_pages = req.maxPages or MAX_PAGES
-
     try:
         doc = fitz.open(str(pdf_path))
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"เปิดไฟล์ PDF ล้มเหลว: {e}")
+    return _process_pdf_doc(doc, selected_engine, max_pages)
 
-    pages_to_process = list(range(min(len(doc), max_pages) if max_pages > 0 else len(doc)))
-    page_count = len(pages_to_process)
 
-    fast_text_parts = []
-    total_chars = 0
-    if selected_engine == "auto":
-        # Fast path: ลอง extract text layer ก่อน
-        for i in pages_to_process:
-            page = doc[i]
-            fast_text_parts.append(page.get_text())
-        fast_text = "\n".join(fast_text_parts).strip()
-        total_chars = len(fast_text)
-        if total_chars > OCR_CHAR_THRESHOLD:
-            logger.info(f"Fast path: {total_chars} chars extracted from {pdf_path.name}")
-            return OcrResponse(
-                text=fast_text,
-                ocrUsed=False,
-                pageCount=page_count,
-                charCount=total_chars,
-                engineUsed="fast-path",
-            )
-
-    if selected_engine == "typhoon-ocr-3b":
-        logger.info(f"Typhoon OCR path: {pdf_path.name}")
-        typhoon_text_parts = []
-        for i in pages_to_process:
-            page = doc[i]
-            pix = page.get_pixmap(dpi=300)
-            img_bytes = pix.tobytes("png")
-            img = Image.open(io.BytesIO(img_bytes))
-            cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
-            processed_img = preprocess_image(cropped_img)
-            typhoon_text_parts.append(process_with_typhoon_ocr(processed_img))
-        typhoon_text = filter_ocr_noise("\n".join(typhoon_text_parts).strip())
-        return OcrResponse(
-            text=typhoon_text,
-            ocrUsed=True,
-            pageCount=page_count,
-            charCount=len(typhoon_text),
-            engineUsed="typhoon-ocr-3b",
-        )
-
-    logger.info(f"Slow path (Tesseract): {total_chars} chars too few for {pdf_path.name}")
-    ocr_text_parts = []
-    for i in pages_to_process:
-        page = doc[i]
-        pix = page.get_pixmap(dpi=300)  # เพิ่ม DPI เป็น 300 เพื่อความชัด
-        img_bytes = pix.tobytes("png")
-        img = Image.open(io.BytesIO(img_bytes))
-
-        # Crop header/footer ก่อนเพื่อลบข้อความที่ไม่จำเป็น
-        cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
-
-        # Preprocess ด้วย OpenCV เพื่อเพิ่มความแม่นยำ
-        processed_img = preprocess_image(cropped_img)
-
-        # OCR ด้วย Tesseract โดยใช้ PSM 6 และ OEM 1
-        text = pytesseract.image_to_string(processed_img, lang=OCR_LANG, config=TESSERACT_CONFIG)
-        ocr_text_parts.append(text.strip())
-
-    ocr_text = "\n".join(ocr_text_parts).strip()
-
-    # Filter ขยะ OCR หลังจากสกัดข้อความแล้ว
-    ocr_text = filter_ocr_noise(ocr_text)
-
-    logger.info(f"Tesseract extracted {len(ocr_text)} chars from {pdf_path.name}")
-
-    return OcrResponse(
-        text=ocr_text,
-        ocrUsed=True,
-        pageCount=page_count,
-        charCount=len(ocr_text),
-        engineUsed="tesseract",
-    )
+@app.post("/ocr-upload", response_model=OcrResponse)
+def ocr_upload(
+    file: UploadFile = File(...),
+    engine: str = Form(default="auto"),
+    maxPages: int = Form(default=0),
+):
+    """OCR จาก multipart file upload — ไม่ต้องการ shared volume mount"""
+    selected_engine = engine.strip().lower()
+    max_pages = maxPages or MAX_PAGES
+    pdf_bytes = file.file.read()
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"เปิดไฟล์ PDF ล้มเหลว: {e}")
+    logger.info(f"OCR upload: {file.filename} engine={selected_engine}")
+    return _process_pdf_doc(doc, selected_engine, max_pages)
 
 
 class NormalizeRequest(BaseModel):

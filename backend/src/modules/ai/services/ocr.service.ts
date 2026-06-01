@@ -8,6 +8,8 @@
 // - 2026-05-30: เพิ่ม VRAM insufficiency guard สำหรับ Typhoon OCR engine (T016a, ADR-032)
 // - 2026-05-30: ปรับปรุงสำหรับ Dynamic OCR Engine selection, Caching, และ Graceful Fallback (T013, T014, T016, T022, T023, US1)
 // - 2026-06-01: ปรับปรุง remapPath ให้รองรับ Windows absolute และ relative path ได้แม่นยำ 100%
+// - 2026-06-01: เปลี่ยน processWithTesseract/processWithTyphoon ให้ส่ง file content ผ่าน multipart
+//              ไปยัง /ocr-upload แทนการส่ง path (แก้ปัญหา Docker WSL2 mount ไม่ได้)
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +18,7 @@ import Redis from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import axios from 'axios';
+import * as fs from 'fs';
 import {
   OcrEngineConfiguration,
   OcrEngineType,
@@ -96,8 +99,6 @@ export class OcrService {
   private readonly logger = new Logger(OcrService.name);
   private readonly threshold: number;
   private readonly ocrApiUrl: string;
-  private readonly localUploadBase: string;
-  private readonly sidecarUploadBase: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -113,13 +114,6 @@ export class OcrService {
     this.ocrApiUrl = this.configService.get<string>(
       'OCR_API_URL',
       'http://localhost:8765'
-    );
-    this.localUploadBase = this.configService
-      .get<string>('UPLOAD_PERMANENT_DIR', '/app/uploads/permanent')
-      .replace(/\/permanent$/, '');
-    this.sidecarUploadBase = this.configService.get<string>(
-      'OCR_SIDECAR_UPLOAD_BASE',
-      '/mnt/uploads'
     );
   }
 
@@ -198,57 +192,6 @@ export class OcrService {
     }
   }
 
-  /** แปลง local upload path เป็น path ที่ sidecar เห็นผ่าน CIFS/Windows bind mount */
-  private remapPath(localPath: string): string {
-    if (!localPath) return localPath;
-
-    // 1. แปลง Backslash (\) ทั้งหมดให้เป็น Forward slash (/) และรวม slash ที่ซ้ำซ้อน
-    const normalizedPath = localPath.replace(/\\/g, '/').replace(/\/+/g, '/');
-    const sidecarBase = this.sidecarUploadBase.replace(/\/+$/, '');
-
-    // 2. สกัดเอาส่วนของ path ที่อยู่หลัง /uploads/
-    const uploadsMatch = normalizedPath.match(/\/uploads\/(.+)$/i);
-    if (uploadsMatch && uploadsMatch[1]) {
-      const relativePart = uploadsMatch[1].replace(/^\/+/, '');
-      const mappedPath = `${sidecarBase}/${relativePart}`;
-      this.logger.debug(
-        `Mapped Windows path "${localPath}" to Sidecar path "${mappedPath}"`
-      );
-      return mappedPath;
-    }
-
-    // 3. กรณี Relative path ที่ขึ้นต้นด้วย uploads/ เช่น "uploads/temp/xxx.pdf"
-    if (normalizedPath.startsWith('uploads/')) {
-      const relativePart = normalizedPath.substring(8).replace(/^\/+/, '');
-      const mappedPath = `${sidecarBase}/${relativePart}`;
-      this.logger.debug(
-        `Mapped relative path "${localPath}" to "${mappedPath}"`
-      );
-      return mappedPath;
-    }
-
-    // 4. กรณีสำรอง: ถ้าเริ่มด้วย localUploadBase
-    const normalizedLocalBase = this.localUploadBase
-      .replace(/\\/g, '/')
-      .replace(/\/+/g, '/');
-    if (normalizedLocalBase && normalizedPath.includes(normalizedLocalBase)) {
-      const relativePart = normalizedPath
-        .substring(
-          normalizedPath.indexOf(normalizedLocalBase) +
-            normalizedLocalBase.length
-        )
-        .replace(/^\/+/, '');
-      const mappedPath = `${sidecarBase}/${relativePart}`;
-      this.logger.debug(
-        `Mapped fallback path "${localPath}" to "${mappedPath}"`
-      );
-      return mappedPath;
-    }
-
-    return normalizedPath;
-  }
-
-  /** ตรวจสอบสุขภาพและ latency ของ OCR sidecar (Tesseract) ผ่าน GET /health */
   async checkHealth(): Promise<OcrHealthResult> {
     const startTime = Date.now();
     try {
@@ -295,26 +238,28 @@ export class OcrService {
     }
   }
 
-  /** ประมวลผลผ่าน Tesseract OCR */
+  /** ประมวลผลผ่าน Tesseract OCR โดยส่ง file content ผ่าน multipart */
   private async processWithTesseract(
     input: OcrDetectionInput
   ): Promise<OcrDetectionResult> {
     const startTime = Date.now();
-    const sidecarPath = this.remapPath(input.pdfPath!);
-
     try {
-      this.logger.debug(
-        `Tesseract OCR processing: ${input.pdfPath} → ${sidecarPath}`
+      this.logger.debug(`Tesseract OCR processing: ${input.pdfPath}`);
+      const fileBuffer = fs.readFileSync(input.pdfPath!);
+      const form = new FormData();
+      form.append(
+        'file',
+        new Blob([fileBuffer], { type: 'application/pdf' }),
+        'upload.pdf'
       );
+      form.append('engine', 'auto');
       const response = await axios.post<OcrSidecarResponse>(
-        `${this.ocrApiUrl}/ocr`,
-        { pdfPath: sidecarPath },
+        `${this.ocrApiUrl}/ocr-upload`,
+        form,
         { timeout: 90000 }
       );
-
       const text = response.data.text ?? '';
       const durationMs = Date.now() - startTime;
-
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
         aiModel: 'tesseract',
@@ -324,26 +269,9 @@ export class OcrService {
         processingTimeMs: durationMs,
         cacheHit: false,
       });
-
-      return {
-        text,
-        ocrUsed: true,
-      };
+      return { text, ocrUsed: true };
     } catch (err: unknown) {
       const durationMs = Date.now() - startTime;
-      // ดึง axios response body detail ออกมาด้วย (เช่น ไม่พบไฟล์: /mnt/uploads/...)
-      const axiosDetail =
-        err !== null &&
-        typeof err === 'object' &&
-        'response' in err &&
-        err.response !== null &&
-        typeof err.response === 'object' &&
-        'data' in err.response &&
-        err.response.data !== null &&
-        typeof err.response.data === 'object' &&
-        'detail' in err.response.data
-          ? String((err.response.data as { detail: unknown }).detail)
-          : null;
       const cause =
         err instanceof AggregateError && err.errors?.length
           ? err.errors
@@ -352,10 +280,6 @@ export class OcrService {
           : err instanceof Error
             ? err.message
             : String(err);
-      const fullCause = axiosDetail
-        ? `${cause} — sidecar detail: ${axiosDetail} (sidecarPath: ${sidecarPath})`
-        : `${cause} (sidecarPath: ${sidecarPath})`;
-
       await this.writeAuditLog({
         documentPublicId: input.documentPublicId,
         aiModel: 'tesseract',
@@ -363,11 +287,10 @@ export class OcrService {
         modelType: 'tesseract',
         status: AiAuditStatus.FAILED,
         processingTimeMs: durationMs,
-        errorMessage: fullCause,
+        errorMessage: cause,
         cacheHit: false,
       });
-
-      throw new Error(`Tesseract OCR Sidecar failed: ${fullCause}`);
+      throw new Error(`Tesseract OCR Sidecar failed: ${cause}`);
     }
   }
 
@@ -376,8 +299,6 @@ export class OcrService {
     input: OcrDetectionInput
   ): Promise<OcrDetectionResult> {
     const startTime = Date.now();
-    const sidecarPath = this.remapPath(input.pdfPath!);
-
     try {
       // 1. ตรวจสอบ VRAM insufficiency guard
       const hasCapacity = await this.vramMonitorService.hasVramCapacity(
@@ -390,15 +311,18 @@ export class OcrService {
         return this.processWithTesseract(input);
       }
 
-      this.logger.debug(
-        `Typhoon OCR processing: ${input.pdfPath} → ${sidecarPath}`
+      this.logger.debug(`Typhoon OCR processing: ${input.pdfPath}`);
+      const fileBuffer = fs.readFileSync(input.pdfPath!);
+      const form = new FormData();
+      form.append(
+        'file',
+        new Blob([fileBuffer], { type: 'application/pdf' }),
+        'upload.pdf'
       );
+      form.append('engine', 'typhoon-ocr-3b');
       const response = await axios.post<OcrSidecarResponse>(
-        `${this.ocrApiUrl}/ocr`,
-        {
-          pdfPath: sidecarPath,
-          engine: 'typhoon-ocr-3b',
-        },
+        `${this.ocrApiUrl}/ocr-upload`,
+        form,
         { timeout: 120000 }
       );
 

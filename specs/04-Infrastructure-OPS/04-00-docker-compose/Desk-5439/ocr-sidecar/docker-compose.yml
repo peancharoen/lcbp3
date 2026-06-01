@@ -7,9 +7,8 @@
 # - 2026-05-30: เพิ่ม Typhoon OCR environment variables (T009b, ADR-032)
 #              OLLAMA_API_URL ชี้ไปที่ http://192.168.10.100:11434 (Admin Desktop LAN IP)
 # - 2026-05-30: Revert volumes กลับไปใช้ Windows Z: drive bind mount (แทน CIFS volume driver ที่พัง)
-# - 2026-06-01: แก้ volumes เปลี่ยนจาก Z: drive bind mount (ไม่ทำงานบน WSL2)
-#              เป็น CIFS named volume ชี้ตรงไปที่ UNC path \\192.168.10.8\np-dms-as\data\uploads
-#              ต้องสร้างไฟล์ .env ที่ Desk-5439 (ดูตัวอย่างใน .env.example)
+# - 2026-06-01: ลบ volumes ออกทั้งหมด — backend ส่ง file content ผ่าน multipart /ocr-upload แทน
+#              ไม่ต้องการ shared storage อีกต่อไป
 #
 # วิธีรัน:
 #   docker compose up -d --build
@@ -40,13 +39,6 @@ services:
       TYPHOON_OCR_MODEL: "scb10x/typhoon-ocr-3b"
       # Timeout 120 วินาที/หน้า (budget สำหรับ 3B model บน RTX 2060 Super)
       TYPHOON_OCR_TIMEOUT: "120"
-    volumes:
-      # Uploads จาก QNAP NAS ผ่าน WSL2 mount path
-      # Z: = \\192.168.10.8\np-dms-as → WSL2 เห็นเป็น /mnt/z
-      # Docker Desktop bind mount จาก Windows path ใช้ //wsl.localhost/ ไม่ได้
-      # แต่ใช้ Windows absolute path ของ Z: ได้ผ่าน Docker Desktop settings
-      # วิธีที่ใช้งานได้: ระบุ source เป็น Windows UNC path โดยตรง
-      - //192.168.10.8/np-dms-as/data/uploads:/mnt/uploads:ro
     logging:
       driver: "json-file"
       options:
