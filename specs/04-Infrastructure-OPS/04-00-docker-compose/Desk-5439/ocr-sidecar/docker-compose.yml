@@ -41,8 +41,12 @@ services:
       # Timeout 120 วินาที/หน้า (budget สำหรับ 3B model บน RTX 2060 Super)
       TYPHOON_OCR_TIMEOUT: "120"
     volumes:
-      # Uploads จาก QNAP NAS ผ่าน CIFS named volume (แทน Z: drive ที่ WSL2 mount ไม่ได้)
-      - qnap_uploads:/mnt/uploads:ro
+      # Uploads จาก QNAP NAS ผ่าน WSL2 mount path
+      # Z: = \\192.168.10.8\np-dms-as → WSL2 เห็นเป็น /mnt/z
+      # Docker Desktop bind mount จาก Windows path ใช้ //wsl.localhost/ ไม่ได้
+      # แต่ใช้ Windows absolute path ของ Z: ได้ผ่าน Docker Desktop settings
+      # วิธีที่ใช้งานได้: ระบุ source เป็น Windows UNC path โดยตรง
+      - //192.168.10.8/np-dms-as/data/uploads:/mnt/uploads:ro
     logging:
       driver: "json-file"
       options:
@@ -55,12 +59,4 @@ services:
       retries: 3
       start_period: 60s
 
-volumes:
-  qnap_uploads:
-    driver: local
-    driver_opts:
-      type: cifs
-      # UNC path ตรงไปที่ share บน QNAP NAS — ไม่ผ่าน mapped drive letter
-      device: "//192.168.10.8/np-dms-as/data/uploads"
-      o: "username=${QNAP_SMB_USER},password=${QNAP_SMB_PASS},vers=3.0,uid=0,gid=0,file_mode=0444,dir_mode=0555"
 
