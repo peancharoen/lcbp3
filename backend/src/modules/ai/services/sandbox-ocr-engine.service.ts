@@ -47,12 +47,29 @@ export class SandboxOcrEngineService {
     );
   }
 
-  /** แปลง local upload path เป็น path ที่ sidecar เห็นผ่าน CIFS mount */
+  /** แปลง local upload path เป็น path ที่ sidecar เห็นผ่าน CIFS/Windows bind mount */
   private remapPath(localPath: string): string {
-    if (this.localUploadBase && localPath.startsWith(this.localUploadBase)) {
-      return localPath.replace(this.localUploadBase, this.sidecarUploadBase);
+    if (!localPath) return localPath;
+
+    // แปลง Windows backslash ให้เป็น forward slash
+    const normalizedPath = localPath.replace(/\\/g, '/');
+    const normalizedLocalBase = this.localUploadBase.replace(/\\/g, '/');
+
+    // ตรวจสอบความเข้ากันได้ของ base path
+    if (normalizedLocalBase && normalizedPath.includes(normalizedLocalBase)) {
+      const relativePart = normalizedPath.substring(
+        normalizedPath.indexOf(normalizedLocalBase) + normalizedLocalBase.length
+      );
+      return `${this.sidecarUploadBase.replace(/\/$/, '')}${relativePart}`;
     }
-    return localPath;
+
+    // กรณีพิเศษ: ถ้าเป็น Windows Path และมีคำว่า /uploads/ ให้แมปเข้ากับ sidecar base
+    const uploadsIndex = normalizedPath.indexOf('/uploads/');
+    if (uploadsIndex !== -1) {
+      return `${this.sidecarUploadBase.replace(/\/$/, '')}${normalizedPath.substring(uploadsIndex + 8)}`;
+    }
+
+    return normalizedPath;
   }
 
   /** รัน OCR ตาม engine ที่เลือก โดย fallback กลับไป Tesseract baseline เมื่อ Typhoon ล้มเหลว */
