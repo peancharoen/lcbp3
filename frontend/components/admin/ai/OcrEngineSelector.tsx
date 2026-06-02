@@ -22,7 +22,7 @@ export default function OcrEngineSelector() {
     try {
       setIsLoading(true);
       const data = await adminAiService.getOcrEngines();
-      setEngines(data);
+      setEngines(Array.isArray(data) ? data : []);
     } catch (_err: unknown) {
       toast.error('ไม่สามารถดึงข้อมูล OCR Engines ได้');
     } finally {

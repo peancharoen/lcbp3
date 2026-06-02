@@ -1041,12 +1041,11 @@ export class AiController {
   @ApiOperation({
     summary: 'OCR Engines — ดึงรายการเอนจิน OCR ทั้งหมดที่มีในระบบ (T003)',
   })
-  async getOcrEngines(): Promise<{ data: OcrEngineResponseDto[] }> {
+  async getOcrEngines(): Promise<OcrEngineResponseDto[]> {
     if (!this.ocrService) {
       throw new SystemException('OcrService not injected in AiController');
     }
-    const engines = await this.ocrService.getOcrEngines();
-    return { data: engines };
+    return this.ocrService.getOcrEngines();
   }
 
   @Post('ocr-engines/:engineId/select')
@@ -1064,14 +1063,10 @@ export class AiController {
   async selectOcrEngine(
     @Param('engineId', ParseUuidPipe) engineId: string,
     @CurrentUser() user: User
-  ): Promise<{ data: OcrEngineConfiguration }> {
+  ): Promise<OcrEngineConfiguration> {
     if (!this.ocrService) {
       throw new SystemException('OcrService not injected in AiController');
     }
-    const engine = await this.ocrService.selectOcrEngine(
-      engineId,
-      user.user_id
-    );
-    return { data: engine };
+    return this.ocrService.selectOcrEngine(engineId, user.user_id);
   }
 }
