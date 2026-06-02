@@ -1,0 +1,92 @@
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose/ASUSTOR/monitoring/prometheus/config/prometheus.yml
+# Prometheus Configuration — รัน บน ASUSTOR AS5403T (lcbp3-monitoring stack)
+# Change Log:
+# - 2026-06-02: Initial config — scrape jobs สำหรับ ASUSTOR local + Desk-5439 remote
+#
+# Deploy path: /volume1/np-dms/monitoring/prometheus/config/prometheus.yml
+# Mount (read-only): docker-compose volume → /etc/prometheus/prometheus.yml
+
+global:
+  scrape_interval: 15s       # ดึง metrics ทุก 15 วินาที (default)
+  evaluation_interval: 15s   # ประเมิน rules ทุก 15 วินาที
+  scrape_timeout: 10s
+
+  # Labels ที่ติดไปกับทุก time series ที่ scrape ได้
+  external_labels:
+    environment: 'production'
+    cluster: 'lcbp3'
+
+# ─── Alerting (optional — เชื่อม Alertmanager เมื่อต้องการ) ──────────────────
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# ─── Rules (optional) ────────────────────────────────────────────────────────
+# rule_files:
+#   - /etc/prometheus/rules/*.yml
+
+# ─── Scrape Jobs ─────────────────────────────────────────────────────────────
+scrape_configs:
+  # ----------------------------------------------------------------
+  # 1. Prometheus self-monitoring (ASUSTOR)
+  # ----------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          host: 'asustor'
+          service: 'prometheus'
+
+  # ----------------------------------------------------------------
+  # 2. Node Exporter — Host metrics ของ ASUSTOR
+  # ----------------------------------------------------------------
+  - job_name: 'node-exporter-asustor'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          host: 'asustor'
+          service: 'node-exporter'
+
+  # ----------------------------------------------------------------
+  # 3. cAdvisor — Container metrics ของ ASUSTOR
+  # ----------------------------------------------------------------
+  - job_name: 'cadvisor-asustor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          host: 'asustor'
+          service: 'cadvisor'
+
+  # ----------------------------------------------------------------
+  # 4. ollama-metrics (NorskHelsenett) — Ollama LLM metrics
+  #    รัน บน Desk-5439 (192.168.10.100) ตาม ADR-023A
+  #    sidecar expose /metrics บน port 9924
+  #
+  #    Metrics ที่ collect:
+  #      ollama_prompt_tokens_total       — prompt tokens รวม
+  #      ollama_generated_tokens_total    — generated tokens รวม
+  #      ollama_request_duration_seconds  — latency histogram
+  #      ollama_time_per_token_seconds    — inference speed
+  #      ollama_loaded_models             — จำนวน model ใน VRAM
+  #      ollama_model_loaded              — 1/0 per model
+  #      ollama_model_ram_mb              — VRAM usage (MB) per model
+  # ----------------------------------------------------------------
+  - job_name: 'ollama-metrics'
+    scrape_interval: 30s   # Ollama metrics ไม่เปลี่ยนเร็ว — 30s เพียงพอ
+    static_configs:
+      - targets: ['192.168.10.100:9924']
+        labels:
+          host: 'desk-5439'
+          service: 'ollama'
+          role: 'ai-inference'
+
+  # ----------------------------------------------------------------
+  # 5. Loki — Log aggregation health (ASUSTOR)
+  # ----------------------------------------------------------------
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+        labels:
+          host: 'asustor'
+          service: 'loki'

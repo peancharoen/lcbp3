@@ -10,12 +10,15 @@
 # - 2026-06-01: ลบ volumes ออกทั้งหมด — backend ส่ง file content ผ่าน multipart /ocr-upload แทน
 #              ไม่ต้องการ shared storage อีกต่อไป
 # - 2026-06-01: เปลี่ยน TYPHOON_OCR_MODEL เป็น scb10x/typhoon-ocr1.5-3b
+# - 2026-06-02: เพิ่ม ollama-metrics (NorskHelsenett) — Prometheus sidecar สำหรับ Ollama metrics
+#              expose /metrics บน port 9924; Prometheus (ASUSTOR) scrape จาก 192.168.10.100:9924
 #
 # วิธีรัน:
 #   docker compose up -d --build
 #
 # ทดสอบ:
 #   curl http://192.168.10.100:8765/health
+#   curl http://192.168.10.100:9924/metrics
 
 name: lcbp3-ocr
 
@@ -52,4 +55,45 @@ services:
       retries: 3
       start_period: 60s
 
-
+  # ----------------------------------------------------------------
+  # ollama-metrics (NorskHelsenett) — Prometheus Sidecar สำหรับ Ollama
+  # ----------------------------------------------------------------
+  # Transparent proxy ที่นั่งระหว่าง client กับ Ollama (port 11434)
+  # เก็บ metrics แล้ว expose ที่ /metrics บน port 9924 (Prometheus format)
+  #
+  # Metrics ที่ได้:
+  #   ollama_prompt_tokens_total       — จำนวน prompt tokens ทั้งหมด
+  #   ollama_generated_tokens_total    — จำนวน generated tokens ทั้งหมด
+  #   ollama_request_duration_seconds  — ระยะเวลา request (histogram)
+  #   ollama_time_per_token_seconds    — เวลาต่อ token (inference speed)
+  #   ollama_loaded_models             — จำนวน model ที่โหลดอยู่ใน VRAM
+  #   ollama_model_loaded              — indicator 1/0 ต่อ model
+  #   ollama_model_ram_mb              — VRAM usage (MB) ต่อ model
+  #
+  # Prometheus (ASUSTOR 192.168.10.8) scrape จาก:
+  #   http://192.168.10.100:9924/metrics
+  ollama-metrics:
+    image: ghcr.io/norskhelsenett/ollama-metrics:latest
+    container_name: ollama-metrics
+    restart: unless-stopped
+    environment:
+      # ชี้ไปที่ Ollama ที่รันบน Desk-5439 (host network หรือ LAN IP)
+      # ถ้า Ollama รันบน host (ไม่ใช่ container) ให้ใช้ host.docker.internal
+      OLLAMA_HOST: "http://host.docker.internal:11434"
+      PORT: "9924"
+    ports:
+      - "9924:9924"
+    extra_hosts:
+      # Windows Docker Desktop: map host.docker.internal → host IP
+      - "host.docker.internal:host-gateway"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9924/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

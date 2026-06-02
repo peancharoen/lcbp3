@@ -2,6 +2,11 @@
 # DMS Container v1.8.6: Application name: lcbp3-monitoring
 # Deploy on: ASUSTOR AS5403T
 # Services: prometheus, grafana, node-exporter, cadvisor, uptime-kuma, loki, promtail
+#
+# Remote Scrape Targets (ไม่ใช่ service ใน stack นี้ — scrape ผ่าน prometheus.yml):
+#   ollama-metrics  — http://192.168.10.100:9924/metrics  (Desk-5439, NorskHelsenett sidecar)
+#   ดู: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml
+#   config: prometheus/config/prometheus.yml → job_name: ollama-metrics
 
 x-restart: &restart_policy
   restart: unless-stopped
