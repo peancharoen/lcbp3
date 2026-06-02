@@ -1,0 +1,24 @@
+# Tasks: AI Model & OCR Runner Management
+
+- [x] T001: Create the feature documentation structure in `specs/200-fullstacks/233-ai-model-ocr-runner-management/`
+- [x] T002: Create Architecture Decision Record [ADR-033](file:///e:/np-dms/lcbp3/specs/06-Decision-Records/ADR-033-active-model-and-ocr-management.md) to document decisions
+- [x] T003: [Backend] Inject `OcrService` and register GET `/ai/ocr-engines` endpoint in `ai.controller.ts`
+- [x] T004: [Backend] Register POST `/ai/ocr-engines/:engineId/select` endpoint in `ai.controller.ts`
+- [x] T005: [Backend] Implement resilient fallback in `fetchAndCacheVramStatus()` within `vram-monitor.service.ts` to resolve "OOM Guard" stuck issue
+- [x] T006: [Backend] Update SandboxOcrEngineType in `sandbox-ocr-engine.service.ts` to accept precise model types
+- [x] T007: [Backend] Add `loadModel(modelName: string): Promise<boolean>` method in `ollama.service.ts`
+- [x] T008: [Backend] Refactor `activateAiModel()` in `ai.service.ts` to call `ollamaService.loadModel()` and throw `BusinessException` on loading failure before DB update
+- [x] T009: [Backend] Update `checkHealth()` in `ollama.service.ts` to fetch loaded models dynamically from `/api/ps`
+- [x] T010: [Frontend] Add active model and loading/active status badges to the "System Toggle" Card next to the AI Enable switch in `page.tsx`
+- [x] T011: [Backend] Write unit test case in `ai.service.spec.ts` to verify `activateAiModel()` fails gracefully if model pre-loading returns false
+- [x] T012: [Frontend] Swap sub-tabs buttons and change the default `activeTab` to `'sandbox'` in `OcrSandboxPromptManager.tsx`
+- [x] T013: [Frontend] Update dropdown engine options in `OcrSandboxPromptManager.tsx` to match exact labels
+- [x] T014: [Backend] Update resolved engine types validation in `submitSandboxOcr` within `ai.controller.ts`
+- [x] T015: [Sidecar] Update dynamic engine mapping in sidecar `app.py`
+- [x] T016: [Backend/Ollama] Add `unloadModel(modelName: string): Promise<boolean>` in `ollama.service.ts` to unload models with keep_alive: 0 (Suggestion 1)
+- [x] T017: [Backend/Ollama] Integrate model unloading on active model switch in `ai.service.ts` (Suggestion 1)
+- [x] T018: [Sidecar] Protect ocr-sidecar endpoints with `X-API-Key` headers check in fastapi `app.py` (Suggestion 2)
+- [x] T019: [Backend] Add `X-API-Key` client header in DMS Backend `ocr.service.ts` and `sandbox-ocr-engine.service.ts` (Suggestion 2)
+- [x] T020: Verify strict TypeScript standards (`pnpm --filter backend build`)
+- [x] T021: Verify all unit tests pass successfully
+- [x] T022: Run git status and verify no debug console.log or invalid files exist

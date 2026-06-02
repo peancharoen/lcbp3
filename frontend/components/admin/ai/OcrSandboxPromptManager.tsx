@@ -7,6 +7,7 @@
 // - 2026-05-29: เพิ่ม OCR Raw Text section ในผล sandbox
 // - 2026-05-29: ปรับปรุงการโหลด Active Prompt ให้ทนทานต่อ race conditions และรูปแบบประเภทข้อมูลที่ส่งมาจาก API (boolean, number, string)
 // - 2026-05-30: Refactor เป็น 2-step flow (Step 1: OCR-only → Step 2: AI Extraction) ตาม spec 231
+// - 2026-06-02: ปรับปรุงลำดับปุ่มแท็บเริ่มต้นให้เริ่มที่ OCR Sandbox และเปลี่ยน dropdown labels ของตัวเลือกโมเดล Typhoon OCR ให้แสดงหน่วยความจำ VRAM แม่นยำ (T012, T013, ADR-033)
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -104,7 +105,7 @@ export default function OcrSandboxPromptManager() {
   const [loadedPromptKey, setLoadedPromptKey] = useState<string | null>(null);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
   const [manualNote, setManualNote] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'editor' | 'sandbox'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'sandbox'>('sandbox');
   // 2-step flow states
   const [sandboxStep, setSandboxStep] = useState<'ocr' | 'ai'>('ocr');
   const [selectedOcrEngine, setSelectedOcrEngine] = useState<
@@ -290,17 +291,6 @@ export default function OcrSandboxPromptManager() {
       <div className="lg:col-span-8 space-y-6">
         <div className="flex border-b border-border/20">
           <button
-            onClick={() => setActiveTab('editor')}
-            className={cn(
-              'px-4 py-2 text-sm font-semibold border-b-2 -mb-[2px] transition-all',
-              activeTab === 'editor'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {t('ai.prompt.tabEditor')}
-          </button>
-          <button
             onClick={() => setActiveTab('sandbox')}
             className={cn(
               'px-4 py-2 text-sm font-semibold border-b-2 -mb-[2px] transition-all',
@@ -310,6 +300,17 @@ export default function OcrSandboxPromptManager() {
             )}
           >
             {t('ai.prompt.tabSandbox')}
+          </button>
+          <button
+            onClick={() => setActiveTab('editor')}
+            className={cn(
+              'px-4 py-2 text-sm font-semibold border-b-2 -mb-[2px] transition-all',
+              activeTab === 'editor'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {t('ai.prompt.tabEditor')}
           </button>
         </div>
         {activeTab === 'editor' ? (
@@ -393,8 +394,8 @@ export default function OcrSandboxPromptManager() {
                         >
                           <option value="auto">Auto (Current Baseline)</option>
                           <option value="tesseract">Tesseract OCR</option>
-                          <option value="typhoon-ocr-3b">Typhoon OCR-3B (v1.0)</option>
-                          <option value="typhoon-ocr1.5-3b">Typhoon OCR-3B (v1.5)</option>
+                          <option value="typhoon-ocr1.5-3b">typhoon-ocr1.5-3b 3.2GB</option>
+                          <option value="typhoon-ocr-3b">typhoon-ocr-3b 7.5GB</option>
                         </select>
                       </div>
                       <div

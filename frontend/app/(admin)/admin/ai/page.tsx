@@ -7,6 +7,7 @@
 // - 2026-05-21: แก้ไข ESLint error เกี่ยวกับ any type และ console.error statement ให้ตรงตามมาตรฐาน Tier 1/2
 // - 2026-05-25: เพิ่ม AI Model Management UI สำหรับเลือกโมเดลแบบไดนามิก (ADR-027).
 // - 2026-05-30: นำเข้าและแสดงผล OcrEngineSelector component ใน Overview tab (T019, T020)
+// - 2026-06-02: เพิ่มตัวบ่งชี้โมเดลหลักที่กำลังใช้งาน (Active Global Model badge) บนการ์ด System Toggle (T010, ADR-033)
 
 'use client';
 
@@ -434,6 +435,12 @@ export default function AiAdminConsolePage() {
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Superadmin ยังสามารถเข้าถึงส่วนทดสอบและดูแลระบบได้ตามสิทธิ์
+                  </div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1">
+                    <span>Active Global Model:</span>
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/20 text-primary bg-primary/5 font-semibold">
+                      {activeModel || 'Loading...'}
+                    </Badge>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

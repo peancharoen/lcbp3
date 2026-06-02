@@ -563,13 +563,14 @@ graph LR
 | 1.9.5   | 2026-05-22 | Tech Lead  | ADR-028 Migration Architecture Refactor + Root Docs Update (28 ADRs)              |
 | 1.9.6   | 2026-05-22 | Tech Lead  | AGENTS.md v1.9.6 — AI Runtime Layer + Migration Pipeline Tiers expanded           |
 | 1.9.7   | 2026-05-25 | Tech Lead  | ADR-029 Dynamic Prompt Management + PaddleOCR Sidecar infra + bug fixes (29 ADRs) |
+| 1.9.8   | 2026-06-02 | Tech Lead  | ADR-033 Active Model & OCR Management (Synchronous switch, VRAM release, API Key) |
 
-**Current Version**: 1.9.7
+**Current Version**: 1.9.8
 **Status**: Approved
-**Last Updated**: 2026-05-25
-**Security**: 0 vulnerabilities (backend) + Compose stack hardened (27 findings → 0)
+**Last Updated**: 2026-06-02
+**Security**: 0 vulnerabilities (backend) + sidecar endpoints secured with API Key
 **Workflow Engine**: ADR-021 Integrated Context complete + RFA v1.9.0 finalized
-**AI Runtime Layer**: ADR-024/025/026/027/028/029 Active — Intent Classification, Tool Layer, Chat UI, Admin Console, Dynamic Prompts
+**AI Runtime Layer**: ADR-024/025/026/027/028/029/032/033 Active — Intent Classification, Tool Layer, Chat UI, Admin Console, Dynamic Prompts, OCR Sandbox & Active Model Switch
 ```
 
 ### 5. UUID Conventions (ADR-019)

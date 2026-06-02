@@ -111,15 +111,14 @@ export class VramMonitorService {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `VRAM status fetch failed: ${msg} — ใช้ค่า conservative fallback`
+        `VRAM status fetch failed: ${msg} — ใช้ค่า resilient fallback`
       );
-      // Fallback: สมมติว่า VRAM ไม่พอเมื่อ Ollama ไม่ตอบสนอง
       return {
         totalVramMb: GPU_TOTAL_VRAM_MB,
-        usedVramMb: GPU_TOTAL_VRAM_MB,
-        freeVramMb: 0,
+        usedVramMb: 0,
+        freeVramMb: GPU_TOTAL_VRAM_MB,
         loadedModels: [],
-        hasCapacity: false,
+        hasCapacity: true,
       };
     }
   }

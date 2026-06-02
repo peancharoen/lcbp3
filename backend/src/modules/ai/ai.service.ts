@@ -4,6 +4,7 @@
 // - 2026-05-21: เพิ่ม getSystemHealth พร้อมระบบแคช Redis 30 วินาทีตาม ADR-027.
 // - 2026-05-21: แก้ไข ESLint unsafe return error ใน getSystemHealth โดยใช้ interface SystemHealthResponse
 // - 2026-05-29: เพิ่ม OcrService.checkHealth() เข้า getSystemHealth() เพื่อแสดงสถานะ OCR sidecar
+// - 2026-06-02: ปรับปรุง activateAiModel ให้มีการโหลดและยืนยันโมเดลล่วงหน้าแบบ Synchronous (T008, ADR-033) และล้างโมเดลตัวเก่าออกเพื่อประหยัด VRAM (Suggestion 1)
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -1053,27 +1054,49 @@ export class AiService {
     if (!hasCapacity) {
       const vramStatus = await this.vramMonitorService.getVramStatus();
       const errMsg = `VRAM ไม่เพียงพอสำหรับการโหลดโมเดล ${model.modelName} (ต้องการ ${vramRequirementMB}MB, เหลือ ${vramStatus.freeVramMb}MB) — กรุณา unload โมเดลอื่น หรือเว้นระยะห่างในการโหลด`;
-
       await this.saveAuditLog({
         documentPublicId: '00000000-0000-0000-0000-000000000000',
         aiModel: 'system',
         status: AiAuditStatus.FAILED,
         errorMessage: `Failed to activate model ${model.modelName} due to insufficient VRAM: ${errMsg}`,
       });
-
       throw new BusinessException(
         'INSUFFICIENT_VRAM',
         errMsg,
         `พื้นที่หน่วยความจำ GPU (VRAM) ไม่เพียงพอสำหรับการโหลดโมเดล ${model.modelName}`
       );
     }
-
+    // 2.5 โหลดโมเดลล่วงหน้าแบบ Synchronous และตรวจสอบความพร้อมบน Ollama (ADR-033)
+    if (this.ollamaService) {
+      const isLoaded = await this.ollamaService.loadModel(model.modelName);
+      if (!isLoaded) {
+        const errMsg = `ไม่สามารถโหลดโมเดล ${model.modelName} ในระบบ Ollama ได้สำเร็จ (โมเดลอาจไม่ได้ดาวน์โหลด หรือ GPU/VRAM OOM) — กรุณาตรวจสอบ Ollama tags และสถานะ GPU`;
+        await this.saveAuditLog({
+          documentPublicId: '00000000-0000-0000-0000-000000000000',
+          aiModel: 'system',
+          status: AiAuditStatus.FAILED,
+          errorMessage: `Failed to activate model ${model.modelName} during Ollama pre-loading: ${errMsg}`,
+        });
+        throw new BusinessException(
+          'MODEL_LOAD_FAILED',
+          errMsg,
+          `ไม่สามารถดึงหรือโหลดโมเดล ${model.modelName} ไปยังระบบประมวลผล Ollama ได้`
+        );
+      }
+    }
+    const previousModelName = await this.aiSettingsService.getActiveModel();
     // 3. ทำการสลับโมเดล AI
     const activeModel = await this.aiSettingsService.setActiveModel(
       model.modelName,
       userId
     );
-
+    if (
+      this.ollamaService &&
+      previousModelName &&
+      previousModelName !== model.modelName
+    ) {
+      await this.ollamaService.unloadModel(previousModelName);
+    }
     // บันทึก Audit Log สำหรับการเปิดใช้งานโมเดล AI (T038)
     await this.saveAuditLog({
       documentPublicId: '00000000-0000-0000-0000-000000000000',
@@ -1081,7 +1104,6 @@ export class AiService {
       status: AiAuditStatus.SUCCESS,
       errorMessage: `Model ${model.modelName} activated by user ${userId}. VRAM Capacity verified successfully.`,
     });
-
     return activeModel;
   }
 }

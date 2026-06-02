@@ -2,6 +2,7 @@
 // Change Log
 // - 2026-05-30: แยก SandboxOcrEngineService ออกจาก OcrService เพื่อรองรับการเลือก Typhoon OCR เฉพาะ sandbox โดยไม่กระทบ core OCR flow
 // - 2026-06-01: เปลี่ยนจาก remapPath + pdfPath ไปเป็น multipart file upload ไปยัง /ocr-upload (แก้ปัญหา Docker WSL2 mount)
+// - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -33,7 +34,7 @@ export interface SandboxOcrResult {
 export class SandboxOcrEngineService {
   private readonly logger = new Logger(SandboxOcrEngineService.name);
   private readonly ocrApiUrl: string;
-
+  private readonly ocrSidecarApiKey: string;
   constructor(
     private readonly configService: ConfigService,
     private readonly ocrService: OcrService
@@ -41,6 +42,10 @@ export class SandboxOcrEngineService {
     this.ocrApiUrl = this.configService.get<string>(
       'OCR_API_URL',
       'http://localhost:8765'
+    );
+    this.ocrSidecarApiKey = this.configService.get<string>(
+      'OCR_SIDECAR_API_KEY',
+      'lcbp3-dms-ocr-sidecar-secure-token-2026'
     );
   }
 
@@ -71,7 +76,10 @@ export class SandboxOcrEngineService {
       const response = await axios.post<SandboxOcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,
-        { timeout: 120000 }
+        {
+          timeout: 120000,
+          headers: { 'X-API-Key': this.ocrSidecarApiKey },
+        }
       );
 
       return {

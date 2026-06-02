@@ -1,7 +1,7 @@
 # NAP-DMS Gemini Rules & Standards
 
 - For: Gemini (Google AI Studio, Vertex AI, Antigravity, Gemini CLI)
-- Version: 1.9.8 | Last synced from AGENTS.md: 2026-05-30
+- Version: 1.9.8 | Last synced from AGENTS.md: 2026-06-02
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](../.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](../.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -90,7 +90,7 @@ Requires domain-specific knowledge:
 
 - **ADR-021 Integration:** Workflow Engine & Context implementation
 - **AI Infrastructure:** ADR-023/023A boundary enforcement and pipeline usage
-- **AI Runtime Layer:** ADR-024 Intent Classification, ADR-025 Tool Layer, ADR-026 Chat UI, ADR-027 Admin Console
+- **AI Runtime Layer:** ADR-024 Intent Classification, ADR-025 Tool Layer, ADR-026 Chat UI, ADR-027 Admin Console, ADR-032 Typhoon OCR, ADR-033 Active Model & OCR
 - **Migration Pipeline:** ADR-028 Staging Queue & post-migration cleanup
 - **Complex Business Logic:** Multi-step workflows with state management
 - **Performance Optimization:** Database queries, caching strategies, bulk operations
@@ -133,8 +133,9 @@ Spec priority: **`06-Decision-Records`** > **`05-Engineering-Guidelines`** > oth
 | **ADR-027 AI Admin Console**   | `specs/06-Decision-Records/ADR-027-ai-admin-console-and-dynamic-control.md` | ✅ Active | Admin Panel + dynamic model/prompt/intent control without redeploy                     |
 | **ADR-028 Migration Refactor** | `specs/06-Decision-Records/ADR-028-migration-architecture-refactor.md`      | ✅ Active | Staging Queue & post-migration cleanup                                                 |
 | **ADR-029 Dynamic Prompts**    | `specs/06-Decision-Records/ADR-029-dynamic-prompt-management.md`            | ✅ Active | Prompt templates in DB (`ai_prompts`); Redis cache TTL 60s; versioned                  |
-| **ADR-031 Hermes Agent**       | `specs/06-Decision-Records/ADR-031-hermes-agent-telegram-devops-bridge.md`  | 📝 Draft  | Optional DevOps Agent with Telegram commands, read-only diagnostics                    |
-| **ADR-032 Typhoon OCR**        | `specs/06-Decision-Records/ADR-032-typhoon-ocr-integration.md`              | 📝 Draft  | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop, VRAM monitoring, Redis caching |
+| **ADR-031 Hermes Agent**       | `specs/06-Decision-Records/ADR-031-hermes-agent-telegram-devops-bridge.md`  | ✅ Active | Optional DevOps Agent with Telegram commands, read-only diagnostics                    |
+| **ADR-032 Typhoon OCR**        | `specs/06-Decision-Records/ADR-032-typhoon-ocr-integration.md`              | ✅ Active | Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop, VRAM monitoring, Redis caching |
+| **ADR-033 Active Model & OCR** | `specs/06-Decision-Records/ADR-033-active-model-and-ocr-management.md`      | ✅ Active | Synchronous switches, VRAM auto-release, ocr-sidecar API Key protection                |
 | **Backend Guidelines**         | `specs/05-Engineering-Guidelines/05-02-backend-guidelines.md`               | —         | NestJS patterns                                                                        |
 | **Frontend Guidelines**        | `specs/05-Engineering-Guidelines/05-03-frontend-guidelines.md`              | —         | Next.js patterns                                                                       |
 | **Testing Strategy**           | `specs/05-Engineering-Guidelines/05-04-testing-strategy.md`                 | —         | Coverage goals                                                                         |
@@ -351,6 +352,13 @@ Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 3. Verify no forbidden patterns (`any`, `console.log`, UUID misuse)
 4. **Apply TypeScript Standards:** File headers, Thai comments, JSDoc
 
+**Expected output:**
+
+- Functional component or updated service method
+- At least 1 unit/snapshot test added or updated
+- No new TypeScript errors or ESLint warnings
+- PR description reflects the change
+
 ### 🟢 Quick Fix — Bug Fix / Typo / Style
 
 **Steps:**
@@ -359,6 +367,12 @@ Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 2. Apply minimal, targeted fix
 3. Add regression test if logic changed
 4. Verify no forbidden patterns introduced
+
+**Expected output:**
+
+- Single focused commit: `fix(scope): description`
+- All existing tests still pass (no regressions)
+- If logic changed: at least 1 regression test added
 
 ### � Specialized Work — ADR-021, AI Runtime Layer, Complex Logic
 
@@ -389,10 +403,12 @@ Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 
 **For AI Runtime Layer (ADR-024/025/026/027):**
 
-- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (gemma4:e4b, semaphore max=3)
+- ADR-024: Pattern Layer first (ai_intent_patterns DB + Redis cache 5 min) → LLM Fallback (gemma4:e4b Q8_0, semaphore max=3)
 - ADR-025: Tool Registry dispatch — AI Gateway → Tool → Business Service; ToolResult DTO must use publicId only
 - ADR-026: useAiChat() hook + side-panel UI; streaming response via SSE; TanStack Query cache
 - ADR-027: Admin Console — dynamic model/prompt/intent control; CASL-guarded admin-only endpoints
+- ADR-032: Typhoon OCR-3B + typhoon2.1-gemma3-4b on Admin Desktop; VRAM capacity checks and dynamic mappings
+- ADR-033: Active Model & OCR — Synchronous switches with load checks; GPU Unload model method on switch; ocr-sidecar endpoint X-API-Key validation
 
 **For Migration Pipeline (ADR-028):**
 
@@ -414,38 +430,40 @@ Full details: `specs/06-Decision-Records/ADR-016-security-authentication.md`
 
 When user asks about... check these files:
 
-| Request                     | Status | Files to Check                                                                        | Expected Response                                                       |
-| --------------------------- | ------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| "สร้าง API ใหม่"            | ✅     | `05-02-backend-guidelines.md`, `lcbp3-v1.9.0-schema-02-tables.sql`                    | NestJS Controller + Service + DTO + CASL Guard                          |
-| "แก้ฟอร์ม frontend"         | ✅     | `05-03-frontend-guidelines.md`, `01-06-edge-cases-and-rules.md`                       | RHF+Zod + TanStack Query + Thai comments                                |
-| "เพิ่ม field ใหม่"          | ✅     | `ADR-009`, `03-01-data-dictionary.md`, `lcbp3-v1.9.0-schema-02-tables.sql`            | Edit SQL directly + update Data Dictionary + Entity                     |
-| "ตรวจสอบ UUID"              | ✅     | `ADR-019`, `05-07-hybrid-uuid-implementation-plan.md`                                 | UUIDv7 MariaDB native UUID + TransformInterceptor                       |
-| "สร้าง migration"           | ✅     | `ADR-009`, `03-06-migration-business-scope.md`                                        | Edit SQL schema directly + n8n workflow                                 |
-| "ตรวจสอบ permission"        | ✅     | `lcbp3-v1.9.0-seed-permissions.sql`, `ADR-016`                                        | CASL 4-Level RBAC matrix                                                |
-| "deploy production"         | ✅     | `04-08-release-management-policy.md`, `ADR-015`                                       | Release Gates + Blue-Green strategy                                     |
-| "เพิ่ม test"                | ✅     | `05-04-testing-strategy.md`                                                           | Coverage goals + test patterns                                          |
-| "AI integration"            | ✅     | `ADR-023`, `ADR-023A`, `ADR-024`, `ADR-025`                                           | AI boundary + 2-model stack + BullMQ queue policy + Intent/Tool Layer   |
-| "Error handling"            | ✅     | `ADR-007`                                                                             | Layered error classification + recovery                                 |
-| "File upload"               | ✅     | `ADR-016`, `05-02-backend-guidelines.md`, `03-Data-and-Storage/03-03-file-storage.md` | Two-phase upload → temp → commit; ClamAV + whitelist                    |
-| "Notifications / Queue"     | ✅     | `ADR-008`, `05-02-backend-guidelines.md`                                              | BullMQ job — never inline; check retry + dead-letter                    |
-| "Add i18n / translate"      | ✅     | `05-08-i18n-guidelines.md`                                                            | i18n keys only — no hardcoded text                                      |
-| "Workflow / DSL"            | ✅     | `ADR-001`, `01-03-modules/01-03-06-unified-workflow.md`                               | DSL state machine + WorkflowEngineService                               |
-| "Document numbering"        | ✅     | `ADR-002`, `01-02-business-rules/01-02-02-doc-numbering-rules.md`                     | Redis Redlock + DB optimistic lock (double-lock)                        |
-| "ตรวจสอบ Workflow"          | ✅     | `01-06-edge-cases-and-rules.md`, `05-02-backend-guidelines.md`, `ADR-001`, `ADR-002`  | เช็คการเปลี่ยน State, คิว BullMQ และการล็อกเลขที่เอกสาร                 |
-| "Transmittal submit"        | 📋     | `ADR-021`, `specs/200-fullstacks/201-transmittals-circulation/`                       | submit() with EC-RFA-004 validation                                     |
-| "Circulation reassign"      | 📋     | `ADR-021`, `specs/200-fullstacks/201-transmittals-circulation/`                       | reassignRouting() with EC-CIRC-001                                      |
-| "สร้าง workflow ใหม่"       | 📋     | `ADR-001`, `ADR-021`, `specs/200-fullstacks/203-unified-workflow-engine/`             | DSL workflow definition + WorkflowEngineService setup                   |
-| "ตรวจสอบ AI boundary"       | ✅     | `ADR-023`, `ADR-023A`                                                                 | Verify Ollama isolation + BullMQ queues + Qdrant projectPublicId filter |
-| "Intent classification"     | ✅     | `ADR-024`, `specs/200-fullstacks/224-intent-classification/`                          | Pattern Layer → LLM Fallback; ai_intent_patterns; Redis cache 5 min     |
-| "AI Tool Layer"             | ✅     | `ADR-025`, `specs/200-fullstacks/225-ai-tool-layer-architecture/`                     | Tool Registry; CASL-guarded dispatch; ToolResult publicId only          |
-| "Document Chat UI"          | ✅     | `ADR-026`, `specs/200-fullstacks/226-document-chat-ui-pattern/`                       | Side-panel; useAiChat() hook; streaming SSE; TanStack Query cache       |
-| "AI Admin Console"          | ✅     | `ADR-027`, `specs/200-fullstacks/227-ai-admin-console/`                               | Dynamic model/prompt/intent control; admin-only CASL endpoints          |
-| "Migration refactor"        | ✅     | `ADR-028`, `specs/200-fullstacks/228-migration-arch-refactor/`                        | Staging Queue; post-migration cleanup; validation gates                 |
-| "จัดการ document numbering" | ✅     | `ADR-002`, `specs/03-Data-and-Storage/03-04-document-numbering.md`                    | Redis Redlock + template system + preview/override workflows            |
-| "Audit ความปลอดภัย"         | ✅     | `ADR-016`, `ADR-019`, `ADR-023`, `ADR-023A`                                           | ตรวจสอบ UUID pattern, CASL Guard, AI Boundary และ Qdrant multi-tenancy  |
-| "แก้ bug / bugfix"          | ✅     | `.agents/workflows/bugfix.md`, `error-catalog.md`                                     | ใช้ bugfix workflow สำหรับเคสที่สาเหตุชัดเจน                            |
-| "ตรวจแอปจริง"               | ✅     | `.windsurf/workflows/check-real-app.md`                                               | ตรวจ endpoint/UI/console หลัง build pass — No Fake Evidence             |
-| "งานค้าง / resume"          | ✅     | `.windsurf/workflows/resume-pending-work.md`                                          | อ่าน checkpoint เดิม → ตรวจ build → วางแผนต่อโดยไม่ทำงานซ้ำ             |
+| Request                        | Status | Files to Check                                                                        | Expected Response                                                       |
+| ------------------------------ | ------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| "สร้าง API ใหม่"               | ✅     | `05-02-backend-guidelines.md`, `lcbp3-v1.9.0-schema-02-tables.sql`                    | NestJS Controller + Service + DTO + CASL Guard                          |
+| "แก้ฟอร์ม frontend"            | ✅     | `05-03-frontend-guidelines.md`, `01-06-edge-cases-and-rules.md`                       | RHF+Zod + TanStack Query + Thai comments                                |
+| "เพิ่ม field ใหม่"             | ✅     | `ADR-009`, `03-01-data-dictionary.md`, `lcbp3-v1.9.0-schema-02-tables.sql`            | Edit SQL directly + update Data Dictionary + Entity                     |
+| "ตรวจสอบ UUID"                 | ✅     | `ADR-019`, `05-07-hybrid-uuid-implementation-plan.md`                                 | UUIDv7 MariaDB native UUID + TransformInterceptor                       |
+| "สร้าง migration"              | ✅     | `ADR-009`, `03-06-migration-business-scope.md`                                        | Edit SQL schema directly + n8n workflow                                 |
+| "ตรวจสอบ permission"           | ✅     | `lcbp3-v1.9.0-seed-permissions.sql`, `ADR-016`                                        | CASL 4-Level RBAC matrix                                                |
+| "deploy production"            | ✅     | `04-08-release-management-policy.md`, `ADR-015`                                       | Release Gates + Blue-Green strategy                                     |
+| "เพิ่ม test"                   | ✅     | `05-04-testing-strategy.md`                                                           | Coverage goals + test patterns                                          |
+| "AI integration"               | ✅     | `ADR-023`, `ADR-023A`, `ADR-024`, `ADR-025`                                           | AI boundary + 2-model stack + BullMQ queue policy + Intent/Tool Layer   |
+| "Error handling"               | ✅     | `ADR-007`                                                                             | Layered error classification + recovery                                 |
+| "File upload"                  | ✅     | `ADR-016`, `05-02-backend-guidelines.md`, `03-Data-and-Storage/03-03-file-storage.md` | Two-phase upload → temp → commit; ClamAV + whitelist                    |
+| "Notifications / Queue"        | ✅     | `ADR-008`, `05-02-backend-guidelines.md`                                              | BullMQ job — never inline; check retry + dead-letter                    |
+| "Add i18n / translate"         | ✅     | `05-08-i18n-guidelines.md`                                                            | i18n keys only — no hardcoded text                                      |
+| "Workflow / DSL"               | ✅     | `ADR-001`, `01-03-modules/01-03-06-unified-workflow.md`                               | DSL state machine + WorkflowEngineService                               |
+| "Document numbering"           | ✅     | `ADR-002`, `01-02-business-rules/01-02-02-doc-numbering-rules.md`                     | Redis Redlock + DB optimistic lock (double-lock)                        |
+| "ตรวจสอบ Workflow"             | ✅     | `01-06-edge-cases-and-rules.md`, `05-02-backend-guidelines.md`, `ADR-001`, `ADR-002`  | เช็คการเปลี่ยน State, คิว BullMQ และการล็อกเลขที่เอกสาร                 |
+| "Transmittal submit"           | 📋     | `ADR-021`, `specs/200-fullstacks/201-transmittals-circulation/`                       | submit() with EC-RFA-004 validation                                     |
+| "Circulation reassign"         | 📋     | `ADR-021`, `specs/200-fullstacks/201-transmittals-circulation/`                       | reassignRouting() with EC-CIRC-001                                      |
+| "สร้าง workflow ใหม่"          | 📋     | `ADR-001`, `ADR-021`, `specs/200-fullstacks/203-unified-workflow-engine/`             | DSL workflow definition + WorkflowEngineService setup                   |
+| "ตรวจสอบ AI boundary"          | ✅     | `ADR-023`, `ADR-023A`                                                                 | Verify Ollama isolation + BullMQ queues + Qdrant projectPublicId filter |
+| "Intent classification"        | ✅     | `ADR-024`, `specs/200-fullstacks/224-intent-classification/`                          | Pattern Layer → LLM Fallback; ai_intent_patterns; Redis cache 5 min     |
+| "AI Tool Layer"                | ✅     | `ADR-025`, `specs/200-fullstacks/225-ai-tool-layer-architecture/`                     | Tool Registry; CASL-guarded dispatch; ToolResult publicId only          |
+| "Document Chat UI"             | ✅     | `ADR-026`, `specs/200-fullstacks/226-document-chat-ui-pattern/`                       | Side-panel; useAiChat() hook; streaming SSE; TanStack Query cache       |
+| "AI Admin Console"             | ✅     | `ADR-027`, `specs/200-fullstacks/227-ai-admin-console/`                               | Dynamic model/prompt/intent control; admin-only CASL endpoints          |
+| "Migration refactor"           | ✅     | `ADR-028`, `specs/200-fullstacks/228-migration-arch-refactor/`                        | Staging Queue; post-migration cleanup; validation gates                 |
+| "Dynamic Prompt / Prompt"      | ✅     | `ADR-029`, `specs/06-Decision-Records/ADR-029-dynamic-prompt-management.md`           | ai_prompts table; Redis cache `ai:prompt:active:{type}` TTL 60s         |
+| "AI Model / OCR Active Switch" | ✅     | `ADR-032`, `ADR-033`, `specs/200-fullstacks/233-ai-model-ocr-runner-management/`      | Synchronous LLM switches, VRAM Release, sidecar API Key protection      |
+| "จัดการ document numbering"    | ✅     | `ADR-002`, `specs/03-Data-and-Storage/03-04-document-numbering.md`                    | Redis Redlock + template system + preview/override workflows            |
+| "Audit ความปลอดภัย"            | ✅     | `ADR-016`, `ADR-019`, `ADR-023`, `ADR-023A`                                           | ตรวจสอบ UUID pattern, CASL Guard, AI Boundary และ Qdrant multi-tenancy  |
+| "แก้ bug / bugfix"             | ✅     | `.agents/workflows/bugfix.md`, `error-catalog.md`                                     | ใช้ bugfix workflow สำหรับเคสที่สาเหตุชัดเจน                            |
+| "ตรวจแอปจริง"                  | ✅     | `.windsurf/workflows/check-real-app.md`                                               | ตรวจ endpoint/UI/console หลัง build pass — No Fake Evidence             |
+| "งานค้าง / resume"             | ✅     | `.windsurf/workflows/resume-pending-work.md`                                          | อ่าน checkpoint เดิม → ตรวจ build → วางแผนต่อโดยไม่ทำงานซ้ำ             |
 
 **Status Legend:**
 
@@ -512,6 +530,7 @@ When user asks about... check these files:
 - [ ] **Human-in-the-loop:** AI outputs validated before use
 - [ ] **Audit Logging:** All AI interactions logged to `ai_audit_logs`
 - [ ] **2-Model Stack:** gemma4:e4b Q8_0 + nomic-embed-text verified
+- [ ] **Dynamic Prompts (ADR-029):** Prompt templates loaded from `ai_prompts` DB, not hardcoded
 
 **Performance & Complex Logic:**
 
@@ -565,6 +584,8 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                                                                                                               | Updated By     |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.9.8   | 2026-06-02 | Added ADR-033 Active Model & OCR; ADR-031/032 status Draft→Active; ADR-032/033 in Tier 3 AI Runtime Layer & Specialized Work; Dynamic Prompt context trigger; AI Model/OCR Active Switch trigger; Dynamic Prompts checklist item      | Windsurf AI    |
+| 1.9.7   | 2026-05-25 | Added ADR-029 Dynamic Prompt Management to Key Spec Files table; fixed gemma4 model name e2b→e4b Q8_0; added Dynamic Prompt context trigger; added ADR-029 to Tier 3 AI checklist; bumped last synced date                            | Windsurf AI    |
 | 1.9.6   | 2026-05-22 | Added ADR-024/025/026/027/028 to Key Spec Files; Tier 3 expanded (AI Runtime Layer + Migration Pipeline); Specialized Work updated; 6 new Context-Aware Triggers; Forbidden Actions + Domain Terminology synced from AGENTS.md v1.9.6 | Windsurf AI    |
 | 1.9.5   | 2026-05-18 | **Grill-with-Docs Session:** Domain terminology clarified (Correspondence = all doc types), Tier 3: SPECIALIZED WORK added, Context-Aware Triggers with Status column, Tier-specific Final Checklists                                 | Windsurf AI    |
 | 1.9.4   | 2026-05-16 | Added ADR-015 Release Strategy to Key Spec Files table (Blue-Green deployment + release gates)                                                                                                                                        | Human Dev      |

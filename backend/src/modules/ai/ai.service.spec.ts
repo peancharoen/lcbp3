@@ -26,6 +26,8 @@ import {
 import { OllamaService } from './services/ollama.service';
 import { AiQdrantService } from './qdrant.service';
 import { ImportTransaction } from '../migration/entities/import-transaction.entity';
+import { AiSettingsService } from './ai-settings.service';
+import { VramMonitorService } from './services/vram-monitor.service';
 
 const DEFAULT_REDIS_TOKEN = 'default_IORedisModuleConnectionToken';
 
@@ -74,6 +76,7 @@ describe('AiService', () => {
       latencyMs: 120,
       models: ['gemma4:e4b', 'nomic-embed-text'],
     }),
+    loadModel: jest.fn().mockResolvedValue(true),
   };
 
   const mockQdrantService = {
@@ -81,6 +84,27 @@ describe('AiService', () => {
       status: 'HEALTHY',
       latencyMs: 45,
       collections: ['lcbp3_vectors'],
+    }),
+  };
+
+  const mockAiSettingsService = {
+    getAvailableModels: jest
+      .fn()
+      .mockResolvedValue([
+        { id: 1, modelName: 'gemma4:e4b', isActive: true, vramGb: 4.0 },
+      ]),
+    getActiveModel: jest.fn().mockResolvedValue('gemma4:e4b'),
+    setActiveModel: jest.fn().mockResolvedValue('gemma4:e4b'),
+  };
+
+  const mockVramMonitorService = {
+    hasVramCapacity: jest.fn().mockResolvedValue(true),
+    getVramStatus: jest.fn().mockResolvedValue({
+      totalVramMb: 8192,
+      usedVramMb: 2048,
+      freeVramMb: 6144,
+      loadedModels: [],
+      hasCapacity: true,
     }),
   };
 
@@ -163,6 +187,8 @@ describe('AiService', () => {
         { provide: AiValidationService, useValue: mockValidationService },
         { provide: OllamaService, useValue: mockOllamaService },
         { provide: AiQdrantService, useValue: mockQdrantService },
+        { provide: AiSettingsService, useValue: mockAiSettingsService },
+        { provide: VramMonitorService, useValue: mockVramMonitorService },
         { provide: DEFAULT_REDIS_TOKEN, useValue: mockRedis },
       ],
     }).compile();
@@ -465,6 +491,34 @@ describe('AiService', () => {
         expect.any(String),
         'EX',
         30
+      );
+    });
+  });
+
+  describe('activateAiModel', () => {
+    it('ควรขว้าง BusinessException เมื่อโหลดโมเดลล่วงหน้า (Pre-loading) ล้มเหลว', async () => {
+      mockOllamaService.loadModel.mockResolvedValueOnce(false);
+      await expect(
+        service.activateAiModel(
+          { modelId: '019505a1-7c3e-7000-8000-abc123def202' },
+          1
+        )
+      ).rejects.toBeInstanceOf(BusinessException);
+      expect(mockOllamaService.loadModel).toHaveBeenCalledWith('gemma4:e4b');
+      expect(mockAiSettingsService.setActiveModel).not.toHaveBeenCalled();
+    });
+
+    it('ควรสลับโมเดลสำเร็จเมื่อ Ollama โหลดโมเดลเรียบร้อย', async () => {
+      mockOllamaService.loadModel.mockResolvedValueOnce(true);
+      const result = await service.activateAiModel(
+        { modelId: '019505a1-7c3e-7000-8000-abc123def202' },
+        1
+      );
+      expect(result).toBe('gemma4:e4b');
+      expect(mockOllamaService.loadModel).toHaveBeenCalledWith('gemma4:e4b');
+      expect(mockAiSettingsService.setActiveModel).toHaveBeenCalledWith(
+        'gemma4:e4b',
+        1
       );
     });
   });

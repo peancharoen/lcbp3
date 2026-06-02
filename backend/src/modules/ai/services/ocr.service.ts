@@ -8,8 +8,8 @@
 // - 2026-05-30: เพิ่ม VRAM insufficiency guard สำหรับ Typhoon OCR engine (T016a, ADR-032)
 // - 2026-05-30: ปรับปรุงสำหรับ Dynamic OCR Engine selection, Caching, และ Graceful Fallback (T013, T014, T016, T022, T023, US1)
 // - 2026-06-01: ปรับปรุง remapPath ให้รองรับ Windows absolute และ relative path ได้แม่นยำ 100%
-// - 2026-06-01: เปลี่ยน processWithTesseract/processWithTyphoon ให้ส่ง file content ผ่าน multipart
-//              ไปยัง /ocr-upload แทนการส่ง path (แก้ปัญหา Docker WSL2 mount ไม่ได้)
+// - 2026-06-01: เปลี่ยน processWithTesseract/processWithTyphoon ให้ส่ง file content ผ่าน multipart ไปยัง /ocr-upload แทนการส่ง path
+// - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -99,7 +99,7 @@ export class OcrService {
   private readonly logger = new Logger(OcrService.name);
   private readonly threshold: number;
   private readonly ocrApiUrl: string;
-
+  private readonly ocrSidecarApiKey: string;
   constructor(
     private readonly configService: ConfigService,
     @InjectRepository(SystemSetting)
@@ -114,6 +114,10 @@ export class OcrService {
     this.ocrApiUrl = this.configService.get<string>(
       'OCR_API_URL',
       'http://localhost:8765'
+    );
+    this.ocrSidecarApiKey = this.configService.get<string>(
+      'OCR_SIDECAR_API_KEY',
+      'lcbp3-dms-ocr-sidecar-secure-token-2026'
     );
   }
 
@@ -195,7 +199,10 @@ export class OcrService {
   async checkHealth(): Promise<OcrHealthResult> {
     const startTime = Date.now();
     try {
-      await axios.get(`${this.ocrApiUrl}/health`, { timeout: 5000 });
+      await axios.get(`${this.ocrApiUrl}/health`, {
+        timeout: 5000,
+        headers: { 'X-API-Key': this.ocrSidecarApiKey },
+      });
       return {
         status: 'HEALTHY',
         latencyMs: Date.now() - startTime,
@@ -256,7 +263,10 @@ export class OcrService {
       const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,
-        { timeout: 90000 }
+        {
+          timeout: 90000,
+          headers: { 'X-API-Key': this.ocrSidecarApiKey },
+        }
       );
       const text = response.data.text ?? '';
       const durationMs = Date.now() - startTime;
@@ -323,7 +333,10 @@ export class OcrService {
       const response = await axios.post<OcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,
-        { timeout: 120000 }
+        {
+          timeout: 120000,
+          headers: { 'X-API-Key': this.ocrSidecarApiKey },
+        }
       );
 
       const text = response.data.text ?? '';

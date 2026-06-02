@@ -8,6 +8,8 @@
 # - 2026-05-30: เพิ่ม OpenCV preprocessing (threshold, denoise) และ DPI 300 เพื่อเพิ่มความแม่นยำ
 # - 2026-06-01: เพิ่ม POST /ocr-upload รับ multipart file โดยตรง ไม่ต้องพึ่ง shared volume mount
 # - 2026-06-01: เปลี่ยน TYPHOON_OCR_MODEL default เป็น scb10x/typhoon-ocr1.5-3b
+# - 2026-06-02: เพิ่มตัวเลือกสลับโมเดลใน process_with_typhoon_ocr ตามพารามิเตอร์ engine และตั้ง engineUsed ให้ตรงตามจริง (T015, ADR-033)
+# - 2026-06-02: เพิ่มการตรวจสอบ API Key (X-API-Key Header) สำหรับ endpoints หลัก เพื่อความมั่นคงปลอดภัยตามข้อเสนอแนะ Code Review
 
 import os
 import logging
@@ -23,7 +25,8 @@ import io
 import cv2
 import numpy as np
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Security, status
+from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel
 from pythainlp.tokenize import word_tokenize
 from pythainlp.util import normalize as thai_normalize
@@ -32,6 +35,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ocr-sidecar")
 
 app = FastAPI(title="Tesseract OCR Sidecar", version="1.0.0")
+
+# กำหนดค่าโทเค็นความปลอดภัยของ Sidecar ตามข้อเสนอแนะในการรักษาความมั่นคงปลอดภัย
+OCR_SIDECAR_API_KEY = os.getenv("OCR_SIDECAR_API_KEY", "lcbp3-dms-ocr-sidecar-secure-token-2026")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+async def get_api_key(api_key: str = Security(api_key_header)):
+    if not api_key:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing API Key in request headers (X-API-Key)")
+    if api_key != OCR_SIDECAR_API_KEY:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API Key")
+    return api_key
 
 # อ่านค่า config จาก environment
 OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
@@ -156,14 +169,14 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int) -
             img = Image.open(io.BytesIO(img_bytes))
             cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
             processed_img = preprocess_image(cropped_img)
-            typhoon_text_parts.append(process_with_typhoon_ocr(processed_img))
+            typhoon_text_parts.append(process_with_typhoon_ocr(processed_img, selected_engine))
         typhoon_text = filter_ocr_noise("\n".join(typhoon_text_parts).strip())
         return OcrResponse(
             text=typhoon_text,
             ocrUsed=True,
             pageCount=page_count,
             charCount=len(typhoon_text),
-            engineUsed="typhoon-ocr1.5-3b",
+            engineUsed=selected_engine,
         )
 
     logger.info(f"Slow path (Tesseract): {total_chars} chars too few")
@@ -189,13 +202,20 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int) -
     )
 
 
-def process_with_typhoon_ocr(pil_image: Image.Image) -> str:
-    """เรียก Typhoon OCR ผ่าน Ollama สำหรับ sandbox option โดยไม่แตะ backend DB/storage"""
+def process_with_typhoon_ocr(pil_image: Image.Image, engine_type: str = "typhoon-ocr1.5-3b") -> str:
+    """เรียก Typhoon OCR ผ่าน Ollama สำหรับ sandbox option โดยเลือก model ตาม engine ที่ระบุ"""
+    model_name = "scb10x/typhoon-ocr1.5-3b"
+    if engine_type == "typhoon-ocr-3b":
+        model_name = "scb10x/typhoon-ocr-3b"
+    elif engine_type == "typhoon-ocr1.5-3b":
+        model_name = "scb10x/typhoon-ocr1.5-3b"
+    else:
+        model_name = TYPHOON_OCR_MODEL
     img_buffer = io.BytesIO()
     pil_image.save(img_buffer, format="PNG")
     image_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
     payload = {
-        "model": TYPHOON_OCR_MODEL,
+        "model": model_name,
         "prompt": "สกัดข้อความภาษาไทยและอังกฤษทั้งหมดจากภาพนี้อย่างถูกต้อง รักษาโครงสร้างบรรทัดและการเว้นวรรคให้ใกล้เคียงต้นฉบับมากที่สุด ห้ามเพิ่มคำอธิบายใดๆ",
         "images": [image_base64],
         "stream": False,
@@ -213,7 +233,7 @@ def process_with_typhoon_ocr(pil_image: Image.Image) -> str:
         return str(data.get("response", "")).strip()
 
 
-@app.post("/ocr", response_model=OcrResponse)
+@app.post("/ocr", response_model=OcrResponse, dependencies=[Depends(get_api_key)])
 def ocr_extract(req: OcrRequest):
     """OCR จาก path (legacy — ใช้เมื่อ sidecar และ backend เข้าถึง storage เดียวกัน)"""
     pdf_path = Path(req.pdfPath)
@@ -228,7 +248,7 @@ def ocr_extract(req: OcrRequest):
     return _process_pdf_doc(doc, selected_engine, max_pages)
 
 
-@app.post("/ocr-upload", response_model=OcrResponse)
+@app.post("/ocr-upload", response_model=OcrResponse, dependencies=[Depends(get_api_key)])
 def ocr_upload(
     file: UploadFile = File(...),
     engine: str = Form(default="auto"),
@@ -254,7 +274,7 @@ class NormalizeResponse(BaseModel):
     normalized: str
 
 
-@app.post("/normalize", response_model=NormalizeResponse)
+@app.post("/normalize", response_model=NormalizeResponse, dependencies=[Depends(get_api_key)])
 def normalize_text(req: NormalizeRequest):
     """Normalize Thai text ด้วย PyThaiNLP สำหรับ rag-thai-preprocess queue"""
     try:

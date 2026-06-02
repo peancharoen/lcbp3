@@ -25,6 +25,7 @@
 - `227-ai-admin-console` - AI Admin Console
 - `228-migration-arch-refactor` - Migration Architecture Refactor
 - `232-typhoon-ocr-integration` - Typhoon OCR Integration (Typhoon OCR-3B + typhoon2.1-gemma3-4b)
+- `233-ai-model-ocr-runner-management` - AI Model & OCR Sandbox Runner Management (Synchronous Switch, VRAM Auto-release, Sidecar API Key protection)
 
 ## การตั้งชื่อโฟลเดอร์
 
@@ -64,4 +65,4 @@
 - `02-Architecture/` - System Architecture
 - `03-Data-and-Storage/` - Schema และ Data Dictionary
 - `05-Engineering-Guidelines/` - Backend/Frontend Guidelines
-- `06-Decision-Records/` - ADRs ที่เกี่ยวข้อง (ADR-001, ADR-019, ADR-021)
+- `06-Decision-Records/` - ADRs ที่เกี่ยวข้อง (ADR-001, ADR-019, ADR-021, ADR-023A, ADR-033)

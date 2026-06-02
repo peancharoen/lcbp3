@@ -11,6 +11,7 @@
 // - 2026-05-30: เพิ่ม @UseInterceptors(FileInterceptor('file')) ใน submitSandboxOcr เพื่อแก้ไขปัญหา BadRequestException (File is required)
 // - 2026-05-30: เพิ่ม endpoints GET/POST/PATCH models และ GET vram/status สำหรับ dynamic AI model management และ VRAM monitoring (T031-T034, US2)
 // - 2026-06-01: [BUGFIX] submitSandboxOcr: เพิ่ม @ApiBearerAuth(), @HttpCode(ACCEPTED), Body({ engineType }) และส่ง engineType ไปยัง enqueueSandboxJob
+// - 2026-06-02: เพิ่ม REST endpoints GET /ai/ocr-engines และ POST /ai/ocr-engines/:engineId/select (T003, T004, ADR-033) และนำเข้า SystemException เพื่อป้องกันความเสียหายในการคอมไพล์
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -33,6 +34,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Optional,
 } from '@nestjs/common';
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
@@ -62,7 +64,7 @@ import { CreateAiJobDto } from './dto/create-ai-job.dto';
 import { SubmitAiJobDto } from './dto/submit-ai-job.dto';
 import { MigrationUpdateDto } from './dto/migration-update.dto';
 import { MigrationQueryDto } from './dto/migration-query.dto';
-import { ValidationException } from '../../common/exceptions';
+import { ValidationException, SystemException } from '../../common/exceptions';
 import {
   ApproveLegacyMigrationDto,
   LegacyMigrationIngestDto,
@@ -93,6 +95,9 @@ import {
   MigrationQueueRecordDto,
   SaveCheckpointDto,
 } from './dto/migration-checkpoint.dto';
+import { OcrService } from './services/ocr.service';
+import { OcrEngineResponseDto } from './dto/ocr-engine-response.dto';
+import { OcrEngineConfiguration } from './entities/ocr-engine-configuration.entity';
 
 @ApiTags('AI Gateway')
 @Controller('ai')
@@ -106,7 +111,8 @@ export class AiController {
     private readonly aiToolRegistryService: AiToolRegistryService,
     private readonly fileStorageService: FileStorageService,
     private readonly migrationCheckpointService: AiMigrationCheckpointService,
-    @InjectRedis() private readonly redis: Redis
+    @InjectRedis() private readonly redis: Redis,
+    @Optional() private readonly ocrService?: OcrService
   ) {}
 
   // --- Real-time Extraction (User Upload) ---
@@ -1026,5 +1032,46 @@ export class AiController {
   async getVramStatus() {
     const status = await this.aiService.getVramStatus();
     return { data: status };
+  }
+
+  @Get('ocr-engines')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @ApiOperation({
+    summary: 'OCR Engines — ดึงรายการเอนจิน OCR ทั้งหมดที่มีในระบบ (T003)',
+  })
+  async getOcrEngines(): Promise<{ data: OcrEngineResponseDto[] }> {
+    if (!this.ocrService) {
+      throw new SystemException('OcrService not injected in AiController');
+    }
+    const engines = await this.ocrService.getOcrEngines();
+    return { data: engines };
+  }
+
+  @Post('ocr-engines/:engineId/select')
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @ApiBearerAuth()
+  @RequirePermission('system.manage_all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'OCR Select Engine — ตั้งค่าเอนจิน OCR หลักของระบบ (T004)',
+  })
+  @ApiParam({
+    name: 'engineId',
+    description: 'UUID ของเอนจิน OCR ที่เลือก',
+  })
+  async selectOcrEngine(
+    @Param('engineId', ParseUuidPipe) engineId: string,
+    @CurrentUser() user: User
+  ): Promise<{ data: OcrEngineConfiguration }> {
+    if (!this.ocrService) {
+      throw new SystemException('OcrService not injected in AiController');
+    }
+    const engine = await this.ocrService.selectOcrEngine(
+      engineId,
+      user.user_id
+    );
+    return { data: engine };
   }
 }

@@ -1,8 +1,26 @@
 # Version History
 
-## 1.9.8 (2026-05-30)
+## 1.9.8 (2026-06-02)
 
-### spec(ai): Typhoon OCR Integration (ADR-032) + Spec Generation
+### feat(ai): AI Model Swapping, GPU Unloading & OCR Security (ADR-033)
+
+#### Summary
+
+แก้ไขปัญหาและปรับปรุงความเสถียรของระบบ AI Admin Console และ OCR Sandbox Runner (Desk-5439) ตามแนวทางสถาปัตยกรรม ADR-033 โดยบังคับขั้นตอนโหลดโมเดลภาษาแบบ Synchronous, ระบบล้างหน่วยความจำ GPU (GPU VRAM Auto-release) และติดตั้ง API Key Security Boundary ป้องกัน ocr-sidecar endpoints
+
+#### Changes
+
+- **ADR-033 Active Model & OCR Management**: สร้างและยอมรับข้อตกลงสถาปัตยกรรม `ADR-033-active-model-and-ocr-management.md` ครอบคลุมการสลับโมเดล Synchronous, การจัดสรรหน่วยความจำ GPU และการเสริมความปลอดภัยในฝั่ง Sidecar
+- **Synchronous Model Switching**: ปรับปรุงเมธอด `activateAiModel` ใน `AiService` ให้ยืนยันความพร้อมผ่าน `/api/generate` ด้วย `keep_alive: -1` และ Timeout 30 วินาทีก่อนบันทึก Active Model ลงใน MariaDB ป้องกันความไม่สอดคล้อง (Inconsistency)
+- **Dynamic VRAM Release (Suggestion 1)**: พัฒนาเมธอด `unloadModel(modelName)` ใน `OllamaService` และเชื่อมโยงเข้ากับ `AiService` เพื่อทำการสลัดและ Unload โมเดลตัวเดิมออกจาก GPU memory ทันทีด้วยพารามิเตอร์ `keep_alive: 0` หลังสลับโมเดลตัวใหม่สำเร็จ
+- **Sidecar API Key Protection (Suggestion 2)**: เสริมความปลอดภัยด้วย `X-API-Key` headers check ทุกคำขอเรียกใช้งาน `/ocr`, `/ocr-upload` และ `/normalize` ใน FastAPI sidecar `app.py` พร้อมปรับแก้ DMS Backend (`OcrService` และ `SandboxOcrEngineService`) ให้ดึง API Key จาก Config และส่งแนบไปใน axios request headers
+- **Resilient VRAM OOM Fallback**: ปรับแก้บล็อก catch ข้อผิดพลาดใน `VramMonitorService` เมื่อติดต่อ Ollama status metrics ขัดข้อง ให้ส่งกลับค่า fallback จำลอง (`hasCapacity = true` พร้อม Free VRAM 6GB) เพื่อรักษาเสถียรภาพฟังก์ชัน RAG/OCR ไม่ให้บล็อกค้างถาวร
+- **Typhoon Mapping & Dropdown Labels**: ปรับป้ายกำกับ Dropdown ในหน้าจอผู้ใช้งานให้สะท้อนถึงโมเดลและขนาดจริง (`typhoon-ocr1.5-3b 3.2GB`, `typhoon-ocr-3b 7.5GB`) พร้อมแมปตัวเลือกโมเดลใน Python sidecar และ sandbox backend ไปยังโมเดลจริงของ SCB10X ได้ถูกต้อง 100%
+- **UAT & Test Coverage**: ยกระดับและเขียนชุดทดสอบ `ai.service.spec.ts` เพื่อคุ้มครองกรณี synchronous LLM switch ล้มเหลว พร้อมรัน backend unit test ผ่านทั้งหมด 100% (60 passed, 521 tests passed)
+- **Dependency Clean**: อัปเกรดความปลอดภัยของไลบรารี axios ทั้งใน backend และ frontend เคลียร์ช่องโหว่ความมั่นคงปลอดภัยทั้งหมด (pnpm audit CLEAN 100%)
+- **Docs Synced**: อัปเดตและปรับประสานเอกสารโครงการทั้งหมด ได้แก่ `README.md`, `specs/06-Decision-Records/README.md`, `specs/200-fullstacks/README.md`, `AGENTS.md`, `CONTEXT.md`, `CONTRIBUTING.md`, และ `CHANGELOG.md`
+
+### spec(ai): Typhoon OCR Integration (ADR-032) + Spec Generation (2026-05-30)
 
 #### Summary
 
