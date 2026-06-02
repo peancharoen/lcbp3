@@ -9,6 +9,8 @@
 // - 2026-05-29: เพิ่ม ocrText, ocrUsed, promptVersionUsed ใน AiSandboxJobResult
 // - 2026-05-30: เพิ่มเมธอด getOcrEngines และ selectOcrEngine สำหรับจัดการ OCR engines (T017, T018, US1)
 // - 2026-05-30: เพิ่ม getVramStatus และปรับปรุง getAvailableModels/setActiveModel/addModel ให้เรียกใช้ endpoints ใหม่ที่มี VRAM capacity check (T031-T034, US2)
+// - 2026-06-02: แก้ endpoint getAvailableModels ให้ตรงกับ backend admin route (/ai/admin/models)
+// - 2026-06-02: normalize VRAM response ให้รองรับ field names จาก backend ปัจจุบันและรูปแบบ loadedModels แบบเดิม
 
 import api from '../api/client';
 
@@ -91,6 +93,20 @@ export interface VramStatusResponse {
   lastUpdated: string;
 }
 
+interface RawVramStatusResponse {
+  totalVRAMMB?: number;
+  usedVRAMMB?: number;
+  usagePercent?: number;
+  thresholdPercent?: number;
+  loadedModels?: Array<string | LoadedModelInfo>;
+  canLoadModel?: boolean;
+  lastUpdated?: string;
+  totalVramMb?: number;
+  usedVramMb?: number;
+  freeVramMb?: number;
+  hasCapacity?: boolean;
+}
+
 export interface AiAvailableModel {
   id?: number;
   modelId?: string;
@@ -119,6 +135,43 @@ const extractData = <T>(value: unknown): T => {
     return (value as { data: T }).data;
   }
   return value as T;
+};
+
+const normalizeLoadedModels = (
+  models: Array<string | LoadedModelInfo> | undefined
+): LoadedModelInfo[] => {
+  if (!Array.isArray(models)) {
+    return [];
+  }
+  return models.map((model, index) => {
+    if (typeof model === 'string') {
+      return {
+        modelId: `${model}-${index}`,
+        modelName: model,
+        vramUsageMB: 0,
+      };
+    }
+    return model;
+  });
+};
+
+const normalizeVramStatus = (value: unknown): VramStatusResponse => {
+  const raw = extractData<RawVramStatusResponse>(value);
+  const totalVRAMMB = raw.totalVRAMMB ?? raw.totalVramMb ?? 0;
+  const usedVRAMMB = raw.usedVRAMMB ?? raw.usedVramMb ?? 0;
+  const usagePercent =
+    raw.usagePercent ??
+    (totalVRAMMB > 0 ? Math.round((usedVRAMMB / totalVRAMMB) * 100) : 0);
+
+  return {
+    totalVRAMMB,
+    usedVRAMMB,
+    usagePercent,
+    thresholdPercent: raw.thresholdPercent ?? 90,
+    loadedModels: normalizeLoadedModels(raw.loadedModels),
+    canLoadModel: raw.canLoadModel ?? raw.hasCapacity ?? false,
+    lastUpdated: raw.lastUpdated ?? new Date().toISOString(),
+  };
 };
 
 /** Service สำหรับเรียก AI Admin Console API ผ่าน DMS Backend เท่านั้น */
@@ -199,7 +252,7 @@ export const adminAiService = {
   // --- AI Model Management (ADR-027, US2) ---
 
   getAvailableModels: async (): Promise<AiModelsResponse> => {
-    const { data } = await api.get('/ai/models');
+    const { data } = await api.get('/ai/admin/models');
     return extractData<AiModelsResponse>(data);
   },
 
@@ -215,7 +268,7 @@ export const adminAiService = {
 
   getVramStatus: async (): Promise<VramStatusResponse> => {
     const { data } = await api.get('/ai/vram/status');
-    return extractData<VramStatusResponse>(data);
+    return normalizeVramStatus(data);
   },
 
   addModel: async (

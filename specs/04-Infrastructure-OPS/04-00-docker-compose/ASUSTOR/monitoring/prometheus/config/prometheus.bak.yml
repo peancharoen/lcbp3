@@ -1,0 +1,60 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus self-monitoring (ASUSTOR)
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ============================================
+  # ASUSTOR Metrics (Local)
+  # ============================================
+
+  # Host metrics from Node Exporter (ASUSTOR)
+  - job_name: "asustor-node"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          host: "asustor"
+
+  # Container metrics from cAdvisor (ASUSTOR)
+  - job_name: "asustor-cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+        labels:
+          host: "asustor"
+
+  # ============================================
+  # QNAP Metrics (Remote - 192.168.10.8)
+  # ============================================
+
+  # Host metrics from Node Exporter (QNAP)
+  - job_name: "qnap-node"
+    static_configs:
+      - targets: ["192.168.10.8:9100"]
+        labels:
+          host: "qnap"
+
+  # Container metrics from cAdvisor (QNAP)
+  - job_name: "qnap-cadvisor"
+    static_configs:
+      - targets: ["192.168.10.8:8088"]
+        labels:
+          host: "qnap"
+
+  # Backend NestJS application (QNAP)
+  - job_name: "backend"
+    static_configs:
+      - targets: ["192.168.10.8:3000"]
+        labels:
+          host: "qnap"
+    metrics_path: "/metrics"
+
+  # MariaDB Exporter (optional - QNAP)
+  - job_name: "mariadb"
+    static_configs:
+      - targets: ["192.168.10.8:9104"]
+        labels:
+          host: "qnap"

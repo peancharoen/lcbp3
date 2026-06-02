@@ -24,7 +24,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useAiStatus, useToggleAiFeatures, useAiHealth } from '@/hooks/use-ai-status';
 import { projectService } from '@/lib/services/project.service';
-import { adminAiService, AiSandboxJobResult, AiAvailableModel } from '@/lib/services/admin-ai.service';
+import {
+  adminAiService,
+  AiSandboxJobResult,
+  AiAvailableModel,
+  AiRagCitation,
+} from '@/lib/services/admin-ai.service';
 import { toast } from 'sonner';
 import OcrSandboxPromptManager from '@/components/admin/ai/OcrSandboxPromptManager';
 import OcrEngineSelector from '@/components/admin/ai/OcrEngineSelector';
@@ -33,6 +38,48 @@ interface SandboxProject {
   publicId: string;
   projectName: string;
   projectCode: string;
+}
+
+interface VramLoadedModelView {
+  modelId: string;
+  modelName: string;
+  vramUsageMB?: number;
+}
+
+function ensureArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeLoadedModels(value: unknown): VramLoadedModelView[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((item, index) => {
+    if (typeof item === 'string') {
+      return {
+        modelId: `${item}-${index}`,
+        modelName: item,
+      };
+    }
+    if (item && typeof item === 'object') {
+      const model = item as {
+        modelId?: string;
+        modelName?: string;
+        name?: string;
+        vramUsageMB?: number;
+      };
+      const modelName = model.modelName ?? model.name ?? `model-${index + 1}`;
+      return {
+        modelId: model.modelId ?? modelName,
+        modelName,
+        vramUsageMB: model.vramUsageMB,
+      };
+    }
+    return {
+      modelId: `unknown-${index}`,
+      modelName: `Unknown Model ${index + 1}`,
+    };
+  });
 }
 
 export default function AiAdminConsolePage() {
@@ -56,7 +103,7 @@ export default function AiAdminConsolePage() {
       return await adminAiService.getAvailableModels();
     },
   });
-  const availableModels = aiModelsData?.models ?? [];
+  const availableModels = ensureArray<AiAvailableModel>(aiModelsData?.models);
   const activeModel = aiModelsData?.activeModel ?? '';
 
   // VRAM Monitoring State (T034, T036, US2)
@@ -75,6 +122,13 @@ export default function AiAdminConsolePage() {
       return res as SandboxProject[];
     },
   });
+  const healthOllamaModels = ensureArray<string>(health?.ollama?.models);
+  const healthQdrantCollections = ensureArray<string>(health?.qdrant?.collections);
+  const vramLoadedModels = normalizeLoadedModels(vramStatus?.loadedModels);
+  const sandboxProjects = ensureArray<SandboxProject>(projects);
+  const sandboxCitations = ensureArray<AiRagCitation>(
+    sandboxJobResult?.citations
+  );
 
   const handleToggle = async (enabled: boolean): Promise<void> => {
     await toggleMutation.mutateAsync(enabled);
@@ -242,8 +296,8 @@ export default function AiAdminConsolePage() {
                 <div className="space-y-1">
                   <span className="text-xs text-muted-foreground">โมเดลที่โหลดอยู่:</span>
                   <div className="flex flex-wrap gap-1">
-                    {health?.ollama?.models && health.ollama.models.length > 0 ? (
-                      health.ollama.models.map((m) => (
+                    {healthOllamaModels.length > 0 ? (
+                      healthOllamaModels.map((m) => (
                         <Badge key={m} variant="secondary" className="text-[10px] py-0 px-1">
                           {m}
                         </Badge>
@@ -274,8 +328,8 @@ export default function AiAdminConsolePage() {
                 <div className="space-y-1">
                   <span className="text-xs text-muted-foreground">คอลเลกชัน:</span>
                   <div className="flex flex-wrap gap-1">
-                    {health?.qdrant?.collections && health.qdrant.collections.length > 0 ? (
-                      health.qdrant.collections.map((c) => (
+                    {healthQdrantCollections.length > 0 ? (
+                      healthQdrantCollections.map((c) => (
                         <Badge key={c} variant="outline" className="text-[10px] py-0 px-1 bg-background/30">
                           {c}
                         </Badge>
@@ -394,10 +448,13 @@ export default function AiAdminConsolePage() {
                       <div className="space-y-1 text-xs">
                         <span className="text-muted-foreground block">โมเดลที่โหลดบน GPU ในปัจจุบัน:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {vramStatus.loadedModels && vramStatus.loadedModels.length > 0 ? (
-                            vramStatus.loadedModels.map((m) => (
-                              <Badge key={m.modelId || m.modelName} className="bg-primary/10 text-primary border-none hover:bg-primary/20 text-[10px]">
-                                {m.modelName} ({m.vramUsageMB} MB)
+                          {vramLoadedModels.length > 0 ? (
+                            vramLoadedModels.map((m) => (
+                              <Badge key={m.modelId} className="bg-primary/10 text-primary border-none hover:bg-primary/20 text-[10px]">
+                                {m.modelName}
+                                {typeof m.vramUsageMB === 'number'
+                                  ? ` (${m.vramUsageMB} MB)`
+                                  : ''}
                               </Badge>
                             ))
                           ) : (
@@ -627,7 +684,7 @@ export default function AiAdminConsolePage() {
                         <SelectValue placeholder="-- กรุณาเลือกโครงการ --" />
                       </SelectTrigger>
                       <SelectContent>
-                        {projects.map((proj) => (
+                        {sandboxProjects.map((proj) => (
                           <SelectItem key={proj.publicId} value={proj.publicId}>
                             {proj.projectName} ({proj.projectCode})
                           </SelectItem>
@@ -728,9 +785,9 @@ export default function AiAdminConsolePage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {sandboxJobResult.citations && sandboxJobResult.citations.length > 0 ? (
+                      {sandboxCitations.length > 0 ? (
                         <div className="grid gap-3 sm:grid-cols-1">
-                          {sandboxJobResult.citations.map((cite, index) => (
+                          {sandboxCitations.map((cite, index) => (
                             <div
                               key={cite.pointId || index}
                               className="rounded-lg border border-border/40 bg-background/30 p-3 hover:bg-background/60 transition-colors space-y-2"
