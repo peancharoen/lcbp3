@@ -42,6 +42,7 @@ export default function OrganizationsPage() {
   const { data: organizations, isLoading } = useOrganizations({
     search: search || undefined,
   });
+  const organizationList: Organization[] = Array.isArray(organizations) ? (organizations as Organization[]) : [];
 
   const deleteOrg = useDeleteOrganization();
 
@@ -171,7 +172,7 @@ export default function OrganizationsPage() {
           ))}
         </div>
       ) : (
-        <DataTable columns={columns} data={organizations || []} />
+        <DataTable columns={columns} data={organizationList} />
       )}
 
       <OrganizationDialog open={dialogOpen} onOpenChange={setDialogOpen} organization={selectedOrganization} />

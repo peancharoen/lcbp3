@@ -37,6 +37,7 @@ export default function NumberingLogsPage() {
     queryKey: ['numbering-errors'],
     queryFn: logService.getNumberingErrors,
   });
+  const errorList: NumberingError[] = Array.isArray(errors) ? (errors as NumberingError[]) : [];
 
   const columns: ColumnDef<NumberingError>[] = [
     {
@@ -82,7 +83,7 @@ export default function NumberingLogsPage() {
           <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <DataTable columns={columns} data={errors} />
+        <DataTable columns={columns} data={errorList} />
       )}
     </div>
   );

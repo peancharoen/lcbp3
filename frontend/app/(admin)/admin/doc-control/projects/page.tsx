@@ -52,6 +52,7 @@ type ProjectFormData = z.infer<typeof projectSchema>;
 export default function ProjectsPage() {
   const [search, setSearch] = useState('');
   const { data: projects, isLoading } = useProjects({ search: search || undefined });
+  const projectList: Project[] = Array.isArray(projects) ? (projects as Project[]) : [];
 
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -212,7 +213,7 @@ export default function ProjectsPage() {
           ))}
         </div>
       ) : (
-        <DataTable columns={columns} data={projects || []} />
+        <DataTable columns={columns} data={projectList} />
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
