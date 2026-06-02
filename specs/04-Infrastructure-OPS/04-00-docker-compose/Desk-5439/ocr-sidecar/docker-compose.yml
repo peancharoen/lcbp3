@@ -38,8 +38,9 @@ services:
       OCR_LANG: "tha+eng"  # Tesseract language code (Thai + English)
       USE_GPU: "false"  # OCR sidecar รันบน CPU, Typhoon OCR ใช้ Ollama แยก
       # ─── Typhoon OCR via Ollama (ADR-032) ───────────────────────────────────
-      # ชี้ไปที่ Ollama ที่รันบน Desk-5439 ผ่าน LAN IP (ไม่ใช่ host.docker.internal)
-      OLLAMA_API_URL: "http://192.168.10.100:11434"
+      # ชี้ผ่าน ollama-metrics proxy (port 9924) แทน Ollama โดยตรง (port 11434)
+      # เพื่อให้ NorskHelsenett sidecar collect metrics ได้
+      OLLAMA_API_URL: "http://ollama-metrics:9924"
       TYPHOON_OCR_MODEL: "scb10x/typhoon-ocr1.5-3b"
       # Timeout 120 วินาที/หน้า (budget สำหรับ 3B model บน RTX 2060 Super)
       TYPHOON_OCR_TIMEOUT: "120"

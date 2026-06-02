@@ -72,7 +72,12 @@ const useProjectsList = () => {
 export default function ContractsPage() {
   const [search, setSearch] = useState('');
   const { data: contracts, isLoading } = useContracts({ search: search || undefined });
-  const { data: projects } = useProjectsList() as { data: _Project[] | undefined };
+  const { data: rawProjects } = useProjectsList();
+  const projectList: _Project[] = Array.isArray(rawProjects)
+    ? (rawProjects as _Project[])
+    : Array.isArray((rawProjects as { data?: unknown })?.data)
+    ? (((rawProjects as { data?: unknown }).data as _Project[]))
+    : [];
 
   const queryClient = useQueryClient();
 
@@ -295,7 +300,7 @@ export default function ContractsPage() {
                   <SelectValue placeholder="Select Project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects?.map((p) => (
+                  {projectList.map((p) => (
                     // ADR-019: Project exposes UUID as 'publicId'
                     <SelectItem key={p.publicId} value={p.publicId}>
                       {p.projectCode} - {p.projectName}
