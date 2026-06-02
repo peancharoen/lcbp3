@@ -1512,6 +1512,7 @@ CREATE TABLE migration_review_queue (
   confidence_score DECIMAL(5, 4) NOT NULL COMMENT 'AI confidence score 0.0000-1.0000',
   ocr_used TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'ระบุว่าใช้ OCR path หรือไม่',
   STATUS ENUM('PENDING', 'APPROVED', 'IMPORTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+  temp_attachment_id INT NULL COMMENT 'Temporary attachment ID referencing attachments.id (ADR-028)',
   reviewed_by INT NULL COMMENT 'Internal users.user_id ของผู้ review',
   reviewed_at DATETIME NULL COMMENT 'เวลาที่ review record',
   rejection_reason VARCHAR(500) NULL COMMENT 'เหตุผลเมื่อ reject',

@@ -1,6 +1,7 @@
 // File: src/modules/ai/workers/cleanup-temp-files.worker.ts
 // Change Log:
 // - 2026-05-22: อัปเดตและสร้างตัวล้างไฟล์ชั่วคราว (T016) เพื่อลบไฟล์ที่หมดอายุ 24 ชม.
+// - 2026-06-02: ข้าม cleanup อย่างปลอดภัยเมื่อ schema migration_review_queue ยังไม่มี temp_attachment_id
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -16,6 +17,8 @@ import {
 @Injectable()
 export class CleanupTempFilesWorker {
   private readonly logger = new Logger(CleanupTempFilesWorker.name);
+  private static readonly MISSING_TEMP_ATTACHMENT_COLUMN_MESSAGE =
+    'temp_attachment_id';
 
   constructor(
     @InjectRepository(Attachment)
@@ -34,13 +37,10 @@ export class CleanupTempFilesWorker {
     try {
       const oneDayAgo = new Date();
       oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-      const pendingRecords = await this.reviewQueueRepository.find({
-        select: ['tempAttachmentId'],
-        where: { status: MigrationReviewStatus.PENDING },
-      });
-      const pendingAttachmentIds = pendingRecords
-        .map((r) => r.tempAttachmentId)
-        .filter((id): id is number => id !== undefined && id !== null);
+      const pendingAttachmentIds = await this.getPendingAttachmentIds();
+      if (pendingAttachmentIds === null) {
+        return;
+      }
       const query = this.attachmentRepository
         .createQueryBuilder('attachment')
         .where('attachment.isTemporary = :isTemporary', { isTemporary: true })
@@ -84,5 +84,38 @@ export class CleanupTempFilesWorker {
         `Error occurred during temporary files cleanup: ${errMsg}`
       );
     }
+  }
+
+  /**
+   * อ่านรายการ temp attachment ที่ยังถูกใช้งานโดย migration review status=PENDING
+   * ถ้า schema ยังไม่พร้อม ให้ข้าม cleanup รอบนี้เพื่อป้องกันการลบไฟล์ที่ยังถูกอ้างอิง
+   */
+  private async getPendingAttachmentIds(): Promise<number[] | null> {
+    try {
+      const pendingRecords = await this.reviewQueueRepository.find({
+        select: ['tempAttachmentId'],
+        where: { status: MigrationReviewStatus.PENDING },
+      });
+      return pendingRecords
+        .map((record) => record.tempAttachmentId)
+        .filter((id): id is number => id !== undefined && id !== null);
+    } catch (error) {
+      if (this.isMissingTempAttachmentIdColumnError(error)) {
+        this.logger.warn(
+          'Skipping temporary files cleanup because migration_review_queue.temp_attachment_id is missing. Apply delta specs/03-Data-and-Storage/deltas/2026-06-02-add-temp-attachment-id-to-migration-review-queue.sql first.'
+        );
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  private isMissingTempAttachmentIdColumnError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+    return error.message.includes(
+      CleanupTempFilesWorker.MISSING_TEMP_ATTACHMENT_COLUMN_MESSAGE
+    );
   }
 }
