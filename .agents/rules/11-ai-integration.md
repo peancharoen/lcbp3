@@ -3,7 +3,7 @@
 ## CRITICAL RULES
 
 - **ALWAYS** follow ADR-023 AI boundary policy (isolation on Admin Desktop)
-- **ALWAYS** use ADR-023A 2-model stack (gemma4:e2b + nomic-embed-text)
+- **ALWAYS** use ADR-034 model stack (typhoon2.5-np-dms:latest + typhoon-np-dms-ocr:latest + nomic-embed-text)
 - **ALWAYS** use BullMQ 2-queue (ai-realtime + ai-batch) for GPU overload prevention
 - **NEVER** allow AI direct database/storage access
 - **ALWAYS** implement human-in-the-loop validation
@@ -26,7 +26,7 @@ n8n (Migration) → DMS API → BullMQ → Admin Desktop (Ollama) → Backend Va
 | ----------------- | ------------------------- | ------------------------------------------------------------------------ |
 | **AI Gateway**    | Backend (NestJS)          | API endpoints, validation, audit logging                                 |
 | **BullMQ Queues** | Backend (NestJS)          | ai-realtime (RAG/Suggest), ai-batch (OCR/Extract/Embed)                  |
-| **Ollama Engine** | Admin Desktop (Desk-5439) | gemma4:e2b (LLM) + nomic-embed-text (Embedding)                          |
+| **Ollama Engine** | Admin Desktop (Desk-5439) | typhoon2.5-np-dms:latest (Main LLM) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0) + nomic-embed-text (Embedding) |
 | **OCR Engine**    | Admin Desktop (Desk-5439) | PaddleOCR + PyThaiNLP (Thai/English text extraction)                     |
 | **Orchestrator**  | QNAP NAS (n8n)            | Migration Phase orchestrator only (calls DMS API, never Ollama directly) |
 
@@ -76,7 +76,7 @@ export class AiService {
   async extractMetadata(documentId: string): Promise<AIMetadata> {
     // 1. Validate permissions
     // 2. Queue job to BullMQ (ai-batch or ai-realtime)
-    // 3. Worker sends to Admin Desktop AI (gemma4:e2b)
+    // 3. Worker sends to Admin Desktop AI (typhoon2.5-np-dms:latest)
     // 4. Validate AI response
     // 5. Log audit trail to ai_audit_logs
     // 6. Return validated results
@@ -113,9 +113,9 @@ const DocumentReviewForm = ({ document, aiSuggestions }) => {
 - **n8n Boundary:** n8n MUST call DMS API → BullMQ, NEVER Ollama/Qdrant directly
 - **GPU Overload Prevention:** BullMQ 2-queue (ai-realtime + ai-batch) with concurrency=1
 
-## ADR-023A Specific Rules
+## ADR-034 Model Stack (supersedes ADR-023A §2.1)
 
-- **2-Model Stack:** gemma4:e2b + nomic-embed-text
+- **3-Model Config:** typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0) + nomic-embed-text (Embedding)
 - **PDF 3-Page Limit:** Classification/Tagging uses first 3 pages only (NOT RAG embedding)
 - **RAG Embedding:** Full document chunked at 512 tokens/64 tokens overlap
 - **OCR Auto-Detect:** PyMuPDF chars > 100 → Fast path, else PaddleOCR
@@ -129,7 +129,7 @@ const DocumentReviewForm = ({ document, aiSuggestions }) => {
 - [ ] BullMQ 2-queue setup (ai-realtime + ai-batch)
 - [ ] QdrantService with projectPublicId enforcement
 - [ ] DocumentReviewForm reusable component
-- [ ] Admin Desktop Ollama (gemma4:e2b + nomic-embed-text) + PaddleOCR setup
+- [ ] Admin Desktop Ollama (typhoon2.5-np-dms:latest + typhoon-np-dms-ocr:latest + nomic-embed-text) setup
 - [ ] n8n workflow orchestration (Migration Phase only)
 - [ ] AI audit logging and monitoring (ai_audit_logs)
 - [ ] Human-in-the-loop validation workflows

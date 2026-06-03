@@ -150,7 +150,8 @@ graph TB
 
 | ADR | Version | Dependency Type | Affected Version(s) | Implementation Status |
 |-----|---------|-----------------|---------------------|----------------------|
-| **ADR-023A** | 1.2 | Model Revision | v1.9.0+ | ✅ Active |
+| **ADR-034** | 1.0 | Model Stack Revision | v1.9.0+ | ✅ Active (supersedes 023A Section 2.1) |
+| **ADR-023A** | 1.2 | Model Revision | v1.9.0+ | ✅ Active (Section 2.1 superseded by ADR-034) |
 | **ADR-023** | 1.1 | Base Architecture | v1.9.0+ | ✅ Active (superseded by 023A for model config) |
 | **ADR-016** | 2.0 | Governs | v1.8.0+ | ✅ Active |
 | **ADR-019** | 1.5 | Governs | v1.8.0+ | ✅ Active |
@@ -181,14 +182,16 @@ graph TB
 
 #### 2.1 Model Stack & Dynamic Thai-Specialized Models (T041, US2, US3)
 
+> ⚠️ **Update 2026-06-03:** Section นี้ถูก **superseded โดย [ADR-034](./ADR-034-AI-model-change.md)** — โมเดลหลักเปลี่ยนจาก `gemma4:e2b` เป็น `typhoon2.5-np-dms:latest` (Thai-optimized) พร้อม OCR model `typhoon-np-dms-ocr:latest`
+
 ระบบประมวลผลพื้นฐานจะรันด้วยชุด 2-Model Stack ที่ประหยัด VRAM เป็นหลัก และเปิดให้โหลดสลับไปประมวลผลด้วยโมเดลภาษาไทยเฉพาะทางประสิทธิภาพสูง (High-Performance Thai Specialized Models) ได้แบบ Dynamic ภายใต้การควบคุมของ VRAM Monitor เพื่อไม่ให้เกิด VRAM OOM:
 
-##### ชุดประมวลผลหลัก (Baseline 2-Model Stack):
+##### ชุดประมวลผลหลัก (Baseline 2-Model Stack) — Superseded by ADR-034:
 
 | โมเดล | Role | VRAM (โดยประมาณ) | หมายเหตุ |
 |-------|------|-----------------|---------|
-| `gemma4:e2b` | General Inference + OCR Post-processing + Extraction + RAG Q&A | ~2GB (Q4) + ~0.2GB (KV Cache) | Q4 quantization; Context window 8K tokens; Parameters 2.1B |
-| `nomic-embed-text` | Embedding 768-dim → Qdrant | ~0.3GB | สร้าง Semantic Vector สำหรับ Hybrid Search |
+| `gemma4:e2b` | ~~General Inference + OCR Post-processing + Extraction + RAG Q&A~~ | ~2GB (Q4) | ❌ ถูกแทนที่โดย `typhoon2.5-np-dms` (ADR-034) |
+| `nomic-embed-text` | Embedding 768-dim → Qdrant | ~0.3GB | ✅ ยังใช้อยู่ |
 | **รวม (peak)** | | **~2.5GB** | **เผื่อ headroom ~5.5GB — มั่นใจสูง เพราะ context window ขนาดใหญ่ (8K tokens)** |
 
 ##### โมเดลภาษาไทยเฉพาะทางที่เป็นทางเลือก (Dynamic Thai Specialized Models):

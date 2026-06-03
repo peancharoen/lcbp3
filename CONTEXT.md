@@ -188,10 +188,20 @@ _Avoid_: Throw exception from tool, Untyped error
 
 - **AI Gateway** — NestJS module, CASL-guarded, enqueue jobs ไป BullMQ
 - **n8n** — Workflow orchestrator บน QNAP (Migration Phase + simple routing)
-- **Ollama** — Local LLM inference บน Admin Desktop (gemma4:e4b Q8_0 + nomic-embed-text)
+- **Ollama** — Local LLM inference บน Admin Desktop (ADR-034: typhoon2.5-np-dms + typhoon-np-dms-ocr + nomic-embed-text)
 - **QdrantService** — Vector search แบบ project-isolated
 - **AiRagService** — RAG pipeline (embed query → Qdrant → LLM context)
 - **OcrService / sidecar** — ระบบประมวลผล OCR ปลอดภัยด้วย API Key และ dynamic model swapping (ADR-033)
+
+## Glossary Updates (from ADR-034)
+
+| Term | Definition | Avoid |
+|------|------------|-------|
+| **Thai-Optimized Model** | โมเดล AI ที่ถูก fine-tune มาสำหรับภาษาไทยโดยเฉพาะ (เช่น Typhoon series จาก SCB10X) | Generic model, English-only model |
+| **Model Unload/Load** | กระบวนการยกเลิกโหลดโมเดลจาก VRAM และโหลดโมเดลใหม่เข้าไปแทน เพื่อสลับการใช้งานระหว่างโมเดลต่างๆ | Model switching (ambiguous), Hot swap |
+| **Cold Start Penalty** | ความล่าช้า 5-15 วินาทีที่เกิดจากการโหลดโมเดล weights เข้า VRAM หลังจากโมเดลถูก unload (keep_alive: 0) | Initial delay, First-run latency |
+
+---
 
 ## System readiness summary (resolved)
 

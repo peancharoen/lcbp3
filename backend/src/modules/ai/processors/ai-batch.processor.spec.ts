@@ -7,12 +7,17 @@
 // - 2026-05-27: เพิ่ม Mock สำหรับ getActive และ resolveContext ของ AiPromptsService เพื่อรองรับ Context-Aware Prompt (T017)
 // - 2026-05-28: เพิ่ม test สำหรับ EC-001 (NEW_TAG_SUGGESTED) และ EC-002 (UNRESOLVED_SENDER/RECIPIENT_UUID)
 // - 2026-05-29: แก้ไข mockAttachmentRepo เพิ่ม property manager เพื่อรองรับ jest.spyOn ใน EC-001, EC-002, และ migrate-document tests
+// - 2026-06-03: ADR-034 — เพิ่ม OCR_JOB_TYPES import, mock unloadModel/loadModel/getOcrModelName, อัปเดต getMainModelName เป็น typhoon2.5, เพิ่ม test ocr-extract model switching
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job } from 'bullmq';
-import { AiBatchProcessor, AiBatchJobData } from './ai-batch.processor';
+import {
+  AiBatchProcessor,
+  AiBatchJobData,
+  OCR_JOB_TYPES,
+} from './ai-batch.processor';
 import { EmbeddingService } from '../services/embedding.service';
 import { AiRagService } from '../ai-rag.service';
 import { Attachment } from '../../../common/file-storage/entities/attachment.entity';
@@ -57,7 +62,10 @@ describe('AiBatchProcessor', () => {
     }),
   };
   const mockOllamaService = {
-    getMainModelName: jest.fn().mockReturnValue('gemma4:e4b'),
+    getMainModelName: jest.fn().mockReturnValue('typhoon2.5-np-dms:latest'),
+    getOcrModelName: jest.fn().mockReturnValue('typhoon-np-dms-ocr:latest'),
+    loadModel: jest.fn().mockResolvedValue(true),
+    unloadModel: jest.fn().mockResolvedValue(true),
     generate: jest.fn().mockResolvedValue(
       JSON.stringify({
         documentNumber: 'LCBP3-CIV-001',
@@ -173,6 +181,49 @@ describe('AiBatchProcessor', () => {
     redis = module.get(DEFAULT_REDIS_TOKEN);
     attachmentRepo = module.get(getRepositoryToken(Attachment));
     jest.clearAllMocks();
+  });
+  it('OCR_JOB_TYPES ควรมี ocr-extract เป็นสมาชิก (ADR-034)', () => {
+    expect(OCR_JOB_TYPES).toContain('ocr-extract');
+  });
+  it('ocr-extract: ควร unload main → load OCR (keep_alive:0) → generate → reload main (ADR-034)', async () => {
+    const job = {
+      id: 'job-ocr-extract',
+      data: {
+        jobType: 'ocr-extract',
+        documentPublicId: 'doc-ocr-uuid-001',
+        projectPublicId: 'proj-uuid-456',
+        payload: { prompt: 'Extract OCR text from this document.' },
+        idempotencyKey: 'idem-ocr-001',
+      },
+    } as unknown as Job<AiBatchJobData>;
+    await processor.process(job);
+    expect(mockOllamaService.unloadModel).toHaveBeenCalledWith(
+      'typhoon2.5-np-dms:latest'
+    );
+    expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+      'typhoon-np-dms-ocr:latest',
+      0
+    );
+    expect(mockOllamaService.generate).toHaveBeenCalledWith(
+      'Extract OCR text from this document.',
+      expect.objectContaining({
+        model: 'typhoon-np-dms-ocr:latest',
+        timeoutMs: 120000,
+      })
+    );
+    expect(mockOllamaService.loadModel).toHaveBeenCalledWith(
+      'typhoon2.5-np-dms:latest',
+      -1
+    );
+    expect(mockRedis.setex).toHaveBeenCalledWith(
+      'ai:ocr:result:doc-ocr-uuid-001',
+      3600,
+      expect.stringContaining('typhoon-np-dms-ocr:latest')
+    );
+    expect(attachmentRepo.update).toHaveBeenCalledWith(
+      { publicId: 'doc-ocr-uuid-001' },
+      { aiProcessingStatus: 'DONE' }
+    );
   });
   it('ควรสามารถเรียก process embed-document และอัปเดตสถานะใน database', async () => {
     const job = {

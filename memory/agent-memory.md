@@ -13,12 +13,13 @@
 - 2026-05-30 (Session 8): OCR Engine Migration — เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อแก้ปัญหา SIGILL (Illegal Instruction) บน CPU เก่าที่ไม่รองรับ AVX: อัปเดต requirements.txt (ลบ paddlepaddle/paddleocr, เพิ่ม pytesseract), app.py (เปลี่ยนใช้ pytesseract, OCR_LANG=tha+eng), Dockerfile (ติดตั้ง tesseract-ocr + ภาษาไทย/อังกฤษ), docker-compose.yml (OCR_LANG=tha+eng, ลบ paddleocr_models volume), backend ocr.service.ts (เปลี่ยน comment/error message), frontend OcrSandboxPromptManager.tsx (เปลี่ยน Badge text)
 - 2026-05-30 (Session 10): OCR Sandbox Two-Step Flow (ADR-030/231) — แยก OCR Sandbox เป็น 2 steps: Step 1 OCR-only → Step 2 AI Extraction. Backend: เพิ่ม job types sandbox-ocr-only และ sandbox-ai-extract, processors processSandboxOcrOnly/processSandboxAiExtract, endpoints POST /ai/admin/sandbox/ocr และ /ai/admin/sandbox/ai-extract, method findByVersion ใน AiPromptsService. Frontend: เพิ่ม methods submitSandboxOcr/submitSandboxAiExtract ใน adminAiService, refactor OcrSandboxPromptManager.tsx ให้มี 2-step UI พร้อม states sandboxStep/ocrResult/selectedPromptVersion, handlers handleStep1Ocr/handleStep2AiExtract/handleResetSandbox. Schema Fix: สร้าง delta SQL 2026-05-30-add-ai-prompts-publicId.sql เพื่อเพิ่ม publicId column ใน ai_prompts table (ADR-019 compliance).
 - 2026-05-30 (Session 11): Typhoon OCR & LLM Integration (ADR-032) — พัฒนาการใช้งานโมเดลภาษาไทยผสมอังกฤษ Typhoon OCR-3B ร่วมกับ Tesseract OCR แบบ Dynamic พร้อมระบบ caching 24 ชม., VRAM Monitor ป้องกัน GPU OOM และระบบ fallback 5s เมื่อโมเดลมีปัญหา และการสลับและบริหารจัดการ LLM โมเดลหลักแบบ Dynamic ในระบบ AI Model Management ของ Next.js frontend
+- 2026-06-03: Thai-Optimized AI Model Stack (ADR-034) — เปลี่ยนโมเดลหลักเป็น `typhoon2.5-np-dms:latest` + `typhoon-np-dms-ocr:latest` (สำหรับ OCR, keep_alive:0); เพิ่ม model switching logic ใน ai-batch processor; เพิ่ม static constants ใน AiSettingsService; สร้าง SQL delta สำหรับ ai_available_models
 -->
 
 # 🧠 Agent Long-term Project Memory
 
 > **Project:** NAP-DMS (LCBP3) — Laem Chabang Port Phase 3 Document Management System
-> **Version:** 1.9.8 (Last Synced: 2026-05-30)
+> **Version:** 1.9.9 (Last Synced: 2026-06-03)
 > **Stack:** NestJS 11 + Next.js 16 + TypeScript + MariaDB 11.8 + Redis + BullMQ + Elasticsearch + Ollama (on-prem AI)
 
 > [!IMPORTANT]
@@ -71,7 +72,7 @@
 
 - **Ollama (AI Inference) ต้องทำงานบน Admin Desktop เท่านั้น** ห้ามรันบน Server หรือ Docker ใน Production
 - AI ห้ามเชื่อมต่อและเข้าถึง Database หรือ Storage โดยตรง (ต้องผ่าน DMS API เท่านั้น)
-- โมเดลที่ใช้: `gemma4:e4b Q8_0` (LLM) และ `nomic-embed-text` (Embeddings)
+- โมเดลที่ใช้: `typhoon2.5-np-dms:latest` (Main LLM, ADR-034) + `typhoon-np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text` (Embeddings)
 - การทำงานแบบ Background Job หรือ Inference ที่ใช้เวลานานต้องสั่งงานผ่าน **BullMQ** (คิว `ai-realtime` และ `ai-batch`)
 - ข้อมูลผลลัพธ์จาก AI ทั้งหมดต้องผ่านการตรวจสอบความถูกต้องโดยมนุษย์ (Human-in-the-loop) เสมอ
 
@@ -162,7 +163,7 @@ docker compose ps                        # Check status
 | D7  | UUID Strategy: `publicId` (UUIDv7) เท่านั้นสำหรับ Public API — INT PK ต้อง `@Exclude()`     | ADR-019   |
 | D8  | Schema changes: แก้ SQL โดยตรง + เพิ่ม `deltas/*.sql` — ห้ามใช้ TypeORM migration files     | ADR-009   |
 | D9  | Qdrant search ต้องส่ง `projectPublicId` เป็น mandatory parameter ทุกครั้ง (compile-time)    | ADR-023A  |
-| D10 | AI model stack: `gemma4:e4b Q8_0` (LLM) + `nomic-embed-text` (Embeddings) on Admin Desktop  | ADR-023A  |
+| D10 | AI model stack: `typhoon2.5-np-dms:latest` (Main LLM) + `typhoon-np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text` (Embeddings) on Admin Desktop (ADR-034, supersedes ADR-023A §2.1) | ADR-034 |
 
 ---
 
@@ -193,7 +194,7 @@ docker compose ps                        # Check status
 | **Frontend**      | `http://localhost:3000`       | QNAP `192.168.10.8`       | Next.js                              |
 | **MariaDB**       | `localhost:3307`              | QNAP internal             | DB: `lcbp3`, root via docker         |
 | **Redis**         | `localhost:6379`              | QNAP internal             | BullMQ + session store               |
-| **Ollama**        | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439) | gemma4:e2b/e4b, typhoon2.1-gemma3-4b + nomic-embed-text |
+| **Ollama**        | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439) | typhoon2.5-np-dms:latest (main) + typhoon-np-dms-ocr:latest (OCR) + nomic-embed-text |
 | **Qdrant**        | `http://localhost:6333`       | Admin Desktop (Desk-5439) | Vector DB — requires projectPublicId |
 | **OCR Sidecar**   | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439) | Dynamic (Tesseract tha+eng / Typhoon OCR-3B) |
 | **Gitea**         | `https://git.np-dms.work`     | QNAP `192.168.10.8`       | Source + CI/CD                       |

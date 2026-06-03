@@ -9,6 +9,7 @@
 // - 2026-05-25: เพิ่ม AiPromptsService เพื่อดึง Dynamic Prompt สำหรับ OCR extraction ใน sandbox และ migration pipeline
 // - 2026-05-26: แก้ไข bug lockDuration=30000ms ทำให้ sandbox-extract job stall เมื่อ Ollama ใช้เวลา >30s — เพิ่ม lockDuration: 150000
 // - 2026-05-28: EC-001 ใช้ findOrSuggestTags เพื่อตรวจจับ Tag ใหม่และบันทึก aiIssues; EC-002 ตรวจสอบ UUID ของผู้ส่ง/ผู้รับ และ Flag เมื่อหาไม่พบ
+// - 2026-06-03: ADR-034 — เพิ่ม 'ocr-extract' job type + OCR_JOB_TYPES constant + processOcrExtract() ที่มี model switching logic (unload main → load OCR → generate → reload main)
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -49,6 +50,7 @@ interface MigrateDocumentMetadata extends Record<string, unknown> {
 
 export type AiBatchJobType =
   | 'ocr'
+  | 'ocr-extract'
   | 'extract-metadata'
   | 'embed-document'
   | 'sandbox-rag'
@@ -56,6 +58,11 @@ export type AiBatchJobType =
   | 'sandbox-ocr-only'
   | 'sandbox-ai-extract'
   | 'migrate-document';
+
+/** รายการ job types ที่ต้องใช้ Typhoon OCR model — จะ trigger model switching (ADR-034) */
+export const OCR_JOB_TYPES: ReadonlyArray<AiBatchJobType> = [
+  'ocr-extract',
+] as const;
 
 export interface AiBatchJobData {
   jobType: AiBatchJobType;
@@ -177,6 +184,13 @@ export class AiBatchProcessor extends WorkerHost {
             await this.setAiProcessingStatus(job.data.documentPublicId, 'DONE');
           }
           return;
+        case 'ocr-extract':
+          this.logger.log(
+            `OCR-extract (Typhoon OCR) job processing — jobId=${String(job.id)}`
+          );
+          await this.processOcrExtract(job.data);
+          await this.setAiProcessingStatus(job.data.documentPublicId, 'DONE');
+          return;
         case 'extract-metadata':
           this.logger.log(
             `Metadata extraction job processing — jobId=${String(job.id)}`
@@ -293,6 +307,45 @@ export class AiBatchProcessor extends WorkerHost {
     await this.attachmentRepo.update(
       { publicId: documentPublicId },
       { aiProcessingStatus: status }
+    );
+  }
+
+  /** ประมวลผล ocr-extract job ด้วย Typhoon OCR model — model switching ตาม ADR-034:
+   *  unload main → load OCR (keep_alive:0) → generate OCR → OCR auto-unloads → reload main */
+  private async processOcrExtract(data: AiBatchJobData): Promise<void> {
+    const { documentPublicId, payload } = data;
+    const mainModel = this.ollamaService.getMainModelName();
+    const ocrModel = this.ollamaService.getOcrModelName();
+    const prompt = (payload.prompt as string) || '';
+    this.logger.log(
+      `[ModelSwitch] Unloading ${mainModel} — documentPublicId=${documentPublicId}`
+    );
+    await this.ollamaService.unloadModel(mainModel);
+    this.logger.log(`[ModelSwitch] Loading ${ocrModel} (keep_alive:0)`);
+    await this.ollamaService.loadModel(ocrModel, 0);
+    let ocrText = '';
+    try {
+      this.logger.log(`[ModelSwitch] Running OCR extraction with ${ocrModel}`);
+      ocrText = await this.ollamaService.generate(prompt, {
+        model: ocrModel,
+        timeoutMs: 120000,
+      });
+    } finally {
+      this.logger.log(`[ModelSwitch] Reloading ${mainModel} (keep_alive:-1)`);
+      await this.ollamaService.loadModel(mainModel, -1);
+    }
+    await this.redis.setex(
+      `ai:ocr:result:${documentPublicId}`,
+      3600,
+      JSON.stringify({
+        documentPublicId,
+        ocrText,
+        model: ocrModel,
+        completedAt: new Date().toISOString(),
+      })
+    );
+    this.logger.log(
+      `[ModelSwitch] OCR-extract complete — documentPublicId=${documentPublicId}`
     );
   }
 

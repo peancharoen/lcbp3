@@ -9,6 +9,7 @@
 // - 2026-05-29: เพิ่ม ocrText, ocrUsed, promptVersionUsed ใน AiSandboxJobResult
 // - 2026-05-30: เพิ่มเมธอด getOcrEngines และ selectOcrEngine สำหรับจัดการ OCR engines (T017, T018, US1)
 // - 2026-05-30: เพิ่ม getVramStatus และปรับปรุง getAvailableModels/setActiveModel/addModel ให้เรียกใช้ endpoints ใหม่ที่มี VRAM capacity check (T031-T034, US2)
+// - 2026-06-03: ADR-034 — เพิ่ม activeModels field (หลัก+OCR) ใน AiSystemHealth interface
 // - 2026-06-02: แก้ endpoint getAvailableModels ให้ตรงกับ backend admin route (/ai/admin/models)
 // - 2026-06-02: normalize VRAM response ให้รองรับ field names จาก backend ปัจจุบันและรูปแบบ loadedModels แบบเดิม
 
@@ -28,6 +29,10 @@ export interface QueueMetrics {
 }
 
 export interface AiSystemHealth {
+  activeModels?: {
+    main: string;
+    ocr: string;
+  };
   ollama: {
     status: 'HEALTHY' | 'DEGRADED' | 'DOWN';
     latencyMs: number;

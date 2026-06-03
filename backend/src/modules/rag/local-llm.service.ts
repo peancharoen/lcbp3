@@ -1,6 +1,7 @@
 // File: src/modules/rag/local-llm.service.ts
 // Change Log
 // - 2026-05-15: แทนที่ cloud LLM API ด้วย Ollama local-only ตาม ADR-023A.
+// - 2026-06-03: ADR-034 — เปลี่ยน default fallback จาก gemma4:e4b เป็น typhoon2.5-np-dms:latest
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -26,7 +27,10 @@ export class LocalLlmService {
     );
     this.ollamaModel = this.configService.get<string>(
       'OLLAMA_MODEL_MAIN',
-      this.configService.get<string>('OLLAMA_RAG_MODEL', 'gemma4:e4b')
+      this.configService.get<string>(
+        'OLLAMA_RAG_MODEL',
+        'typhoon2.5-np-dms:latest'
+      )
     );
     this.timeoutMs = this.configService.get<number>('RAG_TIMEOUT_MS', 30000);
   }

@@ -3,6 +3,7 @@
 // - 2026-05-15: เพิ่ม Ollama service สำหรับ ADR-023A 2-model stack.
 // - 2026-05-21: เพิ่ม checkHealth สำหรับตรวจสอบสุขภาพและความเร็ว (Latency) ของ Ollama
 // - 2026-06-02: เพิ่ม loadModel() preloading, ดึงจริงจาก /api/ps และเพิ่ม unloadModel() เพื่อล้างหน่วยความจำ GPU/VRAM (ADR-033, Suggestion 1)
+// - 2026-06-03: ADR-034 — เปลี่ยน default model เป็น typhoon2.5-np-dms; เพิ่ม ocrModel field, keepAlive param ใน loadModel(), model option ใน OllamaGenerateOptions, getOcrModelName()
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,6 +12,8 @@ import axios from 'axios';
 export interface OllamaGenerateOptions {
   timeoutMs?: number;
   signal?: AbortSignal;
+  /** ชื่อ model ที่ต้องการใช้ — ถ้าไม่ระบุ จะใช้ mainModel เป็นค่าเริ่มต้น (ADR-034) */
+  model?: string;
 }
 
 /** บริการเรียก Ollama local-only บน Admin Desktop ตาม ADR-023A */
@@ -19,6 +22,7 @@ export class OllamaService {
   private readonly logger = new Logger(OllamaService.name);
   private readonly ollamaUrl: string;
   private readonly mainModel: string;
+  private readonly ocrModel: string;
   private readonly embedModel: string;
   private readonly timeoutMs: number;
 
@@ -29,7 +33,11 @@ export class OllamaService {
     );
     this.mainModel = this.configService.get<string>(
       'OLLAMA_MODEL_MAIN',
-      'gemma4:e4b'
+      'typhoon2.5-np-dms:latest'
+    );
+    this.ocrModel = this.configService.get<string>(
+      'OLLAMA_MODEL_OCR',
+      'typhoon-np-dms-ocr:latest'
     );
     this.embedModel = this.configService.get<string>(
       'OLLAMA_MODEL_EMBED',
@@ -38,7 +46,7 @@ export class OllamaService {
     this.timeoutMs = this.configService.get<number>('AI_TIMEOUT_MS', 30000);
   }
 
-  /** สร้างข้อความตอบกลับจาก gemma4:e4b หรือค่า ENV ที่กำหนด */
+  /** สร้างข้อความตอบกลับด้วย typhoon2.5-np-dms:latest หรือโมเดลที่ระบุใน options.model / ENV */
   async generate(
     prompt: string,
     options: OllamaGenerateOptions = {}
@@ -47,7 +55,7 @@ export class OllamaService {
       const response = await axios.post<{ response: string }>(
         `${this.ollamaUrl}/api/generate`,
         {
-          model: this.mainModel,
+          model: options.model ?? this.mainModel,
           prompt,
           stream: false,
         },
@@ -87,6 +95,11 @@ export class OllamaService {
   /** คืนชื่อ main model สำหรับ audit log */
   getMainModelName(): string {
     return this.mainModel;
+  }
+
+  /** คืนชื่อ OCR model สำหรับ model switching ใน BullMQ processor (ADR-034) */
+  getOcrModelName(): string {
+    return this.ocrModel;
   }
 
   /** คืนชื่อ embedding model สำหรับ audit log */
@@ -143,8 +156,13 @@ export class OllamaService {
     }
   }
 
-  /** โหลดโมเดลล่วงหน้าแบบ Synchronous และตรวจสอบความพร้อมบน Ollama (T007) */
-  async loadModel(modelName: string): Promise<boolean> {
+  /** โหลดโมเดลเข้า VRAM — ใช้สำหรับ preload และ model switching (ADR-033, ADR-034)
+   * @param keepAlive ค่า keep_alive: -1 = ค้างใน VRAM ตลอด (main), 0 = unload หลังจบ (OCR)
+   */
+  async loadModel(
+    modelName: string,
+    keepAlive?: number | string
+  ): Promise<boolean> {
     try {
       const tagsResponse = await axios.get<{
         models?: Array<{ name: string; model: string }>;
@@ -161,7 +179,7 @@ export class OllamaService {
         return false;
       }
       this.logger.log(
-        `Synchronously pre-loading model ${modelName} into GPU memory...`
+        `Synchronously pre-loading model ${modelName} into GPU memory (keep_alive=${String(keepAlive ?? -1)})...`
       );
       await axios.post(
         `${this.ollamaUrl}/api/generate`,
@@ -169,9 +187,9 @@ export class OllamaService {
           model: modelName,
           prompt: '',
           stream: false,
-          keep_alive: -1,
+          keep_alive: keepAlive ?? -1,
         },
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
       this.logger.log(`Model ${modelName} pre-loaded successfully`);
       return true;

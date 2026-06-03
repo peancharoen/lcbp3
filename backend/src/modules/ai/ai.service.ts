@@ -5,6 +5,7 @@
 // - 2026-05-21: แก้ไข ESLint unsafe return error ใน getSystemHealth โดยใช้ interface SystemHealthResponse
 // - 2026-05-29: เพิ่ม OcrService.checkHealth() เข้า getSystemHealth() เพื่อแสดงสถานะ OCR sidecar
 // - 2026-06-02: ปรับปรุง activateAiModel ให้มีการโหลดและยืนยันโมเดลล่วงหน้าแบบ Synchronous (T008, ADR-033) และล้างโมเดลตัวเก่าออกเพื่อประหยัด VRAM (Suggestion 1)
+// - 2026-06-03: ADR-034 — เพิ่ม activeModels field (เอา mainModel+ocrModel) ใน SystemHealthResponse
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -123,6 +124,10 @@ export interface AiJobStatusResult {
 }
 
 export interface SystemHealthResponse {
+  activeModels: {
+    main: string;
+    ocr: string;
+  };
   ollama: {
     status: string;
     latencyMs: number;
@@ -867,6 +872,14 @@ export class AiService {
         this.getQueueMetrics(this.aiBatchQueue),
       ]);
     const health = {
+      activeModels: {
+        main: this.ollamaService
+          ? this.ollamaService.getMainModelName()
+          : AiSettingsService.DEFAULT_MODEL,
+        ocr: this.ollamaService
+          ? this.ollamaService.getOcrModelName()
+          : AiSettingsService.OCR_MODEL,
+      },
       ollama,
       qdrant,
       ocr,

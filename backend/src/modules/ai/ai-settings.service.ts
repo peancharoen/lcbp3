@@ -3,6 +3,7 @@
 // - 2026-05-21: เพิ่ม service สำหรับอ่าน/เขียน AI feature toggle พร้อม Redis cache.
 // - 2026-05-22: เพิ่ม try-catch ใน getAiFeaturesEnabled() เพื่อความยืดหยุ่นในกรณีที่ฐานข้อมูลยังไม่ได้อัปเกรดตาราง system_settings
 // - 2026-05-25: เพิ่ม methods สำหรับจัดการรายการโมเดล AI แบบไดนามิก (ADR-027)
+// - 2026-06-03: เพิ่ม DEFAULT_MODEL และ OCR_MODEL static constants ตาม ADR-034 (เปลี่ยนจาก gemma4:e4b เป็น typhoon2.5-np-dms)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -24,6 +25,11 @@ const AI_ACTIVE_MODEL_TTL_SECONDS = 30;
 /** Service สำหรับจัดการ system_settings ที่เกี่ยวข้องกับ AI Admin Console */
 @Injectable()
 export class AiSettingsService {
+  /** โมเดล AI หลักสำหรับ Extraction, RAG Q&A, AI Suggestion (ADR-034) */
+  static readonly DEFAULT_MODEL = 'typhoon2.5-np-dms:latest';
+
+  /** โมเดล OCR ภาษาไทย — unload หลังใช้งาน (keep_alive=0) (ADR-034) */
+  static readonly OCR_MODEL = 'typhoon-np-dms-ocr:latest';
   private readonly logger = new Logger(AiSettingsService.name);
 
   constructor(
@@ -150,7 +156,8 @@ export class AiSettingsService {
         where: { settingKey: AI_ACTIVE_MODEL_KEY },
       });
 
-      const activeModel = setting?.settingValue ?? 'gemma4:e4b';
+      const activeModel =
+        setting?.settingValue ?? AiSettingsService.DEFAULT_MODEL;
       await this.redis.set(
         AI_ACTIVE_MODEL_CACHE_KEY,
         activeModel,
@@ -160,7 +167,7 @@ export class AiSettingsService {
       return activeModel;
     } catch (error: unknown) {
       this.logger.error(`Failed to get active model: ${this.toMessage(error)}`);
-      return 'gemma4:e4b';
+      return AiSettingsService.DEFAULT_MODEL;
     }
   }
 

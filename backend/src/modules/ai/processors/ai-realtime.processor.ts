@@ -1,6 +1,7 @@
 // File: src/modules/ai/processors/ai-realtime.processor.ts
 // Change Log
 // - 2026-05-15: เพิ่ม processor สำหรับ ai-realtime queue และ pause/resume ai-batch ตาม ADR-023A.
+// - 2026-06-03: ADR-034 — เปลี่ยน aiModel ใน audit log จาก hardcode 'gemma4' เป็น ollamaService.getMainModelName()
 
 import {
   Processor,
@@ -113,7 +114,7 @@ export class AiRealtimeProcessor extends WorkerHost {
       await this.aiAuditLogRepo.save(
         this.aiAuditLogRepo.create({
           documentPublicId: job.data.documentPublicId,
-          aiModel: 'gemma4',
+          aiModel: this.ollamaService.getMainModelName(),
           modelName: this.ollamaService.getMainModelName(),
           aiSuggestionJson: normalizedSuggestion,
           confidenceScore: this.extractConfidence(normalizedSuggestion),
@@ -135,7 +136,7 @@ export class AiRealtimeProcessor extends WorkerHost {
       await this.aiAuditLogRepo.save(
         this.aiAuditLogRepo.create({
           documentPublicId: job.data.documentPublicId,
-          aiModel: 'gemma4',
+          aiModel: this.ollamaService.getMainModelName(),
           modelName: this.ollamaService.getMainModelName(),
           processingTimeMs: Date.now() - startTime,
           status: AiAuditStatus.FAILED,

@@ -99,14 +99,15 @@ describe('AiSettingsService', () => {
     );
   });
 
-  it('ควรใช้ gemma4:e4b เป็นค่า active model เริ่มต้นเมื่อยังไม่มี system setting', async () => {
+  it('ควรใช้ typhoon2.5-np-dms:latest (DEFAULT_MODEL) เป็นค่า active model เริ่มต้นเมื่อยังไม่มี system setting (ADR-034)', async () => {
     mockRedis.get.mockResolvedValue(null);
     mockSettingRepo.findOne.mockResolvedValue(null);
-
-    await expect(service.getActiveModel()).resolves.toBe('gemma4:e4b');
+    await expect(service.getActiveModel()).resolves.toBe(
+      'typhoon2.5-np-dms:latest'
+    );
     expect(mockRedis.set).toHaveBeenCalledWith(
       'system_settings:AI_ACTIVE_MODEL',
-      'gemma4:e4b',
+      'typhoon2.5-np-dms:latest',
       'EX',
       30
     );
