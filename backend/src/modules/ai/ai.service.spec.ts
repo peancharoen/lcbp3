@@ -71,10 +71,12 @@ describe('AiService', () => {
   };
 
   const mockOllamaService = {
+    getMainModelName: jest.fn().mockReturnValue('typhoon2.5-np-dms:latest'),
+    getOcrModelName: jest.fn().mockReturnValue('typhoon-np-dms-ocr:latest'),
     checkHealth: jest.fn().mockResolvedValue({
       status: 'HEALTHY',
       latencyMs: 120,
-      models: ['gemma4:e4b', 'nomic-embed-text'],
+      models: ['typhoon2.5-np-dms:latest', 'nomic-embed-text'],
     }),
     loadModel: jest.fn().mockResolvedValue(true),
   };
