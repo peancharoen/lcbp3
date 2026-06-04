@@ -9,6 +9,7 @@
 // - 2026-05-30: Refactor เป็น 2-step flow (Step 1: OCR-only → Step 2: AI Extraction) ตาม spec 231
 // - 2026-06-02: ปรับปรุงลำดับปุ่มแท็บเริ่มต้นให้เริ่มที่ OCR Sandbox และเปลี่ยน dropdown labels ของตัวเลือกโมเดล Typhoon OCR ให้แสดงหน่วยความจำ VRAM แม่นยำ (T012, T013, ADR-033)
 // - 2026-06-04: เปลี่ยน OCR Engine dropdown จาก hardcoded เป็น dynamic โดยดึงจาก getOcrEngines() API และ map engineType → SandboxOcrEngineType
+// - 2026-06-04: เพิ่ม UI sliders (temperature/topP/repeatPenalty) สำหรับ typhoon-np-dms-ocr engine; ส่งเป็น optional override ไปยัง sidecar
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -111,6 +112,9 @@ export default function OcrSandboxPromptManager() {
   // 2-step flow states
   const [sandboxStep, setSandboxStep] = useState<'ocr' | 'ai'>('ocr');
   const [selectedOcrEngine, setSelectedOcrEngine] = useState<string>('auto');
+  const [typhoonTemperature, setTyphoonTemperature] = useState<number>(0.1);
+  const [typhoonTopP, setTyphoonTopP] = useState<number>(0.1);
+  const [typhoonRepeatPenalty, setTyphoonRepeatPenalty] = useState<number>(1.1);
   const { data: ocrEnginesData } = useQuery<OcrEngineResponse[]>({
     queryKey: ['ocr-engines'],
     queryFn: () => adminAiService.getOcrEngines(),
@@ -225,9 +229,13 @@ export default function OcrSandboxPromptManager() {
     try {
       resetSandbox();
       setSandboxStep('ocr');
+      const typhoonOptions = selectedOcrEngine === 'typhoon-np-dms-ocr'
+        ? { temperature: typhoonTemperature, topP: typhoonTopP, repeatPenalty: typhoonRepeatPenalty }
+        : undefined;
       const { requestPublicId } = await adminAiService.submitSandboxOcr(
         ocrFile,
-        selectedOcrEngine
+        selectedOcrEngine,
+        typhoonOptions
       );
       toast.success(t('ai.prompt.uploadSuccess'));
       // Poll สำหรับผลลัพธ์ OCR
@@ -306,6 +314,9 @@ export default function OcrSandboxPromptManager() {
     setOcrResult(null);
     setSelectedPromptVersion(undefined);
     setSelectedOcrEngine('auto');
+    setTyphoonTemperature(0.1);
+    setTyphoonTopP(0.1);
+    setTyphoonRepeatPenalty(1.1);
     setOcrFile(null);
     resetSandbox();
   };
@@ -419,6 +430,44 @@ export default function OcrSandboxPromptManager() {
                           ))}
                         </select>
                       </div>
+                      {selectedOcrEngine === 'typhoon-np-dms-ocr' && (
+                        <div className="space-y-3 rounded-md border border-dashed border-amber-500/30 bg-amber-500/5 p-3">
+                          <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Typhoon OCR Options <span className="font-normal text-muted-foreground">(override Modelfile defaults)</span></p>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs">
+                              <label>Temperature</label>
+                              <span className="font-mono text-muted-foreground">{typhoonTemperature.toFixed(2)}</span>
+                            </div>
+                            <input type="range" min={0} max={1} step={0.01}
+                              value={typhoonTemperature}
+                              onChange={(e) => setTyphoonTemperature(parseFloat(e.target.value))}
+                              className="w-full h-1.5 accent-amber-500"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs">
+                              <label>Top-P</label>
+                              <span className="font-mono text-muted-foreground">{typhoonTopP.toFixed(2)}</span>
+                            </div>
+                            <input type="range" min={0} max={1} step={0.01}
+                              value={typhoonTopP}
+                              onChange={(e) => setTyphoonTopP(parseFloat(e.target.value))}
+                              className="w-full h-1.5 accent-amber-500"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs">
+                              <label>Repeat Penalty</label>
+                              <span className="font-mono text-muted-foreground">{typhoonRepeatPenalty.toFixed(2)}</span>
+                            </div>
+                            <input type="range" min={1} max={2} step={0.01}
+                              value={typhoonRepeatPenalty}
+                              onChange={(e) => setTyphoonRepeatPenalty(parseFloat(e.target.value))}
+                              className="w-full h-1.5 accent-amber-500"
+                            />
+                          </div>
+                        </div>
+                      )}
                       <div
                         className={cn(
                           'flex flex-col items-center justify-center rounded-lg border border-dashed p-8 transition-all',

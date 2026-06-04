@@ -10,6 +10,7 @@
 // - 2026-06-01: ปรับปรุง remapPath ให้รองรับ Windows absolute และ relative path ได้แม่นยำ 100%
 // - 2026-06-01: เปลี่ยน processWithTesseract/processWithTyphoon ให้ส่ง file content ผ่าน multipart ไปยัง /ocr-upload แทนการส่ง path
 // - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
+// - 2026-06-04: ADR-034 — เปลี่ยน TYPHOON_ENGINE.engineName เป็น typhoon-np-dms-ocr:latest ตรงกับชื่อโมเดลใน Ollama
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -77,7 +78,7 @@ const TESSERACT_ENGINE: OcrEngineConfiguration = {
 
 const TYPHOON_ENGINE: OcrEngineConfiguration = {
   engineId: TYPHOON_ENGINE_ID,
-  engineName: 'Typhoon OCR-3B',
+  engineName: 'typhoon-np-dms-ocr:latest',
   engineType: OcrEngineType.TYPHOON_OCR,
   isActive: true,
   vramRequirementMB: TYPHOON_OCR_REQUIRED_VRAM_MB,

@@ -17,6 +17,7 @@ import { VramMonitorService } from '../services/vram-monitor.service';
 import {
   SandboxOcrEngineService,
   SandboxOcrEngineType,
+  OcrTyphoonOptions,
 } from '../services/sandbox-ocr-engine.service';
 
 /** ชื่อ queue สำหรับ Typhoon OCR jobs */
@@ -26,12 +27,14 @@ export const QUEUE_TYPHOON_OCR = 'typhoon-ocr';
 export interface TyphoonOcrJobData {
   /** public path ของไฟล์ PDF ที่ต้องการ OCR */
   pdfPath: string;
-  /** engineType: เสมอเป็น 'typhoon-ocr-3b' สำหรับ queue นี้ */
+  /** engineType: 'typhoon-np-dms-ocr' สำหรับ queue นี้ */
   engineType: SandboxOcrEngineType;
   /** idempotencyKey สำหรับ Redis result key */
   idempotencyKey: string;
   /** documentPublicId สำหรับ audit log (optional) */
   documentPublicId?: string;
+  /** Typhoon OCR options จาก sandbox UI เพื่อ override Modelfile defaults (optional) */
+  typhoonOptions?: OcrTyphoonOptions;
 }
 
 // VRAM ที่ Typhoon OCR-3B ต้องการ (MB) — ตาม ADR-032
@@ -59,7 +62,13 @@ export class TyphoonOcrProcessor extends WorkerHost {
 
   /** ประมวลผล Typhoon OCR job ทีละงาน */
   async process(job: Job<TyphoonOcrJobData>): Promise<void> {
-    const { pdfPath, engineType, idempotencyKey, documentPublicId } = job.data;
+    const {
+      pdfPath,
+      engineType,
+      idempotencyKey,
+      documentPublicId,
+      typhoonOptions,
+    } = job.data;
     const startTime = Date.now();
     this.logger.log(
       `Typhoon OCR job started — idempotencyKey=${idempotencyKey}, engine=${engineType}`
@@ -106,7 +115,8 @@ export class TyphoonOcrProcessor extends WorkerHost {
     try {
       const result = await this.sandboxOcrEngineService.detectAndExtract(
         pdfPath,
-        engineType
+        engineType,
+        typhoonOptions
       );
       const processingTimeMs = Date.now() - startTime;
       // บันทึกผลลัพธ์ใน Redis cache (24h TTL)

@@ -3,6 +3,8 @@
 // - 2026-05-30: แยก SandboxOcrEngineService ออกจาก OcrService เพื่อรองรับการเลือก Typhoon OCR เฉพาะ sandbox โดยไม่กระทบ core OCR flow
 // - 2026-06-01: เปลี่ยนจาก remapPath + pdfPath ไปเป็น multipart file upload ไปยัง /ocr-upload (แก้ปัญหา Docker WSL2 mount)
 // - 2026-06-02: ส่งค่า X-API-Key ใน request headers ไปยัง ocr-sidecar เพื่อความมั่นคงปลอดภัยสูงสุด (ADR-033, Suggestion 2)
+// - 2026-06-04: ADR-034 — เพิ่ม 'typhoon-np-dms-ocr' เป็น canonical SandboxOcrEngineType; legacy aliases ยังรองรับ
+// - 2026-06-04: เพิ่ม OcrTyphoonOptions interface; รับ temperature/topP/repeatPenalty จาก frontend sandbox เพื่อ override Modelfile defaults
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -10,11 +12,14 @@ import axios from 'axios';
 import * as fs from 'fs';
 import { OcrService } from './ocr.service';
 
-export type SandboxOcrEngineType =
-  | 'auto'
-  | 'tesseract'
-  | 'typhoon-ocr-3b'
-  | 'typhoon-ocr1.5-3b';
+export type SandboxOcrEngineType = 'auto' | 'tesseract' | 'typhoon-np-dms-ocr';
+
+/** ค่า parameter สำหรับ Typhoon OCR ที่ override Modelfile defaults ได้จาก sandbox UI */
+export interface OcrTyphoonOptions {
+  temperature?: number;
+  topP?: number;
+  repeatPenalty?: number;
+}
 
 interface SandboxOcrSidecarResponse {
   text?: string;
@@ -52,7 +57,8 @@ export class SandboxOcrEngineService {
   /** รัน OCR ตาม engine ที่เลือก โดย fallback กลับไป Tesseract baseline เมื่อ Typhoon ล้มเหลว */
   async detectAndExtract(
     pdfPath: string,
-    engineType: SandboxOcrEngineType = 'auto'
+    engineType: SandboxOcrEngineType = 'auto',
+    typhoonOptions?: OcrTyphoonOptions
   ): Promise<SandboxOcrResult> {
     if (engineType === 'auto' || engineType === 'tesseract') {
       const result = await this.ocrService.detectAndExtract({ pdfPath });
@@ -73,6 +79,15 @@ export class SandboxOcrEngineService {
         'upload.pdf'
       );
       form.append('engine', engineType);
+      if (typhoonOptions?.temperature !== undefined) {
+        form.append('temperature', String(typhoonOptions.temperature));
+      }
+      if (typhoonOptions?.topP !== undefined) {
+        form.append('topP', String(typhoonOptions.topP));
+      }
+      if (typhoonOptions?.repeatPenalty !== undefined) {
+        form.append('repeatPenalty', String(typhoonOptions.repeatPenalty));
+      }
       const response = await axios.post<SandboxOcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,

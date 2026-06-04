@@ -9,6 +9,9 @@
 # - 2026-06-01: เพิ่ม POST /ocr-upload รับ multipart file โดยตรง ไม่ต้องพึ่ง shared volume mount
 # - 2026-06-01: เปลี่ยน TYPHOON_OCR_MODEL default เป็น scb10x/typhoon-ocr1.5-3b
 # - 2026-06-02: เพิ่มตัวเลือกสลับโมเดลใน process_with_typhoon_ocr ตามพารามิเตอร์ engine และตั้ง engineUsed ให้ตรงตามจริง (T015, ADR-033)
+# - 2026-06-04: ADR-034 — เพิ่ม typhoon-np-dms-ocr เป็น canonical engine key; default TYPHOON_OCR_MODEL เปวน typhoon-np-dms-ocr:latest; alias โมเดลเก่ายังคงไว้
+# - 2026-06-04: ให้ SYSTEM ใน Modelfile ทำงานแทน — ลบ prompt ซ้าซ้อน; sync options ให้ตรงกับ Modelfile (temperature 0.1, top_p 0.1, repeat_penalty 1.1)
+# - 2026-06-04: รับค่า temperature/top_p/repeat_penalty จาก frontend sandbox ได้ (optional override)
 # - 2026-06-02: เพิ่มการตรวจสอบ API Key (X-API-Key Header) สำหรับ endpoints หลัก เพื่อความมั่นคงปลอดภัยตามข้อเสนอแนะ Code Review
 
 import os
@@ -51,7 +54,7 @@ OCR_CHAR_THRESHOLD = int(os.getenv("OCR_CHAR_THRESHOLD", "100"))
 MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
 OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng = Thai + English)
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
-TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "scb10x/typhoon-ocr1.5-3b")
+TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "typhoon-np-dms-ocr:latest")
 TYPHOON_OCR_TIMEOUT = int(os.getenv("TYPHOON_OCR_TIMEOUT", "120"))
 # PSM 3 = Fully automatic page segmentation (เหมาะกับเอกสารที่มี layout หลายส่วน เช่น วันที่/เลขที่)
 # OEM 1 = LSTM only (ดีกว่า legacy engine)
@@ -137,7 +140,7 @@ def health():
     return {"status": "ok", "engine": "tesseract"}
 
 
-def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int) -> OcrResponse:
+def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, typhoon_options: dict = {}) -> OcrResponse:
     """ประมวลผล fitz.Document ด้วย engine ที่เลือก — shared logic สำหรับ /ocr และ /ocr-upload"""
     pages_to_process = list(range(min(len(doc), max_pages) if max_pages > 0 else len(doc)))
     page_count = len(pages_to_process)
@@ -160,7 +163,7 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int) -
                 engineUsed="fast-path",
             )
 
-    if selected_engine in ("typhoon-ocr-3b", "typhoon-ocr1.5-3b"):
+    if selected_engine == "typhoon-np-dms-ocr":
         typhoon_text_parts = []
         for i in pages_to_process:
             page = doc[i]
@@ -169,7 +172,7 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int) -
             img = Image.open(io.BytesIO(img_bytes))
             cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
             processed_img = preprocess_image(cropped_img)
-            typhoon_text_parts.append(process_with_typhoon_ocr(processed_img, selected_engine))
+            typhoon_text_parts.append(process_with_typhoon_ocr(processed_img, typhoon_options))
         typhoon_text = filter_ocr_noise("\n".join(typhoon_text_parts).strip())
         return OcrResponse(
             text=typhoon_text,
@@ -202,28 +205,25 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int) -
     )
 
 
-def process_with_typhoon_ocr(pil_image: Image.Image, engine_type: str = "typhoon-ocr1.5-3b") -> str:
-    """เรียก Typhoon OCR ผ่าน Ollama สำหรับ sandbox option โดยเลือก model ตาม engine ที่ระบุ"""
-    model_name = "scb10x/typhoon-ocr1.5-3b"
-    if engine_type == "typhoon-ocr-3b":
-        model_name = "scb10x/typhoon-ocr-3b"
-    elif engine_type == "typhoon-ocr1.5-3b":
-        model_name = "scb10x/typhoon-ocr1.5-3b"
-    else:
-        model_name = TYPHOON_OCR_MODEL
+def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}) -> str:
+    """เรียก Typhoon OCR ผ่าน Ollama — ใช้ SYSTEM ใน Modelfile เป็น instruction หลัก; options_override ยัง override ค่า Modelfile ได้"""
+    model_name = TYPHOON_OCR_MODEL
     img_buffer = io.BytesIO()
     pil_image.save(img_buffer, format="PNG")
     image_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
+    # ค่า default ตาม Modelfile; frontend override ได้บางส่วนหรือทั้งหมด
+    options = {
+        "temperature": 0.1,
+        "top_p": 0.1,
+        "repeat_penalty": 1.1,
+        **options_override,
+    }
     payload = {
         "model": model_name,
-        "prompt": "สกัดข้อความภาษาไทยและอังกฤษทั้งหมดจากภาพนี้อย่างถูกต้อง รักษาโครงสร้างบรรทัดและการเว้นวรรคให้ใกล้เคียงต้นฉบับมากที่สุด ห้ามเพิ่มคำอธิบายใดๆ",
+        "prompt": "",
         "images": [image_base64],
         "stream": False,
-        "options": {
-            "temperature": 0.0,
-            "top_p": 0.9,
-            "repeat_penalty": 1.0,
-        },
+        "options": options,
         "keep_alive": 0,
     }
     with httpx.Client(timeout=TYPHOON_OCR_TIMEOUT) as client:
@@ -253,17 +253,28 @@ def ocr_upload(
     file: UploadFile = File(...),
     engine: str = Form(default="auto"),
     maxPages: int = Form(default=0),
+    temperature: Optional[float] = Form(default=None),
+    topP: Optional[float] = Form(default=None),
+    repeatPenalty: Optional[float] = Form(default=None),
 ):
     """OCR จาก multipart file upload — ไม่ต้องการ shared volume mount"""
     selected_engine = engine.strip().lower()
     max_pages = maxPages or MAX_PAGES
+    # รวม options override สำหรับ Typhoon OCR (ถ้า frontend ส่งมา)
+    typhoon_options: dict = {}
+    if temperature is not None:
+        typhoon_options["temperature"] = temperature
+    if topP is not None:
+        typhoon_options["top_p"] = topP
+    if repeatPenalty is not None:
+        typhoon_options["repeat_penalty"] = repeatPenalty
     pdf_bytes = file.file.read()
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"เปิดไฟล์ PDF ล้มเหลว: {e}")
-    logger.info(f"OCR upload: {file.filename} engine={selected_engine}")
-    return _process_pdf_doc(doc, selected_engine, max_pages)
+    logger.info(f"OCR upload: {file.filename} engine={selected_engine} options={typhoon_options or 'modelfile-defaults'}")
+    return _process_pdf_doc(doc, selected_engine, max_pages, typhoon_options)
 
 
 class NormalizeRequest(BaseModel):

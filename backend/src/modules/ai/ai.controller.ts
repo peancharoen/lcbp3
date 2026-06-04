@@ -545,8 +545,23 @@ export class AiController {
         },
         engineType: {
           type: 'string',
-          enum: ['auto', 'tesseract', 'typhoon-ocr-3b', 'typhoon-ocr1.5-3b'],
+          enum: ['auto', 'tesseract', 'typhoon-np-dms-ocr'],
           description: 'OCR engine ที่ต้องการใช้ (default: auto)',
+        },
+        temperature: {
+          type: 'number',
+          description:
+            'Typhoon OCR temperature (0.0-1.0) — override Modelfile default (0.1)',
+        },
+        topP: {
+          type: 'number',
+          description:
+            'Typhoon OCR top_p (0.0-1.0) — override Modelfile default (0.1)',
+        },
+        repeatPenalty: {
+          type: 'number',
+          description:
+            'Typhoon OCR repeat_penalty — override Modelfile default (1.1)',
         },
       },
     },
@@ -562,6 +577,9 @@ export class AiController {
     )
     file: Express.Multer.File,
     @Body('engineType') engineType: string | undefined,
+    @Body('temperature') temperature: string | undefined,
+    @Body('topP') topP: string | undefined,
+    @Body('repeatPenalty') repeatPenalty: string | undefined,
     @CurrentUser() user: User
   ): Promise<{ requestPublicId: string; jobId: string; status: string }> {
     const attachment = await this.fileStorageService.upload(file, user.user_id);
@@ -570,20 +588,30 @@ export class AiController {
     const validEngineTypes = [
       'auto',
       'tesseract',
-      'typhoon-ocr-3b',
-      'typhoon-ocr1.5-3b',
+      'typhoon-np-dms-ocr',
     ] as const;
     const resolvedEngineType: SandboxOcrEngineType = validEngineTypes.includes(
       engineType as SandboxOcrEngineType
     )
       ? (engineType as SandboxOcrEngineType)
       : 'auto';
+    // แปลง string จาก multipart form เป็น number (optional override)
+    const typhoonOptions = {
+      ...(temperature !== undefined && {
+        temperature: parseFloat(temperature),
+      }),
+      ...(topP !== undefined && { topP: parseFloat(topP) }),
+      ...(repeatPenalty !== undefined && {
+        repeatPenalty: parseFloat(repeatPenalty),
+      }),
+    };
     const jobId = await this.aiQueueService.enqueueSandboxJob(
       'sandbox-ocr-only',
       {
         idempotencyKey: requestPublicId,
         pdfPath: attachment.filePath,
         engineType: resolvedEngineType,
+        ...(Object.keys(typhoonOptions).length > 0 && { typhoonOptions }),
       }
     );
     return { requestPublicId, jobId, status: 'queued' };
