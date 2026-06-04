@@ -128,7 +128,7 @@ export default function OcrSandboxPromptManager() {
         e.engineType === 'tesseract'
           ? 'tesseract'
           : e.engineType === 'typhoon_ocr'
-          ? 'typhoon-ocr-3b'
+          ? 'typhoon-np-dms-ocr'
           : e.engineType;
       const vramLabel =
         e.vramRequirementMB > 0
