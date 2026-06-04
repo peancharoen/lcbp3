@@ -10,6 +10,7 @@
 # - 2026-06-01: ลบ volumes ออกทั้งหมด — backend ส่ง file content ผ่าน multipart /ocr-upload แทน
 #              ไม่ต้องการ shared storage อีกต่อไป
 # - 2026-06-01: เปลี่ยน TYPHOON_OCR_MODEL เป็น scb10x/typhoon-ocr1.5-3b
+# - 2026-06-04: ADR-034 — เปลี่ยน TYPHOON_OCR_MODEL เป็น typhoon-np-dms-ocr:latest; OLLAMA_API_URL ชี้ตรงไป Ollama (ไม่ผ่าน metrics proxy) เพื่อป้องกัน empty response
 # - 2026-06-02: เพิ่ม ollama-metrics (NorskHelsenett) — Prometheus sidecar สำหรับ Ollama metrics
 #              expose /metrics บน port 9924; Prometheus (ASUSTOR) scrape จาก 192.168.10.100:9924
 #
@@ -37,11 +38,11 @@ services:
       OCR_MAX_PAGES: "0"
       OCR_LANG: "tha+eng"  # Tesseract language code (Thai + English)
       USE_GPU: "false"  # OCR sidecar รันบน CPU, Typhoon OCR ใช้ Ollama แยก
-      # ─── Typhoon OCR via Ollama (ADR-032) ───────────────────────────────────
-      # ชี้ผ่าน ollama-metrics proxy (port 9924) แทน Ollama โดยตรง (port 11434)
-      # เพื่อให้ NorskHelsenett sidecar collect metrics ได้
-      OLLAMA_API_URL: "http://ollama-metrics:9924"
-      TYPHOON_OCR_MODEL: "scb10x/typhoon-ocr1.5-3b"
+      # ─── Typhoon OCR via Ollama (ADR-034) ───────────────────────────────────
+      # ชี้ตรงไปยัง Ollama (port 11434) ไม่ผ่าน metrics proxy
+      # (proxy ไม่ forward /api/generate ได้ถูกต้อง — ทำให้ response ว่าง)
+      OLLAMA_API_URL: "http://host.docker.internal:11434"
+      TYPHOON_OCR_MODEL: "typhoon-np-dms-ocr:latest"
       # Timeout 120 วินาที/หน้า (budget สำหรับ 3B model บน RTX 2060 Super)
       TYPHOON_OCR_TIMEOUT: "120"
     logging:
