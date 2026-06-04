@@ -60,7 +60,13 @@ export class SandboxOcrEngineService {
     engineType: SandboxOcrEngineType = 'auto',
     typhoonOptions?: OcrTyphoonOptions
   ): Promise<SandboxOcrResult> {
+    this.logger.log(
+      `detectAndExtract called — engine="${engineType}" pdfPath="${pdfPath}" typhoonOptions=${JSON.stringify(typhoonOptions ?? null)}`
+    );
     if (engineType === 'auto' || engineType === 'tesseract') {
+      this.logger.log(
+        `engine="${engineType}" → routing to Tesseract/fast-path`
+      );
       const result = await this.ocrService.detectAndExtract({ pdfPath });
       return {
         text: result.text,
@@ -70,12 +76,27 @@ export class SandboxOcrEngineService {
       };
     }
 
+    this.logger.log(
+      `engine="typhoon-np-dms-ocr" → calling sidecar at ${this.ocrApiUrl}/ocr-upload`
+    );
     try {
-      const fileBuffer = fs.readFileSync(pdfPath);
+      let fileBuffer: Buffer;
+      try {
+        fileBuffer = fs.readFileSync(pdfPath);
+        this.logger.log(
+          `File read OK — ${fileBuffer.length} bytes from "${pdfPath}"`
+        );
+      } catch (fsErr: unknown) {
+        const fsMsg = fsErr instanceof Error ? fsErr.message : String(fsErr);
+        this.logger.error(
+          `[DIAG] fs.readFileSync FAILED — "${pdfPath}": ${fsMsg}`
+        );
+        throw fsErr;
+      }
       const form = new FormData();
       form.append(
         'file',
-        new Blob([fileBuffer], { type: 'application/pdf' }),
+        new Blob([new Uint8Array(fileBuffer)], { type: 'application/pdf' }),
         'upload.pdf'
       );
       form.append('engine', engineType);
@@ -88,6 +109,9 @@ export class SandboxOcrEngineService {
       if (typhoonOptions?.repeatPenalty !== undefined) {
         form.append('repeatPenalty', String(typhoonOptions.repeatPenalty));
       }
+      this.logger.log(
+        `Sending to sidecar — engine=${engineType} options=${JSON.stringify(typhoonOptions ?? {})}`
+      );
       const response = await axios.post<SandboxOcrSidecarResponse>(
         `${this.ocrApiUrl}/ocr-upload`,
         form,
@@ -95,6 +119,9 @@ export class SandboxOcrEngineService {
           timeout: 120000,
           headers: { 'X-API-Key': this.ocrSidecarApiKey },
         }
+      );
+      this.logger.log(
+        `Sidecar response OK — engineUsed="${response.data.engineUsed}" ocrUsed=${String(response.data.ocrUsed)} textLen=${String(response.data.text?.length ?? 0)}`
       );
 
       return {
@@ -104,7 +131,16 @@ export class SandboxOcrEngineService {
         fallbackUsed: false,
       };
     } catch (error: unknown) {
-      // ดึง axios response body detail ออกมาด้วย (เช่น ไม่พบไฟล์: /mnt/uploads/...)
+      // ดึง HTTP status + body detail จาก axios error
+      const axiosStatus =
+        error !== null &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response !== null &&
+        typeof error.response === 'object' &&
+        'status' in error.response
+          ? String((error.response as { status: unknown }).status)
+          : 'N/A';
       const axiosDetail =
         error !== null &&
         typeof error === 'object' &&
@@ -119,11 +155,12 @@ export class SandboxOcrEngineService {
           : null;
       const cause = error instanceof Error ? error.message : String(error);
       const fullCause = axiosDetail
-        ? `${cause} — sidecar detail: ${axiosDetail}`
-        : cause;
-      this.logger.warn(
-        `Typhoon OCR failed in sandbox, falling back to Tesseract: ${fullCause}`
+        ? `HTTP ${axiosStatus} — ${cause} — sidecar detail: ${axiosDetail}`
+        : `HTTP ${axiosStatus} — ${cause}`;
+      this.logger.error(
+        `[DIAG] Typhoon OCR FAILED — engine="${engineType}" url="${this.ocrApiUrl}/ocr-upload" error: ${fullCause}`
       );
+      this.logger.warn(`Falling back to Tesseract due to: ${fullCause}`);
 
       const fallbackResult = await this.ocrService.detectAndExtract({
         pdfPath,
