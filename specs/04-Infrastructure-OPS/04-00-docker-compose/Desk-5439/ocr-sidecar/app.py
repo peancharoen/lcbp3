@@ -137,7 +137,11 @@ class OcrResponse(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "engine": "tesseract"}
+    return {
+        "status": "ok",
+        "engines": ["tesseract", "typhoon-np-dms-ocr"],
+        "typhoonModel": TYPHOON_OCR_MODEL,
+    }
 
 
 def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, typhoon_options: dict = {}) -> OcrResponse:
