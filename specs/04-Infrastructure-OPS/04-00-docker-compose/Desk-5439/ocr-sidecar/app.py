@@ -15,6 +15,9 @@
 # - 2026-06-04: แก้ bug prompt="" ทำให้ Ollama ไม่ generate — เปลี่ยนเป็น minimal trigger prompt
 # - 2026-06-04: เพิ่ม alias normalization สำหรับ engine name เก่า (typhoon-ocr1.5-3b → typhoon-np-dms-ocr)
 # - 2026-06-04: เปลี่ยน keep_alive จาก 0 เป็น 300s เพื่อไม่ให้ unload model ระหว่าง sandbox session (ลด cold-start)
+# - 2026-06-04: เพิ่ม TYPHOON_OCR_DPI=150 (แยกจาก Tesseract DPI=300) — ลด image token count 4x เพื่อเร่ง CPU inference (model >8GB ไม่พอ VRAM)
+# - 2026-06-04: ส่ง color image (ไม่ผ่าน preprocess_image) ไปยัง Typhoon OCR — vision model ต้องการ color ไม่ใช่ binarized grayscale
+# - 2026-06-04: เพิ่ม num_gpu:99 ใน Ollama options เพื่อบังคับ GPU layers (แก้ device=CPU ทั้งที่ VRAM พอ)
 # - 2026-06-02: เพิ่มการตรวจสอบ API Key (X-API-Key Header) สำหรับ endpoints หลัก เพื่อความมั่นคงปลอดภัยตามข้อเสนอแนะ Code Review
 
 import os
@@ -59,6 +62,8 @@ OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng 
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
 TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "typhoon-np-dms-ocr:latest")
 TYPHOON_OCR_TIMEOUT = int(os.getenv("TYPHOON_OCR_TIMEOUT", "120"))
+# DPI สำหรับ Typhoon OCR — ต่ำกว่า Tesseract เพราะ vision model ใช้ image patches (150 DPI ลด token ~4x)
+TYPHOON_OCR_DPI = int(os.getenv("TYPHOON_OCR_DPI", "150"))
 # PSM 3 = Fully automatic page segmentation (เหมาะกับเอกสารที่มี layout หลายส่วน เช่น วันที่/เลขที่)
 # OEM 1 = LSTM only (ดีกว่า legacy engine)
 TESSERACT_CONFIG = f"--psm 3 --oem 1"
@@ -183,12 +188,12 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
         typhoon_text_parts = []
         for i in pages_to_process:
             page = doc[i]
-            pix = page.get_pixmap(dpi=300)
+            pix = page.get_pixmap(dpi=TYPHOON_OCR_DPI)
             img_bytes = pix.tobytes("png")
             img = Image.open(io.BytesIO(img_bytes))
+            # ส่ง color image ตรงๆ — Typhoon OCR (vision model) ต้องการ color ไม่ใช่ grayscale binarized
             cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
-            processed_img = preprocess_image(cropped_img)
-            typhoon_text_parts.append(process_with_typhoon_ocr(processed_img, typhoon_options))
+            typhoon_text_parts.append(process_with_typhoon_ocr(cropped_img, typhoon_options))
         typhoon_text = filter_ocr_noise("\n".join(typhoon_text_parts).strip())
         return OcrResponse(
             text=typhoon_text,
@@ -232,6 +237,7 @@ def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}
         "temperature": 0.1,
         "top_p": 0.1,
         "repeat_penalty": 1.1,
+        "num_gpu": 99,  # บังคับ GPU layers สูงสุด — ป้องกัน Ollama fallback ไป CPU โดยไม่จำเป็น
         **options_override,
     }
     payload = {
