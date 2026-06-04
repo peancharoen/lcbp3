@@ -43,8 +43,8 @@ services:
       # (proxy ไม่ forward /api/generate ได้ถูกต้อง — ทำให้ response ว่าง)
       OLLAMA_API_URL: "http://host.docker.internal:11434"
       TYPHOON_OCR_MODEL: "typhoon-np-dms-ocr:latest"
-      # Timeout 120 วินาที/หน้า (budget สำหรับ 3B model บน RTX 2060 Super)
-      TYPHOON_OCR_TIMEOUT: "120"
+      # Timeout 360 วินาที/หน้า — รองรับ cold-start โหลด model (~70s) + inference (10GB model, CPU offload)
+      TYPHOON_OCR_TIMEOUT: "360"
     logging:
       driver: "json-file"
       options:

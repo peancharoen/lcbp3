@@ -13,6 +13,8 @@
 # - 2026-06-04: ให้ SYSTEM ใน Modelfile ทำงานแทน — ลบ prompt ซ้าซ้อน; sync options ให้ตรงกับ Modelfile (temperature 0.1, top_p 0.1, repeat_penalty 1.1)
 # - 2026-06-04: รับค่า temperature/top_p/repeat_penalty จาก frontend sandbox ได้ (optional override)
 # - 2026-06-04: แก้ bug prompt="" ทำให้ Ollama ไม่ generate — เปลี่ยนเป็น minimal trigger prompt
+# - 2026-06-04: เพิ่ม alias normalization สำหรับ engine name เก่า (typhoon-ocr1.5-3b → typhoon-np-dms-ocr)
+# - 2026-06-04: เปลี่ยน keep_alive จาก 0 เป็น 300s เพื่อไม่ให้ unload model ระหว่าง sandbox session (ลด cold-start)
 # - 2026-06-02: เพิ่มการตรวจสอบ API Key (X-API-Key Header) สำหรับ endpoints หลัก เพื่อความมั่นคงปลอดภัยตามข้อเสนอแนะ Code Review
 
 import os
@@ -145,8 +147,17 @@ def health():
     }
 
 
+# alias map สำหรับ engine name เก่า → canonical name
+_ENGINE_ALIASES: dict[str, str] = {
+    "typhoon-ocr1.5-3b": "typhoon-np-dms-ocr",
+    "typhoon-ocr-3b": "typhoon-np-dms-ocr",
+    "typhoon_ocr": "typhoon-np-dms-ocr",
+}
+
+
 def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, typhoon_options: dict = {}) -> OcrResponse:
     """ประมวลผล fitz.Document ด้วย engine ที่เลือก — shared logic สำหรับ /ocr และ /ocr-upload"""
+    selected_engine = _ENGINE_ALIASES.get(selected_engine, selected_engine)
     pages_to_process = list(range(min(len(doc), max_pages) if max_pages > 0 else len(doc)))
     page_count = len(pages_to_process)
 
@@ -229,7 +240,7 @@ def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}
         "images": [image_base64],
         "stream": False,
         "options": options,
-        "keep_alive": 0,
+        "keep_alive": 300,  # คง model ไว้ใน VRAM/RAM 5 นาที เพื่อลด cold-start ระหว่าง sandbox session
     }
     with httpx.Client(timeout=TYPHOON_OCR_TIMEOUT) as client:
         response = client.post(f"{OLLAMA_API_URL}/api/generate", json=payload)

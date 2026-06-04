@@ -57,7 +57,7 @@ describe('AiBatchProcessor', () => {
     detectAndExtract: jest.fn().mockResolvedValue({
       text: 'OCR text LCBP3-CIV-001 Civil',
       ocrUsed: true,
-      engineUsed: 'typhoon-ocr-3b',
+      engineUsed: 'typhoon-np-dms-ocr',
       fallbackUsed: false,
     }),
   };
