@@ -238,7 +238,7 @@ def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}
         "top_p": 0.1,
         "repeat_penalty": 1.1,
         "num_gpu": 99,  # บังคับ GPU layers สูงสุด — ป้องกัน Ollama fallback ไป CPU โดยไม่จำเป็น
-        "num_ctx": 2048,  # ลด KV cache + compute graph จาก 6.7 GiB → ~1.7 GiB เพื่อให้ model fit ใน VRAM 8GB
+        "num_ctx": 4096,  # image tokens ~2772 → ต้องการ context > 2048; 4096 รองรับ image + output โดยไม่ truncate
         **options_override,
     }
     payload = {
