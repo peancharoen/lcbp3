@@ -12,6 +12,7 @@
 # - 2026-06-04: ADR-034 — เพิ่ม typhoon-np-dms-ocr เป็น canonical engine key; default TYPHOON_OCR_MODEL เปวน typhoon-np-dms-ocr:latest; alias โมเดลเก่ายังคงไว้
 # - 2026-06-04: ให้ SYSTEM ใน Modelfile ทำงานแทน — ลบ prompt ซ้าซ้อน; sync options ให้ตรงกับ Modelfile (temperature 0.1, top_p 0.1, repeat_penalty 1.1)
 # - 2026-06-04: รับค่า temperature/top_p/repeat_penalty จาก frontend sandbox ได้ (optional override)
+# - 2026-06-04: แก้ bug prompt="" ทำให้ Ollama ไม่ generate — เปลี่ยนเป็น minimal trigger prompt
 # - 2026-06-02: เพิ่มการตรวจสอบ API Key (X-API-Key Header) สำหรับ endpoints หลัก เพื่อความมั่นคงปลอดภัยตามข้อเสนอแนะ Code Review
 
 import os
@@ -224,7 +225,7 @@ def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}
     }
     payload = {
         "model": model_name,
-        "prompt": "",
+        "prompt": "Extract all text from this image.",
         "images": [image_base64],
         "stream": False,
         "options": options,
