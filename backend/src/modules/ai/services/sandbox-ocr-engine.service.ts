@@ -116,7 +116,7 @@ export class SandboxOcrEngineService {
         `${this.ocrApiUrl}/ocr-upload`,
         form,
         {
-          timeout: 120000,
+          timeout: 360000, // 360s — รองรับ cold-start Ollama model (~65s) + inference หลายหน้า
           headers: { 'X-API-Key': this.ocrSidecarApiKey },
         }
       );

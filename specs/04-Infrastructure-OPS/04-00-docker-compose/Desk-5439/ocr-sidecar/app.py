@@ -61,7 +61,7 @@ MAX_PAGES = int(os.getenv("OCR_MAX_PAGES", "0"))  # 0 = ทุกหน้า
 OCR_LANG = os.getenv("OCR_LANG", "tha+eng")  # Tesseract language code (tha+eng = Thai + English)
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
 TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "typhoon-np-dms-ocr:latest")
-TYPHOON_OCR_TIMEOUT = int(os.getenv("TYPHOON_OCR_TIMEOUT", "120"))
+TYPHOON_OCR_TIMEOUT = int(os.getenv("TYPHOON_OCR_TIMEOUT", "360"))  # รองรับ cold-start ~65s + inference ~30s/page
 # DPI สำหรับ Typhoon OCR — ต่ำกว่า Tesseract เพราะ vision model ใช้ image patches (150 DPI ลด token ~4x)
 TYPHOON_OCR_DPI = int(os.getenv("TYPHOON_OCR_DPI", "150"))
 # PSM 3 = Fully automatic page segmentation (เหมาะกับเอกสารที่มี layout หลายส่วน เช่น วันที่/เลขที่)
