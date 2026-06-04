@@ -234,7 +234,19 @@ def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}
         response = client.post(f"{OLLAMA_API_URL}/api/generate", json=payload)
         response.raise_for_status()
         data = response.json()
-        return str(data.get("response", "")).strip()
+        result_text = str(data.get("response", "")).strip()
+        logger.info(
+            f"[DIAG] Ollama response — model={model_name} "
+            f"textLen={len(result_text)} "
+            f"done={data.get('done')} "
+            f"done_reason={data.get('done_reason')} "
+            f"eval_count={data.get('eval_count', 0)}"
+        )
+        if not result_text:
+            logger.warning(
+                f"[DIAG] Ollama returned empty response — full response keys: {list(data.keys())}"
+            )
+        return result_text
 
 
 @app.post("/ocr", response_model=OcrResponse, dependencies=[Depends(get_api_key)])

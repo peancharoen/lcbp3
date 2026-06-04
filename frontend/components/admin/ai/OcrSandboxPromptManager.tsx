@@ -607,8 +607,8 @@ export default function OcrSandboxPromptManager() {
                     OCR Raw Text (Step 1 Result)
                   </CardTitle>
                   <Badge variant="outline" className="text-xs">
-                    {ocrResult.engineUsed === 'typhoon-ocr-3b'
-                      ? 'Typhoon OCR-3B'
+                    {ocrResult.engineUsed === 'typhoon-np-dms-ocr'
+                      ? 'Typhoon OCR'
                       : ocrResult.ocrUsed
                         ? 'Tesseract'
                         : 'Fast Path (Text Layer)'}
