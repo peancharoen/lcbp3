@@ -228,7 +228,7 @@ export const adminAiService = {
 
   submitSandboxOcr: async (
     file: File,
-    engineType: 'auto' | 'tesseract' | 'typhoon-ocr-3b' | 'typhoon-ocr1.5-3b' = 'auto'
+    engineType: string = 'auto'
   ): Promise<{ requestPublicId: string; jobId: string; status: string }> => {
     const formData = new FormData();
     formData.append('file', file);

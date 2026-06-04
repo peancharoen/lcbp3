@@ -8,9 +8,11 @@
 // - 2026-05-29: ปรับปรุงการโหลด Active Prompt ให้ทนทานต่อ race conditions และรูปแบบประเภทข้อมูลที่ส่งมาจาก API (boolean, number, string)
 // - 2026-05-30: Refactor เป็น 2-step flow (Step 1: OCR-only → Step 2: AI Extraction) ตาม spec 231
 // - 2026-06-02: ปรับปรุงลำดับปุ่มแท็บเริ่มต้นให้เริ่มที่ OCR Sandbox และเปลี่ยน dropdown labels ของตัวเลือกโมเดล Typhoon OCR ให้แสดงหน่วยความจำ VRAM แม่นยำ (T012, T013, ADR-033)
+// - 2026-06-04: เปลี่ยน OCR Engine dropdown จาก hardcoded เป็น dynamic โดยดึงจาก getOcrEngines() API และ map engineType → SandboxOcrEngineType
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,7 +36,7 @@ import { useTranslations } from '@/hooks/use-translations';
 import PromptVersionHistory from './PromptVersionHistory';
 import { cn } from '@/lib/utils';
 import { AiPrompt } from '@/types/ai-prompts';
-import { adminAiService } from '@/lib/services/admin-ai.service';
+import { adminAiService, OcrEngineResponse } from '@/lib/services/admin-ai.service';
 
 const DEFAULT_OCR_TEMPLATE = `คุณคือเอนจิ้นสกัดข้อมูลอัจฉริยะ (Document Intelligence Engine)
 วิเคราะห์ข้อความ OCR ที่ได้รับจากเอกสารของโครงการ Laem Chabang Port Phase 3 และสกัดข้อมูลเมตาดาต้าให้ออกมาเป็น JSON object ที่ถูกต้องตามโครงสร้างที่กำหนด
@@ -108,9 +110,31 @@ export default function OcrSandboxPromptManager() {
   const [activeTab, setActiveTab] = useState<'editor' | 'sandbox'>('sandbox');
   // 2-step flow states
   const [sandboxStep, setSandboxStep] = useState<'ocr' | 'ai'>('ocr');
-  const [selectedOcrEngine, setSelectedOcrEngine] = useState<
-    'auto' | 'tesseract' | 'typhoon-ocr-3b' | 'typhoon-ocr1.5-3b'
-  >('auto');
+  const [selectedOcrEngine, setSelectedOcrEngine] = useState<string>('auto');
+  const { data: ocrEnginesData } = useQuery<OcrEngineResponse[]>({
+    queryKey: ['ocr-engines'],
+    queryFn: () => adminAiService.getOcrEngines(),
+    staleTime: 60_000,
+  });
+  const ocrEngineOptions = useMemo(() => {
+    const base = [{ value: 'auto', label: 'Auto (Current Baseline)' }];
+    if (!ocrEnginesData) return base;
+    const mapped = ocrEnginesData.map((e: OcrEngineResponse) => {
+      const value =
+        e.engineType === 'tesseract'
+          ? 'tesseract'
+          : e.engineType === 'typhoon_ocr'
+          ? 'typhoon-ocr-3b'
+          : e.engineType;
+      const vramLabel =
+        e.vramRequirementMB > 0
+          ? ` (${(e.vramRequirementMB / 1024).toFixed(1)} GB VRAM)`
+          : '';
+      const activeLabel = e.isCurrentActive ? ' ✓' : '';
+      return { value, label: `${e.engineName}${vramLabel}${activeLabel}` };
+    });
+    return [...base, ...mapped];
+  }, [ocrEnginesData]);
   const [ocrResult, setOcrResult] = useState<{
     requestPublicId: string;
     ocrText: string;
@@ -385,17 +409,14 @@ export default function OcrSandboxPromptManager() {
                         <label className="text-xs font-medium">OCR Engine</label>
                         <select
                           value={selectedOcrEngine}
-                          onChange={(e) =>
-                            setSelectedOcrEngine(
-                              e.target.value as 'auto' | 'tesseract' | 'typhoon-ocr-3b' | 'typhoon-ocr1.5-3b'
-                            )
-                          }
+                          onChange={(e) => setSelectedOcrEngine(e.target.value)}
                           className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
                         >
-                          <option value="auto">Auto (Current Baseline)</option>
-                          <option value="tesseract">Tesseract OCR</option>
-                          <option value="typhoon-ocr1.5-3b">typhoon-ocr1.5-3b 3.2GB</option>
-                          <option value="typhoon-ocr-3b">typhoon-ocr-3b 7.5GB</option>
+                          {ocrEngineOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div
