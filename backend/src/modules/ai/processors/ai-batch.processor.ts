@@ -452,6 +452,9 @@ export class AiBatchProcessor extends WorkerHost {
     const { idempotencyKey, payload } = data;
     const pdfPath = payload.pdfPath as string;
     const engineType = (payload.engineType as SandboxOcrEngineType) || 'auto';
+    const typhoonOptions = payload.typhoonOptions as
+      | { temperature?: number; topP?: number; repeatPenalty?: number }
+      | undefined;
 
     if (!pdfPath) {
       throw new Error('pdfPath is required for sandbox-ocr-only job');
@@ -469,7 +472,8 @@ export class AiBatchProcessor extends WorkerHost {
     try {
       const ocrResult = await this.sandboxOcrEngineService.detectAndExtract(
         pdfPath,
-        engineType
+        engineType,
+        typhoonOptions
       );
 
       // Cache OCR text สำหรับ Step 2

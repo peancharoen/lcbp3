@@ -116,6 +116,11 @@ export class AiQueueService {
       filePublicId?: string;
       pdfPath?: string;
       engineType?: string;
+      typhoonOptions?: {
+        temperature?: number;
+        topP?: number;
+        repeatPenalty?: number;
+      };
       extraPayload?: Record<string, unknown>;
     }
   ): Promise<string> {
@@ -131,6 +136,7 @@ export class AiQueueService {
           filePublicId: payload.filePublicId,
           pdfPath: payload.pdfPath,
           engineType: payload.engineType,
+          typhoonOptions: payload.typhoonOptions,
           ...payload.extraPayload,
         },
         idempotencyKey: payload.idempotencyKey,
