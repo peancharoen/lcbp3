@@ -147,7 +147,7 @@ def preprocess_image_aggressive(pil_image: Image.Image) -> Image.Image:
     """
     img_array = np.array(pil_image)
     gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-    
+
     # 1. Deskew ถ้าหน้าเอียง (detect angle จาก Canny edges + Hough lines)
     try:
         edges = cv2.Canny(gray, 100, 200)
@@ -162,19 +162,19 @@ def preprocess_image_aggressive(pil_image: Image.Image) -> Image.Image:
                 logger.info(f"[PREPROCESS] Deskewed {angle:.1f}°")
     except Exception as e:
         logger.warning(f"[PREPROCESS] Deskew failed: {e}")
-    
+
     # 2. Denoise — median blur + bilateral filter
     denoised = cv2.medianBlur(gray, 3)
     denoised = cv2.bilateralFilter(denoised, 9, 75, 75)
-    
+
     # 3. Otsu threshold (adaptive, ไม่ fixed value)
     _, thresh = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
+
     # 4. Morphological operations — ลบ line noise ขนาดเล็ก (ต้าน speckle artifacts)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
     morph = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)  # ลบ small white noise
     morph = cv2.morphologyEx(morph, cv2.MORPH_CLOSE, kernel)  # ลบ small black hole
-    
+
     logger.info(f"[PREPROCESS] Aggressive: Otsu threshold + morphology applied")
     return Image.fromarray(morph)
 
@@ -188,34 +188,34 @@ def clean_ocr_output(text: str) -> str:
     """
     lines = text.split("\n")
     cleaned = []
-    
+
     for line in lines:
         line = line.strip()
         if not line:
             continue
-        
+
         # ✗ ลบ line ที่เป็นแค่สัญลักษณ์/punctuation เดี่ยวๆ ไม่มีตัวอักษร
         alphanumeric_part = re.sub(r'[^\w\u0E00-\u0E7F]', '', line)
         if len(alphanumeric_part) < 2:
             logger.debug(f"[CLEAN] Reject (no alphanum): {line[:50]}")
             continue
-        
+
         # ✗ ลบ line ที่เป็น repeated pattern — ถ้า unique char ≤ 20% (e.g., "-----", ">>>>>>>")
         unique_chars = len(set(line))
         if unique_chars < max(2, len(line) // 5):
             logger.debug(f"[CLEAN] Reject (repeated pattern): {line[:50]}")
             continue
-        
+
         # ✗ ลบ line ที่เป็นสัญลักษณ์แปลก (< 20% Thai/English alphanumeric)
         thai_chars = sum(1 for c in line if '\u0E00' <= c <= '\u0E7F')
         eng_chars = sum(1 for c in line if c.isascii() and c.isalnum())
         if len(line) > 0 and (thai_chars + eng_chars) / len(line) < 0.2:
             logger.debug(f"[CLEAN] Reject (low language content): {line[:50]}")
             continue
-        
+
         # ✓ ปล่อยผ่าน
         cleaned.append(line)
-    
+
     result = "\n".join(cleaned)
     logger.info(f"[CLEAN] Input {len(lines)} lines → {len(cleaned)} lines")
     return result
@@ -306,24 +306,24 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
         img_bytes = pix.tobytes("png")
         img = Image.open(io.BytesIO(img_bytes))
         cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
-        
+
         # Option 2: Choose preprocessing strategy
         if USE_AGGRESSIVE_PREPROCESSING:
             processed_img = preprocess_image_aggressive(cropped_img)
         else:
             processed_img = preprocess_image(cropped_img)
-        
+
         text = pytesseract.image_to_string(processed_img, lang=OCR_LANG, config=TESSERACT_CONFIG)
         ocr_text_parts.append(text.strip())
 
     ocr_text = "\n".join(ocr_text_parts).strip()
-    
+
     # Option 3: Apply smart post-processing
     if USE_SMART_CLEANING:
         ocr_text = clean_ocr_output(ocr_text)
     else:
         ocr_text = filter_ocr_noise(ocr_text)
-    
+
     logger.info(f"Tesseract extracted {len(ocr_text)} chars")
     return OcrResponse(
         text=ocr_text,
