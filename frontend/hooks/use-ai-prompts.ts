@@ -155,11 +155,24 @@ export function useSandboxRun(onCompleted?: () => void) {
     setJobId(response.requestPublicId);
     return response.requestPublicId;
   }, []);
+  /**
+   * เริ่ม polling สำหรับ jobId ที่มีอยู่แล้ว (สำหรับ 2-step flow)
+   * @param jobId - requestPublicId ของ job ที่ submit ไปแล้ว
+   */
+  const startPolling = useCallback((jobIdParam: string) => {
+    setState({
+      isRunning: true,
+      progress: 30,
+      statusText: 'ai.prompt.statusPending',
+      result: null,
+    });
+    setJobId(jobIdParam);
+  }, []);
   /** รีเซ็ตสถานะทั้งหมด (ใช้ก่อนรันใหม่) */
   const reset = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     setJobId(null);
     setState({ isRunning: false, progress: 0, statusText: '', result: null });
   }, []);
-  return { state, jobId, submit, reset };
+  return { state, jobId, submit, reset, startPolling };
 }

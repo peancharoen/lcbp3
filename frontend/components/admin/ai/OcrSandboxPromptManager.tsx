@@ -147,7 +147,7 @@ export default function OcrSandboxPromptManager() {
     fallbackUsed?: boolean;
   } | null>(null);
   const [selectedPromptVersion, setSelectedPromptVersion] = useState<number | undefined>(undefined);
-  const { state: sandboxState, jobId: sandboxJobId, reset: resetSandbox } =
+  const { state: sandboxState, jobId: sandboxJobId, reset: resetSandbox, startPolling } =
     useSandboxRun(() => {
       // เมื่อ sandbox เสร็จสิ้น: รีเฟรชรายการเวอร์ชัน
       versionsQuery.refetch();
@@ -285,24 +285,8 @@ export default function OcrSandboxPromptManager() {
         selectedPromptVersion
       );
       toast.success('AI Extraction started');
-      // Poll สำหรับผลลัพธ์ AI
-      const pollInterval = setInterval(async () => {
-        try {
-          const result = await adminAiService.getSandboxJobStatus(requestPublicId);
-          if (result.status === 'completed') {
-            clearInterval(pollInterval);
-            // Trigger sandbox state update via useSandboxRun
-            toast.success(t('ai.prompt.sandboxSuccess'));
-            versionsQuery.refetch();
-          } else if (result.status === 'failed') {
-            clearInterval(pollInterval);
-            toast.error(result.errorMessage || 'AI Extraction failed');
-          }
-        } catch (_err) {
-          clearInterval(pollInterval);
-          toast.error('Poll error occurred');
-        }
-      }, 1000);
+      // เริ่ม polling ผ่าน useSandboxRun hook
+      startPolling(requestPublicId);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       toast.error(error.response?.data?.message || 'AI Extraction failed');
