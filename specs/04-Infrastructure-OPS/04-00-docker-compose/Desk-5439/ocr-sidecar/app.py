@@ -71,7 +71,7 @@ TESSERACT_PSM = os.getenv("TESSERACT_PSM", "3")
 # PSM 6 = Assume single column of text (ลด hallucination จาก noise)
 # OEM 1 = LSTM only (ดีกว่า legacy engine)
 TESSERACT_CONFIG = f"--psm {TESSERACT_PSM} --oem 1"
-# Crop margin: ตัด header/footer (บน 5%, ล่าง 2%)
+# Crop margin: ตัด header/afooter (บน 5%, ล่าง 2%)
 CROP_TOP_RATIO = 0.05
 CROP_BOTTOM_RATIO = 0.02
 # Enable aggressive preprocessing (Option 2) สำหรับ Tesseract
@@ -341,7 +341,27 @@ def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}
     }
     payload = {
         "model": model_name,
-        "prompt": "",  # SYSTEM instruction ใน Modelfile จัดการทั้งหมด
+        "prompt": """You are an expert in structuring Thai documents
+
+Task: Extract the information from the image in the most correct and organized format.
+
+Output Rules:
+- Return ONLY clean Markdown output
+- Include ALL information visible on the page
+- Preserve document structure and hierarchy
+- Do NOT add explanations or interpretations
+- Do NOT include these instructions in your response
+
+Formatting:
+- Tables: Use HTML <table> tags
+- Math: $inline$ and $$block$$ LaTeX
+- Figures: <figure>Thai description</figure>
+- Pages: <page_number>N</page_number>
+- Boxes: ☐ / ☑
+- Unclear: [unclear: context]
+- Signatures/Stamps: Describe location and context
+
+Extract all text from this image.""",
         "images": [image_base64],
         "stream": False,
         "options": options,
