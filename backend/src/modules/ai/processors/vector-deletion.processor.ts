@@ -21,16 +21,20 @@ export class AiVectorDeletionProcessor extends WorkerHost {
   }
 
   async process(job: Job<AiVectorDeletionJobPayload>): Promise<void> {
-    const { documentPublicId, requestedByUserPublicId } = job.data;
+    const { documentPublicId, projectPublicId, requestedByUserPublicId } =
+      job.data;
 
     this.logger.log(
-      `Vector deletion started — documentPublicId=${documentPublicId}, jobId=${String(job.id)}, requestedBy=${requestedByUserPublicId}`
+      `Vector deletion started — documentPublicId=${documentPublicId}, projectPublicId=${projectPublicId}, jobId=${String(job.id)}, requestedBy=${requestedByUserPublicId}`
     );
 
-    await this.qdrantService.deleteByDocumentPublicId(documentPublicId);
+    await this.qdrantService.deleteByDocumentPublicId(
+      projectPublicId,
+      documentPublicId
+    );
 
     this.logger.log(
-      `Vector deletion completed — documentPublicId=${documentPublicId}, jobId=${String(job.id)}`
+      `Vector deletion completed — documentPublicId=${documentPublicId}, projectPublicId=${projectPublicId}, jobId=${String(job.id)}`
     );
   }
 }

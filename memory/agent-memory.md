@@ -16,6 +16,8 @@
 - 2026-06-03: Thai-Optimized AI Model Stack (ADR-034) — เปลี่ยนโมเดลหลักเป็น `typhoon2.5-np-dms:latest` + `typhoon-np-dms-ocr:latest` (สำหรับ OCR, keep_alive:0); เพิ่ม model switching logic ใน ai-batch processor; เพิ่ม static constants ใน AiSettingsService; สร้าง SQL delta สำหรับ ai_available_models
 - 2026-06-05 (Session 12): Typhoon OCR Prompt Cleaning — แก้ปัญหา prompt/instruction ติดมาใน Typhoon OCR output โดยย้าย instruction จาก Modelfile SYSTEM มา prompt ใน app.py แทน ลบ clean_typhoon_output() filter downstream และแก้ git conflict โดยเลือกเวอร์ชัน local (ไม่มี SYSTEM instruction)
 - 2026-06-05 (Session 13): OCR Sandbox Step 2 AI Extraction Bug Fix — แก้ปัญหา "Not Found Exception" ใน Step 2 AI Extraction โดยเพิ่ม conditional check ใน processSandboxExtract และ processSandboxAiExtract เพื่อส่ง undefined แทน 'default' projectPublicId ไปยัง resolveContext (เพราะ 'default' ไม่ใช่ project UUID ที่ถูกต้อง). Frontend: เพิ่ม startPolling method ใน useSandboxRun hook เพื่อรองรับ 2-step flow และแก้ OcrSandboxPromptManager.tsx ให้ใช้ startPolling แทน custom polling logic. Model Switching Analysis: Production OCR Extraction มี model switching (unload main → load OCR model → run → reload main) เพื่อประหยัด VRAM แต่ Sandbox AI Extraction ไม่มี model switching เพราะใช้ main model สกัด metadata จาก OCR text ที่มาจาก Step 1 (Tesseract OCR sidecar) แล้ว ไม่ใช่ OCR model. OCR Sidecar Location: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/ (ใช้ Tesseract OCR ไม่ใช่ PaddleOCR ตั้งแต่ 2026-05-30). Model Config: เพิ่ม SYSTEM prompt ภาษาไทยใน typhoon2.5-np-dms.model.md และ typhoon2.5-np-dms.main-model.md สำหรับ LCBP3 DMS context
+- 2026-06-05 (Session 14): RAG Pipeline Enhancements (Spec 234 / ADR-035) — แก้ compile blockers 4 จุดหลังเปลี่ยน contract ของ Embedding/Qdrant, เพิ่ม `projectPublicId` ใน vector deletion path, ย้าย dashboard RAG page ไป `/ai/rag/*`, ถอด legacy frontend RAG hook/components, mark legacy `/rag/*` deprecated, และสุดท้ายถอด `RagModule` + `rag.controller.ts` ออกจาก runtime พร้อมอัปเดต ADR-035
+- 2026-06-05 (Session 15): Feature 234 RAG Pipeline สมบูรณ์ — implement BGE-M3 embedding (dense 1024 + sparse), BGE-Reranker-Large, Semantic Chunking (typhoon2.5 + `<chunk topic>` tags + fallback), Hybrid Qdrant schema (drop+recreate), workflow hook `syncStatus()` → `enqueueRagPrepare()`, processRagPrepare pipeline ใน ai-batch.processor; แก้ CRITICAL 2 ประเด็นจาก speckit-analyze; ผ่าน speckit-tester (19/19 tests), speckit-validate (15/15 FR, ทุก SC); ปิด Gap ทั้ง 2 รายการ (jobId dedup confirmed + integration test 9 tests); สร้าง validation-report.md ใน specs/200-fullstacks/234-rag-pipeline-enhancements/
 -->
 
 # 🧠 Agent Long-term Project Memory
@@ -74,7 +76,7 @@
 
 - **Ollama (AI Inference) ต้องทำงานบน Admin Desktop เท่านั้น** ห้ามรันบน Server หรือ Docker ใน Production
 - AI ห้ามเชื่อมต่อและเข้าถึง Database หรือ Storage โดยตรง (ต้องผ่าน DMS API เท่านั้น)
-- โมเดลที่ใช้: `typhoon2.5-np-dms:latest` (Main LLM, ADR-034) + `typhoon-np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text` (Embeddings)
+- โมเดลที่ใช้: `typhoon2.5-np-dms:latest` (Main LLM, ADR-034) + `typhoon-np-dms-ocr:latest` (OCR, keep_alive:0) + **`BGE-M3`** (Embeddings Dense 1024 + Sparse, ADR-035) + **`BGE-Reranker-Large`** (Reranker, ADR-035) — `nomic-embed-text` ถูกแทนที่แล้ว
 - การทำงานแบบ Background Job หรือ Inference ที่ใช้เวลานานต้องสั่งงานผ่าน **BullMQ** (คิว `ai-realtime` และ `ai-batch`)
 - ข้อมูลผลลัพธ์จาก AI ทั้งหมดต้องผ่านการตรวจสอบความถูกต้องโดยมนุษย์ (Human-in-the-loop) เสมอ
 
@@ -165,7 +167,9 @@ docker compose ps                        # Check status
 | D7  | UUID Strategy: `publicId` (UUIDv7) เท่านั้นสำหรับ Public API — INT PK ต้อง `@Exclude()`     | ADR-019   |
 | D8  | Schema changes: แก้ SQL โดยตรง + เพิ่ม `deltas/*.sql` — ห้ามใช้ TypeORM migration files     | ADR-009   |
 | D9  | Qdrant search ต้องส่ง `projectPublicId` เป็น mandatory parameter ทุกครั้ง (compile-time)    | ADR-023A  |
-| D10 | AI model stack: `typhoon2.5-np-dms:latest` (Main LLM) + `typhoon-np-dms-ocr:latest` (OCR, keep_alive:0) + `nomic-embed-text` (Embeddings) on Admin Desktop (ADR-034, supersedes ADR-023A §2.1) | ADR-034 |
+| D10 | AI model stack: `typhoon2.5-np-dms:latest` (Main LLM) + `typhoon-np-dms-ocr:latest` (OCR, keep_alive:0) + `BGE-M3` (Dense 1024 + Sparse Embedding) + `BGE-Reranker-Large` (Reranker) on Admin Desktop — `nomic-embed-text` ถูกแทนที่แล้ว (ADR-034/035) | ADR-034/035 |
+| D11 | RAG Embedding trigger: `syncStatus()` → `enqueueRagPrepare()` เมื่อ status ≠ DRAFT; jobId = `rag-prepare:{documentPublicId}:{revisionNumber}` (BullMQ dedup); delete-before-upsert ทุกครั้ง | ADR-035 |
+| D12 | Qdrant collection `lcbp3_vectors` = Hybrid schema: `bge_dense` (1024 dims, Cosine) + `bge_sparse` (SPLADE); payload indexes: `project_public_id` (tenant), `doc_public_id`, `status_code`, `doc_type` | ADR-035 |
 
 ---
 
@@ -196,9 +200,9 @@ docker compose ps                        # Check status
 | **Frontend**      | `http://localhost:3000`       | QNAP `192.168.10.8`       | Next.js                              |
 | **MariaDB**       | `localhost:3307`              | QNAP internal             | DB: `lcbp3`, root via docker         |
 | **Redis**         | `localhost:6379`              | QNAP internal             | BullMQ + session store               |
-| **Ollama**        | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439) | typhoon2.5-np-dms:latest (main) + typhoon-np-dms-ocr:latest (OCR) + nomic-embed-text |
+| **Ollama**        | `http://192.168.10.100:11434` | Admin Desktop (Desk-5439) | typhoon2.5-np-dms:latest (main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0) |
 | **Qdrant**        | `http://localhost:6333`       | Admin Desktop (Desk-5439) | Vector DB — requires projectPublicId |
-| **OCR Sidecar**   | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439) | Dynamic (Tesseract tha+eng / Typhoon OCR-3B) |
+| **OCR Sidecar**   | `http://192.168.10.100:8765`  | Admin Desktop (Desk-5439) | Tesseract (fallback) / Typhoon OCR-3B (primary) + BGE-M3 `/embed` + BGE-Reranker `/rerank` |
 | **Gitea**         | `https://git.np-dms.work`     | QNAP `192.168.10.8`       | Source + CI/CD                       |
 | **Gitea Runner**  | ASUSTOR `192.168.10.9`        | —                         | CI runner                            |
 
@@ -828,6 +832,103 @@ Step 2: Select prompt version → POST /ai/admin/sandbox/ai-extract
 
 ---
 
+### Session 14 — 2026-06-05 (RAG Pipeline Enhancements / Spec 234 / ADR-035) ← **ล่าสุด**
+
+**Summary:** ปรับโค้ดให้สอดคล้องกับ feature `234-rag-pipeline-enhancements` และ `ADR-035-ai-pipeline-flow-architecture` โดยปิด compile blockers ของ RAG pipeline ใหม่, บังคับ tenant scope ผ่าน `projectPublicId` ใน vector deletion path, ย้าย dashboard ไปใช้ `/ai/rag/*`, และ retire runtime surface ของ legacy `/rag/*`
+
+**Backend Changes (B1-B6):**
+
+- **Compile blockers fixed (4 จุด):**
+  - ปรับ `ai-batch.processor.ts` ให้ legacy `embed-document` path ส่งข้อมูลตาม signature ใหม่ของ `EmbeddingService.embedDocument(...)`
+  - เพิ่ม `projectPublicId` ใน `AiVectorDeletionJobPayload` และ propagate ผ่าน `AiQueueService` + `vector-deletion.processor.ts`
+  - ปรับ typing ใน `src/modules/ai/qdrant.service.ts` ให้รองรับ hybrid upsert contract ของ Qdrant client
+  - แก้ nullability ใน `correspondence-workflow.service.ts` สำหรับ trigger `enqueueRagPrepare()`
+- **Legacy delete path hardening:** `backend/src/modules/rag/rag.service.ts` เปลี่ยน `deleteVectors()` ให้ resolve `projectPublicId` จาก `DocumentChunk`/server-side context ก่อน ไม่เชื่อ query param จาก client เป็นหลัก
+- **Legacy runtime deprecation:** mark `backend/src/modules/rag/rag.controller.ts` และ endpoint summaries เป็น deprecated ชั่วคราวระหว่าง audit
+- **Legacy runtime removal:** หลัง consumer audit ใน repo ไม่พบ caller ของ `/rag/status`, `/rag/ingest`, `/rag/vectors`, `/rag/admin/init-collection`, จึงถอด `RagModule` ออกจาก `backend/src/app.module.ts` และลบ `backend/src/modules/rag/rag.controller.ts` + `rag.module.ts`
+
+**Frontend Changes (F1-F2):**
+
+- **Dashboard RAG migration:** `frontend/app/(dashboard)/rag/page.tsx` เปลี่ยนมาใช้ `RagChatWidget` ซึ่งวิ่งผ่าน `POST /ai/rag/query` และ `GET /ai/rag/jobs/:requestPublicId`
+- **Legacy frontend cleanup:** ลบ `frontend/hooks/use-rag.ts` และ `frontend/components/rag/*` ที่ไม่ถูกใช้งานแล้ว
+
+**Architecture / Documentation Updates:**
+
+- **ADR-035:** เพิ่มและอัปเดต Legacy Compatibility Note ให้สะท้อนสถานะจริงของ migration ไป `/ai/rag/*`
+- **Current runtime state:** `/rag/*` ไม่ถูก mount ใน `AppModule` แล้ว; flow หลักของระบบใช้ `AiModule` + `/ai/rag/*`
+
+**Verification:**
+
+- `pnpm --filter backend build` — ✅ ผ่าน
+- `pnpm --filter backend lint:ci` — ✅ ผ่าน
+- `pnpm --filter backend test -- --runTestsByPath src/modules/ai/processors/ai-batch.processor.spec.ts src/modules/ai/services/embedding.service.spec.ts` — ✅ ผ่าน
+- `pnpm --filter backend test -- --runTestsByPath src/modules/rag/__tests__/rag.service.spec.ts` — ✅ ผ่าน
+- `pnpm --filter lcbp3-frontend lint` — ✅ ผ่าน
+- `pnpm exec tsc --noEmit -p frontend/tsconfig.json` — ✅ ผ่าน
+
+**Follow-up Completed (Session 14+):**
+
+- ✅ แก้ `backend/src/modules/ai/qdrant.service.ts` — `ensureCollection()` ตรวจ schema ก่อน delete: ถ้าเป็น Hybrid 1024 dims แล้ว skip recreation
+- ✅ ย้าย `rag-prepare` enqueue ใน `CorrespondenceWorkflowService.syncStatus()` ไปหลัง commit — after-commit pattern ด้วย `triggerRagPrepare()`
+- ✅ ลบ `backend/src/modules/rag/` ทั้งหมด (audit ไม่พบ import จาก backend/src)
+- ✅ สร้าง `backend/src/modules/ai/ai-qdrant.service.spec.ts` — regression test สำหรับ `deleteByDocumentPublicId()` (4/4 ผ่าน)
+- ✅ Code Review Fixes (Session 14+): try-catch after-commit, `createPayloadIndexes()` private, defensive vector size check, `skipRagPrepare` flag
+- ✅ F5 (Session 15): เพิ่ม `ai-rag-pipeline.integration.spec.ts` — 9 integration tests ครอบคลุม SC-002, SC-003, SC-006, FR-005, jobId dedup
+
+---
+
+### Session 15 — 2026-06-05 (Feature 234 RAG Pipeline Enhancements — สมบูรณ์) ← **ล่าสุด**
+
+**Summary:** Implement RAG Pipeline Enhancements ตาม Spec 234 / ADR-035 ครบทุก Functional Requirement (FR-001 → FR-015), ผ่าน speckit-analyze → speckit-implement → speckit-tester → speckit-validate; ปิด Gap ทั้ง 2 รายการ
+
+**งานที่ทำในเซสชั่นนี้:**
+
+| งาน | ไฟล์หลัก | สถานะ |
+|-----|----------|-------|
+| Sidecar `/embed` (BGE-M3 Dense+Sparse) | `ocr-sidecar/app.py`, `requirements.txt` | ✅ |
+| Sidecar `/rerank` (BGE-Reranker-Large) | `ocr-sidecar/app.py` | ✅ |
+| `OcrService.embedViaSidecar()` + `rerankViaSidecar()` | `ocr.service.ts` | ✅ |
+| Hybrid Qdrant schema (1024 dims, drop+recreate) | `qdrant.service.ts` | ✅ |
+| Payload indexes (project_public_id tenant, doc_public_id, status_code, doc_type) | `qdrant.service.ts` | ✅ |
+| `EmbeddingService.embedDocument()` — Semantic Chunking + fallback | `embedding.service.ts` | ✅ |
+| `semanticChunkTextWithFallback()` → `parseChunkTags()` → `fixedSizeChunk()` | `embedding.service.ts` | ✅ |
+| `AiBatchProcessor` case `rag-prepare` → `processRagPrepare()` | `ai-batch.processor.ts` | ✅ |
+| `AiQueueService.enqueueRagPrepare()` + jobId dedup | `ai-queue.service.ts` | ✅ |
+| `CorrespondenceWorkflowService.syncStatus()` → `triggerRagPrepare()` | `correspondence-workflow.service.ts` | ✅ |
+| `AiRagService.processQuery()` — Hybrid Search + Reranker | `ai-rag.service.ts` | ✅ |
+| SQL delta `rag_chunking` prompt | `deltas/2026-06-05-add-rag-chunking-prompt.sql` | ✅ |
+| Integration test (9 tests) | `ai-rag-pipeline.integration.spec.ts` | ✅ |
+| Validation report | `specs/200-fullstacks/234-rag-pipeline-enhancements/validation-report.md` | ✅ |
+
+**Verification:**
+
+- `npx jest` (6 suites): **24/24 tests PASS**
+- `npx tsc --noEmit`: **0 errors**
+- speckit-validate: **15/15 FR covered, 6/6 SC verifiable, 0 Gaps remaining**
+
+**Architecture Summary (ADR-035):**
+
+```
+CorrespondenceWorkflowService.syncStatus()
+  └── triggerRagPrepare() [fire-and-forget]
+        └── AiQueueService.enqueueRagPrepare() [jobId dedup]
+              └── BullMQ ai-batch queue
+                    └── AiBatchProcessor.processRagPrepare()
+                          ├── OcrService.detectAndExtract() [if no cached text]
+                          └── EmbeddingService.embedDocument()
+                                ├── semanticChunkTextWithFallback() → typhoon2.5 / fixed-size fallback
+                                ├── OcrService.embedViaSidecar() → BGE-M3 [dense 1024 + sparse]
+                                └── AiQdrantService.upsert() → lcbp3_vectors [delete-before-upsert]
+
+AiRagService.processQuery()
+  ├── OcrService.embedViaSidecar(question) → BGE-M3
+  ├── AiQdrantService.searchByProject(dense, sparse, projectPublicId, 15) → RRF Fusion
+  ├── OcrService.rerankViaSidecar(question, chunks) → BGE-Reranker top-5
+  └── Ollama typhoon2.5-np-dms:latest → answer + citations
+```
+
+---
+
 ## 🎯 11. แผนงานขั้นต่อไป (Next Session Focus)
 
 ### N8N Migration & E2E Testing (งานหลักที่เหลือ)
@@ -837,8 +938,14 @@ Step 2: Select prompt version → POST /ai/admin/sandbox/ai-extract
 - [ ] **Frontend Editable Review Form** (Pipeline B) — pre-fill AI suggestions + tag suggestion UI
 - [ ] **Dry Run** กับ Excel จริงก่อน Production Migration
 
+### RAG Pipeline — Production Readiness
+
+- [X] **รัน SQL delta** `2026-06-05-add-rag-chunking-prompt.sql` ใน MariaDB production
+- [ ] **Deploy OCR Sidecar ใหม่** บน Desk-5439 หลัง rebuild image (เพิ่ม `FlagEmbedding>=1.2.0` + `/embed` + `/rerank`)
+- [ ] **Drop + recreate Qdrant collection** `lcbp3_vectors` เป็น Hybrid schema (1024 dims) ผ่าน `ensureCollection()` auto-migration
+- [ ] **SC-002 E2E accuracy test** — ทดสอบ Chat Q&A ≥ 80% accuracy กับเอกสาร Correspondence จริง
+
 ### งานทั่วไป
 
-- [ ] ดำเนินการรัน SQL delta script ใน MariaDB เมื่อขึ้นสภาพแวดล้อมจริง
 - [ ] เพิ่ม unit test สำหรับ `upsertQueueRecord` ใน `ai-migration-checkpoint.service.spec.ts` (UUID→INT path)
 - [ ] เพิ่ม unit test สำหรับ checksum dedup ใน `file-storage.service.spec.ts`

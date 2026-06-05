@@ -25,6 +25,7 @@ import { SearchModule } from '../search/search.module';
 import { FileStorageModule } from '../../common/file-storage/file-storage.module';
 import { NotificationModule } from '../notification/notification.module';
 import { CirculationModule } from '../circulation/circulation.module';
+import { AiModule } from '../ai/ai.module';
 
 /**
  * CorrespondenceModule
@@ -53,6 +54,7 @@ import { CirculationModule } from '../circulation/circulation.module';
     FileStorageModule,
     NotificationModule,
     CirculationModule,
+    AiModule,
   ],
   controllers: [CorrespondenceController],
   providers: [

@@ -1,9 +1,9 @@
-// File: src/modules/ai/ai-rag.service.ts
+// File: backend/src/modules/ai/ai-rag.service.ts
 // Change Log
 // - 2026-05-14: เพิ่ม AiRagService สำหรับ BullMQ-backed RAG pipeline ตาม ADR-023 Phase 4.
 // - 2026-05-14: แก้ไข corruption ในไฟล์ทั้งหมด — rewrite clean version.
 // - 2026-05-14: ย้าย PROMPT_CONTEXT_LIMIT เป็น instance field ที่อ่านจาก RAG_CONTEXT_LIMIT_CHARS (💡 S1).
-// Service จัดการ RAG query ผ่าน Ollama + AiQdrantService (project-isolated)
+// - 2026-06-05: ปรับปรุงใช้ Hybrid Search + Reranker ผ่าน Sidecar ตาม ADR-035 (T015, T030)
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,6 +11,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import axios from 'axios';
 import { AiQdrantService } from './qdrant.service';
+import { OcrService } from './services/ocr.service';
 
 /** ผลลัพธ์ของ RAG query แต่ละรายการที่ถูก reference ในคำตอบ */
 export interface AiRagCitation {
@@ -44,7 +45,6 @@ export class AiRagService {
   private readonly logger = new Logger(AiRagService.name);
   private readonly ollamaUrl: string;
   private readonly ollamaModel: string;
-  private readonly ollamaEmbedModel: string;
   private readonly timeoutMs: number;
   /** จำนวนอักขระสูงสุดของ context ที่ส่งให้ LLM — ปรับได้ผ่าน RAG_CONTEXT_LIMIT_CHARS */
   private readonly promptContextLimit: number;
@@ -52,6 +52,7 @@ export class AiRagService {
   constructor(
     private readonly configService: ConfigService,
     private readonly qdrantService: AiQdrantService,
+    private readonly ocrService: OcrService,
     @InjectRedis() private readonly redis: Redis
   ) {
     this.ollamaUrl = this.configService.get<string>(
@@ -61,10 +62,6 @@ export class AiRagService {
     this.ollamaModel = this.configService.get<string>(
       'OLLAMA_RAG_MODEL',
       'gemma2'
-    );
-    this.ollamaEmbedModel = this.configService.get<string>(
-      'OLLAMA_EMBED_MODEL',
-      'nomic-embed-text'
     );
     this.timeoutMs = this.configService.get<number>('RAG_TIMEOUT_MS', 30000);
     this.promptContextLimit = this.configService.get<number>(
@@ -159,10 +156,11 @@ export class AiRagService {
 
   /**
    * ประมวลผล RAG query:
-   * 1. Embed คำถาม
-   * 2. ค้นหา Qdrant ด้วย project isolation (T020 — enforced in AiQdrantService.searchByProject)
-   * 3. Build prompt จาก context
-   * 4. Generate คำตอบผ่าน Ollama (รองรับ AbortSignal สำหรับ T022)
+   * 1. Embed คำถามด้วย BGE-M3 (Dense + Sparse) ผ่าน Sidecar /embed (T015)
+   * 2. ค้นหา Qdrant ด้วย Hybrid Search + project isolation (T015)
+   * 3. Rerank ด้วย BGE-Reranker-Large ผ่าน Sidecar /rerank (T015)
+   * 4. Build prompt จาก context
+   * 5. Generate คำตอบผ่าน Ollama
    */
   async processQuery(
     requestPublicId: string,
@@ -182,8 +180,8 @@ export class AiRagService {
         return;
       }
 
-      // 1. สร้าง embedding สำหรับคำถาม
-      const queryVector = await this.embed(question, signal);
+      // 1. สร้าง embedding สำหรับคำถามด้วย BGE-M3 ผ่าน Sidecar
+      const embedResult = await this.ocrService.embedViaSidecar(question);
 
       // ตรวจสอบ cancel อีกครั้งหลัง embed
       if (
@@ -195,17 +193,15 @@ export class AiRagService {
         return;
       }
 
-      // 2. ค้นหา Qdrant โดยบังคับ projectPublicId (T020 — FR-002)
+      // 2. ค้นหา Qdrant ด้วย Hybrid search และกรองตาม project
       const searchResults = await this.qdrantService.searchByProject(
-        queryVector,
+        embedResult.dense,
+        embedResult.sparse,
         projectPublicId,
-        10
+        15 // topK=15 ตาม FR-014
       );
 
-      // 3. สร้าง context จาก search results
-      const context = this.buildContext(searchResults);
-
-      // ตรวจสอบ cancel ก่อนเรียก LLM (ใช้ทรัพยากรมากที่สุด)
+      // ตรวจสอบ cancel หลัง search
       if (
         signal?.aborted ||
         (await this.redis.get(this.cancelKey(requestPublicId)))
@@ -215,25 +211,74 @@ export class AiRagService {
         return;
       }
 
-      // 4. Generate คำตอบผ่าน Ollama (ส่ง signal เพื่อรองรับ T022)
+      // 3. Rerank ผลลัพธ์การค้นหา
+      let finalResults = searchResults;
+      const rawChunks = searchResults
+        .map(
+          (r) =>
+            (r.payload['chunk_text'] as string) ||
+            (r.payload['content_preview'] as string) ||
+            ''
+        )
+        .filter((c) => c.trim().length > 0);
+
+      if (rawChunks.length > 0) {
+        this.logger.log(
+          `Calling Sidecar /rerank for ${rawChunks.length} candidates...`
+        );
+        const rerankResult = await this.ocrService.rerankViaSidecar(
+          question,
+          rawChunks
+        );
+
+        // เลือก top 3-5 chunks ที่ได้คะแนนสูงสุด
+        const topN = Math.min(5, rerankResult.ranked_indices.length);
+        finalResults = [];
+        for (let i = 0; i < topN; i++) {
+          const originalIndex = rerankResult.ranked_indices[i];
+          finalResults.push(searchResults[originalIndex]);
+        }
+
+        // Log รายละเอียดการจัดอันดับ (T030)
+        this.logger.log(
+          `Reranking completed: candidates input ${searchResults.length} -> output ${finalResults.length}. ` +
+            `Top-1 score: ${rerankResult.scores[rerankResult.ranked_indices[0]]?.toFixed(4) ?? 'N/A'}`
+        );
+      }
+
+      // 4. สร้าง context จาก search results
+      const context = this.buildContext(finalResults);
+
+      // ตรวจสอบ cancel ก่อนเรียก LLM
+      if (
+        signal?.aborted ||
+        (await this.redis.get(this.cancelKey(requestPublicId)))
+      ) {
+        await this.saveJobResult({ requestPublicId, status: 'cancelled' });
+        await this.clearActiveJob(userPublicId);
+        return;
+      }
+
+      // 5. Generate คำตอบผ่าน Ollama
       const { answer, usedFallback } = await this.generateAnswer(
         this.sanitizeInput(question),
         context,
         signal
       );
 
-      const citations: AiRagCitation[] = searchResults.map((r) => ({
+      const citations: AiRagCitation[] = finalResults.map((r) => ({
         pointId: r.pointId,
         score: r.score,
         docType: r.payload['doc_type'] as string | undefined,
         docNumber: r.payload['doc_number'] as string | undefined,
-        snippet: (r.payload['content_preview'] as string | undefined)?.slice(
-          0,
-          200
-        ),
+        snippet: (
+          (r.payload['chunk_text'] as string) ||
+          (r.payload['content_preview'] as string) ||
+          ''
+        ).slice(0, 200),
       }));
 
-      const confidence = searchResults.length > 0 ? searchResults[0].score : 0;
+      const confidence = finalResults.length > 0 ? finalResults[0].score : 0;
 
       await this.saveJobResult({
         requestPublicId,
@@ -266,17 +311,7 @@ export class AiRagService {
 
   // ─── Private Helpers ─────────────────────────────────────────────────────────
 
-  /** สร้าง embedding vector สำหรับข้อความ */
-  private async embed(text: string, signal?: AbortSignal): Promise<number[]> {
-    const response = await axios.post<{ embedding: number[] }>(
-      `${this.ollamaUrl}/api/embeddings`,
-      { model: this.ollamaEmbedModel, prompt: text },
-      { timeout: this.timeoutMs, signal }
-    );
-    return response.data.embedding;
-  }
-
-  /** Generate คำตอบจาก Ollama (รองรับ AbortSignal สำหรับ T022 FR-011) */
+  /** Generate คำตอบจาก Ollama */
   private async generateAnswer(
     question: string,
     context: string,
@@ -291,7 +326,6 @@ export class AiRagService {
       );
       return { answer: response.data.response ?? '', usedFallback: false };
     } catch (err: unknown) {
-      // ถ้าเป็น cancellation error ให้ re-throw เพื่อให้ processQuery จัดการ
       if (
         axios.isCancel(err) ||
         (err instanceof Error && err.name === 'CanceledError')
@@ -313,7 +347,10 @@ export class AiRagService {
     for (const r of results) {
       const docType = (r.payload['doc_type'] as string) ?? '';
       const docNumber = (r.payload['doc_number'] as string) ?? '';
-      const preview = (r.payload['content_preview'] as string) ?? '';
+      const preview =
+        (r.payload['chunk_text'] as string) ??
+        (r.payload['content_preview'] as string) ??
+        '';
       const header = `[${docType}${docNumber ? ` - ${docNumber}` : ''}]`;
       const snippet = `${header}\n${preview}\n\n`;
       if ((context + snippet).length > this.promptContextLimit) break;

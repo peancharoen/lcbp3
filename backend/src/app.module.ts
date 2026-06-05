@@ -51,7 +51,6 @@ import { SearchModule } from './modules/search/search.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { MigrationModule } from './modules/migration/migration.module';
 import { AiModule } from './modules/ai/ai.module';
-import { RagModule } from './modules/rag/rag.module';
 import { ReviewTeamModule } from './modules/review-team/review-team.module';
 import { ResponseCodeModule } from './modules/response-code/response-code.module';
 import { DelegationModule } from './modules/delegation/delegation.module';
@@ -192,7 +191,6 @@ import { TagsModule } from './modules/tags/tags.module';
     AuditLogModule,
     MigrationModule,
     AiModule,
-    RagModule,
     ReviewTeamModule,
     ResponseCodeModule,
     DelegationModule,

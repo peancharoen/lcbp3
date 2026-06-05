@@ -1,19 +1,11 @@
 'use client';
 
 import { Bot } from 'lucide-react';
-import { useRagQuery } from '../../../hooks/use-rag';
+import { RagChatWidget } from '../../../components/ai/RagChatWidget';
 import { useProjectStore } from '../../../lib/stores/project-store';
-import { RagSearchBar } from '../../../components/rag/rag-search-bar';
-import { RagResultCard } from '../../../components/rag/rag-result-card';
 
 export default function RagPage() {
   const { selectedProjectId } = useProjectStore();
-  const { mutate, data, isPending, error, isIdle } = useRagQuery();
-
-  const handleSearch = (question: string) => {
-    if (!selectedProjectId) return;
-    mutate({ question, projectPublicId: selectedProjectId });
-  };
 
   return (
     <div className="container mx-auto max-w-3xl py-8 space-y-6">
@@ -28,25 +20,11 @@ export default function RagPage() {
         </div>
       )}
 
-      <RagSearchBar onSearch={handleSearch} isLoading={isPending} />
-
-      {isPending && (
-        <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground animate-pulse">
-          กำลังค้นหาและประมวลผล...
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          เกิดข้อผิดพลาด: {error.message}
-        </div>
-      )}
-
-      {data && !isPending && <RagResultCard result={data} />}
-
-      {isIdle && !error && (
+      {selectedProjectId ? (
+        <RagChatWidget projectPublicId={selectedProjectId} />
+      ) : (
         <p className="text-center text-sm text-muted-foreground pt-4">
-          พิมพ์คำถามแล้วกด ค้นหา เพื่อรับคำตอบจากเอกสารโครงการ
+          เลือกโครงการก่อนเพื่อเริ่มถามคำถามกับ RAG pipeline ใหม่
         </p>
       )}
     </div>

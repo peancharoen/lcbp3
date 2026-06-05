@@ -40,11 +40,31 @@ from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel
 from pythainlp.tokenize import word_tokenize
 from pythainlp.util import normalize as thai_normalize
+from FlagEmbedding import BGEM3FlagModel, FlagReranker
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ocr-sidecar")
 
 app = FastAPI(title="Tesseract OCR Sidecar", version="1.0.0")
+
+# Initialize BGE-M3 and Reranker singletons
+bge_model = None
+reranker = None
+
+@app.on_event("startup")
+def load_bge_models():
+    global bge_model, reranker
+    logger.info("Loading BGE-M3 and Reranker models on CPU RAM...")
+    try:
+        # BGE-M3: BAAI/bge-m3, use_fp16=False for CPU
+        bge_model = BGEM3FlagModel('BAAI/bge-m3', use_fp16=False)
+        # Reranker: BAAI/bge-reranker-large, use_fp16=False for CPU
+        reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=False)
+        logger.info("BGE-M3 and Reranker models loaded successfully.")
+    except Exception as e:
+        logger.error(f"Failed to load BGE models: {e}")
+
 
 # กำหนดค่าโทเค็นความปลอดภัยของ Sidecar ตามข้อเสนอแนะในการรักษาความมั่นคงปลอดภัย
 OCR_SIDECAR_API_KEY = os.getenv("OCR_SIDECAR_API_KEY", "lcbp3-dms-ocr-sidecar-secure-token-2026")
@@ -445,6 +465,71 @@ def normalize_text(req: NormalizeRequest):
     except Exception as e:
         logger.warning(f"Thai normalize failed, returning raw text: {e}")
         return NormalizeResponse(normalized=req.text)
+class EmbedRequest(BaseModel):
+    text: str
+
+class EmbedResponse(BaseModel):
+    dense: list[float]
+    sparse: dict
+
+class RerankRequest(BaseModel):
+    query: str
+    chunks: list[str]
+
+class RerankResponse(BaseModel):
+    scores: list[float]
+    ranked_indices: list[int]
+
+@app.post("/embed", response_model=EmbedResponse, dependencies=[Depends(get_api_key)])
+def embed_text(req: EmbedRequest):
+    """BGE-M3 embedding generator (Dense + Sparse)"""
+    if bge_model is None:
+        raise HTTPException(status_code=503, detail="BGE-M3 model not loaded")
+    try:
+        output = bge_model.encode([req.text], return_dense=True, return_sparse=True)
+        dense_vector = [float(x) for x in output['dense_vecs'][0]]
+        lexical_dict = output['lexical_weights'][0]
+        
+        indices = []
+        values = []
+        for token_id, weight in lexical_dict.items():
+            indices.append(int(token_id))
+            values.append(float(weight))
+        
+        return EmbedResponse(
+            dense=dense_vector,
+            sparse={"indices": indices, "values": values}
+        )
+    except Exception as e:
+        logger.error(f"Embedding generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
+
+@app.post("/rerank", response_model=RerankResponse, dependencies=[Depends(get_api_key)])
+def rerank_chunks(req: RerankRequest):
+    """BGE-Reranker-Large chunk re-ranker"""
+    if reranker is None:
+        raise HTTPException(status_code=503, detail="Reranker model not loaded")
+    if not req.chunks:
+        return RerankResponse(scores=[], ranked_indices=[])
+    try:
+        pairs = [[req.query, chunk] for chunk in req.chunks]
+        scores = reranker.compute_score(pairs)
+        if isinstance(scores, float):
+            scores = [scores]
+        else:
+            scores = [float(s) for s in scores]
+        
+        indexed_scores = list(enumerate(scores))
+        indexed_scores.sort(key=lambda x: x[1], reverse=True)
+        ranked_indices = [idx for idx, _ in indexed_scores]
+        
+        return RerankResponse(
+            scores=scores,
+            ranked_indices=ranked_indices
+        )
+    except Exception as e:
+        logger.error(f"Reranking failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Reranking failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

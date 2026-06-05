@@ -57,7 +57,8 @@ export type AiBatchJobType =
   | 'sandbox-extract'
   | 'sandbox-ocr-only'
   | 'sandbox-ai-extract'
-  | 'migrate-document';
+  | 'migrate-document'
+  | 'rag-prepare';
 
 /** รายการ job types ที่ต้องใช้ Typhoon OCR model — จะ trigger model switching (ADR-034) */
 export const OCR_JOB_TYPES: ReadonlyArray<AiBatchJobType> = [
@@ -239,6 +240,12 @@ export class AiBatchProcessor extends WorkerHost {
             await this.setAiProcessingStatus(job.data.documentPublicId, 'DONE');
           }
           return;
+        case 'rag-prepare':
+          this.logger.log(
+            `RAG prepare job processing — jobId=${String(job.id)}`
+          );
+          await this.processRagPrepare(job.data);
+          return;
         default: {
           const unreachable: never = job.data.jobType;
           throw new Error(
@@ -262,15 +269,41 @@ export class AiBatchProcessor extends WorkerHost {
   private async processEmbedDocument(data: AiBatchJobData): Promise<void> {
     const { documentPublicId, projectPublicId, payload } = data;
     const pdfPath = payload.pdfPath as string;
-    const extractedText = payload.extractedText as string | undefined;
+    const extractedText = readString(payload.extractedText);
     if (!pdfPath) {
       throw new Error('pdfPath is required for embed-document job');
     }
+    const correspondenceNumber =
+      readString(payload.correspondenceNumber) ?? documentPublicId;
+    const docType = readString(payload.docType) ?? 'ATTACHMENT';
+    const statusCode = readString(payload.statusCode) ?? 'ACTIVE';
+    const revisionNumberValue = payload.revisionNumber;
+    const revisionNumber =
+      typeof revisionNumberValue === 'number' &&
+      Number.isFinite(revisionNumberValue)
+        ? revisionNumberValue
+        : 1;
+    const subject = readString(payload.subject) ?? documentPublicId;
+    const documentDate = readString(payload.documentDate);
+    const resolvedOcrText =
+      extractedText ??
+      (
+        await this.ocrService.detectAndExtract({
+          pdfPath,
+          extractedText,
+          documentPublicId,
+        })
+      ).text;
     const result = await this.embeddingService.embedDocument(
-      pdfPath,
-      documentPublicId,
       projectPublicId,
-      extractedText
+      documentPublicId,
+      correspondenceNumber,
+      docType,
+      statusCode,
+      revisionNumber,
+      subject,
+      documentDate,
+      resolvedOcrText
     );
     if (!result.success) {
       throw new Error(`Embedding failed: ${result.error ?? 'Unknown error'}`);
@@ -642,6 +675,84 @@ export class AiBatchProcessor extends WorkerHost {
           errorMessage: errMsg,
           completedAt: new Date().toISOString(),
         })
+      );
+      throw err;
+    }
+  }
+
+  private async processRagPrepare(data: AiBatchJobData): Promise<void> {
+    const payload = data.payload || {};
+    const documentPublicId =
+      (payload.documentPublicId as string) || data.documentPublicId;
+    const projectPublicId =
+      (payload.projectPublicId as string) || data.projectPublicId;
+    const correspondenceNumber = (payload.correspondenceNumber as string) || '';
+    const docType = (payload.docType as string) || 'LETTER';
+    const statusCode = (payload.statusCode as string) || 'IN_REVIEW';
+    const revisionNumber = Number(payload.revisionNumber ?? 1);
+    const subject = (payload.subject as string) || '';
+    const documentDate = (payload.documentDate as string) || undefined;
+    let cachedOcrText = (payload.cachedOcrText as string) || undefined;
+    const attachmentPath = (payload.attachmentPath as string) || undefined;
+
+    this.logger.log(
+      `processRagPrepare: starting for doc=${documentPublicId}, project=${projectPublicId}`
+    );
+
+    // T020a: Resolve OCR text. Use cached if available; otherwise extract using OcrService
+    if (!cachedOcrText && attachmentPath) {
+      this.logger.log(
+        `processRagPrepare: No cached OCR text. Extracting text from ${attachmentPath}...`
+      );
+      try {
+        const ocrResult = await this.ocrService.detectAndExtract({
+          pdfPath: attachmentPath,
+        });
+        cachedOcrText = ocrResult.text;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`processRagPrepare: OCR extraction failed: ${msg}`);
+        throw err;
+      }
+    }
+
+    if (!cachedOcrText) {
+      this.logger.warn(
+        `processRagPrepare: ไม่มี OCR text และไม่มี attachment path - skip embedding`
+      );
+      return;
+    }
+
+    // T020b: skip-guard (< 50 chars)
+    if (cachedOcrText.trim().length < 50) {
+      this.logger.warn(
+        `processRagPrepare: OCR text สั้นเกินไป (${cachedOcrText.trim().length} chars) — skip embedding`
+      );
+      return;
+    }
+
+    // T020c: embed + upsert pipeline
+    try {
+      this.logger.log(
+        `processRagPrepare: chunking and embedding document ${documentPublicId}...`
+      );
+      await this.embeddingService.embedDocument(
+        projectPublicId,
+        documentPublicId,
+        correspondenceNumber,
+        docType,
+        statusCode,
+        revisionNumber,
+        subject,
+        documentDate,
+        cachedOcrText
+      );
+      this.logger.log(
+        `processRagPrepare: successfully processed document ${documentPublicId}`
+      );
+    } catch (err) {
+      this.logger.error(
+        `processRagPrepare: embedding pipeline failed: ${err instanceof Error ? err.message : String(err)}`
       );
       throw err;
     }

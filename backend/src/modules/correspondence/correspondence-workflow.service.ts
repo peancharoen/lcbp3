@@ -10,8 +10,11 @@ import { CorrespondenceRevision } from './entities/correspondence-revision.entit
 import { CorrespondenceStatus } from './entities/correspondence-status.entity';
 import { Correspondence } from './entities/correspondence.entity';
 import { CorrespondenceRecipient } from './entities/correspondence-recipient.entity';
+import { CorrespondenceRevisionAttachment } from './entities/correspondence-revision-attachment.entity';
 import { NotificationService } from '../notification/notification.service';
 import { UserService } from '../user/user.service';
+import { AiQueueService } from '../ai/ai-queue.service';
+import { Project } from '../project/entities/project.entity';
 
 @Injectable()
 export class CorrespondenceWorkflowService {
@@ -30,7 +33,8 @@ export class CorrespondenceWorkflowService {
     private readonly recipientRepo: Repository<CorrespondenceRecipient>,
     private readonly dataSource: DataSource,
     private readonly notificationService: NotificationService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
+    private readonly aiQueueService: AiQueueService
   ) {}
 
   async submitWorkflow(
@@ -85,41 +89,67 @@ export class CorrespondenceWorkflowService {
         { roles: userRoles } // [FIX] Pass roles for DSL requirements check
       );
 
-      await this.syncStatus(revision, transitionResult.nextState, queryRunner);
+      await this.syncStatus(
+        revision,
+        transitionResult.nextState,
+        queryRunner,
+        true
+      );
 
       await queryRunner.commitTransaction();
 
+      // After-commit: RAG preparation (fire-and-forget)
+      // ย้ายมาหลัง commit เพื่อป้องกัน job ถูก enqueue แต่ transaction rollback
+      try {
+        if (transitionResult.nextState !== 'DRAFT') {
+          await this.triggerRagPrepare(revision, transitionResult.nextState);
+        }
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `After-commit RAG preparation failed (non-critical): ${errMsg}`
+        );
+      }
+
       // Notify TO recipient org users (fire-and-forget)
-      const corrForNotify = revision.correspondence;
-      if (corrForNotify) {
-        void this.recipientRepo
-          .find({
-            where: {
-              correspondenceId: corrForNotify.id,
-              recipientType: 'TO',
-            },
-          })
-          .then(async (recipients) => {
-            for (const r of recipients) {
-              const targetUserId = await this.userService.findDocControlIdByOrg(
-                r.recipientOrganizationId
-              );
-              if (targetUserId) {
-                await this.notificationService.send({
-                  userId: targetUserId,
-                  title: 'New Correspondence Received',
-                  message: `${corrForNotify.correspondenceNumber} has been submitted to your organization.`,
-                  type: 'EMAIL',
-                  entityType: 'correspondence',
-                  entityId: revision.correspondenceId,
-                  link: `/correspondences/${corrForNotify.publicId}`,
-                });
+      try {
+        const corrForNotify = revision.correspondence;
+        if (corrForNotify) {
+          void this.recipientRepo
+            .find({
+              where: {
+                correspondenceId: corrForNotify.id,
+                recipientType: 'TO',
+              },
+            })
+            .then(async (recipients) => {
+              for (const r of recipients) {
+                const targetUserId =
+                  await this.userService.findDocControlIdByOrg(
+                    r.recipientOrganizationId
+                  );
+                if (targetUserId) {
+                  await this.notificationService.send({
+                    userId: targetUserId,
+                    title: 'New Correspondence Received',
+                    message: `${corrForNotify.correspondenceNumber} has been submitted to your organization.`,
+                    type: 'EMAIL',
+                    entityType: 'correspondence',
+                    entityId: revision.correspondenceId,
+                    link: `/correspondences/${corrForNotify.publicId}`,
+                  });
+                }
               }
-            }
-          })
-          .catch((err: Error) =>
-            this.logger.warn(`Submit notification failed: ${err.message}`)
-          );
+            })
+            .catch((err: Error) =>
+              this.logger.warn(`Submit notification failed: ${err.message}`)
+            );
+        }
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `After-commit notification setup failed (non-critical): ${errMsg}`
+        );
       }
 
       return {
@@ -166,7 +196,8 @@ export class CorrespondenceWorkflowService {
   private async syncStatus(
     revision: CorrespondenceRevision,
     workflowState: string,
-    queryRunner?: import('typeorm').QueryRunner
+    queryRunner?: import('typeorm').QueryRunner,
+    skipRagPrepare = false
   ) {
     const statusMap: Record<string, string> = {
       DRAFT: 'DRAFT',
@@ -174,21 +205,95 @@ export class CorrespondenceWorkflowService {
       APPROVED: 'CLBOWN',
       REJECTED: 'CCBOWN',
     };
-
     const targetCode = statusMap[workflowState] || 'DRAFT';
-
     const status = await this.statusRepo.findOne({
-      where: { statusCode: targetCode }, // ✅ FIX: CamelCase
+      where: { statusCode: targetCode },
     });
-
     if (status) {
-      // ✅ FIX: CamelCase (correspondenceStatusId)
       revision.statusId = status.id;
-
       const manager = queryRunner
         ? queryRunner.manager
         : this.revisionRepo.manager;
       await manager.save(revision);
+    }
+    // Await RAG preparation เพื่อให้ unit test assert ได้
+    // caller (submitWorkflow/processAction) ก็ยังคง await syncStatus ตามปกติ
+    if (!skipRagPrepare && workflowState !== 'DRAFT') {
+      await this.triggerRagPrepare(revision, targetCode);
+    }
+  }
+
+  /**
+   * triggerRagPrepare — รวบรวมข้อมูลจาก revision/correspondence แล้ว enqueue rag-prepare job
+   * คืน Promise เพื่อให้ test สามารถ await และ assert ได้ ส่วน production caller ก็ await ผ่าน syncStatus
+   */
+  private async triggerRagPrepare(
+    revision: CorrespondenceRevision,
+    statusCode: string
+  ): Promise<void> {
+    try {
+      let correspondence: Correspondence | null | undefined =
+        revision.correspondence;
+      if (!correspondence) {
+        correspondence = await this.correspondenceRepo.findOne({
+          where: { id: revision.correspondenceId },
+          relations: ['project', 'type'],
+        });
+      }
+      if (!correspondence) {
+        return;
+      }
+      let projectPublicId = '';
+      if (correspondence.project) {
+        projectPublicId = correspondence.project.publicId;
+      } else {
+        const proj = await this.correspondenceRepo.manager.findOne(Project, {
+          where: { id: correspondence.projectId },
+        });
+        if (proj) {
+          projectPublicId = proj.publicId;
+        }
+      }
+      const docType = correspondence.type?.typeCode || 'LETTER';
+      let attachmentPath: string | undefined;
+      const attachments = await this.revisionRepo.manager.find(
+        CorrespondenceRevisionAttachment,
+        { where: { correspondenceRevisionId: revision.id } }
+      );
+      if (attachments && attachments.length > 0) {
+        const pdfAtt = attachments.find((att) => {
+          const ext =
+            att.attachment?.originalFilename?.split('.').pop()?.toLowerCase() ||
+            '';
+          return (
+            ext === 'pdf' ||
+            att.attachment?.filePath?.toLowerCase().endsWith('.pdf')
+          );
+        });
+        if (pdfAtt && pdfAtt.attachment) {
+          attachmentPath = pdfAtt.attachment.filePath;
+        } else if (attachments[0].attachment) {
+          attachmentPath = attachments[0].attachment.filePath;
+        }
+      }
+      await this.aiQueueService.enqueueRagPrepare({
+        documentPublicId: correspondence.publicId,
+        projectPublicId: projectPublicId,
+        correspondenceNumber: correspondence.correspondenceNumber,
+        docType: docType,
+        statusCode: statusCode,
+        revisionNumber: revision.revisionNumber,
+        subject: revision.subject,
+        documentDate: revision.documentDate
+          ? revision.documentDate.toISOString().split('T')[0]
+          : undefined,
+        attachmentPath: attachmentPath,
+      });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `Failed to enqueue RAG preparation for revision ${revision.id}: ${errMsg}`
+      );
     }
   }
 }

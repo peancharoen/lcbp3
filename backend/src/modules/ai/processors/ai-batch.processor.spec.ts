@@ -52,6 +52,9 @@ describe('AiBatchProcessor', () => {
     detectAndExtract: jest
       .fn()
       .mockResolvedValue({ text: 'OCR text LCBP3-CIV-001 Civil' }),
+    processWithAutoDetect: jest.fn().mockResolvedValue({
+      text: 'extracted ocr text from document that is long enough to bypass character length check',
+    }),
   };
   const mockSandboxOcrEngineService = {
     detectAndExtract: jest.fn().mockResolvedValue({
@@ -237,7 +240,23 @@ describe('AiBatchProcessor', () => {
       },
     } as unknown as Job<AiBatchJobData>;
     await processor.process(job);
+    expect(ocrService.detectAndExtract).toHaveBeenCalledWith({
+      pdfPath: '/files/test.pdf',
+      extractedText: undefined,
+      documentPublicId: 'doc-uuid-123',
+    });
     expect(embeddingService.embedDocument).toHaveBeenCalledTimes(1);
+    expect(embeddingService.embedDocument).toHaveBeenCalledWith(
+      'proj-uuid-456',
+      'doc-uuid-123',
+      'doc-uuid-123',
+      'ATTACHMENT',
+      'ACTIVE',
+      1,
+      'doc-uuid-123',
+      undefined,
+      'OCR text LCBP3-CIV-001 Civil'
+    );
     expect(attachmentRepo.update).toHaveBeenCalledWith(
       { publicId: 'doc-uuid-123' },
       { aiProcessingStatus: 'PROCESSING' }
@@ -448,5 +467,79 @@ describe('AiBatchProcessor', () => {
     );
     expect(mockAiAuditLogRepo.create).toHaveBeenCalledTimes(1);
     expect(mockAiAuditLogRepo.save).toHaveBeenCalledTimes(1);
+  });
+  describe('rag-prepare', () => {
+    it('ควรประมวลผล rag-prepare สำเร็จเมื่อส่ง cachedOcrText มาโดยตรง', async () => {
+      const job = {
+        id: 'job-rag-prepare-cached',
+        data: {
+          jobType: 'rag-prepare',
+          documentPublicId: 'doc-uuid-123',
+          projectPublicId: 'proj-uuid-456',
+          payload: {
+            documentPublicId: 'doc-uuid-123',
+            projectPublicId: 'proj-uuid-456',
+            correspondenceNumber: 'CORR-001',
+            docType: 'LETTER',
+            statusCode: 'IN_REVIEW',
+            revisionNumber: 1,
+            subject: 'Test Subject',
+            cachedOcrText:
+              'some cached ocr text that is long enough to pass the 50 character limit check',
+          },
+        },
+      } as unknown as Job<AiBatchJobData>;
+      await processor.process(job);
+      expect(embeddingService.embedDocument).toHaveBeenCalledWith(
+        'proj-uuid-456',
+        'doc-uuid-123',
+        'CORR-001',
+        'LETTER',
+        'IN_REVIEW',
+        1,
+        'Test Subject',
+        undefined,
+        'some cached ocr text that is long enough to pass the 50 character limit check'
+      );
+    });
+    it('ควรประมวลผล rag-prepare สำเร็จเมื่อดึงข้อความจากไฟล์แนบผ่าน OCR Service', async () => {
+      ocrService.detectAndExtract.mockResolvedValueOnce({
+        text: 'extracted ocr text from document that is long enough to bypass character length check',
+        ocrUsed: true,
+      });
+      const job = {
+        id: 'job-rag-prepare-ocr',
+        data: {
+          jobType: 'rag-prepare',
+          documentPublicId: 'doc-uuid-123',
+          projectPublicId: 'proj-uuid-456',
+          payload: {
+            documentPublicId: 'doc-uuid-123',
+            projectPublicId: 'proj-uuid-456',
+            correspondenceNumber: 'CORR-002',
+            docType: 'LETTER',
+            statusCode: 'IN_REVIEW',
+            revisionNumber: 2,
+            subject: 'Test OCR Subject',
+            attachmentPath: '/files/test-ocr.pdf',
+          },
+        },
+      } as unknown as Job<AiBatchJobData>;
+      await processor.process(job);
+      expect(ocrService.detectAndExtract).toHaveBeenCalledWith({
+        pdfPath: '/files/test-ocr.pdf',
+      });
+      expect(embeddingService.embedDocument).toHaveBeenCalledWith(
+        'proj-uuid-456',
+        'doc-uuid-123',
+        'CORR-002',
+        'LETTER',
+        'IN_REVIEW',
+        2,
+        'Test OCR Subject',
+        undefined,
+        'extracted ocr text from document that is long enough to bypass character length check'
+      );
+    });
   });
 });

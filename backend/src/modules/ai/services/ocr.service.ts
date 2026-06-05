@@ -393,4 +393,53 @@ export class OcrService {
       );
     }
   }
+
+  /** เรียก Sidecar /embed เพื่อทำ BGE-M3 (Dense + Sparse) embedding (T012) */
+  async embedViaSidecar(text: string): Promise<{
+    dense: number[];
+    sparse: { indices: number[]; values: number[] };
+  }> {
+    try {
+      const response = await axios.post(
+        `${this.ocrApiUrl}/embed`,
+        { text },
+        {
+          headers: {
+            'X-API-Key': this.ocrSidecarApiKey,
+          },
+        }
+      );
+      return response.data as {
+        dense: number[];
+        sparse: { indices: number[]; values: number[] };
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to embed via Sidecar: ${msg}`);
+      throw new Error(`AI_SIDECAR_EMBED_FAILED: ${msg}`);
+    }
+  }
+
+  /** เรียก Sidecar /rerank เพื่อทำ BGE-Reranker-Large re-ranking (T014) */
+  async rerankViaSidecar(
+    query: string,
+    chunks: string[]
+  ): Promise<{ scores: number[]; ranked_indices: number[] }> {
+    try {
+      const response = await axios.post(
+        `${this.ocrApiUrl}/rerank`,
+        { query, chunks },
+        {
+          headers: {
+            'X-API-Key': this.ocrSidecarApiKey,
+          },
+        }
+      );
+      return response.data as { scores: number[]; ranked_indices: number[] };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to rerank via Sidecar: ${msg}`);
+      throw new Error(`AI_SIDECAR_RERANK_FAILED: ${msg}`);
+    }
+  }
 }

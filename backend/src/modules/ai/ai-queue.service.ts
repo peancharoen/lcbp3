@@ -32,7 +32,22 @@ export interface AiRagJobPayload {
 /** Payload สำหรับลบ vector ใน Qdrant แบบ eventual consistency */
 export interface AiVectorDeletionJobPayload {
   documentPublicId: string;
+  projectPublicId: string;
   requestedByUserPublicId: string;
+}
+
+/** Payload สำหรับงาน RAG Prepare เมื่อผู้ใช้ submit workflow */
+export interface RagPrepareJobPayload {
+  documentPublicId: string;
+  projectPublicId: string;
+  correspondenceNumber: string;
+  docType: string;
+  statusCode: string;
+  revisionNumber: number;
+  subject: string;
+  documentDate?: string;
+  cachedOcrText?: string;
+  attachmentPath?: string;
 }
 
 /** จัดการคิว AI ทั้งหมดให้อยู่หลัง BullMQ ตาม ADR-008/ADR-023 */
@@ -92,7 +107,7 @@ export class AiQueueService {
       payload,
       {
         ...this.defaultOptions,
-        jobId: payload.documentPublicId,
+        jobId: `${payload.projectPublicId}:${payload.documentPublicId}`,
       }
     );
     return String(job.id);
@@ -157,5 +172,24 @@ export class AiQueueService {
     const active = await this.batchQueue.getActiveCount();
     const waiting = await this.batchQueue.getWaitingCount();
     return active + waiting;
+  }
+
+  /**
+   * ส่งงาน RAG Prepare เข้า queue เพื่อเตรียมหั่นข้อมูลและทำ embedding ในเบื้องหลัง
+   * @idempotency `jobId = rag-prepare:${documentPublicId}:${revisionNumber}` — ป้องกันการรันซ้ำสำหรับ revision เดียวกัน
+   */
+  async enqueueRagPrepare(payload: RagPrepareJobPayload): Promise<string> {
+    const job = await this.batchQueue.add(
+      'rag-prepare',
+      {
+        jobType: 'rag-prepare',
+        ...payload,
+      },
+      {
+        ...this.defaultOptions,
+        jobId: `rag-prepare:${payload.documentPublicId}:${payload.revisionNumber}`,
+      }
+    );
+    return String(job.id);
   }
 }
