@@ -81,7 +81,6 @@ USE_SMART_CLEANING = os.getenv("TESSERACT_SMART_CLEAN", "true").lower() == "true
 
 logger.info(f"Tesseract OCR Sidecar initialized (lang={OCR_LANG}, config={TESSERACT_CONFIG}, aggressive={USE_AGGRESSIVE_PREPROCESSING}, smart_clean={USE_SMART_CLEANING})")
 
-
 def filter_ocr_noise(text: str) -> str:
     """Filter ขยะ OCR เช่น บรรทัดสั้น/สัญลักษณ์ที่ไม่มีความหมาย"""
     lines = text.split("\n")
@@ -120,7 +119,6 @@ def crop_header_footer(pil_image: Image.Image, top_ratio: float = 0.10, bottom_r
     cropped = pil_image.crop((0, top_crop, width, height - bottom_crop))
     return cropped
 
-
 def preprocess_image(pil_image: Image.Image) -> Image.Image:
     """Preprocess image ด้วย OpenCV เพื่อเพิ่มความแม่นยำ OCR (แบบธรรมชาติ)"""
     # แปลง PIL Image เป็น numpy array (OpenCV format)
@@ -135,7 +133,6 @@ def preprocess_image(pil_image: Image.Image) -> Image.Image:
     # ใช้ grayscale เท่านั้น (ไม่ใช้ adaptive threshold เพราะทำให้ตัวอักษรเสียรูป)
     # แปลงกลับเป็น PIL Image
     return Image.fromarray(denoised)
-
 
 def preprocess_image_aggressive(pil_image: Image.Image) -> Image.Image:
     """
@@ -178,7 +175,6 @@ def preprocess_image_aggressive(pil_image: Image.Image) -> Image.Image:
     logger.info(f"[PREPROCESS] Aggressive: Otsu threshold + morphology applied")
     return Image.fromarray(morph)
 
-
 def clean_ocr_output(text: str) -> str:
     """
     Smart post-processing (Option 3) — ลบ Tesseract hallucination โดย:
@@ -220,12 +216,10 @@ def clean_ocr_output(text: str) -> str:
     logger.info(f"[CLEAN] Input {len(lines)} lines → {len(cleaned)} lines")
     return result
 
-
 class OcrRequest(BaseModel):
     pdfPath: str
     maxPages: Optional[int] = None
     engine: Optional[str] = None
-
 
 class OcrResponse(BaseModel):
     text: str
@@ -233,7 +227,6 @@ class OcrResponse(BaseModel):
     pageCount: int
     charCount: int
     engineUsed: str
-
 
 @app.get("/health")
 def health():
@@ -246,14 +239,12 @@ def health():
         "smartCleaning": USE_SMART_CLEANING,
     }
 
-
 # alias map สำหรับ engine name เก่า → canonical name
 _ENGINE_ALIASES: dict[str, str] = {
     "typhoon-ocr1.5-3b": "typhoon-np-dms-ocr",
     "typhoon-ocr-3b": "typhoon-np-dms-ocr",
     "typhoon_ocr": "typhoon-np-dms-ocr",
 }
-
 
 def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, typhoon_options: dict = {}) -> OcrResponse:
     """ประมวลผล fitz.Document ด้วย engine ที่เลือก — shared logic สำหรับ /ocr และ /ocr-upload"""
@@ -333,106 +324,6 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
         engineUsed="tesseract",
     )
 
-
-def clean_typhoon_output(text: str) -> str:
-    """ลบ prompt และ SYSTEM instruction ที่อาจติดมาใน Typhoon OCR output"""
-    lines = text.split("\n")
-    cleaned = []
-
-    for line in lines:
-        stripped = line.strip()
-
-        # ลบ prompt ที่เราส่งไป
-        if stripped == "Extract all text from this image.":
-            continue
-
-        # ลบ SYSTEM instruction ที่อาจ leak มา (match ทั้ง Thai และ English)
-        if stripped.startswith("You are an expert in structuring Thai documents"):
-            continue
-        if stripped.startswith("คุณคือระบบ AI ผู้เชี่ยวชาญด้านการวิเคราะห์"):
-            continue
-        if stripped.startswith("Task:"):
-            continue
-        if stripped.startswith("Output Rules:"):
-            continue
-        if stripped.startswith("Formatting:"):
-            continue
-        if stripped.startswith("Guidelines:"):
-            continue
-        if stripped.startswith("- Return ONLY"):
-            continue
-        if stripped.startswith("- Input is raw OCR"):
-            continue
-        if stripped.startswith("- Extract and identify"):
-            continue
-        if stripped.startswith("- Summarize the key"):
-            continue
-        if stripped.startswith("- Do NOT create"):
-            continue
-        if stripped.startswith("- Do NOT guess"):
-            continue
-        if stripped.startswith("- If information is incomplete"):
-            continue
-        if stripped.startswith("- Include ALL information"):
-            continue
-        if stripped.startswith("- Preserve document structure"):
-            continue
-        if stripped.startswith("- Do NOT add explanations"):
-            continue
-        if stripped.startswith("- Do NOT include any explanation"):
-            continue
-        if stripped.startswith("- You must include all information"):
-            continue
-        if stripped.startswith("- Tables:"):
-            continue
-        if stripped.startswith("- Math:"):
-            continue
-        if stripped.startswith("- Figures:"):
-            continue
-        if stripped.startswith("- Pages:"):
-            continue
-        if stripped.startswith("- Boxes:"):
-            continue
-        if stripped.startswith("- Unclear:"):
-            continue
-        if stripped.startswith("- Signatures/Stamps:"):
-            continue
-        if stripped.startswith("Return ONLY the specified JSON"):
-            continue
-        if stripped.startswith("Formatting Rules:"):
-            continue
-        if stripped.startswith("- Equations:"):
-            continue
-        if stripped.startswith("- Images/Charts/Diagrams:"):
-            continue
-        if stripped.startswith("- Page Numbers:"):
-            continue
-        if stripped.startswith("- Checkboxes:"):
-            continue
-        if stripped.startswith("Instructions:"):
-            continue
-        if stripped.startswith("- Only return the clean Markdown"):
-            continue
-        if stripped.startswith("- Wrap any clearly defined visual areas"):
-            continue
-        if stripped.startswith("Describe the image's main elements"):
-            continue
-        if stripped.startswith("Describe in Thai"):
-            continue
-        if stripped.startswith("(e.g., <page_number>"):
-            continue
-
-        # ลบ common instruction markers
-        if stripped in ["---", "```", "```markdown", "```text", "```json"]:
-            continue
-
-        cleaned.append(line)
-
-    result = "\n".join(cleaned).strip()
-    logger.info(f"[CLEAN] Typhoon output: {len(text)} → {len(result)} chars")
-    return result
-
-
 def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}) -> str:
     """เรียก Typhoon OCR ผ่าน Ollama — ใช้ SYSTEM ใน Modelfile เป็น instruction หลัก; options_override ยัง override ค่า Modelfile ได้"""
     model_name = TYPHOON_OCR_MODEL
@@ -450,7 +341,7 @@ def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}
     }
     payload = {
         "model": model_name,
-        "prompt": "Extract all text from this image.",
+        "prompt": "",  # SYSTEM instruction ใน Modelfile จัดการทั้งหมด
         "images": [image_base64],
         "stream": False,
         "options": options,
@@ -472,9 +363,7 @@ def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}
             logger.warning(
                 f"[DIAG] Ollama returned empty response — full response keys: {list(data.keys())}"
             )
-        # ลบ prompt/SYSTEM instruction ที่อาจติดมา (safety net)
-        return clean_typhoon_output(result_text)
-
+        return result_text
 
 @app.post("/ocr", response_model=OcrResponse, dependencies=[Depends(get_api_key)])
 def ocr_extract(req: OcrRequest):
@@ -489,7 +378,6 @@ def ocr_extract(req: OcrRequest):
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"เปิดไฟล์ PDF ล้มเหลว: {e}")
     return _process_pdf_doc(doc, selected_engine, max_pages)
-
 
 @app.post("/ocr-upload", response_model=OcrResponse, dependencies=[Depends(get_api_key)])
 def ocr_upload(
@@ -519,14 +407,11 @@ def ocr_upload(
     logger.info(f"OCR upload: {file.filename} engine={selected_engine} options={typhoon_options or 'modelfile-defaults'}")
     return _process_pdf_doc(doc, selected_engine, max_pages, typhoon_options)
 
-
 class NormalizeRequest(BaseModel):
     text: str
 
-
 class NormalizeResponse(BaseModel):
     normalized: str
-
 
 @app.post("/normalize", response_model=NormalizeResponse, dependencies=[Depends(get_api_key)])
 def normalize_text(req: NormalizeRequest):
@@ -540,7 +425,6 @@ def normalize_text(req: NormalizeRequest):
     except Exception as e:
         logger.warning(f"Thai normalize failed, returning raw text: {e}")
         return NormalizeResponse(normalized=req.text)
-
 
 if __name__ == "__main__":
     import uvicorn
