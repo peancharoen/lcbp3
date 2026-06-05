@@ -380,9 +380,11 @@ export class AiBatchProcessor extends WorkerHost {
       }
 
       // ดึงบริบท Master data
+      // Sandbox ใช้ 'default' projectPublicId แต่ไม่ต้องการ override context
+      // ดังนั้นส่ง undefined เพื่อ skip project lookup
       const masterDataContext = await this.aiPromptsService.resolveContext(
         activePrompt,
-        overrideProjPublicId
+        overrideProjPublicId === 'default' ? undefined : overrideProjPublicId
       );
 
       const resolvedPrompt = activePrompt.template
@@ -572,9 +574,11 @@ export class AiBatchProcessor extends WorkerHost {
       }
 
       // Resolve context และ run LLM
+      // Sandbox ใช้ 'default' projectPublicId แต่ไม่ต้องการ override context
+      // ดังนั้นส่ง undefined เพื่อ skip project lookup
       const masterDataContext = await this.aiPromptsService.resolveContext(
         targetPrompt,
-        projectPublicId
+        projectPublicId === 'default' ? undefined : projectPublicId
       );
 
       const resolvedPrompt = targetPrompt.template
