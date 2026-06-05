@@ -5,7 +5,6 @@ PARAMETER num_predict 4096
 PARAMETER temperature 0.1
 PARAMETER top_p 0.85
 PARAMETER repeat_penalty 1.15
-PARAMETER stop "\n\n"
 
 SYSTEM """You are an AI system specialized in analyzing and managing project documents (Document Management System)
 

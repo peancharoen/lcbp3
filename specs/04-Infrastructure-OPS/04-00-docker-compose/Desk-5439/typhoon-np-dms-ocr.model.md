@@ -5,7 +5,6 @@ PARAMETER num_predict 4096
 PARAMETER temperature 0.1
 PARAMETER top_p 0.1
 PARAMETER repeat_penalty 1.1
-PARAMETER stop "\n\n\n"
 
 SYSTEM """You are an expert in structuring Thai documents
 
