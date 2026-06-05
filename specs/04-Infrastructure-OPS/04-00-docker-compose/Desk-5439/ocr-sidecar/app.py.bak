@@ -19,7 +19,6 @@
 # - 2026-06-04: ส่ง color image (ไม่ผ่าน preprocess_image) ไปยัง Typhoon OCR — vision model ต้องการ color ไม่ใช่ binarized grayscale
 # - 2026-06-04: เพิ่ม num_gpu:99 ใน Ollama options เพื่อบังคับ GPU layers (แก้ device=CPU ทั้งที่ VRAM พอ)
 # - 2026-06-02: เพิ่มการตรวจสอบ API Key (X-API-Key Header) สำหรับ endpoints หลัก เพื่อความมั่นคงปลอดภัยตามข้อเสนอแนะ Code Review
-# - 2026-06-05: เพิ่ม Option 2 (aggressive preprocessing: deskew + Otsu threshold + morphology) และ Option 3 (smart post-processing: regex-based hallucination removal) เพื่อลด Tesseract noise/hallucination (T025)
 
 import os
 import logging
@@ -65,21 +64,14 @@ TYPHOON_OCR_MODEL = os.getenv("TYPHOON_OCR_MODEL", "typhoon-np-dms-ocr:latest")
 TYPHOON_OCR_TIMEOUT = int(os.getenv("TYPHOON_OCR_TIMEOUT", "360"))  # รองรับ cold-start ~65s + inference ~30s/page
 # DPI สำหรับ Typhoon OCR — ต่ำกว่า Tesseract เพราะ vision model ใช้ image patches (150 DPI ลด token ~4x)
 TYPHOON_OCR_DPI = int(os.getenv("TYPHOON_OCR_DPI", "150"))
-# PSM mode: 3 (default, fully automatic) หรือ 6 (assume single column, ลด noise)
-TESSERACT_PSM = os.getenv("TESSERACT_PSM", "3")
 # PSM 3 = Fully automatic page segmentation (เหมาะกับเอกสารที่มี layout หลายส่วน เช่น วันที่/เลขที่)
-# PSM 6 = Assume single column of text (ลด hallucination จาก noise)
 # OEM 1 = LSTM only (ดีกว่า legacy engine)
-TESSERACT_CONFIG = f"--psm {TESSERACT_PSM} --oem 1"
+TESSERACT_CONFIG = f"--psm 3 --oem 1"
 # Crop margin: ตัด header/footer (บน 5%, ล่าง 2%)
 CROP_TOP_RATIO = 0.05
 CROP_BOTTOM_RATIO = 0.02
-# Enable aggressive preprocessing (Option 2) สำหรับ Tesseract
-USE_AGGRESSIVE_PREPROCESSING = os.getenv("TESSERACT_AGGRESSIVE_PREPROCESS", "true").lower() == "true"
-# Enable smart post-processing (Option 3) สำหรับลบ hallucination
-USE_SMART_CLEANING = os.getenv("TESSERACT_SMART_CLEAN", "true").lower() == "true"
 
-logger.info(f"Tesseract OCR Sidecar initialized (lang={OCR_LANG}, config={TESSERACT_CONFIG}, aggressive={USE_AGGRESSIVE_PREPROCESSING}, smart_clean={USE_SMART_CLEANING})")
+logger.info(f"Tesseract OCR Sidecar initialized (lang={OCR_LANG}, config={TESSERACT_CONFIG})")
 
 
 def filter_ocr_noise(text: str) -> str:
@@ -122,7 +114,7 @@ def crop_header_footer(pil_image: Image.Image, top_ratio: float = 0.10, bottom_r
 
 
 def preprocess_image(pil_image: Image.Image) -> Image.Image:
-    """Preprocess image ด้วย OpenCV เพื่อเพิ่มความแม่นยำ OCR (แบบธรรมชาติ)"""
+    """Preprocess image ด้วย OpenCV เพื่อเพิ่มความแม่นยำ OCR"""
     # แปลง PIL Image เป็น numpy array (OpenCV format)
     img_array = np.array(pil_image)
 
@@ -135,90 +127,6 @@ def preprocess_image(pil_image: Image.Image) -> Image.Image:
     # ใช้ grayscale เท่านั้น (ไม่ใช้ adaptive threshold เพราะทำให้ตัวอักษรเสียรูป)
     # แปลงกลับเป็น PIL Image
     return Image.fromarray(denoised)
-
-
-def preprocess_image_aggressive(pil_image: Image.Image) -> Image.Image:
-    """
-    Aggressive preprocessing (Option 2) — ลด hallucination โดย:
-    1. Deskew ถ้าหน้าเอียง
-    2. Denoise ด้วย bilateral filter
-    3. Otsu adaptive threshold
-    4. Morphological operations
-    """
-    img_array = np.array(pil_image)
-    gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-    
-    # 1. Deskew ถ้าหน้าเอียง (detect angle จาก Canny edges + Hough lines)
-    try:
-        edges = cv2.Canny(gray, 100, 200)
-        lines = cv2.HoughLinesP(edges, 1, np.pi/180, 100, minLineLength=100, maxLineGap=10)
-        if lines is not None and len(lines) > 0:
-            angles = [np.arctan2(y2-y1, x2-x1) for x1,y1,x2,y2 in lines[:min(10, len(lines))]]
-            angle = np.median(angles) * 180 / np.pi
-            if abs(angle) > 0.5:  # มุมเอียงน้อย ≥ 0.5 องศา
-                h, w = gray.shape
-                M = cv2.getRotationMatrix2D((w/2, h/2), angle, 1.0)
-                gray = cv2.warpAffine(gray, M, (w, h), borderMode=cv2.BORDER_REFLECT)
-                logger.info(f"[PREPROCESS] Deskewed {angle:.1f}°")
-    except Exception as e:
-        logger.warning(f"[PREPROCESS] Deskew failed: {e}")
-    
-    # 2. Denoise — median blur + bilateral filter
-    denoised = cv2.medianBlur(gray, 3)
-    denoised = cv2.bilateralFilter(denoised, 9, 75, 75)
-    
-    # 3. Otsu threshold (adaptive, ไม่ fixed value)
-    _, thresh = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
-    # 4. Morphological operations — ลบ line noise ขนาดเล็ก (ต้าน speckle artifacts)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
-    morph = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)  # ลบ small white noise
-    morph = cv2.morphologyEx(morph, cv2.MORPH_CLOSE, kernel)  # ลบ small black hole
-    
-    logger.info(f"[PREPROCESS] Aggressive: Otsu threshold + morphology applied")
-    return Image.fromarray(morph)
-
-
-def clean_ocr_output(text: str) -> str:
-    """
-    Smart post-processing (Option 3) — ลบ Tesseract hallucination โดย:
-    1. ลบ line ที่เป็นแค่สัญลักษณ์ repeated
-    2. ลบ line ที่เป็นแค่สัญลักษณ์แปลก
-    3. ลบ line ที่ซ้ำตัวอักษรเดียว (artifact noise)
-    """
-    lines = text.split("\n")
-    cleaned = []
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        
-        # ✗ ลบ line ที่เป็นแค่สัญลักษณ์/punctuation เดี่ยวๆ ไม่มีตัวอักษร
-        alphanumeric_part = re.sub(r'[^\w\u0E00-\u0E7F]', '', line)
-        if len(alphanumeric_part) < 2:
-            logger.debug(f"[CLEAN] Reject (no alphanum): {line[:50]}")
-            continue
-        
-        # ✗ ลบ line ที่เป็น repeated pattern — ถ้า unique char ≤ 20% (e.g., "-----", ">>>>>>>")
-        unique_chars = len(set(line))
-        if unique_chars < max(2, len(line) // 5):
-            logger.debug(f"[CLEAN] Reject (repeated pattern): {line[:50]}")
-            continue
-        
-        # ✗ ลบ line ที่เป็นสัญลักษณ์แปลก (< 20% Thai/English alphanumeric)
-        thai_chars = sum(1 for c in line if '\u0E00' <= c <= '\u0E7F')
-        eng_chars = sum(1 for c in line if c.isascii() and c.isalnum())
-        if len(line) > 0 and (thai_chars + eng_chars) / len(line) < 0.2:
-            logger.debug(f"[CLEAN] Reject (low language content): {line[:50]}")
-            continue
-        
-        # ✓ ปล่อยผ่าน
-        cleaned.append(line)
-    
-    result = "\n".join(cleaned)
-    logger.info(f"[CLEAN] Input {len(lines)} lines → {len(cleaned)} lines")
-    return result
 
 
 class OcrRequest(BaseModel):
@@ -241,9 +149,6 @@ def health():
         "status": "ok",
         "engines": ["tesseract", "typhoon-np-dms-ocr"],
         "typhoonModel": TYPHOON_OCR_MODEL,
-        "tesseractConfig": TESSERACT_CONFIG,
-        "aggressivePreprocess": USE_AGGRESSIVE_PREPROCESSING,
-        "smartCleaning": USE_SMART_CLEANING,
     }
 
 
@@ -306,24 +211,11 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
         img_bytes = pix.tobytes("png")
         img = Image.open(io.BytesIO(img_bytes))
         cropped_img = crop_header_footer(img, CROP_TOP_RATIO, CROP_BOTTOM_RATIO)
-        
-        # Option 2: Choose preprocessing strategy
-        if USE_AGGRESSIVE_PREPROCESSING:
-            processed_img = preprocess_image_aggressive(cropped_img)
-        else:
-            processed_img = preprocess_image(cropped_img)
-        
+        processed_img = preprocess_image(cropped_img)
         text = pytesseract.image_to_string(processed_img, lang=OCR_LANG, config=TESSERACT_CONFIG)
         ocr_text_parts.append(text.strip())
 
-    ocr_text = "\n".join(ocr_text_parts).strip()
-    
-    # Option 3: Apply smart post-processing
-    if USE_SMART_CLEANING:
-        ocr_text = clean_ocr_output(ocr_text)
-    else:
-        ocr_text = filter_ocr_noise(ocr_text)
-    
+    ocr_text = filter_ocr_noise("\n".join(ocr_text_parts).strip())
     logger.info(f"Tesseract extracted {len(ocr_text)} chars")
     return OcrResponse(
         text=ocr_text,
