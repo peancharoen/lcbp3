@@ -334,6 +334,105 @@ def _process_pdf_doc(doc: fitz.Document, selected_engine: str, max_pages: int, t
     )
 
 
+def clean_typhoon_output(text: str) -> str:
+    """ลบ prompt และ SYSTEM instruction ที่อาจติดมาใน Typhoon OCR output"""
+    lines = text.split("\n")
+    cleaned = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        # ลบ prompt ที่เราส่งไป
+        if stripped == "Extract all text from this image.":
+            continue
+
+        # ลบ SYSTEM instruction ที่อาจ leak มา (match ทั้ง Thai และ English)
+        if stripped.startswith("You are an expert in structuring Thai documents"):
+            continue
+        if stripped.startswith("คุณคือระบบ AI ผู้เชี่ยวชาญด้านการวิเคราะห์"):
+            continue
+        if stripped.startswith("Task:"):
+            continue
+        if stripped.startswith("Output Rules:"):
+            continue
+        if stripped.startswith("Formatting:"):
+            continue
+        if stripped.startswith("Guidelines:"):
+            continue
+        if stripped.startswith("- Return ONLY"):
+            continue
+        if stripped.startswith("- Input is raw OCR"):
+            continue
+        if stripped.startswith("- Extract and identify"):
+            continue
+        if stripped.startswith("- Summarize the key"):
+            continue
+        if stripped.startswith("- Do NOT create"):
+            continue
+        if stripped.startswith("- Do NOT guess"):
+            continue
+        if stripped.startswith("- If information is incomplete"):
+            continue
+        if stripped.startswith("- Include ALL information"):
+            continue
+        if stripped.startswith("- Preserve document structure"):
+            continue
+        if stripped.startswith("- Do NOT add explanations"):
+            continue
+        if stripped.startswith("- Do NOT include any explanation"):
+            continue
+        if stripped.startswith("- You must include all information"):
+            continue
+        if stripped.startswith("- Tables:"):
+            continue
+        if stripped.startswith("- Math:"):
+            continue
+        if stripped.startswith("- Figures:"):
+            continue
+        if stripped.startswith("- Pages:"):
+            continue
+        if stripped.startswith("- Boxes:"):
+            continue
+        if stripped.startswith("- Unclear:"):
+            continue
+        if stripped.startswith("- Signatures/Stamps:"):
+            continue
+        if stripped.startswith("Return ONLY the specified JSON"):
+            continue
+        if stripped.startswith("Formatting Rules:"):
+            continue
+        if stripped.startswith("- Equations:"):
+            continue
+        if stripped.startswith("- Images/Charts/Diagrams:"):
+            continue
+        if stripped.startswith("- Page Numbers:"):
+            continue
+        if stripped.startswith("- Checkboxes:"):
+            continue
+        if stripped.startswith("Instructions:"):
+            continue
+        if stripped.startswith("- Only return the clean Markdown"):
+            continue
+        if stripped.startswith("- Wrap any clearly defined visual areas"):
+            continue
+        if stripped.startswith("Describe the image's main elements"):
+            continue
+        if stripped.startswith("Describe in Thai"):
+            continue
+        if stripped.startswith("(e.g., <page_number>"):
+            continue
+
+        # ลบ common instruction markers
+        if stripped in ["---", "```", "```markdown", "```text", "```json"]:
+            continue
+
+        cleaned.append(line)
+
+    result = "\n".join(cleaned).strip()
+    logger.info(f"[CLEAN] Typhoon output: {len(text)} → {len(result)} chars")
+    return result
+
+
 def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}) -> str:
     """เรียก Typhoon OCR ผ่าน Ollama — ใช้ SYSTEM ใน Modelfile เป็น instruction หลัก; options_override ยัง override ค่า Modelfile ได้"""
     model_name = TYPHOON_OCR_MODEL
@@ -373,7 +472,8 @@ def process_with_typhoon_ocr(pil_image: Image.Image, options_override: dict = {}
             logger.warning(
                 f"[DIAG] Ollama returned empty response — full response keys: {list(data.keys())}"
             )
-        return result_text
+        # ลบ prompt/SYSTEM instruction ที่อาจติดมา (safety net)
+        return clean_typhoon_output(result_text)
 
 
 @app.post("/ocr", response_model=OcrResponse, dependencies=[Depends(get_api_key)])
