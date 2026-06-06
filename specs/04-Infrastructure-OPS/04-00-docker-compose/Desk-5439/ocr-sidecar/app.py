@@ -1,4 +1,4 @@
-# File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/app.py
+# File: specs/04-Infrastructure-OPS/04-00-docker-compose\Desk-5439\ocr-sidecar\app.py
 # Tesseract OCR HTTP Sidecar API — รับ POST /ocr แล้วคืนข้อความที่สกัดจาก PDF/Image
 # ตาม ADR-023A: OCR auto-detect (PyMuPDF chars > 100 → Fast path, else Tesseract)
 # Change Log:
@@ -14,12 +14,12 @@
 # - 2026-06-04: รับค่า temperature/top_p/repeat_penalty จาก frontend sandbox ได้ (optional override)
 # - 2026-06-04: แก้ bug prompt="" ทำให้ Ollama ไม่ generate — เปลี่ยนเป็น minimal trigger prompt
 # - 2026-06-04: เพิ่ม alias normalization สำหรับ engine name เก่า (typhoon-ocr1.5-3b → typhoon-np-dms-ocr)
-# - 2026-06-04: เปลี่ยน keep_alive จาก 0 เป็น 300s เพื่อไม่ให้ unload model ระหว่าง sandbox session (ลด cold-start)
 # - 2026-06-04: เพิ่ม TYPHOON_OCR_DPI=150 (แยกจาก Tesseract DPI=300) — ลด image token count 4x เพื่อเร่ง CPU inference (model >8GB ไม่พอ VRAM)
 # - 2026-06-04: ส่ง color image (ไม่ผ่าน preprocess_image) ไปยัง Typhoon OCR — vision model ต้องการ color ไม่ใช่ binarized grayscale
 # - 2026-06-04: เพิ่ม num_gpu:99 ใน Ollama options เพื่อบังคับ GPU layers (แก้ device=CPU ทั้งที่ VRAM พอ)
 # - 2026-06-02: เพิ่มการตรวจสอบ API Key (X-API-Key Header) สำหรับ endpoints หลัก เพื่อความมั่นคงปลอดภัยตามข้อเสนอแนะ Code Review
 # - 2026-06-05: เพิ่ม Option 2 (aggressive preprocessing: deskew + Otsu threshold + morphology) และ Option 3 (smart post-processing: regex-based hallucination removal) เพื่อลด Tesseract noise/hallucination (T025)
+# - 2026-06-06: เปลี่ยน keep_alive จาก 300s เป็น 0 เพื่อ unload model ทันทีหลังเสร็จงาน (แก้ปัญหา VRAM ไม่พอเมื่อ typhoon2.5-np-dms load พร้อมกัน)
 
 import os
 import logging
@@ -385,7 +385,7 @@ Extract all text from this image.""",
         "images": [image_base64],
         "stream": False,
         "options": options,
-        "keep_alive": 300,  # คง model ไว้ใน VRAM/RAM 5 นาที เพื่อลด cold-start ระหว่าง sandbox session
+        "keep_alive": 0,  # Unload model ทันทีหลังเสร็จงานเพื่อคืน VRAM ให้ typhoon2.5-np-dms ใช้งานได้
     }
     with httpx.Client(timeout=TYPHOON_OCR_TIMEOUT) as client:
         response = client.post(f"{OLLAMA_API_URL}/api/generate", json=payload)
@@ -489,13 +489,13 @@ def embed_text(req: EmbedRequest):
         output = bge_model.encode([req.text], return_dense=True, return_sparse=True)
         dense_vector = [float(x) for x in output['dense_vecs'][0]]
         lexical_dict = output['lexical_weights'][0]
-        
+
         indices = []
         values = []
         for token_id, weight in lexical_dict.items():
             indices.append(int(token_id))
             values.append(float(weight))
-        
+
         return EmbedResponse(
             dense=dense_vector,
             sparse={"indices": indices, "values": values}
@@ -518,11 +518,11 @@ def rerank_chunks(req: RerankRequest):
             scores = [scores]
         else:
             scores = [float(s) for s in scores]
-        
+
         indexed_scores = list(enumerate(scores))
         indexed_scores.sort(key=lambda x: x[1], reverse=True)
         ranked_indices = [idx for idx, _ in indexed_scores]
-        
+
         return RerankResponse(
             scores=scores,
             ranked_indices=ranked_indices

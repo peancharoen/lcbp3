@@ -4,6 +4,7 @@
 // - 2026-05-21: เพิ่ม checkHealth สำหรับตรวจสอบสุขภาพและความเร็ว (Latency) ของ Ollama
 // - 2026-06-02: เพิ่ม loadModel() preloading, ดึงจริงจาก /api/ps และเพิ่ม unloadModel() เพื่อล้างหน่วยความจำ GPU/VRAM (ADR-033, Suggestion 1)
 // - 2026-06-03: ADR-034 — เปลี่ยน default model เป็น typhoon2.5-np-dms; เพิ่ม ocrModel field, keepAlive param ใน loadModel(), model option ใน OllamaGenerateOptions, getOcrModelName()
+// - 2026-06-06: เพิ่ม system prompt support ใน OllamaGenerateOptions และ generate() method เพื่อรองรับ Typhoon model ที่ต้องการ system prompt แยกต่างหาก
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -14,6 +15,8 @@ export interface OllamaGenerateOptions {
   signal?: AbortSignal;
   /** ชื่อ model ที่ต้องการใช้ — ถ้าไม่ระบุ จะใช้ mainModel เป็นค่าเริ่มต้น (ADR-034) */
   model?: string;
+  /** System prompt สำหรับ Typhoon model ที่ต้องการ system prompt แยกต่างหาก (ใช้ triple quotes) */
+  system?: string;
 }
 
 /** บริการเรียก Ollama local-only บน Admin Desktop ตาม ADR-023A */
@@ -57,6 +60,7 @@ export class OllamaService {
         {
           model: options.model ?? this.mainModel,
           prompt,
+          system: options.system,
           stream: false,
         },
         {
