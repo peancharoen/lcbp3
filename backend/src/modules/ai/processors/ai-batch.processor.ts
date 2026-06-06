@@ -78,6 +78,21 @@ export interface AiBatchJobData {
 
 /** OCR text สูงสุดที่ส่งเข้า LLM prompt — ป้องกัน context overflow (num_ctx 8192, Thai ~3 chars/token) */
 const MAX_OCR_TEXT_CHARS = 15000;
+const MAX_JSON_PARSE_ATTEMPTS = 2;
+const removeControlCharacters = (
+  value: string,
+  includeDeleteCharacter = false
+): string =>
+  Array.from(value)
+    .filter((character) => {
+      const code = character.charCodeAt(0);
+      const isAsciiControl =
+        (code >= 0 && code <= 8) || code === 11 || code === 12;
+      const isAdditionalControl = code >= 14 && code <= 31;
+      const isDeleteCharacter = includeDeleteCharacter && code === 127;
+      return !isAsciiControl && !isAdditionalControl && !isDeleteCharacter;
+    })
+    .join('');
 
 const readString = (value: unknown): string | undefined =>
   typeof value === 'string' && value.trim().length > 0 ? value : undefined;
@@ -145,6 +160,14 @@ const parseMigrateDocumentMetadata = (
   };
 };
 
+const sanitizeLlmJsonResponse = (response: string): string =>
+  removeControlCharacters(
+    response.replace(/```json/g, '').replace(/```/g, '')
+  ).trim();
+
+const sanitizeOcrText = (text: string): string =>
+  removeControlCharacters(text.replace(/\r\n/g, '\n'), true).trim();
+
 /** Processor สำหรับงาน AI batch ที่รันทีละงานเพื่อคุม VRAM
  *  lockDuration: 150000ms — รองรับ Ollama sandbox ที่ใช้เวลาสูงสุด 120s (ADR-029 FR-008)
  *  ค่า default ของ BullMQ คือ 30000ms ซึ่งน้อยกว่า timeout → job stall
@@ -172,6 +195,51 @@ export class AiBatchProcessor extends WorkerHost {
     @InjectRedis() private readonly redis: Redis
   ) {
     super();
+  }
+
+  /** เรียก LLM แล้ว parse JSON แบบ retry จริงเมื่อได้ผลลัพธ์ไม่สมบูรณ์ */
+  private async generateStructuredJson(
+    prompt: string,
+    options: { timeoutMs: number; model?: string; system?: string }
+  ): Promise<{
+    extractedMetadata: Record<string, unknown>;
+    rawResponse: string;
+    cleanedResponse: string;
+  }> {
+    let lastRawResponse = '';
+    let lastCleanedResponse = '';
+    for (let attempt = 1; attempt <= MAX_JSON_PARSE_ATTEMPTS; attempt += 1) {
+      const rawResponse = await this.ollamaService.generate(prompt, options);
+      const cleanedResponse = sanitizeLlmJsonResponse(rawResponse);
+      lastRawResponse = rawResponse;
+      lastCleanedResponse = cleanedResponse;
+      this.logger.debug(`Raw LLM response: ${rawResponse}`);
+      try {
+        return {
+          extractedMetadata: JSON.parse(cleanedResponse) as Record<
+            string,
+            unknown
+          >,
+          rawResponse,
+          cleanedResponse,
+        };
+      } catch {
+        if (attempt >= MAX_JSON_PARSE_ATTEMPTS) {
+          this.logger.error(
+            `Failed to parse LLM response as JSON after ${MAX_JSON_PARSE_ATTEMPTS} attempts. Raw: ${lastRawResponse}, Cleaned: ${lastCleanedResponse}`
+          );
+          throw new Error(
+            `Failed to parse LLM response as JSON after ${MAX_JSON_PARSE_ATTEMPTS} attempts. Raw: ${lastRawResponse.substring(0, 200)}, Cleaned: ${lastCleanedResponse.substring(0, 200)}`
+          );
+        }
+        this.logger.warn(
+          `JSON parse attempt ${attempt} failed, regenerating response...`
+        );
+      }
+    }
+    throw new Error(
+      `Failed to parse LLM response as JSON after ${MAX_JSON_PARSE_ATTEMPTS} attempts`
+    );
   }
 
   /** Dispatch งาน batch ตาม jobType */
@@ -410,6 +478,12 @@ export class AiBatchProcessor extends WorkerHost {
         pdfPath,
         engineType
       );
+      const sanitizedOcrText = sanitizeOcrText(ocrResult.text);
+      if (sanitizedOcrText.length !== ocrResult.text.length) {
+        this.logger.warn(
+          `OCR text sanitized before LLM: raw=${ocrResult.text.length} chars, sanitized=${sanitizedOcrText.length} chars`
+        );
+      }
 
       const activePrompt =
         await this.aiPromptsService.getActive('ocr_extraction');
@@ -426,12 +500,12 @@ export class AiBatchProcessor extends WorkerHost {
       );
 
       const ocrTextSafe =
-        ocrResult.text.length > MAX_OCR_TEXT_CHARS
+        sanitizedOcrText.length > MAX_OCR_TEXT_CHARS
           ? (this.logger.warn(
-              `OCR text truncated: ${ocrResult.text.length} chars > ${MAX_OCR_TEXT_CHARS} limit (context overflow protection)`
+              `OCR text truncated: ${sanitizedOcrText.length} chars > ${MAX_OCR_TEXT_CHARS} limit (context overflow protection)`
             ),
-            ocrResult.text.substring(0, MAX_OCR_TEXT_CHARS))
-          : ocrResult.text;
+            sanitizedOcrText.substring(0, MAX_OCR_TEXT_CHARS))
+          : sanitizedOcrText;
 
       const resolvedPrompt = activePrompt.template
         .replace('{{ocr_text}}', ocrTextSafe)
@@ -444,45 +518,12 @@ export class AiBatchProcessor extends WorkerHost {
         `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${JSON.stringify(masterDataContext, null, 2).length} chars, Total=${resolvedPrompt.length} chars`
       );
 
-      const response = await this.ollamaService.generate(resolvedPrompt, {
-        timeoutMs: 120000,
-      });
-      this.logger.debug(`Raw LLM response: ${response}`);
-      const cleanedResponse = response
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim();
-      let extractedMetadata: Record<string, unknown> | null = null;
-      let parseAttempts = 0;
-      const maxParseAttempts = 2;
-      while (parseAttempts < maxParseAttempts) {
-        try {
-          extractedMetadata = JSON.parse(cleanedResponse) as Record<
-            string,
-            unknown
-          >;
-          break;
-        } catch {
-          parseAttempts++;
-          if (parseAttempts >= maxParseAttempts) {
-            this.logger.error(
-              `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts. Raw: ${response}, Cleaned: ${cleanedResponse}`
-            );
-            throw new Error(
-              `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts. Raw: ${response.substring(0, 200)}, Cleaned: ${cleanedResponse.substring(0, 200)}`
-            );
-          }
-          this.logger.warn(
-            `JSON parse attempt ${parseAttempts} failed, retrying...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+      const { extractedMetadata } = await this.generateStructuredJson(
+        resolvedPrompt,
+        {
+          timeoutMs: 120000,
         }
-      }
-      if (!extractedMetadata) {
-        throw new Error(
-          `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts`
-        );
-      }
+      );
       await this.aiPromptsService.saveTestResult(
         'ocr_extraction',
         activePrompt.versionNumber,
@@ -495,7 +536,7 @@ export class AiBatchProcessor extends WorkerHost {
           requestPublicId: idempotencyKey,
           status: 'completed',
           answer: JSON.stringify(extractedMetadata, null, 2),
-          ocrText: ocrResult.text,
+          ocrText: sanitizedOcrText,
           ocrUsed: ocrResult.ocrUsed,
           engineUsed: ocrResult.engineUsed,
           fallbackUsed: ocrResult.fallbackUsed,
@@ -549,13 +590,19 @@ export class AiBatchProcessor extends WorkerHost {
         engineType,
         typhoonOptions
       );
+      const sanitizedOcrText = sanitizeOcrText(ocrResult.text);
+      if (sanitizedOcrText.length !== ocrResult.text.length) {
+        this.logger.warn(
+          `OCR text sanitized before cache: raw=${ocrResult.text.length} chars, sanitized=${sanitizedOcrText.length} chars`
+        );
+      }
 
       // Cache OCR text สำหรับ Step 2
       await this.redis.setex(
         `ai:sandbox:ocr:${idempotencyKey}`,
         3600,
         JSON.stringify({
-          ocrText: ocrResult.text,
+          ocrText: sanitizedOcrText,
           ocrUsed: ocrResult.ocrUsed,
           engineUsed: ocrResult.engineUsed,
           fallbackUsed: ocrResult.fallbackUsed,
@@ -569,7 +616,7 @@ export class AiBatchProcessor extends WorkerHost {
         JSON.stringify({
           requestPublicId: idempotencyKey,
           status: 'completed',
-          ocrText: ocrResult.text,
+          ocrText: sanitizedOcrText,
           ocrUsed: ocrResult.ocrUsed,
           engineUsed: ocrResult.engineUsed,
           fallbackUsed: ocrResult.fallbackUsed,
@@ -624,7 +671,12 @@ export class AiBatchProcessor extends WorkerHost {
         fallbackUsed?: boolean;
         timestamp: string;
       };
-      const { ocrText } = parsedOcr;
+      const ocrText = sanitizeOcrText(parsedOcr.ocrText);
+      if (ocrText.length !== parsedOcr.ocrText.length) {
+        this.logger.warn(
+          `Cached OCR text sanitized before AI extraction: raw=${parsedOcr.ocrText.length} chars, sanitized=${ocrText.length} chars`
+        );
+      }
 
       // ดึง prompt version
       const activePrompt =
@@ -667,48 +719,15 @@ export class AiBatchProcessor extends WorkerHost {
           '{{master_data_context}}',
           JSON.stringify(masterDataContext, null, 2)
         );
-
-      const response = await this.ollamaService.generate(resolvedPrompt, {
-        timeoutMs: 120000,
-      });
-
-      this.logger.debug(`Raw LLM response: ${response}`);
-      const cleanedResponse = response
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim();
-
-      let extractedMetadata: Record<string, unknown> | null = null;
-      let parseAttempts = 0;
-      const maxParseAttempts = 2;
-      while (parseAttempts < maxParseAttempts) {
-        try {
-          extractedMetadata = JSON.parse(cleanedResponse) as Record<
-            string,
-            unknown
-          >;
-          break;
-        } catch {
-          parseAttempts++;
-          if (parseAttempts >= maxParseAttempts) {
-            this.logger.error(
-              `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts. Raw: ${response}, Cleaned: ${cleanedResponse}`
-            );
-            throw new Error(
-              `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts. Raw: ${response.substring(0, 200)}, Cleaned: ${cleanedResponse.substring(0, 200)}`
-            );
-          }
-          this.logger.warn(
-            `JSON parse attempt ${parseAttempts} failed, retrying...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+      this.logger.debug(
+        `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${JSON.stringify(masterDataContext, null, 2).length} chars, Total=${resolvedPrompt.length} chars`
+      );
+      const { extractedMetadata } = await this.generateStructuredJson(
+        resolvedPrompt,
+        {
+          timeoutMs: 120000,
         }
-      }
-      if (!extractedMetadata) {
-        throw new Error(
-          `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts`
-        );
-      }
+      );
 
       await this.aiPromptsService.saveTestResult(
         'ocr_extraction',
@@ -728,6 +747,7 @@ export class AiBatchProcessor extends WorkerHost {
           engineUsed: parsedOcr.engineUsed,
           fallbackUsed: parsedOcr.fallbackUsed,
           promptVersionUsed: targetPrompt.versionNumber,
+          llmPrompt: resolvedPrompt,
           completedAt: new Date().toISOString(),
         })
       );

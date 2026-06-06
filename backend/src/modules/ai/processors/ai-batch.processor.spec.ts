@@ -84,6 +84,7 @@ describe('AiBatchProcessor', () => {
   };
   const mockRedis = {
     setex: jest.fn().mockResolvedValue('OK'),
+    get: jest.fn().mockResolvedValue(null),
   };
   const mockAttachmentRepo = {
     findOne: jest.fn().mockResolvedValue({
@@ -143,6 +144,7 @@ describe('AiBatchProcessor', () => {
       resolvedPrompt: 'Resolved test prompt with OCR text',
       versionNumber: 2,
     }),
+    findByVersion: jest.fn().mockResolvedValue(null),
     saveTestResult: jest.fn().mockResolvedValue(undefined),
   };
   beforeEach(async () => {
@@ -313,6 +315,68 @@ describe('AiBatchProcessor', () => {
       'ai:rag:result:idem-extract-123',
       3600,
       expect.stringContaining('completed')
+    );
+  });
+  it('sandbox-ai-extract ควร regenerate response ใหม่เมื่อ parse JSON ครั้งแรกล้มเหลว', async () => {
+    const cachedOcrPayload = {
+      ocrText: 'OCR text for retry test\u0002\u0000',
+      ocrUsed: true,
+      engineUsed: 'typhoon-np-dms-ocr',
+      fallbackUsed: false,
+      timestamp: '2026-06-06T15:00:00.000Z',
+    };
+    mockRedis.get = jest
+      .fn()
+      .mockResolvedValueOnce(JSON.stringify(cachedOcrPayload));
+    mockAiPromptsService.findByVersion = jest.fn().mockResolvedValue({
+      id: 1,
+      promptType: 'ocr_extraction',
+      versionNumber: 2,
+      template:
+        'Resolved test prompt with OCR text {{ocr_text}} and context {{master_data_context}}',
+      isActive: true,
+      contextConfig: { filter: {} },
+    });
+    mockOllamaService.generate
+      .mockResolvedValueOnce('{\u0002\u0000')
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          subject: 'Recovered after retry',
+          confidence: 0.91,
+          tags: ['retry'],
+        })
+      );
+    const job = {
+      id: 'job-ai-extract-retry',
+      data: {
+        jobType: 'sandbox-ai-extract',
+        documentPublicId: 'idem-ai-extract-123',
+        projectPublicId: 'default',
+        payload: { promptVersion: 2 },
+        idempotencyKey: 'idem-ai-extract-123',
+      },
+    } as unknown as Job<AiBatchJobData>;
+    await processor.process(job);
+    expect(mockOllamaService.generate).toHaveBeenCalledTimes(2);
+    expect(mockOllamaService.generate).toHaveBeenNthCalledWith(
+      1,
+      expect.not.stringContaining('\u0002'),
+      expect.objectContaining({
+        timeoutMs: 120000,
+      })
+    );
+    expect(mockAiPromptsService.saveTestResult).toHaveBeenCalledWith(
+      'ocr_extraction',
+      2,
+      expect.objectContaining({
+        subject: 'Recovered after retry',
+        confidence: 0.91,
+      })
+    );
+    expect(mockRedis.setex).toHaveBeenLastCalledWith(
+      'ai:rag:result:idem-ai-extract-123',
+      3600,
+      expect.stringContaining('"llmPrompt"')
     );
   });
   it('EC-001: ควรบันทึก aiIssues เมื่อ AI สกัด Tag ใหม่ที่ไม่มีในระบบ', async () => {
