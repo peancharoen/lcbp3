@@ -612,6 +612,26 @@ export default function OcrSandboxPromptManager() {
                 </CardContent>
               </Card>
             )}
+            {sandboxState.result && sandboxState.result.llmPrompt && (
+              <Card className="border border-purple-500/20 bg-purple-500/5">
+                <CardHeader className="border-b border-border/30 pb-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-base text-purple-600 dark:text-purple-400 flex items-center gap-2">
+                    <StickyNote className="h-4 w-4" />
+                    LLM Prompt (Step 2 Input)
+                  </CardTitle>
+                  <Badge variant="outline" className="text-xs">
+                    {sandboxState.result.llmPrompt.length} chars
+                  </Badge>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="relative rounded-md bg-muted p-4 font-mono text-xs overflow-auto max-h-[300px] border border-border/10">
+                    <pre className="text-purple-600 dark:text-purple-400 select-text leading-relaxed whitespace-pre-wrap">
+                      {sandboxState.result.llmPrompt}
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {sandboxState.isRunning && (
               <Card className="border border-amber-500/20 bg-amber-500/5">
                 <CardContent className="pt-6 space-y-4">

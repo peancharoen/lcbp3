@@ -500,6 +500,7 @@ export class AiBatchProcessor extends WorkerHost {
           engineUsed: ocrResult.engineUsed,
           fallbackUsed: ocrResult.fallbackUsed,
           promptVersionUsed: activePrompt.versionNumber,
+          llmPrompt: resolvedPrompt,
           completedAt: new Date().toISOString(),
         })
       );

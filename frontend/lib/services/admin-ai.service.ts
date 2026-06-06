@@ -7,6 +7,7 @@
 // - 2026-05-25: เพิ่ม methods สำหรับจัดการโมเดล AI แบบไดนามิก (ADR-027).
 // - 2026-05-29: เพิ่ม ocr field ใน AiSystemHealth interface ตาม OcrService.checkHealth()
 // - 2026-05-29: เพิ่ม ocrText, ocrUsed, promptVersionUsed ใน AiSandboxJobResult
+// - 2026-06-06: เพิ่ม llmPrompt ใน AiSandboxJobResult เพื่อแสดง prompt ที่ส่งไป LLM
 // - 2026-05-30: เพิ่มเมธอด getOcrEngines และ selectOcrEngine สำหรับจัดการ OCR engines (T017, T018, US1)
 // - 2026-05-30: เพิ่ม getVramStatus และปรับปรุง getAvailableModels/setActiveModel/addModel ให้เรียกใช้ endpoints ใหม่ที่มี VRAM capacity check (T031-T034, US2)
 // - 2026-06-03: ADR-034 — เพิ่ม activeModels field (หลัก+OCR) ใน AiSystemHealth interface
@@ -75,6 +76,7 @@ export interface AiSandboxJobResult {
   engineUsed?: string;
   fallbackUsed?: boolean;
   promptVersionUsed?: number;
+  llmPrompt?: string;
   citations?: AiRagCitation[];
   confidence?: number;
   usedFallbackModel?: boolean;
