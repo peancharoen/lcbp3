@@ -1,7 +1,7 @@
 # NAP-DMS Project Context & Rules
 
 - For: Windsurf Cascade (and compatible: Codex CLI, opencode, Amp, Antigravity, AGENTS.md tools)
-- Version: 1.9.9 | Last synced from repo: 2026-06-03
+- Version: 1.9.10 | Last synced from repo: 2026-06-06
 - Repo: [https://git.np-dms.work/np-dms/lcbp3](https://git.np-dms.work/np-dms/lcbp3)
 - Skill pack: `.agents/skills/` (v1.9.0, 21 skills) — see [`skills/README.md`](./.agents/skills/README.md) + [`skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)
 
@@ -501,6 +501,104 @@ When user asks about... check these files:
 - 🔄 In development
 - ❌ Not yet started
 
+---
+
+## 🔌 MCP MariaDB Tools
+
+MCP MariaDB server ให้เครื่องมือสำหรับตรวจสอบและจัดการ database โดยตรง ใช้สำหรับ:
+
+- ตรวจสอบ schema กับ spec file `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
+- Debug ปัญหา database โดยไม่ต้องเข้า MySQL client
+- ตรวจสอบ data ใน production/staging
+- Validate การเปลี่ยนแปลง schema ก่อน deploy
+
+### Available Tools
+
+| Tool | หน้าที่ | ตัวอย่างการใช้งาน |
+|------|----------|------------------|
+| `mcp1_mysql_test_connection` | ทดสอบ connection กับ database | ตรวจสอบว่า MCP server เชื่อมต่อได้ |
+| `mcp1_mysql_show_databases` | แสดง databases ทั้งหมด | ดูว่ามี database อะไรบ้าง |
+| `mcp1_mysql_show_tables` | แสดง tables ทั้งหมดใน database | ดูรายชื่อ tables ใน `lcbp3` |
+| `mcp1_mysql_describe_table` | ดู structure/columns ของ table | ตรวจสอบ columns, types, keys ของ `correspondences` |
+| `mcp1_mysql_query` | รัน SELECT query | ดู data ใน table หรือ join query |
+| `mcp1_mysql_insert` | INSERT data | เพิ่ม seed data หรือ test data |
+| `mcp1_mysql_update` | UPDATE data | แก้ไข data ใน table |
+| `mcp1_mysql_delete` | DELETE data | ลบ data ใน table |
+
+### การใช้งานร่วมกับ Development Flow
+
+**เมื่อเขียน query ใหม่:**
+1. ใช้ `mcp1_mysql_describe_table` เพื่อตรวจสอบ columns และ types
+2. เปรียบเทียบกับ `specs/03-Data-and-Storage/lcbp3-v1.9.0-schema-02-tables.sql`
+3. ใช้ `mcp1_mysql_query` เพื่อทดสอบ query ก่อน implement
+
+**เมื่อเปลี่ยน schema (ADR-009):**
+1. ใช้ `mcp1_mysql_describe_table` เพื่อดู structure ปัจจุบัน
+2. สร้าง SQL delta ใน `specs/03-Data-and-Storage/deltas/`
+3. ใช้ `mcp1_mysql_query` เพื่อตรวจสอบผลลัพธ์หลัง apply delta
+
+**เมื่อ debug ปัญหา database:**
+1. ใช้ `mcp1_mysql_query` เพื่อดู data จริง
+2. เปรียบเทียบกับ spec และ data dictionary
+3. ตรวจสอบ foreign keys และ constraints
+
+### ข้อควรระวัง
+
+- **❌ ห้ามใช้ MCP MariaDB สำหรับ DDL operations** (CREATE/ALTER/DROP) โดยตรง — ต้องใช้ SQL delta ตาม ADR-009
+- **✅ ใช้สำหรับ DQL/DML operations** (SELECT/INSERT/UPDATE/DELETE) เพื่อ debug และ test เท่านั้น
+- **⚠️ ระวัง DELETE operations** — อาจทำให้เสีย data ใน production
+- **✅ ตรวจสอบ schema กับ spec file เสมอ** ก่อนเขียน query
+
+---
+
+## 🧠 MCP Memory Tools
+
+MCP Memory server ให้เครื่องมือสำหรับจัดการ Knowledge Graph และ Long-term Memory ใช้สำหรับ:
+
+- จัดเก็บความรู้และ context ของโปรเจกต์ในรูปแบบ Graph (Entities + Relations + Observations)
+- ค้นหาและดึงข้อมูล context จาก memory ที่บันทึกไว้ใน session ก่อนหน้า
+- สร้าง/แก้ไข/ลบ entities, relations, และ observations ใน knowledge graph
+
+### Available Tools
+
+| Tool | หน้าที่ | ตัวอย่างการใช้งาน |
+|------|----------|------------------|
+| `mcp3_create_entities` | สร้าง entities ใหม่หลายตัวพร้อม observations | สร้าง entity ใหม่เช่น Project, User, Task |
+| `mcp3_create_relations` | สร้าง relations ระหว่าง entities | สร้าง relation: Project → has → User |
+| `mcp3_add_observations` | เพิ่ม observations ให้ entity ที่มีอยู่แล้ว | เพิ่ม context เพิ่มเติมให้ entity |
+| `mcp3_delete_entities` | ลบ entities และ relations ที่เกี่ยวข้อง | ลบ entity ที่ไม่ใช้แล้ว |
+| `mcp3_delete_relations` | ลบ relations ระหว่าง entities | ลบ relation ที่ผิดหรือไม่ใช้แล้ว |
+| `mcp3_delete_observations` | ลบ observations จาก entity | ลบ context ที่ผิดหรือล้าสุด |
+| `mcp3_open_nodes` | ดึงข้อมูล entities ตามชื่อ | ดึง entity ที่ระบุชื่อ |
+| `mcp3_read_graph` | อ่าน knowledge graph ทั้งหมด | ดูทั้ง graph structure |
+| `mcp3_search_nodes` | ค้นหา entities ตาม query | ค้นหา entity จากชื่อ, type, หรือ observation |
+
+### การใช้งานร่วมกับ Development Flow
+
+**เมื่อบันทึก context ใหม่:**
+1. ใช้ `mcp3_create_entities` เพื่อสร้าง entities ใหม่ (ถ้ายังไม่มี)
+2. ใช้ `mcp3_create_relations` เพื่อเชื่อมโยง entities
+3. ใช้ `mcp3_add_observations` เพื่อเพิ่ม context/observations
+
+**เมื่อค้นหา context:**
+1. ใช้ `mcp3_search_nodes` เพื่อค้นหา entities ที่เกี่ยวข้อง
+2. ใช้ `mcp3_open_nodes` เพื่อดึงข้อมูล entities ที่ต้องการ
+3. ใช้ `mcp3_read_graph` เพื่อดู relations ระหว่าง entities
+
+**เมื่อแก้ไข context:**
+1. ใช้ `mcp3_add_observations` เพื่อเพิ่ม observations ใหม่
+2. ใช้ `mcp3_delete_observations` เพื่อลบ observations ที่ผิด
+3. ใช้ `mcp3_create_relations` หรือ `mcp3_delete_relations` เพื่อปรับ relations
+
+### ข้อควรระวัง
+
+- **✅ ใช้สำหรับบันทึก context ที่ต้องใช้ร่วมกันหลาย session** — เช่น การตัดสินใจสำคัญ, architecture decisions, rollout history
+- **⚠️ ระวังการลบ entities** — อาจทำให้เสีย context ที่ยังใช้งานอยู่
+- **✅ ตรวจสอบว่า entity มีอยู่แล้วก่อนสร้าง** — ใช้ `mcp3_search_nodes` หรือ `mcp3_open_nodes` ก่อน
+- **✅ ใช้ชื่อ entity ที่ชัดเจนและไม่ซ้ำกัน** — เพื่อป้องกันความสับสน
+
+---
+
 ## 🛠️ Final Checklists
 
 ### 🔴 Tier 1 — CRITICAL (CI BLOCKER)
@@ -613,6 +711,7 @@ This file is a **quick reference**. For detailed information:
 
 | Version | Date       | Changes                                                                                                                                                                                                                                    | Updated By     |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| 1.9.10  | 2026-06-06 | Added MCP MariaDB Tools section with available tools (test_connection, show_databases, show_tables, describe_table, query, insert, update, delete), usage guidelines for development flow, and safety warnings for DDL operations; Added MCP Memory Tools section with Knowledge Graph management tools (create_entities, create_relations, add_observations, delete_entities, delete_relations, delete_observations, open_nodes, read_graph, search_nodes) for long-term context storage | Windsurf AI    |
 | 1.9.9   | 2026-06-03 | ADR-034 Thai-Optimized AI Model Stack: typhoon2.5-np-dms:latest (main) + typhoon-np-dms-ocr:latest (OCR); model switching in ai-batch processor; AiSettingsService static constants; SQL delta; updated Key Spec Files + AI isolation rule | Windsurf AI    |
 | 1.9.8   | 2026-06-02 | Added ADR-033 Active Model & OCR Runner Management; implemented Synchronous LLM switches, GPU Memory Auto-release, sidecar `X-API-Key` headers protection; updated Key Spec Files & Specialized Work AI runtime sections   | Windsurf AI    |
 | 1.9.7   | 2026-05-25 | Added ADR-029 Dynamic Prompt Management to Key Spec Files table; fixed gemma4 model name e2b→e4b Q8_0; added Dynamic Prompt context trigger; added ADR-029 to Tier 3 AI checklist; bumped last synced date                                 | Windsurf AI    |

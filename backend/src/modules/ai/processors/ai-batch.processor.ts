@@ -10,6 +10,7 @@
 // - 2026-05-26: แก้ไข bug lockDuration=30000ms ทำให้ sandbox-extract job stall เมื่อ Ollama ใช้เวลา >30s — เพิ่ม lockDuration: 150000
 // - 2026-05-28: EC-001 ใช้ findOrSuggestTags เพื่อตรวจจับ Tag ใหม่และบันทึก aiIssues; EC-002 ตรวจสอบ UUID ของผู้ส่ง/ผู้รับ และ Flag เมื่อหาไม่พบ
 // - 2026-06-03: ADR-034 — เพิ่ม 'ocr-extract' job type + OCR_JOB_TYPES constant + processOcrExtract() ที่มี model switching logic (unload main → load OCR → generate → reload main)
+// - 2026-06-06: แก้ไข bug LLM JSON parse failure — เพิ่ม retry logic (2 attempts), debug log raw response, และปรับปรุง error message ให้แสดงทั้ง raw และ cleaned response
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -430,19 +431,40 @@ export class AiBatchProcessor extends WorkerHost {
       const response = await this.ollamaService.generate(resolvedPrompt, {
         timeoutMs: 120000,
       });
+      this.logger.debug(`Raw LLM response: ${response}`);
       const cleanedResponse = response
         .replace(/```json/g, '')
         .replace(/```/g, '')
         .trim();
-      let extractedMetadata: Record<string, unknown>;
-      try {
-        extractedMetadata = JSON.parse(cleanedResponse) as Record<
-          string,
-          unknown
-        >;
-      } catch {
+      let extractedMetadata: Record<string, unknown> | null = null;
+      let parseAttempts = 0;
+      const maxParseAttempts = 2;
+      while (parseAttempts < maxParseAttempts) {
+        try {
+          extractedMetadata = JSON.parse(cleanedResponse) as Record<
+            string,
+            unknown
+          >;
+          break;
+        } catch {
+          parseAttempts++;
+          if (parseAttempts >= maxParseAttempts) {
+            this.logger.error(
+              `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts. Raw: ${response}, Cleaned: ${cleanedResponse}`
+            );
+            throw new Error(
+              `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts. Raw: ${response.substring(0, 200)}, Cleaned: ${cleanedResponse.substring(0, 200)}`
+            );
+          }
+          this.logger.warn(
+            `JSON parse attempt ${parseAttempts} failed, retrying...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+      if (!extractedMetadata) {
         throw new Error(
-          `Failed to parse LLM response as JSON: ${cleanedResponse}`
+          `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts`
         );
       }
       await this.aiPromptsService.saveTestResult(
@@ -625,20 +647,41 @@ export class AiBatchProcessor extends WorkerHost {
         timeoutMs: 120000,
       });
 
+      this.logger.debug(`Raw LLM response: ${response}`);
       const cleanedResponse = response
         .replace(/```json/g, '')
         .replace(/```/g, '')
         .trim();
 
-      let extractedMetadata: Record<string, unknown>;
-      try {
-        extractedMetadata = JSON.parse(cleanedResponse) as Record<
-          string,
-          unknown
-        >;
-      } catch {
+      let extractedMetadata: Record<string, unknown> | null = null;
+      let parseAttempts = 0;
+      const maxParseAttempts = 2;
+      while (parseAttempts < maxParseAttempts) {
+        try {
+          extractedMetadata = JSON.parse(cleanedResponse) as Record<
+            string,
+            unknown
+          >;
+          break;
+        } catch {
+          parseAttempts++;
+          if (parseAttempts >= maxParseAttempts) {
+            this.logger.error(
+              `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts. Raw: ${response}, Cleaned: ${cleanedResponse}`
+            );
+            throw new Error(
+              `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts. Raw: ${response.substring(0, 200)}, Cleaned: ${cleanedResponse.substring(0, 200)}`
+            );
+          }
+          this.logger.warn(
+            `JSON parse attempt ${parseAttempts} failed, retrying...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+      if (!extractedMetadata) {
         throw new Error(
-          `Failed to parse LLM response as JSON: ${cleanedResponse}`
+          `Failed to parse LLM response as JSON after ${maxParseAttempts} attempts`
         );
       }
 
