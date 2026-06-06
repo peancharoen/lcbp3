@@ -12,6 +12,7 @@
 // - 2026-05-30: เพิ่ม endpoints GET/POST/PATCH models และ GET vram/status สำหรับ dynamic AI model management และ VRAM monitoring (T031-T034, US2)
 // - 2026-06-01: [BUGFIX] submitSandboxOcr: เพิ่ม @ApiBearerAuth(), @HttpCode(ACCEPTED), Body({ engineType }) และส่ง engineType ไปยัง enqueueSandboxJob
 // - 2026-06-02: เพิ่ม REST endpoints GET /ai/ocr-engines และ POST /ai/ocr-engines/:engineId/select (T003, T004, ADR-033) และนำเข้า SystemException เพื่อป้องกันความเสียหายในการคอมไพล์
+// - 2026-06-06: [BUGFIX] เพิ่ม @Throttle({ default: { limit: 300, ttl: 60000 } }) บน GET admin/sandbox/job/:id เพื่อแก้ ThrottlerException spam จาก frontend polling
 // Controller สำหรับ AI Gateway Endpoints (ADR-023)
 
 import {
@@ -452,6 +453,7 @@ export class AiController {
   @UseGuards(JwtAuthGuard, RbacGuard)
   @ApiBearerAuth()
   @RequirePermission('system.manage_all')
+  @Throttle({ default: { limit: 300, ttl: 60000 } }) // 300 req/min — รองรับ admin polling ทุก 200ms
   @ApiOperation({
     summary:
       'AI Admin Sandbox Job Status — ตรวจสอบสถานะ RAG sandbox job (T036)',

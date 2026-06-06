@@ -11,6 +11,7 @@
 // - 2026-05-28: EC-001 ใช้ findOrSuggestTags เพื่อตรวจจับ Tag ใหม่และบันทึก aiIssues; EC-002 ตรวจสอบ UUID ของผู้ส่ง/ผู้รับ และ Flag เมื่อหาไม่พบ
 // - 2026-06-03: ADR-034 — เพิ่ม 'ocr-extract' job type + OCR_JOB_TYPES constant + processOcrExtract() ที่มี model switching logic (unload main → load OCR → generate → reload main)
 // - 2026-06-06: แก้ไข bug LLM JSON parse failure — เพิ่ม retry logic (2 attempts), debug log raw response, และปรับปรุง error message ให้แสดงทั้ง raw และ cleaned response
+// - 2026-06-06: เพิ่ม OCR text truncation (MAX_OCR_TEXT_CHARS=15000) เพื่อป้องกัน context overflow เมื่อเอกสารยาวมากชน num_ctx 8192
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -74,6 +75,9 @@ export interface AiBatchJobData {
   batchId?: string;
   idempotencyKey: string;
 }
+
+/** OCR text สูงสุดที่ส่งเข้า LLM prompt — ป้องกัน context overflow (num_ctx 8192, Thai ~3 chars/token) */
+const MAX_OCR_TEXT_CHARS = 15000;
 
 const readString = (value: unknown): string | undefined =>
   typeof value === 'string' && value.trim().length > 0 ? value : undefined;
@@ -421,8 +425,16 @@ export class AiBatchProcessor extends WorkerHost {
         overrideProjPublicId === 'default' ? undefined : overrideProjPublicId
       );
 
+      const ocrTextSafe =
+        ocrResult.text.length > MAX_OCR_TEXT_CHARS
+          ? (this.logger.warn(
+              `OCR text truncated: ${ocrResult.text.length} chars > ${MAX_OCR_TEXT_CHARS} limit (context overflow protection)`
+            ),
+            ocrResult.text.substring(0, MAX_OCR_TEXT_CHARS))
+          : ocrResult.text;
+
       const resolvedPrompt = activePrompt.template
-        .replace('{{ocr_text}}', ocrResult.text)
+        .replace('{{ocr_text}}', ocrTextSafe)
         .replace(
           '{{master_data_context}}',
           JSON.stringify(masterDataContext, null, 2)
@@ -636,8 +648,16 @@ export class AiBatchProcessor extends WorkerHost {
         projectPublicId === 'default' ? undefined : projectPublicId
       );
 
+      const ocrTextSafe =
+        ocrText.length > MAX_OCR_TEXT_CHARS
+          ? (this.logger.warn(
+              `OCR text truncated: ${ocrText.length} chars > ${MAX_OCR_TEXT_CHARS} limit (context overflow protection)`
+            ),
+            ocrText.substring(0, MAX_OCR_TEXT_CHARS))
+          : ocrText;
+
       const resolvedPrompt = targetPrompt.template
-        .replace('{{ocr_text}}', ocrText)
+        .replace('{{ocr_text}}', ocrTextSafe)
         .replace(
           '{{master_data_context}}',
           JSON.stringify(masterDataContext, null, 2)
