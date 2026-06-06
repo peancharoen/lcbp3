@@ -2,7 +2,7 @@
 # Tesseract OCR Sidecar — HTTP API server สำหรับสกัดข้อความจาก PDF/Image
 # รันบน Desk-5439 ตาม ADR-023A
 # Change Log:
-# - 2026-05-25: Initial Dockerfile สำหรับ PaddleOCR sidecar (port 8765)
+# - 2026-05-25: Initial Dockerfile สำหรับ OCR sidecar (port 8765)
 # - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
 # - 2026-05-30: เพิ่ม system dependencies สำหรับ OpenCV (libsm6, libxext6, libxrender1, libfontconfig1, libx11-6)
 # - 2026-05-30: Typhoon OCR ใช้ httpx เรียก Ollama ผ่าน OLLAMA_API_URL (T009a, ADR-032)

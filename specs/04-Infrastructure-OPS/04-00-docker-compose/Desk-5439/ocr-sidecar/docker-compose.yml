@@ -1,7 +1,7 @@
 # File: specs/04-Infrastructure-OPS/04-00-docker-compose/Desk-5439/ocr-sidecar/docker-compose.yml
 # Tesseract OCR Sidecar — รันบน Desk-5439 (AI Isolation Host) ตาม ADR-023A
 # Change Log:
-# - 2026-05-25: Initial compose file สำหรับ PaddleOCR HTTP sidecar
+# - 2026-05-25: Initial compose file สำหรับ Tesseract OCR HTTP sidecar
 # - 2026-05-25: แก้ volumes ให้ถูกต้องสำหรับ Windows + Docker Desktop
 # - 2026-05-30: เพิ่ม OCR_LANG=tha+eng (Tesseract Thai + English)
 # - 2026-05-30: เพิ่ม Typhoon OCR environment variables (T009b, ADR-032)

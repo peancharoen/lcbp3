@@ -2,7 +2,7 @@
 # Tesseract OCR HTTP Sidecar API — รับ POST /ocr แล้วคืนข้อความที่สกัดจาก PDF/Image
 # ตาม ADR-023A: OCR auto-detect (PyMuPDF chars > 100 → Fast path, else Tesseract)
 # Change Log:
-# - 2026-05-25: Initial FastAPI server สำหรับ PaddleOCR sidecar
+# - 2026-05-25: Initial FastAPI server สำหรับ Tesseract OCR sidecar
 # - 2026-05-30: เปลี่ยน lang='en' เป็น lang='ch' (CTJK) เพื่อรองรับภาษาไทย
 # - 2026-05-30: เปลี่ยนจาก PaddleOCR เป็น Tesseract OCR เพื่อความเข้ากันได้กับ CPU เก่า
 # - 2026-05-30: เพิ่ม OpenCV preprocessing (threshold, denoise) และ DPI 300 เพื่อเพิ่มความแม่นยำ

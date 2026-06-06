@@ -5,6 +5,7 @@
 // - 2026-06-02: เพิ่ม loadModel() preloading, ดึงจริงจาก /api/ps และเพิ่ม unloadModel() เพื่อล้างหน่วยความจำ GPU/VRAM (ADR-033, Suggestion 1)
 // - 2026-06-03: ADR-034 — เปลี่ยน default model เป็น typhoon2.5-np-dms; เพิ่ม ocrModel field, keepAlive param ใน loadModel(), model option ใน OllamaGenerateOptions, getOcrModelName()
 // - 2026-06-06: เพิ่ม system prompt support ใน OllamaGenerateOptions และ generate() method เพื่อรองรับ Typhoon model ที่ต้องการ system prompt แยกต่างหาก
+// - 2026-06-06: [T036] แก้ไข default URL เป็น http://192.168.10.100:11434 (Desk-5439) แทน localhost; เพิ่ม options และ keepAlive ใน OllamaGenerateOptions เพื่อรองรับ Typhoon model parameters
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -17,6 +18,18 @@ export interface OllamaGenerateOptions {
   model?: string;
   /** System prompt สำหรับ Typhoon model ที่ต้องการ system prompt แยกต่างหาก (ใช้ triple quotes) */
   system?: string;
+  /** บังคับ structured output จาก Ollama สำหรับงานที่ต้อง parse JSON */
+  format?: 'json';
+  /** Ollama generation options (temperature, top_p, etc.) */
+  options?: {
+    temperature?: number;
+    top_p?: number;
+    repeat_penalty?: number;
+    num_gpu?: number;
+    num_ctx?: number;
+  };
+  /** keep_alive: -1 = stay loaded, 0 = unload immediately, N = seconds */
+  keepAlive?: number;
 }
 
 /** บริการเรียก Ollama local-only บน Admin Desktop ตาม ADR-023A */
@@ -32,7 +45,10 @@ export class OllamaService {
   constructor(private readonly configService: ConfigService) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
-      this.configService.get<string>('AI_HOST_URL', 'http://localhost:11434')
+      this.configService.get<string>(
+        'AI_HOST_URL',
+        'http://192.168.10.100:11434'
+      )
     );
     this.mainModel = this.configService.get<string>(
       'OLLAMA_MODEL_MAIN',
@@ -61,7 +77,10 @@ export class OllamaService {
           model: options.model ?? this.mainModel,
           prompt,
           system: options.system,
+          format: options.format,
           stream: false,
+          options: options.options,
+          keep_alive: options.keepAlive ?? -1,
         },
         {
           timeout: options.timeoutMs ?? this.timeoutMs,

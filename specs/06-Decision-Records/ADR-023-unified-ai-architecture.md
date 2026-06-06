@@ -75,7 +75,7 @@
 - ✅ **Single Source of Truth:** รวมสถาปัตยกรรมและข้อกำหนดความปลอดภัยไว้ที่เดียว
 - ✅ **Absolute Isolation:** แยกส่วน AI Workload ไปยัง Admin Desktop ปลอดภัยและไม่กวน Production NAS
 - ✅ **High Reusability:** ใช้ Pipeline และ UI Components (เช่น `DocumentReviewForm`) ร่วมกันได้ทั้งหมด
-- ✅ **Thai Language Optimized:** ผสานการทำงานของ PaddleOCR และ PyThaiNLP เพื่อคุณภาพข้อความภาษาไทยสูงสุด
+- ✅ **Thai Language Optimized:** ผสานการทำงานของ POddleและ PyThaiNLP เพื่อคุณภาพข้อความภาษาไทยสูงสุด
 - ✅ **Absolute Multitenancy:** ป้องกันข้อมูลข้ามโครงการด้วย Qdrant Payload Filter
 
 **Cons:**
@@ -102,7 +102,7 @@
 | **Backend (NestJS)** | 🔴 High | สร้าง `AiModule` เป็นศูนย์กลางควบคุม Pipeline และ RAG | พัฒนา Gateway Services และ Validation Layers |
 | **Database** | 🔴 High | ตารางจัดเก็บประวัติการทวนสอบและสถานะเวกเตอร์ | สร้าง `migration_review_queue` และ `ai_audit_logs` (แยก table, ไม่ใช่ Compliance — เป็น AI Development Feedback Log) |
 | **Frontend (Next.js)** | 🟡 Medium | หน้าจอแสดงผลลัพธ์จาก AI พร้อมค่า Confidence | พัฒนา Reusable Form Components และ Dashboard |
-| **Infrastructure** | 🔴 High | การตั้งค่า Admin Desktop (Desk-5439) สำหรับ AI | ติดตั้ง Ollama, Qdrant, n8n, PaddleOCR, PyThaiNLP |
+| **Infrastructure** | 🔴 High | การตั้งค่า Admin Desktop (Desk-5439) สำหรับ AI | ติดตั้ง Ollama, Qdrant, n8n, Tesseract OCR, PyThaiNLP |
 
 ### Cross-Module Dependencies
 
@@ -116,7 +116,7 @@ graph TB
     subgraph DESK["🖥️ Desk-5439 (AI Isolation Host)"]
         OLLAMA["Ollama\ngemma4:9b + Typhoon Local\n+ nomic-embed-text"]
         QDRANT[Qdrant Vector Store]
-        NLP[PaddleOCR + PyThaiNLP]
+        NLP[Tesseract OCR + PyThaiNLP]
     end
 
     BE --"HTTP API"--> N8N
@@ -143,7 +143,7 @@ graph TB
 ## Implementation Details (ข้อกำหนดเชิงลึกรายหมวด)
 
 ### 1. Security Isolation Policy (ขอบเขตความปลอดภัย)
-* **Physical Isolation:** เซอร์วิส AI ทั้งหมด (Ollama, Qdrant, PaddleOCR) **ต้องรันบน Admin Desktop (Desk-5439)** ที่มี GPU RTX 2060 Super 8GB เท่านั้น ห้ามรันบน QNAP NAS หลัก
+* **Physical Isolation:** เซอร์วิส AI ทั้งหมด (Ollama, Qdrant, Tesseract OCR) **ต้องรันบน Admin Desktop (Desk-5439)** ที่มี GPU RTX 2060 Super 8GB เท่านั้น ห้ามรันบน QNAP NAS หลัก
 * **No Direct DB/Storage Access:** เครื่อง AI Host **ห้าม**มีการเชื่อมต่อฐานข้อมูล MariaDB หรือเมาท์ Storage ปลายทางโดยตรง การอ่าน/เขียนข้อมูลทั้งหมดต้องทำผ่าน **DMS Backend API**
 * **Validation Layer:** Backend ต้องตรวจสอบความถูกต้องของ Output จาก AI (Schema, System Enum, Confidence Threshold) ก่อนบันทึกลงฐานข้อมูลเสมอ
 
@@ -169,7 +169,7 @@ graph TB
   * **`scb10x/typhoon2.1-gemma3-4b`** (~4.5GB VRAM) สำหรับงานสกัด Metadata และวิเคราะห์ข้อความภาษาไทยผ่าน AI Model Management
   * ทั้งหมดนี้ควบคุมด้วยนโยบาย **`keep_alive = 0`** ( unload ทันทีหลัง inference) และ **`VramMonitorService`** ใน backend เพื่อหลีกเลี่ยง GPU VRAM OOM
 * **Embedding Model:** ใช้ `nomic-embed-text` รันผ่าน Ollama บน Desk-5439 สำหรับแปลงเวกเตอร์ 768-มิติ
-* **OCR & NLP:** ใช้ **PaddleOCR** สกัดข้อความจาก Scanned PDF และใช้ **PyThaiNLP** ตัดคำ/เตรียมข้อความภาษาไทย — ทั้งคู่รันบน Desk-5439
+* **OCR & NLP:** ใช้ **Tesseract OCR** สกัดข้อความจาก Scanned PDF และใช้ **PyThaiNLP** ตัดคำ/เตรียมข้อความภาษาไทย — ทั้งคู่รันบน Desk-5439
 * ❌ **Typhoon Cloud API:** ไม่ใช้ — `rag/typhoon.service.ts` ต้องถูก Remove ออกจาก Codebase (Dead Code + Security Risk)
 
 ### 3. Legacy Data Migration (การนำเข้าข้อมูลเก่า)

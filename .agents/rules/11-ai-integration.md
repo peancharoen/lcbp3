@@ -27,7 +27,7 @@ n8n (Migration) → DMS API → BullMQ → Admin Desktop (Ollama) → Backend Va
 | **AI Gateway**    | Backend (NestJS)          | API endpoints, validation, audit logging                                 |
 | **BullMQ Queues** | Backend (NestJS)          | ai-realtime (RAG/Suggest), ai-batch (OCR/Extract/Embed)                  |
 | **Ollama Engine** | Admin Desktop (Desk-5439) | typhoon2.5-np-dms:latest (Main LLM) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0) + nomic-embed-text (Embedding) |
-| **OCR Engine**    | Admin Desktop (Desk-5439) | PaddleOCR + PyThaiNLP (Thai/English text extraction)                     |
+| **OCR Engine**    | Admin Desktop (Desk-5439) | Tesseract OCR + Typhoon OCR (via Ollama) + PyThaiNLP (Thai/English text extraction) |
 | **Orchestrator**  | QNAP NAS (n8n)            | Migration Phase orchestrator only (calls DMS API, never Ollama directly) |
 
 ## Backend Implementation (NestJS)
@@ -118,7 +118,7 @@ const DocumentReviewForm = ({ document, aiSuggestions }) => {
 - **3-Model Config:** typhoon2.5-np-dms:latest (Main) + typhoon-np-dms-ocr:latest (OCR, keep_alive:0) + nomic-embed-text (Embedding)
 - **PDF 3-Page Limit:** Classification/Tagging uses first 3 pages only (NOT RAG embedding)
 - **RAG Embedding:** Full document chunked at 512 tokens/64 tokens overlap
-- **OCR Auto-Detect:** PyMuPDF chars > 100 → Fast path, else PaddleOCR
+- **OCR Auto-Detect:** PyMuPDF chars > 100 → Fast path, else Tesseract OCR (with Typhoon OCR option)
 - **Embed Auto-Trigger:** AUTO after commit (parallel), gap covered by DB search
 - **Threshold Recalibration:** After 100-500 docs, based on ai_audit_logs analysis
 

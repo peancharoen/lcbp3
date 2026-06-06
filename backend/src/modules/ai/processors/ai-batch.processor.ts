@@ -12,6 +12,7 @@
 // - 2026-06-03: ADR-034 — เพิ่ม 'ocr-extract' job type + OCR_JOB_TYPES constant + processOcrExtract() ที่มี model switching logic (unload main → load OCR → generate → reload main)
 // - 2026-06-06: แก้ไข bug LLM JSON parse failure — เพิ่ม retry logic (2 attempts), debug log raw response, และปรับปรุง error message ให้แสดงทั้ง raw และ cleaned response
 // - 2026-06-06: เพิ่ม OCR text truncation (MAX_OCR_TEXT_CHARS=15000) เพื่อป้องกัน context overflow เมื่อเอกสารยาวมากชน num_ctx 8192
+// - 2026-06-06: [T036] เพิ่ม ollamaOptions: { num_ctx: 8192 } ใน generateStructuredJson เพื่อรองรับ prompt ยาว 18k+ chars และแก้ไข bug response ว่างจาก context window ไม่พอ
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
@@ -197,10 +198,18 @@ export class AiBatchProcessor extends WorkerHost {
     super();
   }
 
-  /** เรียก LLM แล้ว parse JSON แบบ retry จริงเมื่อได้ผลลัพธ์ไม่สมบูรณ์ */
+  /** เรียก LLM แล้ว parse JSON แบบ retry จริงเมื่อได้ผลลัพธ์ไม่สมบูรณ์
+   * @param ollamaOptions - Ollama generation options เช่น num_ctx สำหรับ prompt ยาว
+   */
   private async generateStructuredJson(
     prompt: string,
-    options: { timeoutMs: number; model?: string; system?: string }
+    options: {
+      timeoutMs: number;
+      model?: string;
+      system?: string;
+      format?: 'json';
+      ollamaOptions?: { num_ctx?: number };
+    }
   ): Promise<{
     extractedMetadata: Record<string, unknown>;
     rawResponse: string;
@@ -209,7 +218,10 @@ export class AiBatchProcessor extends WorkerHost {
     let lastRawResponse = '';
     let lastCleanedResponse = '';
     for (let attempt = 1; attempt <= MAX_JSON_PARSE_ATTEMPTS; attempt += 1) {
-      const rawResponse = await this.ollamaService.generate(prompt, options);
+      const rawResponse = await this.ollamaService.generate(prompt, {
+        ...options,
+        options: options.ollamaOptions,
+      });
       const cleanedResponse = sanitizeLlmJsonResponse(rawResponse);
       lastRawResponse = rawResponse;
       lastCleanedResponse = cleanedResponse;
@@ -498,6 +510,7 @@ export class AiBatchProcessor extends WorkerHost {
         activePrompt,
         overrideProjPublicId === 'default' ? undefined : overrideProjPublicId
       );
+      const compactMasterDataContext = JSON.stringify(masterDataContext);
 
       const ocrTextSafe =
         sanitizedOcrText.length > MAX_OCR_TEXT_CHARS
@@ -509,19 +522,18 @@ export class AiBatchProcessor extends WorkerHost {
 
       const resolvedPrompt = activePrompt.template
         .replace('{{ocr_text}}', ocrTextSafe)
-        .replace(
-          '{{master_data_context}}',
-          JSON.stringify(masterDataContext, null, 2)
-        );
+        .replace('{{master_data_context}}', compactMasterDataContext);
 
       this.logger.debug(
-        `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${JSON.stringify(masterDataContext, null, 2).length} chars, Total=${resolvedPrompt.length} chars`
+        `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${compactMasterDataContext.length} chars, Total=${resolvedPrompt.length} chars`
       );
 
       const { extractedMetadata } = await this.generateStructuredJson(
         resolvedPrompt,
         {
+          format: 'json',
           timeoutMs: 120000,
+          ollamaOptions: { num_ctx: 8192 }, // รองรับ prompt ยาว 18k+ chars
         }
       );
       await this.aiPromptsService.saveTestResult(
@@ -704,6 +716,7 @@ export class AiBatchProcessor extends WorkerHost {
         targetPrompt,
         projectPublicId === 'default' ? undefined : projectPublicId
       );
+      const compactMasterDataContext = JSON.stringify(masterDataContext);
 
       const ocrTextSafe =
         ocrText.length > MAX_OCR_TEXT_CHARS
@@ -715,17 +728,16 @@ export class AiBatchProcessor extends WorkerHost {
 
       const resolvedPrompt = targetPrompt.template
         .replace('{{ocr_text}}', ocrTextSafe)
-        .replace(
-          '{{master_data_context}}',
-          JSON.stringify(masterDataContext, null, 2)
-        );
+        .replace('{{master_data_context}}', compactMasterDataContext);
       this.logger.debug(
-        `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${JSON.stringify(masterDataContext, null, 2).length} chars, Total=${resolvedPrompt.length} chars`
+        `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${compactMasterDataContext.length} chars, Total=${resolvedPrompt.length} chars`
       );
       const { extractedMetadata } = await this.generateStructuredJson(
         resolvedPrompt,
         {
+          format: 'json',
           timeoutMs: 120000,
+          ollamaOptions: { num_ctx: 8192 }, // รองรับ prompt ยาว 18k+ chars
         }
       );
 

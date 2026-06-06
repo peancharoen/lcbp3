@@ -137,7 +137,7 @@ CREATE TABLE ai_audit_log (
   user_id INT NOT NULL,
   action VARCHAR(64) NOT NULL,       -- 'ai.extract_metadata', 'ai.classify', etc.
   file_id INT,
-  model VARCHAR(64),                  -- 'gemma-4:7b', 'paddleocr-v3'
+  model VARCHAR(64),                  -- 'gemma-4:7b', 'typhoon-np-dms-ocr', 'tesseract-ocr'
   confidence DECIMAL(4,3),
   input_hash CHAR(64),                -- SHA-256 of input for replay detection
   output_summary JSON,

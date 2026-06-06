@@ -57,6 +57,19 @@ describe('OllamaService (ADR-034)', () => {
         expect.anything()
       );
     });
+    it('ควรส่ง format=json เมื่อ caller ต้องการ structured output', async () => {
+      mockedAxios.post = jest
+        .fn()
+        .mockResolvedValueOnce({ data: { response: '{"ok":true}' } });
+      await service.generate('json prompt', {
+        format: 'json',
+      });
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/generate'),
+        expect.objectContaining({ format: 'json' }),
+        expect.anything()
+      );
+    });
     it('ควรใช้ options.model เมื่อระบุ model อื่น (ADR-034 model switching)', async () => {
       mockedAxios.post = jest
         .fn()

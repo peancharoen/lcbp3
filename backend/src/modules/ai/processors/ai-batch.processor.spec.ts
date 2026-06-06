@@ -309,7 +309,13 @@ describe('AiBatchProcessor', () => {
       '/files/test.pdf',
       'auto'
     );
-    expect(ollamaService.generate).toHaveBeenCalledTimes(1);
+    expect(ollamaService.generate).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        format: 'json',
+        timeoutMs: 120000,
+      })
+    );
     expect(redis.setex).toHaveBeenCalledTimes(2);
     expect(redis.setex).toHaveBeenLastCalledWith(
       'ai:rag:result:idem-extract-123',
@@ -362,6 +368,7 @@ describe('AiBatchProcessor', () => {
       1,
       expect.not.stringContaining('\u0002'),
       expect.objectContaining({
+        format: 'json',
         timeoutMs: 120000,
       })
     );

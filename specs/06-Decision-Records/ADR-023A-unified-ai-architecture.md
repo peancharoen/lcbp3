@@ -118,7 +118,7 @@
 | **Backend (NestJS)** | 🔴 High | สร้าง `AiModule` เป็นศูนย์กลางควบคุม Pipeline และ RAG | พัฒนา Gateway Services และ Validation Layers |
 | **Database** | 🔴 High | ตารางจัดเก็บประวัติการทวนสอบและสถานะเวกเตอร์ | สร้าง `migration_review_queue` และ `ai_audit_logs` (แยก table, ไม่ใช่ Compliance — เป็น AI Development Feedback Log) |
 | **Frontend (Next.js)** | 🟡 Medium | หน้าจอแสดงผลลัพธ์จาก AI พร้อมค่า Confidence | พัฒนา Reusable Form Components และ Dashboard |
-| **Infrastructure** | 🔴 High | การตั้งค่า Admin Desktop (Desk-5439) สำหรับ AI | ติดตั้ง Ollama, Qdrant, n8n, PaddleOCR, PyThaiNLP |
+| **Infrastructure** | 🔴 High | การตั้งค่า Admin Desktop (Desk-5439) สำหรับ AI | ติดตั้ง Ollama, Qdrant, n8n, Tesseract OCR |
 
 ### Cross-Module Dependencies
 
@@ -132,7 +132,7 @@ graph TB
     subgraph DESK["🖥️ Desk-5439 (AI Isolation Host)"]
         OLLAMA["Ollama\ngemma4:e2b\n+ nomic-embed-text"]
         QDRANT[Qdrant Vector Store]
-        NLP[PaddleOCR + PyThaiNLP]
+        NLP[Tesseract OCR + Typhoon OCR + PyThaiNLP]
     end
 
     BE --"HTTP API"--> N8N
@@ -207,7 +207,7 @@ graph TB
 ```
 Migration Flow:
   n8n → POST /api/ai/jobs (DMS API) → BullMQ (ai-batch)
-       → Worker: PaddleOCR / Ollama บน Desk-5439
+       → Worker: Tesseract OCR / Typhoon OCR / Ollama บน Desk-5439
        → n8n poll GET /api/ai/jobs/:jobId → ได้ผล → POST /api/ai/migration/review
 
 Real-time Flow (User Upload):
@@ -218,7 +218,7 @@ Real-time Flow (User Upload):
 
 * **LLM Engine:** ใช้ **Ollama** บน Desk-5439 รันโมเดล `gemma4:e2b` สำหรับงานทั้งหมด ได้แก่ General Inference, OCR Post-processing, Metadata Extraction, Classification และ RAG Q&A
 * **Embedding Model:** ใช้ `nomic-embed-text` รันผ่าน Ollama บน Desk-5439 สำหรับแปลงเวกเตอร์ 768-มิติ
-* **OCR & NLP:** ใช้ **PaddleOCR** สกัดข้อความจาก Scanned PDF และใช้ **PyThaiNLP** ตัดคำ/เตรียมข้อความภาษาไทย — ทั้งคู่รันบน Desk-5439
+* **OCR & NLP:** ใช้ **Tesseract OCR** สกัดข้อความจาก Scanned PDF (พร้อม Typhoon OCR ผ่าน Ollama เป็นทางเลือก) และใช้ **PyThaiNLP** ตัดคำ/เตรียมข้อความภาษาไทย — ทั้งคู่รันบน Desk-5439
 * ❌ **Typhoon Local:** ไม่ใช้ — ถูกแทนที่โดย `gemma4:e2b` เพื่อรักษา VRAM Budget
 * ❌ **Typhoon Cloud API:** ไม่ใช้ — `rag/typhoon.service.ts` ต้องถูก Remove ออกจาก Codebase (Dead Code + Security Risk)
 
@@ -357,13 +357,13 @@ n8n PDF Pre-processor:
 PDF Upload
   └─ n8n: ตรวจสอบ text layer (PyMuPDF: page.get_text())
         ├─ มีข้อความ (len > threshold) → Fast Path: text parser โดยตรง
-        └─ ไม่มีข้อความ / image-only → Slow Path: PaddleOCR → PyThaiNLP
+        └─ ไม่มีข้อความ / image-only → Slow Path: Tesseract OCR → PyThaiNLP
 ```
 
 | Path | เงื่อนไข | เครื่องมือ | เวลาโดยประมาณ |
 |------|---------|----------|--------------|
 | **Fast Path** | `extracted_chars > 100` ต่อหน้า | PyMuPDF text parser | < 1s |
-| **Slow Path** | `extracted_chars ≤ 100` ต่อหน้า | PaddleOCR + PyThaiNLP | 5–30s/หน้า |
+| **Slow Path** | `extracted_chars ≤ 100` ต่อหน้า | Tesseract OCR + PyThaiNLP | 5–30s/หน้า |
 
 > **หมายเหตุ:** threshold `100 chars` ป้องกัน PDF ที่มี text layer แต่ข้อมูลน้อยมาก (เช่น มีแค่ watermark) ถูก route ไป Fast Path ผิด — ปรับค่าได้ผ่าน `.env: OCR_CHAR_THRESHOLD=100`
 
