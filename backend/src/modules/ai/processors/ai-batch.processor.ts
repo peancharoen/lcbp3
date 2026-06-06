@@ -440,6 +440,10 @@ export class AiBatchProcessor extends WorkerHost {
           JSON.stringify(masterDataContext, null, 2)
         );
 
+      this.logger.debug(
+        `Prompt stats: OCR=${ocrTextSafe.length} chars, MasterData=${JSON.stringify(masterDataContext, null, 2).length} chars, Total=${resolvedPrompt.length} chars`
+      );
+
       const response = await this.ollamaService.generate(resolvedPrompt, {
         timeoutMs: 120000,
       });
