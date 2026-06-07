@@ -18,7 +18,7 @@ npx playwright install chromium
 npx playwright install
 ```
 
-### 3. **MCP Server สำหรับ Windsurf**
+### 3. **MCP Server สำหรับ Devin**
 
 เพิ่มใน [.windsurfrc](cci:7://file:///e:/np-dms/lcbp3/.windsurfrc:0:0-0:0):
 
@@ -33,9 +33,9 @@ npx playwright install
 }
 ```
 
-**Restart Windsurf** แล้วจะเห็น Playwright MCP panel
+**Restart Devin** แล้วจะเห็น Playwright MCP panel
 
-### 4. **การใช้งานผ่าน Windsurf Cascade**
+### 4. **การใช้งานผ่าน Devin Cascade**
 
 เมื่อ MCP พร้อมแล้ว สามารถใช้คำสั่ง:
 
@@ -101,7 +101,7 @@ npx playwright test --headed
 npx playwright show-report
 ```
 
-### 8. **ถ้าใช้ MCP ผ่าน Windsurf**
+### 8. **ถ้าใช้ MCP ผ่าน Devin**
 
 Cascade จะมี tool ให้ใช้:
 - `browser_navigate` - เปิด URL

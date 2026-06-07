@@ -722,19 +722,19 @@ Create `.markdownlint.json`:
 
 ## 🤖 AI-Assisted Contributions
 
-โปรเจกต์นี้รองรับ AI agents (Windsurf Cascade, Codex CLI, opencode, Amp, Antigravity) ในการเขียน / review / refactor โค้ด — ผ่านคู่มือกลางคือ [`AGENTS.md`](./AGENTS.md) และชุดทักษะใน [`.agents/skills/`](./.agents/skills/)
+โปรเจกต์นี้รองรับ AI agents (Devin Cascade, Codex CLI, opencode, Amp, Antigravity) ในการเขียน / review / refactor โค้ด — ผ่านคู่มือกลางคือ [`AGENTS.md`](./AGENTS.md) และชุดทักษะใน [`.agents/skills/`](./.agents/skills/)
 
 ### Canonical Rule Sources (อ่านตามลำดับนี้)
 
 1. **[`AGENTS.md`](./AGENTS.md)** — quick-reference rules + change log (supersedes legacy `GEMINI.md`)
 2. **[`.agents/skills/_LCBP3-CONTEXT.md`](./.agents/skills/_LCBP3-CONTEXT.md)** — shared context loaded by every speckit-\* skill
-3. **[`.agents/skills/README.md`](./.agents/skills/README.md)** — skill-pack layout + Windsurf invocation guide
+3. **[`.agents/skills/README.md`](./.agents/skills/README.md)** — skill-pack layout + Devin invocation guide
 4. `specs/06-Decision-Records/` (โดยเฉพาะ ADR-019 — UUID **March 2026 pattern**)
 5. `specs/05-Engineering-Guidelines/` (backend / frontend / testing / i18n / git conventions)
 
 ### Invocation (v1.9.0 Unified)
 
-ใช้ slash commands ผ่านโฟลเดอร์หลักคือ [`.agents/workflows/`](./.agents/workflows/) (ซึ่งถูก Mirror ไปยัง `.windsurf/workflows/` อัตโนมัติ):
+ใช้ slash commands ผ่านโฟลเดอร์หลักคือ [`.agents/workflows/`](./.agents/workflows/) (ซึ่งถูก Mirror ไปยัง `.devin/workflows/` อัตโนมัติ):
 
 - `/00-speckit.all` → Full Pipeline (Specify → Validate)
 - `/102-speckit.specify` → สร้าง spec.md (ต้องระบุหมวดหมู่ 100/200/300)

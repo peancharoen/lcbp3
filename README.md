@@ -16,17 +16,17 @@
 
 > v1.9.7 (ADR-029 + sidecar) May 25; v1.9.8 (ADR-033 Model/OCR Sync & Security) June 2.
 
-| Area                   | Status                   | หมายเหตุ                                                           |
-| ---------------------- | ------------------------ | ------------------------------------------------------------------ |
-| 🔧 **Backend**         | ✅ Production Ready      | NestJS 11, Express v5, 0 Vulnerabilities                           |
-| 🎨 **Frontend**        | ✅ 100% Complete         | Next.js 16.2.0, React 19.2.4, ESLint 9                             |
-| 💾 **Database**        | ✅ Schema v1.9.0 Stable  | MariaDB 11.8, No-migration Policy                                  |
-| 📘 **Documentation**   | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy (33 ADRs — v1.9.8)                 |
-| 🤖 **AI Architecture** | ✅ 33 ADRs Accepted      | ADR-023A + ADR-024~029 + ADR-033 Model Sync & Security             |
-| 🔄 **Workflow Engine** | ✅ ADR-021 Integrated    | Transmittals & Circulation with Integrated Context                 |
-| 🧪 **Testing**         | ✅ UAT Ready             | E2E + Acceptance Criteria ready                                    |
-| 🚀 **Deployment**      | ✅ Production Ready      | Blue-Green on QNAP Container Station                               |
-| 🔒 **Infrastructure**  | ✅ Hardened (v1.9.8)     | Sidecar APIs secured; dynamic VRAM Release; container hardened     |
+| Area                   | Status                   | หมายเหตุ                                                       |
+| ---------------------- | ------------------------ | -------------------------------------------------------------- |
+| 🔧 **Backend**         | ✅ Production Ready      | NestJS 11, Express v5, 0 Vulnerabilities                       |
+| 🎨 **Frontend**        | ✅ 100% Complete         | Next.js 16.2.0, React 19.2.4, ESLint 9                         |
+| 💾 **Database**        | ✅ Schema v1.9.0 Stable  | MariaDB 11.8, No-migration Policy                              |
+| 📘 **Documentation**   | ✅ **10/10 Gaps Closed** | Product Vision → Release Policy (33 ADRs — v1.9.8)             |
+| 🤖 **AI Architecture** | ✅ 33 ADRs Accepted      | ADR-023A + ADR-024~029 + ADR-033 Model Sync & Security         |
+| 🔄 **Workflow Engine** | ✅ ADR-021 Integrated    | Transmittals & Circulation with Integrated Context             |
+| 🧪 **Testing**         | ✅ UAT Ready             | E2E + Acceptance Criteria ready                                |
+| 🚀 **Deployment**      | ✅ Production Ready      | Blue-Green on QNAP Container Station                           |
+| 🔒 **Infrastructure**  | ✅ Hardened (v1.9.8)     | Sidecar APIs secured; dynamic VRAM Release; container hardened |
 
 ---
 
@@ -297,7 +297,7 @@ lcbp3-dms/
 │   ├── scripts/                # Audit & Sync scripts
 │   └── archive/                # Archived outdated tools
 │
-├── .windsurf/                  # Windsurf-specific (Mirrored from .agents)
+├── .devin/                    # Devin-specific (Mirrored from .agents)
 │
 ├── .github/                    # GitHub Actions workflows
 ├── AGENTS.md                   # AI agent rules & project context (v1.9.0) [★ primary]
@@ -314,20 +314,20 @@ lcbp3-dms/
 
 ### เอกสารหลัก (specs/ folder)
 
-| เอกสาร                  | คำอธิบาย                                                 | Gap       | ไฟล์หลัก                                |
-| ----------------------- | -------------------------------------------------------- | --------- | --------------------------------------- |
-| **Product Vision**      | Vision, Strategic Pillars, Guardrails                    | Gap 1 ✅  | `00-03-product-vision.md`               |
-| **User Stories**        | 27 Stories, 8 Epics, MoSCoW                              | Gap 2 ✅  | `01-04-user-stories.md`                 |
-| **Acceptance Criteria** | UAT Criteria, Sign-off Process                           | Gap 3 ✅  | `01-05-acceptance-criteria.md`          |
-| **UI/UX Wireframes**    | 26 Screens, ASCII Wireframes, Design System              | Gap 4 ✅  | `01-07-ui-wireframes.md`                |
-| **Stakeholder & Risk**  | Sign-off, Risk Register, Change Control                  | Gap 5 ✅  | `00-04-stakeholder-signoff-and-risk.md` |
-| **KPI Baseline**        | 14 KPIs, SQL Queries, Grafana Specs                      | Gap 6 ✅  | `00-05-kpi-baseline.md`                 |
-| **Migration Scope**     | 20K Docs, 3 Tiers, Go/No-Go Gates                        | Gap 7 ✅  | `03-06-migration-business-scope.md`     |
-| **Release Policy**      | SemVer, 5 Gates, Hotfix, Rollback                        | Gap 8 ✅  | `04-08-release-management-policy.md`    |
-| **Training Plan**       | Curriculum per Role, UAT Training                        | Gap 9 ✅  | `00-06-training-plan.md`                |
-| **Edge Cases & Rules**  | 37 Edge Cases, Business Logic Guards                     | Gap 10 ✅ | `01-06-edge-cases-and-rules.md`         |
-| **Schema v1.9.0**       | Tables, Views, Indexes (3-file split)                    | —         | `lcbp3-v1.9.0-schema-*.sql`             |
-| **Data Dictionary**     | Field Meanings, Business Rules                           | —         | `03-01-data-dictionary.md`              |
+| เอกสาร                  | คำอธิบาย                                                          | Gap       | ไฟล์หลัก                                |
+| ----------------------- | ----------------------------------------------------------------- | --------- | --------------------------------------- |
+| **Product Vision**      | Vision, Strategic Pillars, Guardrails                             | Gap 1 ✅  | `00-03-product-vision.md`               |
+| **User Stories**        | 27 Stories, 8 Epics, MoSCoW                                       | Gap 2 ✅  | `01-04-user-stories.md`                 |
+| **Acceptance Criteria** | UAT Criteria, Sign-off Process                                    | Gap 3 ✅  | `01-05-acceptance-criteria.md`          |
+| **UI/UX Wireframes**    | 26 Screens, ASCII Wireframes, Design System                       | Gap 4 ✅  | `01-07-ui-wireframes.md`                |
+| **Stakeholder & Risk**  | Sign-off, Risk Register, Change Control                           | Gap 5 ✅  | `00-04-stakeholder-signoff-and-risk.md` |
+| **KPI Baseline**        | 14 KPIs, SQL Queries, Grafana Specs                               | Gap 6 ✅  | `00-05-kpi-baseline.md`                 |
+| **Migration Scope**     | 20K Docs, 3 Tiers, Go/No-Go Gates                                 | Gap 7 ✅  | `03-06-migration-business-scope.md`     |
+| **Release Policy**      | SemVer, 5 Gates, Hotfix, Rollback                                 | Gap 8 ✅  | `04-08-release-management-policy.md`    |
+| **Training Plan**       | Curriculum per Role, UAT Training                                 | Gap 9 ✅  | `00-06-training-plan.md`                |
+| **Edge Cases & Rules**  | 37 Edge Cases, Business Logic Guards                              | Gap 10 ✅ | `01-06-edge-cases-and-rules.md`         |
+| **Schema v1.9.0**       | Tables, Views, Indexes (3-file split)                             | —         | `lcbp3-v1.9.0-schema-*.sql`             |
+| **Data Dictionary**     | Field Meanings, Business Rules                                    | —         | `03-01-data-dictionary.md`              |
 | **ADRs (33)**           | All Architecture Decisions incl. ADR-019/021/023/024-029, ADR-033 | -         | `06-Decision-Records/`                  |
 
 ---
@@ -366,7 +366,7 @@ lcbp3-dms/
 - Development Process
 - Pull Request Process
 - Coding Standards
-- **AI-Assisted Contributions** (AGENTS.md + `.agents/skills/` skill pack + Windsurf slash commands)
+- **AI-Assisted Contributions** (AGENTS.md + `.agents/skills/` skill pack + Devin slash commands)
 
 ### 🤖 For AI Agents
 

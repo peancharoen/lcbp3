@@ -6,6 +6,7 @@
 // - 2026-06-03: ADR-034 — เปลี่ยน default model เป็น typhoon2.5-np-dms; เพิ่ม ocrModel field, keepAlive param ใน loadModel(), model option ใน OllamaGenerateOptions, getOcrModelName()
 // - 2026-06-06: เพิ่ม system prompt support ใน OllamaGenerateOptions และ generate() method เพื่อรองรับ Typhoon model ที่ต้องการ system prompt แยกต่างหาก
 // - 2026-06-06: [T036] แก้ไข default URL เป็น http://192.168.10.100:11434 (Desk-5439) แทน localhost; เพิ่ม options และ keepAlive ใน OllamaGenerateOptions เพื่อรองรับ Typhoon model parameters
+// - 2026-06-08: เพิ่ม num_predict ใน OllamaGenerateOptions.options — ป้องกัน JSON truncation เมื่อ LLM สร้าง structured output
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -27,6 +28,8 @@ export interface OllamaGenerateOptions {
     repeat_penalty?: number;
     num_gpu?: number;
     num_ctx?: number;
+    /** จำนวน tokens สูงสุดที่ LLM จะสร้าง — ป้องกัน JSON truncation */
+    num_predict?: number;
   };
   /** keep_alive: -1 = stay loaded, 0 = unload immediately, N = seconds */
   keepAlive?: number;

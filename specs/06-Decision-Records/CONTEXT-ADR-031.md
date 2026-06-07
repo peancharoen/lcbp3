@@ -1,12 +1,12 @@
 # LCBP3 DMS — Agent Context (ADR-031)
-# Single source of truth สำหรับทุก agent tool (Hermes, agy, Windsurf)
+# Single source of truth สำหรับทุก agent tool (Hermes, agy, Devin)
 #
 # ที่อยู่ไฟล์: specs/06-Decision-Records/CONTEXT-ADR-031.md
 #
 # Tool ที่อ่านไฟล์นี้:
 #   Hermes  → /volume1/docker/hermes/config/MEMORY.md (symlink หรือ copy)
 #   agy     → ~/.gemini/antigravity-cli/settings.json > contextFiles[]
-#   Windsurf → .windsurfrules > @import specs/06-Decision-Records/CONTEXT-ADR-031.md
+#   Devin → .devin/rules > @import specs/06-Decision-Records/CONTEXT-ADR-031.md
 #
 # Domain context (Correspondence, RFA, AI Architecture): ดู CONTEXT.md ที่ root
 #
@@ -23,7 +23,7 @@
 | Domain | Construction project document management |
 | Owner | เป้ |
 | Repo | Gitea: `https://git.np-dms.work/np-dms/lcbp3` (internal) |
-| Primary IDE | Windsurf (Cascade + MCP) |
+| Primary IDE | Devin (Cascade + MCP) |
 | Agent stack | Hermes (ASUSTOR) · agy CLI · Codex CLI |
 
 ---
@@ -37,7 +37,7 @@ lcbp3/
 ├── specs/                ADRs, specs, data dictionary
 ├── .agents/              Agent skills and rules
 ├── .gitea/workflows/     CI/CD pipeline definitions
-├── .windsurf/            Windsurf workflows and rules
+├── .devin/               Devin workflows and rules
 ├── memory/               Agent memory
 └── CONTEXT.md            ← this file
 ```
@@ -180,9 +180,9 @@ Assumption ที่ตั้งใจจะใช้: [assumption]
 - Max parallel subagents: 3
 - Delegate bash/git execution → Hermes via MCP
 
-### Windsurf / Cascade
+### Devin / Cascade
 - MCP: MariaDB (schema lookup), Gitea (PR/issue)
-- Rules enforced via `AGENTS.md` v1.9.7 (master), synced to `.windsurfrules` และ `.agents/rules/`
+- Rules enforced via `AGENTS.md` v1.9.7 (master), synced to `.devin/rules` และ `.agents/rules/`
 - Primary tool สำหรับ active coding
 
 ## Setup context
@@ -190,7 +190,7 @@ Assumption ที่ตั้งใจจะใช้: [assumption]
 # setup-context.sh — wire CONTEXT-ADR-031.md ไปยัง tools ทุกตัว
 #
 # รันจาก: specs/06-Decision-Records/CONTEXT-ADR-031.md (ดูส่วนท้ายไฟล์)
-# รันบน: laptop (สำหรับ agy + Windsurf) และ ASUSTOR (สำหรับ Hermes)
+# รันบน: laptop (สำหรับ agy + Devin) และ ASUSTOR (สำหรับ Hermes)
 #
 # Usage:
 #   cd specs/06-Decision-Records && bash CONTEXT-ADR-031.sh laptop
@@ -266,26 +266,26 @@ PYEOF
   fi
 }
 
-# ── laptop: Windsurf ─────────────────────────────────────────
-setup_windsurf() {
-  section "Windsurf .windsurfrules"
+# ── laptop: Devin ─────────────────────────────────────────
+setup_devin() {
+  section "Devin .devin/rules"
 
-  RULES="$REPO_ROOT/.windsurfrules"
+  RULES="$REPO_ROOT/.devin/rules"
   IMPORT_LINE="@import specs/06-Decision-Records/CONTEXT-ADR-031.md"
 
   if [ ! -f "$RULES" ]; then
-    warn ".windsurfrules ไม่พบ — ข้ามขั้นตอนนี้"
+    warn ".devin/rules ไม่พบ — ข้ามขั้นตอนนี้"
     return
   fi
 
   if grep -q "@import specs/06-Decision-Records/CONTEXT-ADR-031.md" "$RULES"; then
-    info "@import specs/06-Decision-Records/CONTEXT-ADR-031.md มีอยู่แล้วใน .windsurfrules"
+    info "@import specs/06-Decision-Records/CONTEXT-ADR-031.md มีอยู่แล้วใน .devin/rules"
   else
     # เพิ่ม import ที่บรรทัดแรก
     TMPFILE=$(mktemp)
     echo "$IMPORT_LINE" | cat - "$RULES" > "$TMPFILE"
     mv "$TMPFILE" "$RULES"
-    info "เพิ่ม @import specs/06-Decision-Records/CONTEXT-ADR-031.md ที่บรรทัดแรกของ .windsurfrules"
+    info "เพิ่ม @import specs/06-Decision-Records/CONTEXT-ADR-031.md ที่บรรทัดแรกของ .devin/rules"
   fi
 }
 

@@ -224,7 +224,7 @@ hermes/
 
 - ProxyService (OpenAI-compatible API, port 8766)
 - Secret payload detection middleware (reject if production data detected)
-- MCP server endpoint (/mcp) for agy + Windsurf integration
+- MCP server endpoint (/mcp) for agy + Devin integration
 - HermesMemoryMcpTool (expose DMS context for agy recall)
 - HermesToolsMcpTool (expose bash/git execution capability)
 

@@ -1,8 +1,8 @@
 # `.agents/skills/` — LCBP3 Agent Skill Pack
 
-**Version:** 1.9.0 | **Last Updated:** 2026-05-17 | **Total Skills:** 23
+**Version:** 1.9.0 | **Last Updated:** 2026-06-07 | **Total Skills:** 24
 
-Agent skills for AI-assisted development in **Windsurf IDE** (and compatible agents: Codex CLI, opencode, Amp, Antigravity, AGENTS.md-aware tools).
+Agent skills for AI-assisted development in **Devin IDE** (and compatible agents: Codex CLI, opencode, Amp, Antigravity, AGENTS.md-aware tools).
 
 ---
 
@@ -14,6 +14,7 @@ Agent skills for AI-assisted development in **Windsurf IDE** (and compatible age
 ├── skills.md                    # Overview + dependency matrix + health monitoring
 ├── _LCBP3-CONTEXT.md            # Shared LCBP3 context injected into every speckit-* skill
 ├── README.md                    # (this file)
+├── save-memory/                 # Session log & project memory update
 ├── nestjs-best-practices/       # Backend rules (40 rules across 10 categories)
 ├── next-best-practices/         # Frontend rules (Next.js 15+)
 ├── e2e-testing/                 # Playwright E2E testing patterns (POM, flaky tests, CI/CD)
@@ -30,12 +31,10 @@ Each skill directory contains:
 
 ---
 
-## 🚀 How Windsurf Invokes These Skills
+## 🚀 How Devin Invokes These Skills
 
-Windsurf exposes two entry points:
-
-1. **Skill tool** — Windsurf discovers skills by scanning `.agents/skills/*/SKILL.md` frontmatter. Skills marked `user-invocable: false` are used silently by Cascade.
-2. **Slash commands** — `.windsurf/workflows/*.md` wraps each skill as a slash command (e.g. `/04-speckit.plan`). The workflow file is short; the heavy lifting is delegated to the skill via `skill` tool.
+1. **Skill tool** — Devin discovers skills by scanning `.agents/skills/*/SKILL.md` frontmatter. Skills marked `user-invocable: false` are used silently by Cascade.
+2. **Slash commands** — `.devin/workflows/*.md` wraps each skill as a slash command (e.g. `/04-speckit.plan`). The workflow file is short; the heavy lifting is delegated to the skill via `skill` tool.
 
 Both paths end up executing the same `SKILL.md` instructions.
 
@@ -65,14 +64,14 @@ Use `/00-speckit.all` to run specify → clarify → plan → tasks → analyze 
 
 From repo root:
 
-| Script                                                    | Purpose                                                     |
-| --------------------------------------------------------- | ----------------------------------------------------------- |
-| `./.agents/scripts/bash/check-prerequisites.sh --json`    | Emit `FEATURE_DIR` + `AVAILABLE_DOCS` for a feature branch  |
-| `./.agents/scripts/bash/setup-plan.sh --json`             | Emit `FEATURE_SPEC`, `IMPL_PLAN`, `SPECS_DIR`, `BRANCH`     |
-| `./.agents/scripts/bash/update-agent-context.sh windsurf` | Append tech entries to `AGENTS.md`                          |
-| `./.agents/scripts/bash/audit-skills.sh`                  | Validate all `SKILL.md` frontmatter + presence              |
-| `./.agents/scripts/bash/validate-versions.sh`             | Version consistency check                                   |
-| `./.agents/scripts/bash/sync-workflows.sh`                | Verify every skill has a `.windsurf/workflows/*.md` wrapper |
+| Script                                                 | Purpose                                                    |
+| ------------------------------------------------------ | ---------------------------------------------------------- |
+| `./.agents/scripts/bash/check-prerequisites.sh --json` | Emit `FEATURE_DIR` + `AVAILABLE_DOCS` for a feature branch |
+| `./.agents/scripts/bash/setup-plan.sh --json`          | Emit `FEATURE_SPEC`, `IMPL_PLAN`, `SPECS_DIR`, `BRANCH`    |
+| `./.agents/scripts/bash/update-agent-context.sh devin` | Append tech entries to `AGENTS.md`                         |
+| `./.agents/scripts/bash/audit-skills.sh`               | Validate all `SKILL.md` frontmatter + presence             |
+| `./.agents/scripts/bash/validate-versions.sh`          | Version consistency check                                  |
+| `./.agents/scripts/bash/sync-workflows.sh`             | Verify every skill has a `.devin/workflows/*.md` wrapper   |
 
 All scripts mirror to `.agents/scripts/powershell/*.ps1` for Windows.
 
@@ -97,7 +96,7 @@ To add a new skill:
 
 1. Create `NAME/SKILL.md` with frontmatter: `name`, `description`, `version: 1.9.0`, `scope`, `depends-on`.
 2. Append an LCBP3 context reference pointing to `_LCBP3-CONTEXT.md`.
-3. Wrap with `.windsurf/workflows/NAME.md` so it becomes a slash command.
+3. Wrap with `.devin/workflows/NAME.md` so it becomes a slash command.
 4. Update [`skills.md`](./skills.md) dependency matrix.
 5. Run `./.agents/scripts/bash/audit-skills.sh` → must pass.
 

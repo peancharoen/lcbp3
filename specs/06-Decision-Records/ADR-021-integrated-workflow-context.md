@@ -4,7 +4,7 @@
 - **Status:** Active
 - **Version:** 1.9.0
 - **Date:** 2026-05-13
-- **Author:** Senior Full Stack Developer (Windsurf AI)
+- **Author:** Senior Full Stack Developer (Devin AI)
 - **Reference:** ADR-001 (Workflow Engine), ADR-002 (Redlock), ADR-016 (Security)
 
 ---

@@ -30,12 +30,12 @@
 #
 # 5. Multi-Agent Support
 #    - Handles agent-specific file paths and naming conventions
-#    - Supports: Claude, Gemini, Copilot, Cursor, Qwen, opencode, Codex, Windsurf, Kilo Code, Auggie CLI, Roo Code, CodeBuddy CLI, Qoder CLI, Amp, SHAI, or Amazon Q Developer CLI
+#    - Supports: Claude, Gemini, Copilot, Cursor, Qwen, opencode, Codex, Devin, Kilo Code, Auggie CLI, Roo Code, CodeBuddy CLI, Qoder CLI, Amp, SHAI, or Amazon Q Developer CLI
 #    - Can update single agents or all existing agent files
 #    - Creates default Claude file if no agent files exist
 #
 # Usage: ./update-agent-context.sh [agent_type]
-# Agent types: claude|gemini|copilot|cursor-agent|qwen|opencode|codex|windsurf|kilocode|auggie|shai|q|bob|qoder
+# Agent types: claude|gemini|copilot|cursor-agent|qwen|opencode|codex|devin|kilocode|auggie|shai|q|bob|qoder
 # Leave empty to update all existing agent files
 
 set -e
@@ -609,8 +609,8 @@ update_specific_agent() {
         codex)
             update_agent_file "$AGENTS_FILE" "Codex CLI"
             ;;
-        windsurf)
-            update_agent_file "$WINDSURF_FILE" "Windsurf"
+        devin)
+            update_agent_file "$DEVIN_FILE" "Devin"
             ;;
         kilocode)
             update_agent_file "$KILOCODE_FILE" "Kilo Code"
@@ -681,8 +681,8 @@ update_all_existing_agents() {
         found_agent=true
     fi
 
-    if [[ -f "$WINDSURF_FILE" ]]; then
-        update_agent_file "$WINDSURF_FILE" "Windsurf"
+    if [[ -f "$DEVIN_FILE" ]]; then
+        update_agent_file "$DEVIN_FILE" "Devin"
         found_agent=true
     fi
 

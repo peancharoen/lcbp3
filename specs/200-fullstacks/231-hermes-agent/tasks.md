@@ -127,7 +127,7 @@
 
 - [ ] T037 [US4] Create `hermes/src/proxy/proxy.service.ts` — OpenAI-compatible API (port 8766); forward coding/devops requests ไป Cloud AI พร้อม DMS context injection; validate payload ไม่มี production data (ใช้ secret-redactor.util.ts); ห้าม forward ถ้าตรวจพบ production data
 - [ ] T038 [US4] Create `hermes/src/proxy/proxy.module.ts` + controller — bind ที่ port 8766 แยกจาก main API port 8080; API Key auth; LAN/VPN-only note ใน config
-- [ ] T039 [P] [US4] Create `hermes/src/integrations/mcp/mcp-server.service.ts` — expose `/mcp` endpoint สำหรับ agy + Windsurf integration; implement `hermes-memory` tool (recall DMS context); implement `hermes-tools` tool (bash/git execution on ASUSTOR)
+- [ ] T039 [P] [US4] Create `hermes/src/integrations/mcp/mcp-server.service.ts` — expose `/mcp` endpoint สำหรับ agy + Devin integration; implement `hermes-memory` tool (recall DMS context); implement `hermes-tools` tool (bash/git execution on ASUSTOR)
 - [ ] T040 [P] [US4] Create `hermes/src/integrations/mcp/mcp.module.ts` — wire MCP server providers
 - [ ] T041 [P] [US4] Verify port isolation: proxy port 8766 ≠ PaddleOCR sidecar port 8765 (ADR-023A) — add port validation assertion ใน `hermes/src/config/hermes.config.ts` ที่ startup
 

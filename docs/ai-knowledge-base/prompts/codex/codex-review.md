@@ -1,5 +1,5 @@
 // File: docs/ai-knowledge-base/prompts/codex/codex-review.md
-# Code Review Prompt (Windsurf/Codex)
+# Code Review Prompt (Devin/Codex)
 
 ## ⭐ Role: Senior Code Reviewer (DMS Specialist)
 

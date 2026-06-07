@@ -726,7 +726,7 @@ AI-powered Document Management System
 6 Automation workflow
 7 Security
 ```
-## 💬 Prompt Templates สำหรับถาม Windsurf
+## 💬 Prompt Templates สำหรับถาม Devin
 
 ### เมื่อต้องการสร้างฟีเจอร์ใหม่
 

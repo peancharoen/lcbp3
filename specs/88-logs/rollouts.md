@@ -1,0 +1,17 @@
+# Recent Rollouts
+
+| วันที่     | Version | รายการ                                                                                               | สถานะ                         |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 2026-05-23 | v1.9.6  | Specs reorganization (`100/200/300-*` folders), AGENTS.md v1.9.6 update                              | ✅ Complete                   |
+| 2026-05-23 | v1.9.6  | N8N Workflow v2 (`n8n.workflow.v2.json`) — ADR-023A compliant, ลบ Ollama direct                      | ⏳ Pending import to n8n UI   |
+| 2026-05-24 | v1.9.6  | AGENTS.md Project Memory Override rule (Devin / Antigravity / Codex)                              | ✅ Complete                   |
+| 2026-05-25 | v1.9.6  | Migration Queue attachment UUID fix — DTO + Service + n8n.workflow.v2.json (Session 3)               | ✅ Complete (tsc verified)    |
+| 2026-05-25 | v1.9.6  | Migration error normalization + `job_id` logging — workflow + backend + SQL/delta (Session 4)        | ✅ Complete                   |
+| 2026-05-25 | v1.9.6  | PaddleOCR Sidecar บน Desk-5439 — FastAPI `/ocr`+`/normalize`, CIFS mount, path remapping (Session 7) | ✅ Running                    |
+| 2026-05-27 | v1.9.7  | Context-Aware Prompt Templates & DB CC Whitespace Cleanup (ADR-030) (Session 9)                      | ✅ Complete (v1.9.7 main)     |
+| 2026-05-30 | v1.9.7  | OCR Engine Migration — PaddleOCR → Tesseract (Session 8)                                             | ✅ Complete (pending rebuild) |
+| 2026-05-30 | v1.9.7  | OCR Sandbox Two-Step Flow (ADR-030/231) — Step 1 OCR-only → Step 2 AI Extraction (Session 10)       | ✅ Complete                   |
+| 2026-05-30 | v1.9.7  | Typhoon OCR & LLM Integration (ADR-032) — Dynamic model switching + VRAM Monitor (Session 11)        | ✅ Complete                   |
+| 2026-06-03 | v1.9.8  | Thai-Optimized AI Model Stack (ADR-034) — typhoon2.5-np-dms:latest + typhoon-np-dms-ocr:latest      | ✅ Complete                   |
+| 2026-06-05 | v1.9.8  | RAG Pipeline Enhancements (Spec 234 / ADR-035) — BGE-M3 + BGE-Reranker + Hybrid Qdrant (Session 14/15) | ✅ Complete                   |
+| 2026-06-06 | v1.9.9  | LLM JSON Parse Failure & VRAM Fix (ADR-035-135) — retry logic + keep_alive=0 + ESLint heap fix     | ✅ Complete                   |

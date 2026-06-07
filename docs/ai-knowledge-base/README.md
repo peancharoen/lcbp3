@@ -1,6 +1,6 @@
 # AI Knowledge Base for NAP-DMS (LCBP3)
 
-คลังความรู้สำหรับ AI Assistant (Antigravity, Windsurf, Codex) เพื่อช่วยในการพัฒนาระบบ Document Management System (DMS)
+คลังความรู้สำหรับ AI Assistant (Antigravity, Devin, Codex) เพื่อช่วยในการพัฒนาระบบ Document Management System (DMS)
 
 ## 📁 โครงสร้างโฟลเดอร์
 
@@ -8,7 +8,7 @@
   - `core/`: กฎพื้นฐานและมาตรฐานการเขียนโค้ด
   - `dms/`: เฉพาะทางด้านระบบจัดการเอกสาร
   - `infra/`: งานด้าน Infrastructure และ Network
-  - `codex/`: คำสั่งเฉพาะสำหรับ Windsurf/Codex
+  - `codex/`: คำสั่งเฉพาะสำหรับ Devin/Codex
 - `templates/`: แม่แบบเอกสารต่างๆ (Spec, Bug Report, etc.)
 - `playbooks/`: คู่มือขั้นตอนการทำงานที่ซับซ้อน
 - `checklists/`: รายการตรวจสอบก่อนส่งงานหรือ Deploy

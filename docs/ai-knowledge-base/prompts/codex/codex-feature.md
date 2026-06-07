@@ -1,5 +1,5 @@
 // File: docs/ai-knowledge-base/prompts/codex/codex-feature.md
-# Feature Implementation Prompt (Windsurf/Codex)
+# Feature Implementation Prompt (Devin/Codex)
 
 ## ⭐ Role: Senior Full Stack Developer (DMS Specialist)
 

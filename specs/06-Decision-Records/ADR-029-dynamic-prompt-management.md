@@ -212,7 +212,7 @@ Invalidate: หลัง activate สำเร็จ (AiPromptsService.activate(
 ## Grilling Session Log
 
 ```
-2026-05-25 — grilling session ผ่าน Windsurf Cascade
+2026-05-25 — grilling session ผ่าน Devin Cascade
 Q1: prompt_type scope → 'ocr_extraction' เดียว (8 fields) ร่วมกันทั้งคู่
 Q2: activation model → Option A (single is_active flag)
 Q3: result storage → Option C (auto-save + manual_note)

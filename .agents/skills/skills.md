@@ -2,7 +2,7 @@
 
 ไฟล์นี้กำหนดทักษะและความสามารถเฉพาะทางของ Document Intelligence Engine สำหรับโครงการ LCBP3 v1.9.0 เพื่อรักษามาตรฐานสูงสุดด้าน Security และ Data Integrity
 
-**Status**: Production Ready | **Last Updated**: 2026-05-17 | **Total Skills**: 23
+**Status**: Production Ready | **Last Updated**: 2026-06-07 | **Total Skills**: 24
 
 > 📌 Shared context for all speckit-\* skills: see [`_LCBP3-CONTEXT.md`](./_LCBP3-CONTEXT.md).
 
@@ -76,6 +76,7 @@
 | **speckit-status**         | None                 | None                                     | Progress tracking             |
 | **speckit-taskstoissues**  | speckit-tasks        | None                                     | Issue sync                    |
 | **speckit-checklist**      | speckit-plan         | None                                     | Requirements validation       |
+| **save-memory**            | None                 | None                                     | Session log & memory update   |
 | **nestjs-best-practices**  | None                 | speckit-implement                        | Backend patterns              |
 | **next-best-practices**    | None                 | speckit-implement                        | Frontend patterns             |
 | **speckit-security-audit** | None                 | speckit-reviewer                         | Security validation           |
@@ -99,7 +100,7 @@
 
 ### Health Metrics
 
-- **Total Skills**: 23 implemented
+- **Total Skills**: 24 implemented
 - **Version Alignment**: v1.9.0 across all skills
 - **Template Coverage**: 100% for skills requiring templates
 - **Documentation**: Complete front matter + shared `_LCBP3-CONTEXT.md` appendix

@@ -1,5 +1,5 @@
 // File: docs/ai-knowledge-base/prompts/codex/codex-bugfix.md
-# Bug Fix Prompt (Windsurf/Codex)
+# Bug Fix Prompt (Devin/Codex)
 
 ## ⭐ Role: Debugging Specialist
 

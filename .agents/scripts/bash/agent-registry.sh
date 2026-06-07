@@ -42,7 +42,7 @@ init_agent_registry() {
         [qwen]="Qwen Code"
         [opencode]="opencode"
         [codex]="Codex CLI"
-        [windsurf]="Windsurf"
+        [devin]="Devin"
         [kilocode]="Kilo Code"
         [auggie]="Auggie CLI"
         [roo]="Roo Code"

@@ -68,36 +68,36 @@ $script:NEW_FRAMEWORK = ''
 $script:NEW_DB = ''
 $script:NEW_PROJECT_TYPE = ''
 
-function Write-Info { 
+function Write-Info {
     param(
         [Parameter(Mandatory=$true)]
         [string]$Message
     )
-    Write-Host "INFO: $Message" 
+    Write-Host "INFO: $Message"
 }
 
-function Write-Success { 
+function Write-Success {
     param(
         [Parameter(Mandatory=$true)]
         [string]$Message
     )
-    Write-Host "$([char]0x2713) $Message" 
+    Write-Host "$([char]0x2713) $Message"
 }
 
-function Write-WarningMsg { 
+function Write-WarningMsg {
     param(
         [Parameter(Mandatory=$true)]
         [string]$Message
     )
-    Write-Warning $Message 
+    Write-Warning $Message
 }
 
-function Write-Err { 
+function Write-Err {
     param(
         [Parameter(Mandatory=$true)]
         [string]$Message
     )
-    Write-Host "ERROR: $Message" -ForegroundColor Red 
+    Write-Host "ERROR: $Message" -ForegroundColor Red
 }
 
 function Validate-Environment {
@@ -130,7 +130,7 @@ function Extract-PlanField {
     # Lines like **Language/Version**: Python 3.12
     $regex = "^\*\*$([Regex]::Escape($FieldPattern))\*\*: (.+)$"
     Get-Content -LiteralPath $PlanFile -Encoding utf8 | ForEach-Object {
-        if ($_ -match $regex) { 
+        if ($_ -match $regex) {
             $val = $Matches[1].Trim()
             if ($val -notin @('NEEDS CLARIFICATION','N/A')) { return $val }
         }
@@ -170,15 +170,15 @@ function Format-TechnologyStack {
     return ($parts -join ' + ')
 }
 
-function Get-ProjectStructure { 
+function Get-ProjectStructure {
     param(
         [Parameter(Mandatory=$false)]
         [string]$ProjectType
     )
-    if ($ProjectType -match 'web') { return "backend/`nfrontend/`ntests/" } else { return "src/`ntests/" } 
+    if ($ProjectType -match 'web') { return "backend/`nfrontend/`ntests/" } else { return "src/`ntests/" }
 }
 
-function Get-CommandsForLanguage { 
+function Get-CommandsForLanguage {
     param(
         [Parameter(Mandatory=$false)]
         [string]$Lang
@@ -191,12 +191,12 @@ function Get-CommandsForLanguage {
     }
 }
 
-function Get-LanguageConventions { 
+function Get-LanguageConventions {
     param(
         [Parameter(Mandatory=$false)]
         [string]$Lang
     )
-    if ($Lang) { "${Lang}: Follow standard conventions" } else { 'General: Follow standard conventions' } 
+    if ($Lang) { "${Lang}: Follow standard conventions" } else { 'General: Follow standard conventions' }
 }
 
 function New-AgentFile {
@@ -223,7 +223,7 @@ function New-AgentFile {
     $content = Get-Content -LiteralPath $temp -Raw -Encoding utf8
     $content = $content -replace '\[PROJECT NAME\]',$ProjectName
     $content = $content -replace '\[DATE\]',$Date.ToString('yyyy-MM-dd')
-    
+
     # Build the technology stack string safely
     $techStackForTemplate = ""
     if ($escaped_lang -and $escaped_framework) {
@@ -233,7 +233,7 @@ function New-AgentFile {
     } elseif ($escaped_framework) {
         $techStackForTemplate = "- $escaped_framework ($escaped_branch)"
     }
-    
+
     $content = $content -replace '\[EXTRACTED FROM ALL PLAN.MD FILES\]',$techStackForTemplate
     # For project structure we manually embed (keep newlines)
     $escapedStructure = [Regex]::Escape($projectStructure)
@@ -241,7 +241,7 @@ function New-AgentFile {
     # Replace escaped newlines placeholder after all replacements
     $content = $content -replace '\[ONLY COMMANDS FOR ACTIVE TECHNOLOGIES\]',$commands
     $content = $content -replace '\[LANGUAGE-SPECIFIC, ONLY FOR LANGUAGES IN USE\]',$languageConventions
-    
+
     # Build the recent changes string safely
     $recentChangesForTemplate = ""
     if ($escaped_lang -and $escaped_framework) {
@@ -251,7 +251,7 @@ function New-AgentFile {
     } elseif ($escaped_framework) {
         $recentChangesForTemplate = "- ${escaped_branch}: Added ${escaped_framework}"
     }
-    
+
     $content = $content -replace '\[LAST 3 FEATURES AND WHAT THEY ADDED\]',$recentChangesForTemplate
     # Convert literal \n sequences introduced by Escape to real newlines
     $content = $content -replace '\\n',[Environment]::NewLine
@@ -276,14 +276,14 @@ function Update-ExistingAgentFile {
     $newTechEntries = @()
     if ($techStack) {
         $escapedTechStack = [Regex]::Escape($techStack)
-        if (-not (Select-String -Pattern $escapedTechStack -Path $TargetFile -Quiet)) { 
-            $newTechEntries += "- $techStack ($CURRENT_BRANCH)" 
+        if (-not (Select-String -Pattern $escapedTechStack -Path $TargetFile -Quiet)) {
+            $newTechEntries += "- $techStack ($CURRENT_BRANCH)"
         }
     }
     if ($NEW_DB -and $NEW_DB -notin @('N/A','NEEDS CLARIFICATION')) {
         $escapedDB = [Regex]::Escape($NEW_DB)
-        if (-not (Select-String -Pattern $escapedDB -Path $TargetFile -Quiet)) { 
-            $newTechEntries += "- $NEW_DB ($CURRENT_BRANCH)" 
+        if (-not (Select-String -Pattern $escapedDB -Path $TargetFile -Quiet)) {
+            $newTechEntries += "- $NEW_DB ($CURRENT_BRANCH)"
         }
     }
     $newChangeEntry = ''
@@ -377,7 +377,7 @@ function Update-SpecificAgent {
         'qwen'     { Update-AgentFile -TargetFile $QWEN_FILE     -AgentName 'Qwen Code' }
         'opencode' { Update-AgentFile -TargetFile $AGENTS_FILE   -AgentName 'opencode' }
         'codex'    { Update-AgentFile -TargetFile $AGENTS_FILE   -AgentName 'Codex CLI' }
-        'windsurf' { Update-AgentFile -TargetFile $WINDSURF_FILE -AgentName 'Windsurf' }
+        'devin'    { Update-AgentFile -TargetFile $DEVIN_FILE   -AgentName 'Devin' }
         'kilocode' { Update-AgentFile -TargetFile $KILOCODE_FILE -AgentName 'Kilo Code' }
         'auggie'   { Update-AgentFile -TargetFile $AUGGIE_FILE   -AgentName 'Auggie CLI' }
         'roo'      { Update-AgentFile -TargetFile $ROO_FILE      -AgentName 'Roo Code' }
@@ -386,7 +386,7 @@ function Update-SpecificAgent {
         'shai'     { Update-AgentFile -TargetFile $SHAI_FILE     -AgentName 'SHAI' }
         'q'        { Update-AgentFile -TargetFile $Q_FILE        -AgentName 'Amazon Q Developer CLI' }
         'bob'      { Update-AgentFile -TargetFile $BOB_FILE      -AgentName 'IBM Bob' }
-        default { Write-Err "Unknown agent type '$Type'"; Write-Err 'Expected: claude|gemini|copilot|cursor-agent|qwen|opencode|codex|windsurf|kilocode|auggie|roo|codebuddy|amp|shai|q|bob'; return $false }
+        default { Write-Err "Unknown agent type '$Type'"; Write-Err 'Expected: claude|gemini|copilot|cursor-agent|qwen|opencode|codex|devin|kilocode|auggie|roo|codebuddy|amp|shai|q|bob'; return $false }
     }
 }
 
@@ -399,7 +399,7 @@ function Update-AllExistingAgents {
     if (Test-Path $CURSOR_FILE)   { if (-not (Update-AgentFile -TargetFile $CURSOR_FILE   -AgentName 'Cursor IDE')) { $ok = $false }; $found = $true }
     if (Test-Path $QWEN_FILE)     { if (-not (Update-AgentFile -TargetFile $QWEN_FILE     -AgentName 'Qwen Code')) { $ok = $false }; $found = $true }
     if (Test-Path $AGENTS_FILE)   { if (-not (Update-AgentFile -TargetFile $AGENTS_FILE   -AgentName 'Codex/opencode')) { $ok = $false }; $found = $true }
-    if (Test-Path $WINDSURF_FILE) { if (-not (Update-AgentFile -TargetFile $WINDSURF_FILE -AgentName 'Windsurf')) { $ok = $false }; $found = $true }
+    if (Test-Path $DEVIN_FILE) { if (-not (Update-AgentFile -TargetFile $DEVIN_FILE   -AgentName 'Devin')) { $ok = $false }; $found = $true }
     if (Test-Path $KILOCODE_FILE) { if (-not (Update-AgentFile -TargetFile $KILOCODE_FILE -AgentName 'Kilo Code')) { $ok = $false }; $found = $true }
     if (Test-Path $AUGGIE_FILE)   { if (-not (Update-AgentFile -TargetFile $AUGGIE_FILE   -AgentName 'Auggie CLI')) { $ok = $false }; $found = $true }
     if (Test-Path $ROO_FILE)      { if (-not (Update-AgentFile -TargetFile $ROO_FILE      -AgentName 'Roo Code')) { $ok = $false }; $found = $true }
