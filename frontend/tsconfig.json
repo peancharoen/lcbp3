@@ -30,7 +30,7 @@
       "@types": ["types/*"],
       "@api": ["app/api/*"],
       // เพิ่มส่วนที่ขาดไปเพื่อให้ตรงกับ Workspace
-      "@hooks/*": ["app/hooks/*"],
+      "@hooks/*": ["hooks/*"],
       "@utils/*": ["utils/*"]
     },
     "target": "ES2017"

@@ -13,6 +13,10 @@
       "path": "frontend",
     },
     {
+      "name": "🗓️ docs",
+      "path": "docs",
+    },
+    {
       "name": "🔗 specs",
       "path": "specs",
     },
@@ -177,13 +181,13 @@
       "@workflow-engine": "${workspaceFolder:🔧 Backend}/src/modules/workflow-engine",
 
       // Frontend paths (ไม่มี src)
-      "@": "${workspaceFolder:🎨 Frontend}/app",
-      "@/*": "${workspaceFolder:🎨 Frontend}/app/*",
+      "@": "${workspaceFolder:🎨 Frontend}",
+      "@/*": "${workspaceFolder:🎨 Frontend}/*",
       "@app": "${workspaceFolder:🎨 Frontend}/app",
       "@components": "${workspaceFolder:🎨 Frontend}/components",
       "@fe-config": "${workspaceFolder:🎨 Frontend}/config",
       "@lib": "${workspaceFolder:🎨 Frontend}/lib",
-      "@hooks": "${workspaceFolder:🎨 Frontend}/app/hooks",
+      "@hooks": "${workspaceFolder:🎨 Frontend}/hooks",
       "@utils": "${workspaceFolder:🎨 Frontend}/utils",
       "@providers": "${workspaceFolder:🎨 Frontend}/providers",
       "@public": "${workspaceFolder:🎨 Frontend}/public",
@@ -355,24 +359,22 @@
     "importCost.smallPackageColor": "#98C379",
 
     // ========================================
-    // JAVASCRIPT/TYPESCRIPT
+    // JAVASCRIPT/TYPESCRIPT (Unified Settings)
     // ========================================
 
-    "javascript.suggest.autoImports": true,
-    "javascript.updateImportsOnFileMove.enabled": "always",
-    "javascript.inlayHints.parameterNames.enabled": "all",
-    "javascript.inlayHints.functionLikeReturnTypes.enabled": true,
-    "javascript.inlayHints.variableTypes.enabled": false,
-    "javascript.preferences.importModuleSpecifier": "relative",
+    // Unified JS/TS settings (replaces deprecated javascript.* and typescript.*)
+    "#js/ts.suggest.autoImports": true,
+    "#js/ts.updateImportsOnFileMove.enabled": "always",
+    "#js/ts.preferences.importModuleSpecifier": "relative",
 
-    "typescript.suggest.autoImports": true,
-    "typescript.updateImportsOnFileMove.enabled": "always",
-    "typescript.inlayHints.parameterNames.enabled": "all",
-    "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
-    "typescript.inlayHints.variableTypes.enabled": false,
-    "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
-    "typescript.preferences.importModuleSpecifier": "relative",
-    "typescript.tsdk": "node_modules/typescript/lib", // ✅ ใช้ relative path
+    // Unified inlay hints (replaces deprecated javascript.inlayHints.* and typescript.inlayHints.*)
+    "editor.inlayHints.parameterNames.enabled": "all",
+    "editor.inlayHints.functionLikeReturnTypes.enabled": true,
+    "editor.inlayHints.variableTypes.enabled": false,
+    "editor.inlayHints.propertyDeclarationTypes.enabled": true,
+
+    // Unified TypeScript SDK path (replaces deprecated typescript.tsdk)
+    "#js/ts.tsdk.path": "node_modules/typescript/lib", // ✅ ใช้ relative path
     // ========================================
     // EMMET
     // ========================================
@@ -388,7 +390,6 @@
     // FILES
     // ========================================
 
-    //"files.autoSave": "onFocusChange",
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
     "files.encoding": "utf8",
@@ -658,8 +659,8 @@
         "name": "lcbp3_dev",
         "database": "lcbp3_dev",
         "username": "root",
-        "password": "",
-        "askForPassword": true, // ✅ ปลอดภัยกว่า
+        "password": "${env:DB_PASSWORD}", // ✅ ใช้ environment variable แทน hardcoded
+        "askForPassword": true,
       },
     ],
     "database-client.variableIndicator": [":", "$"],
@@ -670,6 +671,7 @@
     "vitest.enable": true,
     "yaml.maxItemsComputed": 10000,
     "powershell.cwd": "🎯 Root",
+    // "terminal.integrated.persistentSessionReviveProcess": "never",
     "files.autoSave": "onFocusChange",
     "diffEditor.codeLens": false,
     "workbench.colorTheme": "Default Dark Modern",
@@ -886,7 +888,7 @@
       // 1. Task หลักที่จะรันอัตโนมัติเมื่อเปิดโปรแกรม
       {
         "label": "🚀 Setup Workspace",
-        "dependsOn": ["🔧 PS: Backend", "🎨 PS: Frontend"], // สั่งให้รัน 2 task ย่อย
+        "dependsOn": ["🎯 PS: Root", "🔧 PS: Backend", "🎨 PS: Frontend"], // สั่งให้รัน 3 task ย่อย
         "runOptions": {
           "runOn": "folderOpen", // <--- คำสั่งศักดิ์สิทธิ์: รันทันทีที่เปิด VS Code
         },
@@ -895,30 +897,30 @@
         },
         "problemMatcher": [],
       },
-      // 2. Task ย่อย: เปิด Terminal ที่ Backend
+      // 2. Task ย่อย: เปิด Terminal ที่ Root
       {
-        "label": "🔧 PS: Backend",
-        "type": "shell",
-        "command": "powershell", // สั่งเปิด PowerShell ค้างไว้
-        "options": {
-          "cwd": "${workspaceFolder:🔧 Backend}", // cd เข้า folder นี้
-        },
-        "isBackground": true, // บอก VS Code ว่าไม่ต้องรอให้จบ (รันค้างไว้เลย)
-        "problemMatcher": [],
-        "presentation": {
-          "group": "workspace-terminals", // จัดกลุ่มเดียวกัน
-          "reveal": "always",
-          "panel": "dedicated", // แยก Tab ให้ชัดเจน
-          "focus": false, // ไม่ต้องแย่ง Focus ทันที
-        },
-      },
-      // 3. Task ย่อย: เปิด Terminal ที่ Frontend
-      {
-        "label": "🎨 PS: Frontend",
+        "label": "🎯 PS: Root",
         "type": "shell",
         "command": "powershell",
         "options": {
-          "cwd": "${workspaceFolder:🎨 Frontend}", // cd เข้า folder นี้
+          "cwd": "${workspaceFolder:🎯 Root}",
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          // "group": "workspace-terminals",
+          "reveal": "always",
+          "panel": "dedicated",
+          "focus": false,
+        },
+      },
+      // 3. Task ย่อย: เปิด Terminal ที่ Backend
+      {
+        "label": "🔧 PS: Backend",
+        "type": "shell",
+        "command": "powershell",
+        "options": {
+          "cwd": "${workspaceFolder:🔧 Backend}",
         },
         "isBackground": true,
         "problemMatcher": [],
@@ -926,8 +928,41 @@
           "group": "workspace-terminals",
           "reveal": "always",
           "panel": "dedicated",
-          "focus": false, // ไม่ต้องแย่ง Focus ทันที
-          // "focus": true // ให้ Focus ที่อันนี้เป็นอันสุดท้าย (พร้อมพิมพ์)
+          "focus": false,
+        },
+      },
+      // 4. Task ย่อย: เปิด Terminal ที่ Frontend
+      {
+        "label": "🎨 PS: Frontend",
+        "type": "shell",
+        "command": "powershell",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}",
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "workspace-terminals",
+          "reveal": "always",
+          "panel": "dedicated",
+          "focus": false,
+        },
+      },
+      // 5. Task ย่อย: เปิด Vitest Watch Mode ที่ Frontend (Manual run only)
+      {
+        "label": "🧪 Vitest Watch Frontend",
+        "type": "shell",
+        "command": "npm run test:watch",
+        "options": {
+          "cwd": "${workspaceFolder:🎨 Frontend}",
+        },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "workspace-terminals",
+          "reveal": "always",
+          "panel": "dedicated",
+          "focus": false,
         },
       },
     ],

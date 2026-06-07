@@ -208,7 +208,7 @@ export class AiBatchProcessor extends WorkerHost {
       model?: string;
       system?: string;
       format?: 'json';
-      ollamaOptions?: { num_ctx?: number };
+      ollamaOptions?: { num_ctx?: number; num_predict?: number };
     }
   ): Promise<{
     extractedMetadata: Record<string, unknown>;
@@ -533,7 +533,7 @@ export class AiBatchProcessor extends WorkerHost {
         {
           format: 'json',
           timeoutMs: 120000,
-          ollamaOptions: { num_ctx: 8192 }, // รองรับ prompt ยาว 18k+ chars
+          ollamaOptions: { num_ctx: 8192, num_predict: 4096 }, // num_predict ป้องกัน output ถูก truncate
         }
       );
       await this.aiPromptsService.saveTestResult(
@@ -737,7 +737,7 @@ export class AiBatchProcessor extends WorkerHost {
         {
           format: 'json',
           timeoutMs: 120000,
-          ollamaOptions: { num_ctx: 8192 }, // รองรับ prompt ยาว 18k+ chars
+          ollamaOptions: { num_ctx: 8192, num_predict: 4096 }, // num_predict ป้องกัน output ถูก truncate
         }
       );
 
