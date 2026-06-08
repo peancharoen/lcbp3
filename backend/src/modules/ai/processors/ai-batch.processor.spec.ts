@@ -1,5 +1,6 @@
 // File: src/modules/ai/processors/ai-batch.processor.spec.ts
 // Change Log
+// - 2026-06-08: เพิ่มการทดสอบการส่งตัวเลือก generate (format: json, num_ctx: 16384) สำหรับ migrate-document
 // - 2026-05-21: สร้าง Unit Test สำหรับ AiBatchProcessor ครอบคลุม embed-document และ sandbox-rag (T032).
 // - 2026-05-21: เพิ่มการทดสอบ sandbox-extract พร้อม mock OcrService, OllamaService และ Redis (T039).
 // - 2026-05-21: แก้ไข ESLint unexpected any และ unsafe member access โดยกำหนด type ให้ redis เป็น Record<string, jest.Mock>
@@ -520,7 +521,14 @@ describe('AiBatchProcessor', () => {
     expect(ocrService.detectAndExtract).toHaveBeenCalledWith({
       pdfPath: '/files/test.pdf',
     });
-    expect(ollamaService.generate).toHaveBeenCalledTimes(1);
+    expect(ollamaService.generate).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        format: 'json',
+        timeoutMs: 120000,
+        options: { num_ctx: 16384, num_predict: 4096 },
+      })
+    );
     expect(mockTagsService.findOrSuggestTags).toHaveBeenCalledTimes(1);
     expect(mockMigrationService.enqueueRecord).toHaveBeenCalledWith(
       expect.objectContaining({

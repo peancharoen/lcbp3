@@ -1,5 +1,6 @@
 // File: src/modules/ai/processors/ai-batch.processor.ts
 // Change Log
+// - 2026-06-08: แก้ไขปัญหา LLM JSON response truncated โดยการเพิ่ม num_ctx เป็น 16384 ใน sandbox-extract, sandbox-ai-extract และ migrate-document
 // - 2026-05-15: เพิ่ม processor สำหรับ ai-batch queue ตาม ADR-023A.
 // - 2026-05-15: เพิ่ม EmbeddingService สำหรับ embed-document logic (T022).
 // - 2026-05-21: เพิ่มการรองรับ sandbox-rag และ sandbox-extract สำหรับ Superadmin sandbox.
@@ -533,7 +534,7 @@ export class AiBatchProcessor extends WorkerHost {
         {
           format: 'json',
           timeoutMs: 120000,
-          ollamaOptions: { num_ctx: 8192, num_predict: 4096 }, // num_predict ป้องกัน output ถูก truncate
+          ollamaOptions: { num_ctx: 16384, num_predict: 4096 }, // num_predict ป้องกัน output ถูก truncate
         }
       );
       await this.aiPromptsService.saveTestResult(
@@ -737,7 +738,7 @@ export class AiBatchProcessor extends WorkerHost {
         {
           format: 'json',
           timeoutMs: 120000,
-          ollamaOptions: { num_ctx: 8192, num_predict: 4096 }, // num_predict ป้องกัน output ถูก truncate
+          ollamaOptions: { num_ctx: 16384, num_predict: 4096 }, // num_predict ป้องกัน output ถูก truncate
         }
       );
 
@@ -930,7 +931,9 @@ export class AiBatchProcessor extends WorkerHost {
     let aiResponse: string;
     try {
       aiResponse = await this.ollamaService.generate(resolvedPrompt, {
+        format: 'json',
         timeoutMs: 120000,
+        options: { num_ctx: 16384, num_predict: 4096 },
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
