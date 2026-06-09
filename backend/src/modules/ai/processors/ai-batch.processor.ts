@@ -1,6 +1,6 @@
 // File: src/modules/ai/processors/ai-batch.processor.ts
 // Change Log
-// - 2026-06-08: แก้ไขปัญหา LLM JSON response truncated โดยการเพิ่ม num_ctx เป็น 16384 ใน sandbox-extract, sandbox-ai-extract และ migrate-document
+// - 2026-06-08: แก้ไขปัญหา LLM JSON response truncated โดยการเพิ่ม num_ctx เป็น 16384 ใน sandbox-extract, sandbox-ai-extract และ migrate-document (แก้ไขโดย AGY Gemini 3.5 Flash (Medium))
 // - 2026-05-15: เพิ่ม processor สำหรับ ai-batch queue ตาม ADR-023A.
 // - 2026-05-15: เพิ่ม EmbeddingService สำหรับ embed-document logic (T022).
 // - 2026-05-21: เพิ่มการรองรับ sandbox-rag และ sandbox-extract สำหรับ Superadmin sandbox.

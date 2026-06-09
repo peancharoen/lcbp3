@@ -15,3 +15,5 @@
 | 2026-06-03 | v1.9.8  | Thai-Optimized AI Model Stack (ADR-034) — typhoon2.5-np-dms:latest + typhoon-np-dms-ocr:latest      | ✅ Complete                   |
 | 2026-06-05 | v1.9.8  | RAG Pipeline Enhancements (Spec 234 / ADR-035) — BGE-M3 + BGE-Reranker + Hybrid Qdrant (Session 14/15) | ✅ Complete                   |
 | 2026-06-06 | v1.9.9  | LLM JSON Parse Failure & VRAM Fix (ADR-035-135) — retry logic + keep_alive=0 + ESLint heap fix     | ✅ Complete                   |
+| 2026-06-08 | v1.9.10 | LLM JSON Response Truncation Fix — ขยาย num_ctx: 16384 (Session 16 โดย AGY Gemini 3.5 Flash (Medium)) | ✅ Complete                   |
+

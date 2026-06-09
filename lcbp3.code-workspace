@@ -682,6 +682,7 @@
     "editor.mouseWheelZoom": true,
     "terminal.integrated.mouseWheelZoom": true,
     "terminal.integrated.tabs.title": "${process}-${cwd}",
+    "workbench.editor.sharedViewState": true,
   },
   // ========================================
   // LAUNCH CONFIGURATIONS

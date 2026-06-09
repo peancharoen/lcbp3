@@ -1,5 +1,36 @@
 # Version History
 
+## 1.9.10 (2026-06-08)
+
+### bugfix(ai): Fix LLM JSON Response Truncation in OCR Sandbox & Migration
+
+#### Summary
+
+แก้ไขปัญหา LLM JSON Response Truncation ใน OCR Sandbox Step 2 และ Migration Pipeline โดยการขยายขนาดหน้าต่างบริบท `num_ctx` ของ Ollama เป็น `16384` สำหรับงานสกัดข้อมูล (ดำเนินการแก้ไขโดย AGY Gemini 3.5 Flash (Medium))
+
+#### Changes
+
+- **Ollama Context Window Expansion**: เพิ่มพารามิเตอร์ `num_ctx: 16384` ใน `processSandboxExtract` และ `processSandboxAiExtract` สำหรับงานสกัดข้อมูลใน Sandbox เพื่อรองรับข้อมูลขนาดใหญ่ (สูงสุด 15,000 ตัวอักษร)
+- **Migration Pipeline Hardening**: อัปเดต `processMigrateDocument` ให้บังคับส่ง `format: 'json'` และ `options: { num_ctx: 16384, num_predict: 4096 }` ให้ตรงกับพฤติกรรมของ Sandbox
+- **Regression Tests**: ปรับปรุง Unit Test ใน `ai-batch.processor.spec.ts` เพื่อให้สอดคล้องกับพารามิเตอร์การเรียก Ollama แบบใหม่
+
+---
+
+## 1.9.9 (2026-06-06)
+
+### feat(ai): LLM JSON Parse Failure & VRAM Fix (ADR-035-135)
+
+#### Summary
+
+แก้ไขข้อผิดพลาด JSON Parse และหน่วยความจำ VRAM โดยเพิ่มระบบ retry logic และปรับปรุง VRAM switching
+
+#### Changes
+
+- **JSON Parse Retry**: เพิ่มระบบ retry logic (2 attempts) สำหรับกรณี JSON parse fail พร้อมแสดงรายละเอียด log
+- **VRAM limit**: ปรับแต่งค่า `keep_alive=0` สำหรับ OCR model และแก้ปัญหาความจำรั่วไหลใน Node.js/ESLint heap
+
+---
+
 ## 1.9.8 (2026-06-02)
 
 ### feat(ai): AI Model Swapping, GPU Unloading & OCR Security (ADR-033)
