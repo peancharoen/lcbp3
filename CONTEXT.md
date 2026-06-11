@@ -200,6 +200,24 @@ _Avoid_: Throw exception from tool, Untyped error
 | **Thai-Optimized Model** | โมเดล AI ที่ถูก fine-tune มาสำหรับภาษาไทยโดยเฉพาะ (เช่น Typhoon series จาก SCB10X) | Generic model, English-only model |
 | **Model Unload/Load** | กระบวนการยกเลิกโหลดโมเดลจาก VRAM และโหลดโมเดลใหม่เข้าไปแทน เพื่อสลับการใช้งานระหว่างโมเดลต่างๆ | Model switching (ambiguous), Hot swap |
 | **Cold Start Penalty** | ความล่าช้า 5-15 วินาทีที่เกิดจากการโหลดโมเดล weights เข้า VRAM หลังจากโมเดลถูก unload (keep_alive: 0) | Initial delay, First-run latency |
+| **Canonical AI Model Identity** | ชื่อโมเดลหลักที่ระบบ backend, admin console และเอกสารสถาปัตยกรรมใช้อ้างอิงร่วมกันเป็น source of truth เดียว | Alias-only model name, temporary deploy tag |
+| **Adaptive OCR Residency** | นโยบาย keep_alive ของ OCR model ที่ปรับตาม VRAM headroom และ active model ขณะนั้น แทนการค้างหรือ unload แบบตายตัว | Fixed keep_alive, always-resident OCR |
+| **Execution Profile** | สัญญาณเชิงนโยบายที่ caller ส่งมาเพื่อบอกระดับความเร็ว/ความแม่นยำ/บริบทที่ต้องการ โดย backend map ต่อไปเป็น model และ parameters ที่อนุญาต | Free-form model key, direct model override |
+| **Canonical Profile Set** | ชุดค่า `Execution Profile` มาตรฐานที่คงที่ระดับ contract เช่น `fast`, `balanced`, `thai-accurate`, `large-context` แทนการแตก profile ตาม internal pipeline | Job-specific routing key, per-endpoint profile taxonomy |
+| **Policy-Enforced Profile Override** | กฎที่ backend มีสิทธิ์บังคับ profile สำหรับงานที่มีผลต่อข้อมูลหรือ metadata โดยไม่ยึดค่าที่ caller ส่งมา | Caller-controlled quality for write-affecting jobs, advisory-only governance |
+| **LLM-First GPU Ownership** | นโยบายจัดลำดับสิทธิ์ VRAM ที่ให้ main LLM และ OCR path มาก่อน embedding/reranking; retrieval side ใช้ GPU ได้เฉพาะเมื่อมี headroom ผ่าน policy | Flat shared GPU pool, equal-priority GPU consumers |
+| **CPU Fallback Retrieval** | พฤติกรรม degrade ของ embedding/reranking ที่สลับกลับไปใช้ CPU ทันทีเมื่อ GPU headroom ไม่พอ โดยไม่รอคิว GPU | GPU wait queue for retrieval, hard failure on low VRAM |
+| **Selective Realtime Concurrency** | นโยบายเพิ่ม concurrency ของ `ai-realtime` ได้เฉพาะ job type ที่ไม่แตะ OCR path หรือ model switching; pause/resume coordination หลักยังคงอยู่ | Global realtime concurrency uplift, scheduler rewrite |
+| **Lightweight Realtime Job** | งานใน `ai-realtime` ที่ไม่เรียก OCR, ไม่บังคับ model switch, และไม่พึ่ง GPU-heavy generation path จึงมีสิทธิ์อยู่ใน concurrency uplift set | RAG query, OCR-triggering job, GPU-heavy generation |
+| **Generation-Centric RAG Query** | การจัดประเภท `rag-query` ว่าเป็นงาน generation เป็นหลัก โดย retrieval ทำหน้าที่เตรียม context และยอม degrade ได้ | Retrieval-first RAG, search-only job |
+| **Restricted Large-Context Profile** | โปรไฟล์ `large-context` เป็นความสามารถพิเศษที่จำกัดใช้เฉพาะ admin หรือ special workflows ที่ backend อนุญาต ไม่ใช่ตัวเลือกทั่วไปของ `rag-query` | Public long-context option, caller-driven context inflation |
+| **Big Bang AI Runtime Rollout** | การเปลี่ยน runtime policy, model identity, และ GPU scheduling หลายส่วนพร้อมกันในรอบ deploy เดียว เพราะระบบยังไม่เปิด production | Phase-gated rollout, incremental policy cutover |
+| **Big Bang Cutover Gate** | เกณฑ์ผ่านก่อน cutover ที่บังคับให้ policy contract, model switching, adaptive OCR residency, และ RAG fallback ต้องผ่านครบทั้งชุด ไม่รับ partial success | Best-effort rollout, partial completion gate |
+| **Executable-First Verification** | เกณฑ์ยืนยันผลหลักของ AI runtime rollout ต้องอิง test, log, metric, หรือ trace ที่รันซ้ำได้ แต่แต่ละแกนต้องมี manual validation path สำหรับยืนยันพฤติกรรมเชิงใช้งานจริงประกบเสมอ | Manual-only signoff, unverifiable smoke check |
+| **Single-Name Canonical Model Policy** | เมื่อประกาศ canonical model identity ใหม่ ชื่อเดียวกันต้องถูกใช้สอดคล้องกันทุกชั้นของระบบที่ผู้ใช้และนักพัฒนาเห็น ส่วนชื่อ base runtime จริงเป็น implementation detail ใน ops/runtime internals เท่านั้น | Dual naming, mixed canonical and base model labels |
+| **Canonical OCR Identity** | OCR model ต้องใช้ชื่อ canonical เดียวทุกชั้นของระบบเช่น `np-dms-ocr` โดยไม่เปิดชื่อ runtime เดิมเป็น public/internal contract หลัก | Legacy OCR runtime label as primary name, mixed OCR naming |
+| **Profile-Only Parameter Governance** | API caller ส่งได้เพียง `Execution Profile`; ค่า temperature, top_p, max tokens และ runtime parameters จริงถูกกำหนดโดย backend policy เท่านั้น | Caller parameter override, free-form runtime tuning |
+| **Integrated Retrieval Acceleration Policy** | การเร่งความเร็ว retrieval เช่น BGE embedding/reranking บน GPU เป็นส่วนหนึ่งของ AI runtime resource policy เดียวกับ main model และ OCR ไม่ใช่งาน optimization แยกอิสระ | Standalone retrieval tuning, separate GPU policy for RAG only |
 
 ---
 
@@ -226,6 +244,24 @@ _Avoid_: Throw exception from tool, Untyped error
 - **"AI = Document Controller"** — resolved: ใช้ **AI Document Assistant** (Suggest + Insight) แทน เพื่อกัน scope creep ไปทาง autonomous agent
 - **OpenRAG vs ADR-023A** — resolved: **ADR-023A เป็น canonical source** — ใช้ Qdrant + nomic-embed-text สำหรับ vector search; Elasticsearch ใช้สำหรับ keyword/full-text เท่านั้น; `specs/03-Data-and-Storage/03-07-OpenRAG.md` เป็นเอกสาร reference แต่ไม่ใช่ active spec
 - **".agents/ กับ Production AI"** — resolved: `.agents/` คือ Dev AI toolkit (ช่วยเขียนโค้ด); Production AI คือ AI Gateway + n8n + Ollama — เป็นคนละ layer กัน
+- **"np-dms-ai" vs `typhoon2.5-np-dms:latest`** — resolved: ถ้าเดินตาม AI refactor ใหม่ `np-dms-ai` คือ **Canonical AI Model Identity** ใหม่ของระบบ ไม่ใช่แค่ deploy alias
+- **"OCR keep_alive"** — resolved: policy ใหม่ควรถูกอธิบายเป็น **Adaptive OCR Residency** ตาม VRAM headroom และ active model ไม่ใช่ fixed `0` หรือ fixed `300`
+- **"`model.key` ใน API job request"** — resolved: caller ไม่ควรเลือกชื่อโมเดลตรง ๆ; ควรส่ง **Execution Profile** แล้วให้ backend policy เป็นคน map ไป model/parameters ที่อนุญาต
+- **"profile names"** — resolved: ใช้ **Canonical Profile Set** แบบเล็กและเสถียร (`fast`, `balanced`, `thai-accurate`, `large-context`) แทนการแตกชื่อ profile ตาม job ภายใน
+- **"profile สำหรับ migrate-document / auto-fill-document / OCR extraction"** — resolved: ใช้ **Policy-Enforced Profile Override**; backend บังคับ profile เองสำหรับงานที่มีผลต่อข้อมูล ไม่เปิดให้ caller เลือกคุณภาพอย่างอิสระ
+- **"BGE-M3 / Reranker บน GPU"** — resolved: ถ้าย้ายขึ้น GPU ต้องอยู่ใต้ **LLM-First GPU Ownership**; LLM/OCR มี priority สูงกว่า retrieval path เสมอ
+- **"embed/rerank ตอน VRAM ไม่พอ"** — resolved: ใช้ **CPU Fallback Retrieval**; retrieval path ต้อง degrade ไป CPU ทันที ไม่รอ GPU queue
+- **"`ai-realtime = 2`"** — resolved: ใช้ **Selective Realtime Concurrency**; เพิ่มได้เฉพาะงาน realtime ที่ไม่ชนกับ OCR/model switching และยังคง pause/resume model เดิมเป็นแกนหลัก
+- **"งานไหนได้สิทธิ์ realtime concurrency 2"** — resolved: จำกัดเฉพาะ **Lightweight Realtime Job**; ไม่รวม `rag-query`
+- **"`rag-query` ควรถูกมองเป็นอะไร"** — resolved: ใช้ **Generation-Centric RAG Query**; main model path เป็น policy หลัก ส่วน retrieval เป็นขั้นเตรียม context ที่ fallback CPU ได้
+- **"`large-context` ใช้กับอะไร"** — resolved: ใช้ **Restricted Large-Context Profile**; จำกัดเฉพาะ admin/special workflows ไม่เปิดเป็นตัวเลือกทั่วไปของ `rag-query`
+- **"rollout ของ AI refactor"** — resolved: ใช้ **Big Bang AI Runtime Rollout** แม้มีหลาย runtime policy changes พร้อมกัน เพราะระบบยังไม่เปิด production
+- **"อะไรคือเกณฑ์ผ่านของ big bang"** — resolved: ใช้ **Big Bang Cutover Gate**; ต้องผ่านครบทั้ง policy contract, model switching, adaptive OCR residency และ RAG fallback
+- **"evidence แบบไหนนับว่าผ่าน gate"** — resolved: ใช้ **Executable-First Verification** เป็นหลัก แต่ต้องมี manual validation path ควบคู่ในแต่ละแกน
+- **"`np-dms-ai` ควรตั้งชื่ออย่างไรในระบบ"** — resolved: ใช้ **Single-Name Canonical Model Policy**; `np-dms-ai` เป็นชื่อเดียวทุกชั้นที่ผู้ใช้และนักพัฒนาเห็น
+- **"`np-dms-ocr` ควรเดินตาม naming policy เดียวกันไหม"** — resolved: ใช้ **Canonical OCR Identity**; `np-dms-ocr` เป็นชื่อ canonical เดียวทุกชั้นเหมือน `np-dms-ai`
+- **"`temperature/topP/maxTokens` ใครคุม"** — resolved: ใช้ **Profile-Only Parameter Governance**; caller ส่งได้แค่ profile ส่วน runtime parameters จริงให้ backend policy คุมทั้งหมด
+- **"BGE GPU uplift อยู่ใน scope เดียวกันไหม"** — resolved: ใช้ **Integrated Retrieval Acceleration Policy**; retrieval acceleration เป็นส่วนหนึ่งของ runtime resource policy เดียวกัน
 
 ## ADRs ที่เกี่ยวข้องกับ AI Runtime Layer
 

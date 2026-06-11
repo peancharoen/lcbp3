@@ -1,537 +1,315 @@
-# AI Refactor
-เนื่องจากการอัพเกรด จาก RTX2060 SUPER 8GB เป็น ASUS DUAL **RTX5060 Ti 16GB**
+# AI Runtime Refactor
+
+เอกสารนี้สรุปผล grilling session สำหรับการ refactor AI runtime หลังอัปเกรด GPU จาก RTX 2060 SUPER 8GB เป็น ASUS DUAL RTX 5060 Ti 16GB
+
+เอกสารอ้างอิง:
+- [ADR-033](../specs/06-Decision-Records/ADR-033-active-model-and-ocr-management.md)
+- [ADR-034](../specs/06-Decision-Records/ADR-034-AI-model-change.md)
+- [ADR ใหม่: AI Runtime Policy Refactor](./adr/0001-ai-runtime-policy-refactor.md)
+- [CONTEXT.md](../CONTEXT.md)
 
 ## เป้าหมาย
-ปรับปรุงประสิทธิภาพการประมวลผล AI โดยใช้ทรัพยากรใหม่ให้เหมาะสม, รวมถึงปรับปรุงขั้นตอนการทำงานให้เหมาะสมกับทรัพยากรใหม่
 
-```text
-Typhoon OCR 1.5
-Typhoon2.5-Qwen3-4B
-BGE-M3
-การตั้งค่าระบบคิว (BullMQ) ร่วมกับ AI
-```
-## Model
+- เปลี่ยนชื่อโมเดลหลักและ OCR ไปเป็น canonical identities ใหม่
+- ย้ายสัญญา API จาก caller-driven model selection ไปเป็น policy-driven `executionProfile`
+- รวมการจัดการ VRAM ของ main model, OCR, embedding, และ reranking ไว้ใน policy เดียว
+- ใช้ big bang rollout แบบมีกติกา cutover และ verification ที่รันซ้ำได้
 
-|Model Name|Size|Base FROM|PARAMETER|File|
-|-|-|-|-|-|
-|np-dms-ocr|2.9GB|scb10x/typhoon-ocr1.5-3b:latest|num_ctx 8192|np-dms-ocr-model.md|
-|np-dms-typhoon2.5|3.6GB|scb10x/typhoon2.5-qwen3-4b:latest|num_ctx 8192|np-dms-typhoon2.5.model.md|
-|np-dms-llama3.1-typhoon2-8b|5.5GB|scb10x/llama3.1-typhoon2-8b-instruct|num_ctx 8192|np-dms-llama3.1-typhoon2-8b.model.md|
-|np-dms-gemma4-4eb|3.2GB|gemma4:e4b|num_ctx 8192|np-dms-gemma4-4eb.model.md|
-|np-dms-openthaigpt-7b|8GB|promptnow/openthaigpt1.5-7b-instruct-q4_k_m|num_ctx 8192|np-dms-openthaigpt-7b.model.md|
-|np-dms-openthaigpt-14b|9.7GB|promptnow/openthaigpt1.5-14b-instruct-q4_k_m|num_ctx 8192|np-dms-openthaigpt-14b.model.md|
+## Decision Summary
 
+### 1. Canonical naming
 
+- ใช้ `np-dms-ai` เป็น canonical model identity เดียวทุกชั้นที่ผู้ใช้และนักพัฒนาเห็น
+- ใช้ `np-dms-ocr` เป็น canonical OCR identity เดียวทุกชั้น
+- ชื่อ runtime/base model จริงเป็น implementation detail ใน Modelfile, deploy script, หรือ ops internals เท่านั้น
 
-ollama create np-dms-typhoon2.5 -f np-dms-typhoon2.5.model.md
+### 2. API contract
 
-ollama create np-dms-llama3.1-typhoon2-8b -f np-dms-llama3.1-typhoon2-8b.model.md
+- caller ส่งได้เพียง `executionProfile`
+- caller ห้ามส่ง `model.key`
+- caller ห้าม override `temperature`, `top_p`, `maxTokens`, หรือ runtime parameters อื่นโดยตรง
+- backend policy เป็นผู้ map `executionProfile` ไปยัง canonical model, runtime parameters, และ keep_alive policy
 
-ollama create np-dms-gemma4-4eb -f np-dms-gemma4-4eb.model.md
+### 3. Canonical profile set
 
-ollama create np-dms-openthaigpt-7b -f np-dms-openthaigpt-7b.model.md
+โปรไฟล์ระดับ contract มีแค่:
 
-ollama create np-dms-openthaigpt-14b -f np-dms-openthaigpt-14b.model.md
+- `fast`
+- `balanced`
+- `thai-accurate`
+- `large-context`
 
----
+กฎเพิ่ม:
 
-## Architecture Decisions (RTX5060 Ti 16GB Optimized)
+- `large-context` จำกัดเฉพาะ admin/special workflows
+- งานที่มีผลต่อข้อมูล เช่น `migrate-document`, `auto-fill-document`, OCR extraction ใช้ backend override profile เอง
 
-> สรุปการตัดสินใจจาก grilling session — อัปเกรดจาก RTX2060 SUPER 8GB
+### 4. Runtime resource policy
 
-### VRAM Budget
+- `np-dms-ai` เป็น workload หลักของ generation path
+- `np-dms-ocr` ใช้ adaptive residency แทน fixed `keep_alive`
+- retrieval acceleration (`BGE-M3`, `BGE-Reranker-Large`) อยู่ใน policy เดียวกับ main/OCR
+- GPU ownership ใช้หลัก LLM-first
+- ถ้า VRAM headroom ไม่พอ retrieval ต้อง fallback CPU ทันที
 
-| คอมโพเนนต์ | VRAM | หมายเหตุ |
-|-----------|------|----------|
-| `typhoon2.5-np-dms` | 3.6GB | โหลดค้างตลอด (resident) |
-| `typhoon-np-dms-ocr` | 2.9GB | transient (load on-demand) |
-| BGE-M3 | 2.3GB | ย้ายเข้า GPU (Sidecar device='cuda') |
-| BGE-Reranker-Large | 1.5GB | ย้ายเข้า GPU (Sidecar device='cuda') |
-| **รวมสูงสุด** | **~10.3GB** | เหลือ headroom ~5.7GB |
+### 5. Queue policy
 
-### BullMQ Concurrency
+- คงโครง `ai-realtime` / `ai-batch` และ pause/resume coordination เดิมเป็นแกน
+- อนุญาต `ai-realtime = 2` ได้เฉพาะ lightweight realtime jobs
+- `rag-query` ไม่ใช่ lightweight realtime job
+- `rag-query` เป็น generation-centric job: retrieval เป็นขั้นเตรียม context และ fallback CPU ได้
 
-| Queue | Concurrency | เหตุผล |
-|-------|-------------|--------|
-| `ai-realtime` | **2** | VRAM เหลือเยอะ, response เร็วขึ้น |
-| `ai-batch` | **1** | background job, ป้องกัน VRAM overflow |
+### 6. Rollout policy
 
-### Model Loading Strategy
+- rollout ใช้ `Big Bang`
+- cutover จะถือว่าสำเร็จต่อเมื่อผ่านครบทั้ง:
+  - policy contract
+  - model switching
+  - adaptive OCR residency
+  - RAG fallback
 
-| โมเดล | กลยุทธ์ | keep_alive |
-|-------|---------|------------|
-| `typhoon2.5-np-dms` | โหลดค้างตลอด (ไม่ unload) | — |
-| `typhoon-np-dms-ocr` | โหลดตาม demand, unload อัตโนมัติหลัง 5 นาที | 300 |
+## Canonical Models
 
-### Sidecar Changes (port 8765)
+| Canonical Name | บทบาท | Residency policy | หมายเหตุ |
+|---|---|---|---|
+| `np-dms-ai` | main generation model | resident by default | backend policy คุม runtime parameters |
+| `np-dms-ocr` | OCR model | adaptive | ใช้ policy ตาม VRAM headroom และ active workload |
 
-```diff
-# ปัจจุบัน (CPU RAM)
-POST /embed   → BGE-M3 (CPU)
-POST /rerank  → BGE-Reranker (CPU)
+หมายเหตุ:
+- เอกสารนี้ไม่บังคับว่าฐานจริงต้องเป็น model family ใดเสมอไป
+- การเปลี่ยน base runtime model ในอนาคตไม่ควรเปลี่ยน canonical API/UI name ถ้า semantics เดิมยังอยู่
 
-# หลังอัปเกรด (GPU)
-POST /embed   → BGE-M3 (GPU via device='cuda')
-POST /rerank  → BGE-Reranker (GPU via device='cuda')
-POST /ocr-upload  → Typhoon OCR (Ollama) ← ไม่เปลี่ยน
-POST /normalize   → PyThaiNLP (CPU)      ← ไม่เปลี่ยน
-```
+## Execution Profile Contract
 
-### Implementation Tasks
+### Request DTO
 
-- [ ] แก้ไข Sidecar Dockerfile — เพิ่ม CUDA runtime
-- [ ] แก้ไข Sidecar app.py — เปลี่ยน `device='cuda'` สำหรับ BGE models
-- [ ] แก้ไข docker-compose.yml — เพิ่ม NVIDIA Container Toolkit
-- [ ] อัปเดต BullMQ concurrency config (ai-realtime=2)
-- [ ] อัปเดต OCR keep_alive จาก 0 เป็น 300
-- [ ] ตรวจสอบ OllamaService รองรับ resident model
-- [ ] ทดสอบ VRAM usage จริงกับเอกสารขนาดใหญ่
-
-### Rollout Strategy
-
-**Big Bang** — ระบบยังไม่เปิดใช้งาน production ทำการเปลี่ยนแปลงทั้งหมดในครั้งเดียว
-
----
-
-# Phase 1 : Foundation
-
-## 1. Infrastructure
-
-### AI Services
-
-```text
-Ollama
-├── Typhoon OCR 1.5
-├── Typhoon2.5-Qwen3-4B
-└── BGE-M3
-```
-
-### Database
-
-```text
-Qdrant
-```
-
-### Storage AI
-
-```text
-File Serv
-├── OCR Output
-└── Processed Data
-```
-
----
-
-# Phase 2 : Ingestion Pipeline
-
-## Step 1 Upload
-
-```text
-PDF Upload
-↓
-Store Original File
-↓
-Create Job
-```
-
----
-
-## Step 2 OCR
-
-### Input
-
-```text
-PDF
-```
-
-### Process
-
-```text
-Typhoon OCR
-```
-
-### Output
-
-```json
-{
-  "page": 1,
-  "content": "..."
+```typescript
+interface CreateAiJobRequest {
+  type: 'auto-fill-document' | 'migrate-document' | 'rag-query';
+  documentId?: string;
+  attachmentId?: string;
+  executionProfile?: 'fast' | 'balanced' | 'thai-accurate' | 'large-context';
 }
 ```
 
-Store
+### Policy rules
 
-```text
-raw_ocr
-```
+- `migrate-document`: backend override เป็น profile ที่ deterministic สูงเสมอ
+- `auto-fill-document`: backend override ได้ตาม data-affecting policy
+- `rag-query`: ปกติใช้ `balanced` หรือ policy ที่ backend กำหนด
+- `large-context`: ใช้ได้เฉพาะ admin/special workflows ที่ backend whitelist
 
-Table
+### Forbidden contract
 
-```sql
-document_pages
-```
+สิ่งต่อไปนี้ต้องไม่มีใน public contract:
 
-```sql
-document_id
-page_no
-raw_text
-```
-
----
-
-## Step 3 Structure
-
-### Input
-
-```text
-Raw OCR Text
-```
-
-### Process
-
-```text
-Typhoon2.5
-```
-
-Prompt
-
-```text
-จัดโครงสร้างเอกสาร
-แยก Heading
-Section
-Metadata
-ห้ามสรุป
-```
-
-Output
-
-```json
-{
-  "document_type": "ITP",
-  "project": "...",
-  "heading": "...",
-  "content": "..."
+```typescript
+model: {
+  key: string;
+  parameters: {
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+  };
 }
 ```
 
-Store
+เหตุผล:
+- caller bypass governance ได้
+- verification matrix โตเกินจำเป็น
+- profile abstraction หมดความหมายทันที
+
+## Adaptive OCR Residency
+
+หลักการ:
+
+- `np-dms-ocr` ไม่ใช้ fixed `keep_alive: 0` หรือ fixed `keep_alive: 300` ตายตัว
+- backend policy คำนวณ residency จาก VRAM headroom และ active model/workload ปัจจุบัน
+- ถ้า active workload กิน VRAM สูง หรือ profile ปัจจุบันเสี่ยงชน headroom ให้ fallback เป็น `keep_alive: 0`
+- ถ้า headroom เหลือและไม่มี contention สำคัญ อนุญาต residency window ชั่วคราวได้
+
+ตัวอย่าง policy:
 
 ```text
-structured_document
+if active_profile == 'large-context' => OCR keep_alive = 0
+if active_main_model_pressure == high => OCR keep_alive = 0
+if headroom >= policy threshold => OCR keep_alive = short residency window
 ```
 
----
+## LLM-First GPU Ownership
 
-## Step 4 Chunking
+ลำดับสิทธิ์ VRAM:
 
-### ไม่ใช้ LLM
+1. `np-dms-ai`
+2. `np-dms-ocr`
+3. `BGE-M3`
+4. `BGE-Reranker-Large`
 
-ใช้
+ผลเชิงพฤติกรรม:
+
+- retrieval path ใช้ GPU ได้เฉพาะเมื่อ policy ระบุว่ามี headroom จริง
+- retrieval path ไม่มีสิทธิ์บังคับรอ GPU เพื่อแย่ง resource จาก main/OCR path
+- หาก headroom ไม่พอ `embed` และ `rerank` ต้อง fallback CPU ทันที
+
+## Retrieval Acceleration
+
+### Scope
+
+เอกสารนี้ถือว่า retrieval acceleration เป็นส่วนหนึ่งของ runtime resource policy เดียวกัน ไม่ใช่ tuning แยก
+
+### Sidecar policy
+
+ปัจจุบัน:
 
 ```text
-Markdown Header Splitter
-+
-Recursive Splitter
+POST /embed   -> CPU
+POST /rerank  -> CPU
 ```
 
-Config
-
-```yaml
-chunk_size: 800
-chunk_overlap: 120
-```
-
-Output
-
-```json
-{
-  "chunk_id": "...",
-  "heading": "...",
-  "content": "...",
-  "page": 12
-}
-```
-
----
-
-## Step 5 Embedding
-
-### Input
+เป้าหมาย:
 
 ```text
-Chunk
+POST /embed   -> GPU เมื่อ headroom ผ่าน policy, ไม่เช่นนั้นใช้ CPU
+POST /rerank  -> GPU เมื่อ headroom ผ่าน policy, ไม่เช่นนั้นใช้ CPU
+POST /ocr-upload -> OCR path ตาม adaptive OCR residency
+POST /normalize  -> CPU
 ```
 
-### Process
+### Retrieval fallback rule
 
-```text
-BGE-M3
-```
+- ห้าม queue รอ GPU เพื่อให้ retrieval ได้ acceleration
+- ห้าม fail hard เพียงเพราะ GPU ไม่พอ
+- ให้ degrade ไป CPU แล้วตอบงานต่อ
 
-### Output
+## Queue and Scheduling
 
-```text
-Vector
-```
+### Baseline
 
----
+- `ai-batch` ยังสามารถถูก pause/resume โดย realtime path ตาม coordination model เดิม
+- `ai-realtime = 1` ยังคงเป็น baseline สำหรับงาน generation-heavy
 
-## Step 6 Index
+### Selective realtime uplift
 
-Store in
+อนุญาต `ai-realtime = 2` เฉพาะกลุ่มงานที่เป็น lightweight realtime jobs เช่น:
 
-```text
-Qdrant
-```
+- intent classification ที่ไม่เรียก OCR
+- tool-only suggestion path ที่ไม่บังคับ model switching
+- metadata-free chat steps ที่ไม่ใช้ GPU-heavy generation
 
-Payload
+ไม่รวม:
 
-```json
-{
-  "document_id": "...",
-  "page": 12,
-  "document_type": "ITP",
-  "heading": "Inspection",
-  "content": "..."
-}
-```
+- `rag-query`
+- OCR-triggering jobs
+- งานที่บังคับ model switching
+- generation-heavy jobs
 
----
+## Big Bang Rollout
 
-# Phase 3 : Retrieval
+### Decision
 
-## Step 1 User Query
+refactor รอบนี้ใช้ big bang rollout เพราะระบบยังไม่เปิด production
 
-```text
-Slump Test สำหรับงานพื้นชั้น 2 คืออะไร
-```
+### Consequence
 
----
+ห้ามใช้เกณฑ์ partial success แบบ "บางแกนผ่านก็ถือว่าปล่อยได้"
 
-## Step 2 Query Embedding
+### Cutover gate
 
-```text
-BGE-M3
-```
+ต้องผ่านครบทุกแกน:
 
----
+1. policy contract ใหม่ทำงานจริง
+2. canonical naming ใหม่ทำงานจริง
+3. model switching และ OCR residency ตรง policy ใหม่
+4. retrieval GPU/CPU fallback ทำงานจริง
 
-## Step 3 Search
+## Verification
 
-```text
-Qdrant
-```
+ใช้แนวทาง executable-first แต่ทุกแกนต้องมี manual validation path ประกบ
 
-Top K
+### 1. Policy contract
 
-```text
-10-20
-```
+Executable:
 
----
+- unit/integration tests สำหรับ DTO และ policy mapping
+- tests ว่า caller ส่ง `model.key` หรือ parameter overrides ไม่ได้
+- tests ว่า data-affecting jobs ถูก backend override profile จริง
 
-## Step 4 Re-rank (แนะนำ)
+Manual:
 
-ใช้
+- ยิง request จาก admin/sandbox แล้วตรวจว่า UI/API ไม่ expose free-form model selection
 
-```text
-Typhoon2.5
-```
+### 2. Canonical naming
 
-หรือภายหลังเพิ่ม
+Executable:
 
-```text
-bge-reranker-v2
-```
+- search-based checks ว่า public-facing contract ใช้ `np-dms-ai` / `np-dms-ocr`
+- tests สำหรับ settings/service/controller ที่คืนชื่อ canonical
 
-Flow
+Manual:
 
-```text
-Top20
-↓
-Top5
-```
+- เปิด AI Admin Console และ OCR sandbox ตรวจ label/option/log surface ที่ผู้ใช้เห็น
 
----
+### 3. Adaptive OCR residency
 
-## Step 5 Answer
+Executable:
 
-ใช้
+- tests ว่า residency policy ให้ `keep_alive` ต่างกันตาม headroom scenario
+- logs/trace ว่า OCR requests ใช้ residency decision ตาม policy
 
-```text
-Typhoon2.5
-```
+Manual:
 
-Prompt
+- รัน OCR ซ้ำหลายงานในเงื่อนไข headroom ต่างกันและตรวจ behavior จริง
 
-```text
-ตอบจาก Context เท่านั้น
-อ้างอิงเอกสาร
-อ้างอิงหน้า
-ห้ามเดา
-```
+### 4. Retrieval fallback
 
-Output
+Executable:
 
-```text
-คำตอบ
+- tests ว่า `/embed` และ `/rerank` fallback CPU เมื่อ GPU threshold ไม่ผ่าน
+- trace/log ว่า `rag-query` ยังตอบได้เมื่อ GPU retrieval path ถูกปิด
 
-อ้างอิง:
-ITP-001 หน้า 12
-MS-005 หน้า 8
-```
+Manual:
 
----
+- ทดลอง RAG query ภายใต้ภาระ GPU สูงและยืนยันว่าคำตอบยังออกได้แม้ช้าลง
 
-# Phase 4 : Metadata Extraction
+## Implementation Workstreams
 
-เพิ่มภายหลัง
+### Workstream A: Contract and naming
 
-Typhoon2.5 Extract
+- เปลี่ยน public contract ให้ใช้ `executionProfile`
+- ลบ `model.key` และ parameter override จาก API docs/DTO ที่เกี่ยวข้อง
+- เปลี่ยน public-facing names เป็น `np-dms-ai` และ `np-dms-ocr`
 
-```text
-Project
-Contractor
-Subcontractor
-Discipline
-Document Type
-Revision
-Date
-```
+### Workstream B: Runtime policy
 
-เก็บใน PostgreSQL
+- สร้าง policy mapping profile -> runtime configuration
+- เพิ่ม adaptive OCR residency logic
+- แยก policy ของ data-affecting jobs ออกจาก caller input
 
-ช่วยทำ Filter Search เช่น
+### Workstream C: Retrieval acceleration
 
-```text
-Project = ABC
-Type = MIR
-Revision = C
-```
+- เพิ่ม GPU eligibility check สำหรับ `embed` และ `rerank`
+- เพิ่ม CPU fallback path ที่ explicit
+- บันทึก telemetry/log สำหรับ fallback decisions
 
-ก่อนเข้า Qdrant
+### Workstream D: Queue policy
 
----
+- คง pause/resume coordination เดิม
+- แยก lightweight realtime jobs ออกจาก generation-heavy jobs
+- ใช้ selective concurrency uplift เฉพาะ job ที่ allowed
 
-# Ollama Models
+### Workstream E: Verification
 
-## Typhoon OCR
+- เพิ่ม automated tests ตาม cutover gate
+- เพิ่ม manual validation checklist สำหรับ admin console, OCR sandbox, และ RAG path
 
-```dockerfile
-FROM scb10x/typhoon-ocr1.5-3b:latest
-```
+## Non-Goals
 
-ไม่ต้อง custom
+- ไม่เปิดให้ caller เลือก runtime parameters เอง
+- ไม่เปลี่ยน `rag-query` ให้เป็น retrieval-first job
+- ไม่ยกเลิก pause/resume coordination เดิมทั้งหมด
+- ไม่แยก retrieval acceleration ออกเป็น policy คนละชุดกับ main/OCR
+- ไม่ใช้ phased rollout ในเอกสารฉบับนี้
 
----
+## Migration Note for Current Repo
 
-## Typhoon2.5
-
-```dockerfile
-FROM scb10x/typhoon2.5-qwen3-4b:latest
-
-PARAMETER temperature 0.1
-PARAMETER top_p 0.9
-PARAMETER repeat_penalty 1.05
-PARAMETER num_ctx 8192
-```
-
-**ไม่มี SYSTEM**
-
----
-
-## Runtime Config
-
-### Structure
-
-```json
-{
-  "num_ctx": 8192,
-  "temperature": 0
-}
-```
-
-### Answer
-
-```json
-{
-  "num_ctx": 16384,
-  "temperature": 0.1
-}
-```
-
----
-
-# MVP Roadmap
-
-## Sprint 1
-
-✅ Upload PDF
-✅ OCR
-✅ Store OCR
-✅ Chunking
-✅ Embedding
-✅ Qdrant Search
-
----
-
-## Sprint 2
-
-✅ Typhoon2.5 Structuring
-✅ Metadata Extraction
-✅ Better Chunking
-
----
-
-## Sprint 3
-
-✅ RAG QA
-✅ Citation
-✅ Source Reference
-
----
-
-## Sprint 4
-
-✅ Hybrid Search (Vector + Metadata)
-✅ Re-ranking
-✅ Multi-document QA
-
----
-
-### Architecture สุดท้าย
-
-```text
-PDF
- ↓
-Typhoon OCR
- ↓
-Raw OCR
- ↓
-Typhoon2.5
-(Structure + Metadata)
- ↓
-Markdown/Header Splitter
- ↓
-Recursive Splitter
- ↓
-BGE-M3
- ↓
-Qdrant
-
---------------------------------
-
-Question
- ↓
-BGE-M3
- ↓
-Qdrant
- ↓
-Top-K Chunks
- ↓
-Typhoon2.5
- ↓
-Answer + Citation
-```
-
-สำหรับ MVP ผมจะ **ตัด Metadata Extraction ขั้นสูงและ Re-ranker ออกก่อน** แล้วทำให้ OCR → Search → Answer ใช้งานได้จริงภายใน 2–3 สัปดาห์แรก จากนั้นค่อยเพิ่มความแม่นยำทีละส่วน.
+repo ปัจจุบันยังมีจุดที่อิงชื่อและ policy เดิม เช่น `typhoon2.5-np-dms:latest`, `typhoon-np-dms-ocr:latest`, และ `keep_alive: 0` ในหลาย service/spec. เอกสารนี้จึงเป็น target architecture/policy ใหม่ และต้องมีการอัปเดตโค้ด, tests, cross-spec docs, และ admin UI ให้สอดคล้องก่อนจะถือว่า cutover สำเร็จ.
