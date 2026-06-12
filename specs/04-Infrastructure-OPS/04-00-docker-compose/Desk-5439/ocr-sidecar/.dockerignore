@@ -1,0 +1,49 @@
+# Docker build context exclusions
+# ลดเวลา build โดยข้ามไฟล์ที่ไม่จำเป็น
+# docker compose build --no-cache  # ครั้งแรกให้สะอาด
+# docker compose up -d
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Tests (ไม่ต้องการใน production image)
+tests/
+*.spec.py
+
+# Documentation
+*.md
+!README.md
+
+# Environment files (security)
+.env
+.env.*
+!.env.example
+
+# Docker files themselves
+.dockerignore
+docker-compose*.yml
+Dockerfile*
+
+# Misc
+*.log
+.DS_Store
+Thumbs.db
